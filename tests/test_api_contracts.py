@@ -1274,6 +1274,18 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("480元起/晚", brief)
         self.assertIn("免费穿梭巴士", brief)
         self.assertIn("不要写Markdown粗体小标题", brief)
+        self.assertIn("至少自然保留3项", brief)
+
+    def test_fashion_and_home_safe_fact_briefs_are_domain_specific(self):
+        fashion = api._safe_fact_delivery_brief("穿搭", "身材：梨形\n单品：直筒西裤\n价格：199元")
+        self.assertIn("穿搭事实与自然度策略", fashion)
+        self.assertIn("价格按实际链接/门店为准", fashion)
+        self.assertIn("160穿出165", fashion)
+
+        home = api._safe_fact_delivery_brief("家居", "空间：4平阳台\n预算：2600元\n清单：洞洞板、洗衣柜")
+        self.assertIn("家居复刻事实策略", home)
+        self.assertIn("正文前120字", home)
+        self.assertIn("预算按实际单品清单为准", home)
 
     def test_travel_delivery_cleanup_removes_markdown_and_unsupported_value_claims(self):
         source = "\n".join([
@@ -1532,6 +1544,28 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("不能漏最后一个动作", api._quality_expression_brief("健身"))
         self.assertIn("我自己试过", api._quality_expression_brief("健身"))
         self.assertIn("身材场景搭配公式", api._quality_expression_brief("穿搭"))
+        self.assertIn("160穿出165", api._quality_expression_brief("穿搭"))
+        self.assertIn("起价/预算", api._quality_expression_brief("旅行"))
+        self.assertIn("正文前120字", api._quality_expression_brief("家居"))
+
+    def test_fashion_overpromise_is_repaired_and_flagged(self):
+        bad_title = "梨形遮胯公式推荐，160穿出165腿"
+        title_issues = api._title_readability_issues(bad_title, "穿搭")
+        self.assertTrue(any("夸大身材变化" in issue for issue in title_issues), title_issues)
+        repaired_title = api._sanitize_title_for_delivery(bad_title, "", "穿搭")
+        self.assertEqual(repaired_title, "梨形通勤遮胯显高公式")
+        self.assertLessEqual(len(repaired_title), api._TITLE_DELIVERY_MAX)
+        self.assertFalse(api._title_readability_issues(repaired_title, "穿搭"))
+
+        raw_body = (
+            "160cm穿完直接有165的既视感，视觉像是凭空多出来五厘米，"
+            "同事都说我瘦了。价格按实际链接为准。点赞收藏。#梨形穿搭 #通勤穿搭"
+        )
+        shaped = api._insert_safe_fact_line(raw_body, "穿搭", "身材：160cm梨形\n单品：直筒西裤")
+        self.assertNotIn("165", shaped)
+        self.assertNotIn("多出来五厘米", shaped)
+        self.assertNotIn("同事都说我瘦了", shaped)
+        self.assertIn("比例", shaped)
 
     def test_travel_markdown_cleanup_preserves_xiaohongshu_hashtags(self):
         raw = "# 方案一\n亚龙湾酒店按预算和沙滩距离选。\n#三亚旅游 #亚龙湾酒店"
@@ -1540,6 +1574,26 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("#三亚旅游 #亚龙湾酒店", cleaned)
         issues = api._human_readability_issues("亚龙湾酒店按预算和沙滩距离选。\n#三亚旅游 #亚龙湾酒店", "旅行")
         self.assertFalse(any("Markdown" in issue for issue in issues), issues)
+
+    def test_travel_and_home_density_issues_are_soft_repair_signals(self):
+        travel_source = "\n".join([
+            "- 已核验事实：事实源：美团酒旅 skill",
+            "- 已核验事实：广州星河湾酒店：美团五星级，美团真实评分4.6，480元起/晚，免费穿梭巴士去长隆欢乐世界，早餐有现做米粉",
+        ])
+        weak_travel = "这家亲子酒店适合去长隆，整体比较省心，适合带娃。点赞收藏。#广州旅行 #亲子酒店"
+        strong_travel = "广州星河湾酒店480元起/晚，美团真实评分4.6，免费穿梭巴士去长隆，早餐有现做米粉，适合优先省交通的亲子家庭。点赞收藏。#广州旅行 #亲子酒店"
+        weak_issues = api._delivery_integrity_issues(weak_travel, travel_source, "旅行")
+        self.assertTrue(any("事实密度不足" in issue for issue in weak_issues), weak_issues)
+        self.assertFalse(api._has_blocking_quality_issues(70.0, weak_issues, "旅行"))
+        self.assertFalse(api._delivery_integrity_issues(strong_travel, travel_source, "旅行"))
+
+        home_source = "空间：4平阳台\n预算：2600元\n清单：洞洞板、洗衣柜、折叠台面\n痛点：洗衣区杂乱、拿取不顺"
+        weak_home = "4平阳台改造后好看很多，整体更干净，适合小户型参考。点赞收藏。#阳台改造 #小户型"
+        strong_home = "4平阳台2600元改完，洗衣区从杂乱变顺手，洞洞板收纳清洁工具，洗衣柜藏杂物，折叠台面让晾晒动线更顺，复刻前先量尺寸。点赞收藏。#阳台改造 #小户型"
+        home_issues = api._delivery_integrity_issues(weak_home, home_source, "家居")
+        self.assertTrue(any("复刻信息不足" in issue for issue in home_issues), home_issues)
+        self.assertFalse(api._has_blocking_quality_issues(70.0, home_issues, "家居"))
+        self.assertFalse(api._delivery_integrity_issues(strong_home, home_source, "家居"))
 
     def test_travel_route_time_windows_are_not_business_hours(self):
         route_text = "DAY 1 上午09:00-12:00走断桥和白堤，下午14:00-16:30去灵隐寺。"
@@ -1616,6 +1670,11 @@ class ApiContractTests(unittest.TestCase):
         hotel_price_tail = "三亚亚龙湾5家亲子酒店怎么选，价格差"
         hotel_facility_tail = "三亚亚龙湾五家亲子酒店，价格、设施"
         hotel_room_tail = "广州长隆亲子酒店按预算选，班车早餐房"
+        fashion_high_waist_tail = "梨形160显高显遮胯：短上衣+高腰A"
+        home_storage_tail = "4平阳台洗衣区改造，2600元搞定收"
+        home_folding_tail = "4平阳台洗衣区改造，2600元让折叠"
+        home_complete_tail = "4平小阳台洗衣改造，2600元做完整"
+        home_build_tail = "4平阳台洗衣区改造，2600元打造"
         fitness_round_tail = "18分钟膝盖友好减脂，4个动作3轮搞"
         fitness_new_tail = "18分钟膝盖友好居家减脂，4个动作新"
         fitness_count_tail = "膝盖友好的18分钟居家减脂训练，4个"
@@ -1648,6 +1707,11 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(hotel_price_tail, "旅行")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(hotel_facility_tail, "旅行")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(hotel_room_tail, "旅行")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(fashion_high_waist_tail, "穿搭")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(home_storage_tail, "家居")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(home_folding_tail, "家居")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(home_complete_tail, "家居")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(home_build_tail, "家居")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(fitness_round_tail, "健身")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(fitness_new_tail, "健身")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(fitness_count_tail, "健身")))
@@ -1688,6 +1752,11 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(api._sanitize_title_for_delivery(hotel_tail_distance, "", "旅行"), "成都太古里春熙路酒店怎么选")
         self.assertEqual(api._sanitize_title_for_delivery(hotel_tail_is, "", "旅行"), "北京国贸出差酒店怎么选")
         self.assertEqual(api._sanitize_title_for_delivery(hotel_tail_compare, "", "旅行"), "国贸出差酒店按通勤隔音选")
+        self.assertEqual(api._sanitize_title_for_delivery(fashion_high_waist_tail, "", "穿搭"), "梨形160通勤显高遮胯公式")
+        self.assertEqual(api._sanitize_title_for_delivery(home_storage_tail, "", "家居"), "4平阳台洗衣区，2600元顺手收纳")
+        self.assertEqual(api._sanitize_title_for_delivery(home_folding_tail, "", "家居"), "4平阳台洗衣区，2600元顺手收纳")
+        self.assertEqual(api._sanitize_title_for_delivery(home_complete_tail, "", "家居"), "4平小阳台洗衣区，2600元顺手收纳")
+        self.assertEqual(api._sanitize_title_for_delivery(home_build_tail, "", "家居"), "4平阳台洗衣区，2600元顺手收纳")
         self.assertEqual(api._sanitize_title_for_delivery(fitness_round_tail, "", "健身"), "18分钟膝盖友好减脂，4个动作3轮")
         self.assertEqual(api._sanitize_title_for_delivery(fitness_new_tail, "", "健身"), "18分钟膝盖友好减脂，4个动作")
         self.assertEqual(api._sanitize_title_for_delivery(fitness_count_tail, "", "健身"), "膝盖友好18分钟减脂，4个动作")
@@ -1786,10 +1855,24 @@ class ApiContractTests(unittest.TestCase):
 
         fashion_lift_text = "\n".join(api._v04_generation_lift_instructions({"body_has_price": 0}, "穿搭", 66.0))
         beauty_lift_text = "\n".join(api._v04_generation_lift_instructions({"body_has_price": 0}, "美妆", 66.0))
-        travel_lift_text = "\n".join(api._v04_generation_lift_instructions({"body_has_price": 0, "body_has_transport": 0}, "旅行", 66.0))
+        travel_lift_text = "\n".join(api._v04_generation_lift_instructions(
+            {"body_has_price": 0, "body_has_transport": 0},
+            "旅行",
+            66.0,
+            "广州长隆酒店：美团真实评分4.8，￥929起/晚，免费穿梭巴士",
+        ))
+        home_lift_text = "\n".join(api._v04_generation_lift_instructions(
+            {"body_has_price": 0},
+            "家居",
+            66.0,
+            "4平阳台，预算2600元，清单洞洞板、洗衣柜",
+        ))
         self.assertIn("价格按实际链接/门店为准", fashion_lift_text)
+        self.assertIn("禁止穿出165", fashion_lift_text)
         self.assertIn("价格按购买渠道为准", beauty_lift_text)
         self.assertIn("交通/路线", travel_lift_text)
+        self.assertIn("美团评分/起价/位置/交通", travel_lift_text)
+        self.assertIn("空间痛点", home_lift_text)
 
     def test_score_directed_second_pass_runs_for_low_v04_without_explicit_issue(self):
         original_call = api._mr.call

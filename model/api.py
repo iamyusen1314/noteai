@@ -1459,8 +1459,8 @@ _GENERATION_PLANNING_RULES: dict[str, dict[str, str]] = {
     },
     "旅行": {
         "title": "目的地/商圈 + 天数或酒店选择维度 + 决策价值词（推荐/值得/避坑/怎么选）",
-        "structure": "开头写适合谁和值不值得选；酒店类按预算/评分/交通/设施做取舍，路线类按时间顺序和体力节奏写；结尾写注意事项和收藏理由。",
-        "required_terms": "正文必须出现路线/交通/预算/酒店设施/避坑或注意事项中的核心信息；标题优先带目的地、天数或选择维度。",
+        "structure": "开头120字内写适合谁、预算/起价或交通定位；酒店类按预算/评分/交通/设施做取舍，路线类按时间顺序和体力节奏写；结尾写注意事项和收藏理由。",
+        "required_terms": "正文必须出现路线/交通/预算/酒店设施/避坑或注意事项中的核心信息；酒店事实源可用时至少自然保留起价、评分、位置、交通/权益中的3项。",
         "core_repeat": "核心词建议：目的地、酒店商圈、核心景点/酒店/路线名重复2-4次。",
         "facts": "天数、预算、酒店价格/评分、地铁或景区距离、早餐/亲子/商务设施、路线时间窗；只能引用已核验事实，缺失时不编造。",
         "allowed_tone": "允许：推荐、值得、怎么选、省心、适合亲子/商务；避免必住、闭眼冲、最划算、提前预订更便宜等无依据承诺。",
@@ -1471,7 +1471,7 @@ _GENERATION_PLANNING_RULES: dict[str, dict[str, str]] = {
         "required_terms": "正文必须明确适合身材或场合，并解释搭配逻辑；标题优先出现公式/显瘦/显高/通勤/约会等词。",
         "core_repeat": "核心词建议：核心单品、风格词、身材词重复2-4次。",
         "facts": "品牌/渠道/价格/尺码/身高体重仅来自用户信息；缺失时可写补充建议。",
-        "allowed_tone": "允许：显瘦、显高、公式、推荐、值得入；避免虚构试穿和夸大身材变化。",
+        "allowed_tone": "允许：显瘦、显高、公式、推荐、值得入；禁止穿出165、秒变170、多五厘米、腿长一米八、瘦十斤等夸大身材变化。",
     },
     "美妆": {
         "title": "肤质/妆效 + 产品/色号 + 实测/推荐/适合",
@@ -1483,8 +1483,8 @@ _GENERATION_PLANNING_RULES: dict[str, dict[str, str]] = {
     },
     "家居": {
         "title": "空间/面积/预算 + 改造结果 + 清单/值得",
-        "structure": "开头写空间痛点和改造目标；中段写单品清单、动线/收纳/材质；结尾写预算、复用建议和收藏理由。",
-        "required_terms": "正文必须有空间痛点、改造逻辑或清单；标题优先带空间类型/面积/风格。",
+        "structure": "开头120字内写空间面积、预算或预算口径、核心痛点和改造结果；中段写单品清单、动线/收纳/材质；结尾写复刻顺序和收藏理由。",
+        "required_terms": "正文必须有空间痛点、单品清单、动线/收纳变化和复刻步骤；标题优先带空间类型/面积/预算或改造结果。",
         "core_repeat": "核心词建议：空间名、风格词、核心单品重复2-4次。",
         "facts": "面积、预算、尺寸、品牌、价格只来自用户信息；缺失时不编造数字。",
         "allowed_tone": "允许：清单、值得、好复刻、收纳稳；避免虚假施工经历。",
@@ -2076,20 +2076,20 @@ def _domain_candidate_angle(domain: str | None, index: int = 0) -> str:
             "菜品种草型：围绕1-2个核心菜品展开口感和点单顺序，再补门店事实和适合/不适合，避免清单堆砌。",
         ],
         "旅行": [
-            "路线取舍型：先给适合人群和路线节奏，再讲交通、住宿/景点、预算确认方式和避坑，像可执行攻略。",
-            "酒旅权益型：围绕酒店/景点权益、位置、交通和适合人群写清选择理由，事实只来自已核验来源。",
+            "路线取舍型：前120字先给适合人群、路线节奏和预算/交通口径，再讲住宿/景点、体力安排和避坑，像可执行攻略。",
+            "酒旅决策型：前120字保留酒店起价/评分/位置/交通权益中的至少3项，再写预算优先、亲子/商务设施或通勤取舍，事实只来自已核验来源。",
         ],
         "美妆": [
             "肤质决策型：先讲适合肤质/场景，再写用量手法、妆效边界、价格渠道确认方式，不写无依据功效。",
             "真实试用型：把产品名、色号/质地、上脸效果、缺点和适合人群写成自然体验，不机械种草。",
         ],
         "穿搭": [
-            "场景搭配型：先讲身形/场景，再写单品版型、颜色比例、价格渠道确认方式和复用公式。",
-            "单品复用型：围绕1-2件核心单品写清搭配逻辑、适合/不适合和复刻清单，避免空泛审美词。",
+            "场景搭配型：先讲身形/场景，再写单品版型、颜色比例、价格渠道确认方式和复用公式；避免穿出165、多五厘米等身高承诺。",
+            "单品复用型：围绕1-2件核心单品写清搭配逻辑、适合/不适合和复刻清单，用比例更利落替代夸大身材变化。",
         ],
         "家居": [
-            "改造前后型：从原痛点切入，写单品/动线/收纳变化，再给复刻步骤和预算尺寸确认方式。",
-            "清单复刻型：围绕核心单品写清位置、尺寸/预算边界、使用变化和踩坑，像能照着买。",
+            "预算动线型：前120字写清空间面积/预算/核心痛点和改造结果，再写单品、动线、收纳变化和复刻顺序。",
+            "清单复刻型：围绕核心单品写清位置、尺寸/预算边界、使用变化和踩坑，每个单品绑定一个作用，像能照着买。",
         ],
         "健身": [
             "动作方案型：先讲适合人群和目标，再写动作顺序、组数/时长、发力要点、安全替代和收藏理由。",
@@ -2212,10 +2212,10 @@ def _v04_generation_lift_instructions(
 
     domain_item = {
         "美食": "美食提质：围绕1-2个招牌/推荐菜写清点单顺序、口感判断、适合人群和到店决策；高德事实可用时写地址/营业，缺失时用门店页为准",
-        "旅行": "旅行提质：按路线/酒店/景点取舍写，补交通路径、体力节奏、预算确认方式和注意事项；美团酒旅事实可用时优先引用",
-        "穿搭": "穿搭提质：补身材/场合、单品材质或版型、颜色比例、复用公式；价格缺失时写按实际链接/门店为准，不硬造数字",
+        "旅行": "旅行提质：按路线/酒店/景点取舍写；酒店酒旅稿前120字保留起价/评分/位置/交通权益中的至少3项，再补体力节奏、预算确认方式和注意事项",
+        "穿搭": "穿搭提质：补身材/场合、单品材质或版型、颜色比例、复用公式；价格缺失时写按实际链接/门店为准，禁止穿出165、多五厘米、秒变170等身高承诺",
         "美妆": "美妆提质：补肤质、用量、手法、妆效边界和适合/不适合；色号/价格缺失时不占位，不写虚假实测",
-        "家居": "家居提质：从清单升级为改造前痛点→单品/动线→现在变化→复刻步骤；尺寸预算只用已提供事实",
+        "家居": "家居提质：从清单升级为改造前痛点→单品/动线→现在变化→复刻步骤；前120字写清空间/预算/结果，每个单品绑定收纳、动线、清洁或采光作用",
         "健身": "健身提质：补动作顺序、次数/时长、呼吸发力、强度替代和安全提醒；不写7天瘦/21天明显变化这类保证",
         "母婴": "母婴提质：补月龄、安全边界、3步操作、观察指标和不适合情况；未提供宝宝反应时不写我家娃/第一次就爱上",
     }.get(canonical)
@@ -2245,15 +2245,20 @@ def _v04_generation_lift_instructions(
             slot_items.append("旅行商业槽位缺交通/路线：写清地铁/步行/接驳/自驾/路线取舍；事实源缺失时写出发前按地图确认")
         if not features.get("body_has_price", 0):
             slot_items.append("旅行商业槽位缺预算/价格：美团酒旅有起价就引用；缺失时写「预算按实际交通和住宿为准」，不编造金额")
+        if source_context and re.search(r"(?:美团|酒店|住宿|元起/晚|￥|评分|早餐|亲子|商务)", source_context):
+            slot_items.append("旅行酒旅事实密度不足时：正文至少自然保留美团评分/起价/位置/交通或设施中的3项，首段先帮读者做取舍")
     elif canonical == "穿搭":
         if not features.get("body_has_price", 0):
             slot_items.append("穿搭商业槽位缺价格/渠道：已提供价格必须绑定单品；缺失时写「价格按实际链接/门店为准」")
+        slot_items.append("穿搭自然度：用「比例更利落、腰线更清楚、遮胯更明显」替代「160穿出165、秒变170、凭空多五厘米、瘦十斤」")
     elif canonical == "美妆":
         if not features.get("body_has_price", 0):
             slot_items.append("美妆商业槽位缺价格/渠道：已提供价格必须绑定产品；缺失时写「价格按购买渠道为准」")
     elif canonical == "家居":
         if not features.get("body_has_price", 0):
             slot_items.append("家居商业槽位缺预算/单品价：已提供预算必须写进复刻建议；缺失时写「预算按实际单品清单为准」")
+        if source_context and re.search(r"(?:预算|清单|单品|动线|收纳|改造|元|平)", source_context):
+            slot_items.append("家居复刻密度：正文必须同时写空间痛点、预算/尺寸口径、单品清单、动线/收纳变化和复刻顺序")
     for slot_item in slot_items:
         if slot_item not in items:
             items.append(slot_item)
@@ -4064,6 +4069,7 @@ def _repair_dangling_title_tail(text: str) -> str:
         "广州亲子酒店住珠江新城挺省心，地铁8": "广州亲子酒店，地铁8分钟更省心",
         "梨形身材夏季通勤3套显高公式，遮胯显": "梨形通勤3套，显高遮胯",
         "175男生通勤搭配公式：黑白灰蓝显干": "175男生通勤搭配，黑白灰蓝显干净",
+        "梨形160显高显遮胯：短上衣+高腰A": "梨形160通勤显高遮胯公式",
         "4平阳台洗衣区2600元改造，收纳动": "4平阳台洗衣区，收纳动线这样改",
         "12平卧室1500元改造，灯光窗帘让": "12平卧室改造，灯光窗帘很关键",
         "12平卧室1500元改造，终于能好好": "12平卧室改造，终于能好好睡",
@@ -4127,8 +4133,12 @@ def _repair_dangling_title_tail(text: str) -> str:
         "番禺万博粤菜聚餐推荐，芝士焗小青龙必": "番禺万博芝士焗小青龙必点",
         "160cm梨形身材夏季通勤显高遮胯搭": "160cm梨形通勤显高遮胯公式",
         "4平阳台洗衣区改造，2600元让动线": "4平阳台洗衣区，2600元动线更顺",
+        "4平阳台洗衣区改造，2600元让折叠": "4平阳台洗衣区，2600元顺手收纳",
         "4平阳台洗衣区改造，2600元做出顺": "4平阳台洗衣区，2600元顺手收纳",
+        "4平小阳台洗衣改造，2600元做完整": "4平小阳台洗衣区，2600元顺手收纳",
+        "4平阳台洗衣区改造，2600元打造": "4平阳台洗衣区，2600元顺手收纳",
         "4平阳台洗衣区，2600元动线顺": "4平阳台洗衣区，2600元动线更顺",
+        "4平阳台洗衣区改造，2600元搞定收": "4平阳台洗衣区，2600元顺手收纳",
     }
     if title in exact_repairs:
         return exact_repairs[title]
@@ -4150,6 +4160,11 @@ def _repair_dangling_title_tail(text: str) -> str:
         ("遮胯显", "遮胯显高"),
         ("显干", "显干净"),
         ("收纳动", "收纳动线"),
+        ("搞定收", "顺手收纳"),
+        ("让折叠", "顺手收纳"),
+        ("做完整", "顺手收纳"),
+        ("打造", "顺手收纳"),
+        ("高腰A", "高腰A字裙"),
     )
     for bad, good in sorted(repairs, key=lambda item: len(item[0]), reverse=True):
         if title.endswith(bad):
@@ -4362,6 +4377,52 @@ _LOW_QUALITY_PHRASE_REPLACEMENTS = {
 }
 _LOW_QUALITY_PHRASES = tuple(sorted(_LOW_QUALITY_PHRASE_REPLACEMENTS, key=len, reverse=True))
 _LOW_QUALITY_REPEAT_RE = re.compile(r"(绝了|太香了|必吃|宝藏|闭眼冲|冲就完了)")
+_FASHION_OVERPROMISE_RE = re.compile(
+    r"(?:"
+    r"\d{3}\s*(?:cm|厘米)?\s*穿出\s*\d{3}(?:\s*(?:cm|厘米|腿|既视感|感))?"
+    r"|\d{3}[^。！？\n]{0,14}\d{3}(?:\s*(?:cm|厘米))?(?:的)?(?:既视感|腿|感)"
+    r"|穿出\s*\d{3}(?:\s*(?:cm|厘米|腿|既视感|感))?"
+    r"|秒变\s*\d{3}(?:\s*(?:cm|厘米))?"
+    r"|(?:凭空)?多(?:出来)?[一二三四五六七八九十两\d]+(?:cm|厘米)"
+    r"|腿长一米八|瘦十斤|同事[^。！？\n]{0,18}(?:瘦|腿长|高了)"
+    r")"
+)
+
+
+def _sanitize_fashion_title_overpromise(title: str) -> str:
+    text = title or ""
+    if not _FASHION_OVERPROMISE_RE.search(text):
+        return text
+    if "梨形" in text:
+        return "梨形通勤遮胯显高公式"
+    if "小个子" in text or re.search(r"\b1[45]\d", text):
+        return "小个子通勤比例更显高"
+    if "通勤" in text:
+        return "通勤穿搭比例更利落"
+    return "穿搭比例更利落"
+
+
+def _remove_unsupported_fashion_body_claims(text: str, source_context: str | None = None, domain: str | None = None) -> str:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical != "穿搭":
+        return text or ""
+    out = text or ""
+    replacements = {
+        "腿长一米八": "腿部线条更利落",
+        "瘦十斤": "视觉更轻盈",
+        "同事都说我瘦了": "通勤看起来更利落",
+        "同事说我瘦了": "通勤看起来更利落",
+        "同事以为我瘦了": "通勤看起来更利落",
+    }
+    for bad, good in replacements.items():
+        out = out.replace(bad, good)
+    out = re.sub(r"\d{3}\s*(?:cm|厘米)?\s*穿出\s*\d{3}(?:\s*(?:cm|厘米|腿|既视感|感))?", "小个子也能把比例穿利落", out)
+    out = re.sub(r"\d{3}[^。！？\n]{0,14}\d{3}(?:\s*(?:cm|厘米))?(?:的)?(?:既视感|腿|感)", "小个子也能把比例穿利落", out)
+    out = re.sub(r"穿出\s*\d{3}(?:\s*(?:cm|厘米|腿|既视感|感))?", "穿出更清楚的比例", out)
+    out = re.sub(r"秒变\s*\d{3}(?:\s*(?:cm|厘米))?", "比例更显高", out)
+    out = re.sub(r"(?:凭空)?多(?:出来)?[一二三四五六七八九十两\d]+(?:cm|厘米)", "比例更利落", out)
+    out = re.sub(r"同事[^。！？\n]{0,18}(?:瘦|腿长|高了)", "通勤看起来更利落", out)
+    return out
 
 
 def _title_readability_issues(title: str, domain: str | None = None) -> list[str]:
@@ -4384,6 +4445,8 @@ def _title_readability_issues(title: str, domain: str | None = None) -> list[str
             issues.append("标题不自然：品类+价格+推荐词缺少明确对象，读者难以理解")
         if "值得点" in text and not re.search(r"(?:菜|餐|小青龙|乳鸽|鱼|面|粉|锅|串|饭|甜品|套餐)值得点", text):
             issues.append("标题不自然：『值得点』没有绑定具体菜品或套餐")
+    if canonical == "穿搭" and _FASHION_OVERPROMISE_RE.search(text):
+        issues.append("标题不自然：夸大身材变化，建议改成比例、腰线、遮胯等真实穿搭结果")
     if re.search(r"[｜|].*(?:这家|这个|这种)", text):
         issues.append("标题不自然：分隔符后接指代词，读起来像半截句子")
     if re.search(r"(?:的|了|着|过|和|但|却|也|都|就|很|太|最|更|一)$", text):
@@ -4393,7 +4456,7 @@ def _title_readability_issues(title: str, domain: str | None = None) -> list[str
         r"11[:：]3$|[，,｜|]\d{1,2}$|亲子房1$|微辣锅底\+必$|低龄娃泡$|"
         r"泡酒店的正$|灵隐不(?:赶|用)$|灵隐这样$|地铁\d{1,2}分钟省$|最关$|"
         r"软颗粒安$|班车早餐房$|小青龙必$|遮胯搭$|让动线$|做出顺$|"
-        r"(?:酒店吃喝|吃喝地铁|来排)$|(?:动作新|动作3|\d+轮搞|\d+个动|新手也能|[，,][^，,]{0,8}新手|分钟足|5步\d+|[，,]\d+个)$|(?:工作|招|实际|这样|怎么)$)",
+        r"(?:酒店吃喝|吃喝地铁|来排|搞定收|让折叠|做完整|高腰A|元打造)$|(?:动作新|动作3|\d+轮搞|\d+个动|新手也能|[，,][^，,]{0,8}新手|分钟足|5步\d+|[，,]\d+个)$|(?:工作|招|实际|这样|怎么)$)",
         text,
     ):
         issues.append("标题不自然：末尾疑似断词，语义不完整")
@@ -4457,6 +4520,8 @@ def _human_readability_issues(body: str, domain: str | None = None) -> list[str]
         issues.append("旅行正文含Markdown标题或粗体小标题，建议改成自然段落，不要像攻略模板")
     if canonical == "旅行" and re.search(r"(?:闭眼冲|必住|最划算|最低价|提前[^。\n；;]{0,28}(?:更优惠|省钱))", text):
         issues.append("旅行正文存在无依据价格/预订承诺，建议改成预算、交通、设施取舍")
+    if canonical == "穿搭" and _FASHION_OVERPROMISE_RE.search(text):
+        issues.append("穿搭正文存在夸大身材变化表达，建议改成比例更利落、腰线更清楚、遮胯更明显")
     return issues
 
 
@@ -4474,6 +4539,7 @@ def _quality_expression_brief(domain: str | None = None) -> str:
         return (
             "【表达质量要求】\n"
             "- 酒店/酒旅内容要写成「怎么选」：预算优先、评分优先、亲子设施优先、交通优先、商务通勤优先，而不是泛泛种草。\n"
+            "- 酒店事实源可用时，正文前120字必须自然保留起价/预算、评分/口碑、位置/交通、设施/权益中的至少3项，先帮读者做选择。\n"
             "- 路线攻略要写成「能直接照着走」：天数、时间顺序、核心景点、体力节奏、交通/住宿取舍和注意事项。\n"
             "- 禁止无依据承诺：必住、闭眼冲、最划算、最低价、提前预订更便宜、一定省钱；价格和优惠以平台实时页为准。\n"
             "- 允许高级决策词：推荐、值得、怎么选、省心、适合亲子、适合商务、预算更友好、交通更方便。"
@@ -4501,6 +4567,7 @@ def _quality_expression_brief(domain: str | None = None) -> str:
             "- 写成「身材场景搭配公式」而不是好看描述：身高/身材→场合→单品价格/渠道→版型材质→颜色比例→适合/不适合。\n"
             "- 用户或事实源已给价格时必须自然写进每套搭配；未提供价格时只写「价格按实际链接/门店为准」，不编造。\n"
             "- 每套搭配至少解释一个为什么：遮胯、显高、腰线、垂感、露肤度、通勤边界之一。\n"
+            "- 禁止夸大身材变化：不要写160穿出165、秒变170、凭空多五厘米、腿长一米八、瘦十斤、同事以为我瘦；改成比例更利落、腰线更清楚、遮胯更明显。\n"
             "- 标题和正文围绕核心身材词、场景词、单品词聚焦，不要为了丰富而把公式写散。"
         )
     if canonical == "美妆":
@@ -4515,6 +4582,7 @@ def _quality_expression_brief(domain: str | None = None) -> str:
         return (
             "【表达质量要求】\n"
             "- 写成「可复刻改造」而不是清单堆砌：空间痛点→单品清单→尺寸/预算→动线或收纳变化→复刻步骤。\n"
+            "- 已给面积/预算/清单时，正文前120字要写清空间、预算和改造结果；后文每个单品都要绑定一个作用，不写装饰性空话。\n"
             "- 用户或事实源已给预算/尺寸时必须自然写进方案；未提供预算时只写「预算按实际单品清单为准」，不编造总花费。\n"
             "- 每个单品至少说明一个作用：收纳、遮丑、动线、清洁、采光、利用率之一。\n"
             "- 标题和正文围绕空间、痛点、改造结果聚焦，不写过度样板间口吻。"
@@ -4543,6 +4611,8 @@ def _sanitize_title_for_delivery(title: str, source_context: str | None = None, 
         }
         for bad, good in replacements.items():
             text = text.replace(bad, good)
+    if canonical == "穿搭":
+        text = _sanitize_fashion_title_overpromise(text)
     text = _repair_dangling_title_tail(text)
     exact_repairs = {
         "6月龄睡前流程别复杂，这样做就够推荐": "6月龄睡前流程推荐，25分钟就够",
@@ -5021,7 +5091,7 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
             f"【旅行/酒旅事实安全策略｜{mode}】\n"
             "- 当前事实源优先级：美团酒旅/已核验路线事实；只引用已提供的酒店价格、评分、距离、早餐、亲子/商务设施、路线时间窗和景点信息。\n"
             f"- 当前可用决策事实：{facts}\n"
-            "- 酒店类写法：按预算、评分、交通距离、早餐/亲子/商务设施拆成自然取舍句；不要机械罗列成表格，不要写Markdown粗体小标题。\n"
+            "- 酒店类写法：按预算、评分、交通距离、早餐/亲子/商务设施拆成自然取舍句；前120字至少自然保留3项美团酒旅决策事实，不要机械罗列成表格，不要写Markdown粗体小标题。\n"
             "- 路线类写法：DAY时间段、景点顺序、住宿商圈和体力节奏可以来自已核验行程；路线时间窗不是营业时间，不能另编景区开闭门时间。\n"
             "- 风险词边界：不得写必住、闭眼冲、最划算、最低价、提前预订更便宜；可写预算更友好、交通更方便、亲子设施更完整。\n"
             "- 正文目标：不含标签360-480字，3-5段自然正文+8-10个标签；不要输出Markdown标题、方案编号或解释文字。"
@@ -5035,6 +5105,24 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
             "- 睡眠、出牙、辅食、玩具等不同母婴主题都要写安全边界；不要把辅食模板硬套到睡眠流程。\n"
             "- 经验感可以写「我更建议」「不建议弄太复杂」这类判断，不能写「坚持两个月」「宝宝睡得更踏实」「第一次就爱上」「水温37-38℃」「室温22-24℃」等无来源结果或数字。\n"
             "- 正文目标260-320字，3段自然正文，不写Markdown小标题；标题优先带「推荐/安心/适合」等价值信号。"
+        )
+    if canonical == "穿搭":
+        facts = "；".join(_domain_generation_fact_bits(canonical, source_context)) or "按用户已给身材、单品和渠道事实引用；缺失字段不编造。"
+        return (
+            "【穿搭事实与自然度策略】\n"
+            f"- 当前可用穿搭事实：{facts}\n"
+            "- 只引用已提供的身高/身材、单品、品牌、价格、渠道和尺码；缺价格时写「价格按实际链接/门店为准」。\n"
+            "- 标题和正文禁止写160穿出165、秒变170、凭空多五厘米、腿长一米八、瘦十斤等身材承诺。\n"
+            "- 写法要求：用腰线、垂感、版型、颜色比例、遮胯边界解释为什么显高/显瘦，像真实搭配建议。"
+        )
+    if canonical == "家居":
+        facts = "；".join(_domain_generation_fact_bits(canonical, source_context)) or "按用户已给空间、预算、尺寸和清单引用；缺失字段不编造。"
+        return (
+            "【家居复刻事实策略】\n"
+            f"- 当前可用家居事实：{facts}\n"
+            "- 已给面积/预算/尺寸/清单时必须自然保留；缺预算时只写「预算按实际单品清单为准」，不得编造总花费。\n"
+            "- 正文前120字写清空间痛点、预算或预算口径和改造结果；后文每个单品绑定收纳、动线、清洁、采光或利用率作用。\n"
+            "- 结尾给复刻顺序或购买前确认项，避免只写审美感受。"
         )
     if canonical != "美食":
         return ""
@@ -5300,6 +5388,8 @@ def _insert_safe_fact_line(body: str, domain: str | None, source_context: str | 
         normalized_body = _clean_food_fact_label_artifacts(_remove_food_template_fact_heading(normalized_body))
     elif canonical == "旅行":
         normalized_body = _remove_unsupported_travel_value_claims(normalized_body, source_context, domain)
+    elif canonical == "穿搭":
+        normalized_body = _remove_unsupported_fashion_body_claims(normalized_body, source_context, domain)
     if canonical != "美食":
         text = _remove_unsupported_group_size_claims(_polish_low_quality_phrases(normalized_body), source_context)
         if canonical == "母婴":
@@ -5598,9 +5688,65 @@ def _fitness_source_action_coverage_issues(text: str, source_context: str | None
     return []
 
 
+def _travel_hotel_fact_density_issues(text: str, source_context: str | None, domain: str | None = None) -> list[str]:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical != "旅行":
+        return []
+    src = source_context or ""
+    if not re.search(r"(?:美团|酒店|住宿|客房|房型|元起/晚|￥|评分|早餐|亲子|商务|地铁|班车|穿梭)", src):
+        return []
+    body = text or ""
+    signals: set[str] = set()
+    if _PRICE_FACT_RE.search(body) or re.search(r"(?:起价|预算|房价|每晚|/晚|平台实时页)", body):
+        signals.add("预算/起价")
+    if re.search(r"(?:评分|口碑|高分|4\.\d|5\.\d)", body):
+        signals.add("评分/口碑")
+    if re.search(r"(?:地铁|步行|接驳|穿梭|班车|接送|自驾|停车|距离|通勤|交通|商圈|景区)", body):
+        signals.add("位置/交通")
+    if re.search(r"(?:早餐|亲子|儿童|泳池|乐园|沙滩|房型|隔音|落地窗|商务|会议|设施|权益|入住|退房)", body):
+        signals.add("设施/权益")
+    issues: list[str] = []
+    if len(signals) < 3:
+        issues.append("旅行酒旅事实密度不足：美团评分/起价/位置交通/设施权益至少自然保留3项")
+    main, _tags = _split_body_and_tags(body)
+    first = re.sub(r"\s+", "", main)[:160]
+    if first and not (
+        _PRICE_FACT_RE.search(first)
+        or re.search(r"(?:起价|预算|房价|地铁|步行|接驳|穿梭|班车|接送|距离|交通|商圈)", first)
+    ):
+        issues.append("旅行首段缺少预算或交通定位，读者决策成本偏高")
+    return issues[:2]
+
+
+def _home_replicability_density_issues(text: str, source_context: str | None, domain: str | None = None) -> list[str]:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical != "家居":
+        return []
+    src = source_context or ""
+    if not re.search(r"(?:预算|清单|单品|动线|收纳|改造|元|平|阳台|卧室|客厅|厨房)", src):
+        return []
+    body = text or ""
+    signals: set[str] = set()
+    if re.search(r"(?:阳台|卧室|客厅|厨房|玄关|卫生间|书房|空间|小户型|\d+\s*平)", body):
+        signals.add("空间")
+    if _PRICE_FACT_RE.search(body) or re.search(r"(?:预算按实际单品清单为准|预算|费用|总花费)", body):
+        signals.add("预算")
+    if re.search(r"(?:清单|单品|洞洞板|洗衣柜|折叠台面|置物架|收纳盒|灯|窗帘|柜|架|桌|椅)", body):
+        signals.add("清单")
+    if re.search(r"(?:动线|收纳|拿取|晾晒|洗衣|好打理|利用率|遮丑|采光|清洁)", body):
+        signals.add("作用")
+    if re.search(r"(?:复刻|先量|先把|第一步|第二步|顺序|照着|步骤|安装|购买前|确认)", body):
+        signals.add("复刻")
+    if len(signals) < 4:
+        return ["家居复刻信息不足：空间/预算/单品清单/动线作用/复刻顺序至少覆盖4项"]
+    return []
+
+
 def _delivery_integrity_issues(text: str, source_context: str | None, domain: str | None = None) -> list[str]:
     issues = _structured_fact_boundary_issues(text, source_context, domain)
     issues.extend(_fitness_source_action_coverage_issues(text, source_context, domain))
+    issues.extend(_travel_hotel_fact_density_issues(text, source_context, domain))
+    issues.extend(_home_replicability_density_issues(text, source_context, domain))
     return issues
 
 
@@ -5646,11 +5792,11 @@ def _candidate_signature(title: str, body: str) -> str:
 def _selector_issue_penalty(issues: list[str]) -> float:
     penalty = 0.0
     for issue in issues:
-        if any(marker in issue for marker in ("标题不自然", "内部格式", "占位符", "正文为空", "标题为空")):
+        if any(marker in issue for marker in ("标题不自然", "夸大身材变化", "内部格式", "占位符", "正文为空", "标题为空")):
             penalty += 8.0
         elif "结构化事实不能编造" in issue or "遗漏已提供动作" in issue:
             penalty += 5.0
-        elif any(marker in issue for marker in ("缺少价格", "缺少真实价格", "缺少地址", "缺少营业", "缺少必点", "缺少交通", "缺少预算")):
+        elif any(marker in issue for marker in ("事实密度不足", "复刻信息不足", "首段缺少", "缺少价格", "缺少真实价格", "缺少地址", "缺少营业", "缺少必点", "缺少交通", "缺少预算")):
             penalty += 4.0
         elif "过短" in issue or "超过目标上限" in issue:
             penalty += 3.0
