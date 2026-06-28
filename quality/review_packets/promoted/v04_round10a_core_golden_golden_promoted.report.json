@@ -1,0 +1,519 @@
+{
+  "version": "reviewed-prelabel-promotion-v0.1",
+  "created_at": "2026-06-25T23:17:20.936741+00:00",
+  "kind": "golden",
+  "rows_seen": 600,
+  "promoted_count": 110,
+  "skipped_count": 490,
+  "skipped_preview": [
+    {
+      "id": "gq01_fitness_real_top_0361_f22531ec",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0362_13431283",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0363_038db026",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0364_91077f90",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0366_7cc31d3b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0367_69f78a1e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0368_5a0f24be",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0369_4645fc9e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0370_3b044069",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0372_43b83777",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0373_f1a374c2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0374_6b8e5fde",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0375_ca65b396",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0376_e774bbf4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0377_334a5399",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0378_3e624df8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0379_6249958d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0380_ee367780",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0381_9897b683",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0382_ca3acf6d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0383_2223eca7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0385_8499803d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0386_1b465cec",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0387_d3e4f8ca",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0388_add70173",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0389_b2cb0f19",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_top_0390_79db10d7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2532_bc6d0a06",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2534_f0363fdc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2535_33a7c3f7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2536_89eace42",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2537_7cab4331",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2538_6ae68aa6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2539_39f18ae1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2540_6295895f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2541_47f2904a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2542_ea50fc37",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2543_69c5958f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2544_a59b525f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2545_868036de",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2547_45d2d2eb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2548_b6bf15e0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2549_97c314da",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2550_25c5b23d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2551_43ce7de6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2552_644bcbf0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2553_7658f0b8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2554_e64b8f85",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2555_0e0502cb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2556_cda15adc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2558_a90e89c8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2559_76f618b6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fashion_real_top_2560_bf38c035",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3451_dc16d07d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3452_247550ad",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3453_52224042",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3454_d24df25a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3455_7a3792a4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3457_cb748083",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3458_6418ddee",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3459_74e600f6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3461_964e5a76",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3462_5382c5f4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3463_ee29f984",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3464_44ddf26b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3465_e7615bd3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3467_e01ec498",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3468_5eff7733",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3469_cab1a6ac",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3470_4f1afefe",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3471_f6c64db2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3472_251e20f7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3473_fab3b6ab",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3474_79a4d984",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3475_603202fb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3476_03c5d2f1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3477_76a538e5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3478_850ea02c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3479_a1b86c32",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3480_aa20ca0a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3481_73310d9f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3482_4b4a76ea",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3483_1f0603d3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3484_47b1142f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3485_b63fa69b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3486_1840ed48",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3487_6db9e2f6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3488_48b6ab5f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3489_05016bcc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_aigc_3490_24f53a4f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0561_51910357",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0562_dd9a9418",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0563_a29643da",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0564_c85e11d2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0565_76b6919d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0566_9dc77ffb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0567_2207a321",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0568_bad8c58a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0569_3b0eaef4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01_fitness_real_low_0570_81a38635",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    }
+  ],
+  "auto_accept_consensus": true,
+  "auto_accept_winner_consensus": false,
+  "winner_consensus_min_kimi_confidence": 0.7,
+  "policy": "Only review_decision=accept_ai/accept_with_edits, explicit --auto-accept-consensus judge_consensus=agree, or explicit --auto-accept-winner-consensus same A/B winner is promoted.",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round10a_core_golden_golden_promoted.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round10a_core_golden_golden_promoted.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round10a_core_golden_golden_promoted.report.json"
+  }
+}

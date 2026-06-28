@@ -1,0 +1,72 @@
+{
+  "round": "v04_round08b_food_expression",
+  "created_at": "2026-06-25T15:41:30+00:00",
+  "objective": "Improve food generation expression quality after Amap fact enrichment: remove fact-section templates, repair title half-cuts, and only promote clean high-confidence preference pairs.",
+  "code_changes": [
+    "model/api.py: cleaned Amap fact values before prompt/body use",
+    "model/api.py: converted food safe fact line from template section to natural decision sentence",
+    "model/api.py: added food fact label artifact cleanup for duplicated labels and legacy bad safe lines",
+    "model/api.py: relaxed natural price-title false positives when a concrete food/store context exists",
+    "model/api.py: added title exact repairs for v08/v08b half-cut food titles",
+    "model/api.py: added unsupported buffet/all-you-can-eat claim cleanup and fact-boundary detection",
+    "tools/build_preference_seed_from_generated_artifacts.py: embedded delivery-cleaned title/body/score into preference seed specs"
+  ],
+  "generation_probe": {
+    "artifact_dir": "quality/generated_variants/v08b_food_expression_probe",
+    "selected_domain": "美食",
+    "ready": 24,
+    "failed": 0,
+    "score_summary": {
+      "mean": 65.039,
+      "median": 64.564,
+      "min": 52.346,
+      "max": 76.029,
+      "ready_ge_60": 21,
+      "legacy_score_ge_reference": 3,
+      "ge_70": 6
+    },
+    "pollution_scan": {
+      "fact_section_template_hits": 0,
+      "duplicate_address_label_hits": 0,
+      "duplicate_hours_label_hits": 0,
+      "internal_missing_fact_leak_hits": 0
+    }
+  },
+  "preference_pipeline": {
+    "seed": "quality/preference_pairs.v08b.food_expression.generated_from_artifacts.json",
+    "seed_report": "quality/preference_pairs.v08b.food_expression.generated_from_artifacts.report.json",
+    "variants_retained": 21,
+    "variants_blocking_filtered": 3,
+    "preference_queue": "quality/preference_queue.v08b.food_expression.jsonl",
+    "preference_pairs": 46,
+    "kimi_review": {
+      "input": "quality/preference_queue.v08b.food_expression.jsonl",
+      "report": "quality/review_packets/v04_round08b_food_expression_preference_ai_review.report.json",
+      "rows": 46,
+      "second_review_ok": 46,
+      "judge_agree": 22,
+      "judge_disagree": 24
+    },
+    "promotion": {
+      "report": "quality/review_packets/promoted/v04_round08b_food_expression_preference_promoted.report.json",
+      "promoted": 26,
+      "skipped_holdout": 20,
+      "rule": "winner_consensus_with_kimi_confidence_ge_0.75"
+    }
+  },
+  "merged_training_data": {
+    "preference_labeled_total": 258,
+    "food_preference_labeled": 73,
+    "golden_total": 157,
+    "health_decision": "blocked_need_labels",
+    "production_deploy": "do_not_deploy"
+  },
+  "notable_manual_review": [
+    {
+      "case": "food_guangzhou_diandoude_amap_001/generate_initial",
+      "before": "人均86元吃到饱",
+      "after": "人均86元，点心选择不少",
+      "reason": "Amap price evidence does not imply buffet/unlimited eating."
+    }
+  ]
+}

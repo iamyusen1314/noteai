@@ -1,0 +1,194 @@
+{
+  "version": "reviewed-prelabel-promotion-v0.1",
+  "created_at": "2026-06-27T02:06:51.875425+00:00",
+  "kind": "golden",
+  "rows_seen": 37,
+  "promoted_count": 2,
+  "skipped_count": 35,
+  "skipped_preview": [
+    {
+      "id": "gq01s_f0904d93ff399bc0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f0a4f737fe2a9767",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f1371d214f2ce37f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f14408cf3ec7567b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f18cd7f62bcc5983",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f1f98987a691a7eb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f21501eb3d0ce6aa",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f2b3c9ad6f7d1810",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f2e4fa4e4ff2c116",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f3d66dfb76b6a098",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f493f8e606a133e6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f4e23179c30770c8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f4e8153169d25291",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f6bf26b546702530",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f6d656ae6594a060",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f6e3913ba1c02806",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f717f4a585f0d0d4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f719228cbc25d514",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f841a1f0d9f87f57",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f888b0d8206c0bcf",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f8ab72af0d7b1478",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f8f369dd25a85b5a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f996b1eb1ccb8273",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f9bbc06989cf01a7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_f9fc13d73678b809",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_fa84b24aea8311cc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_fb1c70ad8bed39a2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_fc652a00afa20271",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_fd885e8a404975fd",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_fda61fc8f1f0c5c8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_fe96599aa69496e7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_fee7f6291c1c15a5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_fefb97054f45e0f7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_ff6d54204b0ccb62",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "gq01s_ff784649d81d9c04",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    }
+  ],
+  "auto_accept_consensus": true,
+  "auto_accept_winner_consensus": false,
+  "winner_consensus_min_kimi_confidence": 0.7,
+  "policy": "Only review_decision=accept_ai/accept_with_edits, explicit --auto-accept-consensus judge_consensus=agree, or explicit --auto-accept-winner-consensus same A/B winner is promoted.",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round13_prod_home_part03_golden_promoted.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round13_prod_home_part03_golden_promoted.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round13_prod_home_part03_golden_promoted.report.json"
+  }
+}

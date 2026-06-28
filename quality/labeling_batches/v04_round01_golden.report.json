@@ -1,0 +1,27 @@
+{
+  "version": "labeling-batch-v0.1",
+  "created_at": "2026-06-25T08:51:26.366551+00:00",
+  "kind": "golden",
+  "queue": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.jsonl",
+  "outputs": {
+    "jsonl": "quality/labeling_batches/v04_round01_golden.jsonl",
+    "csv": "quality/labeling_batches/v04_round01_golden.csv"
+  },
+  "batch_id": "v04_round01",
+  "rows": 160,
+  "by_domain": {
+    "健身": 40,
+    "旅行": 40,
+    "穿搭": 40,
+    "美食": 40
+  },
+  "by_priority": {
+    "high": 160
+  },
+  "selection": {
+    "max_rows": 280,
+    "per_domain": 40,
+    "domains": "美食,旅行,穿搭,美妆,家居,健身,母婴",
+    "priorities": "high,medium,normal"
+  }
+}

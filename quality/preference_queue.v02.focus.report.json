@@ -1,0 +1,75 @@
+{
+  "version": "preference-annotation-queue-v0.1",
+  "created_at": "2026-06-25T11:00:17.857683+00:00",
+  "status": "preference_queue_needs_human_labels",
+  "totals": {
+    "pairs": 135,
+    "needs_label": 135,
+    "locked_seed": 0
+  },
+  "by_domain": {
+    "健身": 45,
+    "母婴": 45,
+    "美妆": 45
+  },
+  "by_task": {
+    "baby_sleep_routine_6month_001": 15,
+    "baby_teething_care_001": 15,
+    "baby_toy_10month_fine_motor_001": 15,
+    "beauty_commute_lipstick_yellow_black_001": 15,
+    "beauty_oily_skin_base_001": 15,
+    "beauty_sensitive_skin_sunscreen_001": 15,
+    "fitness_home_glute_band_001": 15,
+    "fitness_knee_friendly_beginner_001": 15,
+    "fitness_office_shoulder_neck_001": 15
+  },
+  "by_label_status": {
+    "needs_label": 135
+  },
+  "by_origin_pair": {
+    "ai_diagnosis vs ai_diagnosis": 27,
+    "ai_diagnosis vs claude_natural_candidate": 27,
+    "ai_diagnosis vs generate": 27,
+    "ai_diagnosis vs generate_refine": 27,
+    "claude_natural_candidate vs generate": 9,
+    "claude_natural_candidate vs generate_refine": 9,
+    "generate vs generate_refine": 9
+  },
+  "targets": {
+    "production_preference_pairs_per_core_domain": 3000,
+    "note": "This queue is only a seed. Production training needs thousands of same-task A/B comparisons per core industry."
+  },
+  "coverage_gaps": {
+    "under_preference_target": {
+      "健身": {
+        "selected_pairs": 45,
+        "production_preference_target": 3000
+      },
+      "母婴": {
+        "selected_pairs": 45,
+        "production_preference_target": 3000
+      },
+      "美妆": {
+        "selected_pairs": 45,
+        "production_preference_target": 3000
+      }
+    },
+    "missing_core_domains": [
+      "旅行",
+      "穿搭",
+      "美妆",
+      "家居",
+      "健身",
+      "母婴"
+    ]
+  },
+  "skipped_variants": [],
+  "inputs": {
+    "seed": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v02.focus.generated_from_artifacts.json"
+  },
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v02.focus.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v02.focus.csv",
+    "report": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v02.focus.report.json"
+  }
+}

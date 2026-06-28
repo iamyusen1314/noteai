@@ -1,0 +1,96 @@
+{
+  "version": "preference-generation-queue-v0.1",
+  "created_at": "2026-06-25T10:48:26.016454+00:00",
+  "status": "generation_queue_needs_real_outputs",
+  "totals": {
+    "tasks": 9,
+    "generation_rows": 54,
+    "ready_slots": 0,
+    "needs_generation_slots": 54,
+    "skipped_slots": 0
+  },
+  "by_domain_tasks": {
+    "健身": 3,
+    "母婴": 3,
+    "美妆": 3
+  },
+  "by_domain_generation_rows": {
+    "健身": 18,
+    "母婴": 18,
+    "美妆": 18
+  },
+  "by_origin": {
+    "ai_diagnosis": 27,
+    "claude_natural_candidate": 9,
+    "generate": 9,
+    "generate_refine": 9
+  },
+  "by_generation_route": {
+    "analyze": 27,
+    "generate": 18,
+    "offline_candidate": 9
+  },
+  "potential_pairs_by_domain_from_ready_slots": {
+    "健身": 0,
+    "母婴": 0,
+    "美妆": 0
+  },
+  "targets": {
+    "preference_pairs_per_core_domain": 3000,
+    "completed_tasks_needed_per_core_domain_if_9_variants_each": 84,
+    "variant_slots_per_task": 9
+  },
+  "coverage_gaps": {
+    "missing_core_domains": [
+      "美食",
+      "旅行",
+      "穿搭",
+      "家居"
+    ],
+    "task_targets": {
+      "美食": {
+        "current_tasks": 0,
+        "rough_tasks_needed_for_3000_pairs_at_9_variants": 84,
+        "note": "9 completed variants create 36 A/B pairs; about 84 completed tasks reach 3000 pairs."
+      },
+      "旅行": {
+        "current_tasks": 0,
+        "rough_tasks_needed_for_3000_pairs_at_9_variants": 84,
+        "note": "9 completed variants create 36 A/B pairs; about 84 completed tasks reach 3000 pairs."
+      },
+      "穿搭": {
+        "current_tasks": 0,
+        "rough_tasks_needed_for_3000_pairs_at_9_variants": 84,
+        "note": "9 completed variants create 36 A/B pairs; about 84 completed tasks reach 3000 pairs."
+      },
+      "美妆": {
+        "current_tasks": 3,
+        "rough_tasks_needed_for_3000_pairs_at_9_variants": 81,
+        "note": "9 completed variants create 36 A/B pairs; about 84 completed tasks reach 3000 pairs."
+      },
+      "家居": {
+        "current_tasks": 0,
+        "rough_tasks_needed_for_3000_pairs_at_9_variants": 84,
+        "note": "9 completed variants create 36 A/B pairs; about 84 completed tasks reach 3000 pairs."
+      },
+      "健身": {
+        "current_tasks": 3,
+        "rough_tasks_needed_for_3000_pairs_at_9_variants": 81,
+        "note": "9 completed variants create 36 A/B pairs; about 84 completed tasks reach 3000 pairs."
+      },
+      "母婴": {
+        "current_tasks": 3,
+        "rough_tasks_needed_for_3000_pairs_at_9_variants": 81,
+        "note": "9 completed variants create 36 A/B pairs; about 84 completed tasks reach 3000 pairs."
+      }
+    }
+  },
+  "inputs": {
+    "pool": "/Users/openclaw/Desktop/noteai/quality/preference_task_pool.v02.focus.json"
+  },
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/preference_generation_queue.v02.focus.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/preference_generation_queue.v02.focus.csv",
+    "report": "/Users/openclaw/Desktop/noteai/quality/preference_generation_queue.v02.focus.report.json"
+  }
+}

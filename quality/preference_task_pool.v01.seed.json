@@ -1,0 +1,241 @@
+{
+  "version": "preference-task-pool-v0.1",
+  "description": "Initial multi-industry task pool for generating same-task variants before A/B preference labeling. These tasks are generation backlog items, not completed preference labels.",
+  "tasks": [
+    {
+      "task_id": "food_shanghai_crab_noodle_001",
+      "domain": "美食",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "food_contract_good",
+      "user_intent": "围绕上海南京西路附近一碗蟹黄拌面，生成一篇适合小红书发布的真实探店笔记。",
+      "known_facts": [
+        "地点在上海南京西路附近",
+        "人均58元",
+        "营业时间11:00-21:30",
+        "周末饭点排队约20分钟",
+        "必点蟹黄拌面和小馄饨",
+        "适合午休或下班顺路吃"
+      ],
+      "fact_status": "safe",
+      "target_reader": "想在上海南京西路附近找顺路简餐、愿意为蟹黄拌面种草的小红书用户",
+      "quality_focus": ["标题自然", "价格和地址明确", "口味细节", "排队避坑", "CTA自然"],
+      "reference_title": "上海蟹黄拌面58元真香",
+      "reference_body": "南京西路这碗蟹黄拌面真的香，周末进店就能闻到蟹黄香，金黄酱汁挂在面上很厚实，拌开之后每一口都有蟹粉的咸鲜和一点回甜，人均58元吃到这个分量，我觉得很值。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["决策信息型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["菜品种草型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["避坑取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["质量闭环"]},
+        {"slot_id": "delivery_quality_second_pass", "origin": "delivery_quality_second_pass", "status": "needs_generation", "generation_route": "second_pass", "prompt_focus": ["交付质量二修"]},
+        {"slot_id": "chat_optimize", "origin": "chat_optimize", "status": "needs_generation", "generation_route": "chat", "prompt_focus": ["用户要求更自然"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低AI味"]},
+        {"slot_id": "manual_natural_rewrite", "origin": "manual_natural_rewrite", "status": "needs_generation", "generation_route": "manual", "prompt_focus": ["人工自然基准"]}
+      ]
+    },
+    {
+      "task_id": "travel_chengdu_3day_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "travel_contract_good",
+      "user_intent": "生成成都3天2晚城市漫游攻略，预算约1200元，强调慢节奏、路线安排和避坑。",
+      "known_facts": [
+        "住春熙路附近",
+        "第一天人民公园、宽窄巷子、九眼桥",
+        "第二天熊猫基地、太古里、镋钯街",
+        "第三天杜甫草堂后返程",
+        "两晚住宿约520元",
+        "总预算人均约1200元",
+        "熊猫基地建议8点前到并提前买票"
+      ],
+      "fact_status": "safe",
+      "target_reader": "准备周末或小长假去成都自由行、希望路线别太赶的用户",
+      "quality_focus": ["路线顺序", "预算透明", "交通建议", "避坑明确", "旅行节奏自然"],
+      "reference_title": "成都3天1200元玩透",
+      "reference_body": "成都3天路线我更推荐慢慢逛，第一天住春熙路附近，地铁2号线到人民公园喝盖碗茶，再走去宽窄巷子拍街景，晚上去九眼桥看夜色。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["决策信息型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["体验路线型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["避坑取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["质量闭环"]},
+        {"slot_id": "delivery_quality_second_pass", "origin": "delivery_quality_second_pass", "status": "needs_generation", "generation_route": "second_pass", "prompt_focus": ["交付质量二修"]},
+        {"slot_id": "chat_optimize", "origin": "chat_optimize", "status": "needs_generation", "generation_route": "chat", "prompt_focus": ["用户要求更像真实旅行复盘"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低攻略模板感"]},
+        {"slot_id": "manual_natural_rewrite", "origin": "manual_natural_rewrite", "status": "needs_generation", "generation_route": "manual", "prompt_focus": ["人工自然基准"]}
+      ]
+    },
+    {
+      "task_id": "fashion_petite_commute_001",
+      "domain": "穿搭",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "fashion_contract_good",
+      "user_intent": "为小个子通勤用户生成3套显高穿搭公式，强调价格、身材适配和搭配逻辑。",
+      "known_facts": [
+        "核心公式是上短下长和颜色顺下来",
+        "白色短衬衫89元配高腰直筒裤139元",
+        "灰色针织背心69元配半裙129元，适合梨形遮胯",
+        "黑色短外套199元配九分牛仔裤",
+        "包包选腋下包或小托特",
+        "外套长度尽量卡在胯上"
+      ],
+      "fact_status": "safe",
+      "target_reader": "小个子、通勤、想显高又不想太复杂的穿搭用户",
+      "quality_focus": ["搭配公式清楚", "价格具体", "身材适配", "场景明确", "避免空泛夸赞"],
+      "reference_title": "小个子显高3套公式",
+      "reference_body": "小个子通勤想显高，核心就是上短下长和颜色顺下来。第一套白色短衬衫配高腰直筒裤，衬衫89元，裤子139元，腰线一出来腿会被拉长很多。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["决策信息型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["搭配公式型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["避坑取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["质量闭环"]},
+        {"slot_id": "delivery_quality_second_pass", "origin": "delivery_quality_second_pass", "status": "needs_generation", "generation_route": "second_pass", "prompt_focus": ["交付质量二修"]},
+        {"slot_id": "chat_optimize", "origin": "chat_optimize", "status": "needs_generation", "generation_route": "chat", "prompt_focus": ["用户要求更像穿搭博主"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低清单模板感"]},
+        {"slot_id": "manual_natural_rewrite", "origin": "manual_natural_rewrite", "status": "needs_generation", "generation_route": "manual", "prompt_focus": ["人工自然基准"]}
+      ]
+    },
+    {
+      "task_id": "beauty_yellow_skin_blush_001",
+      "domain": "美妆",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "beauty_contract_good",
+      "user_intent": "为黄皮用户生成一篇平价腮红测评笔记，强调妆效、肤质、持妆和使用手法。",
+      "known_facts": [
+        "产品色调是奶杏玫瑰色",
+        "价格79元一盘",
+        "粉质细，轻扫一层有气色",
+        "肤质是混干",
+        "底妆后叠加不显毛孔",
+        "苹果肌到太阳穴斜扫",
+        "持妆约6小时",
+        "适合裸棕眼影和豆沙唇釉"
+      ],
+      "fact_status": "safe",
+      "target_reader": "黄皮、混干皮、想找自然显白通勤腮红的用户",
+      "quality_focus": ["肤质前提", "上脸效果", "使用手法", "持妆反馈", "避免夸大功效"],
+      "reference_title": "黄皮用这支腮红真显白",
+      "reference_body": "黄皮选腮红别只看热门色，这支奶杏玫瑰色上脸真的柔和，79元一盘，粉质压得细，刷子轻扫一层就有气色。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["决策信息型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["效果实测型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["避坑取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["质量闭环"]},
+        {"slot_id": "delivery_quality_second_pass", "origin": "delivery_quality_second_pass", "status": "needs_generation", "generation_route": "second_pass", "prompt_focus": ["交付质量二修"]},
+        {"slot_id": "chat_optimize", "origin": "chat_optimize", "status": "needs_generation", "generation_route": "chat", "prompt_focus": ["用户要求更像真实试色"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低营销腔"]},
+        {"slot_id": "manual_natural_rewrite", "origin": "manual_natural_rewrite", "status": "needs_generation", "generation_route": "manual", "prompt_focus": ["人工自然基准"]}
+      ]
+    },
+    {
+      "task_id": "home_rental_38sqm_001",
+      "domain": "家居",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "home_contract_good",
+      "user_intent": "生成38平出租屋3000元改造笔记，强调收纳、预算、动线和真实改造顺序。",
+      "known_facts": [
+        "面积38平",
+        "总预算3000元",
+        "窄边书桌399元",
+        "可折叠餐桌268元",
+        "宜家小推车用于杂物收纳",
+        "落地衣架189元",
+        "床底收纳箱一组99元",
+        "玄关免打孔挂钩",
+        "灯光换成暖白灯泡"
+      ],
+      "fact_status": "safe",
+      "target_reader": "租房、小户型、预算有限但想提升居住秩序的用户",
+      "quality_focus": ["预算拆解", "收纳动线", "改造前后感", "可执行清单", "避免家装空话"],
+      "reference_title": "38平出租屋3000元改造",
+      "reference_body": "38平出租屋最痛苦的是东西多又显乱，我这次总预算控制在3000元，先把客厅换成窄边书桌和可折叠餐桌，书桌淘宝399元，餐桌268元。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["决策信息型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["空间改造型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["避坑取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["质量闭环"]},
+        {"slot_id": "delivery_quality_second_pass", "origin": "delivery_quality_second_pass", "status": "needs_generation", "generation_route": "second_pass", "prompt_focus": ["交付质量二修"]},
+        {"slot_id": "chat_optimize", "origin": "chat_optimize", "status": "needs_generation", "generation_route": "chat", "prompt_focus": ["用户要求更像真实租房改造"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低清单机械感"]},
+        {"slot_id": "manual_natural_rewrite", "origin": "manual_natural_rewrite", "status": "needs_generation", "generation_route": "manual", "prompt_focus": ["人工自然基准"]}
+      ]
+    },
+    {
+      "task_id": "fitness_home_fatloss_001",
+      "domain": "健身",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "fitness_contract_good",
+      "user_intent": "生成新手居家7天减脂训练笔记，强调动作、组数、休息、安全替代和执行感。",
+      "known_facts": [
+        "开合跳30秒",
+        "深蹲15次",
+        "平板支撑40秒",
+        "登山跑30秒",
+        "四个动作连做3轮",
+        "中间休息60秒",
+        "训练前热身5分钟，练后拉伸8分钟",
+        "膝盖不舒服时把登山跑改成原地快走",
+        "每晚固定20分钟"
+      ],
+      "fact_status": "safe",
+      "target_reader": "无器械居家减脂新手，担心动作难、膝盖不适或坚持不了的用户",
+      "quality_focus": ["动作可执行", "安全提醒", "训练节奏", "替代动作", "避免夸大效果"],
+      "reference_title": "居家减脂4动作推荐",
+      "reference_body": "居家减脂别一上来就跳很久，我这套7天循环更适合新手，第一组开合跳30秒，第二组深蹲15次，第三组平板支撑40秒，第四组登山跑30秒。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["决策信息型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["动作计划型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["避坑取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["质量闭环"]},
+        {"slot_id": "delivery_quality_second_pass", "origin": "delivery_quality_second_pass", "status": "needs_generation", "generation_route": "second_pass", "prompt_focus": ["交付质量二修"]},
+        {"slot_id": "chat_optimize", "origin": "chat_optimize", "status": "needs_generation", "generation_route": "chat", "prompt_focus": ["用户要求更像真实训练记录"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低课程表模板感"]},
+        {"slot_id": "manual_natural_rewrite", "origin": "manual_natural_rewrite", "status": "needs_generation", "generation_route": "manual", "prompt_focus": ["人工自然基准"]}
+      ]
+    },
+    {
+      "task_id": "baby_food_8month_001",
+      "domain": "母婴",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "baby_contract_good",
+      "user_intent": "生成8月龄宝宝辅食添加笔记，强调顺序、观察、过敏风险、安全和新手妈妈可执行。",
+      "known_facts": [
+        "先看咀嚼能力，再从泥糊过渡到软颗粒",
+        "南瓜蒸熟压泥，加一点米粉调稠",
+        "胡萝卜切小块蒸软，压成带颗粒状态",
+        "鸡肉打成细末，少量混进粥里观察3天",
+        "每次只新增一种食材",
+        "不要加盐和蜂蜜",
+        "颗粒大小要能用舌头压碎",
+        "喂的时候宝宝坐直，旁边有人看着"
+      ],
+      "fact_status": "safe",
+      "target_reader": "8月龄宝宝的新手妈妈，担心辅食顺序、过敏和噎食风险",
+      "quality_focus": ["安全边界", "步骤顺序", "观察周期", "月龄适配", "避免医疗化夸大"],
+      "reference_title": "8月龄宝宝辅食推荐",
+      "reference_body": "8月龄宝宝辅食我会先看咀嚼能力，再慢慢从泥糊过渡到软颗粒。第一步是南瓜蒸熟压泥，加一点米粉调稠。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["决策信息型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["安全实操型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["避坑取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["质量闭环"]},
+        {"slot_id": "delivery_quality_second_pass", "origin": "delivery_quality_second_pass", "status": "needs_generation", "generation_route": "second_pass", "prompt_focus": ["交付质量二修"]},
+        {"slot_id": "chat_optimize", "origin": "chat_optimize", "status": "needs_generation", "generation_route": "chat", "prompt_focus": ["用户要求更像宝妈经验"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低育儿科普模板感"]},
+        {"slot_id": "manual_natural_rewrite", "origin": "manual_natural_rewrite", "status": "needs_generation", "generation_route": "manual", "prompt_focus": ["人工自然基准"]}
+      ]
+    }
+  ]
+}

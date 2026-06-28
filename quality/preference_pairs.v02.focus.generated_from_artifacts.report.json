@@ -1,0 +1,29 @@
+{
+  "version": "preference-seed-from-artifacts-report-v0.1",
+  "created_at": "2026-06-25T11:00:11.325314+00:00",
+  "inputs": {
+    "task_pool": "/Users/openclaw/Desktop/noteai/quality/preference_task_pool.v02.focus.json",
+    "artifact_dir": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v02_focus",
+    "include_blocking": true
+  },
+  "artifact_count": 54,
+  "task_count": 9,
+  "variant_count": 54,
+  "variants_by_task": {
+    "beauty_sensitive_skin_sunscreen_001": 6,
+    "beauty_oily_skin_base_001": 6,
+    "beauty_commute_lipstick_yellow_black_001": 6,
+    "fitness_knee_friendly_beginner_001": 6,
+    "fitness_office_shoulder_neck_001": 6,
+    "fitness_home_glute_band_001": 6,
+    "baby_sleep_routine_6month_001": 6,
+    "baby_teething_care_001": 6,
+    "baby_toy_10month_fine_motor_001": 6
+  },
+  "skipped": [],
+  "policy": "This seed creates preference labeling queues only; labels must be human-reviewed before training.",
+  "outputs": {
+    "seed": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v02.focus.generated_from_artifacts.json",
+    "report": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v02.focus.generated_from_artifacts.report.json"
+  }
+}

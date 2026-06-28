@@ -1,0 +1,28 @@
+{
+  "records": [
+    {
+      "name": "示例门店",
+      "aliases": ["示例别名", "商圈示例门店"],
+      "domain": "美食",
+      "city": "广州",
+      "business_area": "番禺万博",
+      "source": "用户素材/官方API/人工核验",
+      "captured_at": "2026-06-25",
+      "url": "",
+      "facts": {
+        "address": "只填写用户素材、官方API或人工核验地址",
+        "price": "人均或套餐价必须来自官方API、用户素材或人工核验",
+        "hours": "营业时间必须来自官方API、用户素材或人工核验",
+        "booking": "预约、排队、等位提示",
+        "deal": "团购/套餐名称和包含内容",
+        "must_order": ["必点菜1", "必点菜2"],
+        "rating": "评分/口碑字段",
+        "review_keywords": ["评价高频词1", "评价高频词2"],
+        "business_area": "商圈",
+        "category": "门店类型/行业类目",
+        "phone": "商家公开电话",
+        "photos": "门店图片数量或图片来源说明"
+      }
+    }
+  ]
+}

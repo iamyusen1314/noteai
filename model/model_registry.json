@@ -1,0 +1,63 @@
+{
+  "current": "v0.4-composite",
+  "models": {
+    "v0.3": {
+      "version": "v0.3",
+      "file": "model_a_v0.3.lgb",
+      "features": 62,
+      "rmse": 12.2987,
+      "accuracy": 82.34,
+      "train_rows": 101517,
+      "trained_at": "2026-05-05",
+      "status": "archived",
+      "description": "初始生产版本，62维特征，Kimi语义标注"
+    },
+    "v0.4-candidate": {
+      "version": "v0.4-candidate",
+      "file": "model_a_v0.4_candidate.lgb",
+      "features": 62,
+      "rmse": 26.4571,
+      "accuracy": 21.58,
+      "train_rows": 88573,
+      "val_rows": 22144,
+      "trained_at": "2026-06-25",
+      "status": "candidate",
+      "description": "RedNote-Vibe 最新素材重建；统一 schema、去重 note_id、source::domain 标签、GroupShuffleSplit 无泄漏；仅作候选评估，不自动上线。"
+    },
+    "v0.4-composite": {
+      "version": "v0.4-composite",
+      "family": "v04_composite",
+      "file": "artifacts/model_v04_composite_regressor_experimental_20260628T013926Z.lgb",
+      "ready_classifier_file": "artifacts/model_v04_composite_ready_classifier_experimental_20260628T013926Z.lgb",
+      "ranker_file": "artifacts/model_v04_composite_ranker_experimental_20260628T013926Z.lgb",
+      "train_report": "artifacts/model_v04_composite_train_report.json",
+      "audit_report": "artifacts/v04_composite_audit.json",
+      "features": 124,
+      "golden_rows": 6694,
+      "preference_pairs": 24850,
+      "golden_regression_mae": 5.4971,
+      "golden_regression_spearman": 0.7814,
+      "publishable_classifier_auc": 0.8857,
+      "preference_ranker_auc": 0.9989,
+      "trained_at": "2026-06-28",
+      "run_id": "20260628T013926Z",
+      "status": "production",
+      "description": "V0.4 composite 生产模型：人工 Golden + A/B 偏好训练，使用 publishable_or_repairable 门控，旧 v0.3 分数已从训练目标中排除。"
+    }
+  },
+  "auxiliary_models": {
+    "naturalness-v0.1-candidate": {
+      "version": "naturalness-v0.1-candidate",
+      "file": "model_naturalness_v0.1.lgb",
+      "features": 61,
+      "roc_auc": 0.9828,
+      "average_precision": 0.9403,
+      "human_false_positive_rate": 0.0113,
+      "ai_false_negative_rate": 0.1664,
+      "trained_at": "2026-06-25",
+      "status": "candidate",
+      "description": "RedNote-Vibe human vs AIGC 自然度/AI味辅助模型；使用 AI 模型 holdout 验证，暂作诊断和训练辅助，不作为硬门禁。"
+    }
+  },
+  "training_jobs": []
+}

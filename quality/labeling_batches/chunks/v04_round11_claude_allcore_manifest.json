@@ -1,0 +1,120 @@
+{
+  "source": "quality/labeling_batches/v04_round11_claude_allcore_golden.csv",
+  "chunk_size": 250,
+  "total_rows": 3037,
+  "chunks": [
+    {
+      "part": 1,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part01.csv",
+      "rows": 250,
+      "domains": {
+        "健身": 250
+      }
+    },
+    {
+      "part": 2,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part02.csv",
+      "rows": 250,
+      "domains": {
+        "健身": 250
+      }
+    },
+    {
+      "part": 3,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part03.csv",
+      "rows": 250,
+      "domains": {
+        "家居": 2,
+        "旅行": 248
+      }
+    },
+    {
+      "part": 4,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part04.csv",
+      "rows": 250,
+      "domains": {
+        "旅行": 250
+      }
+    },
+    {
+      "part": 5,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part05.csv",
+      "rows": 250,
+      "domains": {
+        "旅行": 2,
+        "母婴": 248
+      }
+    },
+    {
+      "part": 6,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part06.csv",
+      "rows": 250,
+      "domains": {
+        "母婴": 217,
+        "穿搭": 33
+      }
+    },
+    {
+      "part": 7,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part07.csv",
+      "rows": 250,
+      "domains": {
+        "穿搭": 250
+      }
+    },
+    {
+      "part": 8,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part08.csv",
+      "rows": 250,
+      "domains": {
+        "穿搭": 217,
+        "美妆": 33
+      }
+    },
+    {
+      "part": 9,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part09.csv",
+      "rows": 250,
+      "domains": {
+        "美妆": 250
+      }
+    },
+    {
+      "part": 10,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part10.csv",
+      "rows": 250,
+      "domains": {
+        "美妆": 136,
+        "美食": 114
+      }
+    },
+    {
+      "part": 11,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part11.csv",
+      "rows": 250,
+      "domains": {
+        "美食": 250
+      }
+    },
+    {
+      "part": 12,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part12.csv",
+      "rows": 250,
+      "domains": {
+        "美食": 136,
+        "家居": 7,
+        "母婴": 35,
+        "美妆": 72
+      }
+    },
+    {
+      "part": 13,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore/v04_round11_claude_allcore_golden_part13.csv",
+      "rows": 37,
+      "domains": {
+        "美妆": 9,
+        "家居": 28
+      }
+    }
+  ]
+}

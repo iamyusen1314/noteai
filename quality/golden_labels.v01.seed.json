@@ -1,0 +1,182 @@
+{
+  "version": "golden-labels-v0.1",
+  "description": "Seed labels for composite quality engineering. These are conservative starter labels for pipeline validation, not a complete human-labeled corpus.",
+  "items": [
+    {
+      "id": "food_contract_good",
+      "content_source": {"type": "quality_case", "file": "quality/golden_notes.sample.json", "case_id": "food_contract_good"},
+      "labels": {
+        "human_quality_score": 86,
+        "delivery_ready": true,
+        "naturalness_label": 86,
+        "hook_quality": 4,
+        "body_value": 5,
+        "industry_fit": 5,
+        "fact_status": "verified",
+        "ai_smell_level": 1,
+        "failure_tags": ["delivery_ready"],
+        "rationale": "信息完整，价格/地址/营业/必点/避坑都有，表达自然。"
+      }
+    },
+    {
+      "id": "food_contract_bad",
+      "content_source": {"type": "quality_case", "file": "quality/golden_notes.sample.json", "case_id": "food_contract_bad"},
+      "labels": {
+        "human_quality_score": 8,
+        "delivery_ready": false,
+        "naturalness_label": 20,
+        "hook_quality": 1,
+        "body_value": 1,
+        "industry_fit": 1,
+        "fact_status": "unknown",
+        "ai_smell_level": 3,
+        "failure_tags": ["too_short", "low_info_density", "missing_fact"],
+        "rationale": "几乎没有正文价值，不能交付。"
+      }
+    },
+    {
+      "id": "travel_contract_good",
+      "content_source": {"type": "quality_case", "file": "quality/golden_notes.sample.json", "case_id": "travel_contract_good"},
+      "labels": {
+        "human_quality_score": 84,
+        "delivery_ready": true,
+        "naturalness_label": 84,
+        "hook_quality": 4,
+        "body_value": 5,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 1,
+        "failure_tags": ["delivery_ready"],
+        "rationale": "路线、预算、避坑和节奏完整，适合交付。"
+      }
+    },
+    {
+      "id": "fashion_contract_good",
+      "content_source": {"type": "quality_case", "file": "quality/golden_notes.sample.json", "case_id": "fashion_contract_good"},
+      "labels": {
+        "human_quality_score": 82,
+        "delivery_ready": true,
+        "naturalness_label": 80,
+        "hook_quality": 4,
+        "body_value": 4,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 2,
+        "failure_tags": ["delivery_ready"],
+        "rationale": "公式清晰、价格具体、适用人群明确。"
+      }
+    },
+    {
+      "id": "beauty_contract_good",
+      "content_source": {"type": "quality_case", "file": "quality/golden_notes.sample.json", "case_id": "beauty_contract_good"},
+      "labels": {
+        "human_quality_score": 82,
+        "delivery_ready": true,
+        "naturalness_label": 82,
+        "hook_quality": 4,
+        "body_value": 4,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 2,
+        "failure_tags": ["delivery_ready", "naturalness_model_false_positive"],
+        "rationale": "美妆测评细节充分，自然度模型误伤，人工标签保留为好稿。"
+      }
+    },
+    {
+      "id": "home_contract_good",
+      "content_source": {"type": "quality_case", "file": "quality/golden_notes.sample.json", "case_id": "home_contract_good"},
+      "labels": {
+        "human_quality_score": 84,
+        "delivery_ready": true,
+        "naturalness_label": 84,
+        "hook_quality": 4,
+        "body_value": 5,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 1,
+        "failure_tags": ["delivery_ready"],
+        "rationale": "预算、清单、空间痛点和改造顺序清楚。"
+      }
+    },
+    {
+      "id": "fitness_contract_good_v03_bias",
+      "content_source": {"type": "quality_case", "file": "quality/golden_notes.sample.json", "case_id": "fitness_contract_good"},
+      "labels": {
+        "human_quality_score": 80,
+        "delivery_ready": true,
+        "naturalness_label": 80,
+        "hook_quality": 4,
+        "body_value": 4,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 2,
+        "failure_tags": ["delivery_ready", "v03_domain_bias"],
+        "rationale": "内容对健身用户有执行价值，旧 v0.3 压分不应作为人工低质标签。"
+      }
+    },
+    {
+      "id": "baby_contract_good",
+      "content_source": {"type": "quality_case", "file": "quality/golden_notes.sample.json", "case_id": "baby_contract_good"},
+      "labels": {
+        "human_quality_score": 83,
+        "delivery_ready": true,
+        "naturalness_label": 82,
+        "hook_quality": 4,
+        "body_value": 5,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 2,
+        "failure_tags": ["delivery_ready"],
+        "rationale": "安全注意、步骤和观察周期明确，母婴行业适配度高。"
+      }
+    },
+    {
+      "id": "changxi_manual_natural",
+      "content_source": {"type": "json_fields", "file": "tmp_changxi_lc_natural_best_manual.json", "title_field": "title", "body_field": "body", "domain": "美食"},
+      "labels": {
+        "human_quality_score": 78,
+        "delivery_ready": true,
+        "naturalness_label": 86,
+        "hook_quality": 4,
+        "body_value": 4,
+        "industry_fit": 5,
+        "fact_status": "verified",
+        "ai_smell_level": 1,
+        "failure_tags": ["needs_minor_revision"],
+        "rationale": "读感自然，事实完整，缺少轻微 CTA 但可交付或小修。"
+      }
+    },
+    {
+      "id": "changxi_score_hack_72",
+      "content_source": {"type": "json_fields", "file": "tmp_changxi_lc_score_lift_result.json", "title_field": "output_title", "body_field": "output_body", "domain": "美食"},
+      "labels": {
+        "human_quality_score": 45,
+        "delivery_ready": false,
+        "naturalness_label": 25,
+        "hook_quality": 1,
+        "body_value": 3,
+        "industry_fit": 3,
+        "fact_status": "verified",
+        "ai_smell_level": 5,
+        "failure_tags": ["title_unreadable", "score_hacking", "body_template"],
+        "rationale": "v0.3 达72但标题明显拼接，属于评分黑客，不可交付。"
+      }
+    },
+    {
+      "id": "changxi_title_fixed_but_template",
+      "content_source": {"type": "json_fields", "file": "tmp_changxi_lc_score_lift_natural_result.json", "title_field": "output_title", "body_field": "output_body", "domain": "美食"},
+      "labels": {
+        "human_quality_score": 62,
+        "delivery_ready": false,
+        "naturalness_label": 55,
+        "hook_quality": 3,
+        "body_value": 3,
+        "industry_fit": 4,
+        "fact_status": "verified",
+        "ai_smell_level": 4,
+        "failure_tags": ["body_template", "needs_minor_revision"],
+        "rationale": "标题已比评分黑客版自然，但正文仍明显模板化，需要二修。"
+      }
+    }
+  ]
+}

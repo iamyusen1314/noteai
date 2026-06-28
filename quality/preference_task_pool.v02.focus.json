@@ -1,0 +1,284 @@
+{
+  "version": "preference-task-pool-v0.1",
+  "description": "Round02 focused preference task pool for low-consensus V0.4 core domains. Scope: beauty, fitness, and baby-care tasks only. Each task uses same-context multi-variant generation for A/B preference consensus expansion.",
+  "tasks": [
+    {
+      "task_id": "beauty_sensitive_skin_sunscreen_001",
+      "domain": "美妆",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round02_focus_beauty_001",
+      "user_intent": "为敏感混干皮用户生成一篇通勤防晒使用体验笔记，强调肤质前提、上脸肤感、补涂和妆前适配。",
+      "known_facts": [
+        "产品是一支清爽型防晒乳",
+        "价格89元",
+        "肤质是敏感混干皮",
+        "通勤场景使用，早上出门前涂两指量",
+        "成膜后不明显泛白",
+        "后续上粉底不容易搓泥",
+        "户外超过2小时会补涂",
+        "第一次使用前先在耳后试用"
+      ],
+      "fact_status": "safe",
+      "target_reader": "敏感混干皮、通勤、防晒后还要上底妆的小红书用户",
+      "quality_focus": ["肤质前提", "妆前适配", "补涂场景", "真实肤感", "避免功效夸大"],
+      "reference_title": "敏感皮通勤防晒用这支",
+      "reference_body": "敏感混干皮选防晒我会先看会不会闷和搓泥，这支89元的清爽型防晒乳，我早上出门前涂两指量，成膜后不明显泛白。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["敏感肌决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["妆前实测型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["避坑取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["自然细节加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低营销腔"]}
+      ]
+    },
+    {
+      "task_id": "beauty_oily_skin_base_001",
+      "domain": "美妆",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round02_focus_beauty_002",
+      "user_intent": "为油皮夏季底妆生成一篇持妆笔记，强调步骤、用量、斑驳处理和真实带妆反馈。",
+      "known_facts": [
+        "肤质是夏季油皮，T区容易出油",
+        "妆前先用控油乳薄涂T区",
+        "粉底液少量多次，用湿海绵拍开",
+        "鼻翼和下巴会薄上一层散粉",
+        "带妆6小时后T区会出油但不明显斑驳",
+        "出油后用纸巾按压再补散粉",
+        "不适合一开始就厚涂粉底"
+      ],
+      "fact_status": "safe",
+      "target_reader": "油皮、夏天通勤、担心底妆脱妆斑驳的用户",
+      "quality_focus": ["步骤具体", "肤质前提", "带妆反馈", "补妆动作", "避免神化持妆"],
+      "reference_title": "油皮夏天底妆这样更稳",
+      "reference_body": "夏季油皮底妆别一上来就厚涂，我这套更适合通勤。T区先薄涂控油乳，粉底液少量多次，用湿海绵一点点拍开。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["快速决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["步骤实操型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["避坑取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["真实带妆反馈"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低教程模板感"]}
+      ]
+    },
+    {
+      "task_id": "beauty_commute_lipstick_yellow_black_001",
+      "domain": "美妆",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round02_focus_beauty_003",
+      "user_intent": "为黄黑皮通勤用户生成一篇平价口红试色笔记，强调薄涂厚涂、素颜适配、干纹和补涂。",
+      "known_facts": [
+        "色号是玫瑰棕奶茶调",
+        "价格69元",
+        "黄黑皮薄涂更日常",
+        "厚涂会更有气场，适合下班约会",
+        "素颜薄涂不会显突兀",
+        "唇部状态干时会稍微显唇纹",
+        "饭后需要补涂一次",
+        "搭配裸棕眼影和淡腮红更协调"
+      ],
+      "fact_status": "safe",
+      "target_reader": "黄黑皮、通勤、想找平价不出错口红的用户",
+      "quality_focus": ["肤色适配", "薄涂厚涂差异", "价格透明", "缺点真实", "搭配建议"],
+      "reference_title": "黄黑皮通勤口红这支稳",
+      "reference_body": "黄黑皮选通勤口红，我更喜欢玫瑰棕奶茶调，69元这支薄涂很日常，素颜也不会突然有妆感。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["购买决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["试色效果型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["缺点真实型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["种草但不夸大"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低测评腔"]}
+      ]
+    },
+    {
+      "task_id": "fitness_knee_friendly_beginner_001",
+      "domain": "健身",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round02_focus_fitness_001",
+      "user_intent": "生成膝盖友好的居家新手减脂训练笔记，强调动作替代、组数、休息和安全边界。",
+      "known_facts": [
+        "训练目标是新手居家减脂",
+        "每次训练约18分钟",
+        "动作包括原地踏步60秒、臀桥15次、死虫12次、靠墙静蹲30秒",
+        "四个动作做3轮",
+        "每轮之间休息60秒",
+        "不安排跳跃动作",
+        "膝盖不舒服时减少靠墙静蹲时间",
+        "训练前热身5分钟，结束后拉伸小腿和臀腿"
+      ],
+      "fact_status": "safe",
+      "target_reader": "居家减脂新手、担心跳跃伤膝盖或动作太难的用户",
+      "quality_focus": ["动作可执行", "安全替代", "组数清楚", "新手心理", "不承诺瘦身结果"],
+      "reference_title": "膝盖友好的居家减脂",
+      "reference_body": "如果你刚开始居家减脂，膝盖又不太喜欢跳跃，可以先用这一套18分钟训练。原地踏步60秒、臀桥15次、死虫12次、靠墙静蹲30秒，四个动作做3轮。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["新手决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["动作计划型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["安全取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["执行感加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低课程表机械感"]}
+      ]
+    },
+    {
+      "task_id": "fitness_office_shoulder_neck_001",
+      "domain": "健身",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round02_focus_fitness_002",
+      "user_intent": "为久坐上班族生成一篇办公室肩颈放松笔记，强调时长、动作、强度边界和执行场景。",
+      "known_facts": [
+        "适合久坐上班族午休或下班前做",
+        "总时长约8分钟",
+        "动作包括肩胛后缩30秒、靠墙天使8次、斜方肌轻拉30秒、胸小肌开肩30秒",
+        "每个动作做2轮",
+        "动作过程中不追求疼痛感",
+        "如果出现麻木或刺痛应停止",
+        "只需要一面墙和一把椅子",
+        "做完后再起来走2分钟"
+      ],
+      "fact_status": "safe",
+      "target_reader": "久坐、肩颈紧、想在办公室做低门槛放松的用户",
+      "quality_focus": ["场景真实", "动作边界", "安全提醒", "低门槛执行", "避免医疗承诺"],
+      "reference_title": "上班族8分钟肩颈放松",
+      "reference_body": "午休或下班前我会做这一套8分钟肩颈放松，只需要一面墙和一把椅子。肩胛后缩30秒、靠墙天使8次、斜方肌轻拉30秒、胸小肌开肩30秒，每个动作做2轮。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["场景决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["动作实操型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["安全边界型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["真实上班场景"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低康复科普模板感"]}
+      ]
+    },
+    {
+      "task_id": "fitness_home_glute_band_001",
+      "domain": "健身",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round02_focus_fitness_003",
+      "user_intent": "生成弹力带居家臀腿训练笔记，强调动作安排、发力感、器械低门槛和新手注意事项。",
+      "known_facts": [
+        "器械是一条中等阻力弹力带",
+        "适合居家臀腿训练新手",
+        "动作包括弹力带臀桥15次、蚌式开合12次、跪姿后踢腿12次、侧向走10步",
+        "每个动作做3组",
+        "组间休息45秒",
+        "重点是先找到臀部发力感，不追求速度",
+        "腰酸时减少后踢腿幅度",
+        "训练后拉伸臀部和髂腰肌"
+      ],
+      "fact_status": "safe",
+      "target_reader": "想在家练臀腿、器械少、担心动作做错的新手用户",
+      "quality_focus": ["动作顺序", "发力提示", "组数休息", "安全替代", "避免夸大塑形"],
+      "reference_title": "弹力带臀腿新手这样练",
+      "reference_body": "弹力带练臀腿别急着做很快，我更建议先找到臀部发力感。臀桥15次、蚌式开合12次、跪姿后踢腿12次、侧向走10步，每个动作做3组。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["新手决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["训练安排型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["发力避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["训练体验感"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低训练清单模板感"]}
+      ]
+    },
+    {
+      "task_id": "baby_sleep_routine_6month_001",
+      "domain": "母婴",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round02_focus_baby_001",
+      "user_intent": "生成6月龄宝宝睡前流程经验笔记，强调流程顺序、困信号、安抚边界和不夸大睡眠效果。",
+      "known_facts": [
+        "宝宝月龄是6个月",
+        "睡前流程包括洗澡、抚触、换睡袋、关主灯、读短绘本",
+        "观察困信号包括揉眼睛、发呆、打哈欠",
+        "卧室保持暗光",
+        "白噪音音量较低",
+        "流程一般控制在25分钟内",
+        "不承诺睡整觉",
+        "宝宝明显哭闹时先停下来安抚"
+      ],
+      "fact_status": "safe",
+      "target_reader": "6月龄宝宝家长、想建立睡前流程但担心方法太硬的新手父母",
+      "quality_focus": ["月龄适配", "流程顺序", "安全边界", "真实经验", "不制造焦虑"],
+      "reference_title": "6月龄睡前流程别太复杂",
+      "reference_body": "6月龄睡前流程我不建议弄得太满，洗澡、抚触、换睡袋、关主灯、读短绘本，控制在25分钟内就够了。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["新手父母决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["流程实操型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["焦虑缓解型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["宝妈经验感"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低育儿教程模板感"]}
+      ]
+    },
+    {
+      "task_id": "baby_teething_care_001",
+      "domain": "母婴",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round02_focus_baby_002",
+      "user_intent": "生成宝宝出牙期护理经验笔记，强调可执行护理、观察信号、用品安全和就医边界。",
+      "known_facts": [
+        "宝宝处于出牙期，容易流口水和想咬东西",
+        "会准备咬胶，冷藏后使用但不冷冻",
+        "口水巾勤换，保持下巴干爽",
+        "可以用干净手指轻轻按摩牙龈",
+        "晚上哭闹会先确认尿布和饥饿情况",
+        "不自行使用止痛药",
+        "如果持续高热、精神差或拒奶，需要及时就医",
+        "所有小物件都要避免脱落误吞"
+      ],
+      "fact_status": "safe",
+      "target_reader": "出牙期宝宝家长、想知道哪些护理能做哪些不能做的新手父母",
+      "quality_focus": ["护理动作", "安全边界", "观察信号", "用品避坑", "避免医疗化建议"],
+      "reference_title": "宝宝出牙期我这样护理",
+      "reference_body": "宝宝出牙期流口水、想咬东西很常见，我会准备冷藏后的咬胶，但不会冷冻。口水巾勤换，下巴保持干爽。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["护理决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["经验实操型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["安全避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["安全信息密度"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低科普模板感"]}
+      ]
+    },
+    {
+      "task_id": "baby_toy_10month_fine_motor_001",
+      "domain": "母婴",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round02_focus_baby_003",
+      "user_intent": "生成10月龄宝宝精细动作玩具选择笔记，强调玩具类型、陪玩方式、安全尺寸和真实使用反馈。",
+      "known_facts": [
+        "宝宝月龄是10个月",
+        "玩具包括叠杯、软积木、洞洞书和大颗粒形状盒",
+        "叠杯可以练抓握和套叠",
+        "软积木适合拍打和简单堆叠",
+        "洞洞书适合练翻页和指认",
+        "所有玩具都选择大颗粒，避免小零件",
+        "陪玩时家长全程在旁边看护",
+        "每次只拿出2到3样，避免宝宝分心"
+      ],
+      "fact_status": "safe",
+      "target_reader": "10月龄宝宝家长、想买低风险高频使用玩具的新手父母",
+      "quality_focus": ["月龄适配", "玩具选择", "陪玩方式", "安全尺寸", "真实反馈"],
+      "reference_title": "10月龄玩具不用买太多",
+      "reference_body": "10月龄玩具我不建议一次买一堆，叠杯、软积木、洞洞书和大颗粒形状盒就能玩很久。每次只拿出2到3样，宝宝反而更专注。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["购买决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["陪玩实操型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["安全避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["真实陪玩反馈"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低清单推荐模板感"]}
+      ]
+    }
+  ]
+}

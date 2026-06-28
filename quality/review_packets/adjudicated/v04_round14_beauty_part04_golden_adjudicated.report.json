@@ -1,0 +1,39 @@
+{
+  "version": "golden-review-adjudication-v0.1",
+  "created_at": "2026-06-27T13:55:49.720612+00:00",
+  "policy": "Only low-risk disagreements are adjudicated: Kimi ok, no fact/industry risk, Kimi confidence above threshold, and score gap within threshold. Delivery-ready is true only when both judges agree and score >= 78.",
+  "params": {
+    "max_score_gap": 12.0,
+    "min_kimi_confidence": 0.7
+  },
+  "totals": {
+    "rows_seen": 250,
+    "adjudicated_count": 65,
+    "skipped_count": 185
+  },
+  "by_domain": {
+    "美妆": 65
+  },
+  "score_buckets": {
+    "20": 2,
+    "30": 4,
+    "40": 4,
+    "50": 9,
+    "60": 13,
+    "70": 32,
+    "80": 1
+  },
+  "skipped_reasons": {
+    "already_consensus": 25,
+    "missing_title_or_body": 50,
+    "risk_flags": 102,
+    "risk_tags": 5,
+    "score_gap_too_large": 3
+  },
+  "input": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_beauty_part04_golden_ai_review.jsonl",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round14_beauty_part04_golden_adjudicated.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round14_beauty_part04_golden_adjudicated.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round14_beauty_part04_golden_adjudicated.report.json"
+  }
+}

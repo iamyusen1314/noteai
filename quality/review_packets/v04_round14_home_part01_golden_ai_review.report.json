@@ -1,0 +1,33 @@
+{
+  "version": "ai-prelabel-review-batch-v0.2",
+  "created_at": "2026-06-27T05:53:12.511908+00:00",
+  "kind": "golden",
+  "input": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_home_part01_golden.csv",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_home_part01_golden_ai_review.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_home_part01_golden_ai_review.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_home_part01_golden_ai_review.report.json"
+  },
+  "review_chain": {
+    "primary_review": "claude",
+    "second_review": "kimi",
+    "claude_review_model": "claude-sonnet-4-6",
+    "kimi_review_model": "kimi-k2.5"
+  },
+  "totals": {
+    "rows": 191,
+    "ai_needs_human_review": 185,
+    "ai_can_fast_review": 6
+  },
+  "by_domain": {
+    "家居": 191
+  },
+  "judge_consensus": {
+    "agree": 30,
+    "disagree": 161
+  },
+  "second_review_status": {
+    "ok": 191
+  },
+  "policy": "AI prelabels are suggestions only. Official label fields remain blank; Kimi second review can mark disagreement/holdout; use promote_reviewed_prelabels.py after review approval."
+}

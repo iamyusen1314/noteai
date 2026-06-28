@@ -1,0 +1,75 @@
+{
+  "version": "golden-ingest-report-v0.1",
+  "created_at": "2026-06-26T14:52:23.630261+00:00",
+  "input": "quality/review_packets/promoted/v04_all_golden_promoted.round13_allcore_part01.jsonl",
+  "output": "quality/golden_labels.v01.merged.json",
+  "seed_count": 11,
+  "rows_seen": 2844,
+  "imported_count": 2830,
+  "skipped_unlabeled": 0,
+  "skipped_locked_seed": 0,
+  "skipped_duplicate_text": 14,
+  "error_count": 0,
+  "warning_count": 0,
+  "duplicate_texts": [
+    {
+      "id": "gq01s_13384947d432c683",
+      "text_hash": "acbfdc04ea11393f"
+    },
+    {
+      "id": "gq01s_35ade36a3e58e128",
+      "text_hash": "c0bb3bb41f0d40e8"
+    },
+    {
+      "id": "gq01s_3dfd8eed7a9b4e7f",
+      "text_hash": "9028f66eed7bc213"
+    },
+    {
+      "id": "gq01s_3f0753d9e99403a9",
+      "text_hash": "ba80ff1e08984247"
+    },
+    {
+      "id": "gq01s_5a710daffb5f1065",
+      "text_hash": "01666dfc19e84eaf"
+    },
+    {
+      "id": "gq01s_67efbf7b96a548ee",
+      "text_hash": "10884a48fc2cb222"
+    },
+    {
+      "id": "gq01s_7c8ccecd161f5140",
+      "text_hash": "e543d8bcdef98fcf"
+    },
+    {
+      "id": "gq01s_7fa2ed8fd89ffec9",
+      "text_hash": "c2fe1986d56def05"
+    },
+    {
+      "id": "gq01s_c86d17b4cfed747e",
+      "text_hash": "b7a07d3396cedd71"
+    },
+    {
+      "id": "gq01s_e6fe6887629fba0a",
+      "text_hash": "f5122a2082a928d4"
+    },
+    {
+      "id": "gq01s_e7651c291ea6ea4c",
+      "text_hash": "67e62225d4152760"
+    },
+    {
+      "id": "gq01s_ec1902d59ac0f358",
+      "text_hash": "7c837d327896c731"
+    },
+    {
+      "id": "gq01s_edd170098a40e1f1",
+      "text_hash": "59191f0d617794ff"
+    },
+    {
+      "id": "gq01s_fea72779233d555a",
+      "text_hash": "9089ca9af7df7818"
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "decision": "ok"
+}

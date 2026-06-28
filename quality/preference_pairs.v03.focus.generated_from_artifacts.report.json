@@ -1,0 +1,32 @@
+{
+  "version": "preference-seed-from-artifacts-report-v0.1",
+  "created_at": "2026-06-25T11:44:29.447616+00:00",
+  "inputs": {
+    "task_pool": "/Users/openclaw/Desktop/noteai/quality/preference_task_pool.v03.focus.json",
+    "artifact_dir": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v03_focus",
+    "include_blocking": true
+  },
+  "artifact_count": 72,
+  "task_count": 12,
+  "variant_count": 72,
+  "variants_by_task": {
+    "food_guangzhou_dim_sum_family_001": 6,
+    "food_shenzhen_lunch_set_001": 6,
+    "food_chengdu_light_hotpot_001": 6,
+    "travel_hangzhou_parent_child_2day_001": 6,
+    "travel_dali_slow_4day_001": 6,
+    "travel_guangzhou_hotel_family_001": 6,
+    "fashion_pear_shape_summer_commute_001": 6,
+    "fashion_wide_shoulder_soft_style_001": 6,
+    "fashion_mens_clean_commute_001": 6,
+    "home_balcony_laundry_4sqm_001": 6,
+    "home_kitchen_rental_storage_001": 6,
+    "home_bedroom_sleep_light_001": 6
+  },
+  "skipped": [],
+  "policy": "This seed creates preference labeling queues only; labels must be human-reviewed before training.",
+  "outputs": {
+    "seed": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v03.focus.generated_from_artifacts.json",
+    "report": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v03.focus.generated_from_artifacts.report.json"
+  }
+}

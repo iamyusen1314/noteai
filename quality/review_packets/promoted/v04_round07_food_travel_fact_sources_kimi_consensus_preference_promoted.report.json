@@ -1,0 +1,154 @@
+{
+  "version": "reviewed-prelabel-promotion-v0.1",
+  "created_at": "2026-06-25T15:08:18.804951+00:00",
+  "kind": "preference",
+  "rows_seen": 33,
+  "promoted_count": 6,
+  "skipped_count": 27,
+  "skipped_preview": [
+    {
+      "id": "pref01_travel_sanya_yalongbay_hotel_meituan_001_0002_de030e8a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_taikooli_hotel_meituan_001_0003_758865d5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_taikooli_hotel_meituan_001_0004_5da0aecc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_taikooli_hotel_meituan_001_0005_c65e10a4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_taikooli_hotel_meituan_001_0006_1ac239a1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_taikooli_hotel_meituan_001_0008_aea644bb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_taikooli_hotel_meituan_001_0011_83bda081",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0013_80f39ebf",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0014_d364a93c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0015_4826b3d2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0016_6d24b24c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0017_350f0a42",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0018_dbb5af42",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0019_34d4153d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0020_3bdd3b07",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0021_aadac4d0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0022_45404b44",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0023_d74e663d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0024_94ca3ccf",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0025_80adcd1f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0026_d9326f9e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_guomao_business_meituan_001_0027_910a1ef7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_westlake_route_meituan_001_0029_929fb233",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_westlake_route_meituan_001_0030_b03c6407",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_westlake_route_meituan_001_0031_eb1b31bf",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_westlake_route_meituan_001_0032_afe58351",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_westlake_route_meituan_001_0033_c63b706c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    }
+  ],
+  "auto_accept_consensus": true,
+  "auto_accept_winner_consensus": true,
+  "winner_consensus_min_kimi_confidence": 0.7,
+  "policy": "Only review_decision=accept_ai/accept_with_edits, explicit --auto-accept-consensus judge_consensus=agree, or explicit --auto-accept-winner-consensus same A/B winner is promoted.",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round07_food_travel_fact_sources_kimi_consensus_preference_promoted.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round07_food_travel_fact_sources_kimi_consensus_preference_promoted.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round07_food_travel_fact_sources_kimi_consensus_preference_promoted.report.json"
+  }
+}

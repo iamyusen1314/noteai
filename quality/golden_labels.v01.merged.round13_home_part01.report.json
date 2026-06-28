@@ -1,0 +1,127 @@
+{
+  "version": "golden-ingest-report-v0.1",
+  "created_at": "2026-06-27T01:08:45.282456+00:00",
+  "input": "quality/review_packets/promoted/v04_all_golden_promoted.round13_home_part01.jsonl",
+  "output": "quality/golden_labels.v01.merged.json",
+  "seed_count": 11,
+  "rows_seen": 4915,
+  "imported_count": 4888,
+  "skipped_unlabeled": 0,
+  "skipped_locked_seed": 0,
+  "skipped_duplicate_text": 27,
+  "error_count": 0,
+  "warning_count": 0,
+  "duplicate_texts": [
+    {
+      "id": "gq01s_13384947d432c683",
+      "text_hash": "acbfdc04ea11393f"
+    },
+    {
+      "id": "gq01s_35ade36a3e58e128",
+      "text_hash": "c0bb3bb41f0d40e8"
+    },
+    {
+      "id": "gq01s_3b86325d04696ff8",
+      "text_hash": "67cd6913dd8f109b"
+    },
+    {
+      "id": "gq01s_3cd144cde1995ee8",
+      "text_hash": "a0b8422b23776a76"
+    },
+    {
+      "id": "gq01s_3dfd8eed7a9b4e7f",
+      "text_hash": "9028f66eed7bc213"
+    },
+    {
+      "id": "gq01s_3f0753d9e99403a9",
+      "text_hash": "ba80ff1e08984247"
+    },
+    {
+      "id": "gq01s_54027b4715ebd694",
+      "text_hash": "741defee1dc81736"
+    },
+    {
+      "id": "gq01s_5a710daffb5f1065",
+      "text_hash": "01666dfc19e84eaf"
+    },
+    {
+      "id": "gq01s_67efbf7b96a548ee",
+      "text_hash": "10884a48fc2cb222"
+    },
+    {
+      "id": "gq01s_7c205e2aab5f11e6",
+      "text_hash": "6dda5261bf80f70d"
+    },
+    {
+      "id": "gq01s_7c8ccecd161f5140",
+      "text_hash": "e543d8bcdef98fcf"
+    },
+    {
+      "id": "gq01s_7f9e71a5b97d606a",
+      "text_hash": "7ef8e0ab89f74d59"
+    },
+    {
+      "id": "gq01s_7fa2ed8fd89ffec9",
+      "text_hash": "c2fe1986d56def05"
+    },
+    {
+      "id": "gq01s_8a8e903d5827361d",
+      "text_hash": "44dbb14fbc8cd008"
+    },
+    {
+      "id": "gq01s_9353a7bde4917868",
+      "text_hash": "1563198c55b35bf8"
+    },
+    {
+      "id": "gq01s_9a1ca24ab4af19a5",
+      "text_hash": "2b9f81c62a85ca65"
+    },
+    {
+      "id": "gq01s_aed6fe58bed4f989",
+      "text_hash": "7697956abbbae0a5"
+    },
+    {
+      "id": "gq01s_c86d17b4cfed747e",
+      "text_hash": "b7a07d3396cedd71"
+    },
+    {
+      "id": "gq01s_d8a84d7b098a79fe",
+      "text_hash": "ed42cc2c780ba647"
+    },
+    {
+      "id": "gq01s_de15fae7083a4f43",
+      "text_hash": "dd7c2c7e81c67311"
+    },
+    {
+      "id": "gq01s_e6fe6887629fba0a",
+      "text_hash": "f5122a2082a928d4"
+    },
+    {
+      "id": "gq01s_e7651c291ea6ea4c",
+      "text_hash": "67e62225d4152760"
+    },
+    {
+      "id": "gq01s_ec1902d59ac0f358",
+      "text_hash": "7c837d327896c731"
+    },
+    {
+      "id": "gq01s_edd170098a40e1f1",
+      "text_hash": "59191f0d617794ff"
+    },
+    {
+      "id": "gq01s_fea72779233d555a",
+      "text_hash": "9089ca9af7df7818"
+    },
+    {
+      "id": "gq01s_fec30956c38c5371",
+      "text_hash": "18cf70e1aa6ac46f"
+    },
+    {
+      "id": "gq01s_ff881d7b6304a1ad",
+      "text_hash": "8f25775f990da325"
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "decision": "ok"
+}

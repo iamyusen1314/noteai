@@ -1,0 +1,20 @@
+{
+  "version": "preference-ingest-report-v0.1",
+  "created_at": "2026-06-25T14:22:44.475332+00:00",
+  "inputs": [
+    "quality/preference_queue.v01.labeled.jsonl",
+    "quality/review_packets/promoted/v04_round06_food_travel_kimi_consensus_preference_promoted.jsonl"
+  ],
+  "output_jsonl": "quality/preference_queue.v01.labeled.jsonl",
+  "output_json": "quality/preference_labels.v01.merged.json",
+  "rows_seen": 226,
+  "labeled_count": 226,
+  "skipped_unlabeled": 0,
+  "skipped_skip": 0,
+  "skipped_duplicate": 0,
+  "error_count": 0,
+  "warning_count": 0,
+  "errors": [],
+  "warnings": [],
+  "decision": "ok"
+}

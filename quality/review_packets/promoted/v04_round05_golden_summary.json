@@ -1,0 +1,86 @@
+{
+  "version": "v04-round05-golden-summary-v0.1",
+  "created_at": "2026-06-25T21:18:00+08:00",
+  "scope": "Round05 focused golden expansion for first-core-domain V0.4 composite training",
+  "supplement_pool": {
+    "path": "quality/annotation_queue.v01.core_supplement.v02.jsonl",
+    "selected_rows": 900,
+    "by_domain_selected": {
+      "美妆": 300,
+      "家居": 300,
+      "母婴": 300
+    },
+    "by_domain_available": {
+      "美妆": 1283,
+      "家居": 329,
+      "母婴": 1782
+    }
+  },
+  "batches": {
+    "v04_round05a": {
+      "domains": {
+        "健身": 40,
+        "旅行": 40,
+        "穿搭": 40,
+        "美食": 40
+      },
+      "exported_rows": 160,
+      "kimi_second_review_ok": 160,
+      "judge_consensus_agree": 41,
+      "judge_consensus_disagree": 119,
+      "promoted_rows": 39,
+      "ingested_rows": 39,
+      "holdout_rows": 121
+    },
+    "v04_round05b": {
+      "domains": {
+        "家居": 60,
+        "母婴": 60,
+        "美妆": 60
+      },
+      "exported_rows": 180,
+      "kimi_second_review_ok": 180,
+      "judge_consensus_agree": 15,
+      "judge_consensus_disagree": 165,
+      "promoted_rows": 13,
+      "ingested_rows": 13,
+      "holdout_rows": 167
+    }
+  },
+  "final_training_labels": {
+    "golden_rows": 145,
+    "golden_by_domain": {
+      "美食": 31,
+      "旅行": 17,
+      "穿搭": 33,
+      "美妆": 14,
+      "家居": 17,
+      "健身": 25,
+      "母婴": 8
+    },
+    "preference_pair_rows": 204,
+    "preference_by_domain": {
+      "美食": 30,
+      "旅行": 22,
+      "穿搭": 36,
+      "美妆": 23,
+      "家居": 36,
+      "健身": 31,
+      "母婴": 26
+    }
+  },
+  "data_engineering_fixes": [
+    "tools/v04_core_domain_gap_report.py now prefers quality/annotation_queue.v01.core_supplement.v02.report.json when it exists, so low-domain queue capacity reports reflect the latest supplement pool."
+  ],
+  "gate_status": {
+    "health_decision": "blocked_need_labels",
+    "train_decision": "blocked_need_labels",
+    "do_not_deploy": true,
+    "reason": "All core domains remain below candidate and production label thresholds; mother/baby is the weakest golden domain with 8 labels."
+  },
+  "validation": {
+    "unittest": "89 tests passed",
+    "quality_gate": "passed",
+    "py_compile": "passed for changed training/data scripts and core API files"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "golden_promoted_combined": 34,
+  "preference_promoted_combined_including_existing": 39,
+  "outputs": {
+    "golden": "quality/review_packets/promoted/v04_round01_all_kimi_consensus_golden_promoted.jsonl",
+    "preference": "quality/review_packets/promoted/v04_round01_all_kimi_consensus_preference_promoted.jsonl"
+  }
+}

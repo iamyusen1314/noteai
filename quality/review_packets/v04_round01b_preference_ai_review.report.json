@@ -1,0 +1,26 @@
+{
+  "version": "ai-prelabel-review-batch-v0.1",
+  "created_at": "2026-06-25T09:19:46.046940+00:00",
+  "kind": "preference",
+  "input": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round01b_preference.csv",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01b_preference_ai_review.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01b_preference_ai_review.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01b_preference_ai_review.report.json"
+  },
+  "totals": {
+    "rows": 105,
+    "ai_needs_human_review": 94,
+    "ai_can_fast_review": 11
+  },
+  "by_domain": {
+    "健身": 15,
+    "家居": 15,
+    "旅行": 15,
+    "母婴": 15,
+    "穿搭": 15,
+    "美妆": 15,
+    "美食": 15
+  },
+  "policy": "AI prelabels are suggestions only. Official label fields remain blank; use promote_reviewed_prelabels.py after review approval."
+}

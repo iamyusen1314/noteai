@@ -1,0 +1,33 @@
+{
+  "version": "ai-prelabel-review-batch-v0.2",
+  "created_at": "2026-06-27T08:59:49.844154+00:00",
+  "kind": "golden",
+  "input": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_fitness_part01_golden.csv",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_fitness_part01_golden_ai_review.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_fitness_part01_golden_ai_review.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_fitness_part01_golden_ai_review.report.json"
+  },
+  "review_chain": {
+    "primary_review": "claude",
+    "second_review": "kimi",
+    "claude_review_model": "claude-sonnet-4-6",
+    "kimi_review_model": "kimi-k2.5"
+  },
+  "totals": {
+    "rows": 250,
+    "ai_needs_human_review": 242,
+    "ai_can_fast_review": 8
+  },
+  "by_domain": {
+    "健身": 250
+  },
+  "judge_consensus": {
+    "agree": 38,
+    "disagree": 212
+  },
+  "second_review_status": {
+    "ok": 250
+  },
+  "policy": "AI prelabels are suggestions only. Official label fields remain blank; Kimi second review can mark disagreement/holdout; use promote_reviewed_prelabels.py after review approval."
+}

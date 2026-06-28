@@ -1,0 +1,86 @@
+{
+  "version": "golden-pairwise-distillation-report-v0.1",
+  "created_at": "2026-06-25T23:47:42.296820+00:00",
+  "inputs": {
+    "golden_labels": "/Users/openclaw/Desktop/noteai/quality/golden_labels.v01.merged.json"
+  },
+  "policy": {
+    "label_source": "golden_pairwise_distillation",
+    "min_score_gap": 20.0,
+    "ready_gap_min": 12.0,
+    "max_pairs_per_domain": 1000,
+    "note": "These rows come from reviewed golden labels and are supplemental pairwise ranking labels, not same-task generated A/B labels."
+  },
+  "totals": {
+    "golden_rows": 317,
+    "pairs": 3578,
+    "by_domain": {
+      "健身": 409,
+      "家居": 436,
+      "旅行": 769,
+      "母婴": 87,
+      "穿搭": 787,
+      "美妆": 90,
+      "美食": 1000
+    },
+    "winner_counts": {
+      "A": 1795,
+      "B": 1783
+    }
+  },
+  "domains": {
+    "健身": {
+      "golden_rows": 43,
+      "score_min": 20.0,
+      "score_max": 80.0,
+      "candidate_pairs": 409,
+      "selected_pairs": 409
+    },
+    "家居": {
+      "golden_rows": 41,
+      "score_min": 12.0,
+      "score_max": 89.0,
+      "candidate_pairs": 436,
+      "selected_pairs": 436
+    },
+    "旅行": {
+      "golden_rows": 53,
+      "score_min": 28.0,
+      "score_max": 96.0,
+      "candidate_pairs": 769,
+      "selected_pairs": 769
+    },
+    "母婴": {
+      "golden_rows": 22,
+      "score_min": 22.0,
+      "score_max": 90.0,
+      "candidate_pairs": 87,
+      "selected_pairs": 87
+    },
+    "穿搭": {
+      "golden_rows": 57,
+      "score_min": 12.0,
+      "score_max": 89.0,
+      "candidate_pairs": 787,
+      "selected_pairs": 787
+    },
+    "美妆": {
+      "golden_rows": 26,
+      "score_min": 36.0,
+      "score_max": 84.0,
+      "candidate_pairs": 90,
+      "selected_pairs": 90
+    },
+    "美食": {
+      "golden_rows": 75,
+      "score_min": 8.0,
+      "score_max": 88.0,
+      "candidate_pairs": 1413,
+      "selected_pairs": 1000
+    }
+  },
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v01.golden_distilled.round10.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v01.golden_distilled.round10.report.json"
+  }
+}

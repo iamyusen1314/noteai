@@ -1,0 +1,40 @@
+{
+  "version": "golden-review-adjudication-v0.1",
+  "created_at": "2026-06-27T10:39:38.155903+00:00",
+  "policy": "Only low-risk disagreements are adjudicated: Kimi ok, no fact/industry risk, Kimi confidence above threshold, and score gap within threshold. Delivery-ready is true only when both judges agree and score >= 78.",
+  "params": {
+    "max_score_gap": 12.0,
+    "min_kimi_confidence": 0.7
+  },
+  "totals": {
+    "rows_seen": 250,
+    "adjudicated_count": 73,
+    "skipped_count": 177
+  },
+  "by_domain": {
+    "健身": 73
+  },
+  "score_buckets": {
+    "10": 2,
+    "30": 2,
+    "40": 1,
+    "50": 5,
+    "60": 23,
+    "70": 36,
+    "80": 4
+  },
+  "skipped_reasons": {
+    "already_consensus": 38,
+    "missing_title_or_body": 11,
+    "risk_flags": 106,
+    "risk_tags": 9,
+    "score_gap_too_large": 12,
+    "second_review_not_ok": 1
+  },
+  "input": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_fitness_part03_golden_ai_review.jsonl",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round14_fitness_part03_golden_adjudicated.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round14_fitness_part03_golden_adjudicated.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round14_fitness_part03_golden_adjudicated.report.json"
+  }
+}

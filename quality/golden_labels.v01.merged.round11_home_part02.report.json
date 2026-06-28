@@ -1,0 +1,27 @@
+{
+  "version": "golden-ingest-report-v0.1",
+  "created_at": "2026-06-26T03:27:47.530320+00:00",
+  "input": "quality/review_packets/promoted/v04_all_golden_promoted.round11_home_part02.jsonl",
+  "output": "quality/golden_labels.v01.merged.json",
+  "seed_count": 11,
+  "rows_seen": 805,
+  "imported_count": 803,
+  "skipped_unlabeled": 0,
+  "skipped_locked_seed": 0,
+  "skipped_duplicate_text": 2,
+  "error_count": 0,
+  "warning_count": 0,
+  "duplicate_texts": [
+    {
+      "id": "gq01s_13384947d432c683",
+      "text_hash": "acbfdc04ea11393f"
+    },
+    {
+      "id": "gq01s_67efbf7b96a548ee",
+      "text_hash": "10884a48fc2cb222"
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "decision": "ok"
+}

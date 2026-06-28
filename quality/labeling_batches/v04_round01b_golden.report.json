@@ -1,0 +1,26 @@
+{
+  "version": "labeling-batch-v0.1",
+  "created_at": "2026-06-25T08:58:03.227773+00:00",
+  "kind": "golden",
+  "queue": "quality/annotation_queue.v01.core_supplement.jsonl",
+  "outputs": {
+    "jsonl": "quality/labeling_batches/v04_round01b_golden.jsonl",
+    "csv": "quality/labeling_batches/v04_round01b_golden.csv"
+  },
+  "batch_id": "v04_round01b",
+  "rows": 120,
+  "by_domain": {
+    "家居": 40,
+    "母婴": 40,
+    "美妆": 40
+  },
+  "by_priority": {
+    "high": 120
+  },
+  "selection": {
+    "max_rows": 120,
+    "per_domain": 40,
+    "domains": "美妆,家居,母婴",
+    "priorities": "high,medium,normal"
+  }
+}

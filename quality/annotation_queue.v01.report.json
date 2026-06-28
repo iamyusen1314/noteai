@@ -1,0 +1,156 @@
+{
+  "version": "golden-annotation-queue-v0.1",
+  "created_at": "2026-06-25T08:51:19.280278+00:00",
+  "status": "annotation_queue_needs_human_labels",
+  "totals": {
+    "rows": 3820,
+    "needs_label": 3809,
+    "locked_seed": 11
+  },
+  "by_domain": {
+    "健康": 350,
+    "健身": 351,
+    "其他": 310,
+    "学习": 350,
+    "宠物": 350,
+    "家居": 1,
+    "心理": 349,
+    "情感": 350,
+    "旅行": 351,
+    "母婴": 1,
+    "穿搭": 351,
+    "美妆": 1,
+    "美食": 355,
+    "职场": 350
+  },
+  "by_domain_needs_label": {
+    "健康": 350,
+    "健身": 350,
+    "其他": 310,
+    "学习": 350,
+    "宠物": 350,
+    "心理": 349,
+    "情感": 350,
+    "旅行": 350,
+    "穿搭": 350,
+    "美食": 350,
+    "职场": 350
+  },
+  "by_bucket": {
+    "aigc": 400,
+    "real_boundary": 769,
+    "real_good": 550,
+    "real_low": 660,
+    "real_mid": 550,
+    "real_top": 880,
+    "seed_locked": 11
+  },
+  "by_source": {
+    "noteai_golden_seed": 11,
+    "rednote_vibe_aigc": 400,
+    "rednote_vibe_score": 3409
+  },
+  "domains_sampled": [
+    "健康",
+    "健身",
+    "其他",
+    "学习",
+    "宠物",
+    "心理",
+    "情感",
+    "旅行",
+    "穿搭",
+    "美食",
+    "职场"
+  ],
+  "default_targets": {
+    "candidate_core_domain_min": 300,
+    "candidate_core_domain_target": 500,
+    "production_core_domain_min": 1000,
+    "production_core_domain_target": 2000,
+    "preference_pairs_per_core_domain_target": 3000,
+    "queue_default_per_observed_domain": 350,
+    "real_band_plan": {
+      "real_top": {
+        "min": 85.0,
+        "max": 100.0001,
+        "count": 80
+      },
+      "real_good": {
+        "min": 70.0,
+        "max": 85.0,
+        "count": 50
+      },
+      "real_boundary": {
+        "min": 55.0,
+        "max": 70.0,
+        "count": 70
+      },
+      "real_mid": {
+        "min": 35.0,
+        "max": 55.0,
+        "count": 50
+      },
+      "real_low": {
+        "min": 0.0,
+        "max": 25.0,
+        "count": 60
+      }
+    },
+    "aigc_per_domain": 40
+  },
+  "coverage_gaps": {
+    "under_default_target": {
+      "其他": {
+        "selected_needs_label": 310,
+        "target_default": 350
+      },
+      "心理": {
+        "selected_needs_label": 349,
+        "target_default": 350
+      }
+    },
+    "missing_product_domains_in_rednote_vibe_snapshot": [
+      "美妆",
+      "家居",
+      "母婴"
+    ],
+    "product_domains_seed_only": [
+      "美妆",
+      "家居",
+      "母婴"
+    ],
+    "note": "Missing product domains need generated/user-material samples or finer domain remapping before final training."
+  },
+  "shortfalls": {
+    "real": [],
+    "aigc": [
+      {
+        "domain": "其他",
+        "sample_bucket": "aigc",
+        "target": 40,
+        "available": 0,
+        "selected": 0
+      }
+    ]
+  },
+  "seed_labels": {
+    "seed_labels_path": "/Users/openclaw/Desktop/noteai/quality/golden_labels.v01.seed.json",
+    "loaded": 11,
+    "missing": false
+  },
+  "dedupe": {
+    "duplicate_text_removed": 1,
+    "duplicate_id_removed": 0
+  },
+  "inputs": {
+    "features_path": "/Users/openclaw/Desktop/noteai/model/data/v04/score_rows.parquet",
+    "normalized_path": "/Users/openclaw/Desktop/noteai/model/data/v04/normalized_rows.parquet",
+    "seed_labels_path": "/Users/openclaw/Desktop/noteai/quality/golden_labels.v01.seed.json"
+  },
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.csv",
+    "report": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.report.json"
+  }
+}

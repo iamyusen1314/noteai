@@ -1,0 +1,82 @@
+{
+  "batch_id": "v04_round07_food_travel_fact_sources",
+  "created_at": "2026-06-25T15:08:25+00:00",
+  "strategy": {
+    "food_fact_source": "amap_and_local_verified",
+    "travel_fact_source": "meituan_travel_skill",
+    "training_fact_policy": "missing-fact placeholders are excluded from task facts and template fact sections are filtered before preference training"
+  },
+  "generation": {
+    "task_pool": "quality/preference_task_pool.v07.food_travel_fact_sources.json",
+    "artifact_dir": "quality/generated_variants/v07_food_travel_fact_sources",
+    "tasks": 9,
+    "slots": 54,
+    "ready": 54,
+    "failed": 0,
+    "score_mean": 66.464,
+    "score_median": 66.931,
+    "score_max": 75.375,
+    "score_ge_72": 4
+  },
+  "seed_filtering": {
+    "artifact_count": 54,
+    "retained_tasks": 5,
+    "retained_variants": 19,
+    "preference_pairs": 33,
+    "major_filters": [
+      "blocking_filtered",
+      "title_unreadable_filtered",
+      "fact_section_template_filtered",
+      "body_format_filtered"
+    ]
+  },
+  "ai_review": {
+    "rows": 33,
+    "kimi_second_review_ok": 33,
+    "strict_consensus": 1,
+    "judge_disagreement": 32,
+    "promoted_preference_pairs": 6,
+    "holdout_pairs": 27
+  },
+  "merged_totals_after_round": {
+    "golden_rows": 157,
+    "preference_pair_rows": 232,
+    "golden_by_domain": {
+      "美食": 39,
+      "旅行": 21,
+      "穿搭": 33,
+      "美妆": 14,
+      "家居": 17,
+      "健身": 25,
+      "母婴": 8
+    },
+    "preference_by_domain": {
+      "美食": 47,
+      "旅行": 33,
+      "穿搭": 36,
+      "美妆": 23,
+      "家居": 36,
+      "健身": 31,
+      "母婴": 26
+    }
+  },
+  "readiness": {
+    "decision": "blocked_need_labels",
+    "candidate_ready": false,
+    "production_ready": false,
+    "do_not_deploy": true
+  },
+  "engineering_changes": [
+    "model/fact_enrichment.py tightened local verified identity matching",
+    "model/fact_enrichment.py avoids road names such as 北京路 and 南京西路 being treated as city regions",
+    "model/fact_enrichment.py added NOTEAI_MEITUAN_TRAVEL_TIMEOUT default 45s",
+    "model/api.py title readability now blocks new Round07 dangling title patterns",
+    "tools/build_preference_seed_from_generated_artifacts.py filters body format pollution and template fact sections"
+  ],
+  "validation": {
+    "unit_tests": "94 passed",
+    "py_compile": "passed for model/tools/tests",
+    "quality_gate": "quality/quality_gate_cases.v04_round06_food_travel.json passed",
+    "train_guard": "model/train_v04_composite.py --json returned blocked_need_labels and do_not_deploy=true"
+  }
+}

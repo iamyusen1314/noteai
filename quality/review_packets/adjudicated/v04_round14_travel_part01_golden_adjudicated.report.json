@@ -1,0 +1,38 @@
+{
+  "version": "golden-review-adjudication-v0.1",
+  "created_at": "2026-06-27T16:08:26.331459+00:00",
+  "policy": "Only low-risk disagreements are adjudicated: Kimi ok, no fact/industry risk, Kimi confidence above threshold, and score gap within threshold. Delivery-ready is true only when both judges agree and score >= 78.",
+  "params": {
+    "max_score_gap": 12.0,
+    "min_kimi_confidence": 0.7
+  },
+  "totals": {
+    "rows_seen": 250,
+    "adjudicated_count": 124,
+    "skipped_count": 126
+  },
+  "by_domain": {
+    "旅行": 124
+  },
+  "score_buckets": {
+    "10": 1,
+    "30": 3,
+    "50": 6,
+    "60": 9,
+    "70": 83,
+    "80": 22
+  },
+  "skipped_reasons": {
+    "already_consensus": 80,
+    "missing_title_or_body": 5,
+    "risk_flags": 21,
+    "risk_tags": 13,
+    "score_gap_too_large": 7
+  },
+  "input": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_travel_part01_golden_ai_review.jsonl",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round14_travel_part01_golden_adjudicated.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round14_travel_part01_golden_adjudicated.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round14_travel_part01_golden_adjudicated.report.json"
+  }
+}

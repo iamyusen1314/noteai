@@ -1,0 +1,30 @@
+{
+  "version": "labeling-batch-v0.1",
+  "created_at": "2026-06-27T05:16:41.931017+00:00",
+  "kind": "golden",
+  "queue": "quality/annotation_queue.v01.production_supplement.round14.jsonl",
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_home_part01_golden.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_home_part01_golden.csv"
+  },
+  "batch_id": "v04_round14_home_part01",
+  "rows": 191,
+  "by_domain": {
+    "家居": 191
+  },
+  "by_priority": {
+    "high": 69,
+    "medium": 96,
+    "normal": 26
+  },
+  "selection": {
+    "max_rows": 250,
+    "per_domain": 0,
+    "domains": "家居",
+    "priorities": "high,medium,normal",
+    "exclude_ids_from": "",
+    "excluded_id_count": 0,
+    "exclude_source_count": 0,
+    "exclude_sources": []
+  }
+}

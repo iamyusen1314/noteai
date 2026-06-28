@@ -1,0 +1,33 @@
+{
+  "version": "ai-prelabel-review-batch-v0.2",
+  "created_at": "2026-06-27T05:13:12.909128+00:00",
+  "kind": "golden",
+  "input": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_beauty_part01_golden.csv",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_beauty_part01_golden_ai_review.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_beauty_part01_golden_ai_review.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round14_beauty_part01_golden_ai_review.report.json"
+  },
+  "review_chain": {
+    "primary_review": "claude",
+    "second_review": "kimi",
+    "claude_review_model": "claude-sonnet-4-6",
+    "kimi_review_model": "kimi-k2.5"
+  },
+  "totals": {
+    "rows": 250,
+    "ai_needs_human_review": 245,
+    "ai_can_fast_review": 5
+  },
+  "by_domain": {
+    "美妆": 250
+  },
+  "judge_consensus": {
+    "agree": 26,
+    "disagree": 224
+  },
+  "second_review_status": {
+    "ok": 250
+  },
+  "policy": "AI prelabels are suggestions only. Official label fields remain blank; Kimi second review can mark disagreement/holdout; use promote_reviewed_prelabels.py after review approval."
+}

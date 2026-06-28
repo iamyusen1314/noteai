@@ -1,0 +1,47 @@
+{
+  "version": "core-domain-supplement-queue-v0.1",
+  "created_at": "2026-06-27T16:13:03.969939+00:00",
+  "status": "supplement_queue_needs_human_labels",
+  "inputs": {
+    "raw_dir": "/Users/openclaw/Desktop/noteai/model/data/rednote_vibe_raw/20260625T062120Z_a9bc6e296549",
+    "existing_queue": "/Users/openclaw/Desktop/noteai/quality/seen_text_index.v04.round14.jsonl",
+    "raw_files": [
+      "training_set_human.jsonl",
+      "exploring_set.jsonl"
+    ]
+  },
+  "params": {
+    "domains": [
+      "家居"
+    ],
+    "per_domain": 1200,
+    "min_score": 5,
+    "min_body_chars": 60
+  },
+  "totals": {
+    "scanned_rows": 143395,
+    "selected_rows": 957,
+    "short_or_duplicate_rows": 34205,
+    "weak_match_rows": 108233
+  },
+  "by_domain_selected": {
+    "家居": 957
+  },
+  "by_domain_available": {
+    "家居": 957
+  },
+  "shortfalls": [
+    {
+      "domain": "家居",
+      "target": 1200,
+      "available": 957,
+      "selected": 957
+    }
+  ],
+  "policy": "Supplement rows are candidates only; they require human labels before training.",
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.home_supplement.round15.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.home_supplement.round15.csv",
+    "report": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.home_supplement.round15.report.json"
+  }
+}

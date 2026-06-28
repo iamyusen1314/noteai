@@ -1,0 +1,32 @@
+{
+  "version": "ai-prelabel-review-batch-v0.2",
+  "created_at": "2026-06-25T10:04:22.627438+00:00",
+  "kind": "golden",
+  "input": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round01_golden.csv",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01_kimi_golden_ai_review.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01_kimi_golden_ai_review.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01_kimi_golden_ai_review.report.json"
+  },
+  "totals": {
+    "rows": 160,
+    "ai_needs_human_review": 157,
+    "ai_can_fast_review": 3
+  },
+  "by_domain": {
+    "健身": 40,
+    "旅行": 40,
+    "穿搭": 40,
+    "美食": 40
+  },
+  "judge_consensus": {
+    "agree": 29,
+    "disagree": 121,
+    "second_review_failed": 10
+  },
+  "second_review_status": {
+    "failed": 10,
+    "ok": 150
+  },
+  "policy": "AI prelabels are suggestions only. Official label fields remain blank; Kimi second review can mark disagreement/holdout; use promote_reviewed_prelabels.py after review approval."
+}

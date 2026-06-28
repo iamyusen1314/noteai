@@ -1,0 +1,59 @@
+{
+  "version": "golden-ingest-report-v0.1",
+  "created_at": "2026-06-25T12:31:01.422854+00:00",
+  "input": "quality/review_packets/promoted/v04_round04a_kimi_consensus_golden_promoted.jsonl",
+  "output": "quality/golden_labels.v01.merged.json",
+  "seed_count": 45,
+  "rows_seen": 31,
+  "imported_count": 24,
+  "skipped_unlabeled": 0,
+  "skipped_locked_seed": 0,
+  "error_count": 7,
+  "warning_count": 0,
+  "errors": [
+    {
+      "id": "gq01_fitness_real_boundary_0482_22c2d788",
+      "errors": [
+        "naturalness_label: must be a number"
+      ]
+    },
+    {
+      "id": "gq01_fitness_real_boundary_0485_dd151ee9",
+      "errors": [
+        "naturalness_label: must be a number"
+      ]
+    },
+    {
+      "id": "gq01_fitness_real_boundary_0493_2e3b2037",
+      "errors": [
+        "naturalness_label: must be a number"
+      ]
+    },
+    {
+      "id": "gq01_fashion_real_boundary_2651_c01f3378",
+      "errors": [
+        "naturalness_label: must be a number"
+      ]
+    },
+    {
+      "id": "gq01_fashion_real_boundary_2655_f41af1cf",
+      "errors": [
+        "naturalness_label: must be a number"
+      ]
+    },
+    {
+      "id": "gq01_fashion_real_boundary_2656_56fe467d",
+      "errors": [
+        "naturalness_label: must be a number"
+      ]
+    },
+    {
+      "id": "gq01_fashion_real_boundary_2658_730fc462",
+      "errors": [
+        "naturalness_label: must be a number"
+      ]
+    }
+  ],
+  "warnings": [],
+  "decision": "failed"
+}

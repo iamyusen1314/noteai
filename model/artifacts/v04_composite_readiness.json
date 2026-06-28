@@ -1,0 +1,161 @@
+{
+  "version": "v04-composite-readiness-v0.1",
+  "decision": "candidate_ready",
+  "core_domains": [
+    "美食",
+    "旅行",
+    "穿搭",
+    "美妆",
+    "家居",
+    "健身",
+    "母婴"
+  ],
+  "thresholds": {
+    "min_golden_candidate_per_domain": 300,
+    "min_golden_production_per_domain": 1000,
+    "min_preference_candidate_per_domain": 1000,
+    "min_preference_production_per_domain": 3000
+  },
+  "golden": {
+    "total_labeled": 2677,
+    "by_domain": {
+      "健身": {
+        "labeled": 310,
+        "ready": 32,
+        "not_ready": 278
+      },
+      "家居": {
+        "labeled": 322,
+        "ready": 39,
+        "not_ready": 283
+      },
+      "旅行": {
+        "labeled": 439,
+        "ready": 131,
+        "not_ready": 308
+      },
+      "母婴": {
+        "labeled": 319,
+        "ready": 51,
+        "not_ready": 268
+      },
+      "穿搭": {
+        "labeled": 491,
+        "ready": 40,
+        "not_ready": 451
+      },
+      "美妆": {
+        "labeled": 309,
+        "ready": 32,
+        "not_ready": 277
+      },
+      "美食": {
+        "labeled": 487,
+        "ready": 91,
+        "not_ready": 396
+      }
+    }
+  },
+  "preferences": {
+    "pairs_total": 24850,
+    "pairs_labeled": 24850,
+    "by_domain": {
+      "健身": {
+        "pairs_total": 3440,
+        "pairs_labeled": 3440
+      },
+      "家居": {
+        "pairs_total": 3472,
+        "pairs_labeled": 3472
+      },
+      "旅行": {
+        "pairs_total": 3816,
+        "pairs_labeled": 3816
+      },
+      "母婴": {
+        "pairs_total": 3113,
+        "pairs_labeled": 3113
+      },
+      "穿搭": {
+        "pairs_total": 3823,
+        "pairs_labeled": 3823
+      },
+      "美妆": {
+        "pairs_total": 3113,
+        "pairs_labeled": 3113
+      },
+      "美食": {
+        "pairs_total": 4073,
+        "pairs_labeled": 4073
+      }
+    }
+  },
+  "gaps_by_domain": {
+    "美食": {
+      "golden_labeled": 487,
+      "golden_needed_for_candidate": 0,
+      "golden_needed_for_production": 513,
+      "preference_pairs_labeled": 4073,
+      "preference_pairs_needed_for_candidate": 0,
+      "preference_pairs_needed_for_production": 0
+    },
+    "旅行": {
+      "golden_labeled": 439,
+      "golden_needed_for_candidate": 0,
+      "golden_needed_for_production": 561,
+      "preference_pairs_labeled": 3816,
+      "preference_pairs_needed_for_candidate": 0,
+      "preference_pairs_needed_for_production": 0
+    },
+    "穿搭": {
+      "golden_labeled": 491,
+      "golden_needed_for_candidate": 0,
+      "golden_needed_for_production": 509,
+      "preference_pairs_labeled": 3823,
+      "preference_pairs_needed_for_candidate": 0,
+      "preference_pairs_needed_for_production": 0
+    },
+    "美妆": {
+      "golden_labeled": 309,
+      "golden_needed_for_candidate": 0,
+      "golden_needed_for_production": 691,
+      "preference_pairs_labeled": 3113,
+      "preference_pairs_needed_for_candidate": 0,
+      "preference_pairs_needed_for_production": 0
+    },
+    "家居": {
+      "golden_labeled": 322,
+      "golden_needed_for_candidate": 0,
+      "golden_needed_for_production": 678,
+      "preference_pairs_labeled": 3472,
+      "preference_pairs_needed_for_candidate": 0,
+      "preference_pairs_needed_for_production": 0
+    },
+    "健身": {
+      "golden_labeled": 310,
+      "golden_needed_for_candidate": 0,
+      "golden_needed_for_production": 690,
+      "preference_pairs_labeled": 3440,
+      "preference_pairs_needed_for_candidate": 0,
+      "preference_pairs_needed_for_production": 0
+    },
+    "母婴": {
+      "golden_labeled": 319,
+      "golden_needed_for_candidate": 0,
+      "golden_needed_for_production": 681,
+      "preference_pairs_labeled": 3113,
+      "preference_pairs_needed_for_candidate": 0,
+      "preference_pairs_needed_for_production": 0
+    }
+  },
+  "training_policy": {
+    "v03_usage": "telemetry_only_not_training_target",
+    "primary_label": "human_quality_score + delivery_ready + A/B preference",
+    "hard_requirements": [
+      "Group split by content/task id",
+      "Domain calibration report",
+      "Golden false-positive/false-negative audit",
+      "No deployment until production thresholds and human review pass"
+    ]
+  }
+}

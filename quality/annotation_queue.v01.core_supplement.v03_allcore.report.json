@@ -1,0 +1,77 @@
+{
+  "version": "core-domain-supplement-queue-v0.1",
+  "created_at": "2026-06-25T23:57:49.807605+00:00",
+  "status": "supplement_queue_needs_human_labels",
+  "inputs": {
+    "raw_dir": "/Users/openclaw/Desktop/noteai/model/data/rednote_vibe_raw/20260625T062120Z_a9bc6e296549",
+    "existing_queue": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.jsonl",
+    "raw_files": [
+      "training_set_human.jsonl",
+      "exploring_set.jsonl"
+    ]
+  },
+  "params": {
+    "domains": [
+      "美食",
+      "旅行",
+      "穿搭",
+      "美妆",
+      "家居",
+      "健身",
+      "母婴"
+    ],
+    "per_domain": 2000,
+    "min_score": 7,
+    "min_body_chars": 80
+  },
+  "totals": {
+    "scanned_rows": 143395,
+    "selected_rows": 11171,
+    "short_or_duplicate_rows": 30030,
+    "weak_match_rows": 91374
+  },
+  "by_domain_selected": {
+    "美食": 2000,
+    "旅行": 2000,
+    "穿搭": 2000,
+    "美妆": 1213,
+    "家居": 281,
+    "健身": 2000,
+    "母婴": 1677
+  },
+  "by_domain_available": {
+    "美食": 4931,
+    "旅行": 5987,
+    "穿搭": 4432,
+    "美妆": 1213,
+    "家居": 281,
+    "健身": 3470,
+    "母婴": 1677
+  },
+  "shortfalls": [
+    {
+      "domain": "美妆",
+      "target": 2000,
+      "available": 1213,
+      "selected": 1213
+    },
+    {
+      "domain": "家居",
+      "target": 2000,
+      "available": 281,
+      "selected": 281
+    },
+    {
+      "domain": "母婴",
+      "target": 2000,
+      "available": 1677,
+      "selected": 1677
+    }
+  ],
+  "policy": "Supplement rows are candidates only; they require human labels before training.",
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.core_supplement.v03_allcore.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.core_supplement.v03_allcore.csv",
+    "report": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.core_supplement.v03_allcore.report.json"
+  }
+}

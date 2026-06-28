@@ -1,0 +1,217 @@
+{
+  "version": "round09-travel-expression-summary-v0.1",
+  "created_at": "2026-06-25T16:58:26.830418+00:00",
+  "purpose": "酒旅/旅行表达专项：对齐美团 meituan-travel 事实源、修复旅行标题/正文自然度、生成干净偏好训练样本。",
+  "code_fixes": [
+    "旅行/酒店别名统一到旅行规则，生成 brief 注入酒店/路线事实模式。",
+    "旅行安全事实策略区分酒店对比与路线攻略，禁止无依据最低价/最划算/必住等承诺。",
+    "Claude 非流式调用增加硬超时，避免长时间卡死。",
+    "Markdown 清理只处理真正的 Markdown 标题，保留小红书 #话题标签。",
+    "旅行标题断尾修复覆盖酒店/住宿/路线常见半截结尾。"
+  ],
+  "artifact_quality_scan": {
+    "artifact_count": 30,
+    "score_ge_72": 14,
+    "score_ge_70": 22,
+    "score_lt_60": 0,
+    "blocking_count": 0,
+    "markdown_issue_count": 0,
+    "raw_markdown_count": 21,
+    "unsupported_travel_value_claim_count": 0,
+    "max_body_main_chars": 527,
+    "top_variants": [
+      {
+        "path": "quality/generated_variants/v09_travel_expression_probe/travel_beijing_guomao_business_meituan_001/claude_natural_candidate.json",
+        "title": "北京国贸出差酒店怎么选",
+        "score": 77.384,
+        "body_main_chars": 511,
+        "tag_count": 7,
+        "cta_count": 4,
+        "blocking": false,
+        "quality_issues": [
+          "话题标签不足（当前7个，旅行目标8-10个），需要补充精准标签"
+        ]
+      },
+      {
+        "path": "quality/generated_variants/v09_travel_expression_probe/travel_chengdu_taikooli_hotel_meituan_001/claude_natural_candidate.json",
+        "title": "成都太古里春熙路酒店怎么选",
+        "score": 77.087,
+        "body_main_chars": 518,
+        "tag_count": 7,
+        "cta_count": 4,
+        "blocking": false,
+        "quality_issues": [
+          "话题标签不足（当前7个，旅行目标8-10个），需要补充精准标签"
+        ]
+      },
+      {
+        "path": "quality/generated_variants/v09_travel_expression_probe/travel_guangzhou_chimelong_hotel_meituan_001/claude_natural_candidate.json",
+        "title": "广州长隆亲子酒店怎么选",
+        "score": 76.345,
+        "body_main_chars": 518,
+        "tag_count": 7,
+        "cta_count": 0,
+        "blocking": false,
+        "quality_issues": [
+          "话题标签不足（当前7个，旅行目标8-10个），需要补充精准标签",
+          "缺少互动引导，结尾需要自然出现点赞/收藏/评论等行动号召"
+        ]
+      },
+      {
+        "path": "quality/generated_variants/v09_travel_expression_probe/travel_chengdu_taikooli_hotel_meituan_001/generate_initial.json",
+        "title": "成都太古里春熙路5家酒店怎么选",
+        "score": 75.625,
+        "body_main_chars": 518,
+        "tag_count": 8,
+        "cta_count": 4,
+        "blocking": false,
+        "quality_issues": []
+      },
+      {
+        "path": "quality/generated_variants/v09_travel_expression_probe/travel_sanya_yalongbay_hotel_meituan_001/generate_initial.json",
+        "title": "三亚亚龙湾亲子酒店怎么选",
+        "score": 74.868,
+        "body_main_chars": 518,
+        "tag_count": 8,
+        "cta_count": 0,
+        "blocking": false,
+        "quality_issues": [
+          "缺少互动引导，结尾需要自然出现点赞/收藏/评论等行动号召",
+          "旅行笔记缺少交通/路线信息"
+        ]
+      },
+      {
+        "path": "quality/generated_variants/v09_travel_expression_probe/travel_chengdu_taikooli_hotel_meituan_001/generate_refined.json",
+        "title": "成都太古里春熙路酒店怎么选",
+        "score": 74.678,
+        "body_main_chars": 518,
+        "tag_count": 7,
+        "cta_count": 4,
+        "blocking": false,
+        "quality_issues": [
+          "话题标签不足（当前7个，旅行目标8-10个），需要补充精准标签"
+        ]
+      },
+      {
+        "path": "quality/generated_variants/v09_travel_expression_probe/travel_sanya_yalongbay_hotel_meituan_001/diagnosis_plan_a.json",
+        "title": "三亚亚龙湾亲子酒店怎么选",
+        "score": 73.729,
+        "body_main_chars": 518,
+        "tag_count": 8,
+        "cta_count": 0,
+        "blocking": false,
+        "quality_issues": [
+          "缺少互动引导，结尾需要自然出现点赞/收藏/评论等行动号召",
+          "旅行笔记缺少交通/路线信息"
+        ]
+      },
+      {
+        "path": "quality/generated_variants/v09_travel_expression_probe/travel_sanya_yalongbay_hotel_meituan_001/generate_refined.json",
+        "title": "三亚亚龙湾亲子酒店怎么选，5家对比",
+        "score": 73.423,
+        "body_main_chars": 518,
+        "tag_count": 8,
+        "cta_count": 0,
+        "blocking": false,
+        "quality_issues": [
+          "缺少互动引导，结尾需要自然出现点赞/收藏/评论等行动号召",
+          "旅行笔记缺少交通/路线信息"
+        ]
+      }
+    ]
+  },
+  "preference_seed": {
+    "task_count": 5,
+    "artifact_count": 30,
+    "variant_count": 30,
+    "variants_by_task": {
+      "travel_sanya_yalongbay_hotel_meituan_001": 6,
+      "travel_guangzhou_chimelong_hotel_meituan_001": 6,
+      "travel_chengdu_taikooli_hotel_meituan_001": 6,
+      "travel_beijing_guomao_business_meituan_001": 6,
+      "travel_hangzhou_westlake_route_meituan_001": 6
+    }
+  },
+  "preference_queue": {
+    "pairs": 75,
+    "needs_label": 75,
+    "locked_seed": 0
+  },
+  "ai_review": {
+    "rows": 75,
+    "ai_needs_human_review": 74,
+    "ai_can_fast_review": 1,
+    "judge_consensus": {
+      "agree": 23,
+      "disagree": 52
+    },
+    "second_review_status": {
+      "ok": 75
+    }
+  },
+  "promotion": {
+    "rows_seen": 75,
+    "promoted_count": 14,
+    "skipped_count": 61
+  },
+  "merged_preference": {
+    "rows_seen": 335,
+    "labeled_count": 272,
+    "decision": "ok"
+  },
+  "training_health": {
+    "decision": "blocked_need_labels",
+    "counts": {
+      "golden_rows": 157,
+      "preference_pair_rows": 272,
+      "golden_by_domain": {
+        "健身": 25,
+        "家居": 17,
+        "旅行": 21,
+        "母婴": 8,
+        "穿搭": 33,
+        "美妆": 14,
+        "美食": 39
+      },
+      "preference_by_domain": {
+        "健身": 31,
+        "家居": 36,
+        "旅行": 47,
+        "母婴": 26,
+        "穿搭": 36,
+        "美妆": 23,
+        "美食": 73
+      },
+      "delivery_ready_counts": {
+        "0": 129,
+        "1": 28
+      },
+      "preference_winner_counts": {
+        "B": 140,
+        "A": 132
+      },
+      "preference_target_counts": {
+        "0.0": 140,
+        "1.0": 132
+      }
+    }
+  },
+  "train_guard": {
+    "decision": "blocked_need_labels",
+    "do_not_deploy": true,
+    "candidate_ready": false,
+    "production_ready": false
+  },
+  "validation": [
+    "find model tools tests -name *.py -print0 | xargs -0 python3 -m py_compile: pass",
+    ".venv/bin/python -m unittest discover -s tests -p test_*.py: 104 tests pass",
+    ".venv/bin/python tools/quality_gate.py quality/quality_gate_cases.v04_round06_food_travel.json --json: pass",
+    ".venv/bin/python tools/v04_training_data_health.py --json: blocked_need_labels, no structural issues",
+    ".venv/bin/python model/train_v04_composite.py --json: do_not_deploy=true"
+  ],
+  "next_focus": [
+    "继续补旅行/酒店 golden 与 preference，尤其商务酒店、亲子酒店、路线攻略。",
+    "对 CTA 识别和旅行标签数量做软优化，避免 72+ 稿因为 CTA 检测不稳定被低估。",
+    "继续核心行业均衡扩样，母婴/美妆/家居仍是 golden 覆盖低位。"
+  ]
+}

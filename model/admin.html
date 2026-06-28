@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NoteAI Pro — 后台管理</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0A0A0F;--surf-1:#12121A;--surf-2:#1A1A25;--surf-3:#22222F;
+  --border:rgba(255,255,255,0.07);--text:#F0F0F8;--text-2:#A0A0B8;--text-muted:#606078;
+  --accent:#7B61FF;--success:#22C55E;--warning:#F59E0B;--error:#EF4444;--info:#00D4FF;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;display:flex}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+
+/* ── Sidebar ── */
+#sidebar{
+  width:220px;min-width:220px;background:var(--surf-1);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;height:100vh;position:sticky;top:0;overflow-y:auto;
+}
+.sidebar-logo{padding:20px 18px;border-bottom:1px solid var(--border)}
+.sidebar-logo h1{font-size:15px;font-weight:700;color:var(--text)}
+.sidebar-logo p{font-size:11px;color:var(--text-muted);margin-top:2px}
+.sidebar-nav{padding:12px 0;flex:1}
+.nav-section{font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--text-muted);
+  text-transform:uppercase;padding:8px 18px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;
+  border-radius:0;transition:background .15s;color:var(--text-2);font-size:13px}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.nav-item.active{background:rgba(123,97,255,0.12);color:var(--accent);border-right:2px solid var(--accent)}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.sidebar-footer{padding:14px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)}
+.admin-badge{background:rgba(123,97,255,0.15);color:var(--accent);border:1px solid rgba(123,97,255,0.3);
+  border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700}
+
+/* ── Main ── */
+#main{flex:1;overflow-y:auto;height:100vh}
+#topbar{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);
+  padding:0 28px;height:52px;display:flex;align-items:center;justify-content:space-between}
+#topbar-title{font-size:16px;font-weight:700;color:var(--text)}
+#topbar-right{display:flex;align-items:center;gap:12px}
+.content-area{padding:24px 28px}
+
+/* ── Cards ── */
+.card{background:var(--surf-1);border:1px solid var(--border);border-radius:14px;padding:20px}
+.card-grid{display:grid;gap:16px}
+.card-grid-4{grid-template-columns:repeat(4,1fr)}
+.card-grid-3{grid-template-columns:repeat(3,1fr)}
+.card-grid-2{grid-template-columns:repeat(2,1fr)}
+.stat-card{background:var(--surf-1);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.stat-val{font-size:26px;font-weight:800;color:var(--text);margin:6px 0 2px}
+.stat-label{font-size:12px;color:var(--text-muted)}
+.stat-sub{font-size:11px;color:var(--text-2);margin-top:2px}
+.section-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px}
+
+/* ── Table ── */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);
+  border-bottom:1px solid var(--border)}
+.data-table td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px}
+.data-table tr:hover td{background:rgba(255,255,255,0.02)}
+.data-table tr:last-child td{border-bottom:none}
+
+/* ── Badges ── */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-free{background:rgba(96,96,120,0.2);color:var(--text-muted)}
+.badge-pro{background:rgba(123,97,255,0.15);color:var(--accent)}
+.badge-pro-plus{background:rgba(255,215,0,0.15);color:#FFD700}
+.badge-success{background:rgba(34,197,94,0.15);color:var(--success)}
+.badge-warning{background:rgba(245,158,11,0.15);color:var(--warning)}
+.badge-error{background:rgba(239,68,68,0.15);color:var(--error)}
+.badge-info{background:rgba(0,212,255,0.15);color:var(--info)}
+
+/* ── Buttons ── */
+.btn{padding:7px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.85}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-2)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--error)}
+.btn-sm{padding:4px 10px;font-size:11px}
+
+/* ── Forms ── */
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px}
+.form-input{width:100%;background:var(--surf-2);border:1.5px solid var(--border);border-radius:8px;
+  padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--accent)}
+.form-textarea{width:100%;background:var(--surf-2);border:1.5px solid var(--border);border-radius:8px;
+  padding:9px 12px;color:var(--text);font-size:12px;outline:none;resize:vertical;
+  font-family:monospace;line-height:1.6;min-height:180px}
+.form-textarea:focus{border-color:var(--accent)}
+.form-select{width:100%;background:var(--surf-2);border:1.5px solid var(--border);border-radius:8px;
+  padding:9px 12px;color:var(--text);font-size:13px;outline:none;cursor:pointer}
+
+/* ── Login Screen ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-box{background:var(--surf-1);border:1px solid var(--border);border-radius:20px;padding:40px;width:380px}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo h1{font-size:22px;font-weight:800;margin-top:8px}
+.login-logo p{font-size:13px;color:var(--text-muted);margin-top:4px}
+
+/* ── Page sections ── */
+.page{display:none}
+.page.active{display:block}
+
+/* ── Chart containers ── */
+.chart-box{height:260px}
+.chart-box-sm{height:180px}
+
+/* ── Modal ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:500;
+  display:flex;align-items:center;justify-content:center;display:none}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surf-1);border:1px solid var(--border);border-radius:18px;padding:28px;
+  width:500px;max-width:90vw;max-height:85vh;overflow-y:auto;position:relative}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px}
+.modal-close{position:absolute;top:16px;right:18px;background:none;border:none;
+  cursor:pointer;font-size:18px;color:var(--text-muted)}
+
+/* ── Progress bar ── */
+.progress-track{height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s ease}
+
+/* ── Status dot ── */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+.dot-green{background:var(--success)}
+.dot-red{background:var(--error)}
+.dot-yellow{background:var(--warning)}
+
+/* ── Prompt editor ── */
+.prompt-list-item{padding:10px 14px;border-radius:8px;cursor:pointer;transition:background .15s;
+  display:flex;align-items:center;justify-content:space-between}
+.prompt-list-item:hover{background:rgba(255,255,255,0.04)}
+.prompt-list-item.active{background:rgba(123,97,255,0.1);border-left:2px solid var(--accent)}
+.prompt-module-badge{font-size:10px;background:rgba(255,255,255,0.06);color:var(--text-muted);
+  padding:1px 6px;border-radius:4px}
+
+/* ── Logs ── */
+.log-line{font-family:monospace;font-size:11px;padding:2px 0;color:var(--text-2);border-bottom:1px solid rgba(255,255,255,0.03)}
+.log-line:hover{background:rgba(255,255,255,0.03)}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  #sidebar{width:56px;min-width:56px}
+  .nav-item span,.nav-section,.sidebar-logo p,.sidebar-footer{display:none}
+  .sidebar-logo h1{font-size:12px}
+  .card-grid-4{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:600px){
+  .card-grid-4,.card-grid-3,.card-grid-2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Login Screen ───────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div style="width:48px;height:48px;background:linear-gradient(135deg,#7B61FF,#FF6FD8);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:22px;font-weight:800;color:#fff">N</div>
+      <h1>NoteAI Pro</h1>
+      <p>后台管理中心</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">管理员账号</label>
+      <input class="form-input" id="login-username" placeholder="noteai_admin" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label class="form-label">密码</label>
+      <input class="form-input" id="login-password" type="password" placeholder="••••••••"
+        autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    </div>
+    <div id="login-error" style="color:var(--error);font-size:12px;margin-bottom:10px;display:none"></div>
+    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="doAdminLogin()" id="login-btn">登录管理后台</button>
+  </div>
+</div>
+
+<!-- ── App Shell (hidden until login) ────────────────────────────── -->
+<div id="app" style="display:none;width:100%">
+
+<!-- Sidebar -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <h1>NoteAI Admin</h1>
+    <p>后台管理中心</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">总览</div>
+    <div class="nav-item active" onclick="showPage('dashboard',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-section">用户</div>
+    <div class="nav-item" onclick="showPage('users',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>用户管理</span>
+    </div>
+    <div class="nav-section">数据</div>
+    <div class="nav-item" onclick="showPage('revenue',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      <span>收入统计</span>
+    </div>
+    <div class="nav-item" onclick="showPage('usage',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>用量分析</span>
+    </div>
+    <div class="nav-section">AI 系统</div>
+    <div class="nav-item" onclick="showPage('prompts',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span>Prompt 管理</span>
+    </div>
+    <div class="nav-item" onclick="showPage('models',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      <span>模型管理</span>
+    </div>
+    <div class="nav-item" onclick="showPage('crawler',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span>爬虫管理</span>
+    </div>
+    <div class="nav-section">系统</div>
+    <div class="nav-item" onclick="showPage('settings',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>系统设置</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div id="admin-name" class="admin-badge">管理员</div>
+    <button onclick="doAdminLogout()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text-muted);margin-top:6px;display:block">退出登录</button>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div id="main">
+  <div id="topbar">
+    <div id="topbar-title">Dashboard</div>
+    <div id="topbar-right">
+      <span id="topbar-time" style="font-size:12px;color:var(--text-muted)"></span>
+      <button class="btn btn-ghost btn-sm" onclick="refreshCurrentPage()">↻ 刷新</button>
+    </div>
+  </div>
+
+  <!-- ═══ DASHBOARD ═══════════════════════════════════════════════ -->
+  <div class="content-area page active" id="page-dashboard">
+    <div class="card-grid card-grid-4" id="dashboard-stats" style="margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">总用户数</div><div class="stat-val" id="d-total-users">–</div><div class="stat-sub" id="d-today-new"></div></div>
+      <div class="stat-card"><div class="stat-label">本月收入</div><div class="stat-val" id="d-revenue" style="color:var(--success)">–</div><div class="stat-sub" id="d-mrr"></div></div>
+      <div class="stat-card"><div class="stat-label">本月 API 成本</div><div class="stat-val" id="d-cost" style="color:var(--warning)">–</div><div class="stat-sub" id="d-margin"></div></div>
+      <div class="stat-card"><div class="stat-label">本月活跃用户</div><div class="stat-val" id="d-active">–</div><div class="stat-sub" id="d-active-sub"></div></div>
+    </div>
+    <div class="card-grid card-grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="section-title">套餐分布</div>
+        <div id="tier-chart" class="chart-box-sm"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">本月用量 TOP 操作</div>
+        <div id="ops-chart" class="chart-box-sm"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">系统状态</div>
+      <div class="card-grid card-grid-4" id="system-status"></div>
+    </div>
+  </div>
+
+  <!-- ═══ USERS ════════════════════════════════════════════════════ -->
+  <div class="content-area page" id="page-users">
+    <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+      <input class="form-input" id="user-search" placeholder="搜索用户名/手机号/邮箱…" style="max-width:280px" oninput="searchUsers()">
+      <select class="form-select" id="user-tier-filter" style="width:140px" onchange="searchUsers()">
+        <option value="">全部套餐</option>
+        <option value="free">免费版</option>
+        <option value="pro">轻创作 Pro</option>
+        <option value="pro_plus">专业 Pro+</option>
+      </select>
+      <span id="user-total" style="font-size:12px;color:var(--text-muted)"></span>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>用户名</th><th>手机/邮箱</th><th>套餐</th><th>注册时间</th>
+          <th>本月操作</th><th>本月成本</th><th>积分余额</th><th>操作</th>
+        </tr></thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center;justify-content:flex-end">
+      <button class="btn btn-ghost btn-sm" onclick="prevPage()">上一页</button>
+      <span id="page-info" style="font-size:12px;color:var(--text-muted)">第1页</span>
+      <button class="btn btn-ghost btn-sm" onclick="nextPage()">下一页</button>
+    </div>
+  </div>
+
+  <!-- ═══ REVENUE ══════════════════════════════════════════════════ -->
+  <div class="content-area page" id="page-revenue">
+    <div class="card-grid card-grid-3" id="revenue-stats" style="margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">订阅收入估算</div><div class="stat-val" id="r-sub" style="color:var(--success)">–</div></div>
+      <div class="stat-card"><div class="stat-label">积分充值收入</div><div class="stat-val" id="r-credits" style="color:var(--info)">–</div></div>
+      <div class="stat-card"><div class="stat-label">综合毛利率</div><div class="stat-val" id="r-margin" style="color:var(--accent)">–</div></div>
+    </div>
+    <div class="card-grid card-grid-2">
+      <div class="card"><div class="section-title">每日积分充值收入</div><div id="rev-chart" class="chart-box"></div></div>
+      <div class="card"><div class="section-title">每日 API 成本</div><div id="cost-chart" class="chart-box"></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ USAGE ════════════════════════════════════════════════════ -->
+  <div class="content-area page" id="page-usage">
+    <div class="card-grid card-grid-2" style="margin-bottom:20px">
+      <div class="card"><div class="section-title">各操作调用量（近30天）</div><div id="usage-ops-chart" class="chart-box"></div></div>
+      <div class="card"><div class="section-title">每日操作趋势</div><div id="usage-daily-chart" class="chart-box"></div></div>
+    </div>
+    <div class="card-grid card-grid-2">
+      <div class="card">
+        <div class="section-title">高消耗用户 Top10</div>
+        <table class="data-table">
+          <thead><tr><th>#</th><th>用户名</th><th>操作次数</th><th>API成本</th></tr></thead>
+          <tbody id="top-users-tbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="section-title">来源分布（套餐/积分/免费）</div>
+        <div id="source-chart" class="chart-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PROMPTS ══════════════════════════════════════════════════ -->
+  <div class="content-area page" id="page-prompts">
+    <div style="display:grid;grid-template-columns:260px 1fr;gap:16px;height:calc(100vh - 100px)">
+      <div class="card" style="overflow-y:auto">
+        <div class="section-title">Prompt 列表</div>
+        <div id="prompt-list"></div>
+      </div>
+      <div class="card" id="prompt-editor-panel" style="display:flex;flex-direction:column">
+        <div id="prompt-editor-empty" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted)">← 选择一个 Prompt 开始编辑</div>
+        <div id="prompt-editor-content" style="display:none;flex:1;flex-direction:column">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div>
+              <div id="pe-label" style="font-size:16px;font-weight:700"></div>
+              <div id="pe-meta" style="font-size:11px;color:var(--text-muted);margin-top:2px"></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="showHistory()">历史版本</button>
+              <button class="btn btn-primary btn-sm" onclick="savePrompt()">保存</button>
+            </div>
+          </div>
+          <textarea class="form-textarea" id="pe-content" style="flex:1;min-height:300px"></textarea>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
+            版本 v<span id="pe-version">1</span> · 最后修改 <span id="pe-updated"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODELS ═══════════════════════════════════════════════════ -->
+  <div class="content-area page" id="page-models">
+    <div class="card-grid card-grid-3" style="margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">当前生产版本</div><div class="stat-val" id="m-current" style="color:var(--accent)">–</div></div>
+      <div class="stat-card"><div class="stat-label">训练数据量</div><div class="stat-val" id="m-rows">–</div></div>
+      <div class="stat-card">
+        <div class="stat-label">发起新训练</div>
+        <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="triggerTraining()">🚀 触发重训练</button>
+      </div>
+    </div>
+    <div class="card-grid card-grid-2">
+      <div class="card">
+        <div class="section-title">模型版本注册表</div>
+        <table class="data-table">
+          <thead><tr><th>版本</th><th>特征</th><th>RMSE</th><th>准确率</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody id="models-tbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="section-title">训练任务记录</div>
+        <div id="train-jobs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CRAWLER ══════════════════════════════════════════════════ -->
+  <div class="content-area page" id="page-crawler">
+    <div class="card-grid card-grid-3" style="margin-bottom:20px">
+      <div class="stat-card">
+        <div class="stat-label">爬虫状态</div>
+        <div class="stat-val" id="cw-status">–</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="toggleCrawler(true)">启用</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleCrawler(false)">禁用</button>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Cookie 状态</div>
+        <div class="stat-val" id="cw-cookie">–</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="openCookieModal()">更新 Cookie</button>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">累计采集条数</div>
+        <div class="stat-val" id="cw-total">–</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="runCrawlerNow()">▶ 立即采集</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">采集日志（最近50条）</div>
+      <div id="crawler-logs" style="max-height:300px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- ═══ SETTINGS ══════════════════════════════════════════════════ -->
+  <div class="content-area page" id="page-settings">
+    <div class="card-grid card-grid-2">
+      <div class="card">
+        <div class="section-title">套餐配额设置</div>
+        <div id="settings-tiers"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">积分体系</div>
+        <div id="settings-credits"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="section-title">服务器日志</div>
+      <div id="server-logs" style="max-height:300px;overflow-y:auto;background:rgba(0,0,0,0.3);border-radius:8px;padding:12px"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ── User Detail Modal ───────────────────────────────────────────── -->
+<div class="modal-backdrop" id="user-modal">
+  <div class="modal" style="width:620px">
+    <button class="modal-close" onclick="closeModal('user-modal')">✕</button>
+    <div class="modal-title" id="um-title">用户详情</div>
+    <div id="um-content"></div>
+  </div>
+</div>
+
+<!-- ── History Modal ──────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="history-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('history-modal')">✕</button>
+    <div class="modal-title">历史版本</div>
+    <div id="history-content"></div>
+  </div>
+</div>
+
+<!-- ── Cookie Modal ───────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="cookie-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('cookie-modal')">✕</button>
+    <div class="modal-title">更新小红书 Cookie</div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
+      从浏览器开发者工具复制小红书的 Cookie JSON 数组粘贴到此处。
+    </p>
+    <div class="form-group">
+      <textarea class="form-textarea" id="cookie-input" placeholder='[{"name":"...","value":"..."}]' style="min-height:140px"></textarea>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="saveCookies()">保存 Cookie</button>
+  </div>
+</div>
+
+<script>
+const ADMIN_BASE = (
+  window.NOTEAI_ADMIN_BASE ||
+  ((location.protocol === 'http:' || location.protocol === 'https:')
+    ? location.origin
+    : 'http://localhost:8001')
+).replace(/\/$/, '');
+let _adminToken = localStorage.getItem('noteai_admin_token') || null;
+let _currentPage = 'dashboard';
+let _userPage = 1;
+let _userSearch = '', _userTierFilter = '';
+let _currentPromptKey = null;
+
+/* ── Auth ─────────────────────────────────────────────────────────── */
+async function doAdminLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  btn.disabled = true; btn.textContent = '验证中…';
+  try {
+    const r = await fetch(`${ADMIN_BASE}/admin/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, password}),
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.detail || '登录失败'; err.style.display='block'; return; }
+    _adminToken = d.token;
+    localStorage.setItem('noteai_admin_token', _adminToken);
+    document.getElementById('admin-name').textContent = d.username;
+    showApp();
+  } catch(e) {
+    err.textContent = '无法连接管理服务器（port 8001）'; err.style.display='block';
+  } finally {
+    btn.disabled = false; btn.textContent = '登录管理后台';
+  }
+}
+
+function doAdminLogout() {
+  _adminToken = null; localStorage.removeItem('noteai_admin_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  updateClock();
+  loadDashboard();
+}
+
+async function aFetch(path, opts={}) {
+  const r = await fetch(`${ADMIN_BASE}${path}`, {
+    ...opts,
+    headers: { 'Authorization': `Bearer ${_adminToken}`, 'Content-Type': 'application/json', ...(opts.headers||{}) },
+  });
+  if (r.status === 403) { doAdminLogout(); throw new Error('session expired'); }
+  return r;
+}
+
+/* ── Navigation ───────────────────────────────────────────────────── */
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('topbar-title').textContent =
+    {'dashboard':'Dashboard','users':'用户管理','revenue':'收入统计',
+     'usage':'用量分析','prompts':'Prompt 管理','models':'模型管理',
+     'crawler':'爬虫管理','settings':'系统设置'}[name] || name;
+  _currentPage = name;
+  const loaders = {dashboard:loadDashboard, users:loadUsers, revenue:loadRevenue,
+                   usage:loadUsage, prompts:loadPrompts, models:loadModels,
+                   crawler:loadCrawler, settings:loadSettings};
+  if (loaders[name]) loaders[name]();
+}
+
+function refreshCurrentPage() { showPage(_currentPage); }
+
+/* ── Dashboard ────────────────────────────────────────────────────── */
+async function loadDashboard() {
+  const r = await aFetch('/admin/overview');
+  const d = await r.json();
+  const u = d.users, f = d.finance, s = d.system;
+  document.getElementById('d-total-users').textContent = u.total.toLocaleString();
+  document.getElementById('d-today-new').textContent   = `今日新增 ${u.today_new}`;
+  document.getElementById('d-revenue').textContent     = `¥${f.total_revenue.toLocaleString()}`;
+  document.getElementById('d-mrr').textContent         = `MRR ¥${f.mrr.toLocaleString()}`;
+  document.getElementById('d-cost').textContent        = `¥${f.api_cost.toFixed(2)}`;
+  document.getElementById('d-margin').textContent      = `毛利 ${f.margin_pct}%`;
+  document.getElementById('d-active').textContent      = u.active_month;
+  document.getElementById('d-active-sub').textContent  = `7天活跃 ${u.active_7d}`;
+
+  // 套餐分布饼图
+  const tierChart = echarts.init(document.getElementById('tier-chart'));
+  const tierColors = {free:'#606078', pro:'#7B61FF', pro_plus:'#FFD700'};
+  tierChart.setOption({
+    backgroundColor:'transparent',
+    legend:{bottom:0, textStyle:{color:'#A0A0B8', fontSize:11}},
+    series:[{type:'pie', radius:['40%','70%'], center:['50%','45%'],
+      data: Object.entries(u.tier_distribution).map(([k,v])=>({
+        name:{free:'免费版',pro:'轻创作Pro',pro_plus:'专业Pro+'}[k]||k,
+        value:v, itemStyle:{color:tierColors[k]||'#606078'}
+      })),
+      label:{color:'#F0F0F8',fontSize:11},
+      emphasis:{itemStyle:{shadowBlur:10}},
+    }],
+  });
+
+  // 操作用量柱图
+  const opsChart = echarts.init(document.getElementById('ops-chart'));
+  const ops = d.usage.by_operation.slice(0,6);
+  opsChart.setOption({
+    backgroundColor:'transparent', grid:{left:10, right:10, top:10, bottom:30, containLabel:true},
+    tooltip:{trigger:'axis', backgroundColor:'#1A1A25', borderColor:'rgba(255,255,255,0.1)', textStyle:{color:'#F0F0F8'}},
+    xAxis:{type:'category', data:ops.map(o=>o.label), axisLabel:{fontSize:10, color:'#A0A0B8', rotate:20}},
+    yAxis:{type:'value', axisLabel:{fontSize:10, color:'#A0A0B8'}},
+    series:[{type:'bar', data:ops.map(o=>o.count), barMaxWidth:28,
+      itemStyle:{color:'#7B61FF', borderRadius:[4,4,0,0]}}],
+  });
+
+  // 系统状态
+  document.getElementById('system-status').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Kimi API</div>
+      <div><span class="dot ${s.kimi_configured?'dot-green':'dot-red'}"></span>${s.kimi_configured?'已配置':'未配置'}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${s.kimi_key_prefix}</div></div>
+    <div class="stat-card"><div class="stat-label">Claude API</div>
+      <div><span class="dot ${s.claude_configured?'dot-green':'dot-red'}"></span>${s.claude_configured?'已配置':'未配置'}</div></div>
+    <div class="stat-card"><div class="stat-label">ML 模型</div>
+      <div><span class="dot ${s.model_exists?'dot-green':'dot-red'}"></span>${s.model_exists?`存在 (${s.model_size_mb}MB)`:'未找到'}</div></div>
+    <div class="stat-card"><div class="stat-label">数据库</div>
+      <div><span class="dot dot-green"></span>${s.db_size_mb} MB</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${new Date(s.server_time).toLocaleString()}</div></div>`;
+}
+
+/* ── Users ────────────────────────────────────────────────────────── */
+let _userTotal = 0;
+async function loadUsers() {
+  _userSearch = document.getElementById('user-search').value;
+  _userTierFilter = document.getElementById('user-tier-filter').value;
+  const params = new URLSearchParams({page:_userPage, page_size:15, search:_userSearch, tier:_userTierFilter});
+  const r = await aFetch(`/admin/users?${params}`);
+  const d = await r.json();
+  _userTotal = d.total;
+  document.getElementById('user-total').textContent = `共 ${d.total} 位用户`;
+  document.getElementById('page-info').textContent = `第 ${_userPage} 页（共 ${Math.ceil(d.total/15)} 页）`;
+  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',pro_plus:'badge-pro-plus'}[t]||'badge-free');
+  document.getElementById('users-tbody').innerHTML = d.users.map(u => `
+    <tr>
+      <td><div style="font-weight:600">${esc(u.username)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.nickname||'')}</div></td>
+      <td style="font-size:12px">${esc(u.phone_masked||u.email||'–')}</td>
+      <td><span class="badge ${tierBadge(u.tier)}">${{free:'免费',pro:'Pro',pro_plus:'Pro+'}[u.tier]||u.tier}</span></td>
+      <td style="font-size:12px;color:var(--text-muted)">${(u.created_at||'').slice(0,10)}</td>
+      <td>${u.month_ops}</td>
+      <td style="color:var(--warning)">¥${(u.month_cost||0).toFixed(4)}</td>
+      <td style="color:var(--info)">${(u.credits||0).toFixed(1)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="showUser('${u.id}')">详情</button></td>
+    </tr>`).join('');
+}
+function searchUsers() { _userPage=1; loadUsers(); }
+function prevPage() { if(_userPage>1){_userPage--;loadUsers();} }
+function nextPage() { if(_userPage*15<_userTotal){_userPage++;loadUsers();} }
+
+async function showUser(uid) {
+  const r = await aFetch(`/admin/users/${uid}`);
+  const d = await r.json();
+  const u = d.user, sub = d.subscription, cr = d.credits||{balance:0};
+  document.getElementById('um-title').textContent = `用户详情 — ${u.username}`;
+  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',pro_plus:'badge-pro-plus'}[t]||'badge-free');
+  document.getElementById('um-content').innerHTML = `
+    <div class="card-grid card-grid-2" style="margin-bottom:16px">
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">基本信息</div>
+        <div style="font-size:13px;line-height:2">
+          ID: <code style="font-size:11px">${u.id}</code><br>
+          邮箱: ${esc(u.email||'–')}<br>
+          手机: ${esc(u.phone_masked||'–')}<br>
+          注册: ${(u.created_at||'').slice(0,10)}<br>
+          最后登录: ${(u.last_login||'').slice(0,16).replace('T',' ')||'–'}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">套餐与积分</div>
+        <div><span class="badge ${tierBadge(sub.tier)}">${{free:'免费版',pro:'轻创作Pro',pro_plus:'专业Pro+'}[sub.tier]||sub.tier}</span></div>
+        <div style="font-size:13px;margin-top:6px">积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
+        <div style="font-size:12px;color:var(--text-muted)">累计购买: ${(cr.total_purchased||0).toFixed(1)} | 已用: ${(cr.total_used||0).toFixed(1)}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">本月用量</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+      ${(d.month_usage||[]).map(op=>`<div style="background:var(--surf-2);border-radius:8px;padding:6px 10px;font-size:12px">
+        ${esc(op.operation)}: <b>${op.cnt}</b>次 / ¥${(op.cost||0).toFixed(4)}</div>`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','add_credits')">手动加积分</button>
+      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','set_tier')">修改套餐</button>
+      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','reset_quota')">重置配额</button>
+    </div>`;
+  openModal('user-modal');
+}
+
+async function adjustUser(uid, action) {
+  let value='', note='';
+  if (action==='add_credits') {
+    value = prompt('增加积分数量（正数）：'); if(!value) return;
+    note  = prompt('备注：') || '管理员操作';
+  } else if (action==='set_tier') {
+    value = prompt('新套餐（free/pro/pro_plus）：'); if(!value) return;
+  } else if (action==='reset_quota') {
+    if(!confirm('确认重置本月配额？')) return;
+  }
+  const r = await aFetch(`/admin/users/${uid}/adjust`, {method:'POST', body:JSON.stringify({action,value,note})});
+  const d = await r.json();
+  if(d.ok) { alert('操作成功'); closeModal('user-modal'); loadUsers(); }
+  else alert('失败: '+JSON.stringify(d));
+}
+
+/* ── Revenue ──────────────────────────────────────────────────────── */
+async function loadRevenue() {
+  const r = await aFetch('/admin/revenue');
+  const d = await r.json();
+  document.getElementById('r-sub').textContent     = `¥${d.sub_revenue_estimate.toLocaleString()}`;
+  const credRev = d.daily_topup.reduce((a,b)=>a+b.rmb,0);
+  document.getElementById('r-credits').textContent = `¥${credRev.toFixed(2)}`;
+  const apiCostTotal = d.daily_api_cost.reduce((a,b)=>a+b.cost,0);
+  const margin = (d.sub_revenue_estimate+credRev)>0
+    ? Math.round((d.sub_revenue_estimate+credRev-apiCostTotal)/(d.sub_revenue_estimate+credRev)*100) : 0;
+  document.getElementById('r-margin').textContent  = `${margin}%`;
+  _renderLineChart('rev-chart', d.daily_topup.map(r=>r.day), d.daily_topup.map(r=>r.rmb), '积分充值(¥)', '#00D4FF');
+  _renderLineChart('cost-chart', d.daily_api_cost.map(r=>r.day), d.daily_api_cost.map(r=>r.cost), 'API成本(¥)', '#F59E0B');
+}
+
+/* ── Usage ────────────────────────────────────────────────────────── */
+async function loadUsage() {
+  const r = await aFetch('/admin/usage-stats');
+  const d = await r.json();
+  const opsChart = echarts.init(document.getElementById('usage-ops-chart'));
+  opsChart.setOption({
+    backgroundColor:'transparent', grid:{left:10,right:10,top:10,bottom:50,containLabel:true},
+    tooltip:{trigger:'axis',backgroundColor:'#1A1A25',borderColor:'rgba(255,255,255,0.1)',textStyle:{color:'#F0F0F8'}},
+    xAxis:{type:'category',data:d.by_operation.map(o=>o.label),axisLabel:{fontSize:10,color:'#A0A0B8',rotate:30}},
+    yAxis:{type:'value',axisLabel:{fontSize:10,color:'#A0A0B8'}},
+    series:[{type:'bar',data:d.by_operation.map(o=>o.count),barMaxWidth:30,
+      itemStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'#7B61FF'},{offset:1,color:'#FF6FD8'}]},borderRadius:[4,4,0,0]}}],
+  });
+  _renderLineChart('usage-daily-chart', d.daily_trend.map(r=>r.day), d.daily_trend.map(r=>r.ops), '操作次数', '#7B61FF');
+  document.getElementById('top-users-tbody').innerHTML = d.top_users.map((u,i)=>`
+    <tr><td>${i+1}</td><td>${esc(u.username)}</td><td>${u.ops}</td><td style="color:var(--warning)">¥${u.cost.toFixed(4)}</td></tr>`).join('');
+  const srcChart = echarts.init(document.getElementById('source-chart'));
+  srcChart.setOption({
+    backgroundColor:'transparent',
+    legend:{bottom:0,textStyle:{color:'#A0A0B8',fontSize:11}},
+    series:[{type:'pie',radius:['40%','70%'],center:['50%','45%'],
+      data:d.by_source.map(s=>({name:{subscription:'套餐',credits:'积分',free:'免费'}[s.source]||s.source,value:s.count,
+        itemStyle:{color:{subscription:'#7B61FF',credits:'#00D4FF',free:'#606078'}[s.source]||'#606078'}})),
+      label:{color:'#F0F0F8',fontSize:11},
+    }],
+  });
+}
+
+/* ── Prompts ──────────────────────────────────────────────────────── */
+async function loadPrompts() {
+  const r = await aFetch('/admin/prompts');
+  const d = await r.json();
+  const modules = {};
+  d.prompts.forEach(p => {
+    const m = p.module || '其他';
+    if (!modules[m]) modules[m] = [];
+    modules[m].push(p);
+  });
+  document.getElementById('prompt-list').innerHTML = Object.entries(modules).map(([mod, ps]) => `
+    <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;padding:8px 4px 4px">${mod}</div>
+    ${ps.map(p=>`<div class="prompt-list-item" onclick="loadPromptDetail('${p.key}')" id="pli-${p.key}">
+      <span style="font-size:13px">${esc(p.label)}</span>
+      <span class="prompt-module-badge">v${p.version}</span>
+    </div>`).join('')}`).join('');
+}
+
+async function loadPromptDetail(key) {
+  document.querySelectorAll('.prompt-list-item').forEach(el=>el.classList.remove('active'));
+  const listEl = document.getElementById(`pli-${key}`);
+  if(listEl) listEl.classList.add('active');
+  const r = await aFetch(`/admin/prompts/${key}`);
+  const d = await r.json();
+  _currentPromptKey = key;
+  document.getElementById('pe-label').textContent   = d.label||key;
+  document.getElementById('pe-meta').textContent    = `模块：${d.module||'–'} · key: ${key}`;
+  document.getElementById('pe-content').value       = d.content||'';
+  document.getElementById('pe-version').textContent = d.version||1;
+  document.getElementById('pe-updated').textContent = (d.updated_at||'').slice(0,16).replace('T',' ');
+  document.getElementById('prompt-editor-empty').style.display   = 'none';
+  document.getElementById('prompt-editor-content').style.display = 'flex';
+}
+
+async function savePrompt() {
+  if(!_currentPromptKey) return;
+  const content = document.getElementById('pe-content').value;
+  const r = await aFetch(`/admin/prompts/${_currentPromptKey}`, {
+    method:'PUT', body:JSON.stringify({content}),
+  });
+  const d = await r.json();
+  if(d.ok) { document.getElementById('pe-version').textContent=d.version; alert('已保存 v'+d.version); }
+}
+
+async function showHistory() {
+  if(!_currentPromptKey) return;
+  const r = await aFetch(`/admin/prompts/${_currentPromptKey}`);
+  const d = await r.json();
+  const hist = d.history||[];
+  document.getElementById('history-content').innerHTML = hist.length===0
+    ? '<p style="color:var(--text-muted)">暂无历史版本</p>'
+    : hist.map(h=>`<div style="margin-bottom:12px;background:var(--surf-2);border-radius:8px;padding:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span style="font-weight:600">v${h.version}</span>
+          <div style="display:flex;gap:6px">
+            <span style="font-size:11px;color:var(--text-muted)">${(h.saved_at||'').slice(0,16).replace('T',' ')}</span>
+            <button class="btn btn-ghost btn-sm" onclick="rollbackPrompt(${h.version})">回滚</button>
+          </div>
+        </div>
+        <pre style="font-size:11px;color:var(--text-2);white-space:pre-wrap;max-height:80px;overflow:hidden">${esc((h.content||'').slice(0,200))}…</pre>
+      </div>`).join('');
+  openModal('history-modal');
+}
+
+async function rollbackPrompt(version) {
+  if(!_currentPromptKey) return;
+  if(!confirm(`确认回滚到 v${version}？`)) return;
+  const r = await aFetch(`/admin/prompts/${_currentPromptKey}/rollback`, {method:'POST',body:JSON.stringify({version})});
+  if(r.ok) { closeModal('history-modal'); loadPromptDetail(_currentPromptKey); alert('已回滚'); }
+}
+
+/* ── Models ───────────────────────────────────────────────────────── */
+async function loadModels() {
+  const r = await aFetch('/admin/models');
+  const d = await r.json();
+  document.getElementById('m-current').textContent = d.current_version;
+  document.getElementById('m-rows').textContent    = d.training_data_rows.toLocaleString() + ' 行';
+  const statusMap = {production:'badge-success', archived:'badge-free', training:'badge-warning'};
+  document.getElementById('models-tbody').innerHTML = Object.values(d.models).reverse().map(m=>`
+    <tr>
+      <td><b>${esc(m.version)}</b></td>
+      <td>${m.features||'–'}</td>
+      <td>${m.rmse||'–'}</td>
+      <td>${m.accuracy?m.accuracy+'%':'–'}</td>
+      <td><span class="badge ${statusMap[m.status]||'badge-free'}">${{production:'生产中',archived:'已归档',training:'训练中'}[m.status]||m.status}</span></td>
+      <td>${m.status!=='production'?`<button class="btn btn-ghost btn-sm" onclick="deployModel('${m.version}')">部署</button>`:'–'}</td>
+    </tr>`).join('');
+  document.getElementById('train-jobs').innerHTML = (d.training_jobs||[]).reverse().slice(0,5).map(j=>`
+    <div style="background:var(--surf-2);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between">
+        <span style="font-size:12px;font-weight:600">${j.id}</span>
+        <span class="badge ${j.status==='completed'?'badge-success':j.status==='failed'?'badge-error':'badge-warning'}">${j.status}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${j.description}</div>
+    </div>`).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无训练任务</div>';
+}
+
+async function deployModel(version) {
+  if(!confirm(`确认部署版本 ${version}？`)) return;
+  const r = await aFetch(`/admin/models/${version}/deploy`, {method:'POST'});
+  const d = await r.json();
+  if(d.ok) { alert('部署成功: '+d.deployed); loadModels(); }
+  else alert('失败: '+JSON.stringify(d));
+}
+
+async function triggerTraining() {
+  const desc = prompt('训练任务说明：', '手动触发训练');
+  if(!desc) return;
+  const r = await aFetch('/admin/models/train', {method:'POST', body:JSON.stringify({description:desc})});
+  const d = await r.json();
+  if(d.ok) { alert(`训练任务已创建：${d.job_id}`); loadModels(); }
+}
+
+/* ── Crawler ──────────────────────────────────────────────────────── */
+async function loadCrawler() {
+  const r = await aFetch('/admin/crawler/status');
+  const d = await r.json();
+  document.getElementById('cw-status').innerHTML = `<span class="dot ${d.enabled?'dot-green':'dot-red'}"></span>${d.enabled?'运行中':'已停止'}`;
+  document.getElementById('cw-cookie').innerHTML = `<span class="dot ${d.cookie_file_exists?'dot-green':'dot-red'}"></span>${d.cookie_file_exists?`有效（${d.cookie_count}条）`:'未配置'}`;
+  document.getElementById('cw-total').textContent = (d.total_collected||0).toLocaleString() + ' 条';
+  const logsR = await aFetch('/admin/crawler/logs?limit=30');
+  const logs  = await logsR.json();
+  document.getElementById('crawler-logs').innerHTML = (logs.logs||[]).reverse().map(l=>`
+    <div class="log-line">${JSON.stringify(l).slice(0,120)}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px;padding:8px">暂无日志</div>';
+}
+
+async function toggleCrawler(enable) {
+  await aFetch('/admin/crawler/toggle', {method:'POST', body:JSON.stringify({enabled:enable})});
+  loadCrawler();
+}
+
+async function runCrawlerNow() {
+  if(!confirm('立即触发一轮采集？')) return;
+  const r = await aFetch('/admin/crawler/run', {method:'POST', body:JSON.stringify({limit:50})});
+  const d = await r.json();
+  if(d.ok) { alert(d.message); loadCrawler(); }
+}
+
+function openCookieModal() { openModal('cookie-modal'); }
+async function saveCookies() {
+  const raw = document.getElementById('cookie-input').value.trim();
+  const r = await aFetch('/admin/crawler/update-cookie', {method:'POST', body:JSON.stringify({cookies_json:raw})});
+  const d = await r.json();
+  if(d.ok) { alert(`Cookie 已保存（${d.cookie_count}条）`); closeModal('cookie-modal'); loadCrawler(); }
+  else alert('失败: '+JSON.stringify(d));
+}
+
+/* ── Settings ─────────────────────────────────────────────────────── */
+async function loadSettings() {
+  const r = await aFetch('/admin/settings');
+  const d = await r.json();
+  const tierNames = {free:'免费版', pro:'轻创作 Pro (¥99)', pro_plus:'专业 Pro+ (¥199)'};
+  document.getElementById('settings-tiers').innerHTML = Object.entries(d.tiers).map(([k,t])=>`
+    <div style="margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">${tierNames[k]||k}</div>
+      ${Object.entries(t.quotas).map(([op,limit])=>`
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+          <span style="color:var(--text-2)">${d.operations?.[op]?.label||op}</span>
+          <span style="color:var(--accent);font-weight:600">${limit===-1?'无限':limit+'次/月'}</span>
+        </div>`).join('')}
+    </div>`).join('');
+  document.getElementById('settings-credits').innerHTML = `
+    <div style="font-size:13px;margin-bottom:12px">1 积分 = ¥${d.credit_value}</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${Object.entries(d.credit_costs).map(([k,v])=>`
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+          <span style="color:var(--text-2)">${d.operations?.[k]?.label||k}</span>
+          <span style="color:var(--warning)">${v===0?'免费':v+'积分'}</span>
+        </div>`).join('')}
+    </div>`;
+  const logsR = await aFetch('/admin/logs?lines=50');
+  const logs  = await logsR.json();
+  document.getElementById('server-logs').innerHTML = (logs.lines||[]).map(l=>`
+    <div class="log-line">${esc(l)}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无日志</div>';
+}
+
+/* ── Chart helpers ────────────────────────────────────────────────── */
+function _renderLineChart(id, dates, values, name, color) {
+  const chart = echarts.init(document.getElementById(id));
+  chart.setOption({
+    backgroundColor:'transparent',
+    grid:{left:10,right:10,top:10,bottom:30,containLabel:true},
+    tooltip:{trigger:'axis',backgroundColor:'#1A1A25',borderColor:'rgba(255,255,255,0.1)',textStyle:{color:'#F0F0F8'}},
+    xAxis:{type:'category',data:dates,axisLabel:{fontSize:9,color:'#A0A0B8'}},
+    yAxis:{type:'value',axisLabel:{fontSize:9,color:'#A0A0B8'}},
+    series:[{type:'line',name,data:values,smooth:true,symbol:'none',
+      lineStyle:{color,width:2},
+      areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,
+        colorStops:[{offset:0,color:color+'40'},{offset:1,color:color+'05'}]}}}],
+  });
+}
+
+/* ── Modals ───────────────────────────────────────────────────────── */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open')); });
+
+/* ── Utils ────────────────────────────────────────────────────────── */
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function updateClock() {
+  document.getElementById('topbar-time').textContent = new Date().toLocaleString('zh-CN');
+  setTimeout(updateClock, 1000);
+}
+
+/* ── Auto-login if token exists ───────────────────────────────────── */
+window.addEventListener('load', async () => {
+  if (_adminToken) {
+    try {
+      const r = await fetch(`${ADMIN_BASE}/admin/me`, {headers:{'Authorization':`Bearer ${_adminToken}`}});
+      if (r.ok) {
+        const d = await r.json();
+        document.getElementById('admin-name').textContent = d.username;
+        showApp();
+        return;
+      }
+    } catch(e) {}
+    _adminToken = null; localStorage.removeItem('noteai_admin_token');
+  }
+});
+</script>
+</body>
+</html>

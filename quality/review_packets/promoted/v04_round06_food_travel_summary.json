@@ -1,0 +1,70 @@
+{
+  "version": "v04-round06-food-travel-summary-v0.1",
+  "created_at": "2026-06-25T14:24:45Z",
+  "scope": {
+    "domains": ["美食", "旅行"],
+    "strategy": "focus weak food/local-life and hotel-travel quality; promote only Claude+Kimi safe consensus labels"
+  },
+  "generation": {
+    "golden_batch": "quality/labeling_batches/v04_round06_food_travel_golden.jsonl",
+    "golden_exported": 120,
+    "golden_by_domain": {"美食": 60, "旅行": 60},
+    "preference_task_pool": "quality/preference_task_pool.v06.food_travel.json",
+    "preference_tasks": 8,
+    "preference_slots": 48,
+    "generated_artifact_dir": "quality/generated_variants/v06_food_travel",
+    "generated_ready": 48,
+    "generated_failures": 0,
+    "strict_seed_variants_after_filter": 33,
+    "strict_seed_filtering": "blocking artifacts and title readability issues are excluded before A/B queue export"
+  },
+  "preference_review": {
+    "queue": "quality/preference_queue.v06.food_travel.jsonl",
+    "pairs": 59,
+    "pairs_by_domain": {"美食": 36, "旅行": 23},
+    "kimi_second_review_ok": 59,
+    "judge_consensus_agree": 5,
+    "judge_consensus_disagree": 54,
+    "promoted": 22,
+    "promoted_by_domain": {"美食": 16, "旅行": 6},
+    "holdout": 37,
+    "promotion_policy": "auto_accept_consensus + winner_consensus with Kimi confidence >= 0.7"
+  },
+  "golden_review": {
+    "queue": "quality/labeling_batches/v04_round06_food_travel_golden.jsonl",
+    "rows": 120,
+    "kimi_second_review_ok": 120,
+    "judge_consensus_agree": 16,
+    "judge_consensus_disagree": 104,
+    "promoted": 12,
+    "promoted_by_domain": {"美食": 8, "旅行": 4},
+    "holdout": 108,
+    "promotion_policy": "strict judge_consensus=agree only"
+  },
+  "merged_training_labels": {
+    "golden_total": 157,
+    "preference_total": 226,
+    "golden_by_domain": {"美食": 39, "旅行": 21, "穿搭": 33, "美妆": 14, "家居": 17, "健身": 25, "母婴": 8},
+    "preference_by_domain": {"美食": 46, "旅行": 28, "穿搭": 36, "美妆": 23, "家居": 36, "健身": 31, "母婴": 26}
+  },
+  "readiness": {
+    "decision": "blocked_need_labels",
+    "candidate_ready": false,
+    "production_ready": false,
+    "do_not_deploy": true,
+    "food_gap_candidate": {"golden_needed": 261, "preference_needed": 954},
+    "travel_gap_candidate": {"golden_needed": 279, "preference_needed": 972}
+  },
+  "quality_fixes": [
+    "Expanded title half-cut repair for food and hotel/travel titles.",
+    "Added title readability filtering to preference seed construction.",
+    "Added multi-input de-duplicating preference ingest.",
+    "Added Round06 food/travel quality gate cases."
+  ],
+  "verification": {
+    "unittest": "89 tests passed via .venv/bin/python -m unittest discover -s tests",
+    "py_compile": "find model tools tests -name '*.py' -print0 | xargs -0 python3 -m py_compile passed",
+    "quality_gate": "tools/quality_gate.py quality/quality_gate_cases.v04_round06_food_travel.json --json passed",
+    "train": "model/train_v04_composite.py --json correctly returned blocked_need_labels"
+  }
+}

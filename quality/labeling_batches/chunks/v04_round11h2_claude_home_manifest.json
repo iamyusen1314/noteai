@@ -1,0 +1,22 @@
+{
+  "source": "quality/labeling_batches/v04_round11h2_claude_home_golden.csv",
+  "chunk_size": 250,
+  "total_rows": 750,
+  "chunks": [
+    {
+      "part": 1,
+      "path": "quality/labeling_batches/chunks/v04_round11h2_claude_home/v04_round11h2_claude_home_golden_part01.csv",
+      "rows": 250
+    },
+    {
+      "part": 2,
+      "path": "quality/labeling_batches/chunks/v04_round11h2_claude_home/v04_round11h2_claude_home_golden_part02.csv",
+      "rows": 250
+    },
+    {
+      "part": 3,
+      "path": "quality/labeling_batches/chunks/v04_round11h2_claude_home/v04_round11h2_claude_home_golden_part03.csv",
+      "rows": 250
+    }
+  ]
+}

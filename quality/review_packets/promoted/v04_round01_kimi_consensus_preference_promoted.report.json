@@ -1,0 +1,287 @@
+{
+  "version": "reviewed-prelabel-promotion-v0.1",
+  "created_at": "2026-06-25T10:33:08.192980+00:00",
+  "kind": "preference",
+  "rows_seen": 63,
+  "promoted_count": 9,
+  "skipped_count": 54,
+  "skipped_preview": [
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0011_30b136e6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0021_ac0a27c8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0030_2b644ce4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0038_94b1a7db",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0045_2cb56ea7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0051_85fee9b4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0056_867e6929",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0060_991fc3fc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0063_ad20cf25",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0003_dac37e29",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0004_78b595de",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0005_379202ad",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0013_3e8b2e81",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0014_4aa045c2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0015_a80b0430",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0022_54d2a1ca",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0023_efc7e1bc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0024_94d87b2a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0031_5694748b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0032_672df376",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0033_1589f0f5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0034_94b1a7db",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0035_cef8a1db",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0036_7428f6e1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0039_bebc0b6a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0040_cbac7686",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0041_2cb56ea7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0042_9248d15b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0043_cc58cf0f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0046_351367dd",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0047_85fee9b4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0048_50bce0fc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0049_6086d16b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0050_7c978131",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0001_d9231bdd",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0002_54ba32a3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0006_501b72c4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0007_30b136e6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0009_93a92e65",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0012_f10ba512",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0016_04d332ae",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0017_ac0a27c8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0018_280f65ff",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0019_d3cfaa0e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0025_92381a78",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0026_2b644ce4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0027_74bb3e67",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0028_fea3131f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0052_867e6929",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0053_4a544f59",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0054_8892a18e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0057_3d0d7592",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0058_92e4ac73",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_changxi_longchu_wanbo_food_001_0062_2ad59a8b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    }
+  ],
+  "auto_accept_consensus": true,
+  "policy": "Only review_decision=accept_ai/accept_with_edits or explicit --auto-accept-consensus judge_consensus=agree is promoted.",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01_kimi_consensus_preference_promoted.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01_kimi_consensus_preference_promoted.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01_kimi_consensus_preference_promoted.report.json"
+  }
+}

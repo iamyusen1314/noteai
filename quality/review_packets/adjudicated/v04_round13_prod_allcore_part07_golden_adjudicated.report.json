@@ -1,0 +1,44 @@
+{
+  "version": "golden-review-adjudication-v0.1",
+  "created_at": "2026-06-26T19:51:07.198805+00:00",
+  "policy": "Only low-risk disagreements are adjudicated: Kimi ok, no fact/industry risk, Kimi confidence above threshold, and score gap within threshold. Delivery-ready is true only when both judges agree and score >= 78.",
+  "params": {
+    "max_score_gap": 12.0,
+    "min_kimi_confidence": 0.7
+  },
+  "totals": {
+    "rows_seen": 250,
+    "adjudicated_count": 110,
+    "skipped_count": 140
+  },
+  "by_domain": {
+    "健身": 18,
+    "旅行": 21,
+    "母婴": 21,
+    "穿搭": 22,
+    "美食": 28
+  },
+  "score_buckets": {
+    "10": 1,
+    "20": 3,
+    "30": 3,
+    "40": 3,
+    "50": 4,
+    "60": 20,
+    "70": 64,
+    "80": 12
+  },
+  "skipped_reasons": {
+    "already_consensus": 62,
+    "missing_title_or_body": 10,
+    "risk_flags": 52,
+    "risk_tags": 9,
+    "score_gap_too_large": 7
+  },
+  "input": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round13_prod_allcore_part07_golden_ai_review.jsonl",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round13_prod_allcore_part07_golden_adjudicated.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round13_prod_allcore_part07_golden_adjudicated.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/adjudicated/v04_round13_prod_allcore_part07_golden_adjudicated.report.json"
+  }
+}

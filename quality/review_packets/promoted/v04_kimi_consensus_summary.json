@@ -1,0 +1,237 @@
+{
+  "version": "v04-kimi-consensus-summary-v0.1",
+  "review_batches": {
+    "round01_golden": {
+      "rows": 160,
+      "judge_consensus": {
+        "disagree": 121,
+        "second_review_failed": 10,
+        "agree": 29
+      },
+      "second_review_status": {
+        "ok": 150,
+        "failed": 10
+      },
+      "by_domain": {
+        "健身": {
+          "disagree": 32,
+          "second_review_failed": 3,
+          "agree": 5
+        },
+        "旅行": {
+          "agree": 8,
+          "disagree": 31,
+          "second_review_failed": 1
+        },
+        "穿搭": {
+          "disagree": 31,
+          "agree": 4,
+          "second_review_failed": 5
+        },
+        "美食": {
+          "agree": 12,
+          "disagree": 27,
+          "second_review_failed": 1
+        }
+      }
+    },
+    "round01b_golden": {
+      "rows": 120,
+      "judge_consensus": {
+        "disagree": 111,
+        "agree": 9
+      },
+      "second_review_status": {
+        "ok": 120
+      },
+      "by_domain": {
+        "家居": {
+          "disagree": 39,
+          "agree": 1
+        },
+        "母婴": {
+          "disagree": 39,
+          "agree": 1
+        },
+        "美妆": {
+          "disagree": 33,
+          "agree": 7
+        }
+      }
+    },
+    "round01_preference": {
+      "rows": 63,
+      "judge_consensus": {
+        "disagree": 54,
+        "agree": 9
+      },
+      "second_review_status": {
+        "ok": 63
+      },
+      "by_domain": {
+        "美食": {
+          "disagree": 54,
+          "agree": 9
+        }
+      },
+      "ai_winner": {
+        "B": 41,
+        "tie": 15,
+        "A": 7
+      },
+      "kimi_winner": {
+        "B": 38,
+        "A": 24,
+        "tie": 1
+      }
+    },
+    "round01b_preference": {
+      "rows": 105,
+      "judge_consensus": {
+        "disagree": 78,
+        "agree": 27
+      },
+      "second_review_status": {
+        "ok": 105
+      },
+      "by_domain": {
+        "健身": {
+          "disagree": 15
+        },
+        "家居": {
+          "agree": 10,
+          "disagree": 5
+        },
+        "旅行": {
+          "disagree": 10,
+          "agree": 5
+        },
+        "母婴": {
+          "disagree": 14,
+          "agree": 1
+        },
+        "穿搭": {
+          "disagree": 8,
+          "agree": 7
+        },
+        "美妆": {
+          "disagree": 15
+        },
+        "美食": {
+          "disagree": 11,
+          "agree": 4
+        }
+      },
+      "ai_winner": {
+        "tie": 46,
+        "A": 31,
+        "B": 28
+      },
+      "kimi_winner": {
+        "A": 62,
+        "B": 43
+      }
+    },
+    "round01_golden_failed_retry": {
+      "rows": 10,
+      "judge_consensus": {
+        "agree": 2,
+        "disagree": 8
+      },
+      "second_review_status": {
+        "ok": 10
+      },
+      "by_domain": {
+        "健身": 3,
+        "旅行": 1,
+        "穿搭": 5,
+        "美食": 1
+      }
+    }
+  },
+  "promotion_batches": {
+    "round01_golden": {
+      "rows_seen": 160,
+      "promoted_count": 26,
+      "skipped_count": 134
+    },
+    "round01b_golden": {
+      "rows_seen": 120,
+      "promoted_count": 6,
+      "skipped_count": 114
+    },
+    "round01_preference": {
+      "rows_seen": 63,
+      "promoted_count": 9,
+      "skipped_count": 54
+    },
+    "round01b_preference": {
+      "rows_seen": 105,
+      "promoted_count": 27,
+      "skipped_count": 78
+    },
+    "round01_golden_failed_retry": {
+      "rows_seen": 10,
+      "promoted_count": 2,
+      "skipped_count": 8
+    }
+  },
+  "totals": {
+    "review_rows": 448,
+    "initial_kimi_ok": 438,
+    "initial_kimi_failed": 10,
+    "retry_rows": 10,
+    "retry_kimi_ok": 10,
+    "judge_agree_before_empty_title_filter": 76,
+    "golden_promoted": 34,
+    "preference_labeled_total": 39,
+    "golden_labeled_total_with_seed": 45,
+    "preference_winner_A": 17,
+    "preference_winner_B": 22,
+    "do_not_deploy": true,
+    "train_decision": "experimental_not_production"
+  },
+  "by_domain_consensus": {
+    "健身": {
+      "disagree": 47,
+      "second_review_failed": 3,
+      "agree": 5
+    },
+    "家居": {
+      "disagree": 44,
+      "agree": 11
+    },
+    "旅行": {
+      "agree": 13,
+      "disagree": 41,
+      "second_review_failed": 1
+    },
+    "母婴": {
+      "disagree": 53,
+      "agree": 2
+    },
+    "穿搭": {
+      "disagree": 39,
+      "agree": 11,
+      "second_review_failed": 5
+    },
+    "美妆": {
+      "disagree": 48,
+      "agree": 7
+    },
+    "美食": {
+      "agree": 25,
+      "disagree": 92,
+      "second_review_failed": 1
+    }
+  },
+  "artifacts": {
+    "golden_merged": "quality/golden_labels.v01.merged.json",
+    "preference_labeled": "quality/preference_queue.v01.labeled.jsonl",
+    "health_report": "model/artifacts/v04_training_data_health.json",
+    "readiness_report": "model/artifacts/v04_composite_readiness.json",
+    "train_report": "model/artifacts/model_v04_composite_train_report.json",
+    "golden_promoted": "quality/review_packets/promoted/v04_round01_all_kimi_consensus_golden_promoted.jsonl",
+    "preference_promoted": "quality/review_packets/promoted/v04_round01_all_kimi_consensus_preference_promoted.jsonl"
+  }
+}

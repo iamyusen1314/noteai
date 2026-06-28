@@ -1,0 +1,407 @@
+{
+  "version": "reviewed-prelabel-promotion-v0.1",
+  "created_at": "2026-06-25T10:33:08.198499+00:00",
+  "kind": "preference",
+  "rows_seen": 105,
+  "promoted_count": 27,
+  "skipped_count": 78,
+  "skipped_preview": [
+    {
+      "id": "pref01_fitness_home_fatloss_001_0076_1ef2b3c4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0077_3757fcb1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0078_e6f086ca",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0079_898f7b78",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0080_629ee621",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0081_0d43419a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0082_b9ea8834",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0083_2dd68fa3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0084_5c3fb3d2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0085_58f00a61",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0086_90df47e9",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0087_44c57a8d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0088_3de1b43c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0089_60dd2fee",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_fatloss_001_0090_e79255e9",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_rental_38sqm_001_0070_96bf6847",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_rental_38sqm_001_0072_f8a480fe",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_rental_38sqm_001_0073_085bce7c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_rental_38sqm_001_0074_53c8b17d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_rental_38sqm_001_0075_3b0d4425",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0016_e9493e4c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0017_3d9b670d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0018_5c75d3bd",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0019_711928bc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0021_312fb70e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0022_805d13ff",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0023_939b4840",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0025_45c56a9b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0026_628bdfbd",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_chengdu_3day_001_0028_5081bab8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0091_bebe9903",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0092_09c76c24",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0093_07cba8df",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0094_eed2fbb6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0095_df56436c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0096_2f72ed11",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0098_66d2f56b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0099_c4a881c0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0100_b47b2325",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0101_0dbe7717",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0102_f801a4dd",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0103_583c91e1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0104_a88ca0d6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_food_8month_001_0105_924d2ea2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_petite_commute_001_0031_9d853da5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_petite_commute_001_0034_879a4567",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_petite_commute_001_0035_a1ee41ea",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_petite_commute_001_0036_5a48fe2d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_petite_commute_001_0037_7363822e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_petite_commute_001_0038_ea6cdabc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_petite_commute_001_0040_c1775a92",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_petite_commute_001_0045_35181dc2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0046_97dca532",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0047_721a7ba2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0048_77706066",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0049_f5a244ab",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0050_6445ef1a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0051_6027d883",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0052_863b37f7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0053_d1cbc671",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0054_27490c41",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0055_aaf08862",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0056_711b460b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0057_41e9d2c0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0058_6d107c3e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0059_7d2a80a6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_yellow_skin_blush_001_0060_61883124",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0001_22191da3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0002_0a82c295",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0004_a407e4f6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0005_6517f952",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0006_122120cf",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0007_62e43227",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0008_0a249405",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0009_90a1bfa8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0011_77feb371",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0012_97474622",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_001_0015_ecdec1e0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    }
+  ],
+  "auto_accept_consensus": true,
+  "policy": "Only review_decision=accept_ai/accept_with_edits or explicit --auto-accept-consensus judge_consensus=agree is promoted.",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01b_kimi_consensus_preference_promoted.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01b_kimi_consensus_preference_promoted.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01b_kimi_consensus_preference_promoted.report.json"
+  }
+}

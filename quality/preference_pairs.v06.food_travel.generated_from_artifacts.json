@@ -1,0 +1,391 @@
+{
+  "version": "preference-pairs-generated-from-artifacts-v0.1",
+  "description": "Generated same-task variants assembled from auditable artifact files. Requires human A/B labels before training.",
+  "created_at": "2026-06-25T14:04:38.307098+00:00",
+  "tasks": [
+    {
+      "task_id": "food_guangzhou_cantonese_amap_001",
+      "domain": "美食",
+      "task_context": "用户意图：生成一篇广州番禺粤菜馆聚餐笔记，强调高德/门店实事、营业时间、停车地铁、招牌菜和适合人群。\n目标读者：在广州番禺万博附近找粤菜聚餐、希望快速判断值不值得去的用户\n已知事实：地点在广州番禺万博商圈附近；门店名为长禧家珑厨万博广晟店；主营粤菜和家庭聚餐；推荐菜包括芝士焗小青龙、红烧乳鸽和忘不了鱼；适合家庭聚餐、朋友小聚和商务便饭；附近有商场停车场；靠近万博商圈，适合逛完商场顺路吃饭；用户未提供准确人均和营业时间，不能编造具体数字",
+      "comparison_focus": [
+        "门店实事",
+        "招牌菜",
+        "适合人群",
+        "停车地铁",
+        "不编造价格营业时间"
+      ],
+      "variants": [
+        {
+          "id": "food_guangzhou_cantonese_amap_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v06_food_travel/food_guangzhou_cantonese_amap_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_cantonese_amap_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/food_guangzhou_cantonese_amap_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_cantonese_amap_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/food_guangzhou_cantonese_amap_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_cantonese_amap_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/food_guangzhou_cantonese_amap_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_cantonese_amap_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v06_food_travel/food_guangzhou_cantonese_amap_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_cantonese_amap_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v06_food_travel/food_guangzhou_cantonese_amap_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "food_shanghai_crab_noodle_hours_001",
+      "domain": "美食",
+      "task_context": "用户意图：生成上海南京西路蟹黄面午餐笔记，强调营业时间、排队时段、人均、必点和适合谁。\n目标读者：在上海南京西路附近上班或逛街、想快速吃一顿蟹黄面的用户\n已知事实：地点在上海南京西路商圈附近；人均58元；营业时间10:30-20:30；推荐蟹黄拌面、蟹粉小笼和雪菜黄鱼面；工作日11:30前到店排队更短；饭点排队约20分钟；座位偏紧凑；更适合午餐快吃，不适合久坐聊天",
+      "comparison_focus": [
+        "营业时间",
+        "人均价格",
+        "必点菜",
+        "排队避坑",
+        "适合不适合"
+      ],
+      "variants": [
+        {
+          "id": "food_shanghai_crab_noodle_hours_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v06_food_travel/food_shanghai_crab_noodle_hours_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shanghai_crab_noodle_hours_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/food_shanghai_crab_noodle_hours_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shanghai_crab_noodle_hours_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/food_shanghai_crab_noodle_hours_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shanghai_crab_noodle_hours_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/food_shanghai_crab_noodle_hours_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shanghai_crab_noodle_hours_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v06_food_travel/food_shanghai_crab_noodle_hours_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "food_chengdu_hotpot_ordering_002",
+      "domain": "美食",
+      "task_context": "用户意图：生成成都春熙路火锅点单攻略笔记，强调锅底、必点、辣度、人均、排队和不适合人群。\n目标读者：第一次来成都春熙路吃火锅、怕点错或怕太辣的用户\n已知事实：地点在成都春熙路附近；人均118元；营业时间11:00-24:00；推荐微辣牛油锅和番茄鸳鸯锅；必点鲜毛肚、鸭血、嫩牛肉和手工虾滑；晚上7点后等位约40分钟；不能吃辣的人建议点鸳鸯锅；不适合赶时间或想安静聊天的人",
+      "comparison_focus": [
+        "点单攻略",
+        "辣度选择",
+        "人均营业",
+        "排队避坑",
+        "适合不适合"
+      ],
+      "variants": [
+        {
+          "id": "food_chengdu_hotpot_ordering_002__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v06_food_travel/food_chengdu_hotpot_ordering_002/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_chengdu_hotpot_ordering_002__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/food_chengdu_hotpot_ordering_002/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_chengdu_hotpot_ordering_002__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/food_chengdu_hotpot_ordering_002/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_chengdu_hotpot_ordering_002__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/food_chengdu_hotpot_ordering_002/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_chengdu_hotpot_ordering_002__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v06_food_travel/food_chengdu_hotpot_ordering_002/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "food_hangzhou_brunch_queue_001",
+      "domain": "美食",
+      "task_context": "用户意图：生成杭州西湖边早午餐店笔记，强调营业、排队、价格、招牌餐品和拍照/吃饭体验边界。\n目标读者：去杭州西湖湖滨逛街拍照、想找早午餐但不想踩排队坑的用户\n已知事实：地点在杭州西湖湖滨附近；人均76元；营业时间08:30-16:00；推荐班尼迪克蛋、牛油果开放三明治和拿铁；周末10点后排队约25分钟；窗边座位拍照更好看但数量少；餐品分量适合轻食，不适合特别饿的人；适合逛西湖前吃早午餐",
+      "comparison_focus": [
+        "营业时间",
+        "价格分量",
+        "排队提醒",
+        "招牌餐品",
+        "体验边界"
+      ],
+      "variants": [
+        {
+          "id": "food_hangzhou_brunch_queue_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v06_food_travel/food_hangzhou_brunch_queue_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_hangzhou_brunch_queue_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v06_food_travel/food_hangzhou_brunch_queue_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_sanya_family_resort_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成三亚亲子度假酒店选择笔记，强调房型预算、儿童设施、海滩距离、早餐和适合/不适合。\n目标读者：带孩子去三亚、想选省心度假酒店的家庭用户\n已知事实：酒店位于三亚亚龙湾；亲子房一晚约1280元；步行到海滩约6分钟；早餐到10:30结束；酒店有儿童泳池和室内儿童乐园；周末和暑期价格会上浮；适合带低龄孩子泡酒店；不适合每天都想去市区夜市的人",
+      "comparison_focus": [
+        "酒店决策",
+        "亲子设施",
+        "房型预算",
+        "海滩距离",
+        "适合不适合"
+      ],
+      "variants": [
+        {
+          "id": "travel_sanya_family_resort_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_sanya_family_resort_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_sanya_family_resort_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_sanya_family_resort_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_sanya_family_resort_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_sanya_family_resort_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_sanya_family_resort_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_sanya_family_resort_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_sanya_family_resort_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_sanya_family_resort_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_beijing_business_hotel_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成北京国贸商务出差酒店笔记，强调地铁通勤、房间隔音、早餐、预算和不适合场景。\n目标读者：去北京国贸出差、想选通勤方便酒店的职场用户\n已知事实：酒店位于北京国贸商圈；商务大床房一晚约720元；步行到地铁站约5分钟；到国贸写字楼群通勤方便；早餐到10点结束；房间桌面适合短时间办公；临街房可能有车流声；不适合想住胡同或景点附近的游客",
+      "comparison_focus": [
+        "商务酒店",
+        "交通通勤",
+        "预算房型",
+        "隔音办公",
+        "适合不适合"
+      ],
+      "variants": [
+        {
+          "id": "travel_beijing_business_hotel_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_beijing_business_hotel_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_beijing_business_hotel_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_beijing_business_hotel_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_beijing_business_hotel_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_beijing_business_hotel_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_beijing_business_hotel_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_beijing_business_hotel_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_hangzhou_hotel_route_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成杭州西湖2天1晚酒店+路线笔记，强调住宿区域、预算、路线顺序、交通和避坑。\n目标读者：第一次去杭州、想把酒店位置和路线一起规划的用户\n已知事实：住宿建议选湖滨银泰附近；酒店一晚约680元；第一天西湖断桥、孤山、浙江省博物馆；第二天灵隐寺和小河直街；西湖段以步行和公交为主；灵隐寺建议早上8点前到；两天人均预算约1200元；不建议把西湖、灵隐寺和宋城全塞进同一天",
+      "comparison_focus": [
+        "住宿区域",
+        "路线顺序",
+        "预算交通",
+        "避坑",
+        "两天一晚"
+      ],
+      "variants": [
+        {
+          "id": "travel_hangzhou_hotel_route_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_hangzhou_hotel_route_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_hotel_route_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_hangzhou_hotel_route_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_hotel_route_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_hangzhou_hotel_route_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_hotel_route_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_hangzhou_hotel_route_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_chengdu_hotel_food_walk_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成成都太古里附近酒店选择笔记，强调吃喝步行便利、房价、地铁、噪音和适合/不适合。\n目标读者：第一次去成都、想住太古里附近方便吃喝和出行的用户\n已知事实：酒店位于成都太古里附近；高级大床房一晚约620元；步行到春熙路地铁站约7分钟；周边吃饭和咖啡店选择多；夜间商圈人流较多；低楼层可能会有街区噪音；适合第一次来成都、想住热闹方便的人；不适合想安静度假或自驾停车特别方便的人",
+      "comparison_focus": [
+        "酒店位置",
+        "吃喝便利",
+        "房价地铁",
+        "噪音避坑",
+        "适合不适合"
+      ],
+      "variants": [
+        {
+          "id": "travel_chengdu_hotel_food_walk_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_chengdu_hotel_food_walk_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_hotel_food_walk_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v06_food_travel/travel_chengdu_hotel_food_walk_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    }
+  ]
+}

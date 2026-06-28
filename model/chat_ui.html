@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoteAI 爆文工作台</title>
+<style>
+:root {
+  --red:#FF2442; --red-light:#FFE0E6; --red-mid:#FF7090;
+  --bg:#F7F8FA; --card:#FFFFFF; --border:#EAECEF;
+  --text:#1A1A2E; --muted:#8A9099;
+  --think-bg:#FFF8E7; --think-border:#F5A623;
+  --green:#18B06D; --orange:#F59E0B; --blue:#3B5BE8;
+  --radius:16px; --shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ── Topbar ── */
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.logo{font-weight:800;font-size:16px;color:var(--red);}
+.topbar-steps{display:flex;gap:0;margin-left:16px;}
+.step-pill{padding:4px 14px;font-size:12px;font-weight:600;border-radius:20px;color:var(--muted);cursor:default;}
+.step-pill.active{background:var(--red-light);color:var(--red);}
+.step-pill.done{color:var(--green);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.score-badge{display:flex;align-items:center;gap:5px;background:var(--red-light);border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600;color:var(--red);transition:all .4s;}
+.score-badge.good{background:#D1FAE5;color:var(--green);}
+.score-badge.mid{background:#FEF3C7;color:var(--orange);}
+.learn-badge{display:flex;align-items:center;gap:5px;background:#F0F4FF;border-radius:20px;padding:4px 10px;font-size:12px;color:#5B6CD1;font-weight:500;}
+.learn-badge.pulse{animation:learnPulse .6s ease;}
+@keyframes learnPulse{0%{transform:scale(1);background:#D1D9FF;}50%{transform:scale(1.08);}100%{transform:scale(1);background:#F0F4FF;}}
+
+/* ── Screens ── */
+.screen{display:none;flex:1;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* ── Step 1: Setup ── */
+#screen-setup{align-items:center;justify-content:center;flex-direction:column;}
+.setup-card{background:var(--card);border-radius:20px;padding:32px;width:560px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15);}
+.setup-card h2{font-size:21px;font-weight:800;color:var(--red);margin-bottom:3px;}
+.setup-subtitle{font-size:13px;color:var(--muted);margin-bottom:22px;}
+.mode-tabs{display:flex;gap:8px;margin-bottom:22px;background:#F3F4F6;padding:4px;border-radius:12px;}
+.mode-tab{flex:1;padding:8px;text-align:center;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--muted);}
+.mode-tab.active{background:var(--card);color:var(--red);box-shadow:0 1px 4px rgba(0,0,0,0.1);}
+.mode-pane{display:none;}
+.mode-pane.active{display:block;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.3px;}
+.form-group label .opt{font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;}
+.form-group textarea,.form-group input,.form-group select{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;transition:border-color .15s;background:var(--bg);color:var(--text);}
+.form-group textarea:focus,.form-group input:focus,.form-group select:focus{border-color:var(--red);}
+/* Image upload */
+.img-drop{border:2px dashed var(--border);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .15s;position:relative;}
+.img-drop:hover,.img-drop.drag-over{border-color:var(--red);background:var(--red-light);}
+.img-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.img-drop .drop-icon{font-size:28px;margin-bottom:8px;}
+.img-drop .drop-text{font-size:13px;color:var(--muted);}
+.img-preview{width:100%;height:140px;object-fit:cover;border-radius:10px;display:none;margin-top:10px;}
+.primary-btn{width:100%;padding:13px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s;margin-top:6px;}
+.primary-btn:hover:not(:disabled){background:#D91B36;}
+.primary-btn:disabled{background:#ccc;cursor:not-allowed;}
+.divider{text-align:center;color:var(--muted);font-size:12px;margin:14px 0;position:relative;}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border);}
+.divider::before{left:0;} .divider::after{right:0;}
+
+/* ── Step 2: Generate result ── */
+#screen-result{flex-direction:column;background:var(--bg);}
+.result-header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.result-header h3{font-size:15px;font-weight:700;}
+.result-score-pill{padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700;}
+.result-body{flex:1;overflow-y:auto;padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.result-col{background:var(--card);border-radius:var(--radius);padding:20px;border:1px solid var(--border);}
+.result-col h4{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;}
+.note-title-box{font-size:16px;font-weight:700;line-height:1.6;margin-bottom:12px;padding:10px 12px;background:#FAFAFA;border-radius:8px;border-left:3px solid var(--red);}
+.note-body-box{font-size:13px;line-height:1.9;color:#333;white-space:pre-wrap;word-break:break-word;}
+.variants-list{display:flex;flex-direction:column;gap:8px;}
+.variant-item{padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:13px;cursor:pointer;transition:all .15s;}
+.variant-item:hover{border-color:var(--red);background:var(--red-light);}
+.feat-hits{display:flex;flex-wrap:wrap;gap:6px;}
+.feat-chip{padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;}
+.feat-chip.hit{background:#D1FAE5;color:#065F46;}
+.feat-chip.miss{background:#FEE2E2;color:#991B1B;}
+.experts-list{display:flex;flex-direction:column;gap:10px;}
+.expert-item{padding:10px 12px;background:#FAFAFA;border-radius:9px;border-left:3px solid var(--blue);}
+.expert-role{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:4px;}
+.expert-summary{font-size:12px;line-height:1.7;color:#444;}
+.result-actions{padding:16px 24px;border-top:1px solid var(--border);background:var(--card);display:flex;gap:12px;align-items:center;flex-shrink:0;}
+.start-chat-btn{flex:1;padding:12px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s;}
+.start-chat-btn:hover{background:#D91B36;}
+.back-btn{padding:12px 18px;border:1.5px solid var(--border);background:var(--card);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;}
+
+/* ── Step 3: Chat ── */
+#screen-chat{flex-direction:row;}
+/* Note panel */
+.note-panel{width:380px;border-right:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;flex-shrink:0;}
+.note-panel-header{padding:14px 18px 10px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;justify-content:space-between;}
+.note-iter{font-size:11px;color:var(--red);font-weight:600;background:var(--red-light);padding:2px 8px;border-radius:10px;}
+.note-scroll{flex:1;overflow-y:auto;padding:16px 18px;}
+.note-title-display{font-size:15px;font-weight:700;line-height:1.6;padding:10px 12px;background:#FAFAFA;border-radius:9px;border-left:3px solid var(--red);margin-bottom:12px;transition:all .4s;}
+.note-body-display{font-size:13px;line-height:1.9;color:#333;white-space:pre-wrap;word-break:break-word;}
+.note-updated-anim{animation:noteFlash .7s ease;}
+@keyframes noteFlash{0%{background:#FFF3E0;}100%{background:transparent;}}
+.score-section{padding:14px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.gauge-wrap{position:relative;width:58px;height:58px;flex-shrink:0;}
+.gauge-wrap svg{transform:rotate(-90deg);}
+.gauge-bg{fill:none;stroke:var(--border);stroke-width:6;}
+.gauge-fill{fill:none;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1),stroke .4s;}
+.gauge-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;transition:color .4s;}
+.score-meta .score-lbl{font-size:11px;color:var(--muted);}
+.score-meta .score-grade{font-size:14px;font-weight:700;margin-top:1px;}
+.score-meta .score-iter{font-size:11px;color:var(--muted);margin-top:2px;}
+/* Chat panel */
+.chat-panel{flex:1;display:flex;flex-direction:column;min-width:0;}
+.messages{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px;}
+.msg{display:flex;gap:9px;max-width:82%;}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.msg.ai{align-self:flex-start;}
+.msg-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.msg.ai .msg-avatar{background:var(--red-light);color:var(--red);}
+.msg.user .msg-avatar{background:#E8F0FE;color:var(--blue);}
+.msg-bubble{padding:10px 14px;border-radius:16px;font-size:13.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;}
+.msg.ai .msg-bubble{background:var(--card);border:1px solid var(--border);border-top-left-radius:3px;box-shadow:var(--shadow);}
+.msg.user .msg-bubble{background:var(--red);color:#fff;border-top-right-radius:3px;}
+/* Thinking */
+.thinking-wrap{align-self:flex-start;max-width:90%;}
+.thinking-header{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--think-bg);border:1px solid var(--think-border);border-radius:10px 10px 0 0;font-size:12px;color:#92400E;font-weight:500;cursor:pointer;user-select:none;}
+.thinking-dots span{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--think-border);animation:dotBounce 1.2s infinite;margin-right:2px;}
+.thinking-dots span:nth-child(2){animation-delay:.2s;}
+.thinking-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes dotBounce{0%,80%,100%{transform:translateY(0);opacity:.4;}40%{transform:translateY(-4px);opacity:1;}}
+.thinking-body{padding:8px 12px;background:var(--think-bg);border:1px solid var(--think-border);border-top:none;border-radius:0 0 10px 10px;font-size:11.5px;color:#78350F;line-height:1.7;max-height:120px;overflow-y:auto;white-space:pre-wrap;display:none;}
+.thinking-body.open{display:block;}
+.thinking-toggle{margin-left:auto;font-size:11px;opacity:.6;}
+/* Inline events */
+.note-updated-msg,.learn-toast{align-self:center;border-radius:20px;padding:5px 13px;font-size:12px;display:flex;align-items:center;gap:5px;animation:fadeUp .3s ease;}
+.note-updated-msg{background:var(--red-light);color:var(--red);font-weight:500;}
+.learn-toast{background:#ECFDF5;border:1px solid #6EE7B7;color:#065F46;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+/* Quick actions */
+.quick-actions{padding:0 22px 8px;display:flex;flex-wrap:wrap;gap:7px;}
+.quick-btn{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:5px 11px;font-size:12px;cursor:pointer;transition:all .12s;}
+.quick-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-light);}
+/* Input */
+.input-area{padding:10px 22px 18px;border-top:1px solid var(--border);background:var(--card);display:flex;gap:9px;align-items:flex-end;}
+.input-area textarea{flex:1;border:1.5px solid var(--border);border-radius:11px;padding:9px 13px;font-size:13.5px;font-family:inherit;resize:none;outline:none;transition:border-color .15s;max-height:110px;line-height:1.5;background:var(--bg);}
+.input-area textarea:focus{border-color:var(--red);}
+.send-btn{width:40px;height:40px;border-radius:11px;background:var(--red);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;}
+.send-btn:hover:not(:disabled){background:#D91B36;}
+.send-btn:active:not(:disabled){transform:scale(.94);}
+.send-btn:disabled{background:#ccc;cursor:not-allowed;}
+/* Spinner */
+.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#D0D5DD;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="logo">NoteAI 爆文工作台</div>
+  <div class="topbar-steps">
+    <div class="step-pill active" id="pill-1">① 生成笔记</div>
+    <div class="step-pill" id="pill-2" style="opacity:.4">→ ② 查看结果</div>
+    <div class="step-pill" id="pill-3" style="opacity:.4">→ ③ 对话优化</div>
+  </div>
+  <div class="topbar-right">
+    <div class="learn-badge" id="learn-badge" style="display:none">
+      <span>🧠</span><span id="learn-count">越用越懂你</span>
+    </div>
+    <div class="score-badge" id="global-score-badge" style="display:none">
+      <span>📊</span><span id="global-score-text">–</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Screen 1: Setup ═══ -->
+<div class="screen active" id="screen-setup">
+  <div class="setup-card">
+    <h2>爆文生成 + 对话优化</h2>
+    <p class="setup-subtitle">上传图片 AI 生成笔记，再通过对话持续优化，目标 70 分以上</p>
+
+    <div class="mode-tabs">
+      <div class="mode-tab active" onclick="setMode('generate')">📸 上传图片生成（完整流程）</div>
+      <div class="mode-tab" onclick="setMode('paste')">📝 粘贴已有笔记优化</div>
+    </div>
+
+    <!-- Mode A: Generate from image -->
+    <div class="mode-pane active" id="mode-generate">
+      <div class="form-group">
+        <label>上传封面图片 <span class="opt">（支持 JPG / PNG，可多选最多9张）</span></label>
+        <div class="img-drop" id="img-drop" onclick="document.getElementById('img-input').click()"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleDrop(event)">
+          <div class="drop-icon">🖼️</div>
+          <div class="drop-text">点击上传或拖拽图片到此处</div>
+          <input type="file" id="img-input" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">
+        </div>
+        <div id="img-thumbnails" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>内容品类</label>
+          <select id="gen-domain">
+            <option value="美食">美食 / 餐饮</option>
+            <option value="旅行">旅行 / 攻略</option>
+            <option value="穿搭">穿搭 / 时尚</option>
+            <option value="美妆">美妆 / 护肤</option>
+            <option value="健身">健身 / 运动</option>
+            <option value="母婴">母婴 / 亲子</option>
+            <option value="家居">家居 / 生活</option>
+            <option value="职场">职场 / 学习</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>发布时间 <span class="opt">（可选）</span></label>
+          <input type="datetime-local" id="gen-time">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>补充说明 <span class="opt">（餐厅名、人均价格、特色菜等关键信息）</span></label>
+        <textarea id="gen-brief" rows="2" placeholder="如：上海天钥桥路 · 川菜 · 人均68元 · 必点水煮鱼和夫妻肺片"></textarea>
+      </div>
+      <div class="form-group">
+        <label>用户 ID <span class="opt">（用于记录偏好，越用越准）</span></label>
+        <input type="text" id="gen-uid" placeholder="如 user_001（留空则不记录偏好）">
+      </div>
+      <button class="primary-btn" id="gen-btn" onclick="doGenerate()">🚀 生成爆文</button>
+    </div>
+
+    <!-- Mode B: Paste existing note -->
+    <div class="mode-pane" id="mode-paste">
+      <div class="form-group">
+        <label>笔记标题 <span style="color:var(--red)">*</span></label>
+        <input type="text" id="paste-title" placeholder="输入标题...">
+      </div>
+      <div class="form-group">
+        <label>笔记正文 <span style="color:var(--red)">*</span></label>
+        <textarea id="paste-body" rows="8" placeholder="输入正文（含话题标签）..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>内容品类</label>
+          <select id="paste-domain">
+            <option value="美食">美食 / 餐饮</option>
+            <option value="旅行">旅行 / 攻略</option>
+            <option value="穿搭">穿搭 / 时尚</option>
+            <option value="美妆">美妆 / 护肤</option>
+            <option value="健身">健身 / 运动</option>
+            <option value="母婴">母婴 / 亲子</option>
+            <option value="家居">家居 / 生活</option>
+            <option value="职场">职场 / 学习</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>用户 ID <span class="opt">（可选）</span></label>
+          <input type="text" id="paste-uid" placeholder="如 user_001">
+        </div>
+      </div>
+      <button class="primary-btn" onclick="startFromPaste()">开始对话优化 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Screen 2: Generate result ═══ -->
+<div class="screen" id="screen-result">
+  <div style="display:flex;flex-direction:column;width:100%;">
+    <div class="result-header">
+      <h3>生成结果</h3>
+      <div class="result-score-pill" id="result-score-pill">评分 –</div>
+      <div style="margin-left:auto;font-size:12px;color:var(--muted)" id="result-meta"></div>
+    </div>
+    <div class="result-body" id="result-body">
+      <!-- Dynamic content -->
+    </div>
+    <div class="result-actions">
+      <button class="back-btn" onclick="goToSetup()">← 重新生成</button>
+      <button class="start-chat-btn" onclick="startChatFromResult()">💬 开始对话优化 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Screen 3: Chat ═══ -->
+<div class="screen" id="screen-chat">
+  <!-- Left: Note preview -->
+  <div class="note-panel">
+    <div class="note-panel-header">
+      <span>📝 当前笔记</span>
+      <span class="note-iter" id="note-iter" style="display:none">第 1 版</span>
+    </div>
+    <div class="note-scroll" id="note-scroll">
+      <div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 10px">优化后的笔记将实时展示在这里</div>
+    </div>
+    <div class="score-section">
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 58 58" width="58" height="58">
+          <circle class="gauge-bg" cx="29" cy="29" r="24"/>
+          <circle class="gauge-fill" id="gauge-fill" cx="29" cy="29" r="24"
+            stroke-dasharray="150.8" stroke-dashoffset="150.8" stroke="var(--red)"/>
+        </svg>
+        <div class="gauge-text" id="gauge-text">–</div>
+      </div>
+      <div class="score-meta">
+        <div class="score-lbl">CES 分位评分</div>
+        <div class="score-grade" id="score-grade-text">等待评分</div>
+        <div class="score-iter" id="score-iter-text"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Chat -->
+  <div class="chat-panel">
+    <div class="messages" id="messages"></div>
+    <div class="quick-actions" id="quick-actions">
+      <button class="quick-btn" onclick="sendQuick('感觉有点广告，帮我改得更接地气，像朋友分享的感觉')">🗣️ 更接地气</button>
+      <button class="quick-btn" onclick="sendQuick('帮我想3个更吸引点击的标题方案')">✏️ 优化标题</button>
+      <button class="quick-btn" onclick="sendQuick('按照沟通好的方向，重写一版完整笔记')">🔄 重写一版</button>
+      <button class="quick-btn" onclick="sendQuick('分析一下现在哪几个特征还没达标，怎么改分最高？')">🔍 特征分析</button>
+      <button class="quick-btn" onclick="sendQuick('互动引导结尾再优化一下，要更自然')">💬 优化结尾</button>
+    </div>
+    <div class="input-area">
+      <textarea id="chat-input" placeholder="告诉我你的修改想法..." rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ State ════════════════════════════════════════════════════
+let uploadedImages = [];   // base64 strings
+let generateResult = null; // full /generate response
+let sessionId      = null;
+let isBusy         = false;
+let currentThinkingEl   = null;
+let currentThinkingBody = null;
+let currentAiBubble     = null;
+let currentAiText       = '';
+
+// ══ Mode switching ════════════════════════════════════════════
+function setMode(mode) {
+  document.querySelectorAll('.mode-tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0 && mode==='generate') || (i===1 && mode==='paste'));
+  });
+  document.getElementById('mode-generate').classList.toggle('active', mode==='generate');
+  document.getElementById('mode-paste').classList.toggle('active', mode==='paste');
+}
+
+// ══ Image upload ══════════════════════════════════════════════
+function handleFiles(files) {
+  for (const f of files) {
+    if (uploadedImages.length >= 9) break;
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadedImages.push(e.target.result.split(',')[1]); // base64 only
+      renderThumbnails();
+    };
+    reader.readAsDataURL(f);
+  }
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('img-drop').classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+}
+function renderThumbnails() {
+  const wrap = document.getElementById('img-thumbnails');
+  wrap.innerHTML = uploadedImages.map((b64, i) =>
+    `<div style="position:relative">
+       <img src="data:image/jpeg;base64,${b64}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:2px solid var(--border)">
+       <div onclick="removeImg(${i})" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;background:var(--red);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;font-weight:700">×</div>
+     </div>`
+  ).join('');
+}
+function removeImg(i) { uploadedImages.splice(i, 1); renderThumbnails(); }
+
+// ══ STEP 1 → STEP 2: Generate ════════════════════════════════
+async function doGenerate() {
+  if (!uploadedImages.length) { alert('请先上传至少一张图片'); return; }
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>';
+
+  const domain    = document.getElementById('gen-domain').value;
+  const brief     = document.getElementById('gen-brief').value.trim();
+  const localTime = document.getElementById('gen-time').value || new Date().toISOString().slice(0,16);
+
+  try {
+    const res = await fetch('/generate', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        cover_images: uploadedImages,
+        domain,
+        brief,
+        local_time: localTime,
+      }),
+    });
+    if (!res.ok) throw new Error(`生成失败 (${res.status}): ${await res.text()}`);
+    generateResult = await res.json();
+    showResultScreen(generateResult);
+  } catch(e) {
+    alert(e.message);
+    btn.disabled = false;
+    btn.textContent = '🚀 生成爆文';
+  }
+}
+
+function showResultScreen(r) {
+  goToScreen('result');
+  setStep(2);
+
+  const score = r.ces_percentile;
+  const pill  = document.getElementById('result-score-pill');
+  pill.textContent = `评分 ${score.toFixed(1)} 分（${r.grade}）`;
+  pill.style.background = score>=70 ? '#D1FAE5' : score>=55 ? '#FEF3C7' : '#FEE2E2';
+  pill.style.color       = score>=70 ? '#065F46' : score>=55 ? '#92400E' : '#991B1B';
+
+  document.getElementById('result-meta').textContent = `v0.3 模型 · ${r.model_used}`;
+
+  // Feature hits
+  const featHtml = Object.entries(r.feature_hits||{}).map(([k,v]) =>
+    `<span class="feat-chip ${v?'hit':'miss'}">${v?'✓':'✗'} ${k}</span>`
+  ).join('');
+
+  // Expert opinions
+  const opinions = r.expert_opinions || [];
+  const expertsHtml = opinions.map(op =>
+    `<div class="expert-item">
+       <div class="expert-role">${op.role||'专家'}</div>
+       <div class="expert-summary">${esc(op.summary||op.raw?.slice(0,180)||'')}</div>
+     </div>`
+  ).join('') || '<div style="color:var(--muted);font-size:13px">暂无专家意见</div>';
+
+  // Title variants
+  const variantsHtml = (r.title_variants||[]).map(t =>
+    `<div class="variant-item" onclick="selectVariant('${esc(t)}')">${esc(t)}</div>`
+  ).join('') || `<div style="color:var(--muted);font-size:13px">无备选标题</div>`;
+
+  document.getElementById('result-body').innerHTML = `
+    <div class="result-col" style="grid-column:1/2;grid-row:1/3">
+      <h4>📝 生成笔记</h4>
+      <div class="note-title-box">${esc(r.note_title)}</div>
+      <div class="note-body-box">${esc(r.note_body)}</div>
+    </div>
+    <div class="result-col">
+      <h4>🏷️ 备选标题方案</h4>
+      <div class="variants-list">${variantsHtml}</div>
+    </div>
+    <div class="result-col">
+      <h4>📊 v0.3 特征达标情况</h4>
+      <div class="feat-hits">${featHtml || '<span style="color:var(--muted);font-size:12px">无特征数据</span>'}</div>
+    </div>
+    <div class="result-col" style="grid-column:2/3">
+      <h4>🤖 专家意见摘要</h4>
+      <div class="experts-list">${expertsHtml}</div>
+    </div>
+  `;
+}
+
+function selectVariant(t) {
+  // Update result title display
+  document.querySelector('.note-title-box').textContent = t;
+  generateResult.note_title = t;
+}
+
+// ══ STEP 2 → STEP 3: Start chat from generate result ══════════
+async function startChatFromResult() {
+  const uid = document.getElementById('gen-uid').value.trim();
+  const domain = document.getElementById('gen-domain').value;
+  const localTime = document.getElementById('gen-time').value || new Date().toISOString().slice(0,16);
+
+  try {
+    const res = await fetch('/chat/start', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        note_title: generateResult.note_title,
+        note_body:  generateResult.note_body,
+        domain,
+        local_time: localTime,
+        user_id:    uid,
+        generate_context: generateResult,  // Full generate result as context
+      }),
+    });
+    const data = await res.json();
+    sessionId = data.session_id;
+    initChatScreen(generateResult.note_title, generateResult.note_body,
+                   data.current_score, data.grade, data.user_prefs, data.welcome);
+  } catch(e) {
+    alert('启动对话失败: ' + e.message);
+  }
+}
+
+// ══ Paste mode → chat ════════════════════════════════════════
+async function startFromPaste() {
+  const title = document.getElementById('paste-title').value.trim();
+  const body  = document.getElementById('paste-body').value.trim();
+  if (!title || !body) { alert('请填写标题和正文'); return; }
+  const domain = document.getElementById('paste-domain').value;
+  const uid    = document.getElementById('paste-uid').value.trim();
+
+  try {
+    const res = await fetch('/chat/start', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ note_title:title, note_body:body, domain, user_id:uid }),
+    });
+    const data = await res.json();
+    sessionId = data.session_id;
+    generateResult = null;
+    initChatScreen(title, body, data.current_score, data.grade, data.user_prefs, data.welcome);
+  } catch(e) {
+    alert('启动对话失败: ' + e.message);
+  }
+}
+
+function initChatScreen(title, body, score, grade, prefs, welcome) {
+  goToScreen('chat');
+  setStep(3);
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('chat-input').focus();
+  updateNoteDisplay(title, body, score, grade);
+  updateLearnBadge(prefs||{});
+  document.getElementById('learn-badge').style.display = 'flex';
+  document.getElementById('global-score-badge').style.display = 'flex';
+  appendAiMessage(welcome);
+}
+
+// ══ Chat ══════════════════════════════════════════════════════
+function sendQuick(text) {
+  document.getElementById('chat-input').value = text;
+  sendMessage();
+}
+function handleKey(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(el) {
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,110)+'px';
+}
+
+async function sendMessage() {
+  if (isBusy || !sessionId) return;
+  const inp  = document.getElementById('chat-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value=''; inp.style.height='auto';
+  isBusy=true;
+  document.getElementById('send-btn').disabled=true;
+  document.getElementById('chat-input').disabled=true;
+
+  appendUserMessage(text);
+  currentAiText=''; currentThinkingEl=null; currentThinkingBody=null; currentAiBubble=null;
+
+  try {
+    const resp = await fetch('/chat/message',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({session_id:sessionId, message:text}),
+    });
+    const reader=resp.body.getReader();
+    const dec=new TextDecoder();
+    let buf='';
+    while(true){
+      const {done,value}=await reader.read();
+      if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n');
+      buf=lines.pop();
+      for(const line of lines){
+        if(line.startsWith('data: ')){
+          try{ handleEvent(JSON.parse(line.slice(6))); }catch{}
+        }
+      }
+    }
+    if(buf.startsWith('data: ')){try{handleEvent(JSON.parse(buf.slice(6)));}catch{}}
+  } catch(e) {
+    appendAiMessage('⚠️ 请求失败：'+e.message);
+  } finally {
+    isBusy=false;
+    document.getElementById('send-btn').disabled=false;
+    document.getElementById('chat-input').disabled=false;
+    document.getElementById('chat-input').focus();
+  }
+}
+
+// ══ SSE event handler ═════════════════════════════════════════
+function handleEvent(ev){
+  switch(ev.type){
+    case 'thinking_start': createThinkingEl(); break;
+    case 'thinking_chunk': appendThinkingChunk(ev.data||''); break;
+    case 'thinking_end':   finalizeThinking(ev.summary||''); break;
+    case 'content_chunk':  appendContentChunk(ev.data||''); break;
+    case 'note_update':
+      updateNoteDisplay(ev.title,ev.body,ev.score,ev.grade);
+      appendNoteUpdatedMsg(ev.score,ev.grade);
+      break;
+    case 'learning':
+      appendLearnToast(ev.message||'已学习偏好');
+      updateLearnBadge(ev.prefs||{});
+      break;
+    case 'error': appendAiMessage('⚠️ '+(ev.data||'未知错误')); break;
+    case 'done': break;
+  }
+  scrollToBottom();
+}
+
+// ══ Message builders ══════════════════════════════════════════
+function appendUserMessage(text){
+  const d=document.createElement('div');
+  d.className='msg user';
+  d.innerHTML=`<div class="msg-avatar">你</div><div class="msg-bubble">${esc(text)}</div>`;
+  document.getElementById('messages').appendChild(d);
+  scrollToBottom();
+}
+function appendAiMessage(text){
+  const d=document.createElement('div');
+  d.className='msg ai';
+  d.innerHTML=`<div class="msg-avatar">AI</div><div class="msg-bubble">${renderMD(text)}</div>`;
+  document.getElementById('messages').appendChild(d);
+  scrollToBottom();
+}
+function createThinkingEl(){
+  const wrap=document.createElement('div');
+  wrap.className='thinking-wrap';
+  wrap.innerHTML=`
+    <div class="thinking-header" onclick="toggleThinking(this)">
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+      深度思考中
+      <span class="thinking-toggle">▼ 展开</span>
+    </div>
+    <div class="thinking-body"></div>`;
+  document.getElementById('messages').appendChild(wrap);
+  currentThinkingEl=wrap;
+  currentThinkingBody=wrap.querySelector('.thinking-body');
+  scrollToBottom();
+}
+function appendThinkingChunk(t){
+  if(!currentThinkingBody) return;
+  currentThinkingBody.textContent+=t;
+  currentThinkingBody.scrollTop=currentThinkingBody.scrollHeight;
+}
+function finalizeThinking(){
+  if(!currentThinkingEl) return;
+  const hdr=currentThinkingEl.querySelector('.thinking-header');
+  hdr.querySelector('.thinking-dots').innerHTML='💡';
+  hdr.childNodes[1].textContent=' 深度思考完成';
+  hdr.querySelector('.thinking-toggle').textContent='▼ 展开过程';
+}
+function toggleThinking(hdr){
+  const body=hdr.nextElementSibling;
+  const tog=hdr.querySelector('.thinking-toggle');
+  body.classList.toggle('open');
+  tog.textContent=body.classList.contains('open')?'▲ 收起':'▼ 展开过程';
+}
+function appendContentChunk(t){
+  if(!currentAiBubble){
+    const d=document.createElement('div');
+    d.className='msg ai';
+    d.innerHTML=`<div class="msg-avatar">AI</div><div class="msg-bubble"></div>`;
+    document.getElementById('messages').appendChild(d);
+    currentAiBubble=d.querySelector('.msg-bubble');
+  }
+  currentAiText+=t;
+  currentAiBubble.innerHTML=renderMD(currentAiText);
+  scrollToBottom();
+}
+function appendNoteUpdatedMsg(score,grade){
+  const d=document.createElement('div');
+  d.className='note-updated-msg';
+  d.innerHTML=`✨ 笔记已更新${score?' — 新评分 <strong>'+score+'分 ('+grade+')</strong>':''}`;
+  document.getElementById('messages').appendChild(d);
+}
+function appendLearnToast(msg){
+  const d=document.createElement('div');
+  d.className='learn-toast';
+  d.innerHTML=`🧠 ${esc(msg)}`;
+  document.getElementById('messages').appendChild(d);
+}
+
+// ══ Note panel & score ════════════════════════════════════════
+function updateNoteDisplay(title,body,score,grade){
+  const scr=document.getElementById('note-scroll');
+  scr.innerHTML=`
+    <div class="note-title-display note-updated-anim">${esc(title)}</div>
+    <div class="note-body-display">${esc(body)}</div>`;
+  updateScoreGauge(score,grade);
+  updateGlobalBadge(score,grade);
+  const iterEl=document.getElementById('note-iter');
+  const sess=_session();
+  if(sess){
+    const n=sess.iter||1;
+    iterEl.textContent=`第 ${n} 版`;
+    iterEl.style.display='inline';
+    sess.iter=(sess.iter||1)+1;
+  }
+}
+let _sess={iter:1};
+function _session(){return _sess;}
+
+function updateScoreGauge(score,grade){
+  if(score==null) return;
+  const fill=document.getElementById('gauge-fill');
+  const txt=document.getElementById('gauge-text');
+  const grTxt=document.getElementById('score-grade-text');
+  const r=24; const circ=2*Math.PI*r;
+  fill.style.strokeDashoffset=circ*(1-Math.max(0,Math.min(100,score))/100);
+  txt.textContent=Math.round(score);
+  const col=score>=70?'#18B06D':score>=55?'#F59E0B':'#FF2442';
+  fill.style.stroke=col; txt.style.color=col; grTxt.style.color=col;
+  grTxt.textContent=grade||'';
+}
+function updateGlobalBadge(score,grade){
+  if(score==null) return;
+  const b=document.getElementById('global-score-badge');
+  document.getElementById('global-score-text').textContent=`${score}分 · ${grade}`;
+  b.className='score-badge'+(score>=70?' good':score>=55?' mid':'');
+}
+function updateLearnBadge(prefs){
+  const n=Object.keys(prefs).length;
+  document.getElementById('learn-count').textContent=n>0?`已学习 ${n} 项偏好`:'越用越懂你';
+  const b=document.getElementById('learn-badge');
+  b.classList.add('pulse');
+  setTimeout(()=>b.classList.remove('pulse'),700);
+}
+
+// ══ Screen navigation ═════════════════════════════════════════
+function goToScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+}
+function goToSetup(){ goToScreen('setup'); setStep(1); }
+function setStep(n){
+  ['pill-1','pill-2','pill-3'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.style.opacity='1';
+    el.className='step-pill'+(i+1===n?' active':i+1<n?' done':'');
+  });
+}
+
+// ══ Helpers ═══════════════════════════════════════════════════
+function scrollToBottom(){const m=document.getElementById('messages');m.scrollTop=m.scrollHeight;}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function renderMD(t){
+  t=t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  t=t.replace(/`([^`]+)`/g,'<code style="background:#f3f4f6;padding:1px 4px;border-radius:4px;font-size:11px">$1</code>');
+  t=t.replace(/^[-•] (.+)$/gm,'• $1');
+  return t.replace(/\n/g,'<br>');
+}
+</script>
+</body>
+</html>

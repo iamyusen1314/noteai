@@ -1,0 +1,138 @@
+{
+  "version": "v04-round03-focus-summary-v0.1",
+  "created_at": "2026-06-25T20:01:00+08:00",
+  "scope": "美食/旅行/穿搭/家居 focused preference expansion",
+  "generation": {
+    "task_pool": "quality/preference_task_pool.v03.focus.json",
+    "queue": "quality/preference_generation_queue.v03.focus.jsonl",
+    "artifact_dir": "quality/generated_variants/v03_focus",
+    "tasks": 12,
+    "slots": 72,
+    "ready": 72,
+    "failed": 0,
+    "score_summary": {
+      "count": 72,
+      "min": 54.493,
+      "max": 78.166,
+      "mean": 67.107,
+      "median": 67.992,
+      "ge60": 65,
+      "ge72": 8
+    },
+    "by_domain": {
+      "家居": {
+        "count": 18,
+        "min": 65.102,
+        "max": 78.166,
+        "mean": 70.227,
+        "ge60": 18,
+        "ge72": 4,
+        "blocking": 0
+      },
+      "旅行": {
+        "count": 18,
+        "min": 58.766,
+        "max": 72.758,
+        "mean": 67.777,
+        "ge60": 17,
+        "ge72": 3,
+        "blocking": 2
+      },
+      "穿搭": {
+        "count": 18,
+        "min": 54.493,
+        "max": 73.923,
+        "mean": 65.129,
+        "ge60": 14,
+        "ge72": 1,
+        "blocking": 2
+      },
+      "美食": {
+        "count": 18,
+        "min": 58.084,
+        "max": 71.933,
+        "mean": 65.293,
+        "ge60": 16,
+        "ge72": 0,
+        "blocking": 1
+      }
+    },
+    "known_generation_findings": [
+      "家居候选质量最好，均值70.227；旅行均值67.777；美食/穿搭均值约65。",
+      "穿搭候选缺价格/预算问题较多，旅行候选缺交通/路线或预算信息较多。",
+      "本轮再次暴露跨行业标题压缩半截尾巴，已扩展标题后处理和回归测试；旧artifact保留为偏好负例。"
+    ]
+  },
+  "preference_queue": {
+    "seed": "quality/preference_pairs.v03.focus.generated_from_artifacts.json",
+    "queue": "quality/preference_queue.v03.focus.jsonl",
+    "pairs": 180,
+    "by_domain": {
+      "美食": 45,
+      "旅行": 45,
+      "穿搭": 45,
+      "家居": 45
+    }
+  },
+  "kimi_review": {
+    "rows": 180,
+    "status": {
+      "ok": 180
+    },
+    "judge_consensus": {
+      "disagree": 152,
+      "agree": 28
+    },
+    "disagreement_flags": {
+      "winner_mismatch": 90,
+      "delivery_ready_mismatch": 133,
+      "margin_gap": 41,
+      "low_kimi_confidence": 4
+    },
+    "winner_same_ok": 90,
+    "winner_diff_ok": 90
+  },
+  "promotion": {
+    "strict_consensus": 28,
+    "round03_promoted": 86,
+    "policy": "auto_accept_consensus plus explicit preference-only auto_accept_winner_consensus with Kimi confidence >=0.7; delivery_ready_winner follows Kimi."
+  },
+  "final_preference_labels": {
+    "combined_file": "quality/review_packets/promoted/v04_round01_round02_round03_all_preference_promoted.jsonl",
+    "labeled_count": 204,
+    "by_domain": {
+      "美食": 30,
+      "家居": 36,
+      "旅行": 22,
+      "母婴": 26,
+      "穿搭": 36,
+      "美妆": 23,
+      "健身": 31
+    },
+    "winner": {
+      "B": 113,
+      "A": 91
+    },
+    "label_source": {
+      "None": 3,
+      "ai_rubric_consensus": 68,
+      "ai_rubric_winner_consensus": 133
+    },
+    "ingest_report": "quality/preference_labels.v01.merged.report.json",
+    "ingest_decision": "ok",
+    "ingest_errors": 0,
+    "ingest_warnings": 0
+  },
+  "training_decision": {
+    "default": "blocked_need_labels",
+    "experimental": "experimental_not_production",
+    "do_not_deploy": true,
+    "golden_rows": 45,
+    "preference_pairs": 204
+  },
+  "verification": {
+    "unittest": "87 tests OK",
+    "quality_gate": "PASS",
+    "py_compile": "PASS"
+  }
+}

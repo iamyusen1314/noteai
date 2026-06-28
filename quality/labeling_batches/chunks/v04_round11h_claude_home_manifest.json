@@ -1,0 +1,15 @@
+{
+  "source": "quality/labeling_batches/v04_round11h_claude_home_golden.csv",
+  "chunks": [
+    {
+      "part": 1,
+      "path": "quality/labeling_batches/chunks/v04_round11h_claude_home/v04_round11h_claude_home_golden_part01.csv",
+      "rows": 250
+    },
+    {
+      "part": 2,
+      "path": "quality/labeling_batches/chunks/v04_round11h_claude_home/v04_round11h_claude_home_golden_part02.csv",
+      "rows": 250
+    }
+  ]
+}

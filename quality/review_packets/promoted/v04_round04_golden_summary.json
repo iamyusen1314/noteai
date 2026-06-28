@@ -1,0 +1,75 @@
+{
+  "version": "v04-round04-golden-summary-v0.1",
+  "created_at": "2026-06-25T20:33:00+08:00",
+  "scope": "Round04 focused golden expansion for first-core-domain V0.4 composite training",
+  "batches": {
+    "v04_round04a": {
+      "domains": {
+        "健身": 40,
+        "旅行": 40,
+        "穿搭": 40,
+        "美食": 40
+      },
+      "exported_rows": 160,
+      "kimi_second_review_ok": 160,
+      "judge_consensus_agree": 40,
+      "judge_consensus_disagree": 120,
+      "promoted_rows": 31,
+      "ingested_rows": 31,
+      "holdout_rows": 129
+    },
+    "v04_round04b": {
+      "domains": {
+        "家居": 40,
+        "母婴": 40,
+        "美妆": 40
+      },
+      "exported_rows": 120,
+      "kimi_second_review_ok": 120,
+      "judge_consensus_agree": 20,
+      "judge_consensus_disagree": 100,
+      "promoted_rows": 17,
+      "ingested_rows": 17,
+      "holdout_rows": 103
+    }
+  },
+  "final_training_labels": {
+    "golden_rows": 93,
+    "golden_by_domain": {
+      "美食": 22,
+      "旅行": 13,
+      "穿搭": 15,
+      "美妆": 12,
+      "家居": 10,
+      "健身": 17,
+      "母婴": 4
+    },
+    "preference_pair_rows": 204,
+    "preference_by_domain": {
+      "美食": 30,
+      "旅行": 22,
+      "穿搭": 36,
+      "美妆": 23,
+      "家居": 36,
+      "健身": 31,
+      "母婴": 26
+    }
+  },
+  "data_engineering_fixes": [
+    "tools/export_labeling_batch.py added --exclude-ids-from to prevent re-exporting previously reviewed annotation_id or pair_id values.",
+    "tools/promote_reviewed_prelabels.py now preserves numeric zero labels instead of converting 0 to an empty string; this keeps valid low-quality negative golden samples ingestible.",
+    "tests/test_labeling_pipeline_tools.py covers historical-review exclusion.",
+    "tests/test_ai_prelabel_review_tools.py covers zero-value golden label promotion."
+  ],
+  "gate_status": {
+    "health_decision": "blocked_need_labels",
+    "train_decision": "blocked_need_labels",
+    "do_not_deploy": true,
+    "reason": "Golden and preference labels are still far below candidate and production thresholds for all core domains."
+  },
+  "validation": {
+    "unittest": "89 tests passed",
+    "quality_gate": "passed",
+    "py_compile": "passed for changed training/data scripts and core API files"
+  }
+}

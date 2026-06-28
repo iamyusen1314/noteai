@@ -1,0 +1,30 @@
+{
+  "version": "labeling-batch-v0.1",
+  "created_at": "2026-06-27T11:24:37.875607+00:00",
+  "kind": "golden",
+  "queue": "quality/annotation_queue.v01.production_supplement.round14.jsonl",
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_beauty_part02_golden.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_beauty_part02_golden.csv"
+  },
+  "batch_id": "v04_round14_beauty_part02",
+  "rows": 250,
+  "by_domain": {
+    "美妆": 250
+  },
+  "by_priority": {
+    "high": 250
+  },
+  "selection": {
+    "max_rows": 250,
+    "per_domain": 0,
+    "domains": "美妆",
+    "priorities": "high,medium,normal",
+    "exclude_ids_from": "quality/labeling_batches/v04_round14_beauty_part01_golden.jsonl",
+    "excluded_id_count": 250,
+    "exclude_source_count": 1,
+    "exclude_sources": [
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_beauty_part01_golden.jsonl"
+    ]
+  }
+}

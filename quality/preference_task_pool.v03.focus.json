@@ -1,0 +1,380 @@
+{
+  "version": "preference-task-pool-v0.1",
+  "description": "Round03 focused preference task pool for under-covered V0.4 core domains: food, travel, fashion, and home. Each task uses same-context multi-variant generation for A/B preference consensus expansion.",
+  "tasks": [
+    {
+      "task_id": "food_guangzhou_dim_sum_family_001",
+      "domain": "美食",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_food_001",
+      "user_intent": "生成一篇广州越秀早茶家庭聚餐笔记，强调人均、招牌点心、排队时段和适合人群。",
+      "known_facts": [
+        "地点在广州越秀公园附近",
+        "人均88元",
+        "营业时间07:30-14:30",
+        "周末9点前到店排队更少",
+        "招牌点心是虾饺、豉汁凤爪和艇仔粥",
+        "茶位费每人8元",
+        "适合带长辈早午餐聚餐",
+        "饭点后部分点心容易售罄"
+      ],
+      "fact_status": "safe",
+      "target_reader": "广州本地或周末来广州、想找长辈也能接受的早茶用户",
+      "quality_focus": ["价格透明", "招牌点心", "排队避坑", "适合人群", "本地生活决策"],
+      "reference_title": "广州越秀早茶人均88",
+      "reference_body": "越秀公园附近这家早茶更适合带长辈来，人均88元，茶位费每人8元。虾饺、豉汁凤爪和艇仔粥是我觉得比较稳的三样。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["家庭聚餐决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["点心种草型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["排队避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["信息密度加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低探店模板感"]}
+      ]
+    },
+    {
+      "task_id": "food_shenzhen_lunch_set_001",
+      "domain": "美食",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_food_002",
+      "user_intent": "生成深圳科技园工作日午餐简餐笔记，强调价格、出餐速度、套餐选择和上班族适配。",
+      "known_facts": [
+        "地点在深圳科技园地铁站附近",
+        "人均42元",
+        "工作日午市11:00-14:00",
+        "推荐牛肉饭套餐和番茄肥牛面",
+        "套餐含例汤和小菜",
+        "12点后排队约15分钟",
+        "出餐速度通常在10分钟内",
+        "适合午休时间不长的上班族"
+      ],
+      "fact_status": "safe",
+      "target_reader": "深圳科技园附近上班、午休时间有限但想吃稳定简餐的用户",
+      "quality_focus": ["午餐决策", "价格和速度", "套餐推荐", "排队时间", "上班族场景"],
+      "reference_title": "科技园42元午餐挺稳",
+      "reference_body": "科技园地铁站附近工作日午餐，我更看重出餐速度和分量。这家人均42元，牛肉饭套餐和番茄肥牛面都比较稳，套餐含例汤和小菜。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["快速决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["套餐推荐型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["午休避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["上班族实用信息"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低广告感"]}
+      ]
+    },
+    {
+      "task_id": "food_chengdu_light_hotpot_001",
+      "domain": "美食",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_food_003",
+      "user_intent": "生成成都建设路附近轻辣火锅探店笔记，强调锅底、必点菜、人均和不太能吃辣的人怎么点。",
+      "known_facts": [
+        "地点在成都建设路附近",
+        "人均92元",
+        "营业时间11:30-23:00",
+        "可选微辣牛油锅和番茄鸳鸯锅",
+        "必点鲜毛肚、嫩牛肉和手工虾滑",
+        "小料台每人6元",
+        "晚上7点后等位约30分钟",
+        "不太能吃辣的人建议点鸳鸯锅"
+      ],
+      "fact_status": "safe",
+      "target_reader": "去成都想吃火锅但不能太辣、需要点单建议的用户",
+      "quality_focus": ["点单顺序", "辣度选择", "人均透明", "等位提醒", "适合人群"],
+      "reference_title": "成都建设路火锅不辣也能吃",
+      "reference_body": "建设路附近这家火锅人均92元，不太能吃辣建议直接点番茄鸳鸯锅，鲜毛肚、嫩牛肉和手工虾滑是更稳的三样。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["辣度决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["必点菜种草型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["等位避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["口味和点单细节"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低夸张探店腔"]}
+      ]
+    },
+    {
+      "task_id": "travel_hangzhou_parent_child_2day_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_travel_001",
+      "user_intent": "生成杭州2天1晚亲子游攻略，强调路线不赶、预算、交通和孩子体力安排。",
+      "known_facts": [
+        "住在湖滨银泰附近",
+        "第一天西湖断桥、孤山、浙江省博物馆",
+        "第二天灵隐寺和法喜寺二选一，再去小河直街",
+        "两天预算一家三口约1800元",
+        "住宿约780元一晚",
+        "西湖段以步行和公交为主",
+        "午后安排回酒店休息1小时",
+        "灵隐寺建议早上8点前到"
+      ],
+      "fact_status": "safe",
+      "target_reader": "带孩子去杭州周末游、怕路线太赶的家庭用户",
+      "quality_focus": ["亲子节奏", "路线顺序", "预算透明", "交通建议", "体力安排"],
+      "reference_title": "杭州亲子2天别排太满",
+      "reference_body": "杭州2天1晚亲子游，我更建议住湖滨银泰附近，第一天把西湖断桥、孤山和浙江省博物馆放在一起，午后回酒店休息1小时。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["家庭决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["路线体验型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["体力避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["亲子路线细节"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低攻略模板感"]}
+      ]
+    },
+    {
+      "task_id": "travel_dali_slow_4day_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_travel_002",
+      "user_intent": "生成大理4天3晚慢旅行攻略，强调路线、住宿区域、预算和避坑。",
+      "known_facts": [
+        "住大理古城附近两晚，住双廊一晚",
+        "第一天大理古城和人民路",
+        "第二天才村码头和龙龛码头",
+        "第三天喜洲古镇、海舌公园、双廊",
+        "第四天睡到自然醒后返程",
+        "人均预算约2200元",
+        "电动车环洱海只建议短距离体验",
+        "早晚温差大，需要带外套"
+      ],
+      "fact_status": "safe",
+      "target_reader": "第一次去大理、想慢一点玩、不想每天赶景点的用户",
+      "quality_focus": ["慢旅行节奏", "住宿安排", "预算透明", "交通避坑", "路线顺序"],
+      "reference_title": "大理4天慢旅行这样排",
+      "reference_body": "第一次去大理，我更建议4天3晚别排太满。前两晚住古城附近，第三晚住双廊，第一天就逛大理古城和人民路。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["住宿决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["路线体验型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["交通避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["慢旅行真实感"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低行程单模板感"]}
+      ]
+    },
+    {
+      "task_id": "travel_guangzhou_hotel_family_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_travel_003",
+      "user_intent": "生成广州亲子出行酒店选择经验笔记，强调交通、房型、预算、早餐和适合/不适合人群。",
+      "known_facts": [
+        "酒店位置在珠江新城地铁站附近",
+        "亲子双床房一晚约680元",
+        "步行到地铁站约8分钟",
+        "早餐到10点结束",
+        "房间有儿童洗漱用品",
+        "附近步行可到花城广场",
+        "周末入住建议提前预订",
+        "不适合想住在老城区逛骑楼的人"
+      ],
+      "fact_status": "safe",
+      "target_reader": "带孩子去广州、想住交通方便酒店的家庭用户",
+      "quality_focus": ["酒店决策", "交通便利", "预算房型", "亲子设施", "适合不适合"],
+      "reference_title": "广州亲子酒店住珠江新城挺省心",
+      "reference_body": "带孩子来广州，如果更看重交通和省心，珠江新城地铁站附近会舒服很多。亲子双床房一晚约680元，走到地铁站大概8分钟。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["酒店决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["亲子体验型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["适合不适合型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["酒旅决策信息"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低酒店软广感"]}
+      ]
+    },
+    {
+      "task_id": "fashion_pear_shape_summer_commute_001",
+      "domain": "穿搭",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_fashion_001",
+      "user_intent": "为梨形身材生成夏季通勤3套穿搭公式，强调遮胯、显高、价格和可复制搭配。",
+      "known_facts": [
+        "身高160cm，梨形身材，胯宽大腿肉感明显",
+        "第一套白色短袖衬衫89元配高腰A字半裙129元",
+        "第二套针织短开衫99元配直筒西裤159元",
+        "第三套黑色无袖上衣69元配垂感阔腿裤139元",
+        "上衣尽量塞一半露腰线",
+        "下装选有垂感和不过分贴腿的版型",
+        "鞋子选浅口单鞋或低跟凉鞋",
+        "通勤场景不露太多皮肤"
+      ],
+      "fact_status": "safe",
+      "target_reader": "梨形身材、夏季通勤、想显高遮胯但不想太复杂的用户",
+      "quality_focus": ["身材适配", "搭配公式", "价格具体", "通勤场景", "可复制"],
+      "reference_title": "梨形夏季通勤3套公式",
+      "reference_body": "梨形夏季通勤我会先看腰线和下装垂感，白色短袖衬衫89元配高腰A字半裙129元，上衣塞一半，胯宽会被弱化很多。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["身材决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["搭配公式型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["踩雷避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["身材逻辑加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低清单模板感"]}
+      ]
+    },
+    {
+      "task_id": "fashion_wide_shoulder_soft_style_001",
+      "domain": "穿搭",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_fashion_002",
+      "user_intent": "为宽肩女生生成温柔感穿搭笔记，强调领口、面料、肩线和约会/通勤适配。",
+      "known_facts": [
+        "身高165cm，宽肩，肩背比较厚",
+        "V领针织短袖119元比小圆领更显轻",
+        "软垂半裙149元能弱化上半身量感",
+        "薄西装外套199元要选落肩或自然肩",
+        "避免垫肩、泡泡袖和硬挺小圆领",
+        "颜色选雾蓝、米白和灰粉更柔和",
+        "适合通勤和周末约会",
+        "项链选细链，不选粗 choker"
+      ],
+      "fact_status": "safe",
+      "target_reader": "宽肩、肩背厚、想穿温柔但不显壮的女生",
+      "quality_focus": ["身材痛点", "领口肩线", "面料选择", "场景适配", "避坑明确"],
+      "reference_title": "宽肩穿温柔感先看肩线",
+      "reference_body": "宽肩想穿温柔感，别先买泡泡袖。V领针织短袖119元会比小圆领显轻，搭软垂半裙149元，上半身量感会被压下来。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["身材决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["温柔搭配型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["版型避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["穿搭逻辑自然化"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低种草模板感"]}
+      ]
+    },
+    {
+      "task_id": "fashion_mens_clean_commute_001",
+      "domain": "穿搭",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_fashion_003",
+      "user_intent": "生成男生干净通勤穿搭笔记，强调单品、价格、颜色比例和不油腻。",
+      "known_facts": [
+        "适合身高175cm左右、普通身材男生",
+        "白色牛津纺衬衫129元",
+        "深灰直筒西裤179元",
+        "藏蓝轻薄夹克229元",
+        "鞋子选白色德训鞋或黑色乐福鞋",
+        "全身颜色控制在黑白灰蓝",
+        "裤长盖住鞋面一点点即可",
+        "避免紧身裤、夸张logo和过亮配色"
+      ],
+      "fact_status": "safe",
+      "target_reader": "想穿得干净利落、不想太潮也不想油腻的男生",
+      "quality_focus": ["男生通勤", "颜色比例", "价格具体", "版型避坑", "可复制"],
+      "reference_title": "男生通勤穿干净就够了",
+      "reference_body": "男生通勤想穿得干净，颜色先控制在黑白灰蓝。白色牛津纺衬衫129元配深灰直筒西裤179元，裤长盖住鞋面一点点就够。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["快速决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["搭配公式型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["油腻避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["男装真实建议"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低穿搭模板感"]}
+      ]
+    },
+    {
+      "task_id": "home_balcony_laundry_4sqm_001",
+      "domain": "家居",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_home_001",
+      "user_intent": "生成4平米阳台洗衣区改造笔记，强调尺寸、预算、收纳和动线。",
+      "known_facts": [
+        "阳台面积约4平米",
+        "总预算2600元",
+        "洗衣机上方加定制吊柜约980元",
+        "窄边脏衣篮89元",
+        "折叠晾衣架169元",
+        "洞洞板收纳清洁工具约120元",
+        "地面用防滑垫约180元",
+        "动线是洗衣、晾晒、收纳清洁用品放在同一侧"
+      ],
+      "fact_status": "safe",
+      "target_reader": "小阳台、洗衣区杂乱、预算有限但想提升收纳的人",
+      "quality_focus": ["面积预算", "收纳动线", "改造顺序", "单品价格", "可执行"],
+      "reference_title": "4平阳台洗衣区2600元改造",
+      "reference_body": "4平阳台洗衣区最怕东西堆在地上，我这次总预算2600元，先把洗衣机上方加吊柜，约980元，再用洞洞板收清洁工具。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["改造决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["收纳动线型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["预算避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["空间顺序更清楚"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低装修清单模板感"]}
+      ]
+    },
+    {
+      "task_id": "home_kitchen_rental_storage_001",
+      "domain": "家居",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_home_002",
+      "user_intent": "生成出租屋小厨房收纳改造笔记，强调免打孔、预算、分类和不破坏墙面。",
+      "known_facts": [
+        "厨房面积约5平米",
+        "总预算860元",
+        "免打孔锅盖架59元",
+        "伸缩置物架128元",
+        "磁吸刀架76元",
+        "调料抽屉分隔盒49元一组",
+        "水槽下伸缩架139元",
+        "不做墙面打孔，退租时能恢复",
+        "先按烹饪区、清洗区、备菜区分类"
+      ],
+      "fact_status": "safe",
+      "target_reader": "租房、小厨房、想收纳变清爽但不能打孔的人",
+      "quality_focus": ["租房限制", "预算拆解", "分区收纳", "免打孔", "真实改造"],
+      "reference_title": "出租屋小厨房860元收纳",
+      "reference_body": "出租屋小厨房不适合大拆，我这次预算860元，全部选免打孔和可恢复的东西。先按烹饪区、清洗区、备菜区分开。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["租房决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["分区收纳型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["退租避坑型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["清单和动线加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低收纳模板感"]}
+      ]
+    },
+    {
+      "task_id": "home_bedroom_sleep_light_001",
+      "domain": "家居",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round03_focus_home_003",
+      "user_intent": "生成卧室睡眠氛围改造笔记，强调灯光、窗帘、预算和实际改善感。",
+      "known_facts": [
+        "卧室面积约12平米",
+        "总预算1500元",
+        "遮光窗帘约420元",
+        "暖白床头灯129元",
+        "地毯尺寸160cm乘230cm，约399元",
+        "床头小边几169元",
+        "收纳筐一组79元",
+        "主灯减少使用，晚上只开床头灯",
+        "改造目标是让卧室更安静、有睡前放松感"
+      ],
+      "fact_status": "safe",
+      "target_reader": "卧室杂乱、睡前放松感弱、预算不高但想提升氛围的人",
+      "quality_focus": ["预算清单", "灯光氛围", "真实改善", "卧室面积", "避免玄学承诺"],
+      "reference_title": "12平卧室1500元变安静",
+      "reference_body": "12平卧室想有睡前放松感，不一定要大改。我这次预算1500元，先换遮光窗帘约420元，再把晚上主灯改成床头暖白灯。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["改造决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["氛围体验型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["预算取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["居住感加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低家居软文感"]}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,453 @@
+{
+  "labels_file": "quality/golden_labels.v01.seed.json",
+  "total": 11,
+  "delivery_ready_count": 8,
+  "not_ready_count": 3,
+  "mismatch_counts": {
+    "naturalness_model_false_positive": 2,
+    "signal_false_negative": 2,
+    "v03_false_negative": 1
+  },
+  "averages": {
+    "ready_v03": 75.05,
+    "not_ready_v03": 65.37,
+    "ready_v04": 45.1,
+    "not_ready_v04": 38.17,
+    "ready_naturalness_model": 71.14,
+    "not_ready_naturalness_model": 0.1,
+    "ready_experimental_signal": 62.3,
+    "not_ready_experimental_signal": 22.27
+  },
+  "rows": [
+    {
+      "id": "food_contract_good",
+      "domain": "美食",
+      "title": "上海蟹黄拌面58元真香",
+      "labels": {
+        "human_quality_score": 86,
+        "delivery_ready": true,
+        "naturalness_label": 86,
+        "hook_quality": 4,
+        "body_value": 5,
+        "industry_fit": 5,
+        "fact_status": "verified",
+        "ai_smell_level": 1,
+        "failure_tags": [
+          "delivery_ready"
+        ],
+        "rationale": "信息完整，价格/地址/营业/必点/避坑都有，表达自然。"
+      },
+      "signals": {
+        "v03_score": 80.2,
+        "v04_candidate_score": 42.0,
+        "naturalness_model_score": 98.9,
+        "ai_probability": 0.011,
+        "experimental_signal_score": 73.5,
+        "quality_issue_count": 0,
+        "blocking": false,
+        "issues": []
+      },
+      "gaps": {
+        "v03_minus_human": -5.8,
+        "v04_minus_human": -44.0,
+        "naturalness_model_minus_label": 12.9,
+        "signal_minus_human": -12.5
+      },
+      "mismatch_tags": []
+    },
+    {
+      "id": "food_contract_bad",
+      "domain": "美食",
+      "title": "好吃",
+      "labels": {
+        "human_quality_score": 8,
+        "delivery_ready": false,
+        "naturalness_label": 20,
+        "hook_quality": 1,
+        "body_value": 1,
+        "industry_fit": 1,
+        "fact_status": "unknown",
+        "ai_smell_level": 3,
+        "failure_tags": [
+          "too_short",
+          "low_info_density",
+          "missing_fact"
+        ],
+        "rationale": "几乎没有正文价值，不能交付。"
+      },
+      "signals": {
+        "v03_score": 61.2,
+        "v04_candidate_score": 25.8,
+        "naturalness_model_score": 0.3,
+        "ai_probability": 0.9973,
+        "experimental_signal_score": 12.1,
+        "quality_issue_count": 8,
+        "blocking": true,
+        "issues": [
+          "标题过短（当前2字），需要扩展到14-18字并保留具体卖点",
+          "正文过短（当前3字，美食最低交付标准≥220字），需要补足真实场景、细节和行动建议",
+          "话题标签不足（当前1个，美食目标5-8个），需要补充精准标签",
+          "缺少互动引导，结尾需要自然出现点赞/收藏/评论等行动号召",
+          "美食笔记缺少真实价格/人均信息",
+          "美食笔记缺少地址/商圈/地铁站等位置信息",
+          "美食笔记缺少营业时间或周末营业信息",
+          "美食笔记缺少必点/招牌/推荐菜信息"
+        ]
+      },
+      "gaps": {
+        "v03_minus_human": 53.2,
+        "v04_minus_human": 17.8,
+        "naturalness_model_minus_label": -19.7,
+        "signal_minus_human": 4.1
+      },
+      "mismatch_tags": []
+    },
+    {
+      "id": "travel_contract_good",
+      "domain": "旅行",
+      "title": "成都3天1200元玩透",
+      "labels": {
+        "human_quality_score": 84,
+        "delivery_ready": true,
+        "naturalness_label": 84,
+        "hook_quality": 4,
+        "body_value": 5,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 1,
+        "failure_tags": [
+          "delivery_ready"
+        ],
+        "rationale": "路线、预算、避坑和节奏完整，适合交付。"
+      },
+      "signals": {
+        "v03_score": 87.2,
+        "v04_candidate_score": 47.8,
+        "naturalness_model_score": 94.1,
+        "ai_probability": 0.0593,
+        "experimental_signal_score": 73.7,
+        "quality_issue_count": 1,
+        "blocking": false,
+        "issues": [
+          "正文低于目标区间（当前309字，旅行目标320-520字），建议补充高价值细节"
+        ]
+      },
+      "gaps": {
+        "v03_minus_human": 3.2,
+        "v04_minus_human": -36.2,
+        "naturalness_model_minus_label": 10.1,
+        "signal_minus_human": -10.3
+      },
+      "mismatch_tags": []
+    },
+    {
+      "id": "fashion_contract_good",
+      "domain": "穿搭",
+      "title": "小个子显高3套公式",
+      "labels": {
+        "human_quality_score": 82,
+        "delivery_ready": true,
+        "naturalness_label": 80,
+        "hook_quality": 4,
+        "body_value": 4,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 2,
+        "failure_tags": [
+          "delivery_ready"
+        ],
+        "rationale": "公式清晰、价格具体、适用人群明确。"
+      },
+      "signals": {
+        "v03_score": 85.4,
+        "v04_candidate_score": 50.0,
+        "naturalness_model_score": 74.2,
+        "ai_probability": 0.2579,
+        "experimental_signal_score": 68.5,
+        "quality_issue_count": 0,
+        "blocking": false,
+        "issues": []
+      },
+      "gaps": {
+        "v03_minus_human": 3.4,
+        "v04_minus_human": -32.0,
+        "naturalness_model_minus_label": -5.8,
+        "signal_minus_human": -13.5
+      },
+      "mismatch_tags": []
+    },
+    {
+      "id": "beauty_contract_good",
+      "domain": "美妆",
+      "title": "黄皮用这支腮红真显白",
+      "labels": {
+        "human_quality_score": 82,
+        "delivery_ready": true,
+        "naturalness_label": 82,
+        "hook_quality": 4,
+        "body_value": 4,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 2,
+        "failure_tags": [
+          "delivery_ready",
+          "naturalness_model_false_positive"
+        ],
+        "rationale": "美妆测评细节充分，自然度模型误伤，人工标签保留为好稿。"
+      },
+      "signals": {
+        "v03_score": 68.3,
+        "v04_candidate_score": 39.7,
+        "naturalness_model_score": 9.8,
+        "ai_probability": 0.902,
+        "experimental_signal_score": 31.3,
+        "quality_issue_count": 0,
+        "blocking": false,
+        "issues": []
+      },
+      "gaps": {
+        "v03_minus_human": -13.7,
+        "v04_minus_human": -42.3,
+        "naturalness_model_minus_label": -72.2,
+        "signal_minus_human": -50.7
+      },
+      "mismatch_tags": [
+        "naturalness_model_false_positive",
+        "signal_false_negative"
+      ]
+    },
+    {
+      "id": "home_contract_good",
+      "domain": "家居",
+      "title": "38平出租屋3000元改造",
+      "labels": {
+        "human_quality_score": 84,
+        "delivery_ready": true,
+        "naturalness_label": 84,
+        "hook_quality": 4,
+        "body_value": 5,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 1,
+        "failure_tags": [
+          "delivery_ready"
+        ],
+        "rationale": "预算、清单、空间痛点和改造顺序清楚。"
+      },
+      "signals": {
+        "v03_score": 83.3,
+        "v04_candidate_score": 48.0,
+        "naturalness_model_score": 96.4,
+        "ai_probability": 0.036,
+        "experimental_signal_score": 74.5,
+        "quality_issue_count": 1,
+        "blocking": false,
+        "issues": [
+          "正文低于目标区间（当前266字，家居目标280-420字），建议补充高价值细节"
+        ]
+      },
+      "gaps": {
+        "v03_minus_human": -0.7,
+        "v04_minus_human": -36.0,
+        "naturalness_model_minus_label": 12.4,
+        "signal_minus_human": -9.5
+      },
+      "mismatch_tags": []
+    },
+    {
+      "id": "fitness_contract_good_v03_bias",
+      "domain": "健身",
+      "title": "居家减脂4动作推荐",
+      "labels": {
+        "human_quality_score": 80,
+        "delivery_ready": true,
+        "naturalness_label": 80,
+        "hook_quality": 4,
+        "body_value": 4,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 2,
+        "failure_tags": [
+          "delivery_ready",
+          "v03_domain_bias"
+        ],
+        "rationale": "内容对健身用户有执行价值，旧 v0.3 压分不应作为人工低质标签。"
+      },
+      "signals": {
+        "v03_score": 51.5,
+        "v04_candidate_score": 54.9,
+        "naturalness_model_score": 99.2,
+        "ai_probability": 0.0079,
+        "experimental_signal_score": 79.4,
+        "quality_issue_count": 0,
+        "blocking": false,
+        "issues": []
+      },
+      "gaps": {
+        "v03_minus_human": -28.5,
+        "v04_minus_human": -25.1,
+        "naturalness_model_minus_label": 19.2,
+        "signal_minus_human": -0.6
+      },
+      "mismatch_tags": [
+        "v03_false_negative"
+      ]
+    },
+    {
+      "id": "baby_contract_good",
+      "domain": "母婴",
+      "title": "8月龄宝宝辅食推荐",
+      "labels": {
+        "human_quality_score": 83,
+        "delivery_ready": true,
+        "naturalness_label": 82,
+        "hook_quality": 4,
+        "body_value": 5,
+        "industry_fit": 5,
+        "fact_status": "safe",
+        "ai_smell_level": 2,
+        "failure_tags": [
+          "delivery_ready"
+        ],
+        "rationale": "安全注意、步骤和观察周期明确，母婴行业适配度高。"
+      },
+      "signals": {
+        "v03_score": 70.5,
+        "v04_candidate_score": 47.7,
+        "naturalness_model_score": 96.5,
+        "ai_probability": 0.0347,
+        "experimental_signal_score": 75.3,
+        "quality_issue_count": 0,
+        "blocking": false,
+        "issues": []
+      },
+      "gaps": {
+        "v03_minus_human": -12.5,
+        "v04_minus_human": -35.3,
+        "naturalness_model_minus_label": 14.5,
+        "signal_minus_human": -7.7
+      },
+      "mismatch_tags": []
+    },
+    {
+      "id": "changxi_manual_natural",
+      "domain": "美食",
+      "title": "万博城有家粤菜小青龙挺实在",
+      "labels": {
+        "human_quality_score": 78,
+        "delivery_ready": true,
+        "naturalness_label": 86,
+        "hook_quality": 4,
+        "body_value": 4,
+        "industry_fit": 5,
+        "fact_status": "verified",
+        "ai_smell_level": 1,
+        "failure_tags": [
+          "needs_minor_revision"
+        ],
+        "rationale": "读感自然，事实完整，缺少轻微 CTA 但可交付或小修。"
+      },
+      "signals": {
+        "v03_score": 74.0,
+        "v04_candidate_score": 30.7,
+        "naturalness_model_score": 0.0,
+        "ai_probability": 0.9995,
+        "experimental_signal_score": 22.2,
+        "quality_issue_count": 2,
+        "blocking": false,
+        "issues": [
+          "正文低于目标区间（当前259字，美食目标260-360字），建议补充高价值细节",
+          "缺少互动引导，结尾需要自然出现点赞/收藏/评论等行动号召"
+        ]
+      },
+      "gaps": {
+        "v03_minus_human": -4.0,
+        "v04_minus_human": -47.3,
+        "naturalness_model_minus_label": -86.0,
+        "signal_minus_human": -55.8
+      },
+      "mismatch_tags": [
+        "naturalness_model_false_positive",
+        "signal_false_negative"
+      ]
+    },
+    {
+      "id": "changxi_score_hack_72",
+      "domain": "美食",
+      "title": "广州番禺万博98元值得点",
+      "labels": {
+        "human_quality_score": 45,
+        "delivery_ready": false,
+        "naturalness_label": 25,
+        "hook_quality": 1,
+        "body_value": 3,
+        "industry_fit": 3,
+        "fact_status": "verified",
+        "ai_smell_level": 5,
+        "failure_tags": [
+          "title_unreadable",
+          "score_hacking",
+          "body_template"
+        ],
+        "rationale": "v0.3 达72但标题明显拼接，属于评分黑客，不可交付。"
+      },
+      "signals": {
+        "v03_score": 68.4,
+        "v04_candidate_score": 43.9,
+        "naturalness_model_score": 0.0,
+        "ai_probability": 0.9998,
+        "experimental_signal_score": 24.5,
+        "quality_issue_count": 2,
+        "blocking": true,
+        "issues": [
+          "标题不自然：价格数字后直接接推荐词，像关键词拼接而不是人写的标题",
+          "标题不自然：『值得点』没有绑定具体菜品或套餐"
+        ]
+      },
+      "gaps": {
+        "v03_minus_human": 23.4,
+        "v04_minus_human": -1.1,
+        "naturalness_model_minus_label": -25.0,
+        "signal_minus_human": -20.5
+      },
+      "mismatch_tags": []
+    },
+    {
+      "id": "changxi_title_fixed_but_template",
+      "domain": "美食",
+      "title": "广州番禺万博98元小青龙值得试",
+      "labels": {
+        "human_quality_score": 62,
+        "delivery_ready": false,
+        "naturalness_label": 55,
+        "hook_quality": 3,
+        "body_value": 3,
+        "industry_fit": 4,
+        "fact_status": "verified",
+        "ai_smell_level": 4,
+        "failure_tags": [
+          "body_template",
+          "needs_minor_revision"
+        ],
+        "rationale": "标题已比评分黑客版自然，但正文仍明显模板化，需要二修。"
+      },
+      "signals": {
+        "v03_score": 66.5,
+        "v04_candidate_score": 44.8,
+        "naturalness_model_score": 0.0,
+        "ai_probability": 0.9998,
+        "experimental_signal_score": 30.2,
+        "quality_issue_count": 0,
+        "blocking": false,
+        "issues": []
+      },
+      "gaps": {
+        "v03_minus_human": 4.5,
+        "v04_minus_human": -17.2,
+        "naturalness_model_minus_label": -55.0,
+        "signal_minus_human": -31.8
+      },
+      "mismatch_tags": []
+    }
+  ]
+}

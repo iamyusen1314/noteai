@@ -1,0 +1,40 @@
+{
+  "version": "labeling-batch-v0.1",
+  "created_at": "2026-06-25T12:06:37.287886+00:00",
+  "kind": "golden",
+  "queue": "quality/annotation_queue.v01.core_supplement.jsonl",
+  "outputs": {
+    "jsonl": "quality/labeling_batches/v04_round04b_golden.jsonl",
+    "csv": "quality/labeling_batches/v04_round04b_golden.csv"
+  },
+  "batch_id": "v04_round04b",
+  "rows": 120,
+  "by_domain": {
+    "家居": 40,
+    "母婴": 40,
+    "美妆": 40
+  },
+  "by_priority": {
+    "high": 120
+  },
+  "selection": {
+    "max_rows": 120,
+    "per_domain": 40,
+    "domains": "美妆,家居,母婴",
+    "priorities": "high,medium,normal",
+    "exclude_ids_from": "quality/labeling_batches/v04_round01b_golden.jsonl,quality/review_packets/v04_round01b*_golden_ai_review.jsonl,quality/review_packets/promoted/*golden_promoted.jsonl,quality/golden_labels.v01.merged.json",
+    "excluded_id_count": 159,
+    "exclude_source_count": 9,
+    "exclude_sources": [
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round01b_golden.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01b_golden_ai_review.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01b_kimi_golden_ai_review.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01_all_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01b_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/dryrun_golden_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01_kimi_failed_retry_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/golden_labels.v01.merged.json"
+    ]
+  }
+}

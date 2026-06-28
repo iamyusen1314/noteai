@@ -1,0 +1,179 @@
+{
+  "source": "quality/labeling_batches/v04_round11_claude_allcore_golden.csv",
+  "strategy": "domain_round_robin",
+  "chunk_size": 250,
+  "total_rows": 3037,
+  "chunks": [
+    {
+      "part": 1,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part01.csv",
+      "rows": 250,
+      "domains": {
+        "健身": 36,
+        "家居": 36,
+        "旅行": 36,
+        "母婴": 36,
+        "穿搭": 36,
+        "美妆": 35,
+        "美食": 35
+      }
+    },
+    {
+      "part": 2,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part02.csv",
+      "rows": 250,
+      "domains": {
+        "美妆": 42,
+        "美食": 42,
+        "健身": 42,
+        "家居": 1,
+        "旅行": 41,
+        "母婴": 41,
+        "穿搭": 41
+      }
+    },
+    {
+      "part": 3,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part03.csv",
+      "rows": 250,
+      "domains": {
+        "旅行": 42,
+        "母婴": 42,
+        "穿搭": 42,
+        "美妆": 42,
+        "美食": 41,
+        "健身": 41
+      }
+    },
+    {
+      "part": 4,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part04.csv",
+      "rows": 250,
+      "domains": {
+        "美食": 42,
+        "健身": 42,
+        "旅行": 42,
+        "母婴": 42,
+        "穿搭": 41,
+        "美妆": 41
+      }
+    },
+    {
+      "part": 5,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part05.csv",
+      "rows": 250,
+      "domains": {
+        "穿搭": 42,
+        "美妆": 42,
+        "美食": 42,
+        "健身": 42,
+        "旅行": 41,
+        "母婴": 41
+      }
+    },
+    {
+      "part": 6,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part06.csv",
+      "rows": 250,
+      "domains": {
+        "旅行": 42,
+        "母婴": 42,
+        "穿搭": 42,
+        "美妆": 42,
+        "美食": 41,
+        "健身": 41
+      }
+    },
+    {
+      "part": 7,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part07.csv",
+      "rows": 250,
+      "domains": {
+        "美食": 42,
+        "健身": 42,
+        "旅行": 42,
+        "母婴": 42,
+        "穿搭": 41,
+        "美妆": 41
+      }
+    },
+    {
+      "part": 8,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part08.csv",
+      "rows": 250,
+      "domains": {
+        "穿搭": 42,
+        "美妆": 42,
+        "美食": 42,
+        "健身": 42,
+        "旅行": 41,
+        "母婴": 41
+      }
+    },
+    {
+      "part": 9,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part09.csv",
+      "rows": 250,
+      "domains": {
+        "旅行": 42,
+        "母婴": 42,
+        "穿搭": 42,
+        "美妆": 42,
+        "美食": 41,
+        "健身": 41
+      }
+    },
+    {
+      "part": 10,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part10.csv",
+      "rows": 250,
+      "domains": {
+        "美食": 42,
+        "健身": 42,
+        "旅行": 42,
+        "母婴": 42,
+        "穿搭": 41,
+        "美妆": 41
+      }
+    },
+    {
+      "part": 11,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part11.csv",
+      "rows": 250,
+      "domains": {
+        "穿搭": 42,
+        "美妆": 42,
+        "美食": 42,
+        "健身": 42,
+        "旅行": 41,
+        "母婴": 41
+      }
+    },
+    {
+      "part": 12,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part12.csv",
+      "rows": 250,
+      "domains": {
+        "旅行": 42,
+        "母婴": 42,
+        "穿搭": 42,
+        "美妆": 42,
+        "美食": 41,
+        "健身": 41
+      }
+    },
+    {
+      "part": 13,
+      "path": "quality/labeling_batches/chunks/v04_round11_claude_allcore_stratified/v04_round11_claude_allcore_stratified_golden_part13.csv",
+      "rows": 37,
+      "domains": {
+        "美食": 7,
+        "健身": 6,
+        "旅行": 6,
+        "母婴": 6,
+        "穿搭": 6,
+        "美妆": 6
+      }
+    }
+  ]
+}

@@ -1,0 +1,304 @@
+{
+  "version": "reviewed-prelabel-promotion-v0.1",
+  "created_at": "2026-06-25T11:18:20.544252+00:00",
+  "kind": "preference",
+  "rows_seen": 135,
+  "promoted_count": 78,
+  "skipped_count": 57,
+  "skipped_preview": [
+    {
+      "id": "pref01_beauty_sensitive_skin_sunscreen_001_0001_dc1b118c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_sensitive_skin_sunscreen_001_0002_c8c1ef09",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_sensitive_skin_sunscreen_001_0007_eacdf7ee",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_sensitive_skin_sunscreen_001_0011_acc590f1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_sensitive_skin_sunscreen_001_0014_e0b82e1e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_oily_skin_base_001_0020_bf8908f3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_oily_skin_base_001_0021_0ca6a3fd",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_oily_skin_base_001_0022_0fe69b5f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_oily_skin_base_001_0025_c7d85d66",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_oily_skin_base_001_0026_f2c300df",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_oily_skin_base_001_0028_59b3fb1b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_oily_skin_base_001_0029_acb2714c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0033_49283ef0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0036_c7566a7a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0038_43e8929c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0039_3988d16e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0040_baf0beba",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0041_11af7237",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0042_26263819",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0043_4c277291",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0044_d9dc37da",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_beauty_commute_lipstick_yellow_black_001_0045_85a8552a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_knee_friendly_beginner_001_0046_4060c2dc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_knee_friendly_beginner_001_0054_e41b6215",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_knee_friendly_beginner_001_0055_0c5539e7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_knee_friendly_beginner_001_0057_f1dad8f1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_knee_friendly_beginner_001_0058_b8a7d50f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_office_shoulder_neck_001_0063_8db5f171",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_office_shoulder_neck_001_0066_91325031",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_office_shoulder_neck_001_0068_f3c26a58",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_office_shoulder_neck_001_0071_06f28a83",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_office_shoulder_neck_001_0075_61d5ea1f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_glute_band_001_0085_c59c9e81",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_glute_band_001_0086_696c280d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_glute_band_001_0087_3dd8eb10",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_glute_band_001_0088_c8786cdb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fitness_home_glute_band_001_0089_3d47ddc5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_sleep_routine_6month_001_0092_73525b42",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_sleep_routine_6month_001_0094_37d45e19",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_sleep_routine_6month_001_0095_527a27a2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_sleep_routine_6month_001_0100_289449e8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_sleep_routine_6month_001_0101_4db0e8b8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_sleep_routine_6month_001_0102_dc273e0a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_sleep_routine_6month_001_0103_ea8d2c5a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_sleep_routine_6month_001_0104_2af6b62d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_sleep_routine_6month_001_0105_1557ec05",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_teething_care_001_0107_78a47f20",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_teething_care_001_0112_0007cf2b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_teething_care_001_0113_f0e6cac4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_teething_care_001_0114_fdbb8ed8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_teething_care_001_0118_ce7c3cd1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_teething_care_001_0119_55fafc73",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_teething_care_001_0120_8f1242a3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_toy_10month_fine_motor_001_0123_780b7539",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_toy_10month_fine_motor_001_0125_8a406dfe",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_toy_10month_fine_motor_001_0127_24647b00",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_baby_toy_10month_fine_motor_001_0134_cb479db5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    }
+  ],
+  "auto_accept_consensus": true,
+  "auto_accept_winner_consensus": true,
+  "winner_consensus_min_kimi_confidence": 0.7,
+  "policy": "Only review_decision=accept_ai/accept_with_edits, explicit --auto-accept-consensus judge_consensus=agree, or explicit --auto-accept-winner-consensus same A/B winner is promoted.",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round02_focus_kimi_consensus_preference_promoted.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round02_focus_kimi_consensus_preference_promoted.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round02_focus_kimi_consensus_preference_promoted.report.json"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "version": "preference-annotation-queue-v0.1",
+  "created_at": "2026-06-25T15:04:51.365007+00:00",
+  "status": "preference_queue_needs_human_labels",
+  "totals": {
+    "pairs": 33,
+    "needs_label": 33,
+    "locked_seed": 0
+  },
+  "by_domain": {
+    "旅行": 32,
+    "美食": 1
+  },
+  "by_task": {
+    "food_guangzhou_longxi_amap_002": 1,
+    "travel_beijing_guomao_business_meituan_001": 15,
+    "travel_chengdu_taikooli_hotel_meituan_001": 10,
+    "travel_hangzhou_westlake_route_meituan_001": 6,
+    "travel_sanya_yalongbay_hotel_meituan_001": 1
+  },
+  "by_label_status": {
+    "needs_label": 33
+  },
+  "by_origin_pair": {
+    "ai_diagnosis vs ai_diagnosis": 6,
+    "ai_diagnosis vs claude_natural_candidate": 7,
+    "ai_diagnosis vs generate": 5,
+    "ai_diagnosis vs generate_refine": 8,
+    "claude_natural_candidate vs generate": 2,
+    "claude_natural_candidate vs generate_refine": 3,
+    "generate vs generate_refine": 2
+  },
+  "targets": {
+    "production_preference_pairs_per_core_domain": 3000,
+    "note": "This queue is only a seed. Production training needs thousands of same-task A/B comparisons per core industry."
+  },
+  "coverage_gaps": {
+    "under_preference_target": {
+      "旅行": {
+        "selected_pairs": 32,
+        "production_preference_target": 3000
+      },
+      "美食": {
+        "selected_pairs": 1,
+        "production_preference_target": 3000
+      }
+    },
+    "missing_core_domains": [
+      "旅行",
+      "穿搭",
+      "美妆",
+      "家居",
+      "健身",
+      "母婴"
+    ]
+  },
+  "skipped_variants": [],
+  "inputs": {
+    "seed": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v07.food_travel_fact_sources.generated_from_artifacts.json"
+  },
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v07.food_travel_fact_sources.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v07.food_travel_fact_sources.csv",
+    "report": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v07.food_travel_fact_sources.report.json"
+  }
+}

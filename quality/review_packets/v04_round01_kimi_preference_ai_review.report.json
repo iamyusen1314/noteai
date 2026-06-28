@@ -1,0 +1,27 @@
+{
+  "version": "ai-prelabel-review-batch-v0.2",
+  "created_at": "2026-06-25T10:21:49.795124+00:00",
+  "kind": "preference",
+  "input": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round01_preference.csv",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01_kimi_preference_ai_review.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01_kimi_preference_ai_review.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01_kimi_preference_ai_review.report.json"
+  },
+  "totals": {
+    "rows": 63,
+    "ai_needs_human_review": 57,
+    "ai_can_fast_review": 6
+  },
+  "by_domain": {
+    "美食": 63
+  },
+  "judge_consensus": {
+    "agree": 9,
+    "disagree": 54
+  },
+  "second_review_status": {
+    "ok": 63
+  },
+  "policy": "AI prelabels are suggestions only. Official label fields remain blank; Kimi second review can mark disagreement/holdout; use promote_reviewed_prelabels.py after review approval."
+}

@@ -1,0 +1,291 @@
+{
+  "version": "preference-task-pool-v0.1",
+  "description": "Round07 food and travel weak-area task pool. Food/local-life tasks use Amap or local verified+Amap facts. Hotel and travel-guide tasks use the official Meituan travel skill facts. Missing fact placeholders are intentionally excluded from training inputs.",
+  "tasks": [
+    {
+      "task_id": "food_guangzhou_longxi_amap_002",
+      "domain": "美食",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round07_food_amap_001",
+      "user_intent": "生成广州番禺万博粤菜聚餐笔记，强调高德事实、营业时间、人均、招牌菜、套餐信息和适合人群。",
+      "known_facts": [
+        "事实源：用户素材/人工核验 + 高德地图",
+        "门店名：长禧家.珑厨(万博广晟店)",
+        "地址：南村镇汉溪大道东386号广晟万博城A座7层",
+        "商圈：番禺万博",
+        "门店类型：餐饮服务;中餐厅;广东菜(粤菜)",
+        "人均：98元",
+        "营业时间：09:00-14:00 17:00-21:00",
+        "高德评分：4.5",
+        "招牌/推荐：芝士焗小青龙、乳鸽、忘不了鱼、雪燕杏花羹",
+        "套餐信息：双人套餐素材包含芝士焗小青龙、乳鸽、忘不了鱼、点心拼盘、雪燕杏花羹、龙虾",
+        "预订/排队：周末聚餐建议提前预订或查看平台排队状态",
+        "适合家庭聚餐、朋友小聚和商务便饭"
+      ],
+      "fact_status": "amap_verified",
+      "target_reader": "在广州番禺万博附近找粤菜聚餐、希望快速判断值不值得去的用户",
+      "quality_focus": ["高德事实", "招牌菜", "营业时间", "人均价格", "适合人群", "自然表达"],
+      "reference_title": "番禺万博粤菜聚餐这家稳",
+      "reference_body": "番禺万博附近想找粤菜聚餐，长禧家珑厨的地址、人均、营业时间和招牌菜都比较明确，适合做一篇有决策价值的探店笔记。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["快速决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["招牌菜种草型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["适合不适合型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["高德事实密度加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低探店模板感"]}
+      ]
+    },
+    {
+      "task_id": "food_guangzhou_diandoude_amap_001",
+      "domain": "美食",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round07_food_amap_002",
+      "user_intent": "生成广州北京路点都德早茶笔记，强调高德门店事实、营业时间、茶点推荐、人均和游客/本地人适合度。",
+      "known_facts": [
+        "事实源：高德地图",
+        "门店名：点都德(聚福楼)",
+        "地址：惠福东路470号",
+        "人均：86元",
+        "营业时间：08:00-16:00 17:00-21:00",
+        "高德评分：4.7",
+        "推荐/高频菜品：潮州粉果、红米肠、椰汁芒果糕、乳鸽、沙爹金钱肚、金牌虾饺皇、三文鱼青芥挞、明虾蟹子烧卖、点心",
+        "门店类型：餐饮服务;中餐厅",
+        "适合北京路逛街前后吃早茶，也适合游客第一次体验广式点心"
+      ],
+      "fact_status": "amap_verified",
+      "target_reader": "在广州北京路附近逛街、想找一顿稳定广式早茶的用户",
+      "quality_focus": ["早茶决策", "人均营业", "推荐点心", "游客适合度", "不模板化"],
+      "reference_title": "北京路早茶这家点都德稳",
+      "reference_body": "北京路附近吃早茶，点都德聚福楼有明确地址、人均和营业时间，适合围绕虾饺、红米肠、粉果等高频点心做决策型种草。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["早茶决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["点心种草型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["游客适合型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["早茶事实密度"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["真实早茶口吻"]}
+      ]
+    },
+    {
+      "task_id": "food_guangzhou_taotaoju_amap_001",
+      "domain": "美食",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round07_food_amap_003",
+      "user_intent": "生成广州上下九陶陶居老字号早茶笔记，强调百年老店感、高德事实、招牌点心、人均和排队取舍。",
+      "known_facts": [
+        "事实源：高德地图",
+        "门店名：陶陶居酒家(第十甫路店)",
+        "地址：第十甫路20号1-5层",
+        "商圈：西关",
+        "人均：110元",
+        "营业时间：08:00-16:30 17:00-21:30",
+        "高德评分：4.7",
+        "门店类型：餐饮服务;中餐厅;广东菜(粤菜)",
+        "推荐/高频菜品：陶陶虾饺皇、金牌奶黄包、百年陶陶居烧鹅、榴莲酥、百搭酱黄凤爪、烧卖皇、顺德双皮奶、凤凰流沙包",
+        "适合第一次来广州体验老字号早茶，也适合带长辈聚餐"
+      ],
+      "fact_status": "amap_verified",
+      "target_reader": "第一次到广州上下九、西关附近，想体验老字号早茶但怕排队踩雷的用户",
+      "quality_focus": ["老字号", "高德事实", "点心推荐", "人均营业", "排队取舍"],
+      "reference_title": "广州老字号早茶陶陶居这样点",
+      "reference_body": "陶陶居第十甫路店适合把老字号、地址、人均、营业时间和经典点心串成一篇有取舍感的早茶笔记。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["老字号决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["经典点心型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["排队取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["老字号事实加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["自然本地口吻"]}
+      ]
+    },
+    {
+      "task_id": "food_chengdu_shudaxia_amap_001",
+      "domain": "美食",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round07_food_amap_004",
+      "user_intent": "生成成都春熙路火锅点单攻略笔记，强调高德事实、人均、营业时间、锅底点单和适合不适合。",
+      "known_facts": [
+        "事实源：高德地图",
+        "门店名：蜀大侠火锅(春熙路旗舰店)",
+        "地址：上东大街6号春南商场2层(西南书城)",
+        "商圈：东大街",
+        "人均：89元",
+        "营业时间：00:00-01:00 11:00-24:00",
+        "高德评分：4.6",
+        "门店类型：餐饮服务;中餐厅;火锅店",
+        "推荐/高频菜品：巴蜀麻辣牛肉、毛肚、牛肉、素菜、虾滑、抹茶青团、红糖糍粑",
+        "适合第一次来春熙路吃川渝火锅、想按菜品优先级点单的用户"
+      ],
+      "fact_status": "amap_verified",
+      "target_reader": "第一次来成都春熙路吃火锅、怕点错或怕太辣的用户",
+      "quality_focus": ["点单攻略", "高德事实", "人均营业", "辣度取舍", "适合不适合"],
+      "reference_title": "春熙路火锅这几样先点",
+      "reference_body": "蜀大侠春熙路旗舰店有明确地址、人均、营业时间和高频菜品，适合做一篇点单优先级清楚的火锅笔记。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["点单决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["菜品种草型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["辣度取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["点单顺序加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低火锅营销腔"]}
+      ]
+    },
+    {
+      "task_id": "travel_sanya_yalongbay_hotel_meituan_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round07_travel_meituan_001",
+      "user_intent": "生成三亚亚龙湾亲子酒店选择笔记，强调美团酒旅事实、价格、评分、儿童设施、早餐、沙滩和适合人群。",
+      "known_facts": [
+        "事实源：美团酒旅 skill",
+        "查询日期：2026-06-25",
+        "三亚亚龙湾喜来登度假酒店：美团五星级，美团真实评分4.6，2018/01装修，1159元起/晚，儿童乐园、水上乐园、欧陆式早餐、公共沙滩",
+        "三亚亚龙湾希尔顿酒店：美团五星级，美团真实评分4.4，2017/01装修，1099元起/晚，1500平米全天候儿童乐园、带水滑梯儿童泳池、西式早餐、靠近公共沙滩",
+        "三亚亚龙湾万豪度假酒店：美团豪华型，美团真实评分4.7，2020/10装修，1399元起/晚，儿童俱乐部、私家沙滩、欧陆式早餐",
+        "三亚亚龙湾红树林度假酒店：美团五星级，美团真实评分4.7，1291元起/晚，室内儿童乐园、中西式自助早餐、私家沙滩",
+        "三亚亚龙湾雅高铂尔曼别墅度假酒店：美团豪华型，美团真实评分4.5，666元起/晚，独栋别墅、部分房型私家泳池、中西式早餐、距离公共沙滩约200米"
+      ],
+      "fact_status": "meituan_travel_skill",
+      "target_reader": "带孩子去三亚亚龙湾、想比较亲子酒店价格和设施的家庭用户",
+      "quality_focus": ["美团酒旅事实", "酒店比较", "价格评分", "亲子设施", "沙滩早餐", "取舍建议"],
+      "reference_title": "三亚亚龙湾亲子酒店这样选",
+      "reference_body": "亚龙湾亲子酒店可以围绕喜来登、希尔顿、万豪、红树林和铂尔曼做价格、评分、儿童设施、早餐和沙滩距离的决策比较。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["酒店决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["亲子设施型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["预算取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["酒店比较加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低酒店软广感"]}
+      ]
+    },
+    {
+      "task_id": "travel_guangzhou_chimelong_hotel_meituan_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round07_travel_meituan_002",
+      "user_intent": "生成广州长隆亲子酒店选择笔记，强调美团酒旅事实、乐园距离、班车/接送、早餐、房型和预算。",
+      "known_facts": [
+        "事实源：美团酒旅 skill",
+        "查询日期：2026-06-25",
+        "广州奥园喜来登酒店：美团豪华型，美团真实评分4.2，2020/08开业，860元起/晚，西式自助早餐，恐龙和粉红兔亲子房，距离长隆旅游度假区约2.1公里",
+        "广州星河湾酒店：美团五星级，美团真实评分4.6，480元起/晚，免费穿梭巴士去长隆欢乐世界，早餐有现做米粉和车仔面，距离长隆欢乐世界约3.2公里",
+        "丽呈花园酒店(广州野生动物世界店)：美团高档型，美团真实评分4.9，2025/01，391元起/晚，花园欢乐亲子房，接送服务，靠近长隆野生动物世界",
+        "麗枫(广州番禺长隆南村万博地铁站店)：美团高档型，美团真实评分4.8，2023/08开业，247元起/晚，家庭亲子套房，免费停车场，近地铁，距离长隆欢乐世界约2.1公里"
+      ],
+      "fact_status": "meituan_travel_skill",
+      "target_reader": "带孩子去广州长隆、想按预算和交通省心程度选酒店的家庭用户",
+      "quality_focus": ["美团酒旅事实", "乐园距离", "班车接送", "早餐房型", "价格评分", "家庭决策"],
+      "reference_title": "广州长隆亲子酒店按预算选",
+      "reference_body": "长隆酒店选择可以按预算、乐园距离、班车接送、早餐和亲子房来分层，帮助家庭快速判断住哪里更省心。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["预算决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["亲子房型型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["交通取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["乐园距离和班车加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["真实带娃选酒店口吻"]}
+      ]
+    },
+    {
+      "task_id": "travel_chengdu_taikooli_hotel_meituan_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round07_travel_meituan_003",
+      "user_intent": "生成成都太古里春熙路酒店选择笔记，强调美团酒旅事实、地铁距离、商圈吃喝、预算、影音/视野体验。",
+      "known_facts": [
+        "事实源：美团酒旅 skill",
+        "查询日期：2026-06-25",
+        "锦舍酒店(成都春熙路太古里店)：美团高档型，美团真实评分4.8，2020/11开业，210元起/晚，落地窗，春熙路商圈，周边美食多，距太升南路地铁站步行约700米",
+        "锦著酒店(成都春熙路太古里店)：美团高档型，美团真实评分4.7，2024/06开业，258元起/晚，智能客控，周边餐饮丰富，距天府广场地铁站步行约900米",
+        "HERR·赫尔曼酒店(成都春熙路太古里店)：美团舒适型，美团真实评分4.9，部分房型巨幕影院，距太升南路地铁站步行约700米，周边美食多",
+        "全季酒店(成都太古里中心店)：美团高档型，美团真实评分4.7，456元起/晚，太古里旁，距春熙路地铁站步行约600米，周边商场和小吃街",
+        "雍慢Slow·高空全景·套房公寓(太古里店)：美团高档型，美团真实评分4.8，高空全景，能看太古里和339电视塔夜景，距东门大桥地铁站步行约800米"
+      ],
+      "fact_status": "meituan_travel_skill",
+      "target_reader": "第一次去成都、想住太古里春熙路附近方便吃喝和地铁出行的用户",
+      "quality_focus": ["美团酒旅事实", "地铁距离", "吃喝便利", "预算分层", "影音视野体验", "适合不适合"],
+      "reference_title": "成都太古里酒店按地铁选",
+      "reference_body": "太古里春熙路住宿可以把地铁步行距离、周边吃喝、起价、评分和房间体验放在一起比较，避免只看商圈热闹。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["位置决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["吃喝地铁型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["体验取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["地铁距离加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["真实住店决策口吻"]}
+      ]
+    },
+    {
+      "task_id": "travel_beijing_guomao_business_meituan_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round07_travel_meituan_004",
+      "user_intent": "生成北京国贸商务酒店选择笔记，强调美团酒旅事实、地铁、早餐、隔音、会议/出差设施和预算。",
+      "known_facts": [
+        "事实源：美团酒旅 skill",
+        "查询日期：2026-06-25",
+        "北京国泰饭店：美团高档型，美团真实评分4.6，2008/01装修，499元起/晚，CBD商务房，提供早餐，标签写隔音好，靠近永安里地铁站",
+        "北京华腾国贸美居酒店：美团高档型，美团真实评分4.5，2024/03装修，661元起/晚，提供早餐，隔音好，室内泳池和健身房",
+        "北京京伦饭店：美团四星级，美团真实评分4.4，668元起/晚，国贸核心区，紧邻国贸和永安里两个地铁站，提供早餐，隔音好",
+        "JEN北京新国贸饭店：美团豪华型，美团真实评分4.1，2687元起/晚，国贸三期，提供早餐，隔音好，部分房间可看央视大楼景观",
+        "北京伯豪瑞廷酒店：美团五星级，美团真实评分4.2，717元起/晚，提供早餐，隔音好，室内泳池和健身房"
+      ],
+      "fact_status": "meituan_travel_skill",
+      "target_reader": "去北京国贸出差、想选通勤方便且安静的商务酒店用户",
+      "quality_focus": ["美团酒旅事实", "商务出差", "地铁通勤", "早餐隔音", "预算分层", "设施取舍"],
+      "reference_title": "北京国贸出差酒店这样选",
+      "reference_body": "国贸商务酒店要把地铁、早餐、隔音、会议设施和起价放在一起判断，避免只看星级或只看低价。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["商务决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["地铁早餐型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["隔音取舍型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["商务事实加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["真实出差口吻"]}
+      ]
+    },
+    {
+      "task_id": "travel_hangzhou_westlake_route_meituan_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round07_travel_meituan_005",
+      "user_intent": "生成杭州西湖2天1晚旅行攻略笔记，强调美团 travel skill 路线事实、湖滨住宿、灵隐寺、小河直街、天气与节奏取舍。",
+      "known_facts": [
+        "事实源：美团酒旅 skill",
+        "查询日期：2026-06-25",
+        "建议游玩时间：2天1晚",
+        "核心景点：西湖全景、断桥残雪、白堤、孤山、三潭印月、花港观鱼、苏堤春晓、灵隐寺、小河直街、河坊街",
+        "DAY 1 上午：09:00-12:00 从断桥残雪开始，漫步白堤，经过孤山、浙江省博物馆和西泠印社",
+        "DAY 1 午餐：12:00-13:30 推荐东坡肉、龙井虾仁等杭帮菜",
+        "DAY 1 下午：14:00-16:30 前往灵隐寺，适合祈福和看古建筑，也可关注十八籽手串等文创",
+        "DAY 1 晚上：18:00-20:30 夜游河坊街，适合小吃和手工艺",
+        "小河直街保留老杭州水乡风貌，白墙黛瓦，沿河而建，适合放慢脚步，也可乘船游览运河",
+        "湖滨商圈住宿：杭州西湖湖滨断桥残雪亚朵酒店，美团真实评分4.7，447元起/晚；全季酒店(杭州西湖店)，美团真实评分4.8，441元起/晚，近地铁"
+      ],
+      "fact_status": "meituan_travel_skill",
+      "target_reader": "第一次去杭州、想把西湖路线和湖滨住宿一起安排的用户",
+      "quality_focus": ["旅行攻略", "路线顺序", "湖滨住宿", "时间安排", "天气节奏", "避免模板化"],
+      "reference_title": "杭州西湖2天1晚这样走",
+      "reference_body": "杭州2天1晚可以把西湖、灵隐寺、河坊街、小河直街和湖滨住宿一起规划，让路线顺、住宿方便、节奏不赶。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["路线决策型"]},
+        {"slot_id": "diagnosis_plan_b", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["景点体验型"]},
+        {"slot_id": "diagnosis_plan_c", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["住宿节奏型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["首稿"]},
+        {"slot_id": "generate_refined", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["路线顺序加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低攻略模板感"]}
+      ]
+    }
+  ]
+}

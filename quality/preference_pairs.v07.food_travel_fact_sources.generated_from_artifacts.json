@@ -1,0 +1,239 @@
+{
+  "version": "preference-pairs-generated-from-artifacts-v0.1",
+  "description": "Generated same-task variants assembled from auditable artifact files. Requires human A/B labels before training.",
+  "created_at": "2026-06-25T15:04:43.337547+00:00",
+  "tasks": [
+    {
+      "task_id": "food_guangzhou_longxi_amap_002",
+      "domain": "美食",
+      "task_context": "用户意图：生成广州番禺万博粤菜聚餐笔记，强调高德事实、营业时间、人均、招牌菜、套餐信息和适合人群。\n目标读者：在广州番禺万博附近找粤菜聚餐、希望快速判断值不值得去的用户\n已知事实：事实源：用户素材/人工核验 + 高德地图；门店名：长禧家.珑厨(万博广晟店)；地址：南村镇汉溪大道东386号广晟万博城A座7层；商圈：番禺万博；门店类型：餐饮服务;中餐厅;广东菜(粤菜)；人均：98元；营业时间：09:00-14:00 17:00-21:00；高德评分：4.5；招牌/推荐：芝士焗小青龙、乳鸽、忘不了鱼、雪燕杏花羹；套餐信息：双人套餐素材包含芝士焗小青龙、乳鸽、忘不了鱼、点心拼盘、雪燕杏花羹、龙虾；预订/排队：周末聚餐建议提前预订或查看平台排队状态；适合家庭聚餐、朋友小聚和商务便饭",
+      "comparison_focus": [
+        "高德事实",
+        "招牌菜",
+        "营业时间",
+        "人均价格",
+        "适合人群",
+        "自然表达"
+      ],
+      "variants": [
+        {
+          "id": "food_guangzhou_longxi_amap_002__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_longxi_amap_002/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_longxi_amap_002__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_longxi_amap_002/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_sanya_yalongbay_hotel_meituan_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成三亚亚龙湾亲子酒店选择笔记，强调美团酒旅事实、价格、评分、儿童设施、早餐、沙滩和适合人群。\n目标读者：带孩子去三亚亚龙湾、想比较亲子酒店价格和设施的家庭用户\n已知事实：事实源：美团酒旅 skill；查询日期：2026-06-25；三亚亚龙湾喜来登度假酒店：美团五星级，美团真实评分4.6，2018/01装修，1159元起/晚，儿童乐园、水上乐园、欧陆式早餐、公共沙滩；三亚亚龙湾希尔顿酒店：美团五星级，美团真实评分4.4，2017/01装修，1099元起/晚，1500平米全天候儿童乐园、带水滑梯儿童泳池、西式早餐、靠近公共沙滩；三亚亚龙湾万豪度假酒店：美团豪华型，美团真实评分4.7，2020/10装修，1399元起/晚，儿童俱乐部、私家沙滩、欧陆式早餐；三亚亚龙湾红树林度假酒店：美团五星级，美团真实评分4.7，1291元起/晚，室内儿童乐园、中西式自助早餐、私家沙滩；三亚亚龙湾雅高铂尔曼别墅度假酒店：美团豪华型，美团真实评分4.5，666元起/晚，独栋别墅、部分房型私家泳池、中西式早餐、距离公共沙滩约200米",
+      "comparison_focus": [
+        "美团酒旅事实",
+        "酒店比较",
+        "价格评分",
+        "亲子设施",
+        "沙滩早餐",
+        "取舍建议"
+      ],
+      "variants": [
+        {
+          "id": "travel_sanya_yalongbay_hotel_meituan_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_sanya_yalongbay_hotel_meituan_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_sanya_yalongbay_hotel_meituan_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_sanya_yalongbay_hotel_meituan_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_chengdu_taikooli_hotel_meituan_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成成都太古里春熙路酒店选择笔记，强调美团酒旅事实、地铁距离、商圈吃喝、预算、影音/视野体验。\n目标读者：第一次去成都、想住太古里春熙路附近方便吃喝和地铁出行的用户\n已知事实：事实源：美团酒旅 skill；查询日期：2026-06-25；锦舍酒店(成都春熙路太古里店)：美团高档型，美团真实评分4.8，2020/11开业，210元起/晚，落地窗，春熙路商圈，周边美食多，距太升南路地铁站步行约700米；锦著酒店(成都春熙路太古里店)：美团高档型，美团真实评分4.7，2024/06开业，258元起/晚，智能客控，周边餐饮丰富，距天府广场地铁站步行约900米；HERR·赫尔曼酒店(成都春熙路太古里店)：美团舒适型，美团真实评分4.9，部分房型巨幕影院，距太升南路地铁站步行约700米，周边美食多；全季酒店(成都太古里中心店)：美团高档型，美团真实评分4.7，456元起/晚，太古里旁，距春熙路地铁站步行约600米，周边商场和小吃街；雍慢Slow·高空全景·套房公寓(太古里店)：美团高档型，美团真实评分4.8，高空全景，能看太古里和339电视塔夜景，距东门大桥地铁站步行约800米",
+      "comparison_focus": [
+        "美团酒旅事实",
+        "地铁距离",
+        "吃喝便利",
+        "预算分层",
+        "影音视野体验",
+        "适合不适合"
+      ],
+      "variants": [
+        {
+          "id": "travel_chengdu_taikooli_hotel_meituan_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_chengdu_taikooli_hotel_meituan_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_taikooli_hotel_meituan_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_chengdu_taikooli_hotel_meituan_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_taikooli_hotel_meituan_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_chengdu_taikooli_hotel_meituan_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_taikooli_hotel_meituan_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_chengdu_taikooli_hotel_meituan_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_taikooli_hotel_meituan_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_chengdu_taikooli_hotel_meituan_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_beijing_guomao_business_meituan_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成北京国贸商务酒店选择笔记，强调美团酒旅事实、地铁、早餐、隔音、会议/出差设施和预算。\n目标读者：去北京国贸出差、想选通勤方便且安静的商务酒店用户\n已知事实：事实源：美团酒旅 skill；查询日期：2026-06-25；北京国泰饭店：美团高档型，美团真实评分4.6，2008/01装修，499元起/晚，CBD商务房，提供早餐，标签写隔音好，靠近永安里地铁站；北京华腾国贸美居酒店：美团高档型，美团真实评分4.5，2024/03装修，661元起/晚，提供早餐，隔音好，室内泳池和健身房；北京京伦饭店：美团四星级，美团真实评分4.4，668元起/晚，国贸核心区，紧邻国贸和永安里两个地铁站，提供早餐，隔音好；JEN北京新国贸饭店：美团豪华型，美团真实评分4.1，2687元起/晚，国贸三期，提供早餐，隔音好，部分房间可看央视大楼景观；北京伯豪瑞廷酒店：美团五星级，美团真实评分4.2，717元起/晚，提供早餐，隔音好，室内泳池和健身房",
+      "comparison_focus": [
+        "美团酒旅事实",
+        "商务出差",
+        "地铁通勤",
+        "早餐隔音",
+        "预算分层",
+        "设施取舍"
+      ],
+      "variants": [
+        {
+          "id": "travel_beijing_guomao_business_meituan_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_beijing_guomao_business_meituan_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_beijing_guomao_business_meituan_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_beijing_guomao_business_meituan_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_beijing_guomao_business_meituan_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_beijing_guomao_business_meituan_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_beijing_guomao_business_meituan_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_beijing_guomao_business_meituan_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_beijing_guomao_business_meituan_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_beijing_guomao_business_meituan_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_beijing_guomao_business_meituan_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_beijing_guomao_business_meituan_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_hangzhou_westlake_route_meituan_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成杭州西湖2天1晚旅行攻略笔记，强调美团 travel skill 路线事实、湖滨住宿、灵隐寺、小河直街、天气与节奏取舍。\n目标读者：第一次去杭州、想把西湖路线和湖滨住宿一起安排的用户\n已知事实：事实源：美团酒旅 skill；查询日期：2026-06-25；建议游玩时间：2天1晚；核心景点：西湖全景、断桥残雪、白堤、孤山、三潭印月、花港观鱼、苏堤春晓、灵隐寺、小河直街、河坊街；DAY 1 上午：09:00-12:00 从断桥残雪开始，漫步白堤，经过孤山、浙江省博物馆和西泠印社；DAY 1 午餐：12:00-13:30 推荐东坡肉、龙井虾仁等杭帮菜；DAY 1 下午：14:00-16:30 前往灵隐寺，适合祈福和看古建筑，也可关注十八籽手串等文创；DAY 1 晚上：18:00-20:30 夜游河坊街，适合小吃和手工艺；小河直街保留老杭州水乡风貌，白墙黛瓦，沿河而建，适合放慢脚步，也可乘船游览运河；湖滨商圈住宿：杭州西湖湖滨断桥残雪亚朵酒店，美团真实评分4.7，447元起/晚；全季酒店(杭州西湖店)，美团真实评分4.8，441元起/晚，近地铁",
+      "comparison_focus": [
+        "旅行攻略",
+        "路线顺序",
+        "湖滨住宿",
+        "时间安排",
+        "天气节奏",
+        "避免模板化"
+      ],
+      "variants": [
+        {
+          "id": "travel_hangzhou_westlake_route_meituan_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_hangzhou_westlake_route_meituan_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_westlake_route_meituan_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_hangzhou_westlake_route_meituan_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_westlake_route_meituan_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_hangzhou_westlake_route_meituan_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_westlake_route_meituan_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v07_food_travel_fact_sources/travel_hangzhou_westlake_route_meituan_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    }
+  ]
+}

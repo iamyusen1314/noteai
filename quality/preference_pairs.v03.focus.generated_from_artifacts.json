@@ -1,0 +1,763 @@
+{
+  "version": "preference-pairs-generated-from-artifacts-v0.1",
+  "description": "Generated same-task variants assembled from auditable artifact files. Requires human A/B labels before training.",
+  "created_at": "2026-06-25T11:44:29.447507+00:00",
+  "tasks": [
+    {
+      "task_id": "food_guangzhou_dim_sum_family_001",
+      "domain": "美食",
+      "task_context": "用户意图：生成一篇广州越秀早茶家庭聚餐笔记，强调人均、招牌点心、排队时段和适合人群。\n目标读者：广州本地或周末来广州、想找长辈也能接受的早茶用户\n已知事实：地点在广州越秀公园附近；人均88元；营业时间07:30-14:30；周末9点前到店排队更少；招牌点心是虾饺、豉汁凤爪和艇仔粥；茶位费每人8元；适合带长辈早午餐聚餐；饭点后部分点心容易售罄",
+      "comparison_focus": [
+        "价格透明",
+        "招牌点心",
+        "排队避坑",
+        "适合人群",
+        "本地生活决策"
+      ],
+      "variants": [
+        {
+          "id": "food_guangzhou_dim_sum_family_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/food_guangzhou_dim_sum_family_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_dim_sum_family_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/food_guangzhou_dim_sum_family_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_dim_sum_family_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/food_guangzhou_dim_sum_family_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_dim_sum_family_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/food_guangzhou_dim_sum_family_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_dim_sum_family_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/food_guangzhou_dim_sum_family_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_guangzhou_dim_sum_family_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/food_guangzhou_dim_sum_family_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "food_shenzhen_lunch_set_001",
+      "domain": "美食",
+      "task_context": "用户意图：生成深圳科技园工作日午餐简餐笔记，强调价格、出餐速度、套餐选择和上班族适配。\n目标读者：深圳科技园附近上班、午休时间有限但想吃稳定简餐的用户\n已知事实：地点在深圳科技园地铁站附近；人均42元；工作日午市11:00-14:00；推荐牛肉饭套餐和番茄肥牛面；套餐含例汤和小菜；12点后排队约15分钟；出餐速度通常在10分钟内；适合午休时间不长的上班族",
+      "comparison_focus": [
+        "午餐决策",
+        "价格和速度",
+        "套餐推荐",
+        "排队时间",
+        "上班族场景"
+      ],
+      "variants": [
+        {
+          "id": "food_shenzhen_lunch_set_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/food_shenzhen_lunch_set_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shenzhen_lunch_set_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/food_shenzhen_lunch_set_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shenzhen_lunch_set_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/food_shenzhen_lunch_set_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shenzhen_lunch_set_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/food_shenzhen_lunch_set_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shenzhen_lunch_set_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/food_shenzhen_lunch_set_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shenzhen_lunch_set_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/food_shenzhen_lunch_set_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "food_chengdu_light_hotpot_001",
+      "domain": "美食",
+      "task_context": "用户意图：生成成都建设路附近轻辣火锅探店笔记，强调锅底、必点菜、人均和不太能吃辣的人怎么点。\n目标读者：去成都想吃火锅但不能太辣、需要点单建议的用户\n已知事实：地点在成都建设路附近；人均92元；营业时间11:30-23:00；可选微辣牛油锅和番茄鸳鸯锅；必点鲜毛肚、嫩牛肉和手工虾滑；小料台每人6元；晚上7点后等位约30分钟；不太能吃辣的人建议点鸳鸯锅",
+      "comparison_focus": [
+        "点单顺序",
+        "辣度选择",
+        "人均透明",
+        "等位提醒",
+        "适合人群"
+      ],
+      "variants": [
+        {
+          "id": "food_chengdu_light_hotpot_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/food_chengdu_light_hotpot_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_chengdu_light_hotpot_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/food_chengdu_light_hotpot_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_chengdu_light_hotpot_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/food_chengdu_light_hotpot_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_chengdu_light_hotpot_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/food_chengdu_light_hotpot_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_chengdu_light_hotpot_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/food_chengdu_light_hotpot_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_chengdu_light_hotpot_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/food_chengdu_light_hotpot_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_hangzhou_parent_child_2day_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成杭州2天1晚亲子游攻略，强调路线不赶、预算、交通和孩子体力安排。\n目标读者：带孩子去杭州周末游、怕路线太赶的家庭用户\n已知事实：住在湖滨银泰附近；第一天西湖断桥、孤山、浙江省博物馆；第二天灵隐寺和法喜寺二选一，再去小河直街；两天预算一家三口约1800元；住宿约780元一晚；西湖段以步行和公交为主；午后安排回酒店休息1小时；灵隐寺建议早上8点前到",
+      "comparison_focus": [
+        "亲子节奏",
+        "路线顺序",
+        "预算透明",
+        "交通建议",
+        "体力安排"
+      ],
+      "variants": [
+        {
+          "id": "travel_hangzhou_parent_child_2day_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/travel_hangzhou_parent_child_2day_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_parent_child_2day_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/travel_hangzhou_parent_child_2day_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_parent_child_2day_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/travel_hangzhou_parent_child_2day_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_parent_child_2day_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/travel_hangzhou_parent_child_2day_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_parent_child_2day_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/travel_hangzhou_parent_child_2day_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_hangzhou_parent_child_2day_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/travel_hangzhou_parent_child_2day_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_dali_slow_4day_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成大理4天3晚慢旅行攻略，强调路线、住宿区域、预算和避坑。\n目标读者：第一次去大理、想慢一点玩、不想每天赶景点的用户\n已知事实：住大理古城附近两晚，住双廊一晚；第一天大理古城和人民路；第二天才村码头和龙龛码头；第三天喜洲古镇、海舌公园、双廊；第四天睡到自然醒后返程；人均预算约2200元；电动车环洱海只建议短距离体验；早晚温差大，需要带外套",
+      "comparison_focus": [
+        "慢旅行节奏",
+        "住宿安排",
+        "预算透明",
+        "交通避坑",
+        "路线顺序"
+      ],
+      "variants": [
+        {
+          "id": "travel_dali_slow_4day_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/travel_dali_slow_4day_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_dali_slow_4day_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/travel_dali_slow_4day_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_dali_slow_4day_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/travel_dali_slow_4day_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_dali_slow_4day_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/travel_dali_slow_4day_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_dali_slow_4day_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/travel_dali_slow_4day_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_dali_slow_4day_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/travel_dali_slow_4day_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_guangzhou_hotel_family_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成广州亲子出行酒店选择经验笔记，强调交通、房型、预算、早餐和适合/不适合人群。\n目标读者：带孩子去广州、想住交通方便酒店的家庭用户\n已知事实：酒店位置在珠江新城地铁站附近；亲子双床房一晚约680元；步行到地铁站约8分钟；早餐到10点结束；房间有儿童洗漱用品；附近步行可到花城广场；周末入住建议提前预订；不适合想住在老城区逛骑楼的人",
+      "comparison_focus": [
+        "酒店决策",
+        "交通便利",
+        "预算房型",
+        "亲子设施",
+        "适合不适合"
+      ],
+      "variants": [
+        {
+          "id": "travel_guangzhou_hotel_family_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/travel_guangzhou_hotel_family_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_guangzhou_hotel_family_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/travel_guangzhou_hotel_family_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_guangzhou_hotel_family_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/travel_guangzhou_hotel_family_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_guangzhou_hotel_family_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/travel_guangzhou_hotel_family_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_guangzhou_hotel_family_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/travel_guangzhou_hotel_family_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_guangzhou_hotel_family_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/travel_guangzhou_hotel_family_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "fashion_pear_shape_summer_commute_001",
+      "domain": "穿搭",
+      "task_context": "用户意图：为梨形身材生成夏季通勤3套穿搭公式，强调遮胯、显高、价格和可复制搭配。\n目标读者：梨形身材、夏季通勤、想显高遮胯但不想太复杂的用户\n已知事实：身高160cm，梨形身材，胯宽大腿肉感明显；第一套白色短袖衬衫89元配高腰A字半裙129元；第二套针织短开衫99元配直筒西裤159元；第三套黑色无袖上衣69元配垂感阔腿裤139元；上衣尽量塞一半露腰线；下装选有垂感和不过分贴腿的版型；鞋子选浅口单鞋或低跟凉鞋；通勤场景不露太多皮肤",
+      "comparison_focus": [
+        "身材适配",
+        "搭配公式",
+        "价格具体",
+        "通勤场景",
+        "可复制"
+      ],
+      "variants": [
+        {
+          "id": "fashion_pear_shape_summer_commute_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/fashion_pear_shape_summer_commute_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_pear_shape_summer_commute_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/fashion_pear_shape_summer_commute_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_pear_shape_summer_commute_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/fashion_pear_shape_summer_commute_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_pear_shape_summer_commute_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/fashion_pear_shape_summer_commute_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_pear_shape_summer_commute_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/fashion_pear_shape_summer_commute_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_pear_shape_summer_commute_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/fashion_pear_shape_summer_commute_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "fashion_wide_shoulder_soft_style_001",
+      "domain": "穿搭",
+      "task_context": "用户意图：为宽肩女生生成温柔感穿搭笔记，强调领口、面料、肩线和约会/通勤适配。\n目标读者：宽肩、肩背厚、想穿温柔但不显壮的女生\n已知事实：身高165cm，宽肩，肩背比较厚；V领针织短袖119元比小圆领更显轻；软垂半裙149元能弱化上半身量感；薄西装外套199元要选落肩或自然肩；避免垫肩、泡泡袖和硬挺小圆领；颜色选雾蓝、米白和灰粉更柔和；适合通勤和周末约会；项链选细链，不选粗 choker",
+      "comparison_focus": [
+        "身材痛点",
+        "领口肩线",
+        "面料选择",
+        "场景适配",
+        "避坑明确"
+      ],
+      "variants": [
+        {
+          "id": "fashion_wide_shoulder_soft_style_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/fashion_wide_shoulder_soft_style_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_wide_shoulder_soft_style_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/fashion_wide_shoulder_soft_style_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_wide_shoulder_soft_style_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/fashion_wide_shoulder_soft_style_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_wide_shoulder_soft_style_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/fashion_wide_shoulder_soft_style_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_wide_shoulder_soft_style_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/fashion_wide_shoulder_soft_style_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_wide_shoulder_soft_style_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/fashion_wide_shoulder_soft_style_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "fashion_mens_clean_commute_001",
+      "domain": "穿搭",
+      "task_context": "用户意图：生成男生干净通勤穿搭笔记，强调单品、价格、颜色比例和不油腻。\n目标读者：想穿得干净利落、不想太潮也不想油腻的男生\n已知事实：适合身高175cm左右、普通身材男生；白色牛津纺衬衫129元；深灰直筒西裤179元；藏蓝轻薄夹克229元；鞋子选白色德训鞋或黑色乐福鞋；全身颜色控制在黑白灰蓝；裤长盖住鞋面一点点即可；避免紧身裤、夸张logo和过亮配色",
+      "comparison_focus": [
+        "男生通勤",
+        "颜色比例",
+        "价格具体",
+        "版型避坑",
+        "可复制"
+      ],
+      "variants": [
+        {
+          "id": "fashion_mens_clean_commute_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/fashion_mens_clean_commute_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_mens_clean_commute_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/fashion_mens_clean_commute_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_mens_clean_commute_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/fashion_mens_clean_commute_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_mens_clean_commute_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/fashion_mens_clean_commute_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_mens_clean_commute_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/fashion_mens_clean_commute_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_mens_clean_commute_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/fashion_mens_clean_commute_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "home_balcony_laundry_4sqm_001",
+      "domain": "家居",
+      "task_context": "用户意图：生成4平米阳台洗衣区改造笔记，强调尺寸、预算、收纳和动线。\n目标读者：小阳台、洗衣区杂乱、预算有限但想提升收纳的人\n已知事实：阳台面积约4平米；总预算2600元；洗衣机上方加定制吊柜约980元；窄边脏衣篮89元；折叠晾衣架169元；洞洞板收纳清洁工具约120元；地面用防滑垫约180元；动线是洗衣、晾晒、收纳清洁用品放在同一侧",
+      "comparison_focus": [
+        "面积预算",
+        "收纳动线",
+        "改造顺序",
+        "单品价格",
+        "可执行"
+      ],
+      "variants": [
+        {
+          "id": "home_balcony_laundry_4sqm_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/home_balcony_laundry_4sqm_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_balcony_laundry_4sqm_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/home_balcony_laundry_4sqm_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_balcony_laundry_4sqm_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/home_balcony_laundry_4sqm_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_balcony_laundry_4sqm_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/home_balcony_laundry_4sqm_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_balcony_laundry_4sqm_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/home_balcony_laundry_4sqm_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_balcony_laundry_4sqm_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/home_balcony_laundry_4sqm_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "home_kitchen_rental_storage_001",
+      "domain": "家居",
+      "task_context": "用户意图：生成出租屋小厨房收纳改造笔记，强调免打孔、预算、分类和不破坏墙面。\n目标读者：租房、小厨房、想收纳变清爽但不能打孔的人\n已知事实：厨房面积约5平米；总预算860元；免打孔锅盖架59元；伸缩置物架128元；磁吸刀架76元；调料抽屉分隔盒49元一组；水槽下伸缩架139元；不做墙面打孔，退租时能恢复；先按烹饪区、清洗区、备菜区分类",
+      "comparison_focus": [
+        "租房限制",
+        "预算拆解",
+        "分区收纳",
+        "免打孔",
+        "真实改造"
+      ],
+      "variants": [
+        {
+          "id": "home_kitchen_rental_storage_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/home_kitchen_rental_storage_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_kitchen_rental_storage_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/home_kitchen_rental_storage_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_kitchen_rental_storage_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/home_kitchen_rental_storage_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_kitchen_rental_storage_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/home_kitchen_rental_storage_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_kitchen_rental_storage_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/home_kitchen_rental_storage_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_kitchen_rental_storage_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/home_kitchen_rental_storage_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "home_bedroom_sleep_light_001",
+      "domain": "家居",
+      "task_context": "用户意图：生成卧室睡眠氛围改造笔记，强调灯光、窗帘、预算和实际改善感。\n目标读者：卧室杂乱、睡前放松感弱、预算不高但想提升氛围的人\n已知事实：卧室面积约12平米；总预算1500元；遮光窗帘约420元；暖白床头灯129元；地毯尺寸160cm乘230cm，约399元；床头小边几169元；收纳筐一组79元；主灯减少使用，晚上只开床头灯；改造目标是让卧室更安静、有睡前放松感",
+      "comparison_focus": [
+        "预算清单",
+        "灯光氛围",
+        "真实改善",
+        "卧室面积",
+        "避免玄学承诺"
+      ],
+      "variants": [
+        {
+          "id": "home_bedroom_sleep_light_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v03_focus/home_bedroom_sleep_light_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_bedroom_sleep_light_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/home_bedroom_sleep_light_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_bedroom_sleep_light_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/home_bedroom_sleep_light_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_bedroom_sleep_light_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v03_focus/home_bedroom_sleep_light_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_bedroom_sleep_light_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v03_focus/home_bedroom_sleep_light_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_bedroom_sleep_light_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v03_focus/home_bedroom_sleep_light_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    }
+  ]
+}

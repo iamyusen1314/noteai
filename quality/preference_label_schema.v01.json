@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noteai.local/schemas/preference_label_schema.v01.json",
+  "title": "NoteAI Preference Label v0.1",
+  "type": "object",
+  "required": ["version", "items"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "preference-labels-v0.1"
+    },
+    "description": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["pair_id", "task_id", "domain", "variant_a", "variant_b", "labels"],
+        "properties": {
+          "pair_id": {"type": "string"},
+          "task_id": {"type": "string"},
+          "domain": {"type": "string"},
+          "task_context": {"type": "string"},
+          "comparison_focus": {"type": "array", "items": {"type": "string"}},
+          "variant_a": {
+            "type": "object",
+            "required": ["id", "title", "body"],
+            "properties": {
+              "id": {"type": "string"},
+              "origin": {"type": "string"},
+              "title": {"type": "string"},
+              "body": {"type": "string"},
+              "score": {"type": ["number", "null"]},
+              "source_file": {"type": "string"}
+            }
+          },
+          "variant_b": {
+            "type": "object",
+            "required": ["id", "title", "body"],
+            "properties": {
+              "id": {"type": "string"},
+              "origin": {"type": "string"},
+              "title": {"type": "string"},
+              "body": {"type": "string"},
+              "score": {"type": ["number", "null"]},
+              "source_file": {"type": "string"}
+            }
+          },
+          "labels": {
+            "type": "object",
+            "required": ["winner", "preference_margin", "reason_tags", "rationale"],
+            "properties": {
+              "winner": {
+                "enum": ["A", "B", "tie", "skip", ""]
+              },
+              "preference_margin": {
+                "type": ["integer", "string"],
+                "minimum": 0,
+                "maximum": 3
+              },
+              "delivery_ready_winner": {
+                "enum": [true, false, ""]
+              },
+              "reason_tags": {
+                "type": ["array", "string"],
+                "items": {"type": "string"}
+              },
+              "loser_failure_tags": {
+                "type": ["array", "string"],
+                "items": {"type": "string"}
+              },
+              "rationale": {"type": "string"},
+              "reviewer": {"type": "string"},
+              "reviewed_at": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

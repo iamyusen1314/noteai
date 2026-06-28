@@ -1,0 +1,174 @@
+{
+  "version": "preference-seed-from-artifacts-report-v0.1",
+  "created_at": "2026-06-25T15:04:43.337556+00:00",
+  "inputs": {
+    "task_pool": "/Users/openclaw/Desktop/noteai/quality/preference_task_pool.v07.food_travel_fact_sources.json",
+    "artifact_dir": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources",
+    "include_blocking": false
+  },
+  "artifact_count": 54,
+  "task_count": 5,
+  "variant_count": 19,
+  "variants_by_task": {
+    "food_guangzhou_longxi_amap_002": 2,
+    "travel_sanya_yalongbay_hotel_meituan_001": 2,
+    "travel_chengdu_taikooli_hotel_meituan_001": 5,
+    "travel_beijing_guomao_business_meituan_001": 6,
+    "travel_hangzhou_westlake_route_meituan_001": 4
+  },
+  "skipped": [
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_chengdu_shudaxia_amap_001/claude_natural_candidate.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_chengdu_shudaxia_amap_001/diagnosis_plan_b.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_chengdu_shudaxia_amap_001/diagnosis_plan_c.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_chengdu_shudaxia_amap_001/generate_initial.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_chengdu_shudaxia_amap_001/generate_refined.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_diandoude_amap_001/claude_natural_candidate.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_diandoude_amap_001/diagnosis_plan_a.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_diandoude_amap_001/diagnosis_plan_b.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_diandoude_amap_001/diagnosis_plan_c.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_diandoude_amap_001/generate_initial.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_diandoude_amap_001/generate_refined.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_longxi_amap_002/claude_natural_candidate.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_longxi_amap_002/diagnosis_plan_a.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_longxi_amap_002/diagnosis_plan_b.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_longxi_amap_002/generate_refined.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_taotaoju_amap_001/claude_natural_candidate.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_taotaoju_amap_001/diagnosis_plan_a.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_taotaoju_amap_001/diagnosis_plan_b.json",
+      "reason": "fact_section_template_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_taotaoju_amap_001/diagnosis_plan_c.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_taotaoju_amap_001/generate_initial.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/food_guangzhou_taotaoju_amap_001/generate_refined.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_chengdu_taikooli_hotel_meituan_001/generate_initial.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_guangzhou_chimelong_hotel_meituan_001/claude_natural_candidate.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_guangzhou_chimelong_hotel_meituan_001/diagnosis_plan_a.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_guangzhou_chimelong_hotel_meituan_001/diagnosis_plan_c.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_guangzhou_chimelong_hotel_meituan_001/generate_initial.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_guangzhou_chimelong_hotel_meituan_001/generate_refined.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_hangzhou_westlake_route_meituan_001/diagnosis_plan_b.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_hangzhou_westlake_route_meituan_001/diagnosis_plan_c.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_sanya_yalongbay_hotel_meituan_001/claude_natural_candidate.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_sanya_yalongbay_hotel_meituan_001/diagnosis_plan_b.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_sanya_yalongbay_hotel_meituan_001/diagnosis_plan_c.json",
+      "reason": "blocking_filtered"
+    },
+    {
+      "path": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v07_food_travel_fact_sources/travel_sanya_yalongbay_hotel_meituan_001/generate_initial.json",
+      "reason": "title_unreadable_filtered:标题不自然：末尾疑似断词，语义不完整"
+    },
+    {
+      "path": "food_guangzhou_diandoude_amap_001",
+      "reason": "task_has_less_than_two_variants"
+    },
+    {
+      "path": "food_guangzhou_taotaoju_amap_001",
+      "reason": "task_has_less_than_two_variants"
+    },
+    {
+      "path": "food_chengdu_shudaxia_amap_001",
+      "reason": "task_has_less_than_two_variants"
+    },
+    {
+      "path": "travel_guangzhou_chimelong_hotel_meituan_001",
+      "reason": "task_has_less_than_two_variants"
+    }
+  ],
+  "policy": "This seed creates preference labeling queues only; labels must be human-reviewed before training.",
+  "outputs": {
+    "seed": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v07.food_travel_fact_sources.generated_from_artifacts.json",
+    "report": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v07.food_travel_fact_sources.generated_from_artifacts.report.json"
+  }
+}

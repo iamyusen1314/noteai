@@ -1,0 +1,139 @@
+{
+  "version": "v04-round02-focus-summary-v0.1",
+  "created_at": "2026-06-25T19:19:00+08:00",
+  "scope": "美妆/健身/母婴 focused preference expansion",
+  "generation": {
+    "task_pool": "quality/preference_task_pool.v02.focus.json",
+    "queue": "quality/preference_generation_queue.v02.focus.jsonl",
+    "artifact_dir": "quality/generated_variants/v02_focus",
+    "tasks": 9,
+    "slots": 54,
+    "ready": 54,
+    "failed": 0,
+    "score_summary": {
+      "count": 54,
+      "min": 30.861,
+      "max": 80.895,
+      "mean": 58.784,
+      "median": 63.573,
+      "ge60": 34,
+      "ge72": 9
+    },
+    "by_domain": {
+      "健身": {
+        "count": 18,
+        "min": 30.861,
+        "max": 48.794,
+        "mean": 39.968,
+        "ge60": 0,
+        "ge72": 0,
+        "blocking": 0
+      },
+      "母婴": {
+        "count": 18,
+        "min": 63.303,
+        "max": 76.198,
+        "mean": 70.319,
+        "ge60": 18,
+        "ge72": 6,
+        "blocking": 3
+      },
+      "美妆": {
+        "count": 18,
+        "min": 58.289,
+        "max": 80.895,
+        "mean": 66.066,
+        "ge60": 16,
+        "ge72": 3,
+        "blocking": 0
+      }
+    },
+    "known_generation_findings": [
+      "健身旧分数系统性偏低，18个候选最高仅48.794，但质量问题列表未显示致命硬错，需作为V0.4行业校准重点。",
+      "生成暴露若干标题硬截断尾巴，已修复交付标题后处理；旧artifact保留为偏好训练负例。"
+    ]
+  },
+  "preference_queue": {
+    "seed": "quality/preference_pairs.v02.focus.generated_from_artifacts.json",
+    "queue": "quality/preference_queue.v02.focus.jsonl",
+    "pairs": 135,
+    "by_domain": {
+      "美妆": 45,
+      "健身": 45,
+      "母婴": 45
+    }
+  },
+  "kimi_review": {
+    "main_rows": 135,
+    "main_status": {
+      "ok": 134,
+      "failed": 1
+    },
+    "main_judge_consensus": {
+      "disagree": 130,
+      "agree": 4,
+      "second_review_failed": 1
+    },
+    "retry_rows": 1,
+    "retry_status": {
+      "ok": 1
+    },
+    "retry_judge_consensus": {
+      "disagree": 1
+    },
+    "disagreement_flags": {
+      "low_kimi_confidence": 4,
+      "winner_mismatch": 52,
+      "margin_gap": 19,
+      "delivery_ready_mismatch": 126,
+      "second_review_failed": 1
+    },
+    "winner_same_ok": 82,
+    "winner_diff_ok": 52
+  },
+  "promotion": {
+    "strict_consensus_in_main_review": 4,
+    "winner_consensus_policy": "Explicit --auto-accept-winner-consensus for preference only: same A/B winner, Kimi ok, no winner_mismatch, no second_review_failed, no low_kimi_confidence, Kimi confidence >=0.7; delivery_ready_winner follows Kimi.",
+    "round02_main_promoted": 78,
+    "round02_retry_promoted": 1,
+    "round02_total_promoted": 79
+  },
+  "final_preference_labels": {
+    "combined_file": "quality/review_packets/promoted/v04_round01_round02_all_preference_promoted.jsonl",
+    "labeled_count": 118,
+    "by_domain": {
+      "美食": 16,
+      "家居": 10,
+      "旅行": 5,
+      "母婴": 26,
+      "穿搭": 7,
+      "美妆": 23,
+      "健身": 31
+    },
+    "winner": {
+      "B": 68,
+      "A": 50
+    },
+    "label_source": {
+      "None": 3,
+      "ai_rubric_consensus": 40,
+      "ai_rubric_winner_consensus": 75
+    },
+    "ingest_report": "quality/preference_labels.v01.merged.report.json",
+    "ingest_decision": "ok",
+    "ingest_errors": 0,
+    "ingest_warnings": 0
+  },
+  "training_decision": {
+    "default": "blocked_need_labels",
+    "experimental": "experimental_not_production",
+    "do_not_deploy": true,
+    "golden_rows": 45,
+    "preference_pairs": 118
+  },
+  "verification": {
+    "unittest": "87 tests OK",
+    "quality_gate": "PASS",
+    "py_compile": "PASS"
+  }
+}

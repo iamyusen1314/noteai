@@ -1,0 +1,119 @@
+{
+  "version": "reviewed-prelabel-promotion-v0.1",
+  "created_at": "2026-06-25T15:40:36.398935+00:00",
+  "kind": "preference",
+  "rows_seen": 46,
+  "promoted_count": 26,
+  "skipped_count": 20,
+  "skipped_preview": [
+    {
+      "id": "pref01_food_guangzhou_longxi_amap_002_0001_e062d533",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_longxi_amap_002_0002_ef464da6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_longxi_amap_002_0004_3e4aade5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_longxi_amap_002_0005_8e0d150d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_longxi_amap_002_0007_c15534c7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_longxi_amap_002_0009_e21bfd22",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_diandoude_amap_001_0011_39867467",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_diandoude_amap_001_0012_5e909869",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_diandoude_amap_001_0013_548d2241",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_diandoude_amap_001_0014_a15de21a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_diandoude_amap_001_0016_c6b270bb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_diandoude_amap_001_0017_dbeeed1c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_diandoude_amap_001_0018_40be8d9b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_diandoude_amap_001_0023_8b68f120",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_taotaoju_amap_001_0028_8159c6c7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_taotaoju_amap_001_0029_189aece5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_taotaoju_amap_001_0031_9d66b86a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_taotaoju_amap_001_0034_b926c4c3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_taotaoju_amap_001_0038_8ea9cd66",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_shudaxia_amap_001_0045_1edbc989",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    }
+  ],
+  "auto_accept_consensus": false,
+  "auto_accept_winner_consensus": true,
+  "winner_consensus_min_kimi_confidence": 0.75,
+  "policy": "Only review_decision=accept_ai/accept_with_edits, explicit --auto-accept-consensus judge_consensus=agree, or explicit --auto-accept-winner-consensus same A/B winner is promoted.",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round08b_food_expression_preference_promoted.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round08b_food_expression_preference_promoted.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round08b_food_expression_preference_promoted.report.json"
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "version": "preference-pair-seeds-v0.1",
+  "description": "Seed task variants for NoteAI A/B preference labeling. The first task uses Changxi Jia Longchu Wanbo outputs from real diagnosis, chat optimization, legacy score-directed repair as a negative control, Claude natural candidates, and manual natural rewrite.",
+  "tasks": [
+    {
+      "task_id": "changxi_longchu_wanbo_food_001",
+      "domain": "美食",
+      "task_context": "用户希望围绕广州番禺万博长禧家.珑厨(万博广晟店)生成小红书探店笔记，事实源包含高德地址、人均98元、高德评分4.5、营业时间09:00-14:00/17:00-21:00、芝士焗小青龙/乳鸽/忘不了鱼/雪燕杏花羹等菜品。",
+      "comparison_focus": [
+        "标题自然度",
+        "正文信息密度",
+        "事实安全",
+        "美食品类适配",
+        "AI味和模板感",
+        "是否值得交付"
+      ],
+      "variants": [
+        {
+          "id": "diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "tmp_changxi_lc_analyze_result_after_title_guard.json",
+          "title_path": "suggested_plans.0.title",
+          "body_path": "suggested_plans.0.body",
+          "score_path": "suggested_plans.0.score"
+        },
+        {
+          "id": "diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "tmp_changxi_lc_analyze_result_after_title_guard.json",
+          "title_path": "suggested_plans.1.title",
+          "body_path": "suggested_plans.1.body",
+          "score_path": "suggested_plans.1.score"
+        },
+        {
+          "id": "diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "tmp_changxi_lc_analyze_result_after_title_guard.json",
+          "title_path": "suggested_plans.2.title",
+          "body_path": "suggested_plans.2.body",
+          "score_path": "suggested_plans.2.score"
+        },
+        {
+          "id": "chat_round_1",
+          "origin": "chat_optimize",
+          "source_file": "tmp_changxi_lc_chat_optimize_result.json",
+          "title_path": "note_update.title",
+          "body_path": "note_update.body",
+          "score_path": "note_update.score"
+        },
+        {
+          "id": "chat_round_2",
+          "origin": "chat_optimize",
+          "source_file": "tmp_changxi_lc_chat_optimize_result_2.json",
+          "title_path": "note_update.title",
+          "body_path": "note_update.body",
+          "score_path": "note_update.score"
+        },
+        {
+          "id": "chat_brief_plan",
+          "origin": "chat_optimize_brief",
+          "source_file": "tmp_changxi_lc_chat_optimize_result_brief_plan.json",
+          "title_path": "note_update.title",
+          "body_path": "note_update.body",
+          "score_path": "note_update.score"
+        },
+        {
+          "id": "claude_natural_candidate_0",
+          "origin": "claude_natural_candidate",
+          "source_file": "tmp_changxi_lc_natural_claude_candidates.json",
+          "title_path": "0.title",
+          "body_path": "0.body",
+          "score_path": "0.score"
+        },
+        {
+          "id": "claude_natural_candidate_1",
+          "origin": "claude_natural_candidate",
+          "source_file": "tmp_changxi_lc_natural_claude_candidates.json",
+          "title_path": "1.title",
+          "body_path": "1.body",
+          "score_path": "1.score"
+        },
+        {
+          "id": "claude_natural_candidate_2",
+          "origin": "claude_natural_candidate",
+          "source_file": "tmp_changxi_lc_natural_claude_candidates.json",
+          "title_path": "2.title",
+          "body_path": "2.body",
+          "score_path": "2.score"
+        },
+        {
+          "id": "score_hack_72",
+          "origin": "legacy_score_directed_second_pass",
+          "source_file": "tmp_changxi_lc_score_lift_result.json",
+          "title_path": "output_title",
+          "body_path": "output_body",
+          "score_path": "score"
+        },
+        {
+          "id": "title_fixed_template",
+          "origin": "title_readability_guard",
+          "source_file": "tmp_changxi_lc_score_lift_natural_result.json",
+          "title_path": "output_title",
+          "body_path": "output_body",
+          "score_path": "score"
+        },
+        {
+          "id": "manual_natural",
+          "origin": "manual_natural_rewrite",
+          "source_file": "tmp_changxi_lc_natural_best_manual.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": [
+        {
+          "variant_a": "score_hack_72",
+          "variant_b": "manual_natural",
+          "winner_variant_id": "manual_natural",
+          "preference_margin": 3,
+          "delivery_ready_winner": true,
+          "reason_tags": ["title_readability", "naturalness", "less_template", "delivery_ready"],
+          "loser_failure_tags": ["title_unreadable", "score_hacking", "body_template"],
+          "rationale": "score_hack_72 虽然 v0.3 达标，但标题拼接生硬；manual_natural 读感自然、事实完整，更适合交付。"
+        },
+        {
+          "variant_a": "score_hack_72",
+          "variant_b": "title_fixed_template",
+          "winner_variant_id": "title_fixed_template",
+          "preference_margin": 1,
+          "delivery_ready_winner": false,
+          "reason_tags": ["title_readability"],
+          "loser_failure_tags": ["title_unreadable", "score_hacking"],
+          "rationale": "title_fixed_template 标题比评分黑客稿自然，但正文仍模板化，只能作为较优稿，不能直接交付。"
+        },
+        {
+          "variant_a": "title_fixed_template",
+          "variant_b": "manual_natural",
+          "winner_variant_id": "manual_natural",
+          "preference_margin": 2,
+          "delivery_ready_winner": true,
+          "reason_tags": ["naturalness", "body_specificity", "less_template"],
+          "loser_failure_tags": ["body_template", "ai_smell"],
+          "rationale": "manual_natural 比标题修复稿更像真实用户笔记，模板感更低。"
+        }
+      ]
+    }
+  ]
+}

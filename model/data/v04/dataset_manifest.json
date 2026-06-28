@@ -1,0 +1,125 @@
+{
+  "created_at": "2026-06-25T06:23:47.662032+00:00",
+  "raw": {
+    "raw_dir": "/Users/openclaw/Desktop/noteai/model/data/RedNote-Vibe-Dataset",
+    "files": {
+      "training_set_human.jsonl": {
+        "bytes": 79906129,
+        "sha256": "c737fe5d8b40dc21a3c61657e42e5359942a6abdf6837f31ad1dcef696eb1054",
+        "mtime_utc": "2026-04-11T08:10:56+00:00"
+      },
+      "training_set_aigc.jsonl": {
+        "bytes": 8064603,
+        "sha256": "288d6ec75512301dd5accaa22205204ce626d13b61753bc3e7ff005061108659",
+        "mtime_utc": "2026-04-11T08:10:38+00:00"
+      },
+      "exploring_set.jsonl": {
+        "bytes": 99085228,
+        "sha256": "0f6a07e5c525f2c99779a4a06780729d843f0045379c98c41f81ebe4f1cf5d4e",
+        "mtime_utc": "2026-04-11T08:11:16+00:00"
+      }
+    }
+  },
+  "outputs": {
+    "normalized_rows": "/Users/openclaw/Desktop/noteai/model/data/v04/normalized_rows.parquet",
+    "score_rows": "/Users/openclaw/Desktop/noteai/model/data/v04/score_rows.parquet",
+    "features": "/Users/openclaw/Desktop/noteai/model/data/v04/features_v04.parquet"
+  },
+  "rows": {
+    "normalized": 150649,
+    "score_rows_deduped": 110717,
+    "features": 110717,
+    "score_duplicate_note_ids_removed": 31562
+  },
+  "source_counts_all": {
+    "exploration": 91517,
+    "human": 51878,
+    "aigc": 7254
+  },
+  "source_counts_score": {
+    "exploration": 59045,
+    "human": 51672
+  },
+  "domain_counts_score": {
+    "情感": 15482,
+    "其他": 15407,
+    "健康": 14842,
+    "穿搭": 11623,
+    "旅行": 10725,
+    "心理": 10572,
+    "美食": 10515,
+    "职场": 10449,
+    "学习": 4898,
+    "宠物": 3492,
+    "运动": 2712
+  },
+  "labeling": {
+    "ces_raw": "liked_count + collected_count + comments_count * 4",
+    "ces_percentile": "rank percentile within source_type::domain",
+    "aigc_rows": "excluded from score training; reserved for naturalness/AIGT auxiliary model"
+  },
+  "feature_columns": [
+    "title_len",
+    "title_has_pos_emotion",
+    "title_has_neg_emotion",
+    "title_has_price",
+    "title_has_question",
+    "title_has_number",
+    "title_has_new_signal",
+    "title_has_city",
+    "body_len",
+    "body_has_address",
+    "body_has_hours",
+    "body_has_price",
+    "body_has_transport",
+    "body_has_booking",
+    "body_has_must_order",
+    "body_cta_count",
+    "plad_word_freq_entropy",
+    "plad_phrasal_repetition",
+    "plad_punctuation_ratio",
+    "plad_interactive_stance",
+    "plad_ttr",
+    "plad_sentence_count",
+    "plad_avg_sentence_len",
+    "plad_sentence_burstiness",
+    "plad_emoji_density",
+    "plad_unique_emoji_ratio",
+    "plad_number_ratio",
+    "plad_word_burstiness",
+    "plad_immediate_repetition",
+    "tag_count",
+    "tag_has_city",
+    "tag_has_food_travel",
+    "time_hour",
+    "time_weekday",
+    "time_is_weekend",
+    "time_days_to_holiday",
+    "domain_encoded",
+    "semantic_emotional_intensity",
+    "semantic_empathetic_engagement",
+    "semantic_rhetorical_score",
+    "cover_brightness",
+    "cover_warmth",
+    "cover_saturation",
+    "cover_contrast",
+    "cover_sharpness",
+    "cover_aspect_ratio",
+    "cover_has_face",
+    "cover_face_count",
+    "cover_has_text",
+    "cover_text_prominence",
+    "cover_composition_score",
+    "cover_aesthetic_score",
+    "cover_emotion_intensity",
+    "cover_visual_clarity",
+    "keyword_search_vol",
+    "trend_momentum",
+    "is_trending_topic",
+    "content_freshness",
+    "category_saturation",
+    "category_avg_ces",
+    "keyword_competition",
+    "trend_peak_distance"
+  ]
+}

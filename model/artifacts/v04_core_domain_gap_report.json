@@ -1,0 +1,135 @@
+{
+  "version": "v04-core-domain-gap-report-v0.1",
+  "created_at": "2026-06-25T16:57:53.909217+00:00",
+  "decision": "blocked_need_labels",
+  "core_domains": [
+    "美食",
+    "旅行",
+    "穿搭",
+    "美妆",
+    "家居",
+    "健身",
+    "母婴"
+  ],
+  "inputs": {
+    "annotation_report": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.report.json",
+    "supplement_report": "/Users/openclaw/Desktop/noteai/quality/annotation_queue.v01.core_supplement.v02.report.json",
+    "golden_batch_reports": [
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round01_golden.report.json",
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round01b_golden.report.json"
+    ],
+    "preference_batch_reports": [
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round01_preference.report.json",
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round01b_preference.report.json"
+    ],
+    "readiness_report": "/Users/openclaw/Desktop/noteai/model/artifacts/v04_composite_readiness.json",
+    "health_report": "/Users/openclaw/Desktop/noteai/model/artifacts/v04_training_data_health.json"
+  },
+  "rows": [
+    {
+      "domain": "美食",
+      "queue_needs_label": 350,
+      "round01_golden_exported": 40,
+      "round01_preference_exported": 78,
+      "golden_labeled_current": 39,
+      "preference_pairs_labeled_current": 73,
+      "golden_needed_for_candidate": 261,
+      "preference_pairs_needed_for_candidate": 927,
+      "golden_needed_for_production": 961,
+      "preference_pairs_needed_for_production": 2927
+    },
+    {
+      "domain": "旅行",
+      "queue_needs_label": 350,
+      "round01_golden_exported": 40,
+      "round01_preference_exported": 15,
+      "golden_labeled_current": 21,
+      "preference_pairs_labeled_current": 47,
+      "golden_needed_for_candidate": 279,
+      "preference_pairs_needed_for_candidate": 953,
+      "golden_needed_for_production": 979,
+      "preference_pairs_needed_for_production": 2953
+    },
+    {
+      "domain": "穿搭",
+      "queue_needs_label": 350,
+      "round01_golden_exported": 40,
+      "round01_preference_exported": 15,
+      "golden_labeled_current": 33,
+      "preference_pairs_labeled_current": 36,
+      "golden_needed_for_candidate": 267,
+      "preference_pairs_needed_for_candidate": 964,
+      "golden_needed_for_production": 967,
+      "preference_pairs_needed_for_production": 2964
+    },
+    {
+      "domain": "美妆",
+      "queue_needs_label": 300,
+      "round01_golden_exported": 40,
+      "round01_preference_exported": 15,
+      "golden_labeled_current": 14,
+      "preference_pairs_labeled_current": 23,
+      "golden_needed_for_candidate": 286,
+      "preference_pairs_needed_for_candidate": 977,
+      "golden_needed_for_production": 986,
+      "preference_pairs_needed_for_production": 2977
+    },
+    {
+      "domain": "家居",
+      "queue_needs_label": 300,
+      "round01_golden_exported": 40,
+      "round01_preference_exported": 15,
+      "golden_labeled_current": 17,
+      "preference_pairs_labeled_current": 36,
+      "golden_needed_for_candidate": 283,
+      "preference_pairs_needed_for_candidate": 964,
+      "golden_needed_for_production": 983,
+      "preference_pairs_needed_for_production": 2964
+    },
+    {
+      "domain": "健身",
+      "queue_needs_label": 350,
+      "round01_golden_exported": 40,
+      "round01_preference_exported": 15,
+      "golden_labeled_current": 25,
+      "preference_pairs_labeled_current": 31,
+      "golden_needed_for_candidate": 275,
+      "preference_pairs_needed_for_candidate": 969,
+      "golden_needed_for_production": 975,
+      "preference_pairs_needed_for_production": 2969
+    },
+    {
+      "domain": "母婴",
+      "queue_needs_label": 300,
+      "round01_golden_exported": 40,
+      "round01_preference_exported": 15,
+      "golden_labeled_current": 8,
+      "preference_pairs_labeled_current": 26,
+      "golden_needed_for_candidate": 292,
+      "preference_pairs_needed_for_candidate": 974,
+      "golden_needed_for_production": 992,
+      "preference_pairs_needed_for_production": 2974
+    }
+  ],
+  "summary": {
+    "round01_golden_total": 280,
+    "round01_preference_total": 168,
+    "core_domains_with_queue_needs_label": [
+      "美食",
+      "旅行",
+      "穿搭",
+      "美妆",
+      "家居",
+      "健身",
+      "母婴"
+    ],
+    "core_domains_missing_queue_needs_label": [],
+    "core_domains_missing_main_snapshot": [
+      "美妆",
+      "家居",
+      "母婴"
+    ],
+    "health_issues": [],
+    "policy": "Do not train a deployable v0.4-composite model until candidate/production label thresholds are met and health issues are cleared."
+  }
+}

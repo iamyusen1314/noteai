@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "cookie_valid": false,
+  "last_run": null,
+  "total_collected": 0,
+  "daily_limit": 300,
+  "schedule_hour": 3
+}

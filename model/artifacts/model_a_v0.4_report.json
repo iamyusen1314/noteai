@@ -1,0 +1,930 @@
+{
+  "run_id": "20260625T062401Z",
+  "created_at": "2026-06-25T06:24:01.202528+00:00",
+  "model": {
+    "version": "v0.4-candidate",
+    "path": "/Users/openclaw/Desktop/noteai/model/artifacts/model_a_v0.4_candidate_20260625T062401Z.lgb",
+    "latest_candidate_path": "/Users/openclaw/Desktop/noteai/model/artifacts/model_a_v0.4_candidate.lgb",
+    "feature_count": 62,
+    "feature_columns": [
+      "title_len",
+      "title_has_pos_emotion",
+      "title_has_neg_emotion",
+      "title_has_price",
+      "title_has_question",
+      "title_has_number",
+      "title_has_new_signal",
+      "title_has_city",
+      "body_len",
+      "body_has_address",
+      "body_has_hours",
+      "body_has_price",
+      "body_has_transport",
+      "body_has_booking",
+      "body_has_must_order",
+      "body_cta_count",
+      "plad_word_freq_entropy",
+      "plad_phrasal_repetition",
+      "plad_punctuation_ratio",
+      "plad_interactive_stance",
+      "plad_ttr",
+      "plad_sentence_count",
+      "plad_avg_sentence_len",
+      "plad_sentence_burstiness",
+      "plad_emoji_density",
+      "plad_unique_emoji_ratio",
+      "plad_number_ratio",
+      "plad_word_burstiness",
+      "plad_immediate_repetition",
+      "tag_count",
+      "tag_has_city",
+      "tag_has_food_travel",
+      "time_hour",
+      "time_weekday",
+      "time_is_weekend",
+      "time_days_to_holiday",
+      "domain_encoded",
+      "semantic_emotional_intensity",
+      "semantic_empathetic_engagement",
+      "semantic_rhetorical_score",
+      "cover_brightness",
+      "cover_warmth",
+      "cover_saturation",
+      "cover_contrast",
+      "cover_sharpness",
+      "cover_aspect_ratio",
+      "cover_has_face",
+      "cover_face_count",
+      "cover_has_text",
+      "cover_text_prominence",
+      "cover_composition_score",
+      "cover_aesthetic_score",
+      "cover_emotion_intensity",
+      "cover_visual_clarity",
+      "keyword_search_vol",
+      "trend_momentum",
+      "is_trending_topic",
+      "content_freshness",
+      "category_saturation",
+      "category_avg_ces",
+      "keyword_competition",
+      "trend_peak_distance"
+    ],
+    "params": {
+      "objective": "regression_l2",
+      "num_leaves": 63,
+      "n_estimators": 5000,
+      "learning_rate": 0.03,
+      "subsample": 0.85,
+      "colsample_bytree": 0.85,
+      "min_child_samples": 80,
+      "reg_alpha": 0.2,
+      "reg_lambda": 2.0,
+      "random_state": 42,
+      "n_jobs": -1,
+      "verbose": -1
+    },
+    "best_iteration": 1245
+  },
+  "dataset": {
+    "created_at": "2026-06-25T06:23:47.662032+00:00",
+    "raw": {
+      "raw_dir": "/Users/openclaw/Desktop/noteai/model/data/RedNote-Vibe-Dataset",
+      "files": {
+        "training_set_human.jsonl": {
+          "bytes": 79906129,
+          "sha256": "c737fe5d8b40dc21a3c61657e42e5359942a6abdf6837f31ad1dcef696eb1054",
+          "mtime_utc": "2026-04-11T08:10:56+00:00"
+        },
+        "training_set_aigc.jsonl": {
+          "bytes": 8064603,
+          "sha256": "288d6ec75512301dd5accaa22205204ce626d13b61753bc3e7ff005061108659",
+          "mtime_utc": "2026-04-11T08:10:38+00:00"
+        },
+        "exploring_set.jsonl": {
+          "bytes": 99085228,
+          "sha256": "0f6a07e5c525f2c99779a4a06780729d843f0045379c98c41f81ebe4f1cf5d4e",
+          "mtime_utc": "2026-04-11T08:11:16+00:00"
+        }
+      }
+    },
+    "outputs": {
+      "normalized_rows": "/Users/openclaw/Desktop/noteai/model/data/v04/normalized_rows.parquet",
+      "score_rows": "/Users/openclaw/Desktop/noteai/model/data/v04/score_rows.parquet",
+      "features": "/Users/openclaw/Desktop/noteai/model/data/v04/features_v04.parquet"
+    },
+    "rows": {
+      "normalized": 150649,
+      "score_rows_deduped": 110717,
+      "features": 110717,
+      "score_duplicate_note_ids_removed": 31562
+    },
+    "source_counts_all": {
+      "exploration": 91517,
+      "human": 51878,
+      "aigc": 7254
+    },
+    "source_counts_score": {
+      "exploration": 59045,
+      "human": 51672
+    },
+    "domain_counts_score": {
+      "情感": 15482,
+      "其他": 15407,
+      "健康": 14842,
+      "穿搭": 11623,
+      "旅行": 10725,
+      "心理": 10572,
+      "美食": 10515,
+      "职场": 10449,
+      "学习": 4898,
+      "宠物": 3492,
+      "运动": 2712
+    },
+    "labeling": {
+      "ces_raw": "liked_count + collected_count + comments_count * 4",
+      "ces_percentile": "rank percentile within source_type::domain",
+      "aigc_rows": "excluded from score training; reserved for naturalness/AIGT auxiliary model"
+    },
+    "feature_columns": [
+      "title_len",
+      "title_has_pos_emotion",
+      "title_has_neg_emotion",
+      "title_has_price",
+      "title_has_question",
+      "title_has_number",
+      "title_has_new_signal",
+      "title_has_city",
+      "body_len",
+      "body_has_address",
+      "body_has_hours",
+      "body_has_price",
+      "body_has_transport",
+      "body_has_booking",
+      "body_has_must_order",
+      "body_cta_count",
+      "plad_word_freq_entropy",
+      "plad_phrasal_repetition",
+      "plad_punctuation_ratio",
+      "plad_interactive_stance",
+      "plad_ttr",
+      "plad_sentence_count",
+      "plad_avg_sentence_len",
+      "plad_sentence_burstiness",
+      "plad_emoji_density",
+      "plad_unique_emoji_ratio",
+      "plad_number_ratio",
+      "plad_word_burstiness",
+      "plad_immediate_repetition",
+      "tag_count",
+      "tag_has_city",
+      "tag_has_food_travel",
+      "time_hour",
+      "time_weekday",
+      "time_is_weekend",
+      "time_days_to_holiday",
+      "domain_encoded",
+      "semantic_emotional_intensity",
+      "semantic_empathetic_engagement",
+      "semantic_rhetorical_score",
+      "cover_brightness",
+      "cover_warmth",
+      "cover_saturation",
+      "cover_contrast",
+      "cover_sharpness",
+      "cover_aspect_ratio",
+      "cover_has_face",
+      "cover_face_count",
+      "cover_has_text",
+      "cover_text_prominence",
+      "cover_composition_score",
+      "cover_aesthetic_score",
+      "cover_emotion_intensity",
+      "cover_visual_clarity",
+      "keyword_search_vol",
+      "trend_momentum",
+      "is_trending_topic",
+      "content_freshness",
+      "category_saturation",
+      "category_avg_ces",
+      "keyword_competition",
+      "trend_peak_distance"
+    ]
+  },
+  "dataset_summary": {
+    "rows": 110717,
+    "unique_note_ids": 110717,
+    "source_counts": {
+      "exploration": 59045,
+      "human": 51672
+    },
+    "domain_counts": {
+      "情感": 15482,
+      "其他": 15407,
+      "健康": 14842,
+      "穿搭": 11623,
+      "旅行": 10725,
+      "心理": 10572,
+      "美食": 10515,
+      "职场": 10449,
+      "学习": 4898,
+      "宠物": 3492,
+      "运动": 2712
+    },
+    "label_mean": 50.00948363846564,
+    "label_min": 0.0398406374501992,
+    "label_max": 100.0,
+    "top_label_groups": {
+      "exploration::其他": 15407,
+      "human::健康": 9440,
+      "exploration::情感": 8657,
+      "human::美食": 8005,
+      "human::情感": 6825,
+      "exploration::穿搭": 6548,
+      "exploration::心理": 6421,
+      "human::旅行": 6141,
+      "human::职场": 5433,
+      "exploration::健康": 5402,
+      "human::穿搭": 5075,
+      "exploration::职场": 5016,
+      "exploration::旅行": 4584,
+      "human::心理": 4151,
+      "human::学习": 3744,
+      "exploration::美食": 2510,
+      "exploration::宠物": 1806,
+      "human::宠物": 1686,
+      "exploration::运动": 1540,
+      "human::运动": 1172
+    }
+  },
+  "split": {
+    "method": "GroupShuffleSplit(note_id)",
+    "val_size": 0.2,
+    "random_state": 42,
+    "train_rows": 88573,
+    "val_rows": 22144,
+    "leakage": {
+      "train_unique_note_ids": 88573,
+      "val_unique_note_ids": 22144,
+      "overlap_note_ids": 0,
+      "passed": true
+    },
+    "human_weight": 0.85
+  },
+  "metrics": {
+    "rmse": 26.457131758131812,
+    "mae": 22.684852166345525,
+    "acc_5pt": 10.64396676300578,
+    "acc_10pt": 21.576950867052023,
+    "bias": 0.00822181841240893,
+    "spearman": 0.3485409544236006
+  },
+  "metrics_by_domain": [
+    {
+      "domain": "其他",
+      "rows": 3075,
+      "label_mean": 49.76169949146755,
+      "pred_mean": 50.09922100323195,
+      "rmse": 26.34663436053098,
+      "mae": 22.256990119446584,
+      "acc_5pt": 11.577235772357723,
+      "acc_10pt": 24.03252032520325,
+      "bias": 0.3375215117643958,
+      "spearman": 0.3777869546608086
+    },
+    {
+      "domain": "健康",
+      "rows": 3055,
+      "label_mean": 50.574450661579974,
+      "pred_mean": 50.13858497228023,
+      "rmse": 26.26175407429033,
+      "mae": 22.67095174414296,
+      "acc_5pt": 10.50736497545008,
+      "acc_10pt": 20.78559738134206,
+      "bias": -0.4358656892997493,
+      "spearman": 0.3752351891262265
+    },
+    {
+      "domain": "情感",
+      "rows": 3043,
+      "label_mean": 49.91384025142591,
+      "pred_mean": 49.870407681877616,
+      "rmse": 26.519622334194697,
+      "mae": 22.943951521602916,
+      "acc_5pt": 10.05586592178771,
+      "acc_10pt": 20.046007229707524,
+      "bias": -0.04343256954830913,
+      "spearman": 0.3225164803325291
+    },
+    {
+      "domain": "穿搭",
+      "rows": 2267,
+      "label_mean": 49.07735370610157,
+      "pred_mean": 50.78303762126727,
+      "rmse": 27.0061618385156,
+      "mae": 23.13860186715491,
+      "acc_5pt": 10.719011910013233,
+      "acc_10pt": 21.967357741508604,
+      "bias": 1.7056839151656944,
+      "spearman": 0.3315351249088082
+    },
+    {
+      "domain": "旅行",
+      "rows": 2145,
+      "label_mean": 51.562854376546106,
+      "pred_mean": 50.06162857814341,
+      "rmse": 26.73620622166849,
+      "mae": 22.96302993507785,
+      "acc_5pt": 10.862470862470861,
+      "acc_10pt": 20.745920745920746,
+      "bias": -1.5012257984026895,
+      "spearman": 0.3500245976268117
+    },
+    {
+      "domain": "职场",
+      "rows": 2135,
+      "label_mean": 49.47041838310755,
+      "pred_mean": 49.78511485941434,
+      "rmse": 26.297596098806746,
+      "mae": 22.742752011330854,
+      "acc_5pt": 9.648711943793911,
+      "acc_10pt": 19.34426229508197,
+      "bias": 0.31469647630680186,
+      "spearman": 0.3387788669112186
+    },
+    {
+      "domain": "美食",
+      "rows": 2090,
+      "label_mean": 50.16550457613851,
+      "pred_mean": 50.23866325298492,
+      "rmse": 25.57759763492158,
+      "mae": 21.450539628417292,
+      "acc_5pt": 13.397129186602871,
+      "acc_10pt": 26.02870813397129,
+      "bias": 0.07315867684640386,
+      "spearman": 0.4018883753710994
+    },
+    {
+      "domain": "心理",
+      "rows": 2079,
+      "label_mean": 50.2081127823941,
+      "pred_mean": 49.493498257883296,
+      "rmse": 26.737657961995296,
+      "mae": 23.074485236096944,
+      "acc_5pt": 8.706108706108706,
+      "acc_10pt": 20.250120250120247,
+      "bias": -0.7146145245108096,
+      "spearman": 0.30266845482300353
+    },
+    {
+      "domain": "学习",
+      "rows": 995,
+      "label_mean": 49.57865991495196,
+      "pred_mean": 50.60431079727063,
+      "rmse": 26.614332490551494,
+      "mae": 23.138112102086314,
+      "acc_5pt": 9.346733668341708,
+      "acc_10pt": 20.0,
+      "bias": 1.025650882318662,
+      "spearman": 0.30785873420903986
+    },
+    {
+      "domain": "宠物",
+      "rows": 697,
+      "label_mean": 49.87972783112474,
+      "pred_mean": 50.161520962133636,
+      "rmse": 27.09547532531514,
+      "mae": 23.245651266654736,
+      "acc_5pt": 10.760401721664275,
+      "acc_10pt": 22.381635581061694,
+      "bias": 0.28179313100889747,
+      "spearman": 0.29998926273482024
+    },
+    {
+      "domain": "运动",
+      "rows": 563,
+      "label_mean": 51.08186091577419,
+      "pred_mean": 50.02544303798013,
+      "rmse": 26.167444847719512,
+      "mae": 22.238208533245473,
+      "acc_5pt": 11.190053285968029,
+      "acc_10pt": 20.959147424511546,
+      "bias": -1.0564178777940574,
+      "spearman": 0.344896959518434
+    }
+  ],
+  "metrics_by_source": [
+    {
+      "source_type": "exploration",
+      "rows": 11824,
+      "label_mean": 50.098276756600285,
+      "pred_mean": 50.25267521394061,
+      "rmse": 26.991453750259797,
+      "mae": 22.951700134143916,
+      "acc_5pt": 11.611975642760488,
+      "acc_10pt": 23.13937753721245,
+      "bias": 0.15439845734032528,
+      "spearman": 0.33451013433734406
+    },
+    {
+      "source_type": "human",
+      "rows": 10320,
+      "label_mean": 50.05935916741996,
+      "pred_mean": 49.90010108479712,
+      "rmse": 25.831357206145192,
+      "mae": 22.379114727271087,
+      "acc_5pt": 9.534883720930234,
+      "acc_10pt": 19.78682170542636,
+      "bias": -0.1592580826228311,
+      "spearman": 0.35976224163090165
+    }
+  ],
+  "metrics_by_label_group": [
+    {
+      "label_group": "exploration::其他",
+      "rows": 3075,
+      "label_mean": 49.76169949146755,
+      "pred_mean": 50.09922100323195,
+      "rmse": 26.34663436053098,
+      "mae": 22.256990119446584,
+      "acc_5pt": 11.577235772357723,
+      "acc_10pt": 24.03252032520325,
+      "bias": 0.3375215117643958,
+      "spearman": 0.3777869546608086
+    },
+    {
+      "label_group": "human::健康",
+      "rows": 1909,
+      "label_mean": 50.73392316502561,
+      "pred_mean": 49.97487066914268,
+      "rmse": 25.878024751676417,
+      "mae": 22.51052862642622,
+      "acc_5pt": 9.743321110529072,
+      "acc_10pt": 19.486642221058144,
+      "bias": -0.7590524958829366,
+      "spearman": 0.35883946075397105
+    },
+    {
+      "label_group": "exploration::情感",
+      "rows": 1726,
+      "label_mean": 50.125933761665614,
+      "pred_mean": 50.215153343688876,
+      "rmse": 27.275832644194594,
+      "mae": 23.317110766743088,
+      "acc_5pt": 11.645422943221321,
+      "acc_10pt": 22.943221320973347,
+      "bias": 0.08921958202325456,
+      "spearman": 0.29461128556179034
+    },
+    {
+      "label_group": "human::美食",
+      "rows": 1607,
+      "label_mean": 50.128960314551385,
+      "pred_mean": 50.2803538932273,
+      "rmse": 25.755973306913294,
+      "mae": 21.669587878589688,
+      "acc_5pt": 12.943372744243934,
+      "acc_10pt": 25.07778469197262,
+      "bias": 0.15139357867591746,
+      "spearman": 0.40767453657127173
+    },
+    {
+      "label_group": "human::情感",
+      "rows": 1317,
+      "label_mean": 49.635880191688855,
+      "pred_mean": 49.41859977581365,
+      "rmse": 25.494629475341124,
+      "mae": 22.454906072011454,
+      "acc_5pt": 7.972665148063782,
+      "acc_10pt": 16.249050873196662,
+      "bias": -0.21728041587520364,
+      "spearman": 0.35199408937384696
+    },
+    {
+      "label_group": "exploration::穿搭",
+      "rows": 1290,
+      "label_mean": 49.1830039825167,
+      "pred_mean": 50.86212846338335,
+      "rmse": 27.017053063545664,
+      "mae": 22.93764479379873,
+      "acc_5pt": 11.550387596899226,
+      "acc_10pt": 23.488372093023255,
+      "bias": 1.6791244808666406,
+      "spearman": 0.30961828320547335
+    },
+    {
+      "label_group": "exploration::心理",
+      "rows": 1219,
+      "label_mean": 50.977041723354674,
+      "pred_mean": 49.586865223187104,
+      "rmse": 28.05917100069725,
+      "mae": 24.141489005488022,
+      "acc_5pt": 10.336341263330599,
+      "acc_10pt": 21.32895816242822,
+      "bias": -1.3901765001675677,
+      "spearman": 0.2820270090997174
+    },
+    {
+      "label_group": "human::旅行",
+      "rows": 1215,
+      "label_mean": 51.16278430812798,
+      "pred_mean": 50.00451417739512,
+      "rmse": 26.316757361388778,
+      "mae": 22.768043658272262,
+      "acc_5pt": 9.958847736625515,
+      "acc_10pt": 19.588477366255145,
+      "bias": -1.1582701307328633,
+      "spearman": 0.3721874011434086
+    },
+    {
+      "label_group": "exploration::健康",
+      "rows": 1146,
+      "label_mean": 50.308802311599415,
+      "pred_mean": 50.41129928701808,
+      "rmse": 26.888811895218737,
+      "mae": 22.93818362173568,
+      "acc_5pt": 11.780104712041885,
+      "acc_10pt": 22.949389179755673,
+      "bias": 0.10249697541866683,
+      "spearman": 0.3983190771816805
+    },
+    {
+      "label_group": "human::职场",
+      "rows": 1106,
+      "label_mean": 49.52791676610254,
+      "pred_mean": 49.757596629806805,
+      "rmse": 25.181945917409802,
+      "mae": 22.069467440929056,
+      "acc_5pt": 8.95117540687161,
+      "acc_10pt": 17.17902350813743,
+      "bias": 0.229679863704269,
+      "spearman": 0.351114411301503
+    },
+    {
+      "label_group": "exploration::职场",
+      "rows": 1029,
+      "label_mean": 49.40861740002449,
+      "pred_mean": 49.81469227627143,
+      "rmse": 27.446209946902734,
+      "mae": 23.46641842033415,
+      "acc_5pt": 10.398445092322643,
+      "acc_10pt": 21.671525753158406,
+      "bias": 0.4060748762469388,
+      "spearman": 0.3318918129752116
+    },
+    {
+      "label_group": "human::穿搭",
+      "rows": 977,
+      "label_mean": 48.9378564117561,
+      "pred_mean": 50.678608566682065,
+      "rmse": 26.991774676333083,
+      "mae": 23.40393925162725,
+      "acc_5pt": 9.621289662231321,
+      "acc_10pt": 19.959058341862846,
+      "bias": 1.7407521549259604,
+      "spearman": 0.357514607777786
+    },
+    {
+      "label_group": "exploration::旅行",
+      "rows": 930,
+      "label_mean": 52.08552656270525,
+      "pred_mean": 50.13624577912101,
+      "rmse": 27.274478868434333,
+      "mae": 23.217770070904503,
+      "acc_5pt": 12.043010752688172,
+      "acc_10pt": 22.258064516129032,
+      "bias": -1.949280783584237,
+      "spearman": 0.3202974116870078
+    },
+    {
+      "label_group": "human::心理",
+      "rows": 860,
+      "label_mean": 49.11820071375348,
+      "pred_mean": 49.361156012877075,
+      "rmse": 24.743861708444445,
+      "mae": 21.562069428087963,
+      "acc_5pt": 6.395348837209303,
+      "acc_10pt": 18.72093023255814,
+      "bias": 0.2429552991235947,
+      "spearman": 0.33598382611271005
+    },
+    {
+      "label_group": "human::学习",
+      "rows": 748,
+      "label_mean": 50.24479452328716,
+      "pred_mean": 49.895430570128376,
+      "rmse": 25.771772197912483,
+      "mae": 22.609728470328843,
+      "acc_5pt": 8.155080213903744,
+      "acc_10pt": 19.6524064171123,
+      "bias": -0.34936395315879176,
+      "spearman": 0.3529265841525697
+    },
+    {
+      "label_group": "exploration::美食",
+      "rows": 483,
+      "label_mean": 50.287091798437714,
+      "pred_mean": 50.09995340025301,
+      "rmse": 24.974950925508978,
+      "mae": 20.72173934264701,
+      "acc_5pt": 14.906832298136646,
+      "acc_10pt": 29.19254658385093,
+      "bias": -0.18713839818471012,
+      "spearman": 0.3858256976572874
+    },
+    {
+      "label_group": "exploration::宠物",
+      "rows": 352,
+      "label_mean": 49.76176318836203,
+      "pred_mean": 50.384673541516264,
+      "rmse": 27.14874966115224,
+      "mae": 23.456862653665702,
+      "acc_5pt": 10.795454545454545,
+      "acc_10pt": 21.59090909090909,
+      "bias": 0.6229103531542318,
+      "spearman": 0.3161237428660156
+    },
+    {
+      "label_group": "human::宠物",
+      "rows": 345,
+      "label_mean": 50.000085959392784,
+      "pred_mean": 49.9338406492563,
+      "rmse": 27.041011887759932,
+      "mae": 23.030154431211663,
+      "acc_5pt": 10.72463768115942,
+      "acc_10pt": 23.18840579710145,
+      "bias": -0.06624531013648748,
+      "spearman": 0.28152344132785667
+    },
+    {
+      "label_group": "exploration::运动",
+      "rows": 327,
+      "label_mean": 51.23237618650462,
+      "pred_mean": 51.321322272496,
+      "rmse": 26.52650495837678,
+      "mae": 22.247394955344777,
+      "acc_5pt": 13.761467889908257,
+      "acc_10pt": 23.24159021406728,
+      "bias": 0.0889460859913625,
+      "spearman": 0.3275645441000258
+    },
+    {
+      "label_group": "exploration::学习",
+      "rows": 247,
+      "label_mean": 47.56137778120812,
+      "pred_mean": 52.751041201733806,
+      "rmse": 29.017045616365884,
+      "mae": 24.73823743226683,
+      "acc_5pt": 12.955465587044534,
+      "acc_10pt": 21.052631578947366,
+      "bias": 5.189663420525689,
+      "spearman": 0.1915472656724533
+    },
+    {
+      "label_group": "human::运动",
+      "rows": 236,
+      "label_mean": 50.873307977092615,
+      "pred_mean": 48.22988155625689,
+      "rmse": 25.661631607487553,
+      "mae": 22.2254798890655,
+      "acc_5pt": 7.627118644067797,
+      "acc_10pt": 17.796610169491526,
+      "bias": -2.6434264208357194,
+      "spearman": 0.38791844478057647
+    }
+  ],
+  "calibration": [
+    {
+      "bucket": "(2.358, 37.624]",
+      "rows": 2215,
+      "pred_mean": 32.096570736298396,
+      "label_mean": 31.091412876331066,
+      "bias": 1.0051578599673283
+    },
+    {
+      "bucket": "(37.624, 42.055]",
+      "rows": 2214,
+      "pred_mean": 40.05439524004974,
+      "label_mean": 39.56750620941836,
+      "bias": 0.48688903063137234
+    },
+    {
+      "bucket": "(42.055, 45.288]",
+      "rows": 2214,
+      "pred_mean": 43.74841951956017,
+      "label_mean": 44.454295611911036,
+      "bias": -0.7058760923508656
+    },
+    {
+      "bucket": "(45.288, 47.884]",
+      "rows": 2215,
+      "pred_mean": 46.611498698998915,
+      "label_mean": 46.25230375323758,
+      "bias": 0.359194945761346
+    },
+    {
+      "bucket": "(47.884, 50.218]",
+      "rows": 2214,
+      "pred_mean": 49.06996807091696,
+      "label_mean": 48.33174291019276,
+      "bias": 0.7382251607241967
+    },
+    {
+      "bucket": "(50.218, 52.533]",
+      "rows": 2214,
+      "pred_mean": 51.3750096268987,
+      "label_mean": 51.761059862999964,
+      "bias": -0.38605023610126415
+    },
+    {
+      "bucket": "(52.533, 55.104]",
+      "rows": 2215,
+      "pred_mean": 53.80552296470854,
+      "label_mean": 54.84895425004485,
+      "bias": -1.0434312853363148
+    },
+    {
+      "bucket": "(55.104, 58.13]",
+      "rows": 2214,
+      "pred_mean": 56.56235382058238,
+      "label_mean": 57.44473381943393,
+      "bias": -0.8823799988515534
+    },
+    {
+      "bucket": "(58.13, 62.586]",
+      "rows": 2214,
+      "pred_mean": 60.152824952646014,
+      "label_mean": 60.26607160155421,
+      "bias": -0.11324664890820853
+    },
+    {
+      "bucket": "(62.586, 95.702]",
+      "rows": 2215,
+      "pred_mean": 67.40724580318705,
+      "label_mean": 66.78392198877296,
+      "bias": 0.6233238144140917
+    }
+  ],
+  "top_features_gain": [
+    {
+      "feature": "time_days_to_holiday",
+      "gain": 38250475.16143799
+    },
+    {
+      "feature": "title_len",
+      "gain": 31539092.575637817
+    },
+    {
+      "feature": "domain_encoded",
+      "gain": 27120040.294631958
+    },
+    {
+      "feature": "plad_avg_sentence_len",
+      "gain": 25408757.916915894
+    },
+    {
+      "feature": "plad_punctuation_ratio",
+      "gain": 24372795.400253296
+    },
+    {
+      "feature": "body_len",
+      "gain": 24071337.365890503
+    },
+    {
+      "feature": "plad_phrasal_repetition",
+      "gain": 23016212.441619873
+    },
+    {
+      "feature": "plad_word_freq_entropy",
+      "gain": 21986865.18560791
+    },
+    {
+      "feature": "plad_word_burstiness",
+      "gain": 21140202.69064331
+    },
+    {
+      "feature": "plad_ttr",
+      "gain": 20666149.236587524
+    },
+    {
+      "feature": "plad_number_ratio",
+      "gain": 20291444.531036377
+    },
+    {
+      "feature": "plad_sentence_burstiness",
+      "gain": 18504682.50149536
+    },
+    {
+      "feature": "time_hour",
+      "gain": 18238994.208770752
+    },
+    {
+      "feature": "plad_emoji_density",
+      "gain": 13989698.284362793
+    },
+    {
+      "feature": "tag_count",
+      "gain": 13658601.962661743
+    },
+    {
+      "feature": "plad_immediate_repetition",
+      "gain": 10345788.200073242
+    },
+    {
+      "feature": "plad_sentence_count",
+      "gain": 9881311.89541626
+    },
+    {
+      "feature": "time_weekday",
+      "gain": 9051404.105316162
+    },
+    {
+      "feature": "plad_unique_emoji_ratio",
+      "gain": 8512878.200271606
+    },
+    {
+      "feature": "plad_interactive_stance",
+      "gain": 7710551.018203735
+    },
+    {
+      "feature": "tag_has_food_travel",
+      "gain": 2090916.7264404297
+    },
+    {
+      "feature": "body_has_must_order",
+      "gain": 1859703.5909729004
+    },
+    {
+      "feature": "body_has_address",
+      "gain": 1670615.1697387695
+    },
+    {
+      "feature": "title_has_number",
+      "gain": 1387984.2486572266
+    },
+    {
+      "feature": "tag_has_city",
+      "gain": 1323106.876586914
+    },
+    {
+      "feature": "body_cta_count",
+      "gain": 1144008.2213745117
+    },
+    {
+      "feature": "title_has_city",
+      "gain": 1099255.1583251953
+    },
+    {
+      "feature": "body_has_price",
+      "gain": 999745.0192871094
+    },
+    {
+      "feature": "title_has_pos_emotion",
+      "gain": 983650.7329101562
+    },
+    {
+      "feature": "body_has_hours",
+      "gain": 973794.8303222656
+    },
+    {
+      "feature": "title_has_question",
+      "gain": 706682.9319152832
+    },
+    {
+      "feature": "body_has_transport",
+      "gain": 608255.5720214844
+    },
+    {
+      "feature": "time_is_weekend",
+      "gain": 436154.10205078125
+    },
+    {
+      "feature": "body_has_booking",
+      "gain": 411290.41664123535
+    },
+    {
+      "feature": "title_has_neg_emotion",
+      "gain": 255731.71151733398
+    },
+    {
+      "feature": "title_has_new_signal",
+      "gain": 126828.17059326172
+    },
+    {
+      "feature": "title_has_price",
+      "gain": 32938.91571044922
+    },
+    {
+      "feature": "keyword_competition",
+      "gain": 0.0
+    },
+    {
+      "feature": "category_avg_ces",
+      "gain": 0.0
+    },
+    {
+      "feature": "category_saturation",
+      "gain": 0.0
+    }
+  ]
+}

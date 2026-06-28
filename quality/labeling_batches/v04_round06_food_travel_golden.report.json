@@ -1,0 +1,51 @@
+{
+  "version": "labeling-batch-v0.1",
+  "created_at": "2026-06-25T13:24:45.196615+00:00",
+  "kind": "golden",
+  "queue": "quality/annotation_queue.v01.jsonl",
+  "outputs": {
+    "jsonl": "quality/labeling_batches/v04_round06_food_travel_golden.jsonl",
+    "csv": "quality/labeling_batches/v04_round06_food_travel_golden.csv"
+  },
+  "batch_id": "v04_round06_food_travel",
+  "rows": 120,
+  "by_domain": {
+    "旅行": 60,
+    "美食": 60
+  },
+  "by_priority": {
+    "high": 60,
+    "medium": 60
+  },
+  "selection": {
+    "max_rows": 120,
+    "per_domain": 60,
+    "domains": "美食,旅行",
+    "priorities": "high,medium,normal",
+    "exclude_ids_from": "quality/labeling_batches/v04_round01_golden.jsonl,quality/labeling_batches/v04_round04a_golden.jsonl,quality/labeling_batches/v04_round05a_golden.jsonl,quality/review_packets/v04_round01*_golden_ai_review.jsonl,quality/review_packets/v04_round04a*_golden_ai_review.jsonl,quality/review_packets/v04_round05a*_golden_ai_review.jsonl,quality/review_packets/promoted/*golden_promoted.jsonl,quality/golden_labels.v01.merged.json",
+    "excluded_id_count": 641,
+    "exclude_source_count": 20,
+    "exclude_sources": [
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round01_golden.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round04a_golden.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round05a_golden.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01_kimi_golden_ai_review.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01b_golden_ai_review.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01_golden_ai_review.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01b_kimi_golden_ai_review.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round01_kimi_failed_retry_golden_ai_review.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round04a_kimi_golden_ai_review.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/v04_round05a_kimi_golden_ai_review.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01_all_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01b_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round05b_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round04b_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/dryrun_golden_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round01_kimi_failed_retry_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round04a_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round05a_kimi_consensus_golden_promoted.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/golden_labels.v01.merged.json"
+    ]
+  }
+}

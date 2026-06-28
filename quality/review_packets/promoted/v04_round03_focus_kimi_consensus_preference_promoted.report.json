@@ -1,0 +1,489 @@
+{
+  "version": "reviewed-prelabel-promotion-v0.1",
+  "created_at": "2026-06-25T12:00:09.729003+00:00",
+  "kind": "preference",
+  "rows_seen": 180,
+  "promoted_count": 86,
+  "skipped_count": 94,
+  "skipped_preview": [
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0001_17619270",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0002_71ae2919",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0003_60a7ec07",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0004_eb804d19",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0005_8eb318a7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0006_c8a709a9",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0008_f49176ea",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0009_cf6fae94",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0010_0ede68bb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0011_c6ab3f01",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0012_8cda1627",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0013_aaf79bdd",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_dim_sum_family_001_0015_41907f6b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shenzhen_lunch_set_001_0017_7727e357",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shenzhen_lunch_set_001_0018_70d725fe",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shenzhen_lunch_set_001_0019_bc595c62",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shenzhen_lunch_set_001_0023_a06d7842",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shenzhen_lunch_set_001_0024_6999611a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shenzhen_lunch_set_001_0025_a783d491",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shenzhen_lunch_set_001_0026_1db1f01b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shenzhen_lunch_set_001_0027_3059f417",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shenzhen_lunch_set_001_0029_62316928",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_light_hotpot_001_0033_073d2a5e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_light_hotpot_001_0034_f895ccdb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_light_hotpot_001_0036_2692f55f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_light_hotpot_001_0038_3e290c5a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_light_hotpot_001_0039_8470866e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_light_hotpot_001_0042_dfc1ec42",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_light_hotpot_001_0043_0eda72df",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_light_hotpot_001_0044_54a4179a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_light_hotpot_001_0045_25b0b190",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_parent_child_2day_001_0050_71a52324",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_parent_child_2day_001_0051_3f13bf6a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_parent_child_2day_001_0052_c5dc76ad",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_parent_child_2day_001_0054_97d1e8d7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_parent_child_2day_001_0055_06350022",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_parent_child_2day_001_0057_77deabba",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_parent_child_2day_001_0059_b6fc69db",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0065_44391380",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0066_7a9ebdd2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0067_e2325fc4",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0068_bfe9facc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0069_b98f742c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0070_622129d6",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0071_95f12524",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0073_bbc2093a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0074_e2267fe8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_dali_slow_4day_001_0075_cbde9a49",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0076_e6dcfa11",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0077_6efccff9",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0078_4b3d63bb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0079_f72f9011",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0080_8027740f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0082_88538e3e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0083_2abd0e4d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0084_4464246b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0085_9be7cec5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0089_44b2fee8",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_guangzhou_hotel_family_001_0090_1b3fb8fd",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_pear_shape_summer_commute_001_0091_d19b304b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_pear_shape_summer_commute_001_0095_9ead9f2c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_pear_shape_summer_commute_001_0098_33fb798b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_pear_shape_summer_commute_001_0099_4738a409",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_pear_shape_summer_commute_001_0103_b23aa83e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_wide_shoulder_soft_style_001_0107_9da1a1aa",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_wide_shoulder_soft_style_001_0108_408a96ff",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_wide_shoulder_soft_style_001_0110_fbaed1cc",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_wide_shoulder_soft_style_001_0113_39a7d741",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_wide_shoulder_soft_style_001_0116_d79270a9",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_wide_shoulder_soft_style_001_0117_59084df1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_wide_shoulder_soft_style_001_0119_a2a7c302",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_mens_clean_commute_001_0121_52ad5af2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_mens_clean_commute_001_0129_1fdf7337",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_mens_clean_commute_001_0130_3df37723",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_fashion_mens_clean_commute_001_0132_37ef3846",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_balcony_laundry_4sqm_001_0136_a88e9840",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_balcony_laundry_4sqm_001_0138_0b9c61b5",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_balcony_laundry_4sqm_001_0142_76e6baac",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_balcony_laundry_4sqm_001_0146_df2b05c0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_balcony_laundry_4sqm_001_0150_cac88f79",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_kitchen_rental_storage_001_0151_38ea1e0b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_kitchen_rental_storage_001_0152_1fbfe120",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_kitchen_rental_storage_001_0156_306c82a9",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_kitchen_rental_storage_001_0158_765eecbe",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_kitchen_rental_storage_001_0161_db3c8934",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_kitchen_rental_storage_001_0163_8044874a",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_bedroom_sleep_light_001_0166_1f1aee24",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_bedroom_sleep_light_001_0167_b58d09fe",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_bedroom_sleep_light_001_0168_e631377c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_bedroom_sleep_light_001_0171_dc900460",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_bedroom_sleep_light_001_0172_ab1a2f23",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_bedroom_sleep_light_001_0173_b21d203b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_bedroom_sleep_light_001_0175_63e0c1cb",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_home_bedroom_sleep_light_001_0176_d8d4558b",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    }
+  ],
+  "auto_accept_consensus": true,
+  "auto_accept_winner_consensus": true,
+  "winner_consensus_min_kimi_confidence": 0.7,
+  "policy": "Only review_decision=accept_ai/accept_with_edits, explicit --auto-accept-consensus judge_consensus=agree, or explicit --auto-accept-winner-consensus same A/B winner is promoted.",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round03_focus_kimi_consensus_preference_promoted.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round03_focus_kimi_consensus_preference_promoted.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round03_focus_kimi_consensus_preference_promoted.report.json"
+  }
+}

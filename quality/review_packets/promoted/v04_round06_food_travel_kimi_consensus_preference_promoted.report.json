@@ -1,0 +1,204 @@
+{
+  "version": "reviewed-prelabel-promotion-v0.1",
+  "created_at": "2026-06-25T14:10:39.546545+00:00",
+  "kind": "preference",
+  "rows_seen": 59,
+  "promoted_count": 22,
+  "skipped_count": 37,
+  "skipped_preview": [
+    {
+      "id": "pref01_food_guangzhou_cantonese_amap_001_0001_42c5857d",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_cantonese_amap_001_0002_bcf77487",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_cantonese_amap_001_0004_2d8255c0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_cantonese_amap_001_0006_b2c26996",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_cantonese_amap_001_0008_24ca2536",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_cantonese_amap_001_0010_76dc4115",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_cantonese_amap_001_0011_776e64ae",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_guangzhou_cantonese_amap_001_0014_5d075249",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0016_a18fb31f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0017_06f45a9f",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0018_0a175062",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0019_bed65230",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0020_09e53388",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0021_405cf547",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0022_675dc853",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0023_d16b46f1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0024_b329e7f3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_shanghai_crab_noodle_hours_001_0025_713c0766",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_hotpot_ordering_002_0028_4567197e",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_food_chengdu_hotpot_ordering_002_0033_65b40500",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_sanya_family_resort_001_0037_f3aa4699",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_sanya_family_resort_001_0039_fbb7d764",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_sanya_family_resort_001_0040_f1dd9ee2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_sanya_family_resort_001_0041_06ee30a1",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_sanya_family_resort_001_0042_4919a116",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_sanya_family_resort_001_0043_60ac8683",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_sanya_family_resort_001_0044_05db5aaa",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_sanya_family_resort_001_0045_c982e7b0",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_sanya_family_resort_001_0046_a52079ac",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_business_hotel_001_0047_3bb332f3",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_business_hotel_001_0048_ac881de2",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_business_hotel_001_0049_431ce052",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_business_hotel_001_0050_445ac1b7",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_beijing_business_hotel_001_0051_e5558939",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_hotel_route_001_0054_6e19e4ab",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_hotel_route_001_0055_5d565036",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    },
+    {
+      "id": "pref01_travel_hangzhou_hotel_route_001_0058_c1758d7c",
+      "review_decision": "",
+      "skip_reason": "not_accepted"
+    }
+  ],
+  "auto_accept_consensus": true,
+  "auto_accept_winner_consensus": true,
+  "winner_consensus_min_kimi_confidence": 0.7,
+  "policy": "Only review_decision=accept_ai/accept_with_edits, explicit --auto-accept-consensus judge_consensus=agree, or explicit --auto-accept-winner-consensus same A/B winner is promoted.",
+  "outputs": {
+    "csv": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round06_food_travel_kimi_consensus_preference_promoted.csv",
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round06_food_travel_kimi_consensus_preference_promoted.jsonl",
+    "report": "/Users/openclaw/Desktop/noteai/quality/review_packets/promoted/v04_round06_food_travel_kimi_consensus_preference_promoted.report.json"
+  }
+}

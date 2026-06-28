@@ -1,0 +1,78 @@
+.DS_Store
+
+# Local secrets
+.env
+*.env
+model/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.bak
+
+# Node / generated assets
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime logs and temp files
+*.log
+logs/
+tmp/
+temp/
+.cache/
+tmp_*.json
+tmp_*/
+
+# Local tool/session state
+.claude/
+.firecrawl/
+
+# Local runtime state
+*.pid
+model/mlflow.db
+model/mlruns/
+model/data/*.db
+model/data/*.sqlite
+model/data/*.sqlite3
+model/data/xhs_*.json
+model/data/authorized_facts.json
+
+# Training datasets and generated feature tables live in artifact storage, not normal Git.
+model/data/RedNote-Vibe-Dataset/
+model/data/rednote_vibe_raw/
+model/data/covers/
+model/data/covers_v2/
+model/data/**/*.jsonl
+model/data/**/*.parquet
+model/data/**/cover_*.json
+model/data/**/*checkpoint*.json
+
+# Keep dataset manifests and examples visible in Git.
+!model/data/authorized_facts.example.json
+!model/data/**/dataset_manifest.json
+!model/data/**/*feature_importance*.csv
+
+# Model binaries: only explicitly released production artifacts should be tracked.
+model/artifacts/*.lgb
+!model/artifacts/model_v04_composite_regressor_experimental_20260628T013926Z.lgb
+!model/artifacts/model_v04_composite_ready_classifier_experimental_20260628T013926Z.lgb
+!model/artifacts/model_v04_composite_ranker_experimental_20260628T013926Z.lgb
+
+# Timestamped experiment reports are local training history; keep canonical release reports.
+model/artifacts/model_*_20*.json
+
+# Human/AI labeling working sets are large generated artifacts.
+quality/generated_variants/
+quality/**/*.csv
+quality/**/*.jsonl
+quality/golden_labels.v01.merged.json
+quality/preference_labels.v01.merged.json
+quality/preference_queue.v01.labeled.jsonl
+quality/seen_text_index*.jsonl

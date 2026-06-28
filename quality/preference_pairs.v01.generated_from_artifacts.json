@@ -1,0 +1,448 @@
+{
+  "version": "preference-pairs-generated-from-artifacts-v0.1",
+  "description": "Generated same-task variants assembled from auditable artifact files. Requires human A/B labels before training.",
+  "created_at": "2026-06-25T09:07:40.036695+00:00",
+  "tasks": [
+    {
+      "task_id": "food_shanghai_crab_noodle_001",
+      "domain": "美食",
+      "task_context": "用户意图：围绕上海南京西路附近一碗蟹黄拌面，生成一篇适合小红书发布的真实探店笔记。\n目标读者：想在上海南京西路附近找顺路简餐、愿意为蟹黄拌面种草的小红书用户\n已知事实：地点在上海南京西路附近；人均58元；营业时间11:00-21:30；周末饭点排队约20分钟；必点蟹黄拌面和小馄饨；适合午休或下班顺路吃",
+      "comparison_focus": [
+        "标题自然",
+        "价格和地址明确",
+        "口味细节",
+        "排队避坑",
+        "CTA自然"
+      ],
+      "variants": [
+        {
+          "id": "food_shanghai_crab_noodle_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v01/food_shanghai_crab_noodle_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shanghai_crab_noodle_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/food_shanghai_crab_noodle_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shanghai_crab_noodle_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/food_shanghai_crab_noodle_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shanghai_crab_noodle_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/food_shanghai_crab_noodle_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shanghai_crab_noodle_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v01/food_shanghai_crab_noodle_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "food_shanghai_crab_noodle_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v01/food_shanghai_crab_noodle_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "travel_chengdu_3day_001",
+      "domain": "旅行",
+      "task_context": "用户意图：生成成都3天2晚城市漫游攻略，预算约1200元，强调慢节奏、路线安排和避坑。\n目标读者：准备周末或小长假去成都自由行、希望路线别太赶的用户\n已知事实：住春熙路附近；第一天人民公园、宽窄巷子、九眼桥；第二天熊猫基地、太古里、镋钯街；第三天杜甫草堂后返程；两晚住宿约520元；总预算人均约1200元；熊猫基地建议8点前到并提前买票",
+      "comparison_focus": [
+        "路线顺序",
+        "预算透明",
+        "交通建议",
+        "避坑明确",
+        "旅行节奏自然"
+      ],
+      "variants": [
+        {
+          "id": "travel_chengdu_3day_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v01/travel_chengdu_3day_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_3day_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/travel_chengdu_3day_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_3day_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/travel_chengdu_3day_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_3day_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/travel_chengdu_3day_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_3day_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v01/travel_chengdu_3day_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "travel_chengdu_3day_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v01/travel_chengdu_3day_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "fashion_petite_commute_001",
+      "domain": "穿搭",
+      "task_context": "用户意图：为小个子通勤用户生成3套显高穿搭公式，强调价格、身材适配和搭配逻辑。\n目标读者：小个子、通勤、想显高又不想太复杂的穿搭用户\n已知事实：核心公式是上短下长和颜色顺下来；白色短衬衫89元配高腰直筒裤139元；灰色针织背心69元配半裙129元，适合梨形遮胯；黑色短外套199元配九分牛仔裤；包包选腋下包或小托特；外套长度尽量卡在胯上",
+      "comparison_focus": [
+        "搭配公式清楚",
+        "价格具体",
+        "身材适配",
+        "场景明确",
+        "避免空泛夸赞"
+      ],
+      "variants": [
+        {
+          "id": "fashion_petite_commute_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v01/fashion_petite_commute_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_petite_commute_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/fashion_petite_commute_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_petite_commute_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/fashion_petite_commute_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_petite_commute_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/fashion_petite_commute_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_petite_commute_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v01/fashion_petite_commute_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fashion_petite_commute_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v01/fashion_petite_commute_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "beauty_yellow_skin_blush_001",
+      "domain": "美妆",
+      "task_context": "用户意图：为黄皮用户生成一篇平价腮红测评笔记，强调妆效、肤质、持妆和使用手法。\n目标读者：黄皮、混干皮、想找自然显白通勤腮红的用户\n已知事实：产品色调是奶杏玫瑰色；价格79元一盘；粉质细，轻扫一层有气色；肤质是混干；底妆后叠加不显毛孔；苹果肌到太阳穴斜扫；持妆约6小时；适合裸棕眼影和豆沙唇釉",
+      "comparison_focus": [
+        "肤质前提",
+        "上脸效果",
+        "使用手法",
+        "持妆反馈",
+        "避免夸大功效"
+      ],
+      "variants": [
+        {
+          "id": "beauty_yellow_skin_blush_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v01/beauty_yellow_skin_blush_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_yellow_skin_blush_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/beauty_yellow_skin_blush_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_yellow_skin_blush_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/beauty_yellow_skin_blush_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_yellow_skin_blush_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/beauty_yellow_skin_blush_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_yellow_skin_blush_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v01/beauty_yellow_skin_blush_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_yellow_skin_blush_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v01/beauty_yellow_skin_blush_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "home_rental_38sqm_001",
+      "domain": "家居",
+      "task_context": "用户意图：生成38平出租屋3000元改造笔记，强调收纳、预算、动线和真实改造顺序。\n目标读者：租房、小户型、预算有限但想提升居住秩序的用户\n已知事实：面积38平；总预算3000元；窄边书桌399元；可折叠餐桌268元；宜家小推车用于杂物收纳；落地衣架189元；床底收纳箱一组99元；玄关免打孔挂钩；灯光换成暖白灯泡",
+      "comparison_focus": [
+        "预算拆解",
+        "收纳动线",
+        "改造前后感",
+        "可执行清单",
+        "避免家装空话"
+      ],
+      "variants": [
+        {
+          "id": "home_rental_38sqm_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v01/home_rental_38sqm_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_rental_38sqm_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/home_rental_38sqm_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_rental_38sqm_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/home_rental_38sqm_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_rental_38sqm_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/home_rental_38sqm_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_rental_38sqm_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v01/home_rental_38sqm_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "home_rental_38sqm_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v01/home_rental_38sqm_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "fitness_home_fatloss_001",
+      "domain": "健身",
+      "task_context": "用户意图：生成新手居家7天减脂训练笔记，强调动作、组数、休息、安全替代和执行感。\n目标读者：无器械居家减脂新手，担心动作难、膝盖不适或坚持不了的用户\n已知事实：开合跳30秒；深蹲15次；平板支撑40秒；登山跑30秒；四个动作连做3轮；中间休息60秒；训练前热身5分钟，练后拉伸8分钟；膝盖不舒服时把登山跑改成原地快走；每晚固定20分钟",
+      "comparison_focus": [
+        "动作可执行",
+        "安全提醒",
+        "训练节奏",
+        "替代动作",
+        "避免夸大效果"
+      ],
+      "variants": [
+        {
+          "id": "fitness_home_fatloss_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v01/fitness_home_fatloss_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_fatloss_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/fitness_home_fatloss_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_fatloss_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/fitness_home_fatloss_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_fatloss_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/fitness_home_fatloss_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_fatloss_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v01/fitness_home_fatloss_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_fatloss_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v01/fitness_home_fatloss_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "baby_food_8month_001",
+      "domain": "母婴",
+      "task_context": "用户意图：生成8月龄宝宝辅食添加笔记，强调顺序、观察、过敏风险、安全和新手妈妈可执行。\n目标读者：8月龄宝宝的新手妈妈，担心辅食顺序、过敏和噎食风险\n已知事实：先看咀嚼能力，再从泥糊过渡到软颗粒；南瓜蒸熟压泥，加一点米粉调稠；胡萝卜切小块蒸软，压成带颗粒状态；鸡肉打成细末，少量混进粥里观察3天；每次只新增一种食材；不要加盐和蜂蜜；颗粒大小要能用舌头压碎；喂的时候宝宝坐直，旁边有人看着",
+      "comparison_focus": [
+        "安全边界",
+        "步骤顺序",
+        "观察周期",
+        "月龄适配",
+        "避免医疗化夸大"
+      ],
+      "variants": [
+        {
+          "id": "baby_food_8month_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v01/baby_food_8month_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_food_8month_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/baby_food_8month_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_food_8month_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/baby_food_8month_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_food_8month_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v01/baby_food_8month_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_food_8month_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v01/baby_food_8month_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_food_8month_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v01/baby_food_8month_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    }
+  ]
+}

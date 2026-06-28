@@ -1,0 +1,93 @@
+{
+  "version": "preference-annotation-queue-v0.1",
+  "created_at": "2026-06-25T09:07:45.921671+00:00",
+  "status": "preference_queue_needs_human_labels",
+  "totals": {
+    "pairs": 105,
+    "needs_label": 105,
+    "locked_seed": 0
+  },
+  "by_domain": {
+    "健身": 15,
+    "家居": 15,
+    "旅行": 15,
+    "母婴": 15,
+    "穿搭": 15,
+    "美妆": 15,
+    "美食": 15
+  },
+  "by_task": {
+    "baby_food_8month_001": 15,
+    "beauty_yellow_skin_blush_001": 15,
+    "fashion_petite_commute_001": 15,
+    "fitness_home_fatloss_001": 15,
+    "food_shanghai_crab_noodle_001": 15,
+    "home_rental_38sqm_001": 15,
+    "travel_chengdu_3day_001": 15
+  },
+  "by_label_status": {
+    "needs_label": 105
+  },
+  "by_origin_pair": {
+    "ai_diagnosis vs ai_diagnosis": 21,
+    "ai_diagnosis vs claude_natural_candidate": 21,
+    "ai_diagnosis vs generate": 21,
+    "ai_diagnosis vs generate_refine": 21,
+    "claude_natural_candidate vs generate": 7,
+    "claude_natural_candidate vs generate_refine": 7,
+    "generate vs generate_refine": 7
+  },
+  "targets": {
+    "production_preference_pairs_per_core_domain": 3000,
+    "note": "This queue is only a seed. Production training needs thousands of same-task A/B comparisons per core industry."
+  },
+  "coverage_gaps": {
+    "under_preference_target": {
+      "健身": {
+        "selected_pairs": 15,
+        "production_preference_target": 3000
+      },
+      "家居": {
+        "selected_pairs": 15,
+        "production_preference_target": 3000
+      },
+      "旅行": {
+        "selected_pairs": 15,
+        "production_preference_target": 3000
+      },
+      "母婴": {
+        "selected_pairs": 15,
+        "production_preference_target": 3000
+      },
+      "穿搭": {
+        "selected_pairs": 15,
+        "production_preference_target": 3000
+      },
+      "美妆": {
+        "selected_pairs": 15,
+        "production_preference_target": 3000
+      },
+      "美食": {
+        "selected_pairs": 15,
+        "production_preference_target": 3000
+      }
+    },
+    "missing_core_domains": [
+      "旅行",
+      "穿搭",
+      "美妆",
+      "家居",
+      "健身",
+      "母婴"
+    ]
+  },
+  "skipped_variants": [],
+  "inputs": {
+    "seed": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v01.generated_from_artifacts.json"
+  },
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v01.generated.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v01.generated.csv",
+    "report": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v01.generated.report.json"
+  }
+}

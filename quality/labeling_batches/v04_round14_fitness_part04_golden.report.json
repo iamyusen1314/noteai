@@ -1,0 +1,32 @@
+{
+  "version": "labeling-batch-v0.1",
+  "created_at": "2026-06-27T10:42:52.123816+00:00",
+  "kind": "golden",
+  "queue": "quality/annotation_queue.v01.production_supplement.round14.jsonl",
+  "outputs": {
+    "jsonl": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_fitness_part04_golden.jsonl",
+    "csv": "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_fitness_part04_golden.csv"
+  },
+  "batch_id": "v04_round14_fitness_part04",
+  "rows": 200,
+  "by_domain": {
+    "健身": 200
+  },
+  "by_priority": {
+    "medium": 200
+  },
+  "selection": {
+    "max_rows": 200,
+    "per_domain": 0,
+    "domains": "健身",
+    "priorities": "high,medium,normal",
+    "exclude_ids_from": "quality/labeling_batches/v04_round14_fitness_part01_golden.jsonl,quality/labeling_batches/v04_round14_fitness_part02_golden.jsonl,quality/labeling_batches/v04_round14_fitness_part03_golden.jsonl",
+    "excluded_id_count": 750,
+    "exclude_source_count": 3,
+    "exclude_sources": [
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_fitness_part01_golden.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_fitness_part02_golden.jsonl",
+      "/Users/openclaw/Desktop/noteai/quality/labeling_batches/v04_round14_fitness_part03_golden.jsonl"
+    ]
+  }
+}

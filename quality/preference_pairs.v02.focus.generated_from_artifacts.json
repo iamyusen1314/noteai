@@ -1,0 +1,574 @@
+{
+  "version": "preference-pairs-generated-from-artifacts-v0.1",
+  "description": "Generated same-task variants assembled from auditable artifact files. Requires human A/B labels before training.",
+  "created_at": "2026-06-25T11:00:11.325188+00:00",
+  "tasks": [
+    {
+      "task_id": "beauty_sensitive_skin_sunscreen_001",
+      "domain": "美妆",
+      "task_context": "用户意图：为敏感混干皮用户生成一篇通勤防晒使用体验笔记，强调肤质前提、上脸肤感、补涂和妆前适配。\n目标读者：敏感混干皮、通勤、防晒后还要上底妆的小红书用户\n已知事实：产品是一支清爽型防晒乳；价格89元；肤质是敏感混干皮；通勤场景使用，早上出门前涂两指量；成膜后不明显泛白；后续上粉底不容易搓泥；户外超过2小时会补涂；第一次使用前先在耳后试用",
+      "comparison_focus": [
+        "肤质前提",
+        "妆前适配",
+        "补涂场景",
+        "真实肤感",
+        "避免功效夸大"
+      ],
+      "variants": [
+        {
+          "id": "beauty_sensitive_skin_sunscreen_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v02_focus/beauty_sensitive_skin_sunscreen_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_sensitive_skin_sunscreen_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/beauty_sensitive_skin_sunscreen_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_sensitive_skin_sunscreen_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/beauty_sensitive_skin_sunscreen_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_sensitive_skin_sunscreen_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/beauty_sensitive_skin_sunscreen_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_sensitive_skin_sunscreen_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v02_focus/beauty_sensitive_skin_sunscreen_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_sensitive_skin_sunscreen_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v02_focus/beauty_sensitive_skin_sunscreen_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "beauty_oily_skin_base_001",
+      "domain": "美妆",
+      "task_context": "用户意图：为油皮夏季底妆生成一篇持妆笔记，强调步骤、用量、斑驳处理和真实带妆反馈。\n目标读者：油皮、夏天通勤、担心底妆脱妆斑驳的用户\n已知事实：肤质是夏季油皮，T区容易出油；妆前先用控油乳薄涂T区；粉底液少量多次，用湿海绵拍开；鼻翼和下巴会薄上一层散粉；带妆6小时后T区会出油但不明显斑驳；出油后用纸巾按压再补散粉；不适合一开始就厚涂粉底",
+      "comparison_focus": [
+        "步骤具体",
+        "肤质前提",
+        "带妆反馈",
+        "补妆动作",
+        "避免神化持妆"
+      ],
+      "variants": [
+        {
+          "id": "beauty_oily_skin_base_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v02_focus/beauty_oily_skin_base_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_oily_skin_base_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/beauty_oily_skin_base_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_oily_skin_base_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/beauty_oily_skin_base_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_oily_skin_base_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/beauty_oily_skin_base_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_oily_skin_base_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v02_focus/beauty_oily_skin_base_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_oily_skin_base_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v02_focus/beauty_oily_skin_base_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "beauty_commute_lipstick_yellow_black_001",
+      "domain": "美妆",
+      "task_context": "用户意图：为黄黑皮通勤用户生成一篇平价口红试色笔记，强调薄涂厚涂、素颜适配、干纹和补涂。\n目标读者：黄黑皮、通勤、想找平价不出错口红的用户\n已知事实：色号是玫瑰棕奶茶调；价格69元；黄黑皮薄涂更日常；厚涂会更有气场，适合下班约会；素颜薄涂不会显突兀；唇部状态干时会稍微显唇纹；饭后需要补涂一次；搭配裸棕眼影和淡腮红更协调",
+      "comparison_focus": [
+        "肤色适配",
+        "薄涂厚涂差异",
+        "价格透明",
+        "缺点真实",
+        "搭配建议"
+      ],
+      "variants": [
+        {
+          "id": "beauty_commute_lipstick_yellow_black_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v02_focus/beauty_commute_lipstick_yellow_black_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_commute_lipstick_yellow_black_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/beauty_commute_lipstick_yellow_black_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_commute_lipstick_yellow_black_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/beauty_commute_lipstick_yellow_black_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_commute_lipstick_yellow_black_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/beauty_commute_lipstick_yellow_black_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_commute_lipstick_yellow_black_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v02_focus/beauty_commute_lipstick_yellow_black_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "beauty_commute_lipstick_yellow_black_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v02_focus/beauty_commute_lipstick_yellow_black_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "fitness_knee_friendly_beginner_001",
+      "domain": "健身",
+      "task_context": "用户意图：生成膝盖友好的居家新手减脂训练笔记，强调动作替代、组数、休息和安全边界。\n目标读者：居家减脂新手、担心跳跃伤膝盖或动作太难的用户\n已知事实：训练目标是新手居家减脂；每次训练约18分钟；动作包括原地踏步60秒、臀桥15次、死虫12次、靠墙静蹲30秒；四个动作做3轮；每轮之间休息60秒；不安排跳跃动作；膝盖不舒服时减少靠墙静蹲时间；训练前热身5分钟，结束后拉伸小腿和臀腿",
+      "comparison_focus": [
+        "动作可执行",
+        "安全替代",
+        "组数清楚",
+        "新手心理",
+        "不承诺瘦身结果"
+      ],
+      "variants": [
+        {
+          "id": "fitness_knee_friendly_beginner_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v02_focus/fitness_knee_friendly_beginner_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_knee_friendly_beginner_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/fitness_knee_friendly_beginner_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_knee_friendly_beginner_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/fitness_knee_friendly_beginner_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_knee_friendly_beginner_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/fitness_knee_friendly_beginner_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_knee_friendly_beginner_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v02_focus/fitness_knee_friendly_beginner_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_knee_friendly_beginner_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v02_focus/fitness_knee_friendly_beginner_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "fitness_office_shoulder_neck_001",
+      "domain": "健身",
+      "task_context": "用户意图：为久坐上班族生成一篇办公室肩颈放松笔记，强调时长、动作、强度边界和执行场景。\n目标读者：久坐、肩颈紧、想在办公室做低门槛放松的用户\n已知事实：适合久坐上班族午休或下班前做；总时长约8分钟；动作包括肩胛后缩30秒、靠墙天使8次、斜方肌轻拉30秒、胸小肌开肩30秒；每个动作做2轮；动作过程中不追求疼痛感；如果出现麻木或刺痛应停止；只需要一面墙和一把椅子；做完后再起来走2分钟",
+      "comparison_focus": [
+        "场景真实",
+        "动作边界",
+        "安全提醒",
+        "低门槛执行",
+        "避免医疗承诺"
+      ],
+      "variants": [
+        {
+          "id": "fitness_office_shoulder_neck_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v02_focus/fitness_office_shoulder_neck_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_office_shoulder_neck_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/fitness_office_shoulder_neck_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_office_shoulder_neck_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/fitness_office_shoulder_neck_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_office_shoulder_neck_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/fitness_office_shoulder_neck_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_office_shoulder_neck_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v02_focus/fitness_office_shoulder_neck_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_office_shoulder_neck_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v02_focus/fitness_office_shoulder_neck_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "fitness_home_glute_band_001",
+      "domain": "健身",
+      "task_context": "用户意图：生成弹力带居家臀腿训练笔记，强调动作安排、发力感、器械低门槛和新手注意事项。\n目标读者：想在家练臀腿、器械少、担心动作做错的新手用户\n已知事实：器械是一条中等阻力弹力带；适合居家臀腿训练新手；动作包括弹力带臀桥15次、蚌式开合12次、跪姿后踢腿12次、侧向走10步；每个动作做3组；组间休息45秒；重点是先找到臀部发力感，不追求速度；腰酸时减少后踢腿幅度；训练后拉伸臀部和髂腰肌",
+      "comparison_focus": [
+        "动作顺序",
+        "发力提示",
+        "组数休息",
+        "安全替代",
+        "避免夸大塑形"
+      ],
+      "variants": [
+        {
+          "id": "fitness_home_glute_band_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v02_focus/fitness_home_glute_band_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_glute_band_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/fitness_home_glute_band_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_glute_band_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/fitness_home_glute_band_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_glute_band_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/fitness_home_glute_band_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_glute_band_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v02_focus/fitness_home_glute_band_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "fitness_home_glute_band_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v02_focus/fitness_home_glute_band_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "baby_sleep_routine_6month_001",
+      "domain": "母婴",
+      "task_context": "用户意图：生成6月龄宝宝睡前流程经验笔记，强调流程顺序、困信号、安抚边界和不夸大睡眠效果。\n目标读者：6月龄宝宝家长、想建立睡前流程但担心方法太硬的新手父母\n已知事实：宝宝月龄是6个月；睡前流程包括洗澡、抚触、换睡袋、关主灯、读短绘本；观察困信号包括揉眼睛、发呆、打哈欠；卧室保持暗光；白噪音音量较低；流程一般控制在25分钟内；不承诺睡整觉；宝宝明显哭闹时先停下来安抚",
+      "comparison_focus": [
+        "月龄适配",
+        "流程顺序",
+        "安全边界",
+        "真实经验",
+        "不制造焦虑"
+      ],
+      "variants": [
+        {
+          "id": "baby_sleep_routine_6month_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v02_focus/baby_sleep_routine_6month_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_sleep_routine_6month_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/baby_sleep_routine_6month_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_sleep_routine_6month_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/baby_sleep_routine_6month_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_sleep_routine_6month_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/baby_sleep_routine_6month_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_sleep_routine_6month_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v02_focus/baby_sleep_routine_6month_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_sleep_routine_6month_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v02_focus/baby_sleep_routine_6month_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "baby_teething_care_001",
+      "domain": "母婴",
+      "task_context": "用户意图：生成宝宝出牙期护理经验笔记，强调可执行护理、观察信号、用品安全和就医边界。\n目标读者：出牙期宝宝家长、想知道哪些护理能做哪些不能做的新手父母\n已知事实：宝宝处于出牙期，容易流口水和想咬东西；会准备咬胶，冷藏后使用但不冷冻；口水巾勤换，保持下巴干爽；可以用干净手指轻轻按摩牙龈；晚上哭闹会先确认尿布和饥饿情况；不自行使用止痛药；如果持续高热、精神差或拒奶，需要及时就医；所有小物件都要避免脱落误吞",
+      "comparison_focus": [
+        "护理动作",
+        "安全边界",
+        "观察信号",
+        "用品避坑",
+        "避免医疗化建议"
+      ],
+      "variants": [
+        {
+          "id": "baby_teething_care_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v02_focus/baby_teething_care_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_teething_care_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/baby_teething_care_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_teething_care_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/baby_teething_care_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_teething_care_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/baby_teething_care_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_teething_care_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v02_focus/baby_teething_care_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_teething_care_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v02_focus/baby_teething_care_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    },
+    {
+      "task_id": "baby_toy_10month_fine_motor_001",
+      "domain": "母婴",
+      "task_context": "用户意图：生成10月龄宝宝精细动作玩具选择笔记，强调玩具类型、陪玩方式、安全尺寸和真实使用反馈。\n目标读者：10月龄宝宝家长、想买低风险高频使用玩具的新手父母\n已知事实：宝宝月龄是10个月；玩具包括叠杯、软积木、洞洞书和大颗粒形状盒；叠杯可以练抓握和套叠；软积木适合拍打和简单堆叠；洞洞书适合练翻页和指认；所有玩具都选择大颗粒，避免小零件；陪玩时家长全程在旁边看护；每次只拿出2到3样，避免宝宝分心",
+      "comparison_focus": [
+        "月龄适配",
+        "玩具选择",
+        "陪玩方式",
+        "安全尺寸",
+        "真实反馈"
+      ],
+      "variants": [
+        {
+          "id": "baby_toy_10month_fine_motor_001__claude_natural_candidate",
+          "origin": "claude_natural_candidate",
+          "source_file": "quality/generated_variants/v02_focus/baby_toy_10month_fine_motor_001/claude_natural_candidate.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_toy_10month_fine_motor_001__diagnosis_plan_a",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/baby_toy_10month_fine_motor_001/diagnosis_plan_a.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_toy_10month_fine_motor_001__diagnosis_plan_b",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/baby_toy_10month_fine_motor_001/diagnosis_plan_b.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_toy_10month_fine_motor_001__diagnosis_plan_c",
+          "origin": "ai_diagnosis",
+          "source_file": "quality/generated_variants/v02_focus/baby_toy_10month_fine_motor_001/diagnosis_plan_c.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_toy_10month_fine_motor_001__generate_initial",
+          "origin": "generate",
+          "source_file": "quality/generated_variants/v02_focus/baby_toy_10month_fine_motor_001/generate_initial.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        },
+        {
+          "id": "baby_toy_10month_fine_motor_001__generate_refined",
+          "origin": "generate_refine",
+          "source_file": "quality/generated_variants/v02_focus/baby_toy_10month_fine_motor_001/generate_refined.json",
+          "title_path": "title",
+          "body_path": "body",
+          "score_path": "score"
+        }
+      ],
+      "locked_pairs": []
+    }
+  ]
+}

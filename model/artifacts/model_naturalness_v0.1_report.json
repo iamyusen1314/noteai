@@ -1,0 +1,541 @@
+{
+  "run_id": "20260625T063549Z",
+  "created_at": "2026-06-25T06:35:49.215662+00:00",
+  "model": {
+    "version": "naturalness-v0.1-candidate",
+    "path": "/Users/openclaw/Desktop/noteai/model/artifacts/model_naturalness_v0.1_20260625T063549Z.lgb",
+    "latest_candidate_path": "/Users/openclaw/Desktop/noteai/model/artifacts/model_naturalness_v0.1.lgb",
+    "feature_count": 61,
+    "feature_columns": [
+      "title_len",
+      "title_has_pos_emotion",
+      "title_has_neg_emotion",
+      "title_has_price",
+      "title_has_question",
+      "title_has_number",
+      "title_has_new_signal",
+      "title_has_city",
+      "body_len",
+      "body_has_address",
+      "body_has_hours",
+      "body_has_price",
+      "body_has_transport",
+      "body_has_booking",
+      "body_has_must_order",
+      "body_cta_count",
+      "plad_word_freq_entropy",
+      "plad_phrasal_repetition",
+      "plad_punctuation_ratio",
+      "plad_interactive_stance",
+      "plad_ttr",
+      "plad_sentence_count",
+      "plad_avg_sentence_len",
+      "plad_sentence_burstiness",
+      "plad_emoji_density",
+      "plad_unique_emoji_ratio",
+      "plad_number_ratio",
+      "plad_word_burstiness",
+      "plad_immediate_repetition",
+      "tag_count",
+      "tag_has_city",
+      "tag_has_food_travel",
+      "text_char_len",
+      "title_body_ratio",
+      "line_count",
+      "paragraph_count",
+      "avg_line_len",
+      "line_len_cv",
+      "sentence_count_naturalness",
+      "sentence_len_cv_naturalness",
+      "duplicate_sentence_ratio",
+      "list_marker_count",
+      "list_marker_ratio",
+      "colon_line_ratio",
+      "ai_transition_count",
+      "ai_transition_density",
+      "ai_disclaimer_count",
+      "personal_word_count",
+      "reader_word_count",
+      "personal_reader_ratio",
+      "sensory_word_count",
+      "sensory_density",
+      "generic_praise_count",
+      "low_info_phrase_count",
+      "question_count",
+      "exclamation_count",
+      "hashtag_density",
+      "emoji_count_naturalness",
+      "emoji_density_naturalness",
+      "token_entropy_naturalness",
+      "token_ttr_naturalness"
+    ],
+    "best_iteration": 810,
+    "params": {
+      "objective": "binary",
+      "n_estimators": 3000,
+      "learning_rate": 0.03,
+      "num_leaves": 63,
+      "subsample": 0.85,
+      "colsample_bytree": 0.85,
+      "min_child_samples": 60,
+      "reg_alpha": 0.2,
+      "reg_lambda": 2.0,
+      "random_state": 42,
+      "n_jobs": -1,
+      "verbose": -1,
+      "class_weight": "balanced"
+    }
+  },
+  "split": {
+    "method": "AI model holdout + 20% human random holdout",
+    "held_out_ai_models": [
+      "claude-sonnet-4",
+      "gemini-2.5",
+      "gpt-4.1",
+      "qwen3"
+    ],
+    "train_rows": 47307,
+    "val_rows": 11823,
+    "train_source_counts": {
+      "human": 41503,
+      "aigc": 5804
+    },
+    "val_source_counts": {
+      "human": 10375,
+      "aigc": 1448
+    }
+  },
+  "metrics": {
+    "roc_auc": 0.9828353857418625,
+    "average_precision": 0.9402807736134476,
+    "accuracy": 0.9697200372155967,
+    "balanced_accuracy": 0.9111432137389337,
+    "precision": 0.9116314199395771,
+    "recall": 0.8335635359116023,
+    "f1": 0.8708513708513709,
+    "threshold": 0.5,
+    "confusion": {
+      "tn": 10258,
+      "fp": 117,
+      "fn": 241,
+      "tp": 1207
+    },
+    "human_false_positive_rate": 0.01127710843373494,
+    "ai_false_negative_rate": 0.1664364640883978
+  },
+  "threshold_table": [
+    {
+      "threshold": 0.3,
+      "precision": 0.8461021505376344,
+      "recall": 0.869475138121547,
+      "f1": 0.8576294277929155,
+      "human_false_positive_rate": 0.022072289156626505,
+      "ai_false_negative_rate": 0.13052486187845305
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.8872126436781609,
+      "recall": 0.8529005524861878,
+      "f1": 0.8697183098591549,
+      "human_false_positive_rate": 0.015132530120481928,
+      "ai_false_negative_rate": 0.14709944751381215
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.9116314199395771,
+      "recall": 0.8335635359116023,
+      "f1": 0.8708513708513709,
+      "human_false_positive_rate": 0.01127710843373494,
+      "ai_false_negative_rate": 0.1664364640883978
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.9381933438985737,
+      "recall": 0.8176795580110497,
+      "f1": 0.8738007380073801,
+      "human_false_positive_rate": 0.007518072289156626,
+      "ai_false_negative_rate": 0.18232044198895028
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.9636363636363636,
+      "recall": 0.8052486187845304,
+      "f1": 0.8773513920240783,
+      "human_false_positive_rate": 0.004240963855421687,
+      "ai_false_negative_rate": 0.19475138121546962
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.9800865800865801,
+      "recall": 0.7817679558011049,
+      "f1": 0.869765655013446,
+      "human_false_positive_rate": 0.002216867469879518,
+      "ai_false_negative_rate": 0.21823204419889503
+    }
+  ],
+  "metrics_by_domain": [
+    {
+      "group": "健康",
+      "rows": 2057,
+      "roc_auc": 0.9865535817263738,
+      "average_precision": 0.9469227901898644,
+      "accuracy": 0.9722897423432183,
+      "balanced_accuracy": 0.9191796653398409,
+      "precision": 0.9004524886877828,
+      "recall": 0.8504273504273504,
+      "f1": 0.8747252747252747,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 1801,
+        "fp": 22,
+        "fn": 35,
+        "tp": 199
+      },
+      "human_false_positive_rate": 0.012068019747668678,
+      "ai_false_negative_rate": 0.14957264957264957
+    },
+    {
+      "group": "美食",
+      "rows": 1849,
+      "roc_auc": 0.9780759496714699,
+      "average_precision": 0.9160949689672983,
+      "accuracy": 0.9643050297458086,
+      "balanced_accuracy": 0.8974402904771352,
+      "precision": 0.8541666666666666,
+      "recall": 0.8118811881188119,
+      "f1": 0.8324873096446701,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 1619,
+        "fp": 28,
+        "fn": 38,
+        "tp": 164
+      },
+      "human_false_positive_rate": 0.01700060716454159,
+      "ai_false_negative_rate": 0.18811881188118812
+    },
+    {
+      "group": "情感",
+      "rows": 1581,
+      "roc_auc": 0.9788792614173825,
+      "average_precision": 0.9238038400794079,
+      "accuracy": 0.9639468690702088,
+      "balanced_accuracy": 0.895442506337735,
+      "precision": 0.884393063583815,
+      "recall": 0.8052631578947368,
+      "f1": 0.8429752066115702,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 1371,
+        "fp": 20,
+        "fn": 37,
+        "tp": 153
+      },
+      "human_false_positive_rate": 0.014378145219266714,
+      "ai_false_negative_rate": 0.19473684210526315
+    },
+    {
+      "group": "旅行",
+      "rows": 1449,
+      "roc_auc": 0.9859048061129758,
+      "average_precision": 0.9527103225176715,
+      "accuracy": 0.9786059351276742,
+      "balanced_accuracy": 0.9339650432050275,
+      "precision": 0.9447852760736196,
+      "recall": 0.875,
+      "f1": 0.9085545722713865,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 1264,
+        "fp": 9,
+        "fn": 22,
+        "tp": 154
+      },
+      "human_false_positive_rate": 0.007069913589945012,
+      "ai_false_negative_rate": 0.125
+    },
+    {
+      "group": "职场",
+      "rows": 1271,
+      "roc_auc": 0.9912121212121212,
+      "average_precision": 0.9666569521983241,
+      "accuracy": 0.974822974036192,
+      "balanced_accuracy": 0.9138410419989367,
+      "precision": 0.9793103448275862,
+      "recall": 0.8304093567251462,
+      "f1": 0.8987341772151899,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 1097,
+        "fp": 3,
+        "fn": 29,
+        "tp": 142
+      },
+      "human_false_positive_rate": 0.0027272727272727275,
+      "ai_false_negative_rate": 0.1695906432748538
+    },
+    {
+      "group": "穿搭",
+      "rows": 1214,
+      "roc_auc": 0.982123885410738,
+      "average_precision": 0.9578059626160171,
+      "accuracy": 0.9662273476112027,
+      "balanced_accuracy": 0.9381568962246254,
+      "precision": 0.9082125603864735,
+      "recall": 0.8952380952380953,
+      "f1": 0.9016786570743405,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 985,
+        "fp": 19,
+        "fn": 22,
+        "tp": 188
+      },
+      "human_false_positive_rate": 0.018924302788844622,
+      "ai_false_negative_rate": 0.10476190476190476
+    },
+    {
+      "group": "心理",
+      "rows": 991,
+      "roc_auc": 0.9857196255330717,
+      "average_precision": 0.9596793764332968,
+      "accuracy": 0.9747729566094854,
+      "balanced_accuracy": 0.9215683775931495,
+      "precision": 0.9669421487603306,
+      "recall": 0.8478260869565217,
+      "f1": 0.9034749034749034,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 849,
+        "fp": 4,
+        "fn": 21,
+        "tp": 117
+      },
+      "human_false_positive_rate": 0.004689331770222743,
+      "ai_false_negative_rate": 0.15217391304347827
+    },
+    {
+      "group": "学习",
+      "rows": 789,
+      "roc_auc": 0.977681378096316,
+      "average_precision": 0.8830799825255701,
+      "accuracy": 0.9683143219264893,
+      "balanced_accuracy": 0.8519112284672451,
+      "precision": 0.8867924528301887,
+      "recall": 0.7121212121212122,
+      "f1": 0.7899159663865546,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 717,
+        "fp": 6,
+        "fn": 19,
+        "tp": 47
+      },
+      "human_false_positive_rate": 0.008298755186721992,
+      "ai_false_negative_rate": 0.2878787878787879
+    },
+    {
+      "group": "宠物",
+      "rows": 359,
+      "roc_auc": 0.9714482284141727,
+      "average_precision": 0.8742617405893619,
+      "accuracy": 0.958217270194986,
+      "balanced_accuracy": 0.8286893704850361,
+      "precision": 0.8888888888888888,
+      "recall": 0.6666666666666666,
+      "f1": 0.7619047619047619,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 320,
+        "fp": 3,
+        "fn": 12,
+        "tp": 24
+      },
+      "human_false_positive_rate": 0.009287925696594427,
+      "ai_false_negative_rate": 0.3333333333333333
+    },
+    {
+      "group": "运动",
+      "rows": 263,
+      "roc_auc": 0.9551260504201682,
+      "average_precision": 0.855269215698466,
+      "accuracy": 0.9657794676806084,
+      "balanced_accuracy": 0.8736974789915967,
+      "precision": 0.8636363636363636,
+      "recall": 0.76,
+      "f1": 0.8085106382978723,
+      "threshold": 0.5,
+      "confusion": {
+        "tn": 235,
+        "fp": 3,
+        "fn": 6,
+        "tp": 19
+      },
+      "human_false_positive_rate": 0.012605042016806723,
+      "ai_false_negative_rate": 0.24
+    }
+  ],
+  "metrics_by_model_family": [],
+  "top_features_gain": [
+    {
+      "feature": "paragraph_count",
+      "gain": 289496.6289048791
+    },
+    {
+      "feature": "body_len",
+      "gain": 147809.33823683858
+    },
+    {
+      "feature": "title_body_ratio",
+      "gain": 66203.33980694413
+    },
+    {
+      "feature": "plad_ttr",
+      "gain": 65524.10532107949
+    },
+    {
+      "feature": "avg_line_len",
+      "gain": 62057.51429629326
+    },
+    {
+      "feature": "exclamation_count",
+      "gain": 47199.647084742785
+    },
+    {
+      "feature": "hashtag_density",
+      "gain": 36777.946082443
+    },
+    {
+      "feature": "title_len",
+      "gain": 31037.95346018672
+    },
+    {
+      "feature": "plad_immediate_repetition",
+      "gain": 23408.321042120457
+    },
+    {
+      "feature": "plad_phrasal_repetition",
+      "gain": 22108.67465186119
+    },
+    {
+      "feature": "text_char_len",
+      "gain": 20719.23879942298
+    },
+    {
+      "feature": "sentence_len_cv_naturalness",
+      "gain": 20257.468970179558
+    },
+    {
+      "feature": "plad_avg_sentence_len",
+      "gain": 19455.568795889616
+    },
+    {
+      "feature": "token_ttr_naturalness",
+      "gain": 19156.63172391057
+    },
+    {
+      "feature": "plad_punctuation_ratio",
+      "gain": 18986.82178261876
+    },
+    {
+      "feature": "line_len_cv",
+      "gain": 16381.291179269552
+    },
+    {
+      "feature": "plad_sentence_burstiness",
+      "gain": 14810.653122931719
+    },
+    {
+      "feature": "plad_word_freq_entropy",
+      "gain": 13348.19668969512
+    },
+    {
+      "feature": "plad_word_burstiness",
+      "gain": 11148.010564923286
+    },
+    {
+      "feature": "plad_number_ratio",
+      "gain": 10582.075839102268
+    },
+    {
+      "feature": "plad_unique_emoji_ratio",
+      "gain": 10529.235693663359
+    },
+    {
+      "feature": "personal_reader_ratio",
+      "gain": 10499.085513055325
+    },
+    {
+      "feature": "plad_emoji_density",
+      "gain": 9645.49234995246
+    },
+    {
+      "feature": "emoji_density_naturalness",
+      "gain": 7406.570442825556
+    },
+    {
+      "feature": "plad_interactive_stance",
+      "gain": 7192.9752779603
+    },
+    {
+      "feature": "low_info_phrase_count",
+      "gain": 7018.563137590885
+    },
+    {
+      "feature": "sensory_density",
+      "gain": 6991.839058876038
+    },
+    {
+      "feature": "sentence_count_naturalness",
+      "gain": 6811.023937344551
+    },
+    {
+      "feature": "generic_praise_count",
+      "gain": 6688.073224633932
+    },
+    {
+      "feature": "colon_line_ratio",
+      "gain": 4830.376471221447
+    },
+    {
+      "feature": "line_count",
+      "gain": 4097.984903991222
+    },
+    {
+      "feature": "personal_word_count",
+      "gain": 3707.9332352280617
+    },
+    {
+      "feature": "tag_count",
+      "gain": 3597.5767193734646
+    },
+    {
+      "feature": "plad_sentence_count",
+      "gain": 3531.1281989216805
+    },
+    {
+      "feature": "title_has_number",
+      "gain": 3377.901392072439
+    },
+    {
+      "feature": "emoji_count_naturalness",
+      "gain": 2585.3779756724834
+    },
+    {
+      "feature": "body_cta_count",
+      "gain": 2565.2658127844334
+    },
+    {
+      "feature": "reader_word_count",
+      "gain": 2552.1792627573013
+    },
+    {
+      "feature": "sensory_word_count",
+      "gain": 2478.6806269288063
+    },
+    {
+      "feature": "token_entropy_naturalness",
+      "gain": 2146.7925671339035
+    }
+  ]
+}

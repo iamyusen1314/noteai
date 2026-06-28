@@ -1,0 +1,42 @@
+{
+  "version": "preference-seed-from-artifacts-report-v0.1",
+  "created_at": "2026-06-25T16:50:13.975537+00:00",
+  "inputs": {
+    "task_pool": "/Users/openclaw/Desktop/noteai/quality/preference_task_pool.v07.food_travel_fact_sources.json",
+    "artifact_dir": "/Users/openclaw/Desktop/noteai/quality/generated_variants/v09_travel_expression_probe",
+    "include_blocking": false
+  },
+  "artifact_count": 30,
+  "task_count": 5,
+  "variant_count": 30,
+  "variants_by_task": {
+    "travel_sanya_yalongbay_hotel_meituan_001": 6,
+    "travel_guangzhou_chimelong_hotel_meituan_001": 6,
+    "travel_chengdu_taikooli_hotel_meituan_001": 6,
+    "travel_beijing_guomao_business_meituan_001": 6,
+    "travel_hangzhou_westlake_route_meituan_001": 6
+  },
+  "skipped": [
+    {
+      "path": "food_guangzhou_longxi_amap_002",
+      "reason": "task_has_less_than_two_variants"
+    },
+    {
+      "path": "food_guangzhou_diandoude_amap_001",
+      "reason": "task_has_less_than_two_variants"
+    },
+    {
+      "path": "food_guangzhou_taotaoju_amap_001",
+      "reason": "task_has_less_than_two_variants"
+    },
+    {
+      "path": "food_chengdu_shudaxia_amap_001",
+      "reason": "task_has_less_than_two_variants"
+    }
+  ],
+  "policy": "This seed creates preference labeling queues only; labels must be human-reviewed before training.",
+  "outputs": {
+    "seed": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v09.travel_expression.generated_from_artifacts.json",
+    "report": "/Users/openclaw/Desktop/noteai/quality/preference_pairs.v09.travel_expression.generated_from_artifacts.report.json"
+  }
+}
