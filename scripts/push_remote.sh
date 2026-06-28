@@ -34,7 +34,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-if ! command -v git-lfs >/dev/null 2>&1; then
+if ! git lfs version >/dev/null 2>&1; then
   echo "git-lfs is required before pushing NoteAI model artifacts." >&2
   exit 1
 fi
