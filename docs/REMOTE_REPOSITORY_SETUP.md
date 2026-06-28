@@ -7,6 +7,7 @@
 - Branch: `main`
 - Initial source baseline commit: `906432d chore: initialize deployable NoteAI repository`
 - Remote: `https://github.com/iamyusen1314/noteai`
+- Visibility: `public`，用于启用 GitHub Free 下的 branch protection 与 secret scanning；密钥、原始训练数据和运行状态仍绝不进入 Git。
 - Release tag: `v0.4-production-baseline-20260628`
 - Git LFS: enabled
 - Scope doc: `docs/GIT_DEPLOYMENT_SCOPE.md`
@@ -14,15 +15,16 @@
 
 ## 远程仓库要求
 
-1. 仓库必须是私有仓库，至少在正式商业上线前保持私有。
+1. 商业项目通常优先使用私有仓库；当前仓库已按用户确认改为 public，以便在 GitHub Free 账号下启用 branch protection、required checks 和 secret scanning。若未来改回 private，需要确认账号套餐仍支持分支保护。
 2. 远程平台必须支持 Git LFS，或另外配置模型对象存储。
 3. 远程仓库名称建议为 `noteai` 或 `noteai-saas`。
 4. 不要在远程仓库网页端手动上传 `.env`、训练原始数据、MLflow 本地运行目录或临时质量生成队列。
 5. 云端部署密钥只放在部署平台的 Secret/Environment Variables 中，不放进 Git。
+6. `main` 分支必须保持保护：PR、`test` CI、禁止 force push、禁止删除、线性历史和 conversation resolution。
 
 ## 推荐推送流程
 
-先在 GitHub/Gitee/GitLab 创建空的私有仓库，不要初始化 README、license 或 `.gitignore`，避免第一次 push 出现无关历史。
+先在 GitHub/Gitee/GitLab 创建空仓库，不要初始化 README、license 或 `.gitignore`，避免第一次 push 出现无关历史。若使用 GitHub Free 且需要 branch protection，public 仓库可启用；若使用 private 仓库，请确认套餐支持保护规则。
 
 然后在项目根目录执行：
 
@@ -52,6 +54,8 @@ scripts/push_remote.sh git@github.com:OWNER/noteai.git
 
 - 可以看到 `main` 分支最新提交
 - 可以看到 tag `v0.4-production-baseline-20260628`
+- 仓库安全设置开启 secret scanning 与 push protection
+- `main` 分支保护要求 `test` check 通过
 - `.env` 没有出现
 - `model/.env` 没有出现
 - `.venv/`、`node_modules/`、`model/mlruns/`、`model/mlflow.db` 没有出现

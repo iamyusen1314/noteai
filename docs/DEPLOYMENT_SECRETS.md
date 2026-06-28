@@ -4,6 +4,8 @@ NoteAI 的生产密钥目前配置在 GitHub Environment：`production`。
 
 仓库：`iamyusen1314/noteai`
 
+当前仓库是 public，用于启用 GitHub Free 下的 branch protection 与 secret scanning。所有生产密钥必须只存在 GitHub Environment、部署平台 Secret 或本地 `.env`，不能进入 Git。
+
 ## Production Secrets
 
 以下值以 GitHub Environment Secret 保存，不能写入 Git，也不能在 CI 日志中打印：
