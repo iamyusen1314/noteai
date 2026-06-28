@@ -442,12 +442,12 @@ body {
   isolation: isolate;
 }
 .v4-hero {
-  min-height: calc(100vh - 60px);
+  min-height: min(780px, calc(100vh - 140px));
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(420px, 1.08fr);
   gap: 46px;
   align-items: center;
-  padding: 98px 56px 52px;
+  padding: 64px 56px 38px;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
@@ -484,6 +484,7 @@ body {
   color: #fff;
   text-wrap: balance;
 }
+.v4-title-mobile { display: none; }
 .v4-lead {
   margin-top: 26px;
   max-width: 590px;
@@ -548,7 +549,7 @@ body {
 .v4-hero-visual {
   position: relative;
   z-index: 1;
-  min-height: 560px;
+  min-height: 520px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -580,6 +581,70 @@ body {
 .v4-hero-card-score { left: 0; bottom: 82px; }
 .v4-hero-card-ready { right: 28px; top: 72px; border-color: rgba(74,255,160,0.22); }
 .v4-hero-card-ready b { color: #4AFFA0; }
+.v4-hero-status {
+  position: absolute;
+  left: 76px;
+  top: 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 270px;
+  border: 1px solid rgba(143,247,255,0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: rgba(5,11,18,0.7);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 22px 54px rgba(0,0,0,0.32);
+}
+.v4-live-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #4AFFA0;
+  box-shadow: 0 0 0 0 rgba(74,255,160,0.42);
+  animation: v4Pulse 1.8s ease-out infinite;
+  flex-shrink: 0;
+}
+.v4-hero-status b {
+  display: block;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+.v4-hero-status em {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255,255,255,0.55);
+  font-size: 11px;
+  font-style: normal;
+}
+.v4-hero-scan {
+  position: absolute;
+  left: 17%;
+  right: 10%;
+  bottom: 28px;
+  height: 1px;
+  overflow: hidden;
+  background: rgba(143,247,255,0.12);
+}
+.v4-hero-scan::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 36%;
+  background: linear-gradient(90deg, transparent, #8FF7FF, transparent);
+  animation: v4Scan 2.6s cubic-bezier(.45,0,.2,1) infinite;
+}
+@keyframes v4Pulse {
+  0% { box-shadow: 0 0 0 0 rgba(74,255,160,0.42); }
+  70% { box-shadow: 0 0 0 12px rgba(74,255,160,0); }
+  100% { box-shadow: 0 0 0 0 rgba(74,255,160,0); }
+}
+@keyframes v4Scan {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(310%); }
+}
 .v4-proof-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -863,13 +928,14 @@ body {
   .v4-section,
   .v4-agent-section,
   .v4-source-section { grid-template-columns: 1fr; }
-  .v4-hero { padding: 86px 28px 46px; }
+  .v4-hero { min-height: auto; padding: 74px 28px 42px; }
   .v4-title { font-size: 56px; }
   .v4-hero-copy { max-width: 760px; }
   .v4-hero-visual { min-height: 430px; }
   .v4-hero-visual img { width: min(760px, 104%); transform: none; }
   .v4-hero-card-score { left: 24px; bottom: 46px; }
   .v4-hero-card-ready { right: 24px; top: 34px; }
+  .v4-hero-status { left: 24px; top: 26px; }
   .v4-proof-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .v4-proof-item:nth-child(2n) { border-right: none; }
   .v4-section,
@@ -881,6 +947,19 @@ body {
 }
 @media(max-width:720px){
   .v4-hero { width: 100%; min-height: auto; padding: 74px 18px 34px; overflow: hidden; }
+  .v4-hero::after {
+    content: "";
+    position: absolute;
+    right: -118px;
+    bottom: -78px;
+    width: 360px;
+    aspect-ratio: 1586 / 992;
+    background: url("assets/landing/v04-quality-engine.png") center / cover no-repeat;
+    opacity: 0.28;
+    filter: saturate(1.08);
+    pointer-events: none;
+    z-index: 0;
+  }
   .v4-hero-copy,
   .v4-cta-row,
   .v4-hero-proof {
@@ -888,14 +967,17 @@ body {
     max-width: 640px;
   }
   .v4-title { max-width: 100%; font-size: 38px; line-height: 1.1; overflow-wrap: anywhere; }
+  .v4-title-desktop { display: none; }
+  .v4-title-mobile { display: inline; }
   .v4-lead { max-width: calc(100vw - 36px); font-size: 16px; line-height: 1.72; }
   .v4-system-line { font-size: 12px; }
   .v4-cta-row { align-items: stretch; }
   .v4-btn { width: 100%; max-width: 100%; }
   .v4-hero-proof { grid-template-columns: 1fr; }
-  .v4-hero-visual { min-height: 310px; margin-top: 24px; }
-  .v4-hero-visual img { width: 118%; }
-  .v4-hero-card { display: none; }
+  .v4-hero-visual { display: none; }
+  .v4-hero-card,
+  .v4-hero-status { display: none; }
+  .v4-hero-scan { left: 8%; right: 8%; bottom: 18px; }
   .v4-proof-strip,
   .v4-source-grid,
   .v4-loop-rail,
@@ -1760,7 +1842,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 <section class="v4-hero">
   <div class="v4-hero-copy">
     <div class="v4-system-line">NoteAI Pro V0.4 · Claude 主脑 · 真实链路交付</div>
-    <h1 class="v4-title">小红书爆文创作，从感觉进入质量工程</h1>
+    <h1 class="v4-title" aria-label="小红书爆文创作，V0.4 质量工程">
+      <span class="v4-title-desktop">小红书爆文创作<br>V0.4 质量工程</span>
+      <span class="v4-title-mobile">小红书爆文创作<br>V0.4 质量工程</span>
+    </h1>
     <p class="v4-lead">
       V0.4 商业级质量模型、Claude 多 Agent 协作、真实事实源补全和对话优化记忆，
       把 AI 诊断、爆文生成、二次优化连成一条能交付的内容生产线。
@@ -1778,12 +1863,17 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   </div>
   <div class="v4-hero-visual" aria-label="V0.4 AI quality engine visual">
     <img src="assets/landing/v04-quality-engine.png" alt="NoteAI Pro V0.4 AI quality engine">
+    <div class="v4-hero-status">
+      <span class="v4-live-dot"></span>
+      <div><b>Claude Agents reviewing</b><em>事实校验 · brief · V0.4 复核</em></div>
+    </div>
     <div class="v4-hero-card v4-hero-card-score">
       <span>交付分</span><b>76.2</b><em>Chat 可继续优化</em>
     </div>
     <div class="v4-hero-card v4-hero-card-ready">
       <span>质量门禁</span><b>PASS</b><em>无事实硬伤</em>
     </div>
+    <div class="v4-hero-scan"></div>
   </div>
 </section>
 
