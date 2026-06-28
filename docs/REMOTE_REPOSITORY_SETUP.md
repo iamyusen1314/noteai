@@ -6,6 +6,7 @@
 
 - Branch: `main`
 - Initial source baseline commit: `906432d chore: initialize deployable NoteAI repository`
+- Remote: `https://github.com/iamyusen1314/noteai`
 - Release tag: `v0.4-production-baseline-20260628`
 - Git LFS: enabled
 - Scope doc: `docs/GIT_DEPLOYMENT_SCOPE.md`
