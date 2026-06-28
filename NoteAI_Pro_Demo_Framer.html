@@ -128,6 +128,28 @@ body {
 .nav-tab:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 .nav-tab.active { background: rgba(255,255,255,0.08); color: var(--text); font-weight: 600; }
 .nav-right { display: flex; gap: 12px; align-items: center; }
+@media(max-width:720px){
+  .nav {
+    height: 58px;
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .page { padding-top: 58px; }
+  .nav-tabs { display: none; }
+  .nav-logo { min-width: 0; }
+  .nav-logo-text {
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .nav-logo-sub { display: none; }
+  .nav-right { margin-left: auto; gap: 8px; }
+  #nav-guest .btn-ghost { display: none; }
+  #nav-guest .btn-primary {
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+}
 
 /* ═══════════════════════════════════════════════
    BUTTONS
@@ -407,6 +429,495 @@ body {
   position: relative; z-index: 1;
 }
 .x-finale-sub { font-size: 18px; color: var(--text-2); margin-bottom: 48px; font-weight: 400; position: relative; z-index: 1; }
+
+/* ═══════════════════════════════════════════════
+   LANDING V0.4 — PRODUCT STORY
+═══════════════════════════════════════════════ */
+.v4-hero,
+.v4-section,
+.v4-quality-loop,
+.v4-advantage-section,
+.v4-final-cta {
+  position: relative;
+  isolation: isolate;
+}
+.v4-hero {
+  min-height: calc(100vh - 60px);
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(420px, 1.08fr);
+  gap: 46px;
+  align-items: center;
+  padding: 98px 56px 52px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+    #05070B;
+}
+.v4-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.75) 42%, transparent 78%);
+}
+.v4-hero-copy { position: relative; z-index: 2; width: 100%; max-width: 620px; min-width: 0; }
+.v4-system-line {
+  width: fit-content;
+  color: #8FF7FF;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(143,247,255,0.35);
+}
+.v4-title {
+  font-size: 70px;
+  line-height: 1.02;
+  letter-spacing: 0;
+  font-weight: 850;
+  max-width: 700px;
+  color: #fff;
+  text-wrap: balance;
+}
+.v4-lead {
+  margin-top: 26px;
+  max-width: 590px;
+  color: rgba(255,255,255,0.7);
+  font-size: 18px;
+  line-height: 1.82;
+}
+.v4-cta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 34px; }
+.v4-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: transform .22s cubic-bezier(.16,1,.3,1), border-color .22s, background .22s, box-shadow .22s;
+}
+.v4-btn svg { width: 17px; height: 17px; }
+.v4-btn:hover { transform: translateY(-2px); }
+.v4-btn-primary {
+  color: #041016;
+  border-color: transparent;
+  background: linear-gradient(135deg, #8FF7FF, #33D7FF 48%, #F36FDB);
+  box-shadow: 0 16px 46px rgba(0,212,255,0.22);
+}
+.v4-btn-secondary {
+  color: #fff;
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.18);
+}
+.v4-btn-secondary:hover { border-color: rgba(143,247,255,0.42); box-shadow: 0 12px 32px rgba(0,212,255,0.12); }
+.v4-btn-text {
+  color: rgba(255,255,255,0.72);
+  background: transparent;
+  border-color: transparent;
+  padding-inline: 8px;
+}
+.v4-hero-proof {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 42px;
+  max-width: 640px;
+}
+.v4-hero-proof span {
+  min-height: 78px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.045);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.58);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.v4-hero-proof b { display: block; color: #fff; font-size: 22px; line-height: 1.15; margin-bottom: 4px; }
+.v4-hero-visual {
+  position: relative;
+  z-index: 1;
+  min-height: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1200px;
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+}
+.v4-hero-visual img {
+  width: min(860px, 112%);
+  max-width: none;
+  transform: translateX(18px) rotateY(calc(-7deg + var(--tilt-y))) rotateX(calc(3deg + var(--tilt-x)));
+  filter: drop-shadow(0 48px 90px rgba(0,0,0,0.5));
+  transition: transform .5s cubic-bezier(.16,1,.3,1);
+}
+.v4-hero-visual:hover img { transform: translateX(8px) rotateY(calc(-4deg + var(--tilt-y))) rotateX(calc(2deg + var(--tilt-x))) scale(1.015); }
+.v4-hero-card {
+  position: absolute;
+  min-width: 170px;
+  border: 1px solid rgba(143,247,255,0.22);
+  border-radius: 8px;
+  padding: 13px 15px;
+  background: rgba(5,11,18,0.72);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 22px 54px rgba(0,0,0,0.34);
+}
+.v4-hero-card span { display: block; color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+.v4-hero-card b { display: block; color: #8FF7FF; font-size: 30px; line-height: 1.05; letter-spacing: 0; }
+.v4-hero-card em { display: block; color: rgba(255,255,255,0.58); font-size: 12px; font-style: normal; margin-top: 5px; }
+.v4-hero-card-score { left: 0; bottom: 82px; }
+.v4-hero-card-ready { right: 28px; top: 72px; border-color: rgba(74,255,160,0.22); }
+.v4-hero-card-ready b { color: #4AFFA0; }
+.v4-proof-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: #0A0D12;
+}
+.v4-proof-item {
+  min-height: 152px;
+  padding: 30px 28px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.v4-proof-item:last-child { border-right: none; }
+.v4-proof-item svg { width: 24px; height: 24px; color: #33D7FF; margin-bottom: 16px; }
+.v4-proof-item b { display: block; color: #fff; font-size: 18px; margin-bottom: 7px; letter-spacing: 0; }
+.v4-proof-item span { display: block; color: rgba(255,255,255,0.58); font-size: 13px; line-height: 1.62; }
+.v4-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(390px, 1.05fr);
+  gap: 62px;
+  align-items: center;
+  padding: 132px 72px;
+  background: #05070B;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.v4-section:nth-of-type(odd) { background: #090C12; }
+.v4-section-copy { max-width: 620px; }
+.v4-kicker {
+  display: block;
+  color: #33D7FF;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin-bottom: 14px;
+}
+.v4-section h2,
+.v4-loop-head h2,
+.v4-advantage-copy h2,
+.v4-final-cta h2 {
+  color: #fff;
+  font-size: 44px;
+  line-height: 1.15;
+  letter-spacing: 0;
+  font-weight: 820;
+  text-wrap: balance;
+}
+.v4-section p,
+.v4-advantage-copy p,
+.v4-final-cta p {
+  margin-top: 18px;
+  color: rgba(255,255,255,0.66);
+  font-size: 16px;
+  line-height: 1.82;
+}
+.v4-check-list { display: grid; gap: 12px; margin-top: 24px; list-style: none; }
+.v4-check-list li { display: flex; gap: 10px; align-items: flex-start; color: rgba(255,255,255,0.78); font-size: 14px; }
+.v4-check-list svg { width: 17px; height: 17px; color: #4AFFA0; flex-shrink: 0; margin-top: 2px; }
+.v4-radar-card,
+.v4-agent-map,
+.v4-source-grid,
+.v4-loop-rail,
+.v4-advantage-grid {
+  border: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.025));
+  border-radius: 8px;
+  box-shadow: 0 34px 90px rgba(0,0,0,0.32);
+}
+.v4-radar-card { padding: 30px; }
+.v4-radar-orbit {
+  position: relative;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+  margin: 8px auto 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(143,247,255,0.28);
+  background:
+    radial-gradient(circle, rgba(51,215,255,0.12) 0 18%, transparent 19%),
+    conic-gradient(from 0deg, rgba(51,215,255,0.18), rgba(243,111,219,0.22), rgba(74,255,160,0.16), rgba(51,215,255,0.18));
+}
+.v4-radar-orbit::before,
+.v4-radar-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.v4-radar-orbit::after { inset: 34%; }
+.v4-radar-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 25px;
+  font-weight: 850;
+  background: rgba(5,11,18,0.84);
+  border: 1px solid rgba(143,247,255,0.38);
+}
+.v4-radar-orbit > span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: rotate(calc(var(--i) * 60deg)) translate(0, -174px) rotate(calc(var(--i) * -60deg));
+  color: rgba(255,255,255,0.74);
+  font-size: 12px;
+  font-weight: 750;
+}
+.v4-mini-bars { display: grid; gap: 12px; }
+.v4-mini-bars div { display: grid; grid-template-columns: 72px 1fr 28px; gap: 12px; align-items: center; color: rgba(255,255,255,0.58); font-size: 12px; }
+.v4-mini-bars b { height: 7px; border-radius: 99px; background: linear-gradient(90deg, #33D7FF, #F36FDB); width: var(--w); }
+.v4-mini-bars em { color: #fff; font-style: normal; font-weight: 800; }
+.v4-agent-section { grid-template-columns: minmax(430px, 1.08fr) minmax(0, .92fr); background: #080A10; }
+.v4-agent-map {
+  position: relative;
+  min-height: 530px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  overflow: hidden;
+}
+.v4-agent-map::before {
+  content: "";
+  position: absolute;
+  inset: 55px;
+  border: 1px solid rgba(51,215,255,0.14);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.v4-claude-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  width: 132px;
+  height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 850;
+  line-height: 1.08;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(51,215,255,0.2), rgba(243,111,219,0.18));
+  border: 1px solid rgba(143,247,255,0.38);
+  box-shadow: 0 0 42px rgba(51,215,255,0.18);
+}
+.v4-claude-core span { color: #8FF7FF; font-size: 13px; margin-top: 5px; }
+.v4-agent-node {
+  min-height: 128px;
+  padding: 18px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  color: rgba(255,255,255,0.7);
+  transition: transform .25s, border-color .25s, background .25s;
+}
+.v4-agent-node:hover,
+.v4-agent-node.active { transform: translateY(-4px); border-color: rgba(143,247,255,0.34); background: rgba(51,215,255,0.08); }
+.v4-agent-node svg { width: 20px; height: 20px; color: #33D7FF; margin-bottom: 13px; }
+.v4-agent-node b { display: block; color: #fff; font-size: 15px; margin-bottom: 5px; }
+.v4-agent-node span { display: block; font-size: 12px; line-height: 1.55; }
+.v4-agent-quote {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 28px;
+  border: 1px solid rgba(245,158,11,0.18);
+  background: rgba(245,158,11,0.06);
+  border-radius: 8px;
+  padding: 16px 18px;
+  color: rgba(255,255,255,0.78);
+  font-size: 14px;
+  line-height: 1.68;
+}
+.v4-agent-quote svg { color: #F59E0B; width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; }
+.v4-source-section { grid-template-columns: minmax(0, .88fr) minmax(480px, 1.12fr); }
+.v4-source-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+.v4-source-card {
+  grid-column: span 2;
+  min-height: 150px;
+  padding: 20px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.09);
+}
+.v4-source-card svg,
+.v4-industry-card svg { width: 22px; height: 22px; color: #4AFFA0; margin-bottom: 14px; }
+.v4-source-card b { display: block; color: #fff; font-size: 18px; margin-bottom: 7px; }
+.v4-source-card span,
+.v4-industry-card span { color: rgba(255,255,255,0.62); font-size: 13px; line-height: 1.56; }
+.v4-industry-card {
+  min-height: 116px;
+  padding: 17px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.085);
+}
+.v4-quality-loop,
+.v4-advantage-section,
+.v4-final-cta {
+  padding: 120px 72px;
+  background: #05070B;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.v4-loop-head,
+.v4-advantage-copy,
+.v4-final-cta {
+  max-width: 900px;
+  text-align: center;
+  margin: 0 auto;
+}
+.v4-loop-rail {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin-top: 48px;
+}
+.v4-loop-rail div {
+  position: relative;
+  min-height: 164px;
+  padding: 24px 18px;
+  background: rgba(255,255,255,0.035);
+}
+.v4-loop-rail div:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  width: 16px;
+  height: 1px;
+  background: #33D7FF;
+  z-index: 2;
+}
+.v4-loop-rail svg { width: 24px; height: 24px; color: #33D7FF; margin-bottom: 18px; }
+.v4-loop-rail b { display: block; color: #fff; font-size: 16px; margin-bottom: 7px; }
+.v4-loop-rail span { color: rgba(255,255,255,0.58); font-size: 12px; line-height: 1.55; }
+.v4-advantage-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin-top: 42px;
+}
+.v4-advantage-grid div { min-height: 210px; padding: 28px; background: rgba(255,255,255,0.035); }
+.v4-advantage-grid svg { width: 26px; height: 26px; color: #F36FDB; margin-bottom: 20px; }
+.v4-advantage-grid b { display: block; color: #fff; font-size: 18px; margin-bottom: 10px; }
+.v4-advantage-grid span { color: rgba(255,255,255,0.62); font-size: 13px; line-height: 1.72; }
+.v4-final-cta {
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(51,215,255,0.12), transparent 36%),
+    linear-gradient(225deg, rgba(243,111,219,0.13), transparent 42%),
+    #05070B;
+}
+.v4-final-cta h2 { max-width: 820px; }
+.v4-final-cta p { max-width: 660px; }
+
+@media(max-width:1080px){
+  .v4-hero,
+  .v4-section,
+  .v4-agent-section,
+  .v4-source-section { grid-template-columns: 1fr; }
+  .v4-hero { padding: 86px 28px 46px; }
+  .v4-title { font-size: 56px; }
+  .v4-hero-copy { max-width: 760px; }
+  .v4-hero-visual { min-height: 430px; }
+  .v4-hero-visual img { width: min(760px, 104%); transform: none; }
+  .v4-hero-card-score { left: 24px; bottom: 46px; }
+  .v4-hero-card-ready { right: 24px; top: 34px; }
+  .v4-proof-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .v4-proof-item:nth-child(2n) { border-right: none; }
+  .v4-section,
+  .v4-quality-loop,
+  .v4-advantage-section,
+  .v4-final-cta { padding: 96px 32px; }
+  .v4-loop-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .v4-advantage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media(max-width:720px){
+  .v4-hero { width: 100%; min-height: auto; padding: 74px 18px 34px; overflow: hidden; }
+  .v4-hero-copy,
+  .v4-cta-row,
+  .v4-hero-proof {
+    width: calc(100vw - 36px);
+    max-width: 640px;
+  }
+  .v4-title { max-width: 100%; font-size: 38px; line-height: 1.1; overflow-wrap: anywhere; }
+  .v4-lead { max-width: calc(100vw - 36px); font-size: 16px; line-height: 1.72; }
+  .v4-system-line { font-size: 12px; }
+  .v4-cta-row { align-items: stretch; }
+  .v4-btn { width: 100%; max-width: 100%; }
+  .v4-hero-proof { grid-template-columns: 1fr; }
+  .v4-hero-visual { min-height: 310px; margin-top: 24px; }
+  .v4-hero-visual img { width: 118%; }
+  .v4-hero-card { display: none; }
+  .v4-proof-strip,
+  .v4-source-grid,
+  .v4-loop-rail,
+  .v4-advantage-grid { grid-template-columns: 1fr; }
+  .v4-proof-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .v4-proof-item:last-child { border-bottom: none; }
+  .v4-section,
+  .v4-quality-loop,
+  .v4-advantage-section,
+  .v4-final-cta { padding: 72px 18px; }
+  .v4-section h2,
+  .v4-loop-head h2,
+  .v4-advantage-copy h2,
+  .v4-final-cta h2 { font-size: 32px; line-height: 1.18; }
+  .v4-agent-map { min-height: auto; grid-template-columns: 1fr; }
+  .v4-agent-map::before,
+  .v4-claude-core { display: none; }
+  .v4-source-card { grid-column: auto; }
+  .v4-radar-orbit > span { transform: none; position: static; display: inline-flex; margin: 8px 6px 0 0; }
+  .v4-radar-orbit { width: 100%; aspect-ratio: auto; min-height: 260px; padding: 18px; border-radius: 8px; }
+  .v4-radar-core { position: static; transform: none; margin: 20px auto; }
+}
 
 /* ═══════════════════════════════════════════════
    UPLOAD PAGE
@@ -1246,172 +1757,141 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 ═══════════════════════════════════════════════════════════════ -->
 <div class="page active" id="page-landing">
 
-<!-- ── HERO ───────────────────────────────────── -->
-<section class="xhero">
-  <p class="x-eyebrow"><span class="x-dot-pulse"></span>小红书创作者的 AI 内容医生</p>
-  <h1 class="x-display">
-    你的笔记，<br>
-    <span class="x-grad">为什么没有爆？</span>
-  </h1>
-  <p class="x-lead">5 位 AI 专家实时辩论，量化基线数据支撑，越用越懂你——不是工具，是持续陪伴你成长的内容伙伴</p>
-  <div class="x-cta-row">
-    <button class="xbtn xbtn-fill" onclick="showPage('upload')">立即免费诊断</button>
-    <button class="xbtn xbtn-ghost" onclick="goToGenerate()"
-      style="background:linear-gradient(135deg,rgba(123,97,255,0.25),rgba(255,111,216,0.15));
-             border-color:rgba(123,97,255,0.5);color:var(--holo-mid)">
-      <i data-lucide="wand-2" style="width:14px;height:14px"></i> AI 生成爆文
-    </button>
-    <button class="xbtn xbtn-ghost" onclick="showPage('live')">
-      <i data-lucide="play" style="width:14px;height:14px"></i> 观看演示
-    </button>
-  </div>
-  <!-- App Window -->
-  <div class="x-screen">
-    <div class="x-screen-bar">
-      <span class="x-wdot" style="background:#FF5F57"></span>
-      <span class="x-wdot" style="background:#FEBC2E"></span>
-      <span class="x-wdot" style="background:#28C840"></span>
-      <span class="x-wtitle">NoteAI Pro · 实时诊断中</span>
+<section class="v4-hero">
+  <div class="v4-hero-copy">
+    <div class="v4-system-line">NoteAI Pro V0.4 · Claude 主脑 · 真实链路交付</div>
+    <h1 class="v4-title">小红书爆文创作，从感觉进入质量工程</h1>
+    <p class="v4-lead">
+      V0.4 商业级质量模型、Claude 多 Agent 协作、真实事实源补全和对话优化记忆，
+      把 AI 诊断、爆文生成、二次优化连成一条能交付的内容生产线。
+    </p>
+    <div class="v4-cta-row">
+      <button class="v4-btn v4-btn-primary" onclick="showPage('upload')"><i data-lucide="search"></i>开始 AI 诊断</button>
+      <button class="v4-btn v4-btn-secondary" onclick="goToGenerate()"><i data-lucide="wand-2"></i>生成爆文</button>
+      <button class="v4-btn v4-btn-text" onclick="showPage('tech')"><i data-lucide="cpu"></i>查看模型内核</button>
     </div>
-    <div class="x-screen-body">
-      <div class="x-win-agents" id="xAgents">
-        <div class="x-wa" data-idx="0"><div class="x-wav" style="background:rgba(239,68,68,0.15)"><i data-lucide="file-text" style="color:#EF4444"></i></div><div class="x-wan">内容分析师</div><div class="x-war">ContentAgent</div></div>
-        <div class="x-wa" data-idx="1"><div class="x-wav" style="background:rgba(0,153,255,0.15)"><i data-lucide="eye" style="color:#0099FF"></i></div><div class="x-wan">视觉诊断师</div><div class="x-war">VisualAgent</div></div>
-        <div class="x-wa" data-idx="2"><div class="x-wav" style="background:rgba(34,197,94,0.15)"><i data-lucide="trending-up" style="color:#22C55E"></i></div><div class="x-wan">增长策略师</div><div class="x-war">GrowthAgent</div></div>
-        <div class="x-wa" data-idx="3"><div class="x-wav" style="background:rgba(123,97,255,0.15)"><i data-lucide="users" style="color:#7B61FF"></i></div><div class="x-wan">用户模拟器</div><div class="x-war">UserAgent</div></div>
-        <div class="x-wa" data-idx="4"><div class="x-wav" style="background:rgba(255,111,216,0.15)"><i data-lucide="scale" style="color:#FF6FD8"></i></div><div class="x-wan" style="color:#FF6FD8">仲裁者</div><div class="x-war">ArbiterAgent</div></div>
-      </div>
-      <div class="x-win-scores">
-        <div class="x-ws-title">量化评分 · 赛道基线对比</div>
-        <div class="x-wsr"><span>标题吸引力</span><div class="x-wst"><div class="x-wsf" data-w="0%"  style="width:0"></div></div><b style="color:var(--text-muted)">--</b></div>
-        <div class="x-wsr"><span>视觉表现力</span><div class="x-wst"><div class="x-wsf" data-w="0%"  style="width:0"></div></div><b style="color:var(--text-muted)">--</b></div>
-        <div class="x-wsr"><span>内容质量</span><div class="x-wst"><div class="x-wsf" data-w="0%"  style="width:0"></div></div><b style="color:var(--text-muted)">--</b></div>
-        <div class="x-wsr"><span>标签策略</span><div class="x-wst"><div class="x-wsf" data-w="0%"  style="width:0"></div></div><b style="color:var(--text-muted)">--</b></div>
-        <div class="x-wsr"><span>发布策略</span><div class="x-wst"><div class="x-wsf" data-w="0%"  style="width:0"></div></div><b style="color:var(--text-muted)">--</b></div>
-      </div>
+    <div class="v4-hero-proof">
+      <span><b>100,000+</b> 真实笔记训练/评估</span>
+      <span><b>124维</b> 复合质量特征</span>
+      <span><b>6大行业</b> 首批核心覆盖</span>
+    </div>
+  </div>
+  <div class="v4-hero-visual" aria-label="V0.4 AI quality engine visual">
+    <img src="assets/landing/v04-quality-engine.png" alt="NoteAI Pro V0.4 AI quality engine">
+    <div class="v4-hero-card v4-hero-card-score">
+      <span>交付分</span><b>76.2</b><em>Chat 可继续优化</em>
+    </div>
+    <div class="v4-hero-card v4-hero-card-ready">
+      <span>质量门禁</span><b>PASS</b><em>无事实硬伤</em>
     </div>
   </div>
 </section>
 
-<!-- ── STATS ──────────────────────────────────── -->
-<section class="x-stats">
-  <div class="x-stat"><div class="x-sn">10<small>万+</small></div><div class="x-sl">真实笔记基线训练</div></div>
-  <div class="x-sdiv"></div>
-  <div class="x-stat"><div class="x-sn">50<small>ms</small></div><div class="x-sl">量化评分响应速度</div></div>
-  <div class="x-sdiv"></div>
-  <div class="x-stat"><div class="x-sn">5<small>位</small></div><div class="x-sl">AI 专家实时辩论</div></div>
-  <div class="x-sdiv"></div>
-  <div class="x-stat"><div class="x-sn">3<small>轮</small></div><div class="x-sl">深度辩论诊断流程</div></div>
+<section class="v4-proof-strip">
+  <div class="v4-proof-item"><i data-lucide="layers"></i><b>V0.4 composite</b><span>评分、分类、偏好排序同时工作</span></div>
+  <div class="v4-proof-item"><i data-lucide="brain-circuit"></i><b>Claude main brain</b><span>更强的长文推理与表达修正</span></div>
+  <div class="v4-proof-item"><i data-lucide="shield-check"></i><b>60 分硬底线</b><span>低质稿不冒充成功交付</span></div>
+  <div class="v4-proof-item"><i data-lucide="map-pin"></i><b>事实源增强</b><span>高德 + 美团酒旅补真实信息</span></div>
 </section>
 
-<!-- ── FEATURE 1 ───────────────────────────────── -->
-<section class="x-feat x-feat-gray fade-up">
-  <div class="x-feat-in x-feat-rev">
-    <div class="x-feat-text">
-      <p class="x-eyebrow">数据驱动</p>
-      <h2 class="x-h2">数据说话，<br>不是 AI 凭感觉</h2>
-      <p class="x-fp">基于 10 万+ 真实小红书笔记回归分析，分品类建立评分权重模型。封面图上传后，AI 自动提取锐度、色彩、构图等 14 项视觉特征，给出可量化的视觉表现力得分。</p>
-      <span class="x-ftag">50ms 量化基线评分</span>
-      <span class="x-ftag" style="margin-left:6px">封面视觉 14 维分析</span>
+<section class="v4-section v4-model-section fade-up">
+  <div class="v4-section-copy">
+    <span class="v4-kicker">V0.4 商业级模型</span>
+    <h2>不是“打个分”，而是把爆文规则前移到生成前</h2>
+    <p>V0.4 不只在写完后评分。它会把 124 维质量特征用于生成前 brief、候选选择、二次修复和交付门禁，让标题、正文、事实密度、互动引导和行业表达更稳定。</p>
+    <ul class="v4-check-list">
+      <li><i data-lucide="check"></i>100,000+ 真实小红书笔记训练与评估</li>
+      <li><i data-lucide="check"></i>Golden + Preference 共同训练，避免只追分不自然</li>
+      <li><i data-lucide="check"></i>60+ 不硬拦，进入对话优化继续提升</li>
+    </ul>
+  </div>
+  <div class="v4-radar-card">
+    <div class="v4-radar-orbit">
+      <span style="--i:0">标题</span><span style="--i:1">事实</span><span style="--i:2">结构</span>
+      <span style="--i:3">情绪</span><span style="--i:4">CTA</span><span style="--i:5">行业</span>
+      <div class="v4-radar-core">124维</div>
     </div>
-    <div class="x-feat-vis">
-      <div class="x-vis-card">
-        <div class="x-vc-label">美食品类 · 赛道第 43 百分位</div>
-        <div class="x-vr"><span>标题吸引力</span><div class="x-vt"><div style="width:72%;height:100%;border-radius:4px;background:linear-gradient(90deg,#FF6FD8,#7B61FF)"></div></div><b style="color:#EF4444">72</b></div>
-        <div class="x-vr"><span>视觉表现力</span><div class="x-vt"><div style="width:76%;height:100%;border-radius:4px;background:linear-gradient(90deg,#F59E0B,#FBBF24)"></div></div><b style="color:#22C55E">76</b></div>
-        <div style="display:flex;gap:10px;padding:4px 0 6px 0;font-size:11px;color:var(--text-muted)">
-          <span>锐度 <b style="color:var(--text-2)">82</b></span>
-          <span>对比度 <b style="color:var(--text-2)">71</b></span>
-          <span>饱和度 <b style="color:var(--text-2)">79</b></span>
-          <span>构图 <b style="color:var(--text-2)">78</b></span>
-          <span style="color:#22C55E">人脸 ✓</span>
-        </div>
-        <div class="x-vr"><span>内容质量</span><div class="x-vt"><div style="width:85%;height:100%;border-radius:4px;background:linear-gradient(90deg,#22C55E,#4ADE80)"></div></div><b style="color:#22C55E">85</b></div>
-        <div class="x-vr"><span>标签策略</span><div class="x-vt"><div style="width:63%;height:100%;border-radius:4px;background:linear-gradient(90deg,#F59E0B,#FB923C)"></div></div><b style="color:#F59E0B">63</b></div>
-        <div class="x-vr"><span>发布策略</span><div class="x-vt"><div style="width:45%;height:100%;border-radius:4px;background:linear-gradient(90deg,#EF4444,#F87171)"></div></div><b style="color:#EF4444">45</b></div>
-      </div>
+    <div class="v4-mini-bars">
+      <div><span>自然度</span><b style="--w:86%"></b><em>86</em></div>
+      <div><span>信息密度</span><b style="--w:82%"></b><em>82</em></div>
+      <div><span>事实边界</span><b style="--w:94%"></b><em>94</em></div>
     </div>
   </div>
 </section>
 
-<!-- ── FEATURE 2 ───────────────────────────────── -->
-<section class="x-feat x-feat-white fade-up">
-  <div class="x-feat-in">
-    <div class="x-feat-text">
-      <p class="x-eyebrow">多 Agent 架构</p>
-      <h2 class="x-h2">5 位专家同时<br>为你的内容辩论</h2>
-      <p class="x-fp">内容、视觉、增长、用户、仲裁五位 AI 专家并行独立诊断，置信度加权决策，专家分歧主动暴露——真正的洞察常常藏在分歧里。</p>
-      <span class="x-ftag">置信度驱动 · 分歧透明可见</span>
-    </div>
-    <div class="x-feat-vis">
-      <div class="x-vis-card">
-        <div class="x-am-list">
-          <div class="x-am"><div class="x-amav" style="background:rgba(239,68,68,0.15)"><i data-lucide="file-text" style="color:#EF4444;width:17px;height:17px"></i></div><span class="x-amn">内容分析师</span><span class="x-amc" style="color:#22C55E">0.88</span></div>
-          <div class="x-am"><div class="x-amav" style="background:rgba(0,153,255,0.15)"><i data-lucide="eye" style="color:#0099FF;width:17px;height:17px"></i></div><span class="x-amn">视觉诊断师</span><span class="x-amc" style="color:#22C55E">0.82</span></div>
-          <div class="x-am x-am-hot"><div class="x-amav" style="background:rgba(34,197,94,0.15)"><i data-lucide="trending-up" style="color:#22C55E;width:17px;height:17px"></i></div><span class="x-amn">增长策略师</span><span class="x-amc" style="color:#F59E0B">0.75</span></div>
-          <div class="x-am"><div class="x-amav" style="background:rgba(123,97,255,0.15)"><i data-lucide="users" style="color:#7B61FF;width:17px;height:17px"></i></div><span class="x-amn">用户模拟器</span><span class="x-amc" style="color:#22C55E">0.84</span></div>
-        </div>
-        <div class="x-dispute-chip">
-          <i data-lucide="alert-triangle" style="width:12px;height:12px;color:#F59E0B;flex-shrink:0"></i>
-          增长策略师与视觉诊断师对优先级存在分歧——仲裁者建议同步执行
-        </div>
-      </div>
+<section class="v4-section v4-agent-section fade-up">
+  <div class="v4-agent-map">
+    <div class="v4-claude-core">Claude<br><span>主脑</span></div>
+    <div class="v4-agent-node active"><i data-lucide="file-text"></i><b>内容分析师</b><span>结构、钩子、信息密度</span></div>
+    <div class="v4-agent-node"><i data-lucide="eye"></i><b>视觉诊断师</b><span>封面、构图、素材表达</span></div>
+    <div class="v4-agent-node"><i data-lucide="trending-up"></i><b>增长策略师</b><span>搜索、流量、发布策略</span></div>
+    <div class="v4-agent-node"><i data-lucide="users"></i><b>用户模拟器</b><span>目标受众、转化动机</span></div>
+    <div class="v4-agent-node"><i data-lucide="scale"></i><b>仲裁者</b><span>分歧裁决、最终交付</span></div>
+  </div>
+  <div class="v4-section-copy">
+    <span class="v4-kicker">Claude + 5 Agents</span>
+    <h2>不是 5 个名字，而是 5 种专业判断互相制衡</h2>
+    <p>Claude 负责深层推理与表达质量，五个 agent 分工拆解内容、视觉、增长和用户心理。系统会暴露分歧、做仲裁、再用 V0.4 模型复核，避免一条 prompt 直接拍脑袋。</p>
+    <div class="v4-agent-quote">
+      <i data-lucide="message-square-warning"></i>
+      增长策略师认为标题需要更强搜索词，用户模拟器认为过硬会降低信任感；仲裁者会把两者压成自然但可点击的表达。
     </div>
   </div>
 </section>
 
-<!-- ── FEATURE 3 ───────────────────────────────── -->
-<section class="x-feat x-feat-gray fade-up">
-  <div class="x-feat-in x-feat-rev">
-    <div class="x-feat-text">
-      <p class="x-eyebrow">Hermes 记忆架构</p>
-      <h2 class="x-h2">越用越懂你，<br>越用越准</h2>
-      <p class="x-fp">跨会话记住你的内容风格、历史痛点、个人约束条件。用了 3 个月的 NoteAI Pro，比第 1 天聪明 10 倍——这是架构决定的，不是营销语言。</p>
-      <span class="x-ftag">持久记忆 · 个性化进化</span>
-    </div>
-    <div class="x-feat-vis">
-      <div class="x-vis-card">
-        <div class="x-mem"><div class="x-meml"><i data-lucide="lock" style="width:11px;height:11px"></i>用户约束</div><div class="x-memv">固定发布时间 18:00 · 标题不接受大改</div></div>
-        <div class="x-mem"><div class="x-meml"><i data-lucide="palette" style="width:11px;height:11px"></i>内容风格</div><div class="x-memv">流程化叙事 · 家常菜 · 亲切口语化</div></div>
-        <div class="x-mem"><div class="x-meml"><i data-lucide="target" style="width:11px;height:11px"></i>创作目标</div><div class="x-memv">主要：带货（食材/厨具）· 次要：涨粉 5k</div></div>
-        <div class="x-mem x-mem-last"><div class="x-meml"><i data-lucide="trending-up" style="width:11px;height:11px"></i>账号阶段</div><div class="x-memv">成长期账号 · 瓶颈在发行策略和视觉优化</div></div>
-      </div>
-    </div>
+<section class="v4-section v4-source-section fade-up">
+  <div class="v4-section-copy">
+    <span class="v4-kicker">真实事实源 + 多行业</span>
+    <h2>用户没提供的信息，不靠编；能联网补的事实，系统帮你补</h2>
+    <p>餐饮/本地生活使用高德作为基础事实源，酒旅接入美团 travel skill。系统把地址、人均、评分、交通、权益等真实信息自然融入文案，既减少虚假，也让用户感到“它真的懂我这家店/这次旅行”。</p>
+  </div>
+  <div class="v4-source-grid">
+    <div class="v4-source-card"><i data-lucide="map"></i><b>高德事实源</b><span>餐饮、本地生活、商圈、地址、人均、评分</span></div>
+    <div class="v4-source-card"><i data-lucide="hotel"></i><b>美团酒旅</b><span>酒店、旅行、起价、设施、交通与权益</span></div>
+    <div class="v4-industry-card"><i data-lucide="utensils"></i><span>美食/本地生活</span></div>
+    <div class="v4-industry-card"><i data-lucide="plane"></i><span>酒旅/旅行</span></div>
+    <div class="v4-industry-card"><i data-lucide="sparkles"></i><span>美妆个护</span></div>
+    <div class="v4-industry-card"><i data-lucide="shirt"></i><span>穿搭时尚</span></div>
+    <div class="v4-industry-card"><i data-lucide="sofa"></i><span>家居家装</span></div>
+    <div class="v4-industry-card"><i data-lucide="dumbbell"></i><span>运动健身</span></div>
   </div>
 </section>
 
-<!-- ── COMPARE ─────────────────────────────────── -->
-<section class="x-compare fade-up">
-  <div class="x-sec-inner">
-    <p class="x-eyebrow" style="text-align:center;display:block">与竞品对比</p>
-    <h2 class="x-h2" style="text-align:center;margin:0 auto 72px">同样是 AI 诊断，<br>差距在哪里？</h2>
-    <div class="x-tbl-wrap">
-      <table class="x-tbl">
-        <thead><tr>
-          <th>能力维度</th>
-          <th><i data-lucide="smartphone" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"></i>其他工具</th>
-          <th class="x-tbl-ours"><i data-lucide="sparkles" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"></i>NoteAI Pro</th>
-        </tr></thead>
-        <tbody>
-          <tr><td>评分依据</td><td class="x-no">单次 LLM 主观感受</td><td class="x-yes">10万+ 笔记回归分析</td></tr>
-          <tr><td>诊断深度</td><td class="x-no">Generic「优化标题」</td><td class="x-yes">数据支撑 + 爆款案例对比</td></tr>
-          <tr><td>用户记忆</td><td class="x-no">每次从零开始</td><td class="x-yes">跨会话成长档案</td></tr>
-          <tr><td>封面视觉评分</td><td class="x-no">无 / 纯文字反馈</td><td class="x-yes">14 维图像特征量化打分</td></tr>
-          <tr><td>视觉分析</td><td class="x-no">颜色/人脸规则检测</td><td class="x-yes">多模态语义理解 + 确定性特征</td></tr>
-          <tr><td>分歧暴露</td><td class="x-no">无</td><td class="x-yes">专家分歧主动告知</td></tr>
-          <tr><td>数据闭环</td><td class="x-no">无发布效果追踪</td><td class="x-yes">真实互动数据回流</td></tr>
-        </tbody>
-      </table>
-    </div>
+<section class="v4-quality-loop fade-up">
+  <div class="v4-loop-head">
+    <span class="v4-kicker">从诊断到交付的质量闭环</span>
+    <h2>每一步都有 AI 把关，用户才愿意为结果付费</h2>
+  </div>
+  <div class="v4-loop-rail">
+    <div><i data-lucide="upload-cloud"></i><b>素材输入</b><span>截图/手动/视频</span></div>
+    <div><i data-lucide="database-zap"></i><b>事实补全</b><span>高德/美团/用户素材</span></div>
+    <div><i data-lucide="route"></i><b>生成 brief</b><span>按行业规划交付标准</span></div>
+    <div><i data-lucide="brain-circuit"></i><b>Claude Agents</b><span>多角度创作与诊断</span></div>
+    <div><i data-lucide="scan-search"></i><b>V0.4 复核</b><span>评分、排序、门禁</span></div>
+    <div><i data-lucide="messages-square"></i><b>对话优化</b><span>继续提升并学习偏好</span></div>
   </div>
 </section>
 
-<!-- ── FINALE CTA ─────────────────────────────── -->
-<section class="x-finale fade-up">
-  <p class="x-eyebrow" style="display:block;text-align:center">开始你的第一次诊断</p>
-  <h2 class="x-finale-h">你的每条笔记，<br>都值得更好的结果</h2>
-  <p class="x-finale-sub">免费用户每月 5 次 · 无需信用卡 · 30 秒开始</p>
-  <button class="xbtn xbtn-white" onclick="showPage('upload')" style="position:relative;z-index:1">立即免费诊断</button>
+<section class="v4-advantage-section fade-up">
+  <div class="v4-advantage-copy">
+    <h2>更新后，NoteAI Pro 的优势更清楚</h2>
+    <p>这不是“多写几版文案”的工具，而是围绕商业交付质量搭起来的 SaaS 内核。</p>
+  </div>
+  <div class="v4-advantage-grid">
+    <div><i data-lucide="split"></i><b>三标题三正文</b><span>AI 诊断每个方向都有独立正文，不再共享一篇内容。</span></div>
+    <div><i data-lucide="shield"></i><b>低质稿不交付</b><span>低于 60 分或硬错误会被拦截，60+ 进入优化链路。</span></div>
+    <div><i data-lucide="repeat-2"></i><b>分数导向二修</b><span>不是机械加关键词，而是按 V0.4 弱项做自然修复。</span></div>
+    <div><i data-lucide="user-round-cog"></i><b>越用越懂用户</b><span>对话优化会沉淀偏好，后续生成更贴近账号风格。</span></div>
+  </div>
+</section>
+
+<section class="v4-final-cta fade-up">
+  <h2>让 Claude 和 V0.4 先替你把质量关过一遍</h2>
+  <p>免费开始诊断，也可以直接上传素材生成爆文。真正有价值的内容系统，应该让用户看到确定性的提升。</p>
+  <div class="v4-cta-row">
+    <button class="v4-btn v4-btn-primary" onclick="showPage('upload')"><i data-lucide="search"></i>开始第一次诊断</button>
+    <button class="v4-btn v4-btn-secondary" onclick="goToGenerate()"><i data-lucide="wand-2"></i>上传素材生成爆文</button>
+  </div>
 </section>
 
 </div><!-- /page-landing -->
@@ -1437,7 +1917,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <div class="mode-card-title">AI 内容诊断</div>
         <div class="mode-card-desc">
           上传你已发布 / 未发布的笔记，<br>
-          5 位 AI 专家从 <strong style="color:var(--accent)">62 个维度</strong> 找出问题、<br>
+          Claude 5 位 AI 专家从 <strong style="color:var(--accent)">124 维复合质量特征</strong> 找出问题、<br>
           给出改写方案和行动清单。
         </div>
       </div>
@@ -1732,7 +2212,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <div class="section-header-gen">
         <i data-lucide="wand-2" style="color:var(--holo-mid);width:18px;height:18px;flex-shrink:0"></i>
         <span style="font-size:16px;font-weight:700;color:var(--text)">生成爆文素材</span>
-        <span class="section-badge section-badge-gen">v0.3 模型 · 62 维爆文特征</span>
+        <span class="section-badge section-badge-gen">V0.4 模型 · 124 维爆文特征</span>
       </div>
 
       <!-- 三步说明 -->
@@ -1919,7 +2399,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div class="live-header">
       <h1><i data-lucide="activity"></i>AI 专家会诊进行中</h1>
       <div class="progress-track"><div class="progress-fill" id="mainProgress"></div></div>
-      <div class="progress-label" id="progressLabel">正在进行 Model A 量化评分…</div>
+      <div class="progress-label" id="progressLabel">正在进行 V0.4 复合质量评分…</div>
     </div>
 
     <div class="arena" id="arena">
@@ -1968,7 +2448,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 
     <div class="timeline" id="timeline">
       <div class="tl-step" id="tl0"><div class="tl-dot">✓</div><div class="tl-label">内容摄入</div></div>
-      <div class="tl-step" id="tl1"><div class="tl-dot">2</div><div class="tl-label">Model A 评分</div></div>
+      <div class="tl-step" id="tl1"><div class="tl-dot">2</div><div class="tl-label">V0.4 评分</div></div>
       <div class="tl-step" id="tl2"><div class="tl-dot">3</div><div class="tl-label">并行诊断</div></div>
       <div class="tl-step" id="tl3"><div class="tl-dot">4</div><div class="tl-label">交叉质疑</div></div>
       <div class="tl-step" id="tl4"><div class="tl-dot">5</div><div class="tl-label">分歧检测</div></div>
@@ -2057,7 +2537,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <div style="display:flex;align-items:center;gap:16px">
         <div style="flex:1">
           <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px">AI 已完成诊断，直接开始对话优化？</div>
-          <div style="font-size:12px;color:var(--text-2)">AI 已掌握你的弱项 · v0.3模型评分依据 · 专家诊断意见，告诉我你的修改方向，逐步提升分数</div>
+          <div style="font-size:12px;color:var(--text-2)">AI 已掌握你的弱项 · V0.4 模型评分依据 · 专家诊断意见，告诉我你的修改方向，逐步提升分数</div>
         </div>
         <button onclick="startDiagChatOptimization()"
           style="flex-shrink:0;padding:10px 22px;border-radius:980px;border:none;cursor:pointer;font-size:13px;font-weight:700;
@@ -2295,7 +2775,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         padding:16px 20px;margin-bottom:20px">
         <div style="flex:1">
           <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px">笔记已生成，开始对话优化？</div>
-          <div style="font-size:12px;color:var(--text-2)">AI 已了解专家意见 · v0.3模型特征命中情况 · 封面内容。告诉我你的修改想法，持续逼近 70 分。</div>
+          <div style="font-size:12px;color:var(--text-2)">AI 已了解专家意见 · V0.4 模型特征命中情况 · 封面内容。告诉我你的修改想法，持续逼近 70 分。</div>
         </div>
         <button onclick="startChatOptimization()"
           style="flex-shrink:0;padding:10px 22px;border-radius:980px;border:none;cursor:pointer;font-size:14px;font-weight:700;
@@ -2617,7 +3097,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         由 100,000+ 真实小红书笔记训练 · 持续进化
       </div>
       <h1 class="tech-hero-title fade-up">
-        <span class="holo">62维特征引擎</span>
+        <span class="holo">V0.4 复合质量引擎</span>
       </h1>
       <p class="tech-hero-sub fade-up">从标题心理学到封面视觉，从市场时机到 AI 语义深度<br>每一个维度都在为你的爆款精准打分</p>
       <div class="tech-stats fade-up">
@@ -2634,8 +3114,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div class="tech-stat-label">RMSE 预测误差（行业最低）</div>
         </div>
         <div class="tech-stat-card">
-          <div class="tech-stat-num" data-target="62" data-suffix="个">0</div>
-          <div class="tech-stat-label">特征维度</div>
+          <div class="tech-stat-num" data-target="124" data-suffix="维">0</div>
+          <div class="tech-stat-label">复合质量特征</div>
         </div>
       </div>
     </div>
@@ -2645,7 +3125,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   <div class="tech-section">
     <div class="tech-section-header fade-up">
       <h2>特征维度全览</h2>
-      <p>4 个维度 · 62 个特征 · 覆盖爆款笔记的每一个关键因子</p>
+      <p>4 个基础维度 · 62 个显性特征 · 叠加行业、事实、偏好与生成链路，构成 V0.4 的 124 维复合质量判断</p>
     </div>
 
     <div class="tech-dim-tabs fade-up">
@@ -2721,7 +3201,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   <!-- CTA -->
   <div class="tech-cta fade-up">
     <div class="tech-cta-glow"></div>
-    <h2>62个维度，每一个都在为你的爆款打分</h2>
+    <h2>124 维复合质量特征，每一步都在为交付质量把关</h2>
     <p>立即获取你的笔记专属诊断报告，或上传素材让 AI 直接生成爆文</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <button class="xbtn xbtn-fill" onclick="showPage('upload')">开始诊断 →</button>
@@ -2796,7 +3276,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <h2 style="font-size:24px;font-weight:700;color:var(--text);margin-bottom:10px">对话式笔记优化</h2>
           <p style="font-size:15px;color:var(--text-2);line-height:1.7;margin-bottom:28px">
             先在「开始诊断」页面生成笔记，点击「开始对话优化」即可进入这里。<br>
-            AI 已读取专家意见和 v0.3 特征命中情况，帮你持续优化到 70 分以上。
+            AI 已读取专家意见和 V0.4 特征命中情况，帮你持续优化到 70 分以上。
           </p>
           <button onclick="goToGenerate()"
             style="padding:12px 28px;border-radius:980px;border:none;cursor:pointer;font-size:15px;font-weight:700;
@@ -3233,7 +3713,7 @@ function switchMode(mode) {
   const sub   = document.getElementById('uploadPageSub');
   if (isDiag) {
     if (title) title.textContent = '诊断你的笔记';
-    if (sub)   sub.textContent   = '上传截图 / 填写内容，5 位 AI 专家从 62 个维度找出问题并给出改写方案';
+    if (sub)   sub.textContent   = '上传截图 / 填写内容，Claude 5 位 AI 专家从 124 维复合质量特征找出问题并给出改写方案';
   } else {
     if (title) title.textContent = 'AI 生成爆文';
     if (sub)   sub.textContent   = '上传素材照片，AI 逆推爆文特征，直接输出可发布的标题、正文和话题标签';
@@ -3768,7 +4248,7 @@ function _handleGenStreamEvent(ev) {
     }
     case 'final_score': {
       agentDone(4, '1.0');
-      addBubble('仲裁专家', `v0.3 模型验证：${ev.score} 分（${ev.grade}）`, 4, 10, 12);
+      addBubble('仲裁专家', `V0.4 模型复核：${ev.score} 分（${ev.grade}）`, 4, 10, 12);
       setProgress(ev.progress || 95, `评分 ${ev.score} 分，即将跳转…`);
       stepDone(6);
       break;
@@ -4126,7 +4606,7 @@ async function populateReport() {
   }
   } catch(e) { console.error('[report §3 experts]', e); }
 
-  // § 4 改写标题 + v0.3 预测分
+  // § 4 改写标题 + V0.4 预测分
   try {
   const titles  = d.suggested_titles || [];
   const tScores = d.suggested_title_scores || [];
@@ -4731,7 +5211,7 @@ function startLiveAnimation() {
   // 根据模式定制时间轴标签
   const tlLabels = isGen
     ? ['素材摄入','视觉解读','并行创作','交叉碰撞','分歧仲裁','爆文合成','评分验证','报告完成']
-    : ['内容摄入','Model A 评分','并行诊断','交叉质疑','分歧检测','仲裁综合','改写生成','报告完成'];
+    : ['内容摄入','V0.4 评分','并行诊断','交叉质疑','分歧检测','仲裁综合','改写生成','报告完成'];
   tlLabels.forEach((lbl, i) => {
     const el = document.getElementById('tl'+i);
     if (el) el.querySelector('.tl-label').textContent = lbl;
@@ -4739,7 +5219,7 @@ function startLiveAnimation() {
 
   if (!isGen) {
     const seq = [
-      [400,  () => { stepDone(0); stepActive(1); setProgress(12,'Model A 量化评分中 · 50ms 即时评估…'); }],
+      [400,  () => { stepDone(0); stepActive(1); setProgress(12,'V0.4 复合质量评分中…'); }],
       [1600, () => { stepDone(1); stepActive(2); setProgress(28,'4 位专家并行独立诊断…'); agentThink(0); agentThink(1); agentThink(2); agentThink(3); }],
       [2200, () => {
         const qd = _quickDiagnose;
@@ -5040,15 +5520,33 @@ function initProfileCharts() {
 /* ── Hero animation ─────────────────────────────────────────── */
 function initHeroAnimation() { initHeroAnimInternal(); }
 function initHeroAnimInternal() {
-  const agents = document.querySelectorAll('#xAgents .x-wa');
-  let idx = 0;
+  const agents = document.querySelectorAll('.v4-agent-node, #xAgents .x-wa');
+  let idx = 1;
   agents.forEach(a => a.classList.remove('active'));
   clearInterval(window._heroInterval);
-  window._heroInterval = setInterval(() => {
-    agents.forEach(a => a.classList.remove('active'));
-    if (agents.length) agents[idx % agents.length].classList.add('active');
-    idx++;
-  }, 900);
+  if (agents.length) {
+    agents[0].classList.add('active');
+    window._heroInterval = setInterval(() => {
+      agents.forEach(a => a.classList.remove('active'));
+      agents[idx % agents.length].classList.add('active');
+      idx++;
+    }, 900);
+  }
+  const visual = document.querySelector('.v4-hero-visual');
+  if (visual && !visual.dataset.motionBound && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    visual.dataset.motionBound = '1';
+    visual.addEventListener('pointermove', (event) => {
+      const rect = visual.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+      visual.style.setProperty('--tilt-y', `${x * 4}deg`);
+      visual.style.setProperty('--tilt-x', `${-y * 3}deg`);
+    });
+    visual.addEventListener('pointerleave', () => {
+      visual.style.setProperty('--tilt-y', '0deg');
+      visual.style.setProperty('--tilt-x', '0deg');
+    });
+  }
   setTimeout(() => { document.querySelectorAll('.x-wsf').forEach(el => { el.style.width = el.dataset.w; }); }, 600);
 }
 
@@ -6092,7 +6590,7 @@ async function loadDiagnosisHistory(reset = false) {
 
     data.diagnoses.forEach((d, idx) => {
       const localTime = _fmtLocalTime(d.created_at);
-      // 用 composite_score（v0.3 已内嵌时机特征，当前等同 ces_percentile），与报告详情分数环保持一致
+      // 用 composite_score（V0.4 已内嵌时机特征，当前等同 ces_percentile），与报告详情分数环保持一致
       const sc    = d.composite_score ?? d.ces_percentile;
       const col   = sc >= 70 ? '#22C55E' : sc >= 55 ? '#F59E0B' : '#EF4444';
       const isActive  = (d.id === _currentDiagId);
