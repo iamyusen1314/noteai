@@ -19,6 +19,8 @@ Admin: `http://localhost:8001`
 - Keep `NOTEAI_ENABLE_TEST_BILLING=0` unless running a controlled local test.
 - Do not commit `model/.env`; it contains live API and admin secrets.
 - The API and admin services must share `model/data` and `model/artifacts` so model deployment takes effect across containers.
+- GitHub production secrets and variables are documented in `docs/DEPLOYMENT_SECRETS.md`.
+- V0.4 model artifact loading and object-storage fallback are documented in `docs/MODEL_ARTIFACT_CLOUD_STRATEGY.md`.
 - Real payment integration still needs an order, callback, reconciliation, and subscription activation flow before paid public launch.
 
 ## Local Regression Checks

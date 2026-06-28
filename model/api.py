@@ -61,6 +61,7 @@ import billing as _billing
 import prompt_manager as _pm
 import fact_enrichment as _facts
 import quality_objective as _qobj
+from artifact_loader import ensure_model_artifacts
 
 # ── Model constants ────────────────────────────────────────────────
 
@@ -2576,6 +2577,7 @@ _model_signature: tuple[str, float] | None = None
 _v04_model: lgb.Booster | None = None
 _v04_model_signature: tuple[str, float, float] | None = None
 _v04_model_report: dict | None = None
+_model_artifacts_ensured = False
 
 
 def get_model() -> lgb.Booster:
@@ -2593,9 +2595,43 @@ def get_model() -> lgb.Booster:
     return _model
 
 
+def _ensure_model_artifacts_once() -> None:
+    global _model_artifacts_ensured
+    if _model_artifacts_ensured:
+        return
+    try:
+        ensure_model_artifacts()
+    except Exception as exc:
+        required = os.environ.get("NOTEAI_MODEL_ARTIFACT_REQUIRED", "").lower() in {"1", "true", "yes", "on"}
+        if required:
+            raise
+        print(f"[model-artifacts] verify/download skipped: {exc}", file=sys.stderr, flush=True)
+    _model_artifacts_ensured = True
+
+
+def _resolve_model_artifact_path(raw_path: str | None) -> Path:
+    """Resolve training-machine artifact paths to this deployment's artifacts dir."""
+    if not raw_path:
+        return Path("")
+    candidate = Path(raw_path)
+    candidates: list[Path] = []
+    if candidate.is_absolute():
+        candidates.append(candidate)
+        candidates.append(MODEL_DIR / candidate.name)
+    else:
+        candidates.append(MODEL_DIR / candidate)
+        candidates.append(Path(__file__).parent / candidate)
+        candidates.append(MODEL_DIR / candidate.name)
+    for item in candidates:
+        if item.exists():
+            return item
+    return candidates[0]
+
+
 def get_v04_composite_model() -> lgb.Booster | None:
     """Return production-approved V0.4 composite regressor, or None for legacy fallback."""
     global _v04_model, _v04_model_signature, _v04_model_report
+    _ensure_model_artifacts_once()
     if not USE_V04_COMPOSITE or not V04_TRAIN_REPORT_PATH.exists():
         return None
     try:
@@ -2605,9 +2641,9 @@ def get_v04_composite_model() -> lgb.Booster | None:
         gate = report.get("deployment_gate") or {}
         if policy.get("do_not_deploy") or not gate.get("passed"):
             return None
-        regressor_path = Path((report.get("models") or {}).get("golden", {}).get("regressor_path") or "")
-        if not regressor_path.is_absolute():
-            regressor_path = MODEL_DIR / regressor_path
+        regressor_path = _resolve_model_artifact_path(
+            (report.get("models") or {}).get("golden", {}).get("regressor_path")
+        )
         if not regressor_path.exists():
             return None
         resolved = regressor_path.resolve()

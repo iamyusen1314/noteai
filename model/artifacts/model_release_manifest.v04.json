@@ -1,0 +1,30 @@
+{
+  "release": "v0.4-composite",
+  "run_id": "20260628T013926Z",
+  "status": "production",
+  "artifacts": [
+    {
+      "role": "quality_regressor",
+      "path": "model/artifacts/model_v04_composite_regressor_experimental_20260628T013926Z.lgb",
+      "sha256": "c708c76eef9e017e73bcb63794592baed100d2af73cc53dedbb471cb792cbde4",
+      "size_bytes": 466815
+    },
+    {
+      "role": "ready_classifier",
+      "path": "model/artifacts/model_v04_composite_ready_classifier_experimental_20260628T013926Z.lgb",
+      "sha256": "5d6e5d5bab5bee321c486d96bb8670605138444ca56cd2589cbbd57c14d80f10",
+      "size_bytes": 444681
+    },
+    {
+      "role": "preference_ranker",
+      "path": "model/artifacts/model_v04_composite_ranker_experimental_20260628T013926Z.lgb",
+      "sha256": "1f3d0b12a6b32d89044480ab5f3add47076f6148d00ea87135fee2d5bfb7bb7b",
+      "size_bytes": 454076
+    },
+    {
+      "role": "train_report",
+      "path": "model/artifacts/model_v04_composite_train_report.json",
+      "sha256": "b7f6bdf0eb24af8ed48108d0188571a2f8034908a7db8bad7054b503215a7adc"
+    }
+  ]
+}

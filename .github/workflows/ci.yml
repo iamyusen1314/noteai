@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      ANTHROPIC_API_KEY: test-key
+      MOONSHOT_API_KEY: test-key
+      NOTEAI_FACT_SEARCH: "0"
+      NOTEAI_ENABLE_TEST_BILLING: "0"
+      NOTEAI_MODEL_ARTIFACT_REQUIRED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Ensure Git LFS files
+        run: |
+          git lfs install --local
+          git lfs pull
+          git lfs ls-files
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: model/requirements.txt
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r model/requirements.txt
+
+      - name: Prepare test environment
+        run: |
+          cp model/.env.example model/.env
+
+      - name: Python syntax check
+        run: |
+          find model tools tests -name '*.py' -print0 | xargs -0 python -m py_compile
+          python -m py_compile scripts/fetch_model_artifacts.py
+
+      - name: Shell syntax check
+        run: |
+          bash -n scripts/push_remote.sh
+
+      - name: Verify model artifacts
+        run: |
+          python scripts/fetch_model_artifacts.py --check-only --required
+
+      - name: Unit tests
+        run: |
+          python -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Quality gate
+        run: |
+          python tools/quality_gate.py quality/golden_notes.sample.json
+
+      - name: Docker Compose config
+        run: |
+          docker compose config --quiet

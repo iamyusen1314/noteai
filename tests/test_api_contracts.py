@@ -186,6 +186,15 @@ class ApiContractTests(unittest.TestCase):
         finally:
             api._pm.get = original_get
 
+    def test_v04_artifact_path_resolves_cloud_deployment_paths(self):
+        filename = "model_v04_composite_regressor_experimental_20260628T013926Z.lgb"
+        local = api.MODEL_DIR / filename
+        self.assertTrue(local.exists(), local)
+
+        stale_training_path = f"/Users/openclaw/Desktop/noteai/model/artifacts/{filename}"
+        self.assertEqual(api._resolve_model_artifact_path(stale_training_path).resolve(), local.resolve())
+        self.assertEqual(api._resolve_model_artifact_path(f"artifacts/{filename}").resolve(), local.resolve())
+
     def test_semantic_governance_repairs_without_hard_blocking(self):
         features = {
             "body_len": 300,
