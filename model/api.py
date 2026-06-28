@@ -1583,10 +1583,10 @@ def _domain_generation_fact_bits(canonical: str, source_context: str | None) -> 
             ("改造逻辑", ("改造逻辑", "动线", "收纳", "改造前后", "复刻"), ("动线", "收纳", "改造", "入住", "复刻", "好打理")),
         ],
         "健身": [
-            ("动作/拉伸", ("动作/拉伸", "动作", "拉伸", "训练动作"), ("原地踏步", "臀桥", "死虫", "靠墙静蹲", "深蹲", "俯卧撑", "拉伸")),
+            ("动作/拉伸", ("动作/拉伸", "动作", "拉伸", "训练动作"), ("原地踏步", "臀桥", "死虫", "靠墙静蹲", "肩胛后缩", "靠墙天使", "斜方肌", "胸小肌", "蚌式开合", "跪姿后踢腿", "侧向走", "拉伸")),
             ("组数/时长", ("组数/时长", "组数", "次数", "时长", "频率"), ("秒", "分钟", "次", "组", "轮", "每周")),
-            ("目标/人群", ("目标/人群", "目标", "人群", "部位"), ("膝盖友好", "新手", "臀腿", "核心", "减脂", "低冲击")),
-            ("安全/替代", ("安全/替代", "安全", "替代", "注意"), ("膝盖", "疼", "不舒服", "降低幅度", "替代", "停止")),
+            ("目标/人群", ("目标/人群", "目标", "人群", "部位"), ("膝盖友好", "新手", "臀腿", "肩颈", "办公室", "久坐", "减脂", "低冲击")),
+            ("安全/替代", ("安全/替代", "安全", "替代", "注意"), ("膝盖", "腰酸", "麻木", "刺痛", "不舒服", "降低幅度", "替代", "停止")),
         ],
         "母婴": [
             ("月龄/场景", ("月龄/场景", "月龄", "年龄", "场景"), ("月龄", "个月", "出牙", "睡前", "辅食", "入园", "绘本")),
@@ -1603,6 +1603,32 @@ def _domain_generation_fact_bits(canonical: str, source_context: str | None) -> 
         if value:
             bits.append(f"{label}={value}")
     return bits[:8]
+
+
+def _fitness_scene_strategy_brief(source_context: str | None) -> str:
+    src = source_context or ""
+    if re.search(r"(?:肩颈|肩胛|靠墙天使|斜方肌|胸小肌|久坐|办公室)", src):
+        return (
+            "办公室肩颈放松：核心词聚焦「肩颈放松/8分钟/办公室/一面墙/椅子/肩胛后缩/靠墙天使」；"
+            "开头写久坐肩颈紧和午休/下班前场景，中段按4个动作+2轮+停止边界写，结尾写做完走2分钟切回活动状态；"
+            "不要写坚持一周、明显缓解、治疗/康复、血液循环恢复正常等结果或医学化承诺。"
+        )
+    if re.search(r"(?:弹力带|臀腿|蚌式|后踢腿|侧向走|髂腰肌|发力感)", src):
+        return (
+            "弹力带臀腿塑形：核心词聚焦「弹力带/臀腿/发力感/3组/侧向走/蚌式开合」；"
+            "开头写新手找不到臀部发力感，中段按臀桥、蚌式、后踢腿、侧向走顺序写，每个动作绑定次数和一个发力提示；"
+            "结尾写腰酸时降低幅度和臀部/髂腰肌拉伸，不写翘臀见效或周期变化。"
+        )
+    if re.search(r"(?:膝盖|低冲击|原地踏步|靠墙静蹲|死虫|减脂)", src):
+        return (
+            "膝盖友好低冲击：核心词聚焦「膝盖友好/低冲击/18分钟/4个动作/3轮」；"
+            "开头写适合跳跃不舒服的新手，中段按原地踏步、臀桥、死虫、靠墙静蹲顺序写，结尾写膝盖不舒服时缩短或替代、结束拉伸；"
+            "不写快速瘦身、坚持几周变化或亲测朋友反馈。"
+        )
+    return (
+        "通用健身计划：核心词聚焦目标部位、训练时长、动作名和安全边界；"
+        "必须覆盖动作顺序、次数/时长、发力提示、替代方案和拉伸恢复，不写无来源效果周期。"
+    )
 
 
 def _build_generation_planning_brief(
@@ -1639,6 +1665,7 @@ def _build_generation_planning_brief(
         canonical,
         "把当前品类最影响用户决策的事实、步骤、预算口径、适合/不适合和行动建议写进正文。",
     )
+    scene_strategy = f"- 健身场景策略：{_fitness_scene_strategy_brief(source_context)}\n" if canonical == "健身" else ""
     return (
         f"【生成前规划 Brief｜{_qobj.QUALITY_OBJECTIVE_VERSION}｜先满足交付价值，再参考辅助特征】\n"
         f"- 品类：{canonical or domain or '通用'}；{style_line}\n"
@@ -1647,6 +1674,7 @@ def _build_generation_planning_brief(
         f"- 标签规划：{tag_range}，覆盖品类词、场景词、地域/人群词和核心对象词。\n"
         f"- V0.4提质策略：{score_lift_rule}\n"
         f"- 商业价值槽位：{commercial_slot_rule}\n"
+        f"{scene_strategy}"
         "- 证据组织：每段至少保留1个可验证或可执行细节（步骤、材料、尺寸、动作、肤质、场景、取舍理由之一），不要只写情绪评价。\n"
         f"- 读者价值信号：{rules['required_terms']}\n"
         f"- 核心词聚焦：{rules['core_repeat']}\n"
@@ -4058,6 +4086,7 @@ def _repair_dangling_title_tail(text: str) -> str:
         "膝盖不好也能在家减脂，18分钟4个动": "膝盖友好18分钟减脂，4个动作",
         "膝盖友好的18分钟居家减脂，新手也能": "膝盖友好18分钟减脂，新手可练",
         "18分钟膝盖友好的居家减脂训练，新手": "18分钟膝盖友好减脂，新手可练",
+        "18分钟膝盖友好减脂，4个动作适合新": "18分钟膝盖友好减脂，新手可练",
         "膝盖友好很稳，18分钟4动作新手减脂": "膝盖友好18分钟，4个动作减脂",
         "18分钟膝盖友好减脂，4个动作3轮搞": "18分钟膝盖友好减脂，4个动作3轮",
         "混干敏感皮通勤防晒，两指量分次涂不搓": "混干敏感皮防晒，两指量分次涂不搓泥",
@@ -4497,7 +4526,7 @@ def _title_readability_issues(title: str, domain: str | None = None) -> list[str
         r"(?:酒店吃喝|吃喝地铁|来排|搞定收|让折叠|做完整|高腰A|元打造)$|"
         r"(?:招牌必|必点金牌|蜀大侠必|麻辣牛|必点这|虾饺皇必|不会踩|点不会|必点这样吃|"
         r"人均\d{2,4}稳|人均\d{2,4}广式早|这家\d{2,4}元人均很稳)$|"
-        r"(?:动作新|动作3|\d+轮搞|\d+个动|新手也能|[，,][^，,]{0,8}新手|分钟足|5步\d+|[，,]\d+个)$|(?:工作|招|实际|这样|怎么)$)",
+        r"(?:动作新|动作3|\d+轮搞|\d+个动|新手也能|适合新|[，,][^，,]{0,8}新手|分钟足|5步\d+|[，,]\d+个)$|(?:工作|招|实际|这样|怎么)$)",
         text,
     ):
         issues.append("标题不自然：末尾疑似断词，语义不完整")
@@ -4659,7 +4688,7 @@ def _quality_expression_brief(domain: str | None = None) -> str:
             "- 如果事实源列出多个动作，正文必须全部覆盖，不能漏最后一个动作或结束拉伸；每个动作要有一个执行细节：次数/时长、呼吸、发力部位、常见错误或安全替代之一；不承诺快速瘦身和医学效果。\n"
             "- 未提供真实经历时不要写「我自己试过」「亲测」「朋友也能跟上」；改成适合人群、低强度版本和动作安全提示。\n"
             "- 训练说明容易单调，主体用长句串联动作逻辑，全文句号控制在8-10个；短句只放在段尾1-2处，不要在动作中间塞孤句。\n"
-            "- 核心词如膝盖友好、低冲击、18分钟、居家减脂自然重复3-5次，不要频繁换近义词。"
+            "- 核心词按真实场景聚焦：低冲击减脂重复膝盖友好/18分钟/4个动作，办公室放松重复肩颈放松/8分钟/办公室，臀腿训练重复弹力带/臀腿/发力感；不要频繁换近义词。"
         )
     if canonical == "穿搭":
         return (
@@ -4717,6 +4746,8 @@ def _sanitize_title_for_delivery(title: str, source_context: str | None = None, 
     if canonical == "穿搭":
         text = _sanitize_fashion_title_overpromise(text)
     text = _repair_dangling_title_tail(text)
+    if canonical == "健身":
+        text = _sanitize_fitness_title_claims(text, src)
     if canonical == "旅行":
         text = _travel_single_hotel_title_fallback(text, src) or text
     if canonical == "美食" and _title_readability_issues(text, canonical):
@@ -4744,6 +4775,7 @@ def _sanitize_title_for_delivery(title: str, source_context: str | None = None, 
         "6月龄睡前流程别复杂，这样做就够推荐": "6月龄睡前流程推荐，25分钟就够",
         "6月龄睡前流程别弄太复杂，这5步就够": "6月龄睡前流程推荐，25分钟就够",
         "18分钟膝盖友好减脂，4个动作值得": "18分钟膝盖友好减脂，4个动作",
+        "膝盖友好的18分钟居家减脂，新手3周": "18分钟膝盖友好减脂，新手可练",
     }
     text = exact_repairs.get(text, text)
     text = re.sub(r"(，?这样做就够)推荐$", r"\1", text)
@@ -5366,11 +5398,143 @@ def _remove_unsupported_beauty_claims(text: str, source_context: str | None, dom
     return out
 
 
+def _fitness_source_allows_result_claims(source_context: str | None) -> bool:
+    src = source_context or ""
+    if re.search(r"(?:训练记录|打卡记录|真实记录|复盘记录|实测|亲测|反馈|第\s*\d+\s*(?:天|周|月)|坚持|连续)", src):
+        return True
+    return bool(
+        re.search(
+            r"(?:体重|围度|力量|动作|酸痛)[^。！？\n]{0,12}"
+            r"(?:下降|减少|变化|提升|变轻松|有力气|缓解|改善)",
+            src,
+        )
+    )
+
+
+def _sanitize_fitness_title_claims(title: str, source_context: str | None = None) -> str:
+    out = title or ""
+    if not out or _fitness_source_allows_result_claims(source_context):
+        return out
+    exact_repairs = {
+        "膝盖友好的18分钟居家减脂，新手3周": "18分钟膝盖友好减脂，新手可练",
+    }
+    out = exact_repairs.get(out, out)
+    out = re.sub(
+        r"(膝盖友好[^，,。！？]{0,12}减脂)[，,]?\s*新手\s*(?:\d+|[一二三四五六七八九十两])\s*周$",
+        r"\1，新手可练",
+        out,
+    )
+    out = re.sub(
+        r"[，,]?\s*(?:\d+|[一二三四五六七八九十两])\s*(?:天|周|个月)(?:见效|有变化|变瘦|出效果|明显变化)$",
+        "",
+        out,
+    )
+    return out.strip("，,；; ")
+
+
+def _remove_unsupported_fitness_result_claims(text: str, source_context: str | None, domain: str | None = None) -> str:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical != "健身":
+        return text or ""
+    out = text or ""
+    src = source_context or ""
+    if not _fitness_source_allows_result_claims(src):
+        replacements = {
+            "这样练下去效果会大打折扣": "这样更容易找不到发力感",
+            "这样后续训练效果才能稳定": "这样后续训练节奏更稳定",
+            "不是追求快速变化": "不是追求快速加量",
+            "效果不会差太多": "也能降低强度",
+            "这个动作特别有效果": "这个动作更适合打开胸前紧张感",
+            "血液循环起来效果更好": "身体重新活动起来会更舒服",
+            "让血液循环回到正常节奏": "让身体从坐姿切回活动状态",
+            "放松效果更稳定": "放松节奏更稳定",
+            "效果更好": "节奏更顺",
+            "更有效果": "更稳",
+            "也能帮你更快恢复": "也能帮助身体平稳收尾",
+            "能缓解肌肉紧张、减少第二天酸痛": "帮助身体平稳收尾",
+            "减少第二天酸痛": "按身体感受恢复",
+            "第二天也不会太酸": "后续按身体感受恢复",
+            "这是正常反应无需硬撑": "先减少幅度，不要硬撑",
+            "新手第一周可能会酸，这是正常的恢复反应": "新手先从低强度做起，酸痛明显就降低强度",
+            "新手前两周可能会酸，这是肌肉正常适应，不是受伤信号": "如果出现明显疼痛或不适，先停止动作并降低强度",
+            "每周稳定练习比偶尔猛练更有效果": "每周按体力稳定练习，比偶尔猛练更稳",
+            "每周3-4次就能感受身体变化": "每周按体力稳定练习",
+            "坚持一周左右身体会慢慢适应，之后可以考虑加轮数或延长时间": "先把动作做稳，再按体力逐步增加轮数或时间",
+            "坚持一周就能感受到肩颈的放松": "做完后先观察肩颈状态，再决定是否继续",
+            "坚持一周你会发现下午肩颈酸痛感明显缓解": "做完后先观察肩颈状态，明显不适就降低强度",
+            "能明显缓解那种酸胀感": "能帮助你观察那种酸胀感",
+            "这样效果会更好": "这样身体更舒服",
+            "能明显缓解紧张感": "能帮助你观察肩颈状态",
+            "适合所有基础的人做": "适合想低门槛放松的人",
+        }
+        for bad, good in replacements.items():
+            out = out.replace(bad, good)
+        out = re.sub(
+            r"(?:坚持|连续)[一二三四五六七八九十两\d]+(?:个)?(?:天|周|月)[^。！？\n]{0,32}"
+            r"(?:变化|效果|变轻松|有力气|适应|缓解|放松|改善|变瘦)[^。！？\n]*[。！？]?",
+            "先把动作做稳，再按体力逐步增加频率。",
+            out,
+        )
+        out = re.sub(
+            r"坚持一周(?:下来)?，?你会[^。！？\n]{0,80}(?:明显|缓解|减轻|没那么紧)[^。！？\n]*[。！？]?",
+            "做完后先观察肩颈状态，明显不适就降低强度。",
+            out,
+        )
+        out = re.sub(r"能明显缓解[^。！？\n]{0,20}", "能帮助你观察肩颈状态", out)
+        out = re.sub(
+            r"新手第[一二三四五六七八九十两\d]+周[^。！？\n]{0,30}(?:酸|恢复|反应)[^。！？\n]*[。！？]?",
+            "新手先从低强度做起，酸痛明显就降低强度。",
+            out,
+        )
+        out = re.sub(
+            r"每周[^。！？\n]{0,18}(?:就能|可以|会)[^。！？\n]{0,24}"
+            r"(?:感受|看到|发现|出现)[^。！？\n]{0,16}(?:变化|效果|改善)[^。！？\n]*[。！？]?",
+            "每周按体力稳定练习。",
+            out,
+        )
+    if not re.search(r"(?:颈椎病|肩周炎|康复|医生|医嘱|神经)", src):
+        medical_replacements = {
+            "特别适合没有颈椎病变、只是单纯肌肉疲劳的上班族缓解久坐僵硬": "特别适合久坐后肩颈紧、想做低门槛放松的上班族",
+            "没有颈椎病变、只是单纯肌肉疲劳的": "久坐后肌肉紧绷的",
+            "可能压到神经": "说明动作已经超过舒适范围",
+            "可能是神经受压迫": "说明动作已经超过舒适范围",
+            "让血液循环恢复正常": "让身体从坐姿切回活动状态",
+            "让血液循环恢复": "让身体从坐姿切回活动状态",
+            "让血液循环起来": "让身体重新活动起来",
+            "血液循环起来": "身体重新活动起来",
+        }
+        for bad, good in medical_replacements.items():
+            out = out.replace(bad, good)
+        out = out.replace("说明说明动作已经超过舒适范围", "说明动作已经超过舒适范围")
+        out = out.replace("身体重新活动起来效果更好", "身体重新活动起来会更舒服")
+        out = out.replace("效果更好", "节奏更顺")
+    return out
+
+
+def _fitness_unverified_result_issues(text: str, source_context: str | None, domain: str | None = None) -> list[str]:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical != "健身" or _fitness_source_allows_result_claims(source_context):
+        return []
+    body = text or ""
+    risky_patterns = (
+        r"(?:新手)?\s*(?:\d+|[一二三四五六七八九十两])\s*周(?:见效|有变化|变瘦|出效果|明显变化|$)",
+        r"(?:坚持|连续)[一二三四五六七八九十两\d]+(?:个)?(?:天|周|月)[^。！？\n]{0,32}(?:变化|效果|变轻松|有力气|适应|缓解|放松|改善|变瘦)",
+        r"新手第[一二三四五六七八九十两\d]+周[^。！？\n]{0,30}(?:酸|恢复|反应)",
+        r"(?:明显)?(?:缓解|改善)[^。！？\n]{0,14}(?:酸痛|疼痛|肩颈)",
+        r"(?:练出|瘦出|变瘦|马甲线|翘臀|围度下降|体重下降)",
+        r"(?:颈椎病变|可能压到神经|可能是神经受压迫)",
+    )
+    if any(re.search(pattern, body) for pattern in risky_patterns):
+        return ["健身内容出现未提供的周期/效果/医学化承诺，需要改成按体力安排和安全边界"]
+    return []
+
+
 def _remove_unsupported_structured_claims(text: str, source_context: str | None, domain: str | None = None) -> str:
     out = text or ""
     src = source_context or ""
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     out = _remove_unsupported_beauty_claims(out, source_context, domain)
+    out = _remove_unsupported_fitness_result_claims(out, source_context, domain)
     if not _QUEUE_TIME_RE.search(src):
         out = re.sub(r"现场买票常?排队\d{1,3}\s*(?:分钟|分|小时)(?:以上|左右)?", "现场买票容易排队", out)
         out = re.sub(r"排队能排\d{1,3}\s*(?:分钟|分|小时)(?:以上|左右)?", "排队会比较久", out)
@@ -6575,6 +6739,7 @@ def _home_replicability_density_issues(text: str, source_context: str | None, do
 def _delivery_integrity_issues(text: str, source_context: str | None, domain: str | None = None) -> list[str]:
     issues = _structured_fact_boundary_issues(text, source_context, domain)
     issues.extend(_fitness_source_action_coverage_issues(text, source_context, domain))
+    issues.extend(_fitness_unverified_result_issues(text, source_context, domain))
     issues.extend(_travel_hotel_fact_density_issues(text, source_context, domain))
     issues.extend(_home_replicability_density_issues(text, source_context, domain))
     return issues

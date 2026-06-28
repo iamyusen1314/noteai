@@ -1261,6 +1261,23 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("全部动作/拉伸", fitness)
         self.assertIn("动作/拉伸=臀桥 深蹲 拉伸", fitness)
         self.assertIn("组数/时长=18分钟", fitness)
+        office_fitness = api._build_generation_planning_brief(
+            "健身",
+            "",
+            "动作包括肩胛后缩30秒、靠墙天使8次、斜方肌轻拉30秒、胸小肌开肩30秒。适合久坐上班族办公室做。",
+            "首稿",
+        )
+        self.assertIn("办公室肩颈放松", office_fitness)
+        self.assertIn("肩颈放松/8分钟/办公室", office_fitness)
+        self.assertIn("不要写坚持一周", office_fitness)
+        glute_fitness = api._build_generation_planning_brief(
+            "健身",
+            "",
+            "动作包括弹力带臀桥15次、蚌式开合12次、跪姿后踢腿12次、侧向走10步。重点是找到臀部发力感。",
+            "首稿",
+        )
+        self.assertIn("弹力带臀腿塑形", glute_fitness)
+        self.assertIn("弹力带/臀腿/发力感", glute_fitness)
         self.assertIn("月龄/场景=6个月", baby)
         self.assertIn("用品/环境=睡袋、绘本、夜灯", baby)
 
@@ -1645,14 +1662,18 @@ class ApiContractTests(unittest.TestCase):
 
     def test_fitness_delivery_cleanup_removes_unsupported_result_promises(self):
         source = (
-            "训练目标是新手居家减脂。每次训练约18分钟。"
+            "训练目标是新手居家减脂，目标效果是减脂塑形。每次训练约18分钟。"
             "动作包括原地踏步60秒、臀桥15次、死虫12次、靠墙静蹲30秒。"
             "四个动作做3轮，每轮之间休息60秒，结束后拉伸小腿和臀腿。"
         )
+        self.assertFalse(api._fitness_source_allows_result_claims(source))
+        self.assertTrue(api._fitness_source_allows_result_claims("连续打卡第2周，动作变轻松，围度有变化。"))
         cleaned = api._insert_safe_fact_line(
             "18分钟低冲击训练，每周3-4次就能感受身体变化。"
             "原地踏步60秒、臀桥15次、死虫12次、靠墙静蹲30秒做3轮。"
             "坚持2周你就会发现动作变轻松了，靠墙半蹲也有效果。"
+            "新手第一周可能会酸，这是正常的恢复反应。"
+            "训练后拉伸能缓解肌肉紧张、减少第二天酸痛。"
             "想跟练先收藏，评论区说你的目标。"
             "#膝盖友好 #居家减脂 #低冲击训练 #新手健身 #18分钟训练",
             "健身",
@@ -1661,7 +1682,35 @@ class ApiContractTests(unittest.TestCase):
         self.assertNotIn("每周3-4次就能感受身体变化", cleaned)
         self.assertNotIn("坚持2周你就会发现", cleaned)
         self.assertNotIn("也有效果", cleaned)
+        self.assertNotIn("第一周可能会酸", cleaned)
+        self.assertNotIn("减少第二天酸痛", cleaned)
         self.assertIn("按体力", cleaned)
+
+    def test_fitness_delivery_cleanup_removes_probe_result_and_medical_claims(self):
+        source = (
+            "适合久坐上班族午休或下班前做。总时长约8分钟。"
+            "动作包括肩胛后缩30秒、靠墙天使8次、斜方肌轻拉30秒、胸小肌开肩30秒。"
+            "每个动作做2轮，动作过程中不追求疼痛感，如果出现麻木或刺痛应停止。"
+        )
+        cleaned = api._insert_safe_fact_line(
+            "办公室用一面墙和一把椅子就能完成这套8分钟肩颈放松，"
+            "特别适合没有颈椎病变、只是单纯肌肉疲劳的上班族缓解久坐僵硬。"
+            "肩胛后缩30秒、靠墙天使8次、斜方肌轻拉30秒、胸小肌开肩30秒，每个动作做2轮。"
+            "整个过程不追求疼痛感，如果出现麻木或刺痛就停止，说明可能压到神经。"
+            "坚持一周你会发现下午肩颈酸痛感明显缓解。"
+            "想跟练先收藏，评论区说你的目标。"
+            "#办公室健身 #肩颈放松 #上班族运动 #久坐放松 #低门槛训练",
+            "健身",
+            source,
+        )
+        self.assertNotIn("颈椎病变", cleaned)
+        self.assertNotIn("可能压到神经", cleaned)
+        self.assertNotIn("坚持一周", cleaned)
+        self.assertNotIn("明显缓解", cleaned)
+        self.assertIn("麻木或刺痛", cleaned)
+        self.assertIn("停止", cleaned)
+        self.assertNotIn("说明说明", cleaned)
+        self.assertFalse(api._delivery_integrity_issues(cleaned, source, "健身"), cleaned)
 
     def test_fitness_delivery_cleanup_appends_missing_source_stretch(self):
         source = (
@@ -1874,7 +1923,9 @@ class ApiContractTests(unittest.TestCase):
         fitness_ge_tail = "膝盖不好也能在家减脂，18分钟4个动"
         fitness_newbie_tail = "膝盖友好的18分钟居家减脂，新手也能"
         fitness_newbie_tail_v2 = "18分钟膝盖友好的居家减脂训练，新手"
+        fitness_newbie_tail_v3 = "18分钟膝盖友好减脂，4个动作适合新"
         fitness_missing_ge = "膝盖友好很稳，18分钟4动作新手减脂"
+        fitness_unsupported_period = "膝盖友好的18分钟居家减脂，新手3周"
         baby_minutes_tail = "6月龄睡前流程别弄太复杂，25分钟足"
         baby_steps_tail = "6月龄睡前流程别弄太复杂，5步25"
         bad_issues = api._title_readability_issues(bad, "美食")
@@ -1924,6 +1975,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(fitness_ge_tail, "健身")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(fitness_newbie_tail, "健身")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(fitness_newbie_tail_v2, "健身")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(fitness_newbie_tail_v3, "健身")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(baby_minutes_tail, "母婴")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(baby_steps_tail, "母婴")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(beauty_dangling, "美妆")))
@@ -2050,7 +2102,9 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(api._sanitize_title_for_delivery(fitness_ge_tail, "", "健身"), "膝盖友好18分钟减脂，4个动作")
         self.assertEqual(api._sanitize_title_for_delivery(fitness_newbie_tail, "", "健身"), "膝盖友好18分钟减脂，新手可练")
         self.assertEqual(api._sanitize_title_for_delivery(fitness_newbie_tail_v2, "", "健身"), "18分钟膝盖友好减脂，新手可练")
+        self.assertEqual(api._sanitize_title_for_delivery(fitness_newbie_tail_v3, "", "健身"), "18分钟膝盖友好减脂，新手可练")
         self.assertEqual(api._sanitize_title_for_delivery(fitness_missing_ge, "", "健身"), "膝盖友好18分钟，4个动作减脂")
+        self.assertEqual(api._sanitize_title_for_delivery(fitness_unsupported_period, "", "健身"), "18分钟膝盖友好减脂，新手可练")
         self.assertEqual(api._sanitize_title_for_delivery(baby_minutes_tail, "", "母婴"), "6月龄睡前流程推荐，25分钟就够")
         self.assertEqual(api._sanitize_title_for_delivery(baby_steps_tail, "", "母婴"), "6月龄睡前流程推荐，25分钟就够")
         self.assertEqual(
