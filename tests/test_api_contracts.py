@@ -1325,6 +1325,64 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("收藏", shaped)
         self.assertIn("评论区", shaped)
 
+    def test_travel_single_hotel_delivery_promotes_meituan_facts(self):
+        source = "\n".join([
+            "- 已核验事实：事实源：美团酒旅 skill",
+            "- 已核验事实：广州长隆酒店：美团豪华型，美团真实评分4.8，￥929起/晚",
+            "- 已核验事实：地址：广州市番禺区汉溪大道东299号，位于长隆度假区核心位置",
+            "- 已核验事实：交通/距离：紧邻长隆欢乐世界、水上乐园、野生动物世界，有免费穿梭巴士",
+            "- 已核验事实：亲子设施/体验：儿童乐园、探趣亲子房、白虎自助餐厅、火烈鸟",
+            "- 已核验事实：权益：住客可享提前半小时入园",
+            "- 已核验事实：停车：酒店有免费停车场",
+            "- 已核验事实：套餐/房型：部分房型或套餐可能包含乐园门票，具体以美团实时页为准",
+        ])
+        raw = (
+            "如果预算允许，直接订这家就行，省去比较其他酒店的时间，一价全包的体验对家庭出游最省心。"
+            "广州长隆酒店美团评分4.8分，起价￥929起/晚，位于长隆度假区核心位置，有免费穿梭巴士。"
+            "美团评分4.8、929元起/晚的长隆酒店，有免费穿梭巴士，住客还能提前半小时入园。"
+            "这家是首选，能避开高峰期排队，让孩子多玩2-3小时，也不用担心小孩挑食。"
+            "如果计划玩2-3天，能省掉每天往返的时间和车费，也能直接省掉门票钱。"
+            "选这家能多睡一会儿还能提前进园，性价比确实在线。"
+            "住客能提前半小时入园，相当于多了半天游玩时间，有时能省掉一笔门票费。值得收藏。"
+            "适合3-12岁的孩子，预算在900-1200元/晚，旺季房间紧张，建议提前2-3周预订。"
+            "如果想早上多玩一会儿再退房，可以提前咨询前台是否支持延迟退房。"
+            "有时能省不少门票钱，早上人少的时候先玩热门项目，套餐组合经常调整，问酒店能否延迟。"
+            "如果想降低预算，可以看美团上有没有近期活动房型，或者选择淡季时段。"
+            "酒店就在园区旁边，有班车，也有亲子设施。"
+            "#广州长隆 #亲子酒店"
+        )
+        shaped = api._insert_safe_fact_line(raw, "旅行", source)
+        self.assertIn("广州长隆酒店美团评分4.8、929元起/晚", shaped[:100])
+        self.assertIn("免费穿梭巴士", shaped[:180])
+        self.assertIn("提前半小时入园", shaped[:220])
+        self.assertEqual(shaped.count("美团评分4.8"), 1)
+        self.assertEqual(shaped.count("929元起/晚"), 1)
+        self.assertNotIn("￥929", shaped)
+        self.assertNotIn("直接订这家就行", shaped)
+        self.assertNotIn("一价全包", shaped)
+        self.assertNotIn("淡季时段", shaped)
+        self.assertNotIn("首选", shaped)
+        self.assertNotIn("多玩2-3小时", shaped)
+        self.assertNotIn("不用担心小孩挑食", shaped)
+        self.assertNotIn("计划玩2-3天", shaped)
+        self.assertNotIn("车费", shaped)
+        self.assertNotIn("省掉门票钱", shaped)
+        self.assertNotIn("省掉一笔门票费", shaped)
+        self.assertNotIn("多睡一会儿", shaped)
+        self.assertNotIn("多了半天游玩时间", shaped)
+        self.assertNotIn("性价比确实在线", shaped)
+        self.assertNotIn("3-12岁", shaped)
+        self.assertNotIn("900-1200元", shaped)
+        self.assertNotIn("旺季房间紧张", shaped)
+        self.assertNotIn("提前2-3周", shaped)
+        self.assertNotIn("延迟退房", shaped)
+        self.assertNotIn("省不少门票钱", shaped)
+        self.assertNotIn("热门项目", shaped)
+        self.assertNotIn("套餐组合经常调整", shaped)
+        self.assertNotIn("能否延迟", shaped)
+        self.assertFalse(api._structured_fact_boundary_issues(shaped, source, "旅行"))
+        self.assertFalse(api._delivery_integrity_issues(shaped, source, "旅行"))
+
     def test_unsupported_structured_claims_are_cleaned_before_delivery(self):
         travel_source = "- 已核验事实：酒店位于北京国贸商圈，商务大床房一晚约720元，步行到地铁站约5分钟"
         travel = api._insert_safe_fact_line(
@@ -1795,6 +1853,16 @@ class ApiContractTests(unittest.TestCase):
         hotel_price_tail = "三亚亚龙湾5家亲子酒店怎么选，价格差"
         hotel_facility_tail = "三亚亚龙湾五家亲子酒店，价格、设施"
         hotel_room_tail = "广州长隆亲子酒店按预算选，班车早餐房"
+        travel_single_hotel_source = "\n".join([
+            "- 已核验事实：事实源：美团酒旅 skill",
+            "- 已核验事实：广州长隆酒店：美团豪华型，美团真实评分4.8，￥929起/晚",
+            "- 已核验事实：地址：广州市番禺区汉溪大道东299号，位于长隆度假区核心位置",
+            "- 已核验事实：交通/距离：紧邻长隆欢乐世界、水上乐园、野生动物世界，有免费穿梭巴士",
+            "- 已核验事实：亲子设施/体验：儿童乐园、探趣亲子房、白虎自助餐厅、火烈鸟",
+            "- 已核验事实：权益：住客可享提前半小时入园",
+        ])
+        travel_single_hotel_tail = "带娃去长隆，这家亲子酒店929起要不"
+        travel_single_hotel_cold = "广州长隆亲子酒店怎么选"
         fashion_high_waist_tail = "梨形160显高显遮胯：短上衣+高腰A"
         home_storage_tail = "4平阳台洗衣区改造，2600元搞定收"
         home_folding_tail = "4平阳台洗衣区改造，2600元让折叠"
@@ -1963,6 +2031,14 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(api._sanitize_title_for_delivery(hotel_tail_distance, "", "旅行"), "成都太古里春熙路酒店怎么选")
         self.assertEqual(api._sanitize_title_for_delivery(hotel_tail_is, "", "旅行"), "北京国贸出差酒店怎么选")
         self.assertEqual(api._sanitize_title_for_delivery(hotel_tail_compare, "", "旅行"), "国贸出差酒店按通勤隔音选")
+        self.assertEqual(
+            api._sanitize_title_for_delivery(travel_single_hotel_tail, travel_single_hotel_source, "旅行"),
+            "广州长隆亲子酒店，929元起值得选",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(travel_single_hotel_cold, travel_single_hotel_source, "旅行"),
+            "广州长隆亲子酒店，929元起值得选",
+        )
         self.assertEqual(api._sanitize_title_for_delivery(fashion_high_waist_tail, "", "穿搭"), "梨形160通勤显高遮胯公式")
         self.assertEqual(api._sanitize_title_for_delivery(home_storage_tail, "", "家居"), "4平阳台洗衣区，2600元顺手收纳")
         self.assertEqual(api._sanitize_title_for_delivery(home_folding_tail, "", "家居"), "4平阳台洗衣区，2600元顺手收纳")

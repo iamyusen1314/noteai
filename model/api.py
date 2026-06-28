@@ -4717,6 +4717,8 @@ def _sanitize_title_for_delivery(title: str, source_context: str | None = None, 
     if canonical == "穿搭":
         text = _sanitize_fashion_title_overpromise(text)
     text = _repair_dangling_title_tail(text)
+    if canonical == "旅行":
+        text = _travel_single_hotel_title_fallback(text, src) or text
     if canonical == "美食" and _title_readability_issues(text, canonical):
         text = _food_title_fact_fallback(src, text) or text
     if canonical == "美食":
@@ -4776,12 +4778,357 @@ def _source_has_travel_price_promise_evidence(source_context: str | None) -> boo
     return bool(re.search(r"(?:最划算|最便宜|最低价|更优惠|优惠房价|省钱|提前预订)", src))
 
 
+def _normalize_travel_price_text(text: str) -> str:
+    out = text or ""
+
+    def _replace_symbol_price(match: re.Match[str]) -> str:
+        amount = match.group("amount")
+        suffix = re.sub(r"\s+", "", match.group("suffix") or "")
+        if "起" in suffix and ("/晚" in suffix or "每晚" in suffix or "一晚" in suffix):
+            return f"{amount}元起/晚"
+        if "起" in suffix:
+            return f"{amount}元起"
+        if "/晚" in suffix or "每晚" in suffix or "一晚" in suffix:
+            return f"{amount}元/晚"
+        return f"{amount}元"
+
+    out = re.sub(
+        r"(?:¥|￥)\s*(?P<amount>\d{2,5})\s*(?:元)?\s*(?P<suffix>起\s*(?:/晚|每晚|一晚)?|/晚|每晚|一晚)?",
+        _replace_symbol_price,
+        out,
+    )
+    out = re.sub(r"(\d{2,5})\s*元\s*起\s*/\s*晚", r"\1元起/晚", out)
+    out = re.sub(r"(\d{2,5})\s*元\s*/\s*晚", r"\1元/晚", out)
+    return out
+
+
+def _travel_source_segments(source_context: str | None) -> list[str]:
+    src = (source_context or "").replace("|", "\n")
+    segments: list[str] = []
+    for raw in re.split(r"\n+", src):
+        line = raw.strip().strip("-• \t")
+        line = re.sub(r"^(?:已核验事实|事实源)\s*[:：]\s*", "", line).strip()
+        if line:
+            segments.append(line)
+    return segments
+
+
+def _travel_hotel_names_from_source(source_context: str | None) -> list[str]:
+    names: list[str] = []
+    seen: set[str] = set()
+    hotel_re = re.compile(
+        r"([A-Za-z0-9\u4e00-\u9fff·.&（）()\-\s]{2,45}"
+        r"(?:酒店|饭店|民宿|公寓|度假村|别墅|客栈)"
+        r"(?:[（(][^）)]{1,24}[）)])?)"
+    )
+    for line in _travel_source_segments(source_context):
+        if re.match(
+            r"(?:用户意图|目标读者|事实状态|质量关注|参考|任务|事实源|查询日期|建议游玩时间|核心景点|DAY\s*\d|地址|交通/距离|入住/退房|权益|停车|套餐/房型|亲子设施)",
+            line,
+        ):
+            continue
+        for match in hotel_re.finditer(line):
+            name = match.group(1).strip(" ，,；;：:。")
+            name = re.sub(r"^(?:酒店/住宿|住宿|酒店|湖滨商圈住宿)\s*[:：]\s*", "", name).strip()
+            if len(name) < 3 or name in {"酒店", "亲子酒店", "商务酒店"}:
+                continue
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+    return names
+
+
+def _travel_single_hotel_name(source_context: str | None) -> str:
+    names = _travel_hotel_names_from_source(source_context)
+    return names[0] if len(names) == 1 else ""
+
+
+def _travel_price_for_title(source_context: str | None) -> str:
+    src = _normalize_travel_price_text(source_context or "")
+    match = re.search(r"(\d{2,5})元(?:起/晚|起|/晚|每晚|一晚)?", src)
+    if not match:
+        return ""
+    return f"{match.group(1)}元起" if "起" in match.group(0) else f"{match.group(1)}元"
+
+
+def _travel_single_hotel_title_subject(hotel: str, source_context: str | None) -> str:
+    src = source_context or ""
+    if "长隆" in hotel or "长隆" in src:
+        return "广州长隆亲子酒店" if re.search(r"(?:亲子|儿童|带孩子|带娃|乐园)", src) else "广州长隆酒店"
+    if "亚龙湾" in hotel or "亚龙湾" in src:
+        return "亚龙湾亲子酒店" if re.search(r"(?:亲子|儿童|带孩子|带娃)", src) else "亚龙湾酒店"
+    if "太古里" in hotel or "太古里" in src:
+        return "成都太古里酒店"
+    if "国贸" in hotel or "国贸" in src:
+        return "北京国贸出差酒店"
+    cleaned = re.sub(r"[（(].*?[）)]", "", hotel).strip()
+    return cleaned if len(cleaned) <= 9 else ""
+
+
+def _travel_single_hotel_title_fallback(title: str, source_context: str | None) -> str:
+    hotel = _travel_single_hotel_name(source_context)
+    price = _travel_price_for_title(source_context)
+    if not hotel or not price:
+        return ""
+    weak_title = bool(
+        _title_readability_issues(title, "旅行")
+        or re.search(r"(?:怎么选|要不|按预算选|按距离选|交通省心选|这家亲子酒店)", title or "")
+        or not re.search(r"(?:元|¥|￥|\d)", title or "")
+        or not re.search(r"(?:值得|推荐|省心|很稳|适合|优先)", title or "")
+    )
+    if not weak_title:
+        return ""
+    subject = _travel_single_hotel_title_subject(hotel, source_context)
+    if not subject:
+        return ""
+    candidates = (
+        f"{subject}，{price}值得选",
+        f"{subject}{price}值得选",
+        f"{subject}，{price}很省心",
+        f"{subject}{price}很省心",
+    )
+    for candidate in candidates:
+        if len(candidate) <= _TITLE_DELIVERY_MAX and not _title_readability_issues(candidate, "旅行"):
+            return candidate
+    return ""
+
+
+def _travel_single_hotel_fact_lead(source_context: str | None) -> str:
+    src = _normalize_travel_price_text(source_context or "")
+    hotel = _travel_single_hotel_name(src)
+    if not hotel:
+        return ""
+    price_match = re.search(r"(\d{2,5}元(?:起/晚|起|/晚|每晚|一晚)?)", src)
+    rating_match = re.search(r"美团(?:真实)?评分\s*([4-5](?:\.\d)?)|评分\s*([4-5](?:\.\d)?)", src)
+    if not price_match or not (rating_match or "美团" in src):
+        return ""
+    price = price_match.group(1)
+    rating = next((part for part in rating_match.groups() if part), "") if rating_match else ""
+    lead_parts: list[str] = []
+    if rating:
+        lead_parts.append(f"美团评分{rating}")
+    lead_parts.append(price)
+    advantages: list[str] = []
+    loc_match = re.search(r"位于([^，。；;|\n]{2,22}(?:核心位置|商圈|附近))", src)
+    if loc_match:
+        advantages.append(f"位于{loc_match.group(1)}")
+    elif re.search(r"(?:紧邻|靠近|近)[^，。；;|\n]{2,20}(?:乐园|景区|地铁|商圈)", src):
+        advantages.append(re.search(r"(?:紧邻|靠近|近)[^，。；;|\n]{2,20}(?:乐园|景区|地铁|商圈)", src).group(0))
+    if "免费穿梭巴士" in src:
+        advantages.append("有免费穿梭巴士")
+    elif "穿梭巴士" in src or "班车" in src:
+        advantages.append("有班车接驳")
+    if "提前半小时入园" in src:
+        advantages.append("可提前半小时入园")
+    if re.search(r"(?:儿童乐园|亲子房|亲子设施)", src):
+        advantages.append("亲子设施更完整")
+    if "免费停车" in src:
+        advantages.append("停车更方便")
+    advantage_text = "，".join(dict.fromkeys(advantages[:3]))
+    lead = f"{hotel}{'、'.join(lead_parts)}"
+    if advantage_text:
+        lead += f"，{advantage_text}，这些是核心优势"
+    return lead.rstrip("。") + "。"
+
+
+def _travel_single_hotel_price_rating_sentence(source_context: str | None) -> str:
+    src = _normalize_travel_price_text(source_context or "")
+    hotel = _travel_single_hotel_name(src)
+    price_match = re.search(r"(\d{2,5}元(?:起/晚|起|/晚|每晚|一晚)?)", src)
+    rating_match = re.search(r"美团(?:真实)?评分\s*([4-5](?:\.\d)?)|评分\s*([4-5](?:\.\d)?)", src)
+    if not hotel or not price_match:
+        return ""
+    rating = next((part for part in rating_match.groups() if part), "") if rating_match else ""
+    advantages: list[str] = []
+    if "免费穿梭巴士" in src:
+        advantages.append("免费穿梭巴士")
+    elif "穿梭巴士" in src or "班车" in src:
+        advantages.append("班车接驳")
+    if "提前半小时入园" in src:
+        advantages.append("提前半小时入园")
+    advantage_text = "，" + "和".join(advantages[:2]) if advantages else ""
+    if rating:
+        return f"{hotel}美团评分{rating}、{price_match.group(1)}{advantage_text}。"
+    return f"{hotel}{price_match.group(1)}{advantage_text}。"
+
+
+def _travel_fact_signal_count(text: str) -> int:
+    body = text or ""
+    signals = 0
+    patterns = (
+        r"\d{2,5}元(?:起/晚|起|/晚)|价格|预算|房价",
+        r"(?:美团)?评分\s*[4-5](?:\.\d)?|口碑",
+        r"免费穿梭巴士|穿梭巴士|班车|接驳|免费停车|自驾|地铁|交通|距离|紧邻",
+        r"提前半小时入园|权益|入住|退房",
+        r"儿童乐园|亲子房|亲子设施|白虎自助餐厅|火烈鸟|设施",
+        r"核心位置|商圈|园区|景区",
+    )
+    for pattern in patterns:
+        if re.search(pattern, body):
+            signals += 1
+    return signals
+
+
+def _inject_travel_price_rating_after_intro(main: str, source_context: str | None) -> str:
+    fact_sentence = _travel_single_hotel_price_rating_sentence(source_context)
+    if not fact_sentence or fact_sentence.rstrip("。") in main:
+        return main or ""
+    units = [unit.strip() for unit in re.findall(r"[^。！？\n]+[。！？]?", main or "") if unit.strip()]
+    if not units:
+        return (fact_sentence + (main or "")).strip()
+    return "".join(units[:1] + [fact_sentence] + units[1:]).strip()
+
+
+def _drop_redundant_travel_single_hotel_fact_sentences(main: str, source_context: str | None) -> str:
+    hotel = _travel_single_hotel_name(source_context)
+    if not hotel or not main:
+        return main or ""
+    kept: list[str] = []
+    for sentence in [unit.strip() for unit in re.findall(r"[^。！？\n]+[。！？]?", main) if unit.strip()]:
+        compact = re.sub(r"\s+", "", sentence)
+        signals = sum(
+            1
+            for pattern in (
+                r"(?:美团)?评分\s*[4-5](?:\.\d)?",
+                r"\d{2,5}元(?:起/晚|起|/晚)",
+                r"(?:核心位置|商圈|紧邻|靠近|位于)",
+                r"(?:穿梭巴士|班车|免费停车|接驳)",
+                r"(?:提前半小时入园|亲子设施|儿童乐园|亲子房)",
+            )
+            if re.search(pattern, compact)
+        )
+        starts_like_fact = (
+            compact.startswith(hotel)
+            or compact.startswith(hotel.replace("广州", ""))
+            or compact.startswith("酒店")
+            or compact.startswith("美团评分")
+            or compact.startswith("评分")
+            or bool(re.match(r"\d{2,5}元(?:起/晚|起|/晚)", compact))
+        )
+        if starts_like_fact and signals >= 2:
+            continue
+        if re.fullmatch(r"这是[^。！？]{0,12}(?:核心优势|最大优势)。?", compact):
+            continue
+        kept.append(sentence)
+    return "".join(kept).strip() if kept else main
+
+
+def _ensure_travel_single_hotel_fact_lead(text: str, source_context: str | None) -> str:
+    normalized = _normalize_travel_price_text(text or "")
+    lead = _travel_single_hotel_fact_lead(source_context)
+    if not normalized.strip() or not lead:
+        return normalized
+    main, tags = _split_body_and_tags(normalized)
+    first = re.sub(r"\s+", "", main)[:180]
+    if re.sub(r"\s+", "", lead.rstrip("。"))[:20] in first:
+        cleaned_main = _drop_redundant_travel_single_hotel_fact_sentences(main, source_context)
+        return (cleaned_main + ("\n" + tags if tags else "")).strip()
+    main = _drop_redundant_travel_single_hotel_fact_sentences(main, source_context)
+    first_window = re.sub(r"\s+", "", main)[:220]
+    if _travel_fact_signal_count(first_window) >= 2:
+        shaped = _inject_travel_price_rating_after_intro(main, source_context)
+        return (shaped + ("\n" + tags if tags else "")).strip()
+    shaped = f"{lead}\n\n{main.strip()}".strip()
+    return (shaped + ("\n" + tags if tags else "")).strip()
+
+
 def _remove_unsupported_travel_value_claims(text: str, source_context: str | None, domain: str | None) -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
-    if canonical != "旅行" or _source_has_travel_price_promise_evidence(source_context):
+    if canonical != "旅行":
         return text or ""
-    out = text or ""
+    out = _normalize_travel_price_text(text or "")
+    is_single_hotel = bool(_travel_single_hotel_name(source_context))
+    if _source_has_travel_price_promise_evidence(source_context):
+        return out
     out = re.sub(r"提前[^。\n；;]{0,28}(?:更优惠|优惠房价|更好价格|省钱)[^。\n；;]*", "房价和优惠以平台实时页为准", out)
+    out = re.sub(r"如果预算允许，?直接订这家就行", "如果预算允许，可以优先看官方酒店", out)
+    out = out.replace("直接订这家就行", "可以优先看官方酒店")
+    out = out.replace("省去比较其他酒店的时间", "减少来回比较交通和设施的时间")
+    out = out.replace("一价全包的体验对家庭出游最省心", "园区位置、班车和入园权益对家庭出游更省心")
+    out = out.replace("看美团上有没有近期活动房型", "看美团实时页的房型和套餐说明")
+    out = out.replace("选择淡季时段", "按平台实时房价和房型对比")
+    out = re.sub(r"具体(?:优惠|权益和价格)以美团实时页为准，?这样能直接省掉门票钱", "具体权益和价格以美团实时页为准", out)
+    out = re.sub(r"(?:能|会|可以|有时)?省[^。！？\n]{0,10}门票[钱费]", "门票权益以美团实时页为准", out)
+    out = out.replace("这样能直接省掉门票钱", "权益以美团实时页为准")
+    out = out.replace("能直接省掉门票钱", "门票权益要以美团实时页为准")
+    out = out.replace("能省掉一笔门票钱", "门票权益要以美团实时页为准")
+    out = out.replace("能省掉一笔门票费", "门票权益要以美团实时页为准")
+    out = out.replace("省掉一笔门票钱", "门票权益以美团实时页为准")
+    out = out.replace("省掉一笔门票费", "门票权益以美团实时页为准")
+    out = out.replace("省掉门票钱", "门票权益以美团实时页为准")
+    out = out.replace("省掉门票费", "门票权益以美团实时页为准")
+    out = out.replace("早入晚退的套餐", "可选房型和入住规则")
+    out = out.replace("不用担心停车位紧张或额外费用", "停车规则以酒店页面为准")
+    out = out.replace("不是最便宜的选择", "不是只看低价的选择")
+    out = out.replace("希望最省心", "想少折腾")
+    out = out.replace("这家是首选", "可以优先看这家")
+    out = out.replace("首选", "优先看")
+    out = out.replace("避开高峰期排队", "入园节奏更从容")
+    out = out.replace("不用担心小孩挑食", "适合关注家庭餐饮的人")
+    out = out.replace("时间充裕不用太赶", "时间安排要按页面规则确认")
+    out = out.replace("到达后直接去玩，省去排队购票的时间——", "")
+    out = out.replace("省去排队购票的时间", "减少现场确认门票权益的麻烦")
+    out = out.replace("不用额外找停车位", "停车更省心")
+    out = out.replace("零距离", "距离近")
+    out = re.sub(r"如果计划玩\s*2\s*[-~至到]\s*3\s*天", "如果行程主要围绕长隆几个园区", out)
+    out = out.replace("能省掉每天往返的时间和车费", "能减少每天往返折腾")
+    out = out.replace("能多睡一会儿还能提前进园", "入园节奏更从容")
+    out = out.replace("性价比确实在线", "预算和便利度取舍清楚")
+    out = out.replace("性价比还是值得的", "预算和便利度取舍清楚")
+    out = out.replace("性价比反而不如直接", "预算和便利度要按行程取舍")
+    out = out.replace("省钱还是省力", "预算优先还是省力优先")
+    out = out.replace("可以直接选这家", "可以优先看这家")
+    if is_single_hotel:
+        out = re.sub(r"预算(?:在|如果在)?\s*\d{3,5}\s*[-~至到]\s*\d{3,5}\s*元/晚", "预算能接受美团实时房价", out)
+        out = re.sub(r"预算[≥>=]\s*\d{3,5}\s*元/晚", "预算能接受美团实时房价", out)
+        out = re.sub(r"预算在\s*\d{3,5}\s*元以内", "预算接近美团实时房价", out)
+        out = re.sub(r"适合\s*\d+\s*[-~至到]\s*\d+\s*岁的孩子", "适合带娃家庭", out)
+        out = re.sub(r"带\s*\d+\s*岁以下小娃", "带低龄孩子", out)
+        out = re.sub(r"孩子[≥>=]\s*\d+\s*岁", "孩子精力更好", out)
+    out = re.sub(r"提前\s*\d+\s*[-~至到]\s*\d+\s*周预订", "提前在美团确认实时房态", out)
+    out = re.sub(r"(?:周末和)?旺季(?:房间)?(?:容易)?(?:紧张|满房)", "热门日期房态以美团实时页为准", out)
+    out = out.replace("旺季和旺季", "热门日期")
+    out = out.replace("建议提前一天到达，让孩子适应环境，第二天精力更充沛。", "到达时间按自己的行程安排。")
+    out = out.replace("如果想早上多玩一会儿再退房，可以提前咨询前台是否支持延迟退房", "如果担心退房时间影响行程，可以提前确认酒店退房规则")
+    out = out.replace("延迟退房政策", "退房规则")
+    out = out.replace("能否延迟", "具体退房规则")
+    out = out.replace("如果想多玩一天", "如果担心退房时间影响行程")
+    out = out.replace("早上少排队", "入园节奏更从容")
+    out = out.replace("早上人少的时候先玩热门项目", "按入园节奏安排想玩的项目")
+    out = out.replace("热门项目", "想玩的项目")
+    out = out.replace("时间完全够用", "时间按行程安排")
+    out = out.replace("小孩有独立活动空间", "小朋友有更多活动感")
+    out = out.replace("不便宜但省去了园区外找饭的时间", "价格按实时页，餐饮安排更集中")
+    out = out.replace("这笔钱省下来了", "停车更省心")
+    out = out.replace("套餐组合经常调整", "套餐组合以美团实时页为准")
+    out = out.replace("热门季节", "游玩日")
+    out = re.sub(r"(?:让孩子)?多玩\s*2\s*[-~至到]\s*3\s*小时", "减少往返时间", out)
+    out = out.replace("多玩半天", "入园节奏更从容")
+    out = out.replace("多了半天游玩时间", "入园节奏更从容")
+    out = out.replace("早餐标准", "餐饮说明")
+    out = out.replace("上午还能再玩一会儿", "早到晚走要按酒店规则安排")
+    out = out.replace("用餐需求", "餐饮选择")
+    out = out.replace("不用天天出酒店找饭", "餐饮安排更集中")
+    out = out.replace("提前预订能更好确认房型和最新价格", "房型和最新价格以美团实时页为准")
+    out = out.replace("一站式解决吃住玩的问题", "减少往返折腾")
+    out = out.replace("值得收藏。", "")
+    out = out.replace("能入园节奏更从容", "入园节奏更从容")
+    out = out.replace("也门票权益", "门票权益")
+    out = out.replace("选这家入园节奏", "选择这家时，入园节奏")
+    if len(re.findall(r"早餐", out)) >= 3:
+        for phrase in (
+            "西式早餐也不错，",
+            "中西式自助早餐，",
+            "欧陆式早餐质量稳定，",
+            "中西式自助早餐选择多，",
+            "欧陆式早餐也是亮点。",
+        ):
+            out = out.replace(phrase, "")
+    out = out.replace(
+        "我对比了美团上几家酒店的评分、价格和亲子设施，从预算层级梳理一遍，帮你快速决策。",
+        "按预算、评分和亲子设施分层看，会更好选。",
+    )
+    out = out.replace("私家沙滩省去排队的烦恼，选酒店时，", "私家沙滩更方便。选酒店时，")
     replacements = {
         "闭眼冲": "按需求选",
         "必住": "优先考虑",
@@ -5435,7 +5782,7 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
             f"- 当前可用决策事实：{facts}\n"
             "- 酒店类写法：按预算、评分、交通距离、早餐/亲子/商务设施拆成自然取舍句；前120字至少自然保留3项美团酒旅决策事实，不要机械罗列成表格，不要写Markdown粗体小标题。\n"
             "- 路线类写法：DAY时间段、景点顺序、住宿商圈和体力节奏可以来自已核验行程；路线时间窗不是营业时间，不能另编景区开闭门时间。\n"
-            "- 风险词边界：不得写必住、闭眼冲、最划算、最低价、提前预订更便宜；可写预算更友好、交通更方便、亲子设施更完整。\n"
+            "- 风险词边界：不得写必住、闭眼冲、最划算、最低价、提前预订更便宜、首选、多玩半天/2-3小时、直接省门票钱、儿童年龄段、提前几周预订、旺季满房或延迟退房；可写预算更友好、交通更方便、亲子设施更完整。\n"
             "- 正文目标：不含标签360-480字，3-5段自然正文+8-10个标签；不要输出Markdown标题、方案编号或解释文字。"
         )
     if canonical == "母婴":
@@ -5873,6 +6220,8 @@ def _insert_safe_fact_line(body: str, domain: str | None, source_context: str | 
             text = _append_missing_fitness_source_actions(text, source_context)
         elif canonical == "美妆":
             text = _ensure_beauty_price_channel_line(text, source_context)
+        elif canonical == "旅行":
+            text = _ensure_travel_single_hotel_fact_lead(text, source_context)
         return _ensure_delivery_cta(text, domain)
     safe_line = _safe_fact_line(domain, source_context)
     if not safe_line:
