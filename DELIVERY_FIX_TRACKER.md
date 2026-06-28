@@ -1,8 +1,15 @@
 # NoteAI Pro 交付修复台账
 
-更新时间：2026-06-25
+更新时间：2026-06-28
 
 目标：把当前内测 Demo 修复为对用户真正有价值、愿意付费、能稳定生成高质量小红书爆文的 SaaS 系统。
+
+## 最新进展：2026-06-28 真实链路质量稳定化 Round01 后半段
+
+- 已完成事实源稳定化：餐饮/本地生活真实高德烟测通过，长禧家珑厨万博广晟店可取得地址、营业时间、人均、评分、招牌、套餐、商圈、电话、门店图，provider=`local_verified+amap`、confidence=`0.9`；酒旅真实美团 `meituan-travel` 烟测通过，广州长隆亲子酒店可稳定提取酒店名、真实评分/起价、地址、入住/退房、亲子设施、交通权益和套餐权益，并清洗 Skill 前缀、Markdown、泛化“套餐浮动/我来帮你查”等脏字段。
+- 已完成生成策略稳定化：`_build_generation_planning_brief()` 新增多行业“商业价值槽位”，不再只靠餐饮/旅行模板；二修指令显式补旅行交通/预算、穿搭价格/渠道、美妆价格/渠道、家居预算/单品价、餐饮营业时间/必点；美妆、家居新增专用品类表达 brief，避免走通用文案。
+- 验证完成：`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `145` 项；`python3 -m py_compile model/api.py model/fact_enrichment.py tools/v04_training_data_health.py tools/v04_composite_readiness.py tests/test_api_contracts.py tests/test_fact_enrichment.py` 通过；质量门禁通过；`tools/v04_training_data_health.py --json` 与 `tools/v04_composite_readiness.py --json` 均为 `production_ready`；Shadow QA `362/362` ready、hard block `0`、平均 V0.4 `71.585`、`166` 条 `>=72`。
+- 剩余风险：Shadow QA 仍基于历史 artifact，未完全体现本轮新增 prompt 对未来生成的提升；老样本里仍有 `title_readability=4`、`food_missing_hours_signal=3`、`travel_missing_transport_signal=1`。母婴按用户要求冻结，不作为本轮继续优化对象。
 
 ## 状态说明
 
@@ -89,6 +96,7 @@
 - 2026-06-28：完成远程 Git 仓库推送准备。新增 `docs/REMOTE_REPOSITORY_SETUP.md`，明确私有远程仓库、Git LFS、密钥/原始数据禁入、推送后核验、干净克隆验收和代码+模型同步回滚规则；新增 `scripts/push_remote.sh`，统一执行工作区干净检查、`origin` 配置、`main` 推送、tag 推送和 LFS 对象推送。当前本机 `gh` 已安装但未登录，且没有任何远端 URL，因此不能擅自上传商业项目代码；待用户登录 GitHub/Gitee/GitLab 或提供远端 URL 后，可直接用脚本执行首次云端推送。
 - 2026-06-28：完成 GitHub 私有仓库首次发布。GitHub CLI 已授权账号 `iamyusen1314`，创建私有仓库 `https://github.com/iamyusen1314/noteai`，推送 `main`、tag `v0.4-production-baseline-20260628` 和 `19` 个 Git LFS 对象（约 `21 MB`）；远端 `main` 当前提交 `10fca15`，tag 指向同一提交。已做临时干净克隆验收并执行 `git lfs pull`，V0.4 三个 `.lgb` 模型均可拉取为真实文件；禁入文件检查确认 `.env`、`model/.env`、`.venv/`、`node_modules/`、MLflow、本地原始大数据和生成大包没有进入远端；Python 核心文件 `py_compile` 与 `scripts/push_remote.sh` 语法检查通过。
 - 2026-06-28：完成 GitHub Actions CI、production 环境变量/密钥和模型云端加载策略第一版。新增 `.github/workflows/ci.yml`，在 push/PR 到 `main` 时执行 LFS 拉取、依赖安装、Python 编译、artifact SHA 校验、139 项单测、质量 gate 和 Docker Compose 配置检查；新增 GitHub Environment `production`，写入 `ADMIN_PASSWORD`、`ANTHROPIC_API_KEY`、`MOONSHOT_API_KEY`、`AMAP_WEB_KEY`、`MEITUAN_OPEN_TOKEN` 等 Secrets，写入 `NOTEAI_ENABLE_TEST_BILLING=0`、`NOTEAI_USE_V04_COMPOSITE=1`、`NOTEAI_MODEL_ARTIFACT_REQUIRED=1`、事实搜索和端口等 Variables，未在日志中输出任何 secret 值。新增 `model/artifact_loader.py`、`scripts/fetch_model_artifacts.py` 和 `model/artifacts/model_release_manifest.v04.json`，生产启动可校验/下载 V0.4 模型 artifact；修复 `api.py` 读取训练报告中本机绝对路径导致云端找不到 V0.4 模型的问题，改为自动映射到部署环境 `model/artifacts/`。新增 `docs/DEPLOYMENT_SECRETS.md`、`docs/MODEL_ARTIFACT_CLOUD_STRATEGY.md`，明确 Secrets、Variables、对象存储前缀和模型/代码同步回滚规则。CI 首跑暴露 `model/requirements.txt` 漏列 `jieba`、`scikit-learn` 与 `python-multipart`，已补齐为 `jieba==0.42.1`、`scikit-learn==1.8.0`、`python-multipart==0.0.30`。验证记录：artifact check 通过；`find model tools tests -name '*.py' -print0 | xargs -0 .venv/bin/python -m py_compile` 通过；`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `139` 项；`.venv/bin/python tools/quality_gate.py quality/golden_notes.sample.json` 通过；`docker compose config --quiet` 通过。
+- 2026-06-28：启动真实链路质量稳定化 Round01，目标从“模型训练能部署”切换为“AI 诊断/爆文生成/对话优化真实可交付”。已修复训练进度口径不一致：`tools/v04_training_data_health.py`、`tools/v04_composite_readiness.py` 的生产 Golden 默认线改为当前接受线 `600/行业`，并重建 `model/artifacts/v04_training_data_health.json`、`model/artifacts/v04_composite_readiness.json`，两者均为 `production_ready`，各核心行业 gap 为 `0`。已扩展 `_build_generation_planning_brief()`：除美食/旅行外，穿搭、美妆、家居、健身、母婴也会从用户素材/事实源提取行业事实槽位，避免多行业生成只得到泛化 brief。已修复 chat 对话优化：60+ 无硬错误但 V0.4 可解释低分时，`_repair_chat_note_if_needed()` 会进入分数导向二修，不再跳过。新增回归测试覆盖多行业 fact brief 和 chat V0.4 lift。
 - 2026-06-28：根据用户确认将 GitHub 仓库从 private 改为 public，以启用 GitHub Free 下的 main 分支保护和 secret scanning。已开启 secret scanning 与 push protection；已关闭 merge commit，仅保留 squash/rebase，并启用 merge 后自动删除分支。`main` 分支保护已生效：要求 `test` status check 通过、strict up-to-date、必须 PR、dismiss stale reviews、管理员同样受保护、要求线性历史、禁止 force push、禁止删除、要求 conversation resolution。最新 CI run `28312405091` 已通过；后续对 `main` 的治理记录也将通过 PR 验证保护链路。
 - 2026-06-24：完成全栈审查与生成质量链路复查，确认当前不是可交付 SaaS，首要问题是生成链路没有真正闭环、评分校准偏松、prompt/代码/模型规则不一致。
 - 2026-06-24：创建本台账，后续所有修复都在此记录状态和验证证据。

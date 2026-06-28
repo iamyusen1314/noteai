@@ -1529,6 +1529,81 @@ _DOMAIN_SCORE_LIFT_RULES: dict[str, str] = {
 }
 
 
+_DOMAIN_COMMERCIAL_SLOT_RULES: dict[str, str] = {
+    "美食": "必须把地址/商圈、人均或套餐价格、营业时间、必点/招牌、预订/排队安排成自然决策句；事实源缺失时写门店页/公示为准，不写信息栏。",
+    "旅行": "酒店优先写美团评分、起价/预算口径、交通/距离、亲子或商务设施、入住/退房；路线攻略优先写天数、交通方式、体力节奏和预算确认方式。",
+    "穿搭": "必须写身材/场合、单品/版型、价格或渠道口径、颜色比例和适合/不适合；缺价格时写价格按实际链接/门店为准。",
+    "美妆": "必须写肤质/诉求、产品/色号、用量/手法、妆效边界和价格/渠道口径；缺价格时写价格按购买渠道为准。",
+    "家居": "必须写空间/痛点、单品清单、尺寸或预算口径、动线/收纳变化和复刻步骤；缺预算时写预算按实际单品清单为准。",
+    "健身": "必须写目标人群、动作顺序、组数/时长、发力/呼吸、安全替代和结束拉伸；不承诺快速瘦身结果。",
+    "母婴": "必须写月龄/场景、用品/环境、步骤/流程、观察指标和安全边界；不编造宝宝反馈或医学效果。",
+}
+
+
+def _context_fact_line(source_context: str | None, keywords: tuple[str, ...], limit: int = 96) -> str:
+    src = source_context or ""
+    if not src.strip():
+        return ""
+    for raw in src.splitlines():
+        line = re.sub(r"^\s*-\s*", "", raw.strip())
+        if not line or line.startswith("【"):
+            continue
+        if any(keyword and keyword in line for keyword in keywords):
+            line = re.sub(r"^(?:已核验事实|联网事实|事实源|事实|当前可用事实)\s*[:：]\s*", "", line)
+            return _clean_generated_title(line)[:limit]
+    compact = re.sub(r"\s+", " ", src)
+    for keyword in keywords:
+        if not keyword or keyword not in compact:
+            continue
+        idx = compact.find(keyword)
+        start = max(0, idx - 28)
+        end = min(len(compact), idx + 68)
+        return _clean_generated_title(compact[start:end])[:limit]
+    return ""
+
+
+def _domain_generation_fact_bits(canonical: str, source_context: str | None) -> list[str]:
+    specs: dict[str, list[tuple[str, tuple[str, ...], tuple[str, ...]]]] = {
+        "穿搭": [
+            ("身材/场合", ("身材/场合", "身材", "体型", "身高体重", "场合"), ("宽肩", "梨形", "小个子", "通勤", "约会", "显高", "显瘦")),
+            ("单品/版型", ("单品/版型", "单品", "版型", "材质", "颜色"), ("衬衫", "西装", "牛仔", "半裙", "连衣裙", "外套", "黑白灰", "阔腿")),
+            ("价格/渠道", ("价格/渠道", "价格", "预算", "渠道", "品牌"), ("元", "预算", "链接", "门店", "品牌", "平替")),
+        ],
+        "美妆": [
+            ("肤质/诉求", ("肤质/诉求", "肤质", "皮肤", "诉求"), ("干皮", "油皮", "混干", "混油", "敏感", "痘肌", "毛孔", "暗沉")),
+            ("产品/色号", ("产品/色号", "产品", "色号", "品牌", "品名"), ("粉底", "防晒", "口红", "精华", "面霜", "色号", "SPF")),
+            ("用量/手法", ("用量/手法", "用量", "手法", "步骤"), ("两指", "少量多次", "拍开", "打圈", "叠涂", "定妆")),
+            ("妆效/边界", ("妆效/边界", "妆效", "效果", "持妆", "适合", "不适合"), ("哑光", "奶油肌", "持妆", "拔干", "搓泥", "不闷")),
+        ],
+        "家居": [
+            ("空间/痛点", ("空间/痛点", "空间", "面积", "痛点", "户型"), ("阳台", "厨房", "客厅", "卧室", "玄关", "小户型", "收纳", "动线")),
+            ("清单/单品", ("清单/单品", "清单", "单品", "材质", "品牌"), ("柜", "灯", "桌", "椅", "沙发", "置物架", "洗碗机", "洞洞板")),
+            ("尺寸/预算", ("尺寸/预算", "尺寸", "预算", "价格", "费用"), ("cm", "mm", "米", "元", "预算", "尺寸")),
+            ("改造逻辑", ("改造逻辑", "动线", "收纳", "改造前后", "复刻"), ("动线", "收纳", "改造", "入住", "复刻", "好打理")),
+        ],
+        "健身": [
+            ("动作/拉伸", ("动作/拉伸", "动作", "拉伸", "训练动作"), ("原地踏步", "臀桥", "死虫", "靠墙静蹲", "深蹲", "俯卧撑", "拉伸")),
+            ("组数/时长", ("组数/时长", "组数", "次数", "时长", "频率"), ("秒", "分钟", "次", "组", "轮", "每周")),
+            ("目标/人群", ("目标/人群", "目标", "人群", "部位"), ("膝盖友好", "新手", "臀腿", "核心", "减脂", "低冲击")),
+            ("安全/替代", ("安全/替代", "安全", "替代", "注意"), ("膝盖", "疼", "不舒服", "降低幅度", "替代", "停止")),
+        ],
+        "母婴": [
+            ("月龄/场景", ("月龄/场景", "月龄", "年龄", "场景"), ("月龄", "个月", "出牙", "睡前", "辅食", "入园", "绘本")),
+            ("用品/环境", ("用品/环境", "用品", "环境", "材料"), ("睡袋", "绘本", "夜灯", "白噪音", "牙胶", "围兜", "餐椅")),
+            ("步骤/流程", ("步骤/流程", "步骤", "流程", "顺序"), ("第一步", "第二步", "流程", "睡前", "清洁", "观察")),
+            ("观察/安全", ("观察/安全", "观察", "安全", "不适合", "注意"), ("困信号", "哭闹", "红肿", "皮疹", "发热", "不适合", "看护")),
+        ],
+    }
+    bits: list[str] = []
+    for label, aliases, keywords in specs.get(canonical, []):
+        value = _fact_context_value(source_context, *aliases)
+        if not value:
+            value = _context_fact_line(source_context, keywords)
+        if value:
+            bits.append(f"{label}={value}")
+    return bits[:8]
+
+
 def _build_generation_planning_brief(
     domain: str | None,
     title: str | None = "",
@@ -1554,9 +1629,15 @@ def _build_generation_planning_brief(
         fact_bits.extend(_travel_fact_bits(source_context))
         if fact_bits:
             fact_bits.insert(0, f"写作模式={_travel_fact_mode(source_context)}")
+    else:
+        fact_bits.extend(_domain_generation_fact_bits(canonical, source_context))
     fact_line = "；".join(fact_bits[:8]) if fact_bits else "按用户信息/已核验事实源引用；缺失字段用安全表达，不编造。"
     style_line = f"本方案方向：{style_name}" if style_name else "本方案方向：按当前生成任务选择。"
     score_lift_rule = _DOMAIN_SCORE_LIFT_RULES.get(canonical, "V0.4提质重点：具体对象、可执行步骤、读者取舍、事实边界和自然表达同时成立，不能机械堆关键词。")
+    commercial_slot_rule = _DOMAIN_COMMERCIAL_SLOT_RULES.get(
+        canonical,
+        "把当前品类最影响用户决策的事实、步骤、预算口径、适合/不适合和行动建议写进正文。",
+    )
     return (
         f"【生成前规划 Brief｜{_qobj.QUALITY_OBJECTIVE_VERSION}｜先满足交付价值，再参考辅助特征】\n"
         f"- 品类：{canonical or domain or '通用'}；{style_line}\n"
@@ -1564,6 +1645,7 @@ def _build_generation_planning_brief(
         f"- 正文规划：目标{body_target}（不含标签），段落按「{rules['structure']}」组织。\n"
         f"- 标签规划：{tag_range}，覆盖品类词、场景词、地域/人群词和核心对象词。\n"
         f"- V0.4提质策略：{score_lift_rule}\n"
+        f"- 商业价值槽位：{commercial_slot_rule}\n"
         "- 证据组织：每段至少保留1个可验证或可执行细节（步骤、材料、尺寸、动作、肤质、场景、取舍理由之一），不要只写情绪评价。\n"
         f"- 读者价值信号：{rules['required_terms']}\n"
         f"- 核心词聚焦：{rules['core_repeat']}\n"
@@ -2038,6 +2120,30 @@ def _v04_generation_lift_instructions(
         insert_at = 1 if items and items[0].startswith("V0.4质量未到参考线") else 0
         items.insert(insert_at, domain_item)
 
+    slot_items: list[str] = []
+    if canonical == "美食":
+        if not features.get("body_has_hours", 0):
+            slot_items.append("餐饮商业槽位缺营业时间：事实源有营业时间就自然写进到店建议；缺失时写「营业时间以门店公示为准」")
+        if not features.get("body_has_must_order", 0):
+            slot_items.append("餐饮商业槽位缺必点/招牌：必须绑定具体菜品写「必点/招牌/推荐」之一，不要只泛写好吃")
+    elif canonical == "旅行":
+        if not features.get("body_has_transport", 0):
+            slot_items.append("旅行商业槽位缺交通/路线：写清地铁/步行/接驳/自驾/路线取舍；事实源缺失时写出发前按地图确认")
+        if not features.get("body_has_price", 0):
+            slot_items.append("旅行商业槽位缺预算/价格：美团酒旅有起价就引用；缺失时写「预算按实际交通和住宿为准」，不编造金额")
+    elif canonical == "穿搭":
+        if not features.get("body_has_price", 0):
+            slot_items.append("穿搭商业槽位缺价格/渠道：已提供价格必须绑定单品；缺失时写「价格按实际链接/门店为准」")
+    elif canonical == "美妆":
+        if not features.get("body_has_price", 0):
+            slot_items.append("美妆商业槽位缺价格/渠道：已提供价格必须绑定产品；缺失时写「价格按购买渠道为准」")
+    elif canonical == "家居":
+        if not features.get("body_has_price", 0):
+            slot_items.append("家居商业槽位缺预算/单品价：已提供预算必须写进复刻建议；缺失时写「预算按实际单品清单为准」")
+    for slot_item in slot_items:
+        if slot_item not in items:
+            items.append(slot_item)
+
     deduped: list[str] = []
     for item in items:
         if item and item not in deduped:
@@ -2133,6 +2239,8 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
     elif canonical == "旅行":
         if not features.get("body_has_price", 0):
             items.append("正文缺预算信息：若事实源提供则写总花费/人均预算；未提供时写「预算按实际交通和住宿为准」，不得编造金额")
+        if not features.get("body_has_transport", 0):
+            items.append("正文缺交通/路线信息：写清地铁/步行/接驳/自驾/路线取舍；没有事实源时写出发前按地图确认，不编造时长")
         if blen < body_floor:
             items.append(f"正文太短（当前{blen}字），扩展到{body_target_text}，补充景点描述/交通/tips")
     elif canonical == "穿搭":
@@ -4042,6 +4150,22 @@ def _quality_expression_brief(domain: str | None = None) -> str:
             "- 用户或事实源已给价格时必须自然写进每套搭配；未提供价格时只写「价格按实际链接/门店为准」，不编造。\n"
             "- 每套搭配至少解释一个为什么：遮胯、显高、腰线、垂感、露肤度、通勤边界之一。\n"
             "- 标题和正文围绕核心身材词、场景词、单品词聚焦，不要为了丰富而把公式写散。"
+        )
+    if canonical == "美妆":
+        return (
+            "【表达质量要求】\n"
+            "- 写成「肤质诉求决策」而不是泛泛好用：肤质/肤色→产品/色号→用量手法→妆效边界→适合/不适合。\n"
+            "- 用户或事实源已给价格/渠道时必须自然写进产品段；未提供价格时只写「价格按购买渠道为准」，不编造折扣和大牌平替比例。\n"
+            "- 功效、持妆、敏感肌安全性只按用户或事实源表达，不写医学承诺，不写虚假烂脸/过敏经历。\n"
+            "- 标题和正文围绕肤质词、产品词、妆效词聚焦，少用空泛惊艳词。"
+        )
+    if canonical == "家居":
+        return (
+            "【表达质量要求】\n"
+            "- 写成「可复刻改造」而不是清单堆砌：空间痛点→单品清单→尺寸/预算→动线或收纳变化→复刻步骤。\n"
+            "- 用户或事实源已给预算/尺寸时必须自然写进方案；未提供预算时只写「预算按实际单品清单为准」，不编造总花费。\n"
+            "- 每个单品至少说明一个作用：收纳、遮丑、动线、清洁、采光、利用率之一。\n"
+            "- 标题和正文围绕空间、痛点、改造结果聚焦，不写过度样板间口吻。"
         )
     return (
         "【表达质量要求】禁止模板化夸张词和口号堆砌，用具体场景、结果、步骤、适合人群和真实决策信息支撑吸引力。"
@@ -8137,9 +8261,10 @@ async def _repair_chat_note_if_needed(
     if score is None:
         return title, body, score, feats, grade, issues, False
     if not _has_blocking_quality_issues(score, issues, domain):
-        if _score_gap_issue_count(issues) <= 0:
-            return title, body, score, feats, grade, issues, False
         fact_source = session.get("fact_context") or session.get("note_body", "")
+        needs_v04_lift = _needs_v04_score_lift(score, feats, domain, fact_source)
+        if _score_gap_issue_count(issues) <= 0 and not needs_v04_lift:
+            return title, body, score, feats, grade, issues, False
         (
             lifted_title,
             lifted_body,
@@ -8204,9 +8329,10 @@ async def _repair_chat_note_if_needed(
             or len(r_issues) < len(issues)
         )
         if better:
+            needs_v04_lift_after_repair = _needs_v04_score_lift(r_score, r_feats, domain, fact_source)
             if (
                 not _has_blocking_quality_issues(r_score, r_issues, domain)
-                and _score_gap_issue_count(r_issues) > 0
+                and (_score_gap_issue_count(r_issues) > 0 or needs_v04_lift_after_repair)
             ):
                 (
                     r_title,

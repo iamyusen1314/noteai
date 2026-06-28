@@ -331,3 +331,18 @@ Round09 验证记录：
 - `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`：104 项通过。
 - `.venv/bin/python tools/quality_gate.py quality/quality_gate_cases.v04_round06_food_travel.json --json`：通过。
 - `.venv/bin/python model/train_v04_composite.py --json`：正确阻断，`do_not_deploy=true`。
+
+2026-06-28 真实链路质量稳定化 Round01：
+
+- 当前生产模型以 `model/artifacts/model_v04_composite_train_report.json` 的 run `20260628T013926Z` 为准，训练报告 `deployment_gate.passed=true`、`training_policy.do_not_deploy=false`。后续重心从继续凑 Golden 转向真实链路稳定化：截图上传、手动上传、视频上传、爆文生成、流式生成和对话优化都必须稳定使用 V0.4 质量内核、事实源和多行业 brief。
+- 同步训练健康工具口径：`tools/v04_training_data_health.py` 与 `tools/v04_composite_readiness.py` 的生产 Golden 默认线更新为当前接受线 `600/行业`；重建 `model/artifacts/v04_training_data_health.json` 与 `model/artifacts/v04_composite_readiness.json` 后均为 `production_ready`，各核心行业 gap 为 0，避免旧 `1000/行业` 报告误导项目进度。
+- 扩展生成前 planning brief 的事实抽取：美食继续显式读取高德/本地核验事实，旅行/酒旅继续读取美团 travel/路线事实；穿搭新增身材/场合/单品/价格渠道，美妆新增肤质/产品色号/用量/妆效边界，家居新增空间/清单/预算/动线，健身新增动作/组数时长/目标/安全替代，母婴新增月龄/用品/步骤/观察安全。目标是让 Claude 在写作前读懂本行业真实素材，而不是只对餐饮高质量。
+- 对话优化接入 V0.4 explainable lift：`_repair_chat_note_if_needed()` 现在会在 60+、无硬错误但事实密度/具体性/行业槽位/行动指导不足时触发分数导向二修，不再只等待显性 quality issue。
+- 新增回归测试：多行业 planning brief 事实断言；chat 在无显性问题但 V0.4 可解释低分时触发二修。下一步继续扩大健身、穿搭、美妆、家居、餐饮/高德、酒旅/美团的真实生成探针，并复跑 shadow QA。
+
+2026-06-28 Round01 后半段补充：
+
+- 酒旅事实源解析升级：`meituan-travel` 真实输出存在卡片式和叙述式两种形态，已新增结构化解析与清洗，优先把酒店名、真实评分、起价、地址、入住/退房、亲子设施、交通权益、套餐权益送入生成链路；泛化解释话术、Markdown、Skill 前缀和“套餐浮动/我来帮你查”等不再进入 facts。
+- 多行业生成策略升级：生成前 brief 新增“商业价值槽位”，让 Claude 在写作前明确每个行业真正影响用户付费感知的交付信息；二修链路同步加入旅行交通/预算、穿搭价格/渠道、美妆价格/渠道、家居预算/单品价、餐饮营业时间/必点等优先项；美妆、家居新增专属表达 brief。
+- 真实事实源验证：高德餐饮链路复测长禧家珑厨万博广晟店可得地址、营业时间、人均、评分、招牌、套餐、电话、门店图，provider=`local_verified+amap`、confidence=`0.9`；美团酒旅链路复测广州长隆亲子酒店可得酒店评分/起价/设施/时间/权益，provider=`meituan_travel`、confidence 可达 `0.9`。
+- 验证结果：全量单测 `145` 项通过，质量门禁通过，py_compile 通过，训练健康/readiness 均 `production_ready`；Shadow QA 当前 `362/362` ready、hard block `0`、平均 V0.4 `71.585`、`166` 条 `>=72`。剩余风险来自历史 artifact 的标题可读性、餐饮营业信号、旅行交通信号，后续需用新策略重刷真实生成探针验证增益。

@@ -1197,21 +1197,64 @@ class ApiContractTests(unittest.TestCase):
             "- 已核验事实：全季酒店(成都太古里中心店)：美团高档型，美团真实评分4.7，456元起/晚，太古里旁，距春熙路地铁站步行约600米",
         ])
         travel = api._build_generation_planning_brief("酒店", "成都太古里住宿", travel_source, "决策信息型")
-        beauty = api._build_generation_planning_brief("美妆", "干皮粉底液", "产品：粉底液 色号：01", "效果实测型")
-        fitness = api._build_generation_planning_brief("健身", "居家练臀", "动作：臀桥 深蹲", "动作计划型")
+        beauty = api._build_generation_planning_brief(
+            "美妆",
+            "干皮粉底液",
+            "肤质：混干敏感皮\n产品：粉底液 色号：01\n用量：少量多次拍开",
+            "效果实测型",
+        )
+        fashion = api._build_generation_planning_brief(
+            "穿搭",
+            "宽肩通勤穿搭",
+            "身材：宽肩\n场合：通勤\n单品：V领针织衫、直筒西裤",
+            "搭配公式型",
+        )
+        home = api._build_generation_planning_brief(
+            "家居",
+            "4平阳台改造",
+            "空间：4平阳台\n预算：2600元\n清单：洞洞板、洗衣柜、折叠台面",
+            "清单复刻型",
+        )
+        fitness = api._build_generation_planning_brief(
+            "健身",
+            "居家练臀",
+            "动作：臀桥 深蹲 拉伸\n时长：18分钟\n人群：新手",
+            "动作计划型",
+        )
+        baby = api._build_generation_planning_brief(
+            "母婴",
+            "6月龄睡前流程",
+            "月龄：6个月\n用品：睡袋、绘本、夜灯\n观察：揉眼睛、发呆",
+            "安全流程型",
+        )
 
         self.assertIn("必点/招牌/推荐", food)
         self.assertIn("人均98元", food)
         self.assertIn("标题地点建议=广州番禺万博商圈", food)
+        self.assertIn("商业价值槽位", food)
+        self.assertIn("营业时间", food)
         self.assertIn("路线/交通/预算", travel)
         self.assertIn("写作模式=酒店/住宿对比", travel)
         self.assertIn("美团真实评分4.8", travel)
         self.assertIn("210元起/晚", travel)
         self.assertIn("地铁站步行约700米", travel)
+        self.assertIn("酒店优先写美团评分", travel)
         self.assertNotIn("芝士焗小青龙", travel)
         self.assertIn("肤质/色号/妆效", beauty)
+        self.assertIn("肤质/诉求=混干敏感皮", beauty)
+        self.assertIn("产品/色号=粉底液 色号：01", beauty)
+        self.assertIn("价格/渠道口径", beauty)
+        self.assertIn("身材/场合=宽肩", fashion)
+        self.assertIn("单品/版型=V领针织衫、直筒西裤", fashion)
+        self.assertIn("价格或渠道口径", fashion)
+        self.assertIn("空间/痛点=4平阳台", home)
+        self.assertIn("尺寸/预算=2600元", home)
         self.assertIn("组数/次数/时长", fitness)
         self.assertIn("全部动作/拉伸", fitness)
+        self.assertIn("动作/拉伸=臀桥 深蹲 拉伸", fitness)
+        self.assertIn("组数/时长=18分钟", fitness)
+        self.assertIn("月龄/场景=6个月", baby)
+        self.assertIn("用品/环境=睡袋、绘本、夜灯", baby)
 
     def test_travel_safe_fact_brief_uses_meituan_hotel_facts(self):
         source = "\n".join([
@@ -1703,8 +1746,9 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(api._needs_v04_score_lift(66.0, low_features, "母婴", ""))
         self.assertFalse(api._needs_v04_score_lift(73.0, low_features, "母婴", ""))
 
-        travel_text = "\n".join(api._build_fix_instructions({"body_len": 360, "body_has_price": 0}, [], "旅行"))
+        travel_text = "\n".join(api._build_fix_instructions({"body_len": 360, "body_has_price": 0, "body_has_transport": 0}, [], "旅行"))
         self.assertIn("预算按实际交通和住宿为准", travel_text)
+        self.assertIn("交通/路线", travel_text)
         self.assertNotIn("2800", travel_text)
 
         beauty_text = "\n".join(api._build_fix_instructions({"body_len": 240, "body_has_price": 0}, [], "美妆"))
@@ -1714,6 +1758,13 @@ class ApiContractTests(unittest.TestCase):
         home_text = "\n".join(api._build_fix_instructions({"body_len": 320, "body_has_price": 0}, [], "家居"))
         self.assertIn("预算按实际单品清单为准", home_text)
         self.assertNotIn("3200", home_text)
+
+        fashion_lift_text = "\n".join(api._v04_generation_lift_instructions({"body_has_price": 0}, "穿搭", 66.0))
+        beauty_lift_text = "\n".join(api._v04_generation_lift_instructions({"body_has_price": 0}, "美妆", 66.0))
+        travel_lift_text = "\n".join(api._v04_generation_lift_instructions({"body_has_price": 0, "body_has_transport": 0}, "旅行", 66.0))
+        self.assertIn("价格按实际链接/门店为准", fashion_lift_text)
+        self.assertIn("价格按购买渠道为准", beauty_lift_text)
+        self.assertIn("交通/路线", travel_lift_text)
 
     def test_score_directed_second_pass_runs_for_low_v04_without_explicit_issue(self):
         original_call = api._mr.call
@@ -2312,6 +2363,68 @@ class ApiContractTests(unittest.TestCase):
         finally:
             api._score_chat_note = original_score
             api._mr.call = original_call
+
+    def test_chat_quality_repair_runs_v04_lift_without_explicit_issue(self):
+        original_score = api._score_chat_note
+        original_second_pass = api._score_directed_second_pass
+        calls = []
+
+        low_features = {
+            "commercial_fact_density": 0.52,
+            "commercial_specificity": 0.62,
+            "commercial_domain_slot_coverage": 0.70,
+            "commercial_actionability": 0.82,
+        }
+        improved_features = dict(low_features)
+        improved_features.update({
+            "commercial_fact_density": 0.78,
+            "commercial_specificity": 0.78,
+            "commercial_domain_slot_coverage": 0.90,
+            "commercial_actionability": 0.94,
+        })
+
+        async def fake_score(title, body, session):
+            return 66.0, low_features, "良好", []
+
+        async def fake_second_pass(title, body, domain, local_time, **kwargs):
+            calls.append((title, body, domain, local_time, kwargs))
+            return (
+                "混干皮粉底液推荐",
+                "混干皮选粉底液先看服帖度和卡粉边界，少量多次拍开更稳。#美妆 #粉底液 #混干皮 #底妆",
+                73.2,
+                improved_features,
+                "优秀",
+                [],
+                True,
+                "V0.4低分二修采纳",
+            )
+
+        try:
+            api._score_chat_note = fake_score
+            api._score_directed_second_pass = fake_second_pass
+
+            title, body, score, feats, grade, issues, repaired = asyncio.run(
+                api._repair_chat_note_if_needed(
+                    "混干皮粉底液",
+                    "这支粉底液挺适合日常。#美妆 #粉底液",
+                    {
+                        "domain": "美妆",
+                        "local_time": "2026062812",
+                        "fact_context": "肤质：混干敏感皮\n产品：粉底液 色号：01",
+                    },
+                    "帮我优化得更像真实分享",
+                )
+            )
+        finally:
+            api._score_chat_note = original_score
+            api._score_directed_second_pass = original_second_pass
+
+        self.assertTrue(repaired)
+        self.assertEqual(score, 73.2)
+        self.assertEqual(title, "混干皮粉底液推荐")
+        self.assertEqual(issues, [])
+        self.assertEqual(len(calls), 1)
+        self.assertIn("肤质：混干敏感皮", calls[0][4]["source_context"])
 
 
 if __name__ == "__main__":

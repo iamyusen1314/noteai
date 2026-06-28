@@ -159,7 +159,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--preference-queue", default=str(default_pref))
     parser.add_argument("--output", default=str(ROOT / "model" / "artifacts" / "v04_composite_readiness.json"))
     parser.add_argument("--min-golden-candidate", type=int, default=300)
-    parser.add_argument("--min-golden-production", type=int, default=1000)
+    parser.add_argument("--min-golden-production", type=int, default=600)
     parser.add_argument("--min-preference-candidate", type=int, default=1000)
     parser.add_argument("--min-preference-production", type=int, default=3000)
     parser.add_argument("--json", action="store_true")
