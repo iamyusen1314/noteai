@@ -86,6 +86,7 @@
 ## 执行日志
 
 - 2026-06-28：启动 Git 仓库治理与上线资产边界固化。已在项目根目录初始化本地 Git 仓库（`main` 分支），清理无引用的 Codex turn-diff Git 对象并确认它们不会进入远端推送；新增 `.gitattributes`，对模型二进制、parquet/jsonl、文档和图片启用 Git LFS 规则；扩展 `.gitignore`，阻止真实 `.env`、本地依赖、MLflow、运行 DB、RedNote 原始数据、封面缓存、训练中间表、质量大包和历史实验模型误入仓库。新增 `docs/GIT_DEPLOYMENT_SCOPE.md`，明确全栈源码、生产模型三件套、模型发布证据、训练大数据、密钥和运行状态的 Git/云端存储边界；新增 `model/artifacts/MODEL_RELEASE_MANIFEST.md`，记录当前 V0.4 production run `20260628T013926Z` 的三模型文件、核心报告与 SHA256。下一步提交前必须按该文档逐项 staged，禁止无筛选 `git add .`。
+- 2026-06-28：完成远程 Git 仓库推送准备。新增 `docs/REMOTE_REPOSITORY_SETUP.md`，明确私有远程仓库、Git LFS、密钥/原始数据禁入、推送后核验、干净克隆验收和代码+模型同步回滚规则；新增 `scripts/push_remote.sh`，统一执行工作区干净检查、`origin` 配置、`main` 推送、tag 推送和 LFS 对象推送。当前本机 `gh` 已安装但未登录，且没有任何远端 URL，因此不能擅自上传商业项目代码；待用户登录 GitHub/Gitee/GitLab 或提供远端 URL 后，可直接用脚本执行首次云端推送。
 - 2026-06-24：完成全栈审查与生成质量链路复查，确认当前不是可交付 SaaS，首要问题是生成链路没有真正闭环、评分校准偏松、prompt/代码/模型规则不一致。
 - 2026-06-24：创建本台账，后续所有修复都在此记录状态和验证证据。
 - 2026-06-24：修复 `/generate` 的 `user_tier` 未定义问题，并把非流式生成 refine 轮数从 1 调整为 3。
