@@ -1,6 +1,6 @@
 # Model Artifact Cloud Strategy
 
-NoteAI 的生产模型必须和代码版本同步回滚。当前 GitHub 私有仓库已经用 Git LFS 保存 V0.4 三个生产 `.lgb` 文件；正式云端部署时，推荐把模型二进制同时发布到对象存储，并用 SHA256 清单校验。
+NoteAI 的生产模型必须和代码版本同步回滚。当前 GitHub 仓库已经用 Git LFS 保存 V0.4 三个生产 `.lgb` 文件；正式云端部署时，推荐把模型二进制同时发布到对象存储，并用 SHA256 清单校验。
 
 ## 当前发布
 
