@@ -490,7 +490,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 502)
         self.assertFalse(predict_called["value"])
 
-    def test_structured_fact_boundary_blocks_unprovided_price_without_blocking_narrative(self):
+    def test_structured_fact_boundary_flags_unprovided_price_without_blocking_narrative(self):
         source = "广州番禺万博珑厨双人套餐，适合周末约会，菜品有小青龙和乳鸽。"
         body = (
             "朋友说这里环境不错，进门灯光很舒服。人均188元，营业时间11:00-22:00，"
@@ -500,10 +500,14 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(any("价格" in item for item in issues), issues)
         self.assertTrue(any("营业时间" in item for item in issues), issues)
         self.assertTrue(any("排队" in item for item in issues), issues)
-        self.assertTrue(api._has_blocking_quality_issues(80, issues, "美食"))
+        self.assertFalse(api._has_blocking_quality_issues(80, issues, "美食"))
 
         narrative_only = "朋友说这里环境不错，进门灯光很舒服，乳鸽香气很足。点赞收藏。"
         self.assertEqual(api._structured_fact_boundary_issues(narrative_only, source, "美食"), [])
+
+        travel_source = "广州长隆酒店：美团豪华型，美团真实评分4.8，￥929起/晚"
+        travel_body = "这家住宿起价929元/晚，适合想住在园区里的亲子家庭。"
+        self.assertFalse(api._structured_fact_boundary_issues(travel_body, travel_source, "旅行"))
 
     def test_structured_fact_boundary_blocks_unprovided_price_value_claims(self):
         source = "广州番禺万博珑厨双人套餐，菜品有小青龙、乳鸽和点心拼盘。"
@@ -1171,7 +1175,8 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(api._has_blocking_quality_issues(59.9, issues, "美食"))
         self.assertFalse(api._has_blocking_quality_issues(60.0, issues, "美食"))
         self.assertFalse(api._has_blocking_quality_issues(67.0, issues, "美食"))
-        self.assertTrue(api._has_blocking_quality_issues(80.0, ["标题不自然：结尾像被硬截断，语义不完整"], "美食"))
+        self.assertFalse(api._has_blocking_quality_issues(80.0, ["标题不自然：结尾像被硬截断，语义不完整"], "美食"))
+        self.assertTrue(api._has_blocking_quality_issues(80.0, ["正文为空"], "美食"))
 
     def test_plan_strategy_labels_are_domain_aware_not_food_only(self):
         self.assertEqual(api._plan_strategy_labels("美食"), ("决策信息型", "菜品种草型", "避坑决策型"))
@@ -1507,7 +1512,7 @@ class ApiContractTests(unittest.TestCase):
         body = "18分钟低冲击训练包括原地踏步、臀桥和死虫，膝盖不舒服就减少强度。想跟练先收藏。"
         issues = api._delivery_integrity_issues(body, source, "健身")
         self.assertTrue(any("靠墙静蹲" in item for item in issues), issues)
-        self.assertTrue(api._has_blocking_quality_issues(75.0, issues, "健身"))
+        self.assertFalse(api._has_blocking_quality_issues(75.0, issues, "健身"))
 
     def test_baby_safe_fact_delivery_brief_forbids_new_result_experience(self):
         brief = api._safe_fact_delivery_brief("母婴", "- 已核验事实：宝宝月龄是6个月")
@@ -1652,7 +1657,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(baby_minutes_tail, "母婴")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(baby_steps_tail, "母婴")))
         self.assertEqual(api._title_readability_issues(good, "美食"), [])
-        self.assertTrue(api._has_blocking_quality_issues(72.1, bad_issues, "美食"))
+        self.assertFalse(api._has_blocking_quality_issues(72.1, bad_issues, "美食"))
         self.assertEqual(api._sanitize_title_for_delivery(food_price_digit_tail, "", "美食"), "广州西关陶陶居早茶必点")
         self.assertEqual(api._sanitize_title_for_delivery(food_price_colon_tail, "", "美食"), "广州西关陶陶居老字号早茶")
         self.assertEqual(api._sanitize_title_for_delivery(food_dish_tail, "", "美食"), "广州西关陶陶居虾饺必点")
@@ -1707,6 +1712,26 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(
             api._sanitize_title_for_delivery("18分钟膝盖友好减脂，4个动作值得", "", "健身"),
             "18分钟膝盖友好减脂，4个动作",
+        )
+        self.assertEqual(
+            api._fallback_title_under_limit("广州长隆亲子酒店怎么选，929起的长隆酒店值吗"),
+            "广州长隆亲子酒店怎么选",
+        )
+        self.assertEqual(
+            api._fallback_title_under_limit("番禺万博粤菜聚餐推荐，芝士焗小青龙必点"),
+            "番禺万博芝士焗小青龙必点",
+        )
+        self.assertEqual(
+            api._fallback_title_under_limit("160cm梨形身材夏季通勤显高遮胯搭配公式"),
+            "160cm梨形通勤显高遮胯公式",
+        )
+        self.assertEqual(
+            api._fallback_title_under_limit("4平阳台洗衣区改造，2600元做出顺手的收纳动线"),
+            "4平阳台洗衣区，2600元顺手收纳",
+        )
+        self.assertEqual(
+            api._fallback_title_under_limit("4平阳台洗衣区改造，2600元让动线顺畅"),
+            "4平阳台洗衣区，2600元动线更顺",
         )
 
     def test_food_fact_section_template_is_repair_signal_not_hard_block(self):
@@ -2327,13 +2352,13 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(api._xtag_any(raw, "tags", "tag_recommendation"), "#上海美食 #蟹黄面")
         self.assertEqual(api._xtag_any(raw, "hook", "user_angle"), "今晚就想去")
 
-    def test_chat_quality_repair_can_replace_blocking_rewrite(self):
+    def test_chat_quality_repair_can_replace_below_sixty_rewrite(self):
         original_score = api._score_chat_note
         original_call = api._mr.call
 
         async def fake_score(title, body, session):
             if title == "低质标题":
-                return 61.0, {}, "待改进", ["正文过短（当前20字，美食最低交付标准≥220字）"]
+                return 59.0, {}, "待改进", ["正文过短（当前20字，美食最低交付标准≥220字）"]
             return 75.0, {"body_len": 260, "tag_count": 5, "body_cta_count": 1}, "良好", []
 
         async def fake_call(*args, **kwargs):

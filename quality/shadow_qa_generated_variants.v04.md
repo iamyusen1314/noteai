@@ -1,34 +1,34 @@
 # V0.4 Generated Variant Shadow QA
 
-- Created at: `2026-06-28T06:04:20.052654+00:00`
+- Created at: `2026-06-28T07:04:55.845019+00:00`
 - Train run: `20260628T013926Z`
 - Classifier target: `publishable_or_repairable`
 
 ## Summary
 
-- count: `362`
-- shadow_ready_count: `362`
+- count: `386`
+- shadow_ready_count: `386`
 - shadow_ready_rate: `1.0`
 - hard_block_count: `0`
 - delivery_shape_applied_count: `187`
-- delivery_shape_applied_rate: `0.5166`
-- v04_score_ge_72_count: `166`
-- v04_score_ge_72_rate: `0.4586`
-- avg_v04_score: `71.585`
-- avg_publishable_prob: `0.919`
-- avg_naturalness: `13.657`
+- delivery_shape_applied_rate: `0.4845`
+- v04_score_ge_72_count: `179`
+- v04_score_ge_72_rate: `0.4637`
+- avg_v04_score: `71.619`
+- avg_publishable_prob: `0.918`
+- avg_naturalness: `12.812`
 
 ## By Domain
 
 | Domain | Count | Ready Rate | Avg V0.4 | Avg Gate Prob | >=72 | Top Risks |
 |---|---:|---:|---:|---:|---:|---|
-| 健身 | 28 | 1.0 | 71.891 | 0.913 | 15 |  |
-| 家居 | 26 | 1.0 | 72.225 | 0.758 | 12 |  |
-| 旅行 | 108 | 1.0 | 72.021 | 0.928 | 55 | title_readability:1, travel_missing_transport_signal:1 |
+| 健身 | 32 | 1.0 | 72.32 | 0.916 | 19 |  |
+| 家居 | 30 | 1.0 | 72.24 | 0.755 | 15 |  |
+| 旅行 | 112 | 1.0 | 71.978 | 0.929 | 56 | title_readability:1, travel_missing_transport_signal:1 |
 | 母婴 | 28 | 1.0 | 69.889 | 0.934 | 4 |  |
-| 穿搭 | 26 | 1.0 | 69.892 | 0.91 | 10 |  |
-| 美妆 | 26 | 1.0 | 70.654 | 0.943 | 10 |  |
-| 美食 | 120 | 1.0 | 71.946 | 0.941 | 60 | title_readability:3, food_missing_hours_signal:3 |
+| 穿搭 | 30 | 1.0 | 70.345 | 0.912 | 13 |  |
+| 美妆 | 30 | 1.0 | 70.723 | 0.944 | 11 |  |
+| 美食 | 124 | 1.0 | 71.879 | 0.941 | 61 | title_readability:3, food_missing_hours_signal:3, body_below_target_floor:1, body_length:1 |
 
 ## Worst Cases
 
