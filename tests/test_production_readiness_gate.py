@@ -1,0 +1,64 @@
+import json
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MODEL_DIR = ROOT / "model"
+TOOLS_DIR = ROOT / "tools"
+sys.path.insert(0, str(MODEL_DIR))
+sys.path.insert(0, str(TOOLS_DIR))
+
+import artifact_loader  # noqa: E402
+import production_readiness_gate as gate  # noqa: E402
+
+
+class ProductionReadinessGateTests(unittest.TestCase):
+    def test_current_repo_passes_production_readiness_gate(self):
+        report = gate.build_report()
+
+        self.assertTrue(report["passed"], report["failed_checks"])
+        self.assertGreaterEqual(report["check_count"], 30)
+
+    def test_secret_scanner_flags_real_values_but_allows_placeholders(self):
+        self.assertEqual(gate._line_has_secret_value("ANTHROPIC_API_KEY=test-key"), (False, ""))
+        self.assertEqual(gate._line_has_secret_value("ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}"), (False, ""))
+
+        has_secret, name = gate._line_has_secret_value("AMAP_WEB_KEY=70819eb7a1f56bd07eb16e9d75c5faed")
+        self.assertTrue(has_secret)
+        self.assertEqual(name, "AMAP_WEB_KEY")
+
+    def test_artifact_loader_cli_respects_required_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            manifest = tmp_path / "manifest.json"
+            manifest.write_text(json.dumps({
+                "release": "test",
+                "run_id": "missing",
+                "artifacts": [{
+                    "role": "quality_regressor",
+                    "path": str(tmp_path / "missing.lgb"),
+                    "sha256": "0" * 64,
+                }],
+            }), encoding="utf-8")
+
+            old_env = os.environ.get("NOTEAI_MODEL_ARTIFACT_REQUIRED")
+            old_argv = list(sys.argv)
+            try:
+                os.environ["NOTEAI_MODEL_ARTIFACT_REQUIRED"] = "1"
+                sys.argv = ["artifact_loader", "--manifest", str(manifest)]
+                with self.assertRaises(RuntimeError):
+                    artifact_loader.main()
+            finally:
+                sys.argv = old_argv
+                if old_env is None:
+                    os.environ.pop("NOTEAI_MODEL_ARTIFACT_REQUIRED", None)
+                else:
+                    os.environ["NOTEAI_MODEL_ARTIFACT_REQUIRED"] = old_env
+
+
+if __name__ == "__main__":
+    unittest.main()

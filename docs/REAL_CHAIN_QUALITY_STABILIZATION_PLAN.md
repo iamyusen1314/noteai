@@ -12,6 +12,7 @@
 - Round14 已完成旅行/家居/穿搭专项：真实探针 `12/12 ready`，失败 `0`，blocking `0`，均分 `73.718`；家居标题补修探针 `4/4 ready`，标题可读性问题 `0`。
 - RQS-05/RQS-06 已完成 AI 诊断三入口与对话优化回归：v36 覆盖 6 个核心行业，直接生成 `36/36 ready`、二修/chat `12/12 ready`、全量 post-sanitize 标题问题 `0`。
 - RQS-07 已完成真实链路 shadow/E2E 总验收：当前 v36 验收集 `48/48 ready`、失败 `0`、blocking `0`、标题可读性问题 `0`、总验收 gate `PASS`；报告见 `docs/RQS07_REAL_CHAIN_ACCEPTANCE_REPORT.md`。
+- RQS-08 已完成上线前 CI/PR/部署核验：新增生产 readiness gate，当前 `42/42` 检查通过；GitHub main 分支保护、secret scanning、push protection、Dependabot security updates、production Secrets/Variables 均已核验。
 - 母婴行业按用户要求冻结，不再继续专项 prompt、规则、特征或后处理优化；只保留现有安全边界和回归测试。
 
 ## 执行纪律
@@ -43,7 +44,7 @@
 | RQS-05 | [已完成] | AI 诊断三入口回归 | 截图上传、手动上传、视频上传均走统一 V0.4 agent/事实源/历史偏好链路；三标题对应三篇不同正文；无空响应、无共享正文冒充成功 | 2026-06-28 已完成：新增后端合同测试，验证手动、图片/截图、视频三入口都会进入同一 `/analyze` V0.4 五 agent 链路，并把高德/美团事实源、长期偏好、图片描述、视频理解上下文传入 agent；三方案正文保持独立，不再共享正文冒充成功。v36 直接探针覆盖美食/旅行/穿搭/美妆/家居/健身共 `36/36 ready`、失败 `0`、blocking `0`、mean `73.642`、median `73.590`、min `67.276`、`32/36 >=72`、`36/36 >=60` |
 | RQS-06 | [已完成] | 对话优化链路回归 | 60+ 不硬拦；用户提出“更自然/更短/更种草/更真实”等反馈后，改写不劣化且能记录偏好 | 2026-06-28 已完成：chat 增加分数回退安全阀，若改写比当前版本低超过 `2.0` 分或触发硬问题，自动回退并复核上一版标题/正文；离线 dependent 槽位同步修复 blocking 状态和 fallback 复核。v36 二修/chat 探针 `12/12 ready`、失败 `0`、blocking `0`、mean `76.211`、median `75.716`、min `73.357`、`12/12 >=72`。v36 全量 `48` 个 artifact post-sanitize 审计：blocking `0`、标题可读性问题 `0`、mean `74.284`、median `74.068`、min `67.276`、`44/48 >=72`、`48/48 >=60` |
 | RQS-07 | [已完成] | 真实链路 shadow/E2E 总验收 | 覆盖 AI 诊断、生成、对话优化、事实源、候选择优；输出总报告，列明各行业分数、失败、blocking、剩余风险 | 2026-06-28 已完成：新增 `tools/real_chain_acceptance_report.py` 与报告 `docs/RQS07_REAL_CHAIN_ACCEPTANCE_REPORT.md`。当前 v36 验收集 `48/48 ready`、失败 `0`、blocking `0`、低于 60 分 `0`、标题可读性问题 `0`、mean `74.284`、median `74.068`、min `67.276`、`44/48 >=72`；覆盖美食/旅行/穿搭/美妆/家居/健身，每行业 8 条，AI 诊断三方案正文均保持独立。latest shadow QA 当前 v36 集合 `48/48` shadow ready、hard block `0`、avg V0.4 `73.804`、`39/48 >=72`。历史旧生成样本仍有 `15` 个 hard block，主要是旧产物结构化事实边界问题，已作为审计残留记录，不计入当前 v36 上线 gate |
-| RQS-08 | [待处理] | 上线前 CI/PR/部署核验 | 单测、质量门禁、核心真实探针、GitHub CI 和部署配置均通过；无 secrets、无大数据误提交 | 未开始 |
+| RQS-08 | [已完成] | 上线前 CI/PR/部署核验 | 单测、质量门禁、核心真实探针、GitHub CI 和部署配置均通过；无 secrets、无大数据误提交 | 2026-06-29 已完成：新增 `tools/production_readiness_gate.py`，本地生产 gate `42/42` 通过；CI 已接入生产 gate，并在 `main`、`codex/**` push 和 PR to `main` 运行；Docker 增加 `/app/scripts/docker_entrypoint.sh`，API/admin 容器启动前会校验/下载 V0.4 模型 artifact，生产 `NOTEAI_MODEL_ARTIFACT_REQUIRED=1` 时不允许模型缺失静默降级；GitHub main 分支保护、required `test`、strict、PR、linear history、admin enforcement、no force push/delete、conversation resolution 已核验；secret scanning、push protection、Dependabot security updates 已开启；production Secrets/Variables 名称已核验，无 secret 值进入仓库。报告见 `docs/RQS08_PRODUCTION_READINESS_REPORT.md` |
 
 ## 最近完成记录
 
@@ -56,7 +57,8 @@
 - 2026-06-28 Round14：旅行/家居/穿搭专项完成，穿搭夸张身材承诺清洗、家居标题断尾修复、旅行酒店事实密度软信号已接入。
 - 2026-06-28 RQS-05/RQS-06：AI 诊断三入口与对话优化回归完成。修复点：低于 60 的 artifact 不再被标为 ready；chat 改写低于当前版本超过 `2.0` 分自动回退并复核；dependent fallback 不再带回旧半截标题；新增标题断尾修复覆盖 `排队20/衬衫开/显气色还/不显毛/终于走路/每晚2/执行指/动作20/1200元这样` 等真实探针问题；旅行普通攻略不再误触酒店事实密度规则。验证证据：`quality/generated_variants/v36_rqs05_06_regression/run_report_20260628T151411Z.json` 为 `36/36 ready`、失败 `0`、blocking `0`、mean `73.642`、min `67.276`；`run_report_20260628T152141Z.json` 为 `12/12 ready`、失败 `0`、blocking `0`、mean `76.211`、min `73.357`；全量 post-sanitize `48` 条标题问题 `0`、blocking `0`。
 - 2026-06-28 RQS-07：真实链路 shadow/E2E 总验收完成。新增可重复执行的验收报告工具，汇总 AI 诊断、生成、对话优化、事实源、候选择优产物；当前 v36 总验收 gate `PASS`，`48/48 ready`、失败 `0`、blocking `0`、低于 60 分 `0`、标题可读性问题 `0`、mean `74.284`、median `74.068`、min `67.276`、`44/48 >=72`。latest shadow QA 对当前 v36 集合为 `48/48` shadow ready、hard block `0`、avg V0.4 `73.804`、`39/48 >=72`；全历史旧 artifact 仍有 `15` 个 hard block，已列入 `docs/RQS07_REAL_CHAIN_ACCEPTANCE_REPORT.md` 的审计残留，不作为当前上线 gate。
+- 2026-06-29 RQS-08：上线前 CI/PR/部署核验完成。新增生产 readiness gate 覆盖模型 artifact、registry/manifest、训练报告、RQS-07 报告、CI、Docker、部署文档、Git hygiene 和明显 secret 值扫描；当前 `42/42` 通过。Docker 入口脚本已保证 API/admin 启动前先执行模型 artifact 校验/下载；GitHub 远端核验 main 分支保护和 security settings 均符合当前上线治理要求。剩余非本轮风险：正式付费公开上线仍需要支付订单、回调验签、对账、订阅权益激活和生产监控。
 
 ## 下一步执行顺序
 
-1. 执行 RQS-08：上线前 CI/PR/部署核验。
+1. 进入正式部署前产品闭环：支付/订阅、生产域名、线上监控与灰度发布。

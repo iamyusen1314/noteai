@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "codex/**"
   pull_request:
     branches:
       - main
@@ -60,6 +61,7 @@ jobs:
       - name: Shell syntax check
         run: |
           bash -n scripts/push_remote.sh
+          bash -n scripts/docker_entrypoint.sh
 
       - name: Verify model artifacts
         run: |
@@ -72,6 +74,10 @@ jobs:
       - name: Quality gate
         run: |
           python tools/quality_gate.py quality/golden_notes.sample.json
+
+      - name: Production readiness gate
+        run: |
+          python tools/production_readiness_gate.py
 
       - name: Docker Compose config
         run: |

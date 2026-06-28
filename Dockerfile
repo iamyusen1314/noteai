@@ -13,14 +13,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制代码
 COPY model/ ./model/
+COPY scripts/docker_entrypoint.sh ./scripts/docker_entrypoint.sh
 COPY NoteAI_Pro_Demo_Framer.html ./NoteAI_Pro_Demo_Framer.html
 
 WORKDIR /app/model
 
 # 数据目录（持久化挂载点）
 RUN mkdir -p data
+RUN chmod +x /app/scripts/docker_entrypoint.sh
 
 ENV PORT=8000
 EXPOSE 8000
 
+ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
 CMD ["python", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

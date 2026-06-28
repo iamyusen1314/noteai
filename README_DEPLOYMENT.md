@@ -21,6 +21,7 @@ Admin: `http://localhost:8001`
 - The API and admin services must share `model/data` and `model/artifacts` so model deployment takes effect across containers.
 - GitHub production secrets and variables are documented in `docs/DEPLOYMENT_SECRETS.md`.
 - V0.4 model artifact loading and object-storage fallback are documented in `docs/MODEL_ARTIFACT_CLOUD_STRATEGY.md`.
+- Production readiness checks are documented in `docs/RQS08_PRODUCTION_READINESS_REPORT.md` and enforced by `tools/production_readiness_gate.py`.
 - Real payment integration still needs an order, callback, reconciliation, and subscription activation flow before paid public launch.
 
 ## Local Regression Checks
@@ -29,5 +30,6 @@ Admin: `http://localhost:8001`
 python3 -m py_compile model/*.py
 .venv/bin/python -m unittest tests/test_api_contracts.py
 .venv/bin/python tools/quality_gate.py quality/golden_notes.sample.json
+.venv/bin/python tools/production_readiness_gate.py
 docker compose config --quiet
 ```

@@ -4,7 +4,18 @@
 
 目标：把当前内测 Demo 修复为对用户真正有价值、愿意付费、能稳定生成高质量小红书爆文的 SaaS 系统。
 
-## 最新进展：2026-06-28 RQS-07 真实链路 shadow/E2E 总验收完成
+## 最新进展：2026-06-29 RQS-08 上线前 CI/PR/部署核验完成
+
+- 已新增生产 readiness gate：`tools/production_readiness_gate.py`，离线检查模型 artifact、registry/manifest、训练报告、RQS-07 报告、CI、Docker、部署文档、Git hygiene 和明显 secret 值误入；当前 `42/42` 检查通过。
+- CI 已升级：`.github/workflows/ci.yml` 现在在 `main`、`codex/**` push 和 PR to `main` 运行；`test` job 包含 LFS 拉取、依赖安装、Python 编译、shell 语法、模型 SHA 校验、全量单测、质量 gate、生产 readiness gate 和 Docker Compose config。
+- Docker 模型加载已加固：新增 `/app/scripts/docker_entrypoint.sh`，API/admin 容器启动前先执行 `python -m artifact_loader`；生产 `NOTEAI_MODEL_ARTIFACT_REQUIRED=1` 时，V0.4 模型缺失或 SHA256 不一致会直接启动失败，不再允许静默降级。
+- 已修复 artifact loader CLI required 模式：现在未传 `--required` 时会读取 `NOTEAI_MODEL_ARTIFACT_REQUIRED`，确保 Docker 入口脚本可由生产环境变量控制。
+- GitHub 远端已核验：仓库 public；`main` 分支保护开启 required status check `test`、strict、PR、dismiss stale reviews、admin enforcement、linear history、no force push/delete、conversation resolution；secret scanning、push protection、Dependabot security updates 已开启。
+- GitHub production 环境已核验 Secret/Variable 名称：Secrets 包含 `ADMIN_PASSWORD`、`AMAP_WEB_KEY`、`ANTHROPIC_API_KEY`、`MEITUAN_OPEN_TOKEN`、`MOONSHOT_API_KEY`；Variables 包含测试支付关闭、V0.4 开启、模型 artifact required、事实源开启、端口等配置。未读取、打印或提交任何 secret 值。
+- 新增 `docs/RQS08_PRODUCTION_READINESS_REPORT.md`，并同步 `README_DEPLOYMENT.md`、`docs/DEPLOYMENT_SECRETS.md`、`docs/MODEL_ARTIFACT_CLOUD_STRATEGY.md`、`docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`。
+- 剩余非本轮上线风险：正式付费公开上线仍需支付订单、回调验签、对账、订阅权益激活、生产域名、线上监控与灰度发布。
+
+## 上一进展：2026-06-28 RQS-07 真实链路 shadow/E2E 总验收完成
 
 - 已新增可重复执行的总验收工具：`tools/real_chain_acceptance_report.py`，用于汇总当前真实链路产物、run reports、shadow QA 和行业分布，输出 `docs/RQS07_REAL_CHAIN_ACCEPTANCE_REPORT.md`。
 - 当前 v36 验收集覆盖 AI 诊断、爆文生成、对话优化、事实源、候选择优，行业覆盖美食/旅行/穿搭/美妆/家居/健身，每行业 8 条产物；AI 诊断三方案正文保持独立，没有再出现三标题共用同一篇正文。

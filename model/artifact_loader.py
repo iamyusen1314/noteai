@@ -143,7 +143,12 @@ def main() -> int:
     parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--check-only", action="store_true")
-    parser.add_argument("--required", action="store_true")
+    parser.add_argument(
+        "--required",
+        action="store_true",
+        default=None,
+        help="Require all artifacts. If omitted, NOTEAI_MODEL_ARTIFACT_REQUIRED controls this.",
+    )
     args = parser.parse_args()
 
     result = ensure_model_artifacts(

@@ -16,6 +16,8 @@ NoteAI 的生产密钥目前配置在 GitHub Environment：`production`。
 - `MEITUAN_OPEN_TOKEN`
 - `MOONSHOT_API_KEY`
 
+说明：酒旅 `meituan-travel` Skill 运行时读取 `MEITUAN_AI_HUB_TOKEN` 或 `MEITUAN_OPEN_TOKEN` 均可。当前 production 配置的是 `MEITUAN_OPEN_TOKEN`，无需重复存同一份密钥。
+
 ## Production Variables
 
 以下值以 GitHub Environment Variable 保存，可在部署 workflow 中通过 `vars.*` 注入：
@@ -54,3 +56,5 @@ environment: production
 - `NOTEAI_MODEL_ARTIFACT_REQUIRED` 生产必须保持 `1`，防止模型缺失时静默降级。
 - `CORS_ORIGINS` 等正式域名确定后再配置，不能长期使用通配策略。
 - `MEITUAN_TRAVEL_CLI` 不从本机路径同步到云端；云端镜像需要单独安装或用部署脚本设置可执行路径。
+- Docker 容器启动会先执行 `python -m artifact_loader`；若生产模型缺失或 SHA256 不一致，服务必须启动失败。
+- Dependabot security updates 已启用；依赖更新走 PR 和 `test` 状态检查，不直接进 `main`。

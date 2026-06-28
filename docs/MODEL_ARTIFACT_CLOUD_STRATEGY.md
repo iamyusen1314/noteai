@@ -60,6 +60,14 @@ NOTEAI_MODEL_ARTIFACT_REQUIRED=1 \
 python scripts/fetch_model_artifacts.py
 ```
 
+Docker 镜像启动时会自动执行：
+
+```bash
+python -m artifact_loader
+```
+
+该命令会读取 `NOTEAI_MODEL_ARTIFACT_BASE_URL` 和 `NOTEAI_MODEL_ARTIFACT_REQUIRED`。生产环境 `NOTEAI_MODEL_ARTIFACT_REQUIRED=1` 时，缺失或校验失败会让容器启动失败；如果对象存储前缀已配置，会先尝试下载并重新校验。
+
 ## 回滚规则
 
 回滚必须同时回滚：
