@@ -11,6 +11,7 @@
 - Docker 模型加载已加固：新增 `/app/scripts/docker_entrypoint.sh`，API/admin 容器启动前先执行 `python -m artifact_loader`；生产 `NOTEAI_MODEL_ARTIFACT_REQUIRED=1` 时，V0.4 模型缺失或 SHA256 不一致会直接启动失败，不再允许静默降级。
 - 已修复 artifact loader CLI required 模式：现在未传 `--required` 时会读取 `NOTEAI_MODEL_ARTIFACT_REQUIRED`，确保 Docker 入口脚本可由生产环境变量控制。
 - GitHub 远端已核验：仓库 public；`main` 分支保护开启 required status check `test`、strict、PR、dismiss stale reviews、admin enforcement、linear history、no force push/delete、conversation resolution；secret scanning、push protection、Dependabot security updates 已开启。
+- GitHub 推送后提示 default branch 存在 `python-multipart <0.0.31` 低危 Dependabot alert；已在当前分支升级到 `python-multipart==0.0.31`，待 PR 合并后 default branch 告警应消失。
 - GitHub production 环境已核验 Secret/Variable 名称：Secrets 包含 `ADMIN_PASSWORD`、`AMAP_WEB_KEY`、`ANTHROPIC_API_KEY`、`MEITUAN_OPEN_TOKEN`、`MOONSHOT_API_KEY`；Variables 包含测试支付关闭、V0.4 开启、模型 artifact required、事实源开启、端口等配置。未读取、打印或提交任何 secret 值。
 - 新增 `docs/RQS08_PRODUCTION_READINESS_REPORT.md`，并同步 `README_DEPLOYMENT.md`、`docs/DEPLOYMENT_SECRETS.md`、`docs/MODEL_ARTIFACT_CLOUD_STRATEGY.md`、`docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`。
 - 剩余非本轮上线风险：正式付费公开上线仍需支付订单、回调验签、对账、订阅权益激活、生产域名、线上监控与灰度发布。

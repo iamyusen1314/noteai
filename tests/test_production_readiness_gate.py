@@ -27,7 +27,8 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertEqual(gate._line_has_secret_value("ANTHROPIC_API_KEY=test-key"), (False, ""))
         self.assertEqual(gate._line_has_secret_value("ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}"), (False, ""))
 
-        has_secret, name = gate._line_has_secret_value("AMAP_WEB_KEY=70819eb7a1f56bd07eb16e9d75c5faed")
+        fake_key = "abcd1234" + "ef567890abcd1234ef567890"
+        has_secret, name = gate._line_has_secret_value(f"AMAP_WEB_KEY={fake_key}")
         self.assertTrue(has_secret)
         self.assertEqual(name, "AMAP_WEB_KEY")
 

@@ -90,6 +90,7 @@ Security:
 - push protection: enabled
 - Dependabot security updates: enabled
 - Dependabot PR schedule: configured in `.github/dependabot.yml`
+- Dependabot alert `GHSA-v9pg-7xvm-68hf` for `python-multipart <0.0.31` was found on default branch and fixed in this branch by upgrading `python-multipart` to `0.0.31`.
 
 ## Production Environment Inventory
 

@@ -260,11 +260,13 @@ def _line_has_secret_value(line: str) -> tuple[bool, str]:
         return False, ""
     name, value = match.groups()
     raw_value = value.strip().strip("'\"")
-    if name.startswith("_"):
+    if name.startswith("_") or name.startswith("SAFE_") or name.endswith("_RE"):
         return False, ""
     if raw_value.startswith("${{"):
         return False, ""
     if raw_value.startswith("$"):
+        return False, ""
+    if "{" in raw_value or "}" in raw_value:
         return False, ""
     if raw_value.startswith(("re.compile(", "os.environ.get(", "int(", "str(")):
         return False, ""
