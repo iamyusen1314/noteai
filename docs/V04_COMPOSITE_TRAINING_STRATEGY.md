@@ -355,3 +355,12 @@ Round09 验证记录：
 - 分行业稳定性：健身 `75.432` 且 `4/4` 72+，穿搭 `73.650`、家居 `72.506` 基本可用；美食 `70.529`、美妆 `70.900`、旅行 `70.891` 仍有单次 Claude 输出波动。
 - Shadow QA：纳入 v12 后全量 `386/386` shadow ready、hard block `0`；v12 set `24/24` shadow ready、`13/24` 72+、平均 V0.4 `72.13`。
 - 策略结论：事实源 + 行业 brief + V0.4 二修已能带来真实增益，但不能把单次 Claude 输出当生产确定性。下一阶段应建设候选择优器：同任务生成多候选，使用 V0.4 composite/ranker、事实安全、标题自然度和行业槽位选择最佳；低于 60 才硬拦，60+ 进入对话优化继续提升。
+
+2026-06-28 Round13 多候选择优接入：
+
+- API runtime 已加载 V0.4 三件套：composite regressor 继续负责交付评分，ready classifier 提供可发布概率，preference ranker 用于同任务候选偏好选择；v0.3 仍仅作为 fallback/历史对照，不参与生产选择目标。
+- `/generate` 和 `/generate/stream` 均接入候选池：初始仲裁稿、按行业角度生成的挑战稿、P4 修复稿、score-directed 二修稿和最终压缩稿都会进入同一选择器；返回 `selection_meta`，记录 `candidate_count/viable_count/used_ranker/selected_origin/selected_score` 和候选摘要，便于线上审计。
+- 选择策略：先按交付质量分层，`72+ 且无问题` 优先；若只有带问题的 72+ 候选，则允许 5 分内干净稿参与竞争；ranker 只在同层/近分候选中排序，不能把低分或缺核心槽位候选压过 72+ 干净稿；低于 60 或灾难性空稿/格式错误才硬拦。
+- 真实链路小批探针：长禧家珑厨高德餐饮样本 `80.9`，地址识别修复后复评 `80.7` 且 issues=0；广州长隆酒旅 `70.3`；美妆防晒 `72.7`；健身低冲击训练 `75.5`；穿搭梨形通勤 `76.7`；家居阳台洗衣区首跑暴露 ranker 过权重，修复后复跑 `72.1`、issues=0。全部 `quality_failed=false`、无空响应、无 blocking、标题均 ≤18 字。
+- 本轮新增测试覆盖：候选选择器 issue penalty、ranker 同分近分排序、72+ 干净候选优先级、地址识别误伤回归。验证：`.venv/bin/python -m unittest discover -s tests` 通过 `148` 项；`quality/golden_notes.sample.json` 与 `quality/quality_gate_cases.v04_round06_food_travel.json` 质量门禁通过；训练健康/readiness 仍为 `production_ready`。
+- 剩余策略风险：旅行/酒旅仍有 `70.x` 波动，家居刚过 72，穿搭有“穿出165/多五厘米”这类轻夸张表达；下一轮应针对旅行/家居做候选方向和自然度专项，而不是提高硬拦线。

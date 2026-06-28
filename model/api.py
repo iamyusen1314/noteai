@@ -2056,6 +2056,120 @@ async def _gent_arbitrate(
     return {"title": title, "body": body, "variants": variants, "rationale": rationale}
 
 
+def _generation_candidate_count(domain: str | None = None) -> int:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical == "母婴":
+        return 1
+    if os.environ.get("NOTEAI_MULTI_CANDIDATE", "1").lower() in {"0", "false", "no", "off"}:
+        return 1
+    try:
+        return max(1, min(3, int(os.environ.get("NOTEAI_GENERATION_CANDIDATE_COUNT", "2"))))
+    except Exception:
+        return 2
+
+
+def _domain_candidate_angle(domain: str | None, index: int = 0) -> str:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    angle_map = {
+        "美食": [
+            "到店决策型：先讲为什么值得去，再讲招牌/推荐菜、价格或套餐、地址/营业、适合谁和到店提醒，像真实朋友推荐，不写夸张口号。",
+            "菜品种草型：围绕1-2个核心菜品展开口感和点单顺序，再补门店事实和适合/不适合，避免清单堆砌。",
+        ],
+        "旅行": [
+            "路线取舍型：先给适合人群和路线节奏，再讲交通、住宿/景点、预算确认方式和避坑，像可执行攻略。",
+            "酒旅权益型：围绕酒店/景点权益、位置、交通和适合人群写清选择理由，事实只来自已核验来源。",
+        ],
+        "美妆": [
+            "肤质决策型：先讲适合肤质/场景，再写用量手法、妆效边界、价格渠道确认方式，不写无依据功效。",
+            "真实试用型：把产品名、色号/质地、上脸效果、缺点和适合人群写成自然体验，不机械种草。",
+        ],
+        "穿搭": [
+            "场景搭配型：先讲身形/场景，再写单品版型、颜色比例、价格渠道确认方式和复用公式。",
+            "单品复用型：围绕1-2件核心单品写清搭配逻辑、适合/不适合和复刻清单，避免空泛审美词。",
+        ],
+        "家居": [
+            "改造前后型：从原痛点切入，写单品/动线/收纳变化，再给复刻步骤和预算尺寸确认方式。",
+            "清单复刻型：围绕核心单品写清位置、尺寸/预算边界、使用变化和踩坑，像能照着买。",
+        ],
+        "健身": [
+            "动作方案型：先讲适合人群和目标，再写动作顺序、组数/时长、发力要点、安全替代和收藏理由。",
+            "问题解决型：从常见痛点切入，给动作剂量、错误纠正和适合/不适合，不承诺速成效果。",
+        ],
+    }
+    angles = angle_map.get(canonical, [
+        "通用决策型：先讲适合谁和核心收益，再写可验证事实、操作步骤、限制条件和收藏理由，避免模板化。",
+        "通用避坑型：先讲选择理由，再写具体步骤、适合/不适合和注意事项，事实缺失时给确认方式。",
+    ])
+    return angles[index % len(angles)]
+
+
+async def _generate_quality_challenger_candidate(
+    *,
+    domain: str,
+    brief: str | None,
+    image_desc: str,
+    timing: dict | None,
+    current_title: str,
+    current_body: str,
+    candidate_index: int = 0,
+) -> dict | None:
+    """Generate an alternate draft for V0.4 candidate selection."""
+    if _generation_candidate_count(domain) <= 1:
+        return None
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain, domain)
+    angle = _domain_candidate_angle(canonical, candidate_index)
+    if timing and timing.get("matched_keywords"):
+        timing_text = f"命中热词：{'、'.join(timing.get('matched_keywords', [])[:5])}"
+    else:
+        timing_text = "热词数据暂不可用，不要硬塞热点"
+    system = (
+        "你是小红书高质量候选稿生成专家。你的任务不是修补当前稿，而是为同一任务生成一篇"
+        "明显不同、事实一致、自然可读的候选稿，供V0.4质量选择器比较。\n\n"
+        f"{_get_quality_contract(canonical)}\n\n"
+        f"{_get_checklist(canonical)}\n\n"
+        f"{_build_generation_planning_brief(canonical, '', brief, '多候选择优候选规划')}\n"
+        f"{_safe_fact_delivery_brief(canonical, brief)}\n\n"
+        f"{_quality_expression_brief(canonical)}\n\n"
+        "严格输出XML：<title>20字以内标题</title><body>完整正文，含话题标签</body>"
+        "<variants>3个备选标题，每行一个</variants><rationale>一句话说明差异化策略</rationale>"
+    )
+    user = (
+        f"品类：{canonical}\n"
+        f"候选方向：{angle}\n"
+        f"实时信息：{timing_text}\n\n"
+        f"【图片/素材描述】\n{(image_desc or canonical)[:1200]}\n\n"
+        f"【创作者真实信息/联网事实边界】\n{(brief or '未提供结构化事实；不得编造价格、地址、营业时间、功效、个人经历。')[:1500]}\n\n"
+        "【当前主稿】请避开同样的首段和结构，但保持事实一致。\n"
+        f"标题：{current_title}\n"
+        f"正文：{(current_body or '')[:900]}\n\n"
+        "要求：标题自然、有点击理由但不能低级夸张；正文要有信息密度、行业槽位和真实行动建议，"
+        "不要用编号大纲，不要写占位符，不要为了评分机械重复关键词。"
+    )
+    try:
+        raw = await _mr.call("content_gen", system, user, thinking=False, max_tokens=2600)
+    except Exception as exc:
+        print(f"[gen] selector challenger failed: {exc}", file=sys.stderr, flush=True)
+        return None
+    title = _xtag(raw, "title")
+    body = _xtag(raw, "body")
+    if not title or not body:
+        return None
+    variants = [v.strip() for v in _xtag(raw, "variants").splitlines() if v.strip()][:3]
+    title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, canonical), brief, canonical)
+    body = await _shape_body_for_delivery(title, body, canonical, brief, "爆文多候选择优")
+    variants = [
+        _sanitize_title_for_delivery(await _fit_title_limit(v, body, canonical), brief, canonical)
+        for v in variants
+    ]
+    return {
+        "origin": f"selector_challenger_{candidate_index + 1}",
+        "title": title,
+        "body": body,
+        "variants": variants,
+        "rationale": _xtag(raw, "rationale"),
+    }
+
+
 # ── Fix instruction builder for score-based refinement ───────────
 
 def _v04_generation_lift_instructions(
@@ -2465,6 +2579,25 @@ async def _run_generation_agents(
     title, body = arb.get("title", ""), arb.get("body", "")
     print(f"[gen] P3-arbitrate done in {_time.time()-_t0:.0f}s title_len={len(title)} body_len={len(body)}", file=sys.stderr, flush=True)
 
+    selection_candidates: list[dict] = []
+    selection_meta: dict = {}
+
+    def _remember_generation_candidate(
+        origin: str,
+        cand_title: str | None,
+        cand_body: str | None,
+        cand_variants: list[str] | None = None,
+        cand_rationale: str | None = None,
+    ) -> None:
+        if cand_title and cand_body:
+            selection_candidates.append({
+                "origin": origin,
+                "title": cand_title,
+                "body": cand_body,
+                "variants": list(cand_variants or []),
+                "rationale": cand_rationale or "",
+            })
+
     # Phase 3.5: domain-specific body length enforcement (programmatic trim)
     # 穿搭 and 美妆 both encode as "fashion" (domain_encoded=1) — model optimal body_len ~200-280
     _DOMAIN_MAX_BODY = {"穿搭": 280, "美妆": 300}
@@ -2515,6 +2648,61 @@ async def _run_generation_agents(
                 print(f"[gen] P3.5b-burst done body_len={len(body)}", file=sys.stderr, flush=True)
         except Exception as e:
             print(f"[gen] P3.5b-burst failed: {e}", file=sys.stderr, flush=True)
+
+    _remember_generation_candidate(
+        "arbitrate_initial",
+        title,
+        body,
+        arb.get("variants", []),
+        arb.get("rationale", ""),
+    )
+
+    for cand_idx in range(max(0, _generation_candidate_count(domain) - 1)):
+        challenger = await _generate_quality_challenger_candidate(
+            domain=domain,
+            brief=brief or "",
+            image_desc=image_desc,
+            timing=timing,
+            current_title=title,
+            current_body=body,
+            candidate_index=cand_idx,
+        )
+        if challenger:
+            _remember_generation_candidate(
+                challenger.get("origin", f"selector_challenger_{cand_idx + 1}"),
+                challenger.get("title", ""),
+                challenger.get("body", ""),
+                challenger.get("variants", []),
+                challenger.get("rationale", ""),
+            )
+
+    if len(selection_candidates) > 1:
+        try:
+            early_selection = await _select_best_generation_candidate(
+                selection_candidates,
+                domain=domain,
+                local_time=local_time,
+                timing=timing,
+                cover_feats=cover_feats or None,
+                source_context=brief or "",
+            )
+            selected_early = early_selection.get("selected") or {}
+            selection_meta = _selection_meta_payload(early_selection)
+            if selected_early:
+                title = selected_early.get("title", title)
+                body = selected_early.get("body", body)
+                if selected_early.get("variants"):
+                    arb["variants"] = selected_early.get("variants")
+                if selected_early.get("rationale"):
+                    arb["rationale"] = selected_early.get("rationale")
+                print(
+                    f"[gen] selector early selected={selected_early.get('origin')} "
+                    f"score={float(selected_early.get('score') or 0.0):.1f}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+        except Exception as exc:
+            print(f"[gen] selector early failed: {exc}", file=sys.stderr, flush=True)
 
     # Phase 4: score-verify-refine loop（最多 2 轮，目标分位 ≥ 72）
     # Round 0: score initial content → if <72 and fixable, arbitrate once more
@@ -2576,6 +2764,13 @@ async def _run_generation_agents(
                 title, body = t_new, b_new
                 arb["variants"] = arb_next.get("variants") or arb["variants"]
                 arb["rationale"] = arb_next.get("rationale") or arb["rationale"]
+                _remember_generation_candidate(
+                    f"refine_round_{round_idx + 1}",
+                    title,
+                    body,
+                    arb_next.get("variants") or arb.get("variants", []),
+                    arb_next.get("rationale") or arb.get("rationale", ""),
+                )
             else:
                 break  # 模型输出无变化，停止
         except Exception:
@@ -2585,6 +2780,8 @@ async def _run_generation_agents(
     title, body = best_title, best_body
     quality_issues = best_issues
 
+    score_lift_repaired = False
+    score_lift_reason = ""
     if (
         title and body
         and (
@@ -2622,6 +2819,13 @@ async def _run_generation_agents(
                 print(f"[gen] P4-score-lift {score_lift_reason}", file=sys.stderr, flush=True)
             percentile = lifted_score
             grade = grade or _grade(percentile)
+        _remember_generation_candidate(
+            "score_lift_second_pass",
+            title,
+            body,
+            arb.get("variants", []),
+            score_lift_reason,
+        )
 
     final_compacted_body = _compact_body_to_delivery_limit(_insert_safe_fact_line(body or "", domain, brief or ""), domain)
     if final_compacted_body and final_compacted_body != body:
@@ -2639,6 +2843,46 @@ async def _run_generation_agents(
             quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
         except Exception:
             quality_issues = quality_issues or []
+
+    _remember_generation_candidate(
+        "final_compacted",
+        title,
+        body,
+        arb.get("variants", []),
+        "最终压缩与事实线复核",
+    )
+
+    if selection_candidates:
+        try:
+            final_selection = await _select_best_generation_candidate(
+                selection_candidates,
+                domain=domain,
+                local_time=local_time,
+                timing=timing,
+                cover_feats=cover_feats or None,
+                source_context=brief or "",
+            )
+            selected_final = final_selection.get("selected") or {}
+            selection_meta = _selection_meta_payload(final_selection)
+            if selected_final:
+                title = selected_final.get("title", title)
+                body = selected_final.get("body", body)
+                percentile = float(selected_final.get("score") or percentile or 0.0)
+                features = selected_final.get("features") or features
+                grade = selected_final.get("grade") or _grade(percentile)
+                quality_issues = selected_final.get("quality_issues") or quality_issues
+                if selected_final.get("variants"):
+                    arb["variants"] = selected_final.get("variants")
+                if selected_final.get("rationale"):
+                    arb["rationale"] = selected_final.get("rationale")
+                print(
+                    f"[gen] selector final selected={selected_final.get('origin')} "
+                    f"score={percentile:.1f} candidates={final_selection.get('candidate_count')}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+        except Exception as exc:
+            print(f"[gen] selector final failed: {exc}", file=sys.stderr, flush=True)
 
     feature_hits = {
         **_feature_hits_for_generation(title, features, percentile, domain, body=body),
@@ -2659,6 +2903,7 @@ async def _run_generation_agents(
         "quality_failed": _has_blocking_quality_issues(percentile, quality_issues, domain),
         "score_lift_repaired": locals().get("score_lift_repaired", False),
         "score_lift_reason": locals().get("score_lift_reason", ""),
+        "selection_meta": selection_meta,
         "expert_opinions": opinions,
         "image_desc": image_desc,
     }
@@ -2685,6 +2930,10 @@ _model_signature: tuple[str, float] | None = None
 _v04_model: lgb.Booster | None = None
 _v04_model_signature: tuple[str, float, float] | None = None
 _v04_model_report: dict | None = None
+_v04_ready_classifier: lgb.Booster | None = None
+_v04_ready_classifier_signature: tuple[str, float, float] | None = None
+_v04_preference_ranker: lgb.Booster | None = None
+_v04_preference_ranker_signature: tuple[str, float, float] | None = None
 _model_artifacts_ensured = False
 
 
@@ -2761,6 +3010,87 @@ def get_v04_composite_model() -> lgb.Booster | None:
             _v04_model_signature = signature
             _v04_model_report = report
         return _v04_model
+    except Exception:
+        return None
+
+
+def get_v04_composite_report() -> dict | None:
+    if get_v04_composite_model() is None:
+        return None
+    return _v04_model_report
+
+
+def get_v04_ready_classifier() -> lgb.Booster | None:
+    global _v04_ready_classifier, _v04_ready_classifier_signature
+    report = get_v04_composite_report()
+    if not report:
+        return None
+    try:
+        report_stat = V04_TRAIN_REPORT_PATH.stat()
+        classifier_info = (((report.get("models") or {}).get("golden") or {}).get("classifier") or {})
+        if not classifier_info.get("trained"):
+            return None
+        path = _resolve_model_artifact_path(classifier_info.get("path"))
+        if not path.exists():
+            return None
+        resolved = path.resolve()
+        signature = (str(resolved), resolved.stat().st_mtime, report_stat.st_mtime)
+        if _v04_ready_classifier is None or _v04_ready_classifier_signature != signature:
+            _v04_ready_classifier = lgb.Booster(model_file=str(resolved))
+            _v04_ready_classifier_signature = signature
+        if _v04_ready_classifier.num_feature() != len(COMPOSITE_FEATURE_COLS):
+            return None
+        return _v04_ready_classifier
+    except Exception:
+        return None
+
+
+def get_v04_preference_ranker() -> lgb.Booster | None:
+    global _v04_preference_ranker, _v04_preference_ranker_signature
+    report = get_v04_composite_report()
+    if not report:
+        return None
+    try:
+        report_stat = V04_TRAIN_REPORT_PATH.stat()
+        ranker_info = ((report.get("models") or {}).get("preference_ranker") or {})
+        if not ranker_info.get("trained"):
+            return None
+        path = _resolve_model_artifact_path(ranker_info.get("path"))
+        if not path.exists():
+            return None
+        resolved = path.resolve()
+        signature = (str(resolved), resolved.stat().st_mtime, report_stat.st_mtime)
+        if _v04_preference_ranker is None or _v04_preference_ranker_signature != signature:
+            _v04_preference_ranker = lgb.Booster(model_file=str(resolved))
+            _v04_preference_ranker_signature = signature
+        if _v04_preference_ranker.num_feature() != len(COMPOSITE_FEATURE_COLS):
+            return None
+        return _v04_preference_ranker
+    except Exception:
+        return None
+
+
+def _v04_publishable_probability(features: dict[str, float]) -> float | None:
+    model = get_v04_ready_classifier()
+    if model is None:
+        return None
+    try:
+        x_vals = [float(features.get(col, 0.0) or 0.0) for col in COMPOSITE_FEATURE_COLS]
+        return float(model.predict(np.array([x_vals], dtype=float))[0])
+    except Exception:
+        return None
+
+
+def _v04_ranker_a_win_probability(features_a: dict[str, float], features_b: dict[str, float]) -> float | None:
+    model = get_v04_preference_ranker()
+    if model is None:
+        return None
+    try:
+        x_vals = [
+            float(features_a.get(col, 0.0) or 0.0) - float(features_b.get(col, 0.0) or 0.0)
+            for col in COMPOSITE_FEATURE_COLS
+        ]
+        return float(model.predict(np.array([x_vals], dtype=float))[0])
     except Exception:
         return None
 
@@ -3528,6 +3858,7 @@ class GenerateResponse(BaseModel):
     quality_issues: list[str] = Field(default=[], description="生成质量提示/阻断原因")
     expert_opinions: list[dict] = Field(default=[], description="各专家创作意见")
     fact_enrichment: dict | None = Field(default=None, description="联网事实补全结果（若启用）")
+    selection_meta: dict = Field(default={}, description="V0.4多候选择优审计信息")
     model_used: str = Field(default="claude-routed-5-agents")
 
 
@@ -3950,7 +4281,8 @@ def _generated_quality_issues(
     if canonical == "美食":
         if not features.get("body_has_price", 0):
             issues.append("美食笔记缺少真实价格/人均信息")
-        if not features.get("body_has_address", 0):
+        has_food_location = "位于" in body_text or "地址" in body_text or bool(_extract_food_location_hint(body_text))
+        if not features.get("body_has_address", 0) and not has_food_location:
             issues.append("美食笔记缺少地址/商圈/地铁站等位置信息")
         if not features.get("body_has_hours", 0):
             issues.append("美食笔记缺少营业时间或周末营业信息")
@@ -5305,6 +5637,217 @@ async def _score_generated_note(
         semantic_feats=semantic_feats,
     )
     return score, features, _grade(score)
+
+
+def _candidate_signature(title: str, body: str) -> str:
+    return re.sub(r"\s+", "", f"{title or ''}\n{body or ''}")[:1200]
+
+
+def _selector_issue_penalty(issues: list[str]) -> float:
+    penalty = 0.0
+    for issue in issues:
+        if any(marker in issue for marker in ("标题不自然", "内部格式", "占位符", "正文为空", "标题为空")):
+            penalty += 8.0
+        elif "结构化事实不能编造" in issue or "遗漏已提供动作" in issue:
+            penalty += 5.0
+        elif any(marker in issue for marker in ("缺少价格", "缺少真实价格", "缺少地址", "缺少营业", "缺少必点", "缺少交通", "缺少预算")):
+            penalty += 4.0
+        elif "过短" in issue or "超过目标上限" in issue:
+            penalty += 3.0
+        else:
+            penalty += 1.2
+    return penalty
+
+
+def _selector_score(
+    score: float,
+    issues: list[str],
+    blocking: bool,
+    publishable_prob: float | None,
+    ranker_win_rate: float | None,
+) -> float:
+    value = float(score or 0.0)
+    if publishable_prob is not None:
+        value += (float(publishable_prob) - 0.5) * 8.0
+    if ranker_win_rate is not None:
+        value += (float(ranker_win_rate) - 0.5) * 4.0
+    value -= _selector_issue_penalty(issues)
+    if blocking:
+        value -= 120.0
+    return value
+
+
+async def _score_generation_delivery_candidate(
+    candidate: dict,
+    *,
+    domain: str,
+    local_time: str,
+    timing: dict | None,
+    cover_feats: dict | None,
+    source_context: str | None,
+) -> dict:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain, domain)
+    raw_title = str(candidate.get("title") or "").strip()
+    raw_body = str(candidate.get("body") or "").strip()
+    title = _sanitize_title_for_delivery(await _fit_title_limit(raw_title, raw_body, canonical), source_context, canonical) if raw_title else ""
+    title = _fallback_title_under_limit(title)
+    body = _compact_body_to_delivery_limit(_insert_safe_fact_line(raw_body, canonical, source_context or ""), canonical)
+    if canonical == "健身":
+        body = _append_missing_fitness_source_actions(body, source_context)
+    score, features, grade = await _score_generated_note(title, body, canonical, local_time, timing, cover_feats)
+    issues = _generated_quality_issues(title, body, canonical, score, features)
+    issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context or "", canonical))
+    issues.extend(_body_format_issues(body))
+    issues = list(dict.fromkeys(issue for issue in issues if issue))
+    blocking = bool(_has_blocking_quality_issues(score, issues, canonical))
+    publishable_prob = _v04_publishable_probability(features)
+    return {
+        **candidate,
+        "title": title,
+        "body": body,
+        "score": float(score),
+        "features": features,
+        "grade": grade,
+        "quality_issues": issues,
+        "blocking": blocking,
+        "publishable_prob": publishable_prob,
+        "ranker_win_rate": None,
+        "selector_score": _selector_score(float(score), issues, blocking, publishable_prob, None),
+    }
+
+
+async def _select_best_generation_candidate(
+    candidates: list[dict],
+    *,
+    domain: str,
+    local_time: str,
+    timing: dict | None = None,
+    cover_feats: dict | None = None,
+    source_context: str | None = None,
+) -> dict:
+    """Score and select the best generated note candidate with V0.4 runtime signals."""
+    deduped: list[dict] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        title = str(candidate.get("title") or "")
+        body = str(candidate.get("body") or "")
+        if not title.strip() or not body.strip():
+            continue
+        sig = _candidate_signature(title, body)
+        if sig in seen:
+            continue
+        seen.add(sig)
+        deduped.append(candidate)
+    scored = [
+        await _score_generation_delivery_candidate(
+            candidate,
+            domain=domain,
+            local_time=local_time,
+            timing=timing,
+            cover_feats=cover_feats,
+            source_context=source_context,
+        )
+        for candidate in deduped
+    ]
+    if len(scored) >= 2 and get_v04_preference_ranker() is not None:
+        wins = [0.0 for _ in scored]
+        games = [0 for _ in scored]
+        for i, cand_a in enumerate(scored):
+            for j, cand_b in enumerate(scored):
+                if i >= j:
+                    continue
+                prob = _v04_ranker_a_win_probability(cand_a.get("features") or {}, cand_b.get("features") or {})
+                if prob is None:
+                    continue
+                prob = max(0.0, min(1.0, float(prob)))
+                wins[i] += prob
+                wins[j] += 1.0 - prob
+                games[i] += 1
+                games[j] += 1
+        for idx, item in enumerate(scored):
+            if games[idx]:
+                item["ranker_win_rate"] = wins[idx] / games[idx]
+                item["selector_score"] = _selector_score(
+                    float(item.get("score") or 0.0),
+                    item.get("quality_issues") or [],
+                    bool(item.get("blocking")),
+                    item.get("publishable_prob"),
+                    item.get("ranker_win_rate"),
+                )
+    viable = [item for item in scored if not item.get("blocking")]
+    ready_clean = [
+        item for item in viable
+        if float(item.get("score") or 0.0) >= _GENERATION_DELIVERY_TARGET
+        and not item.get("quality_issues")
+    ]
+    ready_any = [
+        item for item in viable
+        if float(item.get("score") or 0.0) >= _GENERATION_DELIVERY_TARGET
+    ]
+    clean_any = [item for item in viable if not item.get("quality_issues")]
+    if ready_clean:
+        pool = ready_clean
+    elif ready_any and clean_any:
+        best_ready_score = max(float(item.get("score") or 0.0) for item in ready_any)
+        close_clean = [
+            item for item in clean_any
+            if float(item.get("score") or 0.0) >= best_ready_score - 5.0
+        ]
+        pool = ready_any + close_clean if close_clean else ready_any
+    else:
+        pool = ready_any or clean_any or viable or scored
+    selected = max(
+        pool,
+        key=lambda item: (
+            float(item.get("selector_score") or -999.0),
+            float(item.get("score") or 0.0),
+            -len(item.get("quality_issues") or []),
+        ),
+        default={},
+    )
+    return {
+        "selected": selected,
+        "candidates": scored,
+        "candidate_count": len(scored),
+        "viable_count": len(viable),
+        "used_ranker": any(item.get("ranker_win_rate") is not None for item in scored),
+    }
+
+
+def _selection_meta_payload(selection: dict) -> dict:
+    selected = selection.get("selected") or {}
+    summaries = []
+    for item in sorted(
+        selection.get("candidates") or [],
+        key=lambda cand: float(cand.get("selector_score") or -999.0),
+        reverse=True,
+    )[:5]:
+        summaries.append({
+            "origin": item.get("origin", ""),
+            "title": item.get("title", ""),
+            "score": round(float(item.get("score") or 0.0), 1),
+            "selector_score": round(float(item.get("selector_score") or 0.0), 2),
+            "blocking": bool(item.get("blocking")),
+            "issue_count": len(item.get("quality_issues") or []),
+            "publishable_prob": (
+                round(float(item.get("publishable_prob")), 3)
+                if item.get("publishable_prob") is not None else None
+            ),
+            "ranker_win_rate": (
+                round(float(item.get("ranker_win_rate")), 3)
+                if item.get("ranker_win_rate") is not None else None
+            ),
+        })
+    return {
+        "candidate_count": int(selection.get("candidate_count") or 0),
+        "viable_count": int(selection.get("viable_count") or 0),
+        "used_ranker": bool(selection.get("used_ranker")),
+        "selected_origin": selected.get("origin", ""),
+        "selected_title": selected.get("title", ""),
+        "selected_score": round(float(selected.get("score") or 0.0), 1) if selected else None,
+        "selected_selector_score": round(float(selected.get("selector_score") or 0.0), 2) if selected else None,
+        "candidates": summaries,
+    }
 
 
 def _feature_hits_for_generation(
@@ -7537,7 +8080,80 @@ async def _generate_pipeline_stream(
         return
 
     body = await _shape_body_for_delivery(title, body, domain, brief, "爆文生成")
-    yield {"type": "p3_done", "title": title, "rationale": rationale[:120] if rationale else "", "progress": 78}
+    stream_selection_candidates: list[dict] = []
+    stream_selection_meta: dict = {}
+
+    def _remember_stream_candidate(
+        origin: str,
+        cand_title: str | None,
+        cand_body: str | None,
+        cand_variants: list[str] | None = None,
+        cand_rationale: str | None = None,
+    ) -> None:
+        if cand_title and cand_body:
+            stream_selection_candidates.append({
+                "origin": origin,
+                "title": cand_title,
+                "body": cand_body,
+                "variants": list(cand_variants or []),
+                "rationale": cand_rationale or "",
+            })
+
+    _remember_stream_candidate("arbitrate_initial", title, body, variants, rationale)
+
+    for cand_idx in range(max(0, _generation_candidate_count(domain) - 1)):
+        yield {
+            "type": "stage",
+            "stage": "selector",
+            "label": "正在生成对照候选稿并选择更优版本…",
+            "progress": 79,
+        }
+        challenger = await _generate_quality_challenger_candidate(
+            domain=domain,
+            brief=brief or "",
+            image_desc=image_desc,
+            timing=timing,
+            current_title=title,
+            current_body=body,
+            candidate_index=cand_idx,
+        )
+        if challenger:
+            _remember_stream_candidate(
+                challenger.get("origin", f"selector_challenger_{cand_idx + 1}"),
+                challenger.get("title", ""),
+                challenger.get("body", ""),
+                challenger.get("variants", []),
+                challenger.get("rationale", ""),
+            )
+
+    if len(stream_selection_candidates) > 1:
+        try:
+            early_selection = await _select_best_generation_candidate(
+                stream_selection_candidates,
+                domain=domain,
+                local_time=local_time,
+                timing=timing,
+                cover_feats=cover_feats or None,
+                source_context=brief or "",
+            )
+            selected_early = early_selection.get("selected") or {}
+            stream_selection_meta = _selection_meta_payload(early_selection)
+            if selected_early:
+                title = selected_early.get("title", title)
+                body = selected_early.get("body", body)
+                variants = selected_early.get("variants") or variants
+                rationale = selected_early.get("rationale") or rationale
+                yield {
+                    "type": "selector_selected",
+                    "origin": selected_early.get("origin"),
+                    "score": round(float(selected_early.get("score") or 0.0), 1),
+                    "candidate_count": early_selection.get("candidate_count", 0),
+                    "progress": 80,
+                }
+        except Exception as exc:
+            print(f"[gen] stream selector early failed: {exc}", file=sys.stderr, flush=True)
+
+    yield {"type": "p3_done", "title": title, "rationale": rationale[:120] if rationale else "", "progress": 81}
 
     # ── P4: Score ────────────────────────────────────────────────────
     yield {"type": "stage", "stage": "p4", "label": "辅助质量评分验证中…", "progress": 85}
@@ -7639,6 +8255,13 @@ async def _generate_pipeline_stream(
                 )
                 variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain), brief, domain) for v in raw_fix_variants] or variants
                 rationale = _xtag(raw_fix, "rationale") or rationale
+                _remember_stream_candidate(
+                    f"refine_round_{q_round + 1}",
+                    title,
+                    body,
+                    variants,
+                    rationale,
+                )
             else:
                 break
         except Exception as exc:
@@ -7693,6 +8316,13 @@ async def _generate_pipeline_stream(
         )
         if lifted_score is not None:
             final_score = lifted_score
+        _remember_stream_candidate(
+            "score_lift_second_pass",
+            title,
+            body,
+            variants,
+            score_lift_reason,
+        )
         if score_lift_repaired:
             yield {
                 "type": "quality_repaired",
@@ -7717,6 +8347,45 @@ async def _generate_pipeline_stream(
             quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
         except Exception:
             pass
+
+    _remember_stream_candidate(
+        "final_compacted",
+        title,
+        body,
+        variants,
+        "最终压缩与事实线复核",
+    )
+
+    if stream_selection_candidates:
+        try:
+            final_selection = await _select_best_generation_candidate(
+                stream_selection_candidates,
+                domain=domain,
+                local_time=local_time,
+                timing=timing,
+                cover_feats=cover_feats or None,
+                source_context=brief or "",
+            )
+            selected_final = final_selection.get("selected") or {}
+            stream_selection_meta = _selection_meta_payload(final_selection)
+            if selected_final:
+                title = selected_final.get("title", title)
+                body = selected_final.get("body", body)
+                variants = selected_final.get("variants") or variants
+                rationale = selected_final.get("rationale") or rationale
+                final_score = float(selected_final.get("score") or final_score or 0.0)
+                final_feats = selected_final.get("features") or final_feats
+                grade_str = selected_final.get("grade") or _grade(final_score)
+                quality_issues = selected_final.get("quality_issues") or quality_issues
+                yield {
+                    "type": "selector_selected",
+                    "origin": selected_final.get("origin"),
+                    "score": round(final_score, 1),
+                    "candidate_count": final_selection.get("candidate_count", 0),
+                    "progress": 95,
+                }
+        except Exception as exc:
+            print(f"[gen] stream selector final failed: {exc}", file=sys.stderr, flush=True)
 
     feature_hits = _feature_hits_for_generation(title, final_feats, final_score, domain, body=body)
 
@@ -7750,6 +8419,7 @@ async def _generate_pipeline_stream(
         "quality_issues":  quality_issues,
         "score_lift_repaired": score_lift_repaired,
         "score_lift_reason": score_lift_reason,
+        "selection_meta": stream_selection_meta,
         "features":        {k: float(v) for k, v in final_feats.items()},
         "expert_opinions": opinions,
         "model_used":      "claude-routed-5-agents-stream",
@@ -8038,6 +8708,7 @@ async def generate(
         quality_issues=result.get("quality_issues", []),
         expert_opinions=result.get("expert_opinions", []),
         fact_enrichment=fact_enrichment,
+        selection_meta=result.get("selection_meta", {}),
         model_used="claude-routed-5-agents",
     )
 

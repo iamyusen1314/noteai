@@ -2451,6 +2451,158 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertIn("肤质：混干敏感皮", calls[0][4]["source_context"])
 
+    def test_generation_selector_prefers_clean_candidate_over_issue_penalty(self):
+        original_score_candidate = api._score_generation_delivery_candidate
+        original_ranker = api.get_v04_preference_ranker
+
+        async def fake_score_candidate(candidate, **_kwargs):
+            if candidate["origin"] == "high_but_bad":
+                return {
+                    **candidate,
+                    "score": 72.0,
+                    "features": {"candidate_id": 1},
+                    "grade": "优秀",
+                    "quality_issues": ["标题不自然：像硬拼关键词", "正文内部格式太重"],
+                    "blocking": False,
+                    "publishable_prob": 0.50,
+                    "ranker_win_rate": None,
+                    "selector_score": api._selector_score(
+                        72.0,
+                        ["标题不自然：像硬拼关键词", "正文内部格式太重"],
+                        False,
+                        0.50,
+                        None,
+                    ),
+                }
+            return {
+                **candidate,
+                "score": 70.0,
+                "features": {"candidate_id": 2},
+                "grade": "良好",
+                "quality_issues": [],
+                "blocking": False,
+                "publishable_prob": 0.55,
+                "ranker_win_rate": None,
+                "selector_score": api._selector_score(70.0, [], False, 0.55, None),
+            }
+
+        try:
+            api._score_generation_delivery_candidate = fake_score_candidate
+            api.get_v04_preference_ranker = lambda: None
+            selection = asyncio.run(api._select_best_generation_candidate(
+                [
+                    {"origin": "high_but_bad", "title": "标题A", "body": "正文A"},
+                    {"origin": "clean", "title": "标题B", "body": "正文B"},
+                ],
+                domain="美食",
+                local_time="2026062812",
+            ))
+        finally:
+            api._score_generation_delivery_candidate = original_score_candidate
+            api.get_v04_preference_ranker = original_ranker
+
+        self.assertEqual(selection["selected"]["origin"], "clean")
+        self.assertEqual(selection["candidate_count"], 2)
+        self.assertEqual(selection["viable_count"], 2)
+
+    def test_generation_selector_uses_v04_ranker_when_scores_are_close(self):
+        original_score_candidate = api._score_generation_delivery_candidate
+        original_ranker = api.get_v04_preference_ranker
+        original_rank_prob = api._v04_ranker_a_win_probability
+
+        async def fake_score_candidate(candidate, **_kwargs):
+            candidate_id = 1 if candidate["origin"] == "plain" else 2
+            return {
+                **candidate,
+                "score": 70.0,
+                "features": {"candidate_id": candidate_id},
+                "grade": "良好",
+                "quality_issues": [],
+                "blocking": False,
+                "publishable_prob": 0.50,
+                "ranker_win_rate": None,
+                "selector_score": api._selector_score(70.0, [], False, 0.50, None),
+            }
+
+        def fake_rank_probability(features_a, features_b):
+            if features_a.get("candidate_id") == 1 and features_b.get("candidate_id") == 2:
+                return 0.10
+            return 0.90
+
+        try:
+            api._score_generation_delivery_candidate = fake_score_candidate
+            api.get_v04_preference_ranker = lambda: object()
+            api._v04_ranker_a_win_probability = fake_rank_probability
+            selection = asyncio.run(api._select_best_generation_candidate(
+                [
+                    {"origin": "plain", "title": "标题A", "body": "正文A"},
+                    {"origin": "ranked", "title": "标题B", "body": "正文B"},
+                ],
+                domain="美食",
+                local_time="2026062812",
+            ))
+        finally:
+            api._score_generation_delivery_candidate = original_score_candidate
+            api.get_v04_preference_ranker = original_ranker
+            api._v04_ranker_a_win_probability = original_rank_prob
+
+        self.assertEqual(selection["selected"]["origin"], "ranked")
+        self.assertTrue(selection["used_ranker"])
+        meta = api._selection_meta_payload(selection)
+        self.assertEqual(meta["selected_origin"], "ranked")
+        self.assertNotIn("body", meta["candidates"][0])
+
+    def test_generation_selector_keeps_ready_clean_candidate_above_ranker_preference(self):
+        original_score_candidate = api._score_generation_delivery_candidate
+        original_ranker = api.get_v04_preference_ranker
+        original_rank_prob = api._v04_ranker_a_win_probability
+
+        async def fake_score_candidate(candidate, **_kwargs):
+            if candidate["origin"] == "ranker_favorite_with_issue":
+                score = 69.1
+                issues = ["家居笔记缺少价格/预算/购买成本信息"]
+                candidate_id = 1
+            else:
+                score = 72.1
+                issues = []
+                candidate_id = 2
+            return {
+                **candidate,
+                "score": score,
+                "features": {"candidate_id": candidate_id},
+                "grade": "良好",
+                "quality_issues": issues,
+                "blocking": False,
+                "publishable_prob": 0.90,
+                "ranker_win_rate": None,
+                "selector_score": api._selector_score(score, issues, False, 0.90, None),
+            }
+
+        def fake_rank_probability(features_a, features_b):
+            if features_a.get("candidate_id") == 1 and features_b.get("candidate_id") == 2:
+                return 0.98
+            return 0.02
+
+        try:
+            api._score_generation_delivery_candidate = fake_score_candidate
+            api.get_v04_preference_ranker = lambda: object()
+            api._v04_ranker_a_win_probability = fake_rank_probability
+            selection = asyncio.run(api._select_best_generation_candidate(
+                [
+                    {"origin": "ranker_favorite_with_issue", "title": "标题A", "body": "正文A"},
+                    {"origin": "ready_clean", "title": "标题B", "body": "正文B"},
+                ],
+                domain="家居",
+                local_time="2026062812",
+            ))
+        finally:
+            api._score_generation_delivery_candidate = original_score_candidate
+            api.get_v04_preference_ranker = original_ranker
+            api._v04_ranker_a_win_probability = original_rank_prob
+
+        self.assertEqual(selection["selected"]["origin"], "ready_clean")
+        self.assertTrue(selection["used_ranker"])
+
 
 if __name__ == "__main__":
     unittest.main()
