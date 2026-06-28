@@ -779,6 +779,15 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("适合多人", shaped)
         self.assertFalse(api._structured_fact_boundary_issues(shaped, source, "美食"))
 
+    def test_unprovided_chinese_group_size_table_is_softened(self):
+        source = "38平出租屋改造，总预算3000元，可折叠餐桌268元，窄边书桌399元。"
+        body = "原来四人桌放在客厅中间，不吃饭时就是障碍物。换成可折叠餐桌268元后，动线更顺。"
+        shaped = api._insert_safe_fact_line(body, "家居", source)
+
+        self.assertNotIn("四人桌", shaped)
+        self.assertIn("固定餐桌", shaped)
+        self.assertFalse(api._structured_fact_boundary_issues(shaped, source, "家居"))
+
     def test_emoji_practical_info_is_normalized_without_duplicate_fact_line(self):
         source = "【联网事实补全】\n- 位置/地址：南村镇汉溪大道东386号广晟万博城A座7层\n- 价格/人均：人均98元\n- 营业时间：09:00-14:00 17:00-21:00"
         body = (

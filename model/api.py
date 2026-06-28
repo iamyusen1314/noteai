@@ -6206,6 +6206,7 @@ def _remove_unsupported_group_size_claims(text: str, source_context: str | None)
         out = re.sub(r"适合\s*[二三四五六七八九十]\s*人", "适合多人", out)
         out = re.sub(r"适合\s*\d+\s*人", "适合多人", out)
         out = re.sub(r"\d+\s*人桌", "多人桌", out)
+        out = re.sub(r"[二三四五六七八九十]\s*人桌", "固定餐桌", out)
         out = re.sub(r"[二三四五六七八九十]\s*人\s*一只", "多人分一只", out)
         out = re.sub(r"\d+\s*人\s*(?:吃完刚好|刚好|分量刚好)", "多人分量也合适", out)
     return out
