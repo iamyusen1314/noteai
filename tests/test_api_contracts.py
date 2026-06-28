@@ -310,6 +310,52 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("本阶段只输出诊断和3个标题", calls[0][2])
         self.assertFalse(any(body == "这是一篇内容专家候选正文，不应该被三个方案直接复用。" for body in bodies))
 
+    def test_plan_title_distinct_repair_handles_duplicate_titles(self):
+        titles = api._make_plan_titles_distinct(
+            [
+                "38平出租屋3000元改造，收纳动线",
+                "38平出租屋3000元改造，收纳动线",
+                "38平出租屋3000元改造，收纳动线",
+            ],
+            "家居",
+            "38平出租屋，预算3000元，想做收纳和动线改造。",
+        )
+        self.assertEqual(len(titles), 3)
+        self.assertEqual(len(set(titles)), 3)
+        self.assertTrue(all(6 <= len(title) <= api._TITLE_DELIVERY_MAX for title in titles))
+        self.assertFalse(any(api._title_readability_issues(title, "家居") for title in titles), titles)
+
+    def test_rqs_title_tail_repairs_cover_latest_probe_patterns(self):
+        cases = [
+            ("南京西路蟹黄拌面58元，周末排队值不", "美食", "南京西路蟹黄拌面58元，周末排队值得"),
+            ("南京西路蟹黄拌面58元，周末排队20", "美食", "58元蟹黄拌面，排队20分钟"),
+            ("黄皮混干皮选腮红，这支奶杏玫瑰色真", "美妆", "黄皮混干皮腮红，奶杏玫瑰色显白"),
+            ("黄皮混干皮用这支腮红，通勤妆显气色还", "美妆", "黄皮混干皮腮红，通勤妆显气色"),
+            ("黄皮混干皮用这支腮红很稳，显白不显毛", "美妆", "黄皮混干皮腮红，显白不显毛孔"),
+            ("黄皮混干皮亲测｜79元腮红显白不显毛", "美妆", "黄皮混干皮79元腮红，显白不显毛孔"),
+            ("小个子通勤显高3套公式，89元起搭", "穿搭", "小个子通勤显高3套公式，89元起"),
+            ("小个子显高3套通勤公式，89元衬衫开", "穿搭", "小个子通勤显高，89元衬衫起"),
+            ("小个子通勤显高3套公式，89元衬衫开", "穿搭", "小个子通勤显高，89元衬衫起"),
+            ("新手居家7天减脂计划，4个动作20", "健身", "新手居家7天减脂，4个动作20分钟"),
+            ("新手居家减脂7天计划，4个动作20", "健身", "新手居家7天减脂，4个动作20分钟"),
+            ("新手居家减脂7天计划，4个动作每晚2", "健身", "新手居家减脂，每晚20分钟"),
+            ("新手居家减脂7天循环，4个动作20", "健身", "新手居家减脂7天，4个动作20分钟"),
+            ("新手7天居家减脂，4个动作避坑执行指", "健身", "新手居家减脂，4个动作避坑"),
+            ("新手膝盖友好7天减脂计划，4个动作2", "健身", "新手膝盖友好减脂，4个动作"),
+            ("居家减脂7天循环，4个动作新手也能坚", "健身", "居家减脂7天循环，4个动作"),
+            ("38平出租屋3000元改造，从乱到有", "家居", "38平出租屋3000元改造，有序收纳"),
+            ("38平出租屋3000元改造，很稳的收", "家居", "38平出租屋3000元改造，有序收纳"),
+            ("38平出租屋3000元改造，终于走路", "家居", "38平出租屋3000元改造，动线更顺"),
+            ("成都3天2晚慢游攻略，1200元这样", "旅行", "成都3天2晚1200元慢游"),
+            ("成都3天2晚慢游实测，1200元人均", "旅行", "成都3天2晚1200元慢游"),
+        ]
+        for raw, domain, expected in cases:
+            with self.subTest(raw=raw):
+                repaired = api._sanitize_title_for_delivery(raw, "", domain)
+                self.assertEqual(repaired, expected)
+                self.assertLessEqual(len(repaired), api._TITLE_DELIVERY_MAX)
+                self.assertFalse(api._title_readability_issues(repaired, domain), repaired)
+
     def test_agent_arbitrate_body_failure_does_not_duplicate_shared_candidate(self):
         original_call = api._mr.call
         original_sleep = api.asyncio.sleep
@@ -490,6 +536,193 @@ class ApiContractTests(unittest.TestCase):
 
         self.assertEqual(ctx.exception.status_code, 502)
         self.assertFalse(predict_called["value"])
+
+    def test_analyze_entrypoints_share_v04_agent_fact_memory_chain(self):
+        original_check = api._billing.check_and_deduct
+        original_record = api._billing.record_free_usage
+        original_video = api._kimi_video_understand
+        original_quick = api._kimi_vision_quick
+        original_frames = dict(api._video_frames)
+        original_enrich = api._maybe_enrich_facts
+        original_append_fact = api._append_fact_enrichment
+        original_scheduler = api._SCHEDULER_AVAILABLE
+        original_semantic = api.compute_semantic_features
+        original_predict = api._predict
+        original_find_weaknesses = api._find_weaknesses
+        original_run_agents = api._run_five_agents
+        original_shape = api._shape_body_for_delivery
+        original_score = api._score_generated_note
+        original_quality = api._generated_quality_issues
+        original_integrity = api._delivery_integrity_issues
+        original_needs_lift = api._needs_v04_score_lift
+        original_memory_prompt = api._memory.build_memory_prompt
+        original_memory_achievement = api._memory.check_and_record_achievements
+        original_log = api._log_analysis
+        original_db_execute = api._db.execute
+        captured_notes = []
+        fact_calls = []
+
+        async def fake_video(file_id, domain, brief):
+            return "视频里拍到芝士焗小青龙、红烧乳鸽和万博门店环境，适合做餐饮探店诊断。"
+
+        async def fake_enrich(domain, title, text):
+            fact_calls.append((domain, title, text))
+            return {
+                "enabled": True,
+                "provider": "amap",
+                "query": "长禧家珑厨万博广晟店",
+                "facts": {"price": "人均98元", "hours": "11:00-22:00"},
+                "sources": [{"title": "高德地图"}],
+                "confidence": 0.9,
+            }
+
+        def fake_append_fact(text, _enrichment):
+            return (
+                (text or "").strip()
+                + "\n\n【联网事实补全】\n"
+                + "- 事实源：高德地图\n"
+                + "- 位置/地址：广州番禺万博商圈\n"
+                + "- 价格/人均：人均98元\n"
+                + "- 营业时间：11:00-22:00\n"
+                + "- 必点/招牌菜：芝士焗小青龙、红烧乳鸽"
+            )
+
+        async def fake_run_agents(note, *_args, **_kwargs):
+            captured_notes.append(note)
+            bodies = [
+                "先看决策信息：长禧家珑厨在广州番禺万博商圈，人均98元，营业时间11:00-22:00。芝士焗小青龙是招牌，红烧乳鸽适合分享。点赞收藏。#广州美食 #番禺美食 #粤菜 #万博探店 #小青龙",
+                "这版从菜品种草切入：芝士焗小青龙上桌有热度，红烧乳鸽皮脆肉嫩，适合想吃粤菜的人。地址在广州番禺万博商圈，人均98元。点赞收藏。#广州美食 #番禺美食 #粤菜 #万博美食 #探店",
+                "适合想稳一点聚餐的人：这里胜在菜品信息清楚，人均98元，营业时间11:00-22:00。小青龙和乳鸽优先点，赶时间先确认排队。点赞收藏。#广州美食 #番禺美食 #粤菜聚餐 #万博 #周末去哪儿",
+            ]
+            return {
+                "diagnosis": "三入口统一进入五 agent 诊断。",
+                "titles": ["万博粤菜人均98元", "小青龙乳鸽这样点", "番禺聚餐这家很稳"],
+                "plans": [
+                    {"title": "万博粤菜人均98元", "body": bodies[0]},
+                    {"title": "小青龙乳鸽这样点", "body": bodies[1]},
+                    {"title": "番禺聚餐这家很稳", "body": bodies[2]},
+                ],
+                "plan": "按决策、菜品、避坑三方向输出。",
+                "body": bodies[0],
+                "dispute": "",
+                "expert_opinions": [{"role": "内容专家", "raw": "ok"}],
+            }
+
+        async def fake_shape(_title, body, *_args, **_kwargs):
+            return body
+
+        async def fake_score(_title, _body, *_args, **_kwargs):
+            return 73.0, {
+                "body_len": 300,
+                "tag_count": 5,
+                "body_cta_count": 1,
+                "body_has_price": 1,
+                "body_has_address": 1,
+                "body_has_hours": 1,
+                "body_has_must_order": 1,
+                "title_has_city": 1,
+                "title_has_number": 1,
+                "title_has_pos_emotion": 1,
+                "plad_number_ratio": 0.03,
+            }, "良好"
+
+        try:
+            api._billing.check_and_deduct = lambda user_id, op: None
+            api._billing.record_free_usage = lambda user_id, op: None
+            api._kimi_video_understand = fake_video
+            api._kimi_vision_quick = lambda *_args, **_kwargs: "截图里有餐厅门头、芝士焗小青龙和人均98元信息。"
+            api._video_frames.clear()
+            api._video_frames["vid-ok"] = {"frames": [b"fake-frame"], "duration_sec": 3.0, "raw_fps": 1.0}
+            api._maybe_enrich_facts = fake_enrich
+            api._append_fact_enrichment = fake_append_fact
+            api._SCHEDULER_AVAILABLE = False
+            api.compute_semantic_features = lambda *_args, **_kwargs: {
+                "semantic_emotional_intensity": 0.5,
+                "semantic_empathetic_engagement": 0.5,
+                "semantic_rhetorical_score": 0.5,
+            }
+            api._predict = lambda *_args, **_kwargs: (68.0, {})
+            api._find_weaknesses = lambda *_args, **_kwargs: []
+            api._run_five_agents = fake_run_agents
+            api._shape_body_for_delivery = fake_shape
+            api._score_generated_note = fake_score
+            api._generated_quality_issues = lambda *_args, **_kwargs: []
+            api._delivery_integrity_issues = lambda *_args, **_kwargs: []
+            api._needs_v04_score_lift = lambda *_args, **_kwargs: False
+            api._memory.build_memory_prompt = lambda user_id: "用户偏好：文案自然，少模板。"
+            api._memory.check_and_record_achievements = lambda *_args, **_kwargs: None
+            api._log_analysis = lambda *_args, **_kwargs: None
+            api._db.execute = lambda *_args, **_kwargs: None
+
+            requests = [
+                api.AnalyzeInput(
+                    note_title="长禧家珑厨万博广晟店",
+                    desc="手动输入：想做番禺万博粤菜探店。",
+                    local_time="2026062812",
+                    domain="美食",
+                ),
+                api.AnalyzeInput(
+                    note_title="长禧家珑厨万博广晟店",
+                    desc="截图上传：需要根据图片判断怎么写。",
+                    local_time="2026062812",
+                    domain="美食",
+                    extra_images=["fake-image-b64"],
+                ),
+                api.AnalyzeInput(
+                    note_title="长禧家珑厨万博广晟店",
+                    desc="视频上传：帮我诊断视频素材适合怎么写。",
+                    local_time="2026062812",
+                    domain="美食",
+                    video_file_id="vid-ok",
+                ),
+            ]
+            responses = [
+                asyncio.run(api.analyze(req, user={"id": "u1"}))
+                for req in requests
+            ]
+        finally:
+            api._billing.check_and_deduct = original_check
+            api._billing.record_free_usage = original_record
+            api._kimi_video_understand = original_video
+            api._kimi_vision_quick = original_quick
+            api._video_frames.clear()
+            api._video_frames.update(original_frames)
+            api._maybe_enrich_facts = original_enrich
+            api._append_fact_enrichment = original_append_fact
+            api._SCHEDULER_AVAILABLE = original_scheduler
+            api.compute_semantic_features = original_semantic
+            api._predict = original_predict
+            api._find_weaknesses = original_find_weaknesses
+            api._run_five_agents = original_run_agents
+            api._shape_body_for_delivery = original_shape
+            api._score_generated_note = original_score
+            api._generated_quality_issues = original_quality
+            api._delivery_integrity_issues = original_integrity
+            api._needs_v04_score_lift = original_needs_lift
+            api._memory.build_memory_prompt = original_memory_prompt
+            api._memory.check_and_record_achievements = original_memory_achievement
+            api._log_analysis = original_log
+            api._db.execute = original_db_execute
+
+        self.assertEqual(len(fact_calls), 3)
+        self.assertIn("截图里有餐厅门头", fact_calls[1][2])
+        self.assertIn("视频里拍到芝士焗小青龙", fact_calls[2][2])
+        self.assertEqual(len(captured_notes), 3)
+        self.assertIn("手动输入", captured_notes[0].desc)
+        self.assertIn("【其他内容图片描述】", captured_notes[1].desc)
+        self.assertIn("【视频画面内容（AI 解读）】", captured_notes[2].desc)
+        for note in captured_notes:
+            self.assertIn("【联网事实补全】", note.desc)
+            self.assertIn("【用户长期偏好/记忆】", note.desc)
+            self.assertIn("用户偏好：文案自然", note.desc)
+
+        for resp in responses:
+            self.assertEqual(resp.model_used, "claude-routed-5-agents")
+            self.assertEqual(len(resp.suggested_plans), 3)
+            bodies = [item["body"] for item in resp.suggested_plans]
+            self.assertEqual(len(set(bodies)), 3)
+            self.assertFalse(any(item["quality_failed"] for item in resp.suggested_plans))
+            self.assertIn(resp.suggested_body, bodies)
 
     def test_structured_fact_boundary_flags_unprovided_price_without_blocking_narrative(self):
         source = "广州番禺万博珑厨双人套餐，适合周末约会，菜品有小青龙和乳鸽。"
@@ -1180,6 +1413,14 @@ class ApiContractTests(unittest.TestCase):
         self.assertFalse(api._has_blocking_quality_issues(67.0, issues, "美食"))
         self.assertFalse(api._has_blocking_quality_issues(80.0, ["标题不自然：结尾像被硬截断，语义不完整"], "美食"))
         self.assertTrue(api._has_blocking_quality_issues(80.0, ["正文为空"], "美食"))
+        low_score_issues = api._generated_quality_issues(
+            "小个子显高公式",
+            "白衬衫和高腰裤适合通勤，点赞收藏。#穿搭 #通勤穿搭 #小个子穿搭",
+            "穿搭",
+            59.5,
+            {"body_len": 80, "tag_count": 3, "body_cta_count": 1},
+        )
+        self.assertTrue(any("评分低于硬拦线" in issue for issue in low_score_issues), low_score_issues)
 
     def test_plan_strategy_labels_are_domain_aware_not_food_only(self):
         self.assertEqual(api._plan_strategy_labels("美食"), ("决策信息型", "菜品种草型", "避坑决策型"))
@@ -1295,6 +1536,18 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("免费穿梭巴士", brief)
         self.assertIn("不要写Markdown粗体小标题", brief)
         self.assertIn("至少自然保留3项", brief)
+
+    def test_travel_route_does_not_require_hotel_fact_density(self):
+        source = (
+            "成都3天2晚慢游路线，预算1200元，住春熙路附近，"
+            "第一天人民公园和宽窄巷子，第二天熊猫基地和东郊记忆，第三天太古里。"
+        )
+        body = (
+            "成都3天2晚适合慢慢逛，预算按1200元左右准备，住春熙路附近吃喝和地铁都方便。"
+            "第一天人民公园和宽窄巷子，第二天熊猫基地和东郊记忆，第三天太古里，不用把行程排太满。"
+            "路线先收藏，评论区问我行程细节。#成都旅行 #成都攻略 #3天2晚 #春熙路 #慢旅行 #城市漫游 #旅行路线 #周末去哪儿"
+        )
+        self.assertEqual(api._travel_hotel_fact_density_issues(body, source, "旅行"), [])
 
     def test_fashion_and_home_safe_fact_briefs_are_domain_specific(self):
         fashion = api._safe_fact_delivery_brief("穿搭", "身材：梨形\n单品：直筒西裤\n价格：199元")
@@ -2946,6 +3199,54 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(issues, [])
         self.assertEqual(len(calls), 1)
         self.assertIn("肤质：混干敏感皮", calls[0][4]["source_context"])
+
+    def test_chat_quality_repair_reverts_score_regression(self):
+        original_score = api._score_chat_note
+        original_second_pass = api._score_directed_second_pass
+
+        async def fake_score(title, body, session):
+            if title == "上一版标题":
+                return 76.0, {"body_len": 300, "tag_count": 5, "body_cta_count": 1}, "优秀", []
+            return 70.5, {"body_len": 280, "tag_count": 5, "body_cta_count": 1}, "良好", []
+
+        async def fake_second_pass(title, body, domain, local_time, **kwargs):
+            return (
+                title,
+                body,
+                71.0,
+                {"body_len": 285, "tag_count": 5, "body_cta_count": 1},
+                "良好",
+                [],
+                False,
+                "still_regressed",
+            )
+
+        try:
+            api._score_chat_note = fake_score
+            api._score_directed_second_pass = fake_second_pass
+
+            title, body, score, feats, grade, issues, repaired = asyncio.run(
+                api._repair_chat_note_if_needed(
+                    "改写标题",
+                    "改写正文。#美食 #探店 #周末去哪儿 #本地生活 #收藏",
+                    {
+                        "domain": "美食",
+                        "local_time": "2026062812",
+                        "note_title": "上一版标题",
+                        "note_body": "上一版正文信息密度更高。#美食 #探店 #周末去哪儿 #本地生活 #收藏",
+                        "current_score": 76.0,
+                    },
+                    "帮我改得更自然",
+                )
+            )
+        finally:
+            api._score_chat_note = original_score
+            api._score_directed_second_pass = original_second_pass
+
+        self.assertTrue(repaired)
+        self.assertEqual(title, "上一版标题")
+        self.assertEqual(score, 76.0)
+        self.assertTrue(any("对话改写分数低于当前版本" in issue for issue in issues), issues)
 
     def test_generation_selector_prefers_clean_candidate_over_issue_penalty(self):
         original_score_candidate = api._score_generation_delivery_candidate

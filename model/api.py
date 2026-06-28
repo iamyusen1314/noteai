@@ -943,6 +943,7 @@ async def _agent_arbitrate(
     used_titles = {t for t in plan_titles if t}
     pool_iter = iter([t for t in titles_pool if t and t not in used_titles])
     plan_titles = [t or next(pool_iter, "") for t in plan_titles]
+    plan_titles = _make_plan_titles_distinct(plan_titles, domain, source_context)
     plan_a_title, plan_b_title, plan_c_title = plan_titles
 
     # ── 阶段2：三套正文独立并行生成（每套专注自己的方向，绝不共享） ──
@@ -1734,6 +1735,108 @@ def _plan_strategy_blueprint(domain: str | None) -> list[tuple[str, str]]:
 def _plan_strategy_labels(domain: str | None) -> tuple[str, str, str]:
     labels = [label for label, _rules in _plan_strategy_blueprint(domain)]
     return labels[0], labels[1], labels[2]
+
+
+def _title_distinct_key(title: str) -> str:
+    return re.sub(r"[\s，,。.!！？?、｜|:：；;（）()\[\]【】《》\"'“”‘’\-—_]+", "", title or "").lower()
+
+
+def _compact_title_core(title: str, source_context: str | None = None) -> str:
+    text = (title or "").strip()
+    if not text and source_context:
+        for line in (source_context or "").splitlines():
+            if "用户意图" in line or "已核验事实" in line:
+                text = re.sub(r"^[-\s]*(?:用户意图|已核验事实)[:：]\s*", "", line).strip()
+                if text:
+                    break
+    text = re.split(r"[，,。.!！？?；;｜|]", text)[0].strip()
+    text = re.sub(r"(?:这样做|怎么选|值得试|很稳|必点|推荐|避坑|攻略|清单)$", "", text).strip()
+    return text[:12] or "这篇笔记"
+
+
+def _plan_title_fallback_options(
+    domain: str | None,
+    label: str,
+    base_title: str,
+    source_context: str | None = None,
+) -> list[str]:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    core = _compact_title_core(base_title, source_context)
+    if canonical == "美食":
+        by_label = {
+            "决策信息型": [f"{core}值不值得去", f"{core}点单攻略"],
+            "菜品种草型": [f"{core}招牌必点", f"{core}推荐这样点"],
+            "避坑决策型": [f"{core}这样点不踩雷", f"{core}适合谁去"],
+        }
+    elif canonical == "旅行":
+        by_label = {
+            "决策信息型": [f"{core}适合谁去", f"{core}预算路线"],
+            "体验路线型": [f"{core}慢游路线", f"{core}体验顺序"],
+            "避坑取舍型": [f"{core}避坑取舍", f"{core}不赶路玩法"],
+        }
+    elif canonical == "穿搭":
+        by_label = {
+            "决策信息型": [f"{core}适合谁穿", f"{core}单品清单"],
+            "搭配公式型": [f"{core}搭配公式", f"{core}显高公式"],
+            "避坑取舍型": [f"{core}避坑取舍", f"{core}替代搭法"],
+        }
+    elif canonical == "美妆":
+        by_label = {
+            "决策信息型": [f"{core}适合谁用", f"{core}入手建议"],
+            "肤质反馈型": [f"{core}上脸反馈", f"{core}肤质反馈"],
+            "避坑取舍型": [f"{core}避坑取舍", f"{core}不适合谁"],
+        }
+    elif canonical == "家居":
+        by_label = {
+            "决策信息型": [f"{core}适合谁改", f"{core}预算清单"],
+            "空间改造型": [f"{core}收纳动线", f"{core}改造清单"],
+            "避坑取舍型": [f"{core}避坑取舍", f"{core}尺寸预算避坑"],
+        }
+    elif canonical == "健身":
+        by_label = {
+            "决策信息型": [f"{core}适合谁练", f"{core}新手可练"],
+            "动作计划型": [f"{core}动作计划", f"{core}跟练顺序"],
+            "避坑取舍型": [f"{core}避坑取舍", f"{core}替代动作"],
+        }
+    else:
+        by_label = {
+            "决策信息型": [f"{core}适合谁看", f"{core}决策清单"],
+            "核心卖点型": [f"{core}核心亮点", f"{core}重点拆解"],
+            "避坑取舍型": [f"{core}避坑取舍", f"{core}替代方案"],
+        }
+    options = by_label.get(label, [f"{core}{label.replace('型', '')}"])
+    return options + [f"{core}{label.replace('型', '')}"]
+
+
+def _make_plan_titles_distinct(
+    titles: list[str],
+    domain: str | None,
+    source_context: str | None = None,
+) -> list[str]:
+    labels = _plan_strategy_labels(domain)
+    out: list[str] = []
+    seen: set[str] = set()
+    for idx in range(3):
+        label = labels[idx]
+        raw_title = titles[idx] if idx < len(titles) else ""
+        title = _sanitize_title_for_delivery(raw_title, source_context, domain)
+        key = _title_distinct_key(title)
+        if not title or key in seen:
+            for option in _plan_title_fallback_options(domain, label, title or raw_title, source_context):
+                candidate = _sanitize_title_for_delivery(_fallback_title_under_limit(option), source_context, domain)
+                cand_key = _title_distinct_key(candidate)
+                if candidate and cand_key and cand_key not in seen and not _title_readability_issues(candidate, domain):
+                    title = candidate
+                    key = cand_key
+                    break
+        if key in seen:
+            suffix = str(idx + 1)
+            title = _fallback_title_under_limit(f"{_compact_title_core(title, source_context)}{suffix}版")
+            key = _title_distinct_key(title)
+        out.append(title)
+        if key:
+            seen.add(key)
+    return out
 
 
 def _plan_strategy_specs(domain: str | None, plan_a_title: str, plan_b_title: str, plan_c_title: str) -> list[tuple[str, str, str]]:
@@ -4087,8 +4190,31 @@ def _repair_dangling_title_tail(text: str) -> str:
         "膝盖友好的18分钟居家减脂，新手也能": "膝盖友好18分钟减脂，新手可练",
         "18分钟膝盖友好的居家减脂训练，新手": "18分钟膝盖友好减脂，新手可练",
         "18分钟膝盖友好减脂，4个动作适合新": "18分钟膝盖友好减脂，新手可练",
+        "新手居家7天减脂计划，4个动作20": "新手居家7天减脂，4个动作20分钟",
+        "新手膝盖友好7天减脂计划，4个动作2": "新手膝盖友好减脂，4个动作",
+        "居家减脂7天循环，4个动作新手也能坚": "居家减脂7天循环，4个动作",
+        "新手居家7天减脂，4个动作20分钟循": "新手居家7天减脂，4个动作20分钟",
+        "新手7天居家减脂，4个动作20分钟循": "新手7天居家减脂，4个动作20分钟",
         "膝盖友好很稳，18分钟4动作新手减脂": "膝盖友好18分钟，4个动作减脂",
         "18分钟膝盖友好减脂，4个动作3轮搞": "18分钟膝盖友好减脂，4个动作3轮",
+        "南京西路蟹黄拌面58元，周末排队值不": "南京西路蟹黄拌面58元，周末排队值得",
+        "南京西路蟹黄拌面58元，周末排队20": "58元蟹黄拌面，排队20分钟",
+        "黄皮混干皮选腮红，这支奶杏玫瑰色真": "黄皮混干皮腮红，奶杏玫瑰色显白",
+        "黄皮混干皮用这支腮红，通勤妆显气色还": "黄皮混干皮腮红，通勤妆显气色",
+        "黄皮混干皮用这支腮红很稳，显白不显毛": "黄皮混干皮腮红，显白不显毛孔",
+        "黄皮混干皮亲测｜79元腮红显白不显毛": "黄皮混干皮79元腮红，显白不显毛孔",
+        "小个子通勤显高3套公式，89元起搭": "小个子通勤显高3套公式，89元起",
+        "小个子显高3套通勤公式，89元衬衫开": "小个子通勤显高，89元衬衫起",
+        "小个子通勤显高3套公式，89元衬衫开": "小个子通勤显高，89元衬衫起",
+        "38平出租屋3000元改造，从乱到有": "38平出租屋3000元改造，有序收纳",
+        "38平出租屋3000元改造，很稳的收": "38平出租屋3000元改造，有序收纳",
+        "38平出租屋3000元改造，终于走路": "38平出租屋3000元改造，动线更顺",
+        "成都3天2晚慢游攻略，1200元这样": "成都3天2晚1200元慢游",
+        "成都3天2晚慢游实测，1200元人均": "成都3天2晚1200元慢游",
+        "新手居家减脂7天计划，4个动作每晚2": "新手居家减脂，每晚20分钟",
+        "新手7天居家减脂，4个动作避坑执行指": "新手居家减脂，4个动作避坑",
+        "新手居家减脂7天计划，4个动作20": "新手居家7天减脂，4个动作20分钟",
+        "新手居家减脂7天循环，4个动作20": "新手居家减脂7天，4个动作20分钟",
         "混干敏感皮通勤防晒，两指量分次涂不搓": "混干敏感皮防晒，两指量分次涂不搓泥",
         "混干敏感皮防晒｜两指量少量多次才不搓": "混干敏感皮防晒，两指量才不搓泥",
         "敏感混干皮通勤防晒，涂了不搓泥还能上": "敏感混干皮防晒，上粉底不搓泥很稳",
@@ -4327,6 +4453,9 @@ def _generated_quality_issues(
     tag_max = int(target["tag_max"])
 
     issues: list[str] = []
+    min_score = _quality_min_acceptable_percentile(canonical)
+    if float(score or 0.0) < min_score:
+        issues.append(f"评分低于硬拦线（当前{float(score or 0.0):.1f}分，最低{min_score:.0f}分），不能直接交付")
     if not title:
         issues.append("标题为空，必须生成可直接发布的标题")
     elif title_len < 6:
@@ -4526,7 +4655,9 @@ def _title_readability_issues(title: str, domain: str | None = None) -> list[str
         r"(?:酒店吃喝|吃喝地铁|来排|搞定收|让折叠|做完整|高腰A|元打造)$|"
         r"(?:招牌必|必点金牌|蜀大侠必|麻辣牛|必点这|虾饺皇必|不会踩|点不会|必点这样吃|"
         r"人均\d{2,4}稳|人均\d{2,4}广式早|这家\d{2,4}元人均很稳)$|"
-        r"(?:动作新|动作3|\d+轮搞|\d+个动|新手也能|适合新|[，,][^，,]{0,8}新手|分钟足|5步\d+|[，,]\d+个)$|(?:工作|招|实际|这样|怎么)$)",
+        r"(?:动作新|动作3|\d+轮搞|\d+个动|动作2|新手也能|适合新|也能坚|分钟循|元起搭|排队值不|排队20|玫瑰色真|"
+        r"显气色还|不显毛|衬衫开|从乱到有|很稳的收|终于走路|每晚2|执行指|动作20|1200元这样|1200元人均|"
+        r"[，,][^，,]{0,8}新手|分钟足|5步\d+|[，,]\d+个)$|(?:工作|招|实际|这样|怎么)$)",
         text,
     ):
         issues.append("标题不自然：末尾疑似断词，语义不完整")
@@ -6687,7 +6818,7 @@ def _travel_hotel_fact_density_issues(text: str, source_context: str | None, dom
     if canonical != "旅行":
         return []
     src = source_context or ""
-    if not re.search(r"(?:美团|酒店|住宿|客房|房型|元起/晚|￥|评分|早餐|亲子|商务|地铁|班车|穿梭)", src):
+    if not re.search(r"(?:美团|meituan|酒店|住宿|客房|房型|元起/晚|/晚|入住|退房)", src, re.I):
         return []
     body = text or ""
     signals: set[str] = set()
@@ -6746,7 +6877,7 @@ def _delivery_integrity_issues(text: str, source_context: str | None, domain: st
 
 
 def _has_blocking_quality_issues(score: float, issues: list[str], domain: str | None = None) -> bool:
-    if score < 60:
+    if score < _quality_min_acceptable_percentile(domain):
         return True
     # 60+ content should stay deliverable and enter chat optimization instead of
     # being hard-blocked. Quality/fact issues remain visible repair signals.
@@ -10080,6 +10211,30 @@ async def _score_chat_note(
         return None, {}, "", []
 
 
+_CHAT_MAX_ACCEPTABLE_SCORE_DROP = 2.0
+
+
+def _chat_score_regression_issue(previous_score: float, current_score: float) -> str:
+    return (
+        f"对话改写分数低于当前版本（当前稿{previous_score:.1f}分，改写后{current_score:.1f}分），"
+        "需要继续二修或保留上一版"
+    )
+
+
+async def _chat_previous_note_payload(
+    session: dict,
+    extra_issue: str,
+) -> tuple[str, str, float | None, dict[str, float], str, list[str], bool]:
+    prev_title = session.get("note_title", "")
+    prev_body = session.get("note_body", "")
+    prev_score, prev_feats, prev_grade, prev_issues = await _score_chat_note(prev_title, prev_body, session)
+    if prev_score is None and session.get("current_score") is not None:
+        prev_score = float(session.get("current_score") or 0.0)
+        prev_grade = _grade(prev_score)
+    issues = list(dict.fromkeys([extra_issue] + [issue for issue in prev_issues if issue]))
+    return prev_title, prev_body, prev_score, prev_feats, prev_grade, issues, True
+
+
 async def _repair_chat_note_if_needed(
     title: str,
     body: str,
@@ -10090,10 +10245,18 @@ async def _repair_chat_note_if_needed(
     domain = session.get("domain", "美食")
     if score is None:
         return title, body, score, feats, grade, issues, False
+    previous_score = session.get("current_score")
+    try:
+        previous_score_f = float(previous_score) if previous_score is not None else None
+    except Exception:
+        previous_score_f = None
+    regressed = previous_score_f is not None and score < previous_score_f - _CHAT_MAX_ACCEPTABLE_SCORE_DROP
+    if regressed:
+        issues = list(dict.fromkeys(issues + [_chat_score_regression_issue(previous_score_f, score)]))
     if not _has_blocking_quality_issues(score, issues, domain):
         fact_source = session.get("fact_context") or session.get("note_body", "")
         needs_v04_lift = _needs_v04_score_lift(score, feats, domain, fact_source)
-        if _score_gap_issue_count(issues) <= 0 and not needs_v04_lift:
+        if _score_gap_issue_count(issues) <= 0 and not needs_v04_lift and not regressed:
             return title, body, score, feats, grade, issues, False
         (
             lifted_title,
@@ -10117,6 +10280,15 @@ async def _repair_chat_note_if_needed(
             current_issues=issues,
             route="chat",
         )
+        if (
+            previous_score_f is not None
+            and lifted_score is not None
+            and lifted_score < previous_score_f - _CHAT_MAX_ACCEPTABLE_SCORE_DROP
+        ):
+            return await _chat_previous_note_payload(
+                session,
+                _chat_score_regression_issue(previous_score_f, float(lifted_score)),
+            )
         return lifted_title, lifted_body, lifted_score, lifted_feats, lifted_grade, lifted_issues, lifted
 
     repair_parts = [
@@ -10188,8 +10360,24 @@ async def _repair_chat_note_if_needed(
                 )
                 if lifted_score is not None:
                     r_score = lifted_score
+                    if (
+                        previous_score_f is not None
+                        and r_score < previous_score_f - _CHAT_MAX_ACCEPTABLE_SCORE_DROP
+                    ):
+                        return await _chat_previous_note_payload(
+                            session,
+                            _chat_score_regression_issue(previous_score_f, float(r_score)),
+                        )
                     if lifted:
                         return r_title, r_body, r_score, r_feats, r_grade, r_issues, True
+            if (
+                previous_score_f is not None
+                and r_score < previous_score_f - _CHAT_MAX_ACCEPTABLE_SCORE_DROP
+            ):
+                return await _chat_previous_note_payload(
+                    session,
+                    _chat_score_regression_issue(previous_score_f, float(r_score)),
+                )
             return r_title, r_body, r_score, r_feats, r_grade, r_issues, True
     except Exception:
         pass
@@ -10328,6 +10516,8 @@ async def _chat_sse_generator(
     note_extracted = _extract_note_from_response(full_content)
     quality_blocking = False
     if note_extracted:
+        previous_note_title = session.get("note_title", "")
+        previous_note_body = session.get("note_body", "")
         new_title, new_body = note_extracted
         fact_source = session.get("fact_context") or session.get("note_body", "")
         new_title = _sanitize_title_for_delivery(new_title, fact_source, session.get("domain", "美食"))
@@ -10351,7 +10541,11 @@ async def _chat_sse_generator(
 
         # ── 自动保存笔记版本到 notes 表 ─────────────────────────────────
         user_id_for_save = session.get("user_id", "")
-        if user_id_for_save and not quality_blocking:
+        unchanged_after_repair = (
+            (new_title or "").strip() == (previous_note_title or "").strip()
+            and re.sub(r"\s+", "", new_body or "") == re.sub(r"\s+", "", previous_note_body or "")
+        )
+        if user_id_for_save and not quality_blocking and not unchanged_after_repair:
             try:
                 # 找上一个版本的 note_id（存在 session 中）
                 prev_note_id = session.get("_last_note_id")

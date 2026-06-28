@@ -552,6 +552,15 @@ async def generate_dependent_slot(
             current_grade=str(base.get("grade", "")),
             current_issues=list(base.get("quality_issues") or []),
         )
+        title, body, score, features, grade, issues, blocking = await _postprocess_and_score(
+            api,
+            title,
+            body,
+            domain=domain,
+            local_time=local_time,
+            source_context=source_context,
+            style_hint=focus or "交付质量二修",
+        )
         return _ready_artifact(
             row,
             payload,
@@ -562,7 +571,7 @@ async def generate_dependent_slot(
             features=features,
             grade=grade,
             issues=issues,
-            blocking=bool(api._has_blocking_quality_issues(float(score or 0.0), issues, domain)),
+            blocking=blocking,
             source_context=source_context,
             generation_notes=[reason, f"base_slot={base.get('slot_id')}", f"repaired={repaired}"],
         )
@@ -596,6 +605,20 @@ async def generate_dependent_slot(
             source_context=source_context,
             style_hint=focus or "对话优化",
         )
+        base_score = float(base.get("score") or 0.0)
+        if blocking or float(score or 0.0) < base_score - float(getattr(api, "_CHAT_MAX_ACCEPTABLE_SCORE_DROP", 2.0)):
+            title, body, score, features, grade, issues, blocking = await _postprocess_and_score(
+                api,
+                str(base.get("title", "")),
+                str(base.get("body", "")),
+                domain=domain,
+                local_time=local_time,
+                source_context=source_context,
+                style_hint=focus or "对话优化回退版本复核",
+            )
+            fallback_note = "chat_rewrite_rejected_score_drop_or_blocking"
+        else:
+            fallback_note = ""
         return _ready_artifact(
             row,
             payload,
@@ -608,7 +631,7 @@ async def generate_dependent_slot(
             issues=issues,
             blocking=blocking,
             source_context=source_context,
-            generation_notes=[f"base_slot={base.get('slot_id')}"],
+            generation_notes=[item for item in [f"base_slot={base.get('slot_id')}", fallback_note] if item],
         )
 
     return _skip_artifact(row, payload, f"unsupported_dependent_route:{route}")
@@ -632,7 +655,7 @@ def _ready_artifact(
     return {
         "version": VERSION,
         "created_at": _now_iso(),
-        "status": "ready",
+        "status": "blocked" if blocking else "ready",
         "queue_id": row.get("queue_id", ""),
         "task_id": payload.get("task_id") or row.get("task_id", ""),
         "slot_id": payload.get("slot_id") or row.get("slot_id", ""),
@@ -740,7 +763,14 @@ def build_run_report(
     ready_artifacts = [
         item["artifact"]
         for item in results
-        if item.get("artifact", {}).get("status") == "ready" and item.get("artifact", {}).get("score") is not None
+        if item.get("artifact", {}).get("status") == "ready"
+        and not item.get("artifact", {}).get("blocking")
+        and item.get("artifact", {}).get("score") is not None
+    ]
+    blocked_artifacts = [
+        item["artifact"]
+        for item in results
+        if item.get("artifact", {}).get("status") == "blocked" or item.get("artifact", {}).get("blocking")
     ]
     scores = [float(item["score"]) for item in ready_artifacts]
     by_status: dict[str, int] = {}
@@ -777,6 +807,7 @@ def build_run_report(
             "median": round(statistics.median(scores), 3) if scores else None,
             "ready_ge_60": sum(1 for score in scores if score >= 60),
             "legacy_score_ge_reference": sum(1 for score in scores if score >= LEGACY_REFERENCE_SCORE),
+            "blocked_count": len(blocked_artifacts),
         },
         "ready_outputs": [
             {
@@ -790,6 +821,20 @@ def build_run_report(
             }
             for item in results
             if item.get("artifact", {}).get("status") == "ready"
+            and not item.get("artifact", {}).get("blocking")
+        ],
+        "blocked_outputs": [
+            {
+                "path": item["path"],
+                "task_id": item["artifact"].get("task_id", ""),
+                "slot_id": item["artifact"].get("slot_id", ""),
+                "domain": item["artifact"].get("domain", ""),
+                "title": item["artifact"].get("title", ""),
+                "score": item["artifact"].get("score"),
+                "issues": (item["artifact"].get("quality_issues") or [])[:8],
+            }
+            for item in results
+            if item.get("artifact", {}).get("status") == "blocked" or item.get("artifact", {}).get("blocking")
         ],
         "failures": [
             {
