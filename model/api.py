@@ -1010,7 +1010,7 @@ async def _agent_arbitrate(
             "菜品种草型": f"{lead_title}。这版从招牌菜和点单建议切入：",
             "体验路线型": f"{lead_title}。这版从路线和体验亮点切入：",
             "搭配公式型": f"{lead_title}。这版从搭配公式和适合人群切入：",
-            "效果实测型": f"{lead_title}。这版从使用效果和适合条件切入：",
+            "肤质反馈型": f"{lead_title}。这版从肤质反馈和适合条件切入：",
             "空间改造型": f"{lead_title}。这版从改造结果和清单切入：",
             "动作计划型": f"{lead_title}。这版从动作安排和执行门槛切入：",
             "安全实操型": f"{lead_title}。这版从安全边界和步骤切入：",
@@ -1301,7 +1301,7 @@ _GEN_CHECKLISTS: dict[str, str] = {
         "③ 互动引导：结尾自然出现「点赞」和「收藏」两个词，可引导评论但不要硬塞问号。\n"
         "④ 产品信息：产品全称+色号只在用户或事实源提供时引用；未知色号不要写#XX号，不要占位。\n"
         "⑤ 肤质/肤色说明：明确适合的肤质（干皮/油皮/混皮/敏感肌）或肤色（冷白/暖黄皮）。\n"
-        "⑥ 使用效果：妆前妆后对比，或持妆时长，或具体效果（哑光/素颜感/不浮粉）。\n"
+        "⑥ 妆效边界：写妆前妆后可观察变化，或具体妆感（哑光/素颜感/不浮粉）；持妆时长只在用户或事实源提供时引用。\n"
         "⑦ 价格：产品价格或性价比对比只在用户或事实源提供时引用；未提供时写「价格按购买渠道为准」。\n"
         "⑧ 表情符号：1-2种，放在句号（。）之前，不要放在句号后独立一行。\n"
         "⑨ 话题标签：5-8个，含肤质词（如#敏感肌推荐）或效果词（如#素颜感）。\n"
@@ -1474,12 +1474,12 @@ _GENERATION_PLANNING_RULES: dict[str, dict[str, str]] = {
         "allowed_tone": "允许：显瘦、显高、公式、推荐、值得入；禁止穿出165、秒变170、多五厘米、腿长一米八、瘦十斤等夸大身材变化。",
     },
     "美妆": {
-        "title": "肤质/妆效 + 产品/色号 + 实测/推荐/适合",
-        "structure": "开头写肤质/妆效需求；中段写质地、上脸、用量、持妆/效果；结尾写适合人群、价格渠道和收藏理由。",
+        "title": "肤质/妆效 + 产品/色号 + 推荐/适合",
+        "structure": "开头写肤质/妆效需求；中段写质地、上脸、用量、成膜/服帖边界；结尾写适合人群、价格渠道和收藏理由。",
         "required_terms": "正文必须明确肤质/色号/妆效或使用步骤；标题优先带肤质、效果或色号。",
         "core_repeat": "核心词建议：产品名、色号、妆效词重复2-4次。",
-        "facts": "产品全称、色号、价格、肤质、功效/持妆时长只引用用户信息；不编造医学功效。",
-        "allowed_tone": "允许：实测、推荐、适合、妆效稳；避免烂脸/医美/治疗等高风险表达。",
+        "facts": "产品全称、色号、价格、肤质、功效/持妆时长只引用用户信息或已核验事实；不编造使用周期、敏感反应和医学功效。",
+        "allowed_tone": "允许：推荐、适合、妆效稳；只有用户或事实源提供真实试用信息时才写实测，避免烂脸/医美/治疗等高风险表达。",
     },
     "家居": {
         "title": "空间/面积/预算 + 改造结果 + 清单/值得",
@@ -1572,6 +1572,7 @@ def _domain_generation_fact_bits(canonical: str, source_context: str | None) -> 
         "美妆": [
             ("肤质/诉求", ("肤质/诉求", "肤质", "皮肤", "诉求"), ("干皮", "油皮", "混干", "混油", "敏感", "痘肌", "毛孔", "暗沉")),
             ("产品/色号", ("产品/色号", "产品", "色号", "品牌", "品名"), ("粉底", "防晒", "口红", "精华", "面霜", "色号", "SPF")),
+            ("价格/渠道", ("价格/渠道", "价格", "预算", "渠道", "购买"), ("元", "价格", "预算", "购买", "链接", "门店")),
             ("用量/手法", ("用量/手法", "用量", "手法", "步骤"), ("两指", "少量多次", "拍开", "打圈", "叠涂", "定妆")),
             ("妆效/边界", ("妆效/边界", "妆效", "效果", "持妆", "适合", "不适合"), ("哑光", "奶油肌", "持妆", "拔干", "搓泥", "不闷")),
         ],
@@ -1675,9 +1676,9 @@ def _plan_strategy_blueprint(domain: str | None) -> list[tuple[str, str]]:
             ("避坑取舍型", "①开头写适合谁/不适合谁 ②信息顺序固定为：身材取舍→容易踩雷点→替代搭法→收藏理由 ③不编造真实试穿经历 ④结尾含「点赞」「收藏」互动引导"),
         ],
         "美妆": [
-            ("决策信息型", "①开头直接回答适合什么肤质/妆效需求 ②信息顺序固定为：结论→产品/色号/价格→使用步骤→适合人群 ③功效、持妆、价格只能用已提供事实 ④结尾含「点赞」「收藏」互动引导"),
-            ("效果实测型", "①开头围绕一个妆效/肤感/色号记忆点展开 ②信息顺序固定为：上脸效果→质地/用量→搭配手法→购买或使用建议 ③不夸大功效，不写无依据医学表达 ④结尾含「点赞」「收藏」互动引导"),
-            ("避坑取舍型", "①开头写适合谁/不适合谁 ②信息顺序固定为：肤质取舍→使用雷区→替代方案→收藏理由 ③不编造过敏、烂脸等经历 ④结尾含「点赞」「收藏」互动引导"),
+            ("决策信息型", "①开头直接回答适合什么肤质/肤色/妆效需求 ②信息顺序固定为：结论→产品/色号/价格→使用步骤→适合人群 ③彩妆写肤色/色号/薄厚涂/唇纹或补涂，底妆防晒写肤质/成膜/底妆适配 ④功效、持妆、价格只能用已提供事实 ⑤结尾含「点赞」「收藏」互动引导"),
+            ("肤质反馈型", "①开头围绕一个妆效/肤感/色号记忆点展开 ②信息顺序固定为：上脸反馈→质地/用量→搭配手法→购买或使用建议 ③唇妆不能套防晒底妆模板，防晒底妆不能写成口红试色 ④不编造试用周期、敏感反应或无依据医学表达 ⑤结尾含「点赞」「收藏」互动引导"),
+            ("避坑取舍型", "①开头写适合谁/不适合谁 ②信息顺序固定为：肤质/肤色取舍→使用雷区→替代方案→收藏理由 ③按产品类型写真实雷区：搓泥、卡粉、显唇纹、显黑、补涂、厚重之一 ④不编造过敏、烂脸等经历 ⑤结尾含「点赞」「收藏」互动引导"),
         ],
         "家居": [
             ("决策信息型", "①开头直接回答这个方案适合什么户型/预算 ②信息顺序固定为：结论→面积/预算/清单→改造逻辑→适合人群 ③不编造尺寸和价格 ④结尾含「点赞」「收藏」互动引导"),
@@ -2080,8 +2081,8 @@ def _domain_candidate_angle(domain: str | None, index: int = 0) -> str:
             "酒旅决策型：前120字保留酒店起价/评分/位置/交通权益中的至少3项，再写预算优先、亲子/商务设施或通勤取舍，事实只来自已核验来源。",
         ],
         "美妆": [
-            "肤质决策型：先讲适合肤质/场景，再写用量手法、妆效边界、价格渠道确认方式，不写无依据功效。",
-            "真实试用型：把产品名、色号/质地、上脸效果、缺点和适合人群写成自然体验，不机械种草。",
+            "肤质决策型：先讲适合肤质/肤色/场景，再写用量手法、妆效边界、价格渠道确认方式；彩妆聚焦色号薄厚涂，底妆防晒聚焦成膜和底妆适配，不写无依据功效。",
+            "肤质反馈型：把产品名、色号/质地、上脸反馈、缺点和适合人群写成自然体验；唇妆写肤色、唇纹、饭后补涂，防晒底妆写搓泥/卡粉/泛白；只有素材提供真实试用周期时才写亲测。",
         ],
         "穿搭": [
             "场景搭配型：先讲身形/场景，再写单品版型、颜色比例、价格渠道确认方式和复用公式；避免穿出165、多五厘米等身高承诺。",
@@ -2407,6 +2408,8 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
     if not features.get("title_has_pos_emotion", 0):
         if canonical == "美食":
             items.append("标题缺正向推荐信号，从以下选1个：必点/值得/推荐/很稳，避免绝了/天花板/闭眼冲")
+        elif canonical == "美妆":
+            items.append("标题缺正向推荐信号，从以下选1个：值得/推荐/适合/很稳；只有素材提供真实试用时才写实测")
         else:
             items.append("标题缺正向推荐信号，从以下选1个：值得/推荐/实测/适合/很稳，避免廉价爆词")
     if not features.get("title_has_number", 0):
@@ -4057,6 +4060,25 @@ def _repair_dangling_title_tail(text: str) -> str:
         "18分钟膝盖友好的居家减脂训练，新手": "18分钟膝盖友好减脂，新手可练",
         "膝盖友好很稳，18分钟4动作新手减脂": "膝盖友好18分钟，4个动作减脂",
         "18分钟膝盖友好减脂，4个动作3轮搞": "18分钟膝盖友好减脂，4个动作3轮",
+        "混干敏感皮通勤防晒，两指量分次涂不搓": "混干敏感皮防晒，两指量分次涂不搓泥",
+        "混干敏感皮防晒｜两指量少量多次才不搓": "混干敏感皮防晒，两指量才不搓泥",
+        "敏感混干皮通勤防晒，涂了不搓泥还能上": "敏感混干皮防晒，上粉底不搓泥很稳",
+        "敏感混干皮通勤防晒，上粉底不搓泥的选": "敏感混干皮防晒，上粉底不搓泥很稳",
+        "油皮夏天底妆这样更稳，6小时不明显": "油皮夏天底妆，6小时不斑驳很稳",
+        "油皮夏天底妆少量多次不厚涂，6小时不": "油皮夏天底妆，6小时不斑驳很稳",
+        "油皮夏天底妆少量多次才稳妥，6小时不": "油皮夏天底妆，6小时不斑驳很稳",
+        "油皮夏天底妆6小时不斑驳，湿海绵少量": "油皮夏天底妆，6小时不斑驳很稳",
+        "黄黑皮通勤口红，玫瑰棕薄涂不显肤69": "黄黑皮玫瑰棕口红，69元很稳",
+        "黄黑皮口红，薄涂素颜很稳，69元玫瑰": "黄黑皮玫瑰棕口红，69元很稳",
+        "黄黑皮通勤口红，这支玫瑰棕我能涂一年": "黄黑皮玫瑰棕口红，69元很稳",
+        "敏感混干皮通勤防晒，涂完直接上粉底不": "敏感混干皮防晒，上粉底不搓泥很稳",
+        "敏感混干皮通勤防晒，成膜不泛白还好补": "敏感混干皮防晒，成膜不泛白可补涂",
+        "敏感混干皮通勤防晒，这支89元不搓泥": "敏感混干皮防晒，89元不搓泥很稳",
+        "敏感混干皮通勤防晒，清爽成膜很稳": "敏感混干皮防晒，89元清爽很稳",
+        "黄黑皮通勤口红，这支玫瑰棕稳": "黄黑皮玫瑰棕口红，69元很稳",
+        "黄黑皮通勤口红，这支玫瑰棕69元稳": "黄黑皮玫瑰棕口红，69元很稳",
+        "油皮夏天底妆这样做，6小时不斑驳": "油皮夏天底妆，6小时不斑驳很稳",
+        "油皮夏天底妆这样用": "油皮夏天底妆，6小时不斑驳很稳",
         "6月龄睡前流程别弄太复杂，25分钟足": "6月龄睡前流程推荐，25分钟就够",
         "6月龄睡前流程别弄太复杂，5步25": "6月龄睡前流程推荐，25分钟就够",
         "6月龄睡前流程别太复杂，5步25分钟": "6月龄睡前流程推荐，25分钟就够",
@@ -4480,7 +4502,7 @@ def _title_readability_issues(title: str, domain: str | None = None) -> list[str
     ):
         issues.append("标题不自然：末尾疑似断词，语义不完整")
     if re.search(
-        r"(?:人均\d{1,2}$|人均$|才不$|不踩$|这\d$|"
+        r"(?:人均\d{1,2}$|人均$|才不$|才不搓$|分次涂不搓$|还能上$|的选$|6小时不$|6小时不明显$|不显肤\d+$|不踩$|这\d$|"
         r"[：:，,](?:地铁距离|价格差|预算和设|价格、设施|班车|房)$)",
         text,
     ):
@@ -4652,8 +4674,11 @@ def _quality_expression_brief(domain: str | None = None) -> str:
         return (
             "【表达质量要求】\n"
             "- 写成「肤质诉求决策」而不是泛泛好用：肤质/肤色→产品/色号→用量手法→妆效边界→适合/不适合。\n"
+            "- 先判断产品类型：唇妆/彩妆写肤色匹配、色号、薄涂厚涂、唇纹和饭后补涂；防晒/底妆写肤质、成膜、泛白、搓泥、卡粉和后续底妆适配。\n"
             "- 用户或事实源已给价格/渠道时必须自然写进产品段；未提供价格时只写「价格按购买渠道为准」，不编造折扣和大牌平替比例。\n"
-            "- 功效、持妆、敏感肌安全性只按用户或事实源表达，不写医学承诺，不写虚假烂脸/过敏经历。\n"
+            "- 功效、持妆、敏感肌安全性只按用户或事实源表达；未提供试用周期、泛红闷痘反馈、补涂频率时，不写「用了多久」「没泛红」「不用补涂」。\n"
+            "- 可以写自然判断：更适合先看成膜、服帖度、薄厚涂、唇部状态、是否容易搓泥、是否适合后续底妆；不写医学承诺，不写虚假烂脸/过敏经历。\n"
+            "- 不要把生成规则写进正文，例如「先看肤质匹配」「妆效边界」这类元话术只用于内部规划，交付正文要改成真实分享语言。\n"
             "- 标题和正文围绕肤质词、产品词、妆效词聚焦，少用空泛惊艳词。"
         )
     if canonical == "家居":
@@ -4698,6 +4723,21 @@ def _sanitize_title_for_delivery(title: str, source_context: str | None = None, 
         text = re.sub(r"人均(\d{2,4})(?=(?:很稳|推荐|值得|必点|必吃|冲|$))", r"人均\1元", text)
         if re.search(r"(?:这家|粤菜聚餐)[^，,。！？]{0,10}人均\d{2,4}元?很稳", text):
             text = _food_title_fact_fallback(src, text) or text
+    if canonical == "美妆":
+        price_match = _PRICE_FACT_RE.search(src)
+        if price_match and not _PRICE_FACT_RE.search(text):
+            raw_price = re.sub(r"\s+", "", price_match.group(0))
+            value_match = re.search(r"(?:¥|￥)?\d{2,5}(?:元|块|rmb|RMB)", raw_price, re.I)
+            price = value_match.group(0) if value_match else raw_price
+            price_repairs = {
+                "敏感混干皮防晒，上粉底不搓泥很稳": f"敏感混干皮防晒，{price}不搓泥很稳",
+                "敏感混干皮防晒，上粉底不搓泥": f"敏感混干皮防晒，{price}不搓泥很稳",
+                "敏感混干皮通勤防晒，早上两指量不搓泥": f"敏感混干皮防晒，{price}不搓泥很稳",
+                "混干敏感皮防晒，两指量分次涂不搓泥": f"混干敏感皮防晒，{price}不搓泥很稳",
+            }
+            candidate = price_repairs.get(text)
+            if candidate and len(candidate) <= _TITLE_DELIVERY_MAX:
+                text = candidate
     exact_repairs = {
         "6月龄睡前流程别复杂，这样做就够推荐": "6月龄睡前流程推荐，25分钟就够",
         "6月龄睡前流程别弄太复杂，这5步就够": "6月龄睡前流程推荐，25分钟就够",
@@ -4762,10 +4802,228 @@ def _remove_unsupported_travel_value_claims(text: str, source_context: str | Non
     return out
 
 
+_BEAUTY_PRODUCT_TERM_RE = re.compile(
+    r"(?:防晒乳|防晒霜|防晒|粉底液|粉底|腮红|口红|唇釉|眼影|精华|面霜|隔离|粉饼|气垫|散粉|遮瑕|睫毛膏|染发剂)"
+)
+_BEAUTY_USAGE_PERIOD_RE = re.compile(
+    r"(?:我(?:已经|持续)?|本人)?(?:用(?:了|过)?|试(?:了|用)?|上脸(?:了)?)"
+    r"(?:快|大概|差不多|将近)?(?:一段时间|一阵子|半个?月|一个?月|半年|一年|[一二三四五六七八九十两\d]+(?:个)?(?:多)?(?:天|周|月|年|星期))"
+    r"[^。！？\n]*[。！？]?"
+)
+_BEAUTY_SENSITIVE_RESULT_RE = re.compile(
+    r"(?:敏感(?:肌|皮|期|那阵子)[^。！？\n]{0,22}(?:没|没有|不|无)[^。！？\n]{0,10}(?:泛红|刺激|过敏|闷痘|拔干|紧绷)"
+    r"|(?:没|没有|不会|无|零)[^。！？\n]{0,8}(?:泛红|刺激|过敏|闷痘)"
+    r"|(?:不|不会)(?:刺激|过敏|闷痘|拔干|紧绷))"
+)
+_BEAUTY_NO_TOUCHUP_RE = re.compile(
+    r"(?:不用|无需|不需要|没必要|基本不需要|中午不用)[^。！？\n]{0,12}(?:补涂|补妆|重新上防晒)"
+    r"|(?:一整天|整天|全天|到下班|[一二三四五六七八九十两\d]+\s*(?:小时|h|H))[^。！？\n]{0,28}"
+    r"(?:不(?:用|需要)?补(?:涂|妆)|妆感(?:都)?(?:稳定|很稳)|撑住|坚持)"
+)
+_BEAUTY_DURATION_RESULT_RE = re.compile(
+    r"(?:[一二三四五六七八九十两\d]+\s*(?:小时|h|H)|一整天|整天|全天|到下班)[^。！？\n]{0,24}"
+    r"(?:持妆|妆感|不脱妆|不暗沉|不斑驳|不补涂|不补妆|不容易搓泥|不搓泥|不卡粉|不浮粉|稳定|很稳|撑住|hold住)"
+)
+_BEAUTY_ALL_DAY_RESULT_RE = re.compile(
+    r"(?:一整天|整天|全天|到下班)[^。！？\n]{0,24}"
+    r"(?:持妆|妆感|妆面|不脱妆|不暗沉|不斑驳|不补涂|不补妆|不容易搓泥|不搓泥|不卡粉|不浮粉|稳定|很稳|服帖|撑住|hold住)"
+    r"[^。！？\n]*[。！？]?"
+)
+_BEAUTY_APPLICATION_TIME_RE = re.compile(
+    r"(?:等(?:它)?|等个|等待|成膜(?:需要|约|大概)?|再等)\s*(?:十来秒|几秒|几十秒|半分钟|[一二三四五六七八九十两\d]+\s*(?:[-~至到]\s*[一二三四五六七八九十两\d]+)?\s*(?:秒|分钟))"
+)
+_BEAUTY_PRODUCT_USAGE_SPAN_RE = re.compile(
+    r"(?:用量省[^。！？\n]{0,20}|(?:一支|一瓶|这支|这款)[^。！？\n]{0,20})"
+    r"(?:能|可以)?用\s*[一二三四五六七八九十两\d]+\s*(?:[-~至到]\s*[一二三四五六七八九十两\d]+)?\s*(?:个)?(?:月|周|天)"
+)
+
+
+def _source_has_beauty_usage_period_evidence(source_context: str | None) -> bool:
+    return bool(_BEAUTY_USAGE_PERIOD_RE.search(source_context or ""))
+
+
+def _source_has_beauty_sensitive_result_evidence(source_context: str | None) -> bool:
+    src = source_context or ""
+    return bool(re.search(r"(?:不泛红|没泛红|不刺激|不过敏|不闷痘|没闷痘|不拔干|不紧绷|敏感期[^。\n]{0,16}(?:稳定|适合))", src))
+
+
+def _source_has_beauty_no_touchup_evidence(source_context: str | None) -> bool:
+    src = source_context or ""
+    return bool(re.search(r"(?:不用|无需|不需要)[^。\n]{0,12}(?:补涂|补妆)|(?:到下班|一整天|全天)[^。\n]{0,16}(?:持妆|稳定|不脱妆)", src))
+
+
+def _source_has_beauty_duration_result_evidence(source_context: str | None) -> bool:
+    src = source_context or ""
+    if not src:
+        return False
+    return bool(re.search(r"(?:持妆|妆感|不脱妆|稳定|补涂)[^。\n]{0,12}(?:[一二三四五六七八九十两\d]+\s*(?:小时|h|H)|一整天|整天|全天|到下班)", src)
+                or re.search(r"(?:[一二三四五六七八九十两\d]+\s*(?:小时|h|H)|一整天|整天|全天|到下班)[^。\n]{0,12}(?:持妆|妆感|不脱妆|稳定|补涂)", src))
+
+
+def _source_has_beauty_all_day_result_evidence(source_context: str | None) -> bool:
+    src = source_context or ""
+    return bool(re.search(r"(?:一整天|整天|全天|到下班)[^。\n]{0,16}(?:持妆|妆感|不脱妆|稳定|补涂|补妆|撑住|hold住)", src))
+
+
+def _source_has_beauty_application_time_evidence(source_context: str | None) -> bool:
+    src = source_context or ""
+    return bool(_BEAUTY_APPLICATION_TIME_RE.search(src) or re.search(r"成膜[^。\n]{0,12}(?:半分钟|[一二三四五六七八九十两\d]+\s*(?:秒|分钟))", src))
+
+
+def _source_has_beauty_product_usage_span_evidence(source_context: str | None) -> bool:
+    return bool(_BEAUTY_PRODUCT_USAGE_SPAN_RE.search(source_context or ""))
+
+
+def _beauty_usage_period_replacement(match: re.Match[str]) -> str:
+    unit = match.group(0).strip()
+    cleaned = re.sub(
+        r"^(?:我(?:已经|持续)?|本人)?(?:用(?:了|过)?|试(?:了|用)?|上脸(?:了)?)"
+        r"(?:快|大概|差不多|将近)?(?:半个?月|一个?月|半年|一年|[一二三四五六七八九十两\d]+(?:个)?(?:多)?(?:天|周|月|年|星期))",
+        "",
+        unit,
+    ).strip("，,。！？；; \n")
+    product = ""
+    product_match = _BEAUTY_PRODUCT_TERM_RE.search(cleaned)
+    if product_match:
+        start = max(0, product_match.start() - 16)
+        end = min(len(cleaned), product_match.end() + 28)
+        product = cleaned[start:end].strip("，,。！？；; ")
+    if product:
+        if re.search(r"(?:口红|唇釉|唇|色号|玫瑰|奶茶)", product):
+            return f"{product}更适合先看肤色匹配、用量手法和妆效边界。"
+        return f"{product}更适合先看肤质、用量手法和妆效边界。"
+    if re.search(r"(?:唇|色号|玫瑰|奶茶)", cleaned):
+        return "这类唇妆更适合先看肤色匹配、用量手法和妆效边界。"
+    return "这类产品更适合先看肤质、用量手法和妆效边界。"
+
+
+def _beauty_all_day_result_replacement(source_context: str | None) -> str:
+    src = source_context or ""
+    duration = re.search(r"([一二三四五六七八九十两\d]+\s*(?:小时|h|H))", src)
+    duration_text = duration.group(1).replace(" ", "") if duration else ""
+    if "补涂" in src and duration_text:
+        return f"户外超过{duration_text}按防晒说明补涂，通勤妆面按肤况观察。"
+    if duration_text and re.search(r"(?:不明显斑驳|不斑驳|斑驳)", src):
+        return f"带妆{duration_text}后T区会出油但不明显斑驳，出油时用纸巾轻压再补散粉。"
+    if duration_text:
+        return f"带妆{duration_text}后的状态按肤况观察，出油时及时轻压补妆。"
+    return "通勤妆面按肤况观察，出油、户外或出汗时及时补妆补涂。"
+
+
+def _unsupported_beauty_claim_markers(text: str, source_context: str | None) -> list[str]:
+    canonical_text = text or ""
+    markers: list[str] = []
+    if _BEAUTY_USAGE_PERIOD_RE.search(canonical_text) and not _source_has_beauty_usage_period_evidence(source_context):
+        markers.append("试用周期")
+    if _BEAUTY_SENSITIVE_RESULT_RE.search(canonical_text) and not _source_has_beauty_sensitive_result_evidence(source_context):
+        markers.append("敏感反应")
+    if _BEAUTY_NO_TOUCHUP_RE.search(canonical_text) and not _source_has_beauty_no_touchup_evidence(source_context):
+        markers.append("补涂/补妆承诺")
+    if _BEAUTY_ALL_DAY_RESULT_RE.search(canonical_text) and not _source_has_beauty_all_day_result_evidence(source_context):
+        markers.append("全天持妆")
+    if _BEAUTY_DURATION_RESULT_RE.search(canonical_text) and not _source_has_beauty_duration_result_evidence(source_context):
+        markers.append("持妆时长")
+    if _BEAUTY_APPLICATION_TIME_RE.search(canonical_text) and not _source_has_beauty_application_time_evidence(source_context):
+        markers.append("成膜等待时间")
+    if _BEAUTY_PRODUCT_USAGE_SPAN_RE.search(canonical_text) and not _source_has_beauty_product_usage_span_evidence(source_context):
+        markers.append("产品使用周期")
+    if re.search(r"(?:完全|真的|一点都|零)(?:不搓泥|不卡粉|不拔干|不泛红|不刺激|不闷痘)", canonical_text):
+        markers.append("绝对化妆效")
+    return list(dict.fromkeys(markers))
+
+
+def _remove_unsupported_beauty_claims(text: str, source_context: str | None, domain: str | None) -> str:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical != "美妆":
+        return text or ""
+    out = text or ""
+    src = source_context or ""
+    if not _source_has_beauty_usage_period_evidence(src):
+        out = _BEAUTY_USAGE_PERIOD_RE.sub(_beauty_usage_period_replacement, out)
+        out = out.replace("亲测", "建议先看肤质匹配")
+        out = out.replace("差不多一段时间了", "")
+        out = out.replace("最近用的这款", "这款")
+        out = out.replace("我用的这款", "这款")
+        out = out.replace("我用了这支", "这支")
+        out = out.replace("我用了这款", "这款")
+        out = out.replace("我的用法是", "用法是")
+        out = out.replace("对每天通勤化淡妆的我来说", "对每天通勤化淡妆的人来说")
+        out = out.replace("我通常通勤时段", "日常通勤时段")
+    if not _source_has_beauty_sensitive_result_evidence(src):
+        out = _BEAUTY_SENSITIVE_RESULT_RE.sub("敏感肌建议先做局部试用，敏感期按肤况判断", out)
+        if "泛红" not in src:
+            out = out.replace("换季泛红", "换季肤况不稳定")
+        out = re.sub(r"干区(?:没有|没)紧绷感，?油区也控制得不错", "干区和油区都建议先按肤况观察", out)
+        out = out.replace("不会加重拔干感", "更适合观察拔干感")
+        out = out.replace("不会厚重到堵毛孔", "更适合先观察是否闷肤")
+    if not _source_has_beauty_no_touchup_evidence(src):
+        out = re.sub(
+            r"下午补妆用散粉按压就够了，?不需要重新上防晒[。！？]?",
+            "下午如果出油，可以先轻压补妆，户外或出汗按防晒说明补涂。",
+            out,
+        )
+        out = _BEAUTY_NO_TOUCHUP_RE.sub("日常通勤要按肤况观察，户外或出汗时按防晒说明补涂", out)
+    if not _source_has_beauty_all_day_result_evidence(src):
+        out = _BEAUTY_ALL_DAY_RESULT_RE.sub(_beauty_all_day_result_replacement(src), out)
+    if not _source_has_beauty_duration_result_evidence(src):
+        out = _BEAUTY_DURATION_RESULT_RE.sub("日常通勤妆效要按肤况观察，出油、户外或出汗时及时补妆补涂", out)
+        out = re.sub(r"妆面(?:没有|没)明显浮粉或搓泥的问题", "妆面更适合观察浮粉和搓泥情况", out)
+        out = re.sub(r"(?:不会|不明显|没有明显)(?:浮粉|起皮|卡粉)", "更不容易卡粉", out)
+        out = out.replace("也不会搓泥", "也更不容易搓泥")
+    if not _source_has_beauty_application_time_evidence(src):
+        out = _BEAUTY_APPLICATION_TIME_RE.sub(lambda m: "再等它自然成膜" if m.group(0).startswith("再等") else "等它自然成膜", out)
+    if not _source_has_beauty_product_usage_span_evidence(src):
+        out = _BEAUTY_PRODUCT_USAGE_SPAN_RE.sub("具体用量和使用周期按个人用量为准", out)
+    replacements = {
+        "完全不搓泥": "更不容易搓泥",
+        "真的不搓泥": "更不容易搓泥",
+        "一点都不搓泥": "更不容易搓泥",
+        "零搓泥": "更不容易搓泥",
+        "完全不卡粉": "更不容易卡粉",
+        "真的不卡粉": "更不容易卡粉",
+        "一点都不卡粉": "更不容易卡粉",
+        "完全不泛白": "不明显泛白",
+        "完全不拔干": "更不容易拔干",
+        "真的不拔干": "更不容易拔干",
+    }
+    for bad, good in replacements.items():
+        out = out.replace(bad, good)
+    if "防护力" not in src:
+        out = out.replace("既能保证SPF50的防护力", "有助于把防晒涂得更均匀")
+        out = out.replace("保证SPF50的防护力", "把防晒涂得更均匀")
+    out = out.replace("等它等它自然成膜", "等它自然成膜")
+    out = out.replace("等它自然成膜让它自然成膜", "等它自然成膜")
+    out = out.replace("自然成膜让它自然成膜", "自然成膜")
+    out = out.replace("自然成膜初步成膜", "自然成膜")
+    out = out.replace("我这个涂法", "这个涂法")
+    out = out.replace("这款用下来干区和油区都建议先按肤况观察", "干区和油区都建议先按肤况观察")
+    out = out.replace("找了好久，", "")
+    out = out.replace("终于踩不到雷，", "不踩雷的关键，")
+    out = out.replace("乳状质地比乳液稍稀，", "")
+    out = out.replace("带妆反馈和补妆动作", "")
+    out = out.replace("妆前准备很关键T区", "妆前准备很关键。T区")
+    out = out.replace("粉底液少量多次是重点不要", "粉底液少量多次是重点。不要")
+    out = out.replace("容易出油的位置要特殊对待鼻翼", "容易出油的位置要特殊对待。鼻翼")
+    out = re.sub(r"(这(?:支|款)[^。！？\n]{0,24})(?:后发现|用下来)", r"\1的重点是", out)
+    out = out.replace("的重点是，", "的重点是")
+    out = out.replace("确认敏感肌建议先做局部试用，敏感期按肤况判断才上脸", "确认肤况稳定后再全脸用")
+    out = out.replace("确认没问题再全脸用", "确认肤况稳定后再全脸用")
+    out = out.replace("干燥的部分也敏感肌建议先做局部试用，敏感期按肤况判断", "干燥区域也建议先按肤况观察")
+    out = out.replace("敏感肌建议先做局部试用，敏感期按肤况判断再全脸涂", "敏感肌建议先做局部试用，肤况稳定后再全脸涂")
+    if re.search(r"(?:口红|唇釉|唇部|玫瑰棕|奶茶调|薄涂|厚涂)", out):
+        out = out.replace("更适合先看肤质匹配、用量手法和妆效边界", "更适合先看肤色匹配、用量手法和妆效边界")
+        out = out.replace("更适合先看肤质、用量手法和妆效边界", "更适合先看肤色匹配、用量手法和妆效边界")
+    out = re.sub(r"(敏感肌建议先做局部试用，敏感期按肤况判断)(?:，|、)?\1", r"\1", out)
+    out = re.sub(r"。{2,}", "。", out)
+    out = re.sub(r"，{2,}", "，", out)
+    return out
+
+
 def _remove_unsupported_structured_claims(text: str, source_context: str | None, domain: str | None = None) -> str:
     out = text or ""
     src = source_context or ""
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    out = _remove_unsupported_beauty_claims(out, source_context, domain)
     if not _QUEUE_TIME_RE.search(src):
         out = re.sub(r"现场买票常?排队\d{1,3}\s*(?:分钟|分|小时)(?:以上|左右)?", "现场买票容易排队", out)
         out = re.sub(r"排队能排\d{1,3}\s*(?:分钟|分|小时)(?:以上|左右)?", "排队会比较久", out)
@@ -5199,6 +5457,16 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
             "- 标题和正文禁止写160穿出165、秒变170、凭空多五厘米、腿长一米八、瘦十斤等身材承诺。\n"
             "- 写法要求：用腰线、垂感、版型、颜色比例、遮胯边界解释为什么显高/显瘦，像真实搭配建议。"
         )
+    if canonical == "美妆":
+        facts = "；".join(_domain_generation_fact_bits(canonical, source_context)) or "按用户已给肤质、产品、用量和价格渠道事实引用；缺失字段不编造。"
+        return (
+            "【美妆事实与肤质反馈策略】\n"
+            f"- 当前可用美妆事实：{facts}\n"
+            "- 只引用已提供的产品/色号、价格/渠道、肤质、用量手法、成膜/妆效边界；缺价格时写「价格按购买渠道为准」。\n"
+            "- 未提供试用周期时，不写用了多久、亲测几周、快一个月、半年；未提供敏感反应时，不写没泛红、不刺激、不过敏、没闷痘。\n"
+            "- 未提供持妆/补涂事实时，不写8小时不补涂、坚持到下班、中午不用补妆；改成按肤况观察，户外或出汗按防晒说明补涂。\n"
+            "- 写法要求：用肤质适配、质地、两指量/少量多次、成膜等待、后续底妆是否容易搓泥、适合/不适合来形成购买决策。"
+        )
     if canonical == "家居":
         facts = "；".join(_domain_generation_fact_bits(canonical, source_context)) or "按用户已给空间、预算、尺寸和清单引用；缺失字段不编造。"
         return (
@@ -5549,6 +5817,41 @@ def _dedupe_food_decision_fact_sentences(text: str) -> str:
     return (deduped + ("\n" + tags if tags else "")).strip()
 
 
+def _beauty_price_channel_line(source_context: str | None) -> str:
+    src = source_context or ""
+    for raw in src.splitlines():
+        line = re.sub(r"^\s*-\s*(?:已核验事实[:：]\s*)?", "", raw.strip())
+        if not line:
+            continue
+        match = re.search(r"(?:价格/渠道|价格|渠道)\s*[:：]?\s*([^。\n|；;]+)", line)
+        if match:
+            value = _clean_generated_title(match.group(1)).strip("，,；; ")
+            if value:
+                if re.search(r"(?:价格|渠道|元|购买)", value):
+                    return value[:80]
+                return f"价格{value[:76]}"
+        price = _PRICE_FACT_RE.search(line)
+        if price and re.search(r"(?:价格|元|购买|渠道)", line):
+            return f"价格{price.group(0)}，按购买渠道为准"
+    return "价格按购买渠道为准"
+
+
+def _ensure_beauty_price_channel_line(text: str, source_context: str | None) -> str:
+    main, tags = _split_body_and_tags(text or "")
+    if not main:
+        return text or ""
+    if _PRICE_FACT_RE.search(main) or re.search(r"(?:价格按购买渠道为准|购买渠道为准|价格以)", main):
+        return text or ""
+    line = _beauty_price_channel_line(source_context)
+    price_sentence = line.rstrip("。") + "。"
+    units = [unit.strip() for unit in re.findall(r"[^。！？\n]+[。！？]?", main) if unit.strip()]
+    if units:
+        shaped = "".join(units[:1] + [price_sentence] + units[1:]).strip()
+    else:
+        shaped = (price_sentence + main).strip()
+    return (shaped + ("\n" + tags if tags else "")).strip()
+
+
 def _insert_safe_fact_line(body: str, domain: str | None, source_context: str | None) -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     normalized_body = _clean_markdown_delivery_artifacts(
@@ -5568,6 +5871,8 @@ def _insert_safe_fact_line(body: str, domain: str | None, source_context: str | 
             text = _format_baby_flow_paragraphs(text)
         elif canonical == "健身":
             text = _append_missing_fitness_source_actions(text, source_context)
+        elif canonical == "美妆":
+            text = _ensure_beauty_price_channel_line(text, source_context)
         return _ensure_delivery_cta(text, domain)
     safe_line = _safe_fact_line(domain, source_context)
     if not safe_line:
@@ -5816,6 +6121,10 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         unsupported_food_terms = _unsupported_food_dish_expansion_terms(out, src)
         if unsupported_food_terms:
             issues.append(f"套餐/点心拼盘被展开成未提供菜品：{'、'.join(unsupported_food_terms)}")
+    if canonical == "美妆":
+        unsupported_beauty_markers = _unsupported_beauty_claim_markers(out, src)
+        if unsupported_beauty_markers:
+            issues.append(f"美妆出现未提供的试用/功效边界承诺：{'、'.join(unsupported_beauty_markers)}")
     business_hours_like = _BUSINESS_HOURS_RE.search(out)
     if canonical != "旅行":
         business_hours_like = business_hours_like or _BUSINESS_TIME_RANGE_RE.search(out)

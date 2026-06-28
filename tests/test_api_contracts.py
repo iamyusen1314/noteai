@@ -1185,7 +1185,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(api._plan_strategy_labels("美食"), ("决策信息型", "菜品种草型", "避坑决策型"))
         self.assertEqual(api._plan_strategy_labels("旅行"), ("决策信息型", "体验路线型", "避坑取舍型"))
         self.assertEqual(api._plan_strategy_labels("穿搭"), ("决策信息型", "搭配公式型", "避坑取舍型"))
-        self.assertEqual(api._plan_strategy_labels("美妆"), ("决策信息型", "效果实测型", "避坑取舍型"))
+        self.assertEqual(api._plan_strategy_labels("美妆"), ("决策信息型", "肤质反馈型", "避坑取舍型"))
         self.assertEqual(api._plan_strategy_labels("健身"), ("决策信息型", "动作计划型", "避坑取舍型"))
 
     def test_generation_planning_brief_is_domain_aware(self):
@@ -1209,7 +1209,7 @@ class ApiContractTests(unittest.TestCase):
             "美妆",
             "干皮粉底液",
             "肤质：混干敏感皮\n产品：粉底液 色号：01\n用量：少量多次拍开",
-            "效果实测型",
+            "肤质反馈型",
         )
         fashion = api._build_generation_planning_brief(
             "穿搭",
@@ -1290,6 +1290,22 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("正文前120字", home)
         self.assertIn("预算按实际单品清单为准", home)
 
+    def test_beauty_safe_fact_brief_forbids_unbacked_experience_claims(self):
+        brief = api._safe_fact_delivery_brief(
+            "美妆",
+            "肤质/诉求：混干敏感皮\n产品：轻薄型防晒乳，SPF50 PA++++\n价格/渠道：89元\n用量/手法：两指量，分两次薄涂",
+        )
+        self.assertIn("美妆事实与肤质反馈策略", brief)
+        self.assertIn("价格按购买渠道为准", brief)
+        self.assertIn("不写用了多久", brief)
+        self.assertIn("没泛红", brief)
+        self.assertIn("8小时不补涂", brief)
+        self.assertIn("两指量", brief)
+        expression = api._quality_expression_brief("美妆")
+        self.assertIn("唇妆/彩妆", expression)
+        self.assertIn("防晒/底妆", expression)
+        self.assertIn("元话术", expression)
+
     def test_travel_delivery_cleanup_removes_markdown_and_unsupported_value_claims(self):
         source = "\n".join([
             "- 已核验事实：三亚亚龙湾雅高铂尔曼别墅度假酒店：美团豪华型，美团真实评分4.5，666元起/晚，独栋别墅，部分房型私家泳池，中西式早餐，距离公共沙滩约200米",
@@ -1332,6 +1348,88 @@ class ApiContractTests(unittest.TestCase):
         self.assertFalse(api._structured_fact_boundary_issues(food, food_source, "美食"))
         weekday_text = "周一到周五人会少一些，适合错峰早茶。"
         self.assertFalse(api._structured_fact_boundary_issues(weekday_text, food_source, "美食"))
+
+    def test_beauty_delivery_cleanup_removes_unbacked_experience_claims(self):
+        source = "\n".join([
+            "- 已核验事实：肤质/诉求：混干敏感皮，通勤防晒，怕拔干、搓泥和闷痘",
+            "- 已核验事实：产品：轻薄型防晒乳，SPF50 PA++++",
+            "- 已核验事实：价格/渠道：89元，价格按购买渠道为准",
+            "- 已核验事实：用量/手法：早上两指量，分两次薄涂，成膜后再上粉底",
+            "- 已核验事实：妆效/边界：成膜后不泛白，后续底妆更服帖；不适合追求强润色或替代底妆的人",
+        ])
+        cleaned = api._insert_safe_fact_line(
+            "混干敏感皮选防晒最怕拔干、搓泥、闷痘。我用了半年轻薄型防晒乳（SPF50 PA++++，89元），真的不搓泥。"
+            "敏感肌那阵子更没泛红过，能坚持到下班、中午不用补妆。两指量分两次薄涂，成膜需要2-3分钟，成膜后不泛白，后续底妆更服帖，用量省的话能用2-3个月。点赞收藏。"
+            "#混干敏感皮 #防晒乳 #通勤防晒 #不搓泥 #SPF50",
+            "美妆",
+            source,
+        )
+        self.assertNotIn("用了半年", cleaned)
+        self.assertNotIn("没泛红", cleaned)
+        self.assertNotIn("中午不用补妆", cleaned)
+        self.assertNotIn("坚持到下班", cleaned)
+        self.assertNotIn("真的不搓泥", cleaned)
+        self.assertNotIn("2-3分钟", cleaned)
+        self.assertNotIn("能用2-3个月", cleaned)
+        self.assertNotIn("十来秒", api._insert_safe_fact_line("等个十来秒再涂第二遍。点赞收藏。#防晒 #美妆 #通勤妆 #敏感肌 #成膜", "美妆", source))
+        self.assertIn("SPF50", cleaned)
+        self.assertIn("89元", cleaned)
+        self.assertIn("两指量", cleaned)
+        self.assertIn("成膜后不泛白", cleaned)
+        self.assertIn("局部试用", cleaned)
+        self.assertIn("按防晒说明补涂", cleaned)
+        self.assertFalse(api._structured_fact_boundary_issues(cleaned, source, "美妆"), cleaned)
+
+    def test_beauty_boundary_flags_unbacked_claims_before_cleanup(self):
+        issues = api._structured_fact_boundary_issues(
+            "这支防晒我用了快一个月，敏感期没泛红，8小时不补涂也很稳。",
+            "产品：清爽型防晒乳\n肤质：混干敏感皮\n用量：两指量",
+            "美妆",
+        )
+        self.assertTrue(any("试用/功效边界" in item for item in issues), issues)
+
+    def test_beauty_delivery_cleanup_preserves_sourced_duration_claims(self):
+        source = "肤质：混干皮\n产品：奶杏玫瑰色腮红\n价格：79元\n持妆约6小时\n用法：苹果肌到太阳穴斜扫"
+        cleaned = api._insert_safe_fact_line(
+            "混干皮用这支奶杏玫瑰色腮红，79元，持妆约6小时。用法是从苹果肌到太阳穴斜扫。有用先收藏。#腮红 #混干皮 #通勤妆 #美妆",
+            "美妆",
+            source,
+        )
+        self.assertIn("持妆约6小时", cleaned)
+        self.assertFalse(api._structured_fact_boundary_issues(cleaned, source, "美妆"), cleaned)
+
+    def test_beauty_delivery_adds_safe_price_channel_when_missing(self):
+        cleaned = api._insert_safe_fact_line(
+            "油皮夏天底妆先薄涂控油乳，粉底液少量多次用湿海绵拍开，出油后纸巾按压再补散粉。有用先收藏。#油皮底妆 #夏季持妆 #粉底液 #控油 #散粉",
+            "美妆",
+            "肤质是夏季油皮\n粉底液少量多次，用湿海绵拍开\n出油后用纸巾按压再补散粉",
+        )
+        self.assertIn("价格按购买渠道为准", cleaned)
+        self.assertFalse(api._structured_fact_boundary_issues(cleaned, "", "美妆"), cleaned)
+
+    def test_beauty_delivery_cleanup_keeps_duration_claims_specific(self):
+        source = "\n".join([
+            "- 已核验事实：肤质是夏季油皮，T区容易出油",
+            "- 已核验事实：粉底液少量多次，用湿海绵拍开",
+            "- 已核验事实：带妆6小时后T区会出油但不明显斑驳",
+            "- 已核验事实：出油后用纸巾按压再补散粉",
+        ])
+        cleaned = api._insert_safe_fact_line(
+            "我的做法是少量多次，通勤一整天妆面都还能hold住。"
+            "妆前准备很关键T区先薄涂控油乳。"
+            "粉底液少量多次是重点不要一次性按压太多粉底液。"
+            "容易出油的位置要特殊对待鼻翼和下巴薄上一层散粉。"
+            "有用先收藏。#油皮底妆 #夏季持妆 #粉底液 #控油 #散粉",
+            "美妆",
+            source,
+        )
+        self.assertNotIn("一整天", cleaned)
+        self.assertNotIn("hold住", cleaned)
+        self.assertIn("带妆6小时后T区会出油但不明显斑驳", cleaned)
+        self.assertIn("妆前准备很关键。T区", cleaned)
+        self.assertIn("粉底液少量多次是重点。不要", cleaned)
+        self.assertIn("容易出油的位置要特殊对待。鼻翼", cleaned)
+        self.assertFalse(api._structured_fact_boundary_issues(cleaned, source, "美妆"), cleaned)
 
     def test_baby_delivery_cleanup_removes_unsupported_result_experience(self):
         source = (
@@ -1665,6 +1763,17 @@ class ApiContractTests(unittest.TestCase):
         food_shudaxia_avoid_tail = "成都春熙路火锅避坑指南，这样点不会"
         food_shudaxia_order_tail = "春熙路蜀大侠，第一次来必点这样吃"
         food_longxi_price_order_tail = "番禺万博粤菜聚餐，这家98元人均很稳"
+        beauty_dangling = "混干敏感皮防晒｜两指量少量多次才不搓"
+        beauty_dangling_v2 = "混干敏感皮通勤防晒，两指量分次涂不搓"
+        beauty_dangling_v3 = "敏感混干皮通勤防晒，涂了不搓泥还能上"
+        beauty_dangling_v4 = "油皮夏天底妆少量多次不厚涂，6小时不"
+        beauty_dangling_v5 = "黄黑皮通勤口红，玫瑰棕薄涂不显肤69"
+        beauty_dangling_v6 = "敏感混干皮通勤防晒，涂完直接上粉底不"
+        beauty_dangling_v7 = "油皮夏天底妆少量多次才稳妥，6小时不"
+        beauty_dangling_v8 = "黄黑皮口红，薄涂素颜很稳，69元玫瑰"
+        beauty_unbacked_title = "黄黑皮通勤口红，这支玫瑰棕我能涂一年"
+        beauty_price_title = "敏感混干皮防晒，上粉底不搓泥很稳"
+        beauty_source_with_price = "产品是一支清爽型防晒乳\n价格89元\n后续上粉底不容易搓泥"
         hotel_count_tail = "广州长隆亲子酒店按预算和距离选，这4"
         hotel_distance_tail = "成都太古里5家酒店对比：地铁距离"
         hotel_distance_tail_v2 = "成都太古里春熙路5家酒店对比，地铁距"
@@ -1749,6 +1858,11 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(fitness_newbie_tail_v2, "健身")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(baby_minutes_tail, "母婴")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(baby_steps_tail, "母婴")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(beauty_dangling, "美妆")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(beauty_dangling_v2, "美妆")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(beauty_dangling_v3, "美妆")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(beauty_dangling_v4, "美妆")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(beauty_dangling_v5, "美妆")))
         self.assertEqual(api._title_readability_issues(good, "美食"), [])
         self.assertFalse(api._has_blocking_quality_issues(72.1, bad_issues, "美食"))
         self.assertEqual(api._sanitize_title_for_delivery(food_price_digit_tail, "", "美食"), "广州西关陶陶居早茶必点")
@@ -1792,6 +1906,46 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_avoid_tail, "", "美食"), "成都春熙路火锅这样点不踩雷")
         self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_order_tail, "", "美食"), "春熙路蜀大侠第一次这样点")
         self.assertEqual(api._sanitize_title_for_delivery(food_longxi_price_order_tail, "", "美食"), "番禺万博长禧家珑厨很稳")
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_dangling, "", "美妆"),
+            "混干敏感皮防晒，两指量才不搓泥",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_dangling_v2, "", "美妆"),
+            "混干敏感皮防晒，两指量分次涂不搓泥",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_dangling_v3, "", "美妆"),
+            "敏感混干皮防晒，上粉底不搓泥很稳",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_dangling_v4, "", "美妆"),
+            "油皮夏天底妆，6小时不斑驳很稳",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_dangling_v5, "", "美妆"),
+            "黄黑皮玫瑰棕口红，69元很稳",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_dangling_v6, "", "美妆"),
+            "敏感混干皮防晒，上粉底不搓泥很稳",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_dangling_v7, "", "美妆"),
+            "油皮夏天底妆，6小时不斑驳很稳",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_dangling_v8, "", "美妆"),
+            "黄黑皮玫瑰棕口红，69元很稳",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_unbacked_title, "", "美妆"),
+            "黄黑皮玫瑰棕口红，69元很稳",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery(beauty_price_title, beauty_source_with_price, "美妆"),
+            "敏感混干皮防晒，89元不搓泥很稳",
+        )
         self.assertEqual(api._sanitize_title_for_delivery(hotel_distance_tail, "", "旅行"), "成都太古里酒店按地铁选")
         self.assertEqual(api._sanitize_title_for_delivery(hotel_distance_tail_v2, "", "旅行"), "成都太古里酒店按地铁选")
         self.assertEqual(api._sanitize_title_for_delivery(hotel_budget_tail, "", "旅行"), "成都太古里住宿按预算选")

@@ -4,6 +4,15 @@
 
 目标：把当前内测 Demo 修复为对用户真正有价值、愿意付费、能稳定生成高质量小红书爆文的 SaaS 系统。
 
+## 最新进展：2026-06-28 RQS-02 美妆生成专项完成
+
+- 已完成美妆生成链路专项稳定化：生成 brief、agent 方向和交付清洗已区分彩妆/唇妆与防晒/底妆；唇妆聚焦肤色、色号、薄涂厚涂、唇纹和饭后补涂，防晒/底妆聚焦肤质、成膜、泛白、搓泥、卡粉和后续底妆适配。
+- 已修复美妆事实边界风险：未提供的试用周期、敏感反应、全天持妆/不用补妆、成膜具体时长和产品使用周期会被清洗为可验证的肤质/用量/补涂边界；`6小时` 事实不会再被扩大成“一整天 hold 住”。
+- 已补美妆标题清洗：覆盖“涂完直接上粉底不”“6小时不”“69元玫瑰”“我能涂一年”等真实探针出现的半截标题或未提供经历标题，交付前会修成语义完整标题。
+- 真实验证：v23 美妆 focus 探针 `quality/generated_variants/v23_beauty_focus_after_quality_fix` 为 `18/18 ready`、失败 `0`、blocking `0`；post-sanitize 审计标题问题 `0`、事实边界问题 `0`、均分 `72.803`、中位 `72.661`，3 个任务组最佳候选分别为 `73.055/78.150/73.742`。Round12 商业槽位补测 `quality/generated_variants/v23_beauty_v12_after_quality_fix` 为 `4/4 ready`、失败 `0`、post-sanitize 问题 `0`、均分 `72.615`、最佳 `75.284`。
+- 验证记录：`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `161` 项；`find model tools tests -name '*.py' -print0 | xargs -0 .venv/bin/python -m py_compile` 通过；`.venv/bin/python tools/quality_gate.py quality/golden_notes.sample.json --json` 通过。
+- 剩余风险已记录到 `docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`：唇妆仍有单候选最低 `67.603`，高于硬拦线 `60` 但未达 72；后续 RQS-05/RQS-06 必须继续验证多候选择优和对话优化能稳定接住这类波动。
+
 ## 最新进展：2026-06-28 RQS-01 美食/高德事实源生成专项完成
 
 - 已完成美食/本地生活高德事实源交付层稳定化：高德地址、人均、营业时间、评分、招牌菜、套餐信息会被改写成自然决策句，不再输出“实用信息：地址：...”这类机械信息块。
