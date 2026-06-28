@@ -4,6 +4,15 @@
 
 目标：把当前内测 Demo 修复为对用户真正有价值、愿意付费、能稳定生成高质量小红书爆文的 SaaS 系统。
 
+## 最新进展：2026-06-28 RQS-01 美食/高德事实源生成专项完成
+
+- 已完成美食/本地生活高德事实源交付层稳定化：高德地址、人均、营业时间、评分、招牌菜、套餐信息会被改写成自然决策句，不再输出“实用信息：地址：...”这类机械信息块。
+- 已修复事实一致性风险：长禧家这类只提供“点心拼盘”的套餐，不再被 Claude 擅自扩写成虾饺、烧卖、叉烧包；点都德/陶陶居这种高德事实源已列出虾饺皇、烧卖皇的场景继续正常放行。
+- 已补餐饮标题清洗：覆盖“招牌必/必点金牌/虾饺皇必/不会踩/必点这样吃/人均86广式早/这家98元人均”等真实探针出现的半截或机器压缩标题，交付前会确定性修复。
+- 真实验证：长禧家单店探针 `quality/generated_variants/v16_food_amap_single_after_dish_fact_fix` 为 `4/4 ready`、失败 `0`、blocking `0`、均分 `73.971`；多店探针 `quality/generated_variants/v18_food_amap_final_title_clean` 为 `24/24 ready`、失败 `0`、blocking `0`、均分 `73.564`、中位 `72.790`。最终 post-sanitize 审计：标题问题 `0`、结构化事实边界问题 `0`、假菜名扩写 `0`、信息栏污染 `0`。
+- 验证记录：`find model tools tests -name '*.py' -print0 | xargs -0 .venv/bin/python -m py_compile` 通过；`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `155` 项；`tools/quality_gate.py quality/golden_notes.sample.json --json` 与 `quality/quality_gate_cases.v04_round06_food_travel.json --json` 均通过。
+- 剩余风险已记录到 `docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`：长禧家/点都德个别单候选仍会落在 `68-71`，但均高于硬拦线 `60`；后续 RQS-05/RQS-06 必须验证多候选选择优和对话优化能稳定接住这类候选波动。
+
 ## 最新进展：2026-06-28 真实链路质量稳定化计划锁定
 
 - 已新增独立执行计划：`docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`。后续真实链路质量工作统一按 `RQS-00` 到 `RQS-08` 编号推进，完成一项更新一项，不再只依赖聊天上下文记忆。

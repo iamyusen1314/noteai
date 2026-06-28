@@ -1451,10 +1451,10 @@ _PLANNING_BODY_TARGETS: dict[str, str] = {
 _GENERATION_PLANNING_RULES: dict[str, dict[str, str]] = {
     "美食": {
         "title": "城市/商圈 + 菜品/店名 + 人均/具体事实 + 高级推荐词（必点/值得/很稳/推荐）",
-        "structure": "开头60字内写清地点/场景/人均；中段按点单顺序写2-4个菜；把地址、营业时间、预订/排队拆进自然句，不要结尾机械罗列。",
+        "structure": "开头60字内写清地点/场景/人均；中段按点单顺序写2-4个菜；把地址、营业时间、预订/排队拆进自然句，不要结尾机械罗列，也不要重复写同一组地址/人均/营业事实。",
         "required_terms": "正文必须自然出现「必点/招牌/推荐」至少1个；标题优先出现「广州/城市词」和「必点/值得/稳」至少1个。",
         "core_repeat": "核心词建议：主菜/店名/商圈各重复2-3次，例如芝士焗小青龙、番禺万博、招牌粤菜。",
-        "facts": "价格/人均、地址/商圈、营业时间、预订/排队、招牌菜；缺失时用安全表达，不编造数字。",
+        "facts": "价格/人均、地址/商圈、营业时间、预订/排队、招牌菜；缺失时用安全表达，不编造数字；套餐/点心拼盘只写事实源已列菜名，不自行展开虾饺、烧卖等未提供菜品。",
         "allowed_tone": "允许高级推荐词：必点、招牌、推荐、值得、很稳、适合收藏；避免廉价爆词：绝了、天花板、值哭、闭眼冲、封神。",
     },
     "旅行": {
@@ -1519,7 +1519,7 @@ _DEFAULT_GENERATION_PLANNING_RULE = {
 
 
 _DOMAIN_SCORE_LIFT_RULES: dict[str, str] = {
-    "美食": "V0.4提质重点：把地点/营业/价格/招牌菜变成读者决策句，菜品描述围绕1-2个核心菜自然重复，不要写成信息栏。",
+    "美食": "V0.4提质重点：把地点/营业/价格/招牌菜变成读者决策句，菜品描述围绕1-2个核心菜自然重复；不要写成信息栏，不要重复同一组事实，不要把套餐/点心拼盘扩写成未提供菜名。",
     "旅行": "V0.4提质重点：路线/酒店/景点必须有取舍逻辑，预算/交通/评分只引用事实源；缺失时给确认方式，不编造金额和时长。",
     "穿搭": "V0.4提质重点：从「好看」升级为身材/场合/单品价格或渠道/材质版型/颜色比例/复用公式，已提供价格必须写进对应单品。",
     "美妆": "V0.4提质重点：围绕肤质、用量、手法、妆效边界和适合/不适合写具体，产品价格/色号缺失时不占位。",
@@ -1530,7 +1530,7 @@ _DOMAIN_SCORE_LIFT_RULES: dict[str, str] = {
 
 
 _DOMAIN_COMMERCIAL_SLOT_RULES: dict[str, str] = {
-    "美食": "必须把地址/商圈、人均或套餐价格、营业时间、必点/招牌、预订/排队安排成自然决策句；事实源缺失时写门店页/公示为准，不写信息栏。",
+    "美食": "必须把地址/商圈、人均或套餐价格、营业时间、必点/招牌、预订/排队安排成自然决策句；事实源缺失时写门店页/公示为准，不写信息栏，不重复事实句，不自行扩写套餐菜名。",
     "旅行": "酒店优先写美团评分、起价/预算口径、交通/距离、亲子或商务设施、入住/退房；路线攻略优先写天数、交通方式、体力节奏和预算确认方式。",
     "穿搭": "必须写身材/场合、单品/版型、价格或渠道口径、颜色比例和适合/不适合；缺价格时写价格按实际链接/门店为准。",
     "美妆": "必须写肤质/诉求、产品/色号、用量/手法、妆效边界和价格/渠道口径；缺价格时写价格按购买渠道为准。",
@@ -4108,8 +4108,21 @@ def _repair_dangling_title_tail(text: str) -> str:
         "成都春熙路火锅人均89，这样点不会踩": "成都春熙路火锅这样点不踩雷",
         "广州北京路早茶，点都德人均86稳得": "广州北京路点都德早茶稳",
         "广州北京路点都德，人均86元的稳定早": "广州北京路点都德早茶稳",
+        "北京路早茶点都德，人均86元必点金牌": "北京路点都德金牌虾饺皇必点",
+        "北京路逛街必吃，点都德早茶人均86稳": "北京路点都德早茶人均86元很稳",
+        "北京路点都德虾饺必点，人均86广式早": "北京路点都德虾饺皇必点",
         "番禺万博粤菜聚餐，长禧家珑厨人均98": "番禺万博长禧家珑厨很稳",
         "番禺万博粤菜聚餐，人均98这家4.5": "番禺万博长禧家珑厨很稳",
+        "番禺万博粤菜聚餐，这家98元人均很稳": "番禺万博长禧家珑厨很稳",
+        "广州番禺万博粤菜，招牌芝士焗虾人均9": "番禺万博芝士焗小青龙必点",
+        "番禺万博粤菜聚餐，芝士焗小青龙招牌必": "番禺万博芝士焗小青龙必点",
+        "成都春熙路火锅第一次怎么点｜蜀大侠必": "成都春熙路蜀大侠这样点",
+        "成都春熙路蜀大侠人均89元巴蜀麻辣牛": "成都春熙路蜀大侠麻辣牛肉必点",
+        "广州陶陶居西关，百年老字号早茶必点这": "广州西关陶陶居早茶必点",
+        "广州西关陶陶居早茶，百年招牌虾饺皇必": "广州西关陶陶居虾饺皇必点",
+        "成都春熙路火锅第一次点单，这样不会踩": "成都春熙路火锅这样点不踩雷",
+        "成都春熙路火锅避坑指南，这样点不会": "成都春熙路火锅这样点不踩雷",
+        "春熙路蜀大侠，第一次来必点这样吃": "春熙路蜀大侠第一次这样点",
         "广州长隆亲子酒店按预算和距离选，这4": "广州长隆亲子酒店按预算选",
         "广州长隆亲子酒店按预算和距离选，班车": "广州长隆亲子酒店按距离选",
         "广州长隆亲子酒店按预算选，班车早餐房": "广州长隆亲子酒店按预算选",
@@ -4374,6 +4387,9 @@ _LOW_QUALITY_PHRASE_REPLACEMENTS = {
     "朋友都说值得": "适合朋友聚餐",
     "天花板": "代表性很强",
     "值哭": "体验完整",
+    "性价比不错": "套餐组合比较完整",
+    "性价比还可以": "套餐组合比较完整",
+    "性价比很高": "点单成本比较清楚",
 }
 _LOW_QUALITY_PHRASES = tuple(sorted(_LOW_QUALITY_PHRASE_REPLACEMENTS, key=len, reverse=True))
 _LOW_QUALITY_REPEAT_RE = re.compile(r"(绝了|太香了|必吃|宝藏|闭眼冲|冲就完了)")
@@ -4456,7 +4472,10 @@ def _title_readability_issues(title: str, domain: str | None = None) -> list[str
         r"11[:：]3$|[，,｜|]\d{1,2}$|亲子房1$|微辣锅底\+必$|低龄娃泡$|"
         r"泡酒店的正$|灵隐不(?:赶|用)$|灵隐这样$|地铁\d{1,2}分钟省$|最关$|"
         r"软颗粒安$|班车早餐房$|小青龙必$|遮胯搭$|让动线$|做出顺$|"
-        r"(?:酒店吃喝|吃喝地铁|来排|搞定收|让折叠|做完整|高腰A|元打造)$|(?:动作新|动作3|\d+轮搞|\d+个动|新手也能|[，,][^，,]{0,8}新手|分钟足|5步\d+|[，,]\d+个)$|(?:工作|招|实际|这样|怎么)$)",
+        r"(?:酒店吃喝|吃喝地铁|来排|搞定收|让折叠|做完整|高腰A|元打造)$|"
+        r"(?:招牌必|必点金牌|蜀大侠必|麻辣牛|必点这|虾饺皇必|不会踩|点不会|必点这样吃|"
+        r"人均\d{2,4}稳|人均\d{2,4}广式早|这家\d{2,4}元人均很稳)$|"
+        r"(?:动作新|动作3|\d+轮搞|\d+个动|新手也能|[，,][^，,]{0,8}新手|分钟足|5步\d+|[，,]\d+个)$|(?:工作|招|实际|这样|怎么)$)",
         text,
     ):
         issues.append("标题不自然：末尾疑似断词，语义不完整")
@@ -4469,6 +4488,65 @@ def _title_readability_issues(title: str, domain: str | None = None) -> list[str
     if canonical == "旅行" and re.search(r"(?:预算|交通|地铁|隔音|距离|怎么|怎|对|给|要|让|价|省|按|地|距|灵|是|才不|和交)$", text):
         issues.append("标题不自然：旅行/酒店标题末尾停在选择维度或半截疑问，语义不完整")
     return issues[:3]
+
+
+def _food_title_fact_fallback(source_context: str | None, title: str | None = "") -> str:
+    src = source_context or ""
+    if not src.strip():
+        return ""
+    haystack = f"{src}\n{title or ''}"
+    loc_hint = _extract_food_location_hint(haystack)
+    loc = ""
+    if "番禺" in haystack and "万博" in haystack:
+        loc = "番禺万博"
+    elif loc_hint:
+        loc = (
+            loc_hint
+            .replace("广州", "")
+            .replace("本地商圈", "")
+            .replace("商圈", "")
+            .strip()
+        )
+    if not loc:
+        city = re.search(r"(北京|上海|广州|深圳|杭州|成都|重庆|南京|苏州|武汉|长沙|西安|天津|厦门|青岛)", haystack)
+        loc = city.group(1) if city else ""
+
+    must_order = _fact_context_value(src, "必点/招牌菜")
+    dish = ""
+    if "芝士焗小青龙" in haystack or "小青龙" in must_order:
+        dish = "芝士焗小青龙"
+    elif must_order:
+        for part in re.split(r"[、,，/｜|\s]+", must_order):
+            part = part.strip()
+            if part and len(part) >= 2 and not re.search(r"(套餐|信息|包含|具体|价格)", part):
+                dish = part[:8]
+                break
+    if not dish:
+        if "粤菜" in haystack:
+            dish = "粤菜聚餐"
+        elif "早茶" in haystack:
+            dish = "早茶"
+        elif "火锅" in haystack:
+            dish = "火锅"
+        else:
+            dish = "美食"
+
+    candidates = []
+    if loc and dish:
+        candidates.extend([
+            f"{loc}{dish}必点",
+            f"{loc}{dish}推荐",
+            f"{loc}{dish}值得试",
+        ])
+    if loc:
+        candidates.append(f"{loc}粤菜聚餐推荐")
+    if dish:
+        candidates.append(f"{dish}必点推荐")
+    for cand in candidates:
+        cand = re.sub(r"\s+", "", cand).strip("，,、：:；;｜| -")
+        if 6 <= len(cand) <= _TITLE_DELIVERY_MAX and not _title_readability_issues(cand, "美食"):
+            return cand
+    return ""
 
 
 def _polish_low_quality_phrases(text: str) -> str:
@@ -4614,6 +4692,12 @@ def _sanitize_title_for_delivery(title: str, source_context: str | None = None, 
     if canonical == "穿搭":
         text = _sanitize_fashion_title_overpromise(text)
     text = _repair_dangling_title_tail(text)
+    if canonical == "美食" and _title_readability_issues(text, canonical):
+        text = _food_title_fact_fallback(src, text) or text
+    if canonical == "美食":
+        text = re.sub(r"人均(\d{2,4})(?=(?:很稳|推荐|值得|必点|必吃|冲|$))", r"人均\1元", text)
+        if re.search(r"(?:这家|粤菜聚餐)[^，,。！？]{0,10}人均\d{2,4}元?很稳", text):
+            text = _food_title_fact_fallback(src, text) or text
     exact_repairs = {
         "6月龄睡前流程别复杂，这样做就够推荐": "6月龄睡前流程推荐，25分钟就够",
         "6月龄睡前流程别弄太复杂，这5步就够": "6月龄睡前流程推荐，25分钟就够",
@@ -5249,7 +5333,59 @@ def _clean_food_fact_label_artifacts(text: str) -> str:
     out = re.sub(r"人均\s*[:：]\s*(\d)", r"人均\1", out)
     out = re.sub(r"高德评分\s*[:：]\s*(\d)", r"高德评分\1", out)
     out = re.sub(r"地址\s*[:：]\s*地址\s*[:：]\s*", "地址：", out)
+    out = re.sub(r"(^|[\n。！？；;]\s*)地址\s*[:：]\s*", r"\1门店地址在", out)
+    out = re.sub(r"(^|[\n。！？；;]\s*)门店地址在\s+", r"\1门店地址在", out)
+    out = re.sub(r"门店地址在(?:地点在|位置在|门店位于)", "门店位于", out)
+    out = re.sub(r"门店地址在门店地址在", "门店地址在", out)
+    out = re.sub(r"(^|[\n。！？；;]\s*)(?:人均/价格|价格/人均)\s*[:：]\s*", r"\1", out)
+    out = re.sub(r"(^|[\n。！？；;]\s*)营业时间\s*[:：]\s*", r"\1营业时间", out)
+    out = re.sub(r"(^|[\n。！？；;]\s*)预订\s*[:：]\s*", r"\1", out)
     return out
+
+
+_FOOD_DISH_EXPANSION_TERMS = ("虾饺", "烧卖", "叉烧包")
+
+
+def _unsupported_food_dish_expansion_terms(text: str, source_context: str | None) -> list[str]:
+    src = source_context or ""
+    if not src.strip():
+        return []
+    if not re.search(r"(?:必点/招牌菜|推荐/高频菜品|招牌/推荐|套餐信息|点心拼盘)", src):
+        return []
+    return [term for term in _FOOD_DISH_EXPANSION_TERMS if term in (text or "") and term not in src]
+
+
+def _remove_unsupported_food_dish_expansions(text: str, source_context: str | None) -> str:
+    unsupported = _unsupported_food_dish_expansion_terms(text or "", source_context)
+    if not unsupported:
+        return text or ""
+    source = source_context or ""
+    main, tags = _split_body_and_tags(text or "")
+    if not main:
+        return text or ""
+    fallback_sentence = "点心拼盘按门店实际出品搭配主菜，适合作为收尾。"
+    units = [unit.strip() for unit in re.findall(r"[^。！？\n]+[。！？]?", main) if unit.strip()]
+    if not units:
+        units = [main]
+    cleaned_units: list[str] = []
+    for unit in units:
+        if not any(term in unit for term in unsupported):
+            cleaned_units.append(unit)
+            continue
+        if "点心拼盘" in unit or "点心拼盘" in source or "套餐信息" in source:
+            if fallback_sentence not in cleaned_units:
+                cleaned_units.append(fallback_sentence)
+            continue
+        cleaned = unit
+        for term in unsupported:
+            cleaned = cleaned.replace(term, "点心")
+        cleaned = re.sub(r"(点心)(?:、点心)+", r"\1", cleaned)
+        cleaned_units.append(cleaned)
+    cleaned_main = "".join(cleaned_units).strip()
+    for term in unsupported:
+        tags = re.sub(rf"#\S*{re.escape(term)}\S*", "", tags or "")
+    tags = re.sub(r"\s+", " ", tags or "").strip()
+    return (cleaned_main + ("\n" + tags if tags else "")).strip()
 
 
 def _split_body_and_tags(body: str) -> tuple[str, str]:
@@ -5378,6 +5514,41 @@ def _promote_food_decision_fact_line(text: str) -> str:
     return (promoted + ("\n" + tags if tags else "")).strip()
 
 
+def _dedupe_food_decision_fact_sentences(text: str) -> str:
+    main, tags = _split_body_and_tags(text or "")
+    if not main:
+        return text or ""
+    units = [unit.strip() for unit in re.findall(r"[^。！？\n]+[。！？]?", main) if unit.strip()]
+    if len(units) < 2:
+        return text or ""
+    kept: list[str] = []
+    fact_signatures: list[set[str]] = []
+    for unit in units:
+        normalized = re.sub(r"\s+", "", unit)
+        markers: set[str] = set()
+        if re.search(r"(?:地址|门店|位于|广晟万博城|万博城|商圈|A座|楼|层|导航)", normalized):
+            markers.add("location")
+        if _PRICE_FACT_RE.search(normalized):
+            markers.add("price")
+        if _BUSINESS_HOURS_RE.search(normalized) or _BUSINESS_TIME_RANGE_RE.search(normalized):
+            markers.add("hours")
+        if re.search(r"(?:高德评分|评分|口碑)", normalized):
+            markers.add("rating")
+        if re.search(r"(?:预订|预约|排队|等位|平台排队)", normalized):
+            markers.add("booking")
+        has_dish = bool(re.search(r"(?:小青龙|乳鸽|忘不了鱼|雪燕|点心|龙虾|虾饺|烧鹅|毛肚|牛肉|火锅|蟹黄|红米肠)", normalized))
+        is_dense_fact_sentence = len(markers) >= 3 and not has_dish
+        if is_dense_fact_sentence and any(len(markers & seen) >= 3 for seen in fact_signatures):
+            continue
+        kept.append(unit)
+        if is_dense_fact_sentence:
+            fact_signatures.append(markers)
+    if len(kept) == len(units):
+        return text or ""
+    deduped = "".join(kept).strip()
+    return (deduped + ("\n" + tags if tags else "")).strip()
+
+
 def _insert_safe_fact_line(body: str, domain: str | None, source_context: str | None) -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     normalized_body = _clean_markdown_delivery_artifacts(
@@ -5386,6 +5557,7 @@ def _insert_safe_fact_line(body: str, domain: str | None, source_context: str | 
     normalized_body = _remove_unsupported_structured_claims(normalized_body, source_context, domain)
     if canonical == "美食":
         normalized_body = _clean_food_fact_label_artifacts(_remove_food_template_fact_heading(normalized_body))
+        normalized_body = _remove_unsupported_food_dish_expansions(normalized_body, source_context)
     elif canonical == "旅行":
         normalized_body = _remove_unsupported_travel_value_claims(normalized_body, source_context, domain)
     elif canonical == "穿搭":
@@ -5400,21 +5572,16 @@ def _insert_safe_fact_line(body: str, domain: str | None, source_context: str | 
     safe_line = _safe_fact_line(domain, source_context)
     if not safe_line:
         return _ensure_delivery_cta(_remove_unsupported_group_size_claims(_polish_low_quality_phrases(normalized_body), source_context), domain)
-    text = _remove_unsupported_group_size_claims(
-        _polish_low_quality_phrases(
-            _remove_unsupported_buffet_claims(
-                _remove_unsupported_price_value_claims(normalized_body, source_context, domain),
-                source_context,
-                domain,
-            )
-        ),
-        source_context,
-    ).strip()
+    cleaned_food_text = _remove_unsupported_price_value_claims(normalized_body, source_context, domain)
+    cleaned_food_text = _remove_unsupported_buffet_claims(cleaned_food_text, source_context, domain)
+    cleaned_food_text = _polish_low_quality_phrases(cleaned_food_text)
+    cleaned_food_text = _remove_unsupported_food_dish_expansions(cleaned_food_text, source_context)
+    text = _remove_unsupported_group_size_claims(cleaned_food_text, source_context).strip()
     has_location = "位于" in text or "地址" in text or bool(_extract_food_location_hint(text))
     has_price = "套餐价格" in text or bool(_PRICE_FACT_RE.search(text))
     has_hours = "营业时间" in text or bool(_BUSINESS_HOURS_RE.search(text) or _BUSINESS_TIME_RANGE_RE.search(text))
     if has_location and has_price and has_hours:
-        return _ensure_delivery_cta(_promote_food_decision_fact_line(text), domain)
+        return _ensure_delivery_cta(_promote_food_decision_fact_line(_dedupe_food_decision_fact_sentences(text)), domain)
     main, tags = _split_body_and_tags(text)
     if safe_line in main:
         shaped = main
@@ -5424,7 +5591,8 @@ def _insert_safe_fact_line(body: str, domain: str | None, source_context: str | 
             shaped = "".join(units[:1] + [safe_line] + units[1:]).strip()
         else:
             shaped = (main.rstrip() + "\n\n" + safe_line).strip() if main else safe_line
-    return _ensure_delivery_cta(_promote_food_decision_fact_line((shaped + ("\n" + tags if tags else "")).strip()), domain)
+    shaped_with_tags = (shaped + ("\n" + tags if tags else "")).strip()
+    return _ensure_delivery_cta(_promote_food_decision_fact_line(_dedupe_food_decision_fact_sentences(shaped_with_tags)), domain)
 
 
 _DELIVERY_CTA_RE = re.compile(r"(点赞|收藏|评论|留言|关注|码住|记得)")
@@ -5644,6 +5812,10 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         issues.append("出现未提供价格依据的划算/不贵/性价比判断，结构化事实不能编造")
     if canonical == "美食" and _BUFFET_VALUE_CLAIM_RE.search(out) and not _source_has_buffet_evidence(src):
         issues.append("出现未提供依据的吃到饱/不限量承诺，结构化事实不能编造")
+    if canonical == "美食":
+        unsupported_food_terms = _unsupported_food_dish_expansion_terms(out, src)
+        if unsupported_food_terms:
+            issues.append(f"套餐/点心拼盘被展开成未提供菜品：{'、'.join(unsupported_food_terms)}")
     business_hours_like = _BUSINESS_HOURS_RE.search(out)
     if canonical != "旅行":
         business_hours_like = business_hours_like or _BUSINESS_TIME_RANGE_RE.search(out)

@@ -24,7 +24,8 @@ warnings.filterwarnings("ignore")
 POS_EMOTION = [
     "好吃", "推荐", "喜欢", "爱", "必去", "超棒", "绝了", "惊喜", "好玩",
     "美味", "开心", "幸福", "治愈", "满足", "温柔", "可爱", "贴心", "用心",
-    "值得", "安心", "舒适", "温暖", "快乐", "感动", "赞", "棒", "nice",
+    "值得", "值得试", "值得冲", "安心", "舒适", "温暖", "快乐", "感动", "赞", "棒", "nice",
+    "必点", "必吃", "招牌", "很稳", "省心", "适合",
 ]
 NEG_EMOTION = [
     "避雷", "踩雷", "差评", "失望", "后悔", "难吃", "难用", "贵", "坑",
@@ -67,6 +68,10 @@ _EMOJI_RE = re.compile(
 CHINESE_CITIES = [
     "北京", "上海", "广州", "深圳", "成都", "杭州", "武汉", "重庆", "西安",
     "南京", "苏州", "天津", "青岛", "厦门", "长沙", "郑州", "宁波", "无锡",
+]
+TITLE_LOCATION_WORDS = CHINESE_CITIES + [
+    "番禺", "万博", "北京路", "西关", "南京西路", "春熙路", "建设路", "湖滨",
+    "西湖", "国贸", "亚龙湾", "长隆", "太古里", "珠江新城",
 ]
 
 DOMAIN_MAP = {
@@ -198,7 +203,7 @@ def extract_features(row: dict) -> dict:
     f["title_has_question"] = int("?" in title or "？" in title)
     f["title_has_number"] = int(bool(re.search(r"\d", title)))
     f["title_has_new_signal"] = has_any(title, NEW_SIGNAL)
-    f["title_has_city"] = has_any(title, CHINESE_CITIES)
+    f["title_has_city"] = has_any(title, TITLE_LOCATION_WORDS)
 
     # ── Content features (7) ────────────────────────────────────
     f["body_len"] = len(desc)

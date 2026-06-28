@@ -19,6 +19,7 @@ os.environ.setdefault("NOTEAI_FACT_SEARCH", "0")
 
 api = importlib.import_module("api")
 facts = importlib.import_module("fact_enrichment")
+feature_extraction = importlib.import_module("feature_extraction")
 
 
 class ApiContractTests(unittest.TestCase):
@@ -556,10 +557,12 @@ class ApiContractTests(unittest.TestCase):
             "#番禺探店 #粤菜聚餐 #广州美食 #芝士焗小青龙 #乳鸽"
         )
         shaped = api._insert_safe_fact_line(body, "美食", source)
-        self.assertIn("地址： 南村镇汉溪大道东386号广晟万博城A座7层", shaped)
-        self.assertIn("人均/价格： 人均98元", shaped)
-        self.assertIn("营业时间： 09:00-14:00 / 17:00-21:00", shaped)
-        self.assertIn("预订： 周末建议提前预订", shaped)
+        self.assertIn("门店地址在南村镇汉溪大道东386号广晟万博城A座7层", shaped)
+        self.assertIn("人均98元", shaped)
+        self.assertIn("营业时间09:00-14:00 / 17:00-21:00", shaped)
+        self.assertIn("周末建议提前预订", shaped)
+        self.assertNotIn("地址：", shaped)
+        self.assertNotIn("人均/价格：", shaped)
         self.assertEqual(shaped.count("实用信息："), 0)
 
     def test_body_format_issues_detect_multi_plan_pollution(self):
@@ -613,7 +616,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertNotIn("实用信息：", shaped)
         self.assertIn("套餐价格以门店套餐页为准", shaped)
         self.assertIn("营业时间以门店公示为准", shaped)
-        self.assertIn("地址：地点在广州番禺万博商圈附近", shaped)
+        self.assertIn("门店位于广州番禺万博商圈附近", shaped)
         self.assertEqual(api._body_format_issues(shaped), [])
 
     def test_safe_food_fact_line_prefers_verified_fact_context(self):
@@ -1637,6 +1640,7 @@ class ApiContractTests(unittest.TestCase):
         food_price_digit_tail = "广州西关陶陶居，百年老字号早茶人均1"
         food_price_label_tail = "广州西关陶陶居｜百年老字号早茶，人均"
         food_price_colon_tail = "广州西关陶陶居：百年老字号早茶，人均"
+        food_amap_bad_tail = "广州番禺万博粤菜，招牌芝士焗虾人均9"
         food_dish_tail = "广州西关陶陶居，百年老字号早茶必点虾"
         food_brand_tail = "成都春熙路火锅第一次怎么点｜蜀大侠人"
         food_action_tail = "成都春熙路蜀大侠，第一次吃川火的点单"
@@ -1649,6 +1653,18 @@ class ApiContractTests(unittest.TestCase):
         food_steady_tail = "广州北京路早茶，点都德人均86稳得"
         food_price_no_unit_tail = "番禺万博粤菜聚餐，长禧家珑厨人均98"
         food_wrong_tail = "番禺万博粤菜聚餐，人均98这家4.5"
+        food_amap_dish_tail = "番禺万博粤菜聚餐，芝士焗小青龙招牌必"
+        food_diandoude_tail = "北京路早茶点都德，人均86元必点金牌"
+        food_diandoude_steady_tail = "北京路逛街必吃，点都德早茶人均86稳"
+        food_diandoude_morning_tail = "北京路点都德虾饺必点，人均86广式早"
+        food_shudaxia_tail = "成都春熙路火锅第一次怎么点｜蜀大侠必"
+        food_spicy_beef_tail = "成都春熙路蜀大侠人均89元巴蜀麻辣牛"
+        food_taotaoju_tail = "广州陶陶居西关，百年老字号早茶必点这"
+        food_taotaoju_shrimp_tail = "广州西关陶陶居早茶，百年招牌虾饺皇必"
+        food_shudaxia_step_tail = "成都春熙路火锅第一次点单，这样不会踩"
+        food_shudaxia_avoid_tail = "成都春熙路火锅避坑指南，这样点不会"
+        food_shudaxia_order_tail = "春熙路蜀大侠，第一次来必点这样吃"
+        food_longxi_price_order_tail = "番禺万博粤菜聚餐，这家98元人均很稳"
         hotel_count_tail = "广州长隆亲子酒店按预算和距离选，这4"
         hotel_distance_tail = "成都太古里5家酒店对比：地铁距离"
         hotel_distance_tail_v2 = "成都太古里春熙路5家酒店对比，地铁距"
@@ -1700,8 +1716,21 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(hotel_transport_tail, "旅行")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_price_digit_tail, "美食")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_price_label_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_amap_bad_tail, "美食")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_not_tail, "美食")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_not_step_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_amap_dish_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_diandoude_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_diandoude_steady_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_diandoude_morning_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_shudaxia_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_spicy_beef_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_taotaoju_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_taotaoju_shrimp_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_shudaxia_step_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_shudaxia_avoid_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_shudaxia_order_tail, "美食")))
+        self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(food_longxi_price_order_tail, "美食")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(hotel_count_tail, "旅行")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(hotel_distance_tail, "旅行")))
         self.assertTrue(any("断词" in issue for issue in api._title_readability_issues(hotel_price_tail, "旅行")))
@@ -1724,6 +1753,22 @@ class ApiContractTests(unittest.TestCase):
         self.assertFalse(api._has_blocking_quality_issues(72.1, bad_issues, "美食"))
         self.assertEqual(api._sanitize_title_for_delivery(food_price_digit_tail, "", "美食"), "广州西关陶陶居早茶必点")
         self.assertEqual(api._sanitize_title_for_delivery(food_price_colon_tail, "", "美食"), "广州西关陶陶居老字号早茶")
+        food_amap_source = "\n".join([
+            "- 门店名：长禧家.珑厨(万博广晟店)",
+            "- 位置/地址：南村镇汉溪大道东386号广晟万博城A座7层",
+            "- 商圈：番禺万博",
+            "- 价格/人均：人均98元",
+            "- 必点/招牌菜：芝士焗小青龙、乳鸽、忘不了鱼、雪燕杏花羹",
+            "- 营业时间：09:00-14:00 17:00-21:00",
+        ])
+        self.assertEqual(
+            api._sanitize_title_for_delivery(food_amap_bad_tail, food_amap_source, "美食"),
+            "番禺万博芝士焗小青龙必点",
+        )
+        self.assertEqual(
+            api._sanitize_title_for_delivery("番禺万博粤菜聚餐，这家人均98很稳", food_amap_source, "美食"),
+            "番禺万博芝士焗小青龙必点",
+        )
         self.assertEqual(api._sanitize_title_for_delivery(food_dish_tail, "", "美食"), "广州西关陶陶居虾饺必点")
         self.assertEqual(api._sanitize_title_for_delivery(food_brand_tail, "", "美食"), "成都春熙路蜀大侠这样点")
         self.assertEqual(api._sanitize_title_for_delivery(food_action_tail, "", "美食"), "成都蜀大侠第一次点单攻略")
@@ -1735,6 +1780,18 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(api._sanitize_title_for_delivery(food_steady_tail, "", "美食"), "广州北京路点都德早茶稳")
         self.assertEqual(api._sanitize_title_for_delivery(food_price_no_unit_tail, "", "美食"), "番禺万博长禧家珑厨很稳")
         self.assertEqual(api._sanitize_title_for_delivery(food_wrong_tail, "", "美食"), "番禺万博长禧家珑厨很稳")
+        self.assertEqual(api._sanitize_title_for_delivery(food_amap_dish_tail, "", "美食"), "番禺万博芝士焗小青龙必点")
+        self.assertEqual(api._sanitize_title_for_delivery(food_diandoude_tail, "", "美食"), "北京路点都德金牌虾饺皇必点")
+        self.assertEqual(api._sanitize_title_for_delivery(food_diandoude_steady_tail, "", "美食"), "北京路点都德早茶人均86元很稳")
+        self.assertEqual(api._sanitize_title_for_delivery(food_diandoude_morning_tail, "", "美食"), "北京路点都德虾饺皇必点")
+        self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_tail, "", "美食"), "成都春熙路蜀大侠这样点")
+        self.assertEqual(api._sanitize_title_for_delivery(food_spicy_beef_tail, "", "美食"), "成都春熙路蜀大侠麻辣牛肉必点")
+        self.assertEqual(api._sanitize_title_for_delivery(food_taotaoju_tail, "", "美食"), "广州西关陶陶居早茶必点")
+        self.assertEqual(api._sanitize_title_for_delivery(food_taotaoju_shrimp_tail, "", "美食"), "广州西关陶陶居虾饺皇必点")
+        self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_step_tail, "", "美食"), "成都春熙路火锅这样点不踩雷")
+        self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_avoid_tail, "", "美食"), "成都春熙路火锅这样点不踩雷")
+        self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_order_tail, "", "美食"), "春熙路蜀大侠第一次这样点")
+        self.assertEqual(api._sanitize_title_for_delivery(food_longxi_price_order_tail, "", "美食"), "番禺万博长禧家珑厨很稳")
         self.assertEqual(api._sanitize_title_for_delivery(hotel_distance_tail, "", "旅行"), "成都太古里酒店按地铁选")
         self.assertEqual(api._sanitize_title_for_delivery(hotel_distance_tail_v2, "", "旅行"), "成都太古里酒店按地铁选")
         self.assertEqual(api._sanitize_title_for_delivery(hotel_budget_tail, "", "旅行"), "成都太古里住宿按预算选")
@@ -1786,6 +1843,78 @@ class ApiContractTests(unittest.TestCase):
             api._fallback_title_under_limit("广州长隆亲子酒店怎么选，929起的长隆酒店值吗"),
             "广州长隆亲子酒店怎么选",
         )
+
+    def test_food_title_positive_and_location_features_match_v04_strategy(self):
+        feats = feature_extraction.extract_features({
+            "note_title": "番禺万博芝士焗小青龙必点",
+            "desc": "番禺万博这家粤菜人均98元，营业时间09:00-21:00，招牌芝士焗小青龙必点。#广州美食",
+            "domain": "美食",
+            "local_time": "2026062817",
+        })
+        self.assertEqual(feats["title_has_pos_emotion"], 1)
+        self.assertEqual(feats["title_has_city"], 1)
+
+    def test_food_delivery_dedupes_repeated_amap_fact_sentences(self):
+        source = "\n".join([
+            "- 位置/地址：南村镇汉溪大道东386号广晟万博城A座7层",
+            "- 价格/人均：人均98元",
+            "- 营业时间：09:00-14:00 17:00-21:00",
+            "- 评分/口碑：高德评分4.5",
+            "- 预订/排队：周末建议提前预订或查看平台排队状态",
+            "- 必点/招牌菜：芝士焗小青龙、乳鸽、忘不了鱼",
+        ])
+        body = (
+            "番禺万博商圈找粤菜聚餐，长禧家珑厨是个不错的选择。"
+            "门店地址在南村镇汉溪大道东386号广晟万博城A座7层，人均98元，高德评分4.5，营业时间09:00-14:00 17:00-21:00，周末建议提前预订。"
+            "门店在南村镇汉溪大道东386号广晟万博城A座7层，人均98元，高德评分4.5，中午11点到下午2点、晚上5点到9点营业，周末聚餐建议提前预订或查看平台排队状态。"
+            "招牌菜必点芝士焗小青龙，乳鸽皮脆肉嫩。"
+            "#番禺万博 #粤菜聚餐 #芝士焗小青龙 #广州美食 #周末聚餐"
+        )
+        shaped = api._insert_safe_fact_line(body, "美食", source)
+        self.assertEqual(shaped.count("广晟万博城A座7层"), 1)
+        self.assertEqual(shaped.count("高德评分4.5"), 1)
+        self.assertIn("芝士焗小青龙", shaped)
+        self.assertFalse(api._structured_fact_boundary_issues(shaped, source, "美食"))
+
+    def test_food_delivery_removes_unsupported_dim_sum_expansion(self):
+        source = "\n".join([
+            "- 已核验事实：事实源：用户素材/人工核验 + 高德地图",
+            "- 已核验事实：门店名：长禧家.珑厨(万博广晟店)",
+            "- 已核验事实：地址：南村镇汉溪大道东386号广晟万博城A座7层",
+            "- 已核验事实：人均：98元",
+            "- 已核验事实：营业时间：09:00-14:00 17:00-21:00",
+            "- 已核验事实：招牌/推荐：芝士焗小青龙、乳鸽、忘不了鱼、雪燕杏花羹",
+            "- 已核验事实：套餐信息：双人套餐素材包含芝士焗小青龙、乳鸽、忘不了鱼、点心拼盘、雪燕杏花羹、龙虾",
+        ])
+        raw = (
+            "招牌菜必点芝士焗小青龙，乳鸽皮脆肉嫩。"
+            "点心拼盘搭配着吃，虾饺、烧卖等都很精致。"
+            "地址：南村镇汉溪大道东386号广晟万博城A座7层。"
+            "#番禺美食 #粤菜聚餐 #芝士焗小青龙 #点心拼盘 #周末聚餐"
+        )
+        self.assertTrue(any("未提供菜品" in item for item in api._structured_fact_boundary_issues(raw, source, "美食")))
+        shaped = api._insert_safe_fact_line(raw, "美食", source)
+        self.assertNotIn("虾饺", shaped)
+        self.assertNotIn("烧卖", shaped)
+        self.assertNotIn("地址：", shaped)
+        self.assertIn("点心拼盘按门店实际出品搭配主菜", shaped)
+        self.assertIn("门店地址在南村镇汉溪大道东386号广晟万博城A座7层", shaped)
+        self.assertFalse(api._structured_fact_boundary_issues(shaped, source, "美食"))
+
+    def test_food_delivery_keeps_sourced_dim_sum_names(self):
+        source = "\n".join([
+            "- 已核验事实：事实源：高德地图",
+            "- 已核验事实：门店名：点都德(聚福楼)",
+            "- 已核验事实：推荐/高频菜品：金牌虾饺皇、明虾蟹子烧卖、潮州粉果",
+            "- 已核验事实：地址：惠福东路470号",
+            "- 已核验事实：人均：86元",
+            "- 已核验事实：营业时间：08:00-16:00 17:00-21:00",
+        ])
+        raw = "点都德虾饺皇和明虾蟹子烧卖是高频菜品，潮州粉果也值得点。"
+        shaped = api._insert_safe_fact_line(raw, "美食", source)
+        self.assertIn("虾饺皇", shaped)
+        self.assertIn("明虾蟹子烧卖", shaped)
+        self.assertFalse(api._structured_fact_boundary_issues(shaped, source, "美食"))
         self.assertEqual(
             api._fallback_title_under_limit("番禺万博粤菜聚餐推荐，芝士焗小青龙必点"),
             "番禺万博芝士焗小青龙必点",
@@ -2136,7 +2265,7 @@ class ApiContractTests(unittest.TestCase):
         title, body, score, _features, _grade, issues, repaired, reason = result
         self.assertTrue(repaired, reason)
         self.assertEqual(score, 70.4)
-        self.assertIn("推荐", title)
+        self.assertRegex(title, r"(?:推荐|必点|值得|稳)")
         self.assertFalse(api._has_blocking_quality_issues(score, issues, "美食"), issues)
         self.assertIn("当前特征快照", calls[0][2])
         self.assertIn("美食提质", calls[0][2])
