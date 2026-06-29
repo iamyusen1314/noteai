@@ -557,16 +557,43 @@ body {
   --tilt-x: 0deg;
   --tilt-y: 0deg;
 }
-.v4-hero-visual img {
+.v4-hero-fallback {
+  position: relative;
+  z-index: 1;
   width: min(860px, 112%);
   max-width: none;
   transform: translateX(18px) rotateY(calc(-7deg + var(--tilt-y))) rotateX(calc(3deg + var(--tilt-x)));
   filter: drop-shadow(0 48px 90px rgba(0,0,0,0.5));
-  transition: transform .5s cubic-bezier(.16,1,.3,1);
+  transition: transform .5s cubic-bezier(.16,1,.3,1), opacity .5s cubic-bezier(.16,1,.3,1);
 }
-.v4-hero-visual:hover img { transform: translateX(8px) rotateY(calc(-4deg + var(--tilt-y))) rotateX(calc(2deg + var(--tilt-x))) scale(1.015); }
+.v4-hero-visual:hover .v4-hero-fallback { transform: translateX(8px) rotateY(calc(-4deg + var(--tilt-y))) rotateX(calc(2deg + var(--tilt-x))) scale(1.015); }
+.v4-hero-3d {
+  position: absolute;
+  inset: -4% -4% -5% -3%;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .7s cubic-bezier(.16,1,.3,1);
+}
+.v4-hero-3d canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.v4-hero-visual.is-3d-ready .v4-hero-3d { opacity: 1; }
+.v4-hero-visual.is-3d-ready .v4-hero-fallback { opacity: 0; }
+.v4-hero-visual.is-3d-fallback .v4-hero-fallback { opacity: 1; }
+.v4-hero-visual.is-3d-ready::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: 12% 0 0 12%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, rgba(143,247,255,0.14), transparent 42%);
+}
 .v4-hero-card {
   position: absolute;
+  z-index: 4;
   min-width: 170px;
   border: 1px solid rgba(143,247,255,0.22);
   border-radius: 8px;
@@ -583,6 +610,7 @@ body {
 .v4-hero-card-ready b { color: #4AFFA0; }
 .v4-hero-status {
   position: absolute;
+  z-index: 4;
   left: 76px;
   top: 32px;
   display: flex;
@@ -621,6 +649,7 @@ body {
 }
 .v4-hero-scan {
   position: absolute;
+  z-index: 4;
   left: 17%;
   right: 10%;
   bottom: 28px;
@@ -932,7 +961,7 @@ body {
   .v4-title { font-size: 56px; }
   .v4-hero-copy { max-width: 760px; }
   .v4-hero-visual { min-height: 430px; }
-  .v4-hero-visual img { width: min(760px, 104%); transform: none; }
+  .v4-hero-fallback { width: min(760px, 104%); transform: none; }
   .v4-hero-card-score { left: 24px; bottom: 46px; }
   .v4-hero-card-ready { right: 24px; top: 34px; }
   .v4-hero-status { left: 24px; top: 26px; }
@@ -1862,7 +1891,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div>
   </div>
   <div class="v4-hero-visual" aria-label="V0.4 AI quality engine visual">
-    <img src="assets/landing/v04-quality-engine.png" alt="NoteAI Pro V0.4 AI quality engine">
+    <div class="v4-hero-3d" id="v4Hero3d" aria-hidden="true">
+      <canvas id="v4Hero3dCanvas"></canvas>
+    </div>
+    <img class="v4-hero-fallback" src="assets/landing/v04-quality-engine.png" alt="NoteAI Pro V0.4 AI quality engine">
     <div class="v4-hero-status">
       <span class="v4-live-dot"></span>
       <div><b>Claude Agents reviewing</b><em>事实校验 · brief · V0.4 复核</em></div>
@@ -5637,7 +5669,209 @@ function initHeroAnimInternal() {
       visual.style.setProperty('--tilt-x', '0deg');
     });
   }
+  initV4Hero3D();
   setTimeout(() => { document.querySelectorAll('.x-wsf').forEach(el => { el.style.width = el.dataset.w; }); }, 600);
+}
+
+/* ── V0.4 desktop 3D quality engine ─────────────────────────── */
+const V4_THREE_MODULE_URL = './assets/vendor/three.module.min.js';
+let _v4Hero3DStarted = false;
+
+function initV4Hero3D() {
+  const visual = document.querySelector('.v4-hero-visual');
+  const canvas = document.getElementById('v4Hero3dCanvas');
+  if (!visual || !canvas || _v4Hero3DStarted) return;
+  if (window.matchMedia('(max-width: 720px)').matches) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!window.WebGLRenderingContext) {
+    visual.classList.add('is-3d-fallback');
+    return;
+  }
+
+  const start = () => startV4Hero3D(visual, canvas);
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        io.disconnect();
+        start();
+      }
+    }, { rootMargin: '220px 0px' });
+    io.observe(visual);
+  } else {
+    start();
+  }
+}
+
+async function startV4Hero3D(visual, canvas) {
+  if (_v4Hero3DStarted) return;
+  _v4Hero3DStarted = true;
+  visual.dataset.threeState = 'loading';
+
+  try {
+    const THREE = await import(V4_THREE_MODULE_URL);
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+      preserveDrawingBuffer: /(?:pixel|qa3d)/.test(window.location.search),
+      powerPreference: 'high-performance',
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+    if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+    camera.position.set(0, 0.08, 8.2);
+
+    const root = new THREE.Group();
+    root.rotation.x = -0.08;
+    root.rotation.y = -0.36;
+    scene.add(root);
+
+    scene.add(new THREE.AmbientLight(0x9fefff, 0.9));
+    const cyanLight = new THREE.PointLight(0x33d7ff, 26, 18);
+    cyanLight.position.set(-2.8, 2.2, 4.2);
+    scene.add(cyanLight);
+    const pinkLight = new THREE.PointLight(0xf36fdb, 18, 15);
+    pinkLight.position.set(3.2, -1.6, 3.8);
+    scene.add(pinkLight);
+
+    const coreMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8ff7ff,
+      emissive: 0x1386ff,
+      emissiveIntensity: 0.6,
+      roughness: 0.25,
+      metalness: 0.38,
+      transparent: true,
+      opacity: 0.96,
+    });
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.04, 3), coreMaterial);
+    root.add(core);
+
+    const coreWire = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1.08, 2),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.18 })
+    );
+    root.add(coreWire);
+
+    const ringMaterials = [
+      new THREE.MeshBasicMaterial({ color: 0x33d7ff, transparent: true, opacity: 0.72 }),
+      new THREE.MeshBasicMaterial({ color: 0xf36fdb, transparent: true, opacity: 0.54 }),
+      new THREE.MeshBasicMaterial({ color: 0x4affa0, transparent: true, opacity: 0.42 }),
+    ];
+    const rings = [
+      new THREE.Mesh(new THREE.TorusGeometry(1.75, 0.015, 8, 160), ringMaterials[0]),
+      new THREE.Mesh(new THREE.TorusGeometry(2.24, 0.012, 8, 160), ringMaterials[1]),
+      new THREE.Mesh(new THREE.TorusGeometry(2.78, 0.01, 8, 160), ringMaterials[2]),
+    ];
+    rings[0].rotation.x = Math.PI / 2.18;
+    rings[1].rotation.y = Math.PI / 2.45;
+    rings[2].rotation.x = Math.PI / 2.02;
+    rings[2].rotation.z = Math.PI / 4;
+    rings.forEach(ring => root.add(ring));
+
+    const nodeColors = [0x33d7ff, 0xf36fdb, 0x4affa0, 0x8ff7ff, 0x7b61ff, 0xf59e0b];
+    const nodes = [];
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x8ff7ff, transparent: true, opacity: 0.22 });
+    for (let i = 0; i < nodeColors.length; i++) {
+      const angle = (i / nodeColors.length) * Math.PI * 2;
+      const radius = i % 2 ? 3.1 : 2.75;
+      const z = i % 3 === 0 ? 0.34 : -0.24;
+      const position = new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * 1.26, z);
+      const node = new THREE.Mesh(
+        new THREE.SphereGeometry(0.125, 24, 24),
+        new THREE.MeshStandardMaterial({
+          color: nodeColors[i],
+          emissive: nodeColors[i],
+          emissiveIntensity: 0.75,
+          roughness: 0.18,
+          metalness: 0.18,
+        })
+      );
+      node.position.copy(position);
+      nodes.push({ node, base: position.clone(), phase: i * 0.7 });
+      root.add(node);
+
+      const line = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), position]),
+        lineMaterial
+      );
+      root.add(line);
+    }
+
+    const particleCount = 180;
+    const particlePositions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 2.2 + Math.random() * 2.6;
+      particlePositions[i * 3] = Math.cos(a) * r;
+      particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 3.5;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 1.8;
+    }
+    const particles = new THREE.Points(
+      new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(particlePositions, 3)),
+      new THREE.PointsMaterial({ color: 0x8ff7ff, size: 0.026, transparent: true, opacity: 0.52 })
+    );
+    root.add(particles);
+
+    let pointerX = 0;
+    let pointerY = 0;
+    visual.addEventListener('pointermove', (event) => {
+      const rect = visual.getBoundingClientRect();
+      pointerX = (event.clientX - rect.left) / rect.width - 0.5;
+      pointerY = (event.clientY - rect.top) / rect.height - 0.5;
+    }, { passive: true });
+    visual.addEventListener('pointerleave', () => {
+      pointerX = 0;
+      pointerY = 0;
+    });
+
+    const resize = () => {
+      const rect = visual.getBoundingClientRect();
+      const width = Math.max(320, Math.floor(rect.width));
+      const height = Math.max(260, Math.floor(rect.height));
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(visual);
+
+    let frameId = 0;
+    const animate = (now) => {
+      const t = now * 0.001;
+      root.rotation.y += ((-0.36 + pointerX * 0.22) - root.rotation.y) * 0.035;
+      root.rotation.x += ((-0.08 - pointerY * 0.14) - root.rotation.x) * 0.035;
+      core.rotation.y = t * 0.36;
+      core.rotation.x = t * 0.18;
+      coreWire.rotation.y = -t * 0.2;
+      rings[0].rotation.z = t * 0.18;
+      rings[1].rotation.x = Math.PI / 2.45 + Math.sin(t * 0.5) * 0.18;
+      rings[2].rotation.y = t * -0.16;
+      particles.rotation.z = t * 0.035;
+      nodes.forEach(({ node, base, phase }) => {
+        node.position.y = base.y + Math.sin(t * 1.3 + phase) * 0.07;
+        node.scale.setScalar(1 + Math.sin(t * 1.8 + phase) * 0.08);
+      });
+      renderer.render(scene, camera);
+      frameId = requestAnimationFrame(animate);
+    };
+
+    visual.classList.add('is-3d-ready');
+    visual.dataset.threeState = 'ready';
+    frameId = requestAnimationFrame(animate);
+
+    window.addEventListener('pagehide', () => {
+      cancelAnimationFrame(frameId);
+      ro.disconnect();
+      renderer.dispose();
+    }, { once: true });
+  } catch (error) {
+    console.warn('[NoteAI] 3D hero fallback:', error);
+    visual.dataset.threeState = 'fallback';
+    visual.classList.add('is-3d-fallback');
+  }
 }
 
 /* ── Scroll fade-in ─────────────────────────────────────────── */
