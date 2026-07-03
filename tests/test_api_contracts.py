@@ -1,8 +1,13 @@
 import asyncio
+import base64
 import importlib
+import json
 import os
 import sys
+import tempfile
 import unittest
+import sqlite3
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import HTTPException
@@ -20,9 +25,58 @@ os.environ.setdefault("NOTEAI_FACT_SEARCH", "0")
 api = importlib.import_module("api")
 facts = importlib.import_module("fact_enrichment")
 feature_extraction = importlib.import_module("feature_extraction")
+hot_keywords = importlib.import_module("hot_keywords")
 
 
 class ApiContractTests(unittest.TestCase):
+    def test_health_reports_local_v04_composite_model_label(self):
+        original_use_v04 = api.USE_V04_COMPOSITE
+        original_report_path = api.V04_TRAIN_REPORT_PATH
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            model_path = tmp_path / "model_v04_composite_regressor.lgb"
+            model_path.write_text("placeholder", encoding="utf-8")
+            report_path = tmp_path / "model_v04_composite_train_report.json"
+            report_path.write_text(json.dumps({
+                "training_policy": {"do_not_deploy": False},
+                "deployment_gate": {"passed": True},
+                "models": {"golden": {"regressor_path": str(model_path)}},
+            }), encoding="utf-8")
+
+            try:
+                api.USE_V04_COMPOSITE = True
+                api.V04_TRAIN_REPORT_PATH = report_path
+                self.assertEqual(api._health_model_label(), "v0.4-composite")
+
+                client = TestClient(api.app)
+                resp = client.get("/health")
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(resp.json()["model"], "v0.4-composite")
+            finally:
+                api.USE_V04_COMPOSITE = original_use_v04
+                api.V04_TRAIN_REPORT_PATH = original_report_path
+
+    def test_health_falls_back_to_legacy_model_label_when_v04_is_not_ready(self):
+        original_use_v04 = api.USE_V04_COMPOSITE
+        original_report_path = api.V04_TRAIN_REPORT_PATH
+
+        with tempfile.TemporaryDirectory() as tmp:
+            report_path = Path(tmp) / "model_v04_composite_train_report.json"
+            report_path.write_text(json.dumps({
+                "training_policy": {"do_not_deploy": False},
+                "deployment_gate": {"passed": False},
+                "models": {"golden": {"regressor_path": str(Path(tmp) / "missing.lgb")}},
+            }), encoding="utf-8")
+
+            try:
+                api.USE_V04_COMPOSITE = True
+                api.V04_TRAIN_REPORT_PATH = report_path
+                self.assertEqual(api._health_model_label(), "legacy_score_model")
+            finally:
+                api.USE_V04_COMPOSITE = original_use_v04
+                api.V04_TRAIN_REPORT_PATH = original_report_path
+
     def test_anonymous_cost_endpoints_require_auth(self):
         client = TestClient(api.app)
         endpoints = [
@@ -40,6 +94,386 @@ class ApiContractTests(unittest.TestCase):
             with self.subTest(path=path):
                 resp = client.post(path, json=body)
                 self.assertEqual(resp.status_code, 401)
+
+    def test_extract_screenshot_refunds_charge_when_vision_fails(self):
+        original_check = api._billing.check_and_deduct
+        original_refund = api._billing.refund_operation_charge
+        original_key = os.environ.pop("MOONSHOT_API_KEY", None)
+        calls = []
+
+        try:
+            charge = {"source": "subscription", "credits_used": 0.5, "monthly_credits_used": 0.5, "usage_id": "u1"}
+            api._billing.check_and_deduct = lambda user_id, op: charge
+            api._billing.refund_operation_charge = lambda user_id, op, ch, desc: calls.append((user_id, op, ch, desc))
+
+            async def run():
+                return await api.extract_screenshot(
+                    api.ScreenshotExtractInput(image_base64="abc"),
+                    user={"id": "u-test"},
+                )
+
+            with self.assertRaises(HTTPException) as ctx:
+                asyncio.run(run())
+        finally:
+            api._billing.check_and_deduct = original_check
+            api._billing.refund_operation_charge = original_refund
+            if original_key is not None:
+                os.environ["MOONSHOT_API_KEY"] = original_key
+
+        self.assertEqual(ctx.exception.status_code, 503)
+        self.assertEqual(calls, [("u-test", "screenshot", charge, "截图识别失败自动退回")])
+
+    def test_extract_screenshot_preserves_uploaded_image_media_type(self):
+        original_check = api._billing.check_and_deduct
+        original_refund = api._billing.refund_operation_charge
+        original_client = api._httpx.Client
+        original_key = os.environ.get("MOONSHOT_API_KEY")
+        captured = {}
+
+        class FakeResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {
+                    "choices": [{
+                        "message": {
+                            "content": '{"type":"B","title":"","body":"","domain":"美食","cover_desc":"一张清晰的菜品图"}'
+                        }
+                    }],
+                    "usage": {},
+                }
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def post(self, url, headers=None, json=None):
+                captured["payload"] = json
+                return FakeResponse()
+
+        try:
+            os.environ["MOONSHOT_API_KEY"] = "test-key"
+            api._billing.check_and_deduct = lambda user_id, op: {"source": "subscription"}
+            api._billing.refund_operation_charge = lambda *args, **kwargs: None
+            api._httpx.Client = FakeClient
+            png_b64 = base64.b64encode(b"\x89PNG\r\n\x1a\nfake-png").decode()
+
+            async def run():
+                return await api.extract_screenshot(
+                    api.ScreenshotExtractInput(image_base64=png_b64),
+                    user={"id": "u-test"},
+                )
+
+            result = asyncio.run(run())
+        finally:
+            api._billing.check_and_deduct = original_check
+            api._billing.refund_operation_charge = original_refund
+            api._httpx.Client = original_client
+            if original_key is None:
+                os.environ.pop("MOONSHOT_API_KEY", None)
+            else:
+                os.environ["MOONSHOT_API_KEY"] = original_key
+
+        image_url = captured["payload"]["messages"][0]["content"][0]["image_url"]["url"]
+        self.assertTrue(image_url.startswith("data:image/png;base64,"))
+        self.assertEqual(result["_media_type"], "image/png")
+        self.assertTrue(result["is_photo_only"])
+
+    def test_extract_screenshot_maps_moonshot_network_error_to_503(self):
+        original_check = api._billing.check_and_deduct
+        original_refund = api._billing.refund_operation_charge
+        original_client = api._httpx.Client
+        original_key = os.environ.get("MOONSHOT_API_KEY")
+        calls = []
+
+        class FailingClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def post(self, *args, **kwargs):
+                raise api._httpx.ProxyError("503 Service Unavailable")
+
+        try:
+            os.environ["MOONSHOT_API_KEY"] = "test-key"
+            charge = {"source": "subscription", "credits_used": 0.5}
+            api._billing.check_and_deduct = lambda user_id, op: charge
+            api._billing.refund_operation_charge = lambda user_id, op, ch, desc: calls.append((user_id, op, ch, desc))
+            api._httpx.Client = FailingClient
+            jpg_b64 = base64.b64encode(b"\xff\xd8\xfffake-jpg").decode()
+
+            async def run():
+                return await api.extract_screenshot(
+                    api.ScreenshotExtractInput(image_base64=jpg_b64),
+                    user={"id": "u-test"},
+                )
+
+            with self.assertRaises(HTTPException) as ctx:
+                asyncio.run(run())
+        finally:
+            api._billing.check_and_deduct = original_check
+            api._billing.refund_operation_charge = original_refund
+            api._httpx.Client = original_client
+            if original_key is None:
+                os.environ.pop("MOONSHOT_API_KEY", None)
+            else:
+                os.environ["MOONSHOT_API_KEY"] = original_key
+
+        self.assertEqual(ctx.exception.status_code, 503)
+        self.assertIn("Moonshot Vision 网络不可达", ctx.exception.detail)
+        self.assertEqual(calls, [("u-test", "screenshot", charge, "截图识别失败自动退回")])
+
+    def test_expert_opinion_evidence_is_bound_to_v04_sources(self):
+        weakness = api.WeaknessItem(
+            feature="domain_food_hours",
+            label="餐饮营业时间槽位",
+            value=0.0,
+            benchmark=1.0,
+            suggestion="补充营业时间，提升到店决策确定性。",
+        )
+        normalized = api._normalize_expert_opinion(
+            {
+                "role": "内容专家",
+                "raw": (
+                    "<opinion>内容有真实菜品，但到店决策信息还不完整。</opinion>"
+                    "<evidence>餐饮营业时间槽位未命中；事实密度偏低</evidence>"
+                    "<impact>会影响读者判断是否值得收藏和到店。</impact>"
+                    "<suggestions>补充营业时间；把招牌菜和适合场景前置</suggestions>"
+                    "<confidence>0.86</confidence>"
+                ),
+            },
+            weaknesses=[weakness],
+            features={
+                "commercial_fact_density": 0.42,
+                "commercial_actionability": 0.51,
+                "commercial_body_has_cta": 1.0,
+                "commercial_body_main_char_len": 260.0,
+                "domain_food_hours": 0.0,
+                "domain_food_must_order": 1.0,
+            },
+            timing=None,
+            visual_score=None,
+            cover_feats={},
+            semantic_feats={},
+            domain="美食",
+            percentile=68.4,
+            grade="良好",
+        )
+
+        self.assertEqual(normalized["evidence_binding"], "v04_structured")
+        self.assertGreaterEqual(len(normalized["evidence"]), 2)
+        self.assertTrue(all(isinstance(item, dict) for item in normalized["evidence"]))
+        first = normalized["evidence"][0]
+        self.assertEqual(first["source_type"], "v04_feature")
+        self.assertEqual(first["source_key"], "domain_food_hours")
+        self.assertEqual(first["value"], 0.0)
+        self.assertEqual(first["benchmark"], 1.0)
+        self.assertIn("agent_text", first)
+        self.assertTrue(any(item.get("source_type") == "v04_score" for item in normalized["evidence"]))
+
+    def test_stale_market_timing_is_disabled_for_user_reports(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                hot_keywords.init_db()
+                old = (datetime.now() - timedelta(days=3)).isoformat()
+                with sqlite3.connect(str(hot_keywords.DB_PATH)) as conn:
+                    conn.execute(
+                        """
+                        INSERT INTO hot_keywords
+                            (keyword, search_vol, trend_dir, source, category, captured_at, captured_date)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        ("番禺美食", 90, 1, "homefeed", "美食", old, old[:10]),
+                    )
+
+                timing = hot_keywords.compute_market_timing("番禺美食", "番禺美食探店", "美食")
+                self.assertTrue(timing["data_stale"])
+                self.assertEqual(timing["timing_coefficient"], 1.0)
+                self.assertEqual(timing["matched_keywords"], [])
+                self.assertEqual(timing["suggested_keywords"], [])
+                self.assertEqual(timing["timing_action"], "stale")
+                self.assertIn("市场时机证据已停用", timing["confidence_note"])
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_fresh_market_timing_requires_domain_category(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                hot_keywords.init_db()
+                food_keywords = [
+                    "番禺美食", "番禺粤菜探店", "芝士焗小青龙", "广州早茶点心",
+                    "粤菜餐厅", "顺德鱼生", "乳鸽必点", "茶餐厅",
+                    "番禺探店", "海鲜砂锅", "牛肉火锅", "小吃宵夜",
+                ]
+                hot_keywords.upsert_keywords([
+                    {
+                        "keyword": kw,
+                        "search_vol": 88,
+                        "trend_dir": 1,
+                        "source": "homefeed_phrase",
+                        "category": "美食",
+                        "count": 3,
+                    }
+                    for kw in food_keywords
+                ] + [
+                    {
+                        "keyword": "太古里酒店",
+                        "search_vol": 92,
+                        "trend_dir": 1,
+                        "source": "homefeed_phrase",
+                        "category": "旅行",
+                        "count": 3,
+                    }
+                ])
+
+                food = hot_keywords.compute_market_timing("番禺美食", "番禺美食探店", "美食")
+                beauty = hot_keywords.compute_market_timing("番禺美食", "番禺美食探店", "美妆")
+                self.assertFalse(food["data_stale"])
+                self.assertIn("番禺美食", food["matched_keywords"])
+                self.assertTrue(beauty["data_stale"])
+                self.assertEqual(beauty["matched_keywords"], [])
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_market_timing_imports_fresh_cloud_snapshot(self):
+        original_db = hot_keywords.DB_PATH
+        old_snapshot_url = os.environ.get("NOTEAI_MARKET_TIMING_SNAPSHOT_URL")
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                hot_keywords.DB_PATH = tmp / "hot_keywords.db"
+                hot_keywords.init_db()
+                snapshot = {
+                    "schema_version": 1,
+                    "generated_at": datetime.now().isoformat(),
+                    "domains": {
+                        "美食": {
+                            "captured_at": datetime.now().isoformat(),
+                            "keywords": [
+                                {
+                                    "keyword": kw,
+                                    "search_vol": 91,
+                                    "trend_dir": 1,
+                                    "source": "cloud_snapshot",
+                                    "category": "美食",
+                                    "count": 3,
+                                }
+                                for kw in [
+                                    "番禺美食", "番禺粤菜探店", "芝士焗小青龙", "广州早茶点心",
+                                    "粤菜餐厅", "顺德鱼生", "乳鸽必点", "茶餐厅",
+                                    "番禺探店", "海鲜砂锅", "牛肉火锅", "小吃宵夜",
+                                ]
+                            ],
+                        }
+                    },
+                }
+                snapshot_path = tmp / "snapshot.json"
+                snapshot_path.write_text(json.dumps(snapshot, ensure_ascii=False), encoding="utf-8")
+                os.environ["NOTEAI_MARKET_TIMING_SNAPSHOT_URL"] = f"file://{snapshot_path}"
+
+                timing = hot_keywords.compute_market_timing("番禺美食", "番禺美食探店", "美食")
+                self.assertFalse(timing["data_stale"])
+                self.assertFalse(timing["evidence_unavailable"])
+                self.assertIn("番禺美食", timing["matched_keywords"])
+                self.assertTrue(timing["cloud_sync"].get("enabled"))
+        finally:
+            hot_keywords.DB_PATH = original_db
+            if old_snapshot_url is None:
+                os.environ.pop("NOTEAI_MARKET_TIMING_SNAPSHOT_URL", None)
+            else:
+                os.environ["NOTEAI_MARKET_TIMING_SNAPSHOT_URL"] = old_snapshot_url
+
+    def test_market_timing_imports_authorized_trend_source(self):
+        original_db = hot_keywords.DB_PATH
+        old_authorized_url = os.environ.get("NOTEAI_AUTHORIZED_TREND_URL")
+        old_snapshot_url = os.environ.get("NOTEAI_MARKET_TIMING_SNAPSHOT_URL")
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                hot_keywords.DB_PATH = tmp / "hot_keywords.db"
+                hot_keywords.init_db()
+                snapshot = {
+                    "generated_at": datetime.now().isoformat(),
+                    "domains": {
+                        "美食": {
+                            "captured_at": datetime.now().isoformat(),
+                            "keywords": [
+                                {
+                                    "keyword": kw,
+                                    "search_vol": 92,
+                                    "trend_dir": 1,
+                                    "category": "美食",
+                                    "count": 5,
+                                }
+                                for kw in [
+                                    "番禺美食", "番禺粤菜探店", "芝士焗小青龙", "广州早茶点心",
+                                    "粤菜餐厅", "顺德鱼生", "乳鸽必点", "茶餐厅",
+                                    "番禺探店", "海鲜砂锅", "牛肉火锅", "小吃宵夜",
+                                ]
+                            ],
+                        }
+                    },
+                }
+                snapshot_path = tmp / "authorized_trends.json"
+                snapshot_path.write_text(json.dumps(snapshot, ensure_ascii=False), encoding="utf-8")
+                os.environ["NOTEAI_AUTHORIZED_TREND_URL"] = f"file://{snapshot_path}"
+                os.environ.pop("NOTEAI_MARKET_TIMING_SNAPSHOT_URL", None)
+
+                timing = hot_keywords.compute_market_timing("番禺美食", "番禺美食探店", "美食")
+                self.assertFalse(timing["data_stale"])
+                self.assertEqual(timing["source_breakdown"].get("authorized_trend"), 12)
+                self.assertEqual(timing["is_trending_topic"], 1.0)
+                self.assertIn("番禺美食", timing["matched_keywords"])
+                self.assertTrue(timing["cloud_sync"].get("enabled"))
+                self.assertEqual(timing["cloud_sync"].get("source"), "authorized_trend")
+        finally:
+            hot_keywords.DB_PATH = original_db
+            if old_authorized_url is None:
+                os.environ.pop("NOTEAI_AUTHORIZED_TREND_URL", None)
+            else:
+                os.environ["NOTEAI_AUTHORIZED_TREND_URL"] = old_authorized_url
+            if old_snapshot_url is None:
+                os.environ.pop("NOTEAI_MARKET_TIMING_SNAPSHOT_URL", None)
+            else:
+                os.environ["NOTEAI_MARKET_TIMING_SNAPSHOT_URL"] = old_snapshot_url
+
+    def test_required_market_timing_raises_when_evidence_unavailable(self):
+        old_required = os.environ.get("NOTEAI_MARKET_TIMING_REQUIRED")
+        try:
+            os.environ["NOTEAI_MARKET_TIMING_REQUIRED"] = "1"
+            with self.assertRaises(HTTPException) as ctx:
+                api._enforce_market_timing(
+                    {
+                        "data_stale": True,
+                        "evidence_unavailable": True,
+                        "domain_latest_capture": None,
+                        "freshness_policy": "要求 30 小时内有行业采集样本",
+                    },
+                    "美食",
+                )
+            self.assertEqual(ctx.exception.status_code, 503)
+            self.assertEqual(ctx.exception.detail["code"], "MARKET_TIMING_EVIDENCE_UNAVAILABLE")
+        finally:
+            if old_required is None:
+                os.environ.pop("NOTEAI_MARKET_TIMING_REQUIRED", None)
+            else:
+                os.environ["NOTEAI_MARKET_TIMING_REQUIRED"] = old_required
 
     def test_chat_ownership_is_checked_before_billing(self):
         calls = []
@@ -186,6 +620,62 @@ class ApiContractTests(unittest.TestCase):
             self.assertNotIn("37%权重", prompt)
         finally:
             api._pm.get = original_get
+
+    def test_v04_predict_merges_realtime_feature_planes(self):
+        note = api.NoteInput(
+            note_title="广州番禺小青龙人均98值得试",
+            desc=(
+                "番禺万博这家粤菜适合聚餐，招牌芝士焗小青龙建议必点。"
+                "地址在广晟万博城A座7层，人均98元，营业时间09:00-14:00/17:00-21:00，周末建议提前预订。"
+                "#番禺美食 #粤菜聚餐 #芝士焗小青龙 #广州探店 #周末聚餐"
+            ),
+            local_time="2026062812",
+            domain="美食",
+        )
+        _score, features = api._predict(
+            note,
+            semantic_feats={
+                "semantic_emotional_intensity": 0.71,
+                "semantic_empathetic_engagement": 0.66,
+                "semantic_rhetorical_score": 0.63,
+            },
+            cover_feats={
+                "cover_aesthetic_score": 0.82,
+                "cover_composition_score": 0.76,
+                "cover_visual_clarity": 0.79,
+            },
+            timing_feats={
+                "keyword_search_vol": 0.77,
+                "trend_momentum": 0.55,
+            },
+        )
+
+        self.assertEqual(len(features), len(api.COMPOSITE_FEATURE_COLS))
+        self.assertEqual(features["semantic_emotional_intensity"], 0.71)
+        self.assertEqual(features["cover_aesthetic_score"], 0.82)
+        self.assertEqual(features["keyword_search_vol"], 0.77)
+
+    def test_report_metadata_exposes_v04_composite_contract(self):
+        features = api.build_composite_features(
+            title="广州番禺小青龙人均98值得试",
+            body=(
+                "番禺万博这家粤菜适合聚餐，招牌芝士焗小青龙建议必点。"
+                "地址在广晟万博城A座7层，人均98元，营业时间09:00-14:00/17:00-21:00，周末建议提前预订。"
+                "乳鸽皮脆肉嫩，真实探店可以点赞收藏。\n"
+                "#番禺美食 #粤菜聚餐 #芝士焗小青龙 #广州探店 #周末聚餐"
+            ),
+            domain="美食",
+        )
+        meta = api._build_report_metadata(features, "美食")
+        schema = meta["feature_schema"]
+
+        self.assertEqual(schema["contract_feature_count"], len(api.COMPOSITE_FEATURE_COLS))
+        self.assertGreater(schema["contract_feature_count"], 100)
+        self.assertEqual(schema["feature_count"], len(api.COMPOSITE_FEATURE_COLS))
+        self.assertEqual(sum(g["count"] for g in meta["feature_groups"]), len(api.COMPOSITE_FEATURE_COLS))
+        self.assertIn("commercial_facts", {d["key"] for d in meta["dimension_scores"]})
+        self.assertIn("semantic", {d["key"] for d in meta["dimension_scores"]})
+        self.assertTrue(meta["top_feature_contributions"])
 
     def test_v04_artifact_path_resolves_cloud_deployment_paths(self):
         filename = "model_v04_composite_regressor_experimental_20260628T013926Z.lgb"
@@ -560,12 +1050,13 @@ class ApiContractTests(unittest.TestCase):
         original_log = api._log_analysis
         original_db_execute = api._db.execute
         captured_notes = []
+        captured_agent_contexts = []
         fact_calls = []
 
         async def fake_video(file_id, domain, brief):
             return "视频里拍到芝士焗小青龙、红烧乳鸽和万博门店环境，适合做餐饮探店诊断。"
 
-        async def fake_enrich(domain, title, text):
+        async def fake_enrich(domain, title, text, **_kwargs):
             fact_calls.append((domain, title, text))
             return {
                 "enabled": True,
@@ -589,6 +1080,7 @@ class ApiContractTests(unittest.TestCase):
 
         async def fake_run_agents(note, *_args, **_kwargs):
             captured_notes.append(note)
+            captured_agent_contexts.append(_kwargs.get("agent_context", ""))
             bodies = [
                 "先看决策信息：长禧家珑厨在广州番禺万博商圈，人均98元，营业时间11:00-22:00。芝士焗小青龙是招牌，红烧乳鸽适合分享。点赞收藏。#广州美食 #番禺美食 #粤菜 #万博探店 #小青龙",
                 "这版从菜品种草切入：芝士焗小青龙上桌有热度，红烧乳鸽皮脆肉嫩，适合想吃粤菜的人。地址在广州番禺万博商圈，人均98元。点赞收藏。#广州美食 #番禺美食 #粤菜 #万博美食 #探店",
@@ -596,11 +1088,11 @@ class ApiContractTests(unittest.TestCase):
             ]
             return {
                 "diagnosis": "三入口统一进入五 agent 诊断。",
-                "titles": ["万博粤菜人均98元", "小青龙乳鸽这样点", "番禺聚餐这家很稳"],
+                "titles": ["万博粤菜人均98元", "小青龙乳鸽这样点", "番禺聚餐小青龙乳鸽"],
                 "plans": [
                     {"title": "万博粤菜人均98元", "body": bodies[0]},
                     {"title": "小青龙乳鸽这样点", "body": bodies[1]},
-                    {"title": "番禺聚餐这家很稳", "body": bodies[2]},
+                    {"title": "番禺聚餐小青龙乳鸽", "body": bodies[2]},
                 ],
                 "plan": "按决策、菜品、避坑三方向输出。",
                 "body": bodies[0],
@@ -705,16 +1197,18 @@ class ApiContractTests(unittest.TestCase):
             api._db.execute = original_db_execute
 
         self.assertEqual(len(fact_calls), 3)
-        self.assertIn("截图里有餐厅门头", fact_calls[1][2])
+        self.assertNotIn("截图里有餐厅门头", fact_calls[1][2])
         self.assertIn("视频里拍到芝士焗小青龙", fact_calls[2][2])
         self.assertEqual(len(captured_notes), 3)
         self.assertIn("手动输入", captured_notes[0].desc)
-        self.assertIn("【其他内容图片描述】", captured_notes[1].desc)
+        self.assertNotIn("【其他内容图片描述】", captured_notes[1].desc)
         self.assertIn("【视频画面内容（AI 解读）】", captured_notes[2].desc)
-        for note in captured_notes:
-            self.assertIn("【联网事实补全】", note.desc)
-            self.assertIn("【用户长期偏好/记忆】", note.desc)
-            self.assertIn("用户偏好：文案自然", note.desc)
+        self.assertEqual(len(captured_agent_contexts), 3)
+        self.assertIn("【其他内容图片描述】", captured_agent_contexts[1])
+        for ctx in captured_agent_contexts:
+            self.assertIn("【联网事实补全】", ctx)
+            self.assertIn("【用户长期偏好/记忆】", ctx)
+            self.assertIn("用户偏好：文案自然", ctx)
 
         for resp in responses:
             self.assertEqual(resp.model_used, "claude-routed-5-agents")
@@ -820,10 +1314,10 @@ class ApiContractTests(unittest.TestCase):
             "点赞收藏，评论区告诉我你最想试哪一道。#广州美食 #番禺美食 #万博美食 #粤菜 #探店"
         )
         shaped = api._insert_safe_fact_line(body, "美食", source)
-        self.assertIn("位于广州番禺万博商圈", shaped)
-        self.assertIn("套餐价格以门店套餐页为准", shaped)
-        self.assertIn("营业时间以门店公示为准", shaped)
-        self.assertIn("周末建议提前预订", shaped)
+        self.assertNotIn("位于广州番禺万博商圈", shaped)
+        self.assertNotIn("套餐价格以门店套餐页为准", shaped)
+        self.assertNotIn("营业时间以门店公示为准", shaped)
+        self.assertNotIn("周末建议提前预订", shaped)
         self.assertFalse(any("结构化事实不能编造" in item for item in api._structured_fact_boundary_issues(shaped, source, "美食")))
 
         note = api.NoteInput(
@@ -833,10 +1327,9 @@ class ApiContractTests(unittest.TestCase):
             domain="美食",
         )
         _score, features = api._predict(note)
-        self.assertEqual(features.get("body_has_address"), 1)
-        self.assertEqual(features.get("body_has_price"), 1)
-        self.assertEqual(features.get("body_has_hours"), 1)
-        self.assertEqual(features.get("body_has_booking"), 1)
+        self.assertEqual(features.get("body_has_price"), 0)
+        self.assertEqual(features.get("body_has_hours"), 0)
+        self.assertEqual(features.get("body_has_booking"), 0)
 
     def test_internal_missing_fact_constraints_do_not_leak_into_delivery_body(self):
         source = "\n".join([
@@ -856,9 +1349,9 @@ class ApiContractTests(unittest.TestCase):
         self.assertNotIn("用户未提供", shaped)
         self.assertNotIn("不能编造", shaped)
         self.assertNotIn("实用信息：", shaped)
-        self.assertIn("套餐价格以门店套餐页为准", shaped)
-        self.assertIn("营业时间以门店公示为准", shaped)
-        self.assertIn("门店位于广州番禺万博商圈附近", shaped)
+        self.assertNotIn("套餐价格以门店套餐页为准", shaped)
+        self.assertNotIn("营业时间以门店公示为准", shaped)
+        self.assertNotIn("，。", shaped)
         self.assertEqual(api._body_format_issues(shaped), [])
 
     def test_safe_food_fact_line_prefers_verified_fact_context(self):
@@ -875,10 +1368,12 @@ class ApiContractTests(unittest.TestCase):
             "美食",
             source,
         )
-        self.assertIn("门店地址在南村镇汉溪大道东386号广晟万博城A座7层", shaped)
-        self.assertIn("人均98元", shaped)
-        self.assertIn("高德评分4.5", shaped)
-        self.assertIn("营业时间周一至周日 11:00-22:00", shaped)
+        safe_line = api._safe_fact_line("美食", source)
+        self.assertIn("门店地址在南村镇汉溪大道东386号广晟万博城A座7层", safe_line)
+        self.assertIn("人均98元", safe_line)
+        self.assertIn("高德评分4.5", safe_line)
+        self.assertIn("营业时间周一至周日 11:00-22:00", safe_line)
+        self.assertNotIn("门店地址在南村镇汉溪大道东386号广晟万博城A座7层", shaped)
         self.assertNotIn("套餐价格以门店套餐页为准", shaped)
         self.assertFalse(api._structured_fact_boundary_issues(shaped, source, "美食"))
 
@@ -893,15 +1388,20 @@ class ApiContractTests(unittest.TestCase):
             "- 已核验事实：高德评分：4.6",
         ])
         self.assertEqual(api._fact_context_value(source, "营业时间"), "00:00-01:00 11:00-24:00")
+        safe_line = api._safe_fact_line("美食", source)
+        self.assertIn("门店地址在上东大街6号春南商场2层(西南书城)", safe_line)
+        self.assertIn("人均89元", safe_line)
+        self.assertIn("高德评分4.6", safe_line)
+        self.assertIn("营业时间00:00-01:00 11:00-24:00", safe_line)
         shaped = api._insert_safe_fact_line(
             "毛肚和巴蜀麻辣牛肉是必点，第一次来可以选鸳鸯锅。",
             "美食",
             source,
         )
-        self.assertIn("门店地址在上东大街6号春南商场2层(西南书城)", shaped)
-        self.assertIn("人均89元", shaped)
-        self.assertIn("高德评分4.6", shaped)
-        self.assertIn("营业时间00:00-01:00 11:00-24:00", shaped)
+        self.assertNotIn("门店地址在上东大街6号春南商场2层(西南书城)", shaped)
+        self.assertNotIn("人均89元", shaped)
+        self.assertNotIn("高德评分4.6", shaped)
+        self.assertNotIn("营业时间00:00-01:00 11:00-24:00", shaped)
         self.assertNotIn("营业时间以门店公示为准", shaped)
 
     def test_food_decision_facts_survive_delivery_compaction(self):
@@ -940,10 +1440,12 @@ class ApiContractTests(unittest.TestCase):
             "美食",
             source,
         )
-        self.assertIn("门店地址在第十甫路20号1-5层", shaped)
-        self.assertIn("人均110元", shaped)
-        self.assertIn("高德评分4.7", shaped)
-        self.assertIn("营业时间08:00-16:30 17:00-21:30", shaped)
+        safe_line = api._safe_fact_line("美食", source)
+        self.assertIn("门店地址在第十甫路20号1-5层", safe_line)
+        self.assertIn("人均110元", safe_line)
+        self.assertIn("高德评分4.7", safe_line)
+        self.assertIn("营业时间08:00-16:30 17:00-21:30", safe_line)
+        self.assertNotIn("门店地址在第十甫路20号1-5层", shaped)
         self.assertNotIn("门店地址在陶陶居", shaped)
         self.assertNotIn("门店地址在地址", shaped)
         self.assertNotIn("营业时间营业时间", shaped)
@@ -964,7 +1466,7 @@ class ApiContractTests(unittest.TestCase):
             source,
         )
         self.assertNotIn("门店地址在门店名", polluted)
-        self.assertIn("门店地址在第十甫路20号1-5层", polluted)
+        self.assertNotIn("门店地址在第十甫路20号1-5层", polluted)
 
     def test_low_quality_phrases_are_soft_issues_and_polished(self):
         source = "【联网事实补全】\n- 价格/人均：人均98元\n- 位置/地址：广州番禺万博\n- 营业时间：每天11:00-22:00"
@@ -1027,6 +1529,107 @@ class ApiContractTests(unittest.TestCase):
         note = api.NoteInput(note_title="广州番禺珑厨，6道粤菜绝了", desc=api._normalize_tags_for_scoring(shaped), domain="美食")
         _score, features = api._predict(note)
         self.assertGreaterEqual(features.get("body_cta_count", 0), 1)
+
+    def test_food_seed_intent_skips_amap_without_merchant(self):
+        result = asyncio.run(api._maybe_enrich_facts(
+            "美食",
+            "广州龙虾乌冬",
+            "只想写真实种草，不展示店名",
+            content_intent="真实种草型",
+            merchant_visibility="auto",
+        ))
+        self.assertFalse(result.get("enabled"))
+        self.assertEqual(result.get("decision", {}).get("reason"), "seeding_mode_does_not_need_store_facts")
+        self.assertFalse(result.get("decision", {}).get("needs_user_supplement"))
+
+    def test_food_decision_intent_requires_confirmed_merchant(self):
+        result = asyncio.run(api._maybe_enrich_facts(
+            "美食",
+            "广州龙虾乌冬",
+            "需要到店决策信息，但没有店名",
+            content_intent="决策转化型",
+            merchant_visibility="show",
+        ))
+        decision = result.get("decision", {})
+        self.assertFalse(result.get("enabled"))
+        self.assertEqual(decision.get("reason"), "missing_confirmed_merchant_name")
+        self.assertTrue(decision.get("needs_user_supplement"))
+        self.assertIn("merchant_name", decision.get("supplement_fields", []))
+
+    def test_food_decision_intent_with_merchant_calls_fact_provider(self):
+        original = api._facts.enrich_content_facts
+        calls = []
+
+        def fake_enrich(domain, title, text):
+            calls.append((domain, title, text))
+            return {
+                "enabled": True,
+                "provider": "amap",
+                "query": "长禧家珑厨",
+                "facts": {"位置/地址": "广州番禺万博"},
+                "sources": [],
+                "confidence": 0.9,
+            }
+
+        try:
+            api._facts.enrich_content_facts = fake_enrich
+            result = asyncio.run(api._maybe_enrich_facts(
+                "美食",
+                "番禺万博粤菜聚餐",
+                "芝士焗小青龙和乳鸽适合聚餐",
+                content_intent="决策转化型",
+                merchant_visibility="show",
+                merchant_name="长禧家珑厨万博广晟店",
+            ))
+        finally:
+            api._facts.enrich_content_facts = original
+
+        self.assertTrue(result.get("enabled"))
+        self.assertEqual(result.get("decision", {}).get("provider"), "amap")
+        self.assertEqual(calls[0][0], "美食")
+        self.assertEqual(calls[0][1], "长禧家珑厨万博广晟店")
+        self.assertIn("门店名：长禧家珑厨万博广晟店", calls[0][2])
+
+    def test_placeholder_fact_sentences_are_removed_and_flagged(self):
+        body = (
+            "门店位于广州本地商圈，套餐价格以门店套餐页为准，营业时间以门店公示为准，周末建议提前预订。"
+            "龙虾乌冬汤底很浓，海胆甜虾丼也适合一起点。点赞收藏。#广州美食 #乌冬面 #日料"
+        )
+        cleaned = api._insert_safe_fact_line(body, "美食", "广州龙虾乌冬")
+        self.assertNotIn("门店位于广州本地商圈", cleaned)
+        self.assertNotIn("套餐价格以门店套餐页为准", cleaned)
+        self.assertNotIn("营业时间以门店公示为准", cleaned)
+        issues = api._generated_quality_issues(
+            "广州龙虾乌冬推荐",
+            body,
+            "美食",
+            72.0,
+            {"tag_count": 3, "body_cta_count": 1, "body_has_price": 0, "body_has_address": 0, "body_has_hours": 0, "body_has_must_order": 1},
+            "【创作方向契约】\n- 用户选择的笔记类型：真实种草型。\n- 商家/品牌展示策略：AI识别后决定",
+        )
+        self.assertTrue(any("占位符" in item or "兜底句" in item for item in issues))
+
+    def test_food_title_sanitizer_removes_overused_stable_template(self):
+        source = "【创作方向契约】\n- 用户选择的笔记类型：真实种草型。\n广州番禺万博，芝士焗小青龙、龙虾乌冬、海胆甜虾丼。"
+        title = api._sanitize_title_for_delivery("番禺万博这家真的稳", source, "美食")
+        self.assertNotIn("这家真的稳", title)
+        self.assertNotIn("很稳", title)
+        self.assertNotIn("值得冲", title)
+        self.assertLessEqual(len(title), api._TITLE_DELIVERY_MAX)
+
+    def test_seed_intent_does_not_penalize_missing_store_facts(self):
+        source = "【创作方向契约】\n- 用户选择的笔记类型：真实种草型。\n- 商家/品牌展示策略：不展示商家"
+        issues = api._generated_quality_issues(
+            "广州龙虾乌冬面推荐",
+            "龙虾乌冬汤底浓，海胆甜虾丼也很有记忆点，适合收藏下次慢慢点。点赞收藏。#广州美食 #龙虾乌冬 #日料 #一人食 #海鲜",
+            "美食",
+            72.0,
+            {"tag_count": 5, "body_cta_count": 1, "body_has_price": 0, "body_has_address": 0, "body_has_hours": 0, "body_has_must_order": 1},
+            source,
+        )
+        self.assertFalse(any("缺少真实价格" in item for item in issues))
+        self.assertFalse(any("缺少地址" in item for item in issues))
+        self.assertFalse(any("缺少营业时间" in item for item in issues))
 
     def test_fact_enrichment_prefers_china_local_provider_and_formats_context(self):
         old_env = {k: os.environ.get(k) for k in [
@@ -2274,11 +2877,11 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(api._sanitize_title_for_delivery(food_not_step_tail, "", "美食"), "春熙路蜀大侠这样点不踩雷")
         self.assertEqual(api._sanitize_title_for_delivery(food_point_not_tail, "", "美食"), "春熙路蜀大侠这样点不踩雷")
         self.assertEqual(api._sanitize_title_for_delivery(food_steady_tail, "", "美食"), "广州北京路点都德早茶稳")
-        self.assertEqual(api._sanitize_title_for_delivery(food_price_no_unit_tail, "", "美食"), "番禺万博长禧家珑厨很稳")
-        self.assertEqual(api._sanitize_title_for_delivery(food_wrong_tail, "", "美食"), "番禺万博长禧家珑厨很稳")
+        self.assertEqual(api._sanitize_title_for_delivery(food_price_no_unit_tail, "", "美食"), "番禺万博长禧家珑厨人均98元")
+        self.assertEqual(api._sanitize_title_for_delivery(food_wrong_tail, "", "美食"), "番禺万博长禧家珑厨人均98元")
         self.assertEqual(api._sanitize_title_for_delivery(food_amap_dish_tail, "", "美食"), "番禺万博芝士焗小青龙必点")
         self.assertEqual(api._sanitize_title_for_delivery(food_diandoude_tail, "", "美食"), "北京路点都德金牌虾饺皇必点")
-        self.assertEqual(api._sanitize_title_for_delivery(food_diandoude_steady_tail, "", "美食"), "北京路点都德早茶人均86元很稳")
+        self.assertEqual(api._sanitize_title_for_delivery(food_diandoude_steady_tail, "", "美食"), "北京路点都德早茶人均86元")
         self.assertEqual(api._sanitize_title_for_delivery(food_diandoude_morning_tail, "", "美食"), "北京路点都德虾饺皇必点")
         self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_tail, "", "美食"), "成都春熙路蜀大侠这样点")
         self.assertEqual(api._sanitize_title_for_delivery(food_spicy_beef_tail, "", "美食"), "成都春熙路蜀大侠麻辣牛肉必点")
@@ -2287,7 +2890,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_step_tail, "", "美食"), "成都春熙路火锅这样点不踩雷")
         self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_avoid_tail, "", "美食"), "成都春熙路火锅这样点不踩雷")
         self.assertEqual(api._sanitize_title_for_delivery(food_shudaxia_order_tail, "", "美食"), "春熙路蜀大侠第一次这样点")
-        self.assertEqual(api._sanitize_title_for_delivery(food_longxi_price_order_tail, "", "美食"), "番禺万博长禧家珑厨很稳")
+        self.assertEqual(api._sanitize_title_for_delivery(food_longxi_price_order_tail, "", "美食"), "番禺万博长禧家珑厨人均98元")
         self.assertEqual(
             api._sanitize_title_for_delivery(beauty_dangling, "", "美妆"),
             "混干敏感皮防晒，两指量才不搓泥",
@@ -2913,7 +3516,7 @@ class ApiContractTests(unittest.TestCase):
         )
         self.assertEqual(
             api._sanitize_title_for_delivery("科技园42元午餐，10分钟出餐稳定套", "", "美食"),
-            "科技园42元午餐，10分钟出餐很稳",
+            "科技园42元午餐，10分钟出餐",
         )
         self.assertEqual(
             api._sanitize_title_for_delivery("杭州2天1晚亲子游，别排太满留时间休", "", "旅行"),
@@ -3408,6 +4011,55 @@ class ApiContractTests(unittest.TestCase):
 
         self.assertEqual(selection["selected"]["origin"], "ready_clean")
         self.assertTrue(selection["used_ranker"])
+
+    def test_user_constraints_contract_normalizes_and_fixes_publish_time(self):
+        constraints = api._normalize_user_constraints([
+            "不改标题",
+            "固定发布时间 18:00",
+            "目标：带货",
+            "重点优化：曝光量",
+        ])
+
+        self.assertEqual(constraints, ["不改标题", "固定发布时间 18:00", "目标：带货", "重点优化：曝光量"])
+        self.assertEqual(api._local_time_with_user_constraints("2026070120", constraints), "2026070118")
+        payload = api._constraint_contract_payload(constraints)
+        self.assertTrue(payload["hard_rules"]["keep_title"])
+        self.assertEqual(payload["hard_rules"]["publish_time"], "18:00")
+        self.assertTrue(payload["goals"]["commerce_conversion"])
+        self.assertTrue(payload["goals"]["exposure"])
+
+    def test_user_constraints_brief_and_hard_guard_are_enforced(self):
+        constraints = ["不改标题", "不改封面", "重点优化：互动率"]
+        brief = api._user_constraints_brief(constraints, "对话优化")
+
+        self.assertIn("不改标题", brief)
+        self.assertIn("不得建议换封面", brief)
+        self.assertIn("互动率", brief)
+        guarded_title, guarded_body, changed = api._apply_user_constraint_hard_guards(
+            "新标题",
+            "正文",
+            "原始标题",
+            constraints,
+        )
+        self.assertTrue(changed)
+        self.assertEqual(guarded_title, "原始标题")
+        self.assertEqual(guarded_body, "正文")
+
+    def test_chat_system_prompt_reads_user_constraints(self):
+        prompt = api._build_chat_system_prompt({
+            "domain": "美食",
+            "note_title": "原始标题",
+            "note_body": "正文里有真实菜品和地址。",
+            "current_score": 68.0,
+            "user_constraints": ["不改标题", "固定发布时间 18:00", "目标：涨粉"],
+            "generate_context": {},
+            "user_prefs": {},
+        })
+
+        self.assertIn("用户约束执行契约", prompt)
+        self.assertIn("已有标题必须原样保留", prompt)
+        self.assertIn("固定发布时间为18:00", prompt)
+        self.assertIn("涨粉", prompt)
 
 
 if __name__ == "__main__":

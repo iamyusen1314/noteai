@@ -12,6 +12,7 @@ model_router.py — NoteAI Pro 统一模型路由层
 """
 
 import asyncio
+import inspect
 import json
 import os
 import sys
@@ -95,6 +96,41 @@ def _is_retryable(exc: Exception) -> bool:
     return False
 
 
+def _usage_attr(usage, name: str) -> int:
+    if not usage:
+        return 0
+    if isinstance(usage, dict):
+        return int(usage.get(name, 0) or 0)
+    return int(getattr(usage, name, 0) or 0)
+
+
+def _record_usage(provider: str, model: str, tokens_in: int = 0, tokens_out: int = 0) -> None:
+    if not tokens_in and not tokens_out:
+        return
+    try:
+        import billing
+
+        billing.record_model_usage(provider, model, tokens_in=tokens_in, tokens_out=tokens_out)
+    except Exception:
+        pass
+
+
+def _record_claude_usage(model: str, usage) -> None:
+    tokens_in = (
+        _usage_attr(usage, "input_tokens")
+        + _usage_attr(usage, "cache_creation_input_tokens")
+        + _usage_attr(usage, "cache_read_input_tokens")
+    )
+    tokens_out = _usage_attr(usage, "output_tokens")
+    _record_usage("claude", model, tokens_in, tokens_out)
+
+
+def _record_kimi_usage(model: str, usage: dict | None) -> None:
+    tokens_in = _usage_attr(usage, "prompt_tokens")
+    tokens_out = _usage_attr(usage, "completion_tokens")
+    _record_usage("kimi", model, tokens_in, tokens_out)
+
+
 def _claude_timeout_seconds(task: str, thinking: bool, max_tokens: int) -> float:
     if thinking or max_tokens >= 4000:
         return CLAUDE_THINK_TIMEOUT_SECONDS
@@ -164,6 +200,7 @@ async def _call_claude(
         kwargs["temperature"] = 0.7
 
     response = await client.messages.create(**kwargs)
+    _record_claude_usage(model, getattr(response, "usage", None))
     parts: list[str] = []
     for block in response.content:
         if block.type == "text":
@@ -194,7 +231,9 @@ async def _call_kimi(
             headers={"Authorization": f"Bearer {key}"},
         )
         r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"].strip()
+        data = r.json()
+        _record_kimi_usage(model, data.get("usage") if isinstance(data, dict) else None)
+        return data["choices"][0]["message"]["content"].strip()
 
 
 # ── 统一非流式调用入口 ────────────────────────────────────────────
@@ -247,6 +286,13 @@ async def _stream_claude(
                     yield ("thinking", delta.thinking)
                 elif delta.type == "text_delta":
                     yield ("content", delta.text)
+        try:
+            final_message = stream_ctx.get_final_message()
+            if inspect.isawaitable(final_message):
+                final_message = await final_message
+            _record_claude_usage(model, getattr(final_message, "usage", None))
+        except Exception:
+            pass
 
 
 # ── Kimi 流式调用 ─────────────────────────────────────────────────
@@ -279,6 +325,7 @@ async def _stream_kimi(
             headers={"Authorization": f"Bearer {key}"},
         ) as resp:
             resp.raise_for_status()
+            final_usage = None
             async for line in resp.aiter_lines():
                 if not line.startswith("data: "):
                     continue
@@ -287,6 +334,8 @@ async def _stream_kimi(
                     break
                 try:
                     chunk = json.loads(raw)
+                    if chunk.get("usage"):
+                        final_usage = chunk.get("usage")
                     delta = chunk["choices"][0].get("delta", {})
                     if delta.get("reasoning_content"):
                         yield ("thinking", delta["reasoning_content"])
@@ -294,6 +343,7 @@ async def _stream_kimi(
                         yield ("content", delta["content"])
                 except Exception:
                     continue
+            _record_kimi_usage(model, final_usage)
 
 
 # ── 统一流式调用入口 ──────────────────────────────────────────────
@@ -385,6 +435,13 @@ async def stream_chat(
                         yield ("thinking", delta.thinking)
                     elif delta.type == "text_delta":
                         yield ("content", delta.text)
+            try:
+                final_message = stream_ctx.get_final_message()
+                if inspect.isawaitable(final_message):
+                    final_message = await final_message
+                _record_claude_usage(CLAUDE_SONNET, getattr(final_message, "usage", None))
+            except Exception:
+                pass
     except Exception as exc:
         # fallback to Haiku non-streaming
         _log(f"stream_chat Sonnet FAIL: {exc} → Haiku fallback")
@@ -414,6 +471,7 @@ def call_semantic_sync(system: str, user: str, max_tokens: int = 300) -> str:
         messages=[{"role": "user", "content": user}],
         temperature=0.3,
     )
+    _record_claude_usage(CLAUDE_HAIKU, getattr(response, "usage", None))
     parts = [block.text for block in response.content if block.type == "text"]
     return "".join(parts).strip()
 

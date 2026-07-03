@@ -37,6 +37,10 @@ REQUIRED_ENV_NAMES = {
     "NOTEAI_MODEL_ARTIFACT_REQUIRED",
     "NOTEAI_MODEL_ARTIFACT_BASE_URL",
     "NOTEAI_FACT_SEARCH",
+    "NOTEAI_API_STARTS_TREND_SCHEDULER",
+    "NOTEAI_HOT_KEYWORD_FRESH_HOURS",
+    "NOTEAI_MARKET_TIMING_REQUIRED",
+    "NOTEAI_MARKET_TIMING_SNAPSHOT_URL",
     "AMAP_WEB_KEY",
     "MEITUAN_OPEN_TOKEN",
     "MEITUAN_AI_HUB_TOKEN",
@@ -234,6 +238,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     env_example = (MODEL_DIR / ".env.example").read_text(encoding="utf-8")
     deploy_secrets = (ROOT / "docs" / "DEPLOYMENT_SECRETS.md").read_text(encoding="utf-8")
     cloud_strategy = (ROOT / "docs" / "MODEL_ARTIFACT_CLOUD_STRATEGY.md").read_text(encoding="utf-8")
+    timing_strategy = (ROOT / "docs" / "MARKET_TIMING_CLOUD_PIPELINE.md").read_text(encoding="utf-8")
 
     checks = [
         _ok("ci_runs_tests", "python -m unittest discover -s tests -p 'test_*.py'" in workflow),
@@ -244,10 +249,16 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         _ok("dependabot_configured", "package-ecosystem: \"pip\"" in dependabot and "github-actions" in dependabot),
         _ok("docker_uses_artifact_entrypoint", "ENTRYPOINT [\"/app/scripts/docker_entrypoint.sh\"]" in dockerfile),
         _ok("docker_copies_entrypoint", "COPY scripts/docker_entrypoint.sh" in dockerfile),
+        _ok("docker_installs_playwright_chromium", "python -m playwright install --with-deps chromium" in dockerfile),
+        _ok("requirements_include_playwright", "playwright==" in (MODEL_DIR / "requirements.txt").read_text(encoding="utf-8")),
+        _ok("compose_has_trends_worker", "noteai-trends-worker:" in compose and "market_timing_worker.py" in compose),
+        _ok("entrypoint_can_skip_model_for_worker", "NOTEAI_SKIP_MODEL_ARTIFACT_CHECK" in (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")),
         _ok("compose_shares_artifacts", "./model/artifacts:/app/model/artifacts" in compose),
         _ok("compose_has_admin_service", "noteai-admin:" in compose and "/admin/health" in compose),
         _ok("deployment_secrets_doc_exists", "GitHub Environment" in deploy_secrets),
         _ok("model_cloud_strategy_doc_exists", "NOTEAI_MODEL_ARTIFACT_BASE_URL" in cloud_strategy),
+        _ok("market_timing_cloud_strategy_doc_exists", "NOTEAI_MARKET_TIMING_REQUIRED=1" in timing_strategy),
+        _ok("market_timing_baseline_evidence_documented", "industry_baseline" in timing_strategy),
     ]
     missing_env = [name for name in sorted(REQUIRED_ENV_NAMES) if name not in env_example]
     checks.append(_ok("env_example_contains_required_names", not missing_env, f"missing={missing_env}"))

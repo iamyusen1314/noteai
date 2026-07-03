@@ -1,6 +1,14 @@
 {
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui"
+  },
   "dependencies": {
     "docx": "^9.6.1",
     "three": "^0.165.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
   }
 }

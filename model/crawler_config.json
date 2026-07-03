@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "cookie_valid": false,
-  "last_run": null,
+  "last_run": "2026-07-01T14:20:33.798089+00:00",
   "total_collected": 0,
   "daily_limit": 300,
   "schedule_hour": 3

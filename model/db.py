@@ -115,7 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_growth_user ON growth_records(user_id, recorded_a
 CREATE TABLE IF NOT EXISTS subscriptions (
     id           TEXT PRIMARY KEY,
     user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    tier         TEXT NOT NULL DEFAULT 'free',  -- 'free'|'pro'|'pro_plus'
+    tier         TEXT NOT NULL DEFAULT 'free',  -- 'free'|'pro'|'growth'|'pro_plus'|'studio'
     started_at   TEXT NOT NULL,
     expires_at   TEXT NOT NULL,   -- 下次续费日（免费版设为 2099-01-01）
     is_active    INTEGER DEFAULT 1,
@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     used_generate     INTEGER DEFAULT 0,
     used_chat_rewrite INTEGER DEFAULT 0,
     used_screenshot   INTEGER DEFAULT 0,
+    used_monthly_credits REAL DEFAULT 0,
     period_start TEXT NOT NULL    -- 本周期开始时间（每月重置）
 );
 CREATE INDEX IF NOT EXISTS idx_sub_user ON subscriptions(user_id);
@@ -136,6 +137,11 @@ CREATE TABLE IF NOT EXISTS usage_records (
     tokens_in    INTEGER DEFAULT 0,
     tokens_out   INTEGER DEFAULT 0,
     cost_rmb     REAL    DEFAULT 0,
+    estimated_cost_rmb REAL DEFAULT 0,
+    actual_model_cost_rmb REAL DEFAULT 0,
+    model_calls  INTEGER DEFAULT 0,
+    model_names  TEXT    DEFAULT '',
+    cost_mode    TEXT    DEFAULT 'estimated',
     credits_used REAL    DEFAULT 0,   -- 0=套餐覆盖, >0=积分扣除
     source       TEXT    DEFAULT 'subscription',  -- 'subscription'|'credits'|'free'
     recorded_at  TEXT    NOT NULL
@@ -159,6 +165,9 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
     amount        REAL NOT NULL,   -- 正=充入 负=扣除
     balance_after REAL NOT NULL,
     description   TEXT,
+    paid_rmb      REAL DEFAULT 0,  -- 真实支付金额；赠送/消耗为0
+    package_id    TEXT DEFAULT '',
+    payment_ref   TEXT DEFAULT '',
     recorded_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ctxn_user ON credit_transactions(user_id, recorded_at DESC);
@@ -190,6 +199,35 @@ CREATE INDEX IF NOT EXISTS idx_saved_diag_user ON saved_diagnoses(user_id, creat
             conn.execute("UPDATE subscriptions SET used_chat_rewrite = used_rewrite")
         elif "used_chat_rewrite" not in sub_cols:
             conn.execute("ALTER TABLE subscriptions ADD COLUMN used_chat_rewrite INTEGER DEFAULT 0")
+        if "used_monthly_credits" not in sub_cols:
+            conn.execute("ALTER TABLE subscriptions ADD COLUMN used_monthly_credits REAL DEFAULT 0")
+        usage_cols = [r[1] for r in conn.execute("PRAGMA table_info(usage_records)").fetchall()]
+        usage_additions = {
+            "estimated_cost_rmb": "ALTER TABLE usage_records ADD COLUMN estimated_cost_rmb REAL DEFAULT 0",
+            "actual_model_cost_rmb": "ALTER TABLE usage_records ADD COLUMN actual_model_cost_rmb REAL DEFAULT 0",
+            "model_calls": "ALTER TABLE usage_records ADD COLUMN model_calls INTEGER DEFAULT 0",
+            "model_names": "ALTER TABLE usage_records ADD COLUMN model_names TEXT DEFAULT ''",
+            "cost_mode": "ALTER TABLE usage_records ADD COLUMN cost_mode TEXT DEFAULT 'estimated'",
+        }
+        for col, sql in usage_additions.items():
+            if col not in usage_cols:
+                conn.execute(sql)
+        if "estimated_cost_rmb" not in usage_cols:
+            conn.execute("UPDATE usage_records SET estimated_cost_rmb=COALESCE(cost_rmb,0) WHERE estimated_cost_rmb IS NULL OR estimated_cost_rmb=0")
+        credit_txn_cols = [r[1] for r in conn.execute("PRAGMA table_info(credit_transactions)").fetchall()]
+        credit_txn_additions = {
+            "paid_rmb": "ALTER TABLE credit_transactions ADD COLUMN paid_rmb REAL DEFAULT 0",
+            "package_id": "ALTER TABLE credit_transactions ADD COLUMN package_id TEXT DEFAULT ''",
+            "payment_ref": "ALTER TABLE credit_transactions ADD COLUMN payment_ref TEXT DEFAULT ''",
+        }
+        for col, sql in credit_txn_additions.items():
+            if col not in credit_txn_cols:
+                conn.execute(sql)
+        if "paid_rmb" not in credit_txn_cols:
+            conn.execute(
+                "UPDATE credit_transactions SET paid_rmb=amount*0.30 "
+                "WHERE type='topup' AND (paid_rmb IS NULL OR paid_rmb=0)"
+            )
         # phone / avatar_data 列幂等迁移
         user_cols = [r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
         if "phone" not in user_cols:

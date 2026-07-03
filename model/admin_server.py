@@ -112,39 +112,50 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
         "SELECT tier, COUNT(*) as cnt FROM subscriptions WHERE is_active=1 GROUP BY tier")
     tier_dist = {r["tier"]: r["cnt"] for r in tier_rows}
 
-    # ── 本月收入（模拟：订阅 × 单价）──
-    pro_count      = tier_dist.get("pro", 0)
-    pro_plus_count = tier_dist.get("pro_plus", 0)
-    sub_revenue    = pro_count * 99 + pro_plus_count * 199
+    # ── 本月收入（模拟：订阅 × 当前套餐单价）──
+    sub_revenue = sum(
+        tier_dist.get(tier, 0) * int(cfg.get("price", 0))
+        for tier, cfg in _billing.TIERS.items()
+    )
 
-    # ── 积分充值收入（credit_transactions topup 本月）──
+    # ── 积分充值收入（仅 paid_rmb；管理员赠送 type=gift 不计收入）──
     topup_row = db.fetchone(
-        "SELECT COALESCE(SUM(amount),0) as total FROM credit_transactions "
-        "WHERE type='topup' AND recorded_at>=?", (month_start,))
-    credits_revenue = round((topup_row["total"] or 0) * _billing.CREDIT_VALUE, 2)
+        "SELECT COALESCE(SUM(CASE WHEN paid_rmb>0 THEN paid_rmb ELSE amount*? END),0) as total "
+        "FROM credit_transactions "
+        "WHERE type='topup' AND recorded_at>=?", (_billing.CREDIT_VALUE, month_start,))
+    credits_revenue = round(topup_row["total"] or 0, 2)
 
     total_revenue = round(sub_revenue + credits_revenue, 2)
 
     # ── 本月 API 成本 ──
     cost_row = db.fetchone(
-        "SELECT COALESCE(SUM(cost_rmb),0) as total FROM usage_records WHERE recorded_at>=?",
+        "SELECT COALESCE(SUM(cost_rmb),0) as total, "
+        "COALESCE(SUM(tokens_in),0) as tokens_in, COALESCE(SUM(tokens_out),0) as tokens_out "
+        "FROM usage_records WHERE recorded_at>=?",
         (month_start,))
     api_cost = round(cost_row["total"] or 0, 4)
+    month_tokens_in = int(cost_row["tokens_in"] or 0)
+    month_tokens_out = int(cost_row["tokens_out"] or 0)
 
     gross_profit = round(total_revenue - api_cost, 2)
     margin_pct   = round(gross_profit / total_revenue * 100, 1) if total_revenue > 0 else 0
 
     # ── MRR ──
-    mrr = pro_count * 99 + pro_plus_count * 199
+    mrr = sub_revenue
 
     # ── 本月各操作用量 ──
     op_rows = db.fetchall(
-        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost "
+        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out, SUM(model_calls) as model_calls "
         "FROM usage_records WHERE recorded_at>=? GROUP BY operation ORDER BY cost DESC",
         (month_start,))
     ops_summary = [{"op": r["operation"],
                     "label": _billing.OPERATIONS.get(r["operation"], {}).get("label", r["operation"]),
                     "count": r["cnt"],
+                    "tokens_in": int(r["tokens_in"] or 0),
+                    "tokens_out": int(r["tokens_out"] or 0),
+                    "total_tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
+                    "model_calls": int(r["model_calls"] or 0),
                     "cost": round(r["cost"] or 0, 4)} for r in op_rows]
 
     # ── 系统状态 ──
@@ -166,12 +177,18 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
             "credits_revenue": credits_revenue,
             "total_revenue":   total_revenue,
             "api_cost":        api_cost,
+            "tokens_in":       month_tokens_in,
+            "tokens_out":      month_tokens_out,
+            "total_tokens":    month_tokens_in + month_tokens_out,
             "gross_profit":    gross_profit,
             "margin_pct":      margin_pct,
             "mrr":             mrr,
         },
         "usage": {
             "month_total_cost": api_cost,
+            "month_tokens_in":  month_tokens_in,
+            "month_tokens_out": month_tokens_out,
+            "month_total_tokens": month_tokens_in + month_tokens_out,
             "by_operation":     ops_summary,
         },
         "system": {
@@ -238,7 +255,8 @@ async def admin_users(
     users_out = []
     for r in rows:
         usage = db.fetchone(
-            "SELECT COUNT(*) as cnt, COALESCE(SUM(cost_rmb),0) as cost "
+            "SELECT COUNT(*) as cnt, COALESCE(SUM(cost_rmb),0) as cost, "
+            "COALESCE(SUM(tokens_in),0) as tokens_in, COALESCE(SUM(tokens_out),0) as tokens_out "
             "FROM usage_records WHERE user_id=? AND recorded_at>=?",
             (r["id"], month_start))
         users_out.append({
@@ -246,6 +264,7 @@ async def admin_users(
             "phone_masked": _mask_phone_admin(r["phone"] or ""),
             "month_ops":    usage["cnt"],
             "month_cost":   round(usage["cost"] or 0, 4),
+            "month_tokens": int((usage["tokens_in"] or 0) + (usage["tokens_out"] or 0)),
         })
 
     return {"total": total, "page": page, "page_size": page_size, "users": users_out}
@@ -275,17 +294,18 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
         day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
     usage_rows = db.fetchall(
-        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, SUM(credits_used) as creds "
+        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, SUM(credits_used) as creds, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out, SUM(model_calls) as model_calls "
         "FROM usage_records WHERE user_id=? AND recorded_at>=? GROUP BY operation",
         (user_id, month_start))
 
     recent_usage = db.fetchall(
-        "SELECT operation,source,cost_rmb,credits_used,recorded_at "
+        "SELECT operation,source,cost_rmb,credits_used,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at "
         "FROM usage_records WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
         (user_id,))
 
     credit_txns = db.fetchall(
-        "SELECT type,amount,balance_after,description,recorded_at "
+        "SELECT type,amount,balance_after,description,paid_rmb,package_id,payment_ref,recorded_at "
         "FROM credit_transactions WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
         (user_id,))
 
@@ -323,7 +343,7 @@ async def admin_user_adjust(
         amount = float(req.value or "0")
         if amount <= 0:
             raise HTTPException(status_code=400, detail="积分数量必须大于0")
-        new_bal = _billing.topup_credits(user_id, amount, f"管理员手动增加：{req.note}")
+        new_bal = _billing.grant_credits(user_id, amount, f"管理员手动增加：{req.note}")
         return {"ok": True, "new_balance": new_bal}
 
     if req.action == "set_tier":
@@ -336,9 +356,10 @@ async def admin_user_adjust(
     if req.action == "reset_quota":
         db.execute(
             "UPDATE subscriptions SET used_analyze=0,used_generate=0,"
-            "used_chat_rewrite=0,used_screenshot=0 WHERE user_id=? AND is_active=1",
+            "used_chat_rewrite=0,used_screenshot=0,used_monthly_credits=0 "
+            "WHERE user_id=? AND is_active=1",
             (user_id,))
-        return {"ok": True, "message": "配额已重置"}
+        return {"ok": True, "message": "本月积分已重置"}
 
     if req.action in ("disable", "enable"):
         # 简单实现：禁用用户会话
@@ -396,18 +417,22 @@ async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_u
     tier_rows = db.fetchall(
         "SELECT tier, COUNT(*) as cnt FROM subscriptions WHERE is_active=1 GROUP BY tier")
     tier_dist = {r["tier"]: r["cnt"] for r in tier_rows}
-    prices = {"pro": 99, "pro_plus": 199, "free": 0}
-    sub_revenue_est = sum(tier_dist.get(t, 0) * prices.get(t, 0) for t in prices)
+    sub_revenue_est = sum(
+        tier_dist.get(tier, 0) * int(cfg.get("price", 0))
+        for tier, cfg in _billing.TIERS.items()
+    )
 
     # 积分充值实际收入
     topup_rows = db.fetchall(
-        "SELECT DATE(recorded_at) as day, SUM(amount) as credits_sum "
+        "SELECT DATE(recorded_at) as day, SUM(amount) as credits_sum, "
+        "SUM(CASE WHEN paid_rmb>0 THEN paid_rmb ELSE amount*? END) as rmb_sum "
         "FROM credit_transactions WHERE type='topup' AND recorded_at>=? GROUP BY day ORDER BY day",
-        (since,))
+        (_billing.CREDIT_VALUE, since,))
 
     # 积分消费量（每日）
     usage_cost_rows = db.fetchall(
-        "SELECT DATE(recorded_at) as day, SUM(cost_rmb) as api_cost "
+        "SELECT DATE(recorded_at) as day, SUM(cost_rmb) as api_cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out "
         "FROM usage_records WHERE recorded_at>=? GROUP BY day ORDER BY day",
         (since,))
 
@@ -415,40 +440,44 @@ async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_u
         "tier_distribution": tier_dist,
         "sub_revenue_estimate": sub_revenue_est,
         "daily_topup": [{"day": r["day"], "credits": r["credits_sum"],
-                          "rmb": round((r["credits_sum"] or 0) * _billing.CREDIT_VALUE, 2)}
+                          "rmb": round(r["rmb_sum"] or 0, 2)}
                         for r in topup_rows],
-        "daily_api_cost": [{"day": r["day"], "cost": round(r["api_cost"] or 0, 4)}
+        "daily_api_cost": [{"day": r["day"], "cost": round(r["api_cost"] or 0, 4),
+                            "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0))}
                            for r in usage_cost_rows],
     }
 
 
-@admin_app.get("/admin/usage-stats")
-async def admin_usage_stats(days: int = 30, admin: dict = Depends(_aauth.get_admin_user)):
-    """用量分析。"""
+def build_usage_stats_payload(days: int = 30) -> dict:
+    """Build the admin usage payload from the same billing rows shown to users."""
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
     # 按操作类型汇总
     op_rows = db.fetchall(
-        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost "
+        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out, SUM(model_calls) as model_calls "
         "FROM usage_records WHERE recorded_at>=? GROUP BY operation ORDER BY cost DESC",
         (since,))
 
     # Top10 用户（按成本）
     top_users = db.fetchall(
-        "SELECT u.username, r.user_id, COUNT(*) as ops, SUM(r.cost_rmb) as cost "
+        "SELECT u.username, r.user_id, COUNT(*) as ops, SUM(r.cost_rmb) as cost, "
+        "SUM(r.tokens_in) as tokens_in, SUM(r.tokens_out) as tokens_out "
         "FROM usage_records r JOIN users u ON r.user_id=u.id "
         "WHERE r.recorded_at>=? GROUP BY r.user_id ORDER BY cost DESC LIMIT 10",
         (since,))
 
     # 每日操作量
     daily = db.fetchall(
-        "SELECT DATE(recorded_at) as day, COUNT(*) as ops, SUM(cost_rmb) as cost "
+        "SELECT DATE(recorded_at) as day, COUNT(*) as ops, SUM(cost_rmb) as cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out "
         "FROM usage_records WHERE recorded_at>=? GROUP BY day ORDER BY day",
         (since,))
 
     # 各来源分布（subscription / credits / free）
     source_rows = db.fetchall(
-        "SELECT source, COUNT(*) as cnt, SUM(cost_rmb) as cost "
+        "SELECT source, COUNT(*) as cnt, SUM(cost_rmb) as cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out "
         "FROM usage_records WHERE recorded_at>=? GROUP BY source",
         (since,))
 
@@ -456,14 +485,27 @@ async def admin_usage_stats(days: int = 30, admin: dict = Depends(_aauth.get_adm
         "by_operation": [{"op": r["operation"],
                            "label": _billing.OPERATIONS.get(r["operation"], {}).get("label", r["operation"]),
                            "count": r["cnt"],
+                           "tokens_in": int(r["tokens_in"] or 0),
+                           "tokens_out": int(r["tokens_out"] or 0),
+                           "total_tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
+                           "model_calls": int(r["model_calls"] or 0),
                            "cost": round(r["cost"] or 0, 4)} for r in op_rows],
         "top_users": [{"username": r["username"], "ops": r["ops"],
+                       "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
                        "cost": round(r["cost"] or 0, 4)} for r in top_users],
         "daily_trend": [{"day": r["day"], "ops": r["ops"],
+                         "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
                          "cost": round(r["cost"] or 0, 4)} for r in daily],
         "by_source": [{"source": r["source"], "count": r["cnt"],
+                       "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
                        "cost": round(r["cost"] or 0, 4)} for r in source_rows],
     }
+
+
+@admin_app.get("/admin/usage-stats")
+async def admin_usage_stats(days: int = 30, admin: dict = Depends(_aauth.get_admin_user)):
+    """用量分析。"""
+    return build_usage_stats_payload(days)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -872,12 +914,13 @@ async def admin_crawler_logs(
 
 @admin_app.get("/admin/settings")
 async def admin_settings(admin: dict = Depends(_aauth.get_admin_user)):
-    """返回当前套餐配额设置。"""
+    """返回当前套餐积分设置。"""
     # 提取每种操作的积分消耗
     credit_costs = {k: v["credits"] for k, v in _billing.OPERATIONS.items()}
     return {
         "tiers":        _billing.TIERS,
         "credit_value": _billing.CREDIT_VALUE,
+        "credit_packages": _billing.list_credit_packages(),
         "credit_costs": credit_costs,
         "operations":   _billing.OPERATIONS,
     }

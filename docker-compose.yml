@@ -39,3 +39,16 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+
+  noteai-trends-worker:
+    build: .
+    command: ["python", "market_timing_worker.py", "--daemon", "--interval", "${NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES:-60}"]
+    volumes:
+      # 独立趋势 worker 写入每日行业热词快照；API 只读取，不在自身进程采集
+      - ./model/data:/app/model/data
+    env_file:
+      - ./model/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
+    restart: unless-stopped

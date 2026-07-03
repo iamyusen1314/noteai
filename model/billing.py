@@ -5,6 +5,9 @@ NoteAI Pro 计费模块 v2
 - 设计原则：宁可记录过多，不能漏记一条
 """
 import uuid
+import contextvars
+import os
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from fastapi import HTTPException, status
@@ -17,79 +20,125 @@ import db
 #
 # 接入端点 → operation 名称 → 成本说明
 #
-#  /score              → "score"          Kimi语义特征 (¥0.002)
-#  /diagnose           → "diagnose"       Kimi语义特征 (¥0.002)
+#  /score              → "score"          轻量语义评分 (≈¥0.011)
+#  /diagnose           → "diagnose"       轻量内容诊断 (≈¥0.011)
 #  /quick-diagnose     → (不记录，无API)
-#  /analyze            → "analyze"        5-Agent全链路 (¥0.072)
-#  /analyze extra_imgs → "extra_image"    每张附加图Kimi Vision (¥0.005)
-#  /analyze video      → "video_analyze"  _kimi_video_understand (¥0.030)
-#  /generate/stream    → "generate"       P1-P4全流程 (¥0.117)
-#  /chat/message fast  → "chat_fast"      Kimi fast模式 (¥0.006)
-#  /chat/message think → "chat_rewrite"   Kimi thinking模式 (¥0.023)
-#  /extract-screenshot → "screenshot"     Kimi Vision OCR (¥0.010)
+#  /analyze            → "analyze"        5-Agent全链路 (实测标准≈¥1.45)
+#  /analyze extra_imgs → "extra_image"    每张附加图 Kimi Vision (≈¥0.016)
+#  /analyze video      → "video_analyze"  _kimi_video_understand (≈¥0.09-0.21)
+#  /generate/stream    → "generate"       P1-P4全流程 (标准预留≈¥1.28)
+#  /chat/message fast  → "chat_fast"      快速对话 (标准预留≈¥0.17)
+#  /chat/message think → "chat_rewrite"   深度重写/二修 (标准预留≈¥0.63)
+#  /extract-screenshot → "screenshot"     Kimi Vision OCR (≈¥0.03-0.07)
 #
 OPERATIONS: dict[str, dict] = {
     "score": {
         "label":   "快速评分",
-        "cost":    0.002,    # Kimi语义特征3维
+        "cost":    0.011,
         "credits": 0.0,      # 免费，不扣积分
-        "free":    True,     # 不占用配额，但记录用量
+        "free":    True,     # 不扣积分，但记录用量
     },
     "diagnose": {
         "label":   "内容诊断",
-        "cost":    0.002,
+        "cost":    0.011,
         "credits": 0.0,
         "free":    True,
     },
     "analyze": {
         "label":   "AI深度诊断",
-        "cost":    0.072,
-        "credits": 1.0,
+        "cost":    1.45,
+        "credits": 6.0,
         "free":    False,
     },
     "extra_image": {
         "label":   "附加内容图（每张）",
-        "cost":    0.005,
+        "cost":    0.016,
         "credits": 0.0,
         "free":    True,     # 附加图随 analyze 一起，不单独计费
     },
     "video_analyze": {
         "label":   "视频内容解析",
-        "cost":    0.030,
+        "cost":    0.17,
         "credits": 0.0,
         "free":    True,     # 随 generate/analyze 计入，不单独扣积分
     },
     "generate": {
         "label":   "AI爆文生成",
-        "cost":    0.117,
-        "credits": 2.0,
+        "cost":    1.28,
+        "credits": 8.0,
         "free":    False,
     },
     "chat_fast": {
         "label":   "对话反馈",
-        "cost":    0.006,
+        "cost":    0.17,
         "credits": 0.0,
         "free":    True,
     },
     "chat_rewrite": {
         "label":   "对话重写",
-        "cost":    0.023,
-        "credits": 0.5,
+        "cost":    0.63,
+        "credits": 3.0,
         "free":    False,
     },
     "screenshot": {
         "label":   "截图识别",
-        "cost":    0.010,
+        "cost":    0.07,
         "credits": 0.5,
         "free":    False,
     },
 }
 
-# 1 积分 = ¥0.3
+# 套餐和充值统一使用“创作积分”口径。
+# 月度套餐积分每个计费周期重置；充值积分进入钱包，长期有效。
 CREDIT_VALUE = 0.30
 
+CREDIT_PACKAGES: dict[str, dict] = {
+    "starter": {
+        "id": "starter",
+        "label": "体验加油包",
+        "credits": 30.0,
+        "price_rmb": 12.0,
+        "unit_price_rmb": 0.400,
+        "recommended": False,
+        "best_for": "临时补一次诊断、截图识别或少量对话优化",
+    },
+    "creator": {
+        "id": "creator",
+        "label": "创作者补给包",
+        "credits": 100.0,
+        "price_rmb": 39.0,
+        "unit_price_rmb": 0.390,
+        "recommended": True,
+        "best_for": "10次以上深度诊断或多轮优化",
+    },
+    "growth": {
+        "id": "growth",
+        "label": "增长运营包",
+        "credits": 300.0,
+        "price_rmb": 109.0,
+        "unit_price_rmb": 0.363,
+        "recommended": False,
+        "best_for": "稳定运营账号的月中加量",
+    },
+    "studio": {
+        "id": "studio",
+        "label": "工作室储备包",
+        "credits": 800.0,
+        "price_rmb": 279.0,
+        "unit_price_rmb": 0.349,
+        "recommended": False,
+        "best_for": "团队/多账号高频生成与优化",
+    },
+}
+
+# 当前请求/任务正在归集的 usage_records.id。
+_ACTIVE_USAGE_ID: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "noteai_active_usage_id",
+    default=None,
+)
+
 # ─────────────────────────────────────────────────────────────
-# ② 套餐定义（配额仅限非 free 操作）
+# ② 套餐定义：月度创作积分，不再限制单项次数
 # ─────────────────────────────────────────────────────────────
 QUOTA_OPS = ["analyze", "generate", "chat_rewrite", "screenshot"]
 
@@ -97,20 +146,37 @@ TIERS: dict[str, dict] = {
     "free": {
         "name":  "免费版",
         "price": 0,
-        "quotas": {"analyze": 3, "generate": 1, "chat_rewrite": 3, "screenshot": 3},
-        "features": ["7天笔记存档"],
+        "monthly_credits": 12.0,
+        "quotas": {},
+        "features": ["12 月度积分", "7天笔记存档", "可体验AI诊断/截图识别"],
     },
     "pro": {
-        "name":  "轻创作 Pro",
+        "name":  "创作者版",
         "price": 99,
-        "quotas": {"analyze": 50, "generate": 20, "chat_rewrite": -1, "screenshot": -1},
-        "features": ["永久笔记存档", "无限对话重写", "无限截图识别", "AI记忆学习"],
+        "monthly_credits": 260.0,
+        "quotas": {},
+        "features": ["260 月度积分", "永久笔记存档", "AI记忆学习", "适合个人创作者"],
+    },
+    "growth": {
+        "name":  "成长版",
+        "price": 199,
+        "monthly_credits": 560.0,
+        "quotas": {},
+        "features": ["560 月度积分", "创作者版全部权益", "适合稳定更新账号"],
     },
     "pro_plus": {
-        "name":  "专业 Pro+",
-        "price": 199,
-        "quotas": {"analyze": -1, "generate": 80, "chat_rewrite": -1, "screenshot": -1},
-        "features": ["Pro全部权益", "无限AI深度诊断", "优先响应", "专属客服"],
+        "name":  "专业版",
+        "price": 299,
+        "monthly_credits": 900.0,
+        "quotas": {},
+        "features": ["900 月度积分", "优先响应", "适合小团队/稳定运营账号"],
+    },
+    "studio": {
+        "name":  "工作室版",
+        "price": 399,
+        "monthly_credits": 1250.0,
+        "quotas": {},
+        "features": ["1250 月度积分", "团队高频运营", "专属客服"],
     },
 }
 
@@ -141,6 +207,50 @@ def _assert_user(user_id: Optional[str], operation: str) -> str:
             detail=f"操作 [{operation}] 需要登录账号后使用"
         )
     return user_id
+
+
+def _env_price(name: str) -> float:
+    try:
+        return max(0.0, float(os.environ.get(name, "0") or 0))
+    except Exception:
+        return 0.0
+
+
+def _price_env_key(model: str, direction: str, currency: str = "RMB") -> str:
+    normalized = re.sub(r"[^A-Z0-9]+", "_", str(model or "unknown").upper()).strip("_")
+    return f"NOTEAI_MODEL_PRICE_{normalized}_{direction.upper()}_PER_1M_{currency.upper()}"
+
+
+def _billing_usd_cny() -> float:
+    return _env_price("NOTEAI_BILLING_USD_CNY") or _env_price("NOTEAI_PRICING_USD_CNY") or 6.8
+
+
+def _token_price_per_1m_rmb(provider_key: str, model: str, direction: str) -> float:
+    exact_rmb = _env_price(_price_env_key(model, direction, "RMB"))
+    provider_rmb = _env_price(f"NOTEAI_MODEL_PRICE_{provider_key}_{direction.upper()}_PER_1M_RMB")
+    if exact_rmb or provider_rmb:
+        return exact_rmb or provider_rmb
+    exact_usd = _env_price(_price_env_key(model, direction, "USD"))
+    provider_usd = _env_price(f"NOTEAI_MODEL_PRICE_{provider_key}_{direction.upper()}_PER_1M_USD")
+    usd_price = exact_usd or provider_usd
+    return usd_price * _billing_usd_cny()
+
+
+def _model_token_cost_rmb(provider: str, model: str, tokens_in: int, tokens_out: int) -> float:
+    """Return RMB cost from token usage.
+
+    Prices are intentionally env-configured because provider pricing changes and
+    deployment may use different negotiated rates. When no price is configured,
+    we still record tokens and keep the operation's estimated cost as fallback.
+    """
+    provider_key = re.sub(r"[^A-Z0-9]+", "_", str(provider or "unknown").upper()).strip("_")
+    in_per_1m = _token_price_per_1m_rmb(provider_key, model, "INPUT")
+    out_per_1m = _token_price_per_1m_rmb(provider_key, model, "OUTPUT")
+    return round((max(0, tokens_in) / 1_000_000 * in_per_1m) + (max(0, tokens_out) / 1_000_000 * out_per_1m), 6)
+
+
+def clear_active_usage() -> None:
+    _ACTIVE_USAGE_ID.set(None)
 
 # ─────────────────────────────────────────────────────────────
 # ④ 订阅管理
@@ -174,16 +284,17 @@ def get_subscription(user_id: str) -> dict:
         except Exception:
             pass
 
-    # 月初重置配额（统一strip时区再比较，避免 naive vs aware TypeError）
+    # 月初重置本周期消耗（统一strip时区再比较，避免 naive vs aware TypeError）
     if _strip_tz(sub["period_start"]) < _strip_tz(_month_start()):
         now = _now(); ms = _month_start()
         db.execute(
             "UPDATE subscriptions SET used_analyze=0,used_generate=0,"
-            "used_chat_rewrite=0,used_screenshot=0,period_start=? WHERE id=?",
+            "used_chat_rewrite=0,used_screenshot=0,used_monthly_credits=0,period_start=? WHERE id=?",
             (ms, sub["id"])
         )
         sub.update(used_analyze=0, used_generate=0,
-                   used_chat_rewrite=0, used_screenshot=0, period_start=ms)
+                   used_chat_rewrite=0, used_screenshot=0,
+                   used_monthly_credits=0, period_start=ms)
     return sub
 
 def _create_free_subscription(user_id: str) -> dict:
@@ -211,68 +322,107 @@ def upgrade_subscription(user_id: str, tier: str) -> dict:
     return get_subscription(user_id)
 
 # ─────────────────────────────────────────────────────────────
-# ⑤ 核心配额检查 & 扣减（付费操作专用）
+# ⑤ 核心积分检查 & 扣减（付费操作专用）
 # ─────────────────────────────────────────────────────────────
 
 def check_and_deduct(user_id: Optional[str], operation: str) -> dict:
     """
-    检查配额并扣减。
+    检查积分并扣减。
     - 付费操作必须有 user_id，否则 401。
-    - 套餐内：扣配额。
-    - 超出套餐：尝试扣积分。
-    - 积分不足：402 配额不足。
-    返回 {"source":"subscription"|"credits"|"free", "credits_used":float}
+    - 月度套餐积分优先扣。
+    - 月度积分不足时，用充值积分补扣。
+    - 积分不足：402 余额不足。
+    返回 {"source":"subscription"|"credits"|"mixed"|"free", "credits_used":float}
     """
     op = OPERATIONS.get(operation)
     if not op:
         raise ValueError(f"未知操作: {operation}")
 
-    # 免费操作：仅记录，不扣配额
+    # 免费操作：仅记录，不扣积分
     if op["free"] or op["credits"] == 0:
         if user_id:
-            _record_usage(user_id, operation, source="free", credits_used=0)
-        return {"source": "free", "credits_used": 0}
+            usage_id = _record_usage(user_id, operation, source="free", credits_used=0, force_active=True)
+        else:
+            usage_id = None
+        return {"source": "free", "credits_used": 0, "usage_id": usage_id}
 
     # 付费操作：严格要求 user_id
     uid = _assert_user(user_id, operation)
     sub  = get_subscription(uid)
     tier = sub["tier"]
-    quota_limit = TIERS[tier]["quotas"].get(operation, 0)
-    used_key    = f"used_{operation}"
-    used_now    = sub.get(used_key, 0)
-
-    # 套餐配额未用完（-1 = 无限）
-    if quota_limit == -1 or used_now < quota_limit:
-        if quota_limit != -1:
-            db.execute(
-                f"UPDATE subscriptions SET {used_key}={used_key}+1 WHERE id=?",
-                (sub["id"],)
-            )
-        _record_usage(uid, operation, source="subscription", credits_used=0)
-        return {"source": "subscription", "credits_used": 0}
-
-    # 配额已满，尝试积分
-    cost = op["credits"]
+    cost = round(float(op["credits"]), 2)
+    tier_cfg = TIERS[tier]
+    monthly_limit = round(float(tier_cfg.get("monthly_credits", 0) or 0), 2)
+    monthly_used = round(float(sub.get("used_monthly_credits") or 0), 2)
+    monthly_remaining = round(max(0.0, monthly_limit - monthly_used), 2)
     bal_row = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (uid,))
-    balance = bal_row["balance"] if bal_row else 0.0
+    balance = round(float(bal_row["balance"] if bal_row else 0.0), 2)
 
+    def _mark_monthly(amount: float) -> None:
+        if amount <= 0:
+            return
+        db.execute(
+            "UPDATE subscriptions SET used_monthly_credits=used_monthly_credits+? "
+            "WHERE id=?",
+            (round(amount, 2), sub["id"]),
+        )
+
+    # 1) 月度套餐积分足够：只扣本月积分。
+    if monthly_remaining >= cost:
+        _mark_monthly(cost)
+        usage_id = _record_usage(uid, operation, source="subscription", credits_used=cost, force_active=True)
+        return {
+            "source": "subscription",
+            "credits_used": cost,
+            "monthly_credits_used": cost,
+            "wallet_credits_used": 0.0,
+            "usage_id": usage_id,
+        }
+
+    # 2) 月度积分不足但还有部分余额：月度积分扣完，充值积分补差额。
+    wallet_needed = round(cost - monthly_remaining, 2)
+    if monthly_remaining > 0 and balance >= wallet_needed:
+        _mark_monthly(monthly_remaining)
+        _deduct_credits(uid, wallet_needed, f"{tier_cfg['name']}月度积分不足补扣：{op['label']}")
+        usage_id = _record_usage(uid, operation, source="mixed", credits_used=cost, force_active=True)
+        return {
+            "source": "mixed",
+            "credits_used": cost,
+            "monthly_credits_used": monthly_remaining,
+            "wallet_credits_used": wallet_needed,
+            "usage_id": usage_id,
+        }
+
+    # 3) 月度积分为 0 或不足且充值积分能完整支付：只扣充值积分。
     if balance >= cost:
-        _deduct_credits(uid, cost, f"超出{TIERS[tier]['name']}配额：{op['label']}")
-        _record_usage(uid, operation, source="credits", credits_used=cost)
-        return {"source": "credits", "credits_used": cost}
+        _deduct_credits(uid, cost, f"{tier_cfg['name']}月度积分已用完：{op['label']}")
+        usage_id = _record_usage(uid, operation, source="credits", credits_used=cost, force_active=True)
+        return {
+            "source": "credits",
+            "credits_used": cost,
+            "monthly_credits_used": 0.0,
+            "wallet_credits_used": cost,
+            "usage_id": usage_id,
+        }
 
     raise HTTPException(
         status_code=402,
         detail={
             "code":            "QUOTA_EXCEEDED",
-            "message":         f"{op['label']}本月配额已用完，积分不足（余额 {balance:.1f} 积分，需 {cost:.1f} 积分）",
+            "message":         (
+                f"{op['label']}需要 {cost:.1f} 积分；本月套餐积分剩余 {monthly_remaining:.1f}，"
+                f"充值积分余额 {balance:.1f}，仍不足以完成本次操作。"
+            ),
             "operation":       operation,
             "op_label":        op["label"],
-            "current_tier":    TIERS[tier]["name"],
-            "quota_used":      used_now,
-            "quota_limit":     quota_limit,
+            "current_tier":    tier_cfg["name"],
+            "monthly_credits": monthly_limit,
+            "monthly_credits_used": monthly_used,
+            "monthly_credits_remaining": monthly_remaining,
             "credits_needed":  cost,
             "credits_balance": round(balance, 2),
+            "wallet_credits_needed": max(0.0, round(cost - monthly_remaining, 2)),
+            "credit_policy":   "优先扣本月套餐积分，不足部分扣充值积分；本月积分每月重置，充值积分长期有效。",
         }
     )
 
@@ -282,19 +432,57 @@ def check_and_deduct(user_id: Optional[str], operation: str) -> dict:
 
 def record_free_usage(user_id: Optional[str], operation: str,
                       tokens_in: int = 0, tokens_out: int = 0) -> None:
-    """记录免费操作的 token 消耗（用于成本统计，不扣积分/配额）。"""
+    """记录免费操作的 token 消耗（用于成本统计，不扣积分）。"""
     if not user_id:
         return   # 匿名用户免费操作不跟踪
-    op = OPERATIONS.get(operation, {})
     _record_usage(user_id, operation, source="free", credits_used=0,
-                  tokens_in=tokens_in, tokens_out=tokens_out)
+                  tokens_in=tokens_in, tokens_out=tokens_out, force_active=True)
+
+
+def record_auxiliary_usage(user_id: Optional[str], operation: str,
+                           tokens_in: int = 0, tokens_out: int = 0) -> None:
+    """记录同一主流程里的附加用量，但不接管后续模型 token 归属。"""
+    if not user_id:
+        return
+    if not db.fetchone("SELECT id FROM users WHERE id=?", (user_id,)):
+        return
+    _record_usage(user_id, operation, source="free", credits_used=0,
+                  tokens_in=tokens_in, tokens_out=tokens_out, force_active=False)
 
 # ─────────────────────────────────────────────────────────────
 # ⑦ 积分操作
 # ─────────────────────────────────────────────────────────────
 
-def topup_credits(user_id: str, amount: float, description: str = "充值") -> float:
+def list_credit_packages() -> list[dict]:
+    """公开给前端的充值包，按小额到大额排序。"""
+    return [dict(pkg) for pkg in CREDIT_PACKAGES.values()]
+
+
+def get_credit_package(package_id: str) -> dict:
+    pkg = CREDIT_PACKAGES.get(package_id)
+    if not pkg:
+        raise ValueError(f"未知积分包: {package_id}")
+    return dict(pkg)
+
+
+def topup_credits(
+    user_id: str,
+    amount: float,
+    description: str = "充值",
+    paid_rmb: float | None = None,
+    package_id: str = "",
+    payment_ref: str = "",
+) -> float:
+    """Paid credit top-up.
+
+    `amount` is credited points. `paid_rmb` is real cash received and must be
+    stored separately; otherwise discounted packages would corrupt revenue.
+    """
     _assert_user(user_id, "topup")
+    amount = round(float(amount), 2)
+    if amount <= 0:
+        raise ValueError("充值积分必须大于0")
+    paid_value = round(float(paid_rmb if paid_rmb is not None else amount * CREDIT_VALUE), 2)
     now = _now()
     if db.fetchone("SELECT user_id FROM credits WHERE user_id=?", (user_id,)):
         db.execute(
@@ -308,10 +496,53 @@ def topup_credits(user_id: str, amount: float, description: str = "充值") -> f
         )
     new_bal = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (user_id,))["balance"]
     db.execute(
-        "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,recorded_at) VALUES(?,?,?,?,?,?,?)",
-        (str(uuid.uuid4()), user_id, "topup", amount, new_bal, description, now)
+        "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
+        "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+        (str(uuid.uuid4()), user_id, "topup", amount, new_bal, description,
+         paid_value, package_id, payment_ref, now)
     )
     return round(new_bal, 2)
+
+
+def purchase_credit_package(user_id: str, package_id: str, payment_ref: str = "") -> dict:
+    pkg = get_credit_package(package_id)
+    balance = topup_credits(
+        user_id=user_id,
+        amount=float(pkg["credits"]),
+        description=f"购买积分包：{pkg['label']}",
+        paid_rmb=float(pkg["price_rmb"]),
+        package_id=package_id,
+        payment_ref=payment_ref,
+    )
+    return {"package": pkg, "new_balance": balance}
+
+
+def grant_credits(user_id: str, amount: float, description: str = "管理员赠送") -> float:
+    """Grant credits without counting them as paid top-up revenue."""
+    _assert_user(user_id, "grant_credits")
+    amount = round(float(amount), 2)
+    if amount <= 0:
+        raise ValueError("赠送积分必须大于0")
+    now = _now()
+    if db.fetchone("SELECT user_id FROM credits WHERE user_id=?", (user_id,)):
+        db.execute(
+            "UPDATE credits SET balance=balance+?,updated_at=? WHERE user_id=?",
+            (amount, now, user_id)
+        )
+    else:
+        db.execute(
+            "INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) VALUES(?,?,0,0,?)",
+            (user_id, amount, now)
+        )
+    new_bal = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (user_id,))["balance"]
+    db.execute(
+        "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
+        "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+        (str(uuid.uuid4()), user_id, "gift", amount, new_bal, description,
+         0.0, "", "", now)
+    )
+    return round(new_bal, 2)
+
 
 def _deduct_credits(user_id: str, amount: float, description: str) -> float:
     _assert_user(user_id, "deduct_credits")
@@ -325,15 +556,73 @@ def _deduct_credits(user_id: str, amount: float, description: str) -> float:
     )
     new_bal = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (user_id,))["balance"]
     db.execute(
-        "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,recorded_at) VALUES(?,?,?,?,?,?,?)",
-        (str(uuid.uuid4()), user_id, "usage", -amount, new_bal, description, now)
+        "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
+        "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+        (str(uuid.uuid4()), user_id, "usage", -amount, new_bal, description,
+         0.0, "", "", now)
     )
     return round(new_bal, 2)
+
+
+def refund_operation_charge(user_id: str, operation: str, charge: dict | None, description: str) -> None:
+    """Undo user-facing quota/credit charge when a paid operation fails.
+
+    The API may still have real model cost before the failure; that cost remains
+    in `usage_records` for internal gross-margin accounting, but users should
+    not lose quota or credits for a failed delivery.
+    """
+    if not charge:
+        return
+    uid = _assert_user(user_id, f"refund_{operation}")
+    usage_id = charge.get("usage_id")
+    source = charge.get("source")
+    credits_used = float(charge.get("credits_used") or 0)
+    now = _now()
+
+    monthly_used = float(charge.get("monthly_credits_used") or 0)
+    wallet_used = float(charge.get("wallet_credits_used") or 0)
+    if not monthly_used and source == "subscription":
+        monthly_used = credits_used
+    if not wallet_used and source == "credits":
+        wallet_used = credits_used
+
+    if monthly_used > 0:
+        monthly_used = round(monthly_used, 2)
+        db.execute(
+            "UPDATE subscriptions SET used_monthly_credits="
+            "CASE WHEN used_monthly_credits>? THEN used_monthly_credits-? ELSE 0 END "
+            "WHERE user_id=? AND is_active=1",
+            (monthly_used, monthly_used, uid),
+        )
+
+    if wallet_used > 0:
+        wallet_used = round(wallet_used, 2)
+        if not db.fetchone("SELECT user_id FROM credits WHERE user_id=?", (uid,)):
+            db.execute("INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) VALUES(?,0,0,0,?)", (uid, now))
+        db.execute(
+            "UPDATE credits SET balance=balance+?,total_used=MAX(total_used-?,0),updated_at=? WHERE user_id=?",
+            (wallet_used, wallet_used, now, uid),
+        )
+        new_bal = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (uid,))["balance"]
+        db.execute(
+            "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
+            "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (str(uuid.uuid4()), uid, "refund", wallet_used, new_bal, description,
+             0.0, "", "", now),
+        )
+
+    if usage_id:
+        db.execute(
+            "UPDATE usage_records SET source='refunded',credits_used=0 WHERE id=? AND user_id=?",
+            (usage_id, uid),
+        )
+
 
 def get_credit_transactions(user_id: str, limit: int = 30) -> list[dict]:
     _assert_user(user_id, "get_transactions")
     rows = db.fetchall(
-        "SELECT type,amount,balance_after,description,recorded_at FROM credit_transactions "
+        "SELECT type,amount,balance_after,description,paid_rmb,package_id,payment_ref,recorded_at "
+        "FROM credit_transactions "
         "WHERE user_id=? ORDER BY recorded_at DESC LIMIT ?",
         (user_id, limit)
     )
@@ -345,7 +634,8 @@ def get_credit_transactions(user_id: str, limit: int = 30) -> list[dict]:
 
 def _record_usage(user_id: str, operation: str, source: str,
                   credits_used: float,
-                  tokens_in: int = 0, tokens_out: int = 0) -> None:
+                  tokens_in: int = 0, tokens_out: int = 0,
+                  force_active: bool = False) -> str | None:
     """
     ★ 所有用量记录的唯一入口。
     user_id 不允许为 None 或空字符串，否则抛出内部错误（防止脏数据）。
@@ -354,14 +644,88 @@ def _record_usage(user_id: str, operation: str, source: str,
         # 内部错误：付费操作没有绑定用户，记录日志但不崩溃
         import logging
         logging.error(f"[BILLING] _record_usage called with empty user_id for op={operation}. Skipping.")
-        return
+        return None
     op_info = OPERATIONS.get(operation, {})
-    cost = op_info.get("cost", 0) if source != "free" else op_info.get("cost", 0)  # 始终记录真实成本
+    estimated_cost = float(op_info.get("cost", 0) or 0)
+    usage_id = str(uuid.uuid4())
     db.execute(
         "INSERT INTO usage_records(id,user_id,operation,tokens_in,tokens_out,"
-        "cost_rmb,credits_used,source,recorded_at) VALUES(?,?,?,?,?,?,?,?,?)",
-        (str(uuid.uuid4()), user_id, operation, tokens_in, tokens_out,
-         round(cost, 5), credits_used, source, _now())
+        "cost_rmb,estimated_cost_rmb,actual_model_cost_rmb,model_calls,model_names,cost_mode,"
+        "credits_used,source,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (usage_id, user_id, operation, tokens_in, tokens_out,
+         round(estimated_cost, 5), round(estimated_cost, 5), 0.0, 0, "", "estimated",
+         credits_used, source, _now())
+    )
+    if force_active or _ACTIVE_USAGE_ID.get() is None:
+        _ACTIVE_USAGE_ID.set(usage_id)
+    return usage_id
+
+
+def record_model_usage(
+    provider: str,
+    model: str,
+    tokens_in: int = 0,
+    tokens_out: int = 0,
+    cost_rmb: float | None = None,
+) -> None:
+    """Accumulate actual LLM token usage into the current active usage record."""
+    usage_id = _ACTIVE_USAGE_ID.get()
+    if not usage_id:
+        return
+    tokens_in = max(0, int(tokens_in or 0))
+    tokens_out = max(0, int(tokens_out or 0))
+    if not tokens_in and not tokens_out:
+        return
+    actual_cost = (
+        round(float(cost_rmb), 6)
+        if cost_rmb is not None
+        else _model_token_cost_rmb(provider, model, tokens_in, tokens_out)
+    )
+    row = db.fetchone(
+        "SELECT id,cost_rmb,cost_mode,model_names FROM usage_records WHERE id=?",
+        (usage_id,),
+    )
+    if not row:
+        return
+    model_label = f"{provider}:{model}".strip(":")
+    existing_names = [x for x in str(row["model_names"] or "").split(",") if x]
+    if model_label and model_label not in existing_names:
+        existing_names.append(model_label)
+    if actual_cost > 0 and row["cost_mode"] == "estimated":
+        cost_expr = "?"
+        cost_params = [actual_cost]
+        new_mode = "actual"
+    elif actual_cost > 0:
+        cost_expr = "cost_rmb + ?"
+        cost_params = [actual_cost]
+        new_mode = "actual"
+    else:
+        cost_expr = "cost_rmb"
+        cost_params = []
+        new_mode = row["cost_mode"] or "token_counted_estimated_cost"
+        if new_mode == "estimated":
+            new_mode = "token_counted_estimated_cost"
+    db.execute(
+        f"""
+        UPDATE usage_records
+        SET tokens_in=tokens_in+?,
+            tokens_out=tokens_out+?,
+            actual_model_cost_rmb=actual_model_cost_rmb+?,
+            model_calls=model_calls+1,
+            model_names=?,
+            cost_mode=?,
+            cost_rmb={cost_expr}
+        WHERE id=?
+        """,
+        (
+            tokens_in,
+            tokens_out,
+            actual_cost,
+            ",".join(existing_names),
+            new_mode,
+            *cost_params,
+            usage_id,
+        ),
     )
 
 # ─────────────────────────────────────────────────────────────
@@ -374,28 +738,44 @@ def get_quota_status(user_id: str) -> dict:
     tier     = sub["tier"]
     tier_cfg = TIERS[tier]
     creds_row = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (user_id,))
-    balance   = creds_row["balance"] if creds_row else 0.0
+    balance   = round(float(creds_row["balance"] if creds_row else 0.0), 2)
+    monthly_limit = round(float(tier_cfg.get("monthly_credits", 0) or 0), 2)
+    monthly_used = round(float(sub.get("used_monthly_credits") or 0), 2)
+    monthly_remaining = round(max(0.0, monthly_limit - monthly_used), 2)
 
-    quota_detail = {}
+    operation_costs = {}
     for op in QUOTA_OPS:
-        limit = tier_cfg["quotas"].get(op, 0)
-        used  = sub.get(f"used_{op}", 0)
-        quota_detail[op] = {
-            "label":     OPERATIONS[op]["label"],
-            "used":      used,
-            "limit":     limit,
-            "unlimited": limit == -1,
-            "remaining": -1 if limit == -1 else max(0, limit - used),
-            "pct":       0 if limit <= 0 or limit == -1 else min(100, round(used / limit * 100)),
+        credits = float(OPERATIONS[op]["credits"] or 0)
+        operation_costs[op] = {
+            "label": OPERATIONS[op]["label"],
+            "credits": credits,
+            "max_with_monthly": int(monthly_limit // credits) if credits > 0 else 0,
+            "max_with_remaining": int(monthly_remaining // credits) if credits > 0 else 0,
         }
+
+    examples = [
+        f"AI深度诊断最多 {operation_costs['analyze']['max_with_monthly']} 次",
+        f"AI爆文生成最多 {operation_costs['generate']['max_with_monthly']} 次",
+        f"对话深度重写最多 {operation_costs['chat_rewrite']['max_with_monthly']} 轮",
+        f"截图识别最多 {operation_costs['screenshot']['max_with_monthly']} 张",
+    ]
     return {
         "tier":            tier,
         "tier_name":       tier_cfg["name"],
         "price":           tier_cfg["price"],
         "expires_at":      sub["expires_at"],
-        "credits_balance": round(balance, 2),
+        "monthly_credits": monthly_limit,
+        "monthly_credits_used": monthly_used,
+        "monthly_credits_remaining": monthly_remaining,
+        "monthly_credits_pct": 0 if monthly_limit <= 0 else min(100, round(monthly_used / monthly_limit * 100)),
+        "credits_balance": balance,
+        "wallet_credits_balance": balance,
+        "total_available_credits": round(monthly_remaining + balance, 2),
         "period_start":    sub["period_start"],
-        "quotas":          quota_detail,
+        "operation_costs": operation_costs,
+        "usage_examples":  examples,
+        "credit_policy":   "优先扣本月套餐积分，不足部分扣充值积分；本月积分每月重置，充值积分长期有效。",
+        "quotas":          {},
     }
 
 # ─────────────────────────────────────────────────────────────
@@ -414,7 +794,9 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
     # 按操作汇总
     rows = db.fetchall(
         "SELECT operation, COUNT(*) as cnt, "
-        "SUM(cost_rmb) as total_cost, SUM(credits_used) as total_credits "
+        "SUM(tokens_in) as total_tokens_in, SUM(tokens_out) as total_tokens_out, "
+        "SUM(cost_rmb) as total_cost, SUM(credits_used) as total_credits, "
+        "SUM(actual_model_cost_rmb) as actual_model_cost, SUM(model_calls) as model_calls "
         "FROM usage_records WHERE user_id=? AND recorded_at>=? GROUP BY operation "
         "ORDER BY total_cost DESC",
         (user_id, since)
@@ -426,17 +808,24 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
         by_op[op] = {
             "label":         info.get("label", op),
             "count":         r["cnt"],
+            "tokens_in":     int(r["total_tokens_in"] or 0),
+            "tokens_out":    int(r["total_tokens_out"] or 0),
+            "total_tokens":  int((r["total_tokens_in"] or 0) + (r["total_tokens_out"] or 0)),
             "cost_rmb":      round(r["total_cost"]    or 0, 4),
+            "actual_model_cost_rmb": round(r["actual_model_cost"] or 0, 4),
+            "model_calls":   int(r["model_calls"] or 0),
             "credits_used":  round(r["total_credits"]  or 0, 2),
             "is_free":       info.get("free", False),
         }
 
     total_cost    = sum(v["cost_rmb"]     for v in by_op.values())
     total_credits = sum(v["credits_used"] for v in by_op.values())
+    total_tokens_in = sum(v["tokens_in"] for v in by_op.values())
+    total_tokens_out = sum(v["tokens_out"] for v in by_op.values())
 
     # 明细（最近50条）
     detail_rows = db.fetchall(
-        "SELECT operation,source,credits_used,cost_rmb,recorded_at "
+        "SELECT operation,source,credits_used,cost_rmb,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at "
         "FROM usage_records WHERE user_id=? AND recorded_at>=? "
         "ORDER BY recorded_at DESC LIMIT 50",
         (user_id, since)
@@ -451,12 +840,21 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
             "source":      r["source"],
             "credits_used": r["credits_used"],
             "cost_rmb":    r["cost_rmb"],
+            "tokens_in":   int(r["tokens_in"] or 0),
+            "tokens_out":  int(r["tokens_out"] or 0),
+            "total_tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
+            "model_calls": int(r["model_calls"] or 0),
+            "model_names": r["model_names"] or "",
+            "cost_mode":   r["cost_mode"] or "estimated",
             "recorded_at": r["recorded_at"],
         })
 
     return {
         "period_days":      days,
         "total_api_cost":   round(total_cost, 4),
+        "total_tokens_in":  int(total_tokens_in),
+        "total_tokens_out": int(total_tokens_out),
+        "total_tokens":     int(total_tokens_in + total_tokens_out),
         "total_credits":    round(total_credits, 2),
         "by_operation":     by_op,
         "recent_records":   details,

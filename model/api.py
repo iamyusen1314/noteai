@@ -16,7 +16,7 @@ import tempfile
 import time as _time
 import uuid as _uuid
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, Awaitable, Callable
 
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
@@ -73,6 +73,67 @@ _MOONSHOT_FILES_URL = "https://api.moonshot.cn/v1/files"
 # Server-side frame cache: {uuid -> [jpeg_bytes, ...]}  cleared on restart, fine for demo
 _video_frames: dict[str, dict] = {}
 # 结构: { file_id: {"frames": [bytes...], "duration_sec": float, "raw_fps": float} }
+
+
+def _record_kimi_usage_from_payload(payload: dict | None, model: str | None = None) -> None:
+    if not isinstance(payload, dict):
+        return
+    usage = payload.get("usage") or {}
+    if not usage:
+        return
+    try:
+        _billing.record_model_usage(
+            "kimi",
+            model or payload.get("model") or _KIMI_MODEL,
+            tokens_in=int(usage.get("prompt_tokens", 0) or 0),
+            tokens_out=int(usage.get("completion_tokens", 0) or 0),
+        )
+    except Exception:
+        pass
+
+
+def _image_media_type(raw: bytes) -> str:
+    if raw.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/jpeg"
+
+
+def _data_url_from_image_b64(image_b64: str) -> tuple[str, str, int]:
+    try:
+        raw = base64.b64decode(image_b64, validate=False)
+    except Exception as exc:
+        raise ValueError("图片 base64 无法解码") from exc
+    if not raw:
+        raise ValueError("图片内容为空")
+    media = _image_media_type(raw)
+    clean_b64 = base64.standard_b64encode(raw).decode()
+    return f"data:{media};base64,{clean_b64}", media, len(raw)
+
+
+def _moonshot_http_exception(exc, context: str) -> HTTPException:
+    resp = exc.response
+    status = resp.status_code if resp is not None else 0
+    body = (resp.text if resp is not None else "").replace("\n", " ")[:500]
+    print(f"[{context}] moonshot HTTP {status}: {body}", file=sys.stderr, flush=True)
+    if status in (401, 403):
+        return HTTPException(status_code=502, detail="Moonshot API Key 无效或没有视觉模型权限")
+    if status == 429:
+        return HTTPException(status_code=429, detail="Moonshot Vision 限流，请稍后重试")
+    if status >= 500:
+        return HTTPException(status_code=503, detail="Moonshot Vision 服务暂不可用")
+    return HTTPException(status_code=502, detail=f"Moonshot Vision 请求失败（HTTP {status}）")
+
+
+def _moonshot_network_exception(exc: Exception, context: str) -> HTTPException:
+    print(f"[{context}] moonshot network error: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+    return HTTPException(
+        status_code=503,
+        detail=f"Moonshot Vision 网络不可达：{type(exc).__name__}",
+    )
 
 def _video_send_count(duration_sec: float, total_frames: int) -> int:
     """
@@ -167,7 +228,7 @@ _DOMAIN_KNOWLEDGE: dict[str, dict[str, str]] = {
             "避免「绝了、直冲脑门、一口入魂、筷子夹不住」这类模板化夸张词。"
             "招牌菜名全文自然出现3-4次（提升词汇聚焦度），正文260-360字。"
             "标题创作原则：含城市/商圈+真实数字或菜品数量+情绪感；没有价格/排队数字时，用菜品数量、套餐人数、招牌数量代替，不编造人均或排队时长。"
-            "如果创作者未提供价格/营业时间/排队时长，正文使用安全表达：「套餐价格以门店套餐页为准」「营业时间以门店公示为准」「周末建议提前预订」，"
+            "如果创作者未提供价格/营业时间/排队时长，不得写占位式兜底句；应根据笔记类型改为真实种草表达，或在到店决策型里提示用户补充后再写。"
             "不得写不贵、划算、性价比、物有所值等无依据价格判断。"
         ),
         "visual": (
@@ -620,7 +681,9 @@ async def _kimi_video_understand(file_id: str, domain: str, brief: str | None) -
             if r.status_code != 200:
                 print(f"[kimi_video_understand] HTTP {r.status_code}: {r.text[:300]}", file=sys.stderr, flush=True)
                 r.raise_for_status()
-            return r.json()["choices"][0]["message"]["content"].strip()
+            data = r.json()
+            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
+            return data["choices"][0]["message"]["content"].strip()
     except Exception as exc:
         print(f"[kimi_video_understand] EXCEPTION: {exc}", file=sys.stderr, flush=True)
         return ""
@@ -693,11 +756,538 @@ def _runtime_prompt(key: str, domain: str | None = None, fallback: str = "") -> 
     return f"{_v04_runtime_prompt_prefix(key, domain)}\n\n{base}".strip()
 
 
+ProgressEmitter = Callable[[dict[str, Any]], Awaitable[None]]
+
+
+async def _emit_progress(emit: ProgressEmitter | None, event: dict[str, Any]) -> None:
+    if not emit:
+        return
+    try:
+        await emit(event)
+    except Exception:
+        pass
+
+
+def _agent_event_payload(
+    role: str,
+    raw: str,
+    agent_idx: int,
+    progress: int | float | None = None,
+) -> dict[str, Any]:
+    opinion = _xtag(raw, "opinion")
+    suggestions = _xtag(raw, "suggestions")
+    confidence = _xtag(raw, "confidence")
+    if not opinion:
+        opinion = re.sub(r"</?[^>]+>", " ", raw or "")
+        opinion = re.sub(r"\s+", " ", opinion).strip()
+    payload: dict[str, Any] = {
+        "type": "expert_opinion",
+        "role": role,
+        "agent_idx": agent_idx,
+        "content": (opinion or "该专家已完成分析。")[:220],
+        "detail": suggestions[:160] if suggestions else "",
+    }
+    if confidence:
+        payload["confidence"] = confidence
+    if progress is not None:
+        payload["progress"] = progress
+    return payload
+
+
+def _agent_output_contract(role: str, domain: str | None = None) -> str:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "通用")
+    return (
+        f"\n\n【{role}报告输出硬约束｜{canonical}】\n"
+        "必须给用户可验证、可执行、能信服的诊断，不允许只给一句泛泛结论。\n"
+        "严格输出以下 XML 标签：\n"
+        "<opinion>2-3句核心判断：当前内容最大的价值与最大拖分点是什么。</opinion>\n"
+        "<evidence>列3条证据，每条说明：命中的具体内容/特征值/事实槽位/缺口，不要空泛。</evidence>\n"
+        "<impact>说明这些证据会如何影响点击、收藏、转化或读者信任。</impact>\n"
+        "<suggestions>列3条修改动作，按优先级排列，必须能直接执行。</suggestions>\n"
+        "<confidence>0.00-1.00</confidence>\n"
+        "不要输出营销口号，不要编造未提供事实。"
+    )
+
+
+def _split_expert_lines(text: str) -> list[str]:
+    if not text:
+        return []
+    cleaned = re.sub(r"^\s*[-•\d.、）)]+", "", text.strip(), flags=re.M)
+    lines = [
+        re.sub(r"^\s*[-•\d.、）)]+", "", line).strip()
+        for line in re.split(r"[\n；;]+", cleaned)
+        if line.strip()
+    ]
+    if len(lines) <= 1 and "。" in cleaned:
+        lines = [line.strip() for line in cleaned.split("。") if line.strip()]
+    return lines[:5]
+
+
+_EVIDENCE_SOURCE_LABELS = {
+    "v04_feature": "V0.4特征",
+    "v04_score": "V0.4评分",
+    "semantic_feature": "语义模型",
+    "visual_feature": "封面特征",
+    "market_timing": "趋势样本",
+    "fact_source": "事实源",
+    "user_input": "用户输入",
+}
+
+
+def _num_or_none(value: object) -> float | None:
+    try:
+        if value is None:
+            return None
+        return round(float(value), 3)
+    except Exception:
+        return None
+
+
+def _expert_evidence_item(
+    *,
+    text: str,
+    source_type: str,
+    source_key: str = "",
+    label: str = "",
+    value: object = None,
+    benchmark: object = None,
+    status: str = "info",
+    confidence: float = 1.0,
+) -> dict:
+    item = {
+        "text": text.strip(),
+        "source_type": source_type,
+        "source_label": _EVIDENCE_SOURCE_LABELS.get(source_type, source_type),
+        "source_key": source_key,
+        "label": label or source_key,
+        "status": status,
+        "confidence": round(max(0.0, min(1.0, float(confidence or 0.0))), 2),
+    }
+    value_num = _num_or_none(value)
+    benchmark_num = _num_or_none(benchmark)
+    if value_num is not None:
+        item["value"] = value_num
+    elif value not in (None, ""):
+        item["value"] = str(value)
+    if benchmark_num is not None:
+        item["benchmark"] = benchmark_num
+    elif benchmark not in (None, ""):
+        item["benchmark"] = str(benchmark)
+    return item
+
+
+def _weakness_to_evidence_item(w: object) -> dict:
+    feature = str(getattr(w, "feature", "") or "")
+    label = str(getattr(w, "label", "") or (_feature_label(feature) if feature else "模型弱项"))
+    value = getattr(w, "value", None)
+    benchmark = getattr(w, "benchmark", None)
+    suggestion = str(getattr(w, "suggestion", "") or "")
+    text = f"{label}：当前 {value}，目标/基准 {benchmark}。"
+    if suggestion:
+        text += f" 修复方向：{suggestion}"
+    return _expert_evidence_item(
+        text=text,
+        source_type="v04_feature",
+        source_key=feature,
+        label=label,
+        value=value,
+        benchmark=benchmark,
+        status="gap",
+        confidence=1.0,
+    )
+
+
+def _feature_evidence_item(
+    features: dict[str, float] | None,
+    feature: str,
+    *,
+    benchmark: object = None,
+    status: str | None = None,
+    text: str | None = None,
+) -> dict | None:
+    if not features or feature not in features:
+        return None
+    value = features.get(feature)
+    label = _feature_label(feature)
+    if status is None:
+        status = "hit" if _feature_has_report_signal(feature, float(value or 0.0)) else "gap"
+    if text is None:
+        text = f"{label}：当前 {round(float(value or 0.0), 3)}。"
+        if benchmark not in (None, ""):
+            text += f" 参考基准 {benchmark}。"
+    return _expert_evidence_item(
+        text=text,
+        source_type="v04_feature",
+        source_key=feature,
+        label=label,
+        value=value,
+        benchmark=benchmark,
+        status=status,
+        confidence=1.0,
+    )
+
+
+def _build_bound_evidence_pool(
+    *,
+    role: str,
+    domain: str,
+    weaknesses: list | None,
+    features: dict[str, float] | None,
+    timing: dict | None,
+    visual_score: float | None,
+    cover_feats: dict | None,
+    semantic_feats: dict | None,
+    percentile: float | None = None,
+    grade: str | None = None,
+) -> list[dict]:
+    items: list[dict] = []
+    if percentile is not None:
+        items.append(_expert_evidence_item(
+            text=f"V0.4综合评分为 {round(float(percentile), 1)} 分，等级 {grade or _grade(float(percentile))}。",
+            source_type="v04_score",
+            source_key="ces_percentile",
+            label="V0.4综合评分",
+            value=percentile,
+            benchmark=_qobj.REFERENCE_SCORE_TARGET,
+            status="score",
+            confidence=1.0,
+        ))
+
+    for w in (weaknesses or [])[:5]:
+        items.append(_weakness_to_evidence_item(w))
+
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    role_key = role or ""
+    role_features: list[tuple[str, object, str]] = []
+    if "内容" in role_key:
+        role_features = [
+            ("commercial_fact_density", 0.75, "正文事实密度影响读者是否觉得内容有料。"),
+            ("commercial_actionability", 0.80, "可执行度影响读者是否知道下一步怎么做。"),
+            ("commercial_body_has_cta", 1, "互动引导影响收藏/评论动作。"),
+            ("commercial_body_main_char_len", f"{_quality_targets(canonical).get('body_min', 220)}-{_quality_targets(canonical).get('body_max', 420)}", "正文有效字数影响交付完整度。"),
+        ]
+        for slot in _domain_slot_features_for_report(canonical)[:4]:
+            role_features.append((slot, 1, "行业事实槽位影响内容决策价值。"))
+    elif "增长" in role_key:
+        role_features = [
+            ("commercial_title_has_domain_anchor", 1, "标题行业锚点影响推荐系统理解与搜索召回。"),
+            ("commercial_title_has_recommendation", 1, "标题推荐信号影响点击意愿。"),
+            ("commercial_body_tag_count", f"{_quality_targets(canonical).get('tag_min', 5)}-{_quality_targets(canonical).get('tag_max', 8)}", "标签数量影响搜索召回。"),
+        ]
+    elif "用户" in role_key:
+        role_features = [
+            ("commercial_actionability", 0.80, "可执行度影响读者是否愿意收藏照做。"),
+            ("commercial_specificity", 0.75, "信息具体度影响读者信任。"),
+            ("commercial_body_has_first_person", 1, "真人视角影响用户代入感。"),
+        ]
+    elif "视觉" in role_key:
+        role_features = [
+            ("cover_visual_clarity", 0.62, "封面清晰度影响停留与点击。"),
+            ("cover_composition_score", 0.62, "封面构图影响主体识别。"),
+            ("cover_aesthetic_score", 0.65, "封面美学分影响第一眼吸引力。"),
+        ]
+
+    for feature, benchmark, explanation in role_features:
+        item = _feature_evidence_item(features, feature, benchmark=benchmark, text=None)
+        if item:
+            item["text"] = f"{_feature_label(feature)}：当前 {item.get('value')}，参考 {benchmark}。{explanation}"
+            items.append(item)
+
+    if "用户" in role_key and semantic_feats:
+        semantic_specs = [
+            ("semantic_emotional_intensity", 0.62, "情绪强度影响是否能打动目标用户。"),
+            ("semantic_empathetic_engagement", 0.60, "共情度影响读者是否觉得内容懂自己。"),
+            ("semantic_rhetorical_score", 0.58, "修辞水平影响表达的自然度和记忆点。"),
+        ]
+        for key, benchmark, explanation in semantic_specs:
+            value = semantic_feats.get(key)
+            if value is not None:
+                items.append(_expert_evidence_item(
+                    text=f"{_feature_label(key)}：当前 {round(float(value), 3)}，参考 {benchmark}。{explanation}",
+                    source_type="semantic_feature",
+                    source_key=key,
+                    label=_feature_label(key),
+                    value=value,
+                    benchmark=benchmark,
+                    status="hit" if float(value) >= benchmark else "gap",
+                    confidence=0.9,
+                ))
+
+    if "视觉" in role_key:
+        if visual_score is None:
+            items.append(_expert_evidence_item(
+                text="本次未提供封面图，视觉维度未参与最终证据判断。",
+                source_type="visual_feature",
+                source_key="visual_score",
+                label="封面视觉得分",
+                value="未提供",
+                benchmark="上传封面后评估",
+                status="locked",
+                confidence=1.0,
+            ))
+        else:
+            items.append(_expert_evidence_item(
+                text=f"封面视觉得分为 {round(float(visual_score), 1)} / 100。",
+                source_type="visual_feature",
+                source_key="visual_score",
+                label="封面视觉得分",
+                value=visual_score,
+                benchmark=60,
+                status="hit" if float(visual_score) >= 60 else "gap",
+                confidence=1.0,
+            ))
+        for key in ("cover_visual_clarity", "cover_composition_score", "cover_aesthetic_score"):
+            if cover_feats and key in cover_feats:
+                items.append(_expert_evidence_item(
+                    text=f"{_feature_label(key)}：当前 {round(float(cover_feats.get(key) or 0.0), 3)}。",
+                    source_type="visual_feature",
+                    source_key=key,
+                    label=_feature_label(key),
+                    value=cover_feats.get(key),
+                    benchmark=0.62,
+                    status="hit" if float(cover_feats.get(key) or 0.0) >= 0.62 else "gap",
+                    confidence=0.9,
+                ))
+
+    if "增长" in role_key and timing:
+        matched = "、".join((timing.get("matched_keywords") or [])[:4]) or "未命中强相关热词"
+        latest = timing.get("latest_capture") or "未知"
+        items.append(_expert_evidence_item(
+            text=f"趋势参考系数 {timing.get('timing_coefficient', 1.0)}；命中词：{matched}。",
+            source_type="market_timing",
+            source_key="timing_coefficient",
+            label="趋势参考系数",
+            value=timing.get("timing_coefficient", 1.0),
+            benchmark=1.0,
+            status="reference",
+            confidence=0.75,
+        ))
+        items.append(_expert_evidence_item(
+            text=f"热词样本最近采集时间：{latest}；来源分布：{timing.get('source_breakdown', {}) or '未知'}。",
+            source_type="market_timing",
+            source_key="latest_capture",
+            label="热词样本采集时间",
+            value=latest,
+            benchmark="48小时内更可信",
+            status="stale" if float(timing.get("freshness_hours") or 0) > 48 else "reference",
+            confidence=0.8,
+        ))
+
+    # 去重并限制证据池，优先保留 gap/score/role-specific sources。
+    seen: set[tuple[str, str]] = set()
+    unique: list[dict] = []
+    priority = {"gap": 0, "score": 1, "locked": 2, "stale": 3, "reference": 4, "hit": 5, "info": 6}
+    for item in sorted(items, key=lambda x: priority.get(str(x.get("status")), 9)):
+        key = (str(item.get("source_type", "")), str(item.get("source_key", "")))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    return unique[:6]
+
+
+def _select_bound_evidence(
+    *,
+    role: str,
+    agent_lines: list[str],
+    pool: list[dict],
+) -> list[dict]:
+    if not pool:
+        return []
+    selected: list[dict] = []
+    used_keys: set[tuple[str, str]] = set()
+    for line in agent_lines[:4]:
+        line = line.strip()
+        if not line:
+            continue
+        match = None
+        for item in pool:
+            label = str(item.get("label") or "")
+            source_key = str(item.get("source_key") or "")
+            if (label and label in line) or (source_key and source_key in line):
+                match = item
+                break
+        if match:
+            key = (str(match.get("source_type", "")), str(match.get("source_key", "")))
+            if key not in used_keys:
+                item = dict(match)
+                item["agent_text"] = line
+                selected.append(item)
+                used_keys.add(key)
+    for item in pool:
+        key = (str(item.get("source_type", "")), str(item.get("source_key", "")))
+        if key in used_keys:
+            continue
+        selected.append(item)
+        used_keys.add(key)
+        if len(selected) >= 4:
+            break
+    return selected[:4]
+
+
+def _normalize_expert_opinion(
+    op: dict,
+    weaknesses: list | None = None,
+    features: dict[str, float] | None = None,
+    timing: dict | None = None,
+    visual_score: float | None = None,
+    cover_feats: dict | None = None,
+    semantic_feats: dict | None = None,
+    domain: str = "",
+    percentile: float | None = None,
+    grade: str | None = None,
+) -> dict:
+    role = op.get("role") or "专家"
+    raw = op.get("raw") or ""
+    plain = re.sub(r"</?[^>]+>", " ", raw)
+    plain = re.sub(r"\s+", " ", plain).strip()
+    opinion = _xtag(raw, "opinion") or plain[:260] or f"{role}已完成诊断。"
+    evidence_lines = _split_expert_lines(_xtag(raw, "evidence"))
+    suggestions = _split_expert_lines(_xtag(raw, "suggestions"))
+    impact = _xtag(raw, "impact")
+    confidence_raw = _xtag(raw, "confidence")
+    try:
+        confidence = max(0.0, min(1.0, float(confidence_raw)))
+    except Exception:
+        confidence = 0.0
+
+    evidence_pool = _build_bound_evidence_pool(
+        role=role,
+        domain=domain,
+        weaknesses=weaknesses,
+        features=features,
+        timing=timing,
+        visual_score=visual_score,
+        cover_feats=cover_feats,
+        semantic_feats=semantic_feats,
+        percentile=percentile,
+        grade=grade,
+    )
+    evidence = _select_bound_evidence(role=role, agent_lines=evidence_lines, pool=evidence_pool)
+
+    if not suggestions:
+        for w in (weaknesses or [])[:3]:
+            suggestion = getattr(w, "suggestion", "")
+            label = getattr(w, "label", "弱项")
+            if suggestion:
+                suggestions.append(f"优先修复「{label}」：{suggestion}")
+        if not suggestions:
+            suggestions.append("保留已命中的真实信息，把最影响读者决策的内容前置。")
+
+    if not impact:
+        impact = "这些问题会影响读者快速判断是否值得继续看、收藏或采取行动。"
+
+    return {
+        "role": role,
+        "raw": raw,
+        "opinion": opinion.strip(),
+        "evidence": evidence[:4],
+        "evidence_binding": "v04_structured",
+        "impact": impact.strip(),
+        "suggestions": suggestions[:4],
+        "confidence": confidence,
+    }
+
+
+def _annotate_market_timing(timing: dict | None) -> dict | None:
+    if not timing:
+        return timing
+    enriched = dict(timing)
+    if _SCHEDULER_AVAILABLE:
+        try:
+            status = db_status(enriched.get("domain") or None)
+            enriched.setdefault("keyword_count", int(status.get("total_keywords", 0) or 0))
+            enriched.setdefault("latest_capture", status.get("latest_capture"))
+            enriched.setdefault("source_breakdown", status.get("source_breakdown", {}))
+        except Exception:
+            pass
+    latest = enriched.get("latest_capture")
+    freshness = enriched.get("freshness_hours")
+    if freshness is None and latest:
+        try:
+            from datetime import datetime as _dt
+            captured = _dt.fromisoformat(str(latest))
+            freshness = round((_dt.now() - captured).total_seconds() / 3600, 1)
+            enriched["freshness_hours"] = freshness
+        except Exception:
+            freshness = None
+    if not enriched.get("data_source_label"):
+        enriched["data_source_label"] = "本地热词样本库"
+    if enriched.get("data_stale"):
+        enriched["timing_coefficient"] = 1.0
+        enriched["matched_keywords"] = []
+        enriched["suggested_keywords"] = []
+        enriched["matched_keyword_evidence"] = []
+        enriched["suggested_keyword_evidence"] = []
+        enriched.setdefault("timing_action", "stale")
+        enriched["confidence_note"] = enriched.get("confidence_note") or "今日行业热词未更新，市场时机证据已停用，不参与当前诊断结论。"
+    elif freshness is None:
+        enriched["confidence_note"] = "未获取到热词采集时间，本模块仅作趋势参考，不直接作为总分乘数。"
+    elif float(freshness) > 30:
+        enriched["data_stale"] = True
+        enriched["timing_coefficient"] = 1.0
+        enriched["matched_keywords"] = []
+        enriched["suggested_keywords"] = []
+        enriched["matched_keyword_evidence"] = []
+        enriched["suggested_keyword_evidence"] = []
+        enriched["timing_action"] = "stale"
+        enriched["confidence_note"] = f"热词样本距最近采集约 {float(freshness):.1f} 小时，超过每日更新标准；市场时机证据已停用。"
+    else:
+        enriched["confidence_note"] = f"热词样本距最近采集约 {float(freshness):.1f} 小时；用于趋势解释和发布建议，不直接作为总分乘数。"
+    return enriched
+
+
+def _market_timing_required() -> bool:
+    return os.environ.get("NOTEAI_MARKET_TIMING_REQUIRED", "0").lower() in {"1", "true", "yes"}
+
+
+def _market_timing_error_detail(timing: dict | None, domain: str) -> dict:
+    timing = timing or {}
+    return {
+        "code": "MARKET_TIMING_EVIDENCE_UNAVAILABLE",
+        "message": f"未获取到「{domain or '当前行业'}」的新鲜市场时机证据，请确认独立趋势数据管道已完成今日采集。",
+        "domain": domain or "",
+        "latest_capture": timing.get("domain_latest_capture") or timing.get("latest_capture"),
+        "freshness_hours": timing.get("freshness_hours"),
+        "freshness_policy": timing.get("freshness_policy") or "要求 30 小时内有行业采集样本",
+        "data_source_label": timing.get("data_source_label") or "每日行业热词样本库",
+        "cloud_sync": timing.get("cloud_sync") or {},
+    }
+
+
+def _enforce_market_timing(timing: dict | None, domain: str) -> dict | None:
+    timing = _annotate_market_timing(timing)
+    if _market_timing_required() and (not timing or timing.get("data_stale") or timing.get("evidence_unavailable")):
+        raise HTTPException(status_code=503, detail=_market_timing_error_detail(timing, domain))
+    return timing
+
+
+def _compute_market_timing_for_delivery(title: str, desc: str, domain: str) -> dict | None:
+    timing: dict | None = None
+    if _SCHEDULER_AVAILABLE:
+        try:
+            timing = compute_market_timing(title, desc, domain)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            if _market_timing_required():
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "code": "MARKET_TIMING_PIPELINE_ERROR",
+                        "message": f"市场时机证据管道执行失败：{exc}",
+                        "domain": domain or "",
+                    },
+                )
+    return _enforce_market_timing(timing, domain)
+
+
 # ── Agent 1: 内容专家 ─────────────────────────────────────────────
 
 async def _agent_content(
     note_title: str, desc: str, domain: str,
     weaknesses: list, dk: dict,
+    agent_context: str = "",
 ) -> dict:
     # 从 prompts.json 加载 system prompt，注入品类和品类知识
     base = _runtime_prompt("agent_content_system", domain)
@@ -707,6 +1297,7 @@ async def _agent_content(
         f"\n\n{_get_quality_contract(domain)}\n\n"
         f"{_get_feature_governance_brief(domain)}\n\n"
         f"【品类知识库·{domain}】\n{dk.get('content', '')}"
+        f"{_agent_output_contract('内容专家', domain)}"
     )
 
     content_issues = "\n".join(
@@ -717,7 +1308,8 @@ async def _agent_content(
         f"当前品类：{domain}\n"
         f"标题（{len(note_title or '')}字）：{note_title or '（无标题）'}\n"
         f"正文（{len(desc or '')}字）：{(desc or '')[:500]}\n\n"
-        f"可解释特征弱项（按交付影响排序）：\n{content_issues or '暂无明显弱项'}"
+        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context[:1200]}\n\n" if agent_context else "")
+        + f"可解释特征弱项（按交付影响排序）：\n{content_issues or '暂无明显弱项'}"
     )
     raw = await _mr.call("diagnosis", system, user)
     return {"role": "内容专家", "raw": raw}
@@ -736,7 +1328,7 @@ async def _agent_visual(
         }
     base = _runtime_prompt("agent_visual_system", domain)
     system = base.replace("{domain}", domain or "通用") + \
-        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类视觉知识库·{domain}】\n{dk.get('visual', '')}"
+        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类视觉知识库·{domain}】\n{dk.get('visual', '')}{_agent_output_contract('视觉专家', domain)}"
 
     feat_lines = "\n".join(
         f"- {k}: {v:.3f}" for k, v in cover_feats.items()
@@ -756,10 +1348,11 @@ async def _agent_visual(
 async def _agent_growth(
     note_title: str, desc: str, domain: str,
     timing: dict | None, dk: dict,
+    agent_context: str = "",
 ) -> dict:
     base = _runtime_prompt("agent_growth_system", domain)
     system = base.replace("{domain}", domain or "通用") + \
-        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类增长知识库·{domain}】\n{dk.get('growth', '')}"
+        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类增长知识库·{domain}】\n{dk.get('growth', '')}{_agent_output_contract('增长专家', domain)}"
 
     if timing:
         matched = "、".join(timing.get("matched_keywords", [])[:8]) or "无"
@@ -778,7 +1371,8 @@ async def _agent_growth(
     user = (
         f"标题：{note_title or '（无）'}\n"
         f"正文（前300字）：{(desc or '')[:300]}\n\n"
-        f"【实时热词数据】\n{timing_text}"
+        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context[:1200]}\n\n" if agent_context else "")
+        + f"【实时热词数据】\n{timing_text}"
     )
     raw = await _mr.call("diagnosis", system, user)
     return {"role": "增长专家", "raw": raw}
@@ -789,10 +1383,11 @@ async def _agent_growth(
 async def _agent_user(
     note_title: str, desc: str, domain: str,
     semantic_feats: dict, weaknesses: list, dk: dict,
+    agent_context: str = "",
 ) -> dict:
     base = _runtime_prompt("agent_user_system", domain)
     system = base.replace("{domain}", domain or "通用") + \
-        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类用户洞察·{domain}】\n{dk.get('user', '')}"
+        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类用户洞察·{domain}】\n{dk.get('user', '')}{_agent_output_contract('用户专家', domain)}"
 
     emo = semantic_feats.get("semantic_emotional_intensity", 0.5)
     emp = semantic_feats.get("semantic_empathetic_engagement", 0.5)
@@ -803,7 +1398,8 @@ async def _agent_user(
     user_ctx = (
         f"标题：{note_title or '（无）'}\n"
         f"正文（前400字）：{(desc or '')[:400]}\n\n"
-        f"语义特征：情感强度={emo:.2f} 共情度={emp:.2f} 修辞水平={rhet:.2f}\n"
+        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context[:1200]}\n\n" if agent_context else "")
+        + f"语义特征：情感强度={emo:.2f} 共情度={emp:.2f} 修辞水平={rhet:.2f}\n"
         + (f"互动引导语数量：{cta:.0f}\n" if cta is not None else "")
         + (f"互动性表达密度：{stance:.2f}\n" if stance is not None else "")
     )
@@ -818,6 +1414,7 @@ async def _agent_arbitrate(
     percentile: float, grade: str,
     opinions: list[dict],
     source_context: str = "",
+    emit: ProgressEmitter | None = None,
 ) -> dict:
     from datetime import datetime as _dt_now
     _today = _dt_now.now().strftime("%Y年%m月%d日")
@@ -869,6 +1466,14 @@ async def _agent_arbitrate(
         + "<dispute>专家分歧与取舍</dispute>\n"
     )
     raw1 = await _mr.call("diagnosis", system, user_phase1)
+    await _emit_progress(emit, {
+        "type": "expert_opinion",
+        "role": "仲裁专家",
+        "agent_idx": 4,
+        "content": (_xtag(raw1, "diagnosis") or "仲裁专家已完成诊断方向汇总。")[:220],
+        "detail": (_xtag(raw1, "plan") or "")[:160],
+        "progress": 64,
+    })
 
     def _clean_title_sync(t: str) -> str:
         """同步清理：只做前缀剥除和说明文字过滤，不截断。"""
@@ -945,6 +1550,11 @@ async def _agent_arbitrate(
     plan_titles = [t or next(pool_iter, "") for t in plan_titles]
     plan_titles = _make_plan_titles_distinct(plan_titles, domain, source_context)
     plan_a_title, plan_b_title, plan_c_title = plan_titles
+    await _emit_progress(emit, {
+        "type": "diagnosis_titles",
+        "titles": [t for t in plan_titles if t],
+        "progress": 66,
+    })
 
     # ── 阶段2：三套正文独立并行生成（每套专注自己的方向，绝不共享） ──
     from datetime import datetime as _dt_now2
@@ -1081,7 +1691,13 @@ async def _agent_arbitrate(
 
     # 三套最终正文是诊断交付的核心，不再并发抢同一模型窗口；速度让位于稳定性和去重质量。
     body_results = []
-    for style in plan_styles:
+    for idx, style in enumerate(plan_styles):
+        await _emit_progress(emit, {
+            "type": "stage",
+            "stage": f"plan_body_{idx + 1}",
+            "label": f"正在生成方案{idx + 1}正文：{style[1]}…",
+            "progress": 68 + idx * 4,
+        })
         try:
             body_results.append(await _gen_plan_body(*style))
         except Exception as exc:
@@ -1118,6 +1734,15 @@ async def _agent_arbitrate(
         plans.append(item)
         if body:
             accepted_bodies.append(body)
+        await _emit_progress(emit, {
+            "type": "diagnosis_plan",
+            "index": i,
+            "title": final_title,
+            "style": style_name,
+            "body_preview": (body or "")[:220],
+            "fallback": fallback_used,
+            "progress": 80 + i * 3,
+        })
 
     primary_body = next((p["body"] for p in plans if p.get("body")), body_candidate)
 
@@ -1138,27 +1763,80 @@ async def _run_five_agents(
     percentile: float,
     grade: str,
     weaknesses: list,
+    features: dict[str, float] | None,
     timing: dict | None,
     visual_score: float | None,
     cover_feats: dict,
     semantic_feats: dict,
+    agent_context: str = "",
+    emit: ProgressEmitter | None = None,
 ) -> dict:
     dk = _get_dk(note.domain)
 
-    results = await asyncio.gather(
-        _agent_content(note.note_title, note.desc, note.domain, weaknesses, dk),
-        _agent_visual(note.domain, visual_score, cover_feats, dk),
-        _agent_growth(note.note_title, note.desc, note.domain, timing, dk),
-        _agent_user(note.note_title, note.desc, note.domain, semantic_feats, weaknesses, dk),
-        return_exceptions=True,
-    )
+    await _emit_progress(emit, {
+        "type": "stage",
+        "stage": "agents",
+        "label": "四位诊断专家正在独立分析真实输入…",
+        "progress": 32,
+    })
+    task_specs = [
+        (_agent_content(note.note_title, note.desc, note.domain, weaknesses, dk, agent_context), "内容专家", 0),
+        (_agent_visual(note.domain, visual_score, cover_feats, dk), "视觉专家", 1),
+        (_agent_growth(note.note_title, note.desc, note.domain, timing, dk, agent_context), "增长专家", 2),
+        (_agent_user(note.note_title, note.desc, note.domain, semantic_feats, weaknesses, dk, agent_context), "用户专家", 3),
+    ]
+    pending = {
+        asyncio.create_task(coro): (fallback_role, agent_idx)
+        for coro, fallback_role, agent_idx in task_specs
+    }
 
-    opinions = [r for r in results if isinstance(r, dict)]
+    opinions: list[dict] = []
+    progress = 36
+    while pending:
+        done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            fallback_role, agent_idx = pending.pop(task)
+            try:
+                result = task.result()
+            except Exception as exc:
+                result = {
+                    "role": fallback_role,
+                    "raw": f"<opinion>{fallback_role}执行失败：{exc}</opinion><confidence>0</confidence>",
+                }
+            if isinstance(result, dict):
+                opinions.append(result)
+                role = result.get("role") or fallback_role
+                raw = result.get("raw") or ""
+                progress = min(progress + 6, 58)
+                await _emit_progress(emit, _agent_event_payload(role, raw, agent_idx, progress))
 
+    await _emit_progress(emit, {
+        "type": "stage",
+        "stage": "arbitrate",
+        "label": "仲裁专家正在综合专家意见与事实边界…",
+        "progress": 62,
+    })
+    arbitration_context = note.desc
+    if agent_context:
+        arbitration_context += "\n\n【补充上下文（不计入正文评分）】\n" + agent_context
     arbitration = await _agent_arbitrate(
-        note.note_title, note.domain, percentile, grade, opinions, note.desc,
+        note.note_title, note.domain, percentile, grade, opinions, arbitration_context, emit=emit,
     )
-    arbitration["expert_opinions"] = opinions
+    arbitration["expert_opinions"] = [
+        _normalize_expert_opinion(
+            op,
+            weaknesses=weaknesses,
+            features=features,
+            timing=timing,
+            visual_score=visual_score,
+            cover_feats=cover_feats,
+            semantic_feats=semantic_feats,
+            domain=note.domain,
+            percentile=percentile,
+            grade=grade,
+        )
+        for op in opinions
+    ]
     return arbitration
 
 
@@ -1197,7 +1875,9 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
                 headers={"Authorization": f"Bearer {key}"},
             )
             r.raise_for_status()
-            return r.json()["choices"][0]["message"]["content"].strip()
+            data = r.json()
+            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
+            return data["choices"][0]["message"]["content"].strip()
     except Exception:
         return brief or f"{domain}相关素材图"
 
@@ -1232,7 +1912,9 @@ def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
                 headers={"Authorization": f"Bearer {key}"},
             )
             r.raise_for_status()
-            return r.json()["choices"][0]["message"]["content"].strip()
+            data = r.json()
+            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
+            return data["choices"][0]["message"]["content"].strip()
     except Exception:
         return brief or f"{domain}素材图"
 
@@ -1245,7 +1927,7 @@ _TITLE_PLATFORM_MAX = 20
 _GEN_CHECKLISTS: dict[str, str] = {
     "美食": (
         "【爆文必达目标——逐项硬性要求】\n"
-        "① 标题：14-18字，必须含城市名+具体数字，有情绪感或悬念感。\n"
+        "① 标题：14-18字，优先含城市/商圈/具体菜品/真实数字之一，有情绪感或悬念感；没有商家事实时不要硬凑城市和价格。\n"
         "   ❌ 严禁套路：「XX绝了？人均XX元吃垮」「XX惊艳？人均XX元吃垮」等模板化格式每次雷同，禁止使用。\n"
         "   ✅ 多样风格（按内容选一种，不能每次都用同一种）：\n"
         "   · 悬念追问：「成都这家火锅为啥排3小时？吃完我懂了」\n"
@@ -1255,17 +1937,14 @@ _GEN_CHECKLISTS: dict[str, str] = {
         "   · 身份认同：「成都本地人才知道的排队王，一周去了三次」\n"
         "② 正文字数：260-360字（不含标签）。\n"
         "③ 互动引导：结尾自然出现「点赞」和「收藏」两个词，可引导评论但不要硬塞问号。\n"
-        "④ 价格：正文明确写人均消费（如：人均68元）。\n"
-        "⑤ 地址：含路名/地铁站/区名等地理信息。\n"
-        "⑥ 营业时间【必须命中关键词】：正文必须包含「营业时间」「周六」「周日」「周一至周五」中至少1个词。\n"
-        "   ✅正确：「营业时间每天11:00-21:30」「周六周日照常营业」\n"
-        "   ❌错误：「每天11:00开门」——「开门」「开业」不算！\n"
-        "⑦ 排队/等待：用「排队」这个词（不要写「排了」）。\n"
-        "⑧ 必点/招牌菜【必须命中关键词】：正文必须出现「必点」「必吃」「招牌」「推荐」「人气」「爆款」中至少1个词，点出具体菜品。\n"
-        "⑨ 表情符号：1-2种，放在句号（。）之前：「太好吃了🌶️🌶️🌶️。」，不要放在句号后独立一行。\n"
-        "⑩ 话题标签：5-8个，格式 #标签名 空格分隔，必须含城市词（如#上海探店）。\n"
-        "⑪ 写作节奏【交付质感关键，avg_sentence_len目标≥35字】：主体描写句用逗号/顿号串联，每段35-60字；在段落之间穿插3-8字短句（「很稳。」「值得冲。」「适合聚餐。」）。全文句号（。）控制在6-10个——❌禁止每句都点句号拆成15字短句，那会大幅削弱读感！\n"
-        "⑫ 词汇聚焦【交付质感关键】：选1-2个核心词（招牌菜名/店名）在全文自然重复3-5次；❌取消「不超过3次」规则——自然重复才是真实写作，AI刻意回避反而降分。"
+        "④ 价格/地址/营业时间：只在「决策转化型」或用户选择展示商家且事实源已核验时自然写入；真实种草型且未展示商家时不要求、不编造、不写页面兜底句。\n"
+        "⑤ 排队/等待：只有用户或事实源提供排队/等位事实时才写，不得默认周末排队。\n"
+        "⑥ 必点/招牌菜【必须命中关键词】：正文必须出现「必点」「必吃」「招牌」「推荐」「人气」「爆款」中至少1个词，点出具体菜品。\n"
+        "⑦ 多素材覆盖：若用户上传多张菜品图，清单攻略型必须覆盖多道菜；真实种草型也要至少提到2-3个可见菜品，不只围绕第一张图。\n"
+        "⑧ 表情符号：1-2种，放在句号（。）之前：「汤底很浓🍜。」，不要放在句号后独立一行。\n"
+        "⑨ 话题标签：5-8个，格式 #标签名 空格分隔；有城市事实时含城市词，没有时用菜品/场景/人群标签。\n"
+        "⑩ 写作节奏【交付质感关键，avg_sentence_len目标≥35字】：主体描写句用逗号/顿号串联，每段35-60字；在段落之间穿插3-8字短句（「适合收藏。」「这口很记人。」「适合聚餐。」）。全文句号（。）控制在6-10个——❌禁止每句都点句号拆成15字短句，那会大幅削弱读感！\n"
+        "⑪ 词汇聚焦【交付质感关键】：选1-2个核心词（招牌菜名/店名）在全文自然重复3-5次；❌取消「不超过3次」规则——自然重复才是真实写作，AI刻意回避反而降分。"
     ),
     "旅行": (
         "【爆文必达目标——逐项硬性要求】\n"
@@ -1451,12 +2130,12 @@ _PLANNING_BODY_TARGETS: dict[str, str] = {
 
 _GENERATION_PLANNING_RULES: dict[str, dict[str, str]] = {
     "美食": {
-        "title": "城市/商圈 + 菜品/店名 + 人均/具体事实 + 高级推荐词（必点/值得/很稳/推荐）",
-        "structure": "开头60字内写清地点/场景/人均；中段按点单顺序写2-4个菜；把地址、营业时间、预订/排队拆进自然句，不要结尾机械罗列，也不要重复写同一组地址/人均/营业事实。",
-        "required_terms": "正文必须自然出现「必点/招牌/推荐」至少1个；标题优先出现「广州/城市词」和「必点/值得/稳」至少1个。",
+        "title": "城市/商圈或真实菜品 + 具体体验/数字/清单价值；避免把「很稳/值得冲」当万能结尾",
+        "structure": "按创作方向决定结构：真实种草型先写画面和体验；决策转化型才写地点/人均/营业；清单攻略型覆盖多菜品；测评避坑型写适合/不适合。",
+        "required_terms": "正文可自然出现「必点/招牌/推荐」，但必须绑定具体菜品；标题优先绑定真实菜品、价格或清单信息，不强制套推荐词。",
         "core_repeat": "核心词建议：主菜/店名/商圈各重复2-3次，例如芝士焗小青龙、番禺万博、招牌粤菜。",
-        "facts": "价格/人均、地址/商圈、营业时间、预订/排队、招牌菜；缺失时用安全表达，不编造数字；套餐/点心拼盘只写事实源已列菜名，不自行展开虾饺、烧卖等未提供菜品。",
-        "allowed_tone": "允许高级推荐词：必点、招牌、推荐、值得、很稳、适合收藏；避免廉价爆词：绝了、天花板、值哭、闭眼冲、封神。",
+        "facts": "价格/人均、地址/商圈、营业时间、预订/排队、招牌菜只引用用户或事实源；缺失时不写占位句；套餐/点心拼盘只写事实源已列菜名。",
+        "allowed_tone": "允许克制推荐词：必点、招牌、推荐、适合收藏；少用很稳、值得冲，避免绝了、天花板、值哭、闭眼冲、封神。",
     },
     "旅行": {
         "title": "目的地/商圈 + 天数或酒店选择维度 + 决策价值词（推荐/值得/避坑/怎么选）",
@@ -1515,7 +2194,7 @@ _DEFAULT_GENERATION_PLANNING_RULE = {
     "required_terms": "正文必须有明确行动建议或推荐理由；标题带具体对象和价值信号。",
     "core_repeat": "核心对象/场景词重复2-4次，避免词太散。",
     "facts": "价格、时间、地址、效果、数据只来自用户信息或已核验事实源。",
-    "allowed_tone": "允许克制推荐词：推荐、值得、很稳；避免廉价爆词。",
+    "allowed_tone": "允许克制推荐词：推荐、适合、收藏；少用很稳/值得冲，避免廉价爆词。",
 }
 
 
@@ -1531,7 +2210,7 @@ _DOMAIN_SCORE_LIFT_RULES: dict[str, str] = {
 
 
 _DOMAIN_COMMERCIAL_SLOT_RULES: dict[str, str] = {
-    "美食": "必须把地址/商圈、人均或套餐价格、营业时间、必点/招牌、预订/排队安排成自然决策句；事实源缺失时写门店页/公示为准，不写信息栏，不重复事实句，不自行扩写套餐菜名。",
+    "美食": "到店决策型才必须把地址/商圈、人均或套餐价格、营业时间、必点/招牌、预订/排队安排成自然决策句；事实源缺失时提示补充，不写门店页/公示占位句，不写信息栏，不重复事实句。",
     "旅行": "酒店优先写美团评分、起价/预算口径、交通/距离、亲子或商务设施、入住/退房；路线攻略优先写天数、交通方式、体力节奏和预算确认方式。",
     "穿搭": "必须写身材/场合、单品/版型、价格或渠道口径、颜色比例和适合/不适合；缺价格时写价格按实际链接/门店为准。",
     "美妆": "必须写肤质/诉求、产品/色号、用量/手法、妆效边界和价格/渠道口径；缺价格时写价格按购买渠道为准。",
@@ -1855,8 +2534,8 @@ def _get_arbitrate_standards(domain: str) -> str:
             "- 标题：14-18字，优先城市/商圈+情绪词+真实数字或菜品数量；疑问句仅在自然时使用\n"
             "- 正文：260-360字，叙事完整（场景开头→核心信息→互动结尾）\n"
             "- 事实边界：价格/人均/套餐价/营业时间/排队时长/楼层只能来自「创作者真实信息」，不可凭空编造\n"
-            "- 安全决策信息【交付质感关键】：未提供具体价格时写「套餐价格以门店套餐页为准」；未提供具体营业时间时写「营业时间以门店公示为准」；未提供排队时长时可写「周末建议提前预订」，但不得写具体等位时长\n"
-            "- 地址/商圈：优先使用创作者已提供的城市/商圈/店名，示例「位于广州番禺万博商圈」；如果只知道店名，写「具体地址以门店页为准」\n"
+            "- 安全决策信息【交付质感关键】：价格/营业时间/排队/预订只引用用户提供或事实源核验内容；未核验时不要写「以门店页/公示为准」这类占位句\n"
+            "- 地址/商圈：优先使用创作者已提供或事实源核验的城市/商圈/店名；只有城市、菜品时不推断具体门店\n"
             "- 必点/招牌菜：正文必须出现「必点」「必吃」「招牌」「推荐」「人气」「爆款」中至少1个词，配合具体菜品名\n"
             "- 表情符号：最多2种，放在句号前，如「...太好吃了🌶️🌶️。」不要句号后独立一行\n"
             "- 互动结尾：自然出现「点赞」+「收藏」两个词，可引导评论但不要硬塞问号\n"
@@ -2343,7 +3022,7 @@ def _v04_generation_lift_instructions(
         )
 
     domain_item = {
-        "美食": "美食提质：围绕1-2个招牌/推荐菜写清点单顺序、口感判断、适合人群和到店决策；高德事实可用时写地址/营业，缺失时用门店页为准",
+        "美食": "美食提质：围绕1-2个招牌/推荐菜写清点单顺序、口感判断和适合人群；高德事实可用时自然写地址/营业，缺失时不要写页面兜底句",
         "旅行": "旅行提质：按路线/酒店/景点取舍写；酒店酒旅稿前120字保留起价/评分/位置/交通权益中的至少3项，再补体力节奏、预算确认方式和注意事项",
         "穿搭": "穿搭提质：补身材/场合、单品材质或版型、颜色比例、复用公式；价格缺失时写按实际链接/门店为准，禁止穿出165、多五厘米、秒变170等身高承诺",
         "美妆": "美妆提质：补肤质、用量、手法、妆效边界和适合/不适合；色号/价格缺失时不占位，不写虚假实测",
@@ -2369,7 +3048,7 @@ def _v04_generation_lift_instructions(
     slot_items: list[str] = []
     if canonical == "美食":
         if not features.get("body_has_hours", 0):
-            slot_items.append("餐饮商业槽位缺营业时间：事实源有营业时间就自然写进到店建议；缺失时写「营业时间以门店公示为准」")
+            slot_items.append("餐饮商业槽位缺营业时间：仅在事实源或用户提供营业时间时自然写进到店建议；缺失时不要写占位句")
         if not features.get("body_has_must_order", 0):
             slot_items.append("餐饮商业槽位缺必点/招牌：必须绑定具体菜品写「必点/招牌/推荐」之一，不要只泛写好吃")
     elif canonical == "旅行":
@@ -2420,7 +3099,7 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
     elif avg_slen > 80:
         items.append(
             f"【句子太均匀太长】平均句长{avg_slen:.0f}字，但句子对比度极低（burstiness不足），严重扣分！"
-            "必须在每段长句（40-70字）后面插入一个6-12字的短句，例如「很稳。」「值得试。」「记得收藏。」"
+            "必须在每段长句（40-70字）后面插入一个6-12字的短句，例如「适合收藏。」「这口很记人。」「记得收藏。」"
             "目标：长句（50-70字）+ 短句（6-12字）交替出现，让长短反差拉开"
         )
 
@@ -2430,7 +3109,7 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
         items.append(
             f"【句子节奏单调】长短对比度只有{sent_burst:.2f}（目标≥0.65），说明所有句子长度差不多，节奏感极差！"
             "解决方法：每隔一段长描述（50-80字）必须插入1-2个极短句（5-12字）："
-            "「很稳。」「值得试。」「适合收藏。」这类短句打破均匀节奏"
+            "「适合收藏。」「这口很记人。」「适合收藏。」这类短句打破均匀节奏"
         )
 
     # ── Phrasal repetition (key words must repeat — affects plad_phrasal_repetition) ──
@@ -2465,28 +3144,24 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
     if canonical == "美食":
         if not features.get("body_has_address", 0):
             items.append(
-                "正文缺位置/地址关键词【严重扣分】——必须出现「位于」或「地址」。"
-                "只能使用创作者已提供的城市/商圈/店名；若没有具体地址，写「具体地址以门店页为准」"
+                "正文缺位置/地址信号：只有在用户或事实源提供具体门店/商圈时才补位置；真实种草型不强行补地址"
             )
         if not features.get("body_has_hours", 0):
             items.append(
-                "正文缺营业时间关键词【严重扣分】——必须出现「营业时间」。"
-                "如果创作者未提供具体时间，写「营业时间以门店公示为准」，不能编造11:00-21:30等数字"
+                "正文缺营业时间信号：只有事实源或用户提供营业时间时才写；缺失时不要写「营业时间以门店公示为准」"
             )
         if not features.get("body_has_booking", 0):
             items.append(
-                "正文缺预订/排队决策信息——优先写「周末建议提前预订」或「建议提前订位」。"
-                "没有真实排队时长时，不要写排队多久，也不要写排队人多"
+                "正文缺预订/排队决策信息：只有用户或事实源提供订位/排队证据时才写；缺失时不要默认写提前预订"
             )
         if not features.get("body_has_must_order", 0):
             items.append("正文缺必点/招牌菜词——必须出现「必点」「必吃」「招牌」「推荐」「人气」「爆款」中至少1个，搭配具体菜品名")
         if not features.get("body_has_price", 0):
             items.append(
-                "正文缺价格关键词【严重扣分】——如果创作者未提供人均/套餐价，写「套餐价格以门店套餐页为准」，"
-                "不能编造人均68元，也不能写不贵/划算/性价比/物有所值"
+                "正文缺价格关键词：只有创作者或事实源提供人均/套餐价时才写；未核验时不要写价格占位句，也不能编造人均"
             )
         if blen < body_floor:
-            items.append(f"正文太短（当前{blen}字），扩展到{body_target_text}，补充地址/推荐菜/踩坑感受")
+            items.append(f"正文太短（当前{blen}字），扩展到{body_target_text}，优先补具体菜品、口感层次、适合人群和收藏理由")
     elif canonical == "旅行":
         if not features.get("body_has_price", 0):
             items.append("正文缺预算信息：若事实源提供则写总花费/人均预算；未提供时写「预算按实际交通和住宿为准」，不得编造金额")
@@ -2538,11 +3213,11 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
         items.append(f"标题太长（当前{tlen}字），压缩到{title_min}-{title_max}字")
     if not features.get("title_has_pos_emotion", 0):
         if canonical == "美食":
-            items.append("标题缺正向推荐信号，从以下选1个：必点/值得/推荐/很稳，避免绝了/天花板/闭眼冲")
+            items.append("标题缺价值信号时，优先用真实菜品/价格/清单/适合人群补足；不要用「很稳/值得冲」当通用结尾")
         elif canonical == "美妆":
-            items.append("标题缺正向推荐信号，从以下选1个：值得/推荐/适合/很稳；只有素材提供真实试用时才写实测")
+            items.append("标题缺价值信号时，优先用肤质/产品/妆效/色号补足；只有素材提供真实试用时才写实测")
         else:
-            items.append("标题缺正向推荐信号，从以下选1个：值得/推荐/实测/适合/很稳，避免廉价爆词")
+            items.append("标题缺价值信号时，优先用真实对象、场景、数字或适合人群补足，避免廉价爆词")
     if not features.get("title_has_number", 0):
         items.append("标题缺数字时，只加入已提供或安全可推导的数字（天数/组数/月龄/面积/菜品数等）；价格、金额、效果周期不得编造")
     if needs_city and not features.get("title_has_city", 0):
@@ -2584,8 +3259,10 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
 # 各套餐允许深度分析的图片数量上限
 _DEEP_IMG_LIMITS: dict[str, int] = {
     "free":     1,   # 免费版：1张深度
-    "pro":      5,   # 轻创作 Pro：5张深度
-    "pro_plus": 9,   # 专业 Pro+：9张深度（最大支持数量）
+    "pro":      1,   # 创作者版：每次最多3图，1张深度
+    "growth":   2,   # 成长版：每次最多5图，2张深度
+    "pro_plus": 3,   # 专业版：每次最多5图，3张深度
+    "studio":   5,   # 工作室版：每次最多9图，5张深度
 }
 
 
@@ -2870,8 +3547,9 @@ async def _run_generation_agents(
                 semantic_feats=sem,
             )
             print(f"[gen] P4-refine round={round_idx} score={pct_new:.1f}", file=sys.stderr, flush=True)
-            quality_issues = _generated_quality_issues(title, body, domain, pct_new, feat_new)
+            quality_issues = _generated_quality_issues(title, body, domain, pct_new, feat_new, brief or "")
             quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
+            quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
             # 只在新分数更高时才更新最佳内容（防止模型退化被采纳）
             if pct_new > percentile or (abs(pct_new - percentile) < 0.01 and len(quality_issues) < len(best_issues or quality_issues)):
                 percentile, features, semantic_feats = pct_new, feat_new, sem
@@ -2978,8 +3656,9 @@ async def _run_generation_agents(
                 semantic_feats=sem,
             )
             grade = _grade(percentile)
-            quality_issues = _generated_quality_issues(title, body, domain, percentile, features)
+            quality_issues = _generated_quality_issues(title, body, domain, percentile, features, brief or "")
             quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
+            quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception:
             quality_issues = quality_issues or []
 
@@ -3159,6 +3838,23 @@ def get_v04_composite_report() -> dict | None:
     return _v04_model_report
 
 
+def _health_model_label() -> str:
+    if not USE_V04_COMPOSITE or not V04_TRAIN_REPORT_PATH.exists():
+        return "legacy_score_model"
+    try:
+        report = _json.loads(V04_TRAIN_REPORT_PATH.read_text(encoding="utf-8"))
+        policy = report.get("training_policy") or {}
+        gate = report.get("deployment_gate") or {}
+        regressor_path = _resolve_model_artifact_path(
+            ((report.get("models") or {}).get("golden") or {}).get("regressor_path")
+        )
+        if policy.get("do_not_deploy") or not gate.get("passed") or not regressor_path.exists():
+            return "legacy_score_model"
+        return "v0.4-composite"
+    except Exception:
+        return "legacy_score_model"
+
+
 def get_v04_ready_classifier() -> lgb.Booster | None:
     global _v04_ready_classifier, _v04_ready_classifier_signature
     report = get_v04_composite_report()
@@ -3303,7 +3999,7 @@ FEATURE_META: dict[str, dict] = {
     },
     "title_has_pos_emotion": {
         "label": "标题含正向情绪词",
-        "tip": "标题缺少推荐信号时，优先加入【推荐】【值得】【适合】【很稳】等克制价值词。",
+        "tip": "标题缺少推荐信号时，优先用具体对象、真实数字、适合人群或【推荐】【值得】等克制价值词。",
     },
     "title_has_neg_emotion": {
         "label": "标题含负向情绪词",
@@ -3460,6 +4156,68 @@ _FEATURE_LABEL_OVERRIDES: dict[str, str] = {
     "time_hour": "发布时间小时",
     "time_weekday": "发布星期",
     "domain_encoded": "训练品类编码",
+    "commercial_title_char_len": "标题字符数",
+    "commercial_title_in_delivery_range": "标题交付长度",
+    "commercial_title_has_number": "标题数字信号",
+    "commercial_title_has_recommendation": "标题推荐信号",
+    "commercial_title_has_domain_anchor": "标题行业锚点",
+    "commercial_title_unreadable_risk": "标题可读性风险",
+    "commercial_title_price_recommendation_join": "价格推荐硬拼风险",
+    "commercial_title_template_phrase_count": "标题模板词数量",
+    "commercial_body_char_len": "正文总字数",
+    "commercial_body_main_char_len": "正文有效字数",
+    "commercial_body_paragraph_count": "正文段落数",
+    "commercial_body_sentence_count": "正文句子数",
+    "commercial_body_avg_sentence_len": "正文平均句长",
+    "commercial_body_sentence_burstiness": "正文句长起伏",
+    "commercial_body_tag_count": "正文话题数量",
+    "commercial_body_has_cta": "正文互动引导",
+    "commercial_body_cta_count": "正文互动引导次数",
+    "commercial_body_has_first_person": "真人视角表达",
+    "commercial_body_template_phrase_count": "正文模板词数量",
+    "commercial_body_low_quality_phrase_count": "低级夸张词数量",
+    "commercial_body_specific_number_count": "正文具体数字数量",
+    "commercial_body_price_mentions": "价格信息数量",
+    "commercial_fact_density": "事实密度",
+    "commercial_actionability": "可执行度",
+    "commercial_specificity": "信息具体度",
+    "commercial_naturalness_available": "自然度模型可用",
+    "commercial_naturalness_score": "自然表达分",
+    "commercial_ai_probability": "AI痕迹风险",
+    "commercial_domain_slot_coverage": "行业槽位覆盖率",
+    "commercial_domain_slot_count": "行业槽位命中数",
+    "commercial_domain_missing_slot_count": "行业槽位缺失数",
+    "domain_food_price": "餐饮价格槽位",
+    "domain_food_address": "餐饮位置槽位",
+    "domain_food_hours": "餐饮营业时间槽位",
+    "domain_food_must_order": "餐饮招牌推荐槽位",
+    "domain_food_booking": "餐饮预约排队槽位",
+    "domain_food_taste_evidence": "餐饮口味证据槽位",
+    "domain_travel_budget": "旅行预算槽位",
+    "domain_travel_transport": "旅行交通槽位",
+    "domain_travel_route": "旅行路线槽位",
+    "domain_travel_avoid": "旅行避坑槽位",
+    "domain_travel_season": "旅行季节槽位",
+    "domain_fashion_fit": "穿搭身材场景槽位",
+    "domain_fashion_items": "穿搭单品槽位",
+    "domain_fashion_logic": "穿搭搭配逻辑槽位",
+    "domain_fashion_price": "穿搭价格渠道槽位",
+    "domain_beauty_skin": "美妆肤质肤色槽位",
+    "domain_beauty_product": "美妆产品色号槽位",
+    "domain_beauty_effect": "美妆妆效体验槽位",
+    "domain_beauty_price": "美妆价格渠道槽位",
+    "domain_home_space": "家居空间槽位",
+    "domain_home_budget": "家居预算槽位",
+    "domain_home_items": "家居单品槽位",
+    "domain_home_before_after": "家居前后变化槽位",
+    "domain_fitness_action": "健身动作槽位",
+    "domain_fitness_dosage": "健身组次数槽位",
+    "domain_fitness_target": "健身目标部位槽位",
+    "domain_fitness_safety": "健身安全边界槽位",
+    "domain_baby_age": "母婴月龄阶段槽位",
+    "domain_baby_safety": "母婴安全边界槽位",
+    "domain_baby_steps": "母婴步骤流程槽位",
+    "domain_baby_materials": "母婴用品材料槽位",
 }
 
 
@@ -3468,6 +4226,16 @@ def _feature_group(feature: str) -> str:
         return "visual"
     if feature.startswith("semantic_"):
         return "semantic"
+    if feature.startswith("commercial_title_"):
+        return "title"
+    if feature.startswith("commercial_body_"):
+        return "body"
+    if feature.startswith("commercial_naturalness_") or feature == "commercial_ai_probability":
+        return "naturalness"
+    if feature.startswith("commercial_"):
+        return "commercial"
+    if feature.startswith("domain_") and feature != "domain_encoded":
+        return "domain_slots"
     if feature in TIMING_FEATURE_COLS or feature.startswith("time_"):
         return "timing"
     if feature.startswith("title_") or feature == "title_len":
@@ -3797,7 +4565,9 @@ def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
                 headers={"Authorization": f"Bearer {api_key}"},
             )
             r.raise_for_status()
-            raw = r.json()["choices"][0]["message"]["content"].strip()
+            data = r.json()
+            _record_kimi_usage_from_payload(data, _KIMI_MODEL)
+            raw = data["choices"][0]["message"]["content"].strip()
             if raw.startswith("```"):
                 raw = raw.split("```")[1]
                 if raw.startswith("json"):
@@ -3940,15 +4710,45 @@ class AnalyzeInput(NoteInput):
     user_constraints: list[str] | None = Field(default=None, description="用户约束条件列表（如：不改标题、目标带货）")
     extra_images:     list[str] | None = Field(default=None, description="额外内容图片 base64 列表（最多9张，每张均走视觉识别）")
     video_file_id:    str | None       = Field(default=None, description="视频 file_id（由 /upload-video 返回），用于视频内容诊断")
+    input_mode:       str | None       = Field(default=None, description="输入模式：manual/screenshot/video/generate")
+    ocr_char_count:   int | None       = Field(default=None, description="截图 OCR 合并后正文字符数（前端显示口径，用于审计）")
+    content_intent:   str | None       = Field(default=None, description="笔记类型/创作方向：真实种草型/决策转化型/测评避坑型/清单攻略型")
+    merchant_visibility: str | None    = Field(default=None, description="商家/品牌展示策略：auto/show/hide")
+    merchant_name:    str | None       = Field(default=None, description="用户补充或 AI 识别确认的商家/酒店/品牌名称")
+    fact_source_policy: str | None     = Field(default=None, description="事实源策略：auto/force/skip")
 
 
 class MarketTiming(BaseModel):
     timing_coefficient: float = Field(description="市场时机系数（0.6-1.4）")
     matched_keywords: list[str] = Field(default=[], description="命中的热词列表")
     suggested_keywords: list[str] = Field(default=[], description="建议补充的热词列表")
+    matched_keyword_evidence: list[dict] = Field(default=[], description="命中热词的来源、搜索量与趋势证据")
+    suggested_keyword_evidence: list[dict] = Field(default=[], description="建议热词的来源、搜索量与趋势证据")
     keyword_search_vol: float = Field(default=0.0, description="最高热词搜索量指数（0-1）")
     trend_momentum: float = Field(default=0.0, description="上升趋势词占比（0-1）")
     is_trending_topic: float = Field(default=0.0, description="是否命中热搜（0/1）")
+    content_freshness: float = Field(default=0.0, description="内容新鲜度（0-1）")
+    category_saturation: float = Field(default=0.0, description="品类样本饱和度（0-1）")
+    category_avg_ces: float = Field(default=0.0, description="训练样本中该品类平均表现")
+    keyword_competition: float = Field(default=0.0, description="关键词竞争度（0-1）")
+    trend_peak_distance: float = Field(default=0.0, description="距历史峰值天数，0代表样本不足")
+    keyword_count: int = Field(default=0, description="当前热词样本库总条数")
+    latest_capture: str | None = Field(default=None, description="热词样本最近采集时间")
+    source_breakdown: dict = Field(default_factory=dict, description="热词样本来源分布")
+    freshness_hours: float | None = Field(default=None, description="距最近采集的小时数")
+    data_source_label: str = Field(default="本地热词样本库", description="市场时机数据源名称")
+    data_stale: bool = Field(default=False, description="行业热词是否超过每日更新新鲜度要求")
+    evidence_required: bool = Field(default=True, description="本次是否要求市场时机必须有新鲜证据")
+    evidence_unavailable: bool = Field(default=False, description="是否未取得可交付的新鲜市场时机证据")
+    freshness_policy: str = Field(default="", description="市场时机证据的新鲜度策略")
+    domain_latest_capture: str | None = Field(default=None, description="当前行业热词最近采集时间")
+    domain_keyword_count: int = Field(default=0, description="当前行业热词样本条数")
+    domain_qualified_keyword_count: int = Field(default=0, description="当前行业中等以上质量热词条数")
+    domain_strong_keyword_count: int = Field(default=0, description="当前行业强证据热词条数")
+    market_timing_min_domain_keywords: int = Field(default=0, description="市场时机要求的最低行业证据条数")
+    evidence_quality_note: str = Field(default="", description="热词证据质量说明")
+    cloud_sync: dict = Field(default_factory=dict, description="云端趋势快照同步结果")
+    confidence_note: str = Field(default="", description="数据可信度与新鲜度说明")
     timing_note: str = Field(default="", description="市场时机说明文字")
     timing_action: str = Field(default="reinforce", description="suggest=无命中建议加词；reinforce=有命中强化使用")
 
@@ -3959,6 +4759,10 @@ class AnalyzeResponse(BaseModel):
     grade: str = Field(description="等级：优秀/良好/待改进/需优化")
     visual_score: float | None = Field(default=None, description="封面视觉表现力（0-100）")
     features: dict[str, float] = Field(default={}, description="各特征值（用于前端维度计算）")
+    feature_schema: dict = Field(default_factory=dict, description="报告使用的模型特征契约与覆盖信息")
+    dimension_scores: list[dict] = Field(default_factory=list, description="后端按当前特征契约计算的报告维度分")
+    feature_groups: list[dict] = Field(default_factory=list, description="124维特征按报告分组后的覆盖摘要")
+    top_feature_contributions: list[dict] = Field(default_factory=list, description="当前报告最需要解释的高影响特征缺口")
     market_timing: MarketTiming | None = Field(default=None, description="市场时机特征")
     weaknesses: list[WeaknessItem] = Field(description="拖分项（LightGBM识别）")
     ai_diagnosis: str = Field(description="Claude整体诊断")
@@ -3972,6 +4776,12 @@ class AnalyzeResponse(BaseModel):
     dispute: str = Field(default="", description="专家分歧说明")
     expert_opinions: list[dict] = Field(default=[], description="各专家原始诊断意见")
     fact_enrichment: dict | None = Field(default=None, description="联网事实补全结果（若启用）")
+    user_constraints: list[str] = Field(default=[], description="本次采纳的用户约束条件")
+    constraint_contract: dict = Field(default_factory=dict, description="用户约束执行契约")
+    content_intent: str = Field(default="真实种草型", description="本次采用的笔记类型/创作方向")
+    intent_contract: dict = Field(default_factory=dict, description="创作方向与事实源执行契约")
+    fact_source_decision: dict = Field(default_factory=dict, description="事实源是否调用及原因")
+    input_diagnostics: dict = Field(default_factory=dict, description="输入审计：原始正文、评分正文与视觉上下文长度")
 
 
 class GenerateInput(BaseModel):
@@ -3982,6 +4792,11 @@ class GenerateInput(BaseModel):
     local_time: str = Field(default="2024010112", description="发布时间 YYYYMMDDHH")
     user_id: str | None = Field(default=None)
     video_file_id: str | None = Field(default=None, description="Moonshot Files API 上传视频的 file_id")
+    user_constraints: list[str] | None = Field(default=None, description="用户约束条件列表（如：不改标题、目标带货）")
+    content_intent: str | None = Field(default=None, description="笔记类型/创作方向：真实种草型/决策转化型/测评避坑型/清单攻略型")
+    merchant_visibility: str | None = Field(default=None, description="商家/品牌展示策略：auto/show/hide")
+    merchant_name: str | None = Field(default=None, description="用户补充或 AI 识别确认的商家/酒店/品牌名称")
+    fact_source_policy: str | None = Field(default=None, description="事实源策略：auto/force/skip")
 
 
 class GenerateResponse(BaseModel):
@@ -3998,10 +4813,470 @@ class GenerateResponse(BaseModel):
     expert_opinions: list[dict] = Field(default=[], description="各专家创作意见")
     fact_enrichment: dict | None = Field(default=None, description="联网事实补全结果（若启用）")
     selection_meta: dict = Field(default={}, description="V0.4多候选择优审计信息")
+    user_constraints: list[str] = Field(default=[], description="本次采纳的用户约束条件")
+    constraint_contract: dict = Field(default_factory=dict, description="用户约束执行契约")
+    content_intent: str = Field(default="真实种草型", description="本次采用的笔记类型/创作方向")
+    intent_contract: dict = Field(default_factory=dict, description="创作方向与事实源执行契约")
+    fact_source_decision: dict = Field(default_factory=dict, description="事实源是否调用及原因")
     model_used: str = Field(default="claude-routed-5-agents")
 
 
 # ── Helpers ───────────────────────────────────────────────────────
+
+_CONSTRAINT_ORDER = [
+    "不改标题",
+    "不改封面",
+    "固定发布时间 18:00",
+    "目标：涨粉",
+    "目标：带货",
+    "重点优化：互动率",
+    "重点优化：曝光量",
+]
+
+
+def _normalize_user_constraints(constraints: list[str] | None) -> list[str]:
+    """Normalize frontend constraint chips into canonical labels used by all AI paths."""
+    if not constraints:
+        return []
+    found: set[str] = set()
+    extras: list[str] = []
+    for raw in constraints:
+        text = re.sub(r"\s+", " ", str(raw or "")).strip()
+        if not text:
+            continue
+        compact = text.replace(" ", "")
+        if "不改标题" in compact:
+            found.add("不改标题")
+        elif "不改封面" in compact:
+            found.add("不改封面")
+        elif "固定发布时间" in compact and "18" in compact:
+            found.add("固定发布时间 18:00")
+        elif "涨粉" in compact:
+            found.add("目标：涨粉")
+        elif "带货" in compact:
+            found.add("目标：带货")
+        elif "互动率" in compact:
+            found.add("重点优化：互动率")
+        elif "曝光量" in compact:
+            found.add("重点优化：曝光量")
+        elif len(text) <= 40:
+            extras.append(text)
+    ordered = [item for item in _CONSTRAINT_ORDER if item in found]
+    for item in extras:
+        if item not in ordered:
+            ordered.append(item)
+    return ordered
+
+
+def _constraint_flags(constraints: list[str] | None) -> dict[str, bool]:
+    normalized = _normalize_user_constraints(constraints)
+    joined = "；".join(normalized)
+    return {
+        "keep_title": "不改标题" in joined,
+        "keep_cover": "不改封面" in joined,
+        "fixed_publish_18": "固定发布时间 18:00" in joined,
+        "goal_follow": "目标：涨粉" in joined,
+        "goal_commerce": "目标：带货" in joined,
+        "focus_interaction": "重点优化：互动率" in joined,
+        "focus_exposure": "重点优化：曝光量" in joined,
+    }
+
+
+def _constraint_contract_payload(constraints: list[str] | None) -> dict:
+    normalized = _normalize_user_constraints(constraints)
+    flags = _constraint_flags(normalized)
+    return {
+        "items": normalized,
+        "hard_rules": {
+            "keep_title": flags["keep_title"],
+            "keep_cover": flags["keep_cover"],
+            "publish_time": "18:00" if flags["fixed_publish_18"] else "",
+        },
+        "goals": {
+            "follow_growth": flags["goal_follow"],
+            "commerce_conversion": flags["goal_commerce"],
+            "interaction_rate": flags["focus_interaction"],
+            "exposure": flags["focus_exposure"],
+        },
+    }
+
+
+_CONTENT_INTENT_ORDER = ["真实种草型", "决策转化型", "测评避坑型", "清单攻略型"]
+_CONTENT_INTENT_ALIASES = {
+    "真实种草": "真实种草型",
+    "种草": "真实种草型",
+    "种草型": "真实种草型",
+    "体验种草": "真实种草型",
+    "真实分享": "真实种草型",
+    "到店决策": "决策转化型",
+    "到店决策型": "决策转化型",
+    "预订决策": "决策转化型",
+    "预订决策型": "决策转化型",
+    "购买决策": "决策转化型",
+    "购买决策型": "决策转化型",
+    "复刻购买": "决策转化型",
+    "跟练执行": "决策转化型",
+    "促成交": "决策转化型",
+    "成交": "决策转化型",
+    "转化": "决策转化型",
+    "决策转化": "决策转化型",
+    "决策转化型": "决策转化型",
+    "测评": "测评避坑型",
+    "避坑": "测评避坑型",
+    "测评避坑": "测评避坑型",
+    "测评避坑型": "测评避坑型",
+    "清单": "清单攻略型",
+    "攻略": "清单攻略型",
+    "清单攻略": "清单攻略型",
+    "清单攻略型": "清单攻略型",
+}
+_MERCHANT_VISIBILITY_ALIASES = {
+    "show": "展示商家",
+    "visible": "展示商家",
+    "展示": "展示商家",
+    "展示商家": "展示商家",
+    "显示商家": "展示商家",
+    "展示门店": "展示商家",
+    "展示品牌": "展示商家",
+    "hide": "不展示商家",
+    "hidden": "不展示商家",
+    "隐藏": "不展示商家",
+    "不展示": "不展示商家",
+    "不展示商家": "不展示商家",
+    "不显示商家": "不展示商家",
+    "隐藏商家": "不展示商家",
+    "auto": "AI识别后决定",
+    "自动": "AI识别后决定",
+    "AI识别后决定": "AI识别后决定",
+    "识别后决定": "AI识别后决定",
+}
+_FACT_SOURCE_POLICY_ALIASES = {
+    "auto": "auto",
+    "自动": "auto",
+    "force": "force",
+    "强制": "force",
+    "调用": "force",
+    "skip": "skip",
+    "none": "skip",
+    "不调用": "skip",
+    "跳过": "skip",
+    "禁用": "skip",
+}
+_GENERIC_MERCHANT_NAMES = {
+    "这家店", "这家餐厅", "那家店", "门店", "餐厅", "日料店", "火锅店",
+    "咖啡店", "茶餐厅", "酒店", "民宿", "商家", "店铺", "小店",
+}
+
+
+def _normalize_content_intent(value: str | None) -> str:
+    text = re.sub(r"\s+", "", str(value or "")).strip()
+    if not text:
+        return "真实种草型"
+    if text in _CONTENT_INTENT_ALIASES:
+        return _CONTENT_INTENT_ALIASES[text]
+    for key, canonical in _CONTENT_INTENT_ALIASES.items():
+        if key and key in text:
+            return canonical
+    return "真实种草型"
+
+
+def _normalize_merchant_visibility(value: str | None) -> str:
+    text = re.sub(r"\s+", "", str(value or "")).strip()
+    if not text:
+        return "AI识别后决定"
+    return _MERCHANT_VISIBILITY_ALIASES.get(text, _MERCHANT_VISIBILITY_ALIASES.get(text.lower(), "AI识别后决定"))
+
+
+def _normalize_fact_source_policy(value: str | None) -> str:
+    text = re.sub(r"\s+", "", str(value or "")).strip()
+    if not text:
+        return "auto"
+    return _FACT_SOURCE_POLICY_ALIASES.get(text, _FACT_SOURCE_POLICY_ALIASES.get(text.lower(), "auto"))
+
+
+def _normalize_merchant_name(value: str | None) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip(" ：:，,。;；")
+    if not text:
+        return ""
+    if re.search(r"(?:没有|未提供|未识别|无明确|不展示|不确定|缺少|需要|想要|希望)", text):
+        return ""
+    if re.search(r"(?:到店|进店|探店|门店)$", text):
+        return ""
+    if text in {"商家名称", "店名", "门店名", "酒店名", "品牌名"}:
+        return ""
+    if text in _GENERIC_MERCHANT_NAMES:
+        return ""
+    return text[:60]
+
+
+def _domain_label_for_decision_intent(domain: str | None) -> str:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical == "美食":
+        return "到店决策型"
+    if canonical == "旅行":
+        return "预订/行程决策型"
+    if canonical in {"美妆", "穿搭"}:
+        return "购买决策型"
+    if canonical == "家居":
+        return "复刻购买型"
+    if canonical == "健身":
+        return "跟练执行型"
+    return "决策转化型"
+
+
+def _content_intent_contract_payload(
+    domain: str | None,
+    content_intent: str | None,
+    merchant_visibility: str | None,
+    merchant_name: str | None,
+    fact_source_policy: str | None,
+) -> dict:
+    intent = _normalize_content_intent(content_intent)
+    visibility = _normalize_merchant_visibility(merchant_visibility)
+    policy = _normalize_fact_source_policy(fact_source_policy)
+    merchant = _normalize_merchant_name(merchant_name)
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    return {
+        "content_intent": intent,
+        "domain_intent_label": _domain_label_for_decision_intent(domain),
+        "merchant_visibility": visibility,
+        "merchant_name": merchant,
+        "fact_source_policy": policy,
+        "domain": canonical or (domain or ""),
+        "rules": {
+            "requires_fact_source": intent == "决策转化型",
+            "allow_hidden_merchant": visibility != "展示商家",
+            "do_not_penalize_missing_store_facts": intent == "真实种草型" and visibility != "展示商家",
+            "needs_list_coverage": intent == "清单攻略型",
+            "needs_review_evidence": intent == "测评避坑型",
+        },
+    }
+
+
+def _content_intent_brief(
+    domain: str | None,
+    content_intent: str | None,
+    merchant_visibility: str | None,
+    merchant_name: str | None,
+    fact_source_policy: str | None,
+    surface: str,
+) -> str:
+    contract = _content_intent_contract_payload(
+        domain, content_intent, merchant_visibility, merchant_name, fact_source_policy
+    )
+    intent = contract["content_intent"]
+    visibility = contract["merchant_visibility"]
+    merchant = contract["merchant_name"]
+    decision_label = contract["domain_intent_label"]
+    lines = [
+        f"【创作方向契约｜{surface}】",
+        f"- 用户选择的笔记类型：{intent}。不同类型按不同小红书目标评分与生成，不能混用。",
+        f"- 商家/品牌展示策略：{visibility}" + (f"；用户补充名称：{merchant}" if merchant else ""),
+    ]
+    if intent == "真实种草型":
+        lines.append("- 写作重点：真实体验、画面感、使用/到店感受、适合人群和收藏理由；不因缺少地址、人均、营业时间而扣重分。")
+        lines.append("- 若商家/品牌不展示，不得强行补地址、营业时间、预订、人均或购买链接。")
+    elif intent == "决策转化型":
+        lines.append(f"- 写作重点：{decision_label}，要帮助读者行动；只有已核验或用户明确提供的价格、地址、营业时间、渠道、预算、交通等事实才能写进正文。")
+        lines.append("- 缺关键事实时先提示用户补充或在报告中说明，不能把“以页面/公示为准”写成可发布正文。")
+    elif intent == "测评避坑型":
+        lines.append("- 写作重点：适合/不适合、优缺点、值不值和边界；未提供真实负面证据时，不得编造踩雷、差评或夸张缺陷。")
+    elif intent == "清单攻略型":
+        lines.append("- 写作重点：多素材覆盖、排序和收藏价值；多图/多菜品/多产品时，正文要覆盖多个真实素材，不只围绕第一张图。")
+    lines.append("- 禁止把内部事实安全提示、缺失字段提示、占位句当成正文素材。")
+    return "\n".join(lines)
+
+
+def _merchant_entity_signal(domain: str | None, title: str | None, text: str | None, merchant_name: str | None) -> tuple[bool, str]:
+    merchant = _normalize_merchant_name(merchant_name)
+    if merchant:
+        return True, merchant
+    src = f"{title or ''}\n{text or ''}"
+    explicit = re.search(r"(?:店名|门店名|商家名|商家|餐厅|酒店名|民宿名|品牌名|品牌)[:：]\s*([^\n。；;，,]{2,40})", src)
+    if explicit:
+        candidate = _normalize_merchant_name(explicit.group(1))
+        if candidate:
+            return True, candidate
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical == "旅行":
+        pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:酒店|民宿|客栈|度假村|乐园|景区|营地))"
+    else:
+        pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:旗舰店|总店|分店|万博店|广晟店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅|店|楼))"
+    for match in re.finditer(pattern, src):
+        candidate = _normalize_merchant_name(match.group(1))
+        if candidate and candidate not in _GENERIC_MERCHANT_NAMES and not re.fullmatch(r"(?:这家|那家|一家|小众|宝藏).{0,4}(?:店|餐厅|酒店|民宿)", candidate):
+            return True, candidate
+    return False, ""
+
+
+def _travel_fact_signal(title: str | None, text: str | None, merchant_name: str | None) -> bool:
+    src = f"{merchant_name or ''}\n{title or ''}\n{text or ''}"
+    if _normalize_merchant_name(merchant_name):
+        return True
+    return bool(re.search(r"(?:酒店|民宿|住宿|酒旅|行程|路线|攻略|景区|乐园|度假|亲子游|自由行|[一二三四五六七八九十0-9]+天[一二三四五六七八九十0-9]*晚)", src))
+
+
+def _fact_source_decision(
+    domain: str | None,
+    title: str | None,
+    text: str | None,
+    content_intent: str | None,
+    merchant_visibility: str | None,
+    merchant_name: str | None,
+    fact_source_policy: str | None,
+) -> dict:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    intent = _normalize_content_intent(content_intent)
+    visibility = _normalize_merchant_visibility(merchant_visibility)
+    policy = _normalize_fact_source_policy(fact_source_policy)
+    merchant = _normalize_merchant_name(merchant_name)
+    has_entity, detected_entity = _merchant_entity_signal(canonical, title, text, merchant)
+    entity = merchant or detected_entity
+    provider = "none"
+    if canonical == "美食":
+        provider = "amap"
+    elif canonical == "旅行":
+        provider = "meituan_travel"
+
+    decision = {
+        "enabled": False,
+        "provider": provider,
+        "reason": "",
+        "content_intent": intent,
+        "merchant_visibility": visibility,
+        "merchant_name": entity,
+        "policy": policy,
+        "needs_user_supplement": False,
+        "supplement_fields": [],
+        "supplement_prompt": "",
+    }
+    if policy == "skip":
+        decision["reason"] = "user_or_ui_skipped_fact_source"
+        return decision
+    if canonical not in {"美食", "旅行"}:
+        decision["reason"] = "domain_has_no_configured_external_fact_source"
+        return decision
+    if visibility == "不展示商家":
+        decision["reason"] = "merchant_hidden_by_user"
+        return decision
+    if intent == "真实种草型" and visibility != "展示商家" and policy != "force":
+        decision["reason"] = "seeding_mode_does_not_need_store_facts"
+        return decision
+
+    if canonical == "美食":
+        if not has_entity:
+            decision["reason"] = "missing_confirmed_merchant_name"
+            if intent == "决策转化型" or visibility == "展示商家" or policy == "force":
+                decision["needs_user_supplement"] = True
+                decision["supplement_fields"] = ["merchant_name"]
+                decision["supplement_prompt"] = "未识别到明确门店名；如要生成到店决策型笔记，请补充店名或商场分店名。"
+            return decision
+        if intent == "决策转化型" or visibility == "展示商家" or policy == "force":
+            decision["enabled"] = True
+            decision["reason"] = "food_decision_or_visible_merchant"
+            return decision
+        decision["reason"] = "food_fact_source_not_required_for_intent"
+        return decision
+
+    if canonical == "旅行":
+        if not _travel_fact_signal(title, text, entity):
+            decision["reason"] = "missing_travel_or_hotel_signal"
+            if intent in {"决策转化型", "清单攻略型"} or visibility == "展示商家" or policy == "force":
+                decision["needs_user_supplement"] = True
+                decision["supplement_fields"] = ["merchant_name", "destination_or_hotel"]
+                decision["supplement_prompt"] = "未识别到明确酒店/目的地/行程信号；如要生成预订或攻略型内容，请补充酒店名、目的地或行程主题。"
+            return decision
+        if intent in {"决策转化型", "清单攻略型"} or visibility == "展示商家" or policy == "force":
+            decision["enabled"] = True
+            decision["reason"] = "travel_decision_or_guide_fact_source"
+            return decision
+        decision["reason"] = "travel_fact_source_not_required_for_intent"
+        return decision
+
+    decision["reason"] = "not_required"
+    return decision
+
+
+def _disabled_fact_enrichment(decision: dict, query: str = "") -> dict:
+    return {
+        "enabled": False,
+        "provider": decision.get("provider", "none"),
+        "query": query,
+        "facts": {},
+        "sources": [],
+        "confidence": 0.0,
+        "skipped": True,
+        "skip_reason": decision.get("reason", ""),
+        "decision": decision,
+    }
+
+
+def _local_time_with_user_constraints(local_time: str | None, constraints: list[str] | None) -> str:
+    """Apply fixed publish-time constraints to scoring/generation timestamps."""
+    flags = _constraint_flags(constraints)
+    value = str(local_time or "").strip()
+    if not flags["fixed_publish_18"]:
+        return value or "2024010112"
+    if re.match(r"^\d{10}$", value):
+        return value[:8] + "18"
+    m = re.match(r"^(\d{4})-?(\d{2})-?(\d{2})", value)
+    if m:
+        return f"{m.group(1)}{m.group(2)}{m.group(3)}18"
+    import datetime as _dt_constraints
+    now = _dt_constraints.datetime.now()
+    return now.strftime("%Y%m%d18")
+
+
+def _user_constraints_brief(constraints: list[str] | None, surface: str) -> str:
+    normalized = _normalize_user_constraints(constraints)
+    if not normalized:
+        return ""
+    flags = _constraint_flags(normalized)
+    lines = [
+        f"【用户约束执行契约｜{surface}】",
+        "这些约束来自用户主动选择，必须真实执行；如果与提分建议冲突，优先尊重用户约束，再在允许范围内优化。",
+        f"- 已选约束：{'；'.join(normalized)}",
+    ]
+    if flags["keep_title"]:
+        lines.append("- 硬规则：不改标题。已有标题必须原样保留，不得输出替代标题；只能优化正文、结构、关键词和互动设计。")
+    if flags["keep_cover"]:
+        lines.append("- 硬规则：不改封面。不得建议换封面、重拍或更换主图；只能建议保留现封面基础上的裁切、文字、排序、亮度或信息层级微调。")
+    if flags["fixed_publish_18"]:
+        lines.append("- 硬规则：固定发布时间为18:00。所有发布时机、节奏建议和增长判断都必须围绕18:00，不得推荐其他发布时间。")
+    if flags["goal_follow"]:
+        lines.append("- 目标：涨粉。内容要给读者一个关注账号的理由，突出持续价值、账号人设、系列感和可期待的后续内容。")
+    if flags["goal_commerce"]:
+        lines.append("- 目标：带货。正文要自然补足购买/到店/下单决策信息、信任理由、适合人群和轻CTA，避免硬广口吻。")
+    if flags["focus_interaction"]:
+        lines.append("- 重点优化互动率。标题或正文结尾要自然设计评论问题、选择题、收藏理由或共鸣讨论点。")
+    if flags["focus_exposure"]:
+        lines.append("- 重点优化曝光量。标题、前50字、核心词和标签要更利于搜索召回，但不能机械堆关键词。")
+    return "\n".join(lines)
+
+
+def _merge_user_constraints_into_text(text: str | None, constraints: list[str] | None, surface: str) -> str:
+    base = (text or "").strip()
+    brief = _user_constraints_brief(constraints, surface)
+    if not brief:
+        return base
+    return f"{brief}\n\n{base}" if base else brief
+
+
+def _apply_user_constraint_hard_guards(
+    title: str,
+    body: str,
+    original_title: str | None,
+    constraints: list[str] | None,
+) -> tuple[str, str, bool]:
+    flags = _constraint_flags(constraints)
+    changed = False
+    guarded_title = (title or "").strip()
+    if flags["keep_title"] and (original_title or "").strip():
+        original = (original_title or "").strip()
+        if guarded_title != original:
+            guarded_title = original
+            changed = True
+    return guarded_title, body, changed
 
 def _grade(percentile: float) -> str:
     if percentile >= 75:
@@ -4028,6 +5303,15 @@ def _predict(
                 domain=note.domain,
                 local_time=note.local_time,
             )
+            if semantic_feats:
+                for c in SEMANTIC_FEATURE_COLS:
+                    features[c] = float(semantic_feats.get(c, features.get(c, 0.5)) or 0.0)
+            if cover_feats:
+                for c in VISUAL_FEATURE_COLS:
+                    features[c] = float(cover_feats.get(c, features.get(c, 0.0)) or 0.0)
+            if timing_feats:
+                for c in TIMING_FEATURE_COLS:
+                    features[c] = float(timing_feats.get(c, features.get(c, 0.0)) or 0.0)
             if v04_model.num_feature() == len(COMPOSITE_FEATURE_COLS):
                 x_vals = [float(features.get(col, 0.0) or 0.0) for col in COMPOSITE_FEATURE_COLS]
                 score = float(v04_model.predict(np.array([x_vals], dtype=float))[0])
@@ -4117,6 +5401,466 @@ def _find_weaknesses(features: dict[str, float], domain: str = "") -> list[Weakn
             suggestion=str(spec["repair_action"]),
         ))
     return result
+
+
+_REPORT_SCHEMA_VERSION = "v0.4-composite-report-20260629"
+
+_REPORT_DOMAIN_SLOTS: dict[str, tuple[str, ...]] = {
+    "美食": (
+        "domain_food_price", "domain_food_address", "domain_food_hours",
+        "domain_food_must_order", "domain_food_booking", "domain_food_taste_evidence",
+    ),
+    "旅行": (
+        "domain_travel_budget", "domain_travel_transport", "domain_travel_route",
+        "domain_travel_avoid", "domain_travel_season",
+    ),
+    "穿搭": (
+        "domain_fashion_fit", "domain_fashion_items", "domain_fashion_logic",
+        "domain_fashion_price",
+    ),
+    "美妆": (
+        "domain_beauty_skin", "domain_beauty_product", "domain_beauty_effect",
+        "domain_beauty_price",
+    ),
+    "家居": (
+        "domain_home_space", "domain_home_budget", "domain_home_items",
+        "domain_home_before_after",
+    ),
+    "健身": (
+        "domain_fitness_action", "domain_fitness_dosage", "domain_fitness_target",
+        "domain_fitness_safety",
+    ),
+    "母婴": (
+        "domain_baby_age", "domain_baby_safety", "domain_baby_steps",
+        "domain_baby_materials",
+    ),
+}
+
+_REPORT_GROUP_LABELS: dict[str, str] = {
+    "title": "标题信号",
+    "body": "正文交付",
+    "language_rhythm": "语言节奏",
+    "tags": "话题标签",
+    "commercial_value": "商业价值",
+    "domain_slots": "行业事实槽位",
+    "semantic_naturalness": "语义与自然度",
+    "visual": "封面视觉",
+    "timing": "发布与趋势",
+    "system": "系统编码",
+}
+
+
+def _report_canonical_domain(domain: str | None) -> str:
+    return _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+
+
+def _rnum(features: dict[str, float], name: str, default: float = 0.0) -> float:
+    try:
+        return float(features.get(name, default) or 0.0)
+    except Exception:
+        return default
+
+
+def _clip_report_score(value: float | None) -> float | None:
+    if value is None:
+        return None
+    return round(max(0.0, min(100.0, float(value))), 1)
+
+
+def _score_bool(value: float) -> float:
+    return 100.0 if value >= 0.5 else 0.0
+
+
+def _score_high(value: float, target: float) -> float:
+    if target <= 0:
+        return 0.0
+    return max(0.0, min(100.0, value / target * 100.0))
+
+
+def _score_low(value: float, target: float) -> float:
+    if target <= 0:
+        return 100.0 if value <= 0 else 0.0
+    return max(0.0, min(100.0, (1.0 - value / target) * 100.0))
+
+
+def _score_band(value: float, low: float, high: float) -> float:
+    if low <= value <= high:
+        return 100.0
+    if value < low:
+        return _score_high(value, low)
+    if high <= 0:
+        return 0.0
+    return max(0.0, 100.0 - ((value - high) / max(high, 1.0) * 100.0))
+
+
+def _weighted_report_score(parts: list[tuple[float | None, float]]) -> float | None:
+    valid = [(score, weight) for score, weight in parts if score is not None and weight > 0]
+    if not valid:
+        return None
+    total = sum(weight for _, weight in valid)
+    return _clip_report_score(sum(float(score) * weight for score, weight in valid) / total)
+
+
+def _report_status(score: float | None) -> str:
+    if score is None:
+        return "locked"
+    if score >= 80:
+        return "strong"
+    if score >= 70:
+        return "good"
+    if score >= 60:
+        return "repairable"
+    return "weak"
+
+
+def _report_group_key(feature: str) -> str:
+    if feature.startswith("commercial_title_") or feature.startswith("title_"):
+        return "title"
+    if feature.startswith("commercial_body_") or feature.startswith("body_"):
+        return "body"
+    if feature.startswith("plad_"):
+        return "language_rhythm"
+    if feature.startswith("tag_"):
+        return "tags"
+    if feature.startswith("commercial_naturalness_") or feature == "commercial_ai_probability" or feature.startswith("semantic_"):
+        return "semantic_naturalness"
+    if feature.startswith("cover_"):
+        return "visual"
+    if feature.startswith("domain_") and feature != "domain_encoded":
+        return "domain_slots"
+    if feature in TIMING_FEATURE_COLS or feature.startswith("time_") or feature in {
+        "keyword_search_vol", "trend_momentum", "is_trending_topic", "content_freshness",
+        "category_saturation", "category_avg_ces", "keyword_competition", "trend_peak_distance",
+    }:
+        return "timing"
+    if feature.startswith("commercial_"):
+        return "commercial_value"
+    return "system"
+
+
+def _report_group_score(feature: str, value: float, domain: str) -> float | None:
+    if feature in {"commercial_title_unreadable_risk", "commercial_ai_probability"}:
+        return _score_low(value, 1.0)
+    if feature.endswith("_template_phrase_count") or feature == "commercial_body_low_quality_phrase_count":
+        return _score_low(value, 2.0)
+    if feature in {"commercial_naturalness_score"}:
+        return max(0.0, min(100.0, value))
+    if feature == "commercial_title_char_len":
+        return _score_band(value, 8, 18)
+    if feature in {"commercial_body_char_len", "commercial_body_main_char_len", "body_len"}:
+        target = _quality_targets(domain)
+        return _score_band(value, float(target.get("body_min", 220)), float(target.get("body_max", 420)))
+    if feature in {"commercial_body_tag_count", "tag_count"}:
+        target = _quality_targets(domain)
+        return _score_band(value, float(target.get("tag_min", 5)), float(target.get("tag_max", 8)))
+    if feature in {"commercial_fact_density", "commercial_actionability", "commercial_specificity", "commercial_domain_slot_coverage"}:
+        return max(0.0, min(100.0, value * 100.0))
+    if 0.0 <= value <= 1.0:
+        return value * 100.0
+    if feature.endswith("_count") or feature.endswith("_mentions"):
+        return _score_high(value, 2.0)
+    return None
+
+
+def _feature_has_report_signal(feature: str, value: float) -> bool:
+    if feature in {"commercial_title_unreadable_risk", "commercial_ai_probability"}:
+        return value <= 0.2
+    if feature.endswith("_template_phrase_count") or feature == "commercial_body_low_quality_phrase_count":
+        return value <= 0.0
+    return abs(value) > 0.0001
+
+
+def _domain_slot_features_for_report(domain: str) -> tuple[str, ...]:
+    canonical = _report_canonical_domain(domain)
+    return _REPORT_DOMAIN_SLOTS.get(canonical, tuple())
+
+
+def _build_report_dimensions(
+    features: dict[str, float],
+    domain: str,
+    visual_score: float | None = None,
+    timing: dict | None = None,
+) -> list[dict]:
+    canonical = _report_canonical_domain(domain)
+    target = _quality_targets(canonical)
+    title_len = _rnum(features, "commercial_title_char_len", _rnum(features, "title_len"))
+    body_len = _rnum(features, "commercial_body_main_char_len", _rnum(features, "body_len"))
+    tag_count = _rnum(features, "commercial_body_tag_count", _rnum(features, "tag_count"))
+    domain_slots = _domain_slot_features_for_report(canonical)
+    slot_score = None
+    if domain_slots:
+        slot_score = sum(_score_bool(_rnum(features, slot)) for slot in domain_slots) / len(domain_slots)
+
+    visual_available = visual_score is not None or any(_rnum(features, col) for col in VISUAL_FEATURE_COLS)
+    visual_dimension_score = None
+    if visual_available:
+        visual_dimension_score = visual_score
+        if visual_dimension_score is None:
+            visual_dimension_score = _weighted_report_score([
+                (_score_high(_rnum(features, "cover_sharpness"), 0.16), 1.0),
+                (_score_high(_rnum(features, "cover_contrast"), 0.28), 1.0),
+                (_score_high(_rnum(features, "cover_aesthetic_score"), 0.65), 1.2),
+                (_score_high(_rnum(features, "cover_composition_score"), 0.62), 1.0),
+                (_score_high(_rnum(features, "cover_visual_clarity"), 0.62), 1.0),
+            ])
+
+    timing_coef = float((timing or {}).get("timing_coefficient") or 1.0)
+    timing_boost = max(0.0, min(100.0, (timing_coef - 0.75) / 0.5 * 100.0))
+    hour = _rnum(features, "time_hour", 12)
+    peak_score = 100.0 if (11 <= hour <= 12 or 17 <= hour <= 19 or 20 <= hour <= 22) else (65.0 if 8 <= hour <= 23 else 30.0)
+
+    dims = [
+        {
+            "key": "title",
+            "label": "标题吸引力",
+            "score": _weighted_report_score([
+                (_score_band(title_len, 8, _TITLE_DELIVERY_MAX), 1.5),
+                (_score_bool(max(_rnum(features, "commercial_title_has_recommendation"), _rnum(features, "title_has_pos_emotion"))), 1.2),
+                (_score_bool(_rnum(features, "commercial_title_has_domain_anchor")), 1.0),
+                (_score_bool(max(_rnum(features, "commercial_title_has_number"), _rnum(features, "title_has_number"))), 0.8),
+                (_score_low(_rnum(features, "commercial_title_unreadable_risk"), 1.0), 1.5),
+                (_score_low(_rnum(features, "commercial_title_template_phrase_count"), 2.0), 0.8),
+            ]),
+            "summary": "标题长度、推荐信号、数字/行业锚点和可读性共同决定点击第一印象。",
+        },
+        {
+            "key": "body",
+            "label": "正文交付力",
+            "score": _weighted_report_score([
+                (_score_band(body_len, float(target.get("body_min", 220)), float(target.get("body_max", 420))), 1.4),
+                (_score_high(_rnum(features, "commercial_body_sentence_burstiness", _rnum(features, "plad_sentence_burstiness")), 0.6), 0.7),
+                (_score_bool(max(_rnum(features, "commercial_body_has_cta"), min(_rnum(features, "body_cta_count") / 1.0, 1.0))), 0.8),
+                (_score_bool(_rnum(features, "commercial_body_has_first_person")), 0.6),
+                (_score_low(_rnum(features, "commercial_body_template_phrase_count"), 2.0), 0.8),
+                (_score_low(_rnum(features, "commercial_body_low_quality_phrase_count"), 2.0), 1.0),
+            ]),
+            "summary": "正文长度、结构节奏、真人视角、互动引导和低模板风险决定可读与可交付。",
+        },
+        {
+            "key": "commercial_facts",
+            "label": "事实与决策价值",
+            "score": _weighted_report_score([
+                (_score_high(_rnum(features, "commercial_fact_density"), 0.75), 1.3),
+                (_score_high(_rnum(features, "commercial_specificity"), 0.75), 1.0),
+                (_score_high(_rnum(features, "commercial_actionability"), 0.80), 1.0),
+                (_score_high(_rnum(features, "commercial_domain_slot_coverage"), 0.80), 1.1),
+                (slot_score, 1.0),
+            ]),
+            "summary": "行业关键事实、价格/步骤/交通/人群等决策信息越清楚，收藏价值越高。",
+        },
+        {
+            "key": "semantic",
+            "label": "语义感染力",
+            "score": _weighted_report_score([
+                (_score_high(_rnum(features, "semantic_emotional_intensity"), 0.62), 1.0),
+                (_score_high(_rnum(features, "semantic_empathetic_engagement"), 0.60), 1.0),
+                (_score_high(_rnum(features, "semantic_rhetorical_score"), 0.58), 0.9),
+                (_rnum(features, "commercial_naturalness_score", 50.0), 1.1),
+                (_score_low(_rnum(features, "commercial_ai_probability"), 1.0), 1.0),
+            ]),
+            "summary": "情绪、共情、修辞和自然表达决定内容是否像真实用户愿意继续看。",
+        },
+        {
+            "key": "visual",
+            "label": "封面视觉",
+            "score": _clip_report_score(visual_dimension_score),
+            "summary": "封面上传后会结合清晰度、构图、美学和视觉信息清楚度计算。",
+        },
+        {
+            "key": "tags",
+            "label": "话题标签",
+            "score": _weighted_report_score([
+                (_score_band(tag_count, float(target.get("tag_min", 5)), float(target.get("tag_max", 8))), 1.6),
+                (_score_bool(_rnum(features, "tag_has_city")), 0.5 if canonical in {"美食", "旅行"} else 0.1),
+                (_score_bool(_rnum(features, "tag_has_food_travel")), 0.4 if canonical in {"美食", "旅行"} else 0.1),
+            ]),
+            "summary": "标签数量和场景/地域/品类覆盖决定搜索召回和推荐理解。",
+        },
+        {
+            "key": "timing",
+            "label": "发布时机",
+            "score": _weighted_report_score([
+                (peak_score, 1.0),
+                (_score_bool(_rnum(features, "time_is_weekend")), 0.4),
+                (_score_low(_rnum(features, "time_days_to_holiday", 30), 14.0), 0.4),
+                (timing_boost, 0.8 if timing else 0.0),
+            ]),
+            "summary": "发布时间、节假日距离和热词趋势共同影响初始曝光效率。",
+        },
+    ]
+    for dim in dims:
+        dim["score"] = _clip_report_score(dim.get("score"))
+        dim["status"] = _report_status(dim["score"])
+    return dims
+
+
+def _build_feature_groups(features: dict[str, float], domain: str) -> list[dict]:
+    canonical = _report_canonical_domain(domain)
+    grouped: dict[str, dict] = {
+        key: {
+            "key": key,
+            "label": label,
+            "count": 0,
+            "active_count": 0,
+            "score_sum": 0.0,
+            "score_count": 0,
+            "highlights": [],
+            "misses": [],
+        }
+        for key, label in _REPORT_GROUP_LABELS.items()
+    }
+    applicable_slots = set(_domain_slot_features_for_report(canonical))
+    for feature in COMPOSITE_FEATURE_COLS:
+        key = _report_group_key(feature)
+        bucket = grouped.setdefault(key, {
+            "key": key,
+            "label": _REPORT_GROUP_LABELS.get(key, key),
+            "count": 0,
+            "active_count": 0,
+            "score_sum": 0.0,
+            "score_count": 0,
+            "highlights": [],
+            "misses": [],
+        })
+        value = _rnum(features, feature)
+        bucket["count"] += 1
+        if _feature_has_report_signal(feature, value):
+            bucket["active_count"] += 1
+            if len(bucket["highlights"]) < 4 and feature not in {"domain_encoded"}:
+                bucket["highlights"].append({"feature": feature, "label": _feature_label(feature), "value": round(value, 3)})
+        elif (
+            feature in applicable_slots
+            or feature in {
+                "commercial_title_has_recommendation", "commercial_title_has_domain_anchor",
+                "commercial_body_has_cta", "commercial_body_has_first_person",
+            }
+        ) and len(bucket["misses"]) < 4:
+            bucket["misses"].append({"feature": feature, "label": _feature_label(feature), "value": round(value, 3)})
+        score = _report_group_score(feature, value, canonical)
+        if score is not None:
+            bucket["score_sum"] += score
+            bucket["score_count"] += 1
+
+    result = []
+    for key in _REPORT_GROUP_LABELS:
+        bucket = grouped[key]
+        if not bucket["count"]:
+            continue
+        score = None
+        if bucket["score_count"]:
+            score = _clip_report_score(bucket["score_sum"] / bucket["score_count"])
+        result.append({
+            "key": bucket["key"],
+            "label": bucket["label"],
+            "count": bucket["count"],
+            "active_count": bucket["active_count"],
+            "score": score,
+            "status": _report_status(score),
+            "highlights": bucket["highlights"],
+            "misses": bucket["misses"],
+        })
+    return result
+
+
+def _build_top_feature_contributions(features: dict[str, float], domain: str, visual_score: float | None = None) -> list[dict]:
+    canonical = _report_canonical_domain(domain)
+    target = _quality_targets(canonical)
+    items: list[dict] = []
+
+    def add(feature: str, value: float, target_text: str, severity: float, suggestion: str, group: str | None = None) -> None:
+        items.append({
+            "feature": feature,
+            "label": _feature_label(feature),
+            "group": group or _report_group_key(feature),
+            "value": round(float(value), 3),
+            "target": target_text,
+            "gap": round(float(severity), 3),
+            "severity": round(float(severity), 3),
+            "suggestion": suggestion,
+        })
+
+    title_len = _rnum(features, "commercial_title_char_len", _rnum(features, "title_len"))
+    if not (8 <= title_len <= _TITLE_DELIVERY_MAX):
+        add("commercial_title_char_len", title_len, f"8-{_TITLE_DELIVERY_MAX}字", abs(title_len - min(max(title_len, 8), _TITLE_DELIVERY_MAX)) / 10 + 0.6, "标题需要自然落在交付长度内，优先保留对象、价值和必要数字。", "title")
+    if _rnum(features, "commercial_title_has_recommendation") < 0.5 and _rnum(features, "title_has_pos_emotion") < 0.5:
+        add("commercial_title_has_recommendation", 0, "命中", 0.9, "标题可以用具体对象、真实数字、适合人群或“值得/推荐”等克制推荐信号。", "title")
+    if _rnum(features, "commercial_title_unreadable_risk") > 0:
+        add("commercial_title_unreadable_risk", _rnum(features, "commercial_title_unreadable_risk"), "0", 1.1, "标题存在可读性风险，需要避免价格+推荐词硬拼或半截句。", "title")
+
+    body_len = _rnum(features, "commercial_body_main_char_len", _rnum(features, "body_len"))
+    body_min = float(target.get("body_min", 220))
+    body_max = float(target.get("body_max", 420))
+    if not (body_min <= body_len <= body_max):
+        add("commercial_body_main_char_len", body_len, f"{body_min:g}-{body_max:g}字", 0.7 + min(abs(body_len - min(max(body_len, body_min), body_max)) / 160, 1.0), "正文需要回到本行业目标字数区间，补真实决策信息，不靠空话扩写。", "body")
+    if _rnum(features, "commercial_body_low_quality_phrase_count") > 0:
+        add("commercial_body_low_quality_phrase_count", _rnum(features, "commercial_body_low_quality_phrase_count"), "0", 0.8, "减少“绝了/天花板/闭眼冲”等廉价夸张词，换成具体体验和取舍。", "body")
+    if _rnum(features, "commercial_body_has_cta") < 0.5 and _rnum(features, "body_cta_count") < 1:
+        add("commercial_body_has_cta", 0, "自然出现1次", 0.65, "结尾自然引导收藏/评论，避免命令式硬塞。", "body")
+
+    for feature, threshold, text in [
+        ("commercial_fact_density", 0.75, "补价格、时间、步骤、路线、对象参数等真实事实，提升收藏价值。"),
+        ("commercial_specificity", 0.75, "把泛泛评价替换为具体对象、数字、场景和理由。"),
+        ("commercial_actionability", 0.80, "让读者看完知道怎么点、怎么买、怎么去、怎么做或怎么避坑。"),
+        ("commercial_domain_slot_coverage", 0.80, "补齐当前行业最关键的决策槽位，但必须基于已提供信息或事实源。"),
+    ]:
+        value = _rnum(features, feature)
+        if value < threshold:
+            add(feature, value, f"≥{threshold:g}", threshold - value, text, "commercial_value")
+
+    for slot in _domain_slot_features_for_report(canonical):
+        if _rnum(features, slot) < 0.5:
+            add(slot, 0, "命中", 0.55, f"补充“{_feature_label(slot)}”相关真实信息；如果用户没提供，优先由事实源补全。", "domain_slots")
+
+    for feature, threshold, text in [
+        ("semantic_emotional_intensity", 0.62, "增加真实感受或结果反馈，避免空泛夸赞。"),
+        ("semantic_empathetic_engagement", 0.60, "补目标用户的痛点、顾虑、适用/不适用场景。"),
+        ("semantic_rhetorical_score", 0.58, "用具体感官、对比或画面化表达替换模板句。"),
+    ]:
+        value = _rnum(features, feature, 0.5)
+        if value < threshold:
+            add(feature, value, f"≥{threshold:g}", threshold - value, text, "semantic_naturalness")
+
+    if _rnum(features, "commercial_ai_probability") > 0.45:
+        add("commercial_ai_probability", _rnum(features, "commercial_ai_probability"), "≤0.45", _rnum(features, "commercial_ai_probability") - 0.45, "降低模板化表达，保留真实取舍和自然句式变化。", "semantic_naturalness")
+
+    tag_count = _rnum(features, "commercial_body_tag_count", _rnum(features, "tag_count"))
+    tag_min = float(target.get("tag_min", 5))
+    tag_max = float(target.get("tag_max", 8))
+    if not (tag_min <= tag_count <= tag_max):
+        add("commercial_body_tag_count", tag_count, f"{tag_min:g}-{tag_max:g}个", 0.5 + abs(tag_count - min(max(tag_count, tag_min), tag_max)) / 10, "标签数量和覆盖要匹配行业，不要过少也不要堆无关标签。", "tags")
+
+    if visual_score is not None and visual_score < 60:
+        add("cover_visual_clarity", visual_score, "≥60", (60 - visual_score) / 60, "封面视觉偏弱，优先提升清晰度、主体占比、构图和光线。", "visual")
+
+    items.sort(key=lambda item: item["severity"], reverse=True)
+    return items[:10]
+
+
+def _build_report_metadata(
+    features: dict[str, float],
+    domain: str,
+    visual_score: float | None = None,
+    timing: dict | None = None,
+) -> dict[str, object]:
+    feature_count = len(features or {})
+    base_count = len(set(FEATURE_COLS) | set(SEMANTIC_FEATURE_COLS) | set(VISUAL_FEATURE_COLS) | set(TIMING_FEATURE_COLS))
+    schema = {
+        "schema_version": _REPORT_SCHEMA_VERSION,
+        "model_family": "v0.4-composite" if feature_count >= len(COMPOSITE_FEATURE_COLS) else "legacy",
+        "feature_count": feature_count,
+        "contract_feature_count": len(COMPOSITE_FEATURE_COLS),
+        "base_feature_count": base_count,
+        "composite_feature_count": max(len(COMPOSITE_FEATURE_COLS) - base_count, 0),
+        "governed_feature_count": len(FEATURE_GOVERNANCE),
+        "domain": _report_canonical_domain(domain),
+        "report_dimension_count": 7,
+    }
+    return {
+        "feature_schema": schema,
+        "dimension_scores": _build_report_dimensions(features, domain, visual_score=visual_score, timing=timing),
+        "feature_groups": _build_feature_groups(features, domain),
+        "top_feature_contributions": _build_top_feature_contributions(features, domain, visual_score=visual_score),
+    }
 
 
 _QUALITY_TARGET_PERCENTILE = _qobj.REFERENCE_SCORE_TARGET
@@ -4286,11 +6030,11 @@ def _repair_dangling_title_tail(text: str) -> str:
         "广州北京路早茶，点都德人均86稳得": "广州北京路点都德早茶稳",
         "广州北京路点都德，人均86元的稳定早": "广州北京路点都德早茶稳",
         "北京路早茶点都德，人均86元必点金牌": "北京路点都德金牌虾饺皇必点",
-        "北京路逛街必吃，点都德早茶人均86稳": "北京路点都德早茶人均86元很稳",
+        "北京路逛街必吃，点都德早茶人均86稳": "北京路点都德早茶人均86元",
         "北京路点都德虾饺必点，人均86广式早": "北京路点都德虾饺皇必点",
-        "番禺万博粤菜聚餐，长禧家珑厨人均98": "番禺万博长禧家珑厨很稳",
-        "番禺万博粤菜聚餐，人均98这家4.5": "番禺万博长禧家珑厨很稳",
-        "番禺万博粤菜聚餐，这家98元人均很稳": "番禺万博长禧家珑厨很稳",
+        "番禺万博粤菜聚餐，长禧家珑厨人均98": "番禺万博长禧家珑厨人均98元",
+        "番禺万博粤菜聚餐，人均98这家4.5": "番禺万博长禧家珑厨人均98元",
+        "番禺万博粤菜聚餐，这家98元人均很稳": "番禺万博长禧家珑厨人均98元",
         "广州番禺万博粤菜，招牌芝士焗虾人均9": "番禺万博芝士焗小青龙必点",
         "番禺万博粤菜聚餐，芝士焗小青龙招牌必": "番禺万博芝士焗小青龙必点",
         "成都春熙路火锅第一次怎么点｜蜀大侠必": "成都春熙路蜀大侠这样点",
@@ -4438,6 +6182,7 @@ def _generated_quality_issues(
     domain: str,
     score: float,
     features: dict[str, float],
+    source_context: str | None = None,
 ) -> list[str]:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain, domain)
     body_text = body or ""
@@ -4483,6 +6228,8 @@ def _generated_quality_issues(
 
     if re.search(r"【\s*(x+|X+|待补|补充|填写)[^】]*】|#XX|XX号|\bxxx\b", body_text, re.IGNORECASE):
         issues.append("正文仍有占位符或待补信息，不能作为最终可交付内容")
+    if body_text and _remove_placeholder_fact_sentences(body_text) != body_text.strip():
+        issues.append("正文含事实占位符或页面兜底句，不能作为最终可交付内容")
 
     issues.extend(_body_format_issues(body_text))
 
@@ -4514,7 +6261,64 @@ def _generated_quality_issues(
             issues.append("母婴正文未按3段安全流程卡展开，建议分成流程、观察/安抚边界、适合/不适合三段")
 
     issues.extend(_human_readability_issues(body_text, canonical))
-    return issues[:10]
+    return _filter_quality_issues_for_content_intent(issues, canonical, source_context)[:10]
+
+
+def _source_context_content_intent(source_context: str | None) -> str:
+    src = source_context or ""
+    m = re.search(r"用户选择的笔记类型[:：]\s*([^。\n；;]+)", src)
+    if m:
+        return _normalize_content_intent(m.group(1))
+    for intent in _CONTENT_INTENT_ORDER:
+        if intent in src:
+            return intent
+    return ""
+
+
+def _source_context_merchant_visibility(source_context: str | None) -> str:
+    src = source_context or ""
+    m = re.search(r"商家/品牌展示策略[:：]\s*([^。\n；;]+)", src)
+    if m:
+        return _normalize_merchant_visibility(m.group(1))
+    if "不展示商家" in src:
+        return "不展示商家"
+    if "展示商家" in src:
+        return "展示商家"
+    return ""
+
+
+def _seed_mode_without_visible_merchant(source_context: str | None) -> bool:
+    intent = _source_context_content_intent(source_context)
+    visibility = _source_context_merchant_visibility(source_context)
+    return intent == "真实种草型" and visibility != "展示商家"
+
+
+def _filter_quality_issues_for_content_intent(
+    issues: list[str],
+    domain: str,
+    source_context: str | None,
+) -> list[str]:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain, domain)
+    deduped = list(dict.fromkeys(issue for issue in issues if issue))
+    if canonical != "美食" or not _seed_mode_without_visible_merchant(source_context):
+        return deduped
+    relaxed_markers = (
+        "缺少真实价格",
+        "缺少价格",
+        "缺少地址",
+        "缺少营业时间",
+        "缺位置",
+        "缺价格关键词",
+        "缺营业时间信号",
+        "缺预订",
+        "缺少预订",
+        "缺少排队",
+    )
+    return [
+        issue
+        for issue in deduped
+        if not any(marker in issue for marker in relaxed_markers)
+    ]
 
 
 _PRICE_FACT_RE = re.compile(
@@ -4718,7 +6522,7 @@ def _food_title_fact_fallback(source_context: str | None, title: str | None = ""
         candidates.extend([
             f"{loc}{dish}必点",
             f"{loc}{dish}推荐",
-            f"{loc}{dish}值得试",
+            f"{loc}{dish}点单清单",
         ])
     if loc:
         candidates.append(f"{loc}粤菜聚餐推荐")
@@ -4729,6 +6533,29 @@ def _food_title_fact_fallback(source_context: str | None, title: str | None = ""
         if 6 <= len(cand) <= _TITLE_DELIVERY_MAX and not _title_readability_issues(cand, "美食"):
             return cand
     return ""
+
+
+_FOOD_OVERUSED_TITLE_TEMPLATE_RE = re.compile(
+    r"(?:这家真的稳|这家很稳|真的稳|很稳$|值得冲|闭眼冲|冲一趟|宝藏小店|宝藏餐厅)"
+)
+
+
+def _sanitize_overused_food_title_template(
+    title: str,
+    source_context: str | None,
+) -> str:
+    text = _clean_generated_title(title or "")
+    if not text or not _FOOD_OVERUSED_TITLE_TEMPLATE_RE.search(text):
+        return text
+    fallback = _food_title_fact_fallback(source_context, text)
+    if fallback and not _FOOD_OVERUSED_TITLE_TEMPLATE_RE.search(fallback):
+        return fallback
+    cleaned = _FOOD_OVERUSED_TITLE_TEMPLATE_RE.sub("", text)
+    cleaned = re.sub(r"(?:，|,|。|！|!|：|:|｜|\|)+$", "", cleaned)
+    cleaned = re.sub(r"\s+", "", cleaned).strip("，,。！!：:｜|、 ")
+    if 6 <= len(cleaned) <= _TITLE_DELIVERY_MAX and not _title_readability_issues(cleaned, "美食"):
+        return cleaned
+    return text
 
 
 def _polish_low_quality_phrases(text: str) -> str:
@@ -4791,7 +6618,7 @@ def _quality_expression_brief(domain: str | None = None) -> str:
         return (
             "【表达质量要求】\n"
             "- 禁止模板化夸张词：骨头都能嚼碎、筷子都夹不住、根本停不下来、直冲脑门、一口入魂、绝了、没朋友、天花板、值哭。\n"
-            "- 允许高级推荐词：必点、招牌、推荐、值得、很稳、值得冲、第一选择；这些是高分信号，不要误删。\n"
+            "- 推荐词必须服务具体证据：可以写必点、招牌、推荐、适合收藏；少用很稳、值得冲、第一选择这类泛化结论。\n"
             "- 用可感知证据替代爆词：火候、口感、分量、出品稳定度、点单顺序、适合人群、到店决策信息。\n"
             "- 不要编造朋友反应、个人经历、排队数字、适用人数、五星/满分背书或未提供的节假日场景；停车、地铁口、步行距离等到店便利表达可自然保留。"
         )
@@ -4887,6 +6714,7 @@ def _sanitize_title_for_delivery(title: str, source_context: str | None = None, 
         text = re.sub(r"人均(\d{2,4})(?=(?:很稳|推荐|值得|必点|必吃|冲|$))", r"人均\1元", text)
         if re.search(r"(?:这家|粤菜聚餐)[^，,。！？]{0,10}人均\d{2,4}元?很稳", text):
             text = _food_title_fact_fallback(src, text) or text
+        text = _sanitize_overused_food_title_template(text, src)
     if canonical == "美妆":
         price_match = _PRICE_FACT_RE.search(src)
         if price_match and not _PRICE_FACT_RE.search(text):
@@ -4923,6 +6751,8 @@ def _sanitize_title_for_delivery(title: str, source_context: str | None = None, 
         month = re.search(r"\d+\s*月龄", text)
         prefix = month.group(0).replace(" ", "") if month else "宝宝"
         text = f"{prefix}睡前流程推荐，25分钟就够"
+    if canonical == "美食":
+        text = _sanitize_overused_food_title_template(text, src)
     return _fallback_title_under_limit(text) if len(text) > _TITLE_DELIVERY_MAX else text
 
 
@@ -5845,10 +7675,32 @@ def _clean_internal_fact_leakage(text: str) -> str:
     out = re.sub(r"(?:不能|不可|不得)编造具体数字", "", out)
     out = re.sub(r"[，,；;]?\s*(?:用户|创作者|原始信息)?未提供[^。\n，,；;]*", "", out)
     out = re.sub(r"(地址：[^。\n，,]*?)(?:，\s*){2,}", r"\1，", out)
-    out = re.sub(r"营业时间：\s*(?:，|。|\n|$)", "营业时间以门店公示为准。", out)
-    out = re.sub(r"价格/人均：\s*(?:，|。|\n|$)", "套餐价格以门店套餐页为准。", out)
+    out = re.sub(r"营业时间：\s*(?:，|。|\n|$)", "", out)
+    out = re.sub(r"价格/人均：\s*(?:，|。|\n|$)", "", out)
     out = re.sub(r"\s*，\s*，+", "，", out)
+    out = re.sub(r"[，,]\s*([。！？])", r"\1", out)
     out = re.sub(r"（\s*）", "", out)
+    return _remove_placeholder_fact_sentences(out).strip()
+
+
+def _remove_placeholder_fact_sentences(text: str) -> str:
+    out = text or ""
+    placeholder_patterns = [
+        r"门店位于[^。！？\n]{0,16}本地商圈[，,]?(?:套餐价格以门店套餐页为准[，,]?)?(?:营业时间以门店公示为准[，,]?)?(?:周末建议提前预订[，,]?)?",
+        r"(?:套餐价格以门店套餐页为准|价格以门店套餐页为准)[，,]?(?:营业时间以门店公示为准[，,]?)?(?:周末建议提前预订[，,]?)?",
+        r"具体地址以门店页为准[，,]?",
+        r"套餐价格以门店套餐页为准[，,]?",
+        r"价格以门店套餐页为准[，,]?",
+        r"营业时间以门店公示为准[，,]?",
+    ]
+    for pattern in placeholder_patterns:
+        out = re.sub(pattern, "", out)
+    out = re.sub(r"[，,]\s*[，,]+", "，", out)
+    out = re.sub(r"[，,]\s*([。！？])", r"\1", out)
+    out = re.sub(r"。[，,]", "。", out)
+    out = re.sub(r"^[，,。；;\s]+", "", out)
+    out = re.sub(r"[，,；;]\s*(?=\n|$)", "", out)
+    out = re.sub(r"\n{3,}", "\n\n", out)
     return out.strip()
 
 
@@ -5874,7 +7726,7 @@ def _extract_food_location_hint(source_context: str | None) -> str:
         return m.group(0)
     city = re.search(rf"({common_cities})", src)
     if city:
-        return f"{city.group(1)}本地商圈"
+        return ""
     return ""
 
 
@@ -6045,24 +7897,21 @@ def _safe_fact_line(domain: str | None, source_context: str | None) -> str:
     booking = _fact_context_value(source_context, "预订/排队")
     loc = _extract_food_location_hint(source_context)
 
+    detail_parts: list[str] = []
     if address:
-        location_part = f"门店地址在{address}"
+        detail_parts.append(f"门店地址在{address}")
     elif loc:
-        location_part = f"门店位于{loc}"
-    else:
-        location_part = "具体地址以门店页为准"
+        detail_parts.append(f"门店位于{loc}")
     if price:
-        price_part = price
-    else:
-        price_part = "套餐价格以门店套餐页为准"
-    detail_parts = [location_part, price_part]
+        detail_parts.append(price)
     if rating:
         detail_parts.append(rating)
     if hours:
         detail_parts.append(f"营业时间{hours}")
-    else:
-        detail_parts.append("营业时间以门店公示为准")
-    detail_parts.append(booking or "周末建议提前预订")
+    if booking:
+        detail_parts.append(booking)
+    if not detail_parts:
+        return ""
     return f"{'，'.join(detail_parts)}。"
 
 
@@ -6121,27 +7970,60 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
     if canonical != "美食":
         return ""
     safe_line = _safe_fact_line(domain, source_context)
+    facts_text = safe_line or "暂无已核验到店决策事实；缺店名/地址/人均/营业时间时不要写占位句，决策转化型应提示用户补充。"
     return (
         "【事实安全高分策略】\n"
         "- 不提供具体价格/人均/营业时间/排队时长时，不能编造数字，也不能写不贵/划算/性价比/物有所值。\n"
-        f"- 当前可用到店决策事实：{safe_line}\n"
-        "- 写法要求：把地址/人均/营业时间拆进自然句，比如接在「适合谁去」「怎么点」「什么时候去」后面；禁止写成「实用信息：地址：...」。\n"
+        f"- 当前可用到店决策事实：{facts_text}\n"
+        "- 写法要求：只有已核验事实才能自然拆进「适合谁去」「怎么点」「什么时候去」等语境；禁止写成信息栏，也禁止写门店页/公示占位句。\n"
         "- 标题里的数字优先用菜品数量、套餐人数、图片数量等已知事实；不要用虚构人均。\n"
-        "- 正文目标：不含标签260-340字，2段主体+1句自然到店提醒+5-8个标签；不要输出Markdown标题。"
+        "- 正文目标按创作方向变化：真实种草型重画面与体验，决策转化型重真实到店信息，清单攻略型重多素材覆盖；不要输出Markdown标题。"
     )
 
 
-async def _maybe_enrich_facts(domain: str | None, title: str | None, text: str | None) -> dict:
+async def _maybe_enrich_facts(
+    domain: str | None,
+    title: str | None,
+    text: str | None,
+    *,
+    content_intent: str | None = None,
+    merchant_visibility: str | None = None,
+    merchant_name: str | None = None,
+    fact_source_policy: str | None = None,
+) -> dict:
+    decision = _fact_source_decision(
+        domain,
+        title,
+        text,
+        content_intent,
+        merchant_visibility,
+        merchant_name,
+        fact_source_policy,
+    )
+    merchant = decision.get("merchant_name") or _normalize_merchant_name(merchant_name)
+    query_text = (text or "").strip()
+    if merchant and merchant not in query_text:
+        query_text = f"门店名：{merchant}\n{query_text}".strip()
+    query_title = merchant or title
+    if not decision.get("enabled"):
+        try:
+            query = _facts.build_fact_query(domain, query_title, query_text)
+        except Exception:
+            query = ""
+        return _disabled_fact_enrichment(decision, query=query)
     try:
-        return await asyncio.to_thread(_facts.enrich_content_facts, domain, title, text)
+        result = await asyncio.to_thread(_facts.enrich_content_facts, domain, query_title, query_text)
+        result["decision"] = decision
+        return result
     except Exception as exc:
         return {
             "enabled": False,
-            "provider": "error",
+            "provider": decision.get("provider") or "error",
             "query": "",
             "facts": {},
             "sources": [],
             "confidence": 0.0,
+            "decision": decision,
             "error": str(exc)[:160],
         }
 
@@ -6434,6 +8316,29 @@ def _dedupe_food_decision_fact_sentences(text: str) -> str:
         return text or ""
     kept: list[str] = []
     fact_signatures: list[set[str]] = []
+    seen_address_tokens: list[set[str]] = []
+
+    def _address_tokens(value: str) -> set[str]:
+        tokens: set[str] = set()
+        for token in re.findall(
+            r"[\u4e00-\u9fa5A-Za-z0-9()（）·.-]{2,36}(?:城|广场|中心|商场|大厦|A座|B座|C座|[0-9]+层|[0-9]+号)",
+            value,
+        ):
+            cleaned = token.strip("，,。；; ")
+            cleaned = re.sub(r"^(?:门店地址在|门店在|地址在|地址：|位于|导航到)", "", cleaned)
+            if len(cleaned) >= 4 and not re.search(r"(?:这家|一家|真的|值得|必点)$", cleaned):
+                tokens.add(cleaned)
+        return tokens
+
+    def _is_repeated_address(tokens: set[str]) -> bool:
+        if not tokens:
+            return False
+        for seen in seen_address_tokens:
+            for token in tokens:
+                if any(token in old or old in token for old in seen):
+                    return True
+        return False
+
     for unit in units:
         normalized = re.sub(r"\s+", "", unit)
         markers: set[str] = set()
@@ -6449,11 +8354,15 @@ def _dedupe_food_decision_fact_sentences(text: str) -> str:
             markers.add("booking")
         has_dish = bool(re.search(r"(?:小青龙|乳鸽|忘不了鱼|雪燕|点心|龙虾|虾饺|烧鹅|毛肚|牛肉|火锅|蟹黄|红米肠)", normalized))
         is_dense_fact_sentence = len(markers) >= 3 and not has_dish
-        if is_dense_fact_sentence and any(len(markers & seen) >= 3 for seen in fact_signatures):
+        address_tokens = _address_tokens(normalized)
+        repeated_address = is_dense_fact_sentence and _is_repeated_address(address_tokens) and len(markers) >= 2
+        if is_dense_fact_sentence and (any(len(markers & seen) >= 3 for seen in fact_signatures) or repeated_address):
             continue
         kept.append(unit)
         if is_dense_fact_sentence:
             fact_signatures.append(markers)
+            if address_tokens:
+                seen_address_tokens.append(address_tokens)
     if len(kept) == len(units):
         return text or ""
     deduped = "".join(kept).strip()
@@ -6519,30 +8428,15 @@ def _insert_safe_fact_line(body: str, domain: str | None, source_context: str | 
         elif canonical == "旅行":
             text = _ensure_travel_single_hotel_fact_lead(text, source_context)
         return _ensure_delivery_cta(text, domain)
-    safe_line = _safe_fact_line(domain, source_context)
-    if not safe_line:
-        return _ensure_delivery_cta(_remove_unsupported_group_size_claims(_polish_low_quality_phrases(normalized_body), source_context), domain)
     cleaned_food_text = _remove_unsupported_price_value_claims(normalized_body, source_context, domain)
     cleaned_food_text = _remove_unsupported_buffet_claims(cleaned_food_text, source_context, domain)
     cleaned_food_text = _polish_low_quality_phrases(cleaned_food_text)
     cleaned_food_text = _remove_unsupported_food_dish_expansions(cleaned_food_text, source_context)
     text = _remove_unsupported_group_size_claims(cleaned_food_text, source_context).strip()
-    has_location = "位于" in text or "地址" in text or bool(_extract_food_location_hint(text))
-    has_price = "套餐价格" in text or bool(_PRICE_FACT_RE.search(text))
-    has_hours = "营业时间" in text or bool(_BUSINESS_HOURS_RE.search(text) or _BUSINESS_TIME_RANGE_RE.search(text))
-    if has_location and has_price and has_hours:
-        return _ensure_delivery_cta(_promote_food_decision_fact_line(_dedupe_food_decision_fact_sentences(text)), domain)
-    main, tags = _split_body_and_tags(text)
-    if safe_line in main:
-        shaped = main
-    else:
-        units = [unit.strip() for unit in re.findall(r"[^。！？\n]+[。！？]?", main) if unit.strip()]
-        if units:
-            shaped = "".join(units[:1] + [safe_line] + units[1:]).strip()
-        else:
-            shaped = (main.rstrip() + "\n\n" + safe_line).strip() if main else safe_line
-    shaped_with_tags = (shaped + ("\n" + tags if tags else "")).strip()
-    return _ensure_delivery_cta(_promote_food_decision_fact_line(_dedupe_food_decision_fact_sentences(shaped_with_tags)), domain)
+    return _ensure_delivery_cta(
+        _promote_food_decision_fact_line(_dedupe_food_decision_fact_sentences(text)),
+        domain,
+    )
 
 
 _DELIVERY_CTA_RE = re.compile(r"(点赞|收藏|评论|留言|关注|码住|记得)")
@@ -6968,10 +8862,14 @@ async def _score_generation_delivery_candidate(
     if canonical == "健身":
         body = _append_missing_fitness_source_actions(body, source_context)
     score, features, grade = await _score_generated_note(title, body, canonical, local_time, timing, cover_feats)
-    issues = _generated_quality_issues(title, body, canonical, score, features)
+    issues = _generated_quality_issues(title, body, canonical, score, features, source_context)
     issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context or "", canonical))
     issues.extend(_body_format_issues(body))
-    issues = list(dict.fromkeys(issue for issue in issues if issue))
+    issues = _filter_quality_issues_for_content_intent(
+        list(dict.fromkeys(issue for issue in issues if issue)),
+        canonical,
+        source_context,
+    )
     blocking = bool(_has_blocking_quality_issues(score, issues, canonical))
     publishable_prob = _v04_publishable_probability(features)
     return {
@@ -7203,8 +9101,10 @@ def _score_directed_repair_items(
     score: float,
     features: dict[str, float],
     issues: list[str],
+    source_context: str | None = None,
 ) -> list[str]:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain, domain)
+    seed_without_visible_merchant = _seed_mode_without_visible_merchant(source_context)
     items: list[str] = []
     for issue in issues:
         if _qobj.is_auxiliary_score_issue(issue):
@@ -7213,6 +9113,8 @@ def _score_directed_repair_items(
             items.append(issue)
 
     weakness_items = _build_fix_instructions(features, _find_weaknesses(features, canonical), domain=canonical)
+    if seed_without_visible_merchant and canonical == "美食":
+        weakness_items = _filter_quality_issues_for_content_intent(weakness_items, canonical, source_context)
     for item in weakness_items:
         if item not in items:
             items.append(item)
@@ -7228,15 +9130,15 @@ def _score_directed_repair_items(
 
     if canonical == "美食":
         if not features.get("body_has_must_order", 0):
-            items.insert(0, "美食二修必须自然写出「必点/招牌/推荐」之一，并绑定具体菜品名")
+            items.insert(0, "美食二修要自然写出一个具体推荐对象，例如龙虾乌冬、海胆甜虾丼、鱼生拼盘等，不能只写泛泛好吃")
         if not features.get("title_has_pos_emotion", 0):
-            items.insert(0, "标题加入克制推荐信号：必点/值得/推荐/很稳，不能用绝了/天花板/闭眼冲")
+            items.insert(0, "标题用真实菜品、价格、场景或清单价值补钩子；不要套用「这家很稳/值得冲/闭眼冲」")
 
     deduped: list[str] = []
     for item in items:
         if item and item not in deduped:
             deduped.append(item)
-    return deduped[:10]
+    return _filter_quality_issues_for_content_intent(deduped, canonical, source_context)[:10]
 
 
 def _food_title_score_lift_candidates(title: str, source_context: str | None, features: dict[str, float]) -> list[str]:
@@ -7311,7 +9213,7 @@ def _body_score_lift_candidates(body: str, domain: str, features: dict[str, floa
 
     body_len = _body_content_len_without_tags(original)
     max_body = _quality_body_max(canonical)
-    short = "很稳。" if canonical == "美食" else "值得收藏。"
+    short = "适合收藏。" if canonical == "美食" else "值得收藏。"
     if (
         float(features.get("plad_sentence_burstiness", 1.0)) < 0.58
         and short not in original
@@ -7409,9 +9311,10 @@ async def _try_deterministic_score_lift(
                 cover_feats,
                 features,
             )
-            fast_issues = _generated_quality_issues(cand_title, cand_body, canonical, fast_score, fast_features)
+            fast_issues = _generated_quality_issues(cand_title, cand_body, canonical, fast_score, fast_features, source_context)
             fast_issues.extend(_delivery_integrity_issues(f"{cand_title}\n{cand_body}", source_context or "", canonical))
             fast_issues.extend(_body_format_issues(cand_body))
+            fast_issues = _filter_quality_issues_for_content_intent(fast_issues, canonical, source_context)
             if _has_blocking_quality_issues(fast_score, fast_issues, canonical):
                 continue
             if (
@@ -7444,9 +9347,10 @@ async def _try_deterministic_score_lift(
             timing,
             cover_feats or None,
         )
-        confirmed_issues = _generated_quality_issues(cand_title, cand_body, canonical, confirmed_score, confirmed_features)
+        confirmed_issues = _generated_quality_issues(cand_title, cand_body, canonical, confirmed_score, confirmed_features, source_context)
         confirmed_issues.extend(_delivery_integrity_issues(f"{cand_title}\n{cand_body}", source_context or "", canonical))
         confirmed_issues.extend(_body_format_issues(cand_body))
+        confirmed_issues = _filter_quality_issues_for_content_intent(confirmed_issues, canonical, source_context)
         if _has_blocking_quality_issues(confirmed_score, confirmed_issues, canonical):
             continue
         score_preserved = confirmed_score >= score - 0.3
@@ -7519,11 +9423,12 @@ async def _score_directed_second_pass(
         score, features, grade = await _score_generated_note(
             title, body, domain, local_time, timing, cover_feats or None
         )
-        issues = _generated_quality_issues(title, body, domain, score, features)
+        issues = _generated_quality_issues(title, body, domain, score, features, source_context)
         issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context, domain))
         issues.extend(_body_format_issues(body))
+        issues = _filter_quality_issues_for_content_intent(issues, domain, source_context)
     else:
-        for issue in _generated_quality_issues(title, body, domain, score, features):
+        for issue in _generated_quality_issues(title, body, domain, score, features, source_context):
             if issue not in issues:
                 issues.append(issue)
         for issue in _delivery_integrity_issues(f"{title}\n{body}", source_context, domain):
@@ -7532,6 +9437,7 @@ async def _score_directed_second_pass(
         for issue in _body_format_issues(body):
             if issue not in issues:
                 issues.append(issue)
+        issues = _filter_quality_issues_for_content_intent(issues, domain, source_context)
 
     if score is None:
         return title, body, score, features, grade, issues, False, "评分失败，跳过二修"
@@ -7589,7 +9495,7 @@ async def _score_directed_second_pass(
         if not _score_gap_issue_count(issues) and not needs_v04_lift:
             return title, body, score, features, grade, issues, True, det_reason
 
-    repair_items = _score_directed_repair_items(title, body, domain, score, features, issues)
+    repair_items = _score_directed_repair_items(title, body, domain, score, features, issues, source_context)
     for item in v04_lift_items:
         if item not in repair_items:
             repair_items.insert(0, item)
@@ -7644,9 +9550,10 @@ async def _score_directed_second_pass(
         cand_score, cand_features, cand_grade = await _score_generated_note(
             cand_title, cand_body, domain, local_time, timing, cover_feats or None
         )
-        cand_issues = _generated_quality_issues(cand_title, cand_body, domain, cand_score, cand_features)
+        cand_issues = _generated_quality_issues(cand_title, cand_body, domain, cand_score, cand_features, source_context)
         cand_issues.extend(_delivery_integrity_issues(f"{cand_title}\n{cand_body}", source_context, domain))
         cand_issues.extend(_body_format_issues(cand_body))
+        cand_issues = _filter_quality_issues_for_content_intent(cand_issues, domain, source_context)
 
         old_hits = _score_lift_hit_count(title, body, features, score, domain)
         new_hits = _score_lift_hit_count(cand_title, cand_body, cand_features, cand_score, domain)
@@ -7875,7 +9782,7 @@ async def startup():
     get_model()  # warm-up model
     _init_analysis_log()
     _init_user_learn()
-    if _SCHEDULER_AVAILABLE:
+    if _SCHEDULER_AVAILABLE and os.environ.get("NOTEAI_API_STARTS_TREND_SCHEDULER", "0").lower() in {"1", "true", "yes"}:
         import threading
         threading.Thread(target=start_scheduler, kwargs={"interval_minutes": 60}, daemon=True).start()
     # 初始化 prompts.json（首次运行时将 hardcode prompt 写入文件）
@@ -7959,7 +9866,7 @@ async def shutdown():
 
 @app.get("/health")
 def health():
-    status = {"status": "ok", "model": "legacy_score_model", "scheduler_a": _SCHEDULER_AVAILABLE}
+    status = {"status": "ok", "model": _health_model_label(), "scheduler_a": _SCHEDULER_AVAILABLE}
     if _SCHEDULER_AVAILABLE:
         try:
             status["hot_keywords"] = db_status()
@@ -8121,11 +10028,9 @@ async def extract_screenshot(
     req: ScreenshotExtractInput,
     user: dict = Depends(_auth.get_current_user),
 ):
-    _billing.check_and_deduct(user["id"], "screenshot")
+    billing_charge = _billing.check_and_deduct(user["id"], "screenshot")
     """用 Kimi Vision 从小红书截图中提取标题、正文、话题标签。"""
     key = os.environ.get("MOONSHOT_API_KEY", "")
-    if not key:
-        raise HTTPException(status_code=503, detail="MOONSHOT_API_KEY 未配置")
     prompt = (
         "请分析这张图片，判断它属于哪种类型，并提取对应内容：\n\n"
         "类型说明：\n"
@@ -8143,14 +10048,22 @@ async def extract_screenshot(
         "注意：B类型（纯图片）也必须按格式返回，cover_desc 必须详细描述图片内容，不要返回 error。"
     )
     try:
+        if not key:
+            raise HTTPException(status_code=503, detail="MOONSHOT_API_KEY 未配置")
+        image_url, media_type, image_bytes = _data_url_from_image_b64(req.image_base64)
         with _httpx.Client(timeout=_KIMI_TIMEOUT_FAST) as c:
             r = c.post(_KIMI_API_URL, headers={"Authorization": f"Bearer {key}"},
                 json={"model": _KIMI_VISION_MODEL, "messages": [{"role": "user", "content": [
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{req.image_base64}"}},
+                    {"type": "image_url", "image_url": {"url": image_url}},
                     {"type": "text", "text": prompt},
                 ]}], "temperature": 0.1, "max_tokens": 1200})
-        r.raise_for_status()
-        raw = r.json()["choices"][0]["message"]["content"].strip()
+        try:
+            r.raise_for_status()
+        except _httpx.HTTPStatusError as exc:
+            raise _moonshot_http_exception(exc, "extract_screenshot") from exc
+        data = r.json()
+        _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
+        raw = data["choices"][0]["message"]["content"].strip()
         import re as _re
         m = _re.search(r'\{[\s\S]*\}', raw)
         if not m:
@@ -8180,10 +10093,34 @@ async def extract_screenshot(
             result["cover_desc"] = result.get("cover_desc") or "图片内容"
             result["is_photo_only"] = True
 
+        result["_media_type"] = media_type
+        result["_image_bytes"] = image_bytes
         return result
+    except (_httpx.ConnectError, _httpx.ProxyError, _httpx.TimeoutException, _httpx.NetworkError) as exc:
+        http_exc = _moonshot_network_exception(exc, "extract_screenshot")
+        _billing.refund_operation_charge(
+            user["id"],
+            "screenshot",
+            billing_charge,
+            "截图识别失败自动退回",
+        )
+        raise http_exc
     except HTTPException:
+        _billing.refund_operation_charge(
+            user["id"],
+            "screenshot",
+            billing_charge,
+            "截图识别失败自动退回",
+        )
         raise
     except Exception as e:
+        print(f"[extract_screenshot] failed user={user.get('id')} error={e}", file=sys.stderr, flush=True)
+        _billing.refund_operation_charge(
+            user["id"],
+            "screenshot",
+            billing_charge,
+            "截图识别失败自动退回",
+        )
         raise HTTPException(status_code=500, detail=f"截图解析失败：{e}")
 
 
@@ -8613,11 +10550,12 @@ async def delete_tracking(track_id: str, user: dict = Depends(_auth.get_current_
 # ═══════════════════════════════════════════════════════════════════════
 
 class TopupInput(BaseModel):
-    amount: float   # 充入积分数量
+    amount: Optional[float] = None   # 兼容旧内测：直接充入积分数量
+    package_id: Optional[str] = None # 正式口径：选择积分包
 
 @app.get("/billing/plan")
 async def billing_plan(user: dict = Depends(_auth.get_current_user)):
-    """当前套餐详情 + 配额使用情况。"""
+    """当前套餐详情 + 积分使用情况。"""
     return _billing.get_quota_status(user["id"])
 
 @app.get("/billing/usage")
@@ -8636,11 +10574,7 @@ async def billing_credits(user: dict = Depends(_auth.get_current_user)):
         "total_used":      round(row["total_used"] if row else 0, 2),
         "transactions":    txns,
         "credit_value":    _billing.CREDIT_VALUE,
-        "topup_packages":  [
-            {"credits": 50,  "price": 12.9,  "label": "50积分"},
-            {"credits": 150, "price": 36.9,  "label": "150积分"},
-            {"credits": 500, "price": 109.0, "label": "500积分"},
-        ],
+        "topup_packages":  _billing.list_credit_packages(),
     }
 
 @app.post("/billing/topup")
@@ -8648,9 +10582,16 @@ async def billing_topup(req: TopupInput, user: dict = Depends(_auth.get_current_
     """充值积分（开发/测试用，生产需接入支付网关）。"""
     if os.environ.get("NOTEAI_ENABLE_TEST_BILLING", "").lower() not in {"1", "true", "yes"}:
         raise HTTPException(status_code=403, detail="测试充值已关闭，请接入真实支付后再启用")
-    if req.amount <= 0 or req.amount > 10000:
+    if req.package_id:
+        try:
+            result = _billing.purchase_credit_package(user["id"], req.package_id, payment_ref="test_billing")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        return {"ok": True, "new_balance": result["new_balance"], "package": result["package"]}
+    amount = float(req.amount or 0)
+    if amount <= 0 or amount > 10000:
         raise HTTPException(status_code=400, detail="充值数量无效")
-    new_balance = _billing.topup_credits(user["id"], req.amount, "手动充值")
+    new_balance = _billing.topup_credits(user["id"], amount, "手动充值")
     return {"ok": True, "new_balance": new_balance}
 
 @app.post("/billing/upgrade")
@@ -8669,11 +10610,15 @@ async def billing_tiers():
     """返回所有套餐定义（公开，用于定价页）。"""
     credit_costs = {op: v["credits"] for op, v in _billing.OPERATIONS.items() if v.get("credits", 0) > 0}
     return {"tiers": _billing.TIERS, "credit_costs": credit_costs,
-            "credit_value": _billing.CREDIT_VALUE}
+            "credit_value": _billing.CREDIT_VALUE,
+            "topup_packages": _billing.list_credit_packages(),
+            "credit_policy": "优先扣本月套餐积分，不足部分扣充值积分；本月积分每月重置，充值积分长期有效。"}
 
 
 @app.post("/score", response_model=ScoreResponse)
 def score(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
+    # 先创建用量记录，后续 Claude semantic usage 会回填 token/cost。
+    _billing.record_free_usage(user["id"], "score")
     try:
         visual_score = None
         cover_feats: dict = {}
@@ -8683,8 +10628,6 @@ def score(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
         percentile, features = _predict(note, cover_feats=cover_feats or None, semantic_feats=semantic_feats)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    # 记录免费用量（score 消耗语义特征 API，约 ¥0.002）
-    _billing.record_free_usage(user["id"], "score")
     return ScoreResponse(
         ces_percentile=round(percentile, 1),
         grade=_grade(percentile),
@@ -8696,7 +10639,7 @@ def score(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
 @app.post("/quick-diagnose", response_model=DiagnoseResponse)
 def quick_diagnose(note: NoteInput):
     """轻量诊断：跳过 Kimi 语义特征（用默认值 0.5），<500ms 返回真实弱点列表。
-    供实时诊断动画气泡使用——速度优先，精度略低于 /diagnose。"""
+    供旧客户端快速预检使用；处理进度页已改为 /analyze/stream 真实 agent 事件。"""
     try:
         cover_feats: dict = {}
         if note.cover_image:
@@ -8727,6 +10670,8 @@ def quick_diagnose(note: NoteInput):
 
 @app.post("/diagnose", response_model=DiagnoseResponse)
 def diagnose(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
+    # 先创建用量记录，后续 Claude semantic usage 会回填 token/cost。
+    _billing.record_free_usage(user["id"], "diagnose")
     try:
         visual_score = None
         cover_feats: dict = {}
@@ -8767,8 +10712,6 @@ def diagnose(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
              _dt_diag.datetime.now(_dt_diag.timezone.utc).isoformat()),
         )
         _memory.check_and_record_achievements(user["id"], percentile, "diagnose")
-        # 记录免费用量（diagnose 消耗语义特征 API，约 ¥0.002）
-        _billing.record_free_usage(user["id"], "diagnose")
     except Exception:
         pass
 
@@ -8782,21 +10725,61 @@ def diagnose(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
     )
 
 
-@app.post("/analyze", response_model=AnalyzeResponse)
-async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user)):
-    _billing.check_and_deduct(user["id"], "analyze")
+async def _run_analyze_pipeline(
+    req: AnalyzeInput,
+    user: dict,
+    emit: ProgressEmitter | None = None,
+) -> AnalyzeResponse:
+    billing_charge = _billing.check_and_deduct(user["id"], "analyze")
+    normalized_constraints = _normalize_user_constraints(req.user_constraints)
+    normalized_intent = _normalize_content_intent(req.content_intent)
+    normalized_visibility = _normalize_merchant_visibility(req.merchant_visibility)
+    normalized_merchant = _normalize_merchant_name(req.merchant_name)
+    normalized_fact_policy = _normalize_fact_source_policy(req.fact_source_policy)
+    req = req.model_copy(update={
+        "user_constraints": normalized_constraints,
+        "local_time": _local_time_with_user_constraints(req.local_time, normalized_constraints),
+        "content_intent": normalized_intent,
+        "merchant_visibility": normalized_visibility,
+        "merchant_name": normalized_merchant,
+        "fact_source_policy": normalized_fact_policy,
+    })
+    constraint_contract = _constraint_contract_payload(normalized_constraints)
+    intent_contract = _content_intent_contract_payload(
+        req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy
+    )
+    intent_brief = _content_intent_brief(
+        req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy, "AI诊断"
+    )
+    original_desc = (req.desc or "").strip()
+    agent_context_parts: list[str] = []
+    extra_image_context = ""
+    fact_context = ""
+    fact_source_decision: dict = {}
+    await _emit_progress(emit, {
+        "type": "stage",
+        "stage": "accepted",
+        "label": "诊断任务已接收，正在读取素材…",
+        "progress": 4,
+    })
     fact_enrichment: dict | None = None
     # 记录附加图和视频的额外用量
     if req.extra_images:
         for _ in req.extra_images[:9]:
-            _billing.record_free_usage(user["id"], "extra_image")
+            _billing.record_auxiliary_usage(user["id"], "extra_image")
     if req.video_file_id:
-        _billing.record_free_usage(user["id"], "video_analyze")
+        _billing.record_auxiliary_usage(user["id"], "video_analyze")
     try:
         # 1. Cover extraction (IO + optional vision call)
         visual_score = None
         cover_feats: dict = {}
         if req.cover_image:
+            await _emit_progress(emit, {
+                "type": "stage",
+                "stage": "cover",
+                "label": "正在提取封面视觉评分特征…",
+                "progress": 8,
+            })
             visual_score, cover_feats = await asyncio.to_thread(
                 _extract_cover, req.cover_image, True
             )
@@ -8805,6 +10788,12 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
         if req.video_file_id:
             if req.video_file_id not in _video_frames:
                 raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传视频后再诊断")
+            await _emit_progress(emit, {
+                "type": "stage",
+                "stage": "video",
+                "label": "正在理解视频画面内容…",
+                "progress": 12,
+            })
             video_desc = await _kimi_video_understand(req.video_file_id, req.domain, req.desc or None)
             if not video_desc or len(video_desc.strip()) < 20:
                 raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证诊断质量，请重新上传或稍后重试")
@@ -8819,6 +10808,12 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
         # 额外内容图片（最多9张）：并行调用视觉模型识别，描述拼入 desc 上下文
         if req.extra_images:
             imgs_to_analyze = req.extra_images[:9]
+            await _emit_progress(emit, {
+                "type": "stage",
+                "stage": "extra_images",
+                "label": f"正在识别 {len(imgs_to_analyze)} 张内容图…",
+                "progress": 14,
+            })
             extra_tasks = [
                 asyncio.to_thread(_kimi_vision_quick, img_b64, req.domain or "通用", None)
                 for img_b64 in imgs_to_analyze
@@ -8829,25 +10824,48 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
                 if isinstance(r, str) and len(r) > 3
             ]
             if extra_descs:
-                req = req.model_copy(update={
-                    "desc": req.desc + "\n\n【其他内容图片描述】\n" + "\n".join(extra_descs)
-                })
+                extra_image_context = "【其他内容图片描述】\n" + "\n".join(extra_descs)
+                agent_context_parts.append(extra_image_context)
 
-        # 联网事实补全：只补结构化事实边界，供后续 agent 引用；无搜索 key 时自动禁用。
-        fact_enrichment = await _maybe_enrich_facts(req.domain, req.note_title, req.desc)
-        enriched_desc = _append_fact_enrichment(req.desc, fact_enrichment)
-        if enriched_desc != req.desc:
-            req = req.model_copy(update={"desc": enriched_desc})
+        if intent_brief:
+            agent_context_parts.append(intent_brief)
+
+        # 联网事实补全：由创作方向和商家展示策略路由；无明确商家/不需要事实时跳过。
+        fact_enrichment = await _maybe_enrich_facts(
+            req.domain,
+            req.note_title,
+            req.desc,
+            content_intent=req.content_intent,
+            merchant_visibility=req.merchant_visibility,
+            merchant_name=req.merchant_name,
+            fact_source_policy=req.fact_source_policy,
+        )
+        fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
+        fact_context = _facts.format_fact_context(fact_enrichment)
+        if fact_context:
+            agent_context_parts.append(fact_context)
+        if fact_enrichment and fact_enrichment.get("enabled"):
+            await _emit_progress(emit, {
+                "type": "fact_enrichment",
+                "provider": fact_enrichment.get("provider"),
+                "query": fact_enrichment.get("query"),
+                "facts": fact_enrichment.get("facts", {}),
+                "sources": fact_enrichment.get("sources", [])[:3],
+                "confidence": fact_enrichment.get("confidence", 0),
+                "cached": fact_enrichment.get("cached", False),
+                "progress": 18,
+            })
 
         # 2. Market timing (SQLite read, fast)
-        timing: dict | None = None
-        if _SCHEDULER_AVAILABLE:
-            try:
-                timing = compute_market_timing(req.note_title, req.desc, req.domain)
-            except Exception:
-                pass
+        timing = _compute_market_timing_for_delivery(req.note_title, req.desc, req.domain)
 
         # 3. Semantic features via Kimi
+        await _emit_progress(emit, {
+            "type": "stage",
+            "stage": "semantic",
+            "label": "正在计算语义特征与用户感知信号…",
+            "progress": 22,
+        })
         semantic_feats = await asyncio.to_thread(
             compute_semantic_features, req.note_title, req.desc
         )
@@ -8866,6 +10884,12 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
             semantic_feats=semantic_feats,
         )
         grade = _grade(percentile)
+        await _emit_progress(emit, {
+            "type": "diagnosis_score",
+            "score": round(percentile, 1),
+            "grade": grade,
+            "progress": 28,
+        })
 
         # 5. Weakness diagnosis
         weaknesses = _find_weaknesses(features, req.domain)
@@ -8893,29 +10917,24 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
             local_memory_prompt = ""
 
         # 约束条件 + 本地长期记忆注入（加入 note.desc 开头，让所有 agents 都能读到）
-        agent_context_parts: list[str] = []
-        if req.user_constraints:
-            agent_context_parts.append("【用户约束条件】" + "；".join(req.user_constraints))
+        constraint_brief = _user_constraints_brief(req.user_constraints, "AI诊断")
+        if constraint_brief:
+            agent_context_parts.append(constraint_brief)
         if local_memory_prompt:
             agent_context_parts.append("【用户长期偏好/记忆】\n" + local_memory_prompt)
         if memories:
             mem_lines = "\n".join(f"- {m.get('memory', '')}" for m in memories if m.get("memory"))
             if mem_lines:
                 agent_context_parts.append("【外部记忆召回】\n" + mem_lines)
-        if agent_context_parts:
-            note = NoteInput(
-                note_title=note.note_title,
-                desc="\n\n".join(agent_context_parts) + "\n\n" + note.desc,
-                local_time=note.local_time,
-                domain=note.domain,
-                cover_image=note.cover_image,
-            )
+        agent_context = "\n\n".join(p for p in agent_context_parts if p)
 
         # 7. Five-agent diagnosis through unified Claude/Kimi router
         if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("MOONSHOT_API_KEY"):
             agent_result = await _run_five_agents(
-                note, percentile, grade, weaknesses,
+                note, percentile, grade, weaknesses, features,
                 timing, visual_score, cover_feats, semantic_feats,
+                agent_context=agent_context,
+                emit=emit,
             )
             diagnosis = agent_result.get("diagnosis", "")
             suggested_titles = agent_result.get("titles", [])
@@ -8925,13 +10944,17 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
             dispute = agent_result.get("dispute", "")
             expert_opinions = agent_result.get("expert_opinions", [])
             model_label = "claude-routed-5-agents"
+            delivery_source_context = "\n\n".join(
+                p for p in [req.desc, fact_context, intent_brief] if p
+            )
 
             # ── 每个方案的标题+正文做旧评分器遥测与可解释质量复核 ──────
             suggested_title_scores: list[float | None] = []
             suggested_plans_scored: list[dict] = []
             for plan_item in suggested_plans_raw:
-                t = _sanitize_title_for_delivery(plan_item.get("title") or "", req.desc, req.domain)
+                t = _sanitize_title_for_delivery(plan_item.get("title") or "", delivery_source_context, req.domain)
                 b = (plan_item.get("body") or "").strip()
+                t, b, _ = _apply_user_constraint_hard_guards(t, b, req.note_title, req.user_constraints)
                 t_score = None
                 plan_features: dict[str, float] = {}
                 quality_issues: list[str] = []
@@ -8940,7 +10963,7 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
                 score_lift_reason = ""
                 if t and b:
                     try:
-                        b = await _shape_body_for_delivery(t, b, req.domain, req.desc, "AI诊断方案质量复核")
+                        b = await _shape_body_for_delivery(t, b, req.domain, delivery_source_context, "AI诊断方案质量复核")
                         score_raw, plan_features, _plan_grade = await _score_generated_note(
                             t,
                             b,
@@ -8950,9 +10973,10 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
                             cover_feats or None,
                         )
                         t_score = round(score_raw, 1)
-                        quality_issues = _generated_quality_issues(t, b, req.domain, score_raw, plan_features)
-                        quality_issues.extend(_delivery_integrity_issues(f"{t}\n{b}", req.desc, req.domain))
+                        quality_issues = _generated_quality_issues(t, b, req.domain, score_raw, plan_features, delivery_source_context)
+                        quality_issues.extend(_delivery_integrity_issues(f"{t}\n{b}", delivery_source_context, req.domain))
                         quality_issues.extend(_body_format_issues(b))
+                        quality_issues = _filter_quality_issues_for_content_intent(quality_issues, req.domain, delivery_source_context)
                         quality_failed = _has_blocking_quality_issues(score_raw, quality_issues, req.domain)
                         if not quality_failed and (
                             _score_gap_issue_count(quality_issues) > 0
@@ -8974,7 +10998,7 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
                                 req.local_time,
                                 timing=timing,
                                 cover_feats=cover_feats or None,
-                                source_context=req.desc,
+                                source_context=delivery_source_context,
                                 style_hint="AI诊断方案交付质量二修",
                                 current_score=score_raw,
                                 current_features=plan_features,
@@ -8986,6 +11010,25 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
                                 score_raw = lifted_score
                                 t_score = round(score_raw, 1)
                                 quality_failed = _has_blocking_quality_issues(score_raw, quality_issues, req.domain)
+                            t, b, guarded = _apply_user_constraint_hard_guards(t, b, req.note_title, req.user_constraints)
+                            if guarded and t and b:
+                                try:
+                                    score_raw, plan_features, _plan_grade = await _score_generated_note(
+                                        t,
+                                        b,
+                                        req.domain,
+                                        req.local_time,
+                                        timing,
+                                        cover_feats or None,
+                                    )
+                                    t_score = round(score_raw, 1)
+                                    quality_issues = _generated_quality_issues(t, b, req.domain, score_raw, plan_features, delivery_source_context)
+                                    quality_issues.extend(_delivery_integrity_issues(f"{t}\n{b}", delivery_source_context, req.domain))
+                                    quality_issues.extend(_body_format_issues(b))
+                                    quality_issues = _filter_quality_issues_for_content_intent(quality_issues, req.domain, delivery_source_context)
+                                    quality_failed = _has_blocking_quality_issues(score_raw, quality_issues, req.domain)
+                                except Exception:
+                                    pass
                     except Exception:
                         quality_issues = ["方案质量复核失败，不能作为最终交付内容"]
                         quality_failed = True
@@ -9004,6 +11047,19 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
                     "score_lift_repaired": score_lift_repaired,
                     "score_lift_reason": score_lift_reason,
                 })
+                await _emit_progress(emit, {
+                    "type": "diagnosis_plan_scored",
+                    "index": len(suggested_plans_scored) - 1,
+                    "title": t,
+                    "score": t_score,
+                    "quality_failed": quality_failed,
+                    "issues": quality_issues[:5],
+                    "score_lift_repaired": score_lift_repaired,
+                    "progress": min(88 + len(suggested_plans_scored) * 2, 95),
+                })
+            if _constraint_flags(req.user_constraints)["keep_title"] and (req.note_title or "").strip():
+                keep_title = (req.note_title or "").strip()
+                suggested_titles = [keep_title for _ in range(max(3, len(suggested_plans_scored), len(suggested_titles)))]
         else:
             prompt = _build_prompt(req, percentile, grade, weaknesses, memories, timing)
             diagnosis, suggested_titles, plan, suggested_body = _call_claude(prompt)
@@ -9012,8 +11068,20 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
             model_label = CLAUDE_MODEL
 
     except HTTPException:
+        _billing.refund_operation_charge(
+            user["id"],
+            "analyze",
+            billing_charge,
+            "AI深度诊断失败自动退回",
+        )
         raise
     except Exception as e:
+        _billing.refund_operation_charge(
+            user["id"],
+            "analyze",
+            billing_charge,
+            "AI深度诊断失败自动退回",
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
     composite = round(percentile, 1)
@@ -9037,6 +11105,12 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
 
     title_scores   = suggested_title_scores if 'suggested_title_scores' in locals() else []
     plans_scored   = suggested_plans_scored if 'suggested_plans_scored' in locals() else []
+    if _constraint_flags(req.user_constraints)["keep_title"] and (req.note_title or "").strip():
+        keep_title = (req.note_title or "").strip()
+        suggested_titles = [keep_title for _ in range(max(3, len(plans_scored), len(suggested_titles or [])))]
+        for _plan in plans_scored:
+            if isinstance(_plan, dict):
+                _plan["title"] = keep_title
 
     # suggested_body 只服务旧客户端/共享正文卡片；方案正文必须保留各自结果，不能用它回填。
     if not suggested_body:
@@ -9046,12 +11120,37 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
                 break
 
     saved_diag_id: str | None = None
+    report_meta = _build_report_metadata(
+        features,
+        req.domain,
+        visual_score=visual_score,
+        timing=timing,
+    )
+    input_diagnostics = {
+        "input_mode": req.input_mode or "",
+        "ocr_char_count": req.ocr_char_count,
+        "original_desc_len": len(original_desc),
+        "scored_desc_len": len(req.desc or ""),
+        "feature_body_len": float(features.get("body_len", 0) or 0),
+        "feature_body_main_len": float(features.get("commercial_body_main_char_len", features.get("body_len", 0)) or 0),
+        "extra_image_context_len": len(extra_image_context or ""),
+        "fact_context_len": len(fact_context or ""),
+        "agent_context_len": len(agent_context or ""),
+        "content_intent": req.content_intent,
+        "merchant_visibility": req.merchant_visibility,
+        "merchant_name": req.merchant_name,
+        "fact_source_policy": req.fact_source_policy,
+    }
     resp = AnalyzeResponse(
         ces_percentile=round(percentile, 1),
         composite_score=composite,
         grade=grade,
         visual_score=visual_score,
         features={k: float(v) for k, v in features.items()},
+        feature_schema=report_meta["feature_schema"],
+        dimension_scores=report_meta["dimension_scores"],
+        feature_groups=report_meta["feature_groups"],
+        top_feature_contributions=report_meta["top_feature_contributions"],
         market_timing=MarketTiming(**{k: v for k, v in timing.items()
                                       if k in MarketTiming.model_fields}) if timing else None,
         weaknesses=weaknesses,
@@ -9065,6 +11164,12 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
         dispute=dispute,
         expert_opinions=expert_opinions,
         fact_enrichment=fact_enrichment,
+        user_constraints=normalized_constraints,
+        constraint_contract=constraint_contract,
+        content_intent=normalized_intent,
+        intent_contract=intent_contract,
+        fact_source_decision=fact_source_decision,
+        input_diagnostics=input_diagnostics,
     )
 
     # 登录用户自动保存诊断报告（每次诊断一份）
@@ -9087,6 +11192,67 @@ async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user
 
     resp.diagnosis_id = saved_diag_id
     return resp
+
+
+@app.post("/analyze", response_model=AnalyzeResponse)
+async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user)):
+    return await _run_analyze_pipeline(req, user)
+
+
+@app.post("/analyze/stream")
+async def analyze_stream_endpoint(
+    req: AnalyzeInput,
+    user: dict = Depends(_auth.get_current_user),
+):
+    """SSE endpoint: streams real AI diagnosis progress and final AnalyzeResponse."""
+
+    async def _sse():
+        queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
+
+        async def emit(event: dict[str, Any]) -> None:
+            await queue.put(event)
+
+        async def runner() -> None:
+            try:
+                resp = await _run_analyze_pipeline(req, user, emit=emit)
+                payload = resp.model_dump()
+                payload["type"] = "complete"
+                payload["progress"] = 100
+                await queue.put(payload)
+            except HTTPException as exc:
+                detail = exc.detail
+                msg = detail if isinstance(detail, str) else _json.dumps(detail, ensure_ascii=False)
+                await queue.put({
+                    "type": "error",
+                    "status_code": exc.status_code,
+                    "message": msg,
+                    "detail": detail,
+                })
+            except Exception as exc:
+                await queue.put({
+                    "type": "error",
+                    "status_code": 500,
+                    "message": str(exc),
+                })
+            finally:
+                await queue.put(None)
+
+        task = asyncio.create_task(runner())
+        try:
+            while True:
+                event = await queue.get()
+                if event is None:
+                    break
+                yield f"data: {_json.dumps(event, ensure_ascii=False, default=str)}\n\n"
+        finally:
+            if not task.done():
+                task.cancel()
+
+    return StreamingResponse(
+        _sse(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 async def _generate_pipeline_stream(
@@ -9464,8 +11630,9 @@ async def _generate_pipeline_stream(
             final_score, final_feats, grade_str = await _score_generated_note(
                 title, body, domain, local_time, timing, cover_feats or None
             )
-            quality_issues = _generated_quality_issues(title, body, domain, final_score, final_feats)
+            quality_issues = _generated_quality_issues(title, body, domain, final_score, final_feats, brief or "")
             quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
+            quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception as exc:
             print(f"[gen] quality scoring failed round={q_round}: {exc}", file=sys.stderr, flush=True)
             break
@@ -9616,8 +11783,9 @@ async def _generate_pipeline_stream(
                 timing,
                 cover_feats or None,
             )
-            quality_issues = _generated_quality_issues(title, body, domain, final_score, final_feats)
+            quality_issues = _generated_quality_issues(title, body, domain, final_score, final_feats, brief or "")
             quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
+            quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception:
             pass
 
@@ -9812,16 +11980,26 @@ async def generate_stream_endpoint(
 ):
     """SSE endpoint: streams generation progress including P3 thinking chain."""
     _billing.check_and_deduct(user["id"], "generate")
+    normalized_constraints = _normalize_user_constraints(req.user_constraints)
+    normalized_intent = _normalize_content_intent(req.content_intent)
+    normalized_visibility = _normalize_merchant_visibility(req.merchant_visibility)
+    normalized_merchant = _normalize_merchant_name(req.merchant_name)
+    normalized_fact_policy = _normalize_fact_source_policy(req.fact_source_policy)
+    local_time = _local_time_with_user_constraints(req.local_time, normalized_constraints)
+    constraint_contract = _constraint_contract_payload(normalized_constraints)
+    intent_contract = _content_intent_contract_payload(
+        req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy
+    )
+    intent_brief = _content_intent_brief(
+        req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy, "AI爆文生成"
+    )
     cover_images = req.cover_images or ([req.cover_image] if req.cover_image else [])
     cover_image = cover_images[0] if cover_images else None
     timing: dict | None = None
     if req.domain:
-        try:
-            timing_domain = _TIMING_ALIASES.get(req.domain, req.domain)
-            query = f"{req.brief or ''} {timing_domain}"
-            timing = compute_market_timing("", query, timing_domain)
-        except Exception:
-            pass
+        timing_domain = _TIMING_ALIASES.get(req.domain, req.domain)
+        query = f"{req.brief or ''} {timing_domain}"
+        timing = _compute_market_timing_for_delivery("", query, timing_domain)
     # 获取用户套餐，用于决定深度分析图片数
     user_tier = "free"
     try:
@@ -9837,13 +12015,23 @@ async def generate_stream_endpoint(
     async def _sse():
         # 若图片数超过深度分析上限，先发一条告知事件
         if img_count > deep_limit:
-            tier_names = {"free": "免费版", "pro": "轻创作 Pro", "pro_plus": "专业 Pro+"}
+            tier_names = {"free": "免费版", "pro": "创作者版", "growth": "成长版", "pro_plus": "专业版", "studio": "工作室版"}
             tier_name  = tier_names.get(user_tier, user_tier)
             beyond     = img_count - deep_limit
             yield f"data: {_json.dumps({'type':'image_quota_notice','total':img_count,'deep_limit':deep_limit,'beyond':beyond,'tier':tier_name,'message':f'您上传了 {img_count} 张图片，{tier_name} 支持 {deep_limit} 张深度分析，其余 {beyond} 张将进行轻量分析。升级套餐可获得更多深度分析次数。'}, ensure_ascii=False)}\n\n"
 
-        fact_enrichment = await _maybe_enrich_facts(req.domain, "", req.brief or "")
-        enriched_brief = _append_fact_enrichment(req.brief, fact_enrichment)
+        fact_enrichment = await _maybe_enrich_facts(
+            req.domain,
+            "",
+            req.brief or "",
+            content_intent=normalized_intent,
+            merchant_visibility=normalized_visibility,
+            merchant_name=normalized_merchant,
+            fact_source_policy=normalized_fact_policy,
+        )
+        constrained_brief = _merge_user_constraints_into_text(req.brief, normalized_constraints, "AI爆文生成")
+        constrained_brief = f"{intent_brief}\n\n{constrained_brief}".strip() if intent_brief else constrained_brief
+        enriched_brief = _append_fact_enrichment(constrained_brief, fact_enrichment)
         if fact_enrichment and fact_enrichment.get("enabled"):
             yield f"data: {_json.dumps({'type':'fact_enrichment','provider':fact_enrichment.get('provider'),'query':fact_enrichment.get('query'),'facts':fact_enrichment.get('facts',{}),'sources':fact_enrichment.get('sources',[])[:3],'confidence':fact_enrichment.get('confidence',0),'cached':fact_enrichment.get('cached',False)}, ensure_ascii=False)}\n\n"
 
@@ -9865,11 +12053,17 @@ async def generate_stream_endpoint(
             cover_image=cover_image,
             cover_feats=cover_feats,
             visual_score=visual_score,
-            local_time=req.local_time,
+            local_time=local_time,
             cover_images=cover_images,
             video_file_id=req.video_file_id,
             user_tier=user_tier,
         ):
+            if event.get("type") == "complete":
+                event["user_constraints"] = normalized_constraints
+                event["constraint_contract"] = constraint_contract
+                event["content_intent"] = normalized_intent
+                event["intent_contract"] = intent_contract
+                event["fact_source_decision"] = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
             yield f"data: {_json.dumps(event, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
@@ -9890,7 +12084,21 @@ async def generate(
     the composite delivery objective and auxiliary feature signals.
     """
     _billing.check_and_deduct(user["id"], "generate")
+    normalized_constraints = _normalize_user_constraints(req.user_constraints)
+    normalized_intent = _normalize_content_intent(req.content_intent)
+    normalized_visibility = _normalize_merchant_visibility(req.merchant_visibility)
+    normalized_merchant = _normalize_merchant_name(req.merchant_name)
+    normalized_fact_policy = _normalize_fact_source_policy(req.fact_source_policy)
+    local_time = _local_time_with_user_constraints(req.local_time, normalized_constraints)
+    constraint_contract = _constraint_contract_payload(normalized_constraints)
+    intent_contract = _content_intent_contract_payload(
+        req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy
+    )
+    intent_brief = _content_intent_brief(
+        req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy, "AI爆文生成"
+    )
     fact_enrichment: dict | None = None
+    fact_source_decision: dict = {}
     try:
         # 合并图片列表：优先用 cover_images，兼容旧 cover_image 字段
         images: list[str] = []
@@ -9915,19 +12123,24 @@ async def generate(
                 _extract_cover, primary_image, True
             )
 
-        fact_enrichment = await _maybe_enrich_facts(req.domain, "", req.brief or "")
-        enriched_brief = _append_fact_enrichment(req.brief, fact_enrichment)
+        fact_enrichment = await _maybe_enrich_facts(
+            req.domain,
+            "",
+            req.brief or "",
+            content_intent=normalized_intent,
+            merchant_visibility=normalized_visibility,
+            merchant_name=normalized_merchant,
+            fact_source_policy=normalized_fact_policy,
+        )
+        fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
+        constrained_brief = _merge_user_constraints_into_text(req.brief, normalized_constraints, "AI爆文生成")
+        constrained_brief = f"{intent_brief}\n\n{constrained_brief}".strip() if intent_brief else constrained_brief
+        enriched_brief = _append_fact_enrichment(constrained_brief, fact_enrichment)
 
         # 2. Market timing (hot keywords)
-        timing: dict | None = None
-        if _SCHEDULER_AVAILABLE:
-            try:
-                # Normalize to training-data domain so get_domain_stats returns real saturation
-                timing_domain = _TIMING_ALIASES.get(req.domain, req.domain)
-                query = f"{req.brief or ''} {timing_domain}"
-                timing = compute_market_timing("", query, timing_domain)
-            except Exception:
-                pass
+        timing_domain = _TIMING_ALIASES.get(req.domain, req.domain)
+        query = f"{req.brief or ''} {timing_domain}"
+        timing = _compute_market_timing_for_delivery("", query, timing_domain)
 
         # 3. Run 5-agent generation pipeline
         try:
@@ -9936,7 +12149,7 @@ async def generate(
                     domain=req.domain,
                     cover_image=primary_image,
                     brief=enriched_brief,
-                    local_time=req.local_time,
+                    local_time=local_time,
                     timing=timing,
                     visual_score=visual_score,
                     cover_feats=cover_feats,
@@ -9982,6 +12195,11 @@ async def generate(
         expert_opinions=result.get("expert_opinions", []),
         fact_enrichment=fact_enrichment,
         selection_meta=result.get("selection_meta", {}),
+        user_constraints=normalized_constraints,
+        constraint_contract=constraint_contract,
+        content_intent=normalized_intent,
+        intent_contract=intent_contract,
+        fact_source_decision=fact_source_decision,
         model_used="claude-routed-5-agents",
     )
 
@@ -10055,12 +12273,24 @@ def _build_chat_system_prompt(session: dict) -> str:
     body   = session.get("note_body", "")
     score  = session.get("current_score")
     score_str = f"{score:.1f}分" if score else "未评分"
+    constraint_section = _user_constraints_brief(
+        session.get("user_constraints") or (session.get("generate_context") or {}).get("user_constraints"),
+        "对话优化",
+    )
 
     user_prefs = session.get("user_prefs", {})
     pref_lines = [f"  - {k}：{v}" for k, v in user_prefs.items()]
     pref_section = "\n".join(pref_lines) if pref_lines else "  (暂无记录，继续对话后将自动学习)"
 
     dk = _get_dk(domain)
+    intent_section = _content_intent_brief(
+        domain,
+        session.get("content_intent"),
+        session.get("merchant_visibility"),
+        session.get("merchant_name"),
+        session.get("fact_source_policy"),
+        "对话优化",
+    )
 
     # ── Generation context (injected when session started from /generate) ──
     gen_ctx = session.get("generate_context") or {}
@@ -10117,6 +12347,10 @@ def _build_chat_system_prompt(session: dict) -> str:
         f"\n【62维特征治理】\n{_get_feature_governance_brief(domain)}\n",
         f"\n{chat_planning_brief}\n",
     ]
+    if constraint_section:
+        prompt_parts.append(f"\n{constraint_section}\n")
+    if intent_section:
+        prompt_parts.append(f"\n{intent_section}\n")
     if session.get("fact_context"):
         prompt_parts.append(f"\n【已核验事实边界】\n{session.get('fact_context')}\n")
     prompt_parts.extend([
@@ -10203,9 +12437,18 @@ async def _score_chat_note(
             timing=None,
             cover_feats=None,
         )
-        issues = _generated_quality_issues(title, body, domain, score, feats)
         fact_source = session.get("fact_context") or session.get("note_body", "")
-        issues.extend(_delivery_integrity_issues(f"{title}\n{body}", fact_source, domain))
+        intent_source = _content_intent_brief(
+            domain,
+            session.get("content_intent"),
+            session.get("merchant_visibility"),
+            session.get("merchant_name"),
+            session.get("fact_source_policy"),
+            "对话优化评分",
+        )
+        source_context = "\n\n".join(part for part in [intent_source, fact_source] if part)
+        issues = _generated_quality_issues(title, body, domain, score, feats, source_context)
+        issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context, domain))
         issues.extend(_body_format_issues(body))
         return score, feats, grade, issues
     except Exception:
@@ -10299,6 +12542,19 @@ async def _repair_chat_note_if_needed(
         f"{_get_feature_governance_brief(domain)}\n\n",
         f"{_build_generation_planning_brief(domain, title, session.get('fact_context') or body, '对话质量修复规划')}\n",
     ]
+    intent_section = _content_intent_brief(
+        domain,
+        session.get("content_intent"),
+        session.get("merchant_visibility"),
+        session.get("merchant_name"),
+        session.get("fact_source_policy"),
+        "对话优化质量修复",
+    )
+    if intent_section:
+        repair_parts.append(f"{intent_section}\n\n")
+    constraint_section = _user_constraints_brief(session.get("user_constraints"), "对话优化质量修复")
+    if constraint_section:
+        repair_parts.append(f"{constraint_section}\n\n")
     if session.get("fact_context"):
         repair_parts.append(f"【已核验事实边界】\n{session.get('fact_context')}\n\n")
     repair_parts.append(
@@ -10423,7 +12679,9 @@ async def _chat_sse_generator(
                     headers={"Authorization": f"Bearer {key_v}"},
                 )
                 vr.raise_for_status()
-                image_analysis = vr.json()["choices"][0]["message"]["content"].strip()
+                data = vr.json()
+                _record_kimi_usage_from_payload(data, _KIMI_MODEL)
+                image_analysis = data["choices"][0]["message"]["content"].strip()
         except Exception as e:
             image_analysis = f"图片解析失败：{e}"
         yield f"data: {_json.dumps({'type': 'image_analyzed', 'analysis': image_analysis}, ensure_ascii=False)}\n\n"
@@ -10526,6 +12784,16 @@ async def _chat_sse_generator(
         new_title, new_body, new_score, score_feats, grade_str, quality_issues, repaired = await _repair_chat_note_if_needed(
             new_title, new_body, session, user_msg
         )
+        guarded_title, guarded_body, guard_changed = _apply_user_constraint_hard_guards(
+            new_title,
+            new_body,
+            previous_note_title,
+            session.get("user_constraints"),
+        )
+        if guard_changed:
+            new_title, new_body = guarded_title, guarded_body
+            new_score, score_feats, grade_str, quality_issues = await _score_chat_note(new_title, new_body, session)
+            repaired = True
         quality_blocking = (
             new_score is None or _has_blocking_quality_issues(new_score, quality_issues, session.get("domain", "美食"))
         )
@@ -10620,6 +12888,18 @@ def _persist_chat_session(session_id: str) -> None:
             return
         import datetime as _dt_mod
         now = _dt_mod.datetime.now(_dt_mod.timezone.utc).isoformat()
+        generate_context = dict(session.get("generate_context") or {})
+        if session.get("user_constraints"):
+            generate_context["user_constraints"] = session.get("user_constraints")
+            generate_context["constraint_contract"] = session.get("constraint_contract") or _constraint_contract_payload(session.get("user_constraints"))
+        if session.get("content_intent"):
+            generate_context["content_intent"] = session.get("content_intent")
+            generate_context["intent_contract"] = session.get("intent_contract") or {}
+            generate_context["merchant_visibility"] = session.get("merchant_visibility")
+            generate_context["merchant_name"] = session.get("merchant_name")
+            generate_context["fact_source_policy"] = session.get("fact_source_policy")
+        if session.get("fact_context"):
+            generate_context["fact_context"] = session.get("fact_context")
         _db.execute(
             "INSERT INTO chat_sessions(id,user_id,domain,local_time,messages_json,user_prefs_json,"
             "iteration_count,current_score,generate_ctx_json,created_at,updated_at) VALUES"
@@ -10639,7 +12919,7 @@ def _persist_chat_session(session_id: str) -> None:
                 _json.dumps(session.get("user_prefs", {}), ensure_ascii=False),
                 session.get("iteration_count", 0),
                 session.get("current_score"),
-                _json.dumps(session.get("generate_context", {}), ensure_ascii=False),
+                _json.dumps(generate_context, ensure_ascii=False),
                 now, now,
             ),
         )
@@ -10653,6 +12933,12 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
         row = _db.fetchone("SELECT * FROM chat_sessions WHERE id=?", (session_id,))
         if not row:
             return None
+        gen_ctx = _json.loads(row["generate_ctx_json"] or "{}")
+        constraints = _normalize_user_constraints(gen_ctx.get("user_constraints") or [])
+        content_intent = _normalize_content_intent(gen_ctx.get("content_intent"))
+        merchant_visibility = _normalize_merchant_visibility(gen_ctx.get("merchant_visibility"))
+        merchant_name = _normalize_merchant_name(gen_ctx.get("merchant_name"))
+        fact_source_policy = _normalize_fact_source_policy(gen_ctx.get("fact_source_policy"))
         return {
             "note_title":       "",
             "note_body":        "",
@@ -10663,7 +12949,15 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
             "messages":         _json.loads(row["messages_json"] or "[]"),
             "iteration_count":  row["iteration_count"],
             "user_prefs":       _json.loads(row["user_prefs_json"] or "{}"),
-            "generate_context": _json.loads(row["generate_ctx_json"] or "{}"),
+            "generate_context": gen_ctx,
+            "user_constraints": constraints,
+            "constraint_contract": _constraint_contract_payload(constraints),
+            "content_intent": content_intent,
+            "merchant_visibility": merchant_visibility,
+            "merchant_name": merchant_name,
+            "fact_source_policy": fact_source_policy,
+            "intent_contract": _content_intent_contract_payload(row["domain"], content_intent, merchant_visibility, merchant_name, fact_source_policy),
+            "fact_context": gen_ctx.get("fact_context", ""),
         }
     except Exception:
         return None
@@ -10679,6 +12973,11 @@ class ChatStartInput(BaseModel):
     user_id:          str        = ""
     # When starting from /generate output, pass the full response as context
     generate_context: dict | None = None
+    user_constraints: list[str] | None = Field(default=None, description="用户约束条件列表（从诊断/生成继承或当前页面读取）")
+    content_intent: str | None = Field(default=None, description="笔记类型/创作方向")
+    merchant_visibility: str | None = Field(default=None, description="商家/品牌展示策略")
+    merchant_name: str | None = Field(default=None, description="商家/酒店/品牌名称")
+    fact_source_policy: str | None = Field(default=None, description="事实源策略")
 
 
 class ChatStartResponse(BaseModel):
@@ -10706,6 +13005,18 @@ async def chat_start(
     grade = ""
 
     gen_ctx = req.generate_context or {}
+    normalized_constraints = _normalize_user_constraints(
+        req.user_constraints or gen_ctx.get("user_constraints") or []
+    )
+    normalized_intent = _normalize_content_intent(req.content_intent or gen_ctx.get("content_intent"))
+    normalized_visibility = _normalize_merchant_visibility(req.merchant_visibility or gen_ctx.get("merchant_visibility"))
+    normalized_merchant = _normalize_merchant_name(req.merchant_name or gen_ctx.get("merchant_name"))
+    normalized_fact_policy = _normalize_fact_source_policy(req.fact_source_policy or gen_ctx.get("fact_source_policy"))
+    local_time = _local_time_with_user_constraints(req.local_time, normalized_constraints)
+    constraint_contract = _constraint_contract_payload(normalized_constraints)
+    intent_contract = _content_intent_contract_payload(
+        req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy
+    )
 
     # Use score from /generate result if provided (avoid redundant scoring)
     if gen_ctx.get("ces_percentile"):
@@ -10716,7 +13027,7 @@ async def chat_start(
             n = NoteInput(
                 note_title=req.note_title,
                 desc=_normalize_tags_for_scoring(req.note_body),
-                local_time=req.local_time,
+                local_time=local_time,
                 domain=req.domain,
             )
             sem_feats = await asyncio.to_thread(
@@ -10733,27 +13044,49 @@ async def chat_start(
 
     # 注入用户记忆（越用越懂你）
     mem_prompt = _memory.build_memory_prompt(effective_user_id) if effective_user_id else ""
+    inherited_fact_context = ""
+    try:
+        if isinstance(gen_ctx, dict):
+            inherited_fact_context = gen_ctx.get("fact_context", "") or _facts.format_fact_context(gen_ctx.get("fact_enrichment"))
+    except Exception:
+        inherited_fact_context = ""
+    session_generate_context = {
+        "cover_analysis":  (gen_ctx.get("cover_analysis") or "")[:200],
+        "expert_opinions": [
+            {"role": op.get("role",""), "raw": (op.get("raw",""))[:150]}
+            for op in (gen_ctx.get("expert_opinions") or [])[:4]
+        ],
+        "feature_hits":    gen_ctx.get("feature_hits") or {},
+        "title_variants":  (gen_ctx.get("title_variants") or [])[:3],
+        "user_constraints": normalized_constraints,
+        "constraint_contract": constraint_contract,
+        "content_intent": normalized_intent,
+        "merchant_visibility": normalized_visibility,
+        "merchant_name": normalized_merchant,
+        "fact_source_policy": normalized_fact_policy,
+        "intent_contract": intent_contract,
+    } if (gen_ctx or normalized_constraints or normalized_intent) else {}
 
     _chat_sessions[sid] = {
         "note_title":       req.note_title,
         "note_body":        req.note_body,
         "domain":           req.domain,
-        "local_time":       req.local_time,
+        "local_time":       local_time,
         "user_id":          effective_user_id,
         "current_score":    current_score,
         "messages":         [],
         "iteration_count":  0,
         "user_prefs":       user_prefs,
         "mem_prompt":       mem_prompt,        # 注入的用户记忆
-        "generate_context": {
-            "cover_analysis":  (gen_ctx.get("cover_analysis") or "")[:200],
-            "expert_opinions": [
-                {"role": op.get("role",""), "raw": (op.get("raw",""))[:150]}
-                for op in (gen_ctx.get("expert_opinions") or [])[:4]
-            ],
-            "feature_hits":    gen_ctx.get("feature_hits") or {},
-            "title_variants":  (gen_ctx.get("title_variants") or [])[:3],
-        } if gen_ctx else {},
+        "user_constraints": normalized_constraints,
+        "constraint_contract": constraint_contract,
+        "content_intent":    normalized_intent,
+        "merchant_visibility": normalized_visibility,
+        "merchant_name":     normalized_merchant,
+        "fact_source_policy": normalized_fact_policy,
+        "intent_contract":   intent_contract,
+        "fact_context":      inherited_fact_context,
+        "generate_context": session_generate_context,
     }
     # 立即持久化 session（即使还没消息，也让服务重启后能恢复）
     _persist_chat_session(sid)

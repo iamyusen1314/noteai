@@ -1090,6 +1090,75 @@ body {
 }
 .constraint-section h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 18px; display: flex; align-items: center; gap: 9px; }
 .constraint-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.intent-section {
+  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 22px;
+  margin: 28px 0 34px;
+}
+.intent-section h3 {
+  font-size: 16px;
+  font-weight: 760;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+.intent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.intent-card {
+  min-height: 116px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.025);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s, transform .2s;
+}
+.intent-card:hover { transform: translateY(-1px); border-color: rgba(123,97,255,0.36); }
+.intent-card.on { border-color: rgba(0,153,255,0.58); background: rgba(0,153,255,0.08); }
+.intent-card b { display: block; color: var(--text); font-size: 13px; margin: 8px 0 5px; }
+.intent-card span { display: block; color: var(--text-muted); font-size: 11px; line-height: 1.55; }
+.intent-card svg { width: 18px; height: 18px; color: var(--holo-mid); }
+.intent-card.on svg { color: var(--accent); }
+.intent-meta-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 260px);
+  gap: 14px;
+  margin-top: 16px;
+}
+.merchant-visibility { display: flex; flex-wrap: wrap; gap: 8px; }
+.merchant-vis {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-2);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.merchant-vis.on { border-color: rgba(123,97,255,0.55); background: rgba(123,97,255,0.12); color: var(--holo-mid); }
+.merchant-input {
+  width: 100%;
+  background: var(--surf-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.intent-hint { margin-top: 12px; color: var(--text-muted); font-size: 12px; line-height: 1.6; }
+@media (max-width: 760px) {
+  .intent-grid { grid-template-columns: 1fr 1fr; }
+  .intent-meta-row { grid-template-columns: 1fr; }
+}
 .c-tag {
   padding: 8px 18px; border-radius: 24px; font-size: 13px; font-weight: 500;
   cursor: pointer; border: 1px solid var(--border);
@@ -1249,8 +1318,148 @@ body {
 .progress-fill  { height: 100%; border-radius: 10px; background: linear-gradient(90deg,#FF6FD8,#7B61FF,#00D4FF); transition: width 0.8s cubic-bezier(0.16,1,0.3,1); width: 0%; }
 .progress-label { font-size: 14px; color: var(--text-2); margin-top: 10px; }
 .arena {
-  background: var(--surf-1); border-radius: 24px; padding: 40px; margin-bottom: 24px;
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(123,97,255,0.14), transparent 42%),
+    radial-gradient(circle at 12% 22%, rgba(0,212,255,0.10), transparent 38%),
+    var(--surf-1);
+  border-radius: 24px; padding: 34px; margin-bottom: 24px;
   border: 1px solid var(--border); box-shadow: var(--shadow-md); min-height: 340px;
+  overflow: hidden;
+}
+.live-3d-shell {
+  position: relative;
+  min-height: 246px;
+  margin-bottom: 30px;
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
+    radial-gradient(circle at 50% 45%, rgba(0,212,255,0.12), transparent 42%),
+    radial-gradient(circle at 78% 18%, rgba(255,111,216,0.10), transparent 34%);
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow: inset 0 0 80px rgba(0,0,0,0.18);
+  isolation: isolate;
+}
+.live-3d-shell::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, #000 0%, transparent 72%);
+  opacity: 0.42;
+  pointer-events: none;
+}
+.live-3d-shell::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.42), transparent 24%, transparent 76%, rgba(0,0,0,0.38));
+  pointer-events: none;
+}
+#live3dCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+}
+.live-3d-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: minmax(160px, 0.86fr) 1fr minmax(150px, 0.74fr);
+  align-items: end;
+  padding: 18px;
+}
+.live-3d-status {
+  align-self: start;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text);
+  text-shadow: 0 8px 22px rgba(0,0,0,0.35);
+}
+.live-3d-mode {
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: #8ff7ff;
+  border: 1px solid rgba(143,247,255,0.24);
+  background: rgba(0,212,255,0.08);
+  border-radius: 999px;
+  padding: 5px 9px;
+}
+.live-3d-stage {
+  max-width: 260px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.live-3d-score {
+  justify-self: end;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.live-3d-score-num {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 28px rgba(123,97,255,0.55);
+}
+.live-3d-score-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.live-3d-agent-labels {
+  position: absolute;
+  z-index: 3;
+  inset: 18px 20px 20px;
+  pointer-events: none;
+}
+.live-3d-agent-labels span {
+  position: absolute;
+  min-width: 54px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  color: rgba(255,255,255,0.66);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  padding: 4px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.09);
+  background: rgba(5,7,18,0.28);
+  backdrop-filter: blur(8px);
+  transition: color .28s ease, border-color .28s ease, background .28s ease, box-shadow .28s ease;
+}
+.live-3d-agent-labels span:nth-child(1){left:17%;top:36%}
+.live-3d-agent-labels span:nth-child(2){left:34%;top:76%}
+.live-3d-agent-labels span:nth-child(3){left:66%;top:76%}
+.live-3d-agent-labels span:nth-child(4){left:83%;top:36%}
+.live-3d-agent-labels span:nth-child(5){left:50%;top:18%}
+.live-3d-agent-labels span.active {
+  color: #fff;
+  border-color: rgba(143,247,255,0.36);
+  background: rgba(0,212,255,0.12);
+  box-shadow: 0 0 24px rgba(0,212,255,0.18);
+}
+.live-3d-shell[data-three-state="fallback"] #live3dCanvas { display:none; }
+.live-3d-shell[data-three-state="fallback"] {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(123,97,255,0.28), transparent 44%),
+    radial-gradient(circle at 20% 72%, rgba(0,212,255,0.16), transparent 36%),
+    rgba(255,255,255,0.035);
 }
 .arena-agents { display: flex; justify-content: space-around; align-items: flex-start; gap: 12px; margin-bottom: 36px; }
 .agent-card { text-align: center; flex: 1; max-width: 150px; position: relative; }
@@ -1348,10 +1557,27 @@ body {
 .report-card h2 { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
 #radarChart { width: 100%; height: 280px; }
 .dim-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.dim-label { font-size: 14px; font-weight: 600; color: var(--text-2); width: 84px; flex-shrink: 0; }
+.dim-label { font-size: 14px; font-weight: 600; color: var(--text-2); width: 108px; flex-shrink: 0; }
 .dim-bar-wrap { flex: 1; background: rgba(255,255,255,0.06); border-radius: 10px; height: 8px; overflow: hidden; }
 .dim-bar { height: 100%; border-radius: 10px; background: linear-gradient(90deg,#FF6FD8,#7B61FF,#00D4FF); transition: width 1.5s 0.3s cubic-bezier(0.16,1,0.3,1); }
 .dim-score { font-size: 14px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+.dim-row.report-locked .dim-label,
+.dim-row.report-locked .dim-score { color: var(--text-muted) !important; }
+.dim-row.report-locked .dim-bar { background: rgba(255,255,255,0.12); }
+.report-empty-note { font-size: 12px; color: var(--text-muted); line-height: 1.7; padding: 14px 16px; border: 1px dashed var(--border); border-radius: var(--r-sm); background: rgba(255,255,255,0.03); }
+.feature-schema-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.feature-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 16px; font-size: 11px; font-weight: 700; color: var(--holo-mid); background: rgba(123,97,255,0.10); border: 1px solid rgba(123,97,255,0.22); }
+.feature-group-list { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.feature-group-row { display: grid; grid-template-columns: minmax(88px,0.8fr) 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.feature-group-row:last-child { border-bottom: none; }
+.feature-group-name { font-size: 13px; color: var(--text); font-weight: 700; }
+.feature-group-detail { min-width: 0; }
+.feature-group-bar { height: 6px; border-radius: 8px; background: rgba(255,255,255,0.06); overflow: hidden; margin-bottom: 5px; }
+.feature-group-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg,#00D4FF,#7B61FF); transition: width 1s cubic-bezier(0.16,1,0.3,1); }
+.feature-group-hint { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feature-gap-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.feature-gap-item { padding: 10px 12px; border-radius: var(--r-sm); background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.18); font-size: 12px; line-height: 1.6; color: var(--text-2); }
+.feature-gap-item strong { color: var(--text); }
 .agent-result {
   padding: 18px 22px; border-radius: 16px;
   border: 1px solid var(--border); margin-bottom: 12px; background: var(--surf-2);
@@ -1365,9 +1591,34 @@ body {
 .conf-badge-high { background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
 .conf-badge-mid  { background: rgba(245,158,11,0.1); color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
 .agent-result-text { font-size: 13px; color: var(--text-2); line-height: 1.72; }
+.agent-section-title { margin-top: 12px; margin-bottom: 6px; font-size: 11px; font-weight: 800; color: var(--text); letter-spacing: .4px; }
+.agent-evidence-list, .agent-suggestion-list { margin: 0; padding-left: 17px; color: var(--text-2); font-size: 12px; line-height: 1.65; }
+.agent-evidence-list li, .agent-suggestion-list li { margin: 4px 0; }
+.agent-evidence-list li { padding-bottom: 2px; }
+.agent-source-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.agent-source-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  max-width: 100%; padding: 2px 7px; border-radius: 999px;
+  background: rgba(0,153,255,0.07); border: 1px solid rgba(0,153,255,0.18);
+  color: var(--accent); font-size: 10px; font-weight: 700;
+}
+.agent-source-chip.value { background: rgba(34,197,94,0.07); border-color: rgba(34,197,94,0.18); color: var(--success); }
+.agent-source-chip.benchmark { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); color: var(--warning); }
+.agent-source-chip.gap { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: #EF4444; }
+.agent-binding-badge { margin-left: 4px; font-size: 10px; font-weight: 800; color: var(--accent); padding: 2px 7px; border-radius: 999px; background: rgba(0,153,255,0.08); border: 1px solid rgba(0,153,255,0.18); }
+.agent-impact { margin-top: 10px; padding: 9px 11px; border-radius: var(--r-sm); background: rgba(123,97,255,0.08); border: 1px solid rgba(123,97,255,0.16); color: var(--text-2); font-size: 12px; line-height: 1.6; }
+.timing-source-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 12px; }
+.timing-source-meta span { padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-2); font-size: 11px; }
+.timing-source-meta span.warn { color: var(--warning); border-color: rgba(245,158,11,0.22); background: rgba(245,158,11,0.08); }
+.timing-evidence-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin: 12px 0; }
+.timing-evidence-item { padding: 10px 12px; border-radius: var(--r-sm); background: rgba(255,255,255,0.04); border: 1px solid var(--border); }
+.timing-evidence-item b { display:block; color: var(--text); font-size: 14px; margin-bottom: 3px; }
+.timing-evidence-item span { color: var(--text-muted); font-size: 11px; line-height: 1.4; }
+.timing-formula-note { margin-top: 10px; padding: 10px 12px; border-radius: var(--r-sm); background: rgba(0,153,255,0.06); border: 1px solid rgba(0,153,255,0.16); color: var(--text-2); font-size: 12px; line-height: 1.6; }
 .dispute-report-card {
   background: rgba(245,158,11,0.06); border: 1.5px solid rgba(245,158,11,0.2);
   border-radius: 18px; padding: 22px 26px; margin-bottom: 12px;
+  display: none;
 }
 .dispute-report-head { font-size: 14px; font-weight: 700; color: var(--warning); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 .dispute-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
@@ -1557,10 +1808,36 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   .upload-page,.live-page,.report-page,.profile-page{padding:48px 24px}
   .report-grid,.profile-grid{grid-template-columns:1fr}
   .rewrite-pair,.dispute-compare{grid-template-columns:1fr}
+  .timing-evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .arena{padding:22px}
+  .live-3d-shell{min-height:220px;border-radius:16px;margin-bottom:24px}
+  .live-3d-overlay{grid-template-columns:1fr auto;padding:14px}
+  .live-3d-score{grid-column:2;grid-row:1}
+  .live-3d-score-num{font-size:26px}
+  .live-3d-stage{max-width:190px;font-size:12px}
+  .live-3d-agent-labels{inset:14px}
+  .live-3d-agent-labels span{font-size:10px;min-width:44px;padding:3px 6px}
   .arena-agents{flex-wrap:wrap;justify-content:center}
   .monthly-insights{grid-template-columns:1fr}
   .profile-header{flex-direction:column;align-items:flex-start}
   .profile-stats{margin-left:0;gap:24px}
+}
+
+@media(max-width:560px){
+  .live-page{padding:38px 16px}
+  .live-header{margin-bottom:30px}
+  .arena{padding:16px;border-radius:18px}
+  .live-3d-shell{min-height:196px}
+  .live-3d-overlay{padding:12px}
+  .live-3d-mode{font-size:10px;padding:4px 7px}
+  .live-3d-stage{max-width:150px;font-size:11px}
+  .live-3d-score-num{font-size:22px}
+  .live-3d-agent-labels span:nth-child(1){left:16%;top:42%}
+  .live-3d-agent-labels span:nth-child(2){left:32%;top:79%}
+  .live-3d-agent-labels span:nth-child(3){left:68%;top:79%}
+  .live-3d-agent-labels span:nth-child(4){left:84%;top:42%}
+  .live-3d-agent-labels span:nth-child(5){left:50%;top:19%}
+  .timing-evidence-grid{grid-template-columns:1fr}
 }
 
 /* ═══════════════════════════════════════════════
@@ -1802,7 +2079,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('landing',this)">首页</button>
     <button class="nav-tab" onclick="showPage('upload',this)">开始诊断</button>
-    <button class="nav-tab" onclick="showPage('live',this)">实时诊断</button>
+    <button class="nav-tab" onclick="showPage('live',this)">处理进度</button>
     <button class="nav-tab" onclick="showPage('report',this)">诊断报告</button>
     <button class="nav-tab" onclick="showPage('profile',this)">成长档案</button>
     <button class="nav-tab" onclick="showPage('tech',this)">技术引擎</button>
@@ -2058,6 +2335,47 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       </div>
 
     </div><!-- /mode-switcher -->
+
+    <div class="intent-section" id="contentIntentSection">
+      <h3><i data-lucide="compass"></i>选择笔记类型 / 创作方向</h3>
+      <div class="intent-grid">
+        <div class="intent-card on" data-intent="真实种草型" onclick="selectContentIntent(this)">
+          <i data-lucide="sparkles"></i>
+          <b>真实种草型</b>
+          <span>体验、画面、适合人群，可不展示商家名。</span>
+        </div>
+        <div class="intent-card" data-intent="决策转化型" onclick="selectContentIntent(this)">
+          <i data-lucide="map-pin-check"></i>
+          <b>决策转化型</b>
+          <span>到店、预订、购买、跟练，优先使用真实事实源。</span>
+        </div>
+        <div class="intent-card" data-intent="测评避坑型" onclick="selectContentIntent(this)">
+          <i data-lucide="scale"></i>
+          <b>测评避坑型</b>
+          <span>优缺点、适合/不适合，证据不足不编负面。</span>
+        </div>
+        <div class="intent-card" data-intent="清单攻略型" onclick="selectContentIntent(this)">
+          <i data-lucide="list-checks"></i>
+          <b>清单攻略型</b>
+          <span>多图、多产品、多菜品覆盖，强调收藏价值。</span>
+        </div>
+      </div>
+      <div class="intent-meta-row">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:8px">商家/品牌展示策略</div>
+          <div class="merchant-visibility">
+            <button type="button" class="merchant-vis on" data-visibility="auto" onclick="selectMerchantVisibility(this)">AI识别后决定</button>
+            <button type="button" class="merchant-vis" data-visibility="show" onclick="selectMerchantVisibility(this)">展示商家</button>
+            <button type="button" class="merchant-vis" data-visibility="hide" onclick="selectMerchantVisibility(this)">不展示商家</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:8px">店名/酒店名/品牌名</div>
+          <input id="merchantNameInput" class="merchant-input" placeholder="选填，决策型建议填写">
+        </div>
+      </div>
+      <div class="intent-hint" id="intentHint">真实种草型会优先写体验和画面感；如果没有识别到明确商家，不会硬塞地址、人均、营业时间。</div>
+    </div>
 
     <!-- ══════════════════════════════════════════
          诊断区域（蓝色体系）
@@ -2507,7 +2825,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div><!-- /section-generate -->
 
     <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:16px">
-      免费用户每月 5 次 · <a href="#" style="color:var(--holo-mid)">升级 Pro 获得无限次使用</a>
+      免费用户每月含 12 积分，爆文生成/诊断/重写统一按积分扣除 · <a href="#" onclick="showPage('pricing');return false" style="color:var(--holo-mid)">查看套餐与积分</a>
     </p>
 
   </div>
@@ -2519,12 +2837,34 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 <div class="page" id="page-live">
   <div class="live-page">
     <div class="live-header">
-      <h1><i data-lucide="activity"></i>AI 专家会诊进行中</h1>
+      <h1><i data-lucide="activity"></i>AI 处理进度</h1>
       <div class="progress-track"><div class="progress-fill" id="mainProgress"></div></div>
       <div class="progress-label" id="progressLabel">正在进行 V0.4 复合质量评分…</div>
     </div>
 
     <div class="arena" id="arena">
+      <div class="live-3d-shell" id="live3dShell" data-three-state="idle">
+        <canvas id="live3dCanvas" aria-hidden="true"></canvas>
+        <div class="live-3d-overlay">
+          <div class="live-3d-status">
+            <div class="live-3d-mode" id="live3dMode">AI 诊断</div>
+            <div class="live-3d-stage" id="live3dStage">等待真实任务事件</div>
+          </div>
+          <div></div>
+          <div class="live-3d-score">
+            <div class="live-3d-score-num" id="live3dScore">--</div>
+            <div class="live-3d-score-label">V0.4</div>
+          </div>
+        </div>
+        <div class="live-3d-agent-labels" id="live3dLabels">
+          <span data-live-agent="0">内容</span>
+          <span data-live-agent="1">视觉</span>
+          <span data-live-agent="2">增长</span>
+          <span data-live-agent="3">用户</span>
+          <span data-live-agent="4">仲裁</span>
+        </div>
+      </div>
+
       <div class="arena-agents">
         <div class="agent-card">
           <div class="agent-avatar" id="av0" style="background:rgba(245,158,11,0.12)"><i data-lucide="file-text" style="color:#F59E0B"></i></div>
@@ -2580,7 +2920,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div>
 
     <div style="text-align:center;margin-top:24px">
-      <button class="btn btn-ghost" onclick="showPage('report')">跳过动画，直接查看报告 →</button>
+      <button class="btn btn-ghost" onclick="showPage('report')">直接查看报告 →</button>
     </div>
   </div>
 </div>
@@ -2647,7 +2987,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           </svg>
           <div class="score-ring-num" id="scoreRingNum">--</div>
         </div>
-        <div style="font-size:12px;color:var(--text-2);text-align:right">综合评分<br><span id="gradeText" style="color:var(--text-muted);font-weight:700">等待诊断…</span><div id="timingCoefBadge" style="display:none;margin-top:6px;font-size:11px;color:var(--text-2)">市场时机 <span id="timingCoefSpan" style="font-weight:700">×1.00</span></div></div>
+        <div style="font-size:12px;color:var(--text-2);text-align:right">综合评分<br><span id="gradeText" style="color:var(--text-muted);font-weight:700">等待诊断…</span><div id="timingCoefBadge" style="display:none;margin-top:6px;font-size:11px;color:var(--text-2)">趋势参考 <span id="timingCoefSpan" style="font-weight:700">×1.00</span></div></div>
       </div>
     </div>
 
@@ -2679,18 +3019,21 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <!-- Dimension bars -->
       <div class="report-card">
         <h2><i data-lucide="sliders-horizontal"></i>维度详情</h2>
-        <div class="dim-row"><span class="dim-label">标题吸引力</span><div class="dim-bar-wrap"><div class="dim-bar" id="dimBar0" style="width:0" data-w="0%"></div></div><span class="dim-score" id="dimScore0" style="color:var(--text-muted)">--</span></div>
-        <div class="dim-row"><span class="dim-label">视觉表现力</span><div class="dim-bar-wrap"><div class="dim-bar" id="dimBar1" style="width:0" data-w="0%"></div></div><span class="dim-score" id="dimScore1" style="color:var(--text-muted)">—</span></div>
-        <div id="visualUnlockHint" style="font-size:11px;color:var(--holo-mid);margin:-6px 0 10px 0;padding-left:2px">
-          <i data-lucide="image-plus" style="width:11px;height:11px;vertical-align:-1px;margin-right:3px"></i>上传封面图即可解锁视觉评分
+        <div id="dimensionRows">
+          <div class="report-empty-note">完成诊断后，将显示 V0.4 后端计算的真实维度分。</div>
         </div>
-        <div class="dim-row"><span class="dim-label">内容质量</span><div class="dim-bar-wrap"><div class="dim-bar" id="dimBar2" style="width:0" data-w="0%"></div></div><span class="dim-score" id="dimScore2" style="color:var(--text-muted)">--</span></div>
-        <div class="dim-row"><span class="dim-label">标签策略</span><div class="dim-bar-wrap"><div class="dim-bar" id="dimBar3" style="width:0" data-w="0%"></div></div><span class="dim-score" id="dimScore3" style="color:var(--text-muted)">--</span></div>
-        <div class="dim-row"><span class="dim-label">发布策略</span><div class="dim-bar-wrap"><div class="dim-bar" id="dimBar4" style="width:0" data-w="0%"></div></div><span class="dim-score" id="dimScore4" style="color:var(--text-muted)">--</span></div>
         <div class="divider"></div>
-        <div style="font-size:12px;color:var(--text-2);line-height:1.6">
-          <span style="color:var(--warning);font-weight:700">⚠ 致命弱点：</span>发布时间严重拖累曝光。美食品类最优时段为 <strong style="color:var(--text)">11:30-12:00</strong> 和 <strong style="color:var(--text)">17:30-18:30</strong>，你选择的 22:30 处于低谷期，互动率约为最优时段的 <strong style="color:var(--error)">33%</strong>。
+        <div id="dimensionWeakTip" style="font-size:12px;color:var(--text-2);line-height:1.6">
+          主要弱项会根据本次诊断的真实维度自动生成。
         </div>
+      </div>
+
+      <!-- V0.4 feature coverage -->
+      <div class="report-card" id="featureSchemaCard" style="display:none">
+        <h2><i data-lucide="scan-search"></i>V0.4 特征覆盖</h2>
+        <div id="featureSchemaMeta" class="feature-schema-meta"></div>
+        <div id="featureGroupList" class="feature-group-list"></div>
+        <div id="featureGapList" class="feature-gap-list"></div>
       </div>
 
       <!-- Agent results -->
@@ -2704,67 +3047,16 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div id="aiDiagnosisText"></div>
         </div>
         <div id="agentResultsList">
-          <div class="agent-result">
-            <div class="agent-result-head">
-              <div class="agent-mini-avatar" style="background:rgba(245,158,11,0.12)"><i data-lucide="file-text" style="color:#F59E0B"></i></div>
-              <span class="agent-result-name">内容分析师</span>
-              <span class="agent-conf-badge conf-badge-high">置信度 0.88</span>
-            </div>
-            <div class="agent-result-text">正文信息密度高（赛道 Top 15%），步骤结构清晰，关键词覆盖良好。标题数字使用得当，但缺乏情绪感染词，建议在标题末尾增加情绪钩子。</div>
-          </div>
-          <div class="agent-result">
-            <div class="agent-result-head">
-              <div class="agent-mini-avatar" style="background:rgba(0,153,255,0.12)"><i data-lucide="eye" style="color:#0099FF"></i></div>
-              <span class="agent-result-name">视觉诊断师</span>
-              <span class="agent-conf-badge conf-badge-high">置信度 0.82</span>
-            </div>
-            <div class="agent-result-text">封面有人物出镜（+），但情绪表情不够强烈，整体色温偏冷，与「酸汤」热辣感不符。建议提亮暖色调，增大食物特写比例（目前人物占 60% 过多）。</div>
-          </div>
-          <div class="agent-result">
-            <div class="agent-result-head">
-              <div class="agent-mini-avatar" style="background:rgba(34,197,94,0.12)"><i data-lucide="trending-up" style="color:#22C55E"></i></div>
-              <span class="agent-result-name">增长策略师</span>
-              <span class="agent-conf-badge conf-badge-mid">置信度 0.75</span>
-            </div>
-            <div class="agent-result-text">AI 正在分析，数据加载后将显示具体建议…</div>
-          </div>
-          <div class="agent-result">
-            <div class="agent-result-head">
-              <div class="agent-mini-avatar" style="background:rgba(123,97,255,0.12)"><i data-lucide="users" style="color:#7B61FF"></i></div>
-              <span class="agent-result-name">用户模拟器</span>
-              <span class="agent-conf-badge conf-badge-high">置信度 0.84</span>
-            </div>
-            <div class="agent-result-text">目标受众为家庭主妇/烹饪爱好者，对「详细步骤」敏感度高。预测评论区以「求步骤」「哪里买食材」为主。建议正文明确标注「文末有完整购物清单」增加收藏动机。</div>
-          </div>
+          <div class="report-empty-note">完成诊断后，将显示真实 Agent 诊断意见。</div>
         </div>
-        <div id="disputeReportCard" class="dispute-report-card">
-          <div class="dispute-report-head"><i data-lucide="alert-triangle"></i> 专家分歧 · 封面优化优先级</div>
-          <div style="font-size:12px;color:var(--text-2);line-height:1.6">视觉诊断师与增长策略师对「优化优先级」存在分歧：</div>
-          <div class="dispute-compare">
-            <div class="dispute-side">
-              <div class="dispute-side-label" style="color:var(--accent)"><i data-lucide="eye"></i> 视觉诊断师（0.82）</div>
-              <div class="dispute-side-text">封面优化优先级最高，封面点击率直接决定曝光转化，当前版本损失约 40% 潜在点击。</div>
-            </div>
-            <div class="dispute-side">
-              <div class="dispute-side-label" style="color:var(--warning)"><i data-lucide="trending-up"></i> 增长策略师（0.75）</div>
-              <div class="dispute-side-text">发布时间问题更紧迫，再好的封面在 22:30 也只有 1/3 的受众，应先修正时间再评估封面。</div>
-            </div>
-          </div>
-          <div style="font-size:12px;color:var(--holo-mid);margin-top:10px;font-weight:600">
-            <i data-lucide="scale" style="width:13px;height:13px;vertical-align:-2px;margin-right:3px"></i>仲裁者建议：两者都是高优先级，建议同步执行——明天 11:30 发布改版封面的重发版本。
-          </div>
-        </div>
+        <div id="disputeReportCard" class="dispute-report-card"></div>
       </div>
 
       <!-- Action list -->
       <div class="report-card">
         <h2><i data-lucide="list-checks"></i>行动优先级清单</h2>
         <ul class="action-list" id="actionList">
-          <li class="action-item"><div class="action-num">1</div><div class="action-text"><span class="priority-badge p-high"><span class="dot dot-red"></span>高优</span><strong>立即修改发布时间</strong>——明天 11:30 重发，预计互动率提升 2-3 倍，无需改任何内容</div></li>
-          <li class="action-item"><div class="action-num">2</div><div class="action-text"><span class="priority-badge p-high"><span class="dot dot-red"></span>高优</span><strong>补充标签至 8-10 个</strong>——加入「#家常菜食谱」「#周末下厨」「#新手必会」，覆盖长尾搜索</div></li>
-          <li class="action-item"><div class="action-num">3</div><div class="action-text"><span class="priority-badge p-mid"><span class="dot dot-amber"></span>中优</span><strong>封面暖色调处理</strong>——增加食物特写比例至 50%，提高色彩饱和度，强化食欲感</div></li>
-          <li class="action-item"><div class="action-num">4</div><div class="action-text"><span class="priority-badge p-mid"><span class="dot dot-amber"></span>中优</span><strong>正文末尾添加「购物清单」模块</strong>——触发「收藏」行为，预测收藏率提升 35%</div></li>
-          <li class="action-item"><div class="action-num">5</div><div class="action-text"><span class="priority-badge" style="background:rgba(0,153,255,0.1);color:var(--accent)"><span class="dot dot-blue"></span>低优</span><strong>标题增加情绪词</strong>——将「附详细步骤」改为「零基础必看」，情绪感染力更强</div></li>
+          <li class="report-empty-note">完成诊断后，将显示模型识别的真实优先级清单。</li>
         </ul>
       </div>
     </div>
@@ -2773,13 +3065,16 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div id="marketTimingCard" style="display:block;background:rgba(123,97,255,0.07);border:1px solid rgba(123,97,255,0.18);border-radius:var(--r-md);padding:18px 22px;margin-bottom:28px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <i data-lucide="trending-up" style="color:var(--holo-mid);width:16px;height:16px;flex-shrink:0"></i>
-        <span style="font-size:14px;font-weight:700;color:var(--text)">市场时机分析</span>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">市场时机证据</span>
         <span id="timingCoefChip" style="margin-left:auto;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:var(--success)">×1.00</span>
       </div>
       <!-- 默认显示占位说明，有真实数据时由 populateReport() 覆盖 -->
       <p id="timingNoteText" style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:12px">
-        <span style="color:var(--text-muted);font-size:12px">笔记内容尚未匹配到当前热词库（7408条热词实时更新）。提交前在标题/正文中融入当下热门话题词汇（如地名+场景词），可显著提升市场时机分值。</span>
+        <span style="color:var(--text-muted);font-size:12px">暂无可解释的热词证据。系统会在有热词样本时展示来源、采集时间、命中词和趋势指标。</span>
       </p>
+      <div id="timingSourceMeta" class="timing-source-meta"></div>
+      <div id="timingEvidenceGrid" class="timing-evidence-grid"></div>
+      <div id="timingFormulaNote" class="timing-formula-note" style="display:none"></div>
       <!-- 命中热词 -->
       <div id="timingMatchedRow" style="display:none;margin-bottom:10px">
         <div style="font-size:11px;font-weight:600;color:var(--success);margin-bottom:6px;letter-spacing:0.3px">
@@ -2790,7 +3085,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <!-- 建议补充热词 -->
       <div id="timingSuggestRow" style="display:none">
         <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px;letter-spacing:0.3px">
-          <i data-lucide="plus-circle" style="width:11px;height:11px;vertical-align:-1px;margin-right:3px"></i>建议补充热词 · 加入标题或话题标签可提升时机评分
+          <i data-lucide="plus-circle" style="width:11px;height:11px;vertical-align:-1px;margin-right:3px"></i>建议补充热词 · 仅作趋势参考，必须自然相关
         </div>
         <div id="timingSuggestChips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
@@ -2990,13 +3285,13 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
            border-radius:var(--r-md);padding:18px 22px;margin-bottom:20px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <i data-lucide="trending-up" style="color:var(--holo-mid);width:16px;height:16px;flex-shrink:0"></i>
-          <span style="font-size:14px;font-weight:700;color:var(--text)">内容时机分析</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text)">内容时机证据</span>
           <span id="genTimingCoef" style="margin-left:auto;padding:3px 10px;border-radius:20px;font-size:12px;
                 font-weight:700;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:var(--success)">×1.00</span>
         </div>
         <!-- 默认占位，有数据时由 populateGenerateReport() 覆盖 -->
         <p id="genTimingNote" style="font-size:13px;color:var(--text-2);line-height:1.7">
-          <span style="color:var(--text-muted);font-size:12px">笔记内容尚未匹配热词库，市场时机按中性系数×1.00计算。在 Brief 中加入热门话题词可提升时机分。</span>
+          <span style="color:var(--text-muted);font-size:12px">暂无可解释的热词证据。若使用热词建议，必须和内容真实相关，不能硬塞。</span>
         </p>
         <div id="genTimingSuggest" style="display:none;margin-top:10px">
           <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px">建议补充热词</div>
@@ -3165,14 +3460,18 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <!-- 套餐信息 -->
         <div id="profile-plan-info" style="margin-bottom:16px"><div style="color:var(--text-muted);font-size:13px">加载中…</div></div>
 
-        <!-- 配额进度条（仅付费操作） -->
+        <!-- 月度积分进度与功能扣分标准 -->
         <div id="profile-quota-bars" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
 
         <!-- 本月总消耗摘要 -->
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px;background:var(--surf-2);border-radius:12px;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:14px;background:var(--surf-2);border-radius:12px;margin-bottom:12px">
           <div style="text-align:center">
             <div id="profile-cost-total" style="font-size:18px;font-weight:800;color:var(--text)">–</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px">本月 API 成本</div>
+          </div>
+          <div style="text-align:center">
+            <div id="profile-token-total" style="font-size:18px;font-weight:800;color:var(--info)">–</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">本月 Tokens</div>
           </div>
           <div style="text-align:center">
             <div id="profile-credits-used-total" style="font-size:18px;font-weight:800;color:var(--holo-mid)">–</div>
@@ -3180,7 +3479,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           </div>
           <div style="text-align:center">
             <div id="profile-credits-bal" style="font-size:18px;font-weight:800;color:var(--success)">–</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">积分余额</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">可用积分</div>
           </div>
         </div>
 
@@ -3221,7 +3520,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <h1 class="tech-hero-title fade-up">
         <span class="holo">V0.4 复合质量引擎</span>
       </h1>
-      <p class="tech-hero-sub fade-up">从标题心理学到封面视觉，从市场时机到 AI 语义深度<br>每一个维度都在为你的爆款精准打分</p>
+      <p class="tech-hero-sub fade-up">从标题心理学到封面视觉，从趋势参考到 AI 语义深度<br>每一个维度都在为内容交付质量提供可解释证据</p>
       <div class="tech-stats fade-up">
         <div class="tech-stat-card">
           <div class="tech-stat-num" data-target="100000" data-suffix="+">0</div>
@@ -3293,7 +3592,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div>
 
     <div class="tech-dim-panel" id="tdim-2">
-      <div class="tech-group-label">市场时机特征 · 8 个特征 <span class="tech-paper-badge" style="background:rgba(245,158,11,0.1);color:#F59E0B;border-color:rgba(245,158,11,0.2)">每小时自动刷新</span></div>
+      <div class="tech-group-label">趋势参考特征 · 8 个特征 <span class="tech-paper-badge" style="background:rgba(245,158,11,0.1);color:#F59E0B;border-color:rgba(245,158,11,0.2)">按采集任务更新</span></div>
       <div class="feat-grid" id="fg-timing"></div>
     </div>
 
@@ -3506,80 +3805,123 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
      PAGE — PRICING  定价页
 ═══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-pricing" style="padding-top:60px;min-height:100vh">
-  <div style="max-width:1000px;margin:0 auto;padding:48px 24px">
+  <div id="pricing-content" style="max-width:1000px;margin:0 auto;padding:48px 24px">
     <div style="text-align:center;margin-bottom:48px">
       <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">透明定价</div>
-      <h1 style="font-size:36px;font-weight:800;color:var(--text);margin-bottom:12px">为创作者设计的合理定价</h1>
-      <p style="font-size:16px;color:var(--text-2)">每次生成成本约 ¥0.15，我们做到让你用得起、用得好</p>
+      <h1 style="font-size:36px;font-weight:800;color:var(--text);margin-bottom:12px">为高质量生成设计的清晰定价</h1>
+      <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣本月套餐积分，不足部分再扣充值积分。规则公开，账单可查。</p>
     </div>
     <!-- 套餐卡片 -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:40px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">
       <!-- 免费版 -->
-      <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:20px;padding:28px 24px">
+      <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">免费版</div>
         <div style="font-size:38px;font-weight:800;color:var(--text);margin-bottom:4px">¥0</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px">永久免费</div>
-        <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:28px;font-size:13px;color:var(--text-2)">
-          <div><span style="color:var(--success);margin-right:6px">✓</span>AI深度诊断 <b>3次</b>/月</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>AI爆文生成 <b>1次</b>/月</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>对话重写 <b>3次</b>/月</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>无限对话反馈</div>
-          <div><span style="color:var(--text-muted);margin-right:6px">○</span><span style="color:var(--text-muted)">7天笔记存档</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">12积分/月</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
+          <div><span style="color:var(--success);margin-right:6px">✓</span>最多 AI诊断 <b>2次</b></div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>或爆文生成 <b>1次</b> + 截图 <b>8张</b></div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>7天笔记存档</div>
         </div>
         <button onclick="openAuthModal('register')" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);cursor:pointer;font-size:13px;font-weight:600">免费开始</button>
       </div>
-      <!-- 轻创作 Pro -->
-      <div style="background:linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06));border:1.5px solid rgba(123,97,255,0.35);border-radius:20px;padding:28px 24px;position:relative">
+      <!-- 创作者版 -->
+      <div style="background:linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06));border:1.5px solid rgba(123,97,255,0.35);border-radius:16px;padding:22px 18px;position:relative">
         <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">轻创作 Pro</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">创作者版</div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥99</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px">约¥3.3/天 · 月更博主首选</div>
-        <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:28px;font-size:13px;color:var(--text-2)">
-          <div><span style="color:var(--success);margin-right:6px">✓</span>AI深度诊断 <b>50次</b>/月</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>AI爆文生成 <b>20次</b>/月</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span><b>无限</b>对话重写</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>无限截图识别</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">260积分/月</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
+          <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断43次 / 爆文32次</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写86轮 / 截图520张</div>
+          <div><span style="color:var(--holo-mid);margin-right:6px">◆</span>参考组合：14诊断 + 20爆文 + 5重写 = 259积分</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>永久笔记存档</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>AI记忆学习偏好</div>
         </div>
         <button onclick="handleUpgrade('pro')" style="width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
       </div>
-      <!-- 专业 Pro+ -->
-      <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:20px;padding:28px 24px">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">专业 Pro+</div>
+      <!-- 成长版 -->
+      <div style="background:var(--surf-1);border:1px solid rgba(34,197,94,0.25);border-radius:16px;padding:22px 18px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#22C55E;text-transform:uppercase;margin-bottom:12px">成长版</div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥199</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px">职业博主 · 品牌团队</div>
-        <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:28px;font-size:13px;color:var(--text-2)">
-          <div><span style="color:var(--success);margin-right:6px">✓</span>AI深度诊断 <b>无限次</b></div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>AI爆文生成 <b>80次</b>/月</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>Pro 所有权益</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">560积分/月</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
+          <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断93次 / 爆文70次</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写186轮 / 截图1120张</div>
+          <div><span style="color:#22C55E;margin-right:6px">◆</span>参考组合：30诊断 + 45爆文 + 6重写 = 558积分</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>适合稳定更新账号</div>
+        </div>
+        <button onclick="handleUpgrade('growth')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(34,197,94,0.38);background:rgba(34,197,94,0.08);color:#22C55E;cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
+      </div>
+      <!-- 专业版 -->
+      <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">专业版</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥299</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">900积分/月</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
+          <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断150次 / 爆文112次</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写300轮 / 截图1800张</div>
+          <div><span style="color:#FFD700;margin-right:6px">◆</span>参考组合：50诊断 + 70爆文 + 13重写 = 899积分</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>优先响应队列</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>专属客服支持</div>
         </div>
         <button onclick="handleUpgrade('pro_plus')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(123,97,255,0.4);background:rgba(123,97,255,0.08);color:var(--holo-mid);cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
       </div>
+      <!-- 工作室版 -->
+      <div style="background:var(--surf-1);border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:22px 18px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#00D4FF;text-transform:uppercase;margin-bottom:12px">工作室版</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥399</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">1250积分/月</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
+          <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断208次 / 爆文156次</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写416轮 / 截图2500张</div>
+          <div><span style="color:#00D4FF;margin-right:6px">◆</span>参考组合：80诊断 + 90爆文 + 10重写 = 1230积分</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>多图深度分析额度更高</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>专属客服支持</div>
+        </div>
+        <button onclick="handleUpgrade('studio')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(0,212,255,0.4);background:rgba(0,212,255,0.08);color:#00D4FF;cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
+      </div>
     </div>
+    <div style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
+      <b style="color:var(--text)">如何理解“99元 / 260积分”：</b>260积分是本月可自由使用的创作额度，不绑定固定次数。可以全部用于 AI诊断，也可以混合用于爆文生成、对话重写和截图识别；每次扣多少，按下方标准执行。
+    </div>
+
+    <!-- 扣分标准 -->
+    <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap">
+        <div>
+          <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">功能扣分标准</h3>
+          <p style="font-size:13px;color:var(--text-2);margin:0">所有用户按同一标准扣分，不因套餐不同改变单次功能价格。</p>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">扣费顺序：月度积分 → 充值积分 → 余额不足提示</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">
+        <div style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:var(--holo-mid)">6积分</b><br><span style="color:var(--text)">AI深度诊断</span><br><span style="font-size:11px;color:var(--text-muted)">截图/手动/视频入口进入完整诊断链路</span></div>
+        <div style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#FF6FD8">8积分</b><br><span style="color:var(--text)">AI爆文生成</span><br><span style="font-size:11px;color:var(--text-muted)">V0.4规划、生成、评分与二修链路</span></div>
+        <div style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#00D4FF">3积分</b><br><span style="color:var(--text)">对话深度重写</span><br><span style="font-size:11px;color:var(--text-muted)">进入高质量优化/改稿模式时扣除</span></div>
+        <div style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#22C55E">0.5积分</b><br><span style="color:var(--text)">截图识别</span><br><span style="font-size:11px;color:var(--text-muted)">独立截图 OCR/识别功能按张扣除</span></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
+        视频理解当前不单独扣充值积分，随 AI诊断/爆文生成主流程记录平台成本；如果未来按时长单独计费，会在上传前明示并二次确认。
+      </div>
+    </div>
+
     <!-- 积分充值 -->
     <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
-      <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">💎 积分按需充值</h3>
-      <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">套餐用完后购买积分继续使用。1积分 = ¥0.3</p>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-        <div onclick="handleTopup(50,12.9)" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:20px;font-weight:800;color:var(--text)">50积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥12.9</div><div style="font-size:11px;color:var(--text-muted)">约50次诊断</div></div>
-        <div onclick="handleTopup(150,36.9)" style="background:linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04));border:1px solid rgba(123,97,255,0.25);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
-          <div style="font-size:20px;font-weight:800;color:var(--text)">150积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥36.9</div><div style="font-size:11px;color:var(--text-muted)">推荐 · 最高性价比</div></div>
-        <div onclick="handleTopup(500,109)" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:20px;font-weight:800;color:var(--text)">500积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥109</div><div style="font-size:11px;color:var(--text-muted)">最划算</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:12px;text-align:center">
-        <div style="background:var(--surf-2);border-radius:8px;padding:8px"><b>1积分</b><br><span style="color:var(--text-muted)">AI深度诊断</span></div>
-        <div style="background:var(--surf-2);border-radius:8px;padding:8px"><b>2积分</b><br><span style="color:var(--text-muted)">AI爆文生成</span></div>
-        <div style="background:var(--surf-2);border-radius:8px;padding:8px"><b>0.5积分</b><br><span style="color:var(--text-muted)">对话重写</span></div>
-        <div style="background:var(--surf-2);border-radius:8px;padding:8px"><b style="color:var(--success)">免费</b><br><span style="color:var(--text-muted)">对话反馈</span></div>
+      <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。本月套餐积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+        <div onclick="handleTopup('starter')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:20px;font-weight:800;color:var(--text)">30积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥12</div><div style="font-size:11px;color:var(--text-muted)">约5次诊断 / 3次爆文</div></div>
+        <div onclick="handleTopup('creator')" style="background:linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04));border:1px solid rgba(123,97,255,0.25);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
+          <div style="font-size:20px;font-weight:800;color:var(--text)">100积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥39</div><div style="font-size:11px;color:var(--text-muted)">约16次诊断 / 12次爆文</div></div>
+        <div onclick="handleTopup('growth')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:20px;font-weight:800;color:var(--text)">300积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥109</div><div style="font-size:11px;color:var(--text-muted)">约50次诊断 / 37次爆文</div></div>
+        <div onclick="handleTopup('studio')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(0,212,255,0.5)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:20px;font-weight:800;color:var(--text)">800积分</div><div style="font-size:16px;font-weight:700;color:#00D4FF">¥279</div><div style="font-size:11px;color:var(--text-muted)">约133次诊断 / 100次爆文</div></div>
       </div>
     </div>
     <div style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
-      <b style="color:var(--text)">成本透明承诺</b>：每次生成爆文 API 成本约 ¥0.12，AI深度诊断约 ¥0.07。我们按市场公平定价。
+      <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按 Claude 美元账单、Kimi 人民币账单和真实 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
     </div>
   </div>
 </div><!-- /page-pricing -->
@@ -3807,7 +4149,7 @@ function showPage(name, tabEl) {
   if (name === 'live')    startLiveAnimation();
   if (name === 'report')  { initCharts(); initReportPage(); }
   if (name === 'profile') { initProfileCharts(); initProfilePage(); loadBillingPlan(); loadTrackingList(); }
-  if (name === 'pricing') { /* 静态页，无需初始化 */ }
+  if (name === 'pricing') { loadPricingConfig(); }
   if (name === 'landing') initHeroAnimation();
   if (name === 'tech')    initTechPage();
   if (name === 'chat')    initChatPage();
@@ -3819,6 +4161,126 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ── Pricing: backend-sourced public billing rules ───────────── */
+let _pricingConfigLoaded = false;
+function pricingEsc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+function pricingMax(credits, unitCost) {
+  credits = Number(credits || 0);
+  unitCost = Number(unitCost || 0);
+  return unitCost > 0 ? Math.floor(credits / unitCost) : 0;
+}
+function pricingTierAccent(tier) {
+  return {
+    free: 'var(--text-muted)',
+    pro: 'var(--holo-mid)',
+    growth: '#22C55E',
+    pro_plus: '#FFD700',
+    studio: '#00D4FF',
+  }[tier] || 'var(--holo-mid)';
+}
+function pricingTierOrder(tiers) {
+  const order = ['free', 'pro', 'growth', 'pro_plus', 'studio'];
+  return order.filter(k => tiers?.[k]).concat(Object.keys(tiers || {}).filter(k => !order.includes(k)));
+}
+async function loadPricingConfig(force = false) {
+  const root = document.getElementById('pricing-content');
+  if (!root || (_pricingConfigLoaded && !force)) return;
+  try {
+    const res = await fetch(API_AUTH + '/billing/tiers', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`billing tiers ${res.status}`);
+    const cfg = await res.json();
+    renderPricingConfig(cfg);
+    _pricingConfigLoaded = true;
+  } catch (err) {
+    console.warn('[pricing] use static fallback', err);
+  }
+}
+function renderPricingConfig(cfg) {
+  const root = document.getElementById('pricing-content');
+  if (!root) return;
+  const tiers = cfg.tiers || {};
+  const costs = cfg.credit_costs || {};
+  const ops = {
+    analyze: { label: 'AI深度诊断', unit: '次', desc: '截图/手动/视频入口进入完整诊断链路', color: 'var(--holo-mid)' },
+    generate: { label: 'AI爆文生成', unit: '次', desc: 'V0.4规划、生成、评分与二修链路', color: '#FF6FD8' },
+    chat_rewrite: { label: '对话深度重写', unit: '轮', desc: '进入高质量优化/改稿模式时扣除', color: '#00D4FF' },
+    screenshot: { label: '截图识别', unit: '张', desc: '独立截图 OCR/识别功能按张扣除', color: '#22C55E' },
+  };
+  const tierCards = pricingTierOrder(tiers).map(tier => {
+    const t = tiers[tier] || {};
+    const monthly = Number(t.monthly_credits || 0);
+    const price = Number(t.price || 0);
+    const accent = pricingTierAccent(tier);
+    const isRecommended = tier === 'pro';
+    const cAnalyze = pricingMax(monthly, costs.analyze);
+    const cGenerate = pricingMax(monthly, costs.generate);
+    const cRewrite = pricingMax(monthly, costs.chat_rewrite);
+    const cScreenshot = pricingMax(monthly, costs.screenshot);
+    const features = (t.features || []).slice(0, 3).map(f =>
+      `<div><span style="color:var(--success);margin-right:6px">✓</span>${pricingEsc(f)}</div>`
+    ).join('');
+    return `
+      <div style="background:${isRecommended ? 'linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06))' : 'var(--surf-1)'};border:${isRecommended ? '1.5px solid rgba(123,97,255,0.35)' : `1px solid ${tier === 'studio' ? 'rgba(0,212,255,0.25)' : 'var(--border)'}`};border-radius:16px;padding:22px 18px;position:relative">
+        ${isRecommended ? '<div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>' : ''}
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:${accent};text-transform:uppercase;margin-bottom:12px">${pricingEsc(t.name || tier)}</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥${price.toLocaleString()}</span><span style="font-size:13px;color:var(--text-muted)">${price > 0 ? '/月' : ''}</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly.toFixed(monthly % 1 ? 1 : 0)}积分/月</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
+          <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断${cAnalyze}次 / 爆文${cGenerate}次</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮 / 截图${cScreenshot}张</div>
+          ${features}
+        </div>
+        <button onclick="${tier === 'free' ? `openAuthModal('register')` : `handleUpgrade('${tier}')`}" style="width:100%;padding:11px;border-radius:12px;border:${isRecommended ? 'none' : `1px solid ${tier === 'free' ? 'var(--border)' : 'rgba(123,97,255,0.4)'}`};background:${isRecommended ? 'linear-gradient(135deg,#7B61FF,#FF6FD8)' : (tier === 'free' ? 'var(--surf-2)' : 'rgba(123,97,255,0.08)')};color:${isRecommended ? '#fff' : (tier === 'free' ? 'var(--text)' : accent)};cursor:pointer;font-size:13px;font-weight:700">${tier === 'free' ? '免费开始' : '立即订阅'}</button>
+      </div>`;
+  }).join('');
+  const opCards = Object.entries(ops).map(([key, op]) => `
+    <div style="background:var(--surf-2);border-radius:10px;padding:14px">
+      <b style="font-size:20px;color:${op.color}">${Number(costs[key] || 0)}积分</b><br>
+      <span style="color:var(--text)">${op.label}</span><br>
+      <span style="font-size:11px;color:var(--text-muted)">${op.desc}</span>
+    </div>`).join('');
+  const topups = (cfg.topup_packages || []).map(p => {
+    const credits = Number(p.credits || 0);
+    return `
+      <div onclick="handleTopup('${pricingEsc(p.id)}')" style="background:${p.recommended ? 'linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04))' : 'var(--surf-2)'};border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid ${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'};transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'}'">
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${credits.toFixed(credits % 1 ? 1 : 0)}积分</div>
+        <div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥${Number(p.price_rmb || 0).toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--text-muted)">约${pricingMax(credits, costs.analyze)}次诊断 / ${pricingMax(credits, costs.generate)}次爆文</div>
+      </div>`;
+  }).join('');
+  const pro = tiers.pro || {};
+  root.innerHTML = `
+    <div style="text-align:center;margin-bottom:48px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">透明定价</div>
+      <h1 style="font-size:36px;font-weight:800;color:var(--text);margin-bottom:12px">为高质量生成设计的清晰定价</h1>
+      <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣本月套餐积分，不足部分再扣充值积分。规则公开，账单可查。</p>
+      <div style="display:inline-flex;margin-top:12px;padding:5px 10px;border-radius:999px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.18);color:var(--success);font-size:11px;font-weight:800">已同步后端计费规则</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">${tierCards}</div>
+    <div style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
+      <b style="color:var(--text)">如何理解“${Number(pro.price || 99)}元 / ${Number(pro.monthly_credits || 260)}积分”：</b>${Number(pro.monthly_credits || 260)}积分是本月可自由使用的创作额度，不绑定固定次数。可以全部用于 AI诊断，也可以混合用于爆文生成、对话重写和截图识别；每次扣多少，按下方标准执行。
+    </div>
+    <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap">
+        <div><h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">功能扣分标准</h3><p style="font-size:13px;color:var(--text-2);margin:0">所有用户按同一标准扣分，不因套餐不同改变单次功能价格。</p></div>
+        <div style="font-size:12px;color:var(--text-muted)">${pricingEsc(cfg.credit_policy || '扣费顺序：月度积分 → 充值积分 → 余额不足提示')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">${opCards}</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">视频理解当前不单独扣充值积分，随 AI诊断/爆文生成主流程记录平台成本；如果未来按时长单独计费，会在上传前明示并二次确认。</div>
+    </div>
+    <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
+      <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。本月套餐积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">${topups}</div>
+    </div>
+    <div style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
+      <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按 Claude 美元账单、Kimi 人民币账单和真实 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
+    </div>`;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 /* ── Upload mode switcher ───────────────────────────────────── */
@@ -3858,11 +4320,76 @@ function selectType(el, type) {
   document.getElementById('video-diag-form').style.display = type === '视频上传'   ? 'block' : 'none';
 }
 
+function selectContentIntent(el) {
+  document.querySelectorAll('.intent-card').forEach(card => card.classList.remove('on'));
+  el.classList.add('on');
+  updateContentIntentHint();
+}
+
+function selectMerchantVisibility(el) {
+  document.querySelectorAll('.merchant-vis').forEach(btn => btn.classList.remove('on'));
+  el.classList.add('on');
+  updateContentIntentHint();
+}
+
+function getContentIntentPayload(source = null) {
+  const src = source || {};
+  const selectedIntent = document.querySelector('.intent-card.on')?.dataset.intent || '真实种草型';
+  const selectedVisibility = document.querySelector('.merchant-vis.on')?.dataset.visibility || 'auto';
+  const merchantName = (document.getElementById('merchantNameInput')?.value || '').trim();
+  return {
+    content_intent: src.content_intent || selectedIntent,
+    merchant_visibility: src.merchant_visibility || selectedVisibility,
+    merchant_name: src.merchant_name || merchantName || null,
+    fact_source_policy: src.fact_source_policy || 'auto',
+  };
+}
+
+function updateContentIntentHint() {
+  const intent = document.querySelector('.intent-card.on')?.dataset.intent || '真实种草型';
+  const visibility = document.querySelector('.merchant-vis.on')?.dataset.visibility || 'auto';
+  const hints = {
+    '真实种草型': '真实种草型会优先写体验和画面感；如果没有识别到明确商家，不会硬塞地址、人均、营业时间。',
+    '决策转化型': '决策转化型会优先查可用事实源。餐饮/本地生活建议补店名，高德可用于门店事实；酒旅会优先使用美团酒旅素材。',
+    '测评避坑型': '测评避坑型会写清适合/不适合和取舍边界；没有证据时不会编造差评、踩雷或夸张缺陷。',
+    '清单攻略型': '清单攻略型会要求多素材覆盖，适合多图、多产品、多菜品，不会只围绕第一张图。'
+  };
+  const visibilityText = visibility === 'show' ? '当前要求展示商家，识别不到名称时建议补充。'
+    : visibility === 'hide' ? '当前不展示商家，事实源不会强行补门店信息。'
+    : '当前由 AI 按素材判断是否展示商家。';
+  const hint = document.getElementById('intentHint');
+  if (hint) hint.textContent = `${hints[intent] || hints['真实种草型']} ${visibilityText}`;
+}
+
+function hasMerchantSignal(domain, title, text, merchantName) {
+  if ((merchantName || '').trim()) return true;
+  const src = `${title || ''}\n${text || ''}`;
+  if (/(店名|门店名|商家名|餐厅|酒店名|品牌名)[:：]\s*[^\n。；;，,]{2,40}/.test(src)) return true;
+  if ((domain || '') === '旅行') {
+    return /[\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(酒店|民宿|客栈|度假村|乐园|景区|营地)/.test(src);
+  }
+  return /[\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(旗舰店|总店|分店|万博店|广晟店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅)/.test(src);
+}
+
+function shouldAskMerchantBeforeRun(domain, title, text, payload) {
+  const d = domain || '美食';
+  if (!['美食', '旅行'].includes(d)) return false;
+  if (!payload || payload.merchant_visibility === 'hide') return false;
+  const needsFacts = payload.content_intent === '决策转化型' || payload.merchant_visibility === 'show';
+  return needsFacts && !hasMerchantSignal(d, title, text, payload.merchant_name);
+}
+
 /* ── 读取约束条件 tags ── */
 function getConstraintTags() {
   return Array.from(document.querySelectorAll('.c-tag.on'))
     .map(el => el.textContent.trim())
     .filter(Boolean);
+}
+
+function formatLocalTimeWithConstraints(constraints = getConstraintTags()) {
+  const base = formatLocalTime();
+  const fixed18 = (constraints || []).some(c => c.includes('固定发布时间') && c.includes('18'));
+  return fixed18 ? base.slice(0, 8) + '18' : base;
 }
 
 let _coverBase64    = null;   // 诊断封面（单张）
@@ -4105,13 +4632,21 @@ let _generateResult = null;
 let _diagnosePromise = null;
 let _isGenerateMode  = false;
 let _genStreamActive = false;
+let _diagnosisStreamActive = false;
 
 async function startGeneration() {
   const domain = document.getElementById('genDomain')?.value || '美食';
   const brief  = (document.getElementById('genBrief')?.value || '').trim() || null;
+  const constraints = getConstraintTags();
+  const intentPayload = getContentIntentPayload();
 
   if (_genCoverImages.length === 0 && !brief && !_genVideoFileId) {
     showToast('请上传素材图片/视频或填写创作简报');
+    return;
+  }
+  if (shouldAskMerchantBeforeRun(domain, '', brief || '', intentPayload)) {
+    showToast(domain === '旅行' ? '请先补充酒店名、目的地或行程主题，再生成决策型内容' : '请先补充店名或商场分店名，再生成到店决策型内容');
+    document.getElementById('merchantNameInput')?.focus();
     return;
   }
 
@@ -4132,16 +4667,18 @@ async function startGeneration() {
         body: JSON.stringify({
           domain,
           brief,
-          local_time: formatLocalTime(),
+          local_time: formatLocalTimeWithConstraints(constraints),
           cover_images: coverImages.length ? coverImages : null,
           cover_image:  coverImages.length ? coverImages[0] : null,
           video_file_id: _genVideoFileId || null,
+          user_constraints: constraints.length ? constraints : null,
+          ...intentPayload,
         }),
       });
       if (resp.status === 402) {
         const errData = await resp.json().catch(() => ({}));
         _generateResult = { _error: true, _quota: true };
-        showToast('❌ 爆文生成配额已用完，请升级套餐或充值积分');
+        showToast('爆文生成积分不足，请订阅套餐或充值积分');
         showQuotaExceededModal(errData.detail || errData);
         _resolveGen(); return;
       }
@@ -4173,6 +4710,14 @@ async function startGeneration() {
               _generateResult._domain     = domain;
               _generateResult._brief      = brief;
               _generateResult._imageCount = coverImages.length;
+              _generateResult.user_constraints = Array.isArray(ev.user_constraints) && ev.user_constraints.length
+                ? ev.user_constraints
+                : constraints;
+              Object.assign(_generateResult, intentPayload, {
+                content_intent: ev.content_intent || intentPayload.content_intent,
+                intent_contract: ev.intent_contract || null,
+                fact_source_decision: ev.fact_source_decision || null,
+              });
               // BUG1 FIX: 自动保存生成的笔记到笔记库
               autoSaveGeneratedNote(_generateResult);
               _resolveGen();
@@ -4198,7 +4743,7 @@ async function startGeneration() {
   })();
 
   showToast(`🪄 已发起生成（${coverImages.length} 张图），正在跳转…`);
-  setTimeout(() => showPage('live'), 800);
+  setTimeout(() => { if (_genStreamActive) showPage('live'); }, 800);
 }
 
 // keep legacy variable declaration removed (was re-declared below)
@@ -4290,6 +4835,8 @@ function _handleGenStreamEvent(ev) {
       break;
     }
     case 'stage': {
+      setLive3DMode(true);
+      if (ev.label || ev.progress) setLive3DProgress(ev.progress || 0, ev.label || '');
       // Clean up waiting banners when a new real stage begins
       if (ev.stage === 'p3' || ev.stage === 'p4') {
         const rl = document.getElementById('rateLimitBanner');
@@ -4334,12 +4881,14 @@ function _handleGenStreamEvent(ev) {
       const text = (ev.content || '') + (ev.detail ? '\n' + ev.detail : '');
       addBubble(ev.role || '专家', text.slice(0, 200), idx, 0, 0);
       agentDone(idx, '');
+      pulseLive3DAgent(idx, 'done');
       if (ev.progress) setProgress(ev.progress, '');
       break;
     }
     case 'pre_score': {
       const fixes = (ev.fixes || []).slice(0, 2).join('；');
       addBubble('仲裁专家', `草稿评分 ${ev.score} 分，修复重点：${fixes || '综合优化'}`, 4, 10, 12);
+      setLive3DScore(ev.score);
       setProgress(ev.progress || 58, `草稿评分 ${ev.score} 分，进入深度优化…`);
       stepDone(3); stepActive(4);
       break;
@@ -4371,15 +4920,24 @@ function _handleGenStreamEvent(ev) {
     case 'final_score': {
       agentDone(4, '1.0');
       addBubble('仲裁专家', `V0.4 模型复核：${ev.score} 分（${ev.grade}）`, 4, 10, 12);
+      setLive3DScore(ev.score);
       setProgress(ev.progress || 95, `评分 ${ev.score} 分，即将跳转…`);
       stepDone(6);
       break;
     }
     case 'error': {
       if (_genWaitInterval) { clearInterval(_genWaitInterval); _genWaitInterval = null; }
-      const errMsg = ev.message || 'AI 生成失败，请稍后重试';
+      const quotaDetail = ev.status_code === 402 ? normalizeQuotaDetail(ev.detail || ev.message || ev) : null;
+      const errMsg = quotaDetail
+        ? (quotaDetail.message || `${OP_NAMES[quotaDetail.operation] || 'AI爆文生成'}积分不足`)
+        : (ev.message || 'AI 生成失败，请稍后重试');
       setProgress(0, '⚠ ' + errMsg);
       addBubble('系统', errMsg, 4, 10, 80);
+      if (quotaDetail) {
+        showQuotaExceededModal(quotaDetail);
+        showToast(`⚠ ${quotaDetail.op_label || OP_NAMES[quotaDetail.operation] || 'AI爆文生成'}积分不足，请订阅套餐或充值积分`);
+        break;
+      }
       showToast('⚠ ' + errMsg);
       // Navigate to report after a short delay to show the error state
       setTimeout(async () => { showPage('report'); try { if (_diagnosePromise) await _diagnosePromise; } catch(e) {} await loadDiagnosisHistory(true); const _autoId = _diagnoseResult?.diagnosis_id || document.querySelector('[id^="diag-card-"]')?.id?.replace('diag-card-',''); if(_autoId) openDiagDetail(_autoId); else { _isGenerateMode = false; await populateReport(); } }, 2000);
@@ -4391,9 +4949,138 @@ function _handleGenStreamEvent(ev) {
       const tl7dot = document.getElementById('tl7')?.querySelector('.tl-dot');
       if (tl7dot) tl7dot.textContent = '✓';
       setProgress(100, '生成完成！');
+      completeLive3D();
       setTimeout(() => {
         showToast('✅ 爆文生成完成！正在跳转至报告…');
         setTimeout(async () => { showPage('report'); try { if (_diagnosePromise) await _diagnosePromise; } catch(e) {} await loadDiagnosisHistory(true); const _autoId = _diagnoseResult?.diagnosis_id || document.querySelector('[id^="diag-card-"]')?.id?.replace('diag-card-',''); if(_autoId) openDiagDetail(_autoId); else { _isGenerateMode = false; await populateReport(); } }, 1200);
+      }, 600);
+      break;
+    }
+  }
+}
+
+
+function _driveLiveTimeline(stepIdx) {
+  if (typeof stepIdx !== 'number') return;
+  for (let i = 0; i < stepIdx; i++) stepDone(i);
+  stepActive(stepIdx);
+}
+
+function _handleAnalyzeStreamEvent(ev) {
+  setLive3DMode(false);
+  switch (ev.type) {
+    case 'stage': {
+      if (ev.progress) setProgress(ev.progress, ev.label || 'AI 诊断处理中…');
+      const map = {
+        accepted: 0,
+        cover: 1,
+        video: 1,
+        extra_images: 1,
+        semantic: 1,
+        agents: 2,
+        arbitrate: 5,
+        plan_body_1: 6,
+        plan_body_2: 6,
+        plan_body_3: 6,
+      };
+      const si = map[ev.stage];
+      if (si !== undefined) _driveLiveTimeline(si);
+      if (ev.stage === 'agents') {
+        for (let i = 0; i < 4; i++) agentThink(i);
+      }
+      if (ev.stage === 'arbitrate') {
+        for (let i = 0; i < 4; i++) document.getElementById('av'+i)?.classList.remove('thinking','dispute');
+        agentArb(4);
+      }
+      break;
+    }
+    case 'fact_enrichment': {
+      const provider = ev.provider ? String(ev.provider).toUpperCase() : '事实源';
+      const facts = ev.facts || {};
+      const pieces = [];
+      if (facts.name) pieces.push(facts.name);
+      if (facts.rating) pieces.push(`评分 ${facts.rating}`);
+      if (facts.avg_price) pieces.push(`人均 ${facts.avg_price}`);
+      if (facts.business_hours) pieces.push(`营业 ${facts.business_hours}`);
+      addBubble('事实源', `${provider} 已返回真实素材：${pieces.join('；') || '已补充可核验信息'}`, 1, 0, 0);
+      pulseLive3DAgent(1, 'thinking');
+      if (ev.progress) setProgress(ev.progress, '事实源信息已接入诊断上下文');
+      break;
+    }
+    case 'diagnosis_score': {
+      stepDone(1); stepActive(2);
+      setProgress(ev.progress || 28, `V0.4 初评分 ${ev.score} 分（${ev.grade || '待评估'}）`);
+      setLive3DScore(ev.score);
+      addBubble('V0.4 评分器', `当前内容初评分 ${ev.score} 分，接下来由多 agent 判断具体可改方向。`, 4, 0, 0);
+      break;
+    }
+    case 'expert_opinion': {
+      const idx = Number.isInteger(ev.agent_idx) ? ev.agent_idx : 0;
+      const detail = ev.detail ? '\n' + ev.detail : '';
+      addBubble(ev.role || '诊断专家', ((ev.content || '') + detail).slice(0, 280), idx, 0, 0);
+      agentDone(idx, ev.confidence || '');
+      if (ev.progress) setProgress(ev.progress, `${ev.role || '专家'}已完成真实分析`);
+      break;
+    }
+    case 'diagnosis_titles': {
+      const titles = (ev.titles || []).filter(Boolean);
+      if (titles.length) {
+        addBubble('仲裁专家', '三条方向标题已生成：\n' + titles.map((t, i) => `${i + 1}. ${t}`).join('\n'), 4, 0, 0);
+      }
+      pulseLive3DAgent(4, 'arbiter');
+      if (ev.progress) setProgress(ev.progress, '标题方向已生成，正在写对应正文…');
+      break;
+    }
+    case 'diagnosis_plan': {
+      const label = `方案${(ev.index || 0) + 1} · ${ev.style || '正文'}`;
+      addBubble(label, `${ev.title || ''}\n${ev.body_preview || '正文生成完成，等待质量复核。'}`.trim(), 4, 0, 0);
+      pulseLive3DAgent(4, 'arbiter');
+      if (ev.progress) setProgress(ev.progress, `${label} 已生成`);
+      break;
+    }
+    case 'diagnosis_plan_scored': {
+      const scoreText = ev.score == null ? '待复核' : `${ev.score} 分`;
+      const issues = (ev.issues || []).slice(0, 2).join('；');
+      addBubble('质量复核', `${ev.title || '方案'}：${scoreText}${issues ? '\n需关注：' + issues : '\n已通过交付复核'}`, 4, 0, 0);
+      if (ev.score != null) setLive3DScore(ev.score);
+      if (ev.progress) setProgress(ev.progress, '方案质量复核中…');
+      break;
+    }
+    case 'error': {
+      _diagnosisStreamActive = false;
+      const quotaDetail = ev.status_code === 402 ? normalizeQuotaDetail(ev.detail || ev.message || ev) : null;
+      const errMsg = quotaDetail
+        ? (quotaDetail.message || `${OP_NAMES[quotaDetail.operation] || 'AI深度诊断'}积分不足`)
+        : (ev.message || 'AI 诊断失败，请稍后重试');
+      setProgress(0, '⚠ ' + errMsg);
+      addBubble('系统', errMsg, 4, 0, 0);
+      if (ev.status_code === 401) openAuthModal('login');
+      if (quotaDetail) {
+        showQuotaExceededModal(quotaDetail);
+        showToast(`⚠ ${quotaDetail.op_label || OP_NAMES[quotaDetail.operation] || 'AI深度诊断'}积分不足，请订阅套餐或充值积分`);
+      } else {
+        showToast('⚠ ' + errMsg);
+      }
+      break;
+    }
+    case 'complete': {
+      _diagnosisStreamActive = false;
+      for (let i = 0; i < 8; i++) stepDone(i);
+      const tl7dot = document.getElementById('tl7')?.querySelector('.tl-dot');
+      if (tl7dot) tl7dot.textContent = '✓';
+      setProgress(100, '诊断完成！');
+      agentDone(4, '1.0');
+      completeLive3D();
+      setTimeout(() => {
+        showToast('✅ 诊断完成！正在跳转至报告…');
+        setTimeout(async () => {
+          showPage('report');
+          try { if (_diagnosePromise) await _diagnosePromise; } catch(e) {}
+          await loadDiagnosisHistory(true);
+          const _autoId = _diagnoseResult?.diagnosis_id || document.querySelector('[id^="diag-card-"]')?.id?.replace('diag-card-','');
+          if (_autoId) openDiagDetail(_autoId);
+          else { _isGenerateMode = false; await populateReport(); }
+        }, 1200);
       }, 600);
       break;
     }
@@ -4429,14 +5116,13 @@ function formatLocalTime() {
   return `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}`;
 }
 
-let _quickDiagnose = null;  // /diagnose 快速结果，供动画气泡使用
-
 async function startDiagnosis() {
   _isGenerateMode = false;
   const selectedLabel = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
 
   // ── 读取约束条件（对所有模式生效）──
   const constraints = getConstraintTags();  // e.g. ["不改标题","目标：带货"]
+  const intentPayload = getContentIntentPayload();
   const authH = authHeader();
 
   let title='', desc='', domain='美食', coverB64=null, extraImages=[];
@@ -4452,14 +5138,32 @@ async function startDiagnosis() {
     extraImages = _diagImages.slice(0, 8).map(img => img.dataURL.split(',')[1] || '').filter(Boolean);
 
   } else if (selectedLabel === '截图上传') {
-    if (!_screenshotExtracted) { showToast('请先上传图片，等待 AI 识别完成'); return; }
-    title  = _screenshotExtracted.title  || '';
+    const hasSsImages = Array.isArray(_ssImages) && _ssImages.length > 0;
+    if (!hasSsImages) { showToast('请先上传图片'); return; }
+    if (!_screenshotExtracted && _ssOcrPromise) {
+      showToast('正在等待图片 AI 识别完成，请稍候…');
+      try { await _ssOcrPromise; } catch(e) {}
+    }
+    const ssState = _getScreenshotRecognitionState();
+    if (ssState.pending > 0) {
+      showToast(`还有 ${ssState.pending} 张图片正在 AI 识别，请稍候…`);
+      return;
+    }
+    if (ssState.failed > 0 || ssState.ok !== ssState.total) {
+      showToast(`${ssState.failed || (ssState.total - ssState.ok)} 张图片 AI 识别失败，请重新上传失败图片或稍后重试`);
+      return;
+    }
+    if (!_screenshotExtracted) {
+      showToast('图片 AI 识别未成功，请重新上传或稍后重试');
+      return;
+    }
+    title  = _screenshotExtracted?.title  || '';
     // 去掉视觉描述附加内容（【配图/封面图视觉描述】xxx），只保留笔记正文
-    desc = (_screenshotExtracted.body || '').replace(/\n*【(配图|封面图)视觉描述】[^\n]*/g, '').trim();
-    domain = (document.getElementById('inputDomainSS')?.value || _screenshotExtracted.domain || '美食');
+    desc = (_screenshotExtracted?.body || '').replace(/\n*【(配图|封面图)视觉描述】[^\n]*/g, '').trim();
+    domain = (document.getElementById('inputDomainSS')?.value || _screenshotExtracted?.domain || '美食');
     // 纯图片情况：没有文字内容但有视觉描述，允许诊断（视觉描述已在 body 里）
     if (!title && !desc) {
-      showToast('图片中未识别到笔记文字，仅进行视觉内容诊断');
+      showToast('图片中未识别到笔记文字，将直接进行视觉内容诊断');
       desc = `【图片视觉诊断，无文字内容】共上传 ${_ssImages.length} 张图片`;
     }
     // 所有图片都作为 cover/extra_images 供视觉分析
@@ -4472,107 +5176,120 @@ async function startDiagnosis() {
     // title/desc 留空，由后端从视频帧提取
   }
 
-  // ── 快速诊断：供动画气泡（<500ms）──────────────────────────────
-  _quickDiagnose = null;
-  fetch(API_BASE + '/quick-diagnose', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', ...authH },
-    body: JSON.stringify({ note_title: title, desc, local_time: formatLocalTime(), domain, cover_image: coverB64 }),
-  }).then(r => r.json()).then(d => { _quickDiagnose = d; }).catch(() => {});
+  if (shouldAskMerchantBeforeRun(domain, title, desc, intentPayload)) {
+    showToast(domain === '旅行' ? '请先补充酒店名、目的地或行程主题，再提交预订/攻略型诊断' : '请先补充店名或商场分店名，再提交到店决策型诊断');
+    document.getElementById('merchantNameInput')?.focus();
+    return;
+  }
 
-  // ── 完整 AI 诊断（含约束条件 + 多图）──────────────────────────
+  // ── 完整 AI 诊断流（含约束条件 + 多图 + 真实 agent 事件）────────────
   _diagnoseResult = null;
+  _diagnosisStreamActive = true;
   const analyzeBody = {
     note_title:       title,
     desc,
-    local_time:       formatLocalTime(),
+    local_time:       formatLocalTimeWithConstraints(constraints),
     domain,
     user_id:          _authUser?.id || null,
+    input_mode:       selectedLabel === '截图上传' ? 'screenshot' : (selectedLabel === '视频上传' ? 'video' : 'manual'),
+    ocr_char_count:   selectedLabel === '截图上传' ? (_screenshotExtracted?._charCount || null) : null,
     cover_image:      coverB64,
     user_constraints: constraints.length > 0 ? constraints : null,
     extra_images:     extraImages.length  > 0 ? extraImages : null,
     video_file_id:    selectedLabel === '视频上传' ? (_diagVideoFileId || null) : null,
+    ...intentPayload,
   };
-  _diagnosePromise = fetch(API_BASE + '/analyze', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authH },
-    body: JSON.stringify(analyzeBody),
-  }).then(async r => {
-    if (r.status === 402) {
-      // 配额不足 → 取消跳转，弹升级引导
-      const errData = await r.json().catch(() => ({}));
-      _diagnoseResult = { _error: true, _quota: true };
-      showToast('❌ 诊断配额已用完，请升级套餐或充值积分');
-      showQuotaExceededModal(errData.detail || errData);
-      return;
-    }
-    if (r.status === 401) {
-      _diagnoseResult = { _error: true };
-      showToast('⚠ 请先登录后使用 AI 深度诊断');
-      openAuthModal('login');
-      return;
-    }
-    if (!r.ok) {
-      const errData = await r.json().catch(() => ({}));
-      _diagnoseResult = { _error: true };
-      showToast('⚠ ' + (errData.detail || `请求失败 ${r.status}`));
-      return;
-    }
-    const data = await r.json();
-    _diagnoseResult = data;
-    _diagnoseResult._inputTitle = title;
-    _diagnoseResult._inputDesc  = desc;
-    _diagnoseResult._domain     = domain;
-  }).catch(err => {
-    console.error('[NoteAI] analyze error:', err);
-    _diagnoseResult = { _error: true };
-    showToast('⚠ AI 诊断失败，请确认本地服务已启动（port 8000）');
+  _diagnosePromise = new Promise((resolve, reject) => {
+    (async () => {
+      try {
+        const resp = await fetch(API_BASE + '/analyze/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authH },
+          body: JSON.stringify(analyzeBody),
+        });
+        if (resp.status === 402) {
+          const errData = await resp.json().catch(() => ({}));
+          _diagnosisStreamActive = false;
+          _diagnoseResult = { _error: true, _quota: true };
+          showToast('诊断积分不足，请订阅套餐或充值积分');
+          showQuotaExceededModal(errData.detail || errData);
+          resolve(); return;
+        }
+        if (resp.status === 401) {
+          _diagnosisStreamActive = false;
+          _diagnoseResult = { _error: true };
+          showToast('⚠ 请先登录后使用 AI 深度诊断');
+          openAuthModal('login');
+          resolve(); return;
+        }
+        if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (!raw || raw === '[DONE]') continue;
+            try {
+              const ev = JSON.parse(raw);
+              _handleAnalyzeStreamEvent(ev);
+              if (ev.type === 'complete') {
+                _diagnosisStreamActive = false;
+                _diagnoseResult = ev;
+                _diagnoseResult._inputTitle = title;
+                _diagnoseResult._inputDesc  = desc;
+                _diagnoseResult._domain     = domain;
+                _diagnoseResult.user_constraints = Array.isArray(ev.user_constraints) && ev.user_constraints.length
+                  ? ev.user_constraints
+                  : constraints;
+                Object.assign(_diagnoseResult, intentPayload, {
+                  content_intent: ev.content_intent || intentPayload.content_intent,
+                  intent_contract: ev.intent_contract || null,
+                  fact_source_decision: ev.fact_source_decision || null,
+                });
+                resolve();
+              } else if (ev.type === 'error') {
+                _diagnosisStreamActive = false;
+                _diagnoseResult = {
+                  _error: true,
+                  _quota: ev.status_code === 402,
+                  _errMsg: ev.message || 'AI 诊断失败'
+                };
+                resolve();
+              }
+            } catch(e) {}
+          }
+        }
+        if (_diagnosisStreamActive) {
+          _diagnosisStreamActive = false;
+          if (!_diagnoseResult) _diagnoseResult = { _error: true, _errMsg: 'AI 诊断流意外中断' };
+          resolve();
+        }
+      } catch(err) {
+        console.error('[NoteAI] analyze stream error:', err);
+        _diagnosisStreamActive = false;
+        _diagnoseResult = { _error: true };
+        showToast('⚠ AI 诊断失败，请确认本地服务已启动（port 8000）');
+        resolve();
+      }
+    })();
   });
 
-  showToast('🔍 诊断任务已创建，正在跳转至实时诊断…');
-  setTimeout(() => showPage('live'), 800);
-}
-
-/* 按 agent 角色从真实弱点列表中提取对应气泡文案 */
-function _agentBubbleText(roleIdx, weaknesses, score) {
-  if (!weaknesses || weaknesses.length === 0) return null;
-
-  // roleIdx: 0=内容分析师  1=视觉诊断师  2=增长策略师  3=用户模拟器
-  const ROLE_FEATS = [
-    // 内容分析师：正文/标签/句子相关，保留少量旧字段兼容历史诊断结果
-    ['body_len','body_word_count','body_has_price','body_has_address','body_has_hours',
-     'body_has_time','body_has_transport','body_has_booking','body_has_must_order',
-     'tag_count','hashtag_count','plad_avg_sentence_len','plad_ttr',
-     'plad_phrasal_repetition','body_cta_count'],
-    // 视觉诊断师：封面相关
-    ['cover_brightness','cover_saturation','cover_contrast','cover_sharpness',
-     'cover_warmth','cover_has_face','has_face','cover_face_count','cover_has_text',
-     'cover_text_prominence','cover_composition_score','cover_aesthetic_score',
-     'cover_emotion_intensity','cover_visual_clarity','visual_score','aesthetic_score'],
-    // 增长策略师：时机/热词/标题相关
-    ['title_len','title_has_city','title_has_number','title_has_question',
-     'title_has_new_signal','is_trending_topic','timing_coefficient',
-     'keyword_search_vol','trend_momentum','content_freshness','category_saturation',
-     'keyword_competition','trend_peak_distance','time_hour','time_days_to_holiday'],
-    // 用户模拟器：情感/互动相关
-    ['title_has_pos_emotion','title_has_neg_emotion','semantic_emotional_intensity',
-     'semantic_empathetic_engagement','semantic_rhetorical_score','plad_interactive_stance',
-     'plad_unique_emoji_ratio','plad_emoji_density','plad_sentence_burstiness'],
-  ];
-  const myFeats = new Set(ROLE_FEATS[roleIdx] || []);
-  // 优先找本角色对应的弱点
-  const mine = weaknesses.filter(w => myFeats.has(w.feature));
-  const w = mine.length > 0 ? mine[0] : weaknesses[roleIdx] || weaknesses[0];
-
-  const scoreStr = score ? `当前评分 ${score.toFixed(1)} 分，` : '';
-  // 把 suggestion 或 label 做成一句话
-  const suggestion = w.suggestion || w.label;
-  if (suggestion && suggestion.length > 0) {
-    return `${scoreStr}${w.label}（当前值 ${typeof w.value==='number' ? w.value.toFixed(2) : w.value}，建议 ${suggestion.slice(0, 60)}）`;
-  }
-  return `${scoreStr}${w.label} 需要优化（当前 ${typeof w.value==='number' ? w.value.toFixed(2) : w.value}，基准 ${typeof w.benchmark==='number' ? w.benchmark.toFixed(2) : w.benchmark}）`;
+  showToast('🔍 诊断任务已创建，正在跳转至处理进度…');
+  setTimeout(() => { if (_diagnosisStreamActive) showPage('live'); }, 800);
 }
 
 /* ── Report population ──────────────────────────────────────── */
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
 function gradeInfo(pct) {
   if (pct >= 75) return { text: '优秀 · 赛道 Top ' + (100-Math.round(pct)) + '%', color: 'var(--success)' };
   if (pct >= 50) return { text: '良好 · 赛道第' + Math.round(pct) + '百分位', color: 'var(--warning)' };
@@ -4587,6 +5304,69 @@ function updateScoreRing(pct) {
   if (circle) circle.setAttribute('stroke-dashoffset', offset.toFixed(1));
   const numEl = document.getElementById('scoreRingNum');
   if (numEl) numEl.textContent = Math.round(pct);
+}
+
+function formatTimingCapture(ts) {
+  if (!ts) return '未知';
+  try {
+    const d = new Date(String(ts).replace(' ', 'T'));
+    if (!Number.isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+  } catch(e) {}
+  return String(ts);
+}
+
+function renderMarketTimingEvidence(mt) {
+  const sourceEl = document.getElementById('timingSourceMeta');
+  const gridEl = document.getElementById('timingEvidenceGrid');
+  const formulaEl = document.getElementById('timingFormulaNote');
+  if (!sourceEl || !gridEl || !formulaEl) return;
+
+  if (!mt) {
+    sourceEl.innerHTML = '<span>数据源：暂无</span><span class="warn">未返回趋势证据</span>';
+    gridEl.innerHTML = '';
+    formulaEl.style.display = 'block';
+    formulaEl.textContent = '趋势模块当前没有可解释数据，不参与硬性结论。';
+    return;
+  }
+
+  const freshness = Number(mt.freshness_hours);
+  const stale = !!mt.data_stale || (Number.isFinite(freshness) && freshness > 30);
+  const sourceBreakdown = mt.source_breakdown || {};
+  const sourceText = Object.keys(sourceBreakdown).length
+    ? Object.entries(sourceBreakdown).map(([k,v]) => `${k}:${v}`).join(' / ')
+    : '未知';
+  sourceEl.innerHTML = [
+    `<span>数据源：${escapeHtml(mt.data_source_label || '本地热词样本库')}</span>`,
+    `<span>样本量：${escapeHtml(mt.keyword_count ?? 0)} 条</span>`,
+    `<span>合格证据：${escapeHtml(mt.domain_qualified_keyword_count ?? 0)} / ${escapeHtml(mt.market_timing_min_domain_keywords ?? 0)} 条</span>`,
+    `<span>强证据：${escapeHtml(mt.domain_strong_keyword_count ?? 0)} 条</span>`,
+    `<span class="${stale ? 'warn' : ''}">最近采集：${escapeHtml(formatTimingCapture(mt.domain_latest_capture || mt.latest_capture))}</span>`,
+    `<span>来源分布：${escapeHtml(sourceText)}</span>`
+  ].join('');
+
+  const coefficient = Number(mt.timing_coefficient || 1);
+  const vol = Number(mt.keyword_search_vol || 0);
+  const momentum = Number(mt.trend_momentum || 0);
+  const hot = Number(mt.is_trending_topic || 0);
+  const competition = Number(mt.keyword_competition || 0);
+  gridEl.innerHTML = [
+    { label:'趋势参考系数', value:'×' + coefficient.toFixed(2), help: stale ? '行业热词未更新，当前停用趋势判断' : '用于解释趋势契合度，不直接乘总分' },
+    { label:'最高搜索量指数', value:Math.round(vol * 100), help:'命中词在本地样本中的相对热度' },
+    { label:'上升趋势占比', value:Math.round(momentum * 100) + '%', help:'命中词中仍在上升的比例' },
+    { label:'竞争度估计', value:Math.round(competition * 100), help:'越高代表同类内容竞争越强' },
+    { label:'证据质量', value:escapeHtml(mt.domain_strong_keyword_count ?? 0), help:escapeHtml(mt.evidence_quality_note || '按行业相关度、出现次数和来源强度分层') }
+  ].map(item => `
+    <div class="timing-evidence-item">
+      <b>${escapeHtml(item.value)}</b>
+      <span>${escapeHtml(item.label)} · ${escapeHtml(item.help)}</span>
+    </div>
+  `).join('');
+  formulaEl.style.display = 'block';
+  formulaEl.textContent = mt.confidence_note || (stale
+    ? '今日行业热词未更新，市场时机证据已停用。'
+    : `趋势参考由命中热词、相对搜索量、上升趋势、热搜来源和竞争度估算；当前${hot ? '命中过热搜来源' : '未命中过热搜来源'}。`);
 }
 
 async function populateReport() {
@@ -4641,8 +5421,11 @@ async function populateReport() {
 
   // § 0 分数环 + 等级（最重要，放最前，独立 try）
   try {
-  const pct = d.ces_percentile;
-  const displayScore = d.composite_score != null ? Math.min(Math.round(d.composite_score), 100) : pct;
+	  const pct = Number(d.ces_percentile || 0);
+	  const compositeNum = Number(d.composite_score);
+	  const displayScore = Number.isFinite(compositeNum) && compositeNum > 0
+	    ? Math.min(Math.round(compositeNum), 100)
+	    : pct;
   updateScoreRing(displayScore);
   const gi = gradeInfo(displayScore);
   const gradeEl = document.getElementById('gradeText');
@@ -4670,13 +5453,15 @@ async function populateReport() {
   const _mkCard = document.getElementById('marketTimingCard');
   if (!d.market_timing && _mkCard) {
     const _noteEl = document.getElementById('timingNoteText');
-    if (_noteEl) _noteEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px">笔记内容未命中当前热词库（7408条），暂无时机数据。提交笔记时在标题/正文中加入当下热门话题词汇，可提升市场时机分。</span>';
+    if (_noteEl) _noteEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px">本次未命中可解释热词证据。趋势模块只作发布参考，不直接作为总分乘数。</span>';
+    renderMarketTimingEvidence(null);
     _mkCard.style.display = 'block';
   }
   if (d.market_timing) {
     const mt = d.market_timing;
     const coef = mt.timing_coefficient || 1.0;
-    const isPositive = coef >= 1.0;
+    const timingStale = !!mt.data_stale || mt.timing_action === 'stale';
+    const isPositive = !timingStale && coef >= 1.0;
     const coefStr = '×' + coef.toFixed(2);
     const coefColor = isPositive ? 'var(--success)' : 'var(--warning)';
     const coefBg    = isPositive ? 'rgba(34,197,94,0.1)'  : 'rgba(245,158,11,0.1)';
@@ -4690,22 +5475,27 @@ async function populateReport() {
       if (chip) { chip.textContent = coefStr; chip.style.color = coefColor; chip.style.background = coefBg; chip.style.borderColor = coefBdr; }
       const noteEl = document.getElementById('timingNoteText');
       if (noteEl) noteEl.textContent = mt.timing_note || '';
+      renderMarketTimingEvidence(mt);
       const matchedRow = document.getElementById('timingMatchedRow');
       const kwEl = document.getElementById('timingKwChips');
       if (mt.matched_keywords && mt.matched_keywords.length) {
         if (kwEl) kwEl.innerHTML = mt.matched_keywords.map(kw =>
-          `<span style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--success);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500">${kw}</span>`
+          `<span style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--success);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500">${escapeHtml(kw)}</span>`
         ).join('');
         if (matchedRow) matchedRow.style.display = 'block';
+      } else if (matchedRow) {
+        matchedRow.style.display = 'none';
       }
       const suggestRow = document.getElementById('timingSuggestRow');
       const sugEl = document.getElementById('timingSuggestChips');
       if (mt.suggested_keywords && mt.suggested_keywords.length) {
         if (sugEl) sugEl.innerHTML = mt.suggested_keywords.map(kw =>
           `<span style="background:rgba(0,153,255,0.08);border:1px solid rgba(0,153,255,0.25);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer"
-            title="点击复制" onclick="navigator.clipboard.writeText('${kw}');this.style.background='rgba(0,153,255,0.2)'">+ ${kw}</span>`
+            title="趋势参考词">+ ${escapeHtml(kw)}</span>`
         ).join('');
         if (suggestRow) suggestRow.style.display = 'block';
+      } else if (suggestRow) {
+        suggestRow.style.display = 'none';
       }
       card.style.display = 'block';
     }
@@ -4721,12 +5511,14 @@ async function populateReport() {
   }
   } catch(e) { console.error('[report §2 diagnosis]', e); }
 
-  // § 3 专家意见
-  try {
-  if (d.expert_opinions && d.expert_opinions.length) {
-    renderAgentResults(d.expert_opinions, d.dispute || '');
-  }
-  } catch(e) { console.error('[report §3 experts]', e); }
+	  // § 3 专家意见
+	  try {
+	  if (d.expert_opinions && d.expert_opinions.length) {
+	    renderAgentResults(d.expert_opinions, d.dispute || '');
+	  } else {
+	    renderAgentResults([], '');
+	  }
+	  } catch(e) { console.error('[report §3 experts]', e); }
 
   // § 4 改写标题 + V0.4 预测分
   try {
@@ -4820,11 +5612,11 @@ async function populateReport() {
 
   // § 5 行动清单（弱项）
   try {
-  const listEl = document.getElementById('actionList');
-  if (listEl && d.weaknesses && d.weaknesses.length) {
-    const priorityColors = ['p-high','p-high','p-mid','p-mid','p-low'];
-    const dotColors = ['dot-red','dot-red','dot-amber','dot-amber','dot-blue'];
-    const priorityLabels = ['高优','高优','中优','中优','低优'];
+	  const listEl = document.getElementById('actionList');
+	  if (listEl && d.weaknesses && d.weaknesses.length) {
+	    const priorityColors = ['p-high','p-high','p-mid','p-mid','p-low'];
+	    const dotColors = ['dot-red','dot-red','dot-amber','dot-amber','dot-blue'];
+	    const priorityLabels = ['高优','高优','中优','中优','低优'];
     listEl.innerHTML = d.weaknesses.map((w, i) => `
       <li class="action-item">
         <div class="action-num">${i+1}</div>
@@ -4833,42 +5625,24 @@ async function populateReport() {
             <span class="dot ${dotColors[i] || 'dot-amber'}"></span>${priorityLabels[i] || '中优'}
           </span>
           <strong>${w.label}</strong>——${w.suggestion}
-          <span style="margin-left:8px;font-size:11px;color:var(--text-muted)">当前 ${w.value} / 基准 ${w.benchmark}</span>
-        </div>
-      </li>`).join('');
-  }
-  } catch(e) { console.error('[report §5 weaknesses]', e); }
+	          <span style="margin-left:8px;font-size:11px;color:var(--text-muted)">当前 ${w.value} / 基准 ${w.benchmark}</span>
+	        </div>
+	      </li>`).join('');
+	  } else if (listEl) {
+	    listEl.innerHTML = '<li class="report-empty-note">本次没有返回可行动的弱项。若分数仍偏低，请查看 V0.4 特征覆盖中的主要缺口。</li>';
+	  }
+	  } catch(e) { console.error('[report §5 weaknesses]', e); }
 
-  // § 7 维度条 + 雷达图
-  try {
-  if (d.features || d.visual_score != null) {
-    const { scores } = computeDimensions(d.features || {});
-    if (d.visual_score != null) {
-      scores[1] = Math.round(d.visual_score);
-      const hint = document.getElementById('visualUnlockHint');
-      if (hint) hint.style.display = 'none';
-    }
-    updateDimBars(scores);
-    _radarData = scores.map((v, i) => v === null ? 58 : v);
-    initCharts();
-    const minIdx = scores.reduce((m, v, i) => (v !== null && (m === -1 || v < scores[m])) ? i : m, -1);
-    const dimNames = ['标题吸引力','视觉表现力','内容质量','标签策略','发布策略'];
-    const weakTip = document.querySelector('.report-card .divider + div');
-    if (weakTip && minIdx >= 0) {
-      const visualTip = d.visual_score != null
-        ? `封面视觉得分 ${Math.round(d.visual_score)} 分，建议提升清晰度、色彩对比与构图质量。`
-        : `上传封面图后可获取视觉诊断（当前为估算值）。`;
-      const tips = [
-        `标题过短或缺乏情绪词，建议扩展至 15-20 字并加入正向情绪词。`,
-        visualTip,
-        `正文信息量不足，补充地址、价格、交通等实用信息可显著提升收藏率。`,
-        `话题标签过少，建议补充至 5-8 个，覆盖领域词和热门话题。`,
-        `发布时间或与节假日距离不佳，建议调整到流量高峰时段（11-12点 / 17-19点）。`,
-      ];
-      weakTip.innerHTML = `<span style="color:var(--warning);font-weight:700">⚠ 主要弱项：</span>${dimNames[minIdx]}（得分 ${scores[minIdx]}）—— ${tips[minIdx]}`;
-    }
-  }
-  } catch(e) { console.error('[report §7 charts]', e); }
+	  // § 7 维度条 + 雷达图
+	  try {
+	  const dims = Array.isArray(d.dimension_scores) && d.dimension_scores.length
+	    ? d.dimension_scores
+	    : legacyDimensionsFromFeatures(d.features || {}, d.visual_score);
+	  renderReportDimensions(dims, d.top_feature_contributions || []);
+	  renderFeatureCoverage(d.feature_schema || {}, d.feature_groups || [], d.top_feature_contributions || []);
+	  _radarDimensions = dims;
+	  initCharts();
+	  } catch(e) { console.error('[report §7 charts]', e); }
 
   // § 8 Lucide icons 刷新
   try { if (typeof lucide !== 'undefined') lucide.createIcons(); } catch(e) {}
@@ -4988,23 +5762,26 @@ async function populateGenerateReport() {
   const _genMkCard = document.getElementById('genTimingCard');
   if (!d.market_timing && _genMkCard) {
     const _gNote = document.getElementById('genTimingNote');
-    if (_gNote) _gNote.innerHTML = '<span style="color:var(--text-muted);font-size:12px">暂无时机数据，标题/正文未命中热词库。尝试在 Brief 中加入热门话题可改善。</span>';
+    if (_gNote) _gNote.innerHTML = '<span style="color:var(--text-muted);font-size:12px">暂无可解释热词证据。趋势建议只作参考，必须服务真实内容。</span>';
     _genMkCard.style.display = 'block';
   }
   if (d.market_timing) {
     const mt = d.market_timing;
     const coef = mt.timing_coefficient || 1.0;
-    const isPos = coef >= 1.0;
+    const timingStale = !!mt.data_stale || mt.timing_action === 'stale';
+    const isPos = !timingStale && coef >= 1.0;
     document.getElementById('genTimingCoef').textContent = '×' + coef.toFixed(2);
     document.getElementById('genTimingCoef').style.color = isPos ? 'var(--success)' : 'var(--warning)';
-    document.getElementById('genTimingNote').textContent = mt.timing_note || '';
-    if (mt.suggested_keywords && mt.suggested_keywords.length) {
+    document.getElementById('genTimingNote').textContent = mt.confidence_note || mt.timing_note || '';
+    if (!timingStale && mt.suggested_keywords && mt.suggested_keywords.length) {
       document.getElementById('genTimingSuggestChips').innerHTML = mt.suggested_keywords.map(kw =>
         `<span style="background:rgba(0,153,255,0.08);border:1px solid rgba(0,153,255,0.25);color:var(--accent);
                padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer"
                onclick="navigator.clipboard.writeText('${kw}');this.style.background='rgba(0,153,255,0.2)'">+ ${kw}</span>`
       ).join('');
       document.getElementById('genTimingSuggest').style.display = 'block';
+    } else {
+      document.getElementById('genTimingSuggest').style.display = 'none';
     }
     document.getElementById('genTimingCard').style.display = 'block';
   }
@@ -5059,20 +5836,73 @@ function _xtag(text, tag) {
   return m ? m[1].trim() : '';
 }
 
+function formatAgentEvidenceValue(value) {
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Number.isInteger(value) ? String(value) : value.toFixed(value < 10 ? 3 : 1).replace(/0+$/,'').replace(/\.$/,'');
+  }
+  if (typeof value === 'object') {
+    try { return JSON.stringify(value); } catch (_) { return String(value); }
+  }
+  return String(value);
+}
+
+function renderAgentEvidenceItem(item) {
+  if (!item || typeof item !== 'object') {
+    const text = String(item || '').trim();
+    return text ? `<li>${escapeHtml(text)}</li>` : '';
+  }
+  const text = item.agent_text || item.text || item.label || item.source_key || '';
+  const sourceLabel = item.source_label || item.source_type || '';
+  const sourceKey = item.label && item.label !== item.source_key ? item.label : item.source_key;
+  const value = formatAgentEvidenceValue(item.value);
+  const benchmark = formatAgentEvidenceValue(item.benchmark);
+  const status = item.status || '';
+  const chips = [];
+  if (sourceLabel) chips.push(`<span class="agent-source-chip ${status === 'gap' ? 'gap' : ''}">${escapeHtml(sourceLabel)}</span>`);
+  if (sourceKey) chips.push(`<span class="agent-source-chip">${escapeHtml(sourceKey)}</span>`);
+  if (value) chips.push(`<span class="agent-source-chip value">当前 ${escapeHtml(value)}</span>`);
+  if (benchmark) chips.push(`<span class="agent-source-chip benchmark">基准 ${escapeHtml(benchmark)}</span>`);
+  return `
+    <li>
+      <div>${escapeHtml(text)}</div>
+      ${chips.length ? `<div class="agent-source-row">${chips.join('')}</div>` : ''}
+    </li>`;
+}
+
 function renderAgentResults(opinions, dispute) {
-  const list = document.getElementById('agentResultsList');
-  if (!list || !opinions || !opinions.length) return;
+	  const list = document.getElementById('agentResultsList');
+	  if (!list) return;
+	  if (!opinions || !opinions.length) {
+	    list.innerHTML = '<div class="report-empty-note">本次没有返回专家诊断意见。</div>';
+	    const dc = document.getElementById('disputeReportCard');
+	    if (dc) { dc.style.display = 'none'; dc.innerHTML = ''; }
+	    return;
+	  }
 
   list.innerHTML = opinions.map(op => {
     const role = op.role || '';
     const raw  = op.raw  || '';
-    const opinion     = _xtag(raw, 'opinion')     || raw.slice(0, 120);
-    const suggestions = _xtag(raw, 'suggestions') || '';
-    const conf = parseFloat(_xtag(raw, 'confidence')) || 0;
+    const opinion = op.opinion || _xtag(raw, 'opinion') || raw.slice(0, 240);
+    const evidence = Array.isArray(op.evidence) && op.evidence.length
+      ? op.evidence
+      : (_xtag(raw, 'evidence') ? _xtag(raw, 'evidence').split(/\n|；|;/).filter(Boolean) : []);
+    const suggestions = Array.isArray(op.suggestions) && op.suggestions.length
+      ? op.suggestions
+      : (_xtag(raw, 'suggestions') ? _xtag(raw, 'suggestions').split(/\n|；|;/).filter(Boolean) : []);
+    const impact = op.impact || _xtag(raw, 'impact') || '';
+    const conf = Number.isFinite(Number(op.confidence))
+      ? Number(op.confidence)
+      : (parseFloat(_xtag(raw, 'confidence')) || 0);
     const meta = _AGENT_META[role] || { color:'#888', bg:'rgba(128,128,128,0.12)', icon:'circle' };
     const confCls = conf >= 0.85 ? 'conf-badge-high' : conf >= 0.75 ? 'conf-badge-mid' : 'conf-badge-low';
-    const sugHtml = suggestions
-      ? `<div style="margin-top:7px;font-size:12px;color:var(--text-muted);line-height:1.6">${suggestions.replace(/\n/g,'<br>')}</div>`
+    const bindingBadge = op.evidence_binding === 'v04_structured' ? '<span class="agent-binding-badge">V0.4证据</span>' : '';
+    const evidenceHtml = evidence.length
+      ? `<div class="agent-section-title">证据</div><ul class="agent-evidence-list">${evidence.slice(0,4).map(renderAgentEvidenceItem).join('')}</ul>`
+      : '';
+    const impactHtml = impact ? `<div class="agent-impact"><strong style="color:var(--text)">影响：</strong>${escapeHtml(impact)}</div>` : '';
+    const sugHtml = suggestions.length
+      ? `<div class="agent-section-title">建议</div><ul class="agent-suggestion-list">${suggestions.slice(0,4).map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>`
       : '';
     return `
       <div class="agent-result">
@@ -5081,31 +5911,27 @@ function renderAgentResults(opinions, dispute) {
             <i data-lucide="${meta.icon}" style="color:${meta.color}"></i>
           </div>
           <span class="agent-result-name">${role}</span>
+          ${bindingBadge}
           <span class="agent-conf-badge ${confCls}">置信度 ${conf.toFixed(2)}</span>
         </div>
-        <div class="agent-result-text">${opinion}${sugHtml}</div>
+        <div class="agent-result-text">${escapeHtml(opinion)}${evidenceHtml}${impactHtml}${sugHtml}</div>
       </div>`;
   }).join('');
 
   // 分歧卡片
-  const dc = document.getElementById('disputeReportCard');
-  if (dc) {
-    const hasDispute = dispute && dispute.trim() && dispute !== '无明显分歧';
-    if (hasDispute) {
-      dc.querySelector('.dispute-report-head').innerHTML =
-        '<i data-lucide="alert-triangle"></i> 专家分歧';
-      const body = dc.querySelector('.dispute-compare') ||
-                   dc.querySelector('div:nth-child(2)');
-      if (body) body.outerHTML =
-        `<div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-top:8px">${dispute}</div>`;
-      // 隐藏原仲裁者建议行（已包含在 dispute 文本里）
-      const arbLine = dc.querySelector('div:last-child');
-      if (arbLine) arbLine.style.display = 'none';
-      dc.style.display = 'block';
-    } else {
-      dc.style.display = 'none';
-    }
-  }
+	  const dc = document.getElementById('disputeReportCard');
+	  if (dc) {
+	    const hasDispute = dispute && dispute.trim() && dispute !== '无明显分歧';
+	    if (hasDispute) {
+	      dc.innerHTML = `
+	        <div class="dispute-report-head"><i data-lucide="alert-triangle"></i> 专家分歧</div>
+	        <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-top:8px">${escapeHtml(dispute)}</div>`;
+	      dc.style.display = 'block';
+	    } else {
+	      dc.style.display = 'none';
+	      dc.innerHTML = '';
+	    }
+	  }
 
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -5225,6 +6051,10 @@ async function startChatFromDiagnosis() {
   document.getElementById('chat-messages').innerHTML = '';
 
   try {
+    const constraints = Array.isArray(_diagnoseResult?.user_constraints) && _diagnoseResult.user_constraints.length
+      ? _diagnoseResult.user_constraints
+      : getConstraintTags();
+    const intentPayload = getContentIntentPayload(_diagnoseResult || {});
     const diagCtx = _diagnoseResult ? {
       ces_percentile:   _diagnoseResult.ces_percentile,
       composite_score:  _diagnoseResult.composite_score,
@@ -5233,6 +6063,14 @@ async function startChatFromDiagnosis() {
       weaknesses:       _diagnoseResult.weaknesses,
       expert_opinions:  _diagnoseResult.expert_opinions,
       suggested_titles: _diagnoseResult.suggested_titles,
+      user_constraints: _diagnoseResult.user_constraints || constraints,
+      constraint_contract: _diagnoseResult.constraint_contract || null,
+      content_intent: _diagnoseResult.content_intent || intentPayload.content_intent,
+      merchant_visibility: _diagnoseResult.merchant_visibility || intentPayload.merchant_visibility,
+      merchant_name: _diagnoseResult.merchant_name || intentPayload.merchant_name,
+      fact_source_policy: _diagnoseResult.fact_source_policy || intentPayload.fact_source_policy,
+      intent_contract: _diagnoseResult.intent_contract || null,
+      fact_source_decision: _diagnoseResult.fact_source_decision || null,
     } : {};
 
     const res = await fetch(API_AUTH + '/chat/start', {
@@ -5242,7 +6080,9 @@ async function startChatFromDiagnosis() {
         note_title:       note.title,
         note_body:        note.body,
         domain:           note.domain || '美食',
-        local_time:       new Date().toISOString().slice(0, 16),
+        local_time:       formatLocalTimeWithConstraints(constraints),
+        user_constraints: constraints.length ? constraints : null,
+        ...intentPayload,
         generate_context: diagCtx,  // 传诊断上下文给 AI
       }),
     });
@@ -5277,6 +6117,9 @@ let liveTimer = null;
 let _genWaitInterval = null;
 function startLiveAnimation() {
   if (liveTimer) { clearTimeout(liveTimer); liveTimer = null; }
+  const isGen = _isGenerateMode;
+  initLive3D();
+  resetLive3D(isGen);
   for (let i = 0; i < 8; i++) {
     const s = document.getElementById('tl' + i);
     s.classList.remove('done','active');
@@ -5291,14 +6134,12 @@ function startLiveAnimation() {
   document.getElementById('disputeCard').classList.add('hidden');
   setProgress(0, '准备开始…');
 
-  const isGen = _isGenerateMode;
-
   // 更新页面标题
   const liveH1 = document.querySelector('#page-live .live-header h1');
   if (liveH1) {
     liveH1.innerHTML = isGen
       ? '<i data-lucide="wand-2"></i>AI 爆文生成中'
-      : '<i data-lucide="activity"></i>AI 专家会诊进行中';
+      : '<i data-lucide="activity"></i>AI 诊断处理中';
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
@@ -5333,127 +6174,55 @@ function startLiveAnimation() {
   // 根据模式定制时间轴标签
   const tlLabels = isGen
     ? ['素材摄入','视觉解读','并行创作','交叉碰撞','分歧仲裁','爆文合成','评分验证','报告完成']
-    : ['内容摄入','V0.4 评分','并行诊断','交叉质疑','分歧检测','仲裁综合','改写生成','报告完成'];
+    : ['内容摄入','V0.4 评分','专家诊断','事实校验','意见汇总','仲裁综合','方案生成','报告完成'];
   tlLabels.forEach((lbl, i) => {
     const el = document.getElementById('tl'+i);
     if (el) el.querySelector('.tl-label').textContent = lbl;
   });
 
   if (!isGen) {
-    const seq = [
-      [400,  () => { stepDone(0); stepActive(1); setProgress(12,'V0.4 复合质量评分中…'); }],
-      [1600, () => { stepDone(1); stepActive(2); setProgress(28,'4 位专家并行独立诊断…'); agentThink(0); agentThink(1); agentThink(2); agentThink(3); }],
-      [2200, () => {
-        const qd = _quickDiagnose;
-        const text = (qd && !qd._error)
-          ? (_agentBubbleText(0, qd.weaknesses, qd.ces_percentile) || '内容结构尚可，但标签数量和互动引导有待加强。')
-          : '正在分析内容质量，请稍候…';
-        addBubble('内容分析师', text, 0, 10, 12);
-      }],
-      [2900, () => {
-        const qd = _quickDiagnose;
-        const text = (qd && !qd._error)
-          ? (_agentBubbleText(1, qd.weaknesses, qd.ces_percentile) || '封面视觉表现力分析完成，详见右侧评分。')
-          : '封面视觉指标分析中…';
-        addBubble('视觉诊断师', text, 1, 130, 12);
-      }],
-      [3500, () => {
-        const qd = _quickDiagnose;
-        const text = (qd && !qd._error)
-          ? (_agentBubbleText(2, qd.weaknesses, qd.ces_percentile) || '标题和发布时机是提升曝光的关键，需重点优化。')
-          : '增长策略评估中，分析发布时机与标题吸引力…';
-        addBubble('增长策略师', text, 2, 250, 12);
-      }],
-      [4200, () => {
-        const qd = _quickDiagnose;
-        const text = (qd && !qd._error)
-          ? (_agentBubbleText(3, qd.weaknesses, qd.ces_percentile) || '用户情感共鸣和互动引导语需要加强，以提升完读率。')
-          : '用户心理模拟中，分析目标受众触达路径…';
-        addBubble('用户模拟器', text, 3, 10, 80);
-      }],
-      [5000, () => { stepDone(2); stepActive(3); setProgress(50,'专家交叉质疑中…'); agentDispute(2); }],
-      [5600, () => {
-        const qd = _quickDiagnose;
-        // 找出影响最大的两个弱点用于交叉质疑
-        const top = qd && qd.weaknesses && qd.weaknesses.length >= 2
-          ? `「${qd.weaknesses[0].label}」影响最大，${qd.weaknesses[1].label}也需关注，你们怎么看？`
-          : '综合来看，有几个关键问题影响整体评分，需要优先修复。';
-        addBubble('内容分析师', top, 0, 10, 12);
-      }],
-      [6200, () => {
-        const qd = _quickDiagnose;
-        const score = qd?.ces_percentile;
-        const text = score
-          ? `目前评分 ${score.toFixed(1)} 分，同意优先修复高权重弱点，视觉层面也不能忽视——封面是点击第一道关。`
-          : '同意优先修复高权重弱点，视觉层面也不能忽视。';
-        addBubble('视觉诊断师', text, 1, 130, 12);
-      }],
-      [7000, () => { stepDone(3); stepActive(4); setProgress(65,'检测专家分歧…'); showDisputeReal(); }],
-      [8200, () => {
-        stepDone(4); stepActive(5); setProgress(78,'仲裁者综合分析…');
-        agentArb(4);
-        for (let i=0;i<4;i++) document.getElementById('av'+i).classList.remove('thinking','dispute');
-        // 用真实置信度（如果快速诊断已到）替换固定值
-        const qd8 = _quickDiagnose;
-        if (qd8 && qd8.weaknesses && qd8.weaknesses.length >= 4) {
-          // 根据弱点数量推算各专家置信度（弱点越严重置信度越高）
-          const confs = [0,1,2,3].map(i => {
-            const gap = qd8.weaknesses[i] ? Math.abs(qd8.weaknesses[i].value - qd8.weaknesses[i].benchmark) : 0;
-            return Math.min(0.95, 0.70 + gap * 0.5).toFixed(2);
-          });
-          confs.forEach((c, i) => agentDone(i, c));
-        } else {
-          agentDone(0,'0.88'); agentDone(1,'0.82'); agentDone(2,'0.75'); agentDone(3,'0.84');
-        }
-      }],
-      [9600, () => {
-        stepDone(5); stepActive(6); setProgress(88,'生成改写方案…');
-        // 优先用 /analyze 的 ai_diagnosis，次选 /diagnose 的 summary
-        const diag = (_diagnoseResult && !_diagnoseResult._error && _diagnoseResult.ai_diagnosis)
-          ? _diagnoseResult.ai_diagnosis
-          : (_quickDiagnose && !_quickDiagnose._error && _quickDiagnose.summary)
-            ? _quickDiagnose.summary : null;
-        if (diag) addBubble('仲裁专家', diag.slice(0, 100) + '…', 4, 10, 12);
-      }],
-      [11000, () => {
-        stepDone(6); stepDone(7);
-        document.getElementById('tl7').querySelector('.tl-dot').textContent = '✓';
-        setProgress(100,'诊断完成！'); agentDone(4,'1.0');
-        if (_diagnoseResult && _diagnoseResult.expert_opinions) {
-          _diagnoseResult.expert_opinions.forEach((op, i) => {
-            const conf = parseFloat((op.raw||'').match(/<confidence>([\s\S]*?)<\/confidence>/)?.[1] || '0') || 0;
-            if (conf > 0) agentDone(i, conf.toFixed(2));
-          });
-        }
-        setTimeout(() => {
-          showToast('✅ 诊断完成！正在跳转至报告…');
-          setTimeout(async () => { showPage('report'); try { if (_diagnosePromise) await _diagnosePromise; } catch(e) {} await loadDiagnosisHistory(true); const _autoId = _diagnoseResult?.diagnosis_id || document.querySelector('[id^="diag-card-"]')?.id?.replace('diag-card-',''); if(_autoId) openDiagDetail(_autoId); else { _isGenerateMode = false; await populateReport(); } }, 1200);
-        }, 600);
-      }],
-    ];
-    seq.forEach(([delay, fn]) => { liveTimer = setTimeout(fn, delay); });
-  } else {
-    // 生成模式：由 SSE stream 驱动，仅初始化
-    setTimeout(() => { stepDone(0); stepActive(1); setProgress(8, '正在连接 AI 专家…'); }, 300);
+    if (_diagnosisStreamActive) {
+      stepActive(0);
+      setProgress(4, '正在连接真实 AI 诊断链路…');
+    } else {
+      setProgress(0, '暂无进行中的 AI 任务');
+      addBubble('系统', '请从“开始诊断”上传内容并发起诊断。这里仅显示真实任务进度。', 4, 0, 0);
+    }
+    return;
   }
+
+  // 生成模式：由 SSE stream 驱动，仅初始化
+  setTimeout(() => { stepDone(0); stepActive(1); setProgress(8, '正在连接 AI 专家…'); }, 300);
 }
 
 function setProgress(pct, label) {
   document.getElementById('mainProgress').style.width = pct + '%';
   document.getElementById('progressLabel').textContent = label;
+  setLive3DProgress(pct, label);
 }
 function stepDone(i)   { const s=document.getElementById('tl'+i); s.classList.remove('active'); s.classList.add('done'); s.querySelector('.tl-dot').textContent='✓'; }
 function stepActive(i) { document.getElementById('tl'+i).classList.add('active'); }
-function agentThink(i) { document.getElementById('av'+i).classList.add('thinking'); }
+function agentThink(i) {
+  document.getElementById('av'+i).classList.add('thinking');
+  pulseLive3DAgent(i, 'thinking');
+}
 function agentDone(i, conf) {
   const av=document.getElementById('av'+i);
   av.classList.remove('thinking','dispute','arbiter'); av.classList.add('done');
   const cf=document.getElementById('cf'+i), num=parseFloat(conf);
-  cf.textContent='置信度 '+conf;
-  cf.className='agent-conf '+(num>=0.85?'conf-high':num>=0.75?'conf-mid':'conf-low');
+  const hasNum = Number.isFinite(num);
+  cf.textContent = hasNum ? ('置信度 ' + conf) : '已完成';
+  cf.className='agent-conf '+(hasNum && num>=0.85?'conf-high':hasNum && num>=0.75?'conf-mid':'conf-low');
+  pulseLive3DAgent(i, 'done');
 }
-function agentDispute(i) { const av=document.getElementById('av'+i); av.classList.remove('thinking'); av.classList.add('dispute'); }
-function agentArb(i)     { const av=document.getElementById('av'+i); av.classList.remove('thinking'); av.classList.add('arbiter'); }
+function agentDispute(i) {
+  const av=document.getElementById('av'+i); av.classList.remove('thinking'); av.classList.add('dispute');
+  pulseLive3DAgent(i, 'thinking');
+}
+function agentArb(i) {
+  const av=document.getElementById('av'+i); av.classList.remove('thinking'); av.classList.add('arbiter');
+  pulseLive3DAgent(i, 'arbiter');
+}
 function addBubble(agent, text, col, top, left) {
   const area = document.getElementById('bubbleArea');
   const b = document.createElement('div');
@@ -5463,31 +6232,8 @@ function addBubble(agent, text, col, top, left) {
   area.scrollTop = area.scrollHeight;
   setTimeout(() => { if (b.parentNode) b.style.opacity = '0.5'; }, 5000);
 }
-function showDisputeReal() {
-  const dc = document.getElementById('disputeCard');
-  dc.classList.remove('hidden');
-  const qd = _quickDiagnose;
-  if (qd && !qd._error && qd.weaknesses && qd.weaknesses.length >= 2) {
-    const w0 = qd.weaknesses[0];
-    const w1 = qd.weaknesses[1];
-    document.getElementById('disputeBody').innerHTML =
-      `<strong style="color:#0099FF">视觉诊断师</strong>：${w0.label}（当前 ${typeof w0.value==='number'?w0.value.toFixed(2):w0.value}，基准 ${typeof w0.benchmark==='number'?w0.benchmark.toFixed(2):w0.benchmark}），` +
-      `${w0.suggestion ? '建议：' + w0.suggestion.slice(0,50) : '需要优化'}<br>` +
-      `<strong style="color:#F59E0B">增长策略师</strong>：${w1.label}（当前 ${typeof w1.value==='number'?w1.value.toFixed(2):w1.value}），` +
-      `${w1.suggestion ? w1.suggestion.slice(0,50) : '优先修复'}<br>` +
-      `<span style="color:#7B61FF;font-weight:600">→ 仲裁者：两项均为高优先级，按影响权重排序修复</span>`;
-  } else {
-    document.getElementById('disputeBody').innerHTML =
-      '<strong style="color:#0099FF">视觉诊断师</strong>：封面视觉表现有提升空间<br>' +
-      '<strong style="color:#F59E0B">增长策略师</strong>：发布时机和标题需要优化<br>' +
-      '<span style="color:#7B61FF;font-weight:600">→ 仲裁者：内容质量是基础，同步优化视觉与分发</span>';
-  }
-}
-// 保留旧名兼容（不删，避免其他调用报错）
-function showDispute() { showDisputeReal(); }
-
 /* ── Dimension scoring ──────────────────────────────────────── */
-// 把 28 个特征映射到 5 个维度分（0-100）
+	// 历史报告兼容：旧记录缺少后端 V0.4 维度时，临时映射到 5 个展示维度。
 function computeDimensions(features) {
   // 所有缺失字段默认0，防止 undefined * n = NaN 导致维度显示异常
   const f = Object.assign({
@@ -5547,18 +6293,127 @@ function computeDimensions(features) {
       Math.round(Math.max(0, Math.min(100, tags))),
       Math.round(Math.max(0, Math.min(100, timing))),
     ]
-  };
+	  };
+	}
+
+function legacyDimensionsFromFeatures(features, visualScore) {
+  const { scores } = computeDimensions(features || {});
+  if (visualScore != null) scores[1] = Math.round(Number(visualScore) || 0);
+  const labels = ['标题吸引力','封面视觉','正文交付力','话题标签','发布时机'];
+  const keys = ['title','visual','body','tags','timing'];
+  return scores.map((score, i) => ({
+    key: keys[i],
+    label: labels[i],
+    score,
+    status: score == null ? 'locked' : (score >= 80 ? 'strong' : score >= 70 ? 'good' : score >= 60 ? 'repairable' : 'weak'),
+    summary: '历史报告缺少 V0.4 结构化维度，当前为兼容展示。'
+  }));
+}
+
+function renderReportDimensions(dimensions, gaps) {
+  const rowsEl = document.getElementById('dimensionRows');
+  if (!rowsEl) return;
+  const dims = (dimensions || []).filter(Boolean);
+  if (!dims.length) {
+    rowsEl.innerHTML = '<div class="report-empty-note">本次报告没有返回维度数据。</div>';
+    return;
+  }
+  rowsEl.innerHTML = dims.map((d, i) => {
+    const score = d.score == null ? null : Math.max(0, Math.min(100, Number(d.score)));
+    const width = score == null ? 0 : score;
+    const scoreText = score == null ? '—' : Math.round(score);
+    const locked = score == null || d.status === 'locked';
+    return `
+      <div class="dim-row ${locked ? 'report-locked' : ''}" title="${escapeHtml(d.summary || '')}">
+        <span class="dim-label">${escapeHtml(d.label || d.key || '维度')}</span>
+        <div class="dim-bar-wrap"><div class="dim-bar" data-dim-index="${i}" data-w="${width}%" style="width:0"></div></div>
+        <span class="dim-score" style="color:${scoreColor(score)}">${scoreText}</span>
+      </div>`;
+  }).join('');
+  setTimeout(() => {
+    rowsEl.querySelectorAll('.dim-bar').forEach(bar => { bar.style.width = bar.dataset.w || '0%'; });
+  }, 80);
+
+  const weakTip = document.getElementById('dimensionWeakTip');
+  if (weakTip) {
+    const firstGap = Array.isArray(gaps) && gaps.length ? gaps[0] : null;
+    if (firstGap) {
+      weakTip.innerHTML = `<span style="color:var(--warning);font-weight:700">主要缺口：</span>${escapeHtml(firstGap.label || firstGap.feature)}（当前 ${escapeHtml(firstGap.value)} / 目标 ${escapeHtml(firstGap.target || '')}）—— ${escapeHtml(firstGap.suggestion || '')}`;
+    } else {
+      const weakDim = dims
+        .filter(d => d.score != null)
+        .sort((a, b) => Number(a.score) - Number(b.score))[0];
+      weakTip.innerHTML = weakDim
+        ? `<span style="color:var(--warning);font-weight:700">主要弱项：</span>${escapeHtml(weakDim.label)}（${Math.round(Number(weakDim.score))}分）—— ${escapeHtml(weakDim.summary || '建议优先查看对应特征组。')}`
+        : '暂无可计算弱项。';
+    }
+  }
+}
+
+function renderFeatureCoverage(schema, groups, gaps) {
+  const card = document.getElementById('featureSchemaCard');
+  if (!card) return;
+  const hasSchema = schema && Object.keys(schema).length;
+  const hasGroups = Array.isArray(groups) && groups.length;
+  if (!hasSchema && !hasGroups) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  const metaEl = document.getElementById('featureSchemaMeta');
+  if (metaEl) {
+    const model = schema.model_family || 'unknown';
+    const count = schema.feature_count ?? '—';
+    const contract = schema.contract_feature_count ?? '—';
+    const governed = schema.governed_feature_count ?? '—';
+    metaEl.innerHTML = [
+      `<span class="feature-chip">模型 ${escapeHtml(model)}</span>`,
+      `<span class="feature-chip">本次 ${escapeHtml(count)} 维</span>`,
+      `<span class="feature-chip">契约 ${escapeHtml(contract)} 维</span>`,
+      `<span class="feature-chip">治理 ${escapeHtml(governed)} 维</span>`
+    ].join('');
+  }
+  const listEl = document.getElementById('featureGroupList');
+  if (listEl) {
+    listEl.innerHTML = (groups || []).map(g => {
+      const count = Number(g.count || 0);
+      const active = Number(g.active_count || 0);
+      const pct = count ? Math.round(active / count * 100) : 0;
+      const score = g.score == null ? '—' : Math.round(Number(g.score));
+      const highlight = (g.highlights || []).slice(0, 2).map(h => h.label || h.feature).join('、');
+      const miss = (g.misses || []).slice(0, 2).map(h => h.label || h.feature).join('、');
+      const hint = highlight ? `已命中：${highlight}` : (miss ? `待补：${miss}` : '暂无显著信号');
+      return `
+        <div class="feature-group-row">
+          <div class="feature-group-name">${escapeHtml(g.label || g.key)}</div>
+          <div class="feature-group-detail">
+            <div class="feature-group-bar"><div class="feature-group-fill" style="width:${pct}%"></div></div>
+            <div class="feature-group-hint">${escapeHtml(hint)}</div>
+          </div>
+          <div class="dim-score" style="color:${scoreColor(g.score)}">${escapeHtml(score)}</div>
+        </div>`;
+    }).join('');
+  }
+  const gapEl = document.getElementById('featureGapList');
+  if (gapEl) {
+    const top = (gaps || []).slice(0, 4);
+    gapEl.innerHTML = top.length
+      ? top.map(g => `<div class="feature-gap-item"><strong>${escapeHtml(g.label || g.feature)}</strong>：${escapeHtml(g.suggestion || '')}</div>`).join('')
+      : '<div class="report-empty-note">当前没有明显的 124 维特征缺口。</div>';
+  }
 }
 
 function scoreColor(v) {
-  if (v === null) return 'var(--text-muted)';
-  if (v >= 75) return 'var(--success)';
-  if (v >= 50) return 'var(--warning)';
-  return 'var(--error)';
-}
+	  if (v === null || v === undefined || Number.isNaN(Number(v))) return 'var(--text-muted)';
+	  v = Number(v);
+	  if (v >= 75) return 'var(--success)';
+	  if (v >= 50) return 'var(--warning)';
+	  return 'var(--error)';
+	}
 
-// 存储动态雷达数据
-let _radarData = null;
+	// 存储动态雷达数据
+	let _radarData = null;
+	let _radarDimensions = null;
 
 function updateDimBars(scores) {
   scores.forEach((v, i) => {
@@ -5586,29 +6441,40 @@ function initCharts() {
     _radarInstance.resize();
   }
 
-  const noteValues = _radarData || [50, 50, 50, 50, 50];
-  _radarInstance.setOption({
-    backgroundColor: 'transparent',
-    radar: {
-      indicator: [
-        {name:'标题吸引力',max:100},{name:'视觉表现力',max:100},
-        {name:'内容质量',max:100},{name:'标签策略',max:100},{name:'发布策略',max:100}
-      ],
+	  const dims = Array.isArray(_radarDimensions) && _radarDimensions.length
+	    ? _radarDimensions
+	    : null;
+	  const indicators = dims
+	    ? dims.map(d => ({ name: d.label || d.key || '维度', max: 100 }))
+	    : [
+	        {name:'标题吸引力',max:100},{name:'视觉表现力',max:100},
+	        {name:'内容质量',max:100},{name:'标签策略',max:100},{name:'发布策略',max:100}
+	      ];
+	  const noteValues = dims
+	    ? dims.map(d => d.score == null ? 58 : Math.max(0, Math.min(100, Number(d.score))))
+	    : (_radarData || [50, 50, 50, 50, 50]);
+	  const benchmarkValues = dims
+	    ? dims.map(d => d.score == null ? 58 : 72)
+	    : [68,72,71,76,70];
+	  _radarInstance.setOption({
+	    backgroundColor: 'transparent',
+	    radar: {
+	      indicator: indicators,
       splitArea: { areaStyle: { color: ['rgba(123,97,255,0.02)','rgba(123,97,255,0.04)','rgba(123,97,255,0.02)','rgba(123,97,255,0.01)','rgba(0,0,0,0)'] } },
       axisLine:  { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
       splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
       name: { textStyle: { color: '#999999', fontSize: 12, fontWeight: 600 } },
     },
-    series: [{
-      type: 'radar',
-      data: [
-        { value: noteValues, name:'本次笔记',
-          areaStyle:{color:'rgba(123,97,255,0.15)'}, lineStyle:{color:'#7B61FF',width:2}, itemStyle:{color:'#7B61FF'} },
-        { value:[68,72,71,76,70], name:'赛道平均',
-          areaStyle:{color:'rgba(0,153,255,0.08)'}, lineStyle:{color:'#0099FF',width:1.5,type:'dashed'}, itemStyle:{color:'#0099FF'} },
-      ],
-    }],
-    legend: { data:['本次笔记','赛道平均'], bottom:0, textStyle:{ fontSize:11, color:'#999999' } },
+	    series: [{
+	      type: 'radar',
+	      data: [
+	        { value: noteValues, name:'本次笔记',
+	          areaStyle:{color:'rgba(123,97,255,0.15)'}, lineStyle:{color:'#7B61FF',width:2}, itemStyle:{color:'#7B61FF'} },
+	        { value:benchmarkValues, name:'参考线',
+	          areaStyle:{color:'rgba(0,153,255,0.08)'}, lineStyle:{color:'#0099FF',width:1.5,type:'dashed'}, itemStyle:{color:'#0099FF'} },
+	      ],
+	    }],
+	    legend: { data:['本次笔记','参考线'], bottom:0, textStyle:{ fontSize:11, color:'#999999' } },
     tooltip: { backgroundColor:'#1A1A1A', borderColor:'rgba(255,255,255,0.1)', textStyle:{color:'#FFFFFF'} },
   });
   radarInited = true;
@@ -5676,6 +6542,328 @@ function initHeroAnimInternal() {
 /* ── V0.4 desktop 3D quality engine ─────────────────────────── */
 const V4_THREE_MODULE_URL = './assets/vendor/three.module.min.js';
 let _v4Hero3DStarted = false;
+let _live3DStarted = false;
+let _live3DController = null;
+let _live3DModeIsGen = false;
+let _live3DLastLabel = '';
+
+const LIVE_3D_AGENT_LABELS = {
+  diagnose: ['内容','视觉','增长','用户','仲裁'],
+  generate: ['视觉','创作','增长','心理','仲裁'],
+};
+
+function initLive3D() {
+  const shell = document.getElementById('live3dShell');
+  const canvas = document.getElementById('live3dCanvas');
+  if (!shell || !canvas || _live3DStarted) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    shell.dataset.threeState = 'fallback';
+    return;
+  }
+  if (!window.WebGLRenderingContext) {
+    shell.dataset.threeState = 'fallback';
+    return;
+  }
+  startLive3D(shell, canvas);
+}
+
+function resetLive3D(isGen) {
+  setLive3DMode(isGen);
+  setLive3DScore(null);
+  setLive3DProgress(0, isGen ? '等待爆文生成事件' : '等待真实诊断事件');
+  document.querySelectorAll('#live3dLabels span').forEach(el => el.classList.remove('active'));
+  _live3DController?.reset?.(isGen ? 'generate' : 'diagnose');
+}
+
+function setLive3DMode(isGen) {
+  _live3DModeIsGen = !!isGen;
+  const modeEl = document.getElementById('live3dMode');
+  if (modeEl) modeEl.textContent = isGen ? '爆文生成' : 'AI 诊断';
+  const labels = LIVE_3D_AGENT_LABELS[isGen ? 'generate' : 'diagnose'];
+  document.querySelectorAll('#live3dLabels span').forEach((el, idx) => {
+    el.textContent = labels[idx] || el.textContent;
+  });
+  _live3DController?.setMode?.(isGen ? 'generate' : 'diagnose');
+}
+
+function setLive3DProgress(pct, label) {
+  const n = Number(pct);
+  if (Number.isFinite(n)) _live3DController?.setProgress?.(Math.max(0, Math.min(100, n)));
+  if (label) {
+    _live3DLastLabel = label;
+    const stageEl = document.getElementById('live3dStage');
+    if (stageEl) stageEl.textContent = label;
+  }
+}
+
+function setLive3DScore(score) {
+  const el = document.getElementById('live3dScore');
+  if (!el) return;
+  const n = Number(score);
+  el.textContent = Number.isFinite(n) ? Math.round(n).toString() : '--';
+}
+
+function pulseLive3DAgent(idx, state = 'thinking') {
+  document.querySelectorAll('#live3dLabels span').forEach((el, i) => {
+    if (i === idx) el.classList.add('active');
+    else if (state === 'reset') el.classList.remove('active');
+  });
+  _live3DController?.setAgentState?.(idx, state);
+}
+
+function completeLive3D() {
+  setLive3DProgress(100, _live3DModeIsGen ? '生成完成' : '诊断完成');
+  for (let i = 0; i < 5; i++) pulseLive3DAgent(i, 'done');
+}
+
+async function startLive3D(shell, canvas) {
+  if (_live3DStarted) return;
+  _live3DStarted = true;
+  shell.dataset.threeState = 'loading';
+  try {
+    const THREE = await import(V4_THREE_MODULE_URL);
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+      preserveDrawingBuffer: /(?:pixel|qa3d)/.test(window.location.search),
+      powerPreference: 'high-performance',
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.55));
+    if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    camera.position.set(0, 0.04, 7.3);
+
+    const root = new THREE.Group();
+    root.rotation.x = -0.16;
+    scene.add(root);
+
+    scene.add(new THREE.AmbientLight(0xd8fbff, 0.72));
+    const cyanLight = new THREE.PointLight(0x29d8ff, 24, 15);
+    cyanLight.position.set(-2.8, 2.2, 3.8);
+    scene.add(cyanLight);
+    const pinkLight = new THREE.PointLight(0xff6fd8, 20, 15);
+    pinkLight.position.set(2.8, -1.4, 4.4);
+    scene.add(pinkLight);
+
+    const coreMaterial = new THREE.MeshStandardMaterial({
+      color: 0x9ff8ff,
+      emissive: 0x276dff,
+      emissiveIntensity: 0.45,
+      roughness: 0.2,
+      metalness: 0.42,
+      transparent: true,
+      opacity: 0.92,
+    });
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.58, 3), coreMaterial);
+    root.add(core);
+
+    const coreWire = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.64, 2),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.2 })
+    );
+    root.add(coreWire);
+
+    const rings = [
+      new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.01, 8, 120), new THREE.MeshBasicMaterial({ color: 0x33d7ff, transparent: true, opacity: 0.58 })),
+      new THREE.Mesh(new THREE.TorusGeometry(1.46, 0.012, 8, 140), new THREE.MeshBasicMaterial({ color: 0xff6fd8, transparent: true, opacity: 0.45 })),
+      new THREE.Mesh(new THREE.TorusGeometry(1.88, 0.008, 8, 150), new THREE.MeshBasicMaterial({ color: 0x4affa0, transparent: true, opacity: 0.32 })),
+    ];
+    rings[0].rotation.x = Math.PI / 2.2;
+    rings[1].rotation.y = Math.PI / 2.35;
+    rings[2].rotation.x = Math.PI / 2.05;
+    rings.forEach(r => root.add(r));
+
+    const colors = [0xf59e0b, 0x00d4ff, 0x22c55e, 0x7b61ff, 0xff6fd8];
+    const positions = [
+      new THREE.Vector3(-2.38, 0.28, 0.08),
+      new THREE.Vector3(-1.05, -1.22, 0.18),
+      new THREE.Vector3(1.05, -1.22, 0.18),
+      new THREE.Vector3(2.38, 0.28, 0.08),
+      new THREE.Vector3(0, 1.28, 0.22),
+    ];
+    const nodes = [];
+    const beams = [];
+    positions.forEach((pos, idx) => {
+      const material = new THREE.MeshStandardMaterial({
+        color: colors[idx],
+        emissive: colors[idx],
+        emissiveIntensity: 0.28,
+        roughness: 0.2,
+        metalness: 0.2,
+      });
+      const node = new THREE.Mesh(new THREE.SphereGeometry(0.13, 28, 28), material);
+      node.position.copy(pos);
+      node.userData = { base: pos.clone(), phase: idx * 0.72, state: 'idle', color: colors[idx], material };
+      nodes.push(node);
+      root.add(node);
+
+      const halo = new THREE.Mesh(
+        new THREE.TorusGeometry(0.24, 0.008, 8, 56),
+        new THREE.MeshBasicMaterial({ color: colors[idx], transparent: true, opacity: 0.18 })
+      );
+      halo.position.copy(pos);
+      halo.userData = { node, phase: idx * 0.65 };
+      root.add(halo);
+      node.userData.halo = halo;
+
+      const beamMaterial = new THREE.LineBasicMaterial({ color: colors[idx], transparent: true, opacity: 0.16 });
+      const beam = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([pos, new THREE.Vector3(0, 0, 0)]),
+        beamMaterial
+      );
+      beam.userData = { material: beamMaterial };
+      beams.push(beam);
+      root.add(beam);
+    });
+
+    const particleCount = 150;
+    const particlePositions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 0.9 + Math.random() * 2.4;
+      particlePositions[i * 3] = Math.cos(a) * r;
+      particlePositions[i * 3 + 1] = Math.sin(a) * r * 0.56 + (Math.random() - 0.5) * 0.5;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 1.3;
+    }
+    const particles = new THREE.Points(
+      new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(particlePositions, 3)),
+      new THREE.PointsMaterial({ color: 0x9ff8ff, size: 0.022, transparent: true, opacity: 0.42 })
+    );
+    root.add(particles);
+
+    const pulses = [];
+    let targetProgress = 0;
+    let modeTilt = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+    shell.addEventListener('pointermove', (event) => {
+      const rect = shell.getBoundingClientRect();
+      pointerX = (event.clientX - rect.left) / rect.width - 0.5;
+      pointerY = (event.clientY - rect.top) / rect.height - 0.5;
+    }, { passive: true });
+    shell.addEventListener('pointerleave', () => { pointerX = 0; pointerY = 0; });
+
+    const makePulse = (idx) => {
+      const from = nodes[idx]?.position?.clone?.();
+      if (!from) return;
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.045, 16, 16),
+        new THREE.MeshBasicMaterial({ color: colors[idx], transparent: true, opacity: 0.86 })
+      );
+      mesh.position.copy(from);
+      root.add(mesh);
+      pulses.push({ mesh, from, to: new THREE.Vector3(0, 0, 0), started: performance.now(), duration: 920 });
+    };
+
+    _live3DController = {
+      reset(mode) {
+        targetProgress = 0;
+        modeTilt = mode === 'generate' ? -0.22 : 0;
+        nodes.forEach((node, idx) => {
+          node.userData.state = 'idle';
+          node.userData.material.emissiveIntensity = 0.28;
+          node.scale.setScalar(1);
+          beams[idx].material.opacity = 0.16;
+          node.userData.halo.material.opacity = 0.18;
+        });
+      },
+      setMode(mode) {
+        modeTilt = mode === 'generate' ? -0.22 : 0;
+      },
+      setProgress(pct) {
+        targetProgress = pct / 100;
+      },
+      setAgentState(idx, state) {
+        const node = nodes[idx];
+        if (!node) return;
+        node.userData.state = state;
+        if (state !== 'reset' && state !== 'idle') makePulse(idx);
+      },
+    };
+
+    const resize = () => {
+      const rect = shell.getBoundingClientRect();
+      const width = Math.max(280, Math.floor(rect.width));
+      const height = Math.max(190, Math.floor(rect.height));
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.position.z = width < 520 ? 8.2 : 7.3;
+      root.scale.setScalar(width < 520 ? 0.86 : 1);
+      camera.updateProjectionMatrix();
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(shell);
+
+    let frameId = 0;
+    let renderedProgress = 0;
+    const animate = (now) => {
+      const t = now * 0.001;
+      renderedProgress += (targetProgress - renderedProgress) * 0.045;
+      root.rotation.y += ((modeTilt + pointerX * 0.18) - root.rotation.y) * 0.035;
+      root.rotation.x += ((-0.14 - pointerY * 0.10) - root.rotation.x) * 0.035;
+      core.rotation.x = t * 0.24;
+      core.rotation.y = t * 0.42;
+      core.scale.setScalar(1 + renderedProgress * 0.22 + Math.sin(t * 2.2) * 0.02);
+      coreMaterial.emissiveIntensity = 0.45 + renderedProgress * 0.65;
+      coreWire.rotation.y = -t * 0.28;
+      rings[0].rotation.z = t * 0.28;
+      rings[1].rotation.x = Math.PI / 2.35 + Math.sin(t * 0.72) * 0.16;
+      rings[2].rotation.y = -t * 0.22;
+      rings.forEach((ring, idx) => {
+        ring.scale.setScalar(1 + renderedProgress * (0.08 + idx * 0.025));
+        ring.material.opacity = [0.58, 0.45, 0.32][idx] + renderedProgress * 0.16;
+      });
+      particles.rotation.z = t * 0.035;
+      particles.rotation.y = t * 0.015;
+      nodes.forEach((node, idx) => {
+        const state = node.userData.state;
+        const active = state === 'thinking' || state === 'arbiter';
+        const done = state === 'done';
+        const s = active ? 1.45 + Math.sin(t * 4.2 + idx) * 0.12 : done ? 1.22 : 1.0;
+        node.scale.lerp(new THREE.Vector3(s, s, s), 0.12);
+        node.position.y = node.userData.base.y + Math.sin(t * 1.6 + node.userData.phase) * 0.045;
+        node.userData.material.emissiveIntensity += ((active ? 1.15 : done ? 0.78 : 0.28) - node.userData.material.emissiveIntensity) * 0.12;
+        beams[idx].material.opacity += ((active ? 0.62 : done ? 0.36 : 0.16) - beams[idx].material.opacity) * 0.09;
+        const halo = node.userData.halo;
+        halo.position.copy(node.position);
+        halo.rotation.z = t * (0.5 + idx * 0.05);
+        halo.scale.setScalar(active ? 1.35 + Math.sin(t * 3 + idx) * 0.08 : done ? 1.14 : 1);
+        halo.material.opacity += ((active ? 0.46 : done ? 0.28 : 0.18) - halo.material.opacity) * 0.12;
+      });
+      for (let i = pulses.length - 1; i >= 0; i--) {
+        const pulse = pulses[i];
+        const k = Math.min(1, (now - pulse.started) / pulse.duration);
+        pulse.mesh.position.lerpVectors(pulse.from, pulse.to, k);
+        pulse.mesh.material.opacity = (1 - k) * 0.86;
+        pulse.mesh.scale.setScalar(1 + k * 0.8);
+        if (k >= 1) {
+          root.remove(pulse.mesh);
+          pulse.mesh.geometry.dispose();
+          pulse.mesh.material.dispose();
+          pulses.splice(i, 1);
+        }
+      }
+      renderer.render(scene, camera);
+      frameId = requestAnimationFrame(animate);
+    };
+
+    shell.dataset.threeState = 'ready';
+    _live3DController.reset(_live3DModeIsGen ? 'generate' : 'diagnose');
+    frameId = requestAnimationFrame(animate);
+    window.addEventListener('pagehide', () => {
+      cancelAnimationFrame(frameId);
+      ro.disconnect();
+      renderer.dispose();
+    }, { once: true });
+  } catch (error) {
+    console.warn('[NoteAI] live 3D fallback:', error);
+    shell.dataset.threeState = 'fallback';
+  }
+}
 
 function initV4Hero3D() {
   const visual = document.querySelector('.v4-hero-visual');
@@ -5894,7 +7082,12 @@ function copyBodyRewrite() {
 /* ── Init on load ───────────────────────────────────────────── */
 window.addEventListener('load', () => {
   lucide.createIcons();
-  initHeroAnimInternal();
+  const initialPage = new URLSearchParams(location.search).get('page') || location.hash.replace(/^#/, '');
+  if (['landing','upload','live','report','profile','tech','chat','pricing','library'].includes(initialPage) && initialPage !== 'landing') {
+    showPage(initialPage);
+  } else {
+    initHeroAnimInternal();
+  }
   initScrollAnimations();
 });
 
@@ -6165,6 +7358,11 @@ async function startChatOptimization() {
 
   try {
     const headers = { 'Content-Type': 'application/json', ...authHeader() };
+    const constraints = Array.isArray(d.user_constraints) && d.user_constraints.length
+      ? d.user_constraints
+      : getConstraintTags();
+    const intentPayload = getContentIntentPayload(d);
+    const generateContext = { ...d, user_constraints: constraints, ...intentPayload };
     const res = await fetch(API_AUTH + '/chat/start', {
       method: 'POST',
       headers,
@@ -6172,9 +7370,11 @@ async function startChatOptimization() {
         note_title:       d.note_title || '',
         note_body:        d.note_body  || '',
         domain:           d._domain    || '美食',
-        local_time:       new Date().toISOString().slice(0, 16),
+        local_time:       formatLocalTimeWithConstraints(constraints),
         note_id:          d._saved_note_id || null,
-        generate_context: d,
+        user_constraints: constraints.length ? constraints : null,
+        ...intentPayload,
+        generate_context: generateContext,
       }),
     });
     if (res.status === 401) {
@@ -6220,6 +7420,11 @@ async function _recreateChatSession() {
   if (!d || d._error) return false;
   try {
     const headers = { 'Content-Type': 'application/json', ...(_authToken ? authHeader() : {}) };
+    const constraints = Array.isArray(d.user_constraints) && d.user_constraints.length
+      ? d.user_constraints
+      : getConstraintTags();
+    const intentPayload = getContentIntentPayload(d);
+    const generateContext = { ...d, user_constraints: constraints, ...intentPayload };
     const res = await fetch(API_AUTH + '/chat/start', {
       method: 'POST',
       headers,
@@ -6227,9 +7432,11 @@ async function _recreateChatSession() {
         note_title:       d.note_title || '',
         note_body:        d.note_body  || '',
         domain:           d._domain    || '美食',
-        local_time:       new Date().toISOString().slice(0, 16),
+        local_time:       formatLocalTimeWithConstraints(constraints),
         note_id:          d._saved_note_id || null,
-        generate_context: d,
+        user_constraints: constraints.length ? constraints : null,
+        ...intentPayload,
+        generate_context: generateContext,
       }),
     });
     if (!res.ok) return false;
@@ -6336,10 +7543,10 @@ async function chatSendMessage() {
       body: JSON.stringify(payload),
     });
 
-    // 402 = 配额不足 → 弹升级引导，恢复输入框
+    // 402 = 积分不足 → 弹升级引导，恢复输入框
     if (resp.status === 402) {
       const errData = await resp.json().catch(() => ({}));
-      chatAppendAi('⚠️ 对话重写配额已用完，请升级套餐或充值积分后继续。');
+      chatAppendAi('对话深度重写积分不足，请订阅套餐或充值积分后继续。');
       showQuotaExceededModal(errData.detail || errData);
       return;
     }
@@ -6849,10 +8056,12 @@ function _fmtLocalTime(utcStr) {
 }
 
 async function initReportPage() {
-  _diagHistoryOffset = 0;
-  const listEl = document.getElementById('diag-history-list');
-  if (listEl) listEl.innerHTML = '';
-  closeDiagDetail();
+	  _diagHistoryOffset = 0;
+	  const listEl = document.getElementById('diag-history-list');
+	  const historySection = document.getElementById('diag-history-section');
+	  if (historySection) historySection.style.display = 'block';
+	  if (listEl) listEl.innerHTML = '';
+	  closeDiagDetail();
 
   // 若诊断仍在进行中，先显示等待提示，等分析完成再拉历史
   if (_diagnosePromise) {
@@ -6862,10 +8071,24 @@ async function initReportPage() {
         <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">AI 诊断进行中，请稍候…</div>
         <div style="font-size:13px">5 位专家正在分析您的笔记，完成后将自动显示报告</div>
       </div>`;
-    try { await _diagnosePromise; } catch(e) {}
-  }
+	    try { await _diagnosePromise; } catch(e) {}
+	  }
 
-  await loadDiagnosisHistory(true);
+	  const hasFreshReport = _isGenerateMode
+	    ? (_generateResult && !_generateResult._error)
+	    : (_diagnoseResult && !_diagnoseResult._error);
+	  if (hasFreshReport) {
+	    const detail = document.getElementById('diag-detail-section');
+	    if (detail) detail.style.display = 'block';
+	    const historyLogin = document.getElementById('diag-history-login');
+	    if (listEl) listEl.innerHTML = '';
+	    if (!_authToken && historyLogin) historyLogin.style.display = 'none';
+	    if (!_authToken && historySection) historySection.style.display = 'none';
+	    await populateReport();
+	    if (!_authToken) return;
+	  }
+
+	  await loadDiagnosisHistory(true);
 
   // 自动展开报告：优先展开本 session 刚完成的诊断，否则展开最新历史记录
   if (!_currentDiagId) {
@@ -6973,12 +8196,16 @@ async function openDiagDetail(diagId) {
   document.getElementById('scoreRingNum').textContent = '--';
   const gradeEl = document.getElementById('gradeText');
   if (gradeEl) { gradeEl.textContent = '加载中…'; gradeEl.style.color = 'var(--text-muted)'; }
-  [0,2,3,4].forEach(i => {
-    const bar = document.getElementById('dimBar'+i);
-    const sc  = document.getElementById('dimScore'+i);
-    if (bar) { bar.style.width='0%'; bar.dataset.w='0%'; }
-    if (sc)  { sc.textContent='--'; sc.style.color='var(--text-muted)'; }
-  });
+	  [0,2,3,4].forEach(i => {
+	    const bar = document.getElementById('dimBar'+i);
+	    const sc  = document.getElementById('dimScore'+i);
+	    if (bar) { bar.style.width='0%'; bar.dataset.w='0%'; }
+	    if (sc)  { sc.textContent='--'; sc.style.color='var(--text-muted)'; }
+	  });
+	  const dimRows = document.getElementById('dimensionRows');
+	  if (dimRows) dimRows.innerHTML = '<div class="report-empty-note">正在读取 V0.4 维度数据…</div>';
+	  const featureCard = document.getElementById('featureSchemaCard');
+	  if (featureCard) featureCard.style.display = 'none';
 
   // 删除按钮
   const delBtn = document.getElementById('detail-delete-btn');
@@ -7514,6 +8741,8 @@ async function startChatFromLibrary() {
   closeNoteDetail();
   showPage('chat');
   try {
+    const constraints = getConstraintTags();
+    const intentPayload = getContentIntentPayload(note || {});
     const res = await fetch(API_AUTH + '/chat/start', {
       method: 'POST',
       headers: { ...authHeader(), 'Content-Type': 'application/json' },
@@ -7521,7 +8750,9 @@ async function startChatFromLibrary() {
         note_title: note.title,
         note_body:  note.body,
         domain:     note.domain || '美食',
-        local_time: new Date().toISOString().slice(0, 16),
+        local_time: formatLocalTimeWithConstraints(constraints),
+        user_constraints: constraints.length ? constraints : null,
+        ...intentPayload,
       }),
     });
     if (res.status === 401) {
@@ -7604,11 +8835,29 @@ function chatRestoreSession() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   截图上传 — Kimi Vision OCR
+   截图上传 — AI 视觉识别
 ═══════════════════════════════════════════════════════════ */
 let _ssImages = [];               // [{dataURL, name}]  最多9张
 let _screenshotExtracted = null;  // {title, body, domain}
 let _ssOcrCache = new Map();      // dataURL → {title,body,domain} 已识别缓存，避免重复OCR
+let _ssOcrErrors = new Map();     // dataURL → 识别失败原因
+let _ssOcrPromise = null;          // 当前截图 AI 识别任务，诊断前必须等待它完成
+let _ssOcrInFlight = 0;
+
+function _getScreenshotRecognitionState() {
+  const imgs = Array.isArray(_ssImages) ? _ssImages : [];
+  const total = imgs.length;
+  let completed = 0;
+  let ok = 0;
+  let failed = 0;
+  imgs.forEach(img => {
+    if (!_ssOcrCache.has(img.dataURL)) return;
+    completed += 1;
+    if (_ssOcrCache.get(img.dataURL)) ok += 1;
+    else failed += 1;
+  });
+  return { total, completed, ok, failed, pending: Math.max(0, total - completed) };
+}
 
 function handleScreenshotSelect(input) {
   if (input.files && input.files.length) _addSsFiles(Array.from(input.files));
@@ -7633,11 +8882,12 @@ async function _addSsFiles(files) {
   })));
 
   _ssImages.push(...loaded);
+  _screenshotExtracted = null;
   _renderSsThumbs();
 
   // 只对本次新加入的图片 OCR（已识别过的从缓存取），避免重复调接口
   const newImages = loaded.filter(img => !_ssOcrCache.has(img.dataURL));
-  if (newImages.length > 0) _ocrImages(newImages);
+  if (newImages.length > 0) _ssOcrPromise = _ocrImages(newImages);
 }
 
 function _renderSsThumbs() {
@@ -7659,7 +8909,7 @@ function _renderSsThumbs() {
   grid.style.display = 'grid';
   grid.innerHTML = _ssImages.map((img, i) => `
     <div style="position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;background:var(--surf-3);
-      ${i===0?'border:2px solid rgba(0,153,255,0.6)':''}" title="${i===0?'图1（OCR识别源）':'图'+(i+1)}">
+      ${i===0?'border:2px solid rgba(0,153,255,0.6)':''}" title="图${i+1}（已纳入 AI 识别）">
       <img src="${img.dataURL}" style="width:100%;height:100%;object-fit:cover">
       <div style="position:absolute;top:3px;left:4px;font-size:9px;font-weight:700;color:#fff;
         text-shadow:0 1px 3px rgba(0,0,0,0.8)">${i===0?'📷 图1':('图'+(i+1))}</div>
@@ -7673,6 +8923,7 @@ function _renderSsThumbs() {
 function _removeSsImage(idx) {
   const removed = _ssImages.splice(idx, 1)[0];
   if (removed) _ssOcrCache.delete(removed.dataURL);
+  if (removed) _ssOcrErrors.delete(removed.dataURL);
   _renderSsThumbs();
   _mergeAndShowOcrResults();  // 用缓存重新合并，不重新调接口
 }
@@ -7681,6 +8932,7 @@ function _removeSsImage(idx) {
 async function _ocrImages(imagesToOcr) {
   if (!imagesToOcr || imagesToOcr.length === 0) return;
   const loadingEl = document.getElementById('screenshot-loading');
+  _ssOcrInFlight += imagesToOcr.length;
   if (loadingEl) loadingEl.style.display = 'block';
 
   await Promise.allSettled(imagesToOcr.map(img =>
@@ -7688,19 +8940,39 @@ async function _ocrImages(imagesToOcr) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
       body: JSON.stringify({ image_base64: img.dataURL.split(',')[1] }),
-    }).then(r => {
-      if (r.status === 402) { showToast('截图识别配额已用完，请升级套餐'); return; }
-      if (r.status === 401) { openAuthModal('login'); return; }
-      if (!r.ok) { _ssOcrCache.set(img.dataURL, null); return; }
-      return r.json().then(d => {
-        // 无论哪种类型(A/B/C)，只要有内容就缓存
-        if (d.title || d.body || d.cover_desc) _ssOcrCache.set(img.dataURL, d);
-        else _ssOcrCache.set(img.dataURL, null);
-      });
-    }).catch(() => { _ssOcrCache.set(img.dataURL, null); })
-  ));
+	    }).then(r => {
+	      if (r.status === 402) { showToast('截图识别积分不足，请订阅套餐或充值积分'); return; }
+	      if (r.status === 401) { openAuthModal('login'); return; }
+	      if (!r.ok) {
+	        return r.json().catch(() => ({})).then(err => {
+	          _ssOcrErrors.set(img.dataURL, err.detail || `HTTP ${r.status}`);
+	          _ssOcrCache.set(img.dataURL, null);
+	        });
+	      }
+	      return r.json().then(d => {
+	        // A/C 识别文字，B 识别图片视觉描述；本次上传的每张图都必须识别成功才允许后续诊断。
+	        if (d.title || d.body || d.cover_desc) {
+	          _ssOcrErrors.delete(img.dataURL);
+	          _ssOcrCache.set(img.dataURL, d);
+	        } else {
+	          _ssOcrErrors.set(img.dataURL, 'AI 未返回可用文字或视觉描述');
+	          _ssOcrCache.set(img.dataURL, null);
+	        }
+	      });
+	    }).catch(err => {
+	      _ssOcrErrors.set(img.dataURL, err?.message || '网络请求失败');
+	      _ssOcrCache.set(img.dataURL, null);
+	    })
+	  ));
 
-  if (loadingEl) loadingEl.style.display = 'none';
+  _ssOcrInFlight = Math.max(0, _ssOcrInFlight - imagesToOcr.length);
+  if (loadingEl && _ssOcrInFlight === 0) loadingEl.style.display = 'none';
+
+  const state = _getScreenshotRecognitionState();
+  if (state.pending > 0 || state.failed > 0 || state.ok !== state.total) {
+    _mergeAndShowOcrResults();
+    return;
+  }
 
   // 多图时调 agent 鉴别去重（单图且<500字时直接合并）
   const validCached = _ssImages.map(img => _ssOcrCache.get(img.dataURL)).filter(Boolean);
@@ -7766,16 +9038,42 @@ async function _validateAndMergeOcr(ocrResults) {
 
 // 从缓存合并所有已识别图片的内容，处理所有图片类型（A/B/C）
 function _mergeAndShowOcrResults() {
-  const resultEl = document.getElementById('screenshot-result');
+	  const resultEl = document.getElementById('screenshot-result');
+	  const state = _getScreenshotRecognitionState();
+	  if (state.total > 0 && (state.pending > 0 || state.failed > 0 || state.ok !== state.total)) {
+	    _screenshotExtracted = null;
+	    const statusEl = document.getElementById('ss-ocr-status');
+	    const titleEl = document.getElementById('ss-title-display');
+	    const bodyEl = document.getElementById('ss-body-display');
+	    const firstError = _ssImages.map(img => _ssOcrErrors.get(img.dataURL)).find(Boolean);
+	    if (statusEl) {
+	      statusEl.textContent = state.failed > 0
+	        ? `图片 AI 识别失败：${state.failed}/${state.total} 张失败，必须全部识别成功后才能诊断`
+	        : `图片 AI 识别中：${state.completed}/${state.total} 张完成`;
+	    }
+	    if (titleEl) titleEl.textContent = '（等待全部图片识别完成）';
+	    if (bodyEl) bodyEl.textContent = state.failed > 0
+	      ? `请重新上传失败图片，或稍后重试${firstError ? `；原因：${firstError}` : ''}`
+	      : `还有 ${state.pending} 张图片正在识别`;
+    if (resultEl) resultEl.style.display = 'block';
+    return;
+  }
 
   const valid = _ssImages
     .map(img => _ssOcrCache.get(img.dataURL))
     .filter(Boolean);
 
-  if (valid.length === 0) {
-    _screenshotExtracted = null;
-    resultEl.style.display = 'none';
-    return;
+	  if (valid.length === 0) {
+	    _screenshotExtracted = null;
+	    const statusEl = document.getElementById('ss-ocr-status');
+	    const titleEl = document.getElementById('ss-title-display');
+	    const bodyEl = document.getElementById('ss-body-display');
+	    const firstError = _ssImages.map(img => _ssOcrErrors.get(img.dataURL)).find(Boolean);
+	    if (statusEl) statusEl.textContent = '图片 AI 识别失败，请重新上传或稍后重试';
+	    if (titleEl) titleEl.textContent = '（未识别成功）';
+	    if (bodyEl) bodyEl.textContent = firstError ? `未获得可用于诊断的图片识别结果；原因：${firstError}` : '未获得可用于诊断的图片识别结果';
+	    resultEl.style.display = 'block';
+	    return;
   }
 
   // 按类型分组
@@ -7852,6 +9150,9 @@ function resetScreenshot() {
   _ssImages = [];
   _screenshotExtracted = null;
   _ssOcrCache = new Map();
+  _ssOcrErrors = new Map();
+  _ssOcrPromise = null;
+  _ssOcrInFlight = 0;
   _renderSsThumbs();
 }
 
@@ -8340,6 +9641,28 @@ const OP_NAMES = {
   chat_fast:'对话反馈', diagnose:'快速评分',
 };
 
+function normalizeQuotaDetail(detail) {
+  if (detail && typeof detail === 'object') return detail.detail || detail;
+  if (typeof detail === 'string') {
+    const raw = detail.trim();
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') return parsed.detail || parsed;
+      } catch (_) {}
+    }
+    return { message: raw || '积分不足' };
+  }
+  return { message: '积分不足' };
+}
+
+function fmtTokens(n) {
+  n = Number(n || 0);
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return String(Math.round(n));
+}
+
 /* 加载套餐 + 用量（成长档案调用）*/
 async function loadBillingPlan() {
   if (!_authToken) return;
@@ -8356,7 +9679,7 @@ async function loadBillingPlan() {
     // ── 套餐信息 ──
     const planEl = document.getElementById('profile-plan-info');
     if (planEl) {
-      const cols = { free:'var(--text-muted)', pro:'var(--holo-mid)', pro_plus:'#FFD700' };
+      const cols = { free:'var(--text-muted)', pro:'var(--holo-mid)', growth:'#22C55E', pro_plus:'#FFD700', studio:'#00D4FF' };
       const col  = cols[plan.tier] || 'var(--text)';
       planEl.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px">
@@ -8368,55 +9691,48 @@ async function loadBillingPlan() {
         </div>`;
     }
 
-    // ── 配额进度条（仅付费操作）──
+    // ── 月度积分进度 + 功能扣分标准 ──
     const barsEl = document.getElementById('profile-quota-bars');
-    if (barsEl && plan.quotas) {
-      // ── 配额操作（有限次，显示进度条）──
-      const quotaMeta = {
-        analyze:      { label: 'AI 深度诊断', accent: '#7B61FF', cost: '1积分/次' },
-        generate:     { label: 'AI 爆文生成',  accent: '#FF6FD8', cost: '2积分/次' },
-        chat_rewrite: { label: '对话重写',      accent: '#00D4FF', cost: '0.5积分/次' },
-        screenshot:   { label: '截图识别',      accent: '#22C55E', cost: '0.5积分/次' },
+    if (barsEl) {
+      const monthlyTotal = Number(plan.monthly_credits || 0);
+      const monthlyUsed = Number(plan.monthly_credits_used || 0);
+      const monthlyRemaining = Number(plan.monthly_credits_remaining || 0);
+      const walletBalance = Number(plan.wallet_credits_balance ?? plan.credits_balance ?? 0);
+      const totalAvailable = Number(plan.total_available_credits ?? (monthlyRemaining + walletBalance));
+      const pct = monthlyTotal > 0 ? Math.min(100, Math.round(monthlyUsed / monthlyTotal * 100)) : 0;
+      const opMeta = {
+        analyze:      { label: 'AI 深度诊断', accent: '#7B61FF', unit: '次' },
+        generate:     { label: 'AI 爆文生成',  accent: '#FF6FD8', unit: '次' },
+        chat_rewrite: { label: '对话深度重写', accent: '#00D4FF', unit: '轮' },
+        screenshot:   { label: '截图识别',      accent: '#22C55E', unit: '张' },
       };
-
-      const quotaHTML = Object.entries(plan.quotas).map(([key, q]) => {
-        const meta = quotaMeta[key] || { label: q.label, accent: 'var(--holo-mid)', cost: '' };
-        const pct  = q.unlimited ? 100 : q.pct;
-        const barCol = (q.remaining === 0 && !q.unlimited)
-          ? '#EF4444' : pct >= 90 ? '#F59E0B' : meta.accent;
-        const statusTag = q.unlimited
-          ? `<span style="font-size:10px;background:rgba(0,212,255,0.15);color:#00D4FF;padding:2px 8px;border-radius:8px;font-weight:700">无限</span>`
-          : q.remaining === 0
-          ? `<span style="font-size:10px;background:rgba(239,68,68,0.15);color:#EF4444;padding:2px 8px;border-radius:8px;font-weight:700">已用完</span>`
-          : `<span style="font-size:12px;font-weight:700;color:${barCol}">${q.used} / ${q.limit} 次</span>`;
-
+      const opCosts = plan.operation_costs || {
+        analyze: { label:'AI深度诊断', credits:6 },
+        generate: { label:'AI爆文生成', credits:8 },
+        chat_rewrite: { label:'对话深度重写', credits:3 },
+        screenshot: { label:'截图识别', credits:0.5 },
+      };
+      const opCostHTML = Object.entries(opCosts).map(([key, info]) => {
+        const meta = opMeta[key] || { label: info.label || key, accent: 'var(--holo-mid)', unit: '次' };
+        const credits = Number(info.credits || 0);
+        const remainCount = credits > 0 ? Math.floor(totalAvailable / credits) : 0;
         return `
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 14px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
-              <div>
-                <span style="font-size:13px;font-weight:600;color:var(--text)">${meta.label}</span>
-                <span style="font-size:10px;color:var(--text-muted);margin-left:6px">${meta.cost}</span>
-              </div>
-              ${statusTag}
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:4px">
+              <span style="font-size:13px;font-weight:700;color:var(--text)">${meta.label}</span>
+              <span style="font-size:13px;font-weight:800;color:${meta.accent}">${credits}积分</span>
             </div>
-            ${q.unlimited
-              ? `<div style="height:5px;border-radius:3px;overflow:hidden">
-                   <div style="height:100%;width:100%;background:linear-gradient(90deg,${meta.accent},${meta.accent}60);opacity:.5"></div>
-                 </div>`
-              : `<div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden">
-                   <div style="height:100%;width:${pct}%;background:${barCol};border-radius:3px;transition:width .6s ease;min-width:${pct>0?'4px':'0'}"></div>
-                 </div>
-                 <div style="font-size:10px;color:var(--text-muted);margin-top:3px">剩余 ${q.unlimited ? '∞' : q.remaining} 次 · 每月1日重置</div>`}
+            <div style="font-size:10px;color:var(--text-muted);line-height:1.45">当前可用积分约可使用 ${remainCount}${meta.unit}</div>
           </div>`;
       }).join('');
 
       // ── 免费操作（无配额，显示本月使用次数 + 成本）──
       const freeMeta = {
-        score:        { label: '快速评分',   cost: '¥0.002/次', desc: '每次诊断自动调用' },
-        diagnose:     { label: '内容诊断',   cost: '¥0.002/次', desc: '完整诊断时调用' },
-        chat_fast:    { label: '对话反馈',   cost: '¥0.006/次', desc: '短消息、确认类对话' },
-        extra_image:  { label: '附加内容图', cost: '¥0.005/张', desc: '多图诊断时每张图' },
-        video_analyze:{ label: '视频解析',   cost: '¥0.030/次', desc: '视频诊断/生成时调用' },
+        score:        { label: '快速评分',   cost: '成本监控', desc: '每次诊断自动调用' },
+        diagnose:     { label: '内容诊断',   cost: '成本监控', desc: '完整诊断时调用' },
+        chat_fast:    { label: '对话反馈',   cost: '成本监控', desc: '短消息、确认类对话' },
+        extra_image:  { label: '附加内容图', cost: '成本监控', desc: '多图诊断时每张图' },
+        video_analyze:{ label: '视频解析',   cost: '成本监控', desc: '视频诊断/生成时调用' },
       };
       const byOp = window._lastUsageData?.by_operation || {};
       const freeRows = Object.entries(freeMeta).map(([key, meta]) => {
@@ -8434,10 +9750,31 @@ async function loadBillingPlan() {
       }).join('');
 
       barsEl.innerHTML = `
-        <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">
-          配额操作（受套餐限制）
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px">
+            <div>
+              <div style="font-size:13px;font-weight:800;color:var(--text)">本月套餐积分</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${plan.credit_policy || '优先扣本月套餐积分，不足部分扣充值积分。'}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:16px;font-weight:900;color:var(--holo-mid)">${monthlyRemaining.toFixed(1)}</div>
+              <div style="font-size:10px;color:var(--text-muted)">剩余 / 共 ${monthlyTotal.toFixed(1)}</div>
+            </div>
+          </div>
+          <div style="height:7px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#7B61FF,#FF6FD8);border-radius:4px;transition:width .6s ease;min-width:${pct>0?'4px':'0'}"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--text-muted)">
+            <span>已用 ${monthlyUsed.toFixed(1)} 积分</span>
+            <span>充值积分 ${walletBalance.toFixed(1)} · 总可用 ${totalAvailable.toFixed(1)}</span>
+          </div>
         </div>
-        ${quotaHTML}
+        <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">
+          功能扣分标准
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px">
+          ${opCostHTML}
+        </div>
         <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-top:16px;margin-bottom:4px">
           免费操作（不占配额，会产生平台 API 成本）
         </div>
@@ -8456,17 +9793,20 @@ async function loadBillingPlan() {
 
     // ── 总消耗摘要 ──
     const costEl    = document.getElementById('profile-cost-total');
+    const tokenEl   = document.getElementById('profile-token-total');
     const credUsEl  = document.getElementById('profile-credits-used-total');
     const credBalEl = document.getElementById('profile-credits-bal');
     if (costEl)   costEl.textContent   = '¥' + (usage.total_api_cost  || 0).toFixed(4);
+    if (tokenEl)  tokenEl.textContent  = fmtTokens(usage.total_tokens || 0);
     if (credUsEl) credUsEl.textContent = (usage.total_credits || 0).toFixed(1) + ' 积分';
-    if (credBalEl) credBalEl.textContent = (plan.credits_balance || 0).toFixed(1) + ' 积分';
+    if (credBalEl) credBalEl.textContent = Number(plan.total_available_credits ?? plan.credits_balance ?? 0).toFixed(1) + ' 积分';
 
     // 导航栏
     const navCred = document.getElementById('nav-credits-display');
     if (navCred) {
-      navCred.textContent = (plan.credits_balance||0).toFixed(0) + '积分';
-      navCred.style.display = plan.credits_balance > 0 ? 'inline' : 'none';
+      const navCredits = Number(plan.total_available_credits ?? plan.credits_balance ?? 0);
+      navCred.textContent = navCredits.toFixed(0) + '积分';
+      navCred.style.display = navCredits > 0 ? 'inline' : 'none';
     }
 
   } catch(e) { console.error('billing load error', e); }
@@ -8492,18 +9832,19 @@ function toggleUsageDetail() {
     const rows = Object.entries(usage.by_operation)
       .sort((a,b) => b[1].cost_rmb - a[1].cost_rmb)
       .map(([, d]) => `
-        <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;
+        <div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;
                     align-items:center;padding:7px 10px;background:var(--surf-2);border-radius:8px;font-size:12px">
           <span style="color:var(--text-2)">${d.label}</span>
           <span style="color:var(--text-muted);text-align:right">${d.count}次</span>
+          <span style="color:var(--text-muted);text-align:right">${fmtTokens(d.total_tokens || 0)}</span>
           <span style="color:var(--text-2);text-align:right">¥${d.cost_rmb.toFixed(4)}</span>
           <span style="color:${d.credits_used>0?'var(--holo-mid)':'var(--text-muted)'};text-align:right">
             ${d.credits_used>0 ? d.credits_used.toFixed(1)+'积分' : (d.is_free?'免费':'–')}
           </span>
         </div>`).join('');
     byOpEl.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;padding:4px 10px;font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">
-        <span>功能</span><span style="text-align:right">次数</span><span style="text-align:right">API成本</span><span style="text-align:right">积分</span>
+      <div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;padding:4px 10px;font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">
+        <span>功能</span><span style="text-align:right">次数</span><span style="text-align:right">Tokens</span><span style="text-align:right">API成本</span><span style="text-align:right">积分</span>
       </div>
       ${rows || '<div style="color:var(--text-muted);font-size:13px;padding:8px">本月暂无用量</div>'}`;
   }
@@ -8513,13 +9854,19 @@ function toggleUsageDetail() {
   if (recentEl && usage.recent_records) {
     recentEl.innerHTML = usage.recent_records.slice(0,10).map(r => {
       const dt = r.recorded_at?.slice(0,16).replace('T',' ') || '';
-      const srcColor = r.source==='credits'?'var(--warning)':r.source==='subscription'?'var(--success)':'var(--text-muted)';
-      const srcLabel = r.source==='credits'?'积分':r.source==='subscription'?'套餐':'免费';
+      const srcMeta = {
+        subscription: { label:'套餐', color:'var(--success)' },
+        mixed: { label:'混合', color:'var(--holo-mid)' },
+        credits: { label:'充值', color:'var(--warning)' },
+        refunded: { label:'退款', color:'var(--text-muted)' },
+        free: { label:'免费', color:'var(--text-muted)' },
+      }[r.source] || { label:r.source || '免费', color:'var(--text-muted)' };
       return `
         <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--surf-2);font-size:11px">
           <span style="color:var(--text-2);flex:1">${r.label}</span>
           <span style="color:var(--text-muted)">${dt}</span>
-          <span style="color:${srcColor};font-weight:600;width:28px;text-align:right">${srcLabel}</span>
+          <span style="color:${srcMeta.color};font-weight:600;width:34px;text-align:right">${srcMeta.label}</span>
+          <span style="color:var(--text-muted);width:42px;text-align:right">${fmtTokens(r.total_tokens || 0)}</span>
           <span style="color:var(--text-muted);width:52px;text-align:right">¥${r.cost_rmb?.toFixed(4)||'0'}</span>
         </div>`;
     }).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无记录</div>';
@@ -8529,7 +9876,12 @@ function toggleUsageDetail() {
 /* 升级套餐 */
 async function handleUpgrade(tier) {
   if (!_authToken) { openAuthModal('login'); return; }
-  const names = { pro:'轻创作 Pro (¥99/月)', pro_plus:'专业 Pro+ (¥199/月)' };
+  const names = {
+    pro:'创作者版 (¥99/月，260积分)',
+    growth:'成长版 (¥199/月，560积分)',
+    pro_plus:'专业版 (¥299/月，900积分)',
+    studio:'工作室版 (¥399/月，1250积分)',
+  };
   // TODO: 接入微信支付/支付宝，当前为内测模式，管理员手动开通
   showToast('💳 付款功能即将上线，请联系客服开通套餐（微信：noteai_service）');
   return;
@@ -8549,35 +9901,44 @@ async function handleUpgrade(tier) {
 }
 
 /* 积分充值 */
-async function handleTopup(credits, price) {
+async function handleTopup(packageId) {
   if (!_authToken) { openAuthModal('login'); return; }
+  const packages = {
+    starter: { credits: 30, price: 12, label: '体验加油包' },
+    creator: { credits: 100, price: 39, label: '创作者补给包' },
+    growth: { credits: 300, price: 109, label: '增长运营包' },
+    studio: { credits: 800, price: 279, label: '工作室储备包' },
+  };
+  const pkg = packages[packageId] || packages.starter;
   // TODO: 接入支付网关，当前为内测模式
   showToast('💳 积分充值即将上线，请联系客服购买积分（微信：noteai_service）');
   return;
-  const confirmed = confirm(`充值 ${credits} 积分 (¥${price})？`);
+  const confirmed = confirm(`购买${pkg.label}：${pkg.credits}积分 (¥${pkg.price})？`);
   if (!confirmed) return;
   try {
     const res = await fetch(API_AUTH + '/billing/topup', {
       method: 'POST', headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: credits }),
+      body: JSON.stringify({ package_id: packageId }),
     });
     const d = await res.json();
     if (d.ok) {
-      showToast(`✅ 已充值 ${credits} 积分，余额 ${d.new_balance} 积分`);
+      showToast(`✅ 已充值 ${pkg.credits} 积分，余额 ${d.new_balance} 积分`);
       await loadBillingPlan();
     }
   } catch(e) { showToast('充值失败：' + e.message); }
 }
 
-/* 配额不足时弹升级引导 */
+/* 积分不足时弹升级引导 */
 function showQuotaExceededModal(detail) {
-  const d = typeof detail === 'object' ? detail : { message: String(detail) };
+  const d = normalizeQuotaDetail(detail);
   const opName = OP_NAMES[d.operation] || d.operation || '此功能';
   const ok = confirm(
-    `⚠️ ${opName} 配额已用完\n\n` +
+    `⚠️ ${opName} 积分不足\n\n` +
     `${d.message || ''}\n\n` +
-    `积分余额：${d.credits_balance ?? 0} 积分（需要 ${d.credits_needed ?? 0} 积分）\n\n` +
-    `点「确定」前往升级/充值积分，点「取消」关闭`
+    `本月套餐积分剩余：${d.monthly_credits_remaining ?? 0} 积分\n` +
+    `充值积分余额：${d.credits_balance ?? 0} 积分\n` +
+    `本次需要：${d.credits_needed ?? 0} 积分\n\n` +
+    `点「确定」前往订阅/充值，点「取消」关闭`
   );
   if (ok) showPage('pricing');
 }

@@ -277,8 +277,10 @@ input,select,textarea{font-family:inherit}
       <select class="form-select" id="user-tier-filter" style="width:140px" onchange="searchUsers()">
         <option value="">全部套餐</option>
         <option value="free">免费版</option>
-        <option value="pro">轻创作 Pro</option>
-        <option value="pro_plus">专业 Pro+</option>
+        <option value="pro">创作者版</option>
+        <option value="growth">成长版</option>
+        <option value="pro_plus">专业版</option>
+        <option value="studio">工作室版</option>
       </select>
       <span id="user-total" style="font-size:12px;color:var(--text-muted)"></span>
     </div>
@@ -286,7 +288,7 @@ input,select,textarea{font-family:inherit}
       <table class="data-table">
         <thead><tr>
           <th>用户名</th><th>手机/邮箱</th><th>套餐</th><th>注册时间</th>
-          <th>本月操作</th><th>本月成本</th><th>积分余额</th><th>操作</th>
+          <th>本月操作</th><th>Tokens</th><th>本月成本</th><th>积分余额</th><th>操作</th>
         </tr></thead>
         <tbody id="users-tbody"></tbody>
       </table>
@@ -321,7 +323,7 @@ input,select,textarea{font-family:inherit}
       <div class="card">
         <div class="section-title">高消耗用户 Top10</div>
         <table class="data-table">
-          <thead><tr><th>#</th><th>用户名</th><th>操作次数</th><th>API成本</th></tr></thead>
+          <thead><tr><th>#</th><th>用户名</th><th>操作次数</th><th>Tokens</th><th>API成本</th></tr></thead>
           <tbody id="top-users-tbody"></tbody>
         </table>
       </div>
@@ -418,7 +420,7 @@ input,select,textarea{font-family:inherit}
   <div class="content-area page" id="page-settings">
     <div class="card-grid card-grid-2">
       <div class="card">
-        <div class="section-title">套餐配额设置</div>
+        <div class="section-title">套餐积分设置</div>
         <div id="settings-tiers"></div>
       </div>
       <div class="card">
@@ -528,6 +530,13 @@ async function aFetch(path, opts={}) {
   return r;
 }
 
+function fmtTokens(n) {
+  n = Number(n || 0);
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return String(Math.round(n));
+}
+
 /* ── Navigation ───────────────────────────────────────────────────── */
 function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -557,19 +566,19 @@ async function loadDashboard() {
   document.getElementById('d-revenue').textContent     = `¥${f.total_revenue.toLocaleString()}`;
   document.getElementById('d-mrr').textContent         = `MRR ¥${f.mrr.toLocaleString()}`;
   document.getElementById('d-cost').textContent        = `¥${f.api_cost.toFixed(2)}`;
-  document.getElementById('d-margin').textContent      = `毛利 ${f.margin_pct}%`;
+  document.getElementById('d-margin').textContent      = `毛利 ${f.margin_pct}% · ${fmtTokens(f.total_tokens)} tokens`;
   document.getElementById('d-active').textContent      = u.active_month;
   document.getElementById('d-active-sub').textContent  = `7天活跃 ${u.active_7d}`;
 
   // 套餐分布饼图
   const tierChart = echarts.init(document.getElementById('tier-chart'));
-  const tierColors = {free:'#606078', pro:'#7B61FF', pro_plus:'#FFD700'};
+  const tierColors = {free:'#606078', pro:'#7B61FF', growth:'#22C55E', pro_plus:'#FFD700', studio:'#00D4FF'};
   tierChart.setOption({
     backgroundColor:'transparent',
     legend:{bottom:0, textStyle:{color:'#A0A0B8', fontSize:11}},
     series:[{type:'pie', radius:['40%','70%'], center:['50%','45%'],
       data: Object.entries(u.tier_distribution).map(([k,v])=>({
-        name:{free:'免费版',pro:'轻创作Pro',pro_plus:'专业Pro+'}[k]||k,
+        name:{free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[k]||k,
         value:v, itemStyle:{color:tierColors[k]||'#606078'}
       })),
       label:{color:'#F0F0F8',fontSize:11},
@@ -582,7 +591,12 @@ async function loadDashboard() {
   const ops = d.usage.by_operation.slice(0,6);
   opsChart.setOption({
     backgroundColor:'transparent', grid:{left:10, right:10, top:10, bottom:30, containLabel:true},
-    tooltip:{trigger:'axis', backgroundColor:'#1A1A25', borderColor:'rgba(255,255,255,0.1)', textStyle:{color:'#F0F0F8'}},
+    tooltip:{trigger:'axis', backgroundColor:'#1A1A25', borderColor:'rgba(255,255,255,0.1)', textStyle:{color:'#F0F0F8'},
+      formatter: params => {
+        const idx = params?.[0]?.dataIndex ?? 0;
+        const op = ops[idx] || {};
+        return `${op.label || ''}<br/>调用：${op.count || 0} 次<br/>Tokens：${fmtTokens(op.total_tokens || 0)}<br/>成本：¥${(op.cost || 0).toFixed(4)}`;
+      }},
     xAxis:{type:'category', data:ops.map(o=>o.label), axisLabel:{fontSize:10, color:'#A0A0B8', rotate:20}},
     yAxis:{type:'value', axisLabel:{fontSize:10, color:'#A0A0B8'}},
     series:[{type:'bar', data:ops.map(o=>o.count), barMaxWidth:28,
@@ -614,14 +628,15 @@ async function loadUsers() {
   _userTotal = d.total;
   document.getElementById('user-total').textContent = `共 ${d.total} 位用户`;
   document.getElementById('page-info').textContent = `第 ${_userPage} 页（共 ${Math.ceil(d.total/15)} 页）`;
-  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',pro_plus:'badge-pro-plus'}[t]||'badge-free');
+  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',growth:'badge-pro',pro_plus:'badge-pro-plus',studio:'badge-pro-plus'}[t]||'badge-free');
   document.getElementById('users-tbody').innerHTML = d.users.map(u => `
     <tr>
       <td><div style="font-weight:600">${esc(u.username)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.nickname||'')}</div></td>
       <td style="font-size:12px">${esc(u.phone_masked||u.email||'–')}</td>
-      <td><span class="badge ${tierBadge(u.tier)}">${{free:'免费',pro:'Pro',pro_plus:'Pro+'}[u.tier]||u.tier}</span></td>
+      <td><span class="badge ${tierBadge(u.tier)}">${{free:'免费',pro:'创作者',growth:'成长',pro_plus:'专业',studio:'工作室'}[u.tier]||u.tier}</span></td>
       <td style="font-size:12px;color:var(--text-muted)">${(u.created_at||'').slice(0,10)}</td>
       <td>${u.month_ops}</td>
+      <td>${fmtTokens(u.month_tokens || 0)}</td>
       <td style="color:var(--warning)">¥${(u.month_cost||0).toFixed(4)}</td>
       <td style="color:var(--info)">${(u.credits||0).toFixed(1)}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="showUser('${u.id}')">详情</button></td>
@@ -636,7 +651,7 @@ async function showUser(uid) {
   const d = await r.json();
   const u = d.user, sub = d.subscription, cr = d.credits||{balance:0};
   document.getElementById('um-title').textContent = `用户详情 — ${u.username}`;
-  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',pro_plus:'badge-pro-plus'}[t]||'badge-free');
+  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',growth:'badge-pro',pro_plus:'badge-pro-plus',studio:'badge-pro-plus'}[t]||'badge-free');
   document.getElementById('um-content').innerHTML = `
     <div class="card-grid card-grid-2" style="margin-bottom:16px">
       <div>
@@ -651,7 +666,8 @@ async function showUser(uid) {
       </div>
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">套餐与积分</div>
-        <div><span class="badge ${tierBadge(sub.tier)}">${{free:'免费版',pro:'轻创作Pro',pro_plus:'专业Pro+'}[sub.tier]||sub.tier}</span></div>
+        <div><span class="badge ${tierBadge(sub.tier)}">${{free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier}</span></div>
+        <div style="font-size:13px;margin-top:6px">本月已用套餐积分: <b>${Number(sub.used_monthly_credits||0).toFixed(1)}</b></div>
         <div style="font-size:13px;margin-top:6px">积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
         <div style="font-size:12px;color:var(--text-muted)">累计购买: ${(cr.total_purchased||0).toFixed(1)} | 已用: ${(cr.total_used||0).toFixed(1)}</div>
       </div>
@@ -659,13 +675,13 @@ async function showUser(uid) {
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">本月用量</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
       ${(d.month_usage||[]).map(op=>`<div style="background:var(--surf-2);border-radius:8px;padding:6px 10px;font-size:12px">
-        ${esc(op.operation)}: <b>${op.cnt}</b>次 / ¥${(op.cost||0).toFixed(4)}</div>`).join('')}
+        ${esc(op.operation)}: <b>${op.cnt}</b>次 / ${fmtTokens((op.tokens_in||0)+(op.tokens_out||0))} / ¥${(op.cost||0).toFixed(4)}</div>`).join('')}
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','add_credits')">手动加积分</button>
       <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','set_tier')">修改套餐</button>
-      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','reset_quota')">重置配额</button>
+      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','reset_quota')">重置本月积分</button>
     </div>`;
   openModal('user-modal');
 }
@@ -676,9 +692,9 @@ async function adjustUser(uid, action) {
     value = prompt('增加积分数量（正数）：'); if(!value) return;
     note  = prompt('备注：') || '管理员操作';
   } else if (action==='set_tier') {
-    value = prompt('新套餐（free/pro/pro_plus）：'); if(!value) return;
+    value = prompt('新套餐（free/pro/growth/pro_plus/studio）：'); if(!value) return;
   } else if (action==='reset_quota') {
-    if(!confirm('确认重置本月配额？')) return;
+    if(!confirm('确认重置本月套餐积分？')) return;
   }
   const r = await aFetch(`/admin/users/${uid}/adjust`, {method:'POST', body:JSON.stringify({action,value,note})});
   const d = await r.json();
@@ -708,7 +724,12 @@ async function loadUsage() {
   const opsChart = echarts.init(document.getElementById('usage-ops-chart'));
   opsChart.setOption({
     backgroundColor:'transparent', grid:{left:10,right:10,top:10,bottom:50,containLabel:true},
-    tooltip:{trigger:'axis',backgroundColor:'#1A1A25',borderColor:'rgba(255,255,255,0.1)',textStyle:{color:'#F0F0F8'}},
+    tooltip:{trigger:'axis',backgroundColor:'#1A1A25',borderColor:'rgba(255,255,255,0.1)',textStyle:{color:'#F0F0F8'},
+      formatter: params => {
+        const idx = params?.[0]?.dataIndex ?? 0;
+        const op = d.by_operation[idx] || {};
+        return `${op.label || ''}<br/>调用：${op.count || 0} 次<br/>Tokens：${fmtTokens(op.total_tokens || 0)}<br/>成本：¥${(op.cost || 0).toFixed(4)}`;
+      }},
     xAxis:{type:'category',data:d.by_operation.map(o=>o.label),axisLabel:{fontSize:10,color:'#A0A0B8',rotate:30}},
     yAxis:{type:'value',axisLabel:{fontSize:10,color:'#A0A0B8'}},
     series:[{type:'bar',data:d.by_operation.map(o=>o.count),barMaxWidth:30,
@@ -716,13 +737,13 @@ async function loadUsage() {
   });
   _renderLineChart('usage-daily-chart', d.daily_trend.map(r=>r.day), d.daily_trend.map(r=>r.ops), '操作次数', '#7B61FF');
   document.getElementById('top-users-tbody').innerHTML = d.top_users.map((u,i)=>`
-    <tr><td>${i+1}</td><td>${esc(u.username)}</td><td>${u.ops}</td><td style="color:var(--warning)">¥${u.cost.toFixed(4)}</td></tr>`).join('');
+    <tr><td>${i+1}</td><td>${esc(u.username)}</td><td>${u.ops}</td><td>${fmtTokens(u.tokens || 0)}</td><td style="color:var(--warning)">¥${u.cost.toFixed(4)}</td></tr>`).join('');
   const srcChart = echarts.init(document.getElementById('source-chart'));
   srcChart.setOption({
     backgroundColor:'transparent',
     legend:{bottom:0,textStyle:{color:'#A0A0B8',fontSize:11}},
     series:[{type:'pie',radius:['40%','70%'],center:['50%','45%'],
-      data:d.by_source.map(s=>({name:{subscription:'套餐',credits:'积分',free:'免费'}[s.source]||s.source,value:s.count,
+      data:d.by_source.map(s=>({name:{subscription:'套餐积分',mixed:'套餐+充值',credits:'充值积分',free:'免费',refunded:'已退款'}[s.source]||s.source,value:s.count,
         itemStyle:{color:{subscription:'#7B61FF',credits:'#00D4FF',free:'#606078'}[s.source]||'#606078'}})),
       label:{color:'#F0F0F8',fontSize:11},
     }],
@@ -880,18 +901,27 @@ async function saveCookies() {
 async function loadSettings() {
   const r = await aFetch('/admin/settings');
   const d = await r.json();
-  const tierNames = {free:'免费版', pro:'轻创作 Pro (¥99)', pro_plus:'专业 Pro+ (¥199)'};
+  const tierNames = {free:'免费版', pro:'创作者版 (¥99)', growth:'成长版 (¥199)', pro_plus:'专业版 (¥299)', studio:'工作室版 (¥399)'};
   document.getElementById('settings-tiers').innerHTML = Object.entries(d.tiers).map(([k,t])=>`
     <div style="margin-bottom:16px">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px">${tierNames[k]||k}</div>
-      ${Object.entries(t.quotas).map(([op,limit])=>`
-        <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-          <span style="color:var(--text-2)">${d.operations?.[op]?.label||op}</span>
-          <span style="color:var(--accent);font-weight:600">${limit===-1?'无限':limit+'次/月'}</span>
-        </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <span style="color:var(--text-2)">月度套餐积分</span>
+        <span style="color:var(--accent);font-weight:600">${t.monthly_credits || 0} 积分/月</span>
+      </div>
+      ${(t.features||[]).map(f=>`
+        <div style="font-size:11px;color:var(--text-muted);padding:3px 0">• ${f}</div>`).join('')}
     </div>`).join('');
   document.getElementById('settings-credits').innerHTML = `
-    <div style="font-size:13px;margin-bottom:12px">1 积分 = ¥${d.credit_value}</div>
+    <div style="font-size:13px;margin-bottom:12px">1 积分标价 = ¥${d.credit_value}；充值包按真实 paid_rmb 计收入，管理员赠送不计收入。</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">
+      ${(d.credit_packages||[]).map(p=>`
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:9px">
+          <div style="font-size:12px;color:var(--text);font-weight:700">${p.label}</div>
+          <div style="font-size:12px;color:var(--text-2)">${p.credits}积分 / ¥${p.price_rmb}</div>
+          <div style="font-size:10px;color:var(--text-muted)">约¥${p.unit_price_rmb}/积分</div>
+        </div>`).join('')}
+    </div>
     <div style="display:flex;flex-direction:column;gap:6px">
       ${Object.entries(d.credit_costs).map(([k,v])=>`
         <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
