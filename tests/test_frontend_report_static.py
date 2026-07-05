@@ -88,6 +88,23 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("_chatParentNoteId = ev.saved_note_id || ev._saved_note_id", HTML)
         self.assertIn("noteId:       _chatParentNoteId || null", HTML)
 
+    def test_selected_diagnosis_plan_score_is_used_for_chat_start(self):
+        self.assertIn("function diagnosisPlanScore(idx)", HTML)
+        self.assertIn("selected_plan_score: selectedScore", HTML)
+        self.assertIn("current_score:    currentScore", HTML)
+        self.assertIn("selected_plan_score: note.selected_plan_score ?? null", HTML)
+        self.assertIn("diagnosis_ces_percentile", HTML)
+
+    def test_report_library_profile_share_growth_loop_language(self):
+        self.assertIn('id="reportLifecycleCard"', HTML)
+        self.assertIn("function renderReportLifecycle", HTML)
+        self.assertIn("本篇成长闭环", HTML)
+        self.assertIn("function renderLibraryLifecycleStrip", HTML)
+        self.assertIn("${renderLibraryLifecycleStrip(group)}", HTML)
+        self.assertIn("预测-优化-真实表现闭环", HTML)
+        self.assertIn("function renderProfileLoopInsights", HTML)
+        self.assertIn("/notes/tracking", HTML)
+
     def test_generation_report_keeps_generate_context(self):
         self.assertIn("if (!_isGenerateMode && _diagnosePromise)", HTML)
         self.assertIn("? !!_generateResult", HTML)
@@ -95,6 +112,19 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("await autoSaveGeneratedNote(_generateResult)", HTML)
         self.assertIn("_isGenerateMode = true; showPage('report'); await populateReport();", HTML)
         self.assertNotIn("\n              autoSaveGeneratedNote(_generateResult);\n", HTML)
+
+    def test_chat_surfaces_supplement_prompts_and_keeps_thinking_visible(self):
+        self.assertIn("function chatAppendSupplementPrompts", HTML)
+        self.assertIn("supplement_prompts: _diagnoseResult.supplement_prompts || []", HTML)
+        self.assertIn("selected_plan_quality_issues", HTML)
+        self.assertIn("chatAppendSupplementPrompts(data.supplement_prompts || [])", HTML)
+        self.assertIn("补充真实信息后，优化会更稳", HTML)
+        self.assertIn("先不补充这些信息，请在不编造事实的前提下继续优化", HTML)
+        self.assertIn("仲裁专家 · 思考完成 · 已完整展示", HTML)
+        self.assertIn("<span class=\"cthink-toggle\">完整展示</span>", HTML)
+        self.assertNotIn("chatToggleThink(this)", HTML)
+        self.assertNotIn("maxHeight = '0px'", HTML)
+        self.assertNotIn("仲裁专家 · 思考完成 ▾ 点击展开", HTML)
 
 
 if __name__ == "__main__":

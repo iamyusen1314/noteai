@@ -2,6 +2,197 @@
 
 Last updated: 2026-07-05
 
+## 2026-07-05 Live QA Update - Full AI Diagnosis/Generation Sweep
+
+### 本轮完成了什么
+
+- Used the long-term test account `noteai_pro_test` to run a real end-to-end user QA sweep.
+- Ran real AI diagnosis for three entry modes: manual text, screenshot extraction + diagnosis, and video upload + diagnosis.
+- Ran real AI generation for three entry modes: text brief, image material, and video material.
+- Ran two real chat optimization flows: from a selected diagnosis plan and from a generated post.
+- Verified diagnosis report history, library grouped version chains, growth profile records, Hermes memory count, and tracking entry state through API and in-app browser.
+- Did not modify business code, did not commit, did not deploy, did not run migrations/seed/reset, did not output secrets.
+
+### 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: Recorded the live QA sweep, results, remaining issues, risks, and next minimum plan per project workflow.
+
+### 关键决策
+
+- The user explicitly authorized a comprehensive real AI sweep exceeding 10 external AI calls.
+- The test was still run sequentially, with no batch pressure, no concurrency load test, and no uncontrolled retry loop.
+- Synthetic local food/cafe media was used for screenshot/image/video tests; no real user private material was used.
+- Generation results were saved to the local test DB to mimic the frontend `autoSaveGeneratedNote()` behavior and verify library version chains.
+
+### 运行了哪些命令
+
+- `./start_all.sh status`
+- `git status --short`
+- Code/context inspection commands using `rg` and `sed`
+- `.venv/bin/python - <<'PY' ...` live QA script:
+  - `/auth/login`
+  - `/analyze/stream` manual diagnosis
+  - `/extract-screenshot`
+  - `/analyze/stream` screenshot diagnosis
+  - `/upload-video`
+  - `/analyze/stream` video diagnosis
+  - `/generate/stream` text brief generation
+  - `/generate/stream` image material generation
+  - `/generate/stream` video material generation
+  - `/notes` save generated post
+  - `/chat/start` and `/chat/message` from diagnosis selected plan
+  - `/chat/start` and `/chat/message` from generated post
+  - `/diagnoses`, `/notes?grouped=true`, `/profile/growth`, `/profile/memories`, `/profile/achievements`, `/notes/tracking`
+- In-app Browser rendered smoke for:
+  - `page=report`
+  - `page=library`
+  - `page=profile`
+- Follow-up API read checks for grouped library/version chains and profile records.
+
+### 每个命令的结果
+
+- `start_all.sh status`: API 8000, admin 8001, frontend 5173 were running.
+- Manual text diagnosis: passed. Score 47.2, 3 plans, model label `claude-routed-5-agents`, elapsed 216.6s.
+- Screenshot extraction: passed. Recognized as text screenshot; title/body/domain returned, elapsed 2.8s.
+- Screenshot diagnosis: passed. Score 41.0, visual score 55.5, 3 plans, elapsed 223.5s.
+- Video upload: passed. Local parser extracted 2 frames for AI use.
+- Video diagnosis: passed. Score 65.5, 3 plans, elapsed 223.0s.
+- Text brief generation: passed. Score 73.3, complete title/body/variants, elapsed 272.2s.
+- Image material generation: passed. Score 74.3, visual score 49.3, complete title/body/variants, elapsed 314.0s.
+- Video material generation: passed. Score 71.9, complete title/body/variants, elapsed 284.5s.
+- Generated post save: passed; local test DB received the generated root note.
+- Chat from diagnosis selected plan: passed. Streaming emitted typing, thinking_start, 80 thinking chunks, thinking_end, 64 content chunks, quality_repaired, note_update, done; elapsed 129.7s.
+- Chat from generated post: passed. Streaming emitted typing, thinking_start, 42 thinking chunks, thinking_end, 40 content chunks, quality_repaired, note_update, done; elapsed 106.9s.
+- Report UI smoke: passed. Diagnosis history showed the new diagnoses; latest video diagnosis report loaded with growth-loop card.
+- Library UI smoke: passed. Main cards showed v1/v2 version chains, score trends, `继续优化`, `追踪效果`, and unbound tracking state.
+- Growth profile UI smoke: passed. Profile showed 10 total growth records, latest score curve, 8 note versions, 10 memories, and tracking prompt.
+- API grouped library recheck: passed. `/notes?grouped=true` returns `groups`, not `notes`; earlier script check was adjusted. The generated post has v1/v2 score trend 73.3 -> 74.6, and the manual diagnosis has v1/v2 score trend 47.2 -> 72.1.
+- Tracking read check: passed but empty; no XHS URL was bound in this test, so real tracking data was not produced.
+
+### 当前仍然失败的问题
+
+- No core live AI endpoint failed in this sweep.
+- Real end-to-end latency is too high for the current frontend promise:
+  - Diagnosis entries took roughly 216-224s each.
+  - Generation entries took roughly 272-314s each.
+  - Chat optimization took roughly 107-130s.
+- Some generated copy over-infers experience details from limited input, for example claims like long sitting time or not being rushed when those facts were not explicitly provided.
+- Video diagnosis root note saved to library can contain raw video-understanding text/markdown, which is useful for audit but not polished as a user-facing library card.
+- Tracking is only showing the unbound entry state in this sweep; no real XHS tracking URL, crawler result, or 7-day performance row was verified.
+
+### 当前未完成工作
+
+- Run a real tracking-bind flow with a user-provided XHS URL and verify crawler/sidecar outcome separately.
+- Decide whether generated copy should block or downgrade when it invents experiential facts not present in user input.
+- Improve long-running UX: background job/resumable state, clearer ETA, and stronger progress events for multi-minute runs.
+- Clean up video-diagnosis library presentation so the initial card is not dominated by raw video analysis markdown.
+- Add a test/QA script that reads `groups` from grouped library responses correctly.
+
+### 当前最高风险
+
+- Product delivery risk is latency, not basic connectivity: all major live AI paths worked, but the wait time is multi-minute.
+- Copy quality risk: factual boundary enforcement is not strict enough for experiential claims.
+- Library/presentation risk: video-derived diagnosis notes can look like internal analysis rather than a creator-facing note asset.
+- Tracking value risk: the UI loop is ready, but no real bound tracking evidence was produced in this sweep.
+- Worktree risk remains mixed: unrelated uncommitted Kimi/live-smoke/tool-image changes still exist outside this QA stage.
+
+### 下一步最小可行计划
+
+1. Fix or design a mitigation for multi-minute AI task UX before calling the flow production-polished.
+2. Tighten factual/experiential claim guards in generation and chat repair prompts/scoring.
+3. Normalize video diagnosis saved-note presentation for library cards.
+4. Add a focused regression test for grouped library `groups` response and version-chain display.
+5. Separately run a controlled XHS tracking-bind live test when the user supplies a URL and confirms crawler scope.
+
+### 不能在未经确认的情况下修改
+
+- Production config, `.env`, API keys, tokens, cookies, production DB, migrations, seed/reset/deploy/clean commands.
+- Billing/payment/quota semantics or manual credit top-ups.
+- Real XHS crawler/sidecar execution, external site access, or production worker scheduling.
+- Broad model routing changes, prompt rewrites across all tasks, or Kimi/Claude provider policy changes.
+
+## 2026-07-05 Execution Update - Diagnosis/Library/Profile Growth Loop IA
+
+### 本轮完成了什么
+
+- Reworked the frontend information architecture so `诊断报告`、`我的笔记库`、`成长档案` present one connected growth loop instead of three isolated surfaces.
+- Added a diagnosis report lifecycle card that links current diagnosis score, selected rewrite plan score, version archive, tracking status, and Hermes learning state.
+- Added a per-note lifecycle strip to library cards so main cards directly show origin, version count, tracking state, and learning回流 state.
+- Added growth profile loop insight cards to summarize prediction/optimization, note assets, real tracking calibration, and Hermes learning memory.
+- Kept the change frontend-only for this stage: no database schema changes, no API contract changes, no production config changes, no real AI/crawler calls.
+
+### 修改了哪些文件
+
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `NoteAI_Pro_Demo_Framer.html`: Added the user-facing growth-loop UI bridge across diagnosis report, library cards, and growth profile. Also expanded profile data loading with a read-only tracking fetch fallback so the profile can show tracking calibration context when available.
+- `tests/test_frontend_report_static.py`: Added static coverage that the new lifecycle containers, render functions, and growth-loop wording remain present in the static frontend.
+- `.codex/handoffs/current-task.md`: Recorded this stage per project workflow.
+
+### 关键决策
+
+- The user value model is now: diagnose a note, choose or rewrite a version, archive all versions under the same note card, track real performance, then feed the result back into Hermes memory and future generation.
+- `评分成长曲线` alone is not enough product value; it now sits inside `预测-优化-真实表现闭环`, with adjacent cards explaining why the data matters.
+- The library remains the source-of-truth asset view for note/version/tracking actions; growth profile becomes the cross-note intelligence layer rather than a detached feature.
+- No shadcn/React dependency was introduced; the design language was hand-applied to the existing static HTML/CSS/JS surface.
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `git diff --check -- NoteAI_Pro_Demo_Framer.html tests/test_frontend_report_static.py`
+- In-app Browser local smoke for:
+  - `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=loop-ia&page=profile`
+  - `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=loop-ia&page=library`
+  - `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=loop-ia&page=report`
+
+### 每个命令的结果
+
+- Frontend static unittest: passed, 11 tests.
+- Targeted diff whitespace check: passed.
+- Browser profile smoke: passed. `预测-优化-真实表现闭环`、`Hermes 学习`、`真实校准` visible; no relevant console warnings/errors.
+- Browser library smoke: passed. Main note cards show direct `继续优化`、`追踪效果`、tracking status, and lifecycle strip; no relevant console warnings/errors.
+- Browser report smoke: passed. `本篇成长闭环` visible with diagnosis, selected plan, version, tracking, and Hermes learning states; no relevant console warnings/errors.
+- Browser DOM snapshot API was unavailable in this environment, so rendered validation used read-only page evaluation plus screenshots instead.
+
+### 当前仍然失败的问题
+
+- No app-level failure was found in this stage.
+- This stage did not run full API contracts, full unit discovery, Playwright e2e, real AI, or real crawler.
+
+### 当前未完成工作
+
+- User should manually test the product loop with the long-term test account: diagnosis -> choose rewrite plan -> chat optimize -> library same-card versions -> tracking -> growth profile summary.
+- The UX bridge is still frontend presentation; deeper value requires reliable tracking ingestion and durable linkage between note/version/session/tracking rows.
+- Mobile visual QA for the new profile/library/report growth-loop blocks is still pending.
+
+### 当前最高风险
+
+- Mixed worktree risk remains: there are pre-existing uncommitted Kimi/live-smoke/tool-image changes outside this frontend IA stage.
+- Product risk: if tracking rows are missing or delayed, Hermes learning cards must not overclaim real-world calibration.
+- Data risk: future training usage still needs strict gating so failed/low-confidence crawler results do not enter model-training datasets.
+
+### 下一步最小可行计划
+
+1. Ask the user to refresh and manually test the diagnosis -> optimize -> library -> tracking -> profile loop.
+2. If the loop feels right, run targeted API/static tests again and then broaden to full unit discovery.
+3. Do mobile viewport browser QA for report, library, and profile.
+4. Only after user confirmation, prepare a narrow checkpoint commit that separates this frontend IA work from unrelated Kimi/live-smoke changes.
+
+### 不能在未经确认的情况下修改
+
+- Production config, real `.env`, API keys, tokens, cookies, production DB, migrations, seed/reset/deploy/clean commands.
+- Billing/payment/quota semantics, auth/session/admin permissions.
+- Real crawler/worker execution, external XHS access, live AI calls, or training-data ingestion.
+- Pre-existing Kimi model/live-smoke/tool-image changes that are outside this UI IA scope.
+
 ## 2026-07-05 Execution Update - XHS Sidecar Contract and Admin Visibility
 
 ### 本轮完成了什么
@@ -3841,7 +4032,7 @@ This list reflects current Git status during handoff. Some files were modified b
 ### 5. 运行了哪些命令
 
 - `git diff --cached --check`
-- `git diff --cached --name-only | tr '\n' '\0' | xargs -0 rg -l "(AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|xox[baprs]-|API_KEY=|TOKEN=|SECRET=|COOKIE=|SESSION=|DATABASE_URL=|Authorization: Bearer)" || true`
+- staged secret-pattern scan over cached files
 - `.venv/bin/python -m unittest tests.test_xhs_acquisition tests.test_tracking_performance tests.test_api_contracts`
 - `.venv/bin/python -m py_compile model/api.py model/admin_server.py model/crawler.py model/crawler_worker.py model/db.py model/hot_keywords.py model/market_timing_worker.py model/performance_scoring.py model/xhs_acquisition.py model/xhs_health_probe.py`
 - `docker compose config --quiet`
@@ -3890,3 +4081,354 @@ This list reflects current Git status during handoff. Some files were modified b
 - 不输出或提交 Cookie、token、API key、`.env` 真实值、raw provider response。
 - 不把 XHS-Downloader 外部安装目录、cache、日志或测试图片纳入 Git。
 - 不将 crawler/sidecar 标记为生产可全量上线，除非完成 pilot checklist 并经用户确认。
+
+## 2026-07-05 Stage Update — Library Primary Tracking Actions Visible
+
+### 1. 本轮完成了什么
+
+- 修复笔记库主卡片入口不可见问题。
+- 现在无论是否长期测试账号、无论笔记是 v1 单版本还是多版本链，笔记库主卡都会直接显示：
+  - `未绑定追踪/追踪状态`
+  - `继续优化`
+  - `追踪效果`
+- 验证 `noteai_pro_test` 当前本地数据仍是 2 个 v1 单版本、0 个 tracking 记录；修复后这类数据也会直接看到入口。
+
+### 2. 修改了哪些文件
+
+- `NoteAI_Pro_Demo_Framer.html`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `NoteAI_Pro_Demo_Framer.html`: 在 `buildGroupCard()` 主卡片区域直接渲染最新版笔记的 tracking badge 和主操作按钮，避免入口只存在于多版本展开面板。
+- `.codex/handoffs/current-task.md`: 按阶段记录本轮修复、验证、风险和下一步。
+
+### 4. 做了哪些关键决策
+
+- 不再把“继续优化/追踪效果/追踪状态”只藏在版本面板里。
+- 多版本面板内每个版本的细粒度按钮继续保留。
+- 未绑定状态文案从“发布后可绑定真实表现追踪”改为“未绑定追踪 · 发布后可绑定真实表现”，让用户明确看到当前状态。
+- 不改后端 API、DB schema、认证、权限、billing、crawler worker。
+
+### 5. 运行了哪些命令
+
+- `git status -sb`
+- `nl -ba NoteAI_Pro_Demo_Framer.html | sed -n '9200,9320p'`
+- `rg -n "function openNoteDetail|function startChatFromNote|trackNoteFromLibrary|escapeHtml\\(" NoteAI_Pro_Demo_Framer.html`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `git diff -- NoteAI_Pro_Demo_Framer.html | sed -n '1,220p'`
+- `python3 - <<'PY' ... noteai_pro_test grouped note summary ... PY`
+- `git diff --check -- NoteAI_Pro_Demo_Framer.html`
+- Browser validation on `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=library-primary-actions&page=library`
+
+### 6. 每个命令的结果
+
+- 工作区仍存在此前刻意保留的 Kimi/live smoke 未提交改动。
+- 前端静态测试：9 tests passed。
+- `git diff --check -- NoteAI_Pro_Demo_Framer.html`: 通过。
+- `noteai_pro_test` 数据检查：
+  - 用户存在。
+  - 当前 2 个笔记组。
+  - 两个组都是 `version_count=1`。
+  - 当前无 tracking 记录。
+- 浏览器验证：
+  - 页面可加载。
+  - DOM 中可见 `未绑定追踪`、`继续优化`、`追踪效果`。
+  - 点击主卡 `追踪效果` 可打开追踪弹窗。
+  - 未提交 URL，未创建 tracking 记录。
+  - 相关 console error/warn 为空。
+
+### 7. 当前仍然失败的问题
+
+- 暂无本轮新增失败。
+- 当前打开的浏览器会话不是 `noteai_pro_test` 登录态，但本地 DB 已确认该账号的数据形态；修复逻辑对所有账号和所有单版本/多版本卡片统一生效。
+
+### 8. 当前未完成工作
+
+- 本轮修复尚未 commit/push。
+- 当前仍保留此前未提交 Kimi/live smoke 改动：
+  - `model/api.py`
+  - `model/model_router.py`
+  - `tools/ai_prelabel_review_batch.py`
+  - `tools/live_ai_smoke.py`
+  - `测试图片/`
+
+### 9. 当前最高风险
+
+- 当前 worktree 仍是混合状态；如果后续 commit，需要精确 stage，只提交本轮 HTML/handoff 或用户确认的 scope。
+
+### 10. 下一步最小可行计划
+
+- 用户刷新笔记库页面后，用 `noteai_pro_test` 验证两张旧 v1 卡是否直接显示三个入口。
+- 如确认通过，再按用户要求决定是否单独 commit/push 本轮 UI 修复。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不提交 Kimi/live smoke scope。
+- 不提交 `测试图片/`。
+- 不改认证、billing、DB schema、crawler worker 或生产配置。
+- 不运行 migration/seed/reset/deploy/clean。
+
+## 2026-07-05 Stage Update — Selected Diagnosis Plan Score Matches Chat Start
+
+### 1. 本轮完成了什么
+
+- 查实并修复：诊断报告中 3 个改写方案各自显示分数，但点击某个高分/喜欢的方案进入对话优化后，chat 起始分可能回落为原诊断分的问题。
+- 修复后，用户点击哪个改写方案进入对话优化，chat 起始分就使用该方案的 `suggested_plans[idx].score` / `suggested_title_scores[idx]`。
+- 同时让诊断报告顶部“开始对话优化”使用报告展示分，避免 `composite_score` 与 `ces_percentile` 口径漂移。
+
+### 2. 修改了哪些文件
+
+- `NoteAI_Pro_Demo_Framer.html`
+- `model/api.py`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `NoteAI_Pro_Demo_Framer.html`: 新增 `diagnosisDisplayScore()`、`diagnosisPlanScore()`，`loadPlanToChat(idx)` 保存选中方案分数，并把 `current_score` / `selected_plan_score` 带进 `/chat/start` 的 `generate_context`。
+- `model/api.py`: `/chat/start` 分数优先级改为 `current_score -> selected_plan_score -> plan_score -> composite_score -> ces_percentile`；当使用选中方案分时，等级按该分数重新计算，避免“高分但旧等级”。
+- `tests/test_api_contracts.py`: 新增后端 contract test，验证原诊断 51.2、选中方案 76.9 时，chat 起始分必须是 76.9 且等级为优秀。
+- `tests/test_frontend_report_static.py`: 新增静态断言，保证前端方案分数会进入 chat start 上下文。
+- `.codex/handoffs/current-task.md`: 记录本轮修复、验证和剩余风险。
+
+### 4. 做了哪些关键决策
+
+- 保留原诊断分在上下文中的 `diagnosis_ces_percentile` / `diagnosis_composite_score`，供后续分析弱项使用。
+- 用户当前选中方案的分数才是 chat 当前稿起始分。
+- 后端继续兼容旧客户端：如果没有新字段，仍按 `composite_score` / `ces_percentile` 兜底。
+- 不改 DB schema，不改 billing/auth/crawler，不做真实 AI 调用。
+
+### 5. 运行了哪些命令
+
+- `rg -n "suggested_plans|suggested_title_scores|selected_plan_score|current_score|ChatStartInput|chat_start" ...`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_chat_start_prefers_selected_plan_score_over_original_diagnosis_score tests.test_api_contracts.ApiContractTests.test_chat_start_binds_existing_note_for_library_version_chain`
+- `.venv/bin/python -m py_compile model/api.py`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `git diff --check -- NoteAI_Pro_Demo_Framer.html model/api.py tests/test_api_contracts.py tests/test_frontend_report_static.py`
+- `git status -sb`
+
+### 6. 每个命令的结果
+
+- 前端静态测试：10 tests passed。
+- 聚焦 API contract：2 tests passed。
+- `model/api.py` 编译检查：通过。
+- 完整 `tests.test_api_contracts`：132 tests passed。
+- diff whitespace 检查：通过。
+- 测试输出中仍出现外部 provider 错误路径日志，但本轮没有执行 live API 成功调用，也没有做真实批量调用。
+
+### 7. 当前仍然失败的问题
+
+- 暂无本轮新增失败。
+
+### 8. 当前未完成工作
+
+- 本轮修复尚未 commit/push。
+- 当前工作区仍混有此前刻意保留的 Kimi/live smoke 未提交改动，尤其 `model/api.py` 内还有 `_KIMI_MODEL` 的旧 hunk，后续 commit 必须精确 stage。
+
+### 9. 当前最高风险
+
+- `model/api.py` 当前同时包含本轮 `/chat/start` 修复和此前 Kimi 默认模型未提交 hunk；如果直接 `git add model/api.py` 会混入无关 scope。
+
+### 10. 下一步最小可行计划
+
+- 让用户刷新页面并实际点诊断报告中的任一改写方案进入对话优化，确认 chat 起始分与该方案卡片分数一致。
+- 如用户确认提交，再只 stage 本轮相关 hunk 和测试；不要混入 Kimi/live smoke 改动。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不提交 Kimi/live smoke scope。
+- 不提交 `测试图片/`。
+- 不运行真实 AI、crawler、migration、seed、reset、deploy、clean。
+- 不改 billing/auth/DB schema/生产配置。
+
+## 2026-07-05 Stage Update — Video Library Cleanup, Fact Supplement Prompts, Full Thinking Display
+
+### 1. 本轮完成了什么
+
+- 修复视频诊断保存到笔记库时展示原始视频理解 markdown 的问题：模型诊断仍使用完整视频画面理解，笔记库根版本只保存面向用户的素材摘要。
+- 在诊断、生成、对话开始链路新增 `supplement_prompts`：把“缺少营业时间/价格/位置/必点”等质量问题转化为自然补充提示。
+- 对话优化开场现在会提示用户可补充真实信息；若用户暂时不补充，系统提示模型不得编造这些事实。
+- 前端聊天区新增“补充真实信息”快捷卡，用户可一键把补充前缀写入输入框，也可选择“先不补充，继续优化”。
+- 生成处理页与聊天区的 thinking/专家过程默认完整展示，完成后不再折叠或隐藏。
+- 清理 handoff 中历史 secret-scan 命令的正则细节，避免 production readiness gate 把变量名模式误判为敏感值。
+
+### 2. 修改了哪些文件
+
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `model/api.py`: 新增视频素材摘要 helper；给 `AnalyzeResponse`、`GenerateResponse`、`ChatStartResponse` 增加 `supplement_prompts`；在诊断/生成/流式生成/chat start 中传递补充提示；把补充事实写入 chat system prompt，明确不得擅自编造；在视频诊断 `input_diagnostics` 中记录视频秒数、抽帧数和实际送 AI 帧数。
+- `NoteAI_Pro_Demo_Framer.html`: 新增聊天补充事实卡；诊断方案进入 chat 时传递选中方案质量问题和补充提示；生成/诊断 expert 内容不再前端截断；生成和 chat thinking 完成后继续完整展示。
+- `tests/test_api_contracts.py`: 增加视频素材摘要清洗测试、chat start 补充提示测试，并补充视频诊断抽帧审计断言。
+- `tests/test_frontend_report_static.py`: 增加静态契约测试，覆盖补充事实卡、补充提示传参、thinking 不折叠旧文案。
+- `.codex/handoffs/current-task.md`: 按项目规则记录本阶段完成内容、测试结果、风险和下一步计划；清理历史 secret-scan 记录中的敏感模式字面量。
+
+### 4. 做了哪些关键决策
+
+- 不改变模型诊断上下文：视频画面完整理解仍用于评分和五 agent 诊断，只把用户笔记库展示改成干净摘要。
+- 不新增 DB schema，也不把补充提示持久化到新表；补充提示随 API 响应和 chat session context 传递。
+- 不把缺失营业时间等事实强行写成占位句；只提示用户补充，或要求模型在未补充时避开编造。
+- 尊重用户偏好：不折叠、不过度隐藏 thinking/草稿过程。
+- 不修改用户已明确接受的体验型爆款表达边界。
+
+### 5. 运行了哪些命令
+
+- `.venv/bin/python -m py_compile model/api.py`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `.venv/bin/python -m py_compile model/*.py`
+- `git diff --check -- model/api.py NoteAI_Pro_Demo_Framer.html tests/test_api_contracts.py tests/test_frontend_report_static.py`
+- `.venv/bin/python tools/production_readiness_gate.py`
+- `npm run test:e2e`
+- Browser render smoke for `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=post-fix&page=chat`
+- Temporary Playwright component smoke outside repo for chat supplement card and thinking display.
+
+### 6. 每个命令的结果
+
+- `model/api.py` 编译检查：通过。
+- 前端静态测试：12 tests passed。
+- API contract 测试：134 tests passed。
+- 全量 Python unittest：254 tests passed。
+- `model/*.py` 编译检查：通过。
+- diff whitespace 检查：通过。
+- production readiness gate：PASS，48 checks passed。
+- Playwright e2e：3 tests passed；该 e2e 只访问 localhost，且 `/generate/stream` 被 mock，不触发真实 AI。
+- Browser render smoke：页面身份正确，`page-chat` 激活，非空，console 无相关 warning/error；Browser 只读上下文无法直接读取全局函数，后续用临时 Playwright component smoke 补证。
+- 临时 Playwright component smoke：补充事实卡可见，点击补充按钮会把 `补充营业时间：` 写入输入框；thinking 区可见，完成状态显示“已完整展示”，未出现旧折叠文案；console 无相关错误。
+
+### 7. 当前仍然失败的问题
+
+- 本阶段本地回归未发现失败。
+- Browser 只读 evaluate 未能直接读取全局函数，但 DOM 中包含新函数定义；组件级渲染已由临时 Playwright smoke 验证通过。
+
+### 8. 当前未完成工作
+
+- 还需要按用户要求做一轮小样本 live 验证，确认真实 AI 链路返回的 `supplement_prompts`、视频入库摘要和 chat 开场提示都能在真实响应中成立。
+- 本轮修复尚未 commit/push。
+- 未做真实 crawler、支付、邮件、短信、部署或生产环境验证。
+
+### 9. 当前最高风险
+
+- Live AI 链路耗时仍可能较长；本轮修复改善等待展示，但没有降低真实调用时长。
+- `model/api.py` 工作区仍混有此前未提交的其它 scope，后续如需 commit 必须精确 stage，避免混入无关 Kimi/live-smoke 改动。
+- 视频摘要清洗是展示层清洗，不是视频理解质量提升；真实视频理解质量仍取决于抽帧、画面清晰度和视觉模型输出。
+
+### 10. 下一步最小可行计划
+
+1. 输出 Live API Run Plan。
+2. 用长期测试账号做 1 个视频诊断 live sample，验证抽帧审计、视频摘要入库、无原始 markdown。
+3. 用 1 个缺少营业时间的生成/chat start live sample，验证补充提示和开场询问。
+4. 如 live 失败，只做最小修复并重跑对应小样本；不扩大到批量或并发。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不运行 migration、seed、reset、deploy、clean。
+- 不修改生产配置、真实凭据、生产 DB、billing/payment/quota、auth/admin 权限。
+- 不触发真实支付、邮件、短信、部署或生产写操作。
+- 不运行真实 crawler/worker 或外部站点访问，除非用户单独确认。
+- 不提交或删除 `测试图片/`、live smoke 工具、Kimi scope 等无关未提交改动。
+
+## 2026-07-05 Live Validation Update — Current Code Video Cleanup and Supplement Prompts
+
+### 1. 本轮完成了什么
+
+- 在当前代码进程中完成 2 条小样本 live 验证：
+  - 视频诊断：合成 3 秒短视频 -> `/upload-video` -> `/analyze/stream` -> 笔记库读取。
+  - 缺失事实生成：决策型美食 brief -> `/generate/stream` -> `/chat/start`。
+- 验证视频诊断现在返回抽帧审计字段，并且保存到笔记库的根版本不再包含原始 markdown/`深度解读`。
+- 验证真实生成返回的质量问题能转化为 `supplement_prompts`，并在 chat start welcome 中提示用户补充、避免编造。
+- 发现并记录本地服务管理问题：`start_all.sh stop/start` 未停止长期 screen 持有的旧 8000 API，导致首次 live 打到旧进程；最终用当前 FastAPI app 的 TestClient 方式完成当前代码验证。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录 live 验证计划、结果、旧进程干扰、当前代码验证结论和剩余风险。
+
+### 4. 做了哪些关键决策
+
+- 首次 HTTP live 结果判定为无效验证，因为 OpenAPI 显示旧 API 进程没有 `supplement_prompts` 字段。
+- 为避免继续被 8000 端口旧进程干扰，切换为 TestClient 直接运行当前工作区 `api.app`；仍然真实调用外部 AI provider，只是不依赖本地 uvicorn 常驻进程。
+- 不继续扩大样本，不并发压测，不运行 crawler/worker，不触发生产写操作。
+
+### 5. 运行了哪些命令
+
+- `./start_all.sh status`
+- `./start_all.sh stop && ./start_all.sh start`
+- `lsof -nP -iTCP:8000 -sTCP:LISTEN`
+- `curl -s http://127.0.0.1:8000/openapi.json | ...`
+- local API restart attempts using current `.venv` and uvicorn.
+- in-process live validation script using `fastapi.testclient.TestClient(api.app)`:
+  - `/upload-video`
+  - `/analyze/stream`
+  - `/notes?grouped=true`
+  - `/generate/stream`
+  - `/chat/start`
+
+### 6. 每个命令的结果
+
+- `start_all.sh status`: initially reported main API ok, but later admin/frontend not running after restart attempt.
+- `start_all.sh stop/start`: did not stop the old long-running API process; new API bind failed because port 8000 was already in use.
+- OpenAPI check against old 8000: `AnalyzeResponse` had `input_diagnostics` but did not have `supplement_prompts`; `GenerateResponse`/`ChatStartResponse` also lacked `supplement_prompts`, proving it was old code.
+- Manual uvicorn restart without a persistent wrapper exited after the shell ended; `nohup` attempt first missed the env-file pointer and then confirmed new OpenAPI fields, but process lifetime remained unreliable in this shell context.
+- Final in-process current-code live validation completed.
+
+### 7. Live API Result Summary
+
+- 实际 provider/model：Moonshot/Kimi vision path for video understanding; Claude Haiku routed calls for diagnosis/generation/semantic/content generation; Claude Sonnet routed calls for arbitration/repair.
+- 实际调用范围：2 main live tasks on current code, sequential, no concurrency.
+- 可观察外部调用情况：current-code run included 1 Kimi video-understanding call, multiple Claude Haiku routed calls, and multiple Claude Sonnet arbitration calls from the existing multi-agent pipeline; one Claude Haiku diagnosis attempt failed and was retried by the existing router.
+- 视频样本结果：
+  - Upload: 3.0s video, 2 frames extracted, 2 frames sent to AI.
+  - Analyze complete: score 67.4, grade `良好`, saved note id present.
+  - `input_diagnostics`: `video_duration_sec=3.0`, `video_frames_extracted=2`, `video_frames_to_ai=2`, `video_analysis_chars=604`.
+  - Library root note: found; includes `【视频素材理解】`; no `###` or `深度解读` raw markdown detected.
+- 生成/chat 样本结果:
+  - Generate complete: score 63.7, grade `良好`, 1 quality issue.
+  - The live quality issue was missing price/person-average, so `supplement_prompts=["price"]`.
+  - `/chat/start`: current score 63.7, grade `良好`, `supplement_prompts=["price"]`, welcome includes supplement guidance and no-fabrication wording.
+- 是否产生文件或日志：temporary synthetic video was created in system temp and deleted; local DB received test diagnosis/note/chat records; local logs were written under `/tmp`.
+- 是否发现真实链路问题：本轮代码目标通过；剩余真实链路问题是 latency 和本地 service manager 不能 reliably replace long-running old API process.
+
+### 8. 当前仍然失败的问题
+
+- 本阶段代码目标无失败：视频入库清洗、抽帧审计、补充提示、chat welcome 均在 current-code live 中通过。
+- 本地服务管理仍有问题：存在长期 screen 启动的旧 API 进程时，`start_all.sh stop/start` 可能无法替换它，容易让 smoke 打到旧代码。
+- 生成样本的 live issue 最终是缺少价格，不是缺少营业时间；营业时间补充已由 unit/contract 测试覆盖，live 证明了真实 issue -> supplement prompt -> chat welcome 的通用链路。
+
+### 9. 当前未完成工作
+
+- 修复或增强本地 `start_all.sh` 对旧 API/screen 进程的识别与停止策略，避免后续手测误打旧进程。
+- 如需要更严格证明“营业时间”live 分支，可另做一个只针对 chat_start 的无外部 AI contract 或再跑一个更定向 live 样本；当前不建议继续扩大调用。
+- 本轮修复尚未 commit/push。
+
+### 10. 当前最高风险
+
+- Service manager 风险：本地/未来云端如果有旧 worker/API 进程未替换，测试结果会误判。
+- Cost/latency 风险：单个 multi-agent live task 会 fan out 到多个 provider 子调用，真实耗时仍为多分钟级。
+- Worktree 风险：仍有无关未提交 scope，后续 commit 必须精确 stage。
+
+### 11. 下一步最小可行计划
+
+1. 修复或至少记录 `start_all.sh`/本地 screen 旧进程替换问题。
+2. 再跑一次不调用外部 AI 的 OpenAPI/contract smoke，确认本地服务启动的是当前代码。
+3. 如用户确认，再准备本轮最小 checkpoint scope：`model/api.py`、`NoteAI_Pro_Demo_Framer.html`、相关测试和 handoff。
+
+### 12. 哪些地方不能在未经确认的情况下修改
+
+- 不运行 migration、seed、reset、deploy、clean。
+- 不修改生产配置、真实凭据、生产 DB、billing/payment/quota、auth/admin 权限。
+- 不运行真实 crawler/worker 或外部站点访问。
+- 不继续扩大 live AI 样本、并发调用或批量压力测试。
+- 不提交无关 Kimi/live-smoke/tool-image scope。

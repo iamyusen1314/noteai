@@ -3585,9 +3585,18 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           💬 开始对话优化 →
         </button>
       </div>
-    </div>
+	    </div>
 
-    <div class="report-grid">
+	    <div id="reportLifecycleCard" style="display:none;background:rgba(0,153,255,0.05);border:1px solid rgba(0,153,255,0.16);border-radius:var(--r-md);padding:16px 20px;margin-bottom:20px">
+	      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+	        <i data-lucide="workflow" style="width:16px;height:16px;color:var(--accent);flex-shrink:0"></i>
+	        <div style="font-size:14px;font-weight:800;color:var(--text)">本篇成长闭环</div>
+	        <div id="report-loop-score" style="margin-left:auto;font-size:12px;font-weight:700;color:var(--text-2)"></div>
+	      </div>
+	      <div id="report-loop-steps" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px"></div>
+	    </div>
+
+	    <div class="report-grid">
       <!-- Radar -->
       <div class="report-card">
         <h2><i data-lucide="hexagon"></i>五维雷达评分</h2>
@@ -3984,15 +3993,16 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 
     <div class="profile-grid">
       <!-- 成长趋势（真实数据） -->
-      <div class="profile-card" style="grid-column:span 2">
-        <h3 style="display:flex;align-items:center;justify-content:space-between">
-          <span>📈 评分成长曲线（真实记录）</span>
-          <span id="profile-trend-summary" style="font-size:12px;color:var(--success);font-weight:600"></span>
-        </h3>
-        <div id="profile-trend-chart" style="width:100%;margin-top:4px">
-          <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:40px 0">暂无数据，开始诊断或对话优化后会自动记录</div>
-        </div>
-      </div>
+	      <div class="profile-card" style="grid-column:span 2">
+	        <h3 style="display:flex;align-items:center;justify-content:space-between">
+	          <span>📈 预测-优化-真实表现闭环</span>
+	          <span id="profile-trend-summary" style="font-size:12px;color:var(--success);font-weight:600"></span>
+	        </h3>
+	        <div id="profile-loop-insights" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0 10px"></div>
+	        <div id="profile-trend-chart" style="width:100%;margin-top:4px">
+	          <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:40px 0">暂无数据，开始诊断或对话优化后会自动记录</div>
+	        </div>
+	      </div>
 
       <!-- 笔记追踪（真实表现）-->
       <div class="profile-card" style="grid-column:span 2">
@@ -4826,7 +4836,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 .cthink-header {
   display:flex;align-items:center;gap:8px;padding:7px 13px;
   background:linear-gradient(135deg, rgba(245,158,11,0.13), rgba(123,97,255,0.07));border:1px solid rgba(245,158,11,0.28);
-  border-radius:8px 8px 0 0;font-size:12px;color:#F59E0B;font-weight:650;cursor:pointer;user-select:none;
+  border-radius:8px 8px 0 0;font-size:12px;color:#F59E0B;font-weight:650;user-select:none;
 }
 .cthink-dots span {
   display:inline-block;width:4px;height:4px;border-radius:50%;
@@ -4837,11 +4847,31 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 .cthink-body {
   padding:8px 13px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);
   border-top:none;border-radius:0 0 8px 8px;
-  font-size:11.5px;color:rgba(245,158,11,0.9);line-height:1.7;max-height:120px;
-  overflow-y:auto;white-space:pre-wrap;display:none;
+  font-size:11.5px;color:rgba(245,158,11,0.9);line-height:1.7;max-height:260px;
+  overflow-y:auto;white-space:pre-wrap;display:block;
 }
 .cthink-body.open{display:block;}
 .cthink-toggle{margin-left:auto;font-size:11px;opacity:.6;}
+.chat-supplement-card {
+  align-self:flex-start;max-width:86%;padding:12px;border-radius:8px;
+  border:1px solid rgba(34,197,94,0.28);background:rgba(34,197,94,0.07);
+  box-shadow:0 12px 28px rgba(0,0,0,0.16);
+}
+.chat-supplement-title {font-size:12px;font-weight:750;color:var(--success);margin-bottom:4px;}
+.chat-supplement-sub {font-size:12px;color:var(--text-2);line-height:1.55;margin-bottom:9px;}
+.chat-supplement-list {display:flex;flex-direction:column;gap:7px;}
+.chat-supplement-row {
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  padding:8px;border-radius:8px;background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.08);
+}
+.chat-supplement-row strong {display:block;font-size:12px;color:var(--text-1);margin-bottom:2px;}
+.chat-supplement-row span {display:block;font-size:11px;color:var(--text-2);line-height:1.45;}
+.chat-supplement-row button,.chat-supplement-skip {
+  border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.12);
+  color:var(--success);border-radius:7px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
+}
+.chat-supplement-actions {display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;}
+.chat-supplement-skip {background:rgba(255,255,255,0.055);border-color:var(--border);color:var(--text-2);}
 /* note update / learn inline events */
 .cnote-updated,.clearn-toast {
   align-self:center;border-radius:20px;padding:5px 14px;font-size:12px;
@@ -5688,16 +5718,10 @@ function _handleGenStreamEvent(ev) {
           const b = document.createElement('div');
           b.className = 'bubble bubble-thinking-live';
           b.style.cssText = 'border:1px solid rgba(255,111,216,0.3);background:rgba(123,97,255,0.06);';
-          b.innerHTML = '<div class="bubble-agent" style="color:var(--holo-mid);cursor:pointer">仲裁专家 · 深度思考中 ▸</div>'
-            + '<div class="bubble-text thinking-text" style="font-size:11px;color:var(--text-2);max-height:280px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all;padding-top:4px"></div>';
+          b.innerHTML = '<div class="bubble-agent" style="color:var(--holo-mid)">仲裁专家 · 深度思考中</div>'
+            + '<div class="bubble-text thinking-text" style="font-size:11px;color:var(--text-2);max-height:360px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all;padding-top:4px"></div>';
           area.appendChild(b);
           area.scrollTop = area.scrollHeight;
-          b.querySelector('.bubble-agent').onclick = () => {
-            const t = b.querySelector('.thinking-text');
-            const collapsed = t.style.maxHeight === '0px';
-            t.style.maxHeight = collapsed ? '320px' : '0px';
-            t.style.overflow = collapsed ? 'auto' : 'hidden';
-          };
         }
       }
       if (ev.stage === 'p4') { stepDone(5); }
@@ -5706,7 +5730,7 @@ function _handleGenStreamEvent(ev) {
     case 'expert_opinion': {
       const idx = ev.agent_idx || 0;
       const text = (ev.content || '') + (ev.detail ? '\n' + ev.detail : '');
-      addBubble(ev.role || '专家', text.slice(0, 200), idx, 0, 0);
+      addBubble(ev.role || '专家', text, idx, 0, 0);
       agentDone(idx, '');
       pulseLive3DAgent(idx, 'done');
       if (ev.progress) setProgress(ev.progress, '');
@@ -5729,14 +5753,13 @@ function _handleGenStreamEvent(ev) {
       break;
     }
     case 'p3_done': {
-      // Collapse thinking bubble
       const b = document.querySelector('.bubble-thinking-live');
       if (b) {
         const agent = b.querySelector('.bubble-agent');
         if (agent) {
-          agent.textContent = '仲裁专家 · 思考完成 ▾ 点击展开';
+          agent.textContent = '仲裁专家 · 思考完成 · 已完整展示';
           const tt = b.querySelector('.thinking-text');
-          if (tt) { tt.style.maxHeight = '0px'; tt.style.overflow = 'hidden'; }
+          if (tt) { tt.style.maxHeight = '360px'; tt.style.overflowY = 'auto'; }
         }
       }
       const shortTitle = (ev.title || '').slice(0, 22);
@@ -5844,7 +5867,7 @@ function _handleAnalyzeStreamEvent(ev) {
     case 'expert_opinion': {
       const idx = Number.isInteger(ev.agent_idx) ? ev.agent_idx : 0;
       const detail = ev.detail ? '\n' + ev.detail : '';
-      addBubble(ev.role || '诊断专家', ((ev.content || '') + detail).slice(0, 280), idx, 0, 0);
+      addBubble(ev.role || '诊断专家', (ev.content || '') + detail, idx, 0, 0);
       agentDone(idx, ev.confidence || '');
       if (ev.progress) setProgress(ev.progress, `${ev.role || '专家'}已完成真实分析`);
       break;
@@ -6214,6 +6237,7 @@ async function populateReport() {
   if (!d || d._error) {
     if (diagBody) diagBody.style.display = 'none';
     if (genBody)  genBody.style.display  = 'none';
+    renderReportLifecycle(null);
     if (!emptyEl) {
       const el = document.createElement('div');
       el.id = '_report_empty_inline';
@@ -6263,9 +6287,10 @@ async function populateReport() {
   // 有真实数据时才显示分享卡片
   const shareBanner = document.getElementById('shareCardBanner');
   if (shareBanner) shareBanner.style.display = 'block';
-  const diagChatEntry = document.getElementById('diagChatEntry');
-  if (diagChatEntry) diagChatEntry.style.display = 'block';
-  const metaEl = document.getElementById('reportMeta');
+	  const diagChatEntry = document.getElementById('diagChatEntry');
+	  if (diagChatEntry) diagChatEntry.style.display = 'block';
+	  renderReportLifecycle(d);
+	  const metaEl = document.getElementById('reportMeta');
   if (metaEl) {
     const now = new Date();
     const ds = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -6821,6 +6846,23 @@ function _isMissingPlanBodyText(body) {
   return !body || body === '（暂无正文改写）' || body.startsWith('（该方案正文未生成');
 }
 
+function _numOrNull(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function diagnosisDisplayScore(d) {
+  const composite = _numOrNull(d?.composite_score);
+  if (composite !== null && composite > 0) return composite;
+  return _numOrNull(d?.ces_percentile);
+}
+
+function diagnosisPlanScore(idx) {
+  const planScore = _numOrNull(_diagnoseResult?.suggested_plans?.[idx]?.score);
+  if (planScore !== null) return planScore;
+  return _numOrNull(_diagnoseResult?.suggested_title_scores?.[idx]);
+}
+
 function copyPlan(idx) {
   const titleEl = document.getElementById('newTitle' + idx);
   const bodyEl  = document.getElementById('rp' + idx + '-body-text');
@@ -6840,13 +6882,16 @@ function loadPlanToChat(idx) {
   const title = titleEl ? titleEl.textContent.trim() : '';
   const body  = bodyEl  ? bodyEl.textContent.trim()  : '';
   if (!title || _isMissingPlanBodyText(body)) { showToast('该方案暂无完整正文，请重新诊断'); return; }
+  const selectedScore = diagnosisPlanScore(idx);
   _noteDetailData = {
     title,
     body,
     id:     _diagnoseResult?._saved_note_id || _diagnoseResult?.saved_note_id || null,
     domain: _diagnoseResult?._domain || _diagnoseResult?.domain || '美食',
-    score:  _diagnoseResult?.ces_percentile || null,
+    score:  selectedScore ?? diagnosisDisplayScore(_diagnoseResult),
     version: 1,
+    selected_plan_index: idx,
+    selected_plan_score: selectedScore,
   };
   startChatFromDiagnosis();
 }
@@ -6860,7 +6905,7 @@ function startDiagChatOptimization() {
     body:    d._inputDesc  || '',
     id:      d._saved_note_id || d.saved_note_id || null,
     domain:  d._domain     || d.domain || '美食',
-    score:   d.ces_percentile || null,
+    score:   diagnosisDisplayScore(d),
     version: 1,
   };
   startChatFromDiagnosis();
@@ -6918,9 +6963,20 @@ async function startChatFromDiagnosis() {
       ? _diagnoseResult.user_constraints
       : getConstraintTags();
     const intentPayload = getContentIntentPayload(_diagnoseResult || {});
+    const currentScore = _numOrNull(note.score) ?? diagnosisDisplayScore(_diagnoseResult);
+    const selectedPlanIndex = note.selected_plan_index ?? null;
+    const selectedPlan = Number.isInteger(selectedPlanIndex)
+      ? (_diagnoseResult?.suggested_plans || [])[selectedPlanIndex]
+      : null;
     const diagCtx = _diagnoseResult ? {
       ces_percentile:   _diagnoseResult.ces_percentile,
       composite_score:  _diagnoseResult.composite_score,
+      current_score:    currentScore,
+      selected_plan_index: selectedPlanIndex,
+      selected_plan_score: note.selected_plan_score ?? null,
+      selected_plan_quality_issues: Array.isArray(selectedPlan?.quality_issues) ? selectedPlan.quality_issues : [],
+      diagnosis_ces_percentile: _diagnoseResult.ces_percentile,
+      diagnosis_composite_score: _diagnoseResult.composite_score,
       grade:            _diagnoseResult.grade,
       ai_diagnosis:     _diagnoseResult.ai_diagnosis,
       weaknesses:       _diagnoseResult.weaknesses,
@@ -6934,6 +6990,7 @@ async function startChatFromDiagnosis() {
       fact_source_policy: _diagnoseResult.fact_source_policy || intentPayload.fact_source_policy,
       intent_contract: _diagnoseResult.intent_contract || null,
       fact_source_decision: _diagnoseResult.fact_source_decision || null,
+      supplement_prompts: _diagnoseResult.supplement_prompts || [],
     } : {};
 
     const res = await fetch(API_AUTH + '/chat/start', {
@@ -6970,6 +7027,7 @@ async function startChatFromDiagnosis() {
     chatUpdateNote(note.title, note.body, data.current_score, data.grade);
     chatUpdateLearn(data.user_prefs || {});
     chatAppendAi(data.welcome);
+    chatAppendSupplementPrompts(data.supplement_prompts || []);
     chatSaveSessionToStorage();
   } catch(e) {
     showToast('启动对话失败：' + e.message);
@@ -7275,7 +7333,68 @@ function scoreColor(v) {
 	  return 'var(--error)';
 	}
 
-	// 存储动态雷达数据
+function renderReportLifecycle(d) {
+  const card = document.getElementById('reportLifecycleCard');
+  const scoreEl = document.getElementById('report-loop-score');
+  const stepsEl = document.getElementById('report-loop-steps');
+  if (!card || !stepsEl) return;
+  if (!d || d._error) {
+    card.style.display = 'none';
+    return;
+  }
+  const displayScore = diagnosisDisplayScore(d);
+  const planScores = (d.suggested_plans || []).map(p => _numOrNull(p?.score));
+  const titleScores = (d.suggested_title_scores || []).map(s => _numOrNull(s));
+  const mergedScores = [0,1,2].map(i => planScores[i] ?? titleScores[i]).filter(s => s !== null);
+  const bestPlanScore = mergedScores.length ? Math.max(...mergedScores) : null;
+  const bestPlanIdx = [0,1,2].find(i => (planScores[i] ?? titleScores[i]) === bestPlanScore);
+  const savedNoteId = d._saved_note_id || d.saved_note_id || null;
+  const scoreText = displayScore !== null ? `${displayScore.toFixed(1)}分` : '待评分';
+  if (scoreEl) scoreEl.innerHTML = `当前诊断 <span style="color:${scoreColor(displayScore)}">${scoreText}</span>`;
+
+  const steps = [
+    {
+      title: '诊断',
+      value: scoreText,
+      note: '弱项与维度已记录',
+      tone: displayScore !== null ? scoreColor(displayScore) : 'var(--text-muted)',
+    },
+    {
+      title: '方案',
+      value: bestPlanScore !== null ? `方案 ${'ABC'[bestPlanIdx] || ''} · ${bestPlanScore.toFixed(1)}分` : '选择下方方案',
+      note: '选中后带方案分进入对话',
+      tone: bestPlanScore !== null ? scoreColor(bestPlanScore) : 'var(--text-muted)',
+    },
+    {
+      title: '版本',
+      value: savedNoteId ? '已进入笔记库' : '待保存根版本',
+      note: '对话改写会接成 v2/v3',
+      tone: savedNoteId ? 'var(--success)' : 'var(--warning)',
+    },
+    {
+      title: '真实表现',
+      value: '发布后绑定链接',
+      note: '24h / 7d 追踪会校准预测',
+      tone: 'var(--accent)',
+    },
+    {
+      title: 'Hermes 学习',
+      value: '等待表现回流',
+      note: '沉淀偏好、有效动作和失败模式',
+      tone: 'var(--holo-mid)',
+    },
+  ];
+  stepsEl.innerHTML = steps.map(step => `
+    <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:11px 12px;min-width:0">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">${escapeHtml(step.title)}</div>
+      <div style="font-size:13px;font-weight:800;color:${step.tone};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(step.value)}</div>
+      <div style="font-size:11px;color:var(--text-2);line-height:1.45;margin-top:5px">${escapeHtml(step.note)}</div>
+    </div>
+  `).join('');
+  card.style.display = 'block';
+}
+
+		// 存储动态雷达数据
 	let _radarData = null;
 	let _radarDimensions = null;
 
@@ -8262,6 +8381,7 @@ async function startChatOptimization() {
     chatUpdateNote(d.note_title, d.note_body, data.current_score, data.grade);
     chatUpdateLearn(data.user_prefs || {});
     chatAppendAi(data.welcome);
+    chatAppendSupplementPrompts(data.supplement_prompts || []);
     chatSaveSessionToStorage();
 
   } catch(e) {
@@ -8619,14 +8739,51 @@ function chatAppendAi(text) {
   document.getElementById('chat-messages').appendChild(d);
   chatScrollBottom();
 }
+function chatAppendSupplementPrompts(prompts) {
+  const items = Array.isArray(prompts) ? prompts.filter(p => p && (p.label || p.prompt)).slice(0, 4) : [];
+  if (!items.length) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'chat-supplement-card';
+  wrap.innerHTML = `
+    <div class="chat-supplement-title">补充真实信息后，优化会更稳</div>
+    <div class="chat-supplement-sub">这些不是已核验事实。补充后我会自然融入；暂时没有也会避开编造。</div>
+    <div class="chat-supplement-list">
+      ${items.map((item, idx) => `
+        <div class="chat-supplement-row">
+          <div>
+            <strong>${chatEsc(item.label || item.field || '补充信息')}</strong>
+            <span>${chatEsc(item.prompt || '')}</span>
+          </div>
+          <button type="button" data-supplement-idx="${idx}">补充</button>
+        </div>
+      `).join('')}
+    </div>
+    <div class="chat-supplement-actions">
+      <button type="button" class="chat-supplement-skip" data-supplement-skip="1">先不补充，继续优化</button>
+    </div>`;
+  document.getElementById('chat-messages').appendChild(wrap);
+  wrap.querySelectorAll('[data-supplement-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = items[Number(btn.dataset.supplementIdx)] || {};
+      const inp = document.getElementById('chat-input');
+      inp.value = item.action_text || `补充${item.label || '信息'}：`;
+      inp.focus();
+      chatAutoResize(inp);
+    });
+  });
+  wrap.querySelector('[data-supplement-skip]')?.addEventListener('click', () => {
+    chatSendQuick('先不补充这些信息，请在不编造事实的前提下继续优化');
+  });
+  chatScrollBottom();
+}
 function chatCreateThink() {
   const wrap = document.createElement('div');
   wrap.className = 'cthink-wrap';
   wrap.innerHTML = `
-    <div class="cthink-header" onclick="chatToggleThink(this)">
+    <div class="cthink-header">
       <div class="cthink-dots"><span></span><span></span><span></span></div>
       深度思考中 <span class="cthink-timer" style="font-size:11px;opacity:.55;margin-left:4px">0s</span>
-      <span class="cthink-toggle">▲ 收起</span>
+      <span class="cthink-toggle">完整展示</span>
     </div>
     <div class="cthink-body open"></div>`;
   document.getElementById('chat-messages').appendChild(wrap);
@@ -8660,13 +8817,10 @@ function chatFinalizeThink() {
     }
   }
   const tog = hdr.querySelector('.cthink-toggle');
-  if (tog) tog.textContent = '▲ 收起';
+  if (tog) tog.textContent = '已完整展示';
 }
 function chatToggleThink(hdr) {
-  const body = hdr.nextElementSibling;
-  const tog  = hdr.querySelector('.cthink-toggle');
-  body.classList.toggle('open');
-  tog.textContent = body.classList.contains('open') ? '▲ 收起' : '▼ 展开过程';
+  void hdr;
 }
 function chatAppendContent(t) {
   if (!_chatAiBubble) {
@@ -8914,11 +9068,12 @@ async function loadTrackingIndex() {
     if (!res.ok) return;
     const d = await res.json();
     (d.notes || []).forEach(t => {
-      if (!t.source_note_id) return;
-      const existing = _trackingBySourceNote.get(t.source_note_id);
-      if (!existing || String(t.submitted_at || '') > String(existing.submitted_at || '')) {
-        _trackingBySourceNote.set(t.source_note_id, t);
-      }
+      [t.source_note_id, t.source_root_note_id].filter(Boolean).forEach(key => {
+        const existing = _trackingBySourceNote.get(key);
+        if (!existing || String(t.submitted_at || '') > String(existing.submitted_at || '')) {
+          _trackingBySourceNote.set(key, t);
+        }
+      });
     });
   } catch(e) {
     console.warn('tracking index load failed', e);
@@ -9206,13 +9361,69 @@ function trackingStatusMeta(t) {
 function renderLibraryTrackingBadge(noteId) {
   const t = _trackingBySourceNote.get(noteId);
   if (!t) {
-    return `<div style="font-size:10px;color:var(--text-muted);border:1px dashed var(--border);border-radius:8px;padding:5px 7px;margin-bottom:8px">发布后可绑定真实表现追踪</div>`;
+    return `<div style="font-size:10px;color:var(--text-muted);border:1px dashed var(--border);border-radius:8px;padding:5px 7px;margin-bottom:8px">未绑定追踪 · 发布后可绑定真实表现</div>`;
   }
   const meta = trackingStatusMeta(t);
   const actual = t.actual_ces != null ? ` · 实际 ${Number(t.actual_ces).toFixed(1)}` : '';
   const confidence = t.confidence_label ? ` · ${escapeHtml(t.confidence_label)}置信` : '';
   return `<div style="font-size:10px;color:${meta.color};background:rgba(0,153,255,0.06);border:1px solid rgba(0,153,255,0.18);border-radius:8px;padding:5px 7px;margin-bottom:8px">
     📡 ${escapeHtml(meta.label)}${actual}${confidence}
+  </div>`;
+}
+
+function _libraryInlineJsArg(value) {
+  return escapeHtml(JSON.stringify(value));
+}
+
+function renderLibraryPrimaryActions(note) {
+  const noteArg = _libraryInlineJsArg(note);
+  const idArg = _libraryInlineJsArg(note.id || '');
+  const titleArg = _libraryInlineJsArg(note.title || '');
+  const domainArg = _libraryInlineJsArg(note.domain || '');
+  const scoreArg = Number.isFinite(Number(note.score)) ? Number(note.score) : 'null';
+  return `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button onclick="event.stopPropagation();startChatFromNote(${noteArg})"
+        style="padding:7px 12px;border-radius:9px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:12px;font-weight:700;cursor:pointer">💬 继续优化</button>
+      <button onclick="event.stopPropagation();trackNoteFromLibrary(${idArg},${titleArg},${domainArg},${scoreArg})"
+        style="padding:7px 12px;border-radius:9px;background:rgba(0,153,255,0.08);border:1px solid rgba(0,153,255,0.24);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">📡 追踪效果</button>
+    </div>`;
+}
+
+function trackingForVersionGroup(group) {
+  const versions = group.versions || [group.latest].filter(Boolean);
+  const ids = [group.group_id, ...versions.map(v => v?.id)].filter(Boolean);
+  return ids.map(id => _trackingBySourceNote.get(id)).filter(Boolean)
+    .sort((a, b) => String(b.submitted_at || '').localeCompare(String(a.submitted_at || '')))[0] || null;
+}
+
+function renderLibraryLifecycleStrip(group) {
+  const versions = group.versions || [group.latest].filter(Boolean);
+  const latest = group.latest || versions[versions.length - 1] || {};
+  const first = versions[0] || latest;
+  const tracking = trackingForVersionGroup(group);
+  const meta = trackingStatusMeta(tracking);
+  const scoreTrend = (group.score_trend || []).filter(s => s !== null && s !== undefined);
+  const delta = scoreTrend.length >= 2 ? +(scoreTrend[scoreTrend.length - 1] - scoreTrend[0]).toFixed(1) : null;
+  const sourceLabel = { diagnose:'诊断原稿', generate:'AI生成', chat:'对话优化', manual:'手动保存' }[first.source] || '初始版本';
+  const trackingValue = tracking ? meta.label : '未绑定';
+  const learningValue = tracking && (tracking.actual_ces != null || tracking.status === 'complete')
+    ? '已可校准'
+    : '等待真实表现';
+  const items = [
+    { label:'起点', value:sourceLabel, note:first.created_at ? first.created_at.slice(0,10) : '已归档', color:'var(--text-2)' },
+    { label:'版本', value:`v${latest.version || versions.length || 1}`, note:delta !== null ? `分数${delta >= 0 ? '+' : ''}${delta}` : `${versions.length || 1} 个版本`, color:_scoreColor(latest.score) },
+    { label:'追踪', value:trackingValue, note:tracking ? '真实链接已接入' : '发布后绑定链接', color:tracking ? meta.color : 'var(--text-muted)' },
+    { label:'回流', value:learningValue, note:'写入成长档案与 Hermes 记忆', color:tracking && tracking.training_eligible ? 'var(--success)' : 'var(--holo-mid)' },
+  ];
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px;margin:10px 0 2px">
+    ${items.map(item => `
+      <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);border-radius:10px;padding:8px 9px;min-width:0">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px">${escapeHtml(item.label)}</div>
+        <div style="font-size:12px;font-weight:800;color:${item.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.value)}</div>
+        <div style="font-size:10px;color:var(--text-muted);line-height:1.35;margin-top:4px">${escapeHtml(item.note)}</div>
+      </div>
+    `).join('')}
   </div>`;
 }
 
@@ -9251,7 +9462,10 @@ function buildGroupCard(group) {
       </div>
       <div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.4;margin-bottom:6px">${latest.title}</div>
       <div style="font-size:12px;color:var(--text-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px">${(latest.body||'').slice(0,100)}…</div>
+      ${renderLibraryLifecycleStrip(group)}
+      ${renderLibraryTrackingBadge(latest.id)}
       ${vCount > 1 ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:10px;color:var(--text-muted);margin-right:2px">分数历程</span>${trendHTML}</div>` : ''}
+      ${renderLibraryPrimaryActions(latest)}
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
       <div style="font-size:22px;font-weight:800;color:${_scoreColor(latestScore)}">${latestScore ? latestScore.toFixed(1) : '–'}</div>
@@ -9340,6 +9554,55 @@ function closeNoteDetail() {
 /* ═══════════════════════════════════════════════════════════
    PROFILE — 真实成长档案
 ═══════════════════════════════════════════════════════════════ */
+function renderProfileLoopInsights(growth, notes, tracking, mems) {
+  const el = document.getElementById('profile-loop-insights');
+  if (!el) return;
+  const records = Array.isArray(growth?.records) ? growth.records : [];
+  const scoreValues = records.map(r => Number(r.score)).filter(Number.isFinite);
+  const first = scoreValues[0];
+  const latest = scoreValues[scoreValues.length - 1];
+  const delta = scoreValues.length >= 2 ? +(latest - first).toFixed(1) : null;
+  const noteTotal = Number(notes?.total ?? notes?.notes?.length ?? 0);
+  const tracked = Array.isArray(tracking?.notes) ? tracking.notes : [];
+  const completed = tracked.filter(t => t.status === 'complete' || t.actual_ces != null).length;
+  const linked = tracked.filter(t => t.source_note_id || t.source_root_note_id).length;
+  const memories = Array.isArray(mems?.memories) ? mems.memories : [];
+  const lastAction = records[records.length - 1]?.action || '';
+  const insightCards = [
+    {
+      label: '预测与优化',
+      value: delta === null ? '等待连续记录' : `${delta >= 0 ? '+' : ''}${delta}分`,
+      note: delta === null ? '至少两次诊断/优化后显示趋势' : `最近动作：${lastAction || '优化记录'}`,
+      color: delta === null ? 'var(--text-muted)' : (delta >= 0 ? 'var(--success)' : 'var(--warning)'),
+    },
+    {
+      label: '作品资产',
+      value: `${noteTotal} 个版本`,
+      note: noteTotal ? '每篇从诊断、方案到对话版本归档' : '生成或诊断后自动入库',
+      color: 'var(--holo-mid)',
+    },
+    {
+      label: '真实校准',
+      value: tracked.length ? `${completed}/${tracked.length} 已完成` : '待绑定追踪',
+      note: linked ? `${linked} 条已关联笔记版本` : '发布后从笔记库绑定链接',
+      color: tracked.length ? 'var(--accent)' : 'var(--text-muted)',
+    },
+    {
+      label: 'Hermes 学习',
+      value: memories.length ? `${memories.length} 条记忆` : '等待信号',
+      note: completed ? '真实表现可回流为训练/偏好证据' : '对话偏好先沉淀，真实表现后校准',
+      color: memories.length ? 'var(--success)' : 'var(--holo-mid)',
+    },
+  ];
+  el.innerHTML = insightCards.map(card => `
+    <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px 13px;min-width:0">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">${escapeHtml(card.label)}</div>
+      <div style="font-size:17px;font-weight:900;color:${card.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(card.value)}</div>
+      <div style="font-size:11px;color:var(--text-2);line-height:1.45;margin-top:5px">${escapeHtml(card.note)}</div>
+    </div>
+  `).join('');
+}
+
 async function initProfilePage() {
   const realContent   = document.getElementById('profile-real-content');
   const loginPrompt   = document.getElementById('profile-login-prompt');
@@ -9374,24 +9637,27 @@ async function initProfilePage() {
 
   try {
     // 成长数据
-    const [growthRes, memRes, achRes, notesRes] = await Promise.all([
-      fetch(`${API_AUTH}/profile/growth`,       { headers: authHeader() }),
-      fetch(`${API_AUTH}/profile/memories`,     { headers: authHeader() }),
-      fetch(`${API_AUTH}/profile/achievements`, { headers: authHeader() }),
-      fetch(`${API_AUTH}/notes?limit=3`,        { headers: authHeader() }),
-    ]);
-    const growth = await growthRes.json();
-    const mems   = await memRes.json();
-    const achs   = await achRes.json();
-    const notes  = await notesRes.json();
+	    const [growthRes, memRes, achRes, notesRes, trackingRes] = await Promise.all([
+	      fetch(`${API_AUTH}/profile/growth`,       { headers: authHeader() }),
+	      fetch(`${API_AUTH}/profile/memories`,     { headers: authHeader() }),
+	      fetch(`${API_AUTH}/profile/achievements`, { headers: authHeader() }),
+	      fetch(`${API_AUTH}/notes?limit=3`,        { headers: authHeader() }),
+	      fetch(`${API_AUTH}/notes/tracking`,       { headers: authHeader() }).catch(() => ({ json: async () => ({ notes: [] }) })),
+	    ]);
+	    const growth = await growthRes.json();
+	    const mems   = await memRes.json();
+	    const achs   = await achRes.json();
+	    const notes  = await notesRes.json();
+	    const tracking = await trackingRes.json();
 
     // 统计
     const stats = growth.stats;
     document.getElementById('profile-stat-sessions').textContent    = stats.total_sessions || 0;
     document.getElementById('profile-stat-best').textContent        = stats.best_score ? stats.best_score.toFixed(1) : '–';
-    const scores = growth.records.map(r => r.score);
-    const improvement = scores.length >= 2 ? (Math.max(...scores) - Math.min(...scores)).toFixed(1) : '–';
-    document.getElementById('profile-stat-improvement').textContent = improvement !== '–' ? '+' + improvement : '–';
+	    const scores = growth.records.map(r => r.score);
+	    const improvement = scores.length >= 2 ? (Math.max(...scores) - Math.min(...scores)).toFixed(1) : '–';
+	    document.getElementById('profile-stat-improvement').textContent = improvement !== '–' ? '+' + improvement : '–';
+	    renderProfileLoopInsights(growth, notes, tracking, mems);
 
     // 趋势图：带坐标轴、分数标注、日期标注
     const chartEl = document.getElementById('profile-trend-chart');
@@ -9698,6 +9964,7 @@ async function startChatFromLibrary() {
     chatUpdateNote(note.title, note.body, data.current_score, data.grade);
     chatUpdateLearn(data.user_prefs || {});
     chatAppendAi(data.welcome);
+    chatAppendSupplementPrompts(data.supplement_prompts || []);
 
     // Bug3: 保存 session 到 localStorage
     chatSaveSessionToStorage();

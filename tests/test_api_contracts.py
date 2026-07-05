@@ -563,6 +563,44 @@ class ApiContractTests(unittest.TestCase):
             api._get_user_learn = original_get_user_learn
             api._memory.build_memory_prompt = original_memory_prompt
 
+    def test_chat_start_prefers_selected_plan_score_over_original_diagnosis_score(self):
+        original_sessions = dict(api._chat_sessions)
+        original_get_user_learn = api._get_user_learn
+        original_memory_prompt = api._memory.build_memory_prompt
+        original_persist = api._persist_chat_session
+        try:
+            api._chat_sessions.clear()
+            api._get_user_learn = lambda user_id: {}
+            api._memory.build_memory_prompt = lambda user_id: ""
+            api._persist_chat_session = lambda session_id: None
+
+            resp = asyncio.run(api.chat_start(
+                api.ChatStartInput(
+                    note_title="用户选中的高分方案标题",
+                    note_body="用户选中的高分方案正文，已经不是原始诊断笔记正文。",
+                    domain="美食",
+                    generate_context={
+                        "ces_percentile": 51.2,
+                        "composite_score": 51.2,
+                        "selected_plan_score": 76.9,
+                        "current_score": 76.9,
+                        "grade": "良好",
+                    },
+                ),
+                user={"id": "u1"},
+            ))
+
+            self.assertEqual(resp.current_score, 76.9)
+            self.assertEqual(resp.grade, "优秀")
+            session = api._chat_sessions[resp.session_id]
+            self.assertEqual(session["current_score"], 76.9)
+        finally:
+            api._chat_sessions.clear()
+            api._chat_sessions.update(original_sessions)
+            api._get_user_learn = original_get_user_learn
+            api._memory.build_memory_prompt = original_memory_prompt
+            api._persist_chat_session = original_persist
+
     def test_chat_note_update_is_emitted_after_version_save(self):
         original_db = api._db
         original_sessions = dict(api._chat_sessions)
@@ -1200,6 +1238,65 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 502)
         self.assertFalse(predict_called["value"])
 
+    def test_video_library_body_summarizes_material_without_raw_analysis_markdown(self):
+        body = api._video_library_note_body(
+            "",
+            "### 深度解读\n"
+            "1. 整体场景与视觉氛围\n"
+            "- 桌面出现乳鸽、小青龙和多人聚餐画面，适合做广州粤菜探店素材。\n"
+            "#### 标题钩子\n"
+            "- 这个套餐适合周末聚餐",
+            duration_sec=3.0,
+            frames_extracted=3,
+            frames_to_ai=2,
+        )
+        self.assertIn("【视频素材理解】", body)
+        self.assertIn("视频约 3.0s", body)
+        self.assertIn("AI 理解使用 2/3 帧", body)
+        self.assertIn("乳鸽", body)
+        self.assertNotIn("###", body)
+        self.assertNotIn("深度解读", body)
+        self.assertNotIn("标题钩子", body)
+
+    def test_chat_start_surfaces_missing_fact_supplement_prompts(self):
+        original_persist = api._persist_chat_session
+        original_get_user_learn = api._get_user_learn
+        original_memory_prompt = api._memory.build_memory_prompt
+        result = None
+        try:
+            api._persist_chat_session = lambda *_args, **_kwargs: None
+            api._get_user_learn = lambda *_args, **_kwargs: {}
+            api._memory.build_memory_prompt = lambda *_args, **_kwargs: ""
+            result = asyncio.run(api.chat_start(
+                api.ChatStartInput(
+                    note_title="广州粤菜聚餐",
+                    note_body="乳鸽和小青龙都适合聚餐，建议收藏。",
+                    domain="美食",
+                    generate_context={
+                        "current_score": 72.0,
+                        "grade": "良好",
+                        "content_intent": "决策转化型",
+                        "merchant_visibility": "展示商家",
+                        "fact_source_policy": "skip",
+                        "quality_issues": ["美食笔记缺少营业时间或周末营业信息"],
+                    },
+                ),
+                user={"id": "u-test"},
+            ))
+            self.assertEqual(result.current_score, 72.0)
+            self.assertTrue(result.supplement_prompts)
+            self.assertEqual(result.supplement_prompts[0]["field"], "business_hours")
+            self.assertIn("营业时间", result.welcome)
+            prompt = api._build_chat_system_prompt(api._chat_sessions[result.session_id])
+            self.assertIn("【待用户补充事实】", prompt)
+            self.assertIn("不得擅自编造", prompt)
+        finally:
+            api._persist_chat_session = original_persist
+            api._get_user_learn = original_get_user_learn
+            api._memory.build_memory_prompt = original_memory_prompt
+            if result is not None:
+                api._chat_sessions.pop(result.session_id, None)
+
     def test_analyze_entrypoints_share_v04_agent_fact_memory_chain(self):
         original_check = api._billing.check_and_deduct
         original_record = api._billing.record_free_usage
@@ -1376,6 +1473,9 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("手动输入", captured_notes[0].desc)
         self.assertNotIn("【其他内容图片描述】", captured_notes[1].desc)
         self.assertIn("【视频画面内容（AI 解读）】", captured_notes[2].desc)
+        self.assertEqual(responses[2].input_diagnostics["video_duration_sec"], 3.0)
+        self.assertEqual(responses[2].input_diagnostics["video_frames_extracted"], 1)
+        self.assertEqual(responses[2].input_diagnostics["video_frames_to_ai"], 1)
         self.assertEqual(len(captured_agent_contexts), 3)
         self.assertIn("【其他内容图片描述】", captured_agent_contexts[1])
         for ctx in captured_agent_contexts:

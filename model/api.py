@@ -168,6 +168,70 @@ def _video_send_count(duration_sec: float, total_frames: int) -> int:
         target = 26
     return min(target, total_frames, 28)  # 硬上限 28，永不超 token 限制
 
+
+def _clean_video_analysis_for_library(video_desc: str, max_chars: int = 420) -> str:
+    """Turn raw video-understanding markdown into a creator-facing library summary."""
+    text = (video_desc or "").strip()
+    if not text:
+        return ""
+    cleaned_lines: list[str] = []
+    skip_headings = (
+        "深度解读",
+        "整体场景",
+        "视觉氛围",
+        "关键元素",
+        "叙事结构",
+        "标题钩子",
+        "可转化成正文",
+    )
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        line = re.sub(r"^#{1,6}\s*", "", line)
+        line = re.sub(r"^[\-\*\u2022]\s*", "", line)
+        line = re.sub(r"^\d+[\.、]\s*", "", line)
+        line = re.sub(r"^【[^】]{1,18}】\s*", "", line)
+        if not line:
+            continue
+        if any(marker in line for marker in skip_headings) and len(line) <= 28:
+            continue
+        cleaned_lines.append(line)
+    cleaned = " ".join(cleaned_lines)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if len(cleaned) > max_chars:
+        cleaned = cleaned[:max_chars].rstrip("，。；、 ") + "..."
+    return cleaned
+
+
+def _video_library_note_body(
+    original_desc: str,
+    video_desc: str,
+    *,
+    duration_sec: float | None = None,
+    frames_extracted: int | None = None,
+    frames_to_ai: int | None = None,
+) -> str:
+    summary = _clean_video_analysis_for_library(video_desc)
+    frame_bits: list[str] = []
+    if duration_sec is not None:
+        frame_bits.append(f"视频约 {duration_sec:.1f}s")
+    if frames_extracted is not None and frames_to_ai is not None:
+        frame_bits.append(f"AI 理解使用 {frames_to_ai}/{frames_extracted} 帧")
+    elif frames_to_ai is not None:
+        frame_bits.append(f"AI 理解使用 {frames_to_ai} 帧")
+    meta_line = "；".join(frame_bits)
+    body_parts: list[str] = []
+    if original_desc.strip():
+        body_parts.append(original_desc.strip())
+    if meta_line or summary:
+        body_parts.append(
+            "【视频素材理解】"
+            + (f"{meta_line}。" if meta_line else "")
+            + (summary if summary else "已完成视频画面理解，可继续优化成发布笔记。")
+        )
+    return "\n\n".join(part for part in body_parts if part).strip()
+
 # ── Claude client ─────────────────────────────────────────────────
 
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
@@ -4791,6 +4855,7 @@ class AnalyzeResponse(BaseModel):
     intent_contract: dict = Field(default_factory=dict, description="创作方向与事实源执行契约")
     fact_source_decision: dict = Field(default_factory=dict, description="事实源是否调用及原因")
     input_diagnostics: dict = Field(default_factory=dict, description="输入审计：原始正文、评分正文与视觉上下文长度")
+    supplement_prompts: list[dict] = Field(default_factory=list, description="对话优化前建议用户补充的真实事实项")
 
 
 class GenerateInput(BaseModel):
@@ -4827,6 +4892,7 @@ class GenerateResponse(BaseModel):
     content_intent: str = Field(default="真实种草型", description="本次采用的笔记类型/创作方向")
     intent_contract: dict = Field(default_factory=dict, description="创作方向与事实源执行契约")
     fact_source_decision: dict = Field(default_factory=dict, description="事实源是否调用及原因")
+    supplement_prompts: list[dict] = Field(default_factory=list, description="对话优化前建议用户补充的真实事实项")
     model_used: str = Field(default="claude-routed-5-agents")
 
 
@@ -6328,6 +6394,143 @@ def _filter_quality_issues_for_content_intent(
         for issue in deduped
         if not any(marker in issue for marker in relaxed_markers)
     ]
+
+
+def _supplement_prompts_from_quality_issues(
+    issues: list[str] | None,
+    domain: str | None,
+    *,
+    content_intent: str | None = None,
+    merchant_visibility: str | None = None,
+    fact_source_policy: str | None = None,
+    fact_source_decision: dict | None = None,
+) -> list[dict]:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    intent = _normalize_content_intent(content_intent)
+    visibility = _normalize_merchant_visibility(merchant_visibility)
+    policy = _normalize_fact_source_policy(fact_source_policy)
+    prompts: list[dict] = []
+    seen: set[str] = set()
+
+    def add(field: str, label: str, prompt: str, action_text: str, *, can_use_fact_source: bool = False):
+        if field in seen:
+            return
+        seen.add(field)
+        prompts.append({
+            "field": field,
+            "label": label,
+            "prompt": prompt,
+            "action_text": action_text,
+            "can_use_fact_source": bool(can_use_fact_source),
+            "content_intent": intent,
+            "merchant_visibility": visibility,
+            "fact_source_policy": policy,
+        })
+
+    decision = fact_source_decision if isinstance(fact_source_decision, dict) else {}
+    if decision.get("needs_user_supplement") and decision.get("supplement_prompt"):
+        fields = decision.get("supplement_fields") or ["merchant_name"]
+        first_field = str(fields[0] or "merchant_name")
+        add(
+            first_field,
+            "补充商家/地点",
+            str(decision.get("supplement_prompt")),
+            "我来补充商家或地点信息",
+            can_use_fact_source=policy != "skip",
+        )
+
+    if canonical == "美食" and intent == "真实种草型" and visibility == "不展示商家":
+        return prompts
+
+    source_available = canonical in {"美食", "旅行"} and policy != "skip"
+    for issue in issues or []:
+        text = str(issue or "")
+        if not text:
+            continue
+        if canonical == "美食":
+            if "营业时间" in text or "周末营业" in text:
+                add(
+                    "business_hours",
+                    "补充营业时间",
+                    "这版还缺少营业时间/周末营业信息。你可以直接补充真实时间；如果需要，我也可以在你启用事实源后把它自然融入正文。",
+                    "补充营业时间：",
+                    can_use_fact_source=source_available,
+                )
+            elif "价格" in text or "人均" in text:
+                add(
+                    "price",
+                    "补充人均/价格",
+                    "这版还缺少人均或套餐价格。你可以补充真实价格，我会避免写成硬广，并自然放进决策信息里。",
+                    "补充人均/价格：",
+                    can_use_fact_source=source_available,
+                )
+            elif "地址" in text or "商圈" in text or "地铁" in text or "位置" in text:
+                add(
+                    "location",
+                    "补充位置",
+                    "这版还缺少地址、商圈或交通位置。你可以补充大概位置，我会用更自然的方式承接到正文里。",
+                    "补充位置：",
+                    can_use_fact_source=source_available,
+                )
+            elif "必点" in text or "招牌" in text or "推荐菜" in text:
+                add(
+                    "must_order",
+                    "补充必点",
+                    "这版还缺少必点/招牌菜。你可以补充 1-3 个真实菜品，我会把它们写成更有记忆点的种草细节。",
+                    "补充必点：",
+                    can_use_fact_source=False,
+                )
+        elif canonical == "旅行":
+            if "交通" in text or "路线" in text:
+                add(
+                    "transport",
+                    "补充交通路线",
+                    "这版还缺少交通/路线信息。你可以补充出发地、交通方式或路线，我会自然整合到攻略段落。",
+                    "补充交通路线：",
+                    can_use_fact_source=source_available,
+                )
+            elif "预算" in text or "花费" in text or "价格" in text:
+                add(
+                    "budget",
+                    "补充预算",
+                    "这版还缺少预算/花费信息。你可以补充真实区间，我会把它写成可决策的参考。",
+                    "补充预算：",
+                    can_use_fact_source=source_available,
+                )
+        elif "价格" in text or "预算" in text or "购买成本" in text:
+            add(
+                "price",
+                "补充价格/预算",
+                "这版还缺少价格或预算信息。你可以补充真实区间，我会自然融入正文。",
+                "补充价格/预算：",
+                can_use_fact_source=False,
+            )
+
+    return prompts[:5]
+
+
+def _supplement_prompt_brief(prompts: list[dict]) -> str:
+    if not prompts:
+        return ""
+    lines = [
+        "【待用户补充事实】",
+        "以下信息不是已核验事实，不得擅自编造；应先在对话中自然询问，用户补充后再融入正文：",
+    ]
+    for item in prompts[:5]:
+        label = item.get("label") or item.get("field") or "补充信息"
+        prompt = item.get("prompt") or ""
+        lines.append(f"- {label}：{prompt}")
+    return "\n".join(lines)
+
+
+def _supplement_welcome_text(prompts: list[dict]) -> str:
+    if not prompts:
+        return ""
+    labels = "、".join(str(item.get("label") or item.get("field") or "补充信息") for item in prompts[:3])
+    return (
+        f"\n\n我还发现这篇如果想做得更完整，可以补充：**{labels}**。"
+        "你可以直接告诉我真实信息；如果暂时没有，也可以说“先不补充，继续优化”，我会避开编造。"
+    )
 
 
 _PRICE_FACT_RE = re.compile(
@@ -10936,6 +11139,10 @@ async def _run_analyze_pipeline(
         req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy, "AI诊断"
     )
     original_desc = (req.desc or "").strip()
+    video_desc_for_library = ""
+    video_duration_sec: float | None = None
+    video_frames_extracted: int | None = None
+    video_frames_to_ai: int | None = None
     agent_context_parts: list[str] = []
     extra_image_context = ""
     fact_context = ""
@@ -10970,8 +11177,12 @@ async def _run_analyze_pipeline(
 
         # 视频诊断：用已上传的视频 file_id 提取画面描述（复用 generate 中的 _kimi_video_understand）
         if req.video_file_id:
-            if req.video_file_id not in _video_frames:
+            video_meta = _video_frames.get(req.video_file_id)
+            if not video_meta:
                 raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传视频后再诊断")
+            video_duration_sec = float(video_meta.get("duration_sec", 0) or 0)
+            video_frames_extracted = len(video_meta.get("frames", []) or [])
+            video_frames_to_ai = _video_send_count(video_duration_sec, video_frames_extracted)
             await _emit_progress(emit, {
                 "type": "stage",
                 "stage": "video",
@@ -10981,6 +11192,7 @@ async def _run_analyze_pipeline(
             video_desc = await _kimi_video_understand(req.video_file_id, req.domain, req.desc or None)
             if not video_desc or len(video_desc.strip()) < 20:
                 raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证诊断质量，请重新上传或稍后重试")
+            video_desc_for_library = video_desc
             base_desc = (req.desc or "").strip()
             merged_desc = (
                 (base_desc + "\n\n" if base_desc else "")
@@ -11326,6 +11538,25 @@ async def _run_analyze_pipeline(
         "merchant_name": req.merchant_name,
         "fact_source_policy": req.fact_source_policy,
     }
+    if req.video_file_id:
+        input_diagnostics.update({
+            "video_duration_sec": video_duration_sec,
+            "video_frames_extracted": video_frames_extracted,
+            "video_frames_to_ai": video_frames_to_ai,
+            "video_analysis_chars": len(video_desc_for_library or ""),
+        })
+    plan_issues_for_supplement: list[str] = []
+    for _plan in plans_scored:
+        if isinstance(_plan, dict):
+            plan_issues_for_supplement.extend(_plan.get("quality_issues") or [])
+    supplement_prompts = _supplement_prompts_from_quality_issues(
+        plan_issues_for_supplement,
+        req.domain,
+        content_intent=normalized_intent,
+        merchant_visibility=normalized_visibility,
+        fact_source_policy=normalized_fact_policy,
+        fact_source_decision=fact_source_decision,
+    )
     resp = AnalyzeResponse(
         ces_percentile=round(percentile, 1),
         composite_score=composite,
@@ -11355,12 +11586,22 @@ async def _run_analyze_pipeline(
         intent_contract=intent_contract,
         fact_source_decision=fact_source_decision,
         input_diagnostics=input_diagnostics,
+        supplement_prompts=supplement_prompts,
     )
 
     # 登录用户同步保存诊断原文为笔记库根版本，后续对话优化挂在这条版本链下。
     try:
         note_title_for_save = (req.note_title or "").strip() or "（无标题）"
-        note_body_for_save = (req.desc or "").strip()
+        if req.video_file_id and video_desc_for_library:
+            note_body_for_save = _video_library_note_body(
+                original_desc,
+                video_desc_for_library,
+                duration_sec=video_duration_sec,
+                frames_extracted=video_frames_extracted,
+                frames_to_ai=video_frames_to_ai,
+            )
+        else:
+            note_body_for_save = (req.desc or "").strip()
         if not note_body_for_save:
             note_body_for_save = note_title_for_save
         note_id = str(_uuid.uuid4())
@@ -12274,11 +12515,20 @@ async def generate_stream_endpoint(
             user_tier=user_tier,
         ):
             if event.get("type") == "complete":
+                fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
                 event["user_constraints"] = normalized_constraints
                 event["constraint_contract"] = constraint_contract
                 event["content_intent"] = normalized_intent
                 event["intent_contract"] = intent_contract
-                event["fact_source_decision"] = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
+                event["fact_source_decision"] = fact_source_decision
+                event["supplement_prompts"] = _supplement_prompts_from_quality_issues(
+                    event.get("quality_issues") or [],
+                    req.domain,
+                    content_intent=normalized_intent,
+                    merchant_visibility=normalized_visibility,
+                    fact_source_policy=normalized_fact_policy,
+                    fact_source_decision=fact_source_decision,
+                )
             yield f"data: {_json.dumps(event, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
@@ -12377,6 +12627,14 @@ async def generate(
             raise HTTPException(status_code=504, detail="生成超时，请重试（kimi响应过慢）")
 
         if result.get("quality_failed"):
+            failure_prompts = _supplement_prompts_from_quality_issues(
+                result.get("quality_issues", []),
+                req.domain,
+                content_intent=normalized_intent,
+                merchant_visibility=normalized_visibility,
+                fact_source_policy=normalized_fact_policy,
+                fact_source_decision=fact_source_decision,
+            )
             raise HTTPException(
                 status_code=422,
                 detail={
@@ -12385,6 +12643,7 @@ async def generate(
                     "score": result.get("ces_percentile"),
                     "grade": result.get("grade"),
                     "issues": (result.get("quality_issues") or [])[:8],
+                    "supplement_prompts": failure_prompts,
                     "title": result.get("title", ""),
                     "body_preview": (result.get("body") or "")[:300],
                 },
@@ -12395,6 +12654,14 @@ async def generate(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+    supplement_prompts = _supplement_prompts_from_quality_issues(
+        result.get("quality_issues", []),
+        req.domain,
+        content_intent=normalized_intent,
+        merchant_visibility=normalized_visibility,
+        fact_source_policy=normalized_fact_policy,
+        fact_source_decision=fact_source_decision,
+    )
     return GenerateResponse(
         note_title=result["title"],
         note_body=result["body"],
@@ -12415,6 +12682,7 @@ async def generate(
         content_intent=normalized_intent,
         intent_contract=intent_contract,
         fact_source_decision=fact_source_decision,
+        supplement_prompts=supplement_prompts,
         model_used="claude-routed-5-agents",
     )
 
@@ -12506,6 +12774,7 @@ def _build_chat_system_prompt(session: dict) -> str:
         session.get("fact_source_policy"),
         "对话优化",
     )
+    supplement_section = _supplement_prompt_brief(session.get("supplement_prompts") or [])
 
     # ── Generation context (injected when session started from /generate) ──
     gen_ctx = session.get("generate_context") or {}
@@ -12566,6 +12835,8 @@ def _build_chat_system_prompt(session: dict) -> str:
         prompt_parts.append(f"\n{constraint_section}\n")
     if intent_section:
         prompt_parts.append(f"\n{intent_section}\n")
+    if supplement_section:
+        prompt_parts.append(f"\n{supplement_section}\n")
     if session.get("fact_context"):
         prompt_parts.append(f"\n【已核验事实边界】\n{session.get('fact_context')}\n")
     prompt_parts.extend([
@@ -13126,6 +13397,8 @@ def _persist_chat_session(session_id: str) -> None:
             generate_context["fact_source_policy"] = session.get("fact_source_policy")
         if session.get("fact_context"):
             generate_context["fact_context"] = session.get("fact_context")
+        if session.get("supplement_prompts"):
+            generate_context["supplement_prompts"] = session.get("supplement_prompts")
         note_id = session.get("_last_note_id") or session.get("note_id")
         _db.execute(
             "INSERT INTO chat_sessions(id,user_id,note_id,domain,local_time,messages_json,user_prefs_json,"
@@ -13190,6 +13463,7 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
             "merchant_name": merchant_name,
             "fact_source_policy": fact_source_policy,
             "intent_contract": _content_intent_contract_payload(row["domain"], content_intent, merchant_visibility, merchant_name, fact_source_policy),
+            "supplement_prompts": gen_ctx.get("supplement_prompts") or [],
             "fact_context": gen_ctx.get("fact_context", ""),
         }
     except Exception:
@@ -13220,6 +13494,7 @@ class ChatStartResponse(BaseModel):
     current_score: float | None = None
     grade:         str = ""
     user_prefs:    dict = {}
+    supplement_prompts: list[dict] = Field(default_factory=list)
 
 
 class ChatMessageInput(BaseModel):
@@ -13251,11 +13526,54 @@ async def chat_start(
     intent_contract = _content_intent_contract_payload(
         req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy
     )
+    supplement_prompts = gen_ctx.get("supplement_prompts") if isinstance(gen_ctx, dict) else []
+    if not isinstance(supplement_prompts, list):
+        supplement_prompts = []
+    if not supplement_prompts:
+        issue_candidates: list[str] = []
+        if isinstance(gen_ctx, dict):
+            issue_candidates.extend(gen_ctx.get("quality_issues") or [])
+            issue_candidates.extend(gen_ctx.get("selected_plan_quality_issues") or [])
+            selected_idx = gen_ctx.get("selected_plan_index")
+            plans = gen_ctx.get("suggested_plans") or []
+            if isinstance(selected_idx, int) and isinstance(plans, list) and 0 <= selected_idx < len(plans):
+                plan_item = plans[selected_idx]
+                if isinstance(plan_item, dict):
+                    issue_candidates.extend(plan_item.get("quality_issues") or [])
+        supplement_prompts = _supplement_prompts_from_quality_issues(
+            issue_candidates,
+            req.domain,
+            content_intent=normalized_intent,
+            merchant_visibility=normalized_visibility,
+            fact_source_policy=normalized_fact_policy,
+            fact_source_decision=gen_ctx.get("fact_source_decision") if isinstance(gen_ctx, dict) else None,
+        )
 
-    # Use score from /generate result if provided (avoid redundant scoring)
-    if gen_ctx.get("ces_percentile"):
-        current_score = float(gen_ctx["ces_percentile"])
-        grade = gen_ctx.get("grade") or _grade(current_score)
+    def _score_from_context(ctx: dict, keys: tuple[str, ...]) -> tuple[str | None, float | None]:
+        for key in keys:
+            raw = ctx.get(key)
+            if raw is None or raw == "":
+                continue
+            try:
+                score = float(raw)
+            except (TypeError, ValueError):
+                continue
+            return key, score
+        return None, None
+
+    # Use score from the selected frontend artifact when provided (avoid redundant scoring).
+    # For diagnosis rewrite plans, this must be the clicked plan score, not the original
+    # diagnosis score shown elsewhere in the report.
+    score_key, ctx_score = _score_from_context(
+        gen_ctx,
+        ("current_score", "selected_plan_score", "plan_score", "composite_score", "ces_percentile"),
+    )
+    if ctx_score is not None:
+        current_score = ctx_score
+        if score_key in {"current_score", "selected_plan_score", "plan_score"}:
+            grade = gen_ctx.get("current_grade") or gen_ctx.get("selected_plan_grade") or _grade(current_score)
+        else:
+            grade = gen_ctx.get("grade") or _grade(current_score)
     elif req.note_title and req.note_body:
         try:
             n = NoteInput(
@@ -13303,6 +13621,7 @@ async def chat_start(
         "merchant_name": normalized_merchant,
         "fact_source_policy": normalized_fact_policy,
         "intent_contract": intent_contract,
+        "supplement_prompts": supplement_prompts,
     } if (gen_ctx or normalized_constraints or normalized_intent) else {}
 
     _chat_sessions[sid] = {
@@ -13325,6 +13644,7 @@ async def chat_start(
         "merchant_name":     normalized_merchant,
         "fact_source_policy": normalized_fact_policy,
         "intent_contract":   intent_contract,
+        "supplement_prompts": supplement_prompts,
         "fact_context":      inherited_fact_context,
         "generate_context": session_generate_context,
     }
@@ -13357,6 +13677,7 @@ async def chat_start(
             f"- 「标题太长了」→ 针对性调整\n"
             f"- 「为什么评分低？」→ 深度分析原因"
         )
+    welcome += _supplement_welcome_text(supplement_prompts)
 
     return ChatStartResponse(
         session_id=sid,
@@ -13364,6 +13685,7 @@ async def chat_start(
         current_score=round(current_score, 1) if current_score else None,
         grade=grade,
         user_prefs=user_prefs,
+        supplement_prompts=supplement_prompts,
     )
 
 
