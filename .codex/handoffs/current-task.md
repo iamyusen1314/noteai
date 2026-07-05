@@ -4432,3 +4432,86 @@ This list reflects current Git status during handoff. Some files were modified b
 - 不运行真实 crawler/worker 或外部站点访问。
 - 不继续扩大 live AI 样本、并发调用或批量压力测试。
 - 不提交无关 Kimi/live-smoke/tool-image scope。
+
+## 2026-07-05 Checkpoint Update — Precise Stage and Local Service Restart Fix
+
+### 1. 本轮完成了什么
+
+- 已完成并推送上一阶段功能 checkpoint：`polish note growth loop and fact prompts`，只包含诊断/生成/笔记库/成长闭环相关代码、测试和 handoff 记录。
+- 修复本地 `start_all.sh stop/start` 无法稳定替换旧 API 进程的问题。
+- 验证当前本地 8000 API 已暴露新 OpenAPI 字段，不再误打长期 screen 中的旧代码。
+- 验证 `./start_all.sh start` 再次运行时会替换旧 listener，并把 API、admin、frontend 留在本地运行状态，方便用户继续手测。
+
+### 2. 修改了哪些文件
+
+- `start_all.sh`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `start_all.sh`: 启动前清理旧 pid、旧 screen session、已占用端口 listener；在 Codex 非交互 shell 环境下优先用 `screen` 托管 API/admin/frontend，避免服务随工具 shell 退出而消失；同时保留无 `screen` 时的 `nohup` fallback。
+- `.codex/handoffs/current-task.md`: 记录本阶段 checkpoint scope、服务管理修复、验证命令和剩余风险。
+
+### 4. 做了哪些关键决策
+
+- 本阶段 checkpoint 精确到 Stage：上一阶段业务/UI/API/测试修复已单独 commit/push；本阶段只提交服务管理修复和 handoff。
+- 不把未确认的 `model/api.py` Kimi model 行、`model/model_router.py`、AI 预标注工具、live smoke 工具、测试图片目录混入本次提交。
+- 不手动杀掉旧的 `noteai-local` screen session；通过端口 listener 清理和固定 `noteai-api`/`noteai-admin`/`noteai-frontend` screen session 管理当前服务。
+
+### 5. 运行了哪些命令
+
+- `git status --short`
+- `sed -n '1,260p' start_all.sh`
+- `git diff -- start_all.sh`
+- `bash -n start_all.sh`
+- `screen -ls || true`
+- `./start_all.sh stop && ./start_all.sh start`
+- `./start_all.sh status`
+- `lsof -nP -iTCP -sTCP:LISTEN | egrep ':(8000|8001|5173) ' || true`
+- OpenAPI schema check against `http://127.0.0.1:8000/openapi.json`
+- PID replacement smoke using `./start_all.sh start`
+- `git diff --check -- start_all.sh`
+
+### 6. 每个命令的结果
+
+- `git status --short`: 工作区仍有未确认改动；本阶段只处理 `start_all.sh` 和 handoff。
+- `bash -n start_all.sh`: 通过。
+- 初始 `screen -ls`: 存在长期 `noteai-local` screen；这是旧进程干扰风险来源。
+- `./start_all.sh stop && ./start_all.sh start`: 成功启动主 API、管理后台、前端页面；后续补丁消除了 `screen` session 不存在时的无害噪音。
+- `./start_all.sh status`: 主 API `ok`，模型 `v0.4-composite`；管理后台 `ok`；前端页面运行中。
+- `lsof`: 8000、8001、5173 均有新的 Python listener。
+- OpenAPI schema check: `AnalyzeResponse` 包含 `input_diagnostics` 和 `supplement_prompts`；`GenerateResponse`、`ChatStartResponse` 包含 `supplement_prompts`，证明本地 API 是当前代码。
+- PID replacement smoke: 运行前 API/admin/frontend PID 为 `95422/95432/95436`，再次 `start` 后变为 `96657/96665/96669`，证明启动会替换旧 listener。
+- `git diff --check -- start_all.sh`: 通过。
+
+### 7. 当前仍然失败的问题
+
+- 本阶段服务管理验证未发现失败。
+- 旧的 `noteai-local` screen session 仍然存在，但当前端口 listener 已由新脚本管理；如果该 session 未来重新拉起旧服务，`./start_all.sh start` 会再次清理端口 listener。
+
+### 8. 当前未完成工作
+
+- 本阶段服务管理修复待 commit/push。
+- 用户侧仍需继续全量手测 AI 诊断、AI 生成爆文、笔记库、成长档案、追踪效果等产品链路。
+- 云端部署方案仍保持计划状态，待所有功能验证商业价值和稳定性后再迁移。
+
+### 9. 当前最高风险
+
+- 工作区仍有其它未确认改动，后续提交必须继续精确 stage。
+- 本地长期 screen session 如果由外部脚本重新启动旧服务，仍可能短暂造成误判；固定使用 `./start_all.sh start/status` 可降低风险。
+- Live AI 多 agent 链路仍有成本和耗时风险，后续大样本验证需继续记录 Live API Run Plan 和 Result Summary。
+
+### 10. 下一步最小可行计划
+
+1. 精确 stage `start_all.sh` 和 `.codex/handoffs/current-task.md`。
+2. 提交服务管理 checkpoint。
+3. Push 到 `origin/codex/quality-stabilization-real-chain`。
+4. 保持本地服务运行，支持用户继续手测。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不提交或删除未确认的 Kimi model 行、`model/model_router.py`、AI 预标注工具、live smoke 工具、测试图片目录。
+- 不运行 migration、seed、reset、deploy、clean。
+- 不修改生产配置、真实凭据、生产 DB、billing/payment/quota、auth/admin 权限。
+- 不触发真实支付、邮件、短信、部署或生产写操作。
+- 不扩大 live AI 样本、并发调用、批量跑数据或运行 crawler/worker，除非用户明确确认。
