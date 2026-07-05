@@ -13,6 +13,7 @@ import asyncio
 import json
 import os
 import random
+import re
 import sys
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -26,17 +27,109 @@ _LOG_FILE    = _BASE_DIR / "data" / "crawler_log.json"
 # ── 导入共享模块 ─────────────────────────────────────────────────────────
 sys.path.insert(0, str(_BASE_DIR))
 import db
+import performance_scoring as perf
+
+try:
+    import memory
+except Exception:
+    memory = None
+
+try:
+    import xhs_acquisition
+except Exception:
+    xhs_acquisition = None
 
 # ── 常量 ─────────────────────────────────────────────────────────────────
 XHS_BASE         = "https://www.xiaohongshu.com"
 MIN_DELAY        = 2.0   # 最短请求间隔（秒）
 MAX_DELAY        = 6.0   # 最长请求间隔（秒）
 DAILY_LIMIT      = 300   # 单日最大采集量
-HEADLESS         = True  # 生产环境用无头模式
+NOTE_CONTAINER_SELECTOR = ".note-content, .note-container, #noteContainer"
+NOTE_LINK_RE = re.compile(r"/(?:explore|discovery/item)/[A-Za-z0-9]+")
+HEADLESS         = os.environ.get("NOTEAI_CRAWLER_HEADLESS", "1").strip().lower() not in {"0", "false", "no"}
+XHS_USER_AGENT   = os.environ.get(
+    "NOTEAI_XHS_USER_AGENT",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/141.0.0.0 Safari/537.36",
+)
+XHS_PROFILE_USER_AGENT = os.environ.get(
+    "NOTEAI_XHS_PROFILE_USER_AGENT",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 "
+    "Mobile/15E148 Safari/604.1",
+)
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, str(default)))
+    except Exception:
+        return default
+
+
+XHS_VIEWPORT = {
+    "width": _env_int("NOTEAI_CRAWLER_VIEWPORT_WIDTH", 1365),
+    "height": _env_int("NOTEAI_CRAWLER_VIEWPORT_HEIGHT", 900),
+}
+XHS_PROFILE_VIEWPORT = {
+    "width": _env_int("NOTEAI_CRAWLER_PROFILE_VIEWPORT_WIDTH", 390),
+    "height": _env_int("NOTEAI_CRAWLER_PROFILE_VIEWPORT_HEIGHT", 844),
+}
+
+
+def _browser_context_kwargs() -> dict:
+    return {
+        "user_agent": XHS_USER_AGENT,
+        "viewport": dict(XHS_VIEWPORT),
+    }
+
+
+def _profile_context_kwargs() -> dict:
+    return {
+        "user_agent": XHS_PROFILE_USER_AGENT,
+        "viewport": dict(XHS_PROFILE_VIEWPORT),
+    }
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_iso(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def _next_due_from_note(note: dict, days: int) -> str:
+    now = datetime.now(timezone.utc)
+    base = (
+        _parse_iso(note.get("published_at"))
+        or _parse_iso(note.get("submitted_at"))
+        or now
+    )
+    due = base + timedelta(days=days)
+    return (due if due > now else now).isoformat()
+
+
+def _classify_error(error: str) -> str:
+    lower = (error or "").lower()
+    if "timeout" in lower:
+        return "timeout"
+    if "login" in lower or "sign-in" in lower or "cookie" in lower:
+        return "auth_required"
+    if "captcha" in lower or "verify" in lower:
+        return "verification_required"
+    if "selector" in lower:
+        return "selector_changed"
+    return "extract_failed"
 
 
 def _load_cookies() -> list:
@@ -64,15 +157,41 @@ async def _random_delay():
     await asyncio.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
 
 
+async def _wait_for_note_container(page, timeout_ms: int) -> bool:
+    try:
+        await page.wait_for_selector(NOTE_CONTAINER_SELECTOR, timeout=timeout_ms)
+        return True
+    except Exception:
+        return False
+
+
+async def _note_link_from_page(page) -> str:
+    try:
+        hrefs = await page.eval_on_selector_all(
+            "a[href]",
+            "(links) => links.map((a) => a.href).filter(Boolean)",
+        )
+    except Exception:
+        hrefs = []
+    for href in hrefs:
+        if isinstance(href, str) and NOTE_LINK_RE.search(href):
+            return href
+    return ""
+
+
 async def _extract_note_data(page, url: str) -> dict | None:
     """从小红书笔记页面提取互动数据。"""
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
         await _random_delay()
 
-        # 等待笔记内容加载
-        await page.wait_for_selector(".note-content, .note-container, #noteContainer",
-                                     timeout=15_000)
+        # 等待笔记内容加载；短链有时先落到中间页，再暴露真实笔记链接。
+        if not await _wait_for_note_container(page, timeout_ms=12_000):
+            note_href = await _note_link_from_page(page)
+            if note_href:
+                await page.goto(note_href, wait_until="domcontentloaded", timeout=30_000)
+                await _random_delay()
+            await page.wait_for_selector(NOTE_CONTAINER_SELECTOR, timeout=15_000)
 
         # 提取互动数据（多种选择器兼容不同版本）
         async def try_select(selectors: list[str]) -> str:
@@ -113,6 +232,30 @@ async def _extract_note_data(page, url: str) -> dict | None:
         return None
 
 
+async def _extract_note_data_with_sidecar(url: str, domain: str = "") -> dict | None:
+    """Fallback to the XHS-Downloader API sidecar when browser selectors fail."""
+    if not xhs_acquisition or not os.environ.get("NOTEAI_XHS_DOWNLOADER_URL", "").strip():
+        return None
+    try:
+        result = await asyncio.to_thread(
+            xhs_acquisition.fetch_detail_with_sidecar,
+            url,
+            domain=domain or "",
+        )
+        normalized = result.get("normalized") if isinstance(result.get("normalized"), dict) else {}
+        if not (normalized.get("has_content") or normalized.get("has_metrics")):
+            return None
+        return {
+            "likes": int(normalized.get("likes") or 0),
+            "saves": int(normalized.get("saves") or 0),
+            "comments": int(normalized.get("comments") or 0),
+            "title": str(normalized.get("title") or "")[:100],
+        }
+    except Exception as e:
+        _save_log({"action": "sidecar_extract_failed", "url": url, "error": str(e)[:200]})
+        return None
+
+
 async def check_cookie_validity() -> bool:
     """验证 Cookie 是否有效（能否访问需登录的页面）。"""
     cookies = _load_cookies()
@@ -123,10 +266,7 @@ async def check_cookie_validity() -> bool:
         from playwright.async_api import async_playwright
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=HEADLESS)
-            ctx     = await browser.new_context(
-                user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-                           "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-            )
+            ctx     = await browser.new_context(**_profile_context_kwargs())
             await ctx.add_cookies(cookies)
             page = await ctx.new_page()
             await page.goto(f"{XHS_BASE}/user/profile/me", wait_until="domcontentloaded", timeout=20_000)
@@ -152,8 +292,8 @@ async def _refresh_cookie_if_needed(ctx) -> bool:
 async def run_collection_round(limit: int = 50) -> dict:
     """
     执行一轮采集：
-    1. 处理 status='pending' 且 submitted_at > 24h 的记录（24h 首次采集）
-    2. 处理 status='checking_7d' 或 check_24h_at > 7d 的记录（7天终态）
+    1. 处理 status='pending' 且 next_check_at 到期的记录（24h 首次采集）
+    2. 处理 status='checking_7d' 到期的记录（7天终态）
     返回统计信息。
     """
     try:
@@ -165,20 +305,25 @@ async def run_collection_round(limit: int = 50) -> dict:
     if not cookies:
         return {"error": "无有效 Cookie，请在管理后台上传", "collected": 0}
 
-    now   = datetime.now(timezone.utc)
-    h24   = (now - timedelta(hours=24)).isoformat()
-    d7    = (now - timedelta(days=7)).isoformat()
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    h24 = (now - timedelta(hours=24)).isoformat()
+    d7 = (now - timedelta(days=7)).isoformat()
 
     # 24h 首次采集
     pending_24h = db.fetchall(
-        "SELECT * FROM tracked_notes WHERE status='pending' AND submitted_at<=? LIMIT ?",
-        (h24, limit // 2)
+        "SELECT * FROM tracked_notes WHERE status='pending' "
+        "AND ((next_check_at IS NOT NULL AND next_check_at<=?) "
+        "OR (next_check_at IS NULL AND submitted_at<=?)) LIMIT ?",
+        (now_iso, h24, limit // 2)
     )
 
-    # 7天终态采集
+    # 7天终态采集；checking_24h 兼容旧数据，成功后会统一进入 complete。
     pending_7d = db.fetchall(
-        "SELECT * FROM tracked_notes WHERE status='checking_24h' AND check_24h_at<=? LIMIT ?",
-        (d7, limit // 2)
+        "SELECT * FROM tracked_notes WHERE status IN ('checking_7d','checking_24h') "
+        "AND ((next_check_at IS NOT NULL AND next_check_at<=?) "
+        "OR (next_check_at IS NULL AND check_24h_at<=?)) LIMIT ?",
+        (now_iso, d7, limit // 2)
     )
 
     to_process = [dict(r) for r in pending_24h] + [dict(r) for r in pending_7d]
@@ -189,18 +334,19 @@ async def run_collection_round(limit: int = 50) -> dict:
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=HEADLESS)
-        ctx = await browser.new_context(
-            user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-                       "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-            viewport={"width": 390, "height": 844},
-        )
+        ctx = await browser.new_context(**_browser_context_kwargs())
         await ctx.add_cookies(cookies)
         page = await ctx.new_page()
 
         for note in to_process:
             try:
                 data = await _extract_note_data(page, note["xhs_url"])
-                is_7d = note["status"] == "checking_24h"
+                if not data:
+                    data = await _extract_note_data_with_sidecar(
+                        note["xhs_url"],
+                        domain=note.get("domain", ""),
+                    )
+                is_7d = note["status"] in ("checking_7d", "checking_24h")
 
                 if data:
                     # 更新 title（如果为空）
@@ -211,47 +357,94 @@ async def run_collection_round(limit: int = 50) -> dict:
                     now_iso = _now()
                     if is_7d:
                         # 计算真实 CES
-                        views_est = max(int(data["saves"] / 0.11), data["likes"] * 5, 100)
-                        save_r = data["saves"] / max(views_est, 1)
-                        like_r = data["likes"] / max(views_est, 1)
-                        comm_r = data["comments"] / max(views_est, 1)
-                        BENCH = {"s": 0.08, "l": 0.15, "c": 0.02}
-                        def p(v, b): return min(100, round(v / max(b, 0.001) * 50, 1))
-                        ces = round(p(save_r,BENCH["s"])*0.40 + p(like_r,BENCH["l"])*0.30
-                                    + p(comm_r,BENCH["c"])*0.20 + 50*0.10, 1)
+                        score = perf.score_performance(
+                            domain=note.get("domain", "美食"),
+                            likes=data["likes"],
+                            saves=data["saves"],
+                            comments=data["comments"],
+                            views=None,
+                            predicted_ces=note.get("predicted_ces"),
+                            evidence_source="crawler",
+                            window="7d",
+                            likes_24h=note.get("likes_24h"),
+                            saves_24h=note.get("saves_24h"),
+                            comments_24h=note.get("comments_24h"),
+                        )
                         db.execute(
                             "UPDATE tracked_notes SET likes_7d=?,saves_7d=?,comments_7d=?,"
-                            "views_est=?,actual_ces=?,check_7d_at=?,status='complete' WHERE id=?",
+                            "views_est=?,actual_ces=?,check_7d_at=?,last_checked_at=?,"
+                            "status='complete',confidence=?,confidence_label=?,evidence_source=?,"
+                            "training_eligible=?,insights_json=?,completed_at=?,last_error_code=NULL,"
+                            "last_error=NULL WHERE id=?",
                             (data["likes"], data["saves"], data["comments"],
-                             views_est, ces, now_iso, note["id"])
+                             score.views_est, score.actual_ces, now_iso, now_iso,
+                             score.confidence, score.confidence_label, score.evidence_source,
+                             1 if score.training_eligible else 0, score.insights_json(),
+                             now_iso, note["id"])
                         )
                         # 写成长记录
                         db.execute(
-                            "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,NULL,?,?,?,?,?)",
+                            "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
                             (str(uuid.uuid4()), note["user_id"],
-                             note.get("domain","美食"), ces,
-                             "优秀" if ces>=75 else "良好" if ces>=55 else "待改进",
+                             note.get("source_note_id"), note.get("domain","美食"), score.actual_ces,
+                             score.grade,
                              "url_crawl_7d", now_iso)
                         )
+                        if memory:
+                            try:
+                                title = note.get("note_title") or data.get("title") or "已发布笔记"
+                                memory.add_context(
+                                    note["user_id"],
+                                    f"真实表现追踪：{title[:24]}，7天实际{score.actual_ces:.1f}分，"
+                                    f"{score.confidence_label}置信度，强项{score.insights.get('strongest_signal')}，"
+                                    f"短板{score.insights.get('weakest_signal')}"
+                                )
+                            except Exception:
+                                pass
                     else:
+                        next_7d = _next_due_from_note(note, days=7)
                         db.execute(
                             "UPDATE tracked_notes SET likes_24h=?,saves_24h=?,comments_24h=?,"
-                            "check_24h_at=?,status='checking_24h' WHERE id=?",
-                            (data["likes"], data["saves"], data["comments"], now_iso, note["id"])
+                            "check_24h_at=?,last_checked_at=?,next_check_at=?,status='checking_7d',"
+                            "attempt_count=0,last_error_code=NULL,last_error=NULL WHERE id=?",
+                            (data["likes"], data["saves"], data["comments"], now_iso, now_iso, next_7d, note["id"])
                         )
                     stats["collected"] += 1
                 else:
-                    # 采集失败，标记为需要手动回填
+                    attempts = int(note.get("attempt_count") or 0) + 1
+                    max_attempts = int(note.get("max_attempts") or 2)
+                    retry_at = (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat()
+                    next_status = "needs_manual" if attempts >= max_attempts else note["status"]
                     db.execute(
-                        "UPDATE tracked_notes SET status='needs_manual' WHERE id=?",
-                        (note["id"],))
+                        "UPDATE tracked_notes SET status=?,attempt_count=?,last_checked_at=?,"
+                        "next_check_at=?,last_error_code=?,last_error=? WHERE id=?",
+                        (
+                            next_status, attempts, _now(), retry_at,
+                            "extract_failed", "自动采集未能读取公开互动数据",
+                            note["id"],
+                        )
+                    )
                     stats["failed"] += 1
 
                 await _random_delay()  # 防反爬
 
             except Exception as e:
                 stats["failed"] += 1
-                _save_log({"action": "note_error", "id": note["id"], "error": str(e)[:200]})
+                error_summary = str(e)[:200]
+                attempts = int(note.get("attempt_count") or 0) + 1
+                max_attempts = int(note.get("max_attempts") or 2)
+                next_status = "needs_manual" if attempts >= max_attempts else note["status"]
+                db.execute(
+                    "UPDATE tracked_notes SET status=?,attempt_count=?,last_checked_at=?,"
+                    "next_check_at=?,last_error_code=?,last_error=? WHERE id=?",
+                    (
+                        next_status, attempts, _now(),
+                        (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat(),
+                        _classify_error(error_summary), error_summary,
+                        note["id"],
+                    )
+                )
+                _save_log({"action": "note_error", "id": note["id"], "error": error_summary})
 
         await browser.close()
 

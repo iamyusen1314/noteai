@@ -239,6 +239,9 @@ CREATE INDEX IF NOT EXISTS idx_saved_diag_user ON saved_diagnoses(user_id, creat
 CREATE TABLE IF NOT EXISTS tracked_notes (
     id              TEXT PRIMARY KEY,
     user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source_note_id  TEXT REFERENCES notes(id) ON DELETE SET NULL,          -- 被追踪的具体 note version
+    source_root_note_id TEXT REFERENCES notes(id) ON DELETE SET NULL,      -- 版本链根 note，便于聚合
+    source_session_id TEXT REFERENCES chat_sessions(id) ON DELETE SET NULL,-- 生成/对话 session
     xhs_url         TEXT NOT NULL,
     xhs_note_id     TEXT,               -- 从 URL 解析出的小红书 note id
     note_title      TEXT,               -- 笔记标题（从主站获取或用户填写）
@@ -257,17 +260,50 @@ CREATE TABLE IF NOT EXISTS tracked_notes (
     saves_7d        INTEGER,
     comments_7d     INTEGER,
     views_est       INTEGER,            -- 估算浏览量
+    next_check_at   TEXT,               -- 下一次应采集时间（worker 使用）
+    last_checked_at TEXT,               -- 最近一次采集尝试时间
+    attempt_count   INTEGER DEFAULT 0,
+    max_attempts    INTEGER DEFAULT 2,
     -- 用户手动回填（当自动采集失败时）
     manual_filled   INTEGER DEFAULT 0,
     -- 计算结果
     actual_ces      REAL,               -- 真实 CES 分位（计算后写入）
+    confidence      REAL,               -- 证据置信度 0-1
+    confidence_label TEXT,              -- 高|中|低
+    evidence_source TEXT DEFAULT '',    -- crawler|screenshot|manual|mixed
+    training_eligible INTEGER DEFAULT 0,
     status          TEXT DEFAULT 'pending',
-    -- 'pending' | 'checking_24h' | 'checking_7d' | 'needs_manual' | 'complete'
+    -- 'pending' | 'checking_24h' | 'checking_7d' | 'needs_manual' | 'complete' | 'failed'
+    last_error_code TEXT,
+    last_error      TEXT,
+    completed_at    TEXT,
     insights_json   TEXT                -- AI 洞察结果 JSON
 );
 CREATE INDEX IF NOT EXISTS idx_tracked_user ON tracked_notes(user_id, submitted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tracked_status ON tracked_notes(status, submitted_at);
         """)
+        tracked_cols = [r[1] for r in conn.execute("PRAGMA table_info(tracked_notes)").fetchall()]
+        tracked_additions = {
+            "source_note_id": "ALTER TABLE tracked_notes ADD COLUMN source_note_id TEXT",
+            "source_root_note_id": "ALTER TABLE tracked_notes ADD COLUMN source_root_note_id TEXT",
+            "source_session_id": "ALTER TABLE tracked_notes ADD COLUMN source_session_id TEXT",
+            "next_check_at": "ALTER TABLE tracked_notes ADD COLUMN next_check_at TEXT",
+            "last_checked_at": "ALTER TABLE tracked_notes ADD COLUMN last_checked_at TEXT",
+            "attempt_count": "ALTER TABLE tracked_notes ADD COLUMN attempt_count INTEGER DEFAULT 0",
+            "max_attempts": "ALTER TABLE tracked_notes ADD COLUMN max_attempts INTEGER DEFAULT 2",
+            "confidence": "ALTER TABLE tracked_notes ADD COLUMN confidence REAL",
+            "confidence_label": "ALTER TABLE tracked_notes ADD COLUMN confidence_label TEXT",
+            "evidence_source": "ALTER TABLE tracked_notes ADD COLUMN evidence_source TEXT DEFAULT ''",
+            "training_eligible": "ALTER TABLE tracked_notes ADD COLUMN training_eligible INTEGER DEFAULT 0",
+            "last_error_code": "ALTER TABLE tracked_notes ADD COLUMN last_error_code TEXT",
+            "last_error": "ALTER TABLE tracked_notes ADD COLUMN last_error TEXT",
+            "completed_at": "ALTER TABLE tracked_notes ADD COLUMN completed_at TEXT",
+        }
+        for col, sql in tracked_additions.items():
+            if col not in tracked_cols:
+                conn.execute(sql)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_tracked_source_note ON tracked_notes(user_id, source_note_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_tracked_next_check ON tracked_notes(status, next_check_at)")
     conn.close()
 
 

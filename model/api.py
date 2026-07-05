@@ -45,6 +45,13 @@ try:
 except Exception:
     _SCHEDULER_AVAILABLE = False
 
+try:
+    import xhs_acquisition as _xhs_acq
+    _XHS_ACQ_AVAILABLE = True
+except Exception:
+    _xhs_acq = None
+    _XHS_ACQ_AVAILABLE = False
+
 # mem0 is one level up; import gracefully so API still works if unavailable
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
@@ -61,6 +68,7 @@ import billing as _billing
 import prompt_manager as _pm
 import fact_enrichment as _facts
 import quality_objective as _qobj
+import performance_scoring as _perf
 from artifact_loader import ensure_model_artifacts
 
 # ── Model constants ────────────────────────────────────────────────
@@ -9876,6 +9884,31 @@ def health():
     return status
 
 
+@app.get("/market-timing/freshness")
+async def market_timing_freshness(user: dict = Depends(_auth.get_current_user)):
+    if not _XHS_ACQ_AVAILABLE or _xhs_acq is None:
+        raise HTTPException(status_code=503, detail="XHS freshness ledger unavailable")
+    overview = _xhs_acq.freshness_overview()
+    return {
+        "ok": overview.get("ok", False),
+        "required": overview.get("required", False),
+        "missing_domains": overview.get("missing_domains", []),
+        "domains": [
+            {
+                "domain": row.get("domain", ""),
+                "ok": row.get("ok", False),
+                "status": row.get("status", ""),
+                "evidence_count": row.get("evidence_count", 0),
+                "minimum": row.get("minimum", 0),
+                "acquired_at": row.get("acquired_at", ""),
+                "fresh_until": row.get("fresh_until", ""),
+                "reason": row.get("reason", ""),
+            }
+            for row in overview.get("domains", [])
+        ],
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # AUTH 端点
 # ═══════════════════════════════════════════════════════════════════════
@@ -10218,9 +10251,29 @@ def _fetch_user_note(note_id: str | None, user_id: str):
     if not note_id:
         return None
     return _db.fetchone(
-        "SELECT id,title,body,domain,score,grade,version FROM notes WHERE id=? AND user_id=?",
+        "SELECT id,title,body,domain,score,grade,version,parent_id FROM notes WHERE id=? AND user_id=?",
         (note_id, user_id),
     )
+
+
+def _find_note_root_id(note_id: str | None, user_id: str) -> str | None:
+    if not note_id:
+        return None
+    visited: set[str] = set()
+    cur = note_id
+    while cur and cur not in visited:
+        visited.add(cur)
+        row = _db.fetchone(
+            "SELECT id,parent_id FROM notes WHERE id=? AND user_id=?",
+            (cur, user_id),
+        )
+        if not row:
+            return note_id
+        parent = row["parent_id"]
+        if not parent:
+            return row["id"]
+        cur = parent
+    return note_id
 
 
 def _next_note_version(parent_id: str | None, user_id: str, fallback: int = 1) -> int:
@@ -10395,6 +10448,14 @@ async def delete_note(note_id: str, user: dict = Depends(_auth.get_current_user)
     # 先清理所有外键约束引用（顺序不能乱）
     _db.execute("DELETE FROM growth_records WHERE note_id=?", (note_id,))
     _db.execute("UPDATE chat_sessions SET note_id=NULL WHERE note_id=?", (note_id,))
+    _db.execute(
+        "UPDATE tracked_notes SET source_note_id=NULL WHERE source_note_id=?",
+        (note_id,),
+    )
+    _db.execute(
+        "UPDATE tracked_notes SET source_root_note_id=NULL WHERE source_root_note_id=?",
+        (note_id,),
+    )
     _db.execute("UPDATE notes SET parent_id=NULL WHERE parent_id=?", (note_id,))  # 自引用版本链
     _db.execute("DELETE FROM notes WHERE id=?", (note_id,))
     return {"ok": True}
@@ -10459,6 +10520,10 @@ class TrackUrlInput(BaseModel):
     domain:         str = "美食"
     published_at:   Optional[str] = None  # 用户填写的发布时间（ISO格式或空）
     predicted_ces:  Optional[float] = None
+    note_title:     Optional[str] = None
+    source_note_id: Optional[str] = None
+    source_note_version_id: Optional[str] = None
+    source_session_id: Optional[str] = None
 
 def _extract_xhs_note_id(url: str) -> Optional[str]:
     """从小红书 URL 中提取 note_id。"""
@@ -10472,6 +10537,32 @@ def _extract_xhs_note_id(url: str) -> Optional[str]:
         if m:
             return m.group(1)
     return None
+
+
+def _tracking_row_value(row, key: str, default=None):
+    try:
+        return row[key]
+    except Exception:
+        return default
+
+
+def _parse_tracking_base_time(value: str | None) -> _dt.datetime:
+    now = _dt.datetime.now(_dt.timezone.utc)
+    if not value:
+        return now
+    try:
+        parsed = _dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=_dt.timezone.utc)
+        return parsed.astimezone(_dt.timezone.utc)
+    except Exception:
+        return now
+
+
+def _tracking_next_check_at(published_at: str | None, hours: int = 24) -> str:
+    now = _dt.datetime.now(_dt.timezone.utc)
+    due = _parse_tracking_base_time(published_at) + _dt.timedelta(hours=hours)
+    return (due if due > now else now).isoformat()
 
 @app.post("/notes/track-url")
 async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_user)):
@@ -10487,20 +10578,68 @@ async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_u
     tid = str(_uuid.uuid4())
     note_id = _extract_xhs_note_id(url)
     now = _now_iso()
+    source_note_id = req.source_note_id or req.source_note_version_id
+    source_root_note_id = None
+    note_title = (req.note_title or "").strip()
+    domain = req.domain or "美食"
+    predicted_ces = req.predicted_ces
+    if source_note_id:
+        note_row = _fetch_user_note(source_note_id, user["id"])
+        if not note_row:
+            raise HTTPException(status_code=404, detail="关联笔记不存在或无权访问")
+        source_root_note_id = _find_note_root_id(source_note_id, user["id"])
+        note_title = note_title or _tracking_row_value(note_row, "title", "")
+        domain = req.domain or _tracking_row_value(note_row, "domain", "美食")
+        if predicted_ces is None:
+            predicted_ces = _tracking_row_value(note_row, "score")
+    if req.source_session_id:
+        sess = _db.fetchone(
+            "SELECT id FROM chat_sessions WHERE id=? AND user_id=?",
+            (req.source_session_id, user["id"]),
+        )
+        if not sess:
+            raise HTTPException(status_code=404, detail="关联对话不存在或无权访问")
+    next_check_at = _tracking_next_check_at(req.published_at, hours=24)
     _db.execute(
-        "INSERT INTO tracked_notes(id,user_id,xhs_url,xhs_note_id,domain,"
-        "predicted_ces,published_at,submitted_at,status) VALUES(?,?,?,?,?,?,?,?,?)",
-        (tid, user["id"], url, note_id, req.domain,
-         req.predicted_ces, req.published_at, now, "pending")
+        "INSERT INTO tracked_notes(id,user_id,source_note_id,source_root_note_id,source_session_id,"
+        "xhs_url,xhs_note_id,note_title,domain,predicted_ces,published_at,submitted_at,"
+        "next_check_at,status,evidence_source,confidence,confidence_label,training_eligible)"
+        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            tid, user["id"], source_note_id, source_root_note_id, req.source_session_id,
+            url, note_id, note_title, domain, predicted_ces, req.published_at, now,
+            next_check_at, "pending", "", None, "", 0,
+        ),
     )
-    return {"id": tid, "status": "pending", "message": "已开始追踪，24小时后首次采集数据"}
+    return {
+        "id": tid,
+        "status": "pending",
+        "note_title": note_title,
+        "source_note_id": source_note_id,
+        "source_root_note_id": source_root_note_id,
+        "next_check_at": next_check_at,
+        "message": "已开始追踪，24小时后首次采集数据",
+    }
 
 @app.get("/notes/tracking")
-async def list_tracking(user: dict = Depends(_auth.get_current_user)):
+async def list_tracking(
+    source_note_id: Optional[str] = None,
+    source_root_note_id: Optional[str] = None,
+    user: dict = Depends(_auth.get_current_user),
+):
     """列出用户所有追踪记录。"""
+    where = ["user_id=?"]
+    params: list = [user["id"]]
+    if source_note_id:
+        where.append("(source_note_id=? OR source_root_note_id=?)")
+        params.extend([source_note_id, source_note_id])
+    if source_root_note_id:
+        where.append("source_root_note_id=?")
+        params.append(source_root_note_id)
     rows = _db.fetchall(
-        "SELECT * FROM tracked_notes WHERE user_id=? ORDER BY submitted_at DESC",
-        (user["id"],))
+        f"SELECT * FROM tracked_notes WHERE {' AND '.join(where)} ORDER BY submitted_at DESC",
+        tuple(params),
+    )
     return {"notes": [dict(r) for r in rows]}
 
 @app.get("/notes/tracking/{track_id}")
@@ -10516,6 +10655,7 @@ class ManualFillInput(BaseModel):
     saves:    int = 0
     comments: int = 0
     views:    Optional[int] = None  # 可选，用于浏览量
+    evidence_source: str = "manual"
 
 @app.post("/notes/tracking/{track_id}/fill")
 async def fill_tracking_data(
@@ -10528,32 +10668,59 @@ async def fill_tracking_data(
     if not row:
         raise HTTPException(status_code=404, detail="追踪记录不存在")
     now = _now_iso()
-    views_est = req.views or max(int(req.saves / 0.11), req.likes * 5, 100)
-    # 计算真实 CES 分位（简化版）
     domain = row["domain"] or "美食"
-    save_rate    = req.saves    / max(views_est, 1)
-    like_rate    = req.likes    / max(views_est, 1)
-    comment_rate = req.comments / max(views_est, 1)
-    # 基于行业均值粗算分位（后续接真实品类基准）
-    BENCHMARKS = {"save_rate": 0.08, "like_rate": 0.15, "comment_rate": 0.02}
-    def pct(val, bench): return min(100, round(val / max(bench, 0.001) * 50, 1))
-    actual_ces = round(
-        pct(save_rate,    BENCHMARKS["save_rate"])    * 0.40 +
-        pct(like_rate,    BENCHMARKS["like_rate"])    * 0.30 +
-        pct(comment_rate, BENCHMARKS["comment_rate"]) * 0.20 + 50 * 0.10,
-        1)
+    source_note_id = _tracking_row_value(row, "source_note_id")
+    score = _perf.score_performance(
+        domain=domain,
+        likes=req.likes,
+        saves=req.saves,
+        comments=req.comments,
+        views=req.views,
+        predicted_ces=_tracking_row_value(row, "predicted_ces"),
+        evidence_source=req.evidence_source or "manual",
+        window="7d",
+        likes_24h=_tracking_row_value(row, "likes_24h"),
+        saves_24h=_tracking_row_value(row, "saves_24h"),
+        comments_24h=_tracking_row_value(row, "comments_24h"),
+    )
     _db.execute(
         "UPDATE tracked_notes SET likes_7d=?,saves_7d=?,comments_7d=?,views_est=?,"
-        "actual_ces=?,check_7d_at=?,manual_filled=1,status='complete' WHERE id=?",
-        (req.likes, req.saves, req.comments, views_est, actual_ces, now, track_id)
+        "actual_ces=?,check_7d_at=?,last_checked_at=?,manual_filled=1,status='complete',"
+        "confidence=?,confidence_label=?,evidence_source=?,training_eligible=?,"
+        "insights_json=?,completed_at=?,last_error_code=NULL,last_error=NULL WHERE id=?",
+        (
+            req.likes, req.saves, req.comments, score.views_est,
+            score.actual_ces, now, now,
+            score.confidence, score.confidence_label, score.evidence_source,
+            1 if score.training_eligible else 0,
+            score.insights_json(), now, track_id,
+        ),
     )
     # 写入成长记录
     import uuid as _uuid2
     _db.execute(
-        "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,NULL,?,?,?,?,?)",
-        (str(_uuid2.uuid4()), user["id"], domain, actual_ces, _grade(actual_ces), "url_track", now)
+        "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
+        (str(_uuid2.uuid4()), user["id"], source_note_id, domain, score.actual_ces, score.grade, "url_track", now)
     )
-    return {"ok": True, "actual_ces": actual_ces, "message": f"真实 CES 分位：{actual_ces:.1f}"}
+    try:
+        title = row["note_title"] or "已发布笔记"
+        _memory.add_context(
+            user["id"],
+            f"真实表现追踪：{title[:24]}，7天实际{score.actual_ces:.1f}分，"
+            f"{score.confidence_label}置信度，强项{score.insights.get('strongest_signal')}，"
+            f"短板{score.insights.get('weakest_signal')}"
+        )
+    except Exception:
+        pass
+    return {
+        "ok": True,
+        "actual_ces": score.actual_ces,
+        "grade": score.grade,
+        "confidence": score.confidence,
+        "confidence_label": score.confidence_label,
+        "training_eligible": score.training_eligible,
+        "message": f"真实 CES 分位：{score.actual_ces:.1f}",
+    }
 
 @app.delete("/notes/tracking/{track_id}")
 async def delete_tracking(track_id: str, user: dict = Depends(_auth.get_current_user)):

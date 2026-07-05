@@ -8,6 +8,7 @@ import os
 import json
 import unicodedata
 from collections import Counter
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
@@ -120,6 +121,16 @@ def _conn():
     return c
 
 
+@contextmanager
+def _db_conn():
+    conn = _conn()
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
+
+
 def _hot_keywords_unique_columns(c: sqlite3.Connection) -> list[str]:
     try:
         for idx in c.execute("PRAGMA index_list(hot_keywords)").fetchall():
@@ -171,7 +182,7 @@ def _ensure_hot_keyword_quality_columns(c: sqlite3.Connection) -> None:
 
 
 def init_db():
-    with _conn() as c:
+    with _db_conn() as c:
         c.executescript(_INIT_SQL)
         _ensure_category_unique_schema(c)
         _ensure_hot_keyword_quality_columns(c)
@@ -183,7 +194,7 @@ def upsert_keywords(keywords: list[dict]):
     """Save a scrape batch. keywords: [{keyword, search_vol, trend_dir, source, count}]"""
     now = datetime.now().isoformat()
     today = datetime.now().strftime("%Y-%m-%d")
-    with _conn() as c:
+    with _db_conn() as c:
         for raw_kw in keywords:
             kw = clean_scraped_keyword_row(raw_kw)
             if not kw:
@@ -300,7 +311,7 @@ def import_keyword_snapshot(payload: dict | list, default_source: str = "cloud_s
         return {"imported": 0, "domains": []}
     imported = 0
     domains: set[str] = set()
-    with _conn() as c:
+    with _db_conn() as c:
         for raw_row in rows:
             raw_row = dict(raw_row)
             if default_source:
@@ -360,7 +371,7 @@ def import_keyword_snapshot(payload: dict | list, default_source: str = "cloud_s
 
 def export_keyword_snapshot(hours: int = FRESHNESS_MAX_HOURS) -> dict:
     since = (datetime.now() - timedelta(hours=hours)).isoformat()
-    with _conn() as c:
+    with _db_conn() as c:
         rows = c.execute(
             """
             SELECT keyword, search_vol, trend_dir, source, category,
@@ -525,7 +536,7 @@ def ensure_fresh_domain_keywords(domain: str, trigger_refresh: bool = True) -> d
 
 def compute_trend_dir(keyword: str) -> int:
     """1=rising 0=stable -1=falling. Based on last 4 snapshots."""
-    with _conn() as c:
+    with _db_conn() as c:
         rows = c.execute(
             "SELECT count FROM keyword_snapshots WHERE keyword=? ORDER BY captured_at DESC LIMIT 4",
             (keyword,),
@@ -543,7 +554,7 @@ def compute_trend_dir(keyword: str) -> int:
 def compute_trend_peak_distance(keyword: str) -> float:
     """Days from the keyword's peak snapshot to now. Negative = still rising (peak ahead).
     Returns 0.0 if fewer than 3 snapshots (insufficient history)."""
-    with _conn() as c:
+    with _db_conn() as c:
         rows = c.execute(
             "SELECT count, captured_at FROM keyword_snapshots WHERE keyword=? ORDER BY captured_at ASC",
             (keyword,),
@@ -990,7 +1001,7 @@ def get_top_keywords(
     """
     since = (datetime.now() - timedelta(hours=hours)).isoformat()
     category_where, category_params = _category_where(domain)
-    with _conn() as c:
+    with _db_conn() as c:
         rows = c.execute(
             f"""
             SELECT keyword,
@@ -1042,7 +1053,7 @@ def get_top_keywords(
 
 def db_status(domain: str | None = None) -> dict:
     category_where, category_params = _category_where(domain)
-    with _conn() as c:
+    with _db_conn() as c:
         total = c.execute("SELECT COUNT(*) FROM hot_keywords").fetchone()[0]
         latest = c.execute(
             "SELECT captured_at FROM hot_keywords ORDER BY captured_at DESC LIMIT 1"

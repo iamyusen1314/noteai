@@ -40,6 +40,13 @@ import db
 import admin_auth as _aauth
 import billing as _billing
 
+try:
+    import xhs_acquisition as _xhs_acq
+    _XHS_ACQ_AVAILABLE = True
+except Exception:
+    _xhs_acq = None
+    _XHS_ACQ_AVAILABLE = False
+
 # ── App ───────────────────────────────────────────────────────────────────
 admin_app = FastAPI(
     title="NoteAI Pro 后台管理",
@@ -400,7 +407,11 @@ async def admin_trigger_check(note_id: str, admin: dict = Depends(_aauth.get_adm
     note = db.fetchone("SELECT * FROM tracked_notes WHERE id=?", (note_id,))
     if not note:
         raise HTTPException(status_code=404, detail="追踪记录不存在")
-    db.execute("UPDATE tracked_notes SET status='checking_24h' WHERE id=?", (note_id,))
+    next_status = "checking_7d" if note["check_24h_at"] or note["status"] in ("checking_7d", "checking_24h", "complete") else "pending"
+    db.execute(
+        "UPDATE tracked_notes SET status=?,next_check_at=?,last_error_code=NULL,last_error=NULL WHERE id=?",
+        (next_status, datetime.now(timezone.utc).isoformat(), note_id),
+    )
     return {"ok": True, "message": "已加入采集队列"}
 
 
@@ -906,6 +917,29 @@ async def admin_crawler_logs(
         return {"logs": _crawler.get_crawler_logs(limit)}
     except Exception:
         return {"logs": []}
+
+
+@admin_app.get("/admin/xhs/freshness")
+async def admin_xhs_freshness(admin: dict = Depends(_aauth.get_admin_user)):
+    if not _XHS_ACQ_AVAILABLE or _xhs_acq is None:
+        raise HTTPException(status_code=503, detail="XHS acquisition ledger unavailable")
+    return _xhs_acq.freshness_probe()
+
+
+@admin_app.get("/admin/xhs/health")
+async def admin_xhs_health(
+    limit: int = 50,
+    domain: str = "",
+    adapter: str = "",
+    admin: dict = Depends(_aauth.get_admin_user),
+):
+    if not _XHS_ACQ_AVAILABLE or _xhs_acq is None:
+        raise HTTPException(status_code=503, detail="XHS acquisition ledger unavailable")
+    return {
+        "freshness": _xhs_acq.freshness_overview(),
+        "sidecar": _xhs_acq.sidecar_status(),
+        "health": _xhs_acq.recent_health(limit=limit, domain=domain, adapter=adapter),
+    }
 
 
 # ══════════════════════════════════════════════════════════════════════════

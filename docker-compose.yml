@@ -51,4 +51,18 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
+      - NOTEAI_XHS_FRESHNESS_REQUIRED=${NOTEAI_XHS_FRESHNESS_REQUIRED:-1}
+    restart: unless-stopped
+
+  noteai-tracking-worker:
+    build: .
+    command: ["python", "crawler_worker.py", "--loop", "--interval-minutes", "${NOTEAI_TRACKING_WORKER_INTERVAL_MINUTES:-60}", "--limit", "${NOTEAI_TRACKING_WORKER_LIMIT:-50}"]
+    volumes:
+      # 独立笔记真实表现 worker 读取 tracked_notes，到期后采集并写回共享 DB
+      - ./model/data:/app/model/data
+    env_file:
+      - ./model/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
     restart: unless-stopped

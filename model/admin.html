@@ -410,6 +410,42 @@ input,select,textarea{font-family:inherit}
         <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="runCrawlerNow()">▶ 立即采集</button>
       </div>
     </div>
+    <div class="card-grid card-grid-4" style="margin-bottom:20px">
+      <div class="stat-card">
+        <div class="stat-label">XHS 新鲜证据</div>
+        <div class="stat-val" id="xhs-fresh-ok">–</div>
+        <div class="stat-sub" id="xhs-fresh-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">缺失行业</div>
+        <div class="stat-val" id="xhs-missing-count">–</div>
+        <div class="stat-sub" id="xhs-missing-domains"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">每日截止</div>
+        <div class="stat-val" id="xhs-deadline">–</div>
+        <div class="stat-sub" id="xhs-deadline-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sidecar</div>
+        <div class="stat-val" id="xhs-sidecar">–</div>
+        <div class="stat-sub" id="xhs-sidecar-sub"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">XHS 行业证据账本</div>
+      <table class="data-table">
+        <thead><tr><th>行业</th><th>状态</th><th>证据数</th><th>有效至</th><th>原因</th></tr></thead>
+        <tbody id="xhs-fresh-table"><tr><td colspan="5" style="color:var(--text-muted)">加载中...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">XHS Health 最近记录</div>
+      <table class="data-table">
+        <thead><tr><th>时间</th><th>Adapter</th><th>行业</th><th>状态</th><th>证据</th><th>错误</th></tr></thead>
+        <tbody id="xhs-health-table"><tr><td colspan="6" style="color:var(--text-muted)">加载中...</td></tr></tbody>
+      </table>
+    </div>
     <div class="card">
       <div class="section-title">采集日志（最近50条）</div>
       <div id="crawler-logs" style="max-height:300px;overflow-y:auto"></div>
@@ -870,10 +906,57 @@ async function loadCrawler() {
   document.getElementById('cw-status').innerHTML = `<span class="dot ${d.enabled?'dot-green':'dot-red'}"></span>${d.enabled?'运行中':'已停止'}`;
   document.getElementById('cw-cookie').innerHTML = `<span class="dot ${d.cookie_file_exists?'dot-green':'dot-red'}"></span>${d.cookie_file_exists?`有效（${d.cookie_count}条）`:'未配置'}`;
   document.getElementById('cw-total').textContent = (d.total_collected||0).toLocaleString() + ' 条';
+  await loadXhsHealth();
   const logsR = await aFetch('/admin/crawler/logs?limit=30');
   const logs  = await logsR.json();
   document.getElementById('crawler-logs').innerHTML = (logs.logs||[]).reverse().map(l=>`
     <div class="log-line">${JSON.stringify(l).slice(0,120)}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px;padding:8px">暂无日志</div>';
+}
+
+function _fmtShortTime(value) {
+  if (!value) return '–';
+  try {
+    return new Date(value).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  } catch(e) { return String(value).slice(0,16); }
+}
+
+async function loadXhsHealth() {
+  try {
+    const freshR = await aFetch('/admin/xhs/freshness');
+    const fresh = await freshR.json();
+    const healthR = await aFetch('/admin/xhs/health?limit=12');
+    const health = await healthR.json();
+    const missing = fresh.missing_domains || [];
+    document.getElementById('xhs-fresh-ok').innerHTML = `<span class="dot ${fresh.ok?'dot-green':'dot-red'}"></span>${fresh.ok?'达标':'缺失'}`;
+    document.getElementById('xhs-fresh-sub').textContent = fresh.required ? '生产硬门槛已开启' : '硬门槛未开启';
+    document.getElementById('xhs-missing-count').textContent = missing.length;
+    document.getElementById('xhs-missing-domains').textContent = missing.join('、') || '全部行业已满足';
+    document.getElementById('xhs-deadline').textContent = _fmtShortTime(fresh.deadline);
+    document.getElementById('xhs-deadline-sub').textContent = fresh.deadline_missed ? '已错过截止' : (fresh.deadline_passed ? '今日截止已过' : '截止前可补采');
+    document.getElementById('xhs-sidecar').innerHTML = `<span class="dot ${health.sidecar && health.sidecar.configured?'dot-green':'dot-red'}"></span>${health.sidecar && health.sidecar.configured?'已配置':'未配置'}`;
+    document.getElementById('xhs-sidecar-sub').textContent = health.sidecar && health.sidecar.host ? health.sidecar.host : 'NOTEAI_XHS_DOWNLOADER_URL';
+    document.getElementById('xhs-fresh-table').innerHTML = (fresh.domains || []).map(row => `
+      <tr>
+        <td>${row.domain || '–'}</td>
+        <td><span class="badge ${row.ok?'badge-success':'badge-error'}">${row.ok?'fresh':(row.status || 'missing')}</span></td>
+        <td>${row.evidence_count || 0} / ${row.minimum || 0}</td>
+        <td>${_fmtShortTime(row.fresh_until)}</td>
+        <td style="color:var(--text-muted)">${row.reason || '–'}</td>
+      </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-muted)">暂无账本记录</td></tr>';
+    document.getElementById('xhs-health-table').innerHTML = (health.health || []).map(row => `
+      <tr>
+        <td>${_fmtShortTime(row.checked_at)}</td>
+        <td>${row.adapter || '–'}</td>
+        <td>${row.domain || '–'}</td>
+        <td><span class="badge ${row.status === 'ok' ? 'badge-success' : row.status === 'insufficient' ? 'badge-warning' : 'badge-error'}">${row.status || '–'}</span></td>
+        <td>${row.evidence_count || 0}</td>
+        <td style="color:var(--text-muted)">${row.error_code || row.error_summary || '–'}</td>
+      </tr>`).join('') || '<tr><td colspan="6" style="color:var(--text-muted)">暂无 health 记录</td></tr>';
+  } catch(e) {
+    document.getElementById('xhs-fresh-ok').innerHTML = '<span class="dot dot-red"></span>不可用';
+    document.getElementById('xhs-fresh-table').innerHTML = '<tr><td colspan="5" style="color:var(--error)">XHS health API 不可用</td></tr>';
+    document.getElementById('xhs-health-table').innerHTML = '<tr><td colspan="6" style="color:var(--error)">XHS health API 不可用</td></tr>';
+  }
 }
 
 async function toggleCrawler(enable) {

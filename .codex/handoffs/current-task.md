@@ -2,6 +2,1069 @@
 
 Last updated: 2026-07-05
 
+## 2026-07-05 Execution Update - XHS Sidecar Contract and Admin Visibility
+
+### 本轮完成了什么
+
+- Completed the next stage of the XHS high-availability evidence plan.
+- Expanded the XHS-Downloader sidecar adapter contract with detail-path configuration and tolerant payload normalization.
+- Added normalized sidecar detail extraction for note id, title, body, likes, saves, comments, and shares.
+- Changed sidecar health recording so a sidecar response only counts as valid evidence when it contains content or metrics.
+- Added Admin UI cards and tables for XHS freshness, missing domains, daily deadline, sidecar configured state, per-domain ledger, and recent health records.
+- Added mocked sidecar success/failure tests; no real sidecar or external URL was called.
+- Did not install XHS-Downloader, did not run real crawler/worker, did not access Xiaohongshu, did not call live AI, and did not deploy.
+
+### 修改了哪些文件
+
+- `model/xhs_acquisition.py`
+- `model/admin.html`
+- `model/.env.example`
+- `tests/test_xhs_acquisition.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `model/xhs_acquisition.py`: Added `normalize_sidecar_detail()`, tolerant note payload traversal, count parsing including `万`, configurable `NOTEAI_XHS_DOWNLOADER_DETAIL_PATH`, and stricter sidecar evidence validity.
+- `model/admin.html`: Added crawler page UI for XHS freshness and health monitoring using the existing admin endpoints.
+- `model/.env.example`: Added `NOTEAI_XHS_DOWNLOADER_DETAIL_PATH=/xhs/detail`.
+- `tests/test_xhs_acquisition.py`: Added mocked HTTP tests for sidecar success normalization and login/risk failure recording.
+- `.codex/handoffs/current-task.md`: Recorded this stage per workflow.
+
+### 关键决策
+
+- The adapter does not assume one fixed XHS-Downloader response shape; it accepts common `data`, `note`, `item`, `detail`, `result`, and list wrappers.
+- Sidecar calls remain opt-in behind `NOTEAI_XHS_DOWNLOADER_URL`; if not configured, no network call is made.
+- Admin UI shows sidecar host/scheme only; it does not show cookies, headers, tokens, raw `.env`, or secret values.
+- Empty sidecar success payloads are treated as failed health, not valid evidence.
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m py_compile model/xhs_acquisition.py model/admin_server.py model/api.py model/xhs_health_probe.py`
+- `.venv/bin/python -m unittest tests.test_xhs_acquisition`
+- `.venv/bin/python -m unittest tests.test_api_contracts tests.test_frontend_report_static`
+- `docker compose config --quiet`
+- `rg -n "xhs-fresh|xhs-health|loadXhsHealth|admin/xhs|market-timing/freshness|normalize_sidecar|XHSDownloader" ...`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `git diff --check`
+- `git status --short`
+- `git diff --stat`
+
+### 每个命令的结果
+
+- `py_compile`: passed.
+- `tests.test_xhs_acquisition`: passed, 9 tests.
+- `tests.test_api_contracts tests.test_frontend_report_static`: passed, 140 tests.
+- `docker compose config --quiet`: passed.
+- `rg` confirmed new sidecar/admin/API symbols are present in expected files.
+- Full unittest discover: passed, 246 tests.
+- `git diff --check`: passed.
+- Full unittest still prints existing mocked-path API contract logs, including captured Moonshot network/model-router messages; suite result is `OK`.
+
+### 当前仍然失败的问题
+
+- No real sidecar binary/service is installed or configured yet.
+- The Admin UI has not been browser-render-smoked in this stage.
+- No live sidecar/XHS URL smoke has been performed after adding the adapter contract.
+
+### 当前未完成工作
+
+- Decide whether to install/deploy XHS-Downloader as a sidecar.
+- If approved, configure `NOTEAI_XHS_DOWNLOADER_URL` and run one controlled single-URL sidecar smoke.
+- Add rendered Admin UI smoke for the new XHS cards.
+- Add deadline alert delivery path.
+
+### 当前最高风险
+
+- Sidecar integration is contract-ready but not production-proven until a real service is installed, pinned, and tested.
+- Upstream sidecar response shape may differ; normalization is tolerant but must be checked against the real configured version.
+- Operational/compliance risk remains: do not add CAPTCHA bypass, account automation, aggressive proxy pools, or high-frequency retries.
+
+### 下一步最小可行计划
+
+1. Run a rendered Admin UI smoke for the new crawler/XHS cards using mocked API responses or local admin server.
+2. Prepare sidecar install/deploy options and exact scope for user confirmation.
+3. If confirmed, install/configure XHS-Downloader sidecar and run a single live smoke with a Live Crawler Run Plan.
+
+### 不能在未经确认的情况下修改
+
+- Real `.env`, XHS Cookies, production sessions, account automation, external sidecar deployment.
+- CAPTCHA solving, proxy pools, aggressive retry/risk-control evasion.
+- Production DB, production worker deployment, payment/email/SMS, live AI batch calls.
+
+## 2026-07-05 Execution Update - XHS Health Read APIs and Probe
+
+### 本轮完成了什么
+
+- Added read/query APIs for the XHS freshness and crawler health ledger.
+- Added an authenticated user API endpoint for market timing freshness status.
+- Added admin-only endpoints for detailed XHS freshness and health diagnostics.
+- Added a local CLI probe for cron/monitoring to detect missing XHS evidence before the daily deadline.
+- Added sidecar fetch wrapper behavior that records health when `NOTEAI_XHS_DOWNLOADER_URL` is configured or missing; tests cover the not-configured path without network access.
+- Did not run real crawler/worker, did not access Xiaohongshu, did not call live AI, did not install/deploy an external sidecar, and did not write production DB.
+
+### 修改了哪些文件
+
+- `model/xhs_acquisition.py`
+- `model/xhs_health_probe.py`
+- `model/admin_server.py`
+- `model/api.py`
+- `model/.env.example`
+- `tests/test_xhs_acquisition.py`
+- `tests/test_api_contracts.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `model/xhs_acquisition.py`: Added `recent_health()`, `freshness_probe()`, sidecar status redaction, and `fetch_detail_with_sidecar()` that records health without exposing secrets.
+- `model/xhs_health_probe.py`: New CLI for cron/monitoring; exits `0` when freshness is satisfied and `2` when any required domain is missing.
+- `model/admin_server.py`: Added `/admin/xhs/freshness` and `/admin/xhs/health` with admin auth.
+- `model/api.py`: Added authenticated `/market-timing/freshness` endpoint for user/API smoke visibility without exposing internal crawler rows.
+- `model/.env.example`: Added `NOTEAI_XHS_FRESHNESS_DEADLINE_HOUR` and `NOTEAI_XHS_FRESHNESS_DEADLINE_MINUTE`.
+- `tests/test_xhs_acquisition.py`: Added coverage for recent health, CLI probe, admin handlers, and sidecar-not-configured health recording.
+- `tests/test_api_contracts.py`: Added anonymous access guard coverage for `/market-timing/freshness`.
+- `.codex/handoffs/current-task.md`: Recorded this stage per workflow.
+
+### 关键决策
+
+- User-facing API only exposes aggregate freshness status; detailed crawler health remains admin-only.
+- Sidecar URL status only returns scheme/host/configured state, not secrets, cookies, headers, or raw environment values.
+- The CLI probe is read-only except for idempotent ledger table initialization through `hot_keywords.db`.
+- External XHS-Downloader/MediaCrawler installation and live sidecar calls remain blocked until separately confirmed.
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m py_compile model/xhs_acquisition.py model/xhs_health_probe.py model/admin_server.py model/api.py`
+- `.venv/bin/python -m unittest tests.test_xhs_acquisition`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `.venv/bin/python -m unittest tests.test_xhs_acquisition tests.test_api_contracts`
+- `docker compose config --quiet`
+- `git diff --check`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `git status --short`
+- `git diff --stat`
+
+### 每个命令的结果
+
+- `py_compile`: passed.
+- `tests.test_xhs_acquisition`: passed, 7 tests.
+- `tests.test_api_contracts`: passed, 131 tests.
+- Combined XHS/API contract run: passed, 138 tests.
+- `docker compose config --quiet`: passed.
+- `git diff --check`: passed.
+- Full unittest discover: passed, 244 tests.
+- Full unittest still prints existing mocked-path logs from API contract tests, including a captured Moonshot network error and model-router retry log; suite result is `OK`.
+
+### 当前仍然失败的问题
+
+- No real external sidecar is installed or exercised yet.
+- No real cloud worker acquisition SLA has been proven yet.
+- The system can now see and fail on missing XHS freshness, but secondary/tertiary acquisition still needs implementation and real smoke.
+
+### 当前未完成工作
+
+- Connect a real secondary sidecar behind `NOTEAI_XHS_DOWNLOADER_URL`.
+- Add operator/admin UI rendering for the new admin XHS endpoints.
+- Add deadline alert delivery path.
+- Run one controlled sidecar smoke after a Live Crawler Run Plan.
+
+### 当前最高风险
+
+- Operational risk remains acquisition, not observability: the ledger/probe tells us what is missing, but a configured sidecar/fallback must still obtain the evidence.
+- External dependency risk: sidecar contract must be pinned and validated before cloud deployment.
+- Compliance risk: do not add CAPTCHA bypass, account automation, aggressive proxies, or high-frequency retries.
+
+### 下一步最小可行计划
+
+1. Add the real sidecar adapter contract tests with mocked HTTP success/failure payloads.
+2. Add admin UI cards for freshness, missing domains, last run, and sidecar configured state.
+3. If user confirms sidecar installation/deployment scope, install/configure XHS-Downloader separately.
+4. Then run one single-URL sidecar live smoke with a Live Crawler Run Plan.
+
+### 不能在未经确认的情况下修改
+
+- Real `.env`, XHS Cookies, production sessions, account automation, or external sidecar deployment.
+- CAPTCHA solving, proxy pools, aggressive retry/risk-control evasion.
+- Production DB, production worker deployment, payment/email/SMS, live AI batch calls.
+
+## 2026-07-05 Execution Update - XHS Freshness Ledger Hard Gate
+
+### 本轮完成了什么
+
+- Implemented the first execution stage of the final XHS evidence plan.
+- Added an XHS acquisition health and freshness ledger layer.
+- Connected `market_timing_worker.py` to record real XHS freshness by domain after each scrape.
+- Added a production hard gate: when `NOTEAI_XHS_FRESHNESS_REQUIRED=1`, the market timing worker raises `XHS_FRESH_EVIDENCE_UNAVAILABLE` if any core industry lacks real XHS fresh evidence.
+- Kept baseline evidence available for local/demo readability, but prevented baseline rows from satisfying the real XHS freshness ledger.
+- Added a configurable `XHSDownloaderSidecar` adapter shell for a separately managed XHS-Downloader API service; it is not called unless configured.
+- Tightened `hot_keywords.py` sqlite connection handling to avoid unclosed connection warnings as the evidence DB is used more often.
+- Did not run real crawler/worker, did not access Xiaohongshu, did not call live AI, did not deploy, and did not write production DB.
+
+### 修改了哪些文件
+
+- `model/xhs_acquisition.py`
+- `model/market_timing_worker.py`
+- `model/hot_keywords.py`
+- `model/.env.example`
+- `docker-compose.yml`
+- `tests/test_xhs_acquisition.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `model/xhs_acquisition.py`: New health/freshness ledger module. It creates `xhs_crawler_health` and `xhs_freshness_ledger`, records real XHS evidence by industry, exposes freshness overview/status, and includes a dormant XHS-Downloader sidecar adapter interface.
+- `model/market_timing_worker.py`: Records XHS freshness after `scrape_once()` and enforces the production hard gate before generating/exporting a snapshot when required.
+- `model/hot_keywords.py`: Added `_db_conn()` so SQLite connections close explicitly across the market timing evidence DB helpers.
+- `model/.env.example`: Added `NOTEAI_XHS_FRESHNESS_REQUIRED`, `NOTEAI_XHS_DOWNLOADER_URL`, and `NOTEAI_XHS_DOWNLOADER_TIMEOUT` examples.
+- `docker-compose.yml`: Sets `NOTEAI_XHS_FRESHNESS_REQUIRED=${NOTEAI_XHS_FRESHNESS_REQUIRED:-1}` for `noteai-trends-worker`, so production-like worker runs fail loudly if real XHS evidence is missing.
+- `tests/test_xhs_acquisition.py`: Added coverage that baseline rows do not satisfy real XHS freshness, real XHS-like scrape rows do satisfy it, and the worker hard gate blocks baseline-only snapshots.
+- `.codex/handoffs/current-task.md`: Records this stage per project workflow.
+
+### 关键决策
+
+- Real XHS freshness is now separate from market timing baseline evidence.
+- `industry_baseline` can keep local demos and fallback snapshots readable, but it cannot satisfy `xhs_freshness_ledger`.
+- The production worker gate happens before snapshot export, so a baseline-only worker run cannot produce a snapshot that appears to satisfy the user's "daily fresh XHS evidence" requirement.
+- The XHS-Downloader integration is added as an adapter shell only; installing/running an external sidecar remains a separate confirmed step.
+- Did not implement CAPTCHA bypass, proxy rotation, or aggressive retry behavior.
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m py_compile model/xhs_acquisition.py model/market_timing_worker.py`
+- `.venv/bin/python -m unittest tests.test_xhs_acquisition`
+- `docker compose config --quiet`
+- `.venv/bin/python -m unittest tests.test_market_timing_keyword_quality`
+- `.venv/bin/python -m unittest tests.test_tracking_performance`
+- `.venv/bin/python -m py_compile model/hot_keywords.py model/xhs_acquisition.py model/market_timing_worker.py`
+- `.venv/bin/python -m unittest tests.test_xhs_acquisition tests.test_market_timing_keyword_quality`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `git diff --check`
+- `git status --short`
+
+### 每个命令的结果
+
+- `py_compile` checks: passed.
+- `tests.test_xhs_acquisition`: passed, 4 tests.
+- `docker compose config --quiet`: passed.
+- `tests.test_market_timing_keyword_quality`: passed, 10 tests.
+- `tests.test_tracking_performance`: passed, 4 tests.
+- Combined XHS + market timing tests: passed, 14 tests.
+- Full unittest discover: passed, 240 tests.
+- `git diff --check`: passed.
+- Full unittest still prints captured mock-path logs from existing API contract tests, including a Moonshot network error message caught by the test harness; the suite result is `OK`.
+
+### 当前仍然失败的问题
+
+- This stage does not yet install or run XHS-Downloader, MediaCrawler, or any external sidecar.
+- This stage does not yet prove a real cloud worker can acquire every core industry daily from Xiaohongshu.
+- If `NOTEAI_XHS_FRESHNESS_REQUIRED=1` and the real scrape path returns insufficient XHS evidence, the worker now fails loudly instead of silently exporting a baseline-only snapshot.
+
+### 当前未完成工作
+
+- Implement the real secondary adapter call flow against a vetted XHS-Downloader sidecar after confirming install/deploy scope.
+- Add an operator/admin view for `xhs_crawler_health` and `xhs_freshness_ledger`.
+- Add deadline-based alerting before the daily evidence window closes.
+- Run a controlled real worker smoke with low limits only after a Live Crawler Run Plan.
+
+### 当前最高风险
+
+- Operational SLA risk: the hard gate prevents fake success, but it does not by itself guarantee acquisition. The sidecar/fallback operations layer is still required.
+- External dependency risk: XHS-Downloader/MediaCrawler sidecar choices need version pinning, deployment ownership, and maintenance review.
+- Compliance risk: do not add CAPTCHA bypass, account abuse automation, or aggressive anti-risk behavior without explicit legal/product review.
+
+### 下一步最小可行计划
+
+1. Add admin/API read endpoints for XHS freshness and crawler health.
+2. Add a command-line health probe that reports missing domains before deadline.
+3. Integrate a sidecar adapter behind `NOTEAI_XHS_DOWNLOADER_URL`, with tests mocked locally.
+4. Only after that, run one controlled sidecar smoke against a single public test URL.
+
+### 不能在未经确认的情况下修改
+
+- Real `.env` secrets, XHS Cookies, production sessions, or account automation.
+- External sidecar installation/deployment.
+- CAPTCHA solving, proxy pools, or aggressive retry/risk-control evasion.
+- Production DB, production worker deployment, payment/email/SMS, or live AI batch calls.
+
+## 2026-07-05 Note - XHS Crawler Feasibility and Stability Requirement
+
+### 本轮完成了什么
+
+- Clarified the production feasibility conclusion after user asked whether it was recorded.
+- Recorded that the cloud-deployable infrastructure route is feasible, but stable daily Xiaohongshu evidence acquisition is not guaranteed by the current direct Cookie + selector crawler alone.
+- Checked GitHub ecosystem patterns for Xiaohongshu/RedNote crawlers and recorded implementation implications.
+
+### 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: Explicitly records the feasibility conclusion, GitHub research direction, and the user's hard requirement that daily fresh XHS evidence must not be treated as optional.
+
+### 关键决策
+
+- The route `Chromium + independent worker + daily schedule + shared DB/snapshot` is considered cloud-deployable infrastructure.
+- This is not the same as a guaranteed data-acquisition SLA.
+- GitHub projects broadly converge on the same core mechanisms: Playwright or browser-context automation, QR/Cookie login, persistent login state, optional API/server mode, short-link/detail extraction, and health/refresh handling.
+- Without an official/authorized data source, no open-source GitHub approach can honestly guarantee 100% daily success against Xiaohongshu because login state, route handling, selectors, short-link resolution, and risk-control pages can change outside our control.
+- The user's product requirement is stricter than the current implementation: "daily fresh XHS evidence must not fail." This requires a redundancy design, not just selector patching.
+
+### GitHub evidence reviewed
+
+- `JoeanAmier/XHS-Downloader`: supports XHS detail extraction, short links, Cookie/proxy parameters, API/MCP/server modes, Docker usage, and documents Cookie impact.
+- `NanmiCoder/MediaCrawler`: uses Playwright/CDP/browser login patterns, QR login, search/detail crawling, and browser context reuse.
+- `yangsijie666/xiaohongshu-crawler`: uses Playwright automation with stealth/browserforge-style browser hardening and MCP-style tool exposure.
+- `DeliciousBuding/xiaohongshu-skill`: uses Python + Playwright and extracts structured data from page state.
+- `wanghaisheng/MediaCrawlerDP`: uses Playwright as a bridge and preserves logged-in browser context to avoid reimplementing signing logic.
+
+### 当前仍然失败的问题
+
+- Current in-repo crawler cannot guarantee daily fresh Xiaohongshu evidence acquisition.
+- A single Cookie + selector path can pass profile health but still fail note-detail access.
+- Short links can land on app/intermediate/login/risk-control pages.
+
+### 当前未完成工作
+
+- Design and implement a redundant XHS acquisition layer:
+  - primary direct detail extractor,
+  - maintained external extractor adapter or sidecar,
+  - persistent browser-context refresh,
+  - canonical URL resolver,
+  - note-page health probe,
+  - selector/schema drift detector,
+  - per-industry daily freshness ledger,
+  - alerting and operator action before freshness deadline.
+
+### 当前最高风险
+
+- Product promise risk: "must not fail" cannot be guaranteed by scraping alone without redundancy and operational maintenance.
+- Compliance/operational risk: do not implement CAPTCHA bypass, account-abuse automation, or aggressive retry/anti-risk evasion.
+
+### 下一步最小可行计划
+
+1. Add a crawler health model that distinguishes profile login, note page access, selector extraction, short-link canonicalization, and risk-control detection.
+2. Add an adapter interface so NoteAI can try the internal crawler first and a vetted open-source extractor/sidecar second.
+3. Add daily freshness ledger and deadline-based alerts so the system knows before the user-facing daily evidence window is missed.
+4. Run a single test-owned local DB smoke only after explicit user confirmation.
+
+### 不能在未经确认的情况下修改
+
+- CAPTCHA solving, risk-control bypass, aggressive proxy rotation, or account automation that could violate platform rules.
+- Production Cookie/session handling.
+- Production DB, deploy, scheduler setup, or external crawler sidecar installation.
+
+## 2026-07-05 Execution Update - Chromium Install and Real XHS Crawler Validation
+
+### 本轮完成了什么
+
+- Installed the Python Playwright Chromium revision requested by `model/crawler.py`.
+- Confirmed the default Python Playwright crawler runtime can now launch Chromium.
+- Ran controlled live crawler checks against Xiaohongshu without printing Cookie values.
+- Confirmed Cookie/profile check succeeds with the mobile profile context.
+- Diagnosed that the user-provided short link can land in different states:
+  - mobile note context lands on an app/intermediate page and does not expose note selectors.
+  - desktop note context can expose note selectors and did successfully extract title presence plus public interaction fields once.
+  - repeated accesses later landed on `/login`, showing Cookie/short-link/risk-control instability.
+- Updated crawler context handling:
+  - note extraction now defaults to desktop UA/viewport, with environment-variable overrides for cloud deployment.
+  - profile Cookie check remains on mobile UA/viewport to avoid false invalidation.
+  - short-link extraction now attempts to follow a real note link from an intermediate page when available.
+- Stopped further live crawler retries after seeing `/login` to avoid increasing risk against the provided short link/Cookie.
+
+### 修改了哪些文件
+
+- `model/crawler.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `model/crawler.py`: Added separate browser contexts for note extraction and profile Cookie checks; added environment-variable overrides; added note-container/link helpers for short-link handling.
+- `.codex/handoffs/current-task.md`: Recorded the live crawler evidence, commands, results, remaining failures, and next plan.
+
+### 关键决策
+
+- Did not keep using mobile UA for note extraction because real short-link testing showed it lands on an app/intermediate page without note selectors.
+- Did not switch Cookie/profile validation fully to desktop because desktop profile check returned false even when mobile profile check succeeded.
+- Kept live crawler attempts small and sequential; did not run batch worker, did not mark existing user records due, and did not write production data.
+- Treated the desktop extraction success as proof of partial feasibility, not as proof of stable production readiness.
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m playwright install chromium`
+- `cd model && ../.venv/bin/python crawler.py check-cookie`
+- Several controlled one-off Playwright scripts against the user-provided short link:
+  - mobile/default extraction attempt,
+  - short-link diagnostic,
+  - desktop UA selector diagnostic,
+  - desktop UA extraction confirmation,
+  - post-fix extraction check.
+- `cd model && ../.venv/bin/python - <<'PY' ... crawler_log tail summary ... PY`
+- `.venv/bin/python -m py_compile model/crawler.py tools/live_ai_smoke.py`
+- `.venv/bin/python -m unittest tests.test_tracking_performance`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `docker compose config --quiet`
+- `git diff --check`
+- `git status --short`
+
+### 每个命令的结果
+
+- Chromium install:
+  - downloaded Playwright Chromium build `v1194`.
+  - downloaded Playwright Chromium Headless Shell build `v1194`.
+- `crawler.py check-cookie`:
+  - before install: previously failed because expected browser revision was missing.
+  - after install and mobile profile context: `Cookie valid: True`.
+  - after temporarily testing desktop profile context: `Cookie valid: False`, so profile check was split back to mobile context.
+- User short-link live extraction:
+  - first mobile/default attempt: `extracted: false`, final host `oia.xiaohongshu.com`.
+  - mobile diagnostic: final host `www.xiaohongshu.com`, no note selectors, app/open-page signals present.
+  - desktop diagnostic: final host `www.xiaohongshu.com`, note-like path, note container/title/interaction selector candidates present.
+  - desktop extraction confirmation: `extracted: true`, title present, metric fields present, no DB writes.
+  - later post-fix extraction: `extracted: false`, final host `www.xiaohongshu.com`, non-note path.
+  - final diagnostic: final path `/login`, no note-link candidates, login/verification/open-app signals present.
+- `py_compile`: passed.
+- `tests.test_tracking_performance`: passed, 4 tests.
+- `tests.test_api_contracts`: passed, 130 tests; one captured Moonshot network error was printed by test code but did not fail the suite.
+- full unittest discover: passed, 236 tests; same captured Moonshot network log appeared.
+- `docker compose config --quiet`: passed.
+- `git diff --check`: passed.
+
+### 当前仍然失败的问题
+
+- The provided `xhslink.com` short link is not stable enough to treat as a production-ready crawler proof:
+  - it can expose a note page under desktop context,
+  - but repeated controlled accesses can also land on `/login` or app/intermediate pages.
+- Existing Cookie validity check can prove one profile route works, but does not guarantee desktop note-page extraction remains available.
+- The crawler still depends on Xiaohongshu Web DOM selectors and Cookie health; selector changes or risk-control routing can break daily automation.
+
+### 当前未完成工作
+
+- Add a safer production health model for crawler:
+  - distinguish `cookie_profile_valid`, `note_page_access_valid`, `selector_valid`, and `risk_control_detected`.
+- Add admin/operator guidance for uploading a desktop Web Cookie when note extraction lands on `/login`.
+- Add optional manual fallback/URL canonicalization flow when short links cannot be resolved.
+- Decide whether to run a DB-backed single local tracking-row crawler smoke; this would write local SQLite and should only use a clearly test-owned row.
+
+### 当前最高风险
+
+- Crawler reliability risk: real Xiaohongshu scraping is externally brittle without official API access.
+- Cookie risk: a Cookie can be valid for one route/UA and invalid for another; cloud deployment needs ongoing Cookie health checks.
+- Data quality risk: public interaction numbers can be extracted, but selector ambiguity and login/intermediate pages must be detected before using the data for training.
+- Compliance/operational risk: do not implement CAPTCHA bypass or aggressive anti-risk behavior; keep rate limits, manual fallback, and transparent failure states.
+
+### 下一步最小可行计划
+
+1. Keep the new desktop note extraction context and mobile profile check split.
+2. Add explicit crawler health fields/status for profile-valid vs note-access-valid vs selector-valid.
+3. Add a single test-owned DB tracking-row smoke only after user confirms the local DB write scope.
+4. Keep worker schedule conservative and daily; on failure, move records to `needs_manual` instead of retrying aggressively.
+
+### 不能在未经确认的情况下修改
+
+- Production Cookie/session handling or automated login.
+- CAPTCHA solving, anti-risk bypass, or aggressive crawler retry behavior.
+- Existing user-owned tracking records.
+- Production DB, production deployment, payment/email/SMS.
+- Billing/quota/payment logic.
+
+## 2026-07-05 Execution Update - Capped Live AI Smoke Tool
+
+### 本轮完成了什么
+
+- Added a dedicated capped live AI smoke tool that bypasses the full `/generate` business pipeline.
+- Verified the tool with one real Claude call using a synthetic prompt.
+- Confirmed this smoke path made exactly one provider call, printed only a sanitized JSON summary, and did not write the application database.
+
+### 修改了哪些文件
+
+- `tools/live_ai_smoke.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `tools/live_ai_smoke.py`: Provides a controlled one-call live AI validation path with no retries, small `max_tokens`, no business DB writes, and no model-content output.
+- `.codex/handoffs/current-task.md`: Records the stage completion, commands, results, remaining risks, and next step.
+
+### 关键决策
+
+- Did not reuse `/generate/stream` for smoke because the previous test triggered 23 model calls.
+- Did not use `model_router.call()` because it can retry/fallback and records billing usage; the smoke tool calls the provider directly to keep call count and side effects controlled.
+- Defaulted to Claude Haiku for the first controlled smoke because it was already observed working in the local provider usage metadata.
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m py_compile tools/live_ai_smoke.py`
+- `.venv/bin/python tools/live_ai_smoke.py --provider claude --max-tokens 64 --timeout 45`
+
+### 每个命令的结果
+
+- `py_compile`: passed.
+- Live AI smoke:
+  - provider: Claude.
+  - model: `claude-haiku-4-5-20251001`.
+  - actual external provider calls: 1.
+  - success: true.
+  - input tokens: 35.
+  - output tokens: 10.
+  - content printed: false.
+  - business DB writes: false.
+
+### 当前仍然失败的问题
+
+- The full `/generate/stream` product path remains too expensive for casual live smoke because it can fan out into many model calls.
+
+### 当前未完成工作
+
+- Install the Python Playwright Chromium revision approved by the user.
+- Run one real Xiaohongshu crawler validation against the user-provided short link.
+- Run final safety checks and summarize crawler feasibility.
+
+### 当前最高风险
+
+- Product-level live AI validation still needs a dedicated capped mode or an explicit call budget before using `/generate/stream` again.
+
+### 下一步最小可行计划
+
+1. Install the Python Playwright Chromium runtime requested by `model/crawler.py`.
+2. Run `crawler.py check-cookie` once.
+3. Run one direct extraction against the user-provided `xhslink.com` URL without writing production data.
+
+### 不能在未经确认的情况下修改
+
+- Billing, payment, quota, or provider routing logic.
+- Full `/generate/stream` fan-out behavior.
+- Production environment configuration or secrets.
+- Production DB, deploy, email, SMS, or payment flows.
+
+## 2026-07-05 Execution Update - Controlled Live AI and XHS Crawler Smoke
+
+### 本轮完成了什么
+
+- Ran a user-approved controlled live smoke covering local production-style services, real AI provider usage, and real Xiaohongshu access.
+- Confirmed local services were already running:
+  - API `127.0.0.1:8000`
+  - admin `127.0.0.1:8001`
+  - frontend `127.0.0.1:5173`
+- Confirmed `/health` reports `ok` and model label `v0.4-composite`.
+- Confirmed `.env` has AI provider keys present without printing values.
+- Confirmed `model/data/xhs_cookies.json` exists and is non-empty without printing Cookie values.
+- Ran one real `/generate/stream` request with a synthetic, non-user brief.
+- Interrupted the client after the single AI request exceeded the acceptable small-smoke wait time.
+- Checked local usage summary after the AI request and confirmed provider models observed through local usage/log metadata.
+- Ran real Xiaohongshu cookie/profile access using Playwright with existing browser cache, without installing dependencies.
+- Ran `crawler.run_collection_round(limit=1)`.
+- Ran a controlled crawler note-page access with a synthetic non-user Xiaohongshu note URL to verify the page-access/extraction function starts.
+- Did not deploy, did not run payment/email/SMS, did not output env/secrets/tokens/Cookies, and did not run batch/parallel crawler or AI requests.
+
+### 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: Recorded the live smoke plan, commands, results, failures, cost/safety implications, and remaining risks.
+
+### 关键决策
+
+- Stopped the AI client request after it exceeded the small-smoke wait window; did not retry.
+- Did not install Python Playwright browsers because dependency installation was not separately confirmed.
+- Used existing Playwright browser cache to validate real Xiaohongshu profile access instead.
+- Did not mark existing user tracking records due or process local user URLs because there were no due records and we avoided touching potentially user-owned tracking data.
+- Used a synthetic Xiaohongshu note URL only to verify crawler note-page access starts; this is not evidence of successful metric extraction from a real note.
+
+### 运行了哪些命令
+
+- `.venv/bin/python - <<'PY' ... preflight env/cookie/db presence ... PY`
+- `./start_all.sh status`
+- `git status --short`
+- `.venv/bin/python - <<'PY' ... live /auth/register + /generate/stream smoke ... PY`
+- Interrupted the live AI smoke with Ctrl-C after extended wait.
+- `cd model && ../.venv/bin/python crawler.py check-cookie`
+- `cd model && ../.venv/bin/python - <<'PY' ... crawler.run_collection_round(limit=1) ... PY`
+- `tail -n 80 /tmp/noteai_api.log ...`
+- `.venv/bin/python - <<'PY' ... usage_records model summary ... PY`
+- Read-only Playwright cache checks under `~/Library/Caches/ms-playwright`.
+- `cd model && ../.venv/bin/python - <<'PY' ... XHS profile access with existing browser executable ... PY`
+- `cd model && ../.venv/bin/python - <<'PY' ... synthetic XHS note-page extraction attempt ... PY`
+- `cd model && ../.venv/bin/python - <<'PY' ... crawler_log summary without URL ... PY`
+- `git diff --check`
+
+### 每个命令的结果
+
+- Preflight:
+  - `ANTHROPIC_API_KEY`: present.
+  - `MOONSHOT_API_KEY`: present.
+  - XHS Cookie file: exists and non-empty.
+  - Local DB exists.
+  - `tracked_notes` total: 4.
+  - due pending tracking rows: 0.
+  - due 7d tracking rows: 0.
+- `./start_all.sh status`:
+  - main API: `ok`, model `v0.4-composite`.
+  - admin: `ok`.
+  - frontend: running.
+- Live AI `/generate/stream`:
+  - one local test user was registered in local SQLite.
+  - one `/generate/stream` request was sent with synthetic brief.
+  - client was interrupted after extended wait.
+  - API logs showed the backend did execute real Claude calls.
+  - Local usage summary for latest generate record reported `model_calls: 23`, exceeding the intended <=10 small-smoke protection threshold.
+  - Models observed in local usage/log metadata:
+    - `claude:claude-haiku-4-5-20251001`
+    - `claude:claude-sonnet-4-6`
+  - No additional live AI retry was run.
+- `crawler.py check-cookie`:
+  - failed in the default Python Playwright path because the expected Chromium headless shell revision was missing.
+  - no Cookie values were printed.
+- `crawler.run_collection_round(limit=1)`:
+  - returned `暂无待采集记录`, `collected: 0` because no local tracking rows were due.
+- Existing Playwright cache:
+  - cache exists, but Python Playwright expected a missing revision.
+  - found other cached `chrome-headless-shell` executables.
+- XHS profile access with existing browser cache:
+  - existing browser executable found.
+  - Cookie file loaded.
+  - `https://www.xiaohongshu.com/user/profile/me` was accessed.
+  - Cookie validity check returned `true`.
+- Synthetic note-page extraction:
+  - note page access attempted.
+  - no metrics/title extracted, expected because the URL was synthetic/non-user.
+  - crawler log recorded `extract_failed`.
+- Final service status:
+  - API/admin/frontend still running locally.
+- `git diff --check`: passed.
+
+### 当前仍然失败的问题
+
+- Live AI generation is not under sufficient small-smoke control: one `/generate/stream` request triggered 23 backend model calls, which is too many for casual live validation.
+- Default Python Playwright crawler path cannot launch because the exact expected Chromium revision is missing.
+- `run_collection_round(limit=1)` had no due tracking tasks, so no real tracked note metrics were collected.
+- Synthetic note URL crawler access did not extract metrics/title; this does not prove real note extraction success.
+
+### 当前未完成工作
+
+- Need a cheaper live AI smoke endpoint or a test mode that caps internal generation candidates/model calls before repeating live AI validation.
+- Need either:
+  - explicit approval to install the Python Playwright Chromium revision, or
+  - code/config support for crawler to use an existing browser executable path.
+- Need a real public Xiaohongshu note URL, or explicit approval to mark one local tracking row due, before testing real metrics extraction.
+- Need to stop local services if the user does not want them left running.
+
+### 当前最高风险
+
+- AI cost/control risk: `/generate/stream` internally fans out to many model calls; this must be capped before further live testing.
+- Crawler deployment risk: local existing browser cache can access XHS, but the default Python Playwright runtime is not currently ready.
+- Real data risk: processing existing `tracked_notes` could touch user-owned URLs; do not do this without explicit scope.
+
+### 下一步最小可行计划
+
+1. Add or use a low-cost live AI smoke path with strict max-candidate/model-call caps before any further provider calls.
+2. Decide whether to install Python Playwright Chromium or add a config option for crawler executable path.
+3. Ask for/provide one real public Xiaohongshu note URL for a single extraction test, or explicitly approve marking one local test tracking row due.
+4. Keep crawler runs at `limit=1`, no parallelism, no retries, and no URL/title output.
+
+### 不能在未经确认的情况下修改
+
+- AI billing/quota/payment logic.
+- Provider routing/fallback behavior beyond a dedicated capped smoke mode.
+- Existing user-owned tracking records or URLs.
+- Python Playwright browser installation.
+- Production deploy, production DB, payment/email/SMS.
+- `.env`, provider keys, tokens, Cookies, secrets.
+
+## 2026-07-05 Execution Update - Tracking UI Smoke
+
+### 本轮完成了什么
+
+- Ran a rendered UI smoke for the new note real-performance tracking surfaces.
+- Used the in-app Browser first for page identity, console health, and screenshot evidence.
+- Browser DOM snapshot failed in the Browser runtime, so the targeted API-mocked interaction smoke was completed with Playwright.
+- Verified the library version card shows the linked tracking badge after expanding the version panel.
+- Verified the tracking modal opens from the v2 card and submits `source_note_id`, `source_note_version_id`, `note_title`, and `predicted_ces`.
+- Verified the profile/growth tracking aggregate renders linked-note status, actual CES, evidence source, and confidence label.
+- Verified a mobile viewport (`390x844`) renders the tracking badge without document-level horizontal overflow.
+- Did not use the default local DB, did not run crawler/worker, did not access Xiaohongshu or any external site, did not call live AI APIs, and did not output env/secrets.
+
+### 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: Recorded this rendered UI smoke, fallback reason, screenshot paths, command results, remaining risks, and next minimum plan.
+
+### 关键决策
+
+- Used route-mocked Playwright instead of a real API server to avoid writing test users or tracking records to the default local SQLite DB.
+- Treated the collapsed version panel as expected behavior; the tracking badge is visible after the user expands the note version card.
+- Used exact linked fields as the interaction contract for the `POST /notes/track-url` payload.
+
+### 运行了哪些命令 / 浏览器动作
+
+- Read frontend testing and in-app Browser skill instructions.
+- Browser runtime:
+  - initialized in-app Browser session,
+  - opened `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=tracking-ui-smoke&page=library`,
+  - checked URL/title/console,
+  - captured a Browser screenshot.
+- `lsof -nP -iTCP:5173 -sTCP:LISTEN || true`
+- `sed -n ... playwright.config.js`
+- `rg -n "API_BASE|API_AUTH|..." NoteAI_Pro_Demo_Framer.html`
+- Several one-off `node --input-type=module <<'JS' ... JS` Playwright route-mocked smoke scripts:
+  - first runs diagnosed test-wait issues,
+  - final desktop run passed,
+  - final mobile run passed.
+- `git status --short`
+- `git diff --check`
+- `ls -lh /tmp/noteai_tracking_*_smoke.png`
+
+### 每个命令 / 动作的结果
+
+- Browser plugin was available and page navigation worked.
+- Browser DOM snapshot failed with `incrementalAriaSnapshot is not a function`; Browser troubleshooting docs were read. This is why the targeted API-mocked interaction used Playwright fallback.
+- Browser page health:
+  - URL was the local static page.
+  - Title was `NoteAI Pro · 小红书创作者智能诊断平台`.
+  - Console errors/warnings were empty for the Browser check.
+  - Browser screenshot was captured.
+- Static server was already listening on `127.0.0.1:5173`; no new server was started.
+- First Playwright smoke failed because the version panel was collapsed before checking badge text; diagnosis confirmed badge HTML was correct after expansion.
+- Second Playwright smoke failed because profile wait condition matched generic copy before async data rendered; diagnosis confirmed profile list rendered correctly when waiting for linked tracking fields.
+- Final desktop Playwright smoke passed:
+  - library badge verified: `📡 已完成`, `实际 86.7`, `高置信`.
+  - modal submit payload verified:
+    - `source_note_id: note-v2-smoke`
+    - `source_note_version_id: note-v2-smoke`
+    - `note_title: 真实追踪 UI smoke v2`
+    - `predicted_ces: 82.4`
+  - profile aggregate verified: linked note, actual CES, `自动采集`, `高置信度`.
+  - console errors: none.
+  - console warnings: none.
+  - external calls: 0.
+  - real crawler runs: 0.
+- Final mobile Playwright smoke passed:
+  - viewport `390x844`.
+  - tracking badge visible.
+  - no document-level horizontal overflow.
+- Screenshots saved outside repo:
+  - `/tmp/noteai_tracking_library_smoke.png`
+  - `/tmp/noteai_tracking_modal_smoke.png`
+  - `/tmp/noteai_tracking_profile_smoke.png`
+  - `/tmp/noteai_tracking_mobile_smoke.png`
+- `git diff --check`: passed.
+- `git status --short`: unchanged intended code/doc files plus pre-existing untracked `测试图片/`.
+
+### 当前仍然失败的问题
+
+- No final smoke command is failing.
+- Browser plugin DOM snapshot remains unavailable in this environment, but Playwright route-mocked validation completed the target checks.
+
+### 当前未完成工作
+
+- No real API server/browser smoke against a temporary DB-backed localhost API has been run.
+- No controlled real crawler smoke has been run.
+- Screenshot/OCR evidence intake into tracking is still not implemented.
+- No commit/stage/push was performed in this stage.
+
+### 当前最高风险
+
+- Real crawler/cloud worker reliability remains unvalidated.
+- Production-like DB migration rehearsal is still needed before deployment.
+- The current UI smoke used mocked API responses; a real temp-DB localhost API smoke would be stronger for end-to-end browser testing.
+
+### 下一步最小可行计划
+
+1. Review the current diff as a checkpoint scope.
+2. If accepted, stage/commit the tracking loop changes separately from unrelated local artifacts.
+3. Before real crawler validation, output a Live Crawler Run Plan with 1 to 3 samples, no production DB, no parallel load, and脱敏 summary.
+4. Plan screenshot/OCR evidence intake as the next feature increment.
+
+### 不能在未经确认的情况下修改
+
+- Auth/session/password/token/admin permission.
+- Billing, credits, subscriptions, payment, refund, quota, or pricing logic.
+- `.env`, provider keys, tokens, secrets, production config.
+- Production database, production deploy, payment/email/SMS operations.
+- Real crawler/worker external-site runs, live AI calls, batch data runs, or concurrent smoke tests.
+- The untracked `测试图片/` local directory.
+
+## 2026-07-05 Execution Update - Tracking Loop Local Temp-DB Smoke
+
+### 本轮完成了什么
+
+- Ran a local smoke for the note real-performance tracking loop using a temporary SQLite DB.
+- Registered a test user inside the temporary DB only.
+- Saved a root note and a v2 note version.
+- Submitted a Xiaohongshu-format URL tracking request from the v2 note.
+- Verified the tracking record persisted `source_note_id`, `source_root_note_id`, title, pending status, and next-check scheduling fields.
+- Manually filled 7-day interaction metrics.
+- Verified the tracking record completed with `actual_ces`, `confidence_label`, `evidence_source`, and manual evidence.
+- Verified `growth_records.note_id` points back to the v2 note, not NULL.
+- Verified a Hermes/user memory context entry was written for the real-performance result.
+- Did not run a real crawler, did not access Xiaohongshu or any external site, did not call live AI APIs, did not deploy, and did not output tokens/secrets.
+
+### 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: Recorded this smoke stage, command results, risks, and next minimum plan.
+
+### 关键决策
+
+- Used a temporary SQLite DB through a one-off Python smoke instead of starting local API/admin servers against the default local DB.
+- Used FastAPI `TestClient` to validate authenticated API behavior without binding network ports.
+- Used manual-fill evidence only; crawler and external sites stayed out of scope.
+- Kept output as a脱敏 summary with no bearer token, password, env value, Cookie, API key, or DB path.
+
+### 运行了哪些命令
+
+- `git status --short`
+- `sed -n '1,220p' model/auth.py`
+- `rg -n "@app.post\\(\\\"/auth/register\\\"|class Register|def register|@app.post\\(\\\"/auth/login\\\"|class Login" model/api.py model/auth.py`
+- `sed -n '9878,9908p' model/api.py`
+- `.venv/bin/python - <<'PY' ... PY` one-off temporary DB smoke
+- `git diff --check`
+- `find /tmp -maxdepth 1 -name 'tmp*' -type d -mmin -5 2>/dev/null | wc -l`
+
+### 每个命令的结果
+
+- `git status --short`: showed the intended modified/new tracking-loop files plus pre-existing untracked `测试图片/`.
+- Read-only inspections found the auth register/login models and confirmed smoke payload shape.
+- Temporary DB smoke passed with:
+  - `registered_test_user: true`
+  - `temp_db_used: true`
+  - `root_note_linked: true`
+  - `source_note_linked: true`
+  - `title_persisted: true`
+  - `status_after_manual_fill: complete`
+  - `actual_ces: 55.2`
+  - `confidence_label: 中`
+  - `evidence_source: manual`
+  - `growth_note_linked: true`
+  - `memory_written: true`
+  - `external_calls: 0`
+  - `real_crawler_runs: 0`
+- `git diff --check`: passed.
+- `/tmp` temp directory check showed no recent smoke temp directory left behind.
+
+### 当前仍然失败的问题
+
+- No command failed in this stage.
+- This was not a browser UI smoke; it validated the authenticated API/data loop.
+- This did not validate real crawler viability or cloud worker execution.
+
+### 当前未完成工作
+
+- Browser/manual UI smoke with a logged-in test user still needs to verify the library version badge and profile aggregate rendering.
+- Screenshot/OCR evidence intake into tracking is still not implemented.
+- Controlled real crawler smoke still requires a separate Live Crawler Run Plan and user confirmation.
+- No commit/stage/push was performed in this stage.
+
+### 当前最高风险
+
+- Real Xiaohongshu crawler reliability remains the highest operational risk.
+- Production-like DB migration rehearsal is still needed before deployment because `model/db.py` schema changes run idempotently on startup/import.
+- The static frontend still needs visual/manual verification for the new per-version tracking badge.
+
+### 下一步最小可行计划
+
+1. Start a safe local frontend/API smoke only if a test DB strategy is confirmed for server startup, or use browser route mocking to validate the UI without API writes.
+2. Verify the note library card shows tracking status for a linked version and the profile tracking list shows actual CES/confidence after manual fill.
+3. Prepare a checkpoint scope for review/commit after UI smoke.
+4. For real crawler validation, first output a Live Crawler Run Plan with 1 to 3 samples, no production DB, no parallel load, and脱敏 result summary.
+
+### 不能在未经确认的情况下修改
+
+- Auth/session/password/token/admin permission.
+- Billing, credits, subscriptions, payment, refund, quota, or pricing logic.
+- `.env`, provider keys, tokens, secrets, production config.
+- Production database, production deploy, payment/email/SMS operations.
+- Real crawler/worker external-site runs, live AI calls, batch data runs, or concurrent smoke tests.
+- The untracked `测试图片/` local directory.
+
+## 2026-07-05 Execution Plan - Note Real Performance Tracking Loop
+
+### 本轮目标
+
+- 将“笔记真实表现追踪”从成长档案里的孤立 URL 追踪，升级为“笔记版本发布后真实表现 -> 用户记忆 -> Hermes 个性化学习 -> 未来训练样本”的闭环。
+- 修复从笔记库发起追踪时没有真正持久化原始 `note/version/session` 关联的问题。
+- 修复标题长期显示“未获取标题”的问题。
+- 统一追踪状态机，避免 `checking_7d` 设计与 crawler 实际状态不一致。
+- 引入按行业/时间窗口/证据置信度计算的真实表现评分模块，替代固定 benchmark 简化算法。
+- 增加独立 crawler worker/cron 入口和部署配置，但本轮不运行真实 crawler、不访问外部站点、不部署。
+
+### 预计修改文件
+
+- `model/db.py`: 为 `tracked_notes` 增加 source note/session 关联、调度、证据来源、置信度、错误摘要、重试等字段，并保持幂等迁移。
+- `model/api.py`: 扩展 `/notes/track-url` 入参和持久化；手动回填改用新的评分模块；追踪完成写入带 `note_id` 的成长记录和用户记忆。
+- `model/performance_scoring.py`: 新增真实表现评分模块，输出 `actual_ces`、grade、confidence、insights。
+- `model/crawler.py`: 使用统一状态机、`next_check_at`、新评分模块和脱敏错误摘要。
+- `model/crawler_worker.py`: 新增云端 worker 入口，支持单轮和循环运行。
+- `model/admin_server.py`: 让 admin 触发追踪采集进入统一状态/调度，而不是只改旧状态。
+- `NoteAI_Pro_Demo_Framer.html`: 从笔记库追踪时发送 note 关联；在笔记库卡片展示追踪状态；成长档案作为聚合视图。
+- `docker-compose.yml` / `Dockerfile` / docs or tests as needed: 增加可选 worker 配置和安全验证覆盖。
+- `tests/`: 增加 API、评分、状态机相关测试。
+
+### 关键决策
+
+- 成长档案保留为汇总分析入口，但追踪的主链路应绑定到笔记库里的具体 note version。
+- “真实表现”定义为基于 crawler、截图/OCR、手动回填等证据源的表现评分，并带 `evidence_source` 与 `confidence`，不承诺官方绝对真实数据。
+- 不依赖官方授权趋势/平台数据；crawler 是辅助证据管道，失败时必须降级到截图/OCR或手动回填。
+- 不把 worker 放进 API 进程；未来云端用独立 worker/cron 执行。
+- 低置信度数据不能直接污染未来训练样本；训练用途需要记录来源和置信度。
+
+### 实施顺序
+
+1. 只读核查当前 note/version/session、tracking、crawler、测试结构。
+2. 修改 DB schema 和 API 入参，先打通 source note/title 持久化。
+3. 新增真实表现评分模块并接入手动回填。
+4. 统一 crawler 状态机和 worker 入口。
+5. 修改前端追踪提交与展示。
+6. 增加测试并运行安全验证。
+7. 更新本 handoff，记录实际改动、命令结果、剩余风险和下一步。
+
+### 验证计划
+
+- `python -m py_compile model/*.py`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- 静态/前端测试按实际改动补充运行。
+- 不运行真实 crawler、不会访问外部站点、不会调用真实 AI API、不会部署、不会运行 DB reset/seed/clean。
+
+### 当前最高风险
+
+- `model/db.py` schema 变更会在应用启动时对 SQLite 执行幂等迁移；需要保证只加列、不删表、不改旧字段语义。
+- `NoteAI_Pro_Demo_Framer.html` 是大型静态文件，前端状态变量容易漂移。
+- crawler 依赖小红书页面、Cookie 和 Playwright，自动采集不能作为唯一真相来源。
+
+### 不能在未经确认的情况下修改
+
+- Auth/session/password/token/admin permission。
+- Billing、credit、subscription、payment、refund、quota 逻辑。
+- `.env`、secret、token、API key、生产配置。
+- 生产数据库、真实部署、真实支付、邮件、短信。
+- 真实 crawler/worker 外部站点访问或批量 live API 调用。
+- 未跟踪的 `测试图片/` 本地目录。
+
+## 2026-07-05 Execution Update - Note Real Performance Tracking Loop
+
+### 本轮完成了什么
+
+- Implemented the note real-performance tracking loop as a note-version-linked feature instead of a profile-only URL tracker.
+- Added persistent tracking links back to the source note version, root version chain, and optional chat session.
+- Preserved note titles when tracking starts from the library, preventing new records from showing `未获取标题` unless the user starts from an external URL without a title.
+- Added a unified tracking state path for `pending -> checking_7d -> complete/needs_manual`, while keeping backward compatibility for old `checking_24h` rows.
+- Added evidence-source and confidence fields so crawler/manual/screenshot-style evidence can be distinguished before future model training.
+- Added a reusable real performance scoring module and wired it into manual fill and crawler completion.
+- Added an independent tracking crawler worker entrypoint and Docker Compose service.
+- Updated the frontend so the library version card is the primary tracking entry and shows per-version tracking status; profile remains the aggregate view.
+- Added tests for performance scoring, source note persistence, and manual fill growth-record linkage.
+- Did not run a real crawler, did not access Xiaohongshu or external sites, did not call live AI APIs, did not deploy, and did not output env/secrets.
+
+### 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+- `model/db.py`
+- `model/api.py`
+- `model/performance_scoring.py`
+- `model/crawler.py`
+- `model/crawler_worker.py`
+- `model/admin_server.py`
+- `docker-compose.yml`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_tracking_performance.py`
+
+### 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: Recorded the approved plan, actual work, verification, remaining risks, and no-touch areas.
+- `model/db.py`: Added idempotent tracking columns for source note/session linkage, scheduling, attempts, evidence source, confidence, errors, completion time, and training eligibility.
+- `model/api.py`: Extended `/notes/track-url`; validates source note/session ownership; stores note title and root note; filters tracking records by source; manual fill now scores with evidence confidence and writes `growth_records.note_id`.
+- `model/performance_scoring.py`: Centralized real-performance CES scoring by domain, metrics, evidence source, confidence, and training eligibility.
+- `model/crawler.py`: Uses `next_check_at`, clearer statuses, finite retry/fallback behavior, new scoring module, evidence confidence, and linked growth records.
+- `model/crawler_worker.py`: Provides a cloud-friendly worker entrypoint for cron or long-running background service.
+- `model/admin_server.py`: Admin trigger now marks a tracking row as immediately due in the unified state machine instead of forcing old `checking_24h`.
+- `docker-compose.yml`: Added a separate `noteai-tracking-worker` service guarded by crawler config.
+- `NoteAI_Pro_Demo_Framer.html`: Sends source note/session fields from library tracking; shows tracking status on version cards; enriches profile tracking list; supports optional views in manual fill.
+- `tests/test_tracking_performance.py`: Covers scoring confidence, estimated-view confidence reduction, source note/root persistence, and growth-record linkage.
+
+### 关键决策
+
+- The library note version is now the primary tracking object; profile is the aggregate analysis surface.
+- Tracking evidence is not treated as official platform truth. Every completed score carries `evidence_source`, `confidence`, and `training_eligible`.
+- Worker scheduling is separate from API/admin processes.
+- Automatic crawler failure falls back to manual fill rather than unlimited retries.
+- Existing old rows remain compatible: old `checking_24h` rows can still be picked up for 7-day completion.
+
+### 运行了哪些命令
+
+- `sed -n ...` / `rg ...` read-only inspections across `model/db.py`, `model/api.py`, `model/crawler.py`, `model/admin_server.py`, `NoteAI_Pro_Demo_Framer.html`, tests, Docker config, and project memory files.
+- `python -m py_compile model/*.py`
+- `.venv/bin/python -m py_compile model/*.py`
+- `.venv/bin/python -m unittest tests.test_tracking_performance`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `npm run test:e2e`
+- `docker compose config --quiet`
+- `git diff --check`
+- `git diff --stat`
+- `git status --short`
+
+### 每个命令的结果
+
+- Read-only inspections completed successfully.
+- `python -m py_compile model/*.py`: failed because this shell has no `python` command.
+- `.venv/bin/python -m py_compile model/*.py`: passed.
+- First `.venv/bin/python -m unittest tests.test_tracking_performance`: failed due to a migration ordering issue where an index referenced new columns before old DBs had been altered.
+- Fixed `model/db.py` by moving new tracking indexes after idempotent `ALTER TABLE` additions.
+- `.venv/bin/python -m unittest tests.test_tracking_performance`: passed, 4 tests OK.
+- `.venv/bin/python -m unittest tests.test_api_contracts`: passed, 130 tests OK.
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`: passed, 9 tests OK.
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`: passed, 236 tests OK.
+- `npm run test:e2e`: passed, 3 Playwright tests OK.
+- `docker compose config --quiet`: passed.
+- `git diff --check`: passed.
+- `git status --short`: shows the intended modified/new files plus the pre-existing untracked `测试图片/` directory.
+
+### 当前仍然失败的问题
+
+- No validation command is currently failing.
+- Real Xiaohongshu crawler viability was not tested in this stage.
+- Screenshot/OCR evidence ingestion into tracking is not implemented yet; the data model and scoring contract are prepared for it.
+
+### 当前未完成工作
+
+- No live crawler smoke was run.
+- No cloud cron job was deployed or verified.
+- No screenshot/OCR tracking endpoint has been added yet.
+- No production DB migration rehearsal was run on a copy of production-like data.
+- No training export pipeline was added; current work only marks `training_eligible`.
+
+### 当前最高风险
+
+- `model/db.py` schema additions are idempotent but will mutate SQLite schema on app import/startup. Tests imported `api/db`, so local SQLite schema may have been upgraded; DB files remain untracked.
+- Real crawler reliability is still constrained by Xiaohongshu page structure, login/Cookie state, anti-bot behavior, and cloud Playwright behavior.
+- The static frontend is still a large single file; per-version tracking UI should be manually checked in browser with a logged-in test user.
+
+### 下一步最小可行计划
+
+1. Do a local authenticated smoke with a test user/test DB strategy: create or reuse a test note, start tracking from the library, verify `/notes/tracking` returns `source_note_id`, title, status, and next check time.
+2. Do a manual-fill smoke on that tracking record and verify profile + library card show actual CES and confidence.
+3. Only after a separate Live Crawler Run Plan, run 1 to 3 controlled real crawler samples with non-production data.
+4. Add screenshot/OCR evidence intake for tracking if manual/crawler smoke confirms the core linked flow.
+5. Prepare a checkpoint review/commit scope after user approval.
+
+### 不能在未经确认的情况下修改
+
+- Auth/session/password/token/admin permission.
+- Billing, credits, subscriptions, payment, refund, quota, or pricing logic.
+- `.env`, provider keys, tokens, secrets, production config.
+- Production database, production deploy, payment/email/SMS operations.
+- Real crawler/worker external-site runs, live AI calls, batch data runs, or concurrent smoke tests.
+- The untracked `测试图片/` local directory.
+
 ## 2026-07-05 Execution Update - Frontend User Page Fixes
 
 ### 本轮完成了什么
@@ -2220,3 +3283,498 @@ This list reflects current Git status during handoff. Some files were modified b
 
 - 不 stage / commit / push `测试图片/`。
 - 不运行 deploy、migration、seed、reset。
+
+## 2026-07-05 Stage Update — Admin XHS UI Rendered Smoke
+
+### 1. 本轮完成了什么
+
+- 完成 Admin UI rendered smoke，重点验证 `model/admin.html` 中新增的 XHS freshness / missing domains / deadline / sidecar cards、XHS 行业证据账本、XHS Health 最近记录。
+- 使用本地临时 mock API 渲染 Admin 页面，没有读取或输出 `.env`、admin token、API key、Cookie、数据库连接串。
+- 临时服务仅绑定 `127.0.0.1:5191`，验证后已关闭。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 按用户要求记录阶段性验证结果、命令、风险和下一步。
+
+### 4. 做了哪些关键决策
+
+- Admin UI smoke 先用 mock admin API 做纯渲染验证，避免依赖真实 admin 凭据或泄露敏感配置。
+- 浏览器安全策略拒绝 `data:` 页面后，改用 `/tmp/noteai-admin-smoke.html` + 本地 HTTP 服务渲染；这不修改 repo 业务代码。
+- 本轮只验证新卡片展示，不触发真实 crawler、worker、AI 或生产环境操作。
+
+### 5. 运行了哪些命令
+
+- `sed -n '1,220p' /Users/openclaw/.codex/plugins/cache/openai-bundled/browser/26.623.101652/skills/control-in-app-browser/SKILL.md`
+- `sed -n '1,260p' /Users/openclaw/.codex/plugins/cache/openai-curated/build-web-apps/d6169bef/skills/frontend-testing-debugging/SKILL.md`
+- `sed -n '430,560p' model/admin.html`
+- `rg -n "xhs-|loadXhs|showPage|ADMIN_BASE|crawler" model/admin.html`
+- `sed -n '560,640p' model/admin.html`
+- `sed -n '880,980p' model/admin.html`
+- `python3 -m http.server 5191 --bind 127.0.0.1 --directory /tmp`
+- Browser runtime actions: navigate to `http://127.0.0.1:5191/noteai-admin-smoke.html`, mock login, click `爬虫管理`, inspect rendered text, inspect console logs, capture screenshot.
+
+### 6. 每个命令的结果
+
+- Browser skill and frontend testing skill instructions read successfully.
+- Admin HTML inspection confirmed XHS cards/table render IDs and loaders:
+  - `#xhs-fresh-ok`
+  - `#xhs-missing-count`
+  - `#xhs-deadline`
+  - `#xhs-sidecar`
+  - `#xhs-fresh-table`
+  - `#xhs-health-table`
+- Local temp server started on `127.0.0.1:5191` and was stopped after smoke.
+- Browser smoke result:
+  - Page identity: `NoteAI Pro — 后台管理`
+  - Login mock succeeded and Admin shell rendered.
+  - `爬虫管理` page rendered.
+  - XHS freshness card displayed `达标`.
+  - Missing domains displayed `0` and `全部行业已满足`.
+  - Deadline rendered as a short local date/time.
+  - Sidecar card displayed `已配置`.
+  - Ledger table rendered sample rows for `美食`、`美妆`、`家居`.
+  - Health table rendered sample rows for `xhs_downloader` and `scheduler_a`.
+  - Browser console error/warn count: `0`.
+  - Screenshot saved outside repo: `/tmp/noteai-admin-xhs-smoke.png`.
+
+### 7. 当前仍然失败的问题
+
+- Browser plugin `domSnapshot()` 在该页面报内部方法缺失：`incrementalAriaSnapshot is not a function`。
+- 该问题不影响本轮通过 URL/title、locator、read-only DOM evaluate、console logs 和 screenshot 完成渲染 smoke；但后续若需要 DOM snapshot 级审计，需改用常规 Playwright 或等待 Browser plugin 修复。
+
+### 8. 当前未完成工作
+
+- 尚未安装 XHS-Downloader。
+- 尚未真实访问小红书。
+- 尚未运行真实 crawler / worker。
+- 尚未执行本轮 live AI 验证。
+
+### 9. 当前最高风险
+
+- 下一阶段会访问真实外部站点和真实 AI API，需要严格控制样本数、重试次数、日志脱敏和本地/生产边界。
+
+### 10. 下一步最小可行计划
+
+- 查阅 XHS-Downloader 官方 repo 的当前安装与运行方式。
+- 将 XHS-Downloader 安装到 repo 外的临时/缓存目录，避免污染 Git worktree。
+- 输出 Live Crawler Run Plan 后，对用户提供的小红书短链做 1 次真实访问验证。
+- 用临时 SQLite 或只读/小样本策略运行 crawler/worker，避免写生产 DB。
+- 输出 Live AI Run Plan 后，运行 1 次受控 live AI smoke。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不输出 Cookie、token、API key、`.env` 值或数据库连接串。
+- 不写生产数据库。
+- 不运行 deploy、migration、seed、reset、clean。
+- 不触发真实支付、邮件、短信。
+- 不批量爬取、不并发压测、不无限重试。
+- 不把 XHS-Downloader 整仓库或安装产物加入 Git。
+
+## 2026-07-05 Stage Update — XHS-Downloader Live Crawler Worker And Live AI
+
+### 1. 本轮完成了什么
+
+- 安装并启动 XHS-Downloader sidecar，使用官方 API 模式验证 `POST /xhs/detail`。
+- 真实访问用户提供的小红书短链 `http://xhslink.com/o/1ozVDX9STI4`。
+- 发现并修复 NoteAI sidecar 归一化器不兼容 XHS-Downloader v2.8 中文字段 schema 的问题。
+- 真实运行 NoteAI `crawler_worker -> crawler.run_collection_round` 路径：
+  - 初次真实 worker 证明 Playwright selector 路径仍会超时失败。
+  - 接入 XHS-Downloader sidecar fallback 后，真实 worker 成功采集 1 条临时 tracking 记录并进入 `checking_7d`。
+- 完成 1 次受控 live AI smoke，真实 Claude 调用成功。
+- 所有真实 crawler/AI 输出均已脱敏，未输出 Cookie、API key、token、正文、标题全文或原始响应。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+- `model/xhs_acquisition.py`
+- `model/crawler.py`
+- `tests/test_xhs_acquisition.py`
+- `tests/test_tracking_performance.py`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录本阶段真实外部验证、代码修复、测试结果、剩余风险和下一步。
+- `model/xhs_acquisition.py`: 扩展 `normalize_sidecar_detail()`，支持 XHS-Downloader v2.8 中文字段（如 `作品ID`、`作品标题`、`点赞数量` 等）；修复 `_first_int()` 遇到缺失候选 key 时过早返回 `0` 的 bug。
+- `model/crawler.py`: 在 Playwright 页面 selector 失败后增加 XHS-Downloader sidecar fallback，保持现有 tracking 状态机不变，只补充真实互动数据来源。
+- `tests/test_xhs_acquisition.py`: 增加中文 schema fixture，防止 sidecar 返回中文字段时再次被误判为空。
+- `tests/test_tracking_performance.py`: 增加 crawler sidecar fallback 单测，确认 fallback 能返回 tracking 所需的 likes/saves/comments/title。
+
+### 4. 做了哪些关键决策
+
+- XHS-Downloader 安装在 repo 外：`/Users/openclaw/.cache/noteai/XHS-Downloader`，避免污染 NoteAI Git worktree。
+- XHS-Downloader sidecar 使用本地 API 模式，只绑定本地测试，验证后已关闭。
+- XHS 真实验证用小样本、单链接、无下载、无批量、无并发。
+- NoteAI worker 真实测试使用 `/tmp` 临时 SQLite 和临时 crawler log，不写主项目 DB 或生产 DB。
+- Playwright selector 失败不再直接代表全链路失败；sidecar 可作为更稳定的数据提取 fallback。
+- 不把 XHS-Downloader 仓库或它的 `.venv` 纳入 Git。
+
+### 5. 运行了哪些命令
+
+- `git clone https://github.com/JoeanAmier/XHS-Downloader.git /Users/openclaw/.cache/noteai/XHS-Downloader`
+- `uv sync --no-dev`
+- `uv run python -c "import asyncio; from main import api_server; asyncio.run(api_server(host='127.0.0.1', port=5556, log_level='warning'))"`
+- `curl -sS -o /tmp/xhs_downloader_docs_probe.html -w '%{http_code}' http://127.0.0.1:5556/docs`
+- 受控 sidecar adapter live smoke（1 条用户提供短链，临时 hot_keywords DB）
+- 受控 sidecar schema diagnostic（只输出字段名/类型，不输出原始内容）
+- 受控 sidecar adapter live re-check（同一短链，临时 hot_keywords DB）
+- 受控 NoteAI worker live smoke（临时 NoteAI DB + 临时 crawler log）
+- 受控 NoteAI worker fallback live re-check（临时 NoteAI DB + 临时 hot_keywords DB + 临时 crawler log）
+- `.venv/bin/python tools/live_ai_smoke.py --provider auto --max-tokens 32 --timeout 45`
+- `.venv/bin/python -m unittest tests.test_xhs_acquisition`
+- `.venv/bin/python -m unittest tests.test_xhs_acquisition tests.test_tracking_performance`
+- `.venv/bin/python -m py_compile model/*.py`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `git diff --check`
+- `docker compose config --quiet`
+- `git status --short`
+- `git diff --stat`
+
+### 6. 每个命令的结果
+
+- XHS-Downloader clone 成功，当前外部缓存仓库 commit：`56c912e`。
+- `uv sync --no-dev`: 成功创建外部 sidecar `.venv` 并安装依赖。
+- sidecar API 启动成功，`/docs` 返回 HTTP `200`。
+- 第一次 sidecar adapter live smoke：
+  - HTTP 层成功。
+  - 归一化为空，health 标记 `failed`。
+  - 原因不是 sidecar 不能访问，而是 NoteAI 未识别中文字段 schema。
+- sidecar schema diagnostic：
+  - 顶层字段包括 `data`、`message`、`params`。
+  - `data` 内存在中文字段，如 `作品ID`、`作者ID`、`下载地址` 等。
+  - 未输出标题、正文、图片 URL 或原始响应。
+- 修复后 sidecar adapter live re-check：
+  - `adapter_usable: true`
+  - `note_id_present/title_present/desc_present: true`
+  - 指标成功读取：likes/saves/comments/shares 均为数字。
+  - health 记录：`status=ok`、`note_page_access_valid=true`、`selector_valid=true`、`risk_login_detected=false`。
+- 初次 NoteAI worker live smoke：
+  - Playwright selector 超时：等待 `.note-content, .note-container, #noteContainer` 失败。
+  - 临时 tracking：`status=needs_manual`、`last_error_code=extract_failed`。
+  - `worker_result`: `collected=0 failed=1 total=1`。
+- 接入 sidecar fallback 后 NoteAI worker live re-check：
+  - Playwright selector 仍超时，但 fallback 成功。
+  - 临时 tracking：`status=checking_7d`、`attempt_count=0`、`likes_24h/saves_24h/comments_24h` 写入成功、`title_present=true`。
+  - `worker_result`: `collected=1 failed=0 total=1`。
+  - XHS health：`adapter=xhs_downloader`、`status=ok`、`evidence_count=1`、`risk_login_detected=false`。
+- Live AI smoke：
+  - provider：`claude`
+  - model：`claude-haiku-4-5-20251001`
+  - calls：`1`
+  - success：`true`
+  - input tokens：`35`
+  - output tokens：`10`
+  - DB writes：`false`
+  - content printed：`false`
+- Focused tests:
+  - `tests.test_xhs_acquisition`: 10 tests passed。
+  - `tests.test_xhs_acquisition tests.test_tracking_performance`: 15 tests passed。
+- `.venv/bin/python -m py_compile model/*.py`: passed。
+- Full unittest: 248 tests passed。
+- `git diff --check`: passed。
+- `docker compose config --quiet`: passed。
+- `git status --short`: 当前仍有多文件未提交改动和未跟踪 `测试图片/`。
+
+### 7. 当前仍然失败的问题
+
+- Playwright DOM selector 路径仍会在当前真实小红书页面上超时；当前已由 sidecar fallback 弥补，不再阻塞 tracking worker。
+- Browser plugin 的 `domSnapshot()` 仍有内部方法缺失问题；Admin UI smoke 已用其他 browser evidence 覆盖。
+
+### 8. 当前未完成工作
+
+- 尚未把本轮新增修改 commit/push。
+- 尚未将 XHS-Downloader sidecar 纳入正式云端部署编排；当前只是本机外部缓存安装和实测。
+- 尚未把 sidecar fallback 的生产运行参数（端口、服务名、健康检查、告警）固化到最终部署方案之外的真实云环境。
+
+### 9. 当前最高风险
+
+- 生产每日新鲜小红书证据不能只依赖 Playwright selector；必须以 XHS-Downloader/sidecar 或等价稳定 adapter 作为主路径或强 fallback，并配 crawler health 分层监控。
+- XHS-Downloader 是 GPL-3.0 项目，后续若深度集成/分发，需要确认许可证策略；当前作为独立外部 sidecar 调用风险较低但仍需产品/部署层面确认。
+- 真实平台访问仍可能受风控、Cookie、IP、频率、页面结构变化影响；需要 daily health 和 alert，而不是静默降级。
+
+### 10. 下一步最小可行计划
+
+- Review 当前 diff，确认 checkpoint scope。
+- 如果用户确认，stage/commit/push 本阶段：
+  - XHS sidecar schema/fallback 修复
+  - Admin XHS visibility
+  - tracking worker/crawler hardening
+  - tests and handoff
+- 后续部署阶段再单独处理 sidecar 云端服务编排、健康检查和日调度告警。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不提交或复制 XHS-Downloader 仓库、`.venv`、运行产物到 NoteAI repo。
+- 不输出或提交 Cookie、token、API key、`.env` 值、数据库连接串。
+- 不写生产数据库，不运行 migration/seed/reset/deploy。
+- 不批量爬取、不全量跑行业、不并发压测、不无限重试。
+- 不修改 billing/payment/quota 逻辑。
+- 不触发真实邮件、短信、支付、部署。
+
+## 2026-07-05 Stage Update — Moonshot Kimi Live Fix And Generate Endpoint Smoke
+
+### 1. 本轮完成了什么
+
+- 按用户确认，补跑显式 Moonshot/Kimi live AI smoke。
+- 第一次 Kimi live smoke 失败，返回 HTTP `400 Bad Request`。
+- 查官方 Kimi K2.6 文档后，确认当前 repo 中仍有旧默认 `kimi-k2.5`，且 `tools/live_ai_smoke.py` 使用了不合适的 `temperature=0`。
+- 最小修复 Kimi 文本默认模型和非思考温度后，Kimi live smoke 成功。
+- 运行受控 `/generate` endpoint smoke：
+  - 使用 FastAPI `TestClient` 真实 `POST /generate`。
+  - 使用 `/tmp` 临时 SQLite test DB 和 test user。
+  - 无图片、无视频、禁用事实联网、禁用多候选、禁用模型重试。
+  - 设置 10 次内部模型任务硬上限。
+  - endpoint 最终 HTTP 200，返回标题、正文、标题变体、分数和质量字段。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+- `tools/live_ai_smoke.py`
+- `model/model_router.py`
+- `model/api.py`
+- `tools/ai_prelabel_review_batch.py`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录 Kimi live 失败原因、修复、`/generate` live smoke 结果和剩余风险。
+- `tools/live_ai_smoke.py`: 将 Kimi 默认模型从 `kimi-k2.5` 更新为 `kimi-k2.6`，并将 non-thinking smoke temperature 从 `0` 调整为 `0.6`。
+- `model/model_router.py`: 将统一模型路由中的 Kimi fallback 默认从 `kimi-k2.5` 更新为 `kimi-k2.6`，并将非流式 Kimi non-thinking temperature 调整为 `0.6`。
+- `model/api.py`: 将 API 内部 `_KIMI_MODEL` 默认从 `kimi-k2.5` 更新为 `kimi-k2.6`，与文件中已有 K2.6 注释和请求参数保持一致。
+- `tools/ai_prelabel_review_batch.py`: 将离线预标注复核工具默认 Kimi 模型更新为 `kimi-k2.6`，避免后续真实批处理沿用旧模型。
+
+### 4. 做了哪些关键决策
+
+- 只更新 Kimi 文本默认模型和 non-thinking temperature，不改 prompt、计费、权限或生成状态机。
+- 端点 smoke 不传图片，避免触发 Kimi Vision 与视频/文件 API。
+- 端点 smoke 使用临时 DB，并通过 test user 真实走 auth + billing + endpoint；不写生产 DB 或主项目业务数据。
+- 通过 wrapper 统计内部 `_mr.call` 调用并设置上限，避免真实模型调用失控。
+- `/generate` smoke 只做一次，不重跑；该链路真实成本较高。
+
+### 5. 运行了哪些命令
+
+- `.venv/bin/python tools/live_ai_smoke.py --provider kimi --max-tokens 32 --timeout 45`
+- 官方文档查询：Kimi K2.6 quickstart / request parameter guidance。
+- `rg -n "kimi-k2\\.5|kimi-k2\\.6|MOONSHOT|moonshot-v1|temperature.*0|thinking" model tools tests -S`
+- `.venv/bin/python tools/live_ai_smoke.py --provider kimi --max-tokens 32 --timeout 45`（修复后复验）
+- 受控 FastAPI TestClient `/generate` live endpoint smoke（临时 DB、test user、10-call ceiling）
+- `.venv/bin/python -m py_compile model/*.py tools/live_ai_smoke.py tools/ai_prelabel_review_batch.py`
+- `.venv/bin/python -m unittest tests.test_api_contracts tests.test_billing_token_cost tests.test_xhs_acquisition tests.test_tracking_performance`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `git diff --check`
+- `docker compose config --quiet`
+- `git status --short && git diff --stat`
+
+### 6. 每个命令的结果
+
+- 修复前 Kimi live smoke：
+  - provider：`kimi`
+  - calls：`1`
+  - success：`false`
+  - error type：`HTTPStatusError`
+  - error summary：HTTP `400 Bad Request`
+  - 未写 DB，未打印模型内容或 key。
+- 修复后 Kimi live smoke：
+  - provider：`kimi`
+  - model：`kimi-k2.6`
+  - calls：`1`
+  - success：`true`
+  - elapsed：约 `921ms`
+  - input tokens：`35`
+  - output tokens：`8`
+  - DB writes：`false`
+  - content printed：`false`
+- `/generate` live endpoint smoke：
+  - HTTP status：`200`
+  - response shape：success
+  - note title present：true，标题长度 `15`
+  - note body present：true，正文长度 `321`
+  - title variants count：`3`
+  - CES percentile：`69.0`
+  - grade：`良好`
+  - quality issues count：`0`
+  - selection candidate count：`3`
+  - internal `_mr.call` count：`10`
+  - by task：
+    - `content_gen` 3 次
+    - `arbitrate` thinking 3 次
+    - `semantic` 3 次
+    - `content_gen` repair 1 次
+  - 临时 DB usage：`generate` 写入 1 条 usage record，free tier 月度积分临时扣 `8.0`。
+  - 未输出生成正文全文、token、secret、API key。
+- 回归：
+  - `py_compile`: passed。
+  - focused unittest: 159 tests passed。
+  - full unittest: 248 tests passed。
+  - `git diff --check`: passed。
+  - `docker compose config --quiet`: passed。
+
+### 7. 当前仍然失败的问题
+
+- 无本轮命令失败。
+- 但 `/generate` live smoke 显示完整生成链路真实调用很重：在压缩配置下仍触发 10 次内部模型任务，且 Sonnet thinking 仲裁单次约 80-100 秒级。
+- `usage_records.model_calls` 记录为 `17`，高于 wrapper 统计的 10 个 `_mr.call` 入口任务；后续需要单独 review 计费模型调用归集口径是否按 provider API call、stream chunk/final usage 或模型路由层记录重复计算。
+
+### 8. 当前未完成工作
+
+- 尚未 commit/push 本轮 Kimi 修复、crawler fallback、Admin XHS UI、handoff 等累计改动。
+- 尚未优化 `/generate` 成本/时延；当前只能说明链路可用但成本较高。
+- 尚未决定生产上是否默认允许用户频繁触发完整 5-agent + 多轮 refine 链路。
+
+### 9. 当前最高风险
+
+- `/generate` 真实链路成本和时延偏高；如果用户量增加，需要限流、异步任务、进度展示、取消/超时策略、套餐额度保护和更细粒度调用预算。
+- Kimi/Moonshot 模型版本需要长期维护；旧模型名或错误 temperature 会直接导致 live API 400。
+- 计费 usage `model_calls` 口径需要核查，避免成本展示或账单诊断误导。
+
+### 10. 下一步最小可行计划
+
+- Review 当前 diff，准备 checkpoint scope。
+- 若用户确认，stage/commit/push 当前阶段。
+- 单独开小任务 review `/generate` 调用预算与 usage model_calls 归集逻辑，不和 crawler/XHS 修复混在一起。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不运行第二次 `/generate` live smoke，除非用户明确确认额外成本。
+- 不修改 billing/payment/quota 口径，除非单独确认。
+- 不写生产 DB，不部署，不迁移，不 seed/reset。
+- 不输出生成全文、API key、token、`.env` 值或连接串。
+
+## 2026-07-05 User Decision — Cloud Deployment Deferred Until Value And Stability Validation
+
+### 1. 本轮完成了什么
+
+- 记录用户明确决策：云端部署先只做计划，当前不执行。
+- 当前阶段重点继续本地/灰度测试所有功能，验证商业价值、用户价值、真实稳定性后，再整体迁移到云端。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录用户关于上线节奏和云端部署边界的产品/工程决策，避免后续线程误以为需要立即部署。
+
+### 4. 做了哪些关键决策
+
+- 小红书抓取、crawler worker、XHS-Downloader sidecar、daily freshness、Admin health、AI generate 等功能先继续在本地/受控灰度环境验证。
+- 云端部署只做规划，不执行部署、不配置生产资源、不迁移数据。
+- 等所有关键功能经过手动测试、真实 API 验证、商业价值验证、稳定性观察后，再统一设计并迁移到云端。
+
+### 5. 运行了哪些命令
+
+- `tail -n 180 .codex/handoffs/current-task.md`
+
+### 6. 每个命令的结果
+
+- 成功读取最新 handoff 上下文。
+
+### 7. 当前仍然失败的问题
+
+- 暂无新增失败。
+
+### 8. 当前未完成工作
+
+- 云端部署计划尚未形成正式 checklist。
+- 当前未提交 diff 仍需 checkpoint commit/push。
+- 仍需继续逐项功能测试，尤其是小红书抓取稳定性、`/generate` 成本/延迟、计费 usage 归集口径、前端完整用户路径。
+
+### 9. 当前最高风险
+
+- 在未完成商业价值和稳定性验证前贸然部署云端，会放大成本、平台风控、数据写入、计费、用户体验和运维风险。
+- 小红书抓取当前具备受控灰度能力，但不应承诺全量生产稳定性。
+
+### 10. 下一步最小可行计划
+
+- 不做云端部署。
+- 继续配合用户逐项测试产品功能。
+- 对已验证通过且需要保留的功能做 checkpoint commit/push。
+- 单独维护一份未来云端部署计划：服务拆分、sidecar、cron、health alert、DB、secrets、成本保护、回滚策略。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不执行 cloud deploy。
+- 不创建/修改生产服务、生产数据库、生产 secrets、生产域名。
+- 不运行 migration/seed/reset/deploy。
+- 不把本地 XHS-Downloader 安装目录或 `.venv` 纳入 Git。
+- 不把未验证商业价值和稳定性的功能直接推成全量生产默认。
+
+## 2026-07-05 Stage Update — Prepare Crawler Sidecar Commit And Pilot Checklist
+
+### 1. 本轮完成了什么
+
+- 按用户要求准备 commit/push 当前 crawler + sidecar fallback 修复。
+- 创建 crawler production pilot checklist，用于后续云端部署前的灰度准入标准。
+- 明确本次 commit scope 不包含 Kimi/Moonshot live 修复，不包含未跟踪 `测试图片/`。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+- `.codex/notes/crawler-production-pilot-checklist.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录本轮即将提交的 scope、决策、风险和 checklist。
+- `.codex/notes/crawler-production-pilot-checklist.md`: 保存 crawler/XHS-Downloader 云端 pilot 前的准入 checklist，避免当前阶段误部署。
+
+### 4. 做了哪些关键决策
+
+- commit scope 定义为 XHS acquisition/health、crawler worker、sidecar fallback、tracking persistence/API/UI、Admin crawler visibility、相关 tests、handoff 和 pilot checklist。
+- 暂不把 Kimi 模型默认修复纳入本次 crawler checkpoint。
+- 不提交 XHS-Downloader 外部安装目录、`.venv`、Cookie、cache 或 raw JSON response。
+- 不提交未跟踪目录 `测试图片/`。
+
+### 5. 运行了哪些命令
+
+- `sed -n '1,220p' /Users/openclaw/.codex/plugins/cache/openai-curated-remote/github/0.1.5/skills/yeet/SKILL.md`
+- `git branch --show-current`
+- `git status --short`
+- `git diff --name-status`
+- `git diff --stat`
+- `git diff -- NoteAI_Pro_Demo_Framer.html | rg -n "track|追踪|笔记库|version|history|crawler|xhs|XHS|性能|真实表现" -C 2`
+- `git diff -- model/model_router.py tools/ai_prelabel_review_batch.py tools/live_ai_smoke.py | sed -n '1,220p'`
+- `git remote -v`
+- `ls -la .codex/notes`
+- `git diff -- model/api.py | sed -n '1,220p'`
+
+### 6. 每个命令的结果
+
+- 当前分支：`codex/quality-stabilization-real-chain`。
+- remote：`origin` 指向 `https://github.com/iamyusen1314/noteai.git`。
+- 工作区为混合状态，存在 crawler 相关改动、Kimi live 修复改动、未跟踪 `测试图片/`。
+- 前端 diff 包含 tracking index、笔记库版本卡追踪 badge、从笔记卡关联追踪、手动回填 views 等 crawler/tracking 相关 UI。
+- `model/model_router.py` 和 `tools/ai_prelabel_review_batch.py` diff 属于 Kimi live 修复，不纳入本次 crawler checkpoint。
+- `model/api.py` 同时包含 crawler/tracking hunks 和 `_KIMI_MODEL` hunk；commit 时需要 stage crawler hunks 后反向 unstage Kimi hunk。
+
+### 7. 当前仍然失败的问题
+
+- 暂无新增失败。
+
+### 8. 当前未完成工作
+
+- 尚未 stage / commit / push。
+- 尚未在提交后更新 handoff 的实际 commit hash 和 push 结果。
+
+### 9. 当前最高风险
+
+- 当前 worktree 混合多类改动；需要精确 stage，避免把 Kimi 修复或 `测试图片/` 混入 crawler checkpoint。
+
+### 10. 下一步最小可行计划
+
+- 显式 stage crawler/sidecar/tracking/checklist 相关文件。
+- 对 `model/api.py` 从 index 中反向移除 `_KIMI_MODEL` hunk，保留 crawler/tracking hunk。
+- 运行 cached diff/stat 和 `git diff --cached --check`。
+- commit。
+- push 当前分支。
+- 更新 handoff 记录 commit/push 结果。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不 stage/commit Kimi live 修复相关文件：
+  - `model/model_router.py`
+  - `tools/ai_prelabel_review_batch.py`
+  - `tools/live_ai_smoke.py`
+- 不提交未跟踪目录 `测试图片/`。
+- 不执行 cloud deploy、migration、seed、reset。

@@ -95,6 +95,11 @@ class ApiContractTests(unittest.TestCase):
                 resp = client.post(path, json=body)
                 self.assertEqual(resp.status_code, 401)
 
+    def test_anonymous_market_timing_freshness_requires_auth(self):
+        client = TestClient(api.app)
+        resp = client.get("/market-timing/freshness")
+        self.assertEqual(resp.status_code, 401)
+
     def test_extract_screenshot_refunds_charge_when_vision_fails(self):
         original_check = api._billing.check_and_deduct
         original_refund = api._billing.refund_operation_charge

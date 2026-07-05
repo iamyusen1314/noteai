@@ -8899,10 +8899,30 @@ function authHeader() {
 let _libraryOffset = 0;
 let _libraryTotal  = 0;
 let _noteDetailData = null;
+let _trackingBySourceNote = new Map();
 
 function initLibraryPage() {
   _libraryOffset = 0;
   loadLibrary(true);
+}
+
+async function loadTrackingIndex() {
+  _trackingBySourceNote = new Map();
+  if (!_authToken) return;
+  try {
+    const res = await fetch(API_AUTH + '/notes/tracking', { headers: authHeader() });
+    if (!res.ok) return;
+    const d = await res.json();
+    (d.notes || []).forEach(t => {
+      if (!t.source_note_id) return;
+      const existing = _trackingBySourceNote.get(t.source_note_id);
+      if (!existing || String(t.submitted_at || '') > String(existing.submitted_at || '')) {
+        _trackingBySourceNote.set(t.source_note_id, t);
+      }
+    });
+  } catch(e) {
+    console.warn('tracking index load failed', e);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -9151,6 +9171,7 @@ async function loadLibrary(reset = false) {
   try {
     const res = await fetch(`${API_AUTH}/notes?grouped=true&limit=12&offset=${_libraryOffset}`, { headers: authHeader() });
     const data = await res.json();
+    await loadTrackingIndex();
     _libraryTotal = data.total;
     const grid = document.getElementById('library-grid');
     if (reset) grid.innerHTML = '';
@@ -9171,6 +9192,28 @@ async function loadLibrary(reset = false) {
 function _scoreColor(s) {
   if (!s) return 'var(--text-muted)';
   return s >= 70 ? '#22C55E' : s >= 55 ? '#F59E0B' : '#EF4444';
+}
+
+function trackingStatusMeta(t) {
+  const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待手动填写',complete:'已完成',failed:'采集失败'};
+  const statusCol = {pending:'var(--text-muted)',checking_24h:'var(--info)',checking_7d:'var(--warning)',needs_manual:'var(--warning)',complete:'var(--success)',failed:'var(--error)'};
+  return {
+    label: statusMap[t?.status] || t?.status || '未追踪',
+    color: statusCol[t?.status] || 'var(--text-muted)',
+  };
+}
+
+function renderLibraryTrackingBadge(noteId) {
+  const t = _trackingBySourceNote.get(noteId);
+  if (!t) {
+    return `<div style="font-size:10px;color:var(--text-muted);border:1px dashed var(--border);border-radius:8px;padding:5px 7px;margin-bottom:8px">发布后可绑定真实表现追踪</div>`;
+  }
+  const meta = trackingStatusMeta(t);
+  const actual = t.actual_ces != null ? ` · 实际 ${Number(t.actual_ces).toFixed(1)}` : '';
+  const confidence = t.confidence_label ? ` · ${escapeHtml(t.confidence_label)}置信` : '';
+  return `<div style="font-size:10px;color:${meta.color};background:rgba(0,153,255,0.06);border:1px solid rgba(0,153,255,0.18);border-radius:8px;padding:5px 7px;margin-bottom:8px">
+    📡 ${escapeHtml(meta.label)}${actual}${confidence}
+  </div>`;
 }
 
 function buildGroupCard(group) {
@@ -9237,6 +9280,7 @@ function buildGroupCard(group) {
       </div>
       <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:6px">${v.title}</div>
       <div style="font-size:11px;color:var(--text-muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px">${(v.body||'').slice(0,120)}…</div>
+      ${renderLibraryTrackingBadge(v.id)}
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button onclick="openNoteDetail(${JSON.stringify(v).replace(/"/g,'&quot;')})"
           style="flex:1;padding:5px 0;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-2);font-size:11px;cursor:pointer">查看全文</button>
@@ -9596,7 +9640,7 @@ async function autoSaveGeneratedNote(genResult) {
       // 生成后提示用户可追踪发布效果（非阻断，3秒后显示）
       setTimeout(() => {
         if (_authToken) {
-          showToast('💡 笔记已保存到笔记库。发布到小红书后，可在「成长档案」追踪真实互动效果');
+          showToast('💡 笔记已保存到笔记库。发布后可在对应版本卡片追踪真实表现');
         }
       }, 3000);
     }
@@ -10372,6 +10416,7 @@ function trackNoteFromLibrary(noteId, noteTitle, domain, predictedCes) {
   // 存储关联 note_id，提交时一起发送
   _trackingLinkedNoteId = noteId;
   _trackingLinkedTitle  = noteTitle;
+  _trackingLinkedSessionId = _chatSessionId || null;
   // 提示用户填 URL
   const hint = document.getElementById('track-url-input');
   if (hint) {
@@ -10387,6 +10432,7 @@ function trackNoteFromLibrary(noteId, noteTitle, domain, predictedCes) {
 }
 let _trackingLinkedNoteId = null;
 let _trackingLinkedTitle  = '';
+let _trackingLinkedSessionId = null;
 
 function openTrackUrlModal() {
   if (!_authToken) { openAuthModal('login'); return; }
@@ -10399,7 +10445,7 @@ function openTrackUrlModal() {
 function closeTrackUrlModal() {
   document.getElementById('track-url-modal').style.display = 'none';
   // 重置关联 note_id
-  _trackingLinkedNoteId = null; _trackingLinkedTitle = '';
+  _trackingLinkedNoteId = null; _trackingLinkedTitle = ''; _trackingLinkedSessionId = null;
   const inp = document.getElementById('track-url-input');
   if (inp) inp.placeholder = 'https://www.xiaohongshu.com/explore/...';
 }
@@ -10420,8 +10466,10 @@ async function submitTrackUrl() {
       xhs_url:       url,
       domain,
       predicted_ces: ces,
-      // 如果从笔记库发起，关联 note_id（后端 tracked_notes 表有 note_id 字段可存入）
       note_title:    _trackingLinkedTitle || undefined,
+      source_note_id: _trackingLinkedNoteId || undefined,
+      source_note_version_id: _trackingLinkedNoteId || undefined,
+      source_session_id: _trackingLinkedSessionId || undefined,
     };
     const res = await fetch(API_AUTH + '/notes/track-url', {
       method: 'POST',
@@ -10431,10 +10479,16 @@ async function submitTrackUrl() {
     const d = await res.json();
     if (res.status === 409) { errEl.textContent = '该笔记已在追踪中'; errEl.style.display = 'block'; return; }
     if (!res.ok) { errEl.textContent = d.detail || '提交失败'; errEl.style.display = 'block'; return; }
+    const linkedNoteId = _trackingLinkedNoteId;
+    const linkedTitle = _trackingLinkedTitle;
     closeTrackUrlModal();
-    const linkedMsg = _trackingLinkedTitle ? `「${_trackingLinkedTitle.slice(0,15)}」已关联追踪` : '追踪已开始';
+    const linkedMsg = linkedTitle ? `「${linkedTitle.slice(0,15)}」已关联追踪` : '追踪已开始';
     showToast(`✅ ${linkedMsg}，24小时后首次采集数据`);
     loadTrackingList();
+    if (linkedNoteId) {
+      _libraryOffset = 0;
+      loadLibrary(true);
+    }
   } catch(e) {
     errEl.textContent = '网络错误：' + e.message; errEl.style.display = 'block';
   } finally {
@@ -10454,13 +10508,14 @@ async function loadTrackingList() {
       el.innerHTML = '<div style="color:var(--text-muted);font-size:13px">提交你发布的小红书链接，AI 7天后告诉你实际表现如何。</div>';
       return;
     }
-    const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待手动填写',complete:'已完成'};
-    const statusCol = {pending:'var(--text-muted)',checking_24h:'var(--info)',checking_7d:'var(--warning)',needs_manual:'var(--warning)',complete:'var(--success)'};
+    const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待手动填写',complete:'已完成',failed:'采集失败'};
+    const statusCol = {pending:'var(--text-muted)',checking_24h:'var(--info)',checking_7d:'var(--warning)',needs_manual:'var(--warning)',complete:'var(--success)',failed:'var(--error)'};
+    const evidenceMap = {crawler:'自动采集',manual:'手动回填',screenshot:'截图识别',mixed:'混合证据'};
     el.innerHTML = notes.map(n => `
       <div style="background:var(--surf-2);border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div style="font-size:13px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-            ${n.note_title ? n.note_title.slice(0,40) : '未获取标题'}
+            ${n.note_title ? escapeHtml(n.note_title.slice(0,40)) : '未获取标题'}
           </div>
           <span style="font-size:10px;font-weight:700;color:${statusCol[n.status]||'var(--text-muted)'};
                        background:rgba(255,255,255,0.05);padding:2px 8px;border-radius:8px;flex-shrink:0;margin-left:8px">
@@ -10468,13 +10523,16 @@ async function loadTrackingList() {
           </span>
         </div>
         <div style="font-size:11px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap">
-          ${n.predicted_ces ? `<span>预测 <b>${n.predicted_ces.toFixed(1)}</b>分</span>` : ''}
-          ${n.actual_ces ? `<span style="color:var(--success)">实际 <b>${n.actual_ces.toFixed(1)}</b>分</span>` : ''}
+          ${n.source_note_id ? `<span style="color:var(--accent)">已关联笔记版本</span>` : '<span>外部链接追踪</span>'}
+          ${n.predicted_ces != null ? `<span>预测 <b>${Number(n.predicted_ces).toFixed(1)}</b>分</span>` : ''}
+          ${n.actual_ces != null ? `<span style="color:var(--success)">实际 <b>${Number(n.actual_ces).toFixed(1)}</b>分</span>` : ''}
           ${n.likes_7d != null ? `<span>👍 ${n.likes_7d}</span>` : n.likes_24h != null ? `<span>👍 ${n.likes_24h}（24h）</span>` : ''}
           ${n.saves_7d != null ? `<span>⭐ ${n.saves_7d}</span>` : ''}
-          <span>${n.submitted_at?.slice(0,10)||'–'} · ${n.domain}</span>
+          ${n.evidence_source ? `<span>${evidenceMap[n.evidence_source] || escapeHtml(n.evidence_source)}</span>` : ''}
+          ${n.confidence_label ? `<span>${escapeHtml(n.confidence_label)}置信度</span>` : ''}
+          <span>${n.submitted_at?.slice(0,10)||'–'} · ${escapeHtml(n.domain)}</span>
         </div>
-        ${n.status === 'needs_manual' ? `
+        ${(n.status === 'needs_manual' || n.status === 'failed') ? `
           <button onclick="openManualFill('${n.id}')"
             style="margin-top:8px;padding:4px 12px;border-radius:7px;border:1px solid var(--accent);
                    background:rgba(0,153,255,0.08);color:var(--accent);cursor:pointer;font-size:11px;font-weight:600">
@@ -10490,15 +10548,21 @@ function openManualFill(trackId) {
   const likes    = prompt('点赞数：'); if(likes===null) return;
   const saves    = prompt('收藏数：'); if(saves===null) return;
   const comments = prompt('评论数：'); if(comments===null) return;
-  submitManualFill(trackId, parseInt(likes)||0, parseInt(saves)||0, parseInt(comments)||0);
+  const views    = prompt('浏览量（可选，不填则系统估算）：');
+  submitManualFill(trackId, parseInt(likes)||0, parseInt(saves)||0, parseInt(comments)||0, parseInt(views)||null);
 }
-async function submitManualFill(trackId, likes, saves, comments) {
+async function submitManualFill(trackId, likes, saves, comments, views = null) {
   const res = await fetch(`${API_AUTH}/notes/tracking/${trackId}/fill`, {
     method:'POST', headers:{...authHeader(),'Content-Type':'application/json'},
-    body: JSON.stringify({likes, saves, comments}),
+    body: JSON.stringify({likes, saves, comments, views, evidence_source:'manual'}),
   });
   const d = await res.json();
-  if (d.ok) { showToast(`✅ 实际 CES: ${d.actual_ces}分`); loadTrackingList(); }
+  if (d.ok) {
+    showToast(`✅ 实际 CES: ${d.actual_ces}分 · ${d.confidence_label || '中'}置信`);
+    loadTrackingList();
+    _libraryOffset = 0;
+    loadLibrary(true);
+  }
   else showToast('填写失败：' + (d.detail||''));
 }
 

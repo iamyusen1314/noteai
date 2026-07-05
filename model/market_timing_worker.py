@@ -14,6 +14,7 @@ import json
 import os
 import sys
 import time
+import uuid
 from pathlib import Path
 
 import httpx
@@ -26,6 +27,11 @@ from hot_keywords import (
     write_keyword_snapshot,
 )
 from scheduler_a import scrape_once
+from xhs_acquisition import (
+    freshness_overview,
+    record_scrape_freshness,
+    xhs_freshness_required,
+)
 
 
 DEFAULT_SNAPSHOT_PATH = Path(__file__).parent / "data" / "market_timing_snapshot.json"
@@ -44,6 +50,7 @@ def _upload_snapshot(payload: dict, url: str) -> None:
 
 async def run_once(snapshot_path: Path, upload_url: str = "", hours: int = 30) -> dict:
     init_db()
+    run_id = str(uuid.uuid4())
     scrape_error = ""
     try:
         keywords = await scrape_once()
@@ -52,6 +59,10 @@ async def run_once(snapshot_path: Path, upload_url: str = "", hours: int = 30) -
         scrape_error = f"{type(exc).__name__}: {exc}"
     if keywords:
         upsert_keywords(keywords)
+    xhs_freshness = record_scrape_freshness(keywords, run_id=run_id)
+    if xhs_freshness_required() and not (xhs_freshness.get("overview") or {}).get("ok"):
+        missing = ", ".join((xhs_freshness.get("overview") or {}).get("missing_domains") or [])
+        raise RuntimeError(f"XHS_FRESH_EVIDENCE_UNAVAILABLE: missing fresh XHS evidence for {missing}")
     baseline_result = ensure_daily_evidence_pack()
     payload = write_keyword_snapshot(snapshot_path, hours=hours)
     if not (payload.get("domains") or {}):
@@ -61,6 +72,8 @@ async def run_once(snapshot_path: Path, upload_url: str = "", hours: int = 30) -
     return {
         "keywords": len(keywords),
         "scrape_error": scrape_error,
+        "xhs_freshness": xhs_freshness,
+        "xhs_freshness_overview": freshness_overview(),
         "baseline": baseline_result,
         "snapshot_path": str(snapshot_path),
         "domains": sorted((payload.get("domains") or {}).keys()),
