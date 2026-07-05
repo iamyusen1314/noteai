@@ -2155,3 +2155,68 @@ This list reflects current Git status during handoff. Some files were modified b
 - 不 stage / commit `测试图片/`。
 - 不修改生产配置、secrets、`.env`。
 - 不运行 migration/seed/reset/deploy。
+
+## 2026-07-05 Stage Update — Git Commit And Push Result
+
+### 1. 本轮完成了什么
+
+- 已按用户授权 stage / commit / push 版本链修复。
+- 主修复 commit 已推送到 `origin/codex/quality-stabilization-real-chain`。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录实际 Git stage / commit / push 结果，避免交接文件停留在“准备执行”状态。
+
+### 4. 做了哪些关键决策
+
+- 主修复 commit 仅包含 5 个确认文件。
+- 未跟踪目录 `测试图片/` 没有 stage、commit 或 push。
+
+### 5. 运行了哪些命令
+
+- `git add .codex/handoffs/current-task.md NoteAI_Pro_Demo_Framer.html model/api.py tests/test_api_contracts.py tests/test_frontend_report_static.py`
+- `git status --short`
+- `git diff --cached --stat`
+- `git diff --check --cached`
+- `git commit -m "fix note version chain continuity"`
+- `git push origin codex/quality-stabilization-real-chain`
+- `git rev-parse --short HEAD`
+
+### 6. 每个命令的结果
+
+- `git add`: 成功 stage 5 个确认文件。
+- `git status --short`: 5 个确认文件已暂存；`测试图片/` 仍未跟踪。
+- `git diff --cached --stat`: 5 files changed，`2329 insertions(+), 113 deletions(-)`。
+- `git diff --check --cached`: passed。
+- `git commit -m "fix note version chain continuity"`: created commit `d3861e9`。
+- `git push origin codex/quality-stabilization-real-chain`: pushed `dd7cfad..d3861e9` to GitHub。
+- GitHub remote 提示 default branch 有 1 个 low vulnerability；这不是本轮提交引入的验证失败。
+- `git rev-parse --short HEAD`: `d3861e9`。
+
+### 7. 当前仍然失败的问题
+
+- 暂无本轮 Git 操作失败。
+
+### 8. 当前未完成工作
+
+- 需要把本 handoff 结果记录再提交并推送，保持工作区干净。
+
+### 9. 当前最高风险
+
+- `测试图片/` 仍是未跟踪目录，后续若要处理需要用户单独确认。
+
+### 10. 下一步最小可行计划
+
+- stage 本 handoff 记录。
+- commit 为 handoff 结果记录。
+- push 到同一分支。
+- 最终报告两个 commit 和当前 Git 状态。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不 stage / commit / push `测试图片/`。
+- 不运行 deploy、migration、seed、reset。
