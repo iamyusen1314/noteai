@@ -93,6 +93,130 @@ body {
 }
 
 /* ═══════════════════════════════════════════════
+   PREMIUM SHADCN-INSPIRED UI LAYER
+═══════════════════════════════════════════════ */
+:root {
+  --premium-panel: rgba(17, 24, 39, 0.78);
+  --premium-panel-2: rgba(15, 23, 42, 0.64);
+  --premium-border: rgba(148, 163, 184, 0.18);
+  --premium-border-strong: rgba(123, 97, 255, 0.42);
+  --premium-cyan: #5EE7FF;
+  --premium-violet: #8B5CFF;
+  --premium-pink: #FF6FD8;
+  --premium-green: #43E6A3;
+  --premium-shadow: 0 20px 70px rgba(0, 0, 0, 0.42);
+  --premium-inset: inset 0 1px 0 rgba(255,255,255,0.08);
+  --premium-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes premiumSweep {
+  from { transform: translateX(-120%); opacity: 0; }
+  20% { opacity: .75; }
+  to { transform: translateX(120%); opacity: 0; }
+}
+@keyframes premiumPulse {
+  0%,100% { opacity: .48; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.14); }
+}
+@keyframes premiumTrace {
+  from { background-position: 0% 50%; }
+  to { background-position: 200% 50%; }
+}
+
+.premium-cta,
+.chat-primary-action,
+#pricing-content button,
+#library-empty button,
+#library-login-prompt button,
+#library-load-more button {
+  transition: transform .2s var(--premium-ease), box-shadow .2s var(--premium-ease), border-color .2s var(--premium-ease), background .2s var(--premium-ease);
+}
+.premium-cta:hover,
+.chat-primary-action:hover,
+#pricing-content button:hover,
+#library-empty button:hover,
+#library-login-prompt button:hover,
+#library-load-more button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(123,97,255,0.22);
+}
+
+.premium-glass,
+.intent-section,
+.constraint-section,
+.profile-header,
+.profile-card,
+.monthly-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025)),
+    rgba(12, 16, 24, 0.72);
+  border-color: var(--premium-border);
+  box-shadow: var(--premium-shadow), var(--premium-inset);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+.premium-grid-surface {
+  position: relative;
+  overflow: hidden;
+}
+.premium-grid-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,.85), transparent 72%);
+  opacity: .34;
+}
+
+.premium-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.premium-sheen::after {
+  content: '';
+  position: absolute;
+  top: -35%;
+  bottom: -35%;
+  width: 48%;
+  left: -60%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  transform: skewX(-18deg);
+  opacity: 0;
+}
+.premium-sheen:hover::after,
+.premium-sheen.active::after,
+.premium-sheen.on::after {
+  animation: premiumSweep 1.1s var(--premium-ease);
+}
+
+.premium-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--premium-border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════
    PAGE SYSTEM
 ═══════════════════════════════════════════════ */
 .page { display: none; min-height: 100vh; padding-top: 60px; }
@@ -1743,6 +1867,459 @@ body {
 .m-insight-val   { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -1px; margin-bottom: 4px; }
 .m-insight-desc  { font-size: 12px; color: var(--text-2); line-height: 1.5; }
 
+/* Premium polish for upload, forms, dashboard and billing-like cards */
+#page-upload,
+#page-pricing,
+#page-library,
+#page-profile {
+  background:
+    linear-gradient(180deg, rgba(123,97,255,0.055), transparent 280px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, 42px 42px, 42px 42px, auto;
+}
+.mode-card,
+.intent-section,
+.intent-card,
+.input-type,
+.constraint-section,
+.profile-header,
+.profile-card,
+.monthly-card,
+.memory-item,
+.m-insight {
+  border-radius: 8px;
+}
+.mode-card,
+.intent-card,
+.input-type,
+.profile-card,
+.memory-item,
+.m-insight {
+  position: relative;
+  overflow: hidden;
+}
+.mode-card:hover,
+.intent-card:hover,
+.input-type:hover,
+.profile-card:hover,
+.memory-item:hover,
+.m-insight:hover {
+  border-color: var(--premium-border-strong);
+  box-shadow: 0 16px 44px rgba(0,0,0,0.32), 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+.mode-card::after,
+.intent-card::after,
+.input-type::after,
+.profile-card::after,
+.memory-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,0.09), transparent 34%);
+  opacity: 0;
+  transition: opacity .22s var(--premium-ease);
+}
+.mode-card:hover::after,
+.intent-card:hover::after,
+.input-type:hover::after,
+.profile-card:hover::after,
+.memory-item:hover::after {
+  opacity: 1;
+}
+.mode-card.active,
+.intent-card.on,
+.input-type.selected,
+.merchant-vis.on,
+.c-tag.on {
+  box-shadow: 0 0 0 1px rgba(123,97,255,0.22), 0 14px 44px rgba(123,97,255,0.14);
+}
+.mode-card-icon,
+.input-type-icon,
+.sw-icon,
+.agent-mini-avatar {
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.merchant-vis,
+.c-tag {
+  transition: transform .18s var(--premium-ease), border-color .18s var(--premium-ease), background .18s var(--premium-ease), color .18s var(--premium-ease);
+}
+.merchant-vis:hover,
+.c-tag:hover {
+  transform: translateY(-1px);
+}
+#screenshot-upload-area,
+#diagVideoArea,
+#coverUploadArea,
+#diagImgArea,
+#genCoverArea {
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018)),
+    rgba(15,23,42,0.7) !important;
+  border-color: var(--premium-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 52px rgba(0,0,0,0.24);
+}
+#screenshot-upload-area:hover,
+#diagVideoArea:hover,
+#coverUploadArea:hover,
+#diagImgArea:hover,
+#genCoverArea:hover,
+#genCoverArea.drag-over {
+  border-color: var(--premium-border-strong) !important;
+  background:
+    linear-gradient(180deg, rgba(123,97,255,0.1), rgba(0,212,255,0.035)),
+    rgba(15,23,42,0.74) !important;
+  transform: translateY(-1px);
+}
+#ss-thumb-grid,
+#diagThumbGrid,
+#genThumbGrid {
+  align-items: stretch;
+}
+.gen-thumb-item,
+#diagThumbGrid .gen-thumb-item {
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+}
+#manual-form,
+.generation-shell {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.052), rgba(255,255,255,0.02)),
+    rgba(15,23,42,0.72) !important;
+  border-color: var(--premium-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--premium-shadow), var(--premium-inset);
+}
+.upload-flow-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.upload-flow-step {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(123,97,255,0.11), rgba(0,212,255,0.035)) !important;
+  border-color: rgba(123,97,255,0.22) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.upload-flow-step::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-top: 1px solid rgba(255,255,255,0.13);
+  pointer-events: none;
+}
+.analyze-btn {
+  position: relative;
+  overflow: hidden;
+}
+.analyze-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  transform: translateX(-110%) skewX(-18deg);
+}
+.analyze-btn:hover::after {
+  animation: premiumSweep 1s var(--premium-ease);
+}
+.pricing-hero,
+.billing-info-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--premium-border) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.058), rgba(255,255,255,0.02)),
+    rgba(15,23,42,0.72) !important;
+  box-shadow: var(--premium-shadow), var(--premium-inset);
+}
+.pricing-hero {
+  padding: 34px 28px !important;
+}
+#pricing-content {
+  max-width: 1180px !important;
+}
+.pricing-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  align-items: stretch;
+}
+.pricing-card,
+.credit-op-card,
+.topup-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018)),
+    rgba(15,23,42,0.72) !important;
+  border-color: var(--premium-border) !important;
+  box-shadow: 0 16px 44px rgba(0,0,0,0.28), var(--premium-inset);
+  transition: transform .22s var(--premium-ease), border-color .22s var(--premium-ease), box-shadow .22s var(--premium-ease);
+}
+.pricing-card:hover,
+.credit-op-card:hover,
+.topup-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--premium-border-strong) !important;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.36), 0 0 0 1px rgba(123,97,255,0.12) inset;
+}
+.pricing-card::before,
+.credit-op-card::before,
+.topup-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+}
+.pricing-card-featured {
+  border-color: rgba(123,97,255,0.55) !important;
+  box-shadow: 0 24px 70px rgba(123,97,255,0.2), var(--premium-inset);
+}
+#pricing-content .pricing-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+#pricing-content .pricing-card > button {
+  margin-top: auto;
+}
+.pricing-badge {
+  box-shadow: 0 12px 24px rgba(123,97,255,0.28);
+}
+.billing-commitment {
+  text-align: center;
+}
+.nav-utility-link {
+  border: 1px solid transparent;
+}
+.nav-utility-link.is-active {
+  background: rgba(123,97,255,0.14) !important;
+  border-color: rgba(123,97,255,0.32) !important;
+  color: var(--holo-mid) !important;
+  box-shadow: 0 10px 24px rgba(123,97,255,0.16);
+}
+.empty-page-center {
+  min-height: calc(100vh - 60px);
+}
+.auth-empty-card {
+  width: min(620px, 100%);
+  margin: 0 auto;
+  padding: 34px;
+  border: 1px solid var(--premium-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.024)),
+    rgba(15,23,42,0.78);
+  box-shadow: var(--premium-shadow), var(--premium-inset);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+.auth-empty-icon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 18px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(123,97,255,0.95), rgba(255,111,216,0.86));
+  box-shadow: 0 14px 36px rgba(123,97,255,0.28), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.auth-empty-icon svg {
+  width: 27px;
+  height: 27px;
+  color: #fff;
+  stroke-width: 1.8;
+}
+.auth-empty-card h2 {
+  color: var(--text);
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+.auth-empty-card p {
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0 auto;
+  max-width: 460px;
+}
+.auth-empty-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 24px 0;
+}
+.auth-empty-mini {
+  text-align: left;
+  border: 1px solid var(--premium-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255,255,255,0.035);
+}
+.auth-empty-mini svg {
+  width: 18px;
+  height: 18px;
+  color: var(--premium-cyan);
+  margin-bottom: 8px;
+}
+.auth-empty-mini b {
+  display: block;
+  color: var(--text);
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+.auth-empty-mini span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.empty-action-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.empty-primary-action,
+.empty-secondary-action {
+  min-height: 44px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  border: 1px solid var(--premium-border);
+  transition: transform .2s var(--premium-ease), box-shadow .2s var(--premium-ease), border-color .2s var(--premium-ease), color .2s var(--premium-ease);
+}
+.empty-primary-action {
+  border: 0;
+  background: linear-gradient(135deg,#7B61FF,#FF6FD8);
+  color: #fff;
+}
+.empty-secondary-action {
+  background: rgba(255,255,255,0.045);
+  color: var(--text-2);
+}
+.empty-primary-action:hover,
+.empty-secondary-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(123,97,255,0.2);
+}
+.library-note-card,
+.library-version-card {
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018)),
+    rgba(15,23,42,0.72) !important;
+  border-color: var(--premium-border) !important;
+  box-shadow: 0 16px 44px rgba(0,0,0,0.28), var(--premium-inset);
+  transition: transform .22s var(--premium-ease), border-color .22s var(--premium-ease), box-shadow .22s var(--premium-ease);
+}
+.library-note-card:hover,
+.library-version-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--premium-border-strong) !important;
+  box-shadow: 0 22px 56px rgba(0,0,0,0.34), 0 0 0 1px rgba(123,97,255,0.12) inset;
+}
+#note-detail-modal > div {
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.022)),
+    rgba(15,23,42,0.92) !important;
+  border-color: var(--premium-border) !important;
+  box-shadow: var(--premium-shadow), var(--premium-inset);
+}
+.v4-radar-card,
+.v4-agent-map,
+.v4-source-grid,
+.v4-loop-rail,
+.v4-advantage-grid,
+.live-3d-shell,
+.arena,
+.agent-result {
+  border-radius: 8px !important;
+  box-shadow: var(--premium-shadow), var(--premium-inset);
+}
+.v4-agent-node,
+.v4-source-card,
+.v4-industry-card,
+.v4-loop-rail div,
+.v4-advantage-grid div,
+.agent-card,
+.agent-result {
+  transition: transform .24s var(--premium-ease), border-color .24s var(--premium-ease), box-shadow .24s var(--premium-ease), background .24s var(--premium-ease);
+}
+.v4-agent-node:hover,
+.v4-source-card:hover,
+.v4-industry-card:hover,
+.v4-loop-rail div:hover,
+.v4-advantage-grid div:hover,
+.agent-result:hover {
+  transform: translateY(-4px);
+  border-color: rgba(94,231,255,0.34) !important;
+  box-shadow: 0 20px 54px rgba(0,0,0,0.34), 0 0 0 1px rgba(94,231,255,0.08) inset;
+}
+.v4-btn-primary,
+.v4-btn-secondary,
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+.v4-btn-primary::after,
+.v4-btn-secondary::after,
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  pointer-events: none;
+}
+.v4-btn-primary:hover::after,
+.v4-btn-secondary:hover::after,
+.btn-primary:hover::after {
+  animation: premiumSweep 1s var(--premium-ease);
+}
+.v4-live-dot,
+.v4-hero-status span:first-child {
+  animation: premiumPulse 1.8s ease-in-out infinite;
+}
+@media(max-width:760px){
+  .upload-flow-steps { grid-template-columns: 1fr !important; }
+  .pricing-hero {
+    padding: 24px 18px !important;
+  }
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .auth-empty-card {
+    padding: 26px 18px;
+  }
+  .auth-empty-grid {
+    grid-template-columns: 1fr;
+    margin: 18px 0;
+  }
+  .auth-empty-mini {
+    padding: 10px 12px;
+  }
+}
+@media(min-width:761px) and (max-width:1120px){
+  .pricing-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
 /* ═══════════════════════════════════════════════
    UTILITY
 ═══════════════════════════════════════════════ */
@@ -2078,7 +2655,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   </a>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('landing',this)">首页</button>
-    <button class="nav-tab" onclick="showPage('upload',this)">开始诊断</button>
+    <button class="nav-tab" onclick="goToDiagnose(this)">开始诊断</button>
     <button class="nav-tab" onclick="showPage('live',this)">处理进度</button>
     <button class="nav-tab" onclick="showPage('report',this)">诊断报告</button>
     <button class="nav-tab" onclick="showPage('profile',this)">成长档案</button>
@@ -2093,12 +2670,12 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div>
     <!-- 已登录状态 -->
     <div id="nav-user" style="display:none;gap:10px;align-items:center">
-      <button onclick="showPage('library')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-2);padding:4px 8px;border-radius:8px;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='none'">📚 笔记库</button>
+      <button class="nav-utility-link" data-nav-page="library" onclick="showPage('library')" style="background:none;border:1px solid transparent;cursor:pointer;font-size:13px;color:var(--text-2);padding:4px 8px;border-radius:8px;transition:all .15s">📚 笔记库</button>
       <button onclick="showPage('profile')" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:13px;color:var(--text)">
         <span id="nav-avatar" style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;overflow:hidden;font-size:16px">🌸</span>
         <span id="nav-username">用户</span>
       </button>
-      <button onclick="showPage('pricing')" title="套餐与积分" style="display:flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-muted);padding:4px 6px;border-radius:6px;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='none'">
+      <button class="nav-utility-link" data-nav-page="pricing" onclick="showPage('pricing')" title="套餐与积分" style="display:flex;align-items:center;gap:4px;background:none;border:1px solid transparent;cursor:pointer;font-size:12px;color:var(--text-muted);padding:4px 6px;border-radius:6px;transition:all .15s">
         <span id="nav-credits-display" style="display:none;font-size:11px;font-weight:700;color:var(--holo-mid)"></span>
         💎
       </button>
@@ -2157,7 +2734,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       把 AI 诊断、爆文生成、二次优化连成一条能交付的内容生产线。
     </p>
     <div class="v4-cta-row">
-      <button class="v4-btn v4-btn-primary" onclick="showPage('upload')"><i data-lucide="search"></i>开始 AI 诊断</button>
+      <button class="v4-btn v4-btn-primary" onclick="goToDiagnose()"><i data-lucide="search"></i>开始 AI 诊断</button>
       <button class="v4-btn v4-btn-secondary" onclick="goToGenerate()"><i data-lucide="wand-2"></i>生成爆文</button>
       <button class="v4-btn v4-btn-text" onclick="showPage('tech')"><i data-lucide="cpu"></i>查看模型内核</button>
     </div>
@@ -2288,7 +2865,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   <h2>让 Claude 和 V0.4 先替你把质量关过一遍</h2>
   <p>免费开始诊断，也可以直接上传素材生成爆文。真正有价值的内容系统，应该让用户看到确定性的提升。</p>
   <div class="v4-cta-row">
-    <button class="v4-btn v4-btn-primary" onclick="showPage('upload')"><i data-lucide="search"></i>开始第一次诊断</button>
+    <button class="v4-btn v4-btn-primary" onclick="goToDiagnose()"><i data-lucide="search"></i>开始第一次诊断</button>
     <button class="v4-btn v4-btn-secondary" onclick="goToGenerate()"><i data-lucide="wand-2"></i>上传素材生成爆文</button>
   </div>
 </section>
@@ -2656,18 +3233,18 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       </div>
 
       <!-- 三步说明 -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">
-        <div style="background:rgba(123,97,255,0.06);border:1px solid rgba(123,97,255,0.15);border-radius:var(--r-md);padding:14px 16px;text-align:center">
+      <div class="upload-flow-steps" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">
+        <div class="upload-flow-step" style="background:rgba(123,97,255,0.06);border:1px solid rgba(123,97,255,0.15);border-radius:var(--r-md);padding:14px 16px;text-align:center">
           <div style="font-size:20px;margin-bottom:6px">📸</div>
           <div style="font-size:12px;font-weight:700;color:var(--holo-mid);margin-bottom:4px">① 上传素材</div>
           <div style="font-size:11px;color:var(--text-muted)">照片 / 截图</div>
         </div>
-        <div style="background:rgba(123,97,255,0.06);border:1px solid rgba(123,97,255,0.15);border-radius:var(--r-md);padding:14px 16px;text-align:center">
+        <div class="upload-flow-step" style="background:rgba(123,97,255,0.06);border:1px solid rgba(123,97,255,0.15);border-radius:var(--r-md);padding:14px 16px;text-align:center">
           <div style="font-size:20px;margin-bottom:6px">🤖</div>
           <div style="font-size:12px;font-weight:700;color:var(--holo-mid);margin-bottom:4px">② AI 逆推</div>
           <div style="font-size:11px;color:var(--text-muted)">5 专家辩论生成</div>
         </div>
-        <div style="background:rgba(123,97,255,0.06);border:1px solid rgba(123,97,255,0.15);border-radius:var(--r-md);padding:14px 16px;text-align:center">
+        <div class="upload-flow-step" style="background:rgba(123,97,255,0.06);border:1px solid rgba(123,97,255,0.15);border-radius:var(--r-md);padding:14px 16px;text-align:center">
           <div style="font-size:20px;margin-bottom:6px">📋</div>
           <div style="font-size:12px;font-weight:700;color:var(--holo-mid);margin-bottom:4px">③ 一键复制</div>
           <div style="font-size:11px;color:var(--text-muted)">标题 · 正文 · 标签</div>
@@ -2675,7 +3252,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       </div>
 
       <!-- 生成表单主体 -->
-      <div style="background:rgba(123,97,255,0.04);border:1.5px solid rgba(123,97,255,0.2);border-radius:var(--r-lg);padding:28px">
+      <div class="generation-shell" style="background:rgba(123,97,255,0.04);border:1.5px solid rgba(123,97,255,0.2);border-radius:var(--r-lg);padding:28px">
         <div style="display:flex;flex-direction:column;gap:20px">
 
           <!-- 素材图上传（最多9张，每张≤10MB） -->
@@ -3328,11 +3905,21 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
      PAGE 5: GROWTH PROFILE
 ═══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-profile">
-  <div class="profile-page" id="profile-login-prompt" style="display:none;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px;text-align:center">
-    <div style="font-size:48px">🔐</div>
-    <h2 style="color:var(--text)">登录后查看成长档案</h2>
-    <p style="color:var(--text-2)">成长档案记录你的真实评分历史和 AI 学习到的偏好</p>
-    <button onclick="openAuthModal('login')" style="padding:12px 28px;border-radius:980px;border:none;cursor:pointer;font-size:15px;font-weight:700;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff">立即登录</button>
+  <div class="profile-page empty-page-center" id="profile-login-prompt" style="display:none;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px;text-align:center">
+    <div class="auth-empty-card premium-grid-surface">
+      <div class="auth-empty-icon"><i data-lucide="lock-keyhole"></i></div>
+      <h2>登录后查看成长档案</h2>
+      <p>成长档案会沉淀你的评分曲线、创作偏好和账单用量，让每次诊断都能接上前一次的学习结果。</p>
+      <div class="auth-empty-grid">
+        <div class="auth-empty-mini"><i data-lucide="line-chart"></i><b>评分曲线</b><span>看见每次优化后的真实变化。</span></div>
+        <div class="auth-empty-mini"><i data-lucide="brain-circuit"></i><b>偏好记忆</b><span>持续学习你的表达风格。</span></div>
+        <div class="auth-empty-mini"><i data-lucide="receipt"></i><b>用量账本</b><span>积分、成本和记录清晰可查。</span></div>
+      </div>
+      <div class="empty-action-row">
+        <button class="empty-primary-action" onclick="openAuthModal('login')">立即登录</button>
+        <button class="empty-secondary-action" onclick="goToDiagnose()">先体验诊断</button>
+      </div>
+    </div>
   </div>
   <div class="profile-page" id="profile-real-content">
     <div class="profile-header">
@@ -3625,7 +4212,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <h2>124 维复合质量特征，每一步都在为交付质量把关</h2>
     <p>立即获取你的笔记专属诊断报告，或上传素材让 AI 直接生成爆文</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <button class="xbtn xbtn-fill" onclick="showPage('upload')">开始诊断 →</button>
+      <button class="xbtn xbtn-fill" onclick="goToDiagnose()">开始诊断 →</button>
       <button class="xbtn xbtn-ghost" onclick="goToGenerate()"
         style="background:linear-gradient(135deg,rgba(123,97,255,0.25),rgba(255,111,216,0.15));
                border-color:rgba(123,97,255,0.5);color:var(--holo-mid)">
@@ -3640,10 +4227,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
      PAGE — CHAT OPTIMIZATION  (对话式笔记优化)
 ═══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-chat" style="padding-top:60px">
-  <div style="display:flex;height:calc(100vh - 60px);overflow:hidden;">
+  <div class="chat-layout">
 
     <!-- ── Left: Note preview panel ── -->
-    <div id="chat-note-panel" style="
+    <div id="chat-note-panel" class="chat-note-panel" style="
       width:360px;flex-shrink:0;
       border-right:1px solid var(--border);
       background:var(--surf-1);
@@ -3688,21 +4275,36 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div>
 
     <!-- ── Right: Chat panel ── -->
-    <div style="flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)">
+    <div class="chat-main-panel">
 
       <!-- Session init banner (shown when no session) -->
       <div id="chat-no-session" style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
-        <div style="text-align:center;max-width:480px">
-          <div style="font-size:48px;margin-bottom:16px">💬</div>
+        <div class="chat-empty-card premium-grid-surface">
+          <div class="chat-empty-icon"><i data-lucide="message-square-text"></i></div>
           <h2 style="font-size:24px;font-weight:700;color:var(--text);margin-bottom:10px">对话式笔记优化</h2>
-          <p style="font-size:15px;color:var(--text-2);line-height:1.7;margin-bottom:28px">
+          <p style="font-size:15px;color:var(--text-2);line-height:1.7;margin-bottom:0">
             先在「开始诊断」页面生成笔记，点击「开始对话优化」即可进入这里。<br>
             AI 已读取专家意见和 V0.4 特征命中情况，帮你持续优化到 70 分以上。
           </p>
-          <button onclick="goToGenerate()"
-            style="padding:12px 28px;border-radius:980px;border:none;cursor:pointer;font-size:15px;font-weight:700;
-                   background:#fff;color:#0A0A0A;box-shadow:0 4px 20px rgba(255,255,255,0.15)">
-            去生成笔记 →
+          <div class="chat-agent-cards">
+            <div class="chat-agent-card">
+              <i data-lucide="scan-text"></i>
+              <b>读取上下文</b>
+              <span>笔记、截图、评分和专家意见进入同一会话。</span>
+            </div>
+            <div class="chat-agent-card">
+              <i data-lucide="route"></i>
+              <b>追踪弱项</b>
+              <span>围绕钩子、信息密度、转化动作持续修正。</span>
+            </div>
+            <div class="chat-agent-card">
+              <i data-lucide="sparkles"></i>
+              <b>生成版本</b>
+              <span>每轮改稿同步保存，可回看分数变化。</span>
+            </div>
+          </div>
+          <button class="chat-primary-action" onclick="goToGenerate()">
+            <span>去生成笔记</span><i data-lucide="arrow-right"></i>
           </button>
         </div>
       </div>
@@ -3713,15 +4315,15 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 
         <!-- Quick action buttons -->
         <div id="chat-quick-actions" style="padding:0 24px 8px;display:flex;flex-wrap:wrap;gap:7px">
-          <button class="cqa-btn" onclick="chatSendQuick('感觉有点广告，帮我改得更接地气')">🗣️ 更接地气</button>
-          <button class="cqa-btn" onclick="chatSendQuick('帮我想3个更吸引点击的标题方案')">✏️ 优化标题</button>
-          <button class="cqa-btn" onclick="chatSendQuick('按沟通好的方向，重写一版完整笔记')">🔄 重写一版</button>
-          <button class="cqa-btn" onclick="chatSendQuick('哪几个特征还未达标，怎么改分最高？')">🔍 特征分析</button>
-          <button class="cqa-btn" onclick="chatSendQuick('互动引导结尾再优化一下，要更自然')">💬 优化结尾</button>
+          <button class="cqa-btn" onclick="chatSendQuick('感觉有点广告，帮我改得更接地气')"><i data-lucide="messages-square"></i>更接地气</button>
+          <button class="cqa-btn" onclick="chatSendQuick('帮我想3个更吸引点击的标题方案')"><i data-lucide="type"></i>优化标题</button>
+          <button class="cqa-btn" onclick="chatSendQuick('按沟通好的方向，重写一版完整笔记')"><i data-lucide="refresh-cw"></i>重写一版</button>
+          <button class="cqa-btn" onclick="chatSendQuick('哪几个特征还未达标，怎么改分最高？')"><i data-lucide="scan-search"></i>特征分析</button>
+          <button class="cqa-btn" onclick="chatSendQuick('互动引导结尾再优化一下，要更自然')"><i data-lucide="message-circle-plus"></i>优化结尾</button>
         </div>
 
         <!-- Input -->
-        <div style="border-top:1px solid var(--border);background:var(--surf-1);flex-shrink:0">
+        <div class="chat-input-shell" style="border-top:1px solid var(--border);background:var(--surf-1);flex-shrink:0">
           <!-- Attachment preview -->
           <div id="chat-attach-preview" style="display:none;padding:8px 24px 0;gap:8px;flex-wrap:wrap;align-items:center"></div>
           <div style="padding:10px 24px 18px;display:flex;gap:8px;align-items:flex-end">
@@ -3772,22 +4374,43 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <h1 style="font-size:28px;font-weight:800;color:var(--text);margin:0">📚 我的笔记库</h1>
         <p style="font-size:14px;color:var(--text-2);margin:6px 0 0">所有生成和优化的笔记版本，自动保存</p>
       </div>
-      <button onclick="showPage('upload')" style="padding:10px 20px;border-radius:980px;border:none;cursor:pointer;font-size:14px;font-weight:700;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff">+ 新建笔记</button>
+      <button onclick="goToDiagnose()" style="padding:10px 20px;border-radius:980px;border:none;cursor:pointer;font-size:14px;font-weight:700;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff">+ 新建笔记</button>
     </div>
 
     <!-- 未登录提示 -->
-    <div id="library-login-prompt" style="display:none;text-align:center;padding:80px 0">
-      <div style="font-size:48px;margin-bottom:16px">🔐</div>
-      <h2 style="color:var(--text);margin-bottom:8px">登录后查看笔记库</h2>
-      <button onclick="openAuthModal('login')" style="padding:12px 28px;border-radius:980px;border:none;cursor:pointer;font-size:15px;font-weight:700;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;margin-top:12px">立即登录</button>
+    <div id="library-login-prompt" class="empty-page-center" style="display:none;text-align:center;padding:80px 0">
+      <div class="auth-empty-card premium-grid-surface">
+        <div class="auth-empty-icon"><i data-lucide="book-open"></i></div>
+        <h2>登录后查看笔记库</h2>
+        <p>你的生成稿、对话改写版本和评分历程会自动归档，方便随时回看、复制和继续优化。</p>
+        <div class="auth-empty-grid">
+          <div class="auth-empty-mini"><i data-lucide="layers"></i><b>版本管理</b><span>保留每一版标题和正文。</span></div>
+          <div class="auth-empty-mini"><i data-lucide="message-square-text"></i><b>继续对话</b><span>从历史版本接着优化。</span></div>
+          <div class="auth-empty-mini"><i data-lucide="radar"></i><b>效果追踪</b><span>把笔记表现纳入成长档案。</span></div>
+        </div>
+        <div class="empty-action-row">
+          <button class="empty-primary-action" onclick="openAuthModal('login')">立即登录</button>
+          <button class="empty-secondary-action" onclick="goToGenerate()">先生成一篇</button>
+        </div>
+      </div>
     </div>
 
     <!-- 空状态 -->
-    <div id="library-empty" style="display:none;text-align:center;padding:80px 0">
-      <div style="font-size:48px;margin-bottom:16px">✍️</div>
-      <h2 style="color:var(--text);margin-bottom:8px">还没有笔记</h2>
-      <p style="color:var(--text-2)">通过「开始诊断」生成第一篇爆文，笔记会自动保存到这里</p>
-      <button onclick="showPage('upload')" style="margin-top:16px;padding:12px 28px;border-radius:980px;border:none;cursor:pointer;font-size:15px;font-weight:700;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff">去生成笔记</button>
+    <div id="library-empty" class="empty-page-center" style="display:none;text-align:center;padding:80px 0">
+      <div class="auth-empty-card premium-grid-surface">
+        <div class="auth-empty-icon"><i data-lucide="file-plus"></i></div>
+        <h2>还没有笔记</h2>
+        <p>生成第一篇笔记后，系统会把初稿、评分、对话改写和后续版本自动放进这里。</p>
+        <div class="auth-empty-grid">
+          <div class="auth-empty-mini"><i data-lucide="wand-2"></i><b>生成爆文</b><span>从素材快速得到可发布版本。</span></div>
+          <div class="auth-empty-mini"><i data-lucide="search"></i><b>诊断现稿</b><span>把已有笔记拆成可执行问题。</span></div>
+          <div class="auth-empty-mini"><i data-lucide="copy"></i><b>随时复用</b><span>一键复制历史高分版本。</span></div>
+        </div>
+        <div class="empty-action-row">
+          <button class="empty-primary-action" onclick="goToGenerate()">去生成笔记</button>
+          <button class="empty-secondary-action" onclick="goToDiagnose()">诊断已有笔记</button>
+        </div>
+      </div>
     </div>
 
     <!-- 笔记版本组列表（每组一张卡片，包含全部版本） -->
@@ -3806,15 +4429,15 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 ═══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-pricing" style="padding-top:60px;min-height:100vh">
   <div id="pricing-content" style="max-width:1000px;margin:0 auto;padding:48px 24px">
-    <div style="text-align:center;margin-bottom:48px">
+	    <div class="pricing-hero" style="text-align:center;margin-bottom:48px">
       <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">透明定价</div>
       <h1 style="font-size:36px;font-weight:800;color:var(--text);margin-bottom:12px">为高质量生成设计的清晰定价</h1>
       <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣本月套餐积分，不足部分再扣充值积分。规则公开，账单可查。</p>
     </div>
     <!-- 套餐卡片 -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">
+	    <div class="pricing-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">
       <!-- 免费版 -->
-      <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
+	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">免费版</div>
         <div style="font-size:38px;font-weight:800;color:var(--text);margin-bottom:4px">¥0</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">12积分/月</div>
@@ -3826,8 +4449,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <button onclick="openAuthModal('register')" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);cursor:pointer;font-size:13px;font-weight:600">免费开始</button>
       </div>
       <!-- 创作者版 -->
-      <div style="background:linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06));border:1.5px solid rgba(123,97,255,0.35);border-radius:16px;padding:22px 18px;position:relative">
-        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>
+	      <div class="pricing-card pricing-card-featured" style="background:linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06));border:1.5px solid rgba(123,97,255,0.35);border-radius:16px;padding:22px 18px;position:relative">
+	        <div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">创作者版</div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥99</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">260积分/月</div>
@@ -3841,7 +4464,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <button onclick="handleUpgrade('pro')" style="width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
       </div>
       <!-- 成长版 -->
-      <div style="background:var(--surf-1);border:1px solid rgba(34,197,94,0.25);border-radius:16px;padding:22px 18px">
+	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(34,197,94,0.25);border-radius:16px;padding:22px 18px">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#22C55E;text-transform:uppercase;margin-bottom:12px">成长版</div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥199</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">560积分/月</div>
@@ -3854,7 +4477,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <button onclick="handleUpgrade('growth')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(34,197,94,0.38);background:rgba(34,197,94,0.08);color:#22C55E;cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
       </div>
       <!-- 专业版 -->
-      <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
+	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">专业版</div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥299</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">900积分/月</div>
@@ -3867,7 +4490,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <button onclick="handleUpgrade('pro_plus')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(123,97,255,0.4);background:rgba(123,97,255,0.08);color:var(--holo-mid);cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
       </div>
       <!-- 工作室版 -->
-      <div style="background:var(--surf-1);border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:22px 18px">
+	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:22px 18px">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#00D4FF;text-transform:uppercase;margin-bottom:12px">工作室版</div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥399</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">1250积分/月</div>
@@ -3881,12 +4504,12 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <button onclick="handleUpgrade('studio')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(0,212,255,0.4);background:rgba(0,212,255,0.08);color:#00D4FF;cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
       </div>
     </div>
-    <div style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
+	    <div class="billing-info-card" style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
       <b style="color:var(--text)">如何理解“99元 / 260积分”：</b>260积分是本月可自由使用的创作额度，不绑定固定次数。可以全部用于 AI诊断，也可以混合用于爆文生成、对话重写和截图识别；每次扣多少，按下方标准执行。
     </div>
 
     <!-- 扣分标准 -->
-    <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
+	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap">
         <div>
           <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">功能扣分标准</h3>
@@ -3895,10 +4518,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <div style="font-size:12px;color:var(--text-muted)">扣费顺序：月度积分 → 充值积分 → 余额不足提示</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">
-        <div style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:var(--holo-mid)">6积分</b><br><span style="color:var(--text)">AI深度诊断</span><br><span style="font-size:11px;color:var(--text-muted)">截图/手动/视频入口进入完整诊断链路</span></div>
-        <div style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#FF6FD8">8积分</b><br><span style="color:var(--text)">AI爆文生成</span><br><span style="font-size:11px;color:var(--text-muted)">V0.4规划、生成、评分与二修链路</span></div>
-        <div style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#00D4FF">3积分</b><br><span style="color:var(--text)">对话深度重写</span><br><span style="font-size:11px;color:var(--text-muted)">进入高质量优化/改稿模式时扣除</span></div>
-        <div style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#22C55E">0.5积分</b><br><span style="color:var(--text)">截图识别</span><br><span style="font-size:11px;color:var(--text-muted)">独立截图 OCR/识别功能按张扣除</span></div>
+	        <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:var(--holo-mid)">6积分</b><br><span style="color:var(--text)">AI深度诊断</span><br><span style="font-size:11px;color:var(--text-muted)">截图/手动/视频入口进入完整诊断链路</span></div>
+	        <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#FF6FD8">8积分</b><br><span style="color:var(--text)">AI爆文生成</span><br><span style="font-size:11px;color:var(--text-muted)">V0.4规划、生成、评分与二修链路</span></div>
+	        <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#00D4FF">3积分</b><br><span style="color:var(--text)">对话深度重写</span><br><span style="font-size:11px;color:var(--text-muted)">进入高质量优化/改稿模式时扣除</span></div>
+	        <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#22C55E">0.5积分</b><br><span style="color:var(--text)">截图识别</span><br><span style="font-size:11px;color:var(--text-muted)">独立截图 OCR/识别功能按张扣除</span></div>
       </div>
       <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
         视频理解当前不单独扣充值积分，随 AI诊断/爆文生成主流程记录平台成本；如果未来按时长单独计费，会在上传前明示并二次确认。
@@ -3906,21 +4529,21 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div>
 
     <!-- 积分充值 -->
-    <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
+	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
       <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。本月套餐积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
-        <div onclick="handleTopup('starter')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
+	        <div class="topup-card" onclick="handleTopup('starter')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:20px;font-weight:800;color:var(--text)">30积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥12</div><div style="font-size:11px;color:var(--text-muted)">约5次诊断 / 3次爆文</div></div>
-        <div onclick="handleTopup('creator')" style="background:linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04));border:1px solid rgba(123,97,255,0.25);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
+	        <div class="topup-card" onclick="handleTopup('creator')" style="background:linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04));border:1px solid rgba(123,97,255,0.25);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
           <div style="font-size:20px;font-weight:800;color:var(--text)">100积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥39</div><div style="font-size:11px;color:var(--text-muted)">约16次诊断 / 12次爆文</div></div>
-        <div onclick="handleTopup('growth')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
+	        <div class="topup-card" onclick="handleTopup('growth')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:20px;font-weight:800;color:var(--text)">300积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥109</div><div style="font-size:11px;color:var(--text-muted)">约50次诊断 / 37次爆文</div></div>
-        <div onclick="handleTopup('studio')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(0,212,255,0.5)'" onmouseout="this.style.borderColor='var(--border)'">
+	        <div class="topup-card" onclick="handleTopup('studio')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(0,212,255,0.5)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:20px;font-weight:800;color:var(--text)">800积分</div><div style="font-size:16px;font-weight:700;color:#00D4FF">¥279</div><div style="font-size:11px;color:var(--text-muted)">约133次诊断 / 100次爆文</div></div>
       </div>
     </div>
-    <div style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
+	    <div class="billing-info-card billing-commitment" style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
       <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按 Claude 美元账单、Kimi 人民币账单和真实 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
     </div>
   </div>
@@ -4049,13 +4672,138 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 }
 /* ── Chat page styles (dark theme) ─────────────────────────── */
 #page-chat { padding-top: 60px; }
-.cqa-btn {
-  background: var(--surf-2); border: 1px solid var(--border);
-  border-radius: 18px; padding: 5px 12px; font-size: 12px;
-  color: var(--text-2); cursor: pointer; font-family: inherit;
-  transition: all .15s;
+.chat-layout {
+  display: flex;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(123,97,255,0.09), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 320px),
+    var(--bg);
 }
-.cqa-btn:hover { border-color: rgba(123,97,255,0.4); color: var(--holo-mid); background: rgba(123,97,255,0.08); }
+.chat-main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.028), transparent 40%),
+    rgba(8, 10, 16, 0.9);
+  position: relative;
+  overflow: hidden;
+}
+.chat-main-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.032) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: .2;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,.85), transparent 70%);
+}
+.chat-main-panel > * {
+  position: relative;
+  z-index: 1;
+}
+.chat-note-panel {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.016)),
+    rgba(13, 18, 29, 0.9) !important;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.04);
+}
+.chat-empty-card {
+  width: min(560px, 100%);
+  text-align: center;
+  border: 1px solid var(--premium-border);
+  border-radius: 8px;
+  padding: 34px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
+    rgba(15,23,42,0.78);
+  box-shadow: var(--premium-shadow), var(--premium-inset);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+.chat-empty-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(123,97,255,0.95), rgba(255,111,216,0.86));
+  box-shadow: 0 14px 36px rgba(123,97,255,0.28), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.chat-empty-icon svg { width: 27px; height: 27px; stroke-width: 1.8; }
+.chat-agent-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 24px 0;
+}
+.chat-agent-card {
+  border: 1px solid var(--premium-border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: left;
+  background: rgba(255,255,255,0.035);
+}
+.chat-agent-card svg {
+  width: 18px;
+  height: 18px;
+  color: var(--premium-cyan);
+  margin-bottom: 8px;
+}
+.chat-agent-card b {
+  display: block;
+  font-size: 12px;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.chat-agent-card span {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.chat-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 800;
+  background: #fff;
+  color: #0A0A0A;
+  box-shadow: 0 12px 28px rgba(255,255,255,0.14);
+}
+.chat-primary-action svg { width: 16px; height: 16px; }
+.chat-input-shell {
+  border-top: 1px solid var(--premium-border) !important;
+  background: rgba(15,23,42,0.78) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.cqa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.045); border: 1px solid var(--premium-border);
+  border-radius: 999px; padding: 7px 12px; font-size: 12px;
+  color: var(--text-2); cursor: pointer; font-family: inherit;
+  transition: all .18s var(--premium-ease);
+}
+.cqa-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+.cqa-btn:hover { border-color: rgba(123,97,255,0.48); color: #fff; background: rgba(123,97,255,0.12); transform: translateY(-1px); }
 /* chat bubbles */
 .cmsg { display:flex; gap:10px; max-width:82%; }
 .cmsg.user { align-self:flex-end; flex-direction:row-reverse; }
@@ -4067,17 +4815,18 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 .cmsg.ai  .cmsg-av { background:rgba(123,97,255,0.2); color:var(--holo-mid); }
 .cmsg.user .cmsg-av { background:rgba(0,153,255,0.15); color:var(--accent); }
 .cmsg-bubble {
-  padding:10px 15px; border-radius:16px; font-size:13.5px; line-height:1.75;
+  padding:11px 15px; border-radius:8px; font-size:13.5px; line-height:1.75;
   white-space:pre-wrap; word-break:break-word;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.22);
 }
-.cmsg.ai   .cmsg-bubble { background:var(--surf-2); border:1px solid var(--border); border-top-left-radius:3px; }
+.cmsg.ai   .cmsg-bubble { background:rgba(255,255,255,0.055); border:1px solid var(--premium-border); border-top-left-radius:3px; }
 .cmsg.user .cmsg-bubble { background:linear-gradient(135deg,#7B61FF,#FF6FD8); color:#fff; border-top-right-radius:3px; }
 /* thinking chain */
 .cthink-wrap { align-self:flex-start; max-width:90%; }
 .cthink-header {
   display:flex;align-items:center;gap:8px;padding:7px 13px;
-  background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);
-  border-radius:10px 10px 0 0;font-size:12px;color:#F59E0B;font-weight:500;cursor:pointer;user-select:none;
+  background:linear-gradient(135deg, rgba(245,158,11,0.13), rgba(123,97,255,0.07));border:1px solid rgba(245,158,11,0.28);
+  border-radius:8px 8px 0 0;font-size:12px;color:#F59E0B;font-weight:650;cursor:pointer;user-select:none;
 }
 .cthink-dots span {
   display:inline-block;width:4px;height:4px;border-radius:50%;
@@ -4087,7 +4836,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 @keyframes cdotB{0%,80%,100%{transform:translateY(0);opacity:.4;}40%{transform:translateY(-4px);opacity:1;}}
 .cthink-body {
   padding:8px 13px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);
-  border-top:none;border-radius:0 0 10px 10px;
+  border-top:none;border-radius:0 0 8px 8px;
   font-size:11.5px;color:rgba(245,158,11,0.9);line-height:1.7;max-height:120px;
   overflow-y:auto;white-space:pre-wrap;display:none;
 }
@@ -4117,6 +4866,78 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 /* chat messages scrollbar */
 #chat-messages::-webkit-scrollbar{width:4px;} #chat-messages::-webkit-scrollbar-track{background:transparent;} #chat-messages::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
 #chat-note-scroll::-webkit-scrollbar{width:4px;} #chat-note-scroll::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
+@media(max-width:700px){
+  .chat-layout {
+    height: calc(100vh - 60px);
+    flex-direction: column;
+  }
+	  #chat-note-panel.chat-note-panel {
+	    width: 100% !important;
+	    height: 168px;
+	    min-height: 132px;
+	    max-height: 30vh;
+	    border-right: 0 !important;
+	    border-bottom: 1px solid var(--border);
+	  }
+  .chat-main-panel {
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  #chat-no-session {
+    padding: 24px 18px !important;
+    align-items: flex-start !important;
+  }
+	  #chat-no-session > div {
+	    max-width: 100% !important;
+	  }
+		  .chat-empty-card {
+		    padding: 20px 16px;
+		  }
+		  .chat-empty-icon {
+		    width: 48px;
+		    height: 48px;
+		    margin-bottom: 12px;
+		  }
+		  .chat-agent-cards {
+		    grid-template-columns: 1fr;
+		    gap: 8px;
+		    margin: 16px 0 18px;
+		  }
+		  .chat-agent-card {
+		    padding: 10px 12px;
+		  }
+		  .chat-agent-card svg {
+		    width: 16px;
+		    height: 16px;
+		    margin-bottom: 6px;
+		  }
+		  .chat-agent-card b {
+		    margin-bottom: 1px;
+		  }
+		  .chat-agent-card span {
+		    font-size: 10.5px;
+		    line-height: 1.35;
+		  }
+		  #chat-no-session h2 {
+		    font-size: 21px !important;
+		    margin-bottom: 8px !important;
+		  }
+	  #chat-no-session p {
+	    font-size: 14px !important;
+	    line-height: 1.55 !important;
+	  }
+  .cmsg {
+    max-width: 100%;
+  }
+  #chat-messages,
+  #chat-quick-actions,
+  #chat-attach-preview {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
 </style>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -4136,10 +4957,11 @@ function showPage(name, tabEl) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('[data-nav-page]').forEach(t => t.classList.toggle('is-active', t.dataset.navPage === name));
   if (tabEl) tabEl.classList.add('active');
   else {
     const map = {landing:0,upload:1,live:2,report:3,profile:4,tech:5,chat:6};
-    // pricing 和 library 没有导航 tab，不高亮任何按钮
+    // pricing 和 library 使用右侧快捷入口高亮
     if (name !== 'pricing' && name !== 'library') {
       document.querySelectorAll('.nav-tab')[map[name]]?.classList.add('active');
     }
@@ -4224,8 +5046,8 @@ function renderPricingConfig(cfg) {
       `<div><span style="color:var(--success);margin-right:6px">✓</span>${pricingEsc(f)}</div>`
     ).join('');
     return `
-      <div style="background:${isRecommended ? 'linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06))' : 'var(--surf-1)'};border:${isRecommended ? '1.5px solid rgba(123,97,255,0.35)' : `1px solid ${tier === 'studio' ? 'rgba(0,212,255,0.25)' : 'var(--border)'}`};border-radius:16px;padding:22px 18px;position:relative">
-        ${isRecommended ? '<div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>' : ''}
+	      <div class="pricing-card ${isRecommended ? 'pricing-card-featured' : ''}" style="background:${isRecommended ? 'linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06))' : 'var(--surf-1)'};border:${isRecommended ? '1.5px solid rgba(123,97,255,0.35)' : `1px solid ${tier === 'studio' ? 'rgba(0,212,255,0.25)' : 'var(--border)'}`};border-radius:16px;padding:22px 18px;position:relative">
+	        ${isRecommended ? '<div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>' : ''}
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:${accent};text-transform:uppercase;margin-bottom:12px">${pricingEsc(t.name || tier)}</div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥${price.toLocaleString()}</span><span style="font-size:13px;color:var(--text-muted)">${price > 0 ? '/月' : ''}</span></div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly.toFixed(monthly % 1 ? 1 : 0)}积分/月</div>
@@ -4238,7 +5060,7 @@ function renderPricingConfig(cfg) {
       </div>`;
   }).join('');
   const opCards = Object.entries(ops).map(([key, op]) => `
-    <div style="background:var(--surf-2);border-radius:10px;padding:14px">
+	    <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px">
       <b style="font-size:20px;color:${op.color}">${Number(costs[key] || 0)}积分</b><br>
       <span style="color:var(--text)">${op.label}</span><br>
       <span style="font-size:11px;color:var(--text-muted)">${op.desc}</span>
@@ -4246,7 +5068,7 @@ function renderPricingConfig(cfg) {
   const topups = (cfg.topup_packages || []).map(p => {
     const credits = Number(p.credits || 0);
     return `
-      <div onclick="handleTopup('${pricingEsc(p.id)}')" style="background:${p.recommended ? 'linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04))' : 'var(--surf-2)'};border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid ${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'};transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'}'">
+	      <div class="topup-card" onclick="handleTopup('${pricingEsc(p.id)}')" style="background:${p.recommended ? 'linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04))' : 'var(--surf-2)'};border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid ${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'};transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'}'">
         <div style="font-size:20px;font-weight:800;color:var(--text)">${credits.toFixed(credits % 1 ? 1 : 0)}积分</div>
         <div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥${Number(p.price_rmb || 0).toLocaleString()}</div>
         <div style="font-size:11px;color:var(--text-muted)">约${pricingMax(credits, costs.analyze)}次诊断 / ${pricingMax(credits, costs.generate)}次爆文</div>
@@ -4254,17 +5076,17 @@ function renderPricingConfig(cfg) {
   }).join('');
   const pro = tiers.pro || {};
   root.innerHTML = `
-    <div style="text-align:center;margin-bottom:48px">
+	    <div class="pricing-hero" style="text-align:center;margin-bottom:48px">
       <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">透明定价</div>
       <h1 style="font-size:36px;font-weight:800;color:var(--text);margin-bottom:12px">为高质量生成设计的清晰定价</h1>
       <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣本月套餐积分，不足部分再扣充值积分。规则公开，账单可查。</p>
       <div style="display:inline-flex;margin-top:12px;padding:5px 10px;border-radius:999px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.18);color:var(--success);font-size:11px;font-weight:800">已同步后端计费规则</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">${tierCards}</div>
-    <div style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
+	    <div class="pricing-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">${tierCards}</div>
+	    <div class="billing-info-card" style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
       <b style="color:var(--text)">如何理解“${Number(pro.price || 99)}元 / ${Number(pro.monthly_credits || 260)}积分”：</b>${Number(pro.monthly_credits || 260)}积分是本月可自由使用的创作额度，不绑定固定次数。可以全部用于 AI诊断，也可以混合用于爆文生成、对话重写和截图识别；每次扣多少，按下方标准执行。
     </div>
-    <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
+	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap">
         <div><h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">功能扣分标准</h3><p style="font-size:13px;color:var(--text-2);margin:0">所有用户按同一标准扣分，不因套餐不同改变单次功能价格。</p></div>
         <div style="font-size:12px;color:var(--text-muted)">${pricingEsc(cfg.credit_policy || '扣费顺序：月度积分 → 充值积分 → 余额不足提示')}</div>
@@ -4272,12 +5094,12 @@ function renderPricingConfig(cfg) {
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">${opCards}</div>
       <div style="font-size:12px;color:var(--text-muted);line-height:1.7">视频理解当前不单独扣充值积分，随 AI诊断/爆文生成主流程记录平台成本；如果未来按时长单独计费，会在上传前明示并二次确认。</div>
     </div>
-    <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
+	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
       <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。本月套餐积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">${topups}</div>
     </div>
-    <div style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
+	    <div class="billing-info-card billing-commitment" style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
       <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按 Claude 美元账单、Kimi 人民币账单和真实 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
     </div>`;
   if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -4310,6 +5132,11 @@ function switchMode(mode) {
 function goToGenerate() {
   showPage('upload');
   setTimeout(() => switchMode('generate'), 50);
+}
+
+function goToDiagnose(tabEl) {
+  showPage('upload', tabEl);
+  setTimeout(() => switchMode('diagnose'), 50);
 }
 
 function selectType(el, type) {
@@ -4718,8 +5545,8 @@ async function startGeneration() {
                 intent_contract: ev.intent_contract || null,
                 fact_source_decision: ev.fact_source_decision || null,
               });
-              // BUG1 FIX: 自动保存生成的笔记到笔记库
-              autoSaveGeneratedNote(_generateResult);
+              // BUG1 FIX: 自动保存生成的笔记到笔记库；等待保存完成，确保对话优化能绑定 note_id。
+              await autoSaveGeneratedNote(_generateResult);
               _resolveGen();
             } else if (ev.type === 'error') {
               // Backend explicitly failed (e.g., P3 rate-limited after retries)
@@ -4939,8 +5766,8 @@ function _handleGenStreamEvent(ev) {
         break;
       }
       showToast('⚠ ' + errMsg);
-      // Navigate to report after a short delay to show the error state
-      setTimeout(async () => { showPage('report'); try { if (_diagnosePromise) await _diagnosePromise; } catch(e) {} await loadDiagnosisHistory(true); const _autoId = _diagnoseResult?.diagnosis_id || document.querySelector('[id^="diag-card-"]')?.id?.replace('diag-card-',''); if(_autoId) openDiagDetail(_autoId); else { _isGenerateMode = false; await populateReport(); } }, 2000);
+      // Navigate to the generation report after a short delay to show the error state.
+      setTimeout(async () => { _isGenerateMode = true; showPage('report'); await populateReport(); }, 2000);
       break;
     }
     case 'complete': {
@@ -4952,7 +5779,7 @@ function _handleGenStreamEvent(ev) {
       completeLive3D();
       setTimeout(() => {
         showToast('✅ 爆文生成完成！正在跳转至报告…');
-        setTimeout(async () => { showPage('report'); try { if (_diagnosePromise) await _diagnosePromise; } catch(e) {} await loadDiagnosisHistory(true); const _autoId = _diagnoseResult?.diagnosis_id || document.querySelector('[id^="diag-card-"]')?.id?.replace('diag-card-',''); if(_autoId) openDiagDetail(_autoId); else { _isGenerateMode = false; await populateReport(); } }, 1200);
+        setTimeout(async () => { _isGenerateMode = true; showPage('report'); await populateReport(); }, 1200);
       }, 600);
       break;
     }
@@ -5245,6 +6072,7 @@ async function startDiagnosis() {
                 _diagnoseResult._inputTitle = title;
                 _diagnoseResult._inputDesc  = desc;
                 _diagnoseResult._domain     = domain;
+                _diagnoseResult._saved_note_id = ev.saved_note_id || ev._saved_note_id || null;
                 _diagnoseResult.user_constraints = Array.isArray(ev.user_constraints) && ev.user_constraints.length
                   ? ev.user_constraints
                   : constraints;
@@ -5397,7 +6225,7 @@ async function populateReport() {
           <p style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:20px">
             请先在「开始诊断」页面输入笔记内容，<br>AI 分析完成后报告将自动显示在这里。
           </p>
-          <button onclick="showPage('upload')"
+          <button onclick="goToDiagnose()"
             style="padding:11px 28px;border-radius:12px;border:none;cursor:pointer;
                    background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;
                    font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(123,97,255,0.4)">
@@ -6015,6 +6843,7 @@ function loadPlanToChat(idx) {
   _noteDetailData = {
     title,
     body,
+    id:     _diagnoseResult?._saved_note_id || _diagnoseResult?.saved_note_id || null,
     domain: _diagnoseResult?._domain || _diagnoseResult?.domain || '美食',
     score:  _diagnoseResult?.ces_percentile || null,
     version: 1,
@@ -6029,11 +6858,43 @@ function startDiagChatOptimization() {
   _noteDetailData = {
     title:   d._inputTitle || '',
     body:    d._inputDesc  || '',
+    id:      d._saved_note_id || d.saved_note_id || null,
     domain:  d._domain     || d.domain || '美食',
     score:   d.ces_percentile || null,
     version: 1,
   };
   startChatFromDiagnosis();
+}
+
+async function ensureDiagnosisRootNote(note) {
+  const existing = note?.id || _diagnoseResult?._saved_note_id || _diagnoseResult?.saved_note_id || null;
+  if (existing) return existing;
+  if (!_authToken || !note || (!note.title && !note.body)) return null;
+  try {
+    const res = await fetch(API_AUTH + '/notes', {
+      method: 'POST',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title:  note.title || '（无标题）',
+        body:   note.body  || note.title || '（无正文）',
+        domain: note.domain || '美食',
+        score:  note.score || null,
+        grade:  _diagnoseResult?.grade || '',
+        source: 'diagnose',
+      }),
+    });
+    if (!res.ok) return null;
+    const saved = await res.json();
+    if (saved.id) {
+      note.id = saved.id;
+      if (_diagnoseResult) {
+        _diagnoseResult._saved_note_id = saved.id;
+        _diagnoseResult.saved_note_id = saved.id;
+      }
+      return saved.id;
+    }
+  } catch(e) {}
+  return null;
 }
 
 /* 从诊断报告进入对话优化（携带完整诊断上下文，让 AI 了解弱项） */
@@ -6046,11 +6907,13 @@ async function startChatFromDiagnosis() {
   // 重置 chat session
   _chatSessionId    = null;
   _chatIterCount    = 1;
-  _chatParentNoteId = null;
+  _chatParentNoteId = note.id || _diagnoseResult?._saved_note_id || _diagnoseResult?.saved_note_id || null;
   localStorage.removeItem('noteai_chat_session');
   document.getElementById('chat-messages').innerHTML = '';
 
   try {
+    const rootNoteId = await ensureDiagnosisRootNote(note);
+    _chatParentNoteId = rootNoteId || _chatParentNoteId;
     const constraints = Array.isArray(_diagnoseResult?.user_constraints) && _diagnoseResult.user_constraints.length
       ? _diagnoseResult.user_constraints
       : getConstraintTags();
@@ -6079,6 +6942,7 @@ async function startChatFromDiagnosis() {
       body: JSON.stringify({
         note_title:       note.title,
         note_body:        note.body,
+        note_id:          _chatParentNoteId || null,
         domain:           note.domain || '美食',
         local_time:       formatLocalTimeWithConstraints(constraints),
         user_constraints: constraints.length ? constraints : null,
@@ -7709,6 +8573,9 @@ function chatHandleEvent(ev) {
       break;
     }
     case 'note_update':
+      if (ev.saved_note_id || ev._saved_note_id) {
+        _chatParentNoteId = ev.saved_note_id || ev._saved_note_id;
+      }
       chatUpdateNote(ev.title, ev.body, ev.score, ev.grade);
       chatAppendNoteUpdatedMsg(ev.score, ev.grade);
       // BUG3 FIX: 笔记更新后同步刷新 localStorage 快照
@@ -8063,8 +8930,9 @@ async function initReportPage() {
 	  if (listEl) listEl.innerHTML = '';
 	  closeDiagDetail();
 
-  // 若诊断仍在进行中，先显示等待提示，等分析完成再拉历史
-  if (_diagnosePromise) {
+  // 若诊断仍在进行中，先显示等待提示，等分析完成再拉历史。
+  // 生成模式使用 _generateResult 渲染，不自动打开诊断历史详情。
+  if (!_isGenerateMode && _diagnosePromise) {
     if (listEl) listEl.innerHTML = `
       <div style="text-align:center;padding:48px;color:var(--text-muted)">
         <div style="font-size:32px;margin-bottom:14px;animation:spin 1.5s linear infinite;display:inline-block">⟳</div>
@@ -8075,7 +8943,7 @@ async function initReportPage() {
 	  }
 
 	  const hasFreshReport = _isGenerateMode
-	    ? (_generateResult && !_generateResult._error)
+	    ? !!_generateResult
 	    : (_diagnoseResult && !_diagnoseResult._error);
 	  if (hasFreshReport) {
 	    const detail = document.getElementById('diag-detail-section');
@@ -8085,6 +8953,10 @@ async function initReportPage() {
 	    if (!_authToken && historyLogin) historyLogin.style.display = 'none';
 	    if (!_authToken && historySection) historySection.style.display = 'none';
 	    await populateReport();
+	    if (_isGenerateMode) {
+	      if (_authToken) await loadDiagnosisHistory(true);
+	      return;
+	    }
 	    if (!_authToken) return;
 	  }
 
@@ -8125,7 +8997,7 @@ async function loadDiagnosisHistory(reset = false) {
           <div style="font-size:40px;margin-bottom:12px">📋</div>
           <div style="font-weight:600;margin-bottom:6px">暂无诊断记录</div>
           <div style="font-size:13px">去「开始诊断」提交笔记，报告将自动保存在这里</div>
-          <button onclick="showPage('upload')" style="margin-top:14px;padding:9px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:13px;font-weight:600;cursor:pointer">去诊断笔记 →</button>
+          <button onclick="goToDiagnose()" style="margin-top:14px;padding:9px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:13px;font-weight:600;cursor:pointer">去诊断笔记 →</button>
         </div>`;
       if (countEl) countEl.textContent = '';
       return;
@@ -8226,6 +9098,7 @@ async function openDiagDetail(diagId) {
     d._inputTitle = d.note_title || '';
     d._inputDesc  = d.desc || '';
     d._domain     = d._domain || d.domain || '';
+    d._saved_note_id = d.saved_note_id || d._saved_note_id || null;
 
     _diagnoseResult = d;
     _diagnosePromise = null;
@@ -8316,8 +9189,9 @@ function buildGroupCard(group) {
     return `<span style="font-size:10px;padding:1px 7px;border-radius:20px;${border};color:${col};font-weight:${isLatest?'700':'400'};background:${isLatest?col+'18':'transparent'}">${s ?? '–'}</span>`;
   }).join('<span style="font-size:10px;color:var(--text-muted);margin:0 1px">→</span>');
 
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'background:var(--surf-1);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .2s';
+	  const wrapper = document.createElement('div');
+	  wrapper.className = 'library-note-card';
+	  wrapper.style.cssText = 'background:var(--surf-1);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .2s';
   wrapper.onmouseover = () => wrapper.style.borderColor = 'rgba(123,97,255,0.4)';
   wrapper.onmouseout  = () => wrapper.style.borderColor = 'var(--border)';
 
@@ -8352,9 +9226,10 @@ function buildGroupCard(group) {
   versions.forEach((v, idx) => {
     const isLatestV = (idx === versions.length - 1);
     const col = _scoreColor(v.score);
-    const srcLabel = { generate:'AI生成', chat:'对话优化', manual:'手动' }[v.source] || v.source;
-    const card = document.createElement('div');
-    card.style.cssText = `min-width:220px;max-width:260px;border:${isLatestV ? '2px solid rgba(123,97,255,0.6)' : '1px solid var(--border)'};border-radius:12px;padding:14px;background:${isLatestV ? 'rgba(123,97,255,0.06)' : 'var(--surf-2)'};flex-shrink:0`;
+	    const srcLabel = { generate:'AI生成', chat:'对话优化', manual:'手动' }[v.source] || v.source;
+	    const card = document.createElement('div');
+	    card.className = 'library-version-card';
+	    card.style.cssText = `min-width:220px;max-width:260px;border:${isLatestV ? '2px solid rgba(123,97,255,0.6)' : '1px solid var(--border)'};border-radius:12px;padding:14px;background:${isLatestV ? 'rgba(123,97,255,0.06)' : 'var(--surf-2)'};flex-shrink:0`;
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:10px;color:var(--text-muted);background:var(--surf-3);padding:1px 7px;border-radius:20px">${srcLabel} v${v.version}${isLatestV ? ' · 最新' : ''}</span>
@@ -8749,6 +9624,7 @@ async function startChatFromLibrary() {
       body: JSON.stringify({
         note_title: note.title,
         note_body:  note.body,
+        note_id:    note.id || null,
         domain:     note.domain || '美食',
         local_time: formatLocalTimeWithConstraints(constraints),
         user_constraints: constraints.length ? constraints : null,
@@ -8801,6 +9677,7 @@ function chatSaveSessionToStorage() {
   const score     = scoreEl ? parseFloat(scoreEl.textContent) || null : null;
   localStorage.setItem('noteai_chat_session', JSON.stringify({
     sessionId:    _chatSessionId,
+    noteId:       _chatParentNoteId || null,
     noteTitle,
     noteBody,
     score,
@@ -8819,6 +9696,7 @@ function chatRestoreSession() {
     return;
   }
   if (!stored.sessionId) return;
+  _chatParentNoteId = stored.noteId || null;
 
   // 直接恢复 UI 状态，不发额外请求
   // 若 session 已失效，用户发第一条消息时 404 → _recreateChatSession 自动重建

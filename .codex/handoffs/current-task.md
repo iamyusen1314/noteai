@@ -1,6 +1,246 @@
 # Current Task Handoff
 
-Last updated: 2026-07-03
+Last updated: 2026-07-05
+
+## 2026-07-05 Execution Update - Frontend User Page Fixes
+
+### 本轮完成了什么
+
+- Fixed the user-facing frontend issue where explicit diagnosis entry points could leave the upload page in generation mode.
+- Fixed mobile chat layout clipping at `390x844` by making the chat page stack note preview above the chat panel on narrow screens.
+- Verified the fixes in the in-app browser using the local static frontend only.
+- Re-ran existing frontend static tests and Playwright e2e tests.
+- Did not start API/admin, did not submit auth forms, did not call real AI APIs, did not run DB/crawler/deploy/payment/email/SMS operations, and did not output env or secret values.
+
+### 修改了哪些文件
+
+- `NoteAI_Pro_Demo_Framer.html`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `NoteAI_Pro_Demo_Framer.html`: Added `goToDiagnose()` and routed explicit diagnosis CTAs through it; added chat layout classes and mobile CSS so chat no-session view does not clip horizontally on phones; corrected a library empty-state "go generate" button to use generation mode.
+- `.codex/handoffs/current-task.md`: Recorded this repair stage, validation, remaining gaps, and no-touch areas per project workflow.
+
+### 关键决策
+
+- Kept the fix in the static frontend only; no backend/API/database behavior was changed.
+- Preserved `goToGenerate()` for generation-specific entry points and introduced `goToDiagnose()` for diagnosis-specific entry points.
+- Used CSS class wrappers for the chat layout instead of broad structural refactoring.
+- Kept unauthenticated/backend-dependent flows out of scope until a safe temporary-DB API strategy is confirmed.
+
+### 运行了哪些命令 / 浏览器动作
+
+- `find /Users/openclaw/.codex/plugins/cache -path '*frontend-testing-debugging/SKILL.md' -print | head -20`
+- `cat AGENTS.md`
+- `sed -n '1,220p' .codex/handoffs/current-task.md`
+- `cat .codex/notes/architecture-summary.md`
+- `cat .codex/notes/risk-register.md`
+- `git status -sb`
+- `nl -ba NoteAI_Pro_Demo_Framer.html | sed -n ...`
+- `rg -n "showPage\\('upload'|goToGenerate|page-chat|chat-main-panel|chat-note-panel" NoteAI_Pro_Demo_Framer.html`
+- `git diff --check`
+- `git diff -- NoteAI_Pro_Demo_Framer.html | sed -n '1,240p'`
+- `python3 -m http.server 5173 --bind 127.0.0.1`
+- Browser QA:
+  - opened `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html` with a cache-busting query,
+  - clicked `生成爆文`,
+  - clicked top-nav `开始诊断`,
+  - verified upload page returned to diagnosis mode,
+  - opened `?page=chat` at `390x844`,
+  - verified mobile chat layout direction, panel sizes, visible text, and no horizontal overflow.
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `npm run test:e2e`
+- stopped the temporary static server.
+
+### 每个命令 / 动作的结果
+
+- Frontend skill and project memory/risk files were read successfully after locating the current skill cache path.
+- Initial `git status -sb`: existing handoff modification plus untracked `测试图片/` directory were present before edits; the directory was not touched.
+- `git diff --check`: passed.
+- Temporary static server started successfully on `127.0.0.1:5173` and was stopped after validation.
+- Diagnosis reset browser check:
+  - after clicking `生成爆文` then top-nav `开始诊断`, active page was `page-upload`;
+  - title was `诊断你的笔记`;
+  - `#modeDiag` had `active`;
+  - diagnosis section display was `block`;
+  - generation section display was `none`.
+- Mobile chat browser check at `390x844`:
+  - active page was `page-chat`;
+  - `.chat-layout` direction was `column`;
+  - document/body scroll width was `390`;
+  - horizontal overflow was `false`;
+  - note preview panel and chat panel were both within viewport width;
+  - no-session heading `对话式笔记优化` and CTA were visible.
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`: passed, 7 tests OK.
+- `npm run test:e2e`: passed, 3 Playwright tests OK.
+
+### 当前仍然失败的问题
+
+- No validation command failed in this stage.
+- Pricing page still logs a static fallback warning when API is intentionally not running; this remains expected for static-only QA.
+
+### 当前未完成工作
+
+- No authenticated frontend flow was tested end-to-end.
+- No safe temporary-DB API server smoke was run.
+- No screenshot OCR, video upload, `/analyze/stream`, `/generate/stream`, chat backend, billing/accounting, or admin flow was tested in this stage.
+- No live AI API call was run.
+
+### 当前最高风险
+
+- Full frontend + API user-flow testing still needs a safe test DB strategy because direct API startup may touch `model/data/noteai.db`.
+- Static HTML remains large and fragile; future navigation/mode changes should keep Playwright coverage close.
+
+### 下一步最小可行计划
+
+1. Let the user manually retest the user page from the current branch.
+2. If the user confirms these two UI fixes, stage only `NoteAI_Pro_Demo_Framer.html` and `.codex/handoffs/current-task.md` when preparing the next checkpoint.
+3. Plan a safe local API smoke using a temporary DB/module patch or explicit test harness before testing auth/profile/pricing backend paths.
+4. Do not broaden into backend, billing, auth, DB, live AI, crawler, or deploy work without confirmation.
+
+### 不能在未经确认的情况下修改
+
+- Auth/session/password/token logic.
+- Billing, credit, top-up, subscription, payment, refund, and quota logic.
+- Database schema, default local DB files, migrations, seed/reset/cleanup.
+- `.env`, `model/.env`, secrets, tokens, provider keys, and production config.
+- Live AI API calls, OCR/video provider calls, crawler/worker runs, deploys, payment/email/SMS operations.
+- The untracked `测试图片/` directory or any local test assets.
+
+## 2026-07-05 Execution Update - Frontend User Page QA
+
+### 本轮完成了什么
+
+- Opened the user-facing frontend at `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html` in the in-app browser.
+- Started only a temporary local static HTTP server for the frontend; did not start the API/admin servers.
+- Verified landing page, upload/diagnosis page, generation mode, auth modal basics, report page, profile page, tech page, chat page, pricing page, and library page.
+- Tested desktop and mobile viewport behavior.
+- Ran existing frontend static tests and Playwright e2e tests.
+- Did not submit login/register forms, did not call real AI APIs, did not run payment/email/SMS/crawler/deploy operations, and did not print env values or secrets.
+
+### 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: Recorded the frontend QA scope, results, findings, commands, remaining risks, and next minimal fix plan per project workflow rules.
+
+### 关键决策
+
+- Did not start `./start_all.sh start` because `model/db.py` currently hard-codes `model/data/noteai.db`; starting the API may initialize or migrate the default local SQLite DB.
+- Treated the current run as frontend/static/mock validation only.
+- Did not perform live AI, real auth registration, backend billing, OCR/video upload, crawler, worker, or deployment validation in this stage.
+- Used the Browser plugin first, then existing Playwright e2e as project automation coverage.
+
+### 运行了哪些命令 / 浏览器动作
+
+- `cat AGENTS.md`
+- `cat .codex/handoffs/current-task.md`
+- `cat .codex/notes/architecture-summary.md`
+- `cat .codex/notes/risk-register.md`
+- `git status -sb`
+- `cat package.json`
+- `cat playwright.config.js`
+- `rg --files tests | sort`
+- `./start_all.sh status`
+- `lsof -nP -iTCP:5173 -sTCP:LISTEN`
+- `lsof -nP -iTCP:8000 -sTCP:LISTEN`
+- `python3 -m http.server 5173 --bind 127.0.0.1`
+- Browser QA:
+  - opened landing page,
+  - clicked `开始 AI 诊断`,
+  - selected `决策转化型`,
+  - selected `展示商家`,
+  - filled merchant name with a test value,
+  - clicked empty diagnosis submit,
+  - switched to generation mode,
+  - clicked empty generation submit,
+  - opened register/login modal and switched auth tabs without submitting,
+  - swept top navigation pages,
+  - opened direct `?page=pricing` and `?page=library`,
+  - tested mobile viewport at `390x844`.
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `npm run test:e2e`
+
+### 每个命令 / 动作的结果
+
+- `git status -sb`: branch was clean before QA except for later handoff update.
+- `./start_all.sh status`: API/admin/frontend were not running at the start.
+- `lsof` checks for ports 5173 and 8000: no listeners before starting the temporary static server.
+- Static server: started successfully on `127.0.0.1:5173`.
+- Landing page:
+  - URL and title were correct.
+  - Main hero and CTA controls rendered.
+  - No relevant console errors/warnings.
+- Diagnosis entry:
+  - `开始 AI 诊断` navigated to the upload workflow.
+  - Content intent controls, merchant visibility controls, and diagnosis submit button rendered.
+  - Empty screenshot-mode submit showed `请先上传图片` and did not proceed to backend.
+- Content intent controls:
+  - `决策转化型` selected state changed to `on`.
+  - `展示商家` selected state changed to `on`.
+  - Merchant test input persisted in the field.
+  - Intent hint changed to the expected decision/fact-source guidance.
+- Generation mode:
+  - `AI 生成爆文` mode became active.
+  - Generation section rendered with domain and brief controls.
+  - Empty generation submit showed `请上传素材图片/视频或填写创作简报`.
+- Auth modal:
+  - Register modal opened with username/email/phone/password fields.
+  - Login tab switched submit text to `登录`.
+  - No form submission was performed.
+- Top navigation pages:
+  - `首页`, `开始诊断`, `处理进度`, `诊断报告`, `成长档案`, `技术引擎`, and `对话优化` all displayed their expected page containers.
+- Pricing page:
+  - Direct `?page=pricing` rendered pricing content.
+  - Because API was intentionally not running, console logged the expected static fallback warning for pricing config fetch.
+- Library page:
+  - Direct `?page=library` rendered the unauthenticated library prompt.
+- Mobile viewport:
+  - Landing, upload, and pricing did not create document-level horizontal overflow.
+  - Chat page visually clipped the right-side chat content at `390x844`.
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`: passed, 7 tests OK.
+- `npm run test:e2e`: passed, 3 Playwright tests OK.
+
+### 当前仍然失败的问题
+
+- Mobile chat layout is broken at `390x844`: the chat content area is shifted/clipped horizontally, so users cannot read the right side of the empty chat state.
+- Upload workflow state can be confusing: after entering generation mode, clicking top-nav `开始诊断` returns to the upload page but keeps generation mode active, so the heading remains `AI 生成爆文`.
+- Pricing page logs a fallback warning when the API is not running. The fallback content renders, so this is expected in static-only QA, but it should be checked again with a safe local API/test DB strategy.
+
+### 当前未完成工作
+
+- No authenticated frontend flow was tested end-to-end.
+- No real user registration/login was submitted.
+- No local API smoke was run because default DB path is hard-coded.
+- No screenshot OCR, video upload, `/analyze/stream`, `/generate/stream`, chat backend, billing/accounting, or admin flow was tested in this stage.
+- No live AI API call was run.
+- No code fix was made for the two frontend findings.
+
+### 当前最高风险
+
+- Mobile chat layout is user-visible and should be fixed before broad manual testing on phones.
+- The top-nav `开始诊断` state retention can misroute users into generation mode and confuse test results.
+- A safe test DB strategy is needed before full frontend + local API user-flow testing, otherwise app startup may touch `model/data/noteai.db`.
+
+### 下一步最小可行计划
+
+1. Fix mobile chat responsive layout in `NoteAI_Pro_Demo_Framer.html` with minimal CSS/layout changes.
+2. Fix `开始诊断` navigation so explicit diagnosis entry resets upload mode to diagnosis, while `生成爆文` still uses generation mode.
+3. Rerun browser checks at desktop and `390x844`.
+4. Rerun `.venv/bin/python -m unittest tests.test_frontend_report_static`.
+5. Rerun `npm run test:e2e`.
+6. Only after confirmation, design a safe temporary-DB local API smoke for auth/pricing/profile paths.
+
+### 不能在未经确认的情况下修改
+
+- Auth/session/password/token logic.
+- Billing, credit, top-up, subscription, payment, refund, and quota logic.
+- Database schema, default local DB files, migrations, seed/reset/cleanup.
+- `.env`, `model/.env`, secrets, tokens, provider keys, and production config.
+- Live AI API calls, OCR/video provider calls, crawler/worker runs, deploys, payment/email/SMS operations.
 
 ## 2026-07-03 Execution Update - Controlled Real Crawler Smoke
 
@@ -1077,3 +1317,841 @@ This list reflects current Git status during handoff. Some files were modified b
 - Crawler/market timing worker writes.
 - `package-lock.json` unless intentionally handling the Playwright dependency change.
 - Any generated local artifacts unless the user confirms they belong in Git.
+
+## 2026-07-05 Stage Update — Static UI Premium Polish
+
+### 1. 本轮完成了什么
+
+- 按用户要求，没有引入 React、shadcn 依赖或新生产依赖，直接在现有静态 HTML/CSS/JS 中手工吸收 shadcn / MagicUI / assistant-ui 的设计语言。
+- AI Chat 页升级为更像 assistant 工作台的空态：玻璃拟态面板、3 个上下文/弱项/版本状态卡、图标化主 CTA、图标化快捷指令、消息气泡和 thinking chain 视觉增强。
+- 上传/素材处理页增加 dropzone、上传卡、内容方向、商家策略、约束标签和生成三步卡片的高级 hover、边框、阴影、网格背景和响应式样式。
+- 定价/订阅页的静态 fallback 与后端动态套餐渲染同时接入 `pricing-card` / `billing-info-card` / `topup-card` 等样式类，提升商业化套餐卡、扣费说明和充值卡片质感。
+- 成长档案、笔记库、V0.4 landing/agent 动画卡片、处理进度相关卡片获得统一 premium glass/card/hover 视觉层。
+- 用 Codex 内置浏览器验证了 chat/upload/pricing/profile/library 页面桌面和 390px 移动宽度没有横向溢出。
+
+### 2. 修改了哪些文件
+
+- `NoteAI_Pro_Demo_Framer.html`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `NoteAI_Pro_Demo_Framer.html`: 添加 premium UI tokens、动效、chat 空态 DOM、快捷指令图标、上传/定价/笔记库/档案/landing 的视觉 class 与样式；不改变 API payload、上传函数、计费逻辑、认证逻辑或真实 AI 调用逻辑。
+- `.codex/handoffs/current-task.md`: 按项目规则记录本阶段完成内容、修改文件、验证命令、风险和下一步计划。
+
+### 4. 做了哪些关键决策
+
+- 不安装 `shadcn/ui`、MagicUI、assistant-ui 或任何新依赖；继续维持单文件静态前端架构。
+- 只做视觉和交互质感增强，避免重构业务流程、API 调用、认证、计费、数据库、crawler/worker。
+- 定价页同时覆盖静态 fallback 和动态 `renderPricingConfig()`，避免后端 API 不可用时 UI 退回旧样式。
+- 移动端 chat 保持“笔记预览在上、对话区在下”的前一轮修复，并把新增 agent cards 压成单列。
+
+### 5. 运行了哪些命令
+
+- `git diff --check`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `npm run test:e2e`
+- `lsof -nP -iTCP:5173 -sTCP:LISTEN`
+- `python3 -m http.server 5173 --bind 127.0.0.1`
+- Codex 内置浏览器 smoke: 打开 `chat`, `upload`, `pricing`, `profile`, `library`，并切到 `390x844` 检查 chat 移动布局。
+
+### 6. 每个命令的结果
+
+- `git diff --check`: passed，无空白/补丁格式问题。
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`: passed，7 tests OK。
+- `npm run test:e2e`: passed，3 Playwright tests OK。
+- `lsof -nP -iTCP:5173 -sTCP:LISTEN`: 没有进程监听，随后临时启动静态服务。
+- `python3 -m http.server 5173 --bind 127.0.0.1`: 本地静态服务启动成功；browser smoke 后已用 Ctrl-C 关闭。
+- 内置浏览器 smoke: desktop `chat/upload/pricing/profile/library` 均 active 正确；`overflowX=false`；移动 `390x844` chat `scrollWidth=390`，agent card 单列，未发现横向溢出。
+
+### 7. 当前仍然失败的问题
+
+- 本阶段没有发现新的测试失败。
+- 静态 smoke 中 pricing 页出现 `[pricing] use static fallback TypeError: Failed to fetch` warning，原因是只启动了静态前端、没有启动后端 API；这是现有降级路径，不是本轮新增失败。
+
+### 8. 当前未完成工作
+
+- 尚未做完整真实 AI 链路回归。
+- 尚未做登录后真实 profile/library 数据态视觉检查。
+- 尚未做 admin 后台 UI 高级化。
+- 尚未做全量 unit discovery、`py_compile`、quality gate、production readiness gate、Docker compose config。
+
+### 9. 当前最高风险
+
+- `NoteAI_Pro_Demo_Framer.html` 是大型单文件，视觉层改动较大，未来继续叠加时容易产生 CSS 选择器冲突。
+- 真实登录数据态的 profile/library 卡片依赖后端返回内容，当前只验证了未登录/静态 DOM 状态。
+- 定价页按钮仍连接现有升级/充值入口；本轮只改样式，没有验证真实 billing mutation，不能据此判断支付/扣费链路。
+
+### 10. 下一步最小可行计划
+
+- 用户人工打开前端，重点检查 chat、upload、pricing、profile/library 的视觉观感和交互手感。
+- 若用户指出具体 UI 不满意，优先在 `NoteAI_Pro_Demo_Framer.html` 做小范围视觉修补。
+- 如需进入功能回归，再启动本地 API/admin/frontend 做非生产 smoke；涉及真实 AI 调用前继续输出 Live API Run Plan。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不能引入 React/shadcn/MagicUI/assistant-ui/npm 生产依赖。
+- 不能修改 auth/session/admin 权限、billing/credits/payment、DB schema/migration、crawler/worker 写入逻辑、生产配置或 `.env`。
+- 不能运行真实 AI 批量调用、crawler、worker、deploy、DB reset/seed/migration、真实支付/邮件/短信。
+- 不能删除、提交或处理未跟踪的本地 `测试图片/` 目录，除非用户确认。
+
+## 2026-07-05 Stage Update — User Frontend Read-only UI Audit
+
+### 1. 本轮完成了什么
+
+- 按用户要求打开用户前端页面，并在 Codex 内置浏览器中做只读 UI 审核。
+- 审核范围：landing、upload、chat、pricing、profile、library。
+- 覆盖桌面视口和移动端 `390x844` 视口。
+- 本轮未修改业务代码。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录本轮只读审核发现、运行命令和下一步计划。
+
+### 4. 做了哪些关键决策
+
+- 审核阶段只记录问题，不直接修复。
+- 保留本地静态服务运行，方便用户继续在浏览器中人工点验用户页面。
+- 不启动后端 API/admin，不调用真实 AI API，不触碰 DB、认证、计费或生产配置。
+
+### 5. 运行了哪些命令
+
+- `lsof -nP -iTCP:5173 -sTCP:LISTEN`
+- `python3 -m http.server 5173 --bind 127.0.0.1`
+- Codex 内置浏览器导航/截图/DOM 检查：桌面 `landing/upload/chat/pricing/profile/library`。
+- Codex 内置浏览器 viewport `390x844` 检查：移动端 `landing/upload/chat/pricing/profile/library`。
+
+### 6. 每个命令的结果
+
+- `lsof -nP -iTCP:5173 -sTCP:LISTEN`: 初始没有服务监听。
+- `python3 -m http.server 5173 --bind 127.0.0.1`: 本地静态用户前端启动成功。
+- 桌面浏览器审核：各页面 active 正确，未发现横向溢出。
+- 移动端浏览器审核：各页面 active 正确，`overflowX=false`，chat 左侧笔记预览在移动端高度为 220px，未发现横向溢出。
+
+### 7. 当前仍然失败的问题
+
+- 定价页桌面宽度下 5 张套餐卡呈现为 4 + 1，最后一张单独掉到第二行，视觉上不够商业化。
+- `pricing` 页面不在主导航高亮体系中，进入定价页后顶部导航没有对应 active 项，用户可能不知道当前所在位置。
+- `library` 页面也不是主导航项，未登录态下顶部没有 active 高亮。
+- 未登录的 profile/library 空态过于空，缺少和新版 premium UI 一致的卡片容器、价值说明或二级 CTA。
+- 移动端 chat 空态可用，但第三张 agent card 首屏下方被截断；不是功能错误，但首屏信息密度偏高。
+- 静态前端单独运行时 pricing 会尝试请求后端 billing tiers 并 fallback；这是现有预期 warning，不是新失败。
+
+### 8. 当前未完成工作
+
+- 未检查登录后的真实 profile/library 数据态。
+- 未检查真实上传、真实 AI 生成、真实对话优化链路。
+- 未检查 admin 页面。
+- 未做本轮 UI 问题修复。
+
+### 9. 当前最高风险
+
+- 视觉高级化已经覆盖多个页面，但未登录态、定价布局和导航信息架构仍可能影响用户第一印象。
+- 登录态数据卡片可能出现真实文案长度、分数、账单数据导致的布局问题，需要后端/测试账号配合验证。
+
+### 10. 下一步最小可行计划
+
+- 优先修复定价页桌面套餐卡布局，让 5 张卡形成更均衡的 5 列或 3+2 布局。
+- 为 profile/library 未登录态增加统一 premium empty-state card。
+- 给 pricing/library 增加明确入口/导航状态，避免页面无 active 高亮。
+- 微调移动端 chat 空态高度和卡片密度，让 CTA 更早进入首屏。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不改后端 billing 规则、真实扣费、套餐语义或支付相关逻辑。
+- 不改 auth/session/admin 权限。
+- 不引入 React/shadcn/MagicUI/assistant-ui/npm 生产依赖。
+- 不运行真实 AI API、DB migration/seed/reset、crawler/worker、deploy。
+- 不处理未跟踪的 `测试图片/` 目录。
+
+## 2026-07-05 Stage Update — Fix Four User UI Issues
+
+### 1. 本轮完成了什么
+
+- 修复定价页桌面 `4 + 1` 套餐卡布局：桌面改为 5 张同排，平板 3 列，移动 1 列。
+- 修复 pricing/library 页面缺少导航状态的问题：顶部右侧快捷入口增加 `is-active` 状态，`showPage()` 会同步高亮。
+- 升级 profile/library 未登录和空列表状态：改为 premium glass empty-state card，增加价值说明、3 个小能力卡和双 CTA。
+- 微调移动端 chat 空态：降低笔记预览高度，压缩空态卡间距和 agent 卡密度，让 CTA 进入首屏。
+
+### 2. 修改了哪些文件
+
+- `NoteAI_Pro_Demo_Framer.html`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `NoteAI_Pro_Demo_Framer.html`: 修复用户审核发现的 4 个 UI 问题；仅改静态 HTML/CSS/前端展示状态，不改后端、API、数据库、认证、计费或真实 AI 逻辑。
+- `.codex/handoffs/current-task.md`: 按项目规则记录阶段性修复、命令、结果、风险和下一步。
+
+### 4. 做了哪些关键决策
+
+- 定价页不改变套餐、积分、价格和扣费语义，只改布局和卡片排布。
+- pricing/library 不加入主 nav-tab 数组，避免挤压主导航；改为右侧快捷入口 active 状态。
+- 空态升级为展示层，不改变登录、注册、鉴权逻辑。
+- 移动 chat 只压缩首屏密度，不隐藏核心说明和 CTA。
+
+### 5. 运行了哪些命令
+
+- `git diff --check`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `npm run test:e2e`
+- Codex 内置浏览器 QA: desktop `pricing/profile/library/chat`，mobile `chat` at `390x844`。
+- Codex 内置浏览器 console check filtered by `four-ui-fixes`。
+
+### 6. 每个命令的结果
+
+- `git diff --check`: passed。
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`: passed，7 tests OK。
+- `npm run test:e2e`: passed，3 Playwright tests OK。
+- Browser QA:
+  - pricing: 5 张套餐卡同一行，`pricingRows=1`，无横向溢出。
+  - profile: 未登录 empty-state card 可见。
+  - library: 未登录 empty-state card 可见，library 快捷入口 active。
+  - chat mobile: `noteHeight=168`，CTA 在 `390x844` 首屏内可见，无遮挡，无横向溢出。
+- Console filtered by `four-ui-fixes`: no current warnings/errors。
+
+### 7. 当前仍然失败的问题
+
+- 本阶段没有发现新的测试失败。
+- 静态前端单独运行时，如访问 pricing 仍可能触发后端 billing tiers fetch fallback；本轮 filtered 当前 QA 未出现相关 warning。
+
+### 8. 当前未完成工作
+
+- 未检查登录后的真实 profile/library 数据态。
+- 未检查真实 billing mutation、升级/充值后端行为。
+- 未检查真实 AI 上传/生成/chat 链路。
+- 未检查 admin 后台 UI。
+
+### 9. 当前最高风险
+
+- 登录态真实数据可能出现长标题、长正文、账单记录、评分等导致的布局压力，需要测试账号数据态继续 QA。
+- 顶部右侧 pricing/library active 是快捷入口状态，不是主导航项；如果后续要做完整信息架构，仍需设计导航体系。
+
+### 10. 下一步最小可行计划
+
+- 由用户人工检查这 4 个 UI 修复是否满意。
+- 如继续 UI 打磨，优先看登录态 profile/library 和生成后的 chat 活跃态。
+- 如进入功能测试，启动本地 API/admin/frontend，并按非生产 smoke 策略检查登录、生成、保存、笔记库、档案链路。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不改价格、套餐、积分扣费、支付/充值/升级接口语义。
+- 不改认证、session、admin 权限、DB schema/migration。
+- 不引入 React/shadcn/MagicUI/assistant-ui/npm 生产依赖。
+- 不运行真实 AI API、DB reset/seed/migration、crawler/worker、deploy。
+- 不处理未跟踪的 `测试图片/` 目录。
+
+## 2026-07-05 Stage Update — Manual Function Testing Setup
+
+### 1. 本轮完成了什么
+
+- 按用户要求进入“用户亲自逐项测试功能”的准备阶段。
+- 启动本地用户 API、Admin API 和静态前端页面，供用户手动测试。
+- 发现普通 `./start_all.sh start` 在 Codex 单次命令结束后进程会被清理，因此改用本机 `screen` 会话 `noteai-local` 承载本地服务。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录本轮测试准备、启动方式、命令结果、当前风险和下一步，便于后续继续接手。
+
+### 4. 做了哪些关键决策
+
+- 不修改业务代码、不改配置、不运行数据库迁移/seed/reset/deploy。
+- 用 `screen` 保持本地服务持续运行，避免 Codex 命令执行器清理后台进程导致用户测试中断。
+- 本轮只做本地 health/smoke 检查，没有触发真实 AI API 调用。
+
+### 5. 运行了哪些命令
+
+- `tail -n 120 /tmp/noteai_api.log`
+- `tail -n 120 /tmp/noteai_admin.log`
+- `tail -n 80 /tmp/noteai_frontend.log`
+- `ls -l /tmp/noteai_*.pid 2>/dev/null || true`
+- `lsof -nP -iTCP:5173 -sTCP:LISTEN; lsof -nP -iTCP:8000 -sTCP:LISTEN; lsof -nP -iTCP:8001 -sTCP:LISTEN`
+- `ps -p $(cat /tmp/noteai_api.pid 2>/dev/null) -o pid,ppid,stat,command 2>/dev/null || true`
+- `ps -p $(cat /tmp/noteai_admin.pid 2>/dev/null) -o pid,ppid,stat,command 2>/dev/null || true`
+- `ps -p $(cat /tmp/noteai_frontend.pid 2>/dev/null) -o pid,ppid,stat,command 2>/dev/null || true`
+- `sed -n '1,260p' start_all.sh`
+- `./start_all.sh status`
+- `command -v tmux || true`
+- `command -v screen || true`
+- `screen -S noteai-local -X quit >/dev/null 2>&1 || true`
+- `screen -dmS noteai-local bash -lc 'cd /Users/openclaw/Desktop/noteai && ./start_all.sh start; while true; do sleep 3600; done'`
+- `screen -ls | sed -n '1,20p'`
+
+### 6. 每个命令的结果
+
+- 日志显示主 API、Admin API、前端都曾成功启动，且 health/页面请求返回成功。
+- 初始 `lsof` 和 `./start_all.sh status` 显示三个端口未持续监听，确认普通后台启动不适合当前 Codex 执行环境。
+- `ps` 检查显示 pid 文件存在但对应进程已不存在。
+- `start_all.sh` 检查确认脚本只启动本地 `127.0.0.1` 的 API/Admin/静态前端，未包含 migration/seed/reset/deploy。
+- `tmux` 不可用；`screen` 可用。
+- 使用 `screen` 启动后，`./start_all.sh status` 返回：主 API `ok`、模型标签 `v0.4-composite`、Admin API `ok`、前端页面运行中。
+- `lsof` 确认 `127.0.0.1:8000`、`127.0.0.1:8001`、`127.0.0.1:5173` 均在监听。
+- `screen -ls` 确认存在 detached 会话 `noteai-local`。
+
+### 7. 当前仍然失败的问题
+
+- 未发现本地服务启动失败。
+- 尚未进行用户逐项功能测试；具体功能问题需要用户人工操作后反馈。
+
+### 8. 当前未完成工作
+
+- 未执行真实 AI 生成/诊断/chat live 验证。
+- 未执行上传、保存、笔记库、档案、计费、Admin 后台的人工全链路测试。
+- 未检查登录态真实数据下的 UI 长文案/长列表布局。
+
+### 9. 当前最高风险
+
+- 用户手动测试若触发真实 AI 生成/诊断，可能产生外部 API 成本；需要控制样本量并避免批量/并发调用。
+- 认证、计费、积分、Admin 权限、DB 写入链路均属于高风险区域，发现问题后应先最小定位，不做扩大重构。
+
+### 10. 下一步最小可行计划
+
+- 用户从本地前端页面开始逐项人工测试。
+- 每发现一个问题，记录页面、操作步骤、期望结果、实际结果、是否可复现、是否触发真实 AI/API/上传。
+- 我根据用户反馈先复现，再做最小修复，并在每个阶段继续更新本 handoff。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不修改生产配置、`.env`、API key、token、secret、数据库连接串。
+- 不运行 DB migration/seed/reset/deploy/clean。
+- 不触发真实支付、真实邮件、真实短信、部署或生产写操作。
+- 不批量调用真实 AI API，不全量跑数据，不并发压测。
+- 不处理未跟踪的 `测试图片/` 目录，除非用户确认。
+
+## 2026-07-05 Stage Update — Full Manual Test Surface Policy
+
+### 1. 本轮完成了什么
+
+- 用户明确要求：只要由用户亲自测试系统，就必须开放完整测试面，而不是只开放单一模块。
+- 确认当前本地用户 API、Admin API 和前端仍在运行，可继续进行全量人工功能测试。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录用户对测试开放范围的明确要求，作为后续测试/修复协作规则。
+
+### 4. 做了哪些关键决策
+
+- 后续用户人工测试时，默认把前端页面、用户 API、Admin API、上传、诊断、生成、Chat、笔记库、档案、计费展示、worker/crawler 相关入口都视为可测试对象。
+- 不用 mock 结果冒充真实链路；如果用户测试触发真实 AI，需要如实记录真实成功/失败。
+- 仍保留生产安全边界：不开放真实支付、真实邮件/短信、部署、生产写操作、DB reset/seed/migration、批量/并发真实 AI 调用。
+
+### 5. 运行了哪些命令
+
+- `./start_all.sh status`
+
+### 6. 每个命令的结果
+
+- `./start_all.sh status`: 主 API `ok`，模型标签 `v0.4-composite`；Admin API `ok`；前端页面运行中。
+
+### 7. 当前仍然失败的问题
+
+- 暂无新增失败；等待用户全量人工测试反馈。
+
+### 8. 当前未完成工作
+
+- 尚未由用户完成逐项功能测试。
+- 尚未复现用户实际测试中发现的问题。
+
+### 9. 当前最高风险
+
+- 全量人工测试可能触发真实 AI API 成本、DB 写入、上传文件写入和计费/积分状态变化；需要将测试保持在本地/测试环境，并避免生产副作用。
+
+### 10. 下一步最小可行计划
+
+- 用户从前端开始全量测试。
+- 每发现一个问题，我先定位和复现，再按最小改动修复。
+- 每完成一个阶段性修复，继续更新本 handoff。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不修改生产配置、`.env`、secret、token、API key 或数据库连接串。
+- 不运行 DB migration/seed/reset/deploy/clean。
+- 不触发真实支付、真实邮件、真实短信、部署或生产写操作。
+- 不进行无上限真实 AI 调用、批量数据调用或并发压测。
+- 不处理未跟踪的 `测试图片/` 目录，除非用户确认。
+
+## 2026-07-05 Stage Update — Library Version Chain Investigation
+
+### 1. 本轮完成了什么
+
+- 调查用户反馈的“笔记库应按初始卡片归档诊断/生成/多轮对话优化版本，但现在没有”的问题。
+- 只读检查前端、后端 API、DB schema 和当前本地 DB 聚合形态；未修改业务代码。
+- 确认后端 `/notes` 仍具备 `parent_id/version/score_trend/versions` 版本组能力，前端笔记库也调用 `/notes?grouped=true` 展示版本组。
+- 确认当前断点主要是：诊断结果没有稳定进入 `/notes` 初始卡片；`/chat/start` 没接收/保存 `note_id`，导致 chat 自动保存时无法挂到初始卡片。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录本轮调查原因、证据、命令、风险和下一步最小修复方向。
+
+### 4. 做了哪些关键决策
+
+- 本轮先查原因，不做修复。
+- 不读取/输出笔记标题正文或用户内容，只看代码和 DB 聚合统计。
+- 不触发真实 AI API，不执行 DB 写入、迁移、seed、reset。
+
+### 5. 运行了哪些命令
+
+- `rg -n "library|note library|notes|saved|diagnos|chat|version|优化|笔记库|save" NoteAI_Pro_Demo_Framer.html | head -n 240`
+- `rg -n "@app\\.(get|post|put|delete).*notes|/notes|chat/start|chat/message|saved_diagnoses|diagnoses|create_note|save_note|version" model/api.py model/db.py model/*.py tests -g '!model/data/**'`
+- `git diff --stat`
+- `git diff -- NoteAI_Pro_Demo_Framer.html | rg -n "library|notes|save|chat|version|diagnos|showPage|profile|pricing" -C 3`
+- `rg -n "notes|library|chat|save|version|diagnos" tests package.json`
+- `sed -n '10180,10390p' model/api.py`
+- `sed -n '12780,13280p' model/api.py`
+- `sed -n '6800,7100p' NoteAI_Pro_Demo_Framer.html`
+- `sed -n '8200,8505p' NoteAI_Pro_Demo_Framer.html`
+- `sed -n '9080,9635p' NoteAI_Pro_Demo_Framer.html`
+- `sed -n '11080,11230p' model/api.py`
+- `sed -n '5800,6085p' NoteAI_Pro_Demo_Framer.html`
+- `rg -n "note_update|_last_note_id|ChatStartInput|note_id|parent_id|_saved_note_id|autoSaveGeneratedNote|autoSave" model/api.py NoteAI_Pro_Demo_Framer.html tests/test_api_contracts.py`
+- `sqlite3 model/data/noteai.db "SELECT source, COUNT(*) ... GROUP BY source ..."`
+- `sqlite3 model/data/noteai.db "SELECT COALESCE(parent_id,'<root>') ..."`
+- `sqlite3 model/data/noteai.db "SELECT COUNT(*) FROM notes n LEFT JOIN notes p ..."`
+- `git blame -L 8160,8210 NoteAI_Pro_Demo_Framer.html`
+- `git blame -L 9528,9625 NoteAI_Pro_Demo_Framer.html`
+- `git blame -L 12808,12834 model/api.py`
+- `git blame -L 12968,13070 model/api.py`
+- `nl -ba model/api.py | sed -n '10210,10350p'`
+- `nl -ba model/api.py | sed -n '12808,13090p'`
+- `nl -ba NoteAI_Pro_Demo_Framer.html | sed -n '6848,6912p'`
+- `nl -ba NoteAI_Pro_Demo_Framer.html | sed -n '8171,8210p'`
+- `nl -ba NoteAI_Pro_Demo_Framer.html | sed -n '9528,9602p'`
+- `nl -ba NoteAI_Pro_Demo_Framer.html | sed -n '9098,9158p'`
+
+### 6. 每个命令的结果
+
+- 代码搜索确认 `model/api.py` 的 `/notes` 保存接口支持 `parent_id`，`/notes?grouped=true` 会按根节点分组并返回 `version_count`、`score_trend`、`versions`。
+- 前端 `loadLibrary()` 确认只读取 `/notes?grouped=true`，不合并 `/diagnoses`。
+- 前端 `autoSaveGeneratedNote()` 只在生成完成后保存 source=`generate` 的初始笔记，未发现诊断完成后等价保存初始笔记的函数。
+- 前端 `startChatOptimization()` 会传 `note_id: d._saved_note_id`，但后端 `ChatStartInput` 没有 `note_id` 字段。
+- 前端 `startChatFromLibrary()` 只把 `note.id` 存在 `_chatParentNoteId` 前端变量，没有把 `note_id` 传给 `/chat/start`。
+- 后端 chat 自动保存版本时用 `session.get("_last_note_id")` 作为 `parent_id`，但 `chat_start()` 没有初始化 `_last_note_id`。
+- `_persist_chat_session()` 没有持久化 `note_id`，`_load_chat_session_from_db()` 也没有恢复 `_last_note_id`。
+- 本地 DB 聚合只读统计：`chat` notes 28 条，其中 17 条是根、11 条是子版本；`generate` 9 条全部是根；`diagnose` 5 条全部是根；没有悬空 parent_id。
+- blame 显示这套不完整契约主要来自初始化仓库时的实现，后续内容意图/约束改动没有补齐 `note_id`。
+
+### 7. 当前仍然失败的问题
+
+- AI 诊断完成后，只稳定保存到 `saved_diagnoses` 诊断历史，不稳定保存为 `/notes` 初始卡片，因此笔记库可能看不到诊断对应的初始卡片。
+- 从诊断报告进入对话优化时 `_chatParentNoteId` 被置空，第一轮 chat 改写无法挂到诊断初始卡片。
+- 从生成结果进入对话优化时，即使前端传了 `_saved_note_id`，后端也忽略 `note_id`，第一轮 chat 改写会变成新的根卡片。
+- 从笔记库继续优化时，前端只在本地变量记住父笔记，后端没有接收，仍不能保证版本链归档。
+- 服务重启后 chat session 恢复缺少 note_id/last_note_id，版本链可能继续断。
+
+### 8. 当前未完成工作
+
+- 未修复前后端契约。
+- 未新增测试覆盖 `/notes` 版本链、诊断转笔记、生成转 chat、笔记库继续 chat。
+- 未对已有本地拆散数据做修复/迁移。
+
+### 9. 当前最高风险
+
+- 这是用户核心资产归档链路，影响用户对“每次诊断/生成/优化都有历史和分数变化”的信任。
+- 修复涉及后端保存行为和 DB 写入路径，必须小心避免重复保存、错误归属、跨用户挂载、成长记录重复。
+
+### 10. 下一步最小可行计划
+
+- 后端 `ChatStartInput` 增加可选 `note_id`，并在 `chat_start()` 校验该 note 属于当前用户后写入 session `_last_note_id`。
+- `_persist_chat_session()` 写入 `chat_sessions.note_id`，`_load_chat_session_from_db()` 恢复 `_last_note_id`。
+- 前端 `startChatFromLibrary()` 也向 `/chat/start` 传 `note_id: note.id`。
+- 诊断进入 chat 前先确保诊断原文被保存为 `/notes` 初始卡片，source 建议为 `diagnose`，并把返回 id 写入 `_diagnoseResult._saved_note_id` / `_noteDetailData.id`。
+- 增加针对 grouped notes/version chain 的后端单元测试；必要时加前端静态断言。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不直接修改或清洗现有本地/生产 DB 历史数据。
+- 不批量回填旧 notes 版本链，除非用户确认迁移/修复策略。
+- 不改变认证归属校验，不允许前端传入任意 note_id 后跨用户挂载。
+- 不改变计费/积分/真实 AI 调用逻辑。
+- 不输出用户笔记标题、正文、token、secret 或 `.env` 值。
+
+## 2026-07-05 Stage Update — Fix Library Version Chain
+
+### 1. 本轮完成了什么
+
+- 修复“笔记库初始卡片 + 多轮对话优化版本 + 分数趋势”链路。
+- 后端诊断成功后会同步创建 `/notes` 根笔记，并在诊断响应/历史 JSON 中返回 `saved_note_id`。
+- `/chat/start` 新增可选 `note_id`，并校验该 note 必须属于当前登录用户。
+- Chat 自动保存新版本时，使用当前 note 的真实版本号递增，挂到正确 `parent_id` 下。
+- `chat_sessions` 持久化 `note_id`，服务重启后继续对话也能恢复版本链父节点。
+- 前端从诊断报告、生成报告、笔记库详情进入 Chat 时都会传递 note id。
+- 新增后端契约测试和前端静态测试，覆盖 note id 绑定和前端 payload。
+- 已重启本地 `noteai-local` 服务会话，让用户测试页面使用最新代码。
+
+### 2. 修改了哪些文件
+
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `model/api.py`: 补齐诊断保存到笔记库、Chat note_id 契约、版本链父节点校验、chat session note_id 持久化和版本号递增。
+- `NoteAI_Pro_Demo_Framer.html`: 让诊断/生成/笔记库三个进入 Chat 的入口传递当前 note id；兼容 `saved_note_id` 并在旧诊断缺失时尽力补根笔记。
+- `tests/test_api_contracts.py`: 新增 `/chat/start` 绑定已有 note 与拒绝非本人 note 的后端测试。
+- `tests/test_frontend_report_static.py`: 新增静态断言，防止前端再次丢失 note id 传递。
+- `.codex/handoffs/current-task.md`: 记录本轮修复、验证、风险和下一步。
+
+### 4. 做了哪些关键决策
+
+- 版本链的真实归档由后端负责，不再只依赖前端本地变量。
+- 诊断生成的初始笔记保存为 `source='diagnose'`，Chat 后续版本保存为 `source='chat'`。
+- `note_id` 不能被前端任意挂载，后端必须按当前用户校验 ownership。
+- 不回填/修复已有被拆散的历史本地数据，避免未确认的数据迁移风险。
+- 不改计费、积分、真实 AI 调用、认证 token 或 DB schema。
+
+### 5. 运行了哪些命令
+
+- `python -m py_compile model/api.py`
+- `.venv/bin/python -m py_compile model/api.py`
+- `git diff --check`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_chat_start_binds_existing_note_for_library_version_chain tests.test_api_contracts.ApiContractTests.test_chat_start_rejects_note_id_not_owned_by_user tests.test_api_contracts.ApiContractTests.test_chat_ownership_is_checked_before_billing`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `npm run test:e2e`
+- `screen -S noteai-local -X quit >/dev/null 2>&1 || true`
+- `./start_all.sh stop >/tmp/noteai_stop.log 2>&1 || true`
+- `screen -dmS noteai-local bash -lc 'cd /Users/openclaw/Desktop/noteai && ./start_all.sh start; while true; do sleep 3600; done'`
+- `./start_all.sh status`
+- `lsof -nP -iTCP:8000 -sTCP:LISTEN`
+- `lsof -nP -iTCP:8001 -sTCP:LISTEN`
+- `lsof -nP -iTCP:5173 -sTCP:LISTEN`
+- local API smoke: register temporary local test user, create root note, start chat without sending messages.
+- local `/notes` version-chain smoke: register temporary local test user, create root note + child note by `parent_id`, read `/notes?grouped=true`.
+- `sqlite3 model/data/noteai.db "SELECT COUNT(*) FROM chat_sessions c JOIN users u ON c.user_id=u.id JOIN notes n ON c.note_id=n.id WHERE u.username LIKE 'noteai_smoke_%';"`
+- `git status --short`
+- `git diff --stat`
+
+### 6. 每个命令的结果
+
+- `python -m py_compile model/api.py`: failed，本机没有裸 `python` 命令。
+- `.venv/bin/python -m py_compile model/api.py`: passed。
+- `git diff --check`: passed。
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`: passed，8 tests OK。
+- 窄范围后端 Chat 契约测试：passed，3 tests OK。
+- `.venv/bin/python -m unittest tests.test_api_contracts`: passed，129 tests OK。期间有一条模拟 Moonshot 网络失败日志，是既有测试用例验证失败处理，不是真实 API 调用。
+- `npm run test:e2e`: passed，3 Playwright tests OK。
+- 本地服务重启后 `./start_all.sh status`: 主 API `ok`，模型 `v0.4-composite`；Admin API `ok`；前端运行中。
+- `lsof`: `127.0.0.1:8000`、`127.0.0.1:8001`、`127.0.0.1:5173` 均在监听，当前 screen 会话为 `noteai-local`。
+- local API smoke: passed，临时本地测试用户创建 1 个笔记库分组，Chat session 创建成功，根版本为 v1；未调用 `/chat/message`，未触发外部 AI。
+- local DB 只读确认：至少 1 条本地测试 chat session 的 `note_id` 成功关联到 notes。
+- local `/notes` version-chain smoke: passed，`groups=1`，`version_count=2`，子版本为 v2，`score_trend=[66.0,72.0]`。
+- `git status --short`: 当前修改包括 handoff、前端 HTML、`model/api.py`、两份测试；未跟踪 `测试图片/` 仍存在且未处理。
+
+### 7. 当前仍然失败的问题
+
+- 尚未用真实 AI 完整跑“诊断 → Chat 重写 → 笔记库多版本”端到端，因为那会触发真实外部 AI 成本，需要用户测试时按样本执行。
+- 旧的本地历史数据中，已经拆散成独立根卡片的 chat notes 没有自动回填修复。
+
+### 8. 当前未完成工作
+
+- 用户需要在前端手动验证：
+  - 新诊断完成后是否出现在笔记库。
+  - 从诊断报告点对话优化后，Chat 新版本是否归在同一张笔记库卡片下。
+  - 从 AI 生成爆文点对话优化后，Chat 新版本是否归在生成根卡片下。
+  - 从笔记库历史版本点继续优化后，新版本是否接在该卡片版本链下。
+- 若用户要求，需要另行设计旧数据回填策略。
+
+### 9. 当前最高风险
+
+- 诊断成功现在会新增一条 `notes` 根笔记，这是正确产品行为，但会增加本地/生产 DB 写入；需要上线前确认不会和历史诊断页造成重复展示困惑。
+- 旧历史诊断记录可能没有 `saved_note_id`，前端只在用户进入 Chat 时做最佳努力补根笔记；不做批量迁移前，旧数据体验不会完全一致。
+
+### 10. 下一步最小可行计划
+
+- 由用户手动测试笔记库链路，优先小样本：
+  1. 新建一次 AI 内容诊断。
+  2. 点“开始对话优化”，重写一版。
+  3. 打开笔记库，确认同一卡片下至少 v1/v2 且分数趋势可见。
+  4. 新建一次 AI 生成爆文，重复同样检查。
+- 如果真实 AI 测试失败，先区分是 AI 输出未产生 `note_update`、后端保存失败、还是前端展示分组问题。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不批量迁移/清洗旧 notes 数据。
+- 不删除旧诊断历史或旧拆散的 chat 根卡片。
+- 不修改计费、积分、套餐、支付、认证、admin 权限。
+- 不运行 DB migration/seed/reset/deploy。
+- 不输出用户笔记正文、账号 token、secret、`.env` 值或真实 API key。
+
+## 2026-07-05 Stage Update — Live Version Chain QA
+
+### 1. 本轮完成了什么
+
+- 按用户授权执行受控真实 AI 小样本验证，重点覆盖 3 条版本链：
+  1. AI 内容诊断 -> 开始对话优化 -> 重写一版 -> 笔记库同一卡片 v1/v2。
+  2. AI 生成爆文 -> 开始对话优化 -> 重写一版 -> 笔记库同一卡片 v1/v2。
+  3. 笔记库打开历史版本 -> 继续对话优化 -> 新版本接在同一卡片下。
+- 使用本地测试账号和本地 SQLite 数据库，未触发生产资源、支付、邮件、短信、部署或 DB migration/seed/reset。
+- 前端笔记库页面完成可视验证：
+  - 生成爆文卡片显示“共3个版本”，版本链为 v1/v2/v3，分数历程为 `69.9 -> 72.1 -> 71.6`。
+  - 诊断卡片显示“共2个版本”，版本链为 diagnose v1 + 对话优化 v2，分数历程为 `42.2 -> 70.1`。
+  - 从笔记库版本面板点击“继续优化”可进入对话优化上下文，页面显示当前笔记评分 `71.6`，未发送额外 AI 消息。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录本轮 live QA 的范围、结果、命令、风险和下一步。
+
+### 4. 做了哪些关键决策
+
+- live QA 使用合成测试输入，不使用真实用户数据。
+- API/DB 验证和前端 UI 验证分开执行，先确认后端版本链，再确认页面展示。
+- 对“继续优化”入口只验证进入 chat 上下文，不发送新消息，避免超出本轮真实 AI 调用计划。
+- 生成流耗时较长时不并发重试，避免重复成本和状态污染。
+- 第一次 live 脚本的 `/notes` 查询因测试脚本 token 传参错误返回 401；判定为测试脚本问题，不作为产品失败，并使用同一测试账号继续验证。
+
+### 5. 运行了哪些命令
+
+- `/tmp/noteai_live_chain_test.py`：受控 live 诊断链路脚本。
+- `/tmp/noteai_live_chain_resume.py`：继续同一测试账号，完成生成链路与笔记库续写链路。
+- `./start_all.sh status`
+- `screen -ls`
+- `find . -maxdepth 3 -type f \( -name '*.log' -o -name 'uvicorn*.out' -o -name '*server*.log' \)`
+- Browser in-app QA:
+  - 打开 `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=live-chain&page=landing`
+  - 使用页面登录本地测试账号。
+  - 进入笔记库、展开两个版本卡片、点击一次“继续优化”进入 chat 上下文。
+  - 保存截图到 `/tmp/noteai-live-chain-library-expanded.png` 和 `/tmp/noteai-live-chain-chat-context.png`。
+- `git status --short`
+- `tail -n 120 .codex/handoffs/current-task.md`
+
+### 6. 每个命令的结果
+
+- live 诊断链路：passed。
+  - `/analyze/stream` 返回 complete，`model_used=claude-routed-5-agents`，保存根 note。
+  - `/chat/start` + `/chat/message` 返回 `note_update`，笔记库分组为 2 个版本，分数 `42.2 -> 70.1`。
+- live 生成链路：passed。
+  - `/generate/stream` 返回 complete，`model_used=claude-routed-5-agents-stream`，保存根 note，耗时约 234.2 秒。
+  - `/chat/start` + `/chat/message` 返回 `note_update`，笔记库分组为 2 个版本，分数 `69.9 -> 72.1`，耗时约 78.1 秒。
+- live 笔记库续写链路：passed。
+  - 从最新生成版本继续 chat，返回 `quality_repaired` + `note_update`，同一分组扩展为 3 个版本，分数 `69.9 -> 72.1 -> 71.6`，耗时约 113.9 秒。
+- 本地服务状态：主 API 8000 ok，Admin 8001 ok，前端 5173 运行中。
+- Browser QA：passed。
+  - 页面身份正确，加载非空，console 未见相关 error/warn。
+  - 笔记库 UI 显示 2 张卡片：生成卡 `共3个版本`，诊断卡 `共2个版本`。
+  - 展开生成卡可见 `AI生成 v1`、`对话优化 v2`、`对话优化 v3 · 最新`。
+  - 展开诊断卡可见 `diagnose v1`、`对话优化 v2 · 最新`。
+  - 点击“继续优化”进入对话优化，显示当前笔记评分 `71.6`。
+- `git status --short`: 仍有已知修改文件和未跟踪 `测试图片/`；本轮未提交、未 staging、未 push。
+
+### 7. 当前仍然失败的问题
+
+- 未发现这 3 条重点版本链的产品失败。
+- 已知非产品失败：第一次 live 脚本在已完成诊断与 chat 后，因测试脚本对 `/notes` 请求传 token 的方式错误导致 401；后续已用同账号补测并通过。
+- Browser DOM snapshot 接口对当前页面报浏览器侧方法错误，已改用只读 DOM query、locator、console logs 和 screenshot 完成验证；不影响产品页面本身。
+
+### 8. 当前未完成工作
+
+- 还没有跑“用户手动从 UI 发起完整诊断/生成再 chat”的全流程，因为本轮 live AI 调用已覆盖 API/DB 真实链路，UI 层验证使用同一测试账号读取结果并验证入口。
+- 旧历史数据中已经拆散的卡片仍未回填。
+- 尚未提交当前修改。
+
+### 9. 当前最高风险
+
+- 真实 AI 生成耗时较长，生成流约 234 秒；上线体验需要考虑超时、进度反馈和 provider 慢响应。
+- 旧数据不回填时，用户历史上已拆散的笔记可能不会自动合并。
+- Browser 自动化的 DOM snapshot 能力不稳定，后续 UI QA 需要继续保留 screenshot/DOM query 备用路径。
+
+### 10. 下一步最小可行计划
+
+- 用户亲自打开页面复测这 3 条链路。
+- 若用户发现 UI 操作路径和本轮 API/DB 结果不一致，优先定位：
+  1. 前端是否把正确 `note_id` 传给 `/chat/start`。
+  2. `/chat/message` 是否收到并保存 `note_update`。
+  3. `/notes?grouped=true` 是否返回同一 `parent_id` 下的新版本。
+  4. 笔记库是否刷新/展开了最新版本链。
+- 如果需要处理旧数据，再单独设计可回滚的回填/合并方案，并先征得用户确认。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不批量回填、合并、删除或清洗旧 notes/chat_sessions 数据。
+- 不修改计费、积分、套餐、支付、认证、admin 权限。
+- 不运行 DB migration/seed/reset/deploy。
+- 不触发额外真实 AI 批量调用、并发压测或超过 10 次调用的验证。
+- 不输出 token、密码、`.env` 值、API key、secret、数据库连接串或完整用户内容。
+
+## 2026-07-05 Stage Update — UI-Origin Version Chain Fixes
+
+### 1. 本轮完成了什么
+
+- 继续执行用户授权的 UI-origin live QA，覆盖从前端按钮发起的诊断、生成、对话优化和笔记库展示。
+- 发现并修复两个真实 UI-origin 问题：
+  1. Chat `note_update` 在后端写入 notes 之前先发给前端，用户很快进笔记库时可能看到旧版本链。
+  2. AI 生成爆文完成后，报告页会自动打开最新诊断历史，导致生成报告被旧诊断报告覆盖。
+- 修复后重新验证：
+  - UI 诊断 -> 报告页 -> 对话优化重写 -> 笔记库显示同一卡片 v1/v2，分数 `36.9 -> 68.6`。
+  - UI 生成爆文 -> 生成报告 -> 对话优化重写 -> 笔记库显示同一卡片 v1/v2，分数 `69.9 -> 72.5`。
+  - 之前的笔记库历史版本继续优化链路仍显示同一卡片 v1/v2/v3，分数 `69.9 -> 72.1 -> 71.6`。
+
+### 2. 修改了哪些文件
+
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `model/api.py`: 将 chat 新版本保存到 notes 的动作提前到 `note_update` 事件之前，并在 `note_update` 中返回 `saved_note_id`，避免前端看到“生成完成”但笔记库尚未落库的竞态。
+- `NoteAI_Pro_Demo_Framer.html`: 前端接收 `note_update.saved_note_id` 并更新当前 `_chatParentNoteId`；生成报告模式不再自动打开诊断历史；生成 complete 等待 `autoSaveGeneratedNote` 完成，确保生成报告进入 Chat 时有根 note id。
+- `tests/test_api_contracts.py`: 新增契约测试，确认 `note_update.saved_note_id` 对应已插入 notes 的新版本。
+- `tests/test_frontend_report_static.py`: 新增静态断言，锁住前端 note id 传递、生成报告上下文和生成保存等待逻辑。
+- `.codex/handoffs/current-task.md`: 记录本轮 live QA、修复、命令、结果和风险。
+
+### 4. 做了哪些关键决策
+
+- 后端保存顺序优先保证一致性：先保存 notes，再发送 `note_update`。
+- `saved_note_id` 作为向后兼容的新增字段，不改变已有 `note_update` 字段。
+- 生成报告页和诊断报告页共用容器，但生成模式禁止自动展开诊断历史详情，避免上下文污染。
+- 不回填本轮测试中因旧逻辑产生的单独 generate v1 测试卡；它是本地测试数据，不影响产品修复。
+- 达到本轮 live API 调用上限后停止，不继续触发额外真实 AI。
+
+### 5. 运行了哪些命令
+
+- 受控 UI live 操作：前端诊断、诊断后 chat 重写、前端生成、生成后 chat 重写、笔记库检查。
+- SQLite 只读核对 notes/chat_sessions version chain。
+- `.venv/bin/python -m py_compile model/api.py`
+- `git diff --check`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_chat_note_update_is_emitted_after_version_save tests.test_api_contracts.ApiContractTests.test_chat_start_binds_existing_note_for_library_version_chain tests.test_api_contracts.ApiContractTests.test_chat_start_rejects_note_id_not_owned_by_user`
+- `./start_all.sh status`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `npm run test:e2e`
+- Browser QA 截图保存到 `/tmp/noteai-final-library-version-chains.png`。
+
+### 6. 每个命令的结果
+
+- UI live 诊断链路：passed，笔记库显示 `共2个版本`，分数 `36.9 -> 68.6`。
+- UI live 生成链路：passed，笔记库显示 `共2个版本`，分数 `69.9 -> 72.5`。
+- 既有历史版本续写链路：仍 passed，笔记库显示 `共3个版本`，分数 `69.9 -> 72.1 -> 71.6`。
+- SQLite notes 检查：确认 UI 生成 v2 的 `parent_id` 指向生成根 note，`version=2`，`source=chat`。
+- `.venv/bin/python -m py_compile model/api.py`: passed。
+- `git diff --check`: passed。
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`: passed，9 tests OK。
+- 窄范围后端契约测试：passed，3 tests OK。
+- `./start_all.sh status`: 主 API 8000 ok，Admin 8001 ok，前端 5173 运行中。
+- `.venv/bin/python -m unittest tests.test_api_contracts`: passed，130 tests OK；期间有既有模拟/失败处理日志，不是真实 live 验证失败。
+- `npm run test:e2e`: passed，3 tests OK。
+
+### 7. 当前仍然失败的问题
+
+- 本轮 3 条重点版本链没有发现剩余失败。
+- 体验风险仍在：前端会展示较长模型“深度思考”文本，包含英文推理/草稿过程，后续需要决定是否折叠、摘要化或不展示原始 thinking。
+- 真实 AI 生成耗时偏长，部分生成流接近数分钟。
+
+### 8. 当前未完成工作
+
+- 未做旧数据回填/合并。
+- 未处理本地测试过程中由旧逻辑产生的一张单独 generate v1 测试卡。
+- 未提交当前修改。
+- 未继续触发更多 live API，因为本轮已达到约定的最多 10 次真实 AI 成本 endpoint。
+
+### 9. 当前最高风险
+
+- 上线前需要处理 thinking 展示策略，避免把模型草稿/推理过程原样暴露给普通用户。
+- provider 慢响应会影响处理进度页体验，需要后续优化超时、阶段提示和降级策略。
+- 历史数据不回填时，旧卡片仍可能保持拆散状态。
+
+### 10. 下一步最小可行计划
+
+- 用户在当前本地页面亲自复测三条主链路。
+- 若复测通过，准备 checkpoint/commit 范围。
+- 若复测发现展示问题，优先看 `/notes?grouped=true` 返回、`note_update.saved_note_id`、以及前端是否使用最新 HTML。
+- 单独开一轮处理 thinking 展示和生成耗时体验，不和版本链修复混在一起。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不批量改/删/合并旧 notes、diagnoses、chat_sessions。
+- 不修改计费、积分、套餐、支付、认证、admin 权限。
+- 不运行 DB migration/seed/reset/deploy。
+- 不再触发额外真实 AI 批量验证，除非用户重新确认 live API 调用计划。
+- 不输出 token、密码、`.env` 值、API key、secret、数据库连接串或完整用户内容。
+
+## 2026-07-05 Stage Update — Commit Authorization And Thinking UX Decision
+
+### 1. 本轮完成了什么
+
+- 用户确认允许 stage / commit / push 当前版本链修复。
+- 用户明确产品偏好：不建议折叠摘要或隐藏原始 thinking，更愿意让用户看到深度思考/草稿过程。
+- 将该产品决策记录为后续 UI/体验方向：当前不把 thinking 展示视为必须修复的问题，只把其作为需要设计呈现方式和边界的透明体验能力。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录用户对 commit/push 的授权，以及保留深度思考/草稿过程展示的产品决策。
+
+### 4. 做了哪些关键决策
+
+- 本次 commit scope 仅包含已确认的 5 个修改文件：
+  - `.codex/handoffs/current-task.md`
+  - `NoteAI_Pro_Demo_Framer.html`
+  - `model/api.py`
+  - `tests/test_api_contracts.py`
+  - `tests/test_frontend_report_static.py`
+- 不 stage 未跟踪目录 `测试图片/`。
+- 不把 raw thinking 展示作为当前阻塞缺陷；后续若优化，也应围绕可读性、层级、展开/收起体验或用户控制，而不是默认隐藏。
+
+### 5. 运行了哪些命令
+
+- `git branch --show-current`
+- `git remote -v`
+- `git status --short`
+- `git diff --stat`
+
+### 6. 每个命令的结果
+
+- 当前分支：`codex/quality-stabilization-real-chain`。
+- remote：`origin` 指向 GitHub repo `iamyusen1314/noteai`。
+- 当前待提交修改为上述 5 个文件。
+- 未跟踪目录 `测试图片/` 仍存在，未纳入提交计划。
+
+### 7. 当前仍然失败的问题
+
+- 暂无新增失败。
+
+### 8. 当前未完成工作
+
+- 尚未执行 stage / commit / push；下一步立即执行。
+
+### 9. 当前最高风险
+
+- commit scope 较大，主要因为 handoff 记录较长、前端单文件体量大；提交前需确保只 stage 预期文件。
+
+### 10. 下一步最小可行计划
+
+- `git add` 5 个确认文件。
+- `git commit` 创建 checkpoint。
+- `git push origin codex/quality-stabilization-real-chain`。
+- 最终报告 commit hash、push 结果和未跟踪文件状态。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不 stage / commit `测试图片/`。
+- 不修改生产配置、secrets、`.env`。
+- 不运行 migration/seed/reset/deploy。

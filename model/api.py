@@ -4770,6 +4770,7 @@ class AnalyzeResponse(BaseModel):
     suggested_title_scores: list[float | None] = Field(default=[], description="每个建议标题经辅助模型预测的 CES 分位")
     suggested_plans: list[dict] = Field(default=[], description="三套完整改写方案，每套含 title+body")
     diagnosis_id: str | None = Field(default=None, description="本次诊断保存到数据库的 ID，用于历史查看")
+    saved_note_id: str | None = Field(default=None, description="本次诊断同步保存到笔记库的初始笔记 ID")
     improvement_plan: str = Field(description="Claude针对拖分项的具体改进方案")
     suggested_body: str = Field(default="", description="AI改写正文（含话题标签）")
     model_used: str = Field(description="使用的AI模型")
@@ -10213,14 +10214,30 @@ class SaveNoteInput(BaseModel):
     source: str = "manual"
     parent_id: Optional[str] = None
 
+def _fetch_user_note(note_id: str | None, user_id: str):
+    if not note_id:
+        return None
+    return _db.fetchone(
+        "SELECT id,title,body,domain,score,grade,version FROM notes WHERE id=? AND user_id=?",
+        (note_id, user_id),
+    )
+
+
+def _next_note_version(parent_id: str | None, user_id: str, fallback: int = 1) -> int:
+    if not parent_id:
+        return fallback
+    row = _fetch_user_note(parent_id, user_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="父笔记不存在或无权访问")
+    try:
+        return int(row["version"] or 0) + 1
+    except Exception:
+        return fallback + 1
+
 @app.post("/notes")
 async def save_note(req: SaveNoteInput, user: dict = Depends(_auth.get_current_user)):
     nid = str(_uuid.uuid4())
-    version = 1
-    if req.parent_id:
-        row = _db.fetchone("SELECT version FROM notes WHERE id=?", (req.parent_id,))
-        if row:
-            version = row["version"] + 1
+    version = _next_note_version(req.parent_id, user["id"], 1)
     _db.execute(
         "INSERT INTO notes(id,user_id,title,body,domain,score,grade,source,parent_id,version,created_at)"
         " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
@@ -11120,6 +11137,7 @@ async def _run_analyze_pipeline(
                 break
 
     saved_diag_id: str | None = None
+    saved_note_id: str | None = None
     report_meta = _build_report_metadata(
         features,
         req.domain,
@@ -11171,6 +11189,36 @@ async def _run_analyze_pipeline(
         fact_source_decision=fact_source_decision,
         input_diagnostics=input_diagnostics,
     )
+
+    # 登录用户同步保存诊断原文为笔记库根版本，后续对话优化挂在这条版本链下。
+    try:
+        note_title_for_save = (req.note_title or "").strip() or "（无标题）"
+        note_body_for_save = (req.desc or "").strip()
+        if not note_body_for_save:
+            note_body_for_save = note_title_for_save
+        note_id = str(_uuid.uuid4())
+        _db.execute(
+            "INSERT INTO notes(id,user_id,title,body,domain,score,grade,source,parent_id,version,created_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                note_id,
+                user["id"],
+                note_title_for_save,
+                note_body_for_save,
+                req.domain or "美食",
+                round(percentile, 1),
+                grade,
+                "diagnose",
+                None,
+                1,
+                _now_iso(),
+            ),
+        )
+        saved_note_id = note_id
+    except Exception:
+        pass
+
+    resp.saved_note_id = saved_note_id
 
     # 登录用户自动保存诊断报告（每次诊断一份）
     try:
@@ -12806,10 +12854,11 @@ async def _chat_sse_generator(
         session["iteration_count"] = session.get("iteration_count", 0) + 1
         if new_score is not None:
             session["current_score"] = new_score
-        yield f"data: {_json.dumps({'type': 'note_update', 'title': new_title, 'body': new_body, 'score': round(new_score, 1) if new_score else None, 'grade': grade_str, 'quality_issues': quality_issues}, ensure_ascii=False)}\n\n"
 
         # ── 自动保存笔记版本到 notes 表 ─────────────────────────────────
         user_id_for_save = session.get("user_id", "")
+        saved_note_id_for_event = None
+        achievement_items = None
         unchanged_after_repair = (
             (new_title or "").strip() == (previous_note_title or "").strip()
             and re.sub(r"\s+", "", new_body or "") == re.sub(r"\s+", "", previous_note_body or "")
@@ -12819,6 +12868,11 @@ async def _chat_sse_generator(
                 # 找上一个版本的 note_id（存在 session 中）
                 prev_note_id = session.get("_last_note_id")
                 new_note_id = str(_uuid.uuid4())
+                next_version = _next_note_version(
+                    prev_note_id,
+                    user_id_for_save,
+                    int(session.get("iteration_count", 1) or 1),
+                )
                 import datetime as _dt_mod2
                 _db.execute(
                     "INSERT INTO notes(id,user_id,title,body,domain,score,grade,source,parent_id,version,created_at)"
@@ -12826,10 +12880,12 @@ async def _chat_sse_generator(
                     (new_note_id, user_id_for_save, new_title, new_body,
                      session.get("domain", "美食"), new_score, grade_str,
                      "chat", prev_note_id,
-                     session.get("iteration_count", 1),
+                     next_version,
                      _dt_mod2.datetime.now(_dt_mod2.timezone.utc).isoformat()),
                 )
                 session["_last_note_id"] = new_note_id
+                session["note_id"] = new_note_id
+                saved_note_id_for_event = new_note_id
                 # 写成长记录
                 if new_score:
                     _db.execute(
@@ -12841,7 +12897,7 @@ async def _chat_sse_generator(
                     # 成就检测 + 记忆更新
                     new_ach = _memory.check_and_record_achievements(user_id_for_save, new_score, "chat_optimize")
                     if new_ach:
-                        yield f"data: {_json.dumps({'type': 'achievement', 'items': new_ach}, ensure_ascii=False)}\n\n"
+                        achievement_items = new_ach
                     # 记录上下文记忆（本轮优化摘要）
                     _memory.add_context(
                         user_id_for_save,
@@ -12849,6 +12905,9 @@ async def _chat_sse_generator(
                     )
             except Exception:
                 pass
+        yield f"data: {_json.dumps({'type': 'note_update', 'title': new_title, 'body': new_body, 'score': round(new_score, 1) if new_score else None, 'grade': grade_str, 'quality_issues': quality_issues, 'saved_note_id': saved_note_id_for_event}, ensure_ascii=False)}\n\n"
+        if achievement_items:
+            yield f"data: {_json.dumps({'type': 'achievement', 'items': achievement_items}, ensure_ascii=False)}\n\n"
 
     # Handle learning signals
     user_id = session.get("user_id", "")
@@ -12900,11 +12959,13 @@ def _persist_chat_session(session_id: str) -> None:
             generate_context["fact_source_policy"] = session.get("fact_source_policy")
         if session.get("fact_context"):
             generate_context["fact_context"] = session.get("fact_context")
+        note_id = session.get("_last_note_id") or session.get("note_id")
         _db.execute(
-            "INSERT INTO chat_sessions(id,user_id,domain,local_time,messages_json,user_prefs_json,"
+            "INSERT INTO chat_sessions(id,user_id,note_id,domain,local_time,messages_json,user_prefs_json,"
             "iteration_count,current_score,generate_ctx_json,created_at,updated_at) VALUES"
-            "(?,?,?,?,?,?,?,?,?,?,?)"
+            "(?,?,?,?,?,?,?,?,?,?,?,?)"
             " ON CONFLICT(id) DO UPDATE SET"
+            "  note_id=excluded.note_id,"
             "  messages_json=excluded.messages_json,"
             "  user_prefs_json=excluded.user_prefs_json,"
             "  iteration_count=excluded.iteration_count,"
@@ -12913,6 +12974,7 @@ def _persist_chat_session(session_id: str) -> None:
             (
                 session_id,
                 session.get("user_id") or "",
+                note_id,
                 session.get("domain", "美食"),
                 session.get("local_time", ""),
                 _json.dumps(session.get("messages", []), ensure_ascii=False),
@@ -12934,21 +12996,25 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
         if not row:
             return None
         gen_ctx = _json.loads(row["generate_ctx_json"] or "{}")
+        note_id = row["note_id"] if "note_id" in row.keys() else None
+        note_row = _fetch_user_note(note_id, row["user_id"]) if note_id and row["user_id"] else None
         constraints = _normalize_user_constraints(gen_ctx.get("user_constraints") or [])
         content_intent = _normalize_content_intent(gen_ctx.get("content_intent"))
         merchant_visibility = _normalize_merchant_visibility(gen_ctx.get("merchant_visibility"))
         merchant_name = _normalize_merchant_name(gen_ctx.get("merchant_name"))
         fact_source_policy = _normalize_fact_source_policy(gen_ctx.get("fact_source_policy"))
         return {
-            "note_title":       "",
-            "note_body":        "",
-            "domain":           row["domain"],
+            "note_title":       note_row["title"] if note_row else "",
+            "note_body":        note_row["body"] if note_row else "",
+            "domain":           (note_row["domain"] if note_row else row["domain"]),
             "local_time":       row["local_time"] or "",
             "user_id":          row["user_id"] or "",
-            "current_score":    row["current_score"],
+            "current_score":    row["current_score"] if row["current_score"] is not None else (note_row["score"] if note_row else None),
             "messages":         _json.loads(row["messages_json"] or "[]"),
             "iteration_count":  row["iteration_count"],
             "user_prefs":       _json.loads(row["user_prefs_json"] or "{}"),
+            "note_id":          note_id,
+            "_last_note_id":    note_id,
             "generate_context": gen_ctx,
             "user_constraints": constraints,
             "constraint_contract": _constraint_contract_payload(constraints),
@@ -12968,6 +13034,7 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
 class ChatStartInput(BaseModel):
     note_title:       str        = ""
     note_body:        str        = ""
+    note_id:          str | None = Field(default=None, description="笔记库中的当前版本 ID，用于继续保存版本链")
     domain:           str        = "美食"
     local_time:       str        = ""
     user_id:          str        = ""
@@ -13040,6 +13107,10 @@ async def chat_start(
 
     # 只信任 JWT 认证用户，不接受前端传入 user_id 作为身份依据
     effective_user_id = user["id"]
+    initial_note_id = (req.note_id or "").strip() or None
+    if initial_note_id:
+        if not _fetch_user_note(initial_note_id, effective_user_id):
+            raise HTTPException(status_code=404, detail="笔记不存在或无权访问")
     user_prefs = _get_user_learn(effective_user_id) if effective_user_id else {}
 
     # 注入用户记忆（越用越懂你）
@@ -13076,6 +13147,8 @@ async def chat_start(
         "current_score":    current_score,
         "messages":         [],
         "iteration_count":  0,
+        "note_id":          initial_note_id,
+        "_last_note_id":    initial_note_id,
         "user_prefs":       user_prefs,
         "mem_prompt":       mem_prompt,        # 注入的用户记忆
         "user_constraints": normalized_constraints,

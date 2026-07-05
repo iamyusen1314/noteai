@@ -502,6 +502,174 @@ class ApiContractTests(unittest.TestCase):
             api._chat_sessions.clear()
             api._chat_sessions.update(original_sessions)
 
+    def test_chat_start_binds_existing_note_for_library_version_chain(self):
+        original_db = api._db
+        original_sessions = dict(api._chat_sessions)
+        original_get_user_learn = api._get_user_learn
+        original_memory_prompt = api._memory.build_memory_prompt
+
+        class FakeDB:
+            def __init__(self):
+                self.executed = []
+
+            def fetchone(self, sql, params=()):
+                if "FROM notes" in sql and params == ("note-root", "u1"):
+                    return {
+                        "id": "note-root",
+                        "title": "初始标题",
+                        "body": "初始正文",
+                        "domain": "美食",
+                        "score": 68.0,
+                        "grade": "良好",
+                        "version": 1,
+                    }
+                return None
+
+            def execute(self, sql, params=()):
+                self.executed.append((sql, params))
+
+        fake_db = FakeDB()
+        try:
+            api._db = fake_db
+            api._chat_sessions.clear()
+            api._get_user_learn = lambda user_id: {}
+            api._memory.build_memory_prompt = lambda user_id: ""
+
+            resp = asyncio.run(api.chat_start(
+                api.ChatStartInput(
+                    note_id="note-root",
+                    note_title="初始标题",
+                    note_body="初始正文",
+                    domain="美食",
+                    generate_context={"ces_percentile": 68.0, "grade": "良好"},
+                ),
+                user={"id": "u1"},
+            ))
+
+            session = api._chat_sessions[resp.session_id]
+            self.assertEqual(session["_last_note_id"], "note-root")
+            self.assertEqual(session["note_id"], "note-root")
+            self.assertTrue(fake_db.executed)
+            self.assertEqual(fake_db.executed[-1][1][2], "note-root")
+        finally:
+            api._db = original_db
+            api._chat_sessions.clear()
+            api._chat_sessions.update(original_sessions)
+            api._get_user_learn = original_get_user_learn
+            api._memory.build_memory_prompt = original_memory_prompt
+
+    def test_chat_note_update_is_emitted_after_version_save(self):
+        original_db = api._db
+        original_sessions = dict(api._chat_sessions)
+        original_stream_chat = api._mr.stream_chat
+        original_repair = api._repair_chat_note_if_needed
+        original_shape = api._shape_body_for_delivery
+        original_sanitize = api._sanitize_title_for_delivery
+        original_check_achievements = api._memory.check_and_record_achievements
+        original_add_context = api._memory.add_context
+
+        class FakeDB:
+            def __init__(self):
+                self.executed = []
+
+            def fetchone(self, sql, params=()):
+                if "FROM notes" in sql and params == ("note-root", "u1"):
+                    return {
+                        "id": "note-root",
+                        "title": "初始标题",
+                        "body": "初始正文",
+                        "domain": "美食",
+                        "score": 60.0,
+                        "grade": "待改进",
+                        "version": 1,
+                    }
+                return None
+
+            def execute(self, sql, params=()):
+                self.executed.append((sql, params))
+
+        async def fake_stream_chat(**kwargs):
+            yield "content", "<note><title>新版标题</title><body>新版正文 #上海美食</body></note>"
+
+        async def fake_repair(title, body, session, user_msg):
+            return title, body, 72.0, {}, "良好", [], False
+
+        async def fake_shape(title, body, domain, fact_source, route):
+            return body
+
+        fake_db = FakeDB()
+        try:
+            api._db = fake_db
+            api._chat_sessions.clear()
+            api._chat_sessions["s1"] = {
+                "note_title": "初始标题",
+                "note_body": "初始正文",
+                "domain": "美食",
+                "local_time": "2026070512",
+                "user_id": "u1",
+                "current_score": 60.0,
+                "messages": [],
+                "iteration_count": 0,
+                "note_id": "note-root",
+                "_last_note_id": "note-root",
+                "user_constraints": [],
+            }
+            api._mr.stream_chat = fake_stream_chat
+            api._repair_chat_note_if_needed = fake_repair
+            api._shape_body_for_delivery = fake_shape
+            api._sanitize_title_for_delivery = lambda title, fact_source, domain: title
+            api._memory.check_and_record_achievements = lambda user_id, score, action: []
+            api._memory.add_context = lambda *args, **kwargs: None
+
+            async def run():
+                events = []
+                async for chunk in api._chat_sse_generator("s1", "帮我重写一版"):
+                    if not chunk.startswith("data: "):
+                        continue
+                    events.append(json.loads(chunk.removeprefix("data: ").strip()))
+                return events
+
+            events = asyncio.run(run())
+            note_update = next(ev for ev in events if ev.get("type") == "note_update")
+            saved_note_id = note_update.get("saved_note_id")
+            inserted_notes = [
+                params for sql, params in fake_db.executed
+                if sql.startswith("INSERT INTO notes")
+            ]
+            self.assertTrue(saved_note_id)
+            self.assertEqual(inserted_notes[-1][0], saved_note_id)
+            self.assertEqual(inserted_notes[-1][8], "note-root")
+            self.assertEqual(inserted_notes[-1][9], 2)
+            self.assertEqual(api._chat_sessions["s1"]["_last_note_id"], saved_note_id)
+        finally:
+            api._db = original_db
+            api._chat_sessions.clear()
+            api._chat_sessions.update(original_sessions)
+            api._mr.stream_chat = original_stream_chat
+            api._repair_chat_note_if_needed = original_repair
+            api._shape_body_for_delivery = original_shape
+            api._sanitize_title_for_delivery = original_sanitize
+            api._memory.check_and_record_achievements = original_check_achievements
+            api._memory.add_context = original_add_context
+
+    def test_chat_start_rejects_note_id_not_owned_by_user(self):
+        original_db = api._db
+
+        class FakeDB:
+            def fetchone(self, sql, params=()):
+                return None
+
+        try:
+            api._db = FakeDB()
+            with self.assertRaises(HTTPException) as ctx:
+                asyncio.run(api.chat_start(
+                    api.ChatStartInput(note_id="other-user-note"),
+                    user={"id": "u1"},
+                ))
+            self.assertEqual(ctx.exception.status_code, 404)
+        finally:
+            api._db = original_db
+
     def test_test_billing_endpoints_are_disabled_by_default(self):
         old_flag = os.environ.pop("NOTEAI_ENABLE_TEST_BILLING", None)
         try:

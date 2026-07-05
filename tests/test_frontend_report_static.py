@@ -77,6 +77,25 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("generateContext = { ...d, user_constraints: constraints, ...intentPayload }", HTML)
         self.assertNotIn("只展示创作方向，不传给后端", HTML)
 
+    def test_library_chat_version_chain_passes_note_ids(self):
+        self.assertIn("saved_note_id", HTML)
+        self.assertIn("_diagnoseResult._saved_note_id = ev.saved_note_id", HTML)
+        self.assertIn("async function ensureDiagnosisRootNote(note)", HTML)
+        self.assertIn("note_id:          _chatParentNoteId || null", HTML)
+        self.assertIn("note_id:          d._saved_note_id || null", HTML)
+        self.assertIn("note_id:    note.id || null", HTML)
+        self.assertIn("if (ev.saved_note_id || ev._saved_note_id)", HTML)
+        self.assertIn("_chatParentNoteId = ev.saved_note_id || ev._saved_note_id", HTML)
+        self.assertIn("noteId:       _chatParentNoteId || null", HTML)
+
+    def test_generation_report_keeps_generate_context(self):
+        self.assertIn("if (!_isGenerateMode && _diagnosePromise)", HTML)
+        self.assertIn("? !!_generateResult", HTML)
+        self.assertIn("if (_isGenerateMode)", HTML)
+        self.assertIn("await autoSaveGeneratedNote(_generateResult)", HTML)
+        self.assertIn("_isGenerateMode = true; showPage('report'); await populateReport();", HTML)
+        self.assertNotIn("\n              autoSaveGeneratedNote(_generateResult);\n", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
