@@ -3778,3 +3778,115 @@ This list reflects current Git status during handoff. Some files were modified b
   - `tools/live_ai_smoke.py`
 - 不提交未跟踪目录 `测试图片/`。
 - 不执行 cloud deploy、migration、seed、reset。
+
+## 2026-07-05 Stage Update — Crawler Sidecar Checkpoint Pushed
+
+### 1. 本轮完成了什么
+
+- 已按用户要求 commit/push 当前 crawler + sidecar fallback 修复。
+- 已创建并提交 crawler production pilot checklist。
+- 已明确保留但不提交无关 Kimi live 修复和未跟踪测试图片目录。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+- `.codex/notes/crawler-production-pilot-checklist.md`
+- `NoteAI_Pro_Demo_Framer.html`
+- `docker-compose.yml`
+- `model/.env.example`
+- `model/admin.html`
+- `model/admin_server.py`
+- `model/api.py`
+- `model/crawler.py`
+- `model/crawler_worker.py`
+- `model/db.py`
+- `model/hot_keywords.py`
+- `model/market_timing_worker.py`
+- `model/performance_scoring.py`
+- `model/xhs_acquisition.py`
+- `model/xhs_health_probe.py`
+- `tests/test_api_contracts.py`
+- `tests/test_tracking_performance.py`
+- `tests/test_xhs_acquisition.py`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录本阶段提交、验证、push、剩余风险和下一步边界。
+- `.codex/notes/crawler-production-pilot-checklist.md`: 新增 crawler/XHS-Downloader sidecar 上线前 pilot checklist。
+- `NoteAI_Pro_Demo_Framer.html`: 接入笔记库追踪入口、版本关联状态、真实表现追踪 UI 反馈。
+- `docker-compose.yml`: 增加本地 tracking/crawler worker 与 XHS freshness 相关配置。
+- `model/.env.example`: 增加 XHS freshness/sidecar/worker 配置占位说明，不包含真实 secret。
+- `model/admin.html`: 增加 Admin crawler/XHS freshness/sidecar health 可视化卡片。
+- `model/admin_server.py`: 增加 Admin crawler/freshness 只读状态接口。
+- `model/api.py`: 增加 tracking persistence、performance API、market freshness API，并保持 Kimi 默认模型 hunk 不进入本次 commit。
+- `model/crawler.py`: 增加 Playwright crawler 与 XHS-Downloader sidecar fallback 归一化路径。
+- `model/crawler_worker.py`: 增加受控 tracking worker 入口。
+- `model/db.py`: 增加 tracked notes 所需字段和幂等 schema 支持。
+- `model/hot_keywords.py`: 支持 worker/freshness 路径的连接清理与数据写入。
+- `model/market_timing_worker.py`: 增加 XHS freshness gate。
+- `model/performance_scoring.py`: 增加真实表现追踪评分/状态计算基础逻辑。
+- `model/xhs_acquisition.py`: 增加 XHS acquisition/freshness ledger/sidecar 归一化与健康判断核心逻辑。
+- `model/xhs_health_probe.py`: 增加 crawler health probe 命令入口。
+- `tests/test_api_contracts.py`: 补充 API contract 覆盖。
+- `tests/test_tracking_performance.py`: 覆盖追踪表现状态和评分逻辑。
+- `tests/test_xhs_acquisition.py`: 覆盖 sidecar 归一化、freshness ledger 和采集健康判断。
+
+### 4. 做了哪些关键决策
+
+- 本次 checkpoint 只提交 crawler/sidecar/tracking/Admin/checklist 相关改动。
+- 不把 `model/model_router.py`、`tools/ai_prelabel_review_batch.py`、`tools/live_ai_smoke.py` 纳入本次 crawler commit。
+- `model/api.py` 中无关 `_KIMI_MODEL` hunk 已从 staged diff 剔除，只保留在 working tree。
+- 不提交 XHS-Downloader 外部安装目录、Cookie、cache、raw JSON response 或 `测试图片/`。
+
+### 5. 运行了哪些命令
+
+- `git diff --cached --check`
+- `git diff --cached --name-only | tr '\n' '\0' | xargs -0 rg -l "(AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|xox[baprs]-|API_KEY=|TOKEN=|SECRET=|COOKIE=|SESSION=|DATABASE_URL=|Authorization: Bearer)" || true`
+- `.venv/bin/python -m unittest tests.test_xhs_acquisition tests.test_tracking_performance tests.test_api_contracts`
+- `.venv/bin/python -m py_compile model/api.py model/admin_server.py model/crawler.py model/crawler_worker.py model/db.py model/hot_keywords.py model/market_timing_worker.py model/performance_scoring.py model/xhs_acquisition.py model/xhs_health_probe.py`
+- `docker compose config --quiet`
+- `git commit -m "stabilize xhs crawler sidecar fallback"`
+- `git push origin codex/quality-stabilization-real-chain`
+
+### 6. 每个命令的结果
+
+- `git diff --cached --check`: 通过。
+- staged secret pattern scan: 仅命中 `model/.env.example` 占位变量文件；未展开或输出任何真实值。
+- 聚焦单测：146 tests passed。
+- Python 编译检查：通过。
+- Docker Compose 配置检查：通过。
+- commit 成功：`dee7cab stabilize xhs crawler sidecar fallback`。
+- push 成功：`origin/codex/quality-stabilization-real-chain` 已更新到 `dee7cab`。
+
+### 7. 当前仍然失败的问题
+
+- 本阶段未发现 crawler checkpoint 的新增失败。
+- 聚焦单测日志中出现外部 API 错误路径输出，但本轮没有做计划外 live API 成功调用，也没有进行真实批量调用。
+- 当前 crawler/sidecar 仍不应标记为 production-ready，只能进入 production pilot checklist 管控下的小样本灰度验证。
+
+### 8. 当前未完成工作
+
+- Kimi live 修复仍留在 working tree，尚未作为独立 scope commit。
+- `tools/live_ai_smoke.py` 仍为未跟踪文件，尚未确认是否纳入后续 live AI 工具化提交。
+- `测试图片/` 仍为未跟踪目录，当前不提交。
+- 云端部署只完成 checklist/计划边界，尚未实施部署。
+
+### 9. 当前最高风险
+
+- 小红书抓取稳定性依赖 Cookie/session、页面可访问性、selector 变化、sidecar 可用性和平台风控；即使 sidecar fallback 本地可跑，也需要 3-7 天小样本 pilot 数据证明稳定性。
+- 当前 worktree 仍混有 Kimi live 修复，后续提交必须继续精确 stage，避免 scope 混杂。
+
+### 10. 下一步最小可行计划
+
+- 先让用户按 checklist 做本地/灰度功能验收。
+- 如用户确认，再单独处理 Kimi live 修复提交。
+- 在不部署云端的前提下，继续完善 pilot 观测：sidecar health、freshness ledger、worker completion、失败原因分层。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不部署云端。
+- 不运行 migration/seed/reset/deploy/clean。
+- 不写生产 DB。
+- 不输出或提交 Cookie、token、API key、`.env` 真实值、raw provider response。
+- 不把 XHS-Downloader 外部安装目录、cache、日志或测试图片纳入 Git。
+- 不将 crawler/sidecar 标记为生产可全量上线，除非完成 pilot checklist 并经用户确认。
