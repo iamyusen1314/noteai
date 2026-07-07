@@ -70,7 +70,38 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         finally:
             hot_keywords.DB_PATH = original_db
 
-    def test_worker_hard_gate_blocks_baseline_only_snapshot(self):
+    def test_worker_xhs_required_exports_baseline_with_warning(self):
+        original_db = hot_keywords.DB_PATH
+        original_scrape_once = market_timing_worker.scrape_once
+        old_required = os.environ.get("NOTEAI_XHS_FRESHNESS_REQUIRED")
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                hot_keywords.DB_PATH = tmp / "hot_keywords.db"
+                os.environ["NOTEAI_XHS_FRESHNESS_REQUIRED"] = "1"
+
+                async def empty_scrape():
+                    return []
+
+                market_timing_worker.scrape_once = empty_scrape
+                snapshot_path = tmp / "market_timing_snapshot.json"
+                result = asyncio.run(market_timing_worker.run_once(snapshot_path))
+
+                self.assertTrue(snapshot_path.exists())
+                self.assertFalse(result["xhs_freshness_ok"])
+                self.assertIn("XHS_FRESH_EVIDENCE_UNAVAILABLE", result["xhs_freshness_warning"])
+                self.assertEqual(result["evidence_mode"], "baseline_or_partial")
+                payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
+                self.assertEqual(payload["domains"]["美食"]["keywords"][0]["source"], "industry_baseline")
+        finally:
+            hot_keywords.DB_PATH = original_db
+            market_timing_worker.scrape_once = original_scrape_once
+            if old_required is None:
+                os.environ.pop("NOTEAI_XHS_FRESHNESS_REQUIRED", None)
+            else:
+                os.environ["NOTEAI_XHS_FRESHNESS_REQUIRED"] = old_required
+
+    def test_worker_explicit_hard_fail_raises_after_local_snapshot(self):
         original_db = hot_keywords.DB_PATH
         original_scrape_once = market_timing_worker.scrape_once
         old_required = os.environ.get("NOTEAI_XHS_FRESHNESS_REQUIRED")
@@ -86,8 +117,11 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 market_timing_worker.scrape_once = empty_scrape
                 snapshot_path = tmp / "market_timing_snapshot.json"
                 with self.assertRaisesRegex(RuntimeError, "XHS_FRESH_EVIDENCE_UNAVAILABLE"):
-                    asyncio.run(market_timing_worker.run_once(snapshot_path))
-                self.assertFalse(snapshot_path.exists())
+                    asyncio.run(market_timing_worker.run_once(
+                        snapshot_path,
+                        hard_fail_on_xhs_missing=True,
+                    ))
+                self.assertTrue(snapshot_path.exists())
         finally:
             hot_keywords.DB_PATH = original_db
             market_timing_worker.scrape_once = original_scrape_once

@@ -190,6 +190,82 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(image_url.startswith("data:image/png;base64,"))
         self.assertEqual(result["_media_type"], "image/png")
         self.assertTrue(result["is_photo_only"])
+        self.assertEqual(result["tags"], "")
+
+    def test_ocr_body_and_tags_are_separated_for_scoring(self):
+        body, tags = api._split_ocr_body_and_tags(
+            "点都德红米肠推荐。#广州美食 #北京路早茶[话题]#",
+            ["#广州美食", "虾饺皇"],
+        )
+        self.assertEqual(body, "点都德红米肠推荐。")
+        self.assertEqual(tags, "#广州美食 #北京路早茶 #虾饺皇")
+        self.assertEqual(api._body_content_len_without_tags(body), 9)
+
+    def test_validate_ocr_preserves_topics_as_separate_field(self):
+        async def run():
+            return await api.validate_ocr(
+                api.ValidateOcrInput(ocr_results=[{
+                    "type": "A",
+                    "title": "点都德红米肠推荐",
+                    "body": "红米肠外皮薄，虾肉弹。#广州美食 #北京路早茶",
+                    "domain": "美食",
+                }]),
+                user={"id": "u-test"},
+            )
+
+        result = asyncio.run(run())
+        self.assertEqual(result["body"], "红米肠外皮薄，虾肉弹。")
+        self.assertEqual(result["tags"], "#广州美食 #北京路早茶")
+        self.assertEqual(result["char_count"], 11)
+
+    def test_validate_ocr_agent_merges_topics_without_polluting_body(self):
+        original_call = api._mr.call
+        original_usage = api._billing.record_free_usage
+
+        async def fake_call(task, system, prompt, max_tokens=800):
+            self.assertIn("话题不要混入正文", system)
+            self.assertIn("话题:", prompt)
+            return json.dumps({
+                "title": "点都德红米肠推荐",
+                "body": "红米肠外皮薄，虾肉弹。#广州美食",
+                "tags": "#广州美食 #北京路早茶 #虾饺皇",
+                "domain": "美食",
+                "char_count": 11,
+            }, ensure_ascii=False)
+
+        try:
+            api._mr.call = fake_call
+            api._billing.record_free_usage = lambda *args, **kwargs: None
+
+            async def run():
+                return await api.validate_ocr(
+                    api.ValidateOcrInput(ocr_results=[
+                        {
+                            "type": "A",
+                            "title": "点都德红米肠推荐",
+                            "body": "红米肠外皮薄，虾肉弹。#广州美食",
+                            "tags": "#北京路早茶",
+                            "domain": "美食",
+                        },
+                        {
+                            "type": "A",
+                            "title": "点都德红米肠推荐",
+                            "body": "红米肠外皮薄，虾肉弹。#广州美食",
+                            "tags": "#广州美食 #虾饺皇",
+                            "domain": "美食",
+                        },
+                    ]),
+                    user={"id": "u-test"},
+                )
+
+            result = asyncio.run(run())
+        finally:
+            api._mr.call = original_call
+            api._billing.record_free_usage = original_usage
+
+        self.assertEqual(result["body"], "红米肠外皮薄，虾肉弹。")
+        self.assertEqual(result["tags"], "#广州美食 #北京路早茶 #虾饺皇")
+        self.assertEqual(result["char_count"], 11)
 
     def test_extract_screenshot_maps_moonshot_network_error_to_503(self):
         original_check = api._billing.check_and_deduct
@@ -480,6 +556,32 @@ class ApiContractTests(unittest.TestCase):
             else:
                 os.environ["NOTEAI_MARKET_TIMING_REQUIRED"] = old_required
 
+    def test_api_market_timing_preserves_baseline_source_note(self):
+        original_db = hot_keywords.DB_PATH
+        old_required = os.environ.get("NOTEAI_MARKET_TIMING_REQUIRED")
+        try:
+            os.environ["NOTEAI_MARKET_TIMING_REQUIRED"] = "0"
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                hot_keywords.ensure_daily_evidence_pack(("美食",))
+
+                timing = api._compute_market_timing_for_delivery(
+                    "本地美食探店",
+                    "周末想找粤菜餐厅",
+                    "美食",
+                )
+
+                self.assertFalse(timing["data_stale"])
+                self.assertIn("不代表平台官方热搜", timing["confidence_note"])
+                self.assertIn("pipeline_status", timing)
+                self.assertEqual(timing["pipeline_status"].get("state"), "ready")
+        finally:
+            hot_keywords.DB_PATH = original_db
+            if old_required is None:
+                os.environ.pop("NOTEAI_MARKET_TIMING_REQUIRED", None)
+            else:
+                os.environ["NOTEAI_MARKET_TIMING_REQUIRED"] = old_required
+
     def test_chat_ownership_is_checked_before_billing(self):
         calls = []
         original_check = api._billing.check_and_deduct
@@ -594,6 +696,8 @@ class ApiContractTests(unittest.TestCase):
             self.assertEqual(resp.grade, "优秀")
             session = api._chat_sessions[resp.session_id]
             self.assertEqual(session["current_score"], 76.9)
+            self.assertEqual(session["generate_context"]["selected_plan_score"], 76.9)
+            self.assertEqual(session["generate_context"]["current_score"], 76.9)
         finally:
             api._chat_sessions.clear()
             api._chat_sessions.update(original_sessions)
@@ -680,10 +784,14 @@ class ApiContractTests(unittest.TestCase):
                 if sql.startswith("INSERT INTO notes")
             ]
             self.assertTrue(saved_note_id)
+            self.assertEqual(note_update.get("saved_note_version"), 2)
             self.assertEqual(inserted_notes[-1][0], saved_note_id)
             self.assertEqual(inserted_notes[-1][8], "note-root")
             self.assertEqual(inserted_notes[-1][9], 2)
             self.assertEqual(api._chat_sessions["s1"]["_last_note_id"], saved_note_id)
+            self.assertEqual(api._chat_sessions["s1"]["note_version"], 2)
+            self.assertIn("当前最终稿", api._chat_sessions["s1"]["messages"][-1]["content"])
+            self.assertIn("新版标题", api._chat_sessions["s1"]["messages"][-1]["content"])
         finally:
             api._db = original_db
             api._chat_sessions.clear()
@@ -694,6 +802,233 @@ class ApiContractTests(unittest.TestCase):
             api._sanitize_title_for_delivery = original_sanitize
             api._memory.check_and_record_achievements = original_check_achievements
             api._memory.add_context = original_add_context
+
+    def test_chat_plan_options_are_structured_and_not_auto_saved(self):
+        original_db = api._db
+        original_sessions = dict(api._chat_sessions)
+        original_stream_chat = api._mr.stream_chat
+        original_score_chat_note = api._score_chat_note
+        original_sanitize = api._sanitize_title_for_delivery
+
+        class FakeDB:
+            def __init__(self):
+                self.executed = []
+
+            def fetchone(self, sql, params=()):
+                if "FROM notes" in sql and params == ("note-root", "u1"):
+                    return {
+                        "id": "note-root",
+                        "title": "初始标题",
+                        "body": "初始正文",
+                        "domain": "美食",
+                        "score": 62.0,
+                        "grade": "良好",
+                        "version": 1,
+                    }
+                return None
+
+            def execute(self, sql, params=()):
+                self.executed.append((sql, params))
+
+        async def fake_stream_chat(**kwargs):
+            yield "content", (
+                "给你三个方向："
+                "<options>"
+                "<option id=\"A\"><strategy>稳妥提分型</strategy><title>A标题</title><body>A正文 #美食</body></option>"
+                "<option id=\"B\"><strategy>互动种草型</strategy><title>B标题</title><body>B正文 #美食</body></option>"
+                "<option id=\"C\"><strategy>转化决策型</strategy><title>C标题</title><body>C正文 #美食</body></option>"
+                "</options>"
+                "<note><title>不应自动保存</title><body>不应保存正文</body></note>"
+            )
+
+        async def fake_score(title, body, session):
+            scores = {"A标题": 68.2, "B标题": 70.5, "C标题": 69.4}
+            score = scores.get(title, 60.0)
+            return score, {}, "良好", []
+
+        fake_db = FakeDB()
+        try:
+            api._db = fake_db
+            api._chat_sessions.clear()
+            api._chat_sessions["s1"] = {
+                "note_title": "初始标题",
+                "note_body": "初始正文",
+                "domain": "美食",
+                "local_time": "2026070718",
+                "user_id": "u1",
+                "current_score": 62.0,
+                "messages": [],
+                "iteration_count": 0,
+                "note_id": "note-root",
+                "_last_note_id": "note-root",
+                "user_constraints": [],
+            }
+            api._mr.stream_chat = fake_stream_chat
+            api._score_chat_note = fake_score
+            api._sanitize_title_for_delivery = lambda title, fact_source, domain: title
+
+            async def run():
+                events = []
+                async for chunk in api._chat_sse_generator("s1", "给我三个方案"):
+                    if not chunk.startswith("data: "):
+                        continue
+                    events.append(json.loads(chunk.removeprefix("data: ").strip()))
+                return events
+
+            events = asyncio.run(run())
+            plan_event = next(ev for ev in events if ev.get("type") == "plan_options")
+            self.assertEqual(len(plan_event["options"]), 3)
+            self.assertEqual(plan_event["options"][0]["id"], "A")
+            self.assertEqual(plan_event["options"][1]["score"], 70.5)
+            self.assertFalse(any(ev.get("type") == "note_update" for ev in events))
+            self.assertEqual(api._chat_sessions["s1"]["pending_plan_options"][1]["title"], "B标题")
+            inserted_notes = [sql for sql, _params in fake_db.executed if sql.startswith("INSERT INTO notes")]
+            self.assertEqual(inserted_notes, [])
+            self.assertIn("候选方案", api._chat_sessions["s1"]["messages"][-1]["content"])
+        finally:
+            api._db = original_db
+            api._chat_sessions.clear()
+            api._chat_sessions.update(original_sessions)
+            api._mr.stream_chat = original_stream_chat
+            api._score_chat_note = original_score_chat_note
+            api._sanitize_title_for_delivery = original_sanitize
+
+    def test_chat_select_plan_saves_chosen_option_as_next_version(self):
+        original_db = api._db
+        original_sessions = dict(api._chat_sessions)
+        original_check_achievements = api._memory.check_and_record_achievements
+        original_add_context = api._memory.add_context
+        original_persist = api._persist_chat_session
+
+        class FakeDB:
+            def __init__(self):
+                self.executed = []
+
+            def fetchone(self, sql, params=()):
+                if "FROM notes" in sql and params == ("note-root", "u1"):
+                    return {
+                        "id": "note-root",
+                        "title": "初始标题",
+                        "body": "初始正文",
+                        "domain": "美食",
+                        "score": 62.0,
+                        "grade": "良好",
+                        "version": 1,
+                    }
+                return None
+
+            def execute(self, sql, params=()):
+                self.executed.append((sql, params))
+
+        fake_db = FakeDB()
+        try:
+            api._db = fake_db
+            api._chat_sessions.clear()
+            api._chat_sessions["s1"] = {
+                "note_title": "初始标题",
+                "note_body": "初始正文",
+                "domain": "美食",
+                "local_time": "2026070718",
+                "user_id": "u1",
+                "current_score": 62.0,
+                "messages": [],
+                "iteration_count": 0,
+                "note_id": "note-root",
+                "_last_note_id": "note-root",
+                "pending_plan_options": [
+                    {"id": "A", "title": "A标题", "body": "A正文", "score": 68.2, "grade": "良好"},
+                    {"id": "B", "title": "B标题", "body": "B正文", "score": 70.5, "grade": "良好"},
+                ],
+            }
+            api._memory.check_and_record_achievements = lambda user_id, score, action: []
+            api._memory.add_context = lambda *args, **kwargs: None
+            api._persist_chat_session = lambda session_id: None
+
+            resp = asyncio.run(api.chat_select_plan(
+                api.ChatSelectPlanInput(session_id="s1", option_id="B"),
+                user={"id": "u1"},
+            ))
+
+            inserted_notes = [
+                params for sql, params in fake_db.executed
+                if sql.startswith("INSERT INTO notes")
+            ]
+            self.assertEqual(resp["title"], "B标题")
+            self.assertEqual(resp["score"], 70.5)
+            self.assertEqual(resp["saved_note_version"], 2)
+            self.assertEqual(resp["selected_option_id"], "B")
+            self.assertEqual(inserted_notes[-1][2], "B标题")
+            self.assertEqual(inserted_notes[-1][8], "note-root")
+            self.assertEqual(inserted_notes[-1][9], 2)
+            self.assertEqual(api._chat_sessions["s1"]["note_title"], "B标题")
+            self.assertEqual(api._chat_sessions["s1"]["_last_note_id"], resp["saved_note_id"])
+            self.assertEqual(api._chat_sessions["s1"]["note_version"], 2)
+            self.assertIn("当前最终稿", api._chat_sessions["s1"]["messages"][-1]["content"])
+        finally:
+            api._db = original_db
+            api._chat_sessions.clear()
+            api._chat_sessions.update(original_sessions)
+            api._memory.check_and_record_achievements = original_check_achievements
+            api._memory.add_context = original_add_context
+            api._persist_chat_session = original_persist
+
+    def test_note_version_group_for_diagnosis_includes_selected_chat_version(self):
+        original_db = api._db
+
+        class FakeDB:
+            def fetchall(self, sql, params=()):
+                self.assert_query = (sql, params)
+                return [
+                    {
+                        "id": "note-root",
+                        "title": "诊断原稿",
+                        "body": "原始正文",
+                        "domain": "美食",
+                        "score": 47.9,
+                        "grade": "待改进",
+                        "source": "diagnose",
+                        "version": 1,
+                        "parent_id": None,
+                        "created_at": "2026-07-07T10:00:00+00:00",
+                    },
+                    {
+                        "id": "note-v2",
+                        "title": "已选方案标题",
+                        "body": "已选方案正文",
+                        "domain": "美食",
+                        "score": 64.0,
+                        "grade": "良好",
+                        "source": "chat",
+                        "version": 2,
+                        "parent_id": "note-root",
+                        "created_at": "2026-07-07T10:10:00+00:00",
+                    },
+                    {
+                        "id": "other-root",
+                        "title": "其他笔记",
+                        "body": "其他正文",
+                        "domain": "美食",
+                        "score": 80.0,
+                        "grade": "优秀",
+                        "source": "generate",
+                        "version": 1,
+                        "parent_id": None,
+                        "created_at": "2026-07-07T10:20:00+00:00",
+                    },
+                ]
+
+        try:
+            api._db = FakeDB()
+            group = api._build_note_version_group_for_root("note-root", "u1")
+            self.assertIsNotNone(group)
+            self.assertEqual(group["group_id"], "note-root")
+            self.assertEqual(group["latest"]["id"], "note-v2")
+            self.assertEqual(group["latest"]["title"], "已选方案标题")
+            self.assertEqual(group["version_count"], 2)
+            self.assertEqual(group["score_trend"], [47.9, 64.0])
+            self.assertEqual(group["best_score"], 64.0)
+        finally:
+            api._db = original_db
 
     def test_chat_start_rejects_note_id_not_owned_by_user(self):
         original_db = api._db
@@ -1296,6 +1631,52 @@ class ApiContractTests(unittest.TestCase):
             api._memory.build_memory_prompt = original_memory_prompt
             if result is not None:
                 api._chat_sessions.pop(result.session_id, None)
+
+    def test_chat_structured_supplements_merge_into_fact_context(self):
+        session = {
+            "note_title": "广州粤菜聚餐",
+            "note_body": "乳鸽和小青龙都适合聚餐，建议收藏。",
+            "domain": "美食",
+            "current_score": 67.0,
+            "messages": [],
+            "supplement_prompts": [
+                {"field": "price", "label": "补充人均/价格"},
+                {"field": "must_order", "label": "补充必点"},
+                {"field": "business_hours", "label": "补充营业时间"},
+            ],
+            "fact_context": "- 价格/人均：人均80元\n- 位置/地址：北京路商圈",
+            "generate_context": {},
+        }
+        merged = api._merge_supplement_values_into_session(
+            session,
+            {
+                "price": "100元",
+                "must_order": "小青龙乌冬、汤泡饭",
+                "business_hours": "周一至周日 11:00-22:00",
+            },
+        )
+        self.assertEqual(merged["price"], "人均100元")
+        self.assertEqual(merged["must_order"], "小青龙乌冬、汤泡饭")
+        self.assertEqual(merged["business_hours"], "周一至周日 11:00-22:00")
+        self.assertIn("- 价格/人均：人均100元", session["fact_context"])
+        self.assertIn("- 必点/招牌菜：小青龙乌冬、汤泡饭", session["fact_context"])
+        self.assertIn("- 营业时间：周一至周日 11:00-22:00", session["fact_context"])
+        self.assertNotIn("人均80元", session["fact_context"])
+        self.assertEqual(
+            session["generate_context"]["confirmed_supplement_values"]["must_order"],
+            "小青龙乌冬、汤泡饭",
+        )
+        prompt = api._build_chat_system_prompt(session)
+        self.assertIn("【已核验事实边界】", prompt)
+        self.assertIn("价格/人均：人均100元", prompt)
+        self.assertIn("必点/招牌菜：小青龙乌冬、汤泡饭", prompt)
+        self.assertIn("营业时间：周一至周日 11:00-22:00", prompt)
+        msg = api.ChatMessageInput(
+            session_id="s-test",
+            message="我已补充真实信息，请继续优化。",
+            supplement_values={"price": "100元"},
+        )
+        self.assertEqual(msg.supplement_values, {"price": "100元"})
 
     def test_analyze_entrypoints_share_v04_agent_fact_memory_chain(self):
         original_check = api._billing.check_and_deduct
@@ -2967,7 +3348,7 @@ class ApiContractTests(unittest.TestCase):
 
     def test_title_readability_blocks_score_hacking_titles(self):
         bad = "广州番禺万博98元值得点"
-        good = "广州番禺98元小青龙值得试"
+        good = "广州番禺98元小青龙，聚餐点单不踩雷"
         natural_price_title = "北京路早茶点都德，人均86元很稳"
         chopped = "南京西路蟹黄拌面58元，周末必排队的"
         dangling = "8月龄宝宝辅食顺序｜从泥糊到软颗粒安"
@@ -3339,11 +3720,11 @@ class ApiContractTests(unittest.TestCase):
         self.assertFalse(api._structured_fact_boundary_issues(shaped, source, "美食"))
         self.assertEqual(
             api._fallback_title_under_limit("番禺万博粤菜聚餐推荐，芝士焗小青龙必点"),
-            "番禺万博芝士焗小青龙必点",
+            "番禺万博粤菜聚餐推荐，芝士焗小青龙必点",
         )
         self.assertEqual(
             api._fallback_title_under_limit("160cm梨形身材夏季通勤显高遮胯搭配公式"),
-            "160cm梨形通勤显高遮胯公式",
+            "160cm梨形通勤显高遮胯搭配公式",
         )
         self.assertEqual(
             api._fallback_title_under_limit("4平阳台洗衣区改造，2600元做出顺手的收纳动线"),
@@ -3351,7 +3732,7 @@ class ApiContractTests(unittest.TestCase):
         )
         self.assertEqual(
             api._fallback_title_under_limit("4平阳台洗衣区改造，2600元让动线顺畅"),
-            "4平阳台洗衣区，2600元动线更顺",
+            "4平阳台洗衣区改造，2600元让动线顺畅",
         )
 
     def test_food_fact_section_template_is_repair_signal_not_hard_block(self):
@@ -3763,13 +4144,20 @@ class ApiContractTests(unittest.TestCase):
             api._TITLE_DELIVERY_MAX,
         )
         self.assertFalse(api._fallback_title_under_limit(title_at_platform_boundary).endswith("的"))
+        overlong_without_semantic_clause = "南京西路蟹黄拌面人均58元工作日午餐稳，适合赶时间"
         self.assertEqual(
-            api._fallback_title_under_limit("7天居家减脂4动作，新手友好无器械计划"),
-            "7天居家减脂4个动作，新手友好无器械",
+            api._fallback_title_under_limit(overlong_without_semantic_clause),
+            overlong_without_semantic_clause,
+        )
+        self.assertGreater(len(api._fallback_title_under_limit(overlong_without_semantic_clause)), api._TITLE_DELIVERY_MAX)
+        overlong_fitness_title = "7天居家减脂4动作，新手友好无器械计划"
+        self.assertEqual(
+            api._fallback_title_under_limit(overlong_fitness_title),
+            "7天居家减脂4个动作，新手友好无器械计划",
         )
         self.assertEqual(
             api._fallback_title_under_limit("8月龄宝宝辅食顺序｜从泥糊到软颗粒安全过渡"),
-            "8月龄宝宝辅食顺序｜从泥糊到软颗粒",
+            "8月龄宝宝辅食顺序｜从泥糊到软颗粒安全过渡",
         )
         self.assertEqual(
             api._sanitize_title_for_delivery("油皮夏天底妆这样更稳，6小时不明显斑", "", "美妆"),
@@ -3918,9 +4306,16 @@ class ApiContractTests(unittest.TestCase):
             75,
             features,
         )
-        self.assertTrue(any("标题超过交付安全上限" in item for item in issues))
+        self.assertFalse(any("标题超过平台上限" in item for item in issues))
         self.assertTrue(any("正文超过目标上限" in item for item in issues))
         self.assertFalse(api._has_blocking_quality_issues(75, issues))
+
+        thin_price_dish_title = "198元龙虾乌冬，汤浓到底不腻"
+        thin_title_issues = api._title_readability_issues(thin_price_dish_title, "美食")
+        self.assertTrue(any("价格+菜品+泛评价" in item for item in thin_title_issues), thin_title_issues)
+        delivery_meta = api._title_delivery_meta(thin_price_dish_title, thin_price_dish_title, thin_title_issues)
+        self.assertTrue(delivery_meta["needs_refine"])
+        self.assertEqual(delivery_meta["target"], "16-20字")
 
     def test_body_max_contract_applies_to_all_primary_domains(self):
         required_feature_flags = {

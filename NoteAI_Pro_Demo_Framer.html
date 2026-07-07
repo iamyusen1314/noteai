@@ -1428,6 +1428,74 @@ body {
   background: rgba(0,0,0,0.55); padding: 1px 5px;
   border-radius: 6px;
 }
+.ss-thumb-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  background: var(--surf-3);
+  border: 1.5px solid rgba(255,255,255,0.12);
+}
+.ss-thumb-item.is-primary { border: 2px solid rgba(0,153,255,0.6); }
+.ss-thumb-item.is-recognizing { border-color: rgba(0,153,255,0.75); box-shadow: 0 0 0 1px rgba(0,153,255,0.24); }
+.ss-thumb-item.is-done { border-color: rgba(34,197,94,0.72); }
+.ss-thumb-item.is-failed { border-color: rgba(239,68,68,0.82); }
+.ss-thumb-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ss-thumb-index {
+  position: absolute; top: 3px; left: 4px;
+  font-size: 9px; font-weight: 800; color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+.ss-thumb-status {
+  position: absolute; left: 4px; right: 4px; bottom: 4px;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 17px; padding: 2px 4px; border-radius: 6px;
+  font-size: 9px; font-weight: 800; line-height: 1.1;
+  color: #fff; background: rgba(0,0,0,0.62);
+  backdrop-filter: blur(8px);
+}
+.ss-thumb-status.is-pending { color: var(--text-2); }
+.ss-thumb-status.is-recognizing { color: #7dd3fc; background: rgba(0,96,160,0.72); }
+.ss-thumb-status.is-done { color: #bbf7d0; background: rgba(16,120,64,0.72); }
+.ss-thumb-status.is-failed { color: #fecaca; background: rgba(148,34,34,0.78); }
+.ss-image-summary-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.ss-image-summary-item {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.035);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.ss-image-summary-item.is-failed { border-color: rgba(239,68,68,0.32); background: rgba(239,68,68,0.08); }
+.ss-image-summary-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 4px; font-size: 12px; font-weight: 800; color: var(--text);
+}
+.ss-image-summary-body {
+  font-size: 12px; line-height: 1.55; color: var(--text-2);
+  word-break: break-word;
+}
+.ss-ocr-confirm-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.analyze-btn:disabled,
+.analyze-btn[aria-disabled="true"] {
+  cursor: not-allowed !important;
+  opacity: 0.58;
+  filter: grayscale(0.28);
+  transform: none !important;
+  box-shadow: none !important;
+}
+.analyze-btn:disabled::after,
+.analyze-btn[aria-disabled="true"]::after {
+  display: none;
+}
 
 /* ═══════════════════════════════════════════════
    LIVE DIAGNOSIS PAGE
@@ -1773,6 +1841,20 @@ body {
 .rewrite-box.original .rewrite-box-label { color: var(--text-muted); }
 .rewrite-box.new      .rewrite-box-label { color: var(--success); }
 .rewrite-box-text { font-size: 15px; line-height: 1.65; color: var(--text); font-weight: 500; }
+.rewrite-title-meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 10px;
+  font-size: 11px; line-height: 1.4;
+}
+.rewrite-title-chip {
+  padding: 3px 8px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-muted);
+}
+.rewrite-title-chip.ok { border-color: rgba(34,197,94,0.28); color: var(--success); background: rgba(34,197,94,0.08); }
+.rewrite-title-chip.info { border-color: rgba(0,153,255,0.26); color: var(--accent); background: rgba(0,153,255,0.08); }
+.rewrite-title-chip.warn { border-color: rgba(245,158,11,0.35); color: var(--warning); background: rgba(245,158,11,0.09); }
 .rewrite-score { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
 .arrow-up    { font-size: 20px; font-weight: 700; color: var(--success); }
 .score-change{ font-size: 14px; font-weight: 700; color: var(--success); }
@@ -3018,7 +3100,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
               清空
             </button>
             <div id="screenshot-loading" style="display:none;color:var(--accent);font-size:12px;font-weight:600;margin-left:auto">
-              <span style="animation:spin 1s linear infinite;display:inline-block;margin-right:4px">⟳</span>识别图1 内容中…
+              <span style="animation:spin 1s linear infinite;display:inline-block;margin-right:4px">⟳</span><span id="ss-ocr-progress-text">等待图片识别…</span>
             </div>
           </div>
 
@@ -3029,7 +3111,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <div id="screenshot-result" style="display:none;margin-top:12px;background:var(--surf-2);border:1px solid rgba(0,153,255,0.2);border-radius:var(--r-md);padding:14px">
           <div id="ss-ocr-status" style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:6px">✅ AI 识别完成</div>
           <div style="font-size:13px;color:var(--text-2);margin-bottom:4px">标题：<strong id="ss-title-display" style="color:var(--text)"></strong></div>
-          <div style="font-size:13px;color:var(--text-2)">正文预览：<span id="ss-body-display" style="color:var(--text)"></span></div>
+          <div style="font-size:13px;color:var(--text-2);margin-bottom:4px">正文预览：<span id="ss-body-display" style="color:var(--text)"></span></div>
+          <div style="font-size:13px;color:var(--text-2)">话题：<span id="ss-tags-display" style="color:var(--text)"></span></div>
+          <div id="ss-confirm-hint" class="ss-ocr-confirm-hint" style="display:none">请确认识别内容是否准确；如有偏差，可删除对应图片重传，或切换到手动填写补充标题/正文/话题。</div>
+          <div id="ss-image-summary-list" class="ss-image-summary-list" style="display:none"></div>
         </div>
 
         <!-- 领域选择 -->
@@ -3108,7 +3193,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
               <label style="font-size:13px;font-weight:600;color:var(--text-2)">笔记标题</label>
               <span id="titleCount" style="font-size:12px;color:var(--text-muted)">0 / 20</span>
             </div>
-            <input id="inputTitle" type="text" maxlength="20" placeholder="输入标题（平台最多20字，AI改写目标≤18字）"
+            <input id="inputTitle" type="text" maxlength="20" placeholder="输入标题（平台最多20字，AI改写目标16-20字）"
               oninput="document.getElementById('titleCount').textContent=this.value.length+' / 20'"
               onfocus="this.style.borderColor='rgba(0,153,255,0.5)'" onblur="this.style.borderColor='var(--border)'"
               style="width:100%;background:var(--surf-3);border:1px solid var(--border);border-radius:var(--r-sm);
@@ -3214,9 +3299,9 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         </div>
       </div>
 
-      <button class="btn btn-primary btn-lg analyze-btn" onclick="startDiagnosis()"
+      <button id="diagnoseSubmitBtn" class="btn btn-primary btn-lg analyze-btn" onclick="startDiagnosis()" disabled
         style="background:linear-gradient(135deg,#0099FF,#0070CC);color:#fff;border:none;box-shadow:0 4px 24px rgba(0,153,255,0.3)">
-        <i data-lucide="search"></i> 开始 AI 诊断（约 30-60 秒）
+        <i data-lucide="search"></i> <span class="diagnose-btn-label">请先上传截图</span>
       </button>
 
     </div><!-- /section-diagnose -->
@@ -3688,7 +3773,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <div class="rewrite-panel active" id="rp0">
         <div class="rewrite-pair">
           <div class="rewrite-box original"><div class="rewrite-box-label">原版标题</div><div class="rewrite-box-text" id="origTitle0">…</div></div>
-          <div class="rewrite-box new"><div class="rewrite-box-label">改写版 A</div><div class="rewrite-box-text" id="newTitle0" style="cursor:pointer" onclick="copyAndToast('newTitle0')">…</div></div>
+          <div class="rewrite-box new"><div class="rewrite-box-label">改写版 A</div><div class="rewrite-box-text" id="newTitle0" style="cursor:pointer" onclick="copyAndToast('newTitle0')">…</div><div class="rewrite-title-meta" id="titleMeta0"></div></div>
         </div>
         <div class="rewrite-score mt-16"><span class="arrow-up">↑</span><span class="score-change" id="rewriteHint0">数据/结果驱动，用具体数字建立信任感</span></div>
         <!-- 完整文案 + 跳转 -->
@@ -3705,7 +3790,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <div class="rewrite-panel" id="rp1">
         <div class="rewrite-pair">
           <div class="rewrite-box original"><div class="rewrite-box-label">原版标题</div><div class="rewrite-box-text" id="origTitle1">…</div></div>
-          <div class="rewrite-box new"><div class="rewrite-box-label">改写版 B</div><div class="rewrite-box-text" id="newTitle1" style="cursor:pointer" onclick="copyAndToast('newTitle1')">…</div></div>
+          <div class="rewrite-box new"><div class="rewrite-box-label">改写版 B</div><div class="rewrite-box-text" id="newTitle1" style="cursor:pointer" onclick="copyAndToast('newTitle1')">…</div><div class="rewrite-title-meta" id="titleMeta1"></div></div>
         </div>
         <div class="rewrite-score mt-16"><span class="arrow-up">↑</span><span class="score-change" id="rewriteHint1">场景代入+情绪触发，激发用户强烈共鸣</span></div>
         <div id="rp1-body" style="display:block;margin-top:14px;background:var(--surf-2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px">
@@ -3721,7 +3806,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <div class="rewrite-panel" id="rp2">
         <div class="rewrite-pair">
           <div class="rewrite-box original"><div class="rewrite-box-label">原版标题</div><div class="rewrite-box-text" id="origTitle2">…</div></div>
-          <div class="rewrite-box new"><div class="rewrite-box-label">改写版 C</div><div class="rewrite-box-text" id="newTitle2" style="cursor:pointer" onclick="copyAndToast('newTitle2')">…</div></div>
+          <div class="rewrite-box new"><div class="rewrite-box-label">改写版 C</div><div class="rewrite-box-text" id="newTitle2" style="cursor:pointer" onclick="copyAndToast('newTitle2')">…</div><div class="rewrite-title-meta" id="titleMeta2"></div></div>
         </div>
         <div class="rewrite-score mt-16"><span class="arrow-up">↑</span><span class="score-change" id="rewriteHint2">反差/颠覆预期，制造好奇心，种草潜力最强</span></div>
         <div id="rp2-body" style="display:block;margin-top:14px;background:var(--surf-2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px">
@@ -4861,17 +4946,83 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 .chat-supplement-sub {font-size:12px;color:var(--text-2);line-height:1.55;margin-bottom:9px;}
 .chat-supplement-list {display:flex;flex-direction:column;gap:7px;}
 .chat-supplement-row {
-  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  display:grid;grid-template-columns:1fr auto;align-items:flex-start;gap:10px;
   padding:8px;border-radius:8px;background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.08);
 }
+.chat-supplement-row.is-open {background:rgba(34,197,94,0.09);border-color:rgba(34,197,94,0.2);}
 .chat-supplement-row strong {display:block;font-size:12px;color:var(--text-1);margin-bottom:2px;}
 .chat-supplement-row span {display:block;font-size:11px;color:var(--text-2);line-height:1.45;}
-.chat-supplement-row button,.chat-supplement-skip {
+.chat-supplement-row button,.chat-supplement-skip,.chat-supplement-primary {
   border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.12);
   color:var(--success);border-radius:7px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
 }
+.chat-supplement-field {
+  grid-column:1 / -1;display:none;gap:7px;align-items:center;margin-top:2px;
+}
+.chat-supplement-row.is-open .chat-supplement-field {display:flex;}
+.chat-supplement-field input {
+  min-width:0;flex:1;border:1px solid rgba(34,197,94,0.28);background:rgba(0,0,0,0.18);
+  border-radius:7px;color:var(--text-1);padding:8px 10px;font-size:12px;outline:none;
+}
+.chat-supplement-field input:focus {border-color:rgba(34,197,94,0.62);box-shadow:0 0 0 2px rgba(34,197,94,0.12);}
 .chat-supplement-actions {display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;}
 .chat-supplement-skip {background:rgba(255,255,255,0.055);border-color:var(--border);color:var(--text-2);}
+.chat-supplement-primary {background:rgba(34,197,94,0.18);}
+.chat-supplement-status {font-size:11px;color:var(--text-2);align-self:center;}
+.chat-supplement-card.is-submitted {opacity:.78;}
+@media(max-width:640px){
+  .chat-supplement-card{max-width:96%;}
+  .chat-supplement-row{grid-template-columns:1fr;}
+  .chat-supplement-row button{justify-self:flex-start;}
+  .chat-supplement-field{flex-direction:column;align-items:stretch;}
+}
+.chat-plan-card {
+  align-self:flex-start;
+  width:min(860px,94%);
+  border:1px solid rgba(123,97,255,0.28);
+  background:linear-gradient(180deg,rgba(123,97,255,0.13),rgba(255,255,255,0.035));
+  border-radius:14px;
+  padding:12px;
+  box-shadow:0 14px 36px rgba(0,0,0,0.18);
+}
+.chat-plan-head {display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.chat-plan-title {font-size:13px;font-weight:800;color:var(--text);}
+.chat-plan-sub {font-size:12px;color:var(--text-2);line-height:1.55;margin-top:3px;}
+.chat-plan-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.chat-plan-option {
+  display:flex;flex-direction:column;gap:8px;
+  min-width:0;border:1px solid rgba(255,255,255,0.09);
+  background:rgba(10,14,24,0.78);border-radius:12px;padding:11px;
+}
+.chat-plan-option.is-selected {border-color:rgba(34,197,94,0.65);box-shadow:0 0 0 1px rgba(34,197,94,0.18);}
+.chat-plan-option-top {display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.chat-plan-badge {
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:26px;height:24px;border-radius:999px;
+  background:rgba(123,97,255,0.18);border:1px solid rgba(123,97,255,0.3);
+  color:var(--holo-mid);font-size:12px;font-weight:900;
+}
+.chat-plan-score {font-size:13px;font-weight:900;color:var(--success);}
+.chat-plan-delta {font-size:11px;color:var(--text-muted);}
+.chat-plan-option-title {font-size:14px;line-height:1.45;font-weight:800;color:var(--text);word-break:break-word;}
+.chat-plan-strategy {font-size:11px;color:var(--holo-mid);font-weight:700;}
+.chat-plan-preview,.chat-plan-full {font-size:12px;line-height:1.55;color:var(--text-2);word-break:break-word;}
+.chat-plan-full {display:none;max-height:240px;overflow:auto;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;white-space:pre-wrap;}
+.chat-plan-option.is-open .chat-plan-full {display:block;}
+.chat-plan-option.is-open .chat-plan-preview {display:none;}
+.chat-plan-issues {font-size:11px;line-height:1.45;color:var(--warning);}
+.chat-plan-actions {display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:auto;}
+.chat-plan-actions button {
+  border:1px solid rgba(123,97,255,0.32);border-radius:9px;
+  background:rgba(123,97,255,0.16);color:var(--text);
+  padding:7px 9px;font-size:12px;font-weight:800;cursor:pointer;
+}
+.chat-plan-actions button[data-plan-select] {
+  background:linear-gradient(135deg,#7B61FF,#FF6FD8);border:none;color:#fff;
+}
+.chat-plan-actions button:disabled {opacity:.55;cursor:not-allowed;}
+.chat-plan-status {font-size:11px;color:var(--text-2);margin-top:8px;min-height:15px;}
+@media(max-width:900px){.chat-plan-grid{grid-template-columns:1fr;}.chat-plan-card{width:96%;}}
 /* note update / learn inline events */
 .cnote-updated,.clearn-toast {
   align-self:center;border-radius:20px;padding:5px 14px;font-size:12px;
@@ -5175,6 +5326,7 @@ function selectType(el, type) {
   document.getElementById('manual-form').style.display     = type === '手动填写'   ? 'block' : 'none';
   document.getElementById('screenshot-form').style.display = type === '截图上传'   ? 'block' : 'none';
   document.getElementById('video-diag-form').style.display = type === '视频上传'   ? 'block' : 'none';
+  updateDiagnosisSubmitState();
 }
 
 function selectContentIntent(el) {
@@ -6009,7 +6161,9 @@ async function startDiagnosis() {
     }
     title  = _screenshotExtracted?.title  || '';
     // 去掉视觉描述附加内容（【配图/封面图视觉描述】xxx），只保留笔记正文
-    desc = (_screenshotExtracted?.body || '').replace(/\n*【(配图|封面图)视觉描述】[^\n]*/g, '').trim();
+    const ssBodyOnly = (_screenshotExtracted?.body || '').replace(/\n*【(配图|封面图)视觉描述】[^\n]*/g, '').trim();
+    const ssTags = _normalizeSsTags(_screenshotExtracted?.tags || '');
+    desc = _joinSsBodyAndTags(ssBodyOnly, ssTags);
     domain = (document.getElementById('inputDomainSS')?.value || _screenshotExtracted?.domain || '美食');
     // 纯图片情况：没有文字内容但有视觉描述，允许诊断（视觉描述已在 body 里）
     if (!title && !desc) {
@@ -6035,6 +6189,7 @@ async function startDiagnosis() {
   // ── 完整 AI 诊断流（含约束条件 + 多图 + 真实 agent 事件）────────────
   _diagnoseResult = null;
   _diagnosisStreamActive = true;
+  updateDiagnosisSubmitState();
   const analyzeBody = {
     note_title:       title,
     desc,
@@ -6042,7 +6197,7 @@ async function startDiagnosis() {
     domain,
     user_id:          _authUser?.id || null,
     input_mode:       selectedLabel === '截图上传' ? 'screenshot' : (selectedLabel === '视频上传' ? 'video' : 'manual'),
-    ocr_char_count:   selectedLabel === '截图上传' ? (_screenshotExtracted?._charCount || null) : null,
+    ocr_char_count:   selectedLabel === '截图上传' ? (_screenshotExtracted?._charCount || _bodyCharCountWithoutSsTags(_screenshotExtracted?.body || '')) : null,
     cover_image:      coverB64,
     user_constraints: constraints.length > 0 ? constraints : null,
     extra_images:     extraImages.length  > 0 ? extraImages : null,
@@ -6060,6 +6215,7 @@ async function startDiagnosis() {
         if (resp.status === 402) {
           const errData = await resp.json().catch(() => ({}));
           _diagnosisStreamActive = false;
+          updateDiagnosisSubmitState();
           _diagnoseResult = { _error: true, _quota: true };
           showToast('诊断积分不足，请订阅套餐或充值积分');
           showQuotaExceededModal(errData.detail || errData);
@@ -6067,6 +6223,7 @@ async function startDiagnosis() {
         }
         if (resp.status === 401) {
           _diagnosisStreamActive = false;
+          updateDiagnosisSubmitState();
           _diagnoseResult = { _error: true };
           showToast('⚠ 请先登录后使用 AI 深度诊断');
           openAuthModal('login');
@@ -6091,6 +6248,7 @@ async function startDiagnosis() {
               _handleAnalyzeStreamEvent(ev);
               if (ev.type === 'complete') {
                 _diagnosisStreamActive = false;
+                updateDiagnosisSubmitState();
                 _diagnoseResult = ev;
                 _diagnoseResult._inputTitle = title;
                 _diagnoseResult._inputDesc  = desc;
@@ -6107,6 +6265,7 @@ async function startDiagnosis() {
                 resolve();
               } else if (ev.type === 'error') {
                 _diagnosisStreamActive = false;
+                updateDiagnosisSubmitState();
                 _diagnoseResult = {
                   _error: true,
                   _quota: ev.status_code === 402,
@@ -6119,12 +6278,14 @@ async function startDiagnosis() {
         }
         if (_diagnosisStreamActive) {
           _diagnosisStreamActive = false;
+          updateDiagnosisSubmitState();
           if (!_diagnoseResult) _diagnoseResult = { _error: true, _errMsg: 'AI 诊断流意外中断' };
           resolve();
         }
       } catch(err) {
         console.error('[NoteAI] analyze stream error:', err);
         _diagnosisStreamActive = false;
+        updateDiagnosisSubmitState();
         _diagnoseResult = { _error: true };
         showToast('⚠ AI 诊断失败，请确认本地服务已启动（port 8000）');
         resolve();
@@ -6185,15 +6346,26 @@ function renderMarketTimingEvidence(mt) {
   const freshness = Number(mt.freshness_hours);
   const stale = !!mt.data_stale || (Number.isFinite(freshness) && freshness > 30);
   const sourceBreakdown = mt.source_breakdown || {};
+  const pipeline = mt.pipeline_status || {};
+  const xhs = pipeline.xhs || {};
+  const latestHealth = xhs.latest_health || {};
+  const pipelineLabel = pipeline.state_label || (stale ? '证据不可用' : '可用');
+  const xhsHealthLabel = xhs.ok
+    ? 'XHS通过'
+    : (xhs.reason === 'no_xhs_health_record'
+        ? 'XHS无健康记录'
+        : (latestHealth.status ? `XHS ${latestHealth.status}` : 'XHS未通过'));
   const sourceText = Object.keys(sourceBreakdown).length
     ? Object.entries(sourceBreakdown).map(([k,v]) => `${k}:${v}`).join(' / ')
     : '未知';
   sourceEl.innerHTML = [
     `<span>数据源：${escapeHtml(mt.data_source_label || '本地热词样本库')}</span>`,
+    `<span class="${(stale || pipeline.state === 'evidence_unavailable') ? 'warn' : ''}">管道状态：${escapeHtml(pipelineLabel)}</span>`,
     `<span>样本量：${escapeHtml(mt.keyword_count ?? 0)} 条</span>`,
     `<span>合格证据：${escapeHtml(mt.domain_qualified_keyword_count ?? 0)} / ${escapeHtml(mt.market_timing_min_domain_keywords ?? 0)} 条</span>`,
     `<span>强证据：${escapeHtml(mt.domain_strong_keyword_count ?? 0)} 条</span>`,
     `<span class="${stale ? 'warn' : ''}">最近采集：${escapeHtml(formatTimingCapture(mt.domain_latest_capture || mt.latest_capture))}</span>`,
+    `<span class="${xhs.ok ? '' : 'warn'}">${escapeHtml(xhsHealthLabel)}</span>`,
     `<span>来源分布：${escapeHtml(sourceText)}</span>`
   ].join('');
 
@@ -6203,6 +6375,8 @@ function renderMarketTimingEvidence(mt) {
   const hot = Number(mt.is_trending_topic || 0);
   const competition = Number(mt.keyword_competition || 0);
   gridEl.innerHTML = [
+    { label:'数据管道', value:pipelineLabel, help:pipeline.reason || pipeline.worker_hint || '趋势 worker 负责每日采集并生成快照' },
+    { label:'XHS health', value:xhsHealthLabel, help:latestHealth.error_summary || latestHealth.error_code || (xhs.ok ? '真实 XHS 新鲜度满足当前要求' : '尚未看到可用真实 XHS freshness 记录') },
     { label:'趋势参考系数', value:'×' + coefficient.toFixed(2), help: stale ? '行业热词未更新，当前停用趋势判断' : '用于解释趋势契合度，不直接乘总分' },
     { label:'最高搜索量指数', value:Math.round(vol * 100), help:'命中词在本地样本中的相对热度' },
     { label:'上升趋势占比', value:Math.round(momentum * 100) + '%', help:'命中词中仍在上升的比例' },
@@ -6218,6 +6392,9 @@ function renderMarketTimingEvidence(mt) {
   formulaEl.textContent = mt.confidence_note || (stale
     ? '今日行业热词未更新，市场时机证据已停用。'
     : `趋势参考由命中热词、相对搜索量、上升趋势、热搜来源和竞争度估算；当前${hot ? '命中过热搜来源' : '未命中过热搜来源'}。`);
+  if (pipeline.worker_hint && stale) {
+    formulaEl.textContent += ' 当前未观察到趋势 worker 生成的新鲜行业证据，请启动本地趋势 worker 后重新测试。';
+  }
 }
 
 async function populateReport() {
@@ -6290,6 +6467,7 @@ async function populateReport() {
 	  const diagChatEntry = document.getElementById('diagChatEntry');
 	  if (diagChatEntry) diagChatEntry.style.display = 'block';
 	  renderReportLifecycle(d);
+	  hydrateReportLifecycleWithNoteChain(d);
 	  const metaEl = document.getElementById('reportMeta');
   if (metaEl) {
     const now = new Date();
@@ -6399,10 +6577,11 @@ async function populateReport() {
     const qFailed  = !!plans[i]?.quality_failed;
     const qIssues  = Array.isArray(plans[i]?.quality_issues) ? plans[i].quality_issues : [];
     if (orig) orig.textContent = origTitle || '（原版标题）';
-    // 新诊断由后端 AI 保证≤18字；旧历史记录原样展示（不机械截断）
+    // 新诊断由后端返回标题元数据；旧历史记录原样展示（不机械截断）
     const rawTitle = (plans[i]?.title) || titles[i] || '';
     const displayTitle = _jsCleanTitle(rawTitle) || '（生成中…）';
     if (nw) nw.textContent = displayTitle;
+    renderRewriteTitleMeta(i, displayTitle, plans[i] || {});
     if (hint) {
       const sc = tScores[i];
       let scoreHtml = '';
@@ -6831,7 +7010,7 @@ function copyAndToast(elId) {
     .then(() => showToast('✅ 标题已复制'));
 }
 
-// 前端标题前缀清洗（不截断，超长由后端 AI 自然缩短保证≤18字）
+// 前端标题前缀清洗（不截断；后端负责16-20字目标、平台20字上限和需精修标记）
 function _jsCleanTitle(t) {
   if (!t) return '';
   t = t.trim();
@@ -6842,6 +7021,29 @@ function _jsCleanTitle(t) {
   return t;
 }
 
+function renderRewriteTitleMeta(idx, title, plan) {
+  const el = document.getElementById('titleMeta' + idx);
+  if (!el) return;
+  const meta = plan?.title_meta || {};
+  const issues = Array.isArray(meta.issues) && meta.issues.length
+    ? meta.issues
+    : (Array.isArray(plan?.quality_issues) ? plan.quality_issues.filter(x => String(x || '').includes('标题')) : []);
+  const length = Number.isFinite(Number(meta.length))
+    ? Number(meta.length)
+    : Array.from(String(title || '')).length;
+  const target = meta.target || plan?.title_target || '16-20字';
+  const compressed = !!(meta.was_compressed || plan?.title_was_compressed);
+  const needsRefine = !!(meta.needs_refine || plan?.title_needs_refine || issues.length || length > 20 || (length > 0 && length < 16));
+  const status = needsRefine ? '需精修' : (compressed ? '已语义压缩' : '未压缩');
+  const statusClass = needsRefine ? 'warn' : (compressed ? 'info' : 'ok');
+  const issueText = issues[0] ? ` · ${String(issues[0]).replace(/^标题不自然[:：]?/, '标题不自然：')}` : '';
+  el.innerHTML = [
+    `<span class="rewrite-title-chip ${length >= 16 && length <= 20 ? 'ok' : 'warn'}">${escapeHtml(length)}字 / 目标${escapeHtml(target)}</span>`,
+    `<span class="rewrite-title-chip ${statusClass}">${escapeHtml(status)}</span>`,
+    issueText ? `<span class="rewrite-title-chip warn">${escapeHtml(issueText.slice(3, 48))}${issueText.length > 48 ? '…' : ''}</span>` : ''
+  ].filter(Boolean).join('');
+}
+
 function _isMissingPlanBodyText(body) {
   return !body || body === '（暂无正文改写）' || body.startsWith('（该方案正文未生成');
 }
@@ -6849,6 +7051,13 @@ function _isMissingPlanBodyText(body) {
 function _numOrNull(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function formatScoreValue(value) {
+  const n = _numOrNull(value);
+  if (n === null) return '–';
+  const rounded = Math.round(n * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
 function diagnosisDisplayScore(d) {
@@ -6951,7 +7160,7 @@ async function startChatFromDiagnosis() {
 
   // 重置 chat session
   _chatSessionId    = null;
-  _chatIterCount    = 1;
+  _chatIterCount    = _numOrNull(note._saved_note_version || note.version) || 1;
   _chatParentNoteId = note.id || _diagnoseResult?._saved_note_id || _diagnoseResult?.saved_note_id || null;
   localStorage.removeItem('noteai_chat_session');
   document.getElementById('chat-messages').innerHTML = '';
@@ -7024,7 +7233,7 @@ async function startChatFromDiagnosis() {
     sendBtn.disabled = false; sendBtn.style.opacity = '1';
     document.getElementById('chat-input').focus();
 
-    chatUpdateNote(note.title, note.body, data.current_score, data.grade);
+    chatUpdateNote(note.title, note.body, data.current_score, data.grade, { version: _chatIterCount, initial: true });
     chatUpdateLearn(data.user_prefs || {});
     chatAppendAi(data.welcome);
     chatAppendSupplementPrompts(data.supplement_prompts || []);
@@ -7333,6 +7542,35 @@ function scoreColor(v) {
 	  return 'var(--error)';
 	}
 
+let _reportLifecycleHydrateSeq = 0;
+
+function findReportNoteGroup(groups, savedNoteId) {
+  if (!savedNoteId || !Array.isArray(groups)) return null;
+  return groups.find(group => {
+    const versions = group.versions || [];
+    return group.group_id === savedNoteId
+      || group.latest?.id === savedNoteId
+      || versions.some(v => v?.id === savedNoteId);
+  }) || null;
+}
+
+async function hydrateReportLifecycleWithNoteChain(d) {
+  const savedNoteId = d?._saved_note_id || d?.saved_note_id || null;
+  if (!savedNoteId || !_authToken || d?.note_version_group?.latest) return;
+  const seq = ++_reportLifecycleHydrateSeq;
+  try {
+    const res = await fetch(`${API_AUTH}/notes?grouped=true&limit=80&offset=0`, { headers: authHeader() });
+    if (!res.ok || seq !== _reportLifecycleHydrateSeq) return;
+    const data = await res.json();
+    const group = findReportNoteGroup(data.groups || [], savedNoteId);
+    if (!group || seq !== _reportLifecycleHydrateSeq || _diagnoseResult !== d) return;
+    d.note_version_group = group;
+    renderReportLifecycle(d);
+  } catch(e) {
+    console.warn('[report lifecycle hydrate]', e?.message || e);
+  }
+}
+
 function renderReportLifecycle(d) {
   const card = document.getElementById('reportLifecycleCard');
   const scoreEl = document.getElementById('report-loop-score');
@@ -7349,7 +7587,19 @@ function renderReportLifecycle(d) {
   const bestPlanScore = mergedScores.length ? Math.max(...mergedScores) : null;
   const bestPlanIdx = [0,1,2].find(i => (planScores[i] ?? titleScores[i]) === bestPlanScore);
   const savedNoteId = d._saved_note_id || d.saved_note_id || null;
-  const scoreText = displayScore !== null ? `${displayScore.toFixed(1)}分` : '待评分';
+  const scoreText = displayScore !== null ? `${formatScoreValue(displayScore)}分` : '待评分';
+  const versionGroup = d.note_version_group || d.noteVersionGroup || null;
+  const versions = Array.isArray(versionGroup?.versions) ? versionGroup.versions : [];
+  const latestVersion = versionGroup?.latest || versions[versions.length - 1] || null;
+  const latestScore = _numOrNull(latestVersion?.score);
+  const latestVersionNum = latestVersion?.version || versionGroup?.version_count || versions.length || null;
+  const latestIsChat = latestVersion?.source === 'chat';
+  const versionValue = latestVersion
+    ? `v${latestVersionNum || '–'} · ${latestScore !== null ? formatScoreValue(latestScore) + '分' : '待评分'}`
+    : (savedNoteId ? '已进入笔记库' : '待保存根版本');
+  const versionNote = latestVersion
+    ? `${latestIsChat ? '已选对话方案' : '最新入库版本'}：${latestVersion.title || '未命名'}`
+    : '对话改写会接成 v2/v3';
   if (scoreEl) scoreEl.innerHTML = `当前诊断 <span style="color:${scoreColor(displayScore)}">${scoreText}</span>`;
 
   const steps = [
@@ -7360,16 +7610,16 @@ function renderReportLifecycle(d) {
       tone: displayScore !== null ? scoreColor(displayScore) : 'var(--text-muted)',
     },
     {
-      title: '方案',
-      value: bestPlanScore !== null ? `方案 ${'ABC'[bestPlanIdx] || ''} · ${bestPlanScore.toFixed(1)}分` : '选择下方方案',
-      note: '选中后带方案分进入对话',
+      title: '最佳建议',
+      value: bestPlanScore !== null ? `方案 ${'ABC'[bestPlanIdx] || ''} · ${formatScoreValue(bestPlanScore)}分` : '选择下方方案',
+      note: '仅为诊断建议；点击方案后才进入对话',
       tone: bestPlanScore !== null ? scoreColor(bestPlanScore) : 'var(--text-muted)',
     },
     {
       title: '版本',
-      value: savedNoteId ? '已进入笔记库' : '待保存根版本',
-      note: '对话改写会接成 v2/v3',
-      tone: savedNoteId ? 'var(--success)' : 'var(--warning)',
+      value: versionValue,
+      note: versionNote,
+      tone: latestScore !== null ? scoreColor(latestScore) : (savedNoteId ? 'var(--success)' : 'var(--warning)'),
     },
     {
       title: '真实表现',
@@ -8332,7 +8582,7 @@ async function startChatOptimization() {
 
   // ── 强制清空旧会话状态，确保不与上一次笔记混淆 ──
   _chatSessionId    = null;
-  _chatIterCount    = 1;
+  _chatIterCount    = _numOrNull(d._saved_note_version || d.version) || 1;
   _chatParentNoteId = d._saved_note_id || null;
   localStorage.removeItem('noteai_chat_session');
   document.getElementById('chat-messages').innerHTML = '';
@@ -8378,7 +8628,7 @@ async function startChatOptimization() {
     sendBtn.style.opacity = '1';
     document.getElementById('chat-input').focus();
 
-    chatUpdateNote(d.note_title, d.note_body, data.current_score, data.grade);
+    chatUpdateNote(d.note_title, d.note_body, data.current_score, data.grade, { version: _chatIterCount, initial: true });
     chatUpdateLearn(data.user_prefs || {});
     chatAppendAi(data.welcome);
     chatAppendSupplementPrompts(data.supplement_prompts || []);
@@ -8490,24 +8740,32 @@ function chatRenderAttachPreview() {
 function chatRemoveAttachImage() { _chatAttachImage = null; chatRenderAttachPreview(); }
 function chatRemoveAttachFile(i) { _chatAttachFiles.splice(i, 1); chatRenderAttachPreview(); }
 
-async function chatSendMessage() {
+async function chatSendMessage(options = {}) {
   if (_chatBusy || !_chatSessionId) return;
+  const opts = (options && typeof options === 'object') ? options : {};
   const inp  = document.getElementById('chat-input');
-  const text = inp.value.trim();
-  if (!text && !_chatAttachImage && _chatAttachFiles.length === 0) return;
-  inp.value = ''; inp.style.height = 'auto';
+  const directText = typeof opts.text === 'string' ? opts.text.trim() : '';
+  const text = directText || inp.value.trim();
+  const supplementValues = (opts.supplement_values || opts.supplementValues || null);
+  const hasSupplementValues = !!(supplementValues && Object.keys(supplementValues).length);
+  const useCurrentAttachments = opts.useCurrentAttachments !== false;
+  if (!text && !_chatAttachImage && _chatAttachFiles.length === 0 && !hasSupplementValues) return;
+  if (!directText) inp.value = '';
+  inp.style.height = 'auto';
   _chatBusy = true;
   const sendBtn = document.getElementById('chat-send-btn');
   sendBtn.disabled = true; sendBtn.style.opacity = '.4';
   inp.disabled = true;
 
   // Snapshot and clear attachments
-  const attachImage = _chatAttachImage;
-  const attachFiles = [..._chatAttachFiles];
-  _chatAttachImage = null; _chatAttachFiles = []; chatRenderAttachPreview();
+  const attachImage = useCurrentAttachments ? _chatAttachImage : null;
+  const attachFiles = useCurrentAttachments ? [..._chatAttachFiles] : [];
+  if (useCurrentAttachments) {
+    _chatAttachImage = null; _chatAttachFiles = []; chatRenderAttachPreview();
+  }
 
   // Show user message with thumbnail if image attached
-  chatAppendUser(text, attachImage);
+  chatAppendUser(opts.displayText || text, attachImage);
   if (_chatThinkTimerId) { clearInterval(_chatThinkTimerId); _chatThinkTimerId = null; }
   _chatAiText = ''; _chatThinkEl = null; _chatThinkBody = null; _chatAiBubble = null;
   _chatSearchActive = false;
@@ -8519,6 +8777,9 @@ async function chatSendMessage() {
     image_base64: attachImage ? attachImage.base64 : null,
     file_text:    fileText,
   };
+  if (hasSupplementValues) {
+    payload.supplement_values = supplementValues;
+  }
 
   try {
     let resp = await fetch(API_BASE + '/chat/message', {
@@ -8696,10 +8957,16 @@ function chatHandleEvent(ev) {
       if (ev.saved_note_id || ev._saved_note_id) {
         _chatParentNoteId = ev.saved_note_id || ev._saved_note_id;
       }
-      chatUpdateNote(ev.title, ev.body, ev.score, ev.grade);
-      chatAppendNoteUpdatedMsg(ev.score, ev.grade);
+      chatUpdateNote(ev.title, ev.body, ev.score, ev.grade, {
+        version: ev.saved_note_version || ev._saved_note_version || null,
+        saved: !!(ev.saved_note_id || ev._saved_note_id),
+      });
+      chatAppendNoteUpdatedMsg(ev.score, ev.grade, ev.saved_note_version || ev._saved_note_version || null);
       // BUG3 FIX: 笔记更新后同步刷新 localStorage 快照
       setTimeout(chatSaveSessionToStorage, 100);
+      break;
+    case 'plan_options':
+      chatAppendPlanOptions(ev);
       break;
     case 'learning':
       chatAppendLearnToast(ev.message || '已记录偏好');
@@ -8744,37 +9011,187 @@ function chatAppendSupplementPrompts(prompts) {
   if (!items.length) return;
   const wrap = document.createElement('div');
   wrap.className = 'chat-supplement-card';
+  const itemField = (item, idx) => String(item.field || `field_${idx}`).replace(/[^\w-]/g, '') || `field_${idx}`;
   wrap.innerHTML = `
     <div class="chat-supplement-title">补充真实信息后，优化会更稳</div>
-    <div class="chat-supplement-sub">这些不是已核验事实。补充后我会自然融入；暂时没有也会避开编造。</div>
+    <div class="chat-supplement-sub">这些不是已核验事实。请在卡片里补充，提交后我会作为事实边界自然融入；暂时没有也会避开编造。</div>
     <div class="chat-supplement-list">
       ${items.map((item, idx) => `
-        <div class="chat-supplement-row">
+        <div class="chat-supplement-row" data-supplement-row="${idx}">
           <div>
             <strong>${chatEsc(item.label || item.field || '补充信息')}</strong>
             <span>${chatEsc(item.prompt || '')}</span>
           </div>
           <button type="button" data-supplement-idx="${idx}">补充</button>
+          <label class="chat-supplement-field">
+            <input type="text"
+              data-supplement-field="${chatEsc(itemField(item, idx))}"
+              data-supplement-label="${chatEsc(item.label || item.field || '补充信息')}"
+              placeholder="${chatEsc(item.action_text || `填写${item.label || '补充信息'}`)}">
+          </label>
         </div>
       `).join('')}
     </div>
     <div class="chat-supplement-actions">
+      <button type="button" class="chat-supplement-primary" data-supplement-submit="1">提交补充并优化</button>
       <button type="button" class="chat-supplement-skip" data-supplement-skip="1">先不补充，继续优化</button>
+      <span class="chat-supplement-status" data-supplement-status></span>
     </div>`;
   document.getElementById('chat-messages').appendChild(wrap);
   wrap.querySelectorAll('[data-supplement-idx]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const item = items[Number(btn.dataset.supplementIdx)] || {};
-      const inp = document.getElementById('chat-input');
-      inp.value = item.action_text || `补充${item.label || '信息'}：`;
-      inp.focus();
-      chatAutoResize(inp);
+      const row = wrap.querySelector(`[data-supplement-row="${btn.dataset.supplementIdx}"]`);
+      row?.classList.add('is-open');
+      btn.textContent = '填写中';
+      const field = row?.querySelector('[data-supplement-field]');
+      field?.focus();
+    });
+  });
+  wrap.querySelector('[data-supplement-submit]')?.addEventListener('click', () => {
+    const values = {};
+    const labels = {};
+    wrap.querySelectorAll('[data-supplement-field]').forEach(input => {
+      const value = (input.value || '').trim();
+      if (!value) return;
+      values[input.dataset.supplementField] = value;
+      labels[input.dataset.supplementField] = input.dataset.supplementLabel || input.dataset.supplementField;
+    });
+    const status = wrap.querySelector('[data-supplement-status]');
+    if (!Object.keys(values).length) {
+      wrap.querySelector('[data-supplement-row]')?.classList.add('is-open');
+      wrap.querySelector('[data-supplement-field]')?.focus();
+      if (status) status.textContent = '请至少填写一项真实信息';
+      return;
+    }
+    wrap.classList.add('is-submitted');
+    wrap.querySelectorAll('button,input').forEach(el => { el.disabled = true; });
+    if (status) status.textContent = '已提交，正在基于补充事实优化...';
+    const displayText = Object.entries(values)
+      .map(([field, value]) => `${labels[field] || field}：${value}`)
+      .join('\n');
+    chatSendMessage({
+      text: '我已补充真实信息，请基于这些事实继续优化一版。',
+      displayText: `补充真实信息：\n${displayText}`,
+      supplement_values: values,
+      useCurrentAttachments: false,
     });
   });
   wrap.querySelector('[data-supplement-skip]')?.addEventListener('click', () => {
     chatSendQuick('先不补充这些信息，请在不编造事实的前提下继续优化');
   });
   chatScrollBottom();
+}
+
+function chatPlanScoreText(value) {
+  const n = _numOrNull(value);
+  return n === null ? '待评分' : `${formatScoreValue(n)}分`;
+}
+
+function chatPlanDeltaText(value) {
+  const n = _numOrNull(value);
+  if (n === null || n === 0) return '';
+  return n > 0 ? `+${formatScoreValue(n)}` : formatScoreValue(n);
+}
+
+function chatAppendPlanOptions(ev) {
+  const options = Array.isArray(ev?.options) ? ev.options.filter(o => o && o.id && o.title).slice(0, 3) : [];
+  if (!options.length) return;
+  if (_chatAiBubble && ev.summary) {
+    _chatAiText = ev.summary;
+    _chatAiBubble.innerHTML = chatMD(ev.summary);
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'chat-plan-card';
+  wrap.innerHTML = `
+    <div class="chat-plan-head">
+      <div>
+        <div class="chat-plan-title">候选方案，选择后才保存为新版本</div>
+        <div class="chat-plan-sub">这些是已评分草稿。点击「选择并保存」后，才会进入笔记库版本链并更新左侧当前分数。</div>
+      </div>
+    </div>
+    <div class="chat-plan-grid">
+      ${options.map(opt => {
+        const id = chatEsc(String(opt.id || '').toUpperCase());
+        const score = chatPlanScoreText(opt.score);
+        const delta = chatPlanDeltaText(opt.score_delta);
+        const issues = Array.isArray(opt.quality_issues) ? opt.quality_issues.slice(0, 2) : [];
+        const preview = String(opt.body || '').replace(/\s+/g, ' ').slice(0, 120);
+        return `
+          <div class="chat-plan-option" data-plan-option="${id}">
+            <div class="chat-plan-option-top">
+              <span class="chat-plan-badge">${id}</span>
+              <div style="text-align:right">
+                <div class="chat-plan-score">${chatEsc(score)}</div>
+                ${delta ? `<div class="chat-plan-delta">${chatEsc(delta)}</div>` : ''}
+              </div>
+            </div>
+            <div class="chat-plan-strategy">${chatEsc(opt.strategy || `方案 ${id}`)}</div>
+            <div class="chat-plan-option-title">${chatEsc(opt.title || '')}</div>
+            <div class="chat-plan-preview">${chatEsc(preview)}${(opt.body || '').length > 120 ? '…' : ''}</div>
+            <div class="chat-plan-full">${chatEsc(opt.body || '')}</div>
+            ${issues.length ? `<div class="chat-plan-issues">${issues.map(chatEsc).join('<br>')}</div>` : ''}
+            <div class="chat-plan-actions">
+              <button type="button" data-plan-select="${id}">选择并保存</button>
+              <button type="button" data-plan-toggle="${id}">全文</button>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>
+    <div class="chat-plan-status" data-plan-status></div>`;
+  document.getElementById('chat-messages').appendChild(wrap);
+  wrap.querySelectorAll('[data-plan-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = wrap.querySelector(`[data-plan-option="${btn.dataset.planToggle}"]`);
+      card?.classList.toggle('is-open');
+      btn.textContent = card?.classList.contains('is-open') ? '收起' : '全文';
+      chatScrollBottom();
+    });
+  });
+  wrap.querySelectorAll('[data-plan-select]').forEach(btn => {
+    btn.addEventListener('click', () => chatSelectPlan(btn.dataset.planSelect, btn, wrap));
+  });
+  chatScrollBottom();
+}
+
+async function chatSelectPlan(optionId, btn, wrap) {
+  if (!_chatSessionId || !optionId) return;
+  const status = wrap?.querySelector('[data-plan-status]');
+  const oldText = btn?.textContent || '';
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+    if (status) status.textContent = `正在保存方案 ${optionId} 为新版本...`;
+    const res = await fetch(API_BASE + '/chat/select-plan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', ...authHeader()},
+      body: JSON.stringify({ session_id: _chatSessionId, option_id: optionId }),
+    });
+    if (res.status === 401) {
+      openAuthModal('login');
+      throw new Error('请先登录后选择方案');
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `HTTP ${res.status}`);
+    }
+    const ev = await res.json();
+    if (ev.saved_note_id || ev._saved_note_id) {
+      _chatParentNoteId = ev.saved_note_id || ev._saved_note_id;
+    }
+    chatUpdateNote(ev.title, ev.body, ev.score, ev.grade, {
+      version: ev.saved_note_version || ev._saved_note_version || null,
+      saved: !!(ev.saved_note_id || ev._saved_note_id),
+    });
+    chatAppendNoteUpdatedMsg(ev.score, ev.grade, ev.saved_note_version || ev._saved_note_version || null);
+    wrap?.querySelectorAll('.chat-plan-option').forEach(el => el.classList.remove('is-selected'));
+    wrap?.querySelector(`[data-plan-option="${optionId}"]`)?.classList.add('is-selected');
+    wrap?.querySelectorAll('[data-plan-select]').forEach(el => { el.disabled = true; });
+    if (status) status.textContent = `已选择方案 ${optionId}，并保存为 v${ev.saved_note_version || '?'}。`;
+    setTimeout(chatSaveSessionToStorage, 100);
+  } catch(e) {
+    if (status) status.textContent = '选择失败：' + e.message;
+    showToast('选择方案失败：' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = oldText || '选择并保存'; }
+  }
 }
 function chatCreateThink() {
   const wrap = document.createElement('div');
@@ -8834,10 +9251,11 @@ function chatAppendContent(t) {
   _chatAiBubble.innerHTML = chatMD(_chatAiText);
   chatScrollBottom();
 }
-function chatAppendNoteUpdatedMsg(score, grade) {
+function chatAppendNoteUpdatedMsg(score, grade, version) {
   const d = document.createElement('div');
   d.className = 'cnote-updated';
-  d.innerHTML = `✨ 笔记已更新${score ? ' — 新评分 <strong>' + score + '分 (' + grade + ')</strong>' : ''}`;
+  const versionText = version ? `v${version} · ` : '';
+  d.innerHTML = `✨ 笔记已更新${score ? ' — ' + versionText + '新评分 <strong>' + formatScoreValue(score) + '分 (' + chatEsc(grade || '') + ')</strong>' : ''}`;
   document.getElementById('chat-messages').appendChild(d);
 }
 function chatAppendLearnToast(msg) {
@@ -8848,17 +9266,25 @@ function chatAppendLearnToast(msg) {
 }
 
 /* ── Note preview & score gauge ── */
-function chatUpdateNote(title, body, score, grade) {
+function chatUpdateNote(title, body, score, grade, options = {}) {
   const scr = document.getElementById('chat-note-scroll');
   scr.innerHTML = `
     <div class="cnote-title cnote-flash">${chatEsc(title)}</div>
     <div class="cnote-body">${chatEsc(body)}</div>`;
 
-  _chatIterCount++;
+  const explicitVersion = _numOrNull(options.version);
+  if (explicitVersion !== null && explicitVersion > 0) {
+    _chatIterCount = explicitVersion;
+  } else if (options.advanceVersion) {
+    _chatIterCount = Math.max(1, _chatIterCount || 1) + 1;
+  } else if (!_chatIterCount) {
+    _chatIterCount = 1;
+  }
   const iter = document.getElementById('chat-note-iter');
   iter.textContent = `第 ${_chatIterCount} 版`;
   iter.style.display = 'inline';
-  document.getElementById('chat-score-iter').textContent = `第 ${_chatIterCount} 次优化`;
+  const iterText = _chatIterCount <= 1 ? '初始版本' : `第 ${_chatIterCount - 1} 次优化`;
+  document.getElementById('chat-score-iter').textContent = iterText;
 
   chatUpdateGauge(score, grade);
 }
@@ -8870,7 +9296,7 @@ function chatUpdateGauge(score, grade) {
   const grEl = document.getElementById('chat-score-grade');
   const r = 23, circ = 2 * Math.PI * r;
   fill.style.strokeDashoffset = circ * (1 - Math.max(0, Math.min(100, score)) / 100);
-  txt.textContent = Math.round(score);
+  txt.textContent = formatScoreValue(score);
   const col = score >= 70 ? '#22C55E' : score >= 55 ? '#F59E0B' : '#EF4444';
   fill.style.stroke = col;
   txt.style.color   = col;
@@ -9903,6 +10329,7 @@ async function autoSaveGeneratedNote(genResult) {
     if (res.ok) {
       const d = await res.json();
       genResult._saved_note_id = d.id;
+      genResult._saved_note_version = d.version || 1;
       // 生成后提示用户可追踪发布效果（非阻断，3秒后显示）
       setTimeout(() => {
         if (_authToken) {
@@ -9951,7 +10378,7 @@ async function startChatFromLibrary() {
     }
     const data = await res.json();
     _chatSessionId    = data.session_id;
-    _chatIterCount    = note.version || 1;
+    _chatIterCount    = _numOrNull(note._saved_note_version || note.version) || 1;
     // 记住这条笔记的 id，后续 chat 保存版本链时用作 parent_id
     _chatParentNoteId = note.id;
 
@@ -9961,7 +10388,7 @@ async function startChatFromLibrary() {
     sendBtn.disabled = false; sendBtn.style.opacity = '1';
     document.getElementById('chat-input').focus();
 
-    chatUpdateNote(note.title, note.body, data.current_score, data.grade);
+    chatUpdateNote(note.title, note.body, data.current_score, data.grade, { version: _chatIterCount, initial: true });
     chatUpdateLearn(data.user_prefs || {});
     chatAppendAi(data.welcome);
     chatAppendSupplementPrompts(data.supplement_prompts || []);
@@ -9992,6 +10419,7 @@ function chatSaveSessionToStorage() {
     noteTitle,
     noteBody,
     score,
+    version:      _chatIterCount || null,
     savedAt: Date.now(),
   }));
 }
@@ -10018,7 +10446,8 @@ function chatRestoreSession() {
   sendBtn.disabled = false; sendBtn.style.opacity = '1';
   if (stored.noteTitle) {
     const grade = stored.score ? (stored.score >= 70 ? '优秀' : stored.score >= 55 ? '良好' : '待改进') : '';
-    chatUpdateNote(stored.noteTitle, stored.noteBody || '', stored.score || null, grade);
+    _chatIterCount = _numOrNull(stored.version) || 1;
+    chatUpdateNote(stored.noteTitle, stored.noteBody || '', stored.score || null, grade, { version: _chatIterCount, initial: true });
   }
   chatAppendAi('已恢复上次对话 ✓  可继续优化，或点击「重新生成」开启新笔记。');
 }
@@ -10027,11 +10456,13 @@ function chatRestoreSession() {
    截图上传 — AI 视觉识别
 ═══════════════════════════════════════════════════════════ */
 let _ssImages = [];               // [{dataURL, name}]  最多9张
-let _screenshotExtracted = null;  // {title, body, domain}
-let _ssOcrCache = new Map();      // dataURL → {title,body,domain} 已识别缓存，避免重复OCR
+let _screenshotExtracted = null;  // {title, body, tags, domain}
+let _ssOcrCache = new Map();      // dataURL → {title,body,tags,domain} 已识别缓存，避免重复OCR
 let _ssOcrErrors = new Map();     // dataURL → 识别失败原因
 let _ssOcrPromise = null;          // 当前截图 AI 识别任务，诊断前必须等待它完成
 let _ssOcrInFlight = 0;
+let _ssOcrStatus = new Map();     // dataURL → {status,message,summary}
+let _ssOcrValidating = false;     // 多图 OCR 合并鉴别中
 
 function _getScreenshotRecognitionState() {
   const imgs = Array.isArray(_ssImages) ? _ssImages : [];
@@ -10046,6 +10477,182 @@ function _getScreenshotRecognitionState() {
     else failed += 1;
   });
   return { total, completed, ok, failed, pending: Math.max(0, total - completed) };
+}
+
+function _ssImageIndex(img) {
+  return Math.max(0, _ssImages.findIndex(item => item && item.dataURL === img?.dataURL));
+}
+
+function _ssStatusLabel(status) {
+  if (status === 'done') return '已识别';
+  if (status === 'failed') return '识别失败';
+  if (status === 'recognizing') return '识别中';
+  return '等待识别';
+}
+
+function _normalizeSsTags(value) {
+  const rawParts = Array.isArray(value)
+    ? value.map(x => String(x || ''))
+    : (String(value || '').match(/#[^\s#，,、；;\n]+(?:\[话题\])?#?/g) || String(value || '').split(/[\s，,、；;\n]+/));
+  const seen = new Set();
+  const tags = [];
+  rawParts.forEach(part => {
+    let tag = String(part || '').trim()
+      .replace(/^(话题|标签|hashtags?|tags?)[:：]?/i, '')
+      .replace(/^#+|#+$/g, '')
+      .replace(/\[话题\]/g, '')
+      .replace(/[。.!！?？、，,；;：:]+$/g, '')
+      .trim();
+    if (!tag) return;
+    const key = tag.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    tags.push(`#${tag}`);
+  });
+  return tags.join(' ');
+}
+
+function _splitSsBodyAndTags(body, explicitTags = '') {
+  const text = String(body || '').trim();
+  const inlineTags = _normalizeSsTags(text);
+  const cleanBody = text
+    .replace(/#[^\s#，,、；;\n]+(?:\[话题\])?#?/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return {
+    body: cleanBody,
+    tags: _normalizeSsTags(`${inlineTags} ${_normalizeSsTags(explicitTags)}`),
+  };
+}
+
+function _joinSsBodyAndTags(body, tags) {
+  const cleanBody = String(body || '').trim();
+  const cleanTags = _normalizeSsTags(tags);
+  return [cleanBody, cleanTags].filter(Boolean).join('\n\n');
+}
+
+function _bodyCharCountWithoutSsTags(body) {
+  return String(body || '').replace(/#[^\s#，,、；;\n]+(?:\[话题\])?#?/g, '').replace(/\s+/g, '').length;
+}
+
+function _summarizeScreenshotResult(d) {
+  if (!d) return '';
+  const parts = [];
+  if (d.title) parts.push(`标题：${d.title}`);
+  const body = d.body || d.cover_desc || d.image_desc || d.visual_desc || '';
+  if (body) parts.push(body);
+  const tags = _normalizeSsTags(d.tags || '');
+  if (tags) parts.push(`话题：${tags}`);
+  if (d.domain) parts.push(`领域：${d.domain}`);
+  return parts.join('；').replace(/\s+/g, ' ').trim().slice(0, 180);
+}
+
+function _setSsImageStatus(img, status, message = '', result = null) {
+  if (!img?.dataURL) return;
+  const summary = result ? _summarizeScreenshotResult(result) : '';
+  _ssOcrStatus.set(img.dataURL, { status, message, summary });
+}
+
+function _getSsImageStatus(img) {
+  if (!img?.dataURL) return { status: 'pending', message: '等待识别', summary: '' };
+  return _ssOcrStatus.get(img.dataURL) || { status: 'pending', message: '等待识别', summary: '' };
+}
+
+function _updateScreenshotOcrUi() {
+  const loadingEl = document.getElementById('screenshot-loading');
+  const progressEl = document.getElementById('ss-ocr-progress-text');
+  const state = _getScreenshotRecognitionState();
+  if (loadingEl && progressEl) {
+    if (state.total === 0) {
+      loadingEl.style.display = 'none';
+      progressEl.textContent = '等待图片识别…';
+    } else if (_ssOcrValidating) {
+      loadingEl.style.display = 'block';
+      progressEl.textContent = `AI 鉴别去重中… ${state.ok}/${state.total} 张已识别`;
+    } else if (state.pending > 0 || _ssOcrInFlight > 0) {
+      loadingEl.style.display = 'block';
+      progressEl.textContent = `正在识别图片 ${state.completed}/${state.total} 张`;
+    } else {
+      loadingEl.style.display = 'none';
+      progressEl.textContent = `${state.ok}/${state.total} 张图片识别完成`;
+    }
+  }
+  _renderScreenshotImageSummaries();
+  updateDiagnosisSubmitState();
+}
+
+function updateDiagnosisSubmitState() {
+  const btn = document.getElementById('diagnoseSubmitBtn');
+  if (!btn) return;
+  const labelEl = btn.querySelector('.diagnose-btn-label');
+  const selectedLabel = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
+  let disabled = false;
+  let label = '开始 AI 诊断（约 30-60 秒）';
+  let title = '';
+  if (_diagnosisStreamActive) {
+    disabled = true;
+    label = 'AI 诊断进行中…';
+    title = '当前诊断尚未完成';
+  } else if (selectedLabel === '截图上传') {
+    const state = _getScreenshotRecognitionState();
+    if (state.total === 0) {
+      disabled = true;
+      label = '请先上传截图';
+      title = '上传截图并完成识别后才能开始 AI 诊断';
+    } else if (state.pending > 0 || _ssOcrInFlight > 0 || _ssOcrValidating) {
+      disabled = true;
+      label = _ssOcrValidating ? 'AI 鉴别去重中…' : `识别中 ${state.completed}/${state.total}`;
+      title = '图片还没有全部识别完成';
+    } else if (state.failed > 0 || state.ok !== state.total) {
+      disabled = true;
+      label = `${state.failed || (state.total - state.ok)} 张识别失败`;
+      title = '请重传失败图片或稍后重试';
+    } else if (!_screenshotExtracted) {
+      disabled = true;
+      label = '正在合并识别内容';
+      title = '等待识别结果合并完成';
+    }
+  }
+  btn.disabled = disabled;
+  btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  btn.title = title;
+  if (labelEl) labelEl.textContent = label;
+}
+
+function _renderScreenshotImageSummaries() {
+  const list = document.getElementById('ss-image-summary-list');
+  const hint = document.getElementById('ss-confirm-hint');
+  if (!list) return;
+  if (!_ssImages.length) {
+    list.innerHTML = '';
+    list.style.display = 'none';
+    if (hint) hint.style.display = 'none';
+    return;
+  }
+  const rows = _ssImages.map((img, i) => {
+    const cached = _ssOcrCache.get(img.dataURL);
+    const err = _ssOcrErrors.get(img.dataURL);
+    const meta = _getSsImageStatus(img);
+    const status = err ? 'failed' : (cached ? 'done' : meta.status || 'pending');
+    const summary = cached
+      ? (_summarizeScreenshotResult(cached) || '已识别，但未提取到可展示摘要')
+      : (err ? `未识别成功：${err}` : (status === 'recognizing' ? `识别图${i + 1}内容中…` : '等待识别'));
+    return `
+      <div class="ss-image-summary-item ${status === 'failed' ? 'is-failed' : ''}">
+        <div class="ss-image-summary-head">
+          <span>图${i + 1} 内容</span>
+          <span>${escapeHtml(_ssStatusLabel(status))}</span>
+        </div>
+        <div class="ss-image-summary-body">${escapeHtml(summary)}</div>
+      </div>`;
+  }).join('');
+  list.innerHTML = rows;
+  list.style.display = rows ? 'grid' : 'none';
+  if (hint) {
+    const state = _getScreenshotRecognitionState();
+    hint.style.display = state.total > 0 && state.pending === 0 && state.failed === 0 && !!_screenshotExtracted ? 'block' : 'none';
+  }
 }
 
 function handleScreenshotSelect(input) {
@@ -10070,9 +10677,11 @@ async function _addSsFiles(files) {
     fr.readAsDataURL(f);
   })));
 
+  loaded.forEach(img => _setSsImageStatus(img, 'pending', '等待识别'));
   _ssImages.push(...loaded);
   _screenshotExtracted = null;
   _renderSsThumbs();
+  _updateScreenshotOcrUi();
 
   // 只对本次新加入的图片 OCR（已识别过的从缓存取），避免重复调接口
   const newImages = loaded.filter(img => !_ssOcrCache.has(img.dataURL));
@@ -10090,29 +10699,37 @@ function _renderSsThumbs() {
     grid.style.display = 'none'; hint.style.display = 'block'; toolbar.style.display = 'none';
     document.getElementById('screenshot-result').style.display = 'none';
     _screenshotExtracted = null;
+    _updateScreenshotOcrUi();
     return;
   }
   hint.style.display = 'none';
   toolbar.style.display = 'flex';
   count.textContent = `${n}/9 张`;
   grid.style.display = 'grid';
-  grid.innerHTML = _ssImages.map((img, i) => `
-    <div style="position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;background:var(--surf-3);
-      ${i===0?'border:2px solid rgba(0,153,255,0.6)':''}" title="图${i+1}（已纳入 AI 识别）">
-      <img src="${img.dataURL}" style="width:100%;height:100%;object-fit:cover">
-      <div style="position:absolute;top:3px;left:4px;font-size:9px;font-weight:700;color:#fff;
-        text-shadow:0 1px 3px rgba(0,0,0,0.8)">${i===0?'📷 图1':('图'+(i+1))}</div>
+  grid.innerHTML = _ssImages.map((img, i) => {
+    const cached = _ssOcrCache.get(img.dataURL);
+    const err = _ssOcrErrors.get(img.dataURL);
+    const meta = _getSsImageStatus(img);
+    const status = err ? 'failed' : (cached ? 'done' : meta.status || 'pending');
+    return `
+    <div class="ss-thumb-item ${i===0?'is-primary':''} is-${status}" title="图${i+1}（${_ssStatusLabel(status)}）">
+      <img src="${img.dataURL}">
+      <div class="ss-thumb-index">${i===0?'图1':('图'+(i+1))}</div>
+      <div class="ss-thumb-status is-${status}">${escapeHtml(status === 'recognizing' ? `识别图${i+1}` : _ssStatusLabel(status))}</div>
       <button onclick="event.stopPropagation();_removeSsImage(${i})"
         style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
                border:none;background:rgba(0,0,0,0.6);color:#fff;font-size:12px;cursor:pointer;
                display:flex;align-items:center;justify-content:center;line-height:1;padding:0">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  _updateScreenshotOcrUi();
 }
 
 function _removeSsImage(idx) {
   const removed = _ssImages.splice(idx, 1)[0];
   if (removed) _ssOcrCache.delete(removed.dataURL);
   if (removed) _ssOcrErrors.delete(removed.dataURL);
+  if (removed) _ssOcrStatus.delete(removed.dataURL);
   _renderSsThumbs();
   _mergeAndShowOcrResults();  // 用缓存重新合并，不重新调接口
 }
@@ -10123,6 +10740,9 @@ async function _ocrImages(imagesToOcr) {
   const loadingEl = document.getElementById('screenshot-loading');
   _ssOcrInFlight += imagesToOcr.length;
   if (loadingEl) loadingEl.style.display = 'block';
+  imagesToOcr.forEach(img => _setSsImageStatus(img, 'recognizing', `识别图${_ssImageIndex(img) + 1}内容中`));
+  _renderSsThumbs();
+  _updateScreenshotOcrUi();
 
   await Promise.allSettled(imagesToOcr.map(img =>
     fetch(API_BASE + '/extract-screenshot', {
@@ -10130,12 +10750,28 @@ async function _ocrImages(imagesToOcr) {
       headers: { 'Content-Type': 'application/json', ...authHeader() },
       body: JSON.stringify({ image_base64: img.dataURL.split(',')[1] }),
 	    }).then(r => {
-	      if (r.status === 402) { showToast('截图识别积分不足，请订阅套餐或充值积分'); return; }
-	      if (r.status === 401) { openAuthModal('login'); return; }
+	      if (r.status === 402) {
+	        const reason = '截图识别积分不足';
+	        _ssOcrErrors.set(img.dataURL, reason);
+	        _ssOcrCache.set(img.dataURL, null);
+	        _setSsImageStatus(img, 'failed', reason);
+	        showToast('截图识别积分不足，请订阅套餐或充值积分');
+	        return;
+	      }
+	      if (r.status === 401) {
+	        const reason = '请先登录后进行截图识别';
+	        _ssOcrErrors.set(img.dataURL, reason);
+	        _ssOcrCache.set(img.dataURL, null);
+	        _setSsImageStatus(img, 'failed', reason);
+	        openAuthModal('login');
+	        return;
+	      }
 	      if (!r.ok) {
 	        return r.json().catch(() => ({})).then(err => {
-	          _ssOcrErrors.set(img.dataURL, err.detail || `HTTP ${r.status}`);
+	          const reason = err.detail || `HTTP ${r.status}`;
+	          _ssOcrErrors.set(img.dataURL, reason);
 	          _ssOcrCache.set(img.dataURL, null);
+	          _setSsImageStatus(img, 'failed', reason);
 	        });
 	      }
 	      return r.json().then(d => {
@@ -10143,19 +10779,28 @@ async function _ocrImages(imagesToOcr) {
 	        if (d.title || d.body || d.cover_desc) {
 	          _ssOcrErrors.delete(img.dataURL);
 	          _ssOcrCache.set(img.dataURL, d);
+	          _setSsImageStatus(img, 'done', '识别完成', d);
 	        } else {
-	          _ssOcrErrors.set(img.dataURL, 'AI 未返回可用文字或视觉描述');
+	          const reason = 'AI 未返回可用文字或视觉描述';
+	          _ssOcrErrors.set(img.dataURL, reason);
 	          _ssOcrCache.set(img.dataURL, null);
+	          _setSsImageStatus(img, 'failed', reason);
 	        }
 	      });
 	    }).catch(err => {
-	      _ssOcrErrors.set(img.dataURL, err?.message || '网络请求失败');
+	      const reason = err?.message || '网络请求失败';
+	      _ssOcrErrors.set(img.dataURL, reason);
 	      _ssOcrCache.set(img.dataURL, null);
+	      _setSsImageStatus(img, 'failed', reason);
+	    }).finally(() => {
+	      _renderSsThumbs();
+	      _updateScreenshotOcrUi();
 	    })
 	  ));
 
   _ssOcrInFlight = Math.max(0, _ssOcrInFlight - imagesToOcr.length);
   if (loadingEl && _ssOcrInFlight === 0) loadingEl.style.display = 'none';
+  _updateScreenshotOcrUi();
 
   const state = _getScreenshotRecognitionState();
   if (state.pending > 0 || state.failed > 0 || state.ok !== state.total) {
@@ -10177,8 +10822,10 @@ async function _ocrImages(imagesToOcr) {
 async function _validateAndMergeOcr(ocrResults) {
   const loadingEl = document.getElementById('screenshot-loading');
   const statusEl  = document.getElementById('ss-ocr-status');
+  _ssOcrValidating = true;
   if (loadingEl) { loadingEl.style.display = 'block'; }
   if (statusEl)  statusEl.textContent = 'AI 鉴别去重中…';
+  _updateScreenshotOcrUi();
 
   try {
     const res = await fetch(API_BASE + '/validate-ocr', {
@@ -10195,19 +10842,23 @@ async function _validateAndMergeOcr(ocrResults) {
 
     if (loadingEl) loadingEl.style.display = 'none';
 
+    const splitValidated = _splitSsBodyAndTags(d.body || '', d.tags || '');
     _screenshotExtracted = {
       title:  d.title  || '',
-      body:   d.body   || '',
+      body:   splitValidated.body,
+      tags:   splitValidated.tags,
       domain: d.domain || '美食',
       _validated: d.validated,
-      _charCount: d.char_count,
+      _charCount: d.char_count || _bodyCharCountWithoutSsTags(splitValidated.body),
     };
 
     const resultEl  = document.getElementById('screenshot-result');
     const titleDisp = document.getElementById('ss-title-display');
     const bodyDisp  = document.getElementById('ss-body-display');
+    const tagsDisp  = document.getElementById('ss-tags-display');
     if (titleDisp) titleDisp.textContent = d.title || '（未识别到标题）';
-    if (bodyDisp)  bodyDisp.textContent  = (d.body || '').slice(0, 120) + ((d.body||'').length > 120 ? '…' : '');
+    if (bodyDisp)  bodyDisp.textContent  = (_screenshotExtracted.body || '').slice(0, 120) + ((_screenshotExtracted.body||'').length > 120 ? '…' : '');
+    if (tagsDisp)  tagsDisp.textContent  = _screenshotExtracted.tags || '（未识别到话题）';
     if (d.domain) { const sel = document.getElementById('inputDomainSS'); if (sel) sel.value = d.domain; }
 
     const charInfo = d.char_count ? `${d.char_count} 字` : '';
@@ -10219,9 +10870,13 @@ async function _validateAndMergeOcr(ocrResults) {
     showToast(d.validated ? `✅ AI 鉴别去重完成，正文 ${charInfo}` : '✅ 内容识别完成');
   } catch(e) {
     console.error('_validateAndMergeOcr error:', e);
-    if (loadingEl) loadingEl.style.display = 'none';
     // 降级到普通合并
     _mergeAndShowOcrResults();
+  } finally {
+    _ssOcrValidating = false;
+    if (loadingEl) loadingEl.style.display = 'none';
+    _renderScreenshotImageSummaries();
+    updateDiagnosisSubmitState();
   }
 }
 
@@ -10234,6 +10889,7 @@ function _mergeAndShowOcrResults() {
 	    const statusEl = document.getElementById('ss-ocr-status');
 	    const titleEl = document.getElementById('ss-title-display');
 	    const bodyEl = document.getElementById('ss-body-display');
+	    const tagsEl = document.getElementById('ss-tags-display');
 	    const firstError = _ssImages.map(img => _ssOcrErrors.get(img.dataURL)).find(Boolean);
 	    if (statusEl) {
 	      statusEl.textContent = state.failed > 0
@@ -10244,7 +10900,10 @@ function _mergeAndShowOcrResults() {
 	    if (bodyEl) bodyEl.textContent = state.failed > 0
 	      ? `请重新上传失败图片，或稍后重试${firstError ? `；原因：${firstError}` : ''}`
 	      : `还有 ${state.pending} 张图片正在识别`;
+	    if (tagsEl) tagsEl.textContent = '（等待识别完成）';
     if (resultEl) resultEl.style.display = 'block';
+    _renderScreenshotImageSummaries();
+    updateDiagnosisSubmitState();
     return;
   }
 
@@ -10257,16 +10916,20 @@ function _mergeAndShowOcrResults() {
 	    const statusEl = document.getElementById('ss-ocr-status');
 	    const titleEl = document.getElementById('ss-title-display');
 	    const bodyEl = document.getElementById('ss-body-display');
+	    const tagsEl = document.getElementById('ss-tags-display');
 	    const firstError = _ssImages.map(img => _ssOcrErrors.get(img.dataURL)).find(Boolean);
 	    if (statusEl) statusEl.textContent = '图片 AI 识别失败，请重新上传或稍后重试';
 	    if (titleEl) titleEl.textContent = '（未识别成功）';
 	    if (bodyEl) bodyEl.textContent = firstError ? `未获得可用于诊断的图片识别结果；原因：${firstError}` : '未获得可用于诊断的图片识别结果';
+	    if (tagsEl) tagsEl.textContent = '（未识别到话题）';
 	    resultEl.style.display = 'block';
+	    _renderScreenshotImageSummaries();
+	    updateDiagnosisSubmitState();
 	    return;
   }
 
   // 按类型分组
-  const typeA = valid.filter(d => d.type === 'A' || (!d.type && (d.title || d.body))); // 完整截图
+  const typeA = valid.filter(d => d.type === 'A' || (!d.type && (d.title || d.body || d.tags))); // 完整截图
   const typeB = valid.filter(d => d.type === 'B' || d.is_photo_only);                  // 纯图片
   const typeC = valid.filter(d => d.type === 'C');                                      // 纯文字
 
@@ -10276,8 +10939,10 @@ function _mergeAndShowOcrResults() {
   const mergedTitle = textSources.reduce((best, d) =>
     (d.title || '').length > (best || '').length ? (d.title || '') : best, '');
 
-  // 正文：智能去重合并（子串检查）
-  const allBodies = textSources.map(d => (d.body || '').trim()).filter(Boolean);
+  // 正文和话题分轨：正文去重，话题单独去重，避免话题被计入正文字数后又丢失。
+  const textParts = textSources.map(d => _splitSsBodyAndTags(d.body || '', d.tags || ''));
+  const allBodies = textParts.map(d => d.body).filter(Boolean);
+  const mergedTags = _normalizeSsTags(valid.map(d => _splitSsBodyAndTags(d.body || '', d.tags || '').tags).join(' '));
   const dedupedBodies = [];
   for (const b of allBodies) {
     const alreadyCovered = dedupedBodies.some(ex => ex.includes(b) || b.includes(ex));
@@ -10298,13 +10963,15 @@ function _mergeAndShowOcrResults() {
   const mergedDomain = Object.entries(domainCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || '';
 
   // 如果只有纯图片没有文字，允许诊断但提示用户补充文字
-  const hasText = !!(mergedTitle || mergedBody);
+  const hasText = !!(mergedTitle || mergedBody || mergedTags);
   const hasPhotos = typeB.length > 0;
 
   _screenshotExtracted = {
     title: mergedTitle,
     body: finalBody,
+    tags: mergedTags,
     domain: mergedDomain,
+    _charCount: _bodyCharCountWithoutSsTags(finalBody),
     _hasText: hasText,
     _hasPhotos: hasPhotos,
     _photoCount: typeB.length,
@@ -10317,6 +10984,8 @@ function _mergeAndShowOcrResults() {
   const bodyPreview = (mergedBody || finalBody).slice(0, 120);
   document.getElementById('ss-body-display').textContent =
     bodyPreview + ((mergedBody || finalBody).length > 120 ? '…' : '');
+  const tagsDisplay = document.getElementById('ss-tags-display');
+  if (tagsDisplay) tagsDisplay.textContent = mergedTags || '（未识别到话题）';
   if (mergedDomain) { const sel = document.getElementById('inputDomainSS'); if (sel) sel.value = mergedDomain; }
 
   // 状态栏：按情况显示不同说明
@@ -10333,6 +11002,8 @@ function _mergeAndShowOcrResults() {
   }
   if (statusEl) statusEl.textContent = statusMsg;
   resultEl.style.display = 'block';
+  _renderScreenshotImageSummaries();
+  updateDiagnosisSubmitState();
 }
 
 function resetScreenshot() {
@@ -10340,9 +11011,12 @@ function resetScreenshot() {
   _screenshotExtracted = null;
   _ssOcrCache = new Map();
   _ssOcrErrors = new Map();
+  _ssOcrStatus = new Map();
   _ssOcrPromise = null;
   _ssOcrInFlight = 0;
+  _ssOcrValidating = false;
   _renderSsThumbs();
+  _updateScreenshotOcrUi();
 }
 
 /* ═══════════════════════════════════════════════════════════

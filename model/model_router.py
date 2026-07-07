@@ -3,11 +3,11 @@ model_router.py — NoteAI Pro 统一模型路由层
 任务类型 → 模型选择 → fallback 链 → retry → 日志
 
 任务路由表：
-  diagnosis   → Claude Haiku 4.5  (fallback: Kimi K2.5)
-  content_gen → Claude Haiku 4.5  (fallback: Kimi K2.5)
+  diagnosis   → Claude Haiku 4.5  (fallback: Kimi K2.6)
+  content_gen → Claude Haiku 4.5  (fallback: Kimi K2.6)
   arbitrate   → Claude Sonnet 4.6 (fallback: Claude Haiku 4.5)
   chat        → Claude Sonnet 4.6 (fallback: Claude Haiku 4.5)
-  semantic    → Claude Haiku 4.5  (fallback: Kimi K2.5)
+  semantic    → Claude Haiku 4.5  (fallback: Kimi K2.6)
   vision      → Kimi Vision only  (不经此路由)
 """
 
@@ -25,7 +25,7 @@ import httpx
 # ── 模型常量 ──────────────────────────────────────────────────────
 CLAUDE_SONNET  = "claude-sonnet-4-6"
 CLAUDE_HAIKU   = "claude-haiku-4-5-20251001"
-KIMI_TEXT      = "kimi-k2.5"
+KIMI_TEXT      = "kimi-k2.6"
 
 KIMI_API_URL   = "https://api.moonshot.cn/v1/chat/completions"
 KIMI_TIMEOUT   = httpx.Timeout(connect=10.0, read=180.0, write=20.0, pool=10.0)
@@ -222,7 +222,7 @@ async def _call_kimi(
         ],
         "max_tokens": max_tokens,
         "thinking": {"type": "disabled"},
-        "temperature": 0.7,
+        "temperature": 0.6,
     }
     timeout = KIMI_TIMEOUT_Q
     async with httpx.AsyncClient(timeout=timeout) as client:

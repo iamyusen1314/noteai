@@ -73,7 +73,7 @@ from artifact_loader import ensure_model_artifacts
 
 # ── Model constants ────────────────────────────────────────────────
 
-_KIMI_MODEL        = "kimi-k2.5"
+_KIMI_MODEL        = "kimi-k2.6"
 _KIMI_VISION_MODEL = "moonshot-v1-32k-vision-preview"
 _KIMI_API_URL      = "https://api.moonshot.cn/v1/chat/completions"
 _MOONSHOT_FILES_URL = "https://api.moonshot.cn/v1/files"
@@ -1285,6 +1285,38 @@ def _annotate_market_timing(timing: dict | None) -> dict | None:
             freshness = None
     if not enriched.get("data_source_label"):
         enriched["data_source_label"] = "本地热词样本库"
+    pipeline_status = dict(enriched.get("pipeline_status") or {})
+    if enriched.get("data_stale") or enriched.get("evidence_unavailable"):
+        pipeline_status.setdefault("state", "evidence_unavailable")
+        pipeline_status.setdefault("state_label", "证据不可用")
+        pipeline_status.setdefault("reason", enriched.get("confidence_note") or enriched.get("timing_note") or "行业证据不足")
+    else:
+        pipeline_status.setdefault("state", "ready")
+        pipeline_status.setdefault("state_label", "可用")
+        pipeline_status.setdefault("reason", "已取得新鲜行业证据")
+    if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
+        try:
+            domain = str(enriched.get("domain") or "").strip()
+            overview = _xhs_acq.freshness_overview([domain] if domain else None)
+            recent_health = _xhs_acq.recent_health(limit=3, domain=domain) if domain else _xhs_acq.recent_health(limit=3)
+            xhs_summary = {
+                "ok": bool(overview.get("ok")),
+                "required": bool(overview.get("required")),
+                "missing_domains": overview.get("missing_domains", []),
+                "recent_health_count": len(recent_health),
+                "latest_health": recent_health[0] if recent_health else {},
+            }
+            if not recent_health:
+                xhs_summary["reason"] = "no_xhs_health_record"
+                if pipeline_status.get("state") == "evidence_unavailable":
+                    pipeline_status.setdefault("worker_hint", "trends_worker_not_observed_or_not_run")
+            pipeline_status["xhs"] = xhs_summary
+        except Exception:
+            pipeline_status["xhs"] = {
+                "ok": False,
+                "reason": "xhs_freshness_ledger_unavailable",
+            }
+    enriched["pipeline_status"] = pipeline_status
     if enriched.get("data_stale"):
         enriched["timing_coefficient"] = 1.0
         enriched["matched_keywords"] = []
@@ -1294,7 +1326,7 @@ def _annotate_market_timing(timing: dict | None) -> dict | None:
         enriched.setdefault("timing_action", "stale")
         enriched["confidence_note"] = enriched.get("confidence_note") or "今日行业热词未更新，市场时机证据已停用，不参与当前诊断结论。"
     elif freshness is None:
-        enriched["confidence_note"] = "未获取到热词采集时间，本模块仅作趋势参考，不直接作为总分乘数。"
+        enriched["confidence_note"] = enriched.get("confidence_note") or "未获取到热词采集时间，本模块仅作趋势参考，不直接作为总分乘数。"
     elif float(freshness) > 30:
         enriched["data_stale"] = True
         enriched["timing_coefficient"] = 1.0
@@ -1305,7 +1337,11 @@ def _annotate_market_timing(timing: dict | None) -> dict | None:
         enriched["timing_action"] = "stale"
         enriched["confidence_note"] = f"热词样本距最近采集约 {float(freshness):.1f} 小时，超过每日更新标准；市场时机证据已停用。"
     else:
-        enriched["confidence_note"] = f"热词样本距最近采集约 {float(freshness):.1f} 小时；用于趋势解释和发布建议，不直接作为总分乘数。"
+        freshness_note = f"热词样本距最近采集约 {float(freshness):.1f} 小时；用于趋势解释和发布建议，不直接作为总分乘数。"
+        existing_note = str(enriched.get("confidence_note") or "").strip()
+        enriched["confidence_note"] = (
+            f"{existing_note} {freshness_note}" if existing_note and freshness_note not in existing_note else freshness_note
+        )
     return enriched
 
 
@@ -1531,9 +1567,9 @@ async def _agent_arbitrate(
         + "本阶段只输出诊断和3个标题，不生成正文。即使系统提示里出现旧版 <titles>/<body> 要求，也以本段为最高优先级。\n"
         + "必须严格使用以下 XML 标签，每个标题都要是不同角度：\n"
         + "<diagnosis>整体诊断，指出核心拖分点</diagnosis>\n"
-        + f"<plan_a_title>{_TITLE_DELIVERY_MAX}字以内，{phase_strategy_labels[0]}标题</plan_a_title>\n"
-        + f"<plan_b_title>{_TITLE_DELIVERY_MAX}字以内，{phase_strategy_labels[1]}标题</plan_b_title>\n"
-        + f"<plan_c_title>{_TITLE_DELIVERY_MAX}字以内，{phase_strategy_labels[2]}标题</plan_c_title>\n"
+        + f"<plan_a_title>优先{_TITLE_TARGET_TEXT}，{phase_strategy_labels[0]}标题</plan_a_title>\n"
+        + f"<plan_b_title>优先{_TITLE_TARGET_TEXT}，{phase_strategy_labels[1]}标题</plan_b_title>\n"
+        + f"<plan_c_title>优先{_TITLE_TARGET_TEXT}，{phase_strategy_labels[2]}标题</plan_c_title>\n"
         + "<plan>下一步优化策略，3-5条</plan>\n"
         + "<dispute>专家分歧与取舍</dispute>\n"
     )
@@ -1561,9 +1597,9 @@ async def _agent_arbitrate(
     async def _clean_title(t: str) -> str:
         """清理标题：
         1. 剥除类型前缀和说明文字残留
-        2. ≤18字直接返回
-        3. >18字：调用 Claude Haiku 自然缩短至≤18字
-        4. AI缩短失败：返回前缀清洗后的原标题（即使稍长也比空字符串好）
+        2. ≤平台上限直接返回
+        3. >平台上限：调用 Claude Haiku 自然缩短至平台上限内
+        4. AI缩短失败：返回前缀清洗后的原标题并交给质量复核标记需精修
            空字符串 → _gen_plan_body 直接跳过 → fallback 到 body_candidate → 三套文案相同
         """
         t = _clean_title_sync(t)
@@ -1571,12 +1607,12 @@ async def _agent_arbitrate(
             return ""
         if len(t) <= _TITLE_DELIVERY_MAX:
             return t
-        # 超过交付安全上限：让 AI 自然缩短
+        # 超过平台上限：让 AI 自然缩短
         try:
             shortened = await _mr.call(
                 "semantic",
-                f"你是标题压缩专家。将用户提供的小红书标题压缩到{_TITLE_DELIVERY_MAX}字以内，保留核心信息（地点/价格/菜品/情绪），语义完整，可直接使用。只输出压缩后的标题，不要任何说明。",
-                f"原标题（{len(t)}字）：{t}\n\n请压缩至≤{_TITLE_DELIVERY_MAX}字：",
+                f"你是标题压缩专家。将用户提供的小红书标题压缩到{_TITLE_PLATFORM_MAX}字以内，保留核心信息（地点/价格/菜品/情绪/决策价值），语义完整，可直接使用。只输出压缩后的标题，不要任何说明。",
+                f"原标题（{len(t)}字）：{t}\n\n请压缩至≤{_TITLE_PLATFORM_MAX}字，优先{_TITLE_TARGET_TEXT}：",
                 max_tokens=40,
             )
             shortened = shortened.strip().strip('"').strip("'")
@@ -1584,13 +1620,14 @@ async def _agent_arbitrate(
                 return shortened
         except Exception:
             pass
-        # AI 压缩失败 → 保守兜底到交付安全上限
-        return _fallback_title_under_limit(t)
+        # AI 压缩失败：保留原题，后续质量复核标记需精修，禁止硬截断。
+        return t
 
     # 并行清洗：3个方案标题 + titles_pool（均为异步）
     raw_a = _xtag(raw1, "plan_a_title")
     raw_b = _xtag(raw1, "plan_b_title")
     raw_c = _xtag(raw1, "plan_c_title")
+    raw_plan_titles = [_clean_title_sync(raw_a), _clean_title_sync(raw_b), _clean_title_sync(raw_c)]
     clean_results = await asyncio.gather(
         _clean_title(raw_a),
         _clean_title(raw_b),
@@ -1621,6 +1658,10 @@ async def _agent_arbitrate(
     pool_iter = iter([t for t in titles_pool if t and t not in used_titles])
     plan_titles = [t or next(pool_iter, "") for t in plan_titles]
     plan_titles = _make_plan_titles_distinct(plan_titles, domain, source_context)
+    plan_title_meta = [
+        _title_delivery_meta(raw_plan_titles[i] or plan_titles[i], plan_titles[i], _title_readability_issues(plan_titles[i], domain))
+        for i in range(3)
+    ]
     plan_a_title, plan_b_title, plan_c_title = plan_titles
     await _emit_progress(emit, {
         "type": "diagnosis_titles",
@@ -1800,7 +1841,12 @@ async def _agent_arbitrate(
             body = ""
             fallback_used = False
 
-        item = {"title": final_title, "body": body}
+        item = {
+            "title": final_title,
+            "body": body,
+            "title_meta": plan_title_meta[i] if i < len(plan_title_meta) else _title_delivery_meta(title, final_title),
+            "raw_title": raw_plan_titles[i] if i < len(raw_plan_titles) else "",
+        }
         if fallback_used:
             item["fallback"] = "style_candidate"
         plans.append(item)
@@ -1993,13 +2039,15 @@ def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
 
 # ── Generation: 62-dim feature checklist ─────────────────────────
 
-_TITLE_DELIVERY_MAX = 18
+_TITLE_TARGET_MIN = 16
+_TITLE_DELIVERY_MAX = 20
 _TITLE_PLATFORM_MAX = 20
+_TITLE_TARGET_TEXT = f"{_TITLE_TARGET_MIN}-{_TITLE_DELIVERY_MAX}字"
 
 _GEN_CHECKLISTS: dict[str, str] = {
     "美食": (
         "【爆文必达目标——逐项硬性要求】\n"
-        "① 标题：14-18字，优先含城市/商圈/具体菜品/真实数字之一，有情绪感或悬念感；没有商家事实时不要硬凑城市和价格。\n"
+        "① 标题：16-20字，优先含城市/商圈/具体菜品/真实数字之一，有情绪感、悬念感或明确决策价值；没有商家事实时不要硬凑城市和价格。\n"
         "   ❌ 严禁套路：「XX绝了？人均XX元吃垮」「XX惊艳？人均XX元吃垮」等模板化格式每次雷同，禁止使用。\n"
         "   ✅ 多样风格（按内容选一种，不能每次都用同一种）：\n"
         "   · 悬念追问：「成都这家火锅为啥排3小时？吃完我懂了」\n"
@@ -2020,7 +2068,7 @@ _GEN_CHECKLISTS: dict[str, str] = {
     ),
     "旅行": (
         "【爆文必达目标——逐项硬性要求】\n"
-        "① 标题：14-18字（交付安全上限≤18字），含目的地+天数/路线/选择维度+价值词，避免「绝了」类廉价爆词。\n"
+        "① 标题：16-20字，含目的地+天数/路线/选择维度+价值词，避免「绝了」类廉价爆词。\n"
         "② 正文字数：320-520字（旅行攻略信息量要足）。\n"
         "③ 互动引导：结尾自然出现「点赞」和「收藏」两个词，可引导评论但不要硬塞问号。\n"
         "④ 预算：正文优先写事实源提供的总花费/人均预算；未提供时写「预算按实际交通和住宿为准」，不得编造金额。\n"
@@ -2034,7 +2082,7 @@ _GEN_CHECKLISTS: dict[str, str] = {
     ),
     "穿搭": (
         "【爆文必达目标——逐项硬性要求】\n"
-        "① 标题：14-18字，「身材特征/场合+风格/效果」，用「公式/显瘦/显高/推荐/值得」这类克制价值词。\n"
+        "① 标题：16-20字，「身材特征/场合+风格/效果」，用「公式/显瘦/显高/推荐/值得」这类克制价值词。\n"
         "② 正文字数：180-280字。\n"
         "③ 互动引导：结尾自然出现「点赞」和「收藏」两个词，可引导评论但不要硬塞问号。\n"
         "④ 单品信息：至少2件单品含品牌名或购买渠道（优衣库/淘宝/平替方案均可）。\n"
@@ -2048,7 +2096,7 @@ _GEN_CHECKLISTS: dict[str, str] = {
     ),
     "美妆": (
         "【爆文必达目标——逐项硬性要求】\n"
-        "① 标题：14-18字，有肤质/妆效/色号或使用场景，避免「绝了」「显白到哭」类夸张表达。\n"
+        "① 标题：16-20字，有肤质/妆效/色号或使用场景，避免「绝了」「显白到哭」类夸张表达。\n"
         "② 正文字数：200-300字。\n"
         "③ 互动引导：结尾自然出现「点赞」和「收藏」两个词，可引导评论但不要硬塞问号。\n"
         "④ 产品信息：产品全称+色号只在用户或事实源提供时引用；未知色号不要写#XX号，不要占位。\n"
@@ -2062,7 +2110,7 @@ _GEN_CHECKLISTS: dict[str, str] = {
     ),
     "家居": (
         "【爆文必达目标——逐项硬性要求】\n"
-        "① 标题：14-18字（交付安全上限≤18字），「空间/户型+改造主题+清单/值得/好复刻」。\n"
+        "① 标题：16-20字，「空间/户型+改造主题+清单/值得/好复刻」。\n"
         "② 正文字数：280-420字。\n"
         "③ 互动引导：结尾自然出现「点赞」和「收藏」两个词，可引导评论但不要硬塞问号。\n"
         "④ 面积/户型：提到空间面积（㎡）或户型（一室一厅/loft等）。\n"
@@ -2076,7 +2124,7 @@ _GEN_CHECKLISTS: dict[str, str] = {
     ),
     "健身": (
         "【爆文必达目标——逐项硬性要求】\n"
-        "① 标题：14-18字，含目标部位/人群/动作计划，用「适合/计划/推荐/可跟练」表达价值，不承诺快速瘦身。\n"
+        "① 标题：16-20字，含目标部位/人群/动作计划，用「适合/计划/推荐/可跟练」表达价值，不承诺快速瘦身。\n"
         "② 正文字数：280-420字。\n"
         "③ 互动引导：结尾自然出现「点赞」和「收藏」两个词，可引导评论但不要硬塞问号。\n"
         "④ 动作说明：至少3个具体动作名称（如：卷腹/深蹲/平板支撑），含每组次数或持续时长。\n"
@@ -2090,7 +2138,7 @@ _GEN_CHECKLISTS: dict[str, str] = {
     ),
     "母婴": (
         "【爆文必达目标——逐项硬性要求】\n"
-        "① 标题：14-18字，含月龄/场景/安全实操/推荐价值；只有用户提供亲测经历时才写亲测。\n"
+        "① 标题：16-20字，含月龄/场景/安全实操/推荐价值；只有用户提供亲测经历时才写亲测。\n"
         "② 正文字数：260-380字。\n"
         "③ 互动引导：结尾自然出现「点赞」和「收藏」两个词，可引导评论但不要硬塞问号。\n"
         "④ 月龄/年龄段：明确适合的宝宝月龄或年龄（如：6个月以上/1-3岁/新生儿）。\n"
@@ -2104,7 +2152,7 @@ _GEN_CHECKLISTS: dict[str, str] = {
     ),
     "_default": (
         "【爆文必达目标——逐项硬性要求】\n"
-        "① 标题：14-18字，含具体对象、价值信号和必要数字；优先「推荐/值得/适合/清单/避坑」，避免廉价爆词。\n"
+        "① 标题：16-20字，含具体对象、价值信号和必要数字；优先「推荐/值得/适合/清单/避坑」，避免廉价爆词。\n"
         "② 正文字数：260-380字（不含标签）。\n"
         "③ 互动引导：结尾自然出现「点赞」和「收藏」两个词，可引导评论但不要硬塞问号。\n"
         "④ 实用信息：正文提供具体实用信息（价格/步骤/用法/注意事项）。\n"
@@ -2125,19 +2173,19 @@ _GEN_CHECKLIST_ALIASES = {
 
 _DOMAIN_QUALITY_TARGETS: dict[str, dict[str, object]] = {
     "美食": {"body_min": 220, "body_max": 360, "body_target": "260-360字", "tag_min": 5, "tag_max": 8,
-             "title": "14-18字，优先城市/店名/菜品/价格/情绪，不强制疑问句"},
+             "title": "16-20字，优先城市/店名/菜品/价格/情绪/决策价值，不强制疑问句"},
     "旅行": {"body_min": 260, "body_max": 520, "body_target": "320-520字", "tag_min": 8, "tag_max": 10,
-             "title": "14-18字，优先目的地+天数/预算/独特体验，不强制疑问句"},
+             "title": "16-20字，优先目的地+天数/预算/独特体验，不强制疑问句"},
     "穿搭": {"body_min": 180, "body_max": 280, "body_target": "180-280字", "tag_min": 5, "tag_max": 8,
-             "title": "14-18字，优先身材/场景+风格效果，不强制疑问句"},
+             "title": "16-20字，优先身材/场景+风格效果，不强制疑问句"},
     "美妆": {"body_min": 200, "body_max": 300, "body_target": "200-300字", "tag_min": 5, "tag_max": 8,
-             "title": "14-18字，优先肤质/效果/产品卖点，不强制疑问句"},
+             "title": "16-20字，优先肤质/效果/产品卖点，不强制疑问句"},
     "家居": {"body_min": 240, "body_max": 420, "body_target": "280-420字", "tag_min": 5, "tag_max": 8,
-             "title": "14-18字，优先面积/预算/改造结果，不强制疑问句"},
+             "title": "16-20字，优先面积/预算/改造结果，不强制疑问句"},
     "健身": {"body_min": 240, "body_max": 480, "body_target": "300-480字", "tag_min": 5, "tag_max": 7,
-             "title": "14-18字，优先动作/周期/结果承诺，不强制疑问句"},
+             "title": "16-20字，优先动作/周期/结果承诺，不强制疑问句"},
     "母婴": {"body_min": 220, "body_max": 340, "body_target": "260-340字", "tag_min": 5, "tag_max": 7,
-             "title": "14-18字，优先月龄/安全实操/推荐或安心信号，不强制疑问句"},
+             "title": "16-20字，优先月龄/安全实操/推荐或安心信号，不强制疑问句"},
 }
 
 _DEFAULT_QUALITY_TARGET: dict[str, object] = {
@@ -2146,7 +2194,7 @@ _DEFAULT_QUALITY_TARGET: dict[str, object] = {
     "body_target": "260-380字",
     "tag_min": 5,
     "tag_max": 8,
-    "title": "14-18字，优先具体数字/结果/情绪，不强制疑问句",
+    "title": "16-20字，优先具体数字/结果/情绪/决策价值，不强制疑问句",
 }
 
 
@@ -2167,7 +2215,7 @@ def _get_quality_contract(domain: str) -> str:
     return (
         f"{_qobj.delivery_objective_brief(canonical)}\n\n"
         "【统一质量契约｜硬约束】若本段与 prompts.json、管理端 prompt 或上文示例冲突，以本段为准。\n"
-        f"- 标题：{target['title']}；交付安全上限≤{_TITLE_DELIVERY_MAX}字，平台硬限制≤{_TITLE_PLATFORM_MAX}字，超过必须语义压缩，不能硬截半句话。\n"
+        f"- 标题：{target['title']}；优先{_TITLE_TARGET_TEXT}，平台硬上限≤{_TITLE_PLATFORM_MAX}字；超过必须语义压缩，不能硬截半句话，压缩失败则保留原题并标记需精修。\n"
         f"- 正文：最低交付≥{int(target['body_min'])}字，目标{target['body_target']}；超过目标上限必须压缩，优先保留真实场景、决策信息、结果反馈。\n"
         f"- 话题标签：目标{_tag_target_text(canonical)}，覆盖品类词、场景词、地域/人群词、热词；不要强制固定数量。\n"
         "- 辅助特征优先级：正文完整度、核心对象聚焦、标签覆盖、可执行事实信息都要服务于读者价值，不能为了命中特征牺牲自然表达。\n"
@@ -2179,8 +2227,8 @@ def _get_quality_contract(domain: str) -> str:
 
 
 _TITLE_HARD_LIMIT = (
-    f"【小红书标题硬性规则】标题交付必须 ≤{_TITLE_DELIVERY_MAX}字（含标点和数字）。"
-    f"平台硬上限≤{_TITLE_PLATFORM_MAX}字，不能卡边界，超过交付安全线一律语义压缩。\n"
+    f"【小红书标题规则】标题优先{_TITLE_TARGET_TEXT}（含标点和数字），平台硬上限≤{_TITLE_PLATFORM_MAX}字。"
+    "超过平台上限必须语义压缩，禁止硬截半句话；若语义压缩失败，保留原题并标记需精修。\n"
 )
 
 def _get_checklist(domain: str) -> str:
@@ -2603,7 +2651,7 @@ def _get_arbitrate_standards(domain: str) -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain, domain)
     _STANDARDS: dict[str, str] = {
         "美食": (
-            "- 标题：14-18字，优先城市/商圈+情绪词+真实数字或菜品数量；疑问句仅在自然时使用\n"
+            "- 标题：16-20字，优先城市/商圈+情绪词+真实数字或菜品数量；疑问句仅在自然时使用\n"
             "- 正文：260-360字，叙事完整（场景开头→核心信息→互动结尾）\n"
             "- 事实边界：价格/人均/套餐价/营业时间/排队时长/楼层只能来自「创作者真实信息」，不可凭空编造\n"
             "- 安全决策信息【交付质感关键】：价格/营业时间/排队/预订只引用用户提供或事实源核验内容；未核验时不要写「以门店页/公示为准」这类占位句\n"
@@ -2616,7 +2664,7 @@ def _get_arbitrate_standards(domain: str) -> str:
             "- 词汇聚焦【交付质感关键】：核心招牌菜名在全文自然重复3-5次；❌取消「最多3次」规则——自然重复才是真实写法"
         ),
         "旅行": (
-            "- 标题：14-18字（交付安全上限≤18字），含目的地+天数/预算+情绪词\n"
+            "- 标题：16-20字，含目的地+天数/预算+情绪词\n"
             "- 正文：320-520字，叙事完整（旅程开头→核心景点/体验→互动结尾）\n"
             "- 预算/交通：只能来自「创作者真实信息」，不可凭空编造具体金额\n"
             "- 必打卡：正文提到至少3个具体景点/体验\n"
@@ -2628,7 +2676,7 @@ def _get_arbitrate_standards(domain: str) -> str:
             "- 词汇聚焦【交付质感关键】：核心目的地名/景点在全文自然重复3-5次；❌取消「最多3次」规则"
         ),
         "穿搭": (
-            "- 标题：14-18字，身材特征/场合+风格/效果，无需含城市名\n"
+            "- 标题：16-20字，身材特征/场合+风格/效果，无需含城市名\n"
             "- 正文：180-280字，叙事完整（痛点/场景→搭配方案→互动结尾）\n"
             "- 单品信息：至少2件单品含品牌或渠道，价格只能来自「创作者真实信息」\n"
             "- 适合说明：明确身材类型或场合\n"
@@ -2640,7 +2688,7 @@ def _get_arbitrate_standards(domain: str) -> str:
             "- 词汇聚焦【交付质感关键】：核心单品名在全文自然重复3-5次；❌取消「最多3次」规则"
         ),
         "美妆": (
-            "- 标题：14-18字，有对比/效果感，无需含城市名\n"
+            "- 标题：16-20字，有对比/效果感，无需含城市名\n"
             "- 正文：200-300字，叙事完整（痛点/对比→产品介绍→使用效果→互动结尾）\n"
             "- 产品信息：全称+色号，只能来自「创作者真实信息」\n"
             "- 肤质/效果：明确适合肤质和具体使用效果\n"
@@ -2652,7 +2700,7 @@ def _get_arbitrate_standards(domain: str) -> str:
             "- 词汇聚焦【交付质感关键】：核心产品名在全文自然重复3-5次；❌取消「最多3次」规则"
         ),
         "家居": (
-            "- 标题：14-18字（交付安全上限≤18字），面积+预算+改造主题，无需含城市名\n"
+            "- 标题：16-20字，面积+预算+改造主题，无需含城市名\n"
             "- 正文：280-420字，叙事完整（改造前痛点→方案→改造后效果→互动结尾）\n"
             "- 面积/预算/单品：只能来自「创作者真实信息」，不可凭空编造数字\n"
             "- 单品清单：至少3件具体单品，含购买渠道\n"
@@ -2664,7 +2712,7 @@ def _get_arbitrate_standards(domain: str) -> str:
             "- 词汇聚焦【交付质感关键】：核心单品/风格词在全文自然重复3-5次；❌取消「最多3次」规则"
         ),
         "健身": (
-            "- 标题：14-18字，含目标部位/人群/动作计划，无需含城市名；不承诺快速瘦身\n"
+            "- 标题：16-20字，含目标部位/人群/动作计划，无需含城市名；不承诺快速瘦身\n"
             "- 正文：280-420字，叙事完整（目标/适合人群→动作顺序→发力和安全提醒→互动结尾）\n"
             "- 动作说明：至少3个具体动作名，含组数/时长\n"
             "- 适合人群和训练部位：明确说明\n"
@@ -2676,7 +2724,7 @@ def _get_arbitrate_standards(domain: str) -> str:
             "- 词汇聚焦【交付质感关键】：核心动作名、目标部位和低冲击/膝盖友好等安全词在全文自然重复3-5次；❌取消「最多3次」规则"
         ),
         "母婴": (
-            "- 标题：14-18字，含月龄/场景/安全实操/推荐价值，无需含城市名；只有用户提供时才写亲测\n"
+            "- 标题：16-20字，含月龄/场景/安全实操/推荐价值，无需含城市名；只有用户提供时才写亲测\n"
             "- 正文：260-340字，3段自然正文（背景/月龄+流程→困信号/观察+安抚边界→适合/不适合+互动结尾），不要Markdown小标题\n"
             "- 月龄/安全：明确月龄范围和安全说明\n"
             "- 实操步骤：至少3步，编号清晰\n"
@@ -2689,7 +2737,7 @@ def _get_arbitrate_standards(domain: str) -> str:
         ),
     }
     _default_std = (
-        "- 标题：14-18字，含情绪词和数字\n"
+        "- 标题：16-20字，含情绪词、数字或决策价值\n"
         "- 正文：260-380字，叙事完整\n"
         "- 实用信息：价格/步骤/注意事项来自「创作者真实信息」\n"
         "- 表情符号：最多2种，放在句号前，不要句号后独立一行\n"
@@ -4067,7 +4115,7 @@ BENCHMARKS: dict[str, float] = {
 FEATURE_META: dict[str, dict] = {
     "title_len": {
         "label": "标题长度",
-        "tip": "标题建议控制在14-18字，加入核心关键词、数字或情绪词，但不要卡20字平台边界。",
+        "tip": "标题建议控制在16-20字，加入核心关键词、数字、情绪词或决策价值，不要超过20字平台边界。",
     },
     "title_has_pos_emotion": {
         "label": "标题含正向情绪词",
@@ -4820,6 +4868,7 @@ class MarketTiming(BaseModel):
     market_timing_min_domain_keywords: int = Field(default=0, description="市场时机要求的最低行业证据条数")
     evidence_quality_note: str = Field(default="", description="热词证据质量说明")
     cloud_sync: dict = Field(default_factory=dict, description="云端趋势快照同步结果")
+    pipeline_status: dict = Field(default_factory=dict, description="市场时机数据管道状态与 XHS health 摘要")
     confidence_note: str = Field(default="", description="数据可信度与新鲜度说明")
     timing_note: str = Field(default="", description="市场时机说明文字")
     timing_action: str = Field(default="reinforce", description="suggest=无命中建议加词；reinforce=有命中强化使用")
@@ -5855,8 +5904,15 @@ def _build_top_feature_contributions(features: dict[str, float], domain: str, vi
         })
 
     title_len = _rnum(features, "commercial_title_char_len", _rnum(features, "title_len"))
-    if not (8 <= title_len <= _TITLE_DELIVERY_MAX):
-        add("commercial_title_char_len", title_len, f"8-{_TITLE_DELIVERY_MAX}字", abs(title_len - min(max(title_len, 8), _TITLE_DELIVERY_MAX)) / 10 + 0.6, "标题需要自然落在交付长度内，优先保留对象、价值和必要数字。", "title")
+    if not (_TITLE_TARGET_MIN <= title_len <= _TITLE_DELIVERY_MAX):
+        add(
+            "commercial_title_char_len",
+            title_len,
+            _TITLE_TARGET_TEXT,
+            abs(title_len - min(max(title_len, _TITLE_TARGET_MIN), _TITLE_DELIVERY_MAX)) / 10 + 0.6,
+            "标题需要自然落在16-20字内，优先保留对象、价值、冲突感和必要数字。",
+            "title",
+        )
     if _rnum(features, "commercial_title_has_recommendation") < 0.5 and _rnum(features, "title_has_pos_emotion") < 0.5:
         add("commercial_title_has_recommendation", 0, "命中", 0.9, "标题可以用具体对象、真实数字、适合人群或“值得/推荐”等克制推荐信号。", "title")
     if _rnum(features, "commercial_title_unreadable_risk") > 0:
@@ -6203,6 +6259,21 @@ def _fallback_title_under_limit(title: str) -> str:
     title = _repair_dangling_title_tail(_clean_generated_title(title))
     if len(title) <= _TITLE_DELIVERY_MAX:
         return title
+    semantic_candidates = [
+        re.sub(r"身材夏季", "", title).strip(),
+        re.sub(r"洗衣区改造[，,](\d{2,5}元)做出顺手的收纳动线", r"洗衣区，\1顺手收纳", title).strip(),
+        re.sub(r"洗衣区改造[，,](\d{2,5}元)让动线顺畅", r"洗衣区，\1动线更顺", title).strip(),
+        re.sub(r"(?:粤菜)?聚餐推荐[，,、]?", "", title).strip(),
+    ]
+    for candidate in semantic_candidates:
+        candidate = _repair_dangling_title_tail(_clean_generated_title(candidate))
+        if (
+            candidate
+            and candidate != title
+            and _TITLE_TARGET_MIN <= len(candidate) <= _TITLE_DELIVERY_MAX
+            and not _title_readability_issues(candidate, "")
+        ):
+            return candidate
     match = re.search(
         r"^(.{6,20}?(?:怎么选|怎么吃|怎么穿|怎么用|怎么练|这样改|这样练|这样穿|这样用))(?=[，,：:；;｜|!?！？。])",
         title,
@@ -6211,16 +6282,9 @@ def _fallback_title_under_limit(title: str) -> str:
         candidate = _repair_dangling_title_tail(match.group(1).strip())
         if 6 <= len(candidate) <= _TITLE_DELIVERY_MAX and not _title_readability_issues(candidate, ""):
             return candidate
-    cut = title[:_TITLE_DELIVERY_MAX]
-    cut = re.sub(r"[，,、：:；;！!？?。.\s]+$", "", cut)
-    cut = re.sub(r"(?:的|了|着|过|和|但|却|也|都|就|很|太|最|更|一)$", "", cut)
-    cut = _strip_dangling_title_tail(cut, title)
-    cut = _repair_dangling_title_tail(cut)
-    if len(cut) > _TITLE_DELIVERY_MAX:
-        cut = cut[:_TITLE_DELIVERY_MAX]
-        cut = re.sub(r"[，,、：:；;！!？?。.\s]+$", "", cut)
-        cut = _strip_dangling_title_tail(cut, title)
-    return cut or title[:_TITLE_DELIVERY_MAX]
+    # Do not hard-cut titles. If semantic extraction cannot find a complete
+    # short clause, preserve the original and let quality review mark it refine.
+    return title
 
 
 async def _fit_title_limit(title: str, body: str, domain: str) -> str:
@@ -6233,13 +6297,13 @@ async def _fit_title_limit(title: str, body: str, domain: str) -> str:
             f"品类：{domain}\n"
             f"原标题（{len(title)}字）：{title}\n"
             f"正文摘要：{(body or '')[:180]}\n\n"
-            f"请把标题自然压缩到{_TITLE_DELIVERY_MAX}字以内，保留核心卖点、数字/地点/产品名，"
-            f"不能截半句话。平台硬上限是{_TITLE_PLATFORM_MAX}字，但交付安全目标是{_TITLE_DELIVERY_MAX}字以内。"
+            f"请把标题自然压缩到{_TITLE_PLATFORM_MAX}字以内，保留核心卖点、数字/地点/产品名/决策价值，"
+            f"不能截半句话。标题优先{_TITLE_TARGET_TEXT}，平台硬上限是{_TITLE_PLATFORM_MAX}字。"
             "只输出压缩后的标题，不要解释。"
         )
         shortened = await _mr.call(
             "semantic",
-            f"你是小红书标题压缩专家，只输出一个语义完整、{_TITLE_DELIVERY_MAX}字以内的中文标题。",
+            f"你是小红书标题压缩专家，只输出一个语义完整、{_TITLE_PLATFORM_MAX}字以内的中文标题。",
             prompt,
             max_tokens=80,
         )
@@ -6278,12 +6342,12 @@ def _generated_quality_issues(
         issues.append(f"评分低于硬拦线（当前{float(score or 0.0):.1f}分，最低{min_score:.0f}分），不能直接交付")
     if not title:
         issues.append("标题为空，必须生成可直接发布的标题")
-    elif title_len < 6:
-        issues.append(f"标题过短（当前{title_len}字），需要扩展到14-{_TITLE_DELIVERY_MAX}字并保留具体卖点")
+    elif title_len < _TITLE_TARGET_MIN:
+        issues.append(f"标题偏短（当前{title_len}字，目标{_TITLE_TARGET_TEXT}），需要补完整吸引点、场景或决策价值")
     elif title_len > _TITLE_DELIVERY_MAX:
         issues.append(
-            f"标题超过交付安全上限（当前{title_len}字，目标≤{_TITLE_DELIVERY_MAX}字；"
-            f"平台硬上限≤{_TITLE_PLATFORM_MAX}字），必须语义压缩"
+            f"标题超过平台上限（当前{title_len}字，目标{_TITLE_TARGET_TEXT}；"
+            f"平台硬上限≤{_TITLE_PLATFORM_MAX}字），需要语义压缩，禁止硬截断"
         )
 
     issues.extend(_title_readability_issues(title or "", canonical))
@@ -6337,6 +6401,29 @@ def _generated_quality_issues(
 
     issues.extend(_human_readability_issues(body_text, canonical))
     return _filter_quality_issues_for_content_intent(issues, canonical, source_context)[:10]
+
+
+def _title_delivery_meta(
+    raw_title: str | None,
+    final_title: str | None,
+    issues: list[str] | None = None,
+) -> dict[str, object]:
+    raw = _clean_generated_title(raw_title or "")
+    final = _clean_generated_title(final_title or "")
+    title_issues = [issue for issue in (issues or []) if "标题" in issue]
+    was_compressed = bool(raw and final and raw != final and len(raw) > _TITLE_DELIVERY_MAX)
+    length = len(final)
+    needs_refine = bool(title_issues) or (length > 0 and not (_TITLE_TARGET_MIN <= length <= _TITLE_DELIVERY_MAX))
+    return {
+        "length": length,
+        "target": _TITLE_TARGET_TEXT,
+        "platform_max": _TITLE_PLATFORM_MAX,
+        "was_compressed": was_compressed,
+        "needs_refine": needs_refine,
+        "status": "需精修" if needs_refine else ("已语义压缩" if was_compressed else "未压缩"),
+        "issues": title_issues[:3],
+        "raw_length": len(raw) if raw else None,
+    }
 
 
 def _source_context_content_intent(source_context: str | None) -> str:
@@ -6523,6 +6610,127 @@ def _supplement_prompt_brief(prompts: list[dict]) -> str:
     return "\n".join(lines)
 
 
+_SUPPLEMENT_FACT_LABELS = {
+    "price": "价格/人均",
+    "must_order": "必点/招牌菜",
+    "business_hours": "营业时间",
+    "location": "位置/地址",
+    "transport": "交通/路线",
+    "budget": "预算/花费",
+    "merchant_name": "商家/地点",
+    "destination_or_hotel": "商家/地点",
+}
+
+_SUPPLEMENT_LABEL_ALIASES = {
+    "价格/人均": ("价格/人均", "人均", "价格", "套餐价", "价格/预算", "预算/花费"),
+    "必点/招牌菜": ("必点/招牌菜", "推荐/高频菜品", "必点", "招牌菜", "推荐菜"),
+    "营业时间": ("营业时间", "营业", "开放时间"),
+    "位置/地址": ("位置/地址", "地址", "位置", "地点", "交通/路线"),
+    "交通/路线": ("交通/路线", "交通", "路线"),
+    "预算/花费": ("预算/花费", "预算", "花费", "价格/预算"),
+    "商家/地点": ("商家/地点", "商家", "地点", "补充商家/地点"),
+}
+
+
+def _supplement_fact_label(field: str | None, prompt_item: dict | None = None) -> str:
+    key = re.sub(r"[^a-zA-Z0-9_]+", "", str(field or "")).strip()
+    if key in _SUPPLEMENT_FACT_LABELS:
+        return _SUPPLEMENT_FACT_LABELS[key]
+    raw_label = str((prompt_item or {}).get("label") or field or "补充信息").strip()
+    raw_label = re.sub(r"^补充", "", raw_label).strip(" ：:")
+    if "人均" in raw_label or "价格" in raw_label:
+        return "价格/人均"
+    if "必点" in raw_label or "招牌" in raw_label or "推荐菜" in raw_label:
+        return "必点/招牌菜"
+    if "营业" in raw_label or "开放" in raw_label:
+        return "营业时间"
+    if "地址" in raw_label or "位置" in raw_label or "商圈" in raw_label:
+        return "位置/地址"
+    if "交通" in raw_label or "路线" in raw_label:
+        return "交通/路线"
+    if "预算" in raw_label or "花费" in raw_label:
+        return "预算/花费"
+    return raw_label[:20] or "补充信息"
+
+
+def _clean_supplement_value(value: object, label: str) -> str:
+    text = str(value or "")
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return ""
+    text = re.sub(r"^(?:补充|填写)[^:：]{0,18}[:：]\s*", "", text).strip()
+    text = re.sub(
+        r"^(?:价格/人均|人均|价格|套餐价|必点/招牌菜|必点|招牌菜|推荐菜|营业时间|开放时间|"
+        r"位置/地址|地址|位置|地点|交通/路线|交通|路线|预算/花费|预算|花费|商家/地点)\s*[:：]\s*",
+        "",
+        text,
+    ).strip()
+    return _clean_fact_context_value(text, label)[:160]
+
+
+def _remove_replaced_fact_lines(source_context: str | None, labels: set[str]) -> list[str]:
+    kept: list[str] = []
+    for raw in (source_context or "").splitlines():
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        probe = re.sub(r"^\s*-\s*", "", stripped)
+        should_replace = False
+        for label in labels:
+            aliases = _SUPPLEMENT_LABEL_ALIASES.get(label, (label,))
+            if any(re.match(rf"{re.escape(alias)}\s*[:：]", probe) for alias in aliases):
+                should_replace = True
+                break
+        if not should_replace:
+            kept.append(stripped)
+    return kept
+
+
+def _merge_supplement_values_into_session(session: dict, supplement_values: dict | None) -> dict[str, str]:
+    if not isinstance(supplement_values, dict) or not supplement_values:
+        return {}
+    prompt_by_field: dict[str, dict] = {}
+    for item in session.get("supplement_prompts") or []:
+        if isinstance(item, dict) and item.get("field"):
+            prompt_by_field[str(item.get("field"))] = item
+
+    normalized: dict[str, str] = {}
+    label_by_field: dict[str, str] = {}
+    for raw_field, raw_value in supplement_values.items():
+        field = re.sub(r"[^a-zA-Z0-9_]+", "", str(raw_field or "")).strip()
+        if not field:
+            continue
+        label = _supplement_fact_label(field, prompt_by_field.get(field))
+        value = _clean_supplement_value(raw_value, label)
+        if not value:
+            continue
+        normalized[field] = value
+        label_by_field[field] = label
+
+    if not normalized:
+        return {}
+
+    replaced_labels = set(label_by_field.values())
+    lines = _remove_replaced_fact_lines(session.get("fact_context"), replaced_labels)
+    supplement_lines = [
+        f"- {label_by_field[field]}：{value}"
+        for field, value in normalized.items()
+    ]
+    if supplement_lines:
+        lines.append("【用户补充事实】")
+        lines.extend(supplement_lines)
+    session["fact_context"] = "\n".join(lines).strip()
+    confirmed = dict(session.get("confirmed_supplement_values") or {})
+    confirmed.update(normalized)
+    session["confirmed_supplement_values"] = confirmed
+    generate_context = dict(session.get("generate_context") or {})
+    generate_context["fact_context"] = session["fact_context"]
+    generate_context["confirmed_supplement_values"] = confirmed
+    session["generate_context"] = generate_context
+    return normalized
+
+
 def _supplement_welcome_text(prompts: list[dict]) -> str:
     if not prompts:
         return ""
@@ -6648,6 +6856,18 @@ def _title_readability_issues(title: str, domain: str | None = None) -> list[str
         concrete_food_context = re.compile(
             r"(?:点都德|陶陶居|蜀大侠|珑厨|长禧家|早茶|火锅|粤菜聚餐|小青龙|虾饺|乳鸽|红米肠|烧鹅)"
         )
+        price_dish_generic = re.search(
+            r"(?:\d{2,4}\s*(?:元|块|r|RMB|rmb)|人均\s*\d{2,4})"
+            r"[^，,。！？]{0,8}"
+            r"(?:小青龙|龙虾|乌冬|面|粉|锅|鱼|虾|蟹|饭|套餐|点心|粤菜|火锅|早茶|甜品)"
+            r"(?:[^，,。！？]{0,8})"
+            r"[，,、]?"
+            r"(?:汤浓|料足|不腻|不腥|很稳|值得|推荐|必点|好吃|鲜|香|浓|划算|满足)",
+            text,
+            re.I,
+        )
+        if price_dish_generic and not re.search(r"(?:怎么|为什么|第一次|适合|排队|踩雷|避坑|点单|收藏|独处|聚餐|约会|深夜|工作日|本地人|一人食)", text):
+            issues.append("标题不自然：只剩价格+菜品+泛评价，缺少场景、人群、冲突或决策价值")
         for match in re.finditer(r"(?:人均)?\d{2,4}元(?:值得|推荐|必点|必吃|很稳|冲)", text):
             before = text[max(0, match.start() - 6):match.start()]
             if not (dish_context.search(before) or concrete_food_context.search(text)):
@@ -9031,7 +9251,7 @@ def _selector_issue_penalty(issues: list[str]) -> float:
             penalty += 5.0
         elif any(marker in issue for marker in ("事实密度不足", "复刻信息不足", "首段缺少", "缺少价格", "缺少真实价格", "缺少地址", "缺少营业", "缺少必点", "缺少交通", "缺少预算")):
             penalty += 4.0
-        elif "过短" in issue or "超过目标上限" in issue:
+        elif any(marker in issue for marker in ("标题偏短", "超过平台上限", "过短", "超过目标上限")):
             penalty += 3.0
         else:
             penalty += 1.2
@@ -9665,7 +9885,7 @@ async def _score_directed_second_pass(
         and not any(
             marker in issue
             for issue in issues
-            for marker in ("标题为空", "正文为空", "质量复核失败", "标题过短", "正文过短", "占位符", "结构化事实不能编造", "内部格式")
+            for marker in ("标题为空", "正文为空", "质量复核失败", "标题过短", "标题偏短", "正文过短", "占位符", "结构化事实不能编造", "内部格式")
         )
     )
     action_coverage_block = any("遗漏已提供动作" in issue for issue in issues)
@@ -9725,7 +9945,7 @@ async def _score_directed_second_pass(
         f"{_build_generation_planning_brief(domain, title, source_context or body, style_hint or '交付质量二修')}\n"
         f"{_safe_fact_delivery_brief(domain, source_context)}\n\n"
         f"{_quality_expression_brief(domain)}\n\n"
-        f"输出格式：<note><title>{_TITLE_DELIVERY_MAX}字以内标题</title><body>完整正文，含话题标签</body></note>"
+        f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>"
     )
     user = (
         f"品类：{domain}\n"
@@ -9735,7 +9955,7 @@ async def _score_directed_second_pass(
         + "\n".join(f"- {item}" for item in repair_items[:8])
         + "\n\n写作要求：\n"
         "- 保留原稿中真实有效的事实和用户表达，不要重写成模板口吻。\n"
-        "- 标题优先补克制推荐信号和具体对象，控制在18字以内。\n"
+        f"- 标题优先补克制推荐信号和具体对象，控制在{_TITLE_TARGET_TEXT}。\n"
         "- 正文按品类目标字数重排，删掉重复铺陈，保留能帮助用户决策的信息。\n"
         "- 标签数量按品类目标输出，不要只堆泛标签。\n\n"
         f"已核验事实/用户原始信息：\n{source_context or '未提供更多事实；缺失字段必须用安全表达，不能编造。'}\n\n"
@@ -9868,7 +10088,7 @@ def _build_prompt(
 </diagnosis>
 
 <titles>
-（直接写3个改写标题，每行一个，不加序号。交付安全上限：每个标题最多18个字符，超出必须语义压缩，请严格控制在18字以内）
+（直接写3个改写标题，每行一个，不加序号。标题优先16-20字，平台硬上限20字；超出必须语义压缩，禁止硬截半句话）
 </titles>
 
 <plan>
@@ -10044,7 +10264,7 @@ def _init_default_prompts():
         "gent_content_system": {
             "label":   "生成-内容创作师 System Prompt",
             "module":  "AI生成(generate)",
-            "content": "你是小红书{domain}领域的爆款内容创作专家，擅长从素材中提炼爆文角度。\n\n严格按XML输出：\n<draft_title>草稿标题（14-18字）</draft_title>\n<draft_body>草稿正文（含话题标签）</draft_body>",
+            "content": "你是小红书{domain}领域的爆款内容创作专家，擅长从素材中提炼爆文角度。\n\n严格按XML输出：\n<draft_title>草稿标题（16-20字，平台上限20字）</draft_title>\n<draft_body>草稿正文（含话题标签）</draft_body>",
         },
         "gent_growth_system": {
             "label":   "生成-增长策略师 System Prompt",
@@ -10059,7 +10279,7 @@ def _init_default_prompts():
         "gent_arbitrate_system": {
             "label":   "生成-P3仲裁专家 System Prompt（thinking模式）",
             "module":  "AI生成(generate)",
-            "content": "你是小红书爆文生成的首席创作专家。综合视觉分析、内容策略、增长数据，生成最终爆文。\n\n严格按XML输出：\n<title>最终标题（14-18字）</title>\n<body>最终正文（按统一质量契约的品类字数目标，含话题标签）</body>\n<variants>3个备选标题，每行一个</variants>\n<rationale>创作依据（1-2句）</rationale>",
+            "content": "你是小红书爆文生成的首席创作专家。综合视觉分析、内容策略、增长数据，生成最终爆文。\n\n严格按XML输出：\n<title>最终标题（16-20字，平台上限20字）</title>\n<body>最终正文（按统一质量契约的品类字数目标，含话题标签）</body>\n<variants>3个备选标题，每行一个</variants>\n<rationale>创作依据（1-2句）</rationale>",
         },
         "chat_system": {
             "label":   "对话优化 System Prompt",
@@ -10260,6 +10480,42 @@ def _now_iso() -> str:
 class ScreenshotExtractInput(BaseModel):
     image_base64: str  # base64 编码的截图（不含 data:image 前缀）
 
+def _normalize_ocr_tags(value: Any) -> str:
+    """Normalize OCR hashtag fragments into a unique '#tag #tag' line."""
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple, set)):
+        raw_parts = [str(item or "") for item in value]
+    else:
+        text = str(value or "")
+        hashtag_parts = re.findall(r"#[^\s#，,、；;\n]+(?:\[话题\])?#?", text)
+        raw_parts = hashtag_parts or re.split(r"[\s，,、；;\n]+", text)
+    tags: list[str] = []
+    seen: set[str] = set()
+    for part in raw_parts:
+        tag = str(part or "").strip()
+        tag = re.sub(r"^(?:话题|标签|hashtags?|tags?)[:：]?", "", tag, flags=re.I).strip()
+        tag = tag.strip("#").strip()
+        tag = re.sub(r"\[话题\]", "", tag).strip("#").strip()
+        tag = re.sub(r"[。.!！?？、，,；;：:]+$", "", tag).strip()
+        if not tag:
+            continue
+        key = tag.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        tags.append(f"#{tag}")
+    return " ".join(tags)
+
+
+def _split_ocr_body_and_tags(body: str | None, explicit_tags: Any = None) -> tuple[str, str]:
+    """Keep OCR body and topics as separate lanes so tags do not inflate body length."""
+    text = (body or "").strip()
+    body_main, inline_tags = _split_body_and_tags(text)
+    tags = _normalize_ocr_tags(" ".join([inline_tags, _normalize_ocr_tags(explicit_tags)]).strip())
+    return body_main.strip(), tags
+
+
 @app.post("/extract-screenshot")
 async def extract_screenshot(
     req: ScreenshotExtractInput,
@@ -10278,11 +10534,12 @@ async def extract_screenshot(
         "{\n"
         '  "type": "A" 或 "B" 或 "C",\n'
         '  "title": "笔记标题（B类型填空字符串）",\n'
-        '  "body": "正文内容含话题标签（B类型填空字符串）",\n'
+        '  "body": "正文内容，不要包含话题标签（B类型填空字符串）",\n'
+        '  "tags": ["截图中识别到的话题标签，如 #广州美食；没有则返回空数组"],\n'
         '  "domain": "美食/旅行/穿搭/运动/学习/职场/情感/宠物/健康",\n'
         '  "cover_desc": "图片视觉描述：主体元素、色调光线、构图氛围，40-80字（C类型填空字符串）"\n'
         "}\n"
-        "注意：B类型（纯图片）也必须按格式返回，cover_desc 必须详细描述图片内容，不要返回 error。"
+        "注意：1）话题必须放入 tags，不要混入 body；2）B类型（纯图片）也必须按格式返回，cover_desc 必须详细描述图片内容，不要返回 error。"
     )
     try:
         if not key:
@@ -10308,6 +10565,9 @@ async def extract_screenshot(
         result = _json.loads(m.group(0))
 
         img_type = result.get("type", "A")
+        body_main, tags = _split_ocr_body_and_tags(result.get("body"), result.get("tags"))
+        result["body"] = body_main
+        result["tags"] = tags
 
         # B类型（纯图片）：cover_desc 拼入 body 作为视觉上下文，不需要文字内容
         if img_type == "B":
@@ -10367,7 +10627,7 @@ class ValidateOcrInput(BaseModel):
 @app.post("/validate-ocr")
 async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_current_user)):
     """Claude Haiku 内容鉴别 Agent：
-    对多张截图的 OCR 结果去重、验证、重组，返回唯一干净的标题+正文。
+    对多张截图的 OCR 结果去重、验证、重组，返回唯一干净的标题+正文+话题。
     解决：7张相同笔记截图 → OCR x7 → 内容堆叠的问题。
     """
     results = req.ocr_results
@@ -10377,10 +10637,13 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
     # 单张且内容质量合理（<500字）直接返回，不需要 agent
     if len(results) == 1 and len((results[0].get("body") or "")) < 500:
         r = results[0]
+        body_main, tags = _split_ocr_body_and_tags(r.get("body"), r.get("tags"))
         return {
             "title":  r.get("title", ""),
-            "body":   r.get("body", ""),
+            "body":   body_main,
+            "tags":   tags,
             "domain": r.get("domain", "美食"),
+            "char_count": _body_content_len_without_tags(body_main),
             "validated": False,
         }
 
@@ -10389,17 +10652,18 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
     for i, r in enumerate(results):
         img_type = r.get("type", "A")
         title    = (r.get("title") or "").strip()
-        body     = (r.get("body") or "").strip()
+        body, tags = _split_ocr_body_and_tags(r.get("body"), r.get("tags"))
         cover    = (r.get("cover_desc") or "").strip()
-        if title or body:
+        if title or body or tags:
             t_label = f"【图{i+1} 类型:{img_type}】\n"
             t_label += f"标题: {title}\n" if title else ""
             t_label += f"正文: {body[:300]}\n" if body else ""
+            t_label += f"话题: {tags}\n" if tags else ""
             t_label += f"配图: {cover}\n" if cover else ""
             blocks.append(t_label)
 
     if not blocks:
-        return {"title": "", "body": "", "domain": "美食", "validated": False}
+        return {"title": "", "body": "", "tags": "", "domain": "美食", "char_count": 0, "validated": False}
 
     system = (
         "你是小红书笔记内容鉴别专家。以下来自同一用户上传的多张截图的OCR识别结果。\n"
@@ -10407,10 +10671,11 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
         "你的任务：\n"
         "1. 识别真正唯一的笔记标题（全文只有1个标题）\n"
         "2. 提取完整正文，严格去除重复段落，每段只保留一次\n"
-        "3. 配图描述（如「图片展示了...温润...」）不是笔记正文，不要包含\n"
-        "4. 识别内容领域\n\n"
+        "3. 单独提取话题标签，严格去重；话题不要混入正文\n"
+        "4. 配图描述（如「图片展示了...温润...」）不是笔记正文，不要包含\n"
+        "5. 识别内容领域\n\n"
         "严格按JSON返回，不加任何解释：\n"
-        "{\"title\":\"唯一标题\",\"body\":\"去重后的完整正文\",\"domain\":\"美食/旅行/穿搭/...\",\"char_count\":正文实际字数}"
+        "{\"title\":\"唯一标题\",\"body\":\"去重后的完整正文，不含话题\",\"tags\":\"#话题1 #话题2\",\"domain\":\"美食/旅行/穿搭/...\",\"char_count\":正文实际字数}"
     )
     user_prompt = "\n\n---\n\n".join(blocks)
     _billing.record_free_usage(user["id"], "screenshot")
@@ -10421,11 +10686,13 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
         m = _re2.search(r'\{[\s\S]*\}', raw)
         if m:
             d = _j2.loads(m.group(0))
+            body_main, tags = _split_ocr_body_and_tags(d.get("body"), d.get("tags"))
             return {
                 "title":      (d.get("title") or "").strip(),
-                "body":       (d.get("body") or "").strip(),
+                "body":       body_main,
+                "tags":       tags,
                 "domain":     d.get("domain") or "美食",
-                "char_count": d.get("char_count"),
+                "char_count": d.get("char_count") or _body_content_len_without_tags(body_main),
                 "validated":  True,
             }
     except Exception as e:
@@ -10433,10 +10700,13 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
 
     # fallback: 简单取最长的
     best = max(results, key=lambda r: len(r.get("body") or ""))
+    body_main, tags = _split_ocr_body_and_tags(best.get("body"), best.get("tags"))
     return {
         "title":  (best.get("title") or "").strip(),
-        "body":   (best.get("body") or "").strip(),
+        "body":   body_main,
+        "tags":   tags,
         "domain": best.get("domain") or "美食",
+        "char_count": _body_content_len_without_tags(body_main),
         "validated": False,
     }
 
@@ -10489,6 +10759,46 @@ def _next_note_version(parent_id: str | None, user_id: str, fallback: int = 1) -
         return int(row["version"] or 0) + 1
     except Exception:
         return fallback + 1
+
+
+def _build_note_version_group_for_root(root_note_id: str | None, user_id: str) -> dict | None:
+    if not root_note_id or not user_id:
+        return None
+    all_rows = _db.fetchall(
+        "SELECT id,title,body,domain,score,grade,source,version,parent_id,created_at"
+        " FROM notes WHERE user_id=? ORDER BY created_at ASC",
+        (user_id,),
+    )
+    all_notes = {r["id"]: dict(r) for r in all_rows}
+    if root_note_id not in all_notes:
+        return None
+
+    def find_root(note_id: str) -> str:
+        visited: set[str] = set()
+        cur = note_id
+        while True:
+            note = all_notes.get(cur)
+            if not note or not note.get("parent_id") or note["parent_id"] in visited:
+                return cur
+            visited.add(cur)
+            cur = note["parent_id"]
+
+    versions = [note for nid, note in all_notes.items() if find_root(nid) == root_note_id]
+    if not versions:
+        return None
+    versions.sort(key=lambda x: x.get("created_at") or "")
+    latest = versions[-1]
+    best = max(versions, key=lambda x: (x.get("score") or 0))
+    return {
+        "group_id": root_note_id,
+        "latest": latest,
+        "best_score": best.get("score"),
+        "best_version": best.get("version"),
+        "version_count": len(versions),
+        "score_trend": [round(v["score"], 1) if v.get("score") else None for v in versions],
+        "versions": versions,
+        "latest_at": latest.get("created_at"),
+    }
 
 @app.post("/notes")
 async def save_note(req: SaveNoteInput, user: dict = Depends(_auth.get_current_user)):
@@ -10546,6 +10856,8 @@ async def get_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_use
     data["note_title"]   = row["note_title"]
     data["_domain"]      = row["domain"]
     data["created_at"]   = row["created_at"]
+    root_note_id = data.get("saved_note_id") or data.get("_saved_note_id")
+    data["note_version_group"] = _build_note_version_group_for_root(root_note_id, user["id"])
     return data
 
 
@@ -11348,6 +11660,7 @@ async def _run_analyze_pipeline(
             suggested_title_scores: list[float | None] = []
             suggested_plans_scored: list[dict] = []
             for plan_item in suggested_plans_raw:
+                raw_plan_title = plan_item.get("raw_title") or plan_item.get("title") or ""
                 t = _sanitize_title_for_delivery(plan_item.get("title") or "", delivery_source_context, req.domain)
                 b = (plan_item.get("body") or "").strip()
                 t, b, _ = _apply_user_constraint_hard_guards(t, b, req.note_title, req.user_constraints)
@@ -11433,10 +11746,16 @@ async def _run_analyze_pipeline(
                         quality_issues.append("标题为空，不能作为最终交付内容")
                     if not b:
                         quality_issues.append("正文为空，不能作为最终交付内容")
+                title_meta = _title_delivery_meta(raw_plan_title, t, quality_issues)
                 suggested_title_scores.append(t_score)
                 suggested_plans_scored.append({
                     "title": t,
                     "body": b,
+                    "title_meta": title_meta,
+                    "title_length": title_meta["length"],
+                    "title_target": title_meta["target"],
+                    "title_was_compressed": title_meta["was_compressed"],
+                    "title_needs_refine": title_meta["needs_refine"],
                     "score": t_score,
                     "quality_issues": quality_issues[:10],
                     "quality_failed": quality_failed,
@@ -11507,6 +11826,11 @@ async def _run_analyze_pipeline(
         for _plan in plans_scored:
             if isinstance(_plan, dict):
                 _plan["title"] = keep_title
+                _plan["title_meta"] = _title_delivery_meta(keep_title, keep_title, _plan.get("quality_issues") or [])
+                _plan["title_length"] = _plan["title_meta"]["length"]
+                _plan["title_target"] = _plan["title_meta"]["target"]
+                _plan["title_was_compressed"] = False
+                _plan["title_needs_refine"] = _plan["title_meta"]["needs_refine"]
 
     # suggested_body 只服务旧客户端/共享正文卡片；方案正文必须保留各自结果，不能用它回填。
     if not suggested_body:
@@ -12124,7 +12448,7 @@ async def _generate_pipeline_stream(
             "你是小红书爆文质量修复专家。你必须严格根据质量问题重写，"
             "不能解释，不能输出XML以外内容。\n\n"
             f"{_get_checklist(domain)}\n\n"
-            f"输出格式：<title>{_TITLE_DELIVERY_MAX}字以内标题</title><body>完整正文，含话题标签</body>"
+            f"输出格式：<title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body>"
             "<variants>3个备选标题，每行一个</variants><rationale>一句话说明修复点</rationale>"
         )
         repair_user = (
@@ -12839,6 +13163,18 @@ def _build_chat_system_prompt(session: dict) -> str:
         prompt_parts.append(f"\n{supplement_section}\n")
     if session.get("fact_context"):
         prompt_parts.append(f"\n【已核验事实边界】\n{session.get('fact_context')}\n")
+    prompt_parts.append(
+        "\n【对话分数与版本口径】\n"
+        "- 【当前笔记】中的标题、正文和评分是当前会话的权威最终稿。\n"
+        "- 历史对话里曾出现的方案A/B/C如果没有被后端保存为 note_update，只是未最终评分的草稿，不要把草稿分数当成最终分数。\n"
+        "- 用户问“这版/当前版分数”时，以当前评分为准；不要把当前版称为原版。\n"
+        "- 用户问“诊断方案A/B/C分数”时，只能引用诊断上下文里的选中方案分数或明确说明该草稿未最终评分。\n"
+        "\n【多候选方案输出协议】\n"
+        "- 当用户明确要求“多个方案/方案A-B-C/几个标题/让我选择/三种方向”时，必须输出结构化候选，而不是只写散文段落。\n"
+        "- 多候选只是待用户选择的草稿，不要宣称已保存为新版本，也不要把任一候选称为当前最终稿。\n"
+        "- 候选格式必须是：<options><option id=\"A\"><strategy>方向名</strategy><title>标题</title><body>完整正文或沿用当前正文的说明</body></option>...</options>。\n"
+        "- 如果用户只要求“重写一版/按这个方向改”，才输出单个 <note><title>...</title><body>...</body></note> 作为最终稿。\n"
+    )
     prompt_parts.extend([
         f"{gen_section}\n",
         f"【品类知识库·{domain}】\n{dk.get('content', '')}\n{dk.get('user', '')}\n\n",
@@ -12965,6 +13301,92 @@ async def _chat_previous_note_payload(
     return prev_title, prev_body, prev_score, prev_feats, prev_grade, issues, True
 
 
+_CHAT_PLAN_OPTION_IDS = ("A", "B", "C")
+
+
+def _chat_xml_tag(text: str, tag: str) -> str:
+    m = re.search(rf"<{tag}\b[^>]*>(.*?)</{tag}>", text or "", re.DOTALL | re.IGNORECASE)
+    return m.group(1).strip() if m else ""
+
+
+def _clean_chat_option_text(value: str) -> str:
+    text = (value or "").strip()
+    text = re.sub(r"^```(?:xml|html|markdown)?\s*", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\s*```$", "", text).strip()
+    return text
+
+
+def _extract_chat_plan_options_from_response(text: str) -> list[dict]:
+    """Extract only explicit XML plan options; do not parse free-form prose."""
+    options: list[dict] = []
+    for idx, match in enumerate(re.finditer(r"<option\b([^>]*)>(.*?)</option>", text or "", re.DOTALL | re.IGNORECASE)):
+        if idx >= len(_CHAT_PLAN_OPTION_IDS):
+            break
+        attrs, inner = match.group(1) or "", match.group(2) or ""
+        id_match = re.search(r"\bid\s*=\s*['\"]?([^'\"\s>]+)", attrs, re.IGNORECASE)
+        raw_id = (id_match.group(1) if id_match else _CHAT_PLAN_OPTION_IDS[idx]).strip().upper()
+        option_id = raw_id[:1] if raw_id[:1] in _CHAT_PLAN_OPTION_IDS else _CHAT_PLAN_OPTION_IDS[idx]
+        title = _clean_chat_option_text(_chat_xml_tag(inner, "title"))
+        body = _clean_chat_option_text(_chat_xml_tag(inner, "body"))
+        strategy = _clean_chat_option_text(_chat_xml_tag(inner, "strategy") or _chat_xml_tag(inner, "label"))
+        if title:
+            options.append({
+                "id": option_id,
+                "title": title,
+                "body": body,
+                "strategy": strategy or f"方案 {option_id}",
+            })
+    # Require at least two structured options so a single ordinary note is not
+    # accidentally converted into a chooser card.
+    return options if len(options) >= 2 else []
+
+
+async def _build_chat_plan_options(
+    session: dict,
+    full_content: str,
+) -> list[dict]:
+    raw_options = _extract_chat_plan_options_from_response(full_content)
+    if not raw_options:
+        return []
+    domain = session.get("domain", "美食")
+    fact_source = session.get("fact_context") or session.get("note_body", "")
+    current_body = session.get("note_body", "")
+    current_score = session.get("current_score")
+    try:
+        current_score_f = float(current_score) if current_score is not None else None
+    except Exception:
+        current_score_f = None
+
+    options: list[dict] = []
+    seen: set[str] = set()
+    for raw in raw_options[:3]:
+        title = _sanitize_title_for_delivery(raw.get("title", ""), fact_source, domain).strip()
+        body = (raw.get("body") or "").strip() or current_body
+        if not title or not body:
+            continue
+        signature = _candidate_signature(title, body)
+        if signature in seen:
+            continue
+        seen.add(signature)
+        score, _features, grade, issues = await _score_chat_note(title, body, session)
+        score_value = round(score, 1) if score is not None else None
+        delta = round(score - current_score_f, 1) if score is not None and current_score_f is not None else None
+        option = {
+            "id": raw.get("id") or _CHAT_PLAN_OPTION_IDS[len(options)],
+            "title": title,
+            "body": body,
+            "strategy": raw.get("strategy") or f"方案 {raw.get('id') or _CHAT_PLAN_OPTION_IDS[len(options)]}",
+            "score": score_value,
+            "grade": grade or (_grade(score) if score is not None else ""),
+            "score_delta": delta,
+            "quality_issues": issues[:6],
+            "selectable": True,
+            "body_source": "current_note" if not (raw.get("body") or "").strip() else "candidate",
+        }
+        options.append(option)
+    return options if len(options) >= 2 else []
+
+
 async def _repair_chat_note_if_needed(
     title: str,
     body: str,
@@ -13044,7 +13466,7 @@ async def _repair_chat_note_if_needed(
     if session.get("fact_context"):
         repair_parts.append(f"【已核验事实边界】\n{session.get('fact_context')}\n\n")
     repair_parts.append(
-        f"输出格式：<note><title>{_TITLE_DELIVERY_MAX}字以内标题</title><body>完整正文，含话题标签</body></note>"
+        f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>"
     )
     repair_system = "".join(repair_parts)
     repair_user = (
@@ -13132,11 +13554,15 @@ async def _chat_sse_generator(
     user_msg: str,
     image_base64: str | None = None,
     file_text: str | None = None,
+    supplement_values: dict | None = None,
 ) -> AsyncGenerator[str, None]:
     session = _chat_sessions.get(session_id)
     if not session:
         yield f"data: {_json.dumps({'type': 'error', 'data': 'Session not found'}, ensure_ascii=False)}\n\n"
         return
+    merged_supplements = _merge_supplement_values_into_session(session, supplement_values)
+    if merged_supplements:
+        _persist_chat_session(session_id)
 
     # ── Image analysis (Kimi Vision) ────────────────────────────────
     image_analysis: str = ""
@@ -13257,8 +13683,24 @@ async def _chat_sse_generator(
         asst_msg["reasoning_content"] = full_reasoning
     session["messages"].append(asst_msg)
 
-    # Parse and score any new note
-    note_extracted = _extract_note_from_response(full_content)
+    plan_options = await _build_chat_plan_options(session, full_content)
+    if plan_options:
+        session["pending_plan_options"] = plan_options
+        option_summary = "\n".join(
+            f"方案{item.get('id')}: {item.get('title')}（{item.get('score') if item.get('score') is not None else '未评分'}分）"
+            for item in plan_options
+        )
+        session.setdefault("messages", []).append({
+            "role": "assistant",
+            "content": "【系统记录：候选方案】\n"
+                       f"{option_summary}\n"
+                       "说明：这些是待用户选择的候选草稿；只有用户点击选择后，才保存为正式笔记版本。",
+        })
+        yield f"data: {_json.dumps({'type': 'plan_options', 'summary': '我给你拆成了几个可选方向。先选一个方案，系统会把它保存为新的正式版本并更新分数。', 'options': plan_options}, ensure_ascii=False)}\n\n"
+
+    # Parse and score any new note. If structured plan options are present, wait
+    # for the user to select one instead of auto-saving the first candidate.
+    note_extracted = None if plan_options else _extract_note_from_response(full_content)
     quality_blocking = False
     if note_extracted:
         previous_note_title = session.get("note_title", "")
@@ -13296,6 +13738,7 @@ async def _chat_sse_generator(
         # ── 自动保存笔记版本到 notes 表 ─────────────────────────────────
         user_id_for_save = session.get("user_id", "")
         saved_note_id_for_event = None
+        saved_note_version_for_event = None
         achievement_items = None
         unchanged_after_repair = (
             (new_title or "").strip() == (previous_note_title or "").strip()
@@ -13323,7 +13766,9 @@ async def _chat_sse_generator(
                 )
                 session["_last_note_id"] = new_note_id
                 session["note_id"] = new_note_id
+                session["note_version"] = next_version
                 saved_note_id_for_event = new_note_id
+                saved_note_version_for_event = next_version
                 # 写成长记录
                 if new_score:
                     _db.execute(
@@ -13343,7 +13788,15 @@ async def _chat_sse_generator(
                     )
             except Exception:
                 pass
-        yield f"data: {_json.dumps({'type': 'note_update', 'title': new_title, 'body': new_body, 'score': round(new_score, 1) if new_score else None, 'grade': grade_str, 'quality_issues': quality_issues, 'saved_note_id': saved_note_id_for_event}, ensure_ascii=False)}\n\n"
+        final_context_msg = (
+            "【系统记录：当前最终稿】\n"
+            f"标题：{new_title}\n"
+            f"评分：{round(new_score, 1) if new_score else '未评分'}\n"
+            f"版本：v{saved_note_version_for_event or session.get('note_version') or session.get('iteration_count', 1)}\n"
+            "说明：以上为后端评分/修复后的当前最终稿。若前文有方案A/B/C草稿，后续问答以这条最终稿为准。"
+        )
+        session.setdefault("messages", []).append({"role": "assistant", "content": final_context_msg})
+        yield f"data: {_json.dumps({'type': 'note_update', 'title': new_title, 'body': new_body, 'score': round(new_score, 1) if new_score else None, 'grade': grade_str, 'quality_issues': quality_issues, 'saved_note_id': saved_note_id_for_event, 'saved_note_version': saved_note_version_for_event}, ensure_ascii=False)}\n\n"
         if achievement_items:
             yield f"data: {_json.dumps({'type': 'achievement', 'items': achievement_items}, ensure_ascii=False)}\n\n"
 
@@ -13399,6 +13852,8 @@ def _persist_chat_session(session_id: str) -> None:
             generate_context["fact_context"] = session.get("fact_context")
         if session.get("supplement_prompts"):
             generate_context["supplement_prompts"] = session.get("supplement_prompts")
+        if session.get("pending_plan_options"):
+            generate_context["pending_plan_options"] = session.get("pending_plan_options")
         note_id = session.get("_last_note_id") or session.get("note_id")
         _db.execute(
             "INSERT INTO chat_sessions(id,user_id,note_id,domain,local_time,messages_json,user_prefs_json,"
@@ -13410,6 +13865,7 @@ def _persist_chat_session(session_id: str) -> None:
             "  user_prefs_json=excluded.user_prefs_json,"
             "  iteration_count=excluded.iteration_count,"
             "  current_score=excluded.current_score,"
+            "  generate_ctx_json=excluded.generate_ctx_json,"
             "  updated_at=excluded.updated_at",
             (
                 session_id,
@@ -13465,9 +13921,114 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
             "intent_contract": _content_intent_contract_payload(row["domain"], content_intent, merchant_visibility, merchant_name, fact_source_policy),
             "supplement_prompts": gen_ctx.get("supplement_prompts") or [],
             "fact_context": gen_ctx.get("fact_context", ""),
+            "pending_plan_options": gen_ctx.get("pending_plan_options") or [],
         }
     except Exception:
         return None
+
+
+def _pending_chat_plan_option(session: dict, option_id: str) -> dict | None:
+    wanted = (option_id or "").strip().upper()
+    if not wanted:
+        return None
+    for item in session.get("pending_plan_options") or []:
+        if str(item.get("id") or "").strip().upper() == wanted:
+            return item
+    return None
+
+
+def _save_chat_plan_option_as_note(session_id: str, session: dict, option: dict, user_id: str) -> dict:
+    title = (option.get("title") or "").strip()
+    body = (option.get("body") or "").strip()
+    if not title or not body:
+        raise HTTPException(status_code=400, detail="候选方案不完整，无法保存")
+    score_raw = option.get("score")
+    try:
+        score = float(score_raw) if score_raw is not None else None
+    except Exception:
+        score = None
+    grade = option.get("grade") or (_grade(score) if score is not None else "")
+
+    session["iteration_count"] = int(session.get("iteration_count", 0) or 0) + 1
+    prev_note_id = session.get("_last_note_id")
+    new_note_id = str(_uuid.uuid4())
+    next_version = _next_note_version(
+        prev_note_id,
+        user_id,
+        int(session.get("iteration_count", 1) or 1),
+    )
+    try:
+        _db.execute(
+            "INSERT INTO notes(id,user_id,title,body,domain,score,grade,source,parent_id,version,created_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                new_note_id,
+                user_id,
+                title,
+                body,
+                session.get("domain", "美食"),
+                score,
+                grade,
+                "chat",
+                prev_note_id,
+                next_version,
+                _now_iso(),
+            ),
+        )
+        if score is not None:
+            _db.execute(
+                "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
+                (
+                    str(_uuid.uuid4()),
+                    user_id,
+                    new_note_id,
+                    session.get("domain", "美食"),
+                    score,
+                    grade,
+                    "chat_select_plan",
+                    _now_iso(),
+                ),
+            )
+            _memory.check_and_record_achievements(user_id, score, "chat_select_plan")
+            _memory.add_context(
+                user_id,
+                f"选择方案{option.get('id') or ''}保存为v{next_version}：{title[:20]}…，评分{round(score, 1)}分",
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"[chat_select_plan] save failed: {exc}", file=sys.stderr, flush=True)
+        raise HTTPException(status_code=500, detail="保存候选方案失败")
+
+    session["_last_note_id"] = new_note_id
+    session["note_id"] = new_note_id
+    session["note_version"] = next_version
+    session["note_title"] = title
+    session["note_body"] = body
+    if score is not None:
+        session["current_score"] = score
+
+    final_context_msg = (
+        "【系统记录：当前最终稿】\n"
+        f"来源：用户选择方案{option.get('id') or ''}\n"
+        f"标题：{title}\n"
+        f"评分：{round(score, 1) if score is not None else '未评分'}\n"
+        f"版本：v{next_version}\n"
+        "说明：以上候选已被用户选择并保存为后端评分后的当前最终稿。"
+    )
+    session.setdefault("messages", []).append({"role": "assistant", "content": final_context_msg})
+    _persist_chat_session(session_id)
+    return {
+        "type": "note_update",
+        "title": title,
+        "body": body,
+        "score": round(score, 1) if score is not None else None,
+        "grade": grade,
+        "quality_issues": option.get("quality_issues") or [],
+        "saved_note_id": new_note_id,
+        "saved_note_version": next_version,
+        "selected_option_id": option.get("id"),
+    }
 
 
 # ── Chat Pydantic models & endpoints ─────────────────────────────
@@ -13502,6 +14063,12 @@ class ChatMessageInput(BaseModel):
     message:      str
     image_base64: str | None = None   # base64-encoded image (jpg/png/webp)
     file_text:    str | None = None   # extracted text from uploaded file
+    supplement_values: dict[str, str] | None = Field(default=None, description="用户在补充事实卡片中确认的结构化事实")
+
+
+class ChatSelectPlanInput(BaseModel):
+    session_id: str
+    option_id: str = Field(description="A/B/C 候选方案 ID")
 
 
 @app.post("/chat/start", response_model=ChatStartResponse)
@@ -13614,6 +14181,13 @@ async def chat_start(
         ],
         "feature_hits":    gen_ctx.get("feature_hits") or {},
         "title_variants":  (gen_ctx.get("title_variants") or [])[:3],
+        "current_score": current_score,
+        "current_grade": grade,
+        "selected_plan_index": gen_ctx.get("selected_plan_index"),
+        "selected_plan_score": gen_ctx.get("selected_plan_score"),
+        "selected_plan_quality_issues": gen_ctx.get("selected_plan_quality_issues") or [],
+        "diagnosis_ces_percentile": gen_ctx.get("diagnosis_ces_percentile") or gen_ctx.get("ces_percentile"),
+        "diagnosis_composite_score": gen_ctx.get("diagnosis_composite_score") or gen_ctx.get("composite_score"),
         "user_constraints": normalized_constraints,
         "constraint_contract": constraint_contract,
         "content_intent": normalized_intent,
@@ -13716,10 +14290,39 @@ async def chat_message(
         _billing.record_free_usage(user["id"], "chat_fast")
 
     return StreamingResponse(
-        _chat_sse_generator(req.session_id, req.message, req.image_base64, req.file_text),
+        _chat_sse_generator(
+            req.session_id,
+            req.message,
+            req.image_base64,
+            req.file_text,
+            req.supplement_values,
+        ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.post("/chat/select-plan")
+async def chat_select_plan(
+    req: ChatSelectPlanInput,
+    user: dict = Depends(_auth.get_current_user),
+):
+    if req.session_id not in _chat_sessions:
+        recovered = _load_chat_session_from_db(req.session_id)
+        if recovered:
+            _chat_sessions[req.session_id] = recovered
+        else:
+            raise HTTPException(status_code=404, detail="Session not found")
+    session = _chat_sessions[req.session_id]
+    session_user_id = session.get("user_id") or ""
+    if session_user_id and session_user_id != user["id"]:
+        raise HTTPException(status_code=403, detail="无权访问该对话")
+    if not session_user_id:
+        session["user_id"] = user["id"]
+    option = _pending_chat_plan_option(session, req.option_id)
+    if not option:
+        raise HTTPException(status_code=404, detail="候选方案不存在或已失效")
+    return _save_chat_plan_option_as_note(req.session_id, session, option, user["id"])
 
 
 @app.get("/chat/ui", response_class=HTMLResponse)

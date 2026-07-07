@@ -1,6 +1,637 @@
 # Current Task Handoff
 
-Last updated: 2026-07-05
+Last updated: 2026-07-07
+
+## 2026-07-07 Stage Update - Structured Chat Plan Options
+
+### 本轮完成了什么
+
+- 将对话优化里的 A/B/C 从“普通聊天文本”升级为“结构化候选方案卡片”。
+- 后端新增多候选输出协议：当用户要求多个方案/方案A-B-C/几个标题/让我选择时，模型应输出 `<options><option id="A">...</option></options>`。
+- 后端只解析明确 XML `<option>` 标签，不解析自由文本，避免再次用正则误拆自然语言。
+- `/chat/message` 发现 2 个以上结构化候选时：
+  - 对每个候选做本地评分。
+  - 通过 SSE 发 `plan_options`。
+  - 保存到当前 chat session 的 `pending_plan_options`。
+  - 不自动保存任何一个候选为正式笔记版本。
+- 新增 `/chat/select-plan`：
+  - 用户点击某个候选方案后才保存为正式 note version。
+  - 更新 `notes`、`growth_records`、chat session 当前稿、当前分数、版本号。
+  - 返回标准 `note_update` 形态，前端复用同一套左侧笔记/分数/版本更新逻辑。
+- 前端新增候选方案卡：
+  - 显示方案 A/B/C、方向、标题、正文预览、评分、相对当前版本提升值、质量提示。
+  - 支持展开全文。
+  - 点击 `选择并保存` 后调用 `/chat/select-plan`，保存成功后更新左侧当前笔记、分数、版本、localStorage。
+- 前端收到 `plan_options` 后，会把原本可能包含 XML 的 AI 气泡替换成一句可读 summary，避免用户看到内部结构化标签。
+- 本阶段没有运行真实 AI、真实 crawler、数据库迁移、seed、reset、deploy 或生产写操作。
+
+### 修改了哪些文件
+
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `model/api.py`: 增加多候选 prompt 协议、结构化候选解析/评分、`pending_plan_options` 持久化、`/chat/select-plan` 保存接口。
+- `NoteAI_Pro_Demo_Framer.html`: 增加候选方案卡 UI、`plan_options` SSE 事件处理、点击保存候选方案的前端逻辑。
+- `tests/test_api_contracts.py`: 增加后端契约测试，确认候选方案不会自动保存，选择候选后才写入下一版本。
+- `tests/test_frontend_report_static.py`: 增加静态断言，确认前端有候选卡、选择按钮、选择接口调用和 summary 替换。
+- `.codex/handoffs/current-task.md`: 记录本阶段结果和验证情况。
+
+### 做了哪些关键决策
+
+- 候选方案不是正式版本；只有用户点击 `选择并保存` 后才成为笔记库版本链的一部分。
+- 不靠前端正则拆聊天文本；只接受后端明确结构化的 `<option>` 标签。
+- 候选方案评分使用本地评分链，不为候选卡额外调用 AI 二修，避免无计划增加 live AI 成本。
+- `/chat/select-plan` 不额外扣 AI 费用，因为它不调用模型，只保存已生成候选。
+- 候选方案随 chat session 存入现有 `generate_ctx_json`，不新增 DB schema。
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m py_compile model/api.py`
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_chat_plan_options_are_structured_and_not_auto_saved tests.test_api_contracts.ApiContractTests.test_chat_select_plan_saves_chosen_option_as_next_version`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `node - <<'NODE' ... inline_scripts_syntax ... NODE`
+- In-app Browser smoke for `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=plan-options-smoke&page=chat`
+- Local Playwright rendered smoke for `plan_options` card rendering and selecting方案 B
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `.venv/bin/python -m py_compile model/*.py`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `npm run test:e2e`
+- `git diff --check -- model/api.py NoteAI_Pro_Demo_Framer.html tests/test_api_contracts.py tests/test_frontend_report_static.py .codex/handoffs/current-task.md`
+
+### 每个命令的结果
+
+- `py_compile model/api.py`: passed.
+- Targeted structured plan API tests: passed, 2 tests.
+- Frontend static tests: passed, 14 tests.
+- Inline JS syntax parse: passed, 1 inline script.
+- In-app Browser smoke: page identity, screenshot, and console health passed; DOM snapshot still unavailable due known `incrementalAriaSnapshot` issue.
+- Local Playwright rendered smoke: passed.
+  - `plan_options` 渲染 3 张候选卡。
+  - AI XML 气泡被 summary 替换。
+  - 点击方案 B 后发送 `{session_id, option_id:"B"}` 到 `/chat/select-plan`。
+  - 左侧当前笔记更新为方案 B，分数 `70.5`，版本 `第 2 版`，状态 `第 1 次优化`。
+  - localStorage 保存 `note-v2 / version=2 / score=70.5`。
+  - Screenshot evidence saved outside repo at `/tmp/noteai-plan-options-smoke.png`.
+- Full API contract tests: passed, 141 tests.
+- `py_compile model/*.py`: passed.
+- Full unittest discovery: passed, 264 tests.
+- `npm run test:e2e`: passed, 3 tests.
+- `git diff --check`: passed.
+
+### 当前仍然失败的问题
+
+- 本阶段自动化和渲染 smoke 没有剩余失败。
+- 尚未运行真实 AI live sample 来确认模型在真实对话里稳定输出 `<options>`。需要时必须先输出 Live API Run Plan。
+- In-app Browser DOM snapshot 仍受本地 Browser runtime 限制不可用，已用 Playwright 补交互证明。
+
+### 当前未完成工作
+
+- 用户刷新页面后，手测“让 AI 给 3 个方案 -> 点击其中一个保存 -> 笔记库版本链是否追加”。
+- 如真实模型没有稳定按 `<options>` 输出候选，需要做 1-3 条受控 live AI sample，再微调多候选 prompt。
+- 如果用户希望“基于此方案继续优化”不保存而直接追问，可在候选卡上再加第二个按钮；本阶段先做最安全的“选择并保存”。
+
+### 当前最高风险
+
+- 真实 AI 可能仍以普通 markdown 输出 A/B/C，而不是结构化 `<options>`；代码已具备结构化接收能力，但真实提示遵循度仍需 live 验证。
+- 大 diff/worktree 仍包含与本阶段无关的 crawler、model-router、start_all、tools 等未提交改动，后续 commit 必须精确分组。
+- 如果浏览器缓存旧 HTML，用户可能看不到候选卡，需要刷新并确认本地服务加载最新文件。
+
+### 下一步最小可行计划
+
+1. 刷新前端页面。
+2. 从真实 AI 内容诊断或爆文生成进入对话优化。
+3. 让 AI “给我三个不同优化方案/方案A-B-C让我选”。
+4. 如果出现候选卡，点击其中一个，检查左侧分数/版本和笔记库版本链。
+5. 如果没有出现候选卡，先做受控 live AI sample，确认模型是否没有遵循 `<options>` 协议，再只调 prompt。
+
+### 哪些地方不能在未经确认的情况下修改
+
+- Production config, `.env`, API keys, tokens, cookies, production DB, migrations, seed/reset/deploy/clean commands。
+- Billing/payment/quota semantics, auth/session/admin permissions。
+- 真实 AI 批量调用、crawler/worker 运行、外部 XHS 访问、训练数据入库。
+- 与本阶段无关的 crawler、model-router、sidecar、工具脚本和图片 artifact 改动。
+
+## 2026-07-07 Stage Update - Chat Score/Version Authority Fix
+
+### 本轮完成了什么
+
+- 排查并修复用户截图中“诊断报告 62 分、笔记库 v2 70.5 分、对话页显示 71 / 第3版 / 不知道是哪篇”的口径混乱。
+- 确认根因不是单一分数算法问题，而是三类问题叠加：
+  - 前端聊天仪表盘把小数分数 `Math.round()` 成整数，导致 `70.4803` 显示成 `71`。
+  - 聊天页进入/恢复/更新时版本计数会被前端自行推进，导致一次 v2 更新可能显示成“第3版”。
+  - 聊天历史中的 A/B/C 草稿没有结构化评分，后续追问“方案A分数”时容易把草稿和后端保存的最终稿混在一起。
+- 修复聊天分数显示为一位小数口径：`70.4803 -> 70.5`，`62.0 -> 62`。
+- 修复 `note_update` 事件携带并使用后端保存版本 `saved_note_version`，前端不再凭空自增版本。
+- 修复三条入口的版本初始化：
+  - `AI 内容诊断 -> 选方案 -> 对话优化`
+  - `AI 生成爆文 -> 对话优化`
+  - `笔记库历史版本 -> 继续优化`
+- 额外发现并修复两个真实前端入口 bug：
+  - `startChatFromDiagnosis()` 误读未定义变量 `d`。
+  - `startChatOptimization()` 误读未定义变量 `note`。
+- 把诊断报告成长闭环中的“方案”文案改成“最佳建议”，并明确“仅为诊断建议；点击方案后才进入对话”，避免用户误以为这是已选择/已保存版本。
+- 后端聊天 prompt 增加“对话分数与版本口径”，明确当前笔记标题/正文/评分为权威最终稿，历史 A/B/C 草稿没有保存为 `note_update` 时不应被当成最终评分。
+- 后端 `note_update` SSE 增加 `saved_note_version`，保存后向会话历史追加隐藏的“当前最终稿”记录，降低后续追问时模型引用旧草稿的概率。
+- 未运行真实 AI、真实 crawler、数据库迁移、seed、reset、deploy 或生产写操作。
+
+### 修改了哪些文件
+
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `model/api.py`: 给聊天系统 prompt 加入权威分数/版本口径；`note_update` 事件携带 `saved_note_version`；保存当前最终稿后写入会话历史；`/chat/start` 的 `generate_context` 保留选中方案分数和当前分数。
+- `NoteAI_Pro_Demo_Framer.html`: 统一分数格式化；使用后端版本号渲染聊天版本；修复诊断/生成/笔记库三条入口的版本初始化；报告生命周期文案从“方案”改为“最佳建议”。
+- `tests/test_api_contracts.py`: 增加后端契约断言，确认 `/chat/start` 保留 `selected_plan_score/current_score`，`note_update` 返回 `saved_note_version` 并追加当前最终稿上下文。
+- `tests/test_frontend_report_static.py`: 增加静态断言，防止聊天版本再次前端自增、分数再次整数化、入口再次读取错误变量。
+- `.codex/handoffs/current-task.md`: 记录本阶段结果，便于后续继续手测和修复。
+
+### 做了哪些关键决策
+
+- 当前可交付版本以“后端保存并评分后的 note_update”为权威，不以聊天里出现过的 A/B/C 草稿为权威。
+- 诊断报告中的 A/B/C 是诊断建议；只有用户点击某个方案进入对话并保存后，才成为笔记库版本链的一部分。
+- 前端只展示后端返回的保存版本号，不再靠本地计数推断新版本。
+- 分数显示保留最多一位小数，避免 `70.5` 被误读为 `71`。
+- 本阶段只做 mock/fixture/rendered smoke 和自动化回归；不需要 live AI，因为修复点是状态口径和 UI/事件契约。
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m py_compile model/api.py`
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_chat_start_prefers_selected_plan_score_over_original_diagnosis_score tests.test_api_contracts.ApiContractTests.test_chat_note_update_is_emitted_after_version_save`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `node - <<'NODE' ... inline_scripts_syntax ... NODE`
+- `git diff --check -- model/api.py NoteAI_Pro_Demo_Framer.html tests/test_api_contracts.py tests/test_frontend_report_static.py`
+- In-app Browser smoke for `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=score-version-smoke&page=chat`
+- Local Playwright rendered smoke for chat score/version, diagnosis entry, generation entry, library entry, and report lifecycle label
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `.venv/bin/python -m py_compile model/*.py`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `npm run test:e2e`
+
+### 每个命令的结果
+
+- `py_compile model/api.py`: passed.
+- Targeted API contract tests: passed, 2 tests.
+- Frontend static tests: passed, 13 tests.
+- Inline JS syntax parse: passed, 1 inline script.
+- `git diff --check`: passed.
+- In-app Browser smoke: page identity, screenshot, and console health passed; DOM snapshot still unavailable in this runtime due known `incrementalAriaSnapshot` issue.
+- Local Playwright rendered smoke: passed.
+  - 初始 `70.4803` 显示为 `70.5`、`第 1 版`、`初始版本`。
+  - `note_update(saved_note_version=2)` 后显示为 `70.5`、`第 2 版`、`第 1 次优化`，toast 为 `v2 · 新评分 70.5分`。
+  - localStorage 保存 `noteId=note-v2`、`version=2`、`score=70.5`。
+  - 诊断方案入口使用 `selected_plan_score=68.2` 并显示 `第 1 版`。
+  - 爆文生成入口显示 `第 1 版`，没有未定义变量错误。
+  - 笔记库 v2 入口显示 `第 2 版`。
+  - 报告成长闭环显示 `最佳建议 / 仅为诊断建议；点击方案后才进入对话`。
+  - Screenshot evidence saved outside repo:
+    - `/tmp/noteai-score-version-chat.png`
+    - `/tmp/noteai-score-version-report.png`
+- Full API contract tests: passed, 139 tests.
+- `py_compile model/*.py`: passed.
+- Full unittest discovery: passed, 261 tests.
+- `npm run test:e2e`: passed, 3 tests.
+
+### 当前仍然失败的问题
+
+- 本阶段自动化和渲染 smoke 没有剩余失败。
+- In-app Browser DOM snapshot 仍受本地 Browser runtime 限制不可用；已用 Playwright 渲染 smoke 补足交互证明。
+
+### 当前未完成工作
+
+- 用户需要刷新前端页面，避免浏览器继续使用旧 JS。
+- 如果要验证真实模型在追问“方案A分数是多少”时的回答质量，需要另开受控 live AI sample，并先输出 Live API Run Plan。
+- 当前 worktree 仍有与本阶段无关的 crawler/model-router/tool artifacts 等脏文件，后续 checkpoint/commit 需要精确分组。
+
+### 当前最高风险
+
+- 浏览器缓存或旧本地服务进程可能让用户手测打到旧前端/旧 API。
+- 真实 AI 多轮追问仍可能受历史草稿影响；本阶段已用 prompt 和隐藏最终稿上下文降低风险，但未做 live AI 追问验证。
+- 大 diff 中存在其他未提交模块改动，不能把本阶段修复和 crawler/sidecar 等无关改动混提交。
+
+### 下一步最小可行计划
+
+1. 刷新用户页面，优先复测三条链路：
+   - AI 内容诊断 -> 开始对话优化 -> 重写一版 -> 笔记库 v1/v2。
+   - AI 生成爆文 -> 开始对话优化 -> 重写一版 -> 笔记库 v1/v2。
+   - 笔记库打开历史版本 -> 继续对话优化 -> 新版本接在同一卡片下。
+2. 如果用户仍看到 `71` 或错误版本号，先确认浏览器是否加载最新 `Last-Modified` 的 HTML，再查本地服务进程。
+3. 如果真实 AI 对“方案A分数”回答仍混淆，做 1-3 条受控 live AI 追问验证后，只调聊天上下文口径，不做大重构。
+
+### 哪些地方不能在未经确认的情况下修改
+
+- Production config, `.env`, API keys, tokens, cookies, production DB, migrations, seed/reset/deploy/clean commands.
+- Billing/payment/quota semantics, auth/session/admin permissions.
+- 真实 AI 批量调用、crawler/worker 运行、外部 XHS 访问、训练数据入库。
+- 与本阶段无关的 crawler、model-router、sidecar、工具脚本和图片 artifact 改动。
+
+## 2026-07-07 Stage Update - Structured Supplement Facts in Chat Optimization
+
+### 本轮完成了什么
+
+- Fixed the chat supplement UX where clicking `补充人均/价格` or `补充必点` only wrote text into the bottom chat input and could overwrite another supplement draft.
+- Replaced supplement buttons with inline fields inside the supplement card, allowing multiple missing facts to be filled independently.
+- Added a clear `提交补充并优化` action that sends structured `supplement_values` to `/chat/message`.
+- Kept the bottom chat draft independent from supplement fields; clicking and submitting supplement facts no longer overwrites the normal chat input.
+- Added backend support for `ChatMessageInput.supplement_values`.
+- Added backend normalization that maps structured fields into fact boundaries, for example:
+  - `price` -> `价格/人均`
+  - `must_order` -> `必点/招牌菜`
+  - `business_hours` -> `营业时间`
+- Merged user-supplied supplement facts into the same-round chat system prompt before the model call, so Hermes/agents can use the facts immediately instead of treating them as loose natural-language chat.
+- Fixed chat session persistence so updated `generate_ctx_json` is written on conflict; this keeps newly confirmed supplement facts recoverable after a local API restart.
+- Added backend and frontend regression tests. No live AI call, crawler, migration, seed, reset, deploy, production config change, or production DB write was run in this stage.
+
+### 修改了哪些文件
+
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `model/api.py`: Added `supplement_values` to `/chat/message`, normalized structured supplement values into `fact_context`, injected them before `_build_chat_system_prompt()`, and updated chat session persistence to write `generate_ctx_json` on update.
+- `NoteAI_Pro_Demo_Framer.html`: Reworked the supplement card into inline multi-field inputs with a submit button; extended `chatSendMessage()` so structured supplement submits do not overwrite bottom chat drafts or accidentally send current attachments.
+- `tests/test_api_contracts.py`: Added a backend contract test that verifies `price`/`must_order`/`business_hours` merge into `fact_context`, preserve `11:00-22:00` time formats, and appear in the chat system prompt.
+- `tests/test_frontend_report_static.py`: Added static assertions for card-local fields, `supplement_values` payload, submit button text, and a guard against the old `inp.value = item.action_text` behavior.
+- `.codex/handoffs/current-task.md`: Recorded this stage per project workflow.
+
+### 做了哪些关键决策
+
+- Supplement facts are treated as structured confirmed user facts, not as a fragile free-text instruction in the bottom chat box.
+- User-supplied facts override older same-label fact lines in `fact_context` to avoid stale values such as old prices being read first.
+- `11:00-22:00` style time strings must not be damaged by generic colon-prefix stripping.
+- Supplement submit uses `useCurrentAttachments: false`, so a user can keep an unrelated attachment or draft in the bottom composer without it being accidentally sent by a supplement card.
+- This stage used mock SSE/browser validation only; real AI wording quality still needs a controlled live sample later.
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m py_compile model/api.py`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_chat_start_surfaces_missing_fact_supplement_prompts tests.test_api_contracts.ApiContractTests.test_chat_structured_supplements_merge_into_fact_context`
+- `node - <<'NODE' ... inline_scripts_syntax ... NODE`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `git diff --check -- model/api.py NoteAI_Pro_Demo_Framer.html tests/test_api_contracts.py tests/test_frontend_report_static.py`
+- In-app Browser smoke for `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=supplement-facts&page=chat`
+- Local Playwright mock rendered smoke for supplement card open/fill state
+- Local Playwright mock payload smoke for `/chat/message`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `.venv/bin/python -m py_compile model/*.py`
+- `npm run test:e2e`
+
+### 每个命令的结果
+
+- `py_compile model/api.py`: passed.
+- Frontend static tests: passed, 13 tests.
+- Targeted chat supplement API tests: passed, 2 tests.
+- Inline JS syntax parse: passed, 1 inline script.
+- Full API contract tests: passed, 139 tests.
+- `git diff --check`: passed.
+- In-app Browser smoke: page identity passed, screenshot captured, no relevant console errors or warnings; DOM snapshot still unavailable in this runtime due the known `incrementalAriaSnapshot` issue.
+- Local Playwright rendered smoke: passed after waiting for page initialization before injecting mock chat state.
+  - Confirmed supplement card renders inside the active chat area.
+  - Confirmed `补充人均/价格` and `补充必点` open card-local inputs.
+  - Screenshot evidence saved outside repo at `/tmp/noteai-supplement-card-stable-after-init.png`.
+- Local Playwright payload smoke: passed.
+  - Captured `/chat/message` payload includes `supplement_values: {"price":"100元","must_order":"小青龙乌冬、汤泡饭"}`.
+  - Confirmed bottom draft stayed `底部草稿保留` before and after supplement submit.
+  - Confirmed visible user bubble summarizes the submitted facts.
+  - Confirmed no relevant console errors or warnings.
+- Full unittest discovery: passed, 261 tests.
+- `py_compile model/*.py`: passed.
+- `npm run test:e2e`: passed, 3 tests.
+
+### 当前仍然失败的问题
+
+- No failing automated test remains for this stage.
+- No live AI `/chat/message` sample was run in this stage, so natural integration quality of structured supplement facts still needs controlled live verification.
+- In-app Browser DOM snapshot remains blocked by the local Browser runtime issue; interaction proof used local Playwright fallback.
+
+### 当前未完成工作
+
+- Reload/restart local frontend/API before user retests if the browser is still serving stale JS.
+- Run one controlled live chat optimization sample later, with Live API Run Plan, to verify the model naturally incorporates `价格/人均` and `必点/招牌菜` without sounding like a hard ad.
+- Consider adding a first-class persisted display of confirmed supplement facts in the chat UI/history if users need to review or edit them after submission.
+
+### 当前最高风险
+
+- Real AI may still phrase user-supplied facts unnaturally; this stage proves data plumbing and UI behavior, not final copy quality.
+- The worktree still contains unrelated pre-existing dirty files outside this stage, including crawler/trends/model-router/tool artifacts.
+- Existing saved chat sessions before this change do not retroactively gain structured supplement values.
+
+### 下一步最小可行计划
+
+1. Reload the user page and retest a normal diagnosis/generation -> chat optimization flow.
+2. Click multiple supplement prompts, fill them in-card, and submit once.
+3. Confirm the generated rewrite uses those facts naturally and the note version saves under the same card.
+4. If live AI phrasing is poor, tune only the chat prompt/fact integration boundary with a controlled live sample.
+
+### 哪些地方不能在未经确认的情况下修改
+
+- Production config, `.env`, API keys, tokens, cookies, production DB, migrations, seed/reset/deploy/clean commands.
+- Billing/payment/quota semantics, auth/session/admin permissions.
+- Real AI batch calls, crawler/worker runs, external XHS access, or training-data ingestion.
+- Pre-existing unrelated Kimi/model-router/live-smoke/tool-image changes outside this structured supplement facts scope.
+
+## 2026-07-07 Live QA Update - Supplement Facts Naturalness Sample
+
+### 本轮完成了什么
+
+- Ran one controlled live AI sample to verify whether structured supplement facts are naturally integrated into chat optimization output.
+- Tested synthetic food note context with user-supplied facts:
+  - `price`: `100元`
+  - `must_order`: `小青龙乌冬、汤泡饭`
+- Verified the backend fact merge happened before the real model call:
+  - `fact_context_contains_price=true`
+  - `fact_context_contains_must_order=true`
+- Confirmed the live model output did integrate `人均100元`、`小青龙乌冬`、`汤泡饭` in a readable and mostly natural way.
+- Found an important remaining fact-boundary issue: the live output introduced unprovided details such as `带了四个朋友` and `四到八人`, and the quality issue list caught this as `出现未提供的人数/适用规模信息，结构化事实不能编造`.
+- No code was changed in this live QA stage besides this handoff update.
+- Follow-up user decision: this level of plausible scene/storytelling detail is acceptable and does not need to be fixed now.
+
+### 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: Recorded the controlled live AI verification result, actual model-router observations, quality assessment, and next risk.
+
+### 做了哪些关键决策
+
+- Used direct `_chat_sse_generator()` invocation instead of `/chat/message` endpoint to avoid local billing/notes DB side effects while still exercising the real chat prompt/model-router path and the new `supplement_values` fact merge.
+- Temporarily no-op'd `_persist_chat_session` for the script run, then restored it in `finally`.
+- Used synthetic input only; no real user private content was sent.
+- Stopped after one live sample; no batch, no concurrency, no infinite retry.
+- Product decision: allow reasonable scene-level storytelling embellishment for readability and爆款感, such as friend gatherings or suggested use scenes. Continue to strictly guard hard facts like price, address,营业时间, official ratings, discounts, quotas, rankings, or external-source claims.
+
+### 运行了哪些命令
+
+- `.venv/bin/python - <<'PY' ... controlled_live_supplement_sample ... PY`
+
+### 每个命令的结果
+
+- Live sample completed successfully with no SSE error events.
+- Observed model-router logs:
+  - `task=content_gen model=claude-haiku-4-5-20251001 attempt=1/3`
+  - `task=chat model=claude-sonnet-4-6 attempt=1/3`
+- Actual streaming events included:
+  - `typing=1`
+  - `thinking_start=1`
+  - `thinking_chunk=40`
+  - `thinking_end=1`
+  - `content_chunk=37`
+  - `quality_repaired=1`
+  - `note_update=1`
+  - `done=1`
+- Elapsed time: about 119.3 seconds.
+- The returned note update had score `68.2`, grade `良好`, and no saved note ID because the script did not use a real user/session save path.
+- The note update body naturally included the confirmed facts:
+  - `人均100元`
+  - `小青龙乌冬`
+  - `汤泡饭`
+- Remaining quality issues included:
+  - title is short because the sample intentionally used `不改标题`
+  - missing business hours/weekend info
+  - unprovided people-count / suitable-scale details were introduced
+
+### 当前仍然失败的问题
+
+- Supplement facts data plumbing is live-verified.
+- The live chain can add plausible experience/scale storytelling details; user accepts this product behavior, so it is no longer treated as a blocking bug.
+- The sample did not use the full authenticated `/chat/message` endpoint to avoid DB/billing side effects, so endpoint-level billing/session writes were not live-verified in this stage.
+
+### 当前未完成工作
+
+- Do not add the previously proposed count/party-size guard unless the user later changes this product direction.
+- Keep strict guardrails for hard facts such as price, address,营业时间,官方评分,优惠,库存/名额,真实榜单, or external data.
+- Separately test full endpoint path with the long-term test account only if the user explicitly wants local DB/session/billing behavior included.
+
+### 当前最高风险
+
+- The accepted product behavior depends on a clear boundary: scene-level storytelling is acceptable, but hard facts must remain sourced or user-supplied.
+
+### 下一步最小可行计划
+
+1. Leave scene-level narrative embellishment unchanged.
+2. Continue user testing on the full diagnosis/generation/chat flow.
+3. If the copy fabricates hard facts, fix only that narrower hard-fact boundary.
+4. Run another controlled live AI sample only when a new copy-quality issue needs verification.
+
+### 哪些地方不能在未经确认的情况下修改
+
+- Production config, `.env`, API keys, tokens, cookies, production DB, migrations, seed/reset/deploy/clean commands.
+- Billing/payment/quota semantics, auth/session/admin permissions.
+- More than 10 live AI calls, live crawler runs, external XHS access, or training-data ingestion without explicit confirmation.
+
+## 2026-07-07 Stage Update - Screenshot OCR Title/Body/Topic Separation
+
+### 本轮完成了什么
+
+- Fixed the screenshot OCR handoff risk where topics could be removed from body-length accounting but not preserved as first-class topics for diagnosis.
+- Added backend OCR topic extraction: `/extract-screenshot` now asks the vision model for `tags`, strips inline `#话题` from `body`, and returns clean `body + tags`.
+- Added backend multi-image OCR validation topic preservation: `/validate-ocr` now returns `title/body/tags/domain/char_count`, with `body` excluding topics and `tags` deduplicated.
+- Added frontend screenshot confirmation UI for three separate lanes: `标题`、`正文预览`、`话题`.
+- Updated frontend diagnosis submit behavior: it recombines `正文 + 话题` for `/analyze/stream` scoring, while `ocr_char_count` stays body-only so hashtags do not inflate body length.
+- Added mock tests and rendered smoke. No real OCR, live AI, crawler, DB migration, seed, reset, deploy, or production write was run in this stage.
+
+### 修改了哪些文件
+
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `model/api.py`: Added OCR tag normalization/splitting helpers; expanded `/extract-screenshot` and `/validate-ocr` contracts to preserve topics separately from body.
+- `NoteAI_Pro_Demo_Framer.html`: Added `ss-tags-display`, frontend tag normalization/splitting/joining helpers, and submit recombination so scoring receives tags without counting them in body length.
+- `tests/test_api_contracts.py`: Added backend tests that OCR body/tag separation preserves tags and keeps body clean for scoring.
+- `tests/test_frontend_report_static.py`: Added static assertions for the new screenshot OCR topic lane and submit recombination logic.
+- `.codex/handoffs/current-task.md`: Recorded this stage per project workflow.
+
+### 做了哪些关键决策
+
+- OCR confirmation should be structured as `标题 / 正文 / 话题`, not one mixed text blob.
+- Topics should not be counted as body length, but they must be recombined into `desc` before scoring so `commercial_body_tag_count` and `tag_count` are not zero.
+- Backend accepts both new `tags` fields and legacy inline `#话题` inside `body`, so older OCR responses are still handled safely.
+- Historical reports will not retroactively gain missing topics; this fix applies to new screenshot OCR runs after reload.
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m py_compile model/api.py`
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_extract_screenshot_preserves_uploaded_image_media_type tests.test_api_contracts.ApiContractTests.test_ocr_body_and_tags_are_separated_for_scoring tests.test_api_contracts.ApiContractTests.test_validate_ocr_preserves_topics_as_separate_field tests.test_api_contracts.ApiContractTests.test_validate_ocr_agent_merges_topics_without_polluting_body tests.test_api_contracts.ApiContractTests.test_extract_screenshot_maps_moonshot_network_error_to_503`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `node - <<'NODE' ... inline_scripts_syntax ... NODE`
+- Local Playwright mock screenshot OCR rendered smoke:
+  - inject mocked OCR result with inline tags and explicit tags
+  - render screenshot confirmation section
+  - intercept `/analyze/stream`
+  - verify submitted `desc` and body-only `ocr_char_count`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `npm run test:e2e`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `.venv/bin/python -m py_compile model/*.py`
+- `git diff --check -- model/api.py NoteAI_Pro_Demo_Framer.html tests/test_api_contracts.py tests/test_frontend_report_static.py`
+
+### 每个命令的结果
+
+- Targeted OCR API tests: passed, 5 tests.
+- Frontend static tests: passed, 13 tests.
+- Inline JS syntax parse: passed, 3 inline scripts.
+- Local Playwright mock rendered smoke: passed.
+  - Confirmed UI title: `点都德红米肠推荐`.
+  - Confirmed UI body preview excludes hashtags.
+  - Confirmed UI topics: `#广州美食 #北京路早茶 #虾饺皇`.
+  - Confirmed intercepted `/analyze/stream` payload sends `desc` as body plus tags.
+  - Confirmed `ocr_char_count=11`, excluding tags.
+- Full API contract tests: passed, 137 tests.
+- `npm run test:e2e`: passed, 3 tests.
+- Full unittest discovery: passed, 258 tests.
+- `py_compile model/*.py`: passed.
+- `git diff --check`: passed.
+
+### 当前仍然失败的问题
+
+- No failing test remains for this stage.
+- No real OCR/live AI sample was run in this stage, so provider output quality for the new `tags` instruction still needs controlled live verification later.
+
+### 当前未完成工作
+
+- Restart/reload local services before user retests, otherwise the browser/API may still serve older code.
+- Run one controlled live screenshot OCR sample later with a Live API Run Plan to ensure Kimi returns or preserves `tags` as expected.
+- If real OCR returns non-hashtag topic text such as `广州美食、北京路早茶`, verify normalization in the UI and backend still produces `#广州美食 #北京路早茶`.
+
+### 当前最高风险
+
+- Historical saved diagnoses that already lost topics cannot be repaired without original OCR/source images.
+- New backend contract is backward-compatible for old body-inline hashtags, but real provider adherence to the new `tags` field needs live verification.
+- Mixed worktree risk remains: pre-existing unrelated uncommitted files are still present outside this OCR stage.
+
+### 下一步最小可行计划
+
+1. Restart local services or reload frontend/API.
+2. User retests screenshot upload with images that visibly contain topic tags.
+3. Confirm the recognition panel shows `标题 / 正文 / 话题`.
+4. Confirm the resulting diagnosis no longer shows topic count as 0 when the screenshot contained topics.
+5. If still failing, capture a controlled live OCR result summary without exposing full user content or secrets.
+
+### 哪些地方不能在未经确认的情况下修改
+
+- Production config, `.env`, API keys, tokens, cookies, production DB, migrations, seed/reset/deploy/clean commands.
+- Billing/payment/quota semantics, auth/session/admin permissions.
+- Real AI batch calls, crawler/worker runs, external XHS access, or training-data ingestion.
+- Pre-existing unrelated Kimi/model-router/live-smoke/tool-image changes outside this OCR topic scope.
+
+## 2026-07-07 Stage Update - Title Length Strategy and Refinement Metadata
+
+### 本轮完成了什么
+
+- Changed the AI rewrite title delivery rule from a hard `≤18字` mindset to `优先16-20字，平台硬上限20字`.
+- Removed direct fallback hard-cutting of titles. Fallback now only accepts narrow semantic compression candidates; if semantic compression cannot produce a complete 16-20字 title, it preserves the original title and lets quality metadata mark it as `需精修`.
+- Added title quality detection for titles that collapse into `价格+菜品+泛评价`, so plans like `198元龙虾乌冬，汤浓到底不腻` are flagged as needing a fuller attraction point.
+- Added backend `title_meta` fields for diagnosis rewrite plans, including title length, target range, platform max, compression status, and refine status.
+- Added frontend chips under each rewrite title to show `标题字数 / 目标16-20字` and `未压缩 / 已语义压缩 / 需精修`.
+- Verified the UI with a localhost mock report. No real AI call was made in this stage.
+
+### 修改了哪些文件
+
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 每个文件为什么修改
+
+- `model/api.py`: Updated title target constants, prompt contracts, fallback compression behavior, title quality issues, and rewrite-plan metadata output.
+- `NoteAI_Pro_Demo_Framer.html`: Added visible title metadata chips and changed the manual title placeholder from `≤18字` to platform max 20 / AI target 16-20.
+- `tests/test_api_contracts.py`: Updated backend contract tests for no hard-cut fallback, semantic compression, price+dish+generic title detection, and title metadata.
+- `tests/test_frontend_report_static.py`: Added static assertions that title metadata UI and new labels remain present.
+- `.codex/handoffs/current-task.md`: Recorded this stage per project workflow.
+
+### 做了哪些关键决策
+
+- `16-20字` is now the preferred delivery range; `20字` is the platform hard upper bound.
+- A title already inside 16-20字 is not compressed just to be shorter, because that can remove the attraction point.
+- Fallback is allowed to do only semantic phrase-level compression, not character slicing.
+- If semantic compression fails, preserving the original title is safer than silently truncating; the UI now tells the user `需精修`.
+- The frontend only displays backend metadata; it does not apply its own mechanical title truncation.
+
+### 运行了哪些命令
+
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_generation_delivery_limits_block_title_boundary_and_overlong_food_body tests.test_api_contracts.ApiContractTests.test_rqs_title_tail_repairs_cover_latest_probe_patterns tests.test_api_contracts.ApiContractTests.test_plan_title_distinct_repair_handles_duplicate_titles`
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_title_readability_blocks_score_hacking_titles tests.test_api_contracts.ApiContractTests.test_food_delivery_keeps_sourced_dim_sum_names tests.test_api_contracts.ApiContractTests.test_generation_delivery_limits_block_title_boundary_and_overlong_food_body`
+- `.venv/bin/python -m py_compile model/api.py`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `node - <<'NODE' ... inline_scripts_syntax ... NODE`
+- `git diff --check -- model/api.py NoteAI_Pro_Demo_Framer.html tests/test_api_contracts.py tests/test_frontend_report_static.py`
+- `rg -n "≤18字|18字以内|_TITLE_DELIVERY_MAX = 18|目标18|硬上限.*18|平台.*18" ...`
+- Browser local smoke for `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=title-meta-smoke&page=report`
+- Local Playwright mock rendered smoke for title metadata chips
+- `npm run test:e2e`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `.venv/bin/python -m py_compile model/*.py`
+
+### 每个命令的结果
+
+- Targeted title API tests: passed after updating old hard-cut expectations.
+- `py_compile model/api.py`: passed.
+- Frontend static tests: passed, 13 tests.
+- API contract tests: passed, 134 tests.
+- Inline JS syntax parse: passed, 3 inline scripts.
+- `git diff --check`: passed.
+- `rg` check: remaining `≤18字` only appears in legacy marker-cleaning lists and a static negative assertion, not as an active generation rule.
+- Browser local smoke: page identity passed, no relevant console errors; DOM snapshot API is still unavailable in this environment due the known `incrementalAriaSnapshot` runtime issue.
+- Browser fixture injection was blocked by the in-app browser runtime disabling `eval`, so local Playwright was used as a supplement.
+- Local Playwright mock rendered smoke: passed. A showed `15字 / 目标16-20字 + 需精修`, B showed `16字 / 目标16-20字 + 已语义压缩`, C showed `17字 / 目标16-20字 + 未压缩`; clicking B activated the B panel.
+- `npm run test:e2e`: passed, 3 tests.
+- Full unittest discovery: passed, 255 tests.
+- `py_compile model/*.py`: passed.
+
+### 当前仍然失败的问题
+
+- No failing test remains for this stage.
+- The in-app Browser DOM snapshot capability remains unavailable in this environment; rendered validation used page identity/console checks there plus local Playwright mock smoke.
+
+### 当前未完成工作
+
+- Run a real AI sample later, after user confirmation and Live API Run Plan, to verify provider-generated titles now follow 16-20字 and return useful `title_meta`.
+- Manually test with the long-term account after services reload, because older saved diagnosis records will not retroactively contain `title_meta`.
+- Decide later whether generated-post main title, not just diagnosis rewrite-plan titles, should expose the same title metadata in the generation report.
+
+### 当前最高风险
+
+- Existing saved diagnoses may still display old titles without metadata because the new fields are generated only for new responses.
+- Some title quality judgments are heuristic; real AI samples may need further tuning if they over-flag or under-flag industry-specific attraction points.
+- Mixed worktree risk remains: there are pre-existing unrelated uncommitted changes outside this title-strategy stage.
+
+### 下一步最小可行计划
+
+1. Restart or reload the local frontend/API if the browser is still serving stale code.
+2. Have the user generate one new diagnosis and inspect the three rewrite-plan title chips.
+3. If the chip behavior is correct, run one controlled live AI sample only with a Live API Run Plan.
+4. Keep any further tuning limited to title strategy and metadata display; avoid unrelated prompt/model refactors.
+
+### 哪些地方不能在未经确认的情况下修改
+
+- Production config, `.env`, API keys, tokens, cookies, production DB, migrations, seed/reset/deploy/clean commands.
+- Billing/payment/quota semantics, auth/session/admin permissions.
+- Real AI batch calls, crawler/worker runs, external XHS access, or training-data ingestion.
+- Pre-existing unrelated Kimi/model-router/live-smoke/tool-image changes outside this title-strategy scope.
 
 ## 2026-07-05 Live QA Update - Full AI Diagnosis/Generation Sweep
 
@@ -4515,3 +5146,475 @@ This list reflects current Git status during handoff. Some files were modified b
 - 不修改生产配置、真实凭据、生产 DB、billing/payment/quota、auth/admin 权限。
 - 不触发真实支付、邮件、短信、部署或生产写操作。
 - 不扩大 live AI 样本、并发调用、批量跑数据或运行 crawler/worker，除非用户明确确认。
+
+## 2026-07-07 Stage Update — Market Timing Evidence Empty Read-only Diagnosis
+
+### 1. 本轮完成了什么
+
+- 只读排查用户在诊断报告中看到“市场时机证据”无数据的问题。
+- 确认当前页面不是缓存问题，API 当前读到的 `美食` 行业热词库确实没有新鲜、合格、分行业证据。
+- 确认本地 `./start_all.sh` 当前只启动主 API、admin 和前端，没有启动 `noteai-trends-worker`、`market_timing_worker.py`、`scheduler_a` 或 crawler 进程。
+- 确认 `docker-compose.yml` 已定义 `noteai-trends-worker`，但这只在 Docker/云端编排运行时生效，不等于当前本地手测环境已每日运行。
+
+### 2. 修改了哪些文件
+
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.codex/handoffs/current-task.md`: 记录市场时机证据为空的运行态根因、当前风险和后续最小修复计划。
+
+### 4. 做了哪些关键决策
+
+- 本阶段不启动真实 crawler/worker，不访问外部站点，不写入 hot keyword DB，不生成 snapshot。
+- 把问题先归类为“趋势 worker 未在当前本地环境运行 + 当前 DB 无新鲜分行业合格证据 + worker fallback/gate 逻辑需复核”，而不是 UI 展示或 AI 生成质量问题。
+- 后续如要运行 `market_timing_worker.py --once`，必须先输出 Live Crawler/Worker Run Plan，因为它可能访问外部站点并写本地 DB/snapshot。
+
+### 5. 运行了哪些命令
+
+- `rg -n "market_timing|market-timing|hot_keywords|scheduler|cron|daily|freshness|..." model docker-compose.yml Dockerfile start_all.sh .codex/handoffs/current-task.md docs .github`
+- `find model/data -maxdepth 1 -type f ...`
+- `./start_all.sh status`
+- `ps aux | rg -i "market_timing_worker|scheduler_a|crawler|xhs|hot_keywords|cron|apscheduler|worker"`
+- `sed -n '1080,1365p' model/api.py`
+- `sed -n '1,260p' model/hot_keywords.py`
+- `sed -n '260,620p' model/hot_keywords.py`
+- `sed -n '880,1235p' model/hot_keywords.py`
+- `sed -n '1235,1385p' model/hot_keywords.py`
+- `sed -n '1,140p' start_all.sh`
+- `sed -n '140,260p' start_all.sh`
+- `sed -n '36,78p' docker-compose.yml`
+- `sed -n '1,130p' model/market_timing_worker.py`
+- `sed -n '120,190p' model/xhs_acquisition.py`
+- `sed -n '470,530p' model/xhs_acquisition.py`
+- `sqlite3 model/data/hot_keywords.db ...`
+- `rg -n "market|timing|hot|keyword|scheduler|worker|XHS|fresh" /tmp/noteai_api.log /tmp/noteai_admin.log /tmp/noteai_frontend.log`
+- `git status --short`
+
+### 6. 每个命令的结果
+
+- `./start_all.sh status`: 主 API、admin、前端运行中；状态脚本没有趋势 worker 项。
+- 进程检查: 未发现 `market_timing_worker`、`scheduler_a`、crawler、cron、apscheduler worker 进程。
+- `docker-compose.yml`: 存在 `noteai-trends-worker`，命令为 `python market_timing_worker.py --daemon --interval ...`，但当前本地 `start_all.sh` 不会启动它。
+- `hot_keywords.db`: 只有 `analysis_log`、`hot_keywords`、`keyword_snapshots`、`sqlite_sequence`、`user_learn`；未看到 `xhs_crawler_health`/freshness ledger 表，说明当前 DB 未记录 XHS crawler health 分层结果。
+- `hot_keywords` 聚合: 10247 条均为 `category=''`、`source='homefeed'`、`quality_score=50`、`evidence_level=weak`；最新采集时间为 `2026-06-24T18:00:56.437782`；`美食` 等核心行业没有分行业样本。
+- API 日志: 看到诊断时加载分词/热词模块，但没有趋势 worker 实际采集日志。
+- 代码检查: `compute_market_timing()` 在行业无新鲜合格证据时会正确返回 `data_stale/evidence_unavailable`，因此前端显示停用是当前数据状态的真实反馈。
+- 代码检查: `market_timing_worker.py` 在 `NOTEAI_XHS_FRESHNESS_REQUIRED` 打开且 XHS freshness 不通过时，会在 `ensure_daily_evidence_pack()` 前抛错；这和文档中“公开采集不足时补 baseline”的目标存在运行顺序风险，需要后续修复。
+
+### 7. 当前仍然失败的问题
+
+- 当前本地手测环境没有自动每日更新市场时机证据。
+- 当前 `hot_keywords.db` 无今日 `美食` 行业的合格证据，诊断报告市场时机卡片会继续显示停用。
+- `market_timing_snapshot.json` 未在当前 `model/data` 中看到，API 没有可消费的新鲜快照。
+- worker 的 XHS freshness gate 和 baseline fallback 顺序存在风险：如果强制 XHS freshness，公开抓取失败可能导致每日行业基线包也无法生成。
+
+### 8. 当前未完成工作
+
+- 尚未修复 `start_all.sh` 对本地趋势 worker 的可选启动/status/stop 管理。
+- 尚未运行真实 `market_timing_worker.py --once`。
+- 尚未验证 XHS crawler health 分层在当前 DB 中是否能生成有效记录。
+- 尚未让诊断报告区分“worker 未运行 / DB 无行业样本 / XHS health 失败 / selector 或 cookie 失败 / snapshot 未同步”。
+
+### 9. 当前最高风险
+
+- 用户手测会误以为市场时机功能已每日自动采集，但当前本地运行态并没有启动独立趋势 worker。
+- 若直接运行 worker，可能访问外部站点并写入本地 DB/snapshot；必须先确认运行计划。
+- 若未来云端启用强制 XHS freshness，公开抓取不稳定可能让整个市场时机快照生成失败。
+
+### 10. 下一步最小可行计划
+
+1. 修复本地服务管理：给 `start_all.sh` 增加可选趋势 worker 的 start/stop/status，而不是默认偷偷运行。
+2. 修复 worker fallback/gate 顺序：即使真实 XHS freshness 失败，也应生成清晰标记的每日行业辅助证据快照，同时记录 XHS health 失败原因；如果产品要求“真实 XHS 才可用于训练”，训练链路仍应读取 health gate。
+3. 增加诊断报告/Admin 可观测性：显示 worker 状态、最近一次 worker run、snapshot 时间、XHS health 分层、行业样本量和失败原因。
+4. 用户确认 Live Crawler/Worker Run Plan 后，再小样本运行一次 `market_timing_worker.py --once`，验证能否生成今日分行业快照。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不运行 `market_timing_worker.py --once/--daemon`、crawler、XHS 外部访问或云端上传。
+- 不写生产 DB，不部署云端 worker，不配置生产 secrets。
+- 不把 stale/弱证据伪装成真实小红书趋势或官方热搜。
+- 不把 XHS health 失败的数据进入训练数据闭环。
+- 不修改 billing/payment/quota、auth/admin 权限、生产配置。
+
+## 2026-07-07 Stage Update — 9-image Screenshot OCR UX Gate
+
+### 1. 本轮完成了什么
+
+- 排查用户手测截图上传问题：本地 API 日志显示用户上传 9 张图片后，后端收到 9 次 `/extract-screenshot`，随后收到 1 次 `/validate-ocr`，证明不是只识别图 1，而是前端进度文案写死导致误解。
+- 修复截图上传识别 UX：
+  - 每张缩略图显示独立状态：等待识别、识别中、已识别、识别失败。
+  - 底部进度从固定“识别图1 内容中…”改为 `正在识别图片 x/9 张`。
+  - 识别完成后显示合并标题、正文预览、确认提示和图1-图9逐图识别摘要。
+  - `开始 AI 诊断` 在截图未上传、识别中、AI 鉴别去重中、任一图片失败、结果尚未合并时均真实禁用；全部成功后才恢复可点击。
+  - 401/402/HTTP/空识别结果会落到对应图片失败状态，不再让 UI 无限卡在 pending。
+
+### 2. 修改了哪些文件
+
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `NoteAI_Pro_Demo_Framer.html`: 增加截图 OCR 前端状态机、逐图缩略图状态、逐图识别摘要、确认提示和诊断按钮禁用/解锁逻辑。
+- `tests/test_frontend_report_static.py`: 增加静态断言，防止截图识别 UX 回退成固定图1文案或只在点击后拦截。
+- `.codex/handoffs/current-task.md`: 记录本阶段完成内容、验证结果、剩余风险和下一步计划。
+
+### 4. 做了哪些关键决策
+
+- 不修改后端 OCR/API 合约，因为现有 `/extract-screenshot` 和 `/validate-ocr` 已能支持 9 张图识别与合并。
+- 不触发真实 AI：本阶段验证使用 mock `/extract-screenshot` 和 `/validate-ocr`，只验证前端状态机和渲染。
+- 按并发识别事实设计 UX：底部展示总体进度，缩略图/摘要展示每张图状态，而不是伪装成严格串行图1、图2、图3。
+- 对识别失败采取硬拦截：任一图片失败时按钮保持禁用，符合“必须完整识别后才能诊断”的业务规则。
+
+### 5. 运行了哪些命令
+
+- `tail -n 240 /tmp/noteai_api.log`
+- `rg -n "识别图|OCR|ocr|image|screenshot|截图|开始 AI 诊断|开始AI诊断|analyze" ...`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- `git diff --check -- NoteAI_Pro_Demo_Framer.html tests/test_frontend_report_static.py`
+- inline JS syntax parse using `node`
+- Browser basic smoke against `http://127.0.0.1:5173/NoteAI_Pro_Demo_Framer.html?qa=ocr-ui-fix&page=upload`
+- temporary Playwright 9-image OCR UI smoke with mocked `/extract-screenshot` and `/validate-ocr`
+- `npm run test:e2e`
+- `git status --short`
+
+### 6. 每个命令的结果
+
+- API log check: 用户本次上传后有 9 次 `/extract-screenshot` 200 OK，1 次 `/validate-ocr` 200 OK，随后进入 `/analyze/stream`。
+- 静态代码搜索: 定位到原固定文案 `识别图1 内容中…` 和截图 OCR 状态机。
+- `tests.test_frontend_report_static`: 12 tests passed。
+- diff whitespace check: passed。
+- inline JS syntax parse: `inline_scripts_syntax=PASS count=1`。
+- Browser basic smoke: 页面可加载，标题正确，按钮初始禁用；Browser DOM snapshot 能力在当前页面报运行时错误，已记录并用 evaluate/screenshot + Playwright 补证。
+- Playwright 9-image OCR UI smoke: 初始按钮禁用；上传 9 张 mock 图片后识别中按钮禁用且显示 `识别中 5/9`；完成后按钮恢复为 `开始 AI 诊断（约 30-60 秒）`，逐图摘要 9 条，9 个缩略图均显示已识别；mock 收到 9 次 `/extract-screenshot` 和 1 次 `/validate-ocr`；console 无 error/warn。
+- `npm run test:e2e`: 3 tests passed。
+- `git status --short`: 本阶段新增修改为 `NoteAI_Pro_Demo_Framer.html`、`tests/test_frontend_report_static.py`、handoff；仍存在此前未确认的 `model/api.py`、`model/model_router.py`、`tools/ai_prelabel_review_batch.py`、`tools/live_ai_smoke.py`、`测试图片/`。
+
+### 7. 当前仍然失败的问题
+
+- 本阶段目标未发现失败。
+- Browser 插件的 `domSnapshot()` 在当前页面上报 `incrementalAriaSnapshot` 相关错误；渲染验证已用 Browser screenshot/evaluate 和 Playwright mock upload 补充。
+
+### 8. 当前未完成工作
+
+- 用户需要刷新前端页面后重新手测真实 9 图上传。
+- 本阶段尚未 commit/push。
+- 未做真实外部 AI OCR 重跑；若用户要验证真实 provider 行为，需要先输出 Live API Run Plan。
+
+### 9. 当前最高风险
+
+- 截图 OCR 是真实外部 AI 成本链路；大量手测 9 图上传会产生多次 OCR 调用和积分/成本消耗。
+- 静态单页仍然很大，截图识别状态与全局诊断状态耦合，后续改动要避免破坏手动/视频诊断入口。
+- 工作区仍有非本阶段未确认改动，后续 commit 必须继续精确 stage。
+
+### 10. 下一步最小可行计划
+
+1. 用户刷新页面，重新上传 9 张图片手测。
+2. 如果真实 OCR 仍有问题，先看 `/tmp/noteai_api.log` 是否 9 次请求都成功，再判断是 provider 识别质量、前端展示、还是积分/登录问题。
+3. 若需要真实 AI 复测，先输出 Live API Run Plan，控制样本数量并脱敏结果。
+4. 用户确认后，再精确 stage 本阶段 3 个文件并 commit/push。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不提交或删除未确认的 Kimi model 行、`model/model_router.py`、AI 预标注工具、live smoke 工具、测试图片目录。
+- 不运行 migration、seed、reset、deploy、clean。
+- 不修改生产配置、真实凭据、生产 DB、billing/payment/quota、auth/admin 权限。
+- 不触发真实支付、邮件、短信、部署或生产写操作。
+- 不扩大 live AI 样本、并发调用、批量跑数据或运行 crawler/worker，除非用户明确确认。
+
+## 2026-07-07 Stage Update — Local Market Timing Worker Test Mode
+
+### 1. 本轮完成了什么
+
+- 增加本地趋势 worker 显式测试模式，让用户本地手测也能运行市场时机管道。
+- `start_all.sh` 新增：
+  - `start --with-trends`
+  - `start-full-test`
+  - `restart-core`
+  - `trends-start`
+  - `trends-stop`
+  - `trends-status`
+- `trends-start` 增加本地安全检查：拒绝 production 环境、拒绝 snapshot upload 配置、拒绝远程 DB 连接配置；本地模式只写 `model/data`。
+- 修复 `market_timing_worker.py` 的 fallback/gate 顺序：真实 XHS freshness 不满足时，默认仍生成带 `industry_baseline` 来源标记的每日行业辅助快照；只有显式 `--hard-fail-on-xhs-missing` 或 `NOTEAI_XHS_FRESHNESS_HARD_FAIL=1` 才失败。
+- 诊断报告市场时机卡增加管道状态与 XHS health 摘要，避免用户只看到空卡却不知道是 worker、DB、XHS freshness 还是样本质量问题。
+- 修复 API 注解层覆盖 baseline 语义的问题：`不代表平台官方热搜` 的说明现在会保留，并追加 freshness 说明。
+- 将 `model/data/market_timing_snapshot.json` 加入 `.gitignore`，它是本地运行产物，不进入提交。
+- 执行一次受控真实本地 worker smoke：安全模式下关闭 search discovery、只跑 1 轮滚动、最多约 10 个频道页访问，生成今日本地快照。
+
+### 2. 修改了哪些文件
+
+- `.gitignore`
+- `start_all.sh`
+- `model/market_timing_worker.py`
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_xhs_acquisition.py`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `.gitignore`: 忽略本地趋势 worker 生成的 `model/data/market_timing_snapshot.json`。
+- `start_all.sh`: 增加本地趋势 worker 启停/status/restart-core 和安全检查，支持用户本地真实测试市场时机功能。
+- `model/market_timing_worker.py`: 调整 XHS freshness gate 与 baseline fallback 顺序；新增 explicit hard-fail 开关和结果摘要字段。
+- `model/api.py`: `MarketTiming` 增加 `pipeline_status`；API 注解层补充 XHS freshness/health 摘要；保留 baseline 来源语义。
+- `NoteAI_Pro_Demo_Framer.html`: 市场时机卡展示管道状态、XHS health、worker hint 和更明确的失败/可用状态。
+- `tests/test_xhs_acquisition.py`: 更新 worker gate 预期，覆盖默认生成 baseline 快照与显式 hard-fail 两种行为。
+- `tests/test_api_contracts.py`: 增加回归测试，确保 API 保留 `industry_baseline` 不代表官方热搜的说明。
+- `tests/test_frontend_report_static.py`: 增加静态断言，防止市场时机卡丢失管道状态/XHS health 展示。
+- `.codex/handoffs/current-task.md`: 记录本阶段改动、真实 worker smoke 和剩余风险。
+
+### 4. 做了哪些关键决策
+
+- 本地普通 `start` 不偷偷启动趋势 worker；必须显式 `start --with-trends`、`start-full-test` 或 `trends-start`。
+- 本地趋势 worker 默认不上传云端 snapshot、不连接远程 DB、不触碰生产配置。
+- 真实 XHS freshness 与行业辅助 baseline 分层展示：baseline 可用于让市场时机模块每日可测，但不能伪装成真实 XHS 热搜或训练级证据。
+- `restart-core` 保留趋势 worker，只重启 API/admin/frontend，用于代码变更后刷新本地服务而不触发第二次 crawler。
+
+### 5. 运行了哪些命令
+
+- `bash -n start_all.sh`
+- `.venv/bin/python -m py_compile model/market_timing_worker.py model/api.py`
+- `.venv/bin/python -m unittest tests.test_market_timing_keyword_quality tests.test_xhs_acquisition tests.test_frontend_report_static`
+- `./start_all.sh trends-status`
+- `./start_all.sh status`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- inline JS syntax parse using `node`
+- `npm run test:e2e`
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `NOTEAI_XHS_SEARCH_DISCOVERY=0 NOTEAI_XHS_SCROLL_ROUNDS=1 NOTEAI_XHS_CHANNEL_SETTLE_SECONDS=1 NOTEAI_XHS_SCROLL_WAIT_SECONDS=0.2 NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES=1440 ./start_all.sh trends-start`
+- `tail -n 160 /tmp/noteai_trends_worker.log`
+- `./start_all.sh restart-core`
+- pure local `_compute_market_timing_for_delivery(...)` check for `美食`
+- `git check-ignore -v model/data/market_timing_snapshot.json`
+- `git diff --check -- ...`
+- `git status --short`
+
+### 6. 每个命令的结果
+
+- Shell syntax: passed。
+- Python compile: passed。
+- Market timing/XHS/frontend static targeted tests: 34 tests passed；后续扩展相关组合 172 tests passed。
+- API contracts: 137 tests passed。
+- Full unittest discovery: 259 tests passed。
+- Inline JS syntax parse: `inline_scripts_syntax=PASS count=1`。
+- Playwright e2e: 3 tests passed。
+- `trends-status` 初始显示：worker 未运行、快照不存在、核心行业样本为 0。
+- Live Crawler/Worker Run Plan 后执行本地 worker smoke：worker 运行中，pid 已记录在状态输出；快照生成于 `2026-07-07T21:18:31`。
+- 本轮真实公开页面抓取结果：`scheduler_a` scraped 0 keywords；XHS freshness 各核心行业为 `insufficient`、evidence_count=0。
+- Worker fallback 结果：生成 `industry_baseline` 行业辅助证据，快照覆盖 `美食/旅行/穿搭/美妆/家居/健身`。
+- 当前本地状态：
+  - `美食`: 样本 15，合格 13，强证据 0，来源 `industry_baseline`。
+  - `旅行`: 样本 13，合格 13，强证据 0，来源 `industry_baseline`。
+  - `穿搭`: 样本 15，合格 15，强证据 0，来源 `industry_baseline`。
+  - `美妆`: 样本 16，合格 16，强证据 0，来源 `industry_baseline`。
+  - `家居`: 样本 15，合格 15，强证据 0，来源 `industry_baseline`。
+  - `健身`: 样本 16，合格 15，强证据 0，来源 `industry_baseline`。
+- API 本地计算检查：`data_stale=false`、`evidence_unavailable=false`、`pipeline_state=ready`、`xhs_latest_status=insufficient`；confidence note 保留“当前证据来自每日行业基线包，不代表平台官方热搜”。
+- `.gitignore` 检查：`model/data/market_timing_snapshot.json` 已被忽略。
+- diff whitespace check: passed。
+
+### 7. 当前仍然失败的问题
+
+- 真实公开 XHS 页面抓取本轮仍为 0 条；当前可用市场时机证据来自 `industry_baseline`，不是真实 XHS 趋势证据。
+- XHS freshness/health 记录显示 `scheduler_a` 对核心行业 evidence_count=0、status=`insufficient`；页面访问/selector 没有产生有效证据。
+- 当前 worker 可让本地诊断报告不再空白，但还不能证明“每日稳定拿到真实小红书证据”。
+
+### 8. 当前未完成工作
+
+- 继续增强真实 XHS crawler health 分层：需要把 profile cookie、页面访问、selector、risk/login、空结果原因记录得更精确。
+- 需要排查 `scheduler_a` 为什么频道页访问后没有提取到关键词：可能是页面结构变化、cookie/state 无效、headless 行为、风控、selector/API pattern 失效或滚动/等待不足。
+- 需要进一步验证 sidecar/XHS-Downloader 对真实小红书详情页或搜索页的稳定采集能力。
+- 如果要用真实 XHS 数据进入训练闭环，仍必须以 XHS freshness ok 为准，不能用 baseline 代替。
+
+### 9. 当前最高风险
+
+- 产品层面：用户现在能测市场时机模块，但看到的“可用”更多是行业辅助证据，不是平台真实趋势证据；前端已经显示 XHS health 未通过，仍需用户理解分层。
+- 工程层面：`scheduler_a` 真实抓取 0 条是下一阶段最高阻塞。
+- 运行层面：趋势 worker 目前在本地运行，间隔 1440 分钟；若不再需要，应运行 `./start_all.sh trends-stop` 停止。
+- Git 层面：工作区仍有其它未确认改动，后续提交必须精确 stage。
+
+### 10. 下一步最小可行计划
+
+1. 用户刷新页面后重新跑一次诊断报告，确认市场时机卡显示今日行业辅助证据、pipeline 状态和 XHS health。
+2. 下一阶段专门排查真实 XHS 抓取 0 条：先看 `scheduler_a` 页面访问与 selector/API 拦截，再评估是否应优先走 XHS-Downloader sidecar。
+3. 增加 worker run summary 小文件或 admin 状态卡，让最近一次 worker 结果不用看日志也能定位。
+4. 用户确认后精确 stage 本阶段文件；不要把本地 DB/snapshot/runtime 日志提交。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不把 `industry_baseline` 当成真实 XHS 热搜或训练级数据。
+- 不提交本地 DB、snapshot、cookie/state、日志或测试图片。
+- 不修改生产配置、部署、远程 DB、云端 worker、snapshot upload URL 或 secrets。
+- 不运行全量 crawler、高频 daemon、并发压测或超过计划范围的外部访问。
+- 不修改 billing/payment/quota、auth/admin 权限。
+
+## 2026-07-07 Stage Update - Live Chain Verification and Report Version Sync
+
+### 1. 本轮完成了什么
+
+- 按用户要求，用长期测试账号 `noteai_pro_test` 做了一次受控真实链路测试：
+  - AI 内容诊断 `/analyze/stream`
+  - 从诊断最佳建议进入 `/chat/start`
+  - 对话优化 `/chat/message` 生成结构化 A/B/C 候选
+  - 选择候选方案 A，调用 `/chat/select-plan` 保存为同一笔记链 v2
+  - 验证笔记库、成长档案、诊断报告三处展示
+- 实测数据：
+  - 诊断记录：`真实测试｜广州龙虾乌冬冬面要不要冲`
+  - 诊断分：`47.9`
+  - 诊断建议最佳方案 A：`70.9`
+  - 对话候选 A/B/C：`64.0 / 61.4 / 59.4`
+  - 实际选择并保存：方案 A，保存为 chat v2，分数 `64.0`
+  - 笔记库版本链：`47.9 -> 64.0`
+- 发现并修复一个展示一致性问题：
+  - 笔记库和成长档案已正确显示 v2=64.0。
+  - 诊断报告“本篇成长闭环”原本只显示诊断时最佳建议 `70.9`，没有显示用户实际选择并保存的对话版本 `v2=64.0`。
+  - 修复后报告页同时显示：
+    - 当前诊断 `47.9`
+    - 最佳建议 `方案 A · 70.9`
+    - 实际已选版本 `v2 · 64分`
+    - 已选对话方案标题
+- 重启本地 API/admin/frontend，使浏览器验证命中新代码。
+- 本阶段没有修改生产配置、没有运行 migration/seed/reset/deploy、没有触发支付/短信/邮件、没有写生产数据库、没有输出任何 secret 或 token。
+
+### 2. 修改了哪些文件
+
+- `model/api.py`
+- `NoteAI_Pro_Demo_Framer.html`
+- `tests/test_api_contracts.py`
+- `tests/test_frontend_report_static.py`
+- `.codex/handoffs/current-task.md`
+
+### 3. 每个文件为什么修改
+
+- `model/api.py`: 新增只读 helper `_build_note_version_group_for_root(...)`，让 `/diagnoses/{diag_id}` 返回该诊断根 note 的版本组 `note_version_group`，用于报告页精准展示后续选中的 chat 版本。
+- `NoteAI_Pro_Demo_Framer.html`: 报告页 `renderReportLifecycle(...)` 读取 `note_version_group`，把“版本”卡从泛化的“已进入笔记库”更新为实际 `v2 · 64分 / 已选对话方案：标题`；同时保留异步 fallback，从 `/notes?grouped=true` 补链路。
+- `tests/test_api_contracts.py`: 增加后端契约测试，确认诊断根 note 能找到被用户选择保存的 chat v2，并生成正确 `score_trend`。
+- `tests/test_frontend_report_static.py`: 增加前端静态断言，防止报告页再次丢失真实版本链展示。
+- `.codex/handoffs/current-task.md`: 记录本轮测试、修复、命令结果、风险和下一步。
+
+### 4. 做了哪些关键决策
+
+- 诊断建议分和实际保存版本分必须分开展示：
+  - `70.9` 是诊断时的“最佳建议预测/重写方向”。
+  - `64.0` 是用户在对话优化里实际选择并保存的版本分。
+- `/chat/select-plan` 仍不调用 AI、不扣额外 AI 成本，只保存已有候选；这条语义保持不变。
+- 不改 DB schema；利用现有 notes `parent_id` 版本链做只读聚合。
+- 报告页不再用“已进入笔记库”这种模糊文案代替实际版本状态。
+- 本轮真实 AI 测试只用了一个小样本；后续如要批量质量评估，应另开 Live API Run Plan。
+
+### 5. 运行了哪些命令
+
+- `./start_all.sh status`
+- local `/health` check
+- local DB session lookup for `noteai_pro_test`（不输出 token）
+- Live API script:
+  - `POST /analyze/stream`
+  - `POST /chat/start`
+  - `POST /chat/message`
+  - `POST /chat/select-plan`
+- API verification script:
+  - `GET /notes?grouped=true`
+  - `GET /diagnoses/{diag_id}`
+  - `GET /diagnoses`
+  - `GET /profile/growth`
+  - `GET /profile/memories`
+  - `GET /profile/achievements`
+  - `GET /notes/tracking`
+- In-app Browser / Playwright-style rendered checks for:
+  - 笔记库
+  - 成长档案
+  - 诊断报告
+- `.venv/bin/python -m py_compile model/api.py`
+- `.venv/bin/python -m unittest tests.test_api_contracts.ApiContractTests.test_note_version_group_for_diagnosis_includes_selected_chat_version`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static.FrontendReportStaticTests.test_report_library_profile_share_growth_loop_language`
+- `.venv/bin/python -m unittest tests.test_api_contracts`
+- `.venv/bin/python -m unittest tests.test_frontend_report_static`
+- inline JS syntax parse using `node`
+- `./start_all.sh stop && ./start_all.sh start && ./start_all.sh status`
+- Post-fix API verification for `/diagnoses/{diag_id}`
+- Post-fix Browser rendered verification for report/library/profile
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+- `npm run test:e2e`
+- `git diff --check -- model/api.py NoteAI_Pro_Demo_Framer.html tests/test_api_contracts.py tests/test_frontend_report_static.py`
+- local `usage_records` query for model/cost summary（不输出 secret/token）
+- `git status --short`
+
+### 6. 每个命令的结果
+
+- 初始 `/health`: ok，model=`v0.4-composite`。
+- 初始发现本地 API 进程较旧，`/chat/select-plan` 未出现在 OpenAPI；执行本地 stop/start 后已恢复。
+- Live API endpoint-level 调用：
+  - `/analyze/stream`: success，诊断完成，诊断分 `47.9`，保存 root note。
+  - `/chat/start`: success，session 创建，初始当前分 `70.9`。
+  - `/chat/message`: success，真实模型返回 3 个结构化候选，分数 `64.0 / 61.4 / 59.4`。
+  - `/chat/select-plan`: success，选择方案 A，保存为 note v2，分数 `64.0`。
+- usage_records 记录的本轮模型调用摘要：
+  - `analyze`: model_names=`claude:claude-haiku-4-5-20251001,claude:claude-sonnet-4-6`，model_calls=`27`，estimated_cost_rmb=`1.45`。
+  - `chat_rewrite`: model_names=`claude:claude-sonnet-4-6,claude:claude-haiku-4-5-20251001`，model_calls=`4`，estimated_cost_rmb=`0.63`。
+  - `select-plan`: 不调用模型。
+- API verification:
+  - 笔记库 grouped: found v2，version_count=`2`，score_trend=`[47.9, 64.0]`。
+  - 诊断详情 post-fix: `note_version_group.latest.title=广州人均100，龙虾鲍鱼小青龙三合`，latest score=`64.0`，latest version=`2`。
+  - 成长档案: latest_score=`64.0`，最近动作包含 `chat_select_plan`。
+- Browser rendered verification:
+  - 笔记库：显示同一卡片版本链、`47.9 -> 64`、v2、`继续优化`、`追踪效果`。
+  - 成长档案：显示最近动作 `chat_select_plan`、曲线末端 `64`、笔记标题。
+  - 诊断报告：修复前只显示最佳建议 `70.9`；修复后显示 `v2 · 64分` 和已选对话方案标题。
+  - Console: no relevant error/warn。
+  - in-app Browser 的 `domSnapshot()` 仍有已知 runtime 限制 `incrementalAriaSnapshot`，已用 Browser evaluate/screenshot 和本地 Playwright-style 断言补足。
+- Tests:
+  - `py_compile model/api.py`: passed。
+  - Targeted API contract: 1 passed。
+  - Targeted frontend static: 1 passed。
+  - Full API contracts: 142 passed。
+  - Frontend static: 14 passed。
+  - Inline JS syntax parse: parsed 3 inline scripts。
+  - Full unittest discovery: 265 passed。
+  - Playwright e2e: 3 passed。
+  - `git diff --check`: passed。
+
+### 7. 当前仍然失败的问题
+
+- 本轮修复后，笔记库 / 成长档案 / 诊断报告三处版本链展示没有剩余已知错误。
+- 当前最高产品质量发现不是“展示错误”，而是“对话候选分数可能低于诊断建议分”：
+  - 诊断建议 A 是 `70.9`。
+  - 真实对话候选 A 保存后是 `64.0`。
+  - 这是可解释的，因为诊断建议分是候选方向预测，对话候选重新生成后要重新评分；但从用户体验上，需要考虑是否加“低于当前版本/建议分”的选择提醒。
+- 本地 `./start_all.sh status` 显示趋势 worker 未运行；趋势快照仍是今日数据。本轮不是 crawler 测试，但这是环境状态风险。
+
+### 8. 当前未完成工作
+
+- 是否要加“选择候选时若低于当前分/诊断建议分，提示用户确认”的 UX guard，需要用户确认。
+- 是否要在候选卡上显示“相对诊断建议分”和“相对当前保存版本分”两个 delta，需要产品确认。
+- 当前大 diff 仍包含 crawler、market timing、model router、start_all、工具脚本等其它未提交改动，后续 commit 需要精确分组。
+
+### 9. 当前最高风险
+
+- 用户可能误把诊断建议分当成已保存版本分；本轮已在报告页分开展示，但候选卡/对话页仍可以继续优化解释口径。
+- 真实 AI 多轮输出质量仍有波动，候选方案分数可能低于上一轮或诊断建议；这是质量策略问题，不是当前版本链保存 bug。
+- 本地服务重启会让趋势 worker 停止；如果用户要继续测市场时机每日更新，需要单独启动或使用 `restart-core` 保留 worker。
+- 大 diff 仍需 checkpoint scope，不能混提交无关模块。
+
+### 10. 下一步最小可行计划
+
+1. 用户刷新浏览器后，复测当前这条诊断记录：
+   - 笔记库：看同一卡片 `v1=47.9 / v2=64.0`。
+   - 成长档案：看最近动作和曲线末端 `64`。
+   - 诊断报告：看“最佳建议 70.9”和“实际版本 v2 · 64分”是否分开展示。
+2. 如果用户认同，再加候选选择保护：
+   - 低于当前版本分时显示确认提示。
+   - 低于诊断建议分时显示“这是重评分后的实际候选，不是诊断预测分”。
+3. 准备下一次 checkpoint 时只 stage 本轮相关文件，避免混入 crawler/market timing 无关改动。
+
+### 11. 哪些地方不能在未经确认的情况下修改
+
+- 不把诊断建议分强行覆盖成已保存版本分。
+- 不自动选择最高分以外的方案，不自动替用户保存候选。
+- 不修改 billing/payment/quota、auth/session/admin 权限。
+- 不运行 migration/seed/reset/deploy/clean。
+- 不提交本地 DB、token、cookie、日志、截图、runtime snapshot 或未确认 artifact。
+- 不继续扩大真实 AI 调用样本量，除非先给出新的 Live API Run Plan。
