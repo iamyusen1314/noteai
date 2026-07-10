@@ -28,6 +28,7 @@ Prepare NoteAI for a Render staging migration without deploying or changing remo
 - No Render resource, production deployment, production DB write, or real secret mutation was performed.
 - The user approved creating and pushing one deployment-preparation checkpoint on `codex/quality-stabilization-real-chain`; this approval does not include merging or creating Render/AWS resources.
 - Pushed deployment checkpoint `f2b1c3b` to the approved branch. Its first GitHub CI runs exposed test-environment dependence on local market/XHS evidence, so CI now explicitly disables those two external-evidence gates for the offline suite; dedicated gate tests still enable and verify them.
+- Render's live Blueprint validator rejected `maxShutdownDelaySeconds` for the disk-backed API and Free Admin service; the unsupported fields were removed while script-level graceful shutdown remains enabled.
 
 #### 进行中
 

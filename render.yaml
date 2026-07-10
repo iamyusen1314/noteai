@@ -29,7 +29,6 @@ services:
     dockerCommand: /app/scripts/render_start_api.sh
     preDeployCommand: python /app/scripts/render_predeploy.py
     healthCheckPath: /health/ready
-    maxShutdownDelaySeconds: 60
     autoDeployTrigger: checksPass
     disk:
       name: noteai-video-cache
@@ -106,7 +105,6 @@ services:
     dockerContext: .
     dockerCommand: /app/scripts/render_start_admin.sh
     healthCheckPath: /health/ready
-    maxShutdownDelaySeconds: 30
     autoDeployTrigger: checksPass
     envVars:
       - key: DATABASE_URL
