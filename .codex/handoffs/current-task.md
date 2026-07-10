@@ -31,11 +31,10 @@ Prepare NoteAI for a Render staging migration without deploying or changing remo
 
 #### 进行中
 
-- Confirm the follow-up GitHub CI run is green after the offline test-environment isolation fix.
+- None in code. Deployment preparation is pushed and the corrected push/pull-request CI runs are green.
 
 #### 未完成
 
-- Confirm GitHub CI is green for the pushed deployment-preparation checkpoint.
 - Create Render resources from the Blueprint.
 - Manually enter Render Secrets.
 - Upload the four V0.4 release files to a private S3 path if Render Git LFS checkout is insufficient.
@@ -111,7 +110,7 @@ Prepare NoteAI for a Render staging migration without deploying or changing remo
 ### Known Bugs
 
 - No known deployment-preparation code failure remains after local verification.
-- The initial CI runs for `f2b1c3b` failed three tests because the clean runner inherited production-required market/XHS freshness settings without live evidence. The workflow isolation fix passes all 271 tests locally; remote rerun confirmation remains pending.
+- The initial CI runs for `f2b1c3b` failed three tests because the clean runner inherited production-required market/XHS freshness settings without live evidence. Follow-up `aebb737` isolates the offline suite from those two external dependencies; both corrected GitHub CI runs passed.
 - Real Render XHS collection success is unknown until the Cron runs from Singapore; this is an external operational dependency, not proven locally.
 
 ### Known Risks
@@ -130,6 +129,8 @@ Prepare NoteAI for a Render staging migration without deploying or changing remo
 - `sh -n scripts/*.sh`: passed.
 - Full isolated unit suite: passed, 271 tests.
 - Full suite with CI's explicit offline market/XHS gate settings: passed, 271 tests.
+- GitHub Actions push run `29087882216`: passed all CI steps.
+- GitHub Actions pull-request run `29087884519`: passed all CI steps.
 - Deployment-specific suite: passed, 6 tests.
 - Playwright e2e: passed, 3 tests.
 - `npm audit --audit-level=moderate`: passed, 0 vulnerabilities.
@@ -147,12 +148,12 @@ Prepare NoteAI for a Render staging migration without deploying or changing remo
 
 ### Next Steps
 
-1. 下一步目标：confirm GitHub CI is green for the approved deployment-preparation checkpoint, then begin the manual Render Blueprint flow one screen at a time.
-2. 预计修改文件：none for CI review; any CI fix must be separately scoped and verified before another commit.
-3. 为什么要改：Render should consume one verified remote SHA, and rollback needs that SHA to remain identifiable.
-4. 风险：the checkpoint touches database, auth-session storage, crawler state, API startup, and Docker; do not deploy it if required CI checks fail.
-5. 验证方式：inspect the pushed commit and GitHub Actions results, then follow the staging acceptance checklist in `docs/RENDER_DEPLOYMENT_GUIDE.md`.
-6. 是否需要用户确认：the current checkpoint commit/push is approved; any merge, Render/AWS resource creation, paid plan, secret entry, migration apply, or deployment still requires explicit confirmation at the relevant step.
+1. 下一步目标：begin the manual Render Blueprint flow one screen at a time from the verified branch.
+2. 预计修改文件：none; the next stage operates in the Render Dashboard and must stop before creating paid resources or entering secrets until each screen is reviewed.
+3. 为什么要改：the verified GitHub branch is now ready to become an isolated staging topology.
+4. 风险：wrong branch selection, paid resource choices, missing Secrets, or premature migration/deploy could create cost or an unusable staging environment.
+5. 验证方式：follow `docs/RENDER_DEPLOYMENT_GUIDE.md`, verify each service definition before creation, then run the staging acceptance checklist.
+6. 是否需要用户确认：yes, before any Render/AWS resource creation, paid plan, secret entry, migration apply, or deployment.
 
 After the checkpoint and CI, follow `docs/RENDER_DEPLOYMENT_GUIDE.md` one section at a time. Stop after each Render resource group and verify its success signal before proceeding.
 
