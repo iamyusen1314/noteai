@@ -27,10 +27,11 @@ Prepare NoteAI for a Render staging migration without deploying or changing remo
 - Added deployment-specific tests and a non-programmer Render guide.
 - No Render resource, production deployment, production DB write, or real secret mutation was performed.
 - The user approved creating and pushing one deployment-preparation checkpoint on `codex/quality-stabilization-real-chain`; this approval does not include merging or creating Render/AWS resources.
+- Pushed deployment checkpoint `f2b1c3b` to the approved branch. Its first GitHub CI runs exposed test-environment dependence on local market/XHS evidence, so CI now explicitly disables those two external-evidence gates for the offline suite; dedicated gate tests still enable and verify them.
 
 #### 进行中
 
-- None in code. This deployment-preparation stage is implemented and verified locally.
+- Confirm the follow-up GitHub CI run is green after the offline test-environment isolation fix.
 
 #### 未完成
 
@@ -110,6 +111,7 @@ Prepare NoteAI for a Render staging migration without deploying or changing remo
 ### Known Bugs
 
 - No known deployment-preparation code failure remains after local verification.
+- The initial CI runs for `f2b1c3b` failed three tests because the clean runner inherited production-required market/XHS freshness settings without live evidence. The workflow isolation fix passes all 271 tests locally; remote rerun confirmation remains pending.
 - Real Render XHS collection success is unknown until the Cron runs from Singapore; this is an external operational dependency, not proven locally.
 
 ### Known Risks
@@ -127,6 +129,7 @@ Prepare NoteAI for a Render staging migration without deploying or changing remo
 - `python -m py_compile model/*.py scripts/*.py`: passed.
 - `sh -n scripts/*.sh`: passed.
 - Full isolated unit suite: passed, 271 tests.
+- Full suite with CI's explicit offline market/XHS gate settings: passed, 271 tests.
 - Deployment-specific suite: passed, 6 tests.
 - Playwright e2e: passed, 3 tests.
 - `npm audit --audit-level=moderate`: passed, 0 vulnerabilities.
