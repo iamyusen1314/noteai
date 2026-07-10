@@ -112,6 +112,11 @@ class RenderDeploymentTests(unittest.TestCase):
         module_prefix = source.split("def match_keywords", 1)[0]
         self.assertNotIn("import jieba", module_prefix)
 
+    def test_market_timing_scroll_does_not_depend_on_page_execution_context(self):
+        source = (MODEL_DIR / "scheduler_a.py").read_text(encoding="utf-8")
+        self.assertIn("page.mouse.wheel(0, 700)", source)
+        self.assertNotIn('page.evaluate("window.scrollBy(0, 700)")', source)
+
     def test_sqlite_migration_defaults_to_count_only_and_excludes_sessions(self):
         counts = migrate_sqlite_to_postgres.source_counts(db._DB_PATH)
         self.assertIn("users", counts)

@@ -296,7 +296,7 @@ async def scrape_once() -> list[dict]:
                 await page.goto(target_url, wait_until="domcontentloaded", timeout=25000)
                 await asyncio.sleep(settle_seconds)
                 for _ in range(max(1, scroll_rounds)):
-                    await page.evaluate("window.scrollBy(0, 700)")
+                    await page.mouse.wheel(0, 700)
                     await asyncio.sleep(max(0.2, SCROLL_WAIT_SECONDS))
             finally:
                 page.remove_listener("response", handler)
