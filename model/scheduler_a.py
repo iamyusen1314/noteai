@@ -45,6 +45,9 @@ SEARCH_DISCOVERY_ENABLED = os.environ.get("NOTEAI_XHS_SEARCH_DISCOVERY", "1").st
 SEARCH_SEEDS_PER_CATEGORY = int(os.environ.get("NOTEAI_XHS_SEARCH_SEEDS_PER_CATEGORY", "2") or 2)
 SEARCH_SCROLL_ROUNDS = int(os.environ.get("NOTEAI_XHS_SEARCH_SCROLL_ROUNDS", "3") or 3)
 SEARCH_SETTLE_SECONDS = float(os.environ.get("NOTEAI_XHS_SEARCH_SETTLE_SECONDS", "2.0") or 2.0)
+TOKEN_DISCOVERY_ENABLED = os.environ.get("NOTEAI_XHS_TOKEN_DISCOVERY", "1").strip().lower() not in {"0", "false", "no"}
+LOW_MEMORY_BROWSER = os.environ.get("NOTEAI_XHS_LOW_MEMORY_BROWSER", "0").strip().lower() in {"1", "true", "yes"}
+BROWSER_TARGETS_PER_SESSION = max(0, int(os.environ.get("NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION", "0") or 0))
 
 # 覆盖全部主流品类，确保热词多样性
 CHANNELS = [
@@ -190,22 +193,36 @@ async def scrape_once() -> list[dict]:
     search_recommend_kws: dict[str, list[str]] = {name: [] for name in SEARCH_SEEDS}
 
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(
-            headless=True,
-            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
-        )
+        browser_args = [
+            "--disable-blink-features=AutomationControlled",
+            "--disable-background-networking",
+            "--disable-default-apps",
+            "--disable-dev-shm-usage",
+            "--disable-extensions",
+            "--disable-gpu",
+            "--disable-sync",
+            "--metrics-recording-only",
+            "--mute-audio",
+            "--no-first-run",
+            "--no-sandbox",
+            "--renderer-process-limit=1",
+        ]
+        if LOW_MEMORY_BROWSER:
+            browser_args.append("--no-zygote")
         ctx_kwargs = dict(
             user_agent=BROWSER_UA,
-            viewport={"width": 1440, "height": 900},
+            viewport={"width": 1024, "height": 640},
             locale="zh-CN",
+            service_workers="block",
         )
         if state:
             ctx_kwargs["storage_state"] = state
 
-        ctx = await browser.new_context(**ctx_kwargs)
-        await ctx.add_init_script(
-            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-        )
+        async def block_heavy_assets(route):
+            if route.request.resource_type in {"image", "media", "font", "stylesheet"}:
+                await route.abort()
+            else:
+                await route.continue_()
 
         def make_on_response(channel_name: str, discovery_source: str):
             async def on_response(resp):
@@ -243,7 +260,6 @@ async def scrape_once() -> list[dict]:
                 )
                 if should_extract_titles:
                     try:
-                        import jieba
                         data = await resp.json()
                         counter = tag_counters.setdefault(channel_name, Counter())
                         for title in _extract_note_titles(data):
@@ -254,46 +270,71 @@ async def scrape_once() -> list[dict]:
                                 source = "search_phrase" if discovery_source == "search_discovery" else "homefeed_phrase"
                                 counter[(phrase, source)] += 1
                             # jieba 分词作为补充，后续会按行业相关度清洗。
-                            for token in jieba.cut(title):
-                                token = token.strip()
-                                if 2 <= len(token) <= 8:
-                                    source = "search_token" if discovery_source == "search_discovery" else "homefeed_token"
-                                    counter[(token, source)] += 1
+                            if TOKEN_DISCOVERY_ENABLED:
+                                import jieba
+
+                                for token in jieba.cut(title):
+                                    token = token.strip()
+                                    if 2 <= len(token) <= 8:
+                                        source = "search_token" if discovery_source == "search_discovery" else "homefeed_token"
+                                        counter[(token, source)] += 1
                     except Exception:
                         pass
             return on_response
 
-        # 遍历所有 channel
-        for channel_url, channel_name in CHANNELS:
-            page = await ctx.new_page()
-            page.on("response", make_on_response(channel_name, "homefeed"))
+        async def scrape_target(
+            page,
+            target_url: str,
+            channel_name: str,
+            discovery_source: str,
+            settle_seconds: float,
+            scroll_rounds: int,
+        ) -> None:
+            handler = make_on_response(channel_name, discovery_source)
+            page.on("response", handler)
             try:
-                await page.goto(channel_url, wait_until="domcontentloaded", timeout=25000)
-                await asyncio.sleep(CHANNEL_SETTLE_SECONDS)
-                for _ in range(max(1, SCROLL_ROUNDS)):
+                await page.goto(target_url, wait_until="domcontentloaded", timeout=25000)
+                await asyncio.sleep(settle_seconds)
+                for _ in range(max(1, scroll_rounds)):
                     await page.evaluate("window.scrollBy(0, 700)")
                     await asyncio.sleep(max(0.2, SCROLL_WAIT_SECONDS))
-            except Exception as e:
-                log.warning(f"Channel {channel_name} error: {e}")
             finally:
-                await page.close()
+                page.remove_listener("response", handler)
+                try:
+                    await page.goto("about:blank", wait_until="commit", timeout=5000)
+                except Exception:
+                    pass
 
-        for search_url, channel_name in _search_discovery_targets():
+        targets = [
+            (url, channel, "homefeed", CHANNEL_SETTLE_SECONDS, SCROLL_ROUNDS, "Channel")
+            for url, channel in CHANNELS
+        ]
+        targets.extend(
+            (url, channel, "search_discovery", SEARCH_SETTLE_SECONDS, SEARCH_SCROLL_ROUNDS, "Search discovery")
+            for url, channel in _search_discovery_targets()
+        )
+        targets_per_session = BROWSER_TARGETS_PER_SESSION or max(1, len(targets))
+
+        for start in range(0, len(targets), targets_per_session):
+            browser = await pw.chromium.launch(headless=True, args=browser_args)
+            ctx = await browser.new_context(**ctx_kwargs)
+            await ctx.route("**/*", block_heavy_assets)
+            await ctx.add_init_script(
+                "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+            )
             page = await ctx.new_page()
-            page.on("response", make_on_response(channel_name, "search_discovery"))
             try:
-                await page.goto(search_url, wait_until="domcontentloaded", timeout=25000)
-                await asyncio.sleep(SEARCH_SETTLE_SECONDS)
-                for _ in range(max(1, SEARCH_SCROLL_ROUNDS)):
-                    await page.evaluate("window.scrollBy(0, 700)")
-                    await asyncio.sleep(max(0.2, SCROLL_WAIT_SECONDS))
-            except Exception as e:
-                log.warning(f"Search discovery {channel_name} error: {e}")
+                for target_url, channel_name, source, settle, scrolls, label in targets[
+                    start:start + targets_per_session
+                ]:
+                    try:
+                        await scrape_target(page, target_url, channel_name, source, settle, scrolls)
+                    except Exception as exc:
+                        log.warning(f"{label} {channel_name} error: {exc}")
             finally:
                 await page.close()
-
-        await ctx.close()
-        await browser.close()
+                await ctx.close()
+                await browser.close()
 
     # ── 构建结果 ──────────────────────────────────────────────────────────────
     best_results: dict[tuple[str, str], dict] = {}

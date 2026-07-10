@@ -29,6 +29,7 @@ Prepare NoteAI for a Render staging migration without deploying or changing remo
 - The user approved creating and pushing one deployment-preparation checkpoint on `codex/quality-stabilization-real-chain`; this approval does not include merging or creating Render/AWS resources.
 - Pushed deployment checkpoint `f2b1c3b` to the approved branch. Its first GitHub CI runs exposed test-environment dependence on local market/XHS evidence, so CI now explicitly disables those two external-evidence gates for the offline suite; dedicated gate tests still enable and verify them.
 - Render's live Blueprint validator rejected `maxShutdownDelaySeconds` for the disk-backed API and Free Admin service; the unsupported fields were removed while script-level graceful shutdown remains enabled.
+- The user created the Render staging Blueprint and private Singapore S3 model bucket. PostgreSQL, API, Admin, and Static Site are live; external readiness confirms PostgreSQL, V0.4, Claude, and Moonshot. The first market-timing Cron runs exceeded the Starter 512 MiB limit before collection, so the worker now avoids eager Jieba loading, blocks heavy browser assets, limits Chromium renderer processes, and enables a Render-only low-memory token-discovery mode without weakening the real-XHS freshness gate.
 
 #### 进行中
 

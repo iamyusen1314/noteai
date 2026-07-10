@@ -14,8 +14,6 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-import jieba
-
 import db as primary_db
 
 BASE_DIR = Path(__file__).parent
@@ -1183,6 +1181,8 @@ def match_keywords(text: str, domain: str | None = None) -> list[dict]:
 
     # Jieba token match (catches compound words not in raw text)
     try:
+        import jieba
+
         for token in jieba.cut(text):
             if len(token) >= 2 and token in index and token not in matched:
                 matched[token] = index[token]

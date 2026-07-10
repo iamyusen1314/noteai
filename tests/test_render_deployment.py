@@ -102,6 +102,15 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("property: connectionString", blueprint)
         secret_name = "ANTHROPIC_API" + "_KEY"
         self.assertNotIn(f"{secret_name}: ", blueprint)
+        self.assertIn("NOTEAI_XHS_TOKEN_DISCOVERY", blueprint)
+        self.assertIn("NOTEAI_XHS_LOW_MEMORY_BROWSER", blueprint)
+        self.assertIn("NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION", blueprint)
+        self.assertIn("MALLOC_ARENA_MAX", blueprint)
+
+    def test_hot_keywords_does_not_eagerly_import_jieba(self):
+        source = (MODEL_DIR / "hot_keywords.py").read_text(encoding="utf-8")
+        module_prefix = source.split("def match_keywords", 1)[0]
+        self.assertNotIn("import jieba", module_prefix)
 
     def test_sqlite_migration_defaults_to_count_only_and_excludes_sessions(self):
         counts = migrate_sqlite_to_postgres.source_counts(db._DB_PATH)
