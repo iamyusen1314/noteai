@@ -119,6 +119,8 @@ def _parse_json_object(value: str | None) -> dict:
 
 def init_db() -> None:
     hot_keywords.init_db()
+    if hot_keywords.primary_db.using_postgres():
+        return
     conn = hot_keywords._conn()
     try:
         with conn:

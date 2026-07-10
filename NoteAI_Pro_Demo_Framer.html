@@ -5124,13 +5124,14 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 <!-- ═══════════════════════════════════════════════════════════
      JAVASCRIPT
 ═══════════════════════════════════════════════════════════════ -->
+<script src="./runtime-config.js"></script>
 <script>
 /* ── API Config ────────────────────────────────────────────── */
 const API_BASE = (
   window.NOTEAI_API_BASE ||
-  ((location.protocol === 'http:' || location.protocol === 'https:')
+  ((location.hostname === 'localhost' || location.hostname === '127.0.0.1')
     ? `${location.protocol}//${location.hostname}:8000`
-    : 'http://localhost:8000')
+    : location.origin)
 ).replace(/\/$/, '');
 
 /* ── Page System ───────────────────────────────────────────── */

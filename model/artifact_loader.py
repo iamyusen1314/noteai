@@ -78,6 +78,22 @@ def _download(url: str, target: Path) -> None:
         raise RuntimeError(f"download failed for {url}: {exc}") from exc
 
 
+def _download_s3(bucket: str, key: str, target: Path) -> None:
+    try:
+        import boto3
+    except ImportError as exc:
+        raise RuntimeError("private S3 model loading requires boto3") from exc
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    try:
+        boto3.client("s3").download_file(bucket, key, str(tmp))
+        tmp.replace(target)
+    except Exception as exc:
+        if tmp.exists():
+            tmp.unlink()
+        raise RuntimeError(f"S3 model artifact download failed: s3://{bucket}/{key}") from exc
+
+
 def load_manifest(path: Path = DEFAULT_MANIFEST) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -98,6 +114,8 @@ def ensure_model_artifacts(
 
     manifest_path = manifest_path or _manifest_path(os.environ.get("NOTEAI_MODEL_ARTIFACT_MANIFEST"))
     base_url = base_url if base_url is not None else os.environ.get("NOTEAI_MODEL_ARTIFACT_BASE_URL", "").strip()
+    s3_bucket = os.environ.get("NOTEAI_MODEL_ARTIFACT_S3_BUCKET", "").strip()
+    s3_prefix = os.environ.get("NOTEAI_MODEL_ARTIFACT_S3_PREFIX", "").strip().strip("/")
     required = _truthy(os.environ.get("NOTEAI_MODEL_ARTIFACT_REQUIRED")) if required is None else required
 
     manifest = load_manifest(manifest_path)
@@ -112,6 +130,12 @@ def ensure_model_artifacts(
             continue
         target = _target_path(raw_path)
         ok = target.exists() and sha256_file(target) == expected_sha
+        if not ok and s3_bucket and not check_only:
+            key = "/".join(part for part in (s3_prefix, raw_path.lstrip("/")) if part)
+            _download_s3(s3_bucket, key, target)
+            ok = target.exists() and sha256_file(target) == expected_sha
+            if ok:
+                repaired.append(raw_path)
         if not ok and base_url and not check_only:
             _download(_url_for(base_url, raw_path), target)
             ok = target.exists() and sha256_file(target) == expected_sha
@@ -135,6 +159,7 @@ def ensure_model_artifacts(
         "repaired": repaired,
         "missing_or_invalid": missing_or_invalid,
         "base_url_configured": bool(base_url),
+        "s3_configured": bool(s3_bucket),
     }
 
 

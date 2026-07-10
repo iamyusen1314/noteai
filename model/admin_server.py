@@ -31,7 +31,7 @@ load_dotenv(Path(__file__).parent / ".env")
 
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -39,6 +39,7 @@ from pydantic import BaseModel
 import db
 import admin_auth as _aauth
 import billing as _billing
+import runtime_settings as _settings
 
 try:
     import xhs_acquisition as _xhs_acq
@@ -168,8 +169,7 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
     # ── 系统状态 ──
     kimi_key   = os.environ.get("MOONSHOT_API_KEY", "")
     claude_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    model_path = Path(__file__).parent / "artifacts" / "model_a_v0.3.lgb"
-    db_path    = Path(__file__).parent / "data" / "noteai.db"
+    model_files = tuple((Path(__file__).parent / "artifacts").glob("model_v04_*.lgb"))
 
     return {
         "users": {
@@ -200,12 +200,10 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
         },
         "system": {
             "kimi_configured":   bool(kimi_key),
-            "kimi_key_prefix":   kimi_key[:12] + "…" if kimi_key else "",
             "claude_configured": bool(claude_key),
-            "claude_key_prefix": claude_key[:15] + "…" if claude_key else "",
-            "model_exists":      model_path.exists(),
-            "model_size_mb":     round(model_path.stat().st_size / 1024**2, 2) if model_path.exists() else 0,
-            "db_size_mb":        round(db_path.stat().st_size / 1024**2, 2) if db_path.exists() else 0,
+            "model_exists":      bool(model_files),
+            "model_size_mb":     round(sum(path.stat().st_size for path in model_files) / 1024**2, 2),
+            "database_backend":  "postgresql" if db.using_postgres() else "sqlite",
             "server_time":       now.isoformat(),
         },
     }
@@ -523,15 +521,23 @@ async def admin_usage_stats(days: int = 30, admin: dict = Depends(_aauth.get_adm
 # P4 Prompt 管理
 # ══════════════════════════════════════════════════════════════════════════
 
-_PROMPTS_FILE = Path(__file__).parent / "prompts.json"
-
 def _load_prompts() -> dict:
-    if _PROMPTS_FILE.exists():
-        return json.loads(_PROMPTS_FILE.read_text(encoding="utf-8"))
-    return {"prompts": {}, "history": {}}
-
-def _save_prompts(data: dict) -> None:
-    _PROMPTS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    prompts = {}
+    history = {}
+    for row in db.fetchall(
+        "SELECT key,label,module,content,version,updated_at FROM managed_prompts"
+    ):
+        prompts[row["key"]] = dict(row)
+    for row in db.fetchall(
+        "SELECT prompt_key,version,content,saved_at FROM prompt_history "
+        "ORDER BY id ASC"
+    ):
+        history.setdefault(row["prompt_key"], []).append({
+            "version": row["version"],
+            "content": row["content"],
+            "saved_at": row["saved_at"],
+        })
+    return {"prompts": prompts, "history": history}
 
 
 @admin_app.get("/admin/prompts")
@@ -570,27 +576,31 @@ async def admin_prompt_update(
     key: str, req: PromptUpdateInput,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
-    data = _load_prompts()
     now = datetime.now(timezone.utc).isoformat()
-    old = data["prompts"].get(key, {})
+    old_row = db.fetchone(
+        "SELECT key,label,module,content,version,updated_at FROM managed_prompts WHERE key=?",
+        (key,),
+    )
+    old = dict(old_row) if old_row else {}
     version = old.get("version", 0) + 1
 
     # 保存历史版本
-    hist = data.setdefault("history", {}).setdefault(key, [])
     if old.get("content"):
-        hist.append({"version": old.get("version", 0), "content": old["content"],
-                     "saved_at": old.get("updated_at", now)})
-    hist[:] = hist[-10:]  # 只保留最近10条
-
-    data["prompts"][key] = {
-        "key":        key,
-        "label":      req.label or old.get("label", key),
-        "module":     old.get("module", ""),
-        "content":    req.content,
-        "version":    version,
-        "updated_at": now,
-    }
-    _save_prompts(data)
+        db.execute(
+            "INSERT INTO prompt_history(prompt_key,version,content,saved_at) VALUES(?,?,?,?)",
+            (key, old.get("version", 0), old["content"], old.get("updated_at", now)),
+        )
+    if old:
+        db.execute(
+            "UPDATE managed_prompts SET label=?,content=?,version=?,updated_at=? WHERE key=?",
+            (req.label or old.get("label", key), req.content, version, now, key),
+        )
+    else:
+        db.execute(
+            "INSERT INTO managed_prompts(key,label,module,content,version,updated_at) "
+            "VALUES(?,?,?,?,?,?)",
+            (key, req.label or key, "", req.content, version, now),
+        )
     return {"ok": True, "version": version, "updated_at": now}
 
 
@@ -615,10 +625,16 @@ async def admin_prompt_rollback(
 
 _MODEL_REGISTRY_FILE = Path(__file__).parent / "model_registry.json"
 _MODEL_DIR = Path(__file__).parent / "artifacts"
+_MODEL_REGISTRY_KEY = "model_registry"
 
 def _load_registry() -> dict:
+    stored = _settings.get_json(_MODEL_REGISTRY_KEY)
+    if isinstance(stored, dict) and stored.get("models"):
+        return stored
     if _MODEL_REGISTRY_FILE.exists():
-        return json.loads(_MODEL_REGISTRY_FILE.read_text(encoding="utf-8"))
+        registry = json.loads(_MODEL_REGISTRY_FILE.read_text(encoding="utf-8"))
+        _settings.set_json(_MODEL_REGISTRY_KEY, registry)
+        return registry
     # 初始化：把当前 v0.3 纳入注册表
     registry = {
         "current": "v0.3",
@@ -637,12 +653,22 @@ def _load_registry() -> dict:
         },
         "training_jobs": [],
     }
-    _MODEL_REGISTRY_FILE.write_text(json.dumps(registry, ensure_ascii=False, indent=2), encoding="utf-8")
+    _settings.set_json(_MODEL_REGISTRY_KEY, registry)
     return registry
 
 
 def _save_registry(data: dict) -> None:
-    _MODEL_REGISTRY_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    _settings.set_json(_MODEL_REGISTRY_KEY, data)
+
+
+def _guard_cloud_model_mutation() -> None:
+    is_cloud = os.environ.get("NOTEAI_CLOUD_RUNTIME", "0").lower() in {"1", "true", "yes"}
+    allowed = os.environ.get("NOTEAI_ENABLE_CLOUD_MODEL_MUTATION", "0").lower() in {"1", "true", "yes"}
+    if is_cloud and not allowed:
+        raise HTTPException(
+            status_code=409,
+            detail="云端模型发布/训练已锁定；请通过受审计的模型发布流程更新镜像",
+        )
 
 
 @admin_app.get("/admin/models")
@@ -667,6 +693,7 @@ async def admin_models_list(admin: dict = Depends(_aauth.get_admin_user)):
 @admin_app.post("/admin/models/{version}/deploy")
 async def admin_model_deploy(version: str, admin: dict = Depends(_aauth.get_admin_user)):
     """部署指定版本为生产模型（热切换，api.py 下次请求自动加载）。"""
+    _guard_cloud_model_mutation()
     registry = _load_registry()
     model_info = registry["models"].get(version)
     if not model_info:
@@ -729,6 +756,7 @@ async def admin_model_train(
     admin: dict = Depends(_aauth.get_admin_user)
 ):
     """异步触发模型重训练。"""
+    _guard_cloud_model_mutation()
     job_id = str(uuid.uuid4())[:8]
     registry = _load_registry()
     job = {
@@ -804,10 +832,17 @@ async def admin_train_status(job_id: str, admin: dict = Depends(_aauth.get_admin
 # ══════════════════════════════════════════════════════════════════════════
 
 _CRAWLER_CONFIG_FILE = Path(__file__).parent / "crawler_config.json"
+_CRAWLER_CONFIG_KEY = "crawler_config"
+_XHS_COOKIES_KEY = "xhs_cookies"
 
 def _load_crawler_config() -> dict:
+    stored = _settings.get_json(_CRAWLER_CONFIG_KEY)
+    if isinstance(stored, dict):
+        return stored
     if _CRAWLER_CONFIG_FILE.exists():
-        return json.loads(_CRAWLER_CONFIG_FILE.read_text(encoding="utf-8"))
+        config = json.loads(_CRAWLER_CONFIG_FILE.read_text(encoding="utf-8"))
+        _settings.set_json(_CRAWLER_CONFIG_KEY, config)
+        return config
     return {
         "enabled": False,
         "cookie_valid": False,
@@ -821,14 +856,8 @@ def _load_crawler_config() -> dict:
 @admin_app.get("/admin/crawler/status")
 async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
     config = _load_crawler_config()
-    xhs_cookie_file = Path(__file__).parent / "data" / "xhs_cookies.json"
-    cookie_exists = xhs_cookie_file.exists()
-    cookie_content = {}
-    if cookie_exists:
-        try:
-            cookie_content = json.loads(xhs_cookie_file.read_text())
-        except Exception:
-            pass
+    cookie_content = _settings.get_json(_XHS_COOKIES_KEY, [])
+    cookie_exists = bool(cookie_content)
 
     # 爬虫采集数据统计
     crawl_stats = db.fetchone(
@@ -859,13 +888,12 @@ async def admin_update_cookie(
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail=f"JSON 解析失败: {e}")
 
-    cookie_path = Path(__file__).parent / "data" / "xhs_cookies.json"
-    cookie_path.write_text(json.dumps(cookies, ensure_ascii=False, indent=2), encoding="utf-8")
+    _settings.set_json(_XHS_COOKIES_KEY, cookies, is_secret=True)
 
     config = _load_crawler_config()
     config["cookie_valid"] = True
     config["cookie_updated_at"] = datetime.now(timezone.utc).isoformat()
-    _CRAWLER_CONFIG_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+    _settings.set_json(_CRAWLER_CONFIG_KEY, config)
 
     return {"ok": True, "cookie_count": len(cookies) if isinstance(cookies, list) else 1}
 
@@ -879,7 +907,7 @@ async def admin_crawler_toggle(
     enabled = bool(body.get("enabled", False))
     config = _load_crawler_config()
     config["enabled"] = enabled
-    _CRAWLER_CONFIG_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+    _settings.set_json(_CRAWLER_CONFIG_KEY, config)
     return {"ok": True, "enabled": enabled}
 
 
@@ -902,7 +930,7 @@ async def _run_crawler_bg(limit: int) -> None:
         config = _load_crawler_config()
         config["last_run"] = datetime.now(timezone.utc).isoformat()
         config["total_collected"] = config.get("total_collected", 0) + result.get("collected", 0)
-        _CRAWLER_CONFIG_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+        _settings.set_json(_CRAWLER_CONFIG_KEY, config)
     except Exception as e:
         print(f"[Admin] Crawler error: {e}")
 
@@ -976,9 +1004,32 @@ async def admin_logs(lines: int = 100, admin: dict = Depends(_aauth.get_admin_us
 # 健康检查
 # ══════════════════════════════════════════════════════════════════════════
 
+@admin_app.get("/health/live")
+async def admin_health_live():
+    return {"status": "ok", "service": "noteai-admin"}
+
+
+@admin_app.get("/health/ready")
+async def admin_health_ready():
+    checks = {
+        "admin_credentials": {"ok": bool(os.environ.get("ADMIN_PASSWORD"))},
+    }
+    try:
+        checks["database"] = db.database_health()
+    except Exception as exc:
+        checks["database"] = {"ok": False, "error": type(exc).__name__}
+    ready = all(check.get("ok") for check in checks.values())
+    payload = {
+        "status": "ready" if ready else "not_ready",
+        "service": "noteai-admin",
+        "checks": checks,
+    }
+    return JSONResponse(payload, status_code=200 if ready else 503)
+
+
 @admin_app.get("/admin/health")
 async def admin_health():
-    return {"status": "ok", "service": "NoteAI Admin", "port": int(os.environ.get("ADMIN_PORT", 8001))}
+    return await admin_health_ready()
 
 
 if __name__ == "__main__":

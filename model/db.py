@@ -1,15 +1,44 @@
-"""
-NoteAI 数据库层 — 管理 noteai.db 中的所有用户数据。
-hot_keywords.db（热词/分析日志/user_learn）保持独立，不在此模块中。
-"""
+"""NoteAI primary data access for local SQLite and cloud PostgreSQL."""
 import sqlite3
 import os
 from pathlib import Path
+from typing import Any
 
-_DB_PATH = Path(__file__).parent / "data" / "noteai.db"
+_DB_PATH = Path(
+    os.environ.get("NOTEAI_SQLITE_PATH")
+    or (Path(__file__).parent / "data" / "noteai.db")
+)
+_POSTGRES_MIGRATIONS_DIR = Path(__file__).parent / "migrations" / "postgres"
 
 
-def get_conn() -> sqlite3.Connection:
+class CompatRow(dict):
+    """Mapping row with sqlite.Row-compatible integer indexing."""
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return list(self.values())[key]
+        return super().__getitem__(key)
+
+
+def _compat_row_factory(cursor):
+    columns = [column.name for column in (cursor.description or ())]
+
+    def make_row(values):
+        return CompatRow(zip(columns, values))
+
+    return make_row
+
+
+def _database_url() -> str:
+    return os.environ.get("DATABASE_URL", "").strip()
+
+
+def using_postgres() -> bool:
+    return _database_url().lower().startswith(("postgres://", "postgresql://"))
+
+
+def _get_sqlite_conn() -> sqlite3.Connection:
+    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(_DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
@@ -17,9 +46,21 @@ def get_conn() -> sqlite3.Connection:
     return conn
 
 
-def init_db() -> None:
+def _get_postgres_conn():
+    try:
+        import psycopg
+    except ImportError as exc:
+        raise RuntimeError("PostgreSQL requires psycopg[binary]") from exc
+    return psycopg.connect(_database_url(), row_factory=_compat_row_factory)
+
+
+def get_conn():
+    return _get_postgres_conn() if using_postgres() else _get_sqlite_conn()
+
+
+def _init_sqlite() -> None:
     """创建所有表（幂等）。"""
-    conn = get_conn()
+    conn = _get_sqlite_conn()
     with conn:
         conn.executescript("""
 -- ── 用户表 ─────────────────────────────────────────────────────────
@@ -304,6 +345,40 @@ CREATE INDEX IF NOT EXISTS idx_tracked_status ON tracked_notes(status, submitted
                 conn.execute(sql)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tracked_source_note ON tracked_notes(user_id, source_note_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tracked_next_check ON tracked_notes(status, next_check_at)")
+        conn.executescript("""
+CREATE TABLE IF NOT EXISTS admin_sessions (
+    token       TEXT PRIMARY KEY,
+    username    TEXT NOT NULL,
+    created_at  REAL NOT NULL,
+    expires_at  REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_expiry ON admin_sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS managed_prompts (
+    key         TEXT PRIMARY KEY,
+    label       TEXT DEFAULT '',
+    module      TEXT DEFAULT '',
+    content     TEXT NOT NULL,
+    version     INTEGER DEFAULT 1,
+    updated_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS prompt_history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    prompt_key  TEXT NOT NULL REFERENCES managed_prompts(key) ON DELETE CASCADE,
+    version     INTEGER NOT NULL,
+    content     TEXT NOT NULL,
+    saved_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_prompt_history_key ON prompt_history(prompt_key, version DESC);
+
+CREATE TABLE IF NOT EXISTS system_settings (
+    key         TEXT PRIMARY KEY,
+    value_json  TEXT NOT NULL,
+    is_secret   INTEGER DEFAULT 0,
+    updated_at  TEXT NOT NULL
+);
+        """)
     conn.close()
 
 
@@ -311,18 +386,66 @@ CREATE INDEX IF NOT EXISTS idx_tracked_status ON tracked_notes(status, submitted
 # 通用 CRUD helpers
 # ─────────────────────────────────────────────────────────────
 
-def fetchone(sql: str, params: tuple = ()) -> sqlite3.Row | None:
+def _postgres_sql(sql: str) -> str:
+    return sql.replace("?", "%s")
+
+
+def apply_postgres_migrations() -> list[str]:
+    if not using_postgres():
+        return []
+    if not _POSTGRES_MIGRATIONS_DIR.exists():
+        raise RuntimeError(f"PostgreSQL migrations not found: {_POSTGRES_MIGRATIONS_DIR}")
+    applied: list[str] = []
+    conn = _get_postgres_conn()
+    try:
+        with conn:
+            conn.execute("SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))")
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS schema_migrations ("
+                "version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
+            )
+            rows = conn.execute("SELECT version FROM schema_migrations").fetchall()
+            existing = {str(row["version"]) for row in rows}
+            for path in sorted(_POSTGRES_MIGRATIONS_DIR.glob("*.sql")):
+                if path.name in existing:
+                    continue
+                conn.execute(path.read_text(encoding="utf-8"))
+                conn.execute("INSERT INTO schema_migrations(version) VALUES (%s)", (path.name,))
+                applied.append(path.name)
+    finally:
+        conn.close()
+    return applied
+
+
+def init_db() -> None:
+    if using_postgres():
+        apply_postgres_migrations()
+    else:
+        _init_sqlite()
+
+
+def database_health() -> dict[str, Any]:
     conn = get_conn()
     try:
-        return conn.execute(sql, params).fetchone()
+        row = conn.execute("SELECT 1 AS ok").fetchone()
+        ok = bool(row and (row["ok"] if isinstance(row, dict) else row["ok"]))
+        return {"ok": ok, "backend": "postgresql" if using_postgres() else "sqlite"}
     finally:
         conn.close()
 
 
-def fetchall(sql: str, params: tuple = ()) -> list[sqlite3.Row]:
+def fetchone(sql: str, params: tuple = ()):
     conn = get_conn()
     try:
-        return conn.execute(sql, params).fetchall()
+        return conn.execute(_postgres_sql(sql) if using_postgres() else sql, params).fetchone()
+    finally:
+        conn.close()
+
+
+def fetchall(sql: str, params: tuple = ()) -> list:
+    conn = get_conn()
+    try:
+        return conn.execute(_postgres_sql(sql) if using_postgres() else sql, params).fetchall()
     finally:
         conn.close()
 
@@ -332,8 +455,8 @@ def execute(sql: str, params: tuple = ()) -> int:
     conn = get_conn()
     try:
         with conn:
-            cur = conn.execute(sql, params)
-            return cur.lastrowid
+            cur = conn.execute(_postgres_sql(sql) if using_postgres() else sql, params)
+            return int(getattr(cur, "lastrowid", 0) or 0)
     finally:
         conn.close()
 
@@ -342,10 +465,12 @@ def executemany(sql: str, params_list: list[tuple]) -> None:
     conn = get_conn()
     try:
         with conn:
-            conn.executemany(sql, params_list)
+            conn.executemany(_postgres_sql(sql) if using_postgres() else sql, params_list)
     finally:
         conn.close()
 
 
-# 初始化（import 时自动执行）
-init_db()
+# Local SQLite keeps backward-compatible import-time initialization. PostgreSQL
+# migrations run only through the explicit pre-deploy command.
+if not using_postgres():
+    init_db()

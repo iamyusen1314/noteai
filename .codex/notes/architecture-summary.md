@@ -1,10 +1,11 @@
 # Architecture Summary
 
-Last updated: 2026-07-02
+Last updated: 2026-07-10
 
 ## Frontend
 
 - Main file: `NoteAI_Pro_Demo_Framer.html`.
+- Render static build: `scripts/build_render_frontend.sh` writes `dist/index.html` and a generated `dist/runtime-config.js`; `NOTEAI_PUBLIC_API_BASE` supplies the cloud API origin.
 - Frontend shape: single static HTML document with embedded CSS and JavaScript.
 - Confirmed libraries/assets:
   - ECharts loaded from CDN.
@@ -38,7 +39,8 @@ Last updated: 2026-07-02
   - User auth: `model/auth.py`.
   - Admin auth: `model/admin_auth.py`.
 - Key support modules:
-  - `model/db.py`: SQLite schema and helper functions.
+  - `model/db.py`: local SQLite/cloud PostgreSQL connection dispatch, helpers, and PostgreSQL migration runner.
+  - `model/runtime_settings.py`: shared JSON settings stored in the primary database.
   - `model/billing.py`: credits, subscriptions, usage, token/cost accounting.
   - `model/model_router.py`: Claude/Kimi model routing, fallback, retry, timeout, usage recording.
   - `model/fact_enrichment.py`: Amap/Meituan/search/local fact enrichment.
@@ -52,7 +54,7 @@ Last updated: 2026-07-02
   - Billing: `/billing/plan`, `/billing/usage`, `/billing/credits`, `/billing/topup`, `/billing/upgrade`, `/billing/tiers`.
   - AI scoring/diagnosis/generation: `/score`, `/quick-diagnose`, `/diagnose`, `/analyze`, `/analyze/stream`, `/generate`, `/generate/stream`.
   - Chat: `/chat/start`, `/chat/message`, `/chat/ui`.
-  - Health: `/health`.
+  - Health: `/health`, `/health/live`, `/health/ready`.
 - Admin structure:
   - `/admin/login`, `/admin/logout`, `/admin/me`.
   - Overview/users/user detail/user adjust.
@@ -60,7 +62,7 @@ Last updated: 2026-07-02
   - Prompt list/get/update/rollback.
   - Model list/deploy/train/status.
   - Crawler status/update/toggle/run/logs.
-  - Settings/logs/health.
+  - Settings/logs/health (`/health/live`, `/health/ready`, and backward-compatible `/admin/health`).
 - Middleware:
   - CORS is configured in API/admin code; exact allowed origins depend on env/config.
 - Error handling:
@@ -73,10 +75,14 @@ Last updated: 2026-07-02
 
 ## Database
 
-- Database files:
+- Local database files:
   - User/product DB: `model/data/noteai.db`.
   - Hot keyword DB: `model/data/hot_keywords.db`.
   - These runtime DB files are ignored and should not be committed.
+- Cloud database:
+  - Render services share PostgreSQL through `DATABASE_URL`.
+  - `model/migrations/postgres/0001_initial.sql` through `0004_xhs_freshness.sql` create product, shared runtime, trend, analysis, and XHS freshness tables.
+  - `scripts/render_predeploy.py` applies migrations under a PostgreSQL advisory lock and records them in `schema_migrations`.
 - Schema location:
   - `model/db.py` contains `CREATE TABLE IF NOT EXISTS` SQL and idempotent `ALTER TABLE` migrations.
   - `model/hot_keywords.py` contains separate hot keyword schema and idempotent migration logic.
@@ -97,9 +103,9 @@ Last updated: 2026-07-02
   - `hot_keywords`
   - `keyword_snapshots`
 - Migration status:
-  - No Alembic/Prisma migration tool is confirmed.
-  - Runtime idempotent migration logic adds columns as needed.
-  - Any change to schema code can mutate DB on startup.
+  - No Alembic/Prisma migration tool is used.
+  - PostgreSQL uses versioned SQL; SQLite keeps idempotent runtime additions for backward compatibility.
+  - `scripts/migrate_sqlite_to_postgres.py` is dry-run by default and can copy application rows only after explicit guarded `--apply` approval.
 - Seed / initialization:
   - No standalone seed command is confirmed.
   - Test and local startup may initialize tables.
@@ -118,9 +124,8 @@ Last updated: 2026-07-02
   - Token expiry: 30 days.
 - Admin authentication:
   - Admin username/password come from environment variables.
-  - Admin sessions are in memory and prefixed with `admin_`.
+  - Admin sessions are stored in the primary database and prefixed with `admin_`.
   - Admin token expiry: 7 days.
-  - Admin sessions reset on process restart.
 - High-risk points:
   - `get_optional_user` allows backward-compatible anonymous access; paid operations must separately enforce user identity.
   - Admin adjustment endpoints can change subscription/credits/user state.
@@ -145,7 +150,7 @@ Only service names and variable names are documented here; no secret values.
   - Optional cloud snapshot, refresh, upload URLs/tokens.
   - Optional authorized trend source URL/token.
 - Model artifacts:
-  - Git LFS and/or object storage base URL are documented.
+  - Git LFS, private Amazon S3 read-only loading, and an optional object-storage base URL are supported.
 - Payment:
   - No confirmed real payment gateway integration was found in inspected files.
 
@@ -186,9 +191,10 @@ Only service names and variable names are documented here; no secret values.
 - `NoteAI_Pro_Demo_Framer.html` is a very large static file with global state; accidental name collisions or missing payload fields are easy.
 - `model/api.py` is very large and mixes API models, provider calls, scoring, generation, sanitization, streaming, billing, and report logic.
 - Billing and admin adjustment logic is revenue-critical.
-- SQLite schema migrations are embedded and run idempotently; schema mistakes can affect live data.
+- SQLite and PostgreSQL must stay behaviorally compatible; schema or SQL-dialect mistakes can affect startup and cloud workers.
 - Market timing freshness gates can block AI flows when data is stale or unavailable.
 - Fact enrichment can cause factual pollution if placeholders/generic facts leak into delivery copy.
-- Model artifact loading and `/health` reporting can diverge; `/health` currently has a misleading legacy model label.
+- Model artifacts must match their SHA256 manifest; required-mode checksum failure intentionally prevents startup.
 - Live AI calls depend on external APIs, timeouts, concurrency, and provider billing.
 - Crawler/Playwright market timing logic is operationally fragile in cloud environments.
+- Render staging is split into Static Site, API, Admin, two Cron Jobs, PostgreSQL, and one API-only video cache disk as declared in `render.yaml`.

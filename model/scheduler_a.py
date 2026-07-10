@@ -20,6 +20,8 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
+import runtime_settings
+
 BASE_DIR = Path(__file__).parent
 STATE_PATH  = BASE_DIR / "data/xhs_state.json"
 COOKIES_PATH = BASE_DIR / "data/xhs_cookies.json"
@@ -85,6 +87,13 @@ def _source_weight(source: str) -> float:
 def _get_session_state():
     if STATE_PATH.exists():
         return str(STATE_PATH)
+    stored = runtime_settings.get_json("xhs_cookies", [])
+    if isinstance(stored, list) and stored:
+        cookies = [dict(cookie) for cookie in stored]
+        for cookie in cookies:
+            if "domain" not in cookie:
+                cookie["domain"] = ".xiaohongshu.com"
+        return {"cookies": cookies, "origins": []}
     if COOKIES_PATH.exists():
         with open(COOKIES_PATH) as f:
             cookies = json.load(f)

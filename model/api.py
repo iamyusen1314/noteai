@@ -27,7 +27,7 @@ import lightgbm as lgb
 import numpy as np
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -78,9 +78,82 @@ _KIMI_VISION_MODEL = "moonshot-v1-32k-vision-preview"
 _KIMI_API_URL      = "https://api.moonshot.cn/v1/chat/completions"
 _MOONSHOT_FILES_URL = "https://api.moonshot.cn/v1/files"
 
-# Server-side frame cache: {uuid -> [jpeg_bytes, ...]}  cleared on restart, fine for demo
+# Short-lived video frame cache. Memory is the hot path; an optional disk copy
+# keeps an upload usable across a Render restart before diagnosis begins.
 _video_frames: dict[str, dict] = {}
-# 结构: { file_id: {"frames": [bytes...], "duration_sec": float, "raw_fps": float} }
+_VIDEO_CACHE_DIR = Path(
+    os.environ.get("NOTEAI_VIDEO_CACHE_DIR")
+    or (Path(__file__).parent / "data" / "video_frames")
+)
+_VIDEO_CACHE_TTL_SECONDS = int(os.environ.get("NOTEAI_VIDEO_CACHE_TTL_SECONDS", "21600") or 21600)
+
+
+def _video_cache_path(file_id: str) -> Path | None:
+    if not re.fullmatch(r"[a-f0-9]{20}", file_id or ""):
+        return None
+    return _VIDEO_CACHE_DIR / file_id
+
+
+def _cleanup_video_cache() -> None:
+    if not _VIDEO_CACHE_DIR.exists():
+        return
+    cutoff = _time.time() - max(600, _VIDEO_CACHE_TTL_SECONDS)
+    for directory in _VIDEO_CACHE_DIR.iterdir():
+        try:
+            if not directory.is_dir() or directory.stat().st_mtime >= cutoff:
+                continue
+            for child in directory.iterdir():
+                if child.is_file():
+                    child.unlink()
+            directory.rmdir()
+            _video_frames.pop(directory.name, None)
+        except OSError:
+            continue
+
+
+def _store_video_meta(file_id: str, meta: dict) -> None:
+    _video_frames[file_id] = meta
+    directory = _video_cache_path(file_id)
+    if directory is None:
+        return
+    directory.mkdir(parents=True, exist_ok=True)
+    for index, frame in enumerate(meta.get("frames") or []):
+        (directory / f"{index:03d}.jpg").write_bytes(frame)
+    metadata = {
+        "duration_sec": meta.get("duration_sec", 0),
+        "raw_fps": meta.get("raw_fps", 0),
+        "frame_count": len(meta.get("frames") or []),
+        "created_at": _time.time(),
+    }
+    (directory / "metadata.json").write_text(_json.dumps(metadata), encoding="utf-8")
+    _cleanup_video_cache()
+
+
+def _get_video_meta(file_id: str | None) -> dict | None:
+    if not file_id:
+        return None
+    cached = _video_frames.get(file_id)
+    if cached:
+        return cached
+    directory = _video_cache_path(file_id)
+    if directory is None or not directory.exists():
+        return None
+    try:
+        metadata = _json.loads((directory / "metadata.json").read_text(encoding="utf-8"))
+        if _time.time() - float(metadata.get("created_at") or 0) > max(600, _VIDEO_CACHE_TTL_SECONDS):
+            return None
+        frames = [path.read_bytes() for path in sorted(directory.glob("*.jpg"))]
+        if not frames:
+            return None
+        result = {
+            "frames": frames,
+            "duration_sec": float(metadata.get("duration_sec") or len(frames)),
+            "raw_fps": float(metadata.get("raw_fps") or 0),
+        }
+        _video_frames[file_id] = result
+        return result
+    except (OSError, ValueError, TypeError, _json.JSONDecodeError):
+        return None
 
 
 def _record_kimi_usage_from_payload(payload: dict | None, model: str | None = None) -> None:
@@ -688,7 +761,7 @@ async def _wait_video_file_ready(file_id: str, key: str, max_wait: int = 60) -> 
 
 async def _kimi_video_understand(file_id: str, domain: str, brief: str | None) -> str:
     """按视频时长动态决定发送帧数，均匀覆盖开头/中间/结尾。"""
-    meta = _video_frames.get(file_id)
+    meta = _get_video_meta(file_id)
     if not meta:
         print(f"[kimi_video_understand] no frames for file_id={file_id}", file=sys.stderr, flush=True)
         return ""
@@ -1311,6 +1384,11 @@ def _annotate_market_timing(timing: dict | None) -> dict | None:
                 if pipeline_status.get("state") == "evidence_unavailable":
                     pipeline_status.setdefault("worker_hint", "trends_worker_not_observed_or_not_run")
             pipeline_status["xhs"] = xhs_summary
+            if xhs_summary["required"] and not xhs_summary["ok"]:
+                enriched["evidence_unavailable"] = True
+                pipeline_status["state"] = "evidence_unavailable"
+                pipeline_status["state_label"] = "小红书实证不可用"
+                pipeline_status["reason"] = "required_fresh_xhs_evidence_missing"
         except Exception:
             pipeline_status["xhs"] = {
                 "ok": False,
@@ -10164,11 +10242,19 @@ CREATE TABLE IF NOT EXISTS analysis_log (
 """
 
 
+def _local_hot_keyword_db_path() -> Path:
+    return Path(
+        os.environ.get("NOTEAI_HOT_KEYWORD_DB_PATH")
+        or (Path(__file__).parent / "data" / "hot_keywords.db")
+    )
+
+
 def _init_analysis_log():
     if not _SCHEDULER_AVAILABLE:
         return
-    from pathlib import Path as _Path
-    db_path = _Path(__file__).parent / "data/hot_keywords.db"
+    if _db.using_postgres():
+        return
+    db_path = _local_hot_keyword_db_path()
     db_path.parent.mkdir(exist_ok=True)
     with _sqlite3.connect(str(db_path)) as c:
         c.executescript(_ANALYSIS_LOG_DDL)
@@ -10179,10 +10265,33 @@ def _log_analysis(note_hash: str, domain: str, percentile: float,
     if not _SCHEDULER_AVAILABLE or not timing:
         return
     try:
-        from pathlib import Path as _Path
         import json as _json
         from datetime import datetime as _dt
-        db_path = _Path(__file__).parent / "data/hot_keywords.db"
+        if _db.using_postgres():
+            _db.execute(
+                """INSERT INTO analysis_log
+                   (note_hash, domain, analyzed_at, ces_percentile, composite_score,
+                    timing_coefficient, keyword_search_vol, trend_momentum,
+                    is_trending_topic, content_freshness, category_saturation,
+                    category_avg_ces, keyword_competition, trend_peak_distance,
+                    matched_keywords)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                   ON CONFLICT(note_hash) DO NOTHING""",
+                (note_hash, domain, _dt.now().isoformat(),
+                 round(percentile, 1), round(composite, 1),
+                 timing.get("timing_coefficient", 0.0),
+                 timing.get("keyword_search_vol", 0.0),
+                 timing.get("trend_momentum", 0.0),
+                 timing.get("is_trending_topic", 0.0),
+                 timing.get("content_freshness", 0.0),
+                 timing.get("category_saturation", 0.0),
+                 timing.get("category_avg_ces", 0.0),
+                 timing.get("keyword_competition", 0.0),
+                 timing.get("trend_peak_distance", 0.0),
+                 _json.dumps(timing.get("matched_keywords", []), ensure_ascii=False)),
+            )
+            return
+        db_path = _local_hot_keyword_db_path()
         with _sqlite3.connect(str(db_path)) as c:
             c.execute(
                 """INSERT OR IGNORE INTO analysis_log
@@ -10211,13 +10320,20 @@ def _log_analysis(note_hash: str, domain: str, percentile: float,
 
 @app.on_event("startup")
 async def startup():
-    get_model()  # warm-up model
+    _ensure_model_artifacts_once()
+    if USE_V04_COMPOSITE:
+        if get_v04_composite_model() is None:
+            raise RuntimeError("V0.4 composite model is required but could not be loaded")
+    else:
+        get_model()
+    if _SCHEDULER_AVAILABLE:
+        init_db()
     _init_analysis_log()
     _init_user_learn()
     if _SCHEDULER_AVAILABLE and os.environ.get("NOTEAI_API_STARTS_TREND_SCHEDULER", "0").lower() in {"1", "true", "yes"}:
         import threading
         threading.Thread(target=start_scheduler, kwargs={"interval_minutes": 60}, daemon=True).start()
-    # 初始化 prompts.json（首次运行时将 hardcode prompt 写入文件）
+    # 初始化共享 Prompt（首次运行从版本化默认值写入数据库）
     _init_default_prompts()
 
 
@@ -10296,15 +10412,69 @@ async def shutdown():
         stop_scheduler()
 
 
-@app.get("/health")
-def health():
-    status = {"status": "ok", "model": _health_model_label(), "scheduler_a": _SCHEDULER_AVAILABLE}
+def _readiness_payload() -> tuple[dict, int]:
+    checks: dict[str, dict] = {}
+    try:
+        checks["database"] = _db.database_health()
+    except Exception as exc:
+        checks["database"] = {"ok": False, "error": type(exc).__name__}
+
+    model_ok = get_v04_composite_model() is not None if USE_V04_COMPOSITE else bool(get_model())
+    checks["model"] = {"ok": model_ok, "version": _health_model_label()}
+
+    require_ai = os.environ.get("NOTEAI_READINESS_REQUIRE_AI_KEYS", "0").lower() in {"1", "true", "yes"}
+    checks["ai"] = {
+        "ok": bool(os.environ.get("ANTHROPIC_API_KEY")) and bool(os.environ.get("MOONSHOT_API_KEY")),
+        "required": require_ai,
+        "claude_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "moonshot_configured": bool(os.environ.get("MOONSHOT_API_KEY")),
+    }
+
     if _SCHEDULER_AVAILABLE:
         try:
-            status["hot_keywords"] = db_status()
+            timing = db_status()
+            checks["market_timing"] = {
+                "ok": bool(timing.get("latest_capture")),
+                "blocking_readiness": False,
+                "freshness_hours": timing.get("freshness_hours"),
+            }
+        except Exception as exc:
+            checks["market_timing"] = {
+                "ok": False,
+                "blocking_readiness": False,
+                "error": type(exc).__name__,
+            }
+
+    blocking = [checks["database"].get("ok"), checks["model"].get("ok")]
+    if require_ai:
+        blocking.append(checks["ai"].get("ok"))
+    ready = all(blocking)
+    return {"status": "ready" if ready else "not_ready", "service": "noteai-api", "checks": checks}, 200 if ready else 503
+
+
+@app.get("/health/live")
+def health_live():
+    return {"status": "ok", "service": "noteai-api"}
+
+
+@app.get("/health/ready")
+def health_ready():
+    payload, status_code = _readiness_payload()
+    return JSONResponse(payload, status_code=status_code)
+
+
+@app.get("/health")
+def health():
+    payload, status_code = _readiness_payload()
+    payload["model"] = payload.get("checks", {}).get("model", {}).get("version", _health_model_label())
+    payload["scheduler_a"] = _SCHEDULER_AVAILABLE
+    payload["status_code"] = status_code
+    if _SCHEDULER_AVAILABLE:
+        try:
+            payload["hot_keywords"] = db_status()
         except Exception:
             pass
-    return status
+    return payload
 
 
 @app.get("/market-timing/freshness")
@@ -11489,7 +11659,7 @@ async def _run_analyze_pipeline(
 
         # 视频诊断：用已上传的视频 file_id 提取画面描述（复用 generate 中的 _kimi_video_understand）
         if req.video_file_id:
-            video_meta = _video_frames.get(req.video_file_id)
+            video_meta = _get_video_meta(req.video_file_id)
             if not video_meta:
                 raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传视频后再诊断")
             video_duration_sec = float(video_meta.get("duration_sec", 0) or 0)
@@ -12052,10 +12222,11 @@ async def _generate_pipeline_stream(
 
     # ── P1: Visual ──────────────────────────────────────────────────
     if video_file_id:
-        has_frames = video_file_id in _video_frames
+        _video_meta = _get_video_meta(video_file_id)
+        has_frames = bool(_video_meta)
         yield {"type": "stage", "stage": "p1", "label": "视觉分析师正在解读视频画面…", "progress": 8}
         if has_frames:
-            _vmeta     = _video_frames[video_file_id]
+            _vmeta     = _video_meta or {}
             n_total_f  = len(_vmeta["frames"])
             dur_f      = _vmeta.get("duration_sec", n_total_f)
             n_send_f   = _video_send_count(dur_f, n_total_f)
@@ -12069,7 +12240,7 @@ async def _generate_pipeline_stream(
             "_image_desc": video_desc[:300] if video_desc else (brief or domain),
         }
         image_desc = vis_result["_image_desc"]
-        _vm2 = _video_frames.get(video_file_id, {})
+        _vm2 = _get_video_meta(video_file_id) or {}
         n_t2 = len(_vm2.get("frames", [])); d2 = _vm2.get("duration_sec", n_t2); n_s2 = _video_send_count(d2, n_t2)
         yield {
             "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
@@ -12733,11 +12904,11 @@ async def upload_video(
 
     fid = str(_uuid.uuid4()).replace("-", "")[:20]
     n_will_send = _video_send_count(duration_sec, len(frames))
-    _video_frames[fid] = {
+    _store_video_meta(fid, {
         "frames":       frames,
         "duration_sec": round(duration_sec, 1),
         "raw_fps":      round(fps, 1),
-    }
+    })
     print(
         f"[upload_video] fid={fid} file={filename} duration={duration_sec:.1f}s "
         f"raw_fps={fps:.1f} frames_extracted={len(frames)} frames_to_ai={n_will_send}",
@@ -13031,7 +13202,9 @@ CREATE TABLE IF NOT EXISTS user_learn (
 def _init_user_learn():
     if not _SCHEDULER_AVAILABLE:
         return
-    db_path = Path(__file__).parent / "data/hot_keywords.db"
+    if _db.using_postgres():
+        return
+    db_path = _local_hot_keyword_db_path()
     db_path.parent.mkdir(exist_ok=True)
     with _sqlite3.connect(str(db_path)) as c:
         c.executescript(_USER_LEARN_DDL)
@@ -13041,7 +13214,13 @@ def _get_user_learn(user_id: str) -> dict[str, str]:
     if not _SCHEDULER_AVAILABLE or not user_id:
         return {}
     try:
-        db_path = Path(__file__).parent / "data/hot_keywords.db"
+        if _db.using_postgres():
+            rows = _db.fetchall(
+                "SELECT pref_key,pref_value FROM user_learn WHERE user_id=? ORDER BY confidence DESC",
+                (user_id,),
+            )
+            return {row["pref_key"]: row["pref_value"] for row in rows}
+        db_path = _local_hot_keyword_db_path()
         with _sqlite3.connect(str(db_path)) as c:
             rows = c.execute(
                 "SELECT pref_key, pref_value FROM user_learn WHERE user_id=? ORDER BY confidence DESC",
@@ -13057,7 +13236,21 @@ def _update_user_learn(user_id: str, prefs: dict[str, str]):
         return
     try:
         from datetime import datetime as _dt
-        db_path = Path(__file__).parent / "data/hot_keywords.db"
+        if _db.using_postgres():
+            for k, v in prefs.items():
+                _db.execute(
+                    """INSERT INTO user_learn
+                       (user_id,pref_key,pref_value,confidence,update_count,updated_at)
+                       VALUES(?,?,?,0.6,1,?)
+                       ON CONFLICT(user_id,pref_key) DO UPDATE SET
+                           pref_value=excluded.pref_value,
+                           confidence=LEAST(user_learn.confidence + 0.1, 0.95),
+                           update_count=user_learn.update_count + 1,
+                           updated_at=excluded.updated_at""",
+                    (user_id, k, v, _dt.now().isoformat()),
+                )
+            return
+        db_path = _local_hot_keyword_db_path()
         with _sqlite3.connect(str(db_path)) as c:
             for k, v in prefs.items():
                 c.execute(

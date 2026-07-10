@@ -1,0 +1,185 @@
+services:
+  - type: web
+    name: noteai-staging-web
+    runtime: static
+    buildCommand: ./scripts/build_render_frontend.sh
+    staticPublishPath: ./dist
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NOTEAI_PUBLIC_API_BASE
+        sync: false
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
+
+  - type: web
+    name: noteai-staging-api
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /app/scripts/render_start_api.sh
+    preDeployCommand: python /app/scripts/render_predeploy.py
+    healthCheckPath: /health/ready
+    maxShutdownDelaySeconds: 60
+    autoDeployTrigger: checksPass
+    disk:
+      name: noteai-video-cache
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: noteai-staging-db
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: MOONSHOT_API_KEY
+        sync: false
+      - key: AMAP_WEB_KEY
+        sync: false
+      - key: MEITUAN_AI_HUB_TOKEN
+        sync: false
+      - key: NOTEAI_MODEL_ARTIFACT_BASE_URL
+        sync: false
+      - key: NOTEAI_MODEL_ARTIFACT_S3_BUCKET
+        sync: false
+      - key: NOTEAI_MODEL_ARTIFACT_S3_PREFIX
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: NOTEAI_CLOUD_RUNTIME
+        value: "1"
+      - key: NOTEAI_READINESS_REQUIRE_AI_KEYS
+        value: "1"
+      - key: NOTEAI_USE_V04_COMPOSITE
+        value: "1"
+      - key: NOTEAI_MODEL_ARTIFACT_REQUIRED
+        value: "1"
+      - key: NOTEAI_MODEL_ARTIFACT_MANIFEST
+        value: model/artifacts/model_release_manifest.v04.json
+      - key: NOTEAI_ENABLE_CLOUD_MODEL_MUTATION
+        value: "0"
+      - key: NOTEAI_FACT_SEARCH
+        value: "1"
+      - key: NOTEAI_FACT_SEARCH_PROVIDER
+        value: auto
+      - key: NOTEAI_MARKET_TIMING_REQUIRED
+        value: "1"
+      - key: NOTEAI_API_STARTS_TREND_SCHEDULER
+        value: "0"
+      - key: NOTEAI_XHS_FRESHNESS_REQUIRED
+        value: "1"
+      - key: NOTEAI_HOT_KEYWORD_FRESH_HOURS
+        value: "30"
+      - key: NOTEAI_MARKET_TIMING_MIN_DOMAIN_KEYWORDS
+        value: "12"
+      - key: NOTEAI_VIDEO_CACHE_DIR
+        value: /var/data/video_frames
+      - key: NOTEAI_VIDEO_CACHE_TTL_SECONDS
+        value: "21600"
+      - key: NOTEAI_GRACEFUL_SHUTDOWN_SECONDS
+        value: "60"
+      - key: WEB_CONCURRENCY
+        value: "1"
+
+  - type: web
+    name: noteai-staging-admin
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /app/scripts/render_start_admin.sh
+    healthCheckPath: /health/ready
+    maxShutdownDelaySeconds: 30
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: noteai-staging-db
+          property: connectionString
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: NOTEAI_SKIP_MODEL_ARTIFACT_CHECK
+        value: "1"
+      - key: NOTEAI_CLOUD_RUNTIME
+        value: "1"
+      - key: NOTEAI_MIGRATE_ON_START
+        value: "1"
+      - key: NOTEAI_ENABLE_CLOUD_MODEL_MUTATION
+        value: "0"
+      - key: WEB_CONCURRENCY
+        value: "1"
+
+  - type: cron
+    name: noteai-staging-market-timing
+    runtime: docker
+    plan: starter
+    region: singapore
+    schedule: "5 * * * *"
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /app/scripts/render_run_market_timing.sh
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: noteai-staging-db
+          property: connectionString
+      - key: NOTEAI_SKIP_MODEL_ARTIFACT_CHECK
+        value: "1"
+      - key: NOTEAI_XHS_FRESHNESS_REQUIRED
+        value: "1"
+      - key: NOTEAI_XHS_FRESHNESS_HARD_FAIL
+        value: "1"
+      - key: NOTEAI_HOT_KEYWORD_FRESH_HOURS
+        value: "30"
+      - key: NOTEAI_MARKET_TIMING_MIN_DOMAIN_KEYWORDS
+        value: "12"
+      - key: NOTEAI_XHS_DOWNLOADER_URL
+        sync: false
+
+  - type: cron
+    name: noteai-staging-tracking
+    runtime: docker
+    plan: starter
+    region: singapore
+    schedule: "20 * * * *"
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /app/scripts/render_run_crawler.sh
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: noteai-staging-db
+          property: connectionString
+      - key: NOTEAI_SKIP_MODEL_ARTIFACT_CHECK
+        value: "1"
+      - key: NOTEAI_CRAWLER_HEADLESS
+        value: "1"
+
+databases:
+  - name: noteai-staging-db
+    databaseName: noteai_staging
+    user: noteai_app
+    plan: free
+    region: singapore
+    ipAllowList: []

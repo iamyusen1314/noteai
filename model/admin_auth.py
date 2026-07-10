@@ -2,7 +2,7 @@
 NoteAI Pro 管理员认证模块
 - 完全独立于用户认证体系
 - 管理员账号存 .env，不入数据库
-- admin token 存内存（重启失效，需重新登录）
+- admin token 存主数据库，支持多实例和重启
 """
 import os
 import secrets
@@ -11,8 +11,8 @@ from typing import Optional
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-# ── 管理员 token 内存存储（{token: {username, created_at}}）──
-_admin_sessions: dict[str, dict] = {}
+import db
+
 _ADMIN_TOKEN_EXPIRE = 86400 * 7  # 7天
 
 _admin_bearer = HTTPBearer(auto_error=False)
@@ -33,24 +33,31 @@ def admin_login(username: str, password: str) -> str:
             secrets.compare_digest(password, admin_pass)):
         raise HTTPException(status_code=401, detail="管理员账号或密码错误")
     token = "admin_" + secrets.token_urlsafe(32)
-    _admin_sessions[token] = {"username": username, "created_at": time.time()}
+    created_at = time.time()
+    db.execute(
+        "INSERT INTO admin_sessions(token,username,created_at,expires_at) VALUES(?,?,?,?)",
+        (token, username, created_at, created_at + _ADMIN_TOKEN_EXPIRE),
+    )
     return token
 
 
 def admin_logout(token: str) -> None:
-    _admin_sessions.pop(token, None)
+    db.execute("DELETE FROM admin_sessions WHERE token=?", (token,))
 
 
 def _verify_admin_token(token: str) -> Optional[dict]:
     if not token or not token.startswith("admin_"):
         return None
-    session = _admin_sessions.get(token)
+    session = db.fetchone(
+        "SELECT username,created_at,expires_at FROM admin_sessions WHERE token=?",
+        (token,),
+    )
     if not session:
         return None
-    if time.time() - session["created_at"] > _ADMIN_TOKEN_EXPIRE:
-        _admin_sessions.pop(token, None)
+    if float(session["expires_at"]) <= time.time():
+        db.execute("DELETE FROM admin_sessions WHERE token=?", (token,))
         return None
-    return session
+    return {"username": session["username"], "created_at": session["created_at"]}
 
 
 def get_admin_user(

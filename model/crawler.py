@@ -28,6 +28,7 @@ _LOG_FILE    = _BASE_DIR / "data" / "crawler_log.json"
 sys.path.insert(0, str(_BASE_DIR))
 import db
 import performance_scoring as perf
+import runtime_settings
 
 try:
     import memory
@@ -133,6 +134,9 @@ def _classify_error(error: str) -> str:
 
 
 def _load_cookies() -> list:
+    stored = runtime_settings.get_json("xhs_cookies", [])
+    if isinstance(stored, list) and stored:
+        return stored
     if not _COOKIE_FILE.exists():
         return []
     try:
@@ -142,13 +146,21 @@ def _load_cookies() -> list:
 
 
 def _save_log(entry: dict) -> None:
+    event = {**entry, "ts": _now()}
+    print(json.dumps({"crawler_event": event}, ensure_ascii=False), flush=True)
+    if db.using_postgres():
+        db.execute(
+            "INSERT INTO crawler_events(event_json,created_at) VALUES(?,?)",
+            (json.dumps(event, ensure_ascii=False), event["ts"]),
+        )
+        return
     log = []
     if _LOG_FILE.exists():
         try:
             log = json.loads(_LOG_FILE.read_text())
         except Exception:
             log = []
-    log.append({**entry, "ts": _now()})
+    log.append(event)
     log = log[-500:]  # 只保留最近500条
     _LOG_FILE.write_text(json.dumps(log, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -453,6 +465,18 @@ async def run_collection_round(limit: int = 50) -> dict:
 
 
 def get_crawler_logs(limit: int = 50) -> list:
+    if db.using_postgres():
+        rows = db.fetchall(
+            "SELECT event_json FROM crawler_events ORDER BY id DESC LIMIT ?",
+            (max(1, min(int(limit), 500)),),
+        )
+        events = []
+        for row in reversed(rows):
+            try:
+                events.append(json.loads(row["event_json"]))
+            except Exception:
+                continue
+        return events
     if not _LOG_FILE.exists():
         return []
     try:

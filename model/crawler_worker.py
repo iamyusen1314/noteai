@@ -13,12 +13,16 @@ import json
 from pathlib import Path
 
 import crawler
+import runtime_settings
 
 
 CONFIG_FILE = Path(__file__).parent / "crawler_config.json"
 
 
 def _load_config() -> dict:
+    stored = runtime_settings.get_json("crawler_config")
+    if isinstance(stored, dict):
+        return stored
     if not CONFIG_FILE.exists():
         return {"enabled": False}
     try:

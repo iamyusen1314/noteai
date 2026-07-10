@@ -1,6 +1,166 @@
 # Current Task Handoff
 
-Last updated: 2026-07-07
+Last updated: 2026-07-10
+
+## 2026-07-10 Stage Update - Render Deployment Preparation Implemented
+
+### Original Goal
+
+Prepare NoteAI for a Render staging migration without deploying or changing remote resources: identify the real service topology, replace single-host/local-file assumptions, add safe PostgreSQL migration and model-loading paths, verify the Docker image, and give the non-technical product owner an exact Render Dashboard guide.
+
+### Current Status
+
+#### 已完成
+
+- Added `render.yaml` for 5 services plus PostgreSQL: Static Site, Docker API, Docker Admin, market-timing Cron, tracking Cron, and Render PostgreSQL.
+- Added PostgreSQL support through Psycopg while retaining isolated local SQLite compatibility.
+- Added four versioned PostgreSQL migrations covering product data, admin/shared settings, market timing/analysis, and XHS freshness.
+- Moved admin sessions, managed Prompts, model registry state, crawler config, crawler cookies, and crawler logs away from process-local/filesystem-only state into the shared database for cloud operation.
+- Moved PostgreSQL market timing, XHS freshness, analysis log, and creator learning data to shared PostgreSQL so Cron and API read the same evidence.
+- Added readiness/liveness endpoints that check database, V0.4, and required AI configuration without exposing secret values.
+- Added Render-aware `PORT`, graceful shutdown, one-worker defaults, non-root Docker execution, `.dockerignore`, and missing LightGBM `libgomp1` runtime dependency.
+- Added runtime frontend API configuration and a static Render build script.
+- Added six-hour persistent video-frame cache support for upload-to-diagnosis restart recovery.
+- Added private Amazon S3 model download with SHA256 verification; public model buckets are not required.
+- Locked cloud model train/deploy mutations unless explicitly enabled, so immutable release images remain authoritative.
+- Added guarded SQLite-to-PostgreSQL import tooling. Dry-run is default; apply requires exact destination database confirmation and does not overwrite existing primary keys.
+- Added deployment-specific tests and a non-programmer Render guide.
+- No Render resource, production deployment, production DB write, or real secret mutation was performed.
+- The user approved creating and pushing one deployment-preparation checkpoint on `codex/quality-stabilization-real-chain`; this approval does not include merging or creating Render/AWS resources.
+
+#### 进行中
+
+- None in code. This deployment-preparation stage is implemented and verified locally.
+
+#### 未完成
+
+- Confirm GitHub CI is green for the pushed deployment-preparation checkpoint.
+- Create Render resources from the Blueprint.
+- Manually enter Render Secrets.
+- Upload the four V0.4 release files to a private S3 path if Render Git LFS checkout is insufficient.
+- Trigger the first market-timing Cron and prove fresh real XHS evidence in Render.
+- Optionally import selected local test data after a separate backup/apply approval.
+- Run full post-deploy acceptance with real staging URLs and test accounts.
+
+#### 不确定 / 待确认
+
+- Whether the user will use private S3 immediately or first rely on Render's Git LFS checkout.
+- Whether `NOTEAI_XHS_DOWNLOADER_URL` will be available; without it, Playwright collection may be affected by XHS anti-automation controls.
+- Whether the Free PostgreSQL plan is acceptable for the entire test period; it expires after 30 days and has no backups.
+- Whether the current branch will be merged to `main` or deployed directly as the staging branch.
+
+### Files Touched
+
+#### Frontend
+
+- `NoteAI_Pro_Demo_Framer.html`: load `runtime-config.js` and use cloud API base instead of hard-coded host/port outside localhost.
+- `runtime-config.js`: safe local default for frontend API runtime injection.
+- `scripts/build_render_frontend.sh`: create Render static output and generated API runtime config.
+
+#### Backend / API
+
+- `model/api.py`: V0.4 startup gate, shared PostgreSQL timing/learning paths, liveness/readiness, XHS evidence enforcement, persistent video-frame cache, local DB path isolation.
+- `model/admin_server.py`: shared Prompt/registry/crawler state, cloud model mutation lock, secret-prefix removal, PostgreSQL-aware system status, admin health endpoints.
+- `model/admin_auth.py`: database-backed admin sessions.
+- `model/prompt_manager.py`: shared database Prompt loading and default seeding.
+- `model/runtime_settings.py`: new shared JSON settings helper.
+- `model/crawler.py`, `model/crawler_worker.py`, `model/scheduler_a.py`, `model/xhs_acquisition.py`, `model/hot_keywords.py`: shared cloud config/cookies/logs/trend/freshness data and PostgreSQL SQL compatibility.
+
+#### Database
+
+- `model/db.py`: SQLite/PostgreSQL dispatch, Psycopg-compatible rows, explicit migrations, advisory lock, health check, isolated SQLite path.
+- `model/migrations/postgres/0001_initial.sql`: product/user/billing/content tables.
+- `model/migrations/postgres/0002_shared_runtime_state.sql`: admin sessions, Prompts, settings.
+- `model/migrations/postgres/0003_market_timing.sql`: trends, analysis, creator learning, crawler events.
+- `model/migrations/postgres/0004_xhs_freshness.sql`: XHS health/freshness ledger.
+- `scripts/render_predeploy.py`: explicit guarded PostgreSQL migration command.
+- `scripts/migrate_sqlite_to_postgres.py`: dry-run-first, non-overwriting application data import.
+
+#### Config / Deployment
+
+- `Dockerfile`: resilient dependency install, Chromium, `libgomp1`, non-root user, Render scripts, healthcheck.
+- `.dockerignore`: excludes secrets, local DB/data, training data, tests, docs, and non-production model artifacts from image context.
+- `.gitignore`: ignores generated `dist/`.
+- `render.yaml`: Render staging topology and non-secret settings; sensitive values use `sync: false`.
+- `model/.env.example`: variable names for cloud DB, readiness, video cache, private S3, and cloud mutation lock.
+- `model/requirements.txt`: adds Psycopg and Boto3.
+- `model/artifact_loader.py`: private S3 download before optional public/base URL fallback, with existing SHA256 enforcement.
+- `scripts/render_start_api.sh`, `scripts/render_start_admin.sh`: Render `PORT`, workers, graceful shutdown, optional migration-on-start.
+- `scripts/render_run_market_timing.sh`, `scripts/render_run_crawler.sh`: one-shot Cron entrypoints.
+
+#### Tests / Docs
+
+- `tests/test_render_deployment.py`: shared state, admin sessions, Prompt seeding, video recovery, PostgreSQL SQL conversion, migration dry-run, Blueprint declarations.
+- `docs/RENDER_DEPLOYMENT_GUIDE.md`: full Render Dashboard, S3, variables, first run, migration, acceptance, and rollback guide.
+- `docs/MODEL_ARTIFACT_CLOUD_STRATEGY.md`: private S3 strategy and least-privilege IAM guidance.
+- `AGENTS.md`, `.codex/notes/architecture-summary.md`, `.codex/notes/risk-register.md`, this handoff: durable engineering memory.
+
+### Key Decisions
+
+- Use mixed deployment: Render Static Site for frontend; Docker for API/Admin/Cron because Chromium, OpenCV, LightGBM, and exact system libraries are required.
+- Do not use Redis in staging; no existing queue/cache contract requires it.
+- Use PostgreSQL as the only cross-service state authority. Local SQLite remains a development compatibility path.
+- Keep one API worker while video cache uses an attached disk; the disk prevents horizontal scale and zero-downtime deploys, acceptable only for staging.
+- Keep trend freshness as a hard delivery gate. Baseline evidence may populate tables but cannot impersonate required fresh XHS evidence.
+- Keep model release immutable in cloud. Admin train/deploy is locked; update code/image/manifest/S3 release together.
+- Prefer private S3 with read-only IAM for model artifacts. Do not make a commercial model bucket public.
+- Free PostgreSQL is staging-only because it expires and has no backups.
+- Data import never overwrites destination primary keys and excludes sessions/secrets by default.
+
+### Known Bugs
+
+- No known deployment-preparation code failure remains after local verification.
+- Real Render XHS collection success is unknown until the Cron runs from Singapore; this is an external operational dependency, not proven locally.
+
+### Known Risks
+
+- Fresh real XHS evidence can remain unavailable due platform anti-automation/network restrictions; core delivery intentionally returns 503 rather than fabricate timing evidence.
+- Free PostgreSQL expires after 30 days and has no backup.
+- API disk prevents zero-downtime deploy and horizontal scaling.
+- Admin is a public Free web service protected only by its independent bearer login; use a strong unique password and consider paid IP restrictions before production.
+- A future SQL query can work on SQLite and fail on PostgreSQL unless tested against disposable PostgreSQL.
+- The repository is public; S3/AWS/AI secrets must only live in Render Secrets.
+- Real payment callback/reconciliation is still not confirmed and remains a production-launch blocker separate from staging deployment.
+
+### Verification Status
+
+- `python -m py_compile model/*.py scripts/*.py`: passed.
+- `sh -n scripts/*.sh`: passed.
+- Full isolated unit suite: passed, 271 tests.
+- Deployment-specific suite: passed, 6 tests.
+- Playwright e2e: passed, 3 tests.
+- `npm audit --audit-level=moderate`: passed, 0 vulnerabilities.
+- `tools/production_readiness_gate.py`: passed, 48/48.
+- `tools/quality_gate.py quality/golden_notes.sample.json`: passed expected contracts.
+- `docker compose config --quiet`: passed.
+- Static Render frontend build with a non-secret example API URL: passed.
+- Docker image build: passed after adding `libgomp1`; build context about 6.9 MB.
+- Docker API smoke: liveness/readiness 200, V0.4 loaded, artifact checks passed, non-root container healthy.
+- Disposable PostgreSQL: migrations applied 4, second run applied 0; shared settings/admin session/hot keywords/XHS ledger passed.
+- PostgreSQL market timing baseline/read/compute path: passed.
+- API and Admin simultaneously connected to disposable PostgreSQL: both `/health/ready` returned 200 and Docker health was healthy.
+- Render CLI schema validation: not run because Render CLI is not installed. `render.yaml` parsed as YAML, uses fields checked against current official Blueprint docs, and deployment tests assert resource declarations.
+- No side-effect commands remain running; temporary containers/network/image and Colima were stopped/removed.
+
+### Next Steps
+
+1. 下一步目标：confirm GitHub CI is green for the approved deployment-preparation checkpoint, then begin the manual Render Blueprint flow one screen at a time.
+2. 预计修改文件：none for CI review; any CI fix must be separately scoped and verified before another commit.
+3. 为什么要改：Render should consume one verified remote SHA, and rollback needs that SHA to remain identifiable.
+4. 风险：the checkpoint touches database, auth-session storage, crawler state, API startup, and Docker; do not deploy it if required CI checks fail.
+5. 验证方式：inspect the pushed commit and GitHub Actions results, then follow the staging acceptance checklist in `docs/RENDER_DEPLOYMENT_GUIDE.md`.
+6. 是否需要用户确认：the current checkpoint commit/push is approved; any merge, Render/AWS resource creation, paid plan, secret entry, migration apply, or deployment still requires explicit confirmation at the relevant step.
+
+After the checkpoint and CI, follow `docs/RENDER_DEPLOYMENT_GUIDE.md` one section at a time. Stop after each Render resource group and verify its success signal before proceeding.
+
+### Do Not Touch Without Approval
+
+- Real `.env` files, Render Secrets, AWS credentials, AI keys, map/Meituan tokens, XHS cookies.
+- Any real Render/AWS resource, plan upgrade, deploy, merge, or branch operation. Only the currently approved deployment-preparation checkpoint commit/push is exempt from this restriction.
+- `scripts/migrate_sqlite_to_postgres.py --apply` or any production/staging database write.
+- Billing/payment/quota semantics and real payment integration.
+- Model training, cloud model mutation lock, production registry/manifest, or model release artifacts.
+- Freshness hard gates, crawler policies, or external XHS access rules.
 
 ## 2026-07-07 Stage Update - Structured Chat Plan Options
 

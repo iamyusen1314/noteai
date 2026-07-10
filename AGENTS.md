@@ -11,11 +11,11 @@
 - Frontend framework: no confirmed frontend framework; current UI is a single static HTML/CSS/JavaScript file `NoteAI_Pro_Demo_Framer.html`.
 - Frontend libraries confirmed from code/dependencies: Three.js, ECharts, Lucide icons, Playwright for e2e tests.
 - Backend framework: FastAPI with Uvicorn.
-- Database: SQLite via Python stdlib `sqlite3`.
-- ORM / schema tool: none confirmed; schema and idempotent migrations are implemented manually in `model/db.py`.
+- Database: SQLite via Python stdlib `sqlite3` for local development; PostgreSQL via Psycopg for Render/cloud.
+- ORM / schema tool: none; local SQLite schema is implemented in `model/db.py`, and versioned PostgreSQL SQL migrations live under `model/migrations/postgres/`.
 - Package managers: `pip` for Python dependencies, `npm` for Node/Playwright dependencies.
 - Runtime: Python 3.11 in Docker/CI; local `.venv` also exists. Node.js is used for e2e tooling.
-- Deployment: Dockerfile, `docker-compose.yml`, GitHub Actions CI, Git LFS/model artifact strategy. Final production hosting provider is not fully confirmed.
+- Deployment: Dockerfile, `docker-compose.yml`, Render Blueprint `render.yaml`, GitHub Actions CI, private S3/Git LFS model artifact strategy. Current target is a Render staging environment.
 
 ## Common Commands
 
@@ -50,19 +50,22 @@ python -m py_compile model/*.py
 .venv/bin/python tools/quality_gate.py quality/golden_notes.sample.json
 .venv/bin/python tools/production_readiness_gate.py
 docker compose config --quiet
+NOTEAI_PUBLIC_API_BASE=https://api.example.invalid ./scripts/build_render_frontend.sh
+python scripts/migrate_sqlite_to_postgres.py
 ```
 
 Deployment-related commands:
 
 ```bash
 docker compose up --build
+python scripts/render_predeploy.py
 ```
 
-Run deployment, Docker service starts, DB-affecting actions, admin user adjustments, model deploy/train, crawler run, and billing/top-up mutation commands only after explicit user confirmation.
+`scripts/migrate_sqlite_to_postgres.py` is dry-run by default. Its `--apply` mode, `scripts/render_predeploy.py`, deployment, Docker service starts, DB-affecting actions, admin user adjustments, model deploy/train, crawler run, and billing/top-up mutation commands require explicit user confirmation.
 
 No confirmed lint, typecheck, or frontend build command exists in `package.json`.
 
-No standalone database migrate/generate/seed command is confirmed. Database schema creation and idempotent migrations are embedded in `model/db.py`; app startup or direct DB initialization may mutate local SQLite files.
+PostgreSQL migrations use `python scripts/render_predeploy.py`. There is no standalone seed command. Local SQLite initialization remains embedded in `model/db.py` and may mutate local SQLite files.
 
 ## Coding Rules
 

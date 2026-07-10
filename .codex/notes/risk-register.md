@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-07-02
+Last updated: 2026-07-10
 
 ## Critical Risks
 
@@ -20,12 +20,12 @@ Last updated: 2026-07-02
 - 建议验证方式: Auth contract tests for anonymous/user/admin paths, negative tests for admin endpoints without admin bearer token, manual admin login/logout smoke.
 - 是否需要用户确认后才能修改: yes.
 
-### Runtime SQLite schema changes damage data
+### Database migration or SQLite/PostgreSQL drift damages data
 
-- 风险描述: Schema and migrations are embedded in `model/db.py` and can run during app initialization. There is no confirmed migration framework or rollback plan.
-- 涉及文件: `model/db.py`, `model/hot_keywords.py`, runtime DB files under `model/data/`.
-- 可能后果: Data loss, incompatible columns, broken startup, inability to recover production DB.
-- 建议验证方式: Run migrations on a copy of production-like DB, inspect `PRAGMA table_info`, run API/admin smoke after migration.
+- 风险描述: Local SQLite and cloud PostgreSQL now share one helper surface but use different schema/migration paths. A new query can work locally and fail on PostgreSQL.
+- 涉及文件: `model/db.py`, `model/hot_keywords.py`, `model/migrations/postgres/`, `scripts/render_predeploy.py`, `scripts/migrate_sqlite_to_postgres.py`.
+- 可能后果: Data loss, incompatible columns, failed pre-deploy, broken API/Cron startup, partial data import if safeguards are bypassed.
+- 建议验证方式: Apply every migration twice to a disposable PostgreSQL, run shared-state/trend/API/admin container probes, back up before any guarded SQLite import.
 - 是否需要用户确认后才能修改: yes.
 
 ### Secrets or tokens leak into Git/logs
@@ -80,8 +80,8 @@ Last updated: 2026-07-02
 
 ### Model artifact loading and deployment are fragile
 
-- 风险描述: Production requires V0.4 artifacts and SHA/checks. Git LFS/object storage availability is deployment-platform dependent.
-- 涉及文件: `model/artifacts/`, `model/model_registry.json`, `scripts/fetch_model_artifacts.py`, `Dockerfile`, `scripts/docker_entrypoint.sh`, docs.
+- 风险描述: Production requires V0.4 artifacts and SHA checks. Git LFS availability is platform-dependent; private S3 credentials and object paths must be exact.
+- 涉及文件: `model/artifacts/`, `model/model_registry.json`, `model/artifact_loader.py`, `scripts/fetch_model_artifacts.py`, `Dockerfile`, `scripts/docker_entrypoint.sh`, docs.
 - 可能后果: Service starts with missing/legacy model, startup failure, wrong scoring behavior.
 - 建议验证方式: `python scripts/fetch_model_artifacts.py --check-only --required`, production readiness gate, container startup smoke.
 - 是否需要用户确认后才能修改: yes.
@@ -96,13 +96,21 @@ Last updated: 2026-07-02
 
 ## Medium Risks
 
-### `/health` model label is misleading
+### Render Free PostgreSQL expires and has no backups
 
-- 风险描述: `/health` currently reports `legacy_score_model` even when V0.4 loads.
-- 涉及文件: `model/api.py`.
-- 可能后果: Operators/user believe V0.4 is not active; monitoring is misleading.
-- 建议验证方式: Update health payload with actual model status and test it.
-- 是否需要用户确认后才能修改: yes during current handoff pause.
+- 风险描述: `render.yaml` intentionally uses Free PostgreSQL for staging. It expires after 30 days and does not include backups.
+- 涉及文件: `render.yaml`, `docs/RENDER_DEPLOYMENT_GUIDE.md`.
+- 可能后果: Test data becomes inaccessible and is eventually deleted if the database is not upgraded/exported.
+- 建议验证方式: Record creation date, configure a reminder, export important test data, and upgrade before using production-like records.
+- 是否需要用户确认后才能修改: yes, because plan upgrades create cost.
+
+### Video cache disk prevents zero-downtime API deploys
+
+- 风险描述: Staging API uses a 1GB Render disk for six-hour video frame recovery. Render cannot perform zero-downtime replacement for a disk-attached service and cannot scale it horizontally.
+- 涉及文件: `render.yaml`, `model/api.py`, `docs/RENDER_DEPLOYMENT_GUIDE.md`.
+- 可能后果: Brief deploy interruption, disk pressure if cleanup fails, and inability to scale beyond one API instance.
+- 建议验证方式: Upload/restart/recover smoke, disk usage monitoring, and replace the cache with object storage before horizontal scaling.
+- 是否需要用户确认后才能修改: yes.
 
 ### Fact enrichment can pollute delivery copy
 

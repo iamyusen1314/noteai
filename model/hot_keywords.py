@@ -16,8 +16,13 @@ from urllib.parse import quote
 import httpx
 import jieba
 
+import db as primary_db
+
 BASE_DIR = Path(__file__).parent
-DB_PATH = BASE_DIR / "data/hot_keywords.db"
+DB_PATH = Path(
+    os.environ.get("NOTEAI_HOT_KEYWORD_DB_PATH")
+    or (BASE_DIR / "data/hot_keywords.db")
+)
 FRESHNESS_MAX_HOURS = int(os.environ.get("NOTEAI_HOT_KEYWORD_FRESH_HOURS", "30") or 30)
 CLOUD_SNAPSHOT_URL = os.environ.get("NOTEAI_MARKET_TIMING_SNAPSHOT_URL", "").strip()
 CLOUD_REFRESH_URL = os.environ.get("NOTEAI_MARKET_TIMING_REFRESH_URL", "").strip()
@@ -114,7 +119,45 @@ def _domain_categories(domain: str | None) -> tuple[str, ...]:
     return _DOMAIN_CATEGORY_ALIASES.get(domain, (domain,))
 
 
+class _PostgresCompatConnection:
+    def __init__(self, connection):
+        self._connection = connection
+
+    @staticmethod
+    def _sql(sql: str) -> str:
+        return (
+            sql.replace("?", "%s")
+            .replace(
+                "MAX(search_vol, excluded.search_vol)",
+                "GREATEST(hot_keywords.search_vol, excluded.search_vol)",
+            )
+            .replace(
+                "MAX(sample_count, excluded.sample_count)",
+                "GREATEST(hot_keywords.sample_count, excluded.sample_count)",
+            )
+            .replace(
+                "MAX(quality_score, excluded.quality_score)",
+                "GREATEST(hot_keywords.quality_score, excluded.quality_score)",
+            )
+        )
+
+    def execute(self, sql: str, params=()):
+        return self._connection.execute(self._sql(sql), params)
+
+    def __enter__(self):
+        self._connection.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return self._connection.__exit__(exc_type, exc, tb)
+
+    def close(self):
+        self._connection.close()
+
+
 def _conn():
+    if primary_db.using_postgres():
+        return _PostgresCompatConnection(primary_db.get_conn())
     DB_PATH.parent.mkdir(exist_ok=True)
     c = sqlite3.connect(str(DB_PATH))
     c.row_factory = sqlite3.Row
@@ -182,6 +225,8 @@ def _ensure_hot_keyword_quality_columns(c: sqlite3.Connection) -> None:
 
 
 def init_db():
+    if primary_db.using_postgres():
+        return
     with _db_conn() as c:
         c.executescript(_INIT_SQL)
         _ensure_category_unique_schema(c)
@@ -1016,7 +1061,7 @@ def get_top_keywords(
             FROM hot_keywords
             WHERE captured_at > ?{category_where}
             GROUP BY keyword
-            ORDER BY (quality_score*0.65 + vol*0.35 + trend_dir*5) DESC
+            ORDER BY (MAX(quality_score)*0.65 + MAX(search_vol)*0.35 + MAX(trend_dir)*5) DESC
             LIMIT ?
             """,
             (since, *category_params, limit),
@@ -1042,7 +1087,7 @@ def get_top_keywords(
                     FROM hot_keywords
                     WHERE captured_date = ?{category_where}
                     GROUP BY keyword
-                    ORDER BY (quality_score*0.65 + vol*0.35 + trend_dir*5) DESC
+                    ORDER BY (MAX(quality_score)*0.65 + MAX(search_vol)*0.35 + MAX(trend_dir)*5) DESC
                     LIMIT ?
                     """,
                     (latest_date, *category_params, limit),
