@@ -152,6 +152,14 @@ Last updated: 2026-07-10
 - 建议验证方式: 管理端显示 `已验证 / 登录已失效 / 需要检查`；Render Cron 仅失败通知；每次重新登录后以真实采集证据验证，而不是只检查 Cookie 是否存在。
 - 是否需要用户确认后才能修改: 重新登录和替换 Cookie 需要用户确认；健康检测和无敏感值提醒可按现有方案维护。
 
+### XHS evidence can appear sufficient while source diversity is weak
+
+- 风险描述: 仅按关键词数量判断可能掩盖来源单一；旧日志还曾把 `search_phrase/search_token` 误计为 homefeed，并且搜索推荐/趋势接口未被稳定触发或解析。
+- 涉及文件: `model/scheduler_a.py`, `model/xhs_acquisition.py`, `model/market_timing_worker.py`, `model/admin_server.py`。
+- 可能后果: 市场时机证据数量达标但缺少用户主动搜索与趋势信号，降低报告可信度。
+- 建议验证方式: 每轮记录 `homefeed / search_result / search_recommend / hot_search` 独立数量及 API 响应指标；云端至少确认搜索结果和推荐来源非零，再评估是否增加来源多样性门禁。
+- 是否需要用户确认后才能修改: 观测与解析修复不需要；新增硬性来源门禁需要产品确认和生产样本校准。
+
 ## Low Risks
 
 ### `model/api.py` is too large

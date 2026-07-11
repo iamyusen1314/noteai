@@ -18,7 +18,7 @@ import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlparse
 
 import runtime_settings
 
@@ -148,11 +148,32 @@ def session_state_summary() -> dict:
 
 
 def _extract_keyword_from_item(item: dict) -> str | None:
-    for key in ("keyword", "word", "name", "text", "title"):
+    for key in ("keyword", "word", "search_word", "name", "text", "title"):
         v = item.get(key)
         if v and isinstance(v, str) and len(v) >= 2:
             return v.strip()
     return None
+
+
+def _source_breakdown(rows: list[dict]) -> dict[str, int]:
+    breakdown = {
+        "homefeed": 0,
+        "search_result": 0,
+        "search_recommend": 0,
+        "hot_search": 0,
+        "other": 0,
+    }
+    for row in rows:
+        source = str(row.get("source") or "")
+        if source in {"homefeed", "homefeed_phrase", "homefeed_token"}:
+            breakdown["homefeed"] += 1
+        elif source in {"search_phrase", "search_token"}:
+            breakdown["search_result"] += 1
+        elif source in {"search_recommend", "hot_search"}:
+            breakdown[source] += 1
+        else:
+            breakdown["other"] += 1
+    return breakdown
 
 
 def _extract_note_titles(payload) -> list[str]:
@@ -231,6 +252,7 @@ async def scrape_once() -> list[dict]:
     tag_counters: dict[str, Counter] = {name: Counter() for _, name in CHANNELS}
     hot_search_kws: dict[str, list[str]] = {name: [] for _, name in CHANNELS}
     search_recommend_kws: dict[str, list[str]] = {name: [] for name in SEARCH_SEEDS}
+    discovery_metrics: Counter = Counter()
 
     async with async_playwright() as pw:
         browser_args = [
@@ -273,10 +295,27 @@ async def scrape_once() -> list[dict]:
                     try:
                         data = await resp.json()
                         if "search/recommend" in url:
-                            for item in data.get("data", {}).get("sug_items", []) or []:
+                            items = data.get("data", {}).get("sug_items", []) or []
+                            discovery_metrics["recommend_responses"] += 1
+                            discovery_metrics["recommend_items"] += len(items)
+                            for item in items:
                                 kw = _extract_keyword_from_item(item) if isinstance(item, dict) else None
                                 if kw:
                                     search_recommend_kws.setdefault(channel_name, []).append(kw)
+                            return
+                        if "search/trending/query" in url:
+                            payload = data.get("data", {}) if isinstance(data, dict) else {}
+                            candidates = list(payload.get("queries") or [])
+                            candidates.extend(payload.get("ai_words") or [])
+                            hint_word = payload.get("hint_word")
+                            if isinstance(hint_word, dict):
+                                candidates.append(hint_word)
+                            discovery_metrics["trending_responses"] += 1
+                            discovery_metrics["trending_items"] += len(candidates)
+                            for item in candidates:
+                                kw = _extract_keyword_from_item(item) if isinstance(item, dict) else None
+                                if kw:
+                                    hot_search_kws.setdefault(channel_name, []).append(kw)
                             return
                         # 尝试常见结构
                         candidates = (
@@ -334,6 +373,17 @@ async def scrape_once() -> list[dict]:
             page.on("response", handler)
             try:
                 await page.goto(target_url, wait_until="domcontentloaded", timeout=25000)
+                if discovery_source == "search_discovery":
+                    try:
+                        seed = (parse_qs(urlparse(target_url).query).get("keyword") or [""])[0]
+                        search_input = page.locator('input[placeholder="搜索小红书"]').first
+                        await search_input.wait_for(state="visible", timeout=4000)
+                        await search_input.fill("")
+                        await search_input.type(seed, delay=35)
+                        discovery_metrics["search_inputs_typed"] += 1
+                    except Exception as exc:
+                        discovery_metrics["search_input_failures"] += 1
+                        log.warning(f"Search input {channel_name} error: {exc}")
                 await asyncio.sleep(settle_seconds)
                 for _ in range(max(1, scroll_rounds)):
                     await page.mouse.wheel(0, 700)
@@ -443,12 +493,21 @@ async def scrape_once() -> list[dict]:
         best_results.values(),
         key=lambda r: (r.get("category", ""), -int(r.get("search_vol", 0)), -int(r.get("source_priority", 0))),
     )
-    unique_homefeed_count = sum(1 for row in results if row.get("source") not in {"hot_search", "search_recommend"})
-    unique_hot_count = sum(1 for row in results if row.get("source") == "hot_search")
-    unique_recommend_count = sum(1 for row in results if row.get("source") == "search_recommend")
+    sources = _source_breakdown(results)
     log.info(
         f"Scraped {len(results)} keywords "
-        f"({unique_homefeed_count} homefeed, {unique_recommend_count} search_recommend, {unique_hot_count} hot_search)"
+        f"({sources['homefeed']} homefeed, {sources['search_result']} search_result, "
+        f"{sources['search_recommend']} search_recommend, {sources['hot_search']} hot_search, "
+        f"{sources['other']} other)"
+    )
+    log.info(
+        "Discovery API metrics "
+        f"recommend_responses={discovery_metrics['recommend_responses']} "
+        f"recommend_items={discovery_metrics['recommend_items']} "
+        f"trending_responses={discovery_metrics['trending_responses']} "
+        f"trending_items={discovery_metrics['trending_items']} "
+        f"search_inputs_typed={discovery_metrics['search_inputs_typed']} "
+        f"search_input_failures={discovery_metrics['search_input_failures']}"
     )
     return results
 

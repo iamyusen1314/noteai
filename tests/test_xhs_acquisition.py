@@ -136,6 +136,25 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         self.assertNotIn("secret-session", json.dumps(summary))
         self.assertNotIn("secret-device", json.dumps(summary))
 
+    def test_search_sources_are_reported_separately_from_homefeed(self):
+        breakdown = scheduler_a._source_breakdown([
+            {"source": "homefeed_phrase"},
+            {"source": "search_phrase"},
+            {"source": "search_token"},
+            {"source": "search_recommend"},
+            {"source": "hot_search"},
+        ])
+        self.assertEqual(breakdown["homefeed"], 1)
+        self.assertEqual(breakdown["search_result"], 2)
+        self.assertEqual(breakdown["search_recommend"], 1)
+        self.assertEqual(breakdown["hot_search"], 1)
+
+    def test_trending_search_word_is_a_keyword_candidate(self):
+        self.assertEqual(
+            scheduler_a._extract_keyword_from_item({"search_word": "家居收纳"}),
+            "家居收纳",
+        )
+
     def test_worker_xhs_required_exports_baseline_with_warning(self):
         original_db = hot_keywords.DB_PATH
         original_scrape_once = market_timing_worker.scrape_once

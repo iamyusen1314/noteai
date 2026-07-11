@@ -124,6 +124,13 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("page.mouse.wheel(0, 700)", source)
         self.assertNotIn('page.evaluate("window.scrollBy(0, 700)")', source)
 
+    def test_market_timing_explicitly_triggers_and_parses_search_discovery(self):
+        source = (MODEL_DIR / "scheduler_a.py").read_text(encoding="utf-8")
+        self.assertIn('input[placeholder="搜索小红书"]', source)
+        self.assertIn('"search/trending/query"', source)
+        self.assertIn('payload.get("queries")', source)
+        self.assertIn('payload.get("ai_words")', source)
+
     def test_sqlite_migration_defaults_to_count_only_and_excludes_sessions(self):
         counts = migrate_sqlite_to_postgres.source_counts(db._DB_PATH)
         self.assertIn("users", counts)

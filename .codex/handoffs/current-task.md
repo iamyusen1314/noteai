@@ -5804,7 +5804,12 @@ This list reflects current Git status during handoff. Some files were modified b
 - 已完成：管理端 Cookie 状态从“只要存在即有效”改为 `待验证 / 已验证 / 登录已失效 / 需要检查`。
 - 已完成：外层仍保留 `XHS_FRESH_EVIDENCE_UNAVAILABLE` 兼容错误码，并附加登录态具体原因。
 - 已完成：语法、定向、全量、Docker、前端构建和生产就绪门禁验证。
-- 进行中：提交推送、Render Blueprint 同步、Cron 新版本实跑和失败通知检查。
+- 已完成：提交 `35db6a5` 推送当前分支；两条 GitHub CI 均通过；Render Blueprint 自动同步并完成构建。
+- 已完成：新版本 Cron 实跑抓取 96 条，管理端将 Cookie 标记为“已验证（18条）”，最近验证时间来自真实采集。
+- 已完成：Render 工作区通知核对为 `Email + Only failure notifications`；本轮证据未达门禁后以 status 1 退出，能够触发失败提醒。
+- 已完成：用户决定不等待 11:05，10:46:51 手动触发第二轮；抓取 123 条并确认跨轮去重累计生效。
+- 第二轮累计结果：美食 13、旅行 23、穿搭 16、美妆 20、家居 7、健身 15；仅家居仍低于 12 条门禁。
+- 进行中：等待 11:05 自动轮次补齐家居证据；10:54 手动轮次已结束，但不在 11:05 前再次手动触发，避免与定时任务并发。
 
 ### Files Touched
 
@@ -5832,7 +5837,13 @@ This list reflects current Git status during handoff. Some files were modified b
 - `docker compose config --quiet`: passed。
 - `NOTEAI_PUBLIC_API_BASE=https://api.example.invalid ./scripts/build_render_frontend.sh`: passed。
 - `.venv/bin/python tools/production_readiness_gate.py`: 48 checks passed，0 failed。
-- 尚待：推送后 GitHub CI、Render Blueprint 同步、至少一轮新代码 Cron、管理端状态刷新、Render 失败通知确认。
+- GitHub CI: 两条 workflow 均 passed。
+- Render Blueprint: commit `35db6a5` 已自动同步，Cron/Admin/Web 构建或部署完成。
+- Render API `/health/ready`: ready；PostgreSQL、V0.4、Claude、Moonshot 均通过。
+- Render Admin `/health/ready`: ready；管理凭证和 PostgreSQL 均通过。
+- Static Site: HTTP 200，安全响应头生效。
+- Post-deploy Cron: 抓取 96 条；因这是新去重账本首轮，六行业暂未达到 12 条，按设计硬失败并触发 Render 失败通知。
+- 尚待：11:05 自动轮次补齐家居 7/12，并验证首次成功 Cron。
 
 ### Next Steps
 
@@ -5850,3 +5861,28 @@ This list reflects current Git status during handoff. Some files were modified b
 - 不把 baseline 数据计为真实 XHS 新鲜证据。
 - 不修改认证、支付、积分、数据库 schema/migration 或模型产物。
 - 不 stage 三个本机 Git LFS 表现异常的 `.lgb` 文件。
+
+## 2026-07-11 XHS 搜索推荐与趋势来源修复
+
+### Problem
+
+- Render 日志显示 `123 homefeed, 0 search_recommend, 0 hot_search`。
+- 进一步审查确认日志把 `search_phrase/search_token` 错误归入 homefeed，因此来源统计本身不可信。
+- 搜索结果页仅通过 URL 直接打开，云端不保证触发搜索框联想接口。
+- XHS 趋势接口 `/api/sns/web/v1/search/trending/query` 返回 `queries / ai_words / hint_word.search_word`，旧解析器未识别这些字段。
+
+### Fix
+
+- `model/scheduler_a.py` 在每个搜索页显式清空并输入搜索种子，可靠触发推荐与趋势接口。
+- 解析 `search_word`、`queries`、`ai_words` 和 `hint_word`。
+- 日志拆分为 `homefeed / search_result / search_recommend / hot_search / other`，不再把搜索结果误报为首页流。
+- 增加无敏感值的 Discovery API 诊断指标：响应数、候选数、输入成功/失败数。
+- 新增来源拆分与趋势字段解析测试。
+
+### Verification
+
+- 云端等价本地探针（低内存、单目标会话、仅 Cookie、关闭 jieba token）单个“美食探店”种子：`25 total = 10 search_result + 3 search_recommend + 12 hot_search`。
+- Discovery API：recommend 1 response / 10 items；trending 1 response / 13 items；search input 1 success / 0 failures。
+- 定向测试：26 passed。
+- 全量 unittest：280 passed。
+- 尚待：提交推送、Render 构建、云端 Cron 来源分布实测。
