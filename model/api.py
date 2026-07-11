@@ -13887,6 +13887,185 @@ def _extract_note_from_response(text: str) -> tuple[str, str] | None:
     return None
 
 
+_CHAT_REMOVE_INTENT_RE = re.compile(
+    r"(?:删除|删掉|去掉|移除|剔除|不要再?(?:写|出现|保留)?|别再?(?:写|出现|保留)?|不能再?出现)"
+)
+_CHAT_DURATION_CLAIM_RE = re.compile(
+    r"(?<!\d)(?:\d+(?:\.\d+)?|半|一|两|三|四|五|六|七|八|九|十|几十)\s*(?:秒钟?|分钟|小时|天|周|个月|月|年)"
+)
+
+
+def _chat_normalize_constraint_text(value: str | None) -> str:
+    return re.sub(r"\s+", "", str(value or "")).strip().lower()
+
+
+def _build_chat_turn_constraint_contract(
+    user_msg: str,
+    previous_body: str,
+    fact_context: str = "",
+) -> dict[str, Any]:
+    """Extract only explicit, deterministic per-turn removal requirements."""
+    message = str(user_msg or "").strip()
+    previous = str(previous_body or "")
+    if not message or not _CHAT_REMOVE_INTENT_RE.search(message):
+        return {
+            "schema": "chat.turn.v1",
+            "forbidden_terms": [],
+            "protected_terms": [],
+            "remove_duration_claims": False,
+        }
+
+    candidates: list[str] = []
+    # Keep extraction local to the clause containing the removal intent so a
+    # different clause such as “不要太广告，保留20分钟” is not inverted.
+    for segment in re.split(r"[，,。！？!?\n]", message):
+        if not _CHAT_REMOVE_INTENT_RE.search(segment):
+            continue
+        for match in re.finditer(r"[“\"'「『](.{1,48}?)[”\"'」』]", segment):
+            candidates.append(match.group(1).strip())
+        candidates.extend(match.group(0).strip() for match in _CHAT_DURATION_CLAIM_RE.finditer(segment))
+        for match in re.finditer(r"(?:请)?(?:把|将)(.{1,48}?)(?:删除|删掉|去掉|移除|剔除)", segment):
+            candidates.append(match.group(1).strip())
+
+    clause_re = re.compile(
+        r"(?:删除|删掉|去掉|移除|剔除|不要再?(?:写|出现|保留)?|别再?(?:写|出现|保留)?|不能再?出现)"
+        r"([^。！？!?\n]{1,120})"
+    )
+    for match in clause_re.finditer(message):
+        clause = re.split(r"(?:不要|别再?|不能|请|这些|上述)(?:写|出现|保留)?", match.group(1), maxsplit=1)[0]
+        for part in re.split(r"[、，,；;\/]|以及|还有|和|与|及", clause):
+            candidate = re.sub(r"^(?:把|将|正文中|文中|里面|其中|所有|全部)", "", part.strip())
+            candidate = re.sub(r"(?:等|这些|相关|说法|内容|表述|断言)+$", "", candidate).strip(" ：:")
+            if candidate:
+                candidates.append(candidate)
+
+    evidence_text = "\n".join(part for part in [previous, str(fact_context or "")] if part)
+    evidence_normalized = _chat_normalize_constraint_text(evidence_text)
+    protected_terms: list[str] = []
+    retain_re = re.compile(r"(?:保留|不要删(?:除|掉)?|别删(?:除|掉)?|继续保留|确认保留)")
+    confirmed_re = re.compile(r"(?:已确认|确认过|已核验|真实事实|用户已提供|用户提供的|明确提供)")
+    for segment in re.split(r"[，,。！？!?\n]", message):
+        if not retain_re.search(segment) or not confirmed_re.search(segment):
+            continue
+        protected_candidates = [match.group(0).strip() for match in _CHAT_DURATION_CLAIM_RE.finditer(segment)]
+        protected_candidates.extend(
+            match.group(1).strip()
+            for match in re.finditer(r"[“\"'「『](.{1,48}?)[”\"'」』]", segment)
+        )
+        for term in protected_candidates:
+            normalized = _chat_normalize_constraint_text(term)
+            if normalized and normalized in evidence_normalized and normalized not in {
+                _chat_normalize_constraint_text(item) for item in protected_terms
+            }:
+                protected_terms.append(term)
+
+    protected_normalized = {_chat_normalize_constraint_text(item) for item in protected_terms}
+    forbidden_terms: list[str] = []
+    for candidate in candidates:
+        term = candidate.strip(" \t\r\n，,。；;：:、")
+        normalized = _chat_normalize_constraint_text(term)
+        if not normalized or len(normalized) > 48:
+            continue
+        if normalized in protected_normalized:
+            continue
+        if normalized not in evidence_normalized and not _CHAT_DURATION_CLAIM_RE.fullmatch(term):
+            continue
+        if normalized not in {_chat_normalize_constraint_text(item) for item in forbidden_terms}:
+            forbidden_terms.append(term)
+
+    remove_duration_claims = bool(
+        re.search(r"(?:删除|删掉|去掉|移除|不要|别写|不能出现)[^。！？\n]{0,24}(?:具体)?(?:时长|时间数字)", message)
+    )
+    return {
+        "schema": "chat.turn.v1",
+        "forbidden_terms": forbidden_terms,
+        "protected_terms": protected_terms,
+        "remove_duration_claims": remove_duration_claims,
+    }
+
+
+def _chat_filter_source_for_turn_contract(source: str, contract: dict | None) -> str:
+    filtered = str(source or "")
+    protected = {
+        _chat_normalize_constraint_text(item)
+        for item in ((contract or {}).get("protected_terms") or [])
+    }
+    for term in (contract or {}).get("forbidden_terms") or []:
+        chars = [re.escape(char) for char in str(term) if not char.isspace()]
+        if chars:
+            filtered = re.sub(r"\s*".join(chars), "", filtered, flags=re.IGNORECASE)
+    if (contract or {}).get("remove_duration_claims"):
+        filtered = _CHAT_DURATION_CLAIM_RE.sub(
+            lambda match: match.group(0)
+            if _chat_normalize_constraint_text(match.group(0)) in protected
+            else "",
+            filtered,
+        )
+    return re.sub(r"[、，,]{2,}", "，", filtered).strip()
+
+
+def _chat_fact_source_for_turn(session: dict, contract: dict | None) -> str:
+    source = session.get("fact_context") or session.get("note_body", "")
+    return _chat_filter_source_for_turn_contract(source, contract)
+
+
+def _chat_turn_constraint_violations(title: str, body: str, contract: dict | None) -> list[str]:
+    combined = _chat_normalize_constraint_text(f"{title}\n{body}")
+    violations: list[str] = []
+    for term in (contract or {}).get("forbidden_terms") or []:
+        if _chat_normalize_constraint_text(term) in combined:
+            violations.append(str(term))
+    if (contract or {}).get("remove_duration_claims"):
+        protected = {
+            _chat_normalize_constraint_text(item)
+            for item in ((contract or {}).get("protected_terms") or [])
+        }
+        for match in _CHAT_DURATION_CLAIM_RE.finditer(f"{title}\n{body}"):
+            if _chat_normalize_constraint_text(match.group(0)) not in protected:
+                violations.append(f"duration_claim:{match.group(0)}")
+    return list(dict.fromkeys(violations))
+
+
+def _chat_turn_constraint_brief(contract: dict | None) -> str:
+    parts: list[str] = []
+    terms = (contract or {}).get("forbidden_terms") or []
+    if terms:
+        parts.append("最终标题和正文不得出现用户本轮明确删除的内容：" + "、".join(terms))
+    if (contract or {}).get("remove_duration_claims"):
+        protected = (contract or {}).get("protected_terms") or []
+        exception = f"；明确确认保留的例外：{'、'.join(protected)}" if protected else ""
+        parts.append(f"最终标题和正文不得保留其他具体时长数字{exception}")
+    return "；".join(parts)
+
+
+def _positive_int_or_none(value: Any) -> int | None:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _chat_authoritative_note_version(session: dict) -> int | None:
+    runtime_version = _positive_int_or_none(session.get("note_version"))
+    if runtime_version is not None:
+        return runtime_version
+    note_id = session.get("_last_note_id") or session.get("note_id")
+    user_id = session.get("user_id") or ""
+    if note_id and user_id:
+        try:
+            note_row = _fetch_user_note(note_id, user_id)
+        except Exception:
+            note_row = None
+        if note_row:
+            return _positive_int_or_none(note_row["version"])
+        # A bound note without a readable authoritative row must not be
+        # mislabeled as v1.
+        return None
+    iteration = _positive_int_or_none(session.get("iteration_count")) or 0
+    return iteration + 1
+
+
 async def _score_chat_note(
     title: str,
     body: str,
@@ -13902,7 +14081,7 @@ async def _score_chat_note(
             timing=None,
             cover_feats=None,
         )
-        fact_source = session.get("fact_context") or session.get("note_body", "")
+        fact_source = session.get("_turn_fact_source") or session.get("fact_context") or session.get("note_body", "")
         intent_source = _content_intent_brief(
             domain,
             session.get("content_intent"),
@@ -14038,6 +14217,8 @@ async def _repair_chat_note_if_needed(
 ) -> tuple[str, str, float | None, dict[str, float], str, list[str], bool]:
     score, feats, grade, issues = await _score_chat_note(title, body, session)
     domain = session.get("domain", "美食")
+    fact_source = session.get("_turn_fact_source") or session.get("fact_context") or session.get("note_body", "")
+    turn_constraint_brief = str(session.get("_turn_constraint_brief") or "").strip()
     if score is None:
         return title, body, score, feats, grade, issues, False
     previous_score = session.get("current_score")
@@ -14049,7 +14230,6 @@ async def _repair_chat_note_if_needed(
     if regressed:
         issues = list(dict.fromkeys(issues + [_chat_score_regression_issue(previous_score_f, score)]))
     if not _has_blocking_quality_issues(score, issues, domain):
-        fact_source = session.get("fact_context") or session.get("note_body", "")
         needs_v04_lift = _needs_v04_score_lift(score, feats, domain, fact_source)
         if _score_gap_issue_count(issues) <= 0 and not needs_v04_lift and not regressed:
             return title, body, score, feats, grade, issues, False
@@ -14091,8 +14271,10 @@ async def _repair_chat_note_if_needed(
         "你必须在尊重用户意图的前提下修复质量问题，不能解释，不能输出XML以外内容。\n\n",
         f"{_get_quality_contract(domain)}\n\n",
         f"{_get_feature_governance_brief(domain)}\n\n",
-        f"{_build_generation_planning_brief(domain, title, session.get('fact_context') or body, '对话质量修复规划')}\n",
+        f"{_build_generation_planning_brief(domain, title, fact_source or body, '对话质量修复规划')}\n",
     ]
+    if turn_constraint_brief:
+        repair_parts.append(f"【本轮删除约束】\n{turn_constraint_brief}\n\n")
     intent_section = _content_intent_brief(
         domain,
         session.get("content_intent"),
@@ -14127,9 +14309,9 @@ async def _repair_chat_note_if_needed(
         if not repaired:
             return title, body, score, feats, grade, issues, False
         r_title, r_body = repaired
-        fact_source = session.get("fact_context") or session.get("note_body", "")
         r_title = _sanitize_title_for_delivery(r_title, fact_source, domain)
-        r_body = await _shape_body_for_delivery(r_title, r_body, domain, fact_source, "对话优化修复")
+        repair_shape_hint = "对话优化修复" + (f"；{turn_constraint_brief}" if turn_constraint_brief else "")
+        r_body = await _shape_body_for_delivery(r_title, r_body, domain, fact_source, repair_shape_hint)
         r_score, r_feats, r_grade, r_issues = await _score_chat_note(r_title, r_body, session)
         if r_score is None:
             return title, body, score, feats, grade, issues, False
@@ -14243,6 +14425,11 @@ async def _chat_sse_generator(
 
     use_thinking = _should_use_thinking(user_msg)
     signal = _detect_learning_signal(user_msg)
+    turn_contract = _build_chat_turn_constraint_contract(
+        user_msg,
+        session.get("note_body", ""),
+        session.get("fact_context", ""),
+    )
 
     system_prompt = _build_chat_system_prompt(session)
     history = session.get("messages", [])[-20:]
@@ -14307,10 +14494,9 @@ async def _chat_sse_generator(
         yield f"data: {_json.dumps({'type': 'error', 'data': str(exc)}, ensure_ascii=False)}\n\n"
         return
 
-    session["messages"].append({"role": "assistant", "content": full_content})
-
     plan_options = await _build_chat_plan_options(session, full_content)
     if plan_options:
+        session["messages"].append({"role": "assistant", "content": full_content})
         session["pending_plan_options"] = plan_options
         option_summary = "\n".join(
             f"方案{item.get('id')}: {item.get('title')}（{item.get('score') if item.get('score') is not None else '未评分'}分）"
@@ -14329,17 +14515,33 @@ async def _chat_sse_generator(
     note_extracted = None if plan_options else _extract_note_from_response(full_content)
     quality_blocking = False
     final_explanation_event: dict[str, Any] | None = None
+    pending_note_update: dict[str, Any] | None = None
+    canonical_response_event: dict[str, Any] | None = None
+    achievement_items = None
     if note_extracted:
         previous_note_title = session.get("note_title", "")
         previous_note_body = session.get("note_body", "")
         previous_note_score = session.get("current_score")
+        previous_note_id = session.get("_last_note_id") or session.get("note_id")
+        previous_note_version = _chat_authoritative_note_version(session)
+        if previous_note_version is not None:
+            session["note_version"] = previous_note_version
+        previous_iteration_count = int(session.get("iteration_count", 0) or 0)
+        previous_grade = _grade(float(previous_note_score)) if previous_note_score is not None else ""
+        fact_source = _chat_fact_source_for_turn(session, turn_contract)
+        turn_constraint_brief = _chat_turn_constraint_brief(turn_contract)
+        repair_session = dict(session)
+        repair_session["_turn_fact_source"] = fact_source
+        repair_session["_turn_constraint_brief"] = turn_constraint_brief
         yield f"data: {_json.dumps(_safe_process_event('process_update', phase='verify', agent='quality', status_code='note_quality_checked', reason_codes=['quality_gate_checked'], facts={}), ensure_ascii=False)}\n\n"
         new_title, new_body = note_extracted
-        fact_source = session.get("fact_context") or session.get("note_body", "")
         new_title = _sanitize_title_for_delivery(new_title, fact_source, session.get("domain", "美食"))
-        new_body = await _shape_body_for_delivery(new_title, new_body, session.get("domain", "美食"), fact_source, "对话优化")
+        shape_hint = "对话优化" + (f"；{turn_constraint_brief}" if turn_constraint_brief else "")
+        new_body = await _shape_body_for_delivery(
+            new_title, new_body, session.get("domain", "美食"), fact_source, shape_hint
+        )
         new_title, new_body, new_score, score_feats, grade_str, quality_issues, repaired = await _repair_chat_note_if_needed(
-            new_title, new_body, session, user_msg
+            new_title, new_body, repair_session, user_msg
         )
         guarded_title, guarded_body, guard_changed = _apply_user_constraint_hard_guards(
             new_title,
@@ -14349,8 +14551,11 @@ async def _chat_sse_generator(
         )
         if guard_changed:
             new_title, new_body = guarded_title, guarded_body
-            new_score, score_feats, grade_str, quality_issues = await _score_chat_note(new_title, new_body, session)
+            new_score, score_feats, grade_str, quality_issues = await _score_chat_note(
+                new_title, new_body, repair_session
+            )
             repaired = True
+        constraint_violations = _chat_turn_constraint_violations(new_title, new_body, turn_contract)
         quality_blocking = (
             new_score is None or _has_blocking_quality_issues(new_score, quality_issues, session.get("domain", "美食"))
         )
@@ -14358,30 +14563,32 @@ async def _chat_sse_generator(
             yield f"data: {_json.dumps({'type': 'quality_repaired', 'score': round(new_score, 1) if new_score else None, 'issues': quality_issues[:5]}, ensure_ascii=False)}\n\n"
         if quality_blocking:
             yield f"data: {_json.dumps({'type': 'quality_warning', 'message': '本次对话重写仍未达到交付标准，已提示继续优化，暂不自动保存到作品库。', 'score': round(new_score, 1) if new_score else None, 'issues': quality_issues[:6]}, ensure_ascii=False)}\n\n"
-        session["note_title"] = new_title
-        session["note_body"]  = new_body
-        session["iteration_count"] = session.get("iteration_count", 0) + 1
-        if new_score is not None:
-            session["current_score"] = new_score
 
         # ── 自动保存笔记版本到 notes 表 ─────────────────────────────────
         user_id_for_save = session.get("user_id", "")
         saved_note_id_for_event = None
         saved_note_version_for_event = None
-        achievement_items = None
         unchanged_after_repair = (
             (new_title or "").strip() == (previous_note_title or "").strip()
             and re.sub(r"\s+", "", new_body or "") == re.sub(r"\s+", "", previous_note_body or "")
         )
-        if user_id_for_save and not quality_blocking and not unchanged_after_repair:
+        canonical_status = "saved"
+        if constraint_violations:
+            canonical_status = "constraint_failed"
+        elif quality_blocking:
+            canonical_status = "quality_failed"
+        elif unchanged_after_repair:
+            canonical_status = "unchanged"
+        elif not user_id_for_save:
+            canonical_status = "save_failed"
+
+        if canonical_status == "saved":
             try:
-                # 找上一个版本的 note_id（存在 session 中）
-                prev_note_id = session.get("_last_note_id")
                 new_note_id = str(_uuid.uuid4())
                 next_version = _next_note_version(
-                    prev_note_id,
+                    previous_note_id,
                     user_id_for_save,
-                    int(session.get("iteration_count", 1) or 1),
+                    previous_iteration_count + 1,
                 )
                 import datetime as _dt_mod2
                 _db.execute(
@@ -14389,20 +14596,33 @@ async def _chat_sse_generator(
                     " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                     (new_note_id, user_id_for_save, new_title, new_body,
                      session.get("domain", "美食"), new_score, grade_str,
-                     "chat", prev_note_id,
+                     "chat", previous_note_id,
                      next_version,
                      _dt_mod2.datetime.now(_dt_mod2.timezone.utc).isoformat()),
                 )
+                # notes INSERT is the commit point. Only now may the in-memory
+                # current note advance to the same canonical object.
                 session["_last_note_id"] = new_note_id
                 session["note_id"] = new_note_id
                 session["note_version"] = next_version
+                session["note_title"] = new_title
+                session["note_body"] = new_body
+                session["iteration_count"] = previous_iteration_count + 1
+                if new_score is not None:
+                    session["current_score"] = new_score
                 saved_note_id_for_event = new_note_id
                 saved_note_version_for_event = next_version
-                # 写成长记录
+            except Exception:
+                canonical_status = "save_failed"
+
+        if canonical_status == "saved":
+            # Growth/memory writes are best-effort follow-up records. A failure
+            # here must not hide an already committed canonical note version.
+            try:
                 if new_score:
                     _db.execute(
                         "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
-                        (str(_uuid.uuid4()), user_id_for_save, new_note_id,
+                        (str(_uuid.uuid4()), user_id_for_save, saved_note_id_for_event,
                          session.get("domain","美食"), new_score, grade_str,
                          "chat_optimize", _dt_mod2.datetime.now(_dt_mod2.timezone.utc).isoformat()),
                     )
@@ -14417,12 +14637,24 @@ async def _chat_sse_generator(
                     )
             except Exception:
                 pass
+
+        saved = canonical_status == "saved"
+        canonical_title = new_title if saved else previous_note_title
+        canonical_body = new_body if saved else previous_note_body
+        canonical_score = new_score if saved else previous_note_score
+        canonical_grade = grade_str if saved else previous_grade
+        canonical_note_id = saved_note_id_for_event if saved else previous_note_id
+        canonical_version = saved_note_version_for_event if saved else previous_note_version
         final_context_msg = (
             "【系统记录：当前最终稿】\n"
-            f"标题：{new_title}\n"
-            f"评分：{round(new_score, 1) if new_score else '未评分'}\n"
-            f"版本：v{saved_note_version_for_event or session.get('note_version') or session.get('iteration_count', 1)}\n"
-            "说明：以上为后端评分/修复后的当前最终稿。若前文有方案A/B/C草稿，后续问答以这条最终稿为准。"
+            f"标题：{canonical_title}\n"
+            f"评分：{round(canonical_score, 1) if canonical_score is not None else '未评分'}\n"
+            f"版本：v{canonical_version if canonical_version is not None else '?'}\n"
+            + (
+                "说明：以上版本已完成后端评分、最终约束检查并保存，后续问答以此为准。"
+                if saved
+                else "说明：本轮没有保存新版本，后续问答继续以上一正式版本为准。"
+            )
         )
         session.setdefault("messages", []).append({"role": "assistant", "content": final_context_msg})
         explanation_reasons = ["final_note_processed", "quality_gate_checked"]
@@ -14430,30 +14662,78 @@ async def _chat_sse_generator(
             explanation_reasons.append("quality_gate_repair")
         if guard_changed:
             explanation_reasons.append("constraint_guard_applied")
-        if saved_note_id_for_event:
+        if saved:
             explanation_reasons.append("note_version_saved")
         final_explanation_event = _safe_process_event(
             "final_explanation",
-            phase="save" if saved_note_id_for_event else "verify",
+            phase="save" if saved else "verify",
             agent="chat",
-            status_code="note_version_saved" if saved_note_id_for_event else "response_finalized",
+            status_code="note_version_saved" if saved else "response_finalized",
             reason_codes=explanation_reasons,
             facts={
                 "score_before": float(previous_note_score) if previous_note_score is not None else None,
-                "score_after": float(new_score) if new_score is not None else None,
-                "title_changed": (new_title or "").strip() != (previous_note_title or "").strip(),
-                "body_delta_chars": len(new_body or "") - len(previous_note_body or ""),
+                "score_after": float(canonical_score) if canonical_score is not None else None,
+                "title_changed": (canonical_title or "").strip() != (previous_note_title or "").strip(),
+                "body_delta_chars": len(canonical_body or "") - len(previous_note_body or ""),
                 "issue_count": len(quality_issues),
                 "repaired": bool(repaired),
                 "constraint_guard_applied": bool(guard_changed),
-                "saved": bool(saved_note_id_for_event),
-                "version": int(saved_note_version_for_event) if saved_note_version_for_event is not None else None,
+                "saved": saved,
+                "version": int(canonical_version) if canonical_version is not None else None,
                 "session_persisted": True,
             },
         )
-        yield f"data: {_json.dumps({'type': 'note_update', 'title': new_title, 'body': new_body, 'score': round(new_score, 1) if new_score else None, 'grade': grade_str, 'quality_issues': quality_issues, 'saved_note_id': saved_note_id_for_event, 'saved_note_version': saved_note_version_for_event}, ensure_ascii=False)}\n\n"
-        if achievement_items:
-            yield f"data: {_json.dumps({'type': 'achievement', 'items': achievement_items}, ensure_ascii=False)}\n\n"
+        if saved:
+            pending_note_update = {
+                "type": "note_update",
+                "title": canonical_title,
+                "body": canonical_body,
+                "score": round(canonical_score, 1) if canonical_score is not None else None,
+                "grade": canonical_grade,
+                "quality_issues": quality_issues,
+                "saved_note_id": canonical_note_id,
+                "saved_note_version": canonical_version,
+            }
+        canonical_response_event = {
+            "type": "canonical_response",
+            "status": canonical_status,
+            "saved": saved,
+            "title": canonical_title,
+            "body": canonical_body,
+            "score": round(canonical_score, 1) if canonical_score is not None else None,
+            "grade": canonical_grade,
+            "saved_note_id": canonical_note_id,
+            "saved_note_version": canonical_version,
+            "turn_constraint": turn_contract,
+        }
+    elif not plan_options:
+        turn_contract_active = bool(
+            turn_contract.get("forbidden_terms") or turn_contract.get("remove_duration_claims")
+        )
+        if turn_contract_active:
+            previous_score = session.get("current_score")
+            previous_version = _chat_authoritative_note_version(session)
+            if previous_version is not None:
+                session["note_version"] = previous_version
+            previous_note_id = session.get("_last_note_id") or session.get("note_id")
+            canonical_response_event = {
+                "type": "canonical_response",
+                "status": "no_final_note",
+                "saved": False,
+                "title": session.get("note_title", ""),
+                "body": session.get("note_body", ""),
+                "score": round(float(previous_score), 1) if previous_score is not None else None,
+                "grade": _grade(float(previous_score)) if previous_score is not None else "",
+                "saved_note_id": previous_note_id,
+                "saved_note_version": previous_version,
+                "turn_constraint": turn_contract,
+            }
+            session["messages"].append({
+                "role": "assistant",
+                "content": "【系统记录：本轮未形成可保存的最终笔记，继续保留上一正式版本。】",
+            })
+        else:
+            session["messages"].append({"role": "assistant", "content": full_content})
 
     # Handle learning signals
     user_id = session.get("user_id", "")
@@ -14481,6 +14761,12 @@ async def _chat_sse_generator(
 
     # ── 持久化更新 session ────────────────────────────────────────────
     session_persisted = _persist_chat_session(session_id)
+    if pending_note_update:
+        yield f"data: {_json.dumps(pending_note_update, ensure_ascii=False)}\n\n"
+    if canonical_response_event:
+        yield f"data: {_json.dumps(canonical_response_event, ensure_ascii=False)}\n\n"
+    if achievement_items:
+        yield f"data: {_json.dumps({'type': 'achievement', 'items': achievement_items}, ensure_ascii=False)}\n\n"
     if session_persisted:
         if final_explanation_event:
             yield f"data: {_json.dumps(final_explanation_event, ensure_ascii=False)}\n\n"
@@ -14616,6 +14902,7 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
             "user_prefs":       _json.loads(row["user_prefs_json"] or "{}"),
             "note_id":          note_id,
             "_last_note_id":    note_id,
+            "note_version":     _positive_int_or_none(note_row["version"]) if note_row else None,
             "generate_context": gen_ctx,
             "user_constraints": constraints,
             "constraint_contract": _constraint_contract_payload(constraints),
@@ -14865,9 +15152,16 @@ async def chat_start(
     # 只信任 JWT 认证用户，不接受前端传入 user_id 作为身份依据
     effective_user_id = user["id"]
     initial_note_id = (req.note_id or "").strip() or None
+    initial_note_row = None
     if initial_note_id:
-        if not _fetch_user_note(initial_note_id, effective_user_id):
+        initial_note_row = _fetch_user_note(initial_note_id, effective_user_id)
+        if not initial_note_row:
             raise HTTPException(status_code=404, detail="笔记不存在或无权访问")
+    initial_note_version = (
+        _positive_int_or_none(initial_note_row["version"])
+        if initial_note_row is not None
+        else 1
+    )
     user_prefs = _get_user_learn(effective_user_id) if effective_user_id else {}
 
     # 注入用户记忆（越用越懂你）
@@ -14914,6 +15208,7 @@ async def chat_start(
         "iteration_count":  0,
         "note_id":          initial_note_id,
         "_last_note_id":    initial_note_id,
+        "note_version":     initial_note_version,
         "user_prefs":       user_prefs,
         "mem_prompt":       mem_prompt,        # 注入的用户记忆
         "user_constraints": normalized_constraints,

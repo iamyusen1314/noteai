@@ -9110,6 +9110,9 @@ function chatHandleEvent(ev) {
       chatAppendContent(ev.data || '');
       break;
     }
+    case 'canonical_response':
+      chatRenderCanonicalResponse(ev);
+      break;
     case 'note_update':
       if (ev.saved_note_id || ev._saved_note_id) {
         _chatParentNoteId = ev.saved_note_id || ev._saved_note_id;
@@ -9360,6 +9363,55 @@ function chatAppendContent(t) {
   }
   _chatAiText += t;
   _chatAiBubble.innerHTML = chatMD(_chatAiText);
+  chatScrollBottom();
+}
+function chatRenderCanonicalResponse(ev) {
+  const typingInd = document.getElementById('chatTypingIndicator');
+  if (typingInd) typingInd.remove();
+  if (!_chatAiBubble) {
+    const row = document.createElement('div');
+    row.className = 'cmsg ai';
+    const avatar = document.createElement('div');
+    avatar.className = 'cmsg-av';
+    avatar.textContent = 'AI';
+    const bubble = document.createElement('div');
+    bubble.className = 'cmsg-bubble';
+    row.append(avatar, bubble);
+    document.getElementById('chat-messages').appendChild(row);
+    _chatAiBubble = bubble;
+  }
+
+  const version = _numOrNull(ev.saved_note_version);
+  const score = _numOrNull(ev.score);
+  let summary = '';
+  if (ev.saved) {
+    summary = `已完成最终校验并保存为 v${version || '?'}${score !== null ? `，评分 ${formatScoreValue(score)} 分` : ''}。右侧当前笔记与正式保存版本一致。`;
+  } else if (ev.status === 'constraint_failed') {
+    summary = '本次修改未通过最终约束检查，已保留上一正式版本，未保存新版本。';
+  } else if (ev.status === 'quality_failed') {
+    summary = '本次修改未达到交付质量要求，已保留上一正式版本，未保存新版本。';
+  } else if (ev.status === 'unchanged') {
+    summary = '本次结果与当前正式版本一致，因此没有重复保存新版本。';
+  } else if (ev.status === 'no_final_note') {
+    summary = '本次回复未形成可保存的最终笔记，已保留上一正式版本，未保存新版本。';
+  } else {
+    summary = '本次修改未能保存，已保留上一正式版本，未保存新版本。';
+  }
+
+  _chatAiBubble.replaceChildren();
+  const summaryEl = document.createElement('div');
+  summaryEl.textContent = summary;
+  _chatAiBubble.appendChild(summaryEl);
+  if (ev.saved) {
+    const titleEl = document.createElement('div');
+    titleEl.style.cssText = 'margin-top:8px;font-weight:700';
+    titleEl.textContent = ev.title || '';
+    const bodyEl = document.createElement('div');
+    bodyEl.style.cssText = 'margin-top:6px;white-space:pre-wrap';
+    bodyEl.textContent = ev.body || '';
+    _chatAiBubble.append(titleEl, bodyEl);
+  }
+  _chatAiText = [summary, ev.saved ? ev.title : '', ev.saved ? ev.body : ''].filter(Boolean).join('\n\n');
   chatScrollBottom();
 }
 function chatAppendNoteUpdatedMsg(score, grade, version) {

@@ -315,7 +315,7 @@
 - 风险级别：High；错误 timeout 可能中断仍在运行的付费任务，过度日志可能泄露内容或增加存储成本。
 - 涉及模块：`model/api.py`, `model/model_router.py`, `NoteAI_Pro_Demo_Framer.html`, usage/日志与相关 tests。
 - 根因：部分确认；`_emit_progress()` 未附带阶段时间，外部模型只记录零散 elapsed 日志，前端没有统一 SSE stall 计时器。实际各阶段瓶颈占比尚未确认。
-- 修改状态/进度：只读调查中；未修改 timeout、SSE 协议、日志或模型调用策略。
+- 修改状态/进度：`PERF-001A` 已完成统一 timing envelope、保守 stall 告警和离线统计基础；父任务仍保留真实 P50/P95 与原子终态可靠性。BUG-003 独立验证新增边界：notes 已提交但 chat session 持久化失败时正式版本不丢，然而服务重启后的对话上下文可能落后一轮；若连接恰在流式草稿与 `canonical_response` 之间断开，页面可能暂时保留草稿。该问题应与结果恢复/终态协议统一治理，不在 BUG-003 中扩大修改。
 - 下一步：QA Investigator 定义 stall、断流和恢复的最小失败用例；Explorer 核对事件链和 provider timeout；Test Finder 确定协议兼容与统计测试；真实 P50/P95 样本数量和费用在执行前单独批准。
 - 验收标准：所有主要事件包含可验证的总耗时/阶段耗时且保持向后兼容；mock SSE 静默和断流能恢复 UI、不重复扣费；统计工具对固定样本准确输出 P50/P95；真实指标只在样本量、费用和数据范围获批后发布。
 - 真实外部服务：本地 mock 不需要；真实 P50/P95 需要受控 Claude/Kimi 样本并会产生费用。
@@ -362,7 +362,7 @@
 - 涉及文件：`model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`, `render.yaml`, `tests/test_xhs_acquisition.py`, `tests/test_api_contracts.py`, `tests/test_render_deployment.py`；不改 selector、Cookie、UA/viewport 或验证码处理。
 - 风险：继续高频搜索会增加 Cron 成本并加重挑战；激进指纹规避可能违反平台安全边界。
 - 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：独立 QA/Render Reviewer。
-- 修改状态/进度：最小修复已实施并通过第二轮独立验证。首轮验证发现 `/admin/xhs/health` 删除既有 `error_summary/details` 且可能清空安全错误码；修正为保留旧字段结构、固定摘要映射和严格 details 白名单。最终证据：相关 194/194、全量 unittest 311/311、前端静态 16/16、Python 编译、Compose 和 diff check 均通过；HTTP 200 challenge 首目标熔断、homefeed 保留、冷却零搜索浏览器、6 小时边界、半开探针和默认兼容均通过。commit `878787b` 已部署。18:05 首个自然轮次 `b281661a-…` 在线验证 planned=12/started=0/completed=0/skipped=12、circuit=cooldown；保留 homefeed 109、hot_search 120，Cron 成功结束且 Cookie 未误报。仍需再观察 1–2 个自然轮次；该证据只证明安全降级生效，不代表 search/recommend 来源恢复。
+- 修改状态/进度：最小修复已实施并通过第二轮独立验证。首轮验证发现 `/admin/xhs/health` 删除既有 `error_summary/details` 且可能清空安全错误码；修正为保留旧字段结构、固定摘要映射和严格 details 白名单。最终证据：相关 194/194、全量 unittest 311/311、前端静态 16/16、Python 编译、Compose 和 diff check 均通过；HTTP 200 challenge 首目标熔断、homefeed 保留、冷却零搜索浏览器、6 小时边界、半开探针和默认兼容均通过。commit `878787b` 已部署。18:05 自然轮次 `b281661a-…` 验证 cooldown 零搜索启动并保留 homefeed/hot_search；21:10 `46863376-…` 与 22:10 `e9ef2b10-…` 又连续明确报告 degraded，后者 homefeed=49、hot_search=72、search_result=0、search_recommend=0。最新单轮未被累计 freshness 伪装成绿色，但搜索来源仍未恢复，任务继续保持 READY_TO_VERIFY，不手工追加采集。
 - 验收标准：不绕过安全控制；挑战出现时及时停止/退避并给出稳定状态；若采用安全恢复策略，至少连续 2–3 个自然轮次恢复 search/recommend 健康阈值，否则明确降级而不浪费全轮成本。
 - 是否需要用户决定：技术默认采用 Staging 6 小时冷却、Cron 继续成功但明确 degraded；不自动重新登录、不减少长期行业覆盖。如后续要改 hard fail 或每行业 seed 数再单独决策。
 - 是否涉及真实外部调用：最终验证需要自然 Cron；不再手工连续触发。
@@ -370,18 +370,19 @@
 
 ### SEC-002 — 保留可解释 Agent 思考体验并隔离原始 reasoning
 
-- 状态：**READY_TO_VERIFY**（本地实施完成，等待独立验证）
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：产品必须保留“AI Agents 为什么这样做”的可解释过程；当前实现却把供应商原始 thinking/reasoning 逐字展示并在 Chat 长期持久化，无法区分可交付决策说明与内部中间草稿。
 - 证据：2026-07-11 Staging 真实生成与重写均可见完整 reasoning；未在消息中复制敏感值。
 - 根因是否确认：是；Claude `thinking_delta` 和 Kimi `reasoning_content` 被 Router 原样转成 SSE，Generate/Chat 前端完整展示；Chat 还将 `reasoning_content` 写入 `chat_sessions.messages_json` 并在加载时恢复。未发现跨用户读取或应用主动写日志，但浏览器、网络和数据库暴露已确认。
 - 涉及文件：`model/api.py`, `NoteAI_Pro_Demo_Framer.html`, Chat session/notes persistence 与 tests。
 - 风险：泄露内部 prompt/推理、扩大 Prompt Injection 影响、保存不必要敏感内容；若只隐藏内容又会破坏产品的可信、可解释体验。
-- 执行代理：Security Reviewer + Repository/UX Explorer（只读调查）；验证代理：Test Finder + 独立 Security/QA。
+- 执行代理：Security Reviewer + Repository/UX Explorer（只读调查）及单一 Repository Explorer（实施）；验证代理：独立 Security/QA Verification Agent。
+- 修改状态/进度：已以最小兼容方案完成。模型仍可内部推理，但 Generate/Chat 的公开 SSE 只转发最终正文与 `process.v1` 白名单结构化解释；旧 `thinking_*` 事件在前端被丢弃；Chat 不再累积或持久化 `reasoning_content`；只有最终候选、修复、评分和保存结果确定后才发出对应解释，保存失败不宣称“已保存”。本地独立验证：SEC/API/frontend static 169/169、全量 unittest 348/348（5 skip）、Playwright 8/8、py_compile/diff check 通过；provider sentinel 未进入 SSE、DOM、HTML、浏览器存储、内存 session、数据库或 stderr。Render Staging 独立只读复核通过：API/Admin readiness HTTP 200，线上 Web 含安全解释与两处旧 reasoning 丢弃保护，不含“完整展示”承诺。
 - 验收标准：页面继续实时展示各 Agent 的观察、依据、分歧、取舍、决定和最终修改原因；任何 provider `thinking_delta/reasoning_content` 原文、系统 Prompt、中间草稿或敏感哨兵不进入 SSE、DOM、session、数据库或日志；数据库只保留安全结构化决策说明；最终说明必须与实际保存/展示的最终版本一致，Claude/Kimi fallback 不回退。
 - 是否需要用户决定：否；2026-07-11 产品负责人明确要求保留可解释 Agent 思考体验，同时控制原始 reasoning 泄露与长期持久化。历史 Staging 原始 reasoning 清理仍单独执行：先只统计受影响行数，不读取内容，再制定可回滚脱敏方案。
 - 是否涉及真实外部调用：调查与 mock 不需要。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：是；commit `7c52b6f`。Web/API/Admin 均完成部署，API 日志确认 `migrations_applied=0`、启动完成并连续 readiness 200；本轮未调用真实 AI、未新增付费或业务数据。历史 Staging reasoning 未批量清理，只会在记录被读取并重新持久化时净化；模型 HTML/raw 暴露继续由 `SEC-003` 独立处理。
 
 ### SEC-003 — 模型输出 HTML 注入与诊断 raw 字段暴露
 
@@ -400,18 +401,19 @@
 
 ### BUG-003 — 对话重写回复与保存版本不一致
 
-- 状态：**READY_TO_FIX**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：用户要求删除未经提供的具体时长和效果断言；AI 最终回复声称已删除，但保存的第 2 版仍包含“20分钟、吃不出柴感、半小时”等内容，且评分从 75.3 降至 74.1。
 - 证据：2026-07-11 Staging 单次真实 `chat_rewrite` 可稳定观察到回复文本与“当前笔记第2版”不一致；扣费 3 积分正常。
-- 根因是否确认：是（根因类别已确认）；聊天气泡先展示未后处理的模型原始回复，而保存版本经过 shape/repair/二修等另一条路径，且保存前没有验证“用户要求删除的内容在最终正文中确实消失”。前端字段错配、parser 回退和整版分数回退已基本排除；具体是哪一次后处理重新引入旧内容不影响最小修复边界。
+- 根因是否确认：是；聊天气泡先展示未后处理的模型原始回复，而保存版本随后经过 shape/repair/二修形成另一份对象；无独立 `fact_context` 时旧正文还被当作事实来源，可能把本轮要求删除的表达重新引入；保存前没有本轮删除约束的确定性验证，notes 写入异常也会被静默吞掉。前端字段错配、parser 回退和整版分数回退已排除；75.3→74.1 属于现有最多下降 2 分政策允许范围，不在本包改变评分策略。
 - 涉及文件：`model/api.py`, Chat generator/parser、notes version persistence、前端事件处理与 tests。
 - 风险：用户以为约束已执行但实际发布稿未变，属于交付正确性缺陷。
-- 执行代理：Repository Explorer + QA Investigator；验证代理：独立 QA。
+- 执行代理：Repository Explorer + QA Investigator（只读调查），单一 Repository Explorer（实施）；验证代理：独立 QA Verification Agent。
+- 修改状态/进度：2026-07-11 三方只读复核后完成最小实施。Chat 新增本轮删除约束、事实源过滤、所有后处理后的最终约束检查与 `canonical_response`；只有 notes 保存成功后才更新 session、发送 `note_update` 和成功说明，失败时保留上一版；前端以安全 DOM/textContent 替换冲突草稿气泡。首轮独立验证发现历史 session 把实际 DB v5 错报为 v1、通用删除时长误伤明确保留的已确认 `30分钟` 两个阻断；修正后由同一独立代理重放通过。最终独立证据：BUG-003/SEC-002/Chat/付费幂等定向 22/22、全量 unittest 355/355（5 skip）、Playwright 10/10、Production Readiness 48/48、py_compile 与 diff check 全部通过；成功路径 canonical/note_update/notes INSERT/session 字段一致，约束、质量、无 `<note>` 和 notes INSERT 失败均不创建或宣称新版本。未修改 billing/idempotency、schema/migration、模型路由、多候选语义或评分政策；未调用真实 AI。
 - 验收标准：最终回复、当前笔记和持久化版本使用同一正文；禁止项不再出现；评分与版本号一致；只扣一次。
 - 是否需要用户决定：否。
 - 是否涉及真实外部调用：本地 mock 不需要；最终 Staging 复验可用 1 次获批真实重写。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：否；本地独立验证已完成，等待提交、推送和 Render Staging 增量 Smoke。
 
 ### QA-003 — 人工 UI 上传与关键页面回归
 
