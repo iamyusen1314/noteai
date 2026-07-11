@@ -1464,7 +1464,10 @@ def _annotate_market_timing(timing: dict | None) -> dict | None:
         try:
             domain = str(enriched.get("domain") or "").strip()
             overview = _xhs_acq.freshness_overview([domain] if domain else None)
-            recent_health = _xhs_acq.recent_health(limit=3, domain=domain) if domain else _xhs_acq.recent_health(limit=3)
+            recent_health = (
+                _xhs_acq.public_recent_health(limit=3, domain=domain)
+                if domain else _xhs_acq.public_recent_health(limit=3)
+            )
             xhs_summary = {
                 "ok": bool(overview.get("ok")),
                 "required": bool(overview.get("required")),
@@ -10608,6 +10611,13 @@ async def market_timing_freshness(user: dict = Depends(_auth.get_current_user)):
             "available": False,
             "ok": None,
             "status": "unknown",
+        }),
+        "access_status": overview.get("access_status", "normal"),
+        "access_error_code": overview.get("access_error_code", ""),
+        "challenge_cooldown": overview.get("challenge_cooldown", {
+            "active": False,
+            "last_challenge_at": "",
+            "remaining_seconds": 0,
         }),
         "domains": [
             {

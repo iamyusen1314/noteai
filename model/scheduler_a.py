@@ -10,12 +10,14 @@ NoteAI Pro — Scheduler A: XHS Hot Keywords Scraper
 """
 import argparse
 import asyncio
+import contextvars
 import json
 import logging
 import os
 import re
 import time
 from collections import Counter
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import parse_qs, quote, urlparse
@@ -48,6 +50,7 @@ SEARCH_SETTLE_SECONDS = float(os.environ.get("NOTEAI_XHS_SEARCH_SETTLE_SECONDS",
 TOKEN_DISCOVERY_ENABLED = os.environ.get("NOTEAI_XHS_TOKEN_DISCOVERY", "1").strip().lower() not in {"0", "false", "no"}
 LOW_MEMORY_BROWSER = os.environ.get("NOTEAI_XHS_LOW_MEMORY_BROWSER", "0").strip().lower() in {"1", "true", "yes"}
 BROWSER_TARGETS_PER_SESSION = max(0, int(os.environ.get("NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION", "0") or 0))
+STOP_ON_CHALLENGE = os.environ.get("NOTEAI_XHS_STOP_ON_CHALLENGE", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 # 覆盖全部主流品类，确保热词多样性
 CHANNELS = [
@@ -86,6 +89,8 @@ DISCOVERY_DIAGNOSTIC_ERROR_CODES = frozenset({
     "search_input_not_visible",
     "search_input_type_failed",
     "search_target_failed",
+    "search_targets_skipped_after_challenge",
+    "challenge_cooldown_active",
     "search_response_not_seen",
     "search_response_non_json",
     "search_candidates_empty",
@@ -104,7 +109,7 @@ DISCOVERY_DIAGNOSTIC_ERROR_CODES = frozenset({
     "scrape_once_failed",
 })
 _DIAGNOSTIC_FIELDS = {
-    "targets": ("planned", "started", "completed"),
+    "targets": ("planned", "started", "completed", "skipped"),
     "navigation": ("ok", "failed"),
     "input": ("found", "visible", "typed", "failed"),
     "search": (
@@ -118,6 +123,21 @@ _DIAGNOSTIC_FIELDS = {
 }
 _RESPONSE_STATUS_CLASSES = ("2xx", "3xx", "4xx", "5xx", "unknown")
 _FINAL_PAGE_CLASSES = ("search", "explore", "login", "challenge", "other")
+_CIRCUIT_STATES = ("closed", "open", "cooldown")
+_CIRCUIT_SKIPPED_REASONS = ("", "challenge_detected", "challenge_cooldown_active")
+_SEARCH_CIRCUIT_CONTEXT: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "noteai_xhs_search_circuit",
+    default=None,
+)
+
+
+@contextmanager
+def search_circuit_context(value: dict | None):
+    token = _SEARCH_CIRCUIT_CONTEXT.set(dict(value or {}))
+    try:
+        yield
+    finally:
+        _SEARCH_CIRCUIT_CONTEXT.reset(token)
 
 
 class ScrapeResults(list):
@@ -137,6 +157,7 @@ def new_discovery_diagnostics() -> dict:
         },
         "response_status_class": {key: 0 for key in _RESPONSE_STATUS_CLASSES},
         "final_page_class": {key: 0 for key in _FINAL_PAGE_CLASSES},
+        "circuit": {"state": "closed", "skipped_reason": ""},
         "diagnostic_error_codes": [],
     }
 
@@ -177,6 +198,11 @@ def sanitize_discovery_diagnostics(value: dict | None) -> dict:
                 safe[section][field] = 0
     for code in raw.get("diagnostic_error_codes") or []:
         _diagnostic_add_error(safe, str(code))
+    raw_circuit = raw.get("circuit") if isinstance(raw.get("circuit"), dict) else {}
+    state = str(raw_circuit.get("state") or "closed")
+    reason = str(raw_circuit.get("skipped_reason") or "")
+    safe["circuit"]["state"] = state if state in _CIRCUIT_STATES else "closed"
+    safe["circuit"]["skipped_reason"] = reason if reason in _CIRCUIT_SKIPPED_REASONS else ""
     return safe
 
 
@@ -493,6 +519,13 @@ async def scrape_once() -> list[dict]:
     search_recommend_kws: dict[str, list[str]] = {name: [] for name in SEARCH_SEEDS}
     discovery_metrics: Counter = Counter()
     discovery_diagnostics = new_discovery_diagnostics()
+    requested_circuit = _SEARCH_CIRCUIT_CONTEXT.get() or {}
+    requested_state = str(requested_circuit.get("state") or "closed")
+    circuit_state = requested_state if STOP_ON_CHALLENGE and requested_state in _CIRCUIT_STATES else "closed"
+    discovery_diagnostics["circuit"]["state"] = circuit_state
+    if circuit_state == "cooldown":
+        discovery_diagnostics["circuit"]["skipped_reason"] = "challenge_cooldown_active"
+        _diagnostic_add_error(discovery_diagnostics, "challenge_cooldown_active")
 
     async with async_playwright() as pw:
         browser_args = [
@@ -631,9 +664,10 @@ async def scrape_once() -> list[dict]:
             discovery_source: str,
             settle_seconds: float,
             scroll_rounds: int,
-        ) -> None:
+        ) -> str:
             handler = make_on_response(channel_name, discovery_source)
             page.on("response", handler)
+            page_class = "other"
             if discovery_source == "search_discovery":
                 _diagnostic_inc(discovery_diagnostics, "targets", "started")
             try:
@@ -641,6 +675,9 @@ async def scrape_once() -> list[dict]:
                     await page.goto(target_url, wait_until="domcontentloaded", timeout=25000)
                     if discovery_source == "search_discovery":
                         _diagnostic_inc(discovery_diagnostics, "navigation", "ok")
+                        page_class = _classify_final_page(getattr(page, "url", ""))
+                        if STOP_ON_CHALLENGE and page_class == "challenge":
+                            return page_class
                 except Exception:
                     if discovery_source == "search_discovery":
                         _diagnostic_inc(discovery_diagnostics, "navigation", "failed")
@@ -670,6 +707,7 @@ async def scrape_once() -> list[dict]:
                     await page.goto("about:blank", wait_until="commit", timeout=5000)
                 except Exception:
                     pass
+            return page_class
 
         targets = [
             (url, channel, "homefeed", CHANNEL_SETTLE_SECONDS, SCROLL_ROUNDS, "Channel")
@@ -686,6 +724,10 @@ async def scrape_once() -> list[dict]:
         targets_per_session = BROWSER_TARGETS_PER_SESSION or max(1, len(targets))
 
         for start in range(0, len(targets), targets_per_session):
+            target_batch = targets[start:start + targets_per_session]
+            if target_batch and all(item[2] == "search_discovery" for item in target_batch) and circuit_state in {"open", "cooldown"}:
+                _diagnostic_inc(discovery_diagnostics, "targets", "skipped", len(target_batch))
+                continue
             browser = await pw.chromium.launch(headless=True, args=browser_args)
             ctx = await browser.new_context(**ctx_kwargs)
             await ctx.route("**/*", block_heavy_assets)
@@ -694,11 +736,28 @@ async def scrape_once() -> list[dict]:
             )
             page = await ctx.new_page()
             try:
-                for target_url, channel_name, source, settle, scrolls, label in targets[
-                    start:start + targets_per_session
-                ]:
+                for target_url, channel_name, source, settle, scrolls, label in target_batch:
+                    if source == "search_discovery" and circuit_state in {"open", "cooldown"}:
+                        _diagnostic_inc(discovery_diagnostics, "targets", "skipped")
+                        continue
                     try:
-                        await scrape_target(page, target_url, channel_name, source, settle, scrolls)
+                        page_class = await scrape_target(
+                            page, target_url, channel_name, source, settle, scrolls
+                        )
+                        if (
+                            STOP_ON_CHALLENGE
+                            and source == "search_discovery"
+                            and page_class == "challenge"
+                        ):
+                            circuit_state = "open"
+                            discovery_diagnostics["circuit"].update({
+                                "state": "open",
+                                "skipped_reason": "challenge_detected",
+                            })
+                            _diagnostic_add_error(
+                                discovery_diagnostics,
+                                "search_targets_skipped_after_challenge",
+                            )
                     except Exception as exc:
                         error_code = (
                             "search_target_failed"

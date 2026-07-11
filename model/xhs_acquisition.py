@@ -9,11 +9,12 @@ freshness gate without pretending fallback rows are platform evidence.
 from __future__ import annotations
 
 import json
+import math
 import os
 import uuid
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -41,6 +42,26 @@ LATEST_RUN_SOURCE_BUCKETS = (
     "hot_search",
     "other",
 )
+
+ACCESS_STATUSES = frozenset({"normal", "challenge", "cooldown"})
+PUBLIC_HEALTH_ERROR_SUMMARIES = {
+    "": "",
+    "access_challenge_detected": "Search discovery stopped after an access challenge",
+    "access_challenge_cooldown_active": "Search discovery skipped during access challenge cooldown",
+    "auth_cookie_missing": "XHS authentication cookies are missing",
+    "cookie_expired": "XHS login session has expired",
+    "cookie_not_configured": "XHS login session is not configured",
+    "latest_run_no_evidence": "Latest run produced no XHS evidence",
+    "latest_run_search_result_missing": "Latest run is missing search result evidence",
+    "latest_run_search_recommend_missing": "Latest run is missing search recommendation evidence",
+    "latest_run_search_sources_missing": "Latest run is missing required search source evidence",
+    "latest_run_source_degraded": "Latest run source coverage is degraded",
+    "selector_changed": "Crawler selector validation failed",
+    "session_or_access_unavailable": "Configured XHS session returned no fresh evidence",
+    "sidecar_empty_or_error": "XHS downloader returned no usable detail",
+    "sidecar_not_configured": "XHS downloader sidecar is not configured",
+}
+PUBLIC_HEALTH_ERROR_CODES = frozenset(PUBLIC_HEALTH_ERROR_SUMMARIES)
 
 
 def _latest_run_source_bucket(source: str) -> str:
@@ -475,6 +496,19 @@ def record_scrape_freshness(
             safe_discovery_diagnostics = sanitize_discovery_diagnostics(discovery_diagnostics)
         except Exception:
             safe_discovery_diagnostics = {}
+    diagnostic_codes = set(safe_discovery_diagnostics.get("diagnostic_error_codes") or [])
+    circuit_state = str((safe_discovery_diagnostics.get("circuit") or {}).get("state") or "closed")
+    if "possible_access_challenge" in diagnostic_codes or circuit_state == "open":
+        access_status = "challenge"
+    elif circuit_state == "cooldown" or "challenge_cooldown_active" in diagnostic_codes:
+        access_status = "cooldown"
+    else:
+        access_status = "normal"
+    configured_cookie_valid = bool(
+        session.get("configured")
+        and session.get("auth_cookie_present")
+        and not session.get("auth_cookie_expired")
+    )
     for domain in target_domains:
         current_keys = set(domain_evidence_keys.get(domain, set()))
         conn = hot_keywords._conn()
@@ -507,6 +541,7 @@ def record_scrape_freshness(
             "latest_run_evidence_count": current_count,
             "session_configured": bool(session.get("configured")),
             "discovery_diagnostics": safe_discovery_diagnostics,
+            "access_status": access_status,
         }
         ledger.append(record_freshness(
             domain,
@@ -523,7 +558,17 @@ def record_scrape_freshness(
             key: value for key, value in details.items()
             if key != "evidence_keys"
         }
-        if current_count > 0:
+        if access_status == "challenge":
+            health_status = "degraded"
+            error_code = "access_challenge_detected"
+            error_summary = "Search discovery stopped after an access challenge"
+            risk_login = False
+        elif access_status == "cooldown":
+            health_status = "degraded"
+            error_code = "access_challenge_cooldown_active"
+            error_summary = "Search discovery skipped during access challenge cooldown"
+            risk_login = False
+        elif current_count > 0:
             if latest_source_health.get("ok") is False:
                 health_status = "degraded"
                 error_code = str(latest_source_health.get("error_code") or "latest_run_source_degraded")
@@ -554,12 +599,13 @@ def record_scrape_freshness(
             error_code = "session_or_access_unavailable"
             error_summary = scrape_error or "Configured XHS session returned 0 fresh evidence"
             risk_login = False
+        cookie_valid = bool(current_count > 0 or (access_status in {"challenge", "cooldown"} and configured_cookie_valid))
         record_health(CrawlerHealth(
             run_id=effective_run_id,
             adapter="scheduler_a",
             domain=domain,
             status=health_status,
-            profile_cookie_valid=current_count > 0,
+            profile_cookie_valid=cookie_valid,
             note_page_access_valid=current_count > 0,
             selector_valid=current_count > 0,
             risk_login_detected=risk_login,
@@ -659,12 +705,16 @@ def freshness_overview(domains: tuple[str, ...] | list[str] | None = None) -> di
     target_domains = tuple(domains or hot_keywords.CORE_EVIDENCE_DOMAINS)
     statuses = [freshness_status(domain) for domain in target_domains]
     missing = [row["domain"] for row in statuses if not row.get("ok")]
+    access = access_status_overview()
     return {
         "ok": not missing,
         "required": xhs_freshness_required(),
         "domains": statuses,
         "missing_domains": missing,
         "latest_run_source_health": latest_run_source_health(target_domains),
+        "access_status": access["access_status"],
+        "access_error_code": access["error_code"],
+        "challenge_cooldown": access["challenge_cooldown"],
     }
 
 
@@ -717,6 +767,193 @@ def recent_health(limit: int = 50, domain: str = "", adapter: str = "") -> list[
             "details": _parse_json_object(row["details_json"]),
         })
     return out
+
+
+def _checked_at_epoch(value: Any) -> float | None:
+    try:
+        parsed = datetime.fromisoformat(str(value or "").replace("Z", "+00:00"))
+    except Exception:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
+def challenge_cooldown_status(
+    *,
+    now: datetime | None = None,
+    cooldown_minutes: int | None = None,
+) -> dict[str, Any]:
+    """Return safe circuit state by scanning recent challenge health records.
+
+    Cooldown rows are deliberately not treated as new challenges. Scanning the
+    full recent window prevents a newer cooldown row from hiding the challenge
+    that originally opened the circuit.
+    """
+    raw_minutes = (
+        cooldown_minutes
+        if cooldown_minutes is not None
+        else os.environ.get("NOTEAI_XHS_CHALLENGE_COOLDOWN_MINUTES", "360")
+    )
+    try:
+        minutes = max(0, int(raw_minutes or 0))
+    except Exception:
+        minutes = 360
+    current = now or _now()
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    current_epoch = current.timestamp()
+    challenge_rows = []
+    for row in recent_health(limit=200, adapter="scheduler_a"):
+        details = row.get("details") if isinstance(row.get("details"), dict) else {}
+        diagnostics = (
+            details.get("discovery_diagnostics")
+            if isinstance(details.get("discovery_diagnostics"), dict)
+            else {}
+        )
+        codes = set(diagnostics.get("diagnostic_error_codes") or [])
+        is_challenge = (
+            row.get("error_code") == "access_challenge_detected"
+            or details.get("access_status") == "challenge"
+            or "possible_access_challenge" in codes
+        )
+        checked_epoch = _checked_at_epoch(row.get("checked_at"))
+        if is_challenge and checked_epoch is not None:
+            challenge_rows.append((checked_epoch, str(row.get("checked_at") or "")))
+    if not challenge_rows:
+        return {"active": False, "last_challenge_at": "", "remaining_seconds": 0}
+    last_epoch, last_checked_at = max(challenge_rows, key=lambda item: item[0])
+    remaining = max(0.0, minutes * 60 - (current_epoch - last_epoch))
+    return {
+        "active": bool(minutes > 0 and remaining > 0),
+        "last_challenge_at": last_checked_at,
+        "remaining_seconds": int(math.ceil(remaining)),
+    }
+
+
+def access_status_overview() -> dict[str, Any]:
+    rows = recent_health(limit=200, adapter="scheduler_a")
+    latest = rows[0] if rows else {}
+    details = latest.get("details") if isinstance(latest.get("details"), dict) else {}
+    latest_status = str(details.get("access_status") or "")
+    latest_error = str(latest.get("error_code") or "")
+    cooldown = challenge_cooldown_status()
+    if latest_status == "challenge" or latest_error == "access_challenge_detected":
+        access_status = "challenge"
+        error_code = "access_challenge_detected"
+    elif cooldown.get("active"):
+        access_status = "cooldown"
+        error_code = "access_challenge_cooldown_active"
+    else:
+        access_status = "normal"
+        error_code = ""
+    return {
+        "access_status": access_status,
+        "error_code": error_code,
+        "challenge_cooldown": cooldown,
+    }
+
+
+def _safe_public_source_health(value: Any) -> dict[str, Any]:
+    raw = value if isinstance(value, dict) else {}
+    status = str(raw.get("status") or "unknown")
+    if status not in {"unknown", "healthy", "degraded", "failed"}:
+        status = "unknown"
+    ok_value = raw.get("ok")
+    ok = ok_value if isinstance(ok_value, bool) else None
+    error_code = str(raw.get("error_code") or "")
+    if error_code not in {
+        "",
+        "latest_run_no_evidence",
+        "latest_run_search_result_missing",
+        "latest_run_search_recommend_missing",
+        "latest_run_search_sources_missing",
+    }:
+        error_code = ""
+    try:
+        evidence_count = max(0, int(raw.get("evidence_count") or 0))
+    except Exception:
+        evidence_count = 0
+    raw_missing = raw.get("missing_sources")
+    raw_missing = raw_missing if isinstance(raw_missing, (list, tuple, set)) else []
+    missing_sources = [
+        source for source in ("search_result", "search_recommend")
+        if source in raw_missing
+    ]
+    return {
+        "available": bool(raw.get("available")),
+        "ok": ok,
+        "status": status,
+        "evidence_count": evidence_count,
+        "source_breakdown": normalize_latest_run_source_breakdown(
+            raw.get("source_breakdown") if isinstance(raw.get("source_breakdown"), dict) else {}
+        ),
+        "missing_sources": missing_sources,
+        "error_code": error_code,
+    }
+
+
+def _safe_public_health_details(value: Any, access_status: str) -> dict[str, Any]:
+    raw = value if isinstance(value, dict) else {}
+    safe: dict[str, Any] = {"access_status": access_status}
+    try:
+        safe["latest_run_evidence_count"] = max(
+            0, int(raw.get("latest_run_evidence_count") or 0)
+        )
+    except Exception:
+        safe["latest_run_evidence_count"] = 0
+    safe["session_configured"] = bool(raw.get("session_configured"))
+    safe["latest_run_source_breakdown"] = normalize_latest_run_source_breakdown(
+        raw.get("latest_run_source_breakdown")
+        if isinstance(raw.get("latest_run_source_breakdown"), dict)
+        else {}
+    )
+    safe["latest_run_source_health"] = _safe_public_source_health(
+        raw.get("latest_run_source_health")
+    )
+    return safe
+
+
+def public_recent_health(limit: int = 50, domain: str = "", adapter: str = "") -> list[dict]:
+    """Return the legacy row shape with only fixed, non-sensitive diagnostics."""
+    public_rows = []
+    for row in recent_health(limit=limit, domain=domain, adapter=adapter):
+        details = row.get("details") if isinstance(row.get("details"), dict) else {}
+        access_status = str(details.get("access_status") or "normal")
+        if access_status not in ACCESS_STATUSES:
+            access_status = "normal"
+        error_code = str(row.get("error_code") or "")
+        if error_code not in PUBLIC_HEALTH_ERROR_CODES:
+            error_code = ""
+        if error_code == "access_challenge_detected":
+            access_status = "challenge"
+        elif error_code == "access_challenge_cooldown_active":
+            access_status = "cooldown"
+        error_summary = PUBLIC_HEALTH_ERROR_SUMMARIES.get(error_code, "")
+        safe_details = _safe_public_health_details(details, access_status)
+        public_rows.append({
+            key: row.get(key)
+            for key in (
+                "id",
+                "run_id",
+                "adapter",
+                "domain",
+                "profile_cookie_valid",
+                "note_page_access_valid",
+                "shortlink_canonicalized",
+                "selector_valid",
+                "risk_login_detected",
+                "evidence_count",
+                "status",
+                "checked_at",
+            )
+        } | {
+            "error_code": error_code,
+            "error_summary": error_summary,
+            "details": safe_details,
+            "access_status": access_status,
+        })
+    return public_rows
 
 
 def latest_run_source_health(domains: tuple[str, ...] | list[str] | None = None) -> dict[str, Any]:

@@ -228,6 +228,13 @@ class ApiContractTests(unittest.TestCase):
                 "status": "degraded",
                 "error_code": "latest_run_search_recommend_missing",
             },
+            "access_status": "cooldown",
+            "access_error_code": "access_challenge_cooldown_active",
+            "challenge_cooldown": {
+                "active": True,
+                "last_challenge_at": "2026-07-11T07:45:00",
+                "remaining_seconds": 20700,
+            },
             "domains": [{
                 "domain": "美食",
                 "ok": True,
@@ -247,6 +254,9 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(result["missing_domains"], [])
         self.assertEqual(result["domains"][0]["evidence_count"], 12)
         self.assertFalse(result["latest_run_source_health"]["ok"])
+        self.assertEqual(result["access_status"], "cooldown")
+        self.assertEqual(result["access_error_code"], "access_challenge_cooldown_active")
+        self.assertTrue(result["challenge_cooldown"]["active"])
 
     def test_extract_screenshot_refunds_charge_when_vision_fails(self):
         original_check = api._billing.check_and_deduct

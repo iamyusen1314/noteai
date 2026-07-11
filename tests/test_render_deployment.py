@@ -105,6 +105,9 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("NOTEAI_XHS_TOKEN_DISCOVERY", blueprint)
         self.assertIn("NOTEAI_XHS_LOW_MEMORY_BROWSER", blueprint)
         self.assertIn("NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION", blueprint)
+        self.assertIn("NOTEAI_XHS_STOP_ON_CHALLENGE", blueprint)
+        self.assertIn('NOTEAI_XHS_CHALLENGE_COOLDOWN_MINUTES', blueprint)
+        self.assertIn('value: "360"', blueprint)
         self.assertGreaterEqual(blueprint.count("NOTEAI_XHS_FRESHNESS_REQUIRED"), 2)
         self.assertIn("MALLOC_ARENA_MAX", blueprint)
 
@@ -119,6 +122,8 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("当日累计新鲜证据", admin_html)
         self.assertIn("最新一轮来源退化", admin_html)
         self.assertIn("latest_run_source_health", admin_html)
+        self.assertIn("搜索访问挑战冷却中", admin_html)
+        self.assertIn("access_status", admin_html)
         self.assertIn("['insufficient','degraded']", admin_html)
 
     def test_hot_keywords_does_not_eagerly_import_jieba(self):

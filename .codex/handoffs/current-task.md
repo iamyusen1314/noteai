@@ -181,7 +181,7 @@
 
 ### BUG-002B — 搜索来源退化的脱敏诊断漏斗
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：Critical（当前最高优先级调查包）。
 - 问题描述：当前仅有最终来源数、推荐/趋势响应数和输入成功/失败数；JSON 解析异常被静默忽略，无法区分导航、页面类别、端点未出现、JSON/schema 变化、候选过滤或去重。
 - 证据：12:05 搜索来源正常；13:05/14:05/15:05 连续 `typed=0/fail=12`、推荐响应 0，且 13:05/15:05 无导航错误。静态与 mock 已排除空 seed、数据库落库和部署版本作为单一原因，并确认路径变体可能被 broad matcher 命中却绕过推荐专用分支。
@@ -189,15 +189,15 @@
 - 涉及文件：`model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `tests/test_xhs_acquisition.py`；不改 selector、重试、Cron 调度、hard gate、Cookie、数据库 schema 或业务数据语义。
 - 风险：日志过细可能泄漏平台/用户数据；只允许计数、状态类枚举和固定错误码，禁止 URL/query、seed、Cookie、响应正文、标题、关键词、DOM 或异常全文。
 - 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：Test Finder（独立 Verification Agent）。
-- 修改状态/进度：最小 instrumentation 已实施并通过独立复验。首次验证发现 freshness ledger 的 `evidence_keys` 经完整 worker result 进入成功日志，修正后 worker 内部门禁继续使用完整数据，公开返回与成功日志使用递归脱敏副本，数据库 ledger 去重键与同日累计语义保持。独立复验确认完整 result/main stdout 无敏感内容、ledger 两轮去重不回退、health details 无 key；定向 212/212、全量 unittest 303/303、Production Readiness 48/48、Compose、py_compile 与 LFS-safe diff check 通过；前端未变，引用上一轮 Playwright 7/7 证据。
+- 修改状态/进度：最小 instrumentation 已实施、本地独立复验并部署到 Render Staging。手工轮次 `96ef24f8-…` 12/12 搜索目标闭合：navigation ok=12、challenge=12、input failed=12、search response 393/json failed 109/title 0、recommend response 0；日志只含计数/枚举/固定错误码，未出现 URL/query/Cookie/正文/标题/关键词/evidence_keys。该任务的“可诊断”目标已闭环；恢复搜索来源由 `BUG-002C` 继续。
 - 验收标准：每轮搜索目标计数闭合；缺输入框、导航失败、响应未观察、非 JSON、空 schema、路径变体、全部过滤/去重与正常成功均有确定计数/错误码；来源为 0 时至少有一个可验证原因码；日志和 health details 不含敏感/原始内容；既有 Cron 成功/门禁语义不变。
 - 是否需要用户决定：否；2026-07-11 用户已明确批准 Staging 部署、手工触发采集及真实外部调用。
 - 是否涉及真实外部调用：是；获批后可手工触发 1 次 Staging 采集并继续观察 2–3 个自动轮次。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：是；commit `46ed3db`，手工 Staging 轮次已验证。
 
 ### BUG-002A — 最新单轮来源健康与失败分类
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 问题描述：当前 API readiness 和六行业 freshness 使用最新采集时间与同日累计证据，可能在最新轮次 `search_result=0`、`search_recommend=0` 时继续显示绿色。
 - 预期结果：最新单轮来源健康与同日累计 freshness 分开呈现；缺少搜索结果/推荐时明确标记 degraded 和无敏感值错误码，不误报 Cookie 失效。
 - 风险级别：High；属于可观测性与运维判断修复，不改变市场时机业务门禁。
@@ -206,13 +206,13 @@
 - 修改状态/进度：最小修复已实施。使用现有 `xhs_crawler_health.details_json` 归一化最新 run 来源分布，API readiness 与管理端新增非阻断来源退化状态，并增加成功→退化、兼容旧记录、字段白名单与管理端文案回归。独立验证：定向 175/175、全量 288/288、Production Readiness 48/48、Compose、Python 编译和 diff check 全部通过。
 - 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：Test Finder（独立 Verification Agent）。
 - 涉及文件：`model/xhs_acquisition.py`, `model/api.py`, `model/admin.html`, `tests/test_xhs_acquisition.py`, `tests/test_api_contracts.py`, `tests/test_render_deployment.py`。
-- 下一步：审查提交边界后推送并部署 Render Staging；云端核对 readiness、freshness 与管理端均能区分“当日累计健康”和“最新一轮来源退化”，再决定是否标记 VERIFIED。
+- 下一步：本包无需继续修改；API readiness 已在线显示累计 `ok=true`、最新轮次 `degraded/latest_run_search_sources_missing`、`blocking_readiness=false`，管理端文案已区分累计与最新一轮。
 - 验收标准：同日成功轮次后出现退化轮次时，累计 freshness 可保持原语义，但 `latest_run_source_health.ok=false`、状态为 degraded、错误码可区分缺少结果/推荐；Cookie 不被标记失效；API readiness 仍向后兼容且不阻断；管理端明确显示本轮来源退化。
 - 真实外部服务：不需要；全部使用临时 SQLite 和 mock rows 验证，不触发 Cron。
 - 费用/数据：无外部费用，不写远程数据，不新增 schema/migration。
 - 是否需要用户决定：否；2026-07-11 用户已明确批准本轮提交、推送、Render Staging 部署、付费 Smoke、真实 AI 和手工采集。
 - 是否涉及真实外部调用：是；部署后执行受控付费 AI Smoke 和一次手工采集。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：是；commit `46ed3db`，Web/API/Admin 与 Cron build 已验证。
 
 ### QA-001 — 真实 AI 主链路与积分对账
 
@@ -289,7 +289,7 @@
 
 ### BILL-001 — 后端 request-id 幂等与防重复扣费
 
-- 状态：**READY_TO_FIX**（数据库/计费修改已获明确批准）
+- 状态：**READY_TO_FIX**（数据库/计费修改已获明确批准；等待 BUG-002C 串行闭环）
 - 优先级：Critical。
 - 问题描述：浏览器端已阻止重复点击，但 API 尚未确认具备跨进程、并发重试和网络重放级别的幂等保护；同一付费请求可能重复扣积分、创建多个 usage row 或重复调用模型。
 - 预期结果：同一用户、同一操作、同一幂等键只允许一个执行和一次扣费；相同键不同 payload 明确拒绝；不同用户之间严格隔离；失败、超时和重试语义可审计。
@@ -298,7 +298,7 @@
 - 根因：已确认。付费入口没有持久化幂等记录；`check_and_deduct()` 的余额读取、扣减、usage 与退款由多个独立连接/事务完成，现有 DB 抽象不能保证并发 claim、扣费和最多一次退款原子性；浏览器单请求锁无法覆盖多标签、代理重放、网络重试和跨进程并发。
 - 证据：Repository Explorer 已核对 Analyze/Generate/Chat 扣费链；Security Reviewer 确认重复执行、并发余额竞争和 SSE 断连账务闭环为 Critical；Render/DevOps Reviewer 进一步确认必须新增 transaction API 与增量 migration，不能用内存锁或仅用 SQLite 测试替代。
 - 修改状态/进度：协议、最小 schema、事务边界、状态机、崩溃恢复边界和 PostgreSQL 并发测试矩阵已形成；尚未修改 billing、数据库或 migration，尚未执行任何数据库动作。
-- 执行代理：待指定单一 Implementation Agent；验证代理：独立 Security/Verification Agent，且 PostgreSQL 并发证据不可省略。
+- 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：待指定独立 Security/Verification Agent，且 PostgreSQL 并发证据不可省略。
 - 下一步：按已批准的两阶段兼容发布，第一阶段仅新增 `idempotency_requests` 增量表、SQLite/PostgreSQL transaction API、原子 claim/扣费/最多一次退款，并覆盖 Analyze、Generate、付费 Chat；完整 SSE 回放、结果恢复、stale 自动接管和 exactly-once 业务副作用明确延后。
 - 验收标准：两个并发相同请求只能执行一次、扣费一次、产生一个主 usage；同键同 payload 可安全重试并得到一致状态/结果；同键不同 payload 返回冲突；跨用户不可互相命中；失败/退款后可按明确规则重试；SQLite/PostgreSQL 均通过。
 - 真实外部服务：用户已批准一次性 PostgreSQL 并发测试、Render Staging migration、付费 Smoke 和真实 AI；仍按最小样本执行。
@@ -323,7 +323,7 @@
 
 ### PERF-001A — SSE 阶段计时、慢响应保护与可复算统计基础
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：诊断、生成、对话 SSE 缺少统一的事件序号、总耗时、阶段耗时和明确终态；诊断/生成无 stall 保护，对话现有 stall 会直接取消 reader 并提示重试，可能诱导付费任务重复执行；当前也没有可复算 P50/P95 的安全记录格式。
 - 证据：QA 只读调查确认 Analyze/Generate 缺少连接、首事件与事件间 stall guard；Chat 只有 fetch 后 30/90/180 秒 reader cancel，缺少 connect timeout 与结构化终态；`_emit_progress()` 未附带 timing；真实 Staging 样本曾达到约 146–257 秒，不能用激进硬超时中断任务。
@@ -335,6 +335,52 @@
 - 验收标准：Analyze/Generate/Chat 事件向后兼容且带安全的 `trace_id/seq/server_ts/elapsed_ms/stage_elapsed_ms/terminal/outcome`；连接、首事件或事件间静默时只显示“仍可能处理中、不要重复提交”，不自动重试、不提前解锁；无终态 EOF 明确报错并恢复 UI；固定样本能准确计算 P50/P95并披露样本量；日志/指标不含正文、Prompt、reasoning、Token、Cookie 或原始幂等键。
 - 是否需要用户决定：受控 Staging Smoke 与真实 AI 已获批准；大规模可靠 P95（每同质组至少 100 个样本）仍需另定样本预算，不能由本次最小 Smoke 推定。
 - 是否涉及真实外部调用：是；本轮最多各 1 次诊断、生成和付费对话，用于功能/计时 Smoke，不宣称统计可靠性。
+- 是否已部署到 Render：是；commit `46ed3db`。真实诊断、生成、付费对话各 1 次均完成，无重复请求、无错误 stall、UI 正常恢复；合计准确扣 17 积分。该最小 Smoke 不能代表可靠 P50/P95。
+
+### BUG-002C — XHS 搜索访问挑战的安全恢复策略
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：Critical。
+- 问题描述：最新手工轮次 12 个搜索目标全部进入 challenge 页面，导致搜索输入、标题和推荐来源归零；首页/热搜仍工作。
+- 证据：navigation 12/12 成功、final page challenge 12/12、input 0/12、recommend endpoint 0、search title 0；session configured 且 auth cookie 未过期。已排除空 seed、普通导航失败、数据库去重和 Cookie 完全失效为单一原因。
+- 根因是否确认：是；搜索链路受到访问挑战/反自动化退化。最小安全方案为 challenge 感知的单轮熔断、6 小时跨轮次冷却与半开探针，禁止绕过 CAPTCHA 或平台安全控制。
+- 涉及文件：`model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`, `render.yaml`, `tests/test_xhs_acquisition.py`, `tests/test_api_contracts.py`, `tests/test_render_deployment.py`；不改 selector、Cookie、UA/viewport 或验证码处理。
+- 风险：继续高频搜索会增加 Cron 成本并加重挑战；激进指纹规避可能违反平台安全边界。
+- 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：独立 QA/Render Reviewer。
+- 修改状态/进度：最小修复已实施并通过第二轮独立验证。首轮验证发现 `/admin/xhs/health` 删除既有 `error_summary/details` 且可能清空安全错误码；修正为保留旧字段结构、固定摘要映射和严格 details 白名单。最终证据：相关 194/194、全量 unittest 311/311、前端静态 16/16、Python 编译、Compose 和 diff check 均通过；HTTP 200 challenge 首目标熔断、homefeed 保留、冷却零搜索浏览器、6 小时边界、半开探针和默认兼容均通过。尚未部署。
+- 验收标准：不绕过安全控制；挑战出现时及时停止/退避并给出稳定状态；若采用安全恢复策略，至少连续 2–3 个自然轮次恢复 search/recommend 健康阈值，否则明确降级而不浪费全轮成本。
+- 是否需要用户决定：技术默认采用 Staging 6 小时冷却、Cron 继续成功但明确 degraded；不自动重新登录、不减少长期行业覆盖。如后续要改 hard fail 或每行业 seed 数再单独决策。
+- 是否涉及真实外部调用：最终验证需要自然 Cron；不再手工连续触发。
+- 是否已部署到 Render：否。
+
+### SEC-002 — 前端展示并持久化模型 reasoning
+
+- 状态：**READY_TO_FIX**
+- 优先级：High。
+- 问题描述：真实 Generate 与 Chat Smoke 向用户完整展示英文/中文“深度思考”过程；Chat 页面标记“已完整展示”，内容包含内部判断、约束解释和中间草稿。
+- 证据：2026-07-11 Staging 真实生成与重写均可见完整 reasoning；未在消息中复制敏感值。
+- 根因是否确认：是；Claude `thinking_delta` 和 Kimi `reasoning_content` 被 Router 原样转成 SSE，Generate/Chat 前端完整展示；Chat 还将 `reasoning_content` 写入 `chat_sessions.messages_json` 并在加载时恢复。未发现跨用户读取或应用主动写日志，但浏览器、网络和数据库暴露已确认。
+- 涉及文件：`model/api.py`, `NoteAI_Pro_Demo_Framer.html`, Chat session/notes persistence 与 tests。
+- 风险：泄露内部 prompt/推理、扩大 Prompt Injection 影响、保存不必要敏感内容。
+- 执行代理：Security Reviewer（只读调查）；验证代理：独立 Security/QA。
+- 验收标准：客户端和持久化均不包含完整 reasoning；只保留安全阶段状态或短摘要；最终业务输出不回退。
+- 是否需要用户决定：否；默认保留安全阶段状态，不展示或持久化模型原始 reasoning。历史 Staging 数据脱敏另立可回滚数据库任务，实施前先只统计受影响行数且不读取正文。
+- 是否涉及真实外部调用：调查与 mock 不需要。
+- 是否已部署到 Render：否。
+
+### BUG-003 — 对话重写回复与保存版本不一致
+
+- 状态：**READY_TO_FIX**
+- 优先级：High。
+- 问题描述：用户要求删除未经提供的具体时长和效果断言；AI 最终回复声称已删除，但保存的第 2 版仍包含“20分钟、吃不出柴感、半小时”等内容，且评分从 75.3 降至 74.1。
+- 证据：2026-07-11 Staging 单次真实 `chat_rewrite` 可稳定观察到回复文本与“当前笔记第2版”不一致；扣费 3 积分正常。
+- 根因是否确认：是（根因类别已确认）；聊天气泡先展示未后处理的模型原始回复，而保存版本经过 shape/repair/二修等另一条路径，且保存前没有验证“用户要求删除的内容在最终正文中确实消失”。前端字段错配、parser 回退和整版分数回退已基本排除；具体是哪一次后处理重新引入旧内容不影响最小修复边界。
+- 涉及文件：`model/api.py`, Chat generator/parser、notes version persistence、前端事件处理与 tests。
+- 风险：用户以为约束已执行但实际发布稿未变，属于交付正确性缺陷。
+- 执行代理：Repository Explorer + QA Investigator；验证代理：独立 QA。
+- 验收标准：最终回复、当前笔记和持久化版本使用同一正文；禁止项不再出现；评分与版本号一致；只扣一次。
+- 是否需要用户决定：否。
+- 是否涉及真实外部调用：本地 mock 不需要；最终 Staging 复验可用 1 次获批真实重写。
 - 是否已部署到 Render：否。
 
 ### QA-003 — 人工 UI 上传与关键页面回归

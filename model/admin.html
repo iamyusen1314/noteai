@@ -938,12 +938,18 @@ async function loadXhsHealth() {
     const health = await healthR.json();
     const missing = fresh.missing_domains || [];
     const latestSource = fresh.latest_run_source_health || {};
+    const accessStatus = ['challenge','cooldown','normal'].includes(fresh.access_status)
+      ? fresh.access_status : 'normal';
     const latestSourceDegraded = latestSource.available === true && latestSource.ok === false;
-    const latestSourceState = latestSource.available !== true
-      ? '最新一轮来源待观测'
-      : (latestSourceDegraded ? '最新一轮来源退化' : '最新一轮来源健康');
+    const latestSourceState = accessStatus === 'challenge'
+      ? '搜索访问挑战已触发保护'
+      : accessStatus === 'cooldown'
+        ? '搜索访问挑战冷却中'
+        : latestSource.available !== true
+          ? '最新一轮来源待观测'
+          : (latestSourceDegraded ? '最新一轮来源退化' : '最新一轮来源健康');
     document.getElementById('xhs-fresh-ok').innerHTML = `<span class="dot ${fresh.ok?'dot-green':'dot-red'}"></span>${fresh.ok?'达标':'缺失'}（累计）`;
-    document.getElementById('xhs-fresh-sub').textContent = `${fresh.required ? '生产硬门槛已开启' : '硬门槛未开启'}；${latestSourceState}${latestSource.error_code ? `（${latestSource.error_code}）` : ''}`;
+    document.getElementById('xhs-fresh-sub').textContent = `${fresh.required ? '生产硬门槛已开启' : '硬门槛未开启'}；${latestSourceState}${fresh.access_error_code ? `（${fresh.access_error_code}）` : (latestSource.error_code ? `（${latestSource.error_code}）` : '')}`;
     document.getElementById('xhs-missing-count').textContent = missing.length;
     document.getElementById('xhs-missing-domains').textContent = missing.join('、') || '全部行业已满足';
     document.getElementById('xhs-deadline').textContent = _fmtShortTime(fresh.deadline);

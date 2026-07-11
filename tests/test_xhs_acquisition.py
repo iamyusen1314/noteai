@@ -6,8 +6,10 @@ import os
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import ExitStack, redirect_stdout
+from datetime import datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -36,6 +38,125 @@ def _real_xhs_rows() -> list[dict]:
 
 
 class XHSAcquisitionLedgerTests(unittest.TestCase):
+    def _run_scheduler_circuit_scenario(self, *, challenge: bool, circuit_state: str = "closed", stop: bool = True):
+        events = {"homefeed_gotos": 0, "search_gotos": 0, "browser_launches": 0}
+
+        class FakeResponse:
+            def __init__(self, url):
+                self.url = url
+                self.status = 200
+
+            async def json(self):
+                return {"data": {}}
+
+        class FakeMouse:
+            async def wheel(self, _x, _y):
+                return None
+
+        class FakePage:
+            def __init__(self):
+                self.url = "about:blank"
+                self.mouse = FakeMouse()
+                self.handlers = []
+
+            def on(self, event, handler):
+                if event == "response":
+                    self.handlers.append(handler)
+
+            def remove_listener(self, event, handler):
+                if event == "response" and handler in self.handlers:
+                    self.handlers.remove(handler)
+
+            async def goto(self, url, **_kwargs):
+                if "search_result" in url:
+                    events["search_gotos"] += 1
+                    self.url = (
+                        "https://www.xiaohongshu.com/challenge"
+                        if challenge and events["search_gotos"] == 1
+                        else url
+                    )
+                elif "/explore" in url:
+                    events["homefeed_gotos"] += 1
+                    self.url = url
+                else:
+                    self.url = url
+                for handler in list(self.handlers):
+                    await handler(FakeResponse(self.url))
+
+            async def close(self):
+                return None
+
+        class FakeContext:
+            async def route(self, _pattern, _handler):
+                return None
+
+            async def add_init_script(self, _script):
+                return None
+
+            async def new_page(self):
+                return FakePage()
+
+            async def close(self):
+                return None
+
+        class FakeBrowser:
+            async def new_context(self, **_kwargs):
+                return FakeContext()
+
+            async def close(self):
+                return None
+
+        class FakeChromium:
+            async def launch(self, **_kwargs):
+                events["browser_launches"] += 1
+                return FakeBrowser()
+
+        class FakePlaywrightContext:
+            async def __aenter__(self):
+                return SimpleNamespace(chromium=FakeChromium())
+
+            async def __aexit__(self, *_args):
+                return None
+
+        async def fake_search_input(_page, _seed, diagnostics=None, **_kwargs):
+            if diagnostics is not None:
+                diagnostics["input"].update({"found": 1, "visible": 1, "typed": 1})
+            return True, ""
+
+        async def no_sleep(_seconds):
+            return None
+
+        search_seeds = {
+            category: (f"{category}一", f"{category}二")
+            for category in ("美食", "美妆", "穿搭", "旅行", "数码", "家居")
+        }
+        import playwright.async_api as playwright_async_api
+        with ExitStack() as stack:
+            for name, value in (
+                ("CHANNELS", [("https://www.xiaohongshu.com/explore", "美食")]),
+                ("SEARCH_SEEDS", search_seeds),
+                ("SEARCH_SEEDS_PER_CATEGORY", 2),
+                ("SEARCH_DISCOVERY_ENABLED", True),
+                ("BROWSER_TARGETS_PER_SESSION", 1),
+                ("STOP_ON_CHALLENGE", stop),
+                ("SCROLL_ROUNDS", 0),
+                ("SEARCH_SCROLL_ROUNDS", 0),
+                ("CHANNEL_SETTLE_SECONDS", 0),
+                ("SEARCH_SETTLE_SECONDS", 0),
+            ):
+                stack.enter_context(patch.object(scheduler_a, name, value))
+            stack.enter_context(patch.object(scheduler_a, "_get_session_state", return_value=None))
+            stack.enter_context(patch.object(scheduler_a, "_trigger_search_input", fake_search_input))
+            stack.enter_context(patch.object(scheduler_a.asyncio, "sleep", no_sleep))
+            stack.enter_context(patch.object(
+                playwright_async_api,
+                "async_playwright",
+                return_value=FakePlaywrightContext(),
+            ))
+            with scheduler_a.search_circuit_context({"state": circuit_state}):
+                result = asyncio.run(scheduler_a.scrape_once())
+        return result, events
+
     def test_baseline_rows_do_not_satisfy_real_xhs_freshness(self):
         original_db = hot_keywords.DB_PATH
         try:
@@ -214,6 +335,209 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 self.assertEqual(health["error_code"], error_code)
                 self.assertEqual(health["missing_sources"], missing_sources)
 
+    def test_challenge_cooldown_scans_past_newer_cooldown_rows(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                now = datetime.now()
+                challenge_at = now - timedelta(minutes=20)
+                xhs_acquisition.record_health({
+                    "run_id": "challenge-run",
+                    "adapter": "scheduler_a",
+                    "domain": "美食",
+                    "status": "degraded",
+                    "error_code": "access_challenge_detected",
+                    "checked_at": challenge_at.isoformat(),
+                    "details": {"access_status": "challenge"},
+                })
+                xhs_acquisition.record_health({
+                    "run_id": "cooldown-run",
+                    "adapter": "scheduler_a",
+                    "domain": "美食",
+                    "status": "degraded",
+                    "error_code": "access_challenge_cooldown_active",
+                    "checked_at": (now - timedelta(minutes=5)).isoformat(),
+                    "details": {"access_status": "cooldown"},
+                })
+
+                active = xhs_acquisition.challenge_cooldown_status(
+                    now=now,
+                    cooldown_minutes=360,
+                )
+                expired = xhs_acquisition.challenge_cooldown_status(
+                    now=now + timedelta(hours=7),
+                    cooldown_minutes=360,
+                )
+
+                self.assertTrue(active["active"])
+                self.assertEqual(active["last_challenge_at"], challenge_at.isoformat())
+                self.assertGreater(active["remaining_seconds"], 0)
+                self.assertFalse(expired["active"])
+                self.assertEqual(expired["remaining_seconds"], 0)
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_challenge_health_distinguishes_valid_cookie_and_hides_diagnostics(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                diagnostics = scheduler_a.new_discovery_diagnostics()
+                diagnostics["targets"].update({
+                    "planned": 12, "started": 1, "completed": 1, "skipped": 11,
+                })
+                diagnostics["final_page_class"]["challenge"] = 1
+                diagnostics["circuit"] = {
+                    "state": "open", "skipped_reason": "challenge_detected",
+                }
+                diagnostics["diagnostic_error_codes"] = [
+                    "possible_access_challenge",
+                    "search_targets_skipped_after_challenge",
+                ]
+                xhs_acquisition.record_scrape_freshness(
+                    [],
+                    run_id="challenge-cookie-valid",
+                    domains=("美食",),
+                    session_status={
+                        "configured": True,
+                        "auth_cookie_present": True,
+                        "auth_cookie_expired": False,
+                    },
+                    discovery_diagnostics=diagnostics,
+                )
+
+                internal = xhs_acquisition.recent_health(adapter="scheduler_a")[0]
+                public = xhs_acquisition.public_recent_health(adapter="scheduler_a")[0]
+                self.assertEqual(internal["status"], "degraded")
+                self.assertEqual(internal["error_code"], "access_challenge_detected")
+                self.assertTrue(internal["profile_cookie_valid"])
+                self.assertFalse(internal["risk_login_detected"])
+                self.assertEqual(public["access_status"], "challenge")
+                self.assertEqual(public["error_code"], "access_challenge_detected")
+                self.assertIn("details", public)
+                self.assertIn("error_summary", public)
+                self.assertNotIn("discovery_diagnostics", json.dumps(public, ensure_ascii=False))
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_public_recent_health_preserves_safe_legacy_shape_and_filters_unknown_data(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                base_details = {
+                    "access_status": "normal",
+                    "latest_run_evidence_count": 3,
+                    "session_configured": True,
+                    "latest_run_source_breakdown": {
+                        "homefeed": 2,
+                        "search_result": 1,
+                        "private-keyword-source": 99,
+                    },
+                    "latest_run_source_health": {
+                        "available": True,
+                        "ok": False,
+                        "status": "degraded",
+                        "evidence_count": 3,
+                        "source_breakdown": {"homefeed": 2, "search_result": 1},
+                        "missing_sources": ["search_recommend", "private-source"],
+                        "error_code": "latest_run_search_recommend_missing",
+                        "cookie": "private-cookie",
+                        "source_url": "https://secret.invalid/private",
+                    },
+                    "discovery_diagnostics": {"response_body": "private-body"},
+                    "keyword": "private-keyword",
+                }
+                rows = (
+                    {
+                        "run_id": "known-safe-code",
+                        "error_code": "selector_changed",
+                        "error_summary": "private arbitrary selector exception",
+                        "details": base_details,
+                    },
+                    {
+                        "run_id": "unknown-code",
+                        "error_code": "private_exception_class",
+                        "error_summary": "https://secret.invalid unknown failure private-cookie",
+                        "details": {**base_details, "access_status": "private-state"},
+                    },
+                    {
+                        "run_id": "challenge-code",
+                        "error_code": "access_challenge_detected",
+                        "error_summary": "private challenge body",
+                        "details": {**base_details, "access_status": "challenge"},
+                    },
+                    {
+                        "run_id": "cooldown-code",
+                        "error_code": "access_challenge_cooldown_active",
+                        "error_summary": "private cooldown body",
+                        "details": {**base_details, "access_status": "cooldown"},
+                    },
+                )
+                for offset, row in enumerate(rows):
+                    xhs_acquisition.record_health({
+                        "adapter": "scheduler_a",
+                        "domain": "美食",
+                        "status": "degraded",
+                        "checked_at": f"2026-07-11T08:0{offset}:00",
+                        **row,
+                    })
+
+                public = {
+                    row["run_id"]: row
+                    for row in xhs_acquisition.public_recent_health(adapter="scheduler_a")
+                }
+
+                known = public["known-safe-code"]
+                self.assertIn("error_summary", known)
+                self.assertIn("details", known)
+                self.assertEqual(known["error_code"], "selector_changed")
+                self.assertEqual(
+                    known["error_summary"],
+                    "Crawler selector validation failed",
+                )
+                self.assertEqual(known["details"]["latest_run_evidence_count"], 3)
+                self.assertEqual(
+                    known["details"]["latest_run_source_health"]["error_code"],
+                    "latest_run_search_recommend_missing",
+                )
+
+                unknown = public["unknown-code"]
+                self.assertEqual(unknown["error_code"], "")
+                self.assertEqual(unknown["error_summary"], "")
+                self.assertEqual(unknown["access_status"], "normal")
+                self.assertEqual(unknown["details"]["access_status"], "normal")
+
+                challenge = public["challenge-code"]
+                cooldown = public["cooldown-code"]
+                self.assertEqual(challenge["access_status"], "challenge")
+                self.assertEqual(
+                    challenge["error_summary"],
+                    "Search discovery stopped after an access challenge",
+                )
+                self.assertEqual(cooldown["access_status"], "cooldown")
+                self.assertEqual(
+                    cooldown["error_summary"],
+                    "Search discovery skipped during access challenge cooldown",
+                )
+
+                serialized = json.dumps(public, ensure_ascii=False)
+                for secret in (
+                    "secret.invalid",
+                    "private-cookie",
+                    "private-keyword",
+                    "private-body",
+                    "private arbitrary selector exception",
+                    "private_exception_class",
+                    "private challenge body",
+                    "private cooldown body",
+                    "discovery_diagnostics",
+                ):
+                    self.assertNotIn(secret, serialized)
+        finally:
+            hot_keywords.DB_PATH = original_db
+
     def test_zero_evidence_records_actionable_cookie_health(self):
         original_db = hot_keywords.DB_PATH
         try:
@@ -284,7 +608,9 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
 
         result = scheduler_a.discovery_diagnostics_for_results(rows, diagnostics)
 
-        self.assertEqual(result["targets"], {"planned": 12, "started": 12, "completed": 12})
+        self.assertEqual(result["targets"], {
+            "planned": 12, "started": 12, "completed": 12, "skipped": 0,
+        })
         self.assertEqual(result["search"]["final"], 1)
         self.assertEqual(result["recommend"]["final"], 1)
         self.assertEqual(result["diagnostic_error_codes"], [])
@@ -383,6 +709,11 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             "private-exception-message",
         ]
         diagnostics["response_status_class"]["private-status"] = 1
+        diagnostics["circuit"] = {
+            "state": "private-state",
+            "skipped_reason": "private-secret-reason",
+            "cookie": "secret-circuit-cookie",
+        }
 
         serialized = json.dumps(
             scheduler_a.sanitize_discovery_diagnostics(diagnostics),
@@ -392,9 +723,65 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         for secret in (
             "secret.invalid", "用户关键词", "secret-cookie-value", "private-response-body",
             "private-note-title", "private-exception-message", "private-status",
+            "private-state", "private-secret-reason", "secret-circuit-cookie",
         ):
             self.assertNotIn(secret, serialized)
         self.assertIn("navigation_failed", serialized)
+
+    def test_search_challenge_opens_circuit_and_skips_remaining_targets(self):
+        result, events = self._run_scheduler_circuit_scenario(challenge=True)
+        diagnostics = result.diagnostics
+
+        self.assertEqual(events["homefeed_gotos"], 1)
+        self.assertEqual(events["search_gotos"], 1)
+        self.assertEqual(diagnostics["targets"], {
+            "planned": 12, "started": 1, "completed": 1, "skipped": 11,
+        })
+        self.assertEqual(diagnostics["response_status_class"]["2xx"], 1)
+        self.assertEqual(diagnostics["final_page_class"]["challenge"], 1)
+        self.assertEqual(diagnostics["circuit"], {
+            "state": "open", "skipped_reason": "challenge_detected",
+        })
+        self.assertIn("possible_access_challenge", diagnostics["diagnostic_error_codes"])
+        self.assertIn(
+            "search_targets_skipped_after_challenge",
+            diagnostics["diagnostic_error_codes"],
+        )
+
+    def test_search_normal_flow_keeps_all_twelve_targets(self):
+        result, events = self._run_scheduler_circuit_scenario(challenge=False)
+        diagnostics = result.diagnostics
+
+        self.assertEqual(events["homefeed_gotos"], 1)
+        self.assertEqual(events["search_gotos"], 12)
+        self.assertEqual(diagnostics["targets"], {
+            "planned": 12, "started": 12, "completed": 12, "skipped": 0,
+        })
+        self.assertEqual(diagnostics["circuit"]["state"], "closed")
+
+    def test_search_cooldown_skips_search_but_preserves_homefeed(self):
+        result, events = self._run_scheduler_circuit_scenario(
+            challenge=False,
+            circuit_state="cooldown",
+        )
+        diagnostics = result.diagnostics
+
+        self.assertEqual(events["homefeed_gotos"], 1)
+        self.assertEqual(events["search_gotos"], 0)
+        self.assertEqual(diagnostics["targets"], {
+            "planned": 12, "started": 0, "completed": 0, "skipped": 12,
+        })
+        self.assertEqual(diagnostics["circuit"], {
+            "state": "cooldown", "skipped_reason": "challenge_cooldown_active",
+        })
+        self.assertIn("challenge_cooldown_active", diagnostics["diagnostic_error_codes"])
+
+    def test_stop_on_challenge_default_compatible_mode_continues_search(self):
+        result, events = self._run_scheduler_circuit_scenario(challenge=True, stop=False)
+
+        self.assertEqual(events["search_gotos"], 12)
+        self.assertEqual(result.diagnostics["targets"]["skipped"], 0)
+        self.assertEqual(result.diagnostics["circuit"]["state"], "closed")
 
     def test_trending_search_word_is_a_keyword_candidate(self):
         self.assertEqual(
@@ -558,6 +945,84 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         finally:
             hot_keywords.DB_PATH = original_db
             market_timing_worker.scrape_once = original_scrape_once
+            if old_required is None:
+                os.environ.pop("NOTEAI_XHS_FRESHNESS_REQUIRED", None)
+            else:
+                os.environ["NOTEAI_XHS_FRESHNESS_REQUIRED"] = old_required
+
+    def test_worker_uses_cooldown_context_and_keeps_homefeed_evidence(self):
+        original_db = hot_keywords.DB_PATH
+        original_scrape_once = market_timing_worker.scrape_once
+        original_cooldown = market_timing_worker.challenge_cooldown_status
+        original_session_summary = market_timing_worker.session_state_summary
+        old_required = os.environ.get("NOTEAI_XHS_FRESHNESS_REQUIRED")
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                hot_keywords.DB_PATH = tmp / "hot_keywords.db"
+                os.environ["NOTEAI_XHS_FRESHNESS_REQUIRED"] = "1"
+                xhs_acquisition.record_health({
+                    "run_id": "prior-challenge",
+                    "adapter": "scheduler_a",
+                    "domain": "美食",
+                    "status": "degraded",
+                    "error_code": "access_challenge_detected",
+                    "details": {"access_status": "challenge"},
+                })
+
+                async def cooldown_scrape():
+                    self.assertEqual(
+                        (scheduler_a._SEARCH_CIRCUIT_CONTEXT.get() or {}).get("state"),
+                        "cooldown",
+                    )
+                    diagnostics = scheduler_a.new_discovery_diagnostics()
+                    diagnostics["targets"].update({
+                        "planned": 12, "started": 0, "completed": 0, "skipped": 12,
+                    })
+                    diagnostics["circuit"] = {
+                        "state": "cooldown",
+                        "skipped_reason": "challenge_cooldown_active",
+                    }
+                    diagnostics["diagnostic_error_codes"] = ["challenge_cooldown_active"]
+                    homefeed_rows = [
+                        dict(row, source="homefeed_phrase") for row in _real_xhs_rows()
+                    ]
+                    return scheduler_a.ScrapeResults(homefeed_rows, diagnostics)
+
+                market_timing_worker.scrape_once = cooldown_scrape
+                market_timing_worker.challenge_cooldown_status = lambda: {
+                    "active": True,
+                    "last_challenge_at": datetime.now().isoformat(),
+                    "remaining_seconds": 300,
+                }
+                market_timing_worker.session_state_summary = lambda: {
+                    "configured": True,
+                    "auth_cookie_present": True,
+                    "auth_cookie_expired": False,
+                }
+
+                result = asyncio.run(market_timing_worker.run_once(
+                    tmp / "market_timing_snapshot.json",
+                    hard_fail_on_xhs_missing=True,
+                ))
+
+                self.assertTrue(result["xhs_freshness_ok"])
+                self.assertEqual(result["discovery_diagnostics"]["targets"], {
+                    "planned": 12, "started": 0, "completed": 0, "skipped": 12,
+                })
+                self.assertEqual(
+                    result["discovery_diagnostics"]["circuit"]["state"],
+                    "cooldown",
+                )
+                latest = xhs_acquisition.recent_health(adapter="scheduler_a")[0]
+                self.assertEqual(latest["error_code"], "access_challenge_cooldown_active")
+                self.assertTrue(latest["profile_cookie_valid"])
+                self.assertFalse(latest["risk_login_detected"])
+        finally:
+            hot_keywords.DB_PATH = original_db
+            market_timing_worker.scrape_once = original_scrape_once
+            market_timing_worker.challenge_cooldown_status = original_cooldown
+            market_timing_worker.session_state_summary = original_session_summary
             if old_required is None:
                 os.environ.pop("NOTEAI_XHS_FRESHNESS_REQUIRED", None)
             else:
@@ -928,6 +1393,15 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 self.assertIn("health", health)
                 self.assertGreaterEqual(len(health["health"]), 1)
                 self.assertIn("sidecar", health)
+                self.assertIn("error_summary", health["health"][0])
+                self.assertIn("details", health["health"][0])
+                self.assertIn(health["health"][0]["access_status"], {
+                    "normal", "challenge", "cooldown",
+                })
+                self.assertNotIn(
+                    "discovery_diagnostics",
+                    json.dumps(health, ensure_ascii=False),
+                )
         finally:
             hot_keywords.DB_PATH = original_db
 

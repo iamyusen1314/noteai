@@ -998,7 +998,7 @@ async def admin_xhs_health(
     return {
         "freshness": _xhs_acq.freshness_overview(),
         "sidecar": _xhs_acq.sidecar_status(),
-        "health": _xhs_acq.recent_health(limit=limit, domain=domain, adapter=adapter),
+        "health": _xhs_acq.public_recent_health(limit=limit, domain=domain, adapter=adapter),
     }
 
 

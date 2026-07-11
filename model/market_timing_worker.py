@@ -29,9 +29,11 @@ from hot_keywords import (
 from scheduler_a import (
     discovery_diagnostics_for_results,
     scrape_once,
+    search_circuit_context,
     session_state_summary,
 )
 from xhs_acquisition import (
+    challenge_cooldown_status,
     freshness_overview,
     record_scrape_freshness,
     xhs_freshness_required,
@@ -87,8 +89,11 @@ async def run_once(
     run_id = str(uuid.uuid4())
     scrape_error = ""
     session_status = session_state_summary()
+    challenge_cooldown = challenge_cooldown_status()
+    circuit_state = "cooldown" if challenge_cooldown.get("active") else "closed"
     try:
-        scrape_result = await scrape_once()
+        with search_circuit_context({"state": circuit_state}):
+            scrape_result = await scrape_once()
         keywords = list(scrape_result)
         discovery_diagnostics = discovery_diagnostics_for_results(
             keywords,
