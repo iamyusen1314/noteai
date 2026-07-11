@@ -86,6 +86,21 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertNotIn("任一识别成功才允许后续诊断", HTML)
         self.assertNotIn("_setScreenshotImageOnlyFallback", HTML)
 
+    def test_long_running_ai_actions_use_truthful_copy_and_submit_guards(self):
+        for promise in ["30-40 秒", "30–40 秒", "30-60 秒", "30–60 秒"]:
+            with self.subTest(promise=promise):
+                self.assertNotIn(promise, HTML)
+        self.assertIn("AI 生成爆文（多阶段处理）", HTML)
+        self.assertIn("开始 AI 诊断（多阶段处理）", HTML)
+        self.assertIn('id="generateSubmitBtn"', HTML)
+        self.assertIn("function _setGenerationSubmitBusy(isBusy)", HTML)
+        self.assertIn("if (_genStreamActive) return;", HTML)
+        self.assertIn("if (_diagnosisStreamActive) return;", HTML)
+        self.assertIn("_setGenerationSubmitBusy(true)", HTML)
+        self.assertIn("_setGenerationSubmitBusy(false)", HTML)
+        self.assertIn("btn.setAttribute('aria-busy', isBusy ? 'true' : 'false')", HTML)
+        self.assertIn("btn.setAttribute('aria-busy', _diagnosisStreamActive ? 'true' : 'false')", HTML)
+
     def test_rewrite_titles_show_length_and_refine_status(self):
         self.assertIn("rewrite-title-meta", HTML)
         self.assertIn("id=\"titleMeta0\"", HTML)

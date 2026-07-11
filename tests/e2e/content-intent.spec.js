@@ -84,4 +84,62 @@ test.describe('content intent controls', () => {
     });
     expect(requestBody.brief).toContain('龙虾乌冬');
   });
+
+  test('诊断和生成快速双击只发送一次请求并在流结束后恢复按钮', async ({ page }) => {
+    await openUploadPage(page);
+
+    let generateRequests = 0;
+    await page.route('**/generate/stream', async route => {
+      generateRequests += 1;
+      await new Promise(resolve => setTimeout(resolve, 150));
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: 'data: [DONE]\n\n',
+      });
+    });
+
+    await page.evaluate(() => switchMode('generate'));
+    await page.locator('#genBrief').fill('用于验证重复提交保护的测试简报');
+    await page.evaluate(() => {
+      startGeneration();
+      startGeneration();
+    });
+
+    const generateBtn = page.locator('#generateSubmitBtn');
+    await expect(generateBtn).toBeDisabled();
+    await expect(generateBtn).toHaveAttribute('aria-busy', 'true');
+    await expect.poll(() => generateRequests).toBe(1);
+    await expect(generateBtn).toBeEnabled();
+    await expect(generateBtn).toHaveAttribute('aria-disabled', 'false');
+    await expect(generateBtn).toHaveAttribute('aria-busy', 'false');
+
+    let analyzeRequests = 0;
+    await page.route('**/analyze/stream', async route => {
+      analyzeRequests += 1;
+      await new Promise(resolve => setTimeout(resolve, 150));
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: 'data: [DONE]\n\n',
+      });
+    });
+
+    await page.evaluate(() => switchMode('diagnose'));
+    await page.locator('.input-type', { hasText: '手动填写' }).click();
+    await page.locator('#inputTitle').fill('重复提交保护测试标题');
+    await page.locator('#inputDesc').fill('重复提交保护测试正文');
+    await page.evaluate(() => {
+      startDiagnosis();
+      startDiagnosis();
+    });
+
+    const diagnoseBtn = page.locator('#diagnoseSubmitBtn');
+    await expect(diagnoseBtn).toBeDisabled();
+    await expect(diagnoseBtn).toHaveAttribute('aria-busy', 'true');
+    await expect.poll(() => analyzeRequests).toBe(1);
+    await expect(diagnoseBtn).toBeEnabled();
+    await expect(diagnoseBtn).toHaveAttribute('aria-disabled', 'false');
+    await expect(diagnoseBtn).toHaveAttribute('aria-busy', 'false');
+  });
 });

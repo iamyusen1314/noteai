@@ -3299,7 +3299,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         </div>
       </div>
 
-      <button id="diagnoseSubmitBtn" class="btn btn-primary btn-lg analyze-btn" onclick="startDiagnosis()" disabled
+      <button id="diagnoseSubmitBtn" class="btn btn-primary btn-lg analyze-btn" onclick="startDiagnosis()" disabled aria-busy="false"
         style="background:linear-gradient(135deg,#0099FF,#0070CC);color:#fff;border:none;box-shadow:0 4px 24px rgba(0,153,255,0.3)">
         <i data-lucide="search"></i> <span class="diagnose-btn-label">请先上传截图</span>
       </button>
@@ -3478,10 +3478,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         </div>
       </div>
 
-      <button class="btn btn-lg analyze-btn" onclick="startGeneration()"
+      <button id="generateSubmitBtn" class="btn btn-lg analyze-btn" onclick="startGeneration()" aria-disabled="false" aria-busy="false"
         style="background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;border:none;
                box-shadow:0 4px 28px rgba(123,97,255,0.4);margin-top:32px">
-        <i data-lucide="wand-2"></i> AI 生成爆文（约 30-40 秒）
+        <i data-lucide="wand-2"></i> <span class="generate-btn-label">AI 生成爆文（多阶段处理）</span>
       </button>
 
     </div><!-- /section-generate -->
@@ -5644,7 +5644,18 @@ let _isGenerateMode  = false;
 let _genStreamActive = false;
 let _diagnosisStreamActive = false;
 
+function _setGenerationSubmitBusy(isBusy) {
+  const btn = document.getElementById('generateSubmitBtn');
+  if (!btn) return;
+  const label = btn.querySelector('.generate-btn-label');
+  btn.disabled = !!isBusy;
+  btn.setAttribute('aria-disabled', isBusy ? 'true' : 'false');
+  btn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+  if (label) label.textContent = isBusy ? 'AI 爆文生成中…' : 'AI 生成爆文（多阶段处理）';
+}
+
 async function startGeneration() {
+  if (_genStreamActive) return;
   const domain = document.getElementById('genDomain')?.value || '美食';
   const brief  = (document.getElementById('genBrief')?.value || '').trim() || null;
   const constraints = getConstraintTags();
@@ -5663,6 +5674,7 @@ async function startGeneration() {
   _isGenerateMode = true;
   _generateResult = null;
   _genStreamActive = true;
+  _setGenerationSubmitBusy(true);
 
   const coverImages = _genCoverImages.map(img => img.dataURL.split(',')[1]);
 
@@ -5749,6 +5761,7 @@ async function startGeneration() {
       _rejectGen(err);
     } finally {
       _genStreamActive = false;
+      _setGenerationSubmitBusy(false);
     }
   })();
 
@@ -6120,6 +6133,7 @@ function formatLocalTime() {
 }
 
 async function startDiagnosis() {
+  if (_diagnosisStreamActive) return;
   _isGenerateMode = false;
   const selectedLabel = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
 
@@ -10589,7 +10603,7 @@ function updateDiagnosisSubmitState() {
   const labelEl = btn.querySelector('.diagnose-btn-label');
   const selectedLabel = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
   let disabled = false;
-  let label = '开始 AI 诊断（约 30-60 秒）';
+  let label = '开始 AI 诊断（多阶段处理）';
   let title = '';
   if (_diagnosisStreamActive) {
     disabled = true;
@@ -10617,6 +10631,7 @@ function updateDiagnosisSubmitState() {
   }
   btn.disabled = disabled;
   btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  btn.setAttribute('aria-busy', _diagnosisStreamActive ? 'true' : 'false');
   btn.title = title;
   if (labelEl) labelEl.textContent = label;
 }

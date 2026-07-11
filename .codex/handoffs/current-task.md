@@ -139,7 +139,7 @@
 
 ### STG-001 — Render 六服务与基础依赖验收
 
-- 状态：**已验证**
+- 状态：**VERIFIED**
 - 问题描述/现象：需确认部署不是只有 Build 绿色，而是服务真实可用。
 - 预期结果：Web/API/Admin/DB/Cron 均可用，健康检查与依赖正确。
 - 风险级别：High
@@ -153,7 +153,7 @@
 
 ### BUG-001 — Market Timing Cron 512MiB OOM
 
-- 状态：**已验证**
+- 状态：**VERIFIED**
 - 当前现象：早期 Cron 在 jieba/浏览器初始化后超过 512MiB。
 - 预期结果：Starter Cron 在限制内完成。
 - 风险级别：High；Render 特有。
@@ -167,21 +167,21 @@
 
 ### BUG-002 — XHS 推荐/热搜来源为 0
 
-- 状态：**已验证**
+- 状态：**INVESTIGATING**
 - 当前现象：旧日志显示 0 recommendation / 0 hot search。
 - 预期结果：来源统计准确，四类来源非零，六行业门禁通过。
 - 风险级别：High；原有逻辑与云端导航差异共同触发。
 - 涉及模块：`model/scheduler_a.py`, `model/xhs_acquisition.py`, tests。
-- 根因：已定位，见第 3 节。
-- 修改状态/进度：已修改并真实验证 460 条四来源。
-- 下一步：不重复开发；纳入 `OPS-001` 监控。
-- 验收标准：成功退出、四来源非零、六行业 freshness pass。
+- 根因：历史缺陷根因已定位，见第 3 节；当前连续自动轮次回退的根因尚未确认。
+- 修改状态/进度：历史修复曾真实验证 460 条四来源；2026-07-11 接管复核发现 13:05、14:05 两次自动轮次连续退化为 `search_result=0`、`search_recommend=0`，当前回退根因尚未确认。
+- 下一步：只读对比 12:05 成功轮次与 13:05/14:05 退化轮次的搜索输入、导航、会话和推荐 API 证据；根因确认前不修改代码、不手工触发 Cron。
+- 验收标准：至少连续 2–3 个自动轮次中 `search_result` 与 `search_recommend` 均满足已确认的健康阈值，且健康状态不再被当天累计旧证据掩盖。
 - 真实外部服务：需要授权 XHS 会话；已完成。
 - 费用/数据：Cron 时长费用；写入 Staging 数据。
 
 ### QA-001 — 真实 AI 主链路与积分对账
 
-- 状态：**已验证**
+- 状态：**VERIFIED**
 - 问题描述：需验证真实 Claude/Kimi、多 Agent、V0.4 和账本不是 mock。
 - 预期结果：诊断/生成/对话均成功，输出完整，扣分与 PostgreSQL 一致。
 - 风险级别：Critical（商业计费相关）。
@@ -195,7 +195,7 @@
 
 ### QA-002 — 多图、视频、事实源与失败退款
 
-- 状态：**已验证**
+- 状态：**VERIFIED**
 - 当前现象：需确认所有上传图都识别、视频帧完整、事实句自然、失败不扣分。
 - 预期结果：9/9 识别、9/9 视频帧、真实高德事实、失败退款。
 - 风险级别：High。
@@ -209,7 +209,7 @@
 
 ### OPS-001 — XHS Cookie/session 持续有效性
 
-- 状态：**进行中（运维）**
+- 状态：**INVESTIGATING**
 - 问题描述：授权 Cookie 会过期或被平台判失效。
 - 当前现象：最近真实轮次为 verified；未来会自然过期。
 - 预期结果：管理端及时显示 `needs_attention`/`needs_relogin`，更新后手工 Cron 恢复。
@@ -224,7 +224,7 @@
 
 ### FIN-001 — 配置并验证真实模型 Token 成本
 
-- 状态：**未完成；已定位根因；未开始业务修改**
+- 状态：**BLOCKED**
 - 问题描述：`actual_model_cost_rmb=0`，当前 `cost_rmb` 是操作级固定估算。
 - 当前现象：Token 数已记录，但 Render 未配置 Claude/Kimi 单价与汇率变量。
 - 预期结果：诊断/生成/对话的真实 Token 成本大于 0，前后台汇总一致，可用于毛利分析。
@@ -239,22 +239,22 @@
 
 ### UX-001 — 云端时延与“30–60秒”承诺不一致
 
-- 状态：**未完成；已复现；未开始修改**
+- 状态：**READY_TO_VERIFY**
 - 问题描述：真实诊断约 193–228 秒、生成约 257 秒、重写约 146 秒。
-- 当前现象：页面仍展示“约30–60秒”，可能误导并诱发重复提交。
-- 预期结果：先让文案、进度、超时和重复提交保护符合真实时延；性能优化不得牺牲质量。
+- 当前现象：修复前诊断展示“约30–60秒”、生成展示“约30–40秒”，且生成入口缺少函数级单请求锁和按钮禁用；当前本地工作树已完成 UX-001A 修复，尚未部署到 Render。
+- 预期结果：本修复包 UX-001A 先移除未经验证的固定耗时承诺，并保证诊断/生成请求期间只能提交一次；阶段耗时、stall timeout 和 P50/P95 另立性能包，不混入本次修改。
 - 风险级别：High；Staging 揭示的体验问题。
 - 涉及模块：静态前端、API 多 Agent/评分/二修流程。
-- 根因：端到端多 Agent 和质量修复耗时已观测；各阶段占比尚未完整剖析。
-- 修改状态/进度：已量化，未改。
-- 下一步：QA 只读采集阶段耗时；产品确认体验文案；性能改动另立小修复包。
-- 验收标准：不再虚假承诺；重复提交被阻止；质量和 60 分门禁不下降；P50/P95 有记录。
-- 真实外部服务：性能验收需要真实 AI。
-- 费用/数据：会产生 AI 费用；执行前必须说明。
+- 根因：固定文案与真实 Staging 耗时不符；`startGeneration()` 未检查 `_genStreamActive`，生成按钮也未绑定可恢复的禁用状态。根因已确认。
+- 修改状态/进度：UX-001A 已完成本地实施与独立验证：移除固定秒数承诺；生成/诊断入口增加单请求 guard；生成按钮增加 busy/disabled/ARIA 状态并在统一 `finally` 恢复；新增静态与 Playwright 回归。独立验证结果为 frontend static 15/15、Playwright 4/4、全量 unittest 282/282、production readiness 48/48、Compose 与 diff check 通过。
+- 下一步：获得部署批准后发布到 Render Staging，核对 live commit，并执行一次不重复付费的受控 UI smoke；Staging 验收前不得标记 `VERIFIED`。
+- 验收标准：不再显示“30–40秒/30–60秒”；连续点击诊断或生成分别只产生一个请求；成功、401、402、异常和流结束后按钮恢复；既有 payload、截图门禁和质量行为不回退。
+- 真实外部服务：本地 mock/静态验收已完成且不需要；部署与真实 Staging smoke 仍需另行批准。
+- 费用/数据：本修复包本地实施与验证不产生 AI 费用、不写远程数据。
 
 ### QA-003 — 人工 UI 上传与关键页面回归
 
-- 状态：**未完成**
+- 状态：**TODO**
 - 问题描述：自动化浏览器安全策略不允许选择本机文件，后端链路通过但 UI 文件选择未完成本轮人工验收。
 - 当前现象：尚缺人工 9 图上传、视频上传、余额不足弹窗、用户/用量管理页回归。
 - 预期结果：真实浏览器操作与后端结果一致，无装饰性控件和状态错位。
@@ -269,7 +269,7 @@
 
 ### PROD-001 — 正式支付订单/回调/对账
 
-- 状态：**正式上线前事项；未完成**
+- 状态：**DEFERRED**
 - 问题描述：尚未确认真实支付网关的下单、回调签名、幂等、退款与日对账闭环。
 - 当前现象：套餐/积分业务逻辑存在，但不能证明已收到真实款项。
 - 预期结果：支付与积分发放强一致，可审计、可退款、可对账。
@@ -284,7 +284,7 @@
 
 ### PROD-002 — 生产数据库、备份、域名与恢复演练
 
-- 状态：**正式上线前事项；未完成**
+- 状态：**DEFERRED**
 - 问题描述：Render Free PostgreSQL 无备份且 30 天到期；当前域名均为 Staging。
 - 当前现象：适合测试，不符合商业生产可恢复性。
 - 预期结果：付费 PostgreSQL、备份/PITR、监控、域名/TLS、恢复演练完成。
@@ -299,7 +299,7 @@
 
 ### PROD-003 — 视频缓存横向扩展与零停机
 
-- 状态：**暂缓；生产前评估**
+- 状态：**DEFERRED**
 - 问题描述：API 挂载单实例磁盘，Render 挂盘服务不能无缝横向扩容/零停机。
 - 当前现象：Staging 单实例满足短期测试。
 - 预期结果：生产按真实流量决定对象存储/任务队列或保持单实例的可接受方案。
@@ -451,3 +451,13 @@
 - 文档阶段从本机再次访问公开健康地址时网络连接超时；未据此判定云端故障，因为同一阶段 Render Dashboard 为 Deployed 且此前 readiness HTTP 200。推送后必须从 Render Events/Logs 或可用浏览器重新核对。
 - 交接提交只应包含：`AGENTS.md`、本文件、`.codex/notes/risk-register.md`、`docs/RENDER_DEPLOYMENT_GUIDE.md`。
 - 推送后应等待 GitHub CI；Render Staging 可能因 `checksPass` 自动部署文档 commit，业务代码仍与 `a8aa0b8` 相同。
+
+### 2026-07-11 UX-001A 本地修复包
+
+- 状态：`READY_TO_VERIFY`，尚未部署 Render，未标记 `VERIFIED`。
+- 修改文件：`NoteAI_Pro_Demo_Framer.html`、`tests/e2e/content-intent.spec.js`、`tests/test_frontend_report_static.py`；本文件由主 CTO 更新任务证据。
+- 修改范围：诚实时延文案、诊断/生成单请求 guard、生成按钮 busy/disabled/ARIA 状态、对应静态和 Playwright 回归；未修改 API、billing、模型、数据库、积分或质量门禁。
+- Implementation Agent 自测：frontend static 15/15、Playwright 4/4、diff check 通过。
+- 独立 Verification Agent：frontend static 15/15、Playwright 4/4、全量 unittest 282/282、production readiness 48/48、Docker Compose config 和 LFS-safe diff check 通过。
+- 剩余风险：当前是浏览器端防重复提交，后端仍没有 request-id 幂等；401/402/异常分支由统一 `finally` 与代码审查覆盖，尚未分别增加浏览器级分支用例。
+- 下一步：获得明确部署批准后再推送/部署 Render Staging，并执行受控 UI smoke；不得隐式触发付费 AI 或重复扣分。
