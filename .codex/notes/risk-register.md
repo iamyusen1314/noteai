@@ -141,8 +141,16 @@ Last updated: 2026-07-10
 - 风险描述: Docker installs Playwright Chromium, but scraping/market timing behavior may still depend on network, cookies, display/headless constraints, and platform policies.
 - 涉及文件: `Dockerfile`, `model/crawler.py`, `model/scheduler_a.py`, `model/market_timing_worker.py`, `docker-compose.yml`.
 - 可能后果: Market data unavailable, blocked crawler, unstable worker.
-- 建议验证方式: Cloud-like container run, worker logs, data freshness check.
+- 建议验证方式: Cloud-like container run, worker logs, data freshness check, same-day de-duplicated evidence accumulation, and admin session-health status.
 - 是否需要用户确认后才能修改: yes.
+
+### XHS test-account session can expire without warning
+
+- 风险描述: Render 的市场时机采集依赖由用户登录生成的测试账号会话；平台风控、Cookie 到期或页面访问策略变化都可能令会话失效。
+- 涉及文件: `model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `model/admin_server.py`, `model/admin.html`, `render.yaml`。
+- 可能后果: 六个核心行业无法达到真实新鲜证据门禁，Cron 退出非零，市场时机证据停止更新。
+- 建议验证方式: 管理端显示 `已验证 / 登录已失效 / 需要检查`；Render Cron 仅失败通知；每次重新登录后以真实采集证据验证，而不是只检查 Cookie 是否存在。
+- 是否需要用户确认后才能修改: 重新登录和替换 Cookie 需要用户确认；健康检测和无敏感值提醒可按现有方案维护。
 
 ## Low Risks
 

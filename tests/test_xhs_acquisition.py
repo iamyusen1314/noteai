@@ -21,6 +21,7 @@ market_timing_worker = importlib.import_module("market_timing_worker")
 xhs_acquisition = importlib.import_module("xhs_acquisition")
 xhs_health_probe = importlib.import_module("xhs_health_probe")
 admin_server = importlib.import_module("admin_server")
+scheduler_a = importlib.import_module("scheduler_a")
 
 
 def _real_xhs_rows() -> list[dict]:
@@ -69,6 +70,71 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                     self.assertGreaterEqual(status["evidence_count"], status["minimum"])
         finally:
             hot_keywords.DB_PATH = original_db
+
+    def test_same_day_real_evidence_accumulates_by_unique_keyword(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                rows = []
+                for row in hot_keywords.baseline_evidence_rows(("美食",), min_per_domain=16):
+                    cloned = dict(row)
+                    cloned["source"] = "search_phrase"
+                    cloned["count"] = 4
+                    rows.append(cloned)
+
+                first = xhs_acquisition.record_scrape_freshness(
+                    rows[:7], run_id="accumulate-1", domains=("美食",), min_count=12,
+                    session_status={"configured": True, "auth_cookie_present": True},
+                )
+                self.assertFalse(first["overview"]["ok"])
+                self.assertEqual(first["overview"]["domains"][0]["evidence_count"], 7)
+
+                duplicate = xhs_acquisition.record_scrape_freshness(
+                    rows[:7], run_id="accumulate-duplicate", domains=("美食",), min_count=12,
+                    session_status={"configured": True, "auth_cookie_present": True},
+                )
+                self.assertEqual(duplicate["overview"]["domains"][0]["evidence_count"], 7)
+
+                completed = xhs_acquisition.record_scrape_freshness(
+                    rows[7:14], run_id="accumulate-2", domains=("美食",), min_count=12,
+                    session_status={"configured": True, "auth_cookie_present": True},
+                )
+                self.assertTrue(completed["overview"]["ok"])
+                self.assertEqual(completed["overview"]["domains"][0]["evidence_count"], 13)
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_zero_evidence_records_actionable_cookie_health(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                xhs_acquisition.record_scrape_freshness(
+                    [], run_id="missing-cookie", domains=("美食",),
+                    session_status={"configured": False, "auth_cookie_present": False},
+                )
+                health = xhs_acquisition.recent_health(domain="美食", adapter="scheduler_a")
+                self.assertEqual(health[0]["status"], "failed")
+                self.assertEqual(health[0]["error_code"], "cookie_not_configured")
+                self.assertTrue(health[0]["risk_login_detected"])
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_session_summary_never_exposes_cookie_values(self):
+        future = 4_102_444_800
+        state = {"cookies": [
+            {"name": "web_session", "value": "secret-session", "expires": future},
+            {"name": "a1", "value": "secret-device", "expires": future},
+        ]}
+        with patch.object(scheduler_a, "_get_session_state", return_value=state):
+            summary = scheduler_a.session_state_summary()
+        self.assertTrue(summary["configured"])
+        self.assertTrue(summary["auth_cookie_present"])
+        self.assertFalse(summary["auth_cookie_expired"])
+        self.assertEqual(summary["cookie_count"], 2)
+        self.assertNotIn("secret-session", json.dumps(summary))
+        self.assertNotIn("secret-device", json.dumps(summary))
 
     def test_worker_xhs_required_exports_baseline_with_warning(self):
         original_db = hot_keywords.DB_PATH

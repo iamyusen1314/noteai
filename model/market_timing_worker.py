@@ -26,7 +26,7 @@ from hot_keywords import (
     upsert_keywords,
     write_keyword_snapshot,
 )
-from scheduler_a import scrape_once
+from scheduler_a import scrape_once, session_state_summary
 from xhs_acquisition import (
     freshness_overview,
     record_scrape_freshness,
@@ -69,6 +69,7 @@ async def run_once(
     init_db()
     run_id = str(uuid.uuid4())
     scrape_error = ""
+    session_status = session_state_summary()
     try:
         keywords = await scrape_once()
     except Exception as exc:
@@ -76,10 +77,25 @@ async def run_once(
         scrape_error = f"{type(exc).__name__}: {exc}"
     if keywords:
         upsert_keywords(keywords)
-    xhs_freshness = record_scrape_freshness(keywords, run_id=run_id)
+    xhs_freshness = record_scrape_freshness(
+        keywords,
+        run_id=run_id,
+        session_status=session_status,
+        scrape_error=scrape_error,
+    )
     xhs_required = xhs_freshness_required()
     xhs_ok = bool((xhs_freshness.get("overview") or {}).get("ok"))
     xhs_warning = _xhs_missing_message(xhs_freshness) if xhs_required and not xhs_ok else ""
+    if xhs_warning and not keywords:
+        if not session_status.get("configured"):
+            reason = "XHS_SESSION_REQUIRED: no XHS login session is configured"
+        elif not session_status.get("auth_cookie_present"):
+            reason = "XHS_SESSION_REQUIRED: XHS authentication cookies are missing"
+        elif session_status.get("auth_cookie_expired"):
+            reason = "XHS_SESSION_EXPIRED: XHS login session has expired; re-login required"
+        else:
+            reason = "XHS_SESSION_OR_ACCESS_UNAVAILABLE: configured session returned 0 fresh evidence"
+        xhs_warning = f"{xhs_warning}; {reason}"
     baseline_result = ensure_daily_evidence_pack()
     payload = write_keyword_snapshot(snapshot_path, hours=hours)
     if not (payload.get("domains") or {}):
@@ -97,6 +113,7 @@ async def run_once(
     return {
         "keywords": len(keywords),
         "scrape_error": scrape_error,
+        "session_status": session_status,
         "xhs_freshness": xhs_freshness,
         "xhs_freshness_overview": freshness_overview(),
         "xhs_freshness_required": xhs_required,

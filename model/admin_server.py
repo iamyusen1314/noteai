@@ -858,6 +858,34 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
     config = _load_crawler_config()
     cookie_content = _settings.get_json(_XHS_COOKIES_KEY, [])
     cookie_exists = bool(cookie_content)
+    cookie_runtime_status = "not_configured"
+    cookie_last_verified_at = None
+    cookie_consecutive_failures = 0
+    if cookie_exists:
+        cookie_runtime_status = "pending_validation"
+        if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
+            recent = _xhs_acq.recent_health(limit=60, adapter="scheduler_a")
+            run_ids = []
+            for row in recent:
+                run_id = row.get("run_id")
+                if run_id and run_id not in run_ids:
+                    run_ids.append(run_id)
+            for run_id in run_ids:
+                run_rows = [row for row in recent if row.get("run_id") == run_id]
+                if any(row.get("profile_cookie_valid") and int(row.get("evidence_count") or 0) > 0 for row in run_rows):
+                    cookie_last_verified_at = max(
+                        (row.get("checked_at") or "") for row in run_rows
+                    ) or None
+                    break
+                cookie_consecutive_failures += 1
+            latest_rows = [row for row in recent if run_ids and row.get("run_id") == run_ids[0]]
+            latest_errors = {str(row.get("error_code") or "") for row in latest_rows}
+            if latest_errors & {"cookie_expired", "auth_cookie_missing", "cookie_not_configured"}:
+                cookie_runtime_status = "needs_relogin"
+            elif latest_rows and any(int(row.get("evidence_count") or 0) > 0 for row in latest_rows):
+                cookie_runtime_status = "verified"
+            elif latest_rows and all(int(row.get("evidence_count") or 0) == 0 for row in latest_rows):
+                cookie_runtime_status = "needs_attention"
 
     # 爬虫采集数据统计
     crawl_stats = db.fetchone(
@@ -868,6 +896,10 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
         **config,
         "cookie_file_exists": cookie_exists,
         "cookie_count":       len(cookie_content) if isinstance(cookie_content, list) else 0,
+        "cookie_runtime_status": cookie_runtime_status,
+        "cookie_last_verified_at": cookie_last_verified_at,
+        "cookie_consecutive_failures": cookie_consecutive_failures,
+        "cookie_action_required": cookie_runtime_status in {"needs_relogin", "needs_attention"},
         "completed_tracks":   crawl_stats["cnt"],
     }
 

@@ -119,6 +119,12 @@ services:
         value: "1"
       - key: NOTEAI_CLOUD_RUNTIME
         value: "1"
+      - key: NOTEAI_XHS_FRESHNESS_REQUIRED
+        value: "1"
+      - key: NOTEAI_HOT_KEYWORD_FRESH_HOURS
+        value: "30"
+      - key: NOTEAI_MARKET_TIMING_MIN_DOMAIN_KEYWORDS
+        value: "12"
       - key: NOTEAI_MIGRATE_ON_START
         value: "1"
       - key: NOTEAI_ENABLE_CLOUD_MODEL_MUTATION

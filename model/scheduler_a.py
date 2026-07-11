@@ -107,6 +107,46 @@ def _get_session_state():
     return None
 
 
+def session_state_summary() -> dict:
+    """Return secret-free XHS session metadata for health checks and alerts."""
+    state = _get_session_state()
+    payload = None
+    if isinstance(state, str):
+        try:
+            payload = json.loads(Path(state).read_text(encoding="utf-8"))
+        except Exception:
+            payload = None
+    elif isinstance(state, dict):
+        payload = state
+
+    cookies = payload.get("cookies", []) if isinstance(payload, dict) else []
+    cookies = cookies if isinstance(cookies, list) else []
+    auth_cookies = [
+        cookie for cookie in cookies
+        if isinstance(cookie, dict) and cookie.get("name") in {"web_session", "id_token"}
+    ]
+    expiries = []
+    for cookie in auth_cookies:
+        try:
+            expires = float(cookie.get("expires") or 0)
+        except (TypeError, ValueError):
+            expires = 0
+        if expires > 0:
+            expiries.append(expires)
+    now_ts = time.time()
+    auth_expired = bool(auth_cookies and expiries and max(expiries) <= now_ts)
+    return {
+        "configured": bool(cookies),
+        "cookie_count": len(cookies),
+        "auth_cookie_present": bool(auth_cookies),
+        "auth_cookie_expired": auth_expired,
+        "auth_expires_at": (
+            datetime.fromtimestamp(max(expiries)).isoformat()
+            if expiries else None
+        ),
+    }
+
+
 def _extract_keyword_from_item(item: dict) -> str | None:
     for key in ("keyword", "word", "name", "text", "title"):
         v = item.get(key)

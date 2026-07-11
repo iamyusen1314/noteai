@@ -105,7 +105,14 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("NOTEAI_XHS_TOKEN_DISCOVERY", blueprint)
         self.assertIn("NOTEAI_XHS_LOW_MEMORY_BROWSER", blueprint)
         self.assertIn("NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION", blueprint)
+        self.assertGreaterEqual(blueprint.count("NOTEAI_XHS_FRESHNESS_REQUIRED"), 2)
         self.assertIn("MALLOC_ARENA_MAX", blueprint)
+
+    def test_admin_crawler_exposes_runtime_cookie_health(self):
+        admin_html = (MODEL_DIR / "admin.html").read_text(encoding="utf-8")
+        self.assertIn("cookie_runtime_status", admin_html)
+        self.assertIn("cw-cookie-sub", admin_html)
+        self.assertIn("登录已失效", admin_html)
 
     def test_hot_keywords_does_not_eagerly_import_jieba(self):
         source = (MODEL_DIR / "hot_keywords.py").read_text(encoding="utf-8")

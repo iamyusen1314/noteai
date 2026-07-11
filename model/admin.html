@@ -402,6 +402,7 @@ input,select,textarea{font-family:inherit}
       <div class="stat-card">
         <div class="stat-label">Cookie 状态</div>
         <div class="stat-val" id="cw-cookie">–</div>
+        <div class="stat-sub" id="cw-cookie-sub"></div>
         <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="openCookieModal()">更新 Cookie</button>
       </div>
       <div class="stat-card">
@@ -904,7 +905,16 @@ async function loadCrawler() {
   const r = await aFetch('/admin/crawler/status');
   const d = await r.json();
   document.getElementById('cw-status').innerHTML = `<span class="dot ${d.enabled?'dot-green':'dot-red'}"></span>${d.enabled?'运行中':'已停止'}`;
-  document.getElementById('cw-cookie').innerHTML = `<span class="dot ${d.cookie_file_exists?'dot-green':'dot-red'}"></span>${d.cookie_file_exists?`有效（${d.cookie_count}条）`:'未配置'}`;
+  const cookieLabels = {
+    not_configured:'未配置', pending_validation:'待验证', verified:'已验证',
+    needs_relogin:'登录已失效', needs_attention:'需要检查'
+  };
+  const cookieOk = d.cookie_runtime_status === 'verified';
+  const cookieWarn = ['pending_validation','needs_attention'].includes(d.cookie_runtime_status);
+  document.getElementById('cw-cookie').innerHTML = `<span class="dot ${cookieOk?'dot-green':cookieWarn?'dot-yellow':'dot-red'}"></span>${cookieLabels[d.cookie_runtime_status]||'未知'}${d.cookie_file_exists?`（${d.cookie_count}条）`:''}`;
+  document.getElementById('cw-cookie-sub').textContent = d.cookie_action_required
+    ? `请重新登录或检查采集；连续失败 ${d.cookie_consecutive_failures||0} 次`
+    : (d.cookie_last_verified_at ? `最近验证 ${_fmtShortTime(d.cookie_last_verified_at)}` : '保存后由下一轮采集验证');
   document.getElementById('cw-total').textContent = (d.total_collected||0).toLocaleString() + ' 条';
   await loadXhsHealth();
   const logsR = await aFetch('/admin/crawler/logs?limit=30');

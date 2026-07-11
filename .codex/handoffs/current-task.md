@@ -5785,3 +5785,68 @@ This list reflects current Git status during handoff. Some files were modified b
 - 不运行 migration/seed/reset/deploy/clean。
 - 不提交本地 DB、token、cookie、日志、截图、runtime snapshot 或未确认 artifact。
 - 不继续扩大真实 AI 调用样本量，除非先给出新的 Live API Run Plan。
+
+## 2026-07-11 Render XHS 登录态与新鲜证据稳定化
+
+### Original Goal
+
+- 将已由用户完成登录的测试账号 Cookie 安全同步到 Render 测试环境，不在代码、日志、文档或提交中暴露 Cookie 值。
+- 修复市场时机 Cron 已抓取到数据但仍因六个行业证据不足退出的问题。
+- 当登录态缺失、过期或连续无法采集时，在管理端明确提醒用户重新登录或检查采集，并由 Render 失败通知提供外部提醒。
+
+### Current Status
+
+- 已完成：本地登录态有效性检查；本地真实抓取探针覆盖六个核心行业。
+- 已完成：通过已认证管理端将 18 条 Cookie 记录写入 Render PostgreSQL 共享运行时配置；未输出或提交 Cookie 值。
+- 已完成：Render Cron 使用该登录态抓到 107 条数据，证明登录态读取和云端浏览器链路可用。
+- 已完成：定位同日证据账本使用 `(domain, evidence_date)` 覆盖写，导致每轮抓取互相覆盖。
+- 已完成：改为按 `(source, keyword)` 去重并在同日多轮之间累计；重复抓取不虚增。
+- 已完成：管理端 Cookie 状态从“只要存在即有效”改为 `待验证 / 已验证 / 登录已失效 / 需要检查`。
+- 已完成：外层仍保留 `XHS_FRESH_EVIDENCE_UNAVAILABLE` 兼容错误码，并附加登录态具体原因。
+- 已完成：语法、定向、全量、Docker、前端构建和生产就绪门禁验证。
+- 进行中：提交推送、Render Blueprint 同步、Cron 新版本实跑和失败通知检查。
+
+### Files Touched
+
+- Backend: `model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `model/admin_server.py`。
+- Admin UI: `model/admin.html`。
+- Config / Deployment: `render.yaml`。
+- Tests: `tests/test_xhs_acquisition.py`, `tests/test_render_deployment.py`。
+- Docs: `.codex/handoffs/current-task.md`, `.codex/notes/risk-register.md`。
+- 本地忽略文件：`model/data/xhs_state.json`, `model/data/xhs_cookies.json`，含敏感登录态，不得提交或输出。
+- 三个 `.lgb` 文件仅因本机缺少 Git LFS 过滤器显示为修改，禁止 stage、恢复或纳入本次提交。
+
+### Key Decisions
+
+- 新鲜度按唯一 `(来源, 关键词)` 计数；同日多轮可累计，不允许简单相加重复结果。
+- 仅 Cookie 存在不能证明可用；必须由真实采集产生证据后标记“已验证”。
+- 零证据时按 `cookie_not_configured / auth_cookie_missing / cookie_expired / session_or_access_unavailable` 记录健康原因。
+- Cron 硬门禁仍保持每行业至少 12 条，不降低质量标准，也不使用行业基线伪装成新鲜证据。
+- 管理端只返回 Cookie 条数和无敏感值的健康元数据，永不返回 Cookie 内容。
+
+### Verification Status
+
+- `.venv/bin/python -m py_compile model/scheduler_a.py model/market_timing_worker.py model/xhs_acquisition.py model/admin_server.py`: passed。
+- `.venv/bin/python -m unittest tests.test_xhs_acquisition tests.test_render_deployment`: 23 passed。
+- `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`: 277 passed。
+- `docker compose config --quiet`: passed。
+- `NOTEAI_PUBLIC_API_BASE=https://api.example.invalid ./scripts/build_render_frontend.sh`: passed。
+- `.venv/bin/python tools/production_readiness_gate.py`: 48 checks passed，0 failed。
+- 尚待：推送后 GitHub CI、Render Blueprint 同步、至少一轮新代码 Cron、管理端状态刷新、Render 失败通知确认。
+
+### Next Steps
+
+1. 下一步目标：提交并推送本轮稳定化改动。
+2. 预计修改文件：仅上述 Backend/Admin/Render/Tests/Docs 文件。
+3. 为什么要改：Render 当前仍运行旧账本逻辑，只有部署新代码后才能跨轮去重累计。
+4. 风险：误提交本地 Cookie 或 Git LFS 模型文件；必须显式逐文件 stage。
+5. 验证方式：检查 staged diff、GitHub CI、Render Blueprint sync。
+6. 是否需要用户确认：用户已确认同步测试 Cookie 和建立重新登录提醒；不新增费用计划。
+
+### Do Not Touch Without Approval
+
+- 不输出、复制到文档或提交任何 Cookie/Token/密码真实值。
+- 不降低每行业 12 条的新鲜证据门禁。
+- 不把 baseline 数据计为真实 XHS 新鲜证据。
+- 不修改认证、支付、积分、数据库 schema/migration 或模型产物。
+- 不 stage 三个本机 Git LFS 表现异常的 `.lgb` 文件。

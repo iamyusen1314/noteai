@@ -356,10 +356,13 @@ def record_scrape_freshness(
     run_id: str | None = None,
     domains: tuple[str, ...] | list[str] | None = None,
     min_count: int | None = None,
+    session_status: dict[str, Any] | None = None,
+    scrape_error: str = "",
 ) -> dict:
     init_db()
     effective_run_id = run_id or str(uuid.uuid4())
     domain_counts: dict[str, int] = defaultdict(int)
+    domain_evidence_keys: dict[str, set[str]] = defaultdict(set)
     source_counts: dict[str, int] = defaultdict(int)
     for raw in rows or []:
         cleaned = hot_keywords.clean_scraped_keyword_row(dict(raw))
@@ -369,30 +372,89 @@ def record_scrape_freshness(
         if not domain:
             continue
         domain_counts[domain] += 1
-        source_counts[str(cleaned.get("source") or "unknown")] += 1
+        source = str(cleaned.get("source") or "unknown")
+        source_counts[source] += 1
+        domain_evidence_keys[domain].add(json.dumps(
+            [source, str(cleaned.get("keyword") or "").strip()],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ))
 
     target_domains = tuple(domains or hot_keywords.CORE_EVIDENCE_DOMAINS)
     ledger = []
+    acquired = _now()
+    evidence_date = acquired.strftime("%Y-%m-%d")
+    session = dict(session_status or {})
     for domain in target_domains:
-        count = int(domain_counts.get(domain, 0) or 0)
+        current_keys = set(domain_evidence_keys.get(domain, set()))
+        conn = hot_keywords._conn()
+        try:
+            previous = conn.execute(
+                "SELECT details_json FROM xhs_freshness_ledger WHERE domain=? AND evidence_date=?",
+                (domain, evidence_date),
+            ).fetchone()
+        finally:
+            conn.close()
+        previous_details = _parse_json_object(previous["details_json"]) if previous else {}
+        previous_keys = {
+            str(value) for value in (previous_details.get("evidence_keys") or []) if value
+        }
+        accumulated_keys = previous_keys | current_keys
+        count = len(accumulated_keys)
+        current_count = int(domain_counts.get(domain, 0) or 0)
+        details = {
+            "source_counts": dict(source_counts),
+            "evidence_keys": sorted(accumulated_keys),
+            "latest_run_evidence_count": current_count,
+            "session_configured": bool(session.get("configured")),
+        }
         ledger.append(record_freshness(
             domain,
             count,
             source="xhs_public_scrape",
             run_id=effective_run_id,
             min_count=min_count,
-            details={"source_counts": dict(source_counts)},
+            details=details,
+            acquired_at=acquired,
         ))
+        if current_count > 0:
+            health_status = "ok" if count >= int(min_count or minimum_evidence_per_domain()) else "insufficient"
+            error_code = ""
+            error_summary = ""
+            risk_login = False
+        elif not session.get("configured"):
+            health_status = "failed"
+            error_code = "cookie_not_configured"
+            error_summary = "XHS login session is not configured"
+            risk_login = True
+        elif not session.get("auth_cookie_present"):
+            health_status = "failed"
+            error_code = "auth_cookie_missing"
+            error_summary = "XHS authentication cookies are missing"
+            risk_login = True
+        elif session.get("auth_cookie_expired"):
+            health_status = "failed"
+            error_code = "cookie_expired"
+            error_summary = "XHS login session has expired"
+            risk_login = True
+        else:
+            health_status = "failed"
+            error_code = "session_or_access_unavailable"
+            error_summary = scrape_error or "Configured XHS session returned 0 fresh evidence"
+            risk_login = False
         record_health(CrawlerHealth(
             run_id=effective_run_id,
             adapter="scheduler_a",
             domain=domain,
-            status="ok" if count >= int(min_count or minimum_evidence_per_domain()) else "insufficient",
-            profile_cookie_valid=True,
-            note_page_access_valid=count > 0,
-            selector_valid=count > 0,
+            status=health_status,
+            profile_cookie_valid=current_count > 0,
+            note_page_access_valid=current_count > 0,
+            selector_valid=current_count > 0,
+            risk_login_detected=risk_login,
             evidence_count=count,
-            details={"source_counts": dict(source_counts)},
+            error_code=error_code,
+            error_summary=error_summary,
+            details=details,
         ))
 
     overview = freshness_overview(target_domains)
@@ -411,18 +473,18 @@ def freshness_status(domain: str, *, now: datetime | None = None, min_count: int
     current = now or _now()
     conn = hot_keywords._conn()
     try:
-        row = conn.execute(
+        rows = conn.execute(
             """
             SELECT * FROM xhs_freshness_ledger
             WHERE domain=?
             ORDER BY acquired_at DESC
-            LIMIT 1
+            LIMIT 4
             """,
             (domain,),
-        ).fetchone()
+        ).fetchall()
     finally:
         conn.close()
-    if not row:
+    if not rows:
         return {
             "domain": domain,
             "ok": False,
@@ -431,21 +493,50 @@ def freshness_status(domain: str, *, now: datetime | None = None, min_count: int
             "minimum": minimum,
             "reason": "no_xhs_freshness_record",
         }
-    try:
-        fresh_until = datetime.fromisoformat(row["fresh_until"])
-    except Exception:
-        fresh_until = datetime.min
-    count = int(row["evidence_count"] or 0)
-    ok = row["status"] == "fresh" and count >= minimum and fresh_until >= current
+    active_rows = []
+    for candidate in rows:
+        try:
+            fresh_until = datetime.fromisoformat(candidate["fresh_until"])
+        except Exception:
+            continue
+        if fresh_until >= current:
+            active_rows.append((candidate, fresh_until))
+    if not active_rows:
+        row = rows[0]
+        return {
+            "domain": domain,
+            "ok": False,
+            "status": "expired",
+            "source": row["source"],
+            "evidence_count": 0,
+            "minimum": minimum,
+            "acquired_at": row["acquired_at"],
+            "fresh_until": row["fresh_until"],
+            "last_run_id": row["last_run_id"],
+            "reason": "xhs_freshness_expired",
+        }
+    evidence_keys: set[str] = set()
+    legacy_count = 0
+    for candidate, _ in active_rows:
+        details = _parse_json_object(candidate["details_json"])
+        keys = {str(value) for value in (details.get("evidence_keys") or []) if value}
+        if keys:
+            evidence_keys.update(keys)
+        else:
+            legacy_count = max(legacy_count, int(candidate["evidence_count"] or 0))
+    row = active_rows[0][0]
+    count = max(len(evidence_keys), legacy_count)
+    latest_fresh_until = max(fresh_until for _, fresh_until in active_rows)
+    ok = count >= minimum
     return {
         "domain": domain,
         "ok": bool(ok),
-        "status": row["status"],
+        "status": "fresh" if ok else "insufficient",
         "source": row["source"],
         "evidence_count": count,
         "minimum": minimum,
         "acquired_at": row["acquired_at"],
-        "fresh_until": row["fresh_until"],
+        "fresh_until": latest_fresh_until.isoformat(),
         "last_run_id": row["last_run_id"],
         "reason": "" if ok else "xhs_freshness_not_satisfied",
     }
