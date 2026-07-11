@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 ## Critical Risks
 
@@ -44,15 +44,15 @@ Last updated: 2026-07-10
 - 建议验证方式: Locate/implement payment provider flow only after approval; test order creation, callback signature verification, idempotency, refunds, reconciliation.
 - 是否需要用户确认后才能修改: yes.
 
+### Render model prices are not configured for actual cost accounting
+
+- 风险描述: Staging 已记录 Claude/Kimi 的 Token 与模型名称，但模型 INPUT/OUTPUT 单价环境变量未配置，导致 `actual_model_cost_rmb=0`，`cost_rmb` 继续使用操作级固定估算。
+- 涉及文件: `model/billing.py`, `model/api.py`, `model/.env.example`, Render API 环境变量，后台用量页面。
+- 可能后果: 毛利、套餐定价和供应商费用预警建立在估算值而非真实 Token 成本上，可能误判盈利能力。
+- 建议验证方式: 由产品负责人确认精确模型价格和汇率后，各跑一次最小诊断/生成/重写，要求 `actual_model_cost_rmb>0` 且手工复算一致。
+- 是否需要用户确认后才能修改: yes，配置和验证会影响商业核算并产生少量 API 费用。
+
 ## High Risks
-
-### Large uncommitted diff spans many critical modules
-
-- 风险描述: Current branch has a large uncommitted diff across frontend, API, billing, deployment, tests, and docs.
-- 涉及文件: all files shown in `git status --short`.
-- 可能后果: Hard to review, merge conflicts, accidental commit of local artifacts, difficult rollback.
-- 建议验证方式: Review `git diff --stat`, group staged files intentionally, run full tests, make a checkpoint commit after user approval.
-- 是否需要用户确认后才能修改: yes.
 
 ### Frontend/backend payload drift
 
@@ -93,6 +93,14 @@ Last updated: 2026-07-10
 - 可能后果: Empty responses, failed OCR, slow diagnosis, inaccurate billing cost, poor user experience.
 - 建议验证方式: Provider-specific smoke tests with timeout/retry logging and usage record checks; avoid logging secrets.
 - 是否需要用户确认后才能修改: yes for live-cost tests or provider changes.
+
+### Render AI latency exceeds the current user-facing promise
+
+- 风险描述: 真实 staging 样本中，诊断约 194–228 秒、生成约 257 秒、对话深度重写约 146 秒，而前端按钮仍承诺“约30–60秒”。
+- 涉及文件: `NoteAI_Pro_Demo_Framer.html`, `model/api.py`, `model/model_router.py`, 多 Agent/评分/二修流程。
+- 可能后果: 用户认为系统卡死或虚假承诺，重复提交导致重复扣分和更高模型费用。
+- 建议验证方式: 先修正文案与进度/防重复提交；再用阶段耗时日志定位 Claude 并发、评分和二修瓶颈，优化后保持同一质量门禁做 A/B 实测。
+- 是否需要用户确认后才能修改: 文案与防重复提交可按事实修复；改变 Agent 数量、模型、并发或二修策略需要用户确认，因为可能影响交付质量和费用。
 
 ## Medium Risks
 
@@ -144,17 +152,17 @@ Last updated: 2026-07-10
 - 建议验证方式: Cloud-like container run, worker logs, data freshness check, same-day de-duplicated evidence accumulation, and admin session-health status.
 - 是否需要用户确认后才能修改: yes.
 
-### XHS test-account session can expire without warning
+### XHS test-account session can expire and requires operator action
 
-- 风险描述: Render 的市场时机采集依赖由用户登录生成的测试账号会话；平台风控、Cookie 到期或页面访问策略变化都可能令会话失效。
+- 风险描述: Render 的市场时机采集依赖由用户登录生成的测试账号会话；提醒机制已部署，但平台风控、Cookie 到期或页面策略变化仍会令会话失效并需要人工重新登录。
 - 涉及文件: `model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `model/admin_server.py`, `model/admin.html`, `render.yaml`。
 - 可能后果: 六个核心行业无法达到真实新鲜证据门禁，Cron 退出非零，市场时机证据停止更新。
 - 建议验证方式: 管理端显示 `已验证 / 登录已失效 / 需要检查`；Render Cron 仅失败通知；每次重新登录后以真实采集证据验证，而不是只检查 Cookie 是否存在。
 - 是否需要用户确认后才能修改: 重新登录和替换 Cookie 需要用户确认；健康检测和无敏感值提醒可按现有方案维护。
 
-### XHS evidence can appear sufficient while source diversity is weak
+### XHS evidence source diversity can regress
 
-- 风险描述: 仅按关键词数量判断可能掩盖来源单一；旧日志还曾把 `search_phrase/search_token` 误计为 homefeed，并且搜索推荐/趋势接口未被稳定触发或解析。
+- 风险描述: 当前四类来源已在 Render 真实通过；未来页面/API 变化仍可能让来源退化，而单看关键词总数可能掩盖来源单一。
 - 涉及文件: `model/scheduler_a.py`, `model/xhs_acquisition.py`, `model/market_timing_worker.py`, `model/admin_server.py`。
 - 可能后果: 市场时机证据数量达标但缺少用户主动搜索与趋势信号，降低报告可信度。
 - 建议验证方式: 每轮记录 `homefeed / search_result / search_recommend / hot_search` 独立数量及 API 响应指标；云端至少确认搜索结果和推荐来源非零，再评估是否增加来源多样性门禁。
@@ -185,6 +193,14 @@ Last updated: 2026-07-10
 - 可能后果: Accidental noisy commits or leaking local state.
 - 建议验证方式: `git status --short`, `.gitignore`, explicit staging.
 - 是否需要用户确认后才能修改: no for docs/gitignore; yes before deleting artifacts.
+
+### Missing local Git LFS filter creates false model modifications
+
+- 风险描述: 本机未安装或未启用 Git LFS filter 时，三份已跟踪 `.lgb` 会显示 modified，即使业务模型内容没有被主动修改。
+- 涉及文件: `.gitattributes`, `model/artifacts/*.lgb`。
+- 可能后果: 误把大模型二进制加入提交、污染 diff 或破坏远端 LFS 指针。
+- 建议验证方式: 使用 LFS-safe status 核对；提交时只显式 stage 目标文件；恢复 Git LFS 后再处理工作树表现。
+- 是否需要用户确认后才能修改: 安装依赖或改模型文件需要确认；排除 staging 不需要。
 
 ### No confirmed lint/typecheck command
 

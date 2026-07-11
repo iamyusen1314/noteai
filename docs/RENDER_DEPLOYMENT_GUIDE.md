@@ -81,6 +81,18 @@
 | `AWS_DEFAULT_REGION` | 使用 S3 时必填 | 否 | S3 区域 |
 | `NOTEAI_MODEL_ARTIFACT_BASE_URL` | 可选 | 视 URL 而定 | 仅作非 S3 备用下载源 |
 
+生产成本核算还需要按已启用模型配置以下价格变量。测试环境未填写时，系统只能保留操作级固定估算，不能用于真实毛利或对账：
+
+| 变量名 | 必填 | 敏感 | 用途 |
+|---|---:|---:|---|
+| `NOTEAI_BILLING_USD_CNY` | 商业核算必填 | 否 | Claude 美元成本换算人民币 |
+| `NOTEAI_MODEL_PRICE_CLAUDE_INPUT_PER_1M_USD` | 商业核算必填 | 否 | Claude 每百万输入 Token 美元价格 |
+| `NOTEAI_MODEL_PRICE_CLAUDE_OUTPUT_PER_1M_USD` | 商业核算必填 | 否 | Claude 每百万输出 Token 美元价格 |
+| `NOTEAI_MODEL_PRICE_KIMI_INPUT_PER_1M_RMB` | 商业核算必填 | 否 | Kimi 每百万输入 Token 人民币价格 |
+| `NOTEAI_MODEL_PRICE_KIMI_OUTPUT_PER_1M_RMB` | 商业核算必填 | 否 | Kimi 每百万输出 Token 人民币价格 |
+
+如不同模型价格不同，按 `model/.env.example` 中的精确模型覆盖命名配置。价格、汇率和生效日期必须由产品负责人确认，不得凭经验猜测。
+
 `DATABASE_URL` 由 Blueprint 从 PostgreSQL 自动注入，禁止手工复制连接串。
 
 ### 4.3 管理端 `noteai-staging-admin`
@@ -169,6 +181,33 @@ python scripts/migrate_sqlite_to_postgres.py \
 3. 数据库迁移采用向前兼容设计；不要手工删除表或降级 schema。
 4. 若迁移后业务数据异常，暂停写流量，保留数据库，先导出备份并核对，不执行清库。
 5. Free PostgreSQL 无自动备份，测试期有重要数据时必须先手工导出或升级数据库。
+
+## 11. 当前 Staging 稳定参考
+
+以下地址是公开测试入口，不包含任何 Secret：
+
+- 用户前端：`https://noteai-staging-web.onrender.com`
+- 用户 API：`https://noteai-staging-api.onrender.com`
+- 管理端：`https://noteai-staging-admin.onrender.com`
+- 用户 API 就绪检查：`https://noteai-staging-api.onrender.com/health/ready`
+- 管理端就绪检查：`https://noteai-staging-admin.onrender.com/health/ready`
+
+当前 Staging 从 `codex/quality-stabilization-real-chain` 分支自动部署，只有 GitHub CI 通过后才会更新。每次交接仍必须在 `.codex/handoffs/current-task.md` 记录并重新核对具体 commit，不能把本节当成版本证明。
+
+### 11.1 市场时机 Cron 运维
+
+- `noteai-staging-market-timing` 每小时第 5 分钟运行；低内存参数由 `render.yaml` 管理。
+- 成功日志必须同时显示非零 `homefeed`、`search_result`、`search_recommend`、`hot_search`，并让六个核心行业满足新鲜度门禁。
+- 只看到 Build 成功不代表 Cron 运行成功；必须检查最近一次 Run 的退出状态与来源统计。
+- 管理端“爬虫管理”会显示 Cookie 的 `verified`、`needs_attention` 或 `needs_relogin`。出现重新登录提示时，由授权人员更新 Cookie 后手工触发一次 Cron 验证。
+- Cookie 只能保存在受控运行时配置中，禁止写进仓库、日志、截图或交接文档。
+
+### 11.2 模型与成本验收
+
+- API 启动时必须从私有对象存储取得 V0.4 artifacts，并完成 manifest/SHA256 校验。
+- `/health/ready` 必须报告 `v0.4-composite` 和 PostgreSQL 就绪。
+- 配置真实模型价格后，用一个最小测试账号分别跑诊断、生成和对话优化；验收要求 Token 数、`actual_model_cost_rmb`、积分账本和管理端汇总一致。
+- 未完成上述成本验收前，不得把操作级固定估算当作真实成本或据此上线收费。
 
 官方参考：
 

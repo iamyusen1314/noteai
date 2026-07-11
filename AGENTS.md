@@ -15,7 +15,7 @@
 - ORM / schema tool: none; local SQLite schema is implemented in `model/db.py`, and versioned PostgreSQL SQL migrations live under `model/migrations/postgres/`.
 - Package managers: `pip` for Python dependencies, `npm` for Node/Playwright dependencies.
 - Runtime: Python 3.11 in Docker/CI; local `.venv` also exists. Node.js is used for e2e tooling.
-- Deployment: Dockerfile, `docker-compose.yml`, Render Blueprint `render.yaml`, GitHub Actions CI, private S3/Git LFS model artifact strategy. Current target is a Render staging environment.
+- Deployment: Dockerfile, `docker-compose.yml`, Render Blueprint `render.yaml`, GitHub Actions CI, private S3/Git LFS model artifact strategy. Render staging is deployed; production is not approved.
 
 ## Common Commands
 
@@ -96,6 +96,11 @@ Do not casually modify these areas:
 
 Current modules exist for all of the above except a confirmed real payment gateway callback/reconciliation flow, which is not yet confirmed.
 
+- Never read, print, commit, or document real secrets, cookies, passwords, private keys, or complete connection strings.
+- Do not mutate production resources, connect a production payment flow, or run destructive database/storage operations without explicit approval.
+- Before any real external call, state the execution plan, expected cost, data impact, and scope. Do not start paid AI batches or large crawler runs implicitly.
+- Do not force-push or merge directly to `main`/`master`.
+
 ## Workflow Rules
 
 Before starting any non-small task:
@@ -113,3 +118,5 @@ After every meaningful stage:
 2. Record changed files.
 3. Record test/build/check results.
 4. Record remaining risks and next steps.
+5. Tell the user what was completed, the verification evidence, the remaining risk, and the exact next task.
+6. Mark the next task in progress and continue without waiting for the user to ask, unless it requires approval for cost, credentials, destructive data changes, production mutation, or a product decision.
