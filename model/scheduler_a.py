@@ -511,7 +511,7 @@ async def scrape_once() -> list[dict]:
     返回 keywords list，每项包含 keyword/search_vol/trend_dir/source/count
     """
     from playwright.async_api import async_playwright
-    from hot_keywords import clean_scraped_keyword_row, compute_trend_dir
+    from hot_keywords import clean_scraped_keyword_row, compute_trend_dirs
 
     state = _get_session_state()
     tag_counters: dict[str, Counter] = {name: Counter() for _, name in CHANNELS}
@@ -821,6 +821,14 @@ async def scrape_once() -> list[dict]:
                 _diagnostic_inc(discovery_diagnostics, "recommend", "deduped")
             _keep_best_candidate(best_results, row)
 
+    trend_candidates = list(dict.fromkeys(
+        kw
+        for tag_counter in tag_counters.values()
+        for (kw, _source), _count in tag_counter.most_common(300)
+        if len(kw) >= 2
+    ))
+    trend_directions = compute_trend_dirs(trend_candidates)
+
     # 来自 homefeed 标题短语/分词（按词频和质量权重计算相对热度）
     for category, tag_counter in tag_counters.items():
         total = sum(
@@ -843,7 +851,7 @@ async def scrape_once() -> list[dict]:
             row = clean_scraped_keyword_row({
                 "keyword":    kw,
                 "search_vol": vol,
-                "trend_dir":  compute_trend_dir(kw),
+                "trend_dir":  trend_directions.get(kw, 0),
                 "source":     source,
                 "category":   category,
                 "count":      count,

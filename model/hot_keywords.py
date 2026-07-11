@@ -577,21 +577,69 @@ def ensure_fresh_domain_keywords(domain: str, trigger_refresh: bool = True) -> d
 
 # ── Trend direction ───────────────────────────────────────────────────────────
 
-def compute_trend_dir(keyword: str) -> int:
-    """1=rising 0=stable -1=falling. Based on last 4 snapshots."""
-    with _db_conn() as c:
-        rows = c.execute(
-            "SELECT count FROM keyword_snapshots WHERE keyword=? ORDER BY captured_at DESC LIMIT 4",
-            (keyword,),
-        ).fetchall()
-    if len(rows) < 2:
+_TREND_QUERY_CHUNK_SIZE = 800
+
+
+def _trend_snapshot_query(keyword_count: int) -> str:
+    placeholders = ",".join("?" for _ in range(max(0, int(keyword_count))))
+    return f"""
+        SELECT keyword, count, captured_at, id
+        FROM (
+            SELECT keyword, count, captured_at, id,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY keyword
+                       ORDER BY captured_at DESC, id DESC
+                   ) AS row_num
+            FROM keyword_snapshots
+            WHERE keyword IN ({placeholders})
+        ) ranked
+        WHERE row_num <= 4
+        ORDER BY keyword, captured_at DESC, id DESC
+    """
+
+
+def _trend_direction_from_counts(counts: list[int]) -> int:
+    if len(counts) < 2:
         return 0
-    recent, older = rows[0]["count"], rows[-1]["count"]
+    recent, older = counts[0], counts[-1]
     if recent > older * 1.2:
         return 1
     if recent < older * 0.8:
         return -1
     return 0
+
+
+def compute_trend_dirs(keywords) -> dict[str, int]:
+    """Return trend directions for many keywords using one DB connection.
+
+    Queries are chunked for SQLite's bind-parameter limit, but all chunks share
+    the same connection. Each keyword contributes at most its latest four
+    snapshots, matching the legacy single-keyword calculation.
+    """
+    unique_keywords = list(dict.fromkeys(
+        str(keyword) for keyword in (keywords or []) if str(keyword)
+    ))
+    directions = {keyword: 0 for keyword in unique_keywords}
+    if not unique_keywords:
+        return directions
+
+    counts_by_keyword: dict[str, list[int]] = {keyword: [] for keyword in unique_keywords}
+    with _db_conn() as c:
+        for offset in range(0, len(unique_keywords), _TREND_QUERY_CHUNK_SIZE):
+            chunk = unique_keywords[offset:offset + _TREND_QUERY_CHUNK_SIZE]
+            rows = c.execute(_trend_snapshot_query(len(chunk)), tuple(chunk)).fetchall()
+            for row in rows:
+                counts_by_keyword[str(row["keyword"])].append(int(row["count"] or 0))
+
+    return {
+        keyword: _trend_direction_from_counts(counts_by_keyword[keyword])
+        for keyword in unique_keywords
+    }
+
+
+def compute_trend_dir(keyword: str) -> int:
+    """1=rising 0=stable -1=falling. Based on last 4 snapshots."""
+    return compute_trend_dirs([keyword]).get(str(keyword), 0)
 
 
 def compute_trend_peak_distance(keyword: str) -> float:

@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +20,120 @@ market_timing_worker = importlib.import_module("market_timing_worker")
 
 
 class MarketTimingKeywordQualityTests(unittest.TestCase):
+    def test_batch_trend_directions_preserve_edge_case_semantics(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                hot_keywords.init_db()
+                with sqlite3.connect(str(hot_keywords.DB_PATH)) as conn:
+                    conn.executemany(
+                        "INSERT INTO keyword_snapshots(keyword, count, captured_at) VALUES (?,?,?)",
+                        [
+                            ("上升词", 10, "2026-07-11T01:00:00"),
+                            ("上升词", 13, "2026-07-11T02:00:00"),
+                            ("下降词", 20, "2026-07-11T01:00:00"),
+                            ("下降词", 10, "2026-07-11T02:00:00"),
+                            ("稳定词", 10, "2026-07-11T01:00:00"),
+                            ("稳定词", 11, "2026-07-11T02:00:00"),
+                            ("单样本", 99, "2026-07-11T02:00:00"),
+                            # Equal timestamps are ordered by newest row id so both
+                            # SQLite and PostgreSQL use the same latest-four window.
+                            ("重复时间", 10, "2026-07-11T03:00:00"),
+                            ("重复时间", 12, "2026-07-11T03:00:00"),
+                            ("重复时间", 14, "2026-07-11T03:00:00"),
+                            ("重复时间", 16, "2026-07-11T03:00:00"),
+                            ("重复时间", 40, "2026-07-11T03:00:00"),
+                        ],
+                    )
+
+                result = hot_keywords.compute_trend_dirs([
+                    "上升词", "下降词", "稳定词", "单样本", "缺失词", "重复时间", "上升词",
+                ])
+
+                self.assertEqual(result, {
+                    "上升词": 1,
+                    "下降词": -1,
+                    "稳定词": 0,
+                    "单样本": 0,
+                    "缺失词": 0,
+                    "重复时间": 1,
+                })
+                for keyword, expected in result.items():
+                    self.assertEqual(hot_keywords.compute_trend_dir(keyword), expected)
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_batch_trend_directions_keep_one_connection_across_query_chunks(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                hot_keywords.init_db()
+                original_conn = hot_keywords._conn
+                counters = {"connections": 0, "selects": 0}
+
+                class CountingConnection:
+                    def __init__(self, inner):
+                        self.inner = inner
+
+                    def execute(self, sql, params=()):
+                        if "FROM keyword_snapshots" in sql:
+                            counters["selects"] += 1
+                        return self.inner.execute(sql, params)
+
+                    def __enter__(self):
+                        self.inner.__enter__()
+                        return self
+
+                    def __exit__(self, exc_type, exc, tb):
+                        return self.inner.__exit__(exc_type, exc, tb)
+
+                    def close(self):
+                        self.inner.close()
+
+                def counted_conn():
+                    counters["connections"] += 1
+                    return CountingConnection(original_conn())
+
+                for keyword_count in (100, 3000):
+                    with self.subTest(keyword_count=keyword_count):
+                        counters.update({"connections": 0, "selects": 0})
+                        keywords = [f"批量词{i}" for i in range(keyword_count)]
+                        with patch.object(hot_keywords, "_conn", side_effect=counted_conn):
+                            result = hot_keywords.compute_trend_dirs(keywords)
+
+                        self.assertEqual(len(result), keyword_count)
+                        self.assertTrue(all(direction == 0 for direction in result.values()))
+                        self.assertEqual(counters["connections"], 1)
+                        self.assertEqual(
+                            counters["selects"],
+                            (len(keywords) + hot_keywords._TREND_QUERY_CHUNK_SIZE - 1)
+                            // hot_keywords._TREND_QUERY_CHUNK_SIZE,
+                        )
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_batch_trend_query_is_sqlite_and_postgres_placeholder_compatible(self):
+        sql = hot_keywords._trend_snapshot_query(3)
+        self.assertEqual(sql.count("?"), 3)
+        self.assertIn("ROW_NUMBER() OVER", sql)
+        self.assertIn("row_num <= 4", sql)
+
+        postgres_sql = hot_keywords._PostgresCompatConnection._sql(sql)
+        self.assertEqual(postgres_sql.count("%s"), 3)
+        self.assertNotIn("?", postgres_sql)
+
+    def test_scheduler_precomputes_candidate_trends_once_before_result_loop(self):
+        source = (MODEL_DIR / "scheduler_a.py").read_text(encoding="utf-8")
+        scrape_body = source.split("async def scrape_once", 1)[1].split("# ── Scheduler", 1)[0]
+        self.assertEqual(scrape_body.count("compute_trend_dirs("), 1)
+        self.assertNotIn("compute_trend_dir(", scrape_body)
+        self.assertLess(
+            scrape_body.index("compute_trend_dirs("),
+            scrape_body.index("for category, tag_counter in tag_counters.items()"),
+        )
+
     def test_scraped_keyword_cleaner_filters_generic_noise(self):
         self.assertIsNone(hot_keywords.clean_scraped_keyword_row({
             "keyword": "真的",

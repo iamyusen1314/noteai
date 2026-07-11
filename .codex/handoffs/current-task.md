@@ -325,16 +325,47 @@
 
 - 状态：**INVESTIGATING**
 - 优先级：High。
-- 问题描述：BILL-001 真实 Analyze Smoke 成功后，API Events 记录一次约 5 秒 health check timeout 并触发实例重启；约 1 分钟后自动恢复且连续 readiness 200。
-- 证据：18:08:57 Analyze 200、18:08:58 同键 409；18:09 health check timeout/restart，18:10 Service recovered。未见 migration failure 或应用 Traceback。
-- 根因是否确认：否；可能与长请求占用、CPU/事件循环阻塞或 Render health probe 阈值有关，不能仅凭一次事件归因。
+- 问题描述：Render API Events 已从一次偶发升级为稳定小时级 health timeout：18:09、19:10、20:09、21:10、22:09 均出现 5 秒健康检查超时，随后约 1 分钟内自动恢复。
+- 证据：五次失败时间都紧邻 Market Timing `5 * * * *` 小时任务窗口；22:33 BUG-003 真实付费 Chat 完成后未出现新重启，因此“长 AI 请求本身”不是充分解释。未见 migration failure 或应用 Traceback。
+- 根因是否确认：否；与小时 Cron 存在强时间相关，但市场 Cron 是独立服务，仍需核对 PostgreSQL 锁/连接、共享资源、readiness DB 查询和 Render 实例指标，不能把相关性直接当因果。
 - 涉及文件：待调查 `model/api.py` 长任务执行边界、Render health check/资源配置和运行指标；本任务不先改 timeout。
 - 风险：成功请求后实例重启会中断其他并发请求；若频繁发生，会降低 Staging/生产可用性。
 - 执行代理：待指定 Render/DevOps Reviewer + QA Investigator；验证代理：独立 Verification Agent。
-- 验收标准：受控长请求期间 readiness 持续成功，或确认可接受的资源/探针策略；至少多个样本无重启且不通过放宽健康标准掩盖阻塞。
+- 验收标准：至少连续 3 个小时任务窗口与受控长请求期间 readiness 均持续成功，或确认并修复可复现的共享依赖阻塞；不得仅靠放宽健康标准掩盖数据库/事件循环问题。
 - 是否需要用户决定：若需升级 Render 资源或产生持续费用，则需要；只读调查与本地复现不需要。
 - 是否涉及真实外部调用：调查 Render 指标需要只读云端访问；额外付费 AI 样本需沿用已批准的小样本范围并单独计数。
 - 是否已部署到 Render：不适用；当前为运行时风险。
+
+### OPS-001A — Market Cron 趋势计算 N+1 PostgreSQL 连接
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：High。
+- 问题描述：Market Cron 在结果构建阶段对每个候选关键词逐个调用 `compute_trend_dir()`，每次都新建/关闭 PostgreSQL 连接；五个 18:09–22:09/10 API health timeout 与该阶段 5/5 重合。
+- 证据：18–22 点 Cron 均 05:02 启动、约 10:28–10:46 才输出 Scraped，API 在 09/10 分超时并紧邻该阶段结束恢复；代码路径 `scheduler_a.scrape_once()`→`compute_trend_dir()`→`hot_keywords._db_conn()` 已确认 N+1。最终 homefeed 结果每轮 101–121，过滤前理论上最多 10×300 个候选；22:09:48–49 PostgreSQL 日志两秒内至少 12 次授权连接，无 ERROR/FATAL/死锁。
+- 根因是否确认：是；N+1 连接风暴已确认。它与 readiness 多连接共同造成 timeout 的因果置信度约 85%，但本包只消除已确认的 Cron 放大器，以自然轮次验证因果。
+- 涉及文件：`model/hot_keywords.py`, `model/scheduler_a.py`, `tests/test_market_timing_keyword_quality.py` 及必要的采集回归；不改 API readiness、schema、Cron 时间、Cookie、selector 或资源规格。
+- 风险：批量查询若改变最近四次快照的排序/去重，会改变趋势方向和最终排序；必须保持 SQLite/PostgreSQL 兼容并限制 SQL 参数规模。
+- 执行代理：单一 Repository Explorer；验证代理：独立 QA/Test Finder。
+- 修改状态/进度：最小实施与本地独立验证已完成。新增批量趋势方向查询，800 参数分块、窗口函数每关键词仅取最近4条、所有分块共享同一连接；单关键词函数保持兼容并委托批量实现；Scheduler 在候选循环前一次去重预计算。首个失败证据为批量 API/SQL 构造器不存在的3项 ERROR及 Scheduler 预计算 0!=1。独立验证：SQLite 边界与3000词连接预算通过；全新 PostgreSQL 18 以15,000条快照/3,000词真实执行，结果与独立逐词算法全量一致，3000词1连接/4 SELECT、100词1连接/1 SELECT；market+XHS+Render+API 209/209、全量 unittest 359/359（5 skip）、Production Readiness 48/48、py_compile/Compose/diff check 全部通过。临时 PG 容器和本轮 Colima 已清理；无本地代码阻断，但必须部署后连续观察2–3个自然小时窗口才能标记 VERIFIED。
+- 验收标准：批量结果与旧算法逐词结果一致；100–3000 个候选仅使用常数级连接（目标 1 个，允许同一连接内分批 SQL）；采集来源/数量/排序语义不回退；本地全量通过；部署后连续 2–3 个自然 `:05–:12` 窗口 API 无 health timeout 且 Cron 成功。
+- 是否需要用户决定：否；不改变产品行为或付费资源。
+- 是否涉及真实外部调用：本地实施不需要；最终只观察自然 Cron，不手工追加采集。
+- 是否已部署到 Render：否。
+
+### OPS-001B — Render readiness 轻量化与有限 DB 超时
+
+- 状态：**TODO**
+- 优先级：High。
+- 问题描述：`/health/ready` 将 Market Timing 标为 nonblocking，但仍同步建立约 11 个 PostgreSQL 连接并执行约 14 条查询；单连接延迟约 520ms 时，本地 PostgreSQL 路径 Mock 可把 readiness 拖到 5.251 秒。
+- 证据：`api._readiness_payload()`、`hot_keywords.db_status()`、六行业 `freshness_status()`、access/cooldown/latest health 串行调用链已核对；Admin 的轻量 readiness 未出现同类小时级失败。
+- 根因是否确认：是；readiness 自身是连接/延迟放大器，但先等待 OPS-001A 自然窗口以隔离因果，再串行实施。
+- 涉及文件：待限定 `model/api.py`, `model/db.py`, Market Timing 观测缓存与 tests；不删除真实 blocking 检查，不仅改 Render timeout。
+- 风险：过度轻量化可能把数据库或模型真实故障误报为 ready；必须保留单次 DB ping、模型加载和 AI 配置检查，并维持公开响应兼容或明确缓存时间。
+- 执行代理：待指定；验证代理：独立 QA/DevOps。
+- 验收标准：受控 DB 延迟下 readiness <2 秒且绝不超过5秒；市场观测变慢只能返回缓存/unknown；DB 连接/查询失败有限时间内返回 503；不弱化真实 readiness。
+- 是否需要用户决定：若要升级资源需要；代码轻量化不需要。
+- 是否涉及真实外部调用：本地 Mock/临时 PostgreSQL；部署后只读观察。
+- 是否已部署到 Render：否。
 
 ### PERF-001A — SSE 阶段计时、慢响应保护与可复算统计基础
 
@@ -412,8 +443,8 @@
 - 修改状态/进度：2026-07-11 三方只读复核后完成最小实施。Chat 新增本轮删除约束、事实源过滤、所有后处理后的最终约束检查与 `canonical_response`；只有 notes 保存成功后才更新 session、发送 `note_update` 和成功说明，失败时保留上一版；前端以安全 DOM/textContent 替换冲突草稿气泡。首轮独立验证发现历史 session 把实际 DB v5 错报为 v1、通用删除时长误伤明确保留的已确认 `30分钟` 两个阻断；修正后由同一独立代理重放通过。最终独立证据：BUG-003/SEC-002/Chat/付费幂等定向 22/22、全量 unittest 355/355（5 skip）、Playwright 10/10、Production Readiness 48/48、py_compile 与 diff check 全部通过；成功路径 canonical/note_update/notes INSERT/session 字段一致，约束、质量、无 `<note>` 和 notes INSERT 失败均不创建或宣称新版本。未修改 billing/idempotency、schema/migration、模型路由、多候选语义或评分政策；未调用真实 AI。
 - 验收标准：最终回复、当前笔记和持久化版本使用同一正文；禁止项不再出现；评分与版本号一致；只扣一次。
 - 是否需要用户决定：否。
-- 是否涉及真实外部调用：本地 mock 不需要；最终 Staging 复验可用 1 次获批真实重写。
-- 是否已部署到 Render：否；本地独立验证已完成，等待提交、推送和 Render Staging 增量 Smoke。
+- 是否涉及真实外部调用：是；本地 mock 不需要，最终只执行 1 次已批准的 Staging 真实重写。
+- 是否已部署到 Render：是；commit `c4a51e2`，Push/PR 两条 CI 均通过，Web/API/Admin Deployed，Pre-Deploy `migrations_applied=0`。真实 Smoke 仅 1 次：问题笔记 v2→v3，标题不变，最终气泡、右侧当前笔记和刷新后的笔记库正文/评分/版本一致，`20分钟`、`吃不出柴感`、`半小时` 均从正式正文消失；评分 74.1→72.1（恰为现有允许下降 2 分边界），余额 867→864，管理端 `chat_rewrite` 总次数 1→2，证明只新增一次扣费/usage。未触发新的 Render 重启。
 
 ### QA-003 — 人工 UI 上传与关键页面回归
 
