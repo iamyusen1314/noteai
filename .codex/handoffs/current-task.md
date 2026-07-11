@@ -289,7 +289,7 @@
 
 ### BILL-001 — 后端 request-id 幂等与防重复扣费
 
-- 状态：**READY_TO_VERIFY**（本地与 disposable PostgreSQL 已通过，待 Staging migration/Smoke）
+- 状态：**VERIFIED**
 - 优先级：Critical。
 - 问题描述：浏览器端已阻止重复点击，但 API 尚未确认具备跨进程、并发重试和网络重放级别的幂等保护；同一付费请求可能重复扣积分、创建多个 usage row 或重复调用模型。
 - 预期结果：同一用户、同一操作、同一幂等键只允许一个执行和一次扣费；相同键不同 payload 明确拒绝；不同用户之间严格隔离；失败、超时和重试语义可审计。
@@ -305,7 +305,7 @@
 - 费用/数据：方案新增一张空表和索引，无 backfill；一次性 PostgreSQL 使用本机全新临时容器和合成数据，测试后已删除并停止 Colima。尚未修改 Staging 数据库或调用真实 AI。
 - 是否需要用户决定：否；2026-07-11 用户已批准 schema/migration、计费事务重构、一次性 PostgreSQL 并发测试、Staging migration、付费 Smoke 和真实 AI；采用推荐的两阶段兼容发布。
 - 是否涉及真实外部调用：是；独立验证通过后可应用 Render Staging migration，并执行受控写入型 Smoke。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：是；commit `cfbd132`。Pre-deploy 只应用 `0005_idempotency_requests.sql`；API/Admin ready。真实 Analyze 首次 200、同键重放 409；合成账户管理端仅 1 次操作、约 ¥1.45 模型成本、无第二 usage。独立 Security/Concurrency 云端复验结论 PASS/VERIFIED。
 
 ### PERF-001 — 阶段耗时、SSE stall timeout 与 P50/P95
 
@@ -320,6 +320,21 @@
 - 验收标准：所有主要事件包含可验证的总耗时/阶段耗时且保持向后兼容；mock SSE 静默和断流能恢复 UI、不重复扣费；统计工具对固定样本准确输出 P50/P95；真实指标只在样本量、费用和数据范围获批后发布。
 - 真实外部服务：本地 mock 不需要；真实 P50/P95 需要受控 Claude/Kimi 样本并会产生费用。
 - 费用/数据：当前调查无费用、不写远程数据；真实采样前必须说明样本数、预计费用和 Staging usage 影响。
+
+### OPS-001 — 长请求期间 Render health check 瞬时超时重启
+
+- 状态：**INVESTIGATING**
+- 优先级：High。
+- 问题描述：BILL-001 真实 Analyze Smoke 成功后，API Events 记录一次约 5 秒 health check timeout 并触发实例重启；约 1 分钟后自动恢复且连续 readiness 200。
+- 证据：18:08:57 Analyze 200、18:08:58 同键 409；18:09 health check timeout/restart，18:10 Service recovered。未见 migration failure 或应用 Traceback。
+- 根因是否确认：否；可能与长请求占用、CPU/事件循环阻塞或 Render health probe 阈值有关，不能仅凭一次事件归因。
+- 涉及文件：待调查 `model/api.py` 长任务执行边界、Render health check/资源配置和运行指标；本任务不先改 timeout。
+- 风险：成功请求后实例重启会中断其他并发请求；若频繁发生，会降低 Staging/生产可用性。
+- 执行代理：待指定 Render/DevOps Reviewer + QA Investigator；验证代理：独立 Verification Agent。
+- 验收标准：受控长请求期间 readiness 持续成功，或确认可接受的资源/探针策略；至少多个样本无重启且不通过放宽健康标准掩盖阻塞。
+- 是否需要用户决定：若需升级 Render 资源或产生持续费用，则需要；只读调查与本地复现不需要。
+- 是否涉及真实外部调用：调查 Render 指标需要只读云端访问；额外付费 AI 样本需沿用已批准的小样本范围并单独计数。
+- 是否已部署到 Render：不适用；当前为运行时风险。
 
 ### PERF-001A — SSE 阶段计时、慢响应保护与可复算统计基础
 
@@ -347,25 +362,40 @@
 - 涉及文件：`model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`, `render.yaml`, `tests/test_xhs_acquisition.py`, `tests/test_api_contracts.py`, `tests/test_render_deployment.py`；不改 selector、Cookie、UA/viewport 或验证码处理。
 - 风险：继续高频搜索会增加 Cron 成本并加重挑战；激进指纹规避可能违反平台安全边界。
 - 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：独立 QA/Render Reviewer。
-- 修改状态/进度：最小修复已实施并通过第二轮独立验证。首轮验证发现 `/admin/xhs/health` 删除既有 `error_summary/details` 且可能清空安全错误码；修正为保留旧字段结构、固定摘要映射和严格 details 白名单。最终证据：相关 194/194、全量 unittest 311/311、前端静态 16/16、Python 编译、Compose 和 diff check 均通过；HTTP 200 challenge 首目标熔断、homefeed 保留、冷却零搜索浏览器、6 小时边界、半开探针和默认兼容均通过。commit `878787b` 已通过两组 GitHub checks 并部署 Render Staging；API/Admin readiness 均为 200、PostgreSQL ready，pre-deploy `migrations_applied=0`。等待下一自然 Cron 验证线上 `started=0/skipped=12`，不手工追加采集。
+- 修改状态/进度：最小修复已实施并通过第二轮独立验证。首轮验证发现 `/admin/xhs/health` 删除既有 `error_summary/details` 且可能清空安全错误码；修正为保留旧字段结构、固定摘要映射和严格 details 白名单。最终证据：相关 194/194、全量 unittest 311/311、前端静态 16/16、Python 编译、Compose 和 diff check 均通过；HTTP 200 challenge 首目标熔断、homefeed 保留、冷却零搜索浏览器、6 小时边界、半开探针和默认兼容均通过。commit `878787b` 已部署。18:05 首个自然轮次 `b281661a-…` 在线验证 planned=12/started=0/completed=0/skipped=12、circuit=cooldown；保留 homefeed 109、hot_search 120，Cron 成功结束且 Cookie 未误报。仍需再观察 1–2 个自然轮次；该证据只证明安全降级生效，不代表 search/recommend 来源恢复。
 - 验收标准：不绕过安全控制；挑战出现时及时停止/退避并给出稳定状态；若采用安全恢复策略，至少连续 2–3 个自然轮次恢复 search/recommend 健康阈值，否则明确降级而不浪费全轮成本。
 - 是否需要用户决定：技术默认采用 Staging 6 小时冷却、Cron 继续成功但明确 degraded；不自动重新登录、不减少长期行业覆盖。如后续要改 hard fail 或每行业 seed 数再单独决策。
 - 是否涉及真实外部调用：最终验证需要自然 Cron；不再手工连续触发。
 - 是否已部署到 Render：是；commit `878787b`。云端服务健康，尚待自然 Cron 功能结果。
 
-### SEC-002 — 前端展示并持久化模型 reasoning
+### SEC-002 — 保留可解释 Agent 思考体验并隔离原始 reasoning
 
-- 状态：**READY_TO_FIX**
+- 状态：**READY_TO_VERIFY**（本地实施完成，等待独立验证）
 - 优先级：High。
-- 问题描述：真实 Generate 与 Chat Smoke 向用户完整展示英文/中文“深度思考”过程；Chat 页面标记“已完整展示”，内容包含内部判断、约束解释和中间草稿。
+- 问题描述：产品必须保留“AI Agents 为什么这样做”的可解释过程；当前实现却把供应商原始 thinking/reasoning 逐字展示并在 Chat 长期持久化，无法区分可交付决策说明与内部中间草稿。
 - 证据：2026-07-11 Staging 真实生成与重写均可见完整 reasoning；未在消息中复制敏感值。
 - 根因是否确认：是；Claude `thinking_delta` 和 Kimi `reasoning_content` 被 Router 原样转成 SSE，Generate/Chat 前端完整展示；Chat 还将 `reasoning_content` 写入 `chat_sessions.messages_json` 并在加载时恢复。未发现跨用户读取或应用主动写日志，但浏览器、网络和数据库暴露已确认。
 - 涉及文件：`model/api.py`, `NoteAI_Pro_Demo_Framer.html`, Chat session/notes persistence 与 tests。
-- 风险：泄露内部 prompt/推理、扩大 Prompt Injection 影响、保存不必要敏感内容。
-- 执行代理：Security Reviewer（只读调查）；验证代理：独立 Security/QA。
-- 验收标准：客户端和持久化均不包含完整 reasoning；只保留安全阶段状态或短摘要；最终业务输出不回退。
-- 是否需要用户决定：否；默认保留安全阶段状态，不展示或持久化模型原始 reasoning。历史 Staging 数据脱敏另立可回滚数据库任务，实施前先只统计受影响行数且不读取正文。
+- 风险：泄露内部 prompt/推理、扩大 Prompt Injection 影响、保存不必要敏感内容；若只隐藏内容又会破坏产品的可信、可解释体验。
+- 执行代理：Security Reviewer + Repository/UX Explorer（只读调查）；验证代理：Test Finder + 独立 Security/QA。
+- 验收标准：页面继续实时展示各 Agent 的观察、依据、分歧、取舍、决定和最终修改原因；任何 provider `thinking_delta/reasoning_content` 原文、系统 Prompt、中间草稿或敏感哨兵不进入 SSE、DOM、session、数据库或日志；数据库只保留安全结构化决策说明；最终说明必须与实际保存/展示的最终版本一致，Claude/Kimi fallback 不回退。
+- 是否需要用户决定：否；2026-07-11 产品负责人明确要求保留可解释 Agent 思考体验，同时控制原始 reasoning 泄露与长期持久化。历史 Staging 原始 reasoning 清理仍单独执行：先只统计受影响行数，不读取内容，再制定可回滚脱敏方案。
 - 是否涉及真实外部调用：调查与 mock 不需要。
+- 是否已部署到 Render：否。
+
+### SEC-003 — 模型输出 HTML 注入与诊断 raw 字段暴露
+
+- 状态：**INVESTIGATING**
+- 优先级：High。
+- 问题描述：Generate 报告和 Chat Markdown 存在将模型自由文本写入 `innerHTML` 的路径；Analyze/Generate 响应与持久化还包含专家 `raw`/原始 XML，扩大模型输出注入和不必要数据暴露面。
+- 证据：Security Reviewer 定位 `NoteAI_Pro_Demo_Framer.html` 的 Generate expert report、`addBubble`、`chatMD` 路径，以及 `model/api.py` 的 `_normalize_expert_opinion`、saved diagnosis serialization 与 Chat generate context。
+- 根因是否确认：部分确认；未转义模型文本进入 HTML 的危险路径已确认，所有可利用上下文与现有 CSP/浏览器行为仍需独立复现。
+- 涉及文件：`model/api.py`, `NoteAI_Pro_Demo_Framer.html`, Analyze/Generate persistence 与安全 tests。
+- 风险：High；模型输出或 Prompt Injection 内容可能影响页面结构或执行事件属性，并在诊断历史中长期保留 raw 文本。
+- 执行代理：Security Reviewer + QA Investigator（只读）；验证代理：独立 Security/Browser Verification。
+- 验收标准：任意 `<script>`、`<img onerror>`、事件属性和未知 HTML 只能作为文本显示；公开/持久化专家对象不含 raw XML；正常报告和 Chat 格式不回退。
+- 是否需要用户决定：否；属于安全修复，不改变产品功能。
+- 是否涉及真实外部调用：本地 sentinel 与浏览器测试不需要；最终 Staging 仅需无付费 Smoke。
 - 是否已部署到 Render：否。
 
 ### BUG-003 — 对话重写回复与保存版本不一致

@@ -1096,6 +1096,102 @@ async def _emit_progress(emit: ProgressEmitter | None, event: dict[str, Any]) ->
         pass
 
 
+_PROCESS_PHASES = frozenset({"observe", "evidence", "decide", "verify", "save"})
+_PROCESS_AGENTS = frozenset({"visual", "specialists", "arbiter", "quality", "chat", "system"})
+_PROCESS_STATUS_CODES = frozenset({
+    "material_observed",
+    "expert_evidence_ready",
+    "candidate_selection_complete",
+    "quality_verification_complete",
+    "generation_ready",
+    "request_analysis_started",
+    "note_quality_checked",
+    "response_finalized",
+    "note_version_saved",
+    "generation_saved",
+})
+_PROCESS_REASON_CODES = frozenset({
+    "material_observed",
+    "request_received",
+    "multi_agent_evidence",
+    "candidate_comparison",
+    "quality_gate_checked",
+    "quality_gate_repair",
+    "score_lift_guard",
+    "constraint_guard_applied",
+    "note_version_saved",
+    "assistant_response_completed",
+    "generation_complete",
+    "final_note_processed",
+})
+_PROCESS_FACT_KEYS = frozenset({
+    "image_count",
+    "deep_image_count",
+    "frame_count",
+    "agent_count",
+    "candidate_count",
+    "viable_count",
+    "issue_count",
+    "score",
+    "score_before",
+    "score_after",
+    "title_changed",
+    "body_delta_chars",
+    "repaired",
+    "constraint_guard_applied",
+    "saved",
+    "version",
+    "session_persisted",
+})
+
+
+def _safe_process_event(
+    event_type: str,
+    *,
+    phase: str,
+    agent: str,
+    status_code: str,
+    reason_codes: list[str] | tuple[str, ...] = (),
+    facts: dict[str, Any] | None = None,
+    progress: int | float | None = None,
+) -> dict[str, Any]:
+    """Build a bounded, code-only public process event with no model-authored text."""
+    if event_type not in {"process_update", "final_explanation"}:
+        raise ValueError("unsupported process event type")
+    if phase not in _PROCESS_PHASES or agent not in _PROCESS_AGENTS or status_code not in _PROCESS_STATUS_CODES:
+        raise ValueError("unsupported process event value")
+    safe_reasons = [code for code in reason_codes if code in _PROCESS_REASON_CODES][:6]
+    safe_facts: dict[str, int | float | bool] = {}
+    for key, value in (facts or {}).items():
+        if key not in _PROCESS_FACT_KEYS or value is None or isinstance(value, str):
+            continue
+        if isinstance(value, bool):
+            safe_facts[key] = value
+        elif isinstance(value, int):
+            safe_facts[key] = value
+        elif isinstance(value, float):
+            safe_facts[key] = round(value, 2)
+    event: dict[str, Any] = {
+        "type": event_type,
+        "schema_version": "process.v1",
+        "phase": phase,
+        "agent": agent,
+        "status_code": status_code,
+        "reason_codes": safe_reasons,
+        "facts": safe_facts,
+    }
+    if progress is not None:
+        event["progress"] = max(0, min(100, int(progress)))
+    return event
+
+
+async def _public_model_content_chunks(stream: AsyncGenerator[tuple[str, str], None]) -> AsyncGenerator[str, None]:
+    """Keep provider thinking internal while preserving the final content stream."""
+    async for chunk_type, chunk_text in stream:
+        if chunk_type == "content" and chunk_text:
+            yield chunk_text
+
+
 def _agent_event_payload(
     role: str,
     raw: str,
@@ -12481,6 +12577,9 @@ async def _generate_pipeline_stream(
 ) -> AsyncGenerator[dict, None]:
     """Streaming version of generate pipeline — yields SSE event dicts."""
     dk = _get_dk(domain)
+    observed_image_count = 0
+    observed_deep_image_count = 0
+    observed_frame_count = 0
 
     # ── P1: Visual ──────────────────────────────────────────────────
     if video_file_id:
@@ -12492,6 +12591,7 @@ async def _generate_pipeline_stream(
             n_total_f  = len(_vmeta["frames"])
             dur_f      = _vmeta.get("duration_sec", n_total_f)
             n_send_f   = _video_send_count(dur_f, n_total_f)
+            observed_frame_count = n_send_f
             yield {"type": "video_analyzing",
                    "label": f"分析视频（{dur_f:.0f}s，提取 {n_total_f} 帧，发送 {n_send_f} 帧至 AI）…"}
         video_desc = await _kimi_video_understand(video_file_id, domain, brief) if has_frames else ""
@@ -12517,6 +12617,8 @@ async def _generate_pipeline_stream(
         deep_imgs_s  = all_imgs_s[:deep_limit_s]
         brief_imgs_s = all_imgs_s[deep_limit_s:]
         total_imgs_s = len(all_imgs_s)
+        observed_image_count = total_imgs_s
+        observed_deep_image_count = len(deep_imgs_s)
 
         label_suffix = f"（{total_imgs_s} 张素材，{len(deep_imgs_s)} 张深度分析）" if total_imgs_s > 1 else ""
         yield {"type": "stage", "stage": "p1", "label": f"视觉分析师正在解读素材{label_suffix}…", "progress": 10}
@@ -12562,6 +12664,20 @@ async def _generate_pipeline_stream(
             "detail": ("标题钩子：" + hooks[:60]) if hooks else f"已分析 {total_imgs_s} 张图片",
             "progress": 22,
         }
+
+    yield _safe_process_event(
+        "process_update",
+        phase="observe",
+        agent="visual",
+        status_code="material_observed",
+        reason_codes=["material_observed"],
+        facts={
+            "image_count": observed_image_count,
+            "deep_image_count": observed_deep_image_count,
+            "frame_count": observed_frame_count,
+        },
+        progress=22,
+    )
 
     # ── P2: Three agents staggered-start to avoid rate-limit burst ──
     yield {"type": "stage", "stage": "p2", "label": "三位创作专家并行创作中…", "progress": 30}
@@ -12609,6 +12725,16 @@ async def _generate_pipeline_stream(
                 "content": snippet[:120], "detail": detail, "progress": base_progress,
             }
 
+    yield _safe_process_event(
+        "process_update",
+        phase="evidence",
+        agent="specialists",
+        status_code="expert_evidence_ready",
+        reason_codes=["multi_agent_evidence"],
+        facts={"agent_count": len(opinions)},
+        progress=54,
+    )
+
     # ── Pre-P3: Score draft ──────────────────────────────────────────
     pre_fix_items: list[str] = []
     pre_score: float | None = None
@@ -12631,7 +12757,7 @@ async def _generate_pipeline_stream(
             pass
 
     # ── P3: Arbitrate with streaming thinking ───────────────────────
-    yield {"type": "stage", "stage": "p3", "label": "仲裁专家深度思考中…", "progress": 62}
+    yield {"type": "stage", "stage": "p3", "label": "仲裁专家正在比较候选方案…", "progress": 62}
 
     round_hint = ""
     if pre_fix_items:
@@ -12685,11 +12811,10 @@ async def _generate_pipeline_stream(
 
     content_parts: list[str] = []
     # P3 仲裁：Claude Sonnet + extended thinking，覆盖完整笔记生成
-    async for chunk_type, chunk_text in _mr.stream("arbitrate", arb_system, arb_user, thinking=True, max_tokens=16000):
-        if chunk_type == "thinking":
-            yield {"type": "thinking_chunk", "data": chunk_text}
-        else:
-            content_parts.append(chunk_text)
+    async for chunk_text in _public_model_content_chunks(
+        _mr.stream("arbitrate", arb_system, arb_user, thinking=True, max_tokens=16000)
+    ):
+        content_parts.append(chunk_text)
 
     arb_raw = "".join(content_parts)
     title = _xtag(arb_raw, "title")
@@ -13053,7 +13178,40 @@ async def _generate_pipeline_stream(
         }
         return
 
+    candidate_count = int(stream_selection_meta.get("candidate_count") or len(stream_selection_candidates) or 1)
+    viable_count = int(stream_selection_meta.get("viable_count") or 0)
+    yield _safe_process_event(
+        "process_update",
+        phase="decide",
+        agent="arbiter",
+        status_code="candidate_selection_complete",
+        reason_codes=["candidate_comparison"],
+        facts={
+            "candidate_count": candidate_count,
+            "viable_count": viable_count,
+        },
+        progress=95,
+    )
     yield {"type": "final_score", "score": round(final_score, 1), "grade": grade_str, "progress": 95}
+    final_reason_codes = ["quality_gate_checked", "generation_complete"]
+    if score_lift_repaired:
+        final_reason_codes.extend(["quality_gate_repair", "score_lift_guard"])
+    yield _safe_process_event(
+        "final_explanation",
+        phase="verify",
+        agent="quality",
+        status_code="generation_ready",
+        reason_codes=final_reason_codes,
+        facts={
+            "candidate_count": candidate_count,
+            "viable_count": viable_count,
+            "issue_count": len(quality_issues),
+            "score": float(final_score),
+            "repaired": bool(score_lift_repaired),
+            "saved": False,
+        },
+        progress=97,
+    )
 
     timing_obj = (
         MarketTiming(**{k: v for k, v in timing.items() if k in MarketTiming.model_fields})
@@ -14120,9 +14278,7 @@ async def _chat_sse_generator(
         history_text += f"\n[已上传文件，内容摘要：{file_text[:100]}…]"
     session.setdefault("messages", []).append({"role": "user", "content": history_text})
 
-    full_content  = ""
-    full_reasoning = ""
-    thinking_open  = False
+    full_content = ""
 
     # ── Claude Sonnet 流式对话优化 ─────────────────────────────────
     # thinking=True: 充分推理后再重写，质量更高
@@ -14132,41 +14288,26 @@ async def _chat_sse_generator(
     # 强制穿透 uvicorn/TCP 缓冲区，保证 typing 即时到达
     yield ": " + " " * 4096 + "\n\n"
     yield f"data: {_json.dumps({'type': 'typing'}, ensure_ascii=False)}\n\n"
+    yield f"data: {_json.dumps(_safe_process_event('process_update', phase='observe', agent='chat', status_code='request_analysis_started', reason_codes=['request_received'], facts={}), ensure_ascii=False)}\n\n"
 
     try:
-        async for chunk_type, chunk_text in _mr.stream_chat(
-            system=system_prompt,
-            history=history,
-            user_content=user_content,
-            thinking=use_thinking,
-            max_tokens=max_tok,
+        async for chunk_text in _public_model_content_chunks(
+            _mr.stream_chat(
+                system=system_prompt,
+                history=history,
+                user_content=user_content,
+                thinking=use_thinking,
+                max_tokens=max_tok,
+            )
         ):
-            if chunk_type == "thinking":
-                if not thinking_open:
-                    thinking_open = True
-                    yield f"data: {_json.dumps({'type': 'thinking_start'}, ensure_ascii=False)}\n\n"
-                full_reasoning += chunk_text
-                yield f"data: {_json.dumps({'type': 'thinking_chunk', 'data': chunk_text}, ensure_ascii=False)}\n\n"
-            else:
-                if thinking_open:
-                    thinking_open = False
-                    summary = (full_reasoning[:300] + "…") if len(full_reasoning) > 300 else full_reasoning
-                    yield f"data: {_json.dumps({'type': 'thinking_end', 'summary': summary}, ensure_ascii=False)}\n\n"
-                full_content += chunk_text
-                yield f"data: {_json.dumps({'type': 'content_chunk', 'data': chunk_text}, ensure_ascii=False)}\n\n"
-
-        if thinking_open:
-            yield f"data: {_json.dumps({'type': 'thinking_end', 'summary': full_reasoning[:300]}, ensure_ascii=False)}\n\n"
+            full_content += chunk_text
+            yield f"data: {_json.dumps({'type': 'content_chunk', 'data': chunk_text}, ensure_ascii=False)}\n\n"
 
     except Exception as exc:
         yield f"data: {_json.dumps({'type': 'error', 'data': str(exc)}, ensure_ascii=False)}\n\n"
         return
 
-    # Persist assistant message (with reasoning for multi-turn coherence)
-    asst_msg: dict = {"role": "assistant", "content": full_content}
-    if full_reasoning:
-        asst_msg["reasoning_content"] = full_reasoning
-    session["messages"].append(asst_msg)
+    session["messages"].append({"role": "assistant", "content": full_content})
 
     plan_options = await _build_chat_plan_options(session, full_content)
     if plan_options:
@@ -14187,9 +14328,12 @@ async def _chat_sse_generator(
     # for the user to select one instead of auto-saving the first candidate.
     note_extracted = None if plan_options else _extract_note_from_response(full_content)
     quality_blocking = False
+    final_explanation_event: dict[str, Any] | None = None
     if note_extracted:
         previous_note_title = session.get("note_title", "")
         previous_note_body = session.get("note_body", "")
+        previous_note_score = session.get("current_score")
+        yield f"data: {_json.dumps(_safe_process_event('process_update', phase='verify', agent='quality', status_code='note_quality_checked', reason_codes=['quality_gate_checked'], facts={}), ensure_ascii=False)}\n\n"
         new_title, new_body = note_extracted
         fact_source = session.get("fact_context") or session.get("note_body", "")
         new_title = _sanitize_title_for_delivery(new_title, fact_source, session.get("domain", "美食"))
@@ -14281,6 +14425,32 @@ async def _chat_sse_generator(
             "说明：以上为后端评分/修复后的当前最终稿。若前文有方案A/B/C草稿，后续问答以这条最终稿为准。"
         )
         session.setdefault("messages", []).append({"role": "assistant", "content": final_context_msg})
+        explanation_reasons = ["final_note_processed", "quality_gate_checked"]
+        if repaired:
+            explanation_reasons.append("quality_gate_repair")
+        if guard_changed:
+            explanation_reasons.append("constraint_guard_applied")
+        if saved_note_id_for_event:
+            explanation_reasons.append("note_version_saved")
+        final_explanation_event = _safe_process_event(
+            "final_explanation",
+            phase="save" if saved_note_id_for_event else "verify",
+            agent="chat",
+            status_code="note_version_saved" if saved_note_id_for_event else "response_finalized",
+            reason_codes=explanation_reasons,
+            facts={
+                "score_before": float(previous_note_score) if previous_note_score is not None else None,
+                "score_after": float(new_score) if new_score is not None else None,
+                "title_changed": (new_title or "").strip() != (previous_note_title or "").strip(),
+                "body_delta_chars": len(new_body or "") - len(previous_note_body or ""),
+                "issue_count": len(quality_issues),
+                "repaired": bool(repaired),
+                "constraint_guard_applied": bool(guard_changed),
+                "saved": bool(saved_note_id_for_event),
+                "version": int(saved_note_version_for_event) if saved_note_version_for_event is not None else None,
+                "session_persisted": True,
+            },
+        )
         yield f"data: {_json.dumps({'type': 'note_update', 'title': new_title, 'body': new_body, 'score': round(new_score, 1) if new_score else None, 'grade': grade_str, 'quality_issues': quality_issues, 'saved_note_id': saved_note_id_for_event, 'saved_note_version': saved_note_version_for_event}, ensure_ascii=False)}\n\n"
         if achievement_items:
             yield f"data: {_json.dumps({'type': 'achievement', 'items': achievement_items}, ensure_ascii=False)}\n\n"
@@ -14310,19 +14480,66 @@ async def _chat_sse_generator(
                 yield f"data: {_json.dumps({'type': 'learning', 'message': '已记录你喜欢的写作风格', 'prefs': session['user_prefs']}, ensure_ascii=False)}\n\n"
 
     # ── 持久化更新 session ────────────────────────────────────────────
-    _persist_chat_session(session_id)
+    session_persisted = _persist_chat_session(session_id)
+    if session_persisted:
+        if final_explanation_event:
+            yield f"data: {_json.dumps(final_explanation_event, ensure_ascii=False)}\n\n"
+        elif not plan_options:
+            yield f"data: {_json.dumps(_safe_process_event('final_explanation', phase='verify', agent='chat', status_code='response_finalized', reason_codes=['assistant_response_completed'], facts={'saved': False, 'session_persisted': True}), ensure_ascii=False)}\n\n"
     yield f"data: {_json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
 
 
-def _persist_chat_session(session_id: str) -> None:
+_CHAT_PERSIST_BLOCKED_KEYS = frozenset({
+    "raw",
+    "reasoning",
+    "reasoning_content",
+    "thinking",
+    "thinking_content",
+    "thinking_delta",
+    "system_prompt",
+    "provider",
+    "provider_metadata",
+    "provider_meta",
+    "provider_model",
+    "model_provider",
+    "model",
+    "model_used",
+})
+
+
+def _sanitize_chat_persisted_value(value: Any) -> Any:
+    """Recursively remove internal model metadata from chat runtime and storage."""
+    if isinstance(value, dict):
+        safe: dict[Any, Any] = {}
+        for key, item in value.items():
+            normalized_key = str(key).strip().lower().replace("-", "_")
+            if (
+                normalized_key in _CHAT_PERSIST_BLOCKED_KEYS
+                or normalized_key.startswith("reasoning_")
+                or normalized_key.startswith("thinking_")
+                or normalized_key.startswith("provider_")
+            ):
+                continue
+            safe[key] = _sanitize_chat_persisted_value(item)
+        return safe
+    if isinstance(value, list):
+        return [_sanitize_chat_persisted_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_sanitize_chat_persisted_value(item) for item in value]
+    return value
+
+
+def _persist_chat_session(session_id: str) -> bool:
     """把内存 session 同步写入 SQLite（失败静默处理）。"""
     try:
         session = _chat_sessions.get(session_id)
         if not session:
-            return
+            return False
+        safe_messages = _sanitize_chat_persisted_value(session.get("messages", []))
+        session["messages"] = safe_messages
         import datetime as _dt_mod
         now = _dt_mod.datetime.now(_dt_mod.timezone.utc).isoformat()
-        generate_context = dict(session.get("generate_context") or {})
+        generate_context = _sanitize_chat_persisted_value(dict(session.get("generate_context") or {}))
         if session.get("user_constraints"):
             generate_context["user_constraints"] = session.get("user_constraints")
             generate_context["constraint_contract"] = session.get("constraint_contract") or _constraint_contract_payload(session.get("user_constraints"))
@@ -14338,6 +14555,8 @@ def _persist_chat_session(session_id: str) -> None:
             generate_context["supplement_prompts"] = session.get("supplement_prompts")
         if session.get("pending_plan_options"):
             generate_context["pending_plan_options"] = session.get("pending_plan_options")
+        generate_context = _sanitize_chat_persisted_value(generate_context)
+        session["generate_context"] = generate_context
         note_id = session.get("_last_note_id") or session.get("note_id")
         _db.execute(
             "INSERT INTO chat_sessions(id,user_id,note_id,domain,local_time,messages_json,user_prefs_json,"
@@ -14357,7 +14576,7 @@ def _persist_chat_session(session_id: str) -> None:
                 note_id,
                 session.get("domain", "美食"),
                 session.get("local_time", ""),
-                _json.dumps(session.get("messages", []), ensure_ascii=False),
+                _json.dumps(safe_messages, ensure_ascii=False),
                 _json.dumps(session.get("user_prefs", {}), ensure_ascii=False),
                 session.get("iteration_count", 0),
                 session.get("current_score"),
@@ -14365,8 +14584,9 @@ def _persist_chat_session(session_id: str) -> None:
                 now, now,
             ),
         )
+        return True
     except Exception:
-        pass
+        return False
 
 
 def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
@@ -14375,7 +14595,8 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
         row = _db.fetchone("SELECT * FROM chat_sessions WHERE id=?", (session_id,))
         if not row:
             return None
-        gen_ctx = _json.loads(row["generate_ctx_json"] or "{}")
+        gen_ctx = _sanitize_chat_persisted_value(_json.loads(row["generate_ctx_json"] or "{}"))
+        restored_messages = _sanitize_chat_persisted_value(_json.loads(row["messages_json"] or "[]"))
         note_id = row["note_id"] if "note_id" in row.keys() else None
         note_row = _fetch_user_note(note_id, row["user_id"]) if note_id and row["user_id"] else None
         constraints = _normalize_user_constraints(gen_ctx.get("user_constraints") or [])
@@ -14390,7 +14611,7 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
             "local_time":       row["local_time"] or "",
             "user_id":          row["user_id"] or "",
             "current_score":    row["current_score"] if row["current_score"] is not None else (note_row["score"] if note_row else None),
-            "messages":         _json.loads(row["messages_json"] or "[]"),
+            "messages":         restored_messages,
             "iteration_count":  row["iteration_count"],
             "user_prefs":       _json.loads(row["user_prefs_json"] or "{}"),
             "note_id":          note_id,

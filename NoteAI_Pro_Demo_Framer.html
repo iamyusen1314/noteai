@@ -5833,6 +5833,94 @@ async function startGeneration() {
 
 // keep legacy variable declaration removed (was re-declared below)
 
+const PROCESS_STATUS_TEXT = Object.freeze({
+  material_observed: '素材观察完成',
+  expert_evidence_ready: '专家证据已汇总',
+  candidate_selection_complete: '候选版本比较完成',
+  quality_verification_complete: '质量复核完成',
+  generation_ready: '最终版本已生成',
+  request_analysis_started: '已接收请求，正在分析',
+  note_quality_checked: '正在复核笔记质量',
+  response_finalized: '本轮处理已完成',
+  note_version_saved: '新版本已安全保存',
+  generation_saved: '生成结果已保存到笔记库',
+});
+const PROCESS_AGENT_TEXT = Object.freeze({
+  visual: '视觉分析师', specialists: '创作专家组', arbiter: '仲裁专家',
+  quality: '质量复核', chat: '对话优化', system: '系统',
+});
+const PROCESS_REASON_TEXT = Object.freeze({
+  material_observed: '已读取本次授权素材',
+  request_received: '已接收本轮修改要求',
+  multi_agent_evidence: '已汇总多位专家的结构化结论',
+  candidate_comparison: '已按相同标准比较候选版本',
+  quality_gate_checked: '已执行交付质量检查',
+  quality_gate_repair: '质量检查触发了自动修复',
+  score_lift_guard: '修复结果已再次评分并复核',
+  constraint_guard_applied: '已重新应用用户约束',
+  note_version_saved: '本轮结果已写入新的笔记版本',
+  assistant_response_completed: '本轮回复已完成',
+  generation_complete: '最终标题、正文和评分已确定',
+  final_note_processed: '最终笔记已完成后端复核',
+});
+
+function safeProcessFactLines(facts) {
+  if (!facts || typeof facts !== 'object') return [];
+  const lines = [];
+  const numberLine = (key, label, suffix = '') => {
+    const value = facts[key];
+    if (typeof value === 'number' && Number.isFinite(value)) lines.push(`${label}${value}${suffix}`);
+  };
+  numberLine('image_count', '素材图片：', ' 张');
+  numberLine('deep_image_count', '深度分析：', ' 张');
+  numberLine('frame_count', '视频分析帧：', ' 帧');
+  numberLine('agent_count', '参与专家：', ' 位');
+  numberLine('candidate_count', '比较候选：', ' 个');
+  numberLine('viable_count', '通过检查：', ' 个');
+  numberLine('issue_count', '剩余质量提示：', ' 项');
+  numberLine('score', '最终评分：', ' 分');
+  numberLine('score_before', '优化前评分：', ' 分');
+  numberLine('score_after', '优化后评分：', ' 分');
+  numberLine('body_delta_chars', '正文字数变化：', ' 字');
+  numberLine('version', '保存版本：v');
+  if (typeof facts.title_changed === 'boolean') lines.push(facts.title_changed ? '标题已调整' : '标题保持不变');
+  if (typeof facts.repaired === 'boolean' && facts.repaired) lines.push('已执行质量修复');
+  if (typeof facts.constraint_guard_applied === 'boolean' && facts.constraint_guard_applied) lines.push('用户约束已重新应用');
+  if (typeof facts.saved === 'boolean') lines.push(facts.saved ? '保存状态：已保存' : '保存状态：尚未确认保存');
+  return lines;
+}
+
+function appendSafeProcessCard(containerId, ev, extraClass = '') {
+  if (!ev || ev.schema_version !== 'process.v1') return;
+  const statusText = PROCESS_STATUS_TEXT[ev.status_code];
+  const agentText = PROCESS_AGENT_TEXT[ev.agent];
+  if (!statusText || !agentText) return;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const card = document.createElement('div');
+  card.className = `bubble process-update-card ${extraClass}`.trim();
+  card.style.cssText = 'border:1px solid rgba(123,97,255,.25);background:rgba(123,97,255,.06)';
+  const head = document.createElement('div');
+  head.className = 'bubble-agent';
+  head.style.color = 'var(--holo-mid)';
+  head.textContent = `${agentText} · ${statusText}`;
+  const body = document.createElement('div');
+  body.className = 'bubble-text';
+  body.style.cssText = 'font-size:12px;color:var(--text-2);line-height:1.7';
+  const reasonLines = Array.isArray(ev.reason_codes)
+    ? ev.reason_codes.map(code => PROCESS_REASON_TEXT[code]).filter(Boolean)
+    : [];
+  [...reasonLines, ...safeProcessFactLines(ev.facts)].slice(0, 10).forEach(line => {
+    const row = document.createElement('div');
+    row.textContent = `• ${line}`;
+    body.appendChild(row);
+  });
+  card.appendChild(head);
+  card.appendChild(body);
+  container.appendChild(card);
+  container.scrollTop = container.scrollHeight;
+}
+
 function _handleGenStreamEvent(ev) {
   switch (ev.type) {
     case 'image_quota_notice': {
@@ -5940,17 +6028,6 @@ function _handleGenStreamEvent(ev) {
       if (ev.stage === 'p3') {
         stepDone(2); stepDone(3); agentArb(4);
         for (let i = 0; i < 4; i++) document.getElementById('av'+i)?.classList.remove('thinking','dispute');
-        // Create live thinking bubble
-        const area = document.getElementById('bubbleArea');
-        if (!area.querySelector('.bubble-thinking-live')) {
-          const b = document.createElement('div');
-          b.className = 'bubble bubble-thinking-live';
-          b.style.cssText = 'border:1px solid rgba(255,111,216,0.3);background:rgba(123,97,255,0.06);';
-          b.innerHTML = '<div class="bubble-agent" style="color:var(--holo-mid)">仲裁专家 · 深度思考中</div>'
-            + '<div class="bubble-text thinking-text" style="font-size:11px;color:var(--text-2);max-height:360px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all;padding-top:4px"></div>';
-          area.appendChild(b);
-          area.scrollTop = area.scrollHeight;
-        }
       }
       if (ev.stage === 'p4') { stepDone(5); }
       break;
@@ -5972,24 +6049,19 @@ function _handleGenStreamEvent(ev) {
       stepDone(3); stepActive(4);
       break;
     }
-    case 'thinking_chunk': {
-      const textEl = document.querySelector('.bubble-thinking-live .thinking-text');
-      if (textEl) {
-        textEl.textContent += ev.data;
-        textEl.scrollTop = textEl.scrollHeight;
-      }
+    case 'thinking_start':
+    case 'thinking_chunk':
+    case 'thinking_end': {
+      // Backward compatibility: never render provider reasoning from an older server.
+      break;
+    }
+    case 'process_update':
+    case 'final_explanation': {
+      appendSafeProcessCard('bubbleArea', ev, ev.type === 'final_explanation' ? 'is-final' : '');
+      if (ev.progress) setProgress(ev.progress, PROCESS_STATUS_TEXT[ev.status_code] || '');
       break;
     }
     case 'p3_done': {
-      const b = document.querySelector('.bubble-thinking-live');
-      if (b) {
-        const agent = b.querySelector('.bubble-agent');
-        if (agent) {
-          agent.textContent = '仲裁专家 · 思考完成 · 已完整展示';
-          const tt = b.querySelector('.thinking-text');
-          if (tt) { tt.style.maxHeight = '360px'; tt.style.overflowY = 'auto'; }
-        }
-      }
       const shortTitle = (ev.title || '').slice(0, 22);
       addBubble('仲裁专家', `初稿完成：「${shortTitle}${(ev.title||'').length > 22 ? '…' : ''}」`, 4, 10, 12);
       setProgress(ev.progress || 78, '初稿完成，评分验证中…');
@@ -8655,12 +8727,9 @@ function switchDim(idx, btn) {
 ═══════════════════════════════════════════════════════════ */
 let _chatSessionId   = null;
 let _chatBusy        = false;
-let _chatThinkEl     = null;
-let _chatThinkBody   = null;
 let _chatAiBubble    = null;
 let _chatAiText      = '';
 let _chatIterCount   = 0;
-let _chatThinkTimerId = null;
 let _chatSearchActive = false;   // true while model is doing web searches
 
 /* ── Entry point: called from "开始对话优化" button ── */
@@ -8855,8 +8924,7 @@ async function chatSendMessage(options = {}) {
 
   // Show user message with thumbnail if image attached
   chatAppendUser(opts.displayText || text, attachImage);
-  if (_chatThinkTimerId) { clearInterval(_chatThinkTimerId); _chatThinkTimerId = null; }
-  _chatAiText = ''; _chatThinkEl = null; _chatThinkBody = null; _chatAiBubble = null;
+  _chatAiText = ''; _chatAiBubble = null;
   _chatSearchActive = false;
 
   const fileText = attachFiles.map(f => `=== ${f.name} ===\n${f.text}`).join('\n\n') || null;
@@ -9000,18 +9068,18 @@ function chatHandleEvent(ev) {
       }
       break;
     }
-    case 'thinking_start': {
+    case 'thinking_start':
+    case 'thinking_chunk':
+    case 'thinking_end':
+      // Backward compatibility: never render provider reasoning from an older server.
+      break;
+    case 'process_update':
+    case 'final_explanation': {
       const ti = document.getElementById('chatTypingIndicator');
       if (ti) ti.remove();
-      chatCreateThink();
+      appendSafeProcessCard('chat-messages', ev, `chat-process ${ev.type === 'final_explanation' ? 'is-final' : ''}`);
       break;
     }
-    case 'thinking_chunk':
-      chatAppendThinkChunk(ev.data || '');
-      break;
-    case 'thinking_end':
-      chatFinalizeThink();
-      break;
     case 'search_start': {
       _chatSearchActive = true;
       // Replace typing dots (or previous search indicator) with a fresh search indicator
@@ -9281,52 +9349,6 @@ async function chatSelectPlan(optionId, btn, wrap) {
     showToast('选择方案失败：' + e.message);
     if (btn) { btn.disabled = false; btn.textContent = oldText || '选择并保存'; }
   }
-}
-function chatCreateThink() {
-  const wrap = document.createElement('div');
-  wrap.className = 'cthink-wrap';
-  wrap.innerHTML = `
-    <div class="cthink-header">
-      <div class="cthink-dots"><span></span><span></span><span></span></div>
-      深度思考中 <span class="cthink-timer" style="font-size:11px;opacity:.55;margin-left:4px">0s</span>
-      <span class="cthink-toggle">完整展示</span>
-    </div>
-    <div class="cthink-body open"></div>`;
-  document.getElementById('chat-messages').appendChild(wrap);
-  _chatThinkEl   = wrap;
-  _chatThinkBody = wrap.querySelector('.cthink-body');
-  // 计时器：让用户看到 AI 持续在工作
-  const timerEl = wrap.querySelector('.cthink-timer');
-  const startTs = Date.now();
-  _chatThinkTimerId = setInterval(() => {
-    timerEl.textContent = Math.round((Date.now() - startTs) / 1000) + 's';
-  }, 1000);
-  chatScrollBottom();
-}
-function chatAppendThinkChunk(t) {
-  if (!_chatThinkBody) return;
-  _chatThinkBody.textContent += t;
-  _chatThinkBody.scrollTop = _chatThinkBody.scrollHeight;
-}
-function chatFinalizeThink() {
-  if (_chatThinkTimerId) { clearInterval(_chatThinkTimerId); _chatThinkTimerId = null; }
-  if (!_chatThinkEl) return;
-  const hdr = _chatThinkEl.querySelector('.cthink-header');
-  if (!hdr) return;
-  const dots = hdr.querySelector('.cthink-dots');
-  if (dots) dots.textContent = '💡';
-  // Update the text node "深度思考中" → "深度思考完成"
-  for (const node of hdr.childNodes) {
-    if (node.nodeType === 3 && node.textContent.trim()) {
-      node.textContent = ' 深度思考完成 ';
-      break;
-    }
-  }
-  const tog = hdr.querySelector('.cthink-toggle');
-  if (tog) tog.textContent = '已完整展示';
-}
-function chatToggleThink(hdr) {
-  void hdr;
 }
 function chatAppendContent(t) {
   if (!_chatAiBubble) {
@@ -10419,6 +10441,11 @@ async function autoSaveGeneratedNote(genResult) {
       const d = await res.json();
       genResult._saved_note_id = d.id;
       genResult._saved_note_version = d.version || 1;
+      _handleGenStreamEvent({
+        type: 'process_update', schema_version: 'process.v1', phase: 'save', agent: 'system',
+        status_code: 'generation_saved', reason_codes: ['note_version_saved'],
+        facts: { saved: true, version: genResult._saved_note_version }, progress: 100,
+      });
       // 生成后提示用户可追踪发布效果（非阻断，3秒后显示）
       setTimeout(() => {
         if (_authToken) {

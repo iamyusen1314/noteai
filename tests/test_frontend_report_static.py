@@ -203,7 +203,7 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("_isGenerateMode = true; showPage('report'); await populateReport();", HTML)
         self.assertNotIn("\n              autoSaveGeneratedNote(_generateResult);\n", HTML)
 
-    def test_chat_surfaces_supplement_prompts_and_keeps_thinking_visible(self):
+    def test_chat_surfaces_supplement_prompts_and_safe_process_timeline(self):
         self.assertIn("function chatAppendSupplementPrompts", HTML)
         self.assertIn("supplement_prompts: _diagnoseResult.supplement_prompts || []", HTML)
         self.assertIn("selected_plan_quality_issues", HTML)
@@ -215,12 +215,15 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("supplement_values: values", HTML)
         self.assertIn("useCurrentAttachments: false", HTML)
         self.assertIn("先不补充这些信息，请在不编造事实的前提下继续优化", HTML)
-        self.assertIn("仲裁专家 · 思考完成 · 已完整展示", HTML)
-        self.assertIn("<span class=\"cthink-toggle\">完整展示</span>", HTML)
+        self.assertIn("const PROCESS_STATUS_TEXT", HTML)
+        self.assertIn("function appendSafeProcessCard", HTML)
+        self.assertIn("case 'final_explanation':", HTML)
+        self.assertIn("Backward compatibility: never render provider reasoning", HTML)
+        self.assertIn("row.textContent = `• ${line}`", HTML)
+        self.assertNotIn("完整展示", HTML)
+        self.assertNotIn("已完整展示", HTML)
+        self.assertNotIn("chatAppendThinkChunk", HTML)
         self.assertNotIn("inp.value = item.action_text", HTML)
-        self.assertNotIn("chatToggleThink(this)", HTML)
-        self.assertNotIn("maxHeight = '0px'", HTML)
-        self.assertNotIn("仲裁专家 · 思考完成 ▾ 点击展开", HTML)
 
     def test_chat_plan_options_render_as_selectable_cards(self):
         self.assertIn("case 'plan_options':", HTML)
