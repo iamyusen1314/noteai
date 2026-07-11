@@ -34,6 +34,86 @@ REAL_XHS_EVIDENCE_SOURCES = {
     "mediacrawler",
 }
 
+LATEST_RUN_SOURCE_BUCKETS = (
+    "homefeed",
+    "search_result",
+    "search_recommend",
+    "hot_search",
+    "other",
+)
+
+
+def _latest_run_source_bucket(source: str) -> str:
+    normalized = str(source or "").strip().lower()
+    if normalized in {"homefeed", "homefeed_phrase", "homefeed_token"}:
+        return "homefeed"
+    if normalized in {"search_result", "search_phrase", "search_token"}:
+        return "search_result"
+    if normalized == "search_recommend":
+        return "search_recommend"
+    if normalized == "hot_search":
+        return "hot_search"
+    return "other"
+
+
+def normalize_latest_run_source_breakdown(source_counts: dict[str, Any] | None) -> dict[str, int]:
+    breakdown = {bucket: 0 for bucket in LATEST_RUN_SOURCE_BUCKETS}
+    for source, raw_count in (source_counts or {}).items():
+        try:
+            count = max(0, int(raw_count or 0))
+        except Exception:
+            count = 0
+        breakdown[_latest_run_source_bucket(source)] += count
+    return breakdown
+
+
+def _build_latest_run_source_health(
+    source_counts: dict[str, Any] | None,
+    evidence_count: int,
+    *,
+    run_id: str = "",
+    checked_at: str = "",
+    available: bool = True,
+) -> dict[str, Any]:
+    breakdown = normalize_latest_run_source_breakdown(source_counts)
+    base = {
+        "available": bool(available),
+        "run_id": run_id,
+        "checked_at": checked_at,
+        "evidence_count": max(0, int(evidence_count or 0)),
+        "source_breakdown": breakdown,
+        "missing_sources": [],
+        "error_code": "",
+    }
+    if not available:
+        return {**base, "ok": None, "status": "unknown"}
+    if base["evidence_count"] <= 0:
+        return {
+            **base,
+            "ok": False,
+            "status": "failed",
+            "error_code": "latest_run_no_evidence",
+        }
+    missing = [
+        source for source in ("search_result", "search_recommend")
+        if breakdown.get(source, 0) <= 0
+    ]
+    if missing:
+        if len(missing) == 2:
+            error_code = "latest_run_search_sources_missing"
+        elif missing[0] == "search_result":
+            error_code = "latest_run_search_result_missing"
+        else:
+            error_code = "latest_run_search_recommend_missing"
+        return {
+            **base,
+            "ok": False,
+            "status": "degraded",
+            "missing_sources": missing,
+            "error_code": error_code,
+        }
+    return {**base, "ok": True, "status": "healthy"}
+
 _INIT_SQL = """
 CREATE TABLE IF NOT EXISTS xhs_crawler_health (
     id                       TEXT PRIMARY KEY,
@@ -358,11 +438,13 @@ def record_scrape_freshness(
     min_count: int | None = None,
     session_status: dict[str, Any] | None = None,
     scrape_error: str = "",
+    discovery_diagnostics: dict[str, Any] | None = None,
 ) -> dict:
     init_db()
     effective_run_id = run_id or str(uuid.uuid4())
     domain_counts: dict[str, int] = defaultdict(int)
     domain_evidence_keys: dict[str, set[str]] = defaultdict(set)
+    domain_source_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     source_counts: dict[str, int] = defaultdict(int)
     for raw in rows or []:
         cleaned = hot_keywords.clean_scraped_keyword_row(dict(raw))
@@ -374,6 +456,7 @@ def record_scrape_freshness(
         domain_counts[domain] += 1
         source = str(cleaned.get("source") or "unknown")
         source_counts[source] += 1
+        domain_source_counts[domain][source] += 1
         domain_evidence_keys[domain].add(json.dumps(
             [source, str(cleaned.get("keyword") or "").strip()],
             ensure_ascii=False,
@@ -385,6 +468,13 @@ def record_scrape_freshness(
     acquired = _now()
     evidence_date = acquired.strftime("%Y-%m-%d")
     session = dict(session_status or {})
+    safe_discovery_diagnostics: dict[str, Any] = {}
+    if discovery_diagnostics is not None:
+        try:
+            from scheduler_a import sanitize_discovery_diagnostics
+            safe_discovery_diagnostics = sanitize_discovery_diagnostics(discovery_diagnostics)
+        except Exception:
+            safe_discovery_diagnostics = {}
     for domain in target_domains:
         current_keys = set(domain_evidence_keys.get(domain, set()))
         conn = hot_keywords._conn()
@@ -402,11 +492,21 @@ def record_scrape_freshness(
         accumulated_keys = previous_keys | current_keys
         count = len(accumulated_keys)
         current_count = int(domain_counts.get(domain, 0) or 0)
+        latest_source_health = _build_latest_run_source_health(
+            domain_source_counts.get(domain),
+            current_count,
+            run_id=effective_run_id,
+            checked_at=acquired.isoformat(),
+        )
         details = {
             "source_counts": dict(source_counts),
+            "latest_run_source_counts": dict(domain_source_counts.get(domain, {})),
+            "latest_run_source_breakdown": latest_source_health["source_breakdown"],
+            "latest_run_source_health": latest_source_health,
             "evidence_keys": sorted(accumulated_keys),
             "latest_run_evidence_count": current_count,
             "session_configured": bool(session.get("configured")),
+            "discovery_diagnostics": safe_discovery_diagnostics,
         }
         ledger.append(record_freshness(
             domain,
@@ -417,10 +517,22 @@ def record_scrape_freshness(
             details=details,
             acquired_at=acquired,
         ))
+        # The freshness ledger needs de-duplication keys; crawler health does not.
+        # Keep raw keyword-bearing evidence keys out of operational health details.
+        health_details = {
+            key: value for key, value in details.items()
+            if key != "evidence_keys"
+        }
         if current_count > 0:
-            health_status = "ok" if count >= int(min_count or minimum_evidence_per_domain()) else "insufficient"
-            error_code = ""
-            error_summary = ""
+            if latest_source_health.get("ok") is False:
+                health_status = "degraded"
+                error_code = str(latest_source_health.get("error_code") or "latest_run_source_degraded")
+                missing_sources = ", ".join(latest_source_health.get("missing_sources") or [])
+                error_summary = f"Latest run missing required search source evidence: {missing_sources}"
+            else:
+                health_status = "ok" if count >= int(min_count or minimum_evidence_per_domain()) else "insufficient"
+                error_code = ""
+                error_summary = ""
             risk_login = False
         elif not session.get("configured"):
             health_status = "failed"
@@ -454,7 +566,7 @@ def record_scrape_freshness(
             evidence_count=count,
             error_code=error_code,
             error_summary=error_summary,
-            details=details,
+            details=health_details,
         ))
 
     overview = freshness_overview(target_domains)
@@ -462,6 +574,7 @@ def record_scrape_freshness(
         "run_id": effective_run_id,
         "source": "xhs_public_scrape",
         "source_counts": dict(source_counts),
+        "latest_run_source_breakdown": normalize_latest_run_source_breakdown(source_counts),
         "domains": ledger,
         "overview": overview,
     }
@@ -551,6 +664,7 @@ def freshness_overview(domains: tuple[str, ...] | list[str] | None = None) -> di
         "required": xhs_freshness_required(),
         "domains": statuses,
         "missing_domains": missing,
+        "latest_run_source_health": latest_run_source_health(target_domains),
     }
 
 
@@ -605,6 +719,62 @@ def recent_health(limit: int = 50, domain: str = "", adapter: str = "") -> list[
     return out
 
 
+def latest_run_source_health(domains: tuple[str, ...] | list[str] | None = None) -> dict[str, Any]:
+    """Return source coverage for the latest scheduler run without changing freshness."""
+    target_domains = set(domains or hot_keywords.CORE_EVIDENCE_DOMAINS)
+    rows = [
+        row for row in recent_health(limit=200, adapter="scheduler_a")
+        if not target_domains or row.get("domain") in target_domains
+    ]
+    if not rows:
+        return {
+            **_build_latest_run_source_health({}, 0, available=False),
+            "domains": [],
+        }
+
+    latest_run_id = str(rows[0].get("run_id") or "")
+    run_rows = [row for row in rows if str(row.get("run_id") or "") == latest_run_id]
+    checked_at = max((str(row.get("checked_at") or "") for row in run_rows), default="")
+    evidence_count = sum(
+        max(0, int((row.get("details") or {}).get("latest_run_evidence_count") or 0))
+        for row in run_rows
+    )
+
+    source_counts: dict[str, int] = defaultdict(int)
+    new_details_available = False
+    legacy_source_counts: dict[str, Any] | None = None
+    for row in run_rows:
+        details = row.get("details") if isinstance(row.get("details"), dict) else {}
+        per_domain = details.get("latest_run_source_counts")
+        if isinstance(per_domain, dict):
+            new_details_available = True
+            for source, raw_count in per_domain.items():
+                try:
+                    source_counts[str(source)] += max(0, int(raw_count or 0))
+                except Exception:
+                    continue
+        elif legacy_source_counts is None and isinstance(details.get("source_counts"), dict):
+            # Older records copied the same run-wide source_counts onto each domain.
+            legacy_source_counts = details["source_counts"]
+
+    if not new_details_available and legacy_source_counts is not None:
+        source_counts.update(legacy_source_counts)
+    available = bool(new_details_available or legacy_source_counts is not None)
+    if evidence_count <= 0 and available:
+        evidence_count = sum(normalize_latest_run_source_breakdown(source_counts).values())
+    health = _build_latest_run_source_health(
+        source_counts,
+        evidence_count,
+        run_id=latest_run_id,
+        checked_at=checked_at,
+        available=available,
+    )
+    return {
+        **health,
+        "domains": sorted({str(row.get("domain") or "") for row in run_rows if row.get("domain")}),
+    }
+
+
 def freshness_probe(
     domains: tuple[str, ...] | list[str] | None = None,
     *,
@@ -618,14 +788,21 @@ def freshness_probe(
     deadline = current.replace(hour=hour, minute=minute, second=0, microsecond=0)
     overview = freshness_overview(domains)
     missing = overview.get("missing_domains") or []
+    latest_source_health = overview.get("latest_run_source_health") or {}
+    source_degraded = bool(
+        latest_source_health.get("available")
+        and latest_source_health.get("ok") is False
+    )
     return {
         **overview,
         "checked_at": current.isoformat(),
         "deadline": deadline.isoformat(),
         "deadline_passed": current >= deadline,
         "deadline_missed": bool(missing and current >= deadline),
-        "action_required": bool(missing),
+        "action_required": bool(missing or source_degraded),
         "message": (
+            "XHS cumulative freshness satisfied, but latest run source coverage is degraded"
+            if not missing and source_degraded else
             "XHS freshness satisfied"
             if not missing else
             f"Missing fresh XHS evidence for: {', '.join(missing)}"

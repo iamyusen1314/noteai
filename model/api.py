@@ -904,6 +904,99 @@ def _runtime_prompt(key: str, domain: str | None = None, fallback: str = "") -> 
 ProgressEmitter = Callable[[dict[str, Any]], Awaitable[None]]
 
 
+class _SSETimingEnvelope:
+    """Add safe stream timing metadata; trace_id is observability-only, not idempotency."""
+
+    schema_version = "sse.v1"
+
+    def __init__(
+        self,
+        operation: str,
+        success_types: set[str] | frozenset[str],
+        *,
+        clock: Callable[[], float] | None = None,
+        wall_clock: Callable[[], str] | None = None,
+    ) -> None:
+        self.operation = operation
+        self.success_types = frozenset(success_types)
+        self._clock = clock or _time.monotonic
+        self._wall_clock = wall_clock or (
+            lambda: _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime())
+        )
+        self.trace_id = f"trace_{_uuid.uuid4().hex}"
+        self.seq = 0
+        self.started_at = self._clock()
+        self.stage_started_at = self.started_at
+        self.stage_key = ""
+
+    def wrap(self, event: dict[str, Any]) -> dict[str, Any]:
+        now = self._clock()
+        event_type = str(event.get("type") or "event")
+        stage_key = str(event.get("stage") or self.stage_key or event_type)
+        if stage_key != self.stage_key:
+            self.stage_key = stage_key
+            self.stage_started_at = now
+        self.seq += 1
+        terminal = event_type in self.success_types or event_type == "error"
+        outcome = "success" if event_type in self.success_types else ("error" if event_type == "error" else "in_progress")
+        wrapped = dict(event)
+        wrapped.update({
+            "schema_version": self.schema_version,
+            "operation": self.operation,
+            "trace_id": self.trace_id,
+            "seq": self.seq,
+            "server_ts": self._wall_clock(),
+            "elapsed_ms": max(0, round((now - self.started_at) * 1000)),
+            "stage_elapsed_ms": max(0, round((now - self.stage_started_at) * 1000)),
+            "terminal": terminal,
+            "outcome": outcome,
+        })
+        return wrapped
+
+
+async def _timed_sse_stream(
+    stream: AsyncGenerator[str, None],
+    *,
+    operation: str,
+    success_types: set[str] | frozenset[str],
+) -> AsyncGenerator[str, None]:
+    timing = _SSETimingEnvelope(operation, success_types)
+    terminal_seen = False
+    try:
+        async for chunk in stream:
+            if not chunk.startswith("data: "):
+                yield chunk
+                continue
+            raw = chunk.removeprefix("data: ").strip()
+            try:
+                event = _json.loads(raw)
+            except Exception:
+                yield chunk
+                continue
+            if not isinstance(event, dict):
+                yield chunk
+                continue
+            wrapped = timing.wrap(event)
+            terminal_seen = terminal_seen or bool(wrapped["terminal"])
+            yield f"data: {_json.dumps(wrapped, ensure_ascii=False, default=str)}\n\n"
+    except Exception:
+        if not terminal_seen:
+            error = timing.wrap({
+                "type": "error",
+                "error_code": "stream_internal_error",
+                "message": "SSE stream terminated unexpectedly",
+            })
+            yield f"data: {_json.dumps(error, ensure_ascii=False)}\n\n"
+        return
+    if not terminal_seen:
+        error = timing.wrap({
+            "type": "error",
+            "error_code": "stream_ended_without_terminal",
+            "message": "SSE stream ended without a terminal event",
+        })
+        yield f"data: {_json.dumps(error, ensure_ascii=False)}\n\n"
+
+
 async def _emit_progress(emit: ProgressEmitter | None, event: dict[str, Any]) -> None:
     if not emit:
         return
@@ -10438,6 +10531,31 @@ def _readiness_payload() -> tuple[dict, int]:
                 "blocking_readiness": False,
                 "freshness_hours": timing.get("freshness_hours"),
             }
+            if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
+                try:
+                    overview = _xhs_acq.freshness_overview()
+                    latest = overview.get("latest_run_source_health") or {}
+                    checks["market_timing"].update({
+                        "xhs_cumulative_fresh": bool(overview.get("ok")),
+                        "latest_run_source_health": {
+                            key: latest.get(key)
+                            for key in (
+                                "available", "ok", "status", "error_code",
+                                "evidence_count", "source_breakdown", "missing_sources",
+                                "run_id", "checked_at", "domains",
+                            )
+                        },
+                        "source_observation_action_required": bool(
+                            latest.get("available") and latest.get("ok") is False
+                        ),
+                    })
+                except Exception as exc:
+                    checks["market_timing"]["latest_run_source_health"] = {
+                        "available": False,
+                        "ok": None,
+                        "status": "unknown",
+                        "error_code": type(exc).__name__,
+                    }
         except Exception as exc:
             checks["market_timing"] = {
                 "ok": False,
@@ -10486,6 +10604,11 @@ async def market_timing_freshness(user: dict = Depends(_auth.get_current_user)):
         "ok": overview.get("ok", False),
         "required": overview.get("required", False),
         "missing_domains": overview.get("missing_domains", []),
+        "latest_run_source_health": overview.get("latest_run_source_health", {
+            "available": False,
+            "ok": None,
+            "status": "unknown",
+        }),
         "domains": [
             {
                 "domain": row.get("domain", ""),
@@ -12199,7 +12322,7 @@ async def analyze_stream_endpoint(
                 task.cancel()
 
     return StreamingResponse(
-        _sse(),
+        _timed_sse_stream(_sse(), operation="analyze", success_types={"complete"}),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -13027,7 +13150,7 @@ async def generate_stream_endpoint(
             yield f"data: {_json.dumps(event, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
-        _sse(),
+        _timed_sse_stream(_sse(), operation="generate", success_types={"complete"}),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -14483,12 +14606,16 @@ async def chat_message(
         _billing.record_free_usage(user["id"], "chat_fast")
 
     return StreamingResponse(
-        _chat_sse_generator(
-            req.session_id,
-            req.message,
-            req.image_base64,
-            req.file_text,
-            req.supplement_values,
+        _timed_sse_stream(
+            _chat_sse_generator(
+                req.session_id,
+                req.message,
+                req.image_base64,
+                req.file_text,
+                req.supplement_values,
+            ),
+            operation="chat",
+            success_types={"done"},
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},

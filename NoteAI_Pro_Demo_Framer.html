@@ -2426,6 +2426,13 @@ body {
   box-shadow: 0 8px 32px rgba(0,0,0,0.6);
 }
 .toast.show { opacity: 1; }
+.sse-stall-warning {
+  position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+  max-width: min(92vw, 680px); z-index: 1001; pointer-events: none;
+  padding: 10px 16px; border-radius: var(--r-md); font-size: 13px; font-weight: 600;
+  color: #fbbf24; background: rgba(35,28,18,.96); border: 1px solid rgba(245,158,11,.45);
+  box-shadow: 0 8px 28px rgba(0,0,0,.4);
+}
 /* scroll fade-up */
 .fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1); }
 .fade-up.visible { opacity: 1; transform: translateY(0); }
@@ -5167,6 +5174,40 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2800);
 }
 
+// Warning-only: long paid AI tasks may legitimately stay quiet. Never cancel,
+// retry, or release the single-flight lock because one of these thresholds fires.
+const _SSE_WARNING_DEFAULTS = Object.freeze({connectMs:30000, firstEventMs:60000, idleMs:120000, pollMs:1000});
+function createSseWarningGuard(operation, label) {
+  const testOverrides = globalThis.__NOTEAI_SSE_WARNING_THRESHOLDS__ || {};
+  const cfg = {..._SSE_WARNING_DEFAULTS, ...testOverrides};
+  let phase = 'connect';
+  let phaseStartedAt = Date.now();
+  let closed = false;
+  const warningId = `sse-warning-${operation}`;
+  const clearWarning = () => document.getElementById(warningId)?.remove();
+  const warn = () => {
+    if (closed || document.getElementById(warningId)) return;
+    const phaseText = phase === 'connect' ? '连接较慢' : (phase === 'first' ? '首个进度较慢' : '暂时没有新进度');
+    const el = document.createElement('div');
+    el.id = warningId;
+    el.className = 'sse-stall-warning';
+    el.dataset.sseWarning = operation;
+    el.textContent = `${label}${phaseText}：任务可能仍在处理，请不要重复提交。`;
+    document.body.appendChild(el);
+  };
+  const check = () => {
+    const elapsed = Date.now() - phaseStartedAt;
+    const limit = phase === 'connect' ? cfg.connectMs : (phase === 'first' ? cfg.firstEventMs : cfg.idleMs);
+    if (elapsed >= limit) warn();
+  };
+  const timer = setInterval(check, Math.max(10, Number(cfg.pollMs) || 1000));
+  return {
+    connected() { if (closed) return; phase = 'first'; phaseStartedAt = Date.now(); clearWarning(); },
+    event() { if (closed) return; phase = 'idle'; phaseStartedAt = Date.now(); clearWarning(); },
+    finish() { closed = true; clearInterval(timer); clearWarning(); },
+  };
+}
+
 /* ── Pricing: backend-sourced public billing rules ───────────── */
 let _pricingConfigLoaded = false;
 function pricingEsc(v) {
@@ -5682,6 +5723,7 @@ async function startGeneration() {
   _diagnosePromise = new Promise((res, rej) => { _resolveGen = res; _rejectGen = rej; });
 
   (async () => {
+    const streamGuard = createSseWarningGuard('generate', '爆文生成');
     try {
       const resp = await fetch(API_BASE + '/generate/stream', {
         method: 'POST',
@@ -5697,6 +5739,7 @@ async function startGeneration() {
           ...intentPayload,
         }),
       });
+      streamGuard.connected();
       if (resp.status === 402) {
         const errData = await resp.json().catch(() => ({}));
         _generateResult = { _error: true, _quota: true };
@@ -5714,6 +5757,7 @@ async function startGeneration() {
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buf = '';
+      let sawStructuredTerminal = false;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -5726,8 +5770,11 @@ async function startGeneration() {
           if (!raw || raw === '[DONE]') continue;
           try {
             const ev = JSON.parse(raw);
+            streamGuard.event();
             _handleGenStreamEvent(ev);
             if (ev.type === 'complete') {
+              sawStructuredTerminal = true;
+              streamGuard.finish();
               _generateResult = ev;
               _generateResult._domain     = domain;
               _generateResult._brief      = brief;
@@ -5744,6 +5791,8 @@ async function startGeneration() {
               await autoSaveGeneratedNote(_generateResult);
               _resolveGen();
             } else if (ev.type === 'error') {
+              sawStructuredTerminal = true;
+              streamGuard.finish();
               // Backend explicitly failed (e.g., P3 rate-limited after retries)
               const errMsg = ev.message || '生成失败，请稍后重试';
               _generateResult = { _error: true, _errMsg: errMsg };
@@ -5753,13 +5802,18 @@ async function startGeneration() {
           } catch(e) {}
         }
       }
-      if (!_generateResult) _resolveGen();
+      if (!sawStructuredTerminal) {
+        _generateResult = { _error: true, _errMsg: '爆文生成流已结束，但未收到完成状态' };
+        showToast('⚠ 爆文生成流异常结束，请不要重复提交；请先确认任务结果');
+        _resolveGen();
+      }
     } catch(err) {
       console.error('[NoteAI] stream error:', err);
       _generateResult = { _error: true, _errMsg: String(err) };
       showToast('⚠ ' + (_generateResult._errMsg || '生成失败'));
       _rejectGen(err);
     } finally {
+      streamGuard.finish();
       _genStreamActive = false;
       _setGenerationSubmitBusy(false);
     }
@@ -6221,12 +6275,14 @@ async function startDiagnosis() {
   };
   _diagnosePromise = new Promise((resolve, reject) => {
     (async () => {
+      const streamGuard = createSseWarningGuard('analyze', 'AI 诊断');
       try {
         const resp = await fetch(API_BASE + '/analyze/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authH },
           body: JSON.stringify(analyzeBody),
         });
+        streamGuard.connected();
         if (resp.status === 402) {
           const errData = await resp.json().catch(() => ({}));
           _diagnosisStreamActive = false;
@@ -6248,6 +6304,7 @@ async function startDiagnosis() {
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
         let buf = '';
+        let sawStructuredTerminal = false;
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -6260,8 +6317,11 @@ async function startDiagnosis() {
             if (!raw || raw === '[DONE]') continue;
             try {
               const ev = JSON.parse(raw);
+              streamGuard.event();
               _handleAnalyzeStreamEvent(ev);
               if (ev.type === 'complete') {
+                sawStructuredTerminal = true;
+                streamGuard.finish();
                 _diagnosisStreamActive = false;
                 updateDiagnosisSubmitState();
                 _diagnoseResult = ev;
@@ -6279,6 +6339,8 @@ async function startDiagnosis() {
                 });
                 resolve();
               } else if (ev.type === 'error') {
+                sawStructuredTerminal = true;
+                streamGuard.finish();
                 _diagnosisStreamActive = false;
                 updateDiagnosisSubmitState();
                 _diagnoseResult = {
@@ -6291,10 +6353,11 @@ async function startDiagnosis() {
             } catch(e) {}
           }
         }
-        if (_diagnosisStreamActive) {
+        if (!sawStructuredTerminal) {
           _diagnosisStreamActive = false;
           updateDiagnosisSubmitState();
-          if (!_diagnoseResult) _diagnoseResult = { _error: true, _errMsg: 'AI 诊断流意外中断' };
+          _diagnoseResult = { _error: true, _errMsg: 'AI 诊断流已结束，但未收到完成状态' };
+          showToast('⚠ AI 诊断流异常结束，请不要重复提交；请先确认任务结果');
           resolve();
         }
       } catch(err) {
@@ -6304,6 +6367,8 @@ async function startDiagnosis() {
         _diagnoseResult = { _error: true };
         showToast('⚠ AI 诊断失败，请确认本地服务已启动（port 8000）');
         resolve();
+      } finally {
+        streamGuard.finish();
       }
     })();
   });
@@ -8796,12 +8861,14 @@ async function chatSendMessage(options = {}) {
     payload.supplement_values = supplementValues;
   }
 
+  const streamGuard = createSseWarningGuard('chat', '对话优化');
   try {
     let resp = await fetch(API_BASE + '/chat/message', {
       method: 'POST',
       headers: {'Content-Type': 'application/json', ...authHeader()},
       body: JSON.stringify(payload),
     });
+    streamGuard.connected();
 
     // 402 = 积分不足 → 弹升级引导，恢复输入框
     if (resp.status === 402) {
@@ -8843,45 +8910,41 @@ async function chatSendMessage(options = {}) {
     const reader  = resp.body.getReader();
     const decoder = new TextDecoder();
     let buf = '';
-    let lastDataAt = Date.now();
-    let stallAborted = false;
-    // 首次 30s 无数据 → 超时；搜索中 180s（允许多轮搜索）；有内容后 90s
-    const stallGuard = setInterval(() => {
-      const idleMs = Date.now() - lastDataAt;
-      const limit = _chatSearchActive ? 180000
-                  : (!_chatThinkEl && !_chatAiBubble ? 30000 : 90000);
-      if (idleMs > limit) {
-        clearInterval(stallGuard);
-        stallAborted = true;
-        reader.cancel('stall-timeout');
-        chatAppendAi('⚠️ AI 响应超时（' + Math.round(idleMs / 1000) + 's 无新数据），请重试。');
-      }
-    }, 2000);
-    try {
-      while (true) {
-        const {done, value} = await reader.read();
-        if (done) break;
-        lastDataAt = Date.now();
-        buf += decoder.decode(value, {stream: true});
-        const lines = buf.split('\n');
-        buf = lines.pop();
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try { chatHandleEvent(JSON.parse(line.slice(6))); }
-            catch(evErr) { chatAppendAi('⚠️ 内部错误：' + evErr.message); }
-          }
+    let sawStructuredTerminal = false;
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, {stream: true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const ev = JSON.parse(line.slice(6));
+            streamGuard.event();
+            sawStructuredTerminal = sawStructuredTerminal || ev.type === 'done' || ev.type === 'error';
+            if (ev.type === 'done' || ev.type === 'error') streamGuard.finish();
+            chatHandleEvent(ev);
+          } catch(evErr) { chatAppendAi('⚠️ 内部错误：' + evErr.message); }
         }
       }
-      if (!stallAborted && buf.startsWith('data: ')) {
-        try { chatHandleEvent(JSON.parse(buf.slice(6))); }
-        catch(evErr) { chatAppendAi('⚠️ 内部错误：' + evErr.message); }
-      }
-    } finally {
-      clearInterval(stallGuard);
+    }
+    if (buf.startsWith('data: ')) {
+      try {
+        const ev = JSON.parse(buf.slice(6));
+        streamGuard.event();
+        sawStructuredTerminal = sawStructuredTerminal || ev.type === 'done' || ev.type === 'error';
+        if (ev.type === 'done' || ev.type === 'error') streamGuard.finish();
+        chatHandleEvent(ev);
+      } catch(evErr) { chatAppendAi('⚠️ 内部错误：' + evErr.message); }
+    }
+    if (!sawStructuredTerminal) {
+      chatAppendAi('⚠️ 对话流已结束，但未收到完成状态。任务结果不明确，请不要重复提交。');
     }
   } catch(e) {
     chatAppendAi('⚠️ 网络请求失败：' + e.message);
   } finally {
+    streamGuard.finish();
     _chatBusy = false;
     sendBtn.disabled = false; sendBtn.style.opacity = '1';
     inp.disabled = false; inp.focus();

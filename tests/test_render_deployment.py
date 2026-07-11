@@ -114,6 +114,13 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("cw-cookie-sub", admin_html)
         self.assertIn("登录已失效", admin_html)
 
+    def test_admin_distinguishes_cumulative_freshness_from_latest_source_health(self):
+        admin_html = (MODEL_DIR / "admin.html").read_text(encoding="utf-8")
+        self.assertIn("当日累计新鲜证据", admin_html)
+        self.assertIn("最新一轮来源退化", admin_html)
+        self.assertIn("latest_run_source_health", admin_html)
+        self.assertIn("['insufficient','degraded']", admin_html)
+
     def test_hot_keywords_does_not_eagerly_import_jieba(self):
         source = (MODEL_DIR / "hot_keywords.py").read_text(encoding="utf-8")
         module_prefix = source.split("def match_keywords", 1)[0]

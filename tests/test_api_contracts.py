@@ -9,6 +9,7 @@ import unittest
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest import mock
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -29,6 +30,73 @@ hot_keywords = importlib.import_module("hot_keywords")
 
 
 class ApiContractTests(unittest.TestCase):
+    def test_sse_timing_envelope_uses_monotonic_sequence_stage_and_terminal(self):
+        ticks = iter((10.0, 10.0, 10.25, 11.0, 12.0))
+        timing = api._SSETimingEnvelope(
+            "analyze",
+            {"complete"},
+            clock=lambda: next(ticks),
+            wall_clock=lambda: "2026-07-11T08:00:00Z",
+        )
+
+        first = timing.wrap({"type": "stage", "stage": "p1", "label": "safe"})
+        second = timing.wrap({"type": "stage", "stage": "p1", "progress": 20})
+        third = timing.wrap({"type": "stage", "stage": "p2", "progress": 40})
+        terminal = timing.wrap({"type": "complete", "stage": "p2", "result": "kept"})
+
+        self.assertEqual([first["seq"], second["seq"], third["seq"], terminal["seq"]], [1, 2, 3, 4])
+        self.assertEqual([first["elapsed_ms"], second["elapsed_ms"], third["elapsed_ms"], terminal["elapsed_ms"]], [0, 250, 1000, 2000])
+        self.assertEqual([first["stage_elapsed_ms"], second["stage_elapsed_ms"], third["stage_elapsed_ms"], terminal["stage_elapsed_ms"]], [0, 250, 0, 1000])
+        self.assertFalse(first["terminal"])
+        self.assertEqual(first["outcome"], "in_progress")
+        self.assertEqual(first["schema_version"], "sse.v1")
+        self.assertTrue(terminal["terminal"])
+        self.assertEqual(terminal["outcome"], "success")
+        self.assertEqual(terminal["operation"], "analyze")
+        self.assertEqual(terminal["result"], "kept")
+        self.assertEqual(first["trace_id"], terminal["trace_id"])
+        self.assertTrue(first["trace_id"].startswith("trace_"))
+        self.assertNotIn("request_id", terminal)
+
+        chat_ticks = iter((20.0, 20.1, 20.2))
+        chat_timing = api._SSETimingEnvelope(
+            "chat", {"done"}, clock=lambda: next(chat_ticks), wall_clock=lambda: "safe"
+        )
+        done = chat_timing.wrap({"type": "done"})
+        error = chat_timing.wrap({"type": "error"})
+        self.assertEqual((done["terminal"], done["outcome"]), (True, "success"))
+        self.assertEqual((error["terminal"], error["outcome"]), (True, "error"))
+
+    def test_timed_sse_stream_preserves_payload_and_adds_missing_terminal_error(self):
+        async def collect(events, operation, success_types):
+            async def source():
+                for event in events:
+                    yield f"data: {json.dumps(event)}\n\n"
+
+            output = []
+            async for chunk in api._timed_sse_stream(
+                source(), operation=operation, success_types=success_types
+            ):
+                output.append(json.loads(chunk.removeprefix("data: ").strip()))
+            return output
+
+        complete_events = asyncio.run(collect(
+            [{"type": "stage", "payload": "kept"}, {"type": "complete", "result": 7}],
+            "generate",
+            {"complete"},
+        ))
+        self.assertEqual(complete_events[0]["payload"], "kept")
+        self.assertEqual(complete_events[1]["result"], 7)
+        self.assertTrue(complete_events[1]["terminal"])
+        self.assertEqual(complete_events[1]["outcome"], "success")
+
+        eof_events = asyncio.run(collect([], "chat", {"done"}))
+        self.assertEqual(len(eof_events), 1)
+        self.assertEqual(eof_events[0]["type"], "error")
+        self.assertEqual(eof_events[0]["error_code"], "stream_ended_without_terminal")
+        self.assertTrue(eof_events[0]["terminal"])
+        self.assertEqual(eof_events[0]["outcome"], "error")
+
     def test_health_reports_local_v04_composite_model_label(self):
         original_use_v04 = api.USE_V04_COMPOSITE
         original_report_path = api.V04_TRAIN_REPORT_PATH
@@ -99,6 +167,86 @@ class ApiContractTests(unittest.TestCase):
         client = TestClient(api.app)
         resp = client.get("/market-timing/freshness")
         self.assertEqual(resp.status_code, 401)
+
+    def test_readiness_reports_latest_xhs_source_health_as_nonblocking_safe_data(self):
+        latest = {
+            "available": True,
+            "ok": False,
+            "status": "degraded",
+            "error_code": "latest_run_search_recommend_missing",
+            "evidence_count": 4,
+            "source_breakdown": {
+                "homefeed": 0,
+                "search_result": 4,
+                "search_recommend": 0,
+                "hot_search": 0,
+                "other": 0,
+            },
+            "missing_sources": ["search_recommend"],
+            "run_id": "safe-run-id",
+            "checked_at": "2026-07-11T08:00:00",
+            "domains": ["美食"],
+            "internal_cookie_value": "must-not-leak",
+            "source_url": "https://private.invalid/path",
+        }
+        with (
+            mock.patch.object(api, "_SCHEDULER_AVAILABLE", True),
+            mock.patch.object(api, "_XHS_ACQ_AVAILABLE", True),
+            mock.patch.object(api._db, "database_health", return_value={"ok": True}),
+            mock.patch.object(api, "get_v04_composite_model", return_value=object()),
+            mock.patch.object(api, "get_model", return_value=object()),
+            mock.patch.object(api, "db_status", return_value={"latest_capture": "2026-07-11", "freshness_hours": 1}),
+            mock.patch.object(api._xhs_acq, "freshness_overview", return_value={
+                "ok": True,
+                "latest_run_source_health": latest,
+            }),
+        ):
+            payload, status_code = api._readiness_payload()
+
+        self.assertEqual(status_code, 200)
+        market = payload["checks"]["market_timing"]
+        self.assertFalse(market["blocking_readiness"])
+        self.assertTrue(market["xhs_cumulative_fresh"])
+        self.assertTrue(market["source_observation_action_required"])
+        self.assertFalse(market["latest_run_source_health"]["ok"])
+        self.assertEqual(
+            market["latest_run_source_health"]["error_code"],
+            "latest_run_search_recommend_missing",
+        )
+        serialized = json.dumps(market).lower()
+        self.assertNotIn("cookie", serialized)
+        self.assertNotIn("private.invalid", serialized)
+
+    def test_market_timing_freshness_keeps_old_fields_and_adds_latest_source_health(self):
+        overview = {
+            "ok": True,
+            "required": False,
+            "missing_domains": [],
+            "latest_run_source_health": {
+                "available": True,
+                "ok": False,
+                "status": "degraded",
+                "error_code": "latest_run_search_recommend_missing",
+            },
+            "domains": [{
+                "domain": "美食",
+                "ok": True,
+                "status": "fresh",
+                "evidence_count": 12,
+                "minimum": 12,
+                "acquired_at": "2026-07-11T08:00:00",
+                "fresh_until": "2026-07-12T08:00:00",
+                "reason": "",
+            }],
+        }
+        with mock.patch.object(api._xhs_acq, "freshness_overview", return_value=overview):
+            result = asyncio.run(api.market_timing_freshness(user={"id": "u-test"}))
+
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["required"])
+        self.assertEqual(result["missing_domains"], [])
+        self.assertEqual(result["domains"][0]["evidence_count"], 12)
+        self.assertFalse(result["latest_run_source_health"]["ok"])
 
     def test_extract_screenshot_refunds_charge_when_vision_fails(self):
         original_check = api._billing.check_and_deduct

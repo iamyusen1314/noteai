@@ -10,7 +10,7 @@
 - 当前不是正式生产上线阶段；不得把 Staging 通过等同于商业上线完成。
 - AI 诊断、爆文生成、对话优化、截图/视频理解、事实源、积分账本和管理端已完成受控的真实 Staging 验证。
 - 正式支付订单、回调签名、幂等、退款与对账流程尚未确认，是独立的生产阻断项 `PROD-001`。
-- 当前应继续完成成本核算、时延体验和人工 UI 回归；不要重复已经通过的市场时机来源修复或全链路小样本验证。
+- 当前应优先调查 `BUG-002` 自动轮次搜索来源退化，再串行推进后端幂等 `BILL-001`、时延与 stall 治理 `PERF-001`、成本核算和人工 UI 回归；不要重复已经有充分证据的全链路付费小样本验证。
 
 ## 2. 当前环境与版本
 
@@ -18,8 +18,8 @@
 
 - 仓库：`iamyusen1314/noteai`
 - 当前分支：`codex/quality-stabilization-real-chain`
-- 当前业务代码基线：`a8aa0b81b4b46c7e689324ecbb92cf4d632ebf0b`（`retry XHS search discovery after redirects`）
-- Render Staging 在本 handoff 编写时对应上述业务 commit；交接 checkpoint commit 只更新文档，推送后 Render 可能自动构建该文档 commit。新会话必须重新核对 Render Events 中的 live commit。
+- 当前业务代码基线：`d58156792d97d0fe625700ec9398d10b305ae7c4`（`fix(frontend): prevent duplicate AI submissions`）。
+- Render Staging Web/API/Admin 与两个 Cron build 已对应 `d581567`；新会话仍必须重新核对 Render Events 中的 live commit。
 - 远程跟踪分支：`origin/codex/quality-stabilization-real-chain`
 - 禁止直接合并 `main`，禁止 force push。
 
@@ -82,7 +82,7 @@
 
 - 影响市场时机采集、来源统计、新鲜度门禁和 Cookie 运维提醒。
 - 未修改 AI 质量评分、积分语义、认证、支付或数据库 schema。
-- 该缺陷已修复并验证，不应重复开发；Cookie 过期仍是持续运维事项 `OPS-001`。
+- 历史缺陷曾修复并单轮验证，但 13:05、14:05 自动轮次再次出现搜索结果/推荐来源为 0；当前按 `BUG-002` 重新调查，根因确认前不重复修改。
 
 ## 4. 已完成工作
 
@@ -173,11 +173,46 @@
 - 风险级别：High；原有逻辑与云端导航差异共同触发。
 - 涉及模块：`model/scheduler_a.py`, `model/xhs_acquisition.py`, tests。
 - 根因：历史缺陷根因已定位，见第 3 节；当前连续自动轮次回退的根因尚未确认。
-- 修改状态/进度：历史修复曾真实验证 460 条四来源；2026-07-11 接管复核发现 13:05、14:05 两次自动轮次连续退化为 `search_result=0`、`search_recommend=0`，当前回退根因尚未确认。
-- 下一步：只读对比 12:05 成功轮次与 13:05/14:05 退化轮次的搜索输入、导航、会话和推荐 API 证据；根因确认前不修改代码、不手工触发 Cron。
+- 修改状态/进度：历史修复曾真实验证 460 条四来源；2026-07-11 自动轮次 13:05、14:05、15:05 连续退化为 `search_result=0`、`search_recommend=0`。QA 已确认“Cron 为何仍成功”：响应解析异常被静默吞掉、单目标失败按 best-effort 继续，worker hard gate 使用同日累计 freshness；但“搜索页面/端点为何突然不产出”仍因日志不足而未确认。
+- 下一步：先实施 `BUG-002B` 脱敏诊断 instrumentation，部署后只观察连续 2–3 个自动轮次，再根据页面类别、响应/JSON/schema 与过滤漏斗证据确定具体修复；根因确认前不盲改 selector、不手工触发 Cron。
 - 验收标准：至少连续 2–3 个自动轮次中 `search_result` 与 `search_recommend` 均满足已确认的健康阈值，且健康状态不再被当天累计旧证据掩盖。
 - 真实外部服务：需要授权 XHS 会话；已完成。
 - 费用/数据：Cron 时长费用；写入 Staging 数据。
+
+### BUG-002B — 搜索来源退化的脱敏诊断漏斗
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：Critical（当前最高优先级调查包）。
+- 问题描述：当前仅有最终来源数、推荐/趋势响应数和输入成功/失败数；JSON 解析异常被静默忽略，无法区分导航、页面类别、端点未出现、JSON/schema 变化、候选过滤或去重。
+- 证据：12:05 搜索来源正常；13:05/14:05/15:05 连续 `typed=0/fail=12`、推荐响应 0，且 13:05/15:05 无导航错误。静态与 mock 已排除空 seed、数据库落库和部署版本作为单一原因，并确认路径变体可能被 broad matcher 命中却绕过推荐专用分支。
+- 根因是否确认：诊断缺口根因已确认；外部搜索退化的最终根因尚未确认。
+- 涉及文件：`model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `tests/test_xhs_acquisition.py`；不改 selector、重试、Cron 调度、hard gate、Cookie、数据库 schema 或业务数据语义。
+- 风险：日志过细可能泄漏平台/用户数据；只允许计数、状态类枚举和固定错误码，禁止 URL/query、seed、Cookie、响应正文、标题、关键词、DOM 或异常全文。
+- 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：Test Finder（独立 Verification Agent）。
+- 修改状态/进度：最小 instrumentation 已实施并通过独立复验。首次验证发现 freshness ledger 的 `evidence_keys` 经完整 worker result 进入成功日志，修正后 worker 内部门禁继续使用完整数据，公开返回与成功日志使用递归脱敏副本，数据库 ledger 去重键与同日累计语义保持。独立复验确认完整 result/main stdout 无敏感内容、ledger 两轮去重不回退、health details 无 key；定向 212/212、全量 unittest 303/303、Production Readiness 48/48、Compose、py_compile 与 LFS-safe diff check 通过；前端未变，引用上一轮 Playwright 7/7 证据。
+- 验收标准：每轮搜索目标计数闭合；缺输入框、导航失败、响应未观察、非 JSON、空 schema、路径变体、全部过滤/去重与正常成功均有确定计数/错误码；来源为 0 时至少有一个可验证原因码；日志和 health details 不含敏感/原始内容；既有 Cron 成功/门禁语义不变。
+- 是否需要用户决定：否；2026-07-11 用户已明确批准 Staging 部署、手工触发采集及真实外部调用。
+- 是否涉及真实外部调用：是；获批后可手工触发 1 次 Staging 采集并继续观察 2–3 个自动轮次。
+- 是否已部署到 Render：否。
+
+### BUG-002A — 最新单轮来源健康与失败分类
+
+- 状态：**READY_TO_VERIFY**
+- 问题描述：当前 API readiness 和六行业 freshness 使用最新采集时间与同日累计证据，可能在最新轮次 `search_result=0`、`search_recommend=0` 时继续显示绿色。
+- 预期结果：最新单轮来源健康与同日累计 freshness 分开呈现；缺少搜索结果/推荐时明确标记 degraded 和无敏感值错误码，不误报 Cookie 失效。
+- 风险级别：High；属于可观测性与运维判断修复，不改变市场时机业务门禁。
+- 涉及模块：`model/xhs_acquisition.py`, `model/api.py`, `model/admin.html`, `tests/test_xhs_acquisition.py` 及相关静态/合同测试。
+- 根因：已确认；`freshness_status()` 合并同日历史 evidence keys，API readiness 只看数据库最新采集时间，未检查最新 run 的来源多样性。
+- 修改状态/进度：最小修复已实施。使用现有 `xhs_crawler_health.details_json` 归一化最新 run 来源分布，API readiness 与管理端新增非阻断来源退化状态，并增加成功→退化、兼容旧记录、字段白名单与管理端文案回归。独立验证：定向 175/175、全量 288/288、Production Readiness 48/48、Compose、Python 编译和 diff check 全部通过。
+- 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：Test Finder（独立 Verification Agent）。
+- 涉及文件：`model/xhs_acquisition.py`, `model/api.py`, `model/admin.html`, `tests/test_xhs_acquisition.py`, `tests/test_api_contracts.py`, `tests/test_render_deployment.py`。
+- 下一步：审查提交边界后推送并部署 Render Staging；云端核对 readiness、freshness 与管理端均能区分“当日累计健康”和“最新一轮来源退化”，再决定是否标记 VERIFIED。
+- 验收标准：同日成功轮次后出现退化轮次时，累计 freshness 可保持原语义，但 `latest_run_source_health.ok=false`、状态为 degraded、错误码可区分缺少结果/推荐；Cookie 不被标记失效；API readiness 仍向后兼容且不阻断；管理端明确显示本轮来源退化。
+- 真实外部服务：不需要；全部使用临时 SQLite 和 mock rows 验证，不触发 Cron。
+- 费用/数据：无外部费用，不写远程数据，不新增 schema/migration。
+- 是否需要用户决定：否；2026-07-11 用户已明确批准本轮提交、推送、Render Staging 部署、付费 Smoke、真实 AI 和手工采集。
+- 是否涉及真实外部调用：是；部署后执行受控付费 AI Smoke 和一次手工采集。
+- 是否已部署到 Render：否。
 
 ### QA-001 — 真实 AI 主链路与积分对账
 
@@ -239,18 +274,68 @@
 
 ### UX-001 — 云端时延与“30–60秒”承诺不一致
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 问题描述：真实诊断约 193–228 秒、生成约 257 秒、重写约 146 秒。
-- 当前现象：修复前诊断展示“约30–60秒”、生成展示“约30–40秒”，且生成入口缺少函数级单请求锁和按钮禁用；当前本地工作树已完成 UX-001A 修复，尚未部署到 Render。
+- 当前现象：修复前诊断展示“约30–60秒”、生成展示“约30–40秒”，且生成入口缺少函数级单请求锁和按钮禁用；UX-001A 已部署到 Render Staging 并通过独立无付费 Smoke Test。
 - 预期结果：本修复包 UX-001A 先移除未经验证的固定耗时承诺，并保证诊断/生成请求期间只能提交一次；阶段耗时、stall timeout 和 P50/P95 另立性能包，不混入本次修改。
 - 风险级别：High；Staging 揭示的体验问题。
 - 涉及模块：静态前端、API 多 Agent/评分/二修流程。
 - 根因：固定文案与真实 Staging 耗时不符；`startGeneration()` 未检查 `_genStreamActive`，生成按钮也未绑定可恢复的禁用状态。根因已确认。
-- 修改状态/进度：UX-001A 已完成本地实施与独立验证：移除固定秒数承诺；生成/诊断入口增加单请求 guard；生成按钮增加 busy/disabled/ARIA 状态并在统一 `finally` 恢复；新增静态与 Playwright 回归。独立验证结果为 frontend static 15/15、Playwright 4/4、全量 unittest 282/282、production readiness 48/48、Compose 与 diff check 通过。
-- 下一步：获得部署批准后发布到 Render Staging，核对 live commit，并执行一次不重复付费的受控 UI smoke；Staging 验收前不得标记 `VERIFIED`。
+- 修改状态/进度：UX-001A 已完成实施、本地独立验证、GitHub CI、Render 部署和 Staging 独立验证。移除固定秒数承诺；生成/诊断入口增加单请求 guard；生成按钮增加 busy/disabled/ARIA 状态并在统一 `finally` 恢复；新增静态与 Playwright 回归。独立验证结果为 frontend static 15/15、Playwright 4/4、全量 unittest 282/282、production readiness 48/48、Compose 与 diff check 通过；线上 mock 连续调用各入口两次均只有一个请求，按钮状态正确恢复，真实 AI 调用为 0。
+- 下一步：本修复包无需继续修改；阶段耗时、stall timeout、真实 P50/P95 和后端 request-id 幂等应作为独立任务推进。
 - 验收标准：不再显示“30–40秒/30–60秒”；连续点击诊断或生成分别只产生一个请求；成功、401、402、异常和流结束后按钮恢复；既有 payload、截图门禁和质量行为不回退。
-- 真实外部服务：本地 mock/静态验收已完成且不需要；部署与真实 Staging smoke 仍需另行批准。
-- 费用/数据：本修复包本地实施与验证不产生 AI 费用、不写远程数据。
+- 真实外部服务：已部署 Render Staging；线上 Smoke 使用 route mock，未调用真实 AI。
+- 费用/数据：产生正常 GitHub/Render 构建与部署活动；未产生 AI 费用、未写业务数据、未手工触发 Cron。
+
+### BILL-001 — 后端 request-id 幂等与防重复扣费
+
+- 状态：**READY_TO_FIX**（数据库/计费修改已获明确批准）
+- 优先级：Critical。
+- 问题描述：浏览器端已阻止重复点击，但 API 尚未确认具备跨进程、并发重试和网络重放级别的幂等保护；同一付费请求可能重复扣积分、创建多个 usage row 或重复调用模型。
+- 预期结果：同一用户、同一操作、同一幂等键只允许一个执行和一次扣费；相同键不同 payload 明确拒绝；不同用户之间严格隔离；失败、超时和重试语义可审计。
+- 风险级别：Critical；涉及计费、并发、数据隔离和潜在数据库 schema。
+- 涉及模块：`model/api.py`, `model/billing.py`, `model/db.py`, `model/migrations/postgres/`, 前端请求头和相关 tests。
+- 根因：已确认。付费入口没有持久化幂等记录；`check_and_deduct()` 的余额读取、扣减、usage 与退款由多个独立连接/事务完成，现有 DB 抽象不能保证并发 claim、扣费和最多一次退款原子性；浏览器单请求锁无法覆盖多标签、代理重放、网络重试和跨进程并发。
+- 证据：Repository Explorer 已核对 Analyze/Generate/Chat 扣费链；Security Reviewer 确认重复执行、并发余额竞争和 SSE 断连账务闭环为 Critical；Render/DevOps Reviewer 进一步确认必须新增 transaction API 与增量 migration，不能用内存锁或仅用 SQLite 测试替代。
+- 修改状态/进度：协议、最小 schema、事务边界、状态机、崩溃恢复边界和 PostgreSQL 并发测试矩阵已形成；尚未修改 billing、数据库或 migration，尚未执行任何数据库动作。
+- 执行代理：待指定单一 Implementation Agent；验证代理：独立 Security/Verification Agent，且 PostgreSQL 并发证据不可省略。
+- 下一步：按已批准的两阶段兼容发布，第一阶段仅新增 `idempotency_requests` 增量表、SQLite/PostgreSQL transaction API、原子 claim/扣费/最多一次退款，并覆盖 Analyze、Generate、付费 Chat；完整 SSE 回放、结果恢复、stale 自动接管和 exactly-once 业务副作用明确延后。
+- 验收标准：两个并发相同请求只能执行一次、扣费一次、产生一个主 usage；同键同 payload 可安全重试并得到一致状态/结果；同键不同 payload 返回冲突；跨用户不可互相命中；失败/退款后可按明确规则重试；SQLite/PostgreSQL 均通过。
+- 真实外部服务：用户已批准一次性 PostgreSQL 并发测试、Render Staging migration、付费 Smoke 和真实 AI；仍按最小样本执行。
+- 费用/数据：方案需要新增一张空表和三个索引，无 backfill；当前阶段未写数据库。一次性 PostgreSQL 测试和 Render Staging migration 均需明确批准。
+- 是否需要用户决定：否；2026-07-11 用户已批准 schema/migration、计费事务重构、一次性 PostgreSQL 并发测试、Staging migration、付费 Smoke 和真实 AI；采用推荐的两阶段兼容发布。
+- 是否涉及真实外部调用：是；独立验证通过后可应用 Render Staging migration，并执行受控写入型 Smoke。
+- 是否已部署到 Render：否。
+
+### PERF-001 — 阶段耗时、SSE stall timeout 与 P50/P95
+
+- 状态：**INVESTIGATING**
+- 问题描述：当前只有进度阶段和零散模型调用日志，没有统一阶段耗时、总耗时或可复算的 P50/P95；前端对 SSE 静默/断流缺少明确 stall timeout，用户可能无限等待。
+- 预期结果：诊断/生成主要阶段有单调递增时间戳和耗时；SSE 静默达到安全阈值后给出可恢复错误，按钮与任务状态一致；离线工具可从受控样本计算 P50/P95，且不伪造样本量。
+- 风险级别：High；错误 timeout 可能中断仍在运行的付费任务，过度日志可能泄露内容或增加存储成本。
+- 涉及模块：`model/api.py`, `model/model_router.py`, `NoteAI_Pro_Demo_Framer.html`, usage/日志与相关 tests。
+- 根因：部分确认；`_emit_progress()` 未附带阶段时间，外部模型只记录零散 elapsed 日志，前端没有统一 SSE stall 计时器。实际各阶段瓶颈占比尚未确认。
+- 修改状态/进度：只读调查中；未修改 timeout、SSE 协议、日志或模型调用策略。
+- 下一步：QA Investigator 定义 stall、断流和恢复的最小失败用例；Explorer 核对事件链和 provider timeout；Test Finder 确定协议兼容与统计测试；真实 P50/P95 样本数量和费用在执行前单独批准。
+- 验收标准：所有主要事件包含可验证的总耗时/阶段耗时且保持向后兼容；mock SSE 静默和断流能恢复 UI、不重复扣费；统计工具对固定样本准确输出 P50/P95；真实指标只在样本量、费用和数据范围获批后发布。
+- 真实外部服务：本地 mock 不需要；真实 P50/P95 需要受控 Claude/Kimi 样本并会产生费用。
+- 费用/数据：当前调查无费用、不写远程数据；真实采样前必须说明样本数、预计费用和 Staging usage 影响。
+
+### PERF-001A — SSE 阶段计时、慢响应保护与可复算统计基础
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：High。
+- 问题描述：诊断、生成、对话 SSE 缺少统一的事件序号、总耗时、阶段耗时和明确终态；诊断/生成无 stall 保护，对话现有 stall 会直接取消 reader 并提示重试，可能诱导付费任务重复执行；当前也没有可复算 P50/P95 的安全记录格式。
+- 证据：QA 只读调查确认 Analyze/Generate 缺少连接、首事件与事件间 stall guard；Chat 只有 fetch 后 30/90/180 秒 reader cancel，缺少 connect timeout 与结构化终态；`_emit_progress()` 未附带 timing；真实 Staging 样本曾达到约 146–257 秒，不能用激进硬超时中断任务。
+- 根因是否确认：是；协议缺少统一 timing/terminal envelope，客户端把“暂时静默”和“任务失败”混为一体。
+- 涉及文件：`model/api.py`, `NoteAI_Pro_Demo_Framer.html`, `tools/sse_latency_report.py`, `tests/test_sse_latency_report.py`, `tests/e2e/sse-stall-guard.spec.js`, `tests/test_api_contracts.py`, `tests/test_frontend_report_static.py`；不修改 billing、数据库、provider timeout 或模型编排。
+- 风险：High；若将 stall 当成失败或自动重试，可能重复扣费。修复必须只告警并保持单请求锁，不宣称后台已取消。
+- 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：Test Finder（独立 Verification Agent）。
+- 修改状态/进度：已完成最小实施与本地独立验证。服务端在三条 SSE 出口增加 `sse.v1` timing envelope；前端以 30/60/120 秒保守阈值只告警、不取消、不重试、不提前解锁；无终态 EOF 明确判错；离线工具仅接受白名单脱敏维度，异质 overall 不标为可靠 SLA，同质组少于 100 样本不标 P95 可靠。独立验证：PERF 定向 165/165、全量 unittest 294/294、Playwright 7/7、Production Readiness 48/48、Compose、相关 py_compile 和 LFS-safe diff check 全部通过；未调用真实付费服务。
+- 验收标准：Analyze/Generate/Chat 事件向后兼容且带安全的 `trace_id/seq/server_ts/elapsed_ms/stage_elapsed_ms/terminal/outcome`；连接、首事件或事件间静默时只显示“仍可能处理中、不要重复提交”，不自动重试、不提前解锁；无终态 EOF 明确报错并恢复 UI；固定样本能准确计算 P50/P95并披露样本量；日志/指标不含正文、Prompt、reasoning、Token、Cookie 或原始幂等键。
+- 是否需要用户决定：受控 Staging Smoke 与真实 AI 已获批准；大规模可靠 P95（每同质组至少 100 个样本）仍需另定样本预算，不能由本次最小 Smoke 推定。
+- 是否涉及真实外部调用：是；本轮最多各 1 次诊断、生成和付费对话，用于功能/计时 Smoke，不宣称统计可靠性。
+- 是否已部署到 Render：否。
 
 ### QA-003 — 人工 UI 上传与关键页面回归
 
@@ -444,20 +529,23 @@
 
 ## 12. Checkpoint 记录
 
-- 本 handoff 以业务 commit `a8aa0b8` 为事实基线。
-- 交接提交使用主题 `docs(handoff): checkpoint Render staging validation`；其 SHA 由新会话通过 `git log -1` 获取，避免在 commit 内记录自引用哈希。
+- 接管前 handoff 以业务 commit `a8aa0b8` 为事实基线；当前业务与 Render Staging 基线已更新为 `d581567`。
+- 历史交接提交主题为 `docs(handoff): checkpoint Render staging validation`，对应 `807016e`。
 - 本地工作树中的三份 `.lgb` 是缺少 Git LFS filter 的表现，未纳入交接提交。
-- 文档阶段本地回归：281 unittest passed；production gate 48/48；Compose config passed；4/4 V0.4 artifacts valid。
-- 文档阶段从本机再次访问公开健康地址时网络连接超时；未据此判定云端故障，因为同一阶段 Render Dashboard 为 Deployed 且此前 readiness HTTP 200。推送后必须从 Render Events/Logs 或可用浏览器重新核对。
-- 交接提交只应包含：`AGENTS.md`、本文件、`.codex/notes/risk-register.md`、`docs/RENDER_DEPLOYMENT_GUIDE.md`。
-- 推送后应等待 GitHub CI；Render Staging 可能因 `checksPass` 自动部署文档 commit，业务代码仍与 `a8aa0b8` 相同。
+- 历史文档阶段本地回归：281 unittest passed；production gate 48/48；Compose config passed；4/4 V0.4 artifacts valid。
+- 历史文档阶段的本机公开健康地址超时已被当前证据取代：`d581567` 部署后 API/Admin readiness 均为 HTTP 200。
+- 历史交接提交只包含 `AGENTS.md`、本文件、`.codex/notes/risk-register.md`、`docs/RENDER_DEPLOYMENT_GUIDE.md`；当前 UX-001A 的业务提交与文件范围见下方记录。
+- `checksPass` 已将 `d581567` 自动部署到 Render Staging；当前业务代码不再停留于 `a8aa0b8`。
 
 ### 2026-07-11 UX-001A 本地修复包
 
-- 状态：`READY_TO_VERIFY`，尚未部署 Render，未标记 `VERIFIED`。
+- 状态：`VERIFIED`；业务 commit `d58156792d97d0fe625700ec9398d10b305ae7c4` 已部署 Render Staging。
 - 修改文件：`NoteAI_Pro_Demo_Framer.html`、`tests/e2e/content-intent.spec.js`、`tests/test_frontend_report_static.py`；本文件由主 CTO 更新任务证据。
 - 修改范围：诚实时延文案、诊断/生成单请求 guard、生成按钮 busy/disabled/ARIA 状态、对应静态和 Playwright 回归；未修改 API、billing、模型、数据库、积分或质量门禁。
 - Implementation Agent 自测：frontend static 15/15、Playwright 4/4、diff check 通过。
 - 独立 Verification Agent：frontend static 15/15、Playwright 4/4、全量 unittest 282/282、production readiness 48/48、Docker Compose config 和 LFS-safe diff check 通过。
+- GitHub：push 与 PR 两条 CI 均通过；远端完成 LFS 拉取、模型校验、全量 unittest、质量门禁、production readiness 和 Compose config。
+- Render：Web 14:57 live；两个 Cron 14:58 build succeeded；API 15:00 live；Admin 15:00 live；API/Admin `migrations_applied=0`；最终 Web/API/Admin Deployed、PostgreSQL Available。
+- Staging 独立验证：新文案存在、旧固定秒数文案不存在；生成/诊断连续调用各两次均只有一个 mock 请求；busy/disabled/ARIA 进入与恢复正确；API/Admin readiness HTTP 200；真实 AI 调用 0，未写业务数据、未触发 Cron。
 - 剩余风险：当前是浏览器端防重复提交，后端仍没有 request-id 幂等；401/402/异常分支由统一 `finally` 与代码审查覆盖，尚未分别增加浏览器级分支用例。
-- 下一步：获得明确部署批准后再推送/部署 Render Staging，并执行受控 UI smoke；不得隐式触发付费 AI 或重复扣分。
+- 下一步：UX-001A 不再修改；按优先级继续 `BUG-002` 只读根因调查，再推进阶段耗时/stall timeout、`FIN-001` 和 `QA-003`。

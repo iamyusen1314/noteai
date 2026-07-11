@@ -78,6 +78,207 @@ HOT_API_PATTERNS = [
     "suggest", "hot_words", "search_recommend", "search/recommend",
 ]
 
+DISCOVERY_DIAGNOSTIC_ERROR_CODES = frozenset({
+    "navigation_failed",
+    "all_navigation_failed",
+    "homefeed_target_failed",
+    "search_input_not_found",
+    "search_input_not_visible",
+    "search_input_type_failed",
+    "search_target_failed",
+    "search_response_not_seen",
+    "search_response_non_json",
+    "search_candidates_empty",
+    "search_candidates_all_filtered",
+    "search_candidates_all_deduped",
+    "search_source_zero_unclassified",
+    "recommend_response_not_seen",
+    "recommend_response_non_json",
+    "recommend_schema_empty",
+    "recommend_candidates_all_filtered",
+    "recommend_candidates_all_deduped",
+    "recommend_source_zero_unclassified",
+    "homefeed_source_zero",
+    "hot_search_source_zero",
+    "possible_access_challenge",
+    "scrape_once_failed",
+})
+_DIAGNOSTIC_FIELDS = {
+    "targets": ("planned", "started", "completed"),
+    "navigation": ("ok", "failed"),
+    "input": ("found", "visible", "typed", "failed"),
+    "search": (
+        "response_seen", "json_ok", "json_failed", "title_count",
+        "phrase_raw", "cleaned", "filtered", "deduped", "final",
+    ),
+    "recommend": (
+        "response_seen", "json_ok", "json_failed", "items_raw",
+        "extracted", "filtered", "deduped", "final",
+    ),
+}
+_RESPONSE_STATUS_CLASSES = ("2xx", "3xx", "4xx", "5xx", "unknown")
+_FINAL_PAGE_CLASSES = ("search", "explore", "login", "challenge", "other")
+
+
+class ScrapeResults(list):
+    """List-compatible scrape output carrying secret-free diagnostics."""
+
+    def __init__(self, rows: list[dict], diagnostics: dict):
+        super().__init__(rows)
+        self.diagnostics = diagnostics
+
+
+def new_discovery_diagnostics() -> dict:
+    return {
+        "schema_version": "xhs.discovery.v1",
+        **{
+            section: {field: 0 for field in fields}
+            for section, fields in _DIAGNOSTIC_FIELDS.items()
+        },
+        "response_status_class": {key: 0 for key in _RESPONSE_STATUS_CLASSES},
+        "final_page_class": {key: 0 for key in _FINAL_PAGE_CLASSES},
+        "diagnostic_error_codes": [],
+    }
+
+
+def _diagnostic_inc(diagnostics: dict, section: str, field: str, amount: int = 1) -> None:
+    if section not in _DIAGNOSTIC_FIELDS or field not in _DIAGNOSTIC_FIELDS[section]:
+        return
+    diagnostics[section][field] = max(0, int(diagnostics[section].get(field, 0))) + max(0, int(amount or 0))
+
+
+def _diagnostic_add_error(diagnostics: dict, code: str) -> None:
+    if code not in DISCOVERY_DIAGNOSTIC_ERROR_CODES:
+        return
+    codes = diagnostics.setdefault("diagnostic_error_codes", [])
+    if code not in codes:
+        codes.append(code)
+
+
+def sanitize_discovery_diagnostics(value: dict | None) -> dict:
+    safe = new_discovery_diagnostics()
+    raw = value if isinstance(value, dict) else {}
+    for section, fields in _DIAGNOSTIC_FIELDS.items():
+        source = raw.get(section) if isinstance(raw.get(section), dict) else {}
+        for field in fields:
+            try:
+                safe[section][field] = max(0, int(source.get(field) or 0))
+            except (TypeError, ValueError):
+                safe[section][field] = 0
+    for section, allowed in (
+        ("response_status_class", _RESPONSE_STATUS_CLASSES),
+        ("final_page_class", _FINAL_PAGE_CLASSES),
+    ):
+        source = raw.get(section) if isinstance(raw.get(section), dict) else {}
+        for field in allowed:
+            try:
+                safe[section][field] = max(0, int(source.get(field) or 0))
+            except (TypeError, ValueError):
+                safe[section][field] = 0
+    for code in raw.get("diagnostic_error_codes") or []:
+        _diagnostic_add_error(safe, str(code))
+    return safe
+
+
+def _response_status_class(status: object) -> str:
+    try:
+        value = int(status)
+    except (TypeError, ValueError):
+        return "unknown"
+    if 200 <= value < 300:
+        return "2xx"
+    if 300 <= value < 400:
+        return "3xx"
+    if 400 <= value < 500:
+        return "4xx"
+    if 500 <= value < 600:
+        return "5xx"
+    return "unknown"
+
+
+def _classify_final_page(raw_url: str) -> str:
+    path = (urlparse(str(raw_url or "")).path or "").lower()
+    if any(marker in path for marker in ("/captcha", "/challenge", "/risk-control")):
+        return "challenge"
+    if any(marker in path for marker in ("/login", "/signin", "/sign-in")):
+        return "login"
+    if "search_result" in path or "/search/" in path:
+        return "search"
+    if "/explore" in path:
+        return "explore"
+    return "other"
+
+
+def _classify_discovery_response(raw_url: str) -> str:
+    path = (urlparse(str(raw_url or "")).path or "").lower()
+    if any(marker in path for marker in (
+        "search/recommend", "search_recommend", "search/suggest", "/suggest",
+    )):
+        return "recommend"
+    if "search/trending/query" in path:
+        return "trending"
+    return "other"
+
+
+def discovery_diagnostics_for_results(
+    rows: list[dict],
+    diagnostics: dict | None = None,
+    *,
+    extra_error_code: str = "",
+) -> dict:
+    safe = sanitize_discovery_diagnostics(diagnostics)
+    if extra_error_code:
+        _diagnostic_add_error(safe, extra_error_code)
+    sources = _source_breakdown(rows)
+    safe["search"]["final"] = sources["search_result"]
+    safe["recommend"]["final"] = sources["search_recommend"]
+    if safe["navigation"]["failed"]:
+        _diagnostic_add_error(safe, "navigation_failed")
+        if safe["navigation"]["ok"] == 0:
+            _diagnostic_add_error(safe, "all_navigation_failed")
+    if safe["input"]["failed"]:
+        if safe["input"]["found"] == 0:
+            _diagnostic_add_error(safe, "search_input_not_found")
+        elif safe["input"]["visible"] == 0:
+            _diagnostic_add_error(safe, "search_input_not_visible")
+        elif safe["input"]["typed"] == 0:
+            _diagnostic_add_error(safe, "search_input_type_failed")
+
+    search = safe["search"]
+    if search["final"] == 0:
+        if search["response_seen"] == 0:
+            _diagnostic_add_error(safe, "search_response_not_seen")
+        if search["json_failed"]:
+            _diagnostic_add_error(safe, "search_response_non_json")
+        if search["json_ok"] and search["phrase_raw"] == 0:
+            _diagnostic_add_error(safe, "search_candidates_empty")
+        if search["phrase_raw"] and search["cleaned"] == 0 and search["filtered"]:
+            _diagnostic_add_error(safe, "search_candidates_all_filtered")
+        if search["deduped"] and search["cleaned"] == 0:
+            _diagnostic_add_error(safe, "search_candidates_all_deduped")
+        if not any(str(code).startswith("search_") for code in safe["diagnostic_error_codes"]):
+            _diagnostic_add_error(safe, "search_source_zero_unclassified")
+
+    recommend = safe["recommend"]
+    if recommend["final"] == 0:
+        if recommend["response_seen"] == 0:
+            _diagnostic_add_error(safe, "recommend_response_not_seen")
+        if recommend["json_failed"]:
+            _diagnostic_add_error(safe, "recommend_response_non_json")
+        if recommend["json_ok"] and recommend["items_raw"] == 0:
+            _diagnostic_add_error(safe, "recommend_schema_empty")
+        if recommend["extracted"] and recommend["filtered"] >= recommend["extracted"]:
+            _diagnostic_add_error(safe, "recommend_candidates_all_filtered")
+        if recommend["extracted"] and recommend["deduped"] >= recommend["extracted"]:
+            _diagnostic_add_error(safe, "recommend_candidates_all_deduped")
+        if not any(str(code).startswith("recommend_") for code in safe["diagnostic_error_codes"]):
+            _diagnostic_add_error(safe, "recommend_source_zero_unclassified")
+    if sources["homefeed"] == 0:
+        _diagnostic_add_error(safe, "homefeed_source_zero")
+    if sources["hot_search"] == 0:
+        _diagnostic_add_error(safe, "hot_search_source_zero")
+    return safe
+
 
 def _source_weight(source: str) -> float:
     if source in {"homefeed_phrase", "search_phrase"}:
@@ -238,20 +439,41 @@ def _search_discovery_targets() -> list[tuple[str, str]]:
     return targets
 
 
-async def _trigger_search_input(page, seed: str, timeout_seconds: float = 7.0) -> tuple[bool, str]:
+async def _trigger_search_input(
+    page,
+    seed: str,
+    timeout_seconds: float = 7.0,
+    diagnostics: dict | None = None,
+) -> tuple[bool, str]:
     """Type a seed after XHS finishes any client-side search-page redirects."""
     deadline = time.monotonic() + max(1.0, timeout_seconds)
     last_error = "search input not available"
+    found = False
+    visible = False
     while time.monotonic() < deadline:
         try:
             search_input = page.locator('input[placeholder="搜索小红书"]').first
-            if await search_input.count() and await search_input.is_visible():
+            current_found = bool(await search_input.count())
+            if current_found:
+                found = True
+            if current_found and await search_input.is_visible():
+                visible = True
                 await search_input.fill("")
                 await search_input.type(seed, delay=35)
+                if diagnostics is not None:
+                    _diagnostic_inc(diagnostics, "input", "found")
+                    _diagnostic_inc(diagnostics, "input", "visible")
+                    _diagnostic_inc(diagnostics, "input", "typed")
                 return True, ""
         except Exception as exc:
             last_error = f"{type(exc).__name__}: {str(exc).splitlines()[0]}"
         await asyncio.sleep(0.35)
+    if diagnostics is not None:
+        if found:
+            _diagnostic_inc(diagnostics, "input", "found")
+        if visible:
+            _diagnostic_inc(diagnostics, "input", "visible")
+        _diagnostic_inc(diagnostics, "input", "failed")
     return False, last_error
 
 
@@ -270,6 +492,7 @@ async def scrape_once() -> list[dict]:
     hot_search_kws: dict[str, list[str]] = {name: [] for _, name in CHANNELS}
     search_recommend_kws: dict[str, list[str]] = {name: [] for name in SEARCH_SEEDS}
     discovery_metrics: Counter = Counter()
+    discovery_diagnostics = new_discovery_diagnostics()
 
     async with async_playwright() as pw:
         browser_args = [
@@ -306,18 +529,30 @@ async def scrape_once() -> list[dict]:
         def make_on_response(channel_name: str, discovery_source: str):
             async def on_response(resp):
                 url = resp.url
+                if discovery_source == "search_discovery":
+                    status_class = _response_status_class(getattr(resp, "status", None))
+                    discovery_diagnostics["response_status_class"][status_class] += 1
+                response_kind = _classify_discovery_response(url)
 
                 # 尝试拦截热搜 API
                 if any(p in url for p in HOT_API_PATTERNS):
+                    if response_kind == "recommend" and discovery_source == "search_discovery":
+                        _diagnostic_inc(discovery_diagnostics, "recommend", "response_seen")
                     try:
                         data = await resp.json()
+                        if response_kind == "recommend" and discovery_source == "search_discovery":
+                            _diagnostic_inc(discovery_diagnostics, "recommend", "json_ok")
                         if "search/recommend" in url:
                             items = data.get("data", {}).get("sug_items", []) or []
+                            if discovery_source == "search_discovery":
+                                _diagnostic_inc(discovery_diagnostics, "recommend", "items_raw", len(items))
                             discovery_metrics["recommend_responses"] += 1
                             discovery_metrics["recommend_items"] += len(items)
                             for item in items:
                                 kw = _extract_keyword_from_item(item) if isinstance(item, dict) else None
                                 if kw:
+                                    if discovery_source == "search_discovery":
+                                        _diagnostic_inc(discovery_diagnostics, "recommend", "extracted")
                                     search_recommend_kws.setdefault(channel_name, []).append(kw)
                             return
                         if "search/trending/query" in url:
@@ -348,21 +583,31 @@ async def scrape_once() -> list[dict]:
                             if kw:
                                 hot_search_kws.setdefault(channel_name, []).append(kw)
                     except Exception:
-                        pass
+                        if response_kind == "recommend" and discovery_source == "search_discovery":
+                            _diagnostic_inc(discovery_diagnostics, "recommend", "json_failed")
 
                 should_extract_titles = (
                     ("homefeed" in url and discovery_source == "homefeed")
                     or (discovery_source == "search_discovery" and ("search" in url or "api" in url))
                 )
                 if should_extract_titles:
+                    if discovery_source == "search_discovery":
+                        _diagnostic_inc(discovery_diagnostics, "search", "response_seen")
                     try:
                         data = await resp.json()
                         counter = tag_counters.setdefault(channel_name, Counter())
-                        for title in _extract_note_titles(data):
+                        titles = _extract_note_titles(data)
+                        if discovery_source == "search_discovery":
+                            _diagnostic_inc(discovery_diagnostics, "search", "json_ok")
+                            _diagnostic_inc(discovery_diagnostics, "search", "title_count", len(titles))
+                        for title in titles:
                             if not title:
                                 continue
                             # 标题短语优先：比单词更能反映真实内容趋势。
-                            for phrase in _title_phrase_candidates(title):
+                            phrases = _title_phrase_candidates(title)
+                            if discovery_source == "search_discovery":
+                                _diagnostic_inc(discovery_diagnostics, "search", "phrase_raw", len(phrases))
+                            for phrase in phrases:
                                 source = "search_phrase" if discovery_source == "search_discovery" else "homefeed_phrase"
                                 counter[(phrase, source)] += 1
                             # jieba 分词作为补充，后续会按行业相关度清洗。
@@ -375,7 +620,8 @@ async def scrape_once() -> list[dict]:
                                         source = "search_token" if discovery_source == "search_discovery" else "homefeed_token"
                                         counter[(token, source)] += 1
                     except Exception:
-                        pass
+                        if discovery_source == "search_discovery":
+                            _diagnostic_inc(discovery_diagnostics, "search", "json_failed")
             return on_response
 
         async def scrape_target(
@@ -388,21 +634,37 @@ async def scrape_once() -> list[dict]:
         ) -> None:
             handler = make_on_response(channel_name, discovery_source)
             page.on("response", handler)
+            if discovery_source == "search_discovery":
+                _diagnostic_inc(discovery_diagnostics, "targets", "started")
             try:
-                await page.goto(target_url, wait_until="domcontentloaded", timeout=25000)
+                try:
+                    await page.goto(target_url, wait_until="domcontentloaded", timeout=25000)
+                    if discovery_source == "search_discovery":
+                        _diagnostic_inc(discovery_diagnostics, "navigation", "ok")
+                except Exception:
+                    if discovery_source == "search_discovery":
+                        _diagnostic_inc(discovery_diagnostics, "navigation", "failed")
+                    raise
                 if discovery_source == "search_discovery":
                     seed = (parse_qs(urlparse(target_url).query).get("keyword") or [""])[0]
-                    typed, input_error = await _trigger_search_input(page, seed)
+                    typed, _input_error = await _trigger_search_input(
+                        page, seed, diagnostics=discovery_diagnostics
+                    )
                     if typed:
                         discovery_metrics["search_inputs_typed"] += 1
                     else:
                         discovery_metrics["search_input_failures"] += 1
-                        log.warning(f"Search input {channel_name} unavailable: {input_error}")
                 await asyncio.sleep(settle_seconds)
                 for _ in range(max(1, scroll_rounds)):
                     await page.mouse.wheel(0, 700)
                     await asyncio.sleep(max(0.2, SCROLL_WAIT_SECONDS))
             finally:
+                if discovery_source == "search_discovery":
+                    _diagnostic_inc(discovery_diagnostics, "targets", "completed")
+                    page_class = _classify_final_page(getattr(page, "url", ""))
+                    discovery_diagnostics["final_page_class"][page_class] += 1
+                    if page_class == "challenge":
+                        _diagnostic_add_error(discovery_diagnostics, "possible_access_challenge")
                 page.remove_listener("response", handler)
                 try:
                     await page.goto("about:blank", wait_until="commit", timeout=5000)
@@ -416,6 +678,10 @@ async def scrape_once() -> list[dict]:
         targets.extend(
             (url, channel, "search_discovery", SEARCH_SETTLE_SECONDS, SEARCH_SCROLL_ROUNDS, "Search discovery")
             for url, channel in _search_discovery_targets()
+        )
+        discovery_diagnostics["targets"]["planned"] = sum(
+            1 for _url, _channel, source, _settle, _scrolls, _label in targets
+            if source == "search_discovery"
         )
         targets_per_session = BROWSER_TARGETS_PER_SESSION or max(1, len(targets))
 
@@ -434,7 +700,19 @@ async def scrape_once() -> list[dict]:
                     try:
                         await scrape_target(page, target_url, channel_name, source, settle, scrolls)
                     except Exception as exc:
-                        log.warning(f"{label} {channel_name} error: {exc}")
+                        error_code = (
+                            "search_target_failed"
+                            if source == "search_discovery"
+                            else "homefeed_target_failed"
+                        )
+                        if source == "search_discovery":
+                            _diagnostic_add_error(discovery_diagnostics, error_code)
+                        log.warning(
+                            "%s target failed exception_type=%s diagnostic_error_code=%s",
+                            label,
+                            type(exc).__name__,
+                            error_code,
+                        )
             finally:
                 await page.close()
                 await ctx.close()
@@ -466,6 +744,7 @@ async def scrape_once() -> list[dict]:
         for kw in kws:
             key = (category, kw)
             if key in seen:
+                _diagnostic_inc(discovery_diagnostics, "recommend", "deduped")
                 continue
             seen.add(key)
             row = clean_scraped_keyword_row({
@@ -476,8 +755,12 @@ async def scrape_once() -> list[dict]:
                 "category":   category,
                 "count":      6,
             })
-            if row:
-                _keep_best_candidate(best_results, row)
+            if not row:
+                _diagnostic_inc(discovery_diagnostics, "recommend", "filtered")
+                continue
+            if key in best_results:
+                _diagnostic_inc(discovery_diagnostics, "recommend", "deduped")
+            _keep_best_candidate(best_results, row)
 
     # 来自 homefeed 标题短语/分词（按词频和质量权重计算相对热度）
     for category, tag_counter in tag_counters.items():
@@ -487,7 +770,14 @@ async def scrape_once() -> list[dict]:
         ) or 1
         for (kw, source), count in tag_counter.most_common(300):
             key = (category, kw)
-            if len(kw) < 2 or key in seen:
+            is_search_candidate = source in {"search_phrase", "search_token"}
+            if len(kw) < 2:
+                if is_search_candidate:
+                    _diagnostic_inc(discovery_diagnostics, "search", "filtered")
+                continue
+            if key in seen:
+                if is_search_candidate:
+                    _diagnostic_inc(discovery_diagnostics, "search", "deduped")
                 continue
             weighted_count = count * _source_weight(source)
             vol = max(min(int(weighted_count / total * 12000), 95), 5)
@@ -500,7 +790,13 @@ async def scrape_once() -> list[dict]:
                 "count":      count,
             })
             if not row:
+                if is_search_candidate:
+                    _diagnostic_inc(discovery_diagnostics, "search", "filtered")
                 continue
+            if is_search_candidate:
+                _diagnostic_inc(discovery_diagnostics, "search", "cleaned")
+                if key in best_results:
+                    _diagnostic_inc(discovery_diagnostics, "search", "deduped")
             _keep_best_candidate(best_results, row)
 
     results = sorted(
@@ -508,6 +804,7 @@ async def scrape_once() -> list[dict]:
         key=lambda r: (r.get("category", ""), -int(r.get("search_vol", 0)), -int(r.get("source_priority", 0))),
     )
     sources = _source_breakdown(results)
+    discovery_diagnostics = discovery_diagnostics_for_results(results, discovery_diagnostics)
     log.info(
         f"Scraped {len(results)} keywords "
         f"({sources['homefeed']} homefeed, {sources['search_result']} search_result, "
@@ -523,7 +820,7 @@ async def scrape_once() -> list[dict]:
         f"search_inputs_typed={discovery_metrics['search_inputs_typed']} "
         f"search_input_failures={discovery_metrics['search_input_failures']}"
     )
-    return results
+    return ScrapeResults(results, discovery_diagnostics)
 
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────
@@ -543,8 +840,11 @@ def run_scrape_job():
             log.info(f"Saved {len(kws)} keywords in {time.time()-t0:.1f}s")
         else:
             log.warning("No keywords scraped this run")
-    except Exception as e:
-        log.error(f"Scrape job failed: {e}", exc_info=True)
+    except Exception as exc:
+        log.error(
+            "Scrape job failed exception_type=%s diagnostic_error_code=scrape_once_failed",
+            type(exc).__name__,
+        )
 
 
 def start_scheduler(interval_minutes: int = 60):

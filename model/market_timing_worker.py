@@ -26,7 +26,11 @@ from hot_keywords import (
     upsert_keywords,
     write_keyword_snapshot,
 )
-from scheduler_a import scrape_once, session_state_summary
+from scheduler_a import (
+    discovery_diagnostics_for_results,
+    scrape_once,
+    session_state_summary,
+)
 from xhs_acquisition import (
     freshness_overview,
     record_scrape_freshness,
@@ -47,6 +51,19 @@ def _xhs_missing_message(xhs_freshness: dict) -> str:
     if missing:
         return f"XHS_FRESH_EVIDENCE_UNAVAILABLE: missing fresh XHS evidence for {missing}"
     return "XHS_FRESH_EVIDENCE_UNAVAILABLE: fresh XHS evidence gate not satisfied"
+
+
+def _public_xhs_freshness(value):
+    """Deep-copy freshness output while keeping ledger-only de-dup keys private."""
+    if isinstance(value, dict):
+        return {
+            key: _public_xhs_freshness(item)
+            for key, item in value.items()
+            if key != "evidence_keys"
+        }
+    if isinstance(value, list):
+        return [_public_xhs_freshness(item) for item in value]
+    return value
 
 
 def _upload_snapshot(payload: dict, url: str) -> None:
@@ -71,21 +88,37 @@ async def run_once(
     scrape_error = ""
     session_status = session_state_summary()
     try:
-        keywords = await scrape_once()
-    except Exception as exc:
+        scrape_result = await scrape_once()
+        keywords = list(scrape_result)
+        discovery_diagnostics = discovery_diagnostics_for_results(
+            keywords,
+            getattr(scrape_result, "diagnostics", None),
+        )
+    except Exception:
         keywords = []
-        scrape_error = f"{type(exc).__name__}: {exc}"
+        scrape_error = "scrape_once_failed"
+        discovery_diagnostics = discovery_diagnostics_for_results(
+            [],
+            extra_error_code="scrape_once_failed",
+        )
+    print(json.dumps({
+        "event": "xhs_discovery_diagnostics",
+        "run_id": run_id,
+        "diagnostics": discovery_diagnostics,
+    }, ensure_ascii=False, sort_keys=True), flush=True)
     if keywords:
         upsert_keywords(keywords)
-    xhs_freshness = record_scrape_freshness(
+    xhs_freshness_internal = record_scrape_freshness(
         keywords,
         run_id=run_id,
         session_status=session_status,
         scrape_error=scrape_error,
+        discovery_diagnostics=discovery_diagnostics,
     )
+    xhs_freshness_public = _public_xhs_freshness(xhs_freshness_internal)
     xhs_required = xhs_freshness_required()
-    xhs_ok = bool((xhs_freshness.get("overview") or {}).get("ok"))
-    xhs_warning = _xhs_missing_message(xhs_freshness) if xhs_required and not xhs_ok else ""
+    xhs_ok = bool((xhs_freshness_internal.get("overview") or {}).get("ok"))
+    xhs_warning = _xhs_missing_message(xhs_freshness_internal) if xhs_required and not xhs_ok else ""
     if xhs_warning and not keywords:
         if not session_status.get("configured"):
             reason = "XHS_SESSION_REQUIRED: no XHS login session is configured"
@@ -113,8 +146,9 @@ async def run_once(
     return {
         "keywords": len(keywords),
         "scrape_error": scrape_error,
+        "discovery_diagnostics": discovery_diagnostics,
         "session_status": session_status,
-        "xhs_freshness": xhs_freshness,
+        "xhs_freshness": xhs_freshness_public,
         "xhs_freshness_overview": freshness_overview(),
         "xhs_freshness_required": xhs_required,
         "xhs_freshness_ok": xhs_ok,
@@ -157,7 +191,17 @@ def main() -> int:
             ))
             print(json.dumps({"ok": True, **result}, ensure_ascii=False), flush=True)
         except Exception as exc:
-            print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False), file=sys.stderr, flush=True)
+            error_code = (
+                "xhs_fresh_evidence_unavailable"
+                if "XHS_FRESH_EVIDENCE_UNAVAILABLE" in str(exc)
+                else "market_timing_worker_failed"
+            )
+            print(json.dumps({
+                "ok": False,
+                "error": error_code,
+                "error_code": error_code,
+                "exception_type": type(exc).__name__,
+            }, ensure_ascii=False), file=sys.stderr, flush=True)
             if args.once:
                 return 1
         if args.once:

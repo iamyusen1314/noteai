@@ -105,6 +105,115 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         finally:
             hot_keywords.DB_PATH = original_db
 
+    def test_latest_run_source_degradation_does_not_erase_cumulative_freshness(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                rows = []
+                for index, row in enumerate(
+                    hot_keywords.baseline_evidence_rows(("美食",), min_per_domain=16)
+                ):
+                    cloned = dict(row)
+                    cloned["source"] = "search_recommend" if index % 2 else "search_phrase"
+                    cloned["count"] = 4
+                    rows.append(cloned)
+                session = {"configured": True, "auth_cookie_present": True}
+
+                first = xhs_acquisition.record_scrape_freshness(
+                    rows, run_id="source-healthy", domains=("美食",),
+                    session_status=session,
+                )
+                self.assertTrue(first["overview"]["ok"])
+                self.assertTrue(first["overview"]["latest_run_source_health"]["ok"])
+
+                degraded_rows = [
+                    dict(row, source="search_phrase", keyword=f"{row['keyword']}-latest")
+                    for row in rows[:4]
+                ]
+                second = xhs_acquisition.record_scrape_freshness(
+                    degraded_rows, run_id="source-degraded", domains=("美食",),
+                    session_status=session,
+                )
+
+                latest = second["overview"]["latest_run_source_health"]
+                self.assertTrue(second["overview"]["ok"])
+                self.assertFalse(latest["ok"])
+                self.assertEqual(latest["status"], "degraded")
+                self.assertEqual(latest["error_code"], "latest_run_search_recommend_missing")
+                self.assertEqual(
+                    set(latest["source_breakdown"]),
+                    {"homefeed", "search_result", "search_recommend", "hot_search", "other"},
+                )
+                self.assertGreater(latest["source_breakdown"]["search_result"], 0)
+                self.assertEqual(latest["source_breakdown"]["search_recommend"], 0)
+
+                health = xhs_acquisition.recent_health(domain="美食", adapter="scheduler_a")[0]
+                self.assertEqual(health["status"], "degraded")
+                self.assertEqual(health["error_code"], "latest_run_search_recommend_missing")
+                self.assertTrue(health["profile_cookie_valid"])
+                self.assertFalse(health["risk_login_detected"])
+
+                probe = xhs_acquisition.freshness_probe(("美食",))
+                self.assertTrue(probe["ok"])
+                self.assertEqual(probe["missing_domains"], [])
+                self.assertTrue(probe["action_required"])
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_latest_run_source_health_reads_legacy_source_counts(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                xhs_acquisition.record_health(xhs_acquisition.CrawlerHealth(
+                    run_id="legacy-source-details",
+                    adapter="scheduler_a",
+                    domain="美食",
+                    status="ok",
+                    evidence_count=3,
+                    details={
+                        "source_counts": {"search_phrase": 2, "search_recommend": 1},
+                        "latest_run_evidence_count": 3,
+                    },
+                ))
+
+                latest = xhs_acquisition.latest_run_source_health(("美食",))
+                self.assertTrue(latest["available"])
+                self.assertTrue(latest["ok"])
+                self.assertEqual(latest["source_breakdown"]["search_result"], 2)
+                self.assertEqual(latest["source_breakdown"]["search_recommend"], 1)
+        finally:
+            hot_keywords.DB_PATH = original_db
+
+    def test_latest_run_source_health_reports_each_missing_search_source(self):
+        cases = (
+            (
+                {"search_recommend": 2},
+                "latest_run_search_result_missing",
+                ["search_result"],
+            ),
+            (
+                {"search_phrase": 2},
+                "latest_run_search_recommend_missing",
+                ["search_recommend"],
+            ),
+            (
+                {"homefeed_phrase": 2},
+                "latest_run_search_sources_missing",
+                ["search_result", "search_recommend"],
+            ),
+        )
+        for source_counts, error_code, missing_sources in cases:
+            with self.subTest(error_code=error_code):
+                health = xhs_acquisition._build_latest_run_source_health(
+                    source_counts,
+                    evidence_count=2,
+                )
+                self.assertEqual(health["status"], "degraded")
+                self.assertEqual(health["error_code"], error_code)
+                self.assertEqual(health["missing_sources"], missing_sources)
+
     def test_zero_evidence_records_actionable_cookie_health(self):
         original_db = hot_keywords.DB_PATH
         try:
@@ -149,6 +258,144 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         self.assertEqual(breakdown["search_recommend"], 1)
         self.assertEqual(breakdown["hot_search"], 1)
 
+    def test_discovery_diagnostics_normal_search_funnel_is_closed(self):
+        with (
+            patch.object(scheduler_a, "SEARCH_DISCOVERY_ENABLED", True),
+            patch.object(scheduler_a, "SEARCH_SEEDS_PER_CATEGORY", 2),
+        ):
+            self.assertEqual(len(scheduler_a._search_discovery_targets()), 12)
+        diagnostics = scheduler_a.new_discovery_diagnostics()
+        diagnostics["targets"].update({"planned": 12, "started": 12, "completed": 12})
+        diagnostics["navigation"]["ok"] = 12
+        diagnostics["input"].update({"found": 12, "visible": 12, "typed": 12})
+        diagnostics["search"].update({
+            "response_seen": 12, "json_ok": 12, "title_count": 24,
+            "phrase_raw": 18, "cleaned": 10,
+        })
+        diagnostics["recommend"].update({
+            "response_seen": 4, "json_ok": 4, "items_raw": 8, "extracted": 6,
+        })
+        rows = [
+            {"source": "homefeed_phrase"},
+            {"source": "search_phrase"},
+            {"source": "search_recommend"},
+            {"source": "hot_search"},
+        ]
+
+        result = scheduler_a.discovery_diagnostics_for_results(rows, diagnostics)
+
+        self.assertEqual(result["targets"], {"planned": 12, "started": 12, "completed": 12})
+        self.assertEqual(result["search"]["final"], 1)
+        self.assertEqual(result["recommend"]["final"], 1)
+        self.assertEqual(result["diagnostic_error_codes"], [])
+
+    def test_discovery_diagnostics_classifies_failure_funnel_reasons(self):
+        cases = []
+
+        no_input = scheduler_a.new_discovery_diagnostics()
+        no_input["input"]["failed"] = 12
+        cases.append((no_input, {"search_input_not_found"}))
+
+        navigation_failed = scheduler_a.new_discovery_diagnostics()
+        navigation_failed["targets"].update({"planned": 12, "started": 12, "completed": 12})
+        navigation_failed["navigation"]["failed"] = 12
+        cases.append((navigation_failed, {"navigation_failed", "all_navigation_failed"}))
+
+        response_missing = scheduler_a.new_discovery_diagnostics()
+        cases.append((response_missing, {
+            "search_response_not_seen", "recommend_response_not_seen",
+            "homefeed_source_zero", "hot_search_source_zero",
+        }))
+
+        non_json = scheduler_a.new_discovery_diagnostics()
+        non_json["search"].update({"response_seen": 2, "json_failed": 2})
+        non_json["recommend"].update({"response_seen": 1, "json_failed": 1})
+        cases.append((non_json, {"search_response_non_json", "recommend_response_non_json"}))
+
+        empty_recommend_schema = scheduler_a.new_discovery_diagnostics()
+        empty_recommend_schema["recommend"].update({"response_seen": 1, "json_ok": 1})
+        cases.append((empty_recommend_schema, {"recommend_schema_empty"}))
+
+        for diagnostics, expected_codes in cases:
+            with self.subTest(expected_codes=sorted(expected_codes)):
+                result = scheduler_a.discovery_diagnostics_for_results([], diagnostics)
+                self.assertTrue(expected_codes.issubset(set(result["diagnostic_error_codes"])))
+
+    def test_discovery_diagnostics_classifies_filtered_and_deduped_candidates(self):
+        filtered = scheduler_a.new_discovery_diagnostics()
+        filtered["search"].update({
+            "response_seen": 1, "json_ok": 1, "title_count": 2,
+            "phrase_raw": 2, "filtered": 2,
+        })
+        filtered["recommend"].update({
+            "response_seen": 1, "json_ok": 1, "items_raw": 2,
+            "extracted": 2, "filtered": 2,
+        })
+        filtered_result = scheduler_a.discovery_diagnostics_for_results([], filtered)
+        self.assertIn("search_candidates_all_filtered", filtered_result["diagnostic_error_codes"])
+        self.assertIn("recommend_candidates_all_filtered", filtered_result["diagnostic_error_codes"])
+
+        deduped = scheduler_a.new_discovery_diagnostics()
+        deduped["search"].update({
+            "response_seen": 1, "json_ok": 1, "title_count": 2,
+            "phrase_raw": 2, "deduped": 2,
+        })
+        deduped["recommend"].update({
+            "response_seen": 1, "json_ok": 1, "items_raw": 2,
+            "extracted": 2, "deduped": 2,
+        })
+        deduped_result = scheduler_a.discovery_diagnostics_for_results([], deduped)
+        self.assertIn("search_candidates_all_deduped", deduped_result["diagnostic_error_codes"])
+        self.assertIn("recommend_candidates_all_deduped", deduped_result["diagnostic_error_codes"])
+
+    def test_discovery_diagnostics_recognizes_safe_endpoint_and_page_variants(self):
+        for path in (
+            "https://example.invalid/api/search/recommend",
+            "https://example.invalid/api/search_recommend",
+            "https://example.invalid/api/search/suggest",
+            "https://example.invalid/api/suggest",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(scheduler_a._classify_discovery_response(path), "recommend")
+                self.assertTrue(any(pattern in path for pattern in scheduler_a.HOT_API_PATTERNS))
+        self.assertEqual(
+            scheduler_a._classify_discovery_response("https://example.invalid/search/trending/query"),
+            "trending",
+        )
+        self.assertEqual(scheduler_a._classify_final_page("https://example.invalid/search_result"), "search")
+        self.assertEqual(scheduler_a._classify_final_page("https://example.invalid/explore"), "explore")
+        self.assertEqual(scheduler_a._classify_final_page("https://example.invalid/login"), "login")
+        self.assertEqual(scheduler_a._classify_final_page("https://example.invalid/challenge"), "challenge")
+        self.assertEqual(scheduler_a._classify_final_page("https://example.invalid/blocked"), "other")
+        self.assertEqual(
+            [scheduler_a._response_status_class(value) for value in (200, 302, 403, 503, None)],
+            ["2xx", "3xx", "4xx", "5xx", "unknown"],
+        )
+
+    def test_discovery_diagnostics_sanitizer_drops_sensitive_and_unknown_fields(self):
+        diagnostics = scheduler_a.new_discovery_diagnostics()
+        diagnostics["raw_url"] = "https://secret.invalid/search?keyword=用户关键词"
+        diagnostics["cookie"] = "secret-cookie-value"
+        diagnostics["response_body"] = "private-response-body"
+        diagnostics["search"]["raw_title"] = "private-note-title"
+        diagnostics["diagnostic_error_codes"] = [
+            "navigation_failed",
+            "private-exception-message",
+        ]
+        diagnostics["response_status_class"]["private-status"] = 1
+
+        serialized = json.dumps(
+            scheduler_a.sanitize_discovery_diagnostics(diagnostics),
+            ensure_ascii=False,
+        )
+
+        for secret in (
+            "secret.invalid", "用户关键词", "secret-cookie-value", "private-response-body",
+            "private-note-title", "private-exception-message", "private-status",
+        ):
+            self.assertNotIn(secret, serialized)
+        self.assertIn("navigation_failed", serialized)
+
     def test_trending_search_word_is_a_keyword_candidate(self):
         self.assertEqual(
             scheduler_a._extract_keyword_from_item({"search_word": "家居收纳"}),
@@ -184,12 +431,48 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 return FakeLocator(self.attempts)
 
         page = FakePage()
+        diagnostics = scheduler_a.new_discovery_diagnostics()
         typed, error = asyncio.run(
-            scheduler_a._trigger_search_input(page, "家居收纳", timeout_seconds=2)
+            scheduler_a._trigger_search_input(
+                page, "家居收纳", timeout_seconds=2, diagnostics=diagnostics
+            )
         )
         self.assertTrue(typed)
         self.assertEqual(error, "")
         self.assertEqual(page.attempts, 3)
+        self.assertEqual(diagnostics["input"], {
+            "found": 1, "visible": 1, "typed": 1, "failed": 0,
+        })
+
+    def test_search_input_all_unavailable_records_fixed_funnel_counts(self):
+        class MissingLocator:
+            first = None
+
+            def __init__(self):
+                self.first = self
+
+            async def count(self):
+                return 0
+
+        class MissingPage:
+            def locator(self, selector):
+                return MissingLocator()
+
+        diagnostics = scheduler_a.new_discovery_diagnostics()
+        typed, _error = asyncio.run(
+            scheduler_a._trigger_search_input(
+                MissingPage(), "private-seed", timeout_seconds=1,
+                diagnostics=diagnostics,
+            )
+        )
+
+        self.assertFalse(typed)
+        self.assertEqual(diagnostics["input"], {
+            "found": 0, "visible": 0, "typed": 0, "failed": 1,
+        })
+        finalized = scheduler_a.discovery_diagnostics_for_results([], diagnostics)
+        self.assertIn("search_input_not_found", finalized["diagnostic_error_codes"])
+        self.assertNotIn("private-seed", json.dumps(finalized))
 
     def test_worker_xhs_required_exports_baseline_with_warning(self):
         original_db = hot_keywords.DB_PATH
@@ -279,6 +562,157 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 os.environ.pop("NOTEAI_XHS_FRESHNESS_REQUIRED", None)
             else:
                 os.environ["NOTEAI_XHS_FRESHNESS_REQUIRED"] = old_required
+
+    def test_worker_logs_and_persists_only_sanitized_discovery_diagnostics(self):
+        original_db = hot_keywords.DB_PATH
+        original_scrape_once = market_timing_worker.scrape_once
+        original_session_summary = market_timing_worker.session_state_summary
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                hot_keywords.DB_PATH = tmp / "hot_keywords.db"
+                diagnostics = scheduler_a.new_discovery_diagnostics()
+                diagnostics["targets"].update({"planned": 12, "started": 12, "completed": 12})
+                diagnostics["raw_url"] = "https://secret.invalid/search?keyword=private-keyword"
+                diagnostics["cookie"] = "private-cookie-value"
+                diagnostics["response_body"] = "private-response-body"
+                diagnostics["diagnostic_error_codes"] = [
+                    "search_response_not_seen",
+                    "private-exception-message",
+                ]
+                sensitive_keyword = "美食私密关键词"
+
+                async def diagnostic_scrape():
+                    rows = _real_xhs_rows()
+                    rows[0] = dict(rows[0], keyword=sensitive_keyword)
+                    return scheduler_a.ScrapeResults(rows, diagnostics)
+
+                market_timing_worker.scrape_once = diagnostic_scrape
+                market_timing_worker.session_state_summary = lambda: {
+                    "configured": True,
+                    "auth_cookie_present": True,
+                    "auth_cookie_expired": False,
+                }
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    result = asyncio.run(market_timing_worker.run_once(
+                        tmp / "market_timing_snapshot.json"
+                    ))
+
+                health = xhs_acquisition.recent_health(adapter="scheduler_a")
+                persisted = health[0]["details"]["discovery_diagnostics"]
+                conn = hot_keywords._conn()
+                try:
+                    ledger_row = conn.execute(
+                        "SELECT evidence_count, details_json FROM xhs_freshness_ledger WHERE domain=?",
+                        ("美食",),
+                    ).fetchone()
+                finally:
+                    conn.close()
+                ledger_details = json.loads(ledger_row["details_json"])
+                first_evidence_count = int(ledger_row["evidence_count"])
+                self.assertIn("evidence_keys", ledger_details)
+                self.assertTrue(any(sensitive_keyword in key for key in ledger_details["evidence_keys"]))
+
+                main_output = io.StringIO()
+                with patch.object(sys, "argv", [
+                    "market_timing_worker.py", "--once",
+                    "--snapshot-path", str(tmp / "market_timing_snapshot-main.json"),
+                ]):
+                    with redirect_stdout(main_output):
+                        self.assertEqual(market_timing_worker.main(), 0)
+
+                conn = hot_keywords._conn()
+                try:
+                    repeated_row = conn.execute(
+                        "SELECT evidence_count, details_json FROM xhs_freshness_ledger WHERE domain=?",
+                        ("美食",),
+                    ).fetchone()
+                finally:
+                    conn.close()
+                repeated_details = json.loads(repeated_row["details_json"])
+                self.assertEqual(int(repeated_row["evidence_count"]), first_evidence_count)
+                self.assertEqual(repeated_details["evidence_keys"], ledger_details["evidence_keys"])
+
+                nested_internal = {
+                    "domains": [{"details": {"evidence_keys": [sensitive_keyword], "safe": 1}}]
+                }
+                nested_public = market_timing_worker._public_xhs_freshness(nested_internal)
+                self.assertIn("evidence_keys", nested_internal["domains"][0]["details"])
+                self.assertNotIn("evidence_keys", nested_public["domains"][0]["details"])
+
+                serialized = (
+                    output.getvalue()
+                    + main_output.getvalue()
+                    + json.dumps({"result": result, "persisted": persisted}, ensure_ascii=False)
+                )
+                self.assertIn("xhs_discovery_diagnostics", serialized)
+                self.assertEqual(persisted["targets"]["planned"], 12)
+                self.assertNotIn("evidence_keys", json.dumps(result["xhs_freshness"], ensure_ascii=False))
+                self.assertNotIn('"evidence_keys"', main_output.getvalue())
+                for secret in (
+                    "secret.invalid", "private-keyword", sensitive_keyword, "private-cookie-value",
+                    "private-response-body", "private-exception-message",
+                ):
+                    self.assertNotIn(secret, serialized)
+        finally:
+            hot_keywords.DB_PATH = original_db
+            market_timing_worker.scrape_once = original_scrape_once
+            market_timing_worker.session_state_summary = original_session_summary
+
+    def test_worker_scrape_exception_uses_fixed_code_without_message_leak(self):
+        original_db = hot_keywords.DB_PATH
+        original_scrape_once = market_timing_worker.scrape_once
+        original_session_summary = market_timing_worker.session_state_summary
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                hot_keywords.DB_PATH = tmp / "hot_keywords.db"
+
+                async def failed_scrape():
+                    raise RuntimeError(
+                        "https://secret.invalid private-cookie private-response private-keyword"
+                    )
+
+                market_timing_worker.scrape_once = failed_scrape
+                market_timing_worker.session_state_summary = lambda: {
+                    "configured": True,
+                    "auth_cookie_present": True,
+                    "auth_cookie_expired": False,
+                }
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    result = asyncio.run(market_timing_worker.run_once(
+                        tmp / "market_timing_snapshot.json"
+                    ))
+
+                serialized = output.getvalue() + json.dumps(result, ensure_ascii=False)
+                self.assertEqual(result["scrape_error"], "scrape_once_failed")
+                self.assertIn("scrape_once_failed", result["discovery_diagnostics"]["diagnostic_error_codes"])
+                for secret in (
+                    "secret.invalid", "private-cookie", "private-response", "private-keyword",
+                ):
+                    self.assertNotIn(secret, serialized)
+        finally:
+            hot_keywords.DB_PATH = original_db
+            market_timing_worker.scrape_once = original_scrape_once
+            market_timing_worker.session_state_summary = original_session_summary
+
+    def test_worker_once_exit_code_remains_nonzero_on_failure(self):
+        original_run_once = market_timing_worker.run_once
+        try:
+            async def failed_run_once(*args, **kwargs):
+                raise RuntimeError("XHS_FRESH_EVIDENCE_UNAVAILABLE")
+
+            market_timing_worker.run_once = failed_run_once
+            with patch.object(sys, "argv", ["market_timing_worker.py", "--once"]):
+                stderr = io.StringIO()
+                with patch.object(sys, "stderr", stderr):
+                    self.assertEqual(market_timing_worker.main(), 1)
+                self.assertIn("xhs_fresh_evidence_unavailable", stderr.getvalue())
+                self.assertIn("RuntimeError", stderr.getvalue())
+        finally:
+            market_timing_worker.run_once = original_run_once
 
     def test_recent_health_probe_and_cli_exit_code(self):
         original_db = hot_keywords.DB_PATH
