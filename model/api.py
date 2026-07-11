@@ -8,11 +8,13 @@ Endpoints:
 
 import asyncio
 import base64
+import copy as _copy
 import json as _json
 import os
 import re
 import sys
 import tempfile
+import threading
 import time as _time
 import uuid as _uuid
 from pathlib import Path
@@ -10694,10 +10696,452 @@ async def shutdown():
         stop_scheduler()
 
 
+def _unknown_market_readiness_observation(*, action_required: bool = False) -> dict:
+    return {
+        "ok": False,
+        "blocking_readiness": False,
+        "freshness_hours": None,
+        "xhs_cumulative_fresh": False,
+        "latest_run_source_health": {
+            "available": False,
+            "ok": None,
+            "status": "unknown",
+            "error_code": "",
+            "evidence_count": 0,
+            "source_breakdown": {},
+            "missing_sources": [],
+            "run_id": "",
+            "checked_at": "",
+            "domains": [],
+        },
+        "source_observation_action_required": bool(action_required),
+    }
+
+
+class _DatabaseReadinessProbe:
+    """Bound database readiness wall time while sharing in-flight probes."""
+
+    def __init__(
+        self,
+        collector: Callable[[], dict],
+        *,
+        clock: Callable[[], float] | None = None,
+        timeout_seconds: float = 1.5,
+        hard_age_seconds: float = 3.0,
+        result_ttl_seconds: float = 0.25,
+    ) -> None:
+        self._collector = collector
+        self._clock = clock or _time.monotonic
+        self._timeout_seconds = max(0.01, float(timeout_seconds))
+        self._hard_age_seconds = max(
+            self._timeout_seconds,
+            float(hard_age_seconds),
+        )
+        self._result_ttl_seconds = max(0.0, float(result_ttl_seconds))
+        self._retry_seconds = min(self._hard_age_seconds, self._timeout_seconds)
+        self._lock = threading.Lock()
+        self._generation = 0
+        self._latest_started_generation = 0
+        self._last_attempt_at: float | None = None
+        self._active: dict[int, dict[str, Any]] = {}
+        self._latest_result: dict | None = None
+        self._latest_result_at: float | None = None
+
+    @staticmethod
+    def _safe_result(payload: Any) -> dict:
+        if not isinstance(payload, dict):
+            return {"ok": False, "error": "DatabaseHealthInvalidResult"}
+        result = {"ok": bool(payload.get("ok"))}
+        backend = payload.get("backend")
+        if isinstance(backend, str) and backend:
+            result["backend"] = backend
+        error = payload.get("error")
+        if isinstance(error, str) and error:
+            result["error"] = error
+        return result
+
+    def _reserve_locked(self, now: float) -> tuple[int, dict[str, Any]]:
+        self._generation += 1
+        generation = self._generation
+        self._latest_started_generation = generation
+        self._last_attempt_at = now
+        task: dict[str, Any] = {
+            "event": threading.Event(),
+            "thread": None,
+            "started_at": now,
+            "result": None,
+        }
+        self._active[generation] = task
+        return generation, task
+
+    def _run(self, generation: int, task: dict[str, Any]) -> None:
+        try:
+            result = self._safe_result(self._collector())
+        except Exception as exc:
+            result = {"ok": False, "error": type(exc).__name__}
+        completed_at = self._clock()
+        with self._lock:
+            task["result"] = _copy.deepcopy(result)
+            if generation == self._latest_started_generation:
+                self._latest_result = _copy.deepcopy(result)
+                self._latest_result_at = completed_at
+            self._active.pop(generation, None)
+        task["event"].set()
+
+    def _start(self, generation: int, task: dict[str, Any]) -> None:
+        thread = threading.Thread(
+            target=self._run,
+            args=(generation, task),
+            name="noteai-database-readiness-probe",
+            daemon=True,
+        )
+        with self._lock:
+            active = self._active.get(generation)
+            if active is None:
+                return
+            active["thread"] = thread
+        try:
+            thread.start()
+        except Exception:
+            failure = {"ok": False, "error": "DatabaseHealthProbeStartError"}
+            with self._lock:
+                task["result"] = failure
+                self._active.pop(generation, None)
+                if generation == self._latest_started_generation:
+                    self._latest_result = _copy.deepcopy(failure)
+                    self._latest_result_at = self._clock()
+            task["event"].set()
+
+    def result(self) -> dict:
+        now = self._clock()
+        generation_to_start: int | None = None
+        with self._lock:
+            if (
+                self._latest_result is not None
+                and self._latest_result_at is not None
+                and now - self._latest_result_at <= self._result_ttl_seconds
+            ):
+                return _copy.deepcopy(self._latest_result)
+
+            retry_due = (
+                self._last_attempt_at is None
+                or now - self._last_attempt_at >= self._retry_seconds
+            )
+            active_count = len(self._active)
+            oldest_age = max(
+                (
+                    max(0.0, now - float(task["started_at"]))
+                    for task in self._active.values()
+                ),
+                default=0.0,
+            )
+            if active_count == 0:
+                generation_to_start, task = self._reserve_locked(now)
+            elif (
+                active_count < 2
+                and oldest_age >= self._hard_age_seconds
+                and retry_due
+            ):
+                generation_to_start, task = self._reserve_locked(now)
+            else:
+                latest_generation = max(self._active)
+                task = self._active[latest_generation]
+
+        if generation_to_start is not None:
+            self._start(generation_to_start, task)
+        if not task["event"].wait(self._timeout_seconds):
+            return {"ok": False, "error": "DatabaseHealthTimeout"}
+        result = task.get("result")
+        return self._safe_result(result)
+
+    def latest_result(self) -> dict | None:
+        with self._lock:
+            return _copy.deepcopy(self._latest_result)
+
+    def active_worker_count(self) -> int:
+        with self._lock:
+            return len(self._active)
+
+    def wait_for_workers(self, timeout: float | None = None) -> bool:
+        with self._lock:
+            threads = [
+                task.get("thread")
+                for task in self._active.values()
+                if task.get("thread") is not None
+            ]
+            pending_start = any(
+                task.get("thread") is None
+                for task in self._active.values()
+            )
+        if pending_start:
+            return False
+        deadline = None if timeout is None else _time.monotonic() + max(0.0, timeout)
+        for thread in threads:
+            remaining = None if deadline is None else max(0.0, deadline - _time.monotonic())
+            thread.join(remaining)
+        with self._lock:
+            return not self._active
+
+
+def _collect_market_readiness_observation() -> dict:
+    """Collect non-blocking market diagnostics for the readiness cache."""
+    timing = db_status()
+    observation = {
+        "ok": bool(timing.get("latest_capture")),
+        "blocking_readiness": False,
+        "freshness_hours": timing.get("freshness_hours"),
+    }
+    if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
+        try:
+            overview = _xhs_acq.freshness_overview()
+            latest = overview.get("latest_run_source_health") or {}
+            observation.update({
+                "xhs_cumulative_fresh": bool(overview.get("ok")),
+                "latest_run_source_health": {
+                    key: latest.get(key)
+                    for key in (
+                        "available", "ok", "status", "error_code",
+                        "evidence_count", "source_breakdown", "missing_sources",
+                        "run_id", "checked_at", "domains",
+                    )
+                },
+                "source_observation_action_required": bool(
+                    latest.get("available") and latest.get("ok") is False
+                ),
+            })
+        except Exception:
+            observation.update({
+                "xhs_cumulative_fresh": False,
+                "latest_run_source_health": {
+                    **_unknown_market_readiness_observation()["latest_run_source_health"],
+                    "error_code": "market_observation_unavailable",
+                },
+                "source_observation_action_required": True,
+            })
+    return observation
+
+
+class _MarketReadinessCache:
+    """Bounded, monotonic cache for non-blocking market observations."""
+
+    def __init__(
+        self,
+        collector: Callable[[], dict],
+        *,
+        clock: Callable[[], float] | None = None,
+        ttl_seconds: float = 120.0,
+        max_stale_seconds: float = 600.0,
+        refresh_hard_age_seconds: float = 30.0,
+    ) -> None:
+        self._collector = collector
+        self._clock = clock or _time.monotonic
+        self._ttl_seconds = max(1.0, float(ttl_seconds))
+        self._max_stale_seconds = max(
+            self._ttl_seconds,
+            float(max_stale_seconds),
+        )
+        self._refresh_hard_age_seconds = max(
+            1.0,
+            float(refresh_hard_age_seconds),
+        )
+        self._retry_seconds = min(
+            self._ttl_seconds,
+            self._refresh_hard_age_seconds,
+            30.0,
+        )
+        self._lock = threading.Lock()
+        self._payload: dict | None = None
+        self._collected_at: float | None = None
+        self._last_attempt_at: float | None = None
+        self._refresh_failed = False
+        self._generation = 0
+        self._latest_started_generation = 0
+        self._active_refreshes: dict[int, dict[str, Any]] = {}
+
+    def _refresh(self, generation: int) -> None:
+        try:
+            payload = self._collector()
+            if not isinstance(payload, dict):
+                raise TypeError("market readiness collector must return a dict")
+            collected_at = self._clock()
+            with self._lock:
+                if generation == self._latest_started_generation:
+                    self._payload = _copy.deepcopy(payload)
+                    self._collected_at = collected_at
+                    self._refresh_failed = False
+        except Exception:
+            with self._lock:
+                if generation == self._latest_started_generation:
+                    self._refresh_failed = True
+        finally:
+            with self._lock:
+                self._active_refreshes.pop(generation, None)
+
+    def _start_refresh(self, generation: int) -> None:
+        thread = threading.Thread(
+            target=self._refresh,
+            args=(generation,),
+            name="noteai-market-readiness-refresh",
+            daemon=True,
+        )
+        with self._lock:
+            active = self._active_refreshes.get(generation)
+            if active is None:
+                return
+            active["thread"] = thread
+        try:
+            thread.start()
+        except Exception:
+            with self._lock:
+                self._active_refreshes.pop(generation, None)
+                if generation == self._latest_started_generation:
+                    self._refresh_failed = True
+
+    def _reserve_refresh_locked(self, now: float) -> int:
+        self._generation += 1
+        generation = self._generation
+        self._latest_started_generation = generation
+        self._last_attempt_at = now
+        self._active_refreshes[generation] = {
+            "thread": None,
+            "started_at": now,
+        }
+        return generation
+
+    @staticmethod
+    def _decorate(
+        payload: dict,
+        *,
+        status: str,
+        stale: bool,
+        age_seconds: float | None,
+        refreshing: bool,
+        refresh_failed: bool,
+        refresh_workers: int,
+    ) -> dict:
+        result = _copy.deepcopy(payload)
+        result.update({
+            "observation_status": status,
+            "observation_stale": stale,
+            "observation_age_seconds": (
+                None if age_seconds is None else round(max(0.0, age_seconds), 3)
+            ),
+            "observation_refreshing": refreshing,
+            "observation_refresh_failed": refresh_failed,
+            "observation_refresh_workers": refresh_workers,
+        })
+        return result
+
+    def snapshot(self) -> dict:
+        now = self._clock()
+        generation_to_start: int | None = None
+        with self._lock:
+            payload = _copy.deepcopy(self._payload)
+            age = (
+                None
+                if self._collected_at is None
+                else max(0.0, now - self._collected_at)
+            )
+            stale = age is None or age > self._ttl_seconds
+            retry_due = (
+                self._last_attempt_at is None
+                or now - self._last_attempt_at >= self._retry_seconds
+            )
+            active_count = len(self._active_refreshes)
+            oldest_active_age = max(
+                (
+                    max(0.0, now - float(item["started_at"]))
+                    for item in self._active_refreshes.values()
+                ),
+                default=0.0,
+            )
+            if stale and retry_due:
+                if active_count == 0:
+                    generation_to_start = self._reserve_refresh_locked(now)
+                elif (
+                    active_count < 2
+                    and oldest_active_age >= self._refresh_hard_age_seconds
+                ):
+                    generation_to_start = self._reserve_refresh_locked(now)
+                active_count = len(self._active_refreshes)
+            refreshing = active_count > 0
+            refresh_failed = self._refresh_failed
+
+            if payload is not None and age is not None and age <= self._max_stale_seconds:
+                status = "fresh" if age <= self._ttl_seconds else "stale"
+                view = self._decorate(
+                    payload,
+                    status=status,
+                    stale=status == "stale",
+                    age_seconds=age,
+                    refreshing=refreshing,
+                    refresh_failed=refresh_failed,
+                    refresh_workers=active_count,
+                )
+            else:
+                view = self._decorate(
+                    _unknown_market_readiness_observation(
+                        action_required=bool(
+                            payload is not None
+                            or refresh_failed
+                            or active_count >= 2
+                            or (
+                                active_count > 0
+                                and oldest_active_age >= self._refresh_hard_age_seconds
+                            )
+                        )
+                    ),
+                    status="unknown",
+                    stale=payload is not None,
+                    age_seconds=age,
+                    refreshing=refreshing,
+                    refresh_failed=refresh_failed,
+                    refresh_workers=active_count,
+                )
+
+        if generation_to_start is not None:
+            self._start_refresh(generation_to_start)
+        return view
+
+    def wait_for_refresh(self, timeout: float | None = None) -> bool:
+        with self._lock:
+            threads = [
+                item.get("thread")
+                for item in self._active_refreshes.values()
+                if item.get("thread") is not None
+            ]
+            pending_start = any(
+                item.get("thread") is None
+                for item in self._active_refreshes.values()
+            )
+        if pending_start:
+            return False
+        deadline = None if timeout is None else _time.monotonic() + max(0.0, timeout)
+        for thread in threads:
+            remaining = None if deadline is None else max(0.0, deadline - _time.monotonic())
+            thread.join(remaining)
+        with self._lock:
+            return not self._active_refreshes
+
+
+_market_readiness_cache = _MarketReadinessCache(
+    _collect_market_readiness_observation,
+    ttl_seconds=120.0,
+    max_stale_seconds=600.0,
+)
+
+_database_readiness_probe = _DatabaseReadinessProbe(
+    lambda: _db.database_health(),
+    timeout_seconds=1.5,
+    hard_age_seconds=3.0,
+    result_ttl_seconds=0.25,
+)
+
+
 def _readiness_payload() -> tuple[dict, int]:
     checks: dict[str, dict] = {}
     try:
-        checks["database"] = _db.database_health()
+        checks["database"] = _database_readiness_probe.result()
     except Exception as exc:
         checks["database"] = {"ok": False, "error": type(exc).__name__}
 
@@ -10713,44 +11157,7 @@ def _readiness_payload() -> tuple[dict, int]:
     }
 
     if _SCHEDULER_AVAILABLE:
-        try:
-            timing = db_status()
-            checks["market_timing"] = {
-                "ok": bool(timing.get("latest_capture")),
-                "blocking_readiness": False,
-                "freshness_hours": timing.get("freshness_hours"),
-            }
-            if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
-                try:
-                    overview = _xhs_acq.freshness_overview()
-                    latest = overview.get("latest_run_source_health") or {}
-                    checks["market_timing"].update({
-                        "xhs_cumulative_fresh": bool(overview.get("ok")),
-                        "latest_run_source_health": {
-                            key: latest.get(key)
-                            for key in (
-                                "available", "ok", "status", "error_code",
-                                "evidence_count", "source_breakdown", "missing_sources",
-                                "run_id", "checked_at", "domains",
-                            )
-                        },
-                        "source_observation_action_required": bool(
-                            latest.get("available") and latest.get("ok") is False
-                        ),
-                    })
-                except Exception as exc:
-                    checks["market_timing"]["latest_run_source_health"] = {
-                        "available": False,
-                        "ok": None,
-                        "status": "unknown",
-                        "error_code": type(exc).__name__,
-                    }
-        except Exception as exc:
-            checks["market_timing"] = {
-                "ok": False,
-                "blocking_readiness": False,
-                "error": type(exc).__name__,
-            }
+        checks["market_timing"] = _market_readiness_cache.snapshot()
 
     blocking = [checks["database"].get("ok"), checks["model"].get("ok")]
     if require_ai:

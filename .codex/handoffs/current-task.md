@@ -325,9 +325,9 @@
 
 - 状态：**INVESTIGATING**
 - 优先级：High。
-- 问题描述：Render API Events 已从一次偶发升级为稳定小时级 health timeout：18:09、19:10、20:09、21:10、22:09 均出现 5 秒健康检查超时，随后约 1 分钟内自动恢复。
-- 证据：五次失败时间都紧邻 Market Timing `5 * * * *` 小时任务窗口；22:33 BUG-003 真实付费 Chat 完成后未出现新重启，因此“长 AI 请求本身”不是充分解释。未见 migration failure 或应用 Traceback。
-- 根因是否确认：否；与小时 Cron 存在强时间相关，但市场 Cron 是独立服务，仍需核对 PostgreSQL 锁/连接、共享资源、readiness DB 查询和 Render 实例指标，不能把相关性直接当因果。
+- 问题描述：Render API Events 曾形成稳定小时级 health timeout：18:09、19:10、20:09、21:10、22:09 均出现 5 秒健康检查超时，随后约 1 分钟内自动恢复；OPS-001A 部署后的首个 23:05 自然窗口未再出现实例失败，但仍需更多窗口确认。
+- 证据：五次历史失败时间都紧邻 Market Timing `5 * * * *` 小时任务窗口；22:33 BUG-003 真实付费 Chat 完成后未出现新重启，因此“长 AI 请求本身”不是充分解释。commit `02dd0d0` 于 23:01 在 API live、Cron 构建成功，23:05:02–23:09:39 自然采集成功且 API Events 到 23:11 无新增 health timeout；公开 readiness 采样均返回 200，但 23:09:22 单次总耗时达 5.94 秒。未见 migration failure 或应用 Traceback。
+- 根因是否确认：部分确认；Cron N+1 PostgreSQL 连接风暴是已确认放大器，首个部署窗口支持该因果判断；readiness 自身多连接/重查询仍把响应推近或超过 Render 5 秒阈值，父风险需由 OPS-001B 与连续窗口共同闭环。
 - 涉及文件：待调查 `model/api.py` 长任务执行边界、Render health check/资源配置和运行指标；本任务不先改 timeout。
 - 风险：成功请求后实例重启会中断其他并发请求；若频繁发生，会降低 Staging/生产可用性。
 - 执行代理：待指定 Render/DevOps Reviewer + QA Investigator；验证代理：独立 Verification Agent。
@@ -346,23 +346,24 @@
 - 涉及文件：`model/hot_keywords.py`, `model/scheduler_a.py`, `tests/test_market_timing_keyword_quality.py` 及必要的采集回归；不改 API readiness、schema、Cron 时间、Cookie、selector 或资源规格。
 - 风险：批量查询若改变最近四次快照的排序/去重，会改变趋势方向和最终排序；必须保持 SQLite/PostgreSQL 兼容并限制 SQL 参数规模。
 - 执行代理：单一 Repository Explorer；验证代理：独立 QA/Test Finder。
-- 修改状态/进度：最小实施与本地独立验证已完成。新增批量趋势方向查询，800 参数分块、窗口函数每关键词仅取最近4条、所有分块共享同一连接；单关键词函数保持兼容并委托批量实现；Scheduler 在候选循环前一次去重预计算。首个失败证据为批量 API/SQL 构造器不存在的3项 ERROR及 Scheduler 预计算 0!=1。独立验证：SQLite 边界与3000词连接预算通过；全新 PostgreSQL 18 以15,000条快照/3,000词真实执行，结果与独立逐词算法全量一致，3000词1连接/4 SELECT、100词1连接/1 SELECT；market+XHS+Render+API 209/209、全量 unittest 359/359（5 skip）、Production Readiness 48/48、py_compile/Compose/diff check 全部通过。临时 PG 容器和本轮 Colima 已清理；无本地代码阻断，但必须部署后连续观察2–3个自然小时窗口才能标记 VERIFIED。
+- 修改状态/进度：最小实施与本地独立验证已完成。新增批量趋势方向查询，800 参数分块、窗口函数每关键词仅取最近4条、所有分块共享同一连接；单关键词函数保持兼容并委托批量实现；Scheduler 在候选循环前一次去重预计算。首个失败证据为批量 API/SQL 构造器不存在的3项 ERROR及 Scheduler 预计算 0!=1。独立验证：SQLite 边界与3000词连接预算通过；全新 PostgreSQL 18 以15,000条快照/3,000词真实执行，结果与独立逐词算法全量一致，3000词1连接/4 SELECT、100词1连接/1 SELECT；market+XHS+Render+API 209/209、全量 unittest 359/359（5 skip）、Production Readiness 48/48、py_compile/Compose/diff check 全部通过。临时 PG 容器和本轮 Colima 已清理。首个 Render 自然窗口（23:05:02–23:09:39）采集235词并成功结束，相比上一窗口 22:05:02–22:10:53 缩短约74秒；API 无新增实例失败。该窗口记为 1/3，通过但尚不足以标记 VERIFIED。
 - 验收标准：批量结果与旧算法逐词结果一致；100–3000 个候选仅使用常数级连接（目标 1 个，允许同一连接内分批 SQL）；采集来源/数量/排序语义不回退；本地全量通过；部署后连续 2–3 个自然 `:05–:12` 窗口 API 无 health timeout 且 Cron 成功。
 - 是否需要用户决定：否；不改变产品行为或付费资源。
 - 是否涉及真实外部调用：本地实施不需要；最终只观察自然 Cron，不手工追加采集。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：是；commit `02dd0d0`，Market Cron 构建成功，API 于 23:01 live，首个自然窗口通过。
 
 ### OPS-001B — Render readiness 轻量化与有限 DB 超时
 
-- 状态：**TODO**
+- 状态：**READY_TO_VERIFY**
 - 优先级：High。
 - 问题描述：`/health/ready` 将 Market Timing 标为 nonblocking，但仍同步建立约 11 个 PostgreSQL 连接并执行约 14 条查询；单连接延迟约 520ms 时，本地 PostgreSQL 路径 Mock 可把 readiness 拖到 5.251 秒。
-- 证据：`api._readiness_payload()`、`hot_keywords.db_status()`、六行业 `freshness_status()`、access/cooldown/latest health 串行调用链已核对；Admin 的轻量 readiness 未出现同类小时级失败。
-- 根因是否确认：是；readiness 自身是连接/延迟放大器，但先等待 OPS-001A 自然窗口以隔离因果，再串行实施。
-- 涉及文件：待限定 `model/api.py`, `model/db.py`, Market Timing 观测缓存与 tests；不删除真实 blocking 检查，不仅改 Render timeout。
+- 证据：`api._readiness_payload()`、`hot_keywords.db_status()`、六行业 `freshness_status()`、access/cooldown/latest health 串行调用链已核对；Admin 的轻量 readiness 未出现同类小时级失败。OPS-001A 首个自然窗口公开 readiness 全部返回 200，但 23:09:22 单次总耗时 5.94 秒，继续证明当前实现没有足够的 5 秒安全余量。
+- 根因是否确认：是；readiness 自身是连接/延迟放大器。OPS-001A 首个自然窗口隔离出残余风险：即使 Cron 已消除 N+1，公开 readiness 仍出现 5.94 秒峰值。只读 QA 另以 `db_status` 与 `freshness_overview` 各延迟 1.1 秒复现 `_readiness_payload()` 同步阻塞 2.205 秒。
+- 涉及文件：最小范围限定为 `model/api.py`, `model/db.py`, 新增聚焦 readiness tests 及既有 API/Render 回归；不改业务 `get_conn()` 默认超时、不改 schema/migration/Cron/Render 规格，不改 `/market-timing/freshness` 的实时质量门禁。
 - 风险：过度轻量化可能把数据库或模型真实故障误报为 ready；必须保留单次 DB ping、模型加载和 AI 配置检查，并维持公开响应兼容或明确缓存时间。
-- 执行代理：待指定；验证代理：独立 QA/DevOps。
-- 验收标准：受控 DB 延迟下 readiness <2 秒且绝不超过5秒；市场观测变慢只能返回缓存/unknown；DB 连接/查询失败有限时间内返回 503；不弱化真实 readiness。
+- 执行代理：单一 Repository Explorer；验证代理：独立 QA/DevOps（第三轮真实 PostgreSQL 复验待执行）。
+- 修改状态/进度：三路只读调查及三轮最小实施完成。第二轮独立复验已确认 SQLite close、market 双-generation 有界恢复、旧 bool 类型、硬门禁合同及底层 PostgreSQL statement timeout/普通连接隔离全部 PASS；唯一残余的 libpq pause 约2.04秒问题已用 API 层 wall-clock 协调器修正。新协调器每个请求最多等待1.5秒，20并发共享单个在途探针，hard-age 3秒后最多允许1个替代 generation，总 live daemon≤2，旧 generation 不覆盖新结果；超时返回安全503，并保留底层health-only超时。第三轮首失败为新增6项全部 ERROR（协调器不存在）。最终独立复验 PASS：一次性PG18 pause后 internal/public共6次均503且不假绿，耗时1.511/0.528/0.000/0.002/0.000/0.002秒，unpause后0.3秒首轮恢复200；250ms statement timeout真实中断pg_sleep，普通get_conn无外溢；20并发正常与超时均仅1次collector。定向169/169、全量unittest381/381（5 skip）、Production Readiness48/48、py_compile/Compose/diff check通过；临时资源已清理。现可提交部署，但在Staging smoke和自然窗口完成前保持 READY_TO_VERIFY。
+- 验收标准：受控慢市场 collector 下 readiness <2 秒且绝不超过5秒；冷缓存立即返回 unknown，fresh/stale 状态清晰且旧绿色不能无限保留；20 并发探针最多一次市场刷新；稳态每次 readiness 主路径仅 1 个 blocking DB ping；DB 连接/查询失败有限时间内返回结构化 503；数据库、模型、Staging 必需 AI 配置继续真实阻断；旧响应字段为新响应子集且不泄露 Cookie/URL/异常正文；定向、全量、Production Readiness、py_compile、Compose 与一次性 PostgreSQL 验证通过。
 - 是否需要用户决定：若要升级资源需要；代码轻量化不需要。
 - 是否涉及真实外部调用：本地 Mock/临时 PostgreSQL；部署后只读观察。
 - 是否已部署到 Render：否。

@@ -210,7 +210,11 @@ class ApiContractTests(unittest.TestCase):
         with (
             mock.patch.object(api, "_SCHEDULER_AVAILABLE", True),
             mock.patch.object(api, "_XHS_ACQ_AVAILABLE", True),
-            mock.patch.object(api._db, "database_health", return_value={"ok": True}),
+            mock.patch.object(
+                api,
+                "_database_readiness_probe",
+                mock.Mock(result=mock.Mock(return_value={"ok": True})),
+            ),
             mock.patch.object(api, "get_v04_composite_model", return_value=object()),
             mock.patch.object(api, "get_model", return_value=object()),
             mock.patch.object(api, "db_status", return_value={"latest_capture": "2026-07-11", "freshness_hours": 1}),
@@ -218,6 +222,18 @@ class ApiContractTests(unittest.TestCase):
                 "ok": True,
                 "latest_run_source_health": latest,
             }),
+            mock.patch.object(
+                api._market_readiness_cache,
+                "snapshot",
+                side_effect=lambda: {
+                    **api._collect_market_readiness_observation(),
+                    "observation_status": "fresh",
+                    "observation_stale": False,
+                    "observation_age_seconds": 0,
+                    "observation_refreshing": False,
+                    "observation_refresh_failed": False,
+                },
+            ),
         ):
             payload, status_code = api._readiness_payload()
 

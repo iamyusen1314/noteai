@@ -1,6 +1,7 @@
 """NoteAI primary data access for local SQLite and cloud PostgreSQL."""
 import sqlite3
 import os
+import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -38,22 +39,40 @@ def using_postgres() -> bool:
     return _database_url().lower().startswith(("postgres://", "postgresql://"))
 
 
-def _get_sqlite_conn() -> sqlite3.Connection:
+def _get_sqlite_conn(*, timeout_seconds: float | None = None) -> sqlite3.Connection:
     _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(_DB_PATH), check_same_thread=False)
+    connect_kwargs: dict[str, Any] = {"check_same_thread": False}
+    if timeout_seconds is not None:
+        connect_kwargs["timeout"] = max(0.1, float(timeout_seconds))
+    conn = sqlite3.connect(str(_DB_PATH), **connect_kwargs)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
-    conn.execute("PRAGMA busy_timeout=10000")
+    busy_timeout_ms = (
+        10000
+        if timeout_seconds is None
+        else max(100, int(float(timeout_seconds) * 1000))
+    )
+    conn.execute(f"PRAGMA busy_timeout={busy_timeout_ms}")
     return conn
 
 
-def _get_postgres_conn():
+def _get_postgres_conn(
+    *,
+    connect_timeout_seconds: int | None = None,
+    statement_timeout_ms: int | None = None,
+):
     try:
         import psycopg
     except ImportError as exc:
         raise RuntimeError("PostgreSQL requires psycopg[binary]") from exc
-    return psycopg.connect(_database_url(), row_factory=_compat_row_factory)
+    connect_kwargs: dict[str, Any] = {"row_factory": _compat_row_factory}
+    if connect_timeout_seconds is not None:
+        connect_kwargs["connect_timeout"] = max(1, int(connect_timeout_seconds))
+    if statement_timeout_ms is not None:
+        timeout_ms = max(100, int(statement_timeout_ms))
+        connect_kwargs["options"] = f"-c statement_timeout={timeout_ms}"
+    return psycopg.connect(_database_url(), **connect_kwargs)
 
 
 def get_conn():
@@ -498,14 +517,39 @@ def init_db() -> None:
         _init_sqlite()
 
 
-def database_health() -> dict[str, Any]:
-    conn = get_conn()
+def database_health(
+    *,
+    connect_timeout_seconds: int = 1,
+    query_timeout_ms: int = 1000,
+) -> dict[str, Any]:
+    """Run a fail-fast health probe without changing normal DB connections."""
+    postgres = using_postgres()
+    conn = (
+        _get_postgres_conn(
+            connect_timeout_seconds=connect_timeout_seconds,
+            statement_timeout_ms=query_timeout_ms,
+        )
+        if postgres
+        else _get_sqlite_conn(timeout_seconds=connect_timeout_seconds)
+    )
+    sqlite_deadline = time.monotonic() + max(0.1, query_timeout_ms / 1000)
+    if not postgres:
+        conn.set_progress_handler(
+            lambda: 1 if time.monotonic() >= sqlite_deadline else 0,
+            1,
+        )
     try:
         row = conn.execute("SELECT 1 AS ok").fetchone()
         ok = bool(row and (row["ok"] if isinstance(row, dict) else row["ok"]))
-        return {"ok": ok, "backend": "postgresql" if using_postgres() else "sqlite"}
+        return {"ok": ok, "backend": "postgresql" if postgres else "sqlite"}
     finally:
-        conn.close()
+        if not postgres:
+            try:
+                conn.set_progress_handler(None, 0)
+            finally:
+                conn.close()
+        else:
+            conn.close()
 
 
 def fetchone(sql: str, params: tuple = ()):
