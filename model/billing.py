@@ -307,18 +307,217 @@ def _create_free_subscription(user_id: str) -> dict:
     )
     return get_subscription(user_id)
 
+
+def _get_subscription_tx(tx: db.Transaction, user_id: str) -> dict:
+    lock = " FOR UPDATE" if tx.postgres else ""
+    user_row = tx.fetchone(f"SELECT id FROM users WHERE id=?{lock}", (user_id,))
+    if not user_row:
+        raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
+    row = tx.fetchone(
+        "SELECT * FROM subscriptions WHERE user_id=? AND is_active=1 "
+        f"ORDER BY started_at DESC LIMIT 1{lock}",
+        (user_id,),
+    )
+    if not row:
+        sid = str(uuid.uuid4())
+        tx.execute(
+            "INSERT INTO subscriptions(id,user_id,tier,started_at,expires_at,is_active,"
+            "used_analyze,used_generate,used_chat_rewrite,used_screenshot,period_start) "
+            "VALUES(?,?,?,?,?,?,0,0,0,0,?)",
+            (sid, user_id, "free", _now(), "2099-01-01T00:00:00+00:00", 1, _month_start()),
+        )
+        row = tx.fetchone(f"SELECT * FROM subscriptions WHERE id=?{lock}", (sid,))
+    sub = dict(row)
+
+    def _strip_tz(value: str) -> datetime:
+        parsed = datetime.fromisoformat(value)
+        return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
+
+    if sub["tier"] != "free" and sub.get("expires_at"):
+        try:
+            if _strip_tz(sub["expires_at"]) < _strip_tz(_now()):
+                tx.execute("UPDATE subscriptions SET tier='free',is_active=0 WHERE id=?", (sub["id"],))
+                sid = str(uuid.uuid4())
+                tx.execute(
+                    "INSERT INTO subscriptions(id,user_id,tier,started_at,expires_at,is_active,"
+                    "used_analyze,used_generate,used_chat_rewrite,used_screenshot,period_start) "
+                    "VALUES(?,?,?,?,?,1,0,0,0,0,?)",
+                    (sid, user_id, "free", _now(), "2099-01-01T00:00:00+00:00", _month_start()),
+                )
+                sub = dict(tx.fetchone(f"SELECT * FROM subscriptions WHERE id=?{lock}", (sid,)))
+        except Exception:
+            pass
+    if _strip_tz(sub["period_start"]) < _strip_tz(_month_start()):
+        month_start = _month_start()
+        tx.execute(
+            "UPDATE subscriptions SET used_analyze=0,used_generate=0,"
+            "used_chat_rewrite=0,used_screenshot=0,used_monthly_credits=0,period_start=? WHERE id=?",
+            (month_start, sub["id"]),
+        )
+        sub.update(
+            used_analyze=0,
+            used_generate=0,
+            used_chat_rewrite=0,
+            used_screenshot=0,
+            used_monthly_credits=0,
+            period_start=month_start,
+        )
+    return sub
+
+
+def _record_usage_tx(
+    tx: db.Transaction,
+    user_id: str,
+    operation: str,
+    source: str,
+    credits_used: float,
+) -> str:
+    op_info = OPERATIONS.get(operation, {})
+    estimated_cost = float(op_info.get("cost", 0) or 0)
+    usage_id = str(uuid.uuid4())
+    tx.execute(
+        "INSERT INTO usage_records(id,user_id,operation,tokens_in,tokens_out,"
+        "cost_rmb,estimated_cost_rmb,actual_model_cost_rmb,model_calls,model_names,cost_mode,"
+        "credits_used,source,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            usage_id, user_id, operation, 0, 0,
+            round(estimated_cost, 5), round(estimated_cost, 5), 0.0, 0, "", "estimated",
+            credits_used, source, _now(),
+        ),
+    )
+    return usage_id
+
+
+def _quota_error(
+    operation: str,
+    op: dict,
+    tier_cfg: dict,
+    monthly_limit: float,
+    monthly_used: float,
+    monthly_remaining: float,
+    balance: float,
+    cost: float,
+) -> HTTPException:
+    return HTTPException(
+        status_code=402,
+        detail={
+            "code": "QUOTA_EXCEEDED",
+            "message": (
+                f"{op['label']}需要 {cost:.1f} 积分；本月套餐积分剩余 {monthly_remaining:.1f}，"
+                f"充值积分余额 {balance:.1f}，仍不足以完成本次操作。"
+            ),
+            "operation": operation,
+            "op_label": op["label"],
+            "current_tier": tier_cfg["name"],
+            "monthly_credits": monthly_limit,
+            "monthly_credits_used": monthly_used,
+            "monthly_credits_remaining": monthly_remaining,
+            "credits_needed": cost,
+            "credits_balance": round(balance, 2),
+            "wallet_credits_needed": max(0.0, round(cost - monthly_remaining, 2)),
+            "credit_policy": "优先扣本月套餐积分，不足部分扣充值积分；本月积分每月重置，充值积分长期有效。",
+        },
+    )
+
+
+def check_and_deduct_in_transaction(
+    tx: db.Transaction,
+    user_id: Optional[str],
+    operation: str,
+) -> dict:
+    """Charge and create the primary usage row inside the caller's transaction."""
+    op = OPERATIONS.get(operation)
+    if not op:
+        raise ValueError(f"未知操作: {operation}")
+    if op["free"] or op["credits"] == 0:
+        usage_id = _record_usage_tx(tx, user_id, operation, "free", 0) if user_id else None
+        return {"source": "free", "credits_used": 0, "usage_id": usage_id}
+
+    uid = _assert_user(user_id, operation)
+    sub = _get_subscription_tx(tx, uid)
+    tier_cfg = TIERS[sub["tier"]]
+    cost = round(float(op["credits"]), 2)
+    monthly_limit = round(float(tier_cfg.get("monthly_credits", 0) or 0), 2)
+    monthly_used = round(float(sub.get("used_monthly_credits") or 0), 2)
+    monthly_remaining = round(max(0.0, monthly_limit - monthly_used), 2)
+
+    tx.execute(
+        "INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) "
+        "VALUES(?,0,0,0,?) ON CONFLICT(user_id) DO NOTHING",
+        (uid, _now()),
+    )
+    lock = " FOR UPDATE" if tx.postgres else ""
+    credit_row = tx.fetchone(f"SELECT balance FROM credits WHERE user_id=?{lock}", (uid,))
+    balance = round(float(credit_row["balance"] if credit_row else 0), 2)
+
+    monthly_charge = min(cost, monthly_remaining)
+    wallet_charge = round(cost - monthly_charge, 2)
+    if wallet_charge > balance:
+        raise _quota_error(
+            operation, op, tier_cfg, monthly_limit, monthly_used,
+            monthly_remaining, balance, cost,
+        )
+    if monthly_charge > 0:
+        tx.execute(
+            "UPDATE subscriptions SET used_monthly_credits=used_monthly_credits+? WHERE id=?",
+            (monthly_charge, sub["id"]),
+        )
+    if wallet_charge > 0:
+        cursor = tx.execute(
+            "UPDATE credits SET balance=balance-?,total_used=total_used+?,updated_at=? "
+            "WHERE user_id=? AND balance>=?",
+            (wallet_charge, wallet_charge, _now(), uid, wallet_charge),
+        )
+        if int(getattr(cursor, "rowcount", 0) or 0) != 1:
+            raise _quota_error(
+                operation, op, tier_cfg, monthly_limit, monthly_used,
+                monthly_remaining, balance, cost,
+            )
+        new_balance = float(tx.fetchone("SELECT balance FROM credits WHERE user_id=?", (uid,))["balance"])
+        tx.execute(
+            "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
+            "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (
+                str(uuid.uuid4()), uid, "usage", -wallet_charge, new_balance,
+                f"{tier_cfg['name']}积分扣减：{op['label']}", 0.0, "", "", _now(),
+            ),
+        )
+    source = (
+        "mixed" if monthly_charge > 0 and wallet_charge > 0
+        else "subscription" if monthly_charge > 0
+        else "credits"
+    )
+    usage_id = _record_usage_tx(tx, uid, operation, source, cost)
+    return {
+        "source": source,
+        "credits_used": cost,
+        "monthly_credits_used": monthly_charge,
+        "wallet_credits_used": wallet_charge,
+        "usage_id": usage_id,
+        "subscription_id": sub["id"],
+        "subscription_period_start": sub.get("period_start") or "",
+    }
+
+
+def activate_usage(usage_id: str | None) -> None:
+    _ACTIVE_USAGE_ID.set(usage_id or None)
+
 def upgrade_subscription(user_id: str, tier: str) -> dict:
     _assert_user(user_id, "upgrade")
     if tier not in TIERS:
         raise ValueError(f"未知套餐: {tier}")
-    db.execute("UPDATE subscriptions SET is_active=0 WHERE user_id=?", (user_id,))
-    sid = str(uuid.uuid4()); now = _now()
-    db.execute(
-        "INSERT INTO subscriptions(id,user_id,tier,started_at,expires_at,is_active,"
-        "used_analyze,used_generate,used_chat_rewrite,used_screenshot,period_start) "
-        "VALUES(?,?,?,?,?,1,0,0,0,0,?)",
-        (sid, user_id, tier, now, _next_month(), _month_start())
-    )
+    with db.transaction(write=True) as tx:
+        lock = " FOR UPDATE" if tx.postgres else ""
+        if not tx.fetchone(f"SELECT id FROM users WHERE id=?{lock}", (user_id,)):
+            raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
+        tx.execute("UPDATE subscriptions SET is_active=0 WHERE user_id=?", (user_id,))
+        sid = str(uuid.uuid4())
+        tx.execute(
+            "INSERT INTO subscriptions(id,user_id,tier,started_at,expires_at,is_active,"
+            "used_analyze,used_generate,used_chat_rewrite,used_screenshot,period_start) "
+            "VALUES(?,?,?,?,?,1,0,0,0,0,?)",
+            (sid, user_id, tier, _now(), _next_month(), _month_start()),
+        )
     return get_subscription(user_id)
 
 # ─────────────────────────────────────────────────────────────
@@ -562,6 +761,68 @@ def _deduct_credits(user_id: str, amount: float, description: str) -> float:
          0.0, "", "", now)
     )
     return round(new_bal, 2)
+
+
+def refund_operation_charge_in_transaction(
+    tx: db.Transaction,
+    user_id: str,
+    operation: str,
+    charge: dict | None,
+    description: str,
+) -> None:
+    """Refund one charge inside the caller's short transaction."""
+    if not charge:
+        return
+    uid = _assert_user(user_id, f"refund_{operation}")
+    usage_id = charge.get("usage_id")
+    source = charge.get("source")
+    subscription_id = str(charge.get("subscription_id") or "")
+    subscription_period_start = str(charge.get("subscription_period_start") or "")
+    credits_used = float(charge.get("credits_used") or 0)
+    monthly_used = float(charge.get("monthly_credits_used") or 0)
+    wallet_used = float(charge.get("wallet_credits_used") or 0)
+    if not monthly_used and source == "subscription":
+        monthly_used = credits_used
+    if not wallet_used and source == "credits":
+        wallet_used = credits_used
+    now = _now()
+
+    if monthly_used > 0:
+        amount = round(monthly_used, 2)
+        if subscription_id and subscription_period_start:
+            tx.execute(
+                "UPDATE subscriptions SET used_monthly_credits="
+                "CASE WHEN used_monthly_credits>? THEN used_monthly_credits-? ELSE 0 END "
+                "WHERE id=? AND user_id=? AND period_start=?",
+                (amount, amount, subscription_id, uid, subscription_period_start),
+            )
+    if wallet_used > 0:
+        amount = round(wallet_used, 2)
+        tx.execute(
+            "INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) "
+            "VALUES(?,0,0,0,?) ON CONFLICT(user_id) DO NOTHING",
+            (uid, now),
+        )
+        tx.execute(
+            "UPDATE credits SET balance=balance+?,"
+            "total_used=CASE WHEN total_used>? THEN total_used-? ELSE 0 END,updated_at=? "
+            "WHERE user_id=?",
+            (amount, amount, amount, now, uid),
+        )
+        new_balance = float(tx.fetchone("SELECT balance FROM credits WHERE user_id=?", (uid,))["balance"])
+        tx.execute(
+            "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
+            "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (
+                str(uuid.uuid4()), uid, "refund", amount, new_balance, description,
+                0.0, "", "", now,
+            ),
+        )
+    if usage_id:
+        tx.execute(
+            "UPDATE usage_records SET source='refunded',credits_used=0 WHERE id=? AND user_id=?",
+            (usage_id, uid),
+        )
 
 
 def refund_operation_charge(user_id: str, operation: str, charge: dict | None, description: str) -> None:

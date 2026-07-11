@@ -1,6 +1,7 @@
 """NoteAI primary data access for local SQLite and cloud PostgreSQL."""
 import sqlite3
 import os
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +44,7 @@ def _get_sqlite_conn() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA busy_timeout=10000")
     return conn
 
 
@@ -212,6 +214,41 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
     recorded_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ctxn_user ON credit_transactions(user_id, recorded_at DESC);
+
+-- ── 付费请求幂等账本（仅保存摘要，不保存 raw key 或请求正文）──────────
+CREATE TABLE IF NOT EXISTS idempotency_requests (
+    id                   TEXT PRIMARY KEY,
+    user_id              TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    operation            TEXT NOT NULL,
+    key_hash             TEXT NOT NULL,
+    payload_hash         TEXT NOT NULL,
+    status               TEXT NOT NULL DEFAULT 'running'
+                         CHECK (status IN ('running', 'completed', 'failed')),
+    lease_token_hash     TEXT NOT NULL,
+    lease_expires_at     TEXT NOT NULL,
+    usage_id             TEXT,
+    charged_subscription_id TEXT,
+    charged_period_start TEXT,
+    charge_source        TEXT DEFAULT '',
+    credits_used         REAL DEFAULT 0,
+    monthly_credits_used REAL DEFAULT 0,
+    wallet_credits_used  REAL DEFAULT 0,
+    usage_created        INTEGER DEFAULT 0,
+    charge_applied       INTEGER DEFAULT 0,
+    refund_applied       INTEGER DEFAULT 0,
+    complete_applied     INTEGER DEFAULT 0,
+    failure_code         TEXT DEFAULT '',
+    created_at           TEXT NOT NULL,
+    updated_at           TEXT NOT NULL,
+    usage_created_at     TEXT,
+    charged_at           TEXT,
+    refunded_at          TEXT,
+    completed_at         TEXT,
+    failed_at            TEXT,
+    UNIQUE(user_id, operation, key_hash)
+);
+CREATE INDEX IF NOT EXISTS idx_idempotency_status_lease
+    ON idempotency_requests(status, lease_expires_at);
 
 CREATE TABLE IF NOT EXISTS saved_diagnoses (
     id              TEXT PRIMARY KEY,
@@ -388,6 +425,43 @@ CREATE TABLE IF NOT EXISTS system_settings (
 
 def _postgres_sql(sql: str) -> str:
     return sql.replace("?", "%s")
+
+
+class Transaction:
+    """One explicit transaction with backend-compatible placeholders."""
+
+    def __init__(self, conn, postgres: bool):
+        self.conn = conn
+        self.postgres = postgres
+
+    def execute(self, sql: str, params: tuple = ()):
+        return self.conn.execute(_postgres_sql(sql) if self.postgres else sql, params)
+
+    def fetchone(self, sql: str, params: tuple = ()):
+        return self.execute(sql, params).fetchone()
+
+    def fetchall(self, sql: str, params: tuple = ()) -> list:
+        return self.execute(sql, params).fetchall()
+
+
+@contextmanager
+def transaction(*, write: bool = False):
+    """Open an explicit SQLite/PostgreSQL transaction.
+
+    SQLite writers use BEGIN IMMEDIATE so balance checks and deductions cannot
+    race. PostgreSQL callers still need row locks for shared balance rows.
+    """
+    postgres = using_postgres()
+    conn = get_conn()
+    try:
+        conn.execute("BEGIN" if postgres or not write else "BEGIN IMMEDIATE")
+        yield Transaction(conn, postgres)
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def apply_postgres_migrations() -> list[str]:

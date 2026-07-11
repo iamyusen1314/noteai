@@ -168,6 +168,24 @@ class ApiContractTests(unittest.TestCase):
         resp = client.get("/market-timing/freshness")
         self.assertEqual(resp.status_code, 401)
 
+    def test_paid_ai_routes_accept_optional_request_id_header(self):
+        schema = api.app.openapi()
+        for path in (
+            "/analyze",
+            "/analyze/stream",
+            "/generate",
+            "/generate/stream",
+            "/chat/message",
+        ):
+            with self.subTest(path=path):
+                parameters = schema["paths"][path]["post"].get("parameters", [])
+                header = next(
+                    (item for item in parameters if item.get("in") == "header" and item.get("name") == "X-Request-ID"),
+                    None,
+                )
+                self.assertIsNotNone(header)
+                self.assertFalse(header.get("required", False))
+
     def test_readiness_reports_latest_xhs_source_health_as_nonblocking_safe_data(self):
         latest = {
             "available": True,

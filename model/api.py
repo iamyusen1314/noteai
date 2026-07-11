@@ -26,7 +26,7 @@ import model_router as _mr
 import lightgbm as lgb
 import numpy as np
 import uvicorn
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
 from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -65,6 +65,7 @@ import db as _db
 import auth as _auth
 import memory as _memory
 import billing as _billing
+import idempotency as _idempotency
 import prompt_manager as _pm
 import fact_enrichment as _facts
 import quality_objective as _qobj
@@ -995,6 +996,95 @@ async def _timed_sse_stream(
             "message": "SSE stream ended without a terminal event",
         })
         yield f"data: {_json.dumps(error, ensure_ascii=False)}\n\n"
+
+
+def _paid_request_claim(
+    request_id: str | None,
+    *,
+    user_id: str,
+    operation: str,
+    payload: BaseModel,
+) -> dict[str, Any] | None:
+    """Claim an optional idempotency key; headerless clients keep old behavior."""
+    raw_request_id = request_id if isinstance(request_id, str) else ""
+    if not raw_request_id.strip():
+        return None
+    try:
+        claim = _idempotency.claim_and_charge(
+            user_id=user_id,
+            operation=operation,
+            request_id=raw_request_id,
+            payload=payload.model_dump(mode="json"),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={
+            "code": "INVALID_REQUEST_ID",
+            "message": str(exc),
+        }) from exc
+    if claim.get("state") == "owner":
+        return claim
+    state = str(claim.get("state") or "in_progress")
+    codes = {
+        "conflict": "IDEMPOTENCY_CONFLICT",
+        "in_progress": "IDEMPOTENCY_IN_PROGRESS",
+        "completed": "IDEMPOTENCY_COMPLETED",
+        "failed": "IDEMPOTENCY_FAILED",
+    }
+    messages = {
+        "conflict": "该请求标识已用于不同内容",
+        "in_progress": "相同请求正在处理中",
+        "completed": "相同请求已完成；当前版本不回放原始结果",
+        "failed": "相同请求已失败并完成退款；请使用新的请求标识重试",
+    }
+    raise HTTPException(status_code=409, detail={
+        "code": codes.get(state, "IDEMPOTENCY_IN_PROGRESS"),
+        "status": state,
+        "message": messages.get(state, messages["in_progress"]),
+        "failure_code": claim.get("failure_code") or "" if state == "failed" else "",
+    })
+
+
+async def _idempotent_sse_stream(
+    stream: AsyncGenerator[str, None],
+    claim: dict[str, Any] | None,
+    *,
+    success_types: set[str] | frozenset[str],
+) -> AsyncGenerator[str, None]:
+    """Finalize/refund a keyed stream without storing or replaying its content."""
+    if not claim:
+        async for chunk in stream:
+            yield chunk
+        return
+    terminal_seen = False
+    try:
+        async for chunk in stream:
+            event_type = ""
+            if chunk.startswith("data: "):
+                try:
+                    event = _json.loads(chunk.removeprefix("data: ").strip())
+                    event_type = str(event.get("type") or "") if isinstance(event, dict) else ""
+                except Exception:
+                    event_type = ""
+            if event_type in success_types:
+                _idempotency.mark_completed(claim)
+                terminal_seen = True
+            elif event_type == "error":
+                _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
+                terminal_seen = True
+            yield chunk
+    except BaseException as exc:
+        if not terminal_seen:
+            failure_code = (
+                "stream_cancelled"
+                if isinstance(exc, (asyncio.CancelledError, GeneratorExit))
+                else "stream_failed"
+            )
+            _idempotency.mark_failed_and_refund(claim, failure_code=failure_code)
+            terminal_seen = True
+        raise
+    finally:
+        if not terminal_seen:
+            _idempotency.mark_failed_and_refund(claim, failure_code="stream_incomplete")
 
 
 async def _emit_progress(emit: ProgressEmitter | None, event: dict[str, Any]) -> None:
@@ -11731,8 +11821,11 @@ async def _run_analyze_pipeline(
     req: AnalyzeInput,
     user: dict,
     emit: ProgressEmitter | None = None,
+    billing_charge: dict | None = None,
+    billing_managed: bool = False,
 ) -> AnalyzeResponse:
-    billing_charge = _billing.check_and_deduct(user["id"], "analyze")
+    if billing_charge is None:
+        billing_charge = _billing.check_and_deduct(user["id"], "analyze")
     normalized_constraints = _normalize_user_constraints(req.user_constraints)
     normalized_intent = _normalize_content_intent(req.content_intent)
     normalized_visibility = _normalize_merchant_visibility(req.merchant_visibility)
@@ -12086,20 +12179,22 @@ async def _run_analyze_pipeline(
             model_label = CLAUDE_MODEL
 
     except HTTPException:
-        _billing.refund_operation_charge(
-            user["id"],
-            "analyze",
-            billing_charge,
-            "AI深度诊断失败自动退回",
-        )
+        if not billing_managed:
+            _billing.refund_operation_charge(
+                user["id"],
+                "analyze",
+                billing_charge,
+                "AI深度诊断失败自动退回",
+            )
         raise
     except Exception as e:
-        _billing.refund_operation_charge(
-            user["id"],
-            "analyze",
-            billing_charge,
-            "AI深度诊断失败自动退回",
-        )
+        if not billing_managed:
+            _billing.refund_operation_charge(
+                user["id"],
+                "analyze",
+                billing_charge,
+                "AI深度诊断失败自动退回",
+            )
         raise HTTPException(status_code=500, detail=str(e))
 
     composite = round(percentile, 1)
@@ -12278,16 +12373,40 @@ async def _run_analyze_pipeline(
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
-async def analyze(req: AnalyzeInput, user: dict = Depends(_auth.get_current_user)):
-    return await _run_analyze_pipeline(req, user)
+async def analyze(
+    req: AnalyzeInput,
+    user: dict = Depends(_auth.get_current_user),
+    request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
+):
+    claim = _paid_request_claim(
+        request_id, user_id=user["id"], operation="analyze", payload=req
+    )
+    try:
+        result = await _run_analyze_pipeline(
+            req,
+            user,
+            billing_charge=(claim or {}).get("charge"),
+            billing_managed=bool(claim),
+        )
+    except BaseException:
+        if claim:
+            _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        raise
+    if claim:
+        _idempotency.mark_completed(claim)
+    return result
 
 
 @app.post("/analyze/stream")
 async def analyze_stream_endpoint(
     req: AnalyzeInput,
     user: dict = Depends(_auth.get_current_user),
+    request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
 ):
     """SSE endpoint: streams real AI diagnosis progress and final AnalyzeResponse."""
+    claim = _paid_request_claim(
+        request_id, user_id=user["id"], operation="analyze", payload=req
+    )
 
     async def _sse():
         queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
@@ -12297,7 +12416,13 @@ async def analyze_stream_endpoint(
 
         async def runner() -> None:
             try:
-                resp = await _run_analyze_pipeline(req, user, emit=emit)
+                resp = await _run_analyze_pipeline(
+                    req,
+                    user,
+                    emit=emit,
+                    billing_charge=(claim or {}).get("charge"),
+                    billing_managed=bool(claim),
+                )
                 payload = resp.model_dump()
                 payload["type"] = "complete"
                 payload["progress"] = 100
@@ -12332,7 +12457,11 @@ async def analyze_stream_endpoint(
                 task.cancel()
 
     return StreamingResponse(
-        _timed_sse_stream(_sse(), operation="analyze", success_types={"complete"}),
+        _timed_sse_stream(
+            _idempotent_sse_stream(_sse(), claim, success_types={"complete"}),
+            operation="analyze",
+            success_types={"complete"},
+        ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -13061,9 +13190,9 @@ async def upload_video(
 async def generate_stream_endpoint(
     req: GenerateInput,
     user: dict = Depends(_auth.get_current_user),
+    request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
 ):
     """SSE endpoint: streams generation progress including P3 thinking chain."""
-    _billing.check_and_deduct(user["id"], "generate")
     normalized_constraints = _normalize_user_constraints(req.user_constraints)
     normalized_intent = _normalize_content_intent(req.content_intent)
     normalized_visibility = _normalize_merchant_visibility(req.merchant_visibility)
@@ -13084,6 +13213,11 @@ async def generate_stream_endpoint(
         timing_domain = _TIMING_ALIASES.get(req.domain, req.domain)
         query = f"{req.brief or ''} {timing_domain}"
         timing = _compute_market_timing_for_delivery("", query, timing_domain)
+    claim = _paid_request_claim(
+        request_id, user_id=user["id"], operation="generate", payload=req
+    )
+    if not claim:
+        _billing.check_and_deduct(user["id"], "generate")
     # 获取用户套餐，用于决定深度分析图片数
     user_tier = "free"
     try:
@@ -13160,7 +13294,11 @@ async def generate_stream_endpoint(
             yield f"data: {_json.dumps(event, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
-        _timed_sse_stream(_sse(), operation="generate", success_types={"complete"}),
+        _timed_sse_stream(
+            _idempotent_sse_stream(_sse(), claim, success_types={"complete"}),
+            operation="generate",
+            success_types={"complete"},
+        ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -13170,13 +13308,13 @@ async def generate_stream_endpoint(
 async def generate(
     req: GenerateInput,
     user: dict = Depends(_auth.get_current_user),
+    request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
 ):
     """
     Reverse-engineer viral content from visual material.
     Given an image (and optional brief), generates an optimized note hitting
     the composite delivery objective and auxiliary feature signals.
     """
-    _billing.check_and_deduct(user["id"], "generate")
     normalized_constraints = _normalize_user_constraints(req.user_constraints)
     normalized_intent = _normalize_content_intent(req.content_intent)
     normalized_visibility = _normalize_merchant_visibility(req.merchant_visibility)
@@ -13192,6 +13330,11 @@ async def generate(
     )
     fact_enrichment: dict | None = None
     fact_source_decision: dict = {}
+    claim = _paid_request_claim(
+        request_id, user_id=user["id"], operation="generate", payload=req
+    )
+    if not claim:
+        _billing.check_and_deduct(user["id"], "generate")
     try:
         # 合并图片列表：优先用 cover_images，兼容旧 cover_image 字段
         images: list[str] = []
@@ -13277,42 +13420,58 @@ async def generate(
                 },
             )
 
+    except asyncio.CancelledError:
+        if claim:
+            _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        raise
     except HTTPException:
+        if claim:
+            _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
         raise
     except Exception as e:
+        if claim:
+            _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
         raise HTTPException(status_code=500, detail=str(e))
 
-    supplement_prompts = _supplement_prompts_from_quality_issues(
-        result.get("quality_issues", []),
-        req.domain,
-        content_intent=normalized_intent,
-        merchant_visibility=normalized_visibility,
-        fact_source_policy=normalized_fact_policy,
-        fact_source_decision=fact_source_decision,
-    )
-    return GenerateResponse(
-        note_title=result["title"],
-        note_body=result["body"],
-        title_variants=result.get("variants", []),
-        ces_percentile=result["ces_percentile"],
-        grade=result["grade"],
-        visual_score=visual_score,
-        cover_analysis=result.get("image_desc", ""),
-        market_timing=MarketTiming(**{k: v for k, v in timing.items()
-                                      if k in MarketTiming.model_fields}) if timing else None,
-        feature_hits=result.get("feature_hits", {}),
-        quality_issues=result.get("quality_issues", []),
-        expert_opinions=result.get("expert_opinions", []),
-        fact_enrichment=fact_enrichment,
-        selection_meta=result.get("selection_meta", {}),
-        user_constraints=normalized_constraints,
-        constraint_contract=constraint_contract,
-        content_intent=normalized_intent,
-        intent_contract=intent_contract,
-        fact_source_decision=fact_source_decision,
-        supplement_prompts=supplement_prompts,
-        model_used="claude-routed-5-agents",
-    )
+    try:
+        supplement_prompts = _supplement_prompts_from_quality_issues(
+            result.get("quality_issues", []),
+            req.domain,
+            content_intent=normalized_intent,
+            merchant_visibility=normalized_visibility,
+            fact_source_policy=normalized_fact_policy,
+            fact_source_decision=fact_source_decision,
+        )
+        response = GenerateResponse(
+            note_title=result["title"],
+            note_body=result["body"],
+            title_variants=result.get("variants", []),
+            ces_percentile=result["ces_percentile"],
+            grade=result["grade"],
+            visual_score=visual_score,
+            cover_analysis=result.get("image_desc", ""),
+            market_timing=MarketTiming(**{k: v for k, v in timing.items()
+                                          if k in MarketTiming.model_fields}) if timing else None,
+            feature_hits=result.get("feature_hits", {}),
+            quality_issues=result.get("quality_issues", []),
+            expert_opinions=result.get("expert_opinions", []),
+            fact_enrichment=fact_enrichment,
+            selection_meta=result.get("selection_meta", {}),
+            user_constraints=normalized_constraints,
+            constraint_contract=constraint_contract,
+            content_intent=normalized_intent,
+            intent_contract=intent_contract,
+            fact_source_decision=fact_source_decision,
+            supplement_prompts=supplement_prompts,
+            model_used="claude-routed-5-agents",
+        )
+    except BaseException:
+        if claim:
+            _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        raise
+    if claim:
+        _idempotency.mark_completed(claim)
+    return response
 
 
 # ── Chat Interface ────────────────────────────────────────────────
@@ -14150,10 +14309,9 @@ async def _chat_sse_generator(
                 _memory.sync_from_user_learn(user_id, new_prefs)
                 yield f"data: {_json.dumps({'type': 'learning', 'message': '已记录你喜欢的写作风格', 'prefs': session['user_prefs']}, ensure_ascii=False)}\n\n"
 
-    yield f"data: {_json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
-
     # ── 持久化更新 session ────────────────────────────────────────────
     _persist_chat_session(session_id)
+    yield f"data: {_json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
 
 
 def _persist_chat_session(session_id: str) -> None:
@@ -14593,6 +14751,7 @@ async def chat_start(
 async def chat_message(
     req: ChatMessageInput,
     user: dict = Depends(_auth.get_current_user),
+    request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
 ):
     # 先查内存，没有则从 SQLite 恢复（服务重启后无感续聊）
     if req.session_id not in _chat_sessions:
@@ -14610,19 +14769,28 @@ async def chat_message(
 
     # 计费：必须在 session 存在且所有权校验通过后才扣费
     is_thinking = _should_use_thinking(req.message)
+    claim = None
     if is_thinking:
-        _billing.check_and_deduct(user["id"], "chat_rewrite")
+        claim = _paid_request_claim(
+            request_id, user_id=user["id"], operation="chat_rewrite", payload=req
+        )
+        if not claim:
+            _billing.check_and_deduct(user["id"], "chat_rewrite")
     else:
         _billing.record_free_usage(user["id"], "chat_fast")
 
     return StreamingResponse(
         _timed_sse_stream(
-            _chat_sse_generator(
-                req.session_id,
-                req.message,
-                req.image_base64,
-                req.file_text,
-                req.supplement_values,
+            _idempotent_sse_stream(
+                _chat_sse_generator(
+                    req.session_id,
+                    req.message,
+                    req.image_base64,
+                    req.file_text,
+                    req.supplement_values,
+                ),
+                claim,
+                success_types={"done"},
             ),
             operation="chat",
             success_types={"done"},

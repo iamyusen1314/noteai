@@ -289,7 +289,7 @@
 
 ### BILL-001 — 后端 request-id 幂等与防重复扣费
 
-- 状态：**READY_TO_FIX**（数据库/计费修改已获明确批准；等待 BUG-002C 串行闭环）
+- 状态：**READY_TO_VERIFY**（本地与 disposable PostgreSQL 已通过，待 Staging migration/Smoke）
 - 优先级：Critical。
 - 问题描述：浏览器端已阻止重复点击，但 API 尚未确认具备跨进程、并发重试和网络重放级别的幂等保护；同一付费请求可能重复扣积分、创建多个 usage row 或重复调用模型。
 - 预期结果：同一用户、同一操作、同一幂等键只允许一个执行和一次扣费；相同键不同 payload 明确拒绝；不同用户之间严格隔离；失败、超时和重试语义可审计。
@@ -297,12 +297,12 @@
 - 涉及模块：`model/api.py`, `model/billing.py`, `model/db.py`, `model/migrations/postgres/`, 前端请求头和相关 tests。
 - 根因：已确认。付费入口没有持久化幂等记录；`check_and_deduct()` 的余额读取、扣减、usage 与退款由多个独立连接/事务完成，现有 DB 抽象不能保证并发 claim、扣费和最多一次退款原子性；浏览器单请求锁无法覆盖多标签、代理重放、网络重试和跨进程并发。
 - 证据：Repository Explorer 已核对 Analyze/Generate/Chat 扣费链；Security Reviewer 确认重复执行、并发余额竞争和 SSE 断连账务闭环为 Critical；Render/DevOps Reviewer 进一步确认必须新增 transaction API 与增量 migration，不能用内存锁或仅用 SQLite 测试替代。
-- 修改状态/进度：协议、最小 schema、事务边界、状态机、崩溃恢复边界和 PostgreSQL 并发测试矩阵已形成；尚未修改 billing、数据库或 migration，尚未执行任何数据库动作。
-- 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：待指定独立 Security/Verification Agent，且 PostgreSQL 并发证据不可省略。
+- 修改状态/进度：第一阶段兼容实现完成。新增仅存哈希和固定账务标记的 `idempotency_requests` 空表；SQLite/PostgreSQL 显式事务将 claim、扣费和主 usage 原子化，AI 在事务外，complete/refund 使用 owner-only 短事务且最多一次；Analyze/Generate JSON+SSE、付费 Chat 和前端 `X-Request-ID` 已接入，无 header 与免费 Chat 保持旧语义。独立安全审查曾发现跨月/升级错退，已改为绑定原 subscription/period 并统一 user-first 锁；真实 PG 首轮又发现 FK KeyShare→FOR UPDATE 死锁，改为任何 claim INSERT 前先锁用户行且未用 retry 掩盖。重建全新 PostgreSQL 18 后 migration 二次、同键20并发、不同键争抢余额、退款20并发、升级/claim并发 5/5 通过。最终全量 unittest 343/343（默认跳过5条需双开关PG用例）、Playwright 7/7、独立定向207、py_compile、Compose、diff check 均通过。
+- 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：Test Finder + Security/Concurrency Reviewer（独立只读，最终 PASS）。
 - 下一步：按已批准的两阶段兼容发布，第一阶段仅新增 `idempotency_requests` 增量表、SQLite/PostgreSQL transaction API、原子 claim/扣费/最多一次退款，并覆盖 Analyze、Generate、付费 Chat；完整 SSE 回放、结果恢复、stale 自动接管和 exactly-once 业务副作用明确延后。
-- 验收标准：两个并发相同请求只能执行一次、扣费一次、产生一个主 usage；同键同 payload 可安全重试并得到一致状态/结果；同键不同 payload 返回冲突；跨用户不可互相命中；失败/退款后可按明确规则重试；SQLite/PostgreSQL 均通过。
+- 验收标准：两个并发相同请求只能执行一次、扣费一次、产生一个主 usage；同键同 payload 可安全重试并得到稳定幂等状态/错误码且不重复产生副作用；同键不同 payload 返回冲突；跨用户不可互相命中；失败/退款后按明确规则返回；SQLite/PostgreSQL 均通过。本阶段不要求透明回放原始 SSE/AI 结果，不宣称断线自动恢复、stale lease 自动接管或任意崩溃点 exactly-once。
 - 真实外部服务：用户已批准一次性 PostgreSQL 并发测试、Render Staging migration、付费 Smoke 和真实 AI；仍按最小样本执行。
-- 费用/数据：方案需要新增一张空表和三个索引，无 backfill；当前阶段未写数据库。一次性 PostgreSQL 测试和 Render Staging migration 均需明确批准。
+- 费用/数据：方案新增一张空表和索引，无 backfill；一次性 PostgreSQL 使用本机全新临时容器和合成数据，测试后已删除并停止 Colima。尚未修改 Staging 数据库或调用真实 AI。
 - 是否需要用户决定：否；2026-07-11 用户已批准 schema/migration、计费事务重构、一次性 PostgreSQL 并发测试、Staging migration、付费 Smoke 和真实 AI；采用推荐的两阶段兼容发布。
 - 是否涉及真实外部调用：是；独立验证通过后可应用 Render Staging migration，并执行受控写入型 Smoke。
 - 是否已部署到 Render：否。
@@ -347,11 +347,11 @@
 - 涉及文件：`model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`, `render.yaml`, `tests/test_xhs_acquisition.py`, `tests/test_api_contracts.py`, `tests/test_render_deployment.py`；不改 selector、Cookie、UA/viewport 或验证码处理。
 - 风险：继续高频搜索会增加 Cron 成本并加重挑战；激进指纹规避可能违反平台安全边界。
 - 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：独立 QA/Render Reviewer。
-- 修改状态/进度：最小修复已实施并通过第二轮独立验证。首轮验证发现 `/admin/xhs/health` 删除既有 `error_summary/details` 且可能清空安全错误码；修正为保留旧字段结构、固定摘要映射和严格 details 白名单。最终证据：相关 194/194、全量 unittest 311/311、前端静态 16/16、Python 编译、Compose 和 diff check 均通过；HTTP 200 challenge 首目标熔断、homefeed 保留、冷却零搜索浏览器、6 小时边界、半开探针和默认兼容均通过。尚未部署。
+- 修改状态/进度：最小修复已实施并通过第二轮独立验证。首轮验证发现 `/admin/xhs/health` 删除既有 `error_summary/details` 且可能清空安全错误码；修正为保留旧字段结构、固定摘要映射和严格 details 白名单。最终证据：相关 194/194、全量 unittest 311/311、前端静态 16/16、Python 编译、Compose 和 diff check 均通过；HTTP 200 challenge 首目标熔断、homefeed 保留、冷却零搜索浏览器、6 小时边界、半开探针和默认兼容均通过。commit `878787b` 已通过两组 GitHub checks 并部署 Render Staging；API/Admin readiness 均为 200、PostgreSQL ready，pre-deploy `migrations_applied=0`。等待下一自然 Cron 验证线上 `started=0/skipped=12`，不手工追加采集。
 - 验收标准：不绕过安全控制；挑战出现时及时停止/退避并给出稳定状态；若采用安全恢复策略，至少连续 2–3 个自然轮次恢复 search/recommend 健康阈值，否则明确降级而不浪费全轮成本。
 - 是否需要用户决定：技术默认采用 Staging 6 小时冷却、Cron 继续成功但明确 degraded；不自动重新登录、不减少长期行业覆盖。如后续要改 hard fail 或每行业 seed 数再单独决策。
 - 是否涉及真实外部调用：最终验证需要自然 Cron；不再手工连续触发。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：是；commit `878787b`。云端服务健康，尚待自然 Cron 功能结果。
 
 ### SEC-002 — 前端展示并持久化模型 reasoning
 

@@ -5685,6 +5685,13 @@ let _isGenerateMode  = false;
 let _genStreamActive = false;
 let _diagnosisStreamActive = false;
 
+function createPaidRequestId(prefix) {
+  const randomPart = (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix || 'paid'}-${randomPart}`;
+}
+
 function _setGenerationSubmitBusy(isBusy) {
   const btn = document.getElementById('generateSubmitBtn');
   if (!btn) return;
@@ -5724,10 +5731,11 @@ async function startGeneration() {
 
   (async () => {
     const streamGuard = createSseWarningGuard('generate', '爆文生成');
+    const paidRequestId = createPaidRequestId('generate');
     try {
       const resp = await fetch(API_BASE + '/generate/stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        headers: { 'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, ...authHeader() },
         body: JSON.stringify({
           domain,
           brief,
@@ -6276,10 +6284,11 @@ async function startDiagnosis() {
   _diagnosePromise = new Promise((resolve, reject) => {
     (async () => {
       const streamGuard = createSseWarningGuard('analyze', 'AI 诊断');
+      const paidRequestId = createPaidRequestId('analyze');
       try {
         const resp = await fetch(API_BASE + '/analyze/stream', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authH },
+          headers: { 'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, ...authH },
           body: JSON.stringify(analyzeBody),
         });
         streamGuard.connected();
@@ -8862,10 +8871,11 @@ async function chatSendMessage(options = {}) {
   }
 
   const streamGuard = createSseWarningGuard('chat', '对话优化');
+  let paidRequestId = createPaidRequestId('chat');
   try {
     let resp = await fetch(API_BASE + '/chat/message', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json', ...authHeader()},
+      headers: {'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, ...authHeader()},
       body: JSON.stringify(payload),
     });
     streamGuard.connected();
@@ -8890,9 +8900,10 @@ async function chatSendMessage(options = {}) {
       const recovered = await _recreateChatSession();
       if (recovered) {
         payload.session_id = _chatSessionId;
+        paidRequestId = createPaidRequestId('chat-recovered');
         resp = await fetch(API_BASE + '/chat/message', {
           method: 'POST',
-          headers: {'Content-Type': 'application/json', ...authHeader()},
+          headers: {'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, ...authHeader()},
           body: JSON.stringify(payload),
         });
       }

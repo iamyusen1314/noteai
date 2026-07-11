@@ -7,6 +7,14 @@ HTML = (ROOT / "NoteAI_Pro_Demo_Framer.html").read_text(encoding="utf-8")
 
 
 class FrontendReportStaticTests(unittest.TestCase):
+    def test_paid_ai_entry_points_send_unique_request_ids(self):
+        self.assertIn("function createPaidRequestId", HTML)
+        self.assertIn("createPaidRequestId('generate')", HTML)
+        self.assertIn("createPaidRequestId('analyze')", HTML)
+        self.assertIn("createPaidRequestId('chat')", HTML)
+        self.assertIn("createPaidRequestId('chat-recovered')", HTML)
+        self.assertGreaterEqual(HTML.count("'X-Request-ID': paidRequestId"), 4)
+
     def test_sse_stall_guards_warn_without_cancel_retry_or_early_unlock(self):
         self.assertIn("function createSseWarningGuard", HTML)
         self.assertIn("connectMs:30000", HTML)
