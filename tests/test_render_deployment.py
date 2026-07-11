@@ -127,6 +127,7 @@ class RenderDeploymentTests(unittest.TestCase):
     def test_market_timing_explicitly_triggers_and_parses_search_discovery(self):
         source = (MODEL_DIR / "scheduler_a.py").read_text(encoding="utf-8")
         self.assertIn('input[placeholder="搜索小红书"]', source)
+        self.assertIn("async def _trigger_search_input", source)
         self.assertIn('"search/trending/query"', source)
         self.assertIn('payload.get("queries")', source)
         self.assertIn('payload.get("ai_words")', source)

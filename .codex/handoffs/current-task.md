@@ -5886,3 +5886,13 @@ This list reflects current Git status during handoff. Some files were modified b
 - 定向测试：26 passed。
 - 全量 unittest：280 passed。
 - 尚待：提交推送、Render 构建、云端 Cron 来源分布实测。
+
+### Cloud Result And Follow-up
+
+- Render 首轮新解析版本于 11:27 手动运行并成功结束。
+- 云端来源结果：`249 total = 120 homefeed + 6 search_result + 3 search_recommend + 120 hot_search`。
+- API 指标：recommend 1 response / 10 items；trending 10 responses / 130 items。
+- 仍发现云端搜索页二次导航导致 `search_inputs_typed=0 / search_input_failures=12`；当前非零推荐来自被动命中，尚不够稳定。
+- 已增加 `_trigger_search_input(...)` 轮询重试，在导航上下文销毁后等待最终页面输入框出现；新增模拟导航中断的单元测试。
+- 修复后定向测试 27 passed；全量 unittest 281 passed。
+- 尚待：提交重试修复、Render 再次构建，并确认云端 `search_inputs_typed > 0` 且推荐来源稳定。

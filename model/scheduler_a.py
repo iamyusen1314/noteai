@@ -238,6 +238,23 @@ def _search_discovery_targets() -> list[tuple[str, str]]:
     return targets
 
 
+async def _trigger_search_input(page, seed: str, timeout_seconds: float = 7.0) -> tuple[bool, str]:
+    """Type a seed after XHS finishes any client-side search-page redirects."""
+    deadline = time.monotonic() + max(1.0, timeout_seconds)
+    last_error = "search input not available"
+    while time.monotonic() < deadline:
+        try:
+            search_input = page.locator('input[placeholder="搜索小红书"]').first
+            if await search_input.count() and await search_input.is_visible():
+                await search_input.fill("")
+                await search_input.type(seed, delay=35)
+                return True, ""
+        except Exception as exc:
+            last_error = f"{type(exc).__name__}: {str(exc).splitlines()[0]}"
+        await asyncio.sleep(0.35)
+    return False, last_error
+
+
 async def scrape_once() -> list[dict]:
     """
     单次抓取：
@@ -374,16 +391,13 @@ async def scrape_once() -> list[dict]:
             try:
                 await page.goto(target_url, wait_until="domcontentloaded", timeout=25000)
                 if discovery_source == "search_discovery":
-                    try:
-                        seed = (parse_qs(urlparse(target_url).query).get("keyword") or [""])[0]
-                        search_input = page.locator('input[placeholder="搜索小红书"]').first
-                        await search_input.wait_for(state="visible", timeout=4000)
-                        await search_input.fill("")
-                        await search_input.type(seed, delay=35)
+                    seed = (parse_qs(urlparse(target_url).query).get("keyword") or [""])[0]
+                    typed, input_error = await _trigger_search_input(page, seed)
+                    if typed:
                         discovery_metrics["search_inputs_typed"] += 1
-                    except Exception as exc:
+                    else:
                         discovery_metrics["search_input_failures"] += 1
-                        log.warning(f"Search input {channel_name} error: {exc}")
+                        log.warning(f"Search input {channel_name} unavailable: {input_error}")
                 await asyncio.sleep(settle_seconds)
                 for _ in range(max(1, scroll_rounds)):
                     await page.mouse.wheel(0, 700)

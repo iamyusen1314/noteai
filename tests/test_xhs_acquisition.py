@@ -155,6 +155,42 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             "家居收纳",
         )
 
+    def test_search_input_retries_after_navigation_context_loss(self):
+        class FakeLocator:
+            def __init__(self, attempt):
+                self.attempt = attempt
+                self.first = self
+
+            async def count(self):
+                if self.attempt == 1:
+                    raise RuntimeError("Execution context was destroyed")
+                return 1
+
+            async def is_visible(self):
+                return self.attempt >= 3
+
+            async def fill(self, value):
+                self.filled = value
+
+            async def type(self, value, delay=0):
+                self.typed = value
+
+        class FakePage:
+            def __init__(self):
+                self.attempts = 0
+
+            def locator(self, selector):
+                self.attempts += 1
+                return FakeLocator(self.attempts)
+
+        page = FakePage()
+        typed, error = asyncio.run(
+            scheduler_a._trigger_search_input(page, "家居收纳", timeout_seconds=2)
+        )
+        self.assertTrue(typed)
+        self.assertEqual(error, "")
+        self.assertEqual(page.attempts, 3)
+
     def test_worker_xhs_required_exports_baseline_with_warning(self):
         original_db = hot_keywords.DB_PATH
         original_scrape_once = market_timing_worker.scrape_once
