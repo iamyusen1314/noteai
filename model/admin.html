@@ -303,13 +303,14 @@ input,select,textarea{font-family:inherit}
   <!-- ═══ REVENUE ══════════════════════════════════════════════════ -->
   <div class="content-area page" id="page-revenue">
     <div class="card-grid card-grid-3" id="revenue-stats" style="margin-bottom:20px">
-      <div class="stat-card"><div class="stat-label">订阅收入估算</div><div class="stat-val" id="r-sub" style="color:var(--success)">–</div></div>
+      <div class="stat-card"><div class="stat-label">订阅收入估算</div><div class="stat-val" id="r-sub" style="color:var(--success)">–</div><div class="stat-sub" id="r-sub-note">按当前有效套餐人数 × 套餐价估算，不是支付流水。</div></div>
       <div class="stat-card"><div class="stat-label">积分充值收入</div><div class="stat-val" id="r-credits" style="color:var(--info)">–</div></div>
-      <div class="stat-card"><div class="stat-label">综合毛利率</div><div class="stat-val" id="r-margin" style="color:var(--accent)">–</div></div>
+      <div class="stat-card"><div class="stat-label">综合毛利率（最近30日）</div><div class="stat-val" id="r-margin" style="color:var(--accent)">–</div></div>
     </div>
+    <div class="card" id="revenue-cost-audit" style="margin-bottom:20px"></div>
     <div class="card-grid card-grid-2">
-      <div class="card"><div class="section-title">每日积分充值收入</div><div id="rev-chart" class="chart-box"></div></div>
-      <div class="card"><div class="section-title">每日 API 成本</div><div id="cost-chart" class="chart-box"></div></div>
+      <div class="card"><div class="section-title">每日积分充值收入（最近30日）</div><div id="rev-chart" class="chart-box"></div></div>
+      <div class="card"><div class="section-title">每日 API 成本（最近30日）</div><div id="cost-chart" class="chart-box"></div></div>
     </div>
   </div>
 
@@ -584,10 +585,102 @@ async function aFetch(path, opts={}) {
 }
 
 function fmtTokens(n) {
-  n = Number(n || 0);
+  n = adminFiniteNumber(n);
   if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
   if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
   return String(Math.round(n));
+}
+
+function adminFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function adminIsNonNegativeInteger(value) {
+  return typeof value === 'number'
+    && Number.isFinite(value)
+    && Number.isSafeInteger(value)
+    && value >= 0;
+}
+
+function adminCostCoverage(rawCoverage) {
+  const source = rawCoverage && typeof rawCoverage === 'object' && !Array.isArray(rawCoverage)
+    ? rawCoverage : null;
+  const countFields = [
+    'total_records',
+    'strict_actual_records',
+    'legacy_unverifiable_records',
+    'partial_records',
+    'unpriced_records',
+    'usage_incomplete_records',
+  ];
+  const hasValidCounts = source && countFields.every(field => (
+    Object.prototype.hasOwnProperty.call(source, field)
+    && adminIsNonNegativeInteger(source[field])
+  ));
+  if (!hasValidCounts) {
+    return {
+      state:'unavailable', ready:false, total:0, strict:0, pct:null,
+      legacy:0, partial:0, unpriced:0, usageIncomplete:0,
+    };
+  }
+  const total = source.total_records;
+  const strict = source.strict_actual_records;
+  const legacy = source.legacy_unverifiable_records;
+  const partial = source.partial_records;
+  const unpriced = source.unpriced_records;
+  const usageIncomplete = source.usage_incomplete_records;
+  const classifiedTotal = strict + legacy + partial + unpriced + usageIncomplete;
+  if (strict > total || classifiedTotal !== total) {
+    return {
+      state:'unavailable', ready:false, total:0, strict:0, pct:null,
+      legacy:0, partial:0, unpriced:0, usageIncomplete:0,
+    };
+  }
+  const ready = source.actual_margin_ready === true && total > 0 && strict === total;
+  return {
+    state: total === 0 ? 'empty' : (ready ? 'complete' : 'incomplete'),
+    ready,
+    total,
+    strict,
+    pct: total > 0 ? strict / total * 100 : null,
+    legacy,
+    partial,
+    unpriced,
+    usageIncomplete,
+  };
+}
+
+function adminCoverageCountsText(coverage, includeAllCategories = true) {
+  if (coverage.state === 'unavailable' || coverage.state === 'empty') return '';
+  const parts = [
+    `严格实际 ${coverage.strict}/${coverage.total} 条操作记录（${coverage.pct.toFixed(1)}%）`,
+    `历史不可复算 ${coverage.legacy} 条操作记录`,
+  ];
+  if (includeAllCategories) {
+    parts.push(
+      `部分计价 ${coverage.partial} 条操作记录`,
+      `未计价 ${coverage.unpriced} 条操作记录`,
+      `用量不完整 ${coverage.usageIncomplete} 条操作记录`,
+    );
+  }
+  return parts.join(' · ');
+}
+
+const ADMIN_COST_COVERAGE_EXPLANATION =
+  '严格实际 = 具备完整逐模型用量与价格证据的操作记录；' +
+  '历史不可复算 = 逐模型成本审计上线前、缺少完整明细的操作记录，系统不会伪造回填。';
+
+function adminCoverageHeadline(coverage, periodLabel, completeText, incompleteText) {
+  if (coverage.state === 'unavailable') {
+    return `${periodLabel}成本覆盖数据不可用，不可宣称实际毛利`;
+  }
+  if (coverage.state === 'empty') {
+    return `${periodLabel}暂无用量记录，无法计算实际毛利`;
+  }
+  return coverage.ready
+    ? `${periodLabel}成本覆盖完整，${completeText}`
+    : `${periodLabel}成本覆盖不完整，${incompleteText}`;
 }
 
 const ADMIN_SYSTEM_STATUS_LABELS = Object.freeze({
@@ -715,14 +808,26 @@ async function loadDashboard() {
   const r = await aFetch('/admin/overview');
   const d = await r.json();
   const u = d.users, f = d.finance, s = d.system;
+  const coverage = adminCostCoverage(f.coverage);
   document.getElementById('d-total-users').textContent = u.total.toLocaleString();
   document.getElementById('d-today-new').textContent   = `今日新增 ${u.today_new}`;
   document.getElementById('d-revenue').textContent     = `¥${f.total_revenue.toLocaleString()}`;
   document.getElementById('d-mrr').textContent         = `MRR ¥${f.mrr.toLocaleString()}`;
   document.getElementById('d-cost').textContent        = `¥${f.api_cost.toFixed(2)}`;
-  document.getElementById('d-margin').textContent      = f.actual_margin_ready
-    ? `实际毛利 ${f.margin_pct}% · ${fmtTokens(f.total_tokens)} tokens`
-    : `成本覆盖不完整，毛利仅供参考 · ${fmtTokens(f.total_tokens)} tokens`;
+  const dashboardCoverage = adminCoverageCountsText(coverage, false);
+  if (coverage.state === 'unavailable') {
+    document.getElementById('d-margin').textContent =
+      `本月成本覆盖数据不可用，毛利仅供参考 · ${fmtTokens(f.total_tokens)} tokens`;
+  } else if (coverage.state === 'empty') {
+    document.getElementById('d-margin').textContent =
+      `本月暂无用量记录，无法计算实际毛利 · ${fmtTokens(f.total_tokens)} tokens`;
+  } else if (coverage.ready) {
+    document.getElementById('d-margin').textContent =
+      `实际毛利 ${adminFiniteNumber(f.margin_pct).toFixed(1)}% · 本月${dashboardCoverage} · ${fmtTokens(f.total_tokens)} tokens`;
+  } else {
+    document.getElementById('d-margin').textContent =
+      `本月成本覆盖不完整，毛利仅供参考 · ${dashboardCoverage} · ${fmtTokens(f.total_tokens)} tokens`;
+  }
   document.getElementById('d-active').textContent      = u.active_month;
   document.getElementById('d-active-sub').textContent  = `7天活跃 ${u.active_7d}`;
 
@@ -898,15 +1003,34 @@ async function adjustUser(uid, action) {
 async function loadRevenue() {
   const r = await aFetch('/admin/revenue');
   const d = await r.json();
-  document.getElementById('r-sub').textContent     = `¥${d.sub_revenue_estimate.toLocaleString()}`;
-  const credRev = d.daily_topup.reduce((a,b)=>a+b.rmb,0);
+  const coverage = adminCostCoverage(d.coverage);
+  const dailyTopup = Array.isArray(d.daily_topup) ? d.daily_topup : [];
+  const dailyApiCost = Array.isArray(d.daily_api_cost) ? d.daily_api_cost : [];
+  const subRevenue = adminFiniteNumber(d.sub_revenue_estimate);
+  document.getElementById('r-sub').textContent     = `¥${subRevenue.toLocaleString()}`;
+  document.getElementById('r-sub-note').textContent = '按当前有效套餐人数 × 套餐价估算，不是支付流水。';
+  const credRev = dailyTopup.reduce((sum, row)=>sum+adminFiniteNumber(row?.rmb),0);
   document.getElementById('r-credits').textContent = `¥${credRev.toFixed(2)}`;
-  const apiCostTotal = d.daily_api_cost.reduce((a,b)=>a+b.cost,0);
-  const margin = (d.sub_revenue_estimate+credRev)>0
-    ? Math.round((d.sub_revenue_estimate+credRev-apiCostTotal)/(d.sub_revenue_estimate+credRev)*100) : 0;
-  document.getElementById('r-margin').textContent  = d.coverage?.actual_margin_ready ? `${margin}%` : '覆盖不完整';
-  _renderLineChart('rev-chart', d.daily_topup.map(r=>r.day), d.daily_topup.map(r=>r.rmb), '积分充值(¥)', '#00D4FF');
-  _renderLineChart('cost-chart', d.daily_api_cost.map(r=>r.day), d.daily_api_cost.map(r=>r.cost), 'API成本(¥)', '#F59E0B');
+  const apiCostTotal = dailyApiCost.reduce((sum, row)=>sum+adminFiniteNumber(row?.cost),0);
+  const totalRevenue = subRevenue + credRev;
+  const margin = totalRevenue > 0
+    ? Math.round((totalRevenue-apiCostTotal)/totalRevenue*100) : 0;
+  document.getElementById('r-margin').textContent  = coverage.ready ? `${margin}%` : '覆盖不完整';
+  const revenueAudit = document.getElementById('revenue-cost-audit');
+  const revenueHeadline = adminCoverageHeadline(
+    coverage,
+    '最近30日',
+    '可按实际成本口径查看毛利',
+    '不可宣称实际毛利',
+  );
+  const revenueCounts = adminCoverageCountsText(coverage);
+  revenueAudit.innerHTML = `
+    <div class="section-title">最近30日模型成本审计覆盖</div>
+    <div style="font-size:13px;color:${coverage.ready?'var(--success)':'var(--warning)'}">${revenueHeadline}</div>
+    ${revenueCounts ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">${revenueCounts}</div>` : ''}
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px">${ADMIN_COST_COVERAGE_EXPLANATION}</div>`;
+  _renderLineChart('rev-chart', dailyTopup.map(row=>String(row?.day||'')), dailyTopup.map(row=>adminFiniteNumber(row?.rmb)), '积分充值(¥)', '#00D4FF');
+  _renderLineChart('cost-chart', dailyApiCost.map(row=>String(row?.day||'')), dailyApiCost.map(row=>adminFiniteNumber(row?.cost)), 'API成本(¥)', '#F59E0B');
 }
 
 /* ── Usage ────────────────────────────────────────────────────────── */
@@ -916,18 +1040,30 @@ async function loadUsage() {
   const r = await aFetch('/admin/usage-stats');
   if (!r.ok) throw new Error('usage stats request failed');
   const d = await r.json();
-  const coverage = d.coverage || {};
+  const coverage = adminCostCoverage(d.coverage);
+  const usageHeadline = adminCoverageHeadline(
+    coverage,
+    '最近30日',
+    '可使用实际毛利',
+    '不可宣称实际毛利',
+  );
+  const usageCounts = adminCoverageCountsText(coverage);
+  const byModel = Array.isArray(d.by_model) ? d.by_model : [];
+  const modelSummary = byModel.map(model => {
+    const tokens = adminFiniteNumber(model?.input_tokens)
+      + adminFiniteNumber(model?.cache_read_tokens)
+      + adminFiniteNumber(model?.cache_write_tokens)
+      + adminFiniteNumber(model?.output_tokens);
+    return `${esc(model?.model || '未知模型')} ${fmtTokens(tokens)} / ¥${adminFiniteNumber(model?.known_cost_rmb).toFixed(4)}`;
+  }).join('；') || '暂无逐模型明细';
   auditEl.innerHTML = `
-    <div class="section-title">模型成本审计覆盖</div>
-    <div style="font-size:13px;color:${coverage.actual_margin_ready?'var(--success)':'var(--warning)'}">
-      ${coverage.actual_margin_ready?'可使用实际毛利':'覆盖不完整，不可宣称实际毛利'} ·
-      严格实际 ${coverage.strict_actual_records||0}/${coverage.total_records||0} 条
-    </div>
+    <div class="section-title">最近30日模型成本审计覆盖</div>
+    <div style="font-size:13px;color:${coverage.ready?'var(--success)':'var(--warning)'}">${usageHeadline}</div>
     <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
-      历史不可复算 ${coverage.legacy_unverifiable_records||0} · 部分计价 ${coverage.partial_records||0} ·
-      未计价 ${coverage.unpriced_records||0} · 用量不完整 ${coverage.usage_incomplete_records||0}<br/>
-      模型：${(d.by_model||[]).map(m=>`${esc(m.model)} ${fmtTokens(m.input_tokens+m.cache_read_tokens+m.cache_write_tokens+m.output_tokens)} / ¥${m.known_cost_rmb.toFixed(4)}`).join('；')||'暂无逐模型明细'}<br/>
-      缓存读取 ${fmtTokens(d.cache?.read_tokens||0)} · 缓存写入 ${fmtTokens(d.cache?.write_tokens||0)}
+      ${usageCounts ? `${usageCounts}<br/>` : ''}
+      ${ADMIN_COST_COVERAGE_EXPLANATION}<br/>
+      模型：${modelSummary}<br/>
+      缓存读取 ${fmtTokens(d.cache?.read_tokens)} · 缓存写入 ${fmtTokens(d.cache?.write_tokens)}
     </div>`;
   const opsChart = echarts.init(document.getElementById('usage-ops-chart'));
   opsChart.setOption({
