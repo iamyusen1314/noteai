@@ -38,8 +38,17 @@ def _real_xhs_rows() -> list[dict]:
 
 
 class XHSAcquisitionLedgerTests(unittest.TestCase):
-    def _run_scheduler_circuit_scenario(self, *, challenge: bool, circuit_state: str = "closed", stop: bool = True):
+    def _run_scheduler_circuit_scenario(
+        self,
+        *,
+        challenge: bool,
+        circuit_state: str = "closed",
+        stop: bool = True,
+        response_payload: dict | None = None,
+        response_json_error: bool = False,
+    ):
         events = {"homefeed_gotos": 0, "search_gotos": 0, "browser_launches": 0}
+        payload = {"data": {}} if response_payload is None else response_payload
 
         class FakeResponse:
             def __init__(self, url):
@@ -47,7 +56,9 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 self.status = 200
 
             async def json(self):
-                return {"data": {}}
+                if response_json_error:
+                    raise ValueError("synthetic non-json response")
+                return payload
 
         class FakeMouse:
             async def wheel(self, _x, _y):
@@ -698,6 +709,30 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             ["2xx", "3xx", "4xx", "5xx", "unknown"],
         )
 
+    def test_search_payload_diagnostics_distinguish_fixed_safe_classes(self):
+        display_title_payload = {
+            "data": {"items": [{"note_card": {"display_title": "真实标题"}}]},
+        }
+        title_payload = {
+            "data": {"items": [{"note_card": {"title": "备用标题"}}]},
+        }
+        cases = (
+            ([{"status": "ok"}], "generic_json"),
+            ({"data": {"status": "ok"}}, "generic_json"),
+            (display_title_payload, "note_result"),
+            (title_payload, "note_result"),
+            ({"data": {"items": []}}, "empty_result"),
+            ({"data": {"items": [{"note_card": {"desc": "无支持标题"}}]}}, "unknown_schema"),
+            ({"success": False, "data": {}}, "business_error"),
+            ({"code": 300012, "data": {}}, "business_error"),
+        )
+        for payload, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(scheduler_a._classify_search_payload(payload), expected)
+
+        self.assertEqual(scheduler_a._extract_note_titles(display_title_payload), ["真实标题"])
+        self.assertEqual(scheduler_a._extract_note_titles(title_payload), ["备用标题"])
+
     def test_discovery_diagnostics_sanitizer_drops_sensitive_and_unknown_fields(self):
         diagnostics = scheduler_a.new_discovery_diagnostics()
         diagnostics["raw_url"] = "https://secret.invalid/search?keyword=用户关键词"
@@ -709,6 +744,14 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             "private-exception-message",
         ]
         diagnostics["response_status_class"]["private-status"] = 1
+        diagnostics["search_response_class"].update({
+            "generic_json": 2,
+            "private-payload-shape": 3,
+        })
+        diagnostics["search_target_outcome"].update({
+            "endpoint_not_seen": 1,
+            "private-target-outcome": 4,
+        })
         diagnostics["circuit"] = {
             "state": "private-state",
             "skipped_reason": "private-secret-reason",
@@ -723,10 +766,14 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         for secret in (
             "secret.invalid", "用户关键词", "secret-cookie-value", "private-response-body",
             "private-note-title", "private-exception-message", "private-status",
+            "private-payload-shape", "private-target-outcome",
             "private-state", "private-secret-reason", "secret-circuit-cookie",
         ):
             self.assertNotIn(secret, serialized)
         self.assertIn("navigation_failed", serialized)
+        sanitized = json.loads(serialized)
+        self.assertEqual(sanitized["search_response_class"]["generic_json"], 2)
+        self.assertEqual(sanitized["search_target_outcome"]["endpoint_not_seen"], 1)
 
     def test_search_challenge_opens_circuit_and_skips_remaining_targets(self):
         result, events = self._run_scheduler_circuit_scenario(challenge=True)
@@ -742,7 +789,16 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         self.assertEqual(diagnostics["circuit"], {
             "state": "open", "skipped_reason": "challenge_detected",
         })
+        self.assertEqual(diagnostics["search_response_class"]["note_result"], 0)
+        self.assertEqual(diagnostics["search_target_outcome"], {
+            "endpoint_not_seen": 0,
+            "challenge_before_target_payload": 1,
+        })
         self.assertIn("possible_access_challenge", diagnostics["diagnostic_error_codes"])
+        self.assertIn(
+            "search_challenge_before_target_payload",
+            diagnostics["diagnostic_error_codes"],
+        )
         self.assertIn(
             "search_targets_skipped_after_challenge",
             diagnostics["diagnostic_error_codes"],
@@ -758,6 +814,31 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             "planned": 12, "started": 12, "completed": 12, "skipped": 0,
         })
         self.assertEqual(diagnostics["circuit"]["state"], "closed")
+        self.assertEqual(diagnostics["search"]["json_ok"], 12)
+        self.assertEqual(diagnostics["search_response_class"]["generic_json"], 12)
+        self.assertEqual(diagnostics["search_response_class"]["note_result"], 0)
+        self.assertEqual(diagnostics["search_target_outcome"]["endpoint_not_seen"], 12)
+
+    def test_search_structured_and_non_json_responses_have_distinct_diagnostics(self):
+        structured, _events = self._run_scheduler_circuit_scenario(
+            challenge=False,
+            response_payload={
+                "data": {"items": [{"note_card": {"display_title": "真实笔记标题"}}]},
+            },
+        )
+        structured_diagnostics = structured.diagnostics
+        self.assertEqual(structured_diagnostics["search_response_class"]["note_result"], 12)
+        self.assertEqual(structured_diagnostics["search_response_class"]["generic_json"], 0)
+        self.assertEqual(structured_diagnostics["search_target_outcome"]["endpoint_not_seen"], 0)
+
+        non_json, _events = self._run_scheduler_circuit_scenario(
+            challenge=False,
+            response_json_error=True,
+        )
+        non_json_diagnostics = non_json.diagnostics
+        self.assertEqual(non_json_diagnostics["search_response_class"]["non_json"], 12)
+        self.assertEqual(non_json_diagnostics["search_response_class"]["generic_json"], 0)
+        self.assertEqual(non_json_diagnostics["search"]["json_failed"], 12)
 
     def test_search_cooldown_skips_search_but_preserves_homefeed(self):
         result, events = self._run_scheduler_circuit_scenario(

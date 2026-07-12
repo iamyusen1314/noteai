@@ -93,6 +93,11 @@ DISCOVERY_DIAGNOSTIC_ERROR_CODES = frozenset({
     "challenge_cooldown_active",
     "search_response_not_seen",
     "search_response_non_json",
+    "search_target_payload_not_seen",
+    "search_challenge_before_target_payload",
+    "search_response_business_error",
+    "search_response_unknown_schema",
+    "search_response_empty_result",
     "search_candidates_empty",
     "search_candidates_all_filtered",
     "search_candidates_all_deduped",
@@ -123,6 +128,15 @@ _DIAGNOSTIC_FIELDS = {
 }
 _RESPONSE_STATUS_CLASSES = ("2xx", "3xx", "4xx", "5xx", "unknown")
 _FINAL_PAGE_CLASSES = ("search", "explore", "login", "challenge", "other")
+_SEARCH_RESPONSE_CLASSES = (
+    "generic_json",
+    "note_result",
+    "empty_result",
+    "unknown_schema",
+    "business_error",
+    "non_json",
+)
+_SEARCH_TARGET_OUTCOMES = ("endpoint_not_seen", "challenge_before_target_payload")
 _CIRCUIT_STATES = ("closed", "open", "cooldown")
 _CIRCUIT_SKIPPED_REASONS = ("", "challenge_detected", "challenge_cooldown_active")
 _SEARCH_CIRCUIT_CONTEXT: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
@@ -157,6 +171,8 @@ def new_discovery_diagnostics() -> dict:
         },
         "response_status_class": {key: 0 for key in _RESPONSE_STATUS_CLASSES},
         "final_page_class": {key: 0 for key in _FINAL_PAGE_CLASSES},
+        "search_response_class": {key: 0 for key in _SEARCH_RESPONSE_CLASSES},
+        "search_target_outcome": {key: 0 for key in _SEARCH_TARGET_OUTCOMES},
         "circuit": {"state": "closed", "skipped_reason": ""},
         "diagnostic_error_codes": [],
     }
@@ -189,6 +205,8 @@ def sanitize_discovery_diagnostics(value: dict | None) -> dict:
     for section, allowed in (
         ("response_status_class", _RESPONSE_STATUS_CLASSES),
         ("final_page_class", _FINAL_PAGE_CLASSES),
+        ("search_response_class", _SEARCH_RESPONSE_CLASSES),
+        ("search_target_outcome", _SEARCH_TARGET_OUTCOMES),
     ):
         source = raw.get(section) if isinstance(raw.get(section), dict) else {}
         for field in allowed:
@@ -246,6 +264,39 @@ def _classify_discovery_response(raw_url: str) -> str:
     return "other"
 
 
+def _classify_search_payload(payload) -> str:
+    if not isinstance(payload, dict):
+        return "generic_json"
+
+    success = payload.get("success")
+    code = payload.get("code")
+    if success is False:
+        return "business_error"
+    if isinstance(code, (int, float)) and not isinstance(code, bool) and code != 0:
+        return "business_error"
+    if isinstance(code, str) and code.strip().lower() not in {"", "0", "ok", "success"}:
+        return "business_error"
+
+    data = payload.get("data")
+    if not isinstance(data, dict) or not isinstance(data.get("items"), list):
+        return "generic_json"
+    items = data["items"]
+    if not items:
+        return "empty_result"
+    if any(
+        isinstance(item, dict)
+        and isinstance(item.get("note_card"), dict)
+        and any(
+            isinstance(item["note_card"].get(key), str)
+            and item["note_card"][key].strip()
+            for key in ("display_title", "title")
+        )
+        for item in items
+    ):
+        return "note_result"
+    return "unknown_schema"
+
+
 def discovery_diagnostics_for_results(
     rows: list[dict],
     diagnostics: dict | None = None,
@@ -271,12 +322,24 @@ def discovery_diagnostics_for_results(
             _diagnostic_add_error(safe, "search_input_type_failed")
 
     search = safe["search"]
+    search_classes = safe["search_response_class"]
+    search_outcomes = safe["search_target_outcome"]
     if search["final"] == 0:
         if search["response_seen"] == 0:
             _diagnostic_add_error(safe, "search_response_not_seen")
         if search["json_failed"]:
             _diagnostic_add_error(safe, "search_response_non_json")
-        if search["json_ok"] and search["phrase_raw"] == 0:
+        if search_outcomes["endpoint_not_seen"]:
+            _diagnostic_add_error(safe, "search_target_payload_not_seen")
+        if search_outcomes["challenge_before_target_payload"]:
+            _diagnostic_add_error(safe, "search_challenge_before_target_payload")
+        if search_classes["business_error"]:
+            _diagnostic_add_error(safe, "search_response_business_error")
+        if search_classes["unknown_schema"]:
+            _diagnostic_add_error(safe, "search_response_unknown_schema")
+        if search_classes["empty_result"]:
+            _diagnostic_add_error(safe, "search_response_empty_result")
+        if search_classes["note_result"] and search["phrase_raw"] == 0:
             _diagnostic_add_error(safe, "search_candidates_empty")
         if search["phrase_raw"] and search["cleaned"] == 0 and search["filtered"]:
             _diagnostic_add_error(safe, "search_candidates_all_filtered")
@@ -559,7 +622,11 @@ async def scrape_once() -> list[dict]:
             else:
                 await route.continue_()
 
-        def make_on_response(channel_name: str, discovery_source: str):
+        def make_on_response(
+            channel_name: str,
+            discovery_source: str,
+            search_target_state: dict | None = None,
+        ):
             async def on_response(resp):
                 url = resp.url
                 if discovery_source == "search_discovery":
@@ -628,6 +695,21 @@ async def scrape_once() -> list[dict]:
                         _diagnostic_inc(discovery_diagnostics, "search", "response_seen")
                     try:
                         data = await resp.json()
+                    except Exception:
+                        if discovery_source == "search_discovery":
+                            _diagnostic_inc(discovery_diagnostics, "search", "json_failed")
+                            discovery_diagnostics["search_response_class"]["non_json"] += 1
+                        return
+                    if discovery_source == "search_discovery":
+                        response_class = _classify_search_payload(data)
+                        discovery_diagnostics["search_response_class"][response_class] += 1
+                        # Only a supported result-family shape proves that a target payload arrived.
+                        if (
+                            search_target_state is not None
+                            and response_class in {"note_result", "empty_result", "unknown_schema"}
+                        ):
+                            search_target_state["target_payload_seen"] = True
+                    try:
                         counter = tag_counters.setdefault(channel_name, Counter())
                         titles = _extract_note_titles(data)
                         if discovery_source == "search_discovery":
@@ -665,7 +747,12 @@ async def scrape_once() -> list[dict]:
             settle_seconds: float,
             scroll_rounds: int,
         ) -> str:
-            handler = make_on_response(channel_name, discovery_source)
+            search_target_state = {"target_payload_seen": False}
+            handler = make_on_response(
+                channel_name,
+                discovery_source,
+                search_target_state,
+            )
             page.on("response", handler)
             page_class = "other"
             if discovery_source == "search_discovery":
@@ -702,6 +789,13 @@ async def scrape_once() -> list[dict]:
                     discovery_diagnostics["final_page_class"][page_class] += 1
                     if page_class == "challenge":
                         _diagnostic_add_error(discovery_diagnostics, "possible_access_challenge")
+                    if not search_target_state["target_payload_seen"]:
+                        outcome = (
+                            "challenge_before_target_payload"
+                            if page_class == "challenge"
+                            else "endpoint_not_seen"
+                        )
+                        discovery_diagnostics["search_target_outcome"][outcome] += 1
                 page.remove_listener("response", handler)
                 try:
                     await page.goto("about:blank", wait_until="commit", timeout=5000)

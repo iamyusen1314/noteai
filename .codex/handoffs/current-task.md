@@ -168,16 +168,33 @@
 ### BUG-002 — XHS 推荐/热搜来源为 0
 
 - 状态：**INVESTIGATING**
-- 当前现象：旧日志显示 0 recommendation / 0 hot search。
-- 预期结果：来源统计准确，四类来源非零，六行业门禁通过。
-- 风险级别：High；原有逻辑与云端导航差异共同触发。
-- 涉及模块：`model/scheduler_a.py`, `model/xhs_acquisition.py`, tests。
-- 根因：历史缺陷根因已定位，见第 3 节；当前连续自动轮次回退的根因尚未确认。
-- 修改状态/进度：历史修复曾真实验证 460 条四来源；2026-07-11 自动轮次 13:05、14:05、15:05 连续退化为 `search_result=0`、`search_recommend=0`。QA 已确认“Cron 为何仍成功”：响应解析异常被静默吞掉、单目标失败按 best-effort 继续，worker hard gate 使用同日累计 freshness；但“搜索页面/端点为何突然不产出”仍因日志不足而未确认。
-- 下一步：先实施 `BUG-002B` 脱敏诊断 instrumentation，部署后只观察连续 2–3 个自动轮次，再根据页面类别、响应/JSON/schema 与过滤漏斗证据确定具体修复；根因确认前不盲改 selector、不手工触发 Cron。
-- 验收标准：至少连续 2–3 个自动轮次中 `search_result` 与 `search_recommend` 均满足已确认的健康阈值，且健康状态不再被当天累计旧证据掩盖。
-- 真实外部服务：需要授权 XHS 会话；已完成。
-- 费用/数据：Cron 时长费用；写入 Staging 数据。
+- 优先级：Critical；当前最高优先级调查项。
+- 问题描述：自然 Cron 的 `search_result` 与 `search_recommend` 持续为0；累计 freshness 仍可能满足，但最新单轮明确 degraded。
+- 证据：自然 run `19a8c433-923e-4a06-a26f-d1c5aa506d37` 首目标进入 challenge 后熔断11个目标，search `response_seen=35/json_ok=27/json_failed=8/title_count=0/phrase_raw=0`、recommend endpoint=0。09:05 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 在6小时 cooldown 中安全跳过12/12搜索目标，保留 homefeed=152/hot_search=120，search/recommend仍为0。
+- 根因是否确认：部分确认。来源归零的当前直接原因是 XHS challenge/cooldown；安全熔断按设计工作。另已确认诊断误分类：搜索页上 URL 只要含 `search` 或 `api` 就计入 search response，可解析普通/挑战辅助JSON也会增加 `json_ok`，所以“27个JSON”不是27个搜索结果 payload。平台真实结果 schema 是否改名仍未确认，禁止盲加字段。
+- 涉及文件：`model/scheduler_a.py`, `model/xhs_acquisition.py`, `tests/test_xhs_acquisition.py`, `tests/test_render_deployment.py`；不改 Cookie、UA/viewport、频率、challenge绕过或数据库。
+- 风险：继续误读 broad `json_ok` 会把“未拿到目标端点”错判为 schema/解析故障；直接猜字段会引入无关标题和趋势数据污染。
+- 执行代理：Repository Explorer + QA Investigator + Test Finder（本轮只读完成）；验证代理：后续独立 QA/Render Reviewer。
+- 验收标准：安全区分精确搜索结果响应、普通JSON、空结果、未知schema、非JSON、未出现endpoint、过滤/去重；真正恢复仍要求冷却后的连续2–3自然轮次 search_result/search_recommend 非零。
+- 是否需要用户决定：否；脱敏诊断修正不改变产品策略。若要改变challenge策略、采集频率或账号操作则需要。
+- 是否涉及真实外部调用：本轮仅观察自然Cron；不手工追加采集。后续部署后等待自然half-open probe。
+- 是否已部署到 Render：父问题已有多轮诊断与熔断代码；最新解析诊断修复包尚未实施。
+
+### BUG-002D — 搜索响应结构诊断真实性
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：Critical（BUG-002 当前最小修复包）。
+- 问题描述：`search.response_seen/json_ok/json_failed` 使用宽泛 URL 字符串匹配，无法区分真正的笔记搜索结果、普通 API JSON 与 challenge 辅助流量；导致 `json_ok>0/title_count=0` 被误解为搜索结果 schema 改版。
+- 证据：`model/scheduler_a.py` 的 broad matcher 对搜索目标上任意含 `search`/`api` 的响应计数；35=27 JSON成功+8失败是 broad response 完整分区。标题解析器仅递归接受字符串 `display_title/title`，且自 commit `dd7cfad` 后未改、同一解析器此前曾真实产出搜索来源。run `19a8c433` 在首目标 challenge 时没有进入正常输入/等待结果链，过滤、去重、趋势查询和落库均因 title_count/phrase_raw=0 而尚未发生。
+- 根因是否确认：是，诊断统计误分类根因已确认；外部平台 schema drift 未确认，不属于本包宣称。
+- 涉及文件：最小范围 `model/scheduler_a.py`, `tests/test_xhs_acquisition.py`，如安全诊断白名单需要才最小涉及 `model/xhs_acquisition.py`；不改候选解析业务语义、Cookie、浏览器指纹、重试、Cron、数据库或熔断策略。
+- 风险：结构分类过细可能泄漏平台响应或错误地绑定易变端点；只允许固定枚举与计数，禁止 URL/query、key集合、正文、标题、关键词、seed、Cookie和异常原文。应先并行保留旧总计数，避免突然破坏监控兼容。
+- 执行代理：单一 Implementation Agent，仅修改 `model/scheduler_a.py` 与 `tests/test_xhs_acquisition.py`；验证代理：独立 Verification Agent，结论 PASS。
+- 修改状态/进度：新增固定白名单 `search_response_class`（generic_json/note_result/empty_result/unknown_schema/business_error/non_json）与 `search_target_outcome`（endpoint_not_seen/challenge_before_target_payload），保留旧 response_seen/json_ok/json_failed/title_count；不猜测 endpoint URL，只用支持结构判断目标 payload。独立验证：XHS 39/39、XHS+Market Quality+Render 64/64、全量 unittest 383/383（5 skip）、Production Readiness 48/48、py_compile、diff check 全部通过。
+- 验收标准：generic/challenge API JSON 不再冒充“笔记结果JSON成功”；已知 `data.items[].note_card.display_title/title` 结构可识别；empty items、candidate container但unknown schema、business error、non-JSON、endpoint未出现均有固定脱敏分类；challenge首目标得到 `challenge_before_target_payload` 且跳过11；旧漏斗字段兼容；日志/health不含敏感内容；XHS/Render/全量/Production Readiness通过。
+- 是否需要用户决定：否；只修诊断真实性，不改变外部采集行为。
+- 是否涉及真实外部调用：本地实施不需要；部署后只观察自然half-open Cron，不手工触发。
+- 是否已部署到 Render：待本次 push 后核验；部署后不手工触发采集，只等待自然 half-open Cron。
 
 ### BUG-002B — 搜索来源退化的脱敏诊断漏斗
 
@@ -242,7 +259,7 @@
 - 真实外部服务：已调用 Moonshot/Amap。
 - 费用/数据：产生少量 API 费用；写 Staging 测试数据。
 
-### OPS-001 — XHS Cookie/session 持续有效性
+### OPS-002 — XHS Cookie/session 持续有效性
 
 - 状态：**INVESTIGATING**
 - 问题描述：授权 Cookie 会过期或被平台判失效。
@@ -323,22 +340,22 @@
 
 ### OPS-001 — 长请求期间 Render health check 瞬时超时重启
 
-- 状态：**INVESTIGATING**
+- 状态：**VERIFIED**
 - 优先级：High。
-- 问题描述：Render API Events 曾形成稳定小时级 health timeout：18:09、19:10、20:09、21:10、22:09 均出现 5 秒健康检查超时，随后约 1 分钟内自动恢复；OPS-001A 部署后的首个 23:05 自然窗口未再出现实例失败，但仍需更多窗口确认。
-- 证据：五次历史失败时间都紧邻 Market Timing `5 * * * *` 小时任务窗口；22:33 BUG-003 真实付费 Chat 完成后未出现新重启，因此“长 AI 请求本身”不是充分解释。commit `02dd0d0` 于 23:01 在 API live、Cron 构建成功，23:05:02–23:09:39 自然采集成功且 API Events 到 23:11 无新增 health timeout；公开 readiness 采样均返回 200，但 23:09:22 单次总耗时达 5.94 秒。未见 migration failure 或应用 Traceback。
-- 根因是否确认：部分确认；Cron N+1 PostgreSQL 连接风暴是已确认放大器，首个部署窗口支持该因果判断；readiness 自身多连接/重查询仍把响应推近或超过 Render 5 秒阈值，父风险需由 OPS-001B 与连续窗口共同闭环。
-- 涉及文件：待调查 `model/api.py` 长任务执行边界、Render health check/资源配置和运行指标；本任务不先改 timeout。
-- 风险：成功请求后实例重启会中断其他并发请求；若频繁发生，会降低 Staging/生产可用性。
-- 执行代理：待指定 Render/DevOps Reviewer + QA Investigator；验证代理：独立 Verification Agent。
+- 问题描述：Render API Events 曾形成稳定小时级 health timeout：18:09、19:10、20:09、21:10、22:09 均出现5秒健康检查超时；OPS-001A/B 分别消除Cron N+1连接风暴和同步重型readiness。
+- 证据：修复后23:05、00:05及其后自然轮次持续成功；最新09:05:02–09:09:03 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 成功采集272词，压力期readiness连续200、约0.82–1.12秒，09:09后仍200。API Events 顶部自commit `918a488` 23:58 live后无新实例失败/自动恢复，页面仅保留修复前5次历史timeout。
+- 根因是否确认：是；Cron N+1 PostgreSQL连接风暴与同步重型readiness是两个叠加放大器，均已修复并获真实PostgreSQL、连续自然Cron及Render Events证据。
+- 涉及文件：`model/hot_keywords.py`, `model/scheduler_a.py`, `model/api.py`, `model/db.py` 及对应测试；未修改 Render 资源规格或放宽平台 health check。
+- 风险：本轮已消除两个确认的放大器；未来数据库或外部依赖出现新的长阻塞仍需按 readiness 延迟与 Render Events 独立监控，不能把本结论外推为永久无故障。
+- 执行代理：单一 Implementation Agent 分别实施 OPS-001A/B；验证代理：独立 QA/Test Finder/Render Reviewer，父任务由第三个自然窗口闭环。
 - 验收标准：至少连续 3 个小时任务窗口与受控长请求期间 readiness 均持续成功，或确认并修复可复现的共享依赖阻塞；不得仅靠放宽健康标准掩盖数据库/事件循环问题。
 - 是否需要用户决定：若需升级 Render 资源或产生持续费用，则需要；只读调查与本地复现不需要。
 - 是否涉及真实外部调用：调查 Render 指标需要只读云端访问；额外付费 AI 样本需沿用已批准的小样本范围并单独计数。
-- 是否已部署到 Render：不适用；当前为运行时风险。
+- 是否已部署到 Render：是；OPS-001A commit `02dd0d0`、OPS-001B commit `918a488` 已部署，父任务以第三个自然 Cron 窗口和 API Events 完成云端验收。
 
 ### OPS-001A — Market Cron 趋势计算 N+1 PostgreSQL 连接
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：Market Cron 在结果构建阶段对每个候选关键词逐个调用 `compute_trend_dir()`，每次都新建/关闭 PostgreSQL 连接；五个 18:09–22:09/10 API health timeout 与该阶段 5/5 重合。
 - 证据：18–22 点 Cron 均 05:02 启动、约 10:28–10:46 才输出 Scraped，API 在 09/10 分超时并紧邻该阶段结束恢复；代码路径 `scheduler_a.scrape_once()`→`compute_trend_dir()`→`hot_keywords._db_conn()` 已确认 N+1。最终 homefeed 结果每轮 101–121，过滤前理论上最多 10×300 个候选；22:09:48–49 PostgreSQL 日志两秒内至少 12 次授权连接，无 ERROR/FATAL/死锁。
@@ -346,27 +363,27 @@
 - 涉及文件：`model/hot_keywords.py`, `model/scheduler_a.py`, `tests/test_market_timing_keyword_quality.py` 及必要的采集回归；不改 API readiness、schema、Cron 时间、Cookie、selector 或资源规格。
 - 风险：批量查询若改变最近四次快照的排序/去重，会改变趋势方向和最终排序；必须保持 SQLite/PostgreSQL 兼容并限制 SQL 参数规模。
 - 执行代理：单一 Repository Explorer；验证代理：独立 QA/Test Finder。
-- 修改状态/进度：最小实施与本地独立验证已完成。新增批量趋势方向查询，800 参数分块、窗口函数每关键词仅取最近4条、所有分块共享同一连接；单关键词函数保持兼容并委托批量实现；Scheduler 在候选循环前一次去重预计算。首个失败证据为批量 API/SQL 构造器不存在的3项 ERROR及 Scheduler 预计算 0!=1。独立验证：SQLite 边界与3000词连接预算通过；全新 PostgreSQL 18 以15,000条快照/3,000词真实执行，结果与独立逐词算法全量一致，3000词1连接/4 SELECT、100词1连接/1 SELECT；market+XHS+Render+API 209/209、全量 unittest 359/359（5 skip）、Production Readiness 48/48、py_compile/Compose/diff check 全部通过。临时 PG 容器和本轮 Colima 已清理。首个 Render 自然窗口（23:05:02–23:09:39）采集235词并成功结束，相比上一窗口 22:05:02–22:10:53 缩短约74秒；API 无新增实例失败。该窗口记为 1/3，通过但尚不足以标记 VERIFIED。
+- 修改状态/进度：最小实施、本地独立验证与云端独立验证均完成。新增批量趋势方向查询，800 参数分块、窗口函数每关键词仅取最近4条、所有分块共享同一连接；单关键词函数保持兼容并委托批量实现；Scheduler 在候选循环前一次去重预计算。首个失败证据为批量 API/SQL 构造器不存在的3项 ERROR及 Scheduler 预计算 0!=1。独立验证：SQLite 边界与3000词连接预算通过；全新 PostgreSQL 18 以15,000条快照/3,000词真实执行，结果与独立逐词算法全量一致，3000词1连接/4 SELECT、100词1连接/1 SELECT；market+XHS+Render+API 209/209、全量 unittest 359/359（5 skip）、Production Readiness 48/48、py_compile/Compose/diff check 全部通过。Render 23:05:02–23:09:39 采集235词、00:05:02–00:09:27 采集252词，两个连续窗口成功且API无实例失败，满足本子任务2个自然窗口验收。父OPS-001仍单独等待第3窗口。
 - 验收标准：批量结果与旧算法逐词结果一致；100–3000 个候选仅使用常数级连接（目标 1 个，允许同一连接内分批 SQL）；采集来源/数量/排序语义不回退；本地全量通过；部署后连续 2–3 个自然 `:05–:12` 窗口 API 无 health timeout 且 Cron 成功。
 - 是否需要用户决定：否；不改变产品行为或付费资源。
 - 是否涉及真实外部调用：本地实施不需要；最终只观察自然 Cron，不手工追加采集。
-- 是否已部署到 Render：是；commit `02dd0d0`，Market Cron 构建成功，API 于 23:01 live，首个自然窗口通过。
+- 是否已部署到 Render：是；commit `02dd0d0`，Market Cron 构建成功；23:05 与 00:05 两个连续自然窗口通过。
 
 ### OPS-001B — Render readiness 轻量化与有限 DB 超时
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：`/health/ready` 将 Market Timing 标为 nonblocking，但仍同步建立约 11 个 PostgreSQL 连接并执行约 14 条查询；单连接延迟约 520ms 时，本地 PostgreSQL 路径 Mock 可把 readiness 拖到 5.251 秒。
 - 证据：`api._readiness_payload()`、`hot_keywords.db_status()`、六行业 `freshness_status()`、access/cooldown/latest health 串行调用链已核对；Admin 的轻量 readiness 未出现同类小时级失败。OPS-001A 首个自然窗口公开 readiness 全部返回 200，但 23:09:22 单次总耗时 5.94 秒，继续证明当前实现没有足够的 5 秒安全余量。
 - 根因是否确认：是；readiness 自身是连接/延迟放大器。OPS-001A 首个自然窗口隔离出残余风险：即使 Cron 已消除 N+1，公开 readiness 仍出现 5.94 秒峰值。只读 QA 另以 `db_status` 与 `freshness_overview` 各延迟 1.1 秒复现 `_readiness_payload()` 同步阻塞 2.205 秒。
 - 涉及文件：最小范围限定为 `model/api.py`, `model/db.py`, 新增聚焦 readiness tests 及既有 API/Render 回归；不改业务 `get_conn()` 默认超时、不改 schema/migration/Cron/Render 规格，不改 `/market-timing/freshness` 的实时质量门禁。
 - 风险：过度轻量化可能把数据库或模型真实故障误报为 ready；必须保留单次 DB ping、模型加载和 AI 配置检查，并维持公开响应兼容或明确缓存时间。
-- 执行代理：单一 Repository Explorer；验证代理：独立 QA/DevOps（第三轮真实 PostgreSQL 复验待执行）。
-- 修改状态/进度：三路只读调查及三轮最小实施完成。第二轮独立复验已确认 SQLite close、market 双-generation 有界恢复、旧 bool 类型、硬门禁合同及底层 PostgreSQL statement timeout/普通连接隔离全部 PASS；唯一残余的 libpq pause 约2.04秒问题已用 API 层 wall-clock 协调器修正。新协调器每个请求最多等待1.5秒，20并发共享单个在途探针，hard-age 3秒后最多允许1个替代 generation，总 live daemon≤2，旧 generation 不覆盖新结果；超时返回安全503，并保留底层health-only超时。第三轮首失败为新增6项全部 ERROR（协调器不存在）。最终独立复验 PASS：一次性PG18 pause后 internal/public共6次均503且不假绿，耗时1.511/0.528/0.000/0.002/0.000/0.002秒，unpause后0.3秒首轮恢复200；250ms statement timeout真实中断pg_sleep，普通get_conn无外溢；20并发正常与超时均仅1次collector。定向169/169、全量unittest381/381（5 skip）、Production Readiness48/48、py_compile/Compose/diff check通过；临时资源已清理。现可提交部署，但在Staging smoke和自然窗口完成前保持 READY_TO_VERIFY。
+- 执行代理：单一 Repository Explorer；验证代理：独立 QA/DevOps（PASS）。
+- 修改状态/进度：三路只读调查及三轮最小实施完成。第二轮独立复验已确认 SQLite close、market 双-generation 有界恢复、旧 bool 类型、硬门禁合同及底层 PostgreSQL statement timeout/普通连接隔离全部 PASS；唯一残余的 libpq pause 约2.04秒问题已用 API 层 wall-clock 协调器修正。新协调器每个请求最多等待1.5秒，20并发共享单个在途探针，hard-age 3秒后最多允许1个替代 generation，总 live daemon≤2，旧 generation 不覆盖新结果；超时返回安全503，并保留底层health-only超时。第三轮首失败为新增6项全部 ERROR（协调器不存在）。最终独立复验 PASS：一次性PG18 pause后 internal/public共6次均503且不假绿，耗时1.511/0.528/0.000/0.002/0.000/0.002秒，unpause后0.3秒首轮恢复200；250ms statement timeout真实中断pg_sleep，普通get_conn无外溢；20并发正常与超时均仅1次collector。定向169/169、全量unittest381/381（5 skip）、Production Readiness48/48、py_compile/Compose/diff check通过；临时资源已清理。Render 部署与首个自然Cron压力窗口同样通过，现标记 VERIFIED。
 - 验收标准：受控慢市场 collector 下 readiness <2 秒且绝不超过5秒；冷缓存立即返回 unknown，fresh/stale 状态清晰且旧绿色不能无限保留；20 并发探针最多一次市场刷新；稳态每次 readiness 主路径仅 1 个 blocking DB ping；DB 连接/查询失败有限时间内返回结构化 503；数据库、模型、Staging 必需 AI 配置继续真实阻断；旧响应字段为新响应子集且不泄露 Cookie/URL/异常正文；定向、全量、Production Readiness、py_compile、Compose 与一次性 PostgreSQL 验证通过。
 - 是否需要用户决定：若要升级资源需要；代码轻量化不需要。
 - 是否涉及真实外部调用：本地 Mock/临时 PostgreSQL；部署后只读观察。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：是；commit `918a488` 于 23:58:16 live，pre-deploy `migrations_applied=0`。部署后内部5秒探针连续200；00:05自然Cron压力期公开采样全部200、约0.79–1.04秒，00:11仍200；API Events无新增实例失败。
 
 ### PERF-001A — SSE 阶段计时、慢响应保护与可复算统计基础
 
@@ -519,7 +536,7 @@
 ### High
 
 - **Staging 暴露**：`UX-001` 真实时延明显高于 UI 承诺。
-- **持续运维**：`OPS-001` XHS Cookie 可能自然失效；提醒机制已部署但仍需人工更新。
+- **持续运维**：`OPS-002` XHS Cookie 可能自然失效；提醒机制已部署但仍需人工更新。
 - **原有结构**：前端手工 payload 与后端 Pydantic 模型可能漂移；行为修改需 contract/e2e 双验证。
 - **权限**：用户 auth 与 admin auth 均能影响积分/配置，任何修改都必须负向权限测试。
 
