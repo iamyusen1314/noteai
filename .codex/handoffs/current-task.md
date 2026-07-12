@@ -18,8 +18,8 @@
 
 - 仓库：`iamyusen1314/noteai`
 - 当前分支：`codex/quality-stabilization-real-chain`
-- 当前业务代码基线：`87d679f0c972f100c884a8f6f6bcdcb66d55da77`（`fix: migrate managed prompts to v0.4`）；QA-003C/D/E 分别包含于 `9eebc8c`、`3041d87`、`bf0c4be`。
-- Render Staging Web/API/Admin 已包含 `87d679f`；API deploy `dep-d99lhrr7uimc73f22slg` 已 live，pre-deploy `migrations_applied=0` 且12条Prompt基线已为current。新会话仍必须重新核对 Render Events 中的 live commit。
+- 当前业务代码基线：`4548304f445f955ba54c794b2762b18c36c67a99`（`docs: close XHS recovery investigation`），包含BUG-002E `2c39008` 与BUG-002F `4667d71`；QA-003C/D/E 分别包含于 `9eebc8c`、`3041d87`、`bf0c4be`。
+- Render Staging Web/API/Admin 与市场时机Cron已包含 `4548304`；API deploy `dep-d99nkaks728c73ds65t0` 已 live，pre-deploy `migrations_applied=0` 且12条Prompt基线为current；市场时机Cron build `bld-d99nkbcs728c73ds66q0` succeeded。新会话仍必须重新核对 Render Events 中的 live commit。
 - 远程跟踪分支：`origin/codex/quality-stabilization-real-chain`
 - 禁止直接合并 `main`，禁止 force push。
 
@@ -170,15 +170,15 @@
 - 状态：**VERIFIED**
 - 优先级：Critical；当前最高优先级调查项。
 - 问题描述：自然 Cron 的 `search_result` 与 `search_recommend` 持续为0；累计 freshness 仍可能满足，但最新单轮明确 degraded。
-- 证据：自然 run `19a8c433-923e-4a06-a26f-d1c5aa506d37` 首目标进入 challenge 后熔断11个目标，09:05 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 在6小时 cooldown 中安全跳过12/12搜索目标。冷却后连续四个自然轮次 `478f3783-…`、`5559f473-…`、`ce83808b-…`、`6a686edd-…` 均恢复四来源且非手工触发。最新完整轮次 `6a686edd-d1e2-49bf-a072-e8d8e6b5b136` 于18:05开始、18:13成功结束，采集520条（homefeed119/search_result206/search_recommend75/hot_search120），质量处理后405条且四来源无缺失；固定分类为note_result14/generic_json964/unknown_schema0/empty_result0/business_error12/non_json123，challenge_before_target_payload0、diagnostic_error_codes空、circuit closed。19:05自然轮次已启动但未用作成功证据。
+- 证据：自然 run `19a8c433-923e-4a06-a26f-d1c5aa506d37` 首目标进入 challenge 后熔断11个目标，09:05 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 在6小时 cooldown 中安全跳过12/12搜索目标。冷却后 `478f3783-…`、`5559f473-…`、`ce83808b-…`、`6a686edd-…` 连续四个自然轮次均恢复四来源且非手工触发；`6a686edd-…` 固定分类为note_result14/generic_json964/unknown_schema0/empty_result0/business_error12/non_json123，challenge_before_target_payload0、错误码空、circuit closed。其后19:05自然轮次也于19:13成功结束，run `ad7eca7e-da9d-4ac7-b1fc-7de7b6d2872c` 质量处理后359条（homefeed49/search_result147/search_recommend91/hot_search72），四来源无缺失、状态healthy，累计成为五个连续自然健康轮次。
 - 根因是否确认：是。来源归零直接原因是短暂 XHS challenge 与随后6小时 cooldown；熔断/冷却按设计工作并自然恢复。BUG-002D 已把普通辅助JSON与真正note_result分开，连续健康轮次均出现真实note_result且unknown_schema=0，没有证据支持平台schema改名或继续修改解析器。
 - 涉及文件：`model/scheduler_a.py`, `model/xhs_acquisition.py`, `tests/test_xhs_acquisition.py`, `tests/test_render_deployment.py`；不改 Cookie、UA/viewport、频率、challenge绕过或数据库。
-- 风险：平台挑战仍可能未来复发，现有策略会安全降级而不是绕过。静态审查另发现generic_json候选隔离及推荐路径变体的防御性边界，但最新轮次note_result>0、recommend items_raw>0，未触发这两个条件；若后续出现note_result=0但search_result>0或recommend json_ok>0但items_raw=0，再分别建立独立修复包，禁止凭猜测修改。
+- 风险：平台挑战仍可能未来复发，现有策略会安全降级而不是绕过。静态审查发现的generic_json候选隔离及推荐路径变体边界已分别由BUG-002E/F修复、独立验证并部署；若未来出现unknown_schema或正式推荐路径不再使用sug_items，只能依据新的固定结构证据另建解析包，禁止凭猜测修改。
 - 执行代理：Repository Explorer + QA Investigator + Test Finder（只读）；验证代理：独立 Render/DevOps Reviewer，结论 PASS。
-- 验收标准：已满足。固定分类可区分真正note_result与普通JSON；冷却后连续四个自然轮次search_result/search_recommend均非零，最新轮次challenge=0、unknown_schema=0、错误码空且成功结束。
+- 验收标准：已满足。固定分类可区分真正note_result与普通JSON；冷却后连续五个自然轮次search_result/search_recommend均非零，已核对分类轮次challenge=0、unknown_schema=0、错误码空且成功结束。
 - 是否需要用户决定：否；脱敏诊断修正不改变产品策略。若要改变challenge策略、采集频率或账号操作则需要。
 - 是否涉及真实外部调用：仅只读观察自然Cron与公开readiness；未手工触发、未改变频率、Cookie、指纹、重试或challenge策略。
-- 是否已部署到 Render：是；熔断/冷却commit `878787b` 与诊断分类commit `aa1f866` 均已在线，四个连续自然健康轮次完成云端验证。
+- 是否已部署到 Render：是；熔断/冷却 `878787b`、诊断分类 `aa1f866`、候选隔离 `2c39008` 与推荐路径修复 `4667d71` 均已在线；最终批次 `4548304` API deploy live、Cron build succeeded，五个连续自然健康轮次完成父任务云端验证。
 
 ### BUG-002D — 搜索响应结构诊断真实性
 
@@ -198,7 +198,7 @@
 
 ### BUG-002E — 普通搜索辅助 JSON 候选隔离
 
-- 状态：**VERIFIED**
+- 状态：**READY_TO_VERIFY**
 - 优先级：High。
 - 问题描述：BUG-002D 已把 `generic_json` 与 `note_result` 分开统计，但搜索响应处理仍会对所有宽泛命中的JSON递归提取任意 `display_title/title`；普通辅助JSON若带同名字段，仍可能污染 `search_result` 并造成健康假阳性。
 - 证据：只读静态审查与最小合成探针确认 `{'data': {'status': {'title': '辅助页面标题'}}}` 被分类为 `generic_json`，但旧候选提取结果仍为1。最新自然轮次已有真实 `note_result=14`，所以该缺口不是本轮恢复的阻断原因，而是独立正确性风险。
@@ -210,11 +210,11 @@
 - 验收标准：generic_json、business_error、empty_result、unknown_schema、non_json均不能贡献搜索title/phrase/final；已识别note_result正常提取；homefeed与推荐语义不变；固定枚举/计数兼容且不记录敏感内容；XHS、Render、全量单元测试和Production Readiness通过。
 - 是否需要用户决定：否；属于诊断分类与候选边界一致性修复，不改变采集策略。
 - 是否涉及真实外部调用：本地mock足够；部署后只观察自然轮次，不手工高频采集。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：是；commit `2c39008` 随最终批次 `4548304` 部署，API deploy `dep-d99nkaks728c73ds65t0` live，市场时机Cron build succeeded。部署后未手工触发采集，等待下一自然轮次验证收紧后的候选计数。
 
 ### BUG-002F — 推荐路径分类与 `sug_items` 解析一致性
 
-- 状态：**VERIFIED**
+- 状态：**READY_TO_VERIFY**
 - 优先级：Medium。
 - 问题描述：推荐响应分类支持四种既有路径形态，但 `sug_items` 专用解析只进入其中一种精确路径；若平台切换到其余已支持形态，可能出现recommend json_ok>0但items_raw=0。
 - 证据：只读合成探针确认四种分类均为recommend，但只有精确 `search/recommend` 进入专用解析，其余三种无法提取 `data.sug_items`。最新自然轮次recommend responses17/items_raw170/final75，当前线上未触发该退化。
@@ -226,7 +226,7 @@
 - 验收标准：四种已支持recommend路径均使用同一 `sug_items` 解析并归入search_recommend，不落hot_search；未知路径仍不解析；旧精确路径、固定计数和脱敏约束不回归。
 - 是否需要用户决定：否。
 - 是否涉及真实外部调用：本地mock足够；最终只观察自然Cron。
-- 是否已部署到 Render：否；本地独立验证已完成，待与BUG-002E批量推送后部署，避免两次连续Render构建。
+- 是否已部署到 Render：是；commit `4667d71` 随最终批次 `4548304` 部署，API deploy `dep-d99nkaks728c73ds65t0` live，市场时机Cron build succeeded。部署后未手工触发采集，等待下一自然轮次完成云端功能验收。
 
 ### BUG-002B — 搜索来源退化的脱敏诊断漏斗
 
@@ -658,6 +658,38 @@
 - 是否需要用户决定：若需新增审计字段或改变成本展示口径则需要；仅渲染既有安全字段不需要。
 - 是否涉及真实外部调用：调查与 route-mock 否；最终只读 Staging 管理端复验。
 - 是否已部署到 Render：是，commit `bf0c4be`；Staging Admin 已包含own-property枚举helper与两张账本。合成route仅1次GET，原型键均显示固定未知标签，敏感哨兵不进DOM，恶意HTML元素0，真实管理端写入/AI/积分0；Admin readiness 200。
+
+### QA-004 — 管理端系统状态跨服务与字段契约漂移
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：High。
+- 问题描述：Dashboard 把实际已配置且健康的 Kimi/Moonshot、Claude 显示为“未配置”，并显示 `undefined` 与 `undefined MB`；会误导管理员判断AI和数据库故障。
+- 证据：2026-07-12 截图与Staging只读复现一致。API `/health/ready` HTTP 200且 `claude_configured=true/moonshot_configured=true`、数据库 `ok=true/backend=postgresql`；管理页仍显示两项未配置。线上HTML仍读取 `s.kimi_key_prefix` 和 `s.db_size_mb`，但Admin `/admin/overview` 已不返回这两个字段，只返回configured布尔、模型状态、`database_backend` 与时间。
+- 根因是否确认：是。AI配置状态错误地读取Admin容器自身环境变量，而Render只把AI Key注入实际调用模型的API服务；另外Render/PostgreSQL迁移提交 `f2b1c3b` 安全删除Key前缀与SQLite文件大小字段并新增 `database_backend`，前端未同步。
+- 涉及文件：`model/admin_server.py`, `model/admin.html`, `render.yaml`, `tests/test_admin_system_status.py`, `tests/test_render_deployment.py`, `tests/e2e/admin-system-status.spec.js`；只读消费API readiness安全状态，不改Render Secret值。
+- 风险：High运维误报；修复不得恢复Key前缀或把Secret复制到Admin服务，也不得把“Admin容器无Key”解释为实际API不可用。PostgreSQL大小若未安全查询应显示后端类型/健康，不得伪造MB。
+- 执行代理：QA-004 单一Implementation Agent；验证代理：独立QA/Security/Render Verification Agent，结论PASS。
+- 修改状态/进度：已先得到7个错误与2个失败的失败合同，再最小实现。Admin通过非Secret `NOTEAI_API_READINESS_URL` 只读取公开API readiness中固定 `checks.ai.ok/claude_configured/moonshot_configured`；HTTP 200及强制AI Key门禁返回的503均进入同一白名单解析，其他状态、字段缺失、结构矛盾、超时或异常统一返回固定 `unavailable`，不返回URL、上游正文或异常；旧configured布尔键保持兼容。Dashboard改用显式三态和 `database_backend/database_ok`，不再读取Key前缀或本地数据库MB；Render只给Admin配置公开readiness URL，未复制AI Key。独立验证首轮发现503有效状态被错误降级为unavailable，已先补fetch层503正负合同并只将允许解析状态扩为 `{200,503}`。最终独立PASS：对抗探针10类、核心7/7、相关70/70、全量unittest435/435（5 skip）、Admin Playwright7/7、Production Readiness48/48、py_compile/Compose/diff check通过；真实AI、业务写入、Secret访问和部署均为0。commit `0bda1f8`，待批量推送部署后做Staging只读Smoke。
+- 验收标准：实际API readiness配置正常时显示Kimi/Claude已配置；API不可检测时显示固定“不可检测”而非未配置；数据库显示PostgreSQL/SQLite后端与健康状态，缺失字段不出现undefined；不返回/显示任何Key前缀；API/Admin/Web健康、合同与Playwright测试通过。
+- 是否需要用户决定：否；属于状态真实性和安全字段兼容修复。
+- 是否涉及真实外部调用：本地route-mock足够；最终只读Staging health/UI Smoke。
+- 是否已部署到 Render：否。
+
+### FIN-002 — 毛利覆盖口径与历史不可复算说明
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：Medium。
+- 问题描述：收入/用量页正确阻止不完整成本数据宣称“实际毛利”，但“严格实际4/35”和“历史不可复算31”的含义不直观，用户容易误解为模型配置或价格缺失。
+- 证据：Staging最近30日 `total_records=35`、`strict_actual_records=4`、`legacy_unverifiable_records=31`，partial/unpriced/usage_incomplete均0，严格覆盖11.4%。4条为FIN-001上线后真实Analyze、Generate、Chat Rewrite与Kimi Vision父操作；31条为0006逐模型表上线前记录。
+- 根因是否确认：是。31条历史父记录只有聚合Token/模型名/旧成本，没有逐调用模型、普通/缓存Token、缓存TTL、精确单价、币种、汇率与价格版本快照，无法可靠复算；系统故意不伪造回填。`actual_margin_ready` 仅在total>0且strict==total时为true。
+- 涉及文件：`model/admin.html`, `tests/e2e/admin-cost-coverage.spec.js`；未修改 `model/admin_server.py`、SQL、billing、数据库或聚合定义。
+- 风险：财务口径风险。当前API成本是4条严格实际+31条旧估算的混合值；订阅收入也是有效套餐人数×套餐价估算，不是支付流水。不得为显示百分比而放宽门禁或伪造历史成本。
+- 执行代理：单一Implementation Agent；验证代理：独立Billing/Data/Browser Verification Agent，结论PASS。
+- 修改状态/进度：单一Implementation仅修改 `model/admin.html` 与新增route-mock覆盖测试，不改SQL/API/billing/DB或门禁。Dashboard明确“本月”，收入/用量明确“最近30日”；显示严格实际操作记录、覆盖率及legacy/partial/unpriced/usage_incomplete，并解释严格实际为完整逐模型用量与价格证据、历史不可复算为审计上线前缺少明细且系统不伪造回填；订阅收入明确为有效套餐人数×套餐价估算、非支付流水。独立首轮发现前端round/clamp可把损坏计数伪造成100%及解释不足，已退回收紧：六个计数字段必须为原生非负SafeInteger，strict<=total且五类合计=total，否则固定unavailable；最后才允许后端`actual_margin_ready=true`且total>0、strict=total显示实际毛利。最终独立PASS：FIN专项13/13、单worker全量Playwright66/66、相关Python66/66、全量unittest435/435（5 skip）、Production Readiness48/48、node/py_compile/Compose/diff check通过；无undefined/NaN/XSS/敏感字段或写请求，QA-004不回归。commit `f58c885`，待批量推送部署后做Staging只读Smoke。
+- 验收标准：页面明确“最近30日、4条操作具备完整逐模型证据、31条为审计表上线前历史”；分类之和等于总数；覆盖不足仍不得宣称实际毛利；若展示新口径cohort，必须与全窗口混合估算并列且标注样本量/起始时间。
+- 是否需要用户决定：只增加解释文案不需要；若现在新增独立“新口径实际毛利”指标，需要产品确认口径。
+- 是否涉及真实外部调用：否；使用合成聚合与现有只读Staging数据。
+- 是否已部署到 Render：当前严格门禁已部署且行为正确；说明优化commit `f58c885` 尚待批量推送部署。
 
 ### PROMPT-001 — Prompt 管理源与 V0.4 行业运行时漂移
 
