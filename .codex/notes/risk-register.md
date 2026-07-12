@@ -57,10 +57,11 @@ Last updated: 2026-07-12
 
 ### SSE progress and terminal recovery can leave successful paid work looking stuck
 
+- 状态: 客户端/协议部分已由 `PERF-001B` 在 Render Staging 验证（commit `2579c08`/`f8b98b4`）；持久回放、stale lease 与副作用/退款一致性仍由 `BILL-002` 跟踪。
 - 风险描述: 真实 Staging Smoke 中 Analyze 阶段继续推进但百分比停在34%，Generate 停在0%，Chat 正式内容返回后输入框仍延迟恢复；当前客户端 parser/终态状态机和 durable replay 边界不完整。
 - 涉及文件: `NoteAI_Pro_Demo_Framer.html`, `model/api.py`, SSE/Chat e2e 与 contract tests；持久回放另涉及 billing/db/migration。
 - 可能后果: 用户误以为付费任务失败、重复提交或离开页面；断流/重启窗口可能出现结果、usage、退款和幂等状态不一致。
-- 建议验证方式: 先实施 `PERF-001B` 的终态/分帧/不确定态最小包；再以 `BILL-002` 做 PostgreSQL 故障注入、stale lease 和 durable result replay 验证。不得自动重试付费 AI。
+- 建议验证方式: `PERF-001B` 不重复实施；下一阶段仅以 `BILL-002` 做 PostgreSQL 故障注入、stale lease 和 durable result replay 验证。不得自动重试付费 AI。
 - 是否需要用户确认后才能修改: 客户端/协议兼容修复不需要；migration、结果保留期限和真实故障 Smoke 需要。
 
 ### Frontend/backend payload drift

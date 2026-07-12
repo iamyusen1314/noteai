@@ -40,6 +40,8 @@ import db
 import admin_auth as _aauth
 import billing as _billing
 import runtime_settings as _settings
+import prompt_baselines as _prompt_baselines
+import prompt_composer as _prompt_composer
 
 try:
     import xhs_acquisition as _xhs_acq
@@ -648,6 +650,48 @@ async def admin_prompt_get(key: str, admin: dict = Depends(_aauth.get_admin_user
         raise HTTPException(status_code=404, detail=f"Prompt '{key}' 不存在")
     history = data.get("history", {}).get(key, [])
     return {**p, "key": key, "history": history[-10:]}
+
+
+def _build_effective_prompt_preview(key: str, domain: str, content: str, version: int) -> dict:
+    requested_domain = _prompt_composer.canonicalize_domain(domain)
+    effective_domain = "通用" if key == "semantic_features" else requested_domain
+    composed = _prompt_composer.compose_effective_prompt(
+        key,
+        effective_domain,
+        content,
+        allow_other_domain=key == "semantic_features",
+    )
+    return {
+        "key": key,
+        "domain": composed.domain,
+        "requested_domain": requested_domain,
+        "model_strategy": "V0.4",
+        "baseline_id": _prompt_baselines.BASELINE_ID,
+        "base_revision": int(version or 1),
+        "preview_kind": "effective_template",
+        "preview_complete": False,
+        "rendered_text": composed.text,
+        "dynamic_layers": _prompt_composer.dynamic_layer_labels(key),
+        "privacy_notice": "真实请求会按路由追加行业规则和授权材料；预览不包含用户正文、记忆、附件、内部推理或认证信息。",
+    }
+
+
+@admin_app.get("/admin/prompts/{key}/effective")
+async def admin_prompt_effective_preview(
+    key: str,
+    domain: str,
+    admin: dict = Depends(_aauth.get_admin_user),
+):
+    row = db.fetchone(
+        "SELECT key,content,version FROM managed_prompts WHERE key=?",
+        (key,),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Prompt 不存在")
+    try:
+        return _build_effective_prompt_preview(key, domain, row["content"], row["version"])
+    except ValueError:
+        raise HTTPException(status_code=422, detail="不支持的行业") from None
 
 
 class PromptUpdateInput(BaseModel):

@@ -69,6 +69,7 @@ import memory as _memory
 import billing as _billing
 import idempotency as _idempotency
 import prompt_manager as _pm
+import prompt_composer as _prompt_composer
 import fact_enrichment as _facts
 import quality_objective as _qobj
 import performance_scoring as _perf
@@ -376,7 +377,13 @@ _KIMI_SEMANTIC_PROMPT_DEFAULT = """请对以下小红书笔记评估3个维度�
 
 def _KIMI_SEMANTIC_PROMPT():
     """动态获取，支持热加载。"""
-    return _pm.get("semantic_features", _KIMI_SEMANTIC_PROMPT_DEFAULT)
+    base = _pm.get("semantic_features", _KIMI_SEMANTIC_PROMPT_DEFAULT)
+    return _prompt_composer.compose_effective_prompt(
+        "semantic_features",
+        "通用",
+        base,
+        allow_other_domain=True,
+    ).text
 
 
 def compute_semantic_features(title: str, desc: str) -> dict:
@@ -911,50 +918,26 @@ def _xtag_any(text: str, *tags: str) -> str:
     return ""
 
 
-_LEGACY_PROMPT_REPLACEMENTS: tuple[tuple[str, str], ...] = (
-    ("基于v0.3模型10万+真实数据", "基于V0.4复合交付目标与授权真实笔记样本"),
-    ("基于v0.3模型10万+数据", "基于V0.4复合交付目标与授权真实笔记样本"),
-    ("基于v0.3模型", "基于历史辅助评分器"),
-    ("v0.3模型", "历史辅助评分器"),
-    ("CES≥70", "高质量可交付"),
-    ("CES<40", "低质量不可交付"),
-    ("CES分位", "历史互动分位遥测"),
-    ("CES", "历史互动分位遥测"),
-    ("37%权重", "重要辅助信号"),
-    ("14%权重", "辅助聚焦信号"),
-    ("4%权重", "辅助标签信号"),
-    ("最重要单一特征", "重要辅助特征"),
-    ("缺一必补", "有事实来源时优先补充"),
-    ("100%高分样本", "高质量样本常见"),
-)
-
-
 def _neutralize_legacy_prompt_conflicts(prompt: str) -> str:
-    """Downgrade old v0.3 prompt wording without deleting admin-managed prompts."""
-    text = prompt or ""
-    for old, new in _LEGACY_PROMPT_REPLACEMENTS:
-        text = text.replace(old, new)
-    text = re.sub(r"(?m)^数据来源说明：.*?(?=\n\n|$)", "数据来源说明：以下历史统计只作辅助参考；V0.4以交付价值、事实可信、自然表达和人工偏好为主。", text, flags=re.DOTALL)
-    return text
+    """Compatibility wrapper for callers and tests using the old helper."""
+    return _prompt_composer.neutralize_legacy_prompt_conflicts(prompt)
 
 
 def _v04_runtime_prompt_prefix(key: str, domain: str | None = None) -> str:
-    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "通用")
-    return (
-        f"【V0.4运行时最高优先级覆盖｜{key}｜{canonical}】\n"
-        "- 当前链路服务 NoteAI V0.4 复合交付目标；后文若出现 v0.3、CES、固定权重、硬凑特征等旧话术，只能当历史遥测参考。\n"
-        "- 第一目标是用户愿意发布、读者愿意收藏、事实可信、行业适配且自然好读的笔记，不是机械追分。\n"
-        "- 先规划读者价值、事实边界、行业结构、标题吸引力、正文信息密度和自然表达，再参考62维辅助特征修缺口。\n"
-        "- 不得为了命中特征编造价格、地址、营业时间、体验经历、医学/功效承诺；已核验事实优先，缺失事实用自然安全表达。\n"
-        "- 三个标题/方案必须代表不同叙事角度；正文必须服务对应标题，不得复用同一篇正文冒充不同方案。\n"
-        "- 若本段与 prompts.json、管理端 prompt 或旧示例冲突，以本段、统一质量契约和生成前规划 Brief 为准。"
-    )
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "美食")
+    canonical = _prompt_composer.canonicalize_domain(canonical, allow_other=True)
+    return _prompt_composer.v04_runtime_prefix(key, canonical)
 
 
 def _runtime_prompt(key: str, domain: str | None = None, fallback: str = "") -> str:
     base = _pm.get(key, fallback)
-    base = _neutralize_legacy_prompt_conflicts(base)
-    return f"{_v04_runtime_prompt_prefix(key, domain)}\n\n{base}".strip()
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "美食")
+    return _prompt_composer.compose_effective_prompt(
+        key,
+        canonical,
+        base,
+        allow_other_domain=True,
+    ).text
 
 
 ProgressEmitter = Callable[[dict[str, Any]], Awaitable[None]]
@@ -10813,8 +10796,11 @@ async def startup():
     if _SCHEDULER_AVAILABLE and os.environ.get("NOTEAI_API_STARTS_TREND_SCHEDULER", "0").lower() in {"1", "true", "yes"}:
         import threading
         threading.Thread(target=start_scheduler, kwargs={"interval_minutes": 60}, daemon=True).start()
-    # 初始化共享 Prompt（首次运行从版本化默认值写入数据库）
-    _init_default_prompts()
+    # PostgreSQL baseline writes belong to Render predeploy, not worker startup.
+    if _db.using_postgres():
+        _pm.audit_versioned_baseline()
+    else:
+        _pm.apply_versioned_baseline()
 
 
 def _init_default_prompts():

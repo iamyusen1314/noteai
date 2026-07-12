@@ -26,7 +26,7 @@ RUN apt-get update \
 COPY model/ ./model/
 COPY scripts/docker_entrypoint.sh scripts/render_start_api.sh scripts/render_start_admin.sh \
     scripts/render_predeploy.py scripts/render_run_market_timing.sh scripts/render_run_crawler.sh \
-    scripts/migrate_sqlite_to_postgres.py ./scripts/
+    scripts/migrate_sqlite_to_postgres.py scripts/migrate_managed_prompts_v04.py ./scripts/
 COPY NoteAI_Pro_Demo_Framer.html ./NoteAI_Pro_Demo_Framer.html
 
 WORKDIR /app/model
@@ -37,7 +37,7 @@ RUN groupadd --system noteai \
     && useradd --system --gid noteai --home-dir /app --shell /usr/sbin/nologin noteai \
     && chmod +x /app/scripts/docker_entrypoint.sh /app/scripts/render_start_api.sh /app/scripts/render_start_admin.sh \
         /app/scripts/render_predeploy.py /app/scripts/render_run_market_timing.sh /app/scripts/render_run_crawler.sh \
-        /app/scripts/migrate_sqlite_to_postgres.py \
+        /app/scripts/migrate_sqlite_to_postgres.py /app/scripts/migrate_managed_prompts_v04.py \
     && chown -R noteai:noteai /app /ms-playwright
 
 ENV PORT=8000

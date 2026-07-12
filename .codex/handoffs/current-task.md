@@ -10,7 +10,7 @@
 - 当前不是正式生产上线阶段；不得把 Staging 通过等同于商业上线完成。
 - AI 诊断、爆文生成、对话优化、截图/视频理解、事实源、积分账本和管理端已完成受控的真实 Staging 验证。
 - 正式支付订单、回调签名、幂等、退款与对账流程尚未确认，是独立的生产阻断项 `PROD-001`。
-- `BILL-001`、`FIN-001`、`SEC-005`、`QA-003A`、`QA-003B` 已闭环；`BUG-002` 父任务继续只等待自然 half-open Cron，不追加高频采集。当前最高优先级转为 `PERF-001B` SSE 终态完整性；其后分别拆分 `QA-003` 已确认的剩余 UI 缺口。
+- `BILL-001`、`FIN-001`、`SEC-005`、`PERF-001B` 与 `QA-003A/B/C/D/E` 已闭环；`BUG-002` 父任务继续只等待自然 half-open Cron，不追加高频采集。生产事项仍保持延期。
 
 ## 2. 当前环境与版本
 
@@ -18,8 +18,8 @@
 
 - 仓库：`iamyusen1314/noteai`
 - 当前分支：`codex/quality-stabilization-real-chain`
-- 当前业务代码基线：`2776d7c52c91947498a073efbe7030a3f95615a8`（`fix: audit model costs and quota UX`）。
-- Render Staging Web/API/Admin 已对应 `2776d7c`，pre-deploy 已应用 `0006_model_usage_records.sql`；新会话仍必须重新核对 Render Events 中的 live commit。
+- 当前业务代码基线：`bf0c4be4e361b718b0f601755b058f1ee0174db5`（`feat: show safe admin usage ledgers`）；QA-003C/D 分别为 `9eebc8c`、`3041d87`。
+- Render Staging Web/API/Admin 已包含 `bf0c4be`；API deploy `dep-d99kj5mrnols73f8n5qg` 于 16:02 live，pre-deploy `migrations_applied=0`。新会话仍必须重新核对 Render Events 中的 live commit。
 - 远程跟踪分支：`origin/codex/quality-stabilization-real-chain`
 - 禁止直接合并 `main`，禁止 force push。
 
@@ -170,7 +170,7 @@
 - 状态：**INVESTIGATING**
 - 优先级：Critical；当前最高优先级调查项。
 - 问题描述：自然 Cron 的 `search_result` 与 `search_recommend` 持续为0；累计 freshness 仍可能满足，但最新单轮明确 degraded。
-- 证据：自然 run `19a8c433-923e-4a06-a26f-d1c5aa506d37` 首目标进入 challenge 后熔断11个目标，search `response_seen=35/json_ok=27/json_failed=8/title_count=0/phrase_raw=0`、recommend endpoint=0。09:05 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 在6小时 cooldown 中安全跳过12/12搜索目标，保留 homefeed=152/hot_search=120，search/recommend仍为0。
+- 证据：自然 run `19a8c433-923e-4a06-a26f-d1c5aa506d37` 首目标进入 challenge 后熔断11个目标，search `response_seen=35/json_ok=27/json_failed=8/title_count=0/phrase_raw=0`、recommend endpoint=0。09:05 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 在6小时 cooldown 中安全跳过12/12搜索目标，保留 homefeed=152/hot_search=120，search/recommend仍为0。2026-07-12 本轮只读 readiness 又观察到两个后续自然健康轮次：run `478f3783-d952-45c2-aaf3-f34eb706cf4f` 四来源合计395，run `5559f473-4e61-4da9-8d4c-3b7341dd8abc` 四来源合计297（homefeed51/search_result113/search_recommend61/hot_search72）；均非手工触发。仍按既定标准等待下一自然窗口后再决定父任务是否闭环。
 - 根因是否确认：部分确认。来源归零的当前直接原因是 XHS challenge/cooldown；安全熔断按设计工作。另已确认诊断误分类：搜索页上 URL 只要含 `search` 或 `api` 就计入 search response，可解析普通/挑战辅助JSON也会增加 `json_ok`，所以“27个JSON”不是27个搜索结果 payload。平台真实结果 schema 是否改名仍未确认，禁止盲加字段。
 - 涉及文件：`model/scheduler_a.py`, `model/xhs_acquisition.py`, `tests/test_xhs_acquisition.py`, `tests/test_render_deployment.py`；不改 Cookie、UA/viewport、频率、challenge绕过或数据库。
 - 风险：继续误读 broad `json_ok` 会把“未拿到目标端点”错判为 schema/解析故障；直接猜字段会引入无关标题和趋势数据污染。
@@ -358,7 +358,7 @@
 
 ### PERF-001B — SSE 终态完整性与不确定态 UX
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：Analyze/Generate/Chat 收到成功终态后仍继续读取 transport；后续断开可能覆盖成功。分帧未统一覆盖 CRLF、任意字节切片、EOF 尾 buffer；无终态断流只有泛化错误。timing envelope 覆盖业务 `process.v1` 亦会令可解释 Agent 事件被前端丢弃。
 - 证据：Explorer、QA、Test Finder 已核对三条 SSE consumer、`_timed_sse_stream` 与现有 stall/idempotency tests；定向 182/182、现有 stall/canonical Playwright 5/5 通过，但均不覆盖终态后断网、尾 buffer、CRLF和组合 schema。
@@ -366,11 +366,11 @@
 - 涉及文件：`NoteAI_Pro_Demo_Framer.html`, `model/api.py`, `tests/e2e/sse-stall-guard.spec.js`, `tests/e2e/chat-delivery-consistency.spec.js`, `tests/test_api_contracts.py`；不改 DB、billing、idempotency transaction、模型 timeout 或真实 P50/P95。
 - 风险：不能把本包描述为“完整断流恢复”；没有 durable result/status 时只能避免误判并显示 `outcome_unknown`。主动 timeout/abort 会放大付费副作用风险，禁止加入。
 - 修改状态/进度：单一 Implementation Agent 已完成共享 SSE parser，统一覆盖 Analyze/Generate/Chat 的 CRLF、UTF-8任意字节切片、`data:`前缀拆分、多事件与EOF无尾换行；首个complete/done/error后立即停止，终态后transport错误不覆盖成功。timing envelope保留业务`process.v1`并新增`transport_schema_version=sse.v1`；终态前断流统一固定`outcome_unknown`文案，不回显异常、不自动重试或换key；409四状态使用固定脱敏文案；Chat草稿不写正式DOM/localStorage，只有note_update/canonical_response可落正式快照；Analyze恢复安全process解释卡。未修改DB、billing、幂等事务、模型timeout、Prompt、Agent数或真实P50/P95。Implementation全量unittest402/402（5 skip）、Playwright33/33、Readiness48/48；独立QA/Protocol Verification PASS，额外确认Chat409请求1次/重建0次、complete后source异常或aclose仍completed且退款0、旧thinking事件继续忽略且raw/reasoning/HTML不进入解释卡。真实API/AI/积分调用0。
-- 执行代理：2026-07-12 已指定单一 Implementation Agent；验证代理：实施完成后独立 QA/Protocol Verification。
+- 执行代理：2026-07-12 单一 Implementation Agent；验证代理：独立 QA/Protocol Verification，结论 PASS。
 - 验收标准：业务 `schema_version=process.v1` 保留，transport 版本使用独立字段；complete/done/error 仅处理一次并立即停止消费，终态后 transport error 不覆盖结果；CRLF/任意切片/末尾无换行可解析；终态前断流显示结果确认中、不自动重试或生成新 key；Chat 草稿不成为正式版本，localStorage 只写 canonical/note_update；409 四状态显示固定安全文案；请求数仍为1。
 - 是否需要用户决定：否；只做客户端/协议完整性，不改变计费或数据模型。
 - 是否涉及真实外部调用：本地 mock 足够；最终 Staging 仅无付费 Smoke。
-- 是否已部署到 Render：否；本地实施与独立验证已完成，待提交、Render Staging无付费协议/静态Smoke后标记VERIFIED。
+- 是否已部署到 Render：是。业务 commit `2579c08`、CI 隔离修正 `f8b98b4`；两条 GitHub CI 均通过。Render API deploy `dep-d99jqimk1jcs73fctrvg` 于 15:10 live，pre-deploy `migrations_applied=0`，API/Admin readiness 200，Web 已包含共享 parser。Staging 无付费合成字节流验证通过：CRLF、拆分 `data:` 前缀、process+complete 多事件得到 `success`，终态只处理一次，页面脚本错误 0；真实 AI/积分调用 0。
 
 ### OPS-001 — 长请求期间 Render health check 瞬时超时重启
 
@@ -534,15 +534,15 @@
 
 ### QA-003 — 人工 UI 上传与关键页面回归
 
-- 状态：**INVESTIGATING**
+- 状态：**VERIFIED**
 - 问题描述：自动化浏览器安全策略不允许选择本机文件，后端链路通过但 UI 文件选择未完成本轮人工验收。
-- 当前现象：真实 9 图与视频上传、用户列表/详情/筛选及用量分析均已执行；余额不足统一弹窗仍待纯 route-mock。用量分析在 Staging PostgreSQL 返回 500，不能判定通过。
+- 当前现象：真实 9 图与视频主清单、用户列表/详情/筛选及用量分析已执行；由清单发现的余额提示、管理端聚合、多图状态、视频状态与逐笔账本均已分别闭环。
 - 预期结果：真实浏览器操作与后端结果一致，无装饰性控件和状态错位。
 - 风险级别：Medium；验证缺口，尚未确认产品缺陷。
 - 涉及模块：`NoteAI_Pro_Demo_Framer.html`, `model/admin.html`, API。
-- 根因：自动化环境限制已确认；产品是否有缺陷未知。
+- 根因：五个独立缺陷已分别由 QA-003A/B/C/D/E 确认并修复；不再以浏览器扩展限制作为未闭环理由。
 - 修改状态/进度：真实 9 图选择成功，9/9 全部识别、0 失败，最终诊断按钮启用；后台操作数 18→27、成本 ¥7.8300→¥8.4600，符合 9 次 screenshot×¥0.07，未点击最终诊断。识别中 2/9、7/9 时总状态曾提前显示“AI识别完成”，但按钮保持禁用；最终状态正确。2 秒/1 帧合成视频上传成功，不触发诊断，确认“进度”只显示 `0.0 MB` 且未上传前诊断按钮未禁用。管理端登录、用户搜索/套餐筛选/详情通过；未点击任何写按钮。用量分析有 4 canvas、无 NaN，但 Top10 为空且 console 多次出现 500 文本被当 JSON 解析，根因拆为 QA-003A。OCR/Chat 402 一致性拆为 QA-003B。管理端仍不渲染 API 已返回的逐笔 usage/credit txns，无法在 UI 完成逐笔对账。
-- 下一步：QA-003A/QA-003B 已闭环。剩余三项分别建最小任务后处理：多图识别总状态过早显示完成、视频进度/上传前诊断门禁、管理端逐笔 usage/credit ledger 未渲染；不得把三条调用链混成一次大改。
+- 下一步：不重复付费主清单；后续媒体/管理端变更按 C/D/E 专项回归。
 - 验收标准：9 图全部完成状态后可提交；视频进度正确；余额不足不发起付费操作；管理端账本一致。
 - 真实外部服务：UI 主链路会调用真实 AI。
 - 费用/数据：会产生少量费用和 Staging 测试数据；先说明样本数量。
@@ -578,6 +578,70 @@
 - 是否需要用户决定：否。
 - 是否涉及真实外部调用：否；纯本地 route-mock。
 - 是否已部署到 Render：是；commit `2776d7c`。OCR同批402只弹一次且保持失败门禁，Chat 404→start→402 进入统一配额提示；纯 route-mock 5/5、全量Playwright16/16，真实调用0；Staging Web 已确认部署新的统一处理代码。
+
+### QA-003C — 多图识别总完成态提前显示
+
+- 状态：**VERIFIED**
+- 优先级：Medium。
+- 问题描述：9 图识别进行到 2/9、7/9 时总状态曾提前显示“AI识别完成”，虽然诊断按钮仍保持禁用；文案与真实批次状态不一致。
+- 证据：QA-003 真实 Staging 9 图人工清单；最终 9/9 成功且按钮门禁正确。
+- 根因是否确认：是。新增图片时仅清空聚合数据，没有重置可见结果卡；`_validateAndMergeOcr()` 无批次 revision/图片快照校验，旧 validate 回调可在新图片加入后回填过期聚合结果和“完成”文案。工具栏与提交门禁使用最新计数，因此目前没有提前付费提交。
+- 涉及文件：最小范围 `NoteAI_Pro_Demo_Framer.html`、新增/扩展截图状态 route-mock Playwright test；不改后端、OCR API、调用次数、计费或诊断门禁。
+- 风险：过早提示会误导用户；修复不得改变逐图 AI 调用次数、费用或最终提交门禁。
+- 执行代理：单一 Implementation Agent；验证代理：独立 Browser Verification Agent。
+- 修改状态/进度：已在最小范围实现截图批次 revision、selection token、图片快照校验、过期 FileReader/extract/validate/merge 回调失效、总状态按当前 pending/failed/validating/merging 优先渲染、同 revision 合并去重。首次独立验证发现“FileReader 延迟期间 reset 后旧选择仍加入并触发 extract”的阻断竞态，已退回修正；第二轮独立验证 PASS：delayed read→reset 为图片0/cache0/extract0，旧选择被新选择取代仅保留新图/extract1，同批3文件 extract3/validate1；专项6/6、quota5/5、frontend static18/18、全量Playwright39/39，先前同业务diff的unittest402/402（5 skip）和Readiness48/48有效。未改后端、按钮门禁、API 或计费，真实外部调用0。待批量部署后的 Staging 增量 Smoke 再标 VERIFIED。
+- 验收标准：0–8/9 只显示进行中/失败计数；仅全部进入成功或失败终态后显示批次完成；诊断按钮仍只在既有素材门禁满足时启用；无新增 AI 调用。
+- 是否需要用户决定：否。
+- 是否涉及真实外部调用：调查阶段否；最终优先 route-mock，必要的单次 Staging UI 复验另行计数。
+- 是否已部署到 Render：是，commit `9eebc8c`，随 `bf0c4be` 批次部署；Staging 合成状态验证为1/2时显示“1/2张已识别”、按钮禁用、无完成文案，页面错误0，真实API/AI/积分0。
+
+### QA-003D — 视频上传进度与诊断前置门禁
+
+- 状态：**VERIFIED**
+- 优先级：Medium。
+- 问题描述：视频进度只显示静态 `0.0 MB`，且未选择/上传视频前诊断按钮未禁用，页面状态可能诱导无效提交。
+- 证据：QA-003 使用 2 秒/1 帧合成视频完成真实 Staging 上传，未触发诊断；已复现上述两项 UI 状态。
+- 根因是否确认：是。`updateDiagnosisSubmitState()` 没有视频分支；提交函数虽有 `_diagVideoFileId` 二次拦截，但按钮状态错误。上传逻辑没有独立预检/上传/成功/失败状态，只在请求前后写静态 MB，且旧请求可覆盖后选文件/移除操作。
+- 涉及文件：最小范围 `NoteAI_Pro_Demo_Framer.html`、视频上传 route-mock Playwright test；不改 upload API、后端、AI 或计费。
+- 风险：按钮门禁修改可能误伤纯图文流程；进度文案不得伪造网络百分比。
+- 执行代理：QA-003C 验证完成后指定单一 Implementation Agent；验证代理：独立 Browser Verification Agent。
+- 修改状态/进度：已最小实现视频专属 idle/preflight/uploading/ready/error 状态、attempt token、真实 B/KB/MB 文件总大小和阶段文案；仅当前模式为视频时要求 ready+file_id，手动/截图沿用原门禁，startDiagnosis 二次保护保留。首次独立验证发现上传中切换模式后迟到响应仍回填，已退回修正；现在离开视频模式会使 preflight/uploading attempt 失效，但已ready视频往返仍保留。第二轮独立验证 PASS：视频7/7、QA-003C6/6、quota5/5、组合18/18、frontend static18/18；ready后 upload1/analyze1，payload input_mode=video/file_id正确。全量Playwright首轮45/46，唯一既有Chat stall时序用例单独重跑1/1通过，判定与本包无关。真实API/AI/积分0。待 Staging Smoke。
+- 验收标准：无所需素材时不能发起视频诊断；选择、上传、成功/失败状态一致；只展示浏览器可真实测得的字节/阶段，不伪造上传百分比；不触发额外 AI 或扣费。
+- 是否需要用户决定：只有产品允许“无视频也可走通用诊断”时需要；先从现有产品上下文判断。
+- 是否涉及真实外部调用：调查阶段否；最终优先 route-mock。
+- 是否已部署到 Render：是，commit `3041d87`，随 `bf0c4be` 批次部署；Staging 合成验证为空态禁用、ready启用、3字节显示`3 B`、手动填写仍启用，页面错误0，真实上传/API/AI/积分0。
+
+### QA-003E — 管理端逐笔 usage/credit ledger 展示
+
+- 状态：**VERIFIED**
+- 优先级：Medium。
+- 问题描述：管理 API 已返回逐笔 usage 与 credit transactions，但用户详情 UI 未渲染，管理员无法在页面完成操作、模型成本、积分扣退的逐笔对账。
+- 证据：QA-003 管理端人工清单；用户搜索、筛选、详情与聚合图表已通过，但逐笔数组没有对应 DOM 表格/列表。
+- 根因是否确认：是。`GET /admin/users/{id}` 已由管理员依赖保护并返回最近20条 `recent_usage`、20条 `credit_txns`；`showUser()` 只渲染基本信息/月聚合，完全忽略两个数组。
+- 涉及文件：最小范围 `model/admin.html`、管理端 ledger route-mock/合同/负向授权 tests；无需修改 `model/admin_server.py` 业务、数据库、billing 或 migration。
+- 风险：管理端可能展示不应暴露的 prompt、正文、token 或内部错误；只允许审计所需的固定字段并做 HTML 转义。
+- 执行代理：QA-003D 验证完成后指定单一 Implementation Agent；验证代理：独立 Admin UI/Security Verification Agent。
+- 修改状态/进度：最小范围只改 `model/admin.html`、管理端ledger E2E与既有合同测试；增加两张独立最近20条表、非一一对应/非完整历史说明、固定枚举/数值/时间格式化、空态及逐字段转义。`payment_ref` 与注入的prompt/body/reasoning/error/request_id均不读取/渲染；无token/普通token详情请求403。首次独立安全验证发现普通对象枚举会让constructor/toString/__proto__命中原型字段，已退回改为own-property helper并补原型键/Symbol/null等负向覆盖。最终独立PASS：ledger2/2、相关45/45、同业务diff全量unittest403/403（5 skip）、Playwright48/48、Readiness48/48、py_compile/diff通过；详情GET1次、写请求/AI/积分0。待Staging Smoke。
+- 验收标准：管理员详情可按时间查看操作、模型、积分变动与脱敏成本；与 API/聚合账本一致；无用户正文、prompt、reasoning、Secret 或异常原文；普通用户不可访问。
+- 是否需要用户决定：若需新增审计字段或改变成本展示口径则需要；仅渲染既有安全字段不需要。
+- 是否涉及真实外部调用：调查与 route-mock 否；最终只读 Staging 管理端复验。
+- 是否已部署到 Render：是，commit `bf0c4be`；Staging Admin 已包含own-property枚举helper与两张账本。合成route仅1次GET，原型键均显示固定未知标签，敏感哨兵不进DOM，恶意HTML元素0，真实管理端写入/AI/积分0；Admin readiness 200。
+
+### PROMPT-001 — Prompt 管理源与 V0.4 行业运行时漂移
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：High。
+- 问题描述：Staging Prompt 管理列表/编辑器仍把“v0.3模型、10万+训练样本、CES、固定权重”作为当前基础 Prompt 展示；用户预期为 V0.4 且可审计的分行业策略。
+- 证据：2026-07-12 只读 Staging UI 核对确认12项仍为旧标签/正文，当前示例 `agent_growth_system` 为v4修订号但正文仍是V0.3。仓库 `model/prompts.json` 12/12含v0.3，11/12含完整旧标题；文件自初始commit `906432d`后未升级。管理API直接返回PostgreSQL `managed_prompts.content`，前端原样展示。
+- 根因是否确认：是。此前完成的是 `model/api.py` 的 V0.4运行时最高优先级覆盖、旧词中和、统一质量契约及按domain动态行业brief，没有迁移 `prompts.json` 或 `managed_prompts`。`init_default_prompts()` 对已存在key直接continue，Render持久库因此永不自动升级。管理页修订号v4/v5不是模型V0.4版本。
+- 涉及文件：`model/prompts.json`, `model/prompt_baselines.py`, `model/prompt_composer.py`, `model/prompt_manager.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`, `scripts/render_predeploy.py`, `scripts/migrate_managed_prompts_v04.py`, `Dockerfile` 及Prompt/Render/UI测试；没有新增数据库schema migration。
+- 风险：High。当前线上AI并非整体退回V0.3，因为运行时会前置V0.4规则和行业brief；但管理端无法审计最终有效Prompt，旧内容继续消耗Token并产生冲突。现有替换仅覆盖无空格`v0.3模型`，旧正文中的`v0.3 模型`可能仍进入实际Prompt。
+- 执行代理：用户已确认采用推荐的“12条基础Prompt+行业有效模板预览”，指定单一 Implementation Agent；验证代理：独立 Prompt/Data Migration + QA/Security Verification Agent。
+- 修改状态/进度：Implementation已完成12条V0.4基础契约、精确旧seed版本+SHA manifest、事务升级/history/idempotent/custom-skip/dry-run、完整hash+version+metadata+marker安全回滚、共享composer、API接入、Admin 7行业effective_template预览、Render predeploy和镜像内受控迁移脚本。两轮独立验证先后发现并闭环新增行未回滚、迁移脚本未打包、Prompt key存储型Admin XSS、元数据变化未阻断回滚、损坏/重复marker未收口五项阻断；真实PostgreSQL空库并发又发现主键竞争，已用apply/rollback共享的事务级advisory lock最小修复，未加重试/schema/表锁。最终本地全量unittest423/423（5 skip）、Playwright49/49、Readiness48/48、py_compile/diff/sensitive scan通过。一次性PostgreSQL 18由主控和独立验证代理分别通过空库、首条缺失、12旧seed、4路并发、实际4路predeploy、幂等和完整回滚；独立定向31/31，测试数据、容器和Colima均已清理。当前本地与临时PG PASS，仍待提交/CI、Staging predeploy与管理端Smoke，任务保持READY_TO_VERIFY。
+- 验收标准：已知旧seed按内容指纹/版本安全迁移并写history，管理员自定义不覆盖，重复执行幂等；基础Prompt不再含v0.3/CES/固定权重旧目标；七行业effective prompt差异可验证；管理端明确区分“基础可编辑Prompt”“V0.4运行时层”和Prompt修订号，并能按行业预览最终有效组合；SQLite/PostgreSQL/Render Staging一致。
+- 是否需要用户决定：否；2026-07-12 用户已批准推荐方案，并确认管理员未手工修改过任何Prompt。机器迁移仍保留精确hash门禁，不因口头确认而放宽。
+- 是否涉及真实外部调用：调查阶段仅只读Staging UI；本地实施与SQLite验证0外部调用。下一阶段需启动一次性本地PostgreSQL 18容器验证并发，再写Staging PostgreSQL Prompt内容/history；必须先dry-run并保留固定计数/回滚证据，不调用AI即可验证。
+- 是否已部署到 Render：否；当前V0.4运行时覆盖已在线，但Prompt持久层修复尚未实施。
 
 ### PROD-001 — 正式支付订单/回调/对账
 
@@ -634,15 +698,15 @@
 
 ### High
 
-- **跨账号缓存泄露**：`SEC-005` 同一浏览器的全局 Chat 缓存可把旧账号笔记快照展示给新账号；后端已阻断写入/扣费，但前端机密性风险尚未修复。
-- **SSE 终态体验**：`PERF-001B` 真实 Analyze/Generate 业务推进时前端百分比分别停在34%/0%，Chat 正式内容返回后仍延迟恢复输入框。
+- **跨账号缓存防回归**：`SEC-005` 已修复并以双合成账号在 Staging 独立验证；仍保留为认证/本地缓存改动的回归项。
+- **SSE 持久恢复边界**：`PERF-001B` 已修复客户端终态/分帧/不确定态；断线后的 durable result replay、stale lease 与副作用/退款一致性仍归 `BILL-002`，不得宣称完整恢复。
 - **持续运维**：`OPS-002` XHS Cookie 可能自然失效；提醒机制已部署但仍需人工更新。
 - **原有结构**：前端手工 payload 与后端 Pydantic 模型可能漂移；行为修改需 contract/e2e 双验证。
 - **权限**：用户 auth 与 admin auth 均能影响积分/配置，任何修改都必须负向权限测试。
 
 ### Medium
 
-- **已确认 UI 缺口**：`QA-003` 的9图/视频/管理端主清单已执行，但识别总状态会提前显示完成、视频进度只显示静态MB且未上传前诊断按钮未禁用，管理端逐笔账本也未渲染。
+- **媒体/管理端 UI 防回归**：`QA-003C/D/E` 已在 Staging 闭环；后续需防止多图旧批次回填、视频迟到响应、账本敏感字段/原型键回归。
 - **Render 特有**：管理端 Free 服务可能冷启动；不等同于 API 故障。
 - **架构选择**：`PROD-003` 视频缓存依赖单实例盘，部署有短暂中断。
 - **模型质量**：通过 V0.4 分数不自动代表自然度长期稳定，仍需持续 golden/人工抽检。
@@ -656,7 +720,7 @@
 
 ### 7.1 本轮实际重新运行或真实执行
 
-- 本地全量 unittest：281 passed（约 2 秒）。测试日志中的网络/坏模型报错来自预期的异常路径用例，最终结果为 OK。
+- 本地全量 unittest：403/403 passed，5 skipped；全量 Playwright：48/48 passed；Production Readiness：48/48。QA-003D 验证中曾有1次既有Chat stall时序波动，原用例单独重跑通过，最终全量证据为48/48。
 - Production readiness gate：PASS，48 checks，0 failed。
 - Docker Compose 配置：`docker compose config --quiet` 通过。
 - V0.4 artifact check：4 个 artifact 均有效，0 missing/invalid，未触发下载或修复。
@@ -673,7 +737,7 @@
 ### 7.2 以前运行过，未在文档 checkpoint 中重复
 
 - XHS 定向测试：27 passed。
-- GitHub Actions：`a8aa0b8` 两条 CI 检查通过；包含 py_compile、artifact check、全量 unittest、quality gate、production readiness gate、Docker Compose config。
+- GitHub Actions：`bf0c4be` 两条 CI 检查通过；包含 py_compile、artifact check、全量 unittest、quality gate、production readiness gate、Docker Compose config。
 - Playwright/e2e：既有内容意图与约束链路门禁通过；本轮未重新跑文件选择。
 - SQLite 模式：通过既有单元与本地开发测试。
 - PostgreSQL 模式：Render API/Admin/Cron 真实运行及 migration/readiness 通过。
@@ -681,9 +745,9 @@
 
 ### 7.3 尚未运行或需要条件
 
-- `QA-003` 剩余三项：识别完成文案时序、视频进度/上传前门禁、管理端逐笔 usage/credit ledger 渲染。
+- `QA-003C/D/E` 已完成，不重复真实媒体/AI验证。
 - P50/P95 性能剖析：`PERF-001`，真实样本数与费用预算尚未确认。
-- `SEC-005` 跨账号 Chat 本地缓存最小安全修复与独立验证。
+- `SEC-005` 已完成，不重复真实双账号验证。
 - 正式支付沙箱：`PROD-001`，尚未接入。
 - 生产备份恢复：`PROD-002`，尚无生产资源。
 
@@ -738,10 +802,10 @@
 1. 读取 `AGENTS.md`、本文件、`.codex/notes/architecture-summary.md`、`.codex/notes/risk-register.md`、`docs/RENDER_DEPLOYMENT_GUIDE.md`。
 2. 运行 LFS-safe Git status，核对 branch、HEAD、upstream、staged/unstaged/untracked；确认三份 `.lgb` 未被 stage。
 3. 在 Render 只读核对 API/Web/Admin live commit、两个 `/health/ready` 和 Market Timing 最近成功轮次；不得假设文档 checkpoint 已部署。
-4. 当前最高优先级是 `PERF-001B`。根因与最小范围已确认，可指定单一 Implementation Agent 实施 SSE 终态/分帧/不确定态兼容修复；不得加入自动重试、主动中止、DB 或 billing 修改。
+4. `PERF-001B` 与 `QA-003C/D/E` 已完成本地独立验证、CI、Render部署和无付费Staging Smoke，禁止重复修改。
 5. `STG-001`、`BUG-001`、`BUG-002D`、`BILL-001`、`FIN-001`、`QA-001`、`QA-002`、`QA-003A`、`QA-003B` 已完成，禁止重复大范围修改或重复付费验证；`BUG-002` 父任务仍等待自然观察。
 6. `SEC-005` 已由独立 Security/Browser Verification Agent 与Staging两个合成账号闭环，禁止重复真实验证。
-7. `PERF-001B` 完成后再拆分 `QA-003` 剩余三项；`SEC-004` 仅做结构统计，执行历史清理前必须确认备份/回滚窗口；生产事项继续延期。
+7. `QA-003C/D/E` 不得合并为一个修复包或并行修改共享前端文件；`SEC-004` 仅做结构统计，执行历史清理前必须确认备份/回滚窗口；生产事项继续延期。
 8. 当前工作的停止条件：Handoff checkpoint 已提交并推送；CI/Render 版本可追溯；无业务文件或敏感文件被误提交；向用户输出 10 项交接摘要后停止开发。
 
 ## 11. Do Not Touch Without Approval

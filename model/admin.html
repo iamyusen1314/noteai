@@ -355,10 +355,24 @@ input,select,textarea{font-family:inherit}
               <button class="btn btn-primary btn-sm" onclick="savePrompt()">保存</button>
             </div>
           </div>
-          <textarea class="form-textarea" id="pe-content" style="flex:1;min-height:300px"></textarea>
+          <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px">可编辑基础 Prompt</div>
+          <textarea class="form-textarea" id="pe-content" style="min-height:220px"></textarea>
           <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
-            版本 v<span id="pe-version">1</span> · 最后修改 <span id="pe-updated"></span>
+            模型策略 <b style="color:var(--accent)">V0.4</b> · 基础修订号 <span id="pe-version">1</span> · 最后修改 <span id="pe-updated"></span>
           </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
+            <label for="pe-domain" style="font-size:11px;font-weight:700;color:var(--text-2)">行业有效模板预览</label>
+            <select id="pe-domain" class="form-input" style="width:120px;padding:6px 8px" onchange="loadPromptPreview()">
+              <option value="美食">美食</option><option value="旅行">旅行</option>
+              <option value="穿搭">穿搭</option><option value="美妆">美妆</option>
+              <option value="家居">家居</option><option value="健身">健身</option>
+              <option value="母婴">母婴</option>
+            </select>
+          </div>
+          <textarea class="form-textarea" id="pe-effective" readonly style="min-height:180px;margin-top:8px;background:var(--surf-2)"></textarea>
+          <div id="pe-preview-meta" style="margin-top:6px;font-size:11px;color:var(--text-muted)"></div>
+          <div id="pe-dynamic-layers" style="margin-top:4px;font-size:11px;color:var(--text-muted)"></div>
+          <div id="pe-preview-privacy" style="margin-top:4px;font-size:11px;color:var(--warning)"></div>
         </div>
       </div>
     </div>
@@ -520,6 +534,7 @@ let _currentPage = 'dashboard';
 let _userPage = 1;
 let _userSearch = '', _userTierFilter = '';
 let _currentPromptKey = null;
+let _promptListItems = new Map();
 
 /* ── Auth ─────────────────────────────────────────────────────────── */
 async function doAdminLogin() {
@@ -924,25 +939,43 @@ async function loadUsage() {
 async function loadPrompts() {
   const r = await aFetch('/admin/prompts');
   const d = await r.json();
-  const modules = {};
-  d.prompts.forEach(p => {
-    const m = p.module || '其他';
-    if (!modules[m]) modules[m] = [];
-    modules[m].push(p);
+  const modules = new Map();
+  (Array.isArray(d.prompts) ? d.prompts : []).forEach(p => {
+    const m = String(p && p.module || '其他');
+    if (!modules.has(m)) modules.set(m, []);
+    modules.get(m).push(p || {});
   });
-  document.getElementById('prompt-list').innerHTML = Object.entries(modules).map(([mod, ps]) => `
-    <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;padding:8px 4px 4px">${mod}</div>
-    ${ps.map(p=>`<div class="prompt-list-item" onclick="loadPromptDetail('${p.key}')" id="pli-${p.key}">
-      <span style="font-size:13px">${esc(p.label)}</span>
-      <span class="prompt-module-badge">v${p.version}</span>
-    </div>`).join('')}`).join('');
+  const list = document.getElementById('prompt-list');
+  list.textContent = '';
+  _promptListItems = new Map();
+  modules.forEach((prompts, moduleName) => {
+    const heading = document.createElement('div');
+    heading.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;padding:8px 4px 4px';
+    heading.textContent = moduleName;
+    list.appendChild(heading);
+    prompts.forEach(prompt => {
+      const key = String(prompt.key || '');
+      const row = document.createElement('div');
+      row.className = 'prompt-list-item';
+      const label = document.createElement('span');
+      label.style.fontSize = '13px';
+      label.textContent = String(prompt.label || key);
+      const revision = document.createElement('span');
+      revision.className = 'prompt-module-badge';
+      revision.textContent = `修订 ${Number.isFinite(Number(prompt.version)) ? Number(prompt.version) : 1}`;
+      row.append(label, revision);
+      row.addEventListener('click', () => loadPromptDetail(key));
+      list.appendChild(row);
+      _promptListItems.set(key, row);
+    });
+  });
 }
 
 async function loadPromptDetail(key) {
   document.querySelectorAll('.prompt-list-item').forEach(el=>el.classList.remove('active'));
-  const listEl = document.getElementById(`pli-${key}`);
+  const listEl = _promptListItems.get(String(key));
   if(listEl) listEl.classList.add('active');
-  const r = await aFetch(`/admin/prompts/${key}`);
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(String(key))}`);
   const d = await r.json();
   _currentPromptKey = key;
   document.getElementById('pe-label').textContent   = d.label||key;
@@ -952,21 +985,46 @@ async function loadPromptDetail(key) {
   document.getElementById('pe-updated').textContent = (d.updated_at||'').slice(0,16).replace('T',' ');
   document.getElementById('prompt-editor-empty').style.display   = 'none';
   document.getElementById('prompt-editor-content').style.display = 'flex';
+  await loadPromptPreview();
+}
+
+async function loadPromptPreview() {
+  if(!_currentPromptKey) return;
+  const domain = document.getElementById('pe-domain').value;
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/effective?domain=${encodeURIComponent(domain)}`);
+  if(!r.ok) {
+    document.getElementById('pe-effective').value = '';
+    document.getElementById('pe-preview-meta').textContent = '有效模板预览加载失败';
+    document.getElementById('pe-dynamic-layers').textContent = '';
+    document.getElementById('pe-preview-privacy').textContent = '';
+    return;
+  }
+  const d = await r.json();
+  document.getElementById('pe-effective').value = d.rendered_text || '';
+  document.getElementById('pe-preview-meta').textContent =
+    `类型：${d.preview_kind || 'effective_template'} · 行业：${d.domain || domain} · 完整请求预览：${d.preview_complete ? '是' : '否'}`;
+  document.getElementById('pe-dynamic-layers').textContent =
+    `请求时动态追加：${Array.isArray(d.dynamic_layers) ? d.dynamic_layers.join('、') : '无'}`;
+  document.getElementById('pe-preview-privacy').textContent = d.privacy_notice || '';
 }
 
 async function savePrompt() {
   if(!_currentPromptKey) return;
   const content = document.getElementById('pe-content').value;
-  const r = await aFetch(`/admin/prompts/${_currentPromptKey}`, {
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}`, {
     method:'PUT', body:JSON.stringify({content}),
   });
   const d = await r.json();
-  if(d.ok) { document.getElementById('pe-version').textContent=d.version; alert('已保存 v'+d.version); }
+  if(d.ok) {
+    document.getElementById('pe-version').textContent=d.version;
+    await loadPromptPreview();
+    alert('已保存基础修订 '+d.version);
+  }
 }
 
 async function showHistory() {
   if(!_currentPromptKey) return;
-  const r = await aFetch(`/admin/prompts/${_currentPromptKey}`);
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}`);
   const d = await r.json();
   const hist = d.history||[];
   document.getElementById('history-content').innerHTML = hist.length===0
@@ -987,7 +1045,7 @@ async function showHistory() {
 async function rollbackPrompt(version) {
   if(!_currentPromptKey) return;
   if(!confirm(`确认回滚到 v${version}？`)) return;
-  const r = await aFetch(`/admin/prompts/${_currentPromptKey}/rollback`, {method:'POST',body:JSON.stringify({version})});
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/rollback`, {method:'POST',body:JSON.stringify({version})});
   if(r.ok) { closeModal('history-modal'); loadPromptDetail(_currentPromptKey); alert('已回滚'); }
 }
 

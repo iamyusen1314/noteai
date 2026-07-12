@@ -111,6 +111,17 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertGreaterEqual(blueprint.count("NOTEAI_XHS_FRESHNESS_REQUIRED"), 2)
         self.assertIn("MALLOC_ARENA_MAX", blueprint)
 
+    def test_prompt_migration_entrypoint_is_packaged_and_predeploy_audits_first(self):
+        dockerfile = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text(encoding="utf-8")
+        self.assertGreaterEqual(dockerfile.count("migrate_managed_prompts_v04.py"), 2)
+        predeploy = (SCRIPTS_DIR / "render_predeploy.py").read_text(encoding="utf-8")
+        audit_at = predeploy.index("prompt_manager.audit_versioned_baseline()")
+        apply_at = predeploy.index("prompt_manager.apply_versioned_baseline()")
+        self.assertLess(audit_at, apply_at)
+        self.assertIn("prompt_baseline_audit=ok", predeploy)
+        self.assertNotIn("prompt_result['content']", predeploy)
+        self.assertNotIn("prompt_result['sha256']", predeploy)
+
     def test_admin_crawler_exposes_runtime_cookie_health(self):
         admin_html = (MODEL_DIR / "admin.html").read_text(encoding="utf-8")
         self.assertIn("cookie_runtime_status", admin_html)
