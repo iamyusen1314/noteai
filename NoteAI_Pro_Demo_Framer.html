@@ -7316,6 +7316,7 @@ async function ensureDiagnosisRootNote(note) {
 async function startChatFromDiagnosis() {
   if (!_noteDetailData) return;
   if (!_authToken) { openAuthModal('login'); return; }
+  const identitySnapshot = _chatIdentitySnapshot();
   const note = _noteDetailData;
   showPage('chat');
 
@@ -7328,6 +7329,7 @@ async function startChatFromDiagnosis() {
 
   try {
     const rootNoteId = await ensureDiagnosisRootNote(note);
+    if (!_chatIdentityMatches(identitySnapshot)) return;
     _chatParentNoteId = rootNoteId || _chatParentNoteId;
     const constraints = Array.isArray(_diagnoseResult?.user_constraints) && _diagnoseResult.user_constraints.length
       ? _diagnoseResult.user_constraints
@@ -7377,8 +7379,8 @@ async function startChatFromDiagnosis() {
         generate_context: diagCtx,  // 传诊断上下文给 AI
       }),
     });
-    if (res.status === 401) {
-      openAuthModal('login');
+    if (res.status === 401 || res.status === 403) {
+      chatHandleAuthFailure();
       throw new Error('请先登录后开始对话优化');
     }
     if (!res.ok) {
@@ -7386,6 +7388,7 @@ async function startChatFromDiagnosis() {
       throw new Error(err.detail || res.statusText);
     }
     const data = await res.json();
+    if (!_chatIdentityMatches(identitySnapshot)) return;
     _chatSessionId = data.session_id;
 
     document.getElementById('chat-no-session').style.display  = 'none';
@@ -8738,12 +8741,15 @@ let _chatAiBubble    = null;
 let _chatAiText      = '';
 let _chatIterCount   = 0;
 let _chatSearchActive = false;   // true while model is doing web searches
+let _chatRequestAbortController = null;
+let _chatUserStateEpoch = 0;
 
 /* ── Entry point: called from "开始对话优化" button ── */
 async function startChatOptimization() {
   const d = _generateResult;
   if (!d || d._error) { showToast('⚠️ 请先生成笔记，再开始对话优化'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
+  const identitySnapshot = _chatIdentitySnapshot();
 
   // ── 强制清空旧会话状态，确保不与上一次笔记混淆 ──
   _chatSessionId    = null;
@@ -8775,8 +8781,8 @@ async function startChatOptimization() {
         generate_context: generateContext,
       }),
     });
-    if (res.status === 401) {
-      openAuthModal('login');
+    if (res.status === 401 || res.status === 403) {
+      chatHandleAuthFailure();
       throw new Error('请先登录后开始对话优化');
     }
     if (!res.ok) {
@@ -8784,6 +8790,7 @@ async function startChatOptimization() {
       throw new Error(err.detail || res.statusText);
     }
     const data = await res.json();
+    if (!_chatIdentityMatches(identitySnapshot)) return;
     _chatSessionId = data.session_id;
 
     document.getElementById('chat-no-session').style.display  = 'none';
@@ -8817,6 +8824,7 @@ function initChatPage() {
 async function _recreateChatSession() {
   const d = _generateResult;
   if (!d || d._error) return false;
+  const identitySnapshot = _chatIdentitySnapshot();
   try {
     const headers = { 'Content-Type': 'application/json', ...(_authToken ? authHeader() : {}) };
     const constraints = Array.isArray(d.user_constraints) && d.user_constraints.length
@@ -8838,8 +8846,13 @@ async function _recreateChatSession() {
         generate_context: generateContext,
       }),
     });
+    if (res.status === 401 || res.status === 403) {
+      chatHandleAuthFailure();
+      return false;
+    }
     if (!res.ok) return false;
     const data = await res.json();
+    if (!_chatIdentityMatches(identitySnapshot)) return false;
     _chatSessionId = data.session_id;
     return true;
   } catch { return false; }
@@ -8862,13 +8875,82 @@ function chatAutoResize(el) {
 let _chatAttachImage = null;  // { base64: string, dataURL: string, name: string }
 let _chatAttachFiles = [];    // [{ name: string, text: string }]
 
+function _chatOwnerId(user = _authUser) {
+  const id = user?.id;
+  return id === null || id === undefined || id === '' ? null : String(id);
+}
+
+function _chatIdentitySnapshot() {
+  return { ownerId: _chatOwnerId(), epoch: _chatUserStateEpoch };
+}
+
+function _chatIdentityMatches(snapshot) {
+  return !!snapshot?.ownerId
+    && snapshot.ownerId === _chatOwnerId()
+    && snapshot.epoch === _chatUserStateEpoch;
+}
+
+function chatClearUserState() {
+  _chatUserStateEpoch += 1;
+  if (_chatRequestAbortController) {
+    _chatRequestAbortController.abort();
+    _chatRequestAbortController = null;
+  }
+  _chatSessionId = null;
+  _chatParentNoteId = null;
+  _chatIterCount = 0;
+  _chatBusy = false;
+  _chatAiBubble = null;
+  _chatAiText = '';
+  _chatSearchActive = false;
+  _chatAttachImage = null;
+  _chatAttachFiles = [];
+  localStorage.removeItem('noteai_chat_session');
+
+  const messages = document.getElementById('chat-messages');
+  if (messages) messages.innerHTML = '';
+  const note = document.getElementById('chat-note-scroll');
+  if (note) {
+    note.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:32px 8px">生成笔记后点击「开始对话优化」，笔记预览将显示在这里</div>';
+  }
+  const iter = document.getElementById('chat-note-iter');
+  if (iter) { iter.textContent = '第1版'; iter.style.display = 'none'; }
+  const gauge = document.getElementById('chat-gauge-fill');
+  if (gauge) { gauge.style.strokeDashoffset = '144.5'; gauge.style.stroke = 'var(--holo-mid)'; }
+  const gaugeText = document.getElementById('chat-gauge-text');
+  if (gaugeText) { gaugeText.textContent = '–'; gaugeText.style.color = 'var(--text-2)'; }
+  const grade = document.getElementById('chat-score-grade');
+  if (grade) { grade.textContent = '等待评分'; grade.style.color = 'var(--text-2)'; }
+  const scoreIter = document.getElementById('chat-score-iter');
+  if (scoreIter) scoreIter.textContent = '';
+  const learn = document.getElementById('chat-learn-pill');
+  if (learn) learn.style.display = 'none';
+  const input = document.getElementById('chat-input');
+  if (input) { input.value = ''; input.disabled = false; input.style.height = 'auto'; }
+  const send = document.getElementById('chat-send-btn');
+  if (send) { send.disabled = true; send.style.opacity = '.4'; }
+  const attach = document.getElementById('chat-attach-preview');
+  if (attach) { attach.innerHTML = ''; attach.style.display = 'none'; }
+  const active = document.getElementById('chat-active-area');
+  if (active) active.style.display = 'none';
+  const empty = document.getElementById('chat-no-session');
+  if (empty) empty.style.display = 'flex';
+}
+
+function chatHandleAuthFailure() {
+  chatClearUserState();
+  openAuthModal('login');
+}
+
 function chatHandleFileSelect(input) {
   const files = Array.from(input.files);
   input.value = '';
+  const stateEpoch = _chatUserStateEpoch;
   files.forEach(f => {
     if (f.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = e => {
+        if (stateEpoch !== _chatUserStateEpoch) return;
         _chatAttachImage = { base64: e.target.result.split(',')[1], dataURL: e.target.result, name: f.name };
         chatRenderAttachPreview();
       };
@@ -8876,6 +8958,7 @@ function chatHandleFileSelect(input) {
     } else {
       const reader = new FileReader();
       reader.onload = e => {
+        if (stateEpoch !== _chatUserStateEpoch) return;
         _chatAttachFiles.push({ name: f.name, text: e.target.result });
         chatRenderAttachPreview();
       };
@@ -8947,6 +9030,9 @@ async function chatSendMessage(options = {}) {
 
   const streamGuard = createSseWarningGuard('chat', '对话优化');
   let paidRequestId = createPaidRequestId('chat');
+  const requestOwnerId = _chatOwnerId();
+  const requestController = new AbortController();
+  _chatRequestAbortController = requestController;
   try {
     const handleChatAccessFailure = async response => {
       if (response.status === 402) {
@@ -8955,9 +9041,9 @@ async function chatSendMessage(options = {}) {
         showQuotaExceededModal(normalizeQuotaDetail(errData.detail || errData));
         return true;
       }
-      if (response.status === 401) {
-        chatAppendAi('⚠️ 请先登录后使用对话优化功能。');
-        openAuthModal('login');
+      if (response.status === 401 || response.status === 403) {
+        chatHandleAuthFailure();
+        showToast('登录状态已失效，请重新登录');
         return true;
       }
       return false;
@@ -8967,6 +9053,7 @@ async function chatSendMessage(options = {}) {
       method: 'POST',
       headers: {'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, ...authHeader()},
       body: JSON.stringify(payload),
+      signal: requestController.signal,
     });
     streamGuard.connected();
 
@@ -8983,7 +9070,10 @@ async function chatSendMessage(options = {}) {
           method: 'POST',
           headers: {'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, ...authHeader()},
           body: JSON.stringify(payload),
+          signal: requestController.signal,
         });
+      } else if (!_chatSessionId) {
+        return;
       }
     }
 
@@ -9033,12 +9123,17 @@ async function chatSendMessage(options = {}) {
       chatAppendAi('⚠️ 对话流已结束，但未收到完成状态。任务结果不明确，请不要重复提交。');
     }
   } catch(e) {
-    chatAppendAi('⚠️ 网络请求失败：' + e.message);
+    if (e.name !== 'AbortError') chatAppendAi('⚠️ 网络请求失败：' + e.message);
   } finally {
     streamGuard.finish();
-    _chatBusy = false;
-    sendBtn.disabled = false; sendBtn.style.opacity = '1';
-    inp.disabled = false; inp.focus();
+    if (_chatRequestAbortController === requestController) {
+      _chatRequestAbortController = null;
+      _chatBusy = false;
+      if (_chatSessionId && _chatOwnerId() === requestOwnerId) {
+        sendBtn.disabled = false; sendBtn.style.opacity = '1';
+        inp.disabled = false; inp.focus();
+      }
+    }
   }
 }
 
@@ -9327,6 +9422,7 @@ function chatAppendPlanOptions(ev) {
 
 async function chatSelectPlan(optionId, btn, wrap) {
   if (!_chatSessionId || !optionId) return;
+  const identitySnapshot = _chatIdentitySnapshot();
   const status = wrap?.querySelector('[data-plan-status]');
   const oldText = btn?.textContent || '';
   try {
@@ -9337,8 +9433,8 @@ async function chatSelectPlan(optionId, btn, wrap) {
       headers: {'Content-Type': 'application/json', ...authHeader()},
       body: JSON.stringify({ session_id: _chatSessionId, option_id: optionId }),
     });
-    if (res.status === 401) {
-      openAuthModal('login');
+    if (res.status === 401 || res.status === 403) {
+      chatHandleAuthFailure();
       throw new Error('请先登录后选择方案');
     }
     if (!res.ok) {
@@ -9346,6 +9442,7 @@ async function chatSelectPlan(optionId, btn, wrap) {
       throw new Error(err.detail || err.message || `HTTP ${res.status}`);
     }
     const ev = await res.json();
+    if (!_chatIdentityMatches(identitySnapshot)) return;
     if (ev.saved_note_id || ev._saved_note_id) {
       _chatParentNoteId = ev.saved_note_id || ev._saved_note_id;
     }
@@ -9522,13 +9619,51 @@ window.addEventListener('load', () => {
 const API_AUTH = API_BASE;
 let _authUser = null;
 let _authToken = localStorage.getItem('noteai_token') || null;
+let _authVerifiedOwnerId = null;
 
-function authRestoreSession() {
-  if (!_authToken) return;
-  fetch(API_AUTH + '/auth/me', { headers: { Authorization: 'Bearer ' + _authToken } })
-    .then(r => r.ok ? r.json() : null)
-    .then(u => { if (u) { _authUser = u; authUpdateNav(); loadBillingPlan(); } else { _authToken = null; localStorage.removeItem('noteai_token'); } })
-    .catch(() => {});
+function authClearLocalSession() {
+  _authToken = null;
+  _authUser = null;
+  _authVerifiedOwnerId = null;
+  localStorage.removeItem('noteai_token');
+  chatClearUserState();
+  authUpdateNav();
+}
+
+async function authRestoreSession() {
+  const tokenBeingVerified = _authToken;
+  if (!tokenBeingVerified) {
+    authClearLocalSession();
+    return false;
+  }
+  try {
+    const response = await fetch(API_AUTH + '/auth/me', {
+      headers: { Authorization: 'Bearer ' + tokenBeingVerified },
+    });
+    if (_authToken !== tokenBeingVerified) return false;
+    if (!response.ok) {
+      authClearLocalSession();
+      return false;
+    }
+    const user = await response.json();
+    if (_authToken !== tokenBeingVerified) return false;
+    const verifiedOwnerId = _chatOwnerId(user);
+    if (!verifiedOwnerId) {
+      authClearLocalSession();
+      return false;
+    }
+    const previousOwnerId = _chatOwnerId();
+    if (previousOwnerId && previousOwnerId !== verifiedOwnerId) chatClearUserState();
+    _authUser = user;
+    _authVerifiedOwnerId = verifiedOwnerId;
+    authUpdateNav();
+    loadBillingPlan();
+    chatRestoreSession();
+    return true;
+  } catch(e) {
+    if (_authToken === tokenBeingVerified) authClearLocalSession();
+    return false;
+  }
 }
 
 /* 通用头像渲染：el 可以是 nav-avatar 或 profile-avatar-display */
@@ -9617,8 +9752,12 @@ async function doAuth() {
     });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.detail || '操作失败'; errEl.style.display = 'block'; return; }
+    const previousOwnerId = _chatOwnerId();
+    const nextOwnerId = _chatOwnerId(data.user);
+    if (!nextOwnerId || previousOwnerId !== nextOwnerId) chatClearUserState();
     _authToken = data.token;
     _authUser  = data.user;
+    _authVerifiedOwnerId = null;
     localStorage.setItem('noteai_token', _authToken);
     authUpdateNav();
     closeAuthModal();
@@ -9633,16 +9772,16 @@ async function doAuth() {
   }
 }
 async function doLogout() {
-  if (_authToken) {
-    await fetch(API_AUTH + '/auth/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + _authToken } }).catch(()=>{});
-  }
-  _authToken = null; _authUser = null;
-  _chatSessionId = null;
-  localStorage.removeItem('noteai_token');
-  localStorage.removeItem('noteai_chat_session');
-  authUpdateNav();
+  const tokenToRevoke = _authToken;
+  authClearLocalSession();
   showToast('已退出登录');
   showPage('landing');
+  if (tokenToRevoke) {
+    await fetch(API_AUTH + '/auth/logout', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + tokenToRevoke },
+    }).catch(()=>{});
+  }
 }
 
 function authHeader() {
@@ -10530,6 +10669,7 @@ async function autoSaveGeneratedNote(genResult) {
 async function startChatFromLibrary() {
   if (!_noteDetailData) return;
   if (!_authToken) { openAuthModal('login'); return; }
+  const identitySnapshot = _chatIdentitySnapshot();
   const note = _noteDetailData;
   closeNoteDetail();
   showPage('chat');
@@ -10549,8 +10689,8 @@ async function startChatFromLibrary() {
         ...intentPayload,
       }),
     });
-    if (res.status === 401) {
-      openAuthModal('login');
+    if (res.status === 401 || res.status === 403) {
+      chatHandleAuthFailure();
       throw new Error('请先登录后开始对话优化');
     }
     if (!res.ok) {
@@ -10558,6 +10698,7 @@ async function startChatFromLibrary() {
       throw new Error(err.detail || res.statusText);
     }
     const data = await res.json();
+    if (!_chatIdentityMatches(identitySnapshot)) return;
     _chatSessionId    = data.session_id;
     _chatIterCount    = _numOrNull(note._saved_note_version || note.version) || 1;
     // 记住这条笔记的 id，后续 chat 保存版本链时用作 parent_id
@@ -10589,12 +10730,17 @@ async function startChatFromLibrary() {
 let _chatParentNoteId = null;  // 从笔记库进入对话时的父笔记 id
 
 function chatSaveSessionToStorage() {
-  if (!_chatSessionId) return;
+  const ownerUserId = _chatOwnerId();
+  if (!_chatSessionId || !ownerUserId) {
+    localStorage.removeItem('noteai_chat_session');
+    return;
+  }
   const noteTitle = document.getElementById('chat-note-scroll')?.querySelector('.cnote-title')?.textContent || '';
   const noteBody  = document.getElementById('chat-note-scroll')?.querySelector('.cnote-body')?.textContent  || '';
   const scoreEl   = document.getElementById('chat-gauge-text');
   const score     = scoreEl ? parseFloat(scoreEl.textContent) || null : null;
   localStorage.setItem('noteai_chat_session', JSON.stringify({
+    ownerUserId,
     sessionId:    _chatSessionId,
     noteId:       _chatParentNoteId || null,
     noteTitle,
@@ -10606,16 +10752,27 @@ function chatSaveSessionToStorage() {
 }
 
 function chatRestoreSession() {
+  const verifiedOwnerId = _authVerifiedOwnerId;
   const raw = localStorage.getItem('noteai_chat_session');
   if (!raw) return;
   let stored;
-  try { stored = JSON.parse(raw); } catch { return; }
-  // 超过 24 小时不恢复
-  if (Date.now() - (stored.savedAt || 0) > 86400000) {
+  try { stored = JSON.parse(raw); } catch {
     localStorage.removeItem('noteai_chat_session');
     return;
   }
-  if (!stored.sessionId) return;
+  const storedOwnerId = stored?.ownerUserId === null || stored?.ownerUserId === undefined
+    ? null
+    : String(stored.ownerUserId);
+  const savedAt = Number(stored?.savedAt);
+  const age = Date.now() - savedAt;
+  const ownerMatches = !!verifiedOwnerId
+    && verifiedOwnerId === _chatOwnerId()
+    && storedOwnerId === verifiedOwnerId;
+  // 旧格式、异账号、无效时间、超过 24 小时或无 session 都必须删除。
+  if (!ownerMatches || !Number.isFinite(savedAt) || age < 0 || age > 86400000 || !stored.sessionId) {
+    localStorage.removeItem('noteai_chat_session');
+    return;
+  }
   _chatParentNoteId = stored.noteId || null;
 
   // 直接恢复 UI 状态，不发额外请求
@@ -12014,13 +12171,6 @@ function showQuotaExceededModal(detail) {
   if (ok) showPage('pricing');
 }
 
-// 让 authRestoreSession 完成后顺带恢复 chat session
-const _origAuthRestore = authRestoreSession;
-authRestoreSession = async function() {
-  _origAuthRestore();
-  // 等 token 验证完毕再恢复 chat（延迟 1s 确保 _authUser 已赋值）
-  setTimeout(() => { if (_authToken) chatRestoreSession(); }, 1200);
-};
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 ## Critical Risks
 
@@ -44,15 +44,23 @@ Last updated: 2026-07-11
 - 建议验证方式: Locate/implement payment provider flow only after approval; test order creation, callback signature verification, idempotency, refunds, reconciliation.
 - 是否需要用户确认后才能修改: yes.
 
-### Render model prices are not configured for actual cost accounting
-
-- 风险描述: Staging 已记录 Claude/Kimi 的 Token 与模型名称，但模型 INPUT/OUTPUT 单价环境变量未配置，导致 `actual_model_cost_rmb=0`，`cost_rmb` 继续使用操作级固定估算。
-- 涉及文件: `model/billing.py`, `model/api.py`, `model/.env.example`, Render API 环境变量，后台用量页面。
-- 可能后果: 毛利、套餐定价和供应商费用预警建立在估算值而非真实 Token 成本上，可能误判盈利能力。
-- 建议验证方式: 由产品负责人确认精确模型价格和汇率后，各跑一次最小诊断/生成/重写，要求 `actual_model_cost_rmb>0` 且手工复算一致。
-- 是否需要用户确认后才能修改: yes，配置和验证会影响商业核算并产生少量 API 费用。
-
 ## High Risks
+
+### Cross-account Chat cache can expose a previous account's note snapshot
+
+- 风险描述: 前端使用未绑定用户的全局 `noteai_chat_session` localStorage；登录/注册和慢/失败 `/auth/me` 恢复链可能把账号 A 的标题、正文、评分、版本及 session/note 标识展示给账号 B。
+- 涉及文件: `NoteAI_Pro_Demo_Framer.html`, Chat/auth 前端 tests；防御纵深可能涉及 `model/api.py` Chat session ownership load。
+- 可能后果: 共享设备、token 失效或同页账号切换时发生跨账号机密性泄露。后端当前在计费和写入前拒绝异账号 session，但不能阻止缓存内容先显示。
+- 建议验证方式: 两个合成账号脱敏哨兵 E2E；覆盖慢/失败认证、注册/登录身份变化、logout、403 清理、同账号刷新恢复；API 继续验证所有权检查先于计费/写入。
+- 是否需要用户确认后才能修改: no，最小安全修复不改变产品、计费或数据保留政策。
+
+### SSE progress and terminal recovery can leave successful paid work looking stuck
+
+- 风险描述: 真实 Staging Smoke 中 Analyze 阶段继续推进但百分比停在34%，Generate 停在0%，Chat 正式内容返回后输入框仍延迟恢复；当前客户端 parser/终态状态机和 durable replay 边界不完整。
+- 涉及文件: `NoteAI_Pro_Demo_Framer.html`, `model/api.py`, SSE/Chat e2e 与 contract tests；持久回放另涉及 billing/db/migration。
+- 可能后果: 用户误以为付费任务失败、重复提交或离开页面；断流/重启窗口可能出现结果、usage、退款和幂等状态不一致。
+- 建议验证方式: 先实施 `PERF-001B` 的终态/分帧/不确定态最小包；再以 `BILL-002` 做 PostgreSQL 故障注入、stale lease 和 durable result replay 验证。不得自动重试付费 AI。
+- 是否需要用户确认后才能修改: 客户端/协议兼容修复不需要；migration、结果保留期限和真实故障 Smoke 需要。
 
 ### Frontend/backend payload drift
 
