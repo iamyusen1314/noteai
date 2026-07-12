@@ -47,3 +47,53 @@ test('legacy reasoning events are ignored while safe process facts remain visibl
   }), SENTINEL);
   expect(exposure).toEqual({dom: false, html: false, storage: false});
 });
+
+test('model-authored HTML stays literal while limited chat formatting remains', async ({ page }) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  const sentinel = 'SEC003_DOM_SENTINEL';
+  const malicious = `<script>window.${sentinel}=1</script><img src=x onerror="window.${sentinel}=2"><svg onload="window.${sentinel}=3"></svg><a href="javascript:window.${sentinel}=4">raw link</a><unknown-tag onclick="window.${sentinel}=5">unknown</unknown-tag>`;
+
+  await page.evaluate(async ({ sentinel, malicious }) => {
+    window[sentinel] = 0;
+    addBubble(`agent ${malicious}`, `bubble ${malicious}`, 0, 0, 0);
+    chatAppendAi(`${malicious}\n**粗体保留**\n\`代码保留\`\n- 列表保留`);
+    renderAgentResults([{
+      role: `诊断角色 ${malicious}`,
+      opinion: `诊断意见 ${malicious}`,
+      reason: `理由 ${malicious}`,
+      evidence: [`证据 ${malicious}`],
+      suggestions: [`建议 ${malicious}`],
+      confidence: 0.8,
+    }], malicious);
+    _diagnosePromise = null;
+    _generateResult = {
+      note_title: '安全标题',
+      note_body: '安全正文',
+      title_variants: [`变体 ${malicious}`],
+      ces_percentile: 70,
+      grade: '良好',
+      feature_hits: {},
+      expert_opinions: [{
+        role: `生成角色 ${malicious}`,
+        opinion: `生成意见 ${malicious}`,
+        reason: `生成理由 ${malicious}`,
+        evidence: [`生成证据 ${malicious}`],
+        suggestions: [`生成建议 ${malicious}`],
+        confidence: 0.9,
+      }],
+    };
+    await populateGenerateReport();
+  }, { sentinel, malicious });
+
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(s => window[s], sentinel)).toBe(0);
+  await expect(page.locator('#bubbleArea')).toContainText('<img src=x onerror=');
+  await expect(page.locator('#chat-messages')).toContainText('<svg onload=');
+  await expect(page.locator('#chat-messages strong')).toHaveText('粗体保留');
+  await expect(page.locator('#chat-messages code')).toHaveText('代码保留');
+  await expect(page.locator('#chat-messages')).toContainText('• 列表保留');
+  await expect(page.locator('#genVariantsList')).toContainText('<unknown-tag onclick=');
+  await expect(page.locator('#genAgentResultsList')).toContainText('<script>');
+  await expect(page.locator('#agentResultsList')).toContainText('<a href=');
+  expect(await page.locator('#chat-messages a, #bubbleArea img, #bubbleArea svg, #genVariantsList unknown-tag, #genAgentResultsList script, #agentResultsList a').count()).toBe(0);
+});

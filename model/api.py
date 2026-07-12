@@ -1204,8 +1204,7 @@ def _agent_event_payload(
     suggestions = _xtag(raw, "suggestions")
     confidence = _xtag(raw, "confidence")
     if not opinion:
-        opinion = re.sub(r"</?[^>]+>", " ", raw or "")
-        opinion = re.sub(r"\s+", " ", opinion).strip()
+        opinion = "该专家已完成分析。"
     payload: dict[str, Any] = {
         "type": "expert_opinion",
         "role": role,
@@ -1565,9 +1564,7 @@ def _normalize_expert_opinion(
 ) -> dict:
     role = op.get("role") or "专家"
     raw = op.get("raw") or ""
-    plain = re.sub(r"</?[^>]+>", " ", raw)
-    plain = re.sub(r"\s+", " ", plain).strip()
-    opinion = _xtag(raw, "opinion") or plain[:260] or f"{role}已完成诊断。"
+    opinion = _xtag(raw, "opinion") or f"{role}已完成诊断。"
     evidence_lines = _split_expert_lines(_xtag(raw, "evidence"))
     suggestions = _split_expert_lines(_xtag(raw, "suggestions"))
     impact = _xtag(raw, "impact")
@@ -1613,6 +1610,147 @@ def _normalize_expert_opinion(
         "suggestions": suggestions[:4],
         "confidence": confidence,
     }
+
+
+_PUBLIC_EXPERT_EVIDENCE_KEYS = frozenset({
+    "agent_text",
+    "text",
+    "label",
+    "source_label",
+    "source_type",
+    "source_key",
+    "value",
+    "benchmark",
+    "status",
+})
+
+
+def _public_expert_text(value: Any, limit: int = 1000) -> str:
+    if not isinstance(value, (str, int, float, bool)):
+        return ""
+    return str(value).strip()[:limit]
+
+
+def _public_expert_evidence(value: Any) -> list[Any]:
+    """Project expert evidence to bounded, provider-independent public fields."""
+    if not isinstance(value, list):
+        return []
+    public: list[Any] = []
+    for item in value[:4]:
+        if isinstance(item, dict):
+            safe_item = {
+                key: item[key]
+                for key in _PUBLIC_EXPERT_EVIDENCE_KEYS
+                if key in item and isinstance(item[key], (str, int, float, bool))
+            }
+            if safe_item:
+                public.append(safe_item)
+        elif isinstance(item, (str, int, float, bool)):
+            public.append(str(item)[:500])
+    return public
+
+
+def _public_expert_opinion(op: Any) -> dict[str, Any]:
+    """Keep provider raw output internal and expose only the explainable expert view."""
+    source = op if isinstance(op, dict) else {}
+    raw = source.get("raw") if isinstance(source.get("raw"), str) else ""
+    role = _public_expert_text(source.get("role"), 80) or "专家"
+
+    opinion = _public_expert_text(source.get("opinion") or source.get("summary"))
+    if not opinion:
+        opinion = (
+            _xtag(raw, "opinion")
+            or _xtag_any(raw, "scene", "image_desc")
+            or _xtag_any(raw, "title", "draft_title")
+            or _xtag_any(raw, "keywords", "keyword_tip")
+            or _xtag_any(raw, "hook", "user_angle")
+            or f"{role}已完成分析。"
+        )
+
+    reason = _public_expert_text(source.get("reason") or source.get("impact") or source.get("rationale"))
+    if not reason:
+        reason = (
+            _xtag(raw, "impact")
+            or _xtag(raw, "rationale")
+            or _xtag(raw, "timing_tip")
+            or ""
+        )
+
+    evidence = _public_expert_evidence(source.get("evidence"))
+    if not evidence:
+        evidence = [
+            line[:500]
+            for line in _split_expert_lines(
+                _xtag(raw, "evidence")
+                or _xtag_any(raw, "hooks", "inspiration")
+                or _xtag_any(raw, "tags", "tag_recommendation")
+            )[:4]
+        ]
+
+    suggestions_value = source.get("suggestions")
+    suggestions = [
+        text
+        for item in (suggestions_value[:4] if isinstance(suggestions_value, list) else [])
+        if (text := _public_expert_text(item, 500))
+    ]
+    if not suggestions:
+        suggestions = [
+            line[:500]
+            for line in _split_expert_lines(
+                _xtag(raw, "suggestions")
+                or _xtag(raw, "keyword_tip")
+                or _xtag(raw, "cta")
+            )[:4]
+        ]
+
+    confidence_raw = source.get("confidence")
+    if confidence_raw in (None, ""):
+        confidence_raw = _xtag(raw, "confidence")
+    try:
+        confidence = max(0.0, min(1.0, float(confidence_raw)))
+    except (TypeError, ValueError):
+        confidence = 0.0
+
+    return {
+        "role": role,
+        "opinion": opinion[:1000],
+        "reason": reason[:1000],
+        "impact": reason[:1000],
+        "evidence": evidence,
+        "evidence_binding": "v04_structured" if source.get("evidence_binding") == "v04_structured" else "",
+        "suggestions": suggestions,
+        "confidence": confidence,
+    }
+
+
+def _public_expert_opinions(opinions: Any) -> list[dict[str, Any]]:
+    if not isinstance(opinions, list):
+        return []
+    return [_public_expert_opinion(op) for op in opinions[:8]]
+
+
+def _public_diagnosis_value(value: Any) -> Any:
+    """Sanitize historical reports on read without rewriting stored rows."""
+    if isinstance(value, dict):
+        safe: dict[Any, Any] = {}
+        for key, item in value.items():
+            normalized = str(key).strip().lower().replace("-", "_")
+            if normalized == "expert_opinions":
+                safe[key] = _public_expert_opinions(item)
+                continue
+            if (
+                normalized in {"reasoning", "thinking", "system_prompt"}
+                or normalized.startswith("reasoning_")
+                or normalized.startswith("thinking_")
+            ):
+                continue
+            safe[key] = _public_diagnosis_value(item)
+        return safe
+    if isinstance(value, list):
+        return [_public_diagnosis_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_public_diagnosis_value(item) for item in value]
+    return value
 
 
 def _annotate_market_timing(timing: dict | None) -> dict | None:
@@ -5258,7 +5396,7 @@ class AnalyzeResponse(BaseModel):
     suggested_body: str = Field(default="", description="AI改写正文（含话题标签）")
     model_used: str = Field(description="使用的AI模型")
     dispute: str = Field(default="", description="专家分歧说明")
-    expert_opinions: list[dict] = Field(default=[], description="各专家原始诊断意见")
+    expert_opinions: list[dict] = Field(default=[], description="各专家结构化公开诊断意见")
     fact_enrichment: dict | None = Field(default=None, description="联网事实补全结果（若启用）")
     user_constraints: list[str] = Field(default=[], description="本次采纳的用户约束条件")
     constraint_contract: dict = Field(default_factory=dict, description="用户约束执行契约")
@@ -5295,7 +5433,7 @@ class GenerateResponse(BaseModel):
     market_timing: MarketTiming | None = Field(default=None)
     feature_hits: dict[str, bool] = Field(default={}, description="关键特征命中情况")
     quality_issues: list[str] = Field(default=[], description="生成质量提示/阻断原因")
-    expert_opinions: list[dict] = Field(default=[], description="各专家创作意见")
+    expert_opinions: list[dict] = Field(default=[], description="各专家结构化公开创作意见")
     fact_enrichment: dict | None = Field(default=None, description="联网事实补全结果（若启用）")
     selection_meta: dict = Field(default={}, description="V0.4多候选择优审计信息")
     user_constraints: list[str] = Field(default=[], description="本次采纳的用户约束条件")
@@ -11747,7 +11885,7 @@ async def get_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_use
     )
     if not row:
         raise HTTPException(status_code=404, detail="诊断记录不存在")
-    data = _jlib.loads(row["diagnosis_json"])
+    data = _public_diagnosis_value(_jlib.loads(row["diagnosis_json"]))
     data["diagnosis_id"] = diag_id
     data["note_title"]   = row["note_title"]
     data["_domain"]      = row["domain"]
@@ -12803,7 +12941,7 @@ async def _run_analyze_pipeline(
         suggested_body=suggested_body,
         model_used=model_label,
         dispute=dispute,
-        expert_opinions=expert_opinions,
+        expert_opinions=_public_expert_opinions(expert_opinions),
         fact_enrichment=fact_enrichment,
         user_constraints=normalized_constraints,
         constraint_contract=constraint_contract,
@@ -13115,7 +13253,7 @@ async def _generate_pipeline_stream(
             opinions.append(result)
             raw = result.get("raw", "")
             if role == "内容创作师":
-                snippet = _xtag_any(raw, "title", "draft_title") or raw.replace("<", "").replace(">", "")[:80]
+                snippet = _xtag_any(raw, "title", "draft_title") or "内容方向分析完成"
                 body_preview = _xtag_any(raw, "body", "draft_body")
                 detail = (body_preview[:80] + "…") if body_preview else ""
             elif role == "增长策略师":
@@ -13640,7 +13778,7 @@ async def _generate_pipeline_stream(
         "score_lift_reason": score_lift_reason,
         "selection_meta": stream_selection_meta,
         "features":        {k: float(v) for k, v in final_feats.items()},
-        "expert_opinions": opinions,
+        "expert_opinions": _public_expert_opinions(opinions),
         "model_used":      "claude-routed-5-agents-stream",
     }
 
@@ -14019,7 +14157,7 @@ async def generate(
                                           if k in MarketTiming.model_fields}) if timing else None,
             feature_hits=result.get("feature_hits", {}),
             quality_issues=result.get("quality_issues", []),
-            expert_opinions=result.get("expert_opinions", []),
+            expert_opinions=_public_expert_opinions(result.get("expert_opinions", [])),
             fact_enrichment=fact_enrichment,
             selection_meta=result.get("selection_meta", {}),
             user_constraints=normalized_constraints,
@@ -14168,7 +14306,7 @@ def _build_chat_system_prompt(session: dict) -> str:
             parts.append("生成时各专家意见：")
             for op in opinions:
                 role = op.get("role", "专家")
-                summary = op.get("summary") or op.get("raw", "")[:200]
+                summary = op.get("opinion") or op.get("summary") or ""
                 if summary:
                     parts.append(f"  [{role}] {summary}")
 
@@ -15581,10 +15719,7 @@ async def chat_start(
         inherited_fact_context = ""
     session_generate_context = {
         "cover_analysis":  (gen_ctx.get("cover_analysis") or "")[:200],
-        "expert_opinions": [
-            {"role": op.get("role",""), "raw": (op.get("raw",""))[:150]}
-            for op in (gen_ctx.get("expert_opinions") or [])[:4]
-        ],
+        "expert_opinions": _public_expert_opinions(gen_ctx.get("expert_opinions") or []),
         "feature_hits":    gen_ctx.get("feature_hits") or {},
         "title_variants":  (gen_ctx.get("title_variants") or [])[:3],
         "current_score": current_score,

@@ -25,6 +25,85 @@ SENTINEL = "SEC002_PRIVATE_REASONING_SENTINEL"
 
 
 class ReasoningSafetyTests(unittest.TestCase):
+    def test_public_expert_projection_keeps_explanation_without_provider_raw(self):
+        provider_private = "SEC003_PROVIDER_PRIVATE"
+        opinion = api._public_expert_opinion({
+            "role": "内容专家<img src=x onerror=sentinel()>",
+            "raw": (
+                "<opinion><svg onload=sentinel()>保留字面意见</svg></opinion>"
+                "<evidence>证据一\n证据二</evidence>"
+                "<impact>影响说明</impact>"
+                "<suggestions>建议一\n建议二</suggestions>"
+                "<confidence>0.88</confidence>"
+                f"<{provider_private}>内部原文</{provider_private}>"
+            ),
+            "provider": provider_private,
+            "reasoning_content": provider_private,
+            "_image_desc": provider_private,
+        })
+
+        self.assertEqual(
+            set(opinion),
+            {"role", "opinion", "reason", "impact", "evidence", "evidence_binding", "suggestions", "confidence"},
+        )
+        self.assertEqual(opinion["confidence"], 0.88)
+        self.assertEqual(opinion["reason"], "影响说明")
+        self.assertEqual(opinion["impact"], "影响说明")
+        self.assertEqual(opinion["evidence_binding"], "")
+        self.assertEqual(opinion["suggestions"], ["建议一", "建议二"])
+        serialized = json.dumps(opinion, ensure_ascii=False)
+        self.assertNotIn(provider_private, serialized)
+        for blocked in ('"raw"', '"provider"', '"reasoning_content"', '"_image_desc"'):
+            self.assertNotIn(blocked, serialized)
+
+        malformed = api._public_expert_opinion({
+            "role": "内容专家",
+            "raw": f"<{provider_private}>内部原文</{provider_private}>",
+        })
+        self.assertEqual(malformed["opinion"], "内容专家已完成分析。")
+        self.assertNotIn(provider_private, json.dumps(malformed, ensure_ascii=False))
+
+        bound = api._public_expert_opinion({
+            "role": "内容专家",
+            "opinion": "公开意见",
+            "evidence_binding": "v04_structured",
+        })
+        untrusted_binding = api._public_expert_opinion({
+            "role": "内容专家",
+            "opinion": "公开意见",
+            "evidence_binding": provider_private,
+        })
+        self.assertEqual(bound["evidence_binding"], "v04_structured")
+        self.assertEqual(untrusted_binding["evidence_binding"], "")
+
+    def test_historical_diagnosis_projection_is_on_read_and_preserves_business_provider(self):
+        historical = {
+            "expert_opinions": [{
+                "role": "增长专家",
+                "raw": "<opinion>增长意见</opinion><confidence>0.7</confidence>",
+                "provider": "internal-model-provider",
+                "reasoning": SENTINEL,
+            }],
+            "fact_enrichment": {"provider": "amap", "raw_title": "业务字段"},
+            "reasoning_content": SENTINEL,
+        }
+
+        projected = api._public_diagnosis_value(historical)
+        self.assertEqual(projected["fact_enrichment"], {"provider": "amap", "raw_title": "业务字段"})
+        self.assertNotIn("reasoning_content", projected)
+        self.assertEqual(projected["expert_opinions"][0]["opinion"], "增长意见")
+        self.assertNotIn("raw", projected["expert_opinions"][0])
+
+    def test_public_expert_projection_is_applied_at_every_delivery_boundary(self):
+        analyze_source = inspect.getsource(api._run_analyze_pipeline)
+        generate_source = inspect.getsource(api.generate)
+        generate_stream_source = inspect.getsource(api._generate_pipeline_stream)
+        chat_start_source = inspect.getsource(api.chat_start)
+        diagnosis_source = inspect.getsource(api.get_diagnosis)
+        for source in (analyze_source, generate_source, generate_stream_source, chat_start_source):
+            self.assertIn("_public_expert_opinions", source)
+        self.assertIn("_public_diagnosis_value", diagnosis_source)
+
     def test_generate_and_chat_application_paths_never_serialize_thinking(self):
         generate_source = inspect.getsource(api._generate_pipeline_stream)
         chat_source = inspect.getsource(api._chat_sse_generator)

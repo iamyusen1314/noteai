@@ -7,6 +7,17 @@ HTML = (ROOT / "NoteAI_Pro_Demo_Framer.html").read_text(encoding="utf-8")
 
 
 class FrontendReportStaticTests(unittest.TestCase):
+    def test_model_authored_html_is_escaped_before_limited_rendering(self):
+        self.assertIn("agentEl.textContent = String(agent || '')", HTML)
+        self.assertIn("textEl.textContent = String(text || '')", HTML)
+        self.assertIn("t = chatEsc(String(t || ''))", HTML)
+        self.assertIn("${escapeHtml(v)}", HTML)
+        self.assertIn("${escapeHtml(role)}", HTML)
+        self.assertIn("op.reason || op.impact || ''", HTML)
+        self.assertIn("op.impact || op.reason || ''", HTML)
+        self.assertNotIn("const raw  = op.raw", HTML)
+        self.assertNotIn("${opinion}${rationale", HTML)
+
     def test_paid_ai_entry_points_send_unique_request_ids(self):
         self.assertIn("function createPaidRequestId", HTML)
         self.assertIn("createPaidRequestId('generate')", HTML)

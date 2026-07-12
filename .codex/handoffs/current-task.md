@@ -190,11 +190,11 @@
 - 涉及文件：最小范围 `model/scheduler_a.py`, `tests/test_xhs_acquisition.py`，如安全诊断白名单需要才最小涉及 `model/xhs_acquisition.py`；不改候选解析业务语义、Cookie、浏览器指纹、重试、Cron、数据库或熔断策略。
 - 风险：结构分类过细可能泄漏平台响应或错误地绑定易变端点；只允许固定枚举与计数，禁止 URL/query、key集合、正文、标题、关键词、seed、Cookie和异常原文。应先并行保留旧总计数，避免突然破坏监控兼容。
 - 执行代理：单一 Implementation Agent，仅修改 `model/scheduler_a.py` 与 `tests/test_xhs_acquisition.py`；验证代理：独立 Verification Agent，结论 PASS。
-- 修改状态/进度：新增固定白名单 `search_response_class`（generic_json/note_result/empty_result/unknown_schema/business_error/non_json）与 `search_target_outcome`（endpoint_not_seen/challenge_before_target_payload），保留旧 response_seen/json_ok/json_failed/title_count；不猜测 endpoint URL，只用支持结构判断目标 payload。独立验证：XHS 39/39、XHS+Market Quality+Render 64/64、全量 unittest 383/383（5 skip）、Production Readiness 48/48、py_compile、diff check 全部通过。
+- 修改状态/进度：新增固定白名单 `search_response_class`（generic_json/note_result/empty_result/unknown_schema/business_error/non_json）与 `search_target_outcome`（endpoint_not_seen/challenge_before_target_payload），保留旧 response_seen/json_ok/json_failed/title_count；不猜测 endpoint URL，只用支持结构判断目标 payload。独立验证：XHS 39/39、XHS+Market Quality+Render 64/64、全量 unittest 383/383（5 skip）、Production Readiness 48/48、py_compile、diff check 全部通过。commit `aa1f866` 两条 GitHub CI 均通过；Render API/Admin 已 live、Web 已部署、两个 Cron 为 Successful build；API/Admin readiness 与 Web 均 HTTP 200。
 - 验收标准：generic/challenge API JSON 不再冒充“笔记结果JSON成功”；已知 `data.items[].note_card.display_title/title` 结构可识别；empty items、candidate container但unknown schema、business error、non-JSON、endpoint未出现均有固定脱敏分类；challenge首目标得到 `challenge_before_target_payload` 且跳过11；旧漏斗字段兼容；日志/health不含敏感内容；XHS/Render/全量/Production Readiness通过。
 - 是否需要用户决定：否；只修诊断真实性，不改变外部采集行为。
 - 是否涉及真实外部调用：本地实施不需要；部署后只观察自然half-open Cron，不手工触发。
-- 是否已部署到 Render：待本次 push 后核验；部署后不手工触发采集，只等待自然 half-open Cron。
+- 是否已部署到 Render：是，commit `aa1f866`；未手工触发采集，状态保持 READY_TO_VERIFY，等待自然 half-open Cron 提供真实结构分类证据。
 
 ### BUG-002B — 搜索来源退化的脱敏诊断漏斗
 
@@ -435,18 +435,19 @@
 
 ### SEC-003 — 模型输出 HTML 注入与诊断 raw 字段暴露
 
-- 状态：**INVESTIGATING**
+- 状态：**READY_TO_VERIFY**
 - 优先级：High。
 - 问题描述：Generate 报告和 Chat Markdown 存在将模型自由文本写入 `innerHTML` 的路径；Analyze/Generate 响应与持久化还包含专家 `raw`/原始 XML，扩大模型输出注入和不必要数据暴露面。
-- 证据：Security Reviewer 定位 `NoteAI_Pro_Demo_Framer.html` 的 Generate expert report、`addBubble`、`chatMD` 路径，以及 `model/api.py` 的 `_normalize_expert_opinion`、saved diagnosis serialization 与 Chat generate context。
-- 根因是否确认：部分确认；未转义模型文本进入 HTML 的危险路径已确认，所有可利用上下文与现有 CSP/浏览器行为仍需独立复现。
-- 涉及文件：`model/api.py`, `NoteAI_Pro_Demo_Framer.html`, Analyze/Generate persistence 与安全 tests。
-- 风险：High；模型输出或 Prompt Injection 内容可能影响页面结构或执行事件属性，并在诊断历史中长期保留 raw 文本。
-- 执行代理：Security Reviewer + QA Investigator（只读）；验证代理：独立 Security/Browser Verification。
-- 验收标准：任意 `<script>`、`<img onerror>`、事件属性和未知 HTML 只能作为文本显示；公开/持久化专家对象不含 raw XML；正常报告和 Chat 格式不回退。
+- 证据：三路只读调查完成。本地无网络 Chromium sentinel 已让 Chat `chatMD`、实时 `addBubble`、Generate 专家/标题区域的 `<img onerror>` 实际执行；raw HTML link 也可形成可点击节点。`_normalize_expert_opinion`、Analyze/Generate JSON/SSE complete 仍公开 `raw`，Analyze 将完整响应写入 `saved_diagnoses`，历史详情原样返回。Render 静态响应无 CSP，不能依赖浏览器策略缓解。
+- 根因是否确认：是。模型/外部内容经 raw XML 或最终文本进入未转义 `innerHTML`；内部仲裁结束后缺少统一 public expert 白名单投影，使 raw 继续进入响应、浏览器和诊断历史。
+- 涉及文件：最小范围 `model/api.py`, `NoteAI_Pro_Demo_Framer.html`, `tests/test_reasoning_safety.py`, `tests/test_frontend_report_static.py`, `tests/e2e/reasoning-safety.spec.js`，必要时最小补充 API contract 安全断言；不改 DB schema、auth、billing、模型路由或 Prompt。
+- 风险：High；可执行 DOM XSS 可能读取同源页面状态，且用户 token 位于 localStorage；raw 长期保存扩大 Prompt Injection 与不必要数据暴露。修复若过早删除内部 raw 会破坏仲裁质量，必须只在最终公开/持久化边界投影。
+- 执行代理：Security Reviewer + Repository Explorer + QA Investigator（只读完成）及单一 Implementation Agent；验证代理：独立 Security/Browser Verification，结论 PASS。
+- 修改状态/进度：后端新增 expert public projection，raw 仅保留在内部仲裁，Analyze/Generate JSON与SSE、新诊断保存、历史读取及 Chat context 均输出结构化白名单；前端 `addBubble` 改安全 DOM/textContent，`chatMD` 先转义再保留有限 Markdown，Generate 标题/专家卡和 Analyze role 全部转义。主审补回兼容字段 impact/evidence_binding。独立验证：定向 180/180、Playwright 11/11、全量 unittest 387/387（5 skip）、Production Readiness 48/48、py_compile、diff check及精确复制探针全部通过。
+- 验收标准：`<script>`、`<img onerror>`、`<svg onload>`、事件属性、raw/Markdown HTML link 与未知标签只能作为字面文本显示且 sentinel 不执行；Chat `**粗体**`、行内 code、换行/列表保留；Agent 名称、意见、理由、证据、建议、置信度保留；Analyze/Generate JSON与SSE、new saved diagnosis、历史详情和 Chat 上下文均无 raw/XML/provider内部字段；全量/Playwright/Production Readiness通过。
 - 是否需要用户决定：否；属于安全修复，不改变产品功能。
 - 是否涉及真实外部调用：本地 sentinel 与浏览器测试不需要；最终 Staging 仅需无付费 Smoke。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：待本次提交与 Staging 核验；部署 Smoke 不调用真实 AI、不写业务数据。
 
 ### BUG-003 — 对话重写回复与保存版本不一致
 

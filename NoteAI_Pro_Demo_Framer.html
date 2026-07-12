@@ -6898,9 +6898,9 @@ async function populateGenerateReport() {
       <div style="display:flex;align-items:center;gap:10px;background:var(--surf-3);border:1px solid var(--border);
            border-radius:var(--r-sm);padding:12px 16px">
         <span style="font-size:11px;font-weight:700;color:var(--text-muted);flex-shrink:0">方案 ${String.fromCharCode(65+i)}</span>
-        <span style="flex:1;font-size:14px;color:var(--text);line-height:1.5">${v}</span>
+        <span style="flex:1;font-size:14px;color:var(--text);line-height:1.5">${escapeHtml(v)}</span>
         <button onclick="navigator.clipboard.writeText(this.dataset.t).then(()=>showToast('✅ 已复制'))"
-          data-t="${v.replace(/"/g,'&quot;')}"
+          data-t="${escapeHtml(v)}"
           style="flex-shrink:0;background:transparent;border:1px solid var(--border-hover);color:var(--text-2);
                  padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">
           复制
@@ -6992,22 +6992,29 @@ async function populateGenerateReport() {
     if (gl) {
       gl.innerHTML = d.expert_opinions.map(op => {
         const role = op.role || '';
-        const raw  = op.raw  || '';
-        const opinion = _xtag(raw, 'opinion') || raw.slice(0, 120);
-        const rationale = _xtag(raw, 'rationale') || _xtag(raw, 'suggestions') || '';
-        const conf = parseFloat(_xtag(raw, 'confidence')) || 0;
+        const opinion = op.opinion || '';
+        const rationale = op.reason || op.impact || '';
+        const evidence = Array.isArray(op.evidence) ? op.evidence : [];
+        const suggestions = Array.isArray(op.suggestions) ? op.suggestions : [];
+        const conf = Number.isFinite(Number(op.confidence)) ? Number(op.confidence) : 0;
         const meta = _GEN_AGENT_META[role] || { color:'#888', bg:'rgba(128,128,128,0.12)', icon:'circle' };
         const confCls = conf >= 0.85 ? 'conf-badge-high' : conf >= 0.75 ? 'conf-badge-mid' : 'conf-badge-low';
+        const evidenceHtml = evidence.length
+          ? `<div class="agent-section-title">证据</div><ul class="agent-evidence-list">${evidence.slice(0,4).map(renderAgentEvidenceItem).join('')}</ul>`
+          : '';
+        const suggestionsHtml = suggestions.length
+          ? `<div class="agent-section-title">建议</div><ul class="agent-suggestion-list">${suggestions.slice(0,4).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+          : '';
         return `
           <div class="agent-result">
             <div class="agent-result-head">
               <div class="agent-mini-avatar" style="background:${meta.bg}">
                 <i data-lucide="${meta.icon}" style="color:${meta.color}"></i>
               </div>
-              <span class="agent-result-name">${role}</span>
+              <span class="agent-result-name">${escapeHtml(role)}</span>
               ${conf > 0 ? `<span class="agent-conf-badge ${confCls}">置信度 ${conf.toFixed(2)}</span>` : ''}
             </div>
-            <div class="agent-result-text">${opinion}${rationale ? `<div style="margin-top:6px;font-size:12px;color:var(--text-muted);line-height:1.6">${rationale.replace(/\n/g,'<br>')}</div>` : ''}</div>
+            <div class="agent-result-text">${escapeHtml(opinion)}${rationale ? `<div style="margin-top:6px;font-size:12px;color:var(--text-muted);line-height:1.6">${escapeHtml(rationale).replace(/\n/g,'<br>')}</div>` : ''}${evidenceHtml}${suggestionsHtml}</div>
           </div>`;
       }).join('');
     }
@@ -7075,18 +7082,11 @@ function renderAgentResults(opinions, dispute) {
 
   list.innerHTML = opinions.map(op => {
     const role = op.role || '';
-    const raw  = op.raw  || '';
-    const opinion = op.opinion || _xtag(raw, 'opinion') || raw.slice(0, 240);
-    const evidence = Array.isArray(op.evidence) && op.evidence.length
-      ? op.evidence
-      : (_xtag(raw, 'evidence') ? _xtag(raw, 'evidence').split(/\n|；|;/).filter(Boolean) : []);
-    const suggestions = Array.isArray(op.suggestions) && op.suggestions.length
-      ? op.suggestions
-      : (_xtag(raw, 'suggestions') ? _xtag(raw, 'suggestions').split(/\n|；|;/).filter(Boolean) : []);
-    const impact = op.impact || _xtag(raw, 'impact') || '';
-    const conf = Number.isFinite(Number(op.confidence))
-      ? Number(op.confidence)
-      : (parseFloat(_xtag(raw, 'confidence')) || 0);
+    const opinion = op.opinion || '';
+    const evidence = Array.isArray(op.evidence) ? op.evidence : [];
+    const suggestions = Array.isArray(op.suggestions) ? op.suggestions : [];
+    const impact = op.impact || op.reason || '';
+    const conf = Number.isFinite(Number(op.confidence)) ? Number(op.confidence) : 0;
     const meta = _AGENT_META[role] || { color:'#888', bg:'rgba(128,128,128,0.12)', icon:'circle' };
     const confCls = conf >= 0.85 ? 'conf-badge-high' : conf >= 0.75 ? 'conf-badge-mid' : 'conf-badge-low';
     const bindingBadge = op.evidence_binding === 'v04_structured' ? '<span class="agent-binding-badge">V0.4证据</span>' : '';
@@ -7103,7 +7103,7 @@ function renderAgentResults(opinions, dispute) {
           <div class="agent-mini-avatar" style="background:${meta.bg}">
             <i data-lucide="${meta.icon}" style="color:${meta.color}"></i>
           </div>
-          <span class="agent-result-name">${role}</span>
+          <span class="agent-result-name">${escapeHtml(role)}</span>
           ${bindingBadge}
           <span class="agent-conf-badge ${confCls}">置信度 ${conf.toFixed(2)}</span>
         </div>
@@ -7519,7 +7519,14 @@ function addBubble(agent, text, col, top, left) {
   const area = document.getElementById('bubbleArea');
   const b = document.createElement('div');
   b.className = 'bubble';
-  b.innerHTML = `<div class="bubble-agent">${agent}</div><div class="bubble-text">${text}</div>`;
+  const agentEl = document.createElement('div');
+  agentEl.className = 'bubble-agent';
+  agentEl.textContent = String(agent || '');
+  const textEl = document.createElement('div');
+  textEl.className = 'bubble-text';
+  textEl.style.whiteSpace = 'pre-wrap';
+  textEl.textContent = String(text || '');
+  b.append(agentEl, textEl);
   area.appendChild(b);
   area.scrollTop = area.scrollHeight;
   setTimeout(() => { if (b.parentNode) b.style.opacity = '0.5'; }, 5000);
@@ -9490,6 +9497,7 @@ function chatEsc(s) {
   return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function chatMD(t) {
+  t = chatEsc(String(t || ''));
   t = t.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   t = t.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>');
   t = t.replace(/^[-•] (.+)$/gm, '• $1');
