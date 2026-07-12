@@ -23,7 +23,6 @@ from typing import Any, AsyncGenerator, Awaitable, Callable
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
-import anthropic
 import model_router as _mr
 import lightgbm as lgb
 import numpy as np
@@ -350,17 +349,6 @@ def _video_library_note_body(
 # ── Claude client ─────────────────────────────────────────────────
 
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
-_claude: anthropic.Anthropic | None = None
-
-
-def get_claude() -> anthropic.Anthropic:
-    global _claude
-    if _claude is None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY not set")
-        _claude = anthropic.Anthropic(api_key=api_key)
-    return _claude
 
 # ── Kimi semantic features (real-time inference) ──────────────────
 
@@ -10654,12 +10642,14 @@ def _parse_response(text: str) -> tuple[str, list[str], str, str]:
 
 
 def _call_claude(prompt: str) -> tuple[str, list[str], str, str]:
-    msg = get_claude().messages.create(
+    if _mr.claude_transport_mode() == "local" and not os.environ.get("ANTHROPIC_API_KEY"):
+        raise RuntimeError("ANTHROPIC_API_KEY not set")
+    raw = _mr.call_claude_sync(
         model=CLAUDE_MODEL,
         max_tokens=2048,
         messages=[{"role": "user", "content": prompt}],
+        first_text_block=True,
     )
-    raw = msg.content[0].text
     return _parse_response(raw)
 
 
@@ -11331,10 +11321,14 @@ def _readiness_payload() -> tuple[dict, int]:
     checks["model"] = {"ok": model_ok, "version": _health_model_label()}
 
     require_ai = os.environ.get("NOTEAI_READINESS_REQUIRE_AI_KEYS", "0").lower() in {"1", "true", "yes"}
+    claude_runtime = _mr.claude_transport_readiness()
+    claude_configured = bool(claude_runtime.get("configured"))
     checks["ai"] = {
-        "ok": bool(os.environ.get("ANTHROPIC_API_KEY")) and bool(os.environ.get("MOONSHOT_API_KEY")),
+        "ok": claude_configured and bool(os.environ.get("MOONSHOT_API_KEY")),
         "required": require_ai,
-        "claude_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "claude_configured": claude_configured,
+        "claude_transport": claude_runtime.get("mode"),
+        "claude_transport_supported": bool(claude_runtime.get("supported")),
         "moonshot_configured": bool(os.environ.get("MOONSHOT_API_KEY")),
     }
 

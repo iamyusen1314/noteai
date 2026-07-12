@@ -13,14 +13,19 @@ model_router.py — NoteAI Pro 统一模型路由层
 
 import asyncio
 import inspect
+import ipaddress
 import json
 import os
+import re
 import sys
 import time
-from typing import AsyncGenerator
+from dataclasses import dataclass
+from typing import Any, AsyncGenerator, Protocol
+from urllib.parse import urlsplit
 
 import anthropic
 import httpx
+import claude_gateway_protocol as _cgp
 
 # ── 模型常量 ──────────────────────────────────────────────────────
 CLAUDE_SONNET  = "claude-sonnet-4-6"
@@ -51,16 +56,6 @@ TASK_ROUTING: dict[str, dict] = {
 
 
 # ── Claude 异步客户端（单例） ─────────────────────────────────────
-_claude_client: anthropic.AsyncAnthropic | None = None
-
-def _get_claude() -> anthropic.AsyncAnthropic:
-    global _claude_client
-    if _claude_client is None:
-        key = os.environ.get("ANTHROPIC_API_KEY", "")
-        _claude_client = anthropic.AsyncAnthropic(api_key=key)
-    return _claude_client
-
-
 def _get_semaphore(name: str, limit: int) -> asyncio.Semaphore:
     loop_id = id(asyncio.get_running_loop())
     key = (name, loop_id)
@@ -202,6 +197,501 @@ def _record_kimi_usage(model: str, usage: dict | None) -> None:
     _record_usage("kimi", model, prompt_tokens, tokens_out)
 
 
+# ── Claude transport boundary ────────────────────────────────
+@dataclass(frozen=True)
+class ClaudeMessageRequest:
+    model: str
+    max_tokens: int
+    messages: tuple[dict, ...]
+    system: str | None = None
+    temperature: float | None = None
+    thinking_budget: int | None = None
+
+
+@dataclass(frozen=True)
+class ClaudeMessageResult:
+    text_blocks: tuple[str, ...]
+    usage: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class ClaudeStreamEvent:
+    type: str
+    text: str = ""
+    usage: dict[str, Any] | None = None
+
+
+class ClaudeTransport(Protocol):
+    """SDK-independent Claude request/response/stream transport contract."""
+
+    async def create_message(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
+        ...
+
+    def create_message_sync(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
+        ...
+
+    def stream_message(
+        self,
+        request: ClaudeMessageRequest,
+    ) -> AsyncGenerator[ClaudeStreamEvent, None]:
+        ...
+
+
+def _local_claude_kwargs(request: ClaudeMessageRequest) -> dict:
+    kwargs: dict = {
+        "model": request.model,
+        "max_tokens": request.max_tokens,
+        "messages": list(request.messages),
+    }
+    if request.system is not None:
+        kwargs["system"] = request.system
+    if request.thinking_budget is not None:
+        kwargs["thinking"] = {
+            "type": "enabled",
+            "budget_tokens": request.thinking_budget,
+        }
+    elif request.temperature is not None:
+        kwargs["temperature"] = request.temperature
+    return kwargs
+
+
+def _normalized_claude_usage(usage) -> dict | None:
+    if not usage:
+        return None
+    normalized = {
+        "input_tokens": _usage_attr(usage, "input_tokens"),
+        "output_tokens": _usage_attr(usage, "output_tokens"),
+        "cache_read_input_tokens": _usage_attr(usage, "cache_read_input_tokens"),
+        "cache_creation_input_tokens": _usage_attr(usage, "cache_creation_input_tokens"),
+    }
+    cache_creation = _usage_value(usage, "cache_creation")
+    if cache_creation is not None:
+        normalized["cache_creation"] = {
+            "ephemeral_5m_input_tokens": _usage_attr(
+                cache_creation, "ephemeral_5m_input_tokens"
+            ),
+            "ephemeral_1h_input_tokens": _usage_attr(
+                cache_creation, "ephemeral_1h_input_tokens"
+            ),
+        }
+    return normalized
+
+
+class LocalAnthropicTransport:
+    """Default transport preserving the existing direct Anthropic SDK behavior."""
+
+    def __init__(self, api_key: str | None = None):
+        self._api_key = api_key
+        self._async_client: anthropic.AsyncAnthropic | None = None
+        self._sync_client: anthropic.Anthropic | None = None
+
+    def _resolved_api_key(self) -> str:
+        if self._api_key is not None:
+            return self._api_key
+        return os.environ.get("ANTHROPIC_API_KEY", "")
+
+    def _get_async_client(self) -> anthropic.AsyncAnthropic:
+        if self._async_client is None:
+            self._async_client = anthropic.AsyncAnthropic(api_key=self._resolved_api_key())
+        return self._async_client
+
+    def _get_sync_client(self) -> anthropic.Anthropic:
+        if self._sync_client is None:
+            self._sync_client = anthropic.Anthropic(api_key=self._resolved_api_key())
+        return self._sync_client
+
+    @staticmethod
+    def _result(response) -> ClaudeMessageResult:
+        return ClaudeMessageResult(
+            tuple(
+                block.text
+                for block in response.content
+                if getattr(block, "type", None) == "text"
+            ),
+            _normalized_claude_usage(getattr(response, "usage", None)),
+        )
+
+    async def create_message(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
+        response = await self._get_async_client().messages.create(
+            **_local_claude_kwargs(request)
+        )
+        return self._result(response)
+
+    def create_message_sync(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
+        response = self._get_sync_client().messages.create(
+            **_local_claude_kwargs(request)
+        )
+        return self._result(response)
+
+    async def stream_message(
+        self,
+        request: ClaudeMessageRequest,
+    ) -> AsyncGenerator[ClaudeStreamEvent, None]:
+        async with self._get_async_client().messages.stream(
+            **_local_claude_kwargs(request)
+        ) as stream_ctx:
+            async for event in stream_ctx:
+                if event.type != "content_block_delta":
+                    continue
+                delta = event.delta
+                if delta.type == "thinking_delta":
+                    yield ClaudeStreamEvent("thinking", text=delta.thinking)
+                elif delta.type == "text_delta":
+                    yield ClaudeStreamEvent("content", text=delta.text)
+            try:
+                final_message = stream_ctx.get_final_message()
+                if inspect.isawaitable(final_message):
+                    final_message = await final_message
+                yield ClaudeStreamEvent(
+                    "usage",
+                    usage=_normalized_claude_usage(getattr(final_message, "usage", None)),
+                )
+            except Exception:
+                pass
+
+
+class ClaudeGatewayError(RuntimeError):
+    def __init__(
+        self,
+        code: str,
+        status_code: int | None = None,
+        *,
+        usage_audit_required: bool = False,
+    ):
+        safe_code = code if re.fullmatch(r"[A-Z0-9_]{1,64}", str(code or "")) else "GATEWAY_ERROR"
+        self.code = safe_code
+        self.status_code = status_code
+        self.usage_audit_required = bool(usage_audit_required)
+        super().__init__(f"claude gateway error: {safe_code}")
+
+
+def _valid_gateway_base_url(value: str | None) -> bool:
+    raw = str(value or "").strip()
+    try:
+        parsed = urlsplit(raw)
+        port = parsed.port
+    except (TypeError, ValueError):
+        return False
+    hostname = (parsed.hostname or "").rstrip(".").lower()
+    if (
+        parsed.scheme != "https"
+        or not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or parsed.path not in {"", "/"}
+        or port not in {None, 443}
+        or hostname == "localhost"
+        or hostname.endswith(".local")
+    ):
+        return False
+    try:
+        ipaddress.ip_address(hostname)
+        return False
+    except ValueError:
+        return True
+
+
+def _safe_gateway_http_error(
+    exc: BaseException,
+    *,
+    usage_audit_required: bool = False,
+) -> ClaudeGatewayError:
+    if isinstance(exc, httpx.TimeoutException):
+        return ClaudeGatewayError(
+            "GATEWAY_TIMEOUT",
+            504,
+            usage_audit_required=usage_audit_required,
+        )
+    if isinstance(exc, httpx.NetworkError):
+        return ClaudeGatewayError(
+            "GATEWAY_NETWORK_ERROR",
+            503,
+            usage_audit_required=usage_audit_required,
+        )
+    if isinstance(exc, httpx.ProtocolError):
+        return ClaudeGatewayError(
+            "GATEWAY_PROTOCOL_ERROR",
+            502,
+            usage_audit_required=usage_audit_required,
+        )
+    return ClaudeGatewayError(
+        "GATEWAY_HTTP_ERROR",
+        502,
+        usage_audit_required=usage_audit_required,
+    )
+
+
+class GatewayClaudeTransport:
+    """Signed HTTP transport with no transport-layer automatic retries."""
+
+    def __init__(
+        self,
+        *,
+        base_url: str | None = None,
+        key_id: str | None = None,
+        secret: str | None = None,
+        timeout_seconds: float | None = None,
+        http_transport: Any = None,
+    ):
+        self.base_url = (
+            base_url if base_url is not None
+            else os.environ.get("NOTEAI_CLAUDE_GATEWAY_URL", "")
+        ).strip().rstrip("/")
+        self.key_id = (
+            key_id if key_id is not None
+            else os.environ.get("NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID", "")
+        ).strip()
+        self.secret = (
+            secret if secret is not None
+            else os.environ.get("NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET", "")
+        )
+        if timeout_seconds is None:
+            try:
+                timeout_seconds = float(
+                    os.environ.get("NOTEAI_CLAUDE_GATEWAY_HTTP_TIMEOUT_SECONDS", "190") or 190
+                )
+            except (TypeError, ValueError):
+                timeout_seconds = 190.0
+        timeout_seconds = max(1.0, float(timeout_seconds))
+        self.timeout = httpx.Timeout(
+            connect=min(10.0, timeout_seconds),
+            read=timeout_seconds,
+            write=min(30.0, timeout_seconds),
+            pool=min(10.0, timeout_seconds),
+        )
+        self.http_transport = http_transport
+
+    def _require_config(self) -> None:
+        if not self.base_url or not self.key_id or not self.secret:
+            raise ClaudeGatewayError("GATEWAY_NOT_CONFIGURED", 503)
+        if not _valid_gateway_base_url(self.base_url):
+            raise ClaudeGatewayError("GATEWAY_URL_INVALID", 503)
+
+    @staticmethod
+    def _body(request: ClaudeMessageRequest) -> bytes:
+        return json.dumps({
+            "model": request.model,
+            "max_tokens": request.max_tokens,
+            "system": request.system,
+            "messages": list(request.messages),
+            "temperature": request.temperature,
+            "thinking_budget": request.thinking_budget,
+        }, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+    def _headers(self, path: str, body: bytes) -> dict[str, str]:
+        return _cgp.auth_headers(
+            key_id=self.key_id,
+            secret=self.secret,
+            method="POST",
+            path=path,
+            body=body,
+        )
+
+    @staticmethod
+    def _error_from_payload(payload: Any, status_code: int | None) -> ClaudeGatewayError:
+        code = "GATEWAY_ERROR"
+        if isinstance(payload, dict):
+            error = payload.get("error")
+            if isinstance(error, dict) and isinstance(error.get("code"), str):
+                code = error["code"]
+        return ClaudeGatewayError(code, status_code)
+
+    @staticmethod
+    def _require_response_media_type(response: httpx.Response, expected: str) -> None:
+        values = response.headers.get_list("content-type")
+        if len(values) != 1:
+            raise ClaudeGatewayError("GATEWAY_PROTOCOL_ERROR", response.status_code)
+        media_type = values[0].split(";", 1)[0].strip().lower()
+        if media_type != expected:
+            raise ClaudeGatewayError("GATEWAY_PROTOCOL_ERROR", response.status_code)
+
+    @classmethod
+    def _decode_result(cls, response: httpx.Response) -> ClaudeMessageResult:
+        cls._require_response_media_type(response, "application/json")
+        try:
+            payload = response.json()
+        except Exception as exc:
+            raise ClaudeGatewayError("GATEWAY_PROTOCOL_ERROR", response.status_code) from exc
+        if response.status_code >= 400:
+            raise cls._error_from_payload(payload, response.status_code)
+        if not isinstance(payload, dict) or payload.get("protocol_version") != _cgp.PROTOCOL_VERSION:
+            raise ClaudeGatewayError("GATEWAY_PROTOCOL_ERROR", response.status_code)
+        blocks = payload.get("text_blocks")
+        usage = payload.get("usage")
+        if (
+            not isinstance(blocks, list)
+            or not all(isinstance(block, str) for block in blocks)
+            or not _cgp.valid_usage_envelope(usage)
+        ):
+            raise ClaudeGatewayError("GATEWAY_PROTOCOL_ERROR", response.status_code)
+        return ClaudeMessageResult(tuple(blocks), usage)
+
+    async def create_message(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
+        self._require_config()
+        body = self._body(request)
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout,
+                follow_redirects=False,
+                transport=self.http_transport,
+            ) as client:
+                response = await client.post(
+                    f"{self.base_url}{_cgp.MESSAGES_PATH}",
+                    content=body,
+                    headers=self._headers(_cgp.MESSAGES_PATH, body),
+                )
+        except ClaudeGatewayError:
+            raise
+        except httpx.HTTPError as exc:
+            raise _safe_gateway_http_error(exc) from None
+        return self._decode_result(response)
+
+    def create_message_sync(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
+        self._require_config()
+        body = self._body(request)
+        try:
+            with httpx.Client(
+                timeout=self.timeout,
+                follow_redirects=False,
+                transport=self.http_transport,
+            ) as client:
+                response = client.post(
+                    f"{self.base_url}{_cgp.MESSAGES_PATH}",
+                    content=body,
+                    headers=self._headers(_cgp.MESSAGES_PATH, body),
+                )
+        except ClaudeGatewayError:
+            raise
+        except httpx.HTTPError as exc:
+            raise _safe_gateway_http_error(exc) from None
+        return self._decode_result(response)
+
+    async def stream_message(
+        self,
+        request: ClaudeMessageRequest,
+    ) -> AsyncGenerator[ClaudeStreamEvent, None]:
+        self._require_config()
+        body = self._body(request)
+        terminal_seen = False
+        usage_seen = False
+        response_started = False
+
+        def stream_error(code: str, status_code: int = 502) -> ClaudeGatewayError:
+            return ClaudeGatewayError(
+                code,
+                status_code,
+                usage_audit_required=response_started and not usage_seen,
+            )
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout,
+                follow_redirects=False,
+                transport=self.http_transport,
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    f"{self.base_url}{_cgp.STREAM_PATH}",
+                    content=body,
+                    headers=self._headers(_cgp.STREAM_PATH, body),
+                ) as response:
+                    if response.status_code >= 400:
+                        self._require_response_media_type(response, "application/json")
+                        await response.aread()
+                        try:
+                            payload = response.json()
+                        except Exception:
+                            payload = None
+                        raise self._error_from_payload(payload, response.status_code)
+                    self._require_response_media_type(response, "application/x-ndjson")
+                    response_started = True
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        try:
+                            event = json.loads(line)
+                        except json.JSONDecodeError:
+                            raise stream_error("GATEWAY_PROTOCOL_ERROR") from None
+                        if not isinstance(event, dict) or event.get("protocol_version") != _cgp.PROTOCOL_VERSION:
+                            raise stream_error("GATEWAY_PROTOCOL_ERROR")
+                        if terminal_seen:
+                            raise stream_error("GATEWAY_PROTOCOL_ERROR")
+                        event_type = event.get("type")
+                        if (
+                            event_type == "content"
+                            and isinstance(event.get("text"), str)
+                            and not usage_seen
+                        ):
+                            yield ClaudeStreamEvent("content", text=event["text"])
+                        elif event_type == "usage" and _cgp.valid_usage_envelope(event.get("usage")):
+                            if event.get("usage") is None or usage_seen:
+                                raise stream_error("GATEWAY_PROTOCOL_ERROR")
+                            usage_seen = True
+                            yield ClaudeStreamEvent("usage", usage=event["usage"])
+                        elif event_type == "done":
+                            if not usage_seen:
+                                raise stream_error("GATEWAY_STREAM_USAGE_MISSING")
+                            terminal_seen = True
+                        elif event_type == "error":
+                            error = self._error_from_payload(event, 502)
+                            error.usage_audit_required = not usage_seen
+                            raise error
+                        else:
+                            raise stream_error("GATEWAY_PROTOCOL_ERROR")
+        except ClaudeGatewayError:
+            raise
+        except httpx.HTTPError as exc:
+            raise _safe_gateway_http_error(
+                exc,
+                usage_audit_required=response_started and not usage_seen,
+            ) from None
+        if not terminal_seen or not usage_seen:
+            raise stream_error("GATEWAY_STREAM_INCOMPLETE")
+
+
+_CLAUDE_TRANSPORT: ClaudeTransport | None = None
+
+
+def claude_transport_mode() -> str:
+    return os.environ.get("NOTEAI_CLAUDE_TRANSPORT", "local").strip().lower() or "local"
+
+
+def claude_transport_readiness() -> dict[str, Any]:
+    mode = claude_transport_mode()
+    if mode == "local":
+        configured = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    elif mode == "gateway":
+        configured = bool(
+            _valid_gateway_base_url(os.environ.get("NOTEAI_CLAUDE_GATEWAY_URL", ""))
+            and os.environ.get("NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID")
+            and os.environ.get("NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET")
+        )
+    else:
+        configured = False
+    return {"mode": mode, "configured": configured, "supported": mode in {"local", "gateway"}}
+
+
+def get_claude_transport() -> ClaudeTransport:
+    global _CLAUDE_TRANSPORT
+    if _CLAUDE_TRANSPORT is None:
+        mode = claude_transport_mode()
+        if mode == "local":
+            _CLAUDE_TRANSPORT = LocalAnthropicTransport()
+        elif mode == "gateway":
+            _CLAUDE_TRANSPORT = GatewayClaudeTransport()
+        else:
+            raise ClaudeGatewayError("TRANSPORT_MODE_UNSUPPORTED", 503)
+    return _CLAUDE_TRANSPORT
+
+
+def set_claude_transport(transport: ClaudeTransport | None) -> None:
+    """Install a transport implementation; None restores the local default."""
+    global _CLAUDE_TRANSPORT
+    _CLAUDE_TRANSPORT = transport
+
+
 def _claude_timeout_seconds(task: str, thinking: bool, max_tokens: int) -> float:
     if thinking or max_tokens >= 4000:
         return CLAUDE_THINK_TIMEOUT_SECONDS
@@ -256,27 +746,19 @@ async def _call_claude(
     model: str, system: str, user: str,
     thinking: bool = False, max_tokens: int = 1200,
 ) -> str:
-    client = _get_claude()
-    kwargs: dict = {
-        "model":    model,
-        "max_tokens": max_tokens,
-        "system":   system,
-        "messages": [{"role": "user", "content": user}],
-    }
+    thinking_budget = None
     if thinking:
-        budget = min(max_tokens - 1000, 10000)
-        budget = max(budget, 1024)
-        kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
-    else:
-        kwargs["temperature"] = 0.7
-
-    response = await client.messages.create(**kwargs)
-    _record_claude_usage(model, getattr(response, "usage", None))
-    parts: list[str] = []
-    for block in response.content:
-        if block.type == "text":
-            parts.append(block.text)
-    return "".join(parts).strip()
+        thinking_budget = max(min(max_tokens - 1000, 10000), 1024)
+    result = await get_claude_transport().create_message(ClaudeMessageRequest(
+        model=model,
+        max_tokens=max_tokens,
+        system=system,
+        messages=({"role": "user", "content": user},),
+        temperature=None if thinking else 0.7,
+        thinking_budget=thinking_budget,
+    ))
+    _record_claude_usage(model, result.usage)
+    return "".join(result.text_blocks).strip()
 
 
 # ── Kimi 非流式调用 ───────────────────────────────────────────────
@@ -328,42 +810,48 @@ async def call(
 
 
 # ── Claude 流式调用 ───────────────────────────────────────────────
+async def _claude_transport_stream(
+    model: str,
+    request: ClaudeMessageRequest,
+) -> AsyncGenerator[ClaudeStreamEvent, None]:
+    usage_recorded = False
+    try:
+        async for event in get_claude_transport().stream_message(request):
+            if event.type == "usage":
+                _record_claude_usage(model, event.usage)
+                usage_recorded = True
+            yield event
+    except BaseException as exc:
+        if (
+            isinstance(exc, ClaudeGatewayError)
+            and exc.usage_audit_required
+            and not usage_recorded
+        ):
+            _record_claude_usage(model, None)
+        raise
+
+
 async def _stream_claude(
     model: str, system: str, user: str,
     thinking: bool = True, max_tokens: int = 16000,
     history: list[dict] | None = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """流式调用 Claude，yield ('thinking', text) 或 ('content', text)。"""
-    client = _get_claude()
     messages = list(history or []) + [{"role": "user", "content": user}]
-    kwargs: dict = {
-        "model":    model,
-        "max_tokens": max_tokens,
-        "system":   system,
-        "messages": messages,
-    }
+    thinking_budget = None
     if thinking:
-        budget = min(max_tokens - 2000, 10000)
-        budget = max(budget, 1024)
-        kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
-    else:
-        kwargs["temperature"] = 0.7
-
-    async with client.messages.stream(**kwargs) as stream_ctx:
-        async for event in stream_ctx:
-            if event.type == "content_block_delta":
-                delta = event.delta
-                if delta.type == "thinking_delta":
-                    yield ("thinking", delta.thinking)
-                elif delta.type == "text_delta":
-                    yield ("content", delta.text)
-        try:
-            final_message = stream_ctx.get_final_message()
-            if inspect.isawaitable(final_message):
-                final_message = await final_message
-            _record_claude_usage(model, getattr(final_message, "usage", None))
-        except Exception:
-            pass
+        thinking_budget = max(min(max_tokens - 2000, 10000), 1024)
+    request = ClaudeMessageRequest(
+        model=model,
+        max_tokens=max_tokens,
+        system=system,
+        messages=tuple(messages),
+        temperature=None if thinking else 0.7,
+        thinking_budget=thinking_budget,
+    )
+    async for event in _claude_transport_stream(model, request):
+        if event.type in {"thinking", "content"}:
+            yield (event.type, event.text)
 
 
 # ── Kimi 流式调用 ─────────────────────────────────────────────────
@@ -471,7 +959,6 @@ async def stream_chat(
     对于 Claude：Kimi messages 格式 (system/user/assistant) 可直接用。
     yield: ('thinking', text) | ('content', text)
     """
-    client = _get_claude()
     # 过滤掉 system role（Claude 单独传 system 参数）
     claude_messages = [m for m in history if m.get("role") != "system"]
     # 处理含 reasoning_content 的 assistant 消息（Claude 不接受此字段）
@@ -485,35 +972,23 @@ async def stream_chat(
             cleaned.append(m)
     cleaned.append({"role": "user", "content": user_content})
 
-    kwargs: dict = {
-        "model":    CLAUDE_SONNET,
-        "max_tokens": max_tokens,
-        "system":   system,
-        "messages": cleaned,
-    }
-    if thinking:
-        budget = min(max_tokens - 2000, 10000)
-        budget = max(budget, 1024)
-        kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
-    else:
-        kwargs["temperature"] = 0.7
+    thinking_budget = (
+        max(min(max_tokens - 2000, 10000), 1024)
+        if thinking else None
+    )
+    request = ClaudeMessageRequest(
+        model=CLAUDE_SONNET,
+        max_tokens=max_tokens,
+        system=system,
+        messages=tuple(cleaned),
+        temperature=None if thinking else 0.7,
+        thinking_budget=thinking_budget,
+    )
 
     try:
-        async with client.messages.stream(**kwargs) as stream_ctx:
-            async for event in stream_ctx:
-                if event.type == "content_block_delta":
-                    delta = event.delta
-                    if delta.type == "thinking_delta":
-                        yield ("thinking", delta.thinking)
-                    elif delta.type == "text_delta":
-                        yield ("content", delta.text)
-            try:
-                final_message = stream_ctx.get_final_message()
-                if inspect.isawaitable(final_message):
-                    final_message = await final_message
-                _record_claude_usage(CLAUDE_SONNET, getattr(final_message, "usage", None))
-            except Exception:
-                pass
+        async for event in _claude_transport_stream(CLAUDE_SONNET, request):
+            if event.type in {"thinking", "content"}:
+                yield (event.type, event.text)
     except Exception as exc:
         # fallback to Haiku non-streaming
         _log(f"stream_chat Sonnet FAIL: {exc} → Haiku fallback")
@@ -529,23 +1004,39 @@ async def stream_chat(
             raise RuntimeError(f"[mr] stream_chat all failed: {exc2}") from exc2
 
 
-# ── semantic 专用（同步包装，供 asyncio.to_thread 调用） ─────────
+# ── Claude 同步入口（供线程池与遗留同步路径使用） ─────────
+def call_claude_sync(
+    *,
+    model: str,
+    messages: list[dict],
+    max_tokens: int,
+    system: str | None = None,
+    temperature: float | None = None,
+    thinking_budget: int | None = None,
+    first_text_block: bool = False,
+) -> str:
+    result = get_claude_transport().create_message_sync(ClaudeMessageRequest(
+        model=model,
+        max_tokens=max_tokens,
+        system=system,
+        messages=tuple(messages),
+        temperature=temperature,
+        thinking_budget=thinking_budget,
+    ))
+    _record_claude_usage(model, result.usage)
+    parts = result.text_blocks[:1] if first_text_block else result.text_blocks
+    return "".join(parts).strip()
+
+
 def call_semantic_sync(system: str, user: str, max_tokens: int = 300) -> str:
-    """在线程池（asyncio.to_thread）中同步调用 Claude Haiku 做语义评分。
-    使用同步客户端避免 asyncio.run 在子线程中嵌套事件循环的问题。
-    """
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
-    client = anthropic.Anthropic(api_key=key)
-    response = client.messages.create(
+    """在线程池（asyncio.to_thread）中同步调用 Claude Haiku 做语义评分。"""
+    return call_claude_sync(
         model=CLAUDE_HAIKU,
         max_tokens=max_tokens,
         system=system,
         messages=[{"role": "user", "content": user}],
         temperature=0.3,
     )
-    _record_claude_usage(CLAUDE_HAIKU, getattr(response, "usage", None))
-    parts = [block.text for block in response.content if block.type == "text"]
-    return "".join(parts).strip()
 
 
 # ── 日志 ──────────────────────────────────────────────────────────

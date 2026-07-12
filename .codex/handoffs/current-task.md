@@ -1,4 +1,4 @@
-# NoteAI Render Staging 正式交接
+# NoteAI 商业上线唯一任务账本
 
 更新时间：2026-07-12（Asia/Shanghai）
 
@@ -6,11 +6,13 @@
 
 ## 1. 项目当前阶段
 
-- NoteAI 已部署到 Render Staging，正在进行功能检测、缺陷修复和回归验证。
-- 当前不是正式生产上线阶段；不得把 Staging 通过等同于商业上线完成。
+- NoteAI 已从“Render Staging 稳定化”正式转入“商业生产上线准备”阶段；Staging 继续作为验证环境，不得把 Staging 通过等同于商业上线完成。
+- 已确认目标生产拓扑：阿里云华南运行完整生产主系统；Render Singapore 最终只运行最小 Claude Gateway。
+- 已确认支付方向：Adapay 作为 V1 聚合支付供应商，目标覆盖支付宝、微信和银联；正式接入仍取决于 NoteAI AI SaaS/积分业务准入与网页三通道能力的书面确认。
+- 当前仓库仍是 Render Singapore 全栈 Staging 单体，尚未实现远程 Claude Gateway、阿里云生产部署工程或 Adapay 正式支付账本。
 - AI 诊断、爆文生成、对话优化、截图/视频理解、事实源、积分账本和管理端已完成受控的真实 Staging 验证。
-- 正式支付订单、回调签名、幂等、退款与对账流程尚未确认，是独立的生产阻断项 `PROD-001`。
-- `BILL-001`、`FIN-001`、`SEC-005`、`PERF-001B`、`QA-003A/B/C/D/E` 与 `BUG-002` 已闭环；BUG-002 由四个连续自然健康轮次完成验证，未追加手工高频采集。生产事项仍保持延期。
+- 正式支付订单、回调签名、幂等、退款与对账流程尚未实施，是生产阻断项 `PROD-001`。
+- `BILL-001`、`FIN-001`、`SEC-005`、`PERF-001B`、`QA-003A/B/C/D/E` 与 `BUG-002` 已闭环；BUG-002 由连续自然健康轮次完成验证，未追加手工高频采集。生产事项不再延期，按本账本商业上线依赖顺序推进。
 
 ## 2. 当前环境与版本
 
@@ -18,8 +20,8 @@
 
 - 仓库：`iamyusen1314/noteai`
 - 当前分支：`codex/quality-stabilization-real-chain`
-- 当前业务代码基线：`4548304f445f955ba54c794b2762b18c36c67a99`（`docs: close XHS recovery investigation`），包含BUG-002E `2c39008` 与BUG-002F `4667d71`；QA-003C/D/E 分别包含于 `9eebc8c`、`3041d87`、`bf0c4be`。
-- Render Staging Web/API/Admin 与市场时机Cron已包含 `4548304`；API deploy `dep-d99nkaks728c73ds65t0` 已 live，pre-deploy `migrations_applied=0` 且12条Prompt基线为current；市场时机Cron build `bld-d99nkbcs728c73ds66q0` succeeded。新会话仍必须重新核对 Render Events 中的 live commit。
+- 当前业务代码基线：`c0a39ff6a7fb7d232c7a54db774f9570e3367695`（`docs: record admin status and coverage fixes`），包含 QA-004 `0bda1f8` 与 FIN-002 `f58c885`；BUG-002E/F 和 QA-003C/D/E 的既有提交均保留。
+- Render Staging 已自动部署包含 `c0a39ff` 的新管理端 bundle；公开只读检查确认 Web、API readiness、Admin readiness 均为 HTTP 200。管理员重新登录后的 QA-004/FIN-002 最终只读 UI Smoke 已通过。
 - 远程跟踪分支：`origin/codex/quality-stabilization-real-chain`
 - 禁止直接合并 `main`，禁止 force push。
 
@@ -137,6 +139,267 @@
 
 ## 5. 唯一任务清单
 
+### LAUNCH-001 — 商业上线总门禁
+
+- 状态：**INVESTIGATING**
+- 优先级：Critical。
+- 问题描述：现有系统已完成 Staging 核心功能验证，但目标生产架构、正式支付、生产数据保护、跨区域 Claude 调用和上线合规尚未闭环。
+- 证据：2026-07-12 主控复核当前 HEAD `c0a39ff`、`render.yaml`、代码调用链与三位只读代理报告；当前 Render 仍运行 Web/API/Admin/Cron/PostgreSQL 全栈，仓库未发现 Claude Gateway 或 Adapay 正式支付实现。
+- 根因是否确认：是；此前任务目标是 Staging 稳定化，`PROD-001/002/003` 被延期，尚未进入生产实施。
+- 涉及文件：本节全部商业上线子任务；最终范围预计覆盖部署清单、Claude transport/Gateway、payment/billing/database/admin/frontend、运维与合规文档。
+- 风险：任何单项未完成都可能造成无法收款、重复扣费、数据不可恢复、Claude 不可用、跨境数据风险或正式用户事故。
+- 执行代理：主 CTO/TPM 统一编排；各子任务仅允许单一 Implementation Agent 串行修改收入、认证、数据库和共享调用链。
+- 验证代理：独立 Release Verification Agent 汇总 Security、Billing/Database、QA、DevOps 证据，不接受实施代理自报完成。
+- 验收标准：所有 Critical/High 上线阻断项达到 VERIFIED；阿里云生产、Render Gateway、Adapay 支付/退款/对账、备份恢复、监控、安全与合规门禁均通过；完成受控灰度和回滚演练后才允许正式开放收费。
+- 是否需要用户决定：是；涉及付费云资源、商户申请、域名/备案、生产数据、真实小额支付及最终上线切流。
+- 是否涉及真实外部调用：是；阿里云、Render、Adapay、Anthropic、DNS/证书和最小真实支付/AI验证均需分阶段批准。
+- 是否已部署到 Render：否；现有 Render 仅为全栈 Staging，不是目标生产拓扑。
+
+### ARCH-001 — 收口 Claude 直连并建立 Transport 边界
+
+- 状态：**VERIFIED**
+- 优先级：Critical。
+- 问题描述：当前 `model_router.py` 和 `model/api.py` 在业务 API 进程内直接调用 Anthropic，无法把 Claude 安全迁到独立 Render Singapore Gateway。
+- 证据：只读架构审计确认 `model_router.py` 的 call/stream/chat/semantic 路径直接创建 Anthropic 客户端，`model/api.py` 仍有绕过 Router 的直连 fallback；仓库没有 Gateway URL、内部协议或远程 usage 回传。
+- 根因是否确认：是；Claude provider transport 与业务编排、ContextVar 计费记录耦合。
+- 涉及文件：预计 `model/model_router.py`, `model/api.py`, `model/billing.py` 及 Claude 路由/计费/API合同测试；第一包不改变实际部署和供应商选择。
+- 风险：收口不完整会导致部分生产请求仍从阿里云直连 Claude；usage 回传错误会使真实成本漏记或错记。
+- 执行代理：Repository/Architecture Explorer（Godel）完成只读范围确认后担任单一 ARCH-001 Implementation Agent；修改仅限 runtime transport、API遗留旁路和聚焦测试。
+- 验证代理：独立 Security/Compatibility Reviewer 首轮PASS；独立 Repository + Billing/Test Verification Agent 首轮因离线工具未登记判FAIL，最小补充仓库级门禁和 `ARCH-001A` 后最终复核PASS。
+- 修改状态/进度：新增 SDK 无关 `ClaudeMessageRequest/Result/StreamEvent`、`ClaudeTransport` 与默认 `LocalAnthropicTransport`；非流式、流式、Chat、同步语义评分及Analyze遗留同步fallback全部经统一边界。Local transport把SDK usage归一化为普通字典，Router继续在原ContextVar账务边界记录；保留常规temperature=0.7、semantic=0.3、thinking budget、history清洗、模型选择、retry/fallback/timeout、SSE和首text block语义。`model/api.py` 已无Anthropic import/client/messages直连。仓库级AST门禁扫描 `model/scripts/tools`，生产只允许Local transport两处构造，三个离线工具固定登记，别名/getattr/importlib/__import__/eval/exec动态模式均受检。
+- 验收标准：所有生产 runtime Claude 入口只经过统一 `ClaudeTransport`；local transport 保持现有 Staging 行为；生产 API/Admin/Worker 不存在未受控 Anthropic 直连；仓库级静态门禁固定记录并拒绝新增离线工具直连；全量、API、计费、SSE 和 Production Readiness 通过。
+- 是否需要用户决定：否；目标架构已经确认，本包不新增云资源、不切换流量。
+- 是否涉及真实外部调用：否；本包全部使用Fake transport和离线测试，Anthropic/Moonshot调用为0。
+- 是否已部署到 Render：否。
+- 独立验证证据：聚焦34/34；更新门禁后transport 8/8、最终独立组合29/29；全量unittest 441/441（5 skip）；全量Playwright 66/66，其中reasoning/SSE 8/8；Production Readiness 48/48；py_compile、Compose、diff check通过。未修改billing、DB/migration、Prompt、前端、render.yaml或模型行为。
+
+### ARCH-001A — 离线 Claude 工具边界与 Gateway 迁移
+
+- 状态：**TODO**
+- 优先级：Medium。
+- 问题描述：生产 runtime 已由 ARCH-001 收口，但三个明确的离线训练/人工运维工具仍直接创建 Anthropic 客户端，尚未决定未来继续直连还是通过 Gateway。
+- 证据：仓库级只读盘点确认 `model/extract_cover_features.py` 的离线 Claude Vision 批处理、`tools/ai_prelabel_review_batch.py` 的离线标注复核、`tools/live_ai_smoke.py` 的人工连通性 Smoke 各有一个独立客户端构造；它们均不在当前 Production API 请求链中。
+- 根因是否确认：是；这些工具早于统一 runtime transport，且各自有视觉、超时或人工连通性用途。
+- 涉及文件：上述三个离线工具、未来 Gateway 工具客户端及仓库级静态门禁；不涉及在线 API、积分、数据库或用户 SSE。
+- 风险：若在阿里云生产容器/Worker误调用会绕过Gateway数据边界；`ai_prelabel_review_batch.py` 解析失败还可能把raw片段写入离线错误日志。
+- 执行代理：ARCH-002 协议稳定后指定单一 Offline Tool Implementation Agent；ARCH-001 阶段只建立固定 allowlist，不改工具行为。
+- 验证代理：独立 Security/Tooling Verification Agent。
+- 验收标准：明确每个工具的允许运行环境和数据范围；需Claude的工具通过受控Gateway或获得经审计的离线例外；raw错误不泄露内容/Secret；仓库静态门禁零未登记构造点。
+- 是否需要用户决定：若离线批任务调用真实Claude、产生费用或处理真实用户数据，需要。
+- 是否涉及真实外部调用：本地静态治理不需要；最终工具Smoke会产生少量Claude费用。
+- 是否已部署到 Render：否；这些工具不得由Render Gateway业务服务自动执行。
+
+### ARCH-002 — Render Singapore Claude Gateway
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：Critical。
+- 问题描述：需要新增只负责 Claude 调用的最小服务，主系统通过带版本的内部协议调用；Gateway 不得承载用户、支付、数据库、Admin、Kimi、Cron 或模型文件。
+- 证据：当前 `render.yaml` 没有独立 Gateway，API 服务同时持有数据库、Claude/Kimi、S3 和视频磁盘配置；现有 readiness 只检查本进程 Key。
+- 根因是否确认：是；服务边界和内部认证目前完全不存在。
+- 涉及文件：`model/claude_gateway_protocol.py`, `gateway/claude_gateway.py`, `gateway/Dockerfile`, `gateway/requirements.txt`, `gateway/start.sh`, `render.gateway.yaml`, `docs/CLAUDE_GATEWAY.md`, `model/model_router.py`, `model/api.py`, `tests/test_claude_gateway.py`, `tests/test_claude_transport.py`；未修改现有 `render.yaml`、数据库、支付、Prompt、前端或采集链。
+- 风险：内部接口暴露、签名重放、模型越权、跨区域网络歧义、双层重试导致重复供应商费用、Prompt/附件进入日志。
+- 执行代理：单一 Gateway Implementation Agent（Godel）已完成本地实现及两轮最小加固；没有其他代理并行修改相同文件。
+- 验证代理：独立 Security Reviewer（Tesla）+ Protocol/Chaos Verification Agent（Ampere）；首轮发现未来时间戳重放、无长度请求内存边界、网络异常原文和响应媒体类型门禁缺口，均退回原实施代理修正；最终安全复核与协议负测均PASS，允许进入单实例Staging部署。
+- 修改状态/进度：已实现 `claude-gateway.v1` HMAC协议、current/previous双Key、未来时间戳安全nonce TTL、单实例并发/速率/防重放、请求流式有界读取、严格模型/字段/token/image门禁、raw reasoning丢弃、固定错误码、完整usage envelope与断流 `usage_missing` 审计；主系统保留Local默认，仅显式Gateway模式切换。独立Blueprint只含一个Singapore Starter、单worker、单实例、无数据库/磁盘/Cron/Kimi/S3/业务服务。当前本地实现已完成，等待提交、CI、Render部署和最多4次获批合成文本Smoke。
+- 验收标准：TLS；HMAC或短期服务JWT绑定 method/path/timestamp/nonce/body hash；重放、过期、越权和超限全部拒绝；无业务CORS/用户Token/数据库连接；非流式、流式、Chat、语义评分均可用；usage envelope 可由阿里云主库准确记账；日志只含固定枚举、计数和哈希关联ID。
+- 是否需要用户决定：已确认。2026-07-12 用户批准先创建1个Render Singapore Starter Staging Gateway（增量7美元/月），最多4次合成文本真实Claude Smoke、费用上限人民币20元；正式上线采用2个Starter基础14美元/月，可自动扩容至4个、最高28美元/月。
+- 是否涉及真实外部调用：是；本轮获批范围仅为1个Staging Gateway和最多4次合成文本Claude Smoke，不接生产流量，不创建数据库、磁盘、Redis或Cron。
+- 是否已部署到 Render：否；本地聚焦87/87、全量unittest 467/467（5 skip）、全量Playwright 66/66、Production Readiness 48/48、quality gate、py_compile、Compose与diff check通过。Docker本地构建因本机Docker daemon未运行而未执行，需由Render构建日志和GitHub CI补证。
+
+### ARCH-002P — Claude Gateway Production多实例安全化
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：用户已批准正式上线采用2个Render Starter并可自动扩容至4个，但ARCH-002当前防重放、速率限制和并发状态仅存在单进程内存，不能安全支持多实例。
+- 证据：Gateway readiness明确返回 `memory_instance_scope` 与 `multi_instance_production_ready=false`，且 `INSTANCE_COUNT != 1` 会fail-closed；两位独立验证代理均判定单实例Staging可用、2–4实例Production不可用。
+- 根因是否确认：是；跨实例需要专用共享原子状态，人工环境变量无法证明Render实际副本数。
+- 涉及文件：预计Gateway专用共享replay/rate store适配、部署配置、精确Gateway hostname绑定/私网解析防护、远端健康监控、timeout预算、partial-stream终止与usage审计测试；不得连接NoteAI业务数据库。
+- 风险：多实例重放、限流绕过、重复Claude费用、部分正文后fallback重复输出、DNS/配置误指向内部地址、取消或响应头前故障漏记成本。
+- 执行代理：ARCH-002 Staging闭环后指定单一 Gateway Production Implementation Agent；共享配置和部署必须串行。
+- 验证代理：独立 Security + Protocol/Chaos + Billing/Cost Verification Agents，并完成扩缩容、重放、故障和Key轮换演练。
+- 验收标准：2–4实例使用共享原子nonce/rate状态；平台实际副本数与门禁一致；Gateway URL精确绑定并拒绝私网/DNS rebinding；请求发出后的所有不确定终态可审计；部分流失败不再隐式fallback产生重复正文/费用；双Key轮换和回滚演练通过；远端健康与timeout预算可观测。
+- 是否需要用户决定：是；共享状态资源及持续费用需单独确认，现有14–28美元仅覆盖Render Gateway实例，不包含共享存储或外部监控。
+- 是否涉及真实外部调用：本地/Mock实现不需要；最终需2–4实例Render受控压力、故障与真实Claude最小验证，费用另行批准。
+- 是否已部署到 Render：否；ARCH-002单实例Staging不得被当作Production多实例完成证据。
+
+### PROD-001A — Adapay 商户准入与三通道能力确认
+
+- 状态：**INVESTIGATING**
+- 优先级：Critical。
+- 问题描述：用户已选定 Adapay，但公开资料不能确认 NoteAI 的 AI SaaS＋不可提现积分是否准入，也不能确认 PC/H5 同时支持支付宝、微信用户主扫和银联统一收银台。
+- 证据：Adapay 官方资料明确企业和个体工商户材料路径、Test/Live Key、支付/退款/查单/账单能力；同时公开禁入说明包含卡密/虚拟交易类，且当前渠道表未明确微信 PC 用户主扫与普通浏览器 H5。
+- 根因是否确认：是；属于商户审核和产品权限的外部不确定性，不是代码缺陷。
+- 涉及文件：业务说明、套餐页、支付页、用户协议、隐私政策、退款/对账规则及 Adapay 入网材料；不记录身份证、银行卡或密钥内容到仓库。
+- 风险：未确认即开发可能最终无法开通所需渠道；错误描述积分可能被归入禁入业务。
+- 执行代理：Adapay Vendor Reviewer（Tesla）已完成官方资料复核；后续由用户/商务提交材料并取得合同、邮件或盖章方案确认。
+- 验证代理：主 CTO + 独立 Payment/Compliance Reviewer 核对书面确认是否覆盖业务类目、三通道、费率、结算、退款、签名规范、账单和SLA。
+- 验收标准：Adapay 书面确认 NoteAI 业务准入、MCC/类目、支付宝PC/H5、微信PC用户主扫/H5、银联H5/统一收银台、费率/限额/结算/保证金、退款、2026签名规范、对账单字段和生产支持。
+- 是否需要用户决定：是；需选择企业或个体工商户主体并提供受控申请材料。
+- 是否涉及真实外部调用：是；联系/申请 Adapay 会改变外部商务状态，但当前代理未代为提交。
+- 是否已部署到 Render：否。
+
+### PROD-001B — 商品合同、支付核心账本与整数金额
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：现有充值/套餐配置可复用，但没有正式支付订单、事件收件箱、交易、权益、现金退款和对账账本；当前套餐自然月边界也不适合直接承载真实购买。
+- 证据：只读仓库审计确认 `/billing/topup` 与 `/billing/upgrade` 是测试入口；`payment_ref` 不是支付订单；AI失败返积分不是现金退款；钱包只有汇总余额，不能按原订单退款。
+- 根因是否确认：是。
+- 涉及文件：预计 `model/billing.py`, `model/db.py`, 新增 `model/payment_service.py`, PostgreSQL `0007` 起的增量 migration、SQLite/PostgreSQL/API/并发测试。
+- 风险：重复发权益、金额浮点误差、月底购买周期异常、SQLite/PostgreSQL 漂移和迁移失败。
+- 执行代理：Payment Rules/Repository Reviewer（Ampere）已完成只读差距映射；产品合同确认后指定单一 Payment Ledger Implementation Agent。
+- 验证代理：独立 Billing/Database/Concurrency Verification Agent。
+- 验收标准：服务端商品快照为唯一价格源；金额只用整数分；订单/事件/交易/权益/退款/对账唯一约束齐全；迁移重复执行安全；并发重复事件只能产生一份权益；测试充值在生产保持关闭。
+- 是否需要用户决定：是；需确认 V1 套餐周期、是否自动续费、退款窗口和现有套餐价格是否保持。
+- 是否涉及真实外部调用：本地与临时PostgreSQL验证不需要；Staging migration 需要批准。
+- 是否已部署到 Render：否。
+
+### PROD-001C — Adapay 适配器、下单、验签回调与原子履约
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：需要实现创建/查询/关闭支付、回调验签、状态反查及支付成功后的原子积分/套餐发放；浏览器返回页不能改变支付状态。
+- 证据：当前仓库无 Adapay 客户端或 webhook；现有 `topup_credits()` 多步写入不能直接作为回调履约事务。
+- 根因是否确认：是。
+- 涉及文件：预计新增 `model/adapay_client.py`, `model/payment_service.py`，最小修改 `model/api.py`, `model/billing.py`, env模板、依赖和安全/并发/API测试。
+- 风险：伪造回调、错App/环境/金额、重复通知、迟到通知、数据库中断、SDK老旧依赖和5秒回调窗口。
+- 执行代理：PROD-001B VERIFIED 后指定单一 Payment Integration Agent；不得与账本/迁移代理并行修改同一调用链。
+- 验证代理：独立 Security + Billing/Concurrency Verification Agent。
+- 验收标准：验签失败、错金额/币种/App/环境、重复/并发通知均不发权益；有效事件持久化并幂等履约；未知终态主动查单；客户端跳转不能入账；Secret和完整回调不进入日志。
+- 是否需要用户决定：新增官方SDK或生产依赖前需要；若采用受审计HTTP实现则需先完成兼容审查。
+- 是否涉及真实外部调用：先用固定夹具离线验证；随后只使用 Adapay Test/Mock，禁止真实扣款。
+- 是否已部署到 Render：否。
+
+### PROD-001D — 积分批次、现金退款与审批
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：需要把付费积分绑定原支付订单，支持消费归属、失败恢复原批次、退款冻结和原路现金退款，并与现有业务返积分严格区分。
+- 证据：当前 `credits.balance` 只有汇总余额，现有 refund 语义是 AI 失败返积分；无法证明某订单仍有多少可退款积分。
+- 根因是否确认：是。
+- 涉及文件：预计 credit lot/consumption/reversal 增量 migration、`model/billing.py`, payment refund service、Admin审批与权限测试。
+- 风险：重复退款、退款后继续消费、普通业务失败误调用支付退款、管理员越权和负余额掩盖。
+- 执行代理：单一 Billing/Refund Implementation Agent，必须在 PROD-001B/C 后串行实施。
+- 验证代理：独立 Billing/Database/Security Verification Agent。
+- 验收标准：累计现金退款不超原实付；退款申请先冻结，成功扣除、失败解冻；重复回调不重复扣积分；AI失败只恢复原消费批次且绝不调用Adapay；现金退款有经办/审批审计。
+- 是否需要用户决定：是；需批准最终退款政策、审批权限与负余额处理规则。
+- 是否涉及真实外部调用：Test/Mock 阶段；生产最小退款需另行批准。
+- 是否已部署到 Render：否。
+
+### PROD-001E — T+1 对账、差错补单与真实财务后台
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：当前管理端收入是估算，无法与渠道支付、退款、手续费和银行结算进行三方对账。
+- 证据：现有管理端以有效套餐人数乘当前价格估算订阅收入；仓库没有 Adapay 账单下载、对账批次或差错账本。
+- 根因是否确认：是。
+- 涉及文件：预计新增 reconciliation service/worker、Admin API/UI、对账脚本/调度和账单夹具测试；正式环境调度位于阿里云，不沿用 Render 全栈 Cron。
+- 风险：漏单误补、金额差异被静默抹平、估算收入被误当现金收入、账单格式变化。
+- 执行代理：单一 Reconciliation Implementation Agent；必须在支付与退款账本稳定后实施。
+- 验证代理：独立 Finance/Data Quality + Security Verification Agent。
+- 验收标准：北京时间T+1逐笔核对支付、退款、手续费、净结算和银行批次；补单先查单且幂等；金额/身份差异绝不自动抹平；Critical差错为0才关闭批次；后台收入来自支付账本而非人数估算。
+- 是否需要用户决定：需确认对账责任人、日/月关账时点和告警渠道。
+- 是否涉及真实外部调用：Test阶段用夹具；生产需下载账单并产生持续任务成本。
+- 是否已部署到 Render：否。
+
+### PROD-001F — Adapay Test/Mock、三通道认证与生产切换
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：支付代码完成后仍需在完全隔离的 Test/Mock 环境验证三通道、退款、查单、丢回调、重复回调和对账，再执行受控真实小额认证。
+- 证据：Adapay 官方区分 Test/Live Key；部分依赖微信客户端的能力不能由 Mock 完整覆盖。
+- 根因是否确认：是；属于外部认证与上线门禁。
+- 涉及文件：测试计划、Staging支付配置、生产Secret/回调/DNS配置、三通道验收和回滚运行手册。
+- 风险：Test/Live 环境串用、真实资金误操作、回调地址错误、生产停新单时误停回调/退款/对账。
+- 执行代理：Payment QA/DevOps Agent 按主 CTO 限额执行；真实资金步骤只由获授权人员操作。
+- 验证代理：独立 Payment Release Verification Agent。
+- 验收标准：Test Key只写Staging且 `prod_mode=false`；Live Key只写Production且强制 `prod_mode=true`；三通道成功/失败/取消/过期/重复/错签名/错金额/全额与部分退款/对账全部通过；首次真实小额支付退款和首个T+1账单零Critical差错。
+- 是否需要用户决定：是；真实小额支付、生产密钥、回调域名和正式开放收费均需再次批准。
+- 是否涉及真实外部调用：是，会涉及Adapay Test及最终真实资金。
+- 是否已部署到 Render：否；目标生产支付运行在阿里云主系统，不在 Render Gateway。
+
+### PROD-002A — 阿里云华南生产基础设施、域名与监控
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：仓库没有阿里云生产部署清单；需要建设主API、Admin、前端、Worker、负载均衡/WAF、TLS、Secret管理、日志指标和告警。
+- 证据：当前 Dockerfile 可复用，但 `render.yaml` 仅描述 Singapore Staging；`docker-compose.yml` 只是本地方案，不含阿里云负载均衡、WAF、证书或生产监控。
+- 根因是否确认：是。
+- 涉及文件：新增阿里云部署/IaC或受控运行手册、容器配置、健康检查、环境模板、DNS/CORS/回调配置；不提交Secret。
+- 风险：单点故障、配置漂移、公开Admin、错误CORS、日志泄密和不可回滚部署。
+- 执行代理：Architecture/DevOps Explorer 已完成差距审计；资源规格确认后指定单一 DevOps Implementation Agent。
+- 验证代理：独立 Cloud/DevOps + Security Reviewer。
+- 验收标准：环境隔离、最小权限、TLS/WAF、Admin访问保护、Secret轮换、健康/指标/告警、灰度/回滚和容量基线通过；主系统仅通过Gateway调用Claude。
+- 是否需要用户决定：是；需确认阿里云账号、华南具体地域、预算、域名和资源规格。
+- 是否涉及真实外部调用：是；会创建付费云资源和DNS变更，实施前逐项批准。
+- 是否已部署到 Render：不适用；目标部署到阿里云。
+
+### PROD-002B — 生产 PostgreSQL、备份/PITR 与迁移恢复演练
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：Render Free PostgreSQL 不可承载正式数据；阿里云生产数据库、备份、PITR、迁移和恢复演练尚不存在。
+- 证据：现有 Staging DB 无生产级备份；当前 migration 工具和 PostgreSQL抽象可复用，但未在阿里云生产规格验证。
+- 根因是否确认：是。
+- 涉及文件：PostgreSQL部署/参数/备份策略、`scripts/render_predeploy.py` 的云无关化或新生产predeploy、migration/恢复运行手册及数据库兼容测试。
+- 风险：数据丢失、迁移漂移、支付与积分账本损坏、恢复时间不可控。
+- 执行代理：单一 Database/DevOps Implementation Agent；支付 migration 与生产迁移必须串行。
+- 验证代理：独立 Database Recovery Verification Agent，在一次性环境实际恢复备份并对账。
+- 验收标准：自动备份与PITR启用；RPO/RTO明确；所有migration幂等；备份恢复到隔离实例后用户、支付、积分、usage、Prompt和趋势关键计数一致；回滚手册演练通过。
+- 是否需要用户决定：是；生产数据库规格、保留期限、RPO/RTO和迁移窗口需确认。
+- 是否涉及真实外部调用：是；涉及付费数据库和生产数据迁移，需单独批准。
+- 是否已部署到 Render：否。
+
+### PROD-003A — 对象存储、视频缓存与 Worker 生产化
+
+- 状态：**TODO**
+- 优先级：High。
+- 问题描述：当前视频帧依赖 Render 单实例磁盘，市场时机和 tracking 依赖 Render Cron；目标架构要求迁入阿里云并明确对象存储、缓存生命周期、Worker并发和失败恢复。
+- 证据：现有 Render API 挂1GB磁盘且不能零停机横向扩展；仓库没有阿里云OSS/任务队列生产配置。
+- 根因是否确认：是。
+- 涉及文件：视频缓存/对象存储适配、Worker调度、生命周期与监控配置及相应测试。
+- 风险：素材丢失、隐私保留超期、重复任务、Cron中断和容量耗尽。
+- 执行代理：架构设计完成后指定单一 Storage/Worker Implementation Agent。
+- 验证代理：独立 QA/DevOps Verification Agent。
+- 验收标准：对象生命周期和访问权限明确；重启/扩容后视频流程可恢复；Worker幂等、失败告警和追踪审计通过；不依赖Render业务磁盘/Cron。
+- 是否需要用户决定：对象存储、队列和持续成本需要确认。
+- 是否涉及真实外部调用：需要阿里云资源与受控媒体/Worker Smoke。
+- 是否已部署到 Render：否。
+
+### COMPLY-001 — 中国商业上线与跨境数据合规清单
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：面向中国用户收费上线需要完成主体、备案/许可适用性、用户协议、隐私政策、退款条款、数据保留和 Claude 跨境数据边界的专业确认。
+- 证据：目标架构会把部分用户Prompt/正文/聊天上下文从阿里云传到新加坡Claude Gateway；当前 Chat 还可能把图片base64交给Claude，扩大跨境数据范围。
+- 根因是否确认：是；合规文件和数据边界尚未按目标拓扑审计。
+- 涉及文件：数据地图、隐私政策、用户协议、退款规则、第三方处理者清单、Cookie/日志/留存策略和跨境数据评估记录；不在代码仓库保存用户材料。
+- 风险：用户告知不足、超范围传输、敏感/个人信息跨境、支付入网受阻和监管风险。
+- 执行代理：后续指定只读 Security/Privacy/Compliance Reviewer；法律结论由中国执业律师或合规顾问确认，代理不替代法律意见。
+- 验证代理：主 CTO 核对技术实现与最终法律/商务文件一致。
+- 验收标准：完成数据流和最小化清单；默认不把图片/base64送Claude，除非单独批准；协议/隐私/退款/第三方处理者与实际实现一致；备案、资质和跨境路径取得专业确认。
+- 是否需要用户决定：是；经营主体、域名、合规顾问与最终数据策略均需决定。
+- 是否涉及真实外部调用：可能涉及备案、律师/顾问和外部平台申请。
+- 是否已部署到 Render：否。
+
+### RELEASE-001 — 生产灰度、回滚与正式收费验收
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：需要把全部上线子任务转化为一次可回滚、可审计的生产切流和正式收费验收，避免以“页面可访问”代替上线完成。
+- 证据：当前只有 Staging 实际验收，没有阿里云生产、Gateway、Adapay和生产恢复证据。
+- 根因是否确认：是。
+- 涉及文件：上线清单、变更窗口、DNS/流量切换、回滚、Smoke、财务和安全验收记录。
+- 风险：一次性全量切换、支付或AI故障、数据不可恢复、客服和财务无应急流程。
+- 执行代理：主 CTO/TPM 编排；各系统实施代理不得自行宣布上线。
+- 验证代理：独立 Release Verification Agent，必须检查diff、CI、生产健康、真实最小支付退款、账本、备份恢复、Gateway和用户核心流程。
+- 验收标准：先内部/白名单灰度；停止新下单开关不影响回调/退款/对账；核心流程、账本和告警通过；回滚演练成功；所有Critical=VERIFIED且High有明确接受或关闭证据。
+- 是否需要用户决定：是；最终切流和开放真实收费必须由产品负责人批准。
+- 是否涉及真实外部调用：是；生产DNS、真实AI、最小真实支付/退款和真实数据写入。
+- 是否已部署到 Render：否。
+
+商业上线实施依赖顺序：`ARCH-001 → ARCH-002 → PROD-002A/002B → PROD-003A`；支付线按 `PROD-001A + 产品规则确认 → PROD-001B → PROD-001C → PROD-001D → PROD-001E → PROD-001F` 串行推进。`BILL-002` 必须在跨区域生产灰度前闭环；`PERF-001`、`SEC-004`、`OPS-002` 保留为既有未完成/持续运维任务；`COMPLY-001` 与技术建设并行，最终共同汇入 `RELEASE-001`。
+
 ### STG-001 — Render 六服务与基础依赖验收
 
 - 状态：**VERIFIED**
@@ -198,7 +461,7 @@
 
 ### BUG-002E — 普通搜索辅助 JSON 候选隔离
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：BUG-002D 已把 `generic_json` 与 `note_result` 分开统计，但搜索响应处理仍会对所有宽泛命中的JSON递归提取任意 `display_title/title`；普通辅助JSON若带同名字段，仍可能污染 `search_result` 并造成健康假阳性。
 - 证据：只读静态审查与最小合成探针确认 `{'data': {'status': {'title': '辅助页面标题'}}}` 被分类为 `generic_json`，但旧候选提取结果仍为1。最新自然轮次已有真实 `note_result=14`，所以该缺口不是本轮恢复的阻断原因，而是独立正确性风险。
@@ -214,7 +477,7 @@
 
 ### BUG-002F — 推荐路径分类与 `sug_items` 解析一致性
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：Medium。
 - 问题描述：推荐响应分类支持四种既有路径形态，但 `sug_items` 专用解析只进入其中一种精确路径；若平台切换到其余已支持形态，可能出现recommend json_ok>0但items_raw=0。
 - 证据：只读合成探针确认四种分类均为recommend，但只有精确 `search/recommend` 进入专用解析，其余三种无法提取 `data.sug_items`。最新自然轮次recommend responses17/items_raw170/final75，当前线上未触发该退化。
@@ -372,7 +635,7 @@
 - 验收标准：同键可查询并安全回放已完成结果；stale running 有明确、审计可见且不会双执行的接管/终止规则；Analyze/Generate/Chat 在已枚举断点下业务副作用、主 usage、退款和幂等状态一致；跨用户隔离；结果保留和清理不暴露正文/reasoning；旧客户端仍兼容。
 - 是否需要用户决定：进入 migration 或确定结果保留期限前需要；只读调查与本地故障注入设计不需要。
 - 是否涉及真实外部调用：本地 mock 不需要；最终 Staging PostgreSQL migration 与最小真实 AI 故障恢复 Smoke 需要单独说明样本和费用。
-- 是否已部署到 Render：是；commit `2776d7c`，pre-deploy 已应用 0006，API/Admin ready，真实成本 Smoke 已闭环。
+- 是否已部署到 Render：否；`0006_model_usage_records.sql` 属于 FIN-001 成本审计，不是 BILL-002 的持久结果回放/租约/副作用一致性实现。
 
 ### PERF-001 — 阶段耗时、SSE stall timeout 与 P50/P95
 
@@ -661,7 +924,7 @@
 
 ### QA-004 — 管理端系统状态跨服务与字段契约漂移
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：Dashboard 把实际已配置且健康的 Kimi/Moonshot、Claude 显示为“未配置”，并显示 `undefined` 与 `undefined MB`；会误导管理员判断AI和数据库故障。
 - 证据：2026-07-12 截图与Staging只读复现一致。API `/health/ready` HTTP 200且 `claude_configured=true/moonshot_configured=true`、数据库 `ok=true/backend=postgresql`；管理页仍显示两项未配置。线上HTML仍读取 `s.kimi_key_prefix` 和 `s.db_size_mb`，但Admin `/admin/overview` 已不返回这两个字段，只返回configured布尔、模型状态、`database_backend` 与时间。
@@ -669,15 +932,15 @@
 - 涉及文件：`model/admin_server.py`, `model/admin.html`, `render.yaml`, `tests/test_admin_system_status.py`, `tests/test_render_deployment.py`, `tests/e2e/admin-system-status.spec.js`；只读消费API readiness安全状态，不改Render Secret值。
 - 风险：High运维误报；修复不得恢复Key前缀或把Secret复制到Admin服务，也不得把“Admin容器无Key”解释为实际API不可用。PostgreSQL大小若未安全查询应显示后端类型/健康，不得伪造MB。
 - 执行代理：QA-004 单一Implementation Agent；验证代理：独立QA/Security/Render Verification Agent，结论PASS。
-- 修改状态/进度：已先得到7个错误与2个失败的失败合同，再最小实现。Admin通过非Secret `NOTEAI_API_READINESS_URL` 只读取公开API readiness中固定 `checks.ai.ok/claude_configured/moonshot_configured`；HTTP 200及强制AI Key门禁返回的503均进入同一白名单解析，其他状态、字段缺失、结构矛盾、超时或异常统一返回固定 `unavailable`，不返回URL、上游正文或异常；旧configured布尔键保持兼容。Dashboard改用显式三态和 `database_backend/database_ok`，不再读取Key前缀或本地数据库MB；Render只给Admin配置公开readiness URL，未复制AI Key。独立验证首轮发现503有效状态被错误降级为unavailable，已先补fetch层503正负合同并只将允许解析状态扩为 `{200,503}`。最终独立PASS：对抗探针10类、核心7/7、相关70/70、全量unittest435/435（5 skip）、Admin Playwright7/7、Production Readiness48/48、py_compile/Compose/diff check通过；真实AI、业务写入、Secret访问和部署均为0。commit `0bda1f8`，待批量推送部署后做Staging只读Smoke。
+- 修改状态/进度：已先得到7个错误与2个失败的失败合同，再最小实现。Admin通过非Secret `NOTEAI_API_READINESS_URL` 只读取公开API readiness中固定 `checks.ai.ok/claude_configured/moonshot_configured`；HTTP 200及强制AI Key门禁返回的503均进入同一白名单解析，其他状态、字段缺失、结构矛盾、超时或异常统一返回固定 `unavailable`，不返回URL、上游正文或异常；旧configured布尔键保持兼容。Dashboard改用显式三态和 `database_backend/database_ok`，不再读取Key前缀或本地数据库MB；Render只给Admin配置公开readiness URL，未复制AI Key。独立验证首轮发现503有效状态被错误降级为unavailable，已先补fetch层503正负合同并只将允许解析状态扩为 `{200,503}`。最终独立PASS：对抗探针10类、核心7/7、相关70/70、全量unittest435/435（5 skip）、Admin Playwright7/7、Production Readiness48/48、py_compile/Compose/diff check通过。commit `0bda1f8` 已随 `c0a39ff` 推送；Push/PR GitHub CI `29193581641`/`29193582630` 均通过。登录后Staging Dashboard只读Smoke确认Kimi/Claude均显示“API 服务已配置”、来源均为API readiness、数据库为“PostgreSQL 正常”，不存在未配置、undefined、undefined MB、NaN或Key前缀，浏览器console error为空。Web/API/Admin均HTTP 200；真实AI、业务写入和Secret访问均为0。
 - 验收标准：实际API readiness配置正常时显示Kimi/Claude已配置；API不可检测时显示固定“不可检测”而非未配置；数据库显示PostgreSQL/SQLite后端与健康状态，缺失字段不出现undefined；不返回/显示任何Key前缀；API/Admin/Web健康、合同与Playwright测试通过。
 - 是否需要用户决定：否；属于状态真实性和安全字段兼容修复。
 - 是否涉及真实外部调用：本地route-mock足够；最终只读Staging health/UI Smoke。
-- 是否已部署到 Render：否。
+- 是否已部署到 Render：是；新管理端bundle、公开健康检查及登录后系统状态UI均已通过。
 
 ### FIN-002 — 毛利覆盖口径与历史不可复算说明
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：Medium。
 - 问题描述：收入/用量页正确阻止不完整成本数据宣称“实际毛利”，但“严格实际4/35”和“历史不可复算31”的含义不直观，用户容易误解为模型配置或价格缺失。
 - 证据：Staging最近30日 `total_records=35`、`strict_actual_records=4`、`legacy_unverifiable_records=31`，partial/unpriced/usage_incomplete均0，严格覆盖11.4%。4条为FIN-001上线后真实Analyze、Generate、Chat Rewrite与Kimi Vision父操作；31条为0006逐模型表上线前记录。
@@ -685,11 +948,11 @@
 - 涉及文件：`model/admin.html`, `tests/e2e/admin-cost-coverage.spec.js`；未修改 `model/admin_server.py`、SQL、billing、数据库或聚合定义。
 - 风险：财务口径风险。当前API成本是4条严格实际+31条旧估算的混合值；订阅收入也是有效套餐人数×套餐价估算，不是支付流水。不得为显示百分比而放宽门禁或伪造历史成本。
 - 执行代理：单一Implementation Agent；验证代理：独立Billing/Data/Browser Verification Agent，结论PASS。
-- 修改状态/进度：单一Implementation仅修改 `model/admin.html` 与新增route-mock覆盖测试，不改SQL/API/billing/DB或门禁。Dashboard明确“本月”，收入/用量明确“最近30日”；显示严格实际操作记录、覆盖率及legacy/partial/unpriced/usage_incomplete，并解释严格实际为完整逐模型用量与价格证据、历史不可复算为审计上线前缺少明细且系统不伪造回填；订阅收入明确为有效套餐人数×套餐价估算、非支付流水。独立首轮发现前端round/clamp可把损坏计数伪造成100%及解释不足，已退回收紧：六个计数字段必须为原生非负SafeInteger，strict<=total且五类合计=total，否则固定unavailable；最后才允许后端`actual_margin_ready=true`且total>0、strict=total显示实际毛利。最终独立PASS：FIN专项13/13、单worker全量Playwright66/66、相关Python66/66、全量unittest435/435（5 skip）、Production Readiness48/48、node/py_compile/Compose/diff check通过；无undefined/NaN/XSS/敏感字段或写请求，QA-004不回归。commit `f58c885`，待批量推送部署后做Staging只读Smoke。
+- 修改状态/进度：单一Implementation仅修改 `model/admin.html` 与新增route-mock覆盖测试，不改SQL/API/billing/DB或门禁。Dashboard明确“本月”，收入/用量明确“最近30日”；显示严格实际操作记录、覆盖率及legacy/partial/unpriced/usage_incomplete，并解释严格实际为完整逐模型用量与价格证据、历史不可复算为审计上线前缺少明细且系统不伪造回填；订阅收入明确为有效套餐人数×套餐价估算、非支付流水。独立首轮发现前端round/clamp可把损坏计数伪造成100%及解释不足，已退回收紧：六个计数字段必须为原生非负SafeInteger，strict<=total且五类合计=total，否则固定unavailable；最后才允许后端`actual_margin_ready=true`且total>0、strict=total显示实际毛利。最终独立PASS：FIN专项13/13、单worker全量Playwright66/66、相关Python66/66、全量unittest435/435（5 skip）、Production Readiness48/48、node/py_compile/Compose/diff check通过；无undefined/NaN/XSS/敏感字段或写请求，QA-004不回归。commit `f58c885` 已随 `c0a39ff` 推送；Push/PR GitHub CI `29193581641`/`29193582630` 均通过。登录后Staging只读Smoke确认Dashboard本月、收入/用量最近30日均为严格4/35（11.4%）、历史31、其余分类0，4+31=35；覆盖不足不显示毛利百分比并明确不可宣称实际毛利。收入¥598明确标注为有效套餐人数×套餐价估算而非支付流水；严格证据与历史不伪造回填解释均已显示，三页无undefined/NaN且console error为空。
 - 验收标准：页面明确“最近30日、4条操作具备完整逐模型证据、31条为审计表上线前历史”；分类之和等于总数；覆盖不足仍不得宣称实际毛利；若展示新口径cohort，必须与全窗口混合估算并列且标注样本量/起始时间。
 - 是否需要用户决定：只增加解释文案不需要；若现在新增独立“新口径实际毛利”指标，需要产品确认口径。
 - 是否涉及真实外部调用：否；使用合成聚合与现有只读Staging数据。
-- 是否已部署到 Render：当前严格门禁已部署且行为正确；说明优化commit `f58c885` 尚待批量推送部署。
+- 是否已部署到 Render：是；说明优化、实时分类一致性与严格财务门禁均已通过登录后Staging只读UI验收。
 
 ### PROMPT-001 — Prompt 管理源与 V0.4 行业运行时漂移
 
@@ -709,45 +972,45 @@
 
 ### PROD-001 — 正式支付订单/回调/对账
 
-- 状态：**DEFERRED**
-- 问题描述：尚未确认真实支付网关的下单、回调签名、幂等、退款与日对账闭环。
+- 状态：**INVESTIGATING**
+- 问题描述：已选定 Adapay 作为 V1 聚合支付方向，但商户准入、正式账本、下单、回调验签、原子权益、现金退款与日对账尚未闭环；由 `PROD-001A` 至 `PROD-001F` 分包实施。
 - 当前现象：套餐/积分业务逻辑存在，但不能证明已收到真实款项。
 - 预期结果：支付与积分发放强一致，可审计、可退款、可对账。
 - 风险级别：Critical；仅生产商业上线需要。
 - 涉及模块：payment、billing、auth、database、admin。
-- 根因：产品/支付接入尚未实施或尚未确认。
-- 修改状态/进度：未开始；禁止在 Staging 验收中顺手接入。
-- 下一步：单独做支付架构、合规和供应商方案，用户批准后实施。
+- 根因：已确认；此前只有积分业务账本和测试充值入口，没有真实支付事实账本。
+- 修改状态/进度：供应商方向和内部退款/对账规则设计已完成只读审计；尚未提交 Adapay 申请或修改代码、数据库和云资源。
+- 下一步：并行完成 `PROD-001A` 商务准入确认和 `PROD-001B` 产品合同确认，随后严格串行实施支付包。
 - 验收标准：签名验证、幂等、金额校验、退款、异常补单、对账、审计测试全部通过。
 - 真实外部服务：需要支付沙箱，生产切换另行批准。
 - 费用/数据：可能产生支付/沙箱费用；严禁真实扣款测试未授权用户。
 
 ### PROD-002 — 生产数据库、备份、域名与恢复演练
 
-- 状态：**DEFERRED**
-- 问题描述：Render Free PostgreSQL 无备份且 30 天到期；当前域名均为 Staging。
+- 状态：**INVESTIGATING**
+- 问题描述：目标已改为阿里云华南完整生产主系统；生产基础设施、数据库、备份/PITR、域名、监控与恢复演练由 `PROD-002A/B` 实施。
 - 当前现象：适合测试，不符合商业生产可恢复性。
 - 预期结果：付费 PostgreSQL、备份/PITR、监控、域名/TLS、恢复演练完成。
 - 风险级别：Critical；Render 环境限制。
 - 涉及模块：Render DB/Web、DNS、migration、runbook。
-- 根因：当前明确采用测试规格。
-- 修改状态/进度：未开始，不能自动升级或迁移。
-- 下一步：容量与 RPO/RTO 评估后由用户确认付费资源。
+- 根因：已确认；当前只有 Render Staging 测试规格，仓库无阿里云生产部署工程。
+- 修改状态/进度：目标拓扑和代码差距只读审计完成；尚未创建阿里云资源或迁移数据。
+- 下一步：确认华南具体地域、域名、预算、RPO/RTO与初始容量，再建设隔离生产环境。
 - 验收标准：备份可恢复、迁移可回滚、域名/CORS/回调地址正确、故障演练通过。
 - 真实外部服务：需要 Render/DNS。
 - 费用/数据：持续付费并涉及真实数据迁移，必须单独批准。
 
 ### PROD-003 — 视频缓存横向扩展与零停机
 
-- 状态：**DEFERRED**
+- 状态：**TODO**
 - 问题描述：API 挂载单实例磁盘，Render 挂盘服务不能无缝横向扩容/零停机。
 - 当前现象：Staging 单实例满足短期测试。
 - 预期结果：生产按真实流量决定对象存储/任务队列或保持单实例的可接受方案。
 - 风险级别：Medium；仅高并发生产明显。
 - 涉及模块：视频上传/缓存、部署拓扑。
 - 根因：当前最小成本架构选择。
-- 修改状态/进度：未开始，暂不扩架构。
-- 下一步：有真实容量数据后评估。
+- 修改状态/进度：目标生产架构已确认迁出 Render 业务磁盘/Cron；具体对象存储、缓存和Worker方案由 `PROD-003A` 实施。
+- 下一步：在阿里云基础设施规格确认后设计最小对象存储与Worker方案，不等待正式流量才处理生产阻断项。
 - 验收标准：缓存可恢复、并发和重启行为可预测、成本明确。
 - 真实外部服务：可能需要对象存储/队列。
 - 费用/数据：可能新增持续费用；必须批准。
@@ -867,10 +1130,12 @@
 2. 运行 LFS-safe Git status，核对 branch、HEAD、upstream、staged/unstaged/untracked；确认三份 `.lgb` 未被 stage。
 3. 在 Render 只读核对 API/Web/Admin live commit、两个 `/health/ready` 和 Market Timing 最近成功轮次；不得假设文档 checkpoint 已部署。
 4. `PERF-001B` 与 `QA-003C/D/E` 已完成本地独立验证、CI、Render部署和无付费Staging Smoke，禁止重复修改。
-5. `STG-001`、`BUG-001`、`BUG-002D`、`BILL-001`、`FIN-001`、`QA-001`、`QA-002`、`QA-003A`、`QA-003B` 已完成，禁止重复大范围修改或重复付费验证；`BUG-002` 父任务仍等待自然观察。
+5. `STG-001`、`BUG-001`、`BUG-002`、`BILL-001`、`FIN-001`、`QA-001`、`QA-002`、`QA-003A/B/C/D/E` 已完成，禁止重复大范围修改或重复付费验证。
 6. `SEC-005` 已由独立 Security/Browser Verification Agent 与Staging两个合成账号闭环，禁止重复真实验证。
-7. `QA-003C/D/E` 不得合并为一个修复包或并行修改共享前端文件；`SEC-004` 仅做结构统计，执行历史清理前必须确认备份/回滚窗口；生产事项继续延期。
-8. 当前工作的停止条件：Handoff checkpoint 已提交并推送；CI/Render 版本可追溯；无业务文件或敏感文件被误提交；向用户输出 10 项交接摘要后停止开发。
+7. 商业上线第一代码包为 `ARCH-001`；只收口 Claude Transport 和旁路，不在同一包创建Gateway、修改支付或部署阿里云。
+8. `PROD-001A` 商务准入与 `COMPLY-001` 可并行推进；payment/billing/database/共享调用链的写入必须按账本严格串行。
+9. `SEC-004` 仅做结构统计，执行历史清理前必须确认备份/回滚窗口；`BILL-002` 必须在跨区域生产灰度前闭环。
+10. 每个修复包完成后更新本账本、独立验证、记录部署环境和剩余风险；付费资源、生产数据、真实支付、DNS切流和最终上线仍需用户明确批准。
 
 ## 11. Do Not Touch Without Approval
 

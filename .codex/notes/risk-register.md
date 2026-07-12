@@ -38,11 +38,35 @@ Last updated: 2026-07-12
 
 ### Real payment integration is not confirmed
 
-- 风险描述: Billing/topup/upgrade logic exists, but a real payment order/callback/reconciliation flow is not confirmed in inspected files.
+- 风险描述: Adapay 已被选为 V1 方向，但 Billing/topup/upgrade 仍只有业务积分和测试入口；正式订单、回调、权益、现金退款、积分批次和对账尚未实现，且商户准入与三通道网页能力尚待书面确认。
 - 涉及文件: `model/api.py`, `model/billing.py`, `model/db.py`, frontend pricing/credit UI.
 - 可能后果: Users may receive credits without real payment, or paid launch cannot legally/financially reconcile transactions.
 - 建议验证方式: Locate/implement payment provider flow only after approval; test order creation, callback signature verification, idempotency, refunds, reconciliation.
 - 是否需要用户确认后才能修改: yes.
+
+### Confirmed Alibaba + Render Gateway topology is not deployed
+
+- 风险描述: 目标为阿里云华南完整生产主系统、Render Singapore 仅 Claude Gateway；ARCH-001/ARCH-002已在本地收口runtime调用并实现单实例Gateway，但现有Render全栈Staging仍使用Local transport，阿里云主系统、Gateway云端验证和生产切流均未完成。
+- 涉及文件: `model/model_router.py`, `model/api.py`, `model/billing.py`, `render.yaml`, deployment scripts and future Gateway service.
+- 可能后果: 阿里云主系统无法按目标拓扑上线；部分请求仍直连 Claude；跨区域重试导致重复供应商费用；逐模型 usage/cost 漏记；未鉴权 Gateway 被滥用。
+- 建议验证方式: 完成单实例Gateway部署与受控Smoke；生产前再完成共享原子防重放/限流、精确主机绑定、远端健康、timeout与partial-stream费用边界，然后建设阿里云并执行灰度/回滚；持续证明Gateway无业务数据库和持久内容。
+- 是否需要用户确认后才能修改: transport 收口不需要；创建付费 Render/Alibaba 资源、真实 Claude Smoke 和生产切流需要。
+
+### Alibaba production infrastructure and recoverability do not exist yet
+
+- 风险描述: 当前只有 Render Staging 测试规格；阿里云生产负载均衡/WAF/TLS、PostgreSQL HA/备份/PITR、对象存储、Worker、Secret管理、监控、告警和恢复演练尚未建设。
+- 涉及文件: future Alibaba deployment/IaC or runbooks, database predeploy/migrations, storage/worker adapters, DNS/CORS/payment callback configuration.
+- 可能后果: 正式用户数据丢失、服务单点、无法恢复、回调不可达或配置漂移。
+- 建议验证方式: 隔离生产环境部署；备份恢复到一次性实例并逐表对账；灰度、故障、容量、监控和回滚演练。
+- 是否需要用户确认后才能修改: yes，涉及持续云成本、域名和生产数据。
+
+### Cross-border Claude data boundary and China launch compliance are unresolved
+
+- 风险描述: 阿里云主系统通过新加坡 Gateway 调用 Claude 时，Prompt、正文和聊天上下文会跨区域；当前 Chat 多模态路径还可能传递图片/base64。用户告知、数据最小化、备案/许可适用性、隐私/退款条款和第三方处理者清单尚未按目标拓扑完成专业确认。
+- 涉及文件: Claude transport/Gateway, Chat multimodal routing, privacy policy, user agreement, refund policy, data retention and compliance records.
+- 可能后果: 超范围传输、用户告知不足、支付入网受阻或监管风险。
+- 建议验证方式: 建立字段级数据地图；默认在阿里云用 Kimi Vision 转文本后只发送必要文本；由中国执业律师或合规顾问确认最终文件和路径，技术验收核对实现一致。
+- 是否需要用户确认后才能修改: yes for final product/data policy; safe minimization tests and documentation inventory can start read-only.
 
 ## High Risks
 
