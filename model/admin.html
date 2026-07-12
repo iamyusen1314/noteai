@@ -590,6 +590,18 @@ function fmtTokens(n) {
   return String(Math.round(n));
 }
 
+const ADMIN_SYSTEM_STATUS_LABELS = Object.freeze({
+  configured: {label:'API 服务已配置', dot:'dot-green'},
+  not_configured: {label:'API 服务未配置', dot:'dot-red'},
+  unavailable: {label:'API 服务不可检测', dot:'dot-yellow'},
+});
+
+function adminProviderStatus(aiRuntime, field) {
+  const value = aiRuntime && aiRuntime[field];
+  return Object.prototype.hasOwnProperty.call(ADMIN_SYSTEM_STATUS_LABELS, value)
+    ? value : 'unavailable';
+}
+
 const ADMIN_LEDGER_OPERATION_LABELS = Object.freeze({
   score:'快速评分', diagnose:'内容诊断', analyze:'AI深度诊断',
   extra_image:'附加内容图', video_analyze:'视频内容解析', generate:'AI爆文生成',
@@ -748,17 +760,35 @@ async function loadDashboard() {
   });
 
   // 系统状态
+  const aiRuntime = s.ai_runtime && typeof s.ai_runtime === 'object' ? s.ai_runtime : {};
+  const kimiStatus = adminProviderStatus(aiRuntime, 'kimi_status');
+  const claudeStatus = adminProviderStatus(aiRuntime, 'claude_status');
+  const kimiView = ADMIN_SYSTEM_STATUS_LABELS[kimiStatus];
+  const claudeView = ADMIN_SYSTEM_STATUS_LABELS[claudeStatus];
+  const aiSource = aiRuntime.source === 'api_readiness' ? '状态来源：API readiness' : '状态来源：不可检测';
+  const modelSize = Number.isFinite(Number(s.model_size_mb)) ? ` (${Number(s.model_size_mb)}MB)` : '';
+  const databaseBackend = s.database_backend === 'postgresql'
+    ? 'PostgreSQL' : s.database_backend === 'sqlite' ? 'SQLite' : '';
+  const databaseLabel = s.database_ok === true && databaseBackend
+    ? `${databaseBackend} 正常`
+    : s.database_ok === false && databaseBackend
+      ? `${databaseBackend} 异常`
+      : '数据库状态不可检测';
+  const databaseDot = s.database_ok === true && databaseBackend
+    ? 'dot-green' : s.database_ok === false && databaseBackend ? 'dot-red' : 'dot-yellow';
+  const serverTime = s.server_time ? new Date(s.server_time).toLocaleString() : '时间不可检测';
   document.getElementById('system-status').innerHTML = `
     <div class="stat-card"><div class="stat-label">Kimi API</div>
-      <div><span class="dot ${s.kimi_configured?'dot-green':'dot-red'}"></span>${s.kimi_configured?'已配置':'未配置'}</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${s.kimi_key_prefix}</div></div>
+      <div><span class="dot ${kimiView.dot}"></span>${kimiView.label}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${aiSource}</div></div>
     <div class="stat-card"><div class="stat-label">Claude API</div>
-      <div><span class="dot ${s.claude_configured?'dot-green':'dot-red'}"></span>${s.claude_configured?'已配置':'未配置'}</div></div>
+      <div><span class="dot ${claudeView.dot}"></span>${claudeView.label}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${aiSource}</div></div>
     <div class="stat-card"><div class="stat-label">ML 模型</div>
-      <div><span class="dot ${s.model_exists?'dot-green':'dot-red'}"></span>${s.model_exists?`存在 (${s.model_size_mb}MB)`:'未找到'}</div></div>
+      <div><span class="dot ${s.model_exists?'dot-green':'dot-red'}"></span>${s.model_exists?`存在${modelSize}`:'未找到'}</div></div>
     <div class="stat-card"><div class="stat-label">数据库</div>
-      <div><span class="dot dot-green"></span>${s.db_size_mb} MB</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${new Date(s.server_time).toLocaleString()}</div></div>`;
+      <div><span class="dot ${databaseDot}"></span>${databaseLabel}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${serverTime}</div></div>`;
 }
 
 /* ── Users ────────────────────────────────────────────────────────── */

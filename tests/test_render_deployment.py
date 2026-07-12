@@ -111,6 +111,22 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertGreaterEqual(blueprint.count("NOTEAI_XHS_FRESHNESS_REQUIRED"), 2)
         self.assertIn("MALLOC_ARENA_MAX", blueprint)
 
+    def test_admin_reads_public_api_readiness_without_copying_ai_secrets(self):
+        blueprint = (Path(__file__).resolve().parents[1] / "render.yaml").read_text(encoding="utf-8")
+        admin_block = blueprint.split("name: noteai-staging-admin", 1)[1].split("- type: cron", 1)[0]
+        self.assertIn("NOTEAI_API_READINESS_URL", admin_block)
+        self.assertIn("https://noteai-staging-api.onrender.com/health/ready", admin_block)
+        self.assertNotIn("ANTHROPIC_API_KEY", admin_block)
+        self.assertNotIn("MOONSHOT_API_KEY", admin_block)
+
+    def test_admin_system_ui_uses_explicit_status_contract_without_undefined_fields(self):
+        admin_html = (MODEL_DIR / "admin.html").read_text(encoding="utf-8")
+        self.assertIn("ai_runtime", admin_html)
+        self.assertIn("database_backend", admin_html)
+        self.assertIn("database_ok", admin_html)
+        self.assertNotIn("s.kimi_key_prefix", admin_html)
+        self.assertNotIn("s.db_size_mb", admin_html)
+
     def test_prompt_migration_entrypoint_is_packaged_and_predeploy_audits_first(self):
         dockerfile = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text(encoding="utf-8")
         self.assertGreaterEqual(dockerfile.count("migrate_managed_prompts_v04.py"), 2)

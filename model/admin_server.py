@@ -26,6 +26,8 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+import httpx
+
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
@@ -49,6 +51,62 @@ try:
 except Exception:
     _xhs_acq = None
     _XHS_ACQ_AVAILABLE = False
+
+
+def _unavailable_api_ai_status() -> dict:
+    return {
+        "status": "unavailable",
+        "source": "api_readiness",
+        "claude_status": "unavailable",
+        "kimi_status": "unavailable",
+        # Backward-compatible booleans for older admin clients. New clients
+        # must use the explicit tri-state fields above.
+        "claude_configured": False,
+        "kimi_configured": False,
+    }
+
+
+def _parse_api_ai_readiness(payload: object) -> dict:
+    """Project the public API readiness response onto a fixed safe contract."""
+    if not isinstance(payload, dict):
+        return _unavailable_api_ai_status()
+    checks = payload.get("checks")
+    ai = checks.get("ai") if isinstance(checks, dict) else None
+    if not isinstance(ai, dict):
+        return _unavailable_api_ai_status()
+
+    ai_ok = ai.get("ok")
+    claude = ai.get("claude_configured")
+    kimi = ai.get("moonshot_configured")
+    if not all(isinstance(value, bool) for value in (ai_ok, claude, kimi)):
+        return _unavailable_api_ai_status()
+    if ai_ok != (claude and kimi):
+        return _unavailable_api_ai_status()
+
+    return {
+        "status": "configured" if ai_ok else "not_configured",
+        "source": "api_readiness",
+        "claude_status": "configured" if claude else "not_configured",
+        "kimi_status": "configured" if kimi else "not_configured",
+        "claude_configured": claude,
+        "kimi_configured": kimi,
+    }
+
+
+async def _fetch_api_ai_readiness() -> dict:
+    readiness_url = os.environ.get("NOTEAI_API_READINESS_URL", "").strip()
+    if not readiness_url:
+        return _unavailable_api_ai_status()
+    try:
+        timeout = httpx.Timeout(2.0)
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+            response = await client.get(readiness_url, headers={"Accept": "application/json"})
+        if response.status_code not in {200, 503}:
+            return _unavailable_api_ai_status()
+        return _parse_api_ai_readiness(response.json())
+    except Exception:
+        # Never expose the configured URL, upstream body, or exception details.
+        return _unavailable_api_ai_status()
 
 
 def _model_cost_audit_payload(since: str) -> dict:
@@ -170,6 +228,7 @@ async def admin_me(admin: dict = Depends(_aauth.get_admin_user)):
 async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
     """一次性返回 Dashboard 所需所有数据。"""
     now    = datetime.now(timezone.utc)
+    ai_runtime = await _fetch_api_ai_readiness()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     days7_start = (now - timedelta(days=7)).isoformat()
@@ -237,9 +296,17 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
                     "cost": round(r["cost"] or 0, 4)} for r in op_rows]
 
     # ── 系统状态 ──
-    kimi_key   = os.environ.get("MOONSHOT_API_KEY", "")
-    claude_key = os.environ.get("ANTHROPIC_API_KEY", "")
     model_files = tuple((Path(__file__).parent / "artifacts").glob("model_v04_*.lgb"))
+    try:
+        database_status = db.database_health()
+    except Exception:
+        database_status = {
+            "ok": False,
+            "backend": "postgresql" if db.using_postgres() else "sqlite",
+        }
+    database_backend = database_status.get("backend")
+    if database_backend not in {"postgresql", "sqlite"}:
+        database_backend = "postgresql" if db.using_postgres() else "sqlite"
 
     return {
         "users": {
@@ -278,11 +345,13 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
             "coverage":         audit["coverage"],
         },
         "system": {
-            "kimi_configured":   bool(kimi_key),
-            "claude_configured": bool(claude_key),
+            "ai_runtime":         ai_runtime,
+            "kimi_configured":   ai_runtime["kimi_configured"],
+            "claude_configured": ai_runtime["claude_configured"],
             "model_exists":      bool(model_files),
             "model_size_mb":     round(sum(path.stat().st_size for path in model_files) / 1024**2, 2),
-            "database_backend":  "postgresql" if db.using_postgres() else "sqlite",
+            "database_backend":  database_backend,
+            "database_ok":       database_status.get("ok") is True,
             "server_time":       now.isoformat(),
         },
     }

@@ -149,6 +149,8 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: NOTEAI_API_READINESS_URL
+        value: https://noteai-staging-api.onrender.com/health/ready
       - key: NOTEAI_SKIP_MODEL_ARTIFACT_CHECK
         value: "1"
       - key: NOTEAI_CLOUD_RUNTIME
