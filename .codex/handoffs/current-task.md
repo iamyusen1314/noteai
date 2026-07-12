@@ -10,7 +10,7 @@
 - 当前不是正式生产上线阶段；不得把 Staging 通过等同于商业上线完成。
 - AI 诊断、爆文生成、对话优化、截图/视频理解、事实源、积分账本和管理端已完成受控的真实 Staging 验证。
 - 正式支付订单、回调签名、幂等、退款与对账流程尚未确认，是独立的生产阻断项 `PROD-001`。
-- `BILL-001`、`FIN-001`、`SEC-005`、`PERF-001B` 与 `QA-003A/B/C/D/E` 已闭环；`BUG-002` 父任务继续只等待自然 half-open Cron，不追加高频采集。生产事项仍保持延期。
+- `BILL-001`、`FIN-001`、`SEC-005`、`PERF-001B`、`QA-003A/B/C/D/E` 与 `BUG-002` 已闭环；BUG-002 由四个连续自然健康轮次完成验证，未追加手工高频采集。生产事项仍保持延期。
 
 ## 2. 当前环境与版本
 
@@ -18,8 +18,8 @@
 
 - 仓库：`iamyusen1314/noteai`
 - 当前分支：`codex/quality-stabilization-real-chain`
-- 当前业务代码基线：`bf0c4be4e361b718b0f601755b058f1ee0174db5`（`feat: show safe admin usage ledgers`）；QA-003C/D 分别为 `9eebc8c`、`3041d87`。
-- Render Staging Web/API/Admin 已包含 `bf0c4be`；API deploy `dep-d99kj5mrnols73f8n5qg` 于 16:02 live，pre-deploy `migrations_applied=0`。新会话仍必须重新核对 Render Events 中的 live commit。
+- 当前业务代码基线：`87d679f0c972f100c884a8f6f6bcdcb66d55da77`（`fix: migrate managed prompts to v0.4`）；QA-003C/D/E 分别包含于 `9eebc8c`、`3041d87`、`bf0c4be`。
+- Render Staging Web/API/Admin 已包含 `87d679f`；API deploy `dep-d99lhrr7uimc73f22slg` 已 live，pre-deploy `migrations_applied=0` 且12条Prompt基线已为current。新会话仍必须重新核对 Render Events 中的 live commit。
 - 远程跟踪分支：`origin/codex/quality-stabilization-real-chain`
 - 禁止直接合并 `main`，禁止 force push。
 
@@ -167,18 +167,18 @@
 
 ### BUG-002 — XHS 推荐/热搜来源为 0
 
-- 状态：**INVESTIGATING**
+- 状态：**VERIFIED**
 - 优先级：Critical；当前最高优先级调查项。
 - 问题描述：自然 Cron 的 `search_result` 与 `search_recommend` 持续为0；累计 freshness 仍可能满足，但最新单轮明确 degraded。
-- 证据：自然 run `19a8c433-923e-4a06-a26f-d1c5aa506d37` 首目标进入 challenge 后熔断11个目标，search `response_seen=35/json_ok=27/json_failed=8/title_count=0/phrase_raw=0`、recommend endpoint=0。09:05 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 在6小时 cooldown 中安全跳过12/12搜索目标，保留 homefeed=152/hot_search=120，search/recommend仍为0。2026-07-12 本轮只读 readiness 又观察到两个后续自然健康轮次：run `478f3783-d952-45c2-aaf3-f34eb706cf4f` 四来源合计395，run `5559f473-4e61-4da9-8d4c-3b7341dd8abc` 四来源合计297（homefeed51/search_result113/search_recommend61/hot_search72）；均非手工触发。仍按既定标准等待下一自然窗口后再决定父任务是否闭环。
-- 根因是否确认：部分确认。来源归零的当前直接原因是 XHS challenge/cooldown；安全熔断按设计工作。另已确认诊断误分类：搜索页上 URL 只要含 `search` 或 `api` 就计入 search response，可解析普通/挑战辅助JSON也会增加 `json_ok`，所以“27个JSON”不是27个搜索结果 payload。平台真实结果 schema 是否改名仍未确认，禁止盲加字段。
+- 证据：自然 run `19a8c433-923e-4a06-a26f-d1c5aa506d37` 首目标进入 challenge 后熔断11个目标，09:05 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 在6小时 cooldown 中安全跳过12/12搜索目标。冷却后连续四个自然轮次 `478f3783-…`、`5559f473-…`、`ce83808b-…`、`6a686edd-…` 均恢复四来源且非手工触发。最新完整轮次 `6a686edd-d1e2-49bf-a072-e8d8e6b5b136` 于18:05开始、18:13成功结束，采集520条（homefeed119/search_result206/search_recommend75/hot_search120），质量处理后405条且四来源无缺失；固定分类为note_result14/generic_json964/unknown_schema0/empty_result0/business_error12/non_json123，challenge_before_target_payload0、diagnostic_error_codes空、circuit closed。19:05自然轮次已启动但未用作成功证据。
+- 根因是否确认：是。来源归零直接原因是短暂 XHS challenge 与随后6小时 cooldown；熔断/冷却按设计工作并自然恢复。BUG-002D 已把普通辅助JSON与真正note_result分开，连续健康轮次均出现真实note_result且unknown_schema=0，没有证据支持平台schema改名或继续修改解析器。
 - 涉及文件：`model/scheduler_a.py`, `model/xhs_acquisition.py`, `tests/test_xhs_acquisition.py`, `tests/test_render_deployment.py`；不改 Cookie、UA/viewport、频率、challenge绕过或数据库。
-- 风险：继续误读 broad `json_ok` 会把“未拿到目标端点”错判为 schema/解析故障；直接猜字段会引入无关标题和趋势数据污染。
-- 执行代理：Repository Explorer + QA Investigator + Test Finder（本轮只读完成）；验证代理：后续独立 QA/Render Reviewer。
-- 验收标准：安全区分精确搜索结果响应、普通JSON、空结果、未知schema、非JSON、未出现endpoint、过滤/去重；真正恢复仍要求冷却后的连续2–3自然轮次 search_result/search_recommend 非零。
+- 风险：平台挑战仍可能未来复发，现有策略会安全降级而不是绕过。静态审查另发现generic_json候选隔离及推荐路径变体的防御性边界，但最新轮次note_result>0、recommend items_raw>0，未触发这两个条件；若后续出现note_result=0但search_result>0或recommend json_ok>0但items_raw=0，再分别建立独立修复包，禁止凭猜测修改。
+- 执行代理：Repository Explorer + QA Investigator + Test Finder（只读）；验证代理：独立 Render/DevOps Reviewer，结论 PASS。
+- 验收标准：已满足。固定分类可区分真正note_result与普通JSON；冷却后连续四个自然轮次search_result/search_recommend均非零，最新轮次challenge=0、unknown_schema=0、错误码空且成功结束。
 - 是否需要用户决定：否；脱敏诊断修正不改变产品策略。若要改变challenge策略、采集频率或账号操作则需要。
-- 是否涉及真实外部调用：本轮仅观察自然Cron；不手工追加采集。后续部署后等待自然half-open probe。
-- 是否已部署到 Render：父问题已有多轮诊断与熔断代码；最新解析诊断修复包尚未实施。
+- 是否涉及真实外部调用：仅只读观察自然Cron与公开readiness；未手工触发、未改变频率、Cookie、指纹、重试或challenge策略。
+- 是否已部署到 Render：是；熔断/冷却commit `878787b` 与诊断分类commit `aa1f866` 均已在线，四个连续自然健康轮次完成云端验证。
 
 ### BUG-002D — 搜索响应结构诊断真实性
 
@@ -194,7 +194,39 @@
 - 验收标准：generic/challenge API JSON 不再冒充“笔记结果JSON成功”；已知 `data.items[].note_card.display_title/title` 结构可识别；empty items、candidate container但unknown schema、business error、non-JSON、endpoint未出现均有固定脱敏分类；challenge首目标得到 `challenge_before_target_payload` 且跳过11；旧漏斗字段兼容；日志/health不含敏感内容；XHS/Render/全量/Production Readiness通过。
 - 是否需要用户决定：否；只修诊断真实性，不改变外部采集行为。
 - 是否涉及真实外部调用：本地实施不需要；部署后只观察自然half-open Cron，不手工触发。
-- 是否已部署到 Render：是，commit `aa1f866`；未手工触发采集，状态保持 READY_TO_VERIFY，等待自然 half-open Cron 提供真实结构分类证据。
+- 是否已部署到 Render：是，commit `aa1f866`；最新自然轮次 `6a686edd-…` 的固定分类为note_result14、unknown_schema0、challenge_before_target_payload0，搜索结果206、推荐75，云端结构分类验收完成。
+
+### BUG-002E — 普通搜索辅助 JSON 候选隔离
+
+- 状态：**VERIFIED**
+- 优先级：High。
+- 问题描述：BUG-002D 已把 `generic_json` 与 `note_result` 分开统计，但搜索响应处理仍会对所有宽泛命中的JSON递归提取任意 `display_title/title`；普通辅助JSON若带同名字段，仍可能污染 `search_result` 并造成健康假阳性。
+- 证据：只读静态审查与最小合成探针确认 `{'data': {'status': {'title': '辅助页面标题'}}}` 被分类为 `generic_json`，但旧候选提取结果仍为1。最新自然轮次已有真实 `note_result=14`，所以该缺口不是本轮恢复的阻断原因，而是独立正确性风险。
+- 根因是否确认：是；分类结果只用于计数，没有同时约束搜索候选提取边界。
+- 涉及文件：最小范围 `model/scheduler_a.py`, `tests/test_xhs_acquisition.py`；不改homefeed、Cookie、指纹、频率、重试、Cron、数据库、熔断或已知note_result结构。
+- 风险：修复会剔除不应进入候选的辅助标题，搜索数量可能下降但真实性提高；必须证明已知 `data.items[].note_card.display_title/title` 仍正常。
+- 执行代理：单一 Implementation Agent；验证代理：独立 QA/Test Verification Agent。
+- 修改状态/进度：最小修复仅在搜索JSON完成固定分类后增加候选门控，只有 `search_discovery + note_result` 才递归提取标题；homefeed与recommend/trending独立分支保持原逻辑。先失败证据确认generic/business/empty/unknown四类旧逻辑各产生10–11条虚假search_result；修复后各类title_count/phrase_raw/cleaned/final均为0，已知display_title/title正常。Implementation定向40/40、相关26/26；独立Verification PASS：XHS40/40、Render+Market+Composite28/28、全量unittest424/424（5 skip）、Production Readiness48/48、py_compile/diff check通过，真实外部调用0。
+- 验收标准：generic_json、business_error、empty_result、unknown_schema、non_json均不能贡献搜索title/phrase/final；已识别note_result正常提取；homefeed与推荐语义不变；固定枚举/计数兼容且不记录敏感内容；XHS、Render、全量单元测试和Production Readiness通过。
+- 是否需要用户决定：否；属于诊断分类与候选边界一致性修复，不改变采集策略。
+- 是否涉及真实外部调用：本地mock足够；部署后只观察自然轮次，不手工高频采集。
+- 是否已部署到 Render：否。
+
+### BUG-002F — 推荐路径分类与 `sug_items` 解析一致性
+
+- 状态：**VERIFIED**
+- 优先级：Medium。
+- 问题描述：推荐响应分类支持四种既有路径形态，但 `sug_items` 专用解析只进入其中一种精确路径；若平台切换到其余已支持形态，可能出现recommend json_ok>0但items_raw=0。
+- 证据：只读合成探针确认四种分类均为recommend，但只有精确 `search/recommend` 进入专用解析，其余三种无法提取 `data.sug_items`。最新自然轮次recommend responses17/items_raw170/final75，当前线上未触发该退化。
+- 根因是否确认：是；分类helper与专用解析分支使用了不同的路径判断。
+- 涉及文件：预计最小范围 `model/scheduler_a.py`, `tests/test_xhs_acquisition.py`；必须在BUG-002E完成后串行实施。
+- 风险：错误放宽路径可能把非推荐响应误归类；只允许复用现有固定response kind，不新增URL猜测或字段猜测。
+- 执行代理：待BUG-002E闭环后指定单一Implementation Agent；验证代理：独立QA/Test Verification Agent。
+- 修改状态/进度：单一Implementation先把四种已分类recommend路径统一复用 `data.sug_items` 解析；首次独立验证发现既有子串分类会把suggestion/suggest-unknown/search_recommend_extra/search/suggested近似路径误接纳，判定FAIL并退回。修正版仅用URL path完整段尾匹配四种正式形式，query不参与，未知/近似/query-only路径全部拒绝；未改HOT通用分支或采集行为。最终独立Verification PASS：正式路径与query正向、近似和query-only负向均通过；XHS42/42、Render+Market+Composite28/28、全量unittest426/426（5 skip）、Production Readiness48/48、py_compile/diff check通过，真实外部调用0。
+- 验收标准：四种已支持recommend路径均使用同一 `sug_items` 解析并归入search_recommend，不落hot_search；未知路径仍不解析；旧精确路径、固定计数和脱敏约束不回归。
+- 是否需要用户决定：否。
+- 是否涉及真实外部调用：本地mock足够；最终只观察自然Cron。
+- 是否已部署到 Render：否；本地独立验证已完成，待与BUG-002E批量推送后部署，避免两次连续Render构建。
 
 ### BUG-002B — 搜索来源退化的脱敏诊断漏斗
 
@@ -437,7 +469,7 @@
 
 ### BUG-002C — XHS 搜索访问挑战的安全恢复策略
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：Critical。
 - 问题描述：最新手工轮次 12 个搜索目标全部进入 challenge 页面，导致搜索输入、标题和推荐来源归零；首页/热搜仍工作。
 - 证据：navigation 12/12 成功、final page challenge 12/12、input 0/12、recommend endpoint 0、search title 0；session configured 且 auth cookie 未过期。已排除空 seed、普通导航失败、数据库去重和 Cookie 完全失效为单一原因。
@@ -445,11 +477,11 @@
 - 涉及文件：`model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`, `render.yaml`, `tests/test_xhs_acquisition.py`, `tests/test_api_contracts.py`, `tests/test_render_deployment.py`；不改 selector、Cookie、UA/viewport 或验证码处理。
 - 风险：继续高频搜索会增加 Cron 成本并加重挑战；激进指纹规避可能违反平台安全边界。
 - 执行代理：Repository Explorer（单一 Implementation Agent）；验证代理：独立 QA/Render Reviewer。
-- 修改状态/进度：最小修复已实施并通过第二轮独立验证。首轮验证发现 `/admin/xhs/health` 删除既有 `error_summary/details` 且可能清空安全错误码；修正为保留旧字段结构、固定摘要映射和严格 details 白名单。最终证据：相关 194/194、全量 unittest 311/311、前端静态 16/16、Python 编译、Compose 和 diff check 均通过；HTTP 200 challenge 首目标熔断、homefeed 保留、冷却零搜索浏览器、6 小时边界、半开探针和默认兼容均通过。commit `878787b` 已部署。18:05 自然轮次 `b281661a-…` 验证 cooldown 零搜索启动并保留 homefeed/hot_search；21:10 `46863376-…` 与 22:10 `e9ef2b10-…` 又连续明确报告 degraded，后者 homefeed=49、hot_search=72、search_result=0、search_recommend=0。最新单轮未被累计 freshness 伪装成绿色，但搜索来源仍未恢复，任务继续保持 READY_TO_VERIFY，不手工追加采集。
+- 修改状态/进度：最小修复已实施并通过独立验证。首轮验证发现 `/admin/xhs/health` 删除既有 `error_summary/details` 且可能清空安全错误码；修正为保留旧字段结构、固定摘要映射和严格 details 白名单。最终本地证据：相关 194/194、全量 unittest 311/311、前端静态 16/16、Python 编译、Compose 和 diff check 均通过；HTTP 200 challenge 首目标熔断、homefeed 保留、冷却零搜索浏览器、6小时边界、隐式首目标探针和默认兼容均通过。commit `878787b` 已部署。早期自然轮次先按设计明确degraded，冷却结束后 `478f3783-…`、`5559f473-…`、`ce83808b-…`、`6a686edd-…` 连续四轮恢复。最新完整轮次challenge=0、circuit closed、search_result206、search_recommend75并成功结束；独立Render Reviewer确认PASS。严格代码状态没有名为half-open的枚举，实际是cooldown结束后回到closed并以首个搜索目标作为隐式探针；账本统一使用这一真实描述。
 - 验收标准：不绕过安全控制；挑战出现时及时停止/退避并给出稳定状态；若采用安全恢复策略，至少连续 2–3 个自然轮次恢复 search/recommend 健康阈值，否则明确降级而不浪费全轮成本。
 - 是否需要用户决定：技术默认采用 Staging 6 小时冷却、Cron 继续成功但明确 degraded；不自动重新登录、不减少长期行业覆盖。如后续要改 hard fail 或每行业 seed 数再单独决策。
-- 是否涉及真实外部调用：最终验证需要自然 Cron；不再手工连续触发。
-- 是否已部署到 Render：是；commit `878787b`。云端服务健康，尚待自然 Cron 功能结果。
+- 是否涉及真实外部调用：只读观察自然Cron；没有追加手工触发。
+- 是否已部署到 Render：是；commit `878787b`，连续四个自然健康轮次已满足云端验收。
 
 ### SEC-002 — 保留可解释 Agent 思考体验并隔离原始 reasoning
 
@@ -541,7 +573,7 @@
 - 风险级别：Medium；验证缺口，尚未确认产品缺陷。
 - 涉及模块：`NoteAI_Pro_Demo_Framer.html`, `model/admin.html`, API。
 - 根因：五个独立缺陷已分别由 QA-003A/B/C/D/E 确认并修复；不再以浏览器扩展限制作为未闭环理由。
-- 修改状态/进度：真实 9 图选择成功，9/9 全部识别、0 失败，最终诊断按钮启用；后台操作数 18→27、成本 ¥7.8300→¥8.4600，符合 9 次 screenshot×¥0.07，未点击最终诊断。识别中 2/9、7/9 时总状态曾提前显示“AI识别完成”，但按钮保持禁用；最终状态正确。2 秒/1 帧合成视频上传成功，不触发诊断，确认“进度”只显示 `0.0 MB` 且未上传前诊断按钮未禁用。管理端登录、用户搜索/套餐筛选/详情通过；未点击任何写按钮。用量分析有 4 canvas、无 NaN，但 Top10 为空且 console 多次出现 500 文本被当 JSON 解析，根因拆为 QA-003A。OCR/Chat 402 一致性拆为 QA-003B。管理端仍不渲染 API 已返回的逐笔 usage/credit txns，无法在 UI 完成逐笔对账。
+- 修改状态/进度：真实 9 图、视频、管理端用户/筛选/详情/用量分析清单已完成，发现的问题均拆为QA-003A/B/C/D/E并完成修复、独立验证和Staging Smoke。2026-07-12 用户再次要求处理“剩余UI问题”后，独立QA重新核对当前HEAD `87d679f`：四组QA-003专项Playwright 20/20、前端静态/管理端聚合/成本合同34/34通过，全部route-mock，真实API/AI/积分写入0；未发现新的最小失败用例，确认QA-003没有剩余修复包。
 - 下一步：不重复付费主清单；后续媒体/管理端变更按 C/D/E 专项回归。
 - 验收标准：9 图全部完成状态后可提交；视频进度正确；余额不足不发起付费操作；管理端账本一致。
 - 真实外部服务：UI 主链路会调用真实 AI。
@@ -629,7 +661,7 @@
 
 ### PROMPT-001 — Prompt 管理源与 V0.4 行业运行时漂移
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：Staging Prompt 管理列表/编辑器仍把“v0.3模型、10万+训练样本、CES、固定权重”作为当前基础 Prompt 展示；用户预期为 V0.4 且可审计的分行业策略。
 - 证据：2026-07-12 只读 Staging UI 核对确认12项仍为旧标签/正文，当前示例 `agent_growth_system` 为v4修订号但正文仍是V0.3。仓库 `model/prompts.json` 12/12含v0.3，11/12含完整旧标题；文件自初始commit `906432d`后未升级。管理API直接返回PostgreSQL `managed_prompts.content`，前端原样展示。
@@ -637,11 +669,11 @@
 - 涉及文件：`model/prompts.json`, `model/prompt_baselines.py`, `model/prompt_composer.py`, `model/prompt_manager.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`, `scripts/render_predeploy.py`, `scripts/migrate_managed_prompts_v04.py`, `Dockerfile` 及Prompt/Render/UI测试；没有新增数据库schema migration。
 - 风险：High。当前线上AI并非整体退回V0.3，因为运行时会前置V0.4规则和行业brief；但管理端无法审计最终有效Prompt，旧内容继续消耗Token并产生冲突。现有替换仅覆盖无空格`v0.3模型`，旧正文中的`v0.3 模型`可能仍进入实际Prompt。
 - 执行代理：用户已确认采用推荐的“12条基础Prompt+行业有效模板预览”，指定单一 Implementation Agent；验证代理：独立 Prompt/Data Migration + QA/Security Verification Agent。
-- 修改状态/进度：Implementation已完成12条V0.4基础契约、精确旧seed版本+SHA manifest、事务升级/history/idempotent/custom-skip/dry-run、完整hash+version+metadata+marker安全回滚、共享composer、API接入、Admin 7行业effective_template预览、Render predeploy和镜像内受控迁移脚本。两轮独立验证先后发现并闭环新增行未回滚、迁移脚本未打包、Prompt key存储型Admin XSS、元数据变化未阻断回滚、损坏/重复marker未收口五项阻断；真实PostgreSQL空库并发又发现主键竞争，已用apply/rollback共享的事务级advisory lock最小修复，未加重试/schema/表锁。最终本地全量unittest423/423（5 skip）、Playwright49/49、Readiness48/48、py_compile/diff/sensitive scan通过。一次性PostgreSQL 18由主控和独立验证代理分别通过空库、首条缺失、12旧seed、4路并发、实际4路predeploy、幂等和完整回滚；独立定向31/31，测试数据、容器和Colima均已清理。当前本地与临时PG PASS，仍待提交/CI、Staging predeploy与管理端Smoke，任务保持READY_TO_VERIFY。
+- 修改状态/进度：Implementation已完成12条V0.4基础契约、精确旧seed版本+SHA manifest、事务升级/history/idempotent/custom-skip/dry-run、完整hash+version+metadata+marker安全回滚、共享composer、API接入、Admin 7行业effective_template预览、Render predeploy和镜像内受控迁移脚本。两轮独立验证先后发现并闭环新增行未回滚、迁移脚本未打包、Prompt key存储型Admin XSS、元数据变化未阻断回滚、损坏/重复marker未收口五项阻断；真实PostgreSQL空库并发又发现主键竞争，已用apply/rollback共享的事务级advisory lock最小修复，未加重试/schema/表锁。最终本地全量unittest423/423（5 skip）、Playwright49/49、Readiness48/48、py_compile/diff/sensitive scan通过。一次性PostgreSQL 18由主控和独立验证代理分别通过空库、首条缺失、12旧seed、4路并发、实际4路predeploy、幂等和完整回滚；独立定向31/31，测试数据、容器和Colima均已清理。commit `87d679f` 两条GitHub CI均通过；Render deploy `dep-d99lhrr7uimc73f22slg` 已live，predeploy固定审计为missing=0/eligible=12/current=0/skipped=0，实际updated=12且无schema migration。Staging API/Admin/Web健康检查均为HTTP 200。管理端只读Smoke确认列表12/12均显示V0.4，抽查当前基础Prompt无V0.3/CES/固定权重，7个行业effective_template均等待刷新完成后与所选行业一致、包含V0.4运行时覆盖且不含V0.3/CES；旧V0.3仅保留在历史版本中用于审计/回滚。未保存Prompt、未调用AI、未产生积分或AI费用。独立验证证据完整，任务标记VERIFIED。
 - 验收标准：已知旧seed按内容指纹/版本安全迁移并写history，管理员自定义不覆盖，重复执行幂等；基础Prompt不再含v0.3/CES/固定权重旧目标；七行业effective prompt差异可验证；管理端明确区分“基础可编辑Prompt”“V0.4运行时层”和Prompt修订号，并能按行业预览最终有效组合；SQLite/PostgreSQL/Render Staging一致。
 - 是否需要用户决定：否；2026-07-12 用户已批准推荐方案，并确认管理员未手工修改过任何Prompt。机器迁移仍保留精确hash门禁，不因口头确认而放宽。
-- 是否涉及真实外部调用：调查阶段仅只读Staging UI；本地实施与SQLite验证0外部调用。下一阶段需启动一次性本地PostgreSQL 18容器验证并发，再写Staging PostgreSQL Prompt内容/history；必须先dry-run并保留固定计数/回滚证据，不调用AI即可验证。
-- 是否已部署到 Render：否；当前V0.4运行时覆盖已在线，但Prompt持久层修复尚未实施。
+- 是否涉及真实外部调用：是；已执行一次性本地PostgreSQL 18并发验证、GitHub CI、Render Staging predeploy及只读管理端Smoke。Staging写入仅限12条已知旧seed升级及对应history；未调用AI、未扣积分、未改用户数据。
+- 是否已部署到 Render：是；commit `87d679f`，deploy `dep-d99lhrr7uimc73f22slg` 已live，API/Admin/Web均已核验。
 
 ### PROD-001 — 正式支付订单/回调/对账
 
