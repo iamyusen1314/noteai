@@ -690,8 +690,8 @@ class ApiContractTests(unittest.TestCase):
     def test_market_timing_imports_fresh_cloud_snapshot(self):
         original_db = hot_keywords.DB_PATH
         old_snapshot_url = os.environ.get("NOTEAI_MARKET_TIMING_SNAPSHOT_URL")
-        try:
-            with tempfile.TemporaryDirectory() as td:
+        with tempfile.TemporaryDirectory() as td:
+            try:
                 tmp = Path(td)
                 hot_keywords.DB_PATH = tmp / "hot_keywords.db"
                 hot_keywords.init_db()
@@ -728,19 +728,19 @@ class ApiContractTests(unittest.TestCase):
                 self.assertFalse(timing["evidence_unavailable"])
                 self.assertIn("番禺美食", timing["matched_keywords"])
                 self.assertTrue(timing["cloud_sync"].get("enabled"))
-        finally:
-            hot_keywords.DB_PATH = original_db
-            if old_snapshot_url is None:
-                os.environ.pop("NOTEAI_MARKET_TIMING_SNAPSHOT_URL", None)
-            else:
-                os.environ["NOTEAI_MARKET_TIMING_SNAPSHOT_URL"] = old_snapshot_url
+            finally:
+                hot_keywords.DB_PATH = original_db
+                if old_snapshot_url is None:
+                    os.environ.pop("NOTEAI_MARKET_TIMING_SNAPSHOT_URL", None)
+                else:
+                    os.environ["NOTEAI_MARKET_TIMING_SNAPSHOT_URL"] = old_snapshot_url
 
     def test_market_timing_imports_authorized_trend_source(self):
         original_db = hot_keywords.DB_PATH
         old_authorized_url = os.environ.get("NOTEAI_AUTHORIZED_TREND_URL")
         old_snapshot_url = os.environ.get("NOTEAI_MARKET_TIMING_SNAPSHOT_URL")
-        try:
-            with tempfile.TemporaryDirectory() as td:
+        with tempfile.TemporaryDirectory() as td:
+            try:
                 tmp = Path(td)
                 hot_keywords.DB_PATH = tmp / "hot_keywords.db"
                 hot_keywords.init_db()
@@ -778,16 +778,16 @@ class ApiContractTests(unittest.TestCase):
                 self.assertIn("番禺美食", timing["matched_keywords"])
                 self.assertTrue(timing["cloud_sync"].get("enabled"))
                 self.assertEqual(timing["cloud_sync"].get("source"), "authorized_trend")
-        finally:
-            hot_keywords.DB_PATH = original_db
-            if old_authorized_url is None:
-                os.environ.pop("NOTEAI_AUTHORIZED_TREND_URL", None)
-            else:
-                os.environ["NOTEAI_AUTHORIZED_TREND_URL"] = old_authorized_url
-            if old_snapshot_url is None:
-                os.environ.pop("NOTEAI_MARKET_TIMING_SNAPSHOT_URL", None)
-            else:
-                os.environ["NOTEAI_MARKET_TIMING_SNAPSHOT_URL"] = old_snapshot_url
+            finally:
+                hot_keywords.DB_PATH = original_db
+                if old_authorized_url is None:
+                    os.environ.pop("NOTEAI_AUTHORIZED_TREND_URL", None)
+                else:
+                    os.environ["NOTEAI_AUTHORIZED_TREND_URL"] = old_authorized_url
+                if old_snapshot_url is None:
+                    os.environ.pop("NOTEAI_MARKET_TIMING_SNAPSHOT_URL", None)
+                else:
+                    os.environ["NOTEAI_MARKET_TIMING_SNAPSHOT_URL"] = old_snapshot_url
 
     def test_required_market_timing_raises_when_evidence_unavailable(self):
         old_required = os.environ.get("NOTEAI_MARKET_TIMING_REQUIRED")
