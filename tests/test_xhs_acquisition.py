@@ -830,6 +830,9 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         self.assertEqual(structured_diagnostics["search_response_class"]["note_result"], 12)
         self.assertEqual(structured_diagnostics["search_response_class"]["generic_json"], 0)
         self.assertEqual(structured_diagnostics["search_target_outcome"]["endpoint_not_seen"], 0)
+        self.assertEqual(structured_diagnostics["search"]["title_count"], 12)
+        self.assertGreater(structured_diagnostics["search"]["phrase_raw"], 0)
+        self.assertGreater(structured_diagnostics["search"]["final"], 0)
 
         non_json, _events = self._run_scheduler_circuit_scenario(
             challenge=False,
@@ -839,6 +842,52 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         self.assertEqual(non_json_diagnostics["search_response_class"]["non_json"], 12)
         self.assertEqual(non_json_diagnostics["search_response_class"]["generic_json"], 0)
         self.assertEqual(non_json_diagnostics["search"]["json_failed"], 12)
+        self.assertEqual(non_json_diagnostics["search"]["title_count"], 0)
+        self.assertEqual(non_json_diagnostics["search"]["phrase_raw"], 0)
+        self.assertEqual(non_json_diagnostics["search"]["final"], 0)
+
+    def test_non_note_search_payloads_never_contribute_title_candidates(self):
+        cases = (
+            (
+                "generic_json",
+                {"data": {"status": {"title": "辅助页面标题不应入库"}}},
+            ),
+            (
+                "business_error",
+                {
+                    "code": 300012,
+                    "data": {"items": [{"note_card": {"title": "业务错误标题不应入库"}}]},
+                },
+            ),
+            (
+                "empty_result",
+                {"title": "空结果辅助标题不应入库", "data": {"items": []}},
+            ),
+            (
+                "unknown_schema",
+                {
+                    "title": "未知结构辅助标题不应入库",
+                    "data": {"items": [{"note_card": {"desc": "缺少支持标题字段"}}]},
+                },
+            ),
+        )
+
+        for response_class, payload in cases:
+            with self.subTest(response_class=response_class):
+                result, _events = self._run_scheduler_circuit_scenario(
+                    challenge=False,
+                    response_payload=payload,
+                )
+                diagnostics = result.diagnostics
+
+                self.assertEqual(
+                    diagnostics["search_response_class"][response_class],
+                    12,
+                )
+                self.assertEqual(diagnostics["search"]["title_count"], 0)
+                self.assertEqual(diagnostics["search"]["phrase_raw"], 0)
+                self.assertEqual(diagnostics["search"]["cleaned"], 0)
+                self.assertEqual(diagnostics["search"]["final"], 0)
 
     def test_search_cooldown_skips_search_but_preserves_homefeed(self):
         result, events = self._run_scheduler_circuit_scenario(

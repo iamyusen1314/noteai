@@ -711,7 +711,11 @@ async def scrape_once() -> list[dict]:
                             search_target_state["target_payload_seen"] = True
                     try:
                         counter = tag_counters.setdefault(channel_name, Counter())
-                        titles = _extract_note_titles(data)
+                        titles = (
+                            _extract_note_titles(data)
+                            if discovery_source != "search_discovery" or response_class == "note_result"
+                            else []
+                        )
                         if discovery_source == "search_discovery":
                             _diagnostic_inc(discovery_diagnostics, "search", "json_ok")
                             _diagnostic_inc(discovery_diagnostics, "search", "title_count", len(titles))
