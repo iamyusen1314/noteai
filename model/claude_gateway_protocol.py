@@ -22,7 +22,7 @@ ALLOWED_MODELS = frozenset({
     "claude-haiku-4-5-20251001",
     "claude-sonnet-4-6",
 })
-USAGE_TOKEN_MAX = 1_000_000_000
+USAGE_COUNT_MAX = 1_000_000_000
 USAGE_FIELDS = frozenset({
     "input_tokens",
     "output_tokens",
@@ -46,7 +46,7 @@ def _valid_token_count(value) -> bool:
     return (
         isinstance(value, int)
         and not isinstance(value, bool)
-        and 0 <= value <= USAGE_TOKEN_MAX
+        and 0 <= value <= USAGE_COUNT_MAX
     )
 
 

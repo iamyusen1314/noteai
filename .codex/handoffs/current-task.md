@@ -204,7 +204,7 @@
 - 验收标准：TLS；HMAC或短期服务JWT绑定 method/path/timestamp/nonce/body hash；重放、过期、越权和超限全部拒绝；无业务CORS/用户Token/数据库连接；非流式、流式、Chat、语义评分均可用；usage envelope 可由阿里云主库准确记账；日志只含固定枚举、计数和哈希关联ID。
 - 是否需要用户决定：已确认。2026-07-12 用户批准先创建1个Render Singapore Starter Staging Gateway（增量7美元/月），最多4次合成文本真实Claude Smoke、费用上限人民币20元；正式上线采用2个Starter基础14美元/月，可自动扩容至4个、最高28美元/月。
 - 是否涉及真实外部调用：是；本轮获批范围仅为1个Staging Gateway和最多4次合成文本Claude Smoke，不接生产流量，不创建数据库、磁盘、Redis或Cron。
-- 是否已部署到 Render：否；本地聚焦87/87、全量unittest 467/467（5 skip）、全量Playwright 66/66、Production Readiness 48/48、quality gate、py_compile、Compose与diff check通过。Docker本地构建因本机Docker daemon未运行而未执行，需由Render构建日志和GitHub CI补证。
+- 是否已部署到 Render：否；本地聚焦87/87、全量unittest 467/467（5 skip）、全量Playwright 66/66、Production Readiness 48/48、quality gate、py_compile、Compose与diff check通过。首轮GitHub CI仅因新文件常量名 `USAGE_TOKEN_MAX` 被Secret名称门禁误判而FAIL，已最小重命名为 `USAGE_COUNT_MAX`，本地重新验证全量467/467与Readiness 48/48通过，等待第二次CI。Docker本地构建因本机Docker daemon未运行而未执行，需由Render构建日志补证。
 
 ### ARCH-002P — Claude Gateway Production多实例安全化
 
