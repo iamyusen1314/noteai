@@ -10,7 +10,7 @@
 - 当前不是正式生产上线阶段；不得把 Staging 通过等同于商业上线完成。
 - AI 诊断、爆文生成、对话优化、截图/视频理解、事实源、积分账本和管理端已完成受控的真实 Staging 验证。
 - 正式支付订单、回调签名、幂等、退款与对账流程尚未确认，是独立的生产阻断项 `PROD-001`。
-- `BILL-001`、`FIN-001`、`QA-003A`、`QA-003B` 已闭环；`BUG-002` 父任务继续只等待自然 half-open Cron，不追加高频采集。当前最高优先级转为 `SEC-005` 跨账号 Chat 本地缓存最小安全修复，其后是 `PERF-001B` SSE 终态完整性；`QA-003` 仅处理已确认的剩余 UI 缺口。
+- `BILL-001`、`FIN-001`、`SEC-005`、`QA-003A`、`QA-003B` 已闭环；`BUG-002` 父任务继续只等待自然 half-open Cron，不追加高频采集。当前最高优先级转为 `PERF-001B` SSE 终态完整性；其后分别拆分 `QA-003` 已确认的剩余 UI 缺口。
 
 ## 2. 当前环境与版本
 
@@ -358,18 +358,19 @@
 
 ### PERF-001B — SSE 终态完整性与不确定态 UX
 
-- 状态：**READY_TO_FIX**
+- 状态：**READY_TO_VERIFY**
 - 优先级：High。
 - 问题描述：Analyze/Generate/Chat 收到成功终态后仍继续读取 transport；后续断开可能覆盖成功。分帧未统一覆盖 CRLF、任意字节切片、EOF 尾 buffer；无终态断流只有泛化错误。timing envelope 覆盖业务 `process.v1` 亦会令可解释 Agent 事件被前端丢弃。
 - 证据：Explorer、QA、Test Finder 已核对三条 SSE consumer、`_timed_sse_stream` 与现有 stall/idempotency tests；定向 182/182、现有 stall/canonical Playwright 5/5 通过，但均不覆盖终态后断网、尾 buffer、CRLF和组合 schema。
 - 根因是否确认：是；前端三套 SSE parser 重复且把 transport EOF 当作终态的一部分，envelope 复用 `schema_version` 覆盖业务事件版本；现有 stall guard 只负责告警，无恢复状态机。
 - 涉及文件：`NoteAI_Pro_Demo_Framer.html`, `model/api.py`, `tests/e2e/sse-stall-guard.spec.js`, `tests/e2e/chat-delivery-consistency.spec.js`, `tests/test_api_contracts.py`；不改 DB、billing、idempotency transaction、模型 timeout 或真实 P50/P95。
 - 风险：不能把本包描述为“完整断流恢复”；没有 durable result/status 时只能避免误判并显示 `outcome_unknown`。主动 timeout/abort 会放大付费副作用风险，禁止加入。
-- 执行代理：待单一 Implementation Agent；验证代理：独立 QA/Protocol Verification。
+- 修改状态/进度：单一 Implementation Agent 已完成共享 SSE parser，统一覆盖 Analyze/Generate/Chat 的 CRLF、UTF-8任意字节切片、`data:`前缀拆分、多事件与EOF无尾换行；首个complete/done/error后立即停止，终态后transport错误不覆盖成功。timing envelope保留业务`process.v1`并新增`transport_schema_version=sse.v1`；终态前断流统一固定`outcome_unknown`文案，不回显异常、不自动重试或换key；409四状态使用固定脱敏文案；Chat草稿不写正式DOM/localStorage，只有note_update/canonical_response可落正式快照；Analyze恢复安全process解释卡。未修改DB、billing、幂等事务、模型timeout、Prompt、Agent数或真实P50/P95。Implementation全量unittest402/402（5 skip）、Playwright33/33、Readiness48/48；独立QA/Protocol Verification PASS，额外确认Chat409请求1次/重建0次、complete后source异常或aclose仍completed且退款0、旧thinking事件继续忽略且raw/reasoning/HTML不进入解释卡。真实API/AI/积分调用0。
+- 执行代理：2026-07-12 已指定单一 Implementation Agent；验证代理：实施完成后独立 QA/Protocol Verification。
 - 验收标准：业务 `schema_version=process.v1` 保留，transport 版本使用独立字段；complete/done/error 仅处理一次并立即停止消费，终态后 transport error 不覆盖结果；CRLF/任意切片/末尾无换行可解析；终态前断流显示结果确认中、不自动重试或生成新 key；Chat 草稿不成为正式版本，localStorage 只写 canonical/note_update；409 四状态显示固定安全文案；请求数仍为1。
 - 是否需要用户决定：否；只做客户端/协议完整性，不改变计费或数据模型。
 - 是否涉及真实外部调用：本地 mock 足够；最终 Staging 仅无付费 Smoke。
-- 是否已部署到 Render：否；本轮只完成设计。
+- 是否已部署到 Render：否；本地实施与独立验证已完成，待提交、Render Staging无付费协议/静态Smoke后标记VERIFIED。
 
 ### OPS-001 — 长请求期间 Render health check 瞬时超时重启
 
@@ -500,7 +501,7 @@
 
 ### SEC-005 — 跨账号 Chat 本地缓存泄露
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：同一浏览器中，账号 B 登录/注册后进入“对话优化”，前端可能直接展示账号 A 在 `localStorage` 中遗留的笔记快照；后端会拒绝异账号会话请求，但内容已在浏览器 UI 暴露。
 - 证据：2026-07-12 Staging 新建隔离测试账号复现旧笔记快照，发送时后端固定返回无权访问且未扣费。只读 Security Reviewer 确认 `noteai_chat_session` 为全站唯一键，保存 session/note 标识、标题、正文、评分与版本，恢复时不校验 owner；`doAuth` 不清旧状态，认证恢复用固定1.2秒延迟而不等待 `/auth/me`。正常完整 logout 是降低概率的负对照，但不能覆盖 token 失效、网络慢/失败和同页身份覆盖。
@@ -513,7 +514,7 @@
 - 验收标准：账号 B 的 DOM、storage 和运行时状态均不出现账号 A 的脱敏哨兵；账号 A 经 `/auth/me` 验证后仍可24小时内刷新恢复；登录/注册身份变化、认证失败、logout 和 chat 401/403 均清缓存、全局 ID、DOM/附件；不扣费、不重试、不重建他人 session；常规 start/save/reload 不回归。
 - 是否需要用户决定：否；属于最小安全修复，不改变产品功能或计费语义。
 - 是否涉及真实外部调用：本地 route-mock 足以实施；最终 Staging 只需两个合成账号的无 AI/无扣费 Smoke。
-- 是否已部署到 Render：否；本地实施与独立验证已通过，待提交、Render Staging 部署及两个合成账号无AI/无扣费 Smoke 后才可标记 VERIFIED。
+- 是否已部署到 Render：是；commit `513675d` 已推送，PR两条GitHub CI通过，Render API pre-deploy `migrations_applied=0`、startup/readiness 200并 live，Staging Web 已包含 owner恢复门禁。云端双账号 Smoke：仅账号A有一条脱敏手工笔记并建立空Chat session；退出A后DOM/消息/会话清空，登录B后A哨兵在笔记与消息区均不存在且显示无会话。两个账号前后 usage_records=0、total_credits=0、credit total_used=0；未调用Chat message/Analyze/Generate/AI，未扣积分；临时密码已旋转、临时Token已撤销。验收标准全部满足。
 
 ### BUG-003 — 对话重写回复与保存版本不一致
 
@@ -737,10 +738,10 @@
 1. 读取 `AGENTS.md`、本文件、`.codex/notes/architecture-summary.md`、`.codex/notes/risk-register.md`、`docs/RENDER_DEPLOYMENT_GUIDE.md`。
 2. 运行 LFS-safe Git status，核对 branch、HEAD、upstream、staged/unstaged/untracked；确认三份 `.lgb` 未被 stage。
 3. 在 Render 只读核对 API/Web/Admin live commit、两个 `/health/ready` 和 Market Timing 最近成功轮次；不得假设文档 checkpoint 已部署。
-4. 当前最高优先级是 `SEC-005`。根因与最小范围已确认，可指定单一 Implementation Agent 实施 account-scoped cache/reset/auth restore 修复；不得顺手重构认证或计费。
+4. 当前最高优先级是 `PERF-001B`。根因与最小范围已确认，可指定单一 Implementation Agent 实施 SSE 终态/分帧/不确定态兼容修复；不得加入自动重试、主动中止、DB 或 billing 修改。
 5. `STG-001`、`BUG-001`、`BUG-002D`、`BILL-001`、`FIN-001`、`QA-001`、`QA-002`、`QA-003A`、`QA-003B` 已完成，禁止重复大范围修改或重复付费验证；`BUG-002` 父任务仍等待自然观察。
-6. `SEC-005` 实施后由独立 Security/Browser Verification Agent 验证两个合成账号、慢/失败认证、同账号刷新恢复和后端计费前阻断。
-7. 下一顺序是 `PERF-001B`，再拆分 `QA-003` 剩余三项；`SEC-004` 仅做结构统计，执行历史清理前必须确认备份/回滚窗口；生产事项继续延期。
+6. `SEC-005` 已由独立 Security/Browser Verification Agent 与Staging两个合成账号闭环，禁止重复真实验证。
+7. `PERF-001B` 完成后再拆分 `QA-003` 剩余三项；`SEC-004` 仅做结构统计，执行历史清理前必须确认备份/回滚窗口；生产事项继续延期。
 8. 当前工作的停止条件：Handoff checkpoint 已提交并推送；CI/Render 版本可追溯；无业务文件或敏感文件被误提交；向用户输出 10 项交接摘要后停止开发。
 
 ## 11. Do Not Touch Without Approval
@@ -757,7 +758,8 @@
 
 - 2026-07-12 commit `2776d7c` 已推送并部署 Render Staging；两条 GitHub CI 通过，API/Admin readiness 200，pre-deploy 应用 `0006_model_usage_records.sql`。
 - `FIN-001` 已用 Analyze、Generate、Chat Rewrite 与 Kimi Vision 四条真实 Staging 操作闭环严格逐模型成本；历史31条不伪造回填。`QA-003A`、`QA-003B` 已本地独立验证并完成云端复验。
-- 真实 Smoke 同时为 `PERF-001B` 提供 Analyze 34%、Generate 0% 和 Chat 终态延迟证据；新发现 `SEC-005` 跨账号本地缓存泄露，后端在计费前阻断但前端尚未修复。
+- 真实 Smoke 同时为 `PERF-001B` 提供 Analyze 34%、Generate 0% 和 Chat 终态延迟证据；`SEC-005` 跨账号本地缓存泄露已修复并由后端计费前阻断、前端owner隔离和双账号云端Smoke三层闭环。
+- 2026-07-12 `SEC-005` commit `513675d` 已通过两条GitHub CI、Render部署与双账号无AI/无扣费Staging Smoke；本地任务账本补充云端证据但暂不再次提交，避免仅文档触发第二次部署。
 
 - 接管前 handoff 以业务 commit `a8aa0b8` 为事实基线；当前业务与 Render Staging 基线已更新为 `d581567`。
 - 历史交接提交主题为 `docs(handoff): checkpoint Render staging validation`，对应 `807016e`。

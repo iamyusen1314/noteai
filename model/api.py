@@ -963,7 +963,7 @@ ProgressEmitter = Callable[[dict[str, Any]], Awaitable[None]]
 class _SSETimingEnvelope:
     """Add safe stream timing metadata; trace_id is observability-only, not idempotency."""
 
-    schema_version = "sse.v1"
+    transport_schema_version = "sse.v1"
 
     def __init__(
         self,
@@ -997,7 +997,7 @@ class _SSETimingEnvelope:
         outcome = "success" if event_type in self.success_types else ("error" if event_type == "error" else "in_progress")
         wrapped = dict(event)
         wrapped.update({
-            "schema_version": self.schema_version,
+            "transport_schema_version": self.transport_schema_version,
             "operation": self.operation,
             "trace_id": self.trace_id,
             "seq": self.seq,
@@ -1007,6 +1007,9 @@ class _SSETimingEnvelope:
             "terminal": terminal,
             "outcome": outcome,
         })
+        # Keep the legacy transport schema field for ordinary events, but never
+        # overwrite a business event schema such as process.v1.
+        wrapped.setdefault("schema_version", self.transport_schema_version)
         return wrapped
 
 
@@ -1035,6 +1038,8 @@ async def _timed_sse_stream(
             wrapped = timing.wrap(event)
             terminal_seen = terminal_seen or bool(wrapped["terminal"])
             yield f"data: {_json.dumps(wrapped, ensure_ascii=False, default=str)}\n\n"
+            if wrapped["terminal"]:
+                return
     except Exception:
         if not terminal_seen:
             error = timing.wrap({

@@ -48,6 +48,7 @@ Last updated: 2026-07-12
 
 ### Cross-account Chat cache can expose a previous account's note snapshot
 
+- 状态: Mitigated and verified on Render Staging by commit `513675d`（2026-07-12）；保留本条用于防回归。
 - 风险描述: 前端使用未绑定用户的全局 `noteai_chat_session` localStorage；登录/注册和慢/失败 `/auth/me` 恢复链可能把账号 A 的标题、正文、评分、版本及 session/note 标识展示给账号 B。
 - 涉及文件: `NoteAI_Pro_Demo_Framer.html`, Chat/auth 前端 tests；防御纵深可能涉及 `model/api.py` Chat session ownership load。
 - 可能后果: 共享设备、token 失效或同页账号切换时发生跨账号机密性泄露。后端当前在计费和写入前拒绝异账号 session，但不能阻止缓存内容先显示。

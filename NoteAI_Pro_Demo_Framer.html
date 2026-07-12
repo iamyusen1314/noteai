@@ -5208,6 +5208,96 @@ function createSseWarningGuard(operation, label) {
   };
 }
 
+const SSE_OUTCOME_UNKNOWN = Object.freeze({
+  analyze: '结果确认中：诊断连接已结束，最终结果尚未确认。请不要重复提交，可稍后到诊断历史确认。',
+  generate: '结果确认中：生成连接已结束，最终结果尚未确认。请不要重复提交，可稍后到笔记库确认。',
+  chat: '结果确认中：对话连接已结束，最终结果尚未确认。请不要重复提交，可稍后刷新笔记库确认。',
+});
+const IDEMPOTENCY_409_TEXT = Object.freeze({
+  IDEMPOTENCY_CONFLICT: '请求标识与已有任务冲突，本次未再次执行。请刷新页面后重新发起。',
+  IDEMPOTENCY_IN_PROGRESS: '相同任务仍在处理中，请等待结果，不要重复提交。',
+  IDEMPOTENCY_COMPLETED: '相同任务已经完成，当前页面暂不能回放结果。请到历史记录或笔记库确认。',
+  IDEMPOTENCY_FAILED: '相同任务已失败并完成退款。确认账单状态后可重新发起。',
+});
+
+async function paidRequest409Message(response) {
+  if (!response || response.status !== 409) return null;
+  const payload = await response.json().catch(() => ({}));
+  const detail = payload && typeof payload.detail === 'object' ? payload.detail : {};
+  return IDEMPOTENCY_409_TEXT[detail.code]
+    || '任务状态暂时无法确认，请不要重复提交，稍后到历史记录或笔记库确认。';
+}
+
+// One parser for every paid SSE flow. It handles CRLF, arbitrary UTF-8 byte
+// boundaries, multi-line data fields and a final event without a trailing
+// newline. A structured terminal is delivered once, then transport consumption
+// stops immediately so a later network error cannot overwrite the outcome.
+async function consumeJsonSse(response, {terminalTypes, onEvent}) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const terminals = new Set(terminalTypes || []);
+  let textBuffer = '';
+  let eventData = [];
+  let terminalEvent = null;
+
+  const dispatch = () => {
+    if (!eventData.length || terminalEvent) {
+      eventData = [];
+      return null;
+    }
+    const raw = eventData.join('\n').trim();
+    eventData = [];
+    if (!raw || raw === '[DONE]') return null;
+    let event;
+    try { event = JSON.parse(raw); } catch { return null; }
+    if (terminals.has(event?.type)) terminalEvent = event;
+    try { onEvent(event); }
+    catch { console.error('[NoteAI] SSE event handler failed'); }
+    return event;
+  };
+
+  const acceptLine = line => {
+    if (line.endsWith('\r')) line = line.slice(0, -1);
+    if (line === '') return dispatch();
+    if (line.startsWith(':')) return null;
+    if (line === 'data') eventData.push('');
+    else if (line.startsWith('data:')) eventData.push(line.slice(5).replace(/^ /, ''));
+    return null;
+  };
+
+  try {
+    while (!terminalEvent) {
+      let packet;
+      try { packet = await reader.read(); }
+      catch { return {terminalEvent: null, outcome: 'outcome_unknown'}; }
+      if (packet.done) {
+        textBuffer += decoder.decode();
+        while (textBuffer.includes('\n') && !terminalEvent) {
+          const idx = textBuffer.indexOf('\n');
+          acceptLine(textBuffer.slice(0, idx));
+          textBuffer = textBuffer.slice(idx + 1);
+        }
+        if (!terminalEvent && textBuffer) acceptLine(textBuffer);
+        if (!terminalEvent) dispatch();
+        break;
+      }
+      textBuffer += decoder.decode(packet.value, {stream: true});
+      while (textBuffer.includes('\n') && !terminalEvent) {
+        const idx = textBuffer.indexOf('\n');
+        acceptLine(textBuffer.slice(0, idx));
+        textBuffer = textBuffer.slice(idx + 1);
+      }
+    }
+  } finally {
+    if (terminalEvent) {
+      try { await reader.cancel(); } catch {}
+    }
+  }
+  return terminalEvent
+    ? {terminalEvent, outcome: terminalEvent.type === 'error' ? 'error' : 'success'}
+    : {terminalEvent: null, outcome: 'outcome_unknown'};
+}
+
 /* ── Pricing: backend-sourced public billing rules ───────────── */
 let _pricingConfigLoaded = false;
 function pricingEsc(v) {
@@ -5761,65 +5851,54 @@ async function startGeneration() {
         openAuthModal('login');
         _resolveGen(); return;
       }
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = '';
-      let sawStructuredTerminal = false;
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop();
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const raw = line.slice(6).trim();
-          if (!raw || raw === '[DONE]') continue;
-          try {
-            const ev = JSON.parse(raw);
-            streamGuard.event();
-            _handleGenStreamEvent(ev);
-            if (ev.type === 'complete') {
-              sawStructuredTerminal = true;
-              streamGuard.finish();
-              _generateResult = ev;
-              _generateResult._domain     = domain;
-              _generateResult._brief      = brief;
-              _generateResult._imageCount = coverImages.length;
-              _generateResult.user_constraints = Array.isArray(ev.user_constraints) && ev.user_constraints.length
-                ? ev.user_constraints
-                : constraints;
-              Object.assign(_generateResult, intentPayload, {
-                content_intent: ev.content_intent || intentPayload.content_intent,
-                intent_contract: ev.intent_contract || null,
-                fact_source_decision: ev.fact_source_decision || null,
-              });
-              // BUG1 FIX: 自动保存生成的笔记到笔记库；等待保存完成，确保对话优化能绑定 note_id。
-              await autoSaveGeneratedNote(_generateResult);
-              _resolveGen();
-            } else if (ev.type === 'error') {
-              sawStructuredTerminal = true;
-              streamGuard.finish();
-              // Backend explicitly failed (e.g., P3 rate-limited after retries)
-              const errMsg = ev.message || '生成失败，请稍后重试';
-              _generateResult = { _error: true, _errMsg: errMsg };
-              showToast('⚠ ' + errMsg);
-              _resolveGen();
-            }
-          } catch(e) {}
-        }
+      const conflictMessage = await paidRequest409Message(resp);
+      if (conflictMessage) {
+        _generateResult = { _error: true, _errMsg: conflictMessage, _idempotency409: true };
+        showToast('⚠ ' + conflictMessage);
+        _resolveGen(); return;
       }
-      if (!sawStructuredTerminal) {
-        _generateResult = { _error: true, _errMsg: '爆文生成流已结束，但未收到完成状态' };
-        showToast('⚠ 爆文生成流异常结束，请不要重复提交；请先确认任务结果');
-        _resolveGen();
+      if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
+      const streamResult = await consumeJsonSse(resp, {
+        terminalTypes: ['complete', 'error'],
+        onEvent: ev => {
+          streamGuard.event();
+          _handleGenStreamEvent(ev);
+        },
+      });
+      const terminal = streamResult.terminalEvent;
+      if (terminal?.type === 'complete') {
+        streamGuard.finish();
+        _generateResult = terminal;
+        _generateResult._domain     = domain;
+        _generateResult._brief      = brief;
+        _generateResult._imageCount = coverImages.length;
+        _generateResult.user_constraints = Array.isArray(terminal.user_constraints) && terminal.user_constraints.length
+          ? terminal.user_constraints
+          : constraints;
+        Object.assign(_generateResult, intentPayload, {
+          content_intent: terminal.content_intent || intentPayload.content_intent,
+          intent_contract: terminal.intent_contract || null,
+          fact_source_decision: terminal.fact_source_decision || null,
+        });
+        // Save only the canonical terminal result; streamed drafts never enter storage.
+        await autoSaveGeneratedNote(_generateResult);
+      } else if (terminal?.type === 'error') {
+        streamGuard.finish();
+        const errMsg = terminal.message || '生成失败，请稍后重试';
+        _generateResult = { _error: true, _errMsg: errMsg };
+        showToast('⚠ ' + errMsg);
+      } else {
+        const message = SSE_OUTCOME_UNKNOWN.generate;
+        _generateResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
+        showToast('⚠ ' + message);
       }
+      _resolveGen();
     } catch(err) {
       console.error('[NoteAI] stream error:', err);
-      _generateResult = { _error: true, _errMsg: String(err) };
-      showToast('⚠ ' + (_generateResult._errMsg || '生成失败'));
-      _rejectGen(err);
+      const message = SSE_OUTCOME_UNKNOWN.generate;
+      _generateResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
+      showToast('⚠ ' + message);
+      _resolveGen();
     } finally {
       streamGuard.finish();
       _genStreamActive = false;
@@ -6196,6 +6275,12 @@ function _handleAnalyzeStreamEvent(ev) {
       if (ev.progress) setProgress(ev.progress, '方案质量复核中…');
       break;
     }
+    case 'process_update':
+    case 'final_explanation': {
+      appendSafeProcessCard('bubbleArea', ev, ev.type === 'final_explanation' ? 'is-final' : '');
+      if (ev.progress) setProgress(ev.progress, PROCESS_STATUS_TEXT[ev.status_code] || '');
+      break;
+    }
     case 'error': {
       _diagnosisStreamActive = false;
       const quotaDetail = ev.status_code === 402 ? normalizeQuotaDetail(ev.detail || ev.message || ev) : null;
@@ -6381,72 +6466,60 @@ async function startDiagnosis() {
           openAuthModal('login');
           resolve(); return;
         }
-        if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = '';
-        let sawStructuredTerminal = false;
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const lines = buf.split('\n');
-          buf = lines.pop();
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const raw = line.slice(6).trim();
-            if (!raw || raw === '[DONE]') continue;
-            try {
-              const ev = JSON.parse(raw);
-              streamGuard.event();
-              _handleAnalyzeStreamEvent(ev);
-              if (ev.type === 'complete') {
-                sawStructuredTerminal = true;
-                streamGuard.finish();
-                _diagnosisStreamActive = false;
-                updateDiagnosisSubmitState();
-                _diagnoseResult = ev;
-                _diagnoseResult._inputTitle = title;
-                _diagnoseResult._inputDesc  = desc;
-                _diagnoseResult._domain     = domain;
-                _diagnoseResult._saved_note_id = ev.saved_note_id || ev._saved_note_id || null;
-                _diagnoseResult.user_constraints = Array.isArray(ev.user_constraints) && ev.user_constraints.length
-                  ? ev.user_constraints
-                  : constraints;
-                Object.assign(_diagnoseResult, intentPayload, {
-                  content_intent: ev.content_intent || intentPayload.content_intent,
-                  intent_contract: ev.intent_contract || null,
-                  fact_source_decision: ev.fact_source_decision || null,
-                });
-                resolve();
-              } else if (ev.type === 'error') {
-                sawStructuredTerminal = true;
-                streamGuard.finish();
-                _diagnosisStreamActive = false;
-                updateDiagnosisSubmitState();
-                _diagnoseResult = {
-                  _error: true,
-                  _quota: ev.status_code === 402,
-                  _errMsg: ev.message || 'AI 诊断失败'
-                };
-                resolve();
-              }
-            } catch(e) {}
-          }
-        }
-        if (!sawStructuredTerminal) {
+        const conflictMessage = await paidRequest409Message(resp);
+        if (conflictMessage) {
           _diagnosisStreamActive = false;
           updateDiagnosisSubmitState();
-          _diagnoseResult = { _error: true, _errMsg: 'AI 诊断流已结束，但未收到完成状态' };
-          showToast('⚠ AI 诊断流异常结束，请不要重复提交；请先确认任务结果');
-          resolve();
+          _diagnoseResult = { _error: true, _errMsg: conflictMessage, _idempotency409: true };
+          showToast('⚠ ' + conflictMessage);
+          resolve(); return;
         }
+        if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
+        const streamResult = await consumeJsonSse(resp, {
+          terminalTypes: ['complete', 'error'],
+          onEvent: ev => {
+            streamGuard.event();
+            _handleAnalyzeStreamEvent(ev);
+          },
+        });
+        const terminal = streamResult.terminalEvent;
+        streamGuard.finish();
+        _diagnosisStreamActive = false;
+        updateDiagnosisSubmitState();
+        if (terminal?.type === 'complete') {
+          const ev = terminal;
+          _diagnoseResult = ev;
+          _diagnoseResult._inputTitle = title;
+          _diagnoseResult._inputDesc  = desc;
+          _diagnoseResult._domain     = domain;
+          _diagnoseResult._saved_note_id = ev.saved_note_id || ev._saved_note_id || null;
+          _diagnoseResult.user_constraints = Array.isArray(ev.user_constraints) && ev.user_constraints.length
+            ? ev.user_constraints
+            : constraints;
+          Object.assign(_diagnoseResult, intentPayload, {
+            content_intent: ev.content_intent || intentPayload.content_intent,
+            intent_contract: ev.intent_contract || null,
+            fact_source_decision: ev.fact_source_decision || null,
+          });
+        } else if (terminal?.type === 'error') {
+          _diagnoseResult = {
+            _error: true,
+            _quota: terminal.status_code === 402,
+            _errMsg: terminal.message || 'AI 诊断失败'
+          };
+        } else {
+          const message = SSE_OUTCOME_UNKNOWN.analyze;
+          _diagnoseResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
+          showToast('⚠ ' + message);
+        }
+        resolve();
       } catch(err) {
         console.error('[NoteAI] analyze stream error:', err);
         _diagnosisStreamActive = false;
         updateDiagnosisSubmitState();
-        _diagnoseResult = { _error: true };
-        showToast('⚠ AI 诊断失败，请确认本地服务已启动（port 8000）');
+        const message = SSE_OUTCOME_UNKNOWN.analyze;
+        _diagnoseResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
+        showToast('⚠ ' + message);
         resolve();
       } finally {
         streamGuard.finish();
@@ -9079,51 +9152,31 @@ async function chatSendMessage(options = {}) {
 
     if (await handleChatAccessFailure(resp)) return;
 
+    const conflictMessage = await paidRequest409Message(resp);
+    if (conflictMessage) {
+      chatAppendAi('⚠️ ' + conflictMessage);
+      return;
+    }
+
     // 其他非 200 错误 → 显示错误信息
-    if (!resp.ok) {
+    if (!resp.ok || !resp.body) {
       let errDetail = `HTTP ${resp.status}`;
       try { const j = await resp.json(); errDetail = j.detail || j.message || errDetail; } catch {}
       chatAppendAi('⚠️ 服务器错误：' + errDetail + '\n如问题持续，请刷新页面后重新生成笔记。');
       return;
     }
 
-    // 正常：读取 SSE 流
-    const reader  = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = '';
-    let sawStructuredTerminal = false;
-    while (true) {
-      const {done, value} = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, {stream: true});
-      const lines = buf.split('\n');
-      buf = lines.pop();
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const ev = JSON.parse(line.slice(6));
-            streamGuard.event();
-            sawStructuredTerminal = sawStructuredTerminal || ev.type === 'done' || ev.type === 'error';
-            if (ev.type === 'done' || ev.type === 'error') streamGuard.finish();
-            chatHandleEvent(ev);
-          } catch(evErr) { chatAppendAi('⚠️ 内部错误：' + evErr.message); }
-        }
-      }
-    }
-    if (buf.startsWith('data: ')) {
-      try {
-        const ev = JSON.parse(buf.slice(6));
+    const streamResult = await consumeJsonSse(resp, {
+      terminalTypes: ['done', 'error'],
+      onEvent: ev => {
         streamGuard.event();
-        sawStructuredTerminal = sawStructuredTerminal || ev.type === 'done' || ev.type === 'error';
-        if (ev.type === 'done' || ev.type === 'error') streamGuard.finish();
         chatHandleEvent(ev);
-      } catch(evErr) { chatAppendAi('⚠️ 内部错误：' + evErr.message); }
-    }
-    if (!sawStructuredTerminal) {
-      chatAppendAi('⚠️ 对话流已结束，但未收到完成状态。任务结果不明确，请不要重复提交。');
-    }
+      },
+    });
+    if (streamResult.terminalEvent) streamGuard.finish();
+    else chatAppendAi('⚠️ ' + SSE_OUTCOME_UNKNOWN.chat);
   } catch(e) {
-    if (e.name !== 'AbortError') chatAppendAi('⚠️ 网络请求失败：' + e.message);
+    if (e.name !== 'AbortError') chatAppendAi('⚠️ ' + SSE_OUTCOME_UNKNOWN.chat);
   } finally {
     streamGuard.finish();
     if (_chatRequestAbortController === requestController) {

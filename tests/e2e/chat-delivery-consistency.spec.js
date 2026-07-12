@@ -67,3 +67,75 @@ test('failed canonical chat response preserves preview and never says note was u
   await expect(page.locator('#chat-messages')).not.toContainText('笔记已更新');
   await expect(page.locator('#chat-messages .cmsg.ai .cmsg-bubble').last()).toContainText('未保存新版本');
 });
+
+
+test('streamed draft is replaced by canonical result and only canonical note reaches localStorage', async ({ page }) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  await page.evaluate(() => {
+    _authUser = {id: 'synthetic-user-a'};
+    _chatSessionId = 'synthetic-session-a';
+    _chatParentNoteId = 'note-v1';
+    document.getElementById('chat-no-session').style.display = 'none';
+    document.getElementById('chat-active-area').style.display = 'flex';
+    chatUpdateNote('旧正式标题', '旧正式正文', 70, '良好', {version: 1});
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(
+      'data: {"type":"content_chunk","data":"DRAFT_SENTINEL草稿"}\r\n\r\n'
+      + 'data: {"type":"note_update","title":"新正式标题","body":"CANONICAL_SENTINEL正式正文","score":75,"grade":"优秀","saved_note_id":"note-v2","saved_note_version":2}\r\n\r\n'
+      + 'data: {"type":"canonical_response","status":"saved","saved":true,"title":"新正式标题","body":"CANONICAL_SENTINEL正式正文","score":75,"grade":"优秀","saved_note_id":"note-v2","saved_note_version":2}\r\n\r\n'
+      + 'data: {"type":"done"}\r\n\r\n'
+    );
+    let requestCount = 0;
+    window.fetch = async () => {
+      requestCount += 1;
+      window.__chatRequestCount = requestCount;
+      return new Response(new ReadableStream({
+        start(controller) {
+          for (let i = 0; i < bytes.length; i += 2) controller.enqueue(bytes.slice(i, i + 2));
+          controller.close();
+        },
+      }), {status: 200, headers: {'Content-Type': 'text/event-stream'}});
+    };
+    chatSendMessage({text: '请重写'});
+  });
+
+  await expect.poll(() => page.evaluate(() => _chatBusy)).toBe(false);
+  await expect.poll(() => page.evaluate(() => __chatRequestCount || 0)).toBe(1);
+  await expect(page.locator('#chat-messages .cmsg.ai .cmsg-bubble').last()).not.toContainText('DRAFT_SENTINEL');
+  await expect(page.locator('#chat-messages .cmsg.ai .cmsg-bubble').last()).toContainText('CANONICAL_SENTINEL');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('noteai_chat_session') || '')).toContain('CANONICAL_SENTINEL');
+  expect(await page.evaluate(() => localStorage.getItem('noteai_chat_session') || '')).not.toContain('DRAFT_SENTINEL');
+});
+
+
+test('draft followed by EOF is outcome unknown and does not pollute canonical localStorage', async ({ page }) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  await page.evaluate(() => {
+    _authUser = {id: 'synthetic-user-b'};
+    _chatSessionId = 'synthetic-session-b';
+    _chatParentNoteId = 'note-v1';
+    document.getElementById('chat-no-session').style.display = 'none';
+    document.getElementById('chat-active-area').style.display = 'flex';
+    chatUpdateNote('旧正式标题', 'STORED_CANONICAL正式正文', 70, '良好', {version: 1});
+    chatSaveSessionToStorage();
+    const encoder = new TextEncoder();
+    window.__chatRequestCount = 0;
+    window.fetch = async () => {
+      window.__chatRequestCount += 1;
+      return new Response(new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('data: {"type":"content_chunk","data":"DRAFT_ONLY_SENTINEL"}\n\n'));
+          controller.close();
+        },
+      }), {status: 200, headers: {'Content-Type': 'text/event-stream'}});
+    };
+    chatSendMessage({text: '请重写'});
+  });
+
+  await expect.poll(() => page.evaluate(() => _chatBusy)).toBe(false);
+  await expect.poll(() => page.evaluate(() => __chatRequestCount || 0)).toBe(1);
+  await expect(page.locator('#chat-messages')).toContainText('结果确认中');
+  const stored = await page.evaluate(() => localStorage.getItem('noteai_chat_session') || '');
+  expect(stored).toContain('STORED_CANONICAL');
+  expect(stored).not.toContain('DRAFT_ONLY_SENTINEL');
+});

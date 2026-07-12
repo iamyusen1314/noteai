@@ -50,6 +50,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertFalse(first["terminal"])
         self.assertEqual(first["outcome"], "in_progress")
         self.assertEqual(first["schema_version"], "sse.v1")
+        self.assertEqual(first["transport_schema_version"], "sse.v1")
         self.assertTrue(terminal["terminal"])
         self.assertEqual(terminal["outcome"], "success")
         self.assertEqual(terminal["operation"], "analyze")
@@ -66,6 +67,18 @@ class ApiContractTests(unittest.TestCase):
         error = chat_timing.wrap({"type": "error"})
         self.assertEqual((done["terminal"], done["outcome"]), (True, "success"))
         self.assertEqual((error["terminal"], error["outcome"]), (True, "error"))
+
+        process_ticks = iter((30.0, 30.1))
+        process_timing = api._SSETimingEnvelope(
+            "chat", {"done"}, clock=lambda: next(process_ticks), wall_clock=lambda: "safe"
+        )
+        process = process_timing.wrap({
+            "type": "process_update",
+            "schema_version": "process.v1",
+            "phase": "observe",
+        })
+        self.assertEqual(process["schema_version"], "process.v1")
+        self.assertEqual(process["transport_schema_version"], "sse.v1")
 
     def test_timed_sse_stream_preserves_payload_and_adds_missing_terminal_error(self):
         async def collect(events, operation, success_types):
@@ -90,12 +103,62 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(complete_events[1]["terminal"])
         self.assertEqual(complete_events[1]["outcome"], "success")
 
+        post_terminal_events = asyncio.run(collect(
+            [
+                {"type": "complete", "result": 7},
+                {"type": "error", "message": "must not overwrite success"},
+            ],
+            "generate",
+            {"complete"},
+        ))
+        self.assertEqual(len(post_terminal_events), 1)
+        self.assertEqual(post_terminal_events[0]["type"], "complete")
+
         eof_events = asyncio.run(collect([], "chat", {"done"}))
         self.assertEqual(len(eof_events), 1)
         self.assertEqual(eof_events[0]["type"], "error")
         self.assertEqual(eof_events[0]["error_code"], "stream_ended_without_terminal")
         self.assertTrue(eof_events[0]["terminal"])
         self.assertEqual(eof_events[0]["outcome"], "error")
+
+    def test_timed_sse_stream_stops_after_terminal_before_source_transport_error(self):
+        async def run():
+            async def source():
+                yield 'data: {"type":"complete","result":"kept"}\n\n'
+                raise RuntimeError("transport failed after terminal")
+
+            output = []
+            async for chunk in api._timed_sse_stream(
+                source(), operation="analyze", success_types={"complete"}
+            ):
+                output.append(json.loads(chunk.removeprefix("data: ").strip()))
+            return output
+
+        events = asyncio.run(run())
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["type"], "complete")
+        self.assertEqual(events[0]["outcome"], "success")
+
+    def test_idempotent_stream_aclose_after_complete_does_not_refund(self):
+        claim = {"request_id": "safe-test-id"}
+
+        async def run():
+            async def source():
+                yield 'data: {"type":"complete"}\n\n'
+                await asyncio.sleep(60)
+
+            stream = api._idempotent_sse_stream(source(), claim, success_types={"complete"})
+            first = await anext(stream)
+            await stream.aclose()
+            return first
+
+        with mock.patch.object(api._idempotency, "mark_completed") as completed, \
+             mock.patch.object(api._idempotency, "mark_failed_and_refund") as refunded:
+            first = asyncio.run(run())
+
+        self.assertIn('"complete"', first)
+        completed.assert_called_once_with(claim)
+        refunded.assert_not_called()
 
     def test_health_reports_local_v04_composite_model_label(self):
         original_use_v04 = api.USE_V04_COMPOSITE

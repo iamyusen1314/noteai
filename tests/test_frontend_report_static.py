@@ -28,13 +28,18 @@ class FrontendReportStaticTests(unittest.TestCase):
 
     def test_sse_stall_guards_warn_without_cancel_retry_or_early_unlock(self):
         self.assertIn("function createSseWarningGuard", HTML)
+        self.assertIn("async function consumeJsonSse", HTML)
         self.assertIn("connectMs:30000", HTML)
         self.assertIn("firstEventMs:60000", HTML)
         self.assertIn("idleMs:120000", HTML)
         self.assertIn("任务可能仍在处理，请不要重复提交", HTML)
-        self.assertIn("爆文生成流已结束，但未收到完成状态", HTML)
-        self.assertIn("AI 诊断流已结束，但未收到完成状态", HTML)
-        self.assertIn("对话流已结束，但未收到完成状态", HTML)
+        self.assertIn("const SSE_OUTCOME_UNKNOWN", HTML)
+        self.assertIn("结果确认中：诊断连接已结束，最终结果尚未确认", HTML)
+        self.assertIn("结果确认中：生成连接已结束，最终结果尚未确认", HTML)
+        self.assertIn("结果确认中：对话连接已结束，最终结果尚未确认", HTML)
+        self.assertGreaterEqual(HTML.count("outcome: 'outcome_unknown'"), 4)
+        self.assertIn("terminalTypes: ['complete', 'error']", HTML)
+        self.assertIn("terminalTypes: ['done', 'error']", HTML)
         self.assertNotIn("reader.cancel('stall-timeout')", HTML)
 
     def test_report_no_longer_contains_demo_diagnosis_copy(self):
