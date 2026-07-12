@@ -3155,8 +3155,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <!-- 上传中 -->
           <div id="diagVideoUploading" style="display:none;text-align:center;padding:12px 0">
             <div style="width:20px;height:20px;border:2px solid rgba(0,153,255,0.3);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:inline-block;margin-bottom:8px"></div>
-            <div style="font-size:12px;color:var(--accent);font-weight:600">正在上传视频…</div>
-            <div id="diagVideoUploadPct" style="font-size:11px;color:var(--text-muted);margin-top:3px"></div>
+            <div id="diagVideoStageLabel" style="font-size:12px;color:var(--accent);font-weight:600">正在检查视频格式与时长…</div>
+            <div id="diagVideoSizeText" style="font-size:11px;color:var(--text-muted);margin-top:3px"></div>
           </div>
 
           <!-- 完成 -->
@@ -3175,7 +3175,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
                 onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">移除</button>
             </div>
             <div style="margin-top:8px;padding:8px 10px;background:rgba(0,153,255,0.08);border-radius:8px;font-size:11px;color:var(--accent);font-weight:500">
-              ✓ 视频已上传，AI 将提取关键帧深度分析内容
+              ✓ 视频已上传并提取关键帧，诊断时将进行画面理解
             </div>
           </div>
         </div>
@@ -5453,6 +5453,11 @@ function goToDiagnose(tabEl) {
 }
 
 function selectType(el, type) {
+  const previousType = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
+  if (previousType === '视频上传' && type !== '视频上传'
+      && (_diagVideoState === 'preflight' || _diagVideoState === 'uploading')) {
+    clearDiagVideo();
+  }
   document.querySelectorAll('.input-type').forEach(e => e.classList.remove('selected'));
   el.classList.add('selected');
   document.getElementById('manual-form').style.display     = type === '手动填写'   ? 'block' : 'none';
@@ -6409,7 +6414,7 @@ async function startDiagnosis() {
     extraImages = _ssImages.slice(1, 9).map(img => img.dataURL.split(',')[1] || '').filter(Boolean);
 
   } else if (selectedLabel === '视频上传') {
-    if (!_diagVideoFileId) { showToast('请先上传视频文件'); return; }
+    if (_diagVideoState !== 'ready' || !_diagVideoFileId) { showToast('请先上传视频文件'); return; }
     domain = (document.getElementById('inputDomainVideo')?.value || '美食');
     // title/desc 留空，由后端从视频帧提取
   }
@@ -11061,6 +11066,20 @@ function updateDiagnosisSubmitState() {
       label = '正在合并识别内容';
       title = '等待识别结果合并完成';
     }
+  } else if (selectedLabel === '视频上传') {
+    if (_diagVideoState === 'preflight') {
+      disabled = true;
+      label = '正在检查视频…';
+      title = '正在检查视频格式与时长';
+    } else if (_diagVideoState === 'uploading') {
+      disabled = true;
+      label = '视频上传处理中…';
+      title = '正在上传视频并提取关键帧';
+    } else if (_diagVideoState !== 'ready' || !_diagVideoFileId) {
+      disabled = true;
+      label = _diagVideoState === 'error' ? '请重新上传视频' : '请先上传视频';
+      title = _diagVideoState === 'error' ? '上次视频处理失败，请重新上传' : '上传视频成功后才能开始 AI 诊断';
+    }
   }
   btn.disabled = disabled;
   btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
@@ -11578,25 +11597,57 @@ function clearDiagImages()     { _diagImages = []; _renderDiagThumbs(); }
 ═══════════════════════════════════════════════════════════ */
 let _diagVideoFileId   = null;
 let _diagVideoFileName = '';
+let _diagVideoFileSize = 0;
+let _diagVideoState = 'idle';
+let _diagVideoAttempt = 0;
 
-function _setDiagVideoState(state) {
+function _formatDiagVideoBytes(value) {
+  const bytes = Math.max(0, Number(value) || 0);
+  if (bytes < 1024) return `${Math.round(bytes)} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function _setDiagVideoState(state, options = {}) {
+  _diagVideoState = state;
   const hint      = document.getElementById('diagVideoHint');
   const uploading = document.getElementById('diagVideoUploading');
   const preview   = document.getElementById('diagVideoPreview');
-  if (hint)      hint.style.display      = state==='empty'     ? 'block' : 'none';
-  if (uploading) uploading.style.display = state==='uploading' ? 'block' : 'none';
-  if (preview)   preview.style.display   = state==='done'      ? 'block' : 'none';
+  const stageEl   = document.getElementById('diagVideoStageLabel');
+  const sizeEl    = document.getElementById('diagVideoSizeText');
+  const errEl     = document.getElementById('diagVideoError');
+  if (hint)      hint.style.display      = state === 'idle' || state === 'error' ? 'block' : 'none';
+  if (uploading) uploading.style.display = state === 'preflight' || state === 'uploading' ? 'block' : 'none';
+  if (preview)   preview.style.display   = state === 'ready' ? 'block' : 'none';
+  if (stageEl) stageEl.textContent = state === 'preflight'
+    ? '正在检查视频格式与时长…'
+    : '正在上传并提取关键帧…';
+  if (sizeEl) sizeEl.textContent = _diagVideoFileName
+    ? `已选择：${_formatDiagVideoBytes(_diagVideoFileSize)}`
+    : '';
+  if (errEl) {
+    errEl.textContent = state === 'error' ? String(options.error || '视频处理失败，请重新上传') : '';
+    errEl.style.display = state === 'error' ? 'block' : 'none';
+  }
+  updateDiagnosisSubmitState();
 }
 
 async function _uploadDiagVideoFile(file) {
-  const errEl = document.getElementById('diagVideoError');
-  if (errEl) errEl.style.display = 'none';
+  const attempt = ++_diagVideoAttempt;
+  _diagVideoFileId = null;
+  _diagVideoFileName = file?.name || '';
+  _diagVideoFileSize = Number(file?.size) || 0;
+  _setDiagVideoState('preflight');
   if (!_authToken) {
     openAuthModal('login');
     showToast('请先登录后上传视频素材');
+    if (attempt === _diagVideoAttempt) _setDiagVideoState('error', { error: '请先登录后上传视频素材' });
     return;
   }
-  if (file.size > 100*1024*1024) { if(errEl){errEl.textContent='视频超过100MB';errEl.style.display='block';} return; }
+  if (file.size > 100*1024*1024) {
+    if (attempt === _diagVideoAttempt) _setDiagVideoState('error', { error: '视频超过 100 MB，请压缩后重新上传' });
+    return;
+  }
   // 前端预检时长
   try {
     const dur = await new Promise(res => {
@@ -11606,13 +11657,14 @@ async function _uploadDiagVideoFile(file) {
       v.onerror=()=>{URL.revokeObjectURL(url);res(null);}; v.src=url;
     });
     if (dur && dur > 90) {
-      if(errEl){errEl.textContent=`视频时长${Math.round(dur)}s，超过90s限制`;errEl.style.display='block';}
+      if (attempt === _diagVideoAttempt) {
+        _setDiagVideoState('error', { error: `视频时长 ${Math.round(dur)} 秒，超过 90 秒限制` });
+      }
       return;
     }
   } catch(_){}
+  if (attempt !== _diagVideoAttempt) return;
   _setDiagVideoState('uploading');
-  if (document.getElementById('diagVideoUploadPct'))
-    document.getElementById('diagVideoUploadPct').textContent = `${(file.size/1024/1024).toFixed(1)} MB`;
   const fd = new FormData(); fd.append('file', file, file.name);
   try {
     const res = await fetch(`${API_BASE}/upload-video`, {
@@ -11620,29 +11672,44 @@ async function _uploadDiagVideoFile(file) {
       headers: authHeader(),
       body: fd,
     });
+    if (attempt !== _diagVideoAttempt) return;
     if (res.status === 401) {
       openAuthModal('login');
-      throw new Error('请先登录后上传视频素材');
+      _setDiagVideoState('error', { error: '请先登录后上传视频素材' });
+      return;
     }
     if (!res.ok) { const e=await res.json().catch(()=>({detail:res.statusText})); throw new Error(e.detail||res.statusText); }
     const data = await res.json();
+    if (attempt !== _diagVideoAttempt) return;
+    if (!data?.file_id) throw new Error('视频处理结果无效，请重新上传');
     _diagVideoFileId   = data.file_id;
     _diagVideoFileName = data.filename || file.name;
+    _diagVideoFileSize = Number(data.size) || file.size;
     document.getElementById('diagVideoFileName').textContent = _diagVideoFileName;
     const durTxt  = data.duration_sec ? `${data.duration_sec}s · ` : '';
     const frameTxt= data.frames ? `${data.frames} 帧已提取` : '';
     document.getElementById('diagVideoFileSize').textContent =
-      `${(data.size||file.size)/1024/1024|0} MB · ${durTxt}${frameTxt}`;
-    _setDiagVideoState('done');
+      `${_formatDiagVideoBytes(_diagVideoFileSize)} · ${durTxt}${frameTxt}`;
+    _setDiagVideoState('ready');
     if (window.lucide) lucide.createIcons();
   } catch(e) {
-    _diagVideoFileId = null; _setDiagVideoState('empty');
-    if (errEl) { errEl.textContent=`上传失败：${e.message}`; errEl.style.display='block'; }
+    if (attempt !== _diagVideoAttempt) return;
+    _diagVideoFileId = null;
+    _setDiagVideoState('error', { error: `上传失败：${e.message}` });
   }
 }
 function handleDiagVideoSelect(input) { if(input.files&&input.files[0]) _uploadDiagVideoFile(input.files[0]); input.value=''; }
 function handleDiagVideoDrop(e)       { e.preventDefault(); const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f&&f.type.startsWith('video/')) _uploadDiagVideoFile(f); }
-function clearDiagVideo(e)            { if(e) e.stopPropagation(); _diagVideoFileId=null; _diagVideoFileName=''; _setDiagVideoState('empty'); }
+function clearDiagVideo(e) {
+  if (e) e.stopPropagation();
+  _diagVideoAttempt += 1;
+  _diagVideoFileId = null;
+  _diagVideoFileName = '';
+  _diagVideoFileSize = 0;
+  const input = document.getElementById('diagVideoInput');
+  if (input) input.value = '';
+  _setDiagVideoState('idle');
+}
 
 /* ═══════════════════════════════════════════════════════════
    头像选择器
