@@ -255,9 +255,11 @@ def _classify_final_page(raw_url: str) -> str:
 
 def _classify_discovery_response(raw_url: str) -> str:
     path = (urlparse(str(raw_url or "")).path or "").lower()
-    if any(marker in path for marker in (
-        "search/recommend", "search_recommend", "search/suggest", "/suggest",
-    )):
+    segments = tuple(segment for segment in path.split("/") if segment)
+    if (
+        segments[-2:] in {("search", "recommend"), ("search", "suggest")}
+        or segments[-1:] in {("search_recommend",), ("suggest",)}
+    ):
         return "recommend"
     if "search/trending/query" in path:
         return "trending"
@@ -642,7 +644,7 @@ async def scrape_once() -> list[dict]:
                         data = await resp.json()
                         if response_kind == "recommend" and discovery_source == "search_discovery":
                             _diagnostic_inc(discovery_diagnostics, "recommend", "json_ok")
-                        if "search/recommend" in url:
+                        if response_kind == "recommend":
                             items = data.get("data", {}).get("sug_items", []) or []
                             if discovery_source == "search_discovery":
                                 _diagnostic_inc(discovery_diagnostics, "recommend", "items_raw", len(items))

@@ -45,6 +45,7 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         circuit_state: str = "closed",
         stop: bool = True,
         response_payload: dict | None = None,
+        response_url: str = "",
         response_json_error: bool = False,
     ):
         events = {"homefeed_gotos": 0, "search_gotos": 0, "browser_launches": 0}
@@ -79,6 +80,7 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                     self.handlers.remove(handler)
 
             async def goto(self, url, **_kwargs):
+                is_search_target = "search_result" in url
                 if "search_result" in url:
                     events["search_gotos"] += 1
                     self.url = (
@@ -91,8 +93,13 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                     self.url = url
                 else:
                     self.url = url
+                emitted_url = (
+                    response_url
+                    if response_url and is_search_target and self.url == url
+                    else self.url
+                )
                 for handler in list(self.handlers):
-                    await handler(FakeResponse(self.url))
+                    await handler(FakeResponse(emitted_url))
 
             async def close(self):
                 return None
@@ -687,10 +694,10 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
 
     def test_discovery_diagnostics_recognizes_safe_endpoint_and_page_variants(self):
         for path in (
-            "https://example.invalid/api/search/recommend",
-            "https://example.invalid/api/search_recommend",
-            "https://example.invalid/api/search/suggest",
-            "https://example.invalid/api/suggest",
+            "https://example.invalid/api/search/recommend?fixed=1",
+            "https://example.invalid/api/search_recommend?fixed=1",
+            "https://example.invalid/api/search/suggest?fixed=1",
+            "https://example.invalid/api/suggest?fixed=1",
         ):
             with self.subTest(path=path):
                 self.assertEqual(scheduler_a._classify_discovery_response(path), "recommend")
@@ -708,6 +715,60 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             [scheduler_a._response_status_class(value) for value in (200, 302, 403, 503, None)],
             ["2xx", "3xx", "4xx", "5xx", "unknown"],
         )
+
+    def test_recommend_path_variants_share_sug_items_parser(self):
+        payload = {
+            "data": {"sug_items": [{"search_word": "家居收纳推荐"}]},
+        }
+        for path in (
+            "https://example.invalid/api/search/recommend",
+            "https://example.invalid/api/search_recommend",
+            "https://example.invalid/api/search/suggest",
+            "https://example.invalid/api/suggest",
+        ):
+            with self.subTest(path=path):
+                result, _events = self._run_scheduler_circuit_scenario(
+                    challenge=False,
+                    response_payload=payload,
+                    response_url=path,
+                )
+                diagnostics = result.diagnostics
+                sources = scheduler_a._source_breakdown(result)
+
+                self.assertEqual(diagnostics["recommend"]["response_seen"], 12)
+                self.assertEqual(diagnostics["recommend"]["json_ok"], 12)
+                self.assertEqual(diagnostics["recommend"]["items_raw"], 12)
+                self.assertEqual(diagnostics["recommend"]["extracted"], 12)
+                self.assertGreater(diagnostics["recommend"]["final"], 0)
+                self.assertGreater(sources["search_recommend"], 0)
+                self.assertEqual(sources["hot_search"], 0)
+
+    def test_unknown_discovery_path_does_not_parse_sug_items(self):
+        for path in (
+            "https://example.invalid/api/discovery/other",
+            "https://example.invalid/api/discovery/other?next=/suggest",
+            "https://example.invalid/api/suggestion",
+            "https://example.invalid/api/suggest-unknown",
+            "https://example.invalid/api/not_search_recommend_extra",
+            "https://example.invalid/api/search/suggested",
+        ):
+            with self.subTest(path=path):
+                result, _events = self._run_scheduler_circuit_scenario(
+                    challenge=False,
+                    response_payload={
+                        "data": {"sug_items": [{"search_word": "未知路径不应解析"}]},
+                    },
+                    response_url=path,
+                )
+                diagnostics = result.diagnostics
+                sources = scheduler_a._source_breakdown(result)
+
+                self.assertEqual(diagnostics["recommend"]["response_seen"], 0)
+                self.assertEqual(diagnostics["recommend"]["json_ok"], 0)
+                self.assertEqual(diagnostics["recommend"]["items_raw"], 0)
+                self.assertEqual(diagnostics["recommend"]["extracted"], 0)
+                self.assertEqual(sources["search_recommend"], 0)
+                self.assertEqual(sources["hot_search"], 0)
 
     def test_search_payload_diagnostics_distinguish_fixed_safe_classes(self):
         display_title_payload = {
