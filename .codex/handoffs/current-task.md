@@ -182,7 +182,7 @@
 
 ### BUG-002D — 搜索响应结构诊断真实性
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：Critical（BUG-002 当前最小修复包）。
 - 问题描述：`search.response_seen/json_ok/json_failed` 使用宽泛 URL 字符串匹配，无法区分真正的笔记搜索结果、普通 API JSON 与 challenge 辅助流量；导致 `json_ok>0/title_count=0` 被误解为搜索结果 schema 改版。
 - 证据：`model/scheduler_a.py` 的 broad matcher 对搜索目标上任意含 `search`/`api` 的响应计数；35=27 JSON成功+8失败是 broad response 完整分区。标题解析器仅递归接受字符串 `display_title/title`，且自 commit `dd7cfad` 后未改、同一解析器此前曾真实产出搜索来源。run `19a8c433` 在首目标 challenge 时没有进入正常输入/等待结果链，过滤、去重、趋势查询和落库均因 title_count/phrase_raw=0 而尚未发生。
@@ -276,15 +276,17 @@
 
 ### FIN-001 — 配置并验证真实模型 Token 成本
 
-- 状态：**BLOCKED**
+- 状态：**READY_TO_VERIFY**
 - 问题描述：`actual_model_cost_rmb=0`，当前 `cost_rmb` 是操作级固定估算。
-- 当前现象：Token 数已记录，但 Render 未配置 Claude/Kimi 单价与汇率变量。
+- 当前现象：Token 数已记录，但 Render 未配置 Claude/Kimi 单价与汇率变量。代码实际固定使用 `claude-haiku-4-5-20251001`、`claude-sonnet-4-6`、`kimi-k2.6`、`moonshot-v1-32k-vision-preview` 四个模型；现有部署文档只列 provider 级变量，不足以区分四种价格。
 - 预期结果：诊断/生成/对话的真实 Token 成本大于 0，前后台汇总一致，可用于毛利分析。
 - 风险级别：Critical；原有商业配置缺口。
 - 涉及模块：`model/billing.py`, `model/.env.example`, Render API env, admin usage。
-- 根因：已确认；Render 缺少价格变量，不是 Token 计数缺失。
-- 修改状态/进度：代码支持变量；尚未由产品负责人确认生效价格/汇率，未填 Render，未重跑。
-- 下一步：只读代理先核对启用模型与计价单位；主 CTO 给出变量名/公式/最小验证计划；用户确认价格和真实调用费用后再配置。
+- 根因：已确认；Render 缺少价格变量只是第一层。父 `usage_records` 只保存聚合 Token/模型名，无法逐模型与缓存维度复算；任一已计价调用即可把整笔误标 `actual`，后续缺价不会降级；Kimi `cached_tokens` 和 Claude 缓存维度未按各自价格保存；Multi-Agent 并发 SELECT→UPDATE 还可能覆盖 `cost_rmb/model_names`。
+- 修改状态/进度：2026-07-12 官方目录价与 USD/CNY=7.00 已获产品确认。新增 `model_usage_records` SQLite/PostgreSQL 子表与 0006 migration，逐调用保存普通/缓存 Token、精确价格/币种/汇率/版本快照、已知成本和完整性，不保存 Prompt/正文/reasoning/request-id；父锁、插子行、重算在同一短事务内。Kimi 顶层及 `choices[0].usage` 两种流式结构统一解析，缺 cached 降级；Claude cache read/write 拆分，TTL 不明降级；provider generic、未知模型、缺价、非法/零价不得授予 `actual`；退款保留供应商成本。管理端新增 by_model/cache/coverage，覆盖不完整时禁止宣称实际毛利。独立审查先后发现并闭环显式0价格误标 actual、Kimi 官方 nested stream usage 漏读两个 blocker。最终本地：全量 unittest 400/400（5 skip）、Playwright 16/16、Production Readiness 48/48、py_compile/Compose/diff check 通过；全新 PostgreSQL 18 首次 migration 6、二次0，既有5项PG并发、20路模型明细并发与退款保留全部通过；一次性容器删除且 Colima 已停止。
+- 下一步：产品已确认采用 2026-07-12 官网目录价、USD/CNY=7.00，并要求严格可审计方案。实施单一修复包：新增 `model_usage_records` 子表与 0006 增量 migration；逐调用保存模型、普通/缓存 Token、价格与汇率快照、价格版本、成本和完整性；短事务锁父记录、插明细并从子表重算，只有全部用量维度和精确模型价格完整才标 `actual`；管理端增加逐模型/覆盖率并在不完整时禁止宣称实际毛利。历史行不回填虚构明细、不批量改金额，仅在查询时归为 `legacy_unverifiable_actual`。退款只退积分，供应商成本与明细保留。
+- 执行代理：单一 FIN-001 Implementation Agent；不得修改积分价格、扣费顺序、幂等键语义、模型选择、Prompt 或旧 API 字段。
+- 验证代理：独立 Billing/Database Verification Agent；必须检查 diff、SQLite/PostgreSQL migration 二次、20 并发、退款/幂等、四模型价格/缓存、管理端汇总、全量测试和 Production Readiness。
 - 验收标准：三个最小操作均有 `actual_model_cost_rmb > 0`；汇率、Token、操作成本、后台汇总可复算；积分语义不变。
 - 真实外部服务：需要一次最小真实 AI 验证。
 - 费用/数据：会产生少量 AI 费用并写 Staging usage；执行前必须说明。
@@ -324,6 +326,22 @@
 - 是否涉及真实外部调用：是；独立验证通过后可应用 Render Staging migration，并执行受控写入型 Smoke。
 - 是否已部署到 Render：是；commit `cfbd132`。Pre-deploy 只应用 `0005_idempotency_requests.sql`；API/Admin ready。真实 Analyze 首次 200、同键重放 409；合成账户管理端仅 1 次操作、约 ¥1.45 模型成本、无第二 usage。独立 Security/Concurrency 云端复验结论 PASS/VERIFIED。
 
+### BILL-002 — SSE 持久结果恢复、租约接管与副作用/退款一致性
+
+- 状态：**INVESTIGATING**
+- 优先级：High。
+- 问题描述：现有 request-id 只能阻止重复执行，不能在客户端断流、API 进程重启或完成响应丢失后回放已完成结果；Analyze/Chat 还可能在付费终态之前写入业务数据，形成“业务结果已存在但请求被退款/标记失败”的不一致。
+- 证据：PERF-001 三路只读设计调查确认：Generate 结果只存在于 SSE；Analyze 可在 `complete` 前写入 notes/saved_diagnoses；Chat 可在 canonical/done 前写 note/session；硬重启可留下长期 `running`，当前 claim 不做 stale lease 接管，同键重试只返回 409 状态而不回放结果。
+- 根因是否确认：部分确认。缺少 durable result/status 查询和 replay 是确定事实；各崩溃窗口的业务副作用、usage、refund 一致性需用故障注入与 PostgreSQL 事务边界进一步枚举，尚不能直接进入实施。
+- 涉及文件：预计 `model/api.py`, `model/billing.py`, `model/db.py`, `model/migrations/postgres/`, 前端 SSE consumer 与相关 SQLite/PostgreSQL/故障注入测试；具体文件在根因调查后收窄。
+- 风险：Critical 账务与数据一致性风险；可能需要 migration、结果保留/清理政策和并发 lease 语义。不得以自动重试或新 request-id 掩盖不确定终态，不得把 AI 调用包进长数据库事务。
+- 执行代理：待 Repository/Database Explorer 只读调查完成后，指定单一 Implementation Agent。
+- 验证代理：独立 Billing/Concurrency Verification Agent，必须覆盖 SQLite、真实 PostgreSQL 并发与崩溃窗口。
+- 验收标准：同键可查询并安全回放已完成结果；stale running 有明确、审计可见且不会双执行的接管/终止规则；Analyze/Generate/Chat 在已枚举断点下业务副作用、主 usage、退款和幂等状态一致；跨用户隔离；结果保留和清理不暴露正文/reasoning；旧客户端仍兼容。
+- 是否需要用户决定：进入 migration 或确定结果保留期限前需要；只读调查与本地故障注入设计不需要。
+- 是否涉及真实外部调用：本地 mock 不需要；最终 Staging PostgreSQL migration 与最小真实 AI 故障恢复 Smoke 需要单独说明样本和费用。
+- 是否已部署到 Render：否；本地与一次性 PostgreSQL 已通过，待提交、Render pre-deploy 0006 与真实 AI 成本 Smoke。
+
 ### PERF-001 — 阶段耗时、SSE stall timeout 与 P50/P95
 
 - 状态：**INVESTIGATING**
@@ -332,11 +350,26 @@
 - 风险级别：High；错误 timeout 可能中断仍在运行的付费任务，过度日志可能泄露内容或增加存储成本。
 - 涉及模块：`model/api.py`, `model/model_router.py`, `NoteAI_Pro_Demo_Framer.html`, usage/日志与相关 tests。
 - 根因：部分确认；`_emit_progress()` 未附带阶段时间，外部模型只记录零散 elapsed 日志，前端没有统一 SSE stall 计时器。实际各阶段瓶颈占比尚未确认。
-- 修改状态/进度：`PERF-001A` 已完成统一 timing envelope、保守 stall 告警和离线统计基础；父任务仍保留真实 P50/P95 与原子终态可靠性。BUG-003 独立验证新增边界：notes 已提交但 chat session 持久化失败时正式版本不丢，然而服务重启后的对话上下文可能落后一轮；若连接恰在流式草稿与 `canonical_response` 之间断开，页面可能暂时保留草稿。该问题应与结果恢复/终态协议统一治理，不在 BUG-003 中扩大修改。
-- 下一步：QA Investigator 定义 stall、断流和恢复的最小失败用例；Explorer 核对事件链和 provider timeout；Test Finder 确定协议兼容与统计测试；真实 P50/P95 样本数量和费用在执行前单独批准。
+- 修改状态/进度：`PERF-001A` 已完成统一 timing envelope、保守 stall 告警和离线统计基础；三路只读设计调查进一步确认：成功终态后继续读 EOF 可被后续 transport error 覆盖；Analyze/Generate 不消费 EOF 尾 buffer；Chat 草稿/正式版本在不同断点可能错位；timing envelope 还会以 `sse.v1` 覆盖业务 `process.v1`，导致前端安全解释事件可能被丢弃。低风险客户端/协议修复拆为 `PERF-001B`；持久结果回放、副作用/退款一致性和 stale lease 归 `BILL-002`。
+- 下一步：`PERF-001B` 已完成设计、待单独实施；真实 P50/P95 样本数量和费用仍需另定预算，不在本轮推定。
 - 验收标准：所有主要事件包含可验证的总耗时/阶段耗时且保持向后兼容；mock SSE 静默和断流能恢复 UI、不重复扣费；统计工具对固定样本准确输出 P50/P95；真实指标只在样本量、费用和数据范围获批后发布。
 - 真实外部服务：本地 mock 不需要；真实 P50/P95 需要受控 Claude/Kimi 样本并会产生费用。
 - 费用/数据：当前调查无费用、不写远程数据；真实采样前必须说明样本数、预计费用和 Staging usage 影响。
+
+### PERF-001B — SSE 终态完整性与不确定态 UX
+
+- 状态：**READY_TO_FIX**
+- 优先级：High。
+- 问题描述：Analyze/Generate/Chat 收到成功终态后仍继续读取 transport；后续断开可能覆盖成功。分帧未统一覆盖 CRLF、任意字节切片、EOF 尾 buffer；无终态断流只有泛化错误。timing envelope 覆盖业务 `process.v1` 亦会令可解释 Agent 事件被前端丢弃。
+- 证据：Explorer、QA、Test Finder 已核对三条 SSE consumer、`_timed_sse_stream` 与现有 stall/idempotency tests；定向 182/182、现有 stall/canonical Playwright 5/5 通过，但均不覆盖终态后断网、尾 buffer、CRLF和组合 schema。
+- 根因是否确认：是；前端三套 SSE parser 重复且把 transport EOF 当作终态的一部分，envelope 复用 `schema_version` 覆盖业务事件版本；现有 stall guard 只负责告警，无恢复状态机。
+- 涉及文件：`NoteAI_Pro_Demo_Framer.html`, `model/api.py`, `tests/e2e/sse-stall-guard.spec.js`, `tests/e2e/chat-delivery-consistency.spec.js`, `tests/test_api_contracts.py`；不改 DB、billing、idempotency transaction、模型 timeout 或真实 P50/P95。
+- 风险：不能把本包描述为“完整断流恢复”；没有 durable result/status 时只能避免误判并显示 `outcome_unknown`。主动 timeout/abort 会放大付费副作用风险，禁止加入。
+- 执行代理：待单一 Implementation Agent；验证代理：独立 QA/Protocol Verification。
+- 验收标准：业务 `schema_version=process.v1` 保留，transport 版本使用独立字段；complete/done/error 仅处理一次并立即停止消费，终态后 transport error 不覆盖结果；CRLF/任意切片/末尾无换行可解析；终态前断流显示结果确认中、不自动重试或生成新 key；Chat 草稿不成为正式版本，localStorage 只写 canonical/note_update；409 四状态显示固定安全文案；请求数仍为1。
+- 是否需要用户决定：否；只做客户端/协议完整性，不改变计费或数据模型。
+- 是否涉及真实外部调用：本地 mock 足够；最终 Staging 仅无付费 Smoke。
+- 是否已部署到 Render：否；本轮只完成设计。
 
 ### OPS-001 — 长请求期间 Render health check 瞬时超时重启
 
@@ -435,7 +468,7 @@
 
 ### SEC-003 — 模型输出 HTML 注入与诊断 raw 字段暴露
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：Generate 报告和 Chat Markdown 存在将模型自由文本写入 `innerHTML` 的路径；Analyze/Generate 响应与持久化还包含专家 `raw`/原始 XML，扩大模型输出注入和不必要数据暴露面。
 - 证据：三路只读调查完成。本地无网络 Chromium sentinel 已让 Chat `chatMD`、实时 `addBubble`、Generate 专家/标题区域的 `<img onerror>` 实际执行；raw HTML link 也可形成可点击节点。`_normalize_expert_opinion`、Analyze/Generate JSON/SSE complete 仍公开 `raw`，Analyze 将完整响应写入 `saved_diagnoses`，历史详情原样返回。Render 静态响应无 CSP，不能依赖浏览器策略缓解。
@@ -443,11 +476,27 @@
 - 涉及文件：最小范围 `model/api.py`, `NoteAI_Pro_Demo_Framer.html`, `tests/test_reasoning_safety.py`, `tests/test_frontend_report_static.py`, `tests/e2e/reasoning-safety.spec.js`，必要时最小补充 API contract 安全断言；不改 DB schema、auth、billing、模型路由或 Prompt。
 - 风险：High；可执行 DOM XSS 可能读取同源页面状态，且用户 token 位于 localStorage；raw 长期保存扩大 Prompt Injection 与不必要数据暴露。修复若过早删除内部 raw 会破坏仲裁质量，必须只在最终公开/持久化边界投影。
 - 执行代理：Security Reviewer + Repository Explorer + QA Investigator（只读完成）及单一 Implementation Agent；验证代理：独立 Security/Browser Verification，结论 PASS。
-- 修改状态/进度：后端新增 expert public projection，raw 仅保留在内部仲裁，Analyze/Generate JSON与SSE、新诊断保存、历史读取及 Chat context 均输出结构化白名单；前端 `addBubble` 改安全 DOM/textContent，`chatMD` 先转义再保留有限 Markdown，Generate 标题/专家卡和 Analyze role 全部转义。主审补回兼容字段 impact/evidence_binding。独立验证：定向 180/180、Playwright 11/11、全量 unittest 387/387（5 skip）、Production Readiness 48/48、py_compile、diff check及精确复制探针全部通过。
+- 修改状态/进度：后端新增 expert public projection，raw 仅保留在内部仲裁，Analyze/Generate JSON与SSE、新诊断保存、历史读取及 Chat context 均输出结构化白名单；前端 `addBubble` 改安全 DOM/textContent，`chatMD` 先转义再保留有限 Markdown，Generate 标题/专家卡和 Analyze role 全部转义。主审补回兼容字段 impact/evidence_binding。独立验证：定向 180/180、Playwright 11/11、全量 unittest 387/387（5 skip）、Production Readiness 48/48、py_compile、diff check及精确复制探针全部通过。commit `714a755` 两条 GitHub CI 通过；Render API/Admin live、Web Deployed，三项公开健康请求 HTTP 200；线上静态文件确认安全 DOM、HTML 先转义和结构化专家字段已生效。
 - 验收标准：`<script>`、`<img onerror>`、`<svg onload>`、事件属性、raw/Markdown HTML link 与未知标签只能作为字面文本显示且 sentinel 不执行；Chat `**粗体**`、行内 code、换行/列表保留；Agent 名称、意见、理由、证据、建议、置信度保留；Analyze/Generate JSON与SSE、new saved diagnosis、历史详情和 Chat 上下文均无 raw/XML/provider内部字段；全量/Playwright/Production Readiness通过。
 - 是否需要用户决定：否；属于安全修复，不改变产品功能。
 - 是否涉及真实外部调用：本地 sentinel 与浏览器测试不需要；最终 Staging 仅需无付费 Smoke。
-- 是否已部署到 Render：待本次提交与 Staging 核验；部署 Smoke 不调用真实 AI、不写业务数据。
+- 是否已部署到 Render：是，commit `714a755`；Staging Smoke 未调用真实 AI、未上传内容、未写业务数据。
+
+### SEC-004 — 历史原始 reasoning 与内部模型载荷清理
+
+- 状态：**INVESTIGATING**
+- 优先级：High。
+- 问题描述：SEC-002/SEC-003 已阻止新的 provider 原始 reasoning/raw 进入公开响应与长期持久化，但 Staging 历史 `chat_sessions.messages_json` 及历史诊断数据中可能仍保留旧 reasoning/内部 raw 字段。
+- 证据：SEC-002 已确认旧 Chat 会持久化 `reasoning_content`；SEC-003 已确认旧 saved diagnosis 曾保存 expert `raw`，当前仅在读取时投影净化，未执行数据库批量清理。尚未读取任何历史正文或 reasoning 内容。
+- 根因是否确认：是；新写路径已修复，剩余风险来自修复前已持久化记录。受影响行数、表范围和可回滚策略尚需只按结构/键名统计确认。
+- 涉及文件：预计只读统计/清理脚本、`model/db.py` 或独立受控运维工具及测试；不修改公开解释事件、模型 Prompt、计费或用户正文语义。
+- 风险：High 隐私与恢复风险；直接 JSON 重写可能误删安全结构化解释或损坏历史会话。禁止读取/输出正文、reasoning 原文、Prompt 或完整 JSON；禁止无备份、无 dry-run 的批量更新。
+- 执行代理：Security/Data Migration Explorer 先只读统计；方案批准后单一 Implementation Agent。
+- 验证代理：独立 Security/Migration Verification Agent，核对 dry-run、备份/回滚、字段白名单和行数一致性。
+- 验收标准：只用键名/固定枚举统计受影响行数；形成可回滚 dry-run；清理仅删除 provider 原始 reasoning、raw XML/内部载荷，保留 `process.v1` 结构化解释和用户正式内容；清理前后行数、JSON 可解析性、用户隔离与历史页面回归通过；日志不含原文。
+- 是否需要用户决定：执行 Staging 批量清理前需要确认备份/回滚窗口；本轮只读统计不需要。
+- 是否涉及真实外部调用：只读 Staging PostgreSQL 统计与后续受控 migration；不调用 AI。
+- 是否已部署到 Render：否。
 
 ### BUG-003 — 对话重写回复与保存版本不一致
 
@@ -467,18 +516,50 @@
 
 ### QA-003 — 人工 UI 上传与关键页面回归
 
-- 状态：**TODO**
+- 状态：**INVESTIGATING**
 - 问题描述：自动化浏览器安全策略不允许选择本机文件，后端链路通过但 UI 文件选择未完成本轮人工验收。
-- 当前现象：尚缺人工 9 图上传、视频上传、余额不足弹窗、用户/用量管理页回归。
+- 当前现象：真实 9 图与视频上传、用户列表/详情/筛选及用量分析均已执行；余额不足统一弹窗仍待纯 route-mock。用量分析在 Staging PostgreSQL 返回 500，不能判定通过。
 - 预期结果：真实浏览器操作与后端结果一致，无装饰性控件和状态错位。
 - 风险级别：Medium；验证缺口，尚未确认产品缺陷。
 - 涉及模块：`NoteAI_Pro_Demo_Framer.html`, `model/admin.html`, API。
 - 根因：自动化环境限制已确认；产品是否有缺陷未知。
-- 修改状态/进度：未开始代码修改；已有后端与既有 e2e 证据。
-- 下一步：用户或可控人工浏览器执行清单，发现缺陷再单独复现。
+- 修改状态/进度：真实 9 图选择成功，9/9 全部识别、0 失败，最终诊断按钮启用；后台操作数 18→27、成本 ¥7.8300→¥8.4600，符合 9 次 screenshot×¥0.07，未点击最终诊断。识别中 2/9、7/9 时总状态曾提前显示“AI识别完成”，但按钮保持禁用；最终状态正确。2 秒/1 帧合成视频上传成功，不触发诊断，确认“进度”只显示 `0.0 MB` 且未上传前诊断按钮未禁用。管理端登录、用户搜索/套餐筛选/详情通过；未点击任何写按钮。用量分析有 4 canvas、无 NaN，但 Top10 为空且 console 多次出现 500 文本被当 JSON 解析，根因拆为 QA-003A。OCR/Chat 402 一致性拆为 QA-003B。管理端仍不渲染 API 已返回的逐笔 usage/credit txns，无法在 UI 完成逐笔对账。
+- 下一步：先串行修复 QA-003A/QA-003B（与 FIN-001 共享管理端文件，FIN 实施完成后再动）；执行纯 route-mock 402 与 Staging 只读复验后再判断 QA-003 是否 VERIFIED。视频进度/门禁和识别完成文案另列当前 QA 发现，不在未调查根因前顺手修改。
 - 验收标准：9 图全部完成状态后可提交；视频进度正确；余额不足不发起付费操作；管理端账本一致。
 - 真实外部服务：UI 主链路会调用真实 AI。
 - 费用/数据：会产生少量费用和 Staging 测试数据；先说明样本数量。
+
+### QA-003A — 管理端用量分析 PostgreSQL 聚合失败
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：High。
+- 问题描述：Staging 管理端“用量分析”Top10 为空，四块图表无法获得完整数据，console 显示 `Internal Server Error` 被当 JSON 解析。
+- 证据：真实只读 UI 复现；`GET /admin/usage-stats` → `build_usage_stats_payload()` 的 Top10 SQL 只 `GROUP BY r.user_id` 却选择 `u.username`，SQLite 宽松通过、PostgreSQL 必须同时分组。前端 `loadUsage()` 未检查 `r.ok/Content-Type` 直接 `r.json()`，把 500 二次表现为 JSON 解析错误。
+- 根因是否确认：是。
+- 涉及文件：`model/admin_server.py`, `tests/test_billing_token_cost.py`；仅确有必要时最小涉及 `model/admin.html` 错误态。不改 schema、成本口径或数据。
+- 风险：财务展示不可用；SQL 修复低风险，但与 FIN-001 共享管理端调用链，必须串行。
+- 执行代理：FIN-001 完成后指定单一 Implementation Agent。
+- 验证代理：独立 QA/PostgreSQL Verification Agent。
+- 验收标准：SQLite/PostgreSQL `top_users` 正确；Staging `/admin/usage-stats` 200 JSON；有消费数据时 Top10 非空；4 图无 NaN、console 无 JSON 解析错误；无管理员写操作。
+- 是否需要用户决定：否。
+- 是否涉及真实外部调用：最终只读 Staging 管理端复验。
+- 是否已部署到 Render：否；SQL 已按 `r.user_id,u.username` 分组，`loadUsage()` 增加固定脱敏失败态；独立本地验证相关44/44、全量400/400、Playwright16/16通过，待 Staging `/admin/usage-stats` 与UI复验。
+
+### QA-003B — 余额不足 UI 一致性与 Chat 恢复边界
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：Medium。
+- 问题描述：OCR 402 仅 toast/图片失败，不显示统一积分弹窗；Chat 首次 404 重建 session 后第二次若返回 402，会显示通用服务器错误。
+- 证据：只读代码调查确认 Analyze/Generate/Chat 初始 402 主路径已有统一弹窗；`/extract-screenshot` 402 未解析 quota detail 或调用 `showQuotaExceededModal()`；Chat 404→start→retry 分支未重新执行 401/402 处理。现有 Playwright 无 402 UI 断言。
+- 根因是否确认：是。
+- 涉及文件：`NoteAI_Pro_Demo_Framer.html`, `tests/e2e/quota-ui.spec.js`；不改后端计费、价格、退款或认证。
+- 风险：Medium；错误提示会误导用户，但修复不得自动重试、发起付费或改变图片失败门禁。
+- 执行代理：待 QA-003A 后指定单一 Implementation Agent。
+- 验证代理：独立 Browser Verification Agent。
+- 验收标准：Analyze/Generate/Chat/OCR 模拟 402 均显示功能名、余额和所需积分；取消停留当前页、确认仅进入价格页；OCR 保持失败且不重试；Chat 404→重建→402 正确显示积分不足；全程 route mock、真实 API/AI/积分调用为 0。
+- 是否需要用户决定：否。
+- 是否涉及真实外部调用：否；纯本地 route-mock。
+- 是否已部署到 Render：否；OCR同批402只弹一次且保持失败门禁，Chat 404→start→402 进入统一配额提示；纯 route-mock 5/5、全量Playwright16/16，真实调用0，待部署后静态确认。
 
 ### PROD-001 — 正式支付订单/回调/对账
 

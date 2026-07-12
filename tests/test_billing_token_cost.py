@@ -44,7 +44,7 @@ class BillingTokenCostTests(unittest.TestCase):
             (user_id, f"{user_id}_name", f"{user_id}@example.com", "hash", "salt", "2026-06-29T00:00:00+00:00"),
         )
 
-    def test_model_usage_replaces_estimated_cost_when_actual_cost_is_known(self):
+    def test_manual_cost_is_preserved_but_not_promoted_to_strict_actual(self):
         billing.record_free_usage("u-token", "score")
         billing.record_model_usage(
             "claude",
@@ -63,62 +63,30 @@ class BillingTokenCostTests(unittest.TestCase):
         self.assertEqual(score["model_calls"], 1)
         self.assertEqual(score["cost_rmb"], 0.0385)
         recent = summary["recent_records"][0]
-        self.assertEqual(recent["cost_mode"], "actual")
+        self.assertEqual(recent["cost_mode"], "partial")
         self.assertIn("claude:claude-haiku", recent["model_names"])
 
-    def test_token_count_keeps_estimated_cost_when_price_is_not_configured(self):
-        price_keys = [
-            "NOTEAI_MODEL_PRICE_CLAUDE_INPUT_PER_1M_RMB",
-            "NOTEAI_MODEL_PRICE_CLAUDE_OUTPUT_PER_1M_RMB",
-            "NOTEAI_MODEL_PRICE_CLAUDE_HAIKU_4_5_20251001_INPUT_PER_1M_RMB",
-            "NOTEAI_MODEL_PRICE_CLAUDE_HAIKU_4_5_20251001_OUTPUT_PER_1M_RMB",
-            "NOTEAI_MODEL_PRICE_CLAUDE_INPUT_PER_1M_USD",
-            "NOTEAI_MODEL_PRICE_CLAUDE_OUTPUT_PER_1M_USD",
-            "NOTEAI_MODEL_PRICE_CLAUDE_HAIKU_4_5_20251001_INPUT_PER_1M_USD",
-            "NOTEAI_MODEL_PRICE_CLAUDE_HAIKU_4_5_20251001_OUTPUT_PER_1M_USD",
-        ]
-        old_values = {key: os.environ.get(key) for key in price_keys}
-        try:
-            for key in price_keys:
-                os.environ.pop(key, None)
-            billing.record_free_usage("u-estimated", "diagnose")
-            billing.record_model_usage(
-                "claude",
-                "claude-haiku-4-5-20251001",
-                tokens_in=100,
-                tokens_out=50,
-            )
+    def test_unknown_model_keeps_estimated_cost_and_is_unpriced(self):
+        billing.record_free_usage("u-estimated", "diagnose")
+        billing.record_model_usage(
+            "claude", "claude-unknown", tokens_in=100, tokens_out=50
+        )
 
-            summary = billing.get_usage_summary("u-estimated", days=30)
-            diagnose = summary["by_operation"]["diagnose"]
+        summary = billing.get_usage_summary("u-estimated", days=30)
+        diagnose = summary["by_operation"]["diagnose"]
 
-            self.assertEqual(diagnose["total_tokens"], 150)
-            self.assertEqual(diagnose["cost_rmb"], billing.OPERATIONS["diagnose"]["cost"])
-            self.assertEqual(summary["recent_records"][0]["cost_mode"], "token_counted_estimated_cost")
-        finally:
-            self._restore_env(old_values)
+        self.assertEqual(diagnose["total_tokens"], 150)
+        self.assertEqual(diagnose["cost_rmb"], billing.OPERATIONS["diagnose"]["cost"])
+        self.assertEqual(summary["recent_records"][0]["cost_mode"], "unpriced")
 
-    def test_kimi_rmb_model_price_computes_actual_cost(self):
-        price_keys = [
-            "NOTEAI_MODEL_PRICE_KIMI_INPUT_PER_1M_RMB",
-            "NOTEAI_MODEL_PRICE_KIMI_OUTPUT_PER_1M_RMB",
-            "NOTEAI_MODEL_PRICE_KIMI_K2_5_INPUT_PER_1M_RMB",
-            "NOTEAI_MODEL_PRICE_KIMI_K2_5_OUTPUT_PER_1M_RMB",
-        ]
-        old_values = {key: os.environ.get(key) for key in price_keys}
-        try:
-            for key in price_keys:
-                os.environ.pop(key, None)
-            os.environ["NOTEAI_MODEL_PRICE_KIMI_INPUT_PER_1M_RMB"] = "2"
-            os.environ["NOTEAI_MODEL_PRICE_KIMI_OUTPUT_PER_1M_RMB"] = "8"
-            billing.record_free_usage("u-priced", "chat_fast")
-            billing.record_model_usage("kimi", "kimi-k2.5", tokens_in=1000, tokens_out=500)
+    def test_kimi_exact_model_price_computes_actual_cost(self):
+        billing.record_free_usage("u-priced", "chat_fast")
+        billing.record_model_usage("kimi", "kimi-k2.6", tokens_in=1000, tokens_out=500)
 
-            summary = billing.get_usage_summary("u-priced", days=30)
-            self.assertEqual(summary["by_operation"]["chat_fast"]["cost_rmb"], 0.006)
-            self.assertEqual(summary["by_operation"]["chat_fast"]["actual_model_cost_rmb"], 0.006)
-        finally:
-            self._restore_env(old_values)
+        summary = billing.get_usage_summary("u-priced", days=30)
+        self.assertEqual(summary["by_operation"]["chat_fast"]["cost_rmb"], 0.02)
+        self.assertEqual(summary["by_operation"]["chat_fast"]["actual_model_cost_rmb"], 0.02)
+        self.assertEqual(summary["recent_records"][0]["cost_mode"], "actual")
 
     def test_claude_usd_model_price_converts_to_rmb_cost(self):
         price_keys = [
@@ -133,8 +101,8 @@ class BillingTokenCostTests(unittest.TestCase):
             for key in price_keys:
                 os.environ.pop(key, None)
             os.environ["NOTEAI_BILLING_USD_CNY"] = "7"
-            os.environ["NOTEAI_MODEL_PRICE_CLAUDE_INPUT_PER_1M_USD"] = "1"
-            os.environ["NOTEAI_MODEL_PRICE_CLAUDE_OUTPUT_PER_1M_USD"] = "5"
+            os.environ["NOTEAI_MODEL_PRICE_CLAUDE_HAIKU_4_5_20251001_INPUT_PER_1M_USD"] = "1"
+            os.environ["NOTEAI_MODEL_PRICE_CLAUDE_HAIKU_4_5_20251001_OUTPUT_PER_1M_USD"] = "5"
             billing.record_free_usage("u-claude-usd", "score")
             billing.record_model_usage("claude", "claude-haiku-4-5-20251001", tokens_in=1000, tokens_out=200)
 
@@ -158,7 +126,7 @@ class BillingTokenCostTests(unittest.TestCase):
         self.assertEqual(summary["by_operation"]["analyze"]["actual_model_cost_rmb"], 0.04)
         self.assertEqual(summary["by_operation"]["extra_image"]["total_tokens"], 0)
 
-    def test_unpriced_later_call_does_not_downgrade_actual_cost_mode(self):
+    def test_unpriced_later_call_downgrades_parent_to_partial(self):
         price_keys = [
             "NOTEAI_MODEL_PRICE_KIMI_INPUT_PER_1M_RMB",
             "NOTEAI_MODEL_PRICE_KIMI_OUTPUT_PER_1M_RMB",
@@ -178,7 +146,7 @@ class BillingTokenCostTests(unittest.TestCase):
 
             self.assertEqual(summary["by_operation"]["score"]["total_tokens"], 170)
             self.assertEqual(summary["by_operation"]["score"]["cost_rmb"], 0.02)
-            self.assertEqual(recent["cost_mode"], "actual")
+            self.assertEqual(recent["cost_mode"], "partial")
         finally:
             self._restore_env(old_values)
 

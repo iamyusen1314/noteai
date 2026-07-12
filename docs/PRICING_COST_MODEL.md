@@ -10,9 +10,9 @@
 - Kimi 官方 K2.5 定价：`kimi-k2.5` 输入缓存未命中 `¥4 / 1M tokens`，输出 `¥21 / 1M tokens`。
 - Moonshot V1 Vision 定价：`moonshot-v1-32k-vision-preview` 输入 `¥5 / 1M tokens`，输出 `¥20 / 1M tokens`。
 - 本模型保留原始账单币种：Claude 记 `USD`，Kimi/Moonshot 中国区记 `RMB`。
-- 为了做人民币售价和毛利预算，额外输出 `total RMB est`，默认汇率 `USD/CNY = 6.8`。可用 `NOTEAI_PRICING_USD_CNY` 调整。
+- 为了做人民币售价和毛利预算，额外输出 `total RMB est`；当前产品确认固定汇率 `USD/CNY = 7.00`，并随逐调用成本快照保存。
 - 预留倍率：`1.3x`，覆盖质量二修、偶发重试、网络波动、少量基础设施成本。可用 `NOTEAI_PRICING_RESERVE_MULTIPLIER` 调整。
-- 精确生产成本以后以 `usage_records.tokens_in/tokens_out/actual_model_cost_rmb` 为准；Claude 原始美元成本应由 `NOTEAI_MODEL_PRICE_CLAUDE_*_USD + NOTEAI_BILLING_USD_CNY` 折算入后台 RMB 毛利。
+- 精确生产成本以 `model_usage_records` 的逐调用 Token/缓存/价格/汇率快照复算，并汇总至 `usage_records.actual_model_cost_rmb`。只有覆盖完整的父记录可标 `actual`；历史无子明细、缺缓存维度或缺精确模型价时不得宣称实际毛利。
 
 ## 当前代码功能与成本风险
 
@@ -131,7 +131,7 @@
 2. `chat_fast` 当前实际走 Claude Sonnet，不能长期免费无限；要么改用 Haiku，要么限制免费轮次。
 3. `video_analyze` 当前随 analyze/generate 免费记录，不适合商业化；应按时长或帧数计入套餐/积分。
 4. `extra_image` 当前免费记录，不适合高频多图用户；套餐内限制深度图数量，超出按张扣积分。
-5. 生产必须配置 Claude USD 单价、Kimi RMB 单价和 `NOTEAI_BILLING_USD_CNY`，否则后台只能显示 tokens 和估算成本，不能准确算毛利。
+5. 采用 2026-07-12 官网目录价和固定 USD/CNY=7.00。Haiku 4.5 为 $1/$5、Sonnet 4.6 为 $3/$15；Claude cache read 为基础输入价的 0.1 倍，5m/1h cache write 为 1.25/2 倍。Kimi K2.6 为缓存输入/普通输入/输出 ¥1.10/¥6.50/¥27；Moonshot 32k Vision 为输入/输出 ¥5/¥20（均为每百万 Token）。精确配置见 `model/.env.example`。
 6. 用 `usage_records.actual_model_cost_rmb` 每周复盘 P50/P75/P95 成本，动态调整套餐积分和功能积分价。
 
 ## 下一步

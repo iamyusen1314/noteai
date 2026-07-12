@@ -30,11 +30,9 @@ NoteAI 的生产密钥目前配置在 GitHub Environment：`production`。
 - `NOTEAI_FACT_SEARCH=1`
 - `NOTEAI_FACT_SEARCH_CACHE_TTL=0`
 - `NOTEAI_FACT_SEARCH_PROVIDER=auto`
-- `NOTEAI_BILLING_USD_CNY=<Claude 美元账单折算人民币的内部汇率，例如 6.8>`
-- `NOTEAI_MODEL_PRICE_CLAUDE_INPUT_PER_1M_USD=<Claude 输入单价，美元/百万 tokens>`
-- `NOTEAI_MODEL_PRICE_CLAUDE_OUTPUT_PER_1M_USD=<Claude 输出单价，美元/百万 tokens>`
-- `NOTEAI_MODEL_PRICE_KIMI_INPUT_PER_1M_RMB=<Kimi 输入单价，人民币/百万 tokens>`
-- `NOTEAI_MODEL_PRICE_KIMI_OUTPUT_PER_1M_RMB=<Kimi 输出单价，人民币/百万 tokens>`
+- `NOTEAI_MODEL_PRICE_VERSION=official-2026-07-12`
+- `NOTEAI_BILLING_USD_CNY=7.00`
+- 四个启用模型的精确 `NOTEAI_MODEL_PRICE_<MODEL>_{INPUT|CACHE_READ|CACHE_WRITE_5M|CACHE_WRITE_1H|OUTPUT}_PER_1M_<CURRENCY>` 变量；完整值见 `model/.env.example` 和 `render.yaml`。Claude 使用 USD，Kimi/Moonshot 使用 RMB。
 - `NOTEAI_MEITUAN_TRAVEL_ENABLED=1`
 - `NOTEAI_MEITUAN_TRAVEL_TIMEOUT=45`
 - `NOTEAI_MODEL_ARTIFACT_REQUIRED=1`
@@ -77,7 +75,8 @@ environment: production
 ## Safety Rules
 
 - `NOTEAI_ENABLE_TEST_BILLING` 必须保持 `0`。
-- 生产环境必须配置 Claude USD 单价、Kimi RMB 单价和 `NOTEAI_BILLING_USD_CNY` 才能按真实 tokens 自动核算模型成本；未配置时后台会显示真实 tokens，但成本仍以功能估算值计入。
+- 只有四个已确认模型、完整 usage/cache 维度和精确模型单价同时满足时，父账单才标记 `actual`。Provider 通用价格只可用于旧估算兼容，不能证明实际毛利。
+- `model_usage_records` 只保存模型、Token 维度和价格快照，不保存 Prompt、正文、reasoning 或第三方 request-id。历史父记录不虚构逐模型明细，查询时归为不可复算覆盖缺口。
 - `NOTEAI_MODEL_ARTIFACT_REQUIRED` 生产必须保持 `1`，防止模型缺失时静默降级。
 - `CORS_ORIGINS` 等正式域名确定后再配置，不能长期使用通配策略。
 - `MEITUAN_TRAVEL_CLI` 不从本机路径同步到云端；云端镜像需要单独安装或用部署脚本设置可执行路径。

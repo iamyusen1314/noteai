@@ -48,6 +48,73 @@ except Exception:
     _xhs_acq = None
     _XHS_ACQ_AVAILABLE = False
 
+
+def _model_cost_audit_payload(since: str) -> dict:
+    """Return model/cache totals and strict parent-record coverage."""
+    model_rows = db.fetchall(
+        "SELECT m.provider,m.model,m.price_currency,m.price_version,COUNT(*) AS calls,"
+        "COALESCE(SUM(m.input_tokens),0) AS input_tokens,"
+        "COALESCE(SUM(m.unclassified_input_tokens),0) AS unclassified_input_tokens,"
+        "COALESCE(SUM(m.cache_read_input_tokens),0) AS cache_read_tokens,"
+        "COALESCE(SUM(m.cache_write_input_tokens),0) AS cache_write_tokens,"
+        "COALESCE(SUM(m.output_tokens),0) AS output_tokens,"
+        "COALESCE(SUM(m.known_cost_rmb),0) AS known_cost_rmb,"
+        "COALESCE(SUM(CASE WHEN m.pricing_status='exact' THEN 0 ELSE 1 END),0) AS pricing_gaps,"
+        "COALESCE(SUM(CASE WHEN m.usage_status='complete' THEN 0 ELSE 1 END),0) AS usage_gaps "
+        "FROM model_usage_records m JOIN usage_records r ON r.id=m.usage_record_id "
+        "WHERE r.recorded_at>=? "
+        "GROUP BY m.provider,m.model,m.price_currency,m.price_version "
+        "ORDER BY known_cost_rmb DESC,m.provider,m.model",
+        (since,),
+    )
+    parent = db.fetchone(
+        "SELECT COUNT(*) AS total_records,"
+        "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='actual' THEN 1 ELSE 0 END),0) AS strict_actual_records,"
+        "COALESCE(SUM(CASE WHEN child_count=0 THEN 1 ELSE 0 END),0) AS legacy_unverifiable_records,"
+        "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='partial' THEN 1 ELSE 0 END),0) AS partial_records,"
+        "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='unpriced' THEN 1 ELSE 0 END),0) AS unpriced_records,"
+        "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='usage_incomplete' THEN 1 ELSE 0 END),0) AS usage_incomplete_records "
+        "FROM (SELECT r.id,r.cost_mode,(SELECT COUNT(*) FROM model_usage_records m WHERE m.usage_record_id=r.id) AS child_count "
+        "FROM usage_records r WHERE r.recorded_at>=?) audited",
+        (since,),
+    )
+    total = int(parent["total_records"] or 0)
+    strict = int(parent["strict_actual_records"] or 0)
+    coverage = {
+        "total_records": total,
+        "strict_actual_records": strict,
+        "legacy_unverifiable_records": int(parent["legacy_unverifiable_records"] or 0),
+        "partial_records": int(parent["partial_records"] or 0),
+        "unpriced_records": int(parent["unpriced_records"] or 0),
+        "usage_incomplete_records": int(parent["usage_incomplete_records"] or 0),
+        "strict_actual_pct": round(strict / total * 100, 1) if total else 0.0,
+        "actual_margin_ready": bool(total and strict == total),
+    }
+    by_model = [{
+        "provider": row["provider"],
+        "model": row["model"],
+        "price_currency": row["price_currency"],
+        "price_version": row["price_version"],
+        "calls": int(row["calls"] or 0),
+        "input_tokens": int(row["input_tokens"] or 0),
+        "unclassified_input_tokens": int(row["unclassified_input_tokens"] or 0),
+        "cache_read_tokens": int(row["cache_read_tokens"] or 0),
+        "cache_write_tokens": int(row["cache_write_tokens"] or 0),
+        "output_tokens": int(row["output_tokens"] or 0),
+        "known_cost_rmb": round(row["known_cost_rmb"] or 0, 6),
+        "pricing_complete": int(row["pricing_gaps"] or 0) == 0,
+        "usage_complete": int(row["usage_gaps"] or 0) == 0,
+    } for row in model_rows]
+    return {
+        "by_model": by_model,
+        "cache": {
+            "read_tokens": sum(item["cache_read_tokens"] for item in by_model),
+            "write_tokens": sum(item["cache_write_tokens"] for item in by_model),
+            "unclassified_input_tokens": sum(item["unclassified_input_tokens"] for item in by_model),
+        },
+        "coverage": coverage,
+    }
+
 # ── App ───────────────────────────────────────────────────────────────────
 admin_app = FastAPI(
     title="NoteAI Pro 后台管理",
@@ -147,6 +214,7 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
 
     gross_profit = round(total_revenue - api_cost, 2)
     margin_pct   = round(gross_profit / total_revenue * 100, 1) if total_revenue > 0 else 0
+    audit = _model_cost_audit_payload(month_start)
 
     # ── MRR ──
     mrr = sub_revenue
@@ -189,6 +257,12 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
             "total_tokens":    month_tokens_in + month_tokens_out,
             "gross_profit":    gross_profit,
             "margin_pct":      margin_pct,
+            "actual_margin_ready": audit["coverage"]["actual_margin_ready"],
+            "cost_basis": (
+                "strict_actual" if audit["coverage"]["actual_margin_ready"]
+                else "incomplete_model_cost_coverage"
+            ),
+            "coverage":        audit["coverage"],
             "mrr":             mrr,
         },
         "usage": {
@@ -197,6 +271,9 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
             "month_tokens_out": month_tokens_out,
             "month_total_tokens": month_tokens_in + month_tokens_out,
             "by_operation":     ops_summary,
+            "by_model":         audit["by_model"],
+            "cache":            audit["cache"],
+            "coverage":         audit["coverage"],
         },
         "system": {
             "kimi_configured":   bool(kimi_key),
@@ -444,6 +521,7 @@ async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_u
         "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out "
         "FROM usage_records WHERE recorded_at>=? GROUP BY day ORDER BY day",
         (since,))
+    audit = _model_cost_audit_payload(since)
 
     return {
         "tier_distribution": tier_dist,
@@ -454,6 +532,7 @@ async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_u
         "daily_api_cost": [{"day": r["day"], "cost": round(r["api_cost"] or 0, 4),
                             "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0))}
                            for r in usage_cost_rows],
+        "coverage": audit["coverage"],
     }
 
 
@@ -473,7 +552,7 @@ def build_usage_stats_payload(days: int = 30) -> dict:
         "SELECT u.username, r.user_id, COUNT(*) as ops, SUM(r.cost_rmb) as cost, "
         "SUM(r.tokens_in) as tokens_in, SUM(r.tokens_out) as tokens_out "
         "FROM usage_records r JOIN users u ON r.user_id=u.id "
-        "WHERE r.recorded_at>=? GROUP BY r.user_id ORDER BY cost DESC LIMIT 10",
+        "WHERE r.recorded_at>=? GROUP BY r.user_id,u.username ORDER BY cost DESC LIMIT 10",
         (since,))
 
     # 每日操作量
@@ -490,6 +569,7 @@ def build_usage_stats_payload(days: int = 30) -> dict:
         "FROM usage_records WHERE recorded_at>=? GROUP BY source",
         (since,))
 
+    audit = _model_cost_audit_payload(since)
     return {
         "by_operation": [{"op": r["operation"],
                            "label": _billing.OPERATIONS.get(r["operation"], {}).get("label", r["operation"]),
@@ -508,6 +588,9 @@ def build_usage_stats_payload(days: int = 30) -> dict:
         "by_source": [{"source": r["source"], "count": r["cnt"],
                        "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
                        "cost": round(r["cost"] or 0, 4)} for r in source_rows],
+        "by_model": audit["by_model"],
+        "cache": audit["cache"],
+        "coverage": audit["coverage"],
     }
 
 

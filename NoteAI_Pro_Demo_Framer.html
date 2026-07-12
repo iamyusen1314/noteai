@@ -8948,6 +8948,21 @@ async function chatSendMessage(options = {}) {
   const streamGuard = createSseWarningGuard('chat', '对话优化');
   let paidRequestId = createPaidRequestId('chat');
   try {
+    const handleChatAccessFailure = async response => {
+      if (response.status === 402) {
+        const errData = await response.json().catch(() => ({}));
+        chatAppendAi('对话深度重写积分不足，请订阅套餐或充值积分后继续。');
+        showQuotaExceededModal(normalizeQuotaDetail(errData.detail || errData));
+        return true;
+      }
+      if (response.status === 401) {
+        chatAppendAi('⚠️ 请先登录后使用对话优化功能。');
+        openAuthModal('login');
+        return true;
+      }
+      return false;
+    };
+
     let resp = await fetch(API_BASE + '/chat/message', {
       method: 'POST',
       headers: {'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, ...authHeader()},
@@ -8955,20 +8970,8 @@ async function chatSendMessage(options = {}) {
     });
     streamGuard.connected();
 
-    // 402 = 积分不足 → 弹升级引导，恢复输入框
-    if (resp.status === 402) {
-      const errData = await resp.json().catch(() => ({}));
-      chatAppendAi('对话深度重写积分不足，请订阅套餐或充值积分后继续。');
-      showQuotaExceededModal(errData.detail || errData);
-      return;
-    }
-
-    // 401 = 未登录
-    if (resp.status === 401) {
-      chatAppendAi('⚠️ 请先登录后使用对话优化功能。');
-      openAuthModal('login');
-      return;
-    }
+    // 首次请求和 session 重建后的重试都必须经过同一套认证/配额检查。
+    if (await handleChatAccessFailure(resp)) return;
 
     // 404 = session 丢失（服务器重启）→ 无感重建 session，重试一次
     if (resp.status === 404) {
@@ -8983,6 +8986,8 @@ async function chatSendMessage(options = {}) {
         });
       }
     }
+
+    if (await handleChatAccessFailure(resp)) return;
 
     // 其他非 200 错误 → 显示错误信息
     if (!resp.ok) {
@@ -10915,6 +10920,7 @@ function _removeSsImage(idx) {
 async function _ocrImages(imagesToOcr) {
   if (!imagesToOcr || imagesToOcr.length === 0) return;
   const loadingEl = document.getElementById('screenshot-loading');
+  let quotaModalShown = false;
   _ssOcrInFlight += imagesToOcr.length;
   if (loadingEl) loadingEl.style.display = 'block';
   imagesToOcr.forEach(img => _setSsImageStatus(img, 'recognizing', `识别图${_ssImageIndex(img) + 1}内容中`));
@@ -10928,12 +10934,17 @@ async function _ocrImages(imagesToOcr) {
       body: JSON.stringify({ image_base64: img.dataURL.split(',')[1] }),
 	    }).then(r => {
 	      if (r.status === 402) {
-	        const reason = '截图识别积分不足';
-	        _ssOcrErrors.set(img.dataURL, reason);
-	        _ssOcrCache.set(img.dataURL, null);
-	        _setSsImageStatus(img, 'failed', reason);
-	        showToast('截图识别积分不足，请订阅套餐或充值积分');
-	        return;
+	        return r.json().catch(() => ({})).then(errData => {
+	          const reason = '截图识别积分不足';
+	          _ssOcrErrors.set(img.dataURL, reason);
+	          _ssOcrCache.set(img.dataURL, null);
+	          _setSsImageStatus(img, 'failed', reason);
+	          showToast('截图识别积分不足，请订阅套餐或充值积分');
+	          if (!quotaModalShown) {
+	            quotaModalShown = true;
+	            showQuotaExceededModal(normalizeQuotaDetail(errData.detail || errData));
+	          }
+	        });
 	      }
 	      if (r.status === 401) {
 	        const reason = '请先登录后进行截图识别';

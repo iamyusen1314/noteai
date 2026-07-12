@@ -164,13 +164,51 @@ def _record_kimi_usage_from_payload(payload: dict | None, model: str | None = No
         return
     usage = payload.get("usage") or {}
     if not usage:
+        try:
+            _billing.record_model_usage(
+                "kimi", model or payload.get("model") or _KIMI_MODEL,
+                usage_status="usage_missing",
+            )
+        except Exception:
+            pass
         return
     try:
+        resolved_model = model or payload.get("model") or _KIMI_MODEL
+        prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
+        completion_tokens = int(usage.get("completion_tokens", 0) or 0)
+        if resolved_model == _KIMI_MODEL:
+            missing = object()
+            cached = usage.get("cached_tokens", missing)
+            if cached is missing:
+                details = usage.get("prompt_tokens_details")
+                cached = details.get("cached_tokens", missing) if isinstance(details, dict) else missing
+            if cached is missing:
+                _billing.record_model_usage(
+                    "kimi", resolved_model, tokens_out=completion_tokens,
+                    unclassified_input_tokens=prompt_tokens,
+                    usage_status="cache_usage_missing",
+                )
+                return
+            cache_read = max(0, int(cached or 0))
+            if cache_read > prompt_tokens:
+                _billing.record_model_usage(
+                    "kimi", resolved_model, tokens_out=completion_tokens,
+                    unclassified_input_tokens=prompt_tokens,
+                    usage_status="usage_incomplete",
+                )
+                return
+            _billing.record_model_usage(
+                "kimi", resolved_model,
+                tokens_in=prompt_tokens - cache_read,
+                tokens_out=completion_tokens,
+                cache_read_tokens=cache_read,
+            )
+            return
         _billing.record_model_usage(
             "kimi",
-            model or payload.get("model") or _KIMI_MODEL,
-            tokens_in=int(usage.get("prompt_tokens", 0) or 0),
-            tokens_out=int(usage.get("completion_tokens", 0) or 0),
+            resolved_model,
+            tokens_in=prompt_tokens,
+            tokens_out=completion_tokens,
         )
     except Exception:
         pass
@@ -643,6 +681,7 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
         try:
             content_parts: list[str] = []
             total_tokens = 0
+            final_usage: dict | None = None
             debug_count = 0  # log first few chunks to understand structure
             with _httpx.Client(timeout=_KIMI_TIMEOUT_THINK) as client:
                 with client.stream("POST", _KIMI_API_URL, json=payload, headers=headers) as resp:
@@ -656,6 +695,9 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
                             break
                         try:
                             chunk = _json.loads(data_str)
+                            chunk_usage = _mr._extract_kimi_stream_usage(chunk)
+                            if chunk_usage is not None:
+                                final_usage = chunk_usage
                             delta = chunk["choices"][0].get("delta", {})
                             finish = chunk["choices"][0].get("finish_reason")
                             # Debug: log first 3 chunks and any with finish_reason
@@ -666,10 +708,13 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
                             if delta.get("content"):
                                 content_parts.append(delta["content"])
                             if finish:
-                                total_tokens = chunk.get("usage", {}).get("completion_tokens", 0)
+                                total_tokens = (final_usage or {}).get("completion_tokens", 0)
                         except (_json.JSONDecodeError, KeyError, IndexError):
                             continue
             content = "".join(content_parts).strip()
+            _record_kimi_usage_from_payload(
+                {"model": _KIMI_MODEL, "usage": final_usage or {}}
+            )
             if not content:
                 print(f"[kimi_chat] WARN empty mode=think stream total_tokens={total_tokens}", file=sys.stderr, flush=True)
             return content
@@ -683,6 +728,7 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
                 r = client.post(_KIMI_API_URL, json=payload, headers=headers)
                 r.raise_for_status()
                 d = r.json()
+                _record_kimi_usage_from_payload(d, _KIMI_MODEL)
                 content = d["choices"][0]["message"]["content"].strip()
                 if not content:
                     finish = d["choices"][0].get("finish_reason", "?")
@@ -723,6 +769,7 @@ async def _kimi_stream_gen(
         async with _httpx.AsyncClient(timeout=timeout) as client:
             async with client.stream("POST", _KIMI_API_URL, json=payload, headers=headers) as resp:
                 resp.raise_for_status()
+                final_usage: dict | None = None
                 async for line in resp.aiter_lines():
                     if not line.startswith("data: "):
                         continue
@@ -731,6 +778,9 @@ async def _kimi_stream_gen(
                         break
                     try:
                         chunk = _json.loads(raw)
+                        chunk_usage = _mr._extract_kimi_stream_usage(chunk)
+                        if chunk_usage is not None:
+                            final_usage = chunk_usage
                         delta = chunk["choices"][0].get("delta", {})
                         if delta.get("reasoning_content"):
                             yield ("thinking", delta["reasoning_content"])
@@ -738,6 +788,9 @@ async def _kimi_stream_gen(
                             yield ("content", delta["content"])
                     except Exception:
                         continue
+                _record_kimi_usage_from_payload(
+                    {"model": _KIMI_MODEL, "usage": final_usage or {}}
+                )
     except Exception as exc:
         print(f"[kimi_stream_gen] ERROR: {exc}", file=sys.stderr, flush=True)
 

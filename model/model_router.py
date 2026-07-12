@@ -104,31 +104,102 @@ def _usage_attr(usage, name: str) -> int:
     return int(getattr(usage, name, 0) or 0)
 
 
-def _record_usage(provider: str, model: str, tokens_in: int = 0, tokens_out: int = 0) -> None:
-    if not tokens_in and not tokens_out:
-        return
+def _usage_value(usage, name: str):
+    if not usage:
+        return None
+    if isinstance(usage, dict):
+        return usage.get(name)
+    return getattr(usage, name, None)
+
+
+def _extract_kimi_stream_usage(chunk) -> dict | None:
+    """Read Kimi terminal usage from either supported streaming shape."""
+    if not isinstance(chunk, dict):
+        return None
+    top_level = chunk.get("usage")
+    if isinstance(top_level, dict) and top_level:
+        return top_level
+    choices = chunk.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        return top_level if isinstance(top_level, dict) else None
+    nested = choices[0].get("usage")
+    if isinstance(nested, dict):
+        return nested
+    return top_level if isinstance(top_level, dict) else None
+
+
+def _record_usage(provider: str, model: str, tokens_in: int = 0, tokens_out: int = 0, **kwargs) -> None:
     try:
         import billing
 
-        billing.record_model_usage(provider, model, tokens_in=tokens_in, tokens_out=tokens_out)
+        billing.record_model_usage(
+            provider, model, tokens_in=tokens_in, tokens_out=tokens_out, **kwargs
+        )
     except Exception:
         pass
 
 
 def _record_claude_usage(model: str, usage) -> None:
-    tokens_in = (
-        _usage_attr(usage, "input_tokens")
-        + _usage_attr(usage, "cache_creation_input_tokens")
-        + _usage_attr(usage, "cache_read_input_tokens")
+    if not usage:
+        _record_usage("claude", model, usage_status="usage_missing")
+        return
+    cache_write = _usage_attr(usage, "cache_creation_input_tokens")
+    cache_details = _usage_value(usage, "cache_creation")
+    write_5m = _usage_attr(cache_details, "ephemeral_5m_input_tokens")
+    write_1h = _usage_attr(cache_details, "ephemeral_1h_input_tokens")
+    write_unknown = max(0, cache_write - write_5m - write_1h)
+    usage_status = "cache_ttl_unknown" if write_unknown else "complete"
+    _record_usage(
+        "claude", model,
+        _usage_attr(usage, "input_tokens"),
+        _usage_attr(usage, "output_tokens"),
+        cache_read_tokens=_usage_attr(usage, "cache_read_input_tokens"),
+        cache_write_tokens=cache_write,
+        cache_write_5m_tokens=write_5m,
+        cache_write_1h_tokens=write_1h,
+        cache_write_unknown_ttl_tokens=write_unknown,
+        usage_status=usage_status,
     )
-    tokens_out = _usage_attr(usage, "output_tokens")
-    _record_usage("claude", model, tokens_in, tokens_out)
 
 
 def _record_kimi_usage(model: str, usage: dict | None) -> None:
-    tokens_in = _usage_attr(usage, "prompt_tokens")
+    if not usage:
+        _record_usage("kimi", model, usage_status="usage_missing")
+        return
+    prompt_tokens = _usage_attr(usage, "prompt_tokens")
     tokens_out = _usage_attr(usage, "completion_tokens")
-    _record_usage("kimi", model, tokens_in, tokens_out)
+    if model == KIMI_TEXT:
+        cached_marker = object()
+        cached = usage.get("cached_tokens", cached_marker) if isinstance(usage, dict) else cached_marker
+        if cached is cached_marker:
+            details = _usage_value(usage, "prompt_tokens_details")
+            if isinstance(details, dict) and "cached_tokens" in details:
+                cached = details.get("cached_tokens")
+            elif details is not None and hasattr(details, "cached_tokens"):
+                cached = getattr(details, "cached_tokens")
+        if cached is cached_marker:
+            _record_usage(
+                "kimi", model, tokens_out=tokens_out,
+                unclassified_input_tokens=prompt_tokens,
+                usage_status="cache_usage_missing",
+            )
+            return
+        cache_read = max(0, int(cached or 0))
+        if cache_read > prompt_tokens:
+            _record_usage(
+                "kimi", model, tokens_out=tokens_out,
+                unclassified_input_tokens=prompt_tokens,
+                usage_status="usage_incomplete",
+            )
+            return
+        _record_usage(
+            "kimi", model, prompt_tokens - cache_read, tokens_out,
+            cache_read_tokens=cache_read,
+        )
+        return
+    # The confirmed Moonshot vision model has no documented cache tier in the
+    # adopted price card; do not invent or infer one from absent fields.
+    _record_usage("kimi", model, prompt_tokens, tokens_out)
 
 
 def _claude_timeout_seconds(task: str, thinking: bool, max_tokens: int) -> float:
@@ -334,8 +405,9 @@ async def _stream_kimi(
                     break
                 try:
                     chunk = json.loads(raw)
-                    if chunk.get("usage"):
-                        final_usage = chunk.get("usage")
+                    chunk_usage = _extract_kimi_stream_usage(chunk)
+                    if chunk_usage is not None:
+                        final_usage = chunk_usage
                     delta = chunk["choices"][0].get("delta", {})
                     if delta.get("reasoning_content"):
                         yield ("thinking", delta["reasoning_content"])

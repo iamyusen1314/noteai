@@ -85,11 +85,9 @@
 
 | 变量名 | 必填 | 敏感 | 用途 |
 |---|---:|---:|---|
-| `NOTEAI_BILLING_USD_CNY` | 商业核算必填 | 否 | Claude 美元成本换算人民币 |
-| `NOTEAI_MODEL_PRICE_CLAUDE_INPUT_PER_1M_USD` | 商业核算必填 | 否 | Claude 每百万输入 Token 美元价格 |
-| `NOTEAI_MODEL_PRICE_CLAUDE_OUTPUT_PER_1M_USD` | 商业核算必填 | 否 | Claude 每百万输出 Token 美元价格 |
-| `NOTEAI_MODEL_PRICE_KIMI_INPUT_PER_1M_RMB` | 商业核算必填 | 否 | Kimi 每百万输入 Token 人民币价格 |
-| `NOTEAI_MODEL_PRICE_KIMI_OUTPUT_PER_1M_RMB` | 商业核算必填 | 否 | Kimi 每百万输出 Token 人民币价格 |
+| `NOTEAI_MODEL_PRICE_VERSION` | 商业核算必填 | 否 | 当前采用 `official-2026-07-12` |
+| `NOTEAI_BILLING_USD_CNY` | 商业核算必填 | 否 | 已确认固定为 `7.00`，随调用快照保存 |
+| `NOTEAI_MODEL_PRICE_<精确模型>_<维度>_PER_1M_<币种>` | 商业核算必填 | 否 | 四个启用模型的普通输入、缓存、输出精确价格；完整键和值见 `model/.env.example` 与 `render.yaml` |
 
 如不同模型价格不同，按 `model/.env.example` 中的精确模型覆盖命名配置。价格、汇率和生效日期必须由产品负责人确认，不得凭经验猜测。
 

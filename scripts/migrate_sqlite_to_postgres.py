@@ -24,6 +24,7 @@ TABLE_ORDER = (
     "growth_records",
     "subscriptions",
     "usage_records",
+    "model_usage_records",
     "credits",
     "credit_transactions",
     "saved_diagnoses",

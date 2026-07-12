@@ -315,6 +315,7 @@ input,select,textarea{font-family:inherit}
 
   <!-- ═══ USAGE ════════════════════════════════════════════════════ -->
   <div class="content-area page" id="page-usage">
+    <div class="card" id="usage-cost-audit" style="margin-bottom:20px"></div>
     <div class="card-grid card-grid-2" style="margin-bottom:20px">
       <div class="card"><div class="section-title">各操作调用量（近30天）</div><div id="usage-ops-chart" class="chart-box"></div></div>
       <div class="card"><div class="section-title">每日操作趋势</div><div id="usage-daily-chart" class="chart-box"></div></div>
@@ -603,7 +604,9 @@ async function loadDashboard() {
   document.getElementById('d-revenue').textContent     = `¥${f.total_revenue.toLocaleString()}`;
   document.getElementById('d-mrr').textContent         = `MRR ¥${f.mrr.toLocaleString()}`;
   document.getElementById('d-cost').textContent        = `¥${f.api_cost.toFixed(2)}`;
-  document.getElementById('d-margin').textContent      = `毛利 ${f.margin_pct}% · ${fmtTokens(f.total_tokens)} tokens`;
+  document.getElementById('d-margin').textContent      = f.actual_margin_ready
+    ? `实际毛利 ${f.margin_pct}% · ${fmtTokens(f.total_tokens)} tokens`
+    : `成本覆盖不完整，毛利仅供参考 · ${fmtTokens(f.total_tokens)} tokens`;
   document.getElementById('d-active').textContent      = u.active_month;
   document.getElementById('d-active-sub').textContent  = `7天活跃 ${u.active_7d}`;
 
@@ -749,15 +752,31 @@ async function loadRevenue() {
   const apiCostTotal = d.daily_api_cost.reduce((a,b)=>a+b.cost,0);
   const margin = (d.sub_revenue_estimate+credRev)>0
     ? Math.round((d.sub_revenue_estimate+credRev-apiCostTotal)/(d.sub_revenue_estimate+credRev)*100) : 0;
-  document.getElementById('r-margin').textContent  = `${margin}%`;
+  document.getElementById('r-margin').textContent  = d.coverage?.actual_margin_ready ? `${margin}%` : '覆盖不完整';
   _renderLineChart('rev-chart', d.daily_topup.map(r=>r.day), d.daily_topup.map(r=>r.rmb), '积分充值(¥)', '#00D4FF');
   _renderLineChart('cost-chart', d.daily_api_cost.map(r=>r.day), d.daily_api_cost.map(r=>r.cost), 'API成本(¥)', '#F59E0B');
 }
 
 /* ── Usage ────────────────────────────────────────────────────────── */
 async function loadUsage() {
+  const auditEl = document.getElementById('usage-cost-audit');
+  try {
   const r = await aFetch('/admin/usage-stats');
+  if (!r.ok) throw new Error('usage stats request failed');
   const d = await r.json();
+  const coverage = d.coverage || {};
+  auditEl.innerHTML = `
+    <div class="section-title">模型成本审计覆盖</div>
+    <div style="font-size:13px;color:${coverage.actual_margin_ready?'var(--success)':'var(--warning)'}">
+      ${coverage.actual_margin_ready?'可使用实际毛利':'覆盖不完整，不可宣称实际毛利'} ·
+      严格实际 ${coverage.strict_actual_records||0}/${coverage.total_records||0} 条
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
+      历史不可复算 ${coverage.legacy_unverifiable_records||0} · 部分计价 ${coverage.partial_records||0} ·
+      未计价 ${coverage.unpriced_records||0} · 用量不完整 ${coverage.usage_incomplete_records||0}<br/>
+      模型：${(d.by_model||[]).map(m=>`${esc(m.model)} ${fmtTokens(m.input_tokens+m.cache_read_tokens+m.cache_write_tokens+m.output_tokens)} / ¥${m.known_cost_rmb.toFixed(4)}`).join('；')||'暂无逐模型明细'}<br/>
+      缓存读取 ${fmtTokens(d.cache?.read_tokens||0)} · 缓存写入 ${fmtTokens(d.cache?.write_tokens||0)}
+    </div>`;
   const opsChart = echarts.init(document.getElementById('usage-ops-chart'));
   opsChart.setOption({
     backgroundColor:'transparent', grid:{left:10,right:10,top:10,bottom:50,containLabel:true},
@@ -785,6 +804,13 @@ async function loadUsage() {
       label:{color:'#F0F0F8',fontSize:11},
     }],
   });
+  } catch (_) {
+    auditEl.innerHTML = `
+      <div class="section-title">模型成本审计覆盖</div>
+      <div style="font-size:13px;color:var(--danger)">用量数据加载失败，请稍后重试。</div>`;
+    document.getElementById('top-users-tbody').innerHTML =
+      '<tr><td colspan="5" style="color:var(--text-muted)">暂无可显示数据</td></tr>';
+  }
 }
 
 /* ── Prompts ──────────────────────────────────────────────────────── */

@@ -222,7 +222,77 @@ def _price_env_key(model: str, direction: str, currency: str = "RMB") -> str:
 
 
 def _billing_usd_cny() -> float:
-    return _env_price("NOTEAI_BILLING_USD_CNY") or _env_price("NOTEAI_PRICING_USD_CNY") or 6.8
+    return _env_price("NOTEAI_BILLING_USD_CNY") or _env_price("NOTEAI_PRICING_USD_CNY") or 7.0
+
+
+_PRICE_VERSION = "official-2026-07-12"
+_EXACT_MODEL_PRICES: dict[str, dict[str, float | str | None]] = {
+    "claude-haiku-4-5-20251001": {
+        "provider": "claude", "currency": "USD", "input": 1.0, "cache_read": 0.1,
+        "cache_write_5m": 1.25, "cache_write_1h": 2.0, "output": 5.0,
+    },
+    "claude-sonnet-4-6": {
+        "provider": "claude", "currency": "USD", "input": 3.0, "cache_read": 0.3,
+        "cache_write_5m": 3.75, "cache_write_1h": 6.0, "output": 15.0,
+    },
+    "kimi-k2.6": {
+        "provider": "kimi", "currency": "RMB", "input": 6.5, "cache_read": 1.1,
+        "cache_write_5m": None, "cache_write_1h": None, "output": 27.0,
+    },
+    "moonshot-v1-32k-vision-preview": {
+        "provider": "kimi", "currency": "RMB", "input": 5.0, "cache_read": None,
+        "cache_write_5m": None, "cache_write_1h": None, "output": 20.0,
+    },
+}
+
+
+def _exact_price(model: str, direction: str, currency: str, default: float | None) -> float | None:
+    key = _price_env_key(model, direction, currency)
+    raw = os.environ.get(key)
+    if raw is None or not str(raw).strip():
+        return default
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    # A configured zero is not a valid official catalogue price. Treat zero,
+    # negative, and malformed overrides as missing so strict actual coverage
+    # cannot be granted for a used dimension.
+    return value if value > 0 else None
+
+
+def _pricing_snapshot(provider: str, model: str) -> dict:
+    """Resolve only product-confirmed exact model prices.
+
+    Provider-wide variables remain supported by the old estimate helper, but
+    are deliberately excluded here because they cannot prove a model-specific
+    supplier cost.
+    """
+    base = _EXACT_MODEL_PRICES.get(str(model or ""))
+    if base and str(provider or "").lower() != str(base.get("provider") or "").lower():
+        base = None
+    fx = _billing_usd_cny()
+    version = os.environ.get("NOTEAI_MODEL_PRICE_VERSION", _PRICE_VERSION).strip() or _PRICE_VERSION
+    if not base:
+        return {
+            "currency": "RMB", "usd_cny": fx, "price_version": version,
+            "pricing_status": "unpriced", "input": None, "cache_read": None,
+            "cache_write_5m": None, "cache_write_1h": None, "output": None,
+        }
+    currency = str(base["currency"])
+    snapshot = {
+        "currency": currency,
+        "usd_cny": fx,
+        "price_version": version,
+        "pricing_status": "exact",
+    }
+    for dimension in ("input", "cache_read", "cache_write_5m", "cache_write_1h", "output"):
+        snapshot[dimension] = _exact_price(
+            model, dimension, currency, base.get(dimension) if isinstance(base.get(dimension), (int, float)) else None
+        )
+    if snapshot["input"] is None or snapshot["output"] is None:
+        snapshot["pricing_status"] = "unpriced"
+    return snapshot
 
 
 def _token_price_per_1m_rmb(provider_key: str, model: str, direction: str) -> float:
@@ -928,66 +998,174 @@ def record_model_usage(
     tokens_in: int = 0,
     tokens_out: int = 0,
     cost_rmb: float | None = None,
+    *,
+    unclassified_input_tokens: int = 0,
+    cache_read_tokens: int = 0,
+    cache_write_tokens: int = 0,
+    cache_write_5m_tokens: int | None = None,
+    cache_write_1h_tokens: int | None = None,
+    cache_write_unknown_ttl_tokens: int = 0,
+    usage_status: str = "complete",
 ) -> None:
-    """Accumulate actual LLM token usage into the current active usage record."""
+    """Append one model-call audit row to the current operation.
+
+    Only numeric usage, model identity, and pricing snapshots are stored. The
+    model prompt, response, reasoning, and external request identifiers never
+    cross this persistence boundary.
+    """
     usage_id = _ACTIVE_USAGE_ID.get()
     if not usage_id:
         return
+    _record_model_usage_for_usage_id(
+        usage_id, provider, model,
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        cost_rmb=cost_rmb,
+        unclassified_input_tokens=unclassified_input_tokens,
+        cache_read_tokens=cache_read_tokens,
+        cache_write_tokens=cache_write_tokens,
+        cache_write_5m_tokens=cache_write_5m_tokens,
+        cache_write_1h_tokens=cache_write_1h_tokens,
+        cache_write_unknown_ttl_tokens=cache_write_unknown_ttl_tokens,
+        usage_status=usage_status,
+    )
+
+
+def _record_model_usage_for_usage_id(
+    usage_id: str,
+    provider: str,
+    model: str,
+    tokens_in: int = 0,
+    tokens_out: int = 0,
+    cost_rmb: float | None = None,
+    *,
+    unclassified_input_tokens: int = 0,
+    cache_read_tokens: int = 0,
+    cache_write_tokens: int = 0,
+    cache_write_5m_tokens: int | None = None,
+    cache_write_1h_tokens: int | None = None,
+    cache_write_unknown_ttl_tokens: int = 0,
+    usage_status: str = "complete",
+) -> None:
     tokens_in = max(0, int(tokens_in or 0))
     tokens_out = max(0, int(tokens_out or 0))
-    if not tokens_in and not tokens_out:
-        return
-    actual_cost = (
-        round(float(cost_rmb), 6)
-        if cost_rmb is not None
-        else _model_token_cost_rmb(provider, model, tokens_in, tokens_out)
+    unclassified = max(0, int(unclassified_input_tokens or 0))
+    cache_read = max(0, int(cache_read_tokens or 0))
+    cache_write = max(0, int(cache_write_tokens or 0))
+    write_5m = max(0, int(cache_write_5m_tokens or 0))
+    write_1h = max(0, int(cache_write_1h_tokens or 0))
+    write_unknown = max(0, int(cache_write_unknown_ttl_tokens or 0))
+    if cache_write and write_5m + write_1h + write_unknown != cache_write:
+        write_unknown = max(0, cache_write - write_5m - write_1h)
+        usage_status = "cache_ttl_unknown"
+    if unclassified and usage_status == "complete":
+        usage_status = "usage_incomplete"
+    if usage_status not in {
+        "complete", "usage_missing", "usage_incomplete",
+        "cache_usage_missing", "cache_ttl_unknown",
+    }:
+        usage_status = "usage_incomplete"
+
+    pricing = _pricing_snapshot(provider, model)
+    pricing_status = str(pricing["pricing_status"])
+    currency = str(pricing["currency"])
+    fx = float(pricing["usd_cny"])
+    currency_factor = fx if currency == "USD" else 1.0
+
+    def dimension_cost(tokens: int, price) -> float:
+        if not tokens or price is None:
+            return 0.0
+        return tokens / 1_000_000 * float(price) * currency_factor
+
+    known_cost = sum((
+        dimension_cost(tokens_in, pricing["input"]),
+        dimension_cost(cache_read, pricing["cache_read"]),
+        dimension_cost(write_5m, pricing["cache_write_5m"]),
+        dimension_cost(write_1h, pricing["cache_write_1h"]),
+        dimension_cost(tokens_out, pricing["output"]),
+    ))
+    required_prices = (
+        (tokens_in, pricing["input"]),
+        (cache_read, pricing["cache_read"]),
+        (write_5m, pricing["cache_write_5m"]),
+        (write_1h, pricing["cache_write_1h"]),
+        (tokens_out, pricing["output"]),
     )
-    row = db.fetchone(
-        "SELECT id,cost_rmb,cost_mode,model_names FROM usage_records WHERE id=?",
-        (usage_id,),
-    )
-    if not row:
-        return
-    model_label = f"{provider}:{model}".strip(":")
-    existing_names = [x for x in str(row["model_names"] or "").split(",") if x]
-    if model_label and model_label not in existing_names:
-        existing_names.append(model_label)
-    if actual_cost > 0 and row["cost_mode"] == "estimated":
-        cost_expr = "?"
-        cost_params = [actual_cost]
-        new_mode = "actual"
-    elif actual_cost > 0:
-        cost_expr = "cost_rmb + ?"
-        cost_params = [actual_cost]
-        new_mode = "actual"
-    else:
-        cost_expr = "cost_rmb"
-        cost_params = []
-        new_mode = row["cost_mode"] or "token_counted_estimated_cost"
-        if new_mode == "estimated":
-            new_mode = "token_counted_estimated_cost"
-    db.execute(
-        f"""
-        UPDATE usage_records
-        SET tokens_in=tokens_in+?,
-            tokens_out=tokens_out+?,
-            actual_model_cost_rmb=actual_model_cost_rmb+?,
-            model_calls=model_calls+1,
-            model_names=?,
-            cost_mode=?,
-            cost_rmb={cost_expr}
-        WHERE id=?
-        """,
-        (
-            tokens_in,
-            tokens_out,
-            actual_cost,
-            ",".join(existing_names),
-            new_mode,
-            *cost_params,
-            usage_id,
-        ),
-    )
+    if any(tokens and price is None for tokens, price in required_prices):
+        pricing_status = "unpriced"
+    if cost_rmb is not None:
+        # Legacy callers may provide a provider-computed amount. Preserve it as
+        # known supplier spend, but never promote it to strict model pricing.
+        known_cost = max(0.0, float(cost_rmb))
+        pricing_status = "manual"
+    known_cost = round(known_cost, 9)
+
+    with db.transaction(write=True) as tx:
+        lock = " FOR UPDATE" if tx.postgres else ""
+        parent = tx.fetchone(
+            f"SELECT id,estimated_cost_rmb FROM usage_records WHERE id=?{lock}",
+            (usage_id,),
+        )
+        if not parent:
+            return
+        tx.execute(
+            "INSERT INTO model_usage_records("
+            "id,usage_record_id,provider,model,input_tokens,unclassified_input_tokens,"
+            "cache_read_input_tokens,cache_write_input_tokens,cache_write_5m_tokens,"
+            "cache_write_1h_tokens,cache_write_unknown_ttl_tokens,output_tokens,"
+            "input_price_per_1m,cache_read_price_per_1m,cache_write_5m_price_per_1m,"
+            "cache_write_1h_price_per_1m,output_price_per_1m,price_currency,usd_cny,"
+            "price_version,known_cost_rmb,pricing_status,usage_status,recorded_at) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                str(uuid.uuid4()), usage_id, str(provider or "unknown"), str(model or "unknown"),
+                tokens_in, unclassified, cache_read, cache_write, write_5m, write_1h,
+                write_unknown, tokens_out, pricing["input"], pricing["cache_read"],
+                pricing["cache_write_5m"], pricing["cache_write_1h"], pricing["output"],
+                currency, fx, pricing["price_version"], known_cost, pricing_status,
+                usage_status, _now(),
+            ),
+        )
+        totals = tx.fetchone(
+            "SELECT COUNT(*) AS calls, "
+            "COALESCE(SUM(input_tokens+unclassified_input_tokens+cache_read_input_tokens+cache_write_input_tokens),0) AS tokens_in, "
+            "COALESCE(SUM(output_tokens),0) AS tokens_out, "
+            "COALESCE(SUM(known_cost_rmb),0) AS known_cost, "
+            "COALESCE(SUM(CASE WHEN pricing_status='exact' THEN 0 ELSE 1 END),0) AS pricing_gaps, "
+            "COALESCE(SUM(CASE WHEN usage_status='complete' THEN 0 ELSE 1 END),0) AS usage_gaps, "
+            "COALESCE(SUM(CASE WHEN pricing_status='exact' THEN 1 ELSE 0 END),0) AS exact_calls "
+            "FROM model_usage_records WHERE usage_record_id=?",
+            (usage_id,),
+        )
+        name_rows = tx.fetchall(
+            "SELECT provider,model FROM model_usage_records WHERE usage_record_id=? "
+            "GROUP BY provider,model ORDER BY provider,model",
+            (usage_id,),
+        )
+        if int(totals["usage_gaps"] or 0):
+            mode = "usage_incomplete"
+        elif int(totals["pricing_gaps"] or 0):
+            mode = (
+                "partial"
+                if int(totals["exact_calls"] or 0) or float(totals["known_cost"] or 0) > 0
+                else "unpriced"
+            )
+        else:
+            mode = "actual"
+        actual_cost = round(float(totals["known_cost"] or 0), 9)
+        estimated_cost = float(parent["estimated_cost_rmb"] or 0)
+        reported_cost = actual_cost if mode == "actual" or actual_cost > 0 else estimated_cost
+        model_names = ",".join(
+            f"{row['provider']}:{row['model']}" for row in name_rows
+        )
+        tx.execute(
+            "UPDATE usage_records SET tokens_in=?,tokens_out=?,actual_model_cost_rmb=?,"
+            "model_calls=?,model_names=?,cost_mode=?,cost_rmb=? WHERE id=?",
+            (
+                int(totals["tokens_in"] or 0), int(totals["tokens_out"] or 0), actual_cost,
+                int(totals["calls"] or 0), model_names, mode, round(reported_cost, 9), usage_id,
+            ),
+        )
 
 # ─────────────────────────────────────────────────────────────
 # ⑨ 配额状态查询（用于前端显示）
@@ -1086,7 +1264,8 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
 
     # 明细（最近50条）
     detail_rows = db.fetchall(
-        "SELECT operation,source,credits_used,cost_rmb,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at "
+        "SELECT operation,source,credits_used,cost_rmb,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at,"
+        "(SELECT COUNT(*) FROM model_usage_records m WHERE m.usage_record_id=usage_records.id) AS model_detail_count "
         "FROM usage_records WHERE user_id=? AND recorded_at>=? "
         "ORDER BY recorded_at DESC LIMIT 50",
         (user_id, since)
@@ -1095,6 +1274,9 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
     for r in detail_rows:
         op   = r["operation"]
         info = OPERATIONS.get(op, {})
+        display_mode = r["cost_mode"] or "estimated"
+        if int(r["model_detail_count"] or 0) == 0 and display_mode == "actual":
+            display_mode = "legacy_unverifiable_actual"
         details.append({
             "operation":   op,
             "label":       info.get("label", op),
@@ -1106,7 +1288,8 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
             "total_tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
             "model_calls": int(r["model_calls"] or 0),
             "model_names": r["model_names"] or "",
-            "cost_mode":   r["cost_mode"] or "estimated",
+            "cost_mode":   display_mode,
+            "model_detail_count": int(r["model_detail_count"] or 0),
             "recorded_at": r["recorded_at"],
         })
 
