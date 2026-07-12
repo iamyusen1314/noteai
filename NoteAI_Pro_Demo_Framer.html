@@ -10854,6 +10854,35 @@ let _ssOcrPromise = null;          // 当前截图 AI 识别任务，诊断前�
 let _ssOcrInFlight = 0;
 let _ssOcrStatus = new Map();     // dataURL → {status,message,summary}
 let _ssOcrValidating = false;     // 多图 OCR 合并鉴别中
+let _ssOcrRevision = 0;           // 图片集合变化即递增，阻止旧批次回调覆盖当前状态
+let _ssOcrValidatingRevision = null;
+let _ssMergedRevision = -1;
+let _ssMergeRevision = -1;
+let _ssMergePromise = null;
+let _ssFileSelectionRevision = 0;
+
+function _ssImageSnapshot() {
+  return Array.isArray(_ssImages) ? _ssImages.slice() : [];
+}
+
+function _isCurrentSsBatch(revision, imageSnapshot) {
+  if (revision !== _ssOcrRevision) return false;
+  const current = Array.isArray(_ssImages) ? _ssImages : [];
+  if (!Array.isArray(imageSnapshot) || imageSnapshot.length !== current.length) return false;
+  return imageSnapshot.every((img, index) => current[index] === img);
+}
+
+function _invalidateSsAggregateState() {
+  _ssOcrRevision += 1;
+  _ssFileSelectionRevision += 1;
+  _screenshotExtracted = null;
+  _ssOcrValidating = false;
+  _ssOcrValidatingRevision = null;
+  _ssMergedRevision = -1;
+  _ssMergeRevision = -1;
+  _ssMergePromise = null;
+  return _ssOcrRevision;
+}
 
 function _getScreenshotRecognitionState() {
   const imgs = Array.isArray(_ssImages) ? _ssImages : [];
@@ -10969,6 +10998,34 @@ function _updateScreenshotOcrUi() {
       progressEl.textContent = `${state.ok}/${state.total} 张图片识别完成`;
     }
   }
+  const resultEl = document.getElementById('screenshot-result');
+  const statusEl = document.getElementById('ss-ocr-status');
+  const titleEl = document.getElementById('ss-title-display');
+  const bodyEl = document.getElementById('ss-body-display');
+  const tagsEl = document.getElementById('ss-tags-display');
+  const currentValidation = _ssOcrValidating && _ssOcrValidatingRevision === _ssOcrRevision;
+  if (state.total === 0) {
+    if (resultEl) resultEl.style.display = 'none';
+  } else if (state.pending > 0) {
+    if (resultEl) resultEl.style.display = 'block';
+    if (statusEl) statusEl.textContent = `图片 AI 识别中：${state.completed}/${state.total} 张已识别`;
+    if (titleEl) titleEl.textContent = '（等待全部图片识别完成）';
+    if (bodyEl) bodyEl.textContent = `还有 ${state.pending} 张图片正在识别`;
+    if (tagsEl) tagsEl.textContent = '（等待识别完成）';
+  } else if (state.failed > 0 || state.ok !== state.total) {
+    const firstError = _ssImages.map(img => _ssOcrErrors.get(img.dataURL)).find(Boolean);
+    if (resultEl) resultEl.style.display = 'block';
+    if (statusEl) statusEl.textContent = `图片 AI 识别失败：${state.failed}/${state.total} 张失败，必须全部识别成功后才能诊断`;
+    if (titleEl) titleEl.textContent = '（未识别成功）';
+    if (bodyEl) bodyEl.textContent = `请重新上传失败图片，或稍后重试${firstError ? `；原因：${firstError}` : ''}`;
+    if (tagsEl) tagsEl.textContent = '（等待识别完成）';
+  } else if (currentValidation) {
+    if (resultEl) resultEl.style.display = 'block';
+    if (statusEl) statusEl.textContent = `AI 鉴别去重中… ${state.ok}/${state.total} 张已识别`;
+  } else if (_ssMergedRevision !== _ssOcrRevision || !_screenshotExtracted) {
+    if (resultEl) resultEl.style.display = 'block';
+    if (statusEl) statusEl.textContent = `图片识别已结束，正在合并 ${state.ok}/${state.total} 张内容…`;
+  }
   _renderScreenshotImageSummaries();
   updateDiagnosisSubmitState();
 }
@@ -11058,6 +11115,8 @@ function handleScreenshotDrop(e) {
 }
 
 async function _addSsFiles(files) {
+  const selectionRevision = ++_ssFileSelectionRevision;
+  const collectionRevision = _ssOcrRevision;
   const remain = 9 - _ssImages.length;
   if (remain <= 0) { showToast('最多上传 9 张图片'); return; }
   const toAdd = files.filter(f => f.type.startsWith('image/')).slice(0, remain);
@@ -11068,10 +11127,11 @@ async function _addSsFiles(files) {
     fr.onload = e => res({ dataURL: e.target.result, name: f.name });
     fr.readAsDataURL(f);
   })));
+  if (selectionRevision !== _ssFileSelectionRevision || collectionRevision !== _ssOcrRevision) return;
 
   loaded.forEach(img => _setSsImageStatus(img, 'pending', '等待识别'));
   _ssImages.push(...loaded);
-  _screenshotExtracted = null;
+  _invalidateSsAggregateState();
   _renderSsThumbs();
   _updateScreenshotOcrUi();
 
@@ -11122,8 +11182,34 @@ function _removeSsImage(idx) {
   if (removed) _ssOcrCache.delete(removed.dataURL);
   if (removed) _ssOcrErrors.delete(removed.dataURL);
   if (removed) _ssOcrStatus.delete(removed.dataURL);
+  _invalidateSsAggregateState();
   _renderSsThumbs();
-  _mergeAndShowOcrResults();  // 用缓存重新合并，不重新调接口
+  _mergeAndShowOcrResults(_ssOcrRevision, _ssImageSnapshot());  // 仅用当前缓存重新合并，不追加 AI 调用
+}
+
+function _tryFinalizeCurrentScreenshotBatch() {
+  const revision = _ssOcrRevision;
+  const imageSnapshot = _ssImageSnapshot();
+  const state = _getScreenshotRecognitionState();
+  if (state.total === 0 || state.pending > 0 || state.failed > 0 || state.ok !== state.total) {
+    _mergeAndShowOcrResults(revision, imageSnapshot);
+    return Promise.resolve();
+  }
+  if (_ssMergedRevision === revision && _screenshotExtracted) return Promise.resolve();
+  if (_ssMergeRevision === revision && _ssMergePromise) return _ssMergePromise;
+
+  const validCached = imageSnapshot.map(img => _ssOcrCache.get(img.dataURL)).filter(Boolean);
+  const totalBodyLen = validCached.reduce((sum, result) => sum + (result.body || '').length, 0);
+  _ssMergeRevision = revision;
+  const mergeTask = validCached.length > 1 || totalBodyLen > 500
+    ? _validateAndMergeOcr(validCached, revision, imageSnapshot)
+    : Promise.resolve(_mergeAndShowOcrResults(revision, imageSnapshot));
+  let trackedPromise;
+  trackedPromise = Promise.resolve(mergeTask).finally(() => {
+    if (_ssMergeRevision === revision && _ssMergePromise === trackedPromise) _ssMergePromise = null;
+  });
+  _ssMergePromise = trackedPromise;
+  return trackedPromise;
 }
 
 // 只对传入的图片列表 OCR（避免重复），完成后更新合并结果
@@ -11143,8 +11229,10 @@ async function _ocrImages(imagesToOcr) {
       headers: { 'Content-Type': 'application/json', ...authHeader() },
       body: JSON.stringify({ image_base64: img.dataURL.split(',')[1] }),
 	    }).then(r => {
+	      if (!_ssImages.includes(img)) return;
 	      if (r.status === 402) {
 	        return r.json().catch(() => ({})).then(errData => {
+	          if (!_ssImages.includes(img)) return;
 	          const reason = '截图识别积分不足';
 	          _ssOcrErrors.set(img.dataURL, reason);
 	          _ssOcrCache.set(img.dataURL, null);
@@ -11166,6 +11254,7 @@ async function _ocrImages(imagesToOcr) {
 	      }
 	      if (!r.ok) {
 	        return r.json().catch(() => ({})).then(err => {
+	          if (!_ssImages.includes(img)) return;
 	          const reason = err.detail || `HTTP ${r.status}`;
 	          _ssOcrErrors.set(img.dataURL, reason);
 	          _ssOcrCache.set(img.dataURL, null);
@@ -11173,6 +11262,7 @@ async function _ocrImages(imagesToOcr) {
 	        });
 	      }
 	      return r.json().then(d => {
+	        if (!_ssImages.includes(img)) return;
 	        // A/C 识别文字，B 识别图片视觉描述；本次上传的每张图都必须识别成功才允许后续诊断。
 	        if (d.title || d.body || d.cover_desc) {
 	          _ssOcrErrors.delete(img.dataURL);
@@ -11186,6 +11276,7 @@ async function _ocrImages(imagesToOcr) {
 	        }
 	      });
 	    }).catch(err => {
+	      if (!_ssImages.includes(img)) return;
 	      const reason = err?.message || '网络请求失败';
 	      _ssOcrErrors.set(img.dataURL, reason);
 	      _ssOcrCache.set(img.dataURL, null);
@@ -11199,28 +11290,16 @@ async function _ocrImages(imagesToOcr) {
   _ssOcrInFlight = Math.max(0, _ssOcrInFlight - imagesToOcr.length);
   if (loadingEl && _ssOcrInFlight === 0) loadingEl.style.display = 'none';
   _updateScreenshotOcrUi();
-
-  const state = _getScreenshotRecognitionState();
-  if (state.pending > 0 || state.failed > 0 || state.ok !== state.total) {
-    _mergeAndShowOcrResults();
-    return;
-  }
-
-  // 多图时调 agent 鉴别去重（单图且<500字时直接合并）
-  const validCached = _ssImages.map(img => _ssOcrCache.get(img.dataURL)).filter(Boolean);
-  const totalBodyLen = validCached.reduce((s, r) => s + (r.body || '').length, 0);
-  if (validCached.length > 1 || totalBodyLen > 500) {
-    await _validateAndMergeOcr(validCached);
-  } else {
-    _mergeAndShowOcrResults();
-  }
+  await _tryFinalizeCurrentScreenshotBatch();
 }
 
 // Claude Haiku 鉴别 Agent：对所有 OCR 结果去重、验证、重组
-async function _validateAndMergeOcr(ocrResults) {
+async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, imageSnapshot = _ssImageSnapshot()) {
+  if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
   const loadingEl = document.getElementById('screenshot-loading');
   const statusEl  = document.getElementById('ss-ocr-status');
   _ssOcrValidating = true;
+  _ssOcrValidatingRevision = revision;
   if (loadingEl) { loadingEl.style.display = 'block'; }
   if (statusEl)  statusEl.textContent = 'AI 鉴别去重中…';
   _updateScreenshotOcrUi();
@@ -11231,12 +11310,14 @@ async function _validateAndMergeOcr(ocrResults) {
       headers: { 'Content-Type': 'application/json', ...authHeader() },
       body: JSON.stringify({ ocr_results: ocrResults }),
     });
+    if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
     if (res.status === 401) {
       openAuthModal('login');
       throw new Error('请先登录后进行截图识别');
     }
     if (!res.ok) throw new Error('validate-ocr failed');
     const d = await res.json();
+    if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
 
     if (loadingEl) loadingEl.style.display = 'none';
 
@@ -11249,6 +11330,7 @@ async function _validateAndMergeOcr(ocrResults) {
       _validated: d.validated,
       _charCount: d.char_count || _bodyCharCountWithoutSsTags(splitValidated.body),
     };
+    _ssMergedRevision = revision;
 
     const resultEl  = document.getElementById('screenshot-result');
     const titleDisp = document.getElementById('ss-title-display');
@@ -11266,22 +11348,37 @@ async function _validateAndMergeOcr(ocrResults) {
     if (resultEl) resultEl.style.display = 'block';
 
     showToast(d.validated ? `✅ AI 鉴别去重完成，正文 ${charInfo}` : '✅ 内容识别完成');
+    return true;
   } catch(e) {
+    if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
     console.error('_validateAndMergeOcr error:', e);
     // 降级到普通合并
-    _mergeAndShowOcrResults();
+    _mergeAndShowOcrResults(revision, imageSnapshot);
+    return true;
   } finally {
-    _ssOcrValidating = false;
-    if (loadingEl) loadingEl.style.display = 'none';
-    _renderScreenshotImageSummaries();
-    updateDiagnosisSubmitState();
+    if (_isCurrentSsBatch(revision, imageSnapshot)) {
+      if (_ssOcrValidatingRevision === revision) {
+        _ssOcrValidating = false;
+        _ssOcrValidatingRevision = null;
+      }
+      if (loadingEl) loadingEl.style.display = 'none';
+      _renderScreenshotImageSummaries();
+      updateDiagnosisSubmitState();
+    }
   }
 }
 
 // 从缓存合并所有已识别图片的内容，处理所有图片类型（A/B/C）
-function _mergeAndShowOcrResults() {
+function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssImageSnapshot()) {
+	  if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
 	  const resultEl = document.getElementById('screenshot-result');
 	  const state = _getScreenshotRecognitionState();
+	  if (state.total === 0) {
+	    _screenshotExtracted = null;
+	    if (resultEl) resultEl.style.display = 'none';
+	    _updateScreenshotOcrUi();
+	    return true;
+	  }
 	  if (state.total > 0 && (state.pending > 0 || state.failed > 0 || state.ok !== state.total)) {
 	    _screenshotExtracted = null;
 	    const statusEl = document.getElementById('ss-ocr-status');
@@ -11292,7 +11389,7 @@ function _mergeAndShowOcrResults() {
 	    if (statusEl) {
 	      statusEl.textContent = state.failed > 0
 	        ? `图片 AI 识别失败：${state.failed}/${state.total} 张失败，必须全部识别成功后才能诊断`
-	        : `图片 AI 识别中：${state.completed}/${state.total} 张完成`;
+	        : `图片 AI 识别中：${state.completed}/${state.total} 张已识别`;
 	    }
 	    if (titleEl) titleEl.textContent = '（等待全部图片识别完成）';
 	    if (bodyEl) bodyEl.textContent = state.failed > 0
@@ -11375,6 +11472,7 @@ function _mergeAndShowOcrResults() {
     _photoCount: typeB.length,
     _textImgCount: textSources.length,
   };
+  _ssMergedRevision = revision;
 
   // 标题和正文显示
   document.getElementById('ss-title-display').textContent =
@@ -11402,17 +11500,17 @@ function _mergeAndShowOcrResults() {
   resultEl.style.display = 'block';
   _renderScreenshotImageSummaries();
   updateDiagnosisSubmitState();
+  return true;
 }
 
 function resetScreenshot() {
   _ssImages = [];
-  _screenshotExtracted = null;
   _ssOcrCache = new Map();
   _ssOcrErrors = new Map();
   _ssOcrStatus = new Map();
   _ssOcrPromise = null;
   _ssOcrInFlight = 0;
-  _ssOcrValidating = false;
+  _invalidateSsAggregateState();
   _renderSsThumbs();
   _updateScreenshotOcrUi();
 }
