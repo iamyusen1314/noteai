@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from fastapi.testclient import TestClient
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = ROOT / "model"
@@ -55,6 +57,18 @@ class AdminUsageStatsTests(unittest.TestCase):
         self.assertIn("if (!r.ok) throw new Error('usage stats request failed');", html)
         self.assertIn("用量数据加载失败，请稍后重试。", html)
         self.assertIn("暂无可显示数据", html)
+
+    def test_admin_user_detail_rejects_missing_and_ordinary_user_tokens(self):
+        client = TestClient(admin_server.admin_app)
+
+        missing = client.get("/admin/users/u-high")
+        ordinary = client.get(
+            "/admin/users/u-high",
+            headers={"Authorization": "Bearer ordinary-user-token"},
+        )
+
+        self.assertEqual(missing.status_code, 403)
+        self.assertEqual(ordinary.status_code, 403)
 
 
 if __name__ == "__main__":

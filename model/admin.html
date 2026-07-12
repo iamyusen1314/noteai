@@ -575,6 +575,95 @@ function fmtTokens(n) {
   return String(Math.round(n));
 }
 
+const ADMIN_LEDGER_OPERATION_LABELS = Object.freeze({
+  score:'快速评分', diagnose:'内容诊断', analyze:'AI深度诊断',
+  extra_image:'附加内容图', video_analyze:'视频内容解析', generate:'AI爆文生成',
+  chat_fast:'对话反馈', chat_rewrite:'对话重写', screenshot:'截图识别',
+});
+const ADMIN_LEDGER_SOURCE_LABELS = Object.freeze({
+  subscription:'月度套餐积分', mixed:'套餐+钱包', credits:'钱包积分',
+  free:'免费', refunded:'已退款',
+});
+const ADMIN_LEDGER_COST_MODE_LABELS = Object.freeze({
+  actual:'实际成本（以覆盖审计为准）', partial:'部分计价成本', unpriced:'未计价成本',
+  usage_incomplete:'用量不完整', estimated:'估算成本',
+  legacy_unverifiable_actual:'历史不可复算成本',
+});
+const ADMIN_LEDGER_TXN_TYPE_LABELS = Object.freeze({
+  usage:'钱包消费', topup:'钱包充值', gift:'管理员赠送', refund:'钱包退款',
+});
+const ADMIN_LEDGER_PACKAGE_LABELS = Object.freeze({
+  starter:'体验加油包', creator:'创作者补给包', growth:'增长运营包', studio:'工作室储备包',
+});
+
+function adminLedgerNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function adminLedgerTime(value) {
+  const date = new Date(String(value || ''));
+  if (!Number.isFinite(date.getTime())) return '时间未知';
+  return date.toLocaleString('zh-CN', { hour12:false });
+}
+
+function adminLedgerLabel(labels, value, fallback) {
+  const key = String(value ?? '');
+  return Object.prototype.hasOwnProperty.call(labels, key) ? labels[key] : fallback;
+}
+
+function renderAdminUsageLedger(rows) {
+  const safeRows = Array.isArray(rows) ? rows.slice(0, 20) : [];
+  if (!safeRows.length) {
+    return '<tr><td colspan="6" style="color:var(--text-muted);text-align:center">暂无最近用量记录</td></tr>';
+  }
+  return safeRows.map(row => {
+    const operation = adminLedgerLabel(ADMIN_LEDGER_OPERATION_LABELS, row?.operation, '未知操作');
+    const source = adminLedgerLabel(ADMIN_LEDGER_SOURCE_LABELS, row?.source, '未知来源');
+    const costMode = adminLedgerLabel(ADMIN_LEDGER_COST_MODE_LABELS, row?.cost_mode, '未知成本口径');
+    const tokensIn = Math.max(0, Math.round(adminLedgerNumber(row?.tokens_in)));
+    const tokensOut = Math.max(0, Math.round(adminLedgerNumber(row?.tokens_out)));
+    const modelCalls = Math.max(0, Math.round(adminLedgerNumber(row?.model_calls)));
+    const credits = Math.max(0, adminLedgerNumber(row?.credits_used));
+    const cost = Math.max(0, adminLedgerNumber(row?.cost_rmb));
+    const models = String(row?.model_names || '').trim() || '无模型明细';
+    return `<tr>
+      <td style="white-space:nowrap">${esc(adminLedgerTime(row?.recorded_at))}</td>
+      <td><b>${esc(operation)}</b><div style="font-size:11px;color:var(--text-muted)">${esc(source)}</div></td>
+      <td>${esc(models)}<div style="font-size:11px;color:var(--text-muted)">${modelCalls} 次模型调用</div></td>
+      <td>${fmtTokens(tokensIn + tokensOut)}<div style="font-size:11px;color:var(--text-muted)">入 ${fmtTokens(tokensIn)} / 出 ${fmtTokens(tokensOut)}</div></td>
+      <td style="white-space:nowrap">总计费 ${credits.toFixed(1)} 积分</td>
+      <td style="white-space:nowrap">¥${cost.toFixed(4)}<div style="font-size:11px;color:var(--text-muted)">${esc(costMode)}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAdminCreditLedger(rows) {
+  const safeRows = Array.isArray(rows) ? rows.slice(0, 20) : [];
+  if (!safeRows.length) {
+    return '<tr><td colspan="5" style="color:var(--text-muted);text-align:center">暂无钱包积分变动</td></tr>';
+  }
+  return safeRows.map(row => {
+    const type = adminLedgerLabel(ADMIN_LEDGER_TXN_TYPE_LABELS, row?.type, '未知变动');
+    const amount = adminLedgerNumber(row?.amount);
+    const balance = adminLedgerNumber(row?.balance_after);
+    const paidRmb = Math.max(0, adminLedgerNumber(row?.paid_rmb));
+    const packageId = String(row?.package_id || '');
+    const packageLabel = packageId
+      ? adminLedgerLabel(ADMIN_LEDGER_PACKAGE_LABELS, packageId, '未知积分包')
+      : '';
+    const description = String(row?.description || '').trim() || '无补充说明';
+    const amountText = `${amount > 0 ? '+' : ''}${amount.toFixed(1)} 积分`;
+    return `<tr>
+      <td style="white-space:nowrap">${esc(adminLedgerTime(row?.recorded_at))}</td>
+      <td><b>${esc(type)}</b><div style="font-size:11px;color:var(--text-muted)">余额 ${balance.toFixed(1)}</div></td>
+      <td style="white-space:nowrap">${amountText}</td>
+      <td>${esc(description)}</td>
+      <td style="white-space:nowrap">${paidRmb > 0 ? `实付 ¥${paidRmb.toFixed(2)}` : '无现金收入'}${packageLabel ? `<div style="font-size:11px;color:var(--text-muted)">${esc(packageLabel)}</div>` : ''}</td>
+    </tr>`;
+  }).join('');
+}
+
 /* ── Navigation ───────────────────────────────────────────────────── */
 function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -716,6 +805,24 @@ async function showUser(uid) {
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
       ${(d.month_usage||[]).map(op=>`<div style="background:var(--surf-2);border-radius:8px;padding:6px 10px;font-size:12px">
         ${esc(op.operation)}: <b>${op.cnt}</b>次 / ${fmtTokens((op.tokens_in||0)+(op.tokens_out||0))} / ¥${(op.cost||0).toFixed(4)}</div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:14px">
+      以下两类账本分别记录操作用量与钱包积分变化，不是一一对应关系；这里只显示各自最近 20 条，不代表完整历史。
+      用量中的“总计费积分”包含月度套餐与钱包积分，钱包账本只记录钱包余额变化。
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近 20 条用量</div>
+    <div style="overflow-x:auto;margin-bottom:16px">
+      <table class="data-table" style="min-width:820px">
+        <thead><tr><th>时间</th><th>操作/来源</th><th>模型</th><th>Tokens</th><th>总计费积分</th><th>API 成本</th></tr></thead>
+        <tbody data-testid="admin-usage-ledger">${renderAdminUsageLedger(d.recent_usage)}</tbody>
+      </table>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近 20 条钱包积分变动</div>
+    <div style="overflow-x:auto;margin-bottom:16px">
+      <table class="data-table" style="min-width:720px">
+        <thead><tr><th>时间</th><th>变动类型</th><th>钱包变化</th><th>说明</th><th>现金/积分包</th></tr></thead>
+        <tbody data-testid="admin-credit-ledger">${renderAdminCreditLedger(d.credit_txns)}</tbody>
+      </table>
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
