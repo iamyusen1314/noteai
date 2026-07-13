@@ -270,6 +270,340 @@ class ClaudeTransportTests(unittest.TestCase):
         self.assertEqual(record_usage.call_count, 2)
         self.assertEqual(record_usage.call_args_list[0].args[1], {"output_tokens": 3})
 
+    def test_stream_fallback_requires_explicit_pre_provider_failure(self):
+        class FailingTransport:
+            def __init__(self, *, fallback_safe):
+                self.fallback_safe = fallback_safe
+
+            async def stream_message(self, _request):
+                if False:
+                    yield None
+                raise model_router.ClaudeGatewayError(
+                    "CONCURRENCY_LIMIT" if self.fallback_safe else "PROVIDER_UNAVAILABLE",
+                    429 if self.fallback_safe else 503,
+                    fallback_safe=self.fallback_safe,
+                    usage_audit_required=not self.fallback_safe,
+                )
+
+        async def collect():
+            return [item async for item in model_router.stream(
+                "diagnosis",
+                "system",
+                "user",
+                thinking=False,
+                max_tokens=1200,
+            )]
+
+        with mock.patch.object(model_router, "_call_kimi", return_value="fallback") as fallback, \
+             mock.patch.object(model_router, "_record_claude_usage") as record_usage:
+            model_router.set_claude_transport(FailingTransport(fallback_safe=True))
+            self.assertEqual(asyncio.run(collect()), [("content", "fallback")])
+            fallback.assert_awaited_once()
+            record_usage.assert_not_called()
+
+            fallback.reset_mock()
+            model_router.set_claude_transport(FailingTransport(fallback_safe=False))
+            with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                asyncio.run(collect())
+            self.assertEqual(raised.exception.code, "PROVIDER_UNAVAILABLE")
+            fallback.assert_not_awaited()
+            self.assertEqual(record_usage.call_args_list[-1].args, (model_router.CLAUDE_HAIKU, None))
+
+    def test_partial_stream_uses_fixed_terminal_and_never_appends_fallback(self):
+        class PartialTransport:
+            async def stream_message(self, _request):
+                yield model_router.ClaudeStreamEvent("content", text="primary-part")
+                raise RuntimeError("secret prompt https://gateway.invalid/private")
+
+        async def consume():
+            chunks = []
+            error = None
+            try:
+                async for item in model_router.stream(
+                    "diagnosis",
+                    "system-secret",
+                    "user-secret",
+                    thinking=False,
+                    max_tokens=1200,
+                ):
+                    chunks.append(item)
+            except Exception as exc:
+                error = exc
+            return chunks, error
+
+        model_router.set_claude_transport(PartialTransport())
+        log_lines = []
+        with mock.patch.object(model_router, "_call_kimi", return_value="must-not-run") as fallback, \
+             mock.patch.object(model_router, "_record_claude_usage") as record_usage, \
+             mock.patch.object(model_router, "_log", side_effect=log_lines.append):
+            chunks, error = asyncio.run(consume())
+
+        self.assertEqual(chunks, [("content", "primary-part")])
+        self.assertIsInstance(error, model_router.ClaudeGatewayError)
+        self.assertEqual(error.code, "CLAUDE_STREAM_PARTIAL")
+        self.assertEqual(str(error), "claude gateway error: CLAUDE_STREAM_PARTIAL")
+        fallback.assert_not_awaited()
+        record_usage.assert_called_once_with(model_router.CLAUDE_HAIKU, None)
+        logs = "\n".join(log_lines)
+        self.assertNotIn("secret", logs)
+        self.assertNotIn("gateway.invalid", logs)
+
+    def test_usage_then_stream_fault_records_real_usage_once_without_fallback(self):
+        usage = {"input_tokens": 2, "output_tokens": 1}
+
+        class UsageThenFaultTransport:
+            async def stream_message(self, _request):
+                yield model_router.ClaudeStreamEvent("usage", usage=usage)
+                raise model_router.ClaudeGatewayError(
+                    "GATEWAY_STREAM_INCOMPLETE",
+                    502,
+                    usage_audit_required=True,
+                )
+
+        async def collect():
+            return [item async for item in model_router.stream(
+                "diagnosis", "system", "user", thinking=False, max_tokens=1200,
+            )]
+
+        model_router.set_claude_transport(UsageThenFaultTransport())
+        with mock.patch.object(model_router, "_call_kimi", return_value="must-not-run") as fallback, \
+             mock.patch.object(model_router, "_record_claude_usage") as record_usage:
+            with self.assertRaises(model_router.ClaudeGatewayError):
+                asyncio.run(collect())
+
+        fallback.assert_not_awaited()
+        record_usage.assert_called_once_with(model_router.CLAUDE_HAIKU, usage)
+
+    def test_usage_then_cancellation_does_not_add_usage_missing(self):
+        usage = {"input_tokens": 2, "output_tokens": 1}
+
+        class UsageThenCancelledTransport:
+            async def stream_message(self, _request):
+                yield model_router.ClaudeStreamEvent("usage", usage=usage)
+                raise model_router.ClaudeRequestCancelled(usage_audit_required=False)
+
+        async def collect():
+            return [item async for item in model_router._stream_claude(
+                model_router.CLAUDE_HAIKU,
+                "system",
+                "user",
+                thinking=False,
+                max_tokens=1200,
+            )]
+
+        model_router.set_claude_transport(UsageThenCancelledTransport())
+        with mock.patch.object(model_router, "_record_claude_usage") as record_usage:
+            with self.assertRaises(asyncio.CancelledError):
+                asyncio.run(collect())
+
+        record_usage.assert_called_once_with(model_router.CLAUDE_HAIKU, usage)
+
+    def test_chat_partial_stream_never_calls_haiku_fallback(self):
+        class PartialChatTransport:
+            async def stream_message(self, _request):
+                yield model_router.ClaudeStreamEvent("content", text="sonnet-part")
+                raise model_router.ClaudeGatewayError(
+                    "PROVIDER_UNAVAILABLE",
+                    503,
+                    usage_audit_required=True,
+                )
+
+        async def consume():
+            chunks = []
+            error = None
+            try:
+                async for item in model_router.stream_chat(
+                    system="system",
+                    history=[],
+                    user_content="user",
+                    thinking=False,
+                    max_tokens=1200,
+                ):
+                    chunks.append(item)
+            except Exception as exc:
+                error = exc
+            return chunks, error
+
+        model_router.set_claude_transport(PartialChatTransport())
+        with mock.patch.object(model_router, "_call_claude", return_value="must-not-run") as fallback, \
+             mock.patch.object(model_router, "_record_claude_usage") as record_usage:
+            chunks, error = asyncio.run(consume())
+
+        self.assertEqual(chunks, [("content", "sonnet-part")])
+        self.assertIsInstance(error, model_router.ClaudeGatewayError)
+        self.assertEqual(error.code, "CLAUDE_STREAM_PARTIAL")
+        fallback.assert_not_awaited()
+        record_usage.assert_called_once_with(model_router.CLAUDE_SONNET, None)
+
+    def test_dispatch_cancellation_records_usage_missing_once_and_never_falls_back(self):
+        class CancelledTransport:
+            async def stream_message(self, _request):
+                if False:
+                    yield None
+                raise model_router.ClaudeRequestCancelled(usage_audit_required=True)
+
+        async def collect():
+            return [item async for item in model_router.stream(
+                "diagnosis", "system", "user", thinking=False, max_tokens=1200,
+            )]
+
+        model_router.set_claude_transport(CancelledTransport())
+        with mock.patch.object(model_router, "_call_kimi", return_value="must-not-run") as fallback, \
+             mock.patch.object(model_router, "_record_claude_usage") as record_usage:
+            with self.assertRaises(asyncio.CancelledError):
+                asyncio.run(collect())
+
+        fallback.assert_not_awaited()
+        record_usage.assert_called_once_with(model_router.CLAUDE_HAIKU, None)
+
+    def test_stream_consumer_abandonment_closes_transport_and_records_usage_missing(self):
+        class AbandonedTransport:
+            def __init__(self):
+                self.closed = False
+
+            async def stream_message(self, _request):
+                try:
+                    yield model_router.ClaudeStreamEvent("content", text="first")
+                    yield model_router.ClaudeStreamEvent("usage", usage={"output_tokens": 1})
+                finally:
+                    self.closed = True
+
+        transport = AbandonedTransport()
+        model_router.set_claude_transport(transport)
+
+        async def abandon(record_usage):
+            outer = model_router.stream(
+                "diagnosis", "system", "user", thinking=False, max_tokens=1200,
+            )
+            first = await outer.__anext__()
+            await outer.aclose()
+            return first, transport.closed, list(record_usage.call_args_list)
+
+        with mock.patch.object(model_router, "_call_kimi", return_value="must-not-run") as fallback, \
+             mock.patch.object(model_router, "_record_claude_usage") as record_usage:
+            first, closed, usage_calls = asyncio.run(abandon(record_usage))
+
+        self.assertEqual(first, ("content", "first"))
+        self.assertTrue(closed)
+        fallback.assert_not_awaited()
+        self.assertEqual(
+            [call.args for call in usage_calls],
+            [(model_router.CLAUDE_HAIKU, None)],
+        )
+
+    def test_stream_chat_consumer_abandonment_closes_transport_without_fallback(self):
+        class AbandonedChatTransport:
+            def __init__(self):
+                self.closed = False
+
+            async def stream_message(self, _request):
+                try:
+                    yield model_router.ClaudeStreamEvent("content", text="first")
+                    yield model_router.ClaudeStreamEvent("usage", usage={"output_tokens": 1})
+                finally:
+                    self.closed = True
+
+        transport = AbandonedChatTransport()
+        model_router.set_claude_transport(transport)
+
+        async def abandon(record_usage):
+            outer = model_router.stream_chat(
+                system="system",
+                history=[],
+                user_content="user",
+                thinking=False,
+                max_tokens=1200,
+            )
+            first = await outer.__anext__()
+            await outer.aclose()
+            return first, transport.closed, list(record_usage.call_args_list)
+
+        with mock.patch.object(model_router, "_call_claude", return_value="must-not-run") as fallback, \
+             mock.patch.object(model_router, "_record_claude_usage") as record_usage:
+            first, closed, usage_calls = asyncio.run(abandon(record_usage))
+
+        self.assertEqual(first, ("content", "first"))
+        self.assertTrue(closed)
+        fallback.assert_not_awaited()
+        self.assertEqual(
+            [call.args for call in usage_calls],
+            [(model_router.CLAUDE_SONNET, None)],
+        )
+
+    def test_transport_abandonment_after_usage_does_not_add_usage_missing(self):
+        usage = {"input_tokens": 2, "output_tokens": 1}
+
+        class UsedTransport:
+            def __init__(self):
+                self.closed = False
+
+            async def stream_message(self, _request):
+                try:
+                    yield model_router.ClaudeStreamEvent("content", text="first")
+                    yield model_router.ClaudeStreamEvent("usage", usage=usage)
+                    yield model_router.ClaudeStreamEvent("content", text="unreachable")
+                finally:
+                    self.closed = True
+
+        transport = UsedTransport()
+        model_router.set_claude_transport(transport)
+
+        async def abandon(record_usage):
+            request = model_router.ClaudeMessageRequest(
+                model=model_router.CLAUDE_HAIKU,
+                max_tokens=1200,
+                messages=({"role": "user", "content": "user"},),
+            )
+            inner = model_router._claude_transport_stream(model_router.CLAUDE_HAIKU, request)
+            first = await inner.__anext__()
+            terminal_usage = await inner.__anext__()
+            await inner.aclose()
+            return (
+                first,
+                terminal_usage,
+                transport.closed,
+                list(record_usage.call_args_list),
+            )
+
+        with mock.patch.object(model_router, "_record_claude_usage") as record_usage:
+            first, terminal_usage, closed, usage_calls = asyncio.run(abandon(record_usage))
+
+        self.assertEqual(first.text, "first")
+        self.assertEqual(terminal_usage.usage, usage)
+        self.assertTrue(closed)
+        self.assertEqual(
+            [call.args for call in usage_calls],
+            [(model_router.CLAUDE_HAIKU, usage)],
+        )
+
+    def test_non_stream_provider_started_failure_is_not_retried_or_fallen_back(self):
+        class StartedFailureTransport:
+            def __init__(self):
+                self.calls = 0
+
+            async def create_message(self, _request):
+                self.calls += 1
+                raise model_router.ClaudeGatewayError(
+                    "PROVIDER_UNAVAILABLE",
+                    503,
+                    usage_audit_required=True,
+                )
+
+        transport = StartedFailureTransport()
+        model_router.set_claude_transport(transport)
+        with mock.patch.object(model_router, "MODEL_RETRY_ATTEMPTS", 3), \
+             mock.patch.object(model_router, "_call_kimi", return_value="must-not-run") as fallback, \
+             mock.patch.object(model_router, "_record_claude_usage") as record_usage:
+            with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                asyncio.run(model_router.call(
+                    "diagnosis", "system", "user", thinking=False, max_tokens=1200,
+                ))
+
+        self.assertEqual(raised.exception.code, "PROVIDER_UNAVAILABLE")
+        self.assertEqual(transport.calls, 1)
+        fallback.assert_not_awaited()
+        record_usage.assert_called_once_with(model_router.CLAUDE_HAIKU, None)
+
     def test_semantic_sync_uses_same_transport_with_temperature_point_three(self):
         with mock.patch.object(model_router, "_record_claude_usage") as record_usage:
             result = model_router.call_semantic_sync("semantic-system", "semantic-user", 120)

@@ -44,13 +44,21 @@ Last updated: 2026-07-12
 - 建议验证方式: Locate/implement payment provider flow only after approval; test order creation, callback signature verification, idempotency, refunds, reconciliation.
 - 是否需要用户确认后才能修改: yes.
 
-### Confirmed Alibaba + Render Gateway topology is not deployed
+### Alibaba production topology is not deployed; Gateway Staging is single-instance only
 
-- 风险描述: 目标为阿里云华南完整生产主系统、Render Singapore 仅 Claude Gateway；ARCH-001/ARCH-002已在本地收口runtime调用并实现单实例Gateway，但现有Render全栈Staging仍使用Local transport，阿里云主系统、Gateway云端验证和生产切流均未完成。
+- 风险描述: 目标为阿里云华南完整生产主系统、Render Singapore 仅 Claude Gateway；ARCH-001已收口runtime调用，ARCH-002单实例Gateway已在Render Singapore Staging完成云端验证，但现有全栈Staging仍使用Local transport，阿里云主系统、2–4实例Gateway安全化和生产切流均未完成。
 - 涉及文件: `model/model_router.py`, `model/api.py`, `model/billing.py`, `render.yaml`, deployment scripts and future Gateway service.
 - 可能后果: 阿里云主系统无法按目标拓扑上线；部分请求仍直连 Claude；跨区域重试导致重复供应商费用；逐模型 usage/cost 漏记；未鉴权 Gateway 被滥用。
-- 建议验证方式: 完成单实例Gateway部署与受控Smoke；生产前再完成共享原子防重放/限流、精确主机绑定、远端健康、timeout与partial-stream费用边界，然后建设阿里云并执行灰度/回滚；持续证明Gateway无业务数据库和持久内容。
+- 建议验证方式: 生产前完成共享原子防重放/限流、精确主机绑定、远端健康、timeout与partial-stream费用边界，然后建设阿里云并执行灰度/回滚；持续证明Gateway无业务数据库和持久内容。
 - 是否需要用户确认后才能修改: transport 收口不需要；创建付费 Render/Alibaba 资源、真实 Claude Smoke 和生产切流需要。
+
+### Claude Gateway shared multi-instance controls are not production-safe
+
+- 风险描述: ARCH-002P-A已在本地通过三轮独立故障验证，部分正文fallback、ambiguous retry、usage审计和取消/ASGI资源清理已fail-closed；但当前nonce、rate、concurrency仍为单进程内存，扩为2–4实例仍会绕过全局控制，且跨实例逻辑operation终态尚未持久到共享原子store。
+- 涉及文件: `gateway/claude_gateway.py`, `model/claude_gateway_protocol.py`, `model/model_router.py`, Gateway Blueprint、共享状态适配及fault/chaos tests。
+- 可能后果: 重放、重复Claude费用、正文拼接、已退款但供应商成本漏审计，或共享store中断时重复调用。
+- 建议验证方式: 不重复实施已VERIFIED但未部署的ARCH-002P-A；串行闭环B/C/D。共享store必须原子且fail-closed，无本地fallback；跨4实例、重启、断网、取消、滚动和Key轮换故障矩阵全部独立验证。
+- 是否需要用户确认后才能修改: 协议/fault测试不需要；新增Render Key Value、2–4实例演练和真实Claude调用需要。
 
 ### Alibaba production infrastructure and recoverability do not exist yet
 

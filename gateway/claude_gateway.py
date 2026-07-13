@@ -11,7 +11,7 @@ import re
 import secrets
 import time
 from dataclasses import dataclass
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Awaitable, Callable
 
 import anthropic
 import httpx
@@ -67,6 +67,17 @@ def _timestamp_skew_seconds() -> int:
 
 def _configured_instance_count() -> int:
     return _int_env("NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT", 1, 1, 100)
+
+
+def _preflight_timeout_seconds() -> float:
+    try:
+        value = float(
+            os.environ.get("NOTEAI_CLAUDE_GATEWAY_PREFLIGHT_TIMEOUT_SECONDS", "175")
+            or 175
+        )
+    except (TypeError, ValueError):
+        value = 175.0
+    return max(1.0, min(300.0, value))
 
 
 def _configured_hmac_keys() -> dict[str, str] | None:
@@ -463,6 +474,61 @@ def _ndjson(event: dict[str, Any]) -> bytes:
     return (json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
 
 
+class _AsyncCleanupOnce:
+    def __init__(self, cleanup: Callable[[], Awaitable[None]]):
+        self._cleanup = cleanup
+        self._complete = False
+        self._lock = asyncio.Lock()
+
+    async def run(self) -> None:
+        async with self._lock:
+            if self._complete:
+                return
+            await self._cleanup()
+            self._complete = True
+
+
+class _ManagedBodyIterator:
+    def __init__(self, source, cleanup: _AsyncCleanupOnce):
+        self._source = source.__aiter__()
+        self._cleanup = cleanup
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return await self._source.__anext__()
+        except StopAsyncIteration:
+            await self._cleanup.run()
+            raise
+        except BaseException:
+            await self._cleanup.run()
+            raise
+
+    async def aclose(self) -> None:
+        try:
+            close = getattr(self._source, "aclose", None)
+            if close is not None:
+                result = close()
+                if inspect.isawaitable(result):
+                    await result
+        finally:
+            await self._cleanup.run()
+
+
+class _ManagedStreamingResponse(StreamingResponse):
+    def __init__(self, content, cleanup: _AsyncCleanupOnce, **kwargs):
+        super().__init__(content, **kwargs)
+        self._cleanup = cleanup
+
+    async def __call__(self, scope, receive, send) -> None:
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            await self._cleanup.run()
+
+
 @app.get("/health/live")
 async def health_live():
     return {"status": "ok", "service": "noteai-claude-gateway"}
@@ -526,30 +592,80 @@ async def create_message(request: Request):
 @app.post(STREAM_PATH)
 async def stream_message(request: Request):
     payload = await _read_and_validate(request, STREAM_PATH)
-    if not await _LIMITER.try_acquire():
+    limiter = _LIMITER
+    if not await limiter.try_acquire():
         raise GatewayRejection("CONCURRENCY_LIMIT", 429)
 
-    async def generate():
-        started = time.monotonic()
-        usage_seen = False
+    started = time.monotonic()
+    usage_seen = False
+    provider = _PROVIDER
+    provider_stream = provider.stream(payload)
+    provider_iterator = provider_stream.__aiter__()
+
+    async def close_provider() -> None:
+        close = getattr(provider_iterator, "aclose", None)
+        if close is None:
+            return
         try:
-            async for event in _PROVIDER.stream(payload):
-                event_type = event.get("type") if isinstance(event, dict) else None
-                if event_type == "thinking":
-                    continue
-                if event_type == "content" and isinstance(event.get("text"), str):
-                    public_event = {"type": "content", "text": event["text"]}
-                elif (
-                    event_type == "usage"
-                    and event.get("usage") is not None
-                    and valid_usage_envelope(event.get("usage"))
-                ):
-                    if usage_seen:
-                        raise ValueError("duplicate provider usage")
-                    usage_seen = True
-                    public_event = {"type": "usage", "usage": event["usage"]}
-                else:
-                    raise ValueError("invalid provider stream event")
+            result = close()
+            if inspect.isawaitable(result):
+                await result
+        except (Exception, asyncio.CancelledError, GeneratorExit):
+            pass
+
+    async def cleanup_resources() -> None:
+        await close_provider()
+        await limiter.release()
+
+    cleanup = _AsyncCleanupOnce(cleanup_resources)
+
+    async def next_public_event() -> dict[str, Any]:
+        nonlocal usage_seen
+        while True:
+            event = await provider_iterator.__anext__()
+            event_type = event.get("type") if isinstance(event, dict) else None
+            if event_type == "thinking":
+                await asyncio.sleep(0)
+                continue
+            if event_type == "content" and isinstance(event.get("text"), str):
+                return {"type": "content", "text": event["text"]}
+            if (
+                event_type == "usage"
+                and event.get("usage") is not None
+                and valid_usage_envelope(event.get("usage"))
+            ):
+                if usage_seen:
+                    raise ValueError("duplicate provider usage")
+                usage_seen = True
+                return {"type": "usage", "usage": event["usage"]}
+            raise ValueError("invalid provider stream event")
+
+    try:
+        first_event = await asyncio.wait_for(
+            next_public_event(),
+            timeout=_preflight_timeout_seconds(),
+        )
+    except (asyncio.CancelledError, GeneratorExit):
+        await cleanup.run()
+        raise
+    except BaseException as exc:
+        code, status_code = _provider_error(exc)
+        logger.warning(
+            "gateway_provider_error code=%s model=%s stream=true phase=preflight",
+            code,
+            payload["model"],
+        )
+        await cleanup.run()
+        return JSONResponse(_error_payload(code), status_code=status_code)
+
+    async def generate():
+        try:
+            yield _ndjson({"protocol_version": PROTOCOL_VERSION, **first_event})
+            while True:
+                try:
+                    public_event = await next_public_event()
+                except StopAsyncIteration:
+                    break
                 yield _ndjson({"protocol_version": PROTOCOL_VERSION, **public_event})
             if not usage_seen:
                 raise ValueError("provider usage missing")
@@ -570,6 +686,10 @@ async def stream_message(request: Request):
                 "error": {"code": code, "message": "provider request failed"},
             })
         finally:
-            await _LIMITER.release()
+            await cleanup.run()
 
-    return StreamingResponse(generate(), media_type="application/x-ndjson")
+    return _ManagedStreamingResponse(
+        _ManagedBodyIterator(generate(), cleanup),
+        cleanup,
+        media_type="application/x-ndjson",
+    )

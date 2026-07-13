@@ -1695,7 +1695,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertFalse(any(body == shared_candidate for body in bodies))
         self.assertTrue(all(p.get("fallback") == "style_candidate" for p in result["plans"]))
 
-    def test_model_router_retries_empty_claude_response_before_fallback(self):
+    def test_model_router_empty_claude_response_fails_closed_without_retry_or_fallback(self):
         original_call_claude = api._mr._call_claude
         original_call_kimi = api._mr._call_kimi
         original_attempts = api._mr.MODEL_RETRY_ATTEMPTS
@@ -1709,7 +1709,7 @@ class ApiContractTests(unittest.TestCase):
 
         async def fake_claude(*args, **kwargs):
             attempts["claude"] += 1
-            return "" if attempts["claude"] == 1 else "ok-after-retry"
+            return ""
 
         async def fake_kimi(*args, **kwargs):
             attempts["kimi"] += 1
@@ -1725,7 +1725,8 @@ class ApiContractTests(unittest.TestCase):
                 "primary": api._mr.CLAUDE_HAIKU,
                 "fallback": [api._mr.KIMI_TEXT],
             }
-            result = asyncio.run(api._mr.call("diagnosis", "system", "user"))
+            with self.assertRaises(api._mr.ClaudeGatewayError) as raised:
+                asyncio.run(api._mr.call("diagnosis", "system", "user"))
         finally:
             api._mr._call_claude = original_call_claude
             api._mr._call_kimi = original_call_kimi
@@ -1734,11 +1735,11 @@ class ApiContractTests(unittest.TestCase):
             api._mr.asyncio.sleep = original_sleep
             api._mr.TASK_ROUTING["diagnosis"] = original_route
 
-        self.assertEqual(result, "ok-after-retry")
-        self.assertEqual(attempts["claude"], 2)
+        self.assertEqual(raised.exception.code, "CLAUDE_OUTCOME_UNKNOWN")
+        self.assertEqual(attempts["claude"], 1)
         self.assertEqual(attempts["kimi"], 0)
 
-    def test_model_router_times_out_slow_claude_before_fallback(self):
+    def test_model_router_claude_timeout_fails_closed_without_fallback(self):
         original_call_claude = api._mr._call_claude
         original_call_kimi = api._mr._call_kimi
         original_attempts = api._mr.MODEL_RETRY_ATTEMPTS
@@ -1764,7 +1765,8 @@ class ApiContractTests(unittest.TestCase):
                 "primary": api._mr.CLAUDE_HAIKU,
                 "fallback": [api._mr.KIMI_TEXT],
             }
-            result = asyncio.run(api._mr.call("content_gen", "system", "user"))
+            with self.assertRaises(api._mr.ClaudeGatewayError) as raised:
+                asyncio.run(api._mr.call("content_gen", "system", "user"))
         finally:
             api._mr._call_claude = original_call_claude
             api._mr._call_kimi = original_call_kimi
@@ -1772,9 +1774,9 @@ class ApiContractTests(unittest.TestCase):
             api._mr.CLAUDE_FAST_TIMEOUT_SECONDS = original_timeout
             api._mr.TASK_ROUTING["content_gen"] = original_route
 
-        self.assertEqual(result, "fallback-after-timeout")
+        self.assertEqual(raised.exception.code, "CLAUDE_OUTCOME_UNKNOWN")
         self.assertEqual(attempts["claude"], 1)
-        self.assertEqual(attempts["kimi"], 1)
+        self.assertEqual(attempts["kimi"], 0)
 
     def test_video_analyze_fails_fast_when_video_understanding_is_empty(self):
         original_check = api._billing.check_and_deduct

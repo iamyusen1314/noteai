@@ -191,7 +191,7 @@
 
 ### ARCH-002 — Render Singapore Claude Gateway
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：Critical。
 - 问题描述：需要新增只负责 Claude 调用的最小服务，主系统通过带版本的内部协议调用；Gateway 不得承载用户、支付、数据库、Admin、Kimi、Cron 或模型文件。
 - 证据：当前 `render.yaml` 没有独立 Gateway，API 服务同时持有数据库、Claude/Kimi、S3 和视频磁盘配置；现有 readiness 只检查本进程 Key。
@@ -200,27 +200,92 @@
 - 风险：内部接口暴露、签名重放、模型越权、跨区域网络歧义、双层重试导致重复供应商费用、Prompt/附件进入日志。
 - 执行代理：单一 Gateway Implementation Agent（Godel）已完成本地实现及两轮最小加固；没有其他代理并行修改相同文件。
 - 验证代理：独立 Security Reviewer（Tesla）+ Protocol/Chaos Verification Agent（Ampere）；首轮发现未来时间戳重放、无长度请求内存边界、网络异常原文和响应媒体类型门禁缺口，均退回原实施代理修正；最终安全复核与协议负测均PASS，允许进入单实例Staging部署。
-- 修改状态/进度：已实现 `claude-gateway.v1` HMAC协议、current/previous双Key、未来时间戳安全nonce TTL、单实例并发/速率/防重放、请求流式有界读取、严格模型/字段/token/image门禁、raw reasoning丢弃、固定错误码、完整usage envelope与断流 `usage_missing` 审计；主系统保留Local默认，仅显式Gateway模式切换。独立Blueprint只含一个Singapore Starter、单worker、单实例、无数据库/磁盘/Cron/Kimi/S3/业务服务。首次云端日志复核发现Uvicorn默认access log仍记录来源IP和endpoint path，虽无Prompt/Secret但不满足严格日志门禁；已在同一包最小增加 `--no-access-log` 并补包装回归，等待独立复核、提交和自动部署。
+- 修改状态/进度：已实现 `claude-gateway.v1` HMAC协议、current/previous双Key、未来时间戳安全nonce TTL、单实例并发/速率/防重放、请求流式有界读取、严格模型/字段/token/image门禁、raw reasoning丢弃、固定错误码、完整usage envelope与断流 `usage_missing` 审计；主系统保留Local默认，仅显式Gateway模式切换。独立Blueprint只含一个Singapore Starter、单worker、单实例、无数据库/磁盘/Cron/Kimi/S3/业务服务。首次云端日志复核发现Uvicorn默认access log仍记录来源IP和endpoint path，已在同一包增加 `--no-access-log` 并补包装回归；独立安全代理PASS，修复commit `a95ec6a` 已部署。旧实例 `qmdqn` 于08:59:50完成排空；新实例 `rmqhb` 的09:01:21负测日志只出现固定 `gateway_reject code=AUTH_HEADER_INVALID`，没有IP、path、Prompt、body、响应或Secret。
 - 验收标准：TLS；HMAC或短期服务JWT绑定 method/path/timestamp/nonce/body hash；重放、过期、越权和超限全部拒绝；无业务CORS/用户Token/数据库连接；非流式、流式、Chat、语义评分均可用；usage envelope 可由阿里云主库准确记账；日志只含固定枚举、计数和哈希关联ID。
 - 是否需要用户决定：已确认。2026-07-12 用户批准先创建1个Render Singapore Starter Staging Gateway（增量7美元/月），最多4次合成文本真实Claude Smoke、费用上限人民币20元；正式上线采用2个Starter基础14美元/月，可自动扩容至4个、最高28美元/月。
 - 是否涉及真实外部调用：是；本轮获批范围仅为1个Staging Gateway和最多4次合成文本Claude Smoke，不接生产流量，不创建数据库、磁盘、Redis或Cron。
-- 是否已部署到 Render：部分完成，尚未最终验收。`noteai-staging-claude-gateway` 已由独立Blueprint在Singapore Starter构建并live于commit `e029b00`；readiness HTTP 200且明确 `single_instance_only`/`memory_instance_scope`/`multi_instance_production_ready=false`，Render Scaling为1实例且Autoscaling Off，环境变量仅含Anthropic、Gateway HMAC与固定限制项，无数据库/Kimi/S3/Cron/磁盘。负测未签名与错签名均401固定码；真实Smoke使用合成文本3/4次：Haiku非流式200（25 in/13 out）、Haiku流式200（25 in/12 out，事件content→usage→done，同签名重放409）、Sonnet非流式200（22 in/4 out），合计72输入/29输出Token，按`official-2026-07-12`与USD/CNY 7.00估算约¥0.002107，远低于¥20上限；未执行第4次。Smoke为Gateway直测，不写业务数据库且现有Staging仍保持Local transport。发现access log缺口后需部署 `--no-access-log` 再复验日志；当前不得标记VERIFIED。
+- 是否已部署到 Render：是，单实例Staging范围已闭环。`noteai-staging-claude-gateway` 由独立Blueprint运行于Singapore Starter，最终live commit `a95ec6a`；push与PR两条GitHub CI均PASS，readiness HTTP 200且明确 `single_instance_only`/`memory_instance_scope`/`multi_instance_production_ready=false`，Scaling为1实例且Autoscaling Off，环境变量仅含Anthropic、Gateway HMAC与固定限制项，无数据库/Kimi/S3/Cron/磁盘。负测未签名与错签名均401固定码；真实Smoke使用合成文本3/4次：Haiku非流式200（25 in/13 out）、Haiku流式200（25 in/12 out，事件content→usage→done，同签名重放409）、Sonnet非流式200（22 in/4 out），合计72输入/29输出Token，按`official-2026-07-12`与USD/CNY 7.00估算约¥0.002107，远低于¥20上限；未执行第4次。Smoke为Gateway直测，不写业务数据库且现有Staging仍保持Local transport。最终Web/API/Admin/Gateway健康均HTTP 200；Admin首次超时由Free实例休眠解释，唤醒后连续200。`--no-access-log` 云端复验通过。正式2–4实例仍由 `ARCH-002P` 阻断，不得以本任务VERIFIED代替Production就绪。
 
 ### ARCH-002P — Claude Gateway Production多实例安全化
 
-- 状态：**TODO**
+- 状态：**INVESTIGATING**
 - 优先级：Critical。
 - 问题描述：用户已批准正式上线采用2个Render Starter并可自动扩容至4个，但ARCH-002当前防重放、速率限制和并发状态仅存在单进程内存，不能安全支持多实例。
-- 证据：Gateway readiness明确返回 `memory_instance_scope` 与 `multi_instance_production_ready=false`，且 `INSTANCE_COUNT != 1` 会fail-closed；两位独立验证代理均判定单实例Staging可用、2–4实例Production不可用。
-- 根因是否确认：是；跨实例需要专用共享原子状态，人工环境变量无法证明Render实际副本数。
+- 证据：Gateway readiness明确返回 `memory_instance_scope` 与 `multi_instance_production_ready=false`，且 `INSTANCE_COUNT != 1` 会fail-closed；2026-07-13三路只读审计进一步确认nonce、rate和concurrency均为进程内状态，主路由在部分Claude正文已经输出后仍可能调用fallback并拼接第二份正文，合法HTTPS任意公网hostname均可被接受，主API不探测Gateway远端readiness，timeout层级为业务deadline先于Gateway read timeout且Gateway→Anthropic未显式设定。
+- 根因是否确认：是；跨实例缺少共享原子控制面和逻辑operation状态，Router也未区分“供应商确定未启动”与“已启动/不确定/已部分输出”，人工环境变量无法证明Render实际副本数。
 - 涉及文件：预计Gateway专用共享replay/rate store适配、部署配置、精确Gateway hostname绑定/私网解析防护、远端健康监控、timeout预算、partial-stream终止与usage审计测试；不得连接NoteAI业务数据库。
 - 风险：多实例重放、限流绕过、重复Claude费用、部分正文后fallback重复输出、DNS/配置误指向内部地址、取消或响应头前故障漏记成本。
-- 执行代理：ARCH-002 Staging闭环后指定单一 Gateway Production Implementation Agent；共享配置和部署必须串行。
-- 验证代理：独立 Security + Protocol/Chaos + Billing/Cost Verification Agents，并完成扩缩容、重放、故障和Key轮换演练。
+- 执行代理：只读阶段由Repository Explorer（Godel）、Security/Chaos Reviewer（Tesla）和Render/DevOps/Cost Reviewer（Ampere）完成；实施按ARCH-002P-A→B→C→D指定单一Gateway Production Implementation Agent串行执行，共享配置和部署不得并行修改。
+- 验证代理：每个子包由未参与实现的Security + Protocol/Chaos + Billing/Cost Verification Agents独立复核；最终完成扩缩容、重放、故障和Key轮换演练。
 - 验收标准：2–4实例使用共享原子nonce/rate状态；平台实际副本数与门禁一致；Gateway URL精确绑定并拒绝私网/DNS rebinding；请求发出后的所有不确定终态可审计；部分流失败不再隐式fallback产生重复正文/费用；双Key轮换和回滚演练通过；远端健康与timeout预算可观测。
-- 是否需要用户决定：是；共享状态资源及持续费用需单独确认，现有14–28美元仅覆盖Render Gateway实例，不包含共享存储或外部监控。
+- 是否需要用户决定：是；需确认新增1个Render Singapore Starter Key Value，增量10美元/月。用户已有Render Pro；现有14–28美元仅覆盖2–4个Gateway实例，不包含共享状态。
 - 是否涉及真实外部调用：本地/Mock实现不需要；最终需2–4实例Render受控压力、故障与真实Claude最小验证，费用另行批准。
 - 是否已部署到 Render：否；ARCH-002单实例Staging不得被当作Production多实例完成证据。
+
+### ARCH-002P-A — Claude调用终态与fallback费用安全
+
+- 状态：**VERIFIED**
+- 优先级：Critical。
+- 问题描述：流式Claude已经输出部分正文后发生异常时，Router仍可调用Kimi/Haiku fallback并把第二份正文拼接到原流；请求已可能到达供应商但主API未收到headers、以及取消发生在usage前时，usage审计边界也不完整。
+- 证据：原实现中`model/model_router.py::stream`与`stream_chat`在主流异常后无条件fallback，Gateway可先提交200 headers再开始迭代provider，dispatch后/usage前取消可能漏审计。2026-07-13实施后，三轮独立fault verification先后发现并退回修复consumer abandonment、未启动body iterator、thinking-only preflight死等、header/body socket send失败四类生命周期缺口；最终独立探针全部PASS。
+- 根因是否确认：是；当前状态机只依赖异常类型/HTTP状态，没有签名逻辑operation-id，也没有区分pre-dispatch、provider-started、partial-output和terminal-usage。
+- 涉及文件：`model/model_router.py`, `gateway/claude_gateway.py`, `tests/test_claude_gateway.py`, `tests/test_claude_transport.py`, `tests/test_api_contracts.py`；`model/claude_gateway_protocol.py`未修改，协议字段保持兼容。
+- 风险：重复供应商费用、两份模型正文拼接、已退款但供应商成本漏审计；错误收紧可能让确定未发出的请求失去安全fallback。
+- 执行代理：单一Gateway Protocol Implementation Agent（Godel）完成；没有并行修改共享状态或相同调用链。
+- 验证代理：独立Security/Protocol/Chaos Verification Agent（Tesla）执行三轮代码审查和自建故障探针；前两轮FAIL均退回修复，第三轮PASS。主CTO另行复跑定向、全量与Production Readiness。
+- 验收标准：只有可证明provider未启动且零正文输出时允许fallback；provider可能启动、已输出任意正文或取消后均不得自动重试/fallback；partial stream以固定安全终态结束；usage或`usage_missing`恰好记录一次；不记录正文、Prompt或异常原文。
+- 修改状态/进度：已实现固定pre-provider allowlist（`AUTH_REPLAY`明确不安全）、Claude ambiguous/partial/cancel fail-closed、非流式空响应/超时不重试不fallback、嵌套async iterator显式关闭、Gateway首公开事件preflight、默认175秒thinking-only上限、body iterator与response-level幂等cleanup。部分正文后统一`CLAUDE_STREAM_PARTIAL`；首事件前失败返回固定JSON非2xx；所有日志只含固定code/model/phase。两条旧API合同由“provider可能启动后仍retry/fallback”更新为更严格的一次调用、零fallback断言。验证：相关定向213/213 PASS；全量484 PASS、5 skipped；`py_compile`、`git diff --check`、Production Readiness 48/48 PASS。独立探针覆盖header OSError、连续第1–4个body send OSError、CancelledError、重复aclose、consumer abandonment、未启动body和endless-thinking，provider close与limiter release均恰好一次；未调用真实AI/Render。
+- 是否需要用户决定：否；不改变模型选择、计费规则或对外产品语义，只收紧重复调用安全边界。
+- 是否涉及真实外部调用：本地fault injection不涉及；最终真实Claude最小验证另行计入获批预算或单独批准。
+- 是否已部署到 Render：否；本地与独立验证已闭环，但部署仍需显式批准，且ARCH-002P-B/C/D未完成前不得扩为Production多实例。
+
+### ARCH-002P-B — Gateway共享原子控制面
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：nonce、rate和concurrency均为单进程内存；扩至2–4实例会绕过防重放与全局配额，重启会丢失状态。
+- 证据：`gateway/claude_gateway.py` 的`InMemoryNonceStore`、`InMemoryRateLimiter`、`ConcurrencyLimiter`均只在进程锁内原子；Blueprint固定单worker、单实例，readiness明确禁止多实例。
+- 根因是否确认：是；缺少同区域、内部网络、支持原子脚本的共享短期状态存储和fail-closed策略。
+- 涉及文件：Gateway专用共享store适配、依赖与配置、`gateway/claude_gateway.py`, `gateway/requirements.txt`, `render.gateway.yaml`, `tests/test_claude_gateway.py`, `docs/CLAUDE_GATEWAY.md`；不得接入NoteAI业务数据库或存储Prompt/正文。
+- 风险：重放、全局限流绕过、lease泄漏、Key轮换后配额翻倍、共享store故障时重复调用；Render Key Value本身不是HA资源。
+- 执行代理：ARCH-002P-A闭环后指定单一Shared Control Plane Implementation Agent。
+- 验证代理：独立Security/Chaos Verification Agent，执行跨4实例同nonce、重启、store中断、lease到期和Key轮换测试。
+- 验收标准：共享原子nonce、逻辑operation状态、全局rate和可续租concurrency lease；以稳定服务主体而非key-id计配额；store不可用时零provider调用并fail-closed；只保存哈希、枚举、时间和usage摘要；无本地降级。
+- 是否需要用户决定：是；需批准Render Singapore Starter Key Value增量10美元/月，内部网络、内部认证、`noeviction`、Journal+Snapshot。
+- 是否涉及真实外部调用：创建共享资源和多实例演练涉及Render；Mock/容器故障测试不调用Claude。
+- 是否已部署到 Render：否。
+
+### ARCH-002P-C — Gateway生产信任与readiness边界
+
+- 状态：**TODO**
+- 优先级：High。
+- 问题描述：主系统当前接受任意合法公网HTTPS hostname，不验证精确Gateway authority或连接时解析结果；readiness只做本地配置检查，provider/client/业务timeout层级也未对齐。
+- 证据：`_valid_gateway_base_url`不绑定目标hostname；HMAC不绑定authority；`claude_transport_readiness()`不请求远端`/health/ready`；主业务180秒deadline小于Gateway read 190秒，Anthropic SDK未显式配置timeout。
+- 根因是否确认：是；生产目标host、协议/config epoch、远端健康和分层timeout尚未成为可执行门禁。
+- 涉及文件：`model/model_router.py`, `model/api.py`, `gateway/claude_gateway.py`, `render.yaml`, `render.gateway.yaml`, Gateway文档与对应测试。
+- 风险：配置误指向攻击者公网host、DNS rebinding/私网访问、配置漂移实例继续接流量、外层先取消造成不确定费用。
+- 执行代理：ARCH-002P-B闭环后指定单一Gateway Trust/Readiness Implementation Agent。
+- 验证代理：独立Security + DevOps Verification Agent。
+- 验收标准：精确批准hostname；连接时仅公共地址、TLS校验且不跟随redirect；远端readiness验证协议、部署范围和config/key epoch；provider < Gateway read < 业务deadline；实例配置不一致、时钟偏差或store故障时不ready。
+- 是否需要用户决定：否；正式域名/host值在生产资源创建时按实际值注入，不改变用户产品行为。
+- 是否涉及真实外部调用：最终远端readiness、DNS/TLS和轮换演练涉及Render，不需要付费Claude。
+- 是否已部署到 Render：否。
+
+### ARCH-002P-D — Render 2→4实例发布与故障演练
+
+- 状态：**TODO**
+- 优先级：Critical。
+- 问题描述：只有单实例Staging证据，没有2实例基线、自动扩至4实例、滚动发布、共享store中断和回滚演练。
+- 证据：现有Gateway Scaling=1、Autoscaling Off；Render autoscaling仅基于CPU/内存，网络型Claude并发仍必须由应用全局控制；Render Key Value没有自动副本/故障转移。
+- 根因是否确认：是；ARCH-002P-A/B/C尚未实施，Production资源与演练尚未创建。
+- 涉及文件：`render.gateway.yaml`, 部署/回滚/轮换runbook、健康与指标配置、故障矩阵测试；不修改业务数据库。
+- 风险：扩缩容瞬间重复调用、滚动版本配置不一致、共享store单点导致Gateway不可用、网络型负载不能及时触发平台autoscale。
+- 执行代理：ARCH-002P-A/B/C全部独立验证后，由单一Render Deployment Agent串行发布。
+- 验证代理：独立Security + Protocol/Chaos + Billing/Cost Verification Agents。
+- 验收标准：2实例基线、min2/max4自动扩容与应用全局限流同时生效；跨实例同nonce/operation恰好一次provider；滚动、重启、store中断、Key轮换、2→4→2和回滚矩阵通过；故障时宁可固定码不可用，不重复Claude；日志不含敏感内容。
+- 是否需要用户决定：是；创建生产2–4实例、共享store和任何真实Claude Smoke前核对获批预算；当前仅2–4个Starter实例14–28美元/月已获批，共享store未获批。
+- 是否涉及真实外部调用：是，Render真实扩缩容/故障演练；真实Claude最小Smoke次数和费用需在执行前再次列明。
+- 是否已部署到 Render：否。
 
 ### PROD-001A — Adapay 商户准入与三通道能力确认
 

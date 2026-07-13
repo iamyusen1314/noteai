@@ -13,6 +13,7 @@ from unittest import mock
 import httpx
 from fastapi.testclient import TestClient
 from starlette.datastructures import Headers
+from starlette.requests import ClientDisconnect
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -147,6 +148,213 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
         events = [json.loads(line) for line in stream.text.splitlines()]
         self.assertEqual([event["type"] for event in events], ["content", "content", "usage", "done"])
         self.assertFalse(any("thinking" in json.dumps(event) for event in events))
+
+    def test_stream_provider_failure_before_first_public_event_is_json_error(self):
+        self.provider.error = RuntimeError("secret prompt https://provider.invalid/private")
+        response = self.post(path=protocol.STREAM_PATH)
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.headers["content-type"].split(";", 1)[0], "application/json")
+        self.assertEqual(response.json(), {
+            "protocol_version": protocol.PROTOCOL_VERSION,
+            "error": {"code": "PROVIDER_ERROR", "message": "request rejected"},
+        })
+        self.assertNotIn("secret", response.text)
+        self.assertNotIn("provider.invalid", response.text)
+        self.assertEqual(claude_gateway._LIMITER.active, 0)
+
+    def test_stream_provider_failure_after_content_has_fixed_ndjson_terminal(self):
+        class PartialProvider:
+            async def stream(self, _payload):
+                yield {"type": "content", "text": "safe-part"}
+                raise RuntimeError("secret prompt https://provider.invalid/private")
+
+        claude_gateway._PROVIDER = PartialProvider()
+        response = self.post(path=protocol.STREAM_PATH)
+
+        self.assertEqual(response.status_code, 200)
+        events = [json.loads(line) for line in response.text.splitlines()]
+        self.assertEqual([event["type"] for event in events], ["content", "error"])
+        self.assertEqual(events[0]["text"], "safe-part")
+        self.assertEqual(events[1]["error"], {
+            "code": "PROVIDER_ERROR",
+            "message": "provider request failed",
+        })
+        self.assertNotIn("secret", response.text)
+        self.assertNotIn("provider.invalid", response.text)
+        self.assertEqual(claude_gateway._LIMITER.active, 0)
+
+    def test_preflight_stream_cleanup_is_owned_when_body_never_or_partly_runs(self):
+        class LifecycleProvider:
+            def __init__(self, fail_after_first=False):
+                self.fail_after_first = fail_after_first
+                self.close_calls = 0
+
+            async def stream(self, _payload):
+                try:
+                    yield {"type": "content", "text": "safe-part"}
+                    if self.fail_after_first:
+                        raise RuntimeError("private provider failure")
+                    yield {"type": "usage", "usage": _complete_usage(output_tokens=1)}
+                finally:
+                    self.close_calls += 1
+
+        async def build_response(provider):
+            claude_gateway._PROVIDER = provider
+            claude_gateway._LIMITER = claude_gateway.ConcurrencyLimiter(1)
+            with mock.patch.object(
+                claude_gateway,
+                "_read_and_validate",
+                new=mock.AsyncMock(return_value=self.payload()),
+            ):
+                return await claude_gateway.stream_message(object())
+
+        async def exercise(mode, *, fail_after_first=False):
+            provider = LifecycleProvider(fail_after_first=fail_after_first)
+            response = await build_response(provider)
+            self.assertEqual(claude_gateway._LIMITER.active, 1)
+            if mode == "never_started":
+                await response.body_iterator.aclose()
+                await response.body_iterator.aclose()
+            elif mode == "partly_started":
+                await response.body_iterator.__anext__()
+                await response.body_iterator.aclose()
+                await response.body_iterator.aclose()
+            else:
+                chunks = [chunk async for chunk in response.body_iterator]
+                self.assertTrue(chunks)
+                await response.body_iterator.aclose()
+            return provider
+
+        for mode, fail_after_first in (
+            ("never_started", False),
+            ("partly_started", False),
+            ("completed", False),
+            ("completed", True),
+        ):
+            with self.subTest(mode=mode, fail_after_first=fail_after_first):
+                provider = asyncio.run(exercise(mode, fail_after_first=fail_after_first))
+                self.assertEqual(provider.close_calls, 1)
+                self.assertEqual(claude_gateway._LIMITER.active, 0)
+
+    def test_endless_thinking_preflight_times_out_and_cleans_up(self):
+        class ThinkingProvider:
+            def __init__(self):
+                self.close_calls = 0
+
+            async def stream(self, _payload):
+                try:
+                    while True:
+                        yield {"type": "thinking", "text": "private-reasoning"}
+                finally:
+                    self.close_calls += 1
+
+        async def exercise():
+            provider = ThinkingProvider()
+            claude_gateway._PROVIDER = provider
+            claude_gateway._LIMITER = claude_gateway.ConcurrencyLimiter(1)
+            with mock.patch.object(
+                claude_gateway,
+                "_read_and_validate",
+                new=mock.AsyncMock(return_value=self.payload()),
+            ), mock.patch.object(
+                claude_gateway,
+                "_preflight_timeout_seconds",
+                return_value=0.02,
+            ):
+                response = await claude_gateway.stream_message(object())
+            return provider, response
+
+        provider, response = asyncio.run(exercise())
+        self.assertEqual(response.status_code, 504)
+        self.assertEqual(json.loads(response.body), {
+            "protocol_version": protocol.PROTOCOL_VERSION,
+            "error": {"code": "PROVIDER_TIMEOUT", "message": "request rejected"},
+        })
+        self.assertNotIn("thinking", response.body.decode())
+        self.assertNotIn("private-reasoning", response.body.decode())
+        self.assertEqual(provider.close_calls, 1)
+        self.assertEqual(claude_gateway._LIMITER.active, 0)
+
+    def test_response_level_cleanup_on_header_and_mid_body_send_failure(self):
+        class LifecycleProvider:
+            def __init__(self):
+                self.close_calls = 0
+
+            async def stream(self, _payload):
+                try:
+                    yield {"type": "content", "text": "safe-part"}
+                    yield {"type": "usage", "usage": _complete_usage(output_tokens=1)}
+                finally:
+                    self.close_calls += 1
+
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0", "spec_version": "2.4"},
+            "method": "POST",
+            "path": protocol.STREAM_PATH,
+            "headers": [],
+        }
+
+        async def receive():
+            return {"type": "http.disconnect"}
+
+        async def exercise(fail_on, *, cancelled=False):
+            provider = LifecycleProvider()
+            claude_gateway._PROVIDER = provider
+            claude_gateway._LIMITER = claude_gateway.ConcurrencyLimiter(1)
+            with mock.patch.object(
+                claude_gateway,
+                "_read_and_validate",
+                new=mock.AsyncMock(return_value=self.payload()),
+            ):
+                response = await claude_gateway.stream_message(object())
+
+            sends = []
+
+            async def send(message):
+                sends.append(message["type"])
+                should_fail = (
+                    fail_on == "header"
+                    and message["type"] == "http.response.start"
+                ) or (
+                    fail_on == "body"
+                    and message["type"] == "http.response.body"
+                    and message.get("more_body") is True
+                )
+                if should_fail:
+                    if cancelled:
+                        raise asyncio.CancelledError()
+                    raise OSError("synthetic disconnect")
+
+            expected = asyncio.CancelledError if cancelled else ClientDisconnect
+            with self.assertRaises(expected):
+                await response(scope, receive, send)
+            active_before_manual_close = claude_gateway._LIMITER.active
+            close_calls_before_manual_close = provider.close_calls
+            await response.body_iterator.aclose()
+            return (
+                provider,
+                sends,
+                active_before_manual_close,
+                close_calls_before_manual_close,
+            )
+
+        for fail_on, cancelled in (
+            ("header", False),
+            ("body", False),
+            ("header", True),
+        ):
+            with self.subTest(fail_on=fail_on, cancelled=cancelled):
+                provider, sends, active, close_calls = asyncio.run(
+                    exercise(fail_on, cancelled=cancelled)
+                )
+                self.assertEqual(close_calls, 1)
+                self.assertEqual(provider.close_calls, 1)
+                self.assertEqual(active, 0)
+                self.assertEqual(sends[0], "http.response.start")
+                if fail_on == "body":
+                    self.assertIn("http.response.body", sends)
 
     def test_signature_binds_every_security_context_field(self):
         base = {
@@ -702,6 +910,89 @@ class GatewayClaudeTransportTests(unittest.TestCase):
                     self.assertEqual(record.call_args.args, (model_router.CLAUDE_HAIKU, expected_usage))
         finally:
             model_router.set_claude_transport(original)
+
+    def test_pre_provider_gateway_rejection_is_the_only_fallback_safe_response(self):
+        def transport_for(code, status):
+            def handler(_request):
+                return httpx.Response(status, json={
+                    "protocol_version": protocol.PROTOCOL_VERSION,
+                    "error": {"code": code, "message": "request rejected"},
+                })
+
+            return model_router.GatewayClaudeTransport(
+                base_url="https://gateway.example.invalid",
+                key_id="transport-key",
+                secret="transport-secret",
+                http_transport=httpx.MockTransport(handler),
+            )
+
+        async def collect(transport):
+            return [event async for event in transport.stream_message(self.request())]
+
+        with self.assertRaises(model_router.ClaudeGatewayError) as rejected:
+            asyncio.run(collect(transport_for("CONCURRENCY_LIMIT", 429)))
+        self.assertTrue(rejected.exception.fallback_safe)
+        self.assertFalse(rejected.exception.usage_audit_required)
+
+        with self.assertRaises(model_router.ClaudeGatewayError) as attempted:
+            asyncio.run(collect(transport_for("PROVIDER_UNAVAILABLE", 503)))
+        self.assertFalse(attempted.exception.fallback_safe)
+        self.assertTrue(attempted.exception.usage_audit_required)
+
+        with self.assertRaises(model_router.ClaudeGatewayError) as replay:
+            asyncio.run(collect(transport_for("AUTH_REPLAY", 409)))
+        self.assertFalse(replay.exception.fallback_safe)
+        self.assertTrue(replay.exception.usage_audit_required)
+
+        def in_stream_error(_request):
+            event = {
+                "protocol_version": protocol.PROTOCOL_VERSION,
+                "type": "error",
+                "error": {"code": "CONCURRENCY_LIMIT", "message": "request rejected"},
+            }
+            return httpx.Response(
+                200,
+                content=(json.dumps(event) + "\n").encode(),
+                headers={"content-type": "application/x-ndjson"},
+            )
+
+        accepted = model_router.GatewayClaudeTransport(
+            base_url="https://gateway.example.invalid",
+            key_id="transport-key",
+            secret="transport-secret",
+            http_transport=httpx.MockTransport(in_stream_error),
+        )
+        with self.assertRaises(model_router.ClaudeGatewayError) as after_headers:
+            asyncio.run(collect(accepted))
+        self.assertFalse(after_headers.exception.fallback_safe)
+        self.assertTrue(after_headers.exception.usage_audit_required)
+
+    def test_gateway_stream_cancellation_after_dispatch_requires_usage_audit(self):
+        class CancelStream(httpx.AsyncByteStream):
+            async def __aiter__(self):
+                raise asyncio.CancelledError()
+                yield b""
+
+        def handler(_request):
+            return httpx.Response(
+                200,
+                stream=CancelStream(),
+                headers={"content-type": "application/x-ndjson"},
+            )
+
+        transport = model_router.GatewayClaudeTransport(
+            base_url="https://gateway.example.invalid",
+            key_id="transport-key",
+            secret="transport-secret",
+            http_transport=httpx.MockTransport(handler),
+        )
+
+        async def collect():
+            return [event async for event in transport.stream_message(self.request())]
+
+        with self.assertRaises(model_router.ClaudeRequestCancelled) as raised:
+            asyncio.run(collect())
+        self.assertTrue(raised.exception.usage_audit_required)
 
     def test_invalid_usage_envelopes_fail_closed(self):
         self.assertFalse(protocol.valid_usage_envelope({"input_tokens": 1}))
