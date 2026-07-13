@@ -27,12 +27,11 @@ after a shorter receive-time TTL.
 
 ## Control-plane modes
 
-`NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE=memory` is the staging default. Replay
-protection uses an in-memory nonce store. It is scoped to one
-process instance and is suitable only for the single-worker, single-instance
-Render staging service declared in `render.gateway.yaml`.
+`NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE=memory` remains available for local or
+single-process staging. Replay protection uses an in-memory nonce store scoped
+to one process instance.
 
-`/health/ready` always reports:
+In memory mode `/health/ready` reports:
 
 - `deployment_scope: single_instance_only`
 - `replay_store: memory_instance_scope`
@@ -41,6 +40,13 @@ Render staging service declared in `render.gateway.yaml`.
 If `NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT` is not exactly `1`, readiness and
 model requests fail closed. Horizontal scaling or multiple workers require a
 shared atomic replay store before production approval.
+
+The current Staging Blueprint now selects `dynamodb`, while retaining its
+single-instance scale with one Render instance and one worker. This validates
+the shared control-plane path
+without changing the staging scale. Production deployment at 2–4 instances is
+not approved or verified; enabling that scale requires a separate production
+verification and approval step.
 
 `NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE=dynamodb` uses one DynamoDB table for:
 
@@ -82,13 +88,14 @@ for retry or fallback. A repeated operation already beyond `CLAIMED` returns
 
 In DynamoDB mode `/health/ready` reports `ready_multi_instance` only when the
 shared store configuration and table health probe are available. There is no
-automatic fallback from DynamoDB to memory state.
+automatic fallback from DynamoDB to memory state. This health status describes
+the control plane's technical capability; it is not production-scale approval.
 
 DynamoDB SDK calls use short connect/read timeouts, one total SDK attempt, and
 an outer control deadline. In DynamoDB mode the provider also has one total
 deadline across the whole non-stream or stream operation. The renewable lease
-default is longer than that provider deadline plus a safety margin. Memory-mode
-staging keeps its existing provider behavior; final cross-layer timeout tuning
+default is longer than that provider deadline plus a safety margin. Memory mode
+keeps its existing provider behavior; final cross-layer timeout tuning
 remains part of ARCH-002P-C.
 
 The Gateway discards Anthropic thinking/reasoning deltas. Its NDJSON stream may

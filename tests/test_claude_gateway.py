@@ -1658,7 +1658,16 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertIn('NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT', blueprint)
         self.assertIn('value: "1"', blueprint)
         self.assertIn("WEB_CONCURRENCY", blueprint)
-        self.assertIn("NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE", blueprint)
+        self.assertIn(
+            "      - key: NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE\n"
+            "        value: dynamodb",
+            blueprint,
+        )
+        self.assertNotIn(
+            "      - key: NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE\n"
+            "        value: memory",
+            blueprint,
+        )
         self.assertIn("AWS_EC2_METADATA_DISABLED", blueprint)
         self.assertIn("AWS_ROLE_ARN", blueprint)
         self.assertNotIn("AWS_WEB_IDENTITY_TOKEN_FILE", blueprint)
@@ -1701,6 +1710,9 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertIn("shared atomic replay store", guide)
         self.assertIn("CONTROL_PLANE_OUTCOME_UNKNOWN", guide)
         self.assertIn("provider_started", guide.lower())
+        self.assertIn("Staging Blueprint now selects `dynamodb`", guide)
+        self.assertIn("Production deployment at 2–4 instances", guide)
+        self.assertIn("not approved or verified", guide)
 
     def test_aws_control_plane_template_is_retained_least_privilege_and_oidc_only(self):
         template = (
