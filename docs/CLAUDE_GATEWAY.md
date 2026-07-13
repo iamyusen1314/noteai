@@ -222,14 +222,22 @@ Gateway's shared DynamoDB control table. Load mode has no I/O path. The tool
 does not import or access the NoteAI business database.
 
 The output has a fixed JSON field set: mode, status codes, fixed error enums,
-FakeProvider call count, a one-way hashed instance marker, a commit prefix, and
-a one-way control-configuration marker. The last marker covers the configured
+FakeProvider call count, a one-way hashed instance marker, a commit prefix, a
+one-way control-configuration marker, and fixed `control_stage` /
+`control_reason` enums. The diagnostic fields are enabled only after this
+shell tool passes every guard above; otherwise both are `NONE`. They never
+change the normal Gateway HTTP response or its fixed-code logging. Allowed
+stages are the fixed control-store operations such as `BEGIN_PROVIDER`;
+allowed reasons are `ACCESS_DENIED`, `VALIDATION`, `TRANSACTION_CONFLICT`,
+`TRANSACTION_CANCELLED`, `THROTTLED`, `RESOURCE_NOT_FOUND`, `TIMEOUT`,
+`TRANSPORT`, `INTERNAL`, and `UNKNOWN`. The last marker covers the configured
 table, role, region, stable principal, authority, and epochs without revealing
 their raw values. Every participating shell must report the same commit and
 control-configuration marker and a different instance marker. `unknown` or a
 duplicate instance marker is not evidence. The tool never prints the request
 body, nonce, raw operation ID, rehearsal namespace, table, role, principal,
-HMAC material, URL, provider output, token path/content, or exception text.
+HMAC material, URL, provider output, token path/content, AWS message/request
+metadata, or exception text.
 
 Operation mode requires an operator-created ID beginning with `rehearsal_` or
 `rehearsal-`, a namespace beginning with `rehearsal-`, and optionally a future

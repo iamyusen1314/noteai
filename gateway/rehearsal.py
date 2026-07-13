@@ -17,7 +17,7 @@ import re
 import sys
 import time
 from collections.abc import Mapping
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from typing import Any
 
 import httpx
@@ -28,6 +28,12 @@ try:
     from . import claude_gateway
 except ImportError:  # pragma: no cover - container copies modules to /app
     import claude_gateway
+
+from dynamodb_control_store import (
+    CONTROL_DIAGNOSTIC_REASONS,
+    CONTROL_DIAGNOSTIC_STAGES,
+    _capture_rehearsal_diagnostics,
+)
 
 
 SCHEMA = "noteai-gateway-rehearsal.v1"
@@ -65,6 +71,7 @@ _SAFE_ERROR_CODES = frozenset({
     "REHEARSAL_INTERNAL_ERROR",
     "REHEARSAL_RESPONSE_INVALID",
 })
+_DIAGNOSTIC_CAPABILITY = object()
 _UNSET = object()
 
 
@@ -220,12 +227,24 @@ def _fixed_output(
     status_codes: list[int],
     error_codes: list[str],
     fake_provider_calls: int,
+    *,
+    diagnostic_stage: str = "NONE",
+    diagnostic_reason: str = "NONE",
 ) -> dict[str, Any]:
     safe_mode = mode if mode in {"operation", "rate", "load"} else "guard"
     safe_errors = [
         code if code in _SAFE_ERROR_CODES else "REHEARSAL_RESPONSE_INVALID"
         for code in error_codes
     ]
+    if diagnostic_stage == "NONE" and diagnostic_reason == "NONE":
+        safe_stage, safe_reason = "NONE", "NONE"
+    elif (
+        diagnostic_stage in CONTROL_DIAGNOSTIC_STAGES
+        and diagnostic_reason in CONTROL_DIAGNOSTIC_REASONS
+    ):
+        safe_stage, safe_reason = diagnostic_stage, diagnostic_reason
+    else:
+        safe_stage, safe_reason = "UNKNOWN", "UNKNOWN"
     return {
         "schema": SCHEMA,
         "mode": safe_mode,
@@ -235,7 +254,18 @@ def _fixed_output(
         "instance_marker": _instance_marker(),
         "commit_prefix": _commit_prefix(),
         "control_config_marker": _control_config_marker(),
+        "control_stage": safe_stage,
+        "control_reason": safe_reason,
     }
+
+
+def _first_diagnostic(captured: list[tuple[str, str]]) -> tuple[str, str]:
+    if not captured:
+        return "NONE", "NONE"
+    stage, reason = captured[0]
+    if stage not in CONTROL_DIAGNOSTIC_STAGES or reason not in CONTROL_DIAGNOSTIC_REASONS:
+        return "UNKNOWN", "UNKNOWN"
+    return stage, reason
 
 
 def _response_code(response: httpx.Response) -> str:
@@ -349,19 +379,30 @@ async def execute_operation(
     *,
     request_count: int = 1,
     control_store: Any = _UNSET,
+    _diagnostic_capability: object | None = None,
 ) -> dict[str, Any]:
     fake = FixedFakeProvider(hold_seconds)
     body = _operation_body(operation_id)
-    with _rehearsal_control_environment(namespace, control_store=control_store), \
+    diagnostic_enabled = bool(
+        _diagnostic_capability is _DIAGNOSTIC_CAPABILITY and guard_environment()
+    )
+    diagnostic_context = (
+        _capture_rehearsal_diagnostics() if diagnostic_enabled else nullcontext([])
+    )
+    with diagnostic_context as captured, \
+         _rehearsal_control_environment(namespace, control_store=control_store), \
          _fake_provider_runtime(fake):
         responses = await asyncio.gather(*(
             _signed_asgi_post(body) for _ in range(request_count)
         ))
+    diagnostic_stage, diagnostic_reason = _first_diagnostic(captured)
     return _fixed_output(
         "operation",
         [response.status_code for response in responses],
         [_response_code(response) for response in responses],
         fake.calls,
+        diagnostic_stage=diagnostic_stage,
+        diagnostic_reason=diagnostic_reason,
     )
 
 
@@ -370,19 +411,30 @@ async def execute_rate(
     request_count: int,
     *,
     control_store: Any = _UNSET,
+    _diagnostic_capability: object | None = None,
 ) -> dict[str, Any]:
     fake = FixedFakeProvider()
     invalid_json = b"{"
     responses: list[httpx.Response] = []
-    with _rehearsal_control_environment(namespace, control_store=control_store), \
+    diagnostic_enabled = bool(
+        _diagnostic_capability is _DIAGNOSTIC_CAPABILITY and guard_environment()
+    )
+    diagnostic_context = (
+        _capture_rehearsal_diagnostics() if diagnostic_enabled else nullcontext([])
+    )
+    with diagnostic_context as captured, \
+         _rehearsal_control_environment(namespace, control_store=control_store), \
          _fake_provider_runtime(fake):
         for _ in range(request_count):
             responses.append(await _signed_asgi_post(invalid_json))
+    diagnostic_stage, diagnostic_reason = _first_diagnostic(captured)
     return _fixed_output(
         "rate",
         [response.status_code for response in responses],
         [_response_code(response) for response in responses],
         fake.calls,
+        diagnostic_stage=diagnostic_stage,
+        diagnostic_reason=diagnostic_reason,
     )
 
 
@@ -486,9 +538,18 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         if not _valid_operation_id(operation_id):
             raise RehearsalSafetyError("invalid rehearsal arguments")
         hold_seconds = _bounded_float(args.hold_seconds, 0.0, 170.0)
-        return await execute_operation(operation_id, namespace, hold_seconds)
+        return await execute_operation(
+            operation_id,
+            namespace,
+            hold_seconds,
+            _diagnostic_capability=_DIAGNOSTIC_CAPABILITY,
+        )
     request_count = _bounded_int(args.request_count, 1, 100)
-    return await execute_rate(namespace, request_count)
+    return await execute_rate(
+        namespace,
+        request_count,
+        _diagnostic_capability=_DIAGNOSTIC_CAPABILITY,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

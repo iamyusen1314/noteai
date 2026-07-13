@@ -37,6 +37,7 @@ from control_store import (
     OperationClaim,
     OperationState,
 )
+from dynamodb_control_store import DynamoDBControlStore
 
 
 def _complete_usage(**updates):
@@ -1025,7 +1026,13 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
         with mock.patch.dict(os.environ, self._dynamodb_env()):
             uncertain = self.post(payload=self.payload(operation_id="after_fault_operation_1234"))
         self.assertEqual(uncertain.status_code, 503)
-        self.assertEqual(uncertain.json()["error"]["code"], "CONTROL_PLANE_OUTCOME_UNKNOWN")
+        uncertain_payload = uncertain.json()
+        self.assertEqual(
+            uncertain_payload["error"]["code"],
+            "CONTROL_PLANE_OUTCOME_UNKNOWN",
+        )
+        self.assertNotIn("control_stage", uncertain_payload)
+        self.assertNotIn("control_reason", uncertain_payload)
         self.assertEqual(self.provider.calls, [])
         self.assertEqual(
             after.operations["after_fault_operation_1234"],
@@ -2984,7 +2991,7 @@ class GatewayRehearsalTests(unittest.TestCase):
     output_fields = {
         "schema", "mode", "status_codes", "error_codes",
         "fake_provider_calls", "instance_marker", "commit_prefix",
-        "control_config_marker",
+        "control_config_marker", "control_stage", "control_reason",
     }
 
     @staticmethod
@@ -3062,6 +3069,8 @@ class GatewayRehearsalTests(unittest.TestCase):
         self.assertEqual(set(payload), self.output_fields)
         self.assertEqual(payload["error_codes"], ["REHEARSAL_GUARD_REJECTED"])
         self.assertEqual(payload["fake_provider_calls"], 0)
+        self.assertEqual(payload["control_stage"], "NONE")
+        self.assertEqual(payload["control_reason"], "NONE")
 
         malformed_output = io.StringIO()
         with mock.patch("sys.stdout", malformed_output):
@@ -3071,6 +3080,94 @@ class GatewayRehearsalTests(unittest.TestCase):
         self.assertEqual(set(malformed_payload), self.output_fields)
         self.assertEqual(malformed_payload["error_codes"], ["REHEARSAL_ARGUMENT_INVALID"])
         self.assertEqual(malformed_payload["fake_provider_calls"], 0)
+        self.assertEqual(malformed_payload["control_stage"], "NONE")
+        self.assertEqual(malformed_payload["control_reason"], "NONE")
+
+        sanitized = rehearsal._fixed_output(
+            "operation",
+            [503],
+            ["CONTROL_PLANE_OUTCOME_UNKNOWN"],
+            0,
+            diagnostic_stage="sensitive-stage-sentinel",
+            diagnostic_reason="sensitive-reason-sentinel",
+        )
+        self.assertEqual(sanitized["control_stage"], "UNKNOWN")
+        self.assertEqual(sanitized["control_reason"], "UNKNOWN")
+        self.assertNotIn("sensitive-stage-sentinel", repr(sanitized))
+        self.assertNotIn("sensitive-reason-sentinel", repr(sanitized))
+
+    def test_guarded_shell_rehearsal_exposes_only_fixed_begin_diagnostic(self):
+        sensitive_values = (
+            "sensitive-message-sentinel",
+            "sensitive-request-id-sentinel",
+            "https://sensitive.example.invalid/control",
+            "sensitive-table-sentinel",
+            "arn:aws:iam::123456789012:role/sensitive-role-sentinel",
+            "sensitive-principal-sentinel",
+            "sensitive-operation-sentinel",
+            "Message",
+            "RequestId",
+            "SensitiveFields",
+        )
+
+        class AccessDeniedError(Exception):
+            def __init__(inner_self):
+                super().__init__(sensitive_values[0])
+                inner_self.response = {
+                    "Error": {
+                        "Code": "AccessDeniedException",
+                        "Message": sensitive_values[0],
+                    },
+                    "ResponseMetadata": {"RequestId": sensitive_values[1]},
+                    "SensitiveFields": list(sensitive_values[2:7]),
+                }
+
+        class BeginDeniedClient:
+            def put_item(inner_self, **_kwargs):
+                return {}
+
+            def update_item(inner_self, **kwargs):
+                key = kwargs.get("Key", {}).get("pk", {}).get("S", "")
+                if key.startswith("LEASE#"):
+                    return {"Attributes": {"fence": {"N": "1"}}}
+                return {}
+
+            def transact_write_items(inner_self, **_kwargs):
+                raise AccessDeniedError()
+
+        store = DynamoDBControlStore(
+            "control-table",
+            BeginDeniedClient(),
+            credential_method="assume-role-with-web-identity",
+        )
+        args = rehearsal._parser().parse_args([
+            "operation",
+            "--operation-id", "rehearsal_operation_diagnostic_12345",
+            "--namespace", "rehearsal-diagnostic-test",
+        ])
+        with mock.patch.dict(os.environ, self.env(), clear=False), \
+             mock.patch.object(
+                 DynamoDBControlStore, "from_env", return_value=store,
+             ), mock.patch("builtins.print") as print_call, \
+             mock.patch("logging.Logger._log") as log_call:
+            result = asyncio.run(rehearsal._run(args))
+
+        self.assertEqual(set(result), self.output_fields)
+        self.assertEqual(result["status_codes"], [503])
+        self.assertEqual(
+            result["error_codes"], ["CONTROL_PLANE_OUTCOME_UNKNOWN"],
+        )
+        self.assertEqual(result["fake_provider_calls"], 0)
+        self.assertEqual(result["control_stage"], "BEGIN_PROVIDER")
+        self.assertEqual(result["control_reason"], "ACCESS_DENIED")
+        serialized = json.dumps(result, sort_keys=True)
+        for sensitive in sensitive_values:
+            self.assertNotIn(sensitive, serialized)
+        print_call.assert_not_called()
+        fixed_logs = repr(log_call.call_args_list)
+        self.assertIn("CONTROL_PLANE_OUTCOME_UNKNOWN", fixed_logs)
+        for sensitive in sensitive_values:
+            self.assertNotIn(sensitive, fixed_logs)
 
     def test_load_mode_is_bounded_cpu_only_and_fixed_output(self):
         class AdvancingClock:

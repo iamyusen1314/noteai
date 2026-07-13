@@ -23,7 +23,10 @@ from control_store import (
     OperationState,
     TERMINAL_STATES,
 )
-from dynamodb_control_store import DynamoDBControlStore
+from dynamodb_control_store import (
+    DynamoDBControlStore,
+    _capture_rehearsal_diagnostics,
+)
 
 
 class _ConditionalError(Exception):
@@ -37,6 +40,26 @@ class _TransactionCancelledError(Exception):
             "Error": {"Code": "TransactionCanceledException"},
             "CancellationReasons": [{"Code": code} for code in reasons],
         }
+
+
+class _SyntheticServiceError(Exception):
+    def __init__(self, code, *, reasons=None, message="sensitive-message-sentinel"):
+        super().__init__(message)
+        self.response = {
+            "Error": {"Code": code, "Message": message},
+            "ResponseMetadata": {"RequestId": "sensitive-request-id-sentinel"},
+            "SensitiveFields": {
+                "url": "https://sensitive.example.invalid/control",
+                "table": "sensitive-table-sentinel",
+                "role": "arn:aws:iam::123456789012:role/sensitive-role-sentinel",
+                "principal": "sensitive-principal-sentinel",
+                "operation": "sensitive-operation-sentinel",
+            },
+        }
+        if reasons is not None:
+            self.response["CancellationReasons"] = [
+                {"Code": reason, "Message": message} for reason in reasons
+            ]
 
 
 class _RecordingClient:
@@ -175,6 +198,16 @@ class _TransactionFailureClient(_RecordingClient):
     def transact_write_items(self, **kwargs):
         self._record("transact_write_items", kwargs)
         raise _TransactionCancelledError(self.reasons)
+
+
+class _BeginFailureClient(_RecordingClient):
+    def __init__(self, error):
+        super().__init__()
+        self.error = error
+
+    def transact_write_items(self, **kwargs):
+        self._record("transact_write_items", kwargs)
+        raise self.error
 
 
 class _AtomicFakeStore:
@@ -508,7 +541,8 @@ class AtomicControlStoreTests(unittest.TestCase):
         store = DynamoDBControlStore("control-table", client)
         lease = Lease(0, store._operation("operation"), "owner", 1, 130)
 
-        with self.assertRaises(ControlStoreUnavailable):
+        with _capture_rehearsal_diagnostics() as captured, \
+             self.assertRaises(ControlStoreUnavailable):
             asyncio.run(store.begin_provider(
                 "operation", lease, "dispatch-digest", "claude-model", 100,
             ))
@@ -516,6 +550,127 @@ class AtomicControlStoreTests(unittest.TestCase):
         transactions = [method for method, _request in client.calls if method == "transact_write_items"]
         self.assertEqual(transactions, ["transact_write_items"])
         self.assertEqual(client.operation_state, OperationState.PROVIDER_STARTED.value)
+        self.assertEqual(captured, [("BEGIN_PROVIDER", "UNKNOWN")])
+
+    def test_begin_failure_diagnostics_are_fixed_enums_without_sensitive_values(self):
+        EndpointConnectionError = type("EndpointConnectionError", (Exception,), {})
+        endpoint_error = EndpointConnectionError("sensitive-message-sentinel")
+        cases = (
+            (
+                "access_denied",
+                _SyntheticServiceError("AccessDeniedException"),
+                "ACCESS_DENIED",
+            ),
+            (
+                "validation",
+                _SyntheticServiceError(
+                    "TransactionCanceledException",
+                    reasons=["ValidationError", "None"],
+                ),
+                "VALIDATION",
+            ),
+            (
+                "transaction_conflict",
+                _SyntheticServiceError(
+                    "TransactionCanceledException",
+                    reasons=["TransactionConflict", "None"],
+                ),
+                "TRANSACTION_CONFLICT",
+            ),
+            (
+                "transaction_cancelled_missing_reasons",
+                _SyntheticServiceError("TransactionCanceledException"),
+                "TRANSACTION_CANCELLED",
+            ),
+            (
+                "throttled",
+                _SyntheticServiceError(
+                    "TransactionCanceledException",
+                    reasons=["ThrottlingError", "None"],
+                ),
+                "THROTTLED",
+            ),
+            (
+                "resource_missing",
+                _SyntheticServiceError("ResourceNotFoundException"),
+                "RESOURCE_NOT_FOUND",
+            ),
+            ("timeout", TimeoutError("sensitive-message-sentinel"), "TIMEOUT"),
+            ("transport", endpoint_error, "TRANSPORT"),
+            (
+                "internal",
+                _SyntheticServiceError("InternalServerError"),
+                "INTERNAL",
+            ),
+            ("unknown", ValueError("sensitive-message-sentinel"), "UNKNOWN"),
+        )
+        sensitive_values = (
+            "sensitive-message-sentinel",
+            "sensitive-request-id-sentinel",
+            "https://sensitive.example.invalid/control",
+            "sensitive-table-sentinel",
+            "arn:aws:iam::123456789012:role/sensitive-role-sentinel",
+            "sensitive-principal-sentinel",
+            "sensitive-operation-sentinel",
+            "Message",
+            "RequestId",
+            "SensitiveFields",
+        )
+
+        async def exercise(error):
+            store = DynamoDBControlStore(
+                "control-table", _BeginFailureClient(error),
+            )
+            lease = Lease(0, store._operation("operation"), "owner", 1, 130)
+            with _capture_rehearsal_diagnostics() as captured:
+                try:
+                    await store.begin_provider(
+                        "operation", lease, "dispatch", "model", 100,
+                    )
+                except ControlStoreUnavailable as exc:
+                    return list(captured), str(exc)
+            self.fail("begin_provider should fail closed")
+
+        with mock.patch("builtins.print") as print_call, \
+             mock.patch("logging.Logger._log") as log_call:
+            for name, error, expected_reason in cases:
+                with self.subTest(name=name):
+                    captured, public_message = asyncio.run(exercise(error))
+                    self.assertEqual(
+                        captured, [("BEGIN_PROVIDER", expected_reason)],
+                    )
+                    self.assertEqual(public_message, "control store unavailable")
+                    serialized = repr((captured, public_message))
+                    for sensitive in sensitive_values:
+                        self.assertNotIn(sensitive, serialized)
+        print_call.assert_not_called()
+        log_call.assert_not_called()
+
+    def test_diagnostic_capture_is_isolated_between_concurrent_tasks(self):
+        async def exercise(error):
+            store = DynamoDBControlStore(
+                "control-table", _BeginFailureClient(error),
+            )
+            lease = Lease(0, store._operation("operation"), "owner", 1, 130)
+            with _capture_rehearsal_diagnostics() as captured:
+                try:
+                    await store.begin_provider(
+                        "operation", lease, "dispatch", "model", 100,
+                    )
+                except ControlStoreUnavailable:
+                    await asyncio.sleep(0)
+                    return list(captured)
+            self.fail("begin_provider should fail closed")
+
+        async def concurrent():
+            return await asyncio.gather(
+                exercise(_SyntheticServiceError("AccessDeniedException")),
+                exercise(_SyntheticServiceError("ValidationException")),
+            )
+
+        access, validation = asyncio.run(concurrent())
+        self.assertEqual(access, [("BEGIN_PROVIDER", "ACCESS_DENIED")])
+        self.assertEqual(validation, [("BEGIN_PROVIDER", "VALIDATION")])
 
     def test_transaction_cancellation_is_conditional_only_for_pure_condition_failures(self):
         lease = Lease(0, "operation-hash", "owner", 1, 130)
@@ -524,9 +679,11 @@ class AtomicControlStoreTests(unittest.TestCase):
             "control-table",
             _TransactionFailureClient(["None", "ConditionalCheckFailed"]),
         )
-        self.assertFalse(asyncio.run(conditional.begin_provider(
-            "operation", lease, "dispatch", "model", 100,
-        )))
+        with _capture_rehearsal_diagnostics() as conditional_diagnostics:
+            self.assertFalse(asyncio.run(conditional.begin_provider(
+                "operation", lease, "dispatch", "model", 100,
+            )))
+        self.assertEqual(conditional_diagnostics, [])
 
         unavailable = DynamoDBControlStore(
             "control-table",
@@ -551,8 +708,10 @@ class AtomicControlStoreTests(unittest.TestCase):
                 self._record("describe_table", kwargs)
                 raise asyncio.CancelledError()
 
-        with self.assertRaises(asyncio.CancelledError):
+        with _capture_rehearsal_diagnostics() as captured, \
+             self.assertRaises(asyncio.CancelledError):
             asyncio.run(DynamoDBControlStore("control-table", CancelClient()).health())
+        self.assertEqual(captured, [])
 
     def test_sdk_hang_and_credential_failures_map_to_store_unavailable(self):
         class HangClient(_RecordingClient):
@@ -564,8 +723,10 @@ class AtomicControlStoreTests(unittest.TestCase):
         hanging = DynamoDBControlStore(
             "control-table", HangClient(), call_timeout_seconds=0.005,
         )
-        with self.assertRaises(ControlStoreUnavailable):
+        with _capture_rehearsal_diagnostics() as captured, \
+             self.assertRaises(ControlStoreUnavailable):
             asyncio.run(hanging.health())
+        self.assertEqual(captured, [("HEALTH", "TIMEOUT")])
 
         class CredentialClient(_RecordingClient):
             def __init__(self, error):

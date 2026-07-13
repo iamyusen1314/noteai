@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import hashlib
 import os
 import secrets
+from contextlib import contextmanager
 from typing import Any, Callable
 
 from control_store import (
@@ -47,6 +49,111 @@ def _conditional(exc: BaseException) -> bool:
         "ConditionalCheckFailed" in reason_codes
         and reason_codes <= {"None", "ConditionalCheckFailed"}
     )
+
+
+CONTROL_DIAGNOSTIC_STAGES = frozenset({
+    "CLAIM_NONCE",
+    "ADMIT_RATE",
+    "CLAIM_OPERATION",
+    "ACQUIRE_LEASE",
+    "BEGIN_PROVIDER",
+    "RENEW_LEASE",
+    "FINISH_OPERATION",
+    "RELEASE_LEASE",
+    "HEALTH",
+})
+CONTROL_DIAGNOSTIC_REASONS = frozenset({
+    "ACCESS_DENIED",
+    "VALIDATION",
+    "TRANSACTION_CONFLICT",
+    "TRANSACTION_CANCELLED",
+    "THROTTLED",
+    "RESOURCE_NOT_FOUND",
+    "TIMEOUT",
+    "TRANSPORT",
+    "INTERNAL",
+    "UNKNOWN",
+})
+_DIAGNOSTIC_CAPTURE: contextvars.ContextVar[
+    list[tuple[str, str]] | None
+] = contextvars.ContextVar("gateway_control_diagnostic_capture", default=None)
+
+
+def _diagnostic_reason(exc: BaseException) -> str:
+    response = getattr(exc, "response", None)
+    error = response.get("Error", {}) if isinstance(response, dict) else {}
+    code = error.get("Code") if isinstance(error, dict) else None
+    code = code if isinstance(code, str) else ""
+
+    if code == "TransactionCanceledException":
+        reasons = response.get("CancellationReasons")
+        reason_codes = {
+            reason.get("Code")
+            for reason in reasons
+            if isinstance(reason, dict) and isinstance(reason.get("Code"), str)
+        } if isinstance(reasons, list) else set()
+        if "TransactionConflict" in reason_codes:
+            return "TRANSACTION_CONFLICT"
+        if "ValidationError" in reason_codes:
+            return "VALIDATION"
+        if reason_codes & {
+            "ProvisionedThroughputExceeded", "ThrottlingError", "ThrottlingException",
+        }:
+            return "THROTTLED"
+        return "TRANSACTION_CANCELLED"
+
+    if code in {
+        "AccessDenied", "AccessDeniedException", "ExpiredToken",
+        "ExpiredTokenException", "InvalidClientTokenId", "UnrecognizedClientException",
+    }:
+        return "ACCESS_DENIED"
+    if code in {"ValidationError", "ValidationException"}:
+        return "VALIDATION"
+    if code in {"TransactionConflict", "TransactionConflictException"}:
+        return "TRANSACTION_CONFLICT"
+    if code in {
+        "ProvisionedThroughputExceededException", "RequestLimitExceeded",
+        "ThrottlingError", "ThrottlingException",
+    }:
+        return "THROTTLED"
+    if code == "ResourceNotFoundException":
+        return "RESOURCE_NOT_FOUND"
+    if code in {"RequestTimeout", "RequestTimeoutException"}:
+        return "TIMEOUT"
+    if code in {"InternalFailure", "InternalServerError", "InternalServerErrorException"}:
+        return "INTERNAL"
+
+    if isinstance(exc, TimeoutError) or exc.__class__.__name__ in {
+        "ConnectTimeoutError", "ReadTimeoutError",
+    }:
+        return "TIMEOUT"
+    if exc.__class__.__name__ in {
+        "ConnectionClosedError", "EndpointConnectionError", "HTTPClientError",
+        "ProxyConnectionError", "SSLError",
+    }:
+        return "TRANSPORT"
+    return "UNKNOWN"
+
+
+def _record_diagnostic(stage: str, reason: str) -> None:
+    capture = _DIAGNOSTIC_CAPTURE.get()
+    if (
+        capture is not None
+        and stage in CONTROL_DIAGNOSTIC_STAGES
+        and reason in CONTROL_DIAGNOSTIC_REASONS
+    ):
+        capture.append((stage, reason))
+
+
+@contextmanager
+def _capture_rehearsal_diagnostics():
+    """Capture fixed enums for the guarded shell rehearsal only."""
+    captured: list[tuple[str, str]] = []
+    token = _DIAGNOSTIC_CAPTURE.set(captured)
+    try:
+        yield captured
+    finally:
+        _DIAGNOSTIC_CAPTURE.reset(token)
 
 
 class DynamoDBControlStore:
@@ -113,7 +220,7 @@ class DynamoDBControlStore:
             credential_method=credential_method,
         )
 
-    async def _call(self, method: str, **kwargs):
+    async def _call(self, method: str, *, diagnostic_stage: str, **kwargs):
         fn: Callable[..., Any] = getattr(self.client, method)
         try:
             return await asyncio.wait_for(
@@ -123,6 +230,7 @@ class DynamoDBControlStore:
         except Exception as exc:
             if _conditional(exc):
                 raise
+            _record_diagnostic(diagnostic_stage, _diagnostic_reason(exc))
             raise ControlStoreUnavailable("control store unavailable") from None
 
     @staticmethod
@@ -146,6 +254,7 @@ class DynamoDBControlStore:
         try:
             await self._call(
                 "put_item",
+                diagnostic_stage="CLAIM_NONCE",
                 TableName=self.table_name,
                 Item={
                     "pk": _s(f"NONCE#{principal}#{_digest(nonce)}"),
@@ -171,6 +280,7 @@ class DynamoDBControlStore:
         try:
             await self._call(
                 "update_item",
+                diagnostic_stage="ADMIT_RATE",
                 TableName=self.table_name,
                 Key={"pk": _s(f"RATE#{principal}")},
                 UpdateExpression=(
@@ -195,6 +305,7 @@ class DynamoDBControlStore:
         try:
             await self._call(
                 "update_item",
+                diagnostic_stage="ADMIT_RATE",
                 TableName=self.table_name,
                 Key={"pk": _s(f"RATE#{principal}")},
                 UpdateExpression="ADD request_count :one",
@@ -223,6 +334,7 @@ class DynamoDBControlStore:
         try:
             await self._call(
                 "put_item",
+                diagnostic_stage="CLAIM_OPERATION",
                 TableName=self.table_name,
                 Item={
                     "pk": _s(key),
@@ -239,6 +351,7 @@ class DynamoDBControlStore:
                 raise
         response = await self._call(
             "get_item",
+            diagnostic_stage="CLAIM_OPERATION",
             TableName=self.table_name,
             Key={"pk": _s(key)},
             ConsistentRead=True,
@@ -267,6 +380,7 @@ class DynamoDBControlStore:
             try:
                 response = await self._call(
                     "update_item",
+                    diagnostic_stage="ACQUIRE_LEASE",
                     TableName=self.table_name,
                     Key={"pk": _s(f"LEASE#{slot}")},
                     UpdateExpression=(
@@ -323,6 +437,7 @@ class DynamoDBControlStore:
         try:
             await self._call(
                 "transact_write_items",
+                diagnostic_stage="BEGIN_PROVIDER",
                 TransactItems=[
                     {"ConditionCheck": {
                         "TableName": self.table_name,
@@ -364,6 +479,7 @@ class DynamoDBControlStore:
         try:
             await self._call(
                 "update_item",
+                diagnostic_stage="RENEW_LEASE",
                 TableName=self.table_name,
                 Key={"pk": _s(f"LEASE#{lease.slot}")},
                 UpdateExpression="SET lease_expires_at=:expiry, expires_at=:ttl",
@@ -423,6 +539,7 @@ class DynamoDBControlStore:
         try:
             await self._call(
                 "transact_write_items",
+                diagnostic_stage="FINISH_OPERATION",
                 TransactItems=[
                     {"Update": {
                         "TableName": self.table_name,
@@ -452,6 +569,7 @@ class DynamoDBControlStore:
         try:
             await self._call(
                 "delete_item",
+                diagnostic_stage="RELEASE_LEASE",
                 TableName=self.table_name,
                 Key={"pk": _s(f"LEASE#{lease.slot}")},
                 ConditionExpression=(
@@ -466,5 +584,7 @@ class DynamoDBControlStore:
             raise
 
     async def health(self) -> bool:
-        response = await self._call("describe_table", TableName=self.table_name)
+        response = await self._call(
+            "describe_table", diagnostic_stage="HEALTH", TableName=self.table_name,
+        )
         return response.get("Table", {}).get("TableStatus") in {"ACTIVE", "UPDATING"}
