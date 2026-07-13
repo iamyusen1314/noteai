@@ -17,9 +17,10 @@ import ipaddress
 import json
 import os
 import re
+import secrets
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, AsyncGenerator, Protocol
 from urllib.parse import urlsplit
 
@@ -203,6 +204,7 @@ class ClaudeMessageRequest:
     model: str
     max_tokens: int
     messages: tuple[dict, ...]
+    operation_id: str = field(default_factory=lambda: secrets.token_urlsafe(24))
     system: str | None = None
     temperature: float | None = None
     thinking_budget: int | None = None
@@ -407,6 +409,7 @@ _PRE_PROVIDER_GATEWAY_CODES = frozenset({
     "AUTH_NONCE_INVALID",
     "AUTH_TIMESTAMP_INVALID",
     "CONCURRENCY_LIMIT",
+    "CONTROL_PLANE_UNAVAILABLE",
     "CONTENT_LENGTH_INVALID",
     "CONTENT_LIMIT_EXCEEDED",
     "CONTENT_TYPE_UNSUPPORTED",
@@ -584,7 +587,10 @@ class GatewayClaudeTransport:
 
     @staticmethod
     def _body(request: ClaudeMessageRequest) -> bytes:
+        if not _cgp.valid_operation_id(request.operation_id):
+            raise ClaudeGatewayError("INVALID_REQUEST", 400, fallback_safe=True)
         return json.dumps({
+            "operation_id": request.operation_id,
             "model": request.model,
             "max_tokens": request.max_tokens,
             "system": request.system,
@@ -856,6 +862,10 @@ def _claude_timeout_seconds(task: str, thinking: bool, max_tokens: int) -> float
     return CLAUDE_FAST_TIMEOUT_SECONDS
 
 
+def _new_operation_id() -> str:
+    return secrets.token_urlsafe(24)
+
+
 async def _call_model_with_retries(
     task: str,
     model_id: str,
@@ -863,7 +873,9 @@ async def _call_model_with_retries(
     user: str,
     thinking: bool,
     max_tokens: int,
+    operation_id: str = "",
 ) -> str:
+    operation_id = operation_id or _new_operation_id()
     attempts = MODEL_RETRY_ATTEMPTS
     for attempt in range(1, attempts + 1):
         try:
@@ -872,7 +884,10 @@ async def _call_model_with_retries(
                 sem = _get_semaphore("claude", CLAUDE_CONCURRENCY)
                 async with sem:
                     result = await asyncio.wait_for(
-                        _call_claude(model_id, system, user, thinking, max_tokens),
+                        _call_claude(
+                            model_id, system, user, thinking, max_tokens,
+                            operation_id=operation_id,
+                        ),
                         timeout=_claude_timeout_seconds(task, thinking, max_tokens),
                     )
             else:
@@ -907,7 +922,9 @@ async def _call_model_with_retries(
 async def _call_claude(
     model: str, system: str, user: str,
     thinking: bool = False, max_tokens: int = 1200,
+    operation_id: str = "",
 ) -> str:
+    operation_id = operation_id or _new_operation_id()
     thinking_budget = None
     if thinking:
         thinking_budget = max(min(max_tokens - 1000, 10000), 1024)
@@ -917,6 +934,7 @@ async def _call_claude(
             max_tokens=max_tokens,
             system=system,
             messages=({"role": "user", "content": user},),
+            operation_id=operation_id,
             temperature=None if thinking else 0.7,
             thinking_budget=thinking_budget,
         ))
@@ -964,10 +982,14 @@ async def call(
     """路由到对应模型；Claude 仅在确认未调用 provider 时走 fallback。"""
     routing = TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []})
     models_to_try = [routing["primary"]] + list(routing.get("fallback", []))
+    operation_id = _new_operation_id()
 
     for model_id in models_to_try:
         try:
-            return await _call_model_with_retries(task, model_id, system, user, thinking, max_tokens)
+            return await _call_model_with_retries(
+                task, model_id, system, user, thinking, max_tokens,
+                operation_id=operation_id,
+            )
         except Exception as exc:
             if model_id.startswith("claude") and not (
                 isinstance(exc, ClaudeGatewayError) and exc.fallback_safe
@@ -1011,9 +1033,11 @@ async def _stream_claude(
     model: str, system: str, user: str,
     thinking: bool = True, max_tokens: int = 16000,
     history: list[dict] | None = None,
+    operation_id: str = "",
 ) -> AsyncGenerator[tuple[str, str], None]:
     """流式调用 Claude，yield ('thinking', text) 或 ('content', text)。"""
     messages = list(history or []) + [{"role": "user", "content": user}]
+    operation_id = operation_id or _new_operation_id()
     thinking_budget = None
     if thinking:
         thinking_budget = max(min(max_tokens - 2000, 10000), 1024)
@@ -1022,6 +1046,7 @@ async def _stream_claude(
         max_tokens=max_tokens,
         system=system,
         messages=tuple(messages),
+        operation_id=operation_id,
         temperature=None if thinking else 0.7,
         thinking_budget=thinking_budget,
     )
@@ -1099,9 +1124,13 @@ async def stream(
     primary  = routing["primary"]
     fallbacks = list(routing.get("fallback", []))
     emitted = False
+    operation_id = _new_operation_id()
 
     primary_stream = (
-        _stream_claude(primary, system, user, thinking, max_tokens, history)
+        _stream_claude(
+            primary, system, user, thinking, max_tokens, history,
+            operation_id=operation_id,
+        )
         if primary.startswith("claude")
         else _stream_kimi(primary, system, user, thinking, max_tokens, history)
     )
@@ -1129,7 +1158,10 @@ async def stream(
         try:
             _log(f"stream task={task} fallback model={fb_model}")
             if fb_model.startswith("claude"):
-                result = await _call_claude(fb_model, system, user, thinking=False, max_tokens=max_tokens)
+                result = await _call_claude(
+                    fb_model, system, user, thinking=False, max_tokens=max_tokens,
+                    operation_id=operation_id,
+                )
             else:
                 result = await _call_kimi(fb_model, system, user, thinking=False, max_tokens=max_tokens)
             if result:
@@ -1172,6 +1204,7 @@ async def stream_chat(
         else:
             cleaned.append(m)
     cleaned.append({"role": "user", "content": user_content})
+    operation_id = _new_operation_id()
 
     thinking_budget = (
         max(min(max_tokens - 2000, 10000), 1024)
@@ -1182,6 +1215,7 @@ async def stream_chat(
         max_tokens=max_tokens,
         system=system,
         messages=tuple(cleaned),
+        operation_id=operation_id,
         temperature=None if thinking else 0.7,
         thinking_budget=thinking_budget,
     )
@@ -1210,6 +1244,7 @@ async def stream_chat(
             result = await _call_claude(
                 CLAUDE_HAIKU, system, user_text,
                 thinking=False, max_tokens=min(max_tokens, 4096),
+                operation_id=operation_id,
             )
             if result:
                 yield ("content", result)
@@ -1229,12 +1264,14 @@ def call_claude_sync(
     thinking_budget: int | None = None,
     first_text_block: bool = False,
 ) -> str:
+    operation_id = _new_operation_id()
     try:
         result = get_claude_transport().create_message_sync(ClaudeMessageRequest(
             model=model,
             max_tokens=max_tokens,
             system=system,
             messages=tuple(messages),
+            operation_id=operation_id,
             temperature=temperature,
             thinking_budget=thinking_budget,
         ))

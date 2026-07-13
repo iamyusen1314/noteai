@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import inspect
 import json
 import logging
+import math
 import os
 import re
 import secrets
@@ -29,8 +31,10 @@ from claude_gateway_protocol import (
     PROTOCOL_VERSION,
     STREAM_PATH,
     signature,
+    valid_operation_id,
     valid_usage_envelope,
 )
+from control_store import ControlStoreUnavailable, Lease, OperationState
 
 
 logger = logging.getLogger("noteai.claude_gateway")
@@ -67,6 +71,57 @@ def _timestamp_skew_seconds() -> int:
 
 def _configured_instance_count() -> int:
     return _int_env("NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT", 1, 1, 100)
+
+
+def _control_mode() -> str:
+    return os.environ.get(
+        "NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE", "memory"
+    ).strip().lower() or "memory"
+
+
+def _stable_principal_id() -> str:
+    return os.environ.get("NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID", "").strip()
+
+
+def _dynamodb_identity_environment_valid() -> bool:
+    static_names = (
+        "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+    )
+    return bool(
+        not any(os.environ.get(name, "").strip() for name in static_names)
+        and os.environ.get("AWS_ROLE_ARN", "").strip()
+        and os.environ.get("AWS_WEB_IDENTITY_TOKEN_FILE", "").strip()
+        and os.environ.get("AWS_EC2_METADATA_DISABLED", "").strip().lower() == "true"
+    )
+
+
+def _float_env(name: str, default: float, minimum: float, maximum: float) -> float:
+    try:
+        value = float(os.environ.get(name, str(default)) or default)
+    except (TypeError, ValueError):
+        value = default
+    return max(minimum, min(maximum, value))
+
+
+def _provider_deadline_seconds() -> float:
+    return _float_env(
+        "NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS", 180.0, 1.0, 600.0,
+    )
+
+
+def _lease_seconds() -> int:
+    margin = _int_env("NOTEAI_CLAUDE_GATEWAY_LEASE_MARGIN_SECONDS", 30, 5, 120)
+    configured = _int_env("NOTEAI_CLAUDE_GATEWAY_LEASE_SECONDS", 240, 5, 900)
+    return max(configured, int(math.ceil(_provider_deadline_seconds())) + margin)
+
+
+def _terminal_retention_seconds() -> int:
+    return _int_env(
+        "NOTEAI_CLAUDE_GATEWAY_TERMINAL_RETENTION_SECONDS",
+        30 * 24 * 60 * 60,
+        24 * 60 * 60,
+        90 * 24 * 60 * 60,
+    )
 
 
 def _preflight_timeout_seconds() -> float:
@@ -183,6 +238,19 @@ _LIMITER = ConcurrencyLimiter(
 _RATE_LIMITER = InMemoryRateLimiter(
     _int_env("NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE", 30, 1, 600)
 )
+_CONTROL_STORE = None
+
+
+def _get_control_store():
+    global _CONTROL_STORE
+    if _CONTROL_STORE is None:
+        try:
+            from dynamodb_control_store import DynamoDBControlStore
+
+            _CONTROL_STORE = DynamoDBControlStore.from_env()
+        except Exception:
+            raise ControlStoreUnavailable("control store unavailable") from None
+    return _CONTROL_STORE
 
 
 def _usage_attr(usage, name: str) -> int:
@@ -311,7 +379,7 @@ def _single_header(request: Request, name: str) -> str:
     return values[0]
 
 
-async def _authenticate(request: Request, body: bytes, expected_path: str) -> None:
+async def _authenticate(request: Request, body: bytes, expected_path: str) -> str:
     if request.url.query:
         raise GatewayRejection("QUERY_NOT_ALLOWED", 400)
     if request.url.path != expected_path:
@@ -360,19 +428,59 @@ async def _authenticate(request: Request, body: bytes, expected_path: str) -> No
     if not secrets.compare_digest(supplied_signature, expected):
         raise GatewayRejection("AUTH_INVALID", 401)
     now = time.time()
-    if not await _NONCES.claim(key_id, nonce, max(now, float(timestamp)) + skew):
-        raise GatewayRejection("AUTH_REPLAY", 409)
-    if not await _RATE_LIMITER.allow(key_id):
-        raise GatewayRejection("RATE_LIMIT", 429)
+    now_epoch = int(now)
+    mode = _control_mode()
+    if mode == "memory":
+        if not await _NONCES.claim(
+            key_id, nonce, max(now_epoch, timestamp) + skew,
+        ):
+            raise GatewayRejection("AUTH_REPLAY", 409)
+        if not await _RATE_LIMITER.allow(key_id):
+            raise GatewayRejection("RATE_LIMIT", 429)
+        return key_id
+    if mode != "dynamodb":
+        raise GatewayRejection("GATEWAY_NOT_CONFIGURED", 503)
+    principal_id = _stable_principal_id()
+    if not principal_id or not _dynamodb_identity_environment_valid():
+        raise GatewayRejection("GATEWAY_NOT_CONFIGURED", 503)
+    try:
+        store = _get_control_store()
+        if getattr(store, "credential_method", "") != "assume-role-with-web-identity":
+            raise ControlStoreUnavailable("control store unavailable")
+        # Cover the full validity interval for timestamps near the allowed
+        # future-skew boundary; TTL cleanup never defines replay validity.
+        if not await store.claim_nonce(
+            principal_id,
+            nonce,
+            now_epoch,
+            max(now_epoch, timestamp) + skew,
+        ):
+            raise GatewayRejection("AUTH_REPLAY", 409)
+        if not await store.admit_rate(
+            principal_id,
+            now,
+            _int_env("NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE", 30, 1, 600),
+            60,
+        ):
+            raise GatewayRejection("RATE_LIMIT", 429)
+    except GatewayRejection:
+        raise
+    except ControlStoreUnavailable:
+        raise GatewayRejection("CONTROL_PLANE_UNAVAILABLE", 503) from None
+    return principal_id
 
 
 def _validate_payload(raw: Any) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise GatewayRejection("INVALID_REQUEST", 422)
     allowed_fields = {
-        "model", "max_tokens", "system", "messages", "temperature", "thinking_budget",
+        "operation_id", "model", "max_tokens", "system", "messages", "temperature",
+        "thinking_budget",
     }
     if set(raw) - allowed_fields:
+        raise GatewayRejection("INVALID_REQUEST", 422)
+    operation_id = raw.get("operation_id")
+    if not valid_operation_id(operation_id):
         raise GatewayRejection("INVALID_REQUEST", 422)
     model = raw.get("model")
     if model not in ALLOWED_MODELS:
@@ -430,6 +538,7 @@ def _validate_payload(raw: Any) -> dict[str, Any]:
     if thinking_budget is not None and temperature is not None:
         raise GatewayRejection("INVALID_REQUEST", 422)
     return {
+        "operation_id": operation_id,
         "model": model,
         "max_tokens": max_tokens,
         "messages": messages,
@@ -440,8 +549,11 @@ def _validate_payload(raw: Any) -> dict[str, Any]:
 
 
 async def _read_and_validate(request: Request, expected_path: str) -> dict[str, Any]:
-    if _configured_instance_count() != 1:
+    mode = _control_mode()
+    if mode == "memory" and _configured_instance_count() != 1:
         raise GatewayRejection("REPLAY_STORE_INSTANCE_SCOPE", 503)
+    if mode not in {"memory", "dynamodb"}:
+        raise GatewayRejection("GATEWAY_NOT_CONFIGURED", 503)
     content_lengths = request.headers.getlist("content-length")
     if len(content_lengths) > 1:
         raise GatewayRejection("CONTENT_LENGTH_INVALID", 400)
@@ -462,12 +574,14 @@ async def _read_and_validate(request: Request, expected_path: str) -> dict[str, 
             raise GatewayRejection("PAYLOAD_TOO_LARGE", 413)
         collected.extend(chunk)
     body = bytes(collected)
-    await _authenticate(request, body, expected_path)
+    principal_id = await _authenticate(request, body, expected_path)
     try:
         raw = json.loads(body)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise GatewayRejection("INVALID_JSON", 400) from exc
-    return _validate_payload(raw)
+    payload = _validate_payload(raw)
+    payload["_principal_id"] = principal_id
+    return payload
 
 
 def _ndjson(event: dict[str, Any]) -> bytes:
@@ -529,6 +643,177 @@ class _ManagedStreamingResponse(StreamingResponse):
             await self._cleanup.run()
 
 
+class _SharedDispatch:
+    """One durable provider dispatch guarded by a renewable fenced lease."""
+
+    def __init__(self, store, payload: dict[str, Any], lease: Lease):
+        self.store = store
+        self.payload = payload
+        self.operation_id = payload["operation_id"]
+        self.lease = lease
+        self.provider_started = False
+        self.begin_attempted = False
+        self.finalized = False
+        self.lost = asyncio.Event()
+        self.provider_deadline_at = 0.0
+        self._heartbeat_task: asyncio.Task | None = None
+
+    @classmethod
+    async def prepare(cls, payload: dict[str, Any]) -> "_SharedDispatch":
+        store = _get_control_store()
+        now_epoch = int(time.time())
+        dispatch = None
+        begin_attempted = False
+        try:
+            lease = await store.acquire_lease(
+                payload["operation_id"],
+                _int_env("NOTEAI_CLAUDE_GATEWAY_CONCURRENCY", 2, 1, 32),
+                now_epoch,
+                _lease_seconds(),
+            )
+            if lease is None:
+                raise GatewayRejection("CONCURRENCY_LIMIT", 429)
+            dispatch = cls(store, payload, lease)
+            claim = await store.claim_operation(
+                payload["_principal_id"],
+                payload["operation_id"],
+            )
+            if claim.state != OperationState.CLAIMED:
+                await dispatch._release_before_provider()
+                raise GatewayRejection("OPERATION_ALREADY_DISPATCHED", 409)
+            safe_payload = {
+                key: value for key, value in payload.items() if not key.startswith("_")
+            }
+            dispatch_hash = hashlib.sha256(
+                json.dumps(
+                    safe_payload, ensure_ascii=False, sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest()
+            dispatch.begin_attempted = True
+            begin_attempted = True
+            begin_now_epoch = int(time.time())
+            started = await store.begin_provider(
+                payload["operation_id"], lease, dispatch_hash,
+                payload["model"], begin_now_epoch,
+            )
+            if not started:
+                await dispatch._release_before_provider()
+                raise GatewayRejection("OPERATION_ALREADY_DISPATCHED", 409)
+            dispatch.provider_started = True
+            dispatch.provider_deadline_at = (
+                time.monotonic() + _provider_deadline_seconds()
+            )
+            dispatch._heartbeat_task = asyncio.create_task(dispatch._heartbeat())
+            return dispatch
+        except GatewayRejection:
+            raise
+        except ControlStoreUnavailable:
+            if not begin_attempted:
+                if dispatch is not None:
+                    await dispatch._release_before_provider()
+                raise GatewayRejection("CONTROL_PLANE_UNAVAILABLE", 503) from None
+            raise GatewayRejection("CONTROL_PLANE_OUTCOME_UNKNOWN", 503) from None
+
+    async def _release_before_provider(self) -> None:
+        try:
+            await self.store.release_lease(self.lease)
+        except ControlStoreUnavailable:
+            pass
+
+    async def _heartbeat(self) -> None:
+        interval = max(0.1, _lease_seconds() / 3)
+        try:
+            while True:
+                await asyncio.sleep(interval)
+                renewed = await self.store.renew_lease(
+                    self.lease, int(time.time()), _lease_seconds(),
+                )
+                if renewed is None:
+                    self.lost.set()
+                    return
+                self.lease = renewed
+        except (ControlStoreUnavailable, asyncio.CancelledError):
+            if not self.finalized:
+                self.lost.set()
+
+    async def await_provider(self, awaitable):
+        provider_task = asyncio.ensure_future(awaitable)
+        lost_task = asyncio.create_task(self.lost.wait())
+        try:
+            remaining = max(0.0, self.provider_deadline_at - time.monotonic())
+            done, _pending = await asyncio.wait(
+                {provider_task, lost_task},
+                timeout=remaining,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+        except BaseException:
+            provider_task.cancel()
+            lost_task.cancel()
+            try:
+                await provider_task
+            except BaseException:
+                pass
+            try:
+                await lost_task
+            except BaseException:
+                pass
+            raise
+        if not done:
+            provider_task.cancel()
+            lost_task.cancel()
+            for task in (provider_task, lost_task):
+                try:
+                    await task
+                except BaseException:
+                    pass
+            raise asyncio.TimeoutError("provider deadline exceeded")
+        if lost_task in done and self.lost.is_set():
+            provider_task.cancel()
+            try:
+                await provider_task
+            except BaseException:
+                pass
+            raise GatewayRejection("CONTROL_PLANE_OUTCOME_UNKNOWN", 503)
+        lost_task.cancel()
+        try:
+            await lost_task
+        except BaseException:
+            pass
+        return await provider_task
+
+    async def finish(
+        self,
+        state: OperationState,
+        *,
+        usage: dict[str, Any] | None = None,
+        error_code: str = "",
+    ) -> None:
+        if self.finalized:
+            return
+        self.finalized = True
+        if self._heartbeat_task is not None:
+            self._heartbeat_task.cancel()
+            try:
+                await self._heartbeat_task
+            except BaseException:
+                pass
+        try:
+            finished = await self.store.finish_operation(
+                self.operation_id,
+                self.lease,
+                state,
+                int(time.time()),
+                retention_seconds=_terminal_retention_seconds(),
+                usage=usage,
+                error_code=error_code,
+            )
+        except ControlStoreUnavailable:
+            raise GatewayRejection("CONTROL_PLANE_OUTCOME_UNKNOWN", 503) from None
+        if not finished:
+            raise GatewayRejection("CONTROL_PLANE_OUTCOME_UNKNOWN", 503)
+
+
 @app.get("/health/live")
 async def health_live():
     return {"status": "ok", "service": "noteai-claude-gateway"}
@@ -540,19 +825,61 @@ async def health_ready():
         os.environ.get("ANTHROPIC_API_KEY")
         and _configured_hmac_keys()
     )
+    mode = _control_mode()
     single_instance = _configured_instance_count() == 1
-    ready = configured and single_instance
-    payload = {
-        "status": "ready_single_instance" if ready else "not_ready",
-        "service": "noteai-claude-gateway",
-        "protocol_version": PROTOCOL_VERSION,
-        "deployment_scope": "single_instance_only",
-        "replay_store": "memory_instance_scope",
-        "multi_instance_production_ready": False,
-        "checks": {
+    if mode == "memory":
+        ready = configured and single_instance
+        status = "ready_single_instance" if ready else "not_ready"
+        deployment_scope = "single_instance_only"
+        replay_store = "memory_instance_scope"
+        multi_ready = False
+        checks = {
             "configured": configured,
             "instance_count_is_one": single_instance,
-        },
+        }
+    elif mode == "dynamodb":
+        store_configured = bool(
+            _stable_principal_id()
+            and os.environ.get("NOTEAI_CLAUDE_GATEWAY_DDB_TABLE", "").strip()
+            and os.environ.get("NOTEAI_CLAUDE_GATEWAY_DDB_REGION", "ap-southeast-1").strip()
+            and _dynamodb_identity_environment_valid()
+        )
+        store_ready = False
+        if store_configured:
+            try:
+                store = _get_control_store()
+                store_ready = bool(
+                    getattr(store, "credential_method", "")
+                    == "assume-role-with-web-identity"
+                    and await store.health()
+                )
+            except ControlStoreUnavailable:
+                store_ready = False
+        ready = configured and store_configured and store_ready
+        status = "ready_multi_instance" if ready else "not_ready"
+        deployment_scope = "shared_control_plane"
+        replay_store = "dynamodb_shared_atomic"
+        multi_ready = ready
+        checks = {
+            "configured": configured,
+            "control_store_configured": store_configured,
+            "control_store_ready": store_ready,
+        }
+    else:
+        ready = False
+        status = "not_ready"
+        deployment_scope = "invalid"
+        replay_store = "invalid"
+        multi_ready = False
+        checks = {"configured": configured, "control_mode_supported": False}
+    payload = {
+        "status": status,
+        "service": "noteai-claude-gateway",
+        "protocol_version": PROTOCOL_VERSION,
+        "deployment_scope": deployment_scope,
+        "replay_store": replay_store,
+        "multi_instance_production_ready": multi_ready,
+        "checks": checks,
     }
     return JSONResponse(payload, status_code=200 if ready else 503)
 
@@ -560,17 +887,34 @@ async def health_ready():
 @app.post(MESSAGES_PATH)
 async def create_message(request: Request):
     payload = await _read_and_validate(request, MESSAGES_PATH)
-    if not await _LIMITER.try_acquire():
-        raise GatewayRejection("CONCURRENCY_LIMIT", 429)
+    shared = None
+    limiter_acquired = False
+    if _control_mode() == "dynamodb":
+        shared = await _SharedDispatch.prepare(payload)
+    else:
+        if not await _LIMITER.try_acquire():
+            raise GatewayRejection("CONCURRENCY_LIMIT", 429)
+        limiter_acquired = True
     started = time.monotonic()
     try:
-        text_blocks, usage = await _PROVIDER.create(payload)
+        provider_call = _PROVIDER.create(payload)
+        text_blocks, usage = (
+            await shared.await_provider(provider_call)
+            if shared is not None else await provider_call
+        )
         if (
             not isinstance(text_blocks, list)
             or not all(isinstance(block, str) for block in text_blocks)
             or not valid_usage_envelope(usage)
         ):
             raise ValueError("invalid provider response")
+        if shared is not None:
+            if usage is None:
+                await shared.finish(
+                    OperationState.AMBIGUOUS, error_code="PROVIDER_USAGE_MISSING",
+                )
+                raise GatewayRejection("CONTROL_PLANE_OUTCOME_UNKNOWN", 503)
+            await shared.finish(OperationState.TERMINAL_USAGE, usage=usage)
         logger.info(
             "gateway_complete code=OK model=%s stream=false elapsed_ms=%d",
             payload["model"],
@@ -581,23 +925,45 @@ async def create_message(request: Request):
             "text_blocks": text_blocks,
             "usage": usage,
         }
+    except (asyncio.CancelledError, GeneratorExit):
+        if shared is not None and not shared.finalized:
+            await shared.finish(OperationState.CANCELLED, error_code="CANCELLED")
+        raise
+    except GatewayRejection:
+        if shared is not None and not shared.finalized:
+            await shared.finish(
+                OperationState.AMBIGUOUS,
+                error_code="CONTROL_PLANE_OUTCOME_UNKNOWN",
+            )
+        raise
     except Exception as exc:
         code, status_code = _provider_error(exc)
+        if shared is not None and not shared.finalized:
+            await shared.finish(OperationState.AMBIGUOUS, error_code=code)
         logger.warning("gateway_provider_error code=%s model=%s stream=false", code, payload["model"])
         return JSONResponse(_error_payload(code), status_code=status_code)
     finally:
-        await _LIMITER.release()
+        if limiter_acquired:
+            await _LIMITER.release()
 
 
 @app.post(STREAM_PATH)
 async def stream_message(request: Request):
     payload = await _read_and_validate(request, STREAM_PATH)
     limiter = _LIMITER
-    if not await limiter.try_acquire():
-        raise GatewayRejection("CONCURRENCY_LIMIT", 429)
+    shared = None
+    limiter_acquired = False
+    if _control_mode() == "dynamodb":
+        shared = await _SharedDispatch.prepare(payload)
+    else:
+        if not await limiter.try_acquire():
+            raise GatewayRejection("CONCURRENCY_LIMIT", 429)
+        limiter_acquired = True
 
     started = time.monotonic()
     usage_seen = False
+    final_usage = None
+    public_content_seen = False
     provider = _PROVIDER
     provider_stream = provider.stream(payload)
     provider_iterator = provider_stream.__aiter__()
@@ -613,21 +979,43 @@ async def stream_message(request: Request):
         except (Exception, asyncio.CancelledError, GeneratorExit):
             pass
 
+    async def finish_stream(default_state: OperationState, error_code: str) -> None:
+        if shared is None or shared.finalized:
+            return
+        if usage_seen and final_usage is not None:
+            await shared.finish(OperationState.TERMINAL_USAGE, usage=final_usage)
+            return
+        state = OperationState.PARTIAL if public_content_seen else default_state
+        await shared.finish(state, error_code=error_code)
+
     async def cleanup_resources() -> None:
         await close_provider()
-        await limiter.release()
+        if shared is not None and not shared.finalized:
+            try:
+                await finish_stream(OperationState.CANCELLED, "STREAM_CLOSED")
+            except GatewayRejection:
+                logger.warning(
+                    "gateway_control_error code=CONTROL_PLANE_OUTCOME_UNKNOWN stream=true"
+                )
+        if limiter_acquired:
+            await limiter.release()
 
     cleanup = _AsyncCleanupOnce(cleanup_resources)
 
     async def next_public_event() -> dict[str, Any]:
-        nonlocal usage_seen
+        nonlocal usage_seen, final_usage, public_content_seen
         while True:
-            event = await provider_iterator.__anext__()
+            next_event = provider_iterator.__anext__()
+            event = (
+                await shared.await_provider(next_event)
+                if shared is not None else await next_event
+            )
             event_type = event.get("type") if isinstance(event, dict) else None
             if event_type == "thinking":
                 await asyncio.sleep(0)
                 continue
             if event_type == "content" and isinstance(event.get("text"), str):
+                public_content_seen = True
                 return {"type": "content", "text": event["text"]}
             if (
                 event_type == "usage"
@@ -637,6 +1025,7 @@ async def stream_message(request: Request):
                 if usage_seen:
                     raise ValueError("duplicate provider usage")
                 usage_seen = True
+                final_usage = event["usage"]
                 return {"type": "usage", "usage": event["usage"]}
             raise ValueError("invalid provider stream event")
 
@@ -646,6 +1035,12 @@ async def stream_message(request: Request):
             timeout=_preflight_timeout_seconds(),
         )
     except (asyncio.CancelledError, GeneratorExit):
+        await finish_stream(OperationState.CANCELLED, "CANCELLED")
+        await cleanup.run()
+        raise
+    except GatewayRejection:
+        if shared is not None and not shared.finalized:
+            await shared.finish(OperationState.AMBIGUOUS, error_code="CONTROL_PLANE_OUTCOME_UNKNOWN")
         await cleanup.run()
         raise
     except BaseException as exc:
@@ -655,6 +1050,8 @@ async def stream_message(request: Request):
             code,
             payload["model"],
         )
+        if shared is not None and not shared.finalized:
+            await shared.finish(OperationState.AMBIGUOUS, error_code=code)
         await cleanup.run()
         return JSONResponse(_error_payload(code), status_code=status_code)
 
@@ -668,7 +1065,14 @@ async def stream_message(request: Request):
                     break
                 yield _ndjson({"protocol_version": PROTOCOL_VERSION, **public_event})
             if not usage_seen:
+                if shared is not None and not shared.finalized:
+                    await shared.finish(
+                        OperationState.AMBIGUOUS,
+                        error_code="PROVIDER_USAGE_MISSING",
+                    )
                 raise ValueError("provider usage missing")
+            if shared is not None:
+                await shared.finish(OperationState.TERMINAL_USAGE, usage=final_usage)
             yield _ndjson({"protocol_version": PROTOCOL_VERSION, "type": "done"})
             logger.info(
                 "gateway_complete code=OK model=%s stream=true elapsed_ms=%d",
@@ -677,8 +1081,14 @@ async def stream_message(request: Request):
             )
         except BaseException as exc:
             if isinstance(exc, (asyncio.CancelledError, GeneratorExit)):
+                await finish_stream(OperationState.CANCELLED, "CANCELLED")
                 raise
-            code, _status_code = _provider_error(exc)
+            if isinstance(exc, GatewayRejection):
+                code = exc.code
+            else:
+                code, _status_code = _provider_error(exc)
+            if shared is not None and not shared.finalized:
+                await finish_stream(OperationState.AMBIGUOUS, code)
             logger.warning("gateway_provider_error code=%s model=%s stream=true", code, payload["model"])
             yield _ndjson({
                 "protocol_version": PROTOCOL_VERSION,

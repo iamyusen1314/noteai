@@ -27,6 +27,12 @@ import claude_gateway_protocol as protocol
 import model_router
 import api
 from gateway import claude_gateway
+from control_store import (
+    ControlStoreUnavailable,
+    Lease,
+    OperationClaim,
+    OperationState,
+)
 
 
 def _complete_usage(**updates):
@@ -61,6 +67,113 @@ class _FakeProvider:
         yield {"type": "usage", "usage": _complete_usage(input_tokens=4, output_tokens=2)}
 
 
+class _FakeSharedControlStore:
+    def __init__(self):
+        self.nonces = {}
+        self.rates = {}
+        self.operations = {}
+        self.lease = None
+        self.fence = 0
+        self.calls = []
+        self.available = True
+        self.fail_begin_after_apply = False
+        self.renew_count = 0
+        self.lose_lease_on_renew = False
+        self.credential_method = "assume-role-with-web-identity"
+
+    def _require_available(self):
+        if not self.available:
+            raise ControlStoreUnavailable("unavailable")
+
+    async def claim_nonce(self, principal, nonce, now, expires):
+        self._require_available()
+        self.calls.append(("nonce", principal, now, expires))
+        key = (principal, nonce)
+        if self.nonces.get(key, 0) > now:
+            return False
+        self.nonces[key] = expires
+        return True
+
+    async def admit_rate(self, principal, now, limit, window):
+        self._require_available()
+        self.calls.append(("rate", principal, now))
+        candidate = int(float(now) // window) * window
+        stored_window, count = self.rates.get(principal, (candidate, 0))
+        if candidate > stored_window:
+            stored_window, count = candidate, 0
+        if count >= limit:
+            return False
+        self.rates[principal] = (stored_window, count + 1)
+        return True
+
+    async def acquire_lease(self, operation, _slots, now, seconds):
+        self._require_available()
+        if self.lease is not None and self.lease.expires_at > now:
+            return None
+        self.fence += 1
+        self.lease = Lease(0, operation, f"owner-{self.fence}", self.fence, now + seconds)
+        self.calls.append(("lease", operation, self.fence))
+        return self.lease
+
+    async def claim_operation(self, principal, operation):
+        self._require_available()
+        state = self.operations.get(operation)
+        if state is not None:
+            return OperationClaim(state, False)
+        self.operations[operation] = OperationState.CLAIMED
+        self.calls.append(("claim", principal, operation))
+        return OperationClaim(OperationState.CLAIMED, True)
+
+    async def begin_provider(self, operation, lease, _dispatch, _model, _now):
+        self._require_available()
+        if (
+            self.operations.get(operation) != OperationState.CLAIMED
+            or lease != self.lease
+            or lease.expires_at <= _now
+        ):
+            return False
+        self.operations[operation] = OperationState.PROVIDER_STARTED
+        self.calls.append(("begin", operation))
+        if self.fail_begin_after_apply:
+            raise ControlStoreUnavailable("response lost after apply")
+        return True
+
+    async def renew_lease(self, lease, now, seconds):
+        self._require_available()
+        self.renew_count += 1
+        self.calls.append(("renew", lease.operation_hash))
+        if lease != self.lease or lease.expires_at <= now:
+            return None
+        if self.lose_lease_on_renew:
+            return None
+        self.lease = Lease(
+            lease.slot, lease.operation_hash, lease.owner_token,
+            lease.fence, now + seconds,
+        )
+        return self.lease
+
+    async def finish_operation(
+        self, operation, lease, state, _now, *, retention_seconds, **kwargs,
+    ):
+        self._require_available()
+        if lease != self.lease or self.operations.get(operation) != OperationState.PROVIDER_STARTED:
+            return False
+        self.operations[operation] = state
+        self.lease = None
+        self.calls.append(("finish", operation, state, kwargs.get("usage")))
+        return True
+
+    async def release_lease(self, lease):
+        if lease == self.lease:
+            self.lease = None
+            return True
+        return False
+
+    async def health(self):
+        self._require_available()
+        return True
+
+
 class ClaudeGatewayEndpointTests(unittest.TestCase):
     def setUp(self):
         self.env = mock.patch.dict(os.environ, {
@@ -70,17 +183,20 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
             "NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT": "1",
             "NOTEAI_CLAUDE_GATEWAY_MAX_BODY_BYTES": "8388608",
             "NOTEAI_CLAUDE_GATEWAY_MAX_TOKENS": "16000",
+            "NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE": "memory",
         }, clear=False)
         self.env.start()
         self.original_provider = claude_gateway._PROVIDER
         self.original_nonces = claude_gateway._NONCES
         self.original_limiter = claude_gateway._LIMITER
         self.original_rate_limiter = claude_gateway._RATE_LIMITER
+        self.original_control_store = claude_gateway._CONTROL_STORE
         self.provider = _FakeProvider()
         claude_gateway._PROVIDER = self.provider
         claude_gateway._NONCES = claude_gateway.InMemoryNonceStore()
         claude_gateway._LIMITER = claude_gateway.ConcurrencyLimiter(2)
         claude_gateway._RATE_LIMITER = claude_gateway.InMemoryRateLimiter(1000)
+        claude_gateway._CONTROL_STORE = None
         self.client = TestClient(claude_gateway.app)
 
     def tearDown(self):
@@ -89,11 +205,13 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
         claude_gateway._NONCES = self.original_nonces
         claude_gateway._LIMITER = self.original_limiter
         claude_gateway._RATE_LIMITER = self.original_rate_limiter
+        claude_gateway._CONTROL_STORE = self.original_control_store
         self.env.stop()
 
     @staticmethod
     def payload(**updates):
         payload = {
+            "operation_id": "test_operation_id_1234567890",
             "model": "claude-haiku-4-5-20251001",
             "max_tokens": 1200,
             "system": "system",
@@ -527,6 +645,7 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
 
     def test_model_body_token_thinking_temperature_and_image_limits(self):
         cases = (
+            (self.payload(operation_id="short"), "INVALID_REQUEST"),
             (self.payload(model="claude-unknown"), "MODEL_NOT_ALLOWED"),
             (self.payload(max_tokens=16001), "TOKEN_LIMIT_EXCEEDED"),
             (self.payload(thinking_budget=1024, temperature=0.7), "INVALID_REQUEST"),
@@ -628,6 +747,420 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
         self.assertEqual(payload["deployment_scope"], "single_instance_only")
         self.assertEqual(payload["replay_store"], "memory_instance_scope")
         self.assertFalse(payload["multi_instance_production_ready"])
+
+    def _dynamodb_env(self):
+        return {
+            "NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE": "dynamodb",
+            "NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID": "noteai-production",
+            "NOTEAI_CLAUDE_GATEWAY_DDB_TABLE": "gateway-control",
+            "NOTEAI_CLAUDE_GATEWAY_DDB_REGION": "ap-southeast-1",
+            "NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT": "3",
+            "AWS_ROLE_ARN": "arn:aws:iam::123456789012:role/render-noteai-gateway",
+            "AWS_WEB_IDENTITY_TOKEN_FILE": "/render/injected/token",
+            "AWS_EC2_METADATA_DISABLED": "true",
+            "AWS_ACCESS_KEY_ID": "",
+            "AWS_SECRET_ACCESS_KEY": "",
+            "AWS_SESSION_TOKEN": "",
+        }
+
+    def test_dynamodb_non_stream_starts_provider_once_after_durable_begin(self):
+        store = _FakeSharedControlStore()
+        claude_gateway._CONTROL_STORE = store
+
+        class OrderedProvider(_FakeProvider):
+            async def create(inner_self, payload):
+                self.assertEqual(
+                    store.operations[payload["operation_id"]],
+                    OperationState.PROVIDER_STARTED,
+                )
+                return await super().create(payload)
+
+        provider = OrderedProvider()
+        claude_gateway._PROVIDER = provider
+        with mock.patch.dict(os.environ, self._dynamodb_env()):
+            first = self.post(payload=self.payload(operation_id="shared_operation_123456789"))
+            duplicate = self.post(payload=self.payload(operation_id="shared_operation_123456789"))
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(duplicate.status_code, 409)
+        self.assertEqual(duplicate.json()["error"]["code"], "OPERATION_ALREADY_DISPATCHED")
+        self.assertEqual(len(provider.calls), 1)
+        self.assertEqual(
+            store.operations["shared_operation_123456789"],
+            OperationState.TERMINAL_USAGE,
+        )
+        self.assertEqual(
+            [call[0] for call in store.calls if call[0] in {"begin", "finish"}],
+            ["begin", "finish"],
+        )
+
+    def test_gateway_rechecks_fresh_time_before_begin_at_exact_lease_expiry(self):
+        async def exact_expiry():
+            store = _FakeSharedControlStore()
+            provider = _FakeProvider()
+            payload = self.payload(operation_id="paused_exact_expiry_operation_123")
+            payload["_principal_id"] = "noteai-production"
+            claude_gateway._CONTROL_STORE = store
+            claude_gateway._PROVIDER = provider
+            rejection = None
+            with mock.patch.dict(os.environ, self._dynamodb_env()), \
+                 mock.patch.object(
+                     claude_gateway, "_read_and_validate",
+                     new=mock.AsyncMock(return_value=payload),
+                 ), mock.patch.object(
+                     claude_gateway, "_lease_seconds", return_value=10,
+                 ), mock.patch.object(
+                     claude_gateway.time, "time", side_effect=[100, 110],
+                 ):
+                try:
+                    await claude_gateway.create_message(object())
+                except claude_gateway.GatewayRejection as exc:
+                    rejection = exc
+            replacement = await store.acquire_lease(
+                "replacement-operation", 1, 110, 10,
+            )
+            return store, provider, rejection, replacement
+
+        store, provider, rejection, replacement = asyncio.run(exact_expiry())
+        self.assertIsNotNone(rejection)
+        self.assertEqual(rejection.code, "OPERATION_ALREADY_DISPATCHED")
+        self.assertEqual(provider.calls, [])
+        self.assertEqual(
+            store.operations["paused_exact_expiry_operation_123"],
+            OperationState.CLAIMED,
+        )
+        self.assertIsNotNone(replacement)
+        self.assertEqual(replacement.expires_at, 120)
+        self.assertGreater(replacement.fence, 1)
+
+        async def still_live():
+            store = _FakeSharedControlStore()
+            provider = _FakeProvider()
+            payload = self.payload(operation_id="paused_still_live_operation_1234")
+            payload["_principal_id"] = "noteai-production"
+            claude_gateway._CONTROL_STORE = store
+            claude_gateway._PROVIDER = provider
+            with mock.patch.dict(os.environ, self._dynamodb_env()), \
+                 mock.patch.object(
+                     claude_gateway, "_read_and_validate",
+                     new=mock.AsyncMock(return_value=payload),
+                 ), mock.patch.object(
+                     claude_gateway, "_lease_seconds", return_value=10,
+                 ), mock.patch.object(
+                     claude_gateway.time, "time", side_effect=[100, 109, 109],
+                 ):
+                response = await claude_gateway.create_message(object())
+            return store, provider, response
+
+        live_store, live_provider, response = asyncio.run(still_live())
+        self.assertEqual(response["text_blocks"], ["safe-result"])
+        self.assertEqual(len(live_provider.calls), 1)
+        self.assertEqual(
+            live_store.operations["paused_still_live_operation_1234"],
+            OperationState.TERMINAL_USAGE,
+        )
+
+    def test_dynamodb_store_faults_fail_closed_before_and_after_begin_apply(self):
+        before = _FakeSharedControlStore()
+        before.available = False
+        claude_gateway._CONTROL_STORE = before
+        with mock.patch.dict(os.environ, self._dynamodb_env()):
+            rejected = self.post(payload=self.payload(operation_id="before_fault_operation_123"))
+        self.assertEqual(rejected.status_code, 503)
+        self.assertEqual(rejected.json()["error"]["code"], "CONTROL_PLANE_UNAVAILABLE")
+        self.assertEqual(self.provider.calls, [])
+
+        for phase in ("acquire", "claim"):
+            class PhaseFailureStore(_FakeSharedControlStore):
+                async def acquire_lease(inner_self, *args):
+                    if phase == "acquire":
+                        raise ControlStoreUnavailable("acquire failed")
+                    return await super().acquire_lease(*args)
+
+                async def claim_operation(inner_self, *args):
+                    if phase == "claim":
+                        raise ControlStoreUnavailable("claim failed")
+                    return await super().claim_operation(*args)
+
+            phase_store = PhaseFailureStore()
+            claude_gateway._CONTROL_STORE = phase_store
+            with self.subTest(phase=phase), mock.patch.dict(os.environ, self._dynamodb_env()):
+                phase_rejected = self.post(payload=self.payload(
+                    operation_id=f"{phase}_failure_operation_12345",
+                ))
+            self.assertEqual(phase_rejected.status_code, 503)
+            self.assertEqual(
+                phase_rejected.json()["error"]["code"],
+                "CONTROL_PLANE_UNAVAILABLE",
+            )
+            self.assertEqual(self.provider.calls, [])
+
+        after = _FakeSharedControlStore()
+        after.fail_begin_after_apply = True
+        claude_gateway._CONTROL_STORE = after
+        with mock.patch.dict(os.environ, self._dynamodb_env()):
+            uncertain = self.post(payload=self.payload(operation_id="after_fault_operation_1234"))
+        self.assertEqual(uncertain.status_code, 503)
+        self.assertEqual(uncertain.json()["error"]["code"], "CONTROL_PLANE_OUTCOME_UNKNOWN")
+        self.assertEqual(self.provider.calls, [])
+        self.assertEqual(
+            after.operations["after_fault_operation_1234"],
+            OperationState.PROVIDER_STARTED,
+        )
+
+    def test_dynamodb_rotation_uses_one_stable_principal_and_future_nonce_expiry(self):
+        store = _FakeSharedControlStore()
+        claude_gateway._CONTROL_STORE = store
+        rotation = {
+            **self._dynamodb_env(),
+            "NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE": "2",
+            "NOTEAI_CLAUDE_GATEWAY_PREVIOUS_HMAC_KEY_ID": "old-test-key",
+            "NOTEAI_CLAUDE_GATEWAY_PREVIOUS_HMAC_SECRET": "old-test-secret",
+        }
+        current_payload = self.payload(operation_id="current_key_operation_12345")
+        current_body = self.encoded(current_payload)
+        previous_payload = self.payload(operation_id="previous_key_operation_1234")
+        previous_body = self.encoded(previous_payload)
+        previous_headers = protocol.auth_headers(
+            key_id="old-test-key", secret="old-test-secret", method="POST",
+            path=protocol.MESSAGES_PATH, body=previous_body,
+        )
+        with mock.patch.dict(os.environ, rotation):
+            current = self.client.post(
+                protocol.MESSAGES_PATH, content=current_body,
+                headers=self.headers(protocol.MESSAGES_PATH, current_body),
+            )
+            previous = self.client.post(
+                protocol.MESSAGES_PATH, content=previous_body, headers=previous_headers,
+            )
+            limited_payload = self.payload(operation_id="rotation_limit_operation_1234")
+            limited_body = self.encoded(limited_payload)
+            limited = self.client.post(
+                protocol.MESSAGES_PATH,
+                content=limited_body,
+                headers=self.headers(protocol.MESSAGES_PATH, limited_body),
+            )
+        self.assertEqual((current.status_code, previous.status_code), (200, 200))
+        self.assertEqual(limited.status_code, 429)
+        self.assertEqual(limited.json()["error"]["code"], "RATE_LIMIT")
+        principals = {call[1] for call in store.calls if call[0] == "nonce"}
+        self.assertEqual(principals, {"noteai-production"})
+
+        future_store = _FakeSharedControlStore()
+        claude_gateway._CONTROL_STORE = future_store
+        payload = self.payload(operation_id="future_nonce_operation_1234")
+        body = self.encoded(payload)
+        with mock.patch.dict(os.environ, self._dynamodb_env()), \
+             mock.patch.object(claude_gateway.time, "time", return_value=1000):
+            headers = self.headers(
+                protocol.MESSAGES_PATH, body, nonce="future-nonce-value-123456",
+                timestamp=1299,
+            )
+            first = self.client.post(protocol.MESSAGES_PATH, content=body, headers=headers)
+        with mock.patch.dict(os.environ, self._dynamodb_env()), \
+             mock.patch.object(claude_gateway.time, "time", return_value=1301):
+            replay = self.client.post(protocol.MESSAGES_PATH, content=body, headers=headers)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(replay.status_code, 409)
+        self.assertEqual(replay.json()["error"]["code"], "AUTH_REPLAY")
+        nonce_calls = [call for call in future_store.calls if call[0] == "nonce"]
+        self.assertEqual(nonce_calls[0][3], 1599)
+
+    def test_dynamodb_readiness_allows_multiple_instances_only_when_store_is_healthy(self):
+        store = _FakeSharedControlStore()
+        claude_gateway._CONTROL_STORE = store
+        with mock.patch.dict(os.environ, self._dynamodb_env()):
+            ready = self.client.get("/health/ready")
+        self.assertEqual(ready.status_code, 200)
+        self.assertEqual(ready.json()["status"], "ready_multi_instance")
+        self.assertTrue(ready.json()["multi_instance_production_ready"])
+        self.assertEqual(ready.json()["replay_store"], "dynamodb_shared_atomic")
+
+        store.available = False
+        with mock.patch.dict(os.environ, self._dynamodb_env()):
+            unavailable = self.client.get("/health/ready")
+        self.assertEqual(unavailable.status_code, 503)
+        self.assertFalse(unavailable.json()["multi_instance_production_ready"])
+
+    def test_dynamodb_rejects_static_or_non_web_identity_credentials(self):
+        store = _FakeSharedControlStore()
+        claude_gateway._CONTROL_STORE = store
+        static_env = {**self._dynamodb_env(), "AWS_ACCESS_KEY_ID": "static-key"}
+        with mock.patch.dict(os.environ, static_env):
+            ready = self.client.get("/health/ready")
+            rejected = self.post(payload=self.payload(
+                operation_id="static_credential_operation_123",
+            ))
+        self.assertEqual(ready.status_code, 503)
+        self.assertEqual(rejected.status_code, 503)
+        self.assertEqual(rejected.json()["error"]["code"], "GATEWAY_NOT_CONFIGURED")
+        self.assertEqual(self.provider.calls, [])
+
+        store.credential_method = "env"
+        with mock.patch.dict(os.environ, self._dynamodb_env()):
+            wrong_method_ready = self.client.get("/health/ready")
+            wrong_method = self.post(payload=self.payload(
+                operation_id="wrong_method_operation_12345",
+            ))
+        self.assertEqual(wrong_method_ready.status_code, 503)
+        self.assertEqual(wrong_method.status_code, 503)
+        self.assertEqual(
+            wrong_method.json()["error"]["code"], "CONTROL_PLANE_UNAVAILABLE",
+        )
+        self.assertEqual(self.provider.calls, [])
+
+    def test_dynamodb_provider_deadline_covers_nonstream_and_stream(self):
+        class SlowProvider:
+            def __init__(self):
+                self.calls = []
+
+            async def create(inner_self, payload):
+                inner_self.calls.append("create")
+                await asyncio.sleep(1)
+                return ["late"], _complete_usage(output_tokens=1)
+
+            async def stream(inner_self, payload):
+                inner_self.calls.append("stream")
+                await asyncio.sleep(1)
+                yield {"type": "content", "text": "late"}
+
+        for path, expected_call in (
+            (protocol.MESSAGES_PATH, "create"),
+            (protocol.STREAM_PATH, "stream"),
+        ):
+            store = _FakeSharedControlStore()
+            provider = SlowProvider()
+            claude_gateway._CONTROL_STORE = store
+            claude_gateway._PROVIDER = provider
+            operation = f"deadline_{expected_call}_operation_1234"
+            with self.subTest(path=path), \
+                 mock.patch.dict(os.environ, self._dynamodb_env()), \
+                 mock.patch.object(
+                     claude_gateway, "_provider_deadline_seconds", return_value=0.01,
+                 ):
+                response = self.post(
+                    path=path, payload=self.payload(operation_id=operation),
+                )
+            self.assertEqual(response.status_code, 504)
+            self.assertEqual(response.json()["error"]["code"], "PROVIDER_TIMEOUT")
+            self.assertEqual(provider.calls, [expected_call])
+            self.assertEqual(store.operations[operation], OperationState.AMBIGUOUS)
+
+    def test_default_lease_exceeds_provider_deadline_plus_margin(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            deadline = claude_gateway._provider_deadline_seconds()
+            lease = claude_gateway._lease_seconds()
+        self.assertGreater(lease, deadline)
+        self.assertGreaterEqual(lease, int(deadline) + 30)
+
+    def test_dynamodb_stream_records_terminal_partial_and_ambiguous_states(self):
+        cases = (
+            ("success", OperationState.TERMINAL_USAGE, ["content", "content", "usage", "done"]),
+            ("partial", OperationState.PARTIAL, ["content", "error"]),
+            ("preflight", OperationState.AMBIGUOUS, None),
+        )
+
+        for mode, expected_state, expected_events in cases:
+            class StreamProvider:
+                async def stream(inner_self, _payload):
+                    if mode == "preflight":
+                        raise RuntimeError("provider failed before content")
+                    yield {"type": "content", "text": "public"}
+                    if mode == "partial":
+                        raise RuntimeError("provider failed after content")
+                    yield {"type": "content", "text": "complete"}
+                    yield {"type": "usage", "usage": _complete_usage(output_tokens=2)}
+
+            store = _FakeSharedControlStore()
+            claude_gateway._CONTROL_STORE = store
+            claude_gateway._PROVIDER = StreamProvider()
+            operation = f"stream_{mode}_operation_123456"
+            with self.subTest(mode=mode), mock.patch.dict(os.environ, self._dynamodb_env()):
+                response = self.post(
+                    path=protocol.STREAM_PATH,
+                    payload=self.payload(operation_id=operation),
+                )
+            self.assertEqual(store.operations[operation], expected_state)
+            if expected_events is None:
+                self.assertGreaterEqual(response.status_code, 500)
+            else:
+                events = [json.loads(line) for line in response.text.splitlines()]
+                self.assertEqual([event["type"] for event in events], expected_events)
+
+    def test_dynamodb_stream_renews_lease_and_fails_closed_if_fence_is_lost(self):
+        class SlowProvider:
+            async def stream(self, _payload):
+                await asyncio.sleep(1.2)
+                yield {"type": "content", "text": "late"}
+                yield {"type": "usage", "usage": _complete_usage(output_tokens=1)}
+
+        healthy = _FakeSharedControlStore()
+        claude_gateway._CONTROL_STORE = healthy
+        claude_gateway._PROVIDER = SlowProvider()
+        healthy_operation = "renewed_stream_operation_12345"
+        with mock.patch.dict(os.environ, self._dynamodb_env()), \
+             mock.patch.object(claude_gateway, "_lease_seconds", return_value=3):
+            completed = self.post(
+                path=protocol.STREAM_PATH,
+                payload=self.payload(operation_id=healthy_operation),
+            )
+        self.assertEqual(completed.status_code, 200)
+        self.assertGreaterEqual(healthy.renew_count, 1)
+        self.assertEqual(
+            healthy.operations[healthy_operation], OperationState.TERMINAL_USAGE,
+        )
+
+        lost = _FakeSharedControlStore()
+        lost.lose_lease_on_renew = True
+        claude_gateway._CONTROL_STORE = lost
+        lost_operation = "lost_fence_stream_operation_123"
+        with mock.patch.dict(os.environ, self._dynamodb_env()), \
+             mock.patch.object(claude_gateway, "_lease_seconds", return_value=3):
+            rejected = self.post(
+                path=protocol.STREAM_PATH,
+                payload=self.payload(operation_id=lost_operation),
+            )
+        self.assertEqual(rejected.status_code, 503)
+        self.assertEqual(
+            rejected.json()["error"]["code"], "CONTROL_PLANE_OUTCOME_UNKNOWN",
+        )
+        self.assertEqual(lost.operations[lost_operation], OperationState.AMBIGUOUS)
+
+    def test_dynamodb_stream_usage_then_client_close_stays_terminal_usage(self):
+        class UsageFirstProvider:
+            def __init__(self):
+                self.calls = 0
+
+            async def stream(inner_self, _payload):
+                inner_self.calls += 1
+                yield {"type": "usage", "usage": _complete_usage(output_tokens=3)}
+                await asyncio.sleep(60)
+
+        async def exercise():
+            store = _FakeSharedControlStore()
+            provider = UsageFirstProvider()
+            operation = "usage_then_close_operation_123"
+            payload = self.payload(operation_id=operation)
+            payload["_principal_id"] = "noteai-production"
+            claude_gateway._CONTROL_STORE = store
+            claude_gateway._PROVIDER = provider
+            with mock.patch.dict(os.environ, self._dynamodb_env()), \
+                 mock.patch.object(
+                     claude_gateway, "_read_and_validate",
+                     new=mock.AsyncMock(return_value=payload),
+                 ):
+                response = await claude_gateway.stream_message(object())
+                first = await response.body_iterator.__anext__()
+                await response.body_iterator.aclose()
+            return store, provider, operation, json.loads(first)
+
+        store, provider, operation, first = asyncio.run(exercise())
+        self.assertEqual(first["type"], "usage")
+        self.assertEqual(provider.calls, 1)
+        self.assertEqual(store.operations[operation], OperationState.TERMINAL_USAGE)
+        finishes = [call for call in store.calls if call[0] == "finish"]
+        self.assertEqual(len(finishes), 1)
+        self.assertEqual(finishes[0][2], OperationState.TERMINAL_USAGE)
 
 
 class AnthropicProviderBoundaryTests(unittest.TestCase):
@@ -934,6 +1467,11 @@ class GatewayClaudeTransportTests(unittest.TestCase):
         self.assertTrue(rejected.exception.fallback_safe)
         self.assertFalse(rejected.exception.usage_audit_required)
 
+        with self.assertRaises(model_router.ClaudeGatewayError) as control_unavailable:
+            asyncio.run(collect(transport_for("CONTROL_PLANE_UNAVAILABLE", 503)))
+        self.assertTrue(control_unavailable.exception.fallback_safe)
+        self.assertFalse(control_unavailable.exception.usage_audit_required)
+
         with self.assertRaises(model_router.ClaudeGatewayError) as attempted:
             asyncio.run(collect(transport_for("PROVIDER_UNAVAILABLE", 503)))
         self.assertFalse(attempted.exception.fallback_safe)
@@ -943,6 +1481,14 @@ class GatewayClaudeTransportTests(unittest.TestCase):
             asyncio.run(collect(transport_for("AUTH_REPLAY", 409)))
         self.assertFalse(replay.exception.fallback_safe)
         self.assertTrue(replay.exception.usage_audit_required)
+
+        for code in ("CONTROL_PLANE_OUTCOME_UNKNOWN", "OPERATION_ALREADY_DISPATCHED"):
+            with self.subTest(code=code), self.assertRaises(
+                model_router.ClaudeGatewayError
+            ) as unsafe:
+                asyncio.run(collect(transport_for(code, 503)))
+            self.assertFalse(unsafe.exception.fallback_safe)
+            self.assertTrue(unsafe.exception.usage_audit_required)
 
         def in_stream_error(_request):
             event = {
@@ -1112,6 +1658,14 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertIn('NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT', blueprint)
         self.assertIn('value: "1"', blueprint)
         self.assertIn("WEB_CONCURRENCY", blueprint)
+        self.assertIn("NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE", blueprint)
+        self.assertIn("AWS_EC2_METADATA_DISABLED", blueprint)
+        self.assertIn("AWS_ROLE_ARN", blueprint)
+        self.assertNotIn("AWS_WEB_IDENTITY_TOKEN_FILE", blueprint)
+        self.assertNotIn("AWS_SECRET_ACCESS_KEY", blueprint)
+        self.assertIn("NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS", blueprint)
+        self.assertIn("NOTEAI_CLAUDE_GATEWAY_TERMINAL_RETENTION_SECONDS", blueprint)
+        self.assertNotIn("NOTEAI_CLAUDE_GATEWAY_OPERATION_TTL_SECONDS", blueprint)
         for forbidden in (
             "DATABASE_URL", "MOONSHOT_API_KEY", "AWS_ACCESS_KEY_ID",
             "NOTEAI_MODEL_ARTIFACT", "type: cron", "databases:", "disk:",
@@ -1125,6 +1679,8 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertEqual(copy_lines, [
             "COPY gateway/requirements.txt ./requirements.txt",
             "COPY model/claude_gateway_protocol.py ./claude_gateway_protocol.py",
+            "COPY gateway/control_store.py ./control_store.py",
+            "COPY gateway/dynamodb_control_store.py ./dynamodb_control_store.py",
             "COPY gateway/claude_gateway.py ./claude_gateway.py",
             "COPY gateway/start.sh ./start.sh",
         ])
@@ -1134,6 +1690,8 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertNotIn("--access-log", start.replace("--no-access-log", ""))
         for forbidden in ("api.py", "db.py", "billing.py", "artifacts", "render_start_api"):
             self.assertNotIn(forbidden, dockerfile)
+        requirements = (ROOT / "gateway" / "requirements.txt").read_text(encoding="utf-8")
+        self.assertIn("boto3==1.43.44", requirements)
 
     def test_documentation_cannot_claim_multi_instance_readiness(self):
         guide = (ROOT / "docs" / "CLAUDE_GATEWAY.md").read_text(encoding="utf-8")
@@ -1141,6 +1699,31 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertIn("memory_instance_scope", guide)
         self.assertIn("multi_instance_production_ready: false", guide)
         self.assertIn("shared atomic replay store", guide)
+        self.assertIn("CONTROL_PLANE_OUTCOME_UNKNOWN", guide)
+        self.assertIn("provider_started", guide.lower())
+
+    def test_aws_control_plane_template_is_retained_least_privilege_and_oidc_only(self):
+        template = (
+            ROOT / "infra" / "aws" / "claude_gateway_control_plane.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("AWS::DynamoDB::Table", template)
+        self.assertIn("BillingMode: PAY_PER_REQUEST", template)
+        self.assertIn("AttributeName: expires_at", template)
+        self.assertIn("SSEEnabled: true", template)
+        self.assertEqual(template.count("DeletionPolicy: Retain"), 1)
+        self.assertIn("ap-southeast-1", template)
+        self.assertIn("RenderOIDCSubject", template)
+        self.assertIn('AllowedPattern: "^[^*?]+$"', template)
+        self.assertIn("sts:AssumeRoleWithWebIdentity", template)
+        for action in (
+            "DescribeTable", "GetItem", "PutItem", "UpdateItem", "DeleteItem",
+            "TransactWriteItems",
+        ):
+            self.assertIn(f"dynamodb:{action}", template)
+        self.assertNotRegex(template, r"Resource:\s*[\"']?\*[\"']?")
+        self.assertNotIn("dynamodb:*", template)
+        self.assertNotIn("AWS_ACCESS_KEY_ID", template)
+        self.assertNotIn("AWS_SECRET_ACCESS_KEY", template)
 
 
 if __name__ == "__main__":

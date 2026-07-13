@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Minimal retained DynamoDB control plane and Render web-identity role for NoteAI Claude Gateway.
+
+Parameters:
+  ControlTableName:
+    Type: String
+    Default: noteai-claude-gateway-control
+    AllowedPattern: "^[A-Za-z0-9_.-]{3,255}$"
+  RenderOIDCProviderArn:
+    Type: String
+    AllowedPattern: "^arn:aws:iam::[0-9]{12}:oidc-provider/[A-Za-z0-9./_-]+$"
+  RenderOIDCIssuerHostPath:
+    Type: String
+    Description: OIDC issuer host and optional path, without scheme or trailing slash.
+    AllowedPattern: "^[A-Za-z0-9.-]+(/[A-Za-z0-9._/-]+)?$"
+  RenderOIDCSubject:
+    Type: String
+    Description: Exact Render service OIDC subject; wildcard subjects are rejected.
+    MinLength: 1
+    AllowedPattern: "^[^*?]+$"
+  RenderOIDCAudience:
+    Type: String
+    Default: sts.amazonaws.com
+    AllowedPattern: "^[A-Za-z0-9._:/-]+$"
+
+Rules:
+  SingaporeOnly:
+    Assertions:
+      - Assert:
+          Fn::Equals:
+            - Ref: AWS::Region
+            - ap-southeast-1
+        AssertDescription: This control plane must be deployed in AWS Singapore (ap-southeast-1).
+
+Resources:
+  ControlTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName:
+        Ref: ControlTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  RenderGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Fn::Sub:
+          - |
+            {
+              "Version":"2012-10-17",
+              "Statement":[{
+                "Effect":"Allow",
+                "Principal":{"Federated":"${ProviderArn}"},
+                "Action":"sts:AssumeRoleWithWebIdentity",
+                "Condition":{"StringEquals":{
+                  "${Issuer}:sub":"${Subject}",
+                  "${Issuer}:aud":"${Audience}"
+                }}
+              }]
+            }
+          - ProviderArn:
+              Ref: RenderOIDCProviderArn
+            Issuer:
+              Ref: RenderOIDCIssuerHostPath
+            Subject:
+              Ref: RenderOIDCSubject
+            Audience:
+              Ref: RenderOIDCAudience
+      Policies:
+        - PolicyName: claude-gateway-control-table-only
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:DescribeTable
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:TransactWriteItems
+                Resource:
+                  Fn::GetAtt:
+                    - ControlTable
+                    - Arn
+
+Outputs:
+  ControlTableName:
+    Value:
+      Ref: ControlTable
+  RenderGatewayRoleArn:
+    Value:
+      Fn::GetAtt:
+        - RenderGatewayRole
+        - Arn

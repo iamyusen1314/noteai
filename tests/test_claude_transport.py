@@ -1,6 +1,7 @@
 import ast
 import asyncio
 import importlib
+import json
 import os
 import re
 import sys
@@ -229,6 +230,104 @@ class ClaudeTransportTests(unittest.TestCase):
         self.assertEqual(deep_request.thinking_budget, 5000)
         self.assertEqual(deep_request.model, model_router.CLAUDE_SONNET)
         self.assertEqual(record_usage.call_count, 2)
+
+    def test_router_reuses_operation_id_for_safe_retries_and_distinguishes_calls(self):
+        class RetryTransport:
+            def __init__(self):
+                self.requests = []
+
+            async def create_message(self, request):
+                self.requests.append(request)
+                if len(self.requests) < 3:
+                    raise model_router.ClaudeGatewayError(
+                        "CONTROL_PLANE_UNAVAILABLE", 503, fallback_safe=True,
+                    )
+                return model_router.ClaudeMessageResult(("ok",), None)
+
+        transport = RetryTransport()
+        model_router.set_claude_transport(transport)
+        with mock.patch.object(model_router, "MODEL_RETRY_ATTEMPTS", 3), \
+             mock.patch.object(model_router, "MODEL_RETRY_BASE_DELAY", 0), \
+             mock.patch.object(model_router, "_record_claude_usage"):
+            first = asyncio.run(model_router.call(
+                "diagnosis", "system", "user", thinking=False, max_tokens=1200,
+            ))
+            second = asyncio.run(model_router.call(
+                "diagnosis", "system", "user", thinking=False, max_tokens=1200,
+            ))
+
+        self.assertEqual((first, second), ("ok", "ok"))
+        self.assertEqual(len({item.operation_id for item in transport.requests[:3]}), 1)
+        self.assertNotEqual(
+            transport.requests[0].operation_id,
+            transport.requests[3].operation_id,
+        )
+        self.assertTrue(all(
+            model_router._cgp.valid_operation_id(item.operation_id)
+            for item in transport.requests
+        ))
+
+    def test_stream_safe_fallback_reuses_operation_id(self):
+        class SafeFallbackTransport:
+            def __init__(self):
+                self.stream_request = None
+                self.async_request = None
+
+            async def stream_message(self, request):
+                self.stream_request = request
+                if False:
+                    yield None
+                raise model_router.ClaudeGatewayError(
+                    "CONTROL_PLANE_UNAVAILABLE", 503, fallback_safe=True,
+                )
+
+            async def create_message(self, request):
+                self.async_request = request
+                return model_router.ClaudeMessageResult(("fallback",), None)
+
+        transport = SafeFallbackTransport()
+        model_router.set_claude_transport(transport)
+
+        async def collect():
+            return [item async for item in model_router.stream_chat(
+                "system", [], "user", thinking=False, max_tokens=1200,
+            )]
+
+        with mock.patch.object(model_router, "_record_claude_usage"):
+            self.assertEqual(asyncio.run(collect()), [("content", "fallback")])
+        self.assertEqual(
+            transport.stream_request.operation_id,
+            transport.async_request.operation_id,
+        )
+
+    def test_operation_id_is_gateway_body_bound_but_not_sent_to_local_sdk(self):
+        first = model_router.ClaudeMessageRequest(
+            model=model_router.CLAUDE_HAIKU,
+            max_tokens=10,
+            messages=({"role": "user", "content": "same"},),
+            operation_id="A" * 24,
+        )
+        second = model_router.ClaudeMessageRequest(
+            model=model_router.CLAUDE_HAIKU,
+            max_tokens=10,
+            messages=({"role": "user", "content": "same"},),
+            operation_id="B" * 24,
+        )
+        self.assertNotIn("operation_id", model_router._local_claude_kwargs(first))
+        first_body = model_router.GatewayClaudeTransport._body(first)
+        second_body = model_router.GatewayClaudeTransport._body(second)
+        self.assertEqual(json.loads(first_body)["operation_id"], "A" * 24)
+        self.assertNotEqual(first_body, second_body)
+        common = {
+            "secret": "secret", "method": "POST",
+            "path": model_router._cgp.MESSAGES_PATH, "key_id": "key",
+            "protocol_version": model_router._cgp.PROTOCOL_VERSION,
+            "content_type": "application/json", "timestamp": "100", "nonce": "nonce",
+        }
+        self.assertNotEqual(
+            model_router._cgp.signature(body=first_body, **common),
+            model_router._cgp.signature(body=second_body, **common),
+        )
 
     def test_stream_and_chat_preserve_history_thinking_and_terminal_usage(self):
         async def collect(stream):

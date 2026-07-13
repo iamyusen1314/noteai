@@ -237,23 +237,23 @@
 - 修改状态/进度：已实现固定pre-provider allowlist（`AUTH_REPLAY`明确不安全）、Claude ambiguous/partial/cancel fail-closed、非流式空响应/超时不重试不fallback、嵌套async iterator显式关闭、Gateway首公开事件preflight、默认175秒thinking-only上限、body iterator与response-level幂等cleanup。部分正文后统一`CLAUDE_STREAM_PARTIAL`；首事件前失败返回固定JSON非2xx；所有日志只含固定code/model/phase。两条旧API合同由“provider可能启动后仍retry/fallback”更新为更严格的一次调用、零fallback断言。验证：相关定向213/213 PASS；全量484 PASS、5 skipped；`py_compile`、`git diff --check`、Production Readiness 48/48 PASS。独立探针覆盖header OSError、连续第1–4个body send OSError、CancelledError、重复aclose、consumer abandonment、未启动body和endless-thinking，provider close与limiter release均恰好一次；未调用真实AI/Render。
 - 是否需要用户决定：否；不改变模型选择、计费规则或对外产品语义，只收紧重复调用安全边界。
 - 是否涉及真实外部调用：本地fault injection不涉及；最终真实Claude最小验证另行计入获批预算或单独批准。
-- 是否已部署到 Render：否；本地与独立验证已闭环，但部署仍需显式批准，且ARCH-002P-B/C/D未完成前不得扩为Production多实例。
+- 是否已部署到 Render：是，仅现有单实例Staging。用户批准后commit `b5d4b7e`已推送并由Render自动部署，push/PR两条GitHub CI均PASS；Render事件确认该commit live，Gateway/API/Web/Admin最终HTTP 200（Admin首次因休眠超时，唤醒后200），未签名请求返回固定`AUTH_HEADER_INVALID`，新实例日志只有固定错误码，无IP、URL、Prompt、正文或异常原文。未执行第4次真实Claude Smoke。ARCH-002P-B/C/D未完成前不得扩为Production多实例。
 
 ### ARCH-002P-B — Gateway共享原子控制面
 
-- 状态：**TODO**
+- 状态：**READY_TO_VERIFY**
 - 优先级：Critical。
 - 问题描述：nonce、rate和concurrency均为单进程内存；扩至2–4实例会绕过防重放与全局配额，重启会丢失状态。
-- 证据：`gateway/claude_gateway.py` 的`InMemoryNonceStore`、`InMemoryRateLimiter`、`ConcurrencyLimiter`均只在进程锁内原子；Blueprint固定单worker、单实例，readiness明确禁止多实例。
-- 根因是否确认：是；缺少同区域、内部网络、支持原子脚本的共享短期状态存储和fail-closed策略。
-- 涉及文件：Gateway专用共享store适配、依赖与配置、`gateway/claude_gateway.py`, `gateway/requirements.txt`, `render.gateway.yaml`, `tests/test_claude_gateway.py`, `docs/CLAUDE_GATEWAY.md`；不得接入NoteAI业务数据库或存储Prompt/正文。
-- 风险：重放、全局限流绕过、lease泄漏、Key轮换后配额翻倍、共享store故障时重复调用；Render Key Value本身不是HA资源。
-- 执行代理：ARCH-002P-A闭环后指定单一Shared Control Plane Implementation Agent。
-- 验证代理：独立Security/Chaos Verification Agent，执行跨4实例同nonce、重启、store中断、lease到期和Key轮换测试。
-- 验收标准：共享原子nonce、逻辑operation状态、全局rate和可续租concurrency lease；以稳定服务主体而非key-id计配额；store不可用时零provider调用并fail-closed；只保存哈希、枚举、时间和usage摘要；无本地降级。
-- 是否需要用户决定：是；需批准Render Singapore Starter Key Value增量10美元/月，内部网络、内部认证、`noeviction`、Journal+Snapshot。
-- 是否涉及真实外部调用：创建共享资源和多实例演练涉及Render；Mock/容器故障测试不调用Claude。
-- 是否已部署到 Render：否。
+- 证据：`gateway/claude_gateway.py` 的`InMemoryNonceStore`、`InMemoryRateLimiter`、`ConcurrencyLimiter`均只在进程锁内原子；Blueprint固定单worker、单实例，readiness明确禁止多实例。2026-07-13 DevOps/Cost与Resilience/Security只读复核确认：Render Key Value单实例、Redis Cloud Essentials/Aiven异步复制和Render Postgres异步HA都不能证明最近nonce/operation claim零丢失；AWS DynamoDB Singapore单Region表在服务内跨3个AZ同步复制，成功写入即durably persisted，支持条件写/ACID事务与99.99% SLA，Render Pro可用自动轮换OIDC凭证直接调用HTTPS endpoint。
+- 根因是否确认：是；缺少跨实例强原子控制面，同时主系统缺少把“Gateway内部拒绝新Claude调用”转化为“NoteAI整体仍安全Kimi/排队/恢复”的durable operation状态机。
+- 涉及文件：`model/model_router.py`, `model/claude_gateway_protocol.py`, `gateway/claude_gateway.py`, `gateway/control_store.py`, `gateway/dynamodb_control_store.py`, `gateway/requirements.txt`, `gateway/Dockerfile`, `render.gateway.yaml`, `infra/aws/claude_gateway_control_plane.yaml`, `docs/CLAUDE_GATEWAY.md`, `tests/test_gateway_control_store.py`, `tests/test_claude_gateway.py`, `tests/test_claude_transport.py`；未修改`model/api.py`/idempotency/billing/业务数据库，`BILL-002`保持独立串行。
+- 风险：重放、全局限流绕过、lease泄漏、Key轮换后配额翻倍、共享store故障时重复调用；Render Key Value本身不是HA资源，且用户明确不接受共享状态故障演变为NoteAI整体不可用，因此单个Render Starter Key Value不再是Production候选。
+- 执行代理：HA方案只读阶段由Render/DevOps/Cost Reviewer（Ampere）与Resilience/Security Reviewer（Tesla）完成；单一DynamoDB Shared Control Plane Implementation Agent（Godel）已完成本地代码包，未创建AWS/Render资源、未调用真实Claude、未提交或推送。
+- 验证代理：独立Verification Agent（Ampere）与Security/Chaos Reviewer（Tesla）；首轮发现operation TTL、lease exact-expiry、DynamoDB timeout/retry、OIDC、rate与provider deadline阻断，第二轮发现begin复用陈旧时间，均退回原实施代理最小修正；最终Ampere与Tesla分别PASS。
+- 验收标准：共享原子nonce、逻辑operation状态、全局rate和可续租concurrency lease；以稳定服务主体而非key-id计配额；共享状态单节点故障自动切换；控制面完全不可达时Gateway对Claude保持零新调用，但Alibaba主系统对确定未dispatch的operation自动安全路由Kimi或durable queue，对可能已dispatch/partial的operation执行持久恢复而非重复模型调用；只保存哈希、枚举、时间和usage摘要；无本地状态降级。
+- 是否需要用户决定：否；用户已于2026-07-13批准创建AWS DynamoDB Singapore单Region表、为现有Render Pro配置AWS OIDC最小权限角色、增加AWS SDK生产依赖及1美元月告警；未批准任何额外真实Claude调用，本包保持0次真实Claude。
+- 是否涉及真实外部调用：创建AWS DynamoDB/IAM OIDC角色及后续多实例演练会改变外部资源；本地DynamoDB fake/fault测试不调用Claude。资源创建前必须获批，真实Claude仍需单独预算。
+- 是否已部署到 Render：否；本地实现与独立验证已闭环：stable Claude leaf operation-id绑定签名body；DynamoDB共享nonce、单principal单调rate、非TTL live operation、renewable fenced lease；provider前后固定安全错误边界；仅Render web identity、禁静态AWS key/metadata回退；SDK单attempt/短deadline；DDB模式provider总deadline与lease margin；Singapore retained table与精确OIDC subject最小IAM模板。最终主控91项聚焦、513项全量（5 skip）、48/48 Production Readiness、py_compile/YAML/diff check均PASS；独立Ampere最终PASS、Tesla第三轮Security/Chaos PASS，真实AWS/AI调用0。当前外部阻塞为Chrome无AWS登录会话；AWS Singapore登录页已留给用户，登录前未创建表/IAM/Budget、未部署Render。
 
 ### ARCH-002P-C — Gateway生产信任与readiness边界
 

@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 ## Critical Risks
 
@@ -54,11 +54,11 @@ Last updated: 2026-07-12
 
 ### Claude Gateway shared multi-instance controls are not production-safe
 
-- 风险描述: ARCH-002P-A已在本地通过三轮独立故障验证，部分正文fallback、ambiguous retry、usage审计和取消/ASGI资源清理已fail-closed；但当前nonce、rate、concurrency仍为单进程内存，扩为2–4实例仍会绕过全局控制，且跨实例逻辑operation终态尚未持久到共享原子store。
+- 风险描述: ARCH-002P-A已在commit `b5d4b7e`部署到单实例Staging。ARCH-002P-B的DynamoDB共享nonce/rate/operation/renewable fenced lease、Web Identity、deadline和最小IaC已在本地通过多轮独立Verification/Security/Chaos，但真实AWS Singapore表、OIDC role、1美元告警和Render DDB模式尚未创建/部署；当前线上Gateway仍是memory单实例，绝不能扩为2–4实例。
 - 涉及文件: `gateway/claude_gateway.py`, `model/claude_gateway_protocol.py`, `model/model_router.py`, Gateway Blueprint、共享状态适配及fault/chaos tests。
 - 可能后果: 重放、重复Claude费用、正文拼接、已退款但供应商成本漏审计，或共享store中断时重复调用。
-- 建议验证方式: 不重复实施已VERIFIED但未部署的ARCH-002P-A；串行闭环B/C/D。共享store必须原子且fail-closed，无本地fallback；跨4实例、重启、断网、取消、滚动和Key轮换故障矩阵全部独立验证。
-- 是否需要用户确认后才能修改: 协议/fault测试不需要；新增Render Key Value、2–4实例演练和真实Claude调用需要。
+- 建议验证方式: 用户完成AWS登录后按已审模板创建Singapore on-demand表与精确Render service subject OIDC role，验证真实credential method、TTL/IAM拒绝边界和无AI条件写；随后串行闭环C/D与BILL-002，并执行2→4→2、store全断、滚动、重启、取消和Key轮换矩阵。控制面不可达时Gateway必须保持零新Claude调用，Alibaba仅对可证明未dispatch的operation安全Kimi/排队。
+- 是否需要用户确认后才能修改: DynamoDB/OIDC/SDK与1美元告警已获批准；当前仅因AWS未登录和预算告警接收邮箱未指定而未创建。真实Claude调用、生产切流或扩大成本仍需单独确认。
 
 ### Alibaba production infrastructure and recoverability do not exist yet
 

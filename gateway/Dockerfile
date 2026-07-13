@@ -9,6 +9,8 @@ COPY gateway/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY model/claude_gateway_protocol.py ./claude_gateway_protocol.py
+COPY gateway/control_store.py ./control_store.py
+COPY gateway/dynamodb_control_store.py ./dynamodb_control_store.py
 COPY gateway/claude_gateway.py ./claude_gateway.py
 COPY gateway/start.sh ./start.sh
 

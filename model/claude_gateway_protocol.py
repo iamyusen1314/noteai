@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import re
 import secrets
 import time
 
@@ -40,6 +41,11 @@ USAGE_CACHE_FIELDS = frozenset({
     "ephemeral_5m_input_tokens",
     "ephemeral_1h_input_tokens",
 })
+OPERATION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{24,128}$")
+
+
+def valid_operation_id(value) -> bool:
+    return isinstance(value, str) and OPERATION_ID_PATTERN.fullmatch(value) is not None
 
 
 def _valid_token_count(value) -> bool:
