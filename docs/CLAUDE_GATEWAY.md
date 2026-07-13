@@ -81,12 +81,14 @@ If `NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT` is not exactly `1`, readiness and
 model requests fail closed. Horizontal scaling or multiple workers require a
 shared atomic replay store before production approval.
 
-The current Staging Blueprint now selects `dynamodb`, while retaining its
-single-instance scale with one Render instance and one worker. This validates
-the shared control-plane path
-without changing the staging scale. Production deployment at 2–4 instances is
-not approved or verified; enabling that scale requires a separate production
-verification and approval step.
+The current Staging Blueprint now selects `dynamodb` and declares Render
+autoscaling from two to four Starter instances, with one worker per instance.
+Global provider concurrency remains `2` and the stable-principal fixed-window
+rate remains `30` requests/minute; adding instances therefore improves the
+availability exercise but does not increase the provider concurrency budget.
+The main API remains on Local transport. Applying the Blueprint and running the
+cloud exercise are explicit operator steps and are not performed by repository
+tests.
 
 `NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE=dynamodb` uses one DynamoDB table for:
 
@@ -156,9 +158,218 @@ safety margin.
 
 The Staging API Blueprint remains explicitly `NOTEAI_CLAUDE_TRANSPORT=local`.
 It does not cut business traffic over to the Gateway. The separate Gateway
-Blueprint remains one Render instance and one worker; the authority, epochs,
-and timeout values are locked for staging. Production deployment at 2–4
-instances is still not approved or verified and remains a separate exercise.
+Blueprint declares a two-instance minimum, four-instance maximum, one worker
+per instance, and a 240-second maximum shutdown delay. The authority, epochs,
+timeouts, global provider concurrency, and rate values remain locked for
+staging. This declaration is a prerequisite for the controlled rehearsal, not
+production traffic approval.
+
+The real Gateway Blueprint has **Auto Sync = No**, changed and re-verified by
+the CTO on 2026-07-13 before any commit containing this scale change was pushed.
+After the push, sync only through **Manual Sync** inside the separately approved
+staging window. Whether Auto Sync is restored after acceptance is a later
+explicit decision. Do not record, copy, or disclose a deploy hook, sync hook,
+token, or other secret while changing this control.
+
+## Staging shell-only zero-Claude rehearsal
+
+`/app/rehearsal.py` is a shell-only operator tool. It adds no HTTP route, has no
+runtime feature flag, is not imported by `/app/start.sh`, and does not change
+the normal Gateway provider. It may run only when all of these guards match:
+
+- Render identifies the exact `noteai-staging-claude-gateway` service and exact
+  `noteai-staging-claude-gateway.onrender.com` external hostname;
+- control mode is `dynamodb`, the declared instance count is `2`, provider
+  concurrency is `2`, rate is `30`, worker count is `1`, and DynamoDB region is
+  exactly `ap-southeast-1`;
+- the normal stable principal, syntactically valid table and IAM role are
+  present; web identity is configured, EC2 metadata is disabled, and every
+  static AWS access, secret, and session key variable is empty;
+- Render supplies a nonempty valid instance ID and an exact 40-hex Git commit;
+- the operator explicitly sets
+  `NOTEAI_GATEWAY_REHEARSAL_ACK=staging-zero-claude` in that Render Shell.
+
+Any mismatch returns only the fixed `REHEARSAL_GUARD_REJECTED` result. The
+acknowledgement variable is intentionally absent from the Blueprint so the
+tool cannot become part of normal service startup.
+
+Operation/rate mode injects a fixed FakeProvider before it sends any ASGI
+request and independently replaces both `AnthropicProvider._get_client` and
+the Anthropic client constructor with hard failures. Fake usage is always zero.
+Those requests still traverse the same FastAPI authentication, nonce, global
+rate, operation claim, fenced lease, provider-start and terminal-state chain,
+but no Anthropic client can be created. Their only external state is the
+Gateway's shared DynamoDB control table. Load mode has no I/O path. The tool
+does not import or access the NoteAI business database.
+
+The output has a fixed JSON field set: mode, status codes, fixed error enums,
+FakeProvider call count, a one-way hashed instance marker, a commit prefix, and
+a one-way control-configuration marker. The last marker covers the configured
+table, role, region, stable principal, authority, and epochs without revealing
+their raw values. Every participating shell must report the same commit and
+control-configuration marker and a different instance marker. `unknown` or a
+duplicate instance marker is not evidence. The tool never prints the request
+body, nonce, raw operation ID, rehearsal namespace, table, role, principal,
+HMAC material, URL, provider output, token path/content, or exception text.
+
+Operation mode requires an operator-created ID beginning with `rehearsal_` or
+`rehearsal-`, a namespace beginning with `rehearsal-`, and optionally a future
+Unix `--start-at` within ten minutes. `--hold-seconds` is bounded to 170 seconds.
+Use the same synthetic operation ID, namespace, and future start time in every
+participating instance shell:
+
+```bash
+export NOTEAI_GATEWAY_REHEARSAL_ACK=staging-zero-claude
+python /app/rehearsal.py operation \
+  --namespace rehearsal-<window-label> \
+  --operation-id rehearsal_<synthetic-id> \
+  --start-at <future-unix-seconds> \
+  --hold-seconds 30
+```
+
+Across those outputs, exactly one process may report `fake_provider_calls: 1`
+and HTTP 200. Every competing process must report zero FakeProvider calls and a
+fixed pre-provider rejection such as `OPERATION_ALREADY_DISPATCHED` or
+`CONCURRENCY_LIMIT`.
+
+Rate mode sends correctly signed but deliberately invalid JSON through the
+same ASGI chain. It derives a shared rehearsal-only principal from the supplied
+namespace and accepts a bounded request count. Begin in a clean rate window and
+aggregate results from every shell: exactly the first 30 requests must be
+`INVALID_JSON`; every remaining request in that window must be `RATE_LIMIT`,
+with `fake_provider_calls: 0` throughout:
+
+```bash
+export NOTEAI_GATEWAY_REHEARSAL_ACK=staging-zero-claude
+python /app/rehearsal.py rate \
+  --namespace rehearsal-<window-label> \
+  --start-at <future-unix-seconds> \
+  --request-count 31
+```
+
+Load mode is separate from the ASGI modes. It performs no HTTP request, no
+DynamoDB call, no Anthropic construction, and no business-database access. It
+runs a bounded local CPU loop at a fixed approximately 95% duty cycle, yielding
+at least once per 100 ms cycle so health serving is not monopolized. A future
+`--start-at` is required and duration is strictly 60–600 seconds:
+
+```bash
+export NOTEAI_GATEWAY_REHEARSAL_ACK=staging-zero-claude
+python /app/rehearsal.py load \
+  --start-at <future-unix-seconds> \
+  --duration-seconds 480
+```
+
+Run this command concurrently from Render Shells attached to the two existing
+instances, first confirming their output/evidence instance markers are
+different. Use the same future start and about 5–8 minutes (300–480 seconds).
+This is intentional CPU load solely to exercise the CPU autoscaling rule. It
+does not establish that real Claude network-bound traffic will trigger that
+rule automatically.
+
+### Controlled 2→4→2 sequence
+
+1. Confirm Auto Sync is No and the approved Manual Sync produced the expected
+   commit. Confirm the main API still reports Local Claude transport. Confirm
+   Gateway readiness is shared-control-plane green, two instances are healthy,
+   each has one worker, and no real Claude smoke is scheduled for the window.
+2. Choose new synthetic operation IDs. Use one shared rehearsal namespace for
+   every process whose rate state must be aggregated. Confirm matching commit
+   and control-configuration markers and two different instance markers. Never
+   use a business operation ID or business principal.
+3. At two instances, open one Render Shell per instance and schedule operation
+   mode for the same future start. Verify exactly one FakeProvider call across
+   all fixed outputs. Run rate mode in a clean window; across all shells verify
+   exactly 30 `INVALID_JSON`, then only `RATE_LIMIT`, and zero provider calls.
+4. From the two different original instances, schedule load mode for the same
+   start and 5–8 minute interval. Observe Render's real autoscaler create four
+   live instances. Stop load after four distinct healthy instance markers are
+   observed. If four real instances are not reached, the scale-up exercise
+   failed. Do not manually set four instances and call that autoscaler evidence.
+5. At four instances, wait for readiness and repeat the two-slot test with three
+   different held synthetic operations: exactly two may enter FakeProvider and
+   the third must be `CONCURRENCY_LIMIT`. Then repeat exact-one operation and
+   clean-window rate aggregation with fresh synthetic IDs/namespaces.
+6. With load stopped, wait for the platform autoscaler itself to return the
+   service to two live instances. A manual reduction is not scale-down evidence.
+   After readiness settles, repeat once with another fresh operation ID.
+7. End the window with two healthy instances and main API Local. Removing the
+   shell acknowledgement ends access to the tool; no runtime setting remains.
+
+### Controlled resilience matrix
+
+- **Rolling deploy:** with Auto Sync still No, Manual Sync an approved commit,
+  retain fixed JSON from old/new commits, and verify readiness, two-slot limits,
+  shared replay/rate state, distinct instance markers, and converged commit and
+  configuration markers after drain. Mixed commits are a transition only, not
+  an accepted terminal state.
+- **Single-instance restart:** restart one staging Gateway instance through the
+  approved Render control, keep the other healthy, and verify the replacement
+  has a new instance marker, the approved commit/configuration markers, shared
+  state, and recovered readiness. Do not kill processes from the shell.
+- **DynamoDB outage boundaries:** repository automation must not damage the real
+  shared table or IAM. Exercise failure before provider begin and uncertain
+  failure after begin only with an isolated rehearsal role/table, or with local
+  injected stores. Pre-begin must be `CONTROL_PLANE_UNAVAILABLE`; post-begin
+  uncertainty must be `CONTROL_PLANE_OUTCOME_UNKNOWN` and must not retry. After
+  restoring the isolated dependency, require readiness recovery and reconcile
+  every uncertain operation before continuing. Never delete, stop, throttle, or
+  change permissions on the shared staging table for this test.
+- **OIDC refresh:** observe natural web-identity credential refresh over a long
+  enough approved window and verify readiness remains green. Never open or read
+  `AWS_WEB_IDENTITY_TOKEN_FILE`, and never inject static credentials.
+- **HMAC rotation:** current and previous key IDs may overlap only under the same
+  config/key epoch during the bounded rotation window. An epoch upgrade must use
+  blue/green or a full drain so no accepted request crosses mixed epochs; remove
+  the previous key only after drain and replay/rate reconciliation.
+- **Rollback under mixed configuration:** stop immediately, drain or isolate the
+  mixed cohort, reconcile all operation outcomes, and converge commit, epochs,
+  principal, table/role configuration marker, concurrency, and rate before any
+  rehearsal resumes.
+
+### Executable rollback
+
+A Git revert or old-image rollback does **not** clear Render's active
+autoscaling configuration. First use the Render Dashboard to disable
+autoscaling and explicitly set manual instances to `1`; confirm exactly one
+healthy instance and readiness. Then revert and Manual Sync a single-instance
+Blueprint that explicitly sets `numInstances: 1` and
+`NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT=1`, and roll back the image if required.
+Do not rely on merely omitting `scaling` or omitting `numInstances`: absence is
+not a rollback action. Reconfirm main API Local, one Gateway instance, memory or
+approved control mode, epochs, worker count, and readiness before closing the
+rollback. Keep Auto Sync No until a separate decision explicitly restores it.
+
+Stop immediately and do not continue scaling if any of the following occurs:
+
+- the guard rejects an environment expected to be staging;
+- operation-mode FakeProvider calls sum to anything other than one;
+- three held operations cause a third FakeProvider call instead of a fixed
+  `CONCURRENCY_LIMIT`;
+- rate mode enters the provider, or any Anthropic request/usage appears;
+- an output contains an unexpected status/error enum;
+- instance/commit/control-configuration markers are `unknown`, instance markers
+  are duplicated, commits/configuration markers disagree outside a controlled
+  rolling transition, or the expected autoscaler transition never reaches four;
+- static AWS credentials appear; OIDC, region, table, role, or stable principal
+  drifts; or any process attempts to read the web-identity token;
+- readiness loses the DynamoDB shared scope, control-plane outcome becomes
+  unknown, instances disagree on commit/config/key epochs, or main API transport
+  ceases to be Local;
+- any operation state remains unreconciled after a fault/rollback;
+- global concurrency, RPM, worker count, shutdown delay, or reported
+  concurrency/rate behavior drifts from the locked Blueprint values.
+
+Rehearsal terminal operation state is retained for 24 hours, rather than the
+normal 30-day Gateway default. DynamoDB TTL cleanup is asynchronous, so never
+reuse a synthetic operation ID even after that interval.
+
+Passing this exercise proves only shared nonce/rate/operation/lease behavior
+during the observed staging scale transitions. It is
+not a 1,000-user capacity proof and does not raise the global concurrency of
+two, does not validate the
+Alibaba business queue/result-replay path, and does not authorize production
+cutover or real Claude traffic.
 
 The Gateway discards Anthropic thinking/reasoning deltas. Its NDJSON stream may
 contain only `content`, `usage`, `done`, or fixed-code `error` events. Image

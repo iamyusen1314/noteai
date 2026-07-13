@@ -12,6 +12,7 @@ COPY model/claude_gateway_protocol.py ./claude_gateway_protocol.py
 COPY gateway/control_store.py ./control_store.py
 COPY gateway/dynamodb_control_store.py ./dynamodb_control_store.py
 COPY gateway/claude_gateway.py ./claude_gateway.py
+COPY gateway/rehearsal.py ./rehearsal.py
 COPY gateway/start.sh ./start.sh
 
 RUN groupadd --system noteai-gateway \

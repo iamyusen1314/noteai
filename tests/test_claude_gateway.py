@@ -1,5 +1,6 @@
 import asyncio
 import concurrent.futures
+import io
 import json
 import os
 import secrets
@@ -29,6 +30,7 @@ import claude_gateway_protocol as protocol
 import model_router
 import api
 from gateway import claude_gateway
+from gateway import rehearsal
 from control_store import (
     ControlStoreUnavailable,
     Lease,
@@ -2876,6 +2878,322 @@ class ClaudeGatewayTrustBoundaryContractTests(unittest.TestCase):
         self.assertEqual(gateway_client.call_args.kwargs["max_retries"], 0)
 
 
+class GatewayRehearsalTests(unittest.TestCase):
+    output_fields = {
+        "schema", "mode", "status_codes", "error_codes",
+        "fake_provider_calls", "instance_marker", "commit_prefix",
+        "control_config_marker",
+    }
+
+    @staticmethod
+    def env(**updates):
+        values = {
+            "RENDER": "true",
+            "RENDER_SERVICE_NAME": "noteai-staging-claude-gateway",
+            "RENDER_EXTERNAL_HOSTNAME": "noteai-staging-claude-gateway.onrender.com",
+            "NOTEAI_GATEWAY_REHEARSAL_ACK": "staging-zero-claude",
+            "NOTEAI_CLAUDE_GATEWAY_AUTHORITY": "noteai-staging-claude-gateway.onrender.com",
+            "NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE": "dynamodb",
+            "NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT": "2",
+            "NOTEAI_CLAUDE_GATEWAY_CONCURRENCY": "2",
+            "NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE": "30",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID": "rehearsal-test-key",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET": "rehearsal-test-secret",
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": "staging-config-test",
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": "staging-key-test",
+            "NOTEAI_CLAUDE_GATEWAY_DDB_TABLE": "rehearsal-control",
+            "NOTEAI_CLAUDE_GATEWAY_DDB_REGION": "ap-southeast-1",
+            "NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID": "normal-staging-principal",
+            "WEB_CONCURRENCY": "1",
+            "AWS_ROLE_ARN": "arn:aws:iam::123456789012:role/render-rehearsal",
+            "AWS_WEB_IDENTITY_TOKEN_FILE": "/render/injected/token",
+            "AWS_EC2_METADATA_DISABLED": "true",
+            "AWS_ACCESS_KEY_ID": "",
+            "AWS_SECRET_ACCESS_KEY": "",
+            "AWS_SESSION_TOKEN": "",
+            "RENDER_INSTANCE_ID": "instance-test-a",
+            "RENDER_GIT_COMMIT": "0123456789abcdef0123456789abcdef01234567",
+        }
+        values.update(updates)
+        return values
+
+    def test_guard_requires_exact_staging_shell_contract(self):
+        expected = self.env()
+        self.assertTrue(rehearsal.guard_environment(expected))
+        for key in (
+            "RENDER", "RENDER_SERVICE_NAME", "RENDER_EXTERNAL_HOSTNAME",
+            "NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE",
+            "NOTEAI_GATEWAY_REHEARSAL_ACK",
+        ):
+            with self.subTest(key=key):
+                rejected = dict(expected)
+                rejected[key] = "wrong"
+                self.assertFalse(rehearsal.guard_environment(rejected))
+
+        negative_updates = {
+            "AWS_ACCESS_KEY_ID": "static-access-key",
+            "AWS_SECRET_ACCESS_KEY": "static-secret-key",
+            "AWS_SESSION_TOKEN": "static-session-token",
+            "NOTEAI_CLAUDE_GATEWAY_DDB_REGION": "us-east-1",
+            "NOTEAI_CLAUDE_GATEWAY_DDB_TABLE": "",
+            "AWS_ROLE_ARN": "not-an-iam-role-arn",
+            "AWS_WEB_IDENTITY_TOKEN_FILE": "",
+            "AWS_EC2_METADATA_DISABLED": "false",
+            "NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID": "",
+            "RENDER_INSTANCE_ID": "",
+            "RENDER_GIT_COMMIT": "0123456789abcdef",
+        }
+        for key, value in negative_updates.items():
+            with self.subTest(negative=key):
+                self.assertFalse(rehearsal.guard_environment(self.env(**{key: value})))
+
+        output = io.StringIO()
+        with mock.patch.dict(os.environ, {}, clear=True), \
+             mock.patch("sys.stdout", output):
+            exit_code = rehearsal.main([
+                "operation",
+                "--operation-id", "rehearsal_operation_1234567890",
+                "--namespace", "rehearsal-contract-test",
+            ])
+        self.assertEqual(exit_code, 2)
+        payload = json.loads(output.getvalue())
+        self.assertEqual(set(payload), self.output_fields)
+        self.assertEqual(payload["error_codes"], ["REHEARSAL_GUARD_REJECTED"])
+        self.assertEqual(payload["fake_provider_calls"], 0)
+
+        malformed_output = io.StringIO()
+        with mock.patch("sys.stdout", malformed_output):
+            malformed_exit = rehearsal.main(["operation", "--help"])
+        self.assertEqual(malformed_exit, 2)
+        malformed_payload = json.loads(malformed_output.getvalue())
+        self.assertEqual(set(malformed_payload), self.output_fields)
+        self.assertEqual(malformed_payload["error_codes"], ["REHEARSAL_ARGUMENT_INVALID"])
+        self.assertEqual(malformed_payload["fake_provider_calls"], 0)
+
+    def test_load_mode_is_bounded_cpu_only_and_fixed_output(self):
+        class AdvancingClock:
+            def __init__(self):
+                self.now = 0.0
+                self.sleeps = []
+
+            def __call__(self):
+                self.now += 0.02
+                return self.now
+
+            async def sleep(self, delay):
+                self.sleeps.append(delay)
+                self.now += delay
+
+        clock = AdvancingClock()
+        with mock.patch.dict(os.environ, self.env(), clear=False), \
+             mock.patch.object(
+                 rehearsal, "_signed_asgi_post",
+                 side_effect=AssertionError("load must not send HTTP"),
+             ) as asgi_post, \
+             mock.patch.object(
+                 claude_gateway, "_get_control_store",
+                 side_effect=AssertionError("load must not open DynamoDB"),
+             ) as control_store, \
+             mock.patch.object(
+                 claude_gateway.anthropic, "AsyncAnthropic",
+                 side_effect=AssertionError("load must not create Anthropic client"),
+             ) as anthropic_client:
+            result = asyncio.run(rehearsal.execute_load(
+                60,
+                clock=clock,
+                sleeper=clock.sleep,
+            ))
+        self.assertEqual(set(result), self.output_fields)
+        self.assertEqual(result["mode"], "load")
+        self.assertEqual(result["status_codes"], [200])
+        self.assertEqual(result["error_codes"], ["OK"])
+        self.assertEqual(result["fake_provider_calls"], 0)
+        self.assertRegex(result["control_config_marker"], r"^[0-9a-f]{12}$")
+        self.assertGreater(len(clock.sleeps), 1)
+        self.assertEqual(rehearsal.LOAD_DUTY_CYCLE, 0.95)
+        serialized = json.dumps(result, sort_keys=True)
+        self.assertNotIn(self.env()["NOTEAI_CLAUDE_GATEWAY_DDB_TABLE"], serialized)
+        self.assertNotIn(self.env()["AWS_ROLE_ARN"], serialized)
+        self.assertNotIn(
+            self.env()["NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID"], serialized,
+        )
+        asgi_post.assert_not_called()
+        control_store.assert_not_called()
+        anthropic_client.assert_not_called()
+
+    def test_load_parser_requires_start_and_enforces_duration_bounds(self):
+        with self.assertRaises(rehearsal.RehearsalSafetyError):
+            rehearsal._parser().parse_args([
+                "load", "--duration-seconds", "300",
+            ])
+        parsed = rehearsal._parser().parse_args([
+            "load", "--start-at", "4102444800", "--duration-seconds", "300",
+        ])
+        self.assertEqual(parsed.mode, "load")
+        self.assertEqual(parsed.duration_seconds, "300")
+        for invalid in ("59", "601", "not-a-number"):
+            with self.subTest(duration=invalid), \
+                 self.assertRaises(rehearsal.RehearsalSafetyError):
+                rehearsal._bounded_int(invalid, 60, 600)
+        self.assertEqual(rehearsal._bounded_int("60", 60, 600), 60)
+        self.assertEqual(rehearsal._bounded_int("600", 60, 600), 600)
+
+    def test_fake_provider_runtime_hard_blocks_anthropic_client_creation(self):
+        fake = rehearsal.FixedFakeProvider()
+        original = claude_gateway.AnthropicProvider._get_client
+        with rehearsal._fake_provider_runtime(fake):
+            with self.assertRaises(rehearsal.RehearsalSafetyError):
+                claude_gateway.AnthropicProvider()._get_client()
+            with self.assertRaises(rehearsal.RehearsalSafetyError):
+                claude_gateway.anthropic.AsyncAnthropic(api_key="must-not-open")
+        self.assertIs(claude_gateway.AnthropicProvider._get_client, original)
+        self.assertEqual(fake.calls, 0)
+
+    def test_same_operation_concurrency_runs_exactly_one_fake_provider(self):
+        class RetentionStore(_FakeSharedControlStore):
+            retention_seconds = None
+
+            async def finish_operation(
+                inner_self, operation, lease, state, now,
+                *, retention_seconds, **kwargs,
+            ):
+                inner_self.retention_seconds = retention_seconds
+                return await super().finish_operation(
+                    operation, lease, state, now,
+                    retention_seconds=retention_seconds, **kwargs,
+                )
+
+        store = RetentionStore()
+        operation_id = "rehearsal_operation_exact_one_12345"
+        with mock.patch.dict(os.environ, self.env(), clear=False):
+            result = asyncio.run(rehearsal.execute_operation(
+                operation_id,
+                "rehearsal-operation-test",
+                0.05,
+                request_count=2,
+                control_store=store,
+            ))
+        self.assertEqual(set(result), self.output_fields)
+        self.assertEqual(result["status_codes"].count(200), 1)
+        self.assertEqual(result["fake_provider_calls"], 1)
+        self.assertTrue(
+            set(result["error_codes"]) <= {
+                "OK", "CONCURRENCY_LIMIT", "OPERATION_ALREADY_DISPATCHED",
+            }
+        )
+        self.assertEqual(store.retention_seconds, 24 * 60 * 60)
+        serialized = json.dumps(result, sort_keys=True)
+        self.assertNotIn(operation_id, serialized)
+        self.assertNotIn("rehearsal-operation-test", serialized)
+        self.assertEqual(result["commit_prefix"], "0123456789ab")
+        self.assertRegex(result["instance_marker"], r"^[0-9a-f]{12}$")
+
+    def test_three_operations_share_exactly_two_provider_slots(self):
+        class TwoSlotStore(_FakeSharedControlStore):
+            def __init__(inner_self):
+                super().__init__()
+                inner_self.leases = {}
+
+            async def acquire_lease(inner_self, operation, slots, now, seconds):
+                inner_self._require_available()
+                self.assertEqual(slots, 2)
+                for slot in range(slots):
+                    lease = inner_self.leases.get(slot)
+                    if lease is None or lease.expires_at <= now:
+                        inner_self.fence += 1
+                        lease = Lease(
+                            slot, operation, f"owner-{inner_self.fence}",
+                            inner_self.fence, now + seconds,
+                        )
+                        inner_self.leases[slot] = lease
+                        inner_self.calls.append(("lease", operation, slot))
+                        return lease
+                return None
+
+            async def begin_provider(
+                inner_self, operation, lease, _dispatch, _model, now,
+            ):
+                inner_self._require_available()
+                if (
+                    inner_self.operations.get(operation) != OperationState.CLAIMED
+                    or inner_self.leases.get(lease.slot) != lease
+                    or lease.expires_at <= now
+                ):
+                    return False
+                inner_self.operations[operation] = OperationState.PROVIDER_STARTED
+                inner_self.calls.append(("begin", operation))
+                return True
+
+            async def finish_operation(
+                inner_self, operation, lease, state, _now,
+                *, retention_seconds, **kwargs,
+            ):
+                inner_self._require_available()
+                if (
+                    inner_self.leases.get(lease.slot) != lease
+                    or inner_self.operations.get(operation)
+                    != OperationState.PROVIDER_STARTED
+                ):
+                    return False
+                inner_self.operations[operation] = state
+                inner_self.leases.pop(lease.slot, None)
+                inner_self.calls.append(("finish", operation, state))
+                return True
+
+            async def release_lease(inner_self, lease):
+                if inner_self.leases.get(lease.slot) == lease:
+                    inner_self.leases.pop(lease.slot, None)
+                    return True
+                return False
+
+        operation_ids = [
+            f"rehearsal_operation_two_slot_{index}_1234567890"
+            for index in range(3)
+        ]
+        store = TwoSlotStore()
+        fake = rehearsal.FixedFakeProvider(0.05)
+        bodies = [rehearsal._operation_body(value) for value in operation_ids]
+
+        async def run_requests():
+            with rehearsal._rehearsal_control_environment(
+                "rehearsal-two-slot-test", control_store=store,
+            ), rehearsal._fake_provider_runtime(fake):
+                return await asyncio.gather(*(
+                    rehearsal._signed_asgi_post(body) for body in bodies
+                ))
+
+        with mock.patch.dict(os.environ, self.env(), clear=False):
+            responses = asyncio.run(run_requests())
+        self.assertEqual([response.status_code for response in responses].count(200), 2)
+        self.assertEqual([response.status_code for response in responses].count(429), 1)
+        self.assertEqual(
+            [rehearsal._response_code(response) for response in responses].count(
+                "CONCURRENCY_LIMIT"
+            ),
+            1,
+        )
+        self.assertEqual(fake.calls, 2)
+
+    def test_rate_mode_counts_signed_invalid_json_without_provider(self):
+        store = _FakeSharedControlStore()
+        with mock.patch.dict(os.environ, self.env(
+            NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE="2",
+        ), clear=False):
+            result = asyncio.run(rehearsal.execute_rate(
+                "rehearsal-rate-test",
+                3,
+                control_store=store,
+            ))
+        self.assertEqual(set(result), self.output_fields)
+        self.assertEqual(result["status_codes"], [400, 400, 429])
+        self.assertEqual(
+            result["error_codes"],
+            ["INVALID_JSON", "INVALID_JSON", "RATE_LIMIT"],
+        )
+        self.assertEqual(result["fake_provider_calls"], 0)
+        self.assertEqual(len([call for call in store.calls if call[0] == "rate"]), 3)
+
+
 class ClaudeGatewayPackagingTests(unittest.TestCase):
     def test_blueprints_safe_load_to_one_consistent_staging_gateway_contract(self):
         import yaml
@@ -2891,6 +3209,8 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertEqual(len(gateway_doc["services"]), 1)
         gateway_service = gateway_doc["services"][0]
         self.assertEqual(gateway_service["name"], "noteai-staging-claude-gateway")
+        self.assertEqual(gateway_service["plan"], "starter")
+        self.assertEqual(gateway_service["region"], "singapore")
 
         def env(service):
             return {
@@ -2920,21 +3240,38 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertEqual((provider, gateway_http, business), (180.0, 190.0, 210.0))
         self.assertLess(provider, gateway_http)
         self.assertLess(gateway_http, business)
-        self.assertEqual(gateway_env["NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT"], "1")
+        self.assertEqual(gateway_env["NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT"], "2")
         self.assertEqual(gateway_env["WEB_CONCURRENCY"], "1")
+        self.assertEqual(gateway_env["NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE"], "dynamodb")
+        self.assertEqual(gateway_env["NOTEAI_CLAUDE_GATEWAY_CONCURRENCY"], "2")
+        self.assertEqual(gateway_env["NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE"], "30")
+        self.assertNotIn("numInstances", gateway_service)
+        self.assertEqual(gateway_service["maxShutdownDelaySeconds"], 240)
+        self.assertEqual(gateway_service["scaling"], {
+            "minInstances": 2,
+            "maxInstances": 4,
+            "targetCPUPercent": 60,
+            "targetMemoryPercent": 70,
+        })
 
         requirements = (ROOT / "model" / "requirements.txt").read_text(encoding="utf-8")
         self.assertEqual(requirements.splitlines().count("httpcore==1.0.9"), 1)
 
-    def test_blueprint_is_one_single_instance_gateway_service(self):
+    def test_blueprint_is_one_autoscaling_gateway_service(self):
         blueprint = (ROOT / "render.gateway.yaml").read_text(encoding="utf-8")
         self.assertEqual(blueprint.count("- type:"), 1)
         self.assertIn("name: noteai-staging-claude-gateway", blueprint)
         self.assertIn("region: singapore", blueprint)
         self.assertIn("healthCheckPath: /health/ready", blueprint)
         self.assertIn('NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT', blueprint)
-        self.assertIn('value: "1"', blueprint)
+        self.assertIn('value: "2"', blueprint)
         self.assertIn("WEB_CONCURRENCY", blueprint)
+        self.assertNotIn("numInstances", blueprint)
+        self.assertIn("maxShutdownDelaySeconds: 240", blueprint)
+        self.assertIn("minInstances: 2", blueprint)
+        self.assertIn("maxInstances: 4", blueprint)
+        self.assertIn("targetCPUPercent: 60", blueprint)
+        self.assertIn("targetMemoryPercent: 70", blueprint)
         self.assertIn(
             "      - key: NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE\n"
             "        value: dynamodb",
@@ -3011,28 +3348,59 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
             "COPY gateway/control_store.py ./control_store.py",
             "COPY gateway/dynamodb_control_store.py ./dynamodb_control_store.py",
             "COPY gateway/claude_gateway.py ./claude_gateway.py",
+            "COPY gateway/rehearsal.py ./rehearsal.py",
             "COPY gateway/start.sh ./start.sh",
         ])
         self.assertIn("USER noteai-gateway", dockerfile)
         self.assertIn("--workers 1", start)
         self.assertIn("--no-access-log", start)
         self.assertNotIn("--access-log", start.replace("--no-access-log", ""))
+        self.assertNotIn("rehearsal", start.lower())
         for forbidden in ("api.py", "db.py", "billing.py", "artifacts", "render_start_api"):
             self.assertNotIn(forbidden, dockerfile)
+        rehearsal_source = (
+            ROOT / "gateway" / "rehearsal.py"
+        ).read_text(encoding="utf-8")
+        for forbidden_import in (
+            "import model.db", "from model import db", "import billing", "from model import api",
+        ):
+            self.assertNotIn(forbidden_import, rehearsal_source)
+        self.assertNotIn("NOTEAI_GATEWAY_REHEARSAL_ACK", (
+            ROOT / "render.gateway.yaml"
+        ).read_text(encoding="utf-8"))
         requirements = (ROOT / "gateway" / "requirements.txt").read_text(encoding="utf-8")
         self.assertIn("boto3==1.43.44", requirements)
 
-    def test_documentation_cannot_claim_multi_instance_readiness(self):
+    def test_documentation_scopes_multi_instance_rehearsal_without_capacity_claims(self):
         guide = (ROOT / "docs" / "CLAUDE_GATEWAY.md").read_text(encoding="utf-8")
-        self.assertIn("single-instance", guide)
+        self.assertIn("single-process staging", guide)
         self.assertIn("memory_instance_scope", guide)
         self.assertIn("multi_instance_production_ready: false", guide)
         self.assertIn("shared atomic replay store", guide)
         self.assertIn("CONTROL_PLANE_OUTCOME_UNKNOWN", guide)
         self.assertIn("provider_started", guide.lower())
         self.assertIn("Staging Blueprint now selects `dynamodb`", guide)
-        self.assertIn("Production deployment at 2–4 instances", guide)
-        self.assertIn("not approved or verified", guide)
+        self.assertIn("shell-only", guide)
+        self.assertIn("zero-Claude", guide)
+        self.assertIn("2→4→2", guide)
+        self.assertIn("Auto Sync = No", guide)
+        self.assertIn("Manual Sync", guide)
+        self.assertIn("approximately 95% duty cycle", guide)
+        self.assertIn("60–600 seconds", guide)
+        self.assertIn("5–8 minutes", guide)
+        self.assertIn("Do not manually set four instances", guide)
+        self.assertIn("does not establish that real Claude", guide)
+        self.assertIn("Rolling deploy", guide)
+        self.assertIn("Single-instance restart", guide)
+        self.assertIn("CONTROL_PLANE_UNAVAILABLE", guide)
+        self.assertIn("CONTROL_PLANE_OUTCOME_UNKNOWN", guide)
+        self.assertIn("Never open or read", guide)
+        self.assertIn("blue/green or a full drain", guide)
+        self.assertIn("numInstances: 1", guide)
+        self.assertIn("merely omitting `scaling`", guide)
+        self.assertIn("Never delete, stop, throttle", guide)
+        self.assertIn("24 hours", guide)
+        self.assertIn("not a 1,000-user capacity proof", guide)
 
     def test_aws_control_plane_template_is_retained_least_privilege_and_oidc_only(self):
         template = (

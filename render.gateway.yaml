@@ -9,6 +9,12 @@ services:
     dockerCommand: /app/start.sh
     healthCheckPath: /health/ready
     autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 240
+    scaling:
+      minInstances: 2
+      maxInstances: 4
+      targetCPUPercent: 60
+      targetMemoryPercent: 70
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -25,7 +31,7 @@ services:
       - key: NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE
         value: dynamodb
       - key: NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT
-        value: "1"
+        value: "2"
       - key: WEB_CONCURRENCY
         value: "1"
       - key: NOTEAI_CLAUDE_GATEWAY_CONCURRENCY
