@@ -839,6 +839,8 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         ])
         self.assertIn("USER noteai-gateway", dockerfile)
         self.assertIn("--workers 1", start)
+        self.assertIn("--no-access-log", start)
+        self.assertNotIn("--access-log", start.replace("--no-access-log", ""))
         for forbidden in ("api.py", "db.py", "billing.py", "artifacts", "render_start_api"):
             self.assertNotIn(forbidden, dockerfile)
 

@@ -200,11 +200,11 @@
 - 风险：内部接口暴露、签名重放、模型越权、跨区域网络歧义、双层重试导致重复供应商费用、Prompt/附件进入日志。
 - 执行代理：单一 Gateway Implementation Agent（Godel）已完成本地实现及两轮最小加固；没有其他代理并行修改相同文件。
 - 验证代理：独立 Security Reviewer（Tesla）+ Protocol/Chaos Verification Agent（Ampere）；首轮发现未来时间戳重放、无长度请求内存边界、网络异常原文和响应媒体类型门禁缺口，均退回原实施代理修正；最终安全复核与协议负测均PASS，允许进入单实例Staging部署。
-- 修改状态/进度：已实现 `claude-gateway.v1` HMAC协议、current/previous双Key、未来时间戳安全nonce TTL、单实例并发/速率/防重放、请求流式有界读取、严格模型/字段/token/image门禁、raw reasoning丢弃、固定错误码、完整usage envelope与断流 `usage_missing` 审计；主系统保留Local默认，仅显式Gateway模式切换。独立Blueprint只含一个Singapore Starter、单worker、单实例、无数据库/磁盘/Cron/Kimi/S3/业务服务。当前本地实现已完成，等待提交、CI、Render部署和最多4次获批合成文本Smoke。
+- 修改状态/进度：已实现 `claude-gateway.v1` HMAC协议、current/previous双Key、未来时间戳安全nonce TTL、单实例并发/速率/防重放、请求流式有界读取、严格模型/字段/token/image门禁、raw reasoning丢弃、固定错误码、完整usage envelope与断流 `usage_missing` 审计；主系统保留Local默认，仅显式Gateway模式切换。独立Blueprint只含一个Singapore Starter、单worker、单实例、无数据库/磁盘/Cron/Kimi/S3/业务服务。首次云端日志复核发现Uvicorn默认access log仍记录来源IP和endpoint path，虽无Prompt/Secret但不满足严格日志门禁；已在同一包最小增加 `--no-access-log` 并补包装回归，等待独立复核、提交和自动部署。
 - 验收标准：TLS；HMAC或短期服务JWT绑定 method/path/timestamp/nonce/body hash；重放、过期、越权和超限全部拒绝；无业务CORS/用户Token/数据库连接；非流式、流式、Chat、语义评分均可用；usage envelope 可由阿里云主库准确记账；日志只含固定枚举、计数和哈希关联ID。
 - 是否需要用户决定：已确认。2026-07-12 用户批准先创建1个Render Singapore Starter Staging Gateway（增量7美元/月），最多4次合成文本真实Claude Smoke、费用上限人民币20元；正式上线采用2个Starter基础14美元/月，可自动扩容至4个、最高28美元/月。
 - 是否涉及真实外部调用：是；本轮获批范围仅为1个Staging Gateway和最多4次合成文本Claude Smoke，不接生产流量，不创建数据库、磁盘、Redis或Cron。
-- 是否已部署到 Render：否；本地聚焦87/87、全量unittest 467/467（5 skip）、全量Playwright 66/66、Production Readiness 48/48、quality gate、py_compile、Compose与diff check通过。首轮GitHub CI仅因新文件常量名 `USAGE_TOKEN_MAX` 被Secret名称门禁误判而FAIL，已最小重命名为 `USAGE_COUNT_MAX`，本地重新验证全量467/467与Readiness 48/48通过，等待第二次CI。Docker本地构建因本机Docker daemon未运行而未执行，需由Render构建日志补证。
+- 是否已部署到 Render：部分完成，尚未最终验收。`noteai-staging-claude-gateway` 已由独立Blueprint在Singapore Starter构建并live于commit `e029b00`；readiness HTTP 200且明确 `single_instance_only`/`memory_instance_scope`/`multi_instance_production_ready=false`，Render Scaling为1实例且Autoscaling Off，环境变量仅含Anthropic、Gateway HMAC与固定限制项，无数据库/Kimi/S3/Cron/磁盘。负测未签名与错签名均401固定码；真实Smoke使用合成文本3/4次：Haiku非流式200（25 in/13 out）、Haiku流式200（25 in/12 out，事件content→usage→done，同签名重放409）、Sonnet非流式200（22 in/4 out），合计72输入/29输出Token，按`official-2026-07-12`与USD/CNY 7.00估算约¥0.002107，远低于¥20上限；未执行第4次。Smoke为Gateway直测，不写业务数据库且现有Staging仍保持Local transport。发现access log缺口后需部署 `--no-access-log` 再复验日志；当前不得标记VERIFIED。
 
 ### ARCH-002P — Claude Gateway Production多实例安全化
 
