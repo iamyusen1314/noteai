@@ -110,6 +110,25 @@ The operation transition is:
 
 `CLAIMED -> PROVIDER_STARTED -> TERMINAL_USAGE | AMBIGUOUS | PARTIAL | CANCELLED`
 
+Operation dispatch is at-most-once and fail-closed. The Gateway acquires a
+bounded concurrency lease before attempting the durable operation claim. It
+may proceed only when `claim_operation` both returns state `CLAIMED` and reports
+that this request created the claim. Any existing claim, including a live
+`CLAIMED` item with `created=false`, causes the newly acquired lease to be
+released and returns `OPERATION_ALREADY_DISPATCHED`; it never enters the
+provider-begin transaction.
+
+The crash boundary has two explicit sides. **Boundary D**, after lease acquire
+but before durable claim, leaves no operation ownership record; after that
+lease expires, a later attempt may create the first claim and execute.
+**Boundary E**, after durable claim but before provider begin, has crossed the
+at-most-once ownership boundary: an abandoned `CLAIMED` item is never reclaimed
+and every later use of that operation ID fails closed as
+`OPERATION_ALREADY_DISPATCHED`. Once provider begin is attempted, any
+non-conditional transaction failure remains `CONTROL_PLANE_OUTCOME_UNKNOWN`
+with no automatic retry. In particular, `TransactionConflict` is not treated
+as a harmless duplicate or downgraded to a retryable result.
+
 The Gateway calls Anthropic only after the `PROVIDER_STARTED` transition and
 its fenced lease check commit durably. Lease acquisition accepts an expiry at
 the current instant, while provider start and renewal require the old lease to

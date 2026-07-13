@@ -820,6 +820,104 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
             ["begin", "finish"],
         )
 
+    def test_operation_claim_crash_boundaries_are_at_most_once_and_fail_closed(self):
+        class ClaimTrackingStore(_FakeSharedControlStore):
+            def __init__(inner_self):
+                super().__init__()
+                inner_self.claim_results = []
+                inner_self.begin_attempts = 0
+                inner_self.release_count = 0
+
+            async def claim_operation(inner_self, *args):
+                result = await super().claim_operation(*args)
+                inner_self.claim_results.append(result)
+                return result
+
+            async def begin_provider(inner_self, *args):
+                inner_self.begin_attempts += 1
+                return await super().begin_provider(*args)
+
+            async def release_lease(inner_self, lease):
+                inner_self.release_count += 1
+                return await super().release_lease(lease)
+
+        async def exercise():
+            operation_before_claim = "lease_before_claim_crash_operation_12345"
+            pre_claim_store = ClaimTrackingStore()
+            abandoned = await pre_claim_store.acquire_lease(
+                operation_before_claim, 1, 100, 10,
+            )
+            self.assertIsNotNone(abandoned)
+            self.assertNotIn(operation_before_claim, pre_claim_store.operations)
+            pre_claim_provider = _FakeProvider()
+            pre_claim_payload = self.payload(operation_id=operation_before_claim)
+            pre_claim_payload["_principal_id"] = "noteai-production"
+            claude_gateway._CONTROL_STORE = pre_claim_store
+            claude_gateway._PROVIDER = pre_claim_provider
+            with mock.patch.object(
+                claude_gateway, "_read_and_validate",
+                new=mock.AsyncMock(return_value=pre_claim_payload),
+            ), mock.patch.object(claude_gateway, "_now_epoch", return_value=110):
+                first_execution = await claude_gateway.create_message(object())
+
+            operation_after_claim = "claim_before_begin_crash_operation_12345"
+            post_claim_store = ClaimTrackingStore()
+            abandoned = await post_claim_store.acquire_lease(
+                operation_after_claim, 1, 100, 10,
+            )
+            self.assertIsNotNone(abandoned)
+            original_claim = await post_claim_store.claim_operation(
+                "noteai-production", operation_after_claim,
+            )
+            self.assertTrue(original_claim.created)
+            post_claim_provider = _FakeProvider()
+            post_claim_payload = self.payload(operation_id=operation_after_claim)
+            post_claim_payload["_principal_id"] = "noteai-production"
+            claude_gateway._CONTROL_STORE = post_claim_store
+            claude_gateway._PROVIDER = post_claim_provider
+            rejections = []
+            with mock.patch.object(
+                claude_gateway, "_read_and_validate",
+                new=mock.AsyncMock(return_value=post_claim_payload),
+            ), mock.patch.object(claude_gateway, "_now_epoch", return_value=110):
+                for _ in range(2):
+                    try:
+                        await claude_gateway.create_message(object())
+                    except claude_gateway.GatewayRejection as exc:
+                        rejections.append(exc)
+            return (
+                first_execution, pre_claim_store, pre_claim_provider,
+                post_claim_store, post_claim_provider, rejections,
+            )
+
+        with mock.patch.dict(os.environ, self._dynamodb_env()):
+            (
+                first_execution, pre_claim_store, pre_claim_provider,
+                post_claim_store, post_claim_provider, rejections,
+            ) = asyncio.run(exercise())
+
+        self.assertEqual(first_execution["text_blocks"], ["safe-result"])
+        self.assertEqual(len(pre_claim_provider.calls), 1)
+        self.assertEqual(pre_claim_store.begin_attempts, 1)
+        self.assertEqual(
+            pre_claim_store.operations["lease_before_claim_crash_operation_12345"],
+            OperationState.TERMINAL_USAGE,
+        )
+        self.assertEqual([item.created for item in post_claim_store.claim_results], [
+            True, False, False,
+        ])
+        self.assertEqual(
+            post_claim_store.operations["claim_before_begin_crash_operation_12345"],
+            OperationState.CLAIMED,
+        )
+        self.assertEqual(post_claim_store.begin_attempts, 0)
+        self.assertEqual(post_claim_store.release_count, 2)
+        self.assertEqual(post_claim_provider.calls, [])
+        self.assertEqual([item.code for item in rejections], [
+            "OPERATION_ALREADY_DISPATCHED", "OPERATION_ALREADY_DISPATCHED",
+        ])
+        self.assertEqual([item.status_code for item in rejections], [409, 409])
+
     def test_gateway_rechecks_fresh_time_before_begin_at_exact_lease_expiry(self):
         async def exact_expiry():
             store = _FakeSharedControlStore()
@@ -932,6 +1030,10 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
         self.assertEqual(
             after.operations["after_fault_operation_1234"],
             OperationState.PROVIDER_STARTED,
+        )
+        self.assertEqual(
+            len([call for call in after.calls if call[0] == "begin"]),
+            1,
         )
 
     def test_dynamodb_rotation_uses_one_stable_principal_and_future_nonce_expiry(self):
@@ -3053,15 +3155,77 @@ class GatewayRehearsalTests(unittest.TestCase):
         class RetentionStore(_FakeSharedControlStore):
             retention_seconds = None
 
+            def __init__(inner_self):
+                super().__init__()
+                inner_self.leases = {}
+                inner_self.claim_count = 0
+                inner_self.claim_barrier = asyncio.Event()
+                inner_self.begin_attempts = 0
+                inner_self.release_count = 0
+
+            async def acquire_lease(inner_self, operation, slots, now, seconds):
+                inner_self._require_available()
+                self.assertEqual(slots, 2)
+                for slot in range(slots):
+                    lease = inner_self.leases.get(slot)
+                    if lease is None or lease.expires_at <= now:
+                        inner_self.fence += 1
+                        lease = Lease(
+                            slot, operation, f"owner-{inner_self.fence}",
+                            inner_self.fence, now + seconds,
+                        )
+                        inner_self.leases[slot] = lease
+                        inner_self.calls.append(("lease", operation, slot))
+                        return lease
+                return None
+
+            async def claim_operation(inner_self, *args):
+                claim = await super().claim_operation(*args)
+                inner_self.claim_count += 1
+                if inner_self.claim_count == 2:
+                    inner_self.claim_barrier.set()
+                else:
+                    await inner_self.claim_barrier.wait()
+                return claim
+
+            async def begin_provider(
+                inner_self, operation, lease, _dispatch, _model, now,
+            ):
+                inner_self.begin_attempts += 1
+                inner_self._require_available()
+                if (
+                    inner_self.operations.get(operation) != OperationState.CLAIMED
+                    or inner_self.leases.get(lease.slot) != lease
+                    or lease.expires_at <= now
+                ):
+                    return False
+                inner_self.operations[operation] = OperationState.PROVIDER_STARTED
+                inner_self.calls.append(("begin", operation))
+                return True
+
             async def finish_operation(
                 inner_self, operation, lease, state, now,
                 *, retention_seconds, **kwargs,
             ):
                 inner_self.retention_seconds = retention_seconds
-                return await super().finish_operation(
-                    operation, lease, state, now,
-                    retention_seconds=retention_seconds, **kwargs,
-                )
+                inner_self._require_available()
+                if (
+                    inner_self.leases.get(lease.slot) != lease
+                    or inner_self.operations.get(operation)
+                    != OperationState.PROVIDER_STARTED
+                ):
+                    return False
+                inner_self.operations[operation] = state
+                inner_self.leases.pop(lease.slot, None)
+                inner_self.calls.append(("finish", operation, state))
+                return True
+
+            async def release_lease(inner_self, lease):
+                inner_self.release_count += 1
+                if inner_self.leases.get(lease.slot) == lease:
+                    inner_self.leases.pop(lease.slot, None)
+                    return True
+                return False
 
         store = RetentionStore()
         operation_id = "rehearsal_operation_exact_one_12345"
@@ -3075,12 +3239,14 @@ class GatewayRehearsalTests(unittest.TestCase):
             ))
         self.assertEqual(set(result), self.output_fields)
         self.assertEqual(result["status_codes"].count(200), 1)
+        self.assertEqual(result["status_codes"].count(409), 1)
         self.assertEqual(result["fake_provider_calls"], 1)
-        self.assertTrue(
-            set(result["error_codes"]) <= {
-                "OK", "CONCURRENCY_LIMIT", "OPERATION_ALREADY_DISPATCHED",
-            }
+        self.assertCountEqual(
+            result["error_codes"], ["OK", "OPERATION_ALREADY_DISPATCHED"],
         )
+        self.assertNotIn("CONTROL_PLANE_OUTCOME_UNKNOWN", result["error_codes"])
+        self.assertEqual(store.begin_attempts, 1)
+        self.assertEqual(store.release_count, 1)
         self.assertEqual(store.retention_seconds, 24 * 60 * 60)
         serialized = json.dumps(result, sort_keys=True)
         self.assertNotIn(operation_id, serialized)
@@ -3379,6 +3545,12 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertIn("shared atomic replay store", guide)
         self.assertIn("CONTROL_PLANE_OUTCOME_UNKNOWN", guide)
         self.assertIn("provider_started", guide.lower())
+        self.assertIn("Any existing claim", guide)
+        self.assertIn("at-most-once and fail-closed", guide)
+        self.assertIn("Boundary D", guide)
+        self.assertIn("Boundary E", guide)
+        self.assertIn("created=false", guide)
+        self.assertIn("TransactionConflict", guide)
         self.assertIn("Staging Blueprint now selects `dynamodb`", guide)
         self.assertIn("shell-only", guide)
         self.assertIn("zero-Claude", guide)

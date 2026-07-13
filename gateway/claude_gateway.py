@@ -754,7 +754,7 @@ class _SharedDispatch:
                 payload["_principal_id"],
                 payload["operation_id"],
             )
-            if claim.state != OperationState.CLAIMED:
+            if claim.state != OperationState.CLAIMED or not claim.created:
                 await dispatch._release_before_provider()
                 raise GatewayRejection("OPERATION_ALREADY_DISPATCHED", 409)
             safe_payload = {
