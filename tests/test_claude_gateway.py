@@ -810,7 +810,7 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
                  ), mock.patch.object(
                      claude_gateway, "_lease_seconds", return_value=10,
                  ), mock.patch.object(
-                     claude_gateway.time, "time", side_effect=[100, 110],
+                     claude_gateway, "_now_epoch", side_effect=[100, 110],
                  ):
                 try:
                     await claude_gateway.create_message(object())
@@ -847,7 +847,7 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
                  ), mock.patch.object(
                      claude_gateway, "_lease_seconds", return_value=10,
                  ), mock.patch.object(
-                     claude_gateway.time, "time", side_effect=[100, 109, 109],
+                     claude_gateway, "_now_epoch", side_effect=[100, 109, 109],
                  ):
                 response = await claude_gateway.create_message(object())
             return store, provider, response

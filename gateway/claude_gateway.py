@@ -103,6 +103,10 @@ def _float_env(name: str, default: float, minimum: float, maximum: float) -> flo
     return max(minimum, min(maximum, value))
 
 
+def _now_epoch() -> int:
+    return int(time.time())
+
+
 def _provider_deadline_seconds() -> float:
     return _float_env(
         "NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS", 180.0, 1.0, 600.0,
@@ -661,7 +665,7 @@ class _SharedDispatch:
     @classmethod
     async def prepare(cls, payload: dict[str, Any]) -> "_SharedDispatch":
         store = _get_control_store()
-        now_epoch = int(time.time())
+        now_epoch = _now_epoch()
         dispatch = None
         begin_attempted = False
         try:
@@ -692,7 +696,7 @@ class _SharedDispatch:
             ).hexdigest()
             dispatch.begin_attempted = True
             begin_attempted = True
-            begin_now_epoch = int(time.time())
+            begin_now_epoch = _now_epoch()
             started = await store.begin_provider(
                 payload["operation_id"], lease, dispatch_hash,
                 payload["model"], begin_now_epoch,
@@ -727,7 +731,7 @@ class _SharedDispatch:
             while True:
                 await asyncio.sleep(interval)
                 renewed = await self.store.renew_lease(
-                    self.lease, int(time.time()), _lease_seconds(),
+                    self.lease, _now_epoch(), _lease_seconds(),
                 )
                 if renewed is None:
                     self.lost.set()
@@ -803,7 +807,7 @@ class _SharedDispatch:
                 self.operation_id,
                 self.lease,
                 state,
-                int(time.time()),
+                _now_epoch(),
                 retention_seconds=_terminal_retention_seconds(),
                 usage=usage,
                 error_code=error_code,

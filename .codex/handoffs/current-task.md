@@ -253,7 +253,7 @@
 - 验收标准：共享原子nonce、逻辑operation状态、全局rate和可续租concurrency lease；以稳定服务主体而非key-id计配额；共享状态单节点故障自动切换；控制面完全不可达时Gateway对Claude保持零新调用，但Alibaba主系统对确定未dispatch的operation自动安全路由Kimi或durable queue，对可能已dispatch/partial的operation执行持久恢复而非重复模型调用；只保存哈希、枚举、时间和usage摘要；无本地状态降级。
 - 是否需要用户决定：否；用户已于2026-07-13批准创建AWS DynamoDB Singapore单Region表、为现有Render Pro配置AWS OIDC最小权限角色、增加AWS SDK生产依赖及1美元月告警；未批准任何额外真实Claude调用，本包保持0次真实Claude。
 - 是否涉及真实外部调用：创建AWS DynamoDB/IAM OIDC角色及后续多实例演练会改变外部资源；本地DynamoDB fake/fault测试不调用Claude。资源创建前必须获批，真实Claude仍需单独预算。
-- 是否已部署到 Render：否；本地实现与独立验证已闭环：stable Claude leaf operation-id绑定签名body；DynamoDB共享nonce、单principal单调rate、非TTL live operation、renewable fenced lease；provider前后固定安全错误边界；仅Render web identity、禁静态AWS key/metadata回退；SDK单attempt/短deadline；DDB模式provider总deadline与lease margin；Singapore retained table与精确OIDC subject最小IAM模板。最终主控91项聚焦、513项全量（5 skip）、48/48 Production Readiness、py_compile/YAML/diff check均PASS；独立Ampere最终PASS、Tesla第三轮Security/Chaos PASS，真实AWS/AI调用0。当前外部阻塞为Chrome无AWS登录会话；AWS Singapore登录页已留给用户，登录前未创建表/IAM/Budget、未部署Render。
+- 是否已部署到 Render：否；本地实现与独立验证已闭环：stable Claude leaf operation-id绑定签名body；DynamoDB共享nonce、单principal单调rate、非TTL live operation、renewable fenced lease；provider前后固定安全错误边界；仅Render web identity、禁静态AWS key/metadata回退；SDK单attempt/短deadline；DDB模式provider总deadline与lease margin；Singapore retained table与精确OIDC subject最小IAM模板。最终主控91项聚焦、513项全量（5 skip）、48/48 Production Readiness、py_compile/YAML/diff check均PASS；独立Ampere最终PASS、Tesla第三轮Security/Chaos PASS，真实AWS/AI调用0。首个push `871c086` 的两条Python 3.11 CI因测试mock全局`time.time`耗尽而失败，业务实现无失败；已改为只mock Gateway局部`_now_epoch`并在本地重跑目标1项、全量513项和48/48门禁通过，等待补丁CI。当前外部阻塞为Chrome无AWS登录会话；AWS Singapore登录页已留给用户，登录前未创建表/IAM/Budget、未启用DynamoDB模式。
 
 ### ARCH-002P-C — Gateway生产信任与readiness边界
 
