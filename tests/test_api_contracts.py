@@ -314,6 +314,53 @@ class ApiContractTests(unittest.TestCase):
         self.assertNotIn("cookie", serialized)
         self.assertNotIn("private.invalid", serialized)
 
+    def test_ai_required_gateway_readiness_requires_authenticated_remote_match(self):
+        base_runtime = {
+            "mode": "gateway",
+            "configured": True,
+            "supported": True,
+            "remote_checked": True,
+        }
+        common_patches = (
+            mock.patch.object(api._database_readiness_probe, "result", return_value={"ok": True}),
+            mock.patch.object(api, "get_v04_composite_model", return_value=object()),
+            mock.patch.object(api, "get_model", return_value=object()),
+        )
+        env = {
+            "NOTEAI_READINESS_REQUIRE_AI_KEYS": "1",
+            "MOONSHOT_API_KEY": "moonshot-test-key",
+        }
+        with mock.patch.dict(os.environ, env, clear=False), common_patches[0], common_patches[1], common_patches[2], \
+             mock.patch.object(api._mr, "claude_transport_readiness", return_value={
+                 **base_runtime,
+                 "remote_ready": False,
+                 "remote_error_code": "GATEWAY_READINESS_EPOCH_MISMATCH",
+             }) as failed_readiness:
+            failed_payload, failed_status = api._readiness_payload()
+        failed_readiness.assert_called_once_with(require_remote=True)
+        self.assertEqual(failed_status, 503)
+        self.assertFalse(failed_payload["checks"]["ai"]["ok"])
+        self.assertFalse(failed_payload["checks"]["ai"]["claude_remote_ready"])
+        self.assertEqual(
+            failed_payload["checks"]["ai"]["claude_remote_error_code"],
+            "GATEWAY_READINESS_EPOCH_MISMATCH",
+        )
+
+        with mock.patch.dict(os.environ, env, clear=False), \
+             mock.patch.object(api._database_readiness_probe, "result", return_value={"ok": True}), \
+             mock.patch.object(api, "get_v04_composite_model", return_value=object()), \
+             mock.patch.object(api, "get_model", return_value=object()), \
+             mock.patch.object(api._mr, "claude_transport_readiness", return_value={
+                 **base_runtime,
+                 "remote_ready": True,
+                 "remote_error_code": None,
+             }) as ready_readiness:
+            ready_payload, ready_status = api._readiness_payload()
+        ready_readiness.assert_called_once_with(require_remote=True)
+        self.assertEqual(ready_status, 200)
+        self.assertTrue(ready_payload["checks"]["ai"]["ok"])
+        self.assertTrue(ready_payload["checks"]["ai"]["claude_remote_ready"])
+
     def test_market_timing_freshness_keeps_old_fields_and_adds_latest_source_health(self):
         overview = {
             "ok": True,

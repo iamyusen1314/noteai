@@ -16,6 +16,12 @@ services:
         sync: false
       - key: NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET
         sync: false
+      - key: NOTEAI_CLAUDE_GATEWAY_AUTHORITY
+        value: noteai-staging-claude-gateway.onrender.com
+      - key: NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH
+        value: staging-config-20260713
+      - key: NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH
+        value: staging-key-1
       - key: NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE
         value: dynamodb
       - key: NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT
@@ -38,6 +44,8 @@ services:
         value: "30"
       - key: NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS
         value: "180"
+      - key: NOTEAI_CLAUDE_GATEWAY_PREFLIGHT_TIMEOUT_SECONDS
+        value: "175"
       - key: NOTEAI_CLAUDE_GATEWAY_TERMINAL_RETENTION_SECONDS
         value: "2592000"
       - key: NOTEAI_CLAUDE_GATEWAY_DDB_TABLE

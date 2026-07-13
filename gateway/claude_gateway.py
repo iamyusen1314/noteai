@@ -22,14 +22,20 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from claude_gateway_protocol import (
     ALLOWED_MODELS,
+    HEADER_AUTHORITY,
+    HEADER_CONFIG_EPOCH,
     HEADER_KEY_ID,
+    HEADER_KEY_EPOCH,
     HEADER_NONCE,
     HEADER_PROTOCOL_VERSION,
+    HEADER_READINESS_CHALLENGE,
     HEADER_SIGNATURE,
     HEADER_TIMESTAMP,
     MESSAGES_PATH,
     PROTOCOL_VERSION,
+    READINESS_PATH,
     STREAM_PATH,
+    readiness_attestation,
     signature,
     valid_operation_id,
     valid_usage_envelope,
@@ -47,6 +53,12 @@ app = FastAPI(
 )
 
 _NONCE_PATTERN = re.compile(r"^[A-Za-z0-9_.~-]{16,128}$")
+_READINESS_CHALLENGE_PATTERN = re.compile(r"^[A-Za-z0-9_.~-]{16,128}$")
+_AUTHORITY_PATTERN = re.compile(
+    r"^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
+    r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+)
+_EPOCH_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 
 def _int_env(name: str, default: int, minimum: int, maximum: int) -> int:
@@ -81,6 +93,32 @@ def _control_mode() -> str:
 
 def _stable_principal_id() -> str:
     return os.environ.get("NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID", "").strip()
+
+
+def _gateway_authority() -> str:
+    value = os.environ.get("NOTEAI_CLAUDE_GATEWAY_AUTHORITY", "")
+    if (
+        not value
+        or not value.isascii()
+        or value != value.lower()
+        or value.endswith(".")
+        or value.endswith(".local")
+        or "%" in value
+        or ":" in value
+        or not _AUTHORITY_PATTERN.fullmatch(value)
+    ):
+        return ""
+    return value
+
+
+def _gateway_config_epoch() -> str:
+    value = os.environ.get("NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH", "")
+    return value if value.isascii() and _EPOCH_PATTERN.fullmatch(value) else ""
+
+
+def _gateway_key_epoch() -> str:
+    value = os.environ.get("NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH", "")
+    return value if value.isascii() and _EPOCH_PATTERN.fullmatch(value) else ""
 
 
 def _dynamodb_identity_environment_valid() -> bool:
@@ -137,6 +175,14 @@ def _preflight_timeout_seconds() -> float:
     except (TypeError, ValueError):
         value = 175.0
     return max(1.0, min(300.0, value))
+
+
+def _provider_timeout_contract_valid() -> bool:
+    return bool(
+        _provider_deadline_seconds() == 180.0
+        and _preflight_timeout_seconds() == 175.0
+        and _preflight_timeout_seconds() < _provider_deadline_seconds()
+    )
 
 
 def _configured_hmac_keys() -> dict[str, str] | None:
@@ -319,6 +365,7 @@ class AnthropicProvider:
         if self._client is None:
             self._client = anthropic.AsyncAnthropic(
                 api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
+                timeout=_provider_deadline_seconds(),
                 max_retries=0,
             )
         return self._client
@@ -383,7 +430,13 @@ def _single_header(request: Request, name: str) -> str:
     return values[0]
 
 
-async def _authenticate(request: Request, body: bytes, expected_path: str) -> str:
+async def _authenticate(
+    request: Request,
+    body: bytes,
+    expected_path: str,
+    *,
+    consume_replay_and_rate: bool = True,
+) -> str:
     if request.url.query:
         raise GatewayRejection("QUERY_NOT_ALLOWED", 400)
     if request.url.path != expected_path:
@@ -393,6 +446,20 @@ async def _authenticate(request: Request, body: bytes, expected_path: str) -> st
         raise GatewayRejection("CONTENT_TYPE_UNSUPPORTED", 415)
     if any(request.headers.getlist(name) for name in ("authorization", "cookie", "content-encoding")):
         raise GatewayRejection("FORBIDDEN_HEADER", 400)
+
+    authority = _gateway_authority()
+    config_epoch = _gateway_config_epoch()
+    key_epoch = _gateway_key_epoch()
+    if not authority or not config_epoch or not key_epoch:
+        raise GatewayRejection("GATEWAY_NOT_CONFIGURED", 503)
+    if _single_header(request, "host") != authority:
+        raise GatewayRejection("AUTH_CONTEXT_INVALID", 401)
+    if (
+        _single_header(request, HEADER_AUTHORITY) != authority
+        or _single_header(request, HEADER_CONFIG_EPOCH) != config_epoch
+        or _single_header(request, HEADER_KEY_EPOCH) != key_epoch
+    ):
+        raise GatewayRejection("AUTH_CONTEXT_INVALID", 401)
 
     protocol_version = _single_header(request, HEADER_PROTOCOL_VERSION)
     if protocol_version != PROTOCOL_VERSION:
@@ -419,18 +486,23 @@ async def _authenticate(request: Request, body: bytes, expected_path: str) -> st
         raise GatewayRejection("AUTH_EXPIRED", 401)
 
     expected = signature(
-        configured_secret,
-        request.method,
-        expected_path,
-        key_id,
-        protocol_version,
-        "application/json",
-        timestamp_text,
-        nonce,
-        body,
+        secret=configured_secret,
+        method=request.method,
+        path=expected_path,
+        key_id=key_id,
+        protocol_version=protocol_version,
+        content_type="application/json",
+        timestamp=timestamp_text,
+        nonce=nonce,
+        body=body,
+        authority=authority,
+        config_epoch=config_epoch,
+        key_epoch=key_epoch,
     )
     if not secrets.compare_digest(supplied_signature, expected):
         raise GatewayRejection("AUTH_INVALID", 401)
+    if not consume_replay_and_rate:
+        return key_id
     now = time.time()
     now_epoch = int(now)
     mode = _control_mode()
@@ -818,6 +890,69 @@ class _SharedDispatch:
             raise GatewayRejection("CONTROL_PLANE_OUTCOME_UNKNOWN", 503)
 
 
+@app.get(READINESS_PATH)
+async def signed_remote_readiness(request: Request):
+    body = await request.body()
+    if body:
+        raise GatewayRejection("INVALID_REQUEST", 400)
+    key_id = await _authenticate(
+        request,
+        body,
+        READINESS_PATH,
+        consume_replay_and_rate=False,
+    )
+    challenge = _single_header(request, HEADER_READINESS_CHALLENGE)
+    if not _READINESS_CHALLENGE_PATTERN.fullmatch(challenge):
+        raise GatewayRejection("INVALID_REQUEST", 400)
+    if _control_mode() != "dynamodb":
+        raise GatewayRejection("GATEWAY_NOT_READY", 503)
+    configured = bool(
+        os.environ.get("ANTHROPIC_API_KEY")
+        and _configured_hmac_keys()
+        and _gateway_authority()
+        and _gateway_config_epoch()
+        and _gateway_key_epoch()
+        and _provider_timeout_contract_valid()
+    )
+    store_configured = bool(
+        _stable_principal_id()
+        and os.environ.get("NOTEAI_CLAUDE_GATEWAY_DDB_TABLE", "").strip()
+        and os.environ.get("NOTEAI_CLAUDE_GATEWAY_DDB_REGION", "ap-southeast-1").strip()
+        and _dynamodb_identity_environment_valid()
+    )
+    store_ready = False
+    if store_configured:
+        try:
+            store = _get_control_store()
+            store_ready = bool(
+                getattr(store, "credential_method", "")
+                == "assume-role-with-web-identity"
+                and await store.health()
+            )
+        except ControlStoreUnavailable:
+            store_ready = False
+    if not configured or not store_configured or not store_ready:
+        raise GatewayRejection("GATEWAY_NOT_READY", 503)
+    configured_keys = _configured_hmac_keys() or {}
+    secret = configured_keys.get(key_id)
+    if secret is None:
+        raise GatewayRejection("AUTH_INVALID", 401)
+    payload = {
+        "protocol_version": PROTOCOL_VERSION,
+        "service": "noteai-claude-gateway",
+        "status": "ready_multi_instance",
+        "deployment_scope": "shared_control_plane",
+        "replay_store": "dynamodb_shared_atomic",
+        "config_epoch": _gateway_config_epoch(),
+        "key_epoch": _gateway_key_epoch(),
+        "server_time": int(time.time()),
+        "challenge": challenge,
+        "nonce": _single_header(request, HEADER_NONCE),
+    }
+    payload["attestation"] = readiness_attestation(secret, payload)
+    return JSONResponse(payload, status_code=200)
+
+
 @app.get("/health/live")
 async def health_live():
     return {"status": "ok", "service": "noteai-claude-gateway"}
@@ -828,6 +963,10 @@ async def health_ready():
     configured = bool(
         os.environ.get("ANTHROPIC_API_KEY")
         and _configured_hmac_keys()
+        and _gateway_authority()
+        and _gateway_config_epoch()
+        and _gateway_key_epoch()
+        and _provider_timeout_contract_valid()
     )
     mode = _control_mode()
     single_instance = _configured_instance_count() == 1

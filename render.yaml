@@ -65,6 +65,28 @@ services:
         value: "1"
       - key: NOTEAI_READINESS_REQUIRE_AI_KEYS
         value: "1"
+      - key: NOTEAI_CLAUDE_TRANSPORT
+        value: local
+      - key: NOTEAI_CLAUDE_GATEWAY_URL
+        value: https://noteai-staging-claude-gateway.onrender.com
+      - key: NOTEAI_CLAUDE_GATEWAY_AUTHORITY
+        value: noteai-staging-claude-gateway.onrender.com
+      - key: NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH
+        value: staging-config-20260713
+      - key: NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH
+        value: staging-key-1
+      - key: NOTEAI_CLAUDE_GATEWAY_HTTP_TIMEOUT_SECONDS
+        value: "190"
+      - key: NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS
+        value: "180"
+      - key: NOTEAI_CLAUDE_GATEWAY_BUSINESS_TIMEOUT_SECONDS
+        value: "210"
+      - key: NOTEAI_CLAUDE_GATEWAY_READINESS_TIMEOUT_SECONDS
+        value: "3"
+      - key: NOTEAI_CLAUDE_GATEWAY_READINESS_CACHE_TTL_SECONDS
+        value: "5"
+      - key: NOTEAI_CLAUDE_GATEWAY_READINESS_MAX_CLOCK_SKEW_SECONDS
+        value: "30"
       - key: NOTEAI_MODEL_PRICE_VERSION
         value: official-2026-07-12
       - key: NOTEAI_BILLING_USD_CNY

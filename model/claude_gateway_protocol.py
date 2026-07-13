@@ -4,21 +4,27 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import re
 import secrets
 import time
 
 
-MESSAGES_PATH = "/internal/v1/messages"
-STREAM_PATH = "/internal/v1/messages/stream"
+MESSAGES_PATH = "/internal/v2/messages"
+STREAM_PATH = "/internal/v2/messages/stream"
+READINESS_PATH = "/internal/v2/readiness"
 
 HEADER_KEY_ID = "X-NoteAI-Key-ID"
 HEADER_TIMESTAMP = "X-NoteAI-Timestamp"
 HEADER_NONCE = "X-NoteAI-Nonce"
 HEADER_SIGNATURE = "X-NoteAI-Signature"
 HEADER_PROTOCOL_VERSION = "X-NoteAI-Protocol-Version"
+HEADER_AUTHORITY = "X-NoteAI-Authority"
+HEADER_CONFIG_EPOCH = "X-NoteAI-Config-Epoch"
+HEADER_KEY_EPOCH = "X-NoteAI-Key-Epoch"
+HEADER_READINESS_CHALLENGE = "X-NoteAI-Readiness-Challenge"
 
-PROTOCOL_VERSION = "claude-gateway.v1"
+PROTOCOL_VERSION = "claude-gateway.v2"
 ALLOWED_MODELS = frozenset({
     "claude-haiku-4-5-20251001",
     "claude-sonnet-4-6",
@@ -89,10 +95,17 @@ def canonical_request(
     timestamp: str,
     nonce: str,
     body: bytes,
+    *,
+    authority: str = "",
+    config_epoch: str = "",
+    key_epoch: str = "",
 ) -> bytes:
     return "\n".join((
         method.upper(),
         path,
+        authority,
+        config_epoch,
+        key_epoch,
         key_id,
         protocol_version,
         content_type,
@@ -112,6 +125,10 @@ def signature(
     timestamp: str,
     nonce: str,
     body: bytes,
+    *,
+    authority: str = "",
+    config_epoch: str = "",
+    key_epoch: str = "",
 ) -> str:
     return hmac.new(
         secret.encode("utf-8"),
@@ -124,6 +141,9 @@ def signature(
             timestamp,
             nonce,
             body,
+            authority=authority,
+            config_epoch=config_epoch,
+            key_epoch=key_epoch,
         ),
         hashlib.sha256,
     ).hexdigest()
@@ -135,6 +155,9 @@ def auth_headers(
     secret: str,
     method: str,
     path: str,
+    authority: str,
+    config_epoch: str,
+    key_epoch: str,
     body: bytes,
     timestamp: int | None = None,
     nonce: str | None = None,
@@ -147,17 +170,49 @@ def auth_headers(
         HEADER_TIMESTAMP: timestamp_text,
         HEADER_NONCE: nonce_text,
         HEADER_SIGNATURE: signature(
-            secret,
-            method,
-            path,
-            key_id,
-            PROTOCOL_VERSION,
-            content_type,
-            timestamp_text,
-            nonce_text,
-            body,
+            secret=secret,
+            method=method,
+            path=path,
+            key_id=key_id,
+            protocol_version=PROTOCOL_VERSION,
+            content_type=content_type,
+            timestamp=timestamp_text,
+            nonce=nonce_text,
+            body=body,
+            authority=authority,
+            config_epoch=config_epoch,
+            key_epoch=key_epoch,
         ),
         "Content-Type": content_type,
         "Accept": "application/x-ndjson, application/json",
+        "Host": authority,
+        HEADER_AUTHORITY: authority,
+        HEADER_CONFIG_EPOCH: config_epoch,
+        HEADER_KEY_EPOCH: key_epoch,
         HEADER_PROTOCOL_VERSION: PROTOCOL_VERSION,
     }
+
+
+def readiness_attestation(secret: str, payload: dict) -> str:
+    unsigned = dict(payload)
+    unsigned.pop("attestation", None)
+    canonical = json.dumps(
+        unsigned,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("ascii")
+    return hmac.new(
+        secret.encode("utf-8"),
+        b"noteai-readiness-v2\n" + canonical,
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def verify_readiness_attestation(secret: str, payload: dict) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    supplied = payload.get("attestation")
+    if not isinstance(supplied, str) or not re.fullmatch(r"[0-9a-f]{64}", supplied):
+        return False
+    return hmac.compare_digest(supplied, readiness_attestation(secret, payload))

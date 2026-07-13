@@ -11321,14 +11321,24 @@ def _readiness_payload() -> tuple[dict, int]:
     checks["model"] = {"ok": model_ok, "version": _health_model_label()}
 
     require_ai = os.environ.get("NOTEAI_READINESS_REQUIRE_AI_KEYS", "0").lower() in {"1", "true", "yes"}
-    claude_runtime = _mr.claude_transport_readiness()
+    claude_runtime = _mr.claude_transport_readiness(require_remote=require_ai)
     claude_configured = bool(claude_runtime.get("configured"))
+    claude_transport = claude_runtime.get("mode")
+    claude_remote_ready = claude_runtime.get("remote_ready")
+    claude_ready = claude_configured and (
+        claude_transport != "gateway"
+        or not require_ai
+        or claude_remote_ready is True
+    )
     checks["ai"] = {
-        "ok": claude_configured and bool(os.environ.get("MOONSHOT_API_KEY")),
+        "ok": claude_ready and bool(os.environ.get("MOONSHOT_API_KEY")),
         "required": require_ai,
         "claude_configured": claude_configured,
-        "claude_transport": claude_runtime.get("mode"),
+        "claude_transport": claude_transport,
         "claude_transport_supported": bool(claude_runtime.get("supported")),
+        "claude_remote_checked": bool(claude_runtime.get("remote_checked")),
+        "claude_remote_ready": claude_remote_ready,
+        "claude_remote_error_code": claude_runtime.get("remote_error_code"),
         "moonshot_configured": bool(os.environ.get("MOONSHOT_API_KEY")),
     }
 

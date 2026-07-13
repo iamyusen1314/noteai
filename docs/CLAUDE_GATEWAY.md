@@ -4,11 +4,51 @@ The Gateway is an internal, provider-only service. It must not receive browser
 traffic, user bearer tokens, database credentials, Moonshot credentials, model
 artifacts, or business billing state.
 
-Requests use `claude-gateway.v1` HMAC authentication. The signature binds the
-HTTP method, exact path, key ID, protocol version, content type, timestamp,
-nonce, and request-body SHA-256. Query strings, duplicate authentication
-headers, unsupported content types/versions, stale timestamps, and replayed
-nonces are rejected.
+Requests use `claude-gateway.v2` HMAC authentication. The signature binds the
+HTTP method, exact path, canonical ASCII authority, configuration epoch, key
+epoch, key ID, protocol version, content type, timestamp, nonce, and
+request-body SHA-256. The Gateway compares the signed context and the single
+`Host` header with its own configured values. Query strings, duplicate
+authentication headers, unsupported content types/versions, stale timestamps,
+replayed nonces, Unicode/percent-encoded authorities, trailing-dot aliases,
+and any other host fail closed before Anthropic is called. V1 is not accepted.
+
+The Router accepts only the exact root URL `https://<configured-authority>`.
+Before each real connection it resolves every A/AAAA answer and rejects the
+whole set unless every answer is strict global unicast. Multicast,
+unspecified, loopback, link-local, reserved, site-local, IPv4-mapped, 6to4,
+Teredo, and NAT64 transition addresses are rejected even if a platform IP
+classifier would otherwise accept them. It then pins the connection to one
+validated IP while retaining the original authority for TLS
+certificate verification, SNI, and `Host`. HTTP clients use TLS verification,
+`trust_env=false`, zero transport retries, no redirects, and accept only HTTP
+200 as success. This pinning depends on the guarded private transport shape in
+exactly `httpcore==1.0.9`; an unexpected version or pool/backend shape fails
+closed as `GATEWAY_TRANSPORT_INCOMPATIBLE`.
+
+Async Gateway DNS resolution runs on a process-level dedicated bounded worker
+pool rather than the event loop's default executor. Cancelling a timed-out DNS
+lookup therefore does not make a synchronous `asyncio.run` caller wait for the
+resolver thread to finish. A late resolver result is discarded before HTTP
+transport construction or dispatch; this pre-dispatch case returns
+`GATEWAY_PRE_DISPATCH_TIMEOUT` and does not create a missing-usage audit.
+
+The first validated address being temporarily unreachable remains an explicit
+availability residual. The Router does not retry the POST against another
+address because the provider-start outcome could be uncertain.
+
+`GET /internal/v2/readiness` is a signed, nonce-bearing challenge that does not
+claim the business replay nonce, consume the business rate limit, acquire an
+operation lease, or write DynamoDB. It echoes the challenge and nonce and
+returns only the service/protocol, shared deployment scope, DynamoDB replay
+store, config/key epochs, server time, and an HMAC attestation. It never
+returns a key ID or secret. When AI readiness is required, the main API accepts
+Gateway readiness only after the signed response, epochs, scope/store,
+challenge, and bounded clock skew all match. The short readiness cache has a
+hard expiry and never serves an expired green result. Probes are single-flight
+per configuration key; generation/future ownership prevents a timed-out or
+superseded probe from later caching green, and a stuck probe cannot cause
+unbounded executor submissions.
 
 Every request body also carries an opaque `operation_id`. The Router creates it
 once for a logical Claude leaf call and reuses it for safe retries and safe
@@ -93,10 +133,32 @@ the control plane's technical capability; it is not production-scale approval.
 
 DynamoDB SDK calls use short connect/read timeouts, one total SDK attempt, and
 an outer control deadline. In DynamoDB mode the provider also has one total
-deadline across the whole non-stream or stream operation. The renewable lease
-default is longer than that provider deadline plus a safety margin. Memory mode
-keeps its existing provider behavior; final cross-layer timeout tuning
-remains part of ARCH-002P-C.
+deadline across the whole non-stream or stream operation. The Anthropic SDK
+uses an explicit bounded timeout and zero retries. The production Gateway
+budget is ordered as provider `180s` < Router-to-Gateway HTTP `190s` < Gateway
+mode business/stream boundary `210s`. Gateway synchronous, asynchronous, and
+stream paths use cancellable async transport under one total `210s` boundary;
+the inner Router-to-Gateway HTTP operation remains capped at `190s`. Local
+synchronous transport keeps its existing code path and Local transport retains
+its existing `30/45/55/180s` task budgets.
+
+For public non-stream, stream, and `stream_chat` routes that contain Claude,
+the `210s` boundary is one absolute deadline created before semaphore waiting,
+attempts, retry backoff, and model fallback. Every later await uses only the
+remaining budget, including Claude-to-Kimi and Sonnet-to-Haiku fallback. Once
+the deadline is exhausted no further attempt or fallback starts. Pre-dispatch
+expiry does not create a Claude usage audit; cancellation after possible
+provider dispatch fails closed as `CLAUDE_OUTCOME_UNKNOWN` and records exactly
+one missing-usage audit. Local routes and Gateway Kimi-only routes keep their
+existing behavior.
+The renewable lease default remains longer than the provider deadline plus a
+safety margin.
+
+The Staging API Blueprint remains explicitly `NOTEAI_CLAUDE_TRANSPORT=local`.
+It does not cut business traffic over to the Gateway. The separate Gateway
+Blueprint remains one Render instance and one worker; the authority, epochs,
+and timeout values are locked for staging. Production deployment at 2–4
+instances is still not approved or verified and remains a separate exercise.
 
 The Gateway discards Anthropic thinking/reasoning deltas. Its NDJSON stream may
 contain only `content`, `usage`, `done`, or fixed-code `error` events. Image

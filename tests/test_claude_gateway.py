@@ -3,7 +3,9 @@ import concurrent.futures
 import json
 import os
 import secrets
+import socket
 import sys
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -175,11 +177,18 @@ class _FakeSharedControlStore:
 
 
 class ClaudeGatewayEndpointTests(unittest.TestCase):
+    authority = "gateway.test"
+    config_epoch = "test-config-1"
+    key_epoch = "test-key-1"
+
     def setUp(self):
         self.env = mock.patch.dict(os.environ, {
             "ANTHROPIC_API_KEY": "provider-test-key",
             "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID": "main-test-key",
             "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET": "test-secret-material",
+            "NOTEAI_CLAUDE_GATEWAY_AUTHORITY": self.authority,
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": self.config_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": self.key_epoch,
             "NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT": "1",
             "NOTEAI_CLAUDE_GATEWAY_MAX_BODY_BYTES": "8388608",
             "NOTEAI_CLAUDE_GATEWAY_MAX_TOKENS": "16000",
@@ -232,6 +241,9 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
             secret="test-secret-material",
             method="POST",
             path=path,
+            authority=self.authority,
+            config_epoch=self.config_epoch,
+            key_epoch=self.key_epoch,
             body=body,
             nonce=updates.pop("nonce", None),
             timestamp=updates.pop("timestamp", None),
@@ -479,6 +491,9 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
             "secret": "test-secret-material",
             "method": "POST",
             "path": protocol.MESSAGES_PATH,
+            "authority": self.authority,
+            "config_epoch": self.config_epoch,
+            "key_epoch": self.key_epoch,
             "key_id": "main-test-key",
             "protocol_version": protocol.PROTOCOL_VERSION,
             "content_type": "application/json",
@@ -490,6 +505,9 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
         variants = (
             ("method", "PUT"),
             ("path", protocol.STREAM_PATH),
+            ("authority", "other.test"),
+            ("config_epoch", "test-config-2"),
+            ("key_epoch", "test-key-2"),
             ("key_id", "other-key"),
             ("protocol_version", "claude-gateway.v0"),
             ("content_type", "text/plain"),
@@ -556,6 +574,9 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
             secret="previous-secret",
             method="POST",
             path=protocol.MESSAGES_PATH,
+            authority=self.authority,
+            config_epoch=self.config_epoch,
+            key_epoch=self.key_epoch,
             body=body,
         )
         unknown_headers = protocol.auth_headers(
@@ -563,6 +584,9 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
             secret="unknown-secret",
             method="POST",
             path=protocol.MESSAGES_PATH,
+            authority=self.authority,
+            config_epoch=self.config_epoch,
+            key_epoch=self.key_epoch,
             body=body,
         )
         with mock.patch.dict(os.environ, rotation_env):
@@ -923,7 +947,11 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
         previous_body = self.encoded(previous_payload)
         previous_headers = protocol.auth_headers(
             key_id="old-test-key", secret="old-test-secret", method="POST",
-            path=protocol.MESSAGES_PATH, body=previous_body,
+            path=protocol.MESSAGES_PATH,
+            authority=self.authority,
+            config_epoch=self.config_epoch,
+            key_epoch=self.key_epoch,
+            body=previous_body,
         )
         with mock.patch.dict(os.environ, rotation):
             current = self.client.post(
@@ -1217,6 +1245,16 @@ class AnthropicProviderBoundaryTests(unittest.TestCase):
 
 
 class GatewayClaudeTransportTests(unittest.TestCase):
+    def setUp(self):
+        self.env = mock.patch.dict(os.environ, {
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": "test-config-1",
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": "test-key-1",
+        }, clear=False)
+        self.env.start()
+
+    def tearDown(self):
+        self.env.stop()
+
     @staticmethod
     def request():
         return model_router.ClaudeMessageRequest(
@@ -1234,15 +1272,18 @@ class GatewayClaudeTransportTests(unittest.TestCase):
             requests.append(request)
             body = request.content
             expected = protocol.signature(
-                "transport-secret",
-                request.method,
-                request.url.path,
-                request.headers[protocol.HEADER_KEY_ID],
-                request.headers[protocol.HEADER_PROTOCOL_VERSION],
-                request.headers["content-type"],
-                request.headers[protocol.HEADER_TIMESTAMP],
-                request.headers[protocol.HEADER_NONCE],
-                body,
+                secret="transport-secret",
+                method=request.method,
+                path=request.url.path,
+                authority=request.headers[protocol.HEADER_AUTHORITY],
+                config_epoch=request.headers[protocol.HEADER_CONFIG_EPOCH],
+                key_epoch=request.headers[protocol.HEADER_KEY_EPOCH],
+                key_id=request.headers[protocol.HEADER_KEY_ID],
+                protocol_version=request.headers[protocol.HEADER_PROTOCOL_VERSION],
+                content_type=request.headers["content-type"],
+                timestamp=request.headers[protocol.HEADER_TIMESTAMP],
+                nonce=request.headers[protocol.HEADER_NONCE],
+                body=body,
             )
             self.assertEqual(request.headers[protocol.HEADER_SIGNATURE], expected)
             if request.url.path == protocol.STREAM_PATH:
@@ -1627,6 +1668,9 @@ class GatewayClaudeTransportTests(unittest.TestCase):
         env = {
             "NOTEAI_CLAUDE_TRANSPORT": "gateway",
             "NOTEAI_CLAUDE_GATEWAY_URL": "https://gateway.example.invalid",
+            "NOTEAI_CLAUDE_GATEWAY_AUTHORITY": "gateway.example.invalid",
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": "test-config-1",
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": "test-key-1",
             "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID": "transport-key",
             "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET": "transport-secret",
             "MOONSHOT_API_KEY": "moonshot-test-key",
@@ -1637,18 +1681,1251 @@ class GatewayClaudeTransportTests(unittest.TestCase):
              mock.patch.object(api._mr, "call_claude_sync", return_value=xml), \
              mock.patch.object(api._database_readiness_probe, "result", return_value={"ok": True}), \
              mock.patch.object(api, "get_v04_composite_model", return_value=object()), \
-             mock.patch.object(api, "get_model", return_value=object()):
+             mock.patch.object(api, "get_model", return_value=object()), \
+             mock.patch.object(model_router, "_gateway_remote_readiness", return_value={
+                 "remote_ready": True,
+                 "remote_error_code": None,
+             }):
             readiness = model_router.claude_transport_readiness()
             parsed = api._call_claude("prompt")
             api_readiness, status_code = api._readiness_payload()
-        self.assertEqual(readiness, {"mode": "gateway", "configured": True, "supported": True})
+        self.assertEqual(readiness, {
+            "mode": "gateway",
+            "configured": True,
+            "supported": True,
+            "remote_checked": False,
+            "remote_ready": None,
+            "remote_error_code": None,
+        })
         self.assertEqual(parsed, ("d", ["t"], "p", "b"))
         self.assertEqual(status_code, 200)
         self.assertTrue(api_readiness["checks"]["ai"]["ok"])
         self.assertEqual(api_readiness["checks"]["ai"]["claude_transport"], "gateway")
+        self.assertTrue(api_readiness["checks"]["ai"]["claude_remote_ready"])
+
+
+class ClaudeGatewayTrustBoundaryContractTests(unittest.TestCase):
+    authority = "noteai-staging-claude-gateway.onrender.com"
+    config_epoch = "staging-config-20260713"
+    key_epoch = "staging-key-1"
+
+    def test_v2_signature_binds_authority_and_configuration_epochs(self):
+        self.assertEqual(protocol.PROTOCOL_VERSION, "claude-gateway.v2")
+        base = {
+            "secret": "contract-secret",
+            "method": "POST",
+            "path": protocol.MESSAGES_PATH,
+            "authority": self.authority,
+            "config_epoch": self.config_epoch,
+            "key_epoch": self.key_epoch,
+            "key_id": "contract-key",
+            "protocol_version": protocol.PROTOCOL_VERSION,
+            "content_type": "application/json",
+            "timestamp": "1783968000",
+            "nonce": "readiness_nonce_1234567890",
+            "body": b'{"safe":true}',
+        }
+        baseline = protocol.signature(**base)
+        for field, value in (
+            ("authority", "other-gateway.onrender.com"),
+            ("config_epoch", "staging-config-previous"),
+            ("key_epoch", "staging-key-previous"),
+        ):
+            with self.subTest(field=field):
+                changed = dict(base)
+                changed[field] = value
+                self.assertNotEqual(protocol.signature(**changed), baseline)
+
+    def test_gateway_url_requires_one_exact_canonical_ascii_authority(self):
+        expected_url = f"https://{self.authority}"
+        self.assertTrue(model_router._valid_gateway_base_url(expected_url, self.authority))
+        for invalid_url in (
+            f"https://{self.authority}.",
+            f"https://{self.authority}/",
+            f"https://{self.authority.upper()}",
+            "https://tést.onrender.com",
+            "https://%6eoteai-staging-claude-gateway.onrender.com",
+            "https://other-gateway.onrender.com",
+        ):
+            with self.subTest(url=invalid_url):
+                self.assertFalse(
+                    model_router._valid_gateway_base_url(invalid_url, self.authority)
+                )
+
+        for invalid_authority in (
+            f"{self.authority}.",
+            self.authority.upper(),
+            "tést.onrender.com",
+            "%6eoteai-staging-claude-gateway.onrender.com",
+            "127.0.0.1",
+        ):
+            with self.subTest(authority=invalid_authority):
+                self.assertFalse(model_router._valid_gateway_authority(invalid_authority))
+
+    def test_dns_requires_every_a_and_aaaa_result_global(self):
+        public_answers = (
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("2606:2800:220:1:248:1893:25c8:1946", 443, 0, 0)),
+        )
+        with mock.patch.object(socket, "getaddrinfo", return_value=public_answers):
+            self.assertEqual(
+                model_router._resolve_global_gateway_addresses(self.authority),
+                ("93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946"),
+            )
+
+        mixed_answers = public_answers + (
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.8", 443)),
+        )
+        with mock.patch.object(socket, "getaddrinfo", return_value=mixed_answers), \
+             self.assertRaises(model_router.ClaudeGatewayError) as raised:
+            model_router._resolve_global_gateway_addresses(self.authority)
+        self.assertEqual(raised.exception.code, "GATEWAY_DNS_NOT_GLOBAL")
+
+    def test_dns_rejects_non_unicast_and_transition_addresses(self):
+        rejected = (
+            "224.0.0.1",
+            "239.255.255.250",
+            "ff02::1",
+            "64:ff9b::7f00:1",
+            "::ffff:93.184.216.34",
+            "2002:5db8:d822::1",
+            "2001:0000:4136:e378:8000:63bf:3fff:fdd2",
+        )
+        for address in rejected:
+            family = socket.AF_INET6 if ":" in address else socket.AF_INET
+            sockaddr = (address, 443, 0, 0) if family == socket.AF_INET6 else (address, 443)
+            answer = ((family, socket.SOCK_STREAM, 6, "", sockaddr),)
+            with self.subTest(address=address):
+                with mock.patch.object(socket, "getaddrinfo", return_value=answer), \
+                     self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                    model_router._resolve_global_gateway_addresses(self.authority)
+                self.assertEqual(raised.exception.code, "GATEWAY_DNS_NOT_GLOBAL")
+
+    def test_pinned_network_backend_uses_ip_and_preserves_origin_sni(self):
+        response = (
+            b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+            b"Content-Length: 2\r\nConnection: close\r\n\r\n{}"
+        )
+
+        class FakeSyncStream:
+            def __init__(self):
+                self.writes = []
+                self.sent = False
+                self.sni = []
+
+            def read(self, _max_bytes, timeout=None):
+                if self.sent:
+                    return b""
+                self.sent = True
+                return response
+
+            def write(self, buffer, timeout=None):
+                self.writes.append(bytes(buffer))
+
+            def close(self):
+                return None
+
+            def start_tls(self, ssl_context, server_hostname, timeout=None):
+                self.sni.append(server_hostname)
+                return self
+
+            def get_extra_info(self, _info):
+                return None
+
+        class FakeSyncBackend:
+            def __init__(self):
+                self.hosts = []
+                self.stream = FakeSyncStream()
+
+            def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
+                self.hosts.append((host, port))
+                return self.stream
+
+        sync_backend = FakeSyncBackend()
+        sync_transport = httpx.HTTPTransport(verify=True, trust_env=False, retries=0)
+        sync_transport._pool._network_backend = sync_backend
+        model_router._pin_httpx_transport_backend(
+            sync_transport,
+            self.authority,
+            "93.184.216.34",
+            async_mode=False,
+        )
+        with httpx.Client(transport=sync_transport, trust_env=False) as client:
+            self.assertEqual(client.get(f"https://{self.authority}/wire").status_code, 200)
+        sync_wire = b"".join(sync_backend.stream.writes)
+        self.assertEqual(sync_backend.hosts, [("93.184.216.34", 443)])
+        self.assertEqual(sync_backend.stream.sni, [self.authority])
+        self.assertIn(f"Host: {self.authority}\r\n".encode(), sync_wire)
+
+        class FakeAsyncStream:
+            def __init__(self):
+                self.writes = []
+                self.sent = False
+                self.sni = []
+
+            async def read(self, _max_bytes, timeout=None):
+                if self.sent:
+                    return b""
+                self.sent = True
+                return response
+
+            async def write(self, buffer, timeout=None):
+                self.writes.append(bytes(buffer))
+
+            async def aclose(self):
+                return None
+
+            async def start_tls(self, ssl_context, server_hostname, timeout=None):
+                self.sni.append(server_hostname)
+                return self
+
+            def get_extra_info(self, _info):
+                return None
+
+        class FakeAsyncBackend:
+            def __init__(self):
+                self.hosts = []
+                self.stream = FakeAsyncStream()
+
+            async def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
+                self.hosts.append((host, port))
+                return self.stream
+
+            async def sleep(self, seconds):
+                await asyncio.sleep(seconds)
+
+        async def async_wire_probe():
+            backend = FakeAsyncBackend()
+            transport = httpx.AsyncHTTPTransport(verify=True, trust_env=False, retries=0)
+            transport._pool._network_backend = backend
+            model_router._pin_httpx_transport_backend(
+                transport,
+                self.authority,
+                "93.184.216.34",
+                async_mode=True,
+            )
+            async with httpx.AsyncClient(transport=transport, trust_env=False) as client:
+                result = await client.get(f"https://{self.authority}/wire")
+            return result, backend
+
+        async_result, async_backend = asyncio.run(async_wire_probe())
+        async_wire = b"".join(async_backend.stream.writes)
+        self.assertEqual(async_result.status_code, 200)
+        self.assertEqual(async_backend.hosts, [("93.184.216.34", 443)])
+        self.assertEqual(async_backend.stream.sni, [self.authority])
+        self.assertIn(f"Host: {self.authority}\r\n".encode(), async_wire)
+
+    def test_private_httpcore_backend_shape_and_version_fail_closed(self):
+        transport = httpx.HTTPTransport(verify=True, trust_env=False, retries=0)
+        try:
+            with mock.patch.object(model_router.httpcore, "__version__", "9.9.9"), \
+                 self.assertRaises(model_router.ClaudeGatewayError) as wrong_version:
+                model_router._pin_httpx_transport_backend(
+                    transport, self.authority, "93.184.216.34", async_mode=False,
+                )
+            self.assertEqual(
+                wrong_version.exception.code,
+                "GATEWAY_TRANSPORT_INCOMPATIBLE",
+            )
+            with mock.patch.object(transport, "_pool", object()), \
+                 self.assertRaises(model_router.ClaudeGatewayError) as wrong_shape:
+                model_router._pin_httpx_transport_backend(
+                    transport, self.authority, "93.184.216.34", async_mode=False,
+                )
+            self.assertEqual(
+                wrong_shape.exception.code,
+                "GATEWAY_TRANSPORT_INCOMPATIBLE",
+            )
+        finally:
+            transport.close()
+
+    def test_gateway_sync_async_and_sse_have_real_total_deadlines(self):
+        class SlowTransport:
+            def __init__(self):
+                self.async_calls = 0
+                self.sync_calls = 0
+                self.cancelled = 0
+
+            async def create_message(self, _request):
+                self.async_calls += 1
+                try:
+                    await asyncio.sleep(60)
+                finally:
+                    self.cancelled += 1
+
+            def create_message_sync(self, _request):
+                self.sync_calls += 1
+                raise AssertionError("gateway sync SDK path must not be used")
+
+            async def stream_message(self, _request):
+                try:
+                    await asyncio.sleep(60)
+                    yield model_router.ClaudeStreamEvent("content", text="late")
+                finally:
+                    self.cancelled += 1
+
+        slow = SlowTransport()
+        original = model_router._CLAUDE_TRANSPORT
+        env = {"NOTEAI_CLAUDE_TRANSPORT": "gateway"}
+        try:
+            model_router.set_claude_transport(slow)
+            with mock.patch.dict(os.environ, env, clear=False), \
+                 mock.patch.object(model_router, "_claude_timeout_seconds", return_value=0.02), \
+                 mock.patch.object(model_router, "_record_claude_usage") as usage:
+                started = time.monotonic()
+                with self.assertRaises(model_router.ClaudeGatewayError) as sync_error:
+                    model_router.call_claude_sync(
+                        model=model_router.CLAUDE_HAIKU,
+                        messages=[{"role": "user", "content": "synthetic"}],
+                        max_tokens=120,
+                    )
+                self.assertLess(time.monotonic() - started, 0.5)
+                self.assertEqual(sync_error.exception.code, "CLAUDE_OUTCOME_UNKNOWN")
+                self.assertTrue(sync_error.exception.usage_audit_required)
+                self.assertEqual((slow.async_calls, slow.sync_calls), (1, 0))
+                usage.assert_called_once_with(model_router.CLAUDE_HAIKU, None)
+
+                async def collect_stream():
+                    return [event async for event in model_router._claude_transport_stream(
+                        model_router.CLAUDE_HAIKU,
+                        GatewayClaudeTransportTests.request(),
+                    )]
+
+                started = time.monotonic()
+                with self.assertRaises(model_router.ClaudeGatewayError) as stream_error:
+                    asyncio.run(collect_stream())
+                self.assertLess(time.monotonic() - started, 0.5)
+                self.assertEqual(stream_error.exception.code, "CLAUDE_OUTCOME_UNKNOWN")
+                self.assertTrue(stream_error.exception.usage_audit_required)
+                self.assertEqual(usage.call_count, 2)
+                usage.assert_has_calls([
+                    mock.call(model_router.CLAUDE_HAIKU, None),
+                    mock.call(model_router.CLAUDE_HAIKU, None),
+                ])
+        finally:
+            model_router.set_claude_transport(original)
+        self.assertGreaterEqual(slow.cancelled, 2)
+
+        async def slow_claude(*_args, **_kwargs):
+            await asyncio.sleep(60)
+
+        with mock.patch.dict(os.environ, env, clear=False), \
+             mock.patch.object(model_router, "_call_claude", side_effect=slow_claude), \
+             mock.patch.object(model_router, "_claude_timeout_seconds", return_value=0.02), \
+             mock.patch.object(model_router, "MODEL_RETRY_ATTEMPTS", 1):
+            started = time.monotonic()
+            with self.assertRaises(model_router.ClaudeGatewayError) as async_error:
+                asyncio.run(model_router.call("diagnosis", "system", "synthetic"))
+        self.assertLess(time.monotonic() - started, 0.5)
+        self.assertEqual(async_error.exception.code, "CLAUDE_OUTCOME_UNKNOWN")
+
+    def test_gateway_sync_deadline_does_not_wait_for_stuck_dns_or_dispatch(self):
+        env = {
+            "NOTEAI_CLAUDE_TRANSPORT": "gateway",
+            "NOTEAI_CLAUDE_GATEWAY_URL": f"https://{self.authority}",
+            "NOTEAI_CLAUDE_GATEWAY_AUTHORITY": self.authority,
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": self.config_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": self.key_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID": "contract-key",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET": "contract-secret",
+        }
+        resolver_entered = threading.Event()
+        release_resolver = threading.Event()
+
+        def stuck_resolver(_authority):
+            resolver_entered.set()
+            release_resolver.wait(0.8)
+            return ("93.184.216.34",)
+
+        transport = model_router.GatewayClaudeTransport(
+            base_url=f"https://{self.authority}",
+            authority=self.authority,
+            config_epoch=self.config_epoch,
+            key_epoch=self.key_epoch,
+            key_id="contract-key",
+            secret="contract-secret",
+        )
+        original = model_router._CLAUDE_TRANSPORT
+        try:
+            model_router.set_claude_transport(transport)
+            with mock.patch.dict(os.environ, env, clear=True), \
+                 mock.patch.object(
+                     model_router,
+                     "_resolve_global_gateway_addresses",
+                     side_effect=stuck_resolver,
+                 ), \
+                 mock.patch.object(model_router, "_claude_timeout_seconds", return_value=0.03), \
+                 mock.patch.object(model_router, "_pin_httpx_transport_backend") as pin, \
+                 mock.patch.object(httpx.AsyncClient, "post", new_callable=mock.AsyncMock) as post, \
+                 mock.patch.object(model_router, "_record_claude_usage") as usage:
+                started = time.monotonic()
+                with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                    model_router.call_claude_sync(
+                        model=model_router.CLAUDE_HAIKU,
+                        messages=[{"role": "user", "content": "synthetic"}],
+                        max_tokens=120,
+                    )
+                elapsed = time.monotonic() - started
+                self.assertTrue(resolver_entered.is_set())
+                self.assertLess(elapsed, 0.2)
+                self.assertEqual(raised.exception.code, "GATEWAY_PRE_DISPATCH_TIMEOUT")
+                self.assertFalse(raised.exception.usage_audit_required)
+                usage.assert_not_called()
+                pin.assert_not_called()
+                post.assert_not_awaited()
+                release_resolver.set()
+                time.sleep(0.05)
+                pin.assert_not_called()
+                post.assert_not_awaited()
+        finally:
+            release_resolver.set()
+            model_router.set_claude_transport(original)
+
+    def test_dns_executor_cancellation_storm_keeps_real_work_bounded(self):
+        executor = model_router._BoundedGatewayDNSExecutor(
+            max_workers=2,
+            max_pending=2,
+        )
+        release_resolver = threading.Event()
+        resolver_lock = threading.Lock()
+        resolver_calls = {"count": 0}
+        dispatches = []
+
+        def stuck_resolver(_authority):
+            with resolver_lock:
+                resolver_calls["count"] += 1
+            release_resolver.wait(1)
+            return ("93.184.216.34",)
+
+        def wire_handler(request):
+            dispatches.append(request.url.path)
+            return httpx.Response(
+                200,
+                json={
+                    "protocol_version": protocol.PROTOCOL_VERSION,
+                    "text_blocks": ["recovered"],
+                    "usage": _complete_usage(input_tokens=1, output_tokens=1),
+                },
+            )
+
+        def pin_to_fake_wire(_transport, _authority, _address, *, async_mode):
+            self.assertTrue(async_mode)
+            return httpx.MockTransport(wire_handler)
+
+        transport = model_router.GatewayClaudeTransport(
+            base_url=f"https://{self.authority}",
+            authority=self.authority,
+            config_epoch=self.config_epoch,
+            key_epoch=self.key_epoch,
+            key_id="contract-key",
+            secret="contract-secret",
+        )
+
+        async def wait_until(predicate, timeout=0.5):
+            deadline = asyncio.get_running_loop().time() + timeout
+            while not predicate():
+                if asyncio.get_running_loop().time() >= deadline:
+                    raise AssertionError("synthetic executor state did not converge")
+                await asyncio.sleep(0.001)
+
+        async def exercise():
+            loop = asyncio.get_running_loop()
+
+            async def business_deadline_request():
+                return await model_router._await_with_gateway_deadline(
+                    transport.create_message(GatewayClaudeTransportTests.request()),
+                    loop.time() + 0.05,
+                    unstructured_cancel_usage_audit_required=True,
+                    unstructured_cancel_usage_model=model_router.CLAUDE_HAIKU,
+                )
+
+            deadline_tasks = [
+                asyncio.create_task(business_deadline_request())
+                for _ in range(2)
+            ]
+            external_tasks = [
+                asyncio.create_task(transport.create_message(
+                    GatewayClaudeTransportTests.request()
+                ))
+                for _ in range(2)
+            ]
+            try:
+                await wait_until(lambda: (
+                    resolver_calls["count"] == 2
+                    and executor._work_queue.qsize() >= 2
+                ))
+                deadline_results = await asyncio.gather(
+                    *deadline_tasks,
+                    return_exceptions=True,
+                )
+                for task in external_tasks:
+                    task.cancel()
+                external_results = await asyncio.gather(
+                    *external_tasks,
+                    return_exceptions=True,
+                )
+
+                rejection_codes = []
+                storm_started = time.monotonic()
+                for _ in range(12):
+                    before = executor._work_queue.qsize()
+                    task = asyncio.create_task(transport.create_message(
+                        GatewayClaudeTransportTests.request()
+                    ))
+                    for _poll in range(20):
+                        await asyncio.sleep(0)
+                        if task.done() or executor._work_queue.qsize() > before:
+                            break
+                    if not task.done():
+                        task.cancel()
+                    try:
+                        await task
+                    except model_router.ClaudeGatewayError as exc:
+                        rejection_codes.append(exc.code)
+                    except asyncio.CancelledError:
+                        pass
+
+                before_release = {
+                    "deadline_codes": [
+                        getattr(result, "code", None)
+                        for result in deadline_results
+                    ],
+                    "external_cancelled": sum(
+                        isinstance(result, asyncio.CancelledError)
+                        for result in external_results
+                    ),
+                    "rejection_codes": rejection_codes,
+                    "queue_size": executor._work_queue.qsize(),
+                    "resolver_calls": resolver_calls["count"],
+                    "storm_elapsed": time.monotonic() - storm_started,
+                    "pin_calls": pin.call_count,
+                    "dispatches": len(dispatches),
+                }
+            finally:
+                release_resolver.set()
+
+            await wait_until(lambda: (
+                resolver_calls["count"] == 4
+                and executor._submission_slots._value == 4
+            ))
+            await asyncio.sleep(0.01)
+            after_release = {
+                "queue_size": executor._work_queue.qsize(),
+                "resolver_calls": resolver_calls["count"],
+                "pin_calls": pin.call_count,
+                "dispatches": len(dispatches),
+            }
+            recovered = await transport.create_message(
+                GatewayClaudeTransportTests.request()
+            )
+            return before_release, after_release, recovered
+
+        try:
+            with mock.patch.object(
+                model_router,
+                "_GATEWAY_DNS_EXECUTOR",
+                executor,
+            ), mock.patch.object(
+                model_router,
+                "_resolve_global_gateway_addresses",
+                side_effect=stuck_resolver,
+            ), mock.patch.object(
+                model_router,
+                "_pin_httpx_transport_backend",
+                side_effect=pin_to_fake_wire,
+            ) as pin, mock.patch.object(
+                model_router,
+                "_record_claude_usage",
+            ) as usage:
+                before_release, after_release, recovered = asyncio.run(exercise())
+        finally:
+            release_resolver.set()
+            executor.shutdown(wait=True, cancel_futures=False)
+
+        self.assertEqual(
+            before_release["deadline_codes"],
+            ["GATEWAY_PRE_DISPATCH_TIMEOUT"] * 2,
+        )
+        self.assertEqual(before_release["external_cancelled"], 2)
+        self.assertEqual(
+            before_release["rejection_codes"],
+            ["GATEWAY_DNS_RESOLUTION_FAILED"] * 12,
+        )
+        self.assertLess(before_release["storm_elapsed"], 0.2)
+        self.assertLessEqual(before_release["queue_size"], 2)
+        self.assertEqual(before_release["resolver_calls"], 2)
+        self.assertEqual(before_release["pin_calls"], 0)
+        self.assertEqual(before_release["dispatches"], 0)
+        self.assertEqual(after_release, {
+            "queue_size": 0,
+            "resolver_calls": 4,
+            "pin_calls": 0,
+            "dispatches": 0,
+        })
+        self.assertEqual(recovered.text_blocks, ("recovered",))
+        self.assertEqual(pin.call_count, 1)
+        self.assertEqual(dispatches, [protocol.MESSAGES_PATH])
+        usage.assert_not_called()
+
+    def test_gateway_absolute_deadline_preserves_external_cancellation(self):
+        entered = asyncio.Event()
+
+        async def cancellable_work():
+            entered.set()
+            await asyncio.sleep(60)
+
+        async def exercise():
+            deadline = asyncio.get_running_loop().time() + 1
+            task = asyncio.create_task(model_router._await_with_gateway_deadline(
+                cancellable_work(),
+                deadline,
+                unstructured_cancel_usage_audit_required=True,
+                unstructured_cancel_usage_model=model_router.CLAUDE_HAIKU,
+            ))
+            await entered.wait()
+            task.cancel()
+            await task
+
+        with mock.patch.object(model_router, "_record_claude_usage") as usage:
+            with self.assertRaises(asyncio.CancelledError):
+                asyncio.run(exercise())
+        usage.assert_not_called()
+
+    def test_public_call_gateway_deadline_covers_semaphore_and_retry_backoff(self):
+        env = {"NOTEAI_CLAUDE_TRANSPORT": "gateway"}
+
+        async def blocked_on_semaphore():
+            model_router._SEMAPHORES.clear()
+            semaphore = model_router._get_semaphore("claude", 1)
+            await semaphore.acquire()
+            try:
+                return await asyncio.wait_for(
+                    model_router.call("diagnosis", "system", "synthetic"),
+                    timeout=0.3,
+                )
+            finally:
+                semaphore.release()
+
+        with mock.patch.dict(os.environ, env, clear=False), \
+             mock.patch.object(model_router, "CLAUDE_CONCURRENCY", 1), \
+             mock.patch.object(model_router, "_claude_timeout_seconds", return_value=0.03), \
+             mock.patch.object(model_router, "_call_claude", new_callable=mock.AsyncMock) as claude, \
+             mock.patch.object(model_router, "_record_claude_usage") as usage:
+            started = time.monotonic()
+            with self.assertRaises(model_router.ClaudeGatewayError) as semaphore_error:
+                asyncio.run(blocked_on_semaphore())
+        self.assertLess(time.monotonic() - started, 0.2)
+        self.assertEqual(semaphore_error.exception.code, "GATEWAY_PRE_DISPATCH_TIMEOUT")
+        claude.assert_not_awaited()
+        usage.assert_not_called()
+
+        safe_error = model_router.ClaudeGatewayError(
+            "CONTROL_PLANE_UNAVAILABLE", 503, fallback_safe=True,
+        )
+        with mock.patch.dict(os.environ, env, clear=False), \
+             mock.patch.object(model_router, "_claude_timeout_seconds", return_value=0.055), \
+             mock.patch.object(model_router, "MODEL_RETRY_ATTEMPTS", 3), \
+             mock.patch.object(model_router, "MODEL_RETRY_BASE_DELAY", 0.025), \
+             mock.patch.object(
+                 model_router,
+                 "_call_claude",
+                 new_callable=mock.AsyncMock,
+                 side_effect=safe_error,
+             ) as claude, \
+             mock.patch.object(model_router, "_call_kimi", new_callable=mock.AsyncMock) as kimi, \
+             mock.patch.object(model_router, "_record_claude_usage") as usage:
+            started = time.monotonic()
+            with self.assertRaises(model_router.ClaudeGatewayError) as retry_error:
+                asyncio.run(asyncio.wait_for(
+                    model_router.call("diagnosis", "system", "synthetic"),
+                    timeout=0.3,
+                ))
+        self.assertLess(time.monotonic() - started, 0.2)
+        self.assertEqual(retry_error.exception.code, "GATEWAY_PRE_DISPATCH_TIMEOUT")
+        self.assertEqual(claude.await_count, 2)
+        kimi.assert_not_awaited()
+        usage.assert_not_called()
+
+    def test_public_call_gateway_deadline_covers_claude_to_kimi_fallback(self):
+        env = {"NOTEAI_CLAUDE_TRANSPORT": "gateway"}
+
+        async def hanging_kimi(*_args, **_kwargs):
+            await asyncio.sleep(60)
+
+        with mock.patch.dict(os.environ, env, clear=False), \
+             mock.patch.object(model_router, "_claude_timeout_seconds", return_value=0.03), \
+             mock.patch.object(model_router, "MODEL_RETRY_ATTEMPTS", 1), \
+             mock.patch.object(
+                 model_router,
+                 "_call_claude",
+                 new_callable=mock.AsyncMock,
+                 side_effect=model_router.ClaudeGatewayError(
+                     "CONTROL_PLANE_UNAVAILABLE", 503, fallback_safe=True,
+                 ),
+             ) as claude, \
+             mock.patch.object(
+                 model_router,
+                 "_call_kimi",
+                 new_callable=mock.AsyncMock,
+                 side_effect=hanging_kimi,
+             ) as kimi, \
+             mock.patch.object(model_router, "_record_claude_usage") as usage:
+            started = time.monotonic()
+            with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                asyncio.run(asyncio.wait_for(
+                    model_router.call("diagnosis", "system", "synthetic"),
+                    timeout=0.3,
+                ))
+        self.assertLess(time.monotonic() - started, 0.2)
+        self.assertEqual(raised.exception.code, "MODEL_DEADLINE_EXCEEDED")
+        self.assertEqual(claude.await_count, 1)
+        self.assertEqual(kimi.await_count, 1)
+        usage.assert_not_called()
+
+    def test_public_stream_gateway_deadline_covers_safe_kimi_fallback(self):
+        env = {"NOTEAI_CLAUDE_TRANSPORT": "gateway"}
+        calls = {"primary": 0, "fallback": 0}
+
+        async def safe_primary(*_args, **_kwargs):
+            calls["primary"] += 1
+            raise model_router.ClaudeGatewayError(
+                "CONTROL_PLANE_UNAVAILABLE", 503, fallback_safe=True,
+            )
+            yield ("content", "unreachable")
+
+        async def hanging_kimi(*_args, **_kwargs):
+            calls["fallback"] += 1
+            await asyncio.sleep(60)
+
+        async def collect():
+            return [chunk async for chunk in model_router.stream(
+                "diagnosis", "system", "synthetic",
+            )]
+
+        with mock.patch.dict(os.environ, env, clear=False), \
+             mock.patch.object(model_router, "_claude_timeout_seconds", return_value=0.03), \
+             mock.patch.object(model_router, "_stream_claude", side_effect=safe_primary), \
+             mock.patch.object(model_router, "_call_kimi", side_effect=hanging_kimi), \
+             mock.patch.object(model_router, "_record_claude_usage") as usage:
+            started = time.monotonic()
+            with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                asyncio.run(asyncio.wait_for(collect(), timeout=0.3))
+        self.assertLess(time.monotonic() - started, 0.2)
+        self.assertEqual(raised.exception.code, "MODEL_DEADLINE_EXCEEDED")
+        self.assertEqual(calls, {"primary": 1, "fallback": 1})
+        usage.assert_not_called()
+
+    def test_stream_chat_gateway_deadline_covers_sonnet_to_haiku_fallback(self):
+        env = {"NOTEAI_CLAUDE_TRANSPORT": "gateway"}
+        calls = {"primary": 0, "fallback": 0}
+
+        async def safe_primary(*_args, **_kwargs):
+            calls["primary"] += 1
+            raise model_router.ClaudeGatewayError(
+                "CONTROL_PLANE_UNAVAILABLE", 503, fallback_safe=True,
+            )
+            yield model_router.ClaudeStreamEvent("content", text="unreachable")
+
+        async def hanging_haiku(*_args, **_kwargs):
+            calls["fallback"] += 1
+            await asyncio.sleep(60)
+
+        async def collect():
+            return [chunk async for chunk in model_router.stream_chat(
+                "system", [], "synthetic",
+            )]
+
+        with mock.patch.dict(os.environ, env, clear=False), \
+             mock.patch.object(model_router, "_claude_timeout_seconds", return_value=0.03), \
+             mock.patch.object(model_router, "_claude_transport_stream", side_effect=safe_primary), \
+             mock.patch.object(model_router, "_call_claude", side_effect=hanging_haiku), \
+             mock.patch.object(model_router, "_record_claude_usage") as usage:
+            started = time.monotonic()
+            with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                asyncio.run(asyncio.wait_for(collect(), timeout=0.3))
+        self.assertLess(time.monotonic() - started, 0.2)
+        self.assertEqual(raised.exception.code, "CLAUDE_OUTCOME_UNKNOWN")
+        self.assertTrue(raised.exception.usage_audit_required)
+        self.assertEqual(calls, {"primary": 1, "fallback": 1})
+        usage.assert_called_once_with(model_router.CLAUDE_HAIKU, None)
+
+    def test_readiness_probe_is_single_flight_and_timed_out_green_is_discarded(self):
+        env = {
+            "NOTEAI_CLAUDE_GATEWAY_URL": f"https://{self.authority}",
+            "NOTEAI_CLAUDE_GATEWAY_AUTHORITY": self.authority,
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": self.config_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": self.key_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID": "contract-key",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET": "contract-secret",
+            "NOTEAI_CLAUDE_GATEWAY_READINESS_CACHE_TTL_SECONDS": "5",
+        }
+        release = threading.Event()
+        entered = threading.Event()
+        calls = {"count": 0}
+
+        def delayed_green(_transport):
+            calls["count"] += 1
+            entered.set()
+            release.wait(1)
+            return {"remote_ready": True, "remote_error_code": None}
+
+        model_router._GATEWAY_READINESS_CACHE.update({
+            "key": None, "expires_at": 0.0, "value": None,
+            "generation": 0, "inflight": None,
+        })
+        results = []
+        with mock.patch.dict(os.environ, env, clear=True), \
+             mock.patch.object(
+                 model_router.GatewayClaudeTransport,
+                 "probe_readiness",
+                 autospec=True,
+                 side_effect=delayed_green,
+             ), \
+             mock.patch.object(model_router, "_gateway_readiness_timeout_seconds", return_value=0.03):
+            threads = [
+                threading.Thread(
+                    target=lambda: results.append(model_router._gateway_remote_readiness())
+                )
+                for _ in range(6)
+            ]
+            for thread in threads:
+                thread.start()
+            self.assertTrue(entered.wait(0.5))
+            for thread in threads:
+                thread.join(0.5)
+            release.set()
+            for thread in threads:
+                thread.join(0.5)
+            time.sleep(0.05)
+
+        self.assertEqual(calls["count"], 1)
+        self.assertEqual(len(results), 6)
+        self.assertTrue(all(not result["remote_ready"] for result in results))
+        self.assertNotEqual(
+            (model_router._GATEWAY_READINESS_CACHE.get("value") or {}).get("remote_ready"),
+            True,
+        )
+
+    def test_readiness_old_generation_cannot_cache_green_for_new_key(self):
+        env = {
+            "NOTEAI_CLAUDE_GATEWAY_URL": f"https://{self.authority}",
+            "NOTEAI_CLAUDE_GATEWAY_AUTHORITY": self.authority,
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": self.config_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": self.key_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID": "contract-key",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET": "contract-secret",
+            "NOTEAI_CLAUDE_GATEWAY_READINESS_CACHE_TTL_SECONDS": "5",
+        }
+        entered = threading.Event()
+        release = threading.Event()
+        calls = []
+
+        def probe(transport):
+            calls.append(transport.key_epoch)
+            if transport.key_epoch == self.key_epoch:
+                entered.set()
+                release.wait(1)
+                return {"remote_ready": True, "remote_error_code": None}
+            return {
+                "remote_ready": False,
+                "remote_error_code": "NEW_GENERATION_RED",
+            }
+
+        model_router._GATEWAY_READINESS_CACHE.update({
+            "key": None, "expires_at": 0.0, "value": None,
+            "generation": 0, "inflight": None,
+        })
+        old_results = []
+        with mock.patch.dict(os.environ, env, clear=True), \
+             mock.patch.object(
+                 model_router.GatewayClaudeTransport,
+                 "probe_readiness",
+                 autospec=True,
+                 side_effect=probe,
+             ), \
+             mock.patch.object(model_router, "_gateway_readiness_timeout_seconds", return_value=0.5):
+            old_waiter = threading.Thread(
+                target=lambda: old_results.append(model_router._gateway_remote_readiness())
+            )
+            old_waiter.start()
+            self.assertTrue(entered.wait(0.5))
+
+            os.environ["NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH"] = "staging-key-2"
+            busy = model_router._gateway_remote_readiness()
+            release.set()
+            old_waiter.join(0.5)
+            current = model_router._gateway_remote_readiness()
+
+        self.assertFalse(old_waiter.is_alive())
+        self.assertEqual(busy["remote_error_code"], "GATEWAY_READINESS_BUSY")
+        self.assertEqual(old_results, [{
+            "remote_ready": False,
+            "remote_error_code": "GATEWAY_READINESS_TIMEOUT",
+        }])
+        self.assertEqual(current, {
+            "remote_ready": False,
+            "remote_error_code": "NEW_GENERATION_RED",
+        })
+        self.assertEqual(calls, [self.key_epoch, "staging-key-2"])
+        self.assertEqual(
+            model_router._GATEWAY_READINESS_CACHE["value"],
+            current,
+        )
+
+    def test_transport_rejects_redirect_even_with_valid_success_payload(self):
+        def redirect(_request):
+            return httpx.Response(307, json={
+                "protocol_version": protocol.PROTOCOL_VERSION,
+                "text_blocks": ["must-not-be-accepted"],
+                "usage": _complete_usage(),
+            })
+
+        transport = model_router.GatewayClaudeTransport(
+            base_url=f"https://{self.authority}",
+            authority=self.authority,
+            config_epoch=self.config_epoch,
+            key_epoch=self.key_epoch,
+            key_id="contract-key",
+            secret="contract-secret",
+            http_transport=httpx.MockTransport(redirect),
+        )
+        with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+            transport.create_message_sync(GatewayClaudeTransportTests.request())
+        self.assertEqual(raised.exception.code, "GATEWAY_PROTOCOL_ERROR")
+
+    def test_transport_verifies_signed_remote_readiness_response(self):
+        seen = []
+
+        def handler(request):
+            seen.append(request)
+            challenge = request.headers[protocol.HEADER_READINESS_CHALLENGE]
+            nonce = request.headers[protocol.HEADER_NONCE]
+            payload = {
+                "protocol_version": protocol.PROTOCOL_VERSION,
+                "service": "noteai-claude-gateway",
+                "status": "ready_multi_instance",
+                "deployment_scope": "shared_control_plane",
+                "replay_store": "dynamodb_shared_atomic",
+                "config_epoch": self.config_epoch,
+                "key_epoch": self.key_epoch,
+                "server_time": int(time.time()),
+                "challenge": challenge,
+                "nonce": nonce,
+            }
+            payload["attestation"] = protocol.readiness_attestation(
+                "contract-secret", payload,
+            )
+            return httpx.Response(200, json=payload)
+
+        transport = model_router.GatewayClaudeTransport(
+            base_url=f"https://{self.authority}",
+            authority=self.authority,
+            config_epoch=self.config_epoch,
+            key_epoch=self.key_epoch,
+            key_id="contract-key",
+            secret="contract-secret",
+            http_transport=httpx.MockTransport(handler),
+        )
+        result = transport.probe_readiness()
+        self.assertTrue(result["remote_ready"])
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(seen[0].method, "GET")
+        self.assertEqual(seen[0].headers["host"], self.authority)
+
+    def test_remote_readiness_rejects_bad_attestation_context_clock_redirect_and_timeout(self):
+        def handler_for(mode):
+            def handler(request):
+                if mode == "timeout":
+                    raise httpx.ReadTimeout("synthetic", request=request)
+                if mode == "redirect":
+                    return httpx.Response(307, json={})
+                payload = {
+                    "protocol_version": protocol.PROTOCOL_VERSION,
+                    "service": "noteai-claude-gateway",
+                    "status": "ready_multi_instance",
+                    "deployment_scope": "shared_control_plane",
+                    "replay_store": "dynamodb_shared_atomic",
+                    "config_epoch": self.config_epoch,
+                    "key_epoch": self.key_epoch,
+                    "server_time": int(time.time()),
+                    "challenge": request.headers[protocol.HEADER_READINESS_CHALLENGE],
+                    "nonce": request.headers[protocol.HEADER_NONCE],
+                }
+                if mode == "protocol":
+                    payload["protocol_version"] = "claude-gateway.v0"
+                elif mode == "epoch":
+                    payload["config_epoch"] = "other-config"
+                elif mode == "challenge":
+                    payload["challenge"] = "other_challenge_1234567890"
+                elif mode == "clock":
+                    payload["server_time"] -= 3600
+                payload["attestation"] = protocol.readiness_attestation(
+                    "contract-secret", payload,
+                )
+                if mode == "attestation":
+                    payload["attestation"] = "0" * 64
+                return httpx.Response(200, json=payload)
+
+            return handler
+
+        expectations = {
+            "attestation": "GATEWAY_READINESS_SIGNATURE_INVALID",
+            "protocol": "GATEWAY_READINESS_MISMATCH",
+            "epoch": "GATEWAY_READINESS_EPOCH_MISMATCH",
+            "challenge": "GATEWAY_READINESS_MISMATCH",
+            "clock": "GATEWAY_READINESS_CLOCK_SKEW",
+            "redirect": "GATEWAY_READINESS_HTTP_ERROR",
+            "timeout": "GATEWAY_READINESS_TIMEOUT",
+        }
+        for mode, code in expectations.items():
+            with self.subTest(mode=mode):
+                transport = model_router.GatewayClaudeTransport(
+                    base_url=f"https://{self.authority}",
+                    authority=self.authority,
+                    config_epoch=self.config_epoch,
+                    key_epoch=self.key_epoch,
+                    key_id="contract-key",
+                    secret="contract-secret",
+                    http_transport=httpx.MockTransport(handler_for(mode)),
+                )
+                with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                    transport.probe_readiness()
+                self.assertEqual(raised.exception.code, code)
+                self.assertNotIn("synthetic", str(raised.exception))
+
+    def test_remote_readiness_cache_never_serves_expired_green(self):
+        env = {
+            "NOTEAI_CLAUDE_GATEWAY_URL": f"https://{self.authority}",
+            "NOTEAI_CLAUDE_GATEWAY_AUTHORITY": self.authority,
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": self.config_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": self.key_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID": "contract-key",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET": "contract-secret",
+            "NOTEAI_CLAUDE_GATEWAY_READINESS_CACHE_TTL_SECONDS": "0",
+        }
+        model_router._GATEWAY_READINESS_CACHE.update({
+            "key": None, "expires_at": 0.0, "value": None,
+            "generation": 0, "inflight": None,
+        })
+        unavailable = model_router.ClaudeGatewayError(
+            "GATEWAY_READINESS_TIMEOUT", 503, fallback_safe=True,
+        )
+        with mock.patch.dict(os.environ, env, clear=True), \
+             mock.patch.object(
+                 model_router.GatewayClaudeTransport,
+                 "probe_readiness",
+                 side_effect=[
+                     {"remote_ready": True, "remote_error_code": None},
+                     unavailable,
+                 ],
+             ) as probe:
+            first = model_router._gateway_remote_readiness()
+            second = model_router._gateway_remote_readiness()
+        self.assertTrue(first["remote_ready"])
+        self.assertFalse(second["remote_ready"])
+        self.assertEqual(second["remote_error_code"], "GATEWAY_READINESS_TIMEOUT")
+        self.assertEqual(probe.call_count, 2)
+
+    def test_timeout_order_is_provider_then_http_then_gateway_business(self):
+        with mock.patch.dict(os.environ, {
+            "NOTEAI_CLAUDE_TRANSPORT": "gateway",
+            "NOTEAI_CLAUDE_GATEWAY_BUSINESS_TIMEOUT_SECONDS": "210",
+        }, clear=False):
+            self.assertEqual(
+                model_router._claude_timeout_seconds("semantic", False, 120),
+                210.0,
+            )
+        with mock.patch.dict(os.environ, {"NOTEAI_CLAUDE_TRANSPORT": "local"}, clear=False):
+            self.assertEqual(model_router._claude_timeout_seconds("semantic", False, 120), 30.0)
+            self.assertEqual(model_router._claude_timeout_seconds("content_gen", False, 120), 45.0)
+            self.assertEqual(model_router._claude_timeout_seconds("diagnosis", False, 120), 55.0)
+            self.assertEqual(model_router._claude_timeout_seconds("arbitrate", True, 16000), 180.0)
+
+        transport = model_router.GatewayClaudeTransport(
+            base_url=f"https://{self.authority}",
+            authority=self.authority,
+            config_epoch=self.config_epoch,
+            key_epoch=self.key_epoch,
+            key_id="contract-key",
+            secret="contract-secret",
+            http_transport=httpx.MockTransport(lambda _request: httpx.Response(500)),
+        )
+        self.assertEqual(transport.timeout.read, 190.0)
+        with mock.patch.dict(os.environ, {
+            "NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS": "180",
+        }, clear=False):
+            self.assertEqual(claude_gateway._provider_deadline_seconds(), 180.0)
+
+        with mock.patch.dict(os.environ, {
+            "NOTEAI_CLAUDE_GATEWAY_HTTP_TIMEOUT_SECONDS": "180",
+        }, clear=False), self.assertRaises(model_router.ClaudeGatewayError) as invalid:
+            transport.create_message_sync(GatewayClaudeTransportTests.request())
+        self.assertEqual(invalid.exception.code, "GATEWAY_TIMEOUT_CONFIG_INVALID")
+
+    def test_signed_remote_readiness_does_not_claim_nonce_rate_or_operation(self):
+        store = _FakeSharedControlStore()
+        provider = _FakeProvider()
+        env = {
+            "ANTHROPIC_API_KEY": "provider-test-key",
+            "NOTEAI_CLAUDE_GATEWAY_AUTHORITY": self.authority,
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": self.config_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": self.key_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID": "contract-key",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET": "contract-secret",
+            "NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE": "dynamodb",
+            "NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT": "2",
+            "NOTEAI_CLAUDE_GATEWAY_DDB_TABLE": "synthetic-table",
+            "NOTEAI_CLAUDE_GATEWAY_DDB_REGION": "ap-southeast-1",
+            "NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID": "synthetic-principal",
+            "AWS_ROLE_ARN": "synthetic-role",
+            "AWS_WEB_IDENTITY_TOKEN_FILE": "/synthetic/token",
+            "AWS_EC2_METADATA_DISABLED": "true",
+        }
+        challenge = "challenge_1234567890abcdef"
+        nonce = "readiness_nonce_1234567890"
+        body = b""
+        with mock.patch.dict(os.environ, env, clear=True), \
+             mock.patch.object(claude_gateway, "_CONTROL_STORE", store), \
+             mock.patch.object(claude_gateway, "_PROVIDER", provider):
+            headers = protocol.auth_headers(
+                key_id="contract-key",
+                secret="contract-secret",
+                method="GET",
+                path=protocol.READINESS_PATH,
+                authority=self.authority,
+                config_epoch=self.config_epoch,
+                key_epoch=self.key_epoch,
+                body=body,
+                nonce=nonce,
+            )
+            headers[protocol.HEADER_READINESS_CHALLENGE] = challenge
+            with TestClient(claude_gateway.app) as client:
+                response = client.get(protocol.READINESS_PATH, headers=headers)
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["challenge"], challenge)
+        self.assertEqual(payload["nonce"], nonce)
+        self.assertEqual(payload["service"], "noteai-claude-gateway")
+        self.assertEqual(payload["protocol_version"], protocol.PROTOCOL_VERSION)
+        self.assertEqual(payload["deployment_scope"], "shared_control_plane")
+        self.assertEqual(payload["replay_store"], "dynamodb_shared_atomic")
+        self.assertEqual(payload["config_epoch"], self.config_epoch)
+        self.assertEqual(payload["key_epoch"], self.key_epoch)
+        self.assertTrue(protocol.verify_readiness_attestation("contract-secret", payload))
+        self.assertNotIn("key_id", payload)
+        self.assertNotIn("secret", json.dumps(payload).lower())
+        self.assertFalse(store.calls)
+        self.assertFalse(provider.calls)
+
+    def test_gateway_rejects_host_or_epoch_mismatch_before_provider(self):
+        env = {
+            "ANTHROPIC_API_KEY": "provider-test-key",
+            "NOTEAI_CLAUDE_GATEWAY_AUTHORITY": self.authority,
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH": self.config_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH": self.key_epoch,
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID": "contract-key",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET": "contract-secret",
+            "NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE": "memory",
+            "NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT": "1",
+        }
+        body = ClaudeGatewayEndpointTests.encoded(
+            ClaudeGatewayEndpointTests.payload(),
+        )
+        for changed_header, changed_value in (
+            ("Host", "other-gateway.onrender.com"),
+            (protocol.HEADER_AUTHORITY, "other-gateway.onrender.com"),
+            (protocol.HEADER_CONFIG_EPOCH, "other-config"),
+            (protocol.HEADER_KEY_EPOCH, "other-key"),
+        ):
+            provider = _FakeProvider()
+            with self.subTest(header=changed_header), \
+                 mock.patch.dict(os.environ, env, clear=True), \
+                 mock.patch.object(claude_gateway, "_PROVIDER", provider):
+                headers = protocol.auth_headers(
+                    key_id="contract-key",
+                    secret="contract-secret",
+                    method="POST",
+                    path=protocol.MESSAGES_PATH,
+                    authority=self.authority,
+                    config_epoch=self.config_epoch,
+                    key_epoch=self.key_epoch,
+                    body=body,
+                )
+                headers[changed_header] = changed_value
+                with TestClient(claude_gateway.app) as client:
+                    response = client.post(
+                        protocol.MESSAGES_PATH,
+                        content=body,
+                        headers=headers,
+                    )
+            self.assertEqual(response.status_code, 401)
+            self.assertEqual(response.json()["error"]["code"], "AUTH_CONTEXT_INVALID")
+            self.assertFalse(provider.calls)
+
+    def test_anthropic_clients_have_explicit_timeout_and_zero_retries(self):
+        provider = claude_gateway.AnthropicProvider()
+        with mock.patch.dict(os.environ, {
+            "ANTHROPIC_API_KEY": "gateway-test",
+            "NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS": "180",
+        }, clear=False), mock.patch.object(
+            claude_gateway.anthropic, "AsyncAnthropic",
+        ) as gateway_client:
+            provider._get_client()
+        self.assertEqual(gateway_client.call_args.kwargs["timeout"], 180.0)
+        self.assertEqual(gateway_client.call_args.kwargs["max_retries"], 0)
 
 
 class ClaudeGatewayPackagingTests(unittest.TestCase):
+    def test_blueprints_safe_load_to_one_consistent_staging_gateway_contract(self):
+        import yaml
+
+        main = yaml.safe_load((ROOT / "render.yaml").read_text(encoding="utf-8"))
+        gateway_doc = yaml.safe_load(
+            (ROOT / "render.gateway.yaml").read_text(encoding="utf-8")
+        )
+        api_service = next(
+            service for service in main["services"]
+            if service.get("name") == "noteai-staging-api"
+        )
+        self.assertEqual(len(gateway_doc["services"]), 1)
+        gateway_service = gateway_doc["services"][0]
+        self.assertEqual(gateway_service["name"], "noteai-staging-claude-gateway")
+
+        def env(service):
+            return {
+                item["key"]: item.get("value")
+                for item in service.get("envVars", [])
+            }
+
+        api_env = env(api_service)
+        gateway_env = env(gateway_service)
+        self.assertEqual(api_env["NOTEAI_CLAUDE_TRANSPORT"], "local")
+        self.assertEqual(
+            api_env["NOTEAI_CLAUDE_GATEWAY_AUTHORITY"],
+            gateway_env["NOTEAI_CLAUDE_GATEWAY_AUTHORITY"],
+        )
+        for key in (
+            "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH",
+            "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH",
+        ):
+            self.assertEqual(api_env[key], gateway_env[key])
+        provider = float(api_env["NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS"])
+        gateway_http = float(api_env["NOTEAI_CLAUDE_GATEWAY_HTTP_TIMEOUT_SECONDS"])
+        business = float(api_env["NOTEAI_CLAUDE_GATEWAY_BUSINESS_TIMEOUT_SECONDS"])
+        self.assertEqual(
+            provider,
+            float(gateway_env["NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS"]),
+        )
+        self.assertEqual((provider, gateway_http, business), (180.0, 190.0, 210.0))
+        self.assertLess(provider, gateway_http)
+        self.assertLess(gateway_http, business)
+        self.assertEqual(gateway_env["NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT"], "1")
+        self.assertEqual(gateway_env["WEB_CONCURRENCY"], "1")
+
+        requirements = (ROOT / "model" / "requirements.txt").read_text(encoding="utf-8")
+        self.assertEqual(requirements.splitlines().count("httpcore==1.0.9"), 1)
+
     def test_blueprint_is_one_single_instance_gateway_service(self):
         blueprint = (ROOT / "render.gateway.yaml").read_text(encoding="utf-8")
         self.assertEqual(blueprint.count("- type:"), 1)
@@ -1673,6 +2950,23 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertNotIn("AWS_WEB_IDENTITY_TOKEN_FILE", blueprint)
         self.assertNotIn("AWS_SECRET_ACCESS_KEY", blueprint)
         self.assertIn("NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS", blueprint)
+        self.assertIn(
+            "      - key: NOTEAI_CLAUDE_GATEWAY_AUTHORITY\n"
+            "        value: noteai-staging-claude-gateway.onrender.com",
+            blueprint,
+        )
+        self.assertIn("NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH", blueprint)
+        self.assertIn("NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH", blueprint)
+        self.assertIn(
+            "      - key: NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS\n"
+            "        value: \"180\"",
+            blueprint,
+        )
+        self.assertIn(
+            "      - key: NOTEAI_CLAUDE_GATEWAY_PREFLIGHT_TIMEOUT_SECONDS\n"
+            "        value: \"175\"",
+            blueprint,
+        )
         self.assertIn("NOTEAI_CLAUDE_GATEWAY_TERMINAL_RETENTION_SECONDS", blueprint)
         self.assertNotIn("NOTEAI_CLAUDE_GATEWAY_OPERATION_TTL_SECONDS", blueprint)
         for forbidden in (
@@ -1680,6 +2974,32 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
             "NOTEAI_MODEL_ARTIFACT", "type: cron", "databases:", "disk:",
         ):
             self.assertNotIn(forbidden, blueprint)
+
+        staging = (ROOT / "render.yaml").read_text(encoding="utf-8")
+        self.assertIn(
+            "      - key: NOTEAI_CLAUDE_TRANSPORT\n"
+            "        value: local",
+            staging,
+        )
+        self.assertIn("NOTEAI_CLAUDE_GATEWAY_URL", staging)
+        self.assertIn("NOTEAI_CLAUDE_GATEWAY_AUTHORITY", staging)
+        self.assertIn("NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH", staging)
+        self.assertIn("NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH", staging)
+        self.assertIn(
+            "      - key: NOTEAI_CLAUDE_GATEWAY_HTTP_TIMEOUT_SECONDS\n"
+            "        value: \"190\"",
+            staging,
+        )
+        self.assertIn(
+            "      - key: NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS\n"
+            "        value: \"180\"",
+            staging,
+        )
+        self.assertIn(
+            "      - key: NOTEAI_CLAUDE_GATEWAY_BUSINESS_TIMEOUT_SECONDS\n"
+            "        value: \"210\"",
+            staging,
+        )
 
     def test_gateway_image_is_minimal_non_root_and_one_worker(self):
         dockerfile = (ROOT / "gateway" / "Dockerfile").read_text(encoding="utf-8")
