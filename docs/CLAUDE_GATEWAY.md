@@ -97,6 +97,12 @@ tests.
 - opaque operation state and fixed-slot renewable leases with fencing tokens;
 - numeric terminal usage metadata.
 
+The table-only IAM role grants the fixed item actions used by those calls.
+`ConditionCheckItem` authorizes the transaction's `ConditionCheck`, while the
+existing `UpdateItem` permission authorizes its `Update`; the role intentionally
+does not grant `TransactWriteItems`. Every action remains scoped to the exact
+control-table ARN.
+
 The stable `NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID` is independent of the current
 or previous HMAC key ID, so key rotation cannot split replay or rate state.
 Required settings are `NOTEAI_CLAUDE_GATEWAY_DDB_TABLE`,

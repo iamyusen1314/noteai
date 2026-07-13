@@ -91,7 +91,7 @@ Resources:
                   - dynamodb:PutItem
                   - dynamodb:UpdateItem
                   - dynamodb:DeleteItem
-                  - dynamodb:TransactWriteItems
+                  - dynamodb:ConditionCheckItem
                 Resource:
                   Fn::GetAtt:
                     - ControlTable

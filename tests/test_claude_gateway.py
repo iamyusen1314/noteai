@@ -3672,9 +3672,12 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertIn("not a 1,000-user capacity proof", guide)
 
     def test_aws_control_plane_template_is_retained_least_privilege_and_oidc_only(self):
+        import yaml
+
         template = (
             ROOT / "infra" / "aws" / "claude_gateway_control_plane.yaml"
         ).read_text(encoding="utf-8")
+        document = yaml.safe_load(template)
         self.assertIn("AWS::DynamoDB::Table", template)
         self.assertIn("BillingMode: PAY_PER_REQUEST", template)
         self.assertIn("AttributeName: expires_at", template)
@@ -3684,11 +3687,25 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertIn("RenderOIDCSubject", template)
         self.assertIn('AllowedPattern: "^[^*?]+$"', template)
         self.assertIn("sts:AssumeRoleWithWebIdentity", template)
-        for action in (
-            "DescribeTable", "GetItem", "PutItem", "UpdateItem", "DeleteItem",
-            "TransactWriteItems",
-        ):
-            self.assertIn(f"dynamodb:{action}", template)
+        policies = document["Resources"]["RenderGatewayRole"]["Properties"]["Policies"]
+        self.assertEqual(len(policies), 1)
+        self.assertEqual(policies[0]["PolicyName"], "claude-gateway-control-table-only")
+        statements = policies[0]["PolicyDocument"]["Statement"]
+        self.assertEqual(len(statements), 1)
+        statement = statements[0]
+        self.assertEqual(statement["Effect"], "Allow")
+        self.assertEqual(set(statement["Action"]), {
+            "dynamodb:DescribeTable",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem",
+            "dynamodb:DeleteItem",
+            "dynamodb:ConditionCheckItem",
+        })
+        self.assertNotIn("dynamodb:TransactWriteItems", statement["Action"])
+        self.assertEqual(statement["Resource"], {
+            "Fn::GetAtt": ["ControlTable", "Arn"],
+        })
         self.assertNotRegex(template, r"Resource:\s*[\"']?\*[\"']?")
         self.assertNotIn("dynamodb:*", template)
         self.assertNotIn("AWS_ACCESS_KEY_ID", template)
