@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-07-13
+Last updated: 2026-07-18
 
 ## Critical Risks
 
@@ -35,6 +35,7 @@ Last updated: 2026-07-13
 - 可能后果: API key compromise, account abuse, billing loss, forced key rotation.
 - 建议验证方式: `git status`, secret scan with patterns excluding templates, review CI logs, never print `.env` values.
 - 是否需要用户确认后才能修改: yes.
+- 2026-07-14进展: 商业V1已选择免费默认服务密钥保护RDS/OSS静态数据，但该能力不能保存第三方Secret。起步方案使用ECS RAM Role/STS和受限部署注入，阿里云增量¥0；软件KMS加最低凭据配额约¥2,748/月延期。正式部署前仍须验证root-only权限、进程环境暴露面、日志脱敏、两节点分发、轮换和撤销runbook，因此风险未关闭。
 
 ### Real payment integration is not confirmed
 
@@ -52,21 +53,42 @@ Last updated: 2026-07-13
 - 建议验证方式: 生产前完成共享原子防重放/限流、精确主机绑定、远端健康、timeout与partial-stream费用边界，然后建设阿里云并执行灰度/回滚；持续证明Gateway无业务数据库和持久内容。
 - 是否需要用户确认后才能修改: transport 收口不需要；创建付费 Render/Alibaba 资源、真实 Claude Smoke 和生产切流需要。
 
-### Claude Gateway shared multi-instance controls are not production-safe
+### Claude Gateway shared control plane is verified on single-instance Staging, not Production scale
 
-- 风险描述: ARCH-002P-A已在commit `b5d4b7e`部署到单实例Staging。ARCH-002P-B的DynamoDB共享nonce/rate/operation/renewable fenced lease、Web Identity、deadline和最小IaC已在本地通过多轮独立Verification/Security/Chaos，但真实AWS Singapore表、OIDC role、1美元告警和Render DDB模式尚未创建/部署；当前线上Gateway仍是memory单实例，绝不能扩为2–4实例。
-- 涉及文件: `gateway/claude_gateway.py`, `model/claude_gateway_protocol.py`, `model/model_router.py`, Gateway Blueprint、共享状态适配及fault/chaos tests。
-- 可能后果: 重放、重复Claude费用、正文拼接、已退款但供应商成本漏审计，或共享store中断时重复调用。
-- 建议验证方式: 用户完成AWS登录后按已审模板创建Singapore on-demand表与精确Render service subject OIDC role，验证真实credential method、TTL/IAM拒绝边界和无AI条件写；随后串行闭环C/D与BILL-002，并执行2→4→2、store全断、滚动、重启、取消和Key轮换矩阵。控制面不可达时Gateway必须保持零新Claude调用，Alibaba仅对可证明未dispatch的operation安全Kimi/排队。
-- 是否需要用户确认后才能修改: DynamoDB/OIDC/SDK与1美元告警已获批准；当前仅因AWS未登录和预算告警接收邮箱未指定而未创建。真实Claude调用、生产切流或扩大成本仍需单独确认。
+- 风险描述: ARCH-002P-A/B已在单实例Staging闭环；commit `d279caa`使用AWS Singapore DynamoDB与Render OIDC运行共享nonce/rate/operation/renewable fenced lease，真实credential method、TTL/IAM边界和双客户端单赢家均已无AI验证。但精确Gateway host/readiness/timeout、Render真实2–4实例、滚动/扩缩/崩溃/OIDC刷新/store断路组合尚未验证，Alibaba主系统的Kimi/queue与持久结果恢复也未完成。
+- 涉及文件: `gateway/claude_gateway.py`, `model/claude_gateway_protocol.py`, `model/model_router.py`, `render.gateway.yaml`, `infra/aws/claude_gateway_control_plane.yaml`, ARCH-002P-C/D和BILL-002相关实现与测试。
+- 可能后果: 当前共享状态不会在已测并发下重复claim，但生产切流仍可能因错误host、timeout层级、配置漂移或控制面中断导致Gateway拒绝新Claude调用；若Alibaba恢复链未完成，用户操作可能不可用或停在不确定态。
+- 建议验证方式: 串行闭环C、BILL-002和D；执行精确authority/DNS/TLS/readiness/timeout合同，再做2→4→2、store全断、滚动、重启、取消和Key轮换矩阵。控制面不可达时Gateway继续保持零新Claude调用，Alibaba仅对可证明未dispatch的operation安全Kimi/排队。
+- 是否需要用户确认后才能修改: C与FIN-003已验证；D的2–4实例基础费用已获批准，执行前只需列明演练窗口及是否动用剩余真实Claude次数。生产切流仍需单独确认。
 
-### Alibaba production infrastructure and recoverability do not exist yet
+### Alibaba production infrastructure exists, but application and recoverability do not
 
-- 风险描述: 当前只有 Render Staging 测试规格；阿里云生产负载均衡/WAF/TLS、PostgreSQL HA/备份/PITR、对象存储、Worker、Secret管理、监控、告警和恢复演练尚未建设。
+- 风险描述: 生产VPC、C/F两台私网API ECS、一套跨可用区高可用RDS、一套高可用Tair和VPC级SNAT/公网出站已付款并运行；但ACR不可变镜像、生产应用、ALB/TLS绑定、业务DNS、备份/PITR、对象存储、Worker、监控和恢复演练尚未闭环。
 - 涉及文件: future Alibaba deployment/IaC or runbooks, database predeploy/migrations, storage/worker adapters, DNS/CORS/payment callback configuration.
 - 可能后果: 正式用户数据丢失、服务单点、无法恢复、回调不可达或配置漂移。
 - 建议验证方式: 隔离生产环境部署；备份恢复到一次性实例并逐表对账；灰度、故障、容量、监控和回滚演练。
 - 是否需要用户确认后才能修改: yes，涉及持续云成本、域名和生产数据。
+- 2026-07-16进展: SMQ（原MNS）两队列目标约¥30–31/月、主域企业DNS加基础防御¥1,168/年、基础ICP备案服务¥0、恢复演练临时实例建议4小时上限¥30/24小时上限¥120/单次硬上限¥200，均已完成未下单报价。产品负责人已购买 `noteaipro.cn` 与防御性 `noteaipro.com`；独立云端核验确认两域名均为“正常”且有效至2027年7月，自动续费未显示开启。主域`.cn`为企业持有者；`.com`为个人持有者且仅作防御性占位。产品负责人已明确接受该差异，`.com`不得承载生产/备案，企业过户记为未来可选项而非上线门禁。根域/API/Admin三份正式Rapid DV为¥1,455/年；免费测试证书90天且不用于正式业务。备案核心文档要求ECS累计大于3个月；优先选择官方99计划2核2GiB/3 Mbps/40 GiB、¥99/年备案专机，并在购买后验证“可备案实例”，否则回退既有API节点续费3个月加1 Mbps、追加¥916.20。正式域名/TLS/备案ECS/DNS包首年规划¥2,845，完整月均规划¥3,850.88，首月含按量计提参考¥6,458.80。除两个域名外，其余资源仍未购买；99计划资格、证书换发、备案实际通过、恢复演练和最终DNS切换仍是生产上线门禁。
+- 2026-07-16企业DNS付款前复核: 官方购买页已按 `noteaipro.cn` 单域、企业旗舰版、DNS攻击基础防御、1年配置，自动续费未勾选，实时应付¥1,168，与已批预算一致；页面停留在“立即购买”前，未产生订单或费用。付款后需独立核验实例与主域绑定，正式解析记录和DNS切换仍保持独立门禁。
+- 2026-07-16防御域主体迁移: 产品负责人报告 `noteaipro.com` 已迁移到与主域相同公司名下，主体差异不再阻塞生产主线；等待阿里云域名列表的后续只读复核后再补云端 VERIFIED 证据。`.com`仍只作防御性占位，不购买第二份企业DNS、不承载生产或备案。
+- 2026-07-18当前事实: 生产空库已完成`0001`–`0008`结构migration，未导入Staging数据或Prompt基线；企业DNS已绑定主域，根域/API/Admin三张正式证书已签发但未绑定。历史“未购买”报价只保留作决策证据，不再代表现状。生产应用、ALB、业务DNS和恢复能力仍未完成，因此不得宣称已上线。
+
+### Commercial V1 cannot yet admit 100 simultaneous AI jobs
+
+- 风险描述: 产品负责人已确认商业上线首阶段必须可靠受理100个同时AI任务（Claude或Kimi均可），未来扩展到1000个；当前API/AI执行仍耦合于请求进程，Claude Gateway自设全局并发2/RPM30，Kimi真实账号配额未核验，且没有供应商无关持久job、独立Worker、队列SLO或升级监控。V1必须先用PostgreSQL权威任务账本和安全claim/lease/fence闭环，消息队列只能在outbox之后作为至少一次唤醒通道。
+- 涉及文件: `model/api.py`, `model/idempotency.py`, `model/model_router.py`, `model/billing.py`, future `ai_operations/task_queue/ai_worker`, PostgreSQL migrations, Alibaba SMQ/MNS/RocketMQ/IaC, SLS/CloudMonitor/Admin monitoring and `CAP-001/OPS-003` tests.
+- 可能后果: 峰值任务被429/超时、断流后丢结果、Worker崩溃重复调用或重复扣费、Claude/Kimi雪崩切换、余额/Token配额耗尽后商业服务中断。
+- 建议验证方式: 先以FakeProvider证明100任务均在2秒内持久受理，重复消息/崩溃/数据库短断下0丢失、0重复provider/扣费；再用小样本真实Claude/Kimi校准leaf时长、Token和成本，按队列深度/最老年龄及provider/model配额设置分级告警和升级Runbook。
+- 是否需要用户确认后才能修改: 本地状态机、测试和监控合同不需要；阿里云付费资源、migration、真实AI样本、自动扩容预算及任何供应商/消费门禁升级需要。
+- 2026-07-18进展: `CAP-001A1/A2A`实现已提交于`199bf5f`，生产空库已应用`0007/0008`，但提交后独立diff/回归/部署边界验证尚未闭环，故两任务为`READY_TO_VERIFY`。公开202、CAP A2B、独立Worker、Tair接入、队列/背压、持久结果和退款对账仍不存在；100个同时AI任务能力尚未达到。
+
+### ALB health semantics could turn a Gateway outage into a whole-site outage
+
+- 风险描述: 若ALB使用要求Claude Gateway在线的AI readiness作后端健康检查，Gateway或新加坡链路故障会同时摘除两台仍可提供登录、账务、历史结果、Kimi或排队服务的Alibaba API节点。
+- 涉及文件: `model/api.py`, `model/admin_server.py`, ALB健康配置、Claude readiness tests和生产runbook。
+- 可能后果: 单一AI供应商故障被放大为全站不可用。
+- 建议验证方式: ALB仅探测进程、PostgreSQL和必需本地模型；以Gateway全断场景证明两API节点仍健康且Claude不会被不安全重试。
+- 是否需要用户确认后才能修改: 本地合同不需要；真实ALB配置或生产故障演练需要批准。
 
 ### Cross-border Claude data boundary and China launch compliance are unresolved
 
@@ -77,6 +99,30 @@ Last updated: 2026-07-13
 - 是否需要用户确认后才能修改: yes for final product/data policy; safe minimization tests and documentation inventory can start read-only.
 
 ## High Risks
+
+### Production secret storage and Admin logs need a second redaction boundary
+
+- 风险描述: XHS Cookie设置虽标记`is_secret`仍以明文JSON落库；Admin日志接口可返回底层日志尾部，尚无独立allowlist/redaction保证。
+- 涉及文件: `model/runtime_settings.py`, `model/admin_server.py`和SEC-007测试/迁移。
+- 可能后果: 数据库、备份或日志暴露Cookie、URL/query、正文、Prompt、Token或异常原文。
+- 建议验证方式: 建立SEC-007，先证明现状，再做可回滚密文迁移和固定枚举/计数日志；全程不打印真实值。
+- 是否需要用户确认后才能修改: 本地测试/日志脱敏不需要；生产migration或Cookie轮换需要批准。
+
+### PostgreSQL connection/recovery and node-local video recovery are unproven
+
+- 风险描述: RDS已运行且空结构migration完成，但无确认的生产连接池、连接预算、故障重连或PITR恢复演练；视频恢复仍依赖单节点六小时本地缓存。
+- 涉及文件: `model/db.py`, `model/api.py`, PROD-002B/PROD-003A/CAP-001A2B及恢复测试。
+- 可能后果: 连接风暴或主备切换后应用不恢复；跨节点、重启或发布时视频任务丢输入。
+- 建议验证方式: 上线前验证连接池/断连退避和一次隔离PITR；视频改为owner绑定的私有对象引用并通过跨节点/重启/过期测试。
+- 是否需要用户确认后才能修改: 本地合同不需要；真实恢复实例、OSS或production migration需要批准。
+
+### Render Blueprint Sync Hook may require rotation after controlled-tool exposure
+
+- 风险描述: ARCH-002P-D核对Render Blueprint设置时，受控页面自动化快照意外包含真实Sync Hook值。本账本不保存该值，但必须按潜在泄露处理并由`SEC-006`跟踪轮换。
+- 涉及文件: 不涉及仓库文件；Render Blueprint凭证与运维runbook。
+- 可能后果: 未授权的Blueprint同步触发、部署或配置干扰；盲目断开/重建Blueprint又可以造成服务漂移。
+- 建议验证方式: 仅通过Render官方自助入口或Support轮换，证明旧Hook失效；不读取/打印新值；复核Auto Sync=No、Gateway min2/max4、环境配置和手工回滚能力未变。
+- 是否需要用户确认后才能修改: 无损自助轮换可作为最小安全处置；若需断开/重建Blueprint或联系Support，须先告知用户影响。
 
 ### Cross-account Chat cache can expose a previous account's note snapshot
 

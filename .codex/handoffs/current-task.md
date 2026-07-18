@@ -1,6 +1,6 @@
 # NoteAI 商业上线唯一任务账本
 
-更新时间：2026-07-12（Asia/Shanghai）
+更新时间：2026-07-18（Asia/Shanghai）
 
 本文件是当前阶段唯一 handoff。历史聊天记录不是事实来源；后续会话必须重新核对 Git、Render 和测试状态。
 
@@ -9,10 +9,10 @@
 - NoteAI 已从“Render Staging 稳定化”正式转入“商业生产上线准备”阶段；Staging 继续作为验证环境，不得把 Staging 通过等同于商业上线完成。
 - 已确认目标生产拓扑：阿里云华南运行完整生产主系统；Render Singapore 最终只运行最小 Claude Gateway。
 - 已确认支付方向：Adapay 作为 V1 聚合支付供应商，目标覆盖支付宝、微信和银联；正式接入仍取决于 NoteAI AI SaaS/积分业务准入与网页三通道能力的书面确认。
-- 当前仓库仍是 Render Singapore 全栈 Staging 单体，尚未实现远程 Claude Gateway、阿里云生产部署工程或 Adapay 正式支付账本。
+- Render Singapore Staging 仍保留全栈验证环境；远程 Claude Gateway 已完成 Staging 多实例安全化。阿里云生产基础设施已进入实施期，但生产应用、ALB/TLS、业务 DNS 与 Adapay 正式支付账本仍未闭环。
 - AI 诊断、爆文生成、对话优化、截图/视频理解、事实源、积分账本和管理端已完成受控的真实 Staging 验证。
 - 正式支付订单、回调签名、幂等、退款与对账流程尚未实施，是生产阻断项 `PROD-001`。
-- `BILL-001`、`FIN-001`、`SEC-005`、`PERF-001B`、`QA-003A/B/C/D/E` 与 `BUG-002` 已闭环；BUG-002 由连续自然健康轮次完成验证，未追加手工高频采集。生产事项不再延期，按本账本商业上线依赖顺序推进。
+- `BILL-001`、`FIN-001`、`SEC-005`、`PERF-001B` 与 `QA-003A/B/C/D/E` 已闭环；`BUG-002` 曾由连续自然健康轮次完成验证，但 2026-07-13 最新自然轮次再次退化，已按新证据从 VERIFIED 降回 INVESTIGATING。生产事项不再延期，按本账本商业上线依赖顺序推进。
 
 ## 2. 当前环境与版本
 
@@ -20,12 +20,21 @@
 
 - 仓库：`iamyusen1314/noteai`
 - 当前分支：`codex/quality-stabilization-real-chain`
-- 当前业务代码基线：`c0a39ff6a7fb7d232c7a54db774f9570e3367695`（`docs: record admin status and coverage fixes`），包含 QA-004 `0bda1f8` 与 FIN-002 `f58c885`；BUG-002E/F 和 QA-003C/D/E 的既有提交均保留。
-- Render Staging 已自动部署包含 `c0a39ff` 的新管理端 bundle；公开只读检查确认 Web、API readiness、Admin readiness 均为 HTTP 200。管理员重新登录后的 QA-004/FIN-002 最终只读 UI Smoke 已通过。
+- 当前本地发布候选 HEAD：`0ccf3f6`，其直接前序提交为 `199bf5f`；当前分支为 `codex/quality-stabilization-real-chain`。`199bf5f` 包含 CAP-001A1/A2A 的持久 operation/admission 实现，`0ccf3f6` 包含 BUG-002G 的服务端强制注销识别与合规停采实现。两包均已提交，但本账本要求提交后由独立验证代理复核 exact diff、回归与部署边界后才可标记 VERIFIED。
+- Render Staging Gateway 已自动部署 `c0afbbe`：Render Events 于 2026-07-13 23:36（Asia/Shanghai）显示 deploy live；公开 `/health/ready` 为 HTTP 200，并返回 `claude-gateway.v2`、`ready_multi_instance`、`shared_control_plane` 与 `dynamodb_shared_atomic`。当前仍为1实例、1 worker，主API仍为Local transport，不能外推为正式切流或2–4实例已验证。
 - 远程跟踪分支：`origin/codex/quality-stabilization-real-chain`
 - 禁止直接合并 `main`，禁止 force push。
 
-### 2.2 公共 Staging 地址
+### 2.2 阿里云生产实际状态（2026-07-18）
+
+- 已采购并运行：华南1生产 VPC/C、F 双可用区网络，两台私网 API ECS，RDS PostgreSQL 16 高可用实例，Tair 2 GiB 高可用实例，以及 VPC 级 SNAT/公网出站；节点不以公网 IP 对外提供业务入口。
+- 生产 RDS 已在空库中原子应用 PostgreSQL migration `0001`—`0008`：30张 `public` 表、8条 migration 记录、缺失版本0；未导入 Staging 数据，关键业务表保持0行，未运行 Prompt 基线写入，也未删除任何数据。
+- `noteaipro.cn` 企业 DNS 已购买并绑定；根域、API、Admin 三张独立 Rapid DV 证书均已签发，但尚未绑定到 ALB。
+- 尚未完成：ACR 私有镜像与不可变摘要、生产应用部署、ALB/健康后端、证书绑定、业务 DNS 切流、Admin 入口保护、生产前端落点、备份/PITR恢复演练。
+- 容量边界：100个同时AI任务仍未达到。Tair虽已运行，但尚未接入应用；CAP-001A2B、公开202入口、独立Worker、可恢复payload/result与退款/对账尚未完成，不能以两台ECS或供应商配额代替端到端容量证据。
+- 当前High风险：ALB健康不能依赖Claude Gateway，否则跨境链路故障会摘除整个站点；XHS Cookie仍有明文持久化风险，Admin日志缺少第二层脱敏；视频缓存仍为节点本地非HA；PostgreSQL尚无已验证连接池与恢复演练。
+
+### 2.3 公共 Staging 地址
 
 - 前端：`https://noteai-staging-web.onrender.com`
 - API：`https://noteai-staging-api.onrender.com`
@@ -33,16 +42,18 @@
 - API 就绪检查：`https://noteai-staging-api.onrender.com/health/ready`
 - 管理端就绪检查：`https://noteai-staging-admin.onrender.com/health/ready`
 
-### 2.3 Render 服务组成
+### 2.4 Render 服务组成
 
 | 资源 | 名称 | 运行方式 | 区域/存储 |
 |---|---|---|---|
 | Static Site | `noteai-staging-web` | 静态构建 | Global |
 | Web Service | `noteai-staging-api` | Docker Starter | Singapore；1GB `/var/data` 持久盘 |
 | Web Service | `noteai-staging-admin` | Docker Free | Singapore |
+| Web Service | `noteai-staging-claude-gateway` | Docker Starter；1实例/1 worker | Singapore；无磁盘/数据库/Cron |
 | Cron Job | `noteai-staging-market-timing` | Docker Starter；`5 * * * *` | Singapore |
 | Cron Job | `noteai-staging-tracking` | Docker Starter；`20 * * * *` | Singapore |
 | PostgreSQL | `noteai-staging-db` | PostgreSQL 18 Free | Singapore；无生产级备份 |
+| DynamoDB | `noteai-claude-gateway-control` | 按请求计费；TTL；静态加密；CloudFormation Retain | Singapore；仅Gateway控制摘要 |
 
 - 私有对象存储：Amazon S3 Singapore；V0.4 模型位于受控 `model/artifacts` 前缀。桶名和凭据不记录在此。
 - 视频缓存：API 持久盘 `/var/data/video_frames`，TTL 6 小时；不是永久素材库。
@@ -84,7 +95,7 @@
 
 - 影响市场时机采集、来源统计、新鲜度门禁和 Cookie 运维提醒。
 - 未修改 AI 质量评分、积分语义、认证、支付或数据库 schema。
-- 历史缺陷曾修复并单轮验证，但 13:05、14:05 自动轮次再次出现搜索结果/推荐来源为 0；当前按 `BUG-002` 重新调查，根因确认前不重复修改。
+- 历史缺陷曾修复并完成五个连续自然健康轮次，但 2026-07-13 最新自然 run `47d75364-0071-4d8f-b35c-b2975ddd138d` 再次出现搜索结果/推荐来源为 0；当前按 `BUG-002` 重新调查，根因确认前不重复修改、不绕过 challenge、不追加手工高频采集。
 
 ## 4. 已完成工作
 
@@ -175,7 +186,7 @@
 
 ### ARCH-001A — 离线 Claude 工具边界与 Gateway 迁移
 
-- 状态：**TODO**
+- 状态：**INVESTIGATING**
 - 优先级：Medium。
 - 问题描述：生产 runtime 已由 ARCH-001 收口，但三个明确的离线训练/人工运维工具仍直接创建 Anthropic 客户端，尚未决定未来继续直连还是通过 Gateway。
 - 证据：仓库级只读盘点确认 `model/extract_cover_features.py` 的离线 Claude Vision 批处理、`tools/ai_prelabel_review_batch.py` 的离线标注复核、`tools/live_ai_smoke.py` 的人工连通性 Smoke 各有一个独立客户端构造；它们均不在当前 Production API 请求链中。
@@ -210,17 +221,17 @@
 
 - 状态：**INVESTIGATING**
 - 优先级：Critical。
-- 问题描述：用户已批准正式上线采用2个Render Starter并可自动扩容至4个，但ARCH-002当前防重放、速率限制和并发状态仅存在单进程内存，不能安全支持多实例。
-- 证据：Gateway readiness明确返回 `memory_instance_scope` 与 `multi_instance_production_ready=false`，且 `INSTANCE_COUNT != 1` 会fail-closed；2026-07-13三路只读审计进一步确认nonce、rate和concurrency均为进程内状态，主路由在部分Claude正文已经输出后仍可能调用fallback并拼接第二份正文，合法HTTPS任意公网hostname均可被接受，主API不探测Gateway远端readiness，timeout层级为业务deadline先于Gateway read timeout且Gateway→Anthropic未显式设定。
-- 根因是否确认：是；跨实例缺少共享原子控制面和逻辑operation状态，Router也未区分“供应商确定未启动”与“已启动/不确定/已部分输出”，人工环境变量无法证明Render实际副本数。
+- 问题描述：用户已批准正式上线采用2个Render Starter并可自动扩容至4个；`ARCH-002P-A/B` 已分别闭环Claude终态费用安全与共享原子控制面，但精确Gateway信任/readiness/timeout及真实2–4实例演练仍未完成。
+- 证据：Gateway Staging 已返回 `ready_multi_instance`、`shared_control_plane` 与 `dynamodb_shared_atomic`，该字段只证明共享控制面的技术能力；当前Render实际仍为1实例、1 worker。合法HTTPS任意公网hostname、远端readiness、分层timeout与真实滚动/扩缩容矩阵仍由`ARCH-002P-C/D`阻断。
+- 根因是否确认：是；A/B根因已修复，剩余根因是主系统对精确Gateway authority/readiness的信任边界不完整，以及尚无平台真实2–4副本/滚动/故障演练证据。
 - 涉及文件：预计Gateway专用共享replay/rate store适配、部署配置、精确Gateway hostname绑定/私网解析防护、远端健康监控、timeout预算、partial-stream终止与usage审计测试；不得连接NoteAI业务数据库。
-- 风险：多实例重放、限流绕过、重复Claude费用、部分正文后fallback重复输出、DNS/配置误指向内部地址、取消或响应头前故障漏记成本。
+- 风险：共享原子状态已消除已知的nonce/rate/operation跨客户端竞争，但DNS/配置误指向、timeout层级、真实扩缩容/滚动版本漂移、取消与业务持久恢复仍未闭环。
 - 执行代理：只读阶段由Repository Explorer（Godel）、Security/Chaos Reviewer（Tesla）和Render/DevOps/Cost Reviewer（Ampere）完成；实施按ARCH-002P-A→B→C→D指定单一Gateway Production Implementation Agent串行执行，共享配置和部署不得并行修改。
 - 验证代理：每个子包由未参与实现的Security + Protocol/Chaos + Billing/Cost Verification Agents独立复核；最终完成扩缩容、重放、故障和Key轮换演练。
 - 验收标准：2–4实例使用共享原子nonce/rate状态；平台实际副本数与门禁一致；Gateway URL精确绑定并拒绝私网/DNS rebinding；请求发出后的所有不确定终态可审计；部分流失败不再隐式fallback产生重复正文/费用；双Key轮换和回滚演练通过；远端健康与timeout预算可观测。
-- 是否需要用户决定：是；需确认新增1个Render Singapore Starter Key Value，增量10美元/月。用户已有Render Pro；现有14–28美元仅覆盖2–4个Gateway实例，不包含共享状态。
-- 是否涉及真实外部调用：本地/Mock实现不需要；最终需2–4实例Render受控压力、故障与真实Claude最小验证，费用另行批准。
-- 是否已部署到 Render：否；ARCH-002单实例Staging不得被当作Production多实例完成证据。
+- 是否需要用户决定：生产2–4个Starter基础14–28美元/月已获批；共享状态已改用获批的AWS DynamoDB按请求计费，不再需要Render Key Value。真实Claude额外调用仍按已批准剩余次数/费用边界执行或另行说明。
+- 是否涉及真实外部调用：A/B已使用Render、AWS OIDC/DynamoDB和无AI合成Smoke；最终仍需2–4实例Render受控压力/故障演练，是否使用剩余真实Claude次数在D执行前列明。
+- 是否已部署到 Render：部分；A/B已部署到单实例Staging，C/D未实施。不得把`ready_multi_instance=true`当作Production多实例完成证据。
 
 ### ARCH-002P-A — Claude调用终态与fallback费用安全
 
@@ -241,51 +252,259 @@
 
 ### ARCH-002P-B — Gateway共享原子控制面
 
-- 状态：**READY_TO_VERIFY**
+- 状态：**VERIFIED**
 - 优先级：Critical。
 - 问题描述：nonce、rate和concurrency均为单进程内存；扩至2–4实例会绕过防重放与全局配额，重启会丢失状态。
 - 证据：`gateway/claude_gateway.py` 的`InMemoryNonceStore`、`InMemoryRateLimiter`、`ConcurrencyLimiter`均只在进程锁内原子；Blueprint固定单worker、单实例，readiness明确禁止多实例。2026-07-13 DevOps/Cost与Resilience/Security只读复核确认：Render Key Value单实例、Redis Cloud Essentials/Aiven异步复制和Render Postgres异步HA都不能证明最近nonce/operation claim零丢失；AWS DynamoDB Singapore单Region表在服务内跨3个AZ同步复制，成功写入即durably persisted，支持条件写/ACID事务与99.99% SLA，Render Pro可用自动轮换OIDC凭证直接调用HTTPS endpoint。
-- 根因是否确认：是；缺少跨实例强原子控制面，同时主系统缺少把“Gateway内部拒绝新Claude调用”转化为“NoteAI整体仍安全Kimi/排队/恢复”的durable operation状态机。
+- 根因是否确认：是；本子包根因是Gateway缺少跨实例强原子nonce/rate/operation/lease控制面。Alibaba主系统的Kimi/持久队列、结果回放和副作用恢复是独立的`BILL-002`，未被本子包实现或验证。
 - 涉及文件：`model/model_router.py`, `model/claude_gateway_protocol.py`, `gateway/claude_gateway.py`, `gateway/control_store.py`, `gateway/dynamodb_control_store.py`, `gateway/requirements.txt`, `gateway/Dockerfile`, `render.gateway.yaml`, `infra/aws/claude_gateway_control_plane.yaml`, `docs/CLAUDE_GATEWAY.md`, `tests/test_gateway_control_store.py`, `tests/test_claude_gateway.py`, `tests/test_claude_transport.py`；未修改`model/api.py`/idempotency/billing/业务数据库，`BILL-002`保持独立串行。
-- 风险：重放、全局限流绕过、lease泄漏、Key轮换后配额翻倍、共享store故障时重复调用；Render Key Value本身不是HA资源，且用户明确不接受共享状态故障演变为NoteAI整体不可用，因此单个Render Starter Key Value不再是Production候选。
-- 执行代理：HA方案只读阶段由Render/DevOps/Cost Reviewer（Ampere）与Resilience/Security Reviewer（Tesla）完成；单一DynamoDB Shared Control Plane Implementation Agent（Godel）已完成本地代码包，未创建AWS/Render资源、未调用真实Claude、未提交或推送。
-- 验证代理：独立Verification Agent（Ampere）与Security/Chaos Reviewer（Tesla）；首轮发现operation TTL、lease exact-expiry、DynamoDB timeout/retry、OIDC、rate与provider deadline阻断，第二轮发现begin复用陈旧时间，均退回原实施代理最小修正；最终Ampere与Tesla分别PASS。
-- 验收标准：共享原子nonce、逻辑operation状态、全局rate和可续租concurrency lease；以稳定服务主体而非key-id计配额；共享状态单节点故障自动切换；控制面完全不可达时Gateway对Claude保持零新调用，但Alibaba主系统对确定未dispatch的operation自动安全路由Kimi或durable queue，对可能已dispatch/partial的operation执行持久恢复而非重复模型调用；只保存哈希、枚举、时间和usage摘要；无本地状态降级。
-- 是否需要用户决定：否；用户已于2026-07-13批准创建AWS DynamoDB Singapore单Region表、为现有Render Pro配置AWS OIDC最小权限角色、增加AWS SDK生产依赖及1美元月告警；未批准任何额外真实Claude调用，本包保持0次真实Claude。
-- 是否涉及真实外部调用：创建AWS DynamoDB/IAM OIDC角色及后续多实例演练会改变外部资源；本地DynamoDB fake/fault测试不调用Claude。资源创建前必须获批，真实Claude仍需单独预算。
-- 是否已部署到 Render：否；本地实现与独立验证已闭环：stable Claude leaf operation-id绑定签名body；DynamoDB共享nonce、单principal单调rate、非TTL live operation、renewable fenced lease；provider前后固定安全错误边界；仅Render web identity、禁静态AWS key/metadata回退；SDK单attempt/短deadline；DDB模式provider总deadline与lease margin；Singapore retained table与精确OIDC subject最小IAM模板。最终主控91项聚焦、513项全量（5 skip）、48/48 Production Readiness、py_compile/YAML/diff check均PASS；独立Ampere最终PASS、Tesla第三轮Security/Chaos PASS，真实AWS/AI调用0。首个push `871c086` 的两条Python 3.11 CI因测试mock全局`time.time`耗尽而失败，业务实现无失败；已改为只mock Gateway局部`_now_epoch`并在本地重跑目标1项、全量513项和48/48门禁通过，等待补丁CI。当前外部阻塞为Chrome无AWS登录会话；AWS Singapore登录页已留给用户，登录前未创建表/IAM/Budget、未启用DynamoDB模式。
+- 风险：Gateway共享控制面当前已安全阻止不确定情况下的新Claude调用，但NoteAI整体的Kimi/持久队列连续服务与业务结果恢复尚未完成；真实2–4实例、滚动发布、OIDC刷新和store断路组合仍由`ARCH-002P-D`验证。
+- 执行代理：HA方案只读阶段由Render/DevOps/Cost Reviewer（Ampere）与Resilience/Security Reviewer（Tesla）完成；单一DynamoDB Shared Control Plane Implementation Agent（Godel）完成代码与声明式配置；主CTO串行创建AWS/Render资源并执行云端Smoke，全程未调用真实Claude。
+- 验证代理：独立Verification Agent（Ampere）与Security/Chaos Reviewer（Tesla）；本地首轮发现operation TTL、lease exact-expiry、DynamoDB timeout/retry、OIDC、rate与provider deadline阻断，第二轮发现begin复用陈旧时间，均退回最小修正；最终本地及云端证据复审均PASS。
+- 验收标准：共享原子nonce、逻辑operation状态、全局rate和可续租concurrency lease；以稳定服务主体而非key-id计配额；DynamoDB Region内多AZ托管可用性；控制面不可达时Gateway对Claude保持零新调用；只保存哈希、枚举、时间和usage摘要；无memory降级。Alibaba主系统的Kimi/queue与持久结果恢复明确不属于本子包，继续由`BILL-002`验收。
+- 是否需要用户决定：否；DynamoDB、Render OIDC、AWS SDK与Staging切换均已按批准范围完成。1美元月预算邮件缺收件地址，已拆为`FIN-003`，不阻断本子包的原子性/安全验收。
+- 是否涉及真实外部调用：是；已创建AWS DynamoDB、IAM OIDC provider/role并配置Render Staging，执行STS/DDB真实无AI Smoke。未调用Claude、未写业务数据库；生产多实例演练仍归D。
+- 是否已部署到 Render：是，仅Staging单实例范围。AWS Singapore CloudFormation Stack `CREATE_COMPLETE`；DynamoDB为Active/on-demand/`pk`/TTL `expires_at`/静态加密/Retain；Render OIDC provider使用官方workspace issuer与`sts.amazonaws.com`，IAM trust精确到当前workspace/default/service、无wildcard，权限仅具体表ARN的Describe/Get/Put/Update/Delete/TransactWrite六动作。Render容器真实凭证method为`assume-role-with-web-identity`且自动token file存在。切换commit `d279caa`的push/PR两条CI均成功，Render 21:09 live；readiness HTTP200并返回`ready_multi_instance`/`shared_control_plane`/`dynamodb_shared_atomic`。未签名请求401固定`AUTH_HEADER_INVALID`；两个独立真实DDB客户端并发nonce/rate/operation各恰好1个winner，无效合成表安全失败，合成记录在finally删除；Claude调用0。独立Verification与Security/Chaos均PASS。Staging仍1实例/1 worker，不能宣称Production 2–4实例已验证。
+
+### FIN-003 — AWS Gateway 1美元月预算告警
+
+- 状态：**VERIFIED**
+- 优先级：High（正式流量前成本运营门禁）。
+- 问题描述：DynamoDB按请求计费控制面需要可送达的低额异常成本预警。
+- 证据：2026-07-13 AWS Budgets 已创建月度成本预算 `NoteAI-Gateway-Control-Plane-Monthly-1USD`，金额US$1.00、无服务筛选、运行正常；两条直接邮件告警为实际成本超过80%与预测成本超过100%。独立FinOps只读复核确认邮箱与用户提供一致，SNS未启用、Actions为0、无Chatbot或自动动作，直接邮件无需订阅确认。
+- 根因是否确认：是；缺少收件邮箱的阻断已由用户提供地址后闭环。
+- 涉及文件：无仓库代码；仅AWS Budgets通知配置。
+- 风险：该预算覆盖全部AWS服务而非只筛选Gateway控制面；有利于早期发现总账异常，但不能单独归因具体资源，后续生产多资源阶段需另建分服务/标签预算。
+- 执行代理：主CTO使用AWS控制台；验证代理：独立FinOps Reviewer读取固定预算金额、周期和订阅状态。
+- 验收标准：已满足。月度成本预算1美元；实际80%与预测100%向用户指定邮箱发送直接邮件；无自动停机/SNS/Chatbot；独立只读验证通过且未输出账户、邮箱或其他敏感配置。
+- 是否需要用户决定：否；邮箱已提供并配置。
+- 是否涉及真实外部调用：是；已创建AWS Budget直接邮件通知，未调用AI、未写业务数据。
+- 是否已部署到 Render：不适用。
 
 ### ARCH-002P-C — Gateway生产信任与readiness边界
 
-- 状态：**TODO**
+- 状态：**VERIFIED**
 - 优先级：High。
 - 问题描述：主系统当前接受任意合法公网HTTPS hostname，不验证精确Gateway authority或连接时解析结果；readiness只做本地配置检查，provider/client/业务timeout层级也未对齐。
-- 证据：`_valid_gateway_base_url`不绑定目标hostname；HMAC不绑定authority；`claude_transport_readiness()`不请求远端`/health/ready`；主业务180秒deadline小于Gateway read 190秒，Anthropic SDK未显式配置timeout。
-- 根因是否确认：是；生产目标host、协议/config epoch、远端健康和分层timeout尚未成为可执行门禁。
-- 涉及文件：`model/model_router.py`, `model/api.py`, `gateway/claude_gateway.py`, `render.yaml`, `render.gateway.yaml`, Gateway文档与对应测试。
-- 风险：配置误指向攻击者公网host、DNS rebinding/私网访问、配置漂移实例继续接流量、外层先取消造成不确定费用。
-- 执行代理：ARCH-002P-B闭环后指定单一Gateway Trust/Readiness Implementation Agent。
-- 验证代理：独立Security + DevOps Verification Agent。
-- 验收标准：精确批准hostname；连接时仅公共地址、TLS校验且不跟随redirect；远端readiness验证协议、部署范围和config/key epoch；provider < Gateway read < 业务deadline；实例配置不一致、时钟偏差或store故障时不ready。
+- 证据：2026-07-13 commit `0e050f8` 完成 v2 authority/config/key epoch HMAC、严格global-unicast与真实peer pin、签名远端readiness、200-only/no-redirect/no-env-proxy、provider180<HTTP190<business210绝对deadline、readiness single-flight/旧绿隔离、2 running+2 queued有界DNS executor与取消风暴保护。实施前多轮失败合同真实跑红；主控与独立Test/Security复验一致PASS：全量539/539（5 skipped）、Gateway/API218/218、Production Readiness48/48、100次真实取消风暴有界且late resolver的pin/POST/provider/audit均为0。CI-001 commit `c0afbbe` 修复测试依赖后，GitHub push/PR两条CI全部SUCCESS。Render六项运行资源均完成 `c0afbbe` 自动部署/构建；Gateway/API/Admin公开readiness均HTTP200。主控和独立Verification分别在Gateway Shell执行零Claude签名GET：HTTP200，attestation/challenge/nonce/epoch全部匹配，scope=`shared_control_plane`、store=`dynamodb_shared_atomic`。
+- 根因是否确认：是；代码、CI与单实例Staging最终验证全部闭环。生产2–4实例扩缩/滚动/故障矩阵仍是独立`ARCH-002P-D`，不属于C的验收范围。
+- 涉及文件：最小候选 `model/model_router.py`, `model/claude_gateway_protocol.py`, `model/api.py`, `gateway/claude_gateway.py`, `render.yaml`, `render.gateway.yaml`, `docs/CLAUDE_GATEWAY.md`, `tests/test_claude_gateway.py`, `tests/test_api_contracts.py`；不改业务DB/billing/BILL-002/D扩容。
+- 风险：误配或被篡改URL可把Prompt与签名发送到错误域；DNS可解析到私网/保留地址；跨authority转发可泄露请求并触发Claude；旧/错误Gateway可被本地readiness假绿；3xx可冒充成功；timeout倒挂会把仍运行的供应商调用变成不确定费用。
+- 执行代理：单一Gateway Trust/Readiness Implementation Agent（Godel）；不得并行修改同一调用链。
+- 验证代理：独立Security/Chaos Reviewer（Tesla）+ Test/DevOps Verification Agent（Ampere）。
+- 验收标准：唯一批准的规范ASCII authority精确匹配；A/AAAA全部公网且连接固定到已验证地址并保留原hostname TLS/SNI/Host，拒绝混合私网、保留地址和rebind；显式TLS验证、`trust_env=False`、不跟redirect且只接受200；新协议把authority/config epoch/key epoch纳入HMAC，任一不匹配provider调用0；Gateway暴露不含Secret/key-id的签名readiness challenge、server time与epoch，主API只有service/protocol/shared scope/DynamoDB store/challenge/epoch/时钟全部匹配才remote_ready；AI-required时失败/超时/旧绿过期令API503；Gateway模式满足provider180 < HTTP190 < 业务总deadline210，Local timeout保持兼容，SDK retry0且显式有界；真实Claude0次即可验收。
 - 是否需要用户决定：否；正式域名/host值在生产资源创建时按实际值注入，不改变用户产品行为。
-- 是否涉及真实外部调用：最终远端readiness、DNS/TLS和轮换演练涉及Render，不需要付费Claude。
-- 是否已部署到 Render：否。
+- 是否涉及真实外部调用：本地实施使用Mock/假DNS；最终仅用Render公开健康GET和签名readiness GET验证，没有消息POST、真实Claude或业务数据库写入。
+- 是否已部署到 Render：是；运行时代码 `0e050f8` 随CI-only `c0afbbe` 再次自动部署。Gateway/API/Web/Admin均live，两个Cron为Successful build；签名readiness由主控与独立代理各自执行并PASS。主API仍为Local transport，C的结论不得外推为Alibaba切流或生产2–4实例已验证。
+
+### CI-001 — Blueprint语义测试缺少测试专用PyYAML依赖
+
+- 状态：**VERIFIED**
+- 优先级：High（阻断ARCH-002P-C独立验收，不影响当前旧/新Gateway运行时健康）。
+- 问题描述：新增测试使用`yaml.safe_load`语义解析两份Render Blueprint；本地环境已有PyYAML，但GitHub Actions只安装`model/requirements.txt`，导致push与PR CI在unit tests报`ModuleNotFoundError: No module named 'yaml'`。
+- 证据：历史失败 run `29259436657` 的唯一失败为 Blueprint 语义测试导入`yaml`失败。commit `c0afbbe` 新增 `tests/requirements.txt` 固定 `PyYAML==6.0.3`，CI 在生产依赖之后单独安装测试依赖；`model/requirements.txt`、测试断言和业务代码无diff。Implementation与独立Verification均确认本地全量539/539（5 skipped）、Production Readiness48/48、三份YAML safe_load、Compose与diff check通过；GitHub push run `29262804273` 与PR run `29262808793` 全部步骤SUCCESS。
+- 根因是否确认：是；测试依赖声明缺失，不是Gateway代码或Render运行时故障。
+- 涉及文件：推荐新增测试专用requirements文件并最小修改`.github/workflows/ci.yml`安装固定版本PyYAML；不把PyYAML加入生产镜像，不改测试断言。
+- 风险：不修会让CI持续红；直接把PyYAML加入生产依赖会无必要扩大生产供应链；改回字符串搜索会弱化安全测试，禁止采用。
+- 执行代理：单一CI Implementation Agent（Godel）；验证代理：独立Test/DevOps Reviewer（Ampere），结论PASS。
+- 验收标准：已满足。GitHub push与PR CI全绿；Blueprint继续用真实YAML语义解析；生产镜像依赖不增加；本地539项、Production Readiness48/48、YAML/Compose均通过。
+- 是否需要用户决定：否；用户已明确批准测试专用固定依赖方案。
+- 是否涉及真实外部调用：仅GitHub CI和既有Render自动部署；真实Claude0次、业务数据库0写。
+- 是否已部署到 Render：CI文件本身不影响运行时；同分支自动部署 `c0afbbe`，Gateway/API/Web/Admin均live，两个Cron均Successful build，独立Render Verification PASS。
 
 ### ARCH-002P-D — Render 2→4实例发布与故障演练
 
-- 状态：**TODO**
+- 状态：**IMPLEMENTING**
 - 优先级：Critical。
 - 问题描述：只有单实例Staging证据，没有2实例基线、自动扩至4实例、滚动发布、共享store中断和回滚演练。
-- 证据：现有Gateway Scaling=1、Autoscaling Off；Render autoscaling仅基于CPU/内存，网络型Claude并发仍必须由应用全局控制；Render Key Value没有自动副本/故障转移。
-- 根因是否确认：是；ARCH-002P-A/B/C尚未实施，Production资源与演练尚未创建。
-- 涉及文件：`render.gateway.yaml`, 部署/回滚/轮换runbook、健康与指标配置、故障矩阵测试；不修改业务数据库。
-- 风险：扩缩容瞬间重复调用、滚动版本配置不一致、共享store单点导致Gateway不可用、网络型负载不能及时触发平台autoscale。
+- 证据：Gateway已在Render Singapore真实配置为Starter autoscaling min2/max4、CPU60%、memory70%、shutdown240；Blueprint Auto Sync保持No，主API readiness仍明确`claude_transport=local`，用户业务流量尚未切入Gateway。`22da06a`演练器、`710065f`existing-claim修复、`353ee22`固定枚举诊断、`8b6a0b3`最小IAM修复均已通过本地、独立审查、GitHub CI并收敛云端。两实例同ID已闭环1×200/1×409、FakeProvider总计1、UNKNOWN0；两实例共享速率窗口已闭环30×INVALID_JSON+10×RATE_LIMIT。随后在两个原实例运行受限CPU负载，Render真实Autoscaler事件依次记录扩至3并成功扩至4，未手工设4。四个真实实例均输出不同instance marker、相同commit `8b6a0b3`与相同control marker；四实例下3个不同held operation恰2×200/FakeProvider1与1×429/CONCURRENCY_LIMIT/FakeProvider0；同ID仍恰1×200/1×409；40个共享速率请求仍恰30×INVALID_JSON+10×RATE_LIMIT。负载自然结束后，Render事件于02:02记录开始并成功缩至2；缩容后的两个存活实例再次用同一全新operation闭环1×200/1×409、FakeProvider总计1、UNKNOWN0。其后对同一批准commit `8b6a0b3`执行Gateway Manual Deploy：两个旧实例被两个全新instance marker替换，旧operation在新实例仍固定409/FakeProvider0，新operation在两个新实例仍恰1×200/1×409/FakeProvider总计1，commit/control marker一致；Gateway重新收敛`ready_multi_instance`且主API始终`claude_transport=local`。完整过程真实Claude0次、业务数据库0写。
+- 根因是否确认：是；2→4→2共享控制面和平台自动扩缩容已确认，父任务剩余范围为滚动替换、单实例重启、OIDC/HMAC轮换及受控故障/回滚矩阵，不是新的功能根因。
+- 涉及文件：`render.gateway.yaml`, Gateway Staging-only演练器、部署/回滚/轮换runbook、健康与指标配置、故障矩阵测试；不修改业务数据库。
+- 风险：扩缩容瞬间版本/配置不一致、OIDC刷新或DynamoDB断路造成Gateway拒绝新Claude调用、网络型负载不能及时触发平台autoscale；主系统持续服务仍依赖BILL-002的Kimi/queue与持久恢复。
 - 执行代理：ARCH-002P-A/B/C全部独立验证后，由单一Render Deployment Agent串行发布。
 - 验证代理：独立Security + Protocol/Chaos + Billing/Cost Verification Agents。
 - 验收标准：2实例基线、min2/max4自动扩容与应用全局限流同时生效；跨实例同nonce/operation恰好一次provider；滚动、重启、store中断、Key轮换、2→4→2和回滚矩阵通过；故障时宁可固定码不可用，不重复Claude；日志不含敏感内容。
-- 是否需要用户决定：是；创建生产2–4实例、共享store和任何真实Claude Smoke前核对获批预算；当前仅2–4个Starter实例14–28美元/月已获批，共享store未获批。
-- 是否涉及真实外部调用：是，Render真实扩缩容/故障演练；真实Claude最小Smoke次数和费用需在执行前再次列明。
+- 是否需要用户决定：生产2–4个Starter实例14–28美元/月与DynamoDB共享控制面已获批；C及FIN-003前置门禁已完成。执行D前只需按已批准上限列明演练窗口与是否使用剩余真实Claude Smoke次数，不再重复要求批准相同基础费用。
+- 是否涉及真实外部调用：是，Render真实扩缩容/故障演练；当前第一阶段固定为真实Claude 0次、业务数据库0写，先完成零调用矩阵。只有零调用矩阵闭环后才评估是否使用既有批准额度内的最小Claude Smoke。
+- 是否已部署到 Render：部分。最新commit `8b6a0b3`已完成真实2→4→2、2/4实例exact-once、全局并发2、全局RPM30、缩容后复验与同commit滚动替换后共享状态复验；仍须完成单实例重启、自然OIDC刷新、HMAC轮换及受控故障/回滚矩阵，父任务才可VERIFIED。
+
+### ARCH-002P-D1 — 多实例同 operation 认领竞态
+
+- 状态：**VERIFIED**
+- 优先级：Critical（阻断ARCH-002P-D云端exact-once验收）。
+- 问题描述：两实例对同一synthetic operation并发演练时，竞争者得到`OperationClaim(state=CLAIMED, created=False)`后仍进入`begin_provider`，真实DynamoDB事务竞争返回`CONTROL_PLANE_OUTCOME_UNKNOWN`。
+- 证据：2026-07-14 Staging已部署`22da06a`并真实扩至2实例；首轮零Claude演练中一个实例固定输出HTTP503、`CONTROL_PLANE_OUTCOME_UNKNOWN`、`fake_provider_calls=0`，随即按stop条件停止，未触发4实例负载。两名独立只读代理交叉确认：`gateway/claude_gateway.py::_SharedDispatch.prepare`只检查claim state而忽略`claim.created`；DynamoDB首个Put创建claim，竞争者条件失败后强一致读仍返回`CLAIMED/created=False`，两者可占不同lease槽并竞争同一OP事务。主API云端readiness仍明确`claude_transport=local`，Gateway readiness仍为共享DynamoDB green，用户业务未切流。单一Implementation Agent已按A包只改3文件：生产逻辑仅增加`or not claim.created`；确定性两槽barrier测试锁定1×200/1×409、begin=1、FakeProvider=1、UNKNOWN=0；D/E崩溃边界及after-apply保守语义均有回归。主CTO复验focused111/111、full547通过（skip5）、Production Readiness48/48、py_compile/diff-check全绿；独立Security/Protocol Verification PASS。
+- 根因是否确认：是（代码事实100%；与本次云端固定证据匹配约90%，底层DynamoDB cancellation reason按脱敏规则未输出）。
+- 涉及文件：`gateway/claude_gateway.py`, `tests/test_claude_gateway.py`, `docs/CLAUDE_GATEWAY.md`；不修改DynamoDB schema、IAM、Cookie、Secret、业务数据库或真实Provider。
+- 风险：若把所有TransactionConflict降级成duplicate或增加重试，可能掩盖真实after-apply不确定性并造成重复Claude；若改变claim-before-lease顺序会在无槽时留下永久claim。本包只恢复现有永久at-most-once/fail-closed契约。
+- 执行代理：单一Gateway Implementation Agent（Godel）；验证代理：独立Security/Protocol Agent（Tesla）+ 主CTO云端零Claude复验。
+- 验收标准：`created=False`无论state是否仍为CLAIMED都释放本次lease、零`begin_provider`、零provider并返回固定409；确定性两槽同ID并发恰1次begin/1次FakeProvider，竞争者409且unknown=0；acquire后claim前可在lease到期后重新执行；claim后begin前崩溃保持永久fail-closed且重试409/provider0；真正begin after-apply不确定仍为`CONTROL_PLANE_OUTCOME_UNKNOWN`且不重试；三个不同ID仍恰2 provider+第三个限流；focused/full/readiness全绿；新commit部署收敛后以全新synthetic ID在两个不同实例复验，绝不复用本次ID。
+- 是否需要用户决定：否；属于已批准ARCH-002P-D范围内的最小竞态修复，不新增资源或真实AI费用。
+- 是否涉及真实外部调用：实施/本地验证为0；部署后仅零Claude Staging演练和DynamoDB固定控制记录。
+- 是否已部署到 Render：是；`710065f`已收敛到2实例Staging，后续`8b6a0b3`也已收敛。IAM前置问题修复后，两个不同真实实例以同一全新synthetic operation在同一未来时刻并发：恰1个winner HTTP200/FakeProvider1、1个loser HTTP409/FakeProvider0、`CONTROL_PLANE_OUTCOME_UNKNOWN`为0、真实Claude0次，完整闭环D1云端验收。
+
+### ARCH-002P-D2 — `begin_provider` 事务固定枚举诊断与根因确认
+
+- 状态：**VERIFIED**
+- 优先级：Critical（阻断ARCH-002P-D/D1云端winner验收）。
+- 问题描述：真实2实例中的winner在进入Claude前于DynamoDB `begin_provider`/`TransactWriteItems`返回不确定结果；当前`_call`将所有非纯条件异常折叠为无结构`ControlStoreUnavailable`，无法在不泄露敏感信息的前提下区分权限拒绝、表达式校验、事务冲突、超时/传输或after-apply响应丢失。
+- 证据：云端新operation winner固定503/`CONTROL_PLANE_OUTCOME_UNKNOWN`/fake0，竞争者已固定409/fake0；表达式中的占位符齐全，`state`已用别名且AWS保留词表中`model`非保留词；当前仓库CloudFormation从最初提交即包含`dynamodb:TransactWriteItems`表ARN权限，但readiness只证明`DescribeTable`可用，不能替代实际运行角色/边界/SCP的当前授权证据。单一Implementation Agent已完成最小诊断包：DynamoDB `_call`只从固定AWS code/reason和本地异常类型映射阶段/原因，ContextVar捕获仅由严格guard后的shell rehearsal私有capability启用；普通HTTP与固定日志不新增诊断。敏感sentinel、纯条件、after-apply单次事务、CancelledError及并发上下文隔离均有回归。Gateway+control聚焦93/93、全量550通过（skip5）、Production Readiness48/48、py_compile/diff-check全绿。
+- 根因是否确认：部分。“异常被过度折叠、无法安全定位”的诊断根因已确认；真实DynamoDB begin失败的外部根因未确认，不得猜测为IAM。
+- 涉及文件：`gateway/dynamodb_control_store.py`, `gateway/rehearsal.py`, `tests/test_gateway_control_store.py`, `tests/test_claude_gateway.py`, `docs/CLAUDE_GATEWAY.md`；不修改IaC/IAM、DynamoDB schema/事务表达式、重试/fallback、provider、公共HTTP响应或日志语义。
+- 风险：异常原文、RequestId、URL、table/role/principal/operation/ARN可泄露控制面详情；若把TransactionConflict或after-apply不确定降级为可重试，可能重复调用Claude。
+- 执行代理：单一Gateway Implementation Agent（Godel）；验证代理：独立Security/Protocol Reviewer + 主CTO云端一次性零Claude复验。
+- 验收标准：仅通过严格Staging guard的shell rehearsal可读固定stage/reason枚举；公共Gateway对外仍只返`CONTROL_PLANE_OUTCOME_UNKNOWN`且零重试；纯条件失败仍返False，after-apply仍UNKNOWN，`CancelledError`透传；带敏感sentinel的AccessDenied/Validation/TransactionConflict/缺少reasons/throttle/resource-missing/timeout/transport/internal/unknown合成测试证明枚举正确且敏感信息零泄露；focused/full/readiness/CI与独立复核通过；部署收敛后仅用一个全新synthetic operation做零Claude定位，不重试同op ID。
+- 是否需要用户决定：否；属于已批准ARCH-002P-D的安全诊断范围，不新增资源或AI费用。
+- 是否涉及真实外部调用：实施/本地验证0；部署后仅一次新synthetic operation的Staging DynamoDB控制记录，真实Claude 0次。
+- 是否已部署到 Render：是；commit `353ee22` push/PR两条CI全绿并已在2实例Staging live。独立Security/Protocol复跑93/93、Readiness48/48并PASS；云端一次有效全新synthetic operation固定返回`BEGIN_PROVIDER/ACCESS_DENIED`、HTTP503、fake0，未重试该ID、真实Claude0次。一次未注入ACK的命令在guard 403即停，DynamoDB0/AI0。
+
+### ARCH-002P-D3 — DynamoDB 事务 `ConditionCheckItem` 最小IAM修复
+
+- 状态：**VERIFIED**
+- 优先级：Critical（阻断ARCH-002P-D/D1 winner 200）。
+- 问题描述：`begin_provider` 真实事务在Provider前被AWS IAM拒绝。现有IaC允许`dynamodb:TransactWriteItems`，但AWS交易IAM模型按事务内层动作授权：Update需`UpdateItem`，ConditionCheck需`ConditionCheckItem`。当前已有UpdateItem，唯独缺ConditionCheckItem。
+- 证据：`353ee22`云端固定诊断为`BEGIN_PROVIDER/ACCESS_DENIED`，而同一请求的nonce/rate/lease/claim单项DynamoDB读写已先成功，排除整体OIDC失效。AWS官方《Using IAM with DynamoDB transactions》明确规定交易中Put/Update/Delete/Get由底层同名权限管理，ConditionCheck需`dynamodb:ConditionCheckItem`；原CloudFormation action列表缺失该动作。Implementation Agent仅把无效的`TransactWriteItems`替换为`ConditionCheckItem`并增加精确语义测试；独立DevOps/Security复验IaC/Gateway 21/21、Production Readiness 48/48、YAML精确结构与diff-check全绿。主CTO创建并预览CloudFormation change set，确认唯一变化是原Gateway IAM Role的Properties且Replacement=False；执行后Stack为`UPDATE_COMPLETE`，实际策略固定核验为6项、包含ConditionCheckItem且不含TransactWriteItems。云端单winner与两实例同ID并发均通过，真实Claude0次。
+- 根因是否确认：是，代码、真实脱敏运行证据与AWS官方授权模型三方一致。
+- 涉及文件：最小仅`infra/aws/claude_gateway_control_plane.yaml`、相关IaC/Gateway测试与必要runbook；不修改trust/OIDC、table ARN、数据库/schema、应用事务、重试/fallback、Provider或Render扩容配置。
+- 风险：过宽的`dynamodb:*`或`Resource:*`会破坏最小权限；只在线上手改角色会产生CloudFormation漂移。必须先修正仓库模板并验证，再由原Stack更新。
+- 执行代理：单一IAM Implementation Agent（Godel）；验证代理：独立DevOps/Security Reviewer（Ampere）+主CTO云端零Claude复验。
+- 验收标准：IaC精确表ARN的action集合为Describe/Get/Put/Update/Delete/ConditionCheckItem，不存在通配或无关动作；本地测试/readiness/CI和独立审查通过；原CloudFormation Stack更新收敛且无其他资源变更；一个全新synthetic operation在真实winner路径HTTP200/FakeProvider1，真实Claude0；再用两实例全新同ID验收恰1个winner 200、1个loser 409、provider1、UNKNOWN0。
+- 是否需要用户决定：否；属于已批准AWS Singapore Staging控制面的最小权限纠正，不新增资源或费用。
+- 是否涉及真实外部调用：是，将更新原AWS CloudFormation Staging Stack的单一IAM action；后续仅零Claude合成验证，不写业务数据。
+- 是否已部署到 Render：是；仓库commit `8b6a0b3`已push且PR CI全绿，并已收敛到两个Render Staging实例。原AWS Staging CloudFormation Stack已更新为`UPDATE_COMPLETE`且仅修改精确IAM action。云端全新单winner为HTTP200/FakeProvider1；两实例同一全新ID为1×200/1×409、FakeProvider总计1、UNKNOWN0、真实Claude0次。
+
+### ARCH-002P-E — CLAIMED 崩溃后 fenced takeover 协议
+
+- 状态：**INVESTIGATING**
+- 优先级：High（商业连续性增强；不替代当前永久at-most-once安全契约）。
+- 问题描述：当前operation claim无owner/fence/expiry且无TTL；创建者在claim后、provider begin前崩溃时，同一operation会永久409。Security Reviewer建议支持严格过期后的fenced takeover，避免单次操作永久卡住。
+- 证据：独立架构裁决确认该问题真实，但不是ARCH-002P-D现有“宁可固定码不可用、不得重复Claude”验收；直接加入owner/fence会改变DynamoDB数据模型、旧记录兼容和滚动发布语义，旧实例会忽略新字段，因此不能塞入D1小修或混合版本滚动。
+- 根因是否确认：是；属于既有at-most-once设计的可用性取舍，不是D1竞态的同一根因。
+- 涉及文件：后续`gateway/control_store.py`, `gateway/dynamodb_control_store.py`, `gateway/claude_gateway.py`, 协议/迁移/故障测试与runbook；可能需要blue/green或full drain，不改业务数据库。
+- 风险：错误takeover可能在原provider已开始时触发第二次Claude；legacy CLAIMED、时钟偏移、事务响应丢失和混合版本都必须fail-closed。
+- 执行代理：Protocol Designer/Repository Explorer先只读设计；根因与兼容方案审完后才指定单一Implementation Agent。
+- 验证代理：独立Security/Chaos + DynamoDB Protocol Verification Agents。
+- 验收标准：claim创建与owner/fence/expiry原子绑定；只允许严格过期且无provider-start证据的CLAIMED takeover；begin同时校验OP与global lease owner/fence；provider-start及终态永不takeover；并发恢复恰1 winner、旧owner永久失效；legacy记录默认隔离；精确过期/时钟偏移/after-apply/重启/迁移全覆盖；禁止旧新协议混跑。
+- 是否需要用户决定：进入云端blue/green/full-drain实施前需要单列窗口和资源预算；当前只读设计不需要。
+- 是否涉及真实外部调用：当前否；未来Staging故障演练需另列范围，真实Claude默认0次。
 - 是否已部署到 Render：否。
+
+### CAP-001 — 1000在线用户与商业首阶段100个同时AI任务
+
+- 状态：**INVESTIGATING**
+- 优先级：Critical（商业上线容量门禁）。
+- 问题描述：商业上线首阶段已由产品负责人确认必须可靠受理100个用户同时提交AI任务，Claude或Kimi均可；未来目标为1000人同时使用AI。这里的“同时使用”表示100个业务任务都能及时受理、持久排队、显示进度、断流恢复并最终得到可审计终态，不要求100个请求在同一毫秒直接冲击供应商。另保留1000在线会话的独立静态/API容量目标，二者不得混为同一验收。
+- 证据：当前Staging静态前端由CDN提供；主API为单Starter/单worker并挂载持久磁盘，Render不允许该服务水平扩容；Staging PostgreSQL为Free 256MB/0.1 CPU/100连接；无生产持久队列。Gateway当前全局Claude并发2、RPM30，即使Render扩至4副本也仍只允许全局2个provider lease。一次五Agent诊断通常包含4个专家并行调用和至少1个仲裁调用，单用户操作会消耗至少5个provider leaf，历史真实操作约需数分钟。2026-07-14 Anthropic Console只读核验当前Organization为Scale tier，NoteAI所用Sonnet 4.x与Haiku 4.x各为10,000 RPM、10M ITPM（不含多数cache reads）和2M OTPM，月度消费门禁US$5,000；因此当前第一瓶颈是NoteAI队列/Worker/自设并发与Token实测，不是API Key数量。Kimi真实配额仍须从Moonshot控制台/官方响应头读取，不猜测数值。
+- 根因是否确认：是；现有架构首先按功能正确性与安全边界稳定化，尚未建设Alibaba生产主系统的可水平扩容API/worker、供应商无关持久队列、背压、容量SLO及100任务合成压测。
+- 涉及文件：Alibaba生产IaC、API/worker拆分、SMQ/MNS队列适配、持久AI job/阶段/终态表、SSE恢复、数据库连接池、限流/排队提示、容量测试与监控；`ARCH-002P-D`只负责Claude Gateway多实例可靠性，不得代替整套系统容量验收。
+- 风险：若把在线人数或供应商API Key数量误当吞吐证明，少量同时AI任务即可形成数分钟排队、429或超时；SMQ/MNS为至少一次投递，若缺少数据库claim/fence/idempotency会重复调用AI或重复扣费；直接提高Gateway/Kimi并发还可能触发供应商RPM/ITPM/OTPM、加速限制、费用和数据库压力。
+- 执行代理：Repository/Capacity Explorer + Render/DevOps Reviewer；后续单一Capacity Implementation Agent按API/worker/queue分包实施。
+- 验证代理：独立Load/Resilience + Billing/FinOps Verification Agent。
+- 验收标准：零AI合成验证1000在线会话与100个同时AI任务；100个任务全部在2秒内返回持久`job_id`和已受理/排队状态，0丢任务、0重复provider、0重复扣费；API/worker可水平扩容、持久队列与背压生效、断流/刷新/Worker重启可恢复；Claude/Kimi任一限流或不可用时只对可证明未dispatch的任务安全排队或切换；数据库连接、CPU、内存、5xx、队列深度/最老年龄、受理/排队/provider/端到端P50/P95和逐任务成本均达标；再用严格费用上限的小样本真实模型校准，不以副本数或API Key数量代替端到端容量证据。
+- 是否需要用户决定：100个同时AI任务的商业首阶段目标已确认；未来1000个同时AI为扩展目标。仍需在创建付费阿里云资源前确认地域/规格/月预算，在真实AI容量采样前确认次数和人民币上限；自动提高付费规格或供应商消费门禁必须再次获批。
+- 是否涉及真实外部调用：当前只读Render/代码审计；后续先零AI合成压测，真实AI容量采样另列次数和人民币上限。
+- 是否已部署到 Render：否；Alibaba生产主系统也尚未创建。
+
+### CAP-001A — 供应商无关的持久AI任务控制面
+
+- 状态：**IMPLEMENTING**
+- 优先级：Critical（100个同时AI任务的第一实施包）。
+- 问题描述：现有Analyze/Generate/Chat长任务由API请求进程和进程内队列直接运行，Claude/Kimi路由、积分claim、SSE与最终结果缺少一个可跨进程/重启恢复的业务job真相；无法先可靠受理100个任务再按受控供应商容量执行。
+- 证据：现有`idempotency_requests`已具备request-id、payload hash、一次扣费/退款和保守lease原语，可作为业务入口防重基础；但仓库未发现生产AI job队列、outbox、Worker claim/fence、阶段事件/结果回放或DLQ。阿里云SMQ/MNS提供至少一次投递、最长30秒长轮询、可见性超时续租和死信队列，适合作为唤醒通道，但重复投递要求数据库job claim/fence继续作为唯一执行真相，消息只允许携带无内容的`job_id`。
+- 根因是否确认：是；缺失的是API/执行解耦和durable job状态机，不是供应商API Key数量。
+- 涉及文件：预计新增`model/ai_operations.py`, `model/task_queue.py`, `model/ai_worker.py`、PostgreSQL/SQLite增量migration、API status/result/SSE replay路由及聚焦并发/故障测试；最小复用`model/idempotency.py`, `model/model_router.py`, `model/billing.py`，不在首包修改支付或Gateway协议。V1先由PostgreSQL `FOR UPDATE SKIP LOCKED`、lease、fence和heartbeat承担权威队列；预留`TaskQueue`接口，后续只有在transactional outbox闭环后才接SMQ/MNS/RocketMQ无内容`job_id`唤醒消息，避免数据库/消息双写丢单。
+- 风险：至少一次消息重复投递、claim后崩溃、provider已开始但回执丢失、退款与结果错序、Prompt进入消息/日志、Claude/Kimi不安全fallback。首包必须保持provider调用0，用FakeProvider锁定状态机后再接真实路由。
+- 执行代理：单一Capacity Implementation Agent；数据库migration、API/Worker和账务共享调用链必须串行，不与支付Implementation并行。
+- 验证代理：独立Database/Concurrency/Billing/Security Verification Agent。
+- 验收标准：同一用户/request-id/payload只生成一个job并只扣费一次；100个并发提交全部在2秒内返回job_id；消息仅含job_id/固定枚举，Prompt/正文/图片/Token/Secret为0；重复消息/Worker崩溃/可见性续租/过期lease/DLQ/数据库短断下provider与退款均恰好一次或进入可对账不确定态；结果和安全结构化解释可按owner恢复；SQLite/PostgreSQL、100任务FakeProvider、全量和Production Readiness通过。
+- 是否需要用户决定：实现本地状态机和FakeProvider不需要；新增阿里云SMQ/MNS、migration应用、真实Claude/Kimi或改变结果保留期需要。
+- 是否涉及真实外部调用：第一代码包否；云端集成会创建SMQ/MNS和数据库记录，真实AI保持0直至独立验证通过。
+- 是否已部署到 Render：否；目标运行于阿里云Production，Staging集成环境另行确认。
+
+### CAP-001A1 — 持久AI任务账本与安全claim基础层
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：Critical（CAP-001A首个串行代码包）。
+- 问题描述：先建立不接API、不调用供应商、不扣费的持久任务状态机与数据库claim/lease/fence基础层，为后续API受理、独立Worker和100任务合成压测提供唯一执行真相。
+- 证据：现有PostgreSQL migration最高为`0006_model_usage_records.sql`，SQLite schema由`model/db.py`维护；仓库尚无`ai_operations`、阶段事件、provider attempt或跨Worker安全claim。容量、DevOps和FinOps三路只读审查一致确认应先完成数据库权威任务层，消息系统不得先成为业务真相。
+- 根因是否确认：是。
+- 涉及文件：最小新增`model/migrations/postgres/0007_ai_operations.sql`、`model/ai_operations.py`、`model/task_queue.py`和聚焦测试；为保持SQLite测试/本地兼容，最小更新`model/db.py`。本包不修改`model/api.py`、`model/billing.py`、`model/model_router.py`、Gateway、前端、支付或部署配置。
+- 风险：状态迁移过宽会造成重复执行；lease到期边界、旧fence写入和未知provider dispatch结果若处理错误会产生双调用。本包必须默认保守：旧owner失去fence后不能写终态，provider是否已开始不明时不得自动重新执行。首次独立验证另确认一个High阻断：当持续存在queued backlog时，stale `provider_started`只在无可claim任务时才隔离，可能长期卡在running并阻塞对账；另有调用方自定义operation ID可携带非opaque内容的Medium硬化缺口，均退回本包修复。
+- 执行代理：单一Capacity Implementation Agent。
+- 验证代理：独立Database/Concurrency/Security Verification Agent，不接受Implementation Agent自证为VERIFIED。
+- 验收标准：SQLite和PostgreSQL schema合同一致；100个合成任务可创建且ID唯一；并发claim同一任务只有一个winner；heartbeat只能由当前lease/fence续期；lease过期后新owner取得更高fence，旧owner无法写阶段/结果；状态只允许固定枚举；事件和attempt仅保存固定枚举、哈希/计数/时间，不保存Prompt、正文、图片、URL、Token、Cookie、Secret或异常原文；聚焦测试、全量单元测试及Production Readiness通过。
+- 是否需要用户决定：本地代码与一次性测试数据库不需要；向Staging/Production应用`0007` migration必须再次明确确认。
+- 是否涉及真实外部调用：否；FakeProvider和数据库并发测试均为本地零AI、零费用。
+- 是否已部署到 Render：否。生产空库已应用`0007`，但应用代码尚未部署；Staging部署状态需在push后另行核对。
+- 修改状态/验证进度：实现已提交在`199bf5f`，生产空库已应用`0007`。提交前验证曾通过聚焦/全量/Production Readiness，但按唯一账本规则，仍须由未参与实现的Verification Agent针对当前HEAD复核exact diff、SQLite/PostgreSQL合同、测试结果和云端migration/应用部署边界；完成前不得沿用旧聊天结论标记VERIFIED。
+
+### CAP-001A2 — request-id、扣费与持久job原子受理
+
+- 状态：**READY_TO_FIX**
+- 优先级：Critical（100任务快速受理与零重复扣费的第二串行包）。
+- 问题描述：将现有付费请求`idempotency_requests`与已验证的`ai_operations`安全绑定，使同一user/operation/request-id/payload只产生一个持久job并只扣费一次；API可在不占用provider执行时返回可恢复job标识，同时保持当前Staging SSE兼容边界。
+- 证据：`CAP-001A1`已独立验证数据库任务真相、claim/lease/fence；现有`claim_and_charge()`在单事务内完成幂等claim与扣费，但事务提交后才返回，当前API随后仍在请求进程直接运行AI，且`idempotency_requests`没有已确认的job外键/原子enqueue步骤。若简单在函数返回后另行enqueue，进程崩溃会出现已扣费但无job；若先enqueue再扣费会出现无权执行的幽灵job。
+- 根因是否确认：是；三路只读调查确认精确原子插点位于`idempotency.claim_and_charge`的唯一owner判定之后、事务commit之前，但当前`ai_operations.enqueue_operation()`会自开事务，且旧SSE路径没有持久输入/结果引用，不能直接enqueue可执行job。最小稳健方案是新增一对一admission link和transaction-aware enqueue/helper，保持旧SSE完全不接队列；版本化202入口留到持久输入/结果与Worker包。
+- 涉及文件：待调查`model/idempotency.py`, `model/billing.py`, `model/api.py`, `model/ai_operations.py`, `model/db.py`、下一PostgreSQL migration、聚焦API/并发/账务测试；本包不得顺带接真实provider、消息队列、支付或修改Gateway。
+- 风险：跨事务双写造成已扣费无job或无扣费job；重复request-id创建多个operation；202与现有SSE响应不兼容；退款早于unknown对账；用户越权读取他人job；raw request-id或正文进入任务表。
+- 执行代理：调查完成、根因与兼容方案确认后指定单一API/Idempotency Implementation Agent。
+- 验证代理：独立Billing/Concurrency/API Contract/Security Verification Agent。
+- 验收标准：同user/operation/request-id/payload的20并发提交仅一个owner、一个job和一次扣费；相同key不同payload为conflict且不新建job；事务任一点失败均不会留下收费/job半状态；job只保存owner/request摘要与固定枚举；跨用户不可读取；当前Staging旧SSE路径默认行为不变，生产异步受理通过显式配置/版本边界启用；聚焦、全量、Production Readiness和100任务零AI admission基线通过。
+- 是否需要用户决定：本地只读调查与代码测试不需要；向任何Staging/Production应用新migration、改变公开API默认响应或真实扣费/AI调用必须再次确认。
+- 是否涉及真实外部调用：调查与首轮本地FakeProvider测试否。
+- 是否已部署到 Render：否。
+
+### CAP-001A2A — 原子admission账本与transaction-aware enqueue
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：Critical（CAP-001A2首个最小代码包）。
+- 问题描述：在不接API/Worker/provider的前提下，新增`idempotency_requests`与`ai_operations`严格一对一admission关联，并提供单事务claim、job enqueue、扣费和usage写入原语；现有同步/SSE `claim_and_charge()`保持原行为且不创建job。
+- 证据：Repository Explorer确认当前`claim_and_charge()`在`model/idempotency.py`同一短事务内完成唯一owner与扣费，但A1 `enqueue_operation()`自开事务；Test Finder确认现有测试分别证明一次扣费与独立job安全，却没有跨账本原子性；Database/Security Reviewer建议新增`ai_operation_admissions(operation_id PK/FK, idempotency_request_id UNIQUE/FK, created_at)`，避免共享UUID的隐式无约束关联和SQLite存量ALTER复杂度。
+- 根因是否确认：是。
+- 涉及文件：最小允许`model/migrations/postgres/0008_ai_operation_admissions.sql`、`model/db.py`、`model/ai_operations.py`、`model/idempotency.py`及新建聚焦测试；不得修改`model/api.py`、`model/billing.py`、前端、Gateway、部署或支付。
+- 风险：嵌套事务造成半提交；相同key重试未返回相同job；旧legacy idempotency无link被错误补建job；job/扣费锁序与现有subscription/credits锁冲突；把raw user/request-id写入subject或operation字段；异步admission错误激活请求进程ContextVar。
+- 执行代理：单一API/Idempotency Implementation Agent。
+- 验证代理：独立Billing/Concurrency/Database/Security Verification Agent。
+- 验收标准：新helper中同user/operation/key/payload的20并发仅1条idempotency、1个operation、1条admission、1个enqueued event、1条usage和一次积分扣减，所有重复请求恢复同一job_id；同key异payloadconflict且计数不增；job/link/event/charge任一步注入失败均由数据库事务回滚为0半状态且余额/套餐不变；旧`claim_and_charge()`默认仍不创建job；legacy已有idempotency无link不得补建job；100个不同key零AI admission在2秒内完成且provider attempt为0；owner查询只能通过admission join+user_id，返回allowlist且跨用户/不存在不可枚举；SQLite/0008 schema对等、聚焦/全量/Production Readiness通过。
+- 是否需要用户决定：本地代码和一次性SQLite测试不需要；应用`0008`到任何Staging/Production、启用公开202或运行PostgreSQL集成测试需要明确批准。
+- 是否涉及真实外部调用：否；不调用provider、不扣真实账户费用。
+- 是否已部署到 Render：否。生产空库已应用`0008`，但应用代码尚未部署；本包仍未连接公开API/Worker/provider。
+- 提交后验证状态：实现已与CAP-001A1一并提交在`199bf5f`。生产RDS只完成`0008`空结构migration，未导入Staging数据、未扣真实账户费用、未调用AI。须由独立Verification Agent对当前HEAD复核事务原子性、100个零AI admission、跨用户不可枚举、全量回归和部署边界后才可标记VERIFIED。
+- 修改状态/独立验证证据：已新增`model/migrations/postgres/0008_ai_operation_admissions.sql`和`tests/test_ai_operation_admission.py`，最小更新`model/db.py`, `model/ai_operations.py`, `model/idempotency.py`；没有修改API、billing、前端、Gateway或部署。独立Verification Agent证明SQLite/0008的一对一NOT NULL/PK/UNIQUE/FK/RESTRICT合同对等，NULL、双向重复和父记录删除均被拒绝；20并发同key仅1 job/link/usage/charge且其余19返回同一job；operation失败、job后billing失败、真实wallet扣减及流水写入后的marker失败均完整回滚余额/订阅/流水和五张admission表；legacy无link不补job，新helper不激活ContextVar且旧helper行为不变；owner allowlist/跨用户不可枚举成立。独立100线程同时admission耗时0.6518秒、100/100成功、provider attempt/model usage/model_calls均0。主代理复跑相关69/69、全量570/570（5个未授权PG既有用例skip）、Production Readiness 48/48、py_compile/diff check通过；未应用0008、未调用AI或外部服务。
+
+### CAP-001A2B — 可恢复输入、结果引用与Worker数据边界
+
+- 状态：**INVESTIGATING**
+- 优先级：Critical（公开202与独立Worker之前置门禁）。
+- 问题描述：A2A只能原子创建摘要job，尚不能让另一个Worker在重启后取得Analyze/Generate/Chat所需的正文、图片/视频引用、session上下文，也不能持久恢复最终结果；必须定义加密、最小化、TTL、owner隔离的payload/result引用合同，且不持久化原始reasoning。
+- 证据：三路只读调查确认现有三条pipeline依赖请求内对象、内存队列、chat session和本地/临时多媒体，A1/A2A表故意只保存hash/枚举/计数；Analyze/Generate图片仍为请求内base64，视频只保留单机约6小时JPEG帧与不绑owner的`video_file_id`，Chat仅按session_id恢复且`mem_prompt`不持久，Generate没有durable result，Analyze完整结果与Chat messages/generate_ctx仍存在现有明文业务表。现有`artifact_loader.py`和`boto3`只服务私有模型下载，不是用户payload put/get/delete/KMS抽象。若现在开放202或Worker，会出现job可claim但无输入，或旧SSE与Worker双跑。
+- 根因是否确认：是；生产目标应为PostgreSQL元数据 + 阿里云私有OSS密文对象 + RAM Role短期凭证 + SSE-KMS。产品负责人已决定商业V1采用免费的云产品默认服务密钥而非付费客户自管软件KMS；数据库/消息仍只存opaque object id、owner/operation/purpose、hash/size/MIME枚举、schema/encryption mode/key epoch、状态与TTL，对象key不得包含用户/session/filename，消息只含operation ID。入队保存不可变输入snapshot，首次provider前checkpoint动态memory/fact/market/prompt/model版本，终态只保存递归allowlist后的公开结果；原始reasoning/system prompt/provider envelope永不持久化。不得把V1宣传为BYOK、应用层端到端加密或多用途独立客户自管密钥。
+- 涉及文件：待调查Analyze/Generate/Chat请求模型与pipeline、chat/session/notes存储、多媒体缓存、OSS/S3配置、未来payload/result metadata migration、storage interface、worker loader和脱敏测试；本调查不修改现有路由或调用provider。
+- 风险：明文正文或图片进入队列表/日志；对象URL可枚举；KMS/OSS故障造成不可恢复job；TTL先删除输入但job仍排队；跨用户读取；raw reasoning长期持久化；中国大陆到新加坡Claude跨境数据边界未披露。
+- 执行代理：Repository/Data Flow Explorer + Security/Storage Reviewer + Test Finder；根因/合同确认后单一Implementation Agent。
+- 验证代理：独立Security/Recovery/Retention/Worker Contract Verification Agent。
+- 验收标准：为三类入口列出最小必要输入与禁止字段；小文本与大媒体均只通过加密/私有对象引用恢复，队列表/消息/日志不含正文、base64、URL、Prompt、reasoning、Cookie、Token或Secret；owner与用途绑定、完整性hash、TTL/删除顺序、KMS/OSS失败终态和结果allowlist明确；FakeStore在进程重启、重复load、过期、篡改、跨用户和100job下通过，之后才允许版本化202/Worker实施。
+- 是否需要用户决定：是。只读调查与本地FakeStore/interface/serializer/metadata合同不需要；需要产品确认输入/结果/unknown/孤儿对象保留期、Chat snapshot策略、provider成功但结果存储失败的对账/退款语义，以及跨境策略。新增官方`alibabacloud-oss-v2`/credentials依赖、创建OSS/KMS/CMK/RAM/lifecycle/监控付费资源、应用migration或实际上传用户数据需明确批准。
+- 是否涉及真实外部调用：调查否；任何OSS/KMS创建或上传另行批准。
+- 是否已部署到 Render：否。
+- 推荐但待确认的保留期：未完成/孤儿上传24小时；失败/取消输入24小时；成功输入终态后24小时且硬上限7天；`outcome_unknown` 7天；最终公开结果30天；视频抽帧/临时衍生物最多6小时；Prompt、raw reasoning、provider原始request/response为0天。删除顺序固定为DB `delete_pending`立即不可读 → OSS delete/HEAD确认 → DB `deleted` tombstone，不能先删元数据。
+- 推荐但待确认的跨境策略：原始图片/视频/base64/EXIF/OSS URL只在阿里云华南由Kimi处理；仅在隐私政策/法务允许的`minimized_text_allowed`模式下，将完成脱敏、最小必要的文本输入/摘要通过Singapore Gateway发送Claude。每个job固定记录跨境枚举，Worker不得临时改变；Claude输出仅保存公开结果与最小usage，不保存reasoning。
+
+### OPS-003 — 商业AI容量、费用监控与升级触发
+
+- 状态：**INVESTIGATING**
+- 优先级：Critical（商业上线持续运行门禁）。
+- 问题描述：上线后必须同时监控Claude与Kimi的组织/账号配额、实际速率、Token、费用、余额、429/5xx、队列深度和任务延迟；接近或超过门禁时由NoteAI发起有证据的升级建议或工单，而不是静默失败或盲目创建API Key。
+- 证据：Anthropic当前真实Scale配额已核验且Console支持Rate Limit/Usage/Cost信息；当前仓库有逐模型usage/cost和部分Admin汇总，但没有统一provider-capacity快照、队列SLO、预测耗尽时间、分级告警或升级Runbook。Kimi配额值尚未取得受控官方证据。
+- 根因是否确认：是；缺失持续容量治理和升级工作流，不是单次部署缺陷。
+- 涉及文件：未来provider quota采集器、队列/Worker/Gateway指标、SLS/CloudMonitor告警、Admin容量页、升级Runbook与脱敏测试；不得保存API Key、完整请求或供应商异常正文。
+- 风险：自动升配造成失控费用；只看RPM忽略ITPM/OTPM/余额；Kimi/Claude一方过载时形成雪崩fallback；告警包含用户内容或Secret。自动化只能告警、排队、降载和执行已批准范围内的实例伸缩，不能自动提高供应商消费门禁或购买新付费规格。
+- 执行代理：Monitoring/FinOps Implementation Agent，在CAP-001A指标合同确定后实施。
+- 验证代理：独立SRE/FinOps/Security Verification Agent。
+- 验收标准：至少采集provider/model维度RPM/ITPM/OTPM或官方可用等价指标、429/5xx/timeout、Token/成本/余额、队列depth/oldest age、active leases、任务四段P50/P95/P99；达到70%持续5分钟Warning、85%持续3分钟High、95%或预测15分钟内耗尽Critical（最终阈值由真实压测校准）；自动生成含当前值/上限/增长率/预计耗尽/建议新上限/费用影响/回滚方案的升级建议；费用或供应商配额提升只在用户批准后执行；Claude/Kimi任一故障时无重复provider和重复扣费。
+- 是否需要用户决定：监控与告警实施不需要；告警渠道、自动扩容预算上限、任何供应商/云资源付费升级需要。
+- 是否涉及真实外部调用：会持续读取供应商/阿里云非Secret监控数据并发送告警；申请升级或改变付费资源是外部状态变更，必须按授权边界执行。
+- 是否已部署到 Render：否；业务监控运行于阿里云，Render Gateway只暴露白名单聚合指标。
 
 ### PROD-001A — Adapay 商户准入与三通道能力确认
 
@@ -385,34 +604,72 @@
 
 ### PROD-002A — 阿里云华南生产基础设施、域名与监控
 
-- 状态：**TODO**
+- 执行进展（2026-07-14 域名采购批准后）：产品负责人已明确批准按最终采购清单推进，正式主域锁定为 `noteaipro.cn`，并防御性注册 `noteaipro.com`。登录态万网购买前页面再次确认 `.cn`/`.com` 仍可注册，1年实付分别为 ¥38/¥85，自动续费关闭，15元AI建站附加项未勾选，合计 ¥123，未超过5%价格门禁。两份订单尚未提交或付款，账号当前没有可用的域名持有者信息模板；创建模板需提交企业名称、证件和联系人敏感资料，且必须与后续ICP备案主体一致，因此采购暂停在企业信息模板门禁，等待产品负责人在阿里云页面亲自创建并完成实名审核。未产生域名费用，未创建DNS/TLS/备案资源。
+
+- 独立验收（2026-07-16）：阿里云域名列表已确认 `noteaipro.cn` 与 `noteaipro.com` 均注册成功且状态为“正常”，有效期分别为2026-07-16至2027-07-16、2026-07-15至2027-07-15；两行自动续费开关均未显示为开启。域名采购因此从“仅用户自报”升级为云端可核验证据。与此同时发现主体不一致：主域 `.cn` 显示为企业持有者，防御域 `.com` 显示为个人持有者；信息模板页当前还显示“无模板可用”。产品负责人于2026-07-16明确接受该主体差异：`.com` 只作个人持有的防御性占位，不承载生产流量、不参与ICP备案、不作为企业主体一致性的上线门禁；未来如需启用品牌跳转、对外业务或纳入企业资产，再另立过户任务。该风险接受不改变 `.cn` 企业持有、唯一生产主域和ICP备案主体一致要求。未修改DNS记录、未购买企业DNS/TLS/备案资源。
+
+- 企业DNS付款前复核（2026-07-16）：在产品负责人现有阿里云登录会话中进入官方公网权威解析购买页，配置且仅配置 `noteaipro.cn` 一个可绑定域名、企业旗舰版、DNS攻击基础防御、1年，自动续费未勾选。实时应付金额为 **¥1,168.00**，与批准预算一致且未触发5%价格门禁；`noteaipro.com` 未加入购买范围。页面已停留在“立即购买”前交由产品负责人接手，未点击购买、未创建DNS实例、未修改任何解析记录、未产生费用。下一步是由产品负责人完成付款，付款后独立核验实例状态和主域绑定；正式解析记录与DNS切换仍须单独批准。
+
+- 企业DNS购买与主域绑定验收（2026-07-18）：产品负责人完成付款后，主控在阿里云登录态独立核验包年包月实例 `dns-cn-jpu4vjg1501` 为“企业旗舰版 · 防护中”，到期时间 `2027-07-19 00:00:00`，并在已明确授权范围内把 `noteaipro.cn` 绑定到该实例。阿里云提交结果为“绑定成功1个，绑定失败0个”；刷新实例页显示绑定域名 `noteaipro.cn`，公网权威解析页显示该域套餐为企业旗舰版、防护中、状态正常，当前记录数为0。公网交叉核验确认权威NS仍为 `dns15.hichina.com` / `dns16.hichina.com`，根域、`api`、`admin`、`www` 均无公开A/CNAME，不存在需要迁移的在线业务地址。生产解析尚未创建：仓库与云端均没有可安全使用的生产ALB/WAF入口，NAT EIP仅用于出站，Render地址仅为Staging；严禁用占位IP、NAT EIP或Staging域名冒充生产目标。待真实ALB/WAF入口和TLS证书部署完成后，再创建并验证 `@`、`api`、`admin` 记录；`www` 与公开 `gateway` 未获产品/架构确认，不创建。电子邮箱绑定提示按产品负责人指示不纳入本步骤。
+
+- 正式TLS购买、独立性与三证签发验收（2026-07-18）：在产品负责人明确批准接受证书服务协议和手动维护确认后，主控在阿里云登录态分别配置 `noteaipro.cn`、`api.noteaipro.cn`、`admin.noteaipro.cn` 三份 Rapid DV 正式单域名一年订阅；每份均关闭自动托管、归入 `NoteAI Production` 资源组并标记 `project=noteai`、`environment=production`。实时首购优惠为 **¥291/份**，三份采购清单总计 **¥873**，低于原批准的¥1,455预算。操作中发现同页继续添加会把上一域名残留进订单摘要，主控在提交前停止并为 `admin` 使用全新购买页，避免误合并为多域名证书。产品负责人完成付款后，阿里云支付页显示支付成功；SSL证书管理控制台独立显示3个不同订阅实例，分别绑定上述三个域名，且每个均为 `Rapid RSA_2048`、`DV 单域名`，因此购买与实例独立性验收通过。产品负责人随后在阿里云页面亲自选择CA联系人/所在地并依次提交三张申请；自动DNS验证成功。最新SSL证书列表显示三张证书均为 **已签发**，有效期均为2026-07-18至2027-02-02；每张证书由CA同时附带对应的 `www` 名称。订阅有效期2027-07-19不等同于当前证书有效期，必须以2027-02-02为到期门禁，并最迟在2027-01-03启动换发。三张证书当前“已部署”列均为 `--`：购买、申请、DNS验证与签发阶段已闭环，但尚未绑定生产ALB，不能把“已签发”宣称为“生产HTTPS已上线”。下一步是先完成生产后端健康检查与ALB，再绑定证书并对根域、API、Admin分别执行SNI/证书链/HTTPS回归；签发后由阿里云自动清理验证TXT，不手工创建业务A/CNAME占位记录。
+
+- 防御域主体迁移进展（2026-07-16）：产品负责人报告 `noteaipro.com` 已迁移到与 `noteaipro.cn` 相同的公司名下。该报告消除了产品侧的主体差异待办，且不再阻塞生产主线；但按照任务账本的独立验证规则，在阿里云域名列表再次显示两域相同企业持有者之前，本项记录为“用户完成、待只读复核”，不得冒充云端 VERIFIED 证据。即使复核通过，`.com` 首发仍只作防御性占位，不购买第二份企业DNS、不承载生产或备案。
+
+- 补充证据（2026-07-14 正式域名/TLS/备案ECS最终报价）：仅通过阿里云官方文档及已登录控制台/活动页读取结算前价格，没有点击购买、创建证书、提交备案或修改云资源。登录态确认 `noteaipro.cn` 与 `noteaipro.com` 当前均可注册，首年分别 ¥38/¥85、续费分别 ¥42/¥95；推荐 `.cn` 为唯一正式主域，`.com` 仅防御性注册，企业旗舰DNS加基础防御 ¥1,168/年只购买一份用于主域。根域、`api`、`admin` 三个公开入口采用三份 Rapid DV 正式单域名一年订阅，2026-05-06后目录价 ¥485/份、合计 ¥1,455/年；个人测试证书仅90天且官方不建议正式业务使用。一年订阅的单张证书约半年，必须按30/20/15/7天门禁完成换发与ALB部署，暂不购买额外证书托管。备案核心文档要求中国内地包年包月ECS累计大于3个月并有公网带宽，故全新恰好三个月不作为安全资格。登录态官方99计划显示2核2GiB、3 Mbps、40 GiB、¥99/年且新老用户限1台；推荐作为最小化备案专机，支付后仍须在“可备案实例管理”确认资格。若结算时99计划不可用，回退为一台既有API ECS首月后续费3个月并加1 Mbps公网，追加现金参考 ¥916.20、上限 ¥950。正式域名/TLS/备案ECS/DNS这一包首年现金为 ¥2,845；完整首笔预付基线 ¥5,848.52，首月含按量计提参考 ¥6,458.80，持续1 ALB LCU为 ¥6,489.04。完整首年月均规划约 ¥3,850.88，持续1 LCU约 ¥3,881.12；备份不超免费额度可减 ¥36/月。价格或备案资格超出门禁时必须暂停，尚未产生费用。
+
+- 补充证据（2026-07-14 SMQ/MNS/Secret/DNS/备案初步报价，域名/TLS/备案ECS部分已由上方最终报价取代）：仅查阅阿里云官方计费/产品说明和登录态只读页面，没有购买、开通或创建付费资源。SMQ是原MNS的现产品名；华南1队列资源费¥0.50/队列/天，一个工作队列加一个失败/死信队列约¥30–31/月；普通请求每账号每月前2,000万次免费，100消费者30秒长轮询加每月100万任务的保守情景约1,164万次，首发请求费预计¥0。SMQ仅在transactional outbox闭环后传无内容`job_id`，PostgreSQL claim/lease/fence仍是唯一执行真相。免费默认服务密钥不能保存应用Secret；V1使用ECS RAM Role/STS和受限部署注入，增量¥0，软件KMS基础¥2,499/月加最低100个凭据¥249/月、合计约¥2,748/月，继续延期。企业旗舰DNS加基础防御合计¥1,168/主域/年，免费DNS不作为生产目标。该轮形成的不另购备案ECS和活动域名示例价仅为初步方案，已经被登录态确认的99计划备案专机与 `noteaipro.cn`/`.com` 实时报价取代；不得继续引用旧示例价或旧月均总额作为最终采购依据。
+
+- 补充证据（2026-07-14 KMS/WAF/RDS备份-PITR）：仅通过阿里云官方计费/恢复文档和登录控制台进行只读复核，没有购买、开通或创建付费资源。产品负责人已明确选择免费默认服务密钥作为商业V1方案，以控制起步成本：RDS/OSS仍保持云产品服务端静态加密，增量¥0/月，但不得宣称多用途隔离、BYOK、应用层加密或完整客户自管密钥体系。中国内地软件密钥管理实例¥2,499/月已标记为延期升级项，仅在企业/监管合规、BYOK、应用层密码运算、独立密钥域或合同轮换要求出现时重新立项；RDS未来换钥会重启并短暂闪断，OSS换钥只覆盖新对象，历史对象需复制重加密。WAF 3.0按量版为¥0.05/SeCU/小时：空实例0.5 SeCU/小时约¥18/月、存在防护对象的默认核心规则3 SeCU/小时约¥108/月、每小时有且不超过5,000次请求的基础流量约¥36/月、峰值不超过1,000 QPS无QPS峰值费；加上WAF增强版ALB相对已预算标准版ALB的¥59.76/月差额，首发单防护对象规划增量约¥221.76/月。Bot/API安全/自定义规则、异常流量和WAF日志另计，开通前必须设置费用/QPS告警。200 GiB RDS云盘的同地域快照数据+日志备份免费额度为400 GB，超额单价¥0.00025/GB/小时（约¥0.18/GB/月）；推荐每日数据备份、数据与日志均保留14天以获得14天PITR窗口，预算暂按200 GB超额预留¥36/月，跨地域备份和恢复临时实例另计。加入既有OSS/SLS情景、WAF及RDS预留后，当前选定方案约¥3,583.80/月，持续1 LCU约¥3,614.04/月；若备份不超过400 GB可减¥36/月。软件KMS不纳入V1预算，KMS/WAF/RDS/PITR均未创建或启用，未产生费用。
+
+- 补充证据（2026-07-14 OSS/SLS）：官方实时价格页与计费说明已交叉复核，仅进行只读报价，没有创建付费资源。OSS华南1按量付费标准型LRS为¥0.12/GB/月、ZRS为¥0.15/GB/月；同地域ECS内网流出免费，公网流出00:00–08:00为¥0.25/GB、08:00–24:00为¥0.50/GB，PUT/GET首发量级处于月免费请求额度内。首发采用不预购资源包的保守情景：100 GB标准ZRS约¥15/月，加100 GB高峰公网下载约¥50/月，OSS约¥65/月；私有临时上传、模型制品、前端资产三个用途须隔离，SSE-KMS费用另计。SLS按写入数据量模式¥0.40/GB且包含30天保存；只采集固定错误码、计数、阶段时延、队列和资源指标，按1 GB/天、30天估算约¥12/月，100 GB/月压力参考约¥40/月。付费用户与稳定用量尚未形成，当前不购买不可退的年度节省计划。未创建OSS Bucket、KMS/CMK、SLS Project/Logstore、告警或资源包，未产生费用。固定基础费仍约¥3,249.04/月；加入OSS/SLS保守规划情景约¥3,326.04/月，若持续使用1 ALB LCU约¥3,356.28/月；NAT CU、EIP出网、KMS、WAF、备份超额等仍未计入。
+
+- 补充证据（2026-07-14 NAT/EIP）：官方计费文档与登录后的华南1控制台已交叉核验。用户明确批准后，控制台已成功创建独立的 `AliyunServiceRoleForNatgw`；刷新后原角色门禁消失，该角色只供 NAT 网关管理托管弹性网卡等网络资源，不是应用运行时角色。购买页已配置但未提交：公网 NAT 网关 `noteai-prod-nat`、生产资源组与 VPC、可用区 C 应用交换机 `noteai-prod-app-c`（`10.42.10.0/24`），新购 BGP（多线）EIP、200 Mbps 峰值上限、按使用流量计费，标签 `project=noteai`、`environment=production`、`role=egress`。登录账户实时报价为公网 IP 保有费 ¥0.02/小时、NAT 实例费 ¥0.196/小时、NAT CU 费 ¥0.196/CU；前两项按720小时折算约 ¥155.52/月，CU 与出网流量另计。官方深圳 BGP 多线流量参考价为 ¥0.80/GB；200 Mbps 是按流量计费模式的上限峰值，不是固定带宽承诺，也不会按200 Mbps直接收取固定带宽费。未点击“立即购买”，未创建NAT或EIP，未产生实例费用。
+
+- 状态：**IMPLEMENTING**
 - 优先级：Critical。
-- 问题描述：仓库没有阿里云生产部署清单；需要建设主API、Admin、前端、Worker、负载均衡/WAF、TLS、Secret管理、日志指标和告警。
-- 证据：当前 Dockerfile 可复用，但 `render.yaml` 仅描述 Singapore Staging；`docker-compose.yml` 只是本地方案，不含阿里云负载均衡、WAF、证书或生产监控。
+- 问题描述：仓库没有阿里云生产部署清单；需要建设主API、Admin、前端、独立AI Worker、SMQ/MNS、负载均衡/WAF、TLS、Secret管理、日志指标和告警，并承载商业首阶段100个同时AI任务的可靠受理与排队。
+- 证据：当前 Dockerfile 可复用，但 `render.yaml` 仅描述 Singapore Staging；`docker-compose.yml` 只是本地方案，不含阿里云负载均衡、WAF、证书或生产监控。2026-07-14 用户已在阿里云创建并截图核验资源组 `noteai-production`、自定义VPC、C/F双可用区六个交换机和API/Worker空安全组；API、Worker、RDS、Tair、标准版ALB、NAT/EIP、OSS、SLS、WAF、RDS备份/PITR、MNS、Secret管理、DNS/备案、正式域名/TLS及恢复演练均已完成未下单报价。2026-07-16独立核验确认两个域名已注册并处于正常状态；产品负责人随后报告`.com`已迁移到与`.cn`相同公司名下，等待云端只读复核但不阻塞主线。2026-07-18 企业旗舰DNS已付款、实例已开通，`noteaipro.cn` 已完成绑定并在公网权威解析页显示企业旗舰版/防护中/正常；业务记录仍为0，等待真实生产ALB/WAF入口。同日三份Rapid DV正式单域名证书已付款、确认实例相互独立并全部通过自动DNS验证完成签发；三张当前均未部署到ALB，生产HTTPS仍未闭环。含首年域名、TLS、99计划备案ECS和企业DNS摊销的目标商业首发月均规划约¥3,850.88，持续1 ALB LCU约¥3,881.12；若RDS备份不超400 GB可减¥36/月。正式域名/TLS/备案ECS/DNS包首年现金¥2,845；完整首笔预付基线¥5,848.52，首月含按量计提参考¥6,458.80。软件KMS、按次恢复演练、NAT CU/EIP出网及按量超额不在固定月费内。备案ECS及其他付费生产资源仍未购买；购买前剩余外部变量包括99计划实际可备案状态、恢复实例当日规格和逐项结算页价格。
 - 根因是否确认：是。
 - 涉及文件：新增阿里云部署/IaC或受控运行手册、容器配置、健康检查、环境模板、DNS/CORS/回调配置；不提交Secret。
 - 风险：单点故障、配置漂移、公开Admin、错误CORS、日志泄密和不可回滚部署。
 - 执行代理：Architecture/DevOps Explorer 已完成差距审计；资源规格确认后指定单一 DevOps Implementation Agent。
 - 验证代理：独立 Cloud/DevOps + Security Reviewer。
-- 验收标准：环境隔离、最小权限、TLS/WAF、Admin访问保护、Secret轮换、健康/指标/告警、灰度/回滚和容量基线通过；主系统仅通过Gateway调用Claude。
-- 是否需要用户决定：是；需确认阿里云账号、华南具体地域、预算、域名和资源规格。
+- 验收标准：环境隔离、跨可用区最小2个API和2个Worker执行单元、PostgreSQL权威任务账本、SMQ/MNS/RocketMQ唤醒队列与DLQ、生产PostgreSQL/OSS、最小权限、TLS/WAF、Admin访问保护、Secret轮换、健康/指标/告警、灰度/回滚和100任务FakeProvider容量基线通过；主系统仅通过Render Gateway调用Claude并在阿里云内调用Kimi；任一供应商故障时任务仍可恢复且不重复扣费。
+- 是否需要用户决定：是；两个域名已付款并注册成功，主域企业旗舰DNS已付款且完成绑定，产品负责人报告两域现已迁移到同一公司名下，后续只需只读复核，无需再次进行产品取舍。正式业务记录切换必须等待真实ALB/WAF目标和TLS完成后按已授权上线流程实施；不能以NAT EIP、占位IP或Render Staging代替。地域采用华南1（深圳，`cn-shenzhen`）；三份Rapid DV、¥99/年备案专机、免费默认服务密钥保持已批准方案，软件KMS延期且不纳入V1预算。
 - 是否涉及真实外部调用：是；会创建付费云资源和DNS变更，实施前逐项批准。
 - 是否已部署到 Render：不适用；目标部署到阿里云。
 
+### PROD-002A1 — 生产后端运行节点、健康检查与 ALB/TLS
+
+- 状态：**IMPLEMENTING**
+- 优先级：Critical。
+- 问题描述：按产品负责人 2026-07-18 指令建设生产后端运行节点和健康检查，再创建 ALB 并绑定三张已签发证书。只读云端核验确认华南1当前 ECS 与 ALB 均为0；直接购买空 ECS 无法形成可验收的生产后端。
+- 证据：仓库 `Dockerfile`/`scripts/docker_entrypoint.sh` 的 API 默认监听8000并提供 `/health/live`、`/health/ready`；Admin 由 `PORT` 控制，目标端口为8001。生产 readiness 必须验证 PostgreSQL和模型制品，不能以本地SQLite返回200冒充生产就绪。独立DevOps复核确认Worker公开任务链尚未闭环，因此本包不购买2台Worker空节点。三张Rapid DV证书均已签发且未部署，可在后端通过ready检查后分别作为根域默认证书及API/Admin SNI证书绑定。2026-07-18 产品负责人支付一个月期RDS；阿里云控制台独立核验实例 `noteai-prod-postgres`（`pgm-wz9m8tdck1v06672`）为“运行中”，PostgreSQL 16.0、高可用系列、4 vCPU/16 GiB、生产私网，创建时间2026-07-18 14:53:06、到期时间2026-08-19 00:00:00，包年包月且未开启自动续费。这是一套高可用逻辑实例，内部主C/备F，不是两套独立RDS；按一个月期、后续逐月手工续费，不按年费或第二套RDS计入已采购。同日独立核验 `noteai-prod-tair` 为“运行中”，Redis 7.0、云原生标准架构2 GiB、主C/备F、生产私网、包年包月，到期时间同为2026-08-19。VPC级SNAT `noteai-prod-snat-vpc` 状态为“可用”，使用既有EIP为生产VPC内ECS提供主动公网出站，不开放公网入站。本地发布候选预检通过Production Readiness 48/48、相关单元测试186/186、Python编译和Docker Compose配置；但本机Docker daemon未运行，且工作区包含多批未提交变更，不能把当前目录直接冒充可追溯的不可变生产镜像。产品负责人批准API-F因库存差异增加¥90.69/月，两台ECS最终合计¥655.49并完成付款。控制台独立核验两台均于2026-07-18 16:50创建并为“运行中”：API-C `noteai-prod-api-c`（`i-wz9j36od3nf2b1uw7bvg`）位于C区、`ecs.u2a-c1m2.xlarge` 4 vCPU/8 GiB、私网IP `10.42.10.44`；API-F `noteai-prod-api-f`（`i-wz9bgztwf1tiakww2ops`）位于F区、`ecs.u2i-c1m2.xlarge` 4 vCPU/8 GiB、私网IP `10.42.11.166`。两台均为Alibaba Cloud Linux 4 LTS、40 GiB ESSD、0 Mbps且无公网IP、包年包月到期2026-08-18 23:59:59、未开自动续费，均绑定API安全组 `sg-wz98p0xa5040vpnyvgys`；安全组当前入方向规则为0。2026-07-18 生产纯结构migration已按批准范围闭环：官方 `DescribeAccounts` 只读核验实例只有 `noteai_admin`（Available/Super）和 `noteai_app`（Available/Normal）两个受管账号，数据库原所有者 `aurora` 不是受管RDS账号；随后仅把 `noteai` 数据库 `DBOwner` 授予 `noteai_admin`，未提升 `noteai_app`。DMS内部复核显示当前用户与数据库所有者均为 `noteai_admin`，数据库和 `public` schema 的CREATE权限均为真。迁移使用单个原子DO块执行0001—0008，事务内将search_path限定为`public`，安全审计确认0条DROP/TRUNCATE/DELETE，DMS报告1/1语句成功（88ms）。独立查询确认30张public表、8条migration、缺失版本0；`users`、`notes`、`usage_records`、`subscriptions`、`ai_operations`均为0，未导入Staging数据，也未运行Prompt基线写入。生产应用、Secret注入、ALB创建和证书绑定仍未执行。
+- 根因是否确认：是；数据库原所有权属于不可直接登录的内部账号 `aurora`，导致迁移账号最初无CREATE权限；该权限阻断已通过最小范围DBOwner授权解决，纯结构migration已落地。当前剩余阻断为可追溯不可变镜像、运行时最小权限账号、Secret注入、节点部署与ALB/TLS，已不是数据库结构问题。
+- 涉及文件：`Dockerfile`、`scripts/docker_entrypoint.sh`、`model/api.py`、`model/admin_api.py`、`model/db.py`、生产部署/IaC或受控运行手册、环境变量模板；不得提交Secret。
+- 风险：购买空置节点、SQLite误判健康、首次启动隐式migration、Secret泄露、Admin公网暴露、双节点状态漂移、证书绑定到无健康后端。ALB不得使用要求Claude Gateway在线的AI readiness；Gateway故障只允许Claude能力降级，不能把两台Alibaba业务节点同时摘除。视频帧仍为节点本地/内存状态，完成对象存储前不宣称视频流程可横向扩展。
+- 执行代理：主CTO编排；生产前置闭环后由单一DevOps Implementation Agent创建API节点与ALB，不并行修改同一部署链。
+- 验证代理：独立Render/DevOps Reviewer已完成前置审计；实施后由独立Verification Agent检查云端配置、健康检查、TLS、回归和费用证据。
+- 验收标准：C/F双可用区至少2个API执行单元使用同一不可变镜像摘要；API 8000和Admin 8001均从阿里云PostgreSQL启动，`/health/live`与`/health/ready`连续通过且证明数据库后端不是SQLite；节点无公网IP，运行时Secret不进入镜像、Git、cloud-init或消息；标准型公网ALB跨C/F，API Host仅转发到健康API组，Admin在来源限制落实前不得公开，根域在前端落点明确前不得用占位后端；HTTP跳转HTTPS；三张现有证书通过SNI正确匹配且不重复购买；不创建www/gateway解析；独立Smoke和回滚检查通过。
+- 是否需要用户决定：是；API-F增量费用、两台ECS和生产纯结构migration均已批准并完成。数据库密码已由产品负责人直接输入且未进入聊天。后续仍需在实施前确认 `noteai_app` 最小运行权限包、Secret注入方式；Admin仍需固定办公IP/VPN/堡垒机访问方案，根域仍需确定生产前端落点。
+- 是否涉及真实外部调用：是；涉及付费RDS/Tair/NAT/EIP/ECS/ALB创建、生产migration和证书部署。RDS、Tair、VPC级SNAT及C/F两台ECS已独立核验为运行中/可用，生产纯结构migration已执行并独立验证；应用部署、ALB和证书部署尚未执行。
+- 是否已部署到 Render：不适用；目标为阿里云生产，Render Singapore仅保留Claude Gateway。
+
 ### PROD-002B — 生产 PostgreSQL、备份/PITR 与迁移恢复演练
 
-- 状态：**TODO**
+- 状态：**IMPLEMENTING**
 - 优先级：Critical。
 - 问题描述：Render Free PostgreSQL 不可承载正式数据；阿里云生产数据库、备份、PITR、迁移和恢复演练尚不存在。
-- 证据：现有 Staging DB 无生产级备份；当前 migration 工具和 PostgreSQL抽象可复用，但未在阿里云生产规格验证。
+- 证据：现有 Staging DB 无生产级备份；当前 migration 工具和 PostgreSQL抽象可复用。2026-07-14 官方只读核价确认：200 GiB云盘RDS使用快照备份，数据备份与日志备份合计免费额度为400 GB；华南1超额部分按¥0.00025/GB/小时（约¥0.18/GB/月）计费。推荐每天数据备份、数据与日志均保留14天并启用日志备份，以取得14天PITR窗口；预算暂按200 GB超额预留¥36/月。按时间点/备份集恢复会创建隔离的新实例并按实际存续时间收费，不覆盖原库；标准恢复未发现另收一次性恢复费。生产包月参考价¥1,530折合约¥2.10/小时，但按量价以恢复页为准；按2倍安全系数和零碎预留，首次4小时数据演练上限¥30、24小时完整回归上限¥120、单次硬上限¥200，超过即停止并重新确认。2026-07-18 一个月期生产实例 `noteai-prod-postgres` 已支付并为运行中，到期时间2026-08-19、自动续费未开启。静态审计确认 `model/migrations/postgres/0001` 至 `0008` 均为结构migration，无DROP/DELETE/TRUNCATE/COPY或业务数据导入；本地聚焦单元测试34/34与Production Readiness 48/48通过。为避免 `scripts/render_predeploy.py` 附带Prompt基线写入，本次仅执行等价的事务性纯结构路径。普通运行账号 `noteai_app` 为Available/Normal，数据库 `noteai` 为Running/UTF8，白名单精确限定API-C `10.42.10.0/24` 与API-F `10.42.11.0/24`并保留阿里云健康诊断白名单；未开放公网。官方 `DescribeAccounts` 独立复核仅有 `noteai_admin`（Available/Super）和 `noteai_app` 两个受管账号，数据库原所有者 `aurora` 不在受管账号列表。授权API已把 `noteai` 的DBOwner赋予 `noteai_admin`，DMS内部验证数据库所有者已变更且数据库/public schema CREATE权限为真；`noteai_app`未被提升。0001—0008随后以单个原子DO块执行成功，事务内search_path固定为`public`，执行前安全审计确认0条DROP/TRUNCATE/DELETE。独立验证结果为30张public表、8条migration、缺失版本0，关键业务表 `users`、`notes`、`usage_records`、`subscriptions`、`ai_operations`记录均为0；未导入Staging数据、未删除数据、未写入Prompt基线。纯结构migration子阶段达到验收标准，但备份/PITR配置和隔离恢复演练尚未闭环。
 - 根因是否确认：是。
 - 涉及文件：PostgreSQL部署/参数/备份策略、`scripts/render_predeploy.py` 的云无关化或新生产predeploy、migration/恢复运行手册及数据库兼容测试。
-- 风险：数据丢失、迁移漂移、支付与积分账本损坏、恢复时间不可控。
+- 风险：数据丢失、迁移漂移、支付与积分账本损坏、恢复时间不可控；当前尚无已验证的生产PostgreSQL连接池、连接预算、主备切换恢复和隔离PITR演练。
 - 执行代理：单一 Database/DevOps Implementation Agent；支付 migration 与生产迁移必须串行。
 - 验证代理：独立 Database Recovery Verification Agent，在一次性环境实际恢复备份并对账。
 - 验收标准：自动备份与PITR启用；RPO/RTO明确；所有migration幂等；备份恢复到隔离实例后用户、支付、积分、usage、Prompt和趋势关键计数一致；回滚手册演练通过。
-- 是否需要用户决定：是；生产数据库规格、保留期限、RPO/RTO和迁移窗口需确认。
-- 是否涉及真实外部调用：是；涉及付费数据库和生产数据迁移，需单独批准。
+- 是否需要用户决定：部分已完成；生产纯结构migration窗口与范围已批准并执行，密码由产品负责人直接输入且未进入聊天。备份保留期、正式RPO/RTO和隔离恢复演练费用仍需在后续阶段确认；`noteai_app` 最小运行权限必须作为独立权限包审查后实施。
+- 是否涉及真实外部调用：是；付费数据库已创建，生产纯结构migration已按明确批准执行；备份/PITR变更和付费隔离恢复演练尚未执行，仍需单独批准。
 - 是否已部署到 Render：否。
 
 ### PROD-003A — 对象存储、视频缓存与 Worker 生产化
@@ -495,18 +752,35 @@
 
 ### BUG-002 — XHS 推荐/热搜来源为 0
 
-- 状态：**VERIFIED**
+- 状态：**INVESTIGATING**
 - 优先级：Critical；当前最高优先级调查项。
 - 问题描述：自然 Cron 的 `search_result` 与 `search_recommend` 持续为0；累计 freshness 仍可能满足，但最新单轮明确 degraded。
-- 证据：自然 run `19a8c433-923e-4a06-a26f-d1c5aa506d37` 首目标进入 challenge 后熔断11个目标，09:05 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 在6小时 cooldown 中安全跳过12/12搜索目标。冷却后 `478f3783-…`、`5559f473-…`、`ce83808b-…`、`6a686edd-…` 连续四个自然轮次均恢复四来源且非手工触发；`6a686edd-…` 固定分类为note_result14/generic_json964/unknown_schema0/empty_result0/business_error12/non_json123，challenge_before_target_payload0、错误码空、circuit closed。其后19:05自然轮次也于19:13成功结束，run `ad7eca7e-da9d-4ac7-b1fc-7de7b6d2872c` 质量处理后359条（homefeed49/search_result147/search_recommend91/hot_search72），四来源无缺失、状态healthy，累计成为五个连续自然健康轮次。
-- 根因是否确认：是。来源归零直接原因是短暂 XHS challenge 与随后6小时 cooldown；熔断/冷却按设计工作并自然恢复。BUG-002D 已把普通辅助JSON与真正note_result分开，连续健康轮次均出现真实note_result且unknown_schema=0，没有证据支持平台schema改名或继续修改解析器。
+- 证据：自然 run `19a8c433-923e-4a06-a26f-d1c5aa506d37` 首目标进入 challenge 后熔断11个目标，09:05 run `5a22df29-373f-4ec5-8291-ad85541d95ff` 在6小时 cooldown 中安全跳过12/12搜索目标。冷却后曾有五个连续自然健康轮次；但 2026-07-13 最新自然 run `47d75364-0071-4d8f-b35c-b2975ddd138d` 的公开 readiness 再次显示 degraded：evidence 124，homefeed52/search_result0/search_recommend0/hot_search72，固定错误码 `latest_run_search_sources_missing`，action_required=true，累计 freshness 仍为 true。产品负责人随后提供平台系统消息截图：处罚时间为 2026-07-13 23:49:31，违规分类明确为使用第三方工具或脚本（如AI）自动浏览、查看或发布内容，显示结束时间为 2026-07-21 01:15:12。仓库确认 NoteAI 当时确实使用 Playwright 无头浏览器自动浏览、搜索、滚动并解析网络响应，但没有自动发布、点赞、评论、关注或私信；平台未公开具体命中信号，因此不能把处罚归因于频率、IP、时间或某一个请求。23:49不符合自然Cron的`:05`启动时间，更可能是延迟风控处置而非该时刻单次运行直接触发。
+- 2026-07-16只读复查：管理端截图显示连续两轮按行业分化退化。`latest_run_search_result_missing` 表示本轮该行业仍有合格新证据且推荐来源非零，但真正搜索结果为0；`latest_run_search_sources_missing` 表示本轮仍有新证据，但搜索结果与推荐均为0；`session_or_access_unavailable` 表示本轮该行业新增合格证据为0，而Cookie元数据仍显示已配置、认证Cookie存在、静态到期时间未过，且未被诊断为challenge/cooldown。截图“证据”列来自当日累计去重数，不是本轮新增数，因此会出现“证据17但failed”。随后公开 Staging `/health/ready` 于北京时间约22:12显示新自然 run `6f932e77-64af-4155-b138-f4223ad6dcfe` 已扩大为整轮0证据：homefeed/search_result/search_recommend/hot_search/other全部为0，固定错误码 `latest_run_no_evidence`，累计 freshness 仍为true且API非阻断ready。API/Admin/数据库/模型 readiness 正常，XHS运行代码自 `4667d71` 后无新提交，故高置信度排除整体服务/数据库宕机和7月16日新代码回归；当前更像XHS访问/服务端会话/平台挑战或采集异常范围扩大，但公开接口未暴露 `scrape_once_failed`、challenge/circuit、endpoint、schema与过滤计数，不能把Cookie完全失效或某一解析器缺陷写成已确认根因。只读QA以临时数据库完整复现累计证据与本轮状态分离，XHS测试42/42通过、无外部调用。
+- 根因是否确认：**是（针对采集复发），处罚命中机制仅确认到行为类别**。产品负责人确认该XHS账号于7月12日收到违规预警，平台于7月13日23:49作出处罚，随后账号被强制退出，且发布、互动、流量曝光和商业权益受到限制；这与后续部分行业逐步归零并扩大为整轮全来源归零吻合。采集失败的直接外部根因是平台终止账号会话，不是NoteAI解析器、API或数据库故障。平台处罚的直接行为类别是第三方脚本自动浏览/查看；当时的固定小时调度、最多10个频道页+12个搜索目标、每目标独立无头浏览器、固定设备参数与重复操作序列均是可能相关信号，但没有平台证据证明哪一项单独触发。内部次生根因是当前只检查Cookie存在性/静态到期时间，没有把服务端登录页/提前注销识别为明确的会话失效，也没有在累计freshness仍为true时让Cron因最新整轮0证据而失败告警。
 - 涉及文件：`model/scheduler_a.py`, `model/xhs_acquisition.py`, `tests/test_xhs_acquisition.py`, `tests/test_render_deployment.py`；不改 Cookie、UA/viewport、频率、challenge绕过或数据库。
-- 风险：平台挑战仍可能未来复发，现有策略会安全降级而不是绕过。静态审查发现的generic_json候选隔离及推荐路径变体边界已分别由BUG-002E/F修复、独立验证并部署；若未来出现unknown_schema或正式推荐路径不再使用sug_items，只能依据新的固定结构证据另建解析包，禁止凭猜测修改。
+- 风险：最新单轮搜索证据缺失会降低市场时机判断覆盖，累计 freshness 为 true 只能维持非阻断 readiness，不能宣称最新来源健康。静态审查发现的generic_json候选隔离及推荐路径变体边界已分别由BUG-002E/F修复、独立验证并部署；若出现unknown_schema或正式推荐路径不再使用sug_items，只能依据新的固定结构证据另建解析包，禁止凭猜测修改。
 - 执行代理：Repository Explorer + QA Investigator + Test Finder（只读）；验证代理：独立 Render/DevOps Reviewer，结论 PASS。
-- 验收标准：已满足。固定分类可区分真正note_result与普通JSON；冷却后连续五个自然轮次search_result/search_recommend均非零，已核对分类轮次challenge=0、unknown_schema=0、错误码空且成功结束。
+- 验收标准：重新打开。固定分类继续区分真正note_result与普通JSON；先解释最新 run 的归零阶段，再按确认根因制定最小修复和独立验证。不得以历史五个健康轮次覆盖本次新失败。
 - 是否需要用户决定：否；脱敏诊断修正不改变产品策略。若要改变challenge策略、采集频率或账号操作则需要。
 - 是否涉及真实外部调用：仅只读观察自然Cron与公开readiness；未手工触发、未改变频率、Cookie、指纹、重试或challenge策略。
-- 是否已部署到 Render：是；熔断/冷却 `878787b`、诊断分类 `aa1f866`、候选隔离 `2c39008` 与推荐路径修复 `4667d71` 均已在线；最终批次 `4548304` API deploy live、Cron build succeeded，五个连续自然健康轮次完成父任务云端验证。
+- 是否已部署到 Render：历史修复均已在线；但最新自然轮次再次退化，因此父任务不再视为 VERIFIED。当前不部署新代码，等待只读根因证据。
+
+### BUG-002G — XHS 服务端强制注销识别与合规停采
+
+- 状态：**READY_TO_VERIFY**
+- 优先级：Critical。
+- 问题描述：XHS账号被平台采取限制并强制退出后，存储Cookie仍存在且静态到期时间未过；采集器把服务端注销归为宽泛 `session_or_access_unavailable`，没有立即停止整轮剩余目标。累计freshness仍为true时，Cron还可能以基线/部分模式完成，不能形成明确的运维失败通知；管理端“证据”列只显示当日累计，容易让非技术用户误解为本轮仍采集成功。
+- 证据：产品负责人提供平台限制和强制退出事实；公开Staging run `6f932e77-64af-4155-b138-f4223ad6dcfe` 最新整轮五类来源全部为0，但API仍因累计freshness保持ready。代码中 `_classify_final_page()` 已能识别 `/login`，外层熔断只对challenge生效；`record_scrape_freshness()` 只用Cookie静态元数据区分过期，`market_timing_worker.run_once()` 的hard-fail只基于累计overview，管理端Health表只展示累计 `evidence_count`。
+- 根因是否确认：是。外部根因是平台强制注销；内部根因是服务端会话失效没有进入专用固定错误码/停采/最新轮次hard-fail链。
+- 涉及文件：最小范围预计 `model/scheduler_a.py`、`model/xhs_acquisition.py`、`model/market_timing_worker.py`、`model/admin_server.py`、`model/admin.html`、`model/api.py`、`tests/test_xhs_acquisition.py`、`tests/test_render_deployment.py`、`tests/test_api_contracts.py`、`render.yaml`；`model/api.py` 与 API 合同测试只允许补齐公开 readiness 的固定白名单 `access_status/access_error_code`，`render.yaml` 只允许为 Staging XHS Cron 增加默认停采开关，不修改Cookie值、UA、viewport、频率、重试、验证码、平台挑战绕过或数据库schema。
+- 风险：若误判普通匿名页为登录失效，可能暂停合法采集；若继续沿用宽泛错误，则会在账号被平台退出后继续访问并延迟人工处置。错误码、日志与管理端只允许固定枚举和计数，不记录账号处罚详情、URL/query、Cookie、正文、标题或异常原文。
+- 执行代理：单一 XHS Safety Implementation Agent；不得与其他代理并行修改同一调用链。
+- 验证代理：独立 QA/Test Verification Agent + Render/DevOps Reviewer。
+- 验收标准：服务端登录页/强制注销由固定脱敏码识别；当前轮立即停止剩余目标且不启动新浏览器目标；跨Cron保持安全暂停，管理员状态明确为需人工处理/重新认证，不能误报Cookie已验证；最新整轮0证据、会话失效或显式停采在hard-fail开启时令Cron非零退出，即使当天累计freshness仍达标；管理端同时显示当日累计与本轮新增；Staging 默认停采且不访问XHS；challenge/cooldown、正常note_result和历史兼容不回归；本地XHS/Render/全量测试及Production Readiness通过。账号限制解除前不手工触发采集、不换号、不改指纹、不绕过平台措施。
+- 是否需要用户决定：安全停采和准确告警不需要；只有产品负责人通过XHS官方流程确认限制已解除后，才可由用户亲自重新登录并批准恢复Staging会话。
+- 是否涉及真实外部调用：本地实施不需要；部署到Staging后保持停采状态，不执行手工采集。未来恢复验收只等待一次自然Cron。
+- 是否已部署到 Render：否；实现已提交在`0ccf3f6`，尚未push/部署。本地组合回归已通过，但仍须独立核对exact diff、固定错误码/脱敏、停采默认值、无XHS外部访问和部署结果；在此之前不得标记VERIFIED。
 
 ### BUG-002D — 搜索响应结构诊断真实性
 
@@ -875,6 +1149,22 @@
 - 是否需要用户决定：否；属于最小安全修复，不改变产品功能或计费语义。
 - 是否涉及真实外部调用：本地 route-mock 足以实施；最终 Staging 只需两个合成账号的无 AI/无扣费 Smoke。
 - 是否已部署到 Render：是；commit `513675d` 已推送，PR两条GitHub CI通过，Render API pre-deploy `migrations_applied=0`、startup/readiness 200并 live，Staging Web 已包含 owner恢复门禁。云端双账号 Smoke：仅账号A有一条脱敏手工笔记并建立空Chat session；退出A后DOM/消息/会话清空，登录B后A哨兵在笔记与消息区均不存在且显示无会话。两个账号前后 usage_records=0、total_credits=0、credit total_used=0；未调用Chat message/Analyze/Generate/AI，未扣积分；临时密码已旋转、临时Token已撤销。验收标准全部满足。
+
+### SEC-006 — Render Blueprint Sync Hook 潜在暴露与轮换
+
+- 状态：**INVESTIGATING**
+- 优先级：High。
+- 问题描述：在ARCH-002P-D核对Blueprint设置时，操作端自动化页面快照意外包含了一个真实Blueprint Sync Hook值。该值不得再次读取、输出、复制或记录，需按潜在泄露处理。
+- 证据：值曾出现在受控工具输出中；本账本只记录事件和受影响的凭证类型，不记录值。目前已确认Blueprint Auto Sync为No，但这不替代Hook轮换。
+- 根因是否确认：是；Render设置页把Hook作为可见值渲染，而页面自动化快照未在读取前对该字段脱敏。尚未找到Render官方针对Blueprint Sync Hook的明确自助轮换入口。
+- 涉及文件：不涉及仓库代码；Render Blueprint凭证与运维runbook。
+- 风险：未授权的Blueprint同步触发或部署/配置干扰；直接断开或重建Blueprint又可造成服务配置漂移，不得擅自执行。
+- 执行代理：Render/DevOps Reviewer（只读查明轮换路径）；若必须联系Render Support或重建Blueprint，由主CTO列明影响后再执行。
+- 验证代理：独立Security/DevOps Reviewer。
+- 验收标准：旧Hook失效、新Hook不出现在对话/日志/仓库；Blueprint绑定、Auto Sync=No、Gateway min2/max4及现有环境配置不回退；受控手工sync与回滚能力保留。
+- 是否需要用户决定：若Render支持无损自助轮换，作为安全处置可按最小变更执行；若只能断开/重建Blueprint或联系Support，需先告知用户影响。
+- 是否涉及真实外部调用：是，Render凭证轮换或Support联系；不涉及AI、支付或数据库。
+- 是否已部署到 Render：不适用；当前未执行轮换。
 
 ### BUG-003 — 对话重写回复与保存版本不一致
 
