@@ -299,6 +299,143 @@ CREATE TABLE IF NOT EXISTS idempotency_requests (
 CREATE INDEX IF NOT EXISTS idx_idempotency_status_lease
     ON idempotency_requests(status, lease_expires_at);
 
+-- ── 持久 AI operation queue（只存摘要、状态和计数）────────
+CREATE TABLE IF NOT EXISTS ai_operations (
+    id                     TEXT NOT NULL PRIMARY KEY CHECK (
+                               length(id) = 36
+                               AND length(replace(id, '-', '')) = 32
+                               AND substr(id, 9, 1) = '-'
+                               AND substr(id, 14, 1) = '-'
+                               AND substr(id, 19, 1) = '-'
+                               AND substr(id, 24, 1) = '-'
+                               AND id NOT GLOB '*[^0-9a-f-]*'
+                           ),
+    subject_hash           TEXT NOT NULL CHECK (
+                               length(subject_hash) = 64
+                               AND subject_hash NOT GLOB '*[^0-9a-f]*'
+                           ),
+    request_hash           TEXT NOT NULL CHECK (
+                               length(request_hash) = 64
+                               AND request_hash NOT GLOB '*[^0-9a-f]*'
+                           ),
+    operation_kind         TEXT NOT NULL
+                           CHECK (operation_kind IN ('analyze', 'generate', 'chat_rewrite')),
+    status                 TEXT NOT NULL DEFAULT 'queued'
+                           CHECK (status IN (
+                               'queued', 'running', 'succeeded', 'failed',
+                               'outcome_unknown', 'cancelled'
+                           )),
+    provider_phase         TEXT NOT NULL DEFAULT 'not_started'
+                           CHECK (provider_phase IN (
+                               'not_started', 'provider_started', 'provider_terminal'
+                           )),
+    priority               INTEGER NOT NULL DEFAULT 0 CHECK (priority BETWEEN 0 AND 9),
+    available_at           TEXT NOT NULL,
+    lease_owner_hash       TEXT CHECK (
+                               lease_owner_hash IS NULL OR (
+                                   length(lease_owner_hash) = 64
+                                   AND lease_owner_hash NOT GLOB '*[^0-9a-f]*'
+                               )
+                           ),
+    lease_fence            INTEGER NOT NULL DEFAULT 0 CHECK (lease_fence >= 0),
+    lease_expires_at       TEXT,
+    heartbeat_at           TEXT,
+    claim_count            INTEGER NOT NULL DEFAULT 0 CHECK (claim_count >= 0),
+    provider_attempt_count INTEGER NOT NULL DEFAULT 0
+                           CHECK (provider_attempt_count >= 0),
+    event_sequence         INTEGER NOT NULL DEFAULT 0 CHECK (event_sequence >= 0),
+    result_hash            TEXT CHECK (
+                               result_hash IS NULL OR (
+                                   length(result_hash) = 64
+                                   AND result_hash NOT GLOB '*[^0-9a-f]*'
+                               )
+                           ),
+    result_count           INTEGER NOT NULL DEFAULT 0 CHECK (result_count >= 0),
+    created_at             TEXT NOT NULL,
+    updated_at             TEXT NOT NULL,
+    started_at             TEXT,
+    terminal_at            TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ai_operations_claim
+    ON ai_operations(status, available_at, lease_expires_at, priority DESC, created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_operations_subject
+    ON ai_operations(subject_hash, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS ai_operation_events (
+    id               TEXT NOT NULL PRIMARY KEY,
+    operation_id     TEXT NOT NULL REFERENCES ai_operations(id) ON DELETE CASCADE,
+    sequence         INTEGER NOT NULL CHECK (sequence > 0),
+    event_type       TEXT NOT NULL
+                     CHECK (event_type IN (
+                         'enqueued', 'claimed', 'lease_taken_over', 'progress',
+                         'provider_started', 'provider_terminal', 'succeeded',
+                         'failed', 'outcome_unknown', 'cancelled'
+                     )),
+    operation_status TEXT NOT NULL
+                     CHECK (operation_status IN (
+                         'queued', 'running', 'succeeded', 'failed',
+                         'outcome_unknown', 'cancelled'
+                     )),
+    fence            INTEGER NOT NULL CHECK (fence >= 0),
+    provider         TEXT CHECK (provider IS NULL OR provider IN ('claude', 'kimi')),
+    detail_hash      TEXT CHECK (
+                         detail_hash IS NULL OR (
+                             length(detail_hash) = 64
+                             AND detail_hash NOT GLOB '*[^0-9a-f]*'
+                         )
+                     ),
+    item_count       INTEGER NOT NULL DEFAULT 0 CHECK (item_count >= 0),
+    recorded_at      TEXT NOT NULL,
+    UNIQUE(operation_id, sequence)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_operation_events_replay
+    ON ai_operation_events(operation_id, sequence);
+
+CREATE TABLE IF NOT EXISTS ai_provider_attempts (
+    id             TEXT NOT NULL PRIMARY KEY,
+    operation_id   TEXT NOT NULL REFERENCES ai_operations(id) ON DELETE CASCADE,
+    attempt_number INTEGER NOT NULL CHECK (attempt_number > 0),
+    fence          INTEGER NOT NULL CHECK (fence > 0),
+    provider       TEXT NOT NULL CHECK (provider IN ('claude', 'kimi')),
+    state          TEXT NOT NULL
+                   CHECK (state IN (
+                       'provider_started', 'provider_succeeded',
+                       'provider_failed', 'outcome_unknown'
+                   )),
+    request_hash   TEXT NOT NULL CHECK (
+                       length(request_hash) = 64
+                       AND request_hash NOT GLOB '*[^0-9a-f]*'
+                   ),
+    model_hash     TEXT NOT NULL CHECK (
+                       length(model_hash) = 64
+                       AND model_hash NOT GLOB '*[^0-9a-f]*'
+                   ),
+    response_hash  TEXT CHECK (
+                       response_hash IS NULL OR (
+                           length(response_hash) = 64
+                           AND response_hash NOT GLOB '*[^0-9a-f]*'
+                       )
+                   ),
+    input_count    INTEGER NOT NULL DEFAULT 0 CHECK (input_count >= 0),
+    output_count   INTEGER NOT NULL DEFAULT 0 CHECK (output_count >= 0),
+    started_at     TEXT NOT NULL,
+    updated_at     TEXT NOT NULL,
+    terminal_at    TEXT,
+    UNIQUE(operation_id, attempt_number)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_provider_attempts_operation
+    ON ai_provider_attempts(operation_id, attempt_number);
+CREATE INDEX IF NOT EXISTS idx_ai_provider_attempts_provider
+    ON ai_provider_attempts(provider, state, started_at);
+
+CREATE TABLE IF NOT EXISTS ai_operation_admissions (
+    operation_id           TEXT NOT NULL PRIMARY KEY
+                           REFERENCES ai_operations(id) ON DELETE RESTRICT,
+    idempotency_request_id TEXT NOT NULL UNIQUE
+                           REFERENCES idempotency_requests(id) ON DELETE RESTRICT,
+    created_at             TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS saved_diagnoses (
     id              TEXT PRIMARY KEY,
     user_id         TEXT NOT NULL,
