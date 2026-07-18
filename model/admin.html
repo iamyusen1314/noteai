@@ -459,7 +459,7 @@ input,select,textarea{font-family:inherit}
     <div class="card" style="margin-bottom:20px">
       <div class="section-title">XHS Health 最近记录</div>
       <table class="data-table">
-        <thead><tr><th>时间</th><th>Adapter</th><th>行业</th><th>状态</th><th>证据</th><th>错误</th></tr></thead>
+        <thead><tr><th>时间</th><th>Adapter</th><th>行业</th><th>状态</th><th>本轮新增 / 今日累计</th><th>错误</th></tr></thead>
         <tbody id="xhs-health-table"><tr><td colspan="6" style="color:var(--text-muted)">加载中...</td></tr></tbody>
       </table>
     </div>
@@ -1264,14 +1264,20 @@ async function loadCrawler() {
   document.getElementById('cw-status').innerHTML = `<span class="dot ${d.enabled?'dot-green':'dot-red'}"></span>${d.enabled?'运行中':'已停止'}`;
   const cookieLabels = {
     not_configured:'未配置', pending_validation:'待验证', verified:'已验证',
-    needs_relogin:'登录已失效', needs_attention:'需要检查'
+    needs_relogin:'登录已失效', needs_attention:'需要检查',
+    collection_suspended:'合规停采'
   };
   const cookieOk = d.cookie_runtime_status === 'verified';
-  const cookieWarn = ['pending_validation','needs_attention'].includes(d.cookie_runtime_status);
+  const cookieWarn = ['pending_validation','needs_attention','collection_suspended'].includes(d.cookie_runtime_status);
   document.getElementById('cw-cookie').innerHTML = `<span class="dot ${cookieOk?'dot-green':cookieWarn?'dot-yellow':'dot-red'}"></span>${cookieLabels[d.cookie_runtime_status]||'未知'}${d.cookie_file_exists?`（${d.cookie_count}条）`:''}`;
-  document.getElementById('cw-cookie-sub').textContent = d.cookie_action_required
-    ? `请重新登录或检查采集；连续失败 ${d.cookie_consecutive_failures||0} 次`
-    : (d.cookie_last_verified_at ? `最近验证 ${_fmtShortTime(d.cookie_last_verified_at)}` : '保存后由下一轮采集验证');
+  document.getElementById('cw-cookie-sub').textContent =
+    d.cookie_runtime_status === 'needs_relogin'
+      ? '账号已被平台退出，请人工重新登录；采集已安全暂停'
+      : d.cookie_runtime_status === 'collection_suspended'
+        ? '采集已合规暂停；恢复前需由管理员完成授权检查'
+        : d.cookie_action_required
+          ? `请检查采集；连续失败 ${d.cookie_consecutive_failures||0} 次`
+          : (d.cookie_last_verified_at ? `最近验证 ${_fmtShortTime(d.cookie_last_verified_at)}` : '保存后由下一轮采集验证');
   document.getElementById('cw-total').textContent = (d.total_collected||0).toLocaleString() + ' 条';
   await loadXhsHealth();
   const logsR = await aFetch('/admin/crawler/logs?limit=30');
@@ -1295,10 +1301,14 @@ async function loadXhsHealth() {
     const health = await healthR.json();
     const missing = fresh.missing_domains || [];
     const latestSource = fresh.latest_run_source_health || {};
-    const accessStatus = ['challenge','cooldown','normal'].includes(fresh.access_status)
+    const accessStatus = ['challenge','cooldown','login_required','suspended','normal'].includes(fresh.access_status)
       ? fresh.access_status : 'normal';
     const latestSourceDegraded = latestSource.available === true && latestSource.ok === false;
-    const latestSourceState = accessStatus === 'challenge'
+    const latestSourceState = accessStatus === 'login_required'
+      ? '账号服务端会话已失效，等待人工重新登录'
+      : accessStatus === 'suspended'
+        ? '采集已合规暂停'
+        : accessStatus === 'challenge'
       ? '搜索访问挑战已触发保护'
       : accessStatus === 'cooldown'
         ? '搜索访问挑战冷却中'
@@ -1327,7 +1337,7 @@ async function loadXhsHealth() {
         <td>${row.adapter || '–'}</td>
         <td>${row.domain || '–'}</td>
         <td><span class="badge ${row.status === 'ok' ? 'badge-success' : ['insufficient','degraded'].includes(row.status) ? 'badge-warning' : 'badge-error'}">${row.status || '–'}</span></td>
-        <td>${row.evidence_count || 0}</td>
+        <td>${row.details?.latest_run_evidence_count || 0} / ${row.evidence_count || 0}</td>
         <td style="color:var(--text-muted)">${row.error_code || row.error_summary || '–'}</td>
       </tr>`).join('') || '<tr><td colspan="6" style="color:var(--text-muted)">暂无 health 记录</td></tr>';
   } catch(e) {

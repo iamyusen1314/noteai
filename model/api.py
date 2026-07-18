@@ -10868,12 +10868,43 @@ async def shutdown():
         stop_scheduler()
 
 
+_MARKET_ACCESS_STATUSES = frozenset({
+    "normal",
+    "challenge",
+    "cooldown",
+    "login_required",
+    "suspended",
+})
+_MARKET_ACCESS_ERROR_CODES = frozenset({
+    "",
+    "access_challenge_detected",
+    "access_challenge_cooldown_active",
+    "server_session_logged_out",
+    "collection_suspended",
+})
+
+
+def _safe_market_access_projection(value: Any) -> dict:
+    raw = value if isinstance(value, dict) else {}
+    access_status = str(raw.get("access_status") or "normal")
+    if access_status not in _MARKET_ACCESS_STATUSES:
+        access_status = "normal"
+    access_error_code = str(raw.get("access_error_code") or "")
+    if access_error_code not in _MARKET_ACCESS_ERROR_CODES:
+        access_error_code = ""
+    return {
+        "access_status": access_status,
+        "access_error_code": access_error_code,
+    }
+
+
 def _unknown_market_readiness_observation(*, action_required: bool = False) -> dict:
     return {
         "ok": False,
         "blocking_readiness": False,
         "freshness_hours": None,
         "xhs_cumulative_fresh": False,
+        **_safe_market_access_projection({}),
         "latest_run_source_health": {
             "available": False,
             "ok": None,
@@ -11062,6 +11093,7 @@ def _collect_market_readiness_observation() -> dict:
         "ok": bool(timing.get("latest_capture")),
         "blocking_readiness": False,
         "freshness_hours": timing.get("freshness_hours"),
+        **_safe_market_access_projection({}),
     }
     if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
         try:
@@ -11069,6 +11101,7 @@ def _collect_market_readiness_observation() -> dict:
             latest = overview.get("latest_run_source_health") or {}
             observation.update({
                 "xhs_cumulative_fresh": bool(overview.get("ok")),
+                **_safe_market_access_projection(overview),
                 "latest_run_source_health": {
                     key: latest.get(key)
                     for key in (

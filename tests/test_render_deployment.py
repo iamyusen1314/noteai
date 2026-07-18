@@ -108,6 +108,12 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("NOTEAI_XHS_STOP_ON_CHALLENGE", blueprint)
         self.assertIn('NOTEAI_XHS_CHALLENGE_COOLDOWN_MINUTES', blueprint)
         self.assertIn('value: "360"', blueprint)
+        market_timing_block = blueprint.split(
+            "name: noteai-staging-market-timing", 1
+        )[1].split("name: noteai-staging-tracking", 1)[0]
+        self.assertIn("NOTEAI_XHS_COLLECTION_SUSPENDED", market_timing_block)
+        self.assertIn('value: "1"', market_timing_block)
+        self.assertEqual(blueprint.count("NOTEAI_XHS_COLLECTION_SUSPENDED"), 1)
         self.assertGreaterEqual(blueprint.count("NOTEAI_XHS_FRESHNESS_REQUIRED"), 2)
         self.assertIn("MALLOC_ARENA_MAX", blueprint)
 
@@ -152,6 +158,11 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("搜索访问挑战冷却中", admin_html)
         self.assertIn("access_status", admin_html)
         self.assertIn("['insufficient','degraded']", admin_html)
+        self.assertIn("本轮新增 / 今日累计", admin_html)
+        self.assertIn("row.details?.latest_run_evidence_count", admin_html)
+        self.assertIn("row.evidence_count", admin_html)
+        self.assertIn("账号已被平台退出", admin_html)
+        self.assertIn("采集已合规暂停", admin_html)
 
     def test_hot_keywords_does_not_eagerly_import_jieba(self):
         source = (MODEL_DIR / "hot_keywords.py").read_text(encoding="utf-8")

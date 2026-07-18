@@ -111,6 +111,8 @@ DISCOVERY_DIAGNOSTIC_ERROR_CODES = frozenset({
     "homefeed_source_zero",
     "hot_search_source_zero",
     "possible_access_challenge",
+    "server_session_logged_out",
+    "collection_suspended",
     "scrape_once_failed",
 })
 _DIAGNOSTIC_FIELDS = {
@@ -311,6 +313,11 @@ def discovery_diagnostics_for_results(
     sources = _source_breakdown(rows)
     safe["search"]["final"] = sources["search_result"]
     safe["recommend"]["final"] = sources["search_recommend"]
+    if {
+        "server_session_logged_out",
+        "collection_suspended",
+    } & set(safe["diagnostic_error_codes"]):
+        return safe
     if safe["navigation"]["failed"]:
         _diagnostic_add_error(safe, "navigation_failed")
         if safe["navigation"]["ok"] == 0:
@@ -768,9 +775,19 @@ async def scrape_once() -> list[dict]:
                     await page.goto(target_url, wait_until="domcontentloaded", timeout=25000)
                     if discovery_source == "search_discovery":
                         _diagnostic_inc(discovery_diagnostics, "navigation", "ok")
-                        page_class = _classify_final_page(getattr(page, "url", ""))
-                        if STOP_ON_CHALLENGE and page_class == "challenge":
-                            return page_class
+                    page_class = _classify_final_page(getattr(page, "url", ""))
+                    if page_class == "login":
+                        _diagnostic_add_error(
+                            discovery_diagnostics,
+                            "server_session_logged_out",
+                        )
+                        return page_class
+                    if (
+                        discovery_source == "search_discovery"
+                        and STOP_ON_CHALLENGE
+                        and page_class == "challenge"
+                    ):
+                        return page_class
                 except Exception:
                     if discovery_source == "search_discovery":
                         _diagnostic_inc(discovery_diagnostics, "navigation", "failed")
@@ -789,10 +806,15 @@ async def scrape_once() -> list[dict]:
                     await page.mouse.wheel(0, 700)
                     await asyncio.sleep(max(0.2, SCROLL_WAIT_SECONDS))
             finally:
+                page_class = _classify_final_page(getattr(page, "url", ""))
+                discovery_diagnostics["final_page_class"][page_class] += 1
+                if page_class == "login":
+                    _diagnostic_add_error(
+                        discovery_diagnostics,
+                        "server_session_logged_out",
+                    )
                 if discovery_source == "search_discovery":
                     _diagnostic_inc(discovery_diagnostics, "targets", "completed")
-                    page_class = _classify_final_page(getattr(page, "url", ""))
-                    discovery_diagnostics["final_page_class"][page_class] += 1
                     if page_class == "challenge":
                         _diagnostic_add_error(discovery_diagnostics, "possible_access_challenge")
                     if not search_target_state["target_payload_seen"]:
@@ -803,10 +825,11 @@ async def scrape_once() -> list[dict]:
                         )
                         discovery_diagnostics["search_target_outcome"][outcome] += 1
                 page.remove_listener("response", handler)
-                try:
-                    await page.goto("about:blank", wait_until="commit", timeout=5000)
-                except Exception:
-                    pass
+                if page_class != "login":
+                    try:
+                        await page.goto("about:blank", wait_until="commit", timeout=5000)
+                    except Exception:
+                        pass
             return page_class
 
         targets = [
@@ -822,9 +845,18 @@ async def scrape_once() -> list[dict]:
             if source == "search_discovery"
         )
         targets_per_session = BROWSER_TARGETS_PER_SESSION or max(1, len(targets))
+        session_logged_out = False
 
         for start in range(0, len(targets), targets_per_session):
             target_batch = targets[start:start + targets_per_session]
+            if session_logged_out:
+                _diagnostic_inc(
+                    discovery_diagnostics,
+                    "targets",
+                    "skipped",
+                    sum(1 for item in target_batch if item[2] == "search_discovery"),
+                )
+                continue
             if target_batch and all(item[2] == "search_discovery" for item in target_batch) and circuit_state in {"open", "cooldown"}:
                 _diagnostic_inc(discovery_diagnostics, "targets", "skipped", len(target_batch))
                 continue
@@ -837,6 +869,10 @@ async def scrape_once() -> list[dict]:
             page = await ctx.new_page()
             try:
                 for target_url, channel_name, source, settle, scrolls, label in target_batch:
+                    if session_logged_out:
+                        if source == "search_discovery":
+                            _diagnostic_inc(discovery_diagnostics, "targets", "skipped")
+                        continue
                     if source == "search_discovery" and circuit_state in {"open", "cooldown"}:
                         _diagnostic_inc(discovery_diagnostics, "targets", "skipped")
                         continue
@@ -844,6 +880,9 @@ async def scrape_once() -> list[dict]:
                         page_class = await scrape_target(
                             page, target_url, channel_name, source, settle, scrolls
                         )
+                        if page_class == "login":
+                            session_logged_out = True
+                            continue
                         if (
                             STOP_ON_CHALLENGE
                             and source == "search_discovery"
@@ -864,8 +903,7 @@ async def scrape_once() -> list[dict]:
                             if source == "search_discovery"
                             else "homefeed_target_failed"
                         )
-                        if source == "search_discovery":
-                            _diagnostic_add_error(discovery_diagnostics, error_code)
+                        _diagnostic_add_error(discovery_diagnostics, error_code)
                         log.warning(
                             "%s target failed exception_type=%s diagnostic_error_code=%s",
                             label,

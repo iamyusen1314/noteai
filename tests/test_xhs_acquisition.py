@@ -42,13 +42,22 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         self,
         *,
         challenge: bool,
+        login: bool = False,
         circuit_state: str = "closed",
         stop: bool = True,
         response_payload: dict | None = None,
         response_url: str = "",
         response_json_error: bool = False,
     ):
-        events = {"homefeed_gotos": 0, "search_gotos": 0, "browser_launches": 0}
+        events = {
+            "homefeed_gotos": 0,
+            "search_gotos": 0,
+            "blank_gotos": 0,
+            "browser_launches": 0,
+            "input_calls": 0,
+            "scrolls": 0,
+            "goto_kinds": [],
+        }
         payload = {"data": {}} if response_payload is None else response_payload
 
         class FakeResponse:
@@ -63,6 +72,7 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
 
         class FakeMouse:
             async def wheel(self, _x, _y):
+                events["scrolls"] += 1
                 return None
 
         class FakePage:
@@ -83,16 +93,26 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 is_search_target = "search_result" in url
                 if "search_result" in url:
                     events["search_gotos"] += 1
-                    self.url = (
-                        "https://www.xiaohongshu.com/challenge"
-                        if challenge and events["search_gotos"] == 1
-                        else url
-                    )
+                    if challenge and events["search_gotos"] == 1:
+                        self.url = "https://www.xiaohongshu.com/challenge"
+                        events["goto_kinds"].append("search_challenge")
+                    elif login and events["search_gotos"] == 1:
+                        self.url = "https://www.xiaohongshu.com/login"
+                        events["goto_kinds"].append("search_login")
+                    else:
+                        self.url = url
+                        events["goto_kinds"].append("search")
                 elif "/explore" in url:
                     events["homefeed_gotos"] += 1
                     self.url = url
+                    events["goto_kinds"].append("homefeed")
+                elif url == "about:blank":
+                    events["blank_gotos"] += 1
+                    self.url = url
+                    events["goto_kinds"].append("blank")
                 else:
                     self.url = url
+                    events["goto_kinds"].append("other")
                 emitted_url = (
                     response_url
                     if response_url and is_search_target and self.url == url
@@ -137,6 +157,7 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 return None
 
         async def fake_search_input(_page, _seed, diagnostics=None, **_kwargs):
+            events["input_calls"] += 1
             if diagnostics is not None:
                 diagnostics["input"].update({"found": 1, "visible": 1, "typed": 1})
             return True, ""
@@ -865,6 +886,36 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             diagnostics["diagnostic_error_codes"],
         )
 
+    def test_server_login_stops_remaining_targets_without_opening_challenge_circuit(self):
+        result, events = self._run_scheduler_circuit_scenario(
+            challenge=False,
+            login=True,
+        )
+        diagnostics = result.diagnostics
+
+        self.assertEqual(events["homefeed_gotos"], 1)
+        self.assertEqual(events["search_gotos"], 1)
+        self.assertEqual(events["browser_launches"], 2)
+        self.assertEqual(events["input_calls"], 0)
+        self.assertEqual(events["scrolls"], 1)
+        self.assertEqual(events["blank_gotos"], 1)
+        self.assertEqual(events["goto_kinds"][-1], "search_login")
+        self.assertEqual(diagnostics["targets"], {
+            "planned": 12, "started": 1, "completed": 1, "skipped": 11,
+        })
+        self.assertEqual(diagnostics["final_page_class"]["login"], 1)
+        self.assertEqual(diagnostics["circuit"], {
+            "state": "closed", "skipped_reason": "",
+        })
+        self.assertIn(
+            "server_session_logged_out",
+            diagnostics["diagnostic_error_codes"],
+        )
+        self.assertNotIn(
+            "possible_access_challenge",
+            diagnostics["diagnostic_error_codes"],
+        )
+
     def test_search_normal_flow_keeps_all_twelve_targets(self):
         result, events = self._run_scheduler_circuit_scenario(challenge=False)
         diagnostics = result.diagnostics
@@ -1140,6 +1191,221 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 os.environ.pop("NOTEAI_XHS_FRESHNESS_REQUIRED", None)
             else:
                 os.environ["NOTEAI_XHS_FRESHNESS_REQUIRED"] = old_required
+
+    def test_server_logout_persists_block_and_next_cron_never_calls_scrape(self):
+        original_db = hot_keywords.DB_PATH
+        original_scrape_once = market_timing_worker.scrape_once
+        original_session_summary = market_timing_worker.session_state_summary
+        settings_store = {}
+        scrape_calls = 0
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                hot_keywords.DB_PATH = tmp / "hot_keywords.db"
+                xhs_acquisition.record_scrape_freshness(
+                    _real_xhs_rows(),
+                    run_id="previous-fresh-run",
+                    session_status={
+                        "configured": True,
+                        "auth_cookie_present": True,
+                        "auth_cookie_expired": False,
+                    },
+                )
+                self.assertTrue(xhs_acquisition.freshness_overview()["ok"])
+
+                async def logged_out_scrape():
+                    nonlocal scrape_calls
+                    scrape_calls += 1
+                    diagnostics = scheduler_a.new_discovery_diagnostics()
+                    diagnostics["targets"].update({
+                        "planned": 12, "started": 1, "completed": 1, "skipped": 11,
+                    })
+                    diagnostics["final_page_class"]["login"] = 1
+                    diagnostics["diagnostic_error_codes"] = [
+                        "server_session_logged_out",
+                    ]
+                    return scheduler_a.ScrapeResults([], diagnostics)
+
+                market_timing_worker.scrape_once = logged_out_scrape
+                market_timing_worker.session_state_summary = lambda: {
+                    "configured": True,
+                    "auth_cookie_present": True,
+                    "auth_cookie_expired": False,
+                }
+                with (
+                    patch.object(
+                        xhs_acquisition.runtime_settings,
+                        "get_json",
+                        side_effect=lambda key, default=None: settings_store.get(key, default),
+                    ),
+                    patch.object(
+                        xhs_acquisition.runtime_settings,
+                        "set_json",
+                        side_effect=lambda key, value, **_kwargs: settings_store.__setitem__(key, value),
+                    ),
+                    patch.dict(os.environ, {"NOTEAI_XHS_COLLECTION_SUSPENDED": "0"}),
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "XHS_FRESH_EVIDENCE_UNAVAILABLE",
+                    ):
+                        asyncio.run(market_timing_worker.run_once(
+                            tmp / "market_timing_snapshot-first.json",
+                            hard_fail_on_xhs_missing=True,
+                        ))
+                    self.assertEqual(scrape_calls, 1)
+                    self.assertTrue(
+                        xhs_acquisition.collection_safety_status()["session_blocked"]
+                    )
+
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "XHS_FRESH_EVIDENCE_UNAVAILABLE",
+                    ):
+                        asyncio.run(market_timing_worker.run_once(
+                            tmp / "market_timing_snapshot-second.json",
+                            hard_fail_on_xhs_missing=True,
+                        ))
+                    self.assertEqual(scrape_calls, 1)
+
+                latest_run_id = xhs_acquisition.recent_health(
+                    adapter="scheduler_a"
+                )[0]["run_id"]
+                latest_rows = [
+                    row for row in xhs_acquisition.recent_health(
+                        limit=20,
+                        adapter="scheduler_a",
+                    )
+                    if row["run_id"] == latest_run_id
+                ]
+                self.assertEqual(
+                    {row["domain"] for row in latest_rows},
+                    set(hot_keywords.CORE_EVIDENCE_DOMAINS),
+                )
+                self.assertEqual(
+                    {row["error_code"] for row in latest_rows},
+                    {"server_session_logged_out"},
+                )
+                self.assertTrue(all(row["risk_login_detected"] for row in latest_rows))
+                self.assertTrue(all(
+                    int(row["details"]["latest_run_evidence_count"]) == 0
+                    for row in latest_rows
+                ))
+                self.assertFalse(
+                    xhs_acquisition.challenge_cooldown_status()["active"]
+                )
+        finally:
+            hot_keywords.DB_PATH = original_db
+            market_timing_worker.scrape_once = original_scrape_once
+            market_timing_worker.session_state_summary = original_session_summary
+
+    def test_latest_zero_hard_fails_even_when_cumulative_freshness_is_true(self):
+        original_db = hot_keywords.DB_PATH
+        original_scrape_once = market_timing_worker.scrape_once
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                hot_keywords.DB_PATH = tmp / "hot_keywords.db"
+                xhs_acquisition.record_scrape_freshness(
+                    _real_xhs_rows(),
+                    run_id="cumulative-fresh-run",
+                    session_status={
+                        "configured": True,
+                        "auth_cookie_present": True,
+                        "auth_cookie_expired": False,
+                    },
+                )
+                self.assertTrue(xhs_acquisition.freshness_overview()["ok"])
+
+                async def empty_scrape():
+                    return scheduler_a.ScrapeResults(
+                        [],
+                        scheduler_a.new_discovery_diagnostics(),
+                    )
+
+                market_timing_worker.scrape_once = empty_scrape
+                with (
+                    patch.object(
+                        market_timing_worker,
+                        "collection_safety_status",
+                        return_value={"session_blocked": False, "reason_code": ""},
+                    ),
+                    patch.dict(
+                        os.environ,
+                        {"NOTEAI_XHS_COLLECTION_SUSPENDED": "0"},
+                    ),
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "XHS_FRESH_EVIDENCE_UNAVAILABLE",
+                    ):
+                        asyncio.run(market_timing_worker.run_once(
+                            tmp / "market_timing_snapshot.json",
+                            hard_fail_on_xhs_missing=True,
+                        ))
+
+                self.assertTrue(xhs_acquisition.freshness_overview()["ok"])
+                latest = xhs_acquisition.latest_run_source_health()
+                self.assertEqual(latest["evidence_count"], 0)
+                self.assertEqual(latest["error_code"], "latest_run_no_evidence")
+        finally:
+            hot_keywords.DB_PATH = original_db
+            market_timing_worker.scrape_once = original_scrape_once
+
+    def test_operator_suspension_skips_scrape_and_hard_fails(self):
+        original_db = hot_keywords.DB_PATH
+        original_scrape_once = market_timing_worker.scrape_once
+        scrape_calls = 0
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                hot_keywords.DB_PATH = tmp / "hot_keywords.db"
+
+                async def forbidden_scrape():
+                    nonlocal scrape_calls
+                    scrape_calls += 1
+                    return []
+
+                market_timing_worker.scrape_once = forbidden_scrape
+                with (
+                    patch.object(
+                        market_timing_worker,
+                        "collection_safety_status",
+                        return_value={"session_blocked": False, "reason_code": ""},
+                    ),
+                    patch.dict(
+                        os.environ,
+                        {"NOTEAI_XHS_COLLECTION_SUSPENDED": "1"},
+                    ),
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "XHS_FRESH_EVIDENCE_UNAVAILABLE",
+                    ):
+                        asyncio.run(market_timing_worker.run_once(
+                            tmp / "market_timing_snapshot.json",
+                            hard_fail_on_xhs_missing=True,
+                        ))
+
+                self.assertEqual(scrape_calls, 0)
+                latest_run_id = xhs_acquisition.recent_health(
+                    adapter="scheduler_a"
+                )[0]["run_id"]
+                latest_rows = [
+                    row for row in xhs_acquisition.recent_health(
+                        limit=20,
+                        adapter="scheduler_a",
+                    )
+                    if row["run_id"] == latest_run_id
+                ]
+                self.assertEqual(len(latest_rows), len(hot_keywords.CORE_EVIDENCE_DOMAINS))
+                self.assertEqual(
+                    {row["error_code"] for row in latest_rows},
+                    {"collection_suspended"},
+                )
+        finally:
+            hot_keywords.DB_PATH = original_db
+            market_timing_worker.scrape_once = original_scrape_once
 
     def test_worker_uses_cooldown_context_and_keeps_homefeed_evidence(self):
         original_db = hot_keywords.DB_PATH
@@ -1595,6 +1861,74 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 )
         finally:
             hot_keywords.DB_PATH = original_db
+
+    def test_admin_cookie_status_prioritizes_server_logout_over_cumulative_evidence(self):
+        recent = [{
+            "run_id": "logout-run",
+            "adapter": "scheduler_a",
+            "domain": "美食",
+            "profile_cookie_valid": False,
+            "evidence_count": 17,
+            "status": "failed",
+            "error_code": "server_session_logged_out",
+            "checked_at": "2026-07-16T14:12:00",
+            "details": {
+                "access_status": "login_required",
+                "latest_run_evidence_count": 0,
+            },
+        }]
+
+        def fake_setting(key, default=None):
+            if key == admin_server._XHS_COOKIES_KEY:
+                return [{"name": "redacted"}]
+            if key == admin_server._CRAWLER_CONFIG_KEY:
+                return {"enabled": True}
+            return default
+
+        with (
+            patch.object(admin_server._settings, "get_json", side_effect=fake_setting),
+            patch.object(admin_server._xhs_acq, "recent_health", return_value=recent),
+            patch.object(admin_server.db, "fetchone", return_value={"cnt": 0}),
+        ):
+            status = asyncio.run(
+                admin_server.admin_crawler_status(admin={"username": "admin"})
+            )
+
+        self.assertEqual(status["cookie_runtime_status"], "needs_relogin")
+        self.assertTrue(status["cookie_action_required"])
+        self.assertIsNone(status["cookie_last_verified_at"])
+
+    def test_admin_cookie_update_clears_only_persisted_session_block(self):
+        config = {"enabled": True}
+
+        def fake_setting(key, default=None):
+            if key == admin_server._CRAWLER_CONFIG_KEY:
+                return dict(config)
+            return default
+
+        with (
+            patch.object(admin_server._settings, "get_json", side_effect=fake_setting),
+            patch.object(admin_server._settings, "set_json") as set_json,
+            patch.object(
+                admin_server._xhs_acq,
+                "clear_collection_session_block",
+            ) as clear_block,
+        ):
+            result = asyncio.run(admin_server.admin_update_cookie(
+                admin_server.CookieUpdateInput(
+                    cookies_json='[{"name":"synthetic-cookie"}]'
+                ),
+                admin={"username": "admin"},
+            ))
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["cookie_count"], 1)
+        clear_block.assert_called_once_with()
+        self.assertTrue(any(
+            call.args[0] == admin_server._XHS_COOKIES_KEY
+            and call.kwargs.get("is_secret") is True
+            for call in set_json.call_args_list
+        ))
 
 
 if __name__ == "__main__":

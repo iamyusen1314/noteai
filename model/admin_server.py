@@ -1068,7 +1068,16 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
                     run_ids.append(run_id)
             for run_id in run_ids:
                 run_rows = [row for row in recent if row.get("run_id") == run_id]
-                if any(row.get("profile_cookie_valid") and int(row.get("evidence_count") or 0) > 0 for row in run_rows):
+                if any(
+                    row.get("profile_cookie_valid")
+                    and int(
+                        ((row.get("details") or {}).get(
+                            "latest_run_evidence_count"
+                        ))
+                        or 0
+                    ) > 0
+                    for row in run_rows
+                ):
                     cookie_last_verified_at = max(
                         (row.get("checked_at") or "") for row in run_rows
                     ) or None
@@ -1076,11 +1085,35 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
                 cookie_consecutive_failures += 1
             latest_rows = [row for row in recent if run_ids and row.get("run_id") == run_ids[0]]
             latest_errors = {str(row.get("error_code") or "") for row in latest_rows}
-            if latest_errors & {"cookie_expired", "auth_cookie_missing", "cookie_not_configured"}:
+            if latest_errors & {
+                "server_session_logged_out",
+                "cookie_expired",
+                "auth_cookie_missing",
+                "cookie_not_configured",
+            }:
                 cookie_runtime_status = "needs_relogin"
-            elif latest_rows and any(int(row.get("evidence_count") or 0) > 0 for row in latest_rows):
+            elif "collection_suspended" in latest_errors:
+                cookie_runtime_status = "collection_suspended"
+            elif latest_rows and any(
+                row.get("profile_cookie_valid")
+                and int(
+                    ((row.get("details") or {}).get(
+                        "latest_run_evidence_count"
+                    ))
+                    or 0
+                ) > 0
+                for row in latest_rows
+            ):
                 cookie_runtime_status = "verified"
-            elif latest_rows and all(int(row.get("evidence_count") or 0) == 0 for row in latest_rows):
+            elif latest_rows and all(
+                int(
+                    ((row.get("details") or {}).get(
+                        "latest_run_evidence_count"
+                    ))
+                    or 0
+                ) == 0
+                for row in latest_rows
+            ):
                 cookie_runtime_status = "needs_attention"
 
     # 爬虫采集数据统计
@@ -1095,7 +1128,11 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
         "cookie_runtime_status": cookie_runtime_status,
         "cookie_last_verified_at": cookie_last_verified_at,
         "cookie_consecutive_failures": cookie_consecutive_failures,
-        "cookie_action_required": cookie_runtime_status in {"needs_relogin", "needs_attention"},
+        "cookie_action_required": cookie_runtime_status in {
+            "needs_relogin",
+            "needs_attention",
+            "collection_suspended",
+        },
         "completed_tracks":   crawl_stats["cnt"],
     }
 
@@ -1122,6 +1159,8 @@ async def admin_update_cookie(
     config["cookie_valid"] = True
     config["cookie_updated_at"] = datetime.now(timezone.utc).isoformat()
     _settings.set_json(_CRAWLER_CONFIG_KEY, config)
+    if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
+        _xhs_acq.clear_collection_session_block()
 
     return {"ok": True, "cookie_count": len(cookies) if isinstance(cookies, list) else 1}
 

@@ -314,6 +314,121 @@ class ApiContractTests(unittest.TestCase):
         self.assertNotIn("cookie", serialized)
         self.assertNotIn("private.invalid", serialized)
 
+    def test_readiness_projects_fixed_xhs_logout_and_suspension_access_contracts(self):
+        cases = (
+            ("login_required", "server_session_logged_out"),
+            ("suspended", "collection_suspended"),
+        )
+        for access_status, access_error_code in cases:
+            with self.subTest(access_status=access_status):
+                overview = {
+                    "ok": False,
+                    "access_status": access_status,
+                    "access_error_code": access_error_code,
+                    "latest_run_source_health": {
+                        "available": True,
+                        "ok": False,
+                        "status": "failed",
+                        "error_code": access_error_code,
+                        "evidence_count": 0,
+                        "source_breakdown": {},
+                        "missing_sources": [],
+                        "run_id": "safe-run-id",
+                        "checked_at": "2026-07-16T13:12:00",
+                        "domains": ["美食"],
+                    },
+                    "session_cookie": "must-not-leak",
+                    "source_url": "https://private.invalid/path",
+                    "exception": "must-not-leak",
+                }
+                with (
+                    mock.patch.object(api, "_SCHEDULER_AVAILABLE", True),
+                    mock.patch.object(api, "_XHS_ACQ_AVAILABLE", True),
+                    mock.patch.object(
+                        api,
+                        "_database_readiness_probe",
+                        mock.Mock(result=mock.Mock(return_value={"ok": True})),
+                    ),
+                    mock.patch.object(api, "get_v04_composite_model", return_value=object()),
+                    mock.patch.object(api, "get_model", return_value=object()),
+                    mock.patch.object(
+                        api,
+                        "db_status",
+                        return_value={
+                            "latest_capture": "2026-07-16",
+                            "freshness_hours": 1,
+                        },
+                    ),
+                    mock.patch.object(
+                        api._xhs_acq,
+                        "freshness_overview",
+                        return_value=overview,
+                    ),
+                    mock.patch.object(
+                        api._market_readiness_cache,
+                        "snapshot",
+                        side_effect=lambda: {
+                            **api._collect_market_readiness_observation(),
+                            "observation_status": "fresh",
+                            "observation_stale": False,
+                            "observation_age_seconds": 0,
+                            "observation_refreshing": False,
+                            "observation_refresh_failed": False,
+                        },
+                    ),
+                ):
+                    payload, status_code = api._readiness_payload()
+
+                self.assertEqual(status_code, 200)
+                market = payload["checks"]["market_timing"]
+                self.assertEqual(market["access_status"], access_status)
+                self.assertEqual(
+                    market["access_error_code"],
+                    access_error_code,
+                )
+                serialized = json.dumps(market).lower()
+                self.assertNotIn("must-not-leak", serialized)
+                self.assertNotIn("private.invalid", serialized)
+                self.assertNotIn("session_cookie", serialized)
+                self.assertNotIn("exception", serialized)
+
+    def test_readiness_access_contract_normalizes_unknown_values_and_defaults(self):
+        unknown = api._unknown_market_readiness_observation()
+        self.assertEqual(unknown["access_status"], "normal")
+        self.assertEqual(unknown["access_error_code"], "")
+
+        with (
+            mock.patch.object(api, "_XHS_ACQ_AVAILABLE", True),
+            mock.patch.object(
+                api,
+                "db_status",
+                return_value={
+                    "latest_capture": "",
+                    "freshness_hours": None,
+                },
+            ),
+            mock.patch.object(
+                api._xhs_acq,
+                "freshness_overview",
+                return_value={
+                    "ok": False,
+                    "access_status": "private_internal_state",
+                    "access_error_code": "raw provider exception",
+                    "latest_run_source_health": {},
+                    "secret": "must-not-leak",
+                },
+            ),
+        ):
+            observation = api._collect_market_readiness_observation()
+
+        self.assertEqual(observation["access_status"], "normal")
+        self.assertEqual(observation["access_error_code"], "")
+        serialized = json.dumps(observation).lower()
+        self.assertNotIn("private_internal_state", serialized)
+        self.assertNotIn("raw provider exception", serialized)
+        self.assertNotIn("must-not-leak", serialized)
+        self.assertNotIn("secret", serialized)
+
     def test_ai_required_gateway_readiness_requires_authenticated_remote_match(self):
         base_runtime = {
             "mode": "gateway",

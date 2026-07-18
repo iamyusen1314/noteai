@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 import httpx
 
 import hot_keywords
+import runtime_settings
 
 
 REAL_XHS_EVIDENCE_SOURCES = {
@@ -43,12 +44,19 @@ LATEST_RUN_SOURCE_BUCKETS = (
     "other",
 )
 
-ACCESS_STATUSES = frozenset({"normal", "challenge", "cooldown"})
+ACCESS_STATUSES = frozenset({
+    "normal",
+    "challenge",
+    "cooldown",
+    "login_required",
+    "suspended",
+})
 PUBLIC_HEALTH_ERROR_SUMMARIES = {
     "": "",
     "access_challenge_detected": "Search discovery stopped after an access challenge",
     "access_challenge_cooldown_active": "Search discovery skipped during access challenge cooldown",
     "auth_cookie_missing": "XHS authentication cookies are missing",
+    "collection_suspended": "XHS collection is suspended by operator policy",
     "cookie_expired": "XHS login session has expired",
     "cookie_not_configured": "XHS login session is not configured",
     "latest_run_no_evidence": "Latest run produced no XHS evidence",
@@ -57,11 +65,15 @@ PUBLIC_HEALTH_ERROR_SUMMARIES = {
     "latest_run_search_sources_missing": "Latest run is missing required search source evidence",
     "latest_run_source_degraded": "Latest run source coverage is degraded",
     "selector_changed": "Crawler selector validation failed",
+    "server_session_logged_out": "XHS server session requires operator re-login",
     "session_or_access_unavailable": "Configured XHS session returned no fresh evidence",
     "sidecar_empty_or_error": "XHS downloader returned no usable detail",
     "sidecar_not_configured": "XHS downloader sidecar is not configured",
+    "scrape_once_failed": "XHS collection cycle failed before producing evidence",
 }
 PUBLIC_HEALTH_ERROR_CODES = frozenset(PUBLIC_HEALTH_ERROR_SUMMARIES)
+_COLLECTION_SAFETY_KEY = "xhs_collection_safety"
+_COLLECTION_SAFETY_REASON_CODES = frozenset({"", "server_session_logged_out"})
 
 
 def _latest_run_source_bucket(source: str) -> str:
@@ -237,6 +249,41 @@ def xhs_freshness_required() -> bool:
         or "0"
     )
     return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def collection_safety_status() -> dict[str, Any]:
+    """Return the fixed, secret-free cross-Cron collection safety state."""
+    raw = runtime_settings.get_json(_COLLECTION_SAFETY_KEY, {})
+    raw = raw if isinstance(raw, dict) else {}
+    reason_code = str(raw.get("reason_code") or "")
+    if reason_code not in _COLLECTION_SAFETY_REASON_CODES:
+        reason_code = ""
+    blocked = bool(raw.get("session_blocked") and reason_code)
+    return {
+        "session_blocked": blocked,
+        "reason_code": reason_code if blocked else "",
+        "blocked_at": str(raw.get("blocked_at") or "") if blocked else "",
+    }
+
+
+def mark_server_session_logged_out() -> dict[str, Any]:
+    """Persist a safe stop flag after the server redirects collection to login."""
+    state = {
+        "session_blocked": True,
+        "reason_code": "server_session_logged_out",
+        "blocked_at": datetime.now(timezone.utc).isoformat(),
+    }
+    runtime_settings.set_json(_COLLECTION_SAFETY_KEY, state)
+    return state
+
+
+def clear_collection_session_block() -> None:
+    """Clear only the server-session stop flag after an operator cookie update."""
+    runtime_settings.set_json(_COLLECTION_SAFETY_KEY, {
+        "session_blocked": False,
+        "reason_code": "",
+        "blocked_at": "",
+    })
 
 
 def minimum_evidence_per_domain() -> int:
@@ -498,7 +545,11 @@ def record_scrape_freshness(
             safe_discovery_diagnostics = {}
     diagnostic_codes = set(safe_discovery_diagnostics.get("diagnostic_error_codes") or [])
     circuit_state = str((safe_discovery_diagnostics.get("circuit") or {}).get("state") or "closed")
-    if "possible_access_challenge" in diagnostic_codes or circuit_state == "open":
+    if "server_session_logged_out" in diagnostic_codes:
+        access_status = "login_required"
+    elif "collection_suspended" in diagnostic_codes:
+        access_status = "suspended"
+    elif "possible_access_challenge" in diagnostic_codes or circuit_state == "open":
         access_status = "challenge"
     elif circuit_state == "cooldown" or "challenge_cooldown_active" in diagnostic_codes:
         access_status = "cooldown"
@@ -558,7 +609,17 @@ def record_scrape_freshness(
             key: value for key, value in details.items()
             if key != "evidence_keys"
         }
-        if access_status == "challenge":
+        if access_status == "login_required":
+            health_status = "failed"
+            error_code = "server_session_logged_out"
+            error_summary = PUBLIC_HEALTH_ERROR_SUMMARIES[error_code]
+            risk_login = True
+        elif access_status == "suspended":
+            health_status = "failed"
+            error_code = "collection_suspended"
+            error_summary = PUBLIC_HEALTH_ERROR_SUMMARIES[error_code]
+            risk_login = False
+        elif access_status == "challenge":
             health_status = "degraded"
             error_code = "access_challenge_detected"
             error_summary = "Search discovery stopped after an access challenge"
@@ -594,20 +655,38 @@ def record_scrape_freshness(
             error_code = "cookie_expired"
             error_summary = "XHS login session has expired"
             risk_login = True
+        elif scrape_error == "scrape_once_failed":
+            health_status = "failed"
+            error_code = "scrape_once_failed"
+            error_summary = PUBLIC_HEALTH_ERROR_SUMMARIES[error_code]
+            risk_login = False
         else:
             health_status = "failed"
             error_code = "session_or_access_unavailable"
-            error_summary = scrape_error or "Configured XHS session returned 0 fresh evidence"
+            error_summary = PUBLIC_HEALTH_ERROR_SUMMARIES[error_code]
             risk_login = False
-        cookie_valid = bool(current_count > 0 or (access_status in {"challenge", "cooldown"} and configured_cookie_valid))
+        cookie_valid = bool(
+            access_status not in {"login_required", "suspended"}
+            and (
+                current_count > 0
+                or (
+                    access_status in {"challenge", "cooldown"}
+                    and configured_cookie_valid
+                )
+            )
+        )
+        current_access_valid = bool(
+            current_count > 0
+            and access_status not in {"login_required", "suspended"}
+        )
         record_health(CrawlerHealth(
             run_id=effective_run_id,
             adapter="scheduler_a",
             domain=domain,
             status=health_status,
             profile_cookie_valid=cookie_valid,
-            note_page_access_valid=current_count > 0,
-            selector_valid=current_count > 0,
+            note_page_access_valid=current_access_valid,
+            selector_valid=current_access_valid,
             risk_login_detected=risk_login,
             evidence_count=count,
             error_code=error_code,
@@ -621,6 +700,10 @@ def record_scrape_freshness(
         "source": "xhs_public_scrape",
         "source_counts": dict(source_counts),
         "latest_run_source_breakdown": normalize_latest_run_source_breakdown(source_counts),
+        "latest_run_evidence_count": sum(
+            max(0, int(domain_counts.get(domain, 0) or 0))
+            for domain in target_domains
+        ),
         "domains": ledger,
         "overview": overview,
     }
@@ -838,7 +921,16 @@ def access_status_overview() -> dict[str, Any]:
     latest_status = str(details.get("access_status") or "")
     latest_error = str(latest.get("error_code") or "")
     cooldown = challenge_cooldown_status()
-    if latest_status == "challenge" or latest_error == "access_challenge_detected":
+    if (
+        latest_status == "login_required"
+        or latest_error == "server_session_logged_out"
+    ):
+        access_status = "login_required"
+        error_code = "server_session_logged_out"
+    elif latest_status == "suspended" or latest_error == "collection_suspended":
+        access_status = "suspended"
+        error_code = "collection_suspended"
+    elif latest_status == "challenge" or latest_error == "access_challenge_detected":
         access_status = "challenge"
         error_code = "access_challenge_detected"
     elif cooldown.get("active"):
@@ -929,6 +1021,10 @@ def public_recent_health(limit: int = 50, domain: str = "", adapter: str = "") -
             access_status = "challenge"
         elif error_code == "access_challenge_cooldown_active":
             access_status = "cooldown"
+        elif error_code == "server_session_logged_out":
+            access_status = "login_required"
+        elif error_code == "collection_suspended":
+            access_status = "suspended"
         error_summary = PUBLIC_HEALTH_ERROR_SUMMARIES.get(error_code, "")
         safe_details = _safe_public_health_details(details, access_status)
         public_rows.append({
@@ -1030,14 +1126,22 @@ def freshness_probe(
         latest_source_health.get("available")
         and latest_source_health.get("ok") is False
     )
+    access_action_required = overview.get("access_status") in {
+        "login_required",
+        "suspended",
+    }
     return {
         **overview,
         "checked_at": current.isoformat(),
         "deadline": deadline.isoformat(),
         "deadline_passed": current >= deadline,
         "deadline_missed": bool(missing and current >= deadline),
-        "action_required": bool(missing or source_degraded),
+        "action_required": bool(missing or source_degraded or access_action_required),
         "message": (
+            "XHS collection is suspended pending operator action"
+            if overview.get("access_status") == "suspended" else
+            "XHS server session requires operator re-login"
+            if overview.get("access_status") == "login_required" else
             "XHS cumulative freshness satisfied, but latest run source coverage is degraded"
             if not missing and source_degraded else
             "XHS freshness satisfied"

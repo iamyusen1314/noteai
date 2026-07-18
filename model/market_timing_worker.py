@@ -34,7 +34,9 @@ from scheduler_a import (
 )
 from xhs_acquisition import (
     challenge_cooldown_status,
+    collection_safety_status,
     freshness_overview,
+    mark_server_session_logged_out,
     record_scrape_freshness,
     xhs_freshness_required,
 )
@@ -89,23 +91,44 @@ async def run_once(
     run_id = str(uuid.uuid4())
     scrape_error = ""
     session_status = session_state_summary()
-    challenge_cooldown = challenge_cooldown_status()
-    circuit_state = "cooldown" if challenge_cooldown.get("active") else "closed"
-    try:
-        with search_circuit_context({"state": circuit_state}):
-            scrape_result = await scrape_once()
-        keywords = list(scrape_result)
-        discovery_diagnostics = discovery_diagnostics_for_results(
-            keywords,
-            getattr(scrape_result, "diagnostics", None),
-        )
-    except Exception:
+    operator_suspended = _truthy_env("NOTEAI_XHS_COLLECTION_SUSPENDED")
+    safety_status = collection_safety_status()
+    blocked_reason = ""
+    if operator_suspended:
+        blocked_reason = "collection_suspended"
+    elif safety_status.get("session_blocked"):
+        blocked_reason = str(safety_status.get("reason_code") or "")
+    if blocked_reason:
         keywords = []
-        scrape_error = "scrape_once_failed"
+        scrape_error = blocked_reason
         discovery_diagnostics = discovery_diagnostics_for_results(
             [],
-            extra_error_code="scrape_once_failed",
+            extra_error_code=blocked_reason,
         )
+    else:
+        challenge_cooldown = challenge_cooldown_status()
+        circuit_state = "cooldown" if challenge_cooldown.get("active") else "closed"
+        try:
+            with search_circuit_context({"state": circuit_state}):
+                scrape_result = await scrape_once()
+            keywords = list(scrape_result)
+            discovery_diagnostics = discovery_diagnostics_for_results(
+                keywords,
+                getattr(scrape_result, "diagnostics", None),
+            )
+        except Exception:
+            keywords = []
+            scrape_error = "scrape_once_failed"
+            discovery_diagnostics = discovery_diagnostics_for_results(
+                [],
+                extra_error_code="scrape_once_failed",
+            )
+    diagnostic_codes = set(
+        discovery_diagnostics.get("diagnostic_error_codes") or []
+    )
+    if "server_session_logged_out" in diagnostic_codes:
+        mark_server_session_logged_out()
+        blocked_reason = "server_session_logged_out"
     print(json.dumps({
         "event": "xhs_discovery_diagnostics",
         "run_id": run_id,
@@ -123,9 +146,26 @@ async def run_once(
     xhs_freshness_public = _public_xhs_freshness(xhs_freshness_internal)
     xhs_required = xhs_freshness_required()
     xhs_ok = bool((xhs_freshness_internal.get("overview") or {}).get("ok"))
-    xhs_warning = _xhs_missing_message(xhs_freshness_internal) if xhs_required and not xhs_ok else ""
+    latest_run_evidence_count = max(
+        0,
+        int(xhs_freshness_internal.get("latest_run_evidence_count") or 0),
+    )
+    latest_run_failed = bool(
+        latest_run_evidence_count == 0
+        or blocked_reason
+        or "server_session_logged_out" in diagnostic_codes
+    )
+    xhs_warning = (
+        _xhs_missing_message(xhs_freshness_internal)
+        if (xhs_required and not xhs_ok) or latest_run_failed
+        else ""
+    )
     if xhs_warning and not keywords:
-        if not session_status.get("configured"):
+        if blocked_reason == "collection_suspended":
+            reason = "XHS_COLLECTION_SUSPENDED: operator suspension is active"
+        elif blocked_reason == "server_session_logged_out":
+            reason = "XHS_SESSION_LOGGED_OUT: operator re-login is required"
+        elif not session_status.get("configured"):
             reason = "XHS_SESSION_REQUIRED: no XHS login session is configured"
         elif not session_status.get("auth_cookie_present"):
             reason = "XHS_SESSION_REQUIRED: XHS authentication cookies are missing"
@@ -147,7 +187,11 @@ async def run_once(
         raise RuntimeError(xhs_warning)
     if upload_url:
         _upload_snapshot(payload, upload_url)
-    evidence_mode = "real_xhs" if xhs_ok else "baseline_or_partial"
+    evidence_mode = (
+        "real_xhs"
+        if xhs_ok and not latest_run_failed
+        else "baseline_or_partial"
+    )
     return {
         "keywords": len(keywords),
         "scrape_error": scrape_error,
@@ -157,6 +201,7 @@ async def run_once(
         "xhs_freshness_overview": freshness_overview(),
         "xhs_freshness_required": xhs_required,
         "xhs_freshness_ok": xhs_ok,
+        "latest_run_evidence_count": latest_run_evidence_count,
         "xhs_freshness_warning": xhs_warning,
         "baseline": baseline_result,
         "evidence_mode": evidence_mode,
