@@ -20,7 +20,7 @@
 
 - 仓库：`iamyusen1314/noteai`
 - 当前分支：`codex/quality-stabilization-real-chain`
-- 当前本地发布候选 HEAD：`0ccf3f6`，其直接前序提交为 `199bf5f`；当前分支为 `codex/quality-stabilization-real-chain`。`199bf5f` 包含 CAP-001A1/A2A 的持久 operation/admission 实现，`0ccf3f6` 包含 BUG-002G 的服务端强制注销识别与合规停采实现。两包均已提交，但本账本要求提交后由独立验证代理复核 exact diff、回归与部署边界后才可标记 VERIFIED。
+- 当前本地发布候选 HEAD：`0a05a98`，其前两次代码提交为 `0ccf3f6` 与 `199bf5f`；当前分支为 `codex/quality-stabilization-real-chain`。`199bf5f` 包含 CAP-001A1/A2A 的持久 operation/admission 实现，`0ccf3f6` 包含 BUG-002G 的服务端强制注销识别与合规停采实现，`0a05a98` 仅校准部署账本。独立 Verification Agent 已完成 exact diff 与本地回归复核；两包仍须完成 GitHub CI、Render Staging migration/部署及云端 Smoke 后才可标记 VERIFIED。
 - Render Staging Gateway 已自动部署 `c0afbbe`：Render Events 于 2026-07-13 23:36（Asia/Shanghai）显示 deploy live；公开 `/health/ready` 为 HTTP 200，并返回 `claude-gateway.v2`、`ready_multi_instance`、`shared_control_plane` 与 `dynamodb_shared_atomic`。当前仍为1实例、1 worker，主API仍为Local transport，不能外推为正式切流或2–4实例已验证。
 - 远程跟踪分支：`origin/codex/quality-stabilization-real-chain`
 - 禁止直接合并 `main`，禁止 force push。
@@ -469,8 +469,8 @@
 - 是否需要用户决定：本地代码和一次性SQLite测试不需要；应用`0008`到任何Staging/Production、启用公开202或运行PostgreSQL集成测试需要明确批准。
 - 是否涉及真实外部调用：否；不调用provider、不扣真实账户费用。
 - 是否已部署到 Render：否。生产空库已应用`0008`，但应用代码尚未部署；本包仍未连接公开API/Worker/provider。
-- 提交后验证状态：实现已与CAP-001A1一并提交在`199bf5f`。生产RDS只完成`0008`空结构migration，未导入Staging数据、未扣真实账户费用、未调用AI。须由独立Verification Agent对当前HEAD复核事务原子性、100个零AI admission、跨用户不可枚举、全量回归和部署边界后才可标记VERIFIED。
-- 修改状态/独立验证证据：已新增`model/migrations/postgres/0008_ai_operation_admissions.sql`和`tests/test_ai_operation_admission.py`，最小更新`model/db.py`, `model/ai_operations.py`, `model/idempotency.py`；没有修改API、billing、前端、Gateway或部署。独立Verification Agent证明SQLite/0008的一对一NOT NULL/PK/UNIQUE/FK/RESTRICT合同对等，NULL、双向重复和父记录删除均被拒绝；20并发同key仅1 job/link/usage/charge且其余19返回同一job；operation失败、job后billing失败、真实wallet扣减及流水写入后的marker失败均完整回滚余额/订阅/流水和五张admission表；legacy无link不补job，新helper不激活ContextVar且旧helper行为不变；owner allowlist/跨用户不可枚举成立。独立100线程同时admission耗时0.6518秒、100/100成功、provider attempt/model usage/model_calls均0。主代理复跑相关69/69、全量570/570（5个未授权PG既有用例skip）、Production Readiness 48/48、py_compile/diff check通过；未应用0008、未调用AI或外部服务。
+- 提交后验证状态：实现已与CAP-001A1一并提交在`199bf5f`。独立 Verification Agent 已复核事务原子性、100个零AI admission、跨用户不可枚举、exact diff、全量回归和部署边界；生产RDS只完成`0008`空结构migration，未导入Staging数据、未扣真实账户费用、未调用AI。当前仍待 GitHub CI、Render Staging migration/部署和云端 PostgreSQL 边界验证，因此保持 READY_TO_VERIFY，不提前标记 VERIFIED。
+- 修改状态/独立验证证据：已新增`model/migrations/postgres/0008_ai_operation_admissions.sql`和`tests/test_ai_operation_admission.py`，最小更新`model/db.py`, `model/ai_operations.py`, `model/idempotency.py`；没有修改API、billing、前端、Gateway或部署。独立Verification Agent证明SQLite/0008的一对一NOT NULL/PK/UNIQUE/FK/RESTRICT合同对等，NULL、双向重复和父记录删除均被拒绝；20并发同key仅1 job/link/usage/charge且其余19返回同一job；operation失败、job后billing失败、真实wallet扣减及流水写入后的marker失败均完整回滚余额/订阅/流水和五张admission表；legacy无link不补job，新helper不激活ContextVar且旧helper行为不变；owner allowlist/跨用户不可枚举成立。独立100线程同时admission在2秒门禁内完成、100/100成功、provider attempt/model usage/model_calls均0。独立组合回归234/234、全量578/578（5个真实PG环境用例skip）、Production Readiness 48/48、py_compile、Docker Compose与diff check通过；未调用AI或外部服务。
 
 ### CAP-001A2B — 可恢复输入、结果引用与Worker数据边界
 
