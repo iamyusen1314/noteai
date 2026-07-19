@@ -1,4 +1,21 @@
-FROM python:3.11-slim
+FROM node:20-bookworm-slim AS meituan-travel-cli
+
+ARG MEITUAN_TRAVEL_CLI_VERSION=1.0.16
+ARG MEITUAN_TRAVEL_CLI_INTEGRITY=sha512-mYwkdd2jzFPKPacMM7CL3aAbfWqxkCh6q1kVi9YhgJoDPw22vAp1JFQrWuWJKzJiBBoYuXnMxzyC8i+f6mXzrA==
+ARG MEITUAN_TRAVEL_CLI_BUNDLE_SHA256=8a0527bb6e8b9074cf0221756f35bca989945e8436e4841596a7b7bf79ae06d8
+
+WORKDIR /tmp/meituan-travel-cli
+RUN set -eux; \
+    npm pack "@meituan-travel/travel-cli@${MEITUAN_TRAVEL_CLI_VERSION}" --ignore-scripts --json > pack.json; \
+    node -e 'const fs=require("fs"); const item=JSON.parse(fs.readFileSync(process.argv[1],"utf8"))[0]; if(item.integrity!==process.argv[2]) throw new Error("integrity mismatch")' pack.json "${MEITUAN_TRAVEL_CLI_INTEGRITY}"; \
+    tarball="$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8"))[0].filename)' pack.json)"; \
+    npm install --global --omit=dev --ignore-scripts "./${tarball}"; \
+    test "$(node -p 'require("/usr/local/lib/node_modules/@meituan-travel/travel-cli/package.json").version')" = "${MEITUAN_TRAVEL_CLI_VERSION}"; \
+    echo "${MEITUAN_TRAVEL_CLI_BUNDLE_SHA256}  /usr/local/lib/node_modules/@meituan-travel/travel-cli/mttravel-bundle.cjs" | sha256sum -c -; \
+    npm cache clean --force; \
+    rm -rf /tmp/meituan-travel-cli
+
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
@@ -6,12 +23,20 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     PIP_DEFAULT_TIMEOUT=120 \
-    PIP_RETRIES=8
+    PIP_RETRIES=8 \
+    MEITUAN_TRAVEL_CLI=/usr/local/bin/mttravel
 
 # 系统依赖（OpenCV 需要）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
     && rm -rf /var/lib/apt/lists/*
+
+# Official Meituan Travel CLI runtime only; npm and its cache stay in the build stage.
+COPY --from=meituan-travel-cli /usr/local/bin/node /usr/local/bin/node
+COPY --from=meituan-travel-cli /usr/local/lib/node_modules/@meituan-travel/travel-cli /usr/local/lib/node_modules/@meituan-travel/travel-cli
+RUN ln -s /usr/local/lib/node_modules/@meituan-travel/travel-cli/mttravel-bundle.cjs /usr/local/bin/mttravel \
+    && test -x /usr/local/bin/mttravel \
+    && node -e 'const pkg=require("/usr/local/lib/node_modules/@meituan-travel/travel-cli/package.json"); if(pkg.version!=="1.0.16") process.exit(1)'
 
 # 依赖先复制（利用 Docker 缓存）
 COPY model/requirements.txt ./requirements.txt

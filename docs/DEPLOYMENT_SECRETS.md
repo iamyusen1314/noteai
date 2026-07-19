@@ -18,7 +18,7 @@ NoteAI 的生产密钥目前配置在 GitHub Environment：`production`。
 - `NOTEAI_MARKET_TIMING_REFRESH_TOKEN`
 - `NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN`
 
-说明：酒旅 `meituan-travel` Skill 运行时读取 `MEITUAN_AI_HUB_TOKEN` 或 `MEITUAN_OPEN_TOKEN` 均可。当前 production 配置的是 `MEITUAN_OPEN_TOKEN`，无需重复存同一份密钥。
+说明：NoteAI 运行时接受 `MEITUAN_AI_HUB_TOKEN` 或 `MEITUAN_OPEN_TOKEN`，生产环境只需配置其中一个，无需重复存同一份密钥。官方 `meituan-travel` CLI 1.0.16 实际只读取 `~/.config/meituan-travel/config.json` 的 `key`/`Authorization`；NoteAI 会在每次调用前把上述 Secret 写入权限为 `0600` 的临时配置，并使用权限为 `0700` 的隔离 HOME，调用结束后立即清理。Token 不进入命令参数或应用日志。
 
 ## Production Variables
 

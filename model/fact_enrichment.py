@@ -15,6 +15,7 @@ import logging
 import json
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -26,6 +27,12 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 _CACHE: dict[str, tuple[float, dict]] = {}
 _TIMEOUT_SECONDS = float(os.environ.get("NOTEAI_FACT_SEARCH_TIMEOUT", "8") or "8")
 _MEITUAN_TRAVEL_TIMEOUT_SECONDS = float(os.environ.get("NOTEAI_MEITUAN_TRAVEL_TIMEOUT", "45") or "45")
+_MEITUAN_TRAVEL_STATUS_READY = "MEITUAN_TRAVEL_READY"
+_MEITUAN_TRAVEL_STATUS_DISABLED = "MEITUAN_TRAVEL_DISABLED"
+_MEITUAN_TRAVEL_STATUS_CLI_MISSING = "MEITUAN_TRAVEL_CLI_MISSING"
+_MEITUAN_TRAVEL_STATUS_TOKEN_MISSING = "MEITUAN_TRAVEL_TOKEN_MISSING"
+_MEITUAN_TRAVEL_STATUS_EXEC_FAILED = "MEITUAN_TRAVEL_EXEC_FAILED"
+_MEITUAN_TRAVEL_STATUS_TIMEOUT = "MEITUAN_TRAVEL_TIMEOUT"
 
 
 _PRICE_RE = re.compile(
@@ -100,13 +107,108 @@ def _meituan_travel_cli_path() -> str:
     return shutil.which("mttravel") or "/opt/homebrew/bin/mttravel"
 
 
-def _meituan_travel_ready() -> bool:
-    if not _truthy_env("NOTEAI_MEITUAN_TRAVEL_ENABLED", "1"):
-        return False
-    has_token = bool(os.environ.get("MEITUAN_AI_HUB_TOKEN") or os.environ.get("MEITUAN_OPEN_TOKEN"))
-    has_config = (Path.home() / ".config" / "meituan-travel" / "config.json").exists()
+def _meituan_travel_config_path(home: Path | None = None) -> Path:
+    return (home or Path.home()) / ".config" / "meituan-travel" / "config.json"
+
+
+def _meituan_travel_config_token(path: Path | None = None) -> str:
+    config_path = path or _meituan_travel_config_path()
+    try:
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError):
+        return ""
+    if not isinstance(payload, dict):
+        return ""
+    return str(payload.get("key") or payload.get("Authorization") or "").strip()
+
+
+def _meituan_travel_token() -> str:
+    return str(
+        os.environ.get("MEITUAN_AI_HUB_TOKEN")
+        or os.environ.get("MEITUAN_OPEN_TOKEN")
+        or _meituan_travel_config_token()
+        or ""
+    ).strip()
+
+
+def _meituan_travel_cli_executable() -> bool:
     cli_path = _meituan_travel_cli_path()
-    return (has_token or has_config) and bool(cli_path) and Path(cli_path).exists()
+    return bool(cli_path) and Path(cli_path).is_file() and os.access(cli_path, os.X_OK)
+
+
+def meituan_travel_runtime_status() -> dict:
+    """Return fixed-code runtime readiness without exposing paths or credentials."""
+    enabled = _truthy_env("NOTEAI_FACT_SEARCH", "1") and _truthy_env("NOTEAI_MEITUAN_TRAVEL_ENABLED", "1")
+    required = enabled and _truthy_env("NOTEAI_CLOUD_RUNTIME", "0")
+    if not enabled:
+        return {
+            "ok": True,
+            "required": False,
+            "status_code": _MEITUAN_TRAVEL_STATUS_DISABLED,
+        }
+    if not _meituan_travel_cli_executable():
+        return {
+            "ok": False,
+            "required": required,
+            "status_code": _MEITUAN_TRAVEL_STATUS_CLI_MISSING,
+        }
+    if not _meituan_travel_token():
+        return {
+            "ok": False,
+            "required": required,
+            "status_code": _MEITUAN_TRAVEL_STATUS_TOKEN_MISSING,
+        }
+    return {
+        "ok": True,
+        "required": required,
+        "status_code": _MEITUAN_TRAVEL_STATUS_READY,
+    }
+
+
+def _meituan_travel_ready() -> bool:
+    return meituan_travel_runtime_status()["status_code"] == _MEITUAN_TRAVEL_STATUS_READY
+
+
+def _write_meituan_travel_runtime_config(home: Path, credential: str) -> Path:
+    home.mkdir(parents=True, exist_ok=True, mode=0o700)
+    home.chmod(0o700)
+    config_path = _meituan_travel_config_path(home)
+    config_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    config_path.parent.chmod(0o700)
+    file_descriptor = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(file_descriptor, "w", encoding="utf-8") as handle:
+            json.dump({"key": credential}, handle, ensure_ascii=False)
+    except Exception:
+        try:
+            config_path.unlink(missing_ok=True)
+        finally:
+            raise
+    config_path.chmod(0o600)
+    return config_path
+
+
+def _meituan_travel_subprocess_env(home: Path) -> dict[str, str]:
+    allowed_names = {
+        "PATH",
+        "LANG",
+        "LC_ALL",
+        "TZ",
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "NO_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "no_proxy",
+        "NODE_EXTRA_CA_CERTS",
+        "SSL_CERT_FILE",
+        "SSL_CERT_DIR",
+        "MEITUAN_RAW_JSON",
+    }
+    child_env = {name: value for name, value in os.environ.items() if name in allowed_names}
+    child_env["HOME"] = str(home)
+    child_env["NO_COLOR"] = "1"
+    return child_env
 
 
 def fact_search_enabled(domain: str | None = None) -> bool:
@@ -170,8 +272,12 @@ def _clean_text(text: str | None, limit: int = 180) -> str:
     return txt[:limit]
 
 
-def _redact_secret_values(text: str | None) -> str:
-    return _SECRET_QUERY_RE.sub(r"\1<redacted>", text or "")
+def _redact_secret_values(text: str | None, extra_values: tuple[str, ...] = ()) -> str:
+    redacted = _SECRET_QUERY_RE.sub(r"\1<redacted>", text or "")
+    for value in extra_values:
+        if value:
+            redacted = redacted.replace(value, "<redacted>")
+    return redacted
 
 
 def _authorized_fact_path() -> Path:
@@ -696,18 +802,33 @@ def _search_amap(query: str) -> list[dict]:
 def _search_meituan_travel(query: str) -> list[dict]:
     cli_path = _meituan_travel_cli_path()
     region = _extract_region(query)
-    if not Path(cli_path).exists():
-        return []
-    completed = subprocess.run(
-        [cli_path, region if region != "全国" else "中国", query],
-        capture_output=True,
-        text=True,
-        timeout=max(30, int(_MEITUAN_TRAVEL_TIMEOUT_SECONDS)),
-        check=False,
+    if not _meituan_travel_cli_executable():
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_CLI_MISSING)
+    credential = _meituan_travel_token()
+    if not credential:
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_TOKEN_MISSING)
+    try:
+        with tempfile.TemporaryDirectory(prefix="noteai-mttravel-") as runtime_home:
+            runtime_home_path = Path(runtime_home)
+            _write_meituan_travel_runtime_config(runtime_home_path, credential)
+            completed = subprocess.run(
+                [cli_path, region if region != "全国" else "中国", query],
+                capture_output=True,
+                text=True,
+                timeout=max(30, int(_MEITUAN_TRAVEL_TIMEOUT_SECONDS)),
+                check=False,
+                env=_meituan_travel_subprocess_env(runtime_home_path),
+            )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_TIMEOUT) from None
+    except (OSError, subprocess.SubprocessError):
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_EXEC_FAILED) from None
+    output = _redact_secret_values(
+        "\n".join(part for part in [completed.stdout, completed.stderr] if part),
+        (credential,),
     )
-    output = _redact_secret_values("\n".join(part for part in [completed.stdout, completed.stderr] if part))
     if completed.returncode != 0:
-        raise RuntimeError(_clean_text(output or f"meituan-travel exited {completed.returncode}", 160))
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_EXEC_FAILED)
     snippet = _clean_text(output, 1200)
     if not snippet:
         return []

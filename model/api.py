@@ -11375,12 +11375,16 @@ def _readiness_payload() -> tuple[dict, int]:
         "moonshot_configured": bool(os.environ.get("MOONSHOT_API_KEY")),
     }
 
+    checks["meituan_travel"] = _facts.meituan_travel_runtime_status()
+
     if _SCHEDULER_AVAILABLE:
         checks["market_timing"] = _market_readiness_cache.snapshot()
 
     blocking = [checks["database"].get("ok"), checks["model"].get("ok")]
     if require_ai:
         blocking.append(checks["ai"].get("ok"))
+    if checks["meituan_travel"].get("required"):
+        blocking.append(checks["meituan_travel"].get("ok"))
     ready = all(blocking)
     return {"status": "ready" if ready else "not_ready", "service": "noteai-api", "checks": checks}, 200 if ready else 503
 

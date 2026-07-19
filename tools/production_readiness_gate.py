@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -239,6 +240,8 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     deploy_secrets = (ROOT / "docs" / "DEPLOYMENT_SECRETS.md").read_text(encoding="utf-8")
     cloud_strategy = (ROOT / "docs" / "MODEL_ARTIFACT_CLOUD_STRATEGY.md").read_text(encoding="utf-8")
     timing_strategy = (ROOT / "docs" / "MARKET_TIMING_CLOUD_PIPELINE.md").read_text(encoding="utf-8")
+    fact_enrichment = (MODEL_DIR / "fact_enrichment.py").read_text(encoding="utf-8")
+    api_source = (MODEL_DIR / "api.py").read_text(encoding="utf-8")
 
     checks = [
         _ok("ci_runs_tests", "python -m unittest discover -s tests -p 'test_*.py'" in workflow),
@@ -250,6 +253,30 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         _ok("docker_uses_artifact_entrypoint", "ENTRYPOINT [\"/app/scripts/docker_entrypoint.sh\"]" in dockerfile),
         _ok("docker_copies_entrypoint", "COPY scripts/docker_entrypoint.sh" in dockerfile),
         _ok("docker_installs_playwright_chromium", "python -m playwright install --with-deps chromium" in dockerfile),
+        _ok("docker_uses_node20_meituan_build_stage", "FROM node:20-bookworm-slim AS meituan-travel-cli" in dockerfile),
+        _ok("docker_pins_meituan_travel_cli", "MEITUAN_TRAVEL_CLI_VERSION=1.0.16" in dockerfile),
+        _ok(
+            "docker_verifies_meituan_travel_integrity",
+            "sha512-mYwkdd2jzFPKPacMM7CL3aAbfWqxkCh6q1kVi9YhgJoDPw22vAp1JFQrWuWJKzJiBBoYuXnMxzyC8i+f6mXzrA==" in dockerfile,
+        ),
+        _ok("docker_runtime_has_mttravel_without_npm", "COPY --from=meituan-travel-cli /usr/local/bin/node" in dockerfile and "MEITUAN_TRAVEL_CLI=/usr/local/bin/mttravel" in dockerfile),
+        _ok(
+            "meituan_runtime_uses_ephemeral_config",
+            "TemporaryDirectory(prefix=\"noteai-mttravel-\")" in fact_enrichment
+            and "os.O_EXCL, 0o600" in fact_enrichment
+            and "home.chmod(0o700)" in fact_enrichment,
+        ),
+        _ok(
+            "meituan_readiness_has_fixed_codes",
+            all(code in fact_enrichment for code in (
+                "MEITUAN_TRAVEL_READY",
+                "MEITUAN_TRAVEL_CLI_MISSING",
+                "MEITUAN_TRAVEL_TOKEN_MISSING",
+                "MEITUAN_TRAVEL_EXEC_FAILED",
+                "MEITUAN_TRAVEL_TIMEOUT",
+            )),
+        ),
+        _ok("api_readiness_checks_meituan_runtime", 'checks["meituan_travel"] = _facts.meituan_travel_runtime_status()' in api_source),
         _ok("requirements_include_playwright", "playwright==" in (MODEL_DIR / "requirements.txt").read_text(encoding="utf-8")),
         _ok("compose_has_trends_worker", "noteai-trends-worker:" in compose and "market_timing_worker.py" in compose),
         _ok("entrypoint_can_skip_model_for_worker", "NOTEAI_SKIP_MODEL_ARTIFACT_CHECK" in (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")),
@@ -263,6 +290,26 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     missing_env = [name for name in sorted(REQUIRED_ENV_NAMES) if name not in env_example]
     checks.append(_ok("env_example_contains_required_names", not missing_env, f"missing={missing_env}"))
     return checks
+
+
+def check_optional_runtime_dependencies() -> list[dict[str, Any]]:
+    cloud_runtime = os.environ.get("NOTEAI_CLOUD_RUNTIME", "0").strip().lower() in {"1", "true", "yes", "on"}
+    if not cloud_runtime:
+        return [_ok(
+            "meituan_travel_runtime_dependency",
+            True,
+            "deferred: NOTEAI_CLOUD_RUNTIME is not enabled",
+        )]
+
+    import fact_enrichment as facts  # noqa: PLC0415
+
+    status = facts.meituan_travel_runtime_status()
+    passed = not status.get("required") or bool(status.get("ok"))
+    return [_ok(
+        "meituan_travel_runtime_dependency",
+        passed,
+        str(status.get("status_code") or "MEITUAN_TRAVEL_STATUS_UNKNOWN"),
+    )]
 
 
 def _line_has_secret_value(line: str) -> tuple[bool, str]:
@@ -354,6 +401,7 @@ def build_report() -> dict[str, Any]:
         "model_release": check_model_release(),
         "quality_evidence": check_quality_evidence(),
         "ci_and_deployment_config": check_ci_and_deployment_config(),
+        "optional_runtime_dependencies": check_optional_runtime_dependencies(),
         "git_hygiene": check_git_hygiene(),
     }
     all_checks = [check for checks in sections.values() for check in checks]

@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,6 +14,7 @@ sys.path.insert(0, str(MODEL_DIR))
 sys.path.insert(0, str(TOOLS_DIR))
 
 import artifact_loader  # noqa: E402
+import fact_enrichment as facts  # noqa: E402
 import production_readiness_gate as gate  # noqa: E402
 
 
@@ -22,6 +24,44 @@ class ProductionReadinessGateTests(unittest.TestCase):
 
         self.assertTrue(report["passed"], report["failed_checks"])
         self.assertGreaterEqual(report["check_count"], 30)
+
+    def test_cloud_runtime_gate_fails_with_fixed_code_when_meituan_cli_is_missing(self):
+        with mock.patch.dict(os.environ, {
+            "NOTEAI_CLOUD_RUNTIME": "1",
+            "NOTEAI_FACT_SEARCH": "1",
+            "NOTEAI_MEITUAN_TRAVEL_ENABLED": "1",
+            "MEITUAN_AI_HUB_TOKEN": "",
+            "MEITUAN_OPEN_TOKEN": "",
+        }), mock.patch.object(facts, "_meituan_travel_cli_path", return_value="/missing/mttravel"), mock.patch.object(
+            facts,
+            "_meituan_travel_config_token",
+            return_value="",
+        ):
+            checks = gate.check_optional_runtime_dependencies()
+
+        self.assertFalse(checks[0]["passed"])
+        self.assertEqual(checks[0]["detail"], "MEITUAN_TRAVEL_CLI_MISSING")
+
+    def test_cloud_runtime_gate_fails_with_fixed_code_when_meituan_token_is_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            executable = Path(tmp) / "mttravel"
+            executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            executable.chmod(0o700)
+            with mock.patch.dict(os.environ, {
+                "NOTEAI_CLOUD_RUNTIME": "1",
+                "NOTEAI_FACT_SEARCH": "1",
+                "NOTEAI_MEITUAN_TRAVEL_ENABLED": "1",
+                "MEITUAN_AI_HUB_TOKEN": "",
+                "MEITUAN_OPEN_TOKEN": "",
+            }), mock.patch.object(facts, "_meituan_travel_cli_path", return_value=str(executable)), mock.patch.object(
+                facts,
+                "_meituan_travel_config_token",
+                return_value="",
+            ):
+                checks = gate.check_optional_runtime_dependencies()
+
+        self.assertFalse(checks[0]["passed"])
+        self.assertEqual(checks[0]["detail"], "MEITUAN_TRAVEL_TOKEN_MISSING")
 
     def test_secret_scanner_flags_real_values_but_allows_placeholders(self):
         self.assertEqual(gate._line_has_secret_value("ANTHROPIC_API_KEY=test-key"), (False, ""))

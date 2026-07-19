@@ -1,6 +1,12 @@
+import json
+import os
+import stat
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,6 +18,141 @@ import fact_enrichment as facts  # noqa: E402
 
 
 class FactEnrichmentTests(unittest.TestCase):
+    def test_meituan_runtime_readiness_uses_fixed_missing_codes(self):
+        with mock.patch.dict(os.environ, {
+            "NOTEAI_FACT_SEARCH": "1",
+            "NOTEAI_MEITUAN_TRAVEL_ENABLED": "1",
+            "NOTEAI_CLOUD_RUNTIME": "1",
+            "MEITUAN_AI_HUB_TOKEN": "",
+            "MEITUAN_OPEN_TOKEN": "",
+        }), mock.patch.object(facts, "_meituan_travel_config_token", return_value=""):
+            with mock.patch.object(facts, "_meituan_travel_cli_path", return_value="/missing/mttravel"):
+                missing_cli = facts.meituan_travel_runtime_status()
+            self.assertFalse(missing_cli["ok"])
+            self.assertTrue(missing_cli["required"])
+            self.assertEqual(missing_cli["status_code"], "MEITUAN_TRAVEL_CLI_MISSING")
+
+            with tempfile.TemporaryDirectory() as tmp:
+                executable = Path(tmp) / "mttravel"
+                executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+                executable.chmod(0o700)
+                with mock.patch.object(facts, "_meituan_travel_cli_path", return_value=str(executable)):
+                    missing_token = facts.meituan_travel_runtime_status()
+            self.assertFalse(missing_token["ok"])
+            self.assertEqual(missing_token["status_code"], "MEITUAN_TRAVEL_TOKEN_MISSING")
+
+    def test_meituan_runtime_config_accepts_authorization_field(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "config.json"
+            config_path.write_text(json.dumps({"Authorization": "config-value"}), encoding="utf-8")
+            self.assertEqual(facts._meituan_travel_config_token(config_path), "config-value")
+
+    def test_meituan_cli_uses_private_temporary_config_and_cleans_it(self):
+        observed: dict = {}
+        credential = "runtime-value-for-test"
+
+        def fake_run(args, **kwargs):
+            observed["args"] = list(args)
+            observed["env"] = dict(kwargs["env"])
+            observed["home"] = kwargs["env"]["HOME"]
+            config_path = Path(observed["home"]) / ".config" / "meituan-travel" / "config.json"
+            observed["home_mode"] = stat.S_IMODE(Path(observed["home"]).stat().st_mode)
+            observed["config_mode"] = stat.S_IMODE(config_path.stat().st_mode)
+            observed["config"] = json.loads(config_path.read_text(encoding="utf-8"))
+            return subprocess.CompletedProcess(
+                args,
+                0,
+                stdout="广州长隆酒店 美团真实评分4.8 ￥929起/晚",
+                stderr="",
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            executable = Path(tmp) / "mttravel"
+            executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            executable.chmod(0o700)
+            with mock.patch.dict(os.environ, {
+                "MEITUAN_AI_HUB_TOKEN": credential,
+                "MEITUAN_OPEN_TOKEN": "",
+            }), mock.patch.object(facts, "_meituan_travel_cli_path", return_value=str(executable)), mock.patch.object(
+                facts.subprocess,
+                "run",
+                side_effect=fake_run,
+            ):
+                items = facts._search_meituan_travel("广州长隆酒店价格")
+
+        self.assertEqual(len(items), 1)
+        self.assertEqual(observed["home_mode"], 0o700)
+        self.assertEqual(observed["config_mode"], 0o600)
+        self.assertEqual(observed["config"], {"key": credential})
+        self.assertNotIn(credential, observed["args"])
+        self.assertNotIn("MEITUAN_AI_HUB_TOKEN", observed["env"])
+        self.assertNotIn("MEITUAN_OPEN_TOKEN", observed["env"])
+        self.assertFalse(Path(observed["home"]).exists())
+
+    def test_meituan_cli_redacts_token_and_cleans_config_after_failure(self):
+        observed: dict = {}
+        credential = "sensitive-runtime-value"
+        submitted_query = "广州酒店内部查询词"
+        response_url = "https://private.example.invalid/result"
+        response_body = "third-party diagnostic response"
+
+        def fake_run(args, **kwargs):
+            observed["args"] = list(args)
+            observed["home"] = kwargs["env"]["HOME"]
+            return subprocess.CompletedProcess(
+                args,
+                2,
+                stdout=f"{response_url} {response_body}",
+                stderr=f"request failed: {credential} query={submitted_query}",
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            executable = Path(tmp) / "mttravel"
+            executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            executable.chmod(0o700)
+            with mock.patch.dict(os.environ, {
+                "MEITUAN_AI_HUB_TOKEN": credential,
+                "MEITUAN_OPEN_TOKEN": "",
+            }), mock.patch.object(facts, "_meituan_travel_cli_path", return_value=str(executable)), mock.patch.object(
+                facts.subprocess,
+                "run",
+                side_effect=fake_run,
+            ):
+                with self.assertRaises(RuntimeError) as raised:
+                    facts._search_meituan_travel(submitted_query)
+
+        self.assertEqual(str(raised.exception), "MEITUAN_TRAVEL_EXEC_FAILED")
+        self.assertNotIn(credential, str(raised.exception))
+        self.assertNotIn(submitted_query, str(raised.exception))
+        self.assertNotIn(response_url, str(raised.exception))
+        self.assertNotIn(response_body, str(raised.exception))
+        self.assertNotIn(credential, observed["args"])
+        self.assertFalse(Path(observed["home"]).exists())
+
+    def test_meituan_cli_cleans_config_after_timeout(self):
+        observed: dict = {}
+
+        def fake_run(args, **kwargs):
+            observed["home"] = kwargs["env"]["HOME"]
+            raise subprocess.TimeoutExpired(args, kwargs["timeout"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            executable = Path(tmp) / "mttravel"
+            executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            executable.chmod(0o700)
+            with mock.patch.dict(os.environ, {
+                "MEITUAN_AI_HUB_TOKEN": "timeout-runtime-value",
+                "MEITUAN_OPEN_TOKEN": "",
+            }), mock.patch.object(facts, "_meituan_travel_cli_path", return_value=str(executable)), mock.patch.object(
+                facts.subprocess,
+                "run",
+                side_effect=fake_run,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "^MEITUAN_TRAVEL_TIMEOUT$"):
+                    facts._search_meituan_travel("广州酒店")
+
+        self.assertFalse(Path(observed["home"]).exists())
+
     def test_meituan_travel_output_extracts_structured_hotel_facts(self):
         output = """
 为你找到了广州长隆附近的亲子酒店，不过关于交通便利度，有的酒店信息不明确，我会说明清楚。
