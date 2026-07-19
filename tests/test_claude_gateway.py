@@ -3458,6 +3458,67 @@ class GatewayRehearsalTests(unittest.TestCase):
 
 
 class ClaudeGatewayPackagingTests(unittest.TestCase):
+    def test_production_blueprint_is_independent_and_fail_closed(self):
+        import yaml
+
+        production_path = ROOT / "render.gateway.production.yaml"
+        production = production_path.read_text(encoding="utf-8")
+        doc = yaml.safe_load(production)
+        self.assertEqual(len(doc["services"]), 1)
+        service = doc["services"][0]
+        self.assertEqual(service["name"], "noteai-prod-claude-gateway")
+        self.assertEqual(service["plan"], "starter")
+        self.assertEqual(service["region"], "singapore")
+        self.assertEqual(service["autoDeployTrigger"], "off")
+        self.assertEqual(service["healthCheckPath"], "/health/ready")
+        self.assertEqual(service["maxShutdownDelaySeconds"], 240)
+        self.assertEqual(service["scaling"], {
+            "minInstances": 2,
+            "maxInstances": 4,
+            "targetCPUPercent": 60,
+            "targetMemoryPercent": 70,
+        })
+
+        env = {
+            item["key"]: item
+            for item in service["envVars"]
+        }
+        self.assertEqual(
+            env["NOTEAI_CLAUDE_GATEWAY_AUTHORITY"]["value"],
+            "noteai-prod-claude-gateway.onrender.com",
+        )
+        self.assertEqual(
+            env["NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE"]["value"],
+            "dynamodb",
+        )
+        self.assertEqual(env["NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT"]["value"], "2")
+        self.assertEqual(env["WEB_CONCURRENCY"]["value"], "1")
+        self.assertEqual(
+            env["NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS"]["value"],
+            "180",
+        )
+        for key in (
+            "ANTHROPIC_API_KEY",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET",
+            "NOTEAI_CLAUDE_GATEWAY_DDB_TABLE",
+            "NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID",
+            "AWS_ROLE_ARN",
+        ):
+            self.assertEqual(env[key], {"key": key, "sync": False})
+        for forbidden in (
+            "noteai-staging-claude-gateway",
+            "DATABASE_URL",
+            "MOONSHOT_API_KEY",
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "NOTEAI_MODEL_ARTIFACT",
+            "type: cron",
+            "databases:",
+            "disk:",
+        ):
+            self.assertNotIn(forbidden, production)
+
     def test_blueprints_safe_load_to_one_consistent_staging_gateway_contract(self):
         import yaml
 
