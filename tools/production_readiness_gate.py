@@ -16,6 +16,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -117,6 +118,220 @@ def _declared_sha256_mismatches(
 
 def _ok(name: str, passed: bool, detail: str = "") -> dict[str, Any]:
     return {"name": name, "passed": bool(passed), "detail": detail}
+
+
+def _fragments_in_order(text: str, fragments: tuple[str, ...]) -> bool:
+    position = -1
+    for fragment in fragments:
+        position = text.find(fragment, position + 1)
+        if position < 0:
+            return False
+    return True
+
+
+def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
+    """Execute the role/command contract without loading artifacts or commands."""
+    required_fragments = (
+        "runtime_role_file=/etc/noteai-runtime-role",
+        "cd /app/model",
+        "  python -m artifact_loader",
+        'exec "$@"',
+    )
+    missing = [fragment for fragment in required_fragments if fragment not in entrypoint]
+    if missing:
+        return False, f"harness_missing_fragments={len(missing)}"
+
+    allowed_cases = {
+        "api_start": ("api", ("/app/scripts/render_start_api.sh",)),
+        "api_predeploy": ("api", ("python", "/app/scripts/render_predeploy.py")),
+        "worker_admin_start": ("worker", ("/app/scripts/render_start_admin.sh",)),
+        "worker_market_wrapper": ("worker", ("/app/scripts/render_run_market_timing.sh",)),
+        "worker_crawler_wrapper": ("worker", ("/app/scripts/render_run_crawler.sh",)),
+        "worker_admin_compose": (
+            "worker",
+            ("python", "-m", "uvicorn", "admin_server:admin_app", "--host", "0.0.0.0", "--port", "8001"),
+        ),
+        "worker_market_bare": ("worker", ("python", "market_timing_worker.py")),
+        "worker_market_once": ("worker", ("python", "market_timing_worker.py", "--once")),
+        "worker_market_daemon": (
+            "worker",
+            ("python", "market_timing_worker.py", "--daemon", "--interval", "60"),
+        ),
+        "worker_crawler_bare": ("worker", ("python", "crawler_worker.py")),
+        "worker_crawler_once": ("worker", ("python", "crawler_worker.py", "--once")),
+        "worker_crawler_loop": (
+            "worker",
+            ("python", "crawler_worker.py", "--loop", "--interval-minutes", "60", "--limit", "50"),
+        ),
+        "worker_predeploy": ("worker", ("python", "/app/scripts/render_predeploy.py")),
+        "worker_fail_closed_default": ("worker", ("/bin/false",)),
+    }
+    rejected_command_cases = {
+        "api_empty_command": ("api", ()),
+        "api_direct_uvicorn": ("api", ("python", "-m", "uvicorn", "api:app")),
+        "api_file": ("api", ("python", "api.py")),
+        "api_module_worker": ("api", ("python", "-m", "crawler_worker")),
+        "api_absolute_worker": ("api", ("python", "/app/model/crawler_worker.py")),
+        "api_shell_wrapper": ("api", ("sh", "-c", "/app/scripts/render_start_api.sh")),
+        "api_start_extra": ("api", ("/app/scripts/render_start_api.sh", "extra")),
+        "api_predeploy_extra": ("api", ("python", "/app/scripts/render_predeploy.py", "extra")),
+        "worker_api_start": ("worker", ("/app/scripts/render_start_api.sh",)),
+        "worker_direct_api": (
+            "worker",
+            ("python", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"),
+        ),
+        "worker_api_file": ("worker", ("python", "api.py")),
+        "worker_absolute_api": ("worker", ("python", "/app/model/api.py")),
+        "worker_module_worker": ("worker", ("python", "-m", "crawler_worker")),
+        "worker_absolute_worker": ("worker", ("python", "/app/model/crawler_worker.py")),
+        "worker_shell_wrapper": ("worker", ("sh", "-c", "/app/scripts/render_run_crawler.sh")),
+        "worker_wrapper_extra": ("worker", ("/app/scripts/render_run_crawler.sh", "extra")),
+        "worker_predeploy_extra": ("worker", ("python", "/app/scripts/render_predeploy.py", "extra")),
+        "worker_false_extra": ("worker", ("/bin/false", "extra")),
+        "worker_unknown_python": ("worker", ("python", "-c", "import api")),
+        "worker_market_negative": (
+            "worker",
+            ("python", "market_timing_worker.py", "--daemon", "--interval", "-1"),
+        ),
+        "worker_market_empty": (
+            "worker",
+            ("python", "market_timing_worker.py", "--daemon", "--interval", ""),
+        ),
+        "worker_market_non_numeric": (
+            "worker",
+            ("python", "market_timing_worker.py", "--daemon", "--interval", "api:app"),
+        ),
+        "worker_crawler_negative": (
+            "worker",
+            ("python", "crawler_worker.py", "--loop", "--interval-minutes", "-1", "--limit", "50"),
+        ),
+        "worker_crawler_empty": (
+            "worker",
+            ("python", "crawler_worker.py", "--loop", "--interval-minutes", "60", "--limit", ""),
+        ),
+        "worker_crawler_non_numeric": (
+            "worker",
+            ("python", "crawler_worker.py", "--loop", "--interval-minutes", "api.py", "--limit", "50"),
+        ),
+    }
+    marker_cases = {
+        "marker_missing": ("missing", "api", "api"),
+        "marker_unreadable": ("unreadable", "api", "api"),
+        "marker_empty": ("empty", "api", "api"),
+        "marker_read_failure": ("read_failure", "api", "api"),
+        "marker_invalid": ("valid", "invalid", "invalid"),
+        "marker_role_mismatch": ("valid", "api", "worker"),
+    }
+    failures: list[str] = []
+
+    with tempfile.TemporaryDirectory(prefix="noteai-entrypoint-contract-") as tmp:
+        root = Path(tmp)
+
+        def run_case(
+            name: str,
+            image_role: str,
+            declared_role: str,
+            command: tuple[str, ...],
+            *,
+            marker_state: str = "valid",
+            allowed: bool,
+            extra_env: dict[str, str] | None = None,
+        ) -> None:
+            case_dir = root / name
+            case_dir.mkdir()
+            marker = case_dir / "noteai-runtime-role"
+            if marker_state == "valid":
+                marker.write_text(f"{image_role}\n", encoding="utf-8")
+            elif marker_state == "unreadable":
+                marker.write_text(f"{image_role}\n", encoding="utf-8")
+                marker.chmod(0o000)
+            elif marker_state == "empty":
+                marker.write_text("\n", encoding="utf-8")
+            elif marker_state == "read_failure":
+                marker.write_text(image_role, encoding="utf-8")
+            elif marker_state != "missing":
+                failures.append(f"{name}:invalid_harness_marker_state")
+                return
+
+            artifact_sentinel = case_dir / "artifact-called"
+            exec_sentinel = case_dir / "exec-called"
+            script = case_dir / "docker_entrypoint.sh"
+            transformed = entrypoint.replace(
+                "runtime_role_file=/etc/noteai-runtime-role",
+                f"runtime_role_file='{marker}'",
+                1,
+            ).replace(
+                "cd /app/model",
+                f"cd '{MODEL_DIR}'",
+                1,
+            ).replace(
+                "  python -m artifact_loader",
+                f"  printf '%s\\n' called > '{artifact_sentinel}'",
+                1,
+            ).replace(
+                'exec "$@"',
+                f"printf '%s\\n' called > '{exec_sentinel}'\nexit 0",
+                1,
+            )
+            script.write_text(transformed, encoding="utf-8")
+            env = {
+                "PATH": os.defpath,
+                "NOTEAI_RUNTIME_ROLE": declared_role,
+                "NOTEAI_SKIP_MODEL_ARTIFACT_CHECK": "1" if allowed else "0",
+                **(extra_env or {}),
+            }
+            try:
+                result = subprocess.run(
+                    ["sh", str(script), *command],
+                    cwd=ROOT,
+                    env=env,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=5,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired:
+                failures.append(f"{name}:timeout")
+                return
+            finally:
+                if marker.exists():
+                    marker.chmod(0o600)
+
+            artifact_called = artifact_sentinel.exists()
+            exec_called = exec_sentinel.exists()
+            if allowed:
+                if result.returncode != 0 or artifact_called or not exec_called:
+                    failures.append(f"{name}:allowed_contract_failed")
+            elif result.returncode != 78 or artifact_called or exec_called:
+                failures.append(f"{name}:reject_contract_failed")
+
+        for name, (role, command) in allowed_cases.items():
+            run_case(name, role, role, command, allowed=True)
+        for name, (role, command) in rejected_command_cases.items():
+            run_case(name, role, role, command, allowed=False)
+        for name, (marker_state, image_role, declared_role) in marker_cases.items():
+            run_case(
+                name,
+                image_role,
+                declared_role,
+                ("/app/scripts/render_start_api.sh",),
+                marker_state=marker_state,
+                allowed=False,
+            )
+        run_case(
+            "api_scheduler_enabled",
+            "api",
+            "api",
+            ("/app/scripts/render_start_api.sh",),
+            allowed=False,
+            extra_env={"NOTEAI_API_STARTS_TREND_SCHEDULER": "1"},
+        )
+
+    detail = f"allowed={len(allowed_cases)} rejected={len(rejected_command_cases) + len(marker_cases) + 1}"
+    if failures:
+        detail += f" failures={failures[:8]}"
+    return not failures, detail
 
 
 def _run_git(args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -288,6 +503,14 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     dependabot = (ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    requirements_api = (MODEL_DIR / "requirements-api.txt").read_text(encoding="utf-8")
+    requirements_worker = (MODEL_DIR / "requirements-worker.txt").read_text(encoding="utf-8")
+    requirements_compat = (MODEL_DIR / "requirements.txt").read_text(encoding="utf-8")
+    api_requirement_lines = [
+        line.strip()
+        for line in requirements_api.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
     env_example = (MODEL_DIR / ".env.example").read_text(encoding="utf-8")
     deploy_secrets = (ROOT / "docs" / "DEPLOYMENT_SECRETS.md").read_text(encoding="utf-8")
     cloud_strategy = (ROOT / "docs" / "MODEL_ARTIFACT_CLOUD_STRATEGY.md").read_text(encoding="utf-8")
@@ -298,6 +521,14 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     api_readiness_source = api_source.split("def _readiness_payload()", 1)[1].split('@app.get("/health/live")', 1)[0]
     dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
     render_blueprint = (ROOT / "render.yaml").read_text(encoding="utf-8")
+    entrypoint = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")
+    entrypoint_semantic_passed, entrypoint_semantic_detail = _check_entrypoint_runtime_contract(entrypoint)
+    api_runtime_stage = dockerfile.split("FROM runtime-common AS api-runtime", 1)[1].split(
+        "FROM runtime-common AS worker-runtime", 1
+    )[0]
+    worker_runtime_stage = dockerfile.split("FROM runtime-common AS worker-runtime", 1)[1].split(
+        "FROM ${NOTEAI_RUNTIME_TARGET} AS noteai-runtime", 1
+    )[0]
     service_start_sources = "\n".join(
         (ROOT / "scripts" / name).read_text(encoding="utf-8")
         for name in (
@@ -319,11 +550,31 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         _ok("dependabot_configured", "package-ecosystem: \"pip\"" in dependabot and "github-actions" in dependabot),
         _ok("docker_uses_artifact_entrypoint", "ENTRYPOINT [\"/app/scripts/docker_entrypoint.sh\"]" in dockerfile),
         _ok("docker_copies_entrypoint", "COPY scripts/docker_entrypoint.sh" in dockerfile),
-        _ok("docker_installs_playwright_chromium", "python -m playwright install --with-deps chromium" in dockerfile),
+        _ok(
+            "docker_has_separate_api_and_worker_targets",
+            "FROM runtime-common AS api-runtime" in dockerfile
+            and "FROM runtime-common AS worker-runtime" in dockerfile
+            and "ARG NOTEAI_RUNTIME_TARGET=api-runtime" in dockerfile
+            and "FROM ${NOTEAI_RUNTIME_TARGET} AS noteai-runtime" in dockerfile
+            and 'CMD ["/app/scripts/render_start_api.sh"]' in api_runtime_stage
+            and 'CMD ["/bin/false"]' in worker_runtime_stage,
+        ),
+        _ok(
+            "api_runtime_excludes_browser_and_graphics_stack",
+            "playwright" not in api_runtime_stage.lower()
+            and "chromium" not in api_runtime_stage.lower()
+            and "playwright==" not in requirements_api
+            and all(package not in dockerfile for package in ("libgl1", "libglib2.0-0", "libsm6", "libxext6", "libxrender1")),
+        ),
+        _ok(
+            "worker_runtime_installs_playwright_chromium",
+            "playwright==1.56.0" in requirements_worker
+            and "python -m playwright install --with-deps chromium" in worker_runtime_stage,
+        ),
         _ok(
             "docker_proves_headless_chromium_without_xvfb",
-            "apt-get purge -y xvfb xserver-common" in dockerfile
-            and 'page.goto("about:blank")' in dockerfile,
+            "apt-get purge -y xvfb xserver-common" in worker_runtime_stage
+            and 'page.goto("about:blank")' in worker_runtime_stage,
         ),
         _ok(
             "docker_removes_python_build_tooling",
@@ -342,7 +593,8 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         ),
         _ok(
             "docker_pins_python311_base_index",
-            "python:3.11-slim-bookworm@sha256:b18992999dbe963a45a8a4da40ac2b1975be1a776d939d098c647482bcad5cba" in dockerfile,
+            "python:3.11.15-slim-trixie@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93" in dockerfile
+            and "sha256:00af38ae2ed311628970782e8a2d7f014d8909dbc63cb97bc0a158187f4db045" in dockerfile,
         ),
         _ok(
             "docker_declares_oci_provenance_labels",
@@ -392,9 +644,84 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                 "billing",
             )),
         ),
-        _ok("requirements_include_playwright", "playwright==" in (MODEL_DIR / "requirements.txt").read_text(encoding="utf-8")),
+        _ok(
+            "requirements_are_role_split_and_compatible",
+            "playwright==" not in requirements_api
+            and "-r requirements-api.txt" in requirements_worker
+            and "playwright==1.56.0" in requirements_worker
+            and "-r requirements-worker.txt" in requirements_compat
+            and all(
+                re.fullmatch(r"[A-Za-z0-9_.-]+(?:\[[A-Za-z0-9_,.-]+\])?==[^\s]+", line)
+                for line in api_requirement_lines
+            ),
+        ),
+        _ok(
+            "compose_runtime_targets_match_roles",
+            compose.count("target: api-runtime") == 1
+            and compose.count("target: worker-runtime") == 3
+            and compose.count("NOTEAI_RUNTIME_ROLE=api") == 1
+            and compose.count("NOTEAI_RUNTIME_ROLE=worker") == 3,
+        ),
+        _ok(
+            "render_runtime_targets_match_roles",
+            render_blueprint.count("key: NOTEAI_RUNTIME_TARGET") == 4
+            and render_blueprint.count("value: api-runtime") == 1
+            and render_blueprint.count("value: worker-runtime") == 3
+            and render_blueprint.count("key: NOTEAI_RUNTIME_ROLE") == 4
+            and len(re.findall(r"^\s*value:\s*api\s*$", render_blueprint, re.MULTILINE)) == 1
+            and len(re.findall(r"^\s*value:\s*worker\s*$", render_blueprint, re.MULTILINE)) == 3,
+        ),
+        _ok(
+            "entrypoint_fails_closed_on_runtime_role_marker",
+            all(value in entrypoint for value in (
+                'if [ ! -e "$runtime_role_file" ]',
+                'if [ ! -r "$runtime_role_file" ]',
+                'if ! IFS= read -r image_runtime_role < "$runtime_role_file"',
+                'if [ -z "$image_runtime_role" ]',
+                "runtime role marker is missing",
+                "runtime role marker is unreadable",
+                "runtime role marker could not be read",
+                "runtime role marker is empty",
+            ))
+            and "declared runtime role does not match the image role" in entrypoint
+            and _fragments_in_order(entrypoint, (
+                'if [ ! -e "$runtime_role_file" ]',
+                "command_allowed=0",
+                'if [ "$command_allowed" -ne 1 ]',
+                "cd /app/model",
+                "python -m artifact_loader",
+            )),
+        ),
+        _ok(
+            "entrypoint_uses_strict_role_command_allowlists",
+            "command_allowed=0" in entrypoint
+            and "command_allowed=1" in entrypoint
+            and "command is not allowed for this runtime role" in entrypoint
+            and "api-runtime cannot start the trend scheduler" in entrypoint
+            and "is_unsigned_integer" in entrypoint
+            and "*[!0-9]*" in entrypoint
+            and all(value in entrypoint for value in (
+                "/app/scripts/render_start_api.sh",
+                "/app/scripts/render_start_admin.sh",
+                "/app/scripts/render_run_market_timing.sh",
+                "/app/scripts/render_run_crawler.sh",
+                "/app/scripts/render_predeploy.py",
+                "admin_server:admin_app",
+                "market_timing_worker.py",
+                "crawler_worker.py",
+                "/bin/false",
+            ))
+            and 'case " $* "' not in entrypoint
+            and "api-runtime cannot start a browser worker command" not in entrypoint
+            and "worker-runtime cannot start the public API command" not in entrypoint,
+        ),
+        _ok(
+            "entrypoint_runtime_contract_semantics",
+            entrypoint_semantic_passed,
+            entrypoint_semantic_detail,
+        ),
         _ok("compose_has_trends_worker", "noteai-trends-worker:" in compose and "market_timing_worker.py" in compose),
-        _ok("entrypoint_can_skip_model_for_worker", "NOTEAI_SKIP_MODEL_ARTIFACT_CHECK" in (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")),
+        _ok("entrypoint_can_skip_model_for_worker", "NOTEAI_SKIP_MODEL_ARTIFACT_CHECK" in entrypoint),
         _ok("compose_shares_artifacts", "./model/artifacts:/app/model/artifacts" in compose),
         _ok(
             "compose_uses_core_readiness",

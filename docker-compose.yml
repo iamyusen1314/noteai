@@ -1,6 +1,8 @@
 services:
   noteai:
-    build: .
+    build:
+      context: .
+      target: api-runtime
     ports:
       - "${PORT:-8000}:8000"
     volumes:
@@ -11,6 +13,7 @@ services:
       - ./model/.env
     environment:
       - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=api
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8000, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
@@ -20,7 +23,9 @@ services:
       start_period: 20s
 
   noteai-admin:
-    build: .
+    build:
+      context: .
+      target: worker-runtime
     command: ["python", "-m", "uvicorn", "admin_server:admin_app", "--host", "0.0.0.0", "--port", "8001"]
     ports:
       - "${ADMIN_PORT:-8001}:8001"
@@ -32,6 +37,7 @@ services:
       - ./model/.env
     environment:
       - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=worker
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8001, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
@@ -41,7 +47,9 @@ services:
       start_period: 20s
 
   noteai-trends-worker:
-    build: .
+    build:
+      context: .
+      target: worker-runtime
     command: ["python", "market_timing_worker.py", "--daemon", "--interval", "${NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES:-60}"]
     volumes:
       # 独立趋势 worker 写入每日行业热词快照；API 只读取，不在自身进程采集
@@ -50,12 +58,15 @@ services:
       - ./model/.env
     environment:
       - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=worker
       - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
       - NOTEAI_XHS_FRESHNESS_REQUIRED=${NOTEAI_XHS_FRESHNESS_REQUIRED:-1}
     restart: unless-stopped
 
   noteai-tracking-worker:
-    build: .
+    build:
+      context: .
+      target: worker-runtime
     command: ["python", "crawler_worker.py", "--loop", "--interval-minutes", "${NOTEAI_TRACKING_WORKER_INTERVAL_MINUTES:-60}", "--limit", "${NOTEAI_TRACKING_WORKER_LIMIT:-50}"]
     volumes:
       # 独立笔记真实表现 worker 读取 tracked_notes，到期后采集并写回共享 DB
@@ -64,5 +75,6 @@ services:
       - ./model/.env
     environment:
       - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=worker
       - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
     restart: unless-stopped

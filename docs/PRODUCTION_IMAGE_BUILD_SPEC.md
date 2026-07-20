@@ -9,9 +9,10 @@ access, or provider call.
 - Build only from the full release-candidate commit produced after
   `PROD-PREBUILD-001`; do not use `ff030f5`, the documentation checkpoint, a
   dirty worktree, or a short SHA as provenance.
-- The production output is one `linux/amd64` image. QEMU/cross-build output is
-  not accepted as the primary release build; use an isolated native x86_64
-  Linux builder.
+- The production output is two role-specific `linux/amd64` images from the same
+  exact commit: `api-runtime` for the public API and `worker-runtime` for Admin,
+  market timing, and crawler jobs. QEMU/cross-build output is not accepted as
+  the primary release build; use an isolated native x86_64 Linux builder.
 - Preferred builder: a dedicated, temporary native AMD64 host in Alibaba Cloud
   Shenzhen with no production database route, runtime secrets, or provider
   credentials. A GitHub-hosted AMD64 runner is an alternative only after its
@@ -20,9 +21,13 @@ access, or provider call.
 
 ## Immutable inputs and OCI labels
 
-The Dockerfile pins both base-image multi-arch indexes. For an AMD64 build, the
-resolved child manifests must equal the audited child digests recorded beside
-each `FROM` instruction. Stop if either resolution differs.
+The Dockerfile pins both base-image multi-arch indexes. The shared Python base
+is `python:3.11.15-slim-trixie` at multi-arch index
+`sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93`;
+its audited `linux/amd64` child is
+`sha256:00af38ae2ed311628970782e8a2d7f014d8909dbc63cb97bc0a158187f4db045`.
+For an AMD64 build, every resolved child manifest must equal the audited child
+digest recorded beside its `FROM` instruction. Stop if any resolution differs.
 
 The approved build command must pass all four values; Dockerfile development
 defaults exist only so Render Staging remains buildable:
@@ -45,6 +50,60 @@ record. Debian package indexes and indirect package repositories mean this is
 a controlled repeatable build, not a claim of bit-for-bit reproducibility; the
 final local image ID and package SBOM must therefore be retained for acceptance.
 
+## Runtime targets and role selection
+
+- `api-runtime` installs `model/requirements-api.txt` and must contain neither
+  Playwright nor Chromium. It must not add the explicit GLib/GL/X11 graphics
+  stack previously carried by the combined image.
+- `worker-runtime` extends the same application/runtime base, installs
+  `model/requirements-worker.txt`, and retains Playwright 1.56.0 plus its
+  Chromium runtime and the offline `about:blank` build smoke.
+- `model/requirements.txt` remains the compatibility entry point for local
+  development and CI and resolves to the full worker-capable dependency set.
+- Compose selects Docker targets directly. Render uses only the non-secret
+  `NOTEAI_RUNTIME_TARGET` build argument (`api-runtime` or `worker-runtime`) and
+  declares the matching `NOTEAI_RUNTIME_ROLE` at runtime. Never use a credential
+  or configuration secret as a build argument.
+
+After a new exact release commit is approved for build, build the two candidates
+separately on the native AMD64 builder (illustrative commands; not authorized by
+this document):
+
+```bash
+docker build --platform linux/amd64 --target api-runtime \
+  --build-arg NOTEAI_OCI_REVISION="$RELEASE_COMMIT" \
+  --build-arg NOTEAI_OCI_SOURCE=https://github.com/iamyusen1314/noteai \
+  --build-arg NOTEAI_OCI_VERSION="$API_VERSION" \
+  --build-arg NOTEAI_OCI_CREATED="$RELEASE_CREATED" \
+  -t "$API_LOCAL_TAG" .
+
+docker build --platform linux/amd64 --target worker-runtime \
+  --build-arg NOTEAI_OCI_REVISION="$RELEASE_COMMIT" \
+  --build-arg NOTEAI_OCI_SOURCE=https://github.com/iamyusen1314/noteai \
+  --build-arg NOTEAI_OCI_VERSION="$WORKER_VERSION" \
+  --build-arg NOTEAI_OCI_CREATED="$RELEASE_CREATED" \
+  -t "$WORKER_LOCAL_TAG" .
+```
+
+The Docker entrypoint fails closed before artifact loading, migration, import or
+command execution if the root-owned `/etc/noteai-runtime-role` marker is missing,
+unreadable, empty, invalid, or disagrees with `NOTEAI_RUNTIME_ROLE`. It uses an
+exact role allowlist rather than a denylist:
+
+- API permits only `/app/scripts/render_start_api.sh` and the exact one-time
+  `python /app/scripts/render_predeploy.py` command. It also rejects
+  `NOTEAI_API_STARTS_TREND_SCHEDULER=1`.
+- Worker permits only the Admin start script, the two packaged worker wrappers,
+  the current exact Compose Admin Uvicorn command, the current direct
+  market-timing/crawler command shapes, the exact pre-deploy command, and the
+  no-argument fail-closed `/bin/false` default.
+
+Unknown commands, shell wrappers, role-crossing commands and extra arguments are
+rejected with exit 78. This contract protects the normal image entrypoint path;
+it cannot prevent a platform administrator from explicitly replacing Docker's
+entrypoint. Container-deployment IAM and service definitions remain the security
+boundary for `--entrypoint` or equivalent platform overrides.
+
 ## Secret and context boundary
 
 Before building, independently verify a clean worktree, materialized Git LFS
@@ -59,12 +118,14 @@ Production credentials are runtime-only. Do not use secret values as `ARG`,
 ## Scan and acceptance order
 
 1. Run repository and context secret checks before the build.
-2. Build locally on the approved native AMD64 host with SBOM/provenance output;
-   do not push.
-3. Before any push, scan the local image filesystem, config and history for
+2. Build both role-specific candidates locally on the approved native AMD64
+   host with separate SBOM/provenance output; do not push.
+3. Before any push, scan each local image filesystem, config and history for
    vulnerabilities, secrets and private material; inspect platform, labels,
-   non-root user, entrypoint, command, model hashes and `mttravel` files without
-   executing a provider request.
+   non-root user, entrypoint, command, immutable runtime role, model hashes and
+   `mttravel` files without executing a provider request. Additionally prove the
+   API image has no browser capability and the Worker image passes the offline
+   headless-browser smoke.
 4. Stop and obtain separate approval for `PROD-IMG-002`.
 5. After an approved push, ACR scan and manifest/digest read-back are additional
    verification and do not replace the pre-push local scan.

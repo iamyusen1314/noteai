@@ -3576,7 +3576,7 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
             "targetMemoryPercent": 70,
         })
 
-        requirements = (ROOT / "model" / "requirements.txt").read_text(encoding="utf-8")
+        requirements = (ROOT / "model" / "requirements-api.txt").read_text(encoding="utf-8")
         self.assertEqual(requirements.splitlines().count("httpcore==1.0.9"), 1)
 
     def test_blueprint_is_one_autoscaling_gateway_service(self):

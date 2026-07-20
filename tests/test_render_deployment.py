@@ -120,6 +120,8 @@ class RenderDeploymentTests(unittest.TestCase):
         )
 
     def test_render_blueprint_declares_all_required_service_types(self):
+        import yaml
+
         blueprint = (Path(__file__).resolve().parents[1] / "render.yaml").read_text(encoding="utf-8")
         for name in (
             "noteai-staging-web",
@@ -153,6 +155,28 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertEqual(blueprint.count("NOTEAI_XHS_COLLECTION_SUSPENDED"), 1)
         self.assertGreaterEqual(blueprint.count("NOTEAI_XHS_FRESHNESS_REQUIRED"), 2)
         self.assertIn("MALLOC_ARENA_MAX", blueprint)
+
+        services = {
+            service["name"]: service
+            for service in yaml.safe_load(blueprint)["services"]
+        }
+
+        def env(service_name):
+            return {
+                item["key"]: item.get("value")
+                for item in services[service_name].get("envVars", [])
+            }
+
+        self.assertEqual(env("noteai-staging-api")["NOTEAI_RUNTIME_TARGET"], "api-runtime")
+        self.assertEqual(env("noteai-staging-api")["NOTEAI_RUNTIME_ROLE"], "api")
+        for service_name in (
+            "noteai-staging-admin",
+            "noteai-staging-market-timing",
+            "noteai-staging-tracking",
+        ):
+            with self.subTest(service_name=service_name):
+                self.assertEqual(env(service_name)["NOTEAI_RUNTIME_TARGET"], "worker-runtime")
+                self.assertEqual(env(service_name)["NOTEAI_RUNTIME_ROLE"], "worker")
 
     def test_admin_does_not_use_public_readiness_as_provider_status_source(self):
         blueprint = (Path(__file__).resolve().parents[1] / "render.yaml").read_text(encoding="utf-8")

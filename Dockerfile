@@ -1,3 +1,7 @@
+# Render exposes NOTEAI_RUNTIME_TARGET as a non-secret build argument. Compose
+# selects named stages directly. No credentials may be passed through this ARG.
+ARG NOTEAI_RUNTIME_TARGET=api-runtime
+
 # Immutable multi-arch index; linux/amd64 child at release audit time:
 # sha256:3d0f05455dea2c82e2f76e7e2543964c30f6b7d673fc1a83286736d44fe4c41c
 FROM node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS meituan-travel-cli
@@ -18,8 +22,8 @@ RUN set -eux; \
     rm -rf /tmp/meituan-travel-cli
 
 # Immutable multi-arch index; linux/amd64 child at release audit time:
-# sha256:28255a3ace7eb4c48bc1b57b90af29e1bc82b4fd6c60614a8e3dce61b87ff941
-FROM python:3.11-slim-bookworm@sha256:b18992999dbe963a45a8a4da40ac2b1975be1a776d939d098c647482bcad5cba
+# sha256:00af38ae2ed311628970782e8a2d7f014d8909dbc63cb97bc0a158187f4db045
+FROM python:3.11.15-slim-trixie@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS runtime-common
 
 ARG NOTEAI_OCI_REVISION=development
 ARG NOTEAI_OCI_SOURCE=https://github.com/iamyusen1314/noteai
@@ -35,14 +39,14 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     PIP_DEFAULT_TIMEOUT=120 \
     PIP_RETRIES=8 \
     MEITUAN_TRAVEL_CLI=/usr/local/bin/mttravel
 
-# 系统依赖（OpenCV 需要）；健康检查使用 Python 标准库，不保留 curl。
+# API/shared runtime keeps only the non-browser native dependency required by
+# LightGBM. The worker stage lets Playwright install its own Chromium runtime.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Official Meituan Travel CLI runtime only; npm and its cache stay in the build stage.
@@ -52,20 +56,14 @@ RUN ln -s /usr/local/lib/node_modules/@meituan-travel/travel-cli/mttravel-bundle
     && test -x /usr/local/bin/mttravel \
     && node -e 'const pkg=require("/usr/local/lib/node_modules/@meituan-travel/travel-cli/package.json"); if(pkg.version!=="1.0.16") process.exit(1)'
 
-# 依赖先复制（利用 Docker 缓存）
-COPY model/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-RUN mkdir -p /ms-playwright \
-    && python -m playwright install --with-deps chromium
-RUN apt-get purge -y xvfb xserver-common \
-    && python -c 'from playwright.sync_api import sync_playwright; runtime = sync_playwright().start(); browser = runtime.chromium.launch(headless=True, args=["--no-sandbox"]); page = browser.new_page(); page.goto("about:blank"); browser.close(); runtime.stop()' \
+# Install only API dependencies in the shared layer. Browser capability is
+# added solely by worker-runtime below.
+COPY model/requirements.txt model/requirements-api.txt model/requirements-worker.txt ./
+RUN pip install --no-cache-dir -r requirements-api.txt \
     && python -m pip uninstall -y setuptools wheel \
     && python -m pip check \
     && python -c 'import importlib.util; assert importlib.util.find_spec("setuptools") is None; assert importlib.util.find_spec("wheel") is None' \
     && rm -rf /root/.cache /var/lib/apt/lists/* /var/cache/apt/*
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
 
 # 复制代码
 COPY model/ ./model/
@@ -83,7 +81,7 @@ RUN groupadd --system noteai \
     && chmod +x /app/scripts/docker_entrypoint.sh /app/scripts/render_start_api.sh /app/scripts/render_start_admin.sh \
         /app/scripts/render_predeploy.py /app/scripts/render_run_market_timing.sh /app/scripts/render_run_crawler.sh \
         /app/scripts/migrate_sqlite_to_postgres.py /app/scripts/migrate_managed_prompts_v04.py \
-    && chown -R noteai:noteai /app /ms-playwright
+    && chown -R noteai:noteai /app
 
 ENV PORT=8000
 EXPOSE 8000
@@ -91,7 +89,46 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
     CMD ["python", "-c", "import http.client, os, sys; connection = http.client.HTTPConnection('127.0.0.1', int(os.environ.get('PORT', '8000')), timeout=5); connection.request('GET', '/health/live'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
 
+# Public API runtime: no browser package, browser binary, or explicit graphics
+# stack. The root-owned marker cannot be replaced by runtime ENV.
+FROM runtime-common AS api-runtime
+
+LABEL com.noteai.runtime.role="api"
+ENV NOTEAI_RUNTIME_ROLE=api
+RUN printf '%s\n' api > /etc/noteai-runtime-role \
+    && chmod 0444 /etc/noteai-runtime-role
+
 USER noteai
 
 ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
 CMD ["/app/scripts/render_start_api.sh"]
+
+FROM runtime-common AS worker-runtime
+
+# Worker/admin runtime: browser support is isolated here. Chromium is verified
+# headlessly during a future authorized build; no provider or network target is
+# contacted by the smoke test.
+LABEL com.noteai.runtime.role="worker"
+ENV NOTEAI_RUNTIME_ROLE=worker \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN pip install --no-cache-dir -r requirements-worker.txt \
+    && mkdir -p /ms-playwright \
+    && python -m playwright install --with-deps chromium \
+    && apt-get purge -y xvfb xserver-common \
+    && python -c 'from playwright.sync_api import sync_playwright; runtime = sync_playwright().start(); browser = runtime.chromium.launch(headless=True, args=["--no-sandbox"]); page = browser.new_page(); page.goto("about:blank"); browser.close(); runtime.stop()' \
+    && python -m pip uninstall -y setuptools wheel \
+    && python -m pip check \
+    && python -c 'import importlib.util; assert importlib.util.find_spec("setuptools") is None; assert importlib.util.find_spec("wheel") is None' \
+    && printf '%s\n' worker > /etc/noteai-runtime-role \
+    && chmod 0444 /etc/noteai-runtime-role \
+    && chown -R noteai:noteai /ms-playwright \
+    && rm -rf /root/.cache /var/lib/apt/lists/* /var/cache/apt/*
+
+USER noteai
+
+ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
+CMD ["/bin/false"]
+
+# Render builds the selected internal stage through this non-secret argument.
+# The default remains the API-safe runtime for ordinary Docker builds.
+FROM ${NOTEAI_RUNTIME_TARGET} AS noteai-runtime
