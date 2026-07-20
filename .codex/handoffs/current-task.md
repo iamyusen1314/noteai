@@ -1,8 +1,8 @@
 # NoteAI Production Rollout Handoff
 
-> Updated: 2026-07-20 (Asia/Shanghai)
+> Updated: 2026-07-21 (Asia/Shanghai)
 >
-> Scope: production vulnerability-remediation checkpoint. The release-candidate code/configuration was independently verified, committed and pushed, then one native AMD64 local image was rebuilt and re-scanned on the existing isolated ECS. No ACR login/push, production exception, application start/deploy, database/cache access, ALB/TLS/DNS change, external-provider call, crawl or end-user payment occurred.
+> Scope: final repository-only checkpoint for `PROD-RUNTIME-SPLIT-001`. API/Worker runtime separation, dependency-role configuration, startup guards and their independent verification are complete in application release commit `89e3505225c9d596d6ddb26040f08b777e77823c`. No image build/pull, ACR login/push, production exception/VEX, application start/deploy, database/cache access, cloud-resource change, external-provider call, crawl or end-user payment was authorized or performed.
 >
 > Evidence precedence: current Git/CI and public health checks > current cloud control-plane reads > previously captured control-plane evidence > conversation recollection. Anything not re-observed after the interruption is explicitly marked `INVESTIGATING` or uncertain.
 
@@ -10,27 +10,30 @@
 
 NoteAI is in **production infrastructure preparation and controlled release**, not general availability. Render Staging remains the validated staging environment. The production Claude Gateway is live on Render Singapore, while the Alibaba Cloud production application path has not been released: the corrected immutable AMD64 application image is not yet verified, API-C/API-F application services are not accepted, no ALB is configured, TLS certificates are not attached to a production listener, and production DNS has not been switched.
 
-`PROD-PREBUILD-001`, read-only `PROD-VULN-001` and remediation `PROD-VULN-FIX-001` are `VERIFIED`. The only valid application build source is now `8f7d9c23dd4c4bc951f23d2412156f121da868e7`; `b6abaa7` and `ff030f5` are superseded. The new local native AMD64 candidate removed all audited curl/Xvfb/runtime-build-tool findings, but `PROD-IMG-001` remains `BLOCKED` because Trivy still reports `32 High` and `7 Critical` Debian OS records and no production exception/VEX acceptance was authorized. No ACR login, push, registry digest, application start, or production dependency access occurred.
+`PROD-PREBUILD-001`, read-only `PROD-VULN-001`, remediation `PROD-VULN-FIX-001` and `PROD-RUNTIME-SPLIT-001` are `VERIFIED`. The unique source for the next API and Worker image candidates is exact application commit `89e3505225c9d596d6ddb26040f08b777e77823c`; neither historical `8f7d9c23dd4c4bc951f23d2412156f121da868e7`, `b6abaa7`, `ff030f5`, nor any later Handoff-only HEAD may be used as their application revision. The old local native AMD64 image remains blocked with `32 High` and `7 Critical`, predates the split and is superseded: it must not be pushed or deployed. No split image has been built, and no ACR login, push, registry digest, application start, or production dependency access occurred.
 
 ## 2. Git and repository truth
 
 | Field | Verified value |
 |---|---|
 | Branch | `codex/quality-stabilization-real-chain` |
-| Application release commit | `8f7d9c23dd4c4bc951f23d2412156f121da868e7` |
-| Release message | `fix(prod): minimize runtime image attack surface [skip render]` |
+| Application release commit | `89e3505225c9d596d6ddb26040f08b777e77823c` |
+| Release parent | `9bf6fcb7e9620c3ed0a831a889c0d5f34ceb6894` |
+| Release message | `fix(prod): split api and worker runtimes [skip render]` |
 | Production build source | exact full application commit above; never a later handoff-only HEAD |
 | Upstream | `origin/codex/quality-stabilization-real-chain` |
-| Ahead / behind before checkpoint | `0 / 0` |
+| Ahead / behind before Handoff commit | `0 / 0`; local and remote application SHA both equal `89e3505225c9d596d6ddb26040f08b777e77823c` |
 | Staged before checkpoint | none |
 | Unstaged before checkpoint | only `.codex/handoffs/current-task.md` |
 | Untracked before checkpoint | none |
-| Render auto-deploy impact | checkpoint commit must contain `[skip render]`; no deployment is authorized |
+| Push state | application release commit was normally pushed without force; the next push will be a pure-documentation `[skip render]` Handoff checkpoint whose unknown SHA is not recorded in advance |
+| Render auto-deploy impact | application message contains `[skip render]`; the later Handoff-only checkpoint message must also contain `[skip render]`; no deployment is authorized |
 
 Recent relevant commits, newest first:
 
-- `8f7d9c2` — minimize audited runtime-image attack surface; exact source of the current local AMD64 candidate.
-- `b6abaa7` — close independently verified production prebuild release gates; superseded as an image source by `8f7d9c2`.
+- `89e3505` — split API and browser-worker runtimes; exact and unique source for the next two local AMD64 candidates; normally pushed to the tracking branch without force.
+- `8f7d9c2` — minimize audited combined runtime-image attack surface; historical source of the superseded blocked local AMD64 image.
+- `b6abaa7` — close independently verified production prebuild release gates; historical source superseded by later application revisions.
 - `ff030f5` — package Meituan travel CLI for production.
 - `84f8a2f` — define isolated production Claude Gateway service.
 - `ecc4702` — record independent production release verification.
@@ -44,7 +47,7 @@ Recent relevant commits, newest first:
 - `c0afbbe` — install Blueprint test dependencies in CI.
 - `0e050f8` — harden the Claude Gateway trust boundary.
 
-Independent repository verification and native AMD64 image acceptance for exact application revision `8f7d9c23dd4c4bc951f23d2412156f121da868e7` completed; vulnerability acceptance remains blocked. A later Handoff-only commit may become Git HEAD, but must never replace this full application revision in image metadata.
+Independent repository verification for exact application revision `89e3505225c9d596d6ddb26040f08b777e77823c` completed. Native AMD64 build, role-specific runtime acceptance and vulnerability scans for this revision have not run; their results are unknown. A later Handoff-only commit may become Git HEAD, but must never replace this full application revision in image metadata.
 
 ## 3. Current environment and cloud state
 
@@ -88,10 +91,10 @@ The following table separates last confirmed control-plane evidence from current
 
 ### 4.1 Required recovery point
 
-- Exact source revision: `8f7d9c23dd4c4bc951f23d2412156f121da868e7` (`8f7d9c2`).
-- Current local candidate tag: `git-8f7d9c2-amd64-r1`.
-- The target must be deployed by immutable digest after independent verification. If a later session changes the tag, it must record the reason, source revision, platform, digest and superseded tag in this handoff before deployment.
-- `ff030f5` is no longer an acceptable build source. Any later Handoff-only HEAD is documentation provenance only, not application provenance.
+- Exact source revision for both next role-specific candidates: `89e3505225c9d596d6ddb26040f08b777e77823c` (`89e3505`).
+- No local `api-runtime` or `worker-runtime` image candidate exists yet, and no local or registry digest exists for either target.
+- Each role-specific target must later be accepted separately and deployed only by its own immutable registry digest. The approved build task must record the target, tag, exact revision, platform, local image ID, SBOM and scan evidence; it must not describe a local image ID as an ACR digest.
+- `8f7d9c2`, `b6abaa7` and `ff030f5` are no longer acceptable build sources. Any later Handoff-only HEAD is documentation provenance only, not application provenance.
 
 ### 4.2 Last verified ACR image inventory
 
@@ -101,9 +104,10 @@ The following table separates last confirmed control-plane evidence from current
 | `git-ff030f5` | `sha256:751b7ecc9e6f883b923f52754c5290d07e06610014ae43ee5d7fa303c168afe1` | `linux/arm64` | **Forbidden on x86 ECS:** architecture mismatch. |
 | `git-ff030f5-amd64-r2` | Not verified | Required `linux/amd64` | Superseded target; do not build or deploy. |
 | `git-b6abaa7-amd64-r1` | Never pushed by these tasks; current ACR existence not re-read | `linux/amd64` locally | Superseded local candidate; do not push or deploy. |
-| `git-8f7d9c2-amd64-r1` | Local-only; no ACR login/push/read occurred and no registry digest exists | `linux/amd64` | Current candidate, but vulnerability acceptance is blocked. Do not push or deploy. |
+| `git-8f7d9c2-amd64-r1` | Local-only at last verification; no ACR registry digest exists | `linux/amd64` | **Superseded historical combined image:** predates the runtime split and Trixie base; do not push or deploy. |
+| `api-runtime` and `worker-runtime` from `89e3505` | Not built; no local image ID or ACR digest exists | Required `linux/amd64` | Separate local candidates must be built and accepted only under a separately approved task. |
 
-No mutable tag such as `latest` is an acceptable production reference. Neither existing image above may be used for production deployment.
+No mutable tag such as `latest` is an acceptable production reference. No existing image above may be used for production deployment.
 
 ### 4.3 Interruption point
 
@@ -119,9 +123,11 @@ Completed with evidence:
 - Clean production RDS schema migrations `0001` through `0008` were applied without Staging data import.
 - Three TLS certificates were issued.
 - VPC/subnets, RDS, Tair, ECS hosts, ACR repository/private connectivity and SNAT were provisioned in prior authorized steps.
+- `PROD-RUNTIME-SPLIT-001` is independently verified at exact application revision `89e3505225c9d596d6ddb26040f08b777e77823c`; repository-only API/Worker target separation and fail-closed role startup controls passed all final gates.
 
 Not started or not completed:
 
+- Native AMD64 builds of `api-runtime` and `worker-runtime` from exact revision `89e3505225c9d596d6ddb26040f08b777e77823c`, including role-specific content/architecture/marker-owner acceptance, SBOM, secret and vulnerability scans.
 - ACR push/read-back of any accepted successor candidate and immutable registry digest verification.
 - API-C start on the corrected immutable digest and zero-AI readiness.
 - Real bounded provider verification for Kimi, Claude Gateway, Amap and Meituan from production.
@@ -176,24 +182,24 @@ Only these task statuses are permitted: `TODO`, `INVESTIGATING`, `READY_TO_EXECU
 
 - Status: `VERIFIED`
 - Runtime base images are pinned by index digest; OCI `revision`, `source`, `version`, and `created` metadata are explicit build inputs; build-context and secret-exclusion controls passed static verification.
-- The only valid application revision for the current image is `8f7d9c23dd4c4bc951f23d2412156f121da868e7`. A later Handoff-only HEAD must not replace this revision.
-- Runtime build evidence now exists for exact revision `8f7d9c23dd4c4bc951f23d2412156f121da868e7`, labels, layers, model/`mttravel` contents, SBOM and secret/vulnerability scans. Static/content/secret gates passed, but vulnerability acceptance still fails with `32 High` and `7 Critical`; the image is not approved for push or deployment.
+- The only valid application revision for the next API/Worker images is `89e3505225c9d596d6ddb26040f08b777e77823c`. A later Handoff-only HEAD must not replace this revision.
+- Runtime build evidence for `89e3505225c9d596d6ddb26040f08b777e77823c` does not yet exist. The `8f7d9c2` labels, layers, model/`mttravel` contents, SBOM and secret/vulnerability scans are historical evidence for a superseded combined image only; its `32 High` and `7 Critical` result does not describe the unbuilt split targets and does not authorize a push or deployment.
 
 ### PROD-IMG-001 — Build corrected AMD64 image
 
-- Status: `BLOCKED` after one successful local native AMD64 rebuild/re-scan on the existing approved isolated ECS `noteai-build-amd64-b6abaa7-r1` (`i-wz99180s9ig5ecq10uaj`) in Alibaba Cloud Shenzhen F; native `x86_64`, 4 vCPU, 16 GiB RAM, 120 GiB encrypted system disk, zero-inbound build security group, no RAM role or production secret.
-- Current source/build evidence (2026-07-20): exact detached HEAD `8f7d9c23dd4c4bc951f23d2412156f121da868e7`, tree `483544cdbf5c2d7c11827ca296874f097d2969c2`, clean status, and three production V0.4 Git LFS binary SHA values equal their commit pointer OIDs. Content-addressed DaoCloud base-image transport and Alibaba Debian/PyPI transport were used for the same pinned full digests; transport diff is retained and original apt sources are restored in the final filesystem.
-- Current local candidate: `noteai-local:git-8f7d9c2-amd64-r1`, `linux/amd64`, size `3,454,259,927` bytes, local image ID `sha256:47174b226ef11b704fcf92474e3f9d9bf266ef77a75e23ae4fdab99e1cfdd0f9`. This is a local Docker image ID, **not** an ACR registry digest. `RepoDigests=[]`, Docker auth entries `0`, running containers `0`.
-- Passed acceptance: exact OCI revision/source/version/created (`2026-07-20T14:54:53Z`), non-root UID `999`, expected entrypoint/CMD, Python-stdlib live probe, `mttravel 1.0.16` and bundle SHA, four machine-manifest artifacts, no curl/Xvfb/setuptools/wheel, non-root offline headless Chromium `about:blank`, restored apt sources, no `.env`/`.git`, no sensitive ENV/history assignment, Trivy Secret `0`, CycloneDX SBOM `298` components.
-- Remediation delta: package records fell from `75` to `39`; High fell from `68` to `32`; Critical remained `7`; unique CVE IDs are now `29`; removed records `36`, added records `0`. Removed families: `xvfb 10`, `xserver-common 10`, `curl 5`, `libcurl4 5`, `libssh2-1 3`, `libldap-2.5-0 1`, `jaraco.context 1`, `wheel 1`. All residual findings are Debian OS records.
-- Blocking acceptance: Trivy `0.70.0` still reports `32 High` and `7 Critical`; status matrix is High `21 affected / 10 fix_deferred / 1 will_not_fix`, Critical `3 affected / 3 fix_deferred / 1 will_not_fix`. The seven Critical IDs/packages are unchanged from PROD-VULN-001. No ignore, VEX or production exception was used or registered.
-- Evidence remains on the encrypted builder at `/opt/noteai-build/evidence-8f7d9c2` and `/opt/noteai-build/PROD-VULN-FIX-001-evidence.tgz` (`215,209` bytes, SHA256 `e4dd0fe886c12af3a3f9e10fe50af0254829d122954fc9b9e6b383284d0984cf`). The local image remains only in Docker. Automatic release remains `2026-07-21 21:22 +08:00`; no lifecycle change or manual release occurred.
-- Preconditions now satisfied except vulnerability acceptance. The exact current source is `8f7d9c23dd4c4bc951f23d2412156f121da868e7`; do not use `b6abaa7`, `ff030f5` or a later Handoff-only HEAD as the application revision.
+- Status: `BLOCKED`. One historical local native AMD64 rebuild/re-scan completed on the approved isolated ECS `noteai-build-amd64-b6abaa7-r1` (`i-wz99180s9ig5ecq10uaj`) in Alibaba Cloud Shenzhen F; the current existence and retention state of that builder must be rechecked read-only before any further approval is used.
+- Historical source/build evidence (2026-07-20): exact detached HEAD `8f7d9c23dd4c4bc951f23d2412156f121da868e7`, tree `483544cdbf5c2d7c11827ca296874f097d2969c2`, clean status, and three production V0.4 Git LFS binary SHA values equal their commit pointer OIDs. This evidence does not cover the split targets at `89e3505225c9d596d6ddb26040f08b777e77823c`.
+- Superseded historical local candidate: `noteai-local:git-8f7d9c2-amd64-r1`, `linux/amd64`, size `3,454,259,927` bytes, local image ID `sha256:47174b226ef11b704fcf92474e3f9d9bf266ef77a75e23ae4fdab99e1cfdd0f9`. This is a local Docker image ID, **not** an ACR registry digest. It must not be pushed or deployed.
+- Historical acceptance: exact OCI revision/source/version/created (`2026-07-20T14:54:53Z`), non-root UID `999`, expected entrypoint/CMD, Python-stdlib live probe, `mttravel 1.0.16` and bundle SHA, four machine-manifest artifacts, no curl/Xvfb/setuptools/wheel, non-root offline headless Chromium `about:blank`, restored apt sources, no `.env`/`.git`, no sensitive ENV/history assignment, Trivy Secret `0`, CycloneDX SBOM `298` components.
+- Historical remediation delta: package records fell from `75` to `39`; High fell from `68` to `32`; Critical remained `7`; unique CVE IDs became `29`; removed records `36`, added records `0`. This result belongs only to the superseded combined image.
+- Historical blocking acceptance: Trivy `0.70.0` reported `32 High` and `7 Critical`; no ignore, VEX or production exception was used or registered. The real API/Worker vulnerability counts for `89e3505` are unknown until both targets are built and scanned separately.
+- Historical evidence was retained at `/opt/noteai-build/evidence-8f7d9c2` and `/opt/noteai-build/PROD-VULN-FIX-001-evidence.tgz` (`215,209` bytes, SHA256 `e4dd0fe886c12af3a3f9e10fe50af0254829d122954fc9b9e6b383284d0984cf`). The last recorded automatic release was `2026-07-21 21:22 +08:00`; current builder/image existence must be verified and is not inferred here.
+- The next build must use exact source `89e3505225c9d596d6ddb26040f08b777e77823c`; do not use `8f7d9c2`, `b6abaa7`, `ff030f5` or a later Handoff-only HEAD as the application revision.
 - ACR inventory was not read or modified during this execution phase. No ACR login or push occurred, and the remote existence of the local candidate tag was not assumed.
 - Executed scope was limited to the approved temporary isolated Alibaba Cloud Shenzhen `x86_64` builder, never API-C or API-F: clean exact checkout, local `linux/amd64` build, and local acceptance only. PROD-IMG-002, service start, database/cache access, and production cloud-service changes were excluded.
-- Acceptance evidence required before any push decision: AMD64 child manifest/architecture, full OCI revision/source/version/created labels, expected entrypoint/user/layers/model and `mttravel` contents, SBOM, vulnerability scan, and secret scan, with no unresolved Critical or High finding.
+- Acceptance evidence required before any push decision, separately for `api-runtime` and `worker-runtime`: AMD64 child manifest/architecture, full OCI revision/source/version/created labels, expected role marker and owner, entrypoint/user/layers/model and role-appropriate `mttravel`/browser contents, SBOM, vulnerability scan, secret scan and an explicit release decision for every Critical or High finding.
 - Cost/impact: temporary ECS compute, system disk, and dependency downloads; no paid AI/provider calls. Rollback remains deletion of the unpushed local image/build cache and release of the temporary builder, but neither deletion nor manual release was performed because both require a separate lifecycle decision.
-- Only next approval requested: a separate residual-vulnerability decision package (base/runtime redesign versus evidence-backed VEX review). Do **not** approve `PROD-IMG-002` while the `32 High / 7 Critical` gate is unresolved.
+- Only next approval requested: `PROD-IMG-SPLIT-BUILD-001` as specified below. Do **not** approve `PROD-IMG-002` until both new split images pass their independent local acceptance gates.
 
 ### PROD-VULN-001 — Read-only vulnerability triage
 
@@ -223,12 +229,33 @@ Only these task statuses are permitted: `TODO`, `INVESTIGATING`, `READY_TO_EXECU
 - **Cost/limit:** existing temporary ECS is about `¥0.98748/hour` plus metered public traffic and remains scheduled for automatic release at `2026-07-21 21:22 +08:00`; no extension is authorized.
 - **Acceptance:** independent tests and readiness gates pass, re-scan evidence is bound to the new exact image/release commit, deterministic avoidable findings are removed, and any residual finding is returned for a separate evidence-based decision rather than silently ignored.
 
+### PROD-RUNTIME-SPLIT-001 — Split API and browser-worker runtimes
+
+- **Status:** `VERIFIED` on 2026-07-21; repository implementation, independent verification and the local application release commit are complete.
+- **Approved scope:** minimum Dockerfile/Python dependency split, Compose/Render role selection, startup protection, corresponding tests and necessary build specification; independent verification followed by a `[skip render]` release commit and normal branch push. Image build/pull, ACR, deployment, cloud resources, production data, real providers and VEX/exception registration remain prohibited.
+- **Implementation:** added `api-runtime` and `worker-runtime` Docker targets on the pinned `python:3.11.15-slim-trixie` index; browser dependencies remain Worker-only; Compose and Render select explicit roles; the root-owned image role marker must match the runtime declaration. Missing/unreadable/empty/invalid markers, read failure, role mismatch and non-allowlisted command shapes fail closed with exit 78 before artifact loading, migration, import or execution. API and Worker use explicit command-shape allowlists, Worker defaults to `/bin/false`, and API rejects its embedded scheduler flag.
+- **Independent review round 1:** a High fail-open startup-guard gap was found; the same implementation agent corrected it before re-review.
+- **Independent review round 2:** the High finding was closed; a Medium false-positive risk in the readiness gate's string-only validation was found, and the same implementation agent replaced it with an offline semantic harness and mutation checks.
+- **Independent review round 3:** `VERIFIED`; no Critical, High or Medium finding remained.
+- **Final verification evidence:** full socket-blocked unit suite `594 OK (skipped=5)` with `network_attempts=0`; targeted readiness/deployment tests `38 OK`; production readiness `73/73`; semantic entrypoint matrix `14` allowed and `32` rejected cases; all three independently injected mutation classes failed the gate as required; shell syntax, modified Python compilation, YAML parsing, Compose quiet parse, build/readiness static checks, diff check and tracked-file/build-context secret checks passed. No Docker build/pull, container/service start, database/provider/network call or secret output occurred.
+- **Release commit:** `89e3505225c9d596d6ddb26040f08b777e77823c`, parent `9bf6fcb7e9620c3ed0a831a889c0d5f34ceb6894`, message `fix(prod): split api and worker runtimes [skip render]`. It was normally pushed to `origin/codex/quality-stabilization-real-chain` without force; local and remote application SHA matched before the Handoff commit. The later Handoff-only checkpoint SHA is intentionally not invented.
+- **Release rule:** exact `89e3505225c9d596d6ddb26040f08b777e77823c` is the unique application source for both role-specific images. Historical `8f7d9c2` and the old local combined image are superseded and forbidden for push/deploy. A later Handoff-only commit remains documentation provenance only.
+- **Completion:** this repository task is complete. `PROD-IMG-001` remains blocked; the unbuilt role-specific candidates require the separately approved `PROD-IMG-SPLIT-BUILD-001` below.
+
+### PROD-IMG-SPLIT-BUILD-001 — Build and scan split native AMD64 images
+
+- **Status:** `BLOCKED` pending explicit user approval and a read-only check that the existing isolated native AMD64 ECS is still retained.
+- **Only next approval requested:** on the existing isolated native AMD64 ECS, if it still exists and retains the approved isolation boundary, create a clean detached worktree at exact `89e3505225c9d596d6ddb26040f08b777e77823c`; verify Git LFS artifacts; build local `api-runtime` and `worker-runtime` `linux/amd64` candidates; and independently perform separate content, architecture, OCI provenance, role-marker ownership, entrypoint/user, SBOM, sensitive-files/history and vulnerability acceptance for each target.
+- **Unknown until execution:** real API/Worker image content and sizes, architecture evidence, marker owner/mode, local image IDs, SBOMs, secret-scan results and Critical/High vulnerability counts. No tag, local image ID or ACR immutable digest is claimed here.
+- **Prohibited:** ACR login/read/push, production exception/VEX registration, deployment, API-C/API-F or other service start, production database/Tair access, ALB/TLS/DNS or any cloud-resource mutation, production data access, and real AI/map/Meituan/crawler/payment/provider calls.
+- **Stop point:** after local evidence and independent acceptance are recorded, stop and return any Critical/High finding for a separate decision. Do not push or deploy either image.
+
 ### PROD-IMG-002 — Push to ACR and verify digest
 
 - **Status:** `BLOCKED`
 - **Priority:** Critical
-- **Current evidence:** a local AMD64 candidate exists but failed vulnerability acceptance. It has not been pushed; no ACR registry digest exists for it.
-- **Prerequisites:** PROD-IMG-001 acceptance; approved ACR access window; public access remains closed except an explicitly approved, time-bounded exception.
+- **Current evidence:** the only known local AMD64 candidate is the superseded combined `8f7d9c2` image and must not be pushed. No accepted split candidate or ACR registry digest exists.
+- **Prerequisites:** independent acceptance of both new split images from `PROD-IMG-SPLIT-BUILD-001`; approved ACR access window; public access remains closed except an explicitly approved, time-bounded exception.
 - **Execution steps:** push once; close any temporary public route; read back manifest/index; record immutable digest and platform; compare remote/local metadata.
 - **Risk:** wrong repository/tag, mutable overwrite, public exposure, partial multi-arch manifest.
 - **Rollback:** close temporary access and leave the untrusted tag unused; do not delete remote content without separate approval.
@@ -434,10 +461,11 @@ These items remain in the same unique ledger but must not interrupt the producti
 ## 6. Test and evidence baseline
 
 - Historical prebuild revision `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` passed `586 OK (skipped=5)` full tests and `278 OK` targeted tests.
-- Current image revision `8f7d9c23dd4c4bc951f23d2412156f121da868e7` passed `587 OK (skipped=5)` full tests, `25 OK` targeted deployment/readiness tests, production readiness `66/66`, quality gate, `py_compile`, Compose parse and tracked-file sensitive-value checks.
+- Historical combined-image revision `8f7d9c23dd4c4bc951f23d2412156f121da868e7` passed `587 OK (skipped=5)` full tests, `25 OK` targeted deployment/readiness tests, production readiness `66/66`, quality gate, `py_compile`, Compose parse and tracked-file sensitive-value checks; it is superseded and must not be pushed or deployed.
+- Current split-runtime release revision `89e3505225c9d596d6ddb26040f08b777e77823c` passed the independent repository gates: socket-blocked full suite `594 OK (skipped=5)`, `network_attempts=0`, targeted tests `38 OK`, readiness `73/73`, semantic entrypoint matrix `14` allowed / `32` rejected, and three mutation classes rejected; shell, Python compilation, YAML, Compose, diff and secret/build-context checks passed.
 - Model integrity passed human manifest `8/8`, machine manifest `4/4`, and Git LFS artifact `3/3` checks.
 - `py_compile`, Docker Compose/static configuration, diff, secret, and build-context checks passed.
-- One local native AMD64 candidate was built and re-scanned. Offline runtime acceptance passed; SBOM has `298` components; Secret count is `0`; vulnerability result is `32 High / 7 Critical`, so the image remains blocked and local-only.
+- One superseded combined local native AMD64 candidate was built and re-scanned. Its SBOM has `298` components, Secret count is `0`, and vulnerability result is `32 High / 7 Critical`; it remains blocked and must not be pushed. No split image was built, so role-specific image content, architecture, marker owner, SBOM and vulnerability counts remain unknown.
 - No image was pushed, no ACR registry digest exists, and no service, database/cache, cloud resource, or external provider was invoked by this checkpoint.
 - Render public live/readiness checks listed in section 3 were rerun on 2026-07-20.
 - Alibaba production application readiness, provider calls, ALB/TLS/DNS and payment checks have not passed; no task may be promoted to `VERIFIED` from historical narration alone.
@@ -468,7 +496,7 @@ All future sessions and all agents must obey:
 Additional release controls:
 
 - Do not expose or copy values from production environment files. Validate only key names, permissions, redacted fingerprints or provider-side results.
-- Do not use `git-ff030f5`, `git-ff030f5-amd64-r2`, `git-ecc4702e`, `git-b6abaa7-amd64-r1`, `latest`, or any unverified tag for production. The current local candidate is sourced only from exact revision `8f7d9c23dd4c4bc951f23d2412156f121da868e7`, but it must not be pushed or deployed while the vulnerability gate is blocked.
+- Do not use `git-ff030f5`, `git-ff030f5-amd64-r2`, `git-ecc4702e`, `git-b6abaa7-amd64-r1`, `git-8f7d9c2-amd64-r1`, `latest`, or any unverified tag for production. The only permitted source for the next local API/Worker candidates is exact revision `89e3505225c9d596d6ddb26040f08b777e77823c`; no candidate or digest for it exists yet.
 - Do not let execution agents work until the read-only audit stage has reconciled Git, ACR, ECS, RDS/Tair, networking, Render, TLS and DNS truth.
 - Do not repeat already completed domain/certificate purchases, clean RDS schema migration, or production Gateway creation.
 - Any status discrepancy stops execution and returns the affected task to `INVESTIGATING`.
@@ -503,16 +531,16 @@ Read these files first:
 
 Then:
 
-1. Verify the current branch and application build source `8f7d9c23dd4c4bc951f23d2412156f121da868e7` independently of any later Handoff-only HEAD; also verify upstream divergence and worktree state.
+1. Verify the current branch and exact application build source `89e3505225c9d596d6ddb26040f08b777e77823c` independently of any later Handoff-only HEAD; also verify upstream divergence and worktree state.
 2. Verify that any Handoff checkpoint commit contains only documentation, uses `[skip render]`, and did not trigger Render deployment.
 3. Dispatch the four mandatory read-only auditors above; use the Security Reviewer if any credential, auth, billing, public exposure or image-layer concern appears.
-4. Re-read the residual `32 High / 7 Critical` evidence and decide through a separately approved package whether to redesign/split the runtime base or conduct a formal evidence-backed VEX review. Do not silently ignore findings.
-5. Keep **PROD-IMG-001** and **PROD-IMG-002** blocked. The existing builder approval does not authorize another rebuild, any exception, or ACR access.
+4. Treat the historical `32 High / 7 Critical` evidence only as the superseded combined-image baseline; do not project it onto either unbuilt split target. Under a separately approved `PROD-IMG-SPLIT-BUILD-001`, build and scan both targets independently and return every residual Critical/High finding without silent suppression.
+5. Keep **PROD-IMG-001** and **PROD-IMG-002** blocked. The previous builder approval does not authorize another build, any exception, or ACR access. The only next approval is `PROD-IMG-SPLIT-BUILD-001` on the existing isolated native AMD64 ECS if it is still retained, with a clean detached exact-commit worktree and separate local acceptance for `api-runtime` and `worker-runtime`.
 6. Permit an execution agent only after root cause/state is confirmed, modification scope is minimal, task is `READY_TO_EXECUTE`, acceptance/rollback are documented, and the user has approved cost/production impact.
 7. Stop immediately on secret exposure, architecture mismatch, untracked cloud mutation, unverifiable digest, unexpected production traffic, failed zero-AI readiness, or any need to broaden scope.
 
-The next session must not repeat the completed production Gateway creation, domain/DNS purchase, certificate purchase/issuance, clean RDS schema migration, prior ARM64 push, `b6abaa7` build or `8f7d9c2` remediation rebuild. Its exact next task is a separate approval-gated residual-vulnerability decision package; ACR push remains prohibited.
+The next session must not repeat the completed production Gateway creation, domain/DNS purchase, certificate purchase/issuance, clean RDS schema migration, prior ARM64 push, `b6abaa7` build or `8f7d9c2` remediation rebuild. Its exact next approval is `PROD-IMG-SPLIT-BUILD-001`: on the existing isolated native AMD64 ECS if still retained, build and locally accept both split targets from a clean detached checkout of exact `89e3505225c9d596d6ddb26040f08b777e77823c`; ACR access, push and deployment remain prohibited.
 
 ## 10. Checkpoint condition
 
-The application release candidate is committed as `8f7d9c23dd4c4bc951f23d2412156f121da868e7` with message `fix(prod): minimize runtime image attack surface [skip render]`. This Handoff-only update is documentation provenance and must never replace that application revision in image metadata. Any documentation checkpoint must use `[skip render]`, push normally to the existing tracking branch, never force-push, and must not trigger any build, deployment, database access, cloud change, or provider call.
+The application release candidate `89e3505225c9d596d6ddb26040f08b777e77823c`, parent `9bf6fcb7e9620c3ed0a831a889c0d5f34ceb6894`, message `fix(prod): split api and worker runtimes [skip render]`, was normally pushed to `origin/codex/quality-stabilization-real-chain` without force. Local and remote application SHA matched before the Handoff commit. This Handoff-only update is documentation provenance; its commit SHA is intentionally unknown until the next pure-documentation checkpoint commit exists, and it must never replace the application revision in image metadata. That checkpoint must use `[skip render]`, push normally to the existing tracking branch, never force-push, and must not trigger any image build, ACR access, deployment, database access, cloud change or provider call.
