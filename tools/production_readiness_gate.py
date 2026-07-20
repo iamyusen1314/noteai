@@ -29,6 +29,7 @@ from artifact_loader import ensure_model_artifacts, sha256_file  # noqa: E402
 
 
 REQUIRED_MODEL_ROLES = {"quality_regressor", "ready_classifier", "preference_ranker", "train_report"}
+HUMAN_MODEL_RELEASE_MANIFEST = MODEL_DIR / "artifacts" / "MODEL_RELEASE_MANIFEST.md"
 REQUIRED_ENV_NAMES = {
     "ANTHROPIC_API_KEY",
     "MOONSHOT_API_KEY",
@@ -88,6 +89,32 @@ def _normalize_model_path(raw_path: str) -> str:
     return str(Path("model") / path)
 
 
+def _load_human_release_hashes(path: Path) -> dict[str, str]:
+    """Read the path/SHA pairs from the human release manifest tables."""
+    declared: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        code_fields = re.findall(r"`([^`]+)`", line)
+        if len(code_fields) < 2:
+            continue
+        raw_path, raw_sha = code_fields[0], code_fields[-1].lower()
+        if raw_path.startswith("model/") and re.fullmatch(r"[0-9a-f]{64}", raw_sha):
+            declared[_normalize_model_path(raw_path)] = raw_sha
+    return declared
+
+
+def _declared_sha256_mismatches(
+    declared: dict[str, str],
+    *,
+    root: Path = ROOT,
+) -> list[str]:
+    mismatches: list[str] = []
+    for raw_path, expected in sorted(declared.items()):
+        target = root / raw_path
+        if not target.is_file() or sha256_file(target) != expected:
+            mismatches.append(raw_path)
+    return mismatches
+
+
 def _ok(name: str, passed: bool, detail: str = "") -> dict[str, Any]:
     return {"name": name, "passed": bool(passed), "detail": detail}
 
@@ -123,6 +150,18 @@ def check_model_release() -> list[dict[str, Any]]:
         artifact_result = {"checked": []}
 
     manifest = _load_json(manifest_path)
+    try:
+        human_hashes = _load_human_release_hashes(HUMAN_MODEL_RELEASE_MANIFEST)
+        human_mismatches = _declared_sha256_mismatches(human_hashes)
+    except Exception as exc:
+        human_hashes = {}
+        human_mismatches = [type(exc).__name__]
+    checks.append(_ok(
+        "human_model_release_manifest_sha256",
+        len(human_hashes) >= 8 and not human_mismatches,
+        f"declared={len(human_hashes)} mismatches={human_mismatches}",
+    ))
+
     roles = {item.get("role") for item in manifest.get("artifacts", [])}
     checks.append(_ok(
         "model_manifest_roles",
@@ -155,6 +194,19 @@ def check_model_release() -> list[dict[str, Any]]:
         _normalize_model_path(str(model_info.get("train_report") or "")),
     }
     manifest_paths = {_normalize_model_path(str(item.get("path") or "")) for item in manifest.get("artifacts", [])}
+    machine_human_mismatches = [
+        path
+        for item in manifest.get("artifacts", [])
+        if (
+            (path := _normalize_model_path(str(item.get("path") or ""))) not in human_hashes
+            or human_hashes.get(path) != str(item.get("sha256") or "").lower()
+        )
+    ]
+    checks.append(_ok(
+        "machine_manifest_matches_human_manifest",
+        not machine_human_mismatches,
+        f"mismatches={machine_human_mismatches}",
+    ))
     checks.append(_ok(
         "registry_points_to_v04_production",
         current == "v0.4-composite"
@@ -240,8 +292,23 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     deploy_secrets = (ROOT / "docs" / "DEPLOYMENT_SECRETS.md").read_text(encoding="utf-8")
     cloud_strategy = (ROOT / "docs" / "MODEL_ARTIFACT_CLOUD_STRATEGY.md").read_text(encoding="utf-8")
     timing_strategy = (ROOT / "docs" / "MARKET_TIMING_CLOUD_PIPELINE.md").read_text(encoding="utf-8")
+    image_build_spec = (ROOT / "docs" / "PRODUCTION_IMAGE_BUILD_SPEC.md").read_text(encoding="utf-8")
     fact_enrichment = (MODEL_DIR / "fact_enrichment.py").read_text(encoding="utf-8")
     api_source = (MODEL_DIR / "api.py").read_text(encoding="utf-8")
+    api_readiness_source = api_source.split("def _readiness_payload()", 1)[1].split('@app.get("/health/live")', 1)[0]
+    dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
+    render_blueprint = (ROOT / "render.yaml").read_text(encoding="utf-8")
+    service_start_sources = "\n".join(
+        (ROOT / "scripts" / name).read_text(encoding="utf-8")
+        for name in (
+            "render_start_api.sh",
+            "render_start_admin.sh",
+            "render_run_market_timing.sh",
+            "render_run_crawler.sh",
+        )
+    )
+    db_source = (MODEL_DIR / "db.py").read_text(encoding="utf-8")
+    init_db_source = db_source.split("def init_db()", 1)[1].split("def database_health", 1)[0]
 
     checks = [
         _ok("ci_runs_tests", "python -m unittest discover -s tests -p 'test_*.py'" in workflow),
@@ -253,7 +320,27 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         _ok("docker_uses_artifact_entrypoint", "ENTRYPOINT [\"/app/scripts/docker_entrypoint.sh\"]" in dockerfile),
         _ok("docker_copies_entrypoint", "COPY scripts/docker_entrypoint.sh" in dockerfile),
         _ok("docker_installs_playwright_chromium", "python -m playwright install --with-deps chromium" in dockerfile),
-        _ok("docker_uses_node20_meituan_build_stage", "FROM node:20-bookworm-slim AS meituan-travel-cli" in dockerfile),
+        _ok(
+            "docker_pins_node20_base_index",
+            "node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0" in dockerfile,
+        ),
+        _ok(
+            "docker_pins_python311_base_index",
+            "python:3.11-slim-bookworm@sha256:b18992999dbe963a45a8a4da40ac2b1975be1a776d939d098c647482bcad5cba" in dockerfile,
+        ),
+        _ok(
+            "docker_declares_oci_provenance_labels",
+            all(value in dockerfile for value in (
+                "ARG NOTEAI_OCI_REVISION=development",
+                "ARG NOTEAI_OCI_SOURCE=https://github.com/iamyusen1314/noteai",
+                "ARG NOTEAI_OCI_VERSION=development",
+                "ARG NOTEAI_OCI_CREATED=1970-01-01T00:00:00Z",
+                "org.opencontainers.image.revision",
+                "org.opencontainers.image.source",
+                "org.opencontainers.image.version",
+                "org.opencontainers.image.created",
+            )),
+        ),
         _ok("docker_pins_meituan_travel_cli", "MEITUAN_TRAVEL_CLI_VERSION=1.0.16" in dockerfile),
         _ok(
             "docker_verifies_meituan_travel_integrity",
@@ -276,16 +363,60 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                 "MEITUAN_TRAVEL_TIMEOUT",
             )),
         ),
-        _ok("api_readiness_checks_meituan_runtime", 'checks["meituan_travel"] = _facts.meituan_travel_runtime_status()' in api_source),
+        _ok(
+            "api_readiness_is_core_only",
+            'checks["database"]' in api_readiness_source
+            and 'checks["model"]' in api_readiness_source
+            and all(value not in api_readiness_source for value in (
+                "claude_transport_readiness",
+                "MOONSHOT_API_KEY",
+                "meituan_travel_runtime_status",
+                "market_readiness",
+                "AMAP",
+                "billing",
+            )),
+        ),
         _ok("requirements_include_playwright", "playwright==" in (MODEL_DIR / "requirements.txt").read_text(encoding="utf-8")),
         _ok("compose_has_trends_worker", "noteai-trends-worker:" in compose and "market_timing_worker.py" in compose),
         _ok("entrypoint_can_skip_model_for_worker", "NOTEAI_SKIP_MODEL_ARTIFACT_CHECK" in (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")),
         _ok("compose_shares_artifacts", "./model/artifacts:/app/model/artifacts" in compose),
-        _ok("compose_has_admin_service", "noteai-admin:" in compose and "/admin/health" in compose),
+        _ok(
+            "compose_uses_core_readiness",
+            "noteai-admin:" in compose
+            and "http://localhost:8000/health/ready" in compose
+            and "http://localhost:8001/health/ready" in compose,
+        ),
+        _ok(
+            "postgres_migrations_are_predeploy_only",
+            "apply_postgres_migrations()" not in init_db_source
+            and "render_predeploy.py" not in service_start_sources
+            and "NOTEAI_MIGRATE_ON_START" not in service_start_sources
+            and render_blueprint.count("preDeployCommand: python /app/scripts/render_predeploy.py") == 2,
+        ),
+        _ok(
+            "docker_context_blocks_sensitive_material",
+            all(pattern in dockerignore for pattern in (
+                "**/.env.*",
+                "**/.ssh",
+                "**/.aws",
+                "**/.docker/config.json",
+                "**/*.pem",
+                "**/*.key",
+                "**/*credentials*.json",
+                "**/*cookie*.json",
+                "**/*secret*.json",
+            )),
+        ),
         _ok("deployment_secrets_doc_exists", "GitHub Environment" in deploy_secrets),
         _ok("model_cloud_strategy_doc_exists", "NOTEAI_MODEL_ARTIFACT_BASE_URL" in cloud_strategy),
         _ok("market_timing_cloud_strategy_doc_exists", "NOTEAI_MARKET_TIMING_REQUIRED=1" in timing_strategy),
         _ok("market_timing_baseline_evidence_documented", "industry_baseline" in timing_strategy),
+        _ok(
+            "production_image_build_spec_exists",
+            "linux/amd64" in image_build_spec
+            and "org.opencontainers.image.revision" in image_build_spec
+            and "Before any push" in image_build_spec,
+        ),
     ]
     missing_env = [name for name in sorted(REQUIRED_ENV_NAMES) if name not in env_example]
     checks.append(_ok("env_example_contains_required_names", not missing_env, f"missing={missing_env}"))

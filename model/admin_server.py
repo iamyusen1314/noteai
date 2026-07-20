@@ -26,8 +26,6 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-import httpx
-
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
@@ -56,7 +54,7 @@ except Exception:
 def _unavailable_api_ai_status() -> dict:
     return {
         "status": "unavailable",
-        "source": "api_readiness",
+        "source": "protected_status_unavailable",
         "claude_status": "unavailable",
         "kimi_status": "unavailable",
         # Backward-compatible booleans for older admin clients. New clients
@@ -66,47 +64,9 @@ def _unavailable_api_ai_status() -> dict:
     }
 
 
-def _parse_api_ai_readiness(payload: object) -> dict:
-    """Project the public API readiness response onto a fixed safe contract."""
-    if not isinstance(payload, dict):
-        return _unavailable_api_ai_status()
-    checks = payload.get("checks")
-    ai = checks.get("ai") if isinstance(checks, dict) else None
-    if not isinstance(ai, dict):
-        return _unavailable_api_ai_status()
-
-    ai_ok = ai.get("ok")
-    claude = ai.get("claude_configured")
-    kimi = ai.get("moonshot_configured")
-    if not all(isinstance(value, bool) for value in (ai_ok, claude, kimi)):
-        return _unavailable_api_ai_status()
-    if ai_ok != (claude and kimi):
-        return _unavailable_api_ai_status()
-
-    return {
-        "status": "configured" if ai_ok else "not_configured",
-        "source": "api_readiness",
-        "claude_status": "configured" if claude else "not_configured",
-        "kimi_status": "configured" if kimi else "not_configured",
-        "claude_configured": claude,
-        "kimi_configured": kimi,
-    }
-
-
 async def _fetch_api_ai_readiness() -> dict:
-    readiness_url = os.environ.get("NOTEAI_API_READINESS_URL", "").strip()
-    if not readiness_url:
-        return _unavailable_api_ai_status()
-    try:
-        timeout = httpx.Timeout(2.0)
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
-            response = await client.get(readiness_url, headers={"Accept": "application/json"})
-        if response.status_code not in {200, 503}:
-            return _unavailable_api_ai_status()
-        return _parse_api_ai_readiness(response.json())
-    except Exception:
-        # Never expose the configured URL, upstream body, or exception details.
-        return _unavailable_api_ai_status()
+    """Keep provider state unavailable until a protected status source exists."""
+    return _unavailable_api_ai_status()
 
 
 def _model_cost_audit_payload(since: str) -> dict:

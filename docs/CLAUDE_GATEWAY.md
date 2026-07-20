@@ -42,13 +42,15 @@ claim the business replay nonce, consume the business rate limit, acquire an
 operation lease, or write DynamoDB. It echoes the challenge and nonce and
 returns only the service/protocol, shared deployment scope, DynamoDB replay
 store, config/key epochs, server time, and an HMAC attestation. It never
-returns a key ID or secret. When AI readiness is required, the main API accepts
-Gateway readiness only after the signed response, epochs, scope/store,
-challenge, and bounded clock skew all match. The short readiness cache has a
-hard expiry and never serves an expired green result. Probes are single-flight
-per configuration key; generation/future ownership prevents a timed-out or
-superseded probe from later caching green, and a stuck probe cannot cause
-unbounded executor submissions.
+returns a key ID or secret. This is a separate, low-frequency operational
+diagnostic and is never part of the Alibaba API `/health/ready` or ALB health
+decision. When an explicitly authorized diagnostic runs, Gateway readiness is
+accepted only after the signed response, epochs, scope/store, challenge, and
+bounded clock skew all match. The short readiness cache has a hard expiry and
+never serves an expired green result. Probes are single-flight per configuration
+key; generation/future ownership prevents a timed-out or superseded probe from
+later caching green, and a stuck probe cannot cause unbounded executor
+submissions.
 
 Every request body also carries an opaque `operation_id`. The Router creates it
 once for a logical Claude leaf call and reuses it for safe retries and safe

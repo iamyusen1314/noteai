@@ -181,9 +181,22 @@ class ApiContractTests(unittest.TestCase):
                 self.assertEqual(api._health_model_label(), "v0.4-composite")
 
                 client = TestClient(api.app)
-                resp = client.get("/health")
+                with (
+                    mock.patch.object(api._database_readiness_probe, "result", return_value={"ok": True}),
+                    mock.patch.object(api, "get_v04_composite_model", return_value=object()),
+                ):
+                    resp = client.get("/health")
                 self.assertEqual(resp.status_code, 200)
                 self.assertEqual(resp.json()["model"], "v0.4-composite")
+
+                with (
+                    mock.patch.object(api._database_readiness_probe, "result", return_value={"ok": True}),
+                    mock.patch.object(api, "get_v04_composite_model", side_effect=RuntimeError("invalid model")),
+                ):
+                    invalid = client.get("/health")
+                self.assertEqual(invalid.status_code, 503)
+                self.assertFalse(invalid.json()["checks"]["model"]["ok"])
+                self.assertEqual(invalid.json()["checks"]["model"]["error"], "RuntimeError")
             finally:
                 api.USE_V04_COMPOSITE = original_use_v04
                 api.V04_TRAIN_REPORT_PATH = original_report_path
@@ -249,7 +262,7 @@ class ApiContractTests(unittest.TestCase):
                 self.assertIsNotNone(header)
                 self.assertFalse(header.get("required", False))
 
-    def test_readiness_reports_latest_xhs_source_health_as_nonblocking_safe_data(self):
+    def test_market_observation_reports_latest_xhs_source_health_as_safe_data(self):
         latest = {
             "available": True,
             "ok": False,
@@ -285,23 +298,9 @@ class ApiContractTests(unittest.TestCase):
                 "ok": True,
                 "latest_run_source_health": latest,
             }),
-            mock.patch.object(
-                api._market_readiness_cache,
-                "snapshot",
-                side_effect=lambda: {
-                    **api._collect_market_readiness_observation(),
-                    "observation_status": "fresh",
-                    "observation_stale": False,
-                    "observation_age_seconds": 0,
-                    "observation_refreshing": False,
-                    "observation_refresh_failed": False,
-                },
-            ),
         ):
-            payload, status_code = api._readiness_payload()
+            market = api._collect_market_readiness_observation()
 
-        self.assertEqual(status_code, 200)
-        market = payload["checks"]["market_timing"]
         self.assertFalse(market["blocking_readiness"])
         self.assertTrue(market["xhs_cumulative_fresh"])
         self.assertTrue(market["source_observation_action_required"])
@@ -314,7 +313,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertNotIn("cookie", serialized)
         self.assertNotIn("private.invalid", serialized)
 
-    def test_readiness_projects_fixed_xhs_logout_and_suspension_access_contracts(self):
+    def test_market_observation_projects_fixed_xhs_logout_and_suspension_contracts(self):
         cases = (
             ("login_required", "server_session_logged_out"),
             ("suspended", "collection_suspended"),
@@ -364,23 +363,9 @@ class ApiContractTests(unittest.TestCase):
                         "freshness_overview",
                         return_value=overview,
                     ),
-                    mock.patch.object(
-                        api._market_readiness_cache,
-                        "snapshot",
-                        side_effect=lambda: {
-                            **api._collect_market_readiness_observation(),
-                            "observation_status": "fresh",
-                            "observation_stale": False,
-                            "observation_age_seconds": 0,
-                            "observation_refreshing": False,
-                            "observation_refresh_failed": False,
-                        },
-                    ),
                 ):
-                    payload, status_code = api._readiness_payload()
+                    market = api._collect_market_readiness_observation()
 
-                self.assertEqual(status_code, 200)
-                market = payload["checks"]["market_timing"]
                 self.assertEqual(market["access_status"], access_status)
                 self.assertEqual(
                     market["access_error_code"],
@@ -392,7 +377,7 @@ class ApiContractTests(unittest.TestCase):
                 self.assertNotIn("session_cookie", serialized)
                 self.assertNotIn("exception", serialized)
 
-    def test_readiness_access_contract_normalizes_unknown_values_and_defaults(self):
+    def test_market_observation_normalizes_unknown_access_values_and_defaults(self):
         unknown = api._unknown_market_readiness_observation()
         self.assertEqual(unknown["access_status"], "normal")
         self.assertEqual(unknown["access_error_code"], "")
@@ -429,52 +414,17 @@ class ApiContractTests(unittest.TestCase):
         self.assertNotIn("must-not-leak", serialized)
         self.assertNotIn("secret", serialized)
 
-    def test_ai_required_gateway_readiness_requires_authenticated_remote_match(self):
-        base_runtime = {
-            "mode": "gateway",
-            "configured": True,
-            "supported": True,
-            "remote_checked": True,
-        }
-        common_patches = (
+    def test_gateway_outage_does_not_remove_a_core_ready_api_node(self):
+        with (
             mock.patch.object(api._database_readiness_probe, "result", return_value={"ok": True}),
             mock.patch.object(api, "get_v04_composite_model", return_value=object()),
-            mock.patch.object(api, "get_model", return_value=object()),
-        )
-        env = {
-            "NOTEAI_READINESS_REQUIRE_AI_KEYS": "1",
-            "MOONSHOT_API_KEY": "moonshot-test-key",
-        }
-        with mock.patch.dict(os.environ, env, clear=False), common_patches[0], common_patches[1], common_patches[2], \
-             mock.patch.object(api._mr, "claude_transport_readiness", return_value={
-                 **base_runtime,
-                 "remote_ready": False,
-                 "remote_error_code": "GATEWAY_READINESS_EPOCH_MISMATCH",
-             }) as failed_readiness:
-            failed_payload, failed_status = api._readiness_payload()
-        failed_readiness.assert_called_once_with(require_remote=True)
-        self.assertEqual(failed_status, 503)
-        self.assertFalse(failed_payload["checks"]["ai"]["ok"])
-        self.assertFalse(failed_payload["checks"]["ai"]["claude_remote_ready"])
-        self.assertEqual(
-            failed_payload["checks"]["ai"]["claude_remote_error_code"],
-            "GATEWAY_READINESS_EPOCH_MISMATCH",
-        )
+            mock.patch.object(api._mr, "claude_transport_readiness", side_effect=AssertionError("gateway called")),
+            mock.patch.dict(os.environ, {}, clear=True),
+        ):
+            payload, status_code = api._readiness_payload()
 
-        with mock.patch.dict(os.environ, env, clear=False), \
-             mock.patch.object(api._database_readiness_probe, "result", return_value={"ok": True}), \
-             mock.patch.object(api, "get_v04_composite_model", return_value=object()), \
-             mock.patch.object(api, "get_model", return_value=object()), \
-             mock.patch.object(api._mr, "claude_transport_readiness", return_value={
-                 **base_runtime,
-                 "remote_ready": True,
-                 "remote_error_code": None,
-             }) as ready_readiness:
-            ready_payload, ready_status = api._readiness_payload()
-        ready_readiness.assert_called_once_with(require_remote=True)
-        self.assertEqual(ready_status, 200)
-        self.assertTrue(ready_payload["checks"]["ai"]["ok"])
-        self.assertTrue(ready_payload["checks"]["ai"]["claude_remote_ready"])
+        self.assertEqual(status_code, 200)
+        self.assertEqual(set(payload["checks"]), {"database", "model"})
 
     def test_market_timing_freshness_keeps_old_fields_and_adds_latest_source_health(self):
         overview = {

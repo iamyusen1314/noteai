@@ -20,8 +20,8 @@
 | --- | --- |
 | `model/artifacts/model_v04_composite_train_report.json` | `b7f6bdf0eb24af8ed48108d0188571a2f8034908a7db8bad7054b503215a7adc` |
 | `model/artifacts/v04_composite_audit.json` | `b2d10f6092f5ef36aa197fa8452f422f1a792b21618534523380f70b454785d3` |
-| `model/artifacts/v04_composite_readiness.json` | `7473bc72ba2667e7f8a4a0021a7404dd2f4b097d0c49c68d2795cb75beea3e36` |
-| `model/artifacts/v04_training_data_health.json` | `82f9b8644c221c3d6794fb3e00bd78a5068d3e83d8044a6f32163645c921e309` |
+| `model/artifacts/v04_composite_readiness.json` | `67a95d3f2998c5f5b3d2d38590a71f3a120abb7219ba3791fb9909fcb3204818` |
+| `model/artifacts/v04_training_data_health.json` | `217cb361264d0187f692befd540d4b7671f1feea1fd792e371d005a39ac395c8` |
 | `model/model_registry.json` | `af5fa89fcb2c2c49fbbdf5c0e7f7490c77bee3f25e659e626702a11a056ab5e6` |
 
 ## 核心指标

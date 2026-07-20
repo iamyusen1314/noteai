@@ -11344,48 +11344,30 @@ _database_readiness_probe = _DatabaseReadinessProbe(
 
 
 def _readiness_payload() -> tuple[dict, int]:
+    """Return the load-balancer readiness contract.
+
+    Readiness is intentionally limited to the primary database and required
+    local model. Optional/cross-region providers and market collectors must not
+    be called or disclosed here, otherwise one provider outage could remove all
+    API nodes from service.
+    """
     checks: dict[str, dict] = {}
     try:
         checks["database"] = _database_readiness_probe.result()
     except Exception as exc:
         checks["database"] = {"ok": False, "error": type(exc).__name__}
 
-    model_ok = get_v04_composite_model() is not None if USE_V04_COMPOSITE else bool(get_model())
-    checks["model"] = {"ok": model_ok, "version": _health_model_label()}
+    try:
+        model_ok = get_v04_composite_model() is not None if USE_V04_COMPOSITE else bool(get_model())
+        checks["model"] = {"ok": model_ok, "version": _health_model_label()}
+    except Exception as exc:
+        checks["model"] = {
+            "ok": False,
+            "version": _health_model_label(),
+            "error": type(exc).__name__,
+        }
 
-    require_ai = os.environ.get("NOTEAI_READINESS_REQUIRE_AI_KEYS", "0").lower() in {"1", "true", "yes"}
-    claude_runtime = _mr.claude_transport_readiness(require_remote=require_ai)
-    claude_configured = bool(claude_runtime.get("configured"))
-    claude_transport = claude_runtime.get("mode")
-    claude_remote_ready = claude_runtime.get("remote_ready")
-    claude_ready = claude_configured and (
-        claude_transport != "gateway"
-        or not require_ai
-        or claude_remote_ready is True
-    )
-    checks["ai"] = {
-        "ok": claude_ready and bool(os.environ.get("MOONSHOT_API_KEY")),
-        "required": require_ai,
-        "claude_configured": claude_configured,
-        "claude_transport": claude_transport,
-        "claude_transport_supported": bool(claude_runtime.get("supported")),
-        "claude_remote_checked": bool(claude_runtime.get("remote_checked")),
-        "claude_remote_ready": claude_remote_ready,
-        "claude_remote_error_code": claude_runtime.get("remote_error_code"),
-        "moonshot_configured": bool(os.environ.get("MOONSHOT_API_KEY")),
-    }
-
-    checks["meituan_travel"] = _facts.meituan_travel_runtime_status()
-
-    if _SCHEDULER_AVAILABLE:
-        checks["market_timing"] = _market_readiness_cache.snapshot()
-
-    blocking = [checks["database"].get("ok"), checks["model"].get("ok")]
-    if require_ai:
-        blocking.append(checks["ai"].get("ok"))
-    if checks["meituan_travel"].get("required"):
-        blocking.append(checks["meituan_travel"].get("ok"))
-    ready = all(blocking)
+    ready = checks["database"].get("ok") is True and checks["model"].get("ok") is True
     return {"status": "ready" if ready else "not_ready", "service": "noteai-api", "checks": checks}, 200 if ready else 503
 
 
@@ -11406,12 +11388,7 @@ def health():
     payload["model"] = payload.get("checks", {}).get("model", {}).get("version", _health_model_label())
     payload["scheduler_a"] = _SCHEDULER_AVAILABLE
     payload["status_code"] = status_code
-    if _SCHEDULER_AVAILABLE:
-        try:
-            payload["hot_keywords"] = db_status()
-        except Exception:
-            pass
-    return payload
+    return JSONResponse(payload, status_code=status_code)
 
 
 @app.get("/market-timing/freshness")

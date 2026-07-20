@@ -127,23 +127,13 @@ class MarketReadinessCacheTests(unittest.TestCase):
             ttl_seconds=60,
             max_stale_seconds=300,
         )
-        database_probe = SimpleNamespace(
-            result=mock.Mock(return_value={"ok": True})
-        )
         with (
-            mock.patch.object(api, "_market_readiness_cache", cache),
-            mock.patch.object(api, "_database_readiness_probe", database_probe),
-            mock.patch.object(api, "_SCHEDULER_AVAILABLE", True),
-            mock.patch.object(api, "get_v04_composite_model", return_value=object()),
-            mock.patch.dict(os.environ, {"NOTEAI_READINESS_REQUIRE_AI_KEYS": "0"}),
             ThreadPoolExecutor(max_workers=20) as pool,
         ):
-            probes = list(pool.map(lambda _: api._readiness_payload(), range(20)))
-        snapshots = [row[0]["checks"]["market_timing"] for row in probes]
+            snapshots = list(pool.map(lambda _: cache.snapshot(), range(20)))
 
         self.assertTrue(started.wait(1))
         self.assertEqual(calls, 1)
-        self.assertTrue(all(row[1] == 200 for row in probes))
         self.assertTrue(all(row["observation_status"] == "unknown" for row in snapshots))
         release.set()
         self.assertTrue(cache.wait_for_refresh(1))
@@ -314,15 +304,8 @@ class MarketReadinessCacheTests(unittest.TestCase):
         self.assertEqual(recovered["freshness_hours"], 3)
         self.assertFalse(recovered["observation_refresh_failed"])
 
-    def test_readiness_uses_cached_market_observation_not_sync_collector(self):
-        cached = {
-            **_healthy_market_payload(),
-            "observation_status": "fresh",
-            "observation_stale": False,
-            "observation_age_seconds": 1.0,
-            "observation_refreshing": False,
-        }
-        cache = SimpleNamespace(snapshot=mock.Mock(return_value=cached))
+    def test_readiness_does_not_call_optional_or_external_dependencies(self):
+        cache = SimpleNamespace(snapshot=mock.Mock(side_effect=AssertionError("market called")))
         database_health = mock.Mock(return_value={"ok": True})
         database_probe = api._DatabaseReadinessProbe(
             database_health,
@@ -335,12 +318,14 @@ class MarketReadinessCacheTests(unittest.TestCase):
             mock.patch.object(api, "get_v04_composite_model", return_value=object()),
             mock.patch.object(api, "db_status", side_effect=AssertionError("sync market query")),
             mock.patch.object(api._xhs_acq, "freshness_overview", side_effect=AssertionError("sync market query")),
+            mock.patch.object(api._mr, "claude_transport_readiness", side_effect=AssertionError("gateway called")),
+            mock.patch.object(api._facts, "meituan_travel_runtime_status", side_effect=AssertionError("meituan called")),
         ):
             payload, status_code = api._readiness_payload()
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(payload["checks"]["market_timing"]["observation_status"], "fresh")
-        cache.snapshot.assert_called_once_with()
+        self.assertEqual(set(payload["checks"]), {"database", "model"})
+        cache.snapshot.assert_not_called()
         database_health.assert_called_once_with()
 
     def test_market_collector_preserves_only_safe_source_health_fields(self):
@@ -466,25 +451,14 @@ class DatabaseHealthTimeoutTests(unittest.TestCase):
         self.assertEqual(conn.progress_handlers[-1], (None, 0))
         self.assertTrue(conn.closed)
 
-    def test_database_false_raise_model_and_ai_blocking_contracts(self):
-        market = {
-            **api._unknown_market_readiness_observation(),
-            "observation_status": "unknown",
-        }
-        cache = SimpleNamespace(snapshot=mock.Mock(return_value=market))
-
-        def readiness(database_result=None, database_error=None, model=object(), require_ai="0", keys=True):
+    def test_database_and_model_are_the_only_blocking_contracts(self):
+        def readiness(database_result=None, database_error=None, model=object()):
             db_probe = (
                 mock.Mock(side_effect=database_error)
                 if database_error
                 else mock.Mock(return_value=database_result)
             )
-            env = {"NOTEAI_READINESS_REQUIRE_AI_KEYS": require_ai}
-            if keys:
-                env.update({"ANTHROPIC_API_KEY": "test", "MOONSHOT_API_KEY": "test"})
             with (
-                mock.patch.object(api, "_market_readiness_cache", cache),
-                mock.patch.object(api, "_SCHEDULER_AVAILABLE", True),
                 mock.patch.object(api, "USE_V04_COMPOSITE", True),
                 mock.patch.object(
                     api,
@@ -492,15 +466,19 @@ class DatabaseHealthTimeoutTests(unittest.TestCase):
                     SimpleNamespace(result=db_probe),
                 ),
                 mock.patch.object(api, "get_v04_composite_model", return_value=model),
-                mock.patch.dict(os.environ, env, clear=True),
+                mock.patch.object(api._mr, "claude_transport_readiness", side_effect=AssertionError("gateway called")),
+                mock.patch.object(api._facts, "meituan_travel_runtime_status", side_effect=AssertionError("meituan called")),
+                mock.patch.object(api._market_readiness_cache, "snapshot", side_effect=AssertionError("market called")),
+                mock.patch.dict(os.environ, {}, clear=True),
             ):
                 return api._readiness_payload()
 
         self.assertEqual(readiness({"ok": False})[1], 503)
         self.assertEqual(readiness(database_error=RuntimeError("db down"))[1], 503)
         self.assertEqual(readiness({"ok": True}, model=None)[1], 503)
-        self.assertEqual(readiness({"ok": True}, require_ai="1", keys=False)[1], 503)
-        self.assertEqual(readiness({"ok": True}, require_ai="0", keys=False)[1], 200)
+        payload, status_code = readiness({"ok": True})
+        self.assertEqual(status_code, 200)
+        self.assertEqual(set(payload["checks"]), {"database", "model"})
 
     def test_admin_database_exception_returns_503(self):
         with (

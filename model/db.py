@@ -678,9 +678,13 @@ def apply_postgres_migrations() -> list[str]:
 
 
 def init_db() -> None:
-    if using_postgres():
-        apply_postgres_migrations()
-    else:
+    """Initialize the backward-compatible local SQLite schema only.
+
+    PostgreSQL schema changes are intentionally restricted to the explicit
+    pre-deploy command, which calls ``apply_postgres_migrations`` directly.
+    Importing an API process must never acquire schema-write authority.
+    """
+    if not using_postgres():
         _init_sqlite()
 
 

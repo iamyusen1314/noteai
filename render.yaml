@@ -63,8 +63,6 @@ services:
         sync: false
       - key: NOTEAI_CLOUD_RUNTIME
         value: "1"
-      - key: NOTEAI_READINESS_REQUIRE_AI_KEYS
-        value: "1"
       - key: NOTEAI_CLAUDE_TRANSPORT
         value: local
       - key: NOTEAI_CLAUDE_GATEWAY_URL
@@ -160,6 +158,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: /app/scripts/render_start_admin.sh
+    preDeployCommand: python /app/scripts/render_predeploy.py
     healthCheckPath: /health/ready
     autoDeployTrigger: checksPass
     envVars:
@@ -171,8 +170,6 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: NOTEAI_API_READINESS_URL
-        value: https://noteai-staging-api.onrender.com/health/ready
       - key: NOTEAI_SKIP_MODEL_ARTIFACT_CHECK
         value: "1"
       - key: NOTEAI_CLOUD_RUNTIME
@@ -183,8 +180,6 @@ services:
         value: "30"
       - key: NOTEAI_MARKET_TIMING_MIN_DOMAIN_KEYWORDS
         value: "12"
-      - key: NOTEAI_MIGRATE_ON_START
-        value: "1"
       - key: NOTEAI_ENABLE_CLOUD_MODEL_MUTATION
         value: "0"
       - key: WEB_CONCURRENCY

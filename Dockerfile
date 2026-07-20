@@ -1,4 +1,6 @@
-FROM node:20-bookworm-slim AS meituan-travel-cli
+# Immutable multi-arch index; linux/amd64 child at release audit time:
+# sha256:3d0f05455dea2c82e2f76e7e2543964c30f6b7d673fc1a83286736d44fe4c41c
+FROM node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS meituan-travel-cli
 
 ARG MEITUAN_TRAVEL_CLI_VERSION=1.0.16
 ARG MEITUAN_TRAVEL_CLI_INTEGRITY=sha512-mYwkdd2jzFPKPacMM7CL3aAbfWqxkCh6q1kVi9YhgJoDPw22vAp1JFQrWuWJKzJiBBoYuXnMxzyC8i+f6mXzrA==
@@ -15,7 +17,19 @@ RUN set -eux; \
     npm cache clean --force; \
     rm -rf /tmp/meituan-travel-cli
 
-FROM python:3.11-slim-bookworm
+# Immutable multi-arch index; linux/amd64 child at release audit time:
+# sha256:28255a3ace7eb4c48bc1b57b90af29e1bc82b4fd6c60614a8e3dce61b87ff941
+FROM python:3.11-slim-bookworm@sha256:b18992999dbe963a45a8a4da40ac2b1975be1a776d939d098c647482bcad5cba
+
+ARG NOTEAI_OCI_REVISION=development
+ARG NOTEAI_OCI_SOURCE=https://github.com/iamyusen1314/noteai
+ARG NOTEAI_OCI_VERSION=development
+ARG NOTEAI_OCI_CREATED=1970-01-01T00:00:00Z
+
+LABEL org.opencontainers.image.revision="${NOTEAI_OCI_REVISION}" \
+      org.opencontainers.image.source="${NOTEAI_OCI_SOURCE}" \
+      org.opencontainers.image.version="${NOTEAI_OCI_VERSION}" \
+      org.opencontainers.image.created="${NOTEAI_OCI_CREATED}"
 
 WORKDIR /app
 

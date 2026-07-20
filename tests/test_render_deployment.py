@@ -87,6 +87,38 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("VALUES (%s, %s)", converted)
         self.assertIn("GREATEST(hot_keywords.search_vol, excluded.search_vol)", converted)
 
+    def test_init_db_never_runs_postgres_migrations(self):
+        with (
+            mock.patch.object(db, "using_postgres", return_value=True),
+            mock.patch.object(db, "apply_postgres_migrations") as apply_migrations,
+            mock.patch.object(db, "_init_sqlite") as init_sqlite,
+        ):
+            db.init_db()
+
+        apply_migrations.assert_not_called()
+        init_sqlite.assert_not_called()
+
+    def test_service_start_commands_never_run_predeploy(self):
+        for name in (
+            "render_start_api.sh",
+            "render_start_admin.sh",
+            "render_run_market_timing.sh",
+            "render_run_crawler.sh",
+        ):
+            with self.subTest(name=name):
+                source = (SCRIPTS_DIR / name).read_text(encoding="utf-8")
+                self.assertNotIn("render_predeploy.py", source)
+                self.assertNotIn("NOTEAI_MIGRATE_ON_START", source)
+
+    def test_postgres_migration_lock_precedes_version_read(self):
+        source = (MODEL_DIR / "db.py").read_text(encoding="utf-8")
+        migration = source.split("def apply_postgres_migrations()", 1)[1].split("def init_db()", 1)[0]
+
+        self.assertLess(
+            migration.index("pg_advisory_xact_lock"),
+            migration.index("SELECT version FROM schema_migrations"),
+        )
+
     def test_render_blueprint_declares_all_required_service_types(self):
         blueprint = (Path(__file__).resolve().parents[1] / "render.yaml").read_text(encoding="utf-8")
         for name in (
@@ -99,6 +131,11 @@ class RenderDeploymentTests(unittest.TestCase):
         ):
             self.assertIn(name, blueprint)
         self.assertIn("healthCheckPath: /health/ready", blueprint)
+        self.assertEqual(
+            blueprint.count("preDeployCommand: python /app/scripts/render_predeploy.py"),
+            2,
+        )
+        self.assertNotIn("NOTEAI_MIGRATE_ON_START", blueprint)
         self.assertIn("property: connectionString", blueprint)
         secret_name = "ANTHROPIC_API" + "_KEY"
         self.assertNotIn(f"{secret_name}: ", blueprint)
@@ -117,11 +154,10 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertGreaterEqual(blueprint.count("NOTEAI_XHS_FRESHNESS_REQUIRED"), 2)
         self.assertIn("MALLOC_ARENA_MAX", blueprint)
 
-    def test_admin_reads_public_api_readiness_without_copying_ai_secrets(self):
+    def test_admin_does_not_use_public_readiness_as_provider_status_source(self):
         blueprint = (Path(__file__).resolve().parents[1] / "render.yaml").read_text(encoding="utf-8")
         admin_block = blueprint.split("name: noteai-staging-admin", 1)[1].split("- type: cron", 1)[0]
-        self.assertIn("NOTEAI_API_READINESS_URL", admin_block)
-        self.assertIn("https://noteai-staging-api.onrender.com/health/ready", admin_block)
+        self.assertNotIn("NOTEAI_API_READINESS_URL", admin_block)
         self.assertNotIn("ANTHROPIC_API_KEY", admin_block)
         self.assertNotIn("MOONSHOT_API_KEY", admin_block)
 

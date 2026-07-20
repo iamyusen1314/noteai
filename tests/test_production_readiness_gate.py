@@ -72,6 +72,26 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(has_secret)
         self.assertEqual(name, "AMAP_WEB_KEY")
 
+    def test_human_model_release_manifest_hashes_match_all_declared_files(self):
+        declared = gate._load_human_release_hashes(gate.HUMAN_MODEL_RELEASE_MANIFEST)
+
+        self.assertGreaterEqual(len(declared), 8)
+        self.assertEqual(gate._declared_sha256_mismatches(declared), [])
+
+    def test_human_model_release_manifest_hash_mismatch_is_detected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            artifact = root / "model" / "artifacts" / "evidence.json"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_text("{}", encoding="utf-8")
+
+            mismatches = gate._declared_sha256_mismatches(
+                {"model/artifacts/evidence.json": "0" * 64},
+                root=root,
+            )
+
+        self.assertEqual(mismatches, ["model/artifacts/evidence.json"])
+
     def test_artifact_loader_cli_respects_required_environment(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

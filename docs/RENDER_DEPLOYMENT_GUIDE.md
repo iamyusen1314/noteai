@@ -125,7 +125,7 @@
 ## 6. 首次部署观察顺序
 
 1. 先看 `noteai-staging-db` 状态为 Available。
-2. 打开 API Events，确认 Pre-Deploy 输出 4 个首次迁移或 0 个已存在迁移。
+2. 打开 API/Admin Events，确认显式 Pre-Deploy 成功；已有数据库应输出 0 个迁移，缺失版本只能在获批的新环境初始化中出现。
 3. API 日志必须出现四个模型 artifact `checked`，并显示 Uvicorn 已监听 Render 的 `PORT`。
 4. 打开 API `/health/ready`，必须是 HTTP 200，数据库为 `postgresql`，模型为 `v0.4-composite`。
 5. 打开管理端 `/health/ready`，必须是 HTTP 200。
@@ -137,7 +137,7 @@
 1. 打开 `noteai-staging-market-timing`。
 2. 点击 `Trigger Run` / `Run Now`。
 3. 日志必须显示任务正常退出，并且真实 XHS freshness gate 为通过。
-4. 再查 API `/health`，`market_timing.ok` 应为 true。
+4. 通过 Cron 日志和需要认证的 `/market-timing/freshness` 业务观测接口核验市场证据；不要把市场来源接入负载均衡健康检查。
 5. 打开 `noteai-staging-tracking`，手工运行一次；没有到期笔记时允许返回 0 条任务，但不能异常退出。
 
 ## 8. 本地数据迁移（可选，必须单独批准）
@@ -204,6 +204,9 @@ python scripts/migrate_sqlite_to_postgres.py \
 
 - API 启动时必须从私有对象存储取得 V0.4 artifacts，并完成 manifest/SHA256 校验。
 - `/health/ready` 必须报告 `v0.4-composite` 和 PostgreSQL 就绪。
+- `/health/live` 只表示进程存活；`/health/ready` 只阻塞 PostgreSQL、必需本地模型（Admin 另要求管理员凭据）。Claude/Kimi/Meituan/Amap、市场证据、Crawler 和支付均不得由健康检查调用或披露。
+- 管理端供应商状态在没有受保护、已鉴权的运维状态源时固定显示 `unavailable`；不得从公开 `/health/ready` 推断或恢复 AI 配置字段。未来受保护状态通道作为独立任务实现。
+- PostgreSQL migration 只允许由 API/Admin 的显式 Pre-Deploy 执行。普通 API/Admin 重启和 Cron 运行不得迁移；Pre-Deploy 失败时服务应停止发布，而不是在启动阶段补迁移。
 - 配置真实模型价格后，用一个最小测试账号分别跑诊断、生成和对话优化；验收要求 Token 数、`actual_model_cost_rmb`、积分账本和管理端汇总一致。
 - 未完成上述成本验收前，不得把操作级固定估算当作真实成本或据此上线收费。
 

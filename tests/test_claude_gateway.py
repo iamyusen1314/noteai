@@ -1810,9 +1810,7 @@ class GatewayClaudeTransportTests(unittest.TestCase):
         })
         self.assertEqual(parsed, ("d", ["t"], "p", "b"))
         self.assertEqual(status_code, 200)
-        self.assertTrue(api_readiness["checks"]["ai"]["ok"])
-        self.assertEqual(api_readiness["checks"]["ai"]["claude_transport"], "gateway")
-        self.assertTrue(api_readiness["checks"]["ai"]["claude_remote_ready"])
+        self.assertEqual(set(api_readiness["checks"]), {"database", "model"})
 
 
 class ClaudeGatewayTrustBoundaryContractTests(unittest.TestCase):

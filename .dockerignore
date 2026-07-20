@@ -6,7 +6,28 @@
 
 .env
 *.env
+**/.env
+**/.env.*
 !model/.env.example
+
+# Credential stores and private key material must never enter the context.
+**/.ssh
+**/.aws
+**/.config/gcloud
+**/.docker/config.json
+**/.npmrc
+**/.pypirc
+**/.netrc
+**/pip.conf
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*credentials*.json
+**/*cookie*.json
+**/*cookies*.txt
+**/*secret*.json
 
 .venv
 venv

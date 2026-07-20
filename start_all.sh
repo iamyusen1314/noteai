@@ -195,12 +195,12 @@ launch_core_services() {
 }
 
 print_core_ready() {
-  if curl -s -m 3 http://localhost:8000/health > /dev/null; then
+  if curl -fsS -m 3 http://localhost:8000/health/ready > /dev/null; then
     echo "  ✅ 主 API: http://localhost:8000"
   else
     echo "  ❌ 主 API 启动失败，查看 /tmp/noteai_api.log"
   fi
-  if curl -s -m 3 http://localhost:8001/admin/health > /dev/null; then
+  if curl -fsS -m 3 http://localhost:8001/health/ready > /dev/null; then
     echo "  ✅ 管理后台: http://localhost:8001"
   else
     echo "  ❌ 管理后台启动失败，查看 /tmp/noteai_admin.log"
@@ -391,8 +391,8 @@ case "${1:-start}" in
 
   status)
     echo "📊 服务状态:"
-    curl -s -m 2 http://localhost:8000/health | python3 -c "import sys,json; d=json.load(sys.stdin); print('  主 API (8000):', d['status'], '| 模型:', d['model'])" 2>/dev/null || echo "  主 API (8000): 未运行"
-    curl -s -m 2 http://localhost:8001/admin/health | python3 -c "import sys,json; d=json.load(sys.stdin); print('  管理后台 (8001):', d['status'])" 2>/dev/null || echo "  管理后台 (8001): 未运行"
+    curl -fsS -m 2 http://localhost:8000/health/ready | python3 -c "import sys,json; d=json.load(sys.stdin); print('  主 API (8000):', d['status'], '| 模型:', d['checks']['model']['version'])" 2>/dev/null || echo "  主 API (8000): 未就绪"
+    curl -fsS -m 2 http://localhost:8001/health/ready | python3 -c "import sys,json; d=json.load(sys.stdin); print('  管理后台 (8001):', d['status'])" 2>/dev/null || echo "  管理后台 (8001): 未就绪"
     curl -s -m 2 "http://localhost:$FRONTEND_PORT/$FRONTEND_PAGE" > /dev/null && echo "  前端页面 ($FRONTEND_PORT): 运行中" || echo "  前端页面 ($FRONTEND_PORT): 未运行"
     print_trends_status
     ;;
