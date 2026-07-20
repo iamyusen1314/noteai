@@ -2,7 +2,7 @@
 
 > Updated: 2026-07-20 (Asia/Shanghai)
 >
-> Scope: formal production-rollout checkpoint only. This checkpoint did not build or deploy an image, start an application, change Alibaba Cloud or Render resources, switch DNS, run migrations, call paid AI, crawl external sites, or execute an end-user payment.
+> Scope: production prebuild closure checkpoint. The release-candidate code/configuration was independently verified, but this checkpoint did not build or deploy an image, start an application, connect to or change a database, change Alibaba Cloud or Render resources, switch DNS, call a provider, crawl external sites, or execute an end-user payment.
 >
 > Evidence precedence: current Git/CI and public health checks > current cloud control-plane reads > previously captured control-plane evidence > conversation recollection. Anything not re-observed after the interruption is explicitly marked `INVESTIGATING` or uncertain.
 
@@ -10,15 +10,16 @@
 
 NoteAI is in **production infrastructure preparation and controlled release**, not general availability. Render Staging remains the validated staging environment. The production Claude Gateway is live on Render Singapore, while the Alibaba Cloud production application path has not been released: the corrected immutable AMD64 application image is not yet verified, API-C/API-F application services are not accepted, no ALB is configured, TLS certificates are not attached to a production listener, and production DNS has not been switched.
 
-The immediate release stop condition is to establish a verified, immutable `linux/amd64` image for revision `ff030f5`, then complete API-C zero-AI readiness before any real provider call or additional production component is started.
+`PROD-PREBUILD-001` is independently `VERIFIED`. The only valid application build source is now `b6abaa781c11950c4d261e8d9f17c3194aecd0cf`; `ff030f5` is superseded. `PROD-IMG-001` remains `BLOCKED` because the user has not approved a native AMD64 builder, its cost, or any build. The next action, if explicitly approved, is a local-only AMD64 build and acceptance pass with no ACR push.
 
 ## 2. Git and repository truth
 
 | Field | Verified value |
 |---|---|
 | Branch | `codex/quality-stabilization-real-chain` |
-| HEAD before this handoff checkpoint | `ff030f51c6396214ff024a62432cbbdbf3225e96` |
-| Short revision | `ff030f5` |
+| Application release commit | `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` |
+| Release message | `fix(prod): close prebuild release gates [skip render]` |
+| Production build source | exact full application commit above; never a later handoff-only HEAD |
 | Upstream | `origin/codex/quality-stabilization-real-chain` |
 | Ahead / behind before checkpoint | `0 / 0` |
 | Staged before checkpoint | none |
@@ -28,6 +29,7 @@ The immediate release stop condition is to establish a verified, immutable `linu
 
 Recent relevant commits, newest first:
 
+- `b6abaa7` — close independently verified production prebuild release gates.
 - `ff030f5` — package Meituan travel CLI for production.
 - `84f8a2f` — define isolated production Claude Gateway service.
 - `ecc4702` — record independent production release verification.
@@ -41,7 +43,7 @@ Recent relevant commits, newest first:
 - `c0afbbe` — install Blueprint test dependencies in CI.
 - `0e050f8` — harden the Claude Gateway trust boundary.
 
-Current CI evidence for exact revision `ff030f5`: both push and pull-request GitHub Actions runs completed successfully. No test suite was rerun during this documentation-only checkpoint.
+Independent release verification for exact application revision `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` completed successfully; exact evidence is recorded in sections 5 and 6. A later Handoff-only commit may become Git HEAD, but must never replace `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` as the application image revision.
 
 ## 3. Current environment and cloud state
 
@@ -85,9 +87,10 @@ The following table separates last confirmed control-plane evidence from current
 
 ### 4.1 Required recovery point
 
-- Exact source revision: `ff030f51c6396214ff024a62432cbbdbf3225e96` (`ff030f5`).
-- Required target tag: `git-ff030f5-amd64-r2`.
+- Exact source revision: `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` (`b6abaa7`).
+- Recommended target tag: `git-b6abaa7-amd64-r1`.
 - The target must be deployed by immutable digest after independent verification. If a later session changes the tag, it must record the reason, source revision, platform, digest and superseded tag in this handoff before deployment.
+- `ff030f5` is no longer an acceptable build source. Any later Handoff-only HEAD is documentation provenance only, not application provenance.
 
 ### 4.2 Last verified ACR image inventory
 
@@ -95,7 +98,8 @@ The following table separates last confirmed control-plane evidence from current
 |---|---|---|---|
 | `git-ecc4702e` | `sha256:b7a7d47dba6a314fae2fde6d1d35cafe9f209da41f385c266f463a31f66f6916` | `linux/amd64` | **Forbidden for production release:** older source revision and missing the `ff030f5` Meituan CLI packaging change. |
 | `git-ff030f5` | `sha256:751b7ecc9e6f883b923f52754c5290d07e06610014ae43ee5d7fa303c168afe1` | `linux/arm64` | **Forbidden on x86 ECS:** architecture mismatch. |
-| `git-ff030f5-amd64-r2` | Not verified | Required `linux/amd64` | Last confirmed absent at the interruption. Current existence/digest is `INVESTIGATING`; do not deploy until independently verified. |
+| `git-ff030f5-amd64-r2` | Not verified | Required `linux/amd64` | Superseded target; do not build or deploy. |
+| `git-b6abaa7-amd64-r1` | This task did not build or push it; current ACR existence was not verified in this phase | Required `linux/amd64` | Recommended new target; execution must re-read ACR and must not assume the tag is present or absent. It may not push under `PROD-IMG-001`. |
 
 No mutable tag such as `latest` is an acceptable production reference. Neither existing image above may be used for production deployment.
 
@@ -107,7 +111,8 @@ The 2026-07-19 interruption occurred **before a successful native AMD64 build an
 
 Completed with evidence:
 
-- Source revision `ff030f5` exists, is pushed and has successful GitHub CI.
+- `PROD-PREBUILD-001` and all four child gates are independently verified at application revision `b6abaa781c11950c4d261e8d9f17c3194aecd0cf`.
+- Release candidate `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` contains the required `ff030f5` Meituan CLI packaging fix and all independently verified prebuild closures.
 - Production Claude Gateway exists on Render Singapore and public live/readiness is healthy.
 - Clean production RDS schema migrations `0001` through `0008` were applied without Staging data import.
 - Three TLS certificates were issued.
@@ -115,7 +120,7 @@ Completed with evidence:
 
 Not started or not completed:
 
-- Verified `git-ff030f5-amd64-r2` build and push.
+- Verified `git-b6abaa7-amd64-r1` local AMD64 build, acceptance and later push.
 - API-C start on the corrected immutable digest and zero-AI readiness.
 - Real bounded provider verification for Kimi, Claude Gateway, Amap and Meituan from production.
 - API-F deployment.
@@ -135,25 +140,59 @@ State uncertain and requiring fresh read-only verification:
 
 Only these task statuses are permitted: `TODO`, `INVESTIGATING`, `READY_TO_EXECUTE`, `EXECUTING`, `READY_TO_VERIFY`, `VERIFIED`, `BLOCKED`, `DEFERRED`. A task may become `VERIFIED` only after independent verification evidence is recorded here.
 
+### PROD-PREBUILD-001 — Production image prebuild closure
+
+- Status: `VERIFIED`
+- Application release candidate: `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` (`fix(prod): close prebuild release gates [skip render]`).
+- All four prebuild gates are independently verified: model manifest integrity, explicit/concurrency-safe migrations, core-only zero-outbound health semantics, and pinned/provenance-aware build configuration.
+- Independent verification: `586 OK (skipped=5)` full tests; `278 OK` targeted tests; production readiness gate `63/63`; `network_attempts=0`; `py_compile`, Compose/static configuration, diff, secret, and build-context checks passed.
+- No production image build/push, service start, database write, cloud mutation, or external-provider call was performed.
+
+### PROD-MODEL-001 — Model release manifest SHA drift
+
+- Status: `VERIFIED`
+- Human-readable release checks: `8/8`; machine-readable checks: `4/4`; Git LFS artifact checks: `3/3`.
+- The drift was confined to stale human documentation; the machine manifest and LFS artifacts were consistent. The documentation was minimally corrected and the complete SHA validation passed again.
+- No production exception was registered and no model binary was replaced.
+
+### PROD-BOOT-001 — Production startup and migration isolation
+
+- Status: `VERIFIED`
+- A normal PostgreSQL production API import/start path performs `0` migration runs and opens `0` migration connections.
+- The explicit one-time migration path applies migrations `0001`–`0008` once, applies `0` on the second run, and is protected by a PostgreSQL advisory lock against concurrent execution.
+- Local and Render Staging behavior remains supported; ordinary production API restarts do not change database structure.
+- Verification did not connect to or write any real production database.
+
+### PROD-HEALTH-001 — Production health-check semantics
+
+- Status: `VERIFIED`
+- `/health/live` is process-only. `/health/ready` checks only core readiness (database plus required local model artifacts), and returns non-200 when a core dependency is unavailable.
+- Optional external providers do not participate in readiness, are not called by health checks, and do not cause all API nodes to be removed. Verification recorded `network_attempts=0`.
+- Health responses do not disclose secrets or internal provider configuration; unavailable admin dependencies fail safely.
+
+### PROD-PROV-001 — Image provenance and reproducible-build controls
+
+- Status: `VERIFIED`
+- Runtime base images are pinned by index digest; OCI `revision`, `source`, `version`, and `created` metadata are explicit build inputs; build-context and secret-exclusion controls passed static verification.
+- The only valid application revision for the eventual image is `b6abaa781c11950c4d261e8d9f17c3194aecd0cf`. A later Handoff-only HEAD must not replace this revision.
+- Runtime build acceptance still requires native AMD64 child-manifest, label, layer, SBOM, vulnerability, and secret-scan evidence; none of those execution checks was performed in this task.
+
 ### PROD-IMG-001 — Build corrected AMD64 image
 
-- **Status:** `INVESTIGATING`
-- **Priority:** Critical
-- **Current evidence:** source revision is `ff030f5`; existing same-revision image is ARM64; target `git-ff030f5-amd64-r2` was last confirmed absent. Current ACR inventory must be re-read first.
-- **Prerequisites:** read-only Git/ACR/host architecture audit; clean source tree; documented build host/platform; user approval for build and any temporary registry access.
-- **Execution steps:** confirm target absence; build `linux/amd64` from exact revision with Git LFS/model inputs resolved; record build metadata without secrets; do not deploy.
-- **Risk:** architecture mismatch, stale source, missing model artifacts or CLI, secret leakage into image layers.
-- **Rollback:** stop/remove only the local failed build artifacts; do not delete remote tags or cloud resources.
-- **Acceptance:** independent inspection proves exact revision `ff030f5`, platform `linux/amd64`, expected entrypoint and no embedded secrets; image is ready for push under the immutable target tag.
-- **Real call:** registry/build dependency downloads may be real; no AI call.
-- **Possible cost:** registry storage/egress and temporary build resources.
-- **User approval:** required before build or registry-access mutation.
+- Status: `BLOCKED` pending the product owner's explicit approval of the native builder, its cost, and a local-only build-and-acceptance run.
+- Preconditions now satisfied: PROD-PREBUILD-001 is independently verified and the exact build source is `b6abaa781c11950c4d261e8d9f17c3194aecd0cf`. Do not use `ff030f5` or a later Handoff-only HEAD as the application revision.
+- Before execution, re-read the current ACR repository/tag inventory. The recommended candidate tag is `git-b6abaa7-amd64-r1`; this task did not build or push it, but its current ACR existence was not verified in this phase and must not be assumed either present or absent.
+- Preferred native builder: a temporary, isolated Alibaba Cloud Shenzhen `x86_64` ECS instance, never API-C or API-F. Instance creation, disk/network cost, and the local build require explicit approval.
+- Minimum approved scope would be: check out the clean exact release commit on the approved builder, build a local `linux/amd64` candidate, and perform acceptance only. It must not include PROD-IMG-002, ACR push, service start, database access, or cloud-service changes.
+- Acceptance evidence required before any push decision: AMD64 child manifest/architecture, full OCI revision/source/version/created labels, expected entrypoint/user/layers/model and `mttravel` contents, SBOM, vulnerability scan, and secret scan, with no unresolved Critical or High finding.
+- Cost/impact: temporary ECS compute, system disk, downloads, and possible egress; no paid AI/provider calls. Rollback is deletion of the unpushed local image/build cache and release of the temporary builder after evidence retention.
+- Only next approval requested: execute PROD-IMG-001 local build plus acceptance on the approved native builder, without push. Do not combine that approval with PROD-IMG-002.
 
 ### PROD-IMG-002 — Push to ACR and verify digest
 
 - **Status:** `BLOCKED`
 - **Priority:** Critical
-- **Current evidence:** no verified digest exists for `git-ff030f5-amd64-r2`.
+- **Current evidence:** no verified digest exists for the recommended candidate `git-b6abaa7-amd64-r1`; it has not been built or pushed.
 - **Prerequisites:** PROD-IMG-001 acceptance; approved ACR access window; public access remains closed except an explicitly approved, time-bounded exception.
 - **Execution steps:** push once; close any temporary public route; read back manifest/index; record immutable digest and platform; compare remote/local metadata.
 - **Risk:** wrong repository/tag, mutable overwrite, public exposure, partial multi-arch manifest.
@@ -359,14 +398,11 @@ These items remain in the same unique ledger but must not interrupt the producti
 
 ## 6. Test and evidence baseline
 
-- Exact revision `ff030f5` has successful GitHub Actions push and pull-request CI runs.
-- The repository's standard local baseline remains:
-  - Python unit tests under `tests/`.
-  - API contract and frontend static-report tests.
-  - Playwright end-to-end tests.
-  - production readiness gate.
-  - Docker Compose configuration validation.
-- No tests were rerun during this documentation-only checkpoint.
+- Exact release revision `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` passed independent verification: `586 OK (skipped=5)` full tests and `278 OK` targeted tests.
+- Production readiness passed `63/63`; the health-check audit recorded `network_attempts=0`.
+- Model integrity passed human manifest `8/8`, machine manifest `4/4`, and Git LFS artifact `3/3` checks.
+- `py_compile`, Docker Compose/static configuration, diff, secret, and build-context checks passed.
+- No final image was built or pushed, and no service, database, cloud resource, or external provider was invoked by this checkpoint.
 - Render public live/readiness checks listed in section 3 were rerun on 2026-07-20.
 - Alibaba production application readiness, provider calls, ALB/TLS/DNS and payment checks have not passed; no task may be promoted to `VERIFIED` from historical narration alone.
 
@@ -396,7 +432,7 @@ All future sessions and all agents must obey:
 Additional release controls:
 
 - Do not expose or copy values from production environment files. Validate only key names, permissions, redacted fingerprints or provider-side results.
-- Do not use `git-ff030f5`, `git-ecc4702e`, `latest`, or any unverified tag for production.
+- Do not use `git-ff030f5`, `git-ff030f5-amd64-r2`, `git-ecc4702e`, `latest`, or any unverified tag for production. Only `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` may source the candidate `git-b6abaa7-amd64-r1`, after local acceptance.
 - Do not let execution agents work until the read-only audit stage has reconciled Git, ACR, ECS, RDS/Tair, networking, Render, TLS and DNS truth.
 - Do not repeat already completed domain/certificate purchases, clean RDS schema migration, or production Gateway creation.
 - Any status discrepancy stops execution and returns the affected task to `INVESTIGATING`.
@@ -431,16 +467,16 @@ Read these files first:
 
 Then:
 
-1. Verify the current branch, exact HEAD, upstream divergence, staged/unstaged/untracked files and recent commits.
-2. Verify that the checkpoint commit contains only this handoff and did not trigger Render deployment.
+1. Verify the current branch and application build source `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` independently of any later Handoff-only HEAD; also verify upstream divergence and worktree state.
+2. Verify that any Handoff checkpoint commit contains only documentation, uses `[skip render]`, and did not trigger Render deployment.
 3. Dispatch the four mandatory read-only auditors above; use the Security Reviewer if any credential, auth, billing, public exposure or image-layer concern appears.
-4. Reconcile current ACR tag/digest/platform truth, API-C/API-F host and service state, RDS/Tair/network/PrivateZone, Alibaba billing inventory, Render Gateway state, ALB/TLS/DNS and traffic evidence.
-5. Start with **PROD-IMG-001**. Do not build until the current ACR inventory and build-host architecture are proven and user approval is obtained.
+4. Before PROD-IMG-001, re-read the ACR tag/digest/platform inventory and prove the approved isolated builder is native `x86_64`; retain the broader cloud-state reconciliation for its later task package.
+5. Start with **PROD-IMG-001**, but keep it `BLOCKED` until the user explicitly approves the builder, cost, and local build-and-acceptance scope. That approval must not include ACR push or PROD-IMG-002.
 6. Permit an execution agent only after root cause/state is confirmed, modification scope is minimal, task is `READY_TO_EXECUTE`, acceptance/rollback are documented, and the user has approved cost/production impact.
 7. Stop immediately on secret exposure, architecture mismatch, untracked cloud mutation, unverifiable digest, unexpected production traffic, failed zero-AI readiness, or any need to broaden scope.
 
-The next session must not repeat the completed production Gateway creation, domain/DNS purchase, certificate purchase/issuance, clean RDS schema migration or prior ARM64 push. It must verify their current state read-only and continue from PROD-IMG-001.
+The next session must not repeat the completed production Gateway creation, domain/DNS purchase, certificate purchase/issuance, clean RDS schema migration or prior ARM64 push. Its exact next task is the single approval-gated PROD-IMG-001 local AMD64 build and acceptance run on an approved isolated native builder, with no push.
 
 ## 10. Checkpoint condition
 
-Before this checkpoint commit, the worktree contained only this handoff as an unstaged modification, with no staged or untracked files. The checkpoint is eligible for a dedicated documentation commit only after a secret/path scan. The commit must use `[skip render]`, push normally to the existing tracking branch, never force-push, and must not trigger any build, deployment or cloud change.
+The application release candidate is already committed as `b6abaa781c11950c4d261e8d9f17c3194aecd0cf` with message `fix(prod): close prebuild release gates [skip render]`. This Handoff-only update is documentation provenance and must never replace that application revision in image metadata. Any documentation checkpoint must use `[skip render]`, push normally to the existing tracking branch, never force-push, and must not trigger any build, deployment, database access, cloud change, or provider call.
