@@ -25,6 +25,20 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(report["passed"], report["failed_checks"])
         self.assertGreaterEqual(report["check_count"], 30)
 
+    def test_runtime_image_contract_removes_only_audited_build_and_probe_tools(self):
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+        self.assertIn("python -m playwright install --with-deps chromium", dockerfile)
+        self.assertIn("apt-get purge -y xvfb xserver-common", dockerfile)
+        self.assertNotIn("apt-get autoremove", dockerfile)
+        self.assertIn('page.goto("about:blank")', dockerfile)
+        self.assertIn("python -m pip uninstall -y setuptools wheel", dockerfile)
+        self.assertIn("python -m pip check", dockerfile)
+        self.assertNotIn("CMD curl", dockerfile)
+        self.assertNotIn('"curl"', compose)
+        self.assertEqual(compose.count("import http.client, sys"), 2)
+
     def test_cloud_runtime_gate_fails_with_fixed_code_when_meituan_cli_is_missing(self):
         with mock.patch.dict(os.environ, {
             "NOTEAI_CLOUD_RUNTIME": "1",

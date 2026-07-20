@@ -321,6 +321,22 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         _ok("docker_copies_entrypoint", "COPY scripts/docker_entrypoint.sh" in dockerfile),
         _ok("docker_installs_playwright_chromium", "python -m playwright install --with-deps chromium" in dockerfile),
         _ok(
+            "docker_proves_headless_chromium_without_xvfb",
+            "apt-get purge -y xvfb xserver-common" in dockerfile
+            and 'page.goto("about:blank")' in dockerfile,
+        ),
+        _ok(
+            "docker_removes_python_build_tooling",
+            "python -m pip uninstall -y setuptools wheel" in dockerfile
+            and "python -m pip check" in dockerfile,
+        ),
+        _ok(
+            "docker_healthcheck_uses_python_stdlib",
+            'import http.client, os, sys' in dockerfile
+            and "'/health/live'" in dockerfile
+            and "CMD curl" not in dockerfile,
+        ),
+        _ok(
             "docker_pins_node20_base_index",
             "node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0" in dockerfile,
         ),
@@ -383,8 +399,11 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         _ok(
             "compose_uses_core_readiness",
             "noteai-admin:" in compose
-            and "http://localhost:8000/health/ready" in compose
-            and "http://localhost:8001/health/ready" in compose,
+            and compose.count("import http.client, sys") == 2
+            and "HTTPConnection('127.0.0.1', 8000" in compose
+            and "HTTPConnection('127.0.0.1', 8001" in compose
+            and compose.count("'/health/ready'") == 2
+            and '"curl"' not in compose,
         ),
         _ok(
             "postgres_migrations_are_predeploy_only",

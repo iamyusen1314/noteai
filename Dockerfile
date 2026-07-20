@@ -40,9 +40,9 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_RETRIES=8 \
     MEITUAN_TRAVEL_CLI=/usr/local/bin/mttravel
 
-# 系统依赖（OpenCV 需要）
+# 系统依赖（OpenCV 需要）；健康检查使用 Python 标准库，不保留 curl。
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Official Meituan Travel CLI runtime only; npm and its cache stay in the build stage.
@@ -57,6 +57,12 @@ COPY model/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p /ms-playwright \
     && python -m playwright install --with-deps chromium
+RUN apt-get purge -y xvfb xserver-common \
+    && python -c 'from playwright.sync_api import sync_playwright; runtime = sync_playwright().start(); browser = runtime.chromium.launch(headless=True, args=["--no-sandbox"]); page = browser.new_page(); page.goto("about:blank"); browser.close(); runtime.stop()' \
+    && python -m pip uninstall -y setuptools wheel \
+    && python -m pip check \
+    && python -c 'import importlib.util; assert importlib.util.find_spec("setuptools") is None; assert importlib.util.find_spec("wheel") is None' \
+    && rm -rf /root/.cache /var/lib/apt/lists/* /var/cache/apt/*
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/*
@@ -83,7 +89,7 @@ ENV PORT=8000
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
-    CMD curl --fail --silent "http://127.0.0.1:${PORT:-8000}/health/live" || exit 1
+    CMD ["python", "-c", "import http.client, os, sys; connection = http.client.HTTPConnection('127.0.0.1', int(os.environ.get('PORT', '8000')), timeout=5); connection.request('GET', '/health/live'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
 
 USER noteai
 
