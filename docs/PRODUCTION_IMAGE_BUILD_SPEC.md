@@ -57,7 +57,8 @@ final local image ID and package SBOM must therefore be retained for acceptance.
   stack previously carried by the combined image.
 - `worker-runtime` extends the same application/runtime base, installs
   `model/requirements-worker.txt`, and retains Playwright 1.56.0 plus its
-  Chromium runtime and the offline `about:blank` build smoke.
+  Chromium runtime. Image creation checks only that Playwright resolves an
+  installed executable; it must not launch Chromium as root during the build.
 - `model/requirements.txt` remains the compatibility entry point for local
   development and CI and resolves to the full worker-capable dependency set.
 - Compose selects Docker targets directly. Render uses only the non-secret
@@ -104,6 +105,28 @@ it cannot prevent a platform administrator from explicitly replacing Docker's
 entrypoint. Container-deployment IAM and service definitions remain the security
 boundary for `--entrypoint` or equivalent platform overrides.
 
+## Worker Chromium sandbox boundary
+
+All repository Chromium launch paths use the shared fail-closed helper in
+`model/chromium_security.py`. It forces Playwright `chromium_sandbox=True`,
+rejects `--no-sandbox`, `--disable-setuid-sandbox`, and `--no-zygote` before a
+launch, and never retries a failed launch with a weaker setting.
+
+Compose applies `no-new-privileges:true` and the vendored Playwright seccomp
+profile to all three `worker-runtime` services, while the API service does not
+receive that profile. The profile is the complete upstream Playwright v1.56.0
+file from
+`https://raw.githubusercontent.com/microsoft/playwright/v1.56.0/utils/docker/seccomp_profile.json`,
+with SHA256
+`cc3e61cabda6bbc1e53e54d27ba4d55a9d3be829b6dd1a596f4a7b31b1cc7849`.
+It denies unspecified syscalls and explicitly permits the user-namespace calls
+needed by Chromium (`clone`, `setns`, and `unshare`).
+
+Render Blueprint has no reviewed custom-seccomp field. A later authorized
+runtime acceptance gate must therefore prove that the platform permits the
+sandboxed launch before either browser role is enabled there. Do not add an
+unsandboxed fallback to make a platform pass.
+
 ## Secret and context boundary
 
 Before building, independently verify a clean worktree, materialized Git LFS
@@ -124,8 +147,9 @@ Production credentials are runtime-only. Do not use secret values as `ARG`,
    vulnerabilities, secrets and private material; inspect platform, labels,
    non-root user, entrypoint, command, immutable runtime role, model hashes and
    `mttravel` files without executing a provider request. Additionally prove the
-   API image has no browser capability and the Worker image passes the offline
-   headless-browser smoke.
+   API image has no browser capability and the Worker image passes an offline,
+   non-root, sandboxed headless-browser smoke under the reviewed seccomp
+   profile.
 4. Stop and obtain separate approval for `PROD-IMG-002`.
 5. After an approved push, ACR scan and manifest/digest read-back are additional
    verification and do not replace the pre-push local scan.

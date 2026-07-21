@@ -27,6 +27,7 @@ _LOG_FILE    = _BASE_DIR / "data" / "crawler_log.json"
 # ── 导入共享模块 ─────────────────────────────────────────────────────────
 sys.path.insert(0, str(_BASE_DIR))
 import db
+from chromium_security import launch_chromium_async
 import performance_scoring as perf
 import runtime_settings
 
@@ -277,7 +278,7 @@ async def check_cookie_validity() -> bool:
     try:
         from playwright.async_api import async_playwright
         async with async_playwright() as pw:
-            browser = await pw.chromium.launch(headless=HEADLESS)
+            browser = await launch_chromium_async(pw.chromium, headless=HEADLESS)
             ctx     = await browser.new_context(**_profile_context_kwargs())
             await ctx.add_cookies(cookies)
             page = await ctx.new_page()
@@ -345,7 +346,7 @@ async def run_collection_round(limit: int = 50) -> dict:
     stats = {"collected": 0, "failed": 0, "total": len(to_process)}
 
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=HEADLESS)
+        browser = await launch_chromium_async(pw.chromium, headless=HEADLESS)
         ctx = await browser.new_context(**_browser_context_kwargs())
         await ctx.add_cookies(cookies)
         page = await ctx.new_page()

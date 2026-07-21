@@ -23,6 +23,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote, urlparse
 
 import runtime_settings
+from chromium_security import launch_chromium_async
 
 BASE_DIR = Path(__file__).parent
 STATE_PATH  = BASE_DIR / "data/xhs_state.json"
@@ -48,7 +49,6 @@ SEARCH_SEEDS_PER_CATEGORY = int(os.environ.get("NOTEAI_XHS_SEARCH_SEEDS_PER_CATE
 SEARCH_SCROLL_ROUNDS = int(os.environ.get("NOTEAI_XHS_SEARCH_SCROLL_ROUNDS", "3") or 3)
 SEARCH_SETTLE_SECONDS = float(os.environ.get("NOTEAI_XHS_SEARCH_SETTLE_SECONDS", "2.0") or 2.0)
 TOKEN_DISCOVERY_ENABLED = os.environ.get("NOTEAI_XHS_TOKEN_DISCOVERY", "1").strip().lower() not in {"0", "false", "no"}
-LOW_MEMORY_BROWSER = os.environ.get("NOTEAI_XHS_LOW_MEMORY_BROWSER", "0").strip().lower() in {"1", "true", "yes"}
 BROWSER_TARGETS_PER_SESSION = max(0, int(os.environ.get("NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION", "0") or 0))
 STOP_ON_CHALLENGE = os.environ.get("NOTEAI_XHS_STOP_ON_CHALLENGE", "0").strip().lower() in {"1", "true", "yes", "on"}
 
@@ -611,11 +611,8 @@ async def scrape_once() -> list[dict]:
             "--metrics-recording-only",
             "--mute-audio",
             "--no-first-run",
-            "--no-sandbox",
             "--renderer-process-limit=1",
         ]
-        if LOW_MEMORY_BROWSER:
-            browser_args.append("--no-zygote")
         ctx_kwargs = dict(
             user_agent=BROWSER_UA,
             viewport={"width": 1024, "height": 640},
@@ -860,7 +857,11 @@ async def scrape_once() -> list[dict]:
             if target_batch and all(item[2] == "search_discovery" for item in target_batch) and circuit_state in {"open", "cooldown"}:
                 _diagnostic_inc(discovery_diagnostics, "targets", "skipped", len(target_batch))
                 continue
-            browser = await pw.chromium.launch(headless=True, args=browser_args)
+            browser = await launch_chromium_async(
+                pw.chromium,
+                headless=True,
+                args=browser_args,
+            )
             ctx = await browser.new_context(**ctx_kwargs)
             await ctx.route("**/*", block_heavy_assets)
             await ctx.add_init_script(

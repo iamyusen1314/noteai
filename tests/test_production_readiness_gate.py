@@ -53,7 +53,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertIn("python -m playwright install --with-deps chromium", worker_stage)
         self.assertIn("apt-get purge -y xvfb xserver-common", worker_stage)
         self.assertNotIn("apt-get autoremove", dockerfile)
-        self.assertIn('page.goto("about:blank")', worker_stage)
+        self.assertIn("runtime.chromium.executable_path", worker_stage)
+        self.assertIn("os.access(executable, os.X_OK)", worker_stage)
+        self.assertNotIn(".chromium.launch(", worker_stage)
+        self.assertNotIn("about:blank", worker_stage)
+        self.assertIn("USER noteai", worker_stage)
         self.assertIn("python -m pip uninstall -y setuptools wheel", dockerfile)
         self.assertIn("python -m pip check", dockerfile)
         self.assertNotIn("CMD curl", dockerfile)
@@ -61,6 +65,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertEqual(compose.count("import http.client, sys"), 2)
         self.assertEqual(compose.count("target: api-runtime"), 1)
         self.assertEqual(compose.count("target: worker-runtime"), 3)
+        self.assertEqual(compose.count("no-new-privileges:true"), 3)
+        self.assertEqual(
+            compose.count("seccomp=./deploy/security/playwright-chromium-seccomp-v1.56.0.json"),
+            3,
+        )
 
     def test_role_requirements_are_exactly_pinned_and_compatibility_is_recursive(self):
         api_lines = [

@@ -105,9 +105,9 @@ CMD ["/app/scripts/render_start_api.sh"]
 
 FROM runtime-common AS worker-runtime
 
-# Worker/admin runtime: browser support is isolated here. Chromium is verified
-# headlessly during a future authorized build; no provider or network target is
-# contacted by the smoke test.
+# Worker/admin runtime: browser support is isolated here. The build verifies
+# only that Playwright resolved an installed executable; sandboxed launch is a
+# runtime acceptance gate and is never weakened during image creation.
 LABEL com.noteai.runtime.role="worker"
 ENV NOTEAI_RUNTIME_ROLE=worker \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
@@ -115,7 +115,7 @@ RUN pip install --no-cache-dir -r requirements-worker.txt \
     && mkdir -p /ms-playwright \
     && python -m playwright install --with-deps chromium \
     && apt-get purge -y xvfb xserver-common \
-    && python -c 'from playwright.sync_api import sync_playwright; runtime = sync_playwright().start(); browser = runtime.chromium.launch(headless=True, args=["--no-sandbox"]); page = browser.new_page(); page.goto("about:blank"); browser.close(); runtime.stop()' \
+    && python -c 'import os; from playwright.sync_api import sync_playwright; runtime = sync_playwright().start(); executable = runtime.chromium.executable_path; runtime.stop(); assert os.path.isfile(executable) and os.access(executable, os.X_OK), executable' \
     && python -m pip uninstall -y setuptools wheel \
     && python -m pip check \
     && python -c 'import importlib.util; assert importlib.util.find_spec("setuptools") is None; assert importlib.util.find_spec("wheel") is None' \

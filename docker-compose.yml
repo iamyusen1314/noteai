@@ -38,6 +38,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - NOTEAI_RUNTIME_ROLE=worker
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./deploy/security/playwright-chromium-seccomp-v1.56.0.json
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8001, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
@@ -61,6 +64,9 @@ services:
       - NOTEAI_RUNTIME_ROLE=worker
       - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
       - NOTEAI_XHS_FRESHNESS_REQUIRED=${NOTEAI_XHS_FRESHNESS_REQUIRED:-1}
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./deploy/security/playwright-chromium-seccomp-v1.56.0.json
     restart: unless-stopped
 
   noteai-tracking-worker:
@@ -77,4 +83,7 @@ services:
       - PYTHONUNBUFFERED=1
       - NOTEAI_RUNTIME_ROLE=worker
       - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./deploy/security/playwright-chromium-seccomp-v1.56.0.json
     restart: unless-stopped

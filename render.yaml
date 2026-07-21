@@ -227,8 +227,6 @@ services:
         value: "12"
       - key: NOTEAI_XHS_TOKEN_DISCOVERY
         value: "0"
-      - key: NOTEAI_XHS_LOW_MEMORY_BROWSER
-        value: "1"
       - key: NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION
         value: "1"
       - key: NOTEAI_XHS_STOP_ON_CHALLENGE

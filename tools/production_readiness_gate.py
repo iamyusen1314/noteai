@@ -11,6 +11,7 @@ quality evidence, Docker startup behavior, and obvious secret mistakes.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -31,6 +32,18 @@ from artifact_loader import ensure_model_artifacts, sha256_file  # noqa: E402
 
 REQUIRED_MODEL_ROLES = {"quality_regressor", "ready_classifier", "preference_ranker", "train_report"}
 HUMAN_MODEL_RELEASE_MANIFEST = MODEL_DIR / "artifacts" / "MODEL_RELEASE_MANIFEST.md"
+PLAYWRIGHT_SECCOMP_PROFILE = ROOT / "deploy" / "security" / "playwright-chromium-seccomp-v1.56.0.json"
+PLAYWRIGHT_SECCOMP_SHA256 = "cc3e61cabda6bbc1e53e54d27ba4d55a9d3be829b6dd1a596f4a7b31b1cc7849"
+PRODUCTION_BROWSER_SOURCES = (
+    MODEL_DIR / "crawler.py",
+    MODEL_DIR / "download_covers.py",
+    MODEL_DIR / "scheduler_a.py",
+)
+FORBIDDEN_CHROMIUM_FLAGS = (
+    "--disable-setuid-sandbox",
+    "--no-sandbox",
+    "--no-zygote",
+)
 REQUIRED_ENV_NAMES = {
     "ANTHROPIC_API_KEY",
     "MOONSHOT_API_KEY",
@@ -76,6 +89,23 @@ def _rel(path: Path) -> str:
 
 def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _compose_service_block(compose: str, service_name: str) -> str:
+    marker = f"  {service_name}:\n"
+    if marker not in compose:
+        return ""
+    tail = compose.split(marker, 1)[1]
+    match = re.search(r"^  [a-zA-Z0-9_-]+:\s*$", tail, re.MULTILINE)
+    return tail[:match.start()] if match else tail
 
 
 def _normalize_model_path(raw_path: str) -> str:
@@ -521,6 +551,19 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     api_readiness_source = api_source.split("def _readiness_payload()", 1)[1].split('@app.get("/health/live")', 1)[0]
     dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
     render_blueprint = (ROOT / "render.yaml").read_text(encoding="utf-8")
+    browser_security = (MODEL_DIR / "chromium_security.py").read_text(encoding="utf-8")
+    browser_sources = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in PRODUCTION_BROWSER_SOURCES
+    }
+    production_browser_text = "\n".join(browser_sources.values())
+    seccomp_profile = _load_json(PLAYWRIGHT_SECCOMP_PROFILE)
+    seccomp_user_namespace_rules = [
+        rule
+        for rule in seccomp_profile.get("syscalls", [])
+        if {"clone", "setns", "unshare"}.issubset(set(rule.get("names", [])))
+        and rule.get("action") == "SCMP_ACT_ALLOW"
+    ]
     entrypoint = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")
     entrypoint_semantic_passed, entrypoint_semantic_detail = _check_entrypoint_runtime_contract(entrypoint)
     api_runtime_stage = dockerfile.split("FROM runtime-common AS api-runtime", 1)[1].split(
@@ -572,10 +615,14 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and "python -m playwright install --with-deps chromium" in worker_runtime_stage,
         ),
         _ok(
-            "docker_proves_headless_chromium_without_xvfb",
+            "docker_verifies_chromium_without_root_launch_or_xvfb",
             "apt-get purge -y xvfb xserver-common" in worker_runtime_stage
-            and 'page.goto("about:blank")' in worker_runtime_stage,
+            and "runtime.chromium.executable_path" in worker_runtime_stage
+            and "os.access(executable, os.X_OK)" in worker_runtime_stage
+            and ".chromium.launch(" not in worker_runtime_stage
+            and "about:blank" not in worker_runtime_stage,
         ),
+        _ok("worker_runtime_is_non_root", "USER noteai" in worker_runtime_stage),
         _ok(
             "docker_removes_python_build_tooling",
             "python -m pip uninstall -y setuptools wheel" in dockerfile
@@ -663,6 +710,38 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and compose.count("NOTEAI_RUNTIME_ROLE=worker") == 3,
         ),
         _ok(
+            "worker_chromium_launches_are_sandboxed_fail_closed",
+            "chromium_sandbox\"] = True" in browser_security
+            and "FORBIDDEN_CHROMIUM_FLAGS" in browser_security
+            and ".chromium.launch(" not in production_browser_text
+            and sum(text.count("launch_chromium_async(") for text in browser_sources.values()) == 4
+            and browser_sources["download_covers.py"].count("launch_chromium(") == 1
+            and all(flag not in production_browser_text for flag in FORBIDDEN_CHROMIUM_FLAGS),
+        ),
+        _ok(
+            "playwright_seccomp_profile_is_official_and_fail_closed",
+            _sha256_path(PLAYWRIGHT_SECCOMP_PROFILE) == PLAYWRIGHT_SECCOMP_SHA256
+            and seccomp_profile.get("defaultAction") == "SCMP_ACT_ERRNO"
+            and any(
+                item.get("architecture") == "SCMP_ARCH_X86_64"
+                for item in seccomp_profile.get("archMap", [])
+            )
+            and bool(seccomp_user_namespace_rules),
+        ),
+        _ok(
+            "compose_applies_reviewed_seccomp_to_worker_runtimes_only",
+            all(
+                "no-new-privileges:true" in _compose_service_block(compose, service)
+                and "seccomp=./deploy/security/playwright-chromium-seccomp-v1.56.0.json"
+                in _compose_service_block(compose, service)
+                for service in ("noteai-admin", "noteai-trends-worker", "noteai-tracking-worker")
+            )
+            and "seccomp=" not in _compose_service_block(compose, "noteai")
+            and "privileged:" not in compose
+            and "seccomp=unconfined" not in compose
+            and "SYS_ADMIN" not in compose,
+        ),
+        _ok(
             "render_runtime_targets_match_roles",
             render_blueprint.count("key: NOTEAI_RUNTIME_TARGET") == 4
             and render_blueprint.count("value: api-runtime") == 1
@@ -670,6 +749,11 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and render_blueprint.count("key: NOTEAI_RUNTIME_ROLE") == 4
             and len(re.findall(r"^\s*value:\s*api\s*$", render_blueprint, re.MULTILINE)) == 1
             and len(re.findall(r"^\s*value:\s*worker\s*$", render_blueprint, re.MULTILINE)) == 3,
+        ),
+        _ok(
+            "render_does_not_request_unsupported_browser_bypass",
+            "NOTEAI_XHS_LOW_MEMORY_BROWSER" not in render_blueprint
+            and all(flag not in render_blueprint for flag in FORBIDDEN_CHROMIUM_FLAGS),
         ),
         _ok(
             "entrypoint_fails_closed_on_runtime_role_marker",

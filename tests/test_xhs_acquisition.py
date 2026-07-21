@@ -54,6 +54,7 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             "search_gotos": 0,
             "blank_gotos": 0,
             "browser_launches": 0,
+            "browser_launch_kwargs": [],
             "input_calls": 0,
             "scrolls": 0,
             "goto_kinds": [],
@@ -145,8 +146,9 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                 return None
 
         class FakeChromium:
-            async def launch(self, **_kwargs):
+            async def launch(self, **kwargs):
                 events["browser_launches"] += 1
+                events["browser_launch_kwargs"].append(kwargs)
                 return FakeBrowser()
 
         class FakePlaywrightContext:
@@ -896,6 +898,7 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         self.assertEqual(events["homefeed_gotos"], 1)
         self.assertEqual(events["search_gotos"], 1)
         self.assertEqual(events["browser_launches"], 2)
+        self.assertTrue(all(item.get("chromium_sandbox") is True for item in events["browser_launch_kwargs"]))
         self.assertEqual(events["input_calls"], 0)
         self.assertEqual(events["scrolls"], 1)
         self.assertEqual(events["blank_gotos"], 1)

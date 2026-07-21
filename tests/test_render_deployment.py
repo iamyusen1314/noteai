@@ -142,7 +142,7 @@ class RenderDeploymentTests(unittest.TestCase):
         secret_name = "ANTHROPIC_API" + "_KEY"
         self.assertNotIn(f"{secret_name}: ", blueprint)
         self.assertIn("NOTEAI_XHS_TOKEN_DISCOVERY", blueprint)
-        self.assertIn("NOTEAI_XHS_LOW_MEMORY_BROWSER", blueprint)
+        self.assertNotIn("NOTEAI_XHS_LOW_MEMORY_BROWSER", blueprint)
         self.assertIn("NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION", blueprint)
         self.assertIn("NOTEAI_XHS_STOP_ON_CHALLENGE", blueprint)
         self.assertIn('NOTEAI_XHS_CHALLENGE_COOLDOWN_MINUTES', blueprint)

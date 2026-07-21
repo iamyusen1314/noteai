@@ -25,6 +25,8 @@ from pathlib import Path
 from typing import Optional
 import aiohttp
 
+from chromium_security import launch_chromium, launch_chromium_async
+
 BASE_DIR = Path(__file__).parent
 COOKIES_PATH = BASE_DIR / "data/xhs_cookies.json"
 STATE_PATH = BASE_DIR / "data/xhs_state.json"
@@ -75,7 +77,11 @@ def do_login():
     print("3. Press Enter here")
     print("=" * 60 + "\n")
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False, args=["--start-maximized"])
+        browser = launch_chromium(
+            pw.chromium,
+            headless=False,
+            args=["--start-maximized"],
+        )
         ctx = browser.new_context(user_agent=BROWSER_UA,
                                   viewport={"width": 1440, "height": 900},
                                   locale="zh-CN")
@@ -232,7 +238,8 @@ async def run_collect(total: int):
     meta_f = open(METADATA_PATH, "a")
 
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(
+        browser = await launch_chromium_async(
+            pw.chromium,
             headless=True,
             args=["--disable-blink-features=AutomationControlled"],
         )
