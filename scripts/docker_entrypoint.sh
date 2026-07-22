@@ -21,7 +21,7 @@ if [ -z "$image_runtime_role" ]; then
 fi
 
 case "$image_runtime_role" in
-  api|worker) ;;
+  api|admin|xhs-http) ;;
   *)
     echo "runtime role marker is invalid" >&2
     exit 78
@@ -55,16 +55,34 @@ if [ "$image_runtime_role" = "api" ]; then
   elif [ "$#" -eq 2 ] && [ "$1" = "python" ] && [ "$2" = "/app/scripts/render_predeploy.py" ]; then
     command_allowed=1
   fi
+elif [ "$image_runtime_role" = "admin" ]; then
+  if [ "$#" -eq 1 ] && [ "$1" = "/app/scripts/render_start_admin.sh" ]; then
+    command_allowed=1
+  elif [ "$#" -eq 8 ] \
+    && [ "$1" = "python" ] \
+    && [ "$2" = "-m" ] \
+    && [ "$3" = "uvicorn" ] \
+    && [ "$4" = "admin_server:admin_app" ] \
+    && [ "$5" = "--host" ] \
+    && [ "$6" = "0.0.0.0" ] \
+    && [ "$7" = "--port" ] \
+    && [ "$8" = "8001" ]; then
+    command_allowed=1
+  fi
 else
+  if [ "${NOTEAI_XHS_ACQUISITION_ADAPTER:-}" != "spider_xhs_http" ]; then
+    echo "xhs-http runtime requires the pinned acquisition adapter" >&2
+    exit 78
+  fi
   if [ "$#" -eq 1 ]; then
     case "$1" in
-      /app/scripts/render_start_admin.sh|/app/scripts/render_run_market_timing.sh|/app/scripts/render_run_crawler.sh|/bin/false)
+      /app/scripts/render_run_market_timing.sh|/app/scripts/render_run_crawler.sh|/bin/false)
         command_allowed=1
         ;;
     esac
   elif [ "$#" -eq 2 ] && [ "$1" = "python" ]; then
     case "$2" in
-      /app/scripts/render_predeploy.py|market_timing_worker.py|crawler_worker.py)
+      market_timing_worker.py|crawler_worker.py)
         command_allowed=1
         ;;
     esac
@@ -89,16 +107,6 @@ else
     && is_unsigned_integer "$5" \
     && [ "$6" = "--limit" ] \
     && is_unsigned_integer "$7"; then
-    command_allowed=1
-  elif [ "$#" -eq 8 ] \
-    && [ "$1" = "python" ] \
-    && [ "$2" = "-m" ] \
-    && [ "$3" = "uvicorn" ] \
-    && [ "$4" = "admin_server:admin_app" ] \
-    && [ "$5" = "--host" ] \
-    && [ "$6" = "0.0.0.0" ] \
-    && [ "$7" = "--port" ] \
-    && [ "$8" = "8001" ]; then
     command_allowed=1
   fi
 fi

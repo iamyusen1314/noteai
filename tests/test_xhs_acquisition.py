@@ -9,7 +9,7 @@ import unittest
 from contextlib import ExitStack, redirect_stdout
 from datetime import datetime, timedelta
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 
@@ -38,6 +38,13 @@ def _real_xhs_rows() -> list[dict]:
 
 
 class XHSAcquisitionLedgerTests(unittest.TestCase):
+    def setUp(self):
+        self._local_runtime = patch.dict(os.environ, {"NOTEAI_RUNTIME_ROLE": "local"})
+        self._local_runtime.start()
+
+    def tearDown(self):
+        self._local_runtime.stop()
+
     def _run_scheduler_circuit_scenario(
         self,
         *,
@@ -171,8 +178,15 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             category: (f"{category}一", f"{category}二")
             for category in ("美食", "美妆", "穿搭", "旅行", "数码", "家居")
         }
-        import playwright.async_api as playwright_async_api
+        playwright_package = ModuleType("playwright")
+        playwright_async_api = ModuleType("playwright.async_api")
+        playwright_async_api.async_playwright = lambda: FakePlaywrightContext()
+        playwright_package.async_api = playwright_async_api
         with ExitStack() as stack:
+            stack.enter_context(patch.dict(sys.modules, {
+                "playwright": playwright_package,
+                "playwright.async_api": playwright_async_api,
+            }))
             for name, value in (
                 ("CHANNELS", [("https://www.xiaohongshu.com/explore", "美食")]),
                 ("SEARCH_SEEDS", search_seeds),
@@ -189,11 +203,6 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             stack.enter_context(patch.object(scheduler_a, "_get_session_state", return_value=None))
             stack.enter_context(patch.object(scheduler_a, "_trigger_search_input", fake_search_input))
             stack.enter_context(patch.object(scheduler_a.asyncio, "sleep", no_sleep))
-            stack.enter_context(patch.object(
-                playwright_async_api,
-                "async_playwright",
-                return_value=FakePlaywrightContext(),
-            ))
             with scheduler_a.search_circuit_context({"state": circuit_state}):
                 result = asyncio.run(scheduler_a.scrape_once())
         return result, events
@@ -1378,7 +1387,11 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                     ),
                     patch.dict(
                         os.environ,
-                        {"NOTEAI_XHS_COLLECTION_SUSPENDED": "1"},
+                        {
+                            "NOTEAI_RUNTIME_ROLE": "xhs-http",
+                            "NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http",
+                            "NOTEAI_XHS_COLLECTION_SUSPENDED": "1",
+                        },
                     ),
                 ):
                     with self.assertRaisesRegex(
@@ -1392,12 +1405,12 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
 
                 self.assertEqual(scrape_calls, 0)
                 latest_run_id = xhs_acquisition.recent_health(
-                    adapter="scheduler_a"
+                    adapter="spider_xhs_http"
                 )[0]["run_id"]
                 latest_rows = [
                     row for row in xhs_acquisition.recent_health(
                         limit=20,
-                        adapter="scheduler_a",
+                        adapter="spider_xhs_http",
                     )
                     if row["run_id"] == latest_run_id
                 ]
@@ -1932,6 +1945,34 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             and call.kwargs.get("is_secret") is True
             for call in set_json.call_args_list
         ))
+
+    def test_collection_health_combines_direct_and_legacy_adapter_ledgers(self):
+        original_db = hot_keywords.DB_PATH
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                hot_keywords.DB_PATH = Path(td) / "hot_keywords.db"
+                for adapter, checked_at in (
+                    ("scheduler_a", "2026-07-22T01:00:00"),
+                    ("xhs_downloader", "2026-07-22T02:00:00"),
+                    ("spider_xhs_http", "2026-07-22T03:00:00"),
+                ):
+                    xhs_acquisition.record_health({
+                        "run_id": adapter,
+                        "adapter": adapter,
+                        "domain": "美食",
+                        "status": "ok",
+                        "checked_at": checked_at,
+                    })
+
+                rows = xhs_acquisition.recent_collection_health(domain="美食")
+
+                self.assertEqual(
+                    [row["adapter"] for row in rows],
+                    ["spider_xhs_http", "scheduler_a"],
+                )
+                self.assertNotIn("xhs_downloader", {row["adapter"] for row in rows})
+        finally:
+            hot_keywords.DB_PATH = original_db
 
 
 if __name__ == "__main__":

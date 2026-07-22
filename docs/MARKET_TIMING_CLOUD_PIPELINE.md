@@ -5,7 +5,7 @@
 ## Runtime Roles
 
 - `noteai`：API 服务。默认 `NOTEAI_API_STARTS_TREND_SCHEDULER=0`，不启动抓取器。
-- `noteai-trends-worker`：独立趋势 worker。运行 `python market_timing_worker.py --daemon`，按行业尝试公开采集；采集不足时自动补齐 `industry_baseline` 行业基线证据，写入共享 DB，并导出 `market_timing_snapshot.json`。
+- `noteai-trends-worker`：无浏览器 `xhs-http-runtime`。运行 `python market_timing_worker.py --daemon`，只通过固定的 Spider_XHS direct HTTP 只读适配器采集；采集不足时自动补齐 `industry_baseline` 行业基线证据，写入共享 DB，并导出 `market_timing_snapshot.json`。
 - Object Storage/CDN：推荐把 worker 生成的快照上传到 S3/R2/对象存储，API 通过 `NOTEAI_MARKET_TIMING_SNAPSHOT_URL` 拉取。
 
 ## Required Production Env
@@ -18,8 +18,8 @@ NOTEAI_MARKET_TIMING_MIN_DOMAIN_KEYWORDS=12
 NOTEAI_MARKET_TIMING_SNAPSHOT_URL=https://<cdn-or-object-storage>/market_timing_snapshot.json
 NOTEAI_MARKET_TIMING_REFRESH_URL=<optional-worker-refresh-webhook>
 NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES=60
-NOTEAI_XHS_SCROLL_ROUNDS=10
-NOTEAI_XHS_SEARCH_DISCOVERY=1
+NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http
+NOTEAI_XHS_COLLECTION_SUSPENDED=1
 NOTEAI_XHS_SEARCH_SEEDS_PER_CATEGORY=2
 ```
 
@@ -39,6 +39,13 @@ Long-running worker:
 cd /app/model
 python market_timing_worker.py --daemon --interval 60
 ```
+
+Collection is fail-closed: missing, empty, unknown and true-like
+`NOTEAI_XHS_COLLECTION_SUSPENDED` values cause zero XHS HTTP attempts. Only
+explicit `0`, `false`, `off`, or `no` unlocks, and direct traffic additionally
+requires `NOTEAI_RUNTIME_ROLE=xhs-http`. API/Admin roles cannot collect;
+`xhs-http` cannot fall back to a browser when the adapter is empty or wrong.
+Legacy browser collection requires an explicit local/legacy runtime role.
 
 If using object storage upload:
 

@@ -269,6 +269,25 @@ async def _extract_note_data_with_sidecar(url: str, domain: str = "") -> dict | 
         return None
 
 
+async def _extract_note_data_with_spider_http(url: str) -> dict | None:
+    """Read one note through the bounded direct adapter; never use a browser fallback."""
+    from spider_xhs_http import SpiderXHSHTTPAdapter
+
+    payload = await asyncio.to_thread(SpiderXHSHTTPAdapter().note_detail, url)
+    normalized = (
+        xhs_acquisition.normalize_sidecar_detail(payload)
+        if xhs_acquisition else {}
+    )
+    if not (normalized.get("has_content") or normalized.get("has_metrics")):
+        return None
+    return {
+        "likes": int(normalized.get("likes") or 0),
+        "saves": int(normalized.get("saves") or 0),
+        "comments": int(normalized.get("comments") or 0),
+        "title": str(normalized.get("title") or "")[:100],
+    }
+
+
 async def check_cookie_validity() -> bool:
     """验证 Cookie 是否有效（能否访问需登录的页面）。"""
     cookies = _load_cookies()
@@ -302,22 +321,7 @@ async def _refresh_cookie_if_needed(ctx) -> bool:
     return False
 
 
-async def run_collection_round(limit: int = 50) -> dict:
-    """
-    执行一轮采集：
-    1. 处理 status='pending' 且 next_check_at 到期的记录（24h 首次采集）
-    2. 处理 status='checking_7d' 到期的记录（7天终态）
-    返回统计信息。
-    """
-    try:
-        from playwright.async_api import async_playwright
-    except ImportError:
-        return {"error": "Playwright 未安装", "collected": 0}
-
-    cookies = _load_cookies()
-    if not cookies:
-        return {"error": "无有效 Cookie，请在管理后台上传", "collected": 0}
-
+def _due_tracking_notes(limit: int) -> list[dict]:
     now = datetime.now(timezone.utc)
     now_iso = now.isoformat()
     h24 = (now - timedelta(hours=24)).isoformat()
@@ -339,127 +343,170 @@ async def run_collection_round(limit: int = 50) -> dict:
         (now_iso, d7, limit // 2)
     )
 
-    to_process = [dict(r) for r in pending_24h] + [dict(r) for r in pending_7d]
-    if not to_process:
+    return [dict(r) for r in pending_24h] + [dict(r) for r in pending_7d]
+
+
+def _record_tracking_success(note: dict, data: dict) -> None:
+    is_7d = note["status"] in ("checking_7d", "checking_24h")
+    if not note.get("note_title") and data.get("title"):
+        db.execute(
+            "UPDATE tracked_notes SET note_title=? WHERE id=?",
+            (data["title"], note["id"]),
+        )
+    now_iso = _now()
+    if not is_7d:
+        next_7d = _next_due_from_note(note, days=7)
+        db.execute(
+            "UPDATE tracked_notes SET likes_24h=?,saves_24h=?,comments_24h=?,"
+            "check_24h_at=?,last_checked_at=?,next_check_at=?,status='checking_7d',"
+            "attempt_count=0,last_error_code=NULL,last_error=NULL WHERE id=?",
+            (data["likes"], data["saves"], data["comments"], now_iso, now_iso, next_7d, note["id"]),
+        )
+        return
+
+    score = perf.score_performance(
+        domain=note.get("domain", "美食"),
+        likes=data["likes"],
+        saves=data["saves"],
+        comments=data["comments"],
+        views=None,
+        predicted_ces=note.get("predicted_ces"),
+        evidence_source="crawler",
+        window="7d",
+        likes_24h=note.get("likes_24h"),
+        saves_24h=note.get("saves_24h"),
+        comments_24h=note.get("comments_24h"),
+    )
+    db.execute(
+        "UPDATE tracked_notes SET likes_7d=?,saves_7d=?,comments_7d=?,"
+        "views_est=?,actual_ces=?,check_7d_at=?,last_checked_at=?,"
+        "status='complete',confidence=?,confidence_label=?,evidence_source=?,"
+        "training_eligible=?,insights_json=?,completed_at=?,last_error_code=NULL,"
+        "last_error=NULL WHERE id=?",
+        (data["likes"], data["saves"], data["comments"], score.views_est,
+         score.actual_ces, now_iso, now_iso, score.confidence,
+         score.confidence_label, score.evidence_source,
+         1 if score.training_eligible else 0, score.insights_json(), now_iso, note["id"]),
+    )
+    db.execute(
+        "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
+        (str(uuid.uuid4()), note["user_id"], note.get("source_note_id"),
+         note.get("domain", "美食"), score.actual_ces, score.grade,
+         "url_crawl_7d", now_iso),
+    )
+    if memory:
+        try:
+            title = note.get("note_title") or data.get("title") or "已发布笔记"
+            memory.add_context(
+                note["user_id"],
+                f"真实表现追踪：{title[:24]}，7天实际{score.actual_ces:.1f}分，"
+                f"{score.confidence_label}置信度，强项{score.insights.get('strongest_signal')}，"
+                f"短板{score.insights.get('weakest_signal')}",
+            )
+        except Exception:
+            pass
+
+
+def _record_tracking_failure(note: dict, code: str, summary: str) -> None:
+    attempts = int(note.get("attempt_count") or 0) + 1
+    max_attempts = int(note.get("max_attempts") or 2)
+    next_status = "needs_manual" if attempts >= max_attempts else note["status"]
+    db.execute(
+        "UPDATE tracked_notes SET status=?,attempt_count=?,last_checked_at=?,"
+        "next_check_at=?,last_error_code=?,last_error=? WHERE id=?",
+        (next_status, attempts, _now(),
+         (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat(),
+         code, summary[:200], note["id"]),
+    )
+
+
+async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
+    stats = {"collected": 0, "failed": 0, "total": len(notes)}
+    for note in notes:
+        try:
+            data = await fetch_detail(note)
+            if data:
+                _record_tracking_success(note, data)
+                stats["collected"] += 1
+            else:
+                _record_tracking_failure(note, "extract_failed", "自动采集未能读取公开互动数据")
+                stats["failed"] += 1
+            await _random_delay()
+        except Exception as exc:
+            # Adapter exceptions expose only a fixed code; no Cookie/a1/xsec token
+            # is included in the persisted summary.
+            direct_code = str(getattr(exc, "code", "") or "")
+            error_summary = direct_code or str(exc)[:200]
+            error_code = direct_code or _classify_error(error_summary)
+            _record_tracking_failure(note, error_code, error_summary)
+            stats["failed"] += 1
+            _save_log({"action": "note_error", "id": note["id"], "error": error_summary})
+            if direct_code in {
+                "challenge",
+                "cooldown",
+                "login_required",
+                "login_or_challenge_required",
+                "server_session_logged_out",
+                "collection_suspended",
+                "collection_safety_unavailable",
+            }:
+                if (
+                    xhs_acquisition
+                    and direct_code in {"login_required", "server_session_logged_out"}
+                ):
+                    xhs_acquisition.mark_server_session_logged_out()
+                break
+    return stats
+
+
+async def run_collection_round(limit: int = 50) -> dict:
+    """Process due 24-hour/7-day tracking rows through the selected adapter."""
+    adapter_name = os.environ.get("NOTEAI_XHS_ACQUISITION_ADAPTER", "").strip()
+    from spider_xhs_http import XHSAdapterError, collection_route, collection_route_suspended
+
+    try:
+        route = collection_route(adapter_name)
+    except XHSAdapterError as exc:
+        return {"skipped": True, "reason": exc.code, "collected": 0}
+    if collection_route_suspended(route):
+        return {"skipped": True, "reason": "collection_suspended", "collected": 0}
+    if route == "direct":
+        if xhs_acquisition and xhs_acquisition.collection_safety_status().get("session_blocked"):
+            return {"skipped": True, "reason": "server_session_logged_out", "collected": 0}
+
+    notes = _due_tracking_notes(limit)
+    if not notes:
         return {"message": "暂无待采集记录", "collected": 0}
 
-    stats = {"collected": 0, "failed": 0, "total": len(to_process)}
+    if route == "direct":
+        async def fetch_http(note: dict) -> dict | None:
+            return await _extract_note_data_with_spider_http(note["xhs_url"])
 
-    async with async_playwright() as pw:
-        browser = await launch_chromium_async(pw.chromium, headless=HEADLESS)
-        ctx = await browser.new_context(**_browser_context_kwargs())
-        await ctx.add_cookies(cookies)
-        page = await ctx.new_page()
+        stats = await _process_tracking_notes(notes, fetch_http)
+    else:
+        try:
+            from playwright.async_api import async_playwright
+        except ImportError:
+            return {"error": "Playwright 未安装", "collected": 0}
+        cookies = _load_cookies()
+        if not cookies:
+            return {"error": "无有效 Cookie，请在管理后台上传", "collected": 0}
+        async with async_playwright() as pw:
+            browser = await launch_chromium_async(pw.chromium, headless=HEADLESS)
+            ctx = await browser.new_context(**_browser_context_kwargs())
+            await ctx.add_cookies(cookies)
+            page = await ctx.new_page()
 
-        for note in to_process:
-            try:
+            async def fetch_browser(note: dict) -> dict | None:
                 data = await _extract_note_data(page, note["xhs_url"])
-                if not data:
-                    data = await _extract_note_data_with_sidecar(
-                        note["xhs_url"],
-                        domain=note.get("domain", ""),
-                    )
-                is_7d = note["status"] in ("checking_7d", "checking_24h")
-
                 if data:
-                    # 更新 title（如果为空）
-                    if not note.get("note_title") and data.get("title"):
-                        db.execute("UPDATE tracked_notes SET note_title=? WHERE id=?",
-                                   (data["title"], note["id"]))
-
-                    now_iso = _now()
-                    if is_7d:
-                        # 计算真实 CES
-                        score = perf.score_performance(
-                            domain=note.get("domain", "美食"),
-                            likes=data["likes"],
-                            saves=data["saves"],
-                            comments=data["comments"],
-                            views=None,
-                            predicted_ces=note.get("predicted_ces"),
-                            evidence_source="crawler",
-                            window="7d",
-                            likes_24h=note.get("likes_24h"),
-                            saves_24h=note.get("saves_24h"),
-                            comments_24h=note.get("comments_24h"),
-                        )
-                        db.execute(
-                            "UPDATE tracked_notes SET likes_7d=?,saves_7d=?,comments_7d=?,"
-                            "views_est=?,actual_ces=?,check_7d_at=?,last_checked_at=?,"
-                            "status='complete',confidence=?,confidence_label=?,evidence_source=?,"
-                            "training_eligible=?,insights_json=?,completed_at=?,last_error_code=NULL,"
-                            "last_error=NULL WHERE id=?",
-                            (data["likes"], data["saves"], data["comments"],
-                             score.views_est, score.actual_ces, now_iso, now_iso,
-                             score.confidence, score.confidence_label, score.evidence_source,
-                             1 if score.training_eligible else 0, score.insights_json(),
-                             now_iso, note["id"])
-                        )
-                        # 写成长记录
-                        db.execute(
-                            "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
-                            (str(uuid.uuid4()), note["user_id"],
-                             note.get("source_note_id"), note.get("domain","美食"), score.actual_ces,
-                             score.grade,
-                             "url_crawl_7d", now_iso)
-                        )
-                        if memory:
-                            try:
-                                title = note.get("note_title") or data.get("title") or "已发布笔记"
-                                memory.add_context(
-                                    note["user_id"],
-                                    f"真实表现追踪：{title[:24]}，7天实际{score.actual_ces:.1f}分，"
-                                    f"{score.confidence_label}置信度，强项{score.insights.get('strongest_signal')}，"
-                                    f"短板{score.insights.get('weakest_signal')}"
-                                )
-                            except Exception:
-                                pass
-                    else:
-                        next_7d = _next_due_from_note(note, days=7)
-                        db.execute(
-                            "UPDATE tracked_notes SET likes_24h=?,saves_24h=?,comments_24h=?,"
-                            "check_24h_at=?,last_checked_at=?,next_check_at=?,status='checking_7d',"
-                            "attempt_count=0,last_error_code=NULL,last_error=NULL WHERE id=?",
-                            (data["likes"], data["saves"], data["comments"], now_iso, now_iso, next_7d, note["id"])
-                        )
-                    stats["collected"] += 1
-                else:
-                    attempts = int(note.get("attempt_count") or 0) + 1
-                    max_attempts = int(note.get("max_attempts") or 2)
-                    retry_at = (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat()
-                    next_status = "needs_manual" if attempts >= max_attempts else note["status"]
-                    db.execute(
-                        "UPDATE tracked_notes SET status=?,attempt_count=?,last_checked_at=?,"
-                        "next_check_at=?,last_error_code=?,last_error=? WHERE id=?",
-                        (
-                            next_status, attempts, _now(), retry_at,
-                            "extract_failed", "自动采集未能读取公开互动数据",
-                            note["id"],
-                        )
-                    )
-                    stats["failed"] += 1
-
-                await _random_delay()  # 防反爬
-
-            except Exception as e:
-                stats["failed"] += 1
-                error_summary = str(e)[:200]
-                attempts = int(note.get("attempt_count") or 0) + 1
-                max_attempts = int(note.get("max_attempts") or 2)
-                next_status = "needs_manual" if attempts >= max_attempts else note["status"]
-                db.execute(
-                    "UPDATE tracked_notes SET status=?,attempt_count=?,last_checked_at=?,"
-                    "next_check_at=?,last_error_code=?,last_error=? WHERE id=?",
-                    (
-                        next_status, attempts, _now(),
-                        (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat(),
-                        _classify_error(error_summary), error_summary,
-                        note["id"],
-                    )
+                    return data
+                return await _extract_note_data_with_sidecar(
+                    note["xhs_url"], domain=note.get("domain", "")
                 )
-                _save_log({"action": "note_error", "id": note["id"], "error": error_summary})
 
-        await browser.close()
+            stats = await _process_tracking_notes(notes, fetch_browser)
+            await browser.close()
 
     _save_log({"action": "round_complete", **stats})
     return stats

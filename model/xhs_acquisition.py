@@ -378,7 +378,7 @@ def _first_int(payload: dict, keys: tuple[str, ...]) -> int:
 def _candidate_note_payloads(value: Any) -> list[dict]:
     if isinstance(value, dict):
         candidates = []
-        for key in ("note", "item", "data", "detail", "result", "info"):
+        for key in ("note", "note_card", "item", "items", "data", "detail", "result", "info"):
             child = value.get(key)
             if isinstance(child, (dict, list)):
                 candidates.extend(_candidate_note_payloads(child))
@@ -507,6 +507,7 @@ def record_scrape_freshness(
     session_status: dict[str, Any] | None = None,
     scrape_error: str = "",
     discovery_diagnostics: dict[str, Any] | None = None,
+    adapter: str = "scheduler_a",
 ) -> dict:
     init_db()
     effective_run_id = run_id or str(uuid.uuid4())
@@ -681,7 +682,7 @@ def record_scrape_freshness(
         )
         record_health(CrawlerHealth(
             run_id=effective_run_id,
-            adapter="scheduler_a",
+            adapter=adapter,
             domain=domain,
             status=health_status,
             profile_cookie_valid=cookie_valid,
@@ -852,6 +853,18 @@ def recent_health(limit: int = 50, domain: str = "", adapter: str = "") -> list[
     return out
 
 
+def recent_collection_health(limit: int = 50, domain: str = "") -> list[dict]:
+    """Return direct and legacy scheduler health in one newest-first view."""
+    safe_limit = max(1, min(int(limit or 50), 200))
+    rows = recent_health(
+        limit=safe_limit, domain=domain, adapter="spider_xhs_http"
+    ) + recent_health(
+        limit=safe_limit, domain=domain, adapter="scheduler_a"
+    )
+    rows.sort(key=lambda row: str(row.get("checked_at") or ""), reverse=True)
+    return rows[:safe_limit]
+
+
 def _checked_at_epoch(value: Any) -> float | None:
     try:
         parsed = datetime.fromisoformat(str(value or "").replace("Z", "+00:00"))
@@ -887,7 +900,7 @@ def challenge_cooldown_status(
         current = current.replace(tzinfo=timezone.utc)
     current_epoch = current.timestamp()
     challenge_rows = []
-    for row in recent_health(limit=200, adapter="scheduler_a"):
+    for row in recent_collection_health(limit=200):
         details = row.get("details") if isinstance(row.get("details"), dict) else {}
         diagnostics = (
             details.get("discovery_diagnostics")
@@ -915,7 +928,7 @@ def challenge_cooldown_status(
 
 
 def access_status_overview() -> dict[str, Any]:
-    rows = recent_health(limit=200, adapter="scheduler_a")
+    rows = recent_collection_health(limit=200)
     latest = rows[0] if rows else {}
     details = latest.get("details") if isinstance(latest.get("details"), dict) else {}
     latest_status = str(details.get("access_status") or "")
@@ -1056,7 +1069,7 @@ def latest_run_source_health(domains: tuple[str, ...] | list[str] | None = None)
     """Return source coverage for the latest scheduler run without changing freshness."""
     target_domains = set(domains or hot_keywords.CORE_EVIDENCE_DOMAINS)
     rows = [
-        row for row in recent_health(limit=200, adapter="scheduler_a")
+        row for row in recent_collection_health(limit=200)
         if not target_domains or row.get("domain") in target_domains
     ]
     if not rows:

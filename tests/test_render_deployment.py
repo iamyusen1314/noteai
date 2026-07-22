@@ -135,16 +135,16 @@ class RenderDeploymentTests(unittest.TestCase):
         self.assertIn("healthCheckPath: /health/ready", blueprint)
         self.assertEqual(
             blueprint.count("preDeployCommand: python /app/scripts/render_predeploy.py"),
-            2,
+            1,
         )
         self.assertNotIn("NOTEAI_MIGRATE_ON_START", blueprint)
         self.assertIn("property: connectionString", blueprint)
         secret_name = "ANTHROPIC_API" + "_KEY"
         self.assertNotIn(f"{secret_name}: ", blueprint)
-        self.assertIn("NOTEAI_XHS_TOKEN_DISCOVERY", blueprint)
+        self.assertNotIn("NOTEAI_XHS_TOKEN_DISCOVERY", blueprint)
         self.assertNotIn("NOTEAI_XHS_LOW_MEMORY_BROWSER", blueprint)
-        self.assertIn("NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION", blueprint)
-        self.assertIn("NOTEAI_XHS_STOP_ON_CHALLENGE", blueprint)
+        self.assertNotIn("NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION", blueprint)
+        self.assertNotIn("NOTEAI_XHS_STOP_ON_CHALLENGE", blueprint)
         self.assertIn('NOTEAI_XHS_CHALLENGE_COOLDOWN_MINUTES', blueprint)
         self.assertIn('value: "360"', blueprint)
         market_timing_block = blueprint.split(
@@ -152,9 +152,10 @@ class RenderDeploymentTests(unittest.TestCase):
         )[1].split("name: noteai-staging-tracking", 1)[0]
         self.assertIn("NOTEAI_XHS_COLLECTION_SUSPENDED", market_timing_block)
         self.assertIn('value: "1"', market_timing_block)
-        self.assertEqual(blueprint.count("NOTEAI_XHS_COLLECTION_SUSPENDED"), 1)
+        self.assertEqual(blueprint.count("NOTEAI_XHS_COLLECTION_SUSPENDED"), 2)
+        self.assertEqual(blueprint.count("value: spider_xhs_http"), 2)
         self.assertGreaterEqual(blueprint.count("NOTEAI_XHS_FRESHNESS_REQUIRED"), 2)
-        self.assertIn("MALLOC_ARENA_MAX", blueprint)
+        self.assertNotIn("MALLOC_ARENA_MAX", blueprint)
 
         services = {
             service["name"]: service
@@ -169,14 +170,14 @@ class RenderDeploymentTests(unittest.TestCase):
 
         self.assertEqual(env("noteai-staging-api")["NOTEAI_RUNTIME_TARGET"], "api-runtime")
         self.assertEqual(env("noteai-staging-api")["NOTEAI_RUNTIME_ROLE"], "api")
-        for service_name in (
-            "noteai-staging-admin",
-            "noteai-staging-market-timing",
-            "noteai-staging-tracking",
-        ):
+        self.assertEqual(env("noteai-staging-admin")["NOTEAI_RUNTIME_TARGET"], "admin-runtime")
+        self.assertEqual(env("noteai-staging-admin")["NOTEAI_RUNTIME_ROLE"], "admin")
+        for service_name in ("noteai-staging-market-timing", "noteai-staging-tracking"):
             with self.subTest(service_name=service_name):
-                self.assertEqual(env(service_name)["NOTEAI_RUNTIME_TARGET"], "worker-runtime")
-                self.assertEqual(env(service_name)["NOTEAI_RUNTIME_ROLE"], "worker")
+                self.assertEqual(env(service_name)["NOTEAI_RUNTIME_TARGET"], "xhs-http-runtime")
+                self.assertEqual(env(service_name)["NOTEAI_RUNTIME_ROLE"], "xhs-http")
+                self.assertEqual(env(service_name)["NOTEAI_XHS_ACQUISITION_ADAPTER"], "spider_xhs_http")
+                self.assertEqual(env(service_name)["NOTEAI_XHS_COLLECTION_SUSPENDED"], "1")
 
     def test_admin_does_not_use_public_readiness_as_provider_status_source(self):
         blueprint = (Path(__file__).resolve().parents[1] / "render.yaml").read_text(encoding="utf-8")

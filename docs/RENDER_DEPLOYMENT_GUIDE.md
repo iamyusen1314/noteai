@@ -106,9 +106,10 @@
 
 | 变量名 | 必填 | 用途 |
 |---|---:|---|
-| `NOTEAI_XHS_DOWNLOADER_URL` | 可选 | 已部署并授权的 XHS Downloader sidecar 地址 |
+| `NOTEAI_XHS_ACQUISITION_ADAPTER` | 是 | 必须精确为 `spider_xhs_http` |
+| `NOTEAI_XHS_COLLECTION_SUSPENDED` | 是 | 默认 `1`；另行批准会话 smoke 前保持暂停和零 XHS 请求 |
 
-没有 sidecar 时会使用容器内 Playwright。由于平台反自动化机制，首次部署后必须手工触发 Cron 并检查是否取得真实 XHS 证据。系统不会把行业基线伪装成真实趋势；证据不足时 AI 诊断/生成会返回 503，这是有意的质量门禁。
+生产 Cron 使用无 Playwright/Chromium 的 `xhs-http-runtime`，没有浏览器或 sidecar 回退。适配器只开放首页推荐、搜索推荐、搜索笔记和笔记详情读取。系统不会把行业基线伪装成真实趋势；证据不足时 AI 诊断/生成会返回 503，这是有意的质量门禁。商业授权不等于小红书平台授权，产品负责人已明确接受非官方接口、账号限制及平台规则风险。
 
 ## 5. Apply 前最后检查
 
@@ -125,7 +126,7 @@
 ## 6. 首次部署观察顺序
 
 1. 先看 `noteai-staging-db` 状态为 Available。
-2. 打开 API/Admin Events，确认显式 Pre-Deploy 成功；已有数据库应输出 0 个迁移，缺失版本只能在获批的新环境初始化中出现。
+2. 打开 API Events，确认唯一显式 Pre-Deploy 成功；Admin 和 XHS HTTP 角色不得运行 migration。已有数据库应输出 0 个迁移，缺失版本只能在获批的新环境初始化中出现。
 3. API 日志必须出现四个模型 artifact `checked`，并显示 Uvicorn 已监听 Render 的 `PORT`。
 4. 打开 API `/health/ready`，必须是 HTTP 200，数据库为 `postgresql`，模型为 `v0.4-composite`。
 5. 打开管理端 `/health/ready`，必须是 HTTP 200。

@@ -126,7 +126,7 @@ class MarketTimingKeywordQualityTests(unittest.TestCase):
 
     def test_scheduler_precomputes_candidate_trends_once_before_result_loop(self):
         source = (MODEL_DIR / "scheduler_a.py").read_text(encoding="utf-8")
-        scrape_body = source.split("async def scrape_once", 1)[1].split("# ── Scheduler", 1)[0]
+        scrape_body = source.split("async def scrape_once()", 1)[1].split("# ── Scheduler", 1)[0]
         self.assertEqual(scrape_body.count("compute_trend_dirs("), 1)
         self.assertNotIn("compute_trend_dir(", scrape_body)
         self.assertLess(

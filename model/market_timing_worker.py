@@ -29,6 +29,7 @@ from hot_keywords import (
 from scheduler_a import (
     discovery_diagnostics_for_results,
     scrape_once,
+    scrape_once_http,
     search_circuit_context,
     session_state_summary,
 )
@@ -81,6 +82,18 @@ def _upload_snapshot(payload: dict, url: str) -> None:
         resp.raise_for_status()
 
 
+async def _scrape_selected_adapter(configured_adapter: str):
+    """Route one scrape without ever falling back from direct HTTP to browser."""
+    from spider_xhs_http import XHSAdapterError, collection_route, collection_route_suspended
+
+    route = collection_route(configured_adapter)
+    if collection_route_suspended(route):
+        raise XHSAdapterError("collection_suspended")
+    if route == "direct":
+        return await scrape_once_http()
+    return await scrape_once()
+
+
 async def run_once(
     snapshot_path: Path,
     upload_url: str = "",
@@ -91,10 +104,27 @@ async def run_once(
     run_id = str(uuid.uuid4())
     scrape_error = ""
     session_status = session_state_summary()
-    operator_suspended = _truthy_env("NOTEAI_XHS_COLLECTION_SUSPENDED")
+    configured_adapter = os.environ.get(
+        "NOTEAI_XHS_ACQUISITION_ADAPTER", ""
+    ).strip()
+    from spider_xhs_http import XHSAdapterError, collection_route
+
+    route_error = ""
+    try:
+        collection_mode = collection_route(configured_adapter)
+    except XHSAdapterError as exc:
+        collection_mode = "blocked"
+        route_error = exc.code
+    operator_suspended = False
+    if collection_mode != "blocked":
+        from spider_xhs_http import collection_route_suspended
+
+        operator_suspended = collection_route_suspended(collection_mode)
     safety_status = collection_safety_status()
     blocked_reason = ""
-    if operator_suspended:
+    if route_error:
+        blocked_reason = route_error
+    elif operator_suspended:
         blocked_reason = "collection_suspended"
     elif safety_status.get("session_blocked"):
         blocked_reason = str(safety_status.get("reason_code") or "")
@@ -110,7 +140,7 @@ async def run_once(
         circuit_state = "cooldown" if challenge_cooldown.get("active") else "closed"
         try:
             with search_circuit_context({"state": circuit_state}):
-                scrape_result = await scrape_once()
+                scrape_result = await _scrape_selected_adapter(configured_adapter)
             keywords = list(scrape_result)
             discovery_diagnostics = discovery_diagnostics_for_results(
                 keywords,
@@ -142,6 +172,7 @@ async def run_once(
         session_status=session_status,
         scrape_error=scrape_error,
         discovery_diagnostics=discovery_diagnostics,
+        adapter=("spider_xhs_http" if collection_mode == "direct" else "scheduler_a"),
     )
     xhs_freshness_public = _public_xhs_freshness(xhs_freshness_internal)
     xhs_required = xhs_freshness_required()
@@ -163,6 +194,10 @@ async def run_once(
     if xhs_warning and not keywords:
         if blocked_reason == "collection_suspended":
             reason = "XHS_COLLECTION_SUSPENDED: operator suspension is active"
+        elif blocked_reason == "runtime_role_not_allowed":
+            reason = "XHS_RUNTIME_ROLE_BLOCKED: direct collection requires xhs-http"
+        elif blocked_reason == "adapter_not_selected":
+            reason = "XHS_ADAPTER_BLOCKED: xhs-http requires spider_xhs_http"
         elif blocked_reason == "server_session_logged_out":
             reason = "XHS_SESSION_LOGGED_OUT: operator re-login is required"
         elif not session_status.get("configured"):

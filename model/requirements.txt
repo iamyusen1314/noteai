@@ -1,3 +1,4 @@
-# Compatibility entry point for local development and CI. Production images
-# install the role-specific files directly.
--r requirements-worker.txt
+# Browser-free compatibility entry point for the application and production
+# roles. Legacy Playwright crawler tooling is explicitly opt-in through
+# requirements-worker.txt and is never installed by a production Docker target.
+-r requirements-api.txt

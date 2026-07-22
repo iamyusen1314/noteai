@@ -163,14 +163,13 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: /app/scripts/render_start_admin.sh
-    preDeployCommand: python /app/scripts/render_predeploy.py
     healthCheckPath: /health/ready
     autoDeployTrigger: checksPass
     envVars:
       - key: NOTEAI_RUNTIME_TARGET
-        value: worker-runtime
+        value: admin-runtime
       - key: NOTEAI_RUNTIME_ROLE
-        value: worker
+        value: admin
       - key: DATABASE_URL
         fromDatabase:
           name: noteai-staging-db
@@ -206,9 +205,11 @@ services:
     autoDeployTrigger: checksPass
     envVars:
       - key: NOTEAI_RUNTIME_TARGET
-        value: worker-runtime
+        value: xhs-http-runtime
       - key: NOTEAI_RUNTIME_ROLE
-        value: worker
+        value: xhs-http
+      - key: NOTEAI_XHS_ACQUISITION_ADAPTER
+        value: spider_xhs_http
       - key: DATABASE_URL
         fromDatabase:
           name: noteai-staging-db
@@ -225,18 +226,8 @@ services:
         value: "30"
       - key: NOTEAI_MARKET_TIMING_MIN_DOMAIN_KEYWORDS
         value: "12"
-      - key: NOTEAI_XHS_TOKEN_DISCOVERY
-        value: "0"
-      - key: NOTEAI_XHS_BROWSER_TARGETS_PER_SESSION
-        value: "1"
-      - key: NOTEAI_XHS_STOP_ON_CHALLENGE
-        value: "1"
       - key: NOTEAI_XHS_CHALLENGE_COOLDOWN_MINUTES
         value: "360"
-      - key: MALLOC_ARENA_MAX
-        value: "2"
-      - key: NOTEAI_XHS_DOWNLOADER_URL
-        sync: false
 
   - type: cron
     name: noteai-staging-tracking
@@ -250,16 +241,18 @@ services:
     autoDeployTrigger: checksPass
     envVars:
       - key: NOTEAI_RUNTIME_TARGET
-        value: worker-runtime
+        value: xhs-http-runtime
       - key: NOTEAI_RUNTIME_ROLE
-        value: worker
+        value: xhs-http
+      - key: NOTEAI_XHS_ACQUISITION_ADAPTER
+        value: spider_xhs_http
       - key: DATABASE_URL
         fromDatabase:
           name: noteai-staging-db
           property: connectionString
       - key: NOTEAI_SKIP_MODEL_ARTIFACT_CHECK
         value: "1"
-      - key: NOTEAI_CRAWLER_HEADLESS
+      - key: NOTEAI_XHS_COLLECTION_SUSPENDED
         value: "1"
 
 databases:

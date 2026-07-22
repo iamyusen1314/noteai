@@ -113,14 +113,15 @@ class WorkerBrowserSecurityTests(unittest.TestCase):
             for rule in profile["syscalls"]
         ))
 
-    def test_compose_applies_profile_to_worker_runtime_services_only(self):
+    def test_compose_production_roles_are_browser_free(self):
         compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
-        self.assertEqual(compose.count("no-new-privileges:true"), 3)
-        self.assertEqual(
-            compose.count("seccomp=./deploy/security/playwright-chromium-seccomp-v1.56.0.json"),
-            3,
-        )
+        self.assertEqual(compose.count("no-new-privileges:true"), 2)
+        self.assertNotIn("seccomp=", compose)
+        self.assertNotIn("target: worker-runtime", compose)
+        self.assertNotIn("FROM runtime-common AS worker-runtime", dockerfile)
+        self.assertNotIn("python -m playwright install", dockerfile)
         self.assertNotIn("privileged:", compose)
         self.assertNotIn("seccomp=unconfined", compose)
         self.assertNotIn("SYS_ADMIN", compose)

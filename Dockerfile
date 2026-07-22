@@ -21,6 +21,21 @@ RUN set -eux; \
     npm cache clean --force; \
     rm -rf /tmp/meituan-travel-cli
 
+FROM node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS xhs-signer-node
+
+ARG CRYPTO_JS_VERSION=4.2.0
+ARG CRYPTO_JS_INTEGRITY=sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==
+
+WORKDIR /tmp/xhs-signer
+RUN set -eux; \
+    npm pack "crypto-js@${CRYPTO_JS_VERSION}" --ignore-scripts --json > pack.json; \
+    node -e 'const fs=require("fs"); const item=JSON.parse(fs.readFileSync(process.argv[1],"utf8"))[0]; if(item.integrity!==process.argv[2]) throw new Error("integrity mismatch")' pack.json "${CRYPTO_JS_INTEGRITY}"; \
+    tarball="$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8"))[0].filename)' pack.json)"; \
+    npm install --prefix /opt/noteai/xhs-node --omit=dev --ignore-scripts "./${tarball}"; \
+    test "$(node -p 'require("/opt/noteai/xhs-node/node_modules/crypto-js/package.json").version')" = "${CRYPTO_JS_VERSION}"; \
+    npm cache clean --force; \
+    rm -rf /tmp/xhs-signer
+
 # Immutable multi-arch index; linux/amd64 child at release audit time:
 # sha256:00af38ae2ed311628970782e8a2d7f014d8909dbc63cb97bc0a158187f4db045
 FROM python:3.11.15-slim-trixie@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS runtime-common
@@ -43,8 +58,8 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_RETRIES=8 \
     MEITUAN_TRAVEL_CLI=/usr/local/bin/mttravel
 
-# API/shared runtime keeps only the non-browser native dependency required by
-# LightGBM. The worker stage lets Playwright install its own Chromium runtime.
+# All production roles keep only the non-browser native dependency required by
+# LightGBM. Playwright/Chromium are not installed in any production target.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
@@ -56,9 +71,8 @@ RUN ln -s /usr/local/lib/node_modules/@meituan-travel/travel-cli/mttravel-bundle
     && test -x /usr/local/bin/mttravel \
     && node -e 'const pkg=require("/usr/local/lib/node_modules/@meituan-travel/travel-cli/package.json"); if(pkg.version!=="1.0.16") process.exit(1)'
 
-# Install only API dependencies in the shared layer. Browser capability is
-# added solely by worker-runtime below.
-COPY model/requirements.txt model/requirements-api.txt model/requirements-worker.txt ./
+# Install the common browser-free production dependencies.
+COPY model/requirements.txt model/requirements-api.txt ./
 RUN pip install --no-cache-dir -r requirements-api.txt \
     && python -m pip uninstall -y setuptools wheel \
     && python -m pip check \
@@ -103,26 +117,34 @@ USER noteai
 ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
 CMD ["/app/scripts/render_start_api.sh"]
 
-FROM runtime-common AS worker-runtime
+FROM runtime-common AS admin-runtime
 
-# Worker/admin runtime: browser support is isolated here. The build verifies
-# only that Playwright resolved an installed executable; sandboxed launch is a
-# runtime acceptance gate and is never weakened during image creation.
-LABEL com.noteai.runtime.role="worker"
-ENV NOTEAI_RUNTIME_ROLE=worker \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN pip install --no-cache-dir -r requirements-worker.txt \
-    && mkdir -p /ms-playwright \
-    && python -m playwright install --with-deps chromium \
-    && apt-get purge -y xvfb xserver-common \
-    && python -c 'import os; from playwright.sync_api import sync_playwright; runtime = sync_playwright().start(); executable = runtime.chromium.executable_path; runtime.stop(); assert os.path.isfile(executable) and os.access(executable, os.X_OK), executable' \
-    && python -m pip uninstall -y setuptools wheel \
-    && python -m pip check \
-    && python -c 'import importlib.util; assert importlib.util.find_spec("setuptools") is None; assert importlib.util.find_spec("wheel") is None' \
-    && printf '%s\n' worker > /etc/noteai-runtime-role \
-    && chmod 0444 /etc/noteai-runtime-role \
-    && chown -R noteai:noteai /ms-playwright \
-    && rm -rf /root/.cache /var/lib/apt/lists/* /var/cache/apt/*
+LABEL com.noteai.runtime.role="admin"
+ENV NOTEAI_RUNTIME_ROLE=admin
+RUN printf '%s\n' admin > /etc/noteai-runtime-role \
+    && chmod 0444 /etc/noteai-runtime-role
+
+USER noteai
+
+ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
+CMD ["/app/scripts/render_start_admin.sh"]
+
+FROM runtime-common AS xhs-http-runtime
+
+LABEL com.noteai.runtime.role="xhs-http"
+ENV NOTEAI_RUNTIME_ROLE=xhs-http \
+    NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http \
+    NOTEAI_XHS_COLLECTION_SUSPENDED=1 \
+    NOTEAI_XHS_NODE_PATH=/opt/noteai/xhs-node/node_modules
+COPY --from=xhs-signer-node /opt/noteai/xhs-node /opt/noteai/xhs-node
+RUN test "$(node -p 'require("/opt/noteai/xhs-node/node_modules/crypto-js/package.json").version')" = "4.2.0" \
+    && echo "723dc6ef64836b0998aa4ba85796e2ffd99bfb20f222d69adcbcf66ea589292d  /app/model/vendor/spider_xhs/xhs_main_260411.js" | sha256sum -c - \
+    && echo "e79fe1c79c97a73fbf5fdb6420af114ff591902aa60b436ac4b803a99b806d2e  /app/model/vendor/spider_xhs/xhs_rap.js" | sha256sum -c - \
+    && printf '%s\n' xhs-http > /etc/noteai-runtime-role \
+    && chmod 0444 /etc/noteai-runtime-role
+
+# Cron/worker processes do not listen on the inherited API HTTP port.
+HEALTHCHECK NONE
 
 USER noteai
 

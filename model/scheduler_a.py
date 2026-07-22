@@ -113,6 +113,8 @@ DISCOVERY_DIAGNOSTIC_ERROR_CODES = frozenset({
     "possible_access_challenge",
     "server_session_logged_out",
     "collection_suspended",
+    "runtime_role_not_allowed",
+    "adapter_not_selected",
     "scrape_once_failed",
 })
 _DIAGNOSTIC_FIELDS = {
@@ -408,6 +410,19 @@ def _get_session_state():
 
 def session_state_summary() -> dict:
     """Return secret-free XHS session metadata for health checks and alerts."""
+    if os.environ.get("NOTEAI_XHS_ACQUISITION_ADAPTER", "").strip() == "spider_xhs_http":
+        from spider_xhs_http import session_health
+
+        health = session_health()
+        return {
+            "configured": health["configured"],
+            "cookie_count": health["cookie_count"],
+            "auth_cookie_present": health["auth_cookie_present"],
+            "auth_cookie_expired": health["auth_cookie_expired"],
+            "auth_expires_at": None,
+            "adapter": health["adapter"],
+            "status": health["status"],
+        }
     state = _get_session_state()
     payload = None
     if isinstance(state, str):
@@ -535,6 +550,145 @@ def _search_discovery_targets() -> list[tuple[str, str]]:
         for seed in seeds[:limit]:
             targets.append((_search_url(seed), category))
     return targets
+
+
+def _extract_recommend_keywords(payload: object) -> list[str]:
+    found: list[str] = []
+
+    def walk(value: object) -> None:
+        if isinstance(value, dict):
+            keyword = _extract_keyword_from_item(value)
+            if keyword:
+                found.append(keyword)
+            for child in value.values():
+                if isinstance(child, (dict, list)):
+                    walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                if isinstance(child, (dict, list)):
+                    walk(child)
+
+    walk(payload)
+    return list(dict.fromkeys(found))
+
+
+def _direct_http_failure_code(code: str) -> str:
+    if code in {"login_required", "login_or_challenge_required", "server_session_logged_out"}:
+        return "server_session_logged_out"
+    if code == "cooldown":
+        return "challenge_cooldown_active"
+    if code == "collection_suspended":
+        return "collection_suspended"
+    if code == "runtime_role_not_allowed":
+        return "runtime_role_not_allowed"
+    if code == "challenge":
+        return "possible_access_challenge"
+    return "scrape_once_failed"
+
+
+async def scrape_once_http() -> list[dict]:
+    """Collect the bounded production evidence set through direct HTTP only."""
+    from hot_keywords import clean_scraped_keyword_row, compute_trend_dirs
+    from spider_xhs_http import SpiderXHSHTTPAdapter, XHSAdapterError
+
+    def collect() -> ScrapeResults:
+        adapter = SpiderXHSHTTPAdapter()
+        diagnostics = new_discovery_diagnostics()
+        best: dict[tuple[str, str], dict] = {}
+        phrase_rows: list[tuple[str, str, str]] = []
+        recommend_rows: list[tuple[str, str]] = []
+
+        homefeed_targets = []
+        for url, category in CHANNELS:
+            channel_id = (parse_qs(urlparse(url).query).get("channel_id") or ["homefeed_recommend"])[-1]
+            homefeed_targets.append((channel_id, category))
+        search_targets = [
+            (seed, category)
+            for category, seeds in SEARCH_SEEDS.items()
+            for seed in seeds[:max(0, SEARCH_SEEDS_PER_CATEGORY)]
+        ]
+        diagnostics["targets"]["planned"] = len(search_targets)
+
+        try:
+            for channel_id, category in homefeed_targets:
+                response = adapter.homefeed(category=channel_id, max_pages=1, max_items=20)
+                for title in _extract_note_titles(response.get("items") or []):
+                    phrase_rows.extend((phrase, category, "homefeed_phrase") for phrase in _title_phrase_candidates(title))
+
+            for seed, category in search_targets:
+                _diagnostic_inc(diagnostics, "targets", "started")
+                recommend = adapter.search_recommend(seed)
+                _diagnostic_inc(diagnostics, "recommend", "response_seen")
+                _diagnostic_inc(diagnostics, "recommend", "json_ok")
+                recommended = _extract_recommend_keywords(recommend)
+                _diagnostic_inc(diagnostics, "recommend", "items_raw", len(recommended))
+                _diagnostic_inc(diagnostics, "recommend", "extracted", len(recommended))
+                recommend_rows.extend((keyword, category) for keyword in recommended)
+
+                search = adapter.search_notes(seed, max_pages=1, max_items=20)
+                _diagnostic_inc(diagnostics, "search", "response_seen")
+                _diagnostic_inc(diagnostics, "search", "json_ok")
+                titles = _extract_note_titles(search.get("items") or [])
+                _diagnostic_inc(diagnostics, "search", "title_count", len(titles))
+                for title in titles:
+                    phrases = _title_phrase_candidates(title)
+                    _diagnostic_inc(diagnostics, "search", "phrase_raw", len(phrases))
+                    phrase_rows.extend((phrase, category, "search_phrase") for phrase in phrases)
+                _diagnostic_inc(diagnostics, "targets", "completed")
+        except XHSAdapterError as exc:
+            failure = _direct_http_failure_code(exc.code)
+            _diagnostic_add_error(diagnostics, failure)
+            diagnostics["circuit"].update({
+                "state": "cooldown" if failure == "challenge_cooldown_active" else "open",
+                "skipped_reason": (
+                    "challenge_cooldown_active"
+                    if failure == "challenge_cooldown_active"
+                    else "challenge_detected"
+                    if failure == "possible_access_challenge"
+                    else ""
+                ),
+            })
+            return ScrapeResults([], diagnostics)
+
+        phrase_counts = Counter(phrase_rows)
+        trend_directions = compute_trend_dirs([phrase for phrase, _category, _source in phrase_counts])
+        for (phrase, category, source), count in phrase_counts.most_common(600):
+            row = clean_scraped_keyword_row({
+                "keyword": phrase,
+                "search_vol": max(5, min(95, 12 + count * 8)),
+                "trend_dir": trend_directions.get(phrase, 0),
+                "source": source,
+                "category": category,
+                "count": count,
+            })
+            if row:
+                _keep_best_candidate(best, row)
+                if source == "search_phrase":
+                    _diagnostic_inc(diagnostics, "search", "cleaned")
+            elif source == "search_phrase":
+                _diagnostic_inc(diagnostics, "search", "filtered")
+
+        for keyword, category in recommend_rows:
+            row = clean_scraped_keyword_row({
+                "keyword": keyword,
+                "search_vol": 86,
+                "trend_dir": 1,
+                "source": "search_recommend",
+                "category": category,
+                "count": 1,
+            })
+            if row:
+                _keep_best_candidate(best, row)
+            else:
+                _diagnostic_inc(diagnostics, "recommend", "filtered")
+
+        results = sorted(
+            best.values(),
+            key=lambda row: (row.get("category", ""), -int(row.get("search_vol", 0))),
+        )
+        return ScrapeResults(results, discovery_diagnostics_for_results(results, diagnostics))
+
+    return await asyncio.to_thread(collect)
 
 
 async def _trigger_search_input(

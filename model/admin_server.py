@@ -1020,7 +1020,7 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
     if cookie_exists:
         cookie_runtime_status = "pending_validation"
         if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
-            recent = _xhs_acq.recent_health(limit=60, adapter="scheduler_a")
+            recent = _xhs_acq.recent_collection_health(limit=60)
             run_ids = []
             for row in recent:
                 run_id = row.get("run_id")

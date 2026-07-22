@@ -171,30 +171,33 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
     if missing:
         return False, f"harness_missing_fragments={len(missing)}"
 
+    xhs_env = {"NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http"}
     allowed_cases = {
-        "api_start": ("api", ("/app/scripts/render_start_api.sh",)),
-        "api_predeploy": ("api", ("python", "/app/scripts/render_predeploy.py")),
-        "worker_admin_start": ("worker", ("/app/scripts/render_start_admin.sh",)),
-        "worker_market_wrapper": ("worker", ("/app/scripts/render_run_market_timing.sh",)),
-        "worker_crawler_wrapper": ("worker", ("/app/scripts/render_run_crawler.sh",)),
-        "worker_admin_compose": (
-            "worker",
+        "api_start": ("api", ("/app/scripts/render_start_api.sh",), {}),
+        "api_predeploy": ("api", ("python", "/app/scripts/render_predeploy.py"), {}),
+        "admin_start": ("admin", ("/app/scripts/render_start_admin.sh",), {}),
+        "admin_compose": (
+            "admin",
             ("python", "-m", "uvicorn", "admin_server:admin_app", "--host", "0.0.0.0", "--port", "8001"),
+            {},
         ),
-        "worker_market_bare": ("worker", ("python", "market_timing_worker.py")),
-        "worker_market_once": ("worker", ("python", "market_timing_worker.py", "--once")),
-        "worker_market_daemon": (
-            "worker",
+        "xhs_market_wrapper": ("xhs-http", ("/app/scripts/render_run_market_timing.sh",), xhs_env),
+        "xhs_crawler_wrapper": ("xhs-http", ("/app/scripts/render_run_crawler.sh",), xhs_env),
+        "xhs_market_bare": ("xhs-http", ("python", "market_timing_worker.py"), xhs_env),
+        "xhs_market_once": ("xhs-http", ("python", "market_timing_worker.py", "--once"), xhs_env),
+        "xhs_market_daemon": (
+            "xhs-http",
             ("python", "market_timing_worker.py", "--daemon", "--interval", "60"),
+            xhs_env,
         ),
-        "worker_crawler_bare": ("worker", ("python", "crawler_worker.py")),
-        "worker_crawler_once": ("worker", ("python", "crawler_worker.py", "--once")),
-        "worker_crawler_loop": (
-            "worker",
+        "xhs_crawler_bare": ("xhs-http", ("python", "crawler_worker.py"), xhs_env),
+        "xhs_crawler_once": ("xhs-http", ("python", "crawler_worker.py", "--once"), xhs_env),
+        "xhs_crawler_loop": (
+            "xhs-http",
             ("python", "crawler_worker.py", "--loop", "--interval-minutes", "60", "--limit", "50"),
+            xhs_env,
         ),
-        "worker_predeploy": ("worker", ("python", "/app/scripts/render_predeploy.py")),
-        "worker_fail_closed_default": ("worker", ("/bin/false",)),
+        "xhs_fail_closed_default": ("xhs-http", ("/bin/false",), xhs_env),
     }
     rejected_command_cases = {
         "api_empty_command": ("api", ()),
@@ -205,42 +208,46 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
         "api_shell_wrapper": ("api", ("sh", "-c", "/app/scripts/render_start_api.sh")),
         "api_start_extra": ("api", ("/app/scripts/render_start_api.sh", "extra")),
         "api_predeploy_extra": ("api", ("python", "/app/scripts/render_predeploy.py", "extra")),
-        "worker_api_start": ("worker", ("/app/scripts/render_start_api.sh",)),
-        "worker_direct_api": (
-            "worker",
+        "admin_api_start": ("admin", ("/app/scripts/render_start_api.sh",)),
+        "admin_crawler": ("admin", ("/app/scripts/render_run_crawler.sh",)),
+        "admin_predeploy": ("admin", ("python", "/app/scripts/render_predeploy.py")),
+        "xhs_api_start": ("xhs-http", ("/app/scripts/render_start_api.sh",)),
+        "xhs_admin_start": ("xhs-http", ("/app/scripts/render_start_admin.sh",)),
+        "xhs_predeploy": ("xhs-http", ("python", "/app/scripts/render_predeploy.py")),
+        "xhs_direct_api": (
+            "xhs-http",
             ("python", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"),
         ),
-        "worker_api_file": ("worker", ("python", "api.py")),
-        "worker_absolute_api": ("worker", ("python", "/app/model/api.py")),
-        "worker_module_worker": ("worker", ("python", "-m", "crawler_worker")),
-        "worker_absolute_worker": ("worker", ("python", "/app/model/crawler_worker.py")),
-        "worker_shell_wrapper": ("worker", ("sh", "-c", "/app/scripts/render_run_crawler.sh")),
-        "worker_wrapper_extra": ("worker", ("/app/scripts/render_run_crawler.sh", "extra")),
-        "worker_predeploy_extra": ("worker", ("python", "/app/scripts/render_predeploy.py", "extra")),
-        "worker_false_extra": ("worker", ("/bin/false", "extra")),
-        "worker_unknown_python": ("worker", ("python", "-c", "import api")),
-        "worker_market_negative": (
-            "worker",
+        "xhs_api_file": ("xhs-http", ("python", "api.py")),
+        "xhs_absolute_api": ("xhs-http", ("python", "/app/model/api.py")),
+        "xhs_module_worker": ("xhs-http", ("python", "-m", "crawler_worker")),
+        "xhs_absolute_worker": ("xhs-http", ("python", "/app/model/crawler_worker.py")),
+        "xhs_shell_wrapper": ("xhs-http", ("sh", "-c", "/app/scripts/render_run_crawler.sh")),
+        "xhs_wrapper_extra": ("xhs-http", ("/app/scripts/render_run_crawler.sh", "extra")),
+        "xhs_false_extra": ("xhs-http", ("/bin/false", "extra")),
+        "xhs_unknown_python": ("xhs-http", ("python", "-c", "import api")),
+        "xhs_market_negative": (
+            "xhs-http",
             ("python", "market_timing_worker.py", "--daemon", "--interval", "-1"),
         ),
-        "worker_market_empty": (
-            "worker",
+        "xhs_market_empty": (
+            "xhs-http",
             ("python", "market_timing_worker.py", "--daemon", "--interval", ""),
         ),
-        "worker_market_non_numeric": (
-            "worker",
+        "xhs_market_non_numeric": (
+            "xhs-http",
             ("python", "market_timing_worker.py", "--daemon", "--interval", "api:app"),
         ),
-        "worker_crawler_negative": (
-            "worker",
+        "xhs_crawler_negative": (
+            "xhs-http",
             ("python", "crawler_worker.py", "--loop", "--interval-minutes", "-1", "--limit", "50"),
         ),
-        "worker_crawler_empty": (
-            "worker",
+        "xhs_crawler_empty": (
+            "xhs-http",
             ("python", "crawler_worker.py", "--loop", "--interval-minutes", "60", "--limit", ""),
         ),
-        "worker_crawler_non_numeric": (
-            "worker",
+        "xhs_crawler_non_numeric": (
+            "xhs-http",
             ("python", "crawler_worker.py", "--loop", "--interval-minutes", "api.py", "--limit", "50"),
         ),
     }
@@ -250,7 +257,7 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
         "marker_empty": ("empty", "api", "api"),
         "marker_read_failure": ("read_failure", "api", "api"),
         "marker_invalid": ("valid", "invalid", "invalid"),
-        "marker_role_mismatch": ("valid", "api", "worker"),
+        "marker_role_mismatch": ("valid", "api", "admin"),
     }
     failures: list[str] = []
 
@@ -336,10 +343,17 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             elif result.returncode != 78 or artifact_called or exec_called:
                 failures.append(f"{name}:reject_contract_failed")
 
-        for name, (role, command) in allowed_cases.items():
-            run_case(name, role, role, command, allowed=True)
+        for name, (role, command, case_env) in allowed_cases.items():
+            run_case(name, role, role, command, allowed=True, extra_env=case_env)
         for name, (role, command) in rejected_command_cases.items():
-            run_case(name, role, role, command, allowed=False)
+            run_case(
+                name,
+                role,
+                role,
+                command,
+                allowed=False,
+                extra_env=xhs_env if role == "xhs-http" else None,
+            )
         for name, (marker_state, image_role, declared_role) in marker_cases.items():
             run_case(
                 name,
@@ -357,8 +371,16 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             allowed=False,
             extra_env={"NOTEAI_API_STARTS_TREND_SCHEDULER": "1"},
         )
+        run_case(
+            "xhs_wrong_adapter",
+            "xhs-http",
+            "xhs-http",
+            ("/app/scripts/render_run_crawler.sh",),
+            allowed=False,
+            extra_env={"NOTEAI_XHS_ACQUISITION_ADAPTER": ""},
+        )
 
-    detail = f"allowed={len(allowed_cases)} rejected={len(rejected_command_cases) + len(marker_cases) + 1}"
+    detail = f"allowed={len(allowed_cases)} rejected={len(rejected_command_cases) + len(marker_cases) + 2}"
     if failures:
         detail += f" failures={failures[:8]}"
     return not failures, detail
@@ -546,6 +568,11 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     cloud_strategy = (ROOT / "docs" / "MODEL_ARTIFACT_CLOUD_STRATEGY.md").read_text(encoding="utf-8")
     timing_strategy = (ROOT / "docs" / "MARKET_TIMING_CLOUD_PIPELINE.md").read_text(encoding="utf-8")
     image_build_spec = (ROOT / "docs" / "PRODUCTION_IMAGE_BUILD_SPEC.md").read_text(encoding="utf-8")
+    xhs_provenance = (ROOT / "docs" / "SPIDER_XHS_HTTP_PROVENANCE.md").read_text(encoding="utf-8")
+    xhs_adapter = (MODEL_DIR / "spider_xhs_http.py").read_text(encoding="utf-8")
+    xhs_tests = (ROOT / "tests" / "test_xhs_acquisition.py").read_text(encoding="utf-8")
+    architecture_summary = (ROOT / ".codex" / "notes" / "architecture-summary.md").read_text(encoding="utf-8")
+    risk_register = (ROOT / ".codex" / "notes" / "risk-register.md").read_text(encoding="utf-8")
     fact_enrichment = (MODEL_DIR / "fact_enrichment.py").read_text(encoding="utf-8")
     api_source = (MODEL_DIR / "api.py").read_text(encoding="utf-8")
     api_readiness_source = api_source.split("def _readiness_payload()", 1)[1].split('@app.get("/health/live")', 1)[0]
@@ -567,9 +594,12 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     entrypoint = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")
     entrypoint_semantic_passed, entrypoint_semantic_detail = _check_entrypoint_runtime_contract(entrypoint)
     api_runtime_stage = dockerfile.split("FROM runtime-common AS api-runtime", 1)[1].split(
-        "FROM runtime-common AS worker-runtime", 1
+        "FROM runtime-common AS admin-runtime", 1
     )[0]
-    worker_runtime_stage = dockerfile.split("FROM runtime-common AS worker-runtime", 1)[1].split(
+    admin_runtime_stage = dockerfile.split("FROM runtime-common AS admin-runtime", 1)[1].split(
+        "FROM runtime-common AS xhs-http-runtime", 1
+    )[0]
+    xhs_runtime_stage = dockerfile.split("FROM runtime-common AS xhs-http-runtime", 1)[1].split(
         "FROM ${NOTEAI_RUNTIME_TARGET} AS noteai-runtime", 1
     )[0]
     service_start_sources = "\n".join(
@@ -594,13 +624,18 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         _ok("docker_uses_artifact_entrypoint", "ENTRYPOINT [\"/app/scripts/docker_entrypoint.sh\"]" in dockerfile),
         _ok("docker_copies_entrypoint", "COPY scripts/docker_entrypoint.sh" in dockerfile),
         _ok(
-            "docker_has_separate_api_and_worker_targets",
+            "docker_has_browser_free_production_role_targets",
             "FROM runtime-common AS api-runtime" in dockerfile
-            and "FROM runtime-common AS worker-runtime" in dockerfile
+            and "FROM runtime-common AS admin-runtime" in dockerfile
+            and "FROM runtime-common AS xhs-http-runtime" in dockerfile
+            and "FROM runtime-common AS worker-runtime" not in dockerfile
             and "ARG NOTEAI_RUNTIME_TARGET=api-runtime" in dockerfile
             and "FROM ${NOTEAI_RUNTIME_TARGET} AS noteai-runtime" in dockerfile
             and 'CMD ["/app/scripts/render_start_api.sh"]' in api_runtime_stage
-            and 'CMD ["/bin/false"]' in worker_runtime_stage,
+            and 'CMD ["/app/scripts/render_start_admin.sh"]' in admin_runtime_stage
+            and 'CMD ["/bin/false"]' in xhs_runtime_stage
+            and "NOTEAI_XHS_COLLECTION_SUSPENDED=1" in xhs_runtime_stage
+            and "HEALTHCHECK NONE" in xhs_runtime_stage,
         ),
         _ok(
             "api_runtime_excludes_browser_and_graphics_stack",
@@ -610,19 +645,26 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and all(package not in dockerfile for package in ("libgl1", "libglib2.0-0", "libsm6", "libxext6", "libxrender1")),
         ),
         _ok(
-            "worker_runtime_installs_playwright_chromium",
-            "playwright==1.56.0" in requirements_worker
-            and "python -m playwright install --with-deps chromium" in worker_runtime_stage,
+            "production_targets_exclude_browser_dependencies_and_commands",
+            all(
+                "playwright" not in stage.lower() and "chromium" not in stage.lower()
+                for stage in (api_runtime_stage, admin_runtime_stage, xhs_runtime_stage)
+            )
+            and "python -m playwright install" not in dockerfile
+            and "PLAYWRIGHT_BROWSERS_PATH" not in dockerfile,
         ),
         _ok(
-            "docker_verifies_chromium_without_root_launch_or_xvfb",
-            "apt-get purge -y xvfb xserver-common" in worker_runtime_stage
-            and "runtime.chromium.executable_path" in worker_runtime_stage
-            and "os.access(executable, os.X_OK)" in worker_runtime_stage
-            and ".chromium.launch(" not in worker_runtime_stage
-            and "about:blank" not in worker_runtime_stage,
+            "xhs_signer_dependencies_are_fixed_and_minimal",
+            "CRYPTO_JS_VERSION=4.2.0" in dockerfile
+            and "sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==" in dockerfile
+            and "COPY --from=xhs-signer-node /opt/noteai/xhs-node" in xhs_runtime_stage
+            and "xhs_xray" not in xhs_runtime_stage
+            and "websectiga" not in xhs_runtime_stage,
         ),
-        _ok("worker_runtime_is_non_root", "USER noteai" in worker_runtime_stage),
+        _ok(
+            "all_production_roles_are_non_root",
+            all("USER noteai" in stage for stage in (api_runtime_stage, admin_runtime_stage, xhs_runtime_stage)),
+        ),
         _ok(
             "docker_removes_python_build_tooling",
             "python -m pip uninstall -y setuptools wheel" in dockerfile
@@ -696,7 +738,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "playwright==" not in requirements_api
             and "-r requirements-api.txt" in requirements_worker
             and "playwright==1.56.0" in requirements_worker
-            and "-r requirements-worker.txt" in requirements_compat
+            and "-r requirements-api.txt" in requirements_compat
             and all(
                 re.fullmatch(r"[A-Za-z0-9_.-]+(?:\[[A-Za-z0-9_,.-]+\])?==[^\s]+", line)
                 for line in api_requirement_lines
@@ -705,38 +747,52 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         _ok(
             "compose_runtime_targets_match_roles",
             compose.count("target: api-runtime") == 1
-            and compose.count("target: worker-runtime") == 3
+            and compose.count("target: admin-runtime") == 1
+            and compose.count("target: xhs-http-runtime") == 2
+            and "target: worker-runtime" not in compose
             and compose.count("NOTEAI_RUNTIME_ROLE=api") == 1
-            and compose.count("NOTEAI_RUNTIME_ROLE=worker") == 3,
+            and compose.count("NOTEAI_RUNTIME_ROLE=admin") == 1
+            and compose.count("NOTEAI_RUNTIME_ROLE=xhs-http") == 2
+            and compose.count("NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http") == 2,
         ),
         _ok(
-            "worker_chromium_launches_are_sandboxed_fail_closed",
-            "chromium_sandbox\"] = True" in browser_security
-            and "FORBIDDEN_CHROMIUM_FLAGS" in browser_security
-            and ".chromium.launch(" not in production_browser_text
-            and sum(text.count("launch_chromium_async(") for text in browser_sources.values()) == 4
-            and browser_sources["download_covers.py"].count("launch_chromium(") == 1
-            and all(flag not in production_browser_text for flag in FORBIDDEN_CHROMIUM_FLAGS),
+            "compose_xhs_collection_defaults_suspended",
+            compose.count("NOTEAI_XHS_COLLECTION_SUSPENDED=${NOTEAI_XHS_COLLECTION_SUSPENDED:-1}") == 2,
         ),
         _ok(
-            "playwright_seccomp_profile_is_official_and_fail_closed",
-            _sha256_path(PLAYWRIGHT_SECCOMP_PROFILE) == PLAYWRIGHT_SECCOMP_SHA256
-            and seccomp_profile.get("defaultAction") == "SCMP_ACT_ERRNO"
-            and any(
-                item.get("architecture") == "SCMP_ARCH_X86_64"
-                for item in seccomp_profile.get("archMap", [])
-            )
-            and bool(seccomp_user_namespace_rules),
+            "direct_adapter_is_read_only_and_proxy_free",
+            all(path in xhs_adapter for path in (
+                "/api/sns/web/v1/homefeed",
+                "/api/sns/web/v1/search/recommend",
+                "/api/sns/web/v1/search/notes",
+                "/api/sns/web/v1/feed",
+            ))
+            and 'method not in {"GET", "POST"}' in xhs_adapter
+            and "trust_env=False" in xhs_adapter
+            and "proxies=" not in xhs_adapter,
         ),
         _ok(
-            "compose_applies_reviewed_seccomp_to_worker_runtimes_only",
+            "direct_adapter_collection_gate_fails_closed",
+            '_EXPLICIT_COLLECTION_UNLOCK_VALUES = frozenset({"0", "false", "off", "no"})' in xhs_adapter
+            and 'return os.environ.get("NOTEAI_RUNTIME_ROLE", "").strip() == "xhs-http"' in xhs_adapter
+            and 'role in {"api", "admin"}' in xhs_adapter
+            and '_LEGACY_BROWSER_RUNTIME_ROLES = frozenset({"local", "legacy"})' in xhs_adapter,
+        ),
+        _ok(
+            "direct_adapter_assets_are_sha_pinned",
+            "723dc6ef64836b0998aa4ba85796e2ffd99bfb20f222d69adcbcf66ea589292d" in xhs_adapter
+            and "e79fe1c79c97a73fbf5fdb6420af114ff591902aa60b436ac4b803a99b806d2e" in xhs_adapter
+            and "9504b5249103f34a0a4e7062939258061559e2fd" in xhs_provenance
+            and "7db08187cb5332a5a3c89a5923987e098ffddf14" in xhs_provenance,
+        ),
+        _ok(
+            "compose_has_no_production_browser_security_profile",
             all(
                 "no-new-privileges:true" in _compose_service_block(compose, service)
-                and "seccomp=./deploy/security/playwright-chromium-seccomp-v1.56.0.json"
-                in _compose_service_block(compose, service)
-                for service in ("noteai-admin", "noteai-trends-worker", "noteai-tracking-worker")
+                for service in ("noteai-trends-worker", "noteai-tracking-worker")
             )
             and "seccomp=" not in _compose_service_block(compose, "noteai")
+            and "seccomp=" not in compose
             and "privileged:" not in compose
             and "seccomp=unconfined" not in compose
             and "SYS_ADMIN" not in compose,
@@ -745,10 +801,34 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "render_runtime_targets_match_roles",
             render_blueprint.count("key: NOTEAI_RUNTIME_TARGET") == 4
             and render_blueprint.count("value: api-runtime") == 1
-            and render_blueprint.count("value: worker-runtime") == 3
+            and render_blueprint.count("value: admin-runtime") == 1
+            and render_blueprint.count("value: xhs-http-runtime") == 2
             and render_blueprint.count("key: NOTEAI_RUNTIME_ROLE") == 4
             and len(re.findall(r"^\s*value:\s*api\s*$", render_blueprint, re.MULTILINE)) == 1
-            and len(re.findall(r"^\s*value:\s*worker\s*$", render_blueprint, re.MULTILINE)) == 3,
+            and len(re.findall(r"^\s*value:\s*admin\s*$", render_blueprint, re.MULTILINE)) == 1
+            and len(re.findall(r"^\s*value:\s*xhs-http\s*$", render_blueprint, re.MULTILINE)) == 2
+            and render_blueprint.count("value: spider_xhs_http") == 2,
+        ),
+        _ok(
+            "render_xhs_collection_defaults_suspended",
+            render_blueprint.count("key: NOTEAI_XHS_COLLECTION_SUSPENDED") == 2,
+        ),
+        _ok(
+            "fresh_ci_xhs_tests_do_not_import_python_playwright",
+            "import playwright.async_api" not in xhs_tests
+            and 'ModuleType("playwright.async_api")' in xhs_tests
+            and "playwright==" not in requirements_api
+            and "playwright==" not in requirements_compat,
+        ),
+        _ok(
+            "architecture_and_risk_describe_direct_http_production_boundary",
+            "production xhs runtime boundary" in architecture_summary.lower()
+            and "browser-free" in architecture_summary.lower()
+            and "historical playwright crawler source" in architecture_summary.lower()
+            and "spider_xhs_http" in architecture_summary
+            and "spider_xhs private http interface" in risk_register.lower()
+            and "默认暂停" in risk_register
+            and "商业授权不等于" in risk_register,
         ),
         _ok(
             "render_does_not_request_unsupported_browser_bypass",
@@ -782,6 +862,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and "command_allowed=1" in entrypoint
             and "command is not allowed for this runtime role" in entrypoint
             and "api-runtime cannot start the trend scheduler" in entrypoint
+            and "xhs-http runtime requires the pinned acquisition adapter" in entrypoint
             and "is_unsigned_integer" in entrypoint
             and "*[!0-9]*" in entrypoint
             and all(value in entrypoint for value in (
@@ -797,7 +878,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             ))
             and 'case " $* "' not in entrypoint
             and "api-runtime cannot start a browser worker command" not in entrypoint
-            and "worker-runtime cannot start the public API command" not in entrypoint,
+            and "worker-runtime" not in entrypoint,
         ),
         _ok(
             "entrypoint_runtime_contract_semantics",
@@ -805,7 +886,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             entrypoint_semantic_detail,
         ),
         _ok("compose_has_trends_worker", "noteai-trends-worker:" in compose and "market_timing_worker.py" in compose),
-        _ok("entrypoint_can_skip_model_for_worker", "NOTEAI_SKIP_MODEL_ARTIFACT_CHECK" in entrypoint),
+        _ok("entrypoint_can_skip_model_for_xhs_runtime", "NOTEAI_SKIP_MODEL_ARTIFACT_CHECK" in entrypoint),
         _ok("compose_shares_artifacts", "./model/artifacts:/app/model/artifacts" in compose),
         _ok(
             "compose_uses_core_readiness",
@@ -821,7 +902,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "apply_postgres_migrations()" not in init_db_source
             and "render_predeploy.py" not in service_start_sources
             and "NOTEAI_MIGRATE_ON_START" not in service_start_sources
-            and render_blueprint.count("preDeployCommand: python /app/scripts/render_predeploy.py") == 2,
+            and render_blueprint.count("preDeployCommand: python /app/scripts/render_predeploy.py") == 1,
         ),
         _ok(
             "docker_context_blocks_sensitive_material",

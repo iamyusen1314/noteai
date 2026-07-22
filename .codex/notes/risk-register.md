@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-07-18
+Last updated: 2026-07-22
 
 ## Critical Risks
 
@@ -232,17 +232,17 @@ Last updated: 2026-07-18
 - 建议验证方式: Tests that frontend/admin read `/billing/tiers` and usage endpoints rather than hard-coded stale values.
 - 是否需要用户确认后才能修改: yes for pricing changes.
 
-### Crawler/Playwright cloud behavior may differ from local
+### Spider_XHS private HTTP interface, session and platform behavior may drift
 
-- 风险描述: Docker installs Playwright Chromium, but scraping/market timing behavior may still depend on network, cookies, display/headless constraints, and platform policies.
-- 涉及文件: `Dockerfile`, `model/crawler.py`, `model/scheduler_a.py`, `model/market_timing_worker.py`, `docker-compose.yml`.
-- 可能后果: Market data unavailable, blocked crawler, unstable worker.
-- 建议验证方式: Cloud-like container run, worker logs, data freshness check, same-day de-duplicated evidence accumulation, and admin session-health status.
-- 是否需要用户确认后才能修改: yes.
+- 风险描述: 生产候选已从 Playwright/Chromium Worker 转为商业授权 Spider_XHS 的非官方只读 HTTP 适配器。商业授权不等于小红书平台授权；接口、签名资产、Cookie、账号限制、风控和平台规则仍可能变化。生产角色默认暂停，且不提供浏览器、代理轮换、登录或 challenge 绕过回退。
+- 涉及文件: `Dockerfile`, `model/spider_xhs_http.py`, `model/vendor/spider_xhs/`, `model/crawler.py`, `model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `docker-compose.yml`, `render.yaml`.
+- 可能后果: 首页推荐、搜索、详情或分页失效；会话被限制；当天真实证据不足导致市场时机质量门禁返回不可用。错误域 Cookie 若未过滤还可能造成 Secret 泄漏，因此域、过期和去重规则属于发布门禁。
+- 建议验证方式: 每次发布核验固定上游 commit/tree、两份 signer SHA、Cookie host/expiry 过滤、默认暂停、生产角色 fail-closed、零浏览器回退、固定只读 endpoint、分页上限、Secret 扫描和无网络 fixture 测试。真实会话 smoke 必须单独批准、限量并可立即重新暂停；接口异常时回滚为手工/截图证据输入，不恢复 Playwright。
+- 是否需要用户确认后才能修改: 离线测试和安全收口不需要；任何真实小红书调用、会话替换、解除暂停或平台策略决定都需要明确批准。
 
-### XHS test-account session can expire and requires operator action
+### XHS direct-HTTP session can expire and requires operator action
 
-- 风险描述: Render 的市场时机采集依赖由用户登录生成的测试账号会话；提醒机制已部署，但平台风控、Cookie 到期或页面策略变化仍会令会话失效并需要人工重新登录。
+- 风险描述: `xhs-http-runtime` 依赖由用户登录生成的专用账号会话；提醒机制已部署，但平台风控、Cookie 到期、签名或接口变化仍会令会话失效并需要人工重新登录。会话健康是本地、无付费调用的配置判断，不代表平台在线验证成功。
 - 涉及文件: `model/scheduler_a.py`, `model/market_timing_worker.py`, `model/xhs_acquisition.py`, `model/admin_server.py`, `model/admin.html`, `render.yaml`。
 - 可能后果: 六个核心行业无法达到真实新鲜证据门禁，Cron 退出非零，市场时机证据停止更新。
 - 建议验证方式: 管理端显示 `已验证 / 登录已失效 / 需要检查`；Render Cron 仅失败通知；每次重新登录后以真实采集证据验证，而不是只检查 Cookie 是否存在。

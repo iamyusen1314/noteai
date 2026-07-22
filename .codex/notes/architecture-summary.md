@@ -1,6 +1,6 @@
 # Architecture Summary
 
-Last updated: 2026-07-18
+Last updated: 2026-07-22
 
 ## Confirmed Production Target (partially implemented)
 
@@ -73,6 +73,7 @@ Last updated: 2026-07-18
   - `model/fact_enrichment.py`: Amap/Meituan/search/local fact enrichment.
   - `model/hot_keywords.py`: hot keyword DB and market timing features.
   - `model/scheduler_a.py` and `model/market_timing_worker.py`: market timing/crawler worker flow.
+  - `model/spider_xhs_http.py`: bounded read-only Spider_XHS direct-HTTP adapter for homefeed, search recommendation, note search, note detail, local session health and capped pagination.
   - `model/v04_composite_features.py`, `model/train_v04_composite.py`, related files: V0.4 training/scoring.
 - API structure:
   - Auth: `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`, profile/avatar/password endpoints.
@@ -99,6 +100,13 @@ Last updated: 2026-07-18
   - User endpoints use optional or required bearer auth depending on operation.
   - Paid operations should require user identity through billing checks.
   - Admin endpoints depend on `admin_auth.get_admin_user`.
+
+### Production XHS runtime boundary
+
+- Production uses three browser-free dependency targets: `api-runtime`, `admin-runtime`, and `xhs-http-runtime`. None installs the Python Playwright package, a Chromium binary, or the browser graphics stack.
+- Only the root-marked `xhs-http` role with `NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http` may enter the direct adapter. Collection is suspended unless explicitly unlocked; API/Admin roles and an `xhs-http` role with a missing or different adapter fail closed before signing or network I/O.
+- The direct adapter is fixed to `edith.xiaohongshu.com` and four read-only API paths. It has no login, write, proxy rotation, challenge bypass, arbitrary endpoint, or browser fallback. Cookies are host-filtered, expired values are discarded, and secrets never enter argv, environment, health output, or ordinary errors.
+- Historical Playwright crawler source remains only for explicit `local`/`legacy` development roles and npm Playwright remains frontend E2E tooling. Those source files may still be copied with the application tree, but production dependencies, role entrypoints, and reachable commands provide no browser execution capability.
 
 ## Database
 

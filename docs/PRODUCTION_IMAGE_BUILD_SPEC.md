@@ -9,9 +9,10 @@ access, or provider call.
 - Build only from the full release-candidate commit produced after
   `PROD-PREBUILD-001`; do not use `ff030f5`, the documentation checkpoint, a
   dirty worktree, or a short SHA as provenance.
-- The production output is two role-specific `linux/amd64` images from the same
-  exact commit: `api-runtime` for the public API and `worker-runtime` for Admin,
-  market timing, and crawler jobs. QEMU/cross-build output is not accepted as
+- The production output is three browser-free role-specific `linux/amd64`
+  images from the same exact commit: `api-runtime` for the public API,
+  `admin-runtime` for Admin, and `xhs-http-runtime` for market timing and note
+  tracking. QEMU/cross-build output is not accepted as
   the primary release build; use an isolated native x86_64 Linux builder.
 - Preferred builder: a dedicated, temporary native AMD64 host in Alibaba Cloud
   Shenzhen with no production database route, runtime secrets, or provider
@@ -55,18 +56,22 @@ final local image ID and package SBOM must therefore be retained for acceptance.
 - `api-runtime` installs `model/requirements-api.txt` and must contain neither
   Playwright nor Chromium. It must not add the explicit GLib/GL/X11 graphics
   stack previously carried by the combined image.
-- `worker-runtime` extends the same application/runtime base, installs
-  `model/requirements-worker.txt`, and retains Playwright 1.56.0 plus its
-  Chromium runtime. Image creation checks only that Playwright resolves an
-  installed executable; it must not launch Chromium as root during the build.
+- `admin-runtime` extends the same browser-free application/runtime base and
+  can start only the Admin service.
+- `xhs-http-runtime` extends the browser-free base with only Node,
+  `crypto-js==4.2.0`, and the two SHA-pinned Spider_XHS signer assets. It has no
+  Playwright/Chromium, creator/login/write modules, xray packs or proxy code.
 - `model/requirements.txt` remains the compatibility entry point for local
-  development and CI and resolves to the full worker-capable dependency set.
+  development and CI and resolves to the browser-free API dependency set.
+  `model/requirements-worker.txt` is explicitly legacy local tooling and is
+  never installed by a production image target.
 - Compose selects Docker targets directly. Render uses only the non-secret
-  `NOTEAI_RUNTIME_TARGET` build argument (`api-runtime` or `worker-runtime`) and
+  `NOTEAI_RUNTIME_TARGET` build argument (`api-runtime`, `admin-runtime`, or
+  `xhs-http-runtime`) and
   declares the matching `NOTEAI_RUNTIME_ROLE` at runtime. Never use a credential
   or configuration secret as a build argument.
 
-After a new exact release commit is approved for build, build the two candidates
+After a new exact release commit is approved for build, build the three candidates
 separately on the native AMD64 builder (illustrative commands; not authorized by
 this document):
 
@@ -78,12 +83,19 @@ docker build --platform linux/amd64 --target api-runtime \
   --build-arg NOTEAI_OCI_CREATED="$RELEASE_CREATED" \
   -t "$API_LOCAL_TAG" .
 
-docker build --platform linux/amd64 --target worker-runtime \
+docker build --platform linux/amd64 --target admin-runtime \
   --build-arg NOTEAI_OCI_REVISION="$RELEASE_COMMIT" \
   --build-arg NOTEAI_OCI_SOURCE=https://github.com/iamyusen1314/noteai \
-  --build-arg NOTEAI_OCI_VERSION="$WORKER_VERSION" \
+  --build-arg NOTEAI_OCI_VERSION="$ADMIN_VERSION" \
   --build-arg NOTEAI_OCI_CREATED="$RELEASE_CREATED" \
-  -t "$WORKER_LOCAL_TAG" .
+  -t "$ADMIN_LOCAL_TAG" .
+
+docker build --platform linux/amd64 --target xhs-http-runtime \
+  --build-arg NOTEAI_OCI_REVISION="$RELEASE_COMMIT" \
+  --build-arg NOTEAI_OCI_SOURCE=https://github.com/iamyusen1314/noteai \
+  --build-arg NOTEAI_OCI_VERSION="$XHS_HTTP_VERSION" \
+  --build-arg NOTEAI_OCI_CREATED="$RELEASE_CREATED" \
+  -t "$XHS_HTTP_LOCAL_TAG" .
 ```
 
 The Docker entrypoint fails closed before artifact loading, migration, import or
@@ -94,10 +106,13 @@ exact role allowlist rather than a denylist:
 - API permits only `/app/scripts/render_start_api.sh` and the exact one-time
   `python /app/scripts/render_predeploy.py` command. It also rejects
   `NOTEAI_API_STARTS_TREND_SCHEDULER=1`.
-- Worker permits only the Admin start script, the two packaged worker wrappers,
-  the current exact Compose Admin Uvicorn command, the current direct
-  market-timing/crawler command shapes, the exact pre-deploy command, and the
-  no-argument fail-closed `/bin/false` default.
+- Admin permits only its start script and exact Compose Uvicorn command. It
+  cannot run collection or pre-deploy.
+- XHS HTTP permits only the two packaged collection wrappers, their exact
+  direct market-timing/crawler command shapes, and the no-argument fail-closed
+  `/bin/false` default. It also requires
+  `NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http` and cannot run API, Admin or
+  pre-deploy.
 
 Unknown commands, shell wrappers, role-crossing commands and extra arguments are
 rejected with exit 78. This contract protects the normal image entrypoint path;
@@ -105,27 +120,16 @@ it cannot prevent a platform administrator from explicitly replacing Docker's
 entrypoint. Container-deployment IAM and service definitions remain the security
 boundary for `--entrypoint` or equivalent platform overrides.
 
-## Worker Chromium sandbox boundary
+## XHS HTTP boundary
 
-All repository Chromium launch paths use the shared fail-closed helper in
-`model/chromium_security.py`. It forces Playwright `chromium_sandbox=True`,
-rejects `--no-sandbox`, `--disable-setuid-sandbox`, and `--no-zygote` before a
-launch, and never retries a failed launch with a weaker setting.
-
-Compose applies `no-new-privileges:true` and the vendored Playwright seccomp
-profile to all three `worker-runtime` services, while the API service does not
-receive that profile. The profile is the complete upstream Playwright v1.56.0
-file from
-`https://raw.githubusercontent.com/microsoft/playwright/v1.56.0/utils/docker/seccomp_profile.json`,
-with SHA256
-`cc3e61cabda6bbc1e53e54d27ba4d55a9d3be829b6dd1a596f4a7b31b1cc7849`.
-It denies unspecified syscalls and explicitly permits the user-namespace calls
-needed by Chromium (`clone`, `setns`, and `unshare`).
-
-Render Blueprint has no reviewed custom-seccomp field. A later authorized
-runtime acceptance gate must therefore prove that the platform permits the
-sandboxed launch before either browser role is enabled there. Do not add an
-unsandboxed fallback to make a platform pass.
+The production adapter has a fixed `edith.xiaohongshu.com` host and four API
+paths covering homefeed, search recommendation, note search and note detail.
+It accepts only `GET`/`POST`, disables environment proxy inheritance and
+redirects, caps pagination, and fails closed on suspension, missing/expired
+session, challenge, login, cooldown, signer-integrity or unknown adapter. The
+signer receives `a1` on stdin only. See `SPIDER_XHS_HTTP_PROVENANCE.md` for the
+upstream commit/tree, asset hashes, licensing statement and product-risk
+boundary.
 
 ## Secret and context boundary
 
@@ -141,15 +145,16 @@ Production credentials are runtime-only. Do not use secret values as `ARG`,
 ## Scan and acceptance order
 
 1. Run repository and context secret checks before the build.
-2. Build both role-specific candidates locally on the approved native AMD64
+2. Build all three role-specific candidates locally on the approved native AMD64
    host with separate SBOM/provenance output; do not push.
 3. Before any push, scan each local image filesystem, config and history for
    vulnerabilities, secrets and private material; inspect platform, labels,
    non-root user, entrypoint, command, immutable runtime role, model hashes and
    `mttravel` files without executing a provider request. Additionally prove the
-   API image has no browser capability and the Worker image passes an offline,
-   non-root, sandboxed headless-browser smoke under the reviewed seccomp
-   profile.
+   API, Admin and XHS HTTP images have no Playwright, Chromium, browser launch
+   path or browser-specific OS stack. For the XHS image, verify the two signer
+   hashes, `crypto-js` version, role marker, and offline fake-signer contract;
+   do not make a real XHS request.
 4. Stop and obtain separate approval for `PROD-IMG-002`.
 5. After an approved push, ACR scan and manifest/digest read-back are additional
    verification and do not replace the pre-push local scan.
