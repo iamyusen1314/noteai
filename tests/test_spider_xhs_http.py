@@ -2,6 +2,7 @@ import asyncio
 import inspect
 import json
 import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -349,6 +350,84 @@ class SpiderXHSHTTPAdapterTests(unittest.TestCase):
         self.assertIn("fs.readFileSync(0)", wrapper)
         self.assertNotIn("process.argv[2]", wrapper)
         self.assertNotIn("process.env.a1", wrapper)
+
+    def test_signer_wrapper_basic_and_rap_with_network_disabled(self):
+        synthetic_a1 = "a" * 52
+        version = subprocess.run(
+            ["node", "-p", "require('crypto-js/package.json').version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=str(ROOT),
+            timeout=10,
+            check=False,
+        )
+        self.assertEqual(version.returncode, 0)
+        self.assertEqual(version.stdout.decode("utf-8").strip(), "4.2.0")
+        cases = (
+            (
+                "basic",
+                {
+                    "api": "/api/sns/web/v1/search/recommend?keyword=synthetic",
+                    "data": "",
+                    "a1": synthetic_a1,
+                    "method": "GET",
+                    "needs_rap": False,
+                },
+                {"xs", "xt", "xs_common"},
+            ),
+            (
+                "rap",
+                {
+                    "api": "/api/sns/web/v1/search/notes",
+                    "data": {"keyword": "synthetic", "page": 1},
+                    "a1": synthetic_a1,
+                    "method": "POST",
+                    "needs_rap": True,
+                },
+                {"xs", "xt", "xs_common", "x_rap_param"},
+            ),
+        )
+        preload = ROOT / "tests" / "fixtures" / "xhs_signer_no_network.cjs"
+        for name, payload, expected_keys in cases:
+            with self.subTest(name=name):
+                result = subprocess.run(
+                    ["node", "--require", str(preload), str(xhs.SIGNER_WRAPPER)],
+                    input=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    cwd=str(ROOT),
+                    env={"PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin")},
+                    timeout=10,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(result.stderr, b"")
+                self.assertLessEqual(len(result.stdout), 64 * 1024)
+                response = json.loads(result.stdout.decode("utf-8"))
+                self.assertEqual(set(response), expected_keys)
+                self.assertTrue(all(isinstance(value, str) and value for value in response.values()))
+                self.assertNotIn(synthetic_a1, result.stdout.decode("utf-8"))
+                self.assertNotIn("synthetic", result.stdout.decode("utf-8"))
+
+        rejected = subprocess.run(
+            ["node", "--require", str(preload), str(xhs.SIGNER_WRAPPER)],
+            input=json.dumps({
+                "api": "/api/sns/web/v1/not-allowed",
+                "data": {"keyword": "synthetic"},
+                "a1": synthetic_a1,
+                "method": "POST",
+                "needs_rap": True,
+            }).encode("utf-8"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=str(ROOT),
+            env={"PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin")},
+            timeout=10,
+            check=False,
+        )
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertEqual(rejected.stdout, b"")
+        self.assertEqual(rejected.stderr, b"")
 
 
 class DirectAdapterIntegrationTests(unittest.TestCase):

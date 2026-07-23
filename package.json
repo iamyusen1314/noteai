@@ -9,6 +9,7 @@
     "three": "^0.165.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1"
+    "@playwright/test": "^1.61.1",
+    "crypto-js": "4.2.0"
   }
 }
