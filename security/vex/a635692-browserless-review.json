@@ -1,0 +1,49 @@
+{
+  "review_version": 1,
+  "task": "PROD-BROWSERLESS-VEX-REVIEW-001",
+  "reviewer": "independent-verification-agent:/root/vex_final_verify",
+  "reviewed_at": "2026-07-23T12:15:12Z",
+  "result": "PASS",
+  "application_revision": "a635692a899ee02c6905cd694611c14e0da4594a",
+  "reviewed_cves": [
+    "CVE-2026-13221",
+    "CVE-2026-42496",
+    "CVE-2026-57433",
+    "CVE-2026-8376",
+    "CVE-2025-69720",
+    "CVE-2026-41992",
+    "CVE-2026-42497",
+    "CVE-2026-48962",
+    "CVE-2026-53615",
+    "CVE-2026-54369",
+    "CVE-2026-57432",
+    "CVE-2026-9538"
+  ],
+  "vex_sha256": "cf30b880f95c5b0b889bce79478b2b26aa71b66aee884c7380c9dbf9adde2746",
+  "evidence_sha256": "7deb56837f833075e4579d4aaa0dd26c6ea5d4cbfcf9505ce109324f8af6d1db",
+  "official_schema": {
+    "url": "https://cyclonedx.org/schema/bom-1.6.schema.json",
+    "sha256": "1ebcb88a2c845ecb6ff7bee7aeabdff9422cb0347f3d6875b241bd444b7e098f",
+    "validation_errors": 0
+  },
+  "conclusions": {
+    "schema": "PASS",
+    "twelve_dispositions": "PASS",
+    "bom_links": "PASS",
+    "bom_link_count": 69,
+    "bom_links_per_role": {
+      "api": 23,
+      "admin": 23,
+      "xhs-http": 23
+    },
+    "immutable_evidence": "PASS",
+    "raw_trivy_reports_unchanged": true,
+    "local_image_ids_not_registry_digests": true
+  },
+  "production_exception": false,
+  "acr_authorization": false,
+  "deployment_authorization": false,
+  "production_access": false,
+  "real_supplier_call": false,
+  "review_limit": "Valid only for the exact a635692 local image IDs, retained SBOMs, raw Trivy reports and reviewed runtime constraints. Reissue against immutable ACR registry digests before deployment."
+}

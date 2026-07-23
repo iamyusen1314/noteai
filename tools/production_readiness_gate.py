@@ -26,8 +26,12 @@ ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = ROOT / "model"
 if str(MODEL_DIR) not in sys.path:
     sys.path.insert(0, str(MODEL_DIR))
+TOOLS_DIR = ROOT / "tools"
+if str(TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_DIR))
 
 from artifact_loader import ensure_model_artifacts, sha256_file  # noqa: E402
+from verify_browserless_vex import validate_bundle as validate_browserless_vex_bundle  # noqa: E402
 
 
 REQUIRED_MODEL_ROLES = {"quality_regressor", "ready_classifier", "preference_ranker", "train_report"}
@@ -1035,6 +1039,17 @@ def check_optional_runtime_dependencies() -> list[dict[str, Any]]:
     )]
 
 
+def check_browserless_vex() -> list[dict[str, Any]]:
+    errors = validate_browserless_vex_bundle()
+    return [
+        _ok(
+            "exact_a635692_browserless_vex_bundle",
+            not errors,
+            "; ".join(errors[:5]) if errors else "12 exact-product dispositions independently reviewed",
+        )
+    ]
+
+
 def _line_has_secret_value(line: str) -> tuple[bool, str]:
     match = SECRET_NAME_RE.search(line)
     if not match:
@@ -1050,6 +1065,8 @@ def _line_has_secret_value(line: str) -> tuple[bool, str]:
     if "{" in raw_value or "}" in raw_value:
         return False, ""
     if raw_value.startswith(("re.compile(", "os.environ.get(", "int(", "str(")):
+        return False, ""
+    if raw_value in {"(", "[", "{"}:
         return False, ""
     if re.fullmatch(r"\d+(?:\s*[*+-]\s*\d+)*", raw_value):
         return False, ""
@@ -1124,6 +1141,7 @@ def build_report() -> dict[str, Any]:
         "model_release": check_model_release(),
         "quality_evidence": check_quality_evidence(),
         "ci_and_deployment_config": check_ci_and_deployment_config(),
+        "browserless_vex": check_browserless_vex(),
         "optional_runtime_dependencies": check_optional_runtime_dependencies(),
         "git_hygiene": check_git_hygiene(),
     }

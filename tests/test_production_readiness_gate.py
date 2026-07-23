@@ -356,6 +356,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
     def test_secret_scanner_flags_real_values_but_allows_placeholders(self):
         self.assertEqual(gate._line_has_secret_value("ANTHROPIC_API_KEY=test-key"), (False, ""))
         self.assertEqual(gate._line_has_secret_value("ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}"), (False, ""))
+        self.assertEqual(gate._line_has_secret_value("HARDENING_TOKENS = ("), (False, ""))
 
         fake_key = "abcd1234" + "ef567890abcd1234ef567890"
         has_secret, name = gate._line_has_secret_value(f"AMAP_WEB_KEY={fake_key}")
