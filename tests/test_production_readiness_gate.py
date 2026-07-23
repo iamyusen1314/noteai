@@ -72,7 +72,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertEqual(compose.count("target: api-runtime"), 1)
         self.assertEqual(compose.count("target: admin-runtime"), 1)
         self.assertEqual(compose.count("target: xhs-http-runtime"), 2)
-        self.assertEqual(compose.count("no-new-privileges:true"), 2)
+        self.assertEqual(compose.count("no-new-privileges:true"), 4)
+        self.assertEqual(compose.count("privileged: false"), 4)
+        self.assertEqual(compose.count('user: "999:999"'), 4)
+        self.assertEqual(compose.count("read_only: true"), 4)
+        self.assertEqual(compose.count("cap_drop:"), 4)
         self.assertNotIn("seccomp=", compose)
 
     def test_role_requirements_are_exactly_pinned_and_compatibility_is_recursive(self):

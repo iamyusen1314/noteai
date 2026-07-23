@@ -108,6 +108,52 @@ def _compose_service_block(compose: str, service_name: str) -> str:
     return tail[:match.start()] if match else tail
 
 
+def _compose_services_have_runtime_hardening(
+    compose: str,
+    service_names: tuple[str, ...],
+) -> bool:
+    active_compose = "\n".join(
+        re.sub(r"\s+#.*$", "", line).rstrip()
+        for line in compose.splitlines()
+        if re.sub(r"\s+#.*$", "", line).strip()
+    )
+    required_patterns = (
+        r'^    user:\s*["\']999:999["\']\s*$',
+        r"^    read_only:\s*true\s*$",
+        r"^    privileged:\s*false\s*$",
+        r"^    cap_drop:\s*\n      -\s*ALL\s*$",
+        r"^    security_opt:\s*\n      -\s*no-new-privileges:true\s*$",
+        r"^      -\s*/tmp:rw,noexec,nosuid,nodev,size=512m,"
+        r"mode=1777,uid=999,gid=999\s*$",
+    )
+    forbidden_patterns = (
+        r'^\s*privileged:\s*["\']?true["\']?\s*$',
+        r"^\s*cap_add\s*:",
+        r"^\s*devices\s*:",
+        r"^\s*device_cgroup_rules\s*:",
+        r'^\s*(?:network_mode|pid|ipc):\s*["\']?host["\']?\s*$',
+        r"\bseccomp=unconfined\b",
+        r"^\s*-\s*[\"']?(?:SYS_ADMIN|SYS_RAWIO|MKNOD)[\"']?\s*$",
+    )
+    return (
+        all(
+            all(
+                re.search(
+                    pattern,
+                    _compose_service_block(active_compose, service),
+                    re.MULTILINE,
+                )
+                for pattern in required_patterns
+            )
+            for service in service_names
+        )
+        and not any(
+            re.search(pattern, active_compose, re.MULTILINE)
+            for pattern in forbidden_patterns
+        )
+    )
+
+
 def _normalize_model_path(raw_path: str) -> str:
     path = Path(raw_path)
     if path.is_absolute():
@@ -555,6 +601,9 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     dependabot = (ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    production_compose = (
+        ROOT / "deploy" / "production" / "docker-compose.yml"
+    ).read_text(encoding="utf-8")
     requirements_api = (MODEL_DIR / "requirements-api.txt").read_text(encoding="utf-8")
     requirements_worker = (MODEL_DIR / "requirements-worker.txt").read_text(encoding="utf-8")
     requirements_compat = (MODEL_DIR / "requirements.txt").read_text(encoding="utf-8")
@@ -760,6 +809,33 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             compose.count("NOTEAI_XHS_COLLECTION_SUSPENDED=${NOTEAI_XHS_COLLECTION_SUSPENDED:-1}") == 2,
         ),
         _ok(
+            "compose_all_browser_free_roles_have_least_privilege_runtime",
+            _compose_services_have_runtime_hardening(
+                compose,
+                (
+                    "noteai",
+                    "noteai-admin",
+                    "noteai-trends-worker",
+                    "noteai-tracking-worker",
+                ),
+            ),
+        ),
+        _ok(
+            "production_compose_requires_digest_images_and_least_privilege_runtime",
+            "build:" not in production_compose
+            and _compose_services_have_runtime_hardening(
+                production_compose,
+                ("api", "admin", "xhs-trends", "xhs-tracking"),
+            )
+            and "${NOTEAI_API_IMAGE_REPOSITORY:?set NOTEAI_API_IMAGE_REPOSITORY}@sha256:${NOTEAI_API_IMAGE_DIGEST_HEX:?set NOTEAI_API_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
+            and "${NOTEAI_ADMIN_IMAGE_REPOSITORY:?set NOTEAI_ADMIN_IMAGE_REPOSITORY}@sha256:${NOTEAI_ADMIN_IMAGE_DIGEST_HEX:?set NOTEAI_ADMIN_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
+            and production_compose.count(
+                "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+            ) == 2
+            and production_compose.count("target: /app/model/data") == 4
+            and "target: /app/model/artifacts" not in production_compose,
+        ),
+        _ok(
             "direct_adapter_is_read_only_and_proxy_free",
             all(path in xhs_adapter for path in (
                 "/api/sns/web/v1/homefeed",
@@ -789,11 +865,16 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "compose_has_no_production_browser_security_profile",
             all(
                 "no-new-privileges:true" in _compose_service_block(compose, service)
-                for service in ("noteai-trends-worker", "noteai-tracking-worker")
+                for service in (
+                    "noteai",
+                    "noteai-admin",
+                    "noteai-trends-worker",
+                    "noteai-tracking-worker",
+                )
             )
             and "seccomp=" not in _compose_service_block(compose, "noteai")
             and "seccomp=" not in compose
-            and "privileged:" not in compose
+            and "privileged: true" not in compose
             and "seccomp=unconfined" not in compose
             and "SYS_ADMIN" not in compose,
         ),
