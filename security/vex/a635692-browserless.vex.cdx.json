@@ -3,16 +3,16 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
   "serialNumber": "urn:uuid:45e0f97f-7223-4658-979c-270a841cb13c",
-  "version": 1,
+  "version": 2,
   "metadata": {
-    "timestamp": "2026-07-23T12:03:25Z",
+    "timestamp": "2026-07-23T13:48:03Z",
     "authors": [
       {
         "name": "NoteAI Production Release Management"
       }
     ],
     "component": {
-      "bom-ref": "urn:noteai:release:a635692-browserless-tri-role",
+      "bom-ref": "urn:noteai:release:a635692-browserless-tri-role-acr",
       "type": "application",
       "group": "NoteAI",
       "name": "browserless-tri-role-release-candidate",
@@ -20,7 +20,7 @@
       "properties": [
         {
           "name": "noteai:task",
-          "value": "PROD-BROWSERLESS-VEX-REVIEW-001"
+          "value": "PROD-IMG-002"
         },
         {
           "name": "noteai:platform",
@@ -43,7 +43,7 @@
   },
   "components": [
     {
-      "bom-ref": "urn:noteai:container:api:a635692-local",
+      "bom-ref": "urn:noteai:container:api:sha256-17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1",
       "type": "container",
       "group": "NoteAI",
       "name": "api-runtime",
@@ -63,6 +63,10 @@
       "properties": [
         {
           "name": "noteai:image-tag",
+          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app:git-a635692-amd64-api-r1"
+        },
+        {
+          "name": "noteai:local-image-tag",
           "value": "noteai-local:git-a635692-amd64-api-r1"
         },
         {
@@ -71,7 +75,11 @@
         },
         {
           "name": "noteai:registry-digest",
-          "value": "not-issued"
+          "value": "sha256:17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1"
+        },
+        {
+          "name": "noteai:registry-reference",
+          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1"
         },
         {
           "name": "noteai:application-revision",
@@ -84,7 +92,7 @@
       ]
     },
     {
-      "bom-ref": "urn:noteai:container:admin:a635692-local",
+      "bom-ref": "urn:noteai:container:admin:sha256-d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733",
       "type": "container",
       "group": "NoteAI",
       "name": "admin-runtime",
@@ -104,6 +112,10 @@
       "properties": [
         {
           "name": "noteai:image-tag",
+          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app:git-a635692-amd64-admin-r1"
+        },
+        {
+          "name": "noteai:local-image-tag",
           "value": "noteai-local:git-a635692-amd64-admin-r1"
         },
         {
@@ -112,7 +124,11 @@
         },
         {
           "name": "noteai:registry-digest",
-          "value": "not-issued"
+          "value": "sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733"
+        },
+        {
+          "name": "noteai:registry-reference",
+          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733"
         },
         {
           "name": "noteai:application-revision",
@@ -125,7 +141,7 @@
       ]
     },
     {
-      "bom-ref": "urn:noteai:container:xhs-http:a635692-local",
+      "bom-ref": "urn:noteai:container:xhs-http:sha256-452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af",
       "type": "container",
       "group": "NoteAI",
       "name": "xhs-http-runtime",
@@ -145,6 +161,10 @@
       "properties": [
         {
           "name": "noteai:image-tag",
+          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app:git-a635692-amd64-xhs-http-r1"
+        },
+        {
+          "name": "noteai:local-image-tag",
           "value": "noteai-local:git-a635692-amd64-xhs-http-r1"
         },
         {
@@ -153,7 +173,11 @@
         },
         {
           "name": "noteai:registry-digest",
-          "value": "not-issued"
+          "value": "sha256:452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af"
+        },
+        {
+          "name": "noteai:registry-reference",
+          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af"
         },
         {
           "name": "noteai:application-revision",

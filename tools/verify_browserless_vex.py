@@ -2,8 +2,9 @@
 """Validate the exact-product browserless VEX evidence bundle.
 
 This verifier is intentionally offline. It does not apply VEX to Trivy output,
-contact vulnerability feeds, inspect registries, or treat local image IDs as
-registry digests.
+contact vulnerability feeds, or inspect registries. It verifies the exact ACR
+manifest digests recorded by the separately authorized PROD-IMG-002 read-back
+without ever treating local image IDs as registry digests.
 """
 
 from __future__ import annotations
@@ -24,6 +25,23 @@ APPLICATION_REVISION = "a635692a899ee02c6905cd694611c14e0da4594a"
 ROLE_NAMES = ("api", "admin", "xhs-http")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 LOCAL_IMAGE_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+REGISTRY_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+REGISTRY_HOST = "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com"
+REGISTRY_REPOSITORY = f"{REGISTRY_HOST}/noteai/app"
+EXPECTED_REGISTRY = {
+    "api": {
+        "tag": "git-a635692-amd64-api-r1",
+        "digest": "sha256:17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1",
+    },
+    "admin": {
+        "tag": "git-a635692-amd64-admin-r1",
+        "digest": "sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733",
+    },
+    "xhs-http": {
+        "tag": "git-a635692-amd64-xhs-http-r1",
+        "digest": "sha256:452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af",
+    },
+}
 
 EXPECTED_PACKAGES = {
     "CVE-2026-13221": ("perl-base",),
@@ -82,7 +100,8 @@ EXPECTED_COMPONENTS = {
     "util-linux": "pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6",
 }
 EXPECTED_EVIDENCE = {
-    "task": "PROD-BROWSERLESS-VEX-REVIEW-001",
+    "manifest_version": 2,
+    "task": "PROD-IMG-002",
     "application_revision": APPLICATION_REVISION,
     "platform": "linux/amd64",
     "base_image": {
@@ -101,11 +120,30 @@ EXPECTED_EVIDENCE = {
         "ignore_unfixed": False,
         "raw_report_is_canonical": True,
     },
+    "registry": {
+        "provider": "Alibaba Cloud ACR Enterprise",
+        "region": "cn-shenzhen",
+        "instance_id": "cri-xpuhaclqkxlwy47t",
+        "repository": "noteai/app",
+        "public_host": REGISTRY_HOST,
+        "tags_immutable": True,
+        "readback_method": "authenticated tag pull plus local OCI inspect",
+        "temporary_access_cleanup": {
+            "docker_logout": True,
+            "builder_cidr_removed": True,
+            "public_endpoint_disabled": True,
+            "session_manager_disabled": True,
+            "security_group_ingress_modified": False,
+        },
+    },
     "roles": {
         "api": {
-            "image": "noteai-local:git-a635692-amd64-api-r1",
+            "image": f"{REGISTRY_REPOSITORY}:git-a635692-amd64-api-r1",
+            "local_image": "noteai-local:git-a635692-amd64-api-r1",
             "local_image_id": "sha256:b1983bab928ef93495d8be020030917d4ae54364234390047c3163af5414fedb",
-            "registry_digest": None,
+            "registry_digest": EXPECTED_REGISTRY["api"]["digest"],
+            "registry_reference": f"{REGISTRY_REPOSITORY}@{EXPECTED_REGISTRY['api']['digest']}",
+            "registry_platform": "linux/amd64",
             "sbom_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/api-sbom.cdx.json",
             "sbom_sha256": "59a4cabaa7debfb81684ac3a77c7467454d1c98ef04d64aeade4850b07d918be",
             "sbom_serial_number": "urn:uuid:9b5dc0cf-276b-42a8-8cde-aae5d0676dc5",
@@ -118,9 +156,12 @@ EXPECTED_EVIDENCE = {
             "runtime_constraints_sha256": "f0a1925f1b0711d145bc2899443c1a56002e78becbbe24b57175ce62d182d386",
         },
         "admin": {
-            "image": "noteai-local:git-a635692-amd64-admin-r1",
+            "image": f"{REGISTRY_REPOSITORY}:git-a635692-amd64-admin-r1",
+            "local_image": "noteai-local:git-a635692-amd64-admin-r1",
             "local_image_id": "sha256:2283095764622e373e30b51ba749819751e6bfb0c37c6bb82e2d3bfe4937760f",
-            "registry_digest": None,
+            "registry_digest": EXPECTED_REGISTRY["admin"]["digest"],
+            "registry_reference": f"{REGISTRY_REPOSITORY}@{EXPECTED_REGISTRY['admin']['digest']}",
+            "registry_platform": "linux/amd64",
             "sbom_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/admin-sbom.cdx.json",
             "sbom_sha256": "136ace76eaaaed1d7ded40d54bb5162cbd28bb79069a310694913e847d1f6cd7",
             "sbom_serial_number": "urn:uuid:ae2ab874-1774-4af7-ad42-ce7cad5c876b",
@@ -133,9 +174,12 @@ EXPECTED_EVIDENCE = {
             "runtime_constraints_sha256": "dfba225a01155562e3c3e776c9dbdacaa06791fc82269edaa77da21346930ff1",
         },
         "xhs-http": {
-            "image": "noteai-local:git-a635692-amd64-xhs-http-r1",
+            "image": f"{REGISTRY_REPOSITORY}:git-a635692-amd64-xhs-http-r1",
+            "local_image": "noteai-local:git-a635692-amd64-xhs-http-r1",
             "local_image_id": "sha256:5b44114d4bd9c28a8e93c39140466c542e8babeead038fb0d1cfe45c3cd75966",
-            "registry_digest": None,
+            "registry_digest": EXPECTED_REGISTRY["xhs-http"]["digest"],
+            "registry_reference": f"{REGISTRY_REPOSITORY}@{EXPECTED_REGISTRY['xhs-http']['digest']}",
+            "registry_platform": "linux/amd64",
             "sbom_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/xhs-http-sbom.cdx.json",
             "sbom_sha256": "a27663349c7af6ebdfdfbd16bf6ef2c189b420115405304ac26565249aa6a92e",
             "sbom_serial_number": "urn:uuid:4073a9eb-1d9b-49b3-8dc1-7bfbfec21514",
@@ -229,7 +273,7 @@ def validate_documents(
     errors: list[str] = []
 
     _check_expected_subset(evidence, EXPECTED_EVIDENCE, "evidence", errors)
-    if evidence.get("task") != "PROD-BROWSERLESS-VEX-REVIEW-001":
+    if evidence.get("task") != "PROD-IMG-002":
         errors.append("evidence task mismatch")
     if evidence.get("application_revision") != APPLICATION_REVISION:
         errors.append("evidence application revision mismatch")
@@ -243,8 +287,22 @@ def validate_documents(
         role = roles.get(role_name) or {}
         if not LOCAL_IMAGE_ID_RE.fullmatch(str(role.get("local_image_id", ""))):
             errors.append(f"{role_name}: invalid local image ID")
-        if role.get("registry_digest") is not None:
-            errors.append(f"{role_name}: local candidate must not claim a registry digest")
+        registry_digest = str(role.get("registry_digest", ""))
+        if not REGISTRY_DIGEST_RE.fullmatch(registry_digest):
+            errors.append(f"{role_name}: invalid registry manifest digest")
+        if registry_digest == role.get("local_image_id"):
+            errors.append(f"{role_name}: registry digest must not equal local image ID")
+        expected_registry = EXPECTED_REGISTRY[role_name]
+        if registry_digest != expected_registry["digest"]:
+            errors.append(f"{role_name}: unexpected registry manifest digest")
+        expected_tag = f"{REGISTRY_REPOSITORY}:{expected_registry['tag']}"
+        expected_reference = f"{REGISTRY_REPOSITORY}@{expected_registry['digest']}"
+        if role.get("image") != expected_tag:
+            errors.append(f"{role_name}: registry tag mismatch")
+        if role.get("registry_reference") != expected_reference:
+            errors.append(f"{role_name}: immutable registry reference mismatch")
+        if role.get("registry_platform") != "linux/amd64":
+            errors.append(f"{role_name}: registry platform is not linux/amd64")
         if not str(role.get("sbom_serial_number", "")).startswith("urn:uuid:"):
             errors.append(f"{role_name}: invalid SBOM serial number")
         if role.get("sbom_version") != 1:
@@ -282,6 +340,8 @@ def validate_documents(
     ):
         if scope.get(key) is not False:
             errors.append(f"scope limit must remain false: {key}")
+    if scope.get("registry_digest_reissue_complete") is not True:
+        errors.append("registry digest VEX reissue is not complete")
 
     components = evidence.get("components") or {}
     if components != EXPECTED_COMPONENTS:
@@ -296,12 +356,18 @@ def validate_documents(
         errors.append("VEX is not CycloneDX 1.6")
     if not str(vex.get("serialNumber", "")).startswith("urn:uuid:"):
         errors.append("VEX serialNumber is invalid")
-    if vex.get("version") != 1:
-        errors.append("VEX document version must be 1")
+    if vex.get("version") != 2:
+        errors.append("VEX registry reissue document version must be 2")
 
     metadata_component = (vex.get("metadata") or {}).get("component") or {}
     if metadata_component.get("version") != APPLICATION_REVISION:
         errors.append("VEX metadata component is not bound to a635692")
+    metadata_properties = {
+        prop.get("name"): prop.get("value")
+        for prop in metadata_component.get("properties") or []
+    }
+    if metadata_properties.get("noteai:task") != "PROD-IMG-002":
+        errors.append("VEX metadata task is not PROD-IMG-002")
 
     vex_components = vex.get("components") or []
     components_by_name = {item.get("name"): item for item in vex_components}
@@ -318,8 +384,20 @@ def validate_documents(
             errors.append(f"{role_name}: VEX local image ID mismatch")
         if properties.get("noteai:application-revision") != APPLICATION_REVISION:
             errors.append(f"{role_name}: VEX application revision mismatch")
-        if properties.get("noteai:registry-digest") != "not-issued":
-            errors.append(f"{role_name}: VEX must not claim an ACR digest")
+        if properties.get("noteai:image-tag") != role.get("image"):
+            errors.append(f"{role_name}: VEX registry tag mismatch")
+        if properties.get("noteai:local-image-tag") != role.get("local_image"):
+            errors.append(f"{role_name}: VEX local image tag mismatch")
+        if properties.get("noteai:registry-digest") != role.get("registry_digest"):
+            errors.append(f"{role_name}: VEX registry digest mismatch")
+        if properties.get("noteai:registry-reference") != role.get("registry_reference"):
+            errors.append(f"{role_name}: VEX immutable registry reference mismatch")
+        expected_bom_ref = (
+            f"urn:noteai:container:{role_name}:"
+            f"{role.get('registry_digest', '').replace(':', '-')}"
+        )
+        if item.get("bom-ref") != expected_bom_ref:
+            errors.append(f"{role_name}: VEX component BOM reference is not digest-bound")
         bom_refs = [
             ref
             for ref in item.get("externalReferences") or []
@@ -369,22 +447,58 @@ def validate_documents(
             errors.append(f"{cve}: exact SBOM BOM-Link set mismatch")
 
     if review is not None:
-        if review.get("task") != "PROD-BROWSERLESS-VEX-REVIEW-001":
-            errors.append("independent review task mismatch")
-        if review.get("reviewer") != "independent-verification-agent:/root/vex_final_verify":
-            errors.append("independent reviewer identity mismatch")
+        if review.get("review_version") != 2:
+            errors.append("registry reissue review version mismatch")
+        if review.get("task") != "PROD-IMG-002":
+            errors.append("registry reissue review task mismatch")
+        if review.get("reviewer") != "production-release-manager:/root":
+            errors.append("registry reissue reviewer identity mismatch")
         if review.get("result") != "PASS":
-            errors.append("independent review has not passed")
+            errors.append("registry reissue review has not passed")
         if review.get("application_revision") != APPLICATION_REVISION:
-            errors.append("independent review revision mismatch")
+            errors.append("registry reissue review revision mismatch")
         if set(review.get("reviewed_cves") or []) != set(EXPECTED_PACKAGES):
-            errors.append("independent review CVE set mismatch")
+            errors.append("registry reissue review CVE set mismatch")
+        prior_review = review.get("prior_independent_review") or {}
+        if (
+            prior_review.get("task") != "PROD-BROWSERLESS-VEX-REVIEW-001"
+            or prior_review.get("reviewer")
+            != "independent-verification-agent:/root/vex_final_verify"
+            or prior_review.get("git_commit")
+            != "5b3249995522a22dc600ee7501f9328121f4497c"
+            or prior_review.get("result") != "PASS"
+            or prior_review.get("vex_sha256")
+            != "cf30b880f95c5b0b889bce79478b2b26aa71b66aee884c7380c9dbf9adde2746"
+            or prior_review.get("evidence_sha256")
+            != "7deb56837f833075e4579d4aaa0dd26c6ea5d4cbfcf9505ce109324f8af6d1db"
+        ):
+            errors.append("prior independent disposition review binding mismatch")
         if review.get("production_exception") is not False:
-            errors.append("independent review must not grant a production exception")
+            errors.append("registry reissue must not grant a production exception")
         if review.get("acr_authorization") is not False:
-            errors.append("independent review must not authorize ACR")
+            errors.append("registry reissue must not grant future ACR authorization")
         if review.get("deployment_authorization") is not False:
-            errors.append("independent review must not authorize deployment")
+            errors.append("registry reissue must not authorize deployment")
+        if review.get("acr_push_completed") is not True:
+            errors.append("registry reissue does not record the completed ACR push")
+        expected_bindings = {
+            role_name: (
+                f"{REGISTRY_REPOSITORY}@"
+                f"{EXPECTED_REGISTRY[role_name]['digest']}"
+            )
+            for role_name in ROLE_NAMES
+        }
+        if review.get("registry_bindings") != expected_bindings:
+            errors.append("registry reissue review digest bindings mismatch")
+        official_schema = review.get("official_schema") or {}
+        if (
+            official_schema.get("url")
+            != "https://cyclonedx.org/schema/bom-1.6.schema.json"
+            or official_schema.get("sha256")
+            != "1ebcb88a2c845ecb6ff7bee7aeabdff9422cb0347f3d6875b241bd444b7e098f"
+            or official_schema.get("validation_errors") != 0
+        ):
+            errors.append("registry reissue official schema evidence mismatch")
         conclusions = review.get("conclusions") or {}
         if (
             conclusions.get("schema") != "PASS"
@@ -396,8 +510,12 @@ def validate_documents(
             or conclusions.get("immutable_evidence") != "PASS"
             or conclusions.get("raw_trivy_reports_unchanged") is not True
             or conclusions.get("local_image_ids_not_registry_digests") is not True
+            or conclusions.get("registry_manifest_digests_bound") is not True
+            or conclusions.get("registry_tags_read_back") is not True
+            or conclusions.get("temporary_access_cleanup") is not True
+            or conclusions.get("dispositions_unchanged_from_independent_review") is not True
         ):
-            errors.append("independent review conclusions are incomplete")
+            errors.append("registry reissue review conclusions are incomplete")
 
     return errors
 
@@ -425,9 +543,9 @@ def validate_bundle(root: Path = ROOT, *, require_review: bool = True) -> list[s
     )
     if review is not None:
         if review.get("vex_sha256") != _sha256(vex_path):
-            errors.append("independent review VEX SHA256 mismatch")
+            errors.append("registry reissue review VEX SHA256 mismatch")
         if review.get("evidence_sha256") != _sha256(evidence_path):
-            errors.append("independent review evidence SHA256 mismatch")
+            errors.append("registry reissue review evidence SHA256 mismatch")
     return errors
 
 
@@ -436,7 +554,7 @@ def main() -> int:
     parser.add_argument(
         "--without-review",
         action="store_true",
-        help="validate authoring inputs before the independent review record exists",
+        help="validate authoring inputs before the registry reissue review record exists",
     )
     args = parser.parse_args()
     errors = validate_bundle(require_review=not args.without_review)

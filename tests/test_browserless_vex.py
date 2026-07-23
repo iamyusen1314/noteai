@@ -49,11 +49,36 @@ class BrowserlessVexTests(unittest.TestCase):
             errors,
         )
 
-    def test_rejects_registry_digest_claim_for_local_id(self):
+    def test_rejects_local_image_id_as_registry_digest(self):
         evidence = copy.deepcopy(self.evidence)
         evidence["roles"]["api"]["registry_digest"] = evidence["roles"]["api"]["local_image_id"]
         errors = verifier.validate_documents(self.vex, evidence)
-        self.assertIn("api: local candidate must not claim a registry digest", errors)
+        self.assertIn("api: registry digest must not equal local image ID", errors)
+
+    def test_rejects_registry_digest_binding_drift(self):
+        evidence = copy.deepcopy(self.evidence)
+        vex = copy.deepcopy(self.vex)
+        fake_digest = "sha256:" + ("0" * 64)
+        evidence["roles"]["api"]["registry_digest"] = fake_digest
+        evidence["roles"]["api"]["registry_reference"] = (
+            f"{verifier.REGISTRY_REPOSITORY}@{fake_digest}"
+        )
+        api_component = next(
+            item for item in vex["components"] if item["name"] == "api-runtime"
+        )
+        api_component["bom-ref"] = (
+            "urn:noteai:container:api:" + fake_digest.replace(":", "-")
+        )
+        for prop in api_component["properties"]:
+            if prop["name"] == "noteai:registry-digest":
+                prop["value"] = fake_digest
+            if prop["name"] == "noteai:registry-reference":
+                prop["value"] = evidence["roles"]["api"]["registry_reference"]
+        errors = verifier.validate_documents(vex, evidence)
+        self.assertIn(
+            "evidence.roles.api.registry_digest: immutable evidence mismatch",
+            errors,
+        )
 
     def test_rejects_coordinated_evidence_identity_tampering(self):
         evidence = copy.deepcopy(self.evidence)
