@@ -102,6 +102,35 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         self.assertNotIn("@${NOTEAI_API_IMAGE_DIGEST", compose)
         self.assertNotIn("@${NOTEAI_ADMIN_IMAGE_DIGEST", compose)
         self.assertNotIn("@${NOTEAI_XHS_IMAGE_DIGEST", compose)
+        self.assertEqual(
+            compose.count("${NOTEAI_API_ENV_FILE:-/etc/noteai/api.env}"),
+            1,
+        )
+        self.assertEqual(
+            compose.count("${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"),
+            1,
+        )
+        self.assertEqual(
+            compose.count("${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"),
+            2,
+        )
+        self.assertIn(
+            "${NOTEAI_API_ENV_FILE:-/etc/noteai/api.env}",
+            service_block(compose, "api"),
+        )
+        self.assertIn(
+            "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}",
+            service_block(compose, "admin"),
+        )
+        self.assertIn(
+            "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}",
+            service_block(compose, "xhs-trends"),
+        )
+        self.assertIn(
+            "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}",
+            service_block(compose, "xhs-tracking"),
+        )
+        self.assertNotIn("NOTEAI_PRODUCTION_ENV_FILE", compose)
         self.assertEqual(compose.count("target: /app/model/data"), 4)
         self.assertNotIn("target: /app/model/artifacts", compose)
         self.assertNotIn("NOTEAI_ENABLE_CLOUD_MODEL_MUTATION: \"1\"", compose)

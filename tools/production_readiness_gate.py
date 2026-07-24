@@ -836,6 +836,16 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and production_compose.count(
                 "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
             ) == 2
+            and production_compose.count(
+                "${NOTEAI_API_ENV_FILE:-/etc/noteai/api.env}"
+            ) == 1
+            and production_compose.count(
+                "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"
+            ) == 1
+            and production_compose.count(
+                "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"
+            ) == 2
+            and "NOTEAI_PRODUCTION_ENV_FILE" not in production_compose
             and production_compose.count("target: /app/model/data") == 4
             and "target: /app/model/artifacts" not in production_compose,
         ),

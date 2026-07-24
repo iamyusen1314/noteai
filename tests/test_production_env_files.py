@@ -1,0 +1,239 @@
+import contextlib
+import io
+import os
+import stat
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+from scripts import validate_production_env_files as validator
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SAFE_TEST_SECRET_VALUE = "test-key"
+SAFE_DISABLED_VALUE = "0"
+
+
+class ProductionEnvFileTests(unittest.TestCase):
+    def _env_file(self, directory: Path, name: str, body: str) -> Path:
+        path = directory / name
+        path.write_text(body, encoding="utf-8")
+        path.chmod(stat.S_IRUSR | stat.S_IWUSR)
+        return path
+
+    def test_production_compose_uses_three_role_specific_env_inputs(self):
+        compose = (
+            ROOT / "deploy" / "production" / "docker-compose.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(
+            compose.count(
+                "${NOTEAI_API_ENV_FILE:-/etc/noteai/api.env}"
+            ),
+            1,
+        )
+        self.assertEqual(
+            compose.count(
+                "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"
+            ),
+            1,
+        )
+        self.assertEqual(
+            compose.count(
+                "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"
+            ),
+            2,
+        )
+        self.assertNotIn("NOTEAI_PRODUCTION_ENV_FILE", compose)
+        self.assertNotIn("/etc/noteai/runtime.env", compose)
+
+    def test_each_role_accepts_only_its_documented_secret_names(self):
+        with tempfile.TemporaryDirectory() as raw_directory:
+            directory = Path(raw_directory)
+            role_paths = (
+                (
+                    "api",
+                    self._env_file(
+                        directory,
+                        "api.env",
+                        f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
+                        f"ANTHROPIC_API_KEY={SAFE_TEST_SECRET_VALUE}\n"
+                        "NOTEAI_FACT_SEARCH=0\n",
+                    ),
+                ),
+                (
+                    "admin",
+                    self._env_file(
+                        directory,
+                        "admin.env",
+                        f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
+                        f"ADMIN_PASSWORD={SAFE_TEST_SECRET_VALUE}\n"
+                        "ADMIN_USERNAME=synthetic\n",
+                    ),
+                ),
+                (
+                    "xhs",
+                    self._env_file(
+                        directory,
+                        "xhs.env",
+                        f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
+                        "NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN="
+                        f"{SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_XHS_TOKEN_DISCOVERY={SAFE_DISABLED_VALUE}\n"
+                        "NOTEAI_XHS_COLLECTION_SUSPENDED=1\n",
+                    ),
+                ),
+            )
+
+            results = validator.validate_all_role_env_files(role_paths)
+
+        self.assertEqual([result["role"] for result in results], ["api", "admin", "xhs"])
+        self.assertEqual(
+            [result["secret_key_count"] for result in results],
+            [2, 2, 2],
+        )
+
+    def test_cross_role_and_unknown_secret_names_fail_closed(self):
+        cases = (
+            ("api", "ADMIN_PASSWORD"),
+            ("admin", "ANTHROPIC_API_KEY"),
+            ("xhs", "MOONSHOT_API_KEY"),
+            ("api", "UNREVIEWED_VENDOR_TOKEN"),
+            ("xhs", "XHS_SESSION_COOKIE"),
+        )
+        with tempfile.TemporaryDirectory() as raw_directory:
+            directory = Path(raw_directory)
+            for index, (role, key) in enumerate(cases):
+                with self.subTest(role=role, key=key):
+                    path = self._env_file(
+                        directory,
+                        f"{index}.env",
+                        f"{key}=synthetic\n",
+                    )
+                    with self.assertRaisesRegex(
+                        validator.EnvFileValidationError,
+                        key,
+                    ):
+                        validator.validate_role_env_file(role, path)
+
+    def test_roles_cannot_reuse_the_same_env_file(self):
+        with tempfile.TemporaryDirectory() as raw_directory:
+            directory = Path(raw_directory)
+            shared = self._env_file(
+                directory,
+                "shared.env",
+                f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n",
+            )
+
+            with self.assertRaisesRegex(
+                validator.EnvFileValidationError,
+                "must use distinct env files",
+            ):
+                validator.validate_all_role_env_files(
+                    (("api", shared), ("admin", shared), ("xhs", shared))
+                )
+
+    def test_duplicate_invalid_and_overexposed_files_fail(self):
+        with tempfile.TemporaryDirectory() as raw_directory:
+            directory = Path(raw_directory)
+            duplicate = self._env_file(
+                directory,
+                "duplicate.env",
+                f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
+                f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n",
+            )
+            invalid = self._env_file(
+                directory,
+                "invalid.env",
+                "NOT A KEY=synthetic\n",
+            )
+            exposed = self._env_file(
+                directory,
+                "exposed.env",
+                f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n",
+            )
+            exposed.chmod(0o644)
+
+            with self.assertRaisesRegex(
+                validator.EnvFileValidationError,
+                "duplicate key DATABASE_URL",
+            ):
+                validator.validate_role_env_file("api", duplicate)
+            with self.assertRaisesRegex(
+                validator.EnvFileValidationError,
+                "invalid environment key name",
+            ):
+                validator.validate_role_env_file("api", invalid)
+            with self.assertRaisesRegex(
+                validator.EnvFileValidationError,
+                "must not be group/world accessible",
+            ):
+                validator.validate_role_env_file("api", exposed)
+
+    def test_symlink_env_file_fails(self):
+        with tempfile.TemporaryDirectory() as raw_directory:
+            directory = Path(raw_directory)
+            target = self._env_file(
+                directory,
+                "target.env",
+                f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n",
+            )
+            link = directory / "link.env"
+            link.symlink_to(target)
+
+            with self.assertRaisesRegex(
+                validator.EnvFileValidationError,
+                "missing or not regular",
+            ):
+                validator.validate_role_env_file("api", link)
+
+    def test_cli_reports_counts_without_printing_values(self):
+        synthetic_secret = "never-print-this-synthetic-value"
+        with tempfile.TemporaryDirectory() as raw_directory:
+            directory = Path(raw_directory)
+            api = self._env_file(
+                directory,
+                "api.env",
+                f"DATABASE_URL={synthetic_secret}\n",
+            )
+            admin = self._env_file(
+                directory,
+                "admin.env",
+                f"ADMIN_PASSWORD={synthetic_secret}\n",
+            )
+            xhs = self._env_file(
+                directory,
+                "xhs.env",
+                f"NOTEAI_AUTHORIZED_TREND_TOKEN={synthetic_secret}\n",
+            )
+            output = io.StringIO()
+            argv = [
+                "validate_production_env_files.py",
+                "--api",
+                os.fspath(api),
+                "--admin",
+                os.fspath(admin),
+                "--xhs",
+                os.fspath(xhs),
+            ]
+            with mock.patch("sys.argv", argv), contextlib.redirect_stdout(output):
+                exit_code = validator.main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertNotIn(synthetic_secret, output.getvalue())
+        self.assertEqual(output.getvalue().count("PASS role="), 3)
+
+    def test_documented_allowlists_cover_every_implemented_secret_key(self):
+        documentation = (ROOT / "docs" / "DEPLOYMENT_SECRETS.md").read_text(
+            encoding="utf-8"
+        )
+
+        for role, names in validator.ROLE_ALLOWED_SECRET_KEYS.items():
+            with self.subTest(role=role):
+                for name in names:
+                    self.assertIn(f"`{name}`", documentation)
+
+
+if __name__ == "__main__":
+    unittest.main()

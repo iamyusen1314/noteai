@@ -13,7 +13,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
     env_file:
-      - "${NOTEAI_PRODUCTION_ENV_FILE:-/etc/noteai/runtime.env}"
+      - "${NOTEAI_API_ENV_FILE:-/etc/noteai/api.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: api
       NOTEAI_CLOUD_RUNTIME: "1"
@@ -47,7 +47,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
     env_file:
-      - "${NOTEAI_PRODUCTION_ENV_FILE:-/etc/noteai/runtime.env}"
+      - "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: admin
       NOTEAI_CLOUD_RUNTIME: "1"
@@ -80,7 +80,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
     env_file:
-      - "${NOTEAI_PRODUCTION_ENV_FILE:-/etc/noteai/runtime.env}"
+      - "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: xhs-http
       NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
@@ -106,7 +106,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
     env_file:
-      - "${NOTEAI_PRODUCTION_ENV_FILE:-/etc/noteai/runtime.env}"
+      - "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: xhs-http
       NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"

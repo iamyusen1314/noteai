@@ -24,9 +24,11 @@ variables separately so the resulting image reference always contains
 `@sha256:`. Each `*_IMAGE_DIGEST_HEX` value must be exactly 64 lowercase
 hexadecimal characters and must not include `sha256:`, a tag, or repository
 text.
-The runtime environment file is external to the repository and must remain
-root-readable only. Never print it or pass its values through image build
-arguments.
+The three role environment files are external to the repository, must resolve
+to distinct regular files, and must have no group/world permission bits. API
+uses `/etc/noteai/api.env`, Admin uses `/etc/noteai/admin.env`, and both XHS
+processes use `/etc/noteai/xhs.env`. Never reuse a shared runtime env file,
+print a file, or pass its values through image build arguments.
 
 The API and Admin model artifacts remain the immutable files carried by the
 approved image. Production cloud model mutation stays disabled. API video
@@ -44,12 +46,21 @@ NOTEAI_ADMIN_IMAGE_REPOSITORY=registry.example.invalid/noteai/admin \
 NOTEAI_ADMIN_IMAGE_DIGEST_HEX=<64-lowercase-hex-characters> \
 NOTEAI_XHS_IMAGE_REPOSITORY=registry.example.invalid/noteai/xhs-http \
 NOTEAI_XHS_IMAGE_DIGEST_HEX=<64-lowercase-hex-characters> \
-NOTEAI_PRODUCTION_ENV_FILE=/path/to/root-readable-runtime.env \
+NOTEAI_API_ENV_FILE=/path/to/api.env \
+NOTEAI_ADMIN_ENV_FILE=/path/to/admin.env \
+NOTEAI_XHS_ENV_FILE=/path/to/xhs.env \
 docker compose -f deploy/production/docker-compose.yml config --quiet
 ```
 
-Before deployment, an independent reviewer must inspect the fully resolved
-configuration and verify every resolved image against
+Before resolving Compose, run
+`scripts/validate_production_env_files.py --api ... --admin ... --xhs ...`.
+The validator reads key names only for its decision, never prints values, and
+rejects duplicate/invalid names, overexposed permissions, unknown
+Secret-like names, and cross-role Secret injection. The canonical role
+allowlists are documented in `docs/DEPLOYMENT_SECRETS.md`.
+
+An independent reviewer must then inspect the fully resolved configuration and
+verify every resolved image against
 `^[^[:space:]@]+@sha256:[0-9a-f]{64}$`. Reject it if an image lacks that
 immutable digest form, if any container gains a capability/device/privileged
 mode, or if any writable mount extends beyond the explicit NoteAI data path.
