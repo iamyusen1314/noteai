@@ -18,7 +18,7 @@ NoteAI is in **controlled production rollout**, not general availability. Render
 |---|---|
 | Branch | `codex/quality-stabilization-real-chain` |
 | Deployment-control task-start HEAD | `7f6b9d6eaaff06c8d756783136a1bc4ed417c5c0`; deployment-control only, never an OCI revision |
-| Handoff checkpoint parent HEAD | `7aaaab71d807b40bfd3d3e9d86491327ab4b5f77`; corrected-digest VEX/evidence/test/tool checkpoint, never an OCI revision. The final checkpoint HEAD is the commit containing this Handoff and must be resolved with `git rev-parse HEAD`; a document cannot embed its own not-yet-created commit hash. |
+| Handoff checkpoint parent HEAD | `7aaaab719e77b37ca37856ba0578df7a071214da`; corrected-digest VEX/evidence/test/tool checkpoint, never an OCI revision. The final checkpoint HEAD is the commit containing this Handoff and must be resolved with `git rev-parse HEAD`; a document cannot embed its own not-yet-created commit hash. |
 | Historical retained-image application release | `93b03d5c40fb64fa264c0ada1c055f8e7696b161` |
 | RAP-fix task-start HEAD / parent | `33d04d4560f9b7dda43a53527f8ae1026dc335d3` / `f3a1a3bb28acd4a2b7e33221d0d8d0100a79c9a9` |
 | Rejected browserless image source | `33d04d4560f9b7dda43a53527f8ae1026dc335d3` (`feat(prod): add bounded XHS HTTP runtime [skip render]`) |
