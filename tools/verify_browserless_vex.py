@@ -28,19 +28,27 @@ LOCAL_IMAGE_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 REGISTRY_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 REGISTRY_HOST = "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com"
 REGISTRY_REPOSITORY = f"{REGISTRY_HOST}/noteai/app"
+VULNERABILITY_SEMANTIC_SHA256 = (
+    "190a501f5ecd0cd7a4e5c18c9365ab4287ceae51820d540ac759fdd9c5c88752"
+)
 EXPECTED_REGISTRY = {
     "api": {
         "tag": "git-a635692-amd64-api-r1",
-        "digest": "sha256:17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1",
+        "digest": "sha256:17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1",
     },
     "admin": {
         "tag": "git-a635692-amd64-admin-r1",
-        "digest": "sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733",
+        "digest": "sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733",
     },
     "xhs-http": {
         "tag": "git-a635692-amd64-xhs-http-r1",
-        "digest": "sha256:452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af",
+        "digest": "sha256:452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af",
     },
+}
+DISPROVED_REGISTRY_DIGESTS = {
+    "api": "sha256:17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1",
+    "admin": "sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733",
+    "xhs-http": "sha256:452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af",
 }
 
 EXPECTED_PACKAGES = {
@@ -100,8 +108,8 @@ EXPECTED_COMPONENTS = {
     "util-linux": "pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6",
 }
 EXPECTED_EVIDENCE = {
-    "manifest_version": 2,
-    "task": "PROD-IMG-002",
+    "manifest_version": 3,
+    "task": "PROD-BROWSERLESS-VEX-DIGEST-REISSUE-001",
     "application_revision": APPLICATION_REVISION,
     "platform": "linux/amd64",
     "base_image": {
@@ -238,6 +246,11 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _semantic_sha256(value: Any) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
 def _bom_link(role: dict[str, Any], component_ref: str) -> str:
     serial = role["sbom_serial_number"]
     if not serial.startswith("urn:uuid:"):
@@ -273,7 +286,7 @@ def validate_documents(
     errors: list[str] = []
 
     _check_expected_subset(evidence, EXPECTED_EVIDENCE, "evidence", errors)
-    if evidence.get("task") != "PROD-IMG-002":
+    if evidence.get("task") != "PROD-BROWSERLESS-VEX-DIGEST-REISSUE-001":
         errors.append("evidence task mismatch")
     if evidence.get("application_revision") != APPLICATION_REVISION:
         errors.append("evidence application revision mismatch")
@@ -292,6 +305,8 @@ def validate_documents(
             errors.append(f"{role_name}: invalid registry manifest digest")
         if registry_digest == role.get("local_image_id"):
             errors.append(f"{role_name}: registry digest must not equal local image ID")
+        if registry_digest == DISPROVED_REGISTRY_DIGESTS[role_name]:
+            errors.append(f"{role_name}: disproved registry digest must not be rebound")
         expected_registry = EXPECTED_REGISTRY[role_name]
         if registry_digest != expected_registry["digest"]:
             errors.append(f"{role_name}: unexpected registry manifest digest")
@@ -356,8 +371,8 @@ def validate_documents(
         errors.append("VEX is not CycloneDX 1.6")
     if not str(vex.get("serialNumber", "")).startswith("urn:uuid:"):
         errors.append("VEX serialNumber is invalid")
-    if vex.get("version") != 2:
-        errors.append("VEX registry reissue document version must be 2")
+    if vex.get("version") != 3:
+        errors.append("VEX corrected-digest reissue document version must be 3")
 
     metadata_component = (vex.get("metadata") or {}).get("component") or {}
     if metadata_component.get("version") != APPLICATION_REVISION:
@@ -366,8 +381,13 @@ def validate_documents(
         prop.get("name"): prop.get("value")
         for prop in metadata_component.get("properties") or []
     }
-    if metadata_properties.get("noteai:task") != "PROD-IMG-002":
-        errors.append("VEX metadata task is not PROD-IMG-002")
+    if (
+        metadata_properties.get("noteai:task")
+        != "PROD-BROWSERLESS-VEX-DIGEST-REISSUE-001"
+    ):
+        errors.append(
+            "VEX metadata task is not PROD-BROWSERLESS-VEX-DIGEST-REISSUE-001"
+        )
 
     vex_components = vex.get("components") or []
     components_by_name = {item.get("name"): item for item in vex_components}
@@ -417,6 +437,8 @@ def validate_documents(
         errors.append("VEX contains duplicate vulnerability IDs")
     if set(by_id) != set(EXPECTED_PACKAGES):
         errors.append("VEX does not contain exactly the twelve reviewed CVEs")
+    if _semantic_sha256(vulnerabilities) != VULNERABILITY_SEMANTIC_SHA256:
+        errors.append("VEX twelve-disposition content changed from independent review")
 
     for cve, packages in EXPECTED_PACKAGES.items():
         item = by_id.get(cve) or {}
@@ -447,11 +469,14 @@ def validate_documents(
             errors.append(f"{cve}: exact SBOM BOM-Link set mismatch")
 
     if review is not None:
-        if review.get("review_version") != 2:
+        if review.get("review_version") != 3:
             errors.append("registry reissue review version mismatch")
-        if review.get("task") != "PROD-IMG-002":
+        if review.get("task") != "PROD-BROWSERLESS-VEX-DIGEST-REISSUE-001":
             errors.append("registry reissue review task mismatch")
-        if review.get("reviewer") != "production-release-manager:/root":
+        if (
+            review.get("reviewer")
+            != "independent-verification-agent:/root/vex_final_verify"
+        ):
             errors.append("registry reissue reviewer identity mismatch")
         if review.get("result") != "PASS":
             errors.append("registry reissue review has not passed")
@@ -473,6 +498,21 @@ def validate_documents(
             != "7deb56837f833075e4579d4aaa0dd26c6ea5d4cbfcf9505ce109324f8af6d1db"
         ):
             errors.append("prior independent disposition review binding mismatch")
+        prior_reissue = review.get("prior_incorrect_digest_reissue") or {}
+        if (
+            prior_reissue.get("task") != "PROD-IMG-002"
+            or prior_reissue.get("reviewer") != "production-release-manager:/root"
+            or prior_reissue.get("git_commit")
+            != "bdc84454067b081b4c7aca18553b1bf014465fb2"
+            or prior_reissue.get("result") != "INVALIDATED_BY_DIRECT_PULL"
+            or prior_reissue.get("vex_sha256")
+            != "57c9f8c0656382d773b0d3b0b5797d6674a931fb967f97c98c37b0febf6197cb"
+            or prior_reissue.get("evidence_sha256")
+            != "22eb9bc88680cc0c98ffcadc396d3ea18b1ab324a9d97d415ca8a86e8ea8600f"
+            or prior_reissue.get("review_record_sha256")
+            != "2c821fc04c2740a882f7d4437aee2bded36f5a240e23e717fd70a76708f6d565"
+        ):
+            errors.append("invalidated prior registry reissue binding mismatch")
         if review.get("production_exception") is not False:
             errors.append("registry reissue must not grant a production exception")
         if review.get("acr_authorization") is not False:
@@ -511,6 +551,8 @@ def validate_documents(
             or conclusions.get("raw_trivy_reports_unchanged") is not True
             or conclusions.get("local_image_ids_not_registry_digests") is not True
             or conclusions.get("registry_manifest_digests_bound") is not True
+            or conclusions.get("corrected_direct_pull_verified") is not True
+            or conclusions.get("disproved_bindings_rejected") is not True
             or conclusions.get("registry_tags_read_back") is not True
             or conclusions.get("temporary_access_cleanup") is not True
             or conclusions.get("dispositions_unchanged_from_independent_review") is not True
@@ -535,7 +577,11 @@ def validate_bundle(root: Path = ROOT, *, require_review: bool = True) -> list[s
         return [f"missing VEX bundle file: {path}" for path in missing]
     vex = _load_json(vex_path)
     evidence = _load_json(evidence_path)
-    review = _load_json(review_path) if review_path.is_file() else None
+    review = (
+        _load_json(review_path)
+        if require_review and review_path.is_file()
+        else None
+    )
     errors = validate_documents(
         vex,
         evidence,

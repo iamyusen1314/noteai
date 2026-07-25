@@ -1,4 +1,4 @@
-# PROD-BROWSERLESS-VEX-REVIEW-001
+# PROD-BROWSERLESS-VEX-REVIEW-001 / PROD-BROWSERLESS-VEX-DIGEST-REISSUE-001
 
 ## Decision
 
@@ -8,13 +8,13 @@ The canonical raw Trivy reports remain unchanged at 23 rows per role: 4 Critical
 
 ## Exact scope
 
-| Role | Local image ID | SBOM serial | Raw report |
-|---|---|---|---|
-| API | `sha256:b1983bab928ef93495d8be020030917d4ae54364234390047c3163af5414fedb` | `urn:uuid:9b5dc0cf-276b-42a8-8cde-aae5d0676dc5/1` | 23 rows, 4 Critical / 19 High |
-| Admin | `sha256:2283095764622e373e30b51ba749819751e6bfb0c37c6bb82e2d3bfe4937760f` | `urn:uuid:ae2ab874-1774-4af7-ad42-ce7cad5c876b/1` | 23 rows, 4 Critical / 19 High |
-| XHS HTTP | `sha256:5b44114d4bd9c28a8e93c39140466c542e8babeead038fb0d1cfe45c3cd75966` | `urn:uuid:4073a9eb-1d9b-49b3-8dc1-7bfbfec21514/1` | 23 rows, 4 Critical / 19 High |
+| Role | Corrected immutable ACR digest | Local image ID | SBOM serial | Raw report |
+|---|---|---|---|---|
+| API | `sha256:17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1` | `sha256:b1983bab928ef93495d8be020030917d4ae54364234390047c3163af5414fedb` | `urn:uuid:9b5dc0cf-276b-42a8-8cde-aae5d0676dc5/1` | 23 rows, 4 Critical / 19 High |
+| Admin | `sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733` | `sha256:2283095764622e373e30b51ba749819751e6bfb0c37c6bb82e2d3bfe4937760f` | `urn:uuid:ae2ab874-1774-4af7-ad42-ce7cad5c876b/1` | 23 rows, 4 Critical / 19 High |
+| XHS HTTP | `sha256:452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af` | `sha256:5b44114d4bd9c28a8e93c39140466c542e8babeead038fb0d1cfe45c3cd75966` | `urn:uuid:4073a9eb-1d9b-49b3-8dc1-7bfbfec21514/1` | 23 rows, 4 Critical / 19 High |
 
-These values are local Docker image IDs, not ACR registry digests. The VEX must be reissued against the immutable registry digest after any separately approved ACR push and before deployment. It becomes stale if the image, SBOM, base image, architecture, package set, role entrypoint/command graph, deployment constraints or official CVE scope changes.
+The local Docker image IDs remain distinct from the ACR registry digests. CycloneDX VEX version 3 binds only the three corrected digests that passed direct `repository@sha256` pull and OCI provenance read-back. The prior version 2 bindings were invalidated by direct-pull evidence and must never be used. The VEX becomes stale if the registry digest, image, SBOM, base image, architecture, package set, role entrypoint/command graph, deployment constraints or official CVE scope changes.
 
 ## Twelve dispositions
 
@@ -41,6 +41,8 @@ The VEX `affects` fields use exact independent-BOM links. The ncurses decision c
 - Formal CycloneDX VEX: `security/vex/a635692-browserless.vex.cdx.json`.
 - Independent review record: `security/vex/a635692-browserless-review.json`.
 - Offline verifier: `python tools/verify_browserless_vex.py`.
+- Retained raw Trivy SHA256 values remain API `92d8bab2f8b58f4ed2a9469aaca8a73ee9985d8a97999ab7ff81efba68c20eda`, Admin `e38d2a754a74133b93538545473cc3a1758403a1389fc34a028a3d81bc1e44b8`, and XHS HTTP `f91e706a8e058fa60952b74246fb9a156b68cb698e6379ccc9a6aed79f744932`.
+- Retained SBOM SHA256 values remain API `59a4cabaa7debfb81684ac3a77c7467454d1c98ef04d64aeade4850b07d918be`, Admin `136ace76eaaaed1d7ded40d54bb5162cbd28bb79069a310694913e847d1f6cd7`, and XHS HTTP `a27663349c7af6ebdfdfbd16bf6ef2c189b420115405304ac26565249aa6a92e`.
 - The retained constraint proof covers 1,203 ELF records, 354 accepted roots and 377 reachable objects per role.
 - Cloud Assistant reads targeted only isolated builder `i-wz99180s9ig5ecq10uaj`. No production instance, image, file, environment or cloud resource was modified.
 - One supplemental `jq` read stopped with exit code 5 because of expression grouping. It read the first SBOM and made no change; the corrected read completed with exit code 0.
@@ -50,4 +52,4 @@ The disposition format follows the CISA minimum VEX fields and status-justificat
 
 ## Release boundary
 
-Successful VEX review closes the residual exact-product impact-decision gate only. `PROD-IMG-002` still requires a separate explicit approval for ACR login/push/read-back. Before any deployment, the VEX must be reissued for the actual ACR registry digests and the deployment must enforce the reviewed constraints. This task does not start API-C/API-F, access production data, create an ALB, bind TLS, change DNS or call a real supplier.
+Successful digest reissue closes only the corrected immutable-product VEX binding gate. It does not authorize another ACR login/push, image build, deployment, service start, production access, ALB, TLS, DNS or real supplier call. Any deployment still requires a separate plan and explicit approval, and must enforce the reviewed runtime constraints.

@@ -1,8 +1,8 @@
 {
-  "review_version": 2,
-  "task": "PROD-IMG-002",
-  "reviewer": "production-release-manager:/root",
-  "reviewed_at": "2026-07-23T13:48:03Z",
+  "review_version": 3,
+  "task": "PROD-BROWSERLESS-VEX-DIGEST-REISSUE-001",
+  "reviewer": "independent-verification-agent:/root/vex_final_verify",
+  "reviewed_at": "2026-07-23T15:39:00Z",
   "result": "PASS",
   "application_revision": "a635692a899ee02c6905cd694611c14e0da4594a",
   "reviewed_cves": [
@@ -19,8 +19,8 @@
     "CVE-2026-57432",
     "CVE-2026-9538"
   ],
-  "vex_sha256": "57c9f8c0656382d773b0d3b0b5797d6674a931fb967f97c98c37b0febf6197cb",
-  "evidence_sha256": "22eb9bc88680cc0c98ffcadc396d3ea18b1ab324a9d97d415ca8a86e8ea8600f",
+  "vex_sha256": "bb4c1e3b06627e82ed56cdb12c0de03412d0c7428d7088e9b6e5a2162a20edd8",
+  "evidence_sha256": "def8b111dd429dfeeca1bdf7c04d7b877d156f526fab04c851af3efc9ed0c7a5",
   "prior_independent_review": {
     "task": "PROD-BROWSERLESS-VEX-REVIEW-001",
     "reviewer": "independent-verification-agent:/root/vex_final_verify",
@@ -31,10 +31,20 @@
     "evidence_sha256": "7deb56837f833075e4579d4aaa0dd26c6ea5d4cbfcf9505ce109324f8af6d1db",
     "review_record_sha256": "9fd0e25950a7970248e36aeed823858731b8500a08cea448e8bce945820137f9"
   },
+  "prior_incorrect_digest_reissue": {
+    "task": "PROD-IMG-002",
+    "reviewer": "production-release-manager:/root",
+    "reviewed_at": "2026-07-23T13:48:03Z",
+    "result": "INVALIDATED_BY_DIRECT_PULL",
+    "git_commit": "bdc84454067b081b4c7aca18553b1bf014465fb2",
+    "vex_sha256": "57c9f8c0656382d773b0d3b0b5797d6674a931fb967f97c98c37b0febf6197cb",
+    "evidence_sha256": "22eb9bc88680cc0c98ffcadc396d3ea18b1ab324a9d97d415ca8a86e8ea8600f",
+    "review_record_sha256": "2c821fc04c2740a882f7d4437aee2bded36f5a240e23e717fd70a76708f6d565"
+  },
   "registry_bindings": {
-    "api": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1",
-    "admin": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733",
-    "xhs-http": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af"
+    "api": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1",
+    "admin": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733",
+    "xhs-http": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af"
   },
   "official_schema": {
     "url": "https://cyclonedx.org/schema/bom-1.6.schema.json",
@@ -55,6 +65,8 @@
     "raw_trivy_reports_unchanged": true,
     "local_image_ids_not_registry_digests": true,
     "registry_manifest_digests_bound": true,
+    "corrected_direct_pull_verified": true,
+    "disproved_bindings_rejected": true,
     "registry_tags_read_back": true,
     "temporary_access_cleanup": true,
     "dispositions_unchanged_from_independent_review": true

@@ -80,6 +80,26 @@ class BrowserlessVexTests(unittest.TestCase):
             errors,
         )
 
+    def test_rejects_disproved_registry_digest(self):
+        evidence = copy.deepcopy(self.evidence)
+        evidence["roles"]["admin"]["registry_digest"] = (
+            verifier.DISPROVED_REGISTRY_DIGESTS["admin"]
+        )
+        errors = verifier.validate_documents(self.vex, evidence)
+        self.assertIn(
+            "admin: disproved registry digest must not be rebound",
+            errors,
+        )
+
+    def test_rejects_disposition_content_drift(self):
+        vex = copy.deepcopy(self.vex)
+        vex["vulnerabilities"][0]["analysis"]["detail"] += " Changed."
+        errors = verifier.validate_documents(vex, self.evidence)
+        self.assertIn(
+            "VEX twelve-disposition content changed from independent review",
+            errors,
+        )
+
     def test_rejects_coordinated_evidence_identity_tampering(self):
         evidence = copy.deepcopy(self.evidence)
         vex = copy.deepcopy(self.vex)

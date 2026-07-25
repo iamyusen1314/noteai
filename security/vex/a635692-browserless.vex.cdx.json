@@ -3,9 +3,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
   "serialNumber": "urn:uuid:45e0f97f-7223-4658-979c-270a841cb13c",
-  "version": 2,
+  "version": 3,
   "metadata": {
-    "timestamp": "2026-07-23T13:48:03Z",
+    "timestamp": "2026-07-23T15:30:13Z",
     "authors": [
       {
         "name": "NoteAI Production Release Management"
@@ -20,7 +20,7 @@
       "properties": [
         {
           "name": "noteai:task",
-          "value": "PROD-IMG-002"
+          "value": "PROD-BROWSERLESS-VEX-DIGEST-REISSUE-001"
         },
         {
           "name": "noteai:platform",
@@ -43,7 +43,7 @@
   },
   "components": [
     {
-      "bom-ref": "urn:noteai:container:api:sha256-17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1",
+      "bom-ref": "urn:noteai:container:api:sha256-17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1",
       "type": "container",
       "group": "NoteAI",
       "name": "api-runtime",
@@ -75,11 +75,11 @@
         },
         {
           "name": "noteai:registry-digest",
-          "value": "sha256:17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1"
+          "value": "sha256:17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1"
         },
         {
           "name": "noteai:registry-reference",
-          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:17706e1802afc136ac8f9a621d4199a719749da73329ee923e42268eff42e0d1"
+          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1"
         },
         {
           "name": "noteai:application-revision",
@@ -92,7 +92,7 @@
       ]
     },
     {
-      "bom-ref": "urn:noteai:container:admin:sha256-d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733",
+      "bom-ref": "urn:noteai:container:admin:sha256-d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733",
       "type": "container",
       "group": "NoteAI",
       "name": "admin-runtime",
@@ -124,11 +124,11 @@
         },
         {
           "name": "noteai:registry-digest",
-          "value": "sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733"
+          "value": "sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733"
         },
         {
           "name": "noteai:registry-reference",
-          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d676c733"
+          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733"
         },
         {
           "name": "noteai:application-revision",
@@ -141,7 +141,7 @@
       ]
     },
     {
-      "bom-ref": "urn:noteai:container:xhs-http:sha256-452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af",
+      "bom-ref": "urn:noteai:container:xhs-http:sha256-452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af",
       "type": "container",
       "group": "NoteAI",
       "name": "xhs-http-runtime",
@@ -173,11 +173,11 @@
         },
         {
           "name": "noteai:registry-digest",
-          "value": "sha256:452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af"
+          "value": "sha256:452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af"
         },
         {
           "name": "noteai:registry-reference",
-          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:452c2faf7853ce58d93e43c5bf6217a99a6cce14c81345d8cef2f5accabd79af"
+          "value": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af"
         },
         {
           "name": "noteai:application-revision",
