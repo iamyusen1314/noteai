@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-07-22
+Last updated: 2026-07-25
 
 ## Critical Risks
 
@@ -99,6 +99,14 @@ Last updated: 2026-07-22
 - 是否需要用户确认后才能修改: yes for final product/data policy; safe minimization tests and documentation inventory can start read-only.
 
 ## High Risks
+
+### XHS Trends pre-write failure is unresolved and the runtime role is missing a required read privilege
+
+- 风险描述: `PROD-XHS-TRENDS-CANARY-001` 在任何允许的业务表或快照写入前失败；安全清理删除了临时日志，因此直接异常根因仍为 `UNKNOWN`。静态调用链和只读权限回读另行确认：当前 Worker 后续会读取 `xhs_crawler_health`，但专用角色 `noteai_xhs` 只有 `INSERT`、没有所需 `SELECT`。
+- 当前状态: Canary 已安全删除，四张允许表的本次增量均为 `0`，无残留进程、容器、快照、临时认证或 Session Manager。API-C/API-F API 与 API-C Admin 虽为受管理服务，但都仅监听 loopback；ALB、TLS listener、DNS 和生产流量均未接入，因此不得宣称已经正式上线。
+- 可能后果: 未诊断直接重试会重复产生不可解释失败；直接扩大权限会破坏最小权限边界；若清理先于证据保留，下一次仍无法确定根因。
+- 建议验证方式: 仅在单独批准后执行 `PROD-XHS-TRENDS-DIAG-001`：强制数据库只读、零业务写入、供应商网络阻断，只保留限量脱敏阶段标记和异常类型，并在读取后自动清理。先确定写入前根因，再单独审查是否仅需增加 `xhs_crawler_health SELECT`；不得把诊断、授权修复和 Canary 重试合并。
+- 是否需要用户确认后才能修改: yes。诊断容器、数据库 GRANT、Canary 重试、真实供应商调用及任何 ALB/TLS/DNS/流量动作均需分别明确批准。
 
 ### Production secret storage and Admin logs need a second redaction boundary
 
