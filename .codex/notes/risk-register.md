@@ -100,13 +100,23 @@ Last updated: 2026-07-25
 
 ## High Risks
 
-### XHS Trends pre-write failure is unresolved and the runtime role is missing a required read privilege
+### XHS Trends snapshot evidence exception is closed and must not recur
 
-- 风险描述: `PROD-XHS-TRENDS-CANARY-001` 在任何允许的业务表或快照写入前失败；安全清理删除了临时日志，因此直接异常根因仍为 `UNKNOWN`。静态调用链和只读权限回读另行确认：当前 Worker 后续会读取 `xhs_crawler_health`，但专用角色 `noteai_xhs` 只有 `INSERT`、没有所需 `SELECT`。
-- 当前状态: Canary 已安全删除，四张允许表的本次增量均为 `0`，无残留进程、容器、快照、临时认证或 Session Manager。API-C/API-F API 与 API-C Admin 虽为受管理服务，但都仅监听 loopback；ALB、TLS listener、DNS 和生产流量均未接入，因此不得宣称已经正式上线。
-- 可能后果: 未诊断直接重试会重复产生不可解释失败；直接扩大权限会破坏最小权限边界；若清理先于证据保留，下一次仍无法确定根因。
-- 建议验证方式: 仅在单独批准后执行 `PROD-XHS-TRENDS-DIAG-001`：强制数据库只读、零业务写入、供应商网络阻断，只保留限量脱敏阶段标记和异常类型，并在读取后自动清理。先确定写入前根因，再单独审查是否仅需增加 `xhs_crawler_health SELECT`；不得把诊断、授权修复和 Canary 重试合并。
-- 是否需要用户确认后才能修改: yes。诊断容器、数据库 GRANT、Canary 重试、真实供应商调用及任何 ALB/TLS/DNS/流量动作均需分别明确批准。
+- 状态: Mitigated and verified on API-F by `PROD-XHS-TRENDS-SNAPSHOT-EVIDENCE-ENTRYPOINT-OVERRIDE-001`（2026-07-25）；保留本条用于防止把一次性例外误当成持久授权。
+- 风险描述: RETRY-002 已证明默认 suspended Worker、脱敏日志、run-scoped health/ledger 和四表精确写入边界，但原 harness 在容器退出后无法从 tmpfs 复制 snapshot。第一次零写入 exporter 任务又被 hardened entrypoint 正确拒绝。关闭证据缺口因此需要一次明确批准的 `--entrypoint python` 安全例外。
+- 当前状态: 单次例外执行 `t-sz06ryhn1a9svls` 以精确 XHS digest、`--pull never`、非 root、只读 root、cap-drop、供应商阻断和强制数据库只读运行；仅调用现有 exporter 一次并在进程内验证 schema `1`、六域、`90` 关键词、`37,743` bytes 和 SHA-256 `31b19d6351f48db762a4d98be173bcb72629691d4437230ba1ae6b839063d1bd`。前后 `30` 张 public 表 DML counters、四表总量/时间戳和权限均未变化；容器、tmpfs、临时证据和进程已清理，API-F loopback `200/200` 未变。
+- 剩余风险: 该成功结果只证明一次性只读 exporter 路径和 retained Canary rows 的 artifact 合同，不授权持久绕过 entrypoint，不证明真实供应商采集，也不等于已启动或晋升 Trends 服务。重复使用例外会削弱已验收的命令 allowlist。
+- 建议验证方式: 不重复该例外，也不重复业务写入 Canary。未来若需要常设诊断命令，应通过独立代码/镜像任务把固定命令加入 allowlist 并重建验证；若要启动 managed Trends 或调用供应商，另立精确生产任务。
+- 是否需要用户确认后才能修改: yes。任何再次 entrypoint override、代码/镜像变更、managed Trends 启动、真实供应商、Tracking、权限或 ALB/TLS/DNS/流量动作均需分别明确批准。
+
+### XHS managed-service and real-supplier path remain unverified
+
+- 状态: Open High。`PROD-XHS-TRENDS-MILESTONE-CLOSE-001` 已独立确认 suspended Trends 功能、有界数据库写入、Snapshot、零供应商调用、API-F 非回归和清理均为 `VERIFIED`；本条不是功能验收阻断项。
+- 风险描述: Trends 尚未作为长期服务运行，真实 XHS session/signer/接口/限流/挑战路径从未生产验证。Tracking 是独立进程和写入路径，仍为 `NOT VERIFIED / NOT STARTED`。当前 `noteai_xhs` 还是 Trends 与 Tracking 的权限并集，而非各自最小身份；持久服务的 singleton、资源、重启、日志和回滚合同也未闭环。
+- 可能后果: 若直接解除 suspended 或长期共置在 API 节点，可能发生供应商会话失效、重复或重叠运行、CPU/内存争用、扩大数据库权限影响面、日志泄露或无法可靠回滚。
+- 建议验证方式: 先完成 `PROD-XHS-FIRST-LAUNCH-SCOPE-DECISION-001`。若首发必须包含 Trends，再单独批准最小真实 XHS `--once` 验证，随后以不可变 digest、独立 singleton managed Worker、无入站端口、显式 CPU/内存/PID/超时/日志/重启上限和独立数据库身份完成服务晋升；Tracking 必须另立验收任务。若首发不包含 Trends，则两服务保持停止且产品不得宣称 live platform trends。
+- 费用和回滚: 当前范围决策费用 ¥0、零供应商调用、零业务写入，回滚仅为文档状态恢复。真实供应商验证、独立 Worker ECS 或持续日志/网络资源会产生外部影响及可能费用，必须重新报价和批准；运行时回滚为保持/恢复 suspended、停止对应 singleton 并回到零 XHS 服务基线。
+- 是否需要用户确认后才能修改: yes。真实 XHS、session/Cookie、解除 suspended、数据库权限/迁移、Trends/Tracking 启动、Worker ECS、ACR、代码/镜像、ALB/TLS/DNS/流量均需精确批准。
 
 ### Production secret storage and Admin logs need a second redaction boundary
 
