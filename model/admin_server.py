@@ -39,7 +39,9 @@ from pydantic import BaseModel
 import db
 import admin_auth as _aauth
 import billing as _billing
+import content_retention as _retention
 import runtime_settings as _settings
+import security_redaction as _redaction
 import prompt_baselines as _prompt_baselines
 import prompt_composer as _prompt_composer
 
@@ -443,6 +445,14 @@ class UserAdjustInput(BaseModel):
     value:  Optional[str] = None   # tier name 或 credits 数量
     note:   str = ""
 
+
+def _assert_admin_user_writable(storage, user_id: str) -> None:
+    try:
+        _retention.assert_user_writable_with_storage(storage, user_id)
+    except ValueError:
+        raise HTTPException(status_code=409, detail="账号已进入删除流程") from None
+
+
 @admin_app.post("/admin/users/{user_id}/adjust")
 async def admin_user_adjust(
     user_id: str, req: UserAdjustInput,
@@ -467,19 +477,29 @@ async def admin_user_adjust(
         return {"ok": True, "tier": tier}
 
     if req.action == "reset_quota":
-        db.execute(
-            "UPDATE subscriptions SET used_analyze=0,used_generate=0,"
-            "used_chat_rewrite=0,used_screenshot=0,used_monthly_credits=0 "
-            "WHERE user_id=? AND is_active=1",
-            (user_id,))
+        with db.transaction(write=True) as tx:
+            _assert_admin_user_writable(tx, user_id)
+            tx.execute(
+                "UPDATE subscriptions SET used_analyze=0,used_generate=0,"
+                "used_chat_rewrite=0,used_screenshot=0,used_monthly_credits=0 "
+                "WHERE user_id=? AND is_active=1",
+                (user_id,),
+            )
         return {"ok": True, "message": "本月积分已重置"}
 
     if req.action in ("disable", "enable"):
-        # 简单实现：禁用用户会话
-        if req.action == "disable":
-            db.execute("DELETE FROM user_sessions WHERE user_id=?", (user_id,))
-            db.execute("UPDATE users SET last_login=? WHERE id=?",
-                       (f"DISABLED:{datetime.now(timezone.utc).isoformat()}", user_id))
+        with db.transaction(write=True) as tx:
+            _assert_admin_user_writable(tx, user_id)
+            # 简单实现：禁用用户会话
+            if req.action == "disable":
+                tx.execute("DELETE FROM user_sessions WHERE user_id=?", (user_id,))
+                tx.execute(
+                    "UPDATE users SET last_login=? WHERE id=?",
+                    (
+                        f"DISABLED:{datetime.now(timezone.utc).isoformat()}",
+                        user_id,
+                    ),
+                )
         return {"ok": True, "action": req.action}
 
     raise HTTPException(status_code=400, detail=f"未知操作: {req.action}")
@@ -513,11 +533,26 @@ async def admin_trigger_check(note_id: str, admin: dict = Depends(_aauth.get_adm
     note = db.fetchone("SELECT * FROM tracked_notes WHERE id=?", (note_id,))
     if not note:
         raise HTTPException(status_code=404, detail="追踪记录不存在")
-    next_status = "checking_7d" if note["check_24h_at"] or note["status"] in ("checking_7d", "checking_24h", "complete") else "pending"
-    db.execute(
-        "UPDATE tracked_notes SET status=?,next_check_at=?,last_error_code=NULL,last_error=NULL WHERE id=?",
-        (next_status, datetime.now(timezone.utc).isoformat(), note_id),
-    )
+    with db.transaction(write=True) as tx:
+        _assert_admin_user_writable(tx, note["user_id"])
+        lock = " FOR UPDATE" if tx.postgres else ""
+        locked = tx.fetchone(
+            f"SELECT * FROM tracked_notes WHERE id=? AND user_id=?{lock}",
+            (note_id, note["user_id"]),
+        )
+        if not locked:
+            raise HTTPException(status_code=404, detail="追踪记录不存在")
+        next_status = (
+            "checking_7d"
+            if locked["check_24h_at"]
+            or locked["status"] in ("checking_7d", "checking_24h", "complete")
+            else "pending"
+        )
+        tx.execute(
+            "UPDATE tracked_notes SET status=?,next_check_at=?,"
+            "last_error_code=NULL,last_error=NULL WHERE id=?",
+            (next_status, datetime.now(timezone.utc).isoformat(), note_id),
+        )
     return {"ok": True, "message": "已加入采集队列"}
 
 
@@ -952,16 +987,25 @@ async def _run_training_job(job_id: str, max_rows: int) -> None:
         )
         stdout, stderr = await asyncio.wait_for(result.communicate(), timeout=3600)
         if result.returncode == 0:
-            # 解析训练输出，找新版本号和指标
-            output = stdout.decode(errors="ignore")
             new_version = f"v{len(registry['models']) + 1}.0"
             job["status"]      = "completed"
             job["new_version"] = new_version
-            job["metrics"]     = {"output": output[-500:]}
+            job["metrics"]     = {
+                "stdout": _redaction.summarize_process_output(stdout),
+                "stderr": _redaction.summarize_process_output(stderr),
+                "exit_code": result.returncode,
+            }
             job["finished_at"] = datetime.now(timezone.utc).isoformat()
         else:
             job["status"]      = "failed"
-            job["metrics"]     = {"error": stderr.decode(errors="ignore")[-500:]}
+            job["metrics"]     = {
+                "event": _redaction.safe_failure_event(
+                    "training_process_failed",
+                    exit_code=result.returncode,
+                ),
+                "stdout": _redaction.summarize_process_output(stdout),
+                "stderr": _redaction.summarize_process_output(stderr),
+            }
             job["finished_at"] = datetime.now(timezone.utc).isoformat()
     except asyncio.TimeoutError:
         job["status"]      = "failed"
@@ -969,7 +1013,9 @@ async def _run_training_job(job_id: str, max_rows: int) -> None:
         job["finished_at"] = datetime.now(timezone.utc).isoformat()
     except Exception as e:
         job["status"]      = "failed"
-        job["metrics"]     = {"error": str(e)}
+        job["metrics"]     = {
+            "event": _redaction.safe_failure_event("training_failed", e)
+        }
         job["finished_at"] = datetime.now(timezone.utc).isoformat()
     _save_registry(registry)
 
@@ -1097,32 +1143,15 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
     }
 
 
-class CookieUpdateInput(BaseModel):
-    cookies_json: str  # XiaoHongShu cookie JSON 字符串
-
 @admin_app.post("/admin/crawler/update-cookie")
 async def admin_update_cookie(
-    req: CookieUpdateInput,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
-    """更新小红书 Cookie。"""
-    try:
-        cookies = json.loads(req.cookies_json)
-        if not isinstance(cookies, (list, dict)):
-            raise ValueError("Cookie 格式错误，需为 JSON 数组或对象")
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail=f"JSON 解析失败: {e}")
-
-    _settings.set_json(_XHS_COOKIES_KEY, cookies, is_secret=True)
-
-    config = _load_crawler_config()
-    config["cookie_valid"] = True
-    config["cookie_updated_at"] = datetime.now(timezone.utc).isoformat()
-    _settings.set_json(_CRAWLER_CONFIG_KEY, config)
-    if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
-        _xhs_acq.clear_collection_session_block()
-
-    return {"ok": True, "cookie_count": len(cookies) if isinstance(cookies, list) else 1}
+    """Plaintext Cookie ingestion is permanently disabled at the Admin API."""
+    raise HTTPException(
+        status_code=410,
+        detail="后台明文 Cookie 更新已禁用；请使用受管 Secret 注入和轮换流程",
+    )
 
 
 @admin_app.post("/admin/crawler/toggle")
@@ -1158,8 +1187,16 @@ async def _run_crawler_bg(limit: int) -> None:
         config["last_run"] = datetime.now(timezone.utc).isoformat()
         config["total_collected"] = config.get("total_collected", 0) + result.get("collected", 0)
         _settings.set_json(_CRAWLER_CONFIG_KEY, config)
-    except Exception as e:
-        print(f"[Admin] Crawler error: {e}")
+    except Exception as exc:
+        print(
+            json.dumps(
+                {
+                    "event": "admin_crawler_failed",
+                    "error_code": _redaction.stable_error_code(exc),
+                }
+            ),
+            flush=True,
+        )
 
 
 @admin_app.get("/admin/crawler/logs")
@@ -1169,7 +1206,13 @@ async def admin_crawler_logs(
 ):
     try:
         import crawler as _crawler
-        return {"logs": _crawler.get_crawler_logs(limit)}
+        return {
+            "logs": [
+                _redaction.sanitize_crawler_event(item)
+                for item in _crawler.get_crawler_logs(limit)
+            ],
+            "raw_text_included": False,
+        }
     except Exception:
         return {"logs": []}
 
@@ -1217,14 +1260,19 @@ async def admin_settings(admin: dict = Depends(_aauth.get_admin_user)):
 
 @admin_app.get("/admin/logs")
 async def admin_logs(lines: int = 100, admin: dict = Depends(_aauth.get_admin_user)):
-    """返回服务日志最后 N 行。"""
+    """返回脱敏后的服务日志摘要；不返回原始行或绝对路径。"""
     log_files = ["/tmp/noteai_p1.log", "/tmp/noteai_bill.log", "/tmp/noteai_prod.log"]
     for f in log_files:
         lf = Path(f)
         if lf.exists():
-            all_lines = lf.read_text(errors="replace").splitlines()
-            return {"lines": all_lines[-lines:], "file": f}
-    return {"lines": ["暂无日志文件"], "file": ""}
+            return _redaction.summarize_log_lines(lf, lines)
+    return {
+        "source": "",
+        "line_count": 0,
+        "counts": {"error": 0, "warning": 0, "info": 0},
+        "events": [],
+        "raw_text_included": False,
+    }
 
 
 # ══════════════════════════════════════════════════════════════════════════

@@ -1,8 +1,18 @@
 # Risk Register
 
-Last updated: 2026-07-25
+Last updated: 2026-07-26
 
 ## Critical Risks
+
+### Complete first commercial launch is not yet releaseable
+
+- 状态: Open Critical under `PROD-COMPLETE-FIRST-LAUNCH-001`; current release decision is `NO-GO`.
+- 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。当前真实支付、durable AI queue/Worker、对象存储/恢复、Tracking、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
+- 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
+- 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
+- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22及独立R22已将R16和后续保留身份问题关闭为`PASS / 0C / 0H / 0M`；最终隔离PostgreSQL 16 rehearsal及R23 PostgreSQL/生命周期复核同为`PASS / 0C / 0H / 0M`，回归清理条件也已满足。精确容器/卷为零且Colima停止。生产未访问，仍是migration `0001`–`0008`，当前工作树尚未形成或部署新镜像。
+- 当前下一步: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，只读核对生产历史手机号/四类源时间、retention回填与立即到期候选、当前角色完整负向矩阵、备份/PITR证据和可执行发布/回滚边界；不得执行`0009`、GRANT/REVOKE、processor、服务或流量变更。
+- 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
 
@@ -19,6 +29,7 @@ Last updated: 2026-07-25
 - 可能后果: Permission bypass, account takeover, unauthorized credit/subscription changes, leakage of user/admin data.
 - 建议验证方式: Auth contract tests for anonymous/user/admin paths, negative tests for admin endpoints without admin bearer token, manual admin login/logout smoke.
 - 是否需要用户确认后才能修改: yes.
+- 2026-07-26进展: `REVERIFY-009` 独立确认既有删除/租约、Admin/Tracking栅栏、H6时间合同及固定异常边界继续通过；安全+reasoning `63/63`、聚焦`114/114`、API合同`152/152`、全量`702`（跳过`5`）及就绪门禁`86/86`通过。仓库子路径仍有下面单独记录的expert结构化持久化High；真实 PostgreSQL contention、生产 migration/精确授权、供应商与受控生产验收仍为首发门禁。
 
 ### Database migration or SQLite/PostgreSQL drift damages data
 
@@ -27,6 +38,7 @@ Last updated: 2026-07-25
 - 可能后果: Data loss, incompatible columns, failed pre-deploy, broken API/Cron startup, partial data import if safeguards are bypassed.
 - 建议验证方式: Apply every migration twice to a disposable PostgreSQL, run shared-state/trend/API/admin container probes, back up before any guarded SQLite import.
 - 是否需要用户确认后才能修改: yes.
+- 2026-07-26进展: additive migration `0009_account_security_compliance.sql` 仅存在于当前工作区，未对生产执行；最新生产证据仍为 `0001`–`0008`。R16接受H16的首写锁定期限、显式SAVEPOINT、SQLite严格时钟/purged形态、migration单读不可变bytes、八个历史锚、ASCII phone及权限非扩张，但发现未来`purged_at`不证明底层删除、SQLite付费创建时TEXT词法比较会误判合法时钟这两个Medium。权限流`PASS / 0C / 0H / 0M`，全量`721`加`5`skip、readiness`86/86`及既有门禁通过；总裁决仍为`FAIL / NO-GO / 0C / 0H / 2M`。生产preflight、备份、migration、GRANT和PostgreSQL预演继续禁止。
 
 ### Secrets or tokens leak into Git/logs
 
@@ -36,14 +48,17 @@ Last updated: 2026-07-25
 - 建议验证方式: `git status`, secret scan with patterns excluding templates, review CI logs, never print `.env` values.
 - 是否需要用户确认后才能修改: yes.
 - 2026-07-14进展: 商业V1已选择免费默认服务密钥保护RDS/OSS静态数据，但该能力不能保存第三方Secret。起步方案使用ECS RAM Role/STS和受限部署注入，阿里云增量¥0；软件KMS加最低凭据配额约¥2,748/月延期。正式部署前仍须验证root-only权限、进程环境暴露面、日志脱敏、两节点分发、轮换和撤销runbook，因此风险未关闭。
+- 2026-07-26仓库进展: runtime settings 已拒绝保留 Secret key 的数据库写入，并且即使历史行被伪造为 `is_secret=0` 也不会回退读取；XHS Cookie只允许受管环境注入，明文Cookie/state文件回退与Admin Cookie入口已关闭。Chat 图片、S3 artifact 和训练补数固定公开错误边界继续 `PASS`。独立R13已接受H13的generic map、真实Chat producer shape和非有限置信度修正；核心map `171/171`、真实Chat public leaves `472/472`、confidence direct `304/304`通过，安全+reasoning`72/72`、聚焦`123`通过加`5`个PostgreSQL跳过、API`152/152`、全量`711`通过加`5`跳过及既有门禁通过。R12仓库`1 High / 1 Medium`关闭；生产历史 Secret/日志、受管注入、双节点分发、轮换/撤销仍未验证，因此生产High不关闭。
 
 ### Real payment integration is not confirmed
 
+- 状态: Open Critical / first-launch hard gate；历史 `DEFERRED` 结论已被产品范围决定废止。
 - 风险描述: Adapay 已被选为 V1 方向，但 Billing/topup/upgrade 仍只有业务积分和测试入口；正式订单、回调、权益、现金退款、积分批次和对账尚未实现，且商户准入与三通道网页能力尚待书面确认。
 - 涉及文件: `model/api.py`, `model/billing.py`, `model/db.py`, frontend pricing/credit UI.
 - 可能后果: Users may receive credits without real payment, or paid launch cannot legally/financially reconcile transactions.
 - 建议验证方式: Locate/implement payment provider flow only after approval; test order creation, callback signature verification, idempotency, refunds, reconciliation.
 - 是否需要用户确认后才能修改: yes.
+- 2026-07-25仓库进展: 用户界面已明确显示“真实支付暂不可用”并阻止购买，不再把测试积分路径或无效调用伪装成真实支付。该诚实降险不提供订单、回调、退款或对账能力，本项仍为 Critical 首发硬门禁。
 
 ### Alibaba production topology is not deployed; Gateway Staging is single-instance only
 
@@ -63,7 +78,7 @@ Last updated: 2026-07-25
 
 ### Alibaba production infrastructure exists, but application and recoverability do not
 
-- 风险描述: 生产VPC、C/F两台私网API ECS、一套跨可用区高可用RDS、一套高可用Tair和VPC级SNAT/公网出站已付款并运行；但ACR不可变镜像、生产应用、ALB/TLS绑定、业务DNS、备份/PITR、对象存储、Worker、监控和恢复演练尚未闭环。
+- 风险描述: 生产VPC、C/F两台私网API ECS、跨可用区高可用RDS、高可用Tair、VPC级SNAT/公网出站和三角色不可变ACR镜像已经存在；API-C/API-F及API-C Admin也已作为loopback-only受管服务通过当前有限验收。但ALB/TLS绑定、业务DNS、备份/PITR、对象存储、AI Worker、独立Trends/Tracking Worker、监控和恢复演练尚未闭环，现有API也没有真实用户流量。
 - 涉及文件: future Alibaba deployment/IaC or runbooks, database predeploy/migrations, storage/worker adapters, DNS/CORS/payment callback configuration.
 - 可能后果: 正式用户数据丢失、服务单点、无法恢复、回调不可达或配置漂移。
 - 建议验证方式: 隔离生产环境部署；备份恢复到一次性实例并逐表对账；灰度、故障、容量、监控和回滚演练。
@@ -97,6 +112,7 @@ Last updated: 2026-07-25
 - 可能后果: 超范围传输、用户告知不足、支付入网受阻或监管风险。
 - 建议验证方式: 建立字段级数据地图；默认在阿里云用 Kimi Vision 转文本后只发送必要文本；由中国执业律师或合规顾问确认最终文件和路径，技术验收核对实现一致。
 - 是否需要用户确认后才能修改: yes for final product/data policy; safe minimization tests and documentation inventory can start read-only.
+- 2026-07-25仓库进展: 已建立字段级数据地图、版本化隐私/留存/退款/跨境页面及机器合同，并明确境内优先处理图片、仅跨境最小必要文本；注册要求隐私与跨境两项独立同意，服务端保存版本化接受记录并可幂等补录。该内容是产品合同实现，不是中国执业律师、消费者保护、处理者或跨境机制的专业批准；公开流量仍被阻断。
 
 ## High Risks
 
@@ -111,20 +127,62 @@ Last updated: 2026-07-25
 
 ### XHS managed-service and real-supplier path remain unverified
 
-- 状态: Open High。`PROD-XHS-TRENDS-MILESTONE-CLOSE-001` 已独立确认 suspended Trends 功能、有界数据库写入、Snapshot、零供应商调用、API-F 非回归和清理均为 `VERIFIED`；本条不是功能验收阻断项。
+- 状态: Open High / first-launch hard gate。`PROD-XHS-TRENDS-MILESTONE-CLOSE-001` 已独立确认 suspended Trends 功能、有界数据库写入、Snapshot、零供应商调用、API-F 非回归和清理均为 `VERIFIED`；这些子项不得重跑，但不等于长期服务或真实供应商通过。
 - 风险描述: Trends 尚未作为长期服务运行，真实 XHS session/signer/接口/限流/挑战路径从未生产验证。Tracking 是独立进程和写入路径，仍为 `NOT VERIFIED / NOT STARTED`。当前 `noteai_xhs` 还是 Trends 与 Tracking 的权限并集，而非各自最小身份；持久服务的 singleton、资源、重启、日志和回滚合同也未闭环。
 - 可能后果: 若直接解除 suspended 或长期共置在 API 节点，可能发生供应商会话失效、重复或重叠运行、CPU/内存争用、扩大数据库权限影响面、日志泄露或无法可靠回滚。
-- 建议验证方式: 先完成 `PROD-XHS-FIRST-LAUNCH-SCOPE-DECISION-001`。若首发必须包含 Trends，再单独批准最小真实 XHS `--once` 验证，随后以不可变 digest、独立 singleton managed Worker、无入站端口、显式 CPU/内存/PID/超时/日志/重启上限和独立数据库身份完成服务晋升；Tracking 必须另立验收任务。若首发不包含 Trends，则两服务保持停止且产品不得宣称 live platform trends。
-- 费用和回滚: 当前范围决策费用 ¥0、零供应商调用、零业务写入，回滚仅为文档状态恢复。真实供应商验证、独立 Worker ECS 或持续日志/网络资源会产生外部影响及可能费用，必须重新报价和批准；运行时回滚为保持/恢复 suspended、停止对应 singleton 并回到零 XHS 服务基线。
+- 建议验证方式: 范围决定已确认首发必须包含 Trends 和 Tracking。严格执行 `PROD-XHS-TRENDS-LONGRUN-CONTRACT-001`、新不可变发布、生产基础设施、最小真实只读验证、`PROD-XHS-TRENDS-MANAGED-PROMOTE-001`；以独立 singleton managed Worker、无入站端口、显式 CPU/内存/PID/超时/日志/重启上限、数据库lease/fence和独立数据库身份完成服务晋升。
+- 费用和回滚: 真实供应商验证、独立 Worker ECS 或持续日志/网络资源会产生外部影响及可能费用，必须重新报价和批准；历史 Worker pair 参考约¥783.64/月、OSS约¥65/月、SLS约¥12/月，不是当前报价。运行时回滚为恢复 suspended、停止对应 singleton 并回到零 XHS 服务基线。
 - 是否需要用户确认后才能修改: yes。真实 XHS、session/Cookie、解除 suspended、数据库权限/迁移、Trends/Tracking 启动、Worker ECS、ACR、代码/镜像、ALB/TLS/DNS/流量均需精确批准。
 
-### Production secret storage and Admin logs need a second redaction boundary
+### XHS Tracking is independently unverified and unsafe to promote as-is
 
-- 风险描述: XHS Cookie设置虽标记`is_secret`仍以明文JSON落库；Admin日志接口可返回底层日志尾部，尚无独立allowlist/redaction保证。
-- 涉及文件: `model/runtime_settings.py`, `model/admin_server.py`和SEC-007测试/迁移。
-- 可能后果: 数据库、备份或日志暴露Cookie、URL/query、正文、Prompt、Token或异常原文。
-- 建议验证方式: 建立SEC-007，先证明现状，再做可回滚密文迁移和固定枚举/计数日志；全程不打印真实值。
-- 是否需要用户确认后才能修改: 本地测试/日志脱敏不需要；生产migration或Cookie轮换需要批准。
+- 状态: Open High / first-launch hard gate；`NOT VERIFIED / NOT STARTED`，不得继承 Trends 证据。
+- 风险描述: Tracking 的24小时/7天两阶段链路当前缺少并发claim/lease/singleton、URL规范化和唯一性、跨步骤原子性、确定性调度与完整写入上限。重复手工补录或Admin触发可能重复写入；CLI对部分失败仍可退出0；现有合并角色拥有超出Tracking自身需要的Trends权限。
+- 可能后果: 重复XHS调用、状态覆盖、重复growth/memory副作用、含敏感query的URL持久化、假成功、失控删除或无法证明业务写入边界。
+- 建议验证方式: 先执行无供应商的 `PROD-XHS-TRACKING-CONTRACT-HARDEN-001`；再用独立身份和不可变digest完成suspended preflight；之后只对一个自有测试笔记分别批准24h与7d两次执行、总计最多两次detail调用，最后完成singleton/reboot/kill/alert/rollback晋升。
+- 回滚: 始终先保持Tracking停止；上线后只停止Tracking singleton，保留审计记录，不删除业务证据，不影响Trends/API/Admin。
+- 是否需要用户确认后才能修改: 代码与测试包可单独批准；任何migration/GRANT、真实XHS、生产写入、服务启动和持续资源必须精确批准。
+
+### Repository secret/log/Admin boundary is verified; production history and delivery remain unverified
+
+- 状态: `R13 REPOSITORY FINDINGS CLOSED / PRODUCTION HIGH REMAINS`。R8正向shape Medium、R12结构持久化High和非有限confidence Medium均已在仓库级关闭；固定 Chat/S3/training 异常边界、PostgreSQL时间合同、严格Chat消息、精确良性allowlist、普通per-schema拒绝及既有嵌套schema继续 `PASS`。生产接受尚未完成。
+- 风险描述: 仓库对保留 Secret key 禁止数据库fallback，Provider/Crawler/Training/Admin输出使用固定事件码、计数和摘要hash，Admin动态字段统一转义。H13把两个generic projector的例外限制到schema递归发现的三条整数map路径并复用typed bounded sanitizer；真实`chat_start`只转发既有typed Fact/market context；所有非有限expert confidence统一fail-closed。独立R13以新fixture验证三路径、真实ChatStart和四阶段生命周期，零private survivor且零approved-shape loss。一个补充非Map断言因审计者错误期待未声明record保留为`{}`而停止；源审查确认typed schema应整体省略该项，不构成产品缺陷。
+- 涉及文件: `model/runtime_settings.py`, `model/security_redaction.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`, Crawler/Downloader及安全负向测试。
+- 可能后果: 若生产未采用最终安全版本或历史数据不处置，数据库、备份或日志仍可能暴露Cookie、URL/query、正文、Prompt、Token或异常原文；未经验证的Secret注入、双节点分发或撤销流程也可能造成服务中断或凭据残留。
+- 建议验证方式: H13/R13不得在没有冲突新证据时重复。先执行另批的本地可销毁PostgreSQL预演，再分别批准生产只读历史/权限preflight、受管Secret双节点分发与轮换/撤销验证、历史日志/数据清理和专业合规审查。
+- 是否需要用户确认后才能修改: 本地PostgreSQL服务启动、任何后续代码修改、生产历史清理、Secret分发/轮换、migration、权限或服务变更必须另行单独批准。
+
+### Security/compliance retention integrity passed repository and disposable PostgreSQL gates; production application remains open
+
+- 状态: `H17–H22 + R22 PASS / 0 Critical / 0 High / 0 Medium`；`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-POSTGRES-REHEARSAL-002` 与 R23 PostgreSQL/生命周期独立终审均为 `PASS / 0C / 0H / 0M`，回归复核只依赖最终清理。精确任务容器/卷已删除为零，Colima已恢复停止基线。这是隔离 PostgreSQL 16 证据，不等于生产迁移或部署完成。
+- 已关闭根因: 未来/伪造 purge marker、SQLite 付费创建词法误判、保留身份和主内容身份移动、purge 后及同事务复活、直接 SQLite duplicate/REPLACE、startup/helper 重复登记冲突均由 H17–H22 关闭。R22 通过 `13/13` 聚焦、`134/134` 安全/推理/部署/健康、`152/152` API、全量 `734 passed + 5 skipped`、readiness `86/86` 及质量/编译/Compose/diff。
+- 动态 PostgreSQL 证据: migration 首次 `9`、二次 `0`、SHA ledger `9`；drift、非规范/重复手机号和非法源时间历史均失败关闭并原子回滚。`noteai_app` 表 `100/145`、序列 `5/10`，`noteai_xhs` 表 `20/225`、序列 `3/12`；retention 六列、Notes `parent_id`、Diagnoses 零 UPDATE 精确成立。两角色均非 owner/superuser、无 `BYPASSRLS`/membership/DDL/grant option/ledger 权限。
+- 动态生命周期证据: orphan/wrong-owner/prepurged、live-primary/future marker 全部拒绝；Note/Diagnosis delete-before-marker 成功。purged row 审计可见但后续 UPDATE 为 `rowcount=0`；同事务和并发复活均 `23514` 且无 survivor。helper exact/等价时区/省略 clock 重复保持整行及 `xmin` 不变，owner/clock 冲突 fail closed。
+- 剩余 High: migration `0009`、生产 `noteai_app` 权限收缩/新增权限、生产历史数据 preflight、备份和 processor 调度均未执行；当前生产仍为 `0001`–`0008`。生产回填可能立即产生到期候选，必须先做只读数量/时钟/手机号/回填影响统计、备份证据、精确写入上限和暂停/回滚门禁。
+- 建议验证方式: R16–R23 的已关闭根因和本地演练不得重复。下一串行任务应执行生产只读 preflight；只有历史数据、当前权限、备份和发布 checkpoint 全绿后才能制定 production migration/permission plan。
+- 回滚: 当前尚无生产变更，无需生产回滚；本地 rehearsal 只删除带精确 task label 的容器/卷。未来生产执行前必须保留可验证备份，先暂停 processor，失败时停止发布并恢复旧应用/权限合同，不宣称备份内容已删除。
+
+### Historical R16 retention findings — superseded by H17–H22, R22 and disposable PostgreSQL evidence
+
+- 状态: `HISTORICAL / CLOSED AS ROOT-CAUSE INPUT`。`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-REVERIFY-016` 当时为 `FAIL / 0C / 0H / 2M`；其两个 Medium 已由 H17–H22、R22 和隔离 PostgreSQL 证据关闭，不得继续作为当前 next-task 或 Open 风险。
+- 已关闭的R15根因: Note与Diagnosis真实DELETE首次写入稳定墓碑，12次并发重试不改变三个时钟；`30d-1µs`清理0、精确`30d`清理2、二次清理0。SQLite升级在rename/create/copy/drop/index五个故障边界全部回滚并可重试，stale marker fail closed。SQLite合法clock、非法INSERT/UPDATE、正常free自动到期和delete-before-marker顺序均通过。R15的`1 High / 3 Medium`不再保留为Open。
+- Medium — purged状态不证明真实删除: format-valid且顺序合法的未来`purged_at`可在底层Note/Diagnosis仍存在时直接写入；Python validator接受，status立即显示`purged`，processor在当前及原期限后都跳过，底层两类内容仍各1条。当前processor正常路径正确，但`noteai_app`拥有UPDATE，SQLite/PostgreSQL持久边界没有将marker限制为真实删除转换。
+- Medium — SQLite付费创建时按TEXT词法比较: SQLite运行分支用`started_at <= created_at < expires_at`文本比较，和已接受的明确时区/外围空白clock合同不一致。实际`record_content()`临时库探针`3/3`误判：真实付费被标成`free_7d`、真实免费被标成`paid_indefinite`、外围空白的真实付费也被标成`free_7d`。PostgreSQL分支使用typed clock，不继承此问题。
+- 已接受migration/input证据: 两文件六个突变边界`12/12`保持同一原始bytes和ledger SHA；实际9个migration各只读一次且仅`0009` pending；invalid UTF-8、stored drift、missing、untrusted digestless与竞争snapshot均fail closed；8个历史锚匹配。7个有效phone归一为单一身份，228个Unicode/mixed case在事务前拒绝；PostgreSQL静态clock/状态约束与SQLite既有source/deadline负向矩阵通过。
+- 已接受权限和回归: migration `0009`无GRANT/REVOKE、role/owner/default/schema/function/trigger扩张；`noteai_app`精确20个新DML边界，`noteai_xhs`对五张新表`0/20`允许；完整预期矩阵app表`102/143`、序列`5/10`，XHS表`20/225`、序列`3/12`。安全+部署`91/91`、健康`22/22`、合并`113/113`、API`152/152`、全量`721`加`5`skip、readiness`86/86`及质量/编译/Compose/diff通过。
+- 建议修复方式: 仅在明确批准的`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-HARDEN-017`中以failing-first修复两个Medium：让purged marker只能由真实delete-before-marker转换产生且未来marker/status fail closed；SQLite付费创建判断必须解析为真实时刻再比较。必须保持正常paid/free处理、free自动到期、H13–H16已接受控制及权限零扩张。
+- 后续门禁: H17完成后必须由新批次R17独立复核；只有R17通过，才可另行申请修改后PostgreSQL预演。真实PostgreSQL行为继续`UNKNOWN`。
+- 回滚: H14–H16均未部署，生产仍停留`0001`–`0008`，当前无需生产回滚。H17若实施，只允许撤销其精确delta，不得丢弃H13–H16已接受控制。
+- 是否需要用户确认后才能修改: yes。H17、R17、PostgreSQL预演、生产preflight/migration/GRANT均分别需要明确批准。
+
+### Retention and account-deletion controls are verified before production application
+
+- 状态: Open High / first-launch production gate；仓库、SQLite、隔离 PostgreSQL 和 R23 生命周期已通过，High 仅保留在生产历史/preflight、migration/permission、备份与调度未执行的层级。
+- 风险描述: 新实现提供幂等 purge processor、账户主数据删除和外部备份清除证据确认；过期请求租约不再永久饿死删除，Admin 用户写也进入相同栅栏。H17–H22/R22/R23 已关闭 R16 的伪造 marker 和付费分类问题，并证明 PostgreSQL 身份/权限/并发边界。Migration `0009`仍未执行，production processor未调度，备份系统不能由应用自行宣称清除。历史免费内容回填后可能立即达到purge条件。
+- 可能后果: 生产继续无限保留应删除内容，或在没有预览、备份和用户沟通时批量清理历史数据；账户删除也可能只记录期限而没有可验证的主库/备份执行证据。
+- 建议验证方式: H17–H22、R22及隔离PostgreSQL不得在无冲突新证据时重复。下一步只读统计生产 backfill/purge候选、手机号和四类源时间兼容性，并核对当前角色负向矩阵；任何生产应用前必须确认备份、精确批次上限、暂停开关、证据格式和回滚边界。
+- 回滚: migration/processor 未执行前保持当前生产不变；未来执行时先禁用调度并保留备份，回滚代码/调度而不伪造“备份已清除”证明。
+- 是否需要用户确认后才能修改: yes for production migration、GRANT、purge/deletion processor、历史清理或备份操作；只读独立审查不涉及费用或生产写入。
 
 ### PostgreSQL connection/recovery and node-local video recovery are unproven
 

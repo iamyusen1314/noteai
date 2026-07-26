@@ -12,6 +12,8 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
+from fastapi import HTTPException
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = ROOT / "model"
@@ -1914,37 +1916,22 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
         self.assertTrue(status["cookie_action_required"])
         self.assertIsNone(status["cookie_last_verified_at"])
 
-    def test_admin_cookie_update_clears_only_persisted_session_block(self):
-        config = {"enabled": True}
-
-        def fake_setting(key, default=None):
-            if key == admin_server._CRAWLER_CONFIG_KEY:
-                return dict(config)
-            return default
-
+    def test_admin_cookie_update_is_disabled_without_secret_or_state_write(self):
         with (
-            patch.object(admin_server._settings, "get_json", side_effect=fake_setting),
             patch.object(admin_server._settings, "set_json") as set_json,
             patch.object(
                 admin_server._xhs_acq,
                 "clear_collection_session_block",
             ) as clear_block,
         ):
-            result = asyncio.run(admin_server.admin_update_cookie(
-                admin_server.CookieUpdateInput(
-                    cookies_json='[{"name":"synthetic-cookie"}]'
-                ),
-                admin={"username": "admin"},
-            ))
+            with self.assertRaises(HTTPException) as raised:
+                asyncio.run(admin_server.admin_update_cookie(
+                    admin={"username": "admin"},
+                ))
 
-        self.assertTrue(result["ok"])
-        self.assertEqual(result["cookie_count"], 1)
-        clear_block.assert_called_once_with()
-        self.assertTrue(any(
-            call.args[0] == admin_server._XHS_COOKIES_KEY
-            and call.kwargs.get("is_secret") is True
-            for call in set_json.call_args_list
-        ))
+        self.assertEqual(raised.exception.status_code, 410)
+        set_json.assert_not_called()
+        clear_block.assert_not_called()
 
     def test_collection_health_combines_direct_and_legacy_adapter_ledgers(self):
         original_db = hot_keywords.DB_PATH

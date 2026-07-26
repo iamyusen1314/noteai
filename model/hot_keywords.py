@@ -11,7 +11,7 @@ from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import httpx
 import db as primary_db
@@ -31,6 +31,14 @@ AUTHORIZED_TREND_SOURCE = "authorized_trend"
 AUTHORIZED_TREND_SOURCES = {"authorized_trend", "official_trend", "licensed_trend", "partner_trend"}
 BASELINE_EVIDENCE_SOURCE = "industry_baseline"
 CORE_EVIDENCE_DOMAINS = ("美食", "旅行", "穿搭", "美妆", "家居", "健身")
+
+
+def _safe_source_endpoint(url: str) -> dict[str, str]:
+    parsed = urlparse(str(url or ""))
+    return {
+        "scheme": parsed.scheme if parsed.scheme in {"http", "https"} else "",
+        "host": parsed.hostname or "",
+    }
 
 _INIT_SQL = """
 CREATE TABLE IF NOT EXISTS hot_keywords (
@@ -500,7 +508,7 @@ def sync_cloud_keyword_snapshot(domain: str | None = None, trigger_refresh: bool
     result = import_keyword_snapshot(payload, default_source="cloud_snapshot")
     result["enabled"] = True
     result["source"] = "cloud_snapshot"
-    result["source_url"] = snapshot_url
+    result["source_endpoint"] = _safe_source_endpoint(snapshot_url)
     return result
 
 
@@ -540,15 +548,15 @@ def sync_authorized_trend_source(domain: str | None = None) -> dict:
         result = import_keyword_snapshot(payload, default_source=AUTHORIZED_TREND_SOURCE)
         result["enabled"] = True
         result["source"] = AUTHORIZED_TREND_SOURCE
-        result["source_url"] = source_url
+        result["source_endpoint"] = _safe_source_endpoint(source_url)
         return result
     except Exception as exc:
         return {
             "enabled": True,
             "imported": 0,
             "source": AUTHORIZED_TREND_SOURCE,
-            "source_url": source_url,
-            "error": str(exc),
+            "source_endpoint": _safe_source_endpoint(source_url),
+            "error_code": type(exc).__name__.lower(),
         }
 
 

@@ -96,7 +96,7 @@ class WorkerBrowserSecurityTests(unittest.TestCase):
 
         self.assertNotIn(".chromium.launch(", combined)
         self.assertEqual(sum(text.count("launch_chromium_async(") for text in sources.values()), 4)
-        self.assertEqual(sources["download_covers.py"].count("launch_chromium("), 1)
+        self.assertEqual(sources["download_covers.py"].count("launch_chromium("), 0)
         for flag in chromium_security.FORBIDDEN_CHROMIUM_FLAGS:
             self.assertNotIn(flag, combined)
 

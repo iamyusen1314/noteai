@@ -28,7 +28,7 @@ class ReasoningSafetyTests(unittest.TestCase):
     def test_public_expert_projection_keeps_explanation_without_provider_raw(self):
         provider_private = "SEC003_PROVIDER_PRIVATE"
         opinion = api._public_expert_opinion({
-            "role": "内容专家<img src=x onerror=sentinel()>",
+            "role": "内容专家",
             "raw": (
                 "<opinion><svg onload=sentinel()>保留字面意见</svg></opinion>"
                 "<evidence>证据一\n证据二</evidence>"
@@ -55,6 +55,12 @@ class ReasoningSafetyTests(unittest.TestCase):
         self.assertNotIn(provider_private, serialized)
         for blocked in ('"raw"', '"provider"', '"reasoning_content"', '"_image_desc"'):
             self.assertNotIn(blocked, serialized)
+
+        marked_role = api._public_expert_opinion({
+            "role": "内容专家<img src=x onerror=sentinel()>",
+            "opinion": "不得保留",
+        })
+        self.assertEqual(marked_role, {})
 
         malformed = api._public_expert_opinion({
             "role": "内容专家",
@@ -100,9 +106,17 @@ class ReasoningSafetyTests(unittest.TestCase):
         generate_stream_source = inspect.getsource(api._generate_pipeline_stream)
         chat_start_source = inspect.getsource(api.chat_start)
         diagnosis_source = inspect.getsource(api.get_diagnosis)
+        diagnosis_projection_source = inspect.getsource(
+            api._sanitize_persisted_diagnosis
+        )
+        recursive_schema_source = inspect.getsource(
+            api._sanitize_public_schema_value
+        )
         for source in (analyze_source, generate_source, generate_stream_source, chat_start_source):
             self.assertIn("_public_expert_opinions", source)
-        self.assertIn("_public_diagnosis_value", diagnosis_source)
+        self.assertIn("_sanitize_persisted_diagnosis", diagnosis_source)
+        self.assertIn("_PERSISTED_DIAGNOSIS_SCHEMAS", diagnosis_projection_source)
+        self.assertIn("_public_expert_opinions", recursive_schema_source)
 
     def test_generate_and_chat_application_paths_never_serialize_thinking(self):
         generate_source = inspect.getsource(api._generate_pipeline_stream)
@@ -307,7 +321,7 @@ class ReasoningSafetyTests(unittest.TestCase):
             recovered = api._load_chat_session_from_db("historic")
             self.assertIsNotNone(recovered)
             self.assertNotIn(SENTINEL, json.dumps(recovered, ensure_ascii=False))
-            self.assertEqual(recovered["messages"][0]["content"], "可公开回复")
+            self.assertEqual(recovered["messages"], [])
 
             api._chat_sessions.clear()
             api._chat_sessions["historic"] = recovered

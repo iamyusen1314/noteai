@@ -13,6 +13,7 @@ from typing import Optional
 from fastapi import HTTPException, status
 
 import db
+import content_retention
 
 # ─────────────────────────────────────────────────────────────
 # ① 完整操作注册表（覆盖所有 API Token 消耗点）
@@ -148,35 +149,35 @@ TIERS: dict[str, dict] = {
         "price": 0,
         "monthly_credits": 12.0,
         "quotas": {},
-        "features": ["12 月度积分", "7天笔记存档", "可体验AI诊断/截图识别"],
+        "features": ["12 月度积分", "7天在线存档 + 7天恢复期", "可体验AI诊断/截图识别"],
     },
     "pro": {
         "name":  "创作者版",
         "price": 99,
         "monthly_credits": 260.0,
         "quotas": {},
-        "features": ["260 月度积分", "永久笔记存档", "AI记忆学习", "适合个人创作者"],
+        "features": ["260 月度积分", "付费期间创建内容永久存档", "AI记忆学习", "适合个人创作者"],
     },
     "growth": {
         "name":  "成长版",
         "price": 199,
         "monthly_credits": 560.0,
         "quotas": {},
-        "features": ["560 月度积分", "创作者版全部权益", "适合稳定更新账号"],
+        "features": ["560 月度积分", "付费期间创建内容永久存档", "适合稳定更新账号"],
     },
     "pro_plus": {
         "name":  "专业版",
         "price": 299,
         "monthly_credits": 900.0,
         "quotas": {},
-        "features": ["900 月度积分", "优先响应", "适合小团队/稳定运营账号"],
+        "features": ["900 月度积分", "3:1 加权任务调度", "付费期间创建内容永久存档"],
     },
     "studio": {
         "name":  "工作室版",
         "price": 399,
         "monthly_credits": 1250.0,
         "quotas": {},
-        "features": ["1250 月度积分", "团队高频运营", "专属客服"],
+        "features": ["1250 月度积分", "单主账号多小红书账号运营", "3:1 加权任务调度"],
     },
 }
 
@@ -328,44 +329,13 @@ def clear_active_usage() -> None:
 
 def get_subscription(user_id: str) -> dict:
     """获取用户当前有效订阅；不存在则自动初始化免费版。"""
-    _assert_user(user_id, "get_subscription")
-    row = db.fetchone(
-        "SELECT * FROM subscriptions WHERE user_id=? AND is_active=1 "
-        "ORDER BY started_at DESC LIMIT 1",
-        (user_id,)
-    )
-    if not row:
-        return _create_free_subscription(user_id)
-    sub = dict(row)
-
-    def _strip_tz(s: str) -> datetime:
-        d = datetime.fromisoformat(s)
-        return d.replace(tzinfo=None) if d.tzinfo else d
-
-    # 付费套餐到期自动降级为免费版
-    if sub["tier"] != "free" and sub.get("expires_at"):
+    uid = _assert_user(user_id, "get_subscription")
+    with db.transaction(write=True) as tx:
         try:
-            if _strip_tz(sub["expires_at"]) < _strip_tz(_now()):
-                db.execute(
-                    "UPDATE subscriptions SET tier='free',is_active=0 WHERE id=?",
-                    (sub["id"],)
-                )
-                return _create_free_subscription(user_id)
-        except Exception:
-            pass
-
-    # 月初重置本周期消耗（统一strip时区再比较，避免 naive vs aware TypeError）
-    if _strip_tz(sub["period_start"]) < _strip_tz(_month_start()):
-        now = _now(); ms = _month_start()
-        db.execute(
-            "UPDATE subscriptions SET used_analyze=0,used_generate=0,"
-            "used_chat_rewrite=0,used_screenshot=0,used_monthly_credits=0,period_start=? WHERE id=?",
-            (ms, sub["id"])
-        )
-        sub.update(used_analyze=0, used_generate=0,
-                   used_chat_rewrite=0, used_screenshot=0,
-                   used_monthly_credits=0, period_start=ms)
-    return sub
+            content_retention.assert_user_writable_with_storage(tx, uid)
+        except ValueError:
+            raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
+        return _get_subscription_tx(tx, uid)
 
 def _create_free_subscription(user_id: str) -> dict:
     sid = str(uuid.uuid4()); now = _now(); ms = _month_start()
@@ -380,8 +350,11 @@ def _create_free_subscription(user_id: str) -> dict:
 
 def _get_subscription_tx(tx: db.Transaction, user_id: str) -> dict:
     lock = " FOR UPDATE" if tx.postgres else ""
-    user_row = tx.fetchone(f"SELECT id FROM users WHERE id=?{lock}", (user_id,))
-    if not user_row:
+    user_row = tx.fetchone(
+        f"SELECT id,deletion_requested_at FROM users WHERE id=?{lock}",
+        (user_id,),
+    )
+    if not user_row or user_row["deletion_requested_at"]:
         raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
     row = tx.fetchone(
         "SELECT * FROM subscriptions WHERE user_id=? AND is_active=1 "
@@ -442,6 +415,10 @@ def _record_usage_tx(
     source: str,
     credits_used: float,
 ) -> str:
+    try:
+        content_retention.assert_user_writable_with_storage(tx, user_id)
+    except ValueError:
+        raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
     op_info = OPERATIONS.get(operation, {})
     estimated_cost = float(op_info.get("cost", 0) or 0)
     usage_id = str(uuid.uuid4())
@@ -577,8 +554,9 @@ def upgrade_subscription(user_id: str, tier: str) -> dict:
     if tier not in TIERS:
         raise ValueError(f"未知套餐: {tier}")
     with db.transaction(write=True) as tx:
-        lock = " FOR UPDATE" if tx.postgres else ""
-        if not tx.fetchone(f"SELECT id FROM users WHERE id=?{lock}", (user_id,)):
+        try:
+            content_retention.assert_user_writable_with_storage(tx, user_id)
+        except ValueError:
             raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
         tx.execute("UPDATE subscriptions SET is_active=0 WHERE user_id=?", (user_id,))
         sid = str(uuid.uuid4())
@@ -603,97 +581,15 @@ def check_and_deduct(user_id: Optional[str], operation: str) -> dict:
     - 积分不足：402 余额不足。
     返回 {"source":"subscription"|"credits"|"mixed"|"free", "credits_used":float}
     """
-    op = OPERATIONS.get(operation)
-    if not op:
-        raise ValueError(f"未知操作: {operation}")
-
-    # 免费操作：仅记录，不扣积分
-    if op["free"] or op["credits"] == 0:
+    with db.transaction(write=True) as tx:
         if user_id:
-            usage_id = _record_usage(user_id, operation, source="free", credits_used=0, force_active=True)
-        else:
-            usage_id = None
-        return {"source": "free", "credits_used": 0, "usage_id": usage_id}
-
-    # 付费操作：严格要求 user_id
-    uid = _assert_user(user_id, operation)
-    sub  = get_subscription(uid)
-    tier = sub["tier"]
-    cost = round(float(op["credits"]), 2)
-    tier_cfg = TIERS[tier]
-    monthly_limit = round(float(tier_cfg.get("monthly_credits", 0) or 0), 2)
-    monthly_used = round(float(sub.get("used_monthly_credits") or 0), 2)
-    monthly_remaining = round(max(0.0, monthly_limit - monthly_used), 2)
-    bal_row = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (uid,))
-    balance = round(float(bal_row["balance"] if bal_row else 0.0), 2)
-
-    def _mark_monthly(amount: float) -> None:
-        if amount <= 0:
-            return
-        db.execute(
-            "UPDATE subscriptions SET used_monthly_credits=used_monthly_credits+? "
-            "WHERE id=?",
-            (round(amount, 2), sub["id"]),
-        )
-
-    # 1) 月度套餐积分足够：只扣本月积分。
-    if monthly_remaining >= cost:
-        _mark_monthly(cost)
-        usage_id = _record_usage(uid, operation, source="subscription", credits_used=cost, force_active=True)
-        return {
-            "source": "subscription",
-            "credits_used": cost,
-            "monthly_credits_used": cost,
-            "wallet_credits_used": 0.0,
-            "usage_id": usage_id,
-        }
-
-    # 2) 月度积分不足但还有部分余额：月度积分扣完，充值积分补差额。
-    wallet_needed = round(cost - monthly_remaining, 2)
-    if monthly_remaining > 0 and balance >= wallet_needed:
-        _mark_monthly(monthly_remaining)
-        _deduct_credits(uid, wallet_needed, f"{tier_cfg['name']}月度积分不足补扣：{op['label']}")
-        usage_id = _record_usage(uid, operation, source="mixed", credits_used=cost, force_active=True)
-        return {
-            "source": "mixed",
-            "credits_used": cost,
-            "monthly_credits_used": monthly_remaining,
-            "wallet_credits_used": wallet_needed,
-            "usage_id": usage_id,
-        }
-
-    # 3) 月度积分为 0 或不足且充值积分能完整支付：只扣充值积分。
-    if balance >= cost:
-        _deduct_credits(uid, cost, f"{tier_cfg['name']}月度积分已用完：{op['label']}")
-        usage_id = _record_usage(uid, operation, source="credits", credits_used=cost, force_active=True)
-        return {
-            "source": "credits",
-            "credits_used": cost,
-            "monthly_credits_used": 0.0,
-            "wallet_credits_used": cost,
-            "usage_id": usage_id,
-        }
-
-    raise HTTPException(
-        status_code=402,
-        detail={
-            "code":            "QUOTA_EXCEEDED",
-            "message":         (
-                f"{op['label']}需要 {cost:.1f} 积分；本月套餐积分剩余 {monthly_remaining:.1f}，"
-                f"充值积分余额 {balance:.1f}，仍不足以完成本次操作。"
-            ),
-            "operation":       operation,
-            "op_label":        op["label"],
-            "current_tier":    tier_cfg["name"],
-            "monthly_credits": monthly_limit,
-            "monthly_credits_used": monthly_used,
-            "monthly_credits_remaining": monthly_remaining,
-            "credits_needed":  cost,
-            "credits_balance": round(balance, 2),
-            "wallet_credits_needed": max(0.0, round(cost - monthly_remaining, 2)),
-            "credit_policy":   "优先扣本月套餐积分，不足部分扣充值积分；本月积分每月重置，充值积分长期有效。",
-        }
-    )
+            try:
+                content_retention.assert_user_writable_with_storage(tx, user_id)
+            except ValueError:
+                raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
+        charge = check_and_deduct_in_transaction(tx, user_id, operation)
+    activate_usage(charge.get("usage_id"))
+    return charge
 
 # ─────────────────────────────────────────────────────────────
 # ⑥ 免费操作用量记录（score/diagnose/chat_fast 等）
@@ -753,23 +649,28 @@ def topup_credits(
         raise ValueError("充值积分必须大于0")
     paid_value = round(float(paid_rmb if paid_rmb is not None else amount * CREDIT_VALUE), 2)
     now = _now()
-    if db.fetchone("SELECT user_id FROM credits WHERE user_id=?", (user_id,)):
-        db.execute(
-            "UPDATE credits SET balance=balance+?,total_purchased=total_purchased+?,updated_at=? WHERE user_id=?",
-            (amount, amount, now, user_id)
+    with db.transaction(write=True) as tx:
+        content_retention.assert_user_writable_with_storage(tx, user_id)
+        tx.execute(
+            "INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) "
+            "VALUES(?,0,0,0,?) ON CONFLICT(user_id) DO NOTHING",
+            (user_id, now),
         )
-    else:
-        db.execute(
-            "INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) VALUES(?,?,?,0,?)",
-            (user_id, amount, amount, now)
+        tx.execute(
+            "UPDATE credits SET balance=balance+?,"
+            "total_purchased=total_purchased+?,updated_at=? WHERE user_id=?",
+            (amount, amount, now, user_id),
         )
-    new_bal = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (user_id,))["balance"]
-    db.execute(
-        "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
-        "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
-        (str(uuid.uuid4()), user_id, "topup", amount, new_bal, description,
-         paid_value, package_id, payment_ref, now)
-    )
+        new_bal = tx.fetchone(
+            "SELECT balance FROM credits WHERE user_id=?",
+            (user_id,),
+        )["balance"]
+        tx.execute(
+            "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
+            "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (str(uuid.uuid4()), user_id, "topup", amount, new_bal, description,
+             paid_value, package_id, payment_ref, now),
+        )
     return round(new_bal, 2)
 
 
@@ -793,43 +694,55 @@ def grant_credits(user_id: str, amount: float, description: str = "管理员赠�
     if amount <= 0:
         raise ValueError("赠送积分必须大于0")
     now = _now()
-    if db.fetchone("SELECT user_id FROM credits WHERE user_id=?", (user_id,)):
-        db.execute(
+    with db.transaction(write=True) as tx:
+        content_retention.assert_user_writable_with_storage(tx, user_id)
+        tx.execute(
+            "INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) "
+            "VALUES(?,0,0,0,?) ON CONFLICT(user_id) DO NOTHING",
+            (user_id, now),
+        )
+        tx.execute(
             "UPDATE credits SET balance=balance+?,updated_at=? WHERE user_id=?",
-            (amount, now, user_id)
+            (amount, now, user_id),
         )
-    else:
-        db.execute(
-            "INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) VALUES(?,?,0,0,?)",
-            (user_id, amount, now)
+        new_bal = tx.fetchone(
+            "SELECT balance FROM credits WHERE user_id=?",
+            (user_id,),
+        )["balance"]
+        tx.execute(
+            "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
+            "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (str(uuid.uuid4()), user_id, "gift", amount, new_bal, description,
+             0.0, "", "", now),
         )
-    new_bal = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (user_id,))["balance"]
-    db.execute(
-        "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
-        "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
-        (str(uuid.uuid4()), user_id, "gift", amount, new_bal, description,
-         0.0, "", "", now)
-    )
     return round(new_bal, 2)
 
 
 def _deduct_credits(user_id: str, amount: float, description: str) -> float:
     _assert_user(user_id, "deduct_credits")
     now = _now()
-    if not db.fetchone("SELECT user_id FROM credits WHERE user_id=?", (user_id,)):
-        # 自动创建零余额账户
-        db.execute("INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) VALUES(?,0,0,0,?)", (user_id, now))
-    db.execute(
-        "UPDATE credits SET balance=balance-?,total_used=total_used+?,updated_at=? WHERE user_id=?",
-        (amount, amount, now, user_id)
-    )
-    new_bal = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (user_id,))["balance"]
-    db.execute(
-        "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
-        "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
-        (str(uuid.uuid4()), user_id, "usage", -amount, new_bal, description,
-         0.0, "", "", now)
-    )
+    with db.transaction(write=True) as tx:
+        content_retention.assert_user_writable_with_storage(tx, user_id)
+        tx.execute(
+            "INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) "
+            "VALUES(?,0,0,0,?) ON CONFLICT(user_id) DO NOTHING",
+            (user_id, now),
+        )
+        tx.execute(
+            "UPDATE credits SET balance=balance-?,total_used=total_used+?,"
+            "updated_at=? WHERE user_id=?",
+            (amount, amount, now, user_id),
+        )
+        new_bal = tx.fetchone(
+            "SELECT balance FROM credits WHERE user_id=?",
+            (user_id,),
+        )["balance"]
+        tx.execute(
+            "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
+            "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (str(uuid.uuid4()), user_id, "usage", -amount, new_bal, description,
+             0.0, "", "", now),
+        )
     return round(new_bal, 2)
 
 
@@ -904,48 +817,17 @@ def refund_operation_charge(user_id: str, operation: str, charge: dict | None, d
     """
     if not charge:
         return
-    uid = _assert_user(user_id, f"refund_{operation}")
-    usage_id = charge.get("usage_id")
-    source = charge.get("source")
-    credits_used = float(charge.get("credits_used") or 0)
-    now = _now()
-
-    monthly_used = float(charge.get("monthly_credits_used") or 0)
-    wallet_used = float(charge.get("wallet_credits_used") or 0)
-    if not monthly_used and source == "subscription":
-        monthly_used = credits_used
-    if not wallet_used and source == "credits":
-        wallet_used = credits_used
-
-    if monthly_used > 0:
-        monthly_used = round(monthly_used, 2)
-        db.execute(
-            "UPDATE subscriptions SET used_monthly_credits="
-            "CASE WHEN used_monthly_credits>? THEN used_monthly_credits-? ELSE 0 END "
-            "WHERE user_id=? AND is_active=1",
-            (monthly_used, monthly_used, uid),
-        )
-
-    if wallet_used > 0:
-        wallet_used = round(wallet_used, 2)
-        if not db.fetchone("SELECT user_id FROM credits WHERE user_id=?", (uid,)):
-            db.execute("INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) VALUES(?,0,0,0,?)", (uid, now))
-        db.execute(
-            "UPDATE credits SET balance=balance+?,total_used=MAX(total_used-?,0),updated_at=? WHERE user_id=?",
-            (wallet_used, wallet_used, now, uid),
-        )
-        new_bal = db.fetchone("SELECT balance FROM credits WHERE user_id=?", (uid,))["balance"]
-        db.execute(
-            "INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,"
-            "paid_rmb,package_id,payment_ref,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
-            (str(uuid.uuid4()), uid, "refund", wallet_used, new_bal, description,
-             0.0, "", "", now),
-        )
-
-    if usage_id:
-        db.execute(
-            "UPDATE usage_records SET source='refunded',credits_used=0 WHERE id=? AND user_id=?",
-            (usage_id, uid),
+    with db.transaction(write=True) as tx:
+        try:
+            content_retention.assert_user_writable_with_storage(tx, user_id)
+        except ValueError:
+            return
+        refund_operation_charge_in_transaction(
+            tx,
+            user_id,
+            operation,
+            charge,
+            description,
         )
 
 
@@ -976,17 +858,23 @@ def _record_usage(user_id: str, operation: str, source: str,
         import logging
         logging.error(f"[BILLING] _record_usage called with empty user_id for op={operation}. Skipping.")
         return None
-    op_info = OPERATIONS.get(operation, {})
-    estimated_cost = float(op_info.get("cost", 0) or 0)
-    usage_id = str(uuid.uuid4())
-    db.execute(
-        "INSERT INTO usage_records(id,user_id,operation,tokens_in,tokens_out,"
-        "cost_rmb,estimated_cost_rmb,actual_model_cost_rmb,model_calls,model_names,cost_mode,"
-        "credits_used,source,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (usage_id, user_id, operation, tokens_in, tokens_out,
-         round(estimated_cost, 5), round(estimated_cost, 5), 0.0, 0, "", "estimated",
-         credits_used, source, _now())
-    )
+    with db.transaction(write=True) as tx:
+        try:
+            content_retention.assert_user_writable_with_storage(tx, user_id)
+        except ValueError:
+            raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
+        usage_id = _record_usage_tx(
+            tx,
+            user_id,
+            operation,
+            source,
+            credits_used,
+        )
+        if tokens_in or tokens_out:
+            tx.execute(
+                "UPDATE usage_records SET tokens_in=?,tokens_out=? WHERE id=?",
+                (tokens_in, tokens_out, usage_id),
+            )
     if force_active or _ACTIVE_USAGE_ID.get() is None:
         _ACTIVE_USAGE_ID.set(usage_id)
     return usage_id
@@ -1101,10 +989,24 @@ def _record_model_usage_for_usage_id(
     known_cost = round(known_cost, 9)
 
     with db.transaction(write=True) as tx:
+        owner = tx.fetchone(
+            "SELECT user_id FROM usage_records WHERE id=?",
+            (usage_id,),
+        )
+        if not owner:
+            return
+        try:
+            content_retention.assert_user_writable_with_storage(
+                tx,
+                str(owner["user_id"] or ""),
+            )
+        except ValueError:
+            return
         lock = " FOR UPDATE" if tx.postgres else ""
         parent = tx.fetchone(
-            f"SELECT id,estimated_cost_rmb FROM usage_records WHERE id=?{lock}",
-            (usage_id,),
+            f"SELECT id,estimated_cost_rmb FROM usage_records "
+            f"WHERE id=? AND user_id=?{lock}",
+            (usage_id, owner["user_id"]),
         )
         if not parent:
             return

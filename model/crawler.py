@@ -21,7 +21,6 @@ from pathlib import Path
 
 # ── 路径配置 ────────────────────────────────────────────────────────────
 _BASE_DIR    = Path(__file__).parent
-_COOKIE_FILE = _BASE_DIR / "data" / "xhs_cookies.json"
 _LOG_FILE    = _BASE_DIR / "data" / "crawler_log.json"
 
 # ── 导入共享模块 ─────────────────────────────────────────────────────────
@@ -30,6 +29,7 @@ import db
 from chromium_security import launch_chromium_async
 import performance_scoring as perf
 import runtime_settings
+import security_redaction
 
 try:
     import memory
@@ -48,6 +48,21 @@ MAX_DELAY        = 6.0   # 最长请求间隔（秒）
 DAILY_LIMIT      = 300   # 单日最大采集量
 NOTE_CONTAINER_SELECTOR = ".note-content, .note-container, #noteContainer"
 NOTE_LINK_RE = re.compile(r"/(?:explore|discovery/item)/[A-Za-z0-9]+")
+
+
+def _assert_tracking_writable_with_storage(storage, note: dict) -> None:
+    """Serialize Tracking writes with the API account-deletion checkpoint."""
+    if getattr(storage, "postgres", db.using_postgres()):
+        storage.execute(
+            "SELECT pg_advisory_xact_lock(hashtext(?))",
+            (f"noteai:user-write:{note['user_id']}",),
+        )
+    current = storage.fetchone(
+        "SELECT status FROM tracked_notes WHERE id=? AND user_id=?",
+        (note["id"], note["user_id"]),
+    )
+    if not current or current["status"] == "account_deletion_pending":
+        raise ValueError("tracking write fenced")
 HEADLESS         = os.environ.get("NOTEAI_CRAWLER_HEADLESS", "1").strip().lower() not in {"0", "false", "no"}
 XHS_USER_AGENT   = os.environ.get(
     "NOTEAI_XHS_USER_AGENT",
@@ -138,16 +153,11 @@ def _load_cookies() -> list:
     stored = runtime_settings.get_json("xhs_cookies", [])
     if isinstance(stored, list) and stored:
         return stored
-    if not _COOKIE_FILE.exists():
-        return []
-    try:
-        return json.loads(_COOKIE_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        return []
+    return []
 
 
 def _save_log(entry: dict) -> None:
-    event = {**entry, "ts": _now()}
+    event = security_redaction.sanitize_crawler_event({**entry, "ts": _now()})
     print(json.dumps({"crawler_event": event}, ensure_ascii=False), flush=True)
     if db.using_postgres():
         db.execute(
@@ -241,7 +251,10 @@ async def _extract_note_data(page, url: str) -> dict | None:
             "title":    title_txt[:100],
         }
     except Exception as e:
-        _save_log({"action": "extract_failed", "url": url, "error": str(e)[:200]})
+        _save_log({
+            "action": "extract_failed",
+            "error_code": security_redaction.stable_error_code(e),
+        })
         return None
 
 
@@ -265,7 +278,10 @@ async def _extract_note_data_with_sidecar(url: str, domain: str = "") -> dict | 
             "title": str(normalized.get("title") or "")[:100],
         }
     except Exception as e:
-        _save_log({"action": "sidecar_extract_failed", "url": url, "error": str(e)[:200]})
+        _save_log({
+            "action": "sidecar_extract_failed",
+            "error_code": security_redaction.stable_error_code(e),
+        })
         return None
 
 
@@ -310,7 +326,10 @@ async def check_cookie_validity() -> bool:
         print("Playwright not installed: pip install playwright && playwright install chromium")
         return False
     except Exception as e:
-        print(f"Cookie check error: {e}")
+        print(json.dumps(
+            security_redaction.safe_failure_event("crawler_cookie_check", e),
+            ensure_ascii=False,
+        ))
         return False
 
 
@@ -348,52 +367,65 @@ def _due_tracking_notes(limit: int) -> list[dict]:
 
 def _record_tracking_success(note: dict, data: dict) -> None:
     is_7d = note["status"] in ("checking_7d", "checking_24h")
-    if not note.get("note_title") and data.get("title"):
-        db.execute(
-            "UPDATE tracked_notes SET note_title=? WHERE id=?",
-            (data["title"], note["id"]),
-        )
     now_iso = _now()
-    if not is_7d:
-        next_7d = _next_due_from_note(note, days=7)
-        db.execute(
-            "UPDATE tracked_notes SET likes_24h=?,saves_24h=?,comments_24h=?,"
-            "check_24h_at=?,last_checked_at=?,next_check_at=?,status='checking_7d',"
-            "attempt_count=0,last_error_code=NULL,last_error=NULL WHERE id=?",
-            (data["likes"], data["saves"], data["comments"], now_iso, now_iso, next_7d, note["id"]),
-        )
-        return
+    with db.transaction(write=True) as tx:
+        _assert_tracking_writable_with_storage(tx, note)
+        if not note.get("note_title") and data.get("title"):
+            tx.execute(
+                "UPDATE tracked_notes SET note_title=? WHERE id=?",
+                (data["title"], note["id"]),
+            )
+        if not is_7d:
+            next_7d = _next_due_from_note(note, days=7)
+            tx.execute(
+                "UPDATE tracked_notes SET likes_24h=?,saves_24h=?,comments_24h=?,"
+                "check_24h_at=?,last_checked_at=?,next_check_at=?,"
+                "status='checking_7d',attempt_count=0,last_error_code=NULL,"
+                "last_error=NULL WHERE id=?",
+                (
+                    data["likes"], data["saves"], data["comments"], now_iso,
+                    now_iso, next_7d, note["id"],
+                ),
+            )
+            return
 
-    score = perf.score_performance(
-        domain=note.get("domain", "美食"),
-        likes=data["likes"],
-        saves=data["saves"],
-        comments=data["comments"],
-        views=None,
-        predicted_ces=note.get("predicted_ces"),
-        evidence_source="crawler",
-        window="7d",
-        likes_24h=note.get("likes_24h"),
-        saves_24h=note.get("saves_24h"),
-        comments_24h=note.get("comments_24h"),
-    )
-    db.execute(
-        "UPDATE tracked_notes SET likes_7d=?,saves_7d=?,comments_7d=?,"
-        "views_est=?,actual_ces=?,check_7d_at=?,last_checked_at=?,"
-        "status='complete',confidence=?,confidence_label=?,evidence_source=?,"
-        "training_eligible=?,insights_json=?,completed_at=?,last_error_code=NULL,"
-        "last_error=NULL WHERE id=?",
-        (data["likes"], data["saves"], data["comments"], score.views_est,
-         score.actual_ces, now_iso, now_iso, score.confidence,
-         score.confidence_label, score.evidence_source,
-         1 if score.training_eligible else 0, score.insights_json(), now_iso, note["id"]),
-    )
-    db.execute(
-        "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
-        (str(uuid.uuid4()), note["user_id"], note.get("source_note_id"),
-         note.get("domain", "美食"), score.actual_ces, score.grade,
-         "url_crawl_7d", now_iso),
-    )
+        score = perf.score_performance(
+            domain=note.get("domain", "美食"),
+            likes=data["likes"],
+            saves=data["saves"],
+            comments=data["comments"],
+            views=None,
+            predicted_ces=note.get("predicted_ces"),
+            evidence_source="crawler",
+            window="7d",
+            likes_24h=note.get("likes_24h"),
+            saves_24h=note.get("saves_24h"),
+            comments_24h=note.get("comments_24h"),
+        )
+        tx.execute(
+            "UPDATE tracked_notes SET likes_7d=?,saves_7d=?,comments_7d=?,"
+            "views_est=?,actual_ces=?,check_7d_at=?,last_checked_at=?,"
+            "status='complete',confidence=?,confidence_label=?,evidence_source=?,"
+            "training_eligible=?,insights_json=?,completed_at=?,"
+            "last_error_code=NULL,last_error=NULL WHERE id=?",
+            (
+                data["likes"], data["saves"], data["comments"], score.views_est,
+                score.actual_ces, now_iso, now_iso, score.confidence,
+                score.confidence_label, score.evidence_source,
+                1 if score.training_eligible else 0, score.insights_json(),
+                now_iso, note["id"],
+            ),
+        )
+        tx.execute(
+            "INSERT INTO growth_records("
+            "id,user_id,note_id,domain,score,grade,action,recorded_at"
+            ") VALUES(?,?,?,?,?,?,?,?)",
+            (
+                str(uuid.uuid4()), note["user_id"], note.get("source_note_id"),
+                note.get("domain", "美食"), score.actual_ces, score.grade,
+                "url_crawl_7d", now_iso,
+            ),
+        )
     if memory:
         try:
             title = note.get("note_title") or data.get("title") or "已发布笔记"
@@ -402,6 +434,7 @@ def _record_tracking_success(note: dict, data: dict) -> None:
                 f"真实表现追踪：{title[:24]}，7天实际{score.actual_ces:.1f}分，"
                 f"{score.confidence_label}置信度，强项{score.insights.get('strongest_signal')}，"
                 f"短板{score.insights.get('weakest_signal')}",
+                source_note_id=note.get("source_note_id"),
             )
         except Exception:
             pass
@@ -411,13 +444,17 @@ def _record_tracking_failure(note: dict, code: str, summary: str) -> None:
     attempts = int(note.get("attempt_count") or 0) + 1
     max_attempts = int(note.get("max_attempts") or 2)
     next_status = "needs_manual" if attempts >= max_attempts else note["status"]
-    db.execute(
-        "UPDATE tracked_notes SET status=?,attempt_count=?,last_checked_at=?,"
-        "next_check_at=?,last_error_code=?,last_error=? WHERE id=?",
-        (next_status, attempts, _now(),
-         (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat(),
-         code, summary[:200], note["id"]),
-    )
+    with db.transaction(write=True) as tx:
+        _assert_tracking_writable_with_storage(tx, note)
+        tx.execute(
+            "UPDATE tracked_notes SET status=?,attempt_count=?,last_checked_at=?,"
+            "next_check_at=?,last_error_code=?,last_error=? WHERE id=?",
+            (
+                next_status, attempts, _now(),
+                (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat(),
+                code, summary[:200], note["id"],
+            ),
+        )
 
 
 async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
@@ -436,12 +473,7 @@ async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
             # Adapter exceptions expose only a fixed code; no Cookie/a1/xsec token
             # is included in the persisted summary.
             direct_code = str(getattr(exc, "code", "") or "")
-            error_summary = direct_code or str(exc)[:200]
-            error_code = direct_code or _classify_error(error_summary)
-            _record_tracking_failure(note, error_code, error_summary)
-            stats["failed"] += 1
-            _save_log({"action": "note_error", "id": note["id"], "error": error_summary})
-            if direct_code in {
+            allowed_codes = {
                 "challenge",
                 "cooldown",
                 "login_required",
@@ -449,10 +481,20 @@ async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
                 "server_session_logged_out",
                 "collection_suspended",
                 "collection_safety_unavailable",
-            }:
+            }
+            error_code = (
+                direct_code
+                if direct_code in allowed_codes
+                else security_redaction.stable_error_code(exc)
+            )
+            error_summary = error_code
+            _record_tracking_failure(note, error_code, error_summary)
+            stats["failed"] += 1
+            _save_log({"action": "note_error", "error_code": error_code})
+            if error_code in allowed_codes:
                 if (
                     xhs_acquisition
-                    and direct_code in {"login_required", "server_session_logged_out"}
+                    and error_code in {"login_required", "server_session_logged_out"}
                 ):
                     xhs_acquisition.mark_server_session_logged_out()
                 break

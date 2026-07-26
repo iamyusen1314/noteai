@@ -45,6 +45,7 @@ class BillingTokenCostTests(unittest.TestCase):
         )
 
     def test_manual_cost_is_preserved_but_not_promoted_to_strict_actual(self):
+        self._create_user("u-token")
         billing.record_free_usage("u-token", "score")
         billing.record_model_usage(
             "claude",
@@ -67,6 +68,7 @@ class BillingTokenCostTests(unittest.TestCase):
         self.assertIn("claude:claude-haiku", recent["model_names"])
 
     def test_unknown_model_keeps_estimated_cost_and_is_unpriced(self):
+        self._create_user("u-estimated")
         billing.record_free_usage("u-estimated", "diagnose")
         billing.record_model_usage(
             "claude", "claude-unknown", tokens_in=100, tokens_out=50
@@ -80,6 +82,7 @@ class BillingTokenCostTests(unittest.TestCase):
         self.assertEqual(summary["recent_records"][0]["cost_mode"], "unpriced")
 
     def test_kimi_exact_model_price_computes_actual_cost(self):
+        self._create_user("u-priced")
         billing.record_free_usage("u-priced", "chat_fast")
         billing.record_model_usage("kimi", "kimi-k2.6", tokens_in=1000, tokens_out=500)
 
@@ -89,6 +92,7 @@ class BillingTokenCostTests(unittest.TestCase):
         self.assertEqual(summary["recent_records"][0]["cost_mode"], "actual")
 
     def test_claude_usd_model_price_converts_to_rmb_cost(self):
+        self._create_user("u-claude-usd")
         price_keys = [
             "NOTEAI_BILLING_USD_CNY",
             "NOTEAI_MODEL_PRICE_CLAUDE_INPUT_PER_1M_USD",
@@ -127,6 +131,7 @@ class BillingTokenCostTests(unittest.TestCase):
         self.assertEqual(summary["by_operation"]["extra_image"]["total_tokens"], 0)
 
     def test_unpriced_later_call_downgrades_parent_to_partial(self):
+        self._create_user("u-mixed")
         price_keys = [
             "NOTEAI_MODEL_PRICE_KIMI_INPUT_PER_1M_RMB",
             "NOTEAI_MODEL_PRICE_KIMI_OUTPUT_PER_1M_RMB",
@@ -151,6 +156,7 @@ class BillingTokenCostTests(unittest.TestCase):
             self._restore_env(old_values)
 
     def test_admin_usage_stats_reads_same_token_and_cost_totals(self):
+        self._create_user("u-admin")
         billing.record_free_usage("u-admin", "score")
         billing.record_model_usage("claude", "claude-haiku-4-5-20251001", 10, 5, cost_rmb=0.02)
 

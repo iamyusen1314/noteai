@@ -116,7 +116,7 @@ class RenderDeploymentTests(unittest.TestCase):
 
         self.assertLess(
             migration.index("pg_advisory_xact_lock"),
-            migration.index("SELECT version FROM schema_migrations"),
+            migration.index("SELECT version, sha256 FROM schema_migrations"),
         )
 
     def test_render_blueprint_declares_all_required_service_types(self):

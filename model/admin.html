@@ -419,7 +419,7 @@ input,select,textarea{font-family:inherit}
         <div class="stat-label">Cookie 状态</div>
         <div class="stat-val" id="cw-cookie">–</div>
         <div class="stat-sub" id="cw-cookie-sub"></div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="openCookieModal()">更新 Cookie</button>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="openCookieModal()">Cookie 安全配置说明</button>
       </div>
       <div class="stat-card">
         <div class="stat-label">累计采集条数</div>
@@ -512,14 +512,12 @@ input,select,textarea{font-family:inherit}
 <div class="modal-backdrop" id="cookie-modal">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('cookie-modal')">✕</button>
-    <div class="modal-title">更新小红书 Cookie</div>
+    <div class="modal-title">小红书 Cookie 安全配置</div>
     <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
-      从浏览器开发者工具复制小红书的 Cookie JSON 数组粘贴到此处。
+      后台禁止接收或保存明文 Cookie。生产环境只能由授权发布人员通过受管 Secret 注入
+      <code>NOTEAI_XHS_COOKIES_JSON</code>，并按轮换与撤销流程操作。
     </p>
-    <div class="form-group">
-      <textarea class="form-textarea" id="cookie-input" placeholder='[{"name":"...","value":"..."}]' style="min-height:140px"></textarea>
-    </div>
-    <button class="btn btn-primary" style="width:100%" onclick="saveCookies()">保存 Cookie</button>
+    <button class="btn btn-primary" style="width:100%" onclick="closeModal('cookie-modal')">我知道了</button>
   </div>
 </div>
 
@@ -912,13 +910,13 @@ async function loadUsers() {
     <tr>
       <td><div style="font-weight:600">${esc(u.username)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.nickname||'')}</div></td>
       <td style="font-size:12px">${esc(u.phone_masked||u.email||'–')}</td>
-      <td><span class="badge ${tierBadge(u.tier)}">${{free:'免费',pro:'创作者',growth:'成长',pro_plus:'专业',studio:'工作室'}[u.tier]||u.tier}</span></td>
-      <td style="font-size:12px;color:var(--text-muted)">${(u.created_at||'').slice(0,10)}</td>
+      <td><span class="badge ${tierBadge(u.tier)}">${esc({free:'免费',pro:'创作者',growth:'成长',pro_plus:'专业',studio:'工作室'}[u.tier]||u.tier)}</span></td>
+      <td style="font-size:12px;color:var(--text-muted)">${esc((u.created_at||'').slice(0,10))}</td>
       <td>${u.month_ops}</td>
       <td>${fmtTokens(u.month_tokens || 0)}</td>
       <td style="color:var(--warning)">¥${(u.month_cost||0).toFixed(4)}</td>
       <td style="color:var(--info)">${(u.credits||0).toFixed(1)}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="showUser('${u.id}')">详情</button></td>
+      <td><button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="showUser(decodeURIComponent(this.dataset.userId))">详情</button></td>
     </tr>`).join('');
 }
 function searchUsers() { _userPage=1; loadUsers(); }
@@ -936,16 +934,16 @@ async function showUser(uid) {
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">基本信息</div>
         <div style="font-size:13px;line-height:2">
-          ID: <code style="font-size:11px">${u.id}</code><br>
+          ID: <code style="font-size:11px">${esc(u.id)}</code><br>
           邮箱: ${esc(u.email||'–')}<br>
           手机: ${esc(u.phone_masked||'–')}<br>
-          注册: ${(u.created_at||'').slice(0,10)}<br>
-          最后登录: ${(u.last_login||'').slice(0,16).replace('T',' ')||'–'}
+          注册: ${esc((u.created_at||'').slice(0,10))}<br>
+          最后登录: ${esc((u.last_login||'').slice(0,16).replace('T',' ')||'–')}
         </div>
       </div>
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">套餐与积分</div>
-        <div><span class="badge ${tierBadge(sub.tier)}">${{free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier}</span></div>
+        <div><span class="badge ${tierBadge(sub.tier)}">${esc({free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier)}</span></div>
         <div style="font-size:13px;margin-top:6px">本月已用套餐积分: <b>${Number(sub.used_monthly_credits||0).toFixed(1)}</b></div>
         <div style="font-size:13px;margin-top:6px">积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
         <div style="font-size:12px;color:var(--text-muted)">累计购买: ${(cr.total_purchased||0).toFixed(1)} | 已用: ${(cr.total_used||0).toFixed(1)}</div>
@@ -976,9 +974,9 @@ async function showUser(uid) {
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','add_credits')">手动加积分</button>
-      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','set_tier')">修改套餐</button>
-      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','reset_quota')">重置本月积分</button>
+      <button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'add_credits')">手动加积分</button>
+      <button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'set_tier')">修改套餐</button>
+      <button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'reset_quota')">重置本月积分</button>
     </div>`;
   openModal('user-modal');
 }
@@ -1225,19 +1223,19 @@ async function loadModels() {
   document.getElementById('models-tbody').innerHTML = Object.values(d.models).reverse().map(m=>`
     <tr>
       <td><b>${esc(m.version)}</b></td>
-      <td>${m.features||'–'}</td>
+      <td>${esc(m.features||'–')}</td>
       <td>${m.rmse||'–'}</td>
       <td>${m.accuracy?m.accuracy+'%':'–'}</td>
-      <td><span class="badge ${statusMap[m.status]||'badge-free'}">${{production:'生产中',archived:'已归档',training:'训练中'}[m.status]||m.status}</span></td>
-      <td>${m.status!=='production'?`<button class="btn btn-ghost btn-sm" onclick="deployModel('${m.version}')">部署</button>`:'–'}</td>
+      <td><span class="badge ${statusMap[m.status]||'badge-free'}">${esc({production:'生产中',archived:'已归档',training:'训练中'}[m.status]||m.status)}</span></td>
+      <td>${m.status!=='production'?`<button class="btn btn-ghost btn-sm" data-model-version="${esc(encodeURIComponent(String(m.version||'')))}" onclick="deployModel(decodeURIComponent(this.dataset.modelVersion))">部署</button>`:'–'}</td>
     </tr>`).join('');
   document.getElementById('train-jobs').innerHTML = (d.training_jobs||[]).reverse().slice(0,5).map(j=>`
     <div style="background:var(--surf-2);border-radius:8px;padding:10px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between">
-        <span style="font-size:12px;font-weight:600">${j.id}</span>
-        <span class="badge ${j.status==='completed'?'badge-success':j.status==='failed'?'badge-error':'badge-warning'}">${j.status}</span>
+        <span style="font-size:12px;font-weight:600">${esc(j.id)}</span>
+        <span class="badge ${j.status==='completed'?'badge-success':j.status==='failed'?'badge-error':'badge-warning'}">${esc(j.status)}</span>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${j.description}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${esc(j.description)}</div>
     </div>`).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无训练任务</div>';
 }
 
@@ -1283,7 +1281,7 @@ async function loadCrawler() {
   const logsR = await aFetch('/admin/crawler/logs?limit=30');
   const logs  = await logsR.json();
   document.getElementById('crawler-logs').innerHTML = (logs.logs||[]).reverse().map(l=>`
-    <div class="log-line">${JSON.stringify(l).slice(0,120)}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px;padding:8px">暂无日志</div>';
+    <div class="log-line">${esc(JSON.stringify(l).slice(0,120))}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px;padding:8px">暂无日志</div>';
 }
 
 function _fmtShortTime(value) {
@@ -1325,20 +1323,20 @@ async function loadXhsHealth() {
     document.getElementById('xhs-sidecar-sub').textContent = health.sidecar && health.sidecar.host ? health.sidecar.host : 'NOTEAI_XHS_DOWNLOADER_URL';
     document.getElementById('xhs-fresh-table').innerHTML = (fresh.domains || []).map(row => `
       <tr>
-        <td>${row.domain || '–'}</td>
-        <td><span class="badge ${row.ok?'badge-success':'badge-error'}">${row.ok?'fresh':(row.status || 'missing')}</span></td>
+        <td>${esc(row.domain || '–')}</td>
+        <td><span class="badge ${row.ok?'badge-success':'badge-error'}">${esc(row.ok?'fresh':(row.status || 'missing'))}</span></td>
         <td>${row.evidence_count || 0} / ${row.minimum || 0}</td>
         <td>${_fmtShortTime(row.fresh_until)}</td>
-        <td style="color:var(--text-muted)">${row.reason || '–'}</td>
+        <td style="color:var(--text-muted)">${esc(row.reason || '–')}</td>
       </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-muted)">暂无账本记录</td></tr>';
     document.getElementById('xhs-health-table').innerHTML = (health.health || []).map(row => `
       <tr>
         <td>${_fmtShortTime(row.checked_at)}</td>
-        <td>${row.adapter || '–'}</td>
-        <td>${row.domain || '–'}</td>
-        <td><span class="badge ${row.status === 'ok' ? 'badge-success' : ['insufficient','degraded'].includes(row.status) ? 'badge-warning' : 'badge-error'}">${row.status || '–'}</span></td>
+        <td>${esc(row.adapter || '–')}</td>
+        <td>${esc(row.domain || '–')}</td>
+        <td><span class="badge ${row.status === 'ok' ? 'badge-success' : ['insufficient','degraded'].includes(row.status) ? 'badge-warning' : 'badge-error'}">${esc(row.status || '–')}</span></td>
         <td>${row.details?.latest_run_evidence_count || 0} / ${row.evidence_count || 0}</td>
-        <td style="color:var(--text-muted)">${row.error_code || row.error_summary || '–'}</td>
+        <td style="color:var(--text-muted)">${esc(row.error_code || row.error_summary || '–')}</td>
       </tr>`).join('') || '<tr><td colspan="6" style="color:var(--text-muted)">暂无 health 记录</td></tr>';
   } catch(e) {
     document.getElementById('xhs-fresh-ok').innerHTML = '<span class="dot dot-red"></span>不可用';
@@ -1360,13 +1358,6 @@ async function runCrawlerNow() {
 }
 
 function openCookieModal() { openModal('cookie-modal'); }
-async function saveCookies() {
-  const raw = document.getElementById('cookie-input').value.trim();
-  const r = await aFetch('/admin/crawler/update-cookie', {method:'POST', body:JSON.stringify({cookies_json:raw})});
-  const d = await r.json();
-  if(d.ok) { alert(`Cookie 已保存（${d.cookie_count}条）`); closeModal('cookie-modal'); loadCrawler(); }
-  else alert('失败: '+JSON.stringify(d));
-}
 
 /* ── Settings ─────────────────────────────────────────────────────── */
 async function loadSettings() {
@@ -1375,20 +1366,20 @@ async function loadSettings() {
   const tierNames = {free:'免费版', pro:'创作者版 (¥99)', growth:'成长版 (¥199)', pro_plus:'专业版 (¥299)', studio:'工作室版 (¥399)'};
   document.getElementById('settings-tiers').innerHTML = Object.entries(d.tiers).map(([k,t])=>`
     <div style="margin-bottom:16px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px">${tierNames[k]||k}</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">${esc(tierNames[k]||k)}</div>
       <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
         <span style="color:var(--text-2)">月度套餐积分</span>
         <span style="color:var(--accent);font-weight:600">${t.monthly_credits || 0} 积分/月</span>
       </div>
       ${(t.features||[]).map(f=>`
-        <div style="font-size:11px;color:var(--text-muted);padding:3px 0">• ${f}</div>`).join('')}
+        <div style="font-size:11px;color:var(--text-muted);padding:3px 0">• ${esc(f)}</div>`).join('')}
     </div>`).join('');
   document.getElementById('settings-credits').innerHTML = `
     <div style="font-size:13px;margin-bottom:12px">1 积分标价 = ¥${d.credit_value}；充值包按真实 paid_rmb 计收入，管理员赠送不计收入。</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">
       ${(d.credit_packages||[]).map(p=>`
         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:9px">
-          <div style="font-size:12px;color:var(--text);font-weight:700">${p.label}</div>
+          <div style="font-size:12px;color:var(--text);font-weight:700">${esc(p.label)}</div>
           <div style="font-size:12px;color:var(--text-2)">${p.credits}积分 / ¥${p.price_rmb}</div>
           <div style="font-size:10px;color:var(--text-muted)">约¥${p.unit_price_rmb}/积分</div>
         </div>`).join('')}
@@ -1396,14 +1387,15 @@ async function loadSettings() {
     <div style="display:flex;flex-direction:column;gap:6px">
       ${Object.entries(d.credit_costs).map(([k,v])=>`
         <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-          <span style="color:var(--text-2)">${d.operations?.[k]?.label||k}</span>
+          <span style="color:var(--text-2)">${esc(d.operations?.[k]?.label||k)}</span>
           <span style="color:var(--warning)">${v===0?'免费':v+'积分'}</span>
         </div>`).join('')}
     </div>`;
   const logsR = await aFetch('/admin/logs?lines=50');
   const logs  = await logsR.json();
-  document.getElementById('server-logs').innerHTML = (logs.lines||[]).map(l=>`
-    <div class="log-line">${esc(l)}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无日志</div>';
+  document.getElementById('server-logs').innerHTML = (logs.events||[]).map(event=>`
+    <div class="log-line">${esc(event.level)} · ${esc(event.event_code)} · ${esc(event.line_hash)}</div>`
+  ).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无日志摘要</div>';
 }
 
 /* ── Chart helpers ────────────────────────────────────────────────── */
@@ -1428,7 +1420,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open')); });
 
 /* ── Utils ────────────────────────────────────────────────────────── */
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
 function updateClock() {
   document.getElementById('topbar-time').textContent = new Date().toLocaleString('zh-CN');
   setTimeout(updateClock, 1000);

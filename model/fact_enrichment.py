@@ -1249,7 +1249,8 @@ def enrich_content_facts(domain: str | None, title: str | None, text: str | None
                 "facts": {},
                 "sources": [],
                 "confidence": 0.0,
-                "error": _redact_secret_values(str(exc))[:160],
+                "error": "provider_request_failed",
+                "error_code": type(exc).__name__.lower(),
             }
 
     sources = _merge_sources(items)

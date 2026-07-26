@@ -22,6 +22,7 @@ import httpx
 
 import hot_keywords
 import runtime_settings
+import security_redaction
 
 
 REAL_XHS_EVIDENCE_SOURCES = {
@@ -1180,7 +1181,7 @@ class XHSDownloaderSidecar:
         parsed = urlparse(self.base_url) if self.base_url else None
         return {
             "configured": self.configured,
-            "host": parsed.netloc if parsed else "",
+            "host": parsed.hostname if parsed else "",
             "scheme": parsed.scheme if parsed else "",
         }
 
@@ -1205,8 +1206,8 @@ class XHSDownloaderSidecar:
         except Exception as exc:
             return {
                 "ok": False,
-                "error_code": type(exc).__name__,
-                "error_summary": str(exc)[:300],
+                "error_code": security_redaction.stable_error_code(exc),
+                "error_summary": "sidecar_request_failed",
             }
 
 
@@ -1226,7 +1227,13 @@ def fetch_detail_with_sidecar(url: str, *, domain: str = "", run_id: str | None 
     normalized = result.get("normalized") if isinstance(result.get("normalized"), dict) else {}
     ok = bool(result.get("ok") and (normalized.get("has_content") or normalized.get("has_metrics")))
     error_summary = result.get("error_summary") or result.get("error_code") or ""
-    risk_login = any(marker in str(error_summary).lower() for marker in ("login", "sign-in", "cookie", "403", "401"))
+    risk_login = (
+        str(result.get("error_code") or "").lower() == "httpstatuserror"
+        or any(
+            marker in str(error_summary).lower()
+            for marker in ("login", "sign-in", "cookie", "403", "401")
+        )
+    )
     record_health(CrawlerHealth(
         run_id=effective_run_id,
         adapter="xhs_downloader",

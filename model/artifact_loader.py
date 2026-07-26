@@ -75,7 +75,9 @@ def _download(url: str, target: Path) -> None:
     except (HTTPError, URLError, TimeoutError) as exc:
         if tmp.exists():
             tmp.unlink()
-        raise RuntimeError(f"download failed for {url}: {exc}") from exc
+        raise RuntimeError(
+            f"model artifact download failed ({type(exc).__name__.lower()})"
+        ) from None
 
 
 def _download_s3(bucket: str, key: str, target: Path) -> None:
@@ -91,7 +93,9 @@ def _download_s3(bucket: str, key: str, target: Path) -> None:
     except Exception as exc:
         if tmp.exists():
             tmp.unlink()
-        raise RuntimeError(f"S3 model artifact download failed: s3://{bucket}/{key}") from exc
+        raise RuntimeError(
+            f"S3 model artifact download failed ({type(exc).__name__.lower()})"
+        ) from None
 
 
 def load_manifest(path: Path = DEFAULT_MANIFEST) -> dict:

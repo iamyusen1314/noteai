@@ -697,6 +697,11 @@ def _skip_artifact(row: dict[str, Any], payload: dict[str, Any], reason: str) ->
 
 
 def _failure_artifact(row: dict[str, Any], payload: dict[str, Any], exc: Exception) -> dict[str, Any]:
+    exception_type = re.sub(
+        r"[^a-z0-9]+",
+        "_",
+        type(exc).__name__.lower(),
+    ).strip("_") or "error"
     return {
         "version": VERSION,
         "created_at": _now_iso(),
@@ -707,8 +712,7 @@ def _failure_artifact(row: dict[str, Any], payload: dict[str, Any], exc: Excepti
         "domain": payload.get("domain") or row.get("domain", ""),
         "origin": payload.get("origin") or row.get("origin", ""),
         "generation_route": payload.get("generation_route") or row.get("generation_route", ""),
-        "error_type": type(exc).__name__,
-        "error": str(exc)[:500],
+        "error_code": f"generation_{exception_type}"[:80],
     }
 
 
@@ -747,7 +751,12 @@ async def fill_rows(
             artifact = _failure_artifact(row, payload, exc)
             _write_json(path, artifact)
             results.append({"status": "failed", "path": str(path), "artifact": artifact})
-            print(f"[{index}/{len(rows)}] failed {row.get('queue_id')}: {exc}", file=sys.stderr, flush=True)
+            print(
+                f"[{index}/{len(rows)}] failed {row.get('queue_id')}: "
+                f"{artifact['error_code']}",
+                file=sys.stderr,
+                flush=True,
+            )
     return results
 
 

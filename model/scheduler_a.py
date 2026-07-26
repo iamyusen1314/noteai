@@ -26,8 +26,6 @@ import runtime_settings
 from chromium_security import launch_chromium_async
 
 BASE_DIR = Path(__file__).parent
-STATE_PATH  = BASE_DIR / "data/xhs_state.json"
-COOKIES_PATH = BASE_DIR / "data/xhs_cookies.json"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -389,21 +387,12 @@ def _source_weight(source: str) -> float:
 
 
 def _get_session_state():
-    if STATE_PATH.exists():
-        return str(STATE_PATH)
     stored = runtime_settings.get_json("xhs_cookies", [])
     if isinstance(stored, list) and stored:
         cookies = [dict(cookie) for cookie in stored]
         for cookie in cookies:
             if "domain" not in cookie:
                 cookie["domain"] = ".xiaohongshu.com"
-        return {"cookies": cookies, "origins": []}
-    if COOKIES_PATH.exists():
-        with open(COOKIES_PATH) as f:
-            cookies = json.load(f)
-        for c in cookies:
-            if "domain" not in c:
-                c["domain"] = ".xiaohongshu.com"
         return {"cookies": cookies, "origins": []}
     return None
 
@@ -718,7 +707,7 @@ async def _trigger_search_input(
                     _diagnostic_inc(diagnostics, "input", "typed")
                 return True, ""
         except Exception as exc:
-            last_error = f"{type(exc).__name__}: {str(exc).splitlines()[0]}"
+            last_error = type(exc).__name__.lower()
         await asyncio.sleep(0.35)
     if diagnostics is not None:
         if found:

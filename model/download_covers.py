@@ -25,11 +25,10 @@ from pathlib import Path
 from typing import Optional
 import aiohttp
 
-from chromium_security import launch_chromium, launch_chromium_async
+from chromium_security import launch_chromium_async
+import runtime_settings
 
 BASE_DIR = Path(__file__).parent
-COOKIES_PATH = BASE_DIR / "data/xhs_cookies.json"
-STATE_PATH = BASE_DIR / "data/xhs_state.json"
 
 # Defaults (overridden by --run-id)
 COVER_DIR = BASE_DIR / "data/covers"
@@ -69,39 +68,15 @@ CHANNELS = [
 # ── Login ──────────────────────────────────────────────────────────────────────
 
 def do_login():
-    from playwright.sync_api import sync_playwright
-    print("\n" + "=" * 60)
-    print("Opening XHS in browser window...")
-    print("1. Log in (scan QR code or phone number)")
-    print("2. Wait until home feed is fully loaded")
-    print("3. Press Enter here")
-    print("=" * 60 + "\n")
-    with sync_playwright() as pw:
-        browser = launch_chromium(
-            pw.chromium,
-            headless=False,
-            args=["--start-maximized"],
-        )
-        ctx = browser.new_context(user_agent=BROWSER_UA,
-                                  viewport={"width": 1440, "height": 900},
-                                  locale="zh-CN")
-        page = ctx.new_page()
-        page.goto("https://www.xiaohongshu.com", wait_until="domcontentloaded")
-        input("\nPress Enter after logging in...")
-        ctx.storage_state(path=str(STATE_PATH))
-        cookies = ctx.cookies()
-        with open(COOKIES_PATH, "w") as f:
-            json.dump(cookies, f, indent=2, ensure_ascii=False)
-        print(f"Saved state → {STATE_PATH}  ({len(cookies)} cookies)")
-        browser.close()
+    raise RuntimeError(
+        "明文登录态文件已禁用；请通过受管 Secret 注入 NOTEAI_XHS_COOKIES_JSON"
+    )
 
 
 def get_session_state():
-    if STATE_PATH.exists():
-        return str(STATE_PATH)
-    if COOKIES_PATH.exists():
-        with open(COOKIES_PATH) as f:
-            cookies = json.load(f)
+    cookies = runtime_settings.get_json("xhs_cookies", [])
+    if isinstance(cookies, list) and cookies:
+        cookies = [dict(cookie) for cookie in cookies]
         for c in cookies:
             if "domain" not in c:
                 c["domain"] = ".xiaohongshu.com"
@@ -316,7 +291,10 @@ async def run_collect(total: int):
                                 stats["failed"] += 1
 
                 except Exception as e:
-                    print(f"  [error] {channel_name}: {e}")
+                    print(
+                        f"  [error] channel_failed error_code="
+                        f"{type(e).__name__.lower()}"
+                    )
                 finally:
                     await page.close()
 

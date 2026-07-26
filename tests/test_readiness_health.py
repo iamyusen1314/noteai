@@ -353,7 +353,11 @@ class DatabaseHealthTimeoutTests(unittest.TestCase):
         def __init__(self):
             self.row_factory = None
             self.progress_handlers = []
+            self.functions = []
             self.closed = False
+
+        def create_function(self, name, arity, function, **kwargs):
+            self.functions.append((name, arity, function, kwargs))
 
         def execute(self, _sql, _params=()):
             return self
@@ -386,10 +390,12 @@ class DatabaseHealthTimeoutTests(unittest.TestCase):
         health_kwargs = connect.call_args_list[0].kwargs
         regular_kwargs = connect.call_args_list[1].kwargs
         self.assertEqual(health_kwargs["connect_timeout"], 1)
+        self.assertIn("timezone=UTC", health_kwargs["options"])
         self.assertIn("statement_timeout", health_kwargs["options"])
         self.assertIn("=1000", health_kwargs["options"])
         self.assertNotIn("connect_timeout", regular_kwargs)
-        self.assertNotIn("options", regular_kwargs)
+        self.assertIn("timezone=UTC", regular_kwargs["options"])
+        self.assertNotIn("statement_timeout", regular_kwargs["options"])
 
     def test_sqlite_health_timeout_does_not_change_regular_get_conn(self):
         health_conn = self._FakeConnection()
@@ -412,6 +418,26 @@ class DatabaseHealthTimeoutTests(unittest.TestCase):
         self.assertTrue(health_conn.progress_handlers)
         self.assertEqual(health_conn.progress_handlers[-1], (None, 0))
         self.assertFalse(regular_conn.progress_handlers)
+        for connection in (health_conn, regular_conn):
+            self.assertEqual(
+                [
+                    (name, arity, options)
+                    for name, arity, _, options in connection.functions
+                ],
+                [
+                    (
+                        "noteai_retention_clock_valid",
+                        1,
+                        {"deterministic": True},
+                    ),
+                    (
+                        "noteai_retention_clock_lte",
+                        2,
+                        {"deterministic": True},
+                    ),
+                    ("noteai_retention_clock_not_future", 1, {}),
+                ],
+            )
 
     def test_sqlite_cleanup_closes_even_when_progress_handler_reset_raises(self):
         conn = self._FakeConnection()

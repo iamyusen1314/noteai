@@ -1,8 +1,15 @@
 """NoteAI primary data access for local SQLite and cloud PostgreSQL."""
+import hashlib
 import sqlite3
 import os
+import re
 import time
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
+from datetime import (
+    datetime as _datetime,
+    timedelta as _timedelta,
+    timezone as _timezone,
+)
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +18,172 @@ _DB_PATH = Path(
     or (Path(__file__).parent / "data" / "noteai.db")
 )
 _POSTGRES_MIGRATIONS_DIR = Path(__file__).parent / "migrations" / "postgres"
+_POSTGRES_LEGACY_MIGRATION_SHA256 = {
+    "0001_initial.sql": (
+        "8ea5d32bc5c1a3e84452d93722324b9a9b4bb2e156c69b4a9656efa13ed51718"
+    ),
+    "0002_shared_runtime_state.sql": (
+        "d3a939479990cfe080fce71ebd122e19e633874bd2cd6883b5b03507eadefcb7"
+    ),
+    "0003_market_timing.sql": (
+        "772636cab88c2abf169a5b1a3fd5419ba1e3b12bbae92e211e296e89b1850192"
+    ),
+    "0004_xhs_freshness.sql": (
+        "1c817056eea3df9e0e1dd6ba6aceaf0c9a172b3cbba92ba3aeb621adb857a2a1"
+    ),
+    "0005_idempotency_requests.sql": (
+        "3a02a45bf0211580c5db97fc80ab9fb8eedab94a9cf981c59f3de231789981e6"
+    ),
+    "0006_model_usage_records.sql": (
+        "392eb82adca68493566f6469ce6ce4f1fba0cfc9ab76757deb4e1404c45cb735"
+    ),
+    "0007_ai_operations.sql": (
+        "477d4ea776d701c4b359b36eb254c68263131f74dedeb766ff46081bff619037"
+    ),
+    "0008_ai_operation_admissions.sql": (
+        "3bdd896ce06f7a5ae8deeba01145d9556775c45a71cd83576240d24a01bc05fe"
+    ),
+}
+_RETENTION_SOURCE_CLOCK_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}"
+    r"[T ](?:[01]\d|2[0-3]):[0-5]\d"
+    r"(?::[0-5]\d(?:\.\d{1,6})?)?"
+    r"(?:Z|[+-](?:(?:0\d|1[0-3])(?::?[0-5]\d)?|14(?::?00)?))?$"
+)
+_RETENTION_DEADLINE_CLOCK_RE = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+    r"[T ](?:[01][0-9]|2[0-3]):[0-5][0-9]"
+    r"(?::[0-5][0-9](?:\.[0-9]{1,6})?)?"
+    r"(?:Z|[+-](?:(?:0[0-9]|1[0-3])(?::?[0-5][0-9])?|14(?::?00)?))$"
+)
+
+
+def _parse_retention_source_clock(value: Any) -> _datetime | None:
+    """Return one precise UTC clock; legacy timezone-naive clocks mean UTC."""
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    if not normalized or not _RETENTION_SOURCE_CLOCK_RE.fullmatch(normalized):
+        return None
+    try:
+        parsed = _datetime.fromisoformat(
+            normalized[:-1] + "+00:00"
+            if normalized.endswith("Z")
+            else normalized
+        )
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=_timezone.utc)
+    if parsed.utcoffset() is None:
+        return None
+    if abs(parsed.utcoffset()) > _timedelta(hours=14):
+        return None
+    return parsed.astimezone(_timezone.utc)
+
+
+def _valid_retention_source_clock(value: Any) -> bool:
+    """Accept only real clocks with deterministic UTC semantics."""
+    return _parse_retention_source_clock(value) is not None
+
+
+def _parse_retention_deadline_clock(value: Any) -> _datetime | None:
+    """Parse one canonical, explicitly zoned retention deadline."""
+    if (
+        not isinstance(value, str)
+        or value != value.strip()
+        or not _RETENTION_DEADLINE_CLOCK_RE.fullmatch(value)
+    ):
+        return None
+    try:
+        parsed = _datetime.fromisoformat(
+            value[:-1] + "+00:00" if value.endswith("Z") else value
+        )
+    except ValueError:
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        return None
+    if abs(parsed.utcoffset()) > _timedelta(hours=14):
+        return None
+    return parsed.astimezone(_timezone.utc)
+
+
+def _sqlite_retention_clock_valid(value: Any) -> int:
+    return int(_parse_retention_deadline_clock(value) is not None)
+
+
+def _sqlite_retention_clock_lte(left: Any, right: Any) -> int:
+    left_clock = _parse_retention_deadline_clock(left)
+    right_clock = _parse_retention_deadline_clock(right)
+    return int(
+        left_clock is not None
+        and right_clock is not None
+        and left_clock <= right_clock
+    )
+
+
+def _retention_now() -> _datetime:
+    return _datetime.now(_timezone.utc)
+
+
+def _sqlite_retention_clock_not_future(value: Any) -> int:
+    clock = _parse_retention_deadline_clock(value)
+    return int(clock is not None and clock <= _retention_now())
+
+
+def _valid_content_retention_row(row: Any) -> bool:
+    retention_class = row["retention_class"]
+    active_until = row["active_until"]
+    recovery_until = row["recovery_until"]
+    deleted_at = row["deleted_at"]
+    purge_after = row["purge_after"]
+    purged_at = row["purged_at"]
+    deleted_clock = _parse_retention_deadline_clock(deleted_at)
+    purge_clock = _parse_retention_deadline_clock(purge_after)
+    purged_clock = _parse_retention_deadline_clock(purged_at)
+    if retention_class == "paid_indefinite":
+        if active_until is not None or recovery_until is not None:
+            return False
+        if deleted_at is None:
+            return purge_after is None and purged_at is None
+        return (
+            deleted_clock is not None
+            and purge_clock is not None
+            and deleted_clock <= purge_clock
+            and (
+                purged_at is None
+                or (
+                    purged_clock is not None
+                    and purge_clock <= purged_clock
+                    and purged_clock <= _retention_now()
+                )
+            )
+        )
+    if retention_class != "free_7d":
+        return False
+    active_clock = _parse_retention_deadline_clock(active_until)
+    recovery_clock = _parse_retention_deadline_clock(recovery_until)
+    return (
+        active_clock is not None
+        and recovery_clock is not None
+        and purge_clock is not None
+        and active_clock <= recovery_clock <= purge_clock
+        and (
+            deleted_at is None
+            or (
+                deleted_clock is not None
+                and deleted_clock <= purge_clock
+            )
+        )
+        and (
+            purged_at is None
+            or (
+                purged_clock is not None
+                and purge_clock <= purged_clock
+                and purged_clock <= _retention_now()
+            )
+        )
+    )
 
 
 class CompatRow(dict):
@@ -46,6 +219,23 @@ def _get_sqlite_conn(*, timeout_seconds: float | None = None) -> sqlite3.Connect
         connect_kwargs["timeout"] = max(0.1, float(timeout_seconds))
     conn = sqlite3.connect(str(_DB_PATH), **connect_kwargs)
     conn.row_factory = sqlite3.Row
+    conn.create_function(
+        "noteai_retention_clock_valid",
+        1,
+        _sqlite_retention_clock_valid,
+        deterministic=True,
+    )
+    conn.create_function(
+        "noteai_retention_clock_lte",
+        2,
+        _sqlite_retention_clock_lte,
+        deterministic=True,
+    )
+    conn.create_function(
+        "noteai_retention_clock_not_future",
+        1,
+        _sqlite_retention_clock_not_future,
+    )
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     busy_timeout_ms = (
@@ -66,12 +256,15 @@ def _get_postgres_conn(
         import psycopg
     except ImportError as exc:
         raise RuntimeError("PostgreSQL requires psycopg[binary]") from exc
-    connect_kwargs: dict[str, Any] = {"row_factory": _compat_row_factory}
+    connect_kwargs: dict[str, Any] = {
+        "row_factory": _compat_row_factory,
+        "options": "-c timezone=UTC",
+    }
     if connect_timeout_seconds is not None:
         connect_kwargs["connect_timeout"] = max(1, int(connect_timeout_seconds))
     if statement_timeout_ms is not None:
         timeout_ms = max(100, int(statement_timeout_ms))
-        connect_kwargs["options"] = f"-c statement_timeout={timeout_ms}"
+        connect_kwargs["options"] += f" -c statement_timeout={timeout_ms}"
     return psycopg.connect(_database_url(), **connect_kwargs)
 
 
@@ -79,10 +272,321 @@ def get_conn():
     return _get_postgres_conn() if using_postgres() else _get_sqlite_conn()
 
 
+def _upgrade_sqlite_content_retention_contract(conn: sqlite3.Connection) -> None:
+    """Atomically replace a legacy retention CHECK without losing valid rows."""
+    schema_row = conn.execute(
+        "SELECT sql FROM sqlite_master "
+        "WHERE type='table' AND name='content_retention'"
+    ).fetchone()
+    schema = str(schema_row["sql"] or "") if schema_row else ""
+    stale_table = conn.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type='table' AND name='content_retention_legacy_h15'"
+    ).fetchone()
+    if stale_table is not None:
+        raise RuntimeError("stale content retention upgrade table blocks startup")
+    if "content_retention_state_check_h16" in schema:
+        return
+    rows = conn.execute(
+        "SELECT retention_class,active_until,recovery_until,deleted_at,"
+        "purge_after,purged_at FROM content_retention"
+    ).fetchall()
+    if any(not _valid_content_retention_row(row) for row in rows):
+        raise RuntimeError("invalid content retention clocks block startup")
+    conn.execute("SAVEPOINT content_retention_contract_upgrade")
+    try:
+        conn.execute(
+            "ALTER TABLE content_retention RENAME TO content_retention_legacy_h15"
+        )
+        conn.execute(
+            """
+            CREATE TABLE content_retention (
+                content_type TEXT NOT NULL
+                    CHECK (content_type IN ('note','diagnosis')),
+                content_id TEXT NOT NULL,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                retention_class TEXT NOT NULL
+                    CHECK (retention_class IN ('free_7d','paid_indefinite')),
+                active_until TEXT,
+                recovery_until TEXT,
+                deleted_at TEXT,
+                purge_after TEXT,
+                purged_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                contract_version TEXT NOT NULL,
+                CONSTRAINT content_retention_state_check_h16 CHECK (
+                    (retention_class='paid_indefinite'
+                        AND active_until IS NULL
+                        AND recovery_until IS NULL
+                        AND (
+                            (deleted_at IS NULL
+                                AND purge_after IS NULL
+                                AND purged_at IS NULL)
+                            OR
+                            (deleted_at IS NOT NULL
+                                AND purge_after IS NOT NULL
+                                AND noteai_retention_clock_valid(deleted_at)=1
+                                AND noteai_retention_clock_valid(purge_after)=1
+                                AND noteai_retention_clock_lte(
+                                    deleted_at,purge_after
+                                )=1
+                                AND (
+                                    purged_at IS NULL
+                                    OR (
+                                        noteai_retention_clock_valid(purged_at)=1
+                                        AND noteai_retention_clock_lte(
+                                            purge_after,purged_at
+                                        )=1
+                                    )
+                                ))
+                        ))
+                    OR
+                    (retention_class='free_7d'
+                        AND active_until IS NOT NULL
+                        AND recovery_until IS NOT NULL
+                        AND purge_after IS NOT NULL
+                        AND noteai_retention_clock_valid(active_until)=1
+                        AND noteai_retention_clock_valid(recovery_until)=1
+                        AND noteai_retention_clock_valid(purge_after)=1
+                        AND noteai_retention_clock_lte(
+                            active_until,recovery_until
+                        )=1
+                        AND noteai_retention_clock_lte(
+                            recovery_until,purge_after
+                        )=1
+                        AND (
+                            deleted_at IS NULL
+                            OR (
+                                noteai_retention_clock_valid(deleted_at)=1
+                                AND noteai_retention_clock_lte(
+                                    deleted_at,purge_after
+                                )=1
+                            )
+                        )
+                        AND (
+                            purged_at IS NULL
+                            OR (
+                                noteai_retention_clock_valid(purged_at)=1
+                                AND noteai_retention_clock_lte(
+                                    purge_after,purged_at
+                                )=1
+                            )
+                        ))
+                ),
+                PRIMARY KEY(content_type,content_id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO content_retention(
+                content_type,content_id,user_id,retention_class,active_until,
+                recovery_until,deleted_at,purge_after,purged_at,created_at,
+                updated_at,contract_version
+            )
+            SELECT
+                content_type,content_id,user_id,retention_class,active_until,
+                recovery_until,deleted_at,purge_after,purged_at,created_at,
+                updated_at,contract_version
+            FROM content_retention_legacy_h15
+            """
+        )
+        conn.execute("DROP TABLE content_retention_legacy_h15")
+        conn.execute(
+            "CREATE INDEX idx_content_retention_user_state "
+            "ON content_retention("
+            "user_id,content_type,active_until,recovery_until)"
+        )
+    except BaseException:
+        conn.execute("ROLLBACK TO SAVEPOINT content_retention_contract_upgrade")
+        conn.execute("RELEASE SAVEPOINT content_retention_contract_upgrade")
+        raise
+    else:
+        conn.execute("RELEASE SAVEPOINT content_retention_contract_upgrade")
+
+
+def _ensure_sqlite_content_retention_purge_guards(
+    conn: sqlite3.Connection,
+) -> None:
+    """Reject forged purge markers outside the real delete transaction."""
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS content_retention_purge_insert_h17
+        BEFORE INSERT ON content_retention
+        WHEN NEW.purged_at IS NOT NULL
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'content purge marker requires an update transition'
+            );
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS content_retention_primary_insert_h20
+        BEFORE INSERT ON content_retention
+        WHEN (
+            NEW.content_type = 'note'
+            AND NOT EXISTS (
+                SELECT 1 FROM notes
+                WHERE id = NEW.content_id AND user_id = NEW.user_id
+            )
+        ) OR (
+            NEW.content_type = 'diagnosis'
+            AND NOT EXISTS (
+                SELECT 1 FROM saved_diagnoses
+                WHERE id = NEW.content_id AND user_id = NEW.user_id
+            )
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'content retention requires matching primary content'
+            );
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS content_retention_identity_insert_h21
+        BEFORE INSERT ON content_retention
+        WHEN EXISTS (
+            SELECT 1 FROM content_retention
+            WHERE content_type = NEW.content_type
+              AND content_id = NEW.content_id
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'content retention identity cannot be reinserted'
+            );
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS content_retention_purge_update_h17
+        BEFORE UPDATE OF purged_at ON content_retention
+        WHEN NEW.purged_at IS NOT OLD.purged_at
+        BEGIN
+            SELECT CASE
+                WHEN OLD.purged_at IS NOT NULL
+                THEN RAISE(ABORT, 'content purge marker is immutable')
+                WHEN NEW.purged_at IS NULL
+                THEN RAISE(ABORT, 'content purge marker cannot be cleared')
+                WHEN noteai_retention_clock_not_future(NEW.purged_at) <> 1
+                THEN RAISE(ABORT, 'future content purge marker rejected')
+            END;
+            SELECT CASE
+                WHEN NEW.content_type = 'note'
+                 AND EXISTS (
+                    SELECT 1 FROM notes
+                    WHERE id = NEW.content_id AND user_id = NEW.user_id
+                 )
+                THEN RAISE(ABORT, 'content purge marker requires note deletion')
+                WHEN NEW.content_type = 'diagnosis'
+                 AND EXISTS (
+                    SELECT 1 FROM saved_diagnoses
+                    WHERE id = NEW.content_id AND user_id = NEW.user_id
+                 )
+                THEN RAISE(
+                    ABORT,
+                    'content purge marker requires diagnosis deletion'
+                )
+            END;
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS content_retention_identity_update_h18
+        BEFORE UPDATE OF
+            content_type,content_id,user_id,retention_class,created_at,
+            contract_version
+        ON content_retention
+        WHEN NEW.content_type IS NOT OLD.content_type
+          OR NEW.content_id IS NOT OLD.content_id
+          OR NEW.user_id IS NOT OLD.user_id
+          OR NEW.retention_class IS NOT OLD.retention_class
+          OR NEW.created_at IS NOT OLD.created_at
+          OR NEW.contract_version IS NOT OLD.contract_version
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'content retention identity and contract are immutable'
+            );
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS notes_retention_identity_update_h19
+        BEFORE UPDATE OF id,user_id
+        ON notes
+        WHEN NEW.id IS NOT OLD.id
+          OR NEW.user_id IS NOT OLD.user_id
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'note retention identity is immutable'
+            );
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS saved_diagnoses_retention_identity_update_h19
+        BEFORE UPDATE OF id,user_id
+        ON saved_diagnoses
+        WHEN NEW.id IS NOT OLD.id
+          OR NEW.user_id IS NOT OLD.user_id
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'diagnosis retention identity is immutable'
+            );
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS notes_retained_primary_insert_h20
+        BEFORE INSERT ON notes
+        WHEN EXISTS (
+            SELECT 1 FROM content_retention
+            WHERE content_type = 'note' AND content_id = NEW.id
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'retained note identity cannot be reinserted'
+            );
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS saved_diagnoses_retained_primary_insert_h20
+        BEFORE INSERT ON saved_diagnoses
+        WHEN EXISTS (
+            SELECT 1 FROM content_retention
+            WHERE content_type = 'diagnosis' AND content_id = NEW.id
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'retained diagnosis identity cannot be reinserted'
+            );
+        END
+        """
+    )
+
+
 def _init_sqlite() -> None:
     """创建所有表（幂等）。"""
-    conn = _get_sqlite_conn()
-    with conn:
+    with closing(_get_sqlite_conn()) as conn, conn:
         conn.executescript("""
 -- ── 用户表 ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
@@ -96,7 +600,11 @@ CREATE TABLE IF NOT EXISTS users (
     avatar_emoji TEXT DEFAULT '🌸',        -- 用户头像（emoji 选择）
     nickname     TEXT,                      -- 显示昵称（可与 username 不同）
     phone        TEXT,                      -- 手机号（+86 前缀，唯一约束在迁移中加）
-    avatar_data  TEXT                       -- 上传的头像 base64
+    avatar_data  TEXT,                      -- 上传的头像 base64
+    phone_verified_at TEXT,
+    email_verified_at TEXT,
+    password_changed_at TEXT,
+    deletion_requested_at TEXT
 );
 
 -- ── 会话令牌表 ────────────────────────────────────────────────────
@@ -155,10 +663,21 @@ CREATE TABLE IF NOT EXISTS user_memories (
     importance   REAL DEFAULT 0.5,          -- 0-1，越高越优先注入
     decay_factor REAL DEFAULT 0.95,         -- 每次访问衰减（保持记忆新鲜度）
     access_count INT  DEFAULT 0,
+    source_note_id TEXT REFERENCES notes(id) ON DELETE CASCADE,
     created_at   TEXT NOT NULL,
     updated_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_mem_user ON user_memories(user_id, importance DESC);
+
+CREATE TABLE IF NOT EXISTS user_learn (
+    user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    pref_key     TEXT NOT NULL,
+    pref_value   TEXT NOT NULL,
+    confidence   REAL DEFAULT 0.5,
+    update_count INTEGER DEFAULT 1,
+    updated_at   TEXT NOT NULL,
+    PRIMARY KEY (user_id, pref_key)
+);
 
 -- ── 成长记录表（scoring history） ───────────────────────────────────
 CREATE TABLE IF NOT EXISTS growth_records (
@@ -449,6 +968,150 @@ CREATE TABLE IF NOT EXISTS saved_diagnoses (
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_saved_diag_user ON saved_diagnoses(user_id, created_at DESC);
+
+-- ── 账户安全与验证挑战（不保存明文验证码/联系方式）───────────────
+CREATE TABLE IF NOT EXISTS auth_login_limits (
+    identifier_hash TEXT PRIMARY KEY,
+    window_started_at TEXT NOT NULL,
+    failure_count INTEGER NOT NULL DEFAULT 0 CHECK (failure_count >= 0),
+    blocked_until TEXT,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS auth_verification_challenges (
+    id TEXT PRIMARY KEY,
+    channel TEXT NOT NULL CHECK (channel IN ('phone','email')),
+    destination_hash TEXT NOT NULL,
+    destination_masked TEXT NOT NULL,
+    purpose TEXT NOT NULL CHECK (
+        purpose IN ('register_phone','bind_phone','verify_email','login_phone','password_reset')
+    ),
+    code_hash TEXT NOT NULL,
+    code_salt TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    consumed_at TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    max_attempts INTEGER NOT NULL DEFAULT 5 CHECK (max_attempts BETWEEN 1 AND 10),
+    requested_by_user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+    requester_hash TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_auth_verification_destination
+    ON auth_verification_challenges(destination_hash,purpose,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_verification_expiry
+    ON auth_verification_challenges(expires_at);
+CREATE INDEX IF NOT EXISTS idx_auth_verification_requester
+    ON auth_verification_challenges(requester_hash,purpose,created_at DESC)
+    WHERE requester_hash <> '';
+
+-- ── 首发归档合同元数据；内容本体仍在原业务表 ─────────────────────
+CREATE TABLE IF NOT EXISTS content_retention (
+    content_type TEXT NOT NULL CHECK (content_type IN ('note','diagnosis')),
+    content_id TEXT NOT NULL,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    retention_class TEXT NOT NULL CHECK (retention_class IN ('free_7d','paid_indefinite')),
+    active_until TEXT,
+    recovery_until TEXT,
+    deleted_at TEXT,
+    purge_after TEXT,
+    purged_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    contract_version TEXT NOT NULL,
+    CONSTRAINT content_retention_state_check_h16 CHECK (
+        (retention_class = 'paid_indefinite'
+            AND active_until IS NULL
+            AND recovery_until IS NULL
+            AND (
+                (deleted_at IS NULL
+                    AND purge_after IS NULL
+                    AND purged_at IS NULL)
+                OR
+                (deleted_at IS NOT NULL
+                    AND purge_after IS NOT NULL
+                    AND noteai_retention_clock_valid(deleted_at) = 1
+                    AND noteai_retention_clock_valid(purge_after) = 1
+                    AND noteai_retention_clock_lte(
+                        deleted_at,purge_after
+                    ) = 1
+                    AND (
+                        purged_at IS NULL
+                        OR (
+                            noteai_retention_clock_valid(purged_at) = 1
+                            AND noteai_retention_clock_lte(
+                                purge_after,purged_at
+                            ) = 1
+                        )
+                    ))
+            ))
+        OR
+        (retention_class = 'free_7d'
+            AND active_until IS NOT NULL
+            AND recovery_until IS NOT NULL
+            AND purge_after IS NOT NULL
+            AND noteai_retention_clock_valid(active_until) = 1
+            AND noteai_retention_clock_valid(recovery_until) = 1
+            AND noteai_retention_clock_valid(purge_after) = 1
+            AND noteai_retention_clock_lte(
+                active_until,recovery_until
+            ) = 1
+            AND noteai_retention_clock_lte(
+                recovery_until,purge_after
+            ) = 1
+            AND (
+                deleted_at IS NULL
+                OR (
+                    noteai_retention_clock_valid(deleted_at) = 1
+                    AND noteai_retention_clock_lte(
+                        deleted_at,purge_after
+                    ) = 1
+                )
+            )
+            AND (
+                purged_at IS NULL
+                OR (
+                    noteai_retention_clock_valid(purged_at) = 1
+                    AND noteai_retention_clock_lte(
+                        purge_after,purged_at
+                    ) = 1
+                )
+            ))
+    ),
+    PRIMARY KEY(content_type,content_id)
+);
+CREATE INDEX IF NOT EXISTS idx_content_retention_user_state
+    ON content_retention(user_id,content_type,active_until,recovery_until);
+
+CREATE TABLE IF NOT EXISTS account_deletion_requests (
+    id TEXT PRIMARY KEY,
+    user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    subject_ref TEXT NOT NULL,
+    requested_at TEXT NOT NULL,
+    primary_inaccessible_at TEXT NOT NULL,
+    primary_delete_by TEXT NOT NULL,
+    backup_clear_by TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (
+        status IN ('requested','primary_deleted','backup_clear_pending','complete','cancelled')
+    ),
+    contract_version TEXT NOT NULL,
+    primary_deleted_at TEXT,
+    backup_cleared_at TEXT,
+    backup_evidence_ref TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_account_deletion_open
+    ON account_deletion_requests(user_id)
+    WHERE status IN ('requested','primary_deleted','backup_clear_pending');
+
+CREATE TABLE IF NOT EXISTS user_contract_acceptances (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    contract_version TEXT NOT NULL,
+    privacy_accepted_at TEXT NOT NULL,
+    cross_border_notice_acknowledged_at TEXT NOT NULL,
+    source TEXT NOT NULL CHECK (source IN ('registration','account_settings')),
+    PRIMARY KEY(user_id,contract_version)
+);
+CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
+    ON user_contract_acceptances(contract_version,privacy_accepted_at);
         """)
         # 存量迁移：幂等加列
         cols = [r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
@@ -456,6 +1119,14 @@ CREATE INDEX IF NOT EXISTS idx_saved_diag_user ON saved_diagnoses(user_id, creat
             conn.execute("ALTER TABLE users ADD COLUMN nickname TEXT")
         if "avatar_data" not in cols:
             conn.execute("ALTER TABLE users ADD COLUMN avatar_data TEXT")
+        if "phone_verified_at" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN phone_verified_at TEXT")
+        if "email_verified_at" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN email_verified_at TEXT")
+        if "password_changed_at" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN password_changed_at TEXT")
+        if "deletion_requested_at" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN deletion_requested_at TEXT")
         # subscriptions 表列名迁移：used_rewrite → used_chat_rewrite
         sub_cols = [r[1] for r in conn.execute("PRAGMA table_info(subscriptions)").fetchall()]
         if "used_rewrite" in sub_cols and "used_chat_rewrite" not in sub_cols:
@@ -498,6 +1169,221 @@ CREATE INDEX IF NOT EXISTS idx_saved_diag_user ON saved_diagnoses(user_id, creat
             conn.execute("ALTER TABLE users ADD COLUMN phone TEXT")
         if "avatar_data" not in user_cols:
             conn.execute("ALTER TABLE users ADD COLUMN avatar_data TEXT")
+        phone_rows = conn.execute(
+            "SELECT phone FROM users WHERE phone IS NOT NULL AND phone<>''"
+        ).fetchall()
+        if any(
+            not re.fullmatch(r"\+861[3-9][0-9]{9}", str(row[0] or ""))
+            for row in phone_rows
+        ):
+            raise RuntimeError(
+                "non-canonical users.phone values block the unique index"
+            )
+        duplicate_phone = conn.execute(
+            "SELECT phone FROM users WHERE phone IS NOT NULL AND phone<>'' "
+            "GROUP BY phone HAVING COUNT(*)>1 LIMIT 1"
+        ).fetchone()
+        if duplicate_phone is not None:
+            raise RuntimeError(
+                "duplicate non-empty users.phone values block the unique index"
+            )
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique "
+            "ON users(phone) WHERE phone IS NOT NULL AND phone<>''"
+        )
+        retention_cols = [
+            r[1] for r in conn.execute("PRAGMA table_info(content_retention)").fetchall()
+        ]
+        if "purged_at" not in retention_cols:
+            conn.execute("ALTER TABLE content_retention ADD COLUMN purged_at TEXT")
+        _upgrade_sqlite_content_retention_contract(conn)
+        _ensure_sqlite_content_retention_purge_guards(conn)
+        # Materialize every legacy archive before reads/purge jobs run. The
+        # classification uses subscription coverage at content creation time,
+        # matching PostgreSQL migration 0009.
+        source_clock_rows = conn.execute(
+            """
+            SELECT value FROM (
+                SELECT created_at AS value FROM notes
+                UNION ALL
+                SELECT created_at AS value FROM saved_diagnoses
+                UNION ALL
+                SELECT started_at AS value FROM subscriptions
+                UNION ALL
+                SELECT expires_at AS value FROM subscriptions
+            ) source_clocks
+            """
+        )
+        if any(
+            not _valid_retention_source_clock(row["value"])
+            for row in source_clock_rows
+        ):
+            raise RuntimeError(
+                "invalid retention source clocks block startup"
+            )
+        paid_windows_by_user: dict[str, list[tuple[_datetime, _datetime]]] = {}
+        for row in conn.execute(
+            "SELECT user_id,tier,started_at,expires_at FROM subscriptions"
+        ):
+            if row["tier"] == "free":
+                continue
+            started_at = _parse_retention_source_clock(row["started_at"])
+            expires_at = _parse_retention_source_clock(row["expires_at"])
+            if started_at is None or expires_at is None:
+                raise RuntimeError(
+                    "invalid retention source clocks block startup"
+                )
+            paid_windows_by_user.setdefault(row["user_id"], []).append(
+                (started_at, expires_at)
+            )
+        updated_at = _datetime.now(_timezone.utc).isoformat()
+        for content_type, table in (
+            ("note", "notes"),
+            ("diagnosis", "saved_diagnoses"),
+        ):
+            for row in conn.execute(
+                f"SELECT id,user_id,created_at FROM {table}"
+            ).fetchall():
+                created_at = _parse_retention_source_clock(row["created_at"])
+                if created_at is None:
+                    raise RuntimeError(
+                        "invalid retention source clocks block startup"
+                    )
+                paid = any(
+                    started_at <= created_at < expires_at
+                    for started_at, expires_at in paid_windows_by_user.get(
+                        row["user_id"],
+                        (),
+                    )
+                )
+                active_until = (
+                    None
+                    if paid
+                    else (created_at + _timedelta(days=7)).isoformat()
+                )
+                recovery_until = (
+                    None
+                    if paid
+                    else (created_at + _timedelta(days=14)).isoformat()
+                )
+                purge_after = (
+                    None
+                    if paid
+                    else (created_at + _timedelta(days=44)).isoformat()
+                )
+                existing_retention = conn.execute(
+                    "SELECT user_id,created_at,"
+                    "contract_version FROM content_retention "
+                    "WHERE content_type=? AND content_id=?",
+                    (content_type, row["id"]),
+                ).fetchone()
+                if existing_retention is not None:
+                    existing_created_at = _parse_retention_source_clock(
+                        existing_retention["created_at"]
+                    )
+                    if (
+                        existing_retention["user_id"] != row["user_id"]
+                        or existing_created_at != created_at
+                        or existing_retention["contract_version"]
+                        != "first-launch-2026-07-25"
+                    ):
+                        raise RuntimeError(
+                            "content retention identity mismatch blocks startup"
+                        )
+                    continue
+                conn.execute(
+                    """
+                    INSERT INTO content_retention(
+                        content_type,content_id,user_id,retention_class,
+                        active_until,recovery_until,deleted_at,purge_after,
+                        purged_at,created_at,updated_at,contract_version
+                    ) VALUES(?,?,?,?,?,?,NULL,?,NULL,?,?,?)
+                    """,
+                    (
+                        content_type,
+                        row["id"],
+                        row["user_id"],
+                        "paid_indefinite" if paid else "free_7d",
+                        active_until,
+                        recovery_until,
+                        purge_after,
+                        created_at.isoformat(),
+                        updated_at,
+                        "first-launch-2026-07-25",
+                    ),
+                )
+        memory_cols = [
+            r[1] for r in conn.execute("PRAGMA table_info(user_memories)").fetchall()
+        ]
+        if "source_note_id" not in memory_cols:
+            conn.execute("ALTER TABLE user_memories ADD COLUMN source_note_id TEXT")
+        retention_rows = conn.execute(
+            "SELECT retention_class,active_until,recovery_until,deleted_at,"
+            "purge_after,purged_at FROM content_retention"
+        ).fetchall()
+        if any(
+            not _valid_content_retention_row(row)
+            for row in retention_rows
+        ):
+            raise RuntimeError("invalid content retention clocks block startup")
+        forged_purge = conn.execute(
+            """
+            SELECT 1
+            FROM content_retention retention
+            WHERE retention.purged_at IS NOT NULL
+              AND (
+                (
+                    retention.content_type = 'note'
+                    AND EXISTS (
+                        SELECT 1 FROM notes
+                        WHERE id = retention.content_id
+                          AND user_id = retention.user_id
+                    )
+                )
+                OR
+                (
+                    retention.content_type = 'diagnosis'
+                    AND EXISTS (
+                        SELECT 1 FROM saved_diagnoses
+                        WHERE id = retention.content_id
+                          AND user_id = retention.user_id
+                    )
+                )
+              )
+            LIMIT 1
+            """
+        ).fetchone()
+        if forged_purge is not None:
+            raise RuntimeError(
+                "content purge marker without primary deletion blocks startup"
+            )
+        deletion_cols = [
+            r[1]
+            for r in conn.execute(
+                "PRAGMA table_info(account_deletion_requests)"
+            ).fetchall()
+        ]
+        deletion_additions = {
+            "subject_ref": (
+                "ALTER TABLE account_deletion_requests "
+                "ADD COLUMN subject_ref TEXT NOT NULL DEFAULT ''"
+            ),
+            "primary_deleted_at": (
+                "ALTER TABLE account_deletion_requests "
+                "ADD COLUMN primary_deleted_at TEXT"
+            ),
+            "backup_cleared_at": (
+                "ALTER TABLE account_deletion_requests "
+                "ADD COLUMN backup_cleared_at TEXT"
+            ),
+            "backup_evidence_ref": (
+                "ALTER TABLE account_deletion_requests "
+                "ADD COLUMN backup_evidence_ref TEXT"
+            ),
+        }
+        for col, sql in deletion_additions.items():
+            if col not in deletion_cols:
+                conn.execute(sql)
         # tracked_notes 表（URL 追踪）
         conn.executescript("""
 CREATE TABLE IF NOT EXISTS tracked_notes (
@@ -602,9 +1488,6 @@ CREATE TABLE IF NOT EXISTS system_settings (
     updated_at  TEXT NOT NULL
 );
         """)
-    conn.close()
-
-
 # ─────────────────────────────────────────────────────────────
 # 通用 CRUD helpers
 # ─────────────────────────────────────────────────────────────
@@ -655,6 +1538,15 @@ def apply_postgres_migrations() -> list[str]:
         return []
     if not _POSTGRES_MIGRATIONS_DIR.exists():
         raise RuntimeError(f"PostgreSQL migrations not found: {_POSTGRES_MIGRATIONS_DIR}")
+    migration_paths = sorted(_POSTGRES_MIGRATIONS_DIR.glob("*.sql"))
+    migration_payloads = {
+        path.name: path.read_bytes()
+        for path in migration_paths
+    }
+    migration_hashes = {
+        version: hashlib.sha256(payload).hexdigest()
+        for version, payload in migration_payloads.items()
+    }
     applied: list[str] = []
     conn = _get_postgres_conn()
     try:
@@ -662,15 +1554,73 @@ def apply_postgres_migrations() -> list[str]:
             conn.execute("SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))")
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS schema_migrations ("
-                "version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
+                "version TEXT PRIMARY KEY, sha256 TEXT, "
+                "applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
             )
-            rows = conn.execute("SELECT version FROM schema_migrations").fetchall()
+            conn.execute(
+                "ALTER TABLE schema_migrations "
+                "ADD COLUMN IF NOT EXISTS sha256 TEXT"
+            )
+            conn.execute(
+                """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conrelid = 'schema_migrations'::regclass
+                          AND conname = 'schema_migrations_sha256_format'
+                    ) THEN
+                        ALTER TABLE schema_migrations
+                            ADD CONSTRAINT schema_migrations_sha256_format
+                            CHECK (sha256 ~ '^[0-9a-f]{64}$');
+                    END IF;
+                END
+                $$;
+                """
+            )
+            rows = conn.execute(
+                "SELECT version, sha256 FROM schema_migrations"
+            ).fetchall()
+            for row in rows:
+                version = str(row["version"])
+                actual_sha256 = migration_hashes.get(version)
+                if actual_sha256 is None:
+                    raise RuntimeError(
+                        f"PostgreSQL migration missing locally: {version}"
+                    )
+                stored_sha256 = row["sha256"]
+                if stored_sha256 is not None and str(stored_sha256) != actual_sha256:
+                    raise RuntimeError(
+                        f"PostgreSQL migration checksum mismatch: {version}"
+                    )
+                if stored_sha256 is None:
+                    trusted_sha256 = _POSTGRES_LEGACY_MIGRATION_SHA256.get(version)
+                    if trusted_sha256 != actual_sha256:
+                        raise RuntimeError(
+                            f"PostgreSQL migration checksum missing: {version}"
+                        )
+            for row in rows:
+                if row["sha256"] is not None:
+                    continue
+                version = str(row["version"])
+                conn.execute(
+                    "UPDATE schema_migrations SET sha256=%s "
+                    "WHERE version=%s AND sha256 IS NULL",
+                    (migration_hashes[version], version),
+                )
+            conn.execute(
+                "ALTER TABLE schema_migrations "
+                "ALTER COLUMN sha256 SET NOT NULL"
+            )
             existing = {str(row["version"]) for row in rows}
-            for path in sorted(_POSTGRES_MIGRATIONS_DIR.glob("*.sql")):
+            for path in migration_paths:
                 if path.name in existing:
                     continue
-                conn.execute(path.read_text(encoding="utf-8"))
-                conn.execute("INSERT INTO schema_migrations(version) VALUES (%s)", (path.name,))
+                conn.execute(migration_payloads[path.name].decode("utf-8"))
+                conn.execute(
+                    "INSERT INTO schema_migrations(version,sha256) VALUES (%s,%s)",
+                    (path.name, migration_hashes[path.name]),
+                )
                 applied.append(path.name)
     finally:
         conn.close()

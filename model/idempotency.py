@@ -25,11 +25,13 @@ from fastapi import HTTPException
 import billing
 import db
 import ai_operations
+import content_retention
 
 
 IDEMPOTENCY_HEADER = "X-Request-ID"
 IDEMPOTENCY_STATES = frozenset({"running", "completed", "failed"})
 FAILURE_CODES = frozenset({
+    "lease_expired",
     "request_failed",
     "stream_cancelled",
     "stream_failed",
@@ -153,11 +155,9 @@ def admit_operation(
     now_iso = _iso(now)
 
     with db.transaction(write=True) as tx:
-        user_lock = " FOR UPDATE" if tx.postgres else ""
-        if not tx.fetchone(
-            f"SELECT id FROM users WHERE id=?{user_lock}",
-            (user_id,),
-        ):
+        try:
+            content_retention.assert_user_writable_with_storage(tx, user_id)
+        except ValueError:
             raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
         cursor = tx.execute(
             "INSERT INTO idempotency_requests("
@@ -287,8 +287,9 @@ def claim_and_charge(
         # tuple lock that concurrent claims later try to upgrade, causing a
         # deadlock. SQLite is already serialized by BEGIN IMMEDIATE, but uses
         # the same existence check for identical semantics.
-        user_lock = " FOR UPDATE" if tx.postgres else ""
-        if not tx.fetchone(f"SELECT id FROM users WHERE id=?{user_lock}", (user_id,)):
+        try:
+            content_retention.assert_user_writable_with_storage(tx, user_id)
+        except ValueError:
             raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
         cursor = tx.execute(
             "INSERT INTO idempotency_requests("
@@ -372,12 +373,121 @@ def _owned_row(tx: db.Transaction, context: dict[str, Any]):
     )
 
 
+def _parse_lease_clock(value: Any) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(str(value or "").replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _fail_running_request_in_transaction(
+    tx: db.Transaction,
+    current: dict[str, Any],
+    *,
+    failure_code: str,
+    now_iso: str,
+) -> None:
+    charge = {
+        "usage_id": current.get("usage_id"),
+        "subscription_id": current.get("charged_subscription_id"),
+        "subscription_period_start": current.get("charged_period_start"),
+        "source": current.get("charge_source") or "",
+        "credits_used": float(current.get("credits_used") or 0),
+        "monthly_credits_used": float(current.get("monthly_credits_used") or 0),
+        "wallet_credits_used": float(current.get("wallet_credits_used") or 0),
+    }
+    if current.get("charge_applied") and not current.get("refund_applied"):
+        billing.refund_operation_charge_in_transaction(
+            tx,
+            str(current.get("user_id") or ""),
+            str(current.get("operation") or ""),
+            charge,
+            "AI 请求失败自动退回",
+        )
+    tx.execute(
+        "UPDATE idempotency_requests SET status='failed',refund_applied=1,"
+        "failure_code=?,refunded_at=?,failed_at=?,updated_at=? WHERE id=?",
+        (
+            failure_code,
+            now_iso,
+            now_iso,
+            now_iso,
+            current["id"],
+        ),
+    )
+
+
+def settle_expired_requests_for_account_deletion_with_storage(
+    tx: db.Transaction,
+    user_id: str,
+    *,
+    now: datetime | None = None,
+) -> int:
+    """Settle expired claims under the caller-held user deletion fence."""
+    current_time = now or _now()
+    now_iso = _iso(current_time)
+    lock = " FOR UPDATE" if tx.postgres else ""
+    rows = tx.fetchall(
+        "SELECT * FROM idempotency_requests "
+        "WHERE user_id=? AND status='running' ORDER BY created_at,id" + lock,
+        (user_id,),
+    )
+    settled = 0
+    for row in rows:
+        current = dict(row)
+        lease_expires_at = _parse_lease_clock(current.get("lease_expires_at"))
+        if lease_expires_at is None or lease_expires_at > current_time:
+            raise ValueError("有正在处理的请求，请等待完成后重试删除")
+        admission = tx.fetchone(
+            "SELECT operation_id FROM ai_operation_admissions "
+            f"WHERE idempotency_request_id=?{lock}",
+            (current["id"],),
+        )
+        if admission:
+            operation = tx.fetchone(
+                f"SELECT status FROM ai_operations WHERE id=?{lock}",
+                (admission["operation_id"],),
+            )
+            if not operation or operation["status"] in {
+                "queued",
+                "running",
+                "outcome_unknown",
+            }:
+                raise ValueError("有正在处理的请求，请等待完成后重试删除")
+            if operation["status"] == "succeeded":
+                tx.execute(
+                    "UPDATE idempotency_requests SET status='completed',"
+                    "complete_applied=1,completed_at=?,updated_at=? WHERE id=?",
+                    (now_iso, now_iso, current["id"]),
+                )
+                settled += 1
+                continue
+        _fail_running_request_in_transaction(
+            tx,
+            current,
+            failure_code="lease_expired",
+            now_iso=now_iso,
+        )
+        settled += 1
+    return settled
+
+
 def mark_completed(context: dict[str, Any] | None) -> bool:
     if not context or context.get("state") != "owner":
         return False
     lease_digest = _sha256(str(context.get("lease_token") or ""))
     now = _iso()
     with db.transaction(write=True) as tx:
+        try:
+            content_retention.assert_user_writable_with_storage(
+                tx,
+                str(context.get("user_id") or ""),
+            )
+        except ValueError:
+            return False
         row = _owned_row(tx, context)
         if not row:
             return False
@@ -405,6 +515,13 @@ def mark_failed_and_refund(
     lease_digest = _sha256(str(context.get("lease_token") or ""))
     now = _iso()
     with db.transaction(write=True) as tx:
+        try:
+            content_retention.assert_user_writable_with_storage(
+                tx,
+                str(context.get("user_id") or ""),
+            )
+        except ValueError:
+            return False
         row = _owned_row(tx, context)
         if not row:
             return False
@@ -413,26 +530,10 @@ def mark_failed_and_refund(
             return False
         if current.get("status") != "running" or current.get("lease_token_hash") != lease_digest:
             return False
-        charge = {
-            "usage_id": current.get("usage_id"),
-            "subscription_id": current.get("charged_subscription_id"),
-            "subscription_period_start": current.get("charged_period_start"),
-            "source": current.get("charge_source") or "",
-            "credits_used": float(current.get("credits_used") or 0),
-            "monthly_credits_used": float(current.get("monthly_credits_used") or 0),
-            "wallet_credits_used": float(current.get("wallet_credits_used") or 0),
-        }
-        if current.get("charge_applied") and not current.get("refund_applied"):
-            billing.refund_operation_charge_in_transaction(
-                tx,
-                str(current.get("user_id") or ""),
-                str(current.get("operation") or ""),
-                charge,
-                "AI 请求失败自动退回",
-            )
-        tx.execute(
-            "UPDATE idempotency_requests SET status='failed',refund_applied=1,"
-            "failure_code=?,refunded_at=?,failed_at=?,updated_at=? WHERE id=?",
-            (safe_code, now, now, now, context["request_id"]),
+        _fail_running_request_in_transaction(
+            tx,
+            current,
+            failure_code=safe_code,
+            now_iso=now,
         )
     return True

@@ -2791,15 +2791,51 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <div id="auth-email-row" style="display:none">
         <input id="auth-email"    type="email"    placeholder="邮箱（可选）" style="width:100%;box-sizing:border-box;padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surf-2);color:var(--text);font-size:14px;outline:none" onfocus="this.style.borderColor='rgba(123,97,255,0.5)'" onblur="this.style.borderColor='var(--border)'">
       </div>
+      <div id="auth-email-code-row" style="display:none;gap:8px">
+        <input id="auth-email-code" inputmode="numeric" maxlength="6" placeholder="邮箱验证码" style="flex:1;min-width:0;padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surf-2);color:var(--text);font-size:14px;outline:none">
+        <button type="button" onclick="requestRegisterEmailCode()" style="padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--surf-2);color:var(--text-2);cursor:pointer">验证邮箱</button>
+      </div>
       <div id="auth-phone-row" style="display:none">
         <input id="auth-phone" type="tel" placeholder="手机号（可选）" maxlength="11" style="width:100%;box-sizing:border-box;padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surf-2);color:var(--text);font-size:14px;outline:none" onfocus="this.style.borderColor='rgba(123,97,255,0.5)'" onblur="this.style.borderColor='var(--border)'" oninput="this.value=this.value.replace(/\D/g,'').slice(0,11)">
       </div>
-      <input id="auth-password" type="password"  placeholder="密码（至少6位）" style="padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surf-2);color:var(--text);font-size:14px;outline:none" onfocus="this.style.borderColor='rgba(123,97,255,0.5)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')doAuth()">
+      <div id="auth-phone-code-row" style="display:none;gap:8px">
+        <input id="auth-phone-code" inputmode="numeric" maxlength="6" placeholder="手机验证码" style="flex:1;min-width:0;padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surf-2);color:var(--text);font-size:14px;outline:none">
+        <button type="button" onclick="requestRegisterPhoneCode()" style="padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--surf-2);color:var(--text-2);cursor:pointer">获取验证码</button>
+      </div>
+      <input id="auth-password" type="password"  placeholder="密码（至少10位，含两类字符）" style="padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surf-2);color:var(--text);font-size:14px;outline:none" onfocus="this.style.borderColor='rgba(123,97,255,0.5)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')doAuth()">
+      <div id="auth-consent-row" style="display:none;flex-direction:column;gap:7px;font-size:11px;color:var(--text-muted);line-height:1.45">
+        <label style="display:flex;gap:7px;align-items:flex-start"><input id="auth-privacy-consent" type="checkbox" style="margin-top:2px">我已阅读并同意当前版本的服务条款、隐私与退款说明</label>
+        <label style="display:flex;gap:7px;align-items:flex-start"><input id="auth-cross-border-consent" type="checkbox" style="margin-top:2px">我已知悉最小必要文本可能经新加坡 Claude Gateway 处理；正式开放仍以专业合规确认结果为准</label>
+      </div>
       <div id="auth-error" style="color:#EF4444;font-size:12px;display:none;text-align:center"></div>
       <button onclick="doAuth()" style="padding:13px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:700;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;margin-top:4px" id="auth-submit-btn">登录</button>
+      <div id="auth-recovery-actions" style="display:flex;justify-content:center;gap:16px;font-size:12px">
+        <button type="button" onclick="openVerificationModal('login_phone')" style="border:0;background:none;color:var(--holo-mid);cursor:pointer">手机验证码登录</button>
+        <button type="button" onclick="openVerificationModal('password_reset')" style="border:0;background:none;color:var(--text-muted);cursor:pointer">忘记密码</button>
+      </div>
     </div>
     <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted)">
-      继续即表示同意 NoteAI Pro 服务条款 · 数据仅用于 AI 优化
+      继续即表示同意 <a href="#" onclick="closeAuthModal();showPage('legal');return false" style="color:var(--holo-mid)">服务条款、隐私与退款说明</a>
+    </div>
+  </div>
+</div>
+
+<div id="verification-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:20px;padding:30px;width:380px;max-width:90vw;position:relative">
+    <button onclick="closeVerificationModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);cursor:pointer">✕</button>
+    <h3 id="verification-modal-title" style="margin:0 0 18px;color:var(--text)">手机验证码登录</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <select id="verification-channel" style="display:none;padding:11px;border-radius:9px;border:1px solid var(--border);background:var(--surf-2);color:var(--text)">
+        <option value="phone">已验证手机号</option><option value="email">已验证邮箱</option>
+      </select>
+      <input id="verification-destination" placeholder="手机号" style="padding:11px;border-radius:9px;border:1px solid var(--border);background:var(--surf-2);color:var(--text)">
+      <div style="display:flex;gap:8px">
+        <input id="verification-code" inputmode="numeric" maxlength="6" placeholder="验证码" style="flex:1;min-width:0;padding:11px;border-radius:9px;border:1px solid var(--border);background:var(--surf-2);color:var(--text)">
+        <button onclick="requestRecoveryCode()" style="padding:0 12px;border-radius:9px;border:1px solid var(--border);background:var(--surf-2);color:var(--text-2);cursor:pointer">获取验证码</button>
+      </div>
+      <input id="verification-new-password" type="password" placeholder="新密码（至少10位，含两类字符）" style="display:none;padding:11px;border-radius:9px;border:1px solid var(--border);background:var(--surf-2);color:var(--text)">
+      <div id="verification-error" style="display:none;color:#EF4444;font-size:12px"></div>
+      <button onclick="submitVerificationFlow()" style="padding:12px;border:0;border-radius:9px;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:white;font-weight:700;cursor:pointer">确认</button>
     </div>
   </div>
 </div>
@@ -4053,26 +4089,40 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <!-- 绑定手机号区域 -->
         <div id="profile-bind-phone-area" style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <button id="profile-bind-phone-btn" onclick="openBindPhone()" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:12px;color:var(--text-muted)">绑定手机号</button>
+          <button id="profile-bind-email-btn" onclick="openBindEmail()" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:12px;color:var(--text-muted)">验证恢复邮箱</button>
           <button onclick="openChangePwd()" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:12px;color:var(--text-muted)">修改密码</button>
+          <button onclick="revokeAllSessions()" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:12px;color:var(--text-muted)">撤销全部会话</button>
+          <button onclick="exportAccountData()" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:12px;color:var(--text-muted)">导出账户数据</button>
+          <button onclick="recoverArchivedContent()" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:12px;color:var(--text-muted)">恢复到期归档</button>
+          <button onclick="requestAccountDeletion()" style="padding:4px 12px;border-radius:8px;border:1px solid rgba(239,68,68,.35);background:none;cursor:pointer;font-size:12px;color:#EF4444">删除账户</button>
         </div>
         <!-- 修改密码弹窗 -->
         <div id="profile-change-pwd-form" style="display:none;flex-direction:column;gap:8px;margin-top:8px;background:var(--surf-2);border-radius:12px;padding:12px 14px;border:1px solid var(--border)">
           <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">修改密码</div>
           <input id="pwd-old" type="password" placeholder="当前密码" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf-3);color:var(--text);font-size:13px;outline:none">
-          <input id="pwd-new" type="password" placeholder="新密码（至少6位）" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf-3);color:var(--text);font-size:13px;outline:none">
+          <input id="pwd-new" type="password" placeholder="新密码（至少10位，含两类字符）" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf-3);color:var(--text);font-size:13px;outline:none">
           <input id="pwd-new2" type="password" placeholder="确认新密码" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf-3);color:var(--text);font-size:13px;outline:none">
           <div style="display:flex;gap:8px">
             <button onclick="saveChangePwd()" style="flex:1;padding:7px;border-radius:8px;border:none;cursor:pointer;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:13px;font-weight:600">确认修改</button>
             <button onclick="closeChangePwd()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:none;color:var(--text-muted);font-size:13px">取消</button>
           </div>
         </div>
-        <div id="profile-bind-phone-form" style="display:none;align-items:center;gap:8px;margin-top:6px">
+        <div id="profile-bind-phone-form" style="display:none;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
           <input id="profile-phone-input" type="tel" placeholder="输入手机号" maxlength="11"
             style="padding:6px 10px;border-radius:8px;border:1.5px solid rgba(123,97,255,0.5);background:var(--surf-2);color:var(--text);font-size:13px;outline:none;width:150px"
             oninput="this.value=this.value.replace(/\D/g,'').slice(0,11)"
-            onkeydown="if(event.key==='Enter')savePhone();if(event.key==='Escape')closeBindPhone()">
-          <button onclick="savePhone()" style="padding:5px 12px;border-radius:8px;border:none;cursor:pointer;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:12px;font-weight:600">保存</button>
+            onkeydown="if(event.key==='Escape')closeBindPhone()">
+          <button onclick="requestProfilePhoneCode()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surf-2);color:var(--text-2);font-size:12px">获取验证码</button>
+          <input id="profile-phone-code" inputmode="numeric" maxlength="6" placeholder="验证码" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);font-size:13px;width:85px">
+          <button onclick="savePhone()" style="padding:5px 12px;border-radius:8px;border:none;cursor:pointer;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:12px;font-weight:600">验证并绑定</button>
           <button onclick="closeBindPhone()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:none;color:var(--text-muted);font-size:12px">取消</button>
+        </div>
+        <div id="profile-bind-email-form" style="display:none;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <input id="profile-email-input" type="email" placeholder="输入恢复邮箱" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);font-size:13px;width:190px">
+          <button onclick="requestProfileEmailCode()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf-2);color:var(--text-2);cursor:pointer;font-size:12px">获取验证码</button>
+          <input id="profile-email-code" inputmode="numeric" maxlength="6" placeholder="验证码" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);font-size:13px;width:85px">
+          <button onclick="saveEmail()" style="padding:5px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;cursor:pointer;font-size:12px">验证邮箱</button>
+          <button onclick="closeBindEmail()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;font-size:12px">取消</button>
         </div>
         <div class="profile-tags" id="profile-domain-tags"></div>
       </div>
@@ -4546,7 +4596,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>最多 AI诊断 <b>2次</b></div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或爆文生成 <b>1次</b> + 截图 <b>8张</b></div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>7天笔记存档</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>7天在线存档 + 7天恢复期</div>
         </div>
         <button onclick="openAuthModal('register')" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);cursor:pointer;font-size:13px;font-weight:600">免费开始</button>
       </div>
@@ -4560,10 +4610,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断43次 / 爆文32次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写86轮 / 截图520张</div>
           <div><span style="color:var(--holo-mid);margin-right:6px">◆</span>参考组合：14诊断 + 20爆文 + 5重写 = 259积分</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>永久笔记存档</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>付费期间创建内容长期存档</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>AI记忆学习偏好</div>
         </div>
-        <button onclick="handleUpgrade('pro')" style="width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
+        <button onclick="handleUpgrade('pro')" style="width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
       <!-- 成长版 -->
 	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(34,197,94,0.25);border-radius:16px;padding:22px 18px">
@@ -4576,7 +4626,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:#22C55E;margin-right:6px">◆</span>参考组合：30诊断 + 45爆文 + 6重写 = 558积分</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>适合稳定更新账号</div>
         </div>
-        <button onclick="handleUpgrade('growth')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(34,197,94,0.38);background:rgba(34,197,94,0.08);color:#22C55E;cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
+        <button onclick="handleUpgrade('growth')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(34,197,94,0.38);background:rgba(34,197,94,0.08);color:#22C55E;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
       <!-- 专业版 -->
 	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
@@ -4587,9 +4637,9 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断150次 / 爆文112次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写300轮 / 截图1800张</div>
           <div><span style="color:#FFD700;margin-right:6px">◆</span>参考组合：50诊断 + 70爆文 + 13重写 = 899积分</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>优先响应队列</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>3:1 加权任务调度（非供应商完成承诺）</div>
         </div>
-        <button onclick="handleUpgrade('pro_plus')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(123,97,255,0.4);background:rgba(123,97,255,0.08);color:var(--holo-mid);cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
+        <button onclick="handleUpgrade('pro_plus')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(123,97,255,0.4);background:rgba(123,97,255,0.08);color:var(--holo-mid);cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
       <!-- 工作室版 -->
 	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:22px 18px">
@@ -4600,10 +4650,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断208次 / 爆文156次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写416轮 / 截图2500张</div>
           <div><span style="color:#00D4FF;margin-right:6px">◆</span>参考组合：80诊断 + 90爆文 + 10重写 = 1230积分</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>多图深度分析额度更高</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>单一 NoteAI 主账号运营多个小红书账号</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>专属客服支持</div>
         </div>
-        <button onclick="handleUpgrade('studio')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(0,212,255,0.4);background:rgba(0,212,255,0.08);color:#00D4FF;cursor:pointer;font-size:13px;font-weight:700">立即订阅</button>
+        <button onclick="handleUpgrade('studio')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(0,212,255,0.4);background:rgba(0,212,255,0.08);color:#00D4FF;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
     </div>
 	    <div class="billing-info-card" style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
@@ -4650,6 +4700,39 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div>
   </div>
 </div><!-- /page-pricing -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE — LEGAL / PRIVACY / REFUND
+═══════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-legal" style="padding-top:60px;min-height:100vh">
+  <div style="max-width:860px;margin:0 auto;padding:48px 24px">
+    <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);margin-bottom:10px">版本 first-launch-2026-07-25</div>
+    <h1 style="font-size:34px;color:var(--text);margin:0 0 10px">服务、隐私、留存与退款说明</h1>
+    <p style="color:var(--text-2);line-height:1.8">以下为已实现的产品合同。中国法律、隐私、消费者保护及跨境路径仍须在公开上线前完成专业复核；当前支付入口不收取真实款项。</p>
+    <div style="display:grid;gap:14px;margin-top:28px">
+      <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
+        <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">账户安全</h2>
+        <p style="color:var(--text-2);line-height:1.8;margin:0">手机号在首次绑定、手机注册、验证码登录和找回密码前必须验证。验证邮箱可作为备用找回渠道。修改或重置密码会撤销全部会话；验证码测试适配器禁止用于生产。</p>
+      </section>
+      <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
+        <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">归档、恢复与导出</h2>
+        <p style="color:var(--text-2);line-height:1.8;margin:0">免费创建的笔记、诊断与版本在线保留7天，随后可恢复7天；滚动备份在到期后30天内清理。付费期间创建的归档在账户存在期间无产品到期日，降级不会删除，并可导出。临时原始媒体、供应商原始响应、普通日志及依法留存的财务/安全记录不属于归档导出。</p>
+      </section>
+      <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
+        <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">隐私与跨境</h2>
+        <p style="color:var(--text-2);line-height:1.8;margin:0">系统按最小必要原则处理账户、创作和安全审计数据。Claude 路径可能把必要文本从中国境内阿里云发送到新加坡 Gateway；默认先在境内处理图片，只发送必要文本。准确的处理者清单、法律依据、告知同意和传输机制须在公开上线前完成专业确认。</p>
+      </section>
+      <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
+        <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">退款与账户删除</h2>
+        <p style="color:var(--text-2);line-height:1.8;margin:0">真实支付网关尚未启用，因此当前不得收取真实款项。未来退款必须原路退回并与订单、回调和账本核对。账户删除请求会立即撤销访问，主存储删除期限不超过24小时，滚动备份不超过30天；依法必须保留的财务和安全记录单独管理。</p>
+      </section>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+      <button onclick="showPage('landing')" style="padding:10px 16px;border-radius:9px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);cursor:pointer">返回首页</button>
+      <button onclick="window.open(API_BASE + '/legal/contracts','_blank','noopener')" style="padding:10px 16px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--holo-mid);cursor:pointer">查看机器可读合同</button>
+    </div>
+  </div>
+</div>
 
 <!-- 头像选择器弹窗 -->
 <div id="avatar-picker-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -5151,7 +5234,7 @@ function showPage(name, tabEl) {
   else {
     const map = {landing:0,upload:1,live:2,report:3,profile:4,tech:5,chat:6};
     // pricing 和 library 使用右侧快捷入口高亮
-    if (name !== 'pricing' && name !== 'library') {
+    if (name !== 'pricing' && name !== 'library' && name !== 'legal') {
       document.querySelectorAll('.nav-tab')[map[name]]?.classList.add('active');
     }
   }
@@ -5369,7 +5452,7 @@ function renderPricingConfig(cfg) {
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮 / 截图${cScreenshot}张</div>
           ${features}
         </div>
-        <button onclick="${tier === 'free' ? `openAuthModal('register')` : `handleUpgrade('${tier}')`}" style="width:100%;padding:11px;border-radius:12px;border:${isRecommended ? 'none' : `1px solid ${tier === 'free' ? 'var(--border)' : 'rgba(123,97,255,0.4)'}`};background:${isRecommended ? 'linear-gradient(135deg,#7B61FF,#FF6FD8)' : (tier === 'free' ? 'var(--surf-2)' : 'rgba(123,97,255,0.08)')};color:${isRecommended ? '#fff' : (tier === 'free' ? 'var(--text)' : accent)};cursor:pointer;font-size:13px;font-weight:700">${tier === 'free' ? '免费开始' : '立即订阅'}</button>
+        <button onclick="${tier === 'free' ? `openAuthModal('register')` : `handleUpgrade('${tier}')`}" style="width:100%;padding:11px;border-radius:12px;border:${isRecommended ? 'none' : `1px solid ${tier === 'free' ? 'var(--border)' : 'rgba(123,97,255,0.4)'}`};background:${isRecommended ? 'linear-gradient(135deg,#7B61FF,#FF6FD8)' : (tier === 'free' ? 'var(--surf-2)' : 'rgba(123,97,255,0.08)')};color:${isRecommended ? '#fff' : (tier === 'free' ? 'var(--text)' : accent)};cursor:pointer;font-size:13px;font-weight:700">${tier === 'free' ? '免费开始' : '暂不可购买'}</button>
       </div>`;
   }).join('');
   const opCards = Object.entries(ops).map(([key, op]) => `
@@ -8565,7 +8648,7 @@ function copyBodyRewrite() {
 window.addEventListener('load', () => {
   lucide.createIcons();
   const initialPage = new URLSearchParams(location.search).get('page') || location.hash.replace(/^#/, '');
-  if (['landing','upload','live','report','profile','tech','chat','pricing','library'].includes(initialPage) && initialPage !== 'landing') {
+  if (['landing','upload','live','report','profile','tech','chat','pricing','library','legal'].includes(initialPage) && initialPage !== 'landing') {
     showPage(initialPage);
   } else {
     initHeroAnimInternal();
@@ -9753,6 +9836,11 @@ function authUpdateNav() {
 
 // ── Auth Modal ──
 let _authTab = 'login';
+const FIRST_LAUNCH_CONTRACT_VERSION = 'first-launch-2026-07-25';
+let _registerPhoneChallenge = null;
+let _registerEmailChallenge = null;
+let _verificationMode = 'login_phone';
+let _verificationChallenge = null;
 function openAuthModal(tab) {
   document.getElementById('auth-modal').style.display = 'flex';
   switchAuthTab(tab || 'login');
@@ -9782,10 +9870,68 @@ function switchAuthTab(tab) {
   document.getElementById('auth-tab-register').style.background = !isLogin ? 'var(--surf-1)' : 'transparent';
   document.getElementById('auth-tab-register').style.color      = !isLogin ? 'var(--text)'   : 'var(--text-muted)';
   document.getElementById('auth-email-row').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('auth-email-code-row').style.display = isLogin ? 'none' : 'flex';
   document.getElementById('auth-phone-row').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('auth-phone-code-row').style.display = isLogin ? 'none' : 'flex';
+  document.getElementById('auth-consent-row').style.display = isLogin ? 'none' : 'flex';
+  document.getElementById('auth-recovery-actions').style.display = isLogin ? 'flex' : 'none';
   document.getElementById('auth-submit-btn').textContent  = isLogin ? '登录' : '注册并登录';
   document.getElementById('auth-error').style.display = 'none';
 }
+
+async function requestVerification(channel, destination, purpose, headers) {
+  const res = await fetch(API_AUTH + '/auth/verification/request', {
+    method: 'POST',
+    headers: { ...(headers || {}), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ channel, destination, purpose }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || '验证码请求失败');
+  return data;
+}
+
+async function requestRegisterPhoneCode() {
+  const phone = document.getElementById('auth-phone').value.trim();
+  const errEl = document.getElementById('auth-error');
+  if (!/^1[3-9]\d{9}$/.test(phone)) {
+    errEl.textContent = '请先输入正确手机号'; errEl.style.display = 'block'; return;
+  }
+  try {
+    const data = await requestVerification('phone', phone, 'register_phone');
+    _registerPhoneChallenge = { id: data.challenge_id, destination: phone };
+    showToast('验证码请求已受理');
+  } catch (err) {
+    errEl.textContent = err.message; errEl.style.display = 'block';
+  }
+}
+
+async function requestRegisterEmailCode() {
+  const email = document.getElementById('auth-email').value.trim();
+  const errEl = document.getElementById('auth-error');
+  if (!email.includes('@')) {
+    errEl.textContent = '请先输入正确邮箱'; errEl.style.display = 'block'; return;
+  }
+  try {
+    const data = await requestVerification('email', email, 'verify_email');
+    _registerEmailChallenge = { id: data.challenge_id, destination: email };
+    showToast('邮箱验证码请求已受理');
+  } catch (err) {
+    errEl.textContent = err.message; errEl.style.display = 'block';
+  }
+}
+
+function authAcceptSession(data) {
+  const previousOwnerId = _chatOwnerId();
+  const nextOwnerId = _chatOwnerId(data.user);
+  if (!nextOwnerId || previousOwnerId !== nextOwnerId) chatClearUserState();
+  _authToken = data.token;
+  _authUser = data.user;
+  _authVerifiedOwnerId = null;
+  localStorage.setItem('noteai_token', _authToken);
+  authUpdateNav();
+  loadBillingPlan();
+}
+
 async function doAuth() {
   const username = document.getElementById('auth-username').value.trim();
   const password = document.getElementById('auth-password').value;
@@ -9793,9 +9939,33 @@ async function doAuth() {
   const phone    = document.getElementById('auth-phone').value.trim();
   const errEl    = document.getElementById('auth-error');
   if (!username) { errEl.textContent = '请输入用户名'; errEl.style.display = 'block'; return; }
-  if (password.length < 6) { errEl.textContent = '密码至少6位'; errEl.style.display = 'block'; return; }
+  if (!password) { errEl.textContent = '请输入密码'; errEl.style.display = 'block'; return; }
+  if (_authTab === 'register' && password.length < 10) {
+    errEl.textContent = '注册密码至少10位，并包含字母、数字或符号中的两类'; errEl.style.display = 'block'; return;
+  }
   if (_authTab === 'register' && phone && !/^1[3-9]\d{9}$/.test(phone)) {
     errEl.textContent = '手机号格式不正确，请输入11位中国大陆手机号'; errEl.style.display = 'block'; return;
+  }
+  const phoneCode = document.getElementById('auth-phone-code').value.trim();
+  const emailCode = document.getElementById('auth-email-code').value.trim();
+  if (_authTab === 'register' && phone && (
+    !_registerPhoneChallenge ||
+    _registerPhoneChallenge.destination !== phone ||
+    !phoneCode
+  )) {
+    errEl.textContent = '使用手机号注册前请先获取并输入验证码'; errEl.style.display = 'block'; return;
+  }
+  if (_authTab === 'register' && email && (
+    !_registerEmailChallenge ||
+    _registerEmailChallenge.destination !== email ||
+    !emailCode
+  )) {
+    errEl.textContent = '填写邮箱时请先获取并输入验证码'; errEl.style.display = 'block'; return;
+  }
+  const privacyAccepted = document.getElementById('auth-privacy-consent').checked;
+  const crossBorderAccepted = document.getElementById('auth-cross-border-consent').checked;
+  if (_authTab === 'register' && (!privacyAccepted || !crossBorderAccepted)) {
+    errEl.textContent = '注册前请分别确认服务隐私条款与跨境处理说明'; errEl.style.display = 'block'; return;
   }
   const btn = document.getElementById('auth-submit-btn');
   btn.disabled = true; btn.textContent = '处理中…';
@@ -9803,30 +9973,115 @@ async function doAuth() {
     const endpoint = _authTab === 'login' ? '/auth/login' : '/auth/register';
     const body = _authTab === 'login'
       ? { username, password }
-      : { username, password, email, ...(phone ? { phone } : {}) };
+      : {
+          username, password, email,
+          contract_version: FIRST_LAUNCH_CONTRACT_VERSION,
+          privacy_accepted: privacyAccepted,
+          cross_border_notice_acknowledged: crossBorderAccepted,
+          ...(email ? {
+            email_challenge_id: _registerEmailChallenge.id,
+            email_code: emailCode,
+          } : {}),
+          ...(phone ? {
+            phone,
+            phone_challenge_id: _registerPhoneChallenge.id,
+            phone_code: phoneCode,
+          } : {}),
+        };
     const res = await fetch(API_AUTH + endpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.detail || '操作失败'; errEl.style.display = 'block'; return; }
-    const previousOwnerId = _chatOwnerId();
-    const nextOwnerId = _chatOwnerId(data.user);
-    if (!nextOwnerId || previousOwnerId !== nextOwnerId) chatClearUserState();
-    _authToken = data.token;
-    _authUser  = data.user;
-    _authVerifiedOwnerId = null;
-    localStorage.setItem('noteai_token', _authToken);
-    authUpdateNav();
+    authAcceptSession(data);
     closeAuthModal();
     showToast('欢迎回来，' + _authUser.username + ' ' + (_authUser.avatar_emoji || '🌸'));
-    // 登录/注册成功后立即初始化计费状态（套餐、积分余额）
-    loadBillingPlan();
   } catch(e) {
     errEl.textContent = '网络错误，请检查服务是否启动'; errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
     btn.textContent = _authTab === 'login' ? '登录' : '注册并登录';
+  }
+}
+
+function openVerificationModal(mode) {
+  _verificationMode = mode;
+  _verificationChallenge = null;
+  const reset = mode === 'password_reset';
+  document.getElementById('verification-modal-title').textContent = reset ? '找回密码' : '手机验证码登录';
+  document.getElementById('verification-channel').style.display = reset ? 'block' : 'none';
+  document.getElementById('verification-new-password').style.display = reset ? 'block' : 'none';
+  document.getElementById('verification-destination').placeholder = reset ? '已验证手机号或邮箱' : '已验证手机号';
+  document.getElementById('verification-destination').value = '';
+  document.getElementById('verification-code').value = '';
+  document.getElementById('verification-new-password').value = '';
+  document.getElementById('verification-error').style.display = 'none';
+  document.getElementById('verification-modal').style.display = 'flex';
+}
+
+function closeVerificationModal() {
+  document.getElementById('verification-modal').style.display = 'none';
+  _verificationChallenge = null;
+}
+
+async function requestRecoveryCode() {
+  const channel = _verificationMode === 'login_phone'
+    ? 'phone' : document.getElementById('verification-channel').value;
+  const destination = document.getElementById('verification-destination').value.trim();
+  const errEl = document.getElementById('verification-error');
+  try {
+    const data = await requestVerification(channel, destination, _verificationMode);
+    _verificationChallenge = { id: data.challenge_id, channel, destination };
+    showToast('验证码请求已受理');
+  } catch (err) {
+    errEl.textContent = err.message; errEl.style.display = 'block';
+  }
+}
+
+async function submitVerificationFlow() {
+  const errEl = document.getElementById('verification-error');
+  const code = document.getElementById('verification-code').value.trim();
+  if (!_verificationChallenge || !code) {
+    errEl.textContent = '请先获取并输入验证码'; errEl.style.display = 'block'; return;
+  }
+  try {
+    if (_verificationMode === 'login_phone') {
+      const res = await fetch(API_AUTH + '/auth/login/otp', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: _verificationChallenge.destination,
+          challenge_id: _verificationChallenge.id,
+          code,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || '验证码登录失败');
+      authAcceptSession(data);
+      closeVerificationModal();
+      closeAuthModal();
+      showToast('登录成功');
+      return;
+    }
+    const newPassword = document.getElementById('verification-new-password').value;
+    if (newPassword.length < 10) throw new Error('新密码至少10位，并包含两类字符');
+    const res = await fetch(API_AUTH + '/auth/password-reset', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channel: _verificationChallenge.channel,
+        destination: _verificationChallenge.destination,
+        challenge_id: _verificationChallenge.id,
+        code,
+        new_password: newPassword,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '密码重置失败');
+    closeVerificationModal();
+    openAuthModal('login');
+    showToast('密码已重置，请重新登录');
+  } catch (err) {
+    errEl.textContent = err.message; errEl.style.display = 'block';
   }
 }
 async function doLogout() {
@@ -10425,13 +10680,15 @@ async function initProfilePage() {
   // 脱敏手机号显示
   const phoneDisplay = document.getElementById('profile-phone-display');
   const bindArea = document.getElementById('profile-bind-phone-area');
+  const bindPhoneButton = document.getElementById('profile-bind-phone-btn');
+  if (bindArea) bindArea.style.display = 'flex';
   if (freshMe.phone_masked) {
     phoneDisplay.textContent = '📱 ' + freshMe.phone_masked;
     phoneDisplay.style.display = 'block';
-    if (bindArea) bindArea.style.display = 'none';
+    if (bindPhoneButton) bindPhoneButton.style.display = 'none';
   } else {
     phoneDisplay.style.display = 'none';
-    if (bindArea) bindArea.style.display = 'flex';
+    if (bindPhoneButton) bindPhoneButton.style.display = 'inline-block';
   }
 
   try {
@@ -10614,38 +10871,101 @@ async function initProfilePage() {
   }
 }
 
-/* 绑定手机号 */
+/* 联系方式验证与账户安全 */
+let _profilePhoneChallenge = null;
+let _profileEmailChallenge = null;
+
 function openBindPhone() {
   document.getElementById('profile-bind-phone-form').style.display = 'flex';
-  document.getElementById('profile-bind-phone-btn').style.display  = 'none';
+  document.getElementById('profile-bind-phone-btn').style.display = 'none';
   document.getElementById('profile-phone-input').focus();
 }
 function closeBindPhone() {
   document.getElementById('profile-bind-phone-form').style.display = 'none';
-  document.getElementById('profile-bind-phone-btn').style.display  = 'inline-block';
+  document.getElementById('profile-bind-phone-btn').style.display = 'inline-block';
   document.getElementById('profile-phone-input').value = '';
+  document.getElementById('profile-phone-code').value = '';
+  _profilePhoneChallenge = null;
+}
+async function requestProfilePhoneCode() {
+  const phone = document.getElementById('profile-phone-input').value.trim();
+  if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('手机号格式不正确'); return; }
+  try {
+    const data = await requestVerification('phone', phone, 'bind_phone', authHeader());
+    _profilePhoneChallenge = { id: data.challenge_id, destination: phone };
+    showToast('验证码请求已受理');
+  } catch (err) { showToast(err.message); }
 }
 async function savePhone() {
   const phone = document.getElementById('profile-phone-input').value.trim();
+  const code = document.getElementById('profile-phone-code').value.trim();
   if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('手机号格式不正确'); return; }
+  if (!_profilePhoneChallenge || _profilePhoneChallenge.destination !== phone || !code) {
+    showToast('请先获取并输入验证码'); return;
+  }
   try {
     const res = await fetch(API_AUTH + '/auth/profile', {
       method: 'PATCH',
       headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({
+        phone,
+        phone_challenge_id: _profilePhoneChallenge.id,
+        phone_code: code,
+      }),
     });
-    if (!res.ok) { const d = await res.json(); showToast(d.detail || '保存失败'); return; }
-    const d = await res.json();
-    const masked = d.phone_masked || (phone.slice(0,3) + '****' + phone.slice(-4));
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '保存失败');
     const phoneDisplay = document.getElementById('profile-phone-display');
-    phoneDisplay.textContent = '📱 ' + masked;
+    phoneDisplay.textContent = '📱 ' + data.phone_masked;
     phoneDisplay.style.display = 'block';
-    document.getElementById('profile-bind-phone-area').style.display = 'none';
     closeBindPhone();
+    document.getElementById('profile-bind-phone-btn').style.display = 'none';
     showToast('手机号绑定成功');
-  } catch(e) {
-    showToast('网络错误，请重试');
+  } catch (err) { showToast(err.message); }
+}
+
+function openBindEmail() {
+  document.getElementById('profile-bind-email-form').style.display = 'flex';
+  document.getElementById('profile-email-input').focus();
+}
+function closeBindEmail() {
+  document.getElementById('profile-bind-email-form').style.display = 'none';
+  document.getElementById('profile-email-input').value = '';
+  document.getElementById('profile-email-code').value = '';
+  _profileEmailChallenge = null;
+}
+async function requestProfileEmailCode() {
+  const email = document.getElementById('profile-email-input').value.trim();
+  if (!email.includes('@')) { showToast('邮箱格式不正确'); return; }
+  try {
+    const data = await requestVerification('email', email, 'verify_email', authHeader());
+    _profileEmailChallenge = { id: data.challenge_id, destination: email };
+    showToast('验证码请求已受理');
+  } catch (err) { showToast(err.message); }
+}
+async function saveEmail() {
+  const email = document.getElementById('profile-email-input').value.trim();
+  const code = document.getElementById('profile-email-code').value.trim();
+  if (!_profileEmailChallenge || _profileEmailChallenge.destination !== email || !code) {
+    showToast('请先获取并输入验证码'); return;
   }
+  try {
+    const res = await fetch(API_AUTH + '/auth/profile', {
+      method: 'PATCH',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        email_challenge_id: _profileEmailChallenge.id,
+        email_code: code,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '邮箱验证失败');
+    _authUser.email = data.email;
+    _authUser.email_verified = data.email_verified;
+    closeBindEmail();
+    showToast('恢复邮箱验证成功');
+  } catch (err) { showToast(err.message); }
 }
 
 function openChangePwd() {
@@ -10663,7 +10983,7 @@ async function saveChangePwd() {
   const newP = document.getElementById('pwd-new').value;
   const newP2 = document.getElementById('pwd-new2').value;
   if (!oldP) { showToast('请输入当前密码'); return; }
-  if (newP.length < 6) { showToast('新密码至少6位'); return; }
+  if (newP.length < 10) { showToast('新密码至少10位，并包含两类字符'); return; }
   if (newP !== newP2) { showToast('两次密码不一致'); return; }
   try {
     const res = await fetch(API_AUTH + '/auth/change-password', {
@@ -10671,12 +10991,101 @@ async function saveChangePwd() {
       headers: { ...authHeader(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ old_password: oldP, new_password: newP }),
     });
-    const d = await res.json();
-    if (!res.ok) { showToast(d.detail || '修改失败'); return; }
-    showToast('密码修改成功，请重新登录');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '修改失败');
+    authClearLocalSession();
     closeChangePwd();
-    setTimeout(() => { logout(); }, 1500);
-  } catch(e) { showToast('网络错误'); }
+    openAuthModal('login');
+    showToast('密码修改成功，请重新登录');
+  } catch (err) { showToast(err.message); }
+}
+
+async function revokeAllSessions() {
+  if (!confirm('撤销全部设备上的登录会话？当前设备也会退出。')) return;
+  try {
+    const res = await fetch(API_AUTH + '/auth/sessions/revoke-all', {
+      method: 'POST', headers: authHeader(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '撤销失败');
+    authClearLocalSession();
+    showPage('landing');
+    showToast('全部会话已撤销');
+  } catch (err) { showToast(err.message); }
+}
+
+async function exportAccountData() {
+  try {
+    const res = await fetch(API_AUTH + '/account/export', { headers: authHeader() });
+    if (!res.ok) {
+      const data = await res.json(); throw new Error(data.detail || '导出失败');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'noteai-account-export.json';
+    document.body.appendChild(link); link.click(); link.remove();
+    URL.revokeObjectURL(url);
+    showToast('账户数据已导出');
+  } catch (err) { showToast(err.message); }
+}
+
+async function recoverArchivedContent() {
+  try {
+    const response = await fetch(API_AUTH + '/account/archive/recovery', {
+      headers: authHeader(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || '读取恢复列表失败');
+    const items = data.items || [];
+    if (!items.length) { showToast('当前没有处于恢复期的归档'); return; }
+    const menu = items.map((item, index) =>
+      `${index + 1}. ${item.content_type === 'note' ? '笔记' : '诊断'}：${item.label || item.content_id}`
+    ).join('\n');
+    const choice = Number(prompt(`输入要恢复的序号：\n${menu}`));
+    if (!Number.isInteger(choice) || choice < 1 || choice > items.length) return;
+    const selected = items[choice - 1];
+    const recovered = await fetch(API_AUTH + '/account/archive/recover', {
+      method: 'POST',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content_type: selected.content_type,
+        content_id: selected.content_id,
+      }),
+    });
+    const result = await recovered.json();
+    if (!recovered.ok) throw new Error(result.detail || '恢复失败');
+    showToast('归档已恢复7天');
+    initProfilePage();
+  } catch (err) { showToast(err.message); }
+}
+
+async function requestAccountDeletion() {
+  const password = prompt('请先导出数据，再输入当前密码确认删除账户：');
+  if (!password || !confirm('确认提交？账户访问会立即撤销。')) return;
+  try {
+    const res = await fetch(API_AUTH + '/account', {
+      method: 'DELETE',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, include_final_export: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '删除请求失败');
+    if (data.final_export) {
+      const blob = new Blob(
+        [JSON.stringify(data.final_export, null, 2)],
+        { type: 'application/json' },
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url; link.download = 'noteai-final-account-export.json';
+      document.body.appendChild(link); link.click(); link.remove();
+      URL.revokeObjectURL(url);
+    }
+    authClearLocalSession();
+    showPage('landing');
+    showToast('账户删除请求已提交');
+  } catch (err) { showToast(err.message); }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -12322,56 +12731,15 @@ function toggleUsageDetail() {
 /* 升级套餐 */
 async function handleUpgrade(tier) {
   if (!_authToken) { openAuthModal('login'); return; }
-  const names = {
-    pro:'创作者版 (¥99/月，260积分)',
-    growth:'成长版 (¥199/月，560积分)',
-    pro_plus:'专业版 (¥299/月，900积分)',
-    studio:'工作室版 (¥399/月，1250积分)',
-  };
-  // TODO: 接入微信支付/支付宝，当前为内测模式，管理员手动开通
-  showToast('💳 付款功能即将上线，请联系客服开通套餐（微信：noteai_service）');
-  return;
-  if (!confirmed) return;
-  try {
-    const res = await fetch(API_AUTH + '/billing/upgrade', {
-      method: 'POST', headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier }),
-    });
-    const d = await res.json();
-    if (d.ok) {
-      showToast(`✅ 已升级到 ${names[tier]} 🎉`);
-      await loadBillingPlan();
-      authUpdateNav();
-    }
-  } catch(e) { showToast('升级失败：' + e.message); }
+  void tier;
+  showToast('当前未启用真实支付，暂时不能购买套餐。价格仅用于首发方案说明。');
 }
 
 /* 积分充值 */
 async function handleTopup(packageId) {
   if (!_authToken) { openAuthModal('login'); return; }
-  const packages = {
-    starter: { credits: 30, price: 12, label: '体验加油包' },
-    creator: { credits: 100, price: 39, label: '创作者补给包' },
-    growth: { credits: 300, price: 109, label: '增长运营包' },
-    studio: { credits: 800, price: 279, label: '工作室储备包' },
-  };
-  const pkg = packages[packageId] || packages.starter;
-  // TODO: 接入支付网关，当前为内测模式
-  showToast('💳 积分充值即将上线，请联系客服购买积分（微信：noteai_service）');
-  return;
-  const confirmed = confirm(`购买${pkg.label}：${pkg.credits}积分 (¥${pkg.price})？`);
-  if (!confirmed) return;
-  try {
-    const res = await fetch(API_AUTH + '/billing/topup', {
-      method: 'POST', headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ package_id: packageId }),
-    });
-    const d = await res.json();
-    if (d.ok) {
-      showToast(`✅ 已充值 ${pkg.credits} 积分，余额 ${d.new_balance} 积分`);
-      await loadBillingPlan();
-    }
-  } catch(e) { showToast('充值失败：' + e.message); }
+  void packageId;
+  showToast('当前未启用真实支付，暂时不能购买积分。价格仅用于首发方案说明。');
 }
 
 /* 积分不足时弹升级引导 */

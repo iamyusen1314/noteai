@@ -9,14 +9,18 @@ Endpoints:
 import asyncio
 import base64
 import copy as _copy
+import hashlib
 import json as _json
+import math
 import os
 import re
 import sys
 import tempfile
 import threading
 import time as _time
+import unicodedata
 import uuid as _uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, AsyncGenerator, Awaitable, Callable
 
@@ -27,7 +31,7 @@ import model_router as _mr
 import lightgbm as lgb
 import numpy as np
 import uvicorn
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header, Request
 from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -64,8 +68,11 @@ except Exception:
 # ── 新增：用户系统 + 记忆系统 + 计费系统 + Prompt管理 ────────────────────
 import db as _db
 import auth as _auth
+import account_security as _account_security
 import memory as _memory
 import billing as _billing
+import content_retention as _retention
+import security_redaction as _redaction
 import idempotency as _idempotency
 import prompt_manager as _pm
 import prompt_composer as _prompt_composer
@@ -73,6 +80,21 @@ import fact_enrichment as _facts
 import quality_objective as _qobj
 import performance_scoring as _perf
 from artifact_loader import ensure_model_artifacts
+
+
+def _log_internal_failure(
+    event_code: str,
+    exc: BaseException | None = None,
+    **facts: Any,
+) -> None:
+    print(
+        _json.dumps(
+            _redaction.safe_failure_event(event_code, exc, **facts),
+            ensure_ascii=False,
+        ),
+        file=sys.stderr,
+        flush=True,
+    )
 
 # ── Model constants ────────────────────────────────────────────────
 
@@ -239,8 +261,13 @@ def _data_url_from_image_b64(image_b64: str) -> tuple[str, str, int]:
 def _moonshot_http_exception(exc, context: str) -> HTTPException:
     resp = exc.response
     status = resp.status_code if resp is not None else 0
-    body = (resp.text if resp is not None else "").replace("\n", " ")[:500]
-    print(f"[{context}] moonshot HTTP {status}: {body}", file=sys.stderr, flush=True)
+    _log_internal_failure(
+        "moonshot_http",
+        exc,
+        provider="moonshot",
+        phase=str(context)[:64],
+        http_status=status,
+    )
     if status in (401, 403):
         return HTTPException(status_code=502, detail="Moonshot API Key 无效或没有视觉模型权限")
     if status == 429:
@@ -251,7 +278,12 @@ def _moonshot_http_exception(exc, context: str) -> HTTPException:
 
 
 def _moonshot_network_exception(exc: Exception, context: str) -> HTTPException:
-    print(f"[{context}] moonshot network error: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+    _log_internal_failure(
+        "moonshot_network",
+        exc,
+        provider="moonshot",
+        phase=str(context)[:64],
+    )
     return HTTPException(
         status_code=503,
         detail=f"Moonshot Vision 网络不可达：{type(exc).__name__}",
@@ -714,7 +746,12 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
                 print(f"[kimi_chat] WARN empty mode=think stream total_tokens={total_tokens}", file=sys.stderr, flush=True)
             return content
         except Exception as exc:
-            print(f"[kimi_chat] ERROR mode=think stream: {exc}", file=sys.stderr, flush=True)
+            _log_internal_failure(
+                "kimi_chat",
+                exc,
+                provider="kimi",
+                phase="think_stream",
+            )
             return ""
     else:
         # ── Non-streaming fast path ──
@@ -731,7 +768,12 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
                     print(f"[kimi_chat] WARN empty mode=fast finish={finish} usage={usage}", file=sys.stderr, flush=True)
                 return content
         except Exception as exc:
-            print(f"[kimi_chat] ERROR mode=fast: {exc}", file=sys.stderr, flush=True)
+            _log_internal_failure(
+                "kimi_chat",
+                exc,
+                provider="kimi",
+                phase="fast",
+            )
             return ""
 
 
@@ -787,7 +829,12 @@ async def _kimi_stream_gen(
                     {"model": _KIMI_MODEL, "usage": final_usage or {}}
                 )
     except Exception as exc:
-        print(f"[kimi_stream_gen] ERROR: {exc}", file=sys.stderr, flush=True)
+        _log_internal_failure(
+            "kimi_stream_gen",
+            exc,
+            provider="kimi",
+            phase="stream",
+        )
 
 
 async def _wait_video_file_ready(file_id: str, key: str, max_wait: int = 60) -> bool:
@@ -802,7 +849,11 @@ async def _wait_video_file_ready(file_id: str, key: str, max_wait: int = 60) -> 
                     if status == "ok":
                         return True
                     if status in ("error", "failed"):
-                        print(f"[video_file] file {file_id} status={status}", file=sys.stderr, flush=True)
+                        print(
+                            f"[video_file] status={status}",
+                            file=sys.stderr,
+                            flush=True,
+                        )
                         return False
         except Exception:
             pass
@@ -814,7 +865,11 @@ async def _kimi_video_understand(file_id: str, domain: str, brief: str | None) -
     """按视频时长动态决定发送帧数，均匀覆盖开头/中间/结尾。"""
     meta = _get_video_meta(file_id)
     if not meta:
-        print(f"[kimi_video_understand] no frames for file_id={file_id}", file=sys.stderr, flush=True)
+        print(
+            "[kimi_video_understand] frames_unavailable",
+            file=sys.stderr,
+            flush=True,
+        )
         return ""
 
     frames       = meta["frames"]
@@ -875,13 +930,23 @@ async def _kimi_video_understand(file_id: str, domain: str, brief: str | None) -
         async with _httpx.AsyncClient(timeout=_httpx.Timeout(connect=10.0, read=180.0, write=30.0, pool=10.0)) as client:
             r = await client.post(_KIMI_API_URL, json=payload, headers={"Authorization": f"Bearer {key}"})
             if r.status_code != 200:
-                print(f"[kimi_video_understand] HTTP {r.status_code}: {r.text[:300]}", file=sys.stderr, flush=True)
+                _log_internal_failure(
+                    "kimi_video_understand",
+                    provider="kimi",
+                    phase="http",
+                    http_status=r.status_code,
+                )
                 r.raise_for_status()
             data = r.json()
             _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
             return data["choices"][0]["message"]["content"].strip()
     except Exception as exc:
-        print(f"[kimi_video_understand] EXCEPTION: {exc}", file=sys.stderr, flush=True)
+        _log_internal_failure(
+            "kimi_video_understand",
+            exc,
+            provider="kimi",
+            phase="request",
+        )
         return ""
 
 
@@ -1297,6 +1362,23 @@ def _num_or_none(value: object) -> float | None:
         return None
 
 
+def _bounded_expert_confidence(
+    value: object,
+    *,
+    digits: int | None = None,
+) -> float | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(numeric):
+        return None
+    bounded = max(0.0, min(1.0, numeric))
+    return round(bounded, digits) if digits is not None else bounded
+
+
 def _expert_evidence_item(
     *,
     text: str,
@@ -1308,6 +1390,7 @@ def _expert_evidence_item(
     status: str = "info",
     confidence: float = 1.0,
 ) -> dict:
+    confidence_value = _bounded_expert_confidence(confidence, digits=2)
     item = {
         "text": text.strip(),
         "source_type": source_type,
@@ -1315,7 +1398,7 @@ def _expert_evidence_item(
         "source_key": source_key,
         "label": label or source_key,
         "status": status,
-        "confidence": round(max(0.0, min(1.0, float(confidence or 0.0))), 2),
+        "confidence": confidence_value if confidence_value is not None else 0.0,
     }
     value_num = _num_or_none(value)
     benchmark_num = _num_or_none(benchmark)
@@ -1598,9 +1681,8 @@ def _normalize_expert_opinion(
     suggestions = _split_expert_lines(_xtag(raw, "suggestions"))
     impact = _xtag(raw, "impact")
     confidence_raw = _xtag(raw, "confidence")
-    try:
-        confidence = max(0.0, min(1.0, float(confidence_raw)))
-    except Exception:
+    confidence = _bounded_expert_confidence(confidence_raw)
+    if confidence is None:
         confidence = 0.0
 
     evidence_pool = _build_bound_evidence_pool(
@@ -1643,6 +1725,7 @@ def _normalize_expert_opinion(
 
 _PUBLIC_EXPERT_EVIDENCE_KEYS = frozenset({
     "agent_text",
+    "confidence",
     "text",
     "label",
     "source_label",
@@ -1652,6 +1735,50 @@ _PUBLIC_EXPERT_EVIDENCE_KEYS = frozenset({
     "benchmark",
     "status",
 })
+_PUBLIC_EXPERT_EVIDENCE_SOURCE_TYPES = frozenset(_EVIDENCE_SOURCE_LABELS)
+_PUBLIC_EXPERT_ROLES = frozenset({
+    "专家",
+    "仲裁专家",
+    "内容专家",
+    "增长专家",
+    "用户专家",
+    "视觉专家",
+})
+_PUBLIC_EXPERT_OPINION_INPUT_KEYS = frozenset({
+    "confidence",
+    "evidence",
+    "evidence_binding",
+    "impact",
+    "opinion",
+    "rationale",
+    "raw",
+    "reason",
+    "role",
+    "suggestions",
+    "summary",
+})
+_PUBLIC_EXPERT_FILTER_ONLY_INPUT_KEYS = frozenset({
+    "_image_desc",
+    "provider",
+    "reasoning",
+    "reasoning_content",
+})
+
+
+def _has_undeclared_raw_key(
+    value: Any,
+    *,
+    declared_keys: frozenset[str],
+    filter_only_keys: frozenset[str] = frozenset(),
+) -> bool:
+    """Reject a record unless every raw key has an explicit input contract."""
+    if not isinstance(value, dict):
+        return False
+    allowed = declared_keys | filter_only_keys
+    return any(
+        not isinstance(key, str) or key not in allowed
+        for key in value
+    )
 
 
 def _public_expert_text(value: Any, limit: int = 1000) -> str:
@@ -1667,11 +1794,37 @@ def _public_expert_evidence(value: Any) -> list[Any]:
     public: list[Any] = []
     for item in value[:4]:
         if isinstance(item, dict):
-            safe_item = {
-                key: item[key]
-                for key in _PUBLIC_EXPERT_EVIDENCE_KEYS
-                if key in item and isinstance(item[key], (str, int, float, bool))
-            }
+            if _has_undeclared_raw_key(
+                item,
+                declared_keys=_PUBLIC_EXPERT_EVIDENCE_KEYS,
+                filter_only_keys=_PUBLIC_EXPERT_FILTER_ONLY_INPUT_KEYS,
+            ):
+                continue
+            source_type = item.get("source_type")
+            if (
+                source_type is not None
+                and source_type not in _PUBLIC_EXPERT_EVIDENCE_SOURCE_TYPES
+            ):
+                continue
+            safe_item: dict[str, Any] = {}
+            for key in _PUBLIC_EXPERT_EVIDENCE_KEYS:
+                if key not in item:
+                    continue
+                raw_value = item[key]
+                if key == "confidence":
+                    confidence = (
+                        _bounded_expert_confidence(raw_value, digits=2)
+                        if (
+                            isinstance(raw_value, (int, float))
+                            and not isinstance(raw_value, bool)
+                        )
+                        else None
+                    )
+                    if confidence is not None:
+                        safe_item[key] = confidence
+                    continue
+                if isinstance(raw_value, (str, int, float, bool)):
+                    safe_item[key] = raw_value
             if safe_item:
                 public.append(safe_item)
         elif isinstance(item, (str, int, float, bool)):
@@ -1679,11 +1832,28 @@ def _public_expert_evidence(value: Any) -> list[Any]:
     return public
 
 
+def _public_expert_role(value: Any) -> str:
+    text = _public_expert_text(value, 80)
+    if not text:
+        return "专家"
+    return text if text in _PUBLIC_EXPERT_ROLES else ""
+
+
 def _public_expert_opinion(op: Any) -> dict[str, Any]:
     """Keep provider raw output internal and expose only the explainable expert view."""
-    source = op if isinstance(op, dict) else {}
+    if not isinstance(op, dict):
+        return {}
+    source = op
+    if _has_undeclared_raw_key(
+        source,
+        declared_keys=_PUBLIC_EXPERT_OPINION_INPUT_KEYS,
+        filter_only_keys=_PUBLIC_EXPERT_FILTER_ONLY_INPUT_KEYS,
+    ):
+        return {}
     raw = source.get("raw") if isinstance(source.get("raw"), str) else ""
-    role = _public_expert_text(source.get("role"), 80) or "专家"
+    role = _public_expert_role(source.get("role"))
+    if not role:
+        return {}
 
     opinion = _public_expert_text(source.get("opinion") or source.get("summary"))
     if not opinion:
@@ -1735,9 +1905,8 @@ def _public_expert_opinion(op: Any) -> dict[str, Any]:
     confidence_raw = source.get("confidence")
     if confidence_raw in (None, ""):
         confidence_raw = _xtag(raw, "confidence")
-    try:
-        confidence = max(0.0, min(1.0, float(confidence_raw)))
-    except (TypeError, ValueError):
+    confidence = _bounded_expert_confidence(confidence_raw)
+    if confidence is None:
         confidence = 0.0
 
     return {
@@ -1755,31 +1924,1074 @@ def _public_expert_opinion(op: Any) -> dict[str, Any]:
 def _public_expert_opinions(opinions: Any) -> list[dict[str, Any]]:
     if not isinstance(opinions, list):
         return []
-    return [_public_expert_opinion(op) for op in opinions[:8]]
+    public: list[dict[str, Any]] = []
+    for item in opinions[:8]:
+        opinion = _public_expert_opinion(item)
+        if opinion:
+            public.append(opinion)
+    return public
 
 
-def _public_diagnosis_value(value: Any) -> Any:
-    """Sanitize historical reports on read without rewriting stored rows."""
+_SENSITIVE_COMPACT_KEYS = frozenset({
+    "analysis",
+    "chainofthought",
+    "completionraw",
+    "cot",
+    "internalreasoning",
+    "internaltrace",
+    "providerpayload",
+    "providerrequest",
+    "providerresponse",
+    "rawcompletion",
+    "rawrequest",
+    "rawresponse",
+    "reasoning",
+    "reasoningcontent",
+    "scratchpad",
+    "systemprompt",
+    "thinking",
+    "thinkingcontent",
+    "thinkingdelta",
+    "thoughttrace",
+})
+
+_COMPOUND_COT_REASONING_RE = re.compile(
+    r"cot(?:s)?(?:trace|details|metadata|reasoning|thought|process|output|"
+    r"results?|content|delta|tokens?|payload|envelope|response|request)"
+    r"(?:$|[0-9])"
+)
+_COMPOUND_INTERNAL_ENVELOPE_RE = re.compile(
+    r"(?:developer|internal|provider|system|tool)"
+    r"(?:content|details|envelope|instruction|message|meta|metadata|model|"
+    r"output|payload|prompt|request|response|trace)(?:$|[0-9])"
+)
+_BENIGN_COT_NORMALIZED_KEYS = frozenset({
+    "apricot_color",
+    "cottage_style",
+    "cotton_material",
+    "mascot",
+    "mascots",
+    "mascots_metadata",
+})
+_PUBLIC_INTERNAL_CONTAINER_KEYS = frozenset({
+    "fact_enrichment",
+    "supplement_prompts",
+})
+_INTERNAL_NAMESPACE_TOKENS = frozenset({
+    "authorization",
+    "cookie",
+    "credential",
+    "developer",
+    "function",
+    "internal",
+    "private",
+    "prompt",
+    "provider",
+    "raw",
+    "secret",
+    "system",
+    "token",
+    "tool",
+})
+_INTERNAL_COMPACT_NAMESPACES = (
+    "authorization",
+    "cookie",
+    "credential",
+    "developer",
+    "function",
+    "internal",
+    "private",
+    "prompt",
+    "provider",
+    "raw",
+    "secret",
+    "system",
+    "token",
+    "tool",
+)
+_INTERNAL_DISCRIMINATOR_VALUES = frozenset({
+    "developer",
+    "function",
+    "internal",
+    "provider",
+    "system",
+    "tool",
+})
+_PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS = frozenset({
+    "COT",
+    "COTs",
+    "CoT",
+    "CoTDetails",
+    "CoTTrace",
+    "CoTs",
+    "CotsTrace",
+    "ScratchPad",
+    "ScratchPads",
+    "_image_desc",
+    "analyses",
+    "analysis",
+    "apiKey",
+    "agentcot",
+    "agentcottrace",
+    "apricot-cotdetails",
+    "assistantAnalysis",
+    "assistantCoTTrace",
+    "assistantCotsTrace",
+    "assistantProviderResponse",
+    "assistantScratchPad",
+    "assistantScratchPads",
+    "assistant_analysis",
+    "assistantcotsteps",
+    "assistantproviderresponse",
+    "bearer",
+    "chainOfThoughts",
+    "chain_of_thought",
+    "co_t",
+    "completionData",
+    "completioncot",
+    "cot",
+    "cotlog",
+    "cottage_cot_details",
+    "cottonCotTrace",
+    "cots-trace",
+    "cotsMetadata",
+    "cots_trace",
+    "cotscontext",
+    "debugTrace",
+    "debugcot",
+    "developercontext",
+    "developerprompt",
+    "functionCall",
+    "function_call",
+    "hiddenthought",
+    "hiddenState",
+    "innerthoughts",
+    "instructions",
+    "internal_trace",
+    "internalcontext",
+    "internalpayload",
+    "llmcot",
+    "llmcotcontent",
+    "mascotcottrace",
+    "modelContext",
+    "modelReasoning",
+    "modelScratchPadTrace",
+    "password",
+    "postCotsTrace",
+    "postcots",
+    "preCoT",
+    "privatecot",
+    "provider",
+    "providerEnvelope",
+    "provider_payload",
+    "providercontext",
+    "providerdata",
+    "providerenvelope",
+    "raw",
+    "raw-provider-output",
+    "raw_completion",
+    "rawcot",
+    "rawdata",
+    "reasoning",
+    "reasoning_content",
+    "reasonings",
+    "requestBody",
+    "responseBody",
+    "response_metadata",
+    "responsecotdetails",
+    "scratchPad",
+    "scratch_pad",
+    "scratchpad",
+    "sessionId",
+    "systemEnvelope",
+    "systemcontext",
+    "systemenvelope",
+    "thinkings",
+    "thinking_trace",
+    "thoughtprocess",
+    "toolCall",
+    "tool_call",
+    "tracecotdelta",
+    "vendorcot",
+})
+_LEGACY_GENERIC_PUBLIC_KEYS = frozenset({
+    "answer",
+    "apricot_color",
+    "content",
+    "cottage_style",
+    "cotton_material",
+    "history",
+    "mascots",
+    "mascots_metadata",
+    "nested",
+    "records",
+    "safe-score",
+    "score",
+})
+
+
+def _collect_public_schema_keys(schema: Any, keys: set[str]) -> None:
+    if isinstance(schema, dict):
+        keys.update(schema)
+        for child in schema.values():
+            _collect_public_schema_keys(child, keys)
+    elif isinstance(schema, tuple):
+        for child in schema[1:]:
+            _collect_public_schema_keys(child, keys)
+
+
+def _declared_legacy_public_record_keys() -> frozenset[str]:
+    """Return the exact public keys recognized by legacy recursive projectors."""
+    keys = set(_LEGACY_GENERIC_PUBLIC_KEYS)
+    for name in (
+        "_PERSISTED_DIAGNOSIS_SCHEMAS",
+        "_CHAT_CONTEXT_MAPPING_SCHEMAS",
+    ):
+        schema = globals().get(name)
+        if schema:
+            _collect_public_schema_keys(schema, keys)
+    for name in (
+        "_CHAT_CONTEXT_BENIGN_STRING_FIELDS",
+        "_CHAT_CONTEXT_NUMBER_FIELDS",
+        "_CHAT_CONTEXT_STRING_FIELDS",
+        "_CHAT_CONTEXT_STRING_LIST_FIELDS",
+        "_CHAT_FEATURE_HIT_FIELDS",
+        "_CHAT_PLAN_NUMBER_FIELDS",
+        "_CHAT_PLAN_STRING_FIELDS",
+        "_CHAT_PREFERENCE_FIELDS",
+        "_CONFIRMED_SUPPLEMENT_VALUE_FIELDS",
+        "_PUBLIC_EXPERT_EVIDENCE_KEYS",
+        "_PUBLIC_EXPERT_OPINION_INPUT_KEYS",
+        "_SUPPLEMENT_PROMPT_STRING_FIELDS",
+    ):
+        keys.update(globals().get(name) or ())
+    keys.update({
+        "can_use_fact_source",
+        "confirmed_supplement_values",
+        "expert_opinions",
+        "feature_hits",
+        "pending_plan_options",
+        "quality_issues",
+        "selectable",
+        "selected_plan_index",
+        "supplement_prompts",
+    })
+    return frozenset(keys)
+
+
+def _normalized_internal_key(key: Any) -> tuple[str, frozenset[str], str]:
+    raw = unicodedata.normalize("NFKC", str(key).strip())
+    snake = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", raw)
+    snake = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", snake)
+    normalized = re.sub(r"[^A-Za-z0-9]+", "_", snake).strip("_").lower()
+    tokens = frozenset(part for part in normalized.split("_") if part)
+    return normalized, tokens, normalized.replace("_", "")
+
+
+def _is_reasoning_alias(
+    normalized: str,
+    key_tokens: frozenset[str],
+    compact_key: str,
+) -> bool:
+    """Recognize semantic reasoning families after camel/snake normalization."""
+    compact_reasoning_family = any(
+        marker in compact_key
+        for marker in (
+            "analysis",
+            "analyses",
+            "reasoning",
+            "thinking",
+            "scratchpad",
+            "chainofthought",
+            "thought",
+            "internalreasoning",
+            "internaltrace",
+        )
+    )
+    normalized_cot_family = bool(
+        re.search(r"(?:^|_)co_t(?:_|s(?:_|$)|\d|$)", normalized)
+    )
+    compact_cot_family = bool(
+        re.search(
+            r"(?:^|agent|assistant|developer|hidden|inner|internal|llm|model|"
+            r"outer|post|pre|provider|response|system|tool|trace)"
+            r"cot(?:(?:s|trace|details|reasoning|thought|process|output|"
+            r"results?|content|delta|tokens?))?(?:$|[0-9])",
+            compact_key,
+        )
+    )
+    compound_cot_family = (
+        normalized not in _BENIGN_COT_NORMALIZED_KEYS
+        and bool(_COMPOUND_COT_REASONING_RE.search(compact_key))
+    )
+    return bool(
+        key_tokens & {
+            "analysis",
+            "analyses",
+            "reasoning",
+            "reasonings",
+            "thinking",
+            "thinkings",
+            "scratchpad",
+            "scratchpads",
+            "cot",
+            "cots",
+            "thought",
+            "thoughts",
+            "internal",
+        }
+        or compact_reasoning_family
+        or normalized_cot_family
+        or compact_cot_family
+        or compound_cot_family
+        or compact_key in _SENSITIVE_COMPACT_KEYS
+        or normalized.startswith(
+            (
+                "reasoning_",
+                "thinking_",
+                "analysis_",
+                "internal_",
+                "scratchpad_",
+                "thought_",
+                "thoughts_",
+            )
+        )
+    )
+
+
+def _is_internal_persistence_key(
+    normalized: str,
+    key_tokens: frozenset[str],
+    compact_key: str,
+) -> bool:
+    """Default-deny internal namespaces without enumerating field suffixes."""
+    if normalized in _PUBLIC_INTERNAL_CONTAINER_KEYS:
+        return False
+    if _is_reasoning_alias(normalized, key_tokens, compact_key):
+        return True
+    if (
+        "cot" in compact_key
+        and normalized not in _BENIGN_COT_NORMALIZED_KEYS
+    ):
+        return True
+    if key_tokens & _INTERNAL_NAMESPACE_TOKENS:
+        return True
+    return any(
+        marker in compact_key
+        for marker in _INTERNAL_COMPACT_NAMESPACES
+    )
+
+
+def _approved_public_business_field(
+    normalized: str,
+    path: tuple[str, ...],
+) -> bool:
+    if not path:
+        return False
+    return bool(
+        (
+            path[-1] == "supplement_prompts"
+            and normalized == "prompt"
+        )
+        or (
+            path[-1] == "fact_enrichment"
+            and normalized in {"provider", "raw_title"}
+        )
+    )
+
+
+def _is_internal_envelope_alias(compact_key: str) -> bool:
+    return bool(_COMPOUND_INTERNAL_ENVELOPE_RE.search(compact_key))
+
+
+_DISCRIMINATOR_KEY_TOKENS = frozenset({"kind", "role", "type"})
+
+
+def _is_mixed_script_discriminator_lookalike(key: Any) -> bool:
+    """Catch a role/type/kind marker split by one non-ASCII identifier glyph."""
+    raw = unicodedata.normalize("NFKC", str(key).strip())
+    if not any(not char.isascii() for char in raw):
+        return False
+    has_embedded_non_ascii = any(
+        not char.isascii()
+        and char.isalnum()
+        and index > 0
+        and index + 1 < len(raw)
+        and raw[index - 1].isascii()
+        and raw[index - 1].isalnum()
+        and raw[index + 1].isascii()
+        and raw[index + 1].isalnum()
+        for index, char in enumerate(raw)
+    )
+    if not has_embedded_non_ascii:
+        return False
+    ascii_compact = "".join(
+        char.lower()
+        for char in raw
+        if char.isascii() and char.isalnum()
+    )
+    return any(
+        marker[:index] + marker[index + 1:] in ascii_compact
+        for marker in _DISCRIMINATOR_KEY_TOKENS
+        for index in range(len(marker))
+    )
+
+
+def _is_internal_discriminator_key(key: Any) -> bool:
+    normalized, tokens, compact = _normalized_internal_key(key)
+    return bool(
+        tokens & _DISCRIMINATOR_KEY_TOKENS
+        or any(marker in compact for marker in _DISCRIMINATOR_KEY_TOKENS)
+        or _is_mixed_script_discriminator_lookalike(key)
+    )
+
+
+def _has_unapproved_discriminator_key(
+    value: Any,
+    *,
+    allowed_keys: frozenset[str] = frozenset(),
+) -> bool:
+    """Fail a typed record closed when it carries an undeclared discriminator."""
+    if not isinstance(value, dict):
+        return False
+    for key in value:
+        if isinstance(key, str) and key in allowed_keys:
+            continue
+        if _is_internal_discriminator_key(key):
+            return True
+    return False
+
+
+def _is_internal_discriminator_value(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    normalized, tokens, compact = _normalized_internal_key(value)
+    return bool(
+        compact in _INTERNAL_DISCRIMINATOR_VALUES
+        or _is_internal_persistence_key(normalized, tokens, compact)
+        or _is_internal_envelope_alias(compact)
+        or _is_reasoning_alias(normalized, tokens, compact)
+    )
+
+
+def _is_internal_role_record(value: Any) -> bool:
+    """Compatibility wrapper for records with undeclared discriminator keys."""
+    return _has_unapproved_discriminator_key(value)
+
+
+_PUBLIC_DYNAMIC_INTEGER_MAP_PATHS = frozenset({
+    ("market_timing", "source_breakdown"),
+    (
+        "market_timing",
+        "pipeline_status",
+        "xhs",
+        "latest_health",
+        "details",
+        "latest_run_source_breakdown",
+    ),
+    (
+        "market_timing",
+        "pipeline_status",
+        "xhs",
+        "latest_health",
+        "details",
+        "latest_run_source_health",
+        "source_breakdown",
+    ),
+})
+
+
+def _public_diagnosis_value(value: Any, _path: tuple[str, ...] = ()) -> Any:
+    """Drop provider-internal and reasoning fields before storage or output."""
     if isinstance(value, dict):
+        if _path in _PUBLIC_DYNAMIC_INTEGER_MAP_PATHS:
+            return _sanitize_public_schema_value(value, ("map", "integer"))
+        if (
+            _has_undeclared_raw_key(
+                value,
+                declared_keys=_declared_legacy_public_record_keys(),
+                filter_only_keys=_PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS,
+            )
+            or _is_internal_role_record(value)
+        ):
+            return {}
         safe: dict[Any, Any] = {}
         for key, item in value.items():
-            normalized = str(key).strip().lower().replace("-", "_")
+            normalized, key_tokens, compact_key = _normalized_internal_key(key)
             if normalized == "expert_opinions":
                 safe[key] = _public_expert_opinions(item)
                 continue
+            approved_business_field = _approved_public_business_field(
+                normalized,
+                _path,
+            )
+            if approved_business_field:
+                if isinstance(item, str):
+                    safe[key] = item
+                continue
+            if key in _PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS:
+                continue
             if (
-                normalized in {"reasoning", "thinking", "system_prompt"}
-                or normalized.startswith("reasoning_")
-                or normalized.startswith("thinking_")
+                _is_internal_persistence_key(
+                    normalized,
+                    key_tokens,
+                    compact_key,
+                )
+                or _is_internal_envelope_alias(compact_key)
+                or bool(
+                    key_tokens
+                    & {
+                        "developer",
+                        "prompt",
+                        "provider",
+                        "raw",
+                        "system",
+                    }
+                )
+                or normalized == "raw"
+                or normalized.startswith("raw_provider_")
+                or normalized.startswith("raw_completion_")
+                or normalized.endswith("_prompt")
             ):
                 continue
-            safe[key] = _public_diagnosis_value(item)
+            safe[key] = _public_diagnosis_value(item, _path + (normalized,))
         return safe
     if isinstance(value, list):
-        return [_public_diagnosis_value(item) for item in value]
+        return [
+            _public_diagnosis_value(item, _path)
+            for item in value
+            if not _is_internal_role_record(item)
+        ]
     if isinstance(value, tuple):
-        return [_public_diagnosis_value(item) for item in value]
+        return [
+            _public_diagnosis_value(item, _path)
+            for item in value
+            if not _is_internal_role_record(item)
+        ]
     return value
+
+
+_PERSISTED_DIAGNOSIS_ROOT_FIELDS = frozenset({
+    "ai_diagnosis",
+    "ces_percentile",
+    "composite_score",
+    "constraint_contract",
+    "content_intent",
+    "diagnosis_id",
+    "dimension_scores",
+    "dispute",
+    "expert_opinions",
+    "fact_enrichment",
+    "fact_source_decision",
+    "feature_groups",
+    "feature_schema",
+    "features",
+    "grade",
+    "improvement_plan",
+    "input_diagnostics",
+    "intent_contract",
+    "market_timing",
+    "model_used",
+    "saved_note_id",
+    "suggested_body",
+    "suggested_plans",
+    "suggested_title_scores",
+    "suggested_titles",
+    "supplement_prompts",
+    "top_feature_contributions",
+    "user_constraints",
+    "visual_score",
+    "weaknesses",
+})
+
+_PUBLIC_SCHEMA_MISSING = object()
+
+_CONSTRAINT_CONTRACT_SCHEMA = {
+    "items": ("list", "string"),
+    "hard_rules": {
+        "keep_title": "bool",
+        "keep_cover": "bool",
+        "publish_time": "string",
+    },
+    "goals": {
+        "follow_growth": "bool",
+        "commerce_conversion": "bool",
+        "interaction_rate": "bool",
+        "exposure": "bool",
+    },
+}
+_INTENT_CONTRACT_SCHEMA = {
+    "content_intent": "string",
+    "domain_intent_label": "string",
+    "merchant_visibility": "string",
+    "merchant_name": "string",
+    "fact_source_policy": "string",
+    "domain": "string",
+    "rules": {
+        "requires_fact_source": "bool",
+        "allow_hidden_merchant": "bool",
+        "do_not_penalize_missing_store_facts": "bool",
+        "needs_list_coverage": "bool",
+        "needs_review_evidence": "bool",
+    },
+}
+_FACT_SOURCE_DECISION_SCHEMA = {
+    "enabled": "bool",
+    "provider": "string",
+    "reason": "string",
+    "content_intent": "string",
+    "merchant_visibility": "string",
+    "merchant_name": "string",
+    "policy": "string",
+    "needs_user_supplement": "bool",
+    "supplement_fields": ("list", "string"),
+    "supplement_prompt": "string",
+}
+_FACT_FIELDS_SCHEMA = {
+    key: "string"
+    for key in (
+        "address",
+        "booking",
+        "business_area",
+        "category",
+        "deal",
+        "hours",
+        "must_order",
+        "phone",
+        "photos",
+        "price",
+        "rating",
+        "review_keywords",
+        "source_note",
+    )
+}
+_FACT_SOURCE_SCHEMA = {
+    "title": "string",
+    "url": "string",
+    "domain": "string",
+    "source": "string",
+    "snippet": "string",
+}
+_FACT_ENRICHMENT_SCHEMA = {
+    "enabled": "bool",
+    "provider": "string",
+    "raw_title": "string",
+    "query": "string",
+    "facts": _FACT_FIELDS_SCHEMA,
+    "sources": ("list", _FACT_SOURCE_SCHEMA),
+    "confidence": "number",
+    "cached": "bool",
+    "skipped": "bool",
+    "skip_reason": "string",
+    "error": "string",
+    "error_code": "string",
+    "decision": _FACT_SOURCE_DECISION_SCHEMA,
+}
+_FEATURE_SCHEMA_SCHEMA = {
+    "schema_version": "string",
+    "model_family": "string",
+    "feature_count": "integer",
+    "contract_feature_count": "integer",
+    "base_feature_count": "integer",
+    "composite_feature_count": "integer",
+    "governed_feature_count": "integer",
+    "domain": "string",
+    "report_dimension_count": "integer",
+}
+_REPORT_DIMENSION_SCHEMA = {
+    "key": "string",
+    "label": "string",
+    "score": "nullable_number",
+    "summary": "string",
+    "status": "string",
+}
+_REPORT_FEATURE_POINT_SCHEMA = {
+    "feature": "string",
+    "label": "string",
+    "value": "number",
+}
+_REPORT_FEATURE_GROUP_SCHEMA = {
+    "key": "string",
+    "label": "string",
+    "count": "integer",
+    "active_count": "integer",
+    "score": "nullable_number",
+    "status": "string",
+    "highlights": ("list", _REPORT_FEATURE_POINT_SCHEMA),
+    "misses": ("list", _REPORT_FEATURE_POINT_SCHEMA),
+}
+_REPORT_CONTRIBUTION_SCHEMA = {
+    "feature": "string",
+    "label": "string",
+    "group": "string",
+    "value": "number",
+    "target": "string",
+    "gap": "number",
+    "severity": "number",
+    "suggestion": "string",
+}
+_WEAKNESS_SCHEMA = {
+    "feature": "string",
+    "label": "string",
+    "value": "number",
+    "benchmark": "number",
+    "suggestion": "string",
+}
+_TITLE_META_SCHEMA = {
+    "length": "integer",
+    "target": "string",
+    "platform_max": "integer",
+    "was_compressed": "bool",
+    "needs_refine": "bool",
+    "status": "string",
+    "issues": ("list", "string"),
+    "raw_length": "nullable_integer",
+}
+_SUGGESTED_PLAN_SCHEMA = {
+    "title": "string",
+    "body": "string",
+    "title_meta": _TITLE_META_SCHEMA,
+    "title_length": "integer",
+    "title_target": "string",
+    "title_was_compressed": "bool",
+    "title_needs_refine": "bool",
+    "score": "nullable_number",
+    "quality_issues": ("list", "string"),
+    "quality_failed": "bool",
+    "score_lift_repaired": "bool",
+    "score_lift_reason": "string",
+}
+_KEYWORD_EVIDENCE_SCHEMA = {
+    "keyword": "string",
+    "search_vol": "integer",
+    "trend_dir": "integer",
+    "source": "string",
+    "category": "string",
+    "sample_count": "integer",
+    "quality_score": "integer",
+    "evidence_level": "string",
+    "quality_reason": "string",
+}
+_CLOUD_SYNC_SCHEMA = {
+    "enabled": "bool",
+    "imported": "integer",
+    "reason": "string",
+    "source": "string",
+    "source_endpoint": {
+        "scheme": "string",
+        "host": "string",
+    },
+    "error_code": "string",
+    "domains": ("list", "string"),
+}
+_PUBLIC_HEALTH_SOURCE_SCHEMA = {
+    "available": "bool",
+    "ok": "nullable_bool",
+    "status": "string",
+    "evidence_count": "integer",
+    "source_breakdown": ("map", "integer"),
+    "missing_sources": ("list", "string"),
+    "error_code": "string",
+}
+_PUBLIC_HEALTH_DETAILS_SCHEMA = {
+    "access_status": "string",
+    "latest_run_evidence_count": "integer",
+    "session_configured": "bool",
+    "latest_run_source_breakdown": ("map", "integer"),
+    "latest_run_source_health": _PUBLIC_HEALTH_SOURCE_SCHEMA,
+}
+_PUBLIC_HEALTH_ROW_SCHEMA = {
+    "id": "nullable_string",
+    "run_id": "nullable_string",
+    "adapter": "nullable_string",
+    "domain": "nullable_string",
+    "profile_cookie_valid": "nullable_bool",
+    "note_page_access_valid": "nullable_bool",
+    "shortlink_canonicalized": "nullable_bool",
+    "selector_valid": "nullable_bool",
+    "risk_login_detected": "nullable_bool",
+    "evidence_count": "nullable_integer",
+    "status": "nullable_string",
+    "checked_at": "nullable_string",
+    "error_code": "string",
+    "error_summary": "string",
+    "details": _PUBLIC_HEALTH_DETAILS_SCHEMA,
+    "access_status": "string",
+}
+_XHS_PIPELINE_SCHEMA = {
+    "ok": "bool",
+    "required": "bool",
+    "missing_domains": ("list", "string"),
+    "recent_health_count": "integer",
+    "latest_health": _PUBLIC_HEALTH_ROW_SCHEMA,
+    "reason": "string",
+}
+_PIPELINE_STATUS_SCHEMA = {
+    "state": "string",
+    "state_label": "string",
+    "reason": "string",
+    "worker_hint": "string",
+    "xhs": _XHS_PIPELINE_SCHEMA,
+}
+_MARKET_TIMING_SCHEMA = {
+    "timing_coefficient": "number",
+    "matched_keywords": ("list", "string"),
+    "suggested_keywords": ("list", "string"),
+    "matched_keyword_evidence": ("list", _KEYWORD_EVIDENCE_SCHEMA),
+    "suggested_keyword_evidence": ("list", _KEYWORD_EVIDENCE_SCHEMA),
+    "keyword_search_vol": "number",
+    "trend_momentum": "number",
+    "is_trending_topic": "number",
+    "content_freshness": "number",
+    "category_saturation": "number",
+    "category_avg_ces": "number",
+    "keyword_competition": "number",
+    "trend_peak_distance": "number",
+    "keyword_count": "integer",
+    "latest_capture": "nullable_string",
+    "source_breakdown": ("map", "integer"),
+    "freshness_hours": "nullable_number",
+    "data_source_label": "string",
+    "data_stale": "bool",
+    "evidence_required": "bool",
+    "evidence_unavailable": "bool",
+    "freshness_policy": "string",
+    "domain_latest_capture": "nullable_string",
+    "domain_keyword_count": "integer",
+    "domain_qualified_keyword_count": "integer",
+    "domain_strong_keyword_count": "integer",
+    "market_timing_min_domain_keywords": "integer",
+    "evidence_quality_note": "string",
+    "cloud_sync": _CLOUD_SYNC_SCHEMA,
+    "pipeline_status": _PIPELINE_STATUS_SCHEMA,
+    "confidence_note": "string",
+    "timing_note": "string",
+    "timing_action": "string",
+}
+_INPUT_DIAGNOSTICS_SCHEMA = {
+    "input_mode": "string",
+    "ocr_char_count": "nullable_integer",
+    "original_desc_len": "integer",
+    "scored_desc_len": "integer",
+    "feature_body_len": "number",
+    "feature_body_main_len": "number",
+    "extra_image_context_len": "integer",
+    "fact_context_len": "integer",
+    "agent_context_len": "integer",
+    "content_intent": "nullable_string",
+    "merchant_visibility": "nullable_string",
+    "merchant_name": "nullable_string",
+    "fact_source_policy": "nullable_string",
+    "video_duration_sec": "nullable_number",
+    "video_frames_extracted": "nullable_integer",
+    "video_frames_to_ai": "nullable_integer",
+    "video_analysis_chars": "integer",
+}
+_PERSISTED_DIAGNOSIS_SCHEMAS = {
+    "ai_diagnosis": "string",
+    "ces_percentile": "number",
+    "composite_score": "number",
+    "constraint_contract": _CONSTRAINT_CONTRACT_SCHEMA,
+    "content_intent": "string",
+    "diagnosis_id": "nullable_string",
+    "dimension_scores": ("list", _REPORT_DIMENSION_SCHEMA),
+    "dispute": "string",
+    "expert_opinions": "expert_opinions",
+    "fact_enrichment": ("nullable", _FACT_ENRICHMENT_SCHEMA),
+    "fact_source_decision": _FACT_SOURCE_DECISION_SCHEMA,
+    "feature_groups": ("list", _REPORT_FEATURE_GROUP_SCHEMA),
+    "feature_schema": _FEATURE_SCHEMA_SCHEMA,
+    "features": "feature_map",
+    "grade": "string",
+    "improvement_plan": "string",
+    "input_diagnostics": _INPUT_DIAGNOSTICS_SCHEMA,
+    "intent_contract": _INTENT_CONTRACT_SCHEMA,
+    "market_timing": ("nullable", _MARKET_TIMING_SCHEMA),
+    "model_used": "string",
+    "saved_note_id": "nullable_string",
+    "suggested_body": "string",
+    "suggested_plans": ("list", _SUGGESTED_PLAN_SCHEMA),
+    "suggested_title_scores": ("list", "nullable_number"),
+    "suggested_titles": ("list", "string"),
+    "supplement_prompts": "supplement_prompts",
+    "top_feature_contributions": ("list", _REPORT_CONTRIBUTION_SCHEMA),
+    "user_constraints": ("list", "string"),
+    "visual_score": "nullable_number",
+    "weaknesses": ("list", _WEAKNESS_SCHEMA),
+}
+_PERSISTED_DIAGNOSIS_FILTER_ONLY_INPUT_KEYS = (
+    _PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS
+    | _LEGACY_GENERIC_PUBLIC_KEYS
+)
+
+
+def _persisted_feature_names() -> frozenset[str]:
+    values: set[str] = set()
+    for name in (
+        "FEATURE_COLS",
+        "SEMANTIC_FEATURE_COLS",
+        "VISUAL_FEATURE_COLS",
+        "TIMING_FEATURE_COLS",
+        "COMPOSITE_FEATURE_COLS",
+    ):
+        current = globals().get(name) or ()
+        values.update(str(item) for item in current)
+    return frozenset(values)
+
+
+_PUBLIC_DYNAMIC_MAP_KEY_MAX_LENGTH = 48
+_PUBLIC_DYNAMIC_MAP_KEY_PUNCTUATION = frozenset({"_", "-", ".", "/", ":", " "})
+
+
+def _is_bounded_public_map_key(value: Any) -> bool:
+    """Accept only canonical, bounded labels for typed public scalar maps."""
+    if (
+        not isinstance(value, str)
+        or not value
+        or value != value.strip()
+        or len(value) > _PUBLIC_DYNAMIC_MAP_KEY_MAX_LENGTH
+        or unicodedata.normalize("NFKC", value) != value
+    ):
+        return False
+    if any(unicodedata.category(char).startswith("C") for char in value):
+        return False
+    return bool(
+        any(char.isalnum() for char in value)
+        and all(
+            char.isalnum() or char in _PUBLIC_DYNAMIC_MAP_KEY_PUNCTUATION
+            for char in value
+        )
+    )
+
+
+def _sanitize_public_schema_value(value: Any, schema: Any) -> Any:
+    """Project one value through an explicit recursive public-data schema."""
+    if schema == "string":
+        return value if isinstance(value, str) else _PUBLIC_SCHEMA_MISSING
+    if schema == "nullable_string":
+        return value if value is None or isinstance(value, str) else _PUBLIC_SCHEMA_MISSING
+    if schema == "bool":
+        return value if isinstance(value, bool) else _PUBLIC_SCHEMA_MISSING
+    if schema == "nullable_bool":
+        return value if value is None or isinstance(value, bool) else _PUBLIC_SCHEMA_MISSING
+    if schema == "integer":
+        return (
+            value
+            if isinstance(value, int) and not isinstance(value, bool)
+            else _PUBLIC_SCHEMA_MISSING
+        )
+    if schema == "nullable_integer":
+        return (
+            value
+            if value is None
+            or (isinstance(value, int) and not isinstance(value, bool))
+            else _PUBLIC_SCHEMA_MISSING
+        )
+    if schema == "number":
+        return (
+            value
+            if isinstance(value, (int, float)) and not isinstance(value, bool)
+            else _PUBLIC_SCHEMA_MISSING
+        )
+    if schema == "nullable_number":
+        return (
+            value
+            if value is None
+            or (isinstance(value, (int, float)) and not isinstance(value, bool))
+            else _PUBLIC_SCHEMA_MISSING
+        )
+    if schema == "expert_opinions":
+        return _public_expert_opinions(value) if isinstance(value, list) else _PUBLIC_SCHEMA_MISSING
+    if schema == "supplement_prompts":
+        return _sanitize_supplement_prompts(value) if isinstance(value, (list, tuple)) else _PUBLIC_SCHEMA_MISSING
+    if schema == "feature_map":
+        known = _persisted_feature_names()
+        if (
+            not isinstance(value, dict)
+            or _has_undeclared_raw_key(
+                value,
+                declared_keys=known,
+                filter_only_keys=_PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS,
+            )
+            or _is_internal_role_record(value)
+        ):
+            return _PUBLIC_SCHEMA_MISSING
+        return {
+            key: item
+            for key, item in value.items()
+            if isinstance(key, str)
+            and key in known
+            and isinstance(item, (int, float))
+            and not isinstance(item, bool)
+        }
+    if isinstance(schema, tuple):
+        kind = schema[0] if schema else ""
+        if kind == "nullable":
+            if value is None:
+                return None
+            return _sanitize_public_schema_value(value, schema[1])
+        if kind == "list":
+            if not isinstance(value, (list, tuple)):
+                return _PUBLIC_SCHEMA_MISSING
+            safe_items: list[Any] = []
+            for item in value:
+                sanitized = _sanitize_public_schema_value(item, schema[1])
+                if sanitized is not _PUBLIC_SCHEMA_MISSING:
+                    safe_items.append(sanitized)
+            return safe_items
+        if kind == "map":
+            if not isinstance(value, dict):
+                return _PUBLIC_SCHEMA_MISSING
+            safe_map: dict[str, Any] = {}
+            for key, item in value.items():
+                if not _is_bounded_public_map_key(key):
+                    continue
+                sanitized = _sanitize_public_schema_value(item, schema[1])
+                if sanitized is not _PUBLIC_SCHEMA_MISSING:
+                    safe_map[key] = sanitized
+            return safe_map
+    if isinstance(schema, dict):
+        if (
+            not isinstance(value, dict)
+            or _has_undeclared_raw_key(
+                value,
+                declared_keys=frozenset(schema),
+                filter_only_keys=_PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS,
+            )
+            or _is_internal_role_record(value)
+        ):
+            return _PUBLIC_SCHEMA_MISSING
+        safe: dict[str, Any] = {}
+        for key, child_schema in schema.items():
+            if key not in value:
+                continue
+            sanitized = _sanitize_public_schema_value(value[key], child_schema)
+            if sanitized is not _PUBLIC_SCHEMA_MISSING:
+                safe[key] = sanitized
+        return safe
+    return _PUBLIC_SCHEMA_MISSING
+
+
+def _sanitize_persisted_diagnosis(value: Any) -> dict[str, Any]:
+    """Apply recursive public path/type schemas before storage or export."""
+    if (
+        not isinstance(value, dict)
+        or _has_undeclared_raw_key(
+            value,
+            declared_keys=frozenset(_PERSISTED_DIAGNOSIS_SCHEMAS),
+            filter_only_keys=_PERSISTED_DIAGNOSIS_FILTER_ONLY_INPUT_KEYS,
+        )
+        or _has_unapproved_discriminator_key(value)
+    ):
+        return {}
+    safe: dict[str, Any] = {}
+    for key, schema in _PERSISTED_DIAGNOSIS_SCHEMAS.items():
+        if key not in value:
+            continue
+        sanitized = _sanitize_public_schema_value(value[key], schema)
+        if sanitized is not _PUBLIC_SCHEMA_MISSING:
+            safe[key] = sanitized
+    return safe
 
 
 def _annotate_market_timing(timing: dict | None) -> dict | None:
@@ -1907,12 +3119,17 @@ def _compute_market_timing_for_delivery(title: str, desc: str, domain: str) -> d
         except HTTPException:
             raise
         except Exception as exc:
+            _log_internal_failure(
+                "provider",
+                exc,
+                phase="market_timing",
+            )
             if _market_timing_required():
                 raise HTTPException(
                     status_code=503,
                     detail={
                         "code": "MARKET_TIMING_PIPELINE_ERROR",
-                        "message": f"市场时机证据管道执行失败：{exc}",
+                        "message": "市场时机证据管道执行失败",
                         "domain": domain or "",
                     },
                 )
@@ -2446,9 +3663,18 @@ async def _run_five_agents(
             try:
                 result = task.result()
             except Exception as exc:
+                _log_internal_failure(
+                    "provider",
+                    exc,
+                    phase="diagnosis_agent",
+                    attempt=agent_idx,
+                )
                 result = {
                     "role": fallback_role,
-                    "raw": f"<opinion>{fallback_role}执行失败：{exc}</opinion><confidence>0</confidence>",
+                    "raw": (
+                        f"<opinion>{fallback_role}暂时不可用</opinion>"
+                        "<confidence>0</confidence>"
+                    ),
                 }
             if isinstance(result, dict):
                 opinions.append(result)
@@ -3608,7 +4834,7 @@ async def _generate_quality_challenger_candidate(
     try:
         raw = await _mr.call("content_gen", system, user, thinking=False, max_tokens=2600)
     except Exception as exc:
-        print(f"[gen] selector challenger failed: {exc}", file=sys.stderr, flush=True)
+        _log_internal_failure("generate", exc, phase="selector_challenger")
         return None
     title = _xtag(raw, "title")
     body = _xtag(raw, "body")
@@ -4087,7 +5313,7 @@ async def _run_generation_agents(
                 arb["body"] = body
                 print(f"[gen] P3.5-trim done body_len={len(body)}", file=sys.stderr, flush=True)
         except Exception as e:
-            print(f"[gen] P3.5-trim failed: {e}", file=sys.stderr, flush=True)
+            _log_internal_failure("generate", e, phase="trim")
 
     # Phase 3.5b: sentence burstiness enforcement for 健身 domain
     # 健身 content structurally produces uniform sentences (one per action); always inject short exclamations
@@ -4112,7 +5338,7 @@ async def _run_generation_agents(
                 arb["body"] = body
                 print(f"[gen] P3.5b-burst done body_len={len(body)}", file=sys.stderr, flush=True)
         except Exception as e:
-            print(f"[gen] P3.5b-burst failed: {e}", file=sys.stderr, flush=True)
+            _log_internal_failure("generate", e, phase="burst")
 
     _remember_generation_candidate(
         "arbitrate_initial",
@@ -4167,7 +5393,7 @@ async def _run_generation_agents(
                     flush=True,
                 )
         except Exception as exc:
-            print(f"[gen] selector early failed: {exc}", file=sys.stderr, flush=True)
+            _log_internal_failure("generate", exc, phase="selector_early")
 
     # Phase 4: score-verify-refine loop（最多 2 轮，目标分位 ≥ 72）
     # Round 0: score initial content → if <72 and fixable, arbitrate once more
@@ -4349,7 +5575,7 @@ async def _run_generation_agents(
                     flush=True,
                 )
         except Exception as exc:
-            print(f"[gen] selector final failed: {exc}", file=sys.stderr, flush=True)
+            _log_internal_failure("generate", exc, phase="selector_final")
 
     feature_hits = {
         **_feature_hits_for_generation(title, features, percentile, domain, body=body),
@@ -4429,7 +5655,7 @@ def _ensure_model_artifacts_once() -> None:
         required = os.environ.get("NOTEAI_MODEL_ARTIFACT_REQUIRED", "").lower() in {"1", "true", "yes", "on"}
         if required:
             raise
-        print(f"[model-artifacts] verify/download skipped: {exc}", file=sys.stderr, flush=True)
+        _log_internal_failure("model_artifacts", exc, phase="startup")
     _model_artifacts_ensured = True
 
 
@@ -8977,6 +10203,7 @@ async def _maybe_enrich_facts(
         result["decision"] = decision
         return result
     except Exception as exc:
+        _log_internal_failure("provider", exc, phase="fact_enrichment")
         return {
             "enabled": False,
             "provider": decision.get("provider") or "error",
@@ -8985,7 +10212,7 @@ async def _maybe_enrich_facts(
             "sources": [],
             "confidence": 0.0,
             "decision": decision,
-            "error": str(exc)[:160],
+            "error_code": _redaction.stable_error_code(exc),
         }
 
 
@@ -10540,7 +11767,7 @@ async def _score_directed_second_pass(
             f"二修未采纳：候选{cand_score:.1f}，原稿{score:.1f}，未形成稳定提升"
         )
     except Exception as exc:
-        print(f"[score-lift] second pass failed: {exc}", file=sys.stderr, flush=True)
+        _log_internal_failure("score_lift", exc, phase="second_pass")
         if locals().get("det_repaired"):
             return title, body, score, features, grade or _grade(score), issues, True, det_reason
         return title, body, score, features, grade or _grade(score), issues, False, "二修异常，保留原稿"
@@ -11428,35 +12655,321 @@ async def market_timing_freshness(user: dict = Depends(_auth.get_current_user)):
     }
 
 
+@app.get("/legal/contracts")
+async def legal_contracts():
+    """Versioned product disclosures; professional legal sign-off is separate."""
+    return {
+        "version": "first-launch-2026-07-25",
+        "status": "product_contract_implemented_legal_review_pending",
+        "privacy": {
+            "purposes": [
+                "account_security",
+                "ai_content_diagnosis_and_generation",
+                "archive_and_user_requested_export",
+                "billing_and_security_audit",
+            ],
+            "data_minimization": True,
+            "raw_supplier_responses_archived": False,
+            "ordinary_logs_in_account_export": False,
+        },
+        "retention": {
+            "free_active_hours": 168,
+            "free_recovery_hours": 168,
+            "rolling_backup_clear_within_days": 30,
+            "paid_created_archives": "no_product_expiry_while_account_exists",
+            "downgrade_deletes_paid_archives": False,
+            "primary_account_deletion_within_hours": 24,
+        },
+        "cross_border": {
+            "possible_route": "Alibaba_China_to_Claude_Gateway_Singapore",
+            "policy": "minimum_necessary_text_only",
+            "image_default": "process_in_China_and_send_minimum_necessary_text",
+            "professional_confirmation_required": True,
+        },
+        "refund": {
+            "real_payment_gateway_enabled": False,
+            "pre_launch_rule": "no_real_payment_collected",
+            "future_rule": "original_channel_refund_and_ledger_reconciliation",
+        },
+        "contact_verification": {
+            "phone_required_before_first_bind_register_otp_login_or_reset": True,
+            "verified_email_recovery_fallback": True,
+            "test_adapter_prohibited_in_production": True,
+        },
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # AUTH 端点
 # ═══════════════════════════════════════════════════════════════════════
 
 class RegisterInput(BaseModel):
-    username: str
-    password: str
-    email:    str = ""
-    phone:    str = ""   # 可选手机号，+86 格式或11位
+    username: str = Field(min_length=3, max_length=40)
+    password: str = Field(min_length=1, max_length=128)
+    email: str = Field(default="", max_length=254)
+    phone: str = Field(default="", max_length=20)
+    phone_challenge_id: str = Field(default="", max_length=64)
+    phone_code: str = Field(default="", max_length=12)
+    email_challenge_id: str = Field(default="", max_length=64)
+    email_code: str = Field(default="", max_length=12)
+    contract_version: str = Field(default="", max_length=64)
+    privacy_accepted: bool = False
+    cross_border_notice_acknowledged: bool = False
 
 class LoginInput(BaseModel):
-    username: str        # 支持用户名或手机号
-    password: str
+    username: str = Field(min_length=1, max_length=254)
+    password: str = Field(min_length=1, max_length=128)
+
+
+def _auth_request_fingerprint(request: Request) -> str:
+    client = request.client.host if request.client else ""
+    user_agent = request.headers.get("user-agent", "")[:200]
+    return f"{client}|{user_agent}"
+
 
 @app.post("/auth/register")
-async def auth_register(req: RegisterInput):
+async def auth_register(req: RegisterInput, request: Request):
     try:
-        user   = _auth.create_user(req.username, req.password, req.email, req.phone)
-        result = _auth.login_user(req.username, req.password)
+        if (
+            req.contract_version != _retention.CONTRACT_VERSION
+            or not req.privacy_accepted
+            or not req.cross_border_notice_acknowledged
+        ):
+            raise ValueError("注册前必须确认当前版本的服务、隐私及跨境处理说明")
+        verification_error = None
+        result = None
+        with _db.transaction(write=True) as tx:
+            try:
+                verified_challenges: list[str] = []
+                phone_verified = False
+                email_verified = False
+                if req.phone:
+                    _phone, challenge = (
+                        _account_security.verify_verification_with_storage(
+                            tx,
+                            challenge_id=req.phone_challenge_id,
+                            code=req.phone_code,
+                            channel="phone",
+                            destination=req.phone,
+                            purpose="register_phone",
+                        )
+                    )
+                    verified_challenges.append(challenge["id"])
+                    phone_verified = True
+                if req.email:
+                    _email, challenge = (
+                        _account_security.verify_verification_with_storage(
+                            tx,
+                            challenge_id=req.email_challenge_id,
+                            code=req.email_code,
+                            channel="email",
+                            destination=req.email,
+                            purpose="verify_email",
+                        )
+                    )
+                    verified_challenges.append(challenge["id"])
+                    email_verified = True
+                for challenge_id in verified_challenges:
+                    _account_security.mark_verification_consumed_with_storage(
+                        tx,
+                        challenge_id,
+                    )
+                created = _auth.create_user_with_storage(
+                    tx,
+                    req.username,
+                    req.password,
+                    req.email,
+                    req.phone,
+                    phone_verified=phone_verified,
+                    email_verified=email_verified,
+                    contract_version=req.contract_version,
+                    privacy_accepted=req.privacy_accepted,
+                    cross_border_notice_acknowledged=(
+                        req.cross_border_notice_acknowledged
+                    ),
+                )
+                result = _auth.login_user_by_id_with_storage(
+                    tx,
+                    created["id"],
+                    user_agent=request.headers.get("user-agent", "")[:200],
+                )
+            except _account_security.VerificationRejected as exc:
+                verification_error = exc
+        if verification_error is not None:
+            raise verification_error
+        if result is None:
+            raise ValueError("注册失败")
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/auth/login")
-async def auth_login(req: LoginInput):
+async def auth_login(req: LoginInput, request: Request):
     try:
-        return _auth.login_user(req.username, req.password)
+        return _auth.login_user(
+            req.username,
+            req.password,
+            user_agent=request.headers.get("user-agent", "")[:200],
+            requester_fingerprint=_auth_request_fingerprint(request),
+        )
+    except _account_security.LoginTemporarilyBlocked as e:
+        raise HTTPException(status_code=429, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
+
+
+class VerificationRequestInput(BaseModel):
+    channel: str = Field(min_length=1, max_length=16)
+    destination: str = Field(min_length=1, max_length=254)
+    purpose: str = Field(min_length=1, max_length=32)
+
+
+@app.post("/auth/verification/request", status_code=202)
+async def auth_verification_request(
+    req: VerificationRequestInput,
+    request: Request,
+    user: Optional[dict] = Depends(_auth.get_optional_user),
+):
+    purpose = req.purpose.strip().lower()
+    user_required = purpose == "bind_phone"
+    if user_required and not user:
+        raise HTTPException(status_code=401, detail="该验证用途需要登录")
+    requested_by_user_id = (
+        user["id"]
+        if user and purpose in {"bind_phone", "verify_email"}
+        else None
+    )
+    try:
+        issued = _account_security.issue_verification(
+            channel=req.channel,
+            destination=req.destination,
+            purpose=purpose,
+            requested_by_user_id=requested_by_user_id,
+            requester_fingerprint=_auth_request_fingerprint(request),
+        )
+    except _account_security.VerificationDeliveryUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except _account_security.VerificationRejected as exc:
+        raise HTTPException(status_code=429, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {
+        "accepted": True,
+        "challenge_id": issued["challenge_id"],
+        "destination_masked": issued["destination_masked"],
+        "expires_in_seconds": issued["expires_in_seconds"],
+        "delivery": issued["delivery"],
+    }
+
+
+class OTPLoginInput(BaseModel):
+    phone: str = Field(min_length=1, max_length=20)
+    challenge_id: str = Field(min_length=1, max_length=64)
+    code: str = Field(min_length=1, max_length=12)
+
+
+@app.post("/auth/login/otp")
+async def auth_login_otp(req: OTPLoginInput, request: Request):
+    try:
+        verification_error = None
+        result = None
+        with _db.transaction(write=True) as tx:
+            try:
+                phone, challenge = (
+                    _account_security.verify_verification_with_storage(
+                        tx,
+                        challenge_id=req.challenge_id,
+                        code=req.code,
+                        channel="phone",
+                        destination=req.phone,
+                        purpose="login_phone",
+                    )
+                )
+                row = tx.fetchone(
+                    "SELECT id FROM users WHERE phone=? "
+                    "AND phone_verified_at IS NOT NULL",
+                    (phone,),
+                )
+                if not row:
+                    raise ValueError("验证码无效或账号不可用")
+                _account_security.mark_verification_consumed_with_storage(
+                    tx,
+                    challenge["id"],
+                )
+                result = _auth.login_user_by_id_with_storage(
+                    tx,
+                    row["id"],
+                    user_agent=request.headers.get("user-agent", "")[:200],
+                )
+            except _account_security.VerificationRejected as exc:
+                verification_error = exc
+        if verification_error is not None:
+            raise verification_error
+        if result is None:
+            raise ValueError("验证码无效或账号不可用")
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+
+
+class PasswordResetInput(BaseModel):
+    channel: str = Field(min_length=1, max_length=16)
+    destination: str = Field(min_length=1, max_length=254)
+    challenge_id: str = Field(min_length=1, max_length=64)
+    code: str = Field(min_length=1, max_length=12)
+    new_password: str = Field(min_length=1, max_length=128)
+
+
+@app.post("/auth/password-reset")
+async def auth_password_reset(req: PasswordResetInput):
+    try:
+        verification_error = None
+        completed = False
+        with _db.transaction(write=True) as tx:
+            try:
+                destination, challenge = (
+                    _account_security.verify_verification_with_storage(
+                        tx,
+                        challenge_id=req.challenge_id,
+                        code=req.code,
+                        channel=req.channel,
+                        destination=req.destination,
+                        purpose="password_reset",
+                    )
+                )
+                if req.channel.strip().lower() == "phone":
+                    row = tx.fetchone(
+                        "SELECT id FROM users WHERE phone=? "
+                        "AND phone_verified_at IS NOT NULL",
+                        (destination,),
+                    )
+                else:
+                    row = tx.fetchone(
+                        "SELECT id FROM users WHERE email=? "
+                        "AND email_verified_at IS NOT NULL",
+                        (destination,),
+                    )
+                if not row:
+                    raise ValueError("验证码无效或账号不可用")
+                _account_security.mark_verification_consumed_with_storage(
+                    tx,
+                    challenge["id"],
+                )
+                _auth.reset_password_for_user_with_storage(
+                    tx,
+                    row["id"],
+                    req.new_password,
+                )
+                completed = True
+            except _account_security.VerificationRejected as exc:
+                verification_error = exc
+        if verification_error is not None:
+            raise verification_error
+        if not completed:
+            raise ValueError("验证码无效或账号不可用")
+        return {"ok": True, "message": "密码已重置，请重新登录"}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 @app.post("/auth/logout")
 async def auth_logout(
@@ -11469,6 +12982,11 @@ async def auth_logout(
 
 @app.get("/auth/me")
 async def auth_me(user: dict = Depends(_auth.get_current_user)):
+    acceptance = _db.fetchone(
+        "SELECT contract_version FROM user_contract_acceptances "
+        "WHERE user_id=? AND contract_version=?",
+        (user["id"], _retention.CONTRACT_VERSION),
+    )
     return {
         "id":           user["id"],
         "username":     user["username"],
@@ -11476,9 +12994,59 @@ async def auth_me(user: dict = Depends(_auth.get_current_user)):
         "email":        user["email"] or "",
         "phone":        user.get("phone") or "",
         "phone_masked": _mask_phone(user.get("phone") or ""),
+        "phone_verified": bool(user.get("phone_verified_at")),
+        "email_verified": bool(user.get("email_verified_at")),
         "avatar_emoji": user["avatar_emoji"],
         "avatar_data":  user.get("avatar_data"),
         "created_at":   user["created_at"],
+        "contract_version": _retention.CONTRACT_VERSION,
+        "contract_accepted": bool(acceptance),
+    }
+
+
+class ContractAcceptanceInput(BaseModel):
+    contract_version: str = Field(min_length=1, max_length=64)
+    privacy_accepted: bool
+    cross_border_notice_acknowledged: bool
+
+
+@app.post("/auth/contracts/accept")
+async def auth_accept_contract(
+    req: ContractAcceptanceInput,
+    user: dict = Depends(_auth.get_current_user),
+):
+    if (
+        req.contract_version != _retention.CONTRACT_VERSION
+        or not req.privacy_accepted
+        or not req.cross_border_notice_acknowledged
+    ):
+        raise HTTPException(status_code=400, detail="必须确认当前版本的隐私与跨境处理说明")
+    now = _now_iso()
+    with _db.transaction(write=True) as tx:
+        locked = tx.fetchone(
+            "SELECT deletion_requested_at FROM users WHERE id=?"
+            + (" FOR UPDATE" if _db.using_postgres() else ""),
+            (user["id"],),
+        )
+        if not locked or locked["deletion_requested_at"]:
+            raise HTTPException(status_code=401, detail="用户不存在")
+        tx.execute(
+            "INSERT INTO user_contract_acceptances("
+            "user_id,contract_version,privacy_accepted_at,"
+            "cross_border_notice_acknowledged_at,source"
+            ") VALUES(?,?,?,?,?) ON CONFLICT(user_id,contract_version) DO NOTHING",
+            (
+                user["id"],
+                req.contract_version,
+                now,
+                now,
+                "account_settings",
+            ),
+        )
+    return {
+        "ok": True,
+        "contract_version": req.contract_version,
+        "accepted": True,
     }
 
 def _mask_phone(phone: str) -> str:
@@ -11491,51 +13059,117 @@ def _mask_phone(phone: str) -> str:
 @app.put("/auth/avatar")
 async def auth_avatar(body: dict, user: dict = Depends(_auth.get_current_user)):
     emoji = body.get("emoji", "🌸")
-    _db.execute("UPDATE users SET avatar_emoji=? WHERE id=?", (emoji, user["id"]))
+    with _db.transaction(write=True) as tx:
+        _retention.assert_user_writable_with_storage(tx, user["id"])
+        tx.execute(
+            "UPDATE users SET avatar_emoji=? WHERE id=?",
+            (emoji, user["id"]),
+        )
     return {"ok": True, "avatar_emoji": emoji}
 
 class ProfileUpdateInput(BaseModel):
-    nickname:     Optional[str] = None
-    avatar_emoji: Optional[str] = None
-    avatar_data:  Optional[str] = None   # base64 data URL（前端 Canvas 压缩后）
-    phone:        Optional[str] = None   # 绑定/修改手机号
+    nickname: Optional[str] = Field(default=None, max_length=40)
+    avatar_emoji: Optional[str] = Field(default=None, max_length=32)
+    avatar_data: Optional[str] = Field(default=None, max_length=200_000)
+    phone: Optional[str] = Field(default=None, max_length=20)
+    phone_challenge_id: str = Field(default="", max_length=64)
+    phone_code: str = Field(default="", max_length=12)
+    email: Optional[str] = Field(default=None, max_length=254)
+    email_challenge_id: str = Field(default="", max_length=64)
+    email_code: str = Field(default="", max_length=12)
 
 @app.put("/auth/profile")
 @app.patch("/auth/profile")
 async def auth_profile(req: ProfileUpdateInput, user: dict = Depends(_auth.get_current_user)):
     """同时更新昵称/emoji头像/图片头像（字段均可选）。"""
-    if req.nickname is not None:
-        nickname = req.nickname.strip()[:20]
-        if not nickname:
-            raise HTTPException(status_code=400, detail="昵称不能为空")
-        _db.execute("UPDATE users SET nickname=? WHERE id=?", (nickname, user["id"]))
-
-    if req.avatar_emoji is not None:
-        # 切换为 emoji 头像时，同时清除图片头像
-        _db.execute("UPDATE users SET avatar_emoji=?, avatar_data=NULL WHERE id=?",
-                    (req.avatar_emoji, user["id"]))
-
-    if req.avatar_data is not None:
-        if not req.avatar_data.startswith("data:image/"):
-            raise HTTPException(status_code=400, detail="avatar_data 必须是 data URL 格式")
-        if len(req.avatar_data) > 200_000:
-            raise HTTPException(status_code=400, detail="图片太大，请上传 200KB 以内的图片")
-        _db.execute("UPDATE users SET avatar_data=? WHERE id=?", (req.avatar_data, user["id"]))
-
-    if req.phone is not None:
-        try:
-            normalized = _auth._validate_phone(req.phone) if req.phone else None
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        if normalized:
-            existing = _db.fetchone("SELECT id FROM users WHERE phone=? AND id!=?",
-                                    (normalized, user["id"]))
-            if existing:
-                raise HTTPException(status_code=400, detail="该手机号已被其他账号绑定")
-        _db.execute("UPDATE users SET phone=? WHERE id=?", (normalized, user["id"]))
+    verification_error = None
+    try:
+        with _db.transaction(write=True) as tx:
+            _retention.assert_user_writable_with_storage(tx, user["id"])
+            verified: list[tuple[str, str]] = []
+            normalized = ""
+            normalized_email = ""
+            try:
+                if req.phone is not None:
+                    if not req.phone:
+                        raise ValueError("解绑或更换手机号必须通过独立高风险验证流程")
+                    normalized, challenge = (
+                        _account_security.verify_verification_with_storage(
+                            tx,
+                            challenge_id=req.phone_challenge_id,
+                            code=req.phone_code,
+                            channel="phone",
+                            destination=req.phone,
+                            purpose="bind_phone",
+                            requested_by_user_id=user["id"],
+                        )
+                    )
+                    verified.append((challenge["id"], "phone"))
+                if req.email is not None:
+                    if not req.email:
+                        raise ValueError("解绑或更换邮箱必须通过独立高风险验证流程")
+                    normalized_email, challenge = (
+                        _account_security.verify_verification_with_storage(
+                            tx,
+                            challenge_id=req.email_challenge_id,
+                            code=req.email_code,
+                            channel="email",
+                            destination=req.email,
+                            purpose="verify_email",
+                            requested_by_user_id=user["id"],
+                        )
+                    )
+                    verified.append((challenge["id"], "email"))
+            except _account_security.VerificationRejected as exc:
+                verification_error = exc
+            if verification_error is None:
+                for challenge_id, _channel in verified:
+                    _account_security.mark_verification_consumed_with_storage(
+                        tx,
+                        challenge_id,
+                    )
+                if req.nickname is not None:
+                    nickname = req.nickname.strip()[:20]
+                    if not nickname:
+                        raise ValueError("昵称不能为空")
+                    tx.execute(
+                        "UPDATE users SET nickname=? WHERE id=?",
+                        (nickname, user["id"]),
+                    )
+                if req.avatar_emoji is not None:
+                    tx.execute(
+                        "UPDATE users SET avatar_emoji=?,avatar_data=NULL WHERE id=?",
+                        (req.avatar_emoji, user["id"]),
+                    )
+                if req.avatar_data is not None:
+                    if not req.avatar_data.startswith("data:image/"):
+                        raise ValueError("avatar_data 必须是 data URL 格式")
+                    if len(req.avatar_data) > 200_000:
+                        raise ValueError("图片太大，请上传 200KB 以内的图片")
+                    tx.execute(
+                        "UPDATE users SET avatar_data=? WHERE id=?",
+                        (req.avatar_data, user["id"]),
+                    )
+                if req.phone is not None:
+                    _auth.set_verified_phone_with_storage(
+                        tx,
+                        user["id"],
+                        normalized,
+                    )
+                if req.email is not None:
+                    _auth.set_verified_email_with_storage(
+                        tx,
+                        user["id"],
+                        normalized_email,
+                    )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if verification_error is not None:
+        raise HTTPException(status_code=400, detail=str(verification_error))
 
     row = _db.fetchone(
-        "SELECT nickname, avatar_emoji, avatar_data, username, phone FROM users WHERE id=?",
+        "SELECT nickname,avatar_emoji,avatar_data,username,phone,email,"
+        "phone_verified_at,email_verified_at FROM users WHERE id=?",
         (user["id"],)
     )
     return {
@@ -11545,12 +13179,15 @@ async def auth_profile(req: ProfileUpdateInput, user: dict = Depends(_auth.get_c
         "avatar_data":  row["avatar_data"],
         "phone":        row["phone"] or "",
         "phone_masked": _mask_phone(row["phone"] or ""),
+        "phone_verified": bool(row["phone_verified_at"]),
+        "email": row["email"] or "",
+        "email_verified": bool(row["email_verified_at"]),
     }
 
 
 class ChangePasswordInput(BaseModel):
-    old_password: str
-    new_password: str
+    old_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=1, max_length=128)
 
 @app.post("/auth/change-password")
 async def auth_change_password(
@@ -11564,6 +13201,324 @@ async def auth_change_password(
     return {"ok": True, "message": "密码修改成功"}
 
 
+@app.post("/auth/sessions/revoke-all")
+async def auth_revoke_all_sessions(user: dict = Depends(_auth.get_current_user)):
+    _auth.delete_user_tokens(user["id"])
+    return {"ok": True, "message": "全部会话已撤销，请重新登录"}
+
+
+@app.get("/account/archive/recovery")
+async def account_archive_recovery(user: dict = Depends(_auth.get_current_user)):
+    items = _retention.recoverable_for_user(user["id"])
+    for item in items:
+        if item["content_type"] == "note":
+            row = _db.fetchone(
+                "SELECT title FROM notes WHERE id=? AND user_id=?",
+                (item["content_id"], user["id"]),
+            )
+            item["label"] = row["title"] if row else "已归档笔记"
+        else:
+            row = _db.fetchone(
+                "SELECT note_title FROM saved_diagnoses WHERE id=? AND user_id=?",
+                (item["content_id"], user["id"]),
+            )
+            item["label"] = row["note_title"] if row else "已归档诊断"
+    return {
+        "contract_version": _retention.CONTRACT_VERSION,
+        "items": items,
+    }
+
+
+class ArchiveRecoverInput(BaseModel):
+    content_type: str = Field(min_length=1, max_length=16)
+    content_id: str = Field(min_length=1, max_length=64)
+
+
+@app.post("/account/archive/recover")
+async def account_archive_recover(
+    req: ArchiveRecoverInput,
+    user: dict = Depends(_auth.get_current_user),
+):
+    table = "notes" if req.content_type == "note" else (
+        "saved_diagnoses" if req.content_type == "diagnosis" else ""
+    )
+    if not table:
+        raise HTTPException(status_code=400, detail="不支持的归档类型")
+    owned = _db.fetchone(
+        f"SELECT id FROM {table} WHERE id=? AND user_id=?",
+        (req.content_id, user["id"]),
+    )
+    if not owned:
+        raise HTTPException(status_code=404, detail="归档内容不存在")
+    try:
+        recovered = _retention.recover(
+            req.content_type,
+            req.content_id,
+            user["id"],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"ok": True, "retention": recovered}
+
+
+def _account_export_payload(
+    user: dict,
+    *,
+    storage: Any = _db,
+) -> dict[str, Any]:
+    """Export approved archive fields only; never raw media/provider/log data."""
+    import json as _jlib
+    notes: list[dict[str, Any]] = []
+    for row in storage.fetchall(
+        "SELECT id,title,body,domain,score,grade,source,parent_id,version,created_at "
+        "FROM notes WHERE user_id=? ORDER BY created_at ASC",
+        (user["id"],),
+    ):
+        retention = _retention.status(
+            "note",
+            row["id"],
+            user["id"],
+            storage,
+        )
+        if retention["state"] in {"active", "recovery"}:
+            notes.append({**dict(row), "retention": retention})
+    diagnoses: list[dict[str, Any]] = []
+    for row in storage.fetchall(
+        "SELECT id,note_title,domain,ces_percentile,composite_score,grade,"
+        "diagnosis_json,created_at FROM saved_diagnoses "
+        "WHERE user_id=? ORDER BY created_at ASC",
+        (user["id"],),
+    ):
+        retention = _retention.status(
+            "diagnosis",
+            row["id"],
+            user["id"],
+            storage,
+        )
+        if retention["state"] not in {"active", "recovery"}:
+            continue
+        try:
+            diagnosis = _sanitize_persisted_diagnosis(
+                _jlib.loads(row["diagnosis_json"])
+            )
+        except (TypeError, ValueError):
+            diagnosis = {}
+        item = dict(row)
+        item.pop("diagnosis_json", None)
+        diagnoses.append({**item, "diagnosis": diagnosis, "retention": retention})
+    chat_sessions: list[dict[str, Any]] = []
+    for row in storage.fetchall(
+        "SELECT id,note_id,domain,local_time,messages_json,user_prefs_json,"
+        "iteration_count,current_score,generate_ctx_json,created_at,updated_at "
+        "FROM chat_sessions WHERE user_id=? ORDER BY created_at ASC",
+        (user["id"],),
+    ):
+        item = dict(row)
+        for source_key, target_key, fallback in (
+            ("messages_json", "messages", []),
+            ("user_prefs_json", "user_preferences", {}),
+            ("generate_ctx_json", "generation_context", {}),
+        ):
+            raw = item.pop(source_key, None)
+            try:
+                parsed = _jlib.loads(raw or _jlib.dumps(fallback))
+            except (TypeError, ValueError):
+                parsed = fallback
+            item[target_key] = (
+                _sanitize_chat_messages(parsed)
+                if source_key == "messages_json"
+                else (
+                    _sanitize_chat_preferences(parsed)
+                    if source_key == "user_prefs_json"
+                    else _sanitize_chat_generate_context(parsed)
+                )
+            )
+        chat_sessions.append(item)
+    memories = [
+        dict(row)
+        for row in storage.fetchall(
+            "SELECT id,memory_type,content,importance,access_count,source_note_id,"
+            "created_at,updated_at "
+            "FROM user_memories WHERE user_id=? ORDER BY created_at ASC",
+            (user["id"],),
+        )
+    ]
+    learned_preferences = _sanitize_learned_preference_rows([
+        dict(row)
+        for row in storage.fetchall(
+            "SELECT pref_key,pref_value,confidence,update_count,updated_at "
+            "FROM user_learn WHERE user_id=? ORDER BY pref_key ASC",
+            (user["id"],),
+        )
+    ])
+    growth = [
+        dict(row)
+        for row in storage.fetchall(
+            "SELECT id,note_id,domain,score,grade,action,recorded_at "
+            "FROM growth_records WHERE user_id=? ORDER BY recorded_at ASC",
+            (user["id"],),
+        )
+    ]
+    tracking = [
+        dict(row)
+        for row in storage.fetchall(
+            "SELECT id,source_note_id,source_root_note_id,source_session_id,xhs_url,"
+            "xhs_note_id,note_title,domain,predicted_ces,published_at,submitted_at,"
+            "check_24h_at,likes_24h,saves_24h,comments_24h,check_7d_at,likes_7d,"
+            "saves_7d,comments_7d,views_est,next_check_at,last_checked_at,"
+            "attempt_count,max_attempts,manual_filled,actual_ces,confidence,"
+            "confidence_label,evidence_source,training_eligible,status,completed_at "
+            "FROM tracked_notes WHERE user_id=? ORDER BY submitted_at ASC",
+            (user["id"],),
+        )
+    ]
+    sessions = [
+        dict(row)
+        for row in storage.fetchall(
+            "SELECT created_at,expires_at,user_agent FROM user_sessions "
+            "WHERE user_id=? ORDER BY created_at ASC",
+            (user["id"],),
+        )
+    ]
+    subscriptions = [
+        dict(row)
+        for row in storage.fetchall(
+            "SELECT tier,started_at,expires_at,is_active,period_start,"
+            "used_monthly_credits FROM subscriptions WHERE user_id=? "
+            "ORDER BY started_at ASC",
+            (user["id"],),
+        )
+    ]
+    credit = storage.fetchone(
+        "SELECT balance,total_purchased,total_used,updated_at "
+        "FROM credits WHERE user_id=?",
+        (user["id"],),
+    )
+    operation_subject_hash = hashlib.sha256(
+        b"noteai:ai-operation:subject:v1\0" + user["id"].encode("utf-8")
+    ).hexdigest()
+    operations = [
+        dict(row)
+        for row in storage.fetchall(
+            "SELECT id,operation_kind,status,provider_phase,claim_count,"
+            "provider_attempt_count,result_count,created_at,updated_at,"
+            "started_at,terminal_at FROM ai_operations WHERE subject_hash=? "
+            "ORDER BY created_at ASC",
+            (operation_subject_hash,),
+        )
+    ]
+    acceptances = [
+        dict(row)
+        for row in storage.fetchall(
+            "SELECT contract_version,privacy_accepted_at,"
+            "cross_border_notice_acknowledged_at,source "
+            "FROM user_contract_acceptances WHERE user_id=? "
+            "ORDER BY privacy_accepted_at ASC",
+            (user["id"],),
+        )
+    ]
+    payload = {
+        "contract_version": _retention.CONTRACT_VERSION,
+        "exported_at": _now_iso(),
+        "account": {
+            "username": user["username"],
+            "nickname": user.get("nickname") or user["username"],
+            "email": user.get("email") or "",
+            "phone": user.get("phone") or "",
+            "email_verified": bool(user.get("email_verified_at")),
+            "phone_verified": bool(user.get("phone_verified_at")),
+            "avatar_emoji": user.get("avatar_emoji") or "",
+            "avatar_data": user.get("avatar_data"),
+            "created_at": user["created_at"],
+        },
+        "archives": {
+            "notes": notes,
+            "diagnoses": diagnoses,
+            "chat_sessions": chat_sessions,
+            "memories": memories,
+            "learned_preferences": learned_preferences,
+            "growth_records": growth,
+            "tracking": tracking,
+        },
+        "account_security": {
+            "sessions_without_tokens": sessions,
+            "contract_acceptances": acceptances,
+        },
+        "commercial_state": {
+            "subscriptions": subscriptions,
+            "credit_balance": dict(credit) if credit else None,
+        },
+        "operation_metadata": operations,
+        "excluded": [
+            "temporary_original_media",
+            "raw_supplier_responses",
+            "ordinary_service_logs",
+            "password_and_session_tokens",
+            "verification_and_rate_limit_hashes",
+            "detailed_financial_and_security_ledgers",
+        ],
+    }
+    return payload
+
+
+@app.get("/account/export")
+async def account_export(user: dict = Depends(_auth.get_current_user)):
+    return JSONResponse(
+        content=_account_export_payload(user),
+        headers={
+            "Content-Disposition": 'attachment; filename="noteai-account-export.json"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+class AccountDeletionInput(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
+    # Retained only for request compatibility. A deletion always returns the
+    # final export; callers may no longer opt out of the safety checkpoint.
+    include_final_export: bool = True
+
+
+@app.delete("/account")
+async def account_delete(
+    req: AccountDeletionInput,
+    user: dict = Depends(_auth.get_current_user),
+):
+    with _db.transaction(write=True) as tx:
+        try:
+            _retention.assert_account_deletion_ready_with_storage(tx, user["id"])
+        except ValueError:
+            raise HTTPException(
+                status_code=409,
+                detail="账号仍有正在处理的请求，请稍后重试",
+            )
+        locked = tx.fetchone("SELECT * FROM users WHERE id=?", (user["id"],))
+        if (
+            not locked
+            or locked["deletion_requested_at"]
+            or not _auth.verify_password(
+                req.password,
+                locked["password_salt"],
+                locked["password_hash"],
+            )
+        ):
+            raise HTTPException(status_code=400, detail="密码验证失败")
+        locked_user = dict(locked)
+        final_export = _account_export_payload(locked_user, storage=tx)
+        deletion = _retention.request_account_deletion_with_storage(
+            tx,
+            user["id"],
+        )
+    return JSONResponse(content={
+        "ok": True,
+        "primary_inaccessible_at": deletion["primary_inaccessible_at"],
+        "primary_delete_by": deletion["primary_delete_by"],
+        "backup_clear_by": deletion["backup_clear_by"],
+        "contract_version": deletion["contract_version"],
+        "final_export": final_export,
+    }, headers={"Cache-Control": "no-store"})
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # 笔记库端点
 # ═══════════════════════════════════════════════════════════════════════
@@ -11572,6 +13527,87 @@ import datetime as _dt
 
 def _now_iso() -> str:
     return _dt.datetime.now(_dt.timezone.utc).isoformat()
+
+
+@contextmanager
+def _api_write_transaction():
+    """Use the real transaction API while retaining narrow legacy test doubles."""
+    if hasattr(_db, "transaction"):
+        with _db.transaction(write=True) as tx:
+            yield tx
+    else:
+        yield _db
+
+
+def _assert_api_user_writable(storage: Any, user_id: str) -> None:
+    if hasattr(_db, "transaction"):
+        _retention.assert_user_writable_with_storage(storage, user_id)
+
+
+def _insert_growth_record_with_storage(
+    storage: Any,
+    *,
+    user_id: str,
+    note_id: str | None,
+    domain: str,
+    score: float,
+    grade: str,
+    action: str,
+    recorded_at: str | None = None,
+) -> None:
+    _assert_api_user_writable(storage, user_id)
+    storage.execute(
+        "INSERT INTO growth_records("
+        "id,user_id,note_id,domain,score,grade,action,recorded_at"
+        ") VALUES(?,?,?,?,?,?,?,?)",
+        (
+            str(_uuid.uuid4()),
+            user_id,
+            note_id,
+            domain,
+            score,
+            grade,
+            action,
+            recorded_at or _now_iso(),
+        ),
+    )
+
+
+def _insert_growth_record(**kwargs: Any) -> None:
+    with _api_write_transaction() as tx:
+        _insert_growth_record_with_storage(tx, **kwargs)
+
+
+def _insert_content_with_retention(
+    sql: str,
+    params: tuple,
+    content_type: str,
+    content_id: str,
+    user_id: str,
+    *,
+    created_at: str | None = None,
+) -> None:
+    # API contract tests replace ``_db`` with a narrow in-memory double. The
+    # real runtime always uses the shared db module and therefore must record
+    # retention metadata.
+    if _db is not _retention.db:
+        _db.execute(sql, params)
+        return
+    _retention.insert_content(
+        sql,
+        params,
+        content_type,
+        content_id,
+        user_id,
+        created_at=created_at,
+    )
+
+
+def _retention_visible(content_type: str, content_id: str, user_id: str) -> bool:
+    if _db is not _retention.db:
+        return True
+    return _retention.is_visible(content_type, content_id, user_id)
+
 
 class ScreenshotExtractInput(BaseModel):
     image_base64: str  # base64 编码的截图（不含 data:image 前缀）
@@ -11707,14 +13743,14 @@ async def extract_screenshot(
         )
         raise
     except Exception as e:
-        print(f"[extract_screenshot] failed user={user.get('id')} error={e}", file=sys.stderr, flush=True)
+        _log_internal_failure("provider", e, phase="extract_screenshot")
         _billing.refund_operation_charge(
             user["id"],
             "screenshot",
             billing_charge,
             "截图识别失败自动退回",
         )
-        raise HTTPException(status_code=500, detail=f"截图解析失败：{e}")
+        raise HTTPException(status_code=500, detail="截图解析服务暂时不可用")
 
 
 class ValidateOcrInput(BaseModel):
@@ -11792,7 +13828,7 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
                 "validated":  True,
             }
     except Exception as e:
-        print(f"[validate-ocr] error: {e}", file=__import__('sys').stderr)
+        _log_internal_failure("provider", e, phase="validate_ocr")
 
     # fallback: 简单取最长的
     best = max(results, key=lambda r: len(r.get("body") or ""))
@@ -11819,10 +13855,13 @@ class SaveNoteInput(BaseModel):
 def _fetch_user_note(note_id: str | None, user_id: str):
     if not note_id:
         return None
-    return _db.fetchone(
+    row = _db.fetchone(
         "SELECT id,title,body,domain,score,grade,version,parent_id FROM notes WHERE id=? AND user_id=?",
         (note_id, user_id),
     )
+    if row and _retention_visible("note", note_id, user_id):
+        return row
+    return None
 
 
 def _find_note_root_id(note_id: str | None, user_id: str) -> str | None:
@@ -11865,7 +13904,11 @@ def _build_note_version_group_for_root(root_note_id: str | None, user_id: str) -
         " FROM notes WHERE user_id=? ORDER BY created_at ASC",
         (user_id,),
     )
-    all_notes = {r["id"]: dict(r) for r in all_rows}
+    all_notes = {
+        r["id"]: dict(r)
+        for r in all_rows
+        if _retention_visible("note", r["id"], user_id)
+    }
     if root_note_id not in all_notes:
         return None
 
@@ -11900,17 +13943,26 @@ def _build_note_version_group_for_root(root_note_id: str | None, user_id: str) -
 async def save_note(req: SaveNoteInput, user: dict = Depends(_auth.get_current_user)):
     nid = str(_uuid.uuid4())
     version = _next_note_version(req.parent_id, user["id"], 1)
-    _db.execute(
+    created_at = _now_iso()
+    _insert_content_with_retention(
         "INSERT INTO notes(id,user_id,title,body,domain,score,grade,source,parent_id,version,created_at)"
         " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
         (nid, user["id"], req.title, req.body, req.domain,
-         req.score, req.grade, req.source, req.parent_id, version, _now_iso()),
+         req.score, req.grade, req.source, req.parent_id, version, created_at),
+        "note",
+        nid,
+        user["id"],
+        created_at=created_at,
     )
     # 写成长记录
     if req.score:
-        _db.execute(
-            "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
-            (str(_uuid.uuid4()), user["id"], nid, req.domain, req.score, req.grade, req.source, _now_iso()),
+        _insert_growth_record(
+            user_id=user["id"],
+            note_id=nid,
+            domain=req.domain,
+            score=req.score,
+            grade=req.grade,
+            action=req.source,
         )
         _memory.check_and_record_achievements(user["id"], req.score, req.source)
     return {"id": nid, "version": version}
@@ -11927,13 +13979,15 @@ async def list_diagnoses(
     """返回当前用户的诊断历史列表（不含完整 JSON）。"""
     rows = _db.fetchall(
         "SELECT id, note_title, domain, ces_percentile, composite_score, grade, created_at"
-        " FROM saved_diagnoses WHERE user_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-        (user["id"], limit, offset),
+        " FROM saved_diagnoses WHERE user_id=? ORDER BY created_at DESC",
+        (user["id"],),
     )
-    total = _db.fetchone(
-        "SELECT COUNT(*) as c FROM saved_diagnoses WHERE user_id=?", (user["id"],)
-    )["c"]
-    return {"diagnoses": [dict(r) for r in rows], "total": total}
+    visible = [
+        dict(r)
+        for r in rows
+        if _retention_visible("diagnosis", r["id"], user["id"])
+    ]
+    return {"diagnoses": visible[offset:offset + limit], "total": len(visible)}
 
 
 @app.get("/diagnoses/{diag_id}")
@@ -11945,9 +13999,9 @@ async def get_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_use
         " FROM saved_diagnoses WHERE id=? AND user_id=?",
         (diag_id, user["id"]),
     )
-    if not row:
+    if not row or not _retention_visible("diagnosis", diag_id, user["id"]):
         raise HTTPException(status_code=404, detail="诊断记录不存在")
-    data = _public_diagnosis_value(_jlib.loads(row["diagnosis_json"]))
+    data = _sanitize_persisted_diagnosis(_jlib.loads(row["diagnosis_json"]))
     data["diagnosis_id"] = diag_id
     data["note_title"]   = row["note_title"]
     data["_domain"]      = row["domain"]
@@ -11964,7 +14018,7 @@ async def delete_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_
     )
     if not row:
         raise HTTPException(status_code=404, detail="诊断记录不存在")
-    _db.execute("DELETE FROM saved_diagnoses WHERE id=?", (diag_id,))
+    _retention.mark_deleted("diagnosis", diag_id, user["id"])
     return {"ok": True}
 
 
@@ -11981,11 +14035,15 @@ async def list_notes(
     if not grouped:
         rows = _db.fetchall(
             "SELECT id,title,body,domain,score,grade,source,version,parent_id,created_at"
-            " FROM notes WHERE user_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-            (user["id"], limit, offset),
+            " FROM notes WHERE user_id=? ORDER BY created_at DESC",
+            (user["id"],),
         )
-        total = _db.fetchone("SELECT COUNT(*) as c FROM notes WHERE user_id=?", (user["id"],))["c"]
-        return {"notes": [dict(r) for r in rows], "total": total}
+        visible = [
+            dict(r)
+            for r in rows
+            if _retention_visible("note", r["id"], user["id"])
+        ]
+        return {"notes": visible[offset:offset + limit], "total": len(visible)}
 
     # ── Grouped mode ────────────────────────────────────────────
     # 1. 取所有笔记（id + parent_id + 核心字段）
@@ -11994,7 +14052,11 @@ async def list_notes(
         " FROM notes WHERE user_id=? ORDER BY created_at ASC",
         (user["id"],)
     )
-    all_notes = {r["id"]: dict(r) for r in all_rows}
+    all_notes = {
+        r["id"]: dict(r)
+        for r in all_rows
+        if _retention_visible("note", r["id"], user["id"])
+    }
 
     # 2. 找每条笔记的根节点
     def find_root(note_id: str) -> str:
@@ -12038,6 +14100,8 @@ async def list_notes(
 @app.get("/notes/{note_id}/versions")
 async def note_versions(note_id: str, user: dict = Depends(_auth.get_current_user)):
     """追溯笔记的所有历史版本（从当前版本向上追溯 parent_id 链）。"""
+    if not _retention_visible("note", note_id, user["id"]):
+        raise HTTPException(status_code=404, detail="笔记不存在")
     versions = []
     current_id = note_id
     while current_id:
@@ -12046,7 +14110,8 @@ async def note_versions(note_id: str, user: dict = Depends(_auth.get_current_use
         )
         if not row:
             break
-        versions.append(dict(row))
+        if _retention_visible("note", row["id"], user["id"]):
+            versions.append(dict(row))
         current_id = row["parent_id"]
     return {"versions": versions}
 
@@ -12056,19 +14121,32 @@ async def delete_note(note_id: str, user: dict = Depends(_auth.get_current_user)
     row = _db.fetchone("SELECT id FROM notes WHERE id=? AND user_id=?", (note_id, user["id"]))
     if not row:
         raise HTTPException(status_code=404, detail="Note not found")
-    # 先清理所有外键约束引用（顺序不能乱）
-    _db.execute("DELETE FROM growth_records WHERE note_id=?", (note_id,))
-    _db.execute("UPDATE chat_sessions SET note_id=NULL WHERE note_id=?", (note_id,))
-    _db.execute(
-        "UPDATE tracked_notes SET source_note_id=NULL WHERE source_note_id=?",
-        (note_id,),
-    )
-    _db.execute(
-        "UPDATE tracked_notes SET source_root_note_id=NULL WHERE source_root_note_id=?",
-        (note_id,),
-    )
-    _db.execute("UPDATE notes SET parent_id=NULL WHERE parent_id=?", (note_id,))  # 自引用版本链
-    _db.execute("DELETE FROM notes WHERE id=?", (note_id,))
+    if _db is _retention.db:
+        with _db.transaction(write=True) as tx:
+            _retention.mark_deleted_with_storage(
+                tx,
+                "note",
+                note_id,
+                user["id"],
+            )
+            _retention.delete_note_derivatives_with_storage(
+                tx,
+                note_id,
+                user["id"],
+            )
+            tx.execute("DELETE FROM growth_records WHERE note_id=?", (note_id,))
+            tx.execute(
+                "UPDATE tracked_notes SET source_note_id=NULL WHERE source_note_id=?",
+                (note_id,),
+            )
+            tx.execute(
+                "UPDATE tracked_notes SET source_root_note_id=NULL "
+                "WHERE source_root_note_id=?",
+                (note_id,),
+            )
+            tx.execute("UPDATE notes SET parent_id=NULL WHERE parent_id=?", (note_id,))
+    else:
+        _db.execute("DELETE FROM growth_records WHERE note_id=?", (note_id,))
     return {"ok": True}
 
 
@@ -12211,17 +14289,27 @@ async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_u
         if not sess:
             raise HTTPException(status_code=404, detail="关联对话不存在或无权访问")
     next_check_at = _tracking_next_check_at(req.published_at, hours=24)
-    _db.execute(
-        "INSERT INTO tracked_notes(id,user_id,source_note_id,source_root_note_id,source_session_id,"
-        "xhs_url,xhs_note_id,note_title,domain,predicted_ces,published_at,submitted_at,"
-        "next_check_at,status,evidence_source,confidence,confidence_label,training_eligible)"
-        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (
-            tid, user["id"], source_note_id, source_root_note_id, req.source_session_id,
-            url, note_id, note_title, domain, predicted_ces, req.published_at, now,
-            next_check_at, "pending", "", None, "", 0,
-        ),
-    )
+    with _api_write_transaction() as tx:
+        _assert_api_user_writable(tx, user["id"])
+        duplicate = tx.fetchone(
+            "SELECT id FROM tracked_notes WHERE user_id=? AND xhs_url=?",
+            (user["id"], url),
+        )
+        if duplicate:
+            raise HTTPException(status_code=409, detail="该笔记已在追踪中")
+        tx.execute(
+            "INSERT INTO tracked_notes("
+            "id,user_id,source_note_id,source_root_note_id,source_session_id,"
+            "xhs_url,xhs_note_id,note_title,domain,predicted_ces,published_at,submitted_at,"
+            "next_check_at,status,evidence_source,confidence,confidence_label,training_eligible"
+            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                tid, user["id"], source_note_id, source_root_note_id,
+                req.source_session_id, url, note_id, note_title, domain,
+                predicted_ces, req.published_at, now, next_check_at, "pending",
+                "", None, "", 0,
+            ),
+        )
     return {
         "id": tid,
         "status": "pending",
@@ -12294,32 +14382,40 @@ async def fill_tracking_data(
         saves_24h=_tracking_row_value(row, "saves_24h"),
         comments_24h=_tracking_row_value(row, "comments_24h"),
     )
-    _db.execute(
-        "UPDATE tracked_notes SET likes_7d=?,saves_7d=?,comments_7d=?,views_est=?,"
-        "actual_ces=?,check_7d_at=?,last_checked_at=?,manual_filled=1,status='complete',"
-        "confidence=?,confidence_label=?,evidence_source=?,training_eligible=?,"
-        "insights_json=?,completed_at=?,last_error_code=NULL,last_error=NULL WHERE id=?",
-        (
-            req.likes, req.saves, req.comments, score.views_est,
-            score.actual_ces, now, now,
-            score.confidence, score.confidence_label, score.evidence_source,
-            1 if score.training_eligible else 0,
-            score.insights_json(), now, track_id,
-        ),
-    )
-    # 写入成长记录
-    import uuid as _uuid2
-    _db.execute(
-        "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
-        (str(_uuid2.uuid4()), user["id"], source_note_id, domain, score.actual_ces, score.grade, "url_track", now)
-    )
+    with _api_write_transaction() as tx:
+        _assert_api_user_writable(tx, user["id"])
+        tx.execute(
+            "UPDATE tracked_notes SET likes_7d=?,saves_7d=?,comments_7d=?,views_est=?,"
+            "actual_ces=?,check_7d_at=?,last_checked_at=?,manual_filled=1,"
+            "status='complete',confidence=?,confidence_label=?,evidence_source=?,"
+            "training_eligible=?,insights_json=?,completed_at=?,"
+            "last_error_code=NULL,last_error=NULL WHERE id=? AND user_id=?",
+            (
+                req.likes, req.saves, req.comments, score.views_est,
+                score.actual_ces, now, now, score.confidence,
+                score.confidence_label, score.evidence_source,
+                1 if score.training_eligible else 0, score.insights_json(),
+                now, track_id, user["id"],
+            ),
+        )
+        _insert_growth_record_with_storage(
+            tx,
+            user_id=user["id"],
+            note_id=source_note_id,
+            domain=domain,
+            score=score.actual_ces,
+            grade=score.grade,
+            action="url_track",
+            recorded_at=now,
+        )
     try:
         title = row["note_title"] or "已发布笔记"
         _memory.add_context(
             user["id"],
             f"真实表现追踪：{title[:24]}，7天实际{score.actual_ces:.1f}分，"
             f"{score.confidence_label}置信度，强项{score.insights.get('strongest_signal')}，"
-            f"短板{score.insights.get('weakest_signal')}"
+            f"短板{score.insights.get('weakest_signal')}",
+            source_note_id=source_note_id,
         )
     except Exception:
         pass
@@ -12335,8 +14431,12 @@ async def fill_tracking_data(
 
 @app.delete("/notes/tracking/{track_id}")
 async def delete_tracking(track_id: str, user: dict = Depends(_auth.get_current_user)):
-    _db.execute(
-        "DELETE FROM tracked_notes WHERE id=? AND user_id=?", (track_id, user["id"]))
+    with _api_write_transaction() as tx:
+        _assert_api_user_writable(tx, user["id"])
+        tx.execute(
+            "DELETE FROM tracked_notes WHERE id=? AND user_id=?",
+            (track_id, user["id"]),
+        )
     return {"ok": True}
 
 
@@ -12347,6 +14447,16 @@ async def delete_tracking(track_id: str, user: dict = Depends(_auth.get_current_
 class TopupInput(BaseModel):
     amount: Optional[float] = None   # 兼容旧内测：直接充入积分数量
     package_id: Optional[str] = None # 正式口径：选择积分包
+
+
+def _test_billing_enabled() -> bool:
+    enabled = os.environ.get("NOTEAI_ENABLE_TEST_BILLING", "").strip().lower()
+    stage = os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower()
+    return (
+        enabled in {"1", "true", "yes"}
+        and stage in {"local", "development", "dev", "test"}
+    )
+
 
 @app.get("/billing/plan")
 async def billing_plan(user: dict = Depends(_auth.get_current_user)):
@@ -12375,7 +14485,7 @@ async def billing_credits(user: dict = Depends(_auth.get_current_user)):
 @app.post("/billing/topup")
 async def billing_topup(req: TopupInput, user: dict = Depends(_auth.get_current_user)):
     """充值积分（开发/测试用，生产需接入支付网关）。"""
-    if os.environ.get("NOTEAI_ENABLE_TEST_BILLING", "").lower() not in {"1", "true", "yes"}:
+    if not _test_billing_enabled():
         raise HTTPException(status_code=403, detail="测试充值已关闭，请接入真实支付后再启用")
     if req.package_id:
         try:
@@ -12392,7 +14502,7 @@ async def billing_topup(req: TopupInput, user: dict = Depends(_auth.get_current_
 @app.post("/billing/upgrade")
 async def billing_upgrade(body: dict, user: dict = Depends(_auth.get_current_user)):
     """升级套餐（开发/测试用，生产需接入支付网关）。"""
-    if os.environ.get("NOTEAI_ENABLE_TEST_BILLING", "").lower() not in {"1", "true", "yes"}:
+    if not _test_billing_enabled():
         raise HTTPException(status_code=403, detail="测试升级已关闭，请接入真实支付后再启用")
     tier = body.get("tier", "")
     if tier not in _billing.TIERS:
@@ -12422,7 +14532,8 @@ def score(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
         semantic_feats = compute_semantic_features(note.note_title, note.desc)
         percentile, features = _predict(note, cover_feats=cover_feats or None, semantic_feats=semantic_feats)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _log_internal_failure("provider", e, phase="score")
+        raise HTTPException(status_code=500, detail="评分服务暂时不可用")
     return ScoreResponse(
         ces_percentile=round(percentile, 1),
         grade=_grade(percentile),
@@ -12443,7 +14554,8 @@ def quick_diagnose(note: NoteInput):
         percentile, features = _predict(note, cover_feats=cover_feats or None,
                                         semantic_feats=default_semantic)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _log_internal_failure("provider", e, phase="quick_diagnose")
+        raise HTTPException(status_code=500, detail="诊断服务暂时不可用")
 
     weaknesses = _find_weaknesses(features, note.domain)
     grade = _grade(percentile)
@@ -12475,7 +14587,8 @@ def diagnose(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
         semantic_feats = compute_semantic_features(note.note_title, note.desc)
         percentile, features = _predict(note, cover_feats=cover_feats or None, semantic_feats=semantic_feats)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _log_internal_failure("provider", e, phase="diagnose")
+        raise HTTPException(status_code=500, detail="诊断服务暂时不可用")
 
     weaknesses = _find_weaknesses(features, note.domain)
     grade = _grade(percentile)
@@ -12500,11 +14613,14 @@ def diagnose(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
     # 写成长记录（登录用户）
     try:
         import datetime as _dt_diag, uuid as _uuid_diag
-        _db.execute(
-            "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,NULL,?,?,?,?,?)",
-            (str(_uuid_diag.uuid4()), user["id"], note.domain or "美食",
-             round(percentile, 1), grade, "diagnose",
-             _dt_diag.datetime.now(_dt_diag.timezone.utc).isoformat()),
+        _insert_growth_record(
+            user_id=user["id"],
+            note_id=None,
+            domain=note.domain or "美食",
+            score=round(percentile, 1),
+            grade=grade,
+            action="diagnose",
+            recorded_at=_dt_diag.datetime.now(_dt_diag.timezone.utc).isoformat(),
         )
         _memory.check_and_record_achievements(user["id"], percentile, "diagnose")
     except Exception:
@@ -12898,7 +15014,8 @@ async def _run_analyze_pipeline(
                 billing_charge,
                 "AI深度诊断失败自动退回",
             )
-        raise HTTPException(status_code=500, detail=str(e))
+        _log_internal_failure("provider", e, phase="analyze")
+        raise HTTPException(status_code=500, detail="AI 深度诊断暂时不可用")
 
     composite = round(percentile, 1)
 
@@ -12909,11 +15026,14 @@ async def _run_analyze_pipeline(
     # 写成长记录（已登录用户）
     try:
         import datetime as _dt_ana, uuid as _uuid_ana
-        _db.execute(
-            "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,NULL,?,?,?,?,?)",
-            (str(_uuid_ana.uuid4()), user["id"], req.domain or "美食",
-             round(percentile, 1), grade, "analyze",
-             _dt_ana.datetime.now(_dt_ana.timezone.utc).isoformat()),
+        _insert_growth_record(
+            user_id=user["id"],
+            note_id=None,
+            domain=req.domain or "美食",
+            score=round(percentile, 1),
+            grade=grade,
+            action="analyze",
+            recorded_at=_dt_ana.datetime.now(_dt_ana.timezone.utc).isoformat(),
         )
         _memory.check_and_record_achievements(user["id"], percentile, "analyze")
     except Exception:
@@ -13030,7 +15150,8 @@ async def _run_analyze_pipeline(
         if not note_body_for_save:
             note_body_for_save = note_title_for_save
         note_id = str(_uuid.uuid4())
-        _db.execute(
+        note_created_at = _now_iso()
+        _insert_content_with_retention(
             "INSERT INTO notes(id,user_id,title,body,domain,score,grade,source,parent_id,version,created_at)"
             " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
             (
@@ -13044,8 +15165,12 @@ async def _run_analyze_pipeline(
                 "diagnose",
                 None,
                 1,
-                _now_iso(),
+                note_created_at,
             ),
+            "note",
+            note_id,
+            user["id"],
+            created_at=note_created_at,
         )
         saved_note_id = note_id
     except Exception:
@@ -13057,15 +15182,23 @@ async def _run_analyze_pipeline(
     try:
         diag_id = str(_uuid.uuid4())
         import json as _jlib
-        _db.execute(
+        diagnosis_created_at = _now_iso()
+        _insert_content_with_retention(
             "INSERT INTO saved_diagnoses"
             "(id,user_id,note_title,domain,ces_percentile,composite_score,grade,diagnosis_json,created_at)"
             " VALUES(?,?,?,?,?,?,?,?,?)",
             (diag_id, user["id"],
              req.note_title or "", req.domain or "",
              round(percentile, 1), composite, grade,
-             _jlib.dumps(resp.model_dump(), ensure_ascii=False),
-             _now_iso()),
+             _jlib.dumps(
+                 _sanitize_persisted_diagnosis(resp.model_dump()),
+                 ensure_ascii=False,
+             ),
+             diagnosis_created_at),
+            "diagnosis",
+            diag_id,
+            user["id"],
+            created_at=diagnosis_created_at,
         )
         saved_diag_id = diag_id
     except Exception:
@@ -13140,10 +15273,12 @@ async def analyze_stream_endpoint(
                     "detail": detail,
                 })
             except Exception as exc:
+                _log_internal_failure("provider", exc, phase="analyze_stream")
                 await queue.put({
                     "type": "error",
                     "status_code": 500,
-                    "message": str(exc),
+                    "error_code": "analysis_internal_error",
+                    "message": "AI 深度诊断暂时不可用",
                 })
             finally:
                 await queue.put(None)
@@ -13535,7 +15670,7 @@ async def _generate_pipeline_stream(
                     "progress": 80,
                 }
         except Exception as exc:
-            print(f"[gen] stream selector early failed: {exc}", file=sys.stderr, flush=True)
+            _log_internal_failure("generate", exc, phase="stream_selector_early")
 
     yield {"type": "p3_done", "title": title, "rationale": rationale[:120] if rationale else "", "progress": 81}
 
@@ -13579,7 +15714,12 @@ async def _generate_pipeline_stream(
             quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
             quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception as exc:
-            print(f"[gen] quality scoring failed round={q_round}: {exc}", file=sys.stderr, flush=True)
+            _log_internal_failure(
+                "generate",
+                exc,
+                phase="quality_scoring",
+                attempt=q_round,
+            )
             break
 
         is_better = (
@@ -13650,7 +15790,12 @@ async def _generate_pipeline_stream(
             else:
                 break
         except Exception as exc:
-            print(f"[gen] quality repair failed round={q_round}: {exc}", file=sys.stderr, flush=True)
+            _log_internal_failure(
+                "generate",
+                exc,
+                phase="quality_repair",
+                attempt=q_round,
+            )
             break
 
     if best_score >= 0:
@@ -13771,7 +15916,7 @@ async def _generate_pipeline_stream(
                     "progress": 95,
                 }
         except Exception as exc:
-            print(f"[gen] stream selector final failed: {exc}", file=sys.stderr, flush=True)
+            _log_internal_failure("generate", exc, phase="stream_selector_final")
 
     feature_hits = _feature_hits_for_generation(title, final_feats, final_score, domain, body=body)
 
@@ -13918,7 +16063,8 @@ async def upload_video(
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"视频解析失败: {exc}")
+        _log_internal_failure("video_file", exc, phase="parse")
+        raise HTTPException(status_code=500, detail="视频解析失败")
     finally:
         if tmp_path:
             try:
@@ -13937,9 +16083,10 @@ async def upload_video(
         "raw_fps":      round(fps, 1),
     })
     print(
-        f"[upload_video] fid={fid} file={filename} duration={duration_sec:.1f}s "
-        f"raw_fps={fps:.1f} frames_extracted={len(frames)} frames_to_ai={n_will_send}",
-        file=sys.stderr, flush=True,
+        f"[upload_video] duration={duration_sec:.1f}s raw_fps={fps:.1f} "
+        f"frames_extracted={len(frames)} frames_to_ai={n_will_send}",
+        file=sys.stderr,
+        flush=True,
     )
     return {
         "file_id":      fid,
@@ -14027,7 +16174,11 @@ async def generate_stream_endpoint(
                     _extract_cover, cover_image, False
                 )
             except Exception as exc:
-                print(f"[generate_stream] cover feature extraction failed: {exc}", file=sys.stderr, flush=True)
+                _log_internal_failure(
+                    "generate",
+                    exc,
+                    phase="cover_feature_extraction",
+                )
 
         async for event in _generate_pipeline_stream(
             domain=req.domain,
@@ -14196,7 +16347,8 @@ async def generate(
     except Exception as e:
         if claim:
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
-        raise HTTPException(status_code=500, detail=str(e))
+        _log_internal_failure("generate", e, phase="request")
+        raise HTTPException(status_code=500, detail="内容生成服务暂时不可用")
 
     try:
         supplement_prompts = _supplement_prompts_from_quality_issues(
@@ -14257,33 +16409,22 @@ CREATE TABLE IF NOT EXISTS user_learn (
 
 
 def _init_user_learn():
-    if not _SCHEDULER_AVAILABLE:
-        return
-    if _db.using_postgres():
-        return
-    db_path = _local_hot_keyword_db_path()
-    db_path.parent.mkdir(exist_ok=True)
-    with _sqlite3.connect(str(db_path)) as c:
-        c.executescript(_USER_LEARN_DDL)
+    return
 
 
 def _get_user_learn(user_id: str) -> dict[str, str]:
     if not _SCHEDULER_AVAILABLE or not user_id:
         return {}
     try:
-        if _db.using_postgres():
-            rows = _db.fetchall(
-                "SELECT pref_key,pref_value FROM user_learn WHERE user_id=? ORDER BY confidence DESC",
-                (user_id,),
-            )
-            return {row["pref_key"]: row["pref_value"] for row in rows}
-        db_path = _local_hot_keyword_db_path()
-        with _sqlite3.connect(str(db_path)) as c:
-            rows = c.execute(
-                "SELECT pref_key, pref_value FROM user_learn WHERE user_id=? ORDER BY confidence DESC",
-                (user_id,),
-            ).fetchall()
-            return {k: v for k, v in rows}
+        rows = _db.fetchall(
+            "SELECT pref_key,pref_value FROM user_learn "
+            "WHERE user_id=? ORDER BY confidence DESC",
+            (user_id,),
+        )
+        return _sanitize_chat_preferences({
+            row["pref_key"]: row["pref_value"]
+            for row in rows
+        })
     except Exception:
         return {}
 
@@ -14292,33 +16433,27 @@ def _update_user_learn(user_id: str, prefs: dict[str, str]):
     if not _SCHEDULER_AVAILABLE or not user_id:
         return
     try:
+        safe_preferences = _sanitize_chat_preferences(prefs)
+        if not safe_preferences:
+            return
         from datetime import datetime as _dt
-        if _db.using_postgres():
-            for k, v in prefs.items():
-                _db.execute(
+        with _db.transaction(write=True) as tx:
+            _retention.assert_user_writable_with_storage(tx, user_id)
+            for k, v in safe_preferences.items():
+                tx.execute(
                     """INSERT INTO user_learn
                        (user_id,pref_key,pref_value,confidence,update_count,updated_at)
                        VALUES(?,?,?,0.6,1,?)
                        ON CONFLICT(user_id,pref_key) DO UPDATE SET
                            pref_value=excluded.pref_value,
-                           confidence=LEAST(user_learn.confidence + 0.1, 0.95),
+                           confidence=CASE
+                               WHEN user_learn.confidence + 0.1 < 0.95
+                               THEN user_learn.confidence + 0.1
+                               ELSE 0.95
+                           END,
                            update_count=user_learn.update_count + 1,
                            updated_at=excluded.updated_at""",
-                    (user_id, k, v, _dt.now().isoformat()),
-                )
-            return
-        db_path = _local_hot_keyword_db_path()
-        with _sqlite3.connect(str(db_path)) as c:
-            for k, v in prefs.items():
-                c.execute(
-                    """INSERT INTO user_learn (user_id, pref_key, pref_value, confidence, update_count, updated_at)
-                       VALUES (?, ?, ?, 0.6, 1, ?)
-                       ON CONFLICT(user_id, pref_key) DO UPDATE SET
-                           pref_value    = excluded.pref_value,
-                           confidence    = MIN(user_learn.confidence + 0.1, 0.95),
-                           update_count  = user_learn.update_count + 1,
-                           updated_at    = excluded.updated_at""",
-                    (user_id, k, v, _dt.now().isoformat()),
+                    (user_id, k, v, _now_iso()),
                 )
     except Exception:
         pass
@@ -15027,7 +17162,8 @@ async def _chat_sse_generator(
                 _record_kimi_usage_from_payload(data, _KIMI_MODEL)
                 image_analysis = data["choices"][0]["message"]["content"].strip()
         except Exception as e:
-            image_analysis = f"图片解析失败：{e}"
+            _log_internal_failure("kimi_chat", e, phase="image_analysis")
+            image_analysis = "图片解析暂时不可用"
         yield f"data: {_json.dumps({'type': 'image_analyzed', 'analysis': image_analysis}, ensure_ascii=False)}\n\n"
 
     use_thinking = _should_use_thinking(user_msg)
@@ -15098,7 +17234,8 @@ async def _chat_sse_generator(
             yield f"data: {_json.dumps({'type': 'content_chunk', 'data': chunk_text}, ensure_ascii=False)}\n\n"
 
     except Exception as exc:
-        yield f"data: {_json.dumps({'type': 'error', 'data': str(exc)}, ensure_ascii=False)}\n\n"
+        _log_internal_failure("chat", exc, phase="stream")
+        yield f"data: {_json.dumps({'type': 'error', 'error_code': 'chat_internal_error', 'data': '对话服务暂时不可用'}, ensure_ascii=False)}\n\n"
         return
 
     plan_options = await _build_chat_plan_options(session, full_content)
@@ -15198,14 +17335,21 @@ async def _chat_sse_generator(
                     previous_iteration_count + 1,
                 )
                 import datetime as _dt_mod2
-                _db.execute(
+                note_created_at = _dt_mod2.datetime.now(
+                    _dt_mod2.timezone.utc
+                ).isoformat()
+                _insert_content_with_retention(
                     "INSERT INTO notes(id,user_id,title,body,domain,score,grade,source,parent_id,version,created_at)"
                     " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                     (new_note_id, user_id_for_save, new_title, new_body,
                      session.get("domain", "美食"), new_score, grade_str,
                      "chat", previous_note_id,
                      next_version,
-                     _dt_mod2.datetime.now(_dt_mod2.timezone.utc).isoformat()),
+                     note_created_at),
+                    "note",
+                    new_note_id,
+                    user_id_for_save,
+                    created_at=note_created_at,
                 )
                 # notes INSERT is the commit point. Only now may the in-memory
                 # current note advance to the same canonical object.
@@ -15227,11 +17371,16 @@ async def _chat_sse_generator(
             # here must not hide an already committed canonical note version.
             try:
                 if new_score:
-                    _db.execute(
-                        "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
-                        (str(_uuid.uuid4()), user_id_for_save, saved_note_id_for_event,
-                         session.get("domain","美食"), new_score, grade_str,
-                         "chat_optimize", _dt_mod2.datetime.now(_dt_mod2.timezone.utc).isoformat()),
+                    _insert_growth_record(
+                        user_id=user_id_for_save,
+                        note_id=saved_note_id_for_event,
+                        domain=session.get("domain", "美食"),
+                        score=new_score,
+                        grade=grade_str,
+                        action="chat_optimize",
+                        recorded_at=_dt_mod2.datetime.now(
+                            _dt_mod2.timezone.utc
+                        ).isoformat(),
                     )
                     # 成就检测 + 记忆更新
                     new_ach = _memory.check_and_record_achievements(user_id_for_save, new_score, "chat_optimize")
@@ -15240,7 +17389,8 @@ async def _chat_sse_generator(
                     # 记录上下文记忆（本轮优化摘要）
                     _memory.add_context(
                         user_id_for_save,
-                        f"第{session.get('iteration_count',1)}次优化：{new_title[:20]}…，评分{round(new_score,1) if new_score else '?'}分"
+                        f"第{session.get('iteration_count',1)}次优化：{new_title[:20]}…，评分{round(new_score,1) if new_score else '?'}分",
+                        source_note_id=saved_note_id_for_event,
                     )
             except Exception:
                 pass
@@ -15383,6 +17533,14 @@ async def _chat_sse_generator(
 
 
 _CHAT_PERSIST_BLOCKED_KEYS = frozenset({
+    "analysis",
+    "chain_of_thought",
+    "chainofthought",
+    "cot",
+    "scratchpad",
+    "internal_trace",
+    "internal_reasoning",
+    "raw_completion",
     "raw",
     "reasoning",
     "reasoning_content",
@@ -15400,26 +17558,432 @@ _CHAT_PERSIST_BLOCKED_KEYS = frozenset({
 })
 
 
-def _sanitize_chat_persisted_value(value: Any) -> Any:
+def _sanitize_chat_persisted_value(
+    value: Any,
+    _path: tuple[str, ...] = (),
+) -> Any:
     """Recursively remove internal model metadata from chat runtime and storage."""
     if isinstance(value, dict):
+        if _path in _PUBLIC_DYNAMIC_INTEGER_MAP_PATHS:
+            return _sanitize_public_schema_value(value, ("map", "integer"))
+        if (
+            _has_undeclared_raw_key(
+                value,
+                declared_keys=_declared_legacy_public_record_keys(),
+                filter_only_keys=_PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS,
+            )
+            or _is_internal_role_record(value)
+        ):
+            return {}
         safe: dict[Any, Any] = {}
         for key, item in value.items():
-            normalized_key = str(key).strip().lower().replace("-", "_")
+            normalized_key, key_tokens, compact_key = _normalized_internal_key(key)
+            approved_business_field = _approved_public_business_field(
+                normalized_key,
+                _path,
+            )
+            if approved_business_field:
+                if isinstance(item, str):
+                    safe[key] = item
+                continue
+            if key in _PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS:
+                continue
             if (
-                normalized_key in _CHAT_PERSIST_BLOCKED_KEYS
-                or normalized_key.startswith("reasoning_")
-                or normalized_key.startswith("thinking_")
+                _is_internal_persistence_key(
+                    normalized_key,
+                    key_tokens,
+                    compact_key,
+                )
+                or _is_internal_envelope_alias(compact_key)
+                or bool(
+                    key_tokens
+                    & {
+                        "developer",
+                        "prompt",
+                        "provider",
+                        "raw",
+                        "system",
+                    }
+                )
+                or normalized_key in _CHAT_PERSIST_BLOCKED_KEYS
                 or normalized_key.startswith("provider_")
             ):
                 continue
-            safe[key] = _sanitize_chat_persisted_value(item)
+            safe[key] = _sanitize_chat_persisted_value(
+                item,
+                _path + (normalized_key,),
+            )
         return safe
     if isinstance(value, list):
-        return [_sanitize_chat_persisted_value(item) for item in value]
+        return [
+            _sanitize_chat_persisted_value(item, _path)
+            for item in value
+            if not _is_internal_role_record(item)
+        ]
     if isinstance(value, tuple):
-        return [_sanitize_chat_persisted_value(item) for item in value]
+        return [
+            _sanitize_chat_persisted_value(item, _path)
+            for item in value
+            if not _is_internal_role_record(item)
+        ]
     return value
+
+
+_CHAT_PREFERENCE_FIELDS = frozenset({
+    "body_length",
+    "emoji",
+    "title_length",
+    "title_style",
+    "tone",
+})
+_CHAT_CONTEXT_STRING_FIELDS = frozenset({
+    "cover_analysis",
+    "content_intent",
+    "current_grade",
+    "fact_context",
+    "fact_source_policy",
+    "merchant_name",
+    "merchant_visibility",
+})
+_CHAT_CONTEXT_NUMBER_FIELDS = frozenset({
+    "current_score",
+    "diagnosis_ces_percentile",
+    "diagnosis_composite_score",
+    "selected_plan_score",
+})
+_CHAT_CONTEXT_STRING_LIST_FIELDS = frozenset({
+    "selected_plan_quality_issues",
+    "title_variants",
+    "user_constraints",
+})
+_CHAT_CONTEXT_MAPPING_SCHEMAS = {
+    "constraint_contract": _CONSTRAINT_CONTRACT_SCHEMA,
+    "fact_enrichment": _FACT_ENRICHMENT_SCHEMA,
+    "intent_contract": _INTENT_CONTRACT_SCHEMA,
+    "market_timing": _MARKET_TIMING_SCHEMA,
+}
+_CHAT_FEATURE_HIT_FIELDS = frozenset({
+    "body_len_target",
+    "delivery_reference_score",
+    "has_address",
+    "has_cta",
+    "has_number",
+    "has_positive_emotion",
+    "has_price",
+    "score_target_72",
+    "tag_count_target",
+    "title_has_location",
+    "title_len_ok",
+})
+_CONFIRMED_SUPPLEMENT_VALUE_FIELDS = frozenset({
+    "budget",
+    "business_hours",
+    "destination_or_hotel",
+    "location",
+    "merchant_name",
+    "must_order",
+    "price",
+    "transport",
+})
+_CHAT_CONTEXT_BENIGN_STRING_FIELDS = frozenset({
+    "apricot_color",
+    "cottage_style",
+    "cotton_material",
+    "mascots_metadata",
+})
+_SUPPLEMENT_PROMPT_STRING_FIELDS = frozenset({
+    "action_text",
+    "content_intent",
+    "fact_source_policy",
+    "field",
+    "label",
+    "merchant_visibility",
+    "prompt",
+})
+_CHAT_PLAN_STRING_FIELDS = frozenset({
+    "body",
+    "body_source",
+    "grade",
+    "id",
+    "strategy",
+    "title",
+})
+_CHAT_PLAN_NUMBER_FIELDS = frozenset({
+    "score",
+    "score_delta",
+})
+_SUPPLEMENT_PROMPT_INPUT_KEYS = (
+    _SUPPLEMENT_PROMPT_STRING_FIELDS
+    | frozenset({"can_use_fact_source"})
+)
+_CHAT_PLAN_INPUT_KEYS = (
+    _CHAT_PLAN_STRING_FIELDS
+    | _CHAT_PLAN_NUMBER_FIELDS
+    | frozenset({"quality_issues", "selectable"})
+)
+_CHAT_CONTEXT_INPUT_KEYS = (
+    _CHAT_CONTEXT_STRING_FIELDS
+    | _CHAT_CONTEXT_NUMBER_FIELDS
+    | _CHAT_CONTEXT_STRING_LIST_FIELDS
+    | _CHAT_CONTEXT_BENIGN_STRING_FIELDS
+    | frozenset(_CHAT_CONTEXT_MAPPING_SCHEMAS)
+    | frozenset({
+        "confirmed_supplement_values",
+        "expert_opinions",
+        "feature_hits",
+        "mascots",
+        "pending_plan_options",
+        "selected_plan_index",
+        "supplement_prompts",
+    })
+)
+_CHAT_CONTEXT_FILTER_ONLY_INPUT_KEYS = (
+    _PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS
+    | frozenset({"answer", "history", "nested", "preference"})
+)
+_CHAT_PREFERENCE_FILTER_ONLY_INPUT_KEYS = (
+    _PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS
+    | frozenset({"history", "mascots", "preference"})
+)
+
+
+def _sanitize_chat_preferences(value: Any) -> dict[str, str]:
+    """Persist only the current product's typed learned-preference schema."""
+    if (
+        not isinstance(value, dict)
+        or _has_undeclared_raw_key(
+            value,
+            declared_keys=_CHAT_PREFERENCE_FIELDS,
+            filter_only_keys=_CHAT_PREFERENCE_FILTER_ONLY_INPUT_KEYS,
+        )
+        or _has_unapproved_discriminator_key(value)
+    ):
+        return {}
+    safe: dict[str, str] = {}
+    for key, item in value.items():
+        normalized, _tokens, _compact = _normalized_internal_key(key)
+        if normalized in _CHAT_PREFERENCE_FIELDS and isinstance(item, str):
+            safe[normalized] = item
+    return safe
+
+
+def _sanitize_supplement_prompts(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, (list, tuple)):
+        return []
+    safe_prompts: list[dict[str, Any]] = []
+    for item in value:
+        if (
+            not isinstance(item, dict)
+            or _has_undeclared_raw_key(
+                item,
+                declared_keys=_SUPPLEMENT_PROMPT_INPUT_KEYS,
+                filter_only_keys=_PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS,
+            )
+            or _is_internal_role_record(item)
+        ):
+            continue
+        safe_item: dict[str, Any] = {}
+        for key, raw_value in item.items():
+            normalized, tokens, compact = _normalized_internal_key(key)
+            if _is_internal_persistence_key(normalized, tokens, compact):
+                if normalized != "prompt":
+                    continue
+            if (
+                normalized in _SUPPLEMENT_PROMPT_STRING_FIELDS
+                and isinstance(raw_value, str)
+            ):
+                safe_item[normalized] = raw_value
+            elif (
+                normalized == "can_use_fact_source"
+                and isinstance(raw_value, bool)
+            ):
+                safe_item[normalized] = raw_value
+        safe_prompts.append(safe_item)
+    return safe_prompts
+
+
+def _sanitize_chat_plan_options(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, (list, tuple)):
+        return []
+    safe_options: list[dict[str, Any]] = []
+    for item in value:
+        if (
+            not isinstance(item, dict)
+            or _has_undeclared_raw_key(
+                item,
+                declared_keys=_CHAT_PLAN_INPUT_KEYS,
+                filter_only_keys=_PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS,
+            )
+            or _is_internal_role_record(item)
+        ):
+            continue
+        safe_item: dict[str, Any] = {}
+        for key, raw_value in item.items():
+            normalized, tokens, compact = _normalized_internal_key(key)
+            if _is_internal_persistence_key(normalized, tokens, compact):
+                continue
+            if normalized in _CHAT_PLAN_STRING_FIELDS and isinstance(raw_value, str):
+                safe_item[normalized] = raw_value
+            elif (
+                normalized in _CHAT_PLAN_NUMBER_FIELDS
+                and not isinstance(raw_value, bool)
+                and isinstance(raw_value, (int, float))
+            ):
+                safe_item[normalized] = raw_value
+            elif normalized == "selectable" and isinstance(raw_value, bool):
+                safe_item[normalized] = raw_value
+            elif normalized == "quality_issues" and isinstance(raw_value, (list, tuple)):
+                safe_item[normalized] = [
+                    entry for entry in raw_value if isinstance(entry, str)
+                ]
+        safe_options.append(safe_item)
+    return safe_options
+
+
+def _sanitize_chat_generate_context(value: Any) -> dict[str, Any]:
+    """Apply the explicit persisted Chat generation-context schema."""
+    if (
+        not isinstance(value, dict)
+        or _has_undeclared_raw_key(
+            value,
+            declared_keys=_CHAT_CONTEXT_INPUT_KEYS,
+            filter_only_keys=_CHAT_CONTEXT_FILTER_ONLY_INPUT_KEYS,
+        )
+        or _has_unapproved_discriminator_key(value)
+    ):
+        return {}
+    safe: dict[str, Any] = {}
+    for key, item in value.items():
+        normalized, _tokens, _compact = _normalized_internal_key(key)
+        if normalized in _CHAT_CONTEXT_STRING_FIELDS:
+            if isinstance(item, str):
+                safe[normalized] = item
+            continue
+        if normalized in _CHAT_CONTEXT_NUMBER_FIELDS:
+            if item is None or (
+                not isinstance(item, bool) and isinstance(item, (int, float))
+            ):
+                safe[normalized] = item
+            continue
+        if normalized == "selected_plan_index":
+            if item is None or (
+                isinstance(item, int) and not isinstance(item, bool)
+            ):
+                safe[normalized] = item
+            continue
+        if normalized in _CHAT_CONTEXT_STRING_LIST_FIELDS:
+            if isinstance(item, (list, tuple)):
+                safe[normalized] = [
+                    entry for entry in item if isinstance(entry, str)
+                ]
+            continue
+        if normalized == "feature_hits":
+            if (
+                isinstance(item, dict)
+                and not _has_undeclared_raw_key(
+                    item,
+                    declared_keys=_CHAT_FEATURE_HIT_FIELDS,
+                    filter_only_keys=_PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS,
+                )
+                and not _has_unapproved_discriminator_key(item)
+            ):
+                safe[normalized] = {
+                    str(entry_key): entry_value
+                    for entry_key, entry_value in item.items()
+                    if isinstance(entry_key, str)
+                    and entry_key in _CHAT_FEATURE_HIT_FIELDS
+                    and isinstance(entry_value, bool)
+                }
+            continue
+        if normalized == "expert_opinions":
+            safe[normalized] = _public_expert_opinions(item)
+            continue
+        if normalized == "supplement_prompts":
+            safe[normalized] = _sanitize_supplement_prompts(item)
+            continue
+        if normalized == "pending_plan_options":
+            safe[normalized] = _sanitize_chat_plan_options(item)
+            continue
+        if normalized == "confirmed_supplement_values":
+            if (
+                isinstance(item, dict)
+                and not _has_undeclared_raw_key(
+                    item,
+                    declared_keys=_CONFIRMED_SUPPLEMENT_VALUE_FIELDS,
+                    filter_only_keys=_PUBLIC_SCHEMA_FILTER_ONLY_INPUT_KEYS,
+                )
+                and not _has_unapproved_discriminator_key(item)
+            ):
+                safe[normalized] = {
+                    str(entry_key): entry_value
+                    for entry_key, entry_value in item.items()
+                    if isinstance(entry_key, str)
+                    and entry_key in _CONFIRMED_SUPPLEMENT_VALUE_FIELDS
+                    and isinstance(entry_value, str)
+                }
+            continue
+        if normalized in _CHAT_CONTEXT_MAPPING_SCHEMAS:
+            sanitized = _sanitize_public_schema_value(
+                item,
+                _CHAT_CONTEXT_MAPPING_SCHEMAS[normalized],
+            )
+            if sanitized is not _PUBLIC_SCHEMA_MISSING:
+                safe[normalized] = sanitized
+            continue
+        if normalized in _CHAT_CONTEXT_BENIGN_STRING_FIELDS:
+            if isinstance(item, str):
+                safe[normalized] = item
+            continue
+        if normalized == "mascots":
+            if isinstance(item, (list, tuple)):
+                safe[normalized] = [
+                    entry for entry in item if isinstance(entry, str)
+                ]
+    return safe
+
+
+def _sanitize_learned_preference_rows(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    safe_rows: list[dict[str, Any]] = []
+    for item in rows:
+        key = item.get("pref_key")
+        value = item.get("pref_value")
+        preferences = _sanitize_chat_preferences({key: value})
+        if not preferences:
+            continue
+        normalized_key, normalized_value = next(iter(preferences.items()))
+        safe_rows.append({
+            "pref_key": normalized_key,
+            "pref_value": normalized_value,
+            "confidence": item.get("confidence"),
+            "update_count": item.get("update_count"),
+            "updated_at": item.get("updated_at"),
+        })
+    return safe_rows
+
+
+def _sanitize_chat_messages(value: Any) -> list[dict[str, str]]:
+    """Persist only the public user/assistant text history schema."""
+    if not isinstance(value, (list, tuple)):
+        return []
+    safe_messages: list[dict[str, str]] = []
+    for message in value:
+        if not isinstance(message, dict):
+            continue
+        if _has_unapproved_discriminator_key(
+            message,
+            allowed_keys=frozenset({"role"}),
+        ):
+            continue
+        if set(message) != {"role", "content"}:
+            continue
+        role = str(message.get("role") or "").strip().lower()
+        content = message.get("content")
+        if role not in {"user", "assistant"} or not isinstance(content, str):
+            continue
+        safe_messages.append({"role": role, "content": content})
+    return safe_messages
 
 
 def _persist_chat_session(session_id: str) -> bool:
@@ -15428,11 +17992,17 @@ def _persist_chat_session(session_id: str) -> bool:
         session = _chat_sessions.get(session_id)
         if not session:
             return False
-        safe_messages = _sanitize_chat_persisted_value(session.get("messages", []))
+        safe_messages = _sanitize_chat_messages(session.get("messages", []))
         session["messages"] = safe_messages
+        safe_preferences = _sanitize_chat_preferences(
+            dict(session.get("user_prefs") or {})
+        )
+        session["user_prefs"] = safe_preferences
         import datetime as _dt_mod
         now = _dt_mod.datetime.now(_dt_mod.timezone.utc).isoformat()
-        generate_context = _sanitize_chat_persisted_value(dict(session.get("generate_context") or {}))
+        generate_context = _sanitize_chat_generate_context(
+            dict(session.get("generate_context") or {})
+        )
         if session.get("user_constraints"):
             generate_context["user_constraints"] = session.get("user_constraints")
             generate_context["constraint_contract"] = session.get("constraint_contract") or _constraint_contract_payload(session.get("user_constraints"))
@@ -15448,10 +18018,10 @@ def _persist_chat_session(session_id: str) -> bool:
             generate_context["supplement_prompts"] = session.get("supplement_prompts")
         if session.get("pending_plan_options"):
             generate_context["pending_plan_options"] = session.get("pending_plan_options")
-        generate_context = _sanitize_chat_persisted_value(generate_context)
+        generate_context = _sanitize_chat_generate_context(generate_context)
         session["generate_context"] = generate_context
         note_id = session.get("_last_note_id") or session.get("note_id")
-        _db.execute(
+        sql = (
             "INSERT INTO chat_sessions(id,user_id,note_id,domain,local_time,messages_json,user_prefs_json,"
             "iteration_count,current_score,generate_ctx_json,created_at,updated_at) VALUES"
             "(?,?,?,?,?,?,?,?,?,?,?,?)"
@@ -15462,21 +18032,33 @@ def _persist_chat_session(session_id: str) -> bool:
             "  iteration_count=excluded.iteration_count,"
             "  current_score=excluded.current_score,"
             "  generate_ctx_json=excluded.generate_ctx_json,"
-            "  updated_at=excluded.updated_at",
-            (
-                session_id,
-                session.get("user_id") or "",
-                note_id,
-                session.get("domain", "美食"),
-                session.get("local_time", ""),
-                _json.dumps(safe_messages, ensure_ascii=False),
-                _json.dumps(session.get("user_prefs", {}), ensure_ascii=False),
-                session.get("iteration_count", 0),
-                session.get("current_score"),
-                _json.dumps(generate_context, ensure_ascii=False),
-                now, now,
-            ),
+            "  updated_at=excluded.updated_at"
         )
+        params = (
+            session_id,
+            session.get("user_id") or "",
+            note_id,
+            session.get("domain", "美食"),
+            session.get("local_time", ""),
+            _json.dumps(safe_messages, ensure_ascii=False),
+            _json.dumps(safe_preferences, ensure_ascii=False),
+            session.get("iteration_count", 0),
+            session.get("current_score"),
+            _json.dumps(generate_context, ensure_ascii=False),
+            now, now,
+        )
+        if _db is _retention.db:
+            with _db.transaction(write=True) as tx:
+                writable = tx.fetchone(
+                    "SELECT deletion_requested_at FROM users WHERE id=?"
+                    + (" FOR UPDATE" if _db.using_postgres() else ""),
+                    (session.get("user_id") or "",),
+                )
+                if not writable or writable["deletion_requested_at"]:
+                    return False
+                tx.execute(sql, params)
+        else:
+            _db.execute(sql, params)
         return True
     except Exception:
         return False
@@ -15488,8 +18070,15 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
         row = _db.fetchone("SELECT * FROM chat_sessions WHERE id=?", (session_id,))
         if not row:
             return None
-        gen_ctx = _sanitize_chat_persisted_value(_json.loads(row["generate_ctx_json"] or "{}"))
-        restored_messages = _sanitize_chat_persisted_value(_json.loads(row["messages_json"] or "[]"))
+        gen_ctx = _sanitize_chat_generate_context(
+            _json.loads(row["generate_ctx_json"] or "{}")
+        )
+        restored_messages = _sanitize_chat_messages(
+            _json.loads(row["messages_json"] or "[]")
+        )
+        restored_preferences = _sanitize_chat_preferences(
+            _json.loads(row["user_prefs_json"] or "{}")
+        )
         note_id = row["note_id"] if "note_id" in row.keys() else None
         note_row = _fetch_user_note(note_id, row["user_id"]) if note_id and row["user_id"] else None
         constraints = _normalize_user_constraints(gen_ctx.get("user_constraints") or [])
@@ -15506,7 +18095,7 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
             "current_score":    row["current_score"] if row["current_score"] is not None else (note_row["score"] if note_row else None),
             "messages":         restored_messages,
             "iteration_count":  row["iteration_count"],
-            "user_prefs":       _json.loads(row["user_prefs_json"] or "{}"),
+            "user_prefs":       restored_preferences,
             "note_id":          note_id,
             "_last_note_id":    note_id,
             "note_version":     _positive_int_or_none(note_row["version"]) if note_row else None,
@@ -15557,7 +18146,8 @@ def _save_chat_plan_option_as_note(session_id: str, session: dict, option: dict,
         int(session.get("iteration_count", 1) or 1),
     )
     try:
-        _db.execute(
+        note_created_at = _now_iso()
+        _insert_content_with_retention(
             "INSERT INTO notes(id,user_id,title,body,domain,score,grade,source,parent_id,version,created_at)"
             " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
             (
@@ -15571,32 +18161,32 @@ def _save_chat_plan_option_as_note(session_id: str, session: dict, option: dict,
                 "chat",
                 prev_note_id,
                 next_version,
-                _now_iso(),
+                note_created_at,
             ),
+            "note",
+            new_note_id,
+            user_id,
+            created_at=note_created_at,
         )
         if score is not None:
-            _db.execute(
-                "INSERT INTO growth_records(id,user_id,note_id,domain,score,grade,action,recorded_at) VALUES(?,?,?,?,?,?,?,?)",
-                (
-                    str(_uuid.uuid4()),
-                    user_id,
-                    new_note_id,
-                    session.get("domain", "美食"),
-                    score,
-                    grade,
-                    "chat_select_plan",
-                    _now_iso(),
-                ),
+            _insert_growth_record(
+                user_id=user_id,
+                note_id=new_note_id,
+                domain=session.get("domain", "美食"),
+                score=score,
+                grade=grade,
+                action="chat_select_plan",
             )
             _memory.check_and_record_achievements(user_id, score, "chat_select_plan")
             _memory.add_context(
                 user_id,
                 f"选择方案{option.get('id') or ''}保存为v{next_version}：{title[:20]}…，评分{round(score, 1)}分",
+                source_note_id=new_note_id,
             )
     except HTTPException:
         raise
     except Exception as exc:
-        print(f"[chat_select_plan] save failed: {exc}", file=sys.stderr, flush=True)
+        _log_internal_failure("chat", exc, phase="select_plan_save")
         raise HTTPException(status_code=500, detail="保存候选方案失败")
 
     session["_last_note_id"] = new_note_id
@@ -15800,6 +18390,10 @@ async def chat_start(
         "intent_contract": intent_contract,
         "supplement_prompts": supplement_prompts,
     } if (gen_ctx or normalized_constraints or normalized_intent) else {}
+    if isinstance(gen_ctx.get("fact_enrichment"), dict):
+        session_generate_context["fact_enrichment"] = gen_ctx["fact_enrichment"]
+    if isinstance(gen_ctx.get("market_timing"), dict):
+        session_generate_context["market_timing"] = gen_ctx["market_timing"]
 
     _chat_sessions[sid] = {
         "note_title":       req.note_title,
