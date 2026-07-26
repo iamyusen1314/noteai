@@ -72,9 +72,11 @@ The following commands must currently exit non-zero:
 ## Current decision
 
 `PROD-COMPLETE-FIRST-LAUNCH-001` remains `NO-GO` for public launch. The
-production read-only preflight is correctly `blocked` because this session has
-no authenticated Alibaba, production-database or SSH path. The capability
-check must not be repeated while that external condition is unchanged.
+production read-only preflight is correctly `blocked`: a cached ACR page can
+show the historical `a635692` immutable digests, but fresh ECS navigation
+redirects to Alibaba login and no bounded production-database metadata path
+exists. Cached content is partial evidence only and cannot satisfy the host,
+RDS, backup, schema or runtime controls.
 
 `PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001` is complete. Exact revision
 `2fa3a5543876a6c8040ec17ca05a5461b101bbd7` was built as five native AMD64
@@ -85,8 +87,9 @@ leaving the canonical `4 Critical / 19 High` per-role reports unsuppressed.
 There is now no dependency-free repository/offline task in the internal
 runtime layer. The next dependency root remains the authenticated,
 read-only `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`. It must resume
-only when an authenticated Alibaba control-plane and bounded database metadata
-path exist; unchanged capability checks must not be repeated.
+only after a fresh Alibaba console sign-in and a bounded database metadata path
+exist. The partial evidence is recorded in
+`docs/PRODUCTION_READONLY_PREFLIGHT_EVIDENCE.md`.
 
 ## Updating evidence
 

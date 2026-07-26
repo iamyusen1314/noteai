@@ -11,8 +11,8 @@ Last updated: 2026-07-27
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码`2fa3a5543876a6c8040ec17ca05a5461b101bbd7`已经原生AMD64五角色构建与VEX验收，但没有ACR digest、没有发布或部署。生产未访问，仍是migration `0001`–`0008`；`0009`–`0015`未应用。
-- 当前量化状态/下一步: fail-closed ledger现为仓库/隔离`12/12=100%`、内部生产部署`13/29=45%`、完整公开上线`13/38=34%`。`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`仍为`BLOCKED / AUTHENTICATION UNAVAILABLE / ZERO MUTATION`，认证状态不变时不得重复能力检查。当前没有依赖已满足的`repository_offline`内部任务；不得把旧生产服务、GitHub临时local image ID或VEX当作当前ACR发布/部署证据。
-- 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
+- 当前量化状态/下一步: fail-closed ledger现为仓库/隔离`12/12=100%`、内部生产部署`13/29=45%`、完整公开上线`13/38=34%`。`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`现为`PARTIAL / BLOCKED ON FRESH SIGN-IN + DATABASE METADATA PATH / ZERO MUTATION`。缓存ACR页面只刷新了历史`a635692`三角色AMD64 digest，当前`2fa3a55`仍未发布；新ECS导航跳转登录，ECS/RDS/数据库事实未刷新。当前没有依赖已满足的`repository_offline`内部任务；不得把缓存页面、旧生产服务、GitHub临时local image ID或VEX当作当前部署证据。
+- 授权边界: 产品负责人已授权CTO自行批准并持续执行达到`内部生产部署准备度100%`所需的有限、有界、可回滚任务，无需重复询问。缺失的登录/凭据仍需产品负责人完成交互式认证；公开DNS、真实用户流量、不可逆破坏、新产品决策、无上限费用和公开上线完成声明仍不在授权内。
 
 ### Current-source immutable candidate is closed offline, not published
 

@@ -40,7 +40,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(report["complete_public_launch"]["percentage"], 34)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
-    def test_missing_production_auth_is_the_only_dependency_free_internal_blocker(self):
+    def test_fresh_production_auth_is_the_only_dependency_free_internal_blocker(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
@@ -50,8 +50,8 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 {
                     "id": "production_readonly_preflight",
                     "resume_condition": (
-                        "An authenticated read-only control-plane and bounded "
-                        "database metadata path becomes available."
+                        "A fresh Alibaba console sign-in and bounded production "
+                        "database metadata read path become available."
                     ),
                 }
             ],

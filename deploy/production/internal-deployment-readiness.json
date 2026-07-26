@@ -217,9 +217,14 @@
           "title": "Authenticated read-only ECS, RDS, backup and runtime preflight",
           "status": "blocked",
           "dependencies": [],
-          "evidence": [],
-          "blocker": "No authenticated Alibaba control-plane, production database or SSH path is available in the current session.",
-          "resume_condition": "An authenticated read-only control-plane and bounded database metadata path becomes available.",
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": "docs/PRODUCTION_READONLY_PREFLIGHT_EVIDENCE.md"
+            }
+          ],
+          "blocker": "A cached authenticated ACR page is readable, but fresh ECS navigation redirects to Alibaba login and no bounded production database metadata path is available.",
+          "resume_condition": "A fresh Alibaba console sign-in and bounded production database metadata read path become available.",
           "next_task": "PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001"
         },
         {
