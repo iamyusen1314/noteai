@@ -10,8 +10,8 @@ Last updated: 2026-07-26
 - 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。当前真实支付、durable AI queue/Worker、对象存储/恢复、Tracking、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
-- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22及独立R22已将R16和后续保留身份问题关闭为`PASS / 0C / 0H / 0M`；最终隔离PostgreSQL 16 rehearsal及R23 PostgreSQL/生命周期复核同为`PASS / 0C / 0H / 0M`，回归清理条件也已满足。精确容器/卷为零且Colima停止。生产未访问，仍是migration `0001`–`0008`，当前工作树尚未形成或部署新镜像。
-- 当前下一步: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，只读核对生产历史手机号/四类源时间、retention回填与立即到期候选、当前角色完整负向矩阵、备份/PITR证据和可执行发布/回滚边界；不得执行`0009`、GRANT/REVOKE、processor、服务或流量变更。
+- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking合同硬化也已完成仓库、隔离PostgreSQL和三方独立验收，状态`PASS / 0C / 0H / 0M / NOT DEPLOYED`。两组精确临时容器/卷均已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`，当前代码尚未形成或部署新镜像。
+- 当前下一步: 生产串行门禁仍是`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，但需要已认证的阿里云控制面会话；等待该外部条件时执行不依赖生产的`PROD-XHS-TRENDS-LONGRUN-CONTRACT-001`。前者只读；后者只改仓库/测试。两者都不得执行`0009/0010`、GRANT/REVOKE、processor、服务、供应商、镜像/ACR或流量变更。
 - 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
@@ -135,20 +135,20 @@ Last updated: 2026-07-26
 ### XHS managed-service and real-supplier path remain unverified
 
 - 状态: Open High / first-launch hard gate。`PROD-XHS-TRENDS-MILESTONE-CLOSE-001` 已独立确认 suspended Trends 功能、有界数据库写入、Snapshot、零供应商调用、API-F 非回归和清理均为 `VERIFIED`；这些子项不得重跑，但不等于长期服务或真实供应商通过。
-- 风险描述: Trends 尚未作为长期服务运行，真实 XHS session/signer/接口/限流/挑战路径从未生产验证。Tracking 是独立进程和写入路径，仍为 `NOT VERIFIED / NOT STARTED`。当前 `noteai_xhs` 还是 Trends 与 Tracking 的权限并集，而非各自最小身份；持久服务的 singleton、资源、重启、日志和回滚合同也未闭环。
+- 风险描述: Trends 尚未作为长期服务运行，真实 XHS session/signer/接口/限流/挑战路径从未生产验证。Tracking 是独立进程和写入路径；其仓库/隔离PostgreSQL合同已经通过，但生产仍为 `NOT DEPLOYED / NOT STARTED`。当前生产 `noteai_xhs` 还是 Trends 与 Tracking 的权限并集；仓库虽已定义 `noteai_xhs_tracking`，但`0010`和角色变更尚未应用。持久服务的 singleton、资源、重启、日志和回滚合同也未闭环。
 - 可能后果: 若直接解除 suspended 或长期共置在 API 节点，可能发生供应商会话失效、重复或重叠运行、CPU/内存争用、扩大数据库权限影响面、日志泄露或无法可靠回滚。
 - 建议验证方式: 范围决定已确认首发必须包含 Trends 和 Tracking。严格执行 `PROD-XHS-TRENDS-LONGRUN-CONTRACT-001`、新不可变发布、生产基础设施、最小真实只读验证、`PROD-XHS-TRENDS-MANAGED-PROMOTE-001`；以独立 singleton managed Worker、无入站端口、显式 CPU/内存/PID/超时/日志/重启上限、数据库lease/fence和独立数据库身份完成服务晋升。
 - 费用和回滚: 真实供应商验证、独立 Worker ECS 或持续日志/网络资源会产生外部影响及可能费用，必须重新报价和批准；历史 Worker pair 参考约¥783.64/月、OSS约¥65/月、SLS约¥12/月，不是当前报价。运行时回滚为恢复 suspended、停止对应 singleton 并回到零 XHS 服务基线。
 - 是否需要用户确认后才能修改: yes。真实 XHS、session/Cookie、解除 suspended、数据库权限/迁移、Trends/Tracking 启动、Worker ECS、ACR、代码/镜像、ALB/TLS/DNS/流量均需精确批准。
 
-### XHS Tracking is independently unverified and unsafe to promote as-is
+### XHS Tracking repository contract is verified; production promotion remains open
 
-- 状态: Open High / first-launch hard gate；`NOT VERIFIED / NOT STARTED`，不得继承 Trends 证据。
-- 风险描述: Tracking 的24小时/7天两阶段链路当前缺少并发claim/lease/singleton、URL规范化和唯一性、跨步骤原子性、确定性调度与完整写入上限。重复手工补录或Admin触发可能重复写入；CLI对部分失败仍可退出0；现有合并角色拥有超出Tracking自身需要的Trends权限。
-- 可能后果: 重复XHS调用、状态覆盖、重复growth/memory副作用、含敏感query的URL持久化、假成功、失控删除或无法证明业务写入边界。
-- 建议验证方式: 先执行无供应商的 `PROD-XHS-TRACKING-CONTRACT-HARDEN-001`；再用独立身份和不可变digest完成suspended preflight；之后只对一个自有测试笔记分别批准24h与7d两次执行、总计最多两次detail调用，最后完成singleton/reboot/kill/alert/rollback晋升。
-- 回滚: 始终先保持Tracking停止；上线后只停止Tracking singleton，保留审计记录，不删除业务证据，不影响Trends/API/Admin。
-- 是否需要用户确认后才能修改: 代码与测试包可单独批准；任何migration/GRANT、真实XHS、生产写入、服务启动和持续资源必须精确批准。
+- 状态: Repository/isolated PostgreSQL `PASS / 0C / 0H / 0M`; production `NOT DEPLOYED / NOT STARTED`，仍为首发 High 门禁且不得继承 Trends 证据。
+- 已关闭: `PROD-XHS-TRACKING-CONTRACT-HARDEN-001`已关闭canonical URL、每次供应商调用前原子claim、15分钟lease、24h/7d at-most-once admission、每日300硬上限、确定性growth/memory、stale unknown不重试、删除/调用栅栏、非零失败退出、read-only health和独立`noteai_xhs_tracking`最小权限合同。migration `0010` apply-twice/SHA/脏历史回滚、约束、完整角色负向矩阵和三组独立终审均通过。
+- 剩余 High: 生产历史URL/时间/owner preflight、`0009/0010`应用、精确角色创建/授权、不可变digest构建和默认suspended内部部署、一个自有笔记的24h/7d真实XHS有界证明，以及singleton/reboot/kill/alert/rollback尚未验收。服务保持停止。
+- 防重复: 没有相关代码或migration SHA变化时，不重复当前隔离PostgreSQL rehearsal或离线模拟矩阵；下一证据必须来自生产只读preflight、正式发布候选或后续明确有界的真实链路/managed promotion阶段。
+- 回滚: 当前无生产变更。后续始终先保留suspended；发生异常只停止Tracking singleton并回到旧digest/旧角色合同，保留审计行，不删除业务证据，不影响Trends/API/Admin。
+- 授权边界: CTO可继续仓库、离线和只读preflight；真实XHS、生产写入、服务启动、持续付费资源、公开流量和不可逆动作仍受总授权边界限制。
 
 ### Repository secret/log/Admin boundary is verified; production history and delivery remain unverified
 
