@@ -7,11 +7,11 @@ Last updated: 2026-07-26
 ### Complete first commercial launch is not yet releaseable
 
 - 状态: Open Critical under `PROD-COMPLETE-FIRST-LAUNCH-001`; current release decision is `NO-GO`.
-- 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。当前真实支付、durable AI queue/Worker、对象存储/恢复、Tracking、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
+- 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。Durable AI 仓库/隔离PostgreSQL合同已经通过，但真实支付、生产对象存储/恢复、真实queue/dispatcher/processor、Tracking/Trends managed runtime、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
-- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking和Trends各自的仓库、隔离PostgreSQL和最小权限合同也已通过，均为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。精确临时资源已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`；`0009`–`0011`未应用，当前代码尚未形成或部署新镜像。
-- 当前下一步: 生产串行门禁仍是`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，但需要已认证的阿里云控制面会话。等待该外部条件时，唯一可执行离线任务改为`PROD-FIRST-LAUNCH-DURABLE-AI-CONTRACT-001`：先冻结与Storage共享的opaque media-ref，再完成`202` admission、outbox/fenced Worker、结果回放、3:1有界优先级和扣费/退款终态原子合同。不得执行`0009`–`0011`、GRANT/REVOKE、生产processor/service、供应商、镜像/ACR或流量变更。
+- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends和Durable AI各自的仓库、隔离PostgreSQL和最小权限合同也已通过，均为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。Durable AI应用checkpoint为`f0aaa20`，migration `0012` SHA为`df72dedf…c83`。精确临时资源已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`；`0009`–`0012`未应用，当前代码尚未形成或部署新镜像。
+- 当前下一步: 生产串行门禁仍是`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，但需要已认证的阿里云控制面会话。等待该外部条件时，唯一可执行离线任务改为`PROD-FIRST-LAUNCH-STORAGE-RECOVERY-CONTRACT-001`：实现已冻结的owner-bound opaque media/payload ref、私有storage adapter、跨节点/重启/到期/删除/补偿/孤儿对账和备份/PITR证据合同。不得执行`0009`–`0012`、GRANT/REVOKE、真实OSS/恢复实例、生产processor/service、供应商、镜像/ACR或流量变更。
 - 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
@@ -90,12 +90,20 @@ Last updated: 2026-07-26
 
 ### Commercial V1 cannot yet admit 100 simultaneous AI jobs
 
-- 风险描述: 产品负责人已确认商业上线首阶段必须可靠受理100个同时AI任务（Claude或Kimi均可），未来扩展到1000个；当前API/AI执行仍耦合于请求进程，Claude Gateway自设全局并发2/RPM30，Kimi真实账号配额未核验，且没有供应商无关持久job、独立Worker、队列SLO或升级监控。V1必须先用PostgreSQL权威任务账本和安全claim/lease/fence闭环，消息队列只能在outbox之后作为至少一次唤醒通道。
+- 风险描述: 产品负责人已确认商业上线首阶段必须可靠受理100个同时AI任务（Claude或Kimi均可），未来扩展到1000个。仓库现已具备供应商无关持久job、`202` admission、Outbox、fenced Worker、3:1公平、回放及终态扣费/退款合同，但默认关闭且没有生产对象存储、publisher/dispatcher、真实processor或managed Worker。Claude Gateway自设全局并发2/RPM30，Kimi真实账号配额也未核验，因此100任务生产能力仍未成立。
 - 涉及文件: `model/api.py`, `model/idempotency.py`, `model/model_router.py`, `model/billing.py`, future `ai_operations/task_queue/ai_worker`, PostgreSQL migrations, Alibaba SMQ/MNS/RocketMQ/IaC, SLS/CloudMonitor/Admin monitoring and `CAP-001/OPS-003` tests.
 - 可能后果: 峰值任务被429/超时、断流后丢结果、Worker崩溃重复调用或重复扣费、Claude/Kimi雪崩切换、余额/Token配额耗尽后商业服务中断。
 - 建议验证方式: 先以FakeProvider证明100任务均在2秒内持久受理，重复消息/崩溃/数据库短断下0丢失、0重复provider/扣费；再用小样本真实Claude/Kimi校准leaf时长、Token和成本，按队列深度/最老年龄及provider/model配额设置分级告警和升级Runbook。
 - 是否需要用户确认后才能修改: 本地状态机、测试和监控合同不需要；阿里云付费资源、migration、真实AI样本、自动扩容预算及任何供应商/消费门禁升级需要。
-- 2026-07-18进展: `CAP-001A1/A2A`实现已提交于`199bf5f`，生产空库已应用`0007/0008`，但提交后独立diff/回归/部署边界验证尚未闭环，故两任务为`READY_TO_VERIFY`。公开202、CAP A2B、独立Worker、Tair接入、队列/背压、持久结果和退款对账仍不存在；100个同时AI任务能力尚未达到。
+- 2026-07-26进展: `PROD-FIRST-LAUNCH-DURABLE-AI-CONTRACT-001`已在`f0aaa20`完成仓库与隔离PostgreSQL验证：聚焦`127/127`、相关运行时`65/65`、PostgreSQL`10/10`、全量Python `812 run / 10 skipped / 0 failed`、E2E`66/66`、readiness`90/90`。这关闭了持久账本、opaque refs、Outbox/fence、provider-free redelivery、unknown manual、回放和扣费终态的合同风险，不关闭真实storage/queue/processor、生产migration/roles、监控或100任务负载门禁。
+
+### Durable AI repository contract is verified; production execution remains open
+
+- 状态: `REPOSITORY + DISPOSABLE POSTGRESQL PASS / 0C / 0H / 0M / NOT DEPLOYED`；production仍为Open High。
+- 已关闭: 默认禁用的owner-bound `202` admission、无原始内容SQL、opaque request/result refs、Outbox fenced claim/ack、3:1公平、逐调用provider admission、provider-free安全重投、unknown outcome不重试、成功/退款/settlement原子终态、结果回放、删除栅栏和对象补偿均有仓库/SQLite/PostgreSQL证据。migration `0012` SHA为`df72dedfb292700104fc394b5b326f33e4339cbf195f704278c56e08e44bec83`。
+- 剩余 High: 不存在真实私有对象存储adapter、消息publisher、dispatcher进程或provider processor；生产migration/角色/权限未应用，AI Worker镜像未构建/部署，监控、回滚、provider链和容量均未验收。Compose中的AI Worker仅为default-suspended fail-closed骨架，`--once`不能正常处理任务。
+- 防重复: 没有Durable AI代码或migration SHA冲突时，不重复其离线/隔离PostgreSQL合同测试。下一证据必须来自Storage/Recovery合同、生产只读preflight或后续正式runtime/provider/capacity门禁。
+- 回滚: 当前无生产变更。后续保持admission disabled和Worker suspended；失败时停publisher/dispatcher/Worker、恢复旧digest和旧角色权限，但保留operation/settlement审计账本且不猜测provider unknown outcome。
 
 ### ALB health semantics could turn a Gateway outage into a whole-site outage
 
@@ -219,11 +227,11 @@ Last updated: 2026-07-26
 
 ### SSE progress and terminal recovery can leave successful paid work looking stuck
 
-- 状态: 客户端/协议部分已由 `PERF-001B` 在 Render Staging 验证（commit `2579c08`/`f8b98b4`）；持久回放、stale lease 与副作用/退款一致性仍由 `BILL-002` 跟踪。
+- 状态: 客户端/协议部分已由 `PERF-001B` 在 Render Staging 验证（commit `2579c08`/`f8b98b4`）；持久回放、provider-free stale lease、unknown outcome与退款一致性已由Durable AI仓库/隔离PostgreSQL合同关闭，但真实storage/queue/Worker/provider运行仍未验收。
 - 风险描述: 真实 Staging Smoke 中 Analyze 阶段继续推进但百分比停在34%，Generate 停在0%，Chat 正式内容返回后输入框仍延迟恢复；当前客户端 parser/终态状态机和 durable replay 边界不完整。
 - 涉及文件: `NoteAI_Pro_Demo_Framer.html`, `model/api.py`, SSE/Chat e2e 与 contract tests；持久回放另涉及 billing/db/migration。
 - 可能后果: 用户误以为付费任务失败、重复提交或离开页面；断流/重启窗口可能出现结果、usage、退款和幂等状态不一致。
-- 建议验证方式: `PERF-001B` 不重复实施；下一阶段仅以 `BILL-002` 做 PostgreSQL 故障注入、stale lease 和 durable result replay 验证。不得自动重试付费 AI。
+- 建议验证方式: `PERF-001B` 和已完成Durable AI合同不得重复实施；先完成Storage/Recovery，再在managed runtime中验证真实断连回放、stale/unknown、对象一致性和退款。不得自动重试结果不明的付费 AI。
 - 是否需要用户确认后才能修改: 客户端/协议兼容修复不需要；migration、结果保留期限和真实故障 Smoke 需要。
 
 ### Frontend/backend payload drift
