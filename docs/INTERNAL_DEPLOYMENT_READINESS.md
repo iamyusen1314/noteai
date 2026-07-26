@@ -13,15 +13,15 @@ Cloud, a database, a provider or a payment service.
 | Layer | Meaning | Current evidence |
 |---|---|---|
 | `repository_isolated` | Code, tests, contracts and disposable-environment evidence exist | `12/12 = 100%` |
-| `internal_runtime` | The current source release is built, privately deployed and accepted on managed internal production resources | `0/17 = 0%` |
+| `internal_runtime` | The current source release is built, privately deployed and accepted on managed internal production resources | `1/17 = 6%` |
 | `public_launch` | Real suppliers/payment, legal confirmation, ALB/TLS, pre-DNS smoke and DNS ramp are accepted | `0/9 = 0%` |
 
-The combined internal-deployment score is therefore `12/29 = 41%`. The
-complete-public-launch score is `12/38 = 32%`. These are evidence-completion
+The combined internal-deployment score is therefore `13/29 = 45%`. The
+complete-public-launch score is `13/38 = 34%`. These are evidence-completion
 ratios, not schedule estimates, quality grades or permission to deploy.
 
 The older `tools/production_readiness_gate.py` verifies deployable repository
-assets. Its green `100/100` result remains useful, but it is not and never was
+assets. Its current green `102/102` result remains useful, but it is not and never was
 proof that the current release is deployed or publicly launchable.
 
 ## Fail-closed rules
@@ -76,13 +76,17 @@ production read-only preflight is correctly `blocked` because this session has
 no authenticated Alibaba, production-database or SSH path. The capability
 check must not be repeated while that external condition is unchanged.
 
-The first independent, dependency-free task that remains safe under the
-current authority is
-`PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001`: build and verify the current
-source into local immutable role images without ACR access, image publication,
-production deployment, provider calls or business writes. Passing that task
-can close only `immutable_release_candidate`; it cannot close any managed
-runtime control.
+`PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001` is complete. Exact revision
+`2fa3a5543876a6c8040ec17ca05a5461b101bbd7` was built as five native AMD64
+roles; ordinary CI passed, `cryptography 48.0.1` is present once per role, and
+the exact-product VEX binds twelve dispositions to 115 SBOM BOM-Links while
+leaving the canonical `4 Critical / 19 High` per-role reports unsuppressed.
+
+There is now no dependency-free repository/offline task in the internal
+runtime layer. The next dependency root remains the authenticated,
+read-only `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`. It must resume
+only when an authenticated Alibaba control-plane and bounded database metadata
+path exist; unchanged capability checks must not be repeated.
 
 ## Updating evidence
 

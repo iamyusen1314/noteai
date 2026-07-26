@@ -27,6 +27,12 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(report["passed"], report["failed_checks"])
         self.assertGreaterEqual(report["check_count"], 30)
 
+    def test_current_native_release_vex_is_part_of_repository_gate(self):
+        checks = {item["name"]: item for item in gate.check_browserless_vex()}
+
+        self.assertTrue(checks["exact_a635692_browserless_vex_bundle"]["passed"])
+        self.assertTrue(checks["exact_2fa3a55_native_five_role_vex_bundle"]["passed"])
+
     def test_production_roles_exclude_browser_dependencies_and_commands(self):
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
         compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")

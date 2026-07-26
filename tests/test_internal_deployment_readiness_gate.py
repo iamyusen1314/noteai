@@ -31,16 +31,16 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 12)
+        self.assertEqual(report["internal_deployment"]["verified"], 13)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 41)
+        self.assertEqual(report["internal_deployment"]["percentage"], 45)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 12)
+        self.assertEqual(report["complete_public_launch"]["verified"], 13)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 32)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 34)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
-    def test_missing_production_auth_is_blocked_and_offline_release_is_actionable(self):
+    def test_missing_production_auth_is_the_only_dependency_free_internal_blocker(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
@@ -56,18 +56,8 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 }
             ],
         )
-        self.assertEqual(
-            actionable["immutable_release_candidate"]["next_task"],
-            "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001",
-        )
-        self.assertEqual(
-            report["next_safe_task"],
-            actionable["immutable_release_candidate"],
-        )
-        self.assertEqual(
-            report["next_safe_task"]["execution_class"],
-            "repository_offline",
-        )
+        self.assertNotIn("immutable_release_candidate", actionable)
+        self.assertIsNone(report["next_safe_task"])
         self.assertEqual(
             actionable["production_readonly_preflight"]["status"],
             "blocked",
@@ -99,13 +89,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
 
     def test_nonverified_controls_require_blocker_and_task(self):
         broken = copy.deepcopy(self.manifest)
-        control = broken["layers"][1]["controls"][1]
+        control = broken["layers"][1]["controls"][2]
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
             gate.validate_manifest(broken)
 
         broken = copy.deepcopy(self.manifest)
-        control = broken["layers"][1]["controls"][1]
+        control = broken["layers"][1]["controls"][2]
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
             gate.validate_manifest(broken)

@@ -32,6 +32,7 @@ if str(TOOLS_DIR) not in sys.path:
 
 from artifact_loader import ensure_model_artifacts, sha256_file  # noqa: E402
 from verify_browserless_vex import validate_bundle as validate_browserless_vex_bundle  # noqa: E402
+from verify_native_release_vex import validate_bundle as validate_native_release_vex_bundle  # noqa: E402
 
 
 REQUIRED_MODEL_ROLES = {"quality_regressor", "ready_classifier", "preference_ranker", "train_report"}
@@ -1473,13 +1474,26 @@ def check_optional_runtime_dependencies() -> list[dict[str, Any]]:
 
 
 def check_browserless_vex() -> list[dict[str, Any]]:
-    errors = validate_browserless_vex_bundle()
+    browserless_errors = validate_browserless_vex_bundle()
+    native_errors = validate_native_release_vex_bundle()
     return [
         _ok(
             "exact_a635692_browserless_vex_bundle",
-            not errors,
-            "; ".join(errors[:5]) if errors else "12 exact-product dispositions independently reviewed",
-        )
+            not browserless_errors,
+            "; ".join(browserless_errors[:5])
+            if browserless_errors
+            else "12 exact-product dispositions independently reviewed",
+        ),
+        _ok(
+            "exact_2fa3a55_native_five_role_vex_bundle",
+            not native_errors,
+            "; ".join(native_errors[:5])
+            if native_errors
+            else (
+                "five exact local images; 12 dispositions / 115 SBOM BOM-Links; "
+                "raw 4 Critical / 19 High per role remains unsuppressed"
+            ),
+        ),
     ]
 
 

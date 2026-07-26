@@ -225,12 +225,31 @@
         {
           "id": "immutable_release_candidate",
           "title": "Current-source immutable multi-role release candidate",
-          "status": "unverified",
+          "status": "verified",
           "execution_class": "repository_offline",
           "dependencies": [],
-          "evidence": [],
-          "blocker": "Repository changes after a635692 have not been built into current API, Admin, Payment, AI Worker and XHS role images.",
-          "next_task": "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001"
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "2fa3a5543876a6c8040ec17ca05a5461b101bbd7"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/NATIVE_RELEASE_VEX_REVIEW.md"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/2fa3a55-native-release-evidence.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/2fa3a55-native-release.vex.cdx.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/2fa3a55-native-release-review.json"
+            }
+          ]
         },
         {
           "id": "production_schema_roles",
