@@ -83,16 +83,19 @@ services:
       - "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: xhs-http
+      NOTEAI_XHS_SERVICE: trends
       NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
       NOTEAI_XHS_ACQUISITION_ADAPTER: spider_xhs_http
       NOTEAI_XHS_COLLECTION_SUSPENDED: "${NOTEAI_XHS_TRENDS_SUSPENDED:-1}"
       NOTEAI_XHS_FRESHNESS_REQUIRED: "${NOTEAI_XHS_FRESHNESS_REQUIRED:-1}"
-    command: ["python", "market_timing_worker.py", "--daemon", "--interval", "${NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES:-60}"]
-    volumes:
-      - type: bind
-        source: "${NOTEAI_PRODUCTION_DATA_DIR:-/var/lib/noteai/data}"
-        target: /app/model/data
-    restart: unless-stopped
+    command: ["python", "market_timing_worker.py", "--daemon", "--interval", "${NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES:-360}"]
+    healthcheck:
+      test: ["CMD", "python", "market_timing_worker.py", "--healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: "no"
     cpus: "0.50"
     mem_limit: 512m
     pids_limit: 64
@@ -112,6 +115,7 @@ services:
       - "${NOTEAI_XHS_TRACKING_ENV_FILE:-/etc/noteai/xhs-tracking.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: xhs-http
+      NOTEAI_XHS_SERVICE: tracking
       NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
       NOTEAI_XHS_ACQUISITION_ADAPTER: spider_xhs_http
       NOTEAI_XHS_COLLECTION_SUSPENDED: "${NOTEAI_XHS_TRACKING_SUSPENDED:-1}"

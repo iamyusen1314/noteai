@@ -74,22 +74,40 @@ else
     echo "xhs-http runtime requires the pinned acquisition adapter" >&2
     exit 78
   fi
+  xhs_service="${NOTEAI_XHS_SERVICE:-}"
+  case "$xhs_service" in
+    trends|tracking) ;;
+    *)
+      echo "xhs-http runtime requires an exact service role" >&2
+      exit 78
+      ;;
+  esac
   if [ "$#" -eq 1 ]; then
     case "$1" in
-      /app/scripts/render_run_market_timing.sh|/app/scripts/render_run_crawler.sh|/bin/false)
-        command_allowed=1
+      /app/scripts/render_run_market_timing.sh)
+        [ "$xhs_service" = "trends" ] && command_allowed=1
         ;;
+      /app/scripts/render_run_crawler.sh)
+        [ "$xhs_service" = "tracking" ] && command_allowed=1
+        ;;
+      /bin/false) command_allowed=1 ;;
     esac
   elif [ "$#" -eq 2 ] && [ "$1" = "python" ]; then
     case "$2" in
-      market_timing_worker.py|crawler_worker.py)
-        command_allowed=1
+      market_timing_worker.py)
+        [ "$xhs_service" = "trends" ] && command_allowed=1
+        ;;
+      crawler_worker.py)
+        [ "$xhs_service" = "tracking" ] && command_allowed=1
         ;;
     esac
   elif [ "$#" -eq 3 ] && [ "$1" = "python" ]; then
     case "$2:$3" in
-      market_timing_worker.py:--once|crawler_worker.py:--once)
-        command_allowed=1
+      market_timing_worker.py:--once|market_timing_worker.py:--healthcheck|market_timing_worker.py:--acknowledge-unknown|market_timing_worker.py:--clear-session-block)
+        [ "$xhs_service" = "trends" ] && command_allowed=1
+        ;;
+      crawler_worker.py:--once|crawler_worker.py:--healthcheck)
+        [ "$xhs_service" = "tracking" ] && command_allowed=1
         ;;
     esac
   elif [ "$#" -eq 5 ] \
@@ -97,7 +115,8 @@ else
     && [ "$2" = "market_timing_worker.py" ] \
     && [ "$3" = "--daemon" ] \
     && [ "$4" = "--interval" ] \
-    && is_unsigned_integer "$5"; then
+    && is_unsigned_integer "$5" \
+    && [ "$xhs_service" = "trends" ]; then
     command_allowed=1
   elif [ "$#" -eq 7 ] \
     && [ "$1" = "python" ] \
@@ -106,7 +125,8 @@ else
     && [ "$4" = "--interval-minutes" ] \
     && is_unsigned_integer "$5" \
     && [ "$6" = "--limit" ] \
-    && is_unsigned_integer "$7"; then
+    && is_unsigned_integer "$7" \
+    && [ "$xhs_service" = "tracking" ]; then
     command_allowed=1
   fi
 fi

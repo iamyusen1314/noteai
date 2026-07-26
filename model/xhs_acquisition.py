@@ -249,11 +249,19 @@ def xhs_freshness_required() -> bool:
         or os.environ.get("NOTEAI_MARKET_TIMING_REQUIRE_XHS_FRESHNESS")
         or "0"
     )
-    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+    return (
+        str(raw).strip().lower() in {"1", "true", "yes", "on"}
+        or os.environ.get("NOTEAI_MARKET_TIMING_REQUIRED", "").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
 
 
 def collection_safety_status() -> dict[str, Any]:
     """Return the fixed, secret-free cross-Cron collection safety state."""
+    if os.environ.get("NOTEAI_XHS_SERVICE", "").strip() == "trends":
+        import trends_contract
+
+        return trends_contract.session_safety_status()
     raw = runtime_settings.get_json(_COLLECTION_SAFETY_KEY, {})
     raw = raw if isinstance(raw, dict) else {}
     reason_code = str(raw.get("reason_code") or "")
@@ -269,6 +277,11 @@ def collection_safety_status() -> dict[str, Any]:
 
 def mark_server_session_logged_out() -> dict[str, Any]:
     """Persist a safe stop flag after the server redirects collection to login."""
+    if os.environ.get("NOTEAI_XHS_SERVICE", "").strip() == "trends":
+        import trends_contract
+
+        trends_contract.mark_session_blocked()
+        return trends_contract.session_safety_status()
     state = {
         "session_blocked": True,
         "reason_code": "server_session_logged_out",
@@ -280,6 +293,8 @@ def mark_server_session_logged_out() -> dict[str, Any]:
 
 def clear_collection_session_block() -> None:
     """Clear only the server-session stop flag after an operator cookie update."""
+    if os.environ.get("NOTEAI_XHS_SERVICE", "").strip() == "trends":
+        raise RuntimeError("trends_session_block_requires_operator_reconciliation")
     runtime_settings.set_json(_COLLECTION_SAFETY_KEY, {
         "session_blocked": False,
         "reason_code": "",
@@ -291,46 +306,51 @@ def minimum_evidence_per_domain() -> int:
     return hot_keywords._min_domain_keywords()
 
 
-def record_health(health: CrawlerHealth | dict[str, Any]) -> dict:
-    init_db()
+def record_health(
+    health: CrawlerHealth | dict[str, Any],
+    *,
+    _connection=None,
+) -> dict:
+    if _connection is None:
+        init_db()
     if isinstance(health, CrawlerHealth):
         payload = asdict(health)
     else:
         payload = dict(health)
     row_id = payload.get("id") or str(uuid.uuid4())
     checked_at = payload.get("checked_at") or _iso()
-    conn = hot_keywords._conn()
-    try:
-        with conn:
-            conn.execute(
-                """
-                INSERT INTO xhs_crawler_health
-                    (id, run_id, adapter, domain, profile_cookie_valid,
-                     note_page_access_valid, shortlink_canonicalized, selector_valid,
-                     risk_login_detected, evidence_count, status, error_code,
-                     error_summary, checked_at, details_json)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """,
-                (
-                    row_id,
-                    payload.get("run_id") or str(uuid.uuid4()),
-                    payload.get("adapter") or "unknown",
-                    payload.get("domain") or "",
-                    1 if payload.get("profile_cookie_valid") else 0,
-                    1 if payload.get("note_page_access_valid") else 0,
-                    1 if payload.get("shortlink_canonicalized") else 0,
-                    1 if payload.get("selector_valid") else 0,
-                    1 if payload.get("risk_login_detected") else 0,
-                    int(payload.get("evidence_count") or 0),
-                    payload.get("status") or "unknown",
-                    payload.get("error_code") or "",
-                    str(payload.get("error_summary") or "")[:500],
-                    checked_at,
-                    _json_safe(payload.get("details") or payload.get("details_json") or {}),
-                ),
-            )
-    finally:
-        conn.close()
+    if _connection is not None:
+        connections = hot_keywords._optional_db_conn(_connection)
+    else:
+        connections = hot_keywords._db_conn()
+    with connections as conn:
+        conn.execute(
+            """
+            INSERT INTO xhs_crawler_health
+                (id, run_id, adapter, domain, profile_cookie_valid,
+                 note_page_access_valid, shortlink_canonicalized, selector_valid,
+                 risk_login_detected, evidence_count, status, error_code,
+                 error_summary, checked_at, details_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                row_id,
+                payload.get("run_id") or str(uuid.uuid4()),
+                payload.get("adapter") or "unknown",
+                payload.get("domain") or "",
+                1 if payload.get("profile_cookie_valid") else 0,
+                1 if payload.get("note_page_access_valid") else 0,
+                1 if payload.get("shortlink_canonicalized") else 0,
+                1 if payload.get("selector_valid") else 0,
+                1 if payload.get("risk_login_detected") else 0,
+                int(payload.get("evidence_count") or 0),
+                payload.get("status") or "unknown",
+                payload.get("error_code") or "",
+                str(payload.get("error_summary") or "")[:500],
+                checked_at,
+                _json_safe(payload.get("details") or payload.get("details_json") or {}),
+            ),
+        )
     return {"id": row_id, "checked_at": checked_at}
 
 
@@ -445,8 +465,10 @@ def record_freshness(
     details: dict[str, Any] | None = None,
     acquired_at: datetime | None = None,
     min_count: int | None = None,
+    _connection=None,
 ) -> dict:
-    init_db()
+    if _connection is None:
+        init_db()
     acquired = acquired_at or _now()
     minimum = int(min_count or minimum_evidence_per_domain())
     count = int(evidence_count or 0)
@@ -454,39 +476,39 @@ def record_freshness(
     fresh_until = acquired + timedelta(hours=hot_keywords.FRESHNESS_MAX_HOURS)
     evidence_date = acquired.strftime("%Y-%m-%d")
     row_id = str(uuid.uuid4())
-    conn = hot_keywords._conn()
-    try:
-        with conn:
-            conn.execute(
-                """
-                INSERT INTO xhs_freshness_ledger
-                    (id, domain, evidence_date, source, evidence_count, status,
-                     acquired_at, fresh_until, last_run_id, details_json)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
-                ON CONFLICT(domain, evidence_date) DO UPDATE SET
-                    source=excluded.source,
-                    evidence_count=excluded.evidence_count,
-                    status=excluded.status,
-                    acquired_at=excluded.acquired_at,
-                    fresh_until=excluded.fresh_until,
-                    last_run_id=excluded.last_run_id,
-                    details_json=excluded.details_json
-                """,
-                (
-                    row_id,
-                    domain,
-                    evidence_date,
-                    source,
-                    count,
-                    status,
-                    acquired.isoformat(),
-                    fresh_until.isoformat(),
-                    run_id,
-                    _json_safe(details or {}),
-                ),
-            )
-    finally:
-        conn.close()
+    if _connection is not None:
+        connections = hot_keywords._optional_db_conn(_connection)
+    else:
+        connections = hot_keywords._db_conn()
+    with connections as conn:
+        conn.execute(
+            """
+            INSERT INTO xhs_freshness_ledger
+                (id, domain, evidence_date, source, evidence_count, status,
+                 acquired_at, fresh_until, last_run_id, details_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(domain, evidence_date) DO UPDATE SET
+                source=excluded.source,
+                evidence_count=excluded.evidence_count,
+                status=excluded.status,
+                acquired_at=excluded.acquired_at,
+                fresh_until=excluded.fresh_until,
+                last_run_id=excluded.last_run_id,
+                details_json=excluded.details_json
+            """,
+            (
+                row_id,
+                domain,
+                evidence_date,
+                source,
+                count,
+                status,
+                acquired.isoformat(),
+                fresh_until.isoformat(),
+                run_id,
+                _json_safe(details or {}),
+            ),
+        )
     return {
         "domain": domain,
         "evidence_date": evidence_date,
@@ -509,10 +531,12 @@ def record_scrape_freshness(
     scrape_error: str = "",
     discovery_diagnostics: dict[str, Any] | None = None,
     adapter: str = "scheduler_a",
+    _connection=None,
 ) -> dict:
-    init_db()
+    if _connection is None:
+        init_db()
     effective_run_id = run_id or str(uuid.uuid4())
-    domain_counts: dict[str, int] = defaultdict(int)
+    domain_keyword_keys: dict[str, set[str]] = defaultdict(set)
     domain_evidence_keys: dict[str, set[str]] = defaultdict(set)
     domain_source_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     source_counts: dict[str, int] = defaultdict(int)
@@ -523,18 +547,22 @@ def record_scrape_freshness(
         domain = _row_domain(cleaned)
         if not domain:
             continue
-        domain_counts[domain] += 1
+        keyword = str(cleaned.get("keyword") or "").strip()
+        if not keyword:
+            continue
+        domain_keyword_keys[domain].add(keyword)
         source = str(cleaned.get("source") or "unknown")
         source_counts[source] += 1
         domain_source_counts[domain][source] += 1
         domain_evidence_keys[domain].add(json.dumps(
-            [source, str(cleaned.get("keyword") or "").strip()],
+            [source, keyword],
             ensure_ascii=False,
             separators=(",", ":"),
         ))
 
     target_domains = tuple(domains or hot_keywords.CORE_EVIDENCE_DOMAINS)
     ledger = []
+    latest_run_domain_source_health: dict[str, dict[str, Any]] = {}
     acquired = _now()
     evidence_date = acquired.strftime("%Y-%m-%d")
     session = dict(session_status or {})
@@ -564,27 +592,35 @@ def record_scrape_freshness(
     )
     for domain in target_domains:
         current_keys = set(domain_evidence_keys.get(domain, set()))
-        conn = hot_keywords._conn()
-        try:
+        if _connection is not None:
+            conn = _connection
             previous = conn.execute(
                 "SELECT details_json FROM xhs_freshness_ledger WHERE domain=? AND evidence_date=?",
                 (domain, evidence_date),
             ).fetchone()
-        finally:
-            conn.close()
+        else:
+            conn = hot_keywords._conn()
+            try:
+                previous = conn.execute(
+                    "SELECT details_json FROM xhs_freshness_ledger WHERE domain=? AND evidence_date=?",
+                    (domain, evidence_date),
+                ).fetchone()
+            finally:
+                conn.close()
         previous_details = _parse_json_object(previous["details_json"]) if previous else {}
         previous_keys = {
             str(value) for value in (previous_details.get("evidence_keys") or []) if value
         }
         accumulated_keys = previous_keys | current_keys
         count = len(accumulated_keys)
-        current_count = int(domain_counts.get(domain, 0) or 0)
+        current_count = len(domain_keyword_keys.get(domain, set()))
         latest_source_health = _build_latest_run_source_health(
             domain_source_counts.get(domain),
             current_count,
             run_id=effective_run_id,
             checked_at=acquired.isoformat(),
         )
+        latest_run_domain_source_health[domain] = latest_source_health
         details = {
             "source_counts": dict(source_counts),
             "latest_run_source_counts": dict(domain_source_counts.get(domain, {})),
@@ -604,6 +640,7 @@ def record_scrape_freshness(
             min_count=min_count,
             details=details,
             acquired_at=acquired,
+            _connection=_connection,
         ))
         # The freshness ledger needs de-duplication keys; crawler health does not.
         # Keep raw keyword-bearing evidence keys out of operational health details.
@@ -694,17 +731,37 @@ def record_scrape_freshness(
             error_code=error_code,
             error_summary=error_summary,
             details=health_details,
-        ))
+        ), _connection=_connection)
 
-    overview = freshness_overview(target_domains)
+    if _connection is None:
+        overview = freshness_overview(target_domains)
+    else:
+        missing = [
+            row["domain"] for row in ledger
+            if row.get("status") != "fresh"
+        ]
+        overview = {
+            "ok": not missing,
+            "required": xhs_freshness_required(),
+            "domains": ledger,
+            "missing_domains": missing,
+            "access_status": access_status,
+        }
     return {
         "run_id": effective_run_id,
         "source": "xhs_public_scrape",
         "source_counts": dict(source_counts),
         "latest_run_source_breakdown": normalize_latest_run_source_breakdown(source_counts),
         "latest_run_evidence_count": sum(
-            max(0, int(domain_counts.get(domain, 0) or 0))
+            len(domain_keyword_keys.get(domain, set()))
             for domain in target_domains
+        ),
+        "latest_run_domain_counts": {
+            domain: len(domain_keyword_keys.get(domain, set()))
+            for domain in target_domains
+        },
+        "latest_run_domain_source_health": (
+            latest_run_domain_source_health
         ),
         "domains": ledger,
         "overview": overview,
@@ -726,8 +783,56 @@ def freshness_status(domain: str, *, now: datetime | None = None, min_count: int
             """,
             (domain,),
         ).fetchall()
+        contract_run_count = 0
+        latest_succeeded_run_id = ""
+        contract_check_failed = False
+        try:
+            contract_run_count_row = conn.execute(
+                "SELECT COUNT(id) AS c FROM xhs_trends_runs"
+            ).fetchone()
+            contract_run_count = int(contract_run_count_row["c"] or 0)
+            if contract_run_count:
+                succeeded_row = conn.execute(
+                    """
+                    SELECT id FROM xhs_trends_runs
+                    WHERE status='succeeded'
+                    ORDER BY completed_at DESC, id DESC
+                    LIMIT 1
+                    """
+                ).fetchone()
+                latest_succeeded_run_id = (
+                    str(succeeded_row["id"] or "")
+                    if succeeded_row else ""
+                )
+        except Exception:
+            contract_run_count = 0
+            latest_succeeded_run_id = ""
+            contract_check_failed = True
     finally:
         conn.close()
+    if contract_check_failed:
+        return {
+            "domain": domain,
+            "ok": False,
+            "status": "missing",
+            "evidence_count": 0,
+            "minimum": minimum,
+            "reason": "trends_contract_unavailable",
+        }
+    if contract_run_count and not latest_succeeded_run_id:
+        return {
+            "domain": domain,
+            "ok": False,
+            "status": "missing",
+            "evidence_count": 0,
+            "minimum": minimum,
+            "reason": "no_succeeded_trends_run",
+        }
+    if latest_succeeded_run_id:
+        rows = [
+            row for row in rows
+            if str(row["last_run_id"] or "") == latest_succeeded_run_id
+        ]
     if not rows:
         return {
             "domain": domain,
@@ -735,7 +840,11 @@ def freshness_status(domain: str, *, now: datetime | None = None, min_count: int
             "status": "missing",
             "evidence_count": 0,
             "minimum": minimum,
-            "reason": "no_xhs_freshness_record",
+            "reason": (
+                "latest_succeeded_trends_evidence_missing"
+                if latest_succeeded_run_id
+                else "no_xhs_freshness_record"
+            ),
         }
     active_rows = []
     for candidate in rows:

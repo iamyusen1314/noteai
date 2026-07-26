@@ -221,7 +221,14 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
     if missing:
         return False, f"harness_missing_fragments={len(missing)}"
 
-    xhs_env = {"NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http"}
+    xhs_trends_env = {
+        "NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http",
+        "NOTEAI_XHS_SERVICE": "trends",
+    }
+    xhs_tracking_env = {
+        "NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http",
+        "NOTEAI_XHS_SERVICE": "tracking",
+    }
     allowed_cases = {
         "api_start": ("api", ("/app/scripts/render_start_api.sh",), {}),
         "api_predeploy": ("api", ("python", "/app/scripts/render_predeploy.py"), {}),
@@ -231,23 +238,27 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             ("python", "-m", "uvicorn", "admin_server:admin_app", "--host", "0.0.0.0", "--port", "8001"),
             {},
         ),
-        "xhs_market_wrapper": ("xhs-http", ("/app/scripts/render_run_market_timing.sh",), xhs_env),
-        "xhs_crawler_wrapper": ("xhs-http", ("/app/scripts/render_run_crawler.sh",), xhs_env),
-        "xhs_market_bare": ("xhs-http", ("python", "market_timing_worker.py"), xhs_env),
-        "xhs_market_once": ("xhs-http", ("python", "market_timing_worker.py", "--once"), xhs_env),
+        "xhs_market_wrapper": ("xhs-http", ("/app/scripts/render_run_market_timing.sh",), xhs_trends_env),
+        "xhs_crawler_wrapper": ("xhs-http", ("/app/scripts/render_run_crawler.sh",), xhs_tracking_env),
+        "xhs_market_bare": ("xhs-http", ("python", "market_timing_worker.py"), xhs_trends_env),
+        "xhs_market_once": ("xhs-http", ("python", "market_timing_worker.py", "--once"), xhs_trends_env),
         "xhs_market_daemon": (
             "xhs-http",
             ("python", "market_timing_worker.py", "--daemon", "--interval", "60"),
-            xhs_env,
+            xhs_trends_env,
         ),
-        "xhs_crawler_bare": ("xhs-http", ("python", "crawler_worker.py"), xhs_env),
-        "xhs_crawler_once": ("xhs-http", ("python", "crawler_worker.py", "--once"), xhs_env),
+        "xhs_market_health": ("xhs-http", ("python", "market_timing_worker.py", "--healthcheck"), xhs_trends_env),
+        "xhs_market_ack": ("xhs-http", ("python", "market_timing_worker.py", "--acknowledge-unknown"), xhs_trends_env),
+        "xhs_market_clear": ("xhs-http", ("python", "market_timing_worker.py", "--clear-session-block"), xhs_trends_env),
+        "xhs_crawler_bare": ("xhs-http", ("python", "crawler_worker.py"), xhs_tracking_env),
+        "xhs_crawler_once": ("xhs-http", ("python", "crawler_worker.py", "--once"), xhs_tracking_env),
+        "xhs_crawler_health": ("xhs-http", ("python", "crawler_worker.py", "--healthcheck"), xhs_tracking_env),
         "xhs_crawler_loop": (
             "xhs-http",
             ("python", "crawler_worker.py", "--loop", "--interval-minutes", "60", "--limit", "50"),
-            xhs_env,
+            xhs_tracking_env,
         ),
-        "xhs_fail_closed_default": ("xhs-http", ("/bin/false",), xhs_env),
+        "xhs_fail_closed_default": ("xhs-http", ("/bin/false",), xhs_trends_env),
     }
     rejected_command_cases = {
         "api_empty_command": ("api", ()),
@@ -402,7 +413,7 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
                 role,
                 command,
                 allowed=False,
-                extra_env=xhs_env if role == "xhs-http" else None,
+                extra_env=xhs_tracking_env if role == "xhs-http" else None,
             )
         for name, (marker_state, image_role, declared_role) in marker_cases.items():
             run_case(
@@ -427,10 +438,31 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             "xhs-http",
             ("/app/scripts/render_run_crawler.sh",),
             allowed=False,
-            extra_env={"NOTEAI_XHS_ACQUISITION_ADAPTER": ""},
+            extra_env={
+                "NOTEAI_XHS_ACQUISITION_ADAPTER": "",
+                "NOTEAI_XHS_SERVICE": "tracking",
+            },
+        )
+        run_case(
+            "xhs_missing_service",
+            "xhs-http",
+            "xhs-http",
+            ("/bin/false",),
+            allowed=False,
+            extra_env={
+                "NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http",
+            },
+        )
+        run_case(
+            "xhs_cross_service_command",
+            "xhs-http",
+            "xhs-http",
+            ("python", "crawler_worker.py", "--once"),
+            allowed=False,
+            extra_env=xhs_trends_env,
         )
 
-    detail = f"allowed={len(allowed_cases)} rejected={len(rejected_command_cases) + len(marker_cases) + 2}"
+    detail = f"allowed={len(allowed_cases)} rejected={len(rejected_command_cases) + len(marker_cases) + 4}"
     if failures:
         detail += f" failures={failures[:8]}"
     return not failures, detail
@@ -632,6 +664,21 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         / "migrations"
         / "postgres"
         / "0010_tracking_execution_contract.sql"
+    ).read_text(encoding="utf-8")
+    trends_contract = (
+        ROOT / "docs" / "XHS_TRENDS_PRODUCTION_CONTRACT.md"
+    ).read_text(encoding="utf-8")
+    trends_migration = (
+        MODEL_DIR
+        / "migrations"
+        / "postgres"
+        / "0011_trends_execution_contract.sql"
+    ).read_text(encoding="utf-8")
+    trends_runtime = (
+        MODEL_DIR / "trends_contract.py"
+    ).read_text(encoding="utf-8")
+    market_worker = (
+        MODEL_DIR / "market_timing_worker.py"
     ).read_text(encoding="utf-8")
     xhs_tests = (ROOT / "tests" / "test_xhs_acquisition.py").read_text(encoding="utf-8")
     architecture_summary = (ROOT / ".codex" / "notes" / "architecture-summary.md").read_text(encoding="utf-8")
@@ -860,7 +907,11 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             ) == 1
             and "NOTEAI_XHS_ENV_FILE" not in production_compose
             and "NOTEAI_PRODUCTION_ENV_FILE" not in production_compose
-            and production_compose.count("target: /app/model/data") == 4
+            and production_compose.count("target: /app/model/data") == 3
+            and "target: /app/model/data" not in _compose_service_block(
+                production_compose,
+                "xhs-trends",
+            )
             and "target: /app/model/artifacts" not in production_compose,
         ),
         _ok(
@@ -901,6 +952,60 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and "at most one 24h and one 7d provider admission"
             in tracking_contract
             and "noteai_xhs_tracking" in tracking_contract,
+        ),
+        _ok(
+            "trends_execution_contract_is_atomic_bounded_and_fail_closed",
+            "xhs_trends_snapshot_evidence" in trends_migration
+            and "UNIQUE (run_id, ordinal)" in trends_migration
+            and "provider_attempt_count BETWEEN 0 AND 34" in trends_migration
+            and not any(
+                re.match(r"\\s*(?:GRANT|REVOKE)\\b", line, re.IGNORECASE)
+                for line in trends_migration.splitlines()
+            )
+            and "def publish_transaction" in trends_runtime
+            and "def record_snapshot_evidence" in trends_runtime
+            and "def snapshot_payload_from_rows" in trends_runtime
+            and "trends_snapshot_upload_not_allowed" in market_worker
+            and "trends_current_run_xhs_evidence_incomplete" in market_worker
+            and "trends_provider_attempt_evidence_incomplete" in market_worker
+            and "noteai_xhs_trends" in trends_contract
+            and "all commit or all roll back" in trends_contract,
+        ),
+        _ok(
+            "production_trends_runtime_is_isolated_and_resource_bounded",
+            "${NOTEAI_XHS_TRENDS_SUSPENDED:-1}" in production_compose
+            and "NOTEAI_XHS_SERVICE: trends" in _compose_service_block(
+                production_compose,
+                "xhs-trends",
+            )
+            and 'restart: "no"' in _compose_service_block(
+                production_compose,
+                "xhs-trends",
+            )
+            and "--healthcheck" in _compose_service_block(
+                production_compose,
+                "xhs-trends",
+            )
+            and "--interval" in _compose_service_block(
+                production_compose,
+                "xhs-trends",
+            )
+            and 'cpus: "0.50"' in _compose_service_block(
+                production_compose,
+                "xhs-trends",
+            )
+            and "mem_limit: 512m" in _compose_service_block(
+                production_compose,
+                "xhs-trends",
+            )
+            and "pids_limit: 64" in _compose_service_block(
+                production_compose,
+                "xhs-trends",
+            )
+            and "target: /app/model/data" not in _compose_service_block(
+                production_compose,
+                "xhs-trends",
+            ),
         ),
         _ok(
             "production_tracking_runtime_is_isolated_and_resource_bounded",

@@ -43,11 +43,15 @@ ROLE_ALLOWED_SECRET_KEYS = {
     "xhs_trends": frozenset(
         {
             "DATABASE_URL",
-            "NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN",
-            "NOTEAI_AUTHORIZED_TREND_TOKEN",
+            "NOTEAI_XHS_COOKIES_JSON",
         }
     ),
-    "xhs_tracking": frozenset({"DATABASE_URL"}),
+    "xhs_tracking": frozenset(
+        {
+            "DATABASE_URL",
+            "NOTEAI_XHS_COOKIES_JSON",
+        }
+    ),
 }
 
 _KNOWN_SECRET_KEYS = frozenset().union(*ROLE_ALLOWED_SECRET_KEYS.values())

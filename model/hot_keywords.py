@@ -6,6 +6,7 @@ import sqlite3
 import re
 import os
 import json
+import secrets
 import unicodedata
 from collections import Counter
 from contextlib import contextmanager
@@ -67,6 +68,179 @@ CREATE TABLE IF NOT EXISTS keyword_snapshots (
 CREATE INDEX IF NOT EXISTS idx_kw_captured ON hot_keywords(captured_at);
 CREATE INDEX IF NOT EXISTS idx_kw_category_captured ON hot_keywords(category, captured_at);
 CREATE INDEX IF NOT EXISTS idx_snap_kw     ON keyword_snapshots(keyword, captured_at);
+
+CREATE TABLE IF NOT EXISTS xhs_trends_runs (
+    id                     TEXT PRIMARY KEY,
+    bucket_key             TEXT NOT NULL UNIQUE
+                               CHECK (
+                                   length(bucket_key)=10
+                                   AND substr(bucket_key,5,1)='-'
+                                   AND substr(bucket_key,8,1)='-'
+                                   AND date(bucket_key,'+0 days') IS NOT NULL
+                                   AND date(bucket_key,'+0 days')=bucket_key
+                               ),
+    status                 TEXT NOT NULL
+                               CHECK (status IN ('running','succeeded','failed','needs_manual')),
+    lease_token_hash       TEXT NOT NULL
+                               CHECK (
+                                   length(lease_token_hash)=64
+                                   AND lease_token_hash NOT GLOB '*[^0-9a-f]*'
+                               ),
+    lease_fence            INTEGER NOT NULL CHECK (lease_fence > 0),
+    lease_expires_at       TEXT NOT NULL,
+    started_at             TEXT NOT NULL,
+    completed_at           TEXT,
+    provider_attempt_count INTEGER NOT NULL DEFAULT 0
+                               CHECK (provider_attempt_count BETWEEN 0 AND 34),
+    last_error_code        TEXT NOT NULL DEFAULT ''
+                               CHECK (length(last_error_code)<=64),
+    snapshot_sha256        TEXT NOT NULL DEFAULT ''
+                               CHECK (
+                                   snapshot_sha256=''
+                                   OR (
+                                       length(snapshot_sha256)=64
+                                       AND snapshot_sha256 NOT GLOB '*[^0-9a-f]*'
+                                   )
+                               ),
+    snapshot_size          INTEGER NOT NULL DEFAULT 0
+                               CHECK (snapshot_size BETWEEN 0 AND 1048576),
+    CHECK (
+        (
+            status='running'
+            AND completed_at IS NULL
+            AND julianday(started_at) IS NOT NULL
+            AND julianday(lease_expires_at) IS NOT NULL
+            AND julianday(lease_expires_at)>julianday(started_at)
+        )
+        OR (
+            status<>'running'
+            AND completed_at IS NOT NULL
+            AND julianday(started_at) IS NOT NULL
+            AND julianday(completed_at) IS NOT NULL
+            AND julianday(lease_expires_at) IS NOT NULL
+            AND julianday(completed_at)>=julianday(started_at)
+            AND julianday(lease_expires_at)>julianday(started_at)
+        )
+    ),
+    CHECK (
+        (
+            status='succeeded'
+            AND length(snapshot_sha256)=64
+            AND snapshot_size>0
+        )
+        OR (
+            status<>'succeeded'
+            AND snapshot_sha256=''
+            AND snapshot_size=0
+        )
+    ),
+    UNIQUE (id, lease_token_hash, lease_fence)
+);
+
+CREATE TABLE IF NOT EXISTS xhs_trends_service_state (
+    service_key            TEXT PRIMARY KEY CHECK (service_key='market_timing'),
+    active_run_id          TEXT,
+    status                 TEXT NOT NULL CHECK (status IN ('idle','running','needs_manual')),
+    lease_token_hash       TEXT,
+    lease_fence            INTEGER NOT NULL DEFAULT 0 CHECK (lease_fence >= 0),
+    lease_expires_at       TEXT,
+    session_blocked        INTEGER NOT NULL DEFAULT 0 CHECK (session_blocked IN (0,1)),
+    session_block_reason   TEXT NOT NULL DEFAULT '',
+    session_blocked_at     TEXT,
+    updated_at             TEXT NOT NULL,
+    FOREIGN KEY (active_run_id, lease_token_hash, lease_fence)
+        REFERENCES xhs_trends_runs(id, lease_token_hash, lease_fence)
+        DEFERRABLE INITIALLY DEFERRED,
+    CHECK (
+        (
+            status='idle'
+            AND active_run_id IS NULL
+            AND lease_token_hash IS NULL
+            AND lease_expires_at IS NULL
+        )
+        OR (
+            status IN ('running','needs_manual')
+            AND active_run_id IS NOT NULL
+            AND lease_token_hash IS NOT NULL
+            AND length(lease_token_hash)=64
+            AND lease_token_hash NOT GLOB '*[^0-9a-f]*'
+            AND lease_fence>0
+            AND lease_expires_at IS NOT NULL
+            AND julianday(lease_expires_at) IS NOT NULL
+        )
+    ),
+    CHECK (
+        (
+            session_blocked=0
+            AND session_block_reason=''
+            AND session_blocked_at IS NULL
+        )
+        OR (
+            session_blocked=1
+            AND session_block_reason='server_session_logged_out'
+            AND session_blocked_at IS NOT NULL
+            AND julianday(session_blocked_at) IS NOT NULL
+        )
+    ),
+    CHECK (julianday(updated_at) IS NOT NULL)
+);
+
+CREATE TABLE IF NOT EXISTS xhs_trends_provider_attempts (
+    id              TEXT PRIMARY KEY,
+    run_id          TEXT NOT NULL REFERENCES xhs_trends_runs(id) ON DELETE CASCADE,
+    ordinal         INTEGER NOT NULL CHECK (ordinal BETWEEN 1 AND 34),
+    endpoint        TEXT NOT NULL
+                        CHECK (endpoint IN ('homefeed','search_recommend','search_notes')),
+    status          TEXT NOT NULL
+                        CHECK (status IN ('admitted','succeeded','failed','outcome_unknown')),
+    admitted_at     TEXT NOT NULL,
+    admitted_date   TEXT NOT NULL,
+    completed_at    TEXT,
+    error_code      TEXT NOT NULL DEFAULT '' CHECK (length(error_code)<=64),
+    UNIQUE (run_id, ordinal),
+    CHECK (
+        (
+            status='admitted'
+            AND completed_at IS NULL
+            AND julianday(admitted_at) IS NOT NULL
+        )
+        OR (
+            status<>'admitted'
+            AND completed_at IS NOT NULL
+            AND julianday(admitted_at) IS NOT NULL
+            AND julianday(completed_at) IS NOT NULL
+            AND julianday(completed_at)>=julianday(admitted_at)
+        )
+    ),
+    CHECK (
+        date(admitted_date,'+0 days') IS NOT NULL
+        AND date(admitted_date,'+0 days')=admitted_date
+        AND admitted_date=substr(admitted_at,1,10)
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_xhs_trends_attempt_date
+    ON xhs_trends_provider_attempts(admitted_date, admitted_at);
+CREATE INDEX IF NOT EXISTS idx_xhs_trends_attempt_status
+    ON xhs_trends_provider_attempts(status, admitted_at);
+
+CREATE TABLE IF NOT EXISTS xhs_trends_snapshot_evidence (
+    run_id             TEXT PRIMARY KEY
+                            REFERENCES xhs_trends_runs(id) ON DELETE RESTRICT,
+    schema_version     INTEGER NOT NULL CHECK (schema_version=1),
+    snapshot_sha256    TEXT NOT NULL
+                            CHECK (
+                                length(snapshot_sha256)=64
+                                AND snapshot_sha256 NOT GLOB '*[^0-9a-f]*'
+                            ),
+    snapshot_size      INTEGER NOT NULL
+                            CHECK (snapshot_size BETWEEN 1 AND 1048576),
+    keyword_count      INTEGER NOT NULL
+                            CHECK (keyword_count BETWEEN 72 AND 90),
+    domain_counts_json TEXT NOT NULL,
+    payload_json       TEXT NOT NULL,
+    created_at         TEXT NOT NULL CHECK (julianday(created_at) IS NOT NULL),
+    CHECK (length(CAST(payload_json AS BLOB))=snapshot_size)
+);
 """
 
 _DOMAIN_CATEGORY_ALIASES = {
@@ -180,6 +354,15 @@ def _db_conn():
         conn.close()
 
 
+@contextmanager
+def _optional_db_conn(connection=None):
+    if connection is not None:
+        yield connection
+        return
+    with _db_conn() as conn:
+        yield conn
+
+
 def _hot_keywords_unique_columns(c: sqlite3.Connection) -> list[str]:
     try:
         for idx in c.execute("PRAGMA index_list(hot_keywords)").fetchall():
@@ -241,11 +424,11 @@ def init_db():
 
 # ── Write ─────────────────────────────────────────────────────────────────────
 
-def upsert_keywords(keywords: list[dict]):
+def upsert_keywords(keywords: list[dict], *, _connection=None):
     """Save a scrape batch. keywords: [{keyword, search_vol, trend_dir, source, count}]"""
     now = datetime.now().isoformat()
     today = datetime.now().strftime("%Y-%m-%d")
-    with _db_conn() as c:
+    with _optional_db_conn(_connection) as c:
         for raw_kw in keywords:
             kw = clean_scraped_keyword_row(raw_kw)
             if not kw:
@@ -268,8 +451,6 @@ def upsert_keywords(keywords: list[dict]):
                                            THEN excluded.source
                                       ELSE hot_keywords.source
                                   END,
-                    category   = CASE WHEN excluded.category!='' THEN excluded.category
-                                      ELSE hot_keywords.category END,
                     sample_count = MAX(sample_count, excluded.sample_count),
                     quality_score = MAX(quality_score, excluded.quality_score),
                     evidence_level = excluded.evidence_level,
@@ -420,9 +601,20 @@ def import_keyword_snapshot(payload: dict | list, default_source: str = "cloud_s
     }
 
 
-def export_keyword_snapshot(hours: int = FRESHNESS_MAX_HOURS) -> dict:
+def export_keyword_snapshot(
+    hours: int = FRESHNESS_MAX_HOURS,
+    *,
+    max_per_domain: int | None = None,
+    domains: tuple[str, ...] | list[str] | None = None,
+    _connection=None,
+) -> dict:
+    allowed_domains = (
+        {str(value) for value in domains}
+        if domains is not None
+        else None
+    )
     since = (datetime.now() - timedelta(hours=hours)).isoformat()
-    with _db_conn() as c:
+    with _optional_db_conn(_connection) as c:
         rows = c.execute(
             """
             SELECT keyword, search_vol, trend_dir, source, category,
@@ -430,18 +622,38 @@ def export_keyword_snapshot(hours: int = FRESHNESS_MAX_HOURS) -> dict:
                    captured_at, captured_date
             FROM hot_keywords
             WHERE captured_at > ?
-            ORDER BY category, (quality_score*0.65 + search_vol*0.35 + trend_dir*5) DESC
+            ORDER BY category,
+                     (quality_score*0.65 + search_vol*0.35 + trend_dir*5) DESC,
+                     captured_at DESC, keyword
             """,
             (since,),
         ).fetchall()
-    domains: dict[str, dict] = {}
+    snapshot_domains: dict[str, dict] = {}
+    seen_by_domain: dict[str, set[str]] = {}
     for row in rows:
         category = row["category"] or "综合"
-        bucket = domains.setdefault(category, {"captured_at": row["captured_at"], "keywords": []})
+        if allowed_domains is not None and category not in allowed_domains:
+            continue
+        keyword = str(row["keyword"] or "").strip()
+        if not keyword:
+            continue
+        seen = seen_by_domain.setdefault(category, set())
+        if keyword in seen:
+            continue
+        bucket = snapshot_domains.setdefault(
+            category,
+            {"captured_at": row["captured_at"], "keywords": []},
+        )
+        if (
+            max_per_domain is not None
+            and len(bucket["keywords"]) >= max(0, int(max_per_domain))
+        ):
+            continue
+        seen.add(keyword)
         if row["captured_at"] > bucket["captured_at"]:
             bucket["captured_at"] = row["captured_at"]
         bucket["keywords"].append({
-            "keyword": row["keyword"],
+            "keyword": keyword,
             "search_vol": int(row["search_vol"] or 0),
             "trend_dir": int(row["trend_dir"] or 0),
             "source": row["source"] or "unknown",
@@ -456,15 +668,50 @@ def export_keyword_snapshot(hours: int = FRESHNESS_MAX_HOURS) -> dict:
         "schema_version": 1,
         "generated_at": datetime.now().isoformat(),
         "freshness_max_hours": hours,
-        "domains": domains,
+        "domains": snapshot_domains,
     }
 
 
-def write_keyword_snapshot(path: str | Path, hours: int = FRESHNESS_MAX_HOURS) -> dict:
-    payload = export_keyword_snapshot(hours=hours)
+def write_keyword_snapshot(
+    path: str | Path,
+    hours: int = FRESHNESS_MAX_HOURS,
+    *,
+    max_per_domain: int | None = None,
+    domains: tuple[str, ...] | list[str] | None = None,
+    _connection=None,
+) -> dict:
+    payload = export_keyword_snapshot(
+        hours=hours,
+        max_per_domain=max_per_domain,
+        domains=domains,
+        _connection=_connection,
+    )
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    encoded = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    temporary = target.with_name(
+        f".{target.name}.{os.getpid()}.{secrets.token_hex(8)}.tmp"
+    )
+    try:
+        with temporary.open("xb") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, target)
+        try:
+            directory_fd = os.open(target.parent, os.O_RDONLY)
+        except OSError:
+            directory_fd = -1
+        if directory_fd >= 0:
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+    finally:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
     return payload
 
 
@@ -966,6 +1213,7 @@ def clean_scraped_keyword_row(row: dict) -> dict | None:
 def baseline_evidence_rows(
     domains: list[str] | tuple[str, ...] | None = None,
     min_per_domain: int | None = None,
+    max_per_domain: int | None = None,
 ) -> list[dict]:
     """Return deterministic daily baseline rows for industry evidence packs.
 
@@ -979,6 +1227,8 @@ def baseline_evidence_rows(
     for domain in target_domains:
         seeds = _DAILY_BASELINE_SEEDS.get(domain, ())
         seed_limit = min(len(seeds), per_domain + 4)
+        if max_per_domain is not None:
+            seed_limit = min(seed_limit, max(0, int(max_per_domain)))
         for idx, keyword in enumerate(seeds[:seed_limit]):
             rows.append({
                 "keyword": keyword,
@@ -994,6 +1244,8 @@ def baseline_evidence_rows(
 def ensure_daily_evidence_pack(
     domains: list[str] | tuple[str, ...] | None = None,
     min_per_domain: int | None = None,
+    max_per_domain: int | None = None,
+    target_total_per_domain: int | None = None,
 ) -> dict:
     """Ensure every core industry has a fresh, labelled baseline evidence pack."""
     init_db()
@@ -1004,7 +1256,23 @@ def ensure_daily_evidence_pack(
         status = db_status(domain)
         if status.get("has_fresh_domain_data"):
             continue
-        rows = baseline_evidence_rows((domain,), min_per_domain=min_per_domain)
+        domain_limit = max_per_domain
+        if target_total_per_domain is not None:
+            existing = max(
+                0,
+                int(status.get("domain_qualified_keyword_count") or 0),
+            )
+            remaining = max(0, int(target_total_per_domain) - existing)
+            domain_limit = (
+                remaining
+                if domain_limit is None
+                else min(max(0, int(domain_limit)), remaining)
+            )
+        rows = baseline_evidence_rows(
+            (domain,),
+            min_per_domain=min_per_domain,
+            max_per_domain=domain_limit,
+        )
         if rows:
             generated_rows.extend(rows)
             refreshed_domains.append(domain)

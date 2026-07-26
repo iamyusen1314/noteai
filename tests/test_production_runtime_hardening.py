@@ -139,7 +139,11 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
             service_block(compose, "xhs-tracking"),
         )
         self.assertNotIn("NOTEAI_PRODUCTION_ENV_FILE", compose)
-        self.assertEqual(compose.count("target: /app/model/data"), 4)
+        self.assertEqual(compose.count("target: /app/model/data"), 3)
+        self.assertNotIn(
+            "target: /app/model/data",
+            service_block(compose, "xhs-trends"),
+        )
         self.assertNotIn("target: /app/model/artifacts", compose)
         self.assertNotIn("NOTEAI_ENABLE_CLOUD_MODEL_MUTATION: \"1\"", compose)
 

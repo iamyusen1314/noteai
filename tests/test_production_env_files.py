@@ -84,8 +84,7 @@ class ProductionEnvFileTests(unittest.TestCase):
                         directory,
                         "xhs-trends.env",
                         f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
-                        "NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN="
-                        f"{SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_XHS_COOKIES_JSON={SAFE_TEST_SECRET_VALUE}\n"
                         f"NOTEAI_XHS_TOKEN_DISCOVERY={SAFE_DISABLED_VALUE}\n"
                         "NOTEAI_XHS_COLLECTION_SUSPENDED=1\n",
                     ),
@@ -96,6 +95,7 @@ class ProductionEnvFileTests(unittest.TestCase):
                         directory,
                         "xhs-tracking.env",
                         f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_XHS_COOKIES_JSON={SAFE_TEST_SECRET_VALUE}\n"
                         "NOTEAI_XHS_COLLECTION_SUSPENDED=1\n",
                     ),
                 ),
@@ -109,7 +109,7 @@ class ProductionEnvFileTests(unittest.TestCase):
         )
         self.assertEqual(
             [result["secret_key_count"] for result in results],
-            [2, 2, 2, 1],
+            [2, 2, 2, 2],
         )
 
     def test_cross_role_and_unknown_secret_names_fail_closed(self):
@@ -120,6 +120,8 @@ class ProductionEnvFileTests(unittest.TestCase):
             ("xhs_tracking", "NOTEAI_AUTHORIZED_TREND_TOKEN"),
             ("api", "UNREVIEWED_VENDOR_TOKEN"),
             ("xhs_tracking", "XHS_SESSION_COOKIE"),
+            ("api", "NOTEAI_XHS_COOKIES_JSON"),
+            ("admin", "NOTEAI_XHS_COOKIES_JSON"),
         )
         with tempfile.TemporaryDirectory() as raw_directory:
             directory = Path(raw_directory)
@@ -229,12 +231,12 @@ class ProductionEnvFileTests(unittest.TestCase):
             xhs_trends = self._env_file(
                 directory,
                 "xhs-trends.env",
-                f"NOTEAI_AUTHORIZED_TREND_TOKEN={synthetic_secret}\n",
+                f"NOTEAI_XHS_COOKIES_JSON={synthetic_secret}\n",
             )
             xhs_tracking = self._env_file(
                 directory,
                 "xhs-tracking.env",
-                f"DATABASE_URL={synthetic_secret}\n",
+                f"NOTEAI_XHS_COOKIES_JSON={synthetic_secret}\n",
             )
             output = io.StringIO()
             argv = [

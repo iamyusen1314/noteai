@@ -77,7 +77,13 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
-    command: ["python", "market_timing_worker.py", "--daemon", "--interval", "${NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES:-60}"]
+    command: ["python", "market_timing_worker.py", "--daemon", "--interval", "${NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES:-360}"]
+    healthcheck:
+      test: ["CMD", "python", "market_timing_worker.py", "--healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     volumes:
       # 独立趋势 worker 写入每日行业热词快照；API 只读取，不在自身进程采集
       - ./model/data:/app/model/data
@@ -86,11 +92,12 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - NOTEAI_RUNTIME_ROLE=xhs-http
+      - NOTEAI_XHS_SERVICE=trends
       - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
       - NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http
       - NOTEAI_XHS_COLLECTION_SUSPENDED=${NOTEAI_XHS_COLLECTION_SUSPENDED:-1}
       - NOTEAI_XHS_FRESHNESS_REQUIRED=${NOTEAI_XHS_FRESHNESS_REQUIRED:-1}
-    restart: unless-stopped
+    restart: "no"
 
   noteai-tracking-worker:
     build:
@@ -114,6 +121,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - NOTEAI_RUNTIME_ROLE=xhs-http
+      - NOTEAI_XHS_SERVICE=tracking
       - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
       - NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http
       - NOTEAI_XHS_COLLECTION_SUSPENDED=${NOTEAI_XHS_COLLECTION_SUSPENDED:-1}

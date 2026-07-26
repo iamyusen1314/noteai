@@ -16,14 +16,13 @@ NoteAI 的生产密钥目前配置在 GitHub Environment：`production`。
 - `MEITUAN_OPEN_TOKEN`
 - `MOONSHOT_API_KEY`
 - `NOTEAI_MARKET_TIMING_REFRESH_TOKEN`
-- `NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN`
 
 说明：NoteAI 运行时接受 `MEITUAN_AI_HUB_TOKEN` 或 `MEITUAN_OPEN_TOKEN`，生产环境只需配置其中一个，无需重复存同一份密钥。官方 `meituan-travel` CLI 1.0.16 实际只读取 `~/.config/meituan-travel/config.json` 的 `key`/`Authorization`；NoteAI 会在每次调用前把上述 Secret 写入权限为 `0600` 的临时配置，并使用权限为 `0700` 的隔离 HOME，调用结束后立即清理。Token 不进入命令参数或应用日志。
 
 ## Production Role Env Files
 
 Alibaba Cloud production must not use one shared runtime env file. The
-production Compose contract accepts three external inputs:
+production Compose contract accepts four external inputs:
 
 | Role | Compose input | Default host path |
 |---|---|---|
@@ -50,15 +49,15 @@ Allowed Secret key names are intentionally role-specific:
   `NOTEAI_AUTHORIZED_TREND_TOKEN`, `AWS_ACCESS_KEY_ID`,
   `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`.
 - Admin: `DATABASE_URL` and `ADMIN_PASSWORD`.
-- XHS Trends: `DATABASE_URL`,
-  `NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN`, and
-  `NOTEAI_AUTHORIZED_TREND_TOKEN`.
-- XHS Tracking: `DATABASE_URL` only.
+- XHS Trends: `DATABASE_URL` and `NOTEAI_XHS_COOKIES_JSON`.
+- XHS Tracking: `DATABASE_URL` and `NOTEAI_XHS_COOKIES_JSON`.
 
 These are allowed names, not mandatory values. Provider-specific credentials
 must only be present when that separately approved provider path is enabled.
-XHS session/Cookie material is not an env-file key and must stay in its
-existing controlled runtime store.
+`NOTEAI_XHS_COOKIES_JSON` is the only implemented direct-XHS session input.
+It may exist only in the two distinct `0600` XHS role files; API/Admin files
+must reject it. Values are never printed. The old snapshot-upload and
+authorized-trend tokens are not accepted by either managed XHS role.
 
 Before any production Compose resolution, validate key names without printing
 values:
@@ -97,10 +96,9 @@ to the wrong role.
 - `NOTEAI_MARKET_TIMING_REQUIRED=1`
 - `NOTEAI_MARKET_TIMING_FETCH_TIMEOUT=8`
 - `NOTEAI_MARKET_TIMING_REFRESH_URL=<trend-worker-refresh-webhook>`
-- `NOTEAI_MARKET_TIMING_SNAPSHOT_PATH=model/data/market_timing_snapshot.json`
-- `NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_URL=<object-storage-upload-url-or-empty-if-worker-shares-db>`
-- `NOTEAI_MARKET_TIMING_SNAPSHOT_URL=<object-storage-cdn-url-or-empty-if-worker-shares-db>`
-- `NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES=60`
+- `NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_URL=` (must be empty for managed Trends)
+- `NOTEAI_MARKET_TIMING_SNAPSHOT_URL=` (shared-DB production contract)
+- `NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES=360`
 - `NOTEAI_MARKET_TIMING_MIN_DOMAIN_KEYWORDS=12`
 - `NOTEAI_XHS_SCROLL_ROUNDS=10`
 - `NOTEAI_XHS_SCROLL_WAIT_SECONDS=1.0`
@@ -138,7 +136,12 @@ environment: production
 - Docker 容器启动会先执行 `python -m artifact_loader`；若生产模型缺失或 SHA256 不一致，服务必须启动失败。
 - 生产 Compose 必须分别使用 API、Admin 和 XHS env 文件；禁止回退到共享 `runtime.env`。
 - 部署前必须运行 `scripts/validate_production_env_files.py`，只输出计数和错误键名，不输出 Secret 值。
-- API 容器默认不得启动热词采集器；市场时机证据由独立 `noteai-trends-worker`/云端 cron 写入共享 DB 或对象存储快照。
-- 生产不依赖授权趋势源；公开抓取不足时，worker 必须生成 `industry_baseline` 行业基线证据包。该来源只能作为辅助参考，不得展示成平台官方热搜。
+- API 容器默认不得启动热词采集器；市场时机证据只由独立
+  `xhs-trends` 写入共享 DB。
+- Managed Trends 禁止 HTTP snapshot upload。精确 payload、SHA、大小和
+  六域计数与本轮业务数据、成功账本在同一事务内写入数据库。
+- 生产不依赖授权趋势源。`industry_baseline` 只能在本轮六域真实 XHS
+  证据门已经通过后补齐有界 90 词快照，不得使失败运行成功，也不得
+  展示成平台官方热搜。
 - 生产 `NOTEAI_MARKET_TIMING_REQUIRED` 必须保持 `1`；拿不到当前行业新鲜快照时，AI 诊断/生成应返回 `MARKET_TIMING_EVIDENCE_UNAVAILABLE`，不能静默使用旧数据。
 - Dependabot security updates 已启用；依赖更新走 PR 和 `test` 状态检查，不直接进 `main`。

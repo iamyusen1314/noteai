@@ -1366,7 +1366,7 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
             hot_keywords.DB_PATH = original_db
             market_timing_worker.scrape_once = original_scrape_once
 
-    def test_operator_suspension_skips_scrape_and_hard_fails(self):
+    def test_operator_suspension_skips_before_database_and_provider(self):
         original_db = hot_keywords.DB_PATH
         original_scrape_once = market_timing_worker.scrape_once
         scrape_calls = 0
@@ -1396,31 +1396,21 @@ class XHSAcquisitionLedgerTests(unittest.TestCase):
                         },
                     ),
                 ):
-                    with self.assertRaisesRegex(
-                        RuntimeError,
-                        "XHS_FRESH_EVIDENCE_UNAVAILABLE",
+                    with patch.dict(
+                        os.environ,
+                        {"NOTEAI_XHS_SERVICE": "trends"},
                     ):
-                        asyncio.run(market_timing_worker.run_once(
+                        result = asyncio.run(market_timing_worker.run_once(
                             tmp / "market_timing_snapshot.json",
                             hard_fail_on_xhs_missing=True,
                         ))
 
                 self.assertEqual(scrape_calls, 0)
-                latest_run_id = xhs_acquisition.recent_health(
-                    adapter="spider_xhs_http"
-                )[0]["run_id"]
-                latest_rows = [
-                    row for row in xhs_acquisition.recent_health(
-                        limit=20,
-                        adapter="spider_xhs_http",
-                    )
-                    if row["run_id"] == latest_run_id
-                ]
-                self.assertEqual(len(latest_rows), len(hot_keywords.CORE_EVIDENCE_DOMAINS))
-                self.assertEqual(
-                    {row["error_code"] for row in latest_rows},
-                    {"collection_suspended"},
-                )
+                self.assertTrue(result["skipped"])
+                self.assertEqual(result["reason"], "collection_suspended")
+                self.assertEqual(result["database_writes"], 0)
+                self.assertFalse(result["provider_called"])
+                self.assertFalse(hot_keywords.DB_PATH.exists())
         finally:
             hot_keywords.DB_PATH = original_db
             market_timing_worker.scrape_once = original_scrape_once

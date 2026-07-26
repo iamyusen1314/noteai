@@ -19,7 +19,9 @@ from pathlib import Path
 
 import httpx
 
+import trends_contract
 from hot_keywords import (
+    BASELINE_EVIDENCE_SOURCE,
     db_status,
     ensure_daily_evidence_pack,
     init_db,
@@ -37,6 +39,7 @@ from xhs_acquisition import (
     challenge_cooldown_status,
     collection_safety_status,
     freshness_overview,
+    init_db as init_xhs_acquisition_db,
     mark_server_session_logged_out,
     record_scrape_freshness,
     xhs_freshness_required,
@@ -71,14 +74,19 @@ def _public_xhs_freshness(value):
     return value
 
 
-def _upload_snapshot(payload: dict, url: str) -> None:
+def _upload_snapshot(payload: dict | bytes, url: str) -> None:
     headers = {"Content-Type": "application/json"}
     token = os.environ.get("NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN", "").strip()
     if token:
         headers["Authorization"] = f"Bearer {token}"
     timeout = float(os.environ.get("NOTEAI_MARKET_TIMING_UPLOAD_TIMEOUT", "20") or 20)
+    content = (
+        payload
+        if isinstance(payload, bytes)
+        else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    )
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-        resp = client.put(url, content=json.dumps(payload, ensure_ascii=False).encode("utf-8"), headers=headers)
+        resp = client.put(url, content=content, headers=headers)
         resp.raise_for_status()
 
 
@@ -94,14 +102,16 @@ async def _scrape_selected_adapter(configured_adapter: str):
     return await scrape_once()
 
 
-async def run_once(
+async def _run_once_body(
     snapshot_path: Path,
     upload_url: str = "",
     hours: int = 30,
     hard_fail_on_xhs_missing: bool | None = None,
 ) -> dict:
     init_db()
-    run_id = str(uuid.uuid4())
+    init_xhs_acquisition_db()
+    active_lease = trends_contract.active_run()
+    run_id = active_lease.run_id if active_lease is not None else str(uuid.uuid4())
     scrape_error = ""
     session_status = session_state_summary()
     configured_adapter = os.environ.get(
@@ -153,6 +163,8 @@ async def run_once(
                 [],
                 extra_error_code="scrape_once_failed",
             )
+    if trends_contract.active_run() is not None:
+        keywords = trends_contract.bound_keyword_rows(list(keywords))
     diagnostic_codes = set(
         discovery_diagnostics.get("diagnostic_error_codes") or []
     )
@@ -164,6 +176,138 @@ async def run_once(
         "run_id": run_id,
         "diagnostics": discovery_diagnostics,
     }, ensure_ascii=False, sort_keys=True), flush=True)
+    if active_lease is not None:
+        with trends_contract.publish_transaction(active_lease) as connection:
+            attempt_stats = connection.execute(
+                """
+                SELECT COUNT(*) AS total,
+                       SUM(CASE WHEN status='succeeded' THEN 1 ELSE 0 END)
+                           AS succeeded,
+                       (
+                           SELECT provider_attempt_count
+                           FROM xhs_trends_runs WHERE id=?
+                       ) AS ledger_count
+                FROM xhs_trends_provider_attempts
+                WHERE run_id=?
+                """,
+                (run_id, run_id),
+            ).fetchone()
+            attempt_total = int(attempt_stats["total"] or 0)
+            attempt_succeeded = int(attempt_stats["succeeded"] or 0)
+            attempt_ledger_count = int(
+                attempt_stats["ledger_count"] or 0
+            )
+            if (
+                attempt_total <= 0
+                or attempt_succeeded != attempt_total
+                or attempt_ledger_count != attempt_total
+                or attempt_total > trends_contract.MAX_PROVIDER_REQUESTS_PER_RUN
+            ):
+                raise trends_contract.TrendsContractError(
+                    "trends_provider_attempt_evidence_incomplete"
+                )
+            xhs_freshness_internal = record_scrape_freshness(
+                keywords,
+                run_id=run_id,
+                session_status=session_status,
+                scrape_error=scrape_error,
+                discovery_diagnostics=discovery_diagnostics,
+                adapter="spider_xhs_http",
+                _connection=connection,
+            )
+            current_domain_counts = dict(
+                xhs_freshness_internal.get("latest_run_domain_counts") or {}
+            )
+            current_source_health = dict(
+                xhs_freshness_internal.get(
+                    "latest_run_domain_source_health"
+                ) or {}
+            )
+            xhs_ok = bool(
+                not blocked_reason
+                and (xhs_freshness_internal.get("overview") or {}).get("ok")
+                and all(
+                    int(current_domain_counts.get(domain, 0) or 0)
+                    >= trends_contract.MIN_SNAPSHOT_KEYWORDS_PER_DOMAIN
+                    for domain in trends_contract.REQUIRED_DOMAINS
+                )
+                and all(
+                    bool((current_source_health.get(domain) or {}).get("ok"))
+                    for domain in trends_contract.REQUIRED_DOMAINS
+                )
+            )
+            if not xhs_ok:
+                raise trends_contract.TrendsContractError(
+                    "trends_current_run_xhs_evidence_incomplete"
+                )
+            publish_rows = trends_contract.build_publish_rows(keywords)
+            upsert_keywords(publish_rows, _connection=connection)
+            baseline_count = sum(
+                str(row.get("source") or "")
+                == BASELINE_EVIDENCE_SOURCE
+                for row in publish_rows
+            )
+            baseline_result = {
+                "enabled": True,
+                "source": BASELINE_EVIDENCE_SOURCE,
+                "generated": baseline_count,
+                "domains": list(trends_contract.REQUIRED_DOMAINS),
+                "reason": "bounded real-first snapshot completion",
+            }
+            payload, raw_snapshot = trends_contract.snapshot_payload_from_rows(
+                publish_rows,
+            )
+            snapshot_evidence = trends_contract.record_snapshot_evidence(
+                connection,
+                active_lease,
+                payload,
+                raw_snapshot,
+            )
+            provider_count_row = connection.execute(
+                """
+                SELECT provider_attempt_count
+                FROM xhs_trends_runs WHERE id=?
+                """,
+                (run_id,),
+            ).fetchone()
+            provider_calls = int(
+                provider_count_row["provider_attempt_count"] or 0
+            )
+            trends_contract.finish_run(
+                active_lease,
+                succeeded=True,
+                snapshot_sha256=snapshot_evidence["sha256"],
+                snapshot_size=snapshot_evidence["size"],
+                _connection=connection,
+            )
+        return {
+            "keywords": len(keywords),
+            "scrape_error": scrape_error,
+            "discovery_diagnostics": discovery_diagnostics,
+            "session_status": session_status,
+            "xhs_freshness": _public_xhs_freshness(
+                xhs_freshness_internal
+            ),
+            "xhs_freshness_overview": (
+                xhs_freshness_internal.get("overview") or {}
+            ),
+            "xhs_freshness_required": True,
+            "xhs_freshness_ok": True,
+            "latest_run_evidence_count": int(
+                xhs_freshness_internal.get(
+                    "latest_run_evidence_count", 0
+                ) or 0
+            ),
+            "xhs_freshness_warning": "",
+            "baseline": baseline_result,
+            "evidence_mode": "real_xhs",
+            "snapshot_path": "",
+            "snapshot_written": False,
+            "domains": sorted((payload.get("domains") or {}).keys()),
+            "snapshot_evidence": snapshot_evidence,
+            "provider_calls": provider_calls,
+            "status": {"trends_contract": "succeeded"},
+        }
     if keywords:
         upsert_keywords(keywords)
     xhs_freshness_internal = record_scrape_freshness(
@@ -209,8 +353,20 @@ async def run_once(
         else:
             reason = "XHS_SESSION_OR_ACCESS_UNAVAILABLE: configured session returned 0 fresh evidence"
         xhs_warning = f"{xhs_warning}; {reason}"
-    baseline_result = ensure_daily_evidence_pack()
-    payload = write_keyword_snapshot(snapshot_path, hours=hours)
+    if trends_contract.active_run() is not None:
+        baseline_result = ensure_daily_evidence_pack(
+            max_per_domain=trends_contract.MAX_KEYWORDS_PER_DOMAIN,
+            target_total_per_domain=trends_contract.MAX_KEYWORDS_PER_DOMAIN,
+        )
+        payload = write_keyword_snapshot(
+            snapshot_path,
+            hours=hours,
+            max_per_domain=trends_contract.MAX_KEYWORDS_PER_DOMAIN,
+            domains=trends_contract.REQUIRED_DOMAINS,
+        )
+    else:
+        baseline_result = ensure_daily_evidence_pack()
+        payload = write_keyword_snapshot(snapshot_path, hours=hours)
     if not (payload.get("domains") or {}):
         raise RuntimeError("market timing snapshot contains 0 domains")
     should_hard_fail = (
@@ -246,10 +402,152 @@ async def run_once(
     }
 
 
+def _production_trends_route() -> tuple[str, str]:
+    """Return `(mode, reason)` without initializing a database or adapter."""
+    if os.environ.get("NOTEAI_RUNTIME_ROLE", "").strip() != "xhs-http":
+        return "local", ""
+    if os.environ.get("NOTEAI_XHS_SERVICE", "").strip() != "trends":
+        return "blocked", "xhs_service_role_not_allowed"
+    from spider_xhs_http import XHSAdapterError, collection_route, collection_route_suspended
+
+    try:
+        route = collection_route(
+            os.environ.get("NOTEAI_XHS_ACQUISITION_ADAPTER", "").strip()
+        )
+    except XHSAdapterError as exc:
+        return "blocked", exc.code
+    if route != "direct":
+        return "blocked", "runtime_role_not_allowed"
+    if collection_route_suspended(route):
+        return "suspended", "collection_suspended"
+    return "direct", ""
+
+
+async def run_once(
+    snapshot_path: Path,
+    upload_url: str = "",
+    hours: int = 30,
+    hard_fail_on_xhs_missing: bool | None = None,
+) -> dict:
+    """Run one local cycle or one durable production UTC-day cycle."""
+    mode, reason = _production_trends_route()
+    if mode == "suspended":
+        return {
+            "skipped": True,
+            "reason": reason,
+            "provider_called": False,
+            "database_writes": 0,
+            "snapshot_written": False,
+        }
+    if mode == "blocked":
+        raise trends_contract.TrendsContractError(reason)
+    if mode != "direct":
+        return await _run_once_body(
+            snapshot_path,
+            upload_url=upload_url,
+            hours=hours,
+            hard_fail_on_xhs_missing=hard_fail_on_xhs_missing,
+        )
+    if upload_url:
+        raise trends_contract.TrendsContractError(
+            "trends_snapshot_upload_not_allowed"
+        )
+
+    try:
+        lease = trends_contract.claim_daily_run()
+    except (
+        trends_contract.TrendsRunBusy,
+        trends_contract.TrendsRunAlreadyCompleted,
+    ) as exc:
+        print(trends_contract.structured_event(
+            "trends_run_skipped",
+            status="skipped",
+            error_code=str(exc),
+        ), flush=True)
+        return {
+            "skipped": True,
+            "reason": str(exc),
+            "provider_called": False,
+            "database_writes": 0,
+            "snapshot_written": False,
+        }
+    print(trends_contract.structured_event(
+        "trends_run_started",
+        run_id=lease.run_id,
+        bucket_key=lease.bucket_key,
+        status="running",
+    ), flush=True)
+    try:
+        with trends_contract.activate_run(lease):
+            result = await _run_once_body(
+                snapshot_path,
+                upload_url="",
+                hours=hours,
+                hard_fail_on_xhs_missing=True,
+            )
+        provider_calls = int(result.get("provider_calls") or 0)
+        snapshot_evidence = dict(result.get("snapshot_evidence") or {})
+    except Exception as exc:
+        error_code = (
+            str(exc)
+            if isinstance(exc, trends_contract.TrendsContractError)
+            else "market_timing_worker_failed"
+        )
+        try:
+            trends_contract.finish_run(
+                lease,
+                succeeded=False,
+                error_code=error_code,
+            )
+        except trends_contract.TrendsNeedsManualReview:
+            error_code = "trends_provider_outcome_unknown"
+        print(trends_contract.structured_event(
+            "trends_run_failed",
+            run_id=lease.run_id,
+            bucket_key=lease.bucket_key,
+            status="failed",
+            error_code=error_code,
+            provider_calls=trends_contract.provider_attempt_count(lease.run_id),
+        ), file=sys.stderr, flush=True)
+        raise
+    result.update({
+        "run_id": lease.run_id,
+        "bucket_key": lease.bucket_key,
+        "provider_calls": provider_calls,
+        "snapshot_evidence": snapshot_evidence,
+    })
+    print(trends_contract.structured_event(
+        "trends_run_succeeded",
+        run_id=lease.run_id,
+        bucket_key=lease.bucket_key,
+        status="succeeded",
+        provider_calls=provider_calls,
+        keyword_count=snapshot_evidence["keyword_count"],
+        snapshot_size=snapshot_evidence["size"],
+    ), flush=True)
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run NoteAI market timing cloud pipeline worker")
-    parser.add_argument("--once", action="store_true", help="Run one scrape/export cycle and exit")
-    parser.add_argument("--daemon", action="store_true", help="Run forever at the configured interval")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--once", action="store_true", help="Run one scrape/export cycle and exit")
+    mode.add_argument("--daemon", action="store_true", help="Run forever at the configured interval")
+    mode.add_argument(
+        "--healthcheck",
+        action="store_true",
+        help="Check the Trends role/schema without loading an adapter or provider.",
+    )
+    mode.add_argument(
+        "--acknowledge-unknown",
+        action="store_true",
+        help="Acknowledge a stale unknown provider outcome without retrying it.",
+    )
+    mode.add_argument(
+        "--clear-session-block",
+        action="store_true",
+        help="Clear the dedicated session stop after operator credential repair.",
+    )
     parser.add_argument("--interval", type=int, default=int(os.environ.get("NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES", "60") or 60))
     parser.add_argument("--snapshot-path", default=os.environ.get("NOTEAI_MARKET_TIMING_SNAPSHOT_PATH", str(DEFAULT_SNAPSHOT_PATH)))
     parser.add_argument("--upload-url", default=os.environ.get("NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_URL", ""))
@@ -262,6 +560,28 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    if args.healthcheck:
+        result = trends_contract.readiness_status()
+        print(trends_contract.structured_event(
+            "trends_health",
+            status=result.get("status"),
+            error_code=result.get("reason"),
+        ), flush=True)
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True), flush=True)
+        return 0 if result.get("status") == "ready" else 1
+    if args.acknowledge_unknown:
+        result = trends_contract.acknowledge_provider_outcome_unknown()
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True), flush=True)
+        return 0
+    if args.clear_session_block:
+        result = trends_contract.clear_session_block()
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True), flush=True)
+        return 0
+
+    if args.interval < 60 or args.interval > 1440:
+        parser.error("--interval must be 60..1440")
+    if args.hours < 1 or args.hours > 168:
+        parser.error("--hours must be 1..168")
     snapshot_path = Path(args.snapshot_path)
     if not args.once and not args.daemon:
         args.once = True
@@ -287,8 +607,7 @@ def main() -> int:
                 "error_code": error_code,
                 "exception_type": type(exc).__name__,
             }, ensure_ascii=False), file=sys.stderr, flush=True)
-            if args.once:
-                return 1
+            return 1
         if args.once:
             return 0
         time.sleep(max(1, int(args.interval)) * 60)

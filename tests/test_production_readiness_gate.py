@@ -205,8 +205,12 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 ["python", "market_timing_worker.py"],
                 ["python", "market_timing_worker.py", "--once"],
                 ["python", "market_timing_worker.py", "--daemon", "--interval", "60"],
+                ["python", "market_timing_worker.py", "--healthcheck"],
+                ["python", "market_timing_worker.py", "--acknowledge-unknown"],
+                ["python", "market_timing_worker.py", "--clear-session-block"],
                 ["python", "crawler_worker.py"],
                 ["python", "crawler_worker.py", "--once"],
+                ["python", "crawler_worker.py", "--healthcheck"],
                 ["python", "crawler_worker.py", "--loop", "--interval-minutes", "60", "--limit", "50"],
                 ["/bin/false"],
             ),
@@ -218,7 +222,14 @@ class ProductionReadinessGateTests(unittest.TestCase):
                         role,
                         role,
                         command,
-                        **({"NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http"} if role == "xhs-http" else {}),
+                        **({
+                            "NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http",
+                            "NOTEAI_XHS_SERVICE": (
+                                "tracking"
+                                if any("crawler" in part for part in command)
+                                else "trends"
+                            ),
+                        } if role == "xhs-http" else {}),
                     )
 
                     self.assertEqual(result.returncode, 0, result.stderr)
@@ -273,7 +284,10 @@ class ProductionReadinessGateTests(unittest.TestCase):
                         role,
                         command,
                         check_pre_artifact=True,
-                        **({"NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http"} if role == "xhs-http" else {}),
+                        **({
+                            "NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http",
+                            "NOTEAI_XHS_SERVICE": "tracking",
+                        } if role == "xhs-http" else {}),
                     )
 
                     self.assertEqual(result.returncode, 78, result.stderr)
@@ -298,7 +312,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
         passed, detail = gate._check_entrypoint_runtime_contract(source)
 
         self.assertTrue(passed, detail)
-        self.assertIn("allowed=13", detail)
+        self.assertIn("allowed=17", detail)
 
     def test_readiness_entrypoint_semantic_harness_rejects_allowlist_backdoor(self):
         source = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")

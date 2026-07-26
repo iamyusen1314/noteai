@@ -43,7 +43,13 @@ SCROLL_ROUNDS = int(os.environ.get("NOTEAI_XHS_SCROLL_ROUNDS", "10") or 10)
 SCROLL_WAIT_SECONDS = float(os.environ.get("NOTEAI_XHS_SCROLL_WAIT_SECONDS", "1.0") or 1.0)
 CHANNEL_SETTLE_SECONDS = float(os.environ.get("NOTEAI_XHS_CHANNEL_SETTLE_SECONDS", "3.0") or 3.0)
 SEARCH_DISCOVERY_ENABLED = os.environ.get("NOTEAI_XHS_SEARCH_DISCOVERY", "1").strip().lower() not in {"0", "false", "no"}
-SEARCH_SEEDS_PER_CATEGORY = int(os.environ.get("NOTEAI_XHS_SEARCH_SEEDS_PER_CATEGORY", "2") or 2)
+SEARCH_SEEDS_PER_CATEGORY = min(
+    2,
+    max(
+        0,
+        int(os.environ.get("NOTEAI_XHS_SEARCH_SEEDS_PER_CATEGORY", "2") or 2),
+    ),
+)
 SEARCH_SCROLL_ROUNDS = int(os.environ.get("NOTEAI_XHS_SEARCH_SCROLL_ROUNDS", "3") or 3)
 SEARCH_SETTLE_SECONDS = float(os.environ.get("NOTEAI_XHS_SEARCH_SETTLE_SECONDS", "2.0") or 2.0)
 TOKEN_DISCOVERY_ENABLED = os.environ.get("NOTEAI_XHS_TOKEN_DISCOVERY", "1").strip().lower() not in {"0", "false", "no"}

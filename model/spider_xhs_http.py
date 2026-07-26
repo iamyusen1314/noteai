@@ -387,6 +387,23 @@ class SpiderXHSHTTPAdapter:
             method=method,
             needs_rap=needs_rap,
         )
+        endpoint_name = {
+            "/api/sns/web/v1/homefeed": "homefeed",
+            "/api/sns/web/v1/search/recommend": "search_recommend",
+            "/api/sns/web/v1/search/notes": "search_notes",
+        }.get(endpoint, "")
+        trends_attempt = None
+        trends_contract = None
+        if os.environ.get("NOTEAI_XHS_SERVICE", "").strip() == "trends":
+            try:
+                import trends_contract as active_trends_contract
+
+                trends_contract = active_trends_contract
+                trends_attempt = trends_contract.admit_provider_request(
+                    endpoint_name
+                )
+            except Exception as exc:
+                raise XHSAdapterError("trends_provider_admission_failed") from exc
         headers = {
             "accept": "application/json, text/plain, */*",
             "content-type": "application/json;charset=UTF-8",
@@ -410,6 +427,7 @@ class SpiderXHSHTTPAdapter:
             trust_env=False,
         )
         owns_client = self._client is None
+        response_received = False
         try:
             response = client.request(
                 method,
@@ -417,14 +435,63 @@ class SpiderXHSHTTPAdapter:
                 headers=headers,
                 content=body.encode("utf-8") if body else None,
             )
+            response_received = True
             try:
                 payload = response.json()
             except Exception as exc:
                 raise XHSAdapterError("remote_non_json") from exc
-            return _validate_response(response.status_code, payload)
-        except XHSAdapterError:
+            validated = _validate_response(response.status_code, payload)
+            if trends_attempt is not None:
+                try:
+                    trends_contract.complete_provider_request(
+                        trends_attempt,
+                        outcome="succeeded",
+                    )
+                except Exception as exc:
+                    raise XHSAdapterError(
+                        "trends_provider_finalize_failed"
+                    ) from exc
+            return validated
+        except XHSAdapterError as exc:
+            if trends_attempt is not None:
+                try:
+                    trends_contract.complete_provider_request(
+                        trends_attempt,
+                        outcome=(
+                            "failed" if response_received else "outcome_unknown"
+                        ),
+                        error_code=exc.code,
+                    )
+                except Exception as finalize_exc:
+                    raise XHSAdapterError(
+                        "trends_provider_finalize_failed"
+                    ) from finalize_exc
             raise
         except httpx.HTTPError as exc:
+            if trends_attempt is not None:
+                try:
+                    trends_contract.complete_provider_request(
+                        trends_attempt,
+                        outcome="outcome_unknown",
+                        error_code="network_error",
+                    )
+                except Exception as finalize_exc:
+                    raise XHSAdapterError(
+                        "trends_provider_finalize_failed"
+                    ) from finalize_exc
+            raise XHSAdapterError("network_error") from exc
+        except Exception as exc:
+            if trends_attempt is not None:
+                try:
+                    trends_contract.complete_provider_request(
+                        trends_attempt,
+                        outcome="outcome_unknown",
+                        error_code="network_error",
+                    )
+                except Exception as finalize_exc:
+                    raise XHSAdapterError(
+                        "trends_provider_finalize_failed"
+                    ) from finalize_exc
             raise XHSAdapterError("network_error") from exc
         finally:
             if owns_client:

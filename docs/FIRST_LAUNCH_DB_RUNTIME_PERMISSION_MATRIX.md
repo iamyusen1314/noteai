@@ -198,6 +198,24 @@ access. It must not gain `users SELECT` merely to call the generic memory
 writer; the reviewed Tracking path inserts its deterministic context memory
 inside the already-fenced terminal transaction.
 
+The Trends long-running contract is independently defined in
+`docs/XHS_TRENDS_PRODUCTION_CONTRACT.md`. Migration
+`0011_trends_execution_contract.sql` creates and seeds the durable daily
+run/admission/singleton state but grants nothing. Long-lived Trends must use
+the exact `noteai_xhs_trends` role, with access limited to the eight listed
+Trends tables, two sequences and the two existing advisory-lock built-ins.
+It has zero Tracking, user, billing, auth, retention, prompt, migration,
+`system_settings` or `crawler_events` access. The historical `noteai_xhs`
+union is not an acceptable identity for either managed service.
+
+The API freshness gate now binds visible evidence to the latest succeeded
+Trends run. After `0011` is applied, `noteai_app` therefore needs only column
+`SELECT(id,status,completed_at)` on `public.xhs_trends_runs`; table-level
+SELECT and every other run column remain negative. A missing table or missing
+permission fails closed as `trends_contract_unavailable` and must never fall
+back to legacy unbound freshness. API receives no write privilege on any
+Trends contract table and no access to the stored snapshot payload.
+
 ## Verification required before production use
 
 A separately approved database task must:
