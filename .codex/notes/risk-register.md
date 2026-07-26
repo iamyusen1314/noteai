@@ -10,8 +10,8 @@ Last updated: 2026-07-26
 - 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。当前真实支付、durable AI queue/Worker、对象存储/恢复、Tracking、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
-- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking合同硬化也已完成仓库、隔离PostgreSQL和三方独立验收，状态`PASS / 0C / 0H / 0M / NOT DEPLOYED`。两组精确临时容器/卷均已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`，当前代码尚未形成或部署新镜像。
-- 当前下一步: 生产串行门禁仍是`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，但需要已认证的阿里云控制面会话；等待该外部条件时执行不依赖生产的`PROD-XHS-TRENDS-LONGRUN-CONTRACT-001`。前者只读；后者只改仓库/测试。两者都不得执行`0009/0010`、GRANT/REVOKE、processor、服务、供应商、镜像/ACR或流量变更。
+- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking和Trends各自的仓库、隔离PostgreSQL和最小权限合同也已通过，均为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。精确临时资源已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`；`0009`–`0011`未应用，当前代码尚未形成或部署新镜像。
+- 当前下一步: 生产串行门禁仍是`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，但需要已认证的阿里云控制面会话。等待该外部条件时，唯一可执行离线任务改为`PROD-FIRST-LAUNCH-DURABLE-AI-CONTRACT-001`：先冻结与Storage共享的opaque media-ref，再完成`202` admission、outbox/fenced Worker、结果回放、3:1有界优先级和扣费/退款终态原子合同。不得执行`0009`–`0011`、GRANT/REVOKE、生产processor/service、供应商、镜像/ACR或流量变更。
 - 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
@@ -121,6 +121,7 @@ Last updated: 2026-07-26
 - 状态: Open High / evidence triage required。普通push `0e9a923…` 成功后，GitHub远端报告默认分支共有 `14` 个Dependabot告警（`10 High / 3 Moderate / 1 Low`）；这只是当前平台汇总，不证明这些告警都存在于当前发布提交或具备可达利用路径。
 - 风险描述: 未逐项核对package、受影响版本、当前分支可达性和已有容器扫描/VEX之前，既不能忽略这些告警，也不能把默认分支计数直接当成当前候选的确认漏洞。
 - 建议验证方式: 建立只读 `PROD-FIRST-LAUNCH-DEPENDABOT-TRIAGE-001`，读取当前告警、锁文件/镜像包版本和修复版本，按当前release commit去重；任何依赖升级必须单独回归并重新构建扫描，不能用旧VEX覆盖新版本。
+- 2026-07-26只读进展: 默认分支14项均来自较旧候选（Pillow 13项、python-multipart 1项）；当前分支已经固定Pillow `12.3.0`和python-multipart `0.0.31`，按当前候选版本去重后survivor为`0`。告警不得手工关闭；只有当前候选进入默认分支后由平台重新计算，才能关闭本High。
 - 回滚: 只读triage无回滚；若后续升级，回滚仅限精确dependency/lockfile delta及新镜像，不改写旧扫描证据。
 
 ### XHS Trends snapshot evidence exception is closed and must not recur
@@ -134,10 +135,10 @@ Last updated: 2026-07-26
 
 ### XHS managed-service and real-supplier path remain unverified
 
-- 状态: Open High / first-launch hard gate。`PROD-XHS-TRENDS-MILESTONE-CLOSE-001` 已独立确认 suspended Trends 功能、有界数据库写入、Snapshot、零供应商调用、API-F 非回归和清理均为 `VERIFIED`；这些子项不得重跑，但不等于长期服务或真实供应商通过。
-- 风险描述: Trends 尚未作为长期服务运行，真实 XHS session/signer/接口/限流/挑战路径从未生产验证。Tracking 是独立进程和写入路径；其仓库/隔离PostgreSQL合同已经通过，但生产仍为 `NOT DEPLOYED / NOT STARTED`。当前生产 `noteai_xhs` 还是 Trends 与 Tracking 的权限并集；仓库虽已定义 `noteai_xhs_tracking`，但`0010`和角色变更尚未应用。持久服务的 singleton、资源、重启、日志和回滚合同也未闭环。
+- 状态: Open High / first-launch hard gate。旧 suspended Trends 功能、写入、Snapshot、零供应商、API-F非回归和清理保持 `VERIFIED`；`PROD-XHS-TRENDS-LONGRUN-CONTRACT-001`又独立关闭了仓库和隔离PostgreSQL的长期合同，状态`PASS / 0C / 0H / 0M / NOT DEPLOYED`。这些子项不得重跑，但不等于真实供应商或managed promotion通过。
+- 风险描述: Trends 尚未作为长期服务运行，真实 XHS session/signer/接口/限流/挑战路径从未生产验证。Tracking是独立进程和写入路径；两者的仓库合同都已通过，但生产仍为`NOT DEPLOYED / NOT STARTED`。当前生产`noteai_xhs`仍是历史权限并集；仓库虽已定义`noteai_xhs_tracking`和`noteai_xhs_trends`，但`0010/0011`及角色变更尚未应用。singleton、资源、重启、日志和回滚实现只有离线/隔离证据，尚无managed runtime证据。
 - 可能后果: 若直接解除 suspended 或长期共置在 API 节点，可能发生供应商会话失效、重复或重叠运行、CPU/内存争用、扩大数据库权限影响面、日志泄露或无法可靠回滚。
-- 建议验证方式: 范围决定已确认首发必须包含 Trends 和 Tracking。严格执行 `PROD-XHS-TRENDS-LONGRUN-CONTRACT-001`、新不可变发布、生产基础设施、最小真实只读验证、`PROD-XHS-TRENDS-MANAGED-PROMOTE-001`；以独立 singleton managed Worker、无入站端口、显式 CPU/内存/PID/超时/日志/重启上限、数据库lease/fence和独立数据库身份完成服务晋升。
+- 建议验证方式: `PROD-XHS-TRENDS-LONGRUN-CONTRACT-001`没有代码/SHA冲突时不得重复。后续严格按生产只读preflight、新不可变发布、基础设施/精确角色、默认suspended内部部署、最小真实DB只读验证和`PROD-XHS-TRENDS-MANAGED-PROMOTE-001`推进；Tracking仍走自己的真实XHS和promotion门禁。
 - 费用和回滚: 真实供应商验证、独立 Worker ECS 或持续日志/网络资源会产生外部影响及可能费用，必须重新报价和批准；历史 Worker pair 参考约¥783.64/月、OSS约¥65/月、SLS约¥12/月，不是当前报价。运行时回滚为恢复 suspended、停止对应 singleton 并回到零 XHS 服务基线。
 - 是否需要用户确认后才能修改: yes。真实 XHS、session/Cookie、解除 suspended、数据库权限/迁移、Trends/Tracking 启动、Worker ECS、ACR、代码/镜像、ALB/TLS/DNS/流量均需精确批准。
 
