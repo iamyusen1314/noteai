@@ -85,6 +85,10 @@ input,select,textarea{font-family:inherit}
 .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
 .btn-danger{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--error)}
 .btn-sm{padding:4px 10px;font-size:11px}
+.btn:disabled{cursor:not-allowed;opacity:.42;filter:grayscale(.35)}
+#admin-mode-banner{display:none;margin:14px 28px 0;padding:10px 14px;border-radius:10px;
+  border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);
+  color:var(--warning);font-size:12px;line-height:1.5}
 
 /* ── Forms ── */
 .form-group{margin-bottom:14px}
@@ -245,6 +249,7 @@ input,select,textarea{font-family:inherit}
       <button class="btn btn-ghost btn-sm" onclick="refreshCurrentPage()">↻ 刷新</button>
     </div>
   </div>
+  <div id="admin-mode-banner" role="status"></div>
 
   <!-- ═══ DASHBOARD ═══════════════════════════════════════════════ -->
   <div class="content-area page active" id="page-dashboard">
@@ -267,6 +272,12 @@ input,select,textarea{font-family:inherit}
     <div class="card">
       <div class="section-title">系统状态</div>
       <div class="card-grid card-grid-4" id="system-status"></div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <div class="section-title">Durable AI 队列（只读）</div>
+      <div class="card-grid card-grid-4" id="ai-operations-summary">
+        <div class="stat-card"><div class="stat-label">队列状态</div><div>加载中…</div></div>
+      </div>
     </div>
   </div>
 
@@ -353,7 +364,7 @@ input,select,textarea{font-family:inherit}
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-ghost btn-sm" onclick="showHistory()">历史版本</button>
-              <button class="btn btn-primary btn-sm" onclick="savePrompt()">保存</button>
+              <button class="btn btn-primary btn-sm" data-capability="prompt_mutation" onclick="savePrompt()">保存</button>
             </div>
           </div>
           <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px">可编辑基础 Prompt</div>
@@ -386,7 +397,7 @@ input,select,textarea{font-family:inherit}
       <div class="stat-card"><div class="stat-label">训练数据量</div><div class="stat-val" id="m-rows">–</div></div>
       <div class="stat-card">
         <div class="stat-label">发起新训练</div>
-        <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="triggerTraining()">🚀 触发重训练</button>
+        <button class="btn btn-primary" data-capability="model_mutation" style="margin-top:8px;width:100%" onclick="triggerTraining()">🚀 触发重训练</button>
       </div>
     </div>
     <div class="card-grid card-grid-2">
@@ -411,8 +422,8 @@ input,select,textarea{font-family:inherit}
         <div class="stat-label">爬虫状态</div>
         <div class="stat-val" id="cw-status">–</div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="btn btn-primary btn-sm" onclick="toggleCrawler(true)">启用</button>
-          <button class="btn btn-ghost btn-sm" onclick="toggleCrawler(false)">禁用</button>
+          <button class="btn btn-primary btn-sm" data-capability="crawler_control" onclick="toggleCrawler(true)">启用</button>
+          <button class="btn btn-ghost btn-sm" data-capability="crawler_control" onclick="toggleCrawler(false)">禁用</button>
         </div>
       </div>
       <div class="stat-card">
@@ -424,7 +435,7 @@ input,select,textarea{font-family:inherit}
       <div class="stat-card">
         <div class="stat-label">累计采集条数</div>
         <div class="stat-val" id="cw-total">–</div>
-        <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="runCrawlerNow()">▶ 立即采集</button>
+        <button class="btn btn-primary btn-sm" data-capability="crawler_control" style="margin-top:10px" onclick="runCrawlerNow()">▶ 立即采集</button>
       </div>
     </div>
     <div class="card-grid card-grid-4" style="margin-bottom:20px">
@@ -528,12 +539,66 @@ const ADMIN_BASE = (
     ? location.origin
     : 'http://localhost:8001')
 ).replace(/\/$/, '');
-let _adminToken = localStorage.getItem('noteai_admin_token') || null;
+localStorage.removeItem('noteai_admin_token');
+let _adminToken = sessionStorage.getItem('noteai_admin_token') || null;
 let _currentPage = 'dashboard';
 let _userPage = 1;
 let _userSearch = '', _userTierFilter = '';
 let _currentPromptKey = null;
 let _promptListItems = new Map();
+const _adminCapabilityNames = [
+  'business_mutation',
+  'prompt_mutation',
+  'model_mutation',
+  'crawler_control',
+  'tracking_requeue',
+];
+let _adminCapabilities = Object.fromEntries(_adminCapabilityNames.map(name => [name, false]));
+let _adminMode = 'unavailable';
+
+function hasAdminCapability(name) {
+  return _adminCapabilities[name] === true;
+}
+
+function requireAdminCapability(name) {
+  if (hasAdminCapability(name)) return true;
+  alert('当前生产 Admin 为只读控制台；该操作必须通过独立受审计流程执行。');
+  return false;
+}
+
+function applyAdminCapabilities(mode=_adminMode) {
+  document.querySelectorAll('[data-capability]').forEach(element => {
+    element.disabled = !hasAdminCapability(element.dataset.capability);
+  });
+  const promptEditor = document.getElementById('pe-content');
+  if (promptEditor) promptEditor.readOnly = !hasAdminCapability('prompt_mutation');
+  const banner = document.getElementById('admin-mode-banner');
+  if (!banner) return;
+  const readOnly = mode !== 'local_operator';
+  banner.style.display = readOnly ? 'block' : 'none';
+  banner.textContent = mode === 'production_read_only'
+    ? '生产只读控制台：可查看运营、账本、队列和健康状态；用户、Prompt、模型、Crawler 与 Tracking 变更必须走独立受审计流程。'
+    : '能力状态不可用：所有写操作已安全锁定，请刷新或联系运维人员。';
+}
+
+async function loadAdminCapabilities() {
+  _adminCapabilities = Object.fromEntries(_adminCapabilityNames.map(name => [name, false]));
+  _adminMode = 'unavailable';
+  try {
+    const r = await aFetch('/admin/capabilities');
+    if (!r.ok) throw new Error('capabilities unavailable');
+    const d = await r.json();
+    _adminMode = d.mode || 'unavailable';
+    const supplied = d.capabilities && typeof d.capabilities === 'object'
+      ? d.capabilities : {};
+    _adminCapabilities = Object.fromEntries(
+      _adminCapabilityNames.map(name => [name, supplied[name] === true])
+    );
+  } catch(e) {
+    if (String(e?.message || '') === 'session expired') return;
+  }
+  applyAdminCapabilities();
+}
 
 /* ── Auth ─────────────────────────────────────────────────────────── */
 async function doAdminLogin() {
@@ -550,9 +615,9 @@ async function doAdminLogin() {
     const d = await r.json();
     if (!r.ok) { err.textContent = d.detail || '登录失败'; err.style.display='block'; return; }
     _adminToken = d.token;
-    localStorage.setItem('noteai_admin_token', _adminToken);
+    sessionStorage.setItem('noteai_admin_token', _adminToken);
     document.getElementById('admin-name').textContent = d.username;
-    showApp();
+    await showApp();
   } catch(e) {
     err.textContent = '无法连接管理服务器（port 8001）'; err.style.display='block';
   } finally {
@@ -560,16 +625,36 @@ async function doAdminLogin() {
   }
 }
 
-function doAdminLogout() {
-  _adminToken = null; localStorage.removeItem('noteai_admin_token');
+function clearAdminSession() {
+  _adminToken = null;
+  sessionStorage.removeItem('noteai_admin_token');
+  _adminCapabilities = Object.fromEntries(_adminCapabilityNames.map(name => [name, false]));
+  _adminMode = 'unavailable';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }
 
-function showApp() {
+async function doAdminLogout() {
+  const token = _adminToken;
+  try {
+    if (token) {
+      await fetch(`${ADMIN_BASE}/admin/logout`, {
+        method:'POST',
+        headers:{'Authorization':`Bearer ${token}`},
+      });
+    }
+  } catch(e) {
+    // Local state must still be cleared if the server is unavailable.
+  } finally {
+    clearAdminSession();
+  }
+}
+
+async function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   updateClock();
+  await loadAdminCapabilities();
   loadDashboard();
 }
 
@@ -578,7 +663,7 @@ async function aFetch(path, opts={}) {
     ...opts,
     headers: { 'Authorization': `Bearer ${_adminToken}`, 'Content-Type': 'application/json', ...(opts.headers||{}) },
   });
-  if (r.status === 403) { doAdminLogout(); throw new Error('session expired'); }
+  if (r.status === 403) { clearAdminSession(); throw new Error('session expired'); }
   return r;
 }
 
@@ -699,7 +784,7 @@ const ADMIN_LEDGER_OPERATION_LABELS = Object.freeze({
   chat_fast:'对话反馈', chat_rewrite:'对话重写', screenshot:'截图识别',
 });
 const ADMIN_LEDGER_SOURCE_LABELS = Object.freeze({
-  subscription:'月度套餐积分', mixed:'套餐+钱包', credits:'钱包积分',
+  subscription:'套餐周期积分', mixed:'套餐+钱包', credits:'钱包积分',
   free:'免费', refunded:'已退款',
 });
 const ADMIN_LEDGER_COST_MODE_LABELS = Object.freeze({
@@ -896,6 +981,33 @@ async function loadDashboard() {
     <div class="stat-card"><div class="stat-label">数据库</div>
       <div><span class="dot ${databaseDot}"></span>${databaseLabel}</div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${serverTime}</div></div>`;
+  await loadAiOperationsSummary();
+}
+
+async function loadAiOperationsSummary() {
+  const target = document.getElementById('ai-operations-summary');
+  if (!target) return;
+  try {
+    const r = await aFetch('/admin/ai-operations');
+    if (!r.ok) throw new Error('ai operations unavailable');
+    const d = await r.json();
+    const operations = d.operations && typeof d.operations === 'object' ? d.operations : {};
+    const settlements = d.settlements && typeof d.settlements === 'object' ? d.settlements : {};
+    const outbox = d.outbox && typeof d.outbox === 'object' ? d.outbox : {};
+    const queued = Math.max(0, Math.round(adminFiniteNumber(operations.queued)));
+    const running = Math.max(0, Math.round(adminFiniteNumber(operations.running)));
+    const manual = Math.max(0, Math.round(adminFiniteNumber(settlements.needs_manual)));
+    const pending = Math.max(0, Math.round(adminFiniteNumber(outbox.pending)));
+    const oldest = d.oldest_queued_at
+      ? adminLedgerTime(d.oldest_queued_at) : '无等待任务';
+    target.innerHTML = `
+      <div class="stat-card"><div class="stat-label">等待执行</div><div class="stat-val">${queued}</div><div class="stat-sub">${esc(oldest)}</div></div>
+      <div class="stat-card"><div class="stat-label">执行中</div><div class="stat-val">${running}</div></div>
+      <div class="stat-card"><div class="stat-label">需人工处理</div><div class="stat-val" style="color:${manual ? 'var(--error)' : 'var(--success)'}">${manual}</div></div>
+      <div class="stat-card"><div class="stat-label">待投递 Outbox</div><div class="stat-val" style="color:${pending ? 'var(--warning)' : 'var(--text)'}">${pending}</div></div>`;
+  } catch(e) {
+    target.innerHTML = '<div class="stat-card"><div class="stat-label">队列状态</div><div style="color:var(--error)">当前不可用</div></div>';
+  }
 }
 
 /* ── Users ────────────────────────────────────────────────────────── */
@@ -913,7 +1025,7 @@ async function loadUsers() {
   document.getElementById('users-tbody').innerHTML = d.users.map(u => `
     <tr>
       <td><div style="font-weight:600">${esc(u.username)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.nickname||'')}</div></td>
-      <td style="font-size:12px">${esc(u.phone_masked||u.email||'–')}</td>
+      <td style="font-size:12px">${esc(u.phone_masked||u.email_masked||'–')}</td>
       <td><span class="badge ${tierBadge(u.tier)}">${esc({free:'免费',pro:'创作者',growth:'成长',pro_plus:'专业',studio:'工作室'}[u.tier]||u.tier)}</span></td>
       <td style="font-size:12px;color:var(--text-muted)">${esc((u.created_at||'').slice(0,10))}</td>
       <td>${u.month_ops}</td>
@@ -939,7 +1051,7 @@ async function showUser(uid) {
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">基本信息</div>
         <div style="font-size:13px;line-height:2">
           ID: <code style="font-size:11px">${esc(u.id)}</code><br>
-          邮箱: ${esc(u.email||'–')}<br>
+          邮箱: ${esc(u.email_masked||'–')}<br>
           手机: ${esc(u.phone_masked||'–')}<br>
           注册: ${esc((u.created_at||'').slice(0,10))}<br>
           最后登录: ${esc((u.last_login||'').slice(0,16).replace('T',' ')||'–')}
@@ -948,7 +1060,7 @@ async function showUser(uid) {
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">套餐与积分</div>
         <div><span class="badge ${tierBadge(sub.tier)}">${esc({free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier)}</span></div>
-        <div style="font-size:13px;margin-top:6px">本月已用套餐积分: <b>${Number(sub.used_monthly_credits||0).toFixed(1)}</b></div>
+        <div style="font-size:13px;margin-top:6px">本周期已用套餐积分: <b>${Number(sub.used_monthly_credits||0).toFixed(1)}</b></div>
         <div style="font-size:13px;margin-top:6px">积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
         <div style="font-size:12px;color:var(--text-muted)">累计购买: ${(cr.total_purchased||0).toFixed(1)} | 已用: ${(cr.total_used||0).toFixed(1)}</div>
       </div>
@@ -960,7 +1072,7 @@ async function showUser(uid) {
     </div>
     <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:14px">
       以下两类账本分别记录操作用量与钱包积分变化，不是一一对应关系；这里只显示各自最近 20 条，不代表完整历史。
-      用量中的“总计费积分”包含月度套餐与钱包积分，钱包账本只记录钱包余额变化。
+      用量中的“总计费积分”包含套餐周期积分与钱包积分，钱包账本只记录钱包余额变化。
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近 20 条用量</div>
     <div style="overflow-x:auto;margin-bottom:16px">
@@ -978,14 +1090,16 @@ async function showUser(uid) {
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'add_credits')">手动加积分</button>
-      <button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'set_tier')">修改套餐</button>
-      <button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'reset_quota')">重置本月积分</button>
+      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'add_credits')">手动加积分</button>
+      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'set_tier')">修改套餐</button>
+      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'reset_quota')">重置本周期积分</button>
     </div>`;
+  applyAdminCapabilities();
   openModal('user-modal');
 }
 
 async function adjustUser(uid, action) {
+  if(!requireAdminCapability('business_mutation')) return;
   let value='', note='';
   if (action==='add_credits') {
     value = prompt('增加积分数量（正数）：'); if(!value) return;
@@ -993,7 +1107,7 @@ async function adjustUser(uid, action) {
   } else if (action==='set_tier') {
     value = prompt('新套餐（free/pro/growth/pro_plus/studio）：'); if(!value) return;
   } else if (action==='reset_quota') {
-    if(!confirm('确认重置本月套餐积分？')) return;
+    if(!confirm('确认重置本周期套餐积分？')) return;
   }
   const r = await aFetch(`/admin/users/${uid}/adjust`, {method:'POST', body:JSON.stringify({action,value,note})});
   const d = await r.json();
@@ -1182,6 +1296,7 @@ async function loadPromptPreview() {
 
 async function savePrompt() {
   if(!_currentPromptKey) return;
+  if(!requireAdminCapability('prompt_mutation')) return;
   const content = document.getElementById('pe-content').value;
   const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}`, {
     method:'PUT', body:JSON.stringify({content}),
@@ -1206,16 +1321,18 @@ async function showHistory() {
           <span style="font-weight:600">v${h.version}</span>
           <div style="display:flex;gap:6px">
             <span style="font-size:11px;color:var(--text-muted)">${(h.saved_at||'').slice(0,16).replace('T',' ')}</span>
-            <button class="btn btn-ghost btn-sm" onclick="rollbackPrompt(${h.version})">回滚</button>
+            <button class="btn btn-ghost btn-sm" data-capability="prompt_mutation" onclick="rollbackPrompt(${h.version})">回滚</button>
           </div>
         </div>
         <pre style="font-size:11px;color:var(--text-2);white-space:pre-wrap;max-height:80px;overflow:hidden">${esc((h.content||'').slice(0,200))}…</pre>
       </div>`).join('');
+  applyAdminCapabilities();
   openModal('history-modal');
 }
 
 async function rollbackPrompt(version) {
   if(!_currentPromptKey) return;
+  if(!requireAdminCapability('prompt_mutation')) return;
   if(!confirm(`确认回滚到 v${version}？`)) return;
   const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/rollback`, {method:'POST',body:JSON.stringify({version})});
   if(r.ok) { closeModal('history-modal'); loadPromptDetail(_currentPromptKey); alert('已回滚'); }
@@ -1235,7 +1352,7 @@ async function loadModels() {
       <td>${m.rmse||'–'}</td>
       <td>${m.accuracy?m.accuracy+'%':'–'}</td>
       <td><span class="badge ${statusMap[m.status]||'badge-free'}">${esc({production:'生产中',archived:'已归档',training:'训练中'}[m.status]||m.status)}</span></td>
-      <td>${m.status!=='production'?`<button class="btn btn-ghost btn-sm" data-model-version="${esc(encodeURIComponent(String(m.version||'')))}" onclick="deployModel(decodeURIComponent(this.dataset.modelVersion))">部署</button>`:'–'}</td>
+      <td>${m.status!=='production'?`<button class="btn btn-ghost btn-sm" data-capability="model_mutation" data-model-version="${esc(encodeURIComponent(String(m.version||'')))}" onclick="deployModel(decodeURIComponent(this.dataset.modelVersion))">部署</button>`:'–'}</td>
     </tr>`).join('');
   document.getElementById('train-jobs').innerHTML = (d.training_jobs||[]).reverse().slice(0,5).map(j=>`
     <div style="background:var(--surf-2);border-radius:8px;padding:10px;margin-bottom:8px">
@@ -1245,9 +1362,11 @@ async function loadModels() {
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${esc(j.description)}</div>
     </div>`).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无训练任务</div>';
+  applyAdminCapabilities();
 }
 
 async function deployModel(version) {
+  if(!requireAdminCapability('model_mutation')) return;
   if(!confirm(`确认部署版本 ${version}？`)) return;
   const r = await aFetch(`/admin/models/${version}/deploy`, {method:'POST'});
   const d = await r.json();
@@ -1256,6 +1375,7 @@ async function deployModel(version) {
 }
 
 async function triggerTraining() {
+  if(!requireAdminCapability('model_mutation')) return;
   const desc = prompt('训练任务说明：', '手动触发训练');
   if(!desc) return;
   const r = await aFetch('/admin/models/train', {method:'POST', body:JSON.stringify({description:desc})});
@@ -1354,11 +1474,13 @@ async function loadXhsHealth() {
 }
 
 async function toggleCrawler(enable) {
+  if(!requireAdminCapability('crawler_control')) return;
   await aFetch('/admin/crawler/toggle', {method:'POST', body:JSON.stringify({enabled:enable})});
   loadCrawler();
 }
 
 async function runCrawlerNow() {
+  if(!requireAdminCapability('crawler_control')) return;
   if(!confirm('立即触发一轮采集？')) return;
   const r = await aFetch('/admin/crawler/run', {method:'POST', body:JSON.stringify({limit:50})});
   const d = await r.json();
@@ -1376,8 +1498,8 @@ async function loadSettings() {
     <div style="margin-bottom:16px">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px">${esc(tierNames[k]||k)}</div>
       <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-        <span style="color:var(--text-2)">月度套餐积分</span>
-        <span style="color:var(--accent);font-weight:600">${t.monthly_credits || 0} 积分/月</span>
+        <span style="color:var(--text-2)">套餐周期积分</span>
+        <span style="color:var(--accent);font-weight:600">${t.monthly_credits || 0} 积分/周期</span>
       </div>
       ${(t.features||[]).map(f=>`
         <div style="font-size:11px;color:var(--text-muted);padding:3px 0">• ${esc(f)}</div>`).join('')}
@@ -1449,11 +1571,11 @@ window.addEventListener('load', async () => {
       if (r.ok) {
         const d = await r.json();
         document.getElementById('admin-name').textContent = d.username;
-        showApp();
+        await showApp();
         return;
       }
     } catch(e) {}
-    _adminToken = null; localStorage.removeItem('noteai_admin_token');
+    clearAdminSession();
   }
 });
 </script>

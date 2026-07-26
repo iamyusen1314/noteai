@@ -750,6 +750,21 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     risk_register = (ROOT / ".codex" / "notes" / "risk-register.md").read_text(encoding="utf-8")
     fact_enrichment = (MODEL_DIR / "fact_enrichment.py").read_text(encoding="utf-8")
     api_source = (MODEL_DIR / "api.py").read_text(encoding="utf-8")
+    admin_server_source = (
+        MODEL_DIR / "admin_server.py"
+    ).read_text(encoding="utf-8")
+    admin_auth_source = (
+        MODEL_DIR / "admin_auth.py"
+    ).read_text(encoding="utf-8")
+    admin_html = (
+        MODEL_DIR / "admin.html"
+    ).read_text(encoding="utf-8")
+    frontend_html = (
+        ROOT / "NoteAI_Pro_Demo_Framer.html"
+    ).read_text(encoding="utf-8")
+    ui_admin_contract = (
+        ROOT / "docs" / "FIRST_LAUNCH_UI_ADMIN_CONTRACT.md"
+    ).read_text(encoding="utf-8")
     api_readiness_source = api_source.split("def _readiness_payload()", 1)[1].split('@app.get("/health/live")', 1)[0]
     dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
     render_blueprint = (ROOT / "render.yaml").read_text(encoding="utf-8")
@@ -941,6 +956,55 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             'import http.client, os, sys' in dockerfile
             and "'/health/live'" in dockerfile
             and "CMD curl" not in dockerfile,
+        ),
+        _ok(
+            "production_admin_mutations_fail_closed",
+            "_is_restricted_admin_runtime" in admin_server_source
+            and "_admin_capabilities_payload" in admin_server_source
+            and '@admin_app.get("/admin/capabilities")' in admin_server_source
+            and all(
+                f'_require_admin_capability("{capability}")'
+                in admin_server_source
+                for capability in (
+                    "business_mutation",
+                    "prompt_mutation",
+                    "model_mutation",
+                    "crawler_control",
+                    "tracking_requeue",
+                )
+            )
+            and "NOTEAI_DEPLOYMENT_STAGE: production"
+            in _compose_service_block(production_compose, "admin")
+            and 'NOTEAI_CLOUD_RUNTIME: "1"'
+            in _compose_service_block(production_compose, "admin"),
+        ),
+        _ok(
+            "admin_bearer_and_browser_storage_are_minimized",
+            "hashlib.sha256(token.encode(\"utf-8\")).hexdigest()"
+            in admin_auth_source
+            and "INSERT INTO admin_sessions" in admin_auth_source
+            and "(_token_digest(token), username" in admin_auth_source
+            and "sessionStorage.getItem('noteai_admin_token')" in admin_html
+            and "sessionStorage.setItem('noteai_admin_token'" in admin_html
+            and "localStorage.setItem('noteai_admin_token'" not in admin_html,
+        ),
+        _ok(
+            "production_admin_cors_and_pii_fail_closed",
+            "return [origin for origin in origins if origin != \"*\"]"
+            in admin_server_source
+            and 'public_user.pop("phone", None)' in admin_server_source
+            and 'public_user.pop("email", None)' in admin_server_source
+            and "payment_ref,recorded_at" not in admin_server_source
+            and "生产只读控制台" in admin_html,
+        ),
+        _ok(
+            "diagnosis_share_card_is_local_and_truthful",
+            "function shareDiagnosisCard(button)" in frontend_html
+            and "canvas.toBlob" in frontend_html
+            and "link.download = 'noteai-diagnosis-card.png'"
+            in frontend_html
+            and "诊断卡片已生成，复制链接成功" not in frontend_html
+            and "performs no NoteAI or supplier request" in ui_admin_contract,
         ),
         _ok(
             "docker_pins_node20_base_index",

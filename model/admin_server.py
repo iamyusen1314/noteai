@@ -56,6 +56,61 @@ except Exception:
     _XHS_ACQ_AVAILABLE = False
 
 
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+_ADMIN_MUTATION_CAPABILITIES = (
+    "business_mutation",
+    "prompt_mutation",
+    "model_mutation",
+    "crawler_control",
+    "tracking_requeue",
+)
+
+
+def _is_restricted_admin_runtime() -> bool:
+    stage = os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower()
+    cloud = os.environ.get("NOTEAI_CLOUD_RUNTIME", "0").strip().lower()
+    return stage == "production" or cloud in _TRUE_VALUES
+
+
+def _admin_capabilities_payload() -> dict:
+    restricted = _is_restricted_admin_runtime()
+    capabilities = {
+        name: not restricted for name in _ADMIN_MUTATION_CAPABILITIES
+    }
+    return {
+        "mode": "production_read_only" if restricted else "local_operator",
+        "read_only": restricted,
+        "capabilities": capabilities,
+        "mutation_workflow": (
+            "audited_release_workflow" if restricted else "local_operator"
+        ),
+    }
+
+
+def _require_admin_capability(name: str) -> None:
+    if _admin_capabilities_payload()["capabilities"].get(name) is not True:
+        raise HTTPException(
+            status_code=409,
+            detail="生产 Admin 为只读控制台；该操作必须通过独立受审计流程执行",
+        )
+
+
+def _admin_cors_origins() -> list[str]:
+    configured = (
+        os.environ.get("NOTEAI_ADMIN_CORS_ORIGINS")
+        or os.environ.get("CORS_ORIGINS")
+        or ""
+    )
+    origins = [
+        value.strip()
+        for value in configured.split(",")
+        if value.strip()
+    ]
+    if _is_restricted_admin_runtime():
+        return [origin for origin in origins if origin != "*"]
+    return origins or ["*"]
+
+
 def _unavailable_api_ai_status() -> dict:
     return {
         "status": "unavailable",
@@ -149,9 +204,9 @@ admin_app = FastAPI(
 
 admin_app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_admin_cors_origins(),
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # 静态文件（admin.html）
@@ -183,6 +238,12 @@ async def admin_logout_ep(admin: dict = Depends(_aauth.get_admin_user)):
 @admin_app.get("/admin/me")
 async def admin_me(admin: dict = Depends(_aauth.get_admin_user)):
     return {"username": admin["username"], "logged_in_at": admin["created_at"]}
+
+
+@admin_app.get("/admin/capabilities")
+async def admin_capabilities(admin: dict = Depends(_aauth.get_admin_user)):
+    """Expose the fail-closed Admin UI contract without configuration values."""
+    return _admin_capabilities_payload()
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -386,9 +447,13 @@ async def admin_users(
             "COALESCE(SUM(tokens_in),0) as tokens_in, COALESCE(SUM(tokens_out),0) as tokens_out "
             "FROM usage_records WHERE user_id=? AND recorded_at>=?",
             (r["id"], month_start))
+        public_user = dict(r)
+        public_user.pop("phone", None)
+        public_user.pop("email", None)
         users_out.append({
-            **dict(r),
+            **public_user,
             "phone_masked": _mask_phone_admin(r["phone"] or ""),
+            "email_masked": _mask_email_admin(r["email"] or ""),
             "month_ops":    usage["cnt"],
             "month_cost":   round(usage["cost"] or 0, 4),
             "month_tokens": int((usage["tokens_in"] or 0) + (usage["tokens_out"] or 0)),
@@ -399,7 +464,14 @@ async def admin_users(
 
 def _mask_phone_admin(phone: str) -> str:
     raw = phone.replace("+86", "")
-    return raw[:3] + "****" + raw[-4:] if len(raw) == 11 else phone
+    return raw[:3] + "****" + raw[-4:] if len(raw) == 11 else ("***" if raw else "")
+
+
+def _mask_email_admin(email: str) -> str:
+    local, separator, domain = email.partition("@")
+    if not separator or not local or not domain:
+        return "***" if email else ""
+    return f"{local[:1]}***@{domain}"
 
 
 @admin_app.get("/admin/users/{user_id}")
@@ -412,6 +484,8 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
     user.pop("password_hash", None)
     user.pop("password_salt", None)
     user.pop("avatar_data", None)  # 不传图片数据
+    phone_masked = _mask_phone_admin(user.pop("phone", "") or "")
+    email_masked = _mask_email_admin(user.pop("email", "") or "")
 
     sub = db.fetchone(
         "SELECT * FROM subscriptions WHERE user_id=? AND is_active=1", (user_id,))
@@ -432,7 +506,7 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
         (user_id,))
 
     credit_txns = db.fetchall(
-        "SELECT type,amount,balance_after,description,paid_rmb,package_id,payment_ref,recorded_at "
+        "SELECT type,amount,balance_after,description,paid_rmb,package_id,recorded_at "
         "FROM credit_transactions WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
         (user_id,))
 
@@ -442,7 +516,11 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
         "FROM notes WHERE user_id=?", (user_id,))
 
     return {
-        "user":          {**user, "phone_masked": _mask_phone_admin(user.get("phone") or "")},
+        "user":          {
+            **user,
+            "phone_masked": phone_masked,
+            "email_masked": email_masked,
+        },
         "subscription":  dict(sub) if sub else {"tier": "free"},
         "credits":       dict(credits_row) if credits_row else {"balance": 0},
         "month_usage":   [dict(r) for r in usage_rows],
@@ -470,6 +548,7 @@ async def admin_user_adjust(
     user_id: str, req: UserAdjustInput,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
+    _require_admin_capability("business_mutation")
     user = db.fetchone("SELECT id,username FROM users WHERE id=?", (user_id,))
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
@@ -497,7 +576,7 @@ async def admin_user_adjust(
                 "WHERE user_id=? AND is_active=1",
                 (user_id,),
             )
-        return {"ok": True, "message": "本月积分已重置"}
+        return {"ok": True, "message": "本周期积分已重置"}
 
     if req.action in ("disable", "enable"):
         with db.transaction(write=True) as tx:
@@ -559,6 +638,7 @@ async def admin_tracked_notes(
 @admin_app.post("/admin/tracked-notes/{note_id}/trigger-check")
 async def admin_trigger_check(note_id: str, admin: dict = Depends(_aauth.get_admin_user)):
     """手动触发某条追踪笔记的采集。"""
+    _require_admin_capability("tracking_requeue")
     note = db.fetchone("SELECT * FROM tracked_notes WHERE id=?", (note_id,))
     if not note:
         raise HTTPException(status_code=404, detail="追踪记录不存在")
@@ -842,6 +922,7 @@ async def admin_prompt_update(
     key: str, req: PromptUpdateInput,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
+    _require_admin_capability("prompt_mutation")
     now = datetime.now(timezone.utc).isoformat()
     old_row = db.fetchone(
         "SELECT key,label,module,content,version,updated_at FROM managed_prompts WHERE key=?",
@@ -875,6 +956,7 @@ async def admin_prompt_rollback(
     key: str, body: dict,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
+    _require_admin_capability("prompt_mutation")
     version = body.get("version")
     data = _load_prompts()
     hist = data.get("history", {}).get(key, [])
@@ -899,7 +981,8 @@ def _load_registry() -> dict:
         return stored
     if _MODEL_REGISTRY_FILE.exists():
         registry = json.loads(_MODEL_REGISTRY_FILE.read_text(encoding="utf-8"))
-        _settings.set_json(_MODEL_REGISTRY_KEY, registry)
+        if not _is_restricted_admin_runtime():
+            _settings.set_json(_MODEL_REGISTRY_KEY, registry)
         return registry
     # 初始化：把当前 v0.3 纳入注册表
     registry = {
@@ -919,7 +1002,8 @@ def _load_registry() -> dict:
         },
         "training_jobs": [],
     }
-    _settings.set_json(_MODEL_REGISTRY_KEY, registry)
+    if not _is_restricted_admin_runtime():
+        _settings.set_json(_MODEL_REGISTRY_KEY, registry)
     return registry
 
 
@@ -928,13 +1012,7 @@ def _save_registry(data: dict) -> None:
 
 
 def _guard_cloud_model_mutation() -> None:
-    is_cloud = os.environ.get("NOTEAI_CLOUD_RUNTIME", "0").lower() in {"1", "true", "yes"}
-    allowed = os.environ.get("NOTEAI_ENABLE_CLOUD_MODEL_MUTATION", "0").lower() in {"1", "true", "yes"}
-    if is_cloud and not allowed:
-        raise HTTPException(
-            status_code=409,
-            detail="云端模型发布/训练已锁定；请通过受审计的模型发布流程更新镜像",
-        )
+    _require_admin_capability("model_mutation")
 
 
 @admin_app.get("/admin/models")
@@ -1118,7 +1196,8 @@ def _load_crawler_config() -> dict:
         return stored
     if _CRAWLER_CONFIG_FILE.exists():
         config = json.loads(_CRAWLER_CONFIG_FILE.read_text(encoding="utf-8"))
-        _settings.set_json(_CRAWLER_CONFIG_KEY, config)
+        if not _is_restricted_admin_runtime():
+            _settings.set_json(_CRAWLER_CONFIG_KEY, config)
         return config
     return {
         "enabled": False,
@@ -1235,6 +1314,7 @@ async def admin_crawler_toggle(
     admin: dict = Depends(_aauth.get_admin_user)
 ):
     """启用/禁用爬虫。"""
+    _require_admin_capability("crawler_control")
     enabled = bool(body.get("enabled", False))
     config = _load_crawler_config()
     config["enabled"] = enabled

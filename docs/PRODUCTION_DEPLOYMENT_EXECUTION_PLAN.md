@@ -135,11 +135,19 @@ do not silently colocate more roles or buy capacity.
 
 - Pull only the exact Admin digest on API-C and verify its registry/OCI
   identity before start.
+- Require the dedicated `noteai_admin` role and the accepted exact
+  session/read-only operational permission matrix. Do not reuse `noteai_app`
+  and do not force the entire connection read-only: login/logout require only
+  `admin_sessions` `SELECT, INSERT, DELETE`, while all business mutations are
+  denied independently by application capability gates and database ACL/RLS.
 - Start loopback-only. Require `/health/live` HTTP `200` and
   `/health/ready` HTTP `200`; Admin readiness blocks only on PostgreSQL and a
   configured Admin credential.
-- Do not log in, mutate Prompt/configuration, expose the port publicly or add
-  it to ALB in this gate.
+- Prove one login, authenticated `/admin/capabilities` read, masked user/queue
+  views, logout and token invalidation without business writes. Every mutation
+  endpoint must return HTTP `409` before database/file/process work.
+- Do not mutate Prompt/configuration, expose the port publicly or add it to ALB
+  in this gate.
 
 ### Gate 5 — XHS HTTP processes
 

@@ -5,6 +5,7 @@ NoteAI Pro 管理员认证模块
 - admin token 存主数据库，支持多实例和重启
 """
 import os
+import hashlib
 import secrets
 import time
 from typing import Optional
@@ -16,6 +17,11 @@ import db
 _ADMIN_TOKEN_EXPIRE = 86400 * 7  # 7天
 
 _admin_bearer = HTTPBearer(auto_error=False)
+
+
+def _token_digest(token: str) -> str:
+    """Persist only a one-way digest of the bearer credential."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def get_admin_credentials() -> tuple[str, str]:
@@ -36,13 +42,13 @@ def admin_login(username: str, password: str) -> str:
     created_at = time.time()
     db.execute(
         "INSERT INTO admin_sessions(token,username,created_at,expires_at) VALUES(?,?,?,?)",
-        (token, username, created_at, created_at + _ADMIN_TOKEN_EXPIRE),
+        (_token_digest(token), username, created_at, created_at + _ADMIN_TOKEN_EXPIRE),
     )
     return token
 
 
 def admin_logout(token: str) -> None:
-    db.execute("DELETE FROM admin_sessions WHERE token=?", (token,))
+    db.execute("DELETE FROM admin_sessions WHERE token=?", (_token_digest(token),))
 
 
 def _verify_admin_token(token: str) -> Optional[dict]:
@@ -50,12 +56,12 @@ def _verify_admin_token(token: str) -> Optional[dict]:
         return None
     session = db.fetchone(
         "SELECT username,created_at,expires_at FROM admin_sessions WHERE token=?",
-        (token,),
+        (_token_digest(token),),
     )
     if not session:
         return None
     if float(session["expires_at"]) <= time.time():
-        db.execute("DELETE FROM admin_sessions WHERE token=?", (token,))
+        db.execute("DELETE FROM admin_sessions WHERE token=?", (_token_digest(token),))
         return None
     return {"username": session["username"], "created_at": session["created_at"]}
 

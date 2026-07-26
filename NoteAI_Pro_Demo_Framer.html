@@ -4032,7 +4032,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div id="shareCardBanner" class="share-card" style="display:none">
       <h3><i data-lucide="share-2"></i>生成诊断卡片，分享到小红书</h3>
       <p>分享你的诊断报告，帮助更多创作者成长（同时帮你吸引同频粉丝）</p>
-      <button class="share-btn" onclick="showToast('诊断卡片已生成，复制链接成功！')"><i data-lucide="upload" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"></i>一键分享卡片</button>
+      <button class="share-btn" onclick="shareDiagnosisCard(this)"><i data-lucide="upload" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"></i>生成并分享卡片</button>
     </div>
     </div><!-- /diag-detail-section -->
   </div>
@@ -4610,7 +4610,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断43次 / 爆文32次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写86轮 / 截图520张</div>
           <div><span style="color:var(--holo-mid);margin-right:6px">◆</span>参考组合：14诊断 + 20爆文 + 5重写 = 259积分</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>付费期间创建内容长期存档</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>付费创建归档在账户存在期间无产品到期日</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>AI记忆学习偏好</div>
         </div>
         <button onclick="handleUpgrade('pro')" style="width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
@@ -4637,7 +4637,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断150次 / 爆文112次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写300轮 / 截图1800张</div>
           <div><span style="color:#FFD700;margin-right:6px">◆</span>参考组合：50诊断 + 70爆文 + 13重写 = 899积分</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>3:1 加权任务调度（非供应商完成承诺）</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>最多3/4调度槽位给优先队列（非完成时效承诺）</div>
         </div>
         <button onclick="handleUpgrade('pro_plus')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(123,97,255,0.4);background:rgba(123,97,255,0.08);color:var(--holo-mid);cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
@@ -4651,13 +4651,14 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写416轮 / 截图2500张</div>
           <div><span style="color:#00D4FF;margin-right:6px">◆</span>参考组合：80诊断 + 90爆文 + 10重写 = 1230积分</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>单一 NoteAI 主账号运营多个小红书账号</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>最多3/4调度槽位给优先队列（非完成时效承诺）</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>专属客服支持</div>
         </div>
         <button onclick="handleUpgrade('studio')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(0,212,255,0.4);background:rgba(0,212,255,0.08);color:#00D4FF;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
     </div>
 	    <div class="billing-info-card" style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
-      <b style="color:var(--text)">如何理解“99元 / 260积分”：</b>260积分是本月可自由使用的创作额度，不绑定固定次数。可以全部用于 AI诊断，也可以混合用于爆文生成、对话重写和截图识别；每次扣多少，按下方标准执行。
+      <b style="color:var(--text)">如何理解“99元 / 260积分”：</b>260积分是当前30天套餐周期内可自由使用的创作额度，不绑定固定次数。可以全部用于 AI诊断，也可以混合用于爆文生成、对话重写和截图识别；每次扣多少，按下方标准执行。
     </div>
 
     <!-- 扣分标准 -->
@@ -5255,6 +5256,126 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+async function shareDiagnosisCard(button) {
+  const diagnosis = _diagnoseResult;
+  if (!diagnosis || diagnosis._error) {
+    showToast('请先完成一次诊断，再生成分享卡片');
+    return;
+  }
+  const originalText = button?.textContent || '生成并分享卡片';
+  if (button) {
+    button.disabled = true;
+    button.textContent = '正在生成…';
+  }
+  try {
+    const rawScore = Number(diagnosis.composite_score);
+    const fallbackScore = Number(diagnosis.ces_percentile || 0);
+    const score = Math.max(
+      0,
+      Math.min(100, Math.round(Number.isFinite(rawScore) && rawScore > 0 ? rawScore : fallbackScore)),
+    );
+    const grade = gradeInfo(score).text;
+    const domain = String(diagnosis._domain || '内容创作').slice(0, 12);
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1440;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas unavailable');
+
+    const background = ctx.createLinearGradient(0, 0, 1080, 1440);
+    background.addColorStop(0, '#100d26');
+    background.addColorStop(0.55, '#15152c');
+    background.addColorStop(1, '#071b25');
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, 1080, 1440);
+
+    const glow = ctx.createRadialGradient(820, 260, 10, 820, 260, 520);
+    glow.addColorStop(0, 'rgba(123,97,255,.45)');
+    glow.addColorStop(1, 'rgba(123,97,255,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, 1080, 900);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 48px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('NoteAI Pro', 88, 120);
+    ctx.fillStyle = '#9e98bd';
+    ctx.font = '400 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(`${domain} · AI 诊断摘要`, 88, 172);
+
+    ctx.beginPath();
+    ctx.arc(540, 610, 248, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,.12)';
+    ctx.lineWidth = 34;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(540, 610, 248, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * score / 100);
+    ctx.strokeStyle = '#7b61ff';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 190px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(String(score), 540, 660);
+    ctx.fillStyle = '#b8b3d1';
+    ctx.font = '600 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('综合交付分 / 100', 540, 724);
+    ctx.fillStyle = '#57e3ac';
+    ctx.font = '700 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(grade, 540, 860);
+
+    ctx.fillStyle = 'rgba(255,255,255,.06)';
+    ctx.roundRect(88, 1010, 904, 210, 28);
+    ctx.fill();
+    ctx.fillStyle = '#e8e6f3';
+    ctx.font = '600 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('诊断只是起点，持续改写才会形成增长复利', 540, 1090);
+    ctx.fillStyle = '#8e89a8';
+    ctx.font = '400 25px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('本卡片仅包含分数与品类，不包含笔记正文或账户信息', 540, 1150);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#77728f';
+    ctx.font = '400 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(new Date().toLocaleDateString('zh-CN'), 88, 1340);
+    ctx.textAlign = 'right';
+    ctx.fillText('noteai.pro', 992, 1340);
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('image encode failed');
+    const file = new File([blob], 'noteai-diagnosis-card.png', {type: 'image/png'});
+    if (navigator.share && navigator.canShare?.({files: [file]})) {
+      try {
+        await navigator.share({
+          title: 'NoteAI Pro 诊断卡片',
+          text: '我的 NoteAI Pro 内容诊断摘要',
+          files: [file],
+        });
+        showToast('诊断卡片已通过系统分享');
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'noteai-diagnosis-card.png';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('诊断卡片 PNG 已下载，可自行分享');
+  } catch (error) {
+    console.error('[share card]', error);
+    showToast('卡片生成失败，请稍后重试');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
 }
 
 // Warning-only: long paid AI tasks may legitimately stay quiet. Never cancel,

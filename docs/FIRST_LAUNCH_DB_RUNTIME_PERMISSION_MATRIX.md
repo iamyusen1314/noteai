@@ -330,6 +330,36 @@ through the pseudonymization update is rejected by the order identity guard.
 Catalogue version, product and exact integer-fen price are enforced
 persistently, not trusted only to application code.
 
+## Admin role
+
+The first-launch Admin contract is defined in
+`docs/FIRST_LAUNCH_UI_ADMIN_CONTRACT.md`. Production Admin must connect as a
+dedicated `noteai_admin` login, never as `noteai_app`. Its only positive DML is:
+
+- `admin_sessions`: `SELECT, INSERT, DELETE`; no `UPDATE`, `TRUNCATE`,
+  `REFERENCES`, `TRIGGER`, ownership or grant option;
+- read-only `SELECT` needed by the integrated Admin views on `users`,
+  `subscriptions`, `credits`, `credit_transactions`, `notes`,
+  `usage_records`, `model_usage_records`, `system_settings`,
+  `managed_prompts`, `prompt_history`, `tracked_notes`,
+  `ai_operations`, `ai_operation_settlements`, `ai_operation_outbox`,
+  `xhs_freshness_ledger`, `xhs_crawler_health`, `xhs_trends_runs` and the ten
+  payment tables described above.
+
+The final PostgreSQL permission task must generate the exact positive
+table/column set from current Admin SQL, add any required `noteai_admin` RLS
+read policy, and prove every unlisted table/column/sequence/function privilege
+false on disposable PostgreSQL. Admin receives no sequence privilege, business
+DML, Prompt/model/Crawler/Tracking mutation, schema/database creation, TEMP,
+DDL, role membership, superuser, `BYPASSRLS`, `schema_migrations`, ownership or
+grant option.
+
+Do not force the whole Admin connection to
+`default_transaction_read_only=on`: that makes the exact session
+`INSERT`/`DELETE` contract unusable. The application itself fails closed on
+every business mutation in production, while database ACL/RLS supplies the
+independent persistent boundary.
+
 ## Verification required before production use
 
 A separately approved database task must:
