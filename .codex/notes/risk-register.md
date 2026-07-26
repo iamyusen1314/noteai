@@ -11,7 +11,7 @@ Last updated: 2026-07-27
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付合同、Adapay离线适配器/专用运行时及UI/Admin仓库门禁也已通过，均为`NOT DEPLOYED`。UI/Admin应用checkpoint为`d358114e37c1e85e0ed068c1aca3ff87bfc36b6f`；migration `0014` SHA仍为`ed788fdf…b0ad`。生产未访问，仍是migration `0001`–`0008`；`0009`–`0014`未应用，当前代码尚未形成或部署新镜像。
-- 当前下一步: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`已记录一次`BLOCKED / AUTHENTICATION UNAVAILABLE / ZERO MUTATION`：当前工作会话没有已认证的阿里云、生产数据库或SSH目标路径，历史生产事实不得冒充新证据。认证状态不变时不得重复该能力检查。`PROD-FIRST-LAUNCH-ADMIN-ROLE-CONTRACT-001`已在仓库/隔离PostgreSQL通过；当前可执行任务为`PROD-FIRST-LAUNCH-FRONTEND-ASSET-SELFHOST-001`。不得执行生产`0009`–`0015`、GRANT/REVOKE、provider、service/image/ACR或流量变更。
+- 当前下一步: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`已记录一次`BLOCKED / AUTHENTICATION UNAVAILABLE / ZERO MUTATION`：当前工作会话没有已认证的阿里云、生产数据库或SSH目标路径，历史生产事实不得冒充新证据。认证状态不变时不得重复该能力检查。Admin-role和前端浏览器资产自托管均已在仓库/隔离范围通过；当前可执行任务为`PROD-FIRST-LAUNCH-INTERNAL-READINESS-GATE-001`，用于机器可读地分离仓库、内部生产部署和公开上线门禁。不得执行生产`0009`–`0015`、GRANT/REVOKE、provider、service/image/ACR或流量变更。
 - 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
@@ -33,12 +33,13 @@ Last updated: 2026-07-27
 - 2026-07-27进展: `PROD-FIRST-LAUNCH-UI-ADMIN-CONTRACT-001`为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。完整串行Python `895`加`20`skip、E2E `68/68`及readiness `100/100`通过；无生产或外部影响，费用`¥0`。本风险保留为High仅因为精确DB角色及生产部署/运行时证据仍缺失。
 - 2026-07-27角色进展: `PROD-FIRST-LAUNCH-ADMIN-ROLE-CONTRACT-001`为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。Migration `0015` SHA `3ee9b85c…d66c`、实际LOGIN/session生命周期、Secret RLS、完整表列序列/角色矩阵`4/4`及全量Python `901`通过；临时资源清零并恢复Colima停止。High仅保留在生产preflight、migration/ACL/credential/image及HTTP运行时证据。
 
-### External browser CDN dependency remains a production availability boundary
+### External browser CDN dependency is closed at repository level
 
-- 状态: Open Medium / repository follow-up。用户前端和Admin仍从`cdnjs.cloudflare.com`加载ECharts；核心页面有本地Three.js资产，但ECharts尚未本地化。
-- 风险描述: 外部CDN故障、域名阻断或上游内容变化可能使图表不可用，并扩大浏览器供应链和跨境网络依赖。当前Admin E2E已证明CDN失败时只读核心状态仍可加载，但这不等于图表依赖可接受。
-- 建议验证方式: 建立有界仓库任务，把精确许可和哈希固定的ECharts资产纳入本地静态资源或证明该依赖可完全删除；添加无外网E2E、许可证和哈希门禁。不得从浏览器运行时回退到浮动第三方URL。
-- 回滚: 恢复精确HTML引用和资产文件；不涉及数据库、供应商或生产资源。
+- 状态: `CLOSED / REPOSITORY VERIFIED / NOT DEPLOYED / 0C / 0H / 0M` by `PROD-FIRST-LAUNCH-FRONTEND-ASSET-SELFHOST-001` at `22ae1e588abe7e201d9b671694203924ea391de3`.
+- 已关闭: 用户前端和Admin仅从same-origin `/assets/vendor`加载固定ECharts `5.4.3`和Lucide `1.27.0`；不存在运行时CDN或浮动`latest`引用。精确上游文件、Apache-2.0/ISC许可证和SHA-256已入库。
+- 证据: focused browser `3/3`、repository `10/10`、full serial E2E `69/69`、readiness `100/100`及hash/no-external-script检查通过。任务只读取公开npm metadata/package，费用`¥0`，临时打包目录已移入废纸篓。
+- 剩余边界: 该提交尚未构建为新镜像或部署，因此只能关闭仓库供应链/可用性缺口，不能证明生产静态资源交付。
+- 防重复/回滚: 无资产、HTML或服务路径冲突时不得重跑本任务；回滚仅撤销精确本地资源和引用，不涉及数据库、供应商或生产资源。
 
 ### Database migration or SQLite/PostgreSQL drift damages data
 
