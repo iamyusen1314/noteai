@@ -50,3 +50,27 @@ sign-in and a bounded production database metadata read path are available.
 The full Gate 0 checklist in `docs/PRODUCTION_DEPLOYMENT_EXECUTION_PLAN.md`
 remains mandatory; this partial ACR observation satisfies none of the
 host/database acceptance rows by inheritance.
+
+## Evidence acceptance contract
+
+Repository checkpoint `PROD-FIRST-LAUNCH-PROD-PREFLIGHT-GATE-001` adds the
+offline verifier:
+
+```bash
+.venv/bin/python tools/production_readonly_preflight_gate.py \
+  /path/to/sanitized-preflight-evidence.json
+```
+
+The evidence file is created only after real observations exist. The verifier
+requires exactly API-C/API-F, historical managed-runtime identities and
+loopback listeners, at least 12 GiB Docker headroom, private ACR DNS/routing,
+RDS PostgreSQL 16 HA/encryption/SSL/private endpoint, backup/PITR retention,
+repository-bound migration `0001`–`0008` hashes, pending `0009`–`0015`,
+source-data aggregate preflight, effective-role negatives, no public edge,
+zero mutation and complete cleanup. Unknown fields, instance IDs, network
+addresses, connection values, private keys, long opaque values, drift,
+unexpected privileges or any non-zero side effect fail closed.
+
+This verifier is repository/deployment-control tooling and is excluded from
+the application image build context. Its existence does not unblock or verify
+production Gate 0.

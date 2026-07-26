@@ -88,6 +88,9 @@ do not silently colocate more roles or buy capacity.
   routing. No registry login, manifest request or pull in this gate.
 - Read RDS availability, schema-migration versions, backup/PITR metadata and
   connection limits without changing data.
+- Reduce the observation to a Secret-free JSON artifact and require
+  `tools/production_readonly_preflight_gate.py` to pass. Do not record host
+  IDs, IP addresses, connection values, user rows or long logs.
 - Stop on any unexpected running application, public listener, mutable image
   ref, Secret exposure, low disk, architecture mismatch or unrecorded change.
 

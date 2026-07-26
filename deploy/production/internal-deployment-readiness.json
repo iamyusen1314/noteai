@@ -221,6 +221,10 @@
             {
               "kind": "path",
               "ref": "docs/PRODUCTION_READONLY_PREFLIGHT_EVIDENCE.md"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/production_readonly_preflight_gate.py"
             }
           ],
           "blocker": "A cached authenticated ACR page is readable, but fresh ECS navigation redirects to Alibaba login and no bounded production database metadata path is available.",

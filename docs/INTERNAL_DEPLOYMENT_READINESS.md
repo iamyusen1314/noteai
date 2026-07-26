@@ -91,6 +91,14 @@ only after a fresh Alibaba console sign-in and a bounded database metadata path
 exist. The partial evidence is recorded in
 `docs/PRODUCTION_READONLY_PREFLIGHT_EVIDENCE.md`.
 
+The credential-free offline evidence gate is now available at
+`tools/production_readonly_preflight_gate.py`. It verifies only a future
+sanitized observation artifact and therefore does not change the score. It
+fails closed on missing API-C/API-F coverage, non-loopback listeners, mutable
+images, insufficient host headroom, RDS/backup/PITR gaps, migration drift,
+source-data blockers, unexpected runtime authority, side effects or cleanup
+residue.
+
 ## Updating evidence
 
 Update
