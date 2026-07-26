@@ -99,6 +99,15 @@ images, insufficient host headroom, RDS/backup/PITR gaps, migration drift,
 source-data blockers, unexpected runtime authority, side effects or cleanup
 residue.
 
+`tools/collect_production_host_preflight.py` is the paired node-side,
+read-only collector. It emits only the exact host fragment consumed by the
+gate: Docker/systemd identity and hardening, loopback health, bounded log-hit
+counts, env key-name metadata, capacity, private/VPC-only network/ACR routing and
+temporary-access residue. It never outputs environment values, raw logs,
+addresses or instance identities and makes no registry/database/provider
+request. The collector and gate remain offline preparation until executed
+against authenticated production.
+
 ## Updating evidence
 
 Update

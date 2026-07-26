@@ -26,9 +26,17 @@ EXPECTED_HOST_ROLES = {
     "API-C": ("api", "admin"),
     "API-F": ("api",),
 }
+EXPECTED_ENV_ROLES = {
+    "API-C": ("api", "admin"),
+    "API-F": ("api", "xhs"),
+}
 EXPECTED_PORTS = {
     "API-C": {"api": "127.0.0.1:8000", "admin": "127.0.0.1:8001"},
     "API-F": {"api": "127.0.0.1:8000"},
+}
+EXPECTED_READY_CORE_CHECKS = {
+    "api": ["database", "model"],
+    "admin": ["admin_credentials", "database"],
 }
 EXPECTED_ROLE_STATE = {
     "noteai_app": "present",
@@ -147,7 +155,7 @@ def _verify_zero_mutation(evidence: dict[str, Any]) -> None:
         "service_changes",
         "provider_calls",
         "public_traffic_requests",
-        "secret_values_read",
+        "secret_values_exposed",
     }
     _exact_keys(evidence, expected, "zero_mutation")
     for key in expected:
@@ -156,7 +164,7 @@ def _verify_zero_mutation(evidence: dict[str, Any]) -> None:
 
 def _verify_env_files(host: str, rows: Any) -> None:
     env_files = _sequence(rows, f"{host}.env_files")
-    expected_roles = set(EXPECTED_HOST_ROLES[host])
+    expected_roles = set(EXPECTED_ENV_ROLES[host])
     actual_roles: set[str] = set()
     for index, raw in enumerate(env_files):
         row = _mapping(raw, f"{host}.env_files[{index}]")
@@ -268,10 +276,27 @@ def _verify_runtime(host: str, raw: Any) -> None:
                 "running",
                 "managed",
                 "image_digest_hex",
+                "local_image_id_hex",
                 "oci_revision",
                 "unit_sha256",
+                "unit_active",
+                "unit_enabled",
+                "unit_result",
+                "user",
+                "read_only_root",
+                "privileged",
+                "cap_drop_all",
+                "no_new_privileges",
+                "restart_policy",
+                "mount_destinations",
                 "loopback_listener",
                 "public_listener_count",
+                "live_http_status",
+                "ready_http_status",
+                "ready_core_checks",
+                "log_migration_hit_count",
+                "log_provider_hit_count",
+                "log_secret_pattern_hit_count",
             },
             f"{host}.containers[{index}]",
         )
@@ -287,6 +312,11 @@ def _verify_runtime(host: str, raw: Any) -> None:
             f"{host}.{role}: historical digest mismatch",
         )
         _require(
+            isinstance(container["local_image_id_hex"], str)
+            and bool(_HEX64.fullmatch(container["local_image_id_hex"])),
+            f"{host}.{role}: local image ID",
+        )
+        _require(
             container["oci_revision"] == HISTORICAL_REVISION,
             f"{host}.{role}: historical OCI revision mismatch",
         )
@@ -294,6 +324,37 @@ def _verify_runtime(host: str, raw: Any) -> None:
             isinstance(container["unit_sha256"], str)
             and bool(_HEX64.fullmatch(container["unit_sha256"])),
             f"{host}.{role}: unit SHA-256",
+        )
+        _require(container["unit_active"] is True, f"{host}.{role}: unit inactive")
+        _require(container["unit_enabled"] is True, f"{host}.{role}: unit disabled")
+        _require(
+            container["unit_result"] == "success",
+            f"{host}.{role}: unit result",
+        )
+        _require(container["user"] == "999:999", f"{host}.{role}: runtime user")
+        _require(
+            container["read_only_root"] is True,
+            f"{host}.{role}: writable root",
+        )
+        _require(
+            container["privileged"] is False,
+            f"{host}.{role}: privileged runtime",
+        )
+        _require(
+            container["cap_drop_all"] is True,
+            f"{host}.{role}: capability boundary",
+        )
+        _require(
+            container["no_new_privileges"] is True,
+            f"{host}.{role}: no-new-privileges",
+        )
+        _require(
+            container["restart_policy"] == "no",
+            f"{host}.{role}: Docker restart policy",
+        )
+        _require(
+            container["mount_destinations"] == ["/app/model/data"],
+            f"{host}.{role}: mount destinations",
         )
         _require(
             container["loopback_listener"] == EXPECTED_PORTS[host][role],
@@ -303,6 +364,24 @@ def _verify_runtime(host: str, raw: Any) -> None:
             container["public_listener_count"] == 0,
             f"{host}.{role}: public listener",
         )
+        _require(
+            container["live_http_status"] == 200,
+            f"{host}.{role}: liveness status",
+        )
+        _require(
+            container["ready_http_status"] == 200,
+            f"{host}.{role}: readiness status",
+        )
+        _require(
+            container["ready_core_checks"] == EXPECTED_READY_CORE_CHECKS[role],
+            f"{host}.{role}: readiness core checks",
+        )
+        for key in (
+            "log_migration_hit_count",
+            "log_provider_hit_count",
+            "log_secret_pattern_hit_count",
+        ):
+            _require(container[key] == 0, f"{host}.{role}.{key}: must be zero")
     _require(
         actual_roles == set(EXPECTED_HOST_ROLES[host]),
         f"{host}: running role set mismatch",

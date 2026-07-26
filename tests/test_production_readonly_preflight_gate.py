@@ -17,10 +17,27 @@ def valid_evidence() -> dict:
             "running": True,
             "managed": True,
             "image_digest_hex": gate.EXPECTED_DIGESTS[digest_role],
+            "local_image_id_hex": "b" * 64,
             "oci_revision": gate.HISTORICAL_REVISION,
             "unit_sha256": unit_sha,
+            "unit_active": True,
+            "unit_enabled": True,
+            "unit_result": "success",
+            "user": "999:999",
+            "read_only_root": True,
+            "privileged": False,
+            "cap_drop_all": True,
+            "no_new_privileges": True,
+            "restart_policy": "no",
+            "mount_destinations": ["/app/model/data"],
             "loopback_listener": gate.EXPECTED_PORTS[host][role],
             "public_listener_count": 0,
+            "live_http_status": 200,
+            "ready_http_status": 200,
+            "ready_core_checks": gate.EXPECTED_READY_CORE_CHECKS[role],
+            "log_migration_hit_count": 0,
+            "log_provider_hit_count": 0,
+            "log_secret_pattern_hit_count": 0,
         }
 
     def env_file(role: str) -> dict:
@@ -37,6 +54,7 @@ def valid_evidence() -> dict:
 
     def host(label: str) -> dict:
         roles = gate.EXPECTED_HOST_ROLES[label]
+        env_roles = gate.EXPECTED_ENV_ROLES[label]
         return {
             "label": label,
             "instance_state": "Running",
@@ -50,7 +68,7 @@ def valid_evidence() -> dict:
             "private_acr_dns": True,
             "private_acr_route": True,
             "containers": [container(role, label) for role in roles],
-            "env_files": [env_file(role) for role in roles],
+            "env_files": [env_file(role) for role in env_roles],
             "unexpected_container_count": 0,
             "unexpected_listener_count": 0,
             "mutable_image_ref_count": 0,
@@ -72,7 +90,7 @@ def valid_evidence() -> dict:
             "service_changes": 0,
             "provider_calls": 0,
             "public_traffic_requests": 0,
-            "secret_values_read": 0,
+            "secret_values_exposed": 0,
         },
         "cloud": {
             "acr": {
@@ -198,6 +216,15 @@ class ProductionReadonlyPreflightGateTests(unittest.TestCase):
             ),
             "listener": lambda item: item["hosts"][0]["containers"][0].__setitem__(
                 "loopback_listener", "0.0.0.0:8000"
+            ),
+            "rootfs": lambda item: item["hosts"][0]["containers"][0].__setitem__(
+                "read_only_root", False
+            ),
+            "health": lambda item: item["hosts"][0]["containers"][0].__setitem__(
+                "ready_http_status", 503
+            ),
+            "logs": lambda item: item["hosts"][0]["containers"][0].__setitem__(
+                "log_secret_pattern_hit_count", 1
             ),
         }
         for name, mutate in mutations.items():

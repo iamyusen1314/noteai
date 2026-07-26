@@ -71,6 +71,26 @@ zero mutation and complete cleanup. Unknown fields, instance IDs, network
 addresses, connection values, private keys, long opaque values, drift,
 unexpected privileges or any non-zero side effect fail closed.
 
+Env-file checks parse only key names for allowlist and duplicate validation;
+they never print, persist or compare values. The evidence records zero Secret
+exposure rather than claiming the operating system did not read file bytes.
+
 This verifier is repository/deployment-control tooling and is excluded from
 the application image build context. Its existence does not unblock or verify
 production Gate 0.
+
+The companion host collector is:
+
+```bash
+python3 tools/collect_production_host_preflight.py --host-label API-C
+python3 tools/collect_production_host_preflight.py --host-label API-F
+```
+
+It is transferred with the verifier only after authenticated Cloud Assistant
+access is available, run as root on the exact selected node, and removed after
+the sanitized JSON fragment is captured. It executes no shell strings, registry
+requests, database commands or external calls. It records Docker/systemd
+identity and hardening, loopback health, bounded log hit counts, env-file
+metadata/key-name counts, capacity, private network/ACR routing and residual
+temporary access without emitting environment values, raw logs, IP addresses
+or host identities.
