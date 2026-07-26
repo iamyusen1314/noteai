@@ -250,7 +250,7 @@ input,select,textarea{font-family:inherit}
   <div class="content-area page active" id="page-dashboard">
     <div class="card-grid card-grid-4" id="dashboard-stats" style="margin-bottom:20px">
       <div class="stat-card"><div class="stat-label">总用户数</div><div class="stat-val" id="d-total-users">–</div><div class="stat-sub" id="d-today-new"></div></div>
-      <div class="stat-card"><div class="stat-label">本月收入</div><div class="stat-val" id="d-revenue" style="color:var(--success)">–</div><div class="stat-sub" id="d-mrr"></div></div>
+      <div class="stat-card"><div class="stat-label">本月确认净现金</div><div class="stat-val" id="d-revenue" style="color:var(--success)">–</div><div class="stat-sub" id="d-mrr"></div></div>
       <div class="stat-card"><div class="stat-label">本月 API 成本</div><div class="stat-val" id="d-cost" style="color:var(--warning)">–</div><div class="stat-sub" id="d-margin"></div></div>
       <div class="stat-card"><div class="stat-label">本月活跃用户</div><div class="stat-val" id="d-active">–</div><div class="stat-sub" id="d-active-sub"></div></div>
     </div>
@@ -303,13 +303,13 @@ input,select,textarea{font-family:inherit}
   <!-- ═══ REVENUE ══════════════════════════════════════════════════ -->
   <div class="content-area page" id="page-revenue">
     <div class="card-grid card-grid-3" id="revenue-stats" style="margin-bottom:20px">
-      <div class="stat-card"><div class="stat-label">订阅收入估算</div><div class="stat-val" id="r-sub" style="color:var(--success)">–</div><div class="stat-sub" id="r-sub-note">按当前有效套餐人数 × 套餐价估算，不是支付流水。</div></div>
-      <div class="stat-card"><div class="stat-label">积分充值收入</div><div class="stat-val" id="r-credits" style="color:var(--info)">–</div></div>
+      <div class="stat-card"><div class="stat-label">订阅确认净现金</div><div class="stat-val" id="r-sub" style="color:var(--success)">–</div><div class="stat-sub" id="r-sub-note">仅来自不可变支付现金账本；不按有效套餐人数推算。</div></div>
+      <div class="stat-card"><div class="stat-label">积分包确认净现金</div><div class="stat-val" id="r-credits" style="color:var(--info)">–</div></div>
       <div class="stat-card"><div class="stat-label">综合毛利率（最近30日）</div><div class="stat-val" id="r-margin" style="color:var(--accent)">–</div></div>
     </div>
     <div class="card" id="revenue-cost-audit" style="margin-bottom:20px"></div>
     <div class="card-grid card-grid-2">
-      <div class="card"><div class="section-title">每日积分充值收入（最近30日）</div><div id="rev-chart" class="chart-box"></div></div>
+      <div class="card"><div class="section-title">每日确认净现金（最近30日）</div><div id="rev-chart" class="chart-box"></div></div>
       <div class="card"><div class="section-title">每日 API 成本（最近30日）</div><div id="cost-chart" class="chart-box"></div></div>
     </div>
   </div>
@@ -810,7 +810,11 @@ async function loadDashboard() {
   document.getElementById('d-total-users').textContent = u.total.toLocaleString();
   document.getElementById('d-today-new').textContent   = `今日新增 ${u.today_new}`;
   document.getElementById('d-revenue').textContent     = `¥${f.total_revenue.toLocaleString()}`;
-  document.getElementById('d-mrr').textContent         = `MRR ¥${f.mrr.toLocaleString()}`;
+  const unmatchedCash = adminFiniteNumber(f.unmatched_cash);
+  document.getElementById('d-mrr').textContent         =
+    `收款 ¥${adminFiniteNumber(f.cash_received).toLocaleString()} · 退款 ¥${adminFiniteNumber(f.cash_refunded).toLocaleString()} · 待人工核对 ¥${unmatchedCash.toLocaleString()} · 不自动续费`;
+  document.getElementById('d-mrr').style.color =
+    unmatchedCash > 0 ? 'var(--danger)' : '';
   document.getElementById('d-cost').textContent        = `¥${f.api_cost.toFixed(2)}`;
   const dashboardCoverage = adminCoverageCountsText(coverage, false);
   if (coverage.state === 'unavailable') {
@@ -1002,12 +1006,16 @@ async function loadRevenue() {
   const r = await aFetch('/admin/revenue');
   const d = await r.json();
   const coverage = adminCostCoverage(d.coverage);
-  const dailyTopup = Array.isArray(d.daily_topup) ? d.daily_topup : [];
+  const dailyCash = Array.isArray(d.daily_cash) ? d.daily_cash : [];
   const dailyApiCost = Array.isArray(d.daily_api_cost) ? d.daily_api_cost : [];
-  const subRevenue = adminFiniteNumber(d.sub_revenue_estimate);
+  const subRevenue = adminFiniteNumber(d.subscription_net_cash);
   document.getElementById('r-sub').textContent     = `¥${subRevenue.toLocaleString()}`;
-  document.getElementById('r-sub-note').textContent = '按当前有效套餐人数 × 套餐价估算，不是支付流水。';
-  const credRev = dailyTopup.reduce((sum, row)=>sum+adminFiniteNumber(row?.rmb),0);
+  const unmatchedCash = adminFiniteNumber(d.unmatched_cash);
+  document.getElementById('r-sub-note').textContent =
+    `仅来自不可变支付现金账本；不按有效套餐人数推算。待人工核对现金 ¥${unmatchedCash.toLocaleString()}。`;
+  document.getElementById('r-sub-note').style.color =
+    unmatchedCash > 0 ? 'var(--danger)' : '';
+  const credRev = adminFiniteNumber(d.credit_package_net_cash);
   document.getElementById('r-credits').textContent = `¥${credRev.toFixed(2)}`;
   const apiCostTotal = dailyApiCost.reduce((sum, row)=>sum+adminFiniteNumber(row?.cost),0);
   const totalRevenue = subRevenue + credRev;
@@ -1027,7 +1035,7 @@ async function loadRevenue() {
     <div style="font-size:13px;color:${coverage.ready?'var(--success)':'var(--warning)'}">${revenueHeadline}</div>
     ${revenueCounts ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">${revenueCounts}</div>` : ''}
     <div style="font-size:11px;color:var(--text-muted);margin-top:8px">${ADMIN_COST_COVERAGE_EXPLANATION}</div>`;
-  _renderLineChart('rev-chart', dailyTopup.map(row=>String(row?.day||'')), dailyTopup.map(row=>adminFiniteNumber(row?.rmb)), '积分充值(¥)', '#00D4FF');
+  _renderLineChart('rev-chart', dailyCash.map(row=>String(row?.day||'')), dailyCash.map(row=>adminFiniteNumber(row?.net)), '确认净现金(¥)', '#00D4FF');
   _renderLineChart('cost-chart', dailyApiCost.map(row=>String(row?.day||'')), dailyApiCost.map(row=>adminFiniteNumber(row?.cost)), 'API成本(¥)', '#F59E0B');
 }
 

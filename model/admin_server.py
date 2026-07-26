@@ -46,6 +46,7 @@ import prompt_baselines as _prompt_baselines
 import prompt_composer as _prompt_composer
 import tracking_contract as _tracking_contract
 import durable_ai as _durable_ai
+import payment_contract as _payment
 
 try:
     import xhs_acquisition as _xhs_acq
@@ -212,20 +213,24 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
         "SELECT tier, COUNT(*) as cnt FROM subscriptions WHERE is_active=1 GROUP BY tier")
     tier_dist = {r["tier"]: r["cnt"] for r in tier_rows}
 
-    # ── 本月收入（模拟：订阅 × 当前套餐单价）──
-    sub_revenue = sum(
-        tier_dist.get(tier, 0) * int(cfg.get("price", 0))
-        for tier, cfg in _billing.TIERS.items()
+    # ── 本月确认现金（仅不可变支付账本，不按套餐人数推算）──
+    cash = _payment.finance_summary(since=month_start)
+    by_kind = db.fetchone(
+        "SELECT "
+        "COALESCE(SUM(CASE WHEN o.product_kind='subscription' "
+        "AND l.entry_type IN ('payment_received','refund_paid') "
+        "THEN l.amount_fen ELSE 0 END),0) AS subscription_fen,"
+        "COALESCE(SUM(CASE WHEN o.product_kind='credit_package' "
+        "AND l.entry_type IN ('payment_received','refund_paid') "
+        "THEN l.amount_fen ELSE 0 END),0) AS credit_fen "
+        "FROM payment_cash_ledger l "
+        "JOIN payment_orders o ON o.id=l.order_id "
+        "WHERE l.recorded_at>=?",
+        (month_start,),
     )
-
-    # ── 积分充值收入（仅 paid_rmb；管理员赠送 type=gift 不计收入）──
-    topup_row = db.fetchone(
-        "SELECT COALESCE(SUM(CASE WHEN paid_rmb>0 THEN paid_rmb ELSE amount*? END),0) as total "
-        "FROM credit_transactions "
-        "WHERE type='topup' AND recorded_at>=?", (_billing.CREDIT_VALUE, month_start,))
-    credits_revenue = round(topup_row["total"] or 0, 2)
-
-    total_revenue = round(sub_revenue + credits_revenue, 2)
+    sub_revenue = round(int(by_kind["subscription_fen"] or 0) / 100, 2)
+    credits_revenue = round(int(by_kind["credit_fen"] or 0) / 100, 2)
+    total_revenue = round(int(cash["net_fen"]) / 100, 2)
 
     # ── 本月 API 成本 ──
     cost_row = db.fetchone(
@@ -240,9 +245,6 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
     gross_profit = round(total_revenue - api_cost, 2)
     margin_pct   = round(gross_profit / total_revenue * 100, 1) if total_revenue > 0 else 0
     audit = _model_cost_audit_payload(month_start)
-
-    # ── MRR ──
-    mrr = sub_revenue
 
     # ── 本月各操作用量 ──
     op_rows = db.fetchall(
@@ -296,7 +298,15 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
                 else "incomplete_model_cost_coverage"
             ),
             "coverage":        audit["coverage"],
-            "mrr":             mrr,
+            "cash_received":   round(cash["received_fen"] / 100, 2),
+            "cash_refunded":   round(cash["refunded_fen"] / 100, 2),
+            "unmatched_cash":  round(
+                cash["unmatched_fen"] / 100,
+                2,
+            ),
+            "revenue_basis":   "confirmed_immutable_cash_ledger",
+            "mrr":             0,
+            "mrr_basis":       "not_applicable_no_auto_renewal",
         },
         "usage": {
             "month_total_cost": api_cost,
@@ -584,24 +594,42 @@ async def admin_trigger_check(note_id: str, admin: dict = Depends(_aauth.get_adm
 
 @admin_app.get("/admin/revenue")
 async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_user)):
-    """收入统计（从今日起，订阅+积分）。"""
+    """Confirmed payment/refund cash plus model cost for the requested window."""
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    cash = _payment.finance_summary(since=since)
 
-    # 套餐人数 → 估算订阅收入
     tier_rows = db.fetchall(
         "SELECT tier, COUNT(*) as cnt FROM subscriptions WHERE is_active=1 GROUP BY tier")
     tier_dist = {r["tier"]: r["cnt"] for r in tier_rows}
-    sub_revenue_est = sum(
-        tier_dist.get(tier, 0) * int(cfg.get("price", 0))
-        for tier, cfg in _billing.TIERS.items()
+    kind_rows = db.fetchall(
+        "SELECT o.product_kind,"
+        "COALESCE(SUM(CASE WHEN l.entry_type IN "
+        "('payment_received','refund_paid') THEN l.amount_fen ELSE 0 END),0) "
+        "AS net_fen "
+        "FROM payment_orders o JOIN payment_cash_ledger l ON l.order_id=o.id "
+        "WHERE l.recorded_at>=? GROUP BY o.product_kind",
+        (since,),
     )
-
-    # 积分充值实际收入
-    topup_rows = db.fetchall(
-        "SELECT DATE(recorded_at) as day, SUM(amount) as credits_sum, "
-        "SUM(CASE WHEN paid_rmb>0 THEN paid_rmb ELSE amount*? END) as rmb_sum "
-        "FROM credit_transactions WHERE type='topup' AND recorded_at>=? GROUP BY day ORDER BY day",
-        (_billing.CREDIT_VALUE, since,))
+    kind_net = {
+        str(row["product_kind"]): int(row["net_fen"] or 0)
+        for row in kind_rows
+    }
+    daily_cash = db.fetchall(
+        "SELECT DATE(recorded_at) AS day,"
+        "COALESCE(SUM(CASE WHEN entry_type='payment_received' "
+        "THEN amount_fen ELSE 0 END),0) AS received_fen,"
+        "COALESCE(SUM(CASE WHEN entry_type='refund_paid' "
+        "THEN -amount_fen ELSE 0 END),0) AS refunded_fen,"
+        "COALESCE(SUM(CASE WHEN entry_type IN "
+        "('payment_received','refund_paid') THEN amount_fen ELSE 0 END),0) "
+        "AS net_fen,"
+        "COALESCE(SUM(CASE WHEN entry_type IN "
+        "('payment_received_unmatched','refund_paid_unmatched') "
+        "THEN ABS(amount_fen) ELSE 0 END),0) AS unmatched_fen "
+        "FROM payment_cash_ledger WHERE recorded_at>=? "
+        "GROUP BY DATE(recorded_at) ORDER BY day",
+        (since,),
+    )
 
     # 积分消费量（每日）
     usage_cost_rows = db.fetchall(
@@ -613,10 +641,29 @@ async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_u
 
     return {
         "tier_distribution": tier_dist,
-        "sub_revenue_estimate": sub_revenue_est,
-        "daily_topup": [{"day": r["day"], "credits": r["credits_sum"],
-                          "rmb": round(r["rmb_sum"] or 0, 2)}
-                        for r in topup_rows],
+        "subscription_net_cash": round(
+            kind_net.get("subscription", 0) / 100,
+            2,
+        ),
+        "credit_package_net_cash": round(
+            kind_net.get("credit_package", 0) / 100,
+            2,
+        ),
+        "unmatched_cash": round(cash["unmatched_fen"] / 100, 2),
+        "daily_cash": [
+            {
+                "day": str(row["day"]),
+                "received": round(int(row["received_fen"] or 0) / 100, 2),
+                "refunded": round(int(row["refunded_fen"] or 0) / 100, 2),
+                "net": round(int(row["net_fen"] or 0) / 100, 2),
+                "unmatched": round(
+                    int(row["unmatched_fen"] or 0) / 100,
+                    2,
+                ),
+            }
+            for row in daily_cash
+        ],
+        "revenue_basis": "confirmed_immutable_cash_ledger",
         "daily_api_cost": [{"day": r["day"], "cost": round(r["api_cost"] or 0, 4),
                             "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0))}
                            for r in usage_cost_rows],

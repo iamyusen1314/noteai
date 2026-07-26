@@ -77,6 +77,7 @@ import security_redaction as _redaction
 import idempotency as _idempotency
 import durable_ai as _durable_ai
 import private_storage as _private_storage
+import payment_contract as _payment
 import prompt_manager as _pm
 import prompt_composer as _prompt_composer
 import fact_enrichment as _facts
@@ -13428,6 +13429,16 @@ def _account_export_payload(
         "FROM credits WHERE user_id=?",
         (user["id"],),
     )
+    payment_orders = [
+        dict(row)
+        for row in storage.fetchall(
+            "SELECT id,product_kind,product_id,amount_fen,currency,"
+            "payment_status,entitlement_status,refund_status,refunded_fen,"
+            "created_at,updated_at FROM payment_orders WHERE user_id=? "
+            "ORDER BY created_at ASC",
+            (user["id"],),
+        )
+    ]
     operation_subject_hash = hashlib.sha256(
         b"noteai:ai-operation:subject:v1\0" + user["id"].encode("utf-8")
     ).hexdigest()
@@ -13481,6 +13492,7 @@ def _account_export_payload(
         "commercial_state": {
             "subscriptions": subscriptions,
             "credit_balance": dict(credit) if credit else None,
+            "payment_orders_without_provider_or_payer_data": payment_orders,
         },
         "operation_metadata": operations,
         "excluded": [
@@ -14571,6 +14583,11 @@ class TopupInput(BaseModel):
     package_id: Optional[str] = None # 正式口径：选择积分包
 
 
+class PaymentOrderInput(BaseModel):
+    product_kind: Literal["subscription", "credit_package"]
+    product_id: str = Field(min_length=2, max_length=32)
+
+
 def _test_billing_enabled() -> bool:
     enabled = os.environ.get("NOTEAI_ENABLE_TEST_BILLING", "").strip().lower()
     stage = os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower()
@@ -14578,6 +14595,43 @@ def _test_billing_enabled() -> bool:
         enabled in {"1", "true", "yes"}
         and stage in {"local", "development", "dev", "test"}
     )
+
+
+def _payment_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
+def _payment_prod_mode() -> bool:
+    return os.environ.get(
+        "NOTEAI_ADAPAY_PROD_MODE",
+        "",
+    ).strip().lower() in {"1", "true", "yes"}
+
+
+def _payment_ordering_available() -> bool:
+    return (
+        _payment_flag("NOTEAI_PAYMENT_ORDERING_ENABLED")
+        and not isinstance(
+            _payment.provider(),
+            _payment.UnavailablePaymentProvider,
+        )
+        and bool(os.environ.get("NOTEAI_ADAPAY_APP_ID", "").strip())
+    )
+
+
+def _mark_payment_outcome_unknown(order_id: str, *, phase: str) -> None:
+    try:
+        _payment.mark_payment_submission_unknown(order_id)
+    except Exception as exc:
+        _log_internal_failure(
+            "billing",
+            exc,
+            phase=phase,
+        )
 
 
 @app.get("/billing/plan")
@@ -14639,7 +14693,216 @@ async def billing_tiers():
     return {"tiers": _billing.TIERS, "credit_costs": credit_costs,
             "credit_value": _billing.CREDIT_VALUE,
             "topup_packages": _billing.list_credit_packages(),
-            "credit_policy": "优先扣本月套餐积分，不足部分扣充值积分；本月积分每月重置，充值积分长期有效。"}
+            "credit_policy": (
+                "优先扣当前套餐周期积分，不足部分扣充值积分；付费套餐为"
+                "一次性30天周期，不在月初重置且不自动续费；免费套餐按"
+                "自然月刷新，充值积分长期有效。"
+            )}
+
+
+@app.get("/payments/capabilities")
+async def payment_capabilities():
+    """Public availability only; never expose provider configuration."""
+    return {
+        "ordering_available": _payment_ordering_available(),
+        "refund_policy": "full_unused_entitlement_only",
+        "currency": "CNY",
+        "auto_renewal": False,
+    }
+
+
+@app.get("/payments/orders")
+async def payment_orders(user: dict = Depends(_auth.get_current_user)):
+    return {
+        "orders": _payment.list_orders_for_user(user["id"], limit=20),
+    }
+
+
+@app.get("/payments/orders/{order_id}")
+async def payment_order_detail(
+    order_id: str,
+    user: dict = Depends(_auth.get_current_user),
+):
+    try:
+        order = _payment.get_order_for_user(order_id, user["id"])
+    except _payment.PaymentContractError:
+        order = None
+    if order is None:
+        raise HTTPException(status_code=404, detail="PAYMENT_ORDER_NOT_FOUND")
+    return order
+
+
+@app.post("/payments/orders")
+async def payment_order_create(
+    body: PaymentOrderInput,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+    user: dict = Depends(_auth.get_current_user),
+):
+    """Create one payment through an explicitly injected adapter."""
+    if not _payment_ordering_available():
+        raise HTTPException(
+            status_code=503,
+            detail="PAYMENT_PROVIDER_UNAVAILABLE",
+        )
+    app_id = os.environ.get("NOTEAI_ADAPAY_APP_ID", "").strip()
+    try:
+        order = _payment.create_order(
+            user["id"],
+            body.product_kind,
+            body.product_id,
+            idempotency_key=idempotency_key,
+            app_id=app_id,
+            prod_mode=_payment_prod_mode(),
+        )
+        full_order = _db.fetchone(
+            "SELECT * FROM payment_orders WHERE id=? AND user_id=?",
+            (order["id"], user["id"]),
+        )
+        if full_order is None:
+            raise _payment.PaymentContractError("PAYMENT_ORDER_NOT_FOUND")
+        if not _payment.admit_payment_submission(order["id"]):
+            raise HTTPException(
+                status_code=409,
+                detail="PAYMENT_ORDER_ALREADY_SUBMITTED",
+            )
+        try:
+            result = _payment.provider().create_payment(
+                _payment.provider_payment_request(full_order)
+            )
+        except Exception as exc:
+            _mark_payment_outcome_unknown(
+                order["id"],
+                phase="payment_provider_outcome_marker",
+            )
+            _log_internal_failure(
+                "billing",
+                exc,
+                phase="payment_provider_request",
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="PAYMENT_PROVIDER_OUTCOME_UNKNOWN",
+            ) from None
+        try:
+            updated = _payment.mark_payment_submission(order["id"], result)
+        except Exception as exc:
+            _mark_payment_outcome_unknown(
+                order["id"],
+                phase="payment_submission_marker",
+            )
+            _log_internal_failure(
+                "billing",
+                exc,
+                phase="payment_provider_response",
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="PAYMENT_PROVIDER_RESPONSE_INVALID",
+            ) from None
+        checkout = str(result.checkout_token or "")
+        if not checkout or len(checkout.encode("utf-8")) > 4096:
+            _mark_payment_outcome_unknown(
+                order["id"],
+                phase="payment_checkout_marker",
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="PAYMENT_CHECKOUT_UNAVAILABLE",
+            )
+        return {
+            "order": updated,
+            "checkout": checkout,
+        }
+    except _payment.PaymentContractError as exc:
+        code = exc.code
+        status_code = 409 if "CONFLICT" in code or "ACTIVE_" in code else 400
+        raise HTTPException(status_code=status_code, detail=code) from None
+
+
+@app.post("/payments/adapay/callback")
+async def payment_adapay_callback(request: Request):
+    """Bounded form callback; valid terminal/manual evidence returns HTTP 200."""
+    if not _payment_flag("NOTEAI_PAYMENT_CALLBACK_ENABLED"):
+        raise HTTPException(
+            status_code=503,
+            detail="PAYMENT_CALLBACK_DISABLED",
+        )
+    content_type = request.headers.get("content-type", "").split(";", 1)[0]
+    if content_type.strip().lower() != "application/x-www-form-urlencoded":
+        raise HTTPException(
+            status_code=415,
+            detail="PAYMENT_CALLBACK_CONTENT_TYPE_INVALID",
+        )
+    raw = await request.body()
+    if not raw or len(raw) > _payment.MAX_CALLBACK_DATA_BYTES * 2:
+        raise HTTPException(
+            status_code=413,
+            detail="PAYMENT_CALLBACK_SIZE_INVALID",
+        )
+    try:
+        from urllib.parse import parse_qsl
+
+        pairs = parse_qsl(
+            raw.decode("ascii"),
+            keep_blank_values=True,
+            strict_parsing=True,
+            encoding="utf-8",
+            errors="strict",
+            max_num_fields=2,
+        )
+    except (UnicodeError, ValueError):
+        raise HTTPException(
+            status_code=400,
+            detail="PAYMENT_CALLBACK_FORM_INVALID",
+        ) from None
+    if (
+        len(pairs) != 2
+        or {key for key, _value in pairs} != {"data", "sign"}
+        or len({key for key, _value in pairs}) != 2
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="PAYMENT_CALLBACK_FORM_INVALID",
+        )
+    form = dict(pairs)
+    public_key = os.environ.get("NOTEAI_ADAPAY_PUBLIC_KEY", "")
+    app_id = os.environ.get("NOTEAI_ADAPAY_APP_ID", "")
+    if not public_key.strip() or not app_id.strip():
+        raise HTTPException(
+            status_code=503,
+            detail="PAYMENT_CALLBACK_CONFIG_UNAVAILABLE",
+        )
+    try:
+        result = _payment.process_signed_callback(
+            form["data"],
+            form["sign"],
+            public_key,
+            expected_app_id=app_id,
+            expected_prod_mode=_payment_prod_mode(),
+        )
+    except _payment.PaymentContractError as exc:
+        _log_internal_failure(
+            "billing",
+            exc,
+            phase="payment_callback",
+            status=exc.code,
+        )
+        status_code = (
+            401
+            if exc.code == "PAYMENT_CALLBACK_SIGNATURE_INVALID"
+            else 400
+        )
+        raise HTTPException(status_code=status_code, detail=exc.code) from None
+    if result.get("code"):
+        _log_internal_failure(
+            "billing",
+            phase="payment_callback_manual",
+            status=str(result["code"]),
+        )
+    return {
+        "ok": True,
+        "accepted": bool(result.get("ok") or result.get("code")),
+    }
 
 
 @app.post("/score", response_model=ScoreResponse)

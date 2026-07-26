@@ -90,7 +90,7 @@ OPERATIONS: dict[str, dict] = {
 }
 
 # 套餐和充值统一使用“创作积分”口径。
-# 月度套餐积分每个计费周期重置；充值积分进入钱包，长期有效。
+# 免费套餐按自然月刷新；付费套餐是一笔不自动续费的30天周期积分。
 CREDIT_VALUE = 0.30
 
 CREDIT_PACKAGES: dict[str, dict] = {
@@ -139,7 +139,7 @@ _ACTIVE_USAGE_ID: contextvars.ContextVar[str | None] = contextvars.ContextVar(
 )
 
 # ─────────────────────────────────────────────────────────────
-# ② 套餐定义：月度创作积分，不再限制单项次数
+# ② 套餐定义：周期创作积分，不再限制单项次数
 # ─────────────────────────────────────────────────────────────
 QUOTA_OPS = ["analyze", "generate", "chat_rewrite", "screenshot"]
 
@@ -149,35 +149,35 @@ TIERS: dict[str, dict] = {
         "price": 0,
         "monthly_credits": 12.0,
         "quotas": {},
-        "features": ["12 月度积分", "7天在线存档 + 7天恢复期", "可体验AI诊断/截图识别"],
+        "features": ["12 自然月积分", "7天在线存档 + 7天恢复期", "可体验AI诊断/截图识别"],
     },
     "pro": {
         "name":  "创作者版",
         "price": 99,
         "monthly_credits": 260.0,
         "quotas": {},
-        "features": ["260 月度积分", "付费期间创建内容永久存档", "AI记忆学习", "适合个人创作者"],
+        "features": ["260 个30天周期积分", "付费期间创建内容永久存档", "AI记忆学习", "适合个人创作者"],
     },
     "growth": {
         "name":  "成长版",
         "price": 199,
         "monthly_credits": 560.0,
         "quotas": {},
-        "features": ["560 月度积分", "付费期间创建内容永久存档", "适合稳定更新账号"],
+        "features": ["560 个30天周期积分", "付费期间创建内容永久存档", "适合稳定更新账号"],
     },
     "pro_plus": {
         "name":  "专业版",
         "price": 299,
         "monthly_credits": 900.0,
         "quotas": {},
-        "features": ["900 月度积分", "3:1 加权任务调度", "付费期间创建内容永久存档"],
+        "features": ["900 个30天周期积分", "3:1 加权任务调度", "付费期间创建内容永久存档"],
     },
     "studio": {
         "name":  "工作室版",
         "price": 399,
         "monthly_credits": 1250.0,
         "quotas": {},
-        "features": ["1250 月度积分", "单主账号多小红书账号运营", "3:1 加权任务调度"],
+        "features": ["1250 个30天周期积分", "单主账号多小红书账号运营", "3:1 加权任务调度"],
     },
 }
 
@@ -192,13 +192,18 @@ def _month_start() -> str:
     now = datetime.now(timezone.utc)
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
-def _next_month() -> str:
-    now = datetime.now(timezone.utc)
-    if now.month == 12:
-        nxt = now.replace(year=now.year+1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-    else:
-        nxt = now.replace(month=now.month+1, day=1, hour=0, minute=0, second=0, microsecond=0)
-    return nxt.isoformat()
+def _next_month(started_at: str | None = None) -> str:
+    # First-launch paid plans are one non-recurring 30-day purchase. Returning
+    # the first day of the next calendar month could sell only a few days and
+    # then reset the allocation a second time; both are financially unsafe.
+    start = (
+        datetime.fromisoformat(started_at)
+        if started_at
+        else datetime.now(timezone.utc)
+    )
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    return (start.astimezone(timezone.utc) + timedelta(days=30)).isoformat()
 
 def _assert_user(user_id: Optional[str], operation: str) -> str:
     """严格断言：付费操作必须有 user_id，否则拒绝服务。"""
@@ -372,25 +377,54 @@ def _get_subscription_tx(tx: db.Transaction, user_id: str) -> dict:
         row = tx.fetchone(f"SELECT * FROM subscriptions WHERE id=?{lock}", (sid,))
     sub = dict(row)
 
-    def _strip_tz(value: str) -> datetime:
-        parsed = datetime.fromisoformat(value)
-        return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
+    def _utc_clock(value: str) -> datetime:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
 
     if sub["tier"] != "free" and sub.get("expires_at"):
         try:
-            if _strip_tz(sub["expires_at"]) < _strip_tz(_now()):
-                tx.execute("UPDATE subscriptions SET tier='free',is_active=0 WHERE id=?", (sub["id"],))
-                sid = str(uuid.uuid4())
-                tx.execute(
-                    "INSERT INTO subscriptions(id,user_id,tier,started_at,expires_at,is_active,"
-                    "used_analyze,used_generate,used_chat_rewrite,used_screenshot,period_start) "
-                    "VALUES(?,?,?,?,?,1,0,0,0,0,?)",
-                    (sid, user_id, "free", _now(), "2099-01-01T00:00:00+00:00", _month_start()),
+            expired = _utc_clock(sub["expires_at"]) <= _utc_clock(_now())
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=503,
+                detail="套餐状态需人工核对",
+            ) from None
+        if expired:
+            tx.execute(
+                "UPDATE subscriptions SET is_active=0 WHERE id=?",
+                (sub["id"],),
+            )
+            sid = str(uuid.uuid4())
+            tx.execute(
+                "INSERT INTO subscriptions("
+                "id,user_id,tier,started_at,expires_at,is_active,"
+                "used_analyze,used_generate,used_chat_rewrite,"
+                "used_screenshot,period_start"
+                ") VALUES(?,?,?,?,?,1,0,0,0,0,?)",
+                (
+                    sid,
+                    user_id,
+                    "free",
+                    _now(),
+                    "2099-01-01T00:00:00+00:00",
+                    _month_start(),
+                ),
+            )
+            sub = dict(
+                tx.fetchone(
+                    f"SELECT * FROM subscriptions WHERE id=?{lock}",
+                    (sid,),
                 )
-                sub = dict(tx.fetchone(f"SELECT * FROM subscriptions WHERE id=?{lock}", (sid,)))
-        except Exception:
-            pass
-    if _strip_tz(sub["period_start"]) < _strip_tz(_month_start()):
+            )
+    # A paid purchase has one allocation for its exact 30-day term. Only the
+    # free plan renews on a calendar-month boundary; paid plans are replaced by
+    # a new confirmed payment rather than silently reset or auto-renewed.
+    if (
+        sub["tier"] == "free"
+        and _utc_clock(sub["period_start"]) < _utc_clock(_month_start())
+    ):
         month_start = _month_start()
         tx.execute(
             "UPDATE subscriptions SET used_analyze=0,used_generate=0,"
@@ -450,7 +484,8 @@ def _quota_error(
         detail={
             "code": "QUOTA_EXCEEDED",
             "message": (
-                f"{op['label']}需要 {cost:.1f} 积分；本月套餐积分剩余 {monthly_remaining:.1f}，"
+                f"{op['label']}需要 {cost:.1f} 积分；当前套餐周期积分剩余 "
+                f"{monthly_remaining:.1f}，"
                 f"充值积分余额 {balance:.1f}，仍不足以完成本次操作。"
             ),
             "operation": operation,
@@ -462,7 +497,11 @@ def _quota_error(
             "credits_needed": cost,
             "credits_balance": round(balance, 2),
             "wallet_credits_needed": max(0.0, round(cost - monthly_remaining, 2)),
-            "credit_policy": "优先扣本月套餐积分，不足部分扣充值积分；本月积分每月重置，充值积分长期有效。",
+            "credit_policy": (
+                "优先扣当前套餐周期积分，不足部分扣充值积分；付费套餐为"
+                "一次性30天周期，不在月初重置且不自动续费；免费套餐按"
+                "自然月刷新，充值积分长期有效。"
+            ),
         },
     )
 
@@ -535,6 +574,19 @@ def check_and_deduct_in_transaction(
         else "credits"
     )
     usage_id = _record_usage_tx(tx, uid, operation, source, cost)
+    if wallet_charge > 0:
+        # Imported lazily because the payment catalogue itself validates
+        # billing constants. The allocation is in the same transaction as the
+        # aggregate wallet debit and usage row, so a failure rolls back all
+        # three surfaces.
+        import payment_contract
+
+        payment_contract.allocate_paid_credit_positions(
+            tx,
+            uid,
+            usage_id,
+            wallet_charge,
+        )
     return {
         "source": source,
         "credits_used": cost,
@@ -560,11 +612,12 @@ def upgrade_subscription(user_id: str, tier: str) -> dict:
             raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
         tx.execute("UPDATE subscriptions SET is_active=0 WHERE user_id=?", (user_id,))
         sid = str(uuid.uuid4())
+        started_at = _now()
         tx.execute(
             "INSERT INTO subscriptions(id,user_id,tier,started_at,expires_at,is_active,"
             "used_analyze,used_generate,used_chat_rewrite,used_screenshot,period_start) "
             "VALUES(?,?,?,?,?,1,0,0,0,0,?)",
-            (sid, user_id, tier, _now(), _next_month(), _month_start()),
+            (sid, user_id, tier, started_at, _next_month(started_at), started_at),
         )
     return get_subscription(user_id)
 
@@ -576,8 +629,8 @@ def check_and_deduct(user_id: Optional[str], operation: str) -> dict:
     """
     检查积分并扣减。
     - 付费操作必须有 user_id，否则 401。
-    - 月度套餐积分优先扣。
-    - 月度积分不足时，用充值积分补扣。
+    - 当前套餐周期积分优先扣。
+    - 周期积分不足时，用充值积分补扣。
     - 积分不足：402 余额不足。
     返回 {"source":"subscription"|"credits"|"mixed"|"free", "credits_used":float}
     """
@@ -801,6 +854,14 @@ def refund_operation_charge_in_transaction(
                 0.0, "", "", now,
             ),
         )
+        if usage_id:
+            import payment_contract
+
+            payment_contract.restore_paid_credit_positions(
+                tx,
+                uid,
+                str(usage_id),
+            )
     if usage_id:
         tx.execute(
             "UPDATE usage_records SET source='refunded',credits_used=0 WHERE id=? AND user_id=?",
@@ -1115,7 +1176,11 @@ def get_quota_status(user_id: str) -> dict:
         "period_start":    sub["period_start"],
         "operation_costs": operation_costs,
         "usage_examples":  examples,
-        "credit_policy":   "优先扣本月套餐积分，不足部分扣充值积分；本月积分每月重置，充值积分长期有效。",
+        "credit_policy":   (
+            "优先扣当前套餐周期积分，不足部分扣充值积分；付费套餐为"
+            "一次性30天周期，不在月初重置且不自动续费；免费套餐按"
+            "自然月刷新，充值积分长期有效。"
+        ),
         "quotas":          {},
     }
 

@@ -11,7 +11,9 @@ function overviewPayload(system = {}) {
     },
     finance: {
       total_revenue: 598,
-      mrr: 598,
+      cash_received: 598,
+      cash_refunded: 0,
+      unmatched_cash: 0,
       api_cost: 17.03,
       actual_margin_ready: false,
       margin_pct: 97.2,

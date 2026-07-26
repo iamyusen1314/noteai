@@ -283,6 +283,47 @@ object keys, URLs, media bytes, table ownership, sequence privilege,
 superuser, `BYPASSRLS` or grant option. The API lifecycle policy can move only
 a ready row to `expired` or `deleted`; a Worker cannot insert or mutate media.
 
+## Payment roles
+
+Migration `0014_payment_execution_contract.sql` adds ten content-minimized
+payment tables, RLS, immutable transition guards and fixed catalogue/amount
+constraints. It intentionally contains no `GRANT` or `REVOKE`. The exact
+production privilege task must reproduce this positive matrix:
+
+| Role | Exact positive payment access |
+|---|---|
+| `noteai_app` | `SELECT, INSERT` `payment_orders`; column `UPDATE(user_id,provider_payment_id,payment_status,updated_at,terminal_at)`; `SELECT` positions/consumptions; position `UPDATE(user_id,remaining_milli,state,updated_at)`; consumption `INSERT` and `UPDATE(state,updated_at)` |
+| `noteai_payment` | `SELECT` all ten payment tables; `INSERT` refunds, events, cash/entitlement ledgers, positions, reconciliation runs/items and settlements; exact order/refund/event/position update columns |
+| `noteai_admin` | read-only `SELECT` on all ten payment tables |
+| `noteai_ai_worker` | `SELECT` positions/consumptions; position `UPDATE(remaining_milli,state,updated_at)`; consumption `UPDATE(state,updated_at)` |
+| dispatcher, Trends, Tracking | zero payment-table access |
+
+`noteai_payment` additionally needs only:
+
+- `SELECT(id,deletion_requested_at)` on `users`;
+- selected `id,user_id,tier,started_at,is_active` subscription columns,
+  subscription `INSERT` and `UPDATE(is_active)`;
+- selected `user_id,balance,total_purchased` credit columns, credit `INSERT`
+  and `UPDATE(balance,total_purchased,updated_at)`;
+- `INSERT` on `credit_transactions`;
+- `SELECT(user_id,recorded_at,credits_used,source)` on `usage_records`;
+- effective `EXECUTE` on `pg_catalog.hashtext(text)` and
+  `pg_catalog.pg_advisory_xact_lock(bigint)`.
+
+Every unlisted table/column/sequence privilege remains false. All eight
+`public.noteai_payment_*_v1()` trigger functions must have direct `PUBLIC`
+execution revoked; no runtime role may own them, execute them directly or
+hold grant option. Runtime trigger invocation remains valid. The payment role
+has no profile credentials/content, auth/session, Admin, prompt, XHS,
+Tracking, Trends, AI payload/result, object storage or migration access.
+`noteai_app` insertion is RLS-limited to a clean `created` order; its
+`user_id=NULL` update remains available for account-deletion pseudonymization
+of settled rows only when every other order field is unchanged. Repointing an
+order to another user, restoring a nulled join or smuggling any state change
+through the pseudonymization update is rejected by the order identity guard.
+Catalogue version, product and exact integer-fen price are enforced
+persistently, not trusted only to application code.
+
 ## Verification required before production use
 
 A separately approved database task must:

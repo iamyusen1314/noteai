@@ -4199,7 +4199,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <!-- 套餐信息 -->
         <div id="profile-plan-info" style="margin-bottom:16px"><div style="color:var(--text-muted);font-size:13px">加载中…</div></div>
 
-        <!-- 月度积分进度与功能扣分标准 -->
+        <!-- 套餐周期积分进度与功能扣分标准 -->
         <div id="profile-quota-bars" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
 
         <!-- 本月总消耗摘要 -->
@@ -4584,7 +4584,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 	    <div class="pricing-hero" style="text-align:center;margin-bottom:48px">
       <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">透明定价</div>
       <h1 style="font-size:36px;font-weight:800;color:var(--text);margin-bottom:12px">为高质量生成设计的清晰定价</h1>
-      <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣本月套餐积分，不足部分再扣充值积分。规则公开，账单可查。</p>
+      <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣当前套餐周期积分，不足部分再扣充值积分。规则公开，账单可查。</p>
     </div>
     <!-- 套餐卡片 -->
 	    <div class="pricing-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">
@@ -4604,8 +4604,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 	      <div class="pricing-card pricing-card-featured" style="background:linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06));border:1.5px solid rgba(123,97,255,0.35);border-radius:16px;padding:22px 18px;position:relative">
 	        <div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">创作者版</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥99</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">260积分/月</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥99</span><span style="font-size:13px;color:var(--text-muted)">/30天</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">260积分/30天</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断43次 / 爆文32次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写86轮 / 截图520张</div>
@@ -4618,8 +4618,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <!-- 成长版 -->
 	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(34,197,94,0.25);border-radius:16px;padding:22px 18px">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#22C55E;text-transform:uppercase;margin-bottom:12px">成长版</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥199</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">560积分/月</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥199</span><span style="font-size:13px;color:var(--text-muted)">/30天</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">560积分/30天</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断93次 / 爆文70次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写186轮 / 截图1120张</div>
@@ -4631,8 +4631,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <!-- 专业版 -->
 	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">专业版</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥299</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">900积分/月</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥299</span><span style="font-size:13px;color:var(--text-muted)">/30天</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">900积分/30天</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断150次 / 爆文112次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写300轮 / 截图1800张</div>
@@ -4644,8 +4644,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <!-- 工作室版 -->
 	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:22px 18px">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#00D4FF;text-transform:uppercase;margin-bottom:12px">工作室版</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥399</span><span style="font-size:13px;color:var(--text-muted)">/月</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">1250积分/月</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥399</span><span style="font-size:13px;color:var(--text-muted)">/30天</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">1250积分/30天</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断208次 / 爆文156次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写416轮 / 截图2500张</div>
@@ -4667,7 +4667,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">功能扣分标准</h3>
           <p style="font-size:13px;color:var(--text-2);margin:0">所有用户按同一标准扣分，不因套餐不同改变单次功能价格。</p>
         </div>
-        <div style="font-size:12px;color:var(--text-muted)">扣费顺序：月度积分 → 充值积分 → 余额不足提示</div>
+        <div style="font-size:12px;color:var(--text-muted)">扣费顺序：套餐周期积分 → 充值积分 → 余额不足提示</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">
 	        <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:var(--holo-mid)">6积分</b><br><span style="color:var(--text)">AI深度诊断</span><br><span style="font-size:11px;color:var(--text-muted)">截图/手动/视频入口进入完整诊断链路</span></div>
@@ -4683,7 +4683,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <!-- 积分充值 -->
 	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
-      <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。本月套餐积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。当前套餐周期积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
 	        <div class="topup-card" onclick="handleTopup('starter')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:20px;font-weight:800;color:var(--text)">30积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥12</div><div style="font-size:11px;color:var(--text-muted)">约5次诊断 / 3次爆文</div></div>
@@ -5445,8 +5445,8 @@ function renderPricingConfig(cfg) {
 	      <div class="pricing-card ${isRecommended ? 'pricing-card-featured' : ''}" style="background:${isRecommended ? 'linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06))' : 'var(--surf-1)'};border:${isRecommended ? '1.5px solid rgba(123,97,255,0.35)' : `1px solid ${tier === 'studio' ? 'rgba(0,212,255,0.25)' : 'var(--border)'}`};border-radius:16px;padding:22px 18px;position:relative">
 	        ${isRecommended ? '<div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>' : ''}
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:${accent};text-transform:uppercase;margin-bottom:12px">${pricingEsc(t.name || tier)}</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥${price.toLocaleString()}</span><span style="font-size:13px;color:var(--text-muted)">${price > 0 ? '/月' : ''}</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly.toFixed(monthly % 1 ? 1 : 0)}积分/月</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥${price.toLocaleString()}</span><span style="font-size:13px;color:var(--text-muted)">${price > 0 ? '/30天' : ''}</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly.toFixed(monthly % 1 ? 1 : 0)}积分/${price > 0 ? '30天' : '月'}</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断${cAnalyze}次 / 爆文${cGenerate}次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮 / 截图${cScreenshot}张</div>
@@ -5475,7 +5475,7 @@ function renderPricingConfig(cfg) {
 	    <div class="pricing-hero" style="text-align:center;margin-bottom:48px">
       <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">透明定价</div>
       <h1 style="font-size:36px;font-weight:800;color:var(--text);margin-bottom:12px">为高质量生成设计的清晰定价</h1>
-      <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣本月套餐积分，不足部分再扣充值积分。规则公开，账单可查。</p>
+      <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣当前套餐周期积分，不足部分再扣充值积分。规则公开，账单可查。</p>
       <div style="display:inline-flex;margin-top:12px;padding:5px 10px;border-radius:999px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.18);color:var(--success);font-size:11px;font-weight:800">已同步后端计费规则</div>
     </div>
 	    <div class="pricing-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">${tierCards}</div>
@@ -5485,14 +5485,14 @@ function renderPricingConfig(cfg) {
 	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap">
         <div><h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">功能扣分标准</h3><p style="font-size:13px;color:var(--text-2);margin:0">所有用户按同一标准扣分，不因套餐不同改变单次功能价格。</p></div>
-        <div style="font-size:12px;color:var(--text-muted)">${pricingEsc(cfg.credit_policy || '扣费顺序：月度积分 → 充值积分 → 余额不足提示')}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${pricingEsc(cfg.credit_policy || '扣费顺序：套餐周期积分 → 充值积分 → 余额不足提示')}</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">${opCards}</div>
       <div style="font-size:12px;color:var(--text-muted);line-height:1.7">视频理解当前不单独扣充值积分，随 AI诊断/爆文生成主流程记录平台成本；如果未来按时长单独计费，会在上传前明示并二次确认。</div>
     </div>
 	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
-      <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。本月套餐积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。当前套餐周期积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">${topups}</div>
     </div>
 	    <div class="billing-info-card billing-commitment" style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
@@ -12549,14 +12549,14 @@ async function loadBillingPlan() {
       planEl.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px">
           <span style="font-size:16px;font-weight:800;color:${col}">${plan.tier_name}</span>
-          ${plan.price > 0 ? `<span style="font-size:11px;background:rgba(123,97,255,0.1);color:var(--holo-mid);padding:2px 8px;border-radius:10px">¥${plan.price}/月</span>` : ''}
+          ${plan.price > 0 ? `<span style="font-size:11px;background:rgba(123,97,255,0.1);color:var(--holo-mid);padding:2px 8px;border-radius:10px">¥${plan.price}/30天</span>` : ''}
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
           本周期始于 ${plan.period_start?.slice(0,10)||'–'} · 到期 ${plan.expires_at?.slice(0,10)||'–'}
         </div>`;
     }
 
-    // ── 月度积分进度 + 功能扣分标准 ──
+    // ── 套餐周期积分进度 + 功能扣分标准 ──
     const barsEl = document.getElementById('profile-quota-bars');
     if (barsEl) {
       const monthlyTotal = Number(plan.monthly_credits || 0);
@@ -12618,8 +12618,8 @@ async function loadBillingPlan() {
         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px">
             <div>
-              <div style="font-size:13px;font-weight:800;color:var(--text)">本月套餐积分</div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${plan.credit_policy || '优先扣本月套餐积分，不足部分扣充值积分。'}</div>
+              <div style="font-size:13px;font-weight:800;color:var(--text)">当前套餐周期积分</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${plan.credit_policy || '优先扣当前套餐周期积分，不足部分扣充值积分。'}</div>
             </div>
             <div style="text-align:right">
               <div style="font-size:16px;font-weight:900;color:var(--holo-mid)">${monthlyRemaining.toFixed(1)}</div>
@@ -12759,7 +12759,7 @@ function showQuotaExceededModal(detail) {
   const ok = confirm(
     `⚠️ ${opName} 积分不足\n\n` +
     `${d.message || ''}\n\n` +
-    `本月套餐积分剩余：${d.monthly_credits_remaining ?? 0} 积分\n` +
+    `当前套餐周期积分剩余：${d.monthly_credits_remaining ?? 0} 积分\n` +
     `充值积分余额：${d.credits_balance ?? 0} 积分\n` +
     `本次需要：${d.credits_needed ?? 0} 积分\n\n` +
     `点「确定」前往订阅/充值，点「取消」关闭`

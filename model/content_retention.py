@@ -124,6 +124,25 @@ def assert_account_deletion_ready_with_storage(
         # admission) or sees this durable marker and waits without revoking the
         # account mid-call.
         raise ValueError("active tracking attempt prevents account deletion")
+    # A provider-free local intent can be closed under the same user fence.
+    # Once a provider reference or uncertain outcome exists, deleting the live
+    # account join could turn a later cash success into an unfulfillable
+    # entitlement. Those cases must be settled by the isolated payment
+    # boundary before primary deletion proceeds.
+    storage.execute(
+        "UPDATE payment_orders SET payment_status='closed',"
+        "updated_at=?,terminal_at=? WHERE user_id=? "
+        "AND payment_status='created' AND provider_payment_id IS NULL",
+        (_iso(_now()), _iso(_now()), user_id),
+    )
+    unresolved_payment = storage.fetchone(
+        "SELECT 1 FROM payment_orders WHERE user_id=? "
+        "AND (payment_status IN ('pending','needs_manual') "
+        "OR refund_status IN ('pending','needs_manual')) LIMIT 1",
+        (user_id,),
+    )
+    if unresolved_payment:
+        raise ValueError("unresolved payment prevents account deletion")
     return user
 
 
@@ -787,6 +806,15 @@ def process_due_account_deletions(
                 subject_ref,
                 user_id,
             ))
+            tx.execute(
+                "UPDATE payment_orders SET user_id=NULL WHERE user_id=?",
+                (user_id,),
+            )
+            tx.execute(
+                "UPDATE payment_credit_positions SET user_id=NULL "
+                "WHERE user_id=?",
+                (user_id,),
+            )
             tx.execute(
                 "DELETE FROM ai_operation_admissions "
                 "WHERE idempotency_request_id IN ("

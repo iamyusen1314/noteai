@@ -17,7 +17,9 @@ function overviewPayload(coverage) {
     },
     finance: {
       total_revenue: 598,
-      mrr: 598,
+      cash_received: 598,
+      cash_refunded: 0,
+      unmatched_cash: 0,
       api_cost: 4.703,
       actual_margin_ready: coverage?.actual_margin_ready,
       margin_pct: 99.2,
@@ -37,8 +39,10 @@ function overviewPayload(coverage) {
 
 function revenuePayload(coverage) {
   return {
-    sub_revenue_estimate: 598,
-    daily_topup: [],
+    subscription_net_cash: 598,
+    credit_package_net_cash: 0,
+    unmatched_cash: 0,
+    daily_cash: [],
     daily_api_cost: [{ day: '2026-07-12', cost: 4.703, tokens: 977900 }],
     coverage,
   };
@@ -125,7 +129,9 @@ test('incomplete coverage explains the monthly and recent-30-day operation-recor
   await expect(dashboardCoverage).toContainText('历史不可复算 31 条操作记录');
   await expect(dashboardCoverage).not.toContainText('实际毛利 99.2%');
 
-  await expect(page.locator('#r-sub-note')).toHaveText('按当前有效套餐人数 × 套餐价估算，不是支付流水。');
+  await expect(page.locator('#r-sub-note')).toHaveText(
+    '仅来自不可变支付现金账本；不按有效套餐人数推算。待人工核对现金 ¥0。',
+  );
   await expect(page.locator('#r-margin')).toHaveText('覆盖不完整');
   const revenueCoverage = page.locator('#revenue-cost-audit');
   await expect(revenueCoverage).toContainText('最近30日成本覆盖不完整，不可宣称实际毛利');

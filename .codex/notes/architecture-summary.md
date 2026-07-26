@@ -22,12 +22,22 @@ Last updated: 2026-07-22
 - Migration sequence: first introduce and verify a single `ClaudeTransport` boundary; then build/test the Gateway; then deploy Alibaba production infrastructure and data services; then canary the gateway transport; finally switch public DNS and retire the old Render business services after a rollback window.
 - Do not operate two full business APIs against one production database as a transitional dual-active design.
 
-## Confirmed Payment Target (not yet implemented)
+## Payment execution contract (provider activation not yet implemented)
 
 - Adapay is the selected V1 aggregation provider, subject to written merchant admission for NoteAI's AI SaaS and non-withdrawable/non-transferable service credits, plus confirmation of the required Alipay, WeChat and UnionPay PC/H5 flows.
-- Formal payment truth must use dedicated order, callback event, transaction, entitlement, credit-lot, cash-refund and reconciliation ledgers. Existing test top-up/upgrade endpoints and `payment_ref` are not payment truth.
+- `model/payment_contract.py` and migration `0014` now implement the
+  provider-isolated repository contract: fixed integer-fen catalogue,
+  signed callback verification, collision-safe Event idempotency, immutable
+  cash/entitlement ledgers, paid-credit source positions, one full unused
+  refund, reconciliation/settlement summaries and exact role boundaries.
+  Existing test top-up/upgrade endpoints and legacy `payment_ref` remain
+  non-cash test paths.
 - Payment success comes only from a verified server callback or authoritative order query with matching merchant/app/environment/currency/amount. Browser redirects never grant credits.
 - Cash refunds remain separate from AI-operation credit reversals. T+1 reconciliation compares NoteAI ledgers, Adapay charge/refund/fee files and bank settlement batches.
+- Ordering and callback switches default off and no network adapter is
+  selected by environment. Merchant credentials, official adapter,
+  mock/sandbox compatibility, callback reachability, production migration/
+  ACL, bounded scheduler/alerts and any capped real-money proof remain open.
 
 ## Frontend
 
@@ -69,6 +79,8 @@ Last updated: 2026-07-22
   - `model/db.py`: local SQLite/cloud PostgreSQL connection dispatch, helpers, and PostgreSQL migration runner.
   - `model/runtime_settings.py`: shared JSON settings stored in the primary database.
   - `model/billing.py`: credits, subscriptions, usage, token/cost accounting.
+  - `model/payment_contract.py`: provider-isolated payment/refund cash,
+    entitlement and reconciliation state machine.
   - `model/model_router.py`: Claude/Kimi model routing, fallback, retry, timeout, usage recording.
   - `model/fact_enrichment.py`: Amap/Meituan/search/local fact enrichment.
   - `model/hot_keywords.py`: hot keyword DB and market timing features.
@@ -79,7 +91,9 @@ Last updated: 2026-07-22
   - Auth: `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`, profile/avatar/password endpoints.
   - OCR/vision: `/extract-screenshot`, `/validate-ocr`, `/upload-video`.
   - Notes/diagnoses/tracking: `/notes`, `/diagnoses`, `/notes/track-url`, `/notes/tracking`.
-  - Billing: `/billing/plan`, `/billing/usage`, `/billing/credits`, `/billing/topup`, `/billing/upgrade`, `/billing/tiers`.
+  - Billing/payment: `/billing/plan`, `/billing/usage`, `/billing/credits`,
+    test-only top-up/upgrade routes, payment capabilities, owner-bound orders
+    and the default-disabled Adapay callback.
   - AI scoring/diagnosis/generation: `/score`, `/quick-diagnose`, `/diagnose`, `/analyze`, `/analyze/stream`, `/generate`, `/generate/stream`.
   - Chat: `/chat/start`, `/chat/message`, `/chat/ui`.
   - Health: `/health`, `/health/live`, `/health/ready`.
@@ -116,7 +130,8 @@ Last updated: 2026-07-22
   - These runtime DB files are ignored and should not be committed.
 - Cloud database:
   - Render services share PostgreSQL through `DATABASE_URL`.
-  - `model/migrations/postgres/0001_initial.sql` through `0008_ai_operation_admissions.sql` create product, shared runtime, trend, analysis, XHS freshness, usage-cost, AI-operation and admission-link structures.
+  - Versioned migrations now extend through
+    `0014_payment_execution_contract.sql`.
   - `scripts/render_predeploy.py` applies migrations under a PostgreSQL advisory lock and records them in `schema_migrations`.
 - Schema location:
   - `model/db.py` contains `CREATE TABLE IF NOT EXISTS` SQL and idempotent `ALTER TABLE` migrations.
@@ -141,7 +156,10 @@ Last updated: 2026-07-22
   - No Alembic/Prisma migration tool is used.
   - PostgreSQL uses versioned SQL; SQLite keeps idempotent runtime additions for backward compatibility.
   - `scripts/migrate_sqlite_to_postgres.py` is dry-run by default and can copy application rows only after explicit guarded `--apply` approval.
-  - Production completed structure-only migrations `0001`–`0008` on 2026-07-18. Repository candidates now extend through `0013`; `0009`–`0013` remain unapplied. This proves existing schema readiness only; application deployment, connection pooling, backups/PITR and a restore drill remain open.
+  - Production completed structure-only migrations `0001`–`0008` on
+    2026-07-18. Repository candidates now extend through `0014`; `0009`–`0014`
+    remain unapplied. Disposable PostgreSQL evidence does not imply production
+    migration or privilege readiness.
 - Seed / initialization:
   - No standalone seed command is confirmed.
   - Test and local startup may initialize tables.
@@ -188,7 +206,9 @@ Only service names and variable names are documented here; no secret values.
 - Model artifacts:
   - Git LFS, private Amazon S3 read-only loading, and an optional object-storage base URL are supported.
 - Payment:
-  - No confirmed real payment gateway integration was found in inspected files.
+  - The Adapay repository/offline contract exists, but no real adapter,
+    merchant credential, provider transaction or production callback has been
+    enabled or verified.
 
 ## Data Flow
 
@@ -220,7 +240,9 @@ Only service names and variable names are documented here; no secret values.
 1. Paid/credit operations call billing guards in backend.
 2. `billing.py` deducts monthly credits first, then recharge credits.
 3. Usage records capture operation, credits, tokens, model calls, estimated/actual cost fields.
-4. Admin endpoints aggregate usage/revenue/token costs from the same rows.
+4. Real revenue comes only from immutable payment cash rows; legacy top-ups
+   are not revenue truth. Admin separately exposes unmatched cash for manual
+   review and never reports non-recurring purchases as MRR.
 
 ## Fragile Areas
 

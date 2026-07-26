@@ -809,6 +809,620 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
 );
 CREATE INDEX IF NOT EXISTS idx_ctxn_user ON credit_transactions(user_id, recorded_at DESC);
 
+-- ── 正式支付合同（仅整数分、摘要和固定状态）──────────────────────
+CREATE TABLE IF NOT EXISTS payment_orders (
+    id                   TEXT PRIMARY KEY CHECK (
+                             length(id)=36 AND length(replace(id,'-',''))=32
+                             AND id NOT GLOB '*[^0-9a-f-]*'
+                         ),
+    user_id              TEXT REFERENCES users(id) ON DELETE SET NULL,
+    subject_hash         TEXT NOT NULL CHECK (
+                             length(subject_hash)=64
+                             AND subject_hash NOT GLOB '*[^0-9a-f]*'
+                         ),
+    product_kind         TEXT NOT NULL CHECK (
+                             product_kind IN ('subscription','credit_package')
+                         ),
+    product_id           TEXT NOT NULL CHECK (
+                             product_id IN (
+                                 'pro','growth','pro_plus','studio',
+                                 'starter','creator'
+                             )
+                         ),
+    catalog_version      TEXT NOT NULL CHECK (
+                             catalog_version='first-launch-v1-2026-07-26'
+                         ),
+    amount_fen           INTEGER NOT NULL CHECK (
+                             amount_fen BETWEEN 1 AND 100000000
+                         ),
+    currency             TEXT NOT NULL CHECK (currency='CNY'),
+    provider             TEXT NOT NULL CHECK (provider='adapay'),
+    provider_mode        TEXT NOT NULL CHECK (
+                             provider_mode IN ('mock','live')
+                         ),
+    merchant_order_no    TEXT NOT NULL UNIQUE,
+    provider_payment_id TEXT UNIQUE,
+    app_id_hash          TEXT NOT NULL CHECK (
+                             length(app_id_hash)=64
+                             AND app_id_hash NOT GLOB '*[^0-9a-f]*'
+                         ),
+    idempotency_key_hash TEXT NOT NULL CHECK (
+                             length(idempotency_key_hash)=64
+                             AND idempotency_key_hash NOT GLOB '*[^0-9a-f]*'
+                         ),
+    request_hash         TEXT NOT NULL CHECK (
+                             length(request_hash)=64
+                             AND request_hash NOT GLOB '*[^0-9a-f]*'
+                         ),
+    payment_status       TEXT NOT NULL CHECK (
+                             payment_status IN (
+                                 'created','pending','succeeded','failed',
+                                 'closed','needs_manual'
+                             )
+                         ),
+    entitlement_status   TEXT NOT NULL CHECK (
+                             entitlement_status IN (
+                                 'pending','applied','reversed','needs_manual'
+                             )
+                         ),
+    entitlement_ref      TEXT,
+    refund_status        TEXT NOT NULL CHECK (
+                             refund_status IN (
+                                 'none','pending','refunded','needs_manual'
+                             )
+                         ),
+    refunded_fen         INTEGER NOT NULL DEFAULT 0 CHECK (
+                             refunded_fen BETWEEN 0 AND amount_fen
+                         ),
+    refund_count         INTEGER NOT NULL DEFAULT 0 CHECK (
+                             refund_count BETWEEN 0 AND 1
+                         ),
+    created_at           TEXT NOT NULL,
+    updated_at           TEXT NOT NULL,
+    succeeded_at         TEXT,
+    terminal_at          TEXT,
+    UNIQUE(user_id,idempotency_key_hash),
+    CHECK (
+        (product_kind='subscription'
+            AND (
+                (product_id='pro' AND amount_fen=9900)
+                OR (product_id='growth' AND amount_fen=19900)
+                OR (product_id='pro_plus' AND amount_fen=29900)
+                OR (product_id='studio' AND amount_fen=39900)
+            ))
+        OR
+        (product_kind='credit_package'
+            AND (
+                (product_id='starter' AND amount_fen=1200)
+                OR (product_id='creator' AND amount_fen=3900)
+                OR (product_id='growth' AND amount_fen=10900)
+                OR (product_id='studio' AND amount_fen=27900)
+            ))
+    ),
+    CHECK (
+        entitlement_status='pending'
+        OR payment_status='succeeded'
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_user
+    ON payment_orders(user_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_state
+    ON payment_orders(payment_status,entitlement_status,updated_at);
+
+CREATE TABLE IF NOT EXISTS payment_events (
+    id                       TEXT PRIMARY KEY,
+    provider_event_id_hash   TEXT NOT NULL UNIQUE CHECK (
+                                 length(provider_event_id_hash)=64
+                                 AND provider_event_id_hash
+                                     NOT GLOB '*[^0-9a-f]*'
+                             ),
+    event_type               TEXT NOT NULL,
+    payload_sha256           TEXT NOT NULL CHECK (
+                                 length(payload_sha256)=64
+                                 AND payload_sha256 NOT GLOB '*[^0-9a-f]*'
+                             ),
+    signature_sha256         TEXT NOT NULL CHECK (
+                                 length(signature_sha256)=64
+                                 AND signature_sha256 NOT GLOB '*[^0-9a-f]*'
+                             ),
+    app_id_hash              TEXT NOT NULL CHECK (
+                                 length(app_id_hash)=64
+                                 AND app_id_hash NOT GLOB '*[^0-9a-f]*'
+                             ),
+    prod_mode                INTEGER NOT NULL CHECK (prod_mode IN (0,1)),
+    provider_created_at      INTEGER NOT NULL,
+    processing_state         TEXT NOT NULL CHECK (
+                                 processing_state IN (
+                                     'accepted','processed','ignored',
+                                     'needs_manual'
+                                 )
+                             ),
+    reason_code              TEXT NOT NULL,
+    order_id                 TEXT REFERENCES payment_orders(id),
+    refund_id                TEXT,
+    received_at              TEXT NOT NULL,
+    processed_at             TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_payment_events_state
+    ON payment_events(processing_state,received_at);
+
+CREATE TABLE IF NOT EXISTS payment_refunds (
+    id                   TEXT PRIMARY KEY,
+    order_id             TEXT NOT NULL REFERENCES payment_orders(id)
+                         ON DELETE RESTRICT,
+    merchant_refund_no   TEXT NOT NULL UNIQUE,
+    provider_refund_id   TEXT UNIQUE,
+    amount_fen           INTEGER NOT NULL CHECK (
+                             amount_fen BETWEEN 1 AND 100000000
+                         ),
+    currency             TEXT NOT NULL CHECK (currency='CNY'),
+    status               TEXT NOT NULL CHECK (
+                             status IN (
+                                 'requested','pending','succeeded','failed',
+                                 'needs_manual'
+                             )
+                         ),
+    reason_code          TEXT NOT NULL CHECK (
+                             reason_code IN (
+                                 'customer_request','service_not_delivered',
+                                 'duplicate_payment','fraud_review'
+                             )
+                         ),
+    created_at           TEXT NOT NULL,
+    updated_at           TEXT NOT NULL,
+    terminal_at          TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_payment_refunds_order
+    ON payment_refunds(order_id,created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_refunds_one_v1
+    ON payment_refunds(order_id);
+
+CREATE TABLE IF NOT EXISTS payment_cash_ledger (
+    id               TEXT PRIMARY KEY,
+    order_id         TEXT NOT NULL REFERENCES payment_orders(id)
+                     ON DELETE RESTRICT,
+    refund_id        TEXT REFERENCES payment_refunds(id)
+                     ON DELETE RESTRICT,
+    entry_type       TEXT NOT NULL CHECK (
+                         entry_type IN (
+                             'payment_received','payment_received_unmatched',
+                             'refund_paid','refund_paid_unmatched'
+                         )
+                     ),
+    amount_fen       INTEGER NOT NULL CHECK (
+                         amount_fen BETWEEN -100000000 AND 100000000
+                         AND amount_fen<>0
+                     ),
+    currency         TEXT NOT NULL CHECK (currency='CNY'),
+    source_event_id  TEXT NOT NULL UNIQUE
+                     REFERENCES payment_events(id) ON DELETE RESTRICT,
+    recorded_at      TEXT NOT NULL,
+    CHECK (
+        (entry_type LIKE 'payment_%' AND amount_fen>0 AND refund_id IS NULL)
+        OR
+        (entry_type LIKE 'refund_%' AND amount_fen<0 AND refund_id IS NOT NULL)
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_payment_cash_recorded
+    ON payment_cash_ledger(recorded_at,entry_type);
+CREATE INDEX IF NOT EXISTS idx_payment_cash_order
+    ON payment_cash_ledger(order_id,recorded_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_cash_one_receipt_v1
+    ON payment_cash_ledger(order_id)
+    WHERE entry_type IN (
+        'payment_received','payment_received_unmatched'
+    );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_cash_one_refund_v1
+    ON payment_cash_ledger(refund_id)
+    WHERE entry_type IN ('refund_paid','refund_paid_unmatched');
+
+CREATE TABLE IF NOT EXISTS payment_entitlement_ledger (
+    id                TEXT PRIMARY KEY,
+    order_id          TEXT NOT NULL REFERENCES payment_orders(id)
+                      ON DELETE RESTRICT,
+    refund_id         TEXT REFERENCES payment_refunds(id)
+                      ON DELETE RESTRICT,
+    entry_type        TEXT NOT NULL CHECK (
+                          entry_type IN (
+                              'credit_grant','credit_reversal',
+                              'subscription_grant','subscription_reversal'
+                          )
+                      ),
+    product_kind      TEXT NOT NULL CHECK (
+                          product_kind IN ('subscription','credit_package')
+                      ),
+    product_id        TEXT NOT NULL,
+    quantity_milli    INTEGER NOT NULL CHECK (quantity_milli<>0),
+    subscription_id   TEXT,
+    source_event_id   TEXT NOT NULL UNIQUE
+                      REFERENCES payment_events(id) ON DELETE RESTRICT,
+    recorded_at       TEXT NOT NULL,
+    CHECK (
+        (entry_type LIKE '%_grant' AND quantity_milli>0 AND refund_id IS NULL)
+        OR
+        (entry_type LIKE '%_reversal' AND quantity_milli<0
+            AND refund_id IS NOT NULL)
+    ),
+    CHECK (
+        (product_kind='subscription' AND subscription_id IS NOT NULL)
+        OR
+        (product_kind='credit_package' AND subscription_id IS NULL)
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_payment_entitlement_order
+    ON payment_entitlement_ledger(order_id,recorded_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_entitlement_once_v1
+    ON payment_entitlement_ledger(order_id,entry_type);
+
+CREATE TABLE IF NOT EXISTS payment_credit_positions (
+    order_id         TEXT PRIMARY KEY REFERENCES payment_orders(id)
+                     ON DELETE RESTRICT,
+    user_id          TEXT REFERENCES users(id) ON DELETE SET NULL,
+    subject_hash     TEXT NOT NULL CHECK (
+                         length(subject_hash)=64
+                         AND subject_hash NOT GLOB '*[^0-9a-f]*'
+                     ),
+    granted_milli    INTEGER NOT NULL CHECK (granted_milli>0),
+    remaining_milli  INTEGER NOT NULL CHECK (
+                         remaining_milli BETWEEN 0 AND granted_milli
+                     ),
+    state            TEXT NOT NULL CHECK (
+                         state IN ('active','consumed','reversed')
+                     ),
+    created_at       TEXT NOT NULL,
+    updated_at       TEXT NOT NULL,
+    CHECK (
+        (state='active' AND remaining_milli>0)
+        OR (state IN ('consumed','reversed') AND remaining_milli=0)
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_payment_credit_positions_user
+    ON payment_credit_positions(user_id,state,created_at);
+
+CREATE TABLE IF NOT EXISTS payment_credit_consumptions (
+    id            TEXT PRIMARY KEY,
+    order_id      TEXT NOT NULL REFERENCES payment_credit_positions(order_id)
+                  ON DELETE RESTRICT,
+    usage_id      TEXT NOT NULL,
+    amount_milli  INTEGER NOT NULL CHECK (amount_milli>0),
+    state         TEXT NOT NULL CHECK (state IN ('consumed','restored')),
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL,
+    UNIQUE(order_id,usage_id)
+);
+CREATE INDEX IF NOT EXISTS idx_payment_credit_consumptions_usage
+    ON payment_credit_consumptions(usage_id,state);
+
+CREATE TABLE IF NOT EXISTS payment_reconciliation_runs (
+    id                    TEXT PRIMARY KEY,
+    provider              TEXT NOT NULL CHECK (provider='adapay'),
+    provider_mode         TEXT NOT NULL CHECK (
+                              provider_mode IN ('mock','live')
+                          ),
+    bill_date             TEXT NOT NULL,
+    source_sha256         TEXT NOT NULL CHECK (
+                              length(source_sha256)=64
+                              AND source_sha256 NOT GLOB '*[^0-9a-f]*'
+                          ),
+    row_count             INTEGER NOT NULL CHECK (
+                              row_count BETWEEN 0 AND 10000
+                          ),
+    payment_total_fen     INTEGER NOT NULL CHECK (payment_total_fen>=0),
+    refund_total_fen      INTEGER NOT NULL CHECK (refund_total_fen>=0),
+    discrepancy_count     INTEGER NOT NULL CHECK (discrepancy_count>=0),
+    status                TEXT NOT NULL CHECK (
+                              status IN ('matched','discrepancies','needs_manual')
+                          ),
+    created_at            TEXT NOT NULL,
+    completed_at          TEXT NOT NULL,
+    UNIQUE(provider,provider_mode,bill_date,source_sha256)
+);
+CREATE INDEX IF NOT EXISTS idx_payment_reconciliation_date
+    ON payment_reconciliation_runs(provider_mode,bill_date);
+
+CREATE TABLE IF NOT EXISTS payment_reconciliation_items (
+    id                TEXT PRIMARY KEY,
+    run_id            TEXT NOT NULL REFERENCES payment_reconciliation_runs(id)
+                      ON DELETE RESTRICT,
+    entry_kind        TEXT NOT NULL CHECK (
+                          entry_kind IN ('payment','refund')
+                      ),
+    reference_hash    TEXT NOT NULL CHECK (
+                          length(reference_hash)=64
+                          AND reference_hash NOT GLOB '*[^0-9a-f]*'
+                      ),
+    issue_code        TEXT NOT NULL CHECK (
+                          issue_code IN (
+                              'missing_local','missing_provider',
+                              'amount_mismatch','status_mismatch'
+                          )
+                      ),
+    local_fen         INTEGER,
+    provider_fen      INTEGER,
+    resolution_state TEXT NOT NULL CHECK (
+                          resolution_state IN ('open','accepted','resolved')
+                      ),
+    created_at        TEXT NOT NULL,
+    UNIQUE(run_id,entry_kind,reference_hash,issue_code)
+);
+
+CREATE TABLE IF NOT EXISTS payment_settlement_summaries (
+    id               TEXT PRIMARY KEY,
+    provider         TEXT NOT NULL CHECK (provider='adapay'),
+    provider_mode    TEXT NOT NULL CHECK (
+                         provider_mode IN ('mock','live')
+                     ),
+    settlement_date  TEXT NOT NULL,
+    source_sha256    TEXT NOT NULL CHECK (
+                         length(source_sha256)=64
+                         AND source_sha256 NOT GLOB '*[^0-9a-f]*'
+                     ),
+    gross_fen        INTEGER NOT NULL CHECK (gross_fen>=0),
+    refund_fen       INTEGER NOT NULL CHECK (refund_fen>=0),
+    fee_fen          INTEGER NOT NULL CHECK (fee_fen>=0),
+    net_fen          INTEGER NOT NULL CHECK (net_fen>=0),
+    status           TEXT NOT NULL CHECK (
+                         status IN ('verified','needs_manual')
+                     ),
+    created_at       TEXT NOT NULL,
+    UNIQUE(provider,provider_mode,settlement_date,source_sha256),
+    CHECK (gross_fen-refund_fen-fee_fen=net_fen)
+);
+
+CREATE TRIGGER IF NOT EXISTS payment_orders_identity_immutable_v1
+BEFORE UPDATE OF
+    id,subject_hash,product_kind,product_id,catalog_version,amount_fen,
+    currency,provider,provider_mode,merchant_order_no,app_id_hash,
+    idempotency_key_hash,request_hash,created_at
+ON payment_orders
+BEGIN
+    SELECT RAISE(ABORT,'payment order identity is immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_orders_user_join_immutable_v1
+BEFORE UPDATE OF user_id ON payment_orders
+WHEN
+    OLD.user_id IS NULL
+    OR NEW.user_id IS NOT NULL
+    OR NEW.provider_payment_id IS NOT OLD.provider_payment_id
+    OR NEW.payment_status IS NOT OLD.payment_status
+    OR NEW.entitlement_status IS NOT OLD.entitlement_status
+    OR NEW.entitlement_ref IS NOT OLD.entitlement_ref
+    OR NEW.refund_status IS NOT OLD.refund_status
+    OR NEW.refunded_fen IS NOT OLD.refunded_fen
+    OR NEW.refund_count IS NOT OLD.refund_count
+    OR NEW.updated_at IS NOT OLD.updated_at
+    OR NEW.succeeded_at IS NOT OLD.succeeded_at
+    OR NEW.terminal_at IS NOT OLD.terminal_at
+BEGIN
+    SELECT RAISE(ABORT,'payment order user join is immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_orders_transition_v1
+BEFORE UPDATE ON payment_orders
+WHEN
+    (OLD.payment_status='created'
+        AND NEW.payment_status NOT IN (
+            'created','pending','succeeded','failed','closed','needs_manual'
+        ))
+    OR
+    (OLD.payment_status='pending'
+        AND NEW.payment_status NOT IN (
+            'pending','succeeded','failed','closed','needs_manual'
+        ))
+    OR
+    (OLD.payment_status='succeeded'
+        AND NEW.payment_status<>'succeeded')
+    OR
+    (OLD.payment_status IN ('failed','closed')
+        AND NEW.payment_status NOT IN (OLD.payment_status,'needs_manual'))
+    OR
+    (OLD.payment_status='needs_manual'
+        AND NEW.payment_status<>'needs_manual')
+    OR
+    (OLD.entitlement_status='pending'
+        AND NEW.entitlement_status NOT IN (
+            'pending','applied','needs_manual'
+        ))
+    OR
+    (OLD.entitlement_status='applied'
+        AND NEW.entitlement_status NOT IN (
+            'applied','reversed','needs_manual'
+        ))
+    OR
+    (OLD.entitlement_status='reversed'
+        AND NEW.entitlement_status<>'reversed')
+    OR
+    (OLD.refund_status='none'
+        AND NEW.refund_status NOT IN ('none','pending','needs_manual'))
+    OR
+    (OLD.refund_status='pending'
+        AND NEW.refund_status NOT IN (
+            'pending','refunded','needs_manual'
+        ))
+    OR
+    (OLD.refund_status='refunded'
+        AND NEW.refund_status<>'refunded')
+    OR
+    (OLD.refund_status='needs_manual'
+        AND NEW.refund_status<>'needs_manual')
+    OR NEW.refunded_fen<OLD.refunded_fen
+    OR NEW.refund_count<OLD.refund_count
+    OR (
+        OLD.provider_payment_id IS NOT NULL
+        AND NEW.provider_payment_id IS NOT OLD.provider_payment_id
+    )
+BEGIN
+    SELECT RAISE(ABORT,'invalid payment order transition');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_events_identity_immutable_v1
+BEFORE UPDATE OF
+    id,provider_event_id_hash,event_type,payload_sha256,signature_sha256,
+    app_id_hash,prod_mode,provider_created_at,received_at
+ON payment_events
+BEGIN
+    SELECT RAISE(ABORT,'payment event identity is immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_events_transition_v1
+BEFORE UPDATE ON payment_events
+WHEN
+    (OLD.processing_state<>'accepted'
+        AND NEW.processing_state<>OLD.processing_state)
+    OR
+    (OLD.processing_state='accepted'
+        AND NEW.processing_state NOT IN (
+            'accepted','processed','ignored','needs_manual'
+        ))
+BEGIN
+    SELECT RAISE(ABORT,'invalid payment event transition');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_refunds_identity_immutable_v1
+BEFORE UPDATE OF
+    id,order_id,merchant_refund_no,amount_fen,currency,reason_code,created_at
+ON payment_refunds
+BEGIN
+    SELECT RAISE(ABORT,'payment refund identity is immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_refunds_insert_guard_v1
+BEFORE INSERT ON payment_refunds
+WHEN
+    NOT EXISTS (
+        SELECT 1 FROM payment_orders
+        WHERE id=NEW.order_id
+          AND amount_fen=NEW.amount_fen
+          AND payment_status='succeeded'
+          AND entitlement_status='applied'
+          AND refunded_fen=0
+    )
+BEGIN
+    SELECT RAISE(ABORT,'invalid full refund intent');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_refunds_transition_v1
+BEFORE UPDATE ON payment_refunds
+WHEN
+    (OLD.status='requested'
+        AND NEW.status NOT IN (
+            'requested','pending','succeeded','failed','needs_manual'
+        ))
+    OR
+    (OLD.status='pending'
+        AND NEW.status NOT IN (
+            'pending','succeeded','failed','needs_manual'
+        ))
+    OR
+    (OLD.status='succeeded'
+        AND NEW.status<>'succeeded')
+    OR
+    (OLD.status='failed'
+        AND NEW.status NOT IN ('failed','needs_manual'))
+    OR
+    (OLD.status='needs_manual'
+        AND NEW.status<>'needs_manual')
+    OR (
+        OLD.provider_refund_id IS NOT NULL
+        AND NEW.provider_refund_id IS NOT OLD.provider_refund_id
+    )
+BEGIN
+    SELECT RAISE(ABORT,'invalid payment refund transition');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_cash_ledger_no_update_v1
+BEFORE UPDATE ON payment_cash_ledger
+BEGIN
+    SELECT RAISE(ABORT,'payment cash ledger is append only');
+END;
+CREATE TRIGGER IF NOT EXISTS payment_cash_ledger_no_delete_v1
+BEFORE DELETE ON payment_cash_ledger
+BEGIN
+    SELECT RAISE(ABORT,'payment cash ledger is append only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_entitlement_ledger_no_update_v1
+BEFORE UPDATE ON payment_entitlement_ledger
+BEGIN
+    SELECT RAISE(ABORT,'payment entitlement ledger is append only');
+END;
+CREATE TRIGGER IF NOT EXISTS payment_entitlement_ledger_no_delete_v1
+BEFORE DELETE ON payment_entitlement_ledger
+BEGIN
+    SELECT RAISE(ABORT,'payment entitlement ledger is append only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_credit_position_identity_v1
+BEFORE UPDATE OF order_id,subject_hash,granted_milli,created_at
+ON payment_credit_positions
+BEGIN
+    SELECT RAISE(ABORT,'payment credit position identity is immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_credit_position_user_identity_v1
+BEFORE UPDATE OF user_id ON payment_credit_positions
+WHEN
+    (OLD.user_id IS NULL AND NEW.user_id IS NOT NULL)
+    OR (
+        OLD.user_id IS NOT NULL
+        AND NEW.user_id IS NOT NULL
+        AND NEW.user_id IS NOT OLD.user_id
+    )
+BEGIN
+    SELECT RAISE(ABORT,'payment credit position user is immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_credit_consumption_identity_v1
+BEFORE UPDATE OF id,order_id,usage_id,amount_milli,created_at
+ON payment_credit_consumptions
+BEGIN
+    SELECT RAISE(ABORT,'payment credit consumption identity is immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_credit_consumption_transition_v1
+BEFORE UPDATE ON payment_credit_consumptions
+WHEN
+    (OLD.state='consumed'
+        AND NEW.state NOT IN ('consumed','restored'))
+    OR
+    (OLD.state='restored' AND NEW.state<>'restored')
+BEGIN
+    SELECT RAISE(ABORT,'invalid payment credit consumption transition');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_settlement_no_update_v1
+BEFORE UPDATE ON payment_settlement_summaries
+BEGIN
+    SELECT RAISE(ABORT,'payment settlement is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS payment_settlement_no_delete_v1
+BEFORE DELETE ON payment_settlement_summaries
+BEGIN
+    SELECT RAISE(ABORT,'payment settlement is immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS payment_reconciliation_run_no_update_v1
+BEFORE UPDATE ON payment_reconciliation_runs
+BEGIN
+    SELECT RAISE(ABORT,'payment reconciliation evidence is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS payment_reconciliation_run_no_delete_v1
+BEFORE DELETE ON payment_reconciliation_runs
+BEGIN
+    SELECT RAISE(ABORT,'payment reconciliation evidence is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS payment_reconciliation_item_no_update_v1
+BEFORE UPDATE ON payment_reconciliation_items
+BEGIN
+    SELECT RAISE(ABORT,'payment reconciliation evidence is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS payment_reconciliation_item_no_delete_v1
+BEFORE DELETE ON payment_reconciliation_items
+BEGIN
+    SELECT RAISE(ABORT,'payment reconciliation evidence is immutable');
+END;
+
 -- ── 付费请求幂等账本（仅保存摘要，不保存 raw key 或请求正文）──────────
 CREATE TABLE IF NOT EXISTS idempotency_requests (
     id                   TEXT PRIMARY KEY,

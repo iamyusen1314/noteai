@@ -186,8 +186,14 @@ class BillingTokenCostTests(unittest.TestCase):
         self.assertEqual(gift["paid_rmb"], 0)
 
         report = asyncio.run(admin_server.admin_revenue(days=30, admin={"id": "admin"}))
-        self.assertEqual(sum(row["rmb"] for row in report["daily_topup"]), 39)
-        self.assertEqual(sum(row["credits"] for row in report["daily_topup"]), 100)
+        self.assertEqual(report["subscription_net_cash"], 0)
+        self.assertEqual(report["credit_package_net_cash"], 0)
+        self.assertEqual(report["unmatched_cash"], 0)
+        self.assertEqual(report["daily_cash"], [])
+        self.assertEqual(
+            report["revenue_basis"],
+            "confirmed_immutable_cash_ledger",
+        )
 
     def test_monthly_credits_are_used_before_wallet_credits(self):
         self._create_user("u-costs")

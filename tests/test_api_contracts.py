@@ -244,6 +244,90 @@ class ApiContractTests(unittest.TestCase):
         resp = client.get("/market-timing/freshness")
         self.assertEqual(resp.status_code, 401)
 
+    def test_payment_endpoints_fail_closed_without_adapter_or_callback_enablement(self):
+        client = TestClient(api.app)
+        capabilities = client.get("/payments/capabilities")
+        self.assertEqual(capabilities.status_code, 200)
+        self.assertFalse(capabilities.json()["ordering_available"])
+        self.assertFalse(capabilities.json()["auto_renewal"])
+
+        orders = client.get("/payments/orders")
+        self.assertEqual(orders.status_code, 401)
+        create = client.post(
+            "/payments/orders",
+            headers={"Idempotency-Key": "anonymous-payment-001"},
+            json={
+                "product_kind": "credit_package",
+                "product_id": "starter",
+            },
+        )
+        self.assertEqual(create.status_code, 401)
+        callback = client.post(
+            "/payments/adapay/callback",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            content="data=%7B%7D&sign=invalid",
+        )
+        self.assertEqual(callback.status_code, 503)
+        self.assertEqual(
+            callback.json()["detail"],
+            "PAYMENT_CALLBACK_DISABLED",
+        )
+
+    def test_authenticated_payment_order_is_unavailable_before_local_write(self):
+        client = TestClient(api.app)
+        api.app.dependency_overrides[api._auth.get_current_user] = lambda: {
+            "id": "synthetic-payment-user"
+        }
+        try:
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "NOTEAI_PAYMENT_ORDERING_ENABLED": "1",
+                    "NOTEAI_ADAPAY_APP_ID": "app_synthetic",
+                },
+                clear=False,
+            ):
+                response = client.post(
+                    "/payments/orders",
+                    headers={"Idempotency-Key": "authenticated-payment-001"},
+                    json={
+                        "product_kind": "credit_package",
+                        "product_id": "starter",
+                    },
+                )
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(
+                response.json()["detail"],
+                "PAYMENT_PROVIDER_UNAVAILABLE",
+            )
+        finally:
+            api.app.dependency_overrides.pop(
+                api._auth.get_current_user,
+                None,
+            )
+
+    def test_payment_callback_rejects_ambiguous_form_before_processing(self):
+        client = TestClient(api.app)
+        with mock.patch.dict(
+            os.environ,
+            {"NOTEAI_PAYMENT_CALLBACK_ENABLED": "1"},
+            clear=False,
+        ), mock.patch.object(
+            api._payment,
+            "process_signed_callback",
+        ) as processor:
+            duplicate = client.post(
+                "/payments/adapay/callback",
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                content="data=first&data=second&sign=synthetic",
+            )
+        self.assertEqual(duplicate.status_code, 400)
+        self.assertEqual(
+            duplicate.json()["detail"],
+            "PAYMENT_CALLBACK_FORM_INVALID",
+        )
+        processor.assert_not_called()
+
     def test_paid_ai_routes_accept_optional_request_id_header(self):
         schema = api.app.openapi()
         for path in (
