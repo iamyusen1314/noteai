@@ -422,6 +422,13 @@ def operation_id_for(user_id: str, operation: str, request_id: str) -> str:
     return str(uuid.uuid5(_OPERATION_NAMESPACE, f"{subject}:{kind}:{key_hash}"))
 
 
+def payload_reference_id_for(operation_id: str, purpose: str | RefPurpose) -> str:
+    """Return the stable opaque object reference for one operation purpose."""
+    op_id = _canonical_uuid(operation_id, "operation id")
+    purpose_value = _purpose(purpose)
+    return str(uuid.uuid5(_REFERENCE_NAMESPACE, f"{op_id}:{purpose_value}"))
+
+
 def _count_items(value: Any, *, depth: int = 0) -> int:
     if depth > 12:
         raise ValueError("payload nesting is too deep")
@@ -508,6 +515,46 @@ def canonical_payload(payload: Any) -> tuple[bytes, int]:
     return encoded, _count_items(payload)
 
 
+def media_reference_ids(payload: Any) -> list[str]:
+    """Extract the canonical owner-bound media references from a request."""
+    values: list[str] = []
+
+    def visit(value: Any, *, depth: int = 0) -> None:
+        if depth > 12:
+            raise DurableAiError(
+                "DURABLE_AI_PAYLOAD_INVALID",
+                "AI job payload nesting is too deep",
+                http_status=422,
+            )
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if str(key) == "media_refs" and item not in (None, []):
+                    for reference_id in item:
+                        values.append(
+                            _canonical_uuid(str(reference_id), "media reference")
+                        )
+                visit(item, depth=depth + 1)
+        elif isinstance(value, list):
+            for item in value:
+                visit(item, depth=depth + 1)
+
+    try:
+        visit(payload)
+    except ValueError as exc:
+        raise DurableAiError(
+            "DURABLE_AI_MEDIA_REFERENCE_INVALID",
+            "Invalid durable media reference",
+            http_status=422,
+        ) from exc
+    if len(values) > MAX_MEDIA_REFS or len(values) != len(set(values)):
+        raise DurableAiError(
+            "DURABLE_AI_MEDIA_REFERENCE_INVALID",
+            "Invalid durable media reference list",
+            http_status=422,
+        )
+    return values
+
+
 def _validate_reference(
     reference: PayloadReference,
     *,
@@ -563,6 +610,7 @@ def admit_job(
     except ValueError as exc:
         raise ValueError("invalid durable AI operation") from exc
     body, item_count = canonical_payload(payload)
+    media_ids = media_reference_ids(payload)
     op_id = operation_id_for(user_id, kind, normalized_request_id)
     now_value = _utc(now)
     now_iso = now_value.isoformat()
@@ -655,6 +703,23 @@ def admit_job(
                 "billing_state": link["billing_state"],
             }
 
+        locked_media: list[Any] = []
+        if media_ids:
+            try:
+                import private_storage
+
+                locked_media = private_storage.lock_ready_media_refs(
+                    tx,
+                    user_id,
+                    media_ids,
+                    now=now_value,
+                )
+            except private_storage.PrivateStorageError as exc:
+                raise DurableAiError(
+                    "DURABLE_AI_MEDIA_REFERENCE_UNAVAILABLE",
+                    "Durable media reference is unavailable",
+                    http_status=422,
+                ) from exc
         charge = billing.check_and_deduct_in_transaction(tx, user_id, kind)
         subscription = tx.fetchone(
             "SELECT tier FROM subscriptions WHERE user_id=? AND is_active=1 "
@@ -671,6 +736,13 @@ def admit_job(
             priority=priority,
             now=now_value,
         )
+        if locked_media:
+            private_storage.link_media_refs_in_transaction(
+                tx,
+                op_id,
+                locked_media,
+                now=now_value,
+            )
         tx.execute(
             "INSERT INTO ai_operation_admissions("
             "operation_id,idempotency_request_id,created_at) VALUES(?,?,?)",

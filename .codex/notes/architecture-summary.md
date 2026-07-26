@@ -141,7 +141,7 @@ Last updated: 2026-07-22
   - No Alembic/Prisma migration tool is used.
   - PostgreSQL uses versioned SQL; SQLite keeps idempotent runtime additions for backward compatibility.
   - `scripts/migrate_sqlite_to_postgres.py` is dry-run by default and can copy application rows only after explicit guarded `--apply` approval.
-  - Production completed structure-only migrations `0001`–`0008` on 2026-07-18. This proves schema readiness only; application deployment, connection pooling, backups/PITR and a restore drill remain open.
+  - Production completed structure-only migrations `0001`–`0008` on 2026-07-18. Repository candidates now extend through `0013`; `0009`–`0013` remain unapplied. This proves existing schema readiness only; application deployment, connection pooling, backups/PITR and a restore drill remain open.
 - Seed / initialization:
   - No standalone seed command is confirmed.
   - Test and local startup may initialize tables.
@@ -236,4 +236,4 @@ Only service names and variable names are documented here; no secret values.
 - Render staging is split into Static Site, API, Admin, two Cron Jobs, PostgreSQL, and one API-only video cache disk as declared in `render.yaml`.
 - Production ALB health must represent the Alibaba process, PostgreSQL and required local model artifacts. Claude Gateway unavailability may degrade Claude routing, but must not make both Alibaba API nodes unhealthy or remove the whole site.
 - Commercial capacity is not yet achieved: Tair is running but not integrated, no public 202 admission path or independent Worker exists, and CAP-001A2B plus durable result/refund reconciliation remain open.
-- XHS Cookie storage remains plaintext despite a secret flag; Admin log retrieval needs a second redaction boundary. Video recovery remains node-local and non-HA. PostgreSQL has no confirmed production connection pool or recovery drill.
+- XHS Cookie now accepts managed environment injection only and the repository log/reasoning redaction boundaries pass, but production injection, rotation and historical-log verification remain open. Owner-bound private media/payload storage, cross-process recovery, expiry/deletion/compensation and content-free restore manifests are repository/disposable-PostgreSQL verified; production OSS/RAM roles, migration `0013`, managed cross-node proof, PostgreSQL connection pooling and a real isolated PITR drill remain open.

@@ -47,11 +47,13 @@ content hash, size, count, schema version, encryption mode, key epoch and TTL.
 
 Durable AI rejects the existing inline fields `cover_image`, `cover_images`,
 `extra_images`, `image_base64` and node-local `video_file_id` when non-empty.
-The only future-compatible surface is at most ten canonical opaque
-`media_refs`. Creation, ownership, purpose, encryption, lifecycle and
-cross-node recovery of those refs belongs to
-`PROD-FIRST-LAUNCH-STORAGE-RECOVERY-001`; until that adapter exists, media
-jobs fail closed and text-only admission is the only valid path.
+The only durable surface is at most ten canonical opaque `media_refs`.
+Migration `0013` and `private_storage.py` now define their owner, purpose,
+encryption, TTL, object-compensation and cross-node contract. Admission locks
+every referenced ready row for the authenticated owner before billing and
+links it to the operation in the same transaction. This is repository/offline
+evidence only: production still fails closed until private OSS, exact roles and
+the migration are applied and independently accepted.
 
 ## Queue, Outbox and fairness
 
@@ -144,8 +146,9 @@ Rollback order is:
 
 This repository contract is not service promotion. Before enabling admission:
 
-- implement and independently verify the private OSS adapter and owner-bound
-  media references, lifecycle/reconciliation and cross-node recovery;
+- provision and independently verify private OSS/RAM roles, apply migration
+  `0013`, and pass managed cross-node lifecycle/reconciliation evidence for the
+  repository-verified adapter;
 - integrate the existing Analyze/Generate/Chat pipelines as the exact Worker
   processor without reintroducing synchronous billing or raw payload logs;
 - apply migration `0012` and exact roles after production read-only preflight

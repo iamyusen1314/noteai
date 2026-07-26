@@ -261,6 +261,28 @@ be usable. The final positive/negative column matrix must be generated from
 the integrated API/Worker SQL call paths and proved on disposable PostgreSQL
 before any production privilege change.
 
+## Private object and media roles
+
+Migration `0013_private_storage_recovery_contract.sql` adds
+`private_media_refs`, `ai_operation_media_refs` and the persistent
+owner/ready/TTL link guard without granting runtime privileges. The full
+object, lifecycle and restore contract is frozen in
+`docs/PRIVATE_STORAGE_AND_RECOVERY_CONTRACT.md`.
+
+`noteai_app` requires:
+
+- `SELECT, INSERT` on the content-free private-media metadata;
+- column-only `UPDATE(state,deleted_at)` for expiry/account deletion;
+- `SELECT, INSERT` on the operation/media link;
+- only `id,subject_hash` from `ai_operations` for the persistent link guard.
+
+`noteai_ai_worker` receives read-only access to both new tables. Dispatcher,
+Admin, Trends and Tracking receive zero access. No runtime role receives
+object keys, URLs, media bytes, table ownership, sequence privilege,
+`schema_migrations`, schema/database creation, TEMP, DDL, role membership,
+superuser, `BYPASSRLS` or grant option. The API lifecycle policy can move only
+a ready row to `expired` or `deleted`; a Worker cannot insert or mutate media.
+
 ## Verification required before production use
 
 A separately approved database task must:

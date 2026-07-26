@@ -76,6 +76,7 @@ import content_retention as _retention
 import security_redaction as _redaction
 import idempotency as _idempotency
 import durable_ai as _durable_ai
+import private_storage as _private_storage
 import prompt_manager as _pm
 import prompt_composer as _prompt_composer
 import fact_enrichment as _facts
@@ -157,8 +158,27 @@ def _store_video_meta(file_id: str, meta: dict) -> None:
     _cleanup_video_cache()
 
 
-def _get_video_meta(file_id: str | None) -> dict | None:
+def _get_video_meta(file_id: str | None, user_id: str | None = None) -> dict | None:
     if not file_id:
+        return None
+    try:
+        if str(_uuid.UUID(str(file_id))) == str(file_id):
+            if not user_id:
+                return None
+            _reference, bundle = _private_storage.load_media_bytes(
+                str(file_id),
+                user_id=user_id,
+                purpose="video_frames",
+            )
+            return _private_storage.read_video_frame_bundle(bundle)
+    except (ValueError, _private_storage.PrivateStorageError):
+        if re.fullmatch(
+            r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+            r"[0-9a-f]{4}-[0-9a-f]{12}",
+            str(file_id),
+        ):
+            return None
+    if os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower() == "production":
         return None
     cached = _video_frames.get(file_id)
     if cached:
@@ -864,9 +884,15 @@ async def _wait_video_file_ready(file_id: str, key: str, max_wait: int = 60) -> 
     return False
 
 
-async def _kimi_video_understand(file_id: str, domain: str, brief: str | None) -> str:
+async def _kimi_video_understand(
+    file_id: str,
+    domain: str,
+    brief: str | None,
+    *,
+    user_id: str | None = None,
+) -> str:
     """按视频时长动态决定发送帧数，均匀覆盖开头/中间/结尾。"""
-    meta = _get_video_meta(file_id)
+    meta = _get_video_meta(file_id, user_id)
     if not meta:
         print(
             "[kimi_video_understand] frames_unavailable",
@@ -12003,6 +12029,7 @@ def _log_analysis(note_hash: str, domain: str, percentile: float,
 
 @app.on_event("startup")
 async def startup():
+    _private_storage.configure_from_environment()
     _ensure_model_artifacts_once()
     if USE_V04_COMPOSITE:
         if get_v04_composite_model() is None:
@@ -14799,7 +14826,7 @@ async def _run_analyze_pipeline(
 
         # 视频诊断：用已上传的视频 file_id 提取画面描述（复用 generate 中的 _kimi_video_understand）
         if req.video_file_id:
-            video_meta = _get_video_meta(req.video_file_id)
+            video_meta = _get_video_meta(req.video_file_id, user["id"])
             if not video_meta:
                 raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传视频后再诊断")
             video_duration_sec = float(video_meta.get("duration_sec", 0) or 0)
@@ -14811,7 +14838,12 @@ async def _run_analyze_pipeline(
                 "label": "正在理解视频画面内容…",
                 "progress": 12,
             })
-            video_desc = await _kimi_video_understand(req.video_file_id, req.domain, req.desc or None)
+            video_desc = await _kimi_video_understand(
+                req.video_file_id,
+                req.domain,
+                req.desc or None,
+                user_id=user["id"],
+            )
             if not video_desc or len(video_desc.strip()) < 20:
                 raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证诊断质量，请重新上传或稍后重试")
             video_desc_for_library = video_desc
@@ -15411,6 +15443,7 @@ async def _generate_pipeline_stream(
     cover_images: list[str] | None = None,
     video_file_id: str | None = None,
     user_tier: str = "free",
+    user_id: str | None = None,
 ) -> AsyncGenerator[dict, None]:
     """Streaming version of generate pipeline — yields SSE event dicts."""
     dk = _get_dk(domain)
@@ -15420,7 +15453,7 @@ async def _generate_pipeline_stream(
 
     # ── P1: Visual ──────────────────────────────────────────────────
     if video_file_id:
-        _video_meta = _get_video_meta(video_file_id)
+        _video_meta = _get_video_meta(video_file_id, user_id)
         has_frames = bool(_video_meta)
         yield {"type": "stage", "stage": "p1", "label": "视觉分析师正在解读视频画面…", "progress": 8}
         if has_frames:
@@ -15431,7 +15464,16 @@ async def _generate_pipeline_stream(
             observed_frame_count = n_send_f
             yield {"type": "video_analyzing",
                    "label": f"分析视频（{dur_f:.0f}s，提取 {n_total_f} 帧，发送 {n_send_f} 帧至 AI）…"}
-        video_desc = await _kimi_video_understand(video_file_id, domain, brief) if has_frames else ""
+        video_desc = (
+            await _kimi_video_understand(
+                video_file_id,
+                domain,
+                brief,
+                user_id=user_id,
+            )
+            if has_frames
+            else ""
+        )
 
         vis_result = {
             "role": "视觉专家",
@@ -15439,7 +15481,7 @@ async def _generate_pipeline_stream(
             "_image_desc": video_desc[:300] if video_desc else (brief or domain),
         }
         image_desc = vis_result["_image_desc"]
-        _vm2 = _get_video_meta(video_file_id) or {}
+        _vm2 = _get_video_meta(video_file_id, user_id) or {}
         n_t2 = len(_vm2.get("frames", [])); d2 = _vm2.get("duration_sec", n_t2); n_s2 = _video_send_count(d2, n_t2)
         yield {
             "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
@@ -16086,6 +16128,147 @@ async def _generate_pipeline_stream(
 
 
 _VIDEO_MAX_DURATION = 90  # 秒，超过拒绝上传
+_VIDEO_MAX_BYTES = 100 * 1024 * 1024
+_UPLOAD_CHUNK_BYTES = 1024 * 1024
+_VIDEO_SUFFIXES = frozenset({".mp4", ".mov", ".avi", ".m4v", ".webm"})
+_VIDEO_CONTENT_TYPES = frozenset({
+    "video/mp4",
+    "video/quicktime",
+    "video/x-msvideo",
+    "video/webm",
+    "application/octet-stream",
+})
+_IMAGE_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".webp"})
+_IMAGE_CONTENT_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
+
+
+async def _stream_upload_to_temp(
+    file: UploadFile,
+    *,
+    suffix: str,
+    maximum_bytes: int,
+) -> tuple[str, int, str]:
+    tmp_path = ""
+    size_bytes = 0
+    digest = hashlib.sha256()
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp_path = tmp.name
+            while True:
+                chunk = await file.read(_UPLOAD_CHUNK_BYTES)
+                if not chunk:
+                    break
+                size_bytes += len(chunk)
+                if size_bytes > maximum_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"上传文件超过 {maximum_bytes // (1024 * 1024)}MB 限制",
+                    )
+                digest.update(chunk)
+                tmp.write(chunk)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+    except BaseException:
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+        raise
+    if size_bytes < 1:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise HTTPException(status_code=422, detail="上传文件为空")
+    return tmp_path, size_bytes, digest.hexdigest()
+
+
+@app.post("/upload-image")
+async def upload_image(
+    file: UploadFile = File(...),
+    user: dict = Depends(_auth.get_current_user),
+):
+    """Normalize one owner-bound image and persist it without metadata."""
+    if not _private_storage.object_backend_configured():
+        raise HTTPException(status_code=503, detail="私有素材存储暂不可用")
+    filename = file.filename or "image.jpg"
+    suffix = Path(filename).suffix.lower() or ".jpg"
+    declared_type = str(file.content_type or "").lower()
+    if suffix not in _IMAGE_SUFFIXES or declared_type not in _IMAGE_CONTENT_TYPES:
+        raise HTTPException(status_code=415, detail="不支持的图片文件类型")
+    tmp_path, original_size, _upload_sha256 = await _stream_upload_to_temp(
+        file,
+        suffix=suffix,
+        maximum_bytes=_private_storage.MAX_IMAGE_BYTES,
+    )
+    try:
+        from PIL import Image, UnidentifiedImageError
+
+        with Image.open(tmp_path) as source:
+            source.verify()
+        with Image.open(tmp_path) as source:
+            source.load()
+            width, height = source.size
+            if (
+                width < 1
+                or height < 1
+                or width > 8192
+                or height > 8192
+                or width * height > 40_000_000
+            ):
+                raise HTTPException(status_code=422, detail="图片尺寸超出安全限制")
+            normalized = source.convert("RGB")
+            with tempfile.SpooledTemporaryFile(
+                max_size=_private_storage.MAX_IMAGE_BYTES
+            ) as output:
+                normalized.save(
+                    output,
+                    format="JPEG",
+                    quality=90,
+                    optimize=True,
+                    progressive=False,
+                )
+                output.seek(0)
+                body = output.read(_private_storage.MAX_IMAGE_BYTES + 1)
+        if not body or len(body) > _private_storage.MAX_IMAGE_BYTES:
+            raise HTTPException(status_code=413, detail="规范化图片超过 10MB 限制")
+    except HTTPException:
+        raise
+    except (
+        UnidentifiedImageError,
+        Image.DecompressionBombError,
+        OSError,
+        ValueError,
+    ) as exc:
+        _log_internal_failure("image_file", exc, phase="parse")
+        raise HTTPException(status_code=422, detail="图片解析失败") from exc
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+    try:
+        reference = _private_storage.store_media_bytes(
+            user["id"],
+            purpose="image",
+            content_type="image/jpeg",
+            payload=body,
+            item_count=1,
+        )
+    except (_private_storage.PrivateStorageError, ValueError) as exc:
+        _log_internal_failure("image_file", exc, phase="private_store")
+        raise HTTPException(status_code=503, detail="图片素材保存失败") from exc
+    return {
+        "media_ref": reference.id,
+        "filename": filename,
+        "original_size": original_size,
+        "stored_size": reference.size_bytes,
+        "width": width,
+        "height": height,
+        "expires_at": reference.expires_at,
+    }
+
 
 @app.post("/upload-video")
 async def upload_video(
@@ -16093,25 +16276,34 @@ async def upload_video(
     user: dict = Depends(_auth.get_current_user),
 ):
     """
-    接收视频，按 1fps 抽帧 + 相邻帧差分去重，缓存帧列表并返回本地 file_id。
+    接收视频，按 1fps 抽帧 + 相邻帧差分去重，返回 owner-bound media_ref。
     限制：最长 90 秒、最大 100MB。
     """
     import cv2 as _cv2
     import numpy as _np
 
-    content = await file.read()
-    if len(content) > 100 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="视频文件超过 100MB 限制")
-
     filename = file.filename or "video.mp4"
-    suffix = Path(filename).suffix or ".mp4"
-    tmp_path = ""
-    frames: list[bytes] = []
-    try:
-        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
+    suffix = Path(filename).suffix.lower() or ".mp4"
+    if suffix not in _VIDEO_SUFFIXES:
+        raise HTTPException(status_code=415, detail="不支持的视频文件类型")
+    declared_type = str(file.content_type or "application/octet-stream").lower()
+    if declared_type not in _VIDEO_CONTENT_TYPES:
+        raise HTTPException(status_code=415, detail="不支持的视频内容类型")
+    production = (
+        os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower()
+        == "production"
+    )
+    if production and not _private_storage.object_backend_configured():
+        raise HTTPException(status_code=503, detail="私有素材存储暂不可用")
 
+    tmp_path, size_bytes, _upload_sha256 = await _stream_upload_to_temp(
+        file,
+        suffix=suffix,
+        maximum_bytes=_VIDEO_MAX_BYTES,
+    )
+    frames: list[bytes] = []
+    cap = None
+    try:
         cap = _cv2.VideoCapture(tmp_path)
         fps = cap.get(_cv2.CAP_PROP_FPS) or 30.0
         total_raw = int(cap.get(_cv2.CAP_PROP_FRAME_COUNT))
@@ -16120,7 +16312,6 @@ async def upload_video(
 
         duration_sec = total_raw / fps
         if duration_sec > _VIDEO_MAX_DURATION:
-            cap.release()
             raise HTTPException(
                 status_code=422,
                 detail=f"视频时长 {duration_sec:.0f}s 超过上限（{_VIDEO_MAX_DURATION}s / 1分30秒），请剪短后重新上传",
@@ -16153,14 +16344,14 @@ async def upload_video(
                 if ok:
                     frames.append(buf.tobytes())
             frame_idx += 1
-
-        cap.release()
     except HTTPException:
         raise
     except Exception as exc:
         _log_internal_failure("video_file", exc, phase="parse")
         raise HTTPException(status_code=500, detail="视频解析失败")
     finally:
+        if cap is not None:
+            cap.release()
         if tmp_path:
             try:
                 os.unlink(tmp_path)
@@ -16172,11 +16363,34 @@ async def upload_video(
 
     fid = str(_uuid.uuid4()).replace("-", "")[:20]
     n_will_send = _video_send_count(duration_sec, len(frames))
-    _store_video_meta(fid, {
-        "frames":       frames,
-        "duration_sec": round(duration_sec, 1),
-        "raw_fps":      round(fps, 1),
-    })
+    if _private_storage.object_backend_configured():
+        try:
+            bundle = _private_storage.build_video_frame_bundle(
+                frames,
+                duration_sec=duration_sec,
+                raw_fps=fps,
+            )
+            reference = _private_storage.store_media_bytes(
+                user["id"],
+                purpose="video_frames",
+                content_type="application/vnd.noteai.video-frames+zip",
+                payload=bundle,
+                item_count=len(frames),
+            )
+            fid = reference.id
+        except (_private_storage.PrivateStorageError, ValueError) as exc:
+            _log_internal_failure(
+                "video_file",
+                exc,
+                phase="private_store",
+            )
+            raise HTTPException(status_code=503, detail="视频素材保存失败") from exc
+    else:
+        _store_video_meta(fid, {
+            "frames":       frames,
+            "duration_sec": round(duration_sec, 1),
+            "raw_fps":      round(fps, 1),
+        })
     print(
         f"[upload_video] duration={duration_sec:.1f}s raw_fps={fps:.1f} "
         f"frames_extracted={len(frames)} frames_to_ai={n_will_send}",
@@ -16185,8 +16399,9 @@ async def upload_video(
     )
     return {
         "file_id":      fid,
+        "media_ref":    fid if len(fid) == 36 else None,
         "filename":     filename,
-        "size":         len(content),
+        "size":         size_bytes,
         "duration_sec": round(duration_sec, 1),
         "frames":       len(frames),
         "frames_to_ai": n_will_send,
@@ -16286,6 +16501,7 @@ async def generate_stream_endpoint(
             cover_images=cover_images,
             video_file_id=req.video_file_id,
             user_tier=user_tier,
+            user_id=user["id"],
         ):
             if event.get("type") == "complete":
                 fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}

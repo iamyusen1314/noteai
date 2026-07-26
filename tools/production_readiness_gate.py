@@ -708,6 +708,21 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     trends_runtime = (
         MODEL_DIR / "trends_contract.py"
     ).read_text(encoding="utf-8")
+    private_storage_source = (
+        MODEL_DIR / "private_storage.py"
+    ).read_text(encoding="utf-8")
+    recovery_evidence_source = (
+        MODEL_DIR / "storage_recovery_evidence.py"
+    ).read_text(encoding="utf-8")
+    private_storage_migration = (
+        MODEL_DIR
+        / "migrations"
+        / "postgres"
+        / "0013_private_storage_recovery_contract.sql"
+    ).read_text(encoding="utf-8")
+    private_storage_contract = (
+        ROOT / "docs" / "PRIVATE_STORAGE_AND_RECOVERY_CONTRACT.md"
+    ).read_text(encoding="utf-8")
     market_worker = (
         MODEL_DIR / "market_timing_worker.py"
     ).read_text(encoding="utf-8")
@@ -832,6 +847,63 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "docker_removes_python_build_tooling",
             "python -m pip uninstall -y setuptools wheel" in dockerfile
             and "python -m pip check" in dockerfile,
+        ),
+        _ok(
+            "private_storage_sdk_and_role_credentials_are_fixed",
+            "alibabacloud-oss-v2==1.3.2" in api_requirement_lines
+            and "alibabacloud_credentials==1.0.10" in api_requirement_lines
+            and 'CredentialConfig(type="ecs_ram_role", role_name=role_name)'
+            in private_storage_source
+            and "static OSS credentials are prohibited" in private_storage_source
+            and "use_internal_endpoint = True" in private_storage_source,
+        ),
+        _ok(
+            "private_storage_writes_are_conditional_encrypted_and_bounded",
+            "forbid_overwrite=True" in private_storage_source
+            and 'server_side_encryption="KMS" if self.kms_key_id else "AES256"'
+            in private_storage_source
+            and "PRIVATE_OBJECT_SIZE_MISMATCH" in private_storage_source
+            and "MAX_VIDEO_BUNDLE_BYTES = 64 * 1024 * 1024"
+            in private_storage_source
+            and "ORPHAN_MIN_AGE_SECONDS = 24 * 60 * 60"
+            in private_storage_source,
+        ),
+        _ok(
+            "private_media_migration_is_grant_free_and_owner_guarded",
+            "CREATE TABLE IF NOT EXISTS private_media_refs"
+            in private_storage_migration
+            and "CREATE TABLE IF NOT EXISTS ai_operation_media_refs"
+            in private_storage_migration
+            and "noteai_validate_operation_media_link_v1"
+            in private_storage_migration
+            and "invalid owner-bound media link" in private_storage_migration
+            and "GRANT " not in private_storage_migration.upper()
+            and "REVOKE " not in private_storage_migration.upper(),
+        ),
+        _ok(
+            "production_uploads_are_owner_bound_and_local_cache_fails_closed",
+            'NOTEAI_DEPLOYMENT_STAGE", "").strip().lower() == "production"'
+            in api_source
+            and "_stream_upload_to_temp" in api_source
+            and "store_media_bytes(" in api_source
+            and 'purpose="video_frames"' in api_source
+            and 'purpose="image"' in api_source
+            and "_private_storage.load_media_bytes(" in api_source
+            and production_compose.count(
+                "NOTEAI_DEPLOYMENT_STAGE: production"
+            )
+            == 5
+            and "NOTEAI_VIDEO_CACHE_DIR" not in production_compose,
+        ),
+        _ok(
+            "restore_evidence_is_content_free_and_exact",
+            "row_values_included" in recovery_evidence_source
+            and "object_keys_included" in recovery_evidence_source
+            and "database_tables" in recovery_evidence_source
+            and "private_objects" in recovery_evidence_source
+            and "manifest_sha256" in recovery_evidence_source
+            and "must never overwrite the source instance"
+            in private_storage_contract.lower(),
         ),
         _ok(
             "docker_healthcheck_uses_python_stdlib",

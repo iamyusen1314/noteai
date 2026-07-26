@@ -16,12 +16,12 @@ services:
       - "${NOTEAI_API_ENV_FILE:-/etc/noteai/api.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: api
+      NOTEAI_DEPLOYMENT_STAGE: production
       NOTEAI_CLOUD_RUNTIME: "1"
       NOTEAI_API_STARTS_TREND_SCHEDULER: "0"
       NOTEAI_MODEL_ARTIFACT_REQUIRED: "1"
       NOTEAI_ENABLE_CLOUD_MODEL_MUTATION: "0"
       NOTEAI_DURABLE_AI_ADMISSION_ENABLED: "0"
-      NOTEAI_VIDEO_CACHE_DIR: /app/model/data/video_frames
     ports:
       - "${NOTEAI_API_BIND_IP:-0.0.0.0}:${NOTEAI_API_PORT:-8000}:8000"
     volumes:
@@ -51,6 +51,7 @@ services:
       - "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: admin
+      NOTEAI_DEPLOYMENT_STAGE: production
       NOTEAI_CLOUD_RUNTIME: "1"
       NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
       NOTEAI_ENABLE_CLOUD_MODEL_MUTATION: "0"
@@ -86,6 +87,7 @@ services:
       - "${NOTEAI_AI_WORKER_ENV_FILE:-/etc/noteai/ai-worker.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: ai-worker
+      NOTEAI_DEPLOYMENT_STAGE: production
       NOTEAI_CLOUD_RUNTIME: "1"
       NOTEAI_DURABLE_AI_SUSPENDED: "${NOTEAI_DURABLE_AI_SUSPENDED:-1}"
       NOTEAI_DURABLE_AI_PROCESSOR: "${NOTEAI_DURABLE_AI_PROCESSOR:-}"
@@ -110,6 +112,7 @@ services:
       - "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: xhs-http
+      NOTEAI_DEPLOYMENT_STAGE: production
       NOTEAI_XHS_SERVICE: trends
       NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
       NOTEAI_XHS_ACQUISITION_ADAPTER: spider_xhs_http
@@ -142,6 +145,7 @@ services:
       - "${NOTEAI_XHS_TRACKING_ENV_FILE:-/etc/noteai/xhs-tracking.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: xhs-http
+      NOTEAI_DEPLOYMENT_STAGE: production
       NOTEAI_XHS_SERVICE: tracking
       NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
       NOTEAI_XHS_ACQUISITION_ADAPTER: spider_xhs_http

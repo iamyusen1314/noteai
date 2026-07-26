@@ -2073,7 +2073,7 @@ class ApiContractTests(unittest.TestCase):
         captured_agent_contexts = []
         fact_calls = []
 
-        async def fake_video(file_id, domain, brief):
+        async def fake_video(file_id, domain, brief, **_kwargs):
             return "视频里拍到芝士焗小青龙、红烧乳鸽和万博门店环境，适合做餐饮探店诊断。"
 
         async def fake_enrich(domain, title, text, **_kwargs):

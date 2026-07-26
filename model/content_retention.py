@@ -712,6 +712,7 @@ def process_due_account_deletions(
     limit: int = 10,
     now: datetime | None = None,
     payload_store: Any = None,
+    media_backend: Any = None,
 ) -> list[str]:
     """Delete primary personal data while retaining pseudonymous audit ledgers."""
     current = now or _now()
@@ -737,13 +738,22 @@ def process_due_account_deletions(
         # fenced by deletion_requested_at, so no new owner object can race in.
         try:
             import durable_ai
+            import private_storage
 
             durable_ai.delete_user_payloads(
                 user_id,
                 store=payload_store,
                 now=current,
             )
-        except durable_ai.PayloadUnavailable:
+            private_storage.delete_user_media(
+                user_id,
+                backend=media_backend,
+                now=current,
+            )
+        except (
+            durable_ai.PayloadUnavailable,
+            private_storage.PrivateStorageError,
+        ):
             # Fail closed: keep the deletion request pending and preserve the
             # owner join for a later bounded retry.
             continue
@@ -765,6 +775,8 @@ def process_due_account_deletions(
             if not request:
                 continue
             if durable_ai.has_ready_user_payloads(tx, user_id):
+                continue
+            if private_storage.has_ready_user_media(tx, user_id):
                 continue
             subject_ref = request["subject_ref"]
             tx.execute("UPDATE usage_records SET user_id=? WHERE user_id=?", (

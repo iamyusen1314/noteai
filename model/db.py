@@ -1033,6 +1033,100 @@ CREATE INDEX IF NOT EXISTS idx_ai_payload_refs_lifecycle
 CREATE INDEX IF NOT EXISTS idx_ai_payload_refs_subject
     ON ai_payload_refs(subject_hash, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS private_media_refs (
+    id                  TEXT NOT NULL PRIMARY KEY CHECK (
+                            length(id) = 36
+                            AND length(replace(id, '-', '')) = 32
+                            AND substr(id, 9, 1) = '-'
+                            AND substr(id, 14, 1) = '-'
+                            AND substr(id, 19, 1) = '-'
+                            AND substr(id, 24, 1) = '-'
+                            AND id NOT GLOB '*[^0-9a-f-]*'
+                        ),
+    subject_hash        TEXT NOT NULL CHECK (
+                            length(subject_hash) = 64
+                            AND subject_hash NOT GLOB '*[^0-9a-f]*'
+                        ),
+    purpose             TEXT NOT NULL CHECK (purpose IN ('image','video_frames')),
+    content_type        TEXT NOT NULL CHECK (
+                            (purpose = 'image' AND content_type IN (
+                                'image/jpeg','image/png','image/webp'
+                            ))
+                            OR (
+                                purpose = 'video_frames'
+                                AND content_type = 'application/vnd.noteai.video-frames+zip'
+                            )
+                        ),
+    object_key_hash     TEXT NOT NULL CHECK (
+                            length(object_key_hash) = 64
+                            AND object_key_hash NOT GLOB '*[^0-9a-f]*'
+                        ),
+    content_sha256      TEXT NOT NULL CHECK (
+                            length(content_sha256) = 64
+                            AND content_sha256 NOT GLOB '*[^0-9a-f]*'
+                        ),
+    size_bytes          INTEGER NOT NULL CHECK (
+                            (purpose = 'image' AND size_bytes BETWEEN 1 AND 10485760)
+                            OR (
+                                purpose = 'video_frames'
+                                AND size_bytes BETWEEN 1 AND 67108864
+                            )
+                        ),
+    item_count          INTEGER NOT NULL CHECK (
+                            (purpose = 'image' AND item_count = 1)
+                            OR (purpose = 'video_frames' AND item_count BETWEEN 1 AND 100)
+                        ),
+    schema_version      INTEGER NOT NULL CHECK (schema_version BETWEEN 1 AND 16),
+    encryption_mode     TEXT NOT NULL CHECK (
+                            encryption_mode IN ('provider_managed','envelope_aes256')
+                        ),
+    key_epoch_hash      TEXT NOT NULL CHECK (
+                            length(key_epoch_hash) = 64
+                            AND key_epoch_hash NOT GLOB '*[^0-9a-f]*'
+                        ),
+    state               TEXT NOT NULL CHECK (state IN ('ready','expired','deleted')),
+    expires_at          TEXT NOT NULL,
+    created_at          TEXT NOT NULL,
+    ready_at            TEXT NOT NULL,
+    deleted_at          TEXT,
+    CHECK (
+        (state = 'ready' AND deleted_at IS NULL)
+        OR (state IN ('expired','deleted') AND deleted_at IS NOT NULL)
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_private_media_refs_subject
+    ON private_media_refs(subject_hash,state,expires_at);
+CREATE INDEX IF NOT EXISTS idx_private_media_refs_lifecycle
+    ON private_media_refs(state,expires_at,purpose);
+
+CREATE TABLE IF NOT EXISTS ai_operation_media_refs (
+    operation_id        TEXT NOT NULL
+                        REFERENCES ai_operations(id) ON DELETE RESTRICT,
+    media_ref_id        TEXT NOT NULL
+                        REFERENCES private_media_refs(id) ON DELETE RESTRICT,
+    ordinal             INTEGER NOT NULL CHECK (ordinal BETWEEN 0 AND 9),
+    created_at          TEXT NOT NULL,
+    PRIMARY KEY(operation_id,media_ref_id),
+    UNIQUE(operation_id,ordinal)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_operation_media_refs_media
+    ON ai_operation_media_refs(media_ref_id,operation_id);
+CREATE TRIGGER IF NOT EXISTS noteai_operation_media_owner_guard_v1
+BEFORE INSERT ON ai_operation_media_refs
+WHEN NOT EXISTS (
+    SELECT 1
+    FROM ai_operations o
+    JOIN private_media_refs m ON m.id=NEW.media_ref_id
+    WHERE o.id=NEW.operation_id
+      AND o.subject_hash=m.subject_hash
+      AND m.state='ready'
+      AND m.ready_at<=NEW.created_at
+      AND m.expires_at>NEW.created_at
+)
+BEGIN
+    SELECT RAISE(ABORT,'invalid owner-bound media link');
+END;
+
 CREATE TABLE IF NOT EXISTS ai_operation_outbox (
     id                  TEXT NOT NULL PRIMARY KEY CHECK (
                             length(id) = 36

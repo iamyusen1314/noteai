@@ -110,8 +110,38 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(api_lines)
         self.assertTrue(all(re.fullmatch(r"[A-Za-z0-9_.-]+(?:\[[A-Za-z0-9_,.-]+\])?==[^\s]+", line) for line in api_lines))
         self.assertIn("pillow==12.3.0", api_lines)
+        self.assertIn("alibabacloud-oss-v2==1.3.2", api_lines)
+        self.assertIn("alibabacloud_credentials==1.0.10", api_lines)
         self.assertEqual(worker_lines, ["-r requirements-api.txt", "playwright==1.56.0"])
         self.assertEqual(compatibility_lines, ["-r requirements-api.txt"])
+
+    def test_private_storage_and_restore_contract_is_fail_closed(self):
+        source = (MODEL_DIR / "private_storage.py").read_text(encoding="utf-8")
+        recovery = (
+            MODEL_DIR / "storage_recovery_evidence.py"
+        ).read_text(encoding="utf-8")
+        migration = (
+            MODEL_DIR
+            / "migrations"
+            / "postgres"
+            / "0013_private_storage_recovery_contract.sql"
+        ).read_text(encoding="utf-8")
+        api_source = (MODEL_DIR / "api.py").read_text(encoding="utf-8")
+
+        self.assertIn("forbid_overwrite=True", source)
+        self.assertIn("CredentialConfig(type=\"ecs_ram_role\"", source)
+        self.assertIn("static OSS credentials are prohibited", source)
+        self.assertIn("use_internal_endpoint = True", source)
+        self.assertIn("CREATE TABLE IF NOT EXISTS private_media_refs", migration)
+        self.assertIn("noteai_validate_operation_media_link_v1", migration)
+        self.assertNotIn("GRANT ", migration.upper())
+        self.assertNotIn("REVOKE ", migration.upper())
+        self.assertIn("_stream_upload_to_temp", api_source)
+        self.assertIn("_private_storage.load_media_bytes(", api_source)
+        self.assertIn("\"row_values_included\": False", recovery)
+        self.assertIn("\"object_keys_included\": False", recovery)
+        self.assertIn("database_tables", recovery)
+        self.assertIn("private_objects", recovery)
 
     def _run_entrypoint_guard(
         self,
