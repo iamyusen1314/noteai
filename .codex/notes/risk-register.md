@@ -11,7 +11,7 @@ Last updated: 2026-07-27
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付合同及Adapay离线适配器/专用运行时门禁也已通过，均为`NOT DEPLOYED`。Payment adapter应用checkpoint为`d5121c6d6e7044c6eca0c3047a4007aa14ba0661`，migration `0014` SHA仍为`ed788fdf…b0ad`。精确临时资源已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`；`0009`–`0014`未应用，当前代码尚未形成或部署新镜像。
-- 当前下一步: 唯一任务为`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，需要已认证的阿里云生产只读路径，只读取历史聚合、migration影响、当前负向权限、备份/PITR和发布/回滚证据。不得执行`0009`–`0014`、GRANT/REVOKE、provider、生产service/image/ACR或流量变更；若认证不可用，只记录一次外部阻断，不得用离线模拟冒充生产证据。
+- 当前下一步: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`已记录一次`BLOCKED / AUTHENTICATION UNAVAILABLE / ZERO MUTATION`：当前工作会话没有已认证的阿里云、生产数据库或SSH目标路径，历史生产事实不得冒充新证据。认证状态不变时不得重复该能力检查。当前可执行任务转为仓库/离线`PROD-FIRST-LAUNCH-UI-ADMIN-CONTRACT-001`，不得执行`0009`–`0014`、GRANT/REVOKE、provider、生产service/image/ACR或流量变更。
 - 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
