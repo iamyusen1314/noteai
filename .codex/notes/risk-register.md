@@ -7,11 +7,11 @@ Last updated: 2026-07-27
 ### Complete first commercial launch is not yet releaseable
 
 - 状态: Open Critical under `PROD-COMPLETE-FIRST-LAUNCH-001`; current release decision is `NO-GO`.
-- 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。Durable AI、私有存储/恢复和provider-isolated支付仓库合同已经通过，但真实支付适配器/商户/运行时、生产对象存储/PITR、真实queue/dispatcher/processor、Tracking/Trends managed runtime、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
+- 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。Durable AI、私有存储/恢复、provider-isolated支付合同及Adapay离线适配器/专用运行时仓库门禁已经通过，但商户/真实mock兼容、生产对象存储/PITR、真实queue/dispatcher/processor、Tracking/Trends managed runtime、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
-- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复和支付合同各自的仓库、隔离PostgreSQL和最小权限证据也已通过，均为`NOT DEPLOYED`。Payment应用checkpoint为`4dbb56f2bf96896fba18b52736687a647fe693a2`，migration `0014` SHA为`ed788fdf…b0ad`。精确临时资源已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`；`0009`–`0014`未应用，当前代码尚未形成或部署新镜像。
-- 当前下一步: 生产串行门禁仍是`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，但需要已认证的阿里云控制面会话。等待该外部条件时，唯一可执行离线任务为`PROD-FIRST-LAUNCH-PAYMENT-ADAPTER-001`：实现transport-injected官方Adapay适配器、专用支付运行时合同和精确离线fixture。不得调用Adapay、使用真实凭据/资金、执行`0009`–`0014`、GRANT/REVOKE、生产service/image/ACR或流量变更。
+- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付合同及Adapay离线适配器/专用运行时门禁也已通过，均为`NOT DEPLOYED`。Payment adapter应用checkpoint为`d5121c6d6e7044c6eca0c3047a4007aa14ba0661`，migration `0014` SHA仍为`ed788fdf…b0ad`。精确临时资源已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`；`0009`–`0014`未应用，当前代码尚未形成或部署新镜像。
+- 当前下一步: 唯一任务为`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，需要已认证的阿里云生产只读路径，只读取历史聚合、migration影响、当前负向权限、备份/PITR和发布/回滚证据。不得执行`0009`–`0014`、GRANT/REVOKE、provider、生产service/image/ACR或流量变更；若认证不可用，只记录一次外部阻断，不得用离线模拟冒充生产证据。
 - 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
@@ -53,12 +53,13 @@ Last updated: 2026-07-27
 ### Real payment integration is not confirmed
 
 - 状态: Open Critical / first-launch hard gate；历史 `DEFERRED` 结论已被产品范围决定废止。
-- 风险描述: provider-isolated订单、回调验签/幂等、现金/权益账本、全额未用退款、对账/结算和Admin现金真相已经仓库/隔离PostgreSQL验证；但没有真实Adapay网络适配器、商户准入、凭据、专用回调运行时、sandbox/mock兼容、生产migration/ACL、调度告警或真实资金证据。
-- 涉及文件: `model/payment_contract.py`, `model/api.py`, `model/billing.py`, `model/admin_server.py`, `model/db.py`, migration `0014`, frontend pricing/credit UI.
+- 风险描述: provider-isolated订单、回调验签/幂等、现金/权益账本、全额未用退款、对账/结算、Admin现金真相、transport-injected Adapay协议适配器和专用callback runtime已经仓库/隔离PostgreSQL验证；但没有商户准入、真实凭据、provider mock/live兼容、callback可达、生产migration/ACL、调度告警或真实资金证据。
+- 涉及文件: `model/payment_contract.py`, `model/adapay_adapter.py`, `model/payment_adapter_runtime.py`, `model/payment_runtime.py`, `model/api.py`, `model/billing.py`, `model/admin_server.py`, `model/db.py`, migration `0014`, frontend pricing/credit UI.
 - 可能后果: Users may receive credits without real payment, or paid launch cannot legally/financially reconcile transactions.
-- 建议验证方式: 先以零网络fixture验证官方适配器与独立角色/进程边界，再做商户与sandbox/mock验收；生产migration/ACL/Secret/回调可达和受控真实小额支付退款对账必须分别有界执行。
+- 建议验证方式: 不重复已通过的零网络fixture。先做商户/渠道/凭据只读准入和provider mock验收，并明确解决官方账单文档HTTP示例与NoteAI强制HTTPS之间的兼容性；生产migration/ACL/Secret/回调可达和受控真实小额支付退款对账必须分别有界执行。
 - 是否需要用户确认后才能修改: yes.
 - 2026-07-27仓库进展: `PROD-FIRST-LAUNCH-PAYMENT-CONTRACT-001`在commit `4dbb56f2…`达到`REPOSITORY + DISPOSABLE POSTGRESQL PASS / NOT DEPLOYED`。聚焦`198/198`、全量`872`加`20`skip、E2E`66/66`、readiness`95/95`、PostgreSQL`6/6`通过；migration `0014` SHA为`ed788fdf…b0ad`。无provider、凭据、资金、生产数据库/权限、服务、镜像、云或流量动作，费用`¥0`；本Critical只因仓库合同不再是“ABSENT”，但真实支付上线门禁仍保持开放。
+- 2026-07-27适配器进展: `PROD-FIRST-LAUNCH-PAYMENT-ADAPTER-001`在commit `d5121c6…`达到`REPOSITORY PASS / NOT DEPLOYED`。聚焦`236/236`、串行全量`887`加`20`skip、E2E`66/66`、readiness`96/96`及依赖/质量/编译/Compose通过；普通API拒绝callback，专用runtime默认disabled并验证精确DB角色，签名响应、退款、账单和exactly-once callback全为synthetic。未调用Adapay或使用商户/资金/生产资源，费用`¥0`；真实支付Critical继续保持开放。
 
 ### Alibaba production topology is not deployed; Gateway Staging is single-instance only
 
