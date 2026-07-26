@@ -7,11 +7,11 @@ Last updated: 2026-07-26
 ### Complete first commercial launch is not yet releaseable
 
 - 状态: Open Critical under `PROD-COMPLETE-FIRST-LAUNCH-001`; current release decision is `NO-GO`.
-- 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。Durable AI 仓库/隔离PostgreSQL合同已经通过，但真实支付、生产对象存储/恢复、真实queue/dispatcher/processor、Tracking/Trends managed runtime、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
+- 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。Durable AI 与私有存储/恢复的仓库/隔离PostgreSQL合同已经通过，但真实支付、生产对象存储/PITR、真实queue/dispatcher/processor、Tracking/Trends managed runtime、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
-- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends和Durable AI各自的仓库、隔离PostgreSQL和最小权限合同也已通过，均为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。Durable AI应用checkpoint为`f0aaa20`，migration `0012` SHA为`df72dedf…c83`。精确临时资源已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`；`0009`–`0012`未应用，当前代码尚未形成或部署新镜像。
-- 当前下一步: 生产串行门禁仍是`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，但需要已认证的阿里云控制面会话。等待该外部条件时，唯一可执行离线任务改为`PROD-FIRST-LAUNCH-STORAGE-RECOVERY-CONTRACT-001`：实现已冻结的owner-bound opaque media/payload ref、私有storage adapter、跨节点/重启/到期/删除/补偿/孤儿对账和备份/PITR证据合同。不得执行`0009`–`0012`、GRANT/REVOKE、真实OSS/恢复实例、生产processor/service、供应商、镜像/ACR或流量变更。
+- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI和私有存储/恢复各自的仓库、隔离PostgreSQL和最小权限合同也已通过，均为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。Storage应用checkpoint为`d2dfb376587c86031681c5d6b1a52f40d619032e`，migration `0013` SHA为`1268cdb9…b76`。精确临时资源已清零且Colima停止。生产未访问，仍是migration `0001`–`0008`；`0009`–`0013`未应用，当前代码尚未形成或部署新镜像。
+- 当前下一步: 生产串行门禁仍是`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`，但需要已认证的阿里云控制面会话。等待该外部条件时，唯一可执行离线任务为`PROD-FIRST-LAUNCH-PAYMENT-CONTRACT-001`：审计并实现provider-isolated Adapay订单、签名回调、退款、结算、权益和对账的仓库合同与离线fixture。不得调用Adapay、使用真实凭据/资金、执行`0009`–`0013`、GRANT/REVOKE、真实OSS/恢复实例、生产processor/service、供应商、镜像/ACR或流量变更。
 - 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
@@ -95,14 +95,14 @@ Last updated: 2026-07-26
 - 可能后果: 峰值任务被429/超时、断流后丢结果、Worker崩溃重复调用或重复扣费、Claude/Kimi雪崩切换、余额/Token配额耗尽后商业服务中断。
 - 建议验证方式: 先以FakeProvider证明100任务均在2秒内持久受理，重复消息/崩溃/数据库短断下0丢失、0重复provider/扣费；再用小样本真实Claude/Kimi校准leaf时长、Token和成本，按队列深度/最老年龄及provider/model配额设置分级告警和升级Runbook。
 - 是否需要用户确认后才能修改: 本地状态机、测试和监控合同不需要；阿里云付费资源、migration、真实AI样本、自动扩容预算及任何供应商/消费门禁升级需要。
-- 2026-07-26进展: `PROD-FIRST-LAUNCH-DURABLE-AI-CONTRACT-001`已在`f0aaa20`完成仓库与隔离PostgreSQL验证：聚焦`127/127`、相关运行时`65/65`、PostgreSQL`10/10`、全量Python `812 run / 10 skipped / 0 failed`、E2E`66/66`、readiness`90/90`。这关闭了持久账本、opaque refs、Outbox/fence、provider-free redelivery、unknown manual、回放和扣费终态的合同风险，不关闭真实storage/queue/processor、生产migration/roles、监控或100任务负载门禁。
+- 2026-07-26进展: `PROD-FIRST-LAUNCH-DURABLE-AI-CONTRACT-001`已在`f0aaa20`完成仓库与隔离PostgreSQL验证；`PROD-FIRST-LAUNCH-STORAGE-RECOVERY-CONTRACT-001`又在`d2dfb37`关闭了私有OSS adapter、owner-bound media、对象补偿/生命周期、跨进程恢复和内容为空的restore manifest仓库合同。最终全量Python `833 run / 14 skipped / 0 failed`、E2E`66/66`、readiness`95/95`。这仍不关闭生产bucket/RAM角色、queue/processor、migration/roles、监控或100任务负载门禁。
 
 ### Durable AI repository contract is verified; production execution remains open
 
 - 状态: `REPOSITORY + DISPOSABLE POSTGRESQL PASS / 0C / 0H / 0M / NOT DEPLOYED`；production仍为Open High。
 - 已关闭: 默认禁用的owner-bound `202` admission、无原始内容SQL、opaque request/result refs、Outbox fenced claim/ack、3:1公平、逐调用provider admission、provider-free安全重投、unknown outcome不重试、成功/退款/settlement原子终态、结果回放、删除栅栏和对象补偿均有仓库/SQLite/PostgreSQL证据。migration `0012` SHA为`df72dedfb292700104fc394b5b326f33e4339cbf195f704278c56e08e44bec83`。
-- 剩余 High: 不存在真实私有对象存储adapter、消息publisher、dispatcher进程或provider processor；生产migration/角色/权限未应用，AI Worker镜像未构建/部署，监控、回滚、provider链和容量均未验收。Compose中的AI Worker仅为default-suspended fail-closed骨架，`--once`不能正常处理任务。
-- 防重复: 没有Durable AI代码或migration SHA冲突时，不重复其离线/隔离PostgreSQL合同测试。下一证据必须来自Storage/Recovery合同、生产只读preflight或后续正式runtime/provider/capacity门禁。
+- 剩余 High: 生产私有bucket/RAM角色尚未创建或绑定，消息publisher、dispatcher进程和provider processor不存在；生产migration/角色/权限未应用，AI Worker镜像未构建/部署，监控、回滚、provider链和容量均未验收。Compose中的AI Worker仅为default-suspended fail-closed骨架，`--once`不能正常处理任务。
+- 防重复: 没有Durable AI或Storage代码/migration SHA冲突时，不重复其离线/隔离PostgreSQL合同测试。下一证据必须来自生产只读preflight或后续正式runtime/provider/capacity门禁。
 - 回滚: 当前无生产变更。后续保持admission disabled和Worker suspended；失败时停publisher/dispatcher/Worker、恢复旧digest和旧角色权限，但保留operation/settlement审计账本且不猜测provider unknown outcome。
 
 ### ALB health semantics could turn a Gateway outage into a whole-site outage
@@ -200,13 +200,14 @@ Last updated: 2026-07-26
 - 回滚: migration/processor 未执行前保持当前生产不变；未来执行时先禁用调度并保留备份，回滚代码/调度而不伪造“备份已清除”证明。
 - 是否需要用户确认后才能修改: yes for production migration、GRANT、purge/deletion processor、历史清理或备份操作；只读独立审查不涉及费用或生产写入。
 
-### PostgreSQL connection/recovery and node-local video recovery are unproven
+### Private storage/recovery repository contract is verified; production recovery is unproven
 
-- 风险描述: RDS已运行且空结构migration完成，但无确认的生产连接池、连接预算、故障重连或PITR恢复演练；视频恢复仍依赖单节点六小时本地缓存。
-- 涉及文件: `model/db.py`, `model/api.py`, PROD-002B/PROD-003A/CAP-001A2B及恢复测试。
-- 可能后果: 连接风暴或主备切换后应用不恢复；跨节点、重启或发布时视频任务丢输入。
-- 建议验证方式: 上线前验证连接池/断连退避和一次隔离PITR；视频改为owner绑定的私有对象引用并通过跨节点/重启/过期测试。
-- 是否需要用户确认后才能修改: 本地合同不需要；真实恢复实例、OSS或production migration需要批准。
+- 状态: `REPOSITORY + DISPOSABLE POSTGRESQL PASS / 0C / 0H / 0M / NOT DEPLOYED`；production仍为Open High。
+- 已关闭: `d2dfb376587c86031681c5d6b1a52f40d619032e`实现官方OSS SDK/ECS RAM Role fail-closed adapter、owner-bound opaque media、流式边界、跨进程/重启、TTL/账户删除、对象补偿、孤儿dry-run和一致性只读restore manifest；migration `0013` SHA为`1268cdb9696965f02d5be88882b3dc8a2f9f7b589a2b0da5193d1bb8408ccb76`。隔离PostgreSQL 16.14角色/约束`4/4`、source/restored 46表/13 migrations精确匹配、全量`833`及readiness`95/95`通过。
+- 剩余 High: RDS虽运行且生产migration仅到`0008`，仍无确认的生产连接池/连接预算/故障重连、私有bucket/RAM角色/对象生命周期和监控，未应用`0013`，也未执行真实跨节点managed proof或隔离PITR恢复演练。
+- 可能后果: 连接风暴或主备切换后应用不恢复；未部署正确私有对象边界时媒体/任务输入不可用；数据库和对象恢复点不一致。
+- 建议验证方式: 不重复仓库合同。先完成只读生产preflight；随后按独立云任务创建私有bucket/RAM角色、应用精确migration/权限、验证两节点/Worker；最后恢复到新隔离RDS并用create-once脱敏manifest逐表/逐对象对账，绝不覆盖源实例。
+- 回滚/授权: 当前无生产变更。真实恢复实例、OSS、production migration/GRANT、对象删除或持续费用需要明确云任务边界；失败时保持Durable admission和Worker suspended、恢复旧digest/角色并保留证据。
 
 ### Render Blueprint Sync Hook may require rotation after controlled-tool exposure
 
