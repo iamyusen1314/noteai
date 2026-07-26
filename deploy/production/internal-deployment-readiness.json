@@ -1,0 +1,546 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
+  "as_of_date": "2026-07-27",
+  "status_values": [
+    "verified",
+    "unverified",
+    "blocked"
+  ],
+  "layers": [
+    {
+      "id": "repository_isolated",
+      "title": "Repository and isolated evidence",
+      "default_execution_class": "repository_offline",
+      "controls": [
+        {
+          "id": "product_scope_contract",
+          "title": "First-launch product scope and commercial contract",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": ".codex/handoffs/current-task.md"
+            }
+          ]
+        },
+        {
+          "id": "security_compliance_contract",
+          "title": "Authentication, retention and security/compliance contract",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "0e9a923deeeeb2f6518ae00e51f2c3b7392c3437"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/FIRST_LAUNCH_DATA_AND_SECURITY_CONTRACT.md"
+            }
+          ]
+        },
+        {
+          "id": "model_quality_release",
+          "title": "V0.4 model artifacts and quality evidence",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "a635692a899ee02c6905cd694611c14e0da4594a"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/RQS08_PRODUCTION_READINESS_REPORT.md"
+            }
+          ]
+        },
+        {
+          "id": "tracking_contract",
+          "title": "XHS Tracking execution and least-privilege contract",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "8fd5ba8c4a82abf058e7e6699e4bd03f1eca21f9"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/XHS_TRACKING_PRODUCTION_CONTRACT.md"
+            }
+          ]
+        },
+        {
+          "id": "trends_contract",
+          "title": "XHS Trends durable singleton and bounded-write contract",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "fe4f06779d24b40e35d44793f23b2ddee36505e9"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/XHS_TRENDS_PRODUCTION_CONTRACT.md"
+            }
+          ]
+        },
+        {
+          "id": "durable_ai_contract",
+          "title": "Durable AI admission, outbox, billing and recovery contract",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "f0aaa200a93e7feae1b587fb622313efaeb5e498"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/DURABLE_AI_PRODUCTION_CONTRACT.md"
+            }
+          ]
+        },
+        {
+          "id": "private_storage_contract",
+          "title": "Private object storage and recovery evidence contract",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "d2dfb376587c86031681c5d6b1a52f40d619032e"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/PRIVATE_STORAGE_AND_RECOVERY_CONTRACT.md"
+            }
+          ]
+        },
+        {
+          "id": "payment_contract",
+          "title": "Payment ledger and provider-isolated Adapay runtime contract",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "4dbb56f2bf96896fba18b52736687a647fe693a2"
+            },
+            {
+              "kind": "git",
+              "ref": "d5121c6d6e7044c6eca0c3047a4007aa14ba0661"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/PAYMENT_PRODUCTION_CONTRACT.md"
+            }
+          ]
+        },
+        {
+          "id": "ui_admin_contract",
+          "title": "First-launch UI and fail-closed private Admin contract",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "d358114e37c1e85e0ed068c1aca3ff87bfc36b6f"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/FIRST_LAUNCH_UI_ADMIN_CONTRACT.md"
+            }
+          ]
+        },
+        {
+          "id": "admin_database_role",
+          "title": "Dedicated Admin database role and negative permission matrix",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "9d8cd57958b115481a076e5665c20635882e6f07"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/FIRST_LAUNCH_DB_RUNTIME_PERMISSION_MATRIX.md"
+            }
+          ]
+        },
+        {
+          "id": "self_hosted_browser_assets",
+          "title": "Pinned same-origin ECharts and Lucide assets",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "22ae1e588abe7e201d9b671694203924ea391de3"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/FRONTEND_VENDOR_ASSETS.md"
+            }
+          ]
+        },
+        {
+          "id": "runtime_role_hardening",
+          "title": "Split runtime roles, environment inputs and container hardening",
+          "status": "verified",
+          "dependencies": [],
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "7f6b9d6eaaff06c8d756783136a1bc4ed417c5c0"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/PRODUCTION_RUNTIME_HARDENING.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "internal_runtime",
+      "title": "Private internal-production deployment",
+      "default_execution_class": "authenticated_production",
+      "controls": [
+        {
+          "id": "production_readonly_preflight",
+          "title": "Authenticated read-only ECS, RDS, backup and runtime preflight",
+          "status": "blocked",
+          "dependencies": [],
+          "evidence": [],
+          "blocker": "No authenticated Alibaba control-plane, production database or SSH path is available in the current session.",
+          "resume_condition": "An authenticated read-only control-plane and bounded database metadata path becomes available.",
+          "next_task": "PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001"
+        },
+        {
+          "id": "immutable_release_candidate",
+          "title": "Current-source immutable multi-role release candidate",
+          "status": "unverified",
+          "execution_class": "repository_offline",
+          "dependencies": [],
+          "evidence": [],
+          "blocker": "Repository changes after a635692 have not been built into current API, Admin, Payment, AI Worker and XHS role images.",
+          "next_task": "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001"
+        },
+        {
+          "id": "production_schema_roles",
+          "title": "Production migrations 0009-0015 and exact runtime roles",
+          "status": "unverified",
+          "dependencies": [
+            "production_readonly_preflight",
+            "immutable_release_candidate"
+          ],
+          "evidence": [],
+          "blocker": "Production remains at migrations 0001-0008 and the final role deltas are unapplied.",
+          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001"
+        },
+        {
+          "id": "managed_secret_distribution",
+          "title": "Root-only managed secret distribution, rotation and revocation",
+          "status": "unverified",
+          "dependencies": [
+            "production_readonly_preflight"
+          ],
+          "evidence": [],
+          "blocker": "Final role-specific production injection, file permissions, rotation and revocation are not observed.",
+          "next_task": "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001"
+        },
+        {
+          "id": "private_storage_runtime",
+          "title": "Private OSS/RAM-role storage and cross-node recovery",
+          "status": "unverified",
+          "dependencies": [
+            "production_schema_roles",
+            "managed_secret_distribution"
+          ],
+          "evidence": [],
+          "blocker": "The repository storage contract is not deployed to a private managed bucket or exercised across nodes.",
+          "next_task": "PROD-FIRST-LAUNCH-STORAGE-RECOVERY-RUNTIME-001"
+        },
+        {
+          "id": "api_c_current_release",
+          "title": "API-C current-release loopback deployment and recovery",
+          "status": "unverified",
+          "dependencies": [
+            "immutable_release_candidate",
+            "production_schema_roles",
+            "managed_secret_distribution"
+          ],
+          "evidence": [],
+          "blocker": "API-C runs the historical release rather than the current repository candidate.",
+          "next_task": "PROD-FIRST-LAUNCH-API-C-INTERNAL-001"
+        },
+        {
+          "id": "api_f_current_release",
+          "title": "API-F current-release loopback deployment and recovery",
+          "status": "unverified",
+          "dependencies": [
+            "api_c_current_release"
+          ],
+          "evidence": [],
+          "blocker": "API-F runs the historical release and requires independent acceptance after API-C.",
+          "next_task": "PROD-FIRST-LAUNCH-API-F-INTERNAL-001"
+        },
+        {
+          "id": "admin_current_release",
+          "title": "Private Admin current-release deployment and negative runtime matrix",
+          "status": "unverified",
+          "dependencies": [
+            "api_c_current_release",
+            "production_schema_roles"
+          ],
+          "evidence": [],
+          "blocker": "The dedicated Admin role and fail-closed UI/API contract are not deployed.",
+          "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
+        },
+        {
+          "id": "durable_ai_workers",
+          "title": "Managed publisher, dispatcher and AI Worker recovery chain",
+          "status": "unverified",
+          "dependencies": [
+            "private_storage_runtime",
+            "production_schema_roles",
+            "immutable_release_candidate"
+          ],
+          "evidence": [],
+          "blocker": "No managed AI Worker or cross-process durable execution evidence exists.",
+          "next_task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
+        },
+        {
+          "id": "trends_suspended_runtime",
+          "title": "Default-suspended Trends managed singleton baseline",
+          "status": "unverified",
+          "dependencies": [
+            "production_schema_roles",
+            "immutable_release_candidate"
+          ],
+          "evidence": [],
+          "blocker": "Trends is stopped and has not been promoted as a bounded managed singleton.",
+          "next_task": "PROD-XHS-TRENDS-INTERNAL-SUSPENDED-001"
+        },
+        {
+          "id": "tracking_suspended_runtime",
+          "title": "Default-suspended Tracking managed singleton baseline",
+          "status": "unverified",
+          "dependencies": [
+            "production_schema_roles",
+            "immutable_release_candidate"
+          ],
+          "evidence": [],
+          "blocker": "Tracking is stopped and has no independent managed-runtime acceptance.",
+          "next_task": "PROD-XHS-TRACKING-INTERNAL-SUSPENDED-001"
+        },
+        {
+          "id": "payment_internal_runtime",
+          "title": "Dedicated disabled-by-default payment callback runtime",
+          "status": "unverified",
+          "dependencies": [
+            "production_schema_roles",
+            "immutable_release_candidate",
+            "managed_secret_distribution"
+          ],
+          "evidence": [],
+          "blocker": "The dedicated payment runtime, callback reachability boundary and exact database role are not deployed.",
+          "next_task": "PROD-FIRST-LAUNCH-PAYMENT-INTERNAL-RUNTIME-001"
+        },
+        {
+          "id": "monitoring_alerting",
+          "title": "Bounded logs, metrics and actionable alerts for every runtime role",
+          "status": "unverified",
+          "dependencies": [
+            "api_c_current_release",
+            "api_f_current_release",
+            "admin_current_release",
+            "durable_ai_workers",
+            "trends_suspended_runtime",
+            "tracking_suspended_runtime",
+            "payment_internal_runtime"
+          ],
+          "evidence": [],
+          "blocker": "Managed logs, alerts and redacted evidence retention are not accepted for the final services.",
+          "next_task": "PROD-FIRST-LAUNCH-OBSERVABILITY-001"
+        },
+        {
+          "id": "backup_pitr_restore",
+          "title": "Current-schema backup, PITR and isolated restore reconciliation",
+          "status": "unverified",
+          "dependencies": [
+            "production_schema_roles",
+            "private_storage_runtime"
+          ],
+          "evidence": [],
+          "blocker": "No current-schema production backup/PITR observation or isolated restore drill exists.",
+          "next_task": "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
+        },
+        {
+          "id": "internal_zero_provider_smoke",
+          "title": "Complete private zero-provider internal smoke test",
+          "status": "unverified",
+          "dependencies": [
+            "api_c_current_release",
+            "api_f_current_release",
+            "admin_current_release",
+            "durable_ai_workers",
+            "trends_suspended_runtime",
+            "tracking_suspended_runtime",
+            "payment_internal_runtime"
+          ],
+          "evidence": [],
+          "blocker": "The current release has not completed one full private, supplier-free operational smoke.",
+          "next_task": "PROD-FIRST-LAUNCH-INTERNAL-SMOKE-001"
+        },
+        {
+          "id": "internal_failure_rollback",
+          "title": "Restart, failover and rollback rehearsal for the current release",
+          "status": "unverified",
+          "dependencies": [
+            "monitoring_alerting",
+            "backup_pitr_restore",
+            "internal_zero_provider_smoke"
+          ],
+          "evidence": [],
+          "blocker": "The current release has no managed restart, failover and rollback acceptance.",
+          "next_task": "PROD-FIRST-LAUNCH-INTERNAL-ROLLBACK-001"
+        },
+        {
+          "id": "capacity_100_jobs",
+          "title": "100 simultaneous AI-job admission, recovery and accounting target",
+          "status": "unverified",
+          "dependencies": [
+            "durable_ai_workers",
+            "monitoring_alerting",
+            "internal_failure_rollback"
+          ],
+          "evidence": [],
+          "blocker": "No managed 100-job test proves zero loss, duplicate provider call or overcharge.",
+          "next_task": "PROD-FIRST-LAUNCH-CAPACITY-100-001"
+        }
+      ]
+    },
+    {
+      "id": "public_launch",
+      "title": "External suppliers and public launch",
+      "default_execution_class": "external_or_public",
+      "controls": [
+        {
+          "id": "real_ai_provider_chain",
+          "title": "Capped Claude, Kimi, Amap and Meituan production validation",
+          "status": "unverified",
+          "dependencies": [
+            "internal_failure_rollback"
+          ],
+          "evidence": [],
+          "blocker": "Current production provider credentials, quotas, output and cost attribution are unverified.",
+          "next_task": "PROD-FIRST-LAUNCH-PROVIDER-CHAIN-001"
+        },
+        {
+          "id": "real_payment_chain",
+          "title": "Merchant, callback, refund and reconciliation acceptance",
+          "status": "unverified",
+          "dependencies": [
+            "payment_internal_runtime",
+            "monitoring_alerting"
+          ],
+          "evidence": [],
+          "blocker": "Merchant admission, provider compatibility, callback path and real-money reconciliation are unverified.",
+          "next_task": "PROD-FIRST-LAUNCH-PAYMENT-REAL-001"
+        },
+        {
+          "id": "real_xhs_trends",
+          "title": "Capped database-read-only real XHS Trends proof",
+          "status": "unverified",
+          "dependencies": [
+            "trends_suspended_runtime",
+            "monitoring_alerting"
+          ],
+          "evidence": [],
+          "blocker": "No real XHS session/schema/challenge/evidence-quality proof exists.",
+          "next_task": "PROD-XHS-TRENDS-REAL-SUPPLIER-READONLY-001"
+        },
+        {
+          "id": "trends_managed_promotion",
+          "title": "Trends real-cycle singleton promotion",
+          "status": "unverified",
+          "dependencies": [
+            "real_xhs_trends",
+            "internal_failure_rollback"
+          ],
+          "evidence": [],
+          "blocker": "Trends has no accepted real bounded cycle and managed recovery evidence.",
+          "next_task": "PROD-XHS-TRENDS-MANAGED-PROMOTE-001"
+        },
+        {
+          "id": "tracking_real_and_promotion",
+          "title": "Tracking owned-note 24h/7d proof and managed promotion",
+          "status": "unverified",
+          "dependencies": [
+            "tracking_suspended_runtime",
+            "monitoring_alerting",
+            "internal_failure_rollback"
+          ],
+          "evidence": [],
+          "blocker": "Tracking has no independent real-XHS or managed singleton evidence.",
+          "next_task": "PROD-XHS-TRACKING-REAL-XHS-CANARY-001"
+        },
+        {
+          "id": "legal_provider_approval",
+          "title": "Professional privacy, terms, refund and cross-border approval",
+          "status": "unverified",
+          "execution_class": "professional_review",
+          "dependencies": [],
+          "evidence": [],
+          "blocker": "Repository controls exist, but professional legal/provider confirmation is absent.",
+          "next_task": "PROD-FIRST-LAUNCH-LEGAL-PROVIDER-REVIEW-001"
+        },
+        {
+          "id": "alb_tls",
+          "title": "Pre-DNS ALB, TLS and controlled health routing",
+          "status": "unverified",
+          "dependencies": [
+            "capacity_100_jobs",
+            "trends_managed_promotion",
+            "tracking_real_and_promotion"
+          ],
+          "evidence": [],
+          "blocker": "ALB listeners, targets and TLS health semantics are not configured or accepted.",
+          "next_task": "PROD-FIRST-LAUNCH-ALB-TLS-001"
+        },
+        {
+          "id": "pre_dns_commercial_smoke",
+          "title": "Complete pre-DNS commercial smoke, alert and rollback drill",
+          "status": "unverified",
+          "dependencies": [
+            "real_ai_provider_chain",
+            "real_payment_chain",
+            "alb_tls",
+            "legal_provider_approval"
+          ],
+          "evidence": [],
+          "blocker": "No complete current-release commercial E2E exists on the controlled pre-DNS path.",
+          "next_task": "PROD-FIRST-LAUNCH-PRE-DNS-SMOKE-001"
+        },
+        {
+          "id": "dns_cutover",
+          "title": "Authoritative DNS cutover and controlled real-user ramp",
+          "status": "unverified",
+          "dependencies": [
+            "pre_dns_commercial_smoke"
+          ],
+          "evidence": [],
+          "blocker": "Public cutover is explicitly prohibited until every prerequisite is verified.",
+          "next_task": "PROD-FIRST-LAUNCH-DNS-CUTOVER-001"
+        }
+      ]
+    }
+  ]
+}
