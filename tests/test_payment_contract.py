@@ -250,7 +250,10 @@ class PaymentContractTests(unittest.TestCase):
             "SELECT * FROM payment_orders WHERE id=?",
             (first["id"],),
         )
-        provider_request = payment.provider_payment_request(full)
+        provider_request = payment.provider_payment_request(
+            full,
+            device_ip="8.8.8.8",
+        )
         self.assertEqual(
             set(provider_request),
             {
@@ -260,8 +263,10 @@ class PaymentContractTests(unittest.TestCase):
                 "product_kind",
                 "product_id",
                 "provider_mode",
+                "device_ip",
             },
         )
+        self.assertEqual(provider_request["device_ip"], "8.8.8.8")
         serialized = json.dumps(provider_request)
         for forbidden in (
             "u-payment",

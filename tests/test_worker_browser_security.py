@@ -117,13 +117,13 @@ class WorkerBrowserSecurityTests(unittest.TestCase):
         compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
-        # API, Admin, durable AI, Trends and Tracking are five distinct
+        # API, Admin, Payment, durable AI, Trends and Tracking are six distinct
         # least-privilege runtime roles.
-        self.assertEqual(compose.count("no-new-privileges:true"), 5)
-        self.assertEqual(compose.count("privileged: false"), 5)
-        self.assertEqual(compose.count('user: "999:999"'), 5)
-        self.assertEqual(compose.count("read_only: true"), 5)
-        self.assertEqual(compose.count("cap_drop:"), 5)
+        self.assertEqual(compose.count("no-new-privileges:true"), 6)
+        self.assertEqual(compose.count("privileged: false"), 6)
+        self.assertEqual(compose.count('user: "999:999"'), 6)
+        self.assertEqual(compose.count("read_only: true"), 6)
+        self.assertEqual(compose.count("cap_drop:"), 6)
         self.assertNotIn("seccomp=", compose)
         self.assertNotIn("target: worker-runtime", compose)
         self.assertNotIn("FROM runtime-common AS worker-runtime", dockerfile)

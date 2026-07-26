@@ -82,6 +82,7 @@ RUN pip install --no-cache-dir -r requirements-api.txt \
 # 复制代码
 COPY model/ ./model/
 COPY scripts/docker_entrypoint.sh scripts/render_start_api.sh scripts/render_start_admin.sh \
+    scripts/render_start_payment.sh \
     scripts/render_predeploy.py scripts/render_run_market_timing.sh scripts/render_run_crawler.sh \
     scripts/migrate_sqlite_to_postgres.py scripts/migrate_managed_prompts_v04.py ./scripts/
 COPY NoteAI_Pro_Demo_Framer.html ./NoteAI_Pro_Demo_Framer.html
@@ -93,6 +94,7 @@ RUN mkdir -p data
 RUN groupadd --system noteai \
     && useradd --system --gid noteai --home-dir /app --shell /usr/sbin/nologin noteai \
     && chmod +x /app/scripts/docker_entrypoint.sh /app/scripts/render_start_api.sh /app/scripts/render_start_admin.sh \
+        /app/scripts/render_start_payment.sh \
         /app/scripts/render_predeploy.py /app/scripts/render_run_market_timing.sh /app/scripts/render_run_crawler.sh \
         /app/scripts/migrate_sqlite_to_postgres.py /app/scripts/migrate_managed_prompts_v04.py \
     && chown -R noteai:noteai /app
@@ -128,6 +130,26 @@ USER noteai
 
 ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
 CMD ["/app/scripts/render_start_admin.sh"]
+
+FROM runtime-common AS payment-runtime
+
+LABEL com.noteai.runtime.role="payment"
+ENV NOTEAI_RUNTIME_ROLE=payment \
+    NOTEAI_PAYMENT_CALLBACK_ENABLED=0 \
+    NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1 \
+    PORT=8002
+RUN printf '%s\n' payment > /etc/noteai-runtime-role \
+    && chmod 0444 /etc/noteai-runtime-role
+
+EXPOSE 8002
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD ["python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8002, timeout=5); connection.request('GET', '/health/live'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
+
+USER noteai
+
+ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
+CMD ["/app/scripts/render_start_payment.sh"]
 
 FROM runtime-common AS ai-worker-runtime
 

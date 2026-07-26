@@ -310,6 +310,12 @@ production privilege task must reproduce this positive matrix:
 - effective `EXECUTE` on `pg_catalog.hashtext(text)` and
   `pg_catalog.pg_advisory_xact_lock(bigint)`.
 
+The HTTP payment boundary must connect using this exact role and exposes only
+liveness, readiness and the Adapay callback. The normal API role may create
+owner-bound order intent and submit through the injected adapter, but its
+compatibility callback route always rejects and it cannot mutate callback,
+cash, refund or reconciliation truth.
+
 Every unlisted table/column/sequence privilege remains false. All eight
 `public.noteai_payment_*_v1()` trigger functions must have direct `PUBLIC`
 execution revoked; no runtime role may own them, execute them directly or

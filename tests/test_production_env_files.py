@@ -22,7 +22,7 @@ class ProductionEnvFileTests(unittest.TestCase):
         path.chmod(stat.S_IRUSR | stat.S_IWUSR)
         return path
 
-    def test_production_compose_uses_five_role_specific_env_inputs(self):
+    def test_production_compose_uses_six_role_specific_env_inputs(self):
         compose = (
             ROOT / "deploy" / "production" / "docker-compose.yml"
         ).read_text(encoding="utf-8")
@@ -36,6 +36,12 @@ class ProductionEnvFileTests(unittest.TestCase):
         self.assertEqual(
             compose.count(
                 "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"
+            ),
+            1,
+        )
+        self.assertEqual(
+            compose.count(
+                "${NOTEAI_PAYMENT_ENV_FILE:-/etc/noteai/payment.env}"
             ),
             1,
         )
@@ -85,6 +91,18 @@ class ProductionEnvFileTests(unittest.TestCase):
                     ),
                 ),
                 (
+                    "payment",
+                    self._env_file(
+                        directory,
+                        "payment.env",
+                        f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_ADAPAY_API_KEY={SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_ADAPAY_MERCHANT_PRIVATE_KEY={SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_ADAPAY_PUBLIC_KEY={SAFE_TEST_SECRET_VALUE}\n"
+                        "NOTEAI_PAYMENT_CALLBACK_ENABLED=0\n",
+                    ),
+                ),
+                (
                     "ai_worker",
                     self._env_file(
                         directory,
@@ -122,17 +140,28 @@ class ProductionEnvFileTests(unittest.TestCase):
 
         self.assertEqual(
             [result["role"] for result in results],
-            ["api", "admin", "ai_worker", "xhs_trends", "xhs_tracking"],
+            [
+                "api",
+                "admin",
+                "payment",
+                "ai_worker",
+                "xhs_trends",
+                "xhs_tracking",
+            ],
         )
         self.assertEqual(
             [result["secret_key_count"] for result in results],
-            [2, 2, 3, 2, 2],
+            [2, 2, 4, 3, 2, 2],
         )
 
     def test_cross_role_and_unknown_secret_names_fail_closed(self):
         cases = (
             ("api", "ADMIN_PASSWORD"),
             ("admin", "ANTHROPIC_API_KEY"),
+            ("payment", "ANTHROPIC_API_KEY"),
+            ("admin", "NOTEAI_ADAPAY_MERCHANT_PRIVATE_KEY"),
+            ("admin", "NOTEAI_ADAPAY_PUBLIC_KEY"),
+            ("ai_worker", "NOTEAI_ADAPAY_PUBLIC_KEY"),
             ("ai_worker", "NOTEAI_XHS_COOKIES_JSON"),
             ("xhs_trends", "MOONSHOT_API_KEY"),
             ("xhs_tracking", "NOTEAI_AUTHORIZED_TREND_TOKEN"),
@@ -173,6 +202,7 @@ class ProductionEnvFileTests(unittest.TestCase):
                     (
                         ("api", shared),
                         ("admin", shared),
+                        ("payment", shared),
                         ("ai_worker", shared),
                         ("xhs_trends", shared),
                         ("xhs_tracking", shared),
@@ -247,6 +277,11 @@ class ProductionEnvFileTests(unittest.TestCase):
                 "admin.env",
                 f"ADMIN_PASSWORD={synthetic_secret}\n",
             )
+            payment_env = self._env_file(
+                directory,
+                "payment.env",
+                f"NOTEAI_ADAPAY_API_KEY={synthetic_secret}\n",
+            )
             ai_worker = self._env_file(
                 directory,
                 "ai-worker.env",
@@ -269,6 +304,8 @@ class ProductionEnvFileTests(unittest.TestCase):
                 os.fspath(api),
                 "--admin",
                 os.fspath(admin),
+                "--payment",
+                os.fspath(payment_env),
                 "--ai-worker",
                 os.fspath(ai_worker),
                 "--xhs-trends",
@@ -281,7 +318,7 @@ class ProductionEnvFileTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertNotIn(synthetic_secret, output.getvalue())
-        self.assertEqual(output.getvalue().count("PASS role="), 5)
+        self.assertEqual(output.getvalue().count("PASS role="), 6)
 
     def test_documented_allowlists_cover_every_implemented_secret_key(self):
         documentation = (ROOT / "docs" / "DEPLOYMENT_SECRETS.md").read_text(

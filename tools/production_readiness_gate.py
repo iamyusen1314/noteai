@@ -238,6 +238,11 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             ("python", "-m", "uvicorn", "admin_server:admin_app", "--host", "0.0.0.0", "--port", "8001"),
             {},
         ),
+        "payment_start": (
+            "payment",
+            ("/app/scripts/render_start_payment.sh",),
+            {},
+        ),
         "ai_worker_health": (
             "ai-worker",
             ("python", "durable_ai_worker.py", "--healthcheck"),
@@ -292,6 +297,20 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
         "admin_api_start": ("admin", ("/app/scripts/render_start_api.sh",)),
         "admin_crawler": ("admin", ("/app/scripts/render_run_crawler.sh",)),
         "admin_predeploy": ("admin", ("python", "/app/scripts/render_predeploy.py")),
+        "payment_empty": ("payment", ()),
+        "payment_api_start": ("payment", ("/app/scripts/render_start_api.sh",)),
+        "payment_admin_start": (
+            "payment",
+            ("/app/scripts/render_start_admin.sh",),
+        ),
+        "payment_direct_uvicorn": (
+            "payment",
+            ("python", "-m", "uvicorn", "payment_runtime:app"),
+        ),
+        "payment_start_extra": (
+            "payment",
+            ("/app/scripts/render_start_payment.sh", "extra"),
+        ),
         "ai_worker_empty": ("ai-worker", ()),
         "ai_worker_api": ("ai-worker", ("python", "api.py")),
         "ai_worker_bare": ("ai-worker", ("python", "durable_ai_worker.py")),
@@ -753,6 +772,11 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         "FROM runtime-common AS admin-runtime", 1
     )[0]
     admin_runtime_stage = dockerfile.split("FROM runtime-common AS admin-runtime", 1)[1].split(
+        "FROM runtime-common AS payment-runtime", 1
+    )[0]
+    payment_runtime_stage = dockerfile.split(
+        "FROM runtime-common AS payment-runtime", 1
+    )[1].split(
         "FROM runtime-common AS ai-worker-runtime", 1
     )[0]
     ai_worker_runtime_stage = dockerfile.split(
@@ -768,10 +792,14 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         for name in (
             "render_start_api.sh",
             "render_start_admin.sh",
+            "render_start_payment.sh",
             "render_run_market_timing.sh",
             "render_run_crawler.sh",
         )
     )
+    api_start_source = (
+        ROOT / "scripts" / "render_start_api.sh"
+    ).read_text(encoding="utf-8")
     db_source = (MODEL_DIR / "db.py").read_text(encoding="utf-8")
     init_db_source = db_source.split("def init_db()", 1)[1].split("def database_health", 1)[0]
 
@@ -788,6 +816,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "docker_has_browser_free_production_role_targets",
             "FROM runtime-common AS api-runtime" in dockerfile
             and "FROM runtime-common AS admin-runtime" in dockerfile
+            and "FROM runtime-common AS payment-runtime" in dockerfile
             and "FROM runtime-common AS ai-worker-runtime" in dockerfile
             and "FROM runtime-common AS xhs-http-runtime" in dockerfile
             and "FROM runtime-common AS worker-runtime" not in dockerfile
@@ -795,6 +824,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and "FROM ${NOTEAI_RUNTIME_TARGET} AS noteai-runtime" in dockerfile
             and 'CMD ["/app/scripts/render_start_api.sh"]' in api_runtime_stage
             and 'CMD ["/app/scripts/render_start_admin.sh"]' in admin_runtime_stage
+            and 'CMD ["/app/scripts/render_start_payment.sh"]' in payment_runtime_stage
             and 'CMD ["python", "durable_ai_worker.py", "--once"]' in ai_worker_runtime_stage
             and "NOTEAI_DURABLE_AI_SUSPENDED=1" in ai_worker_runtime_stage
             and "HEALTHCHECK NONE" in ai_worker_runtime_stage
@@ -816,6 +846,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                 for stage in (
                     api_runtime_stage,
                     admin_runtime_stage,
+                    payment_runtime_stage,
                     ai_worker_runtime_stage,
                     xhs_runtime_stage,
                 )
@@ -892,7 +923,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and production_compose.count(
                 "NOTEAI_DEPLOYMENT_STAGE: production"
             )
-            == 5
+            == 6
             and "NOTEAI_VIDEO_CACHE_DIR" not in production_compose,
         ),
         _ok(
@@ -969,6 +1000,17 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             )),
         ),
         _ok(
+            "api_forwarded_client_ip_requires_explicit_trusted_proxy",
+            '--forwarded-allow-ips="${NOTEAI_TRUSTED_PROXY_IPS:-127.0.0.1}"'
+            in api_start_source
+            and '--forwarded-allow-ips="*"' not in api_start_source
+            and (
+                'NOTEAI_TRUSTED_PROXY_IPS: '
+                '"${NOTEAI_API_TRUSTED_PROXY_IPS:-127.0.0.1}"'
+            )
+            in production_compose,
+        ),
+        _ok(
             "requirements_are_role_split_and_compatible",
             "playwright==" not in requirements_api
             and "-r requirements-api.txt" in requirements_worker
@@ -983,11 +1025,13 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "compose_runtime_targets_match_roles",
             compose.count("target: api-runtime") == 1
             and compose.count("target: admin-runtime") == 1
+            and compose.count("target: payment-runtime") == 1
             and compose.count("target: ai-worker-runtime") == 1
             and compose.count("target: xhs-http-runtime") == 2
             and "target: worker-runtime" not in compose
             and compose.count("NOTEAI_RUNTIME_ROLE=api") == 1
             and compose.count("NOTEAI_RUNTIME_ROLE=admin") == 1
+            and compose.count("NOTEAI_RUNTIME_ROLE=payment") == 1
             and compose.count("NOTEAI_RUNTIME_ROLE=ai-worker") == 1
             and compose.count("NOTEAI_RUNTIME_ROLE=xhs-http") == 2
             and compose.count("NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http") == 2,
@@ -1003,6 +1047,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                 (
                     "noteai",
                     "noteai-admin",
+                    "noteai-payment",
                     "noteai-ai-worker",
                     "noteai-trends-worker",
                     "noteai-tracking-worker",
@@ -1014,10 +1059,18 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "build:" not in production_compose
             and _compose_services_have_runtime_hardening(
                 production_compose,
-                ("api", "admin", "ai-worker", "xhs-trends", "xhs-tracking"),
+                (
+                    "api",
+                    "admin",
+                    "payment",
+                    "ai-worker",
+                    "xhs-trends",
+                    "xhs-tracking",
+                ),
             )
             and "${NOTEAI_API_IMAGE_REPOSITORY:?set NOTEAI_API_IMAGE_REPOSITORY}@sha256:${NOTEAI_API_IMAGE_DIGEST_HEX:?set NOTEAI_API_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
             and "${NOTEAI_ADMIN_IMAGE_REPOSITORY:?set NOTEAI_ADMIN_IMAGE_REPOSITORY}@sha256:${NOTEAI_ADMIN_IMAGE_DIGEST_HEX:?set NOTEAI_ADMIN_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
+            and "${NOTEAI_PAYMENT_IMAGE_REPOSITORY:?set NOTEAI_PAYMENT_IMAGE_REPOSITORY}@sha256:${NOTEAI_PAYMENT_IMAGE_DIGEST_HEX:?set NOTEAI_PAYMENT_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
             and production_compose.count(
                 "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
             ) == 2
@@ -1026,6 +1079,9 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             ) == 1
             and production_compose.count(
                 "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"
+            ) == 1
+            and production_compose.count(
+                "${NOTEAI_PAYMENT_ENV_FILE:-/etc/noteai/payment.env}"
             ) == 1
             and production_compose.count(
                 "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
@@ -1174,6 +1230,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                 for service in (
                     "noteai",
                     "noteai-admin",
+                    "noteai-payment",
                     "noteai-trends-worker",
                     "noteai-tracking-worker",
                 )
@@ -1256,6 +1313,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and all(value in entrypoint for value in (
                 "/app/scripts/render_start_api.sh",
                 "/app/scripts/render_start_admin.sh",
+                "/app/scripts/render_start_payment.sh",
                 "/app/scripts/render_run_market_timing.sh",
                 "/app/scripts/render_run_crawler.sh",
                 "/app/scripts/render_predeploy.py",
@@ -1280,10 +1338,12 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         _ok(
             "compose_uses_core_readiness",
             "noteai-admin:" in compose
-            and compose.count("import http.client, sys") == 2
+            and "noteai-payment:" in compose
+            and compose.count("import http.client, sys") == 3
             and "HTTPConnection('127.0.0.1', 8000" in compose
             and "HTTPConnection('127.0.0.1', 8001" in compose
-            and compose.count("'/health/ready'") == 2
+            and "HTTPConnection('127.0.0.1', 8002" in compose
+            and compose.count("'/health/ready'") == 3
             and '"curl"' not in compose,
         ),
         _ok(

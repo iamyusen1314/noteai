@@ -270,7 +270,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(callback.status_code, 503)
         self.assertEqual(
             callback.json()["detail"],
-            "PAYMENT_CALLBACK_DISABLED",
+            "PAYMENT_CALLBACK_DEDICATED_RUNTIME_REQUIRED",
         )
 
     def test_authenticated_payment_order_is_unavailable_before_local_write(self):
@@ -306,7 +306,38 @@ class ApiContractTests(unittest.TestCase):
                 None,
             )
 
-    def test_payment_callback_rejects_ambiguous_form_before_processing(self):
+    def test_payment_order_rejects_untrusted_client_ip_before_local_write(self):
+        client = TestClient(api.app)
+        api.app.dependency_overrides[api._auth.get_current_user] = lambda: {
+            "id": "synthetic-payment-user"
+        }
+        try:
+            with mock.patch.object(
+                api,
+                "_payment_ordering_available",
+                return_value=True,
+            ), mock.patch.object(api._payment, "create_order") as create_order:
+                response = client.post(
+                    "/payments/orders",
+                    headers={"Idempotency-Key": "client-ip-payment-001"},
+                    json={
+                        "product_kind": "credit_package",
+                        "product_id": "starter",
+                    },
+                )
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(
+                response.json()["detail"],
+                "PAYMENT_CLIENT_IP_UNAVAILABLE",
+            )
+            create_order.assert_not_called()
+        finally:
+            api.app.dependency_overrides.pop(
+                api._auth.get_current_user,
+                None,
+            )
+
+    def test_normal_api_never_processes_payment_callback(self):
         client = TestClient(api.app)
         with mock.patch.dict(
             os.environ,
@@ -321,10 +352,10 @@ class ApiContractTests(unittest.TestCase):
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
                 content="data=first&data=second&sign=synthetic",
             )
-        self.assertEqual(duplicate.status_code, 400)
+        self.assertEqual(duplicate.status_code, 503)
         self.assertEqual(
             duplicate.json()["detail"],
-            "PAYMENT_CALLBACK_FORM_INVALID",
+            "PAYMENT_CALLBACK_DEDICATED_RUNTIME_REQUIRED",
         )
         processor.assert_not_called()
 

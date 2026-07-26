@@ -21,7 +21,7 @@ if [ -z "$image_runtime_role" ]; then
 fi
 
 case "$image_runtime_role" in
-  api|admin|xhs-http|ai-worker) ;;
+  api|admin|payment|xhs-http|ai-worker) ;;
   *)
     echo "runtime role marker is invalid" >&2
     exit 78
@@ -67,6 +67,11 @@ elif [ "$image_runtime_role" = "admin" ]; then
     && [ "$6" = "0.0.0.0" ] \
     && [ "$7" = "--port" ] \
     && [ "$8" = "8001" ]; then
+    command_allowed=1
+  fi
+elif [ "$image_runtime_role" = "payment" ]; then
+  if [ "$#" -eq 1 ] \
+    && [ "$1" = "/app/scripts/render_start_payment.sh" ]; then
     command_allowed=1
   fi
 elif [ "$image_runtime_role" = "xhs-http" ]; then

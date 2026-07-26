@@ -1,7 +1,9 @@
 # NoteAI Adapay Payment Production Contract
 
 Status: repository/offline contract for
-`PROD-FIRST-LAUNCH-PAYMENT-CONTRACT-001`. It authorizes no merchant
+`PROD-FIRST-LAUNCH-PAYMENT-CONTRACT-001`, followed by the transport-injected
+adapter and dedicated callback-runtime phase
+`PROD-FIRST-LAUNCH-PAYMENT-ADAPTER-001`. Neither phase authorizes merchant
 activation, credential use, provider request, real or mock transaction,
 production migration, grant, service start or cash movement.
 
@@ -31,6 +33,49 @@ production migration, grant, service start or cash movement.
   [API paths](https://docs.adapay.tech/api/apipath.html),
   [authentication](https://docs.adapay.tech/api/introduce.html), and
   [bill download](https://docs.adapay.tech/api/assist.html).
+
+## Implemented provider adapter boundary
+
+- `model/adapay_adapter.py` implements the documented
+  `https://api.adapay.tech` payment, query, refund, refund-query and daily-bill
+  paths. A transport is injected explicitly; offline fixtures therefore have
+  no implicit network path. The production HTTP transport has TLS
+  verification enabled, ignores proxy environment variables, follows no
+  redirect, retries nothing and bounds time, connections and response bytes.
+- The adapter deliberately does not install or import the official Adapay
+  Python packages. The inspected `adapay==1.3.4`/`adapay-core==1.2.0`
+  implementation uses process-global credential state and can log request
+  parameters or signatures. NoteAI reproduces its documented wire signature
+  contract with instance-local credentials and pinned
+  `cryptography==46.0.7`, the newest verified line compatible with the
+  repository's existing training-tool environment.
+- POST requests sign the exact full URL plus the default Python JSON encoding;
+  GET requests sign the full URL plus ASCII-sorted plain `key=value` pairs.
+  Every API result must be the signed `data`/`signature` envelope and is
+  rejected before use if unsigned, malformed, duplicated, redirected,
+  oversized or signature-invalid.
+- First launch accepts only the explicit QR channels `alipay_qr` or
+  `union_qr`. The caller's globally routable transaction-device IP is passed
+  ephemerally because the provider requires it; it is validated before order
+  creation and is never stored or logged. No username, phone, e-mail, content
+  or NoteAI user id is sent.
+- Checkout and bill URLs must be HTTPS on exact configured host allowlists.
+  Bill ZIPs reject traversal, symlinks, encryption, duplicates, expansion
+  abuse and unexpected schemas. The official 2026-07-27 templates used to
+  freeze the exact headers had SHA-256
+  `c1436920cd420300b408ee09b2c1a2dcb072366331f87211a3f5e5bae761c01a`
+  for Charge and
+  `e4f43554a39c80d7f43e342a03b2dbede1c6d9f7efe53a1ba81a69edc743ebba`
+  for Refund. Template files are not retained in the repository.
+- `model/payment_runtime.py` is the only callback processor. It exposes only
+  liveness, readiness and the callback path, is disabled by default and, in
+  production, fails closed unless PostgreSQL reports `current_user =
+  noteai_payment`. The ordinary API keeps its callback path as a compatibility
+  rejection and never processes provider events.
+- `scripts/render_start_api.sh` and the payment start script trust only the
+  exact configured proxy CIDRs, defaulting to loopback; wildcard forwarded
+  headers are prohibited. The final deployment must set those CIDRs to the
+  actual internal proxy addresses before payment ordering is enabled.
 
 ## Product and money contract
 
@@ -128,6 +173,10 @@ production migration, grant, service start or cash movement.
 - `noteai_admin`: read-only finance/reconciliation truth. Refund initiation
   must call the payment boundary; Admin never edits cash or entitlement rows.
 - AI, dispatcher, Trends and Tracking roles have zero payment-table access.
+- API and Payment receive distinct managed env files. The Adapay API key,
+  merchant private key and provider public verification key may appear only
+  in those two roles; the public key is treated as a role-bound trust root
+  even though it is not confidential.
 - Every runtime role lacks ownership, DDL, schema/database creation, TEMP,
   `TRUNCATE`, `REFERENCES`, `TRIGGER`, role membership, `BYPASSRLS`, grant
   option, unrestricted sequences and `schema_migrations`.
@@ -146,9 +195,15 @@ fail-closed behavior; content-free reconciliation/settlement; account
 deletion pseudonymization; negative role matrix; disposable PostgreSQL
 apply-twice/checksum/rollback; zero secret/log leakage and full regression.
 
-Production remains blocked until a separately controlled package proves the
-official provider adapter and SDK, merchant/channel status, Secret injection
-and rotation, mock/sandbox payload compatibility, callback reachability,
-bounded reconciliation scheduler and alerts. A later minimal real-money test
+The repository/offline adapter gate requires exact request-signature fixtures,
+signed response/refund/bill fixtures, invalid-IP and data-minimization checks,
+strict URL/archive/schema negatives, fail-closed bootstrap, dedicated-runtime
+route isolation, exactly-once callback settlement, dependency verification
+and the full regression suite.
+
+Production remains blocked until separately controlled packages prove
+merchant/channel admission, Secret injection and rotation, provider
+mock-mode compatibility, callback reachability, production migration/ACL,
+bounded reconciliation scheduling and alerts. A later minimal real-money test
 must have an exact fen cap, named refund plan, pre/post ledger audit, explicit
 evidence retention, no automatic retry and separate authorization.

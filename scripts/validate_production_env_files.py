@@ -40,9 +40,20 @@ ROLE_ALLOWED_SECRET_KEYS = {
             "AWS_ACCESS_KEY_ID",
             "AWS_SECRET_ACCESS_KEY",
             "AWS_SESSION_TOKEN",
+            "NOTEAI_ADAPAY_API_KEY",
+            "NOTEAI_ADAPAY_MERCHANT_PRIVATE_KEY",
+            "NOTEAI_ADAPAY_PUBLIC_KEY",
         }
     ),
     "admin": frozenset({"DATABASE_URL", "ADMIN_PASSWORD"}),
+    "payment": frozenset(
+        {
+            "DATABASE_URL",
+            "NOTEAI_ADAPAY_API_KEY",
+            "NOTEAI_ADAPAY_MERCHANT_PRIVATE_KEY",
+            "NOTEAI_ADAPAY_PUBLIC_KEY",
+        }
+    ),
     "ai_worker": frozenset(
         {
             "DATABASE_URL",
@@ -171,6 +182,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--api", type=Path, required=True)
     parser.add_argument("--admin", type=Path, required=True)
+    parser.add_argument("--payment", type=Path, required=True)
     parser.add_argument("--ai-worker", type=Path, required=True)
     parser.add_argument("--xhs-trends", type=Path, required=True)
     parser.add_argument("--xhs-tracking", type=Path, required=True)
@@ -184,6 +196,7 @@ def main() -> int:
             (
                 ("api", args.api),
                 ("admin", args.admin),
+                ("payment", args.payment),
                 ("ai_worker", args.ai_worker),
                 ("xhs_trends", args.xhs_trends),
                 ("xhs_tracking", args.xhs_tracking),

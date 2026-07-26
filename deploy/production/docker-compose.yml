@@ -22,6 +22,7 @@ services:
       NOTEAI_MODEL_ARTIFACT_REQUIRED: "1"
       NOTEAI_ENABLE_CLOUD_MODEL_MUTATION: "0"
       NOTEAI_DURABLE_AI_ADMISSION_ENABLED: "0"
+      NOTEAI_TRUSTED_PROXY_IPS: "${NOTEAI_API_TRUSTED_PROXY_IPS:-127.0.0.1}"
     ports:
       - "${NOTEAI_API_BIND_IP:-0.0.0.0}:${NOTEAI_API_PORT:-8000}:8000"
     volumes:
@@ -69,6 +70,41 @@ services:
       timeout: 10s
       retries: 3
       start_period: 45s
+
+  payment:
+    profiles:
+      - payment
+    image: "${NOTEAI_PAYMENT_IMAGE_REPOSITORY:?set NOTEAI_PAYMENT_IMAGE_REPOSITORY}@sha256:${NOTEAI_PAYMENT_IMAGE_DIGEST_HEX:?set NOTEAI_PAYMENT_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    env_file:
+      - "${NOTEAI_PAYMENT_ENV_FILE:-/etc/noteai/payment.env}"
+    environment:
+      NOTEAI_RUNTIME_ROLE: payment
+      NOTEAI_DEPLOYMENT_STAGE: production
+      NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
+      NOTEAI_PAYMENT_CALLBACK_ENABLED: "${NOTEAI_PAYMENT_CALLBACK_ENABLED:-0}"
+      NOTEAI_TRUSTED_PROXY_IPS: "${NOTEAI_PAYMENT_TRUSTED_PROXY_IPS:-127.0.0.1}"
+      PORT: "8002"
+    ports:
+      - "${NOTEAI_PAYMENT_BIND_IP:-127.0.0.1}:${NOTEAI_PAYMENT_PORT:-8002}:8002"
+    restart: "no"
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8002, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   ai-worker:
     profiles:

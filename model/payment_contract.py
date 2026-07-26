@@ -198,8 +198,16 @@ def provider() -> PaymentProvider:
     return _PROVIDER
 
 
-def provider_payment_request(row: Any) -> dict[str, Any]:
-    """Return the only order fields an injected provider adapter may receive."""
+def provider_payment_request(
+    row: Any,
+    *,
+    device_ip: str,
+) -> dict[str, Any]:
+    """Return the only fields an adapter may receive.
+
+    The transaction device IP is required by Adapay. It is passed through for
+    this one request and is never persisted by the payment contract.
+    """
     return {
         "merchant_order_no": str(row["merchant_order_no"]),
         "amount_fen": int(row["amount_fen"]),
@@ -207,6 +215,7 @@ def provider_payment_request(row: Any) -> dict[str, Any]:
         "product_kind": str(row["product_kind"]),
         "product_id": str(row["product_id"]),
         "provider_mode": str(row["provider_mode"]),
+        "device_ip": str(device_ip or ""),
     }
 
 

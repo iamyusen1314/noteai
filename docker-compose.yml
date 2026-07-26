@@ -65,6 +65,42 @@ services:
       retries: 3
       start_period: 20s
 
+  noteai-payment:
+    profiles:
+      - payment
+    build:
+      context: .
+      target: payment-runtime
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    ports:
+      - "127.0.0.1:${PAYMENT_PORT:-8002}:8002"
+    env_file:
+      - ./model/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=payment
+      - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
+      - NOTEAI_PAYMENT_CALLBACK_ENABLED=${NOTEAI_PAYMENT_CALLBACK_ENABLED:-0}
+      - PORT=8002
+    restart: "no"
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8002, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   noteai-ai-worker:
     profiles:
       - durable-ai

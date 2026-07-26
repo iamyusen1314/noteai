@@ -10,6 +10,7 @@ import asyncio
 import base64
 import copy as _copy
 import hashlib
+import ipaddress
 import json as _json
 import math
 import os
@@ -78,6 +79,7 @@ import idempotency as _idempotency
 import durable_ai as _durable_ai
 import private_storage as _private_storage
 import payment_contract as _payment
+import payment_adapter_runtime as _payment_adapter_runtime
 import prompt_manager as _pm
 import prompt_composer as _prompt_composer
 import fact_enrichment as _facts
@@ -14613,6 +14615,10 @@ def _payment_prod_mode() -> bool:
 
 
 def _payment_ordering_available() -> bool:
+    if _payment_flag("NOTEAI_PAYMENT_ORDERING_ENABLED"):
+        _payment_adapter_runtime.configure_from_environment(
+            required_role="api",
+        )
     return (
         _payment_flag("NOTEAI_PAYMENT_ORDERING_ENABLED")
         and not isinstance(
@@ -14621,6 +14627,15 @@ def _payment_ordering_available() -> bool:
         )
         and bool(os.environ.get("NOTEAI_ADAPAY_APP_ID", "").strip())
     )
+
+
+def _payment_device_ip(request: Request) -> str:
+    value = request.client.host if request.client else ""
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        return ""
+    return str(address) if address.is_global else ""
 
 
 def _mark_payment_outcome_unknown(order_id: str, *, phase: str) -> None:
@@ -14735,6 +14750,7 @@ async def payment_order_detail(
 @app.post("/payments/orders")
 async def payment_order_create(
     body: PaymentOrderInput,
+    request: Request,
     idempotency_key: str = Header(alias="Idempotency-Key"),
     user: dict = Depends(_auth.get_current_user),
 ):
@@ -14743,6 +14759,12 @@ async def payment_order_create(
         raise HTTPException(
             status_code=503,
             detail="PAYMENT_PROVIDER_UNAVAILABLE",
+        )
+    device_ip = _payment_device_ip(request)
+    if not device_ip:
+        raise HTTPException(
+            status_code=503,
+            detail="PAYMENT_CLIENT_IP_UNAVAILABLE",
         )
     app_id = os.environ.get("NOTEAI_ADAPAY_APP_ID", "").strip()
     try:
@@ -14767,7 +14789,10 @@ async def payment_order_create(
             )
         try:
             result = _payment.provider().create_payment(
-                _payment.provider_payment_request(full_order)
+                _payment.provider_payment_request(
+                    full_order,
+                    device_ip=device_ip,
+                )
             )
         except Exception as exc:
             _mark_payment_outcome_unknown(
@@ -14820,89 +14845,12 @@ async def payment_order_create(
 
 
 @app.post("/payments/adapay/callback")
-async def payment_adapay_callback(request: Request):
-    """Bounded form callback; valid terminal/manual evidence returns HTTP 200."""
-    if not _payment_flag("NOTEAI_PAYMENT_CALLBACK_ENABLED"):
-        raise HTTPException(
-            status_code=503,
-            detail="PAYMENT_CALLBACK_DISABLED",
-        )
-    content_type = request.headers.get("content-type", "").split(";", 1)[0]
-    if content_type.strip().lower() != "application/x-www-form-urlencoded":
-        raise HTTPException(
-            status_code=415,
-            detail="PAYMENT_CALLBACK_CONTENT_TYPE_INVALID",
-        )
-    raw = await request.body()
-    if not raw or len(raw) > _payment.MAX_CALLBACK_DATA_BYTES * 2:
-        raise HTTPException(
-            status_code=413,
-            detail="PAYMENT_CALLBACK_SIZE_INVALID",
-        )
-    try:
-        from urllib.parse import parse_qsl
-
-        pairs = parse_qsl(
-            raw.decode("ascii"),
-            keep_blank_values=True,
-            strict_parsing=True,
-            encoding="utf-8",
-            errors="strict",
-            max_num_fields=2,
-        )
-    except (UnicodeError, ValueError):
-        raise HTTPException(
-            status_code=400,
-            detail="PAYMENT_CALLBACK_FORM_INVALID",
-        ) from None
-    if (
-        len(pairs) != 2
-        or {key for key, _value in pairs} != {"data", "sign"}
-        or len({key for key, _value in pairs}) != 2
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail="PAYMENT_CALLBACK_FORM_INVALID",
-        )
-    form = dict(pairs)
-    public_key = os.environ.get("NOTEAI_ADAPAY_PUBLIC_KEY", "")
-    app_id = os.environ.get("NOTEAI_ADAPAY_APP_ID", "")
-    if not public_key.strip() or not app_id.strip():
-        raise HTTPException(
-            status_code=503,
-            detail="PAYMENT_CALLBACK_CONFIG_UNAVAILABLE",
-        )
-    try:
-        result = _payment.process_signed_callback(
-            form["data"],
-            form["sign"],
-            public_key,
-            expected_app_id=app_id,
-            expected_prod_mode=_payment_prod_mode(),
-        )
-    except _payment.PaymentContractError as exc:
-        _log_internal_failure(
-            "billing",
-            exc,
-            phase="payment_callback",
-            status=exc.code,
-        )
-        status_code = (
-            401
-            if exc.code == "PAYMENT_CALLBACK_SIGNATURE_INVALID"
-            else 400
-        )
-        raise HTTPException(status_code=status_code, detail=exc.code) from None
-    if result.get("code"):
-        _log_internal_failure(
-            "billing",
-            phase="payment_callback_manual",
-            status=str(result["code"]),
-        )
-    return {
-        "ok": True,
-        "accepted": bool(result.get("ok") or result.get("code")),
-    }
+async def payment_adapay_callback(_request: Request):
+    """The normal API role can never process provider callbacks."""
+    raise HTTPException(
+        status_code=503,
+        detail="PAYMENT_CALLBACK_DEDICATED_RUNTIME_REQUIRED",
+    )
 
 
 @app.post("/score", response_model=ScoreResponse)
