@@ -300,6 +300,11 @@ class FirstLaunchUiAdminContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("data-capability=\"business_mutation\"", admin)
         self.assertIn("套餐周期积分", admin)
         self.assertNotIn("重置本月积分", admin)
+        self.assertIn("/assets/vendor/echarts-5.4.3.min.js", frontend)
+        self.assertIn("/assets/vendor/lucide-1.27.0.min.js", frontend)
+        self.assertIn("/assets/vendor/echarts-5.4.3.min.js", admin)
+        self.assertNotIn("cdnjs.cloudflare.com", frontend + admin)
+        self.assertNotIn("unpkg.com", frontend + admin)
 
     def test_admin_postgres_role_contract_is_credential_free_and_exact(self):
         migration = (

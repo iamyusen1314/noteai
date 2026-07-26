@@ -211,6 +211,13 @@ admin_app.add_middleware(
 
 # 静态文件（admin.html）
 _STATIC_DIR = Path(__file__).parent
+_VENDOR_DIR = _STATIC_DIR.parent / "assets" / "vendor"
+if _VENDOR_DIR.exists():
+    admin_app.mount(
+        "/assets/vendor",
+        StaticFiles(directory=str(_VENDOR_DIR)),
+        name="vendor-assets",
+    )
 if (_STATIC_DIR / "admin.html").exists():
     @admin_app.get("/", response_class=HTMLResponse)
     async def admin_root():
