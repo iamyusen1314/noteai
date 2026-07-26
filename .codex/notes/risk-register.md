@@ -11,7 +11,7 @@ Last updated: 2026-07-27
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付合同、Adapay离线适配器/专用运行时及UI/Admin仓库门禁也已通过，均为`NOT DEPLOYED`。UI/Admin应用checkpoint为`d358114e37c1e85e0ed068c1aca3ff87bfc36b6f`；migration `0014` SHA仍为`ed788fdf…b0ad`。生产未访问，仍是migration `0001`–`0008`；`0009`–`0014`未应用，当前代码尚未形成或部署新镜像。
-- 当前下一步: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`已记录一次`BLOCKED / AUTHENTICATION UNAVAILABLE / ZERO MUTATION`：当前工作会话没有已认证的阿里云、生产数据库或SSH目标路径，历史生产事实不得冒充新证据。认证状态不变时不得重复该能力检查。Admin-role和前端浏览器资产自托管均已在仓库/隔离范围通过；当前可执行任务为`PROD-FIRST-LAUNCH-INTERNAL-READINESS-GATE-001`，用于机器可读地分离仓库、内部生产部署和公开上线门禁。不得执行生产`0009`–`0015`、GRANT/REVOKE、provider、service/image/ACR或流量变更。
+- 当前量化状态/下一步: fail-closed ledger在`3d234f2286a552e3521d29174028e3d73a8d3f5f`通过，仓库/隔离`12/12=100%`、内部生产部署`12/29=41%`、完整公开上线`12/38=32%`。`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`仍为`BLOCKED / AUTHENTICATION UNAVAILABLE / ZERO MUTATION`，认证状态不变时不得重复能力检查。依赖图选择当前安全任务`PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001`，只允许本地构建/检查当前源码多角色镜像；不得访问ACR、发布镜像、执行生产`0009`–`0015`、GRANT/REVOKE、provider、service或流量变更。
 - 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
