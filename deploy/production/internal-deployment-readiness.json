@@ -229,10 +229,14 @@
             {
               "kind": "path",
               "ref": "tools/collect_production_host_preflight.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/collect_production_database_preflight.py"
             }
           ],
-          "blocker": "A cached authenticated ACR page is readable, but fresh ECS navigation redirects to Alibaba login and no bounded production database metadata path is available.",
-          "resume_condition": "A fresh Alibaba console sign-in and bounded production database metadata read path become available.",
+          "blocker": "A cached authenticated ACR page is readable, but fresh ECS navigation redirects to Alibaba login and no authenticated least-privilege production database metadata credential or session is available.",
+          "resume_condition": "A fresh Alibaba console sign-in and authenticated least-privilege production database metadata credential or session become available.",
           "next_task": "PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001"
         },
         {

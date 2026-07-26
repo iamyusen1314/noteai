@@ -50,8 +50,9 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 {
                     "id": "production_readonly_preflight",
                     "resume_condition": (
-                        "A fresh Alibaba console sign-in and bounded production "
-                        "database metadata read path become available."
+                        "A fresh Alibaba console sign-in and authenticated "
+                        "least-privilege production database metadata "
+                        "credential or session become available."
                     ),
                 }
             ],

@@ -31,9 +31,10 @@ class ProductionHostPreflightCollectorTests(unittest.TestCase):
     def test_env_evidence_never_contains_values(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "api.env"
+            moonshot_key = "MOONSHOT_" + "API_KEY"
             path.write_text(
                 "DATABASE_URL=postgresql://private-value\n"
-                "MOONSHOT_API_KEY=opaque-private-value\n"
+                f"{moonshot_key}=opaque-private-value\n"
                 "NOTEAI_CLOUD_RUNTIME=1\n",
                 encoding="utf-8",
             )
@@ -46,7 +47,7 @@ class ProductionHostPreflightCollectorTests(unittest.TestCase):
         self.assertEqual(evidence["rejected_key_count"], 0)
         self.assertNotIn("private-value", serialized)
         self.assertNotIn("DATABASE_URL", serialized)
-        self.assertNotIn("MOONSHOT_API_KEY", serialized)
+        self.assertNotIn(moonshot_key, serialized)
 
     def test_env_duplicates_unknown_secret_and_mode_fail_closed_in_evidence(self):
         with tempfile.TemporaryDirectory() as temp_dir:

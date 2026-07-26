@@ -74,9 +74,10 @@ The following commands must currently exit non-zero:
 `PROD-COMPLETE-FIRST-LAUNCH-001` remains `NO-GO` for public launch. The
 production read-only preflight is correctly `blocked`: a cached ACR page can
 show the historical `a635692` immutable digests, but fresh ECS navigation
-redirects to Alibaba login and no bounded production-database metadata path
-exists. Cached content is partial evidence only and cannot satisfy the host,
-RDS, backup, schema or runtime controls.
+redirects to Alibaba login and no authenticated least-privilege
+production-database metadata credential/session exists. Cached content is
+partial evidence only and cannot satisfy the host, RDS, backup, schema or
+runtime controls.
 
 `PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001` is complete. Exact revision
 `2fa3a5543876a6c8040ec17ca05a5461b101bbd7` was built as five native AMD64
@@ -87,8 +88,9 @@ leaving the canonical `4 Critical / 19 High` per-role reports unsuppressed.
 There is now no dependency-free repository/offline task in the internal
 runtime layer. The next dependency root remains the authenticated,
 read-only `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`. It must resume
-only after a fresh Alibaba console sign-in and a bounded database metadata path
-exist. The partial evidence is recorded in
+only after a fresh Alibaba console sign-in and an authenticated least-
+privilege database metadata credential/session exist. The partial evidence is
+recorded in
 `docs/PRODUCTION_READONLY_PREFLIGHT_EVIDENCE.md`.
 
 The credential-free offline evidence gate is now available at
@@ -107,6 +109,15 @@ temporary-access residue. It never outputs environment values, raw logs,
 addresses or instance identities and makes no registry/database/provider
 request. The collector and gate remain offline preparation until executed
 against authenticated production.
+
+`tools/collect_production_database_preflight.py` is the database-side
+companion. It accepts a DSN only through a protected process environment,
+forces both session- and transaction-level read-only mode, applies bounded
+timeouts, reads only migration metadata, predefined role/privilege state and
+fixed aggregate counts, and always rolls back. It emits no business row,
+connection value or raw exception. Its repository verification does not
+provide a production credential/session and therefore does not change the
+score.
 
 ## Updating evidence
 

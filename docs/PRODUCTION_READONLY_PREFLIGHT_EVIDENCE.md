@@ -2,7 +2,7 @@
 
 Task: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`
 
-Status: `PARTIAL / BLOCKED ON FRESH AUTHENTICATION AND DATABASE METADATA PATH`
+Status: `PARTIAL / BLOCKED ON FRESH AUTHENTICATION AND DATABASE METADATA CREDENTIAL/SESSION`
 
 Observed: 2026-07-27 (Asia/Shanghai)
 
@@ -46,7 +46,8 @@ start, configuration change, business write, ALB/TLS/DNS change or traffic
 operation was performed. No Secret or user data was read or recorded.
 
 The task remains blocked. It may resume only after a fresh Alibaba console
-sign-in and a bounded production database metadata read path are available.
+sign-in and an authenticated least-privilege production database metadata
+credential/session are available.
 The full Gate 0 checklist in `docs/PRODUCTION_DEPLOYMENT_EXECUTION_PLAN.md`
 remains mandatory; this partial ACR observation satisfies none of the
 host/database acceptance rows by inheritance.
@@ -94,3 +95,44 @@ identity and hardening, loopback health, bounded log hit counts, env-file
 metadata/key-name counts, capacity, private network/ACR routing and residual
 temporary access without emitting environment values, raw logs, IP addresses
 or host identities.
+
+The database-side companion is:
+
+```bash
+python3 tools/collect_production_database_preflight.py
+```
+
+It accepts the connection string only through the protected process
+environment name `NOTEAI_PREFLIGHT_DATABASE_URL`; the value must be injected
+through a hidden operator/credential path, never placed in an argument, shell
+history, evidence file or log. It enforces connection-level
+`default_transaction_read_only=on` and an explicit `BEGIN TRANSACTION READ
+ONLY`, uses bounded statement/lock/idle timeouts, then always rolls back and
+closes the connection.
+
+The database fragment contains only repository-bound migration SHA-256
+metadata, predefined NoteAI role presence/absence, privilege/ownership counts
+and the exact source-data `COUNT` aggregates required before migrations
+`0009`–`0015`. It reads no business row value and returns no discovered role,
+table, exception or connection value outside that fixed schema. A failure
+emits only a fixed error code. The current blocker is therefore no longer
+missing collector design: it is the absent authenticated least-privilege
+database credential/session and the expired Alibaba console login. No
+production connection has been attempted by this checkpoint.
+
+The effective-role audit compares the complete current baseline, not a sample:
+30 exact public tables (including the migration ledger), five sequences,
+`noteai_app`'s 82 permitted table booleans plus five sequence `USAGE`
+booleans, `noteai_xhs`'s 20 permitted table booleans plus three sequence
+`USAGE` booleans, and zero current runtime object privilege for
+`noteai_admin`. Every other table/sequence privilege, inventory difference,
+TEMP/CREATE capability, membership, ownership, elevation, grant option or
+migration-ledger access increments the fail-closed mismatch count.
+
+A disposable PostgreSQL 16.14 execution applied exact migrations
+`0001`–`0008`, created only synthetic roles/data, and ran this collector
+through its real Psycopg path. The fragment passed the final evidence gate
+with all blockers and mismatches at zero. The exact task container used a
+tmpfs database, was removed with zero labelled volumes, and Colima was
+returned to its prior stopped state. This is syntax/runtime evidence only and
+does not inherit as a production observation.

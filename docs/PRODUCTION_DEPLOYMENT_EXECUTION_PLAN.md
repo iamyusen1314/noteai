@@ -88,6 +88,12 @@ do not silently colocate more roles or buy capacity.
   routing. No registry login, manifest request or pull in this gate.
 - Read RDS availability, schema-migration versions, backup/PITR metadata and
   connection limits without changing data.
+- Run `tools/collect_production_database_preflight.py` only through an
+  authenticated least-privilege metadata credential/session. Inject its DSN
+  through a hidden protected process environment; never place it in command
+  arguments, evidence or logs. Require connection- and transaction-level
+  read-only mode, bounded timeouts, aggregate-only source checks, rollback and
+  close.
 - Reduce the observation to a Secret-free JSON artifact and require
   `tools/production_readonly_preflight_gate.py` to pass. Do not record host
   IDs, IP addresses, connection values, user rows or long logs.
