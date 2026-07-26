@@ -174,6 +174,36 @@ class FirstLaunchUiAdminContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("models", registry)
         self.assertIn("enabled", crawler)
 
+    async def test_production_crawler_status_never_reads_cookie_setting(self):
+        def get_json(key, default=None):
+            if key == admin_server._XHS_COOKIES_KEY:
+                raise AssertionError("production Admin must not read Cookie material")
+            return default
+
+        restricted = {
+            "NOTEAI_DEPLOYMENT_STAGE": "production",
+            "NOTEAI_CLOUD_RUNTIME": "1",
+        }
+        with mock.patch.dict(os.environ, restricted, clear=False), mock.patch.object(
+            admin_server._settings,
+            "get_json",
+            side_effect=get_json,
+        ), mock.patch.object(
+            admin_server,
+            "_XHS_ACQ_AVAILABLE",
+            False,
+        ), mock.patch.object(
+            admin_server.db,
+            "fetchone",
+            return_value={"cnt": 0},
+        ):
+            result = await admin_server.admin_crawler_status(
+                admin={"username": "admin"},
+            )
+
+        self.assertFalse(result["cookie_file_exists"])
+        self.assertEqual(result["cookie_count"], 0)
+
     async def test_admin_user_payload_is_masked_and_omits_payment_reference(self):
         db.execute(
             "INSERT INTO users("
@@ -270,6 +300,42 @@ class FirstLaunchUiAdminContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("data-capability=\"business_mutation\"", admin)
         self.assertIn("套餐周期积分", admin)
         self.assertNotIn("重置本月积分", admin)
+
+    def test_admin_postgres_role_contract_is_credential_free_and_exact(self):
+        migration = (
+            MODEL_DIR
+            / "migrations"
+            / "postgres"
+            / "0015_admin_runtime_contract.sql"
+        ).read_text(encoding="utf-8")
+        role_sql = (
+            ROOT / "scripts" / "postgres" / "noteai_admin_role.sql"
+        ).read_text(encoding="utf-8")
+        server = (MODEL_DIR / "admin_server.py").read_text(encoding="utf-8")
+
+        self.assertNotIn("GRANT ", migration.upper())
+        self.assertNotIn("REVOKE ", migration.upper())
+        self.assertIn("noteai_system_settings_admin_read_v1", migration)
+        self.assertIn("key IN ('model_registry','crawler_config')", migration)
+        self.assertIn("noteai_ai_outbox_admin_read_v1", migration)
+        self.assertNotIn("CREATE ROLE", role_sql.upper())
+        self.assertNotIn("PASSWORD", role_sql.upper())
+        self.assertIn(
+            "GRANT SELECT, INSERT, DELETE ON admin_sessions TO noteai_admin",
+            role_sql,
+        )
+        self.assertIn(
+            "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public",
+            role_sql,
+        )
+        self.assertIn(
+            "SELECT id,username,email,phone,nickname,avatar_emoji,created_at,last_login",
+            server,
+        )
+        self.assertIn(
+            "if _is_restricted_admin_runtime()",
+            server,
+        )
 
 
 if __name__ == "__main__":

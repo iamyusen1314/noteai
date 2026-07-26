@@ -338,20 +338,30 @@ dedicated `noteai_admin` login, never as `noteai_app`. Its only positive DML is:
 
 - `admin_sessions`: `SELECT, INSERT, DELETE`; no `UPDATE`, `TRUNCATE`,
   `REFERENCES`, `TRIGGER`, ownership or grant option;
-- read-only `SELECT` needed by the integrated Admin views on `users`,
-  `subscriptions`, `credits`, `credit_transactions`, `notes`,
+- column-scoped `SELECT` on `users` (excluding password/salt/avatar bytes),
+  `notes` (only identity/owner/score) and `credit_transactions` (excluding
+  provider payment reference), plus read-only table `SELECT` needed by the
+  integrated Admin views on `subscriptions`, `credits`,
   `usage_records`, `model_usage_records`, `system_settings`,
   `managed_prompts`, `prompt_history`, `tracked_notes`,
   `ai_operations`, `ai_operation_settlements`, `ai_operation_outbox`,
   `xhs_freshness_ledger`, `xhs_crawler_health`, `xhs_trends_runs` and the ten
   payment tables described above.
 
-The final PostgreSQL permission task must generate the exact positive
-table/column set from current Admin SQL, add any required `noteai_admin` RLS
-read policy, and prove every unlisted table/column/sequence/function privilege
-false on disposable PostgreSQL. Admin receives no sequence privilege, business
-DML, Prompt/model/Crawler/Tracking mutation, schema/database creation, TEMP,
-DDL, role membership, superuser, `BYPASSRLS`, `schema_migrations`, ownership or
+Migration `0015_admin_runtime_contract.sql` adds the Admin session,
+non-secret settings, Durable AI Outbox and settlement RLS policies without an
+ACL statement. The credential-free, idempotent operator ACL is
+`scripts/postgres/noteai_admin_role.sql`; it requires an existing exact LOGIN
+role, rejects membership/ownership or elevated attributes, removes inherited
+object privileges, and grants only the set above. It also revokes database
+TEMP from PUBLIC because PostgreSQL has no per-role DENY capable of overriding
+a PUBLIC TEMP grant. No NoteAI runtime role requires TEMP.
+
+The disposable PostgreSQL proof checks every public table/column/sequence,
+schema/database capability, role attribute and SECURITY DEFINER function.
+Admin receives no sequence privilege, business DML,
+Prompt/model/Crawler/Tracking mutation, schema/database creation, TEMP, DDL,
+role membership, superuser, `BYPASSRLS`, `schema_migrations`, ownership or
 grant option.
 
 Do not force the whole Admin connection to

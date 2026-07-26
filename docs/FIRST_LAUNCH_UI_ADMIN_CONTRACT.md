@@ -85,6 +85,14 @@ The application contract requires a dedicated `noteai_admin` login. It needs
 only Admin-session `SELECT, INSERT, DELETE` plus the documented read-only
 operational objects. It must not reuse `noteai_app` and must not use global
 `default_transaction_read_only=on`, because login/logout legitimately write
-only the session table. Exact PostgreSQL RLS/column/negative-matrix evidence,
-an immutable digest, loopback login/logout proof and restart invalidation are
-separate gates; until they pass, Admin production promotion is unverified.
+only the session table.
+
+The repository/isolated PostgreSQL gate is verified by migration
+`0015_admin_runtime_contract.sql` and
+`scripts/postgres/noteai_admin_role.sql`. The disposable proof covers an
+actual role login, session create/read/delete, secret-row filtering and the
+complete positive/negative table, column, sequence, DDL and role matrix.
+Production migration/ACL application, immutable image deployment,
+loopback HTTP login/logout/token invalidation and restart/non-regression
+remain separate gates; until they pass, Admin production promotion is
+unverified.

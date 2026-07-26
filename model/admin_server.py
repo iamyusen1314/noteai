@@ -260,8 +260,8 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
     days7_start = (now - timedelta(days=7)).isoformat()
 
     # ── 用户规模 ──
-    total_users  = db.fetchone("SELECT COUNT(*) as c FROM users")["c"]
-    today_new    = db.fetchone("SELECT COUNT(*) as c FROM users WHERE created_at>=?", (today_start,))["c"]
+    total_users  = db.fetchone("SELECT COUNT(id) as c FROM users")["c"]
+    today_new    = db.fetchone("SELECT COUNT(id) as c FROM users WHERE created_at>=?", (today_start,))["c"]
     active_7d    = db.fetchone(
         "SELECT COUNT(DISTINCT user_id) as c FROM usage_records WHERE recorded_at>=?",
         (days7_start,))["c"]
@@ -417,7 +417,7 @@ async def admin_users(
     where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
     total = db.fetchone(
-        f"SELECT COUNT(*) as c FROM users u "
+        f"SELECT COUNT(u.id) as c FROM users u "
         f"LEFT JOIN subscriptions s ON u.id=s.user_id AND s.is_active=1 {where_sql}",
         tuple(params)
     )["c"]
@@ -477,13 +477,14 @@ def _mask_email_admin(email: str) -> str:
 @admin_app.get("/admin/users/{user_id}")
 async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin_user)):
     """用户详情（不含笔记全文）。"""
-    user = db.fetchone("SELECT * FROM users WHERE id=?", (user_id,))
+    user = db.fetchone(
+        "SELECT id,username,email,phone,nickname,avatar_emoji,created_at,last_login "
+        "FROM users WHERE id=?",
+        (user_id,),
+    )
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
     user = dict(user)
-    user.pop("password_hash", None)
-    user.pop("password_salt", None)
-    user.pop("avatar_data", None)  # 不传图片数据
     phone_masked = _mask_phone_admin(user.pop("phone", "") or "")
     email_masked = _mask_email_admin(user.pop("email", "") or "")
 
@@ -512,7 +513,7 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
 
     # 笔记统计（不含全文）
     notes_stat = db.fetchone(
-        "SELECT COUNT(*) as cnt, AVG(score) as avg_score, MAX(score) as max_score "
+        "SELECT COUNT(id) as cnt, AVG(score) as avg_score, MAX(score) as max_score "
         "FROM notes WHERE user_id=?", (user_id,))
 
     return {
@@ -1212,7 +1213,11 @@ def _load_crawler_config() -> dict:
 @admin_app.get("/admin/crawler/status")
 async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
     config = _load_crawler_config()
-    cookie_content = _settings.get_json(_XHS_COOKIES_KEY, [])
+    cookie_content = (
+        []
+        if _is_restricted_admin_runtime()
+        else _settings.get_json(_XHS_COOKIES_KEY, [])
+    )
     cookie_exists = bool(cookie_content)
     cookie_runtime_status = "not_configured"
     cookie_last_verified_at = None
@@ -1221,6 +1226,11 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
         cookie_runtime_status = "pending_validation"
         if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
             recent = _xhs_acq.recent_collection_health(limit=60)
+            if _is_restricted_admin_runtime():
+                cookie_exists = any(
+                    bool((row.get("details") or {}).get("session_configured"))
+                    for row in recent
+                )
             run_ids = []
             for row in recent:
                 run_id = row.get("run_id")
@@ -1284,7 +1294,11 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
     return {
         **config,
         "cookie_file_exists": cookie_exists,
-        "cookie_count":       len(cookie_content) if isinstance(cookie_content, list) else 0,
+        "cookie_count": (
+            0
+            if _is_restricted_admin_runtime()
+            else len(cookie_content) if isinstance(cookie_content, list) else 0
+        ),
         "cookie_runtime_status": cookie_runtime_status,
         "cookie_last_verified_at": cookie_last_verified_at,
         "cookie_consecutive_failures": cookie_consecutive_failures,
