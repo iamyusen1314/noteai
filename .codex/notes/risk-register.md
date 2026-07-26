@@ -116,6 +116,13 @@ Last updated: 2026-07-26
 
 ## High Risks
 
+### Default-branch Dependabot alerts require exact release triage
+
+- 状态: Open High / evidence triage required。普通push `0e9a923…` 成功后，GitHub远端报告默认分支共有 `14` 个Dependabot告警（`10 High / 3 Moderate / 1 Low`）；这只是当前平台汇总，不证明这些告警都存在于当前发布提交或具备可达利用路径。
+- 风险描述: 未逐项核对package、受影响版本、当前分支可达性和已有容器扫描/VEX之前，既不能忽略这些告警，也不能把默认分支计数直接当成当前候选的确认漏洞。
+- 建议验证方式: 建立只读 `PROD-FIRST-LAUNCH-DEPENDABOT-TRIAGE-001`，读取当前告警、锁文件/镜像包版本和修复版本，按当前release commit去重；任何依赖升级必须单独回归并重新构建扫描，不能用旧VEX覆盖新版本。
+- 回滚: 只读triage无回滚；若后续升级，回滚仅限精确dependency/lockfile delta及新镜像，不改写旧扫描证据。
+
 ### XHS Trends snapshot evidence exception is closed and must not recur
 
 - 状态: Mitigated and verified on API-F by `PROD-XHS-TRENDS-SNAPSHOT-EVIDENCE-ENTRYPOINT-OVERRIDE-001`（2026-07-25）；保留本条用于防止把一次性例外误当成持久授权。
