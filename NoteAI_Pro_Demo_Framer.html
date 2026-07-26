@@ -12364,14 +12364,24 @@ function closeTrackUrlModal() {
 }
 async function submitTrackUrl() {
   if (!_authToken) return;
-  const url    = document.getElementById('track-url-input').value.trim();
+  let url      = document.getElementById('track-url-input').value.trim();
   const domain = document.getElementById('track-url-domain').value;
   const ces    = parseFloat(document.getElementById('track-url-ces').value) || null;
   const errEl  = document.getElementById('track-url-error');
   const btn    = document.getElementById('track-url-btn');
   if (!url) { errEl.textContent = '请输入笔记链接'; errEl.style.display = 'block'; return; }
-  if (!url.includes('xiaohongshu.com') && !url.includes('xhslink.com')) {
-    errEl.textContent = '请输入有效的小红书链接'; errEl.style.display = 'block'; return;
+  try {
+    const parsed = new URL(url);
+    const hostAllowed = ['www.xiaohongshu.com', 'xiaohongshu.com'].includes(parsed.hostname.toLowerCase());
+    const noteMatch = parsed.pathname.match(/^\/(?:explore|discovery\/item)\/([0-9a-f]{24})\/?$/i);
+    if (parsed.protocol !== 'https:' || !hostAllowed || parsed.username || parsed.password || parsed.port || !noteMatch) {
+      throw new Error('invalid');
+    }
+    url = `https://www.xiaohongshu.com/explore/${noteMatch[1].toLowerCase()}`;
+  } catch (_) {
+    errEl.textContent = '请粘贴 HTTPS 小红书完整笔记链接（暂不支持短链）';
+    errEl.style.display = 'block';
+    return;
   }
   btn.disabled = true; btn.textContent = '提交中…';
   try {

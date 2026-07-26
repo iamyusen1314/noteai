@@ -44,6 +44,7 @@ import runtime_settings as _settings
 import security_redaction as _redaction
 import prompt_baselines as _prompt_baselines
 import prompt_composer as _prompt_composer
+import tracking_contract as _tracking_contract
 
 try:
     import xhs_acquisition as _xhs_acq
@@ -524,7 +525,24 @@ async def admin_tracked_notes(
         f"JOIN users u ON t.user_id=u.id {where} "
         f"ORDER BY t.submitted_at DESC LIMIT ? OFFSET ?",
         params + (page_size, offset))
-    return {"total": total, "notes": [dict(r) for r in rows]}
+    notes = []
+    for row in rows:
+        public = dict(row)
+        public["xhs_url"] = _tracking_contract.safe_public_xhs_note_url(
+            public.get("xhs_url"),
+            public.get("xhs_note_id"),
+        )
+        public["provider_attempt_state"] = (
+            "in_progress" if public.get("active_attempt_id") else None
+        )
+        for private_key in (
+            "claim_token",
+            "claim_expires_at",
+            "active_attempt_id",
+        ):
+            public.pop(private_key, None)
+        notes.append(public)
+    return {"total": total, "notes": notes}
 
 
 @admin_app.post("/admin/tracked-notes/{note_id}/trigger-check")
@@ -542,16 +560,19 @@ async def admin_trigger_check(note_id: str, admin: dict = Depends(_aauth.get_adm
         )
         if not locked:
             raise HTTPException(status_code=404, detail="追踪记录不存在")
-        next_status = (
-            "checking_7d"
-            if locked["check_24h_at"]
-            or locked["status"] in ("checking_7d", "checking_24h", "complete")
-            else "pending"
-        )
+        if (
+            locked["status"] not in _tracking_contract.CLAIMABLE_STATUSES
+            or locked["claim_token"] is not None
+            or locked["active_attempt_id"] is not None
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="该记录不可重新排队",
+            )
         tx.execute(
-            "UPDATE tracked_notes SET status=?,next_check_at=?,"
+            "UPDATE tracked_notes SET next_check_at=?,"
             "last_error_code=NULL,last_error=NULL WHERE id=?",
-            (next_status, datetime.now(timezone.utc).isoformat(), note_id),
+            (datetime.now(timezone.utc).isoformat(), note_id),
         )
     return {"ok": True, "message": "已加入采集队列"}
 
@@ -1173,16 +1194,36 @@ async def admin_crawler_run(
     background_tasks: BackgroundTasks,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
-    """手动触发一轮爬虫采集（后台执行）。"""
-    limit = int(body.get("limit", 50))
-    background_tasks.add_task(_run_crawler_bg, limit)
-    return {"ok": True, "message": f"爬虫已启动，最多采集 {limit} 条"}
+    """Reject in-process execution; the isolated Tracking worker owns calls."""
+    try:
+        _tracking_contract.validate_round_limit(body.get("limit", 50))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="采集上限必须为 1 到 50") from exc
+    raise HTTPException(
+        status_code=409,
+        detail="请通过独立受管 Tracking Worker 执行；Admin 不运行供应商任务",
+    )
 
 
 async def _run_crawler_bg(limit: int) -> None:
     try:
         import crawler as _crawler
         result = await _crawler.run_collection_round(limit=limit)
+        if _crawler._result_exit_code(result) != 0:
+            print(
+                json.dumps(
+                    {
+                        "event": "admin_crawler_failed",
+                        "error_code": str(
+                            result.get("error")
+                            or result.get("reason")
+                            or "tracking_round_failed"
+                        )[:80],
+                    }
+                ),
+                flush=True,
+            )
+            return
         config = _load_crawler_config()
         config["last_run"] = datetime.now(timezone.utc).isoformat()
         config["total_collected"] = config.get("total_collected", 0) + result.get("collected", 0)

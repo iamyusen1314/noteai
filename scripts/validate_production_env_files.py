@@ -40,13 +40,14 @@ ROLE_ALLOWED_SECRET_KEYS = {
         }
     ),
     "admin": frozenset({"DATABASE_URL", "ADMIN_PASSWORD"}),
-    "xhs": frozenset(
+    "xhs_trends": frozenset(
         {
             "DATABASE_URL",
             "NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN",
             "NOTEAI_AUTHORIZED_TREND_TOKEN",
         }
     ),
+    "xhs_tracking": frozenset({"DATABASE_URL"}),
 }
 
 _KNOWN_SECRET_KEYS = frozenset().union(*ROLE_ALLOWED_SECRET_KEYS.values())
@@ -151,7 +152,8 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--api", type=Path, required=True)
     parser.add_argument("--admin", type=Path, required=True)
-    parser.add_argument("--xhs", type=Path, required=True)
+    parser.add_argument("--xhs-trends", type=Path, required=True)
+    parser.add_argument("--xhs-tracking", type=Path, required=True)
     return parser
 
 
@@ -159,7 +161,12 @@ def main() -> int:
     args = _parser().parse_args()
     try:
         results = validate_all_role_env_files(
-            (("api", args.api), ("admin", args.admin), ("xhs", args.xhs))
+            (
+                ("api", args.api),
+                ("admin", args.admin),
+                ("xhs_trends", args.xhs_trends),
+                ("xhs_tracking", args.xhs_tracking),
+            )
         )
     except EnvFileValidationError as exc:
         print(f"FAIL: {exc}")

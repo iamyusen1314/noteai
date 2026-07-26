@@ -29,9 +29,10 @@ production Compose contract accepts three external inputs:
 |---|---|---|
 | API | `NOTEAI_API_ENV_FILE` | `/etc/noteai/api.env` |
 | Admin | `NOTEAI_ADMIN_ENV_FILE` | `/etc/noteai/admin.env` |
-| XHS trends and tracking | `NOTEAI_XHS_ENV_FILE` | `/etc/noteai/xhs.env` |
+| XHS Trends | `NOTEAI_XHS_TRENDS_ENV_FILE` | `/etc/noteai/xhs-trends.env` |
+| XHS Tracking | `NOTEAI_XHS_TRACKING_ENV_FILE` | `/etc/noteai/xhs-tracking.env` |
 
-The three roles must resolve to three distinct regular files with no
+The four roles must resolve to four distinct regular files with no
 group/world permission bits. The files remain outside Git and images. Do not
 source or print them during validation.
 
@@ -49,8 +50,10 @@ Allowed Secret key names are intentionally role-specific:
   `NOTEAI_AUTHORIZED_TREND_TOKEN`, `AWS_ACCESS_KEY_ID`,
   `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`.
 - Admin: `DATABASE_URL` and `ADMIN_PASSWORD`.
-- XHS: `DATABASE_URL`, `NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN`,
-  and `NOTEAI_AUTHORIZED_TREND_TOKEN`.
+- XHS Trends: `DATABASE_URL`,
+  `NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN`, and
+  `NOTEAI_AUTHORIZED_TREND_TOKEN`.
+- XHS Tracking: `DATABASE_URL` only.
 
 These are allowed names, not mandatory values. Provider-specific credentials
 must only be present when that separately approved provider path is enabled.
@@ -64,7 +67,8 @@ values:
 python scripts/validate_production_env_files.py \
   --api /etc/noteai/api.env \
   --admin /etc/noteai/admin.env \
-  --xhs /etc/noteai/xhs.env
+  --xhs-trends /etc/noteai/xhs-trends.env \
+  --xhs-tracking /etc/noteai/xhs-tracking.env
 ```
 
 The validator fails on a reused file, duplicate/invalid names, overexposed

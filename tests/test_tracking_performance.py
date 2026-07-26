@@ -185,6 +185,8 @@ class TrackingApiContractTests(unittest.TestCase):
                         "likes_24h": 30,
                         "saves_24h": 20,
                         "comments_24h": 3,
+                        "status": "needs_manual",
+                        "active_attempt_id": None,
                     }
                 return None
 

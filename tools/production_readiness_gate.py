@@ -623,6 +623,16 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     image_build_spec = (ROOT / "docs" / "PRODUCTION_IMAGE_BUILD_SPEC.md").read_text(encoding="utf-8")
     xhs_provenance = (ROOT / "docs" / "SPIDER_XHS_HTTP_PROVENANCE.md").read_text(encoding="utf-8")
     xhs_adapter = (MODEL_DIR / "spider_xhs_http.py").read_text(encoding="utf-8")
+    tracking_worker = (MODEL_DIR / "crawler.py").read_text(encoding="utf-8")
+    tracking_contract = (
+        ROOT / "docs" / "XHS_TRACKING_PRODUCTION_CONTRACT.md"
+    ).read_text(encoding="utf-8")
+    tracking_migration = (
+        MODEL_DIR
+        / "migrations"
+        / "postgres"
+        / "0010_tracking_execution_contract.sql"
+    ).read_text(encoding="utf-8")
     xhs_tests = (ROOT / "tests" / "test_xhs_acquisition.py").read_text(encoding="utf-8")
     architecture_summary = (ROOT / ".codex" / "notes" / "architecture-summary.md").read_text(encoding="utf-8")
     risk_register = (ROOT / ".codex" / "notes" / "risk-register.md").read_text(encoding="utf-8")
@@ -843,8 +853,12 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                 "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"
             ) == 1
             and production_compose.count(
-                "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"
-            ) == 2
+                "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
+            ) == 1
+            and production_compose.count(
+                "${NOTEAI_XHS_TRACKING_ENV_FILE:-/etc/noteai/xhs-tracking.env}"
+            ) == 1
+            and "NOTEAI_XHS_ENV_FILE" not in production_compose
             and "NOTEAI_PRODUCTION_ENV_FILE" not in production_compose
             and production_compose.count("target: /app/model/data") == 4
             and "target: /app/model/artifacts" not in production_compose,
@@ -867,6 +881,51 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and 'return os.environ.get("NOTEAI_RUNTIME_ROLE", "").strip() == "xhs-http"' in xhs_adapter
             and 'role in {"api", "admin"}' in xhs_adapter
             and '_LEGACY_BROWSER_RUNTIME_ROLES = frozenset({"local", "legacy"})' in xhs_adapter,
+        ),
+        _ok(
+            "tracking_execution_contract_is_bounded_and_at_most_once",
+            "FOR UPDATE SKIP LOCKED" in tracking_worker
+            and "tracking_provider_attempts" in tracking_worker
+            and "TrackingDailyLimitReached" in tracking_worker
+            and "deterministic_effect_id" in tracking_worker
+            and "active_attempt_id IS NULL" in tracking_worker
+            and "UNIQUE(track_id, stage)" in tracking_migration
+            and "FOREIGN KEY(track_id, user_id)" in tracking_migration
+            and "FOREIGN KEY(id, active_attempt_id)" in tracking_migration
+            and "tracked_notes_canonical_identity_contract" in tracking_migration
+            and "CREATE UNIQUE INDEX uq_tracked_user_note" in tracking_migration
+            and not any(
+                re.match(r"\\s*(?:GRANT|REVOKE)\\b", line, re.IGNORECASE)
+                for line in tracking_migration.splitlines()
+            )
+            and "at most one 24h and one 7d provider admission"
+            in tracking_contract
+            and "noteai_xhs_tracking" in tracking_contract,
+        ),
+        _ok(
+            "production_tracking_runtime_is_isolated_and_resource_bounded",
+            "${NOTEAI_XHS_TRENDS_SUSPENDED:-1}" in production_compose
+            and "${NOTEAI_XHS_TRACKING_SUSPENDED:-1}" in production_compose
+            and 'restart: "no"' in _compose_service_block(
+                production_compose,
+                "xhs-tracking",
+            )
+            and "--healthcheck" in _compose_service_block(
+                production_compose,
+                "xhs-tracking",
+            )
+            and 'cpus: "0.25"' in _compose_service_block(
+                production_compose,
+                "xhs-tracking",
+            )
+            and "mem_limit: 256m" in _compose_service_block(
+                production_compose,
+                "xhs-tracking",
+            )
+            and "pids_limit: 64" in _compose_service_block(
+                production_compose,
+                "xhs-tracking",
+            ),
         ),
         _ok(
             "direct_adapter_assets_are_sha_pinned",

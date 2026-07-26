@@ -107,6 +107,17 @@ def assert_account_deletion_ready_with_storage(
         user_id,
         now=_now(),
     )
+    active_tracking = storage.fetchone(
+        "SELECT 1 FROM tracked_notes WHERE user_id=? "
+        "AND active_attempt_id IS NOT NULL LIMIT 1",
+        (user_id,),
+    )
+    if active_tracking:
+        # Provider admission takes the same per-user fence before publishing
+        # active_attempt_id. Therefore deletion either wins first (and blocks
+        # admission) or sees this durable marker and waits without revoking the
+        # account mid-call.
+        raise ValueError("active tracking attempt prevents account deletion")
     return user
 
 

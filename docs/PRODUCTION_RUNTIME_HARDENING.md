@@ -24,16 +24,25 @@ variables separately so the resulting image reference always contains
 `@sha256:`. Each `*_IMAGE_DIGEST_HEX` value must be exactly 64 lowercase
 hexadecimal characters and must not include `sha256:`, a tag, or repository
 text.
-The three role environment files are external to the repository, must resolve
+The four role environment files are external to the repository, must resolve
 to distinct regular files, and must have no group/world permission bits. API
-uses `/etc/noteai/api.env`, Admin uses `/etc/noteai/admin.env`, and both XHS
-processes use `/etc/noteai/xhs.env`. Never reuse a shared runtime env file,
-print a file, or pass its values through image build arguments.
+uses `/etc/noteai/api.env`, Admin uses `/etc/noteai/admin.env`, Trends uses
+`/etc/noteai/xhs-trends.env`, and Tracking uses
+`/etc/noteai/xhs-tracking.env`. Never reuse a shared runtime env file, print a
+file, or pass its values through image build arguments.
 
 The API and Admin model artifacts remain the immutable files carried by the
 approved image. Production cloud model mutation stays disabled. API video
 cache and role data use `/app/model/data`; operators must create the host data
 directory owned by UID/GID `999` before any separately approved start.
+
+Tracking is additionally fail-stopped: its production template uses
+`restart: "no"` so a failed supplier round cannot immediately restart against
+another due row. Its Docker healthcheck invokes only
+`crawler_worker.py --healthcheck`, performs read-only Tracking schema/role
+queries, and never calls XHS. A stale or structurally unlinked started attempt
+makes readiness fail until evidence is retained and an operator explicitly
+uses the provider-free stale reconciler or corrects the integrity fault.
 
 ## Pre-deployment validation
 
@@ -48,12 +57,14 @@ NOTEAI_XHS_IMAGE_REPOSITORY=registry.example.invalid/noteai/xhs-http \
 NOTEAI_XHS_IMAGE_DIGEST_HEX=<64-lowercase-hex-characters> \
 NOTEAI_API_ENV_FILE=/path/to/api.env \
 NOTEAI_ADMIN_ENV_FILE=/path/to/admin.env \
-NOTEAI_XHS_ENV_FILE=/path/to/xhs.env \
+NOTEAI_XHS_TRENDS_ENV_FILE=/path/to/xhs-trends.env \
+NOTEAI_XHS_TRACKING_ENV_FILE=/path/to/xhs-tracking.env \
 docker compose -f deploy/production/docker-compose.yml config --quiet
 ```
 
 Before resolving Compose, run
-`scripts/validate_production_env_files.py --api ... --admin ... --xhs ...`.
+`scripts/validate_production_env_files.py --api ... --admin ...
+--xhs-trends ... --xhs-tracking ...`.
 The validator reads key names only for its decision, never prints values, and
 rejects duplicate/invalid names, overexposed permissions, unknown
 Secret-like names, and cross-role Secret injection. The canonical role

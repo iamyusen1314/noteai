@@ -80,12 +80,12 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
     env_file:
-      - "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"
+      - "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: xhs-http
       NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
       NOTEAI_XHS_ACQUISITION_ADAPTER: spider_xhs_http
-      NOTEAI_XHS_COLLECTION_SUSPENDED: "${NOTEAI_XHS_COLLECTION_SUSPENDED:-1}"
+      NOTEAI_XHS_COLLECTION_SUSPENDED: "${NOTEAI_XHS_TRENDS_SUSPENDED:-1}"
       NOTEAI_XHS_FRESHNESS_REQUIRED: "${NOTEAI_XHS_FRESHNESS_REQUIRED:-1}"
     command: ["python", "market_timing_worker.py", "--daemon", "--interval", "${NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES:-60}"]
     volumes:
@@ -93,6 +93,9 @@ services:
         source: "${NOTEAI_PRODUCTION_DATA_DIR:-/var/lib/noteai/data}"
         target: /app/model/data
     restart: unless-stopped
+    cpus: "0.50"
+    mem_limit: 512m
+    pids_limit: 64
 
   xhs-tracking:
     image: "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
@@ -106,15 +109,24 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
     env_file:
-      - "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"
+      - "${NOTEAI_XHS_TRACKING_ENV_FILE:-/etc/noteai/xhs-tracking.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: xhs-http
       NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
       NOTEAI_XHS_ACQUISITION_ADAPTER: spider_xhs_http
-      NOTEAI_XHS_COLLECTION_SUSPENDED: "${NOTEAI_XHS_COLLECTION_SUSPENDED:-1}"
+      NOTEAI_XHS_COLLECTION_SUSPENDED: "${NOTEAI_XHS_TRACKING_SUSPENDED:-1}"
     command: ["python", "crawler_worker.py", "--loop", "--interval-minutes", "${NOTEAI_TRACKING_WORKER_INTERVAL_MINUTES:-60}", "--limit", "${NOTEAI_TRACKING_WORKER_LIMIT:-50}"]
+    healthcheck:
+      test: ["CMD", "python", "crawler_worker.py", "--healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     volumes:
       - type: bind
         source: "${NOTEAI_PRODUCTION_DATA_DIR:-/var/lib/noteai/data}"
         target: /app/model/data
-    restart: unless-stopped
+    restart: "no"
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 64

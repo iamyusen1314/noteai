@@ -22,7 +22,7 @@ class ProductionEnvFileTests(unittest.TestCase):
         path.chmod(stat.S_IRUSR | stat.S_IWUSR)
         return path
 
-    def test_production_compose_uses_three_role_specific_env_inputs(self):
+    def test_production_compose_uses_four_role_specific_env_inputs(self):
         compose = (
             ROOT / "deploy" / "production" / "docker-compose.yml"
         ).read_text(encoding="utf-8")
@@ -41,9 +41,15 @@ class ProductionEnvFileTests(unittest.TestCase):
         )
         self.assertEqual(
             compose.count(
-                "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"
+                "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
             ),
-            2,
+            1,
+        )
+        self.assertEqual(
+            compose.count(
+                "${NOTEAI_XHS_TRACKING_ENV_FILE:-/etc/noteai/xhs-tracking.env}"
+            ),
+            1,
         )
         self.assertNotIn("NOTEAI_PRODUCTION_ENV_FILE", compose)
         self.assertNotIn("/etc/noteai/runtime.env", compose)
@@ -73,10 +79,10 @@ class ProductionEnvFileTests(unittest.TestCase):
                     ),
                 ),
                 (
-                    "xhs",
+                    "xhs_trends",
                     self._env_file(
                         directory,
-                        "xhs.env",
+                        "xhs-trends.env",
                         f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
                         "NOTEAI_MARKET_TIMING_SNAPSHOT_UPLOAD_TOKEN="
                         f"{SAFE_TEST_SECRET_VALUE}\n"
@@ -84,23 +90,36 @@ class ProductionEnvFileTests(unittest.TestCase):
                         "NOTEAI_XHS_COLLECTION_SUSPENDED=1\n",
                     ),
                 ),
+                (
+                    "xhs_tracking",
+                    self._env_file(
+                        directory,
+                        "xhs-tracking.env",
+                        f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
+                        "NOTEAI_XHS_COLLECTION_SUSPENDED=1\n",
+                    ),
+                ),
             )
 
             results = validator.validate_all_role_env_files(role_paths)
 
-        self.assertEqual([result["role"] for result in results], ["api", "admin", "xhs"])
+        self.assertEqual(
+            [result["role"] for result in results],
+            ["api", "admin", "xhs_trends", "xhs_tracking"],
+        )
         self.assertEqual(
             [result["secret_key_count"] for result in results],
-            [2, 2, 2],
+            [2, 2, 2, 1],
         )
 
     def test_cross_role_and_unknown_secret_names_fail_closed(self):
         cases = (
             ("api", "ADMIN_PASSWORD"),
             ("admin", "ANTHROPIC_API_KEY"),
-            ("xhs", "MOONSHOT_API_KEY"),
+            ("xhs_trends", "MOONSHOT_API_KEY"),
+            ("xhs_tracking", "NOTEAI_AUTHORIZED_TREND_TOKEN"),
             ("api", "UNREVIEWED_VENDOR_TOKEN"),
-            ("xhs", "XHS_SESSION_COOKIE"),
+            ("xhs_tracking", "XHS_SESSION_COOKIE"),
         )
         with tempfile.TemporaryDirectory() as raw_directory:
             directory = Path(raw_directory)
@@ -131,7 +150,12 @@ class ProductionEnvFileTests(unittest.TestCase):
                 "must use distinct env files",
             ):
                 validator.validate_all_role_env_files(
-                    (("api", shared), ("admin", shared), ("xhs", shared))
+                    (
+                        ("api", shared),
+                        ("admin", shared),
+                        ("xhs_trends", shared),
+                        ("xhs_tracking", shared),
+                    )
                 )
 
     def test_duplicate_invalid_and_overexposed_files_fail(self):
@@ -202,10 +226,15 @@ class ProductionEnvFileTests(unittest.TestCase):
                 "admin.env",
                 f"ADMIN_PASSWORD={synthetic_secret}\n",
             )
-            xhs = self._env_file(
+            xhs_trends = self._env_file(
                 directory,
-                "xhs.env",
+                "xhs-trends.env",
                 f"NOTEAI_AUTHORIZED_TREND_TOKEN={synthetic_secret}\n",
+            )
+            xhs_tracking = self._env_file(
+                directory,
+                "xhs-tracking.env",
+                f"DATABASE_URL={synthetic_secret}\n",
             )
             output = io.StringIO()
             argv = [
@@ -214,15 +243,17 @@ class ProductionEnvFileTests(unittest.TestCase):
                 os.fspath(api),
                 "--admin",
                 os.fspath(admin),
-                "--xhs",
-                os.fspath(xhs),
+                "--xhs-trends",
+                os.fspath(xhs_trends),
+                "--xhs-tracking",
+                os.fspath(xhs_tracking),
             ]
             with mock.patch("sys.argv", argv), contextlib.redirect_stdout(output):
                 exit_code = validator.main()
 
         self.assertEqual(exit_code, 0)
         self.assertNotIn(synthetic_secret, output.getvalue())
-        self.assertEqual(output.getvalue().count("PASS role="), 3)
+        self.assertEqual(output.getvalue().count("PASS role="), 4)
 
     def test_documented_allowlists_cover_every_implemented_secret_key(self):
         documentation = (ROOT / "docs" / "DEPLOYMENT_SECRETS.md").read_text(

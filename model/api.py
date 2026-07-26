@@ -14,6 +14,7 @@ import json as _json
 import math
 import os
 import re
+import sqlite3 as _sqlite3
 import sys
 import tempfile
 import threading
@@ -22,7 +23,7 @@ import unicodedata
 import uuid as _uuid
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, AsyncGenerator, Awaitable, Callable
+from typing import Any, AsyncGenerator, Awaitable, Callable, Literal
 
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
@@ -79,6 +80,7 @@ import prompt_composer as _prompt_composer
 import fact_enrichment as _facts
 import quality_objective as _qobj
 import performance_scoring as _perf
+import tracking_contract as _tracking_contract
 from artifact_loader import ensure_model_artifacts
 
 
@@ -13359,9 +13361,8 @@ def _account_export_payload(
             (user["id"],),
         )
     ]
-    tracking = [
-        dict(row)
-        for row in storage.fetchall(
+    tracking = []
+    for row in storage.fetchall(
             "SELECT id,source_note_id,source_root_note_id,source_session_id,xhs_url,"
             "xhs_note_id,note_title,domain,predicted_ces,published_at,submitted_at,"
             "check_24h_at,likes_24h,saves_24h,comments_24h,check_7d_at,likes_7d,"
@@ -13370,8 +13371,13 @@ def _account_export_payload(
             "confidence_label,evidence_source,training_eligible,status,completed_at "
             "FROM tracked_notes WHERE user_id=? ORDER BY submitted_at ASC",
             (user["id"],),
+        ):
+        public_row = dict(row)
+        public_row["xhs_url"] = _tracking_contract.safe_public_xhs_note_url(
+            public_row.get("xhs_url"),
+            public_row.get("xhs_note_id"),
         )
-    ]
+        tracking.append(public_row)
     sessions = [
         dict(row)
         for row in storage.fetchall(
@@ -13554,6 +13560,7 @@ def _insert_growth_record_with_storage(
     grade: str,
     action: str,
     recorded_at: str | None = None,
+    record_id: str | None = None,
 ) -> None:
     _assert_api_user_writable(storage, user_id)
     storage.execute(
@@ -13561,7 +13568,7 @@ def _insert_growth_record_with_storage(
         "id,user_id,note_id,domain,score,grade,action,recorded_at"
         ") VALUES(?,?,?,?,?,?,?,?)",
         (
-            str(_uuid.uuid4()),
+            record_id or str(_uuid.uuid4()),
             user_id,
             note_id,
             domain,
@@ -14202,30 +14209,22 @@ async def profile_achievements(user: dict = Depends(_auth.get_current_user)):
 # URL 追踪系统（用户端）
 # ═══════════════════════════════════════════════════════════════════════
 
-import re as _re
-
 class TrackUrlInput(BaseModel):
-    xhs_url:        str
-    domain:         str = "美食"
+    xhs_url:        str = Field(min_length=1, max_length=2048)
+    domain:         str = Field(default="美食", min_length=1, max_length=32)
     published_at:   Optional[str] = None  # 用户填写的发布时间（ISO格式或空）
-    predicted_ces:  Optional[float] = None
-    note_title:     Optional[str] = None
-    source_note_id: Optional[str] = None
-    source_note_version_id: Optional[str] = None
-    source_session_id: Optional[str] = None
+    predicted_ces:  Optional[float] = Field(default=None, ge=0, le=100)
+    note_title:     Optional[str] = Field(default=None, max_length=200)
+    source_note_id: Optional[str] = Field(default=None, max_length=128)
+    source_note_version_id: Optional[str] = Field(default=None, max_length=128)
+    source_session_id: Optional[str] = Field(default=None, max_length=128)
 
 def _extract_xhs_note_id(url: str) -> Optional[str]:
-    """从小红书 URL 中提取 note_id。"""
-    patterns = [
-        r"explore/([a-f0-9]{24})",
-        r"discovery/item/([a-f0-9]{24})",
-        r"/([a-f0-9]{24})(?:\?|$)",
-    ]
-    for pat in patterns:
-        m = _re.search(pat, url)
-        if m:
-            return m.group(1)
-    return None
+    """Extract only from the shared strict canonical URL contract."""
+    try:
+        return _tracking_contract.normalize_xhs_note_url(url)[1]
+    except _tracking_contract.TrackingContractError:
+        return None
 
 
 def _tracking_row_value(row, key: str, default=None):
@@ -14236,36 +14235,64 @@ def _tracking_row_value(row, key: str, default=None):
 
 
 def _parse_tracking_base_time(value: str | None) -> _dt.datetime:
-    now = _dt.datetime.now(_dt.timezone.utc)
-    if not value:
-        return now
-    try:
-        parsed = _dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=_dt.timezone.utc)
-        return parsed.astimezone(_dt.timezone.utc)
-    except Exception:
-        return now
+    normalized = _tracking_contract.parse_published_at(value)
+    return (
+        _dt.datetime.fromisoformat(normalized)
+        if normalized is not None
+        else _dt.datetime.now(_dt.timezone.utc)
+    )
 
 
 def _tracking_next_check_at(published_at: str | None, hours: int = 24) -> str:
-    now = _dt.datetime.now(_dt.timezone.utc)
-    due = _parse_tracking_base_time(published_at) + _dt.timedelta(hours=hours)
-    return (due if due > now else now).isoformat()
+    return _tracking_contract.next_check_at(published_at, hours=hours)
+
+
+def _public_tracking_row(row: Any) -> dict:
+    public = dict(row)
+    public["xhs_url"] = _tracking_contract.safe_public_xhs_note_url(
+        public.get("xhs_url"),
+        public.get("xhs_note_id"),
+    )
+    public["provider_attempt_state"] = (
+        "in_progress" if public.get("active_attempt_id") else None
+    )
+    for private_key in (
+        "claim_token",
+        "claim_expires_at",
+        "active_attempt_id",
+    ):
+        public.pop(private_key, None)
+    return public
+
+
+def _tracking_duplicate_error(exc: BaseException) -> bool:
+    return (
+        isinstance(exc, _sqlite3.IntegrityError)
+        or getattr(exc, "sqlstate", None) == "23505"
+    )
 
 @app.post("/notes/track-url")
 async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_user)):
     """提交小红书笔记 URL 开始追踪。"""
-    url = req.xhs_url.strip()
-    if "xiaohongshu.com" not in url and "xhslink.com" not in url:
-        raise HTTPException(status_code=400, detail="请输入有效的小红书笔记链接")
+    try:
+        url, note_id = _tracking_contract.normalize_xhs_note_url(req.xhs_url)
+        published_at = _tracking_contract.parse_published_at(req.published_at)
+    except _tracking_contract.TrackingContractError as exc:
+        detail = (
+            "暂不支持短链，请粘贴 HTTPS 小红书完整笔记链接"
+            if "xhslink.com" in req.xhs_url.lower()
+            else "请输入有效的 HTTPS 小红书完整笔记链接和发布时间"
+        )
+        raise HTTPException(status_code=400, detail=detail) from exc
     # 检查是否已追踪
     existing = _db.fetchone(
-        "SELECT id FROM tracked_notes WHERE user_id=? AND xhs_url=?", (user["id"], url))
+        "SELECT id FROM tracked_notes WHERE user_id=? "
+        "AND (xhs_url=? OR xhs_note_id=?)",
+        (user["id"], url, note_id),
+    )
     if existing:
         raise HTTPException(status_code=409, detail="该笔记已在追踪中")
     tid = str(_uuid.uuid4())
-    note_id = _extract_xhs_note_id(url)
     now = _now_iso()
     source_note_id = req.source_note_id or req.source_note_version_id
     source_root_note_id = None
@@ -14288,28 +14315,40 @@ async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_u
         )
         if not sess:
             raise HTTPException(status_code=404, detail="关联对话不存在或无权访问")
-    next_check_at = _tracking_next_check_at(req.published_at, hours=24)
-    with _api_write_transaction() as tx:
-        _assert_api_user_writable(tx, user["id"])
-        duplicate = tx.fetchone(
-            "SELECT id FROM tracked_notes WHERE user_id=? AND xhs_url=?",
-            (user["id"], url),
-        )
-        if duplicate:
-            raise HTTPException(status_code=409, detail="该笔记已在追踪中")
-        tx.execute(
-            "INSERT INTO tracked_notes("
-            "id,user_id,source_note_id,source_root_note_id,source_session_id,"
-            "xhs_url,xhs_note_id,note_title,domain,predicted_ces,published_at,submitted_at,"
-            "next_check_at,status,evidence_source,confidence,confidence_label,training_eligible"
-            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (
-                tid, user["id"], source_note_id, source_root_note_id,
-                req.source_session_id, url, note_id, note_title, domain,
-                predicted_ces, req.published_at, now, next_check_at, "pending",
-                "", None, "", 0,
-            ),
-        )
+    next_check_at = _tracking_next_check_at(published_at, hours=24)
+    try:
+        with _api_write_transaction() as tx:
+            _assert_api_user_writable(tx, user["id"])
+            duplicate = tx.fetchone(
+                "SELECT id FROM tracked_notes WHERE user_id=? "
+                "AND (xhs_url=? OR xhs_note_id=?)",
+                (user["id"], url, note_id),
+            )
+            if duplicate:
+                raise HTTPException(status_code=409, detail="该笔记已在追踪中")
+            tx.execute(
+                "INSERT INTO tracked_notes("
+                "id,user_id,source_note_id,source_root_note_id,source_session_id,"
+                "xhs_url,xhs_note_id,note_title,domain,predicted_ces,published_at,submitted_at,"
+                "next_check_at,status,evidence_source,confidence,confidence_label,"
+                "training_eligible,max_attempts"
+                ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    tid, user["id"], source_note_id, source_root_note_id,
+                    req.source_session_id, url, note_id, note_title, domain,
+                    predicted_ces, published_at, now, next_check_at, "pending",
+                    "", None, "", 0, 1,
+                ),
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        if _tracking_duplicate_error(exc):
+            raise HTTPException(
+                status_code=409,
+                detail="该笔记已在追踪中",
+            ) from exc
+        raise
     return {
         "id": tid,
         "status": "pending",
@@ -14339,7 +14378,7 @@ async def list_tracking(
         f"SELECT * FROM tracked_notes WHERE {' AND '.join(where)} ORDER BY submitted_at DESC",
         tuple(params),
     )
-    return {"notes": [dict(r) for r in rows]}
+    return {"notes": [_public_tracking_row(r) for r in rows]}
 
 @app.get("/notes/tracking/{track_id}")
 async def get_tracking(track_id: str, user: dict = Depends(_auth.get_current_user)):
@@ -14347,14 +14386,30 @@ async def get_tracking(track_id: str, user: dict = Depends(_auth.get_current_use
         "SELECT * FROM tracked_notes WHERE id=? AND user_id=?", (track_id, user["id"]))
     if not row:
         raise HTTPException(status_code=404, detail="追踪记录不存在")
-    return dict(row)
+    return _public_tracking_row(row)
 
 class ManualFillInput(BaseModel):
-    likes:    int = 0
-    saves:    int = 0
-    comments: int = 0
-    views:    Optional[int] = None  # 可选，用于浏览量
-    evidence_source: str = "manual"
+    likes: int = Field(
+        default=0,
+        ge=0,
+        le=_tracking_contract.MAX_METRIC_VALUE,
+    )
+    saves: int = Field(
+        default=0,
+        ge=0,
+        le=_tracking_contract.MAX_METRIC_VALUE,
+    )
+    comments: int = Field(
+        default=0,
+        ge=0,
+        le=_tracking_contract.MAX_METRIC_VALUE,
+    )
+    views: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=_tracking_contract.MAX_METRIC_VALUE,
+    )
+    evidence_source: Literal["manual"] = "manual"
 
 @app.post("/notes/tracking/{track_id}/fill")
 async def fill_tracking_data(
@@ -14362,34 +14417,47 @@ async def fill_tracking_data(
     user: dict = Depends(_auth.get_current_user)
 ):
     """用户手动回填互动数据（自动采集失败时使用）。"""
-    row = _db.fetchone(
-        "SELECT * FROM tracked_notes WHERE id=? AND user_id=?", (track_id, user["id"]))
-    if not row:
-        raise HTTPException(status_code=404, detail="追踪记录不存在")
     now = _now_iso()
-    domain = row["domain"] or "美食"
-    source_note_id = _tracking_row_value(row, "source_note_id")
-    score = _perf.score_performance(
-        domain=domain,
-        likes=req.likes,
-        saves=req.saves,
-        comments=req.comments,
-        views=req.views,
-        predicted_ces=_tracking_row_value(row, "predicted_ces"),
-        evidence_source=req.evidence_source or "manual",
-        window="7d",
-        likes_24h=_tracking_row_value(row, "likes_24h"),
-        saves_24h=_tracking_row_value(row, "saves_24h"),
-        comments_24h=_tracking_row_value(row, "comments_24h"),
-    )
     with _api_write_transaction() as tx:
         _assert_api_user_writable(tx, user["id"])
-        tx.execute(
+        lock = " FOR UPDATE" if getattr(tx, "postgres", False) else ""
+        row = tx.fetchone(
+            f"SELECT * FROM tracked_notes WHERE id=? AND user_id=?{lock}",
+            (track_id, user["id"]),
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="追踪记录不存在")
+        if (
+            row["status"] not in _tracking_contract.MANUAL_FILL_STATUSES
+            or _tracking_row_value(row, "active_attempt_id") is not None
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="该追踪记录当前不可手动回填",
+            )
+        domain = row["domain"] or "美食"
+        source_note_id = _tracking_row_value(row, "source_note_id")
+        score = _perf.score_performance(
+            domain=domain,
+            likes=req.likes,
+            saves=req.saves,
+            comments=req.comments,
+            views=req.views,
+            predicted_ces=_tracking_row_value(row, "predicted_ces"),
+            evidence_source="manual",
+            window="7d",
+            likes_24h=_tracking_row_value(row, "likes_24h"),
+            saves_24h=_tracking_row_value(row, "saves_24h"),
+            comments_24h=_tracking_row_value(row, "comments_24h"),
+        )
+        cursor = tx.execute(
             "UPDATE tracked_notes SET likes_7d=?,saves_7d=?,comments_7d=?,views_est=?,"
             "actual_ces=?,check_7d_at=?,last_checked_at=?,manual_filled=1,"
             "status='complete',confidence=?,confidence_label=?,evidence_source=?,"
             "training_eligible=?,insights_json=?,completed_at=?,"
-            "last_error_code=NULL,last_error=NULL WHERE id=? AND user_id=?",
+            "last_error_code=NULL,last_error=NULL,claim_token=NULL,"
+            "claim_expires_at=NULL WHERE id=? AND user_id=? "
+            "AND status IN ('needs_manual','failed') AND active_attempt_id IS NULL",
             (
                 req.likes, req.saves, req.comments, score.views_est,
                 score.actual_ces, now, now, score.confidence,
@@ -14398,6 +14466,11 @@ async def fill_tracking_data(
                 now, track_id, user["id"],
             ),
         )
+        if getattr(cursor, "rowcount", 1) != 1:
+            raise HTTPException(
+                status_code=409,
+                detail="该追踪记录状态已变化",
+            )
         _insert_growth_record_with_storage(
             tx,
             user_id=user["id"],
@@ -14407,18 +14480,26 @@ async def fill_tracking_data(
             grade=score.grade,
             action="url_track",
             recorded_at=now,
+            record_id=_tracking_contract.deterministic_effect_id(
+                track_id,
+                "growth",
+            ),
         )
-    try:
         title = row["note_title"] or "已发布笔记"
-        _memory.add_context(
+        _memory._add_memory_with_storage(
+            tx,
             user["id"],
+            "context",
             f"真实表现追踪：{title[:24]}，7天实际{score.actual_ces:.1f}分，"
             f"{score.confidence_label}置信度，强项{score.insights.get('strongest_signal')}，"
             f"短板{score.insights.get('weakest_signal')}",
+            importance=0.5,
             source_note_id=source_note_id,
+            memory_id=_tracking_contract.deterministic_effect_id(
+                track_id,
+                "memory",
+            ),
         )
-    except Exception:
-        pass
     return {
         "ok": True,
         "actual_ces": score.actual_ces,
@@ -14433,6 +14514,19 @@ async def fill_tracking_data(
 async def delete_tracking(track_id: str, user: dict = Depends(_auth.get_current_user)):
     with _api_write_transaction() as tx:
         _assert_api_user_writable(tx, user["id"])
+        lock = " FOR UPDATE" if getattr(tx, "postgres", False) else ""
+        row = tx.fetchone(
+            f"SELECT active_attempt_id FROM tracked_notes "
+            f"WHERE id=? AND user_id=?{lock}",
+            (track_id, user["id"]),
+        )
+        if not row:
+            return {"ok": True}
+        if row["active_attempt_id"] is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="采集尝试正在结算，请稍后再删除",
+            )
         tx.execute(
             "DELETE FROM tracked_notes WHERE id=? AND user_id=?",
             (track_id, user["id"]),

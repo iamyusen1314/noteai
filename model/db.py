@@ -122,6 +122,20 @@ def _sqlite_retention_clock_lte(left: Any, right: Any) -> int:
     )
 
 
+def _sqlite_tracking_clock_valid(value: Any) -> int:
+    return int(_parse_retention_deadline_clock(value) is not None)
+
+
+def _sqlite_tracking_clock_lte(left: Any, right: Any) -> int:
+    left_clock = _parse_retention_deadline_clock(left)
+    right_clock = _parse_retention_deadline_clock(right)
+    return int(
+        left_clock is not None
+        and right_clock is not None
+        and left_clock <= right_clock
+    )
+
+
 def _retention_now() -> _datetime:
     return _datetime.now(_timezone.utc)
 
@@ -235,6 +249,18 @@ def _get_sqlite_conn(*, timeout_seconds: float | None = None) -> sqlite3.Connect
         "noteai_retention_clock_not_future",
         1,
         _sqlite_retention_clock_not_future,
+    )
+    conn.create_function(
+        "noteai_tracking_clock_valid",
+        1,
+        _sqlite_tracking_clock_valid,
+        deterministic=True,
+    )
+    conn.create_function(
+        "noteai_tracking_clock_lte",
+        2,
+        _sqlite_tracking_clock_lte,
+        deterministic=True,
     )
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
@@ -1427,7 +1453,10 @@ CREATE TABLE IF NOT EXISTS tracked_notes (
     last_error_code TEXT,
     last_error      TEXT,
     completed_at    TEXT,
-    insights_json   TEXT                -- AI 洞察结果 JSON
+    insights_json   TEXT,               -- AI 洞察结果 JSON
+    claim_token     TEXT,
+    claim_expires_at TEXT,
+    active_attempt_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_tracked_user ON tracked_notes(user_id, submitted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tracked_status ON tracked_notes(status, submitted_at);
@@ -1448,12 +1477,98 @@ CREATE INDEX IF NOT EXISTS idx_tracked_status ON tracked_notes(status, submitted
             "last_error_code": "ALTER TABLE tracked_notes ADD COLUMN last_error_code TEXT",
             "last_error": "ALTER TABLE tracked_notes ADD COLUMN last_error TEXT",
             "completed_at": "ALTER TABLE tracked_notes ADD COLUMN completed_at TEXT",
+            "claim_token": "ALTER TABLE tracked_notes ADD COLUMN claim_token TEXT",
+            "claim_expires_at": "ALTER TABLE tracked_notes ADD COLUMN claim_expires_at TEXT",
+            "active_attempt_id": "ALTER TABLE tracked_notes ADD COLUMN active_attempt_id TEXT",
         }
         for col, sql in tracked_additions.items():
             if col not in tracked_cols:
                 conn.execute(sql)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tracked_source_note ON tracked_notes(user_id, source_note_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tracked_next_check ON tracked_notes(status, next_check_at)")
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_tracked_user_url "
+            "ON tracked_notes(user_id,xhs_url)"
+        )
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_tracked_user_note "
+            "ON tracked_notes(user_id,xhs_note_id) WHERE xhs_note_id IS NOT NULL"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tracked_claim "
+            "ON tracked_notes(status,claim_expires_at,active_attempt_id,next_check_at)"
+        )
+        conn.executescript("""
+CREATE TABLE IF NOT EXISTS tracking_provider_attempts (
+    id              TEXT PRIMARY KEY,
+    track_id        TEXT NOT NULL REFERENCES tracked_notes(id) ON DELETE CASCADE,
+    user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    run_id           TEXT NOT NULL,
+    stage           TEXT NOT NULL CHECK(stage IN ('24h','7d')),
+    status          TEXT NOT NULL CHECK(status IN ('started','succeeded','failed')),
+    admitted_at     TEXT NOT NULL,
+    completed_at    TEXT,
+    error_code      TEXT,
+    UNIQUE(track_id,stage)
+);
+CREATE INDEX IF NOT EXISTS idx_tracking_attempt_user
+ON tracking_provider_attempts(user_id,admitted_at DESC);
+CREATE TRIGGER IF NOT EXISTS tracking_attempt_owner_insert
+BEFORE INSERT ON tracking_provider_attempts
+WHEN NOT EXISTS (
+    SELECT 1 FROM tracked_notes
+    WHERE id=NEW.track_id AND user_id=NEW.user_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'tracking attempt owner mismatch');
+END;
+CREATE TRIGGER IF NOT EXISTS tracking_attempt_owner_update
+BEFORE UPDATE OF track_id,user_id ON tracking_provider_attempts
+WHEN NOT EXISTS (
+    SELECT 1 FROM tracked_notes
+    WHERE id=NEW.track_id AND user_id=NEW.user_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'tracking attempt owner mismatch');
+END;
+CREATE TRIGGER IF NOT EXISTS tracked_active_attempt_insert
+BEFORE INSERT ON tracked_notes
+WHEN NEW.active_attempt_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM tracking_provider_attempts
+    WHERE id=NEW.active_attempt_id
+      AND track_id=NEW.id
+      AND user_id=NEW.user_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'tracking active attempt mismatch');
+END;
+CREATE TRIGGER IF NOT EXISTS tracked_active_attempt_update
+BEFORE UPDATE OF active_attempt_id ON tracked_notes
+WHEN NEW.active_attempt_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM tracking_provider_attempts
+    WHERE id=NEW.active_attempt_id
+      AND track_id=NEW.id
+      AND user_id=NEW.user_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'tracking active attempt mismatch');
+END;
+        """)
+        attempt_cols = [
+            r[1]
+            for r in conn.execute(
+                "PRAGMA table_info(tracking_provider_attempts)"
+            ).fetchall()
+        ]
+        if "run_id" not in attempt_cols:
+            conn.execute(
+                "ALTER TABLE tracking_provider_attempts "
+                "ADD COLUMN run_id TEXT"
+            )
+            conn.execute(
+                "UPDATE tracking_provider_attempts "
+                "SET run_id='legacy-' || id WHERE run_id IS NULL"
+            )
         conn.executescript("""
 CREATE TABLE IF NOT EXISTS admin_sessions (
     token       TEXT PRIMARY KEY,

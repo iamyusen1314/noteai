@@ -624,13 +624,37 @@ class DirectAdapterIntegrationTests(unittest.TestCase):
             {"id": "note-1", "status": "pending"},
             {"id": "note-2", "status": "pending"},
         ]
-        with mock.patch.object(crawler, "_record_tracking_failure") as failure, \
+        def admit(note):
+            return {**note, "active_attempt_id": f"attempt-{note['id']}"}
+
+        with mock.patch.object(
+                crawler, "_admit_provider_attempt", side_effect=admit
+            ), mock.patch.object(
+                crawler, "_release_unstarted_claim"
+            ) as release, mock.patch.object(
+                crawler, "_record_tracking_failure"
+            ) as failure, \
                 mock.patch.object(crawler, "_save_log"):
             result = asyncio.run(crawler._process_tracking_notes(notes, fetch_detail))
 
         self.assertEqual(calls, ["note-1"])
-        self.assertEqual(result, {"collected": 0, "failed": 1, "total": 2})
-        failure.assert_called_once_with(notes[0], "challenge", "challenge")
+        self.assertEqual(
+            result,
+            {
+                "claimed": 2,
+                "attempted": 1,
+                "collected": 0,
+                "failed": 1,
+                "released": 1,
+                "total": 2,
+            },
+        )
+        failure.assert_called_once_with(
+            {**notes[0], "active_attempt_id": "attempt-note-1"},
+            "challenge",
+            "challenge",
+        )
+        release.assert_called_once_with(notes[1])
 
 
 if __name__ == "__main__":

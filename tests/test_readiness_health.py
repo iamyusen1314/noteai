@@ -436,6 +436,16 @@ class DatabaseHealthTimeoutTests(unittest.TestCase):
                         {"deterministic": True},
                     ),
                     ("noteai_retention_clock_not_future", 1, {}),
+                    (
+                        "noteai_tracking_clock_valid",
+                        1,
+                        {"deterministic": True},
+                    ),
+                    (
+                        "noteai_tracking_clock_lte",
+                        2,
+                        {"deterministic": True},
+                    ),
                 ],
             )
 

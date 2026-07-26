@@ -37,8 +37,9 @@ def _add_memory_with_storage(
     content: str,
     importance: float = 0.6,
     source_note_id: str | None = None,
+    memory_id: str | None = None,
 ) -> str:
-    mid = str(uuid.uuid4())
+    mid = memory_id or str(uuid.uuid4())
     now = _now()
     storage.execute(
         "INSERT INTO user_memories("

@@ -186,6 +186,18 @@ Contract acceptances are append-only per `(user_id, contract_version)`;
 Its already verified minimum matrix, including only `SELECT` on
 `public.xhs_crawler_health`, must remain unchanged.
 
+For the later Tracking service, the current `noteai_xhs` identity is only a
+historical Trends/Tracking union and is not an acceptable long-lived runtime
+identity. Migration `0010_tracking_execution_contract.sql` introduces
+`tracking_provider_attempts` and new claim columns but intentionally grants
+nothing. The dedicated `noteai_xhs_tracking` positive and complete negative
+matrix is defined in `docs/XHS_TRACKING_PRODUCTION_CONTRACT.md`. In
+particular, it receives column-limited Tracking updates, insert-only growth,
+memory and crawler-event surfaces, read-only settings, and zero Trends-table
+access. It must not gain `users SELECT` merely to call the generic memory
+writer; the reviewed Tracking path inserts its deterministic context memory
+inside the already-fenced terminal transaction.
+
 ## Verification required before production use
 
 A separately approved database task must:

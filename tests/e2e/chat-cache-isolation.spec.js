@@ -182,7 +182,13 @@ for (const authMode of ['login', 'register']) {
       _authTab = mode;
       document.getElementById('auth-username').value = 'synthetic_b';
       document.getElementById('auth-password').value = 'synthetic-password';
-      document.getElementById('auth-email').value = 'synthetic-b@example.invalid';
+      document.getElementById('auth-email').value = (
+        mode === 'register' ? '' : 'synthetic-b@example.invalid'
+      );
+      if (mode === 'register') {
+        document.getElementById('auth-privacy-consent').checked = true;
+        document.getElementById('auth-cross-border-consent').checked = true;
+      }
       return doAuth();
     }, authMode);
     await expect.poll(() => page.evaluate(() => _authUser?.id)).toBe(OWNER_B.id);

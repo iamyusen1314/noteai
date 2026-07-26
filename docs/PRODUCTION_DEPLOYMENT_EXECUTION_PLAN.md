@@ -49,8 +49,9 @@ do not silently colocate more roles or buy capacity.
 
 ## 3. Blocking findings before any deployment
 
-1. `PROD-DEPLOY-ENV-SPLIT-001` closes the repository-side shared env-file
-   defect: API, Admin and XHS now use separate env-file inputs, and
+1. `PROD-DEPLOY-ENV-SPLIT-001` closes the original repository-side shared
+   env-file defect. The later Tracking contract further splits Trends and
+   Tracking, so API, Admin, Trends and Tracking now use four distinct inputs;
    `scripts/validate_production_env_files.py` rejects unknown, duplicate or
    cross-role Secret key names without printing values. The live files and
    their permissions still require read-only verification on API-C/API-F.
@@ -147,9 +148,11 @@ do not silently colocate more roles or buy capacity.
 - Start `xhs-trends` before `xhs-tracking`, never together.
 - Keep `NOTEAI_XHS_COLLECTION_SUSPENDED=1`, leave snapshot upload disabled,
   keep crawler configuration disabled, and make no real XHS request.
-- This role has `HEALTHCHECK NONE`; acceptance is the expected non-root process
-  command, stable container state for the approved observation window, bounded
-  redacted logs, no unexpected restart, and proof of zero external collection.
+- Trends has no healthcheck. Tracking uses only its provider-free read-only
+  schema/role healthcheck and `restart: "no"`; a failed round stays stopped
+  for evidence review instead of automatically retrying. Acceptance also
+  requires the expected non-root process command, bounded redacted logs and
+  proof of zero external collection.
 - Any database/snapshot writes must match the separately approved bounded
   list. Do not use a browser fallback, proxy rotation or challenge bypass.
 
@@ -165,7 +168,8 @@ approval. No earlier gate implies approval for Gate 6.
 |---|---|---|
 | API | `/health/live`: process-only HTTP `200` | `/health/ready`: HTTP `200` only when PostgreSQL and the required local model are healthy; HTTP `503` otherwise |
 | Admin | `/health/live`: process-only HTTP `200` | `/health/ready`: HTTP `200` only when PostgreSQL and Admin credential presence are healthy; HTTP `503` otherwise |
-| XHS HTTP | No HTTP listener and no Docker healthcheck | Process/command identity, runtime constraints, suspension state, bounded logs and zero external collection |
+| XHS Trends | No HTTP listener or Docker healthcheck | Process/command identity, runtime constraints, suspension state, bounded logs and zero external collection |
+| XHS Tracking | No HTTP listener; provider-free read-only Docker healthcheck | Exact role/schema readiness, stale/unlinked-attempt failure, suspension state, bounded logs and zero external collection |
 
 Claude, Kimi, Amap, Meituan, XHS, market freshness, crawler and payment are not
 load-balancer health dependencies and must not be called by these probes.

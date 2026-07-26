@@ -111,8 +111,16 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
             1,
         )
         self.assertEqual(
-            compose.count("${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}"),
-            2,
+            compose.count(
+                "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
+            ),
+            1,
+        )
+        self.assertEqual(
+            compose.count(
+                "${NOTEAI_XHS_TRACKING_ENV_FILE:-/etc/noteai/xhs-tracking.env}"
+            ),
+            1,
         )
         self.assertIn(
             "${NOTEAI_API_ENV_FILE:-/etc/noteai/api.env}",
@@ -123,11 +131,11 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
             service_block(compose, "admin"),
         )
         self.assertIn(
-            "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}",
+            "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}",
             service_block(compose, "xhs-trends"),
         )
         self.assertIn(
-            "${NOTEAI_XHS_ENV_FILE:-/etc/noteai/xhs.env}",
+            "${NOTEAI_XHS_TRACKING_ENV_FILE:-/etc/noteai/xhs-tracking.env}",
             service_block(compose, "xhs-tracking"),
         )
         self.assertNotIn("NOTEAI_PRODUCTION_ENV_FILE", compose)
@@ -188,6 +196,15 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
                 self.assertFalse(
                     _compose_services_have_runtime_hardening(mutation, services)
                 )
+
+    def test_tracking_worker_fails_stopped_and_has_provider_free_healthcheck(self):
+        compose = (
+            ROOT / "deploy" / "production" / "docker-compose.yml"
+        ).read_text(encoding="utf-8")
+        tracking = compose.split("\n  xhs-tracking:\n", 1)[1]
+        self.assertIn('restart: "no"', tracking)
+        self.assertNotIn('restart: "on-failure', tracking)
+        self.assertIn("--healthcheck", tracking)
 
 
 if __name__ == "__main__":
