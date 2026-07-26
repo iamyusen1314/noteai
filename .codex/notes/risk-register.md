@@ -11,7 +11,7 @@ Last updated: 2026-07-27
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付合同、Adapay离线适配器/专用运行时及UI/Admin仓库门禁也已通过，均为`NOT DEPLOYED`。UI/Admin应用checkpoint为`d358114e37c1e85e0ed068c1aca3ff87bfc36b6f`；migration `0014` SHA仍为`ed788fdf…b0ad`。生产未访问，仍是migration `0001`–`0008`；`0009`–`0014`未应用，当前代码尚未形成或部署新镜像。
-- 当前下一步: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`已记录一次`BLOCKED / AUTHENTICATION UNAVAILABLE / ZERO MUTATION`：当前工作会话没有已认证的阿里云、生产数据库或SSH目标路径，历史生产事实不得冒充新证据。认证状态不变时不得重复该能力检查。当前可执行任务为仓库/隔离`PROD-FIRST-LAUNCH-ADMIN-ROLE-CONTRACT-001`，只实现并证明专用`noteai_admin`最小权限合同；不得执行生产`0009`–`0014`、GRANT/REVOKE、provider、service/image/ACR或流量变更。
+- 当前下一步: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`已记录一次`BLOCKED / AUTHENTICATION UNAVAILABLE / ZERO MUTATION`：当前工作会话没有已认证的阿里云、生产数据库或SSH目标路径，历史生产事实不得冒充新证据。认证状态不变时不得重复该能力检查。`PROD-FIRST-LAUNCH-ADMIN-ROLE-CONTRACT-001`已在仓库/隔离PostgreSQL通过；当前可执行任务为`PROD-FIRST-LAUNCH-FRONTEND-ASSET-SELFHOST-001`。不得执行生产`0009`–`0015`、GRANT/REVOKE、provider、service/image/ACR或流量变更。
 - 授权边界: 产品负责人已授权CTO持续执行仓库、离线、隔离环境和只读内部准备度任务，无需重复询问。不可逆破坏、新产品决策、无上限新增持续费用、公开DNS/真实用户流量仍不由该授权自动完成。
 
 ### Billing or credit accounting is wrong
@@ -24,13 +24,14 @@ Last updated: 2026-07-27
 
 ### Auth/session/admin permission regression
 
-- 风险描述: User auth and admin auth are separate。仓库UI/Admin合同已在`d358114…`把生产业务变更全部fail-closed、会话token改为仅存SHA-256摘要、浏览器改用tab-scoped sessionStorage，并最小化PII/CORS；但当前生产尚未部署该版本，专用`noteai_admin` PostgreSQL角色/RLS/ACL也未完成隔离验证或生产应用。
+- 风险描述: User auth and admin auth are separate。仓库UI/Admin合同已在`d358114…`把生产业务变更全部fail-closed；`9d8cd57…`又通过实际LOGIN、Secret过滤及完整权限负向矩阵关闭专用`noteai_admin`仓库/隔离实现。当前生产仍未部署该版本或应用`0015`/ACL。
 - 涉及文件: `model/auth.py`, `model/admin_auth.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`.
 - 可能后果: Permission bypass, account takeover, unauthorized credit/subscription changes, leakage of user/admin data.
-- 建议验证方式: 不重复已通过的仓库UI/Admin回归。下一步在disposable PostgreSQL实现和证明`admin_sessions`仅`SELECT/INSERT/DELETE`、必要运营表仅`SELECT`、其余表/列/序列/函数/DDL/角色能力全部拒绝；再由未来独立生产任务验证loopback登录、读取、退出、失效及业务零写入。
+- 建议验证方式: 不重复已通过的仓库UI/Admin或Admin-role PostgreSQL合同。未来生产任务先只读preflight，再应用精确migration/ACL并验证loopback登录、读取、退出、失效、重启及业务零写入。
 - 是否需要用户确认后才能修改: yes.
 - 2026-07-26进展: `REVERIFY-009` 独立确认既有删除/租约、Admin/Tracking栅栏、H6时间合同及固定异常边界继续通过；安全+reasoning `63/63`、聚焦`114/114`、API合同`152/152`、全量`702`（跳过`5`）及就绪门禁`86/86`通过。仓库子路径仍有下面单独记录的expert结构化持久化High；真实 PostgreSQL contention、生产 migration/精确授权、供应商与受控生产验收仍为首发门禁。
 - 2026-07-27进展: `PROD-FIRST-LAUNCH-UI-ADMIN-CONTRACT-001`为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。完整串行Python `895`加`20`skip、E2E `68/68`及readiness `100/100`通过；无生产或外部影响，费用`¥0`。本风险保留为High仅因为精确DB角色及生产部署/运行时证据仍缺失。
+- 2026-07-27角色进展: `PROD-FIRST-LAUNCH-ADMIN-ROLE-CONTRACT-001`为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。Migration `0015` SHA `3ee9b85c…d66c`、实际LOGIN/session生命周期、Secret RLS、完整表列序列/角色矩阵`4/4`及全量Python `901`通过；临时资源清零并恢复Colima停止。High仅保留在生产preflight、migration/ACL/credential/image及HTTP运行时证据。
 
 ### External browser CDN dependency remains a production availability boundary
 
