@@ -85,6 +85,8 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
         self.assertIn("--scanners vuln --severity HIGH,CRITICAL", source)
         self.assertIn("--scanners secret", source)
         self.assertIn("browser_component_count", source)
+        self.assertIn("cryptography_component_count", source)
+        self.assertIn('.name == "cryptography" and .version == "48.0.1"', source)
         self.assertIn("forbidden_os_count", source)
         self.assertIn("all($roles[]; .passed == true)", source)
 

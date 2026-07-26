@@ -855,6 +855,11 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and all(package not in dockerfile for package in ("libgl1", "libglib2.0-0", "libsm6", "libxext6", "libxrender1")),
         ),
         _ok(
+            "cryptography_pins_first_fixed_openssl_wheel",
+            "cryptography==48.0.1" in api_requirement_lines
+            and "cryptography==46.0.7" not in api_requirement_lines,
+        ),
+        _ok(
             "production_targets_exclude_browser_dependencies_and_commands",
             all(
                 "playwright" not in stage.lower() and "chromium" not in stage.lower()

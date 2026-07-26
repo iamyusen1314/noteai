@@ -47,8 +47,11 @@ production migration, grant, service start or cash movement.
   implementation uses process-global credential state and can log request
   parameters or signatures. NoteAI reproduces its documented wire signature
   contract with instance-local credentials and pinned
-  `cryptography==46.0.7`, the newest verified line compatible with the
-  repository's existing training-tool environment.
+  `cryptography==48.0.1`, the first release fixed for
+  `GHSA-537c-gmf6-5ccf`. Production role requirements deliberately exclude
+  MLflow: the current local training-tool release requires
+  `cryptography<47`, so training and payment/runtime dependencies must not
+  share one production environment.
 - POST requests sign the exact full URL plus the default Python JSON encoding;
   GET requests sign the full URL plus ASCII-sorted plain `key=value` pairs.
   Every API result must be the signed `data`/`signature` envelope and is

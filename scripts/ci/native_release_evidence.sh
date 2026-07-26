@@ -145,11 +145,13 @@ for role in "${roles[@]}"; do
   high_count="$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' "${vulnerability_report}")"
   secret_count="$(jq '[.Results[]?.Secrets[]?] | length' "${secret_report}")"
   browser_component_count="$(jq '[.components[]? | select(.name | ascii_downcase | test("playwright|chromium|google-chrome"))] | length' "${sbom}")"
+  cryptography_component_count="$(jq '[.components[]? | select(.name == "cryptography" and .version == "48.0.1")] | length' "${sbom}")"
   forbidden_os_count="$(grep -Ec '^(libgl1|libglib2\.0-0|libsm6|libxext6|libxrender1|chromium|google-chrome.*)$' "${os_packages}" || true)"
   forbidden_os_count="${forbidden_os_count:-0}"
 
   if [[ "${critical_count}" != "0" || "${high_count}" != "0" || "${secret_count}" != "0" \
-    || "${browser_component_count}" != "0" || "${forbidden_os_count}" != "0" ]]; then
+    || "${browser_component_count}" != "0" || "${cryptography_component_count}" != "1" \
+    || "${forbidden_os_count}" != "0" ]]; then
     valid=false
   fi
 
@@ -185,6 +187,7 @@ for role in "${roles[@]}"; do
     --argjson high "${high_count}" \
     --argjson secrets "${secret_count}" \
     --argjson browser_components "${browser_component_count}" \
+    --argjson cryptography_48_0_1_components "${cryptography_component_count}" \
     --argjson forbidden_os_packages "${forbidden_os_count}" \
     --argjson passed "${valid}" \
     '{
@@ -200,6 +203,7 @@ for role in "${roles[@]}"; do
         high: $high,
         secrets: $secrets,
         browser_components: $browser_components,
+        cryptography_48_0_1_components: $cryptography_48_0_1_components,
         forbidden_os_packages: $forbidden_os_packages
       },
       passed: $passed
