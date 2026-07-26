@@ -1,0 +1,122 @@
+name: Native AMD64 release evidence
+
+on:
+  push:
+    branches:
+      - codex/quality-stabilization-real-chain
+    paths:
+      - .github/workflows/native-release-evidence.yml
+      - scripts/ci/native_release_evidence.sh
+  workflow_dispatch:
+    inputs:
+      release_commit:
+        description: Exact 40-character source commit to build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-release-evidence-${{ github.event_name == 'workflow_dispatch' && inputs.release_commit || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-scan:
+    name: Build and scan five native AMD64 roles
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    env:
+      RELEASE_COMMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.release_commit || github.sha }}
+      NOTEAI_OCI_SOURCE: https://github.com/iamyusen1314/noteai
+      SYFT_VERSION: "1.49.0"
+      SYFT_SHA256: 7aa2f03ee92739cf643279ba3990548b9925d4e22cae13f46831ee62821147fe
+      TRIVY_VERSION: "0.72.0"
+      TRIVY_SHA256: bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea
+      BUILDX_METADATA_PROVENANCE: max
+
+    steps:
+      - name: Validate requested revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "${RELEASE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release_commit must be an exact lowercase 40-character Git SHA" >&2
+            exit 2
+          fi
+
+      - name: Checkout exact source with full evidence history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_commit || github.sha }}
+          fetch-depth: 0
+          lfs: true
+          persist-credentials: false
+
+      - name: Verify native runner and immutable source
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "x86_64"
+          test "$(git rev-parse HEAD)" = "${RELEASE_COMMIT}"
+          test -z "$(git status --short)"
+          git lfs install --local
+          git lfs pull
+          git lfs ls-files
+          python3 scripts/fetch_model_artifacts.py --check-only --required
+          release_created="$(date -u -d "$(git show -s --format=%cI HEAD)" +%Y-%m-%dT%H:%M:%SZ)"
+          release_short="$(git rev-parse --short=7 HEAD)"
+          printf 'release_created=%s\n' "${release_created}" >> "${GITHUB_OUTPUT}"
+          printf 'release_short=%s\n' "${release_short}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install checksum-pinned scanners
+        shell: bash
+        run: |
+          set -euo pipefail
+          tool_dir="${RUNNER_TEMP}/noteai-release-tools"
+          mkdir -p "${tool_dir}"
+          curl --fail --silent --show-error --location \
+            "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz" \
+            --output "${tool_dir}/syft.tar.gz"
+          printf '%s  %s\n' "${SYFT_SHA256}" "${tool_dir}/syft.tar.gz" | sha256sum --check -
+          tar -xzf "${tool_dir}/syft.tar.gz" -C "${tool_dir}" syft
+          curl --fail --silent --show-error --location \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+            --output "${tool_dir}/trivy.tar.gz"
+          printf '%s  %s\n' "${TRIVY_SHA256}" "${tool_dir}/trivy.tar.gz" | sha256sum --check -
+          tar -xzf "${tool_dir}/trivy.tar.gz" -C "${tool_dir}" trivy
+          printf '%s\n' "${tool_dir}" >> "${GITHUB_PATH}"
+
+      - name: Build, inspect, inventory and scan
+        id: evidence
+        env:
+          NOTEAI_OCI_CREATED: ${{ steps.source.outputs.release_created }}
+          NOTEAI_OCI_VERSION: git-${{ steps.source.outputs.release_short }}-amd64-r1
+          NOTEAI_EVIDENCE_DIR: ${{ runner.temp }}/noteai-native-release-evidence
+        shell: bash
+        run: |
+          bash scripts/ci/native_release_evidence.sh
+          printf 'path=%s\n' "${NOTEAI_EVIDENCE_DIR}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload evidence only
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: native-amd64-release-evidence-${{ github.event_name == 'workflow_dispatch' && inputs.release_commit || github.sha }}
+          path: ${{ runner.temp }}/noteai-native-release-evidence
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 14
+          compression-level: 9
+
+      - name: Enforce zero Critical or High findings
+        if: always()
+        env:
+          NOTEAI_EVIDENCE_DIR: ${{ runner.temp }}/noteai-native-release-evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "${NOTEAI_EVIDENCE_DIR}/summary.json"
+          jq -e '.passed == true' "${NOTEAI_EVIDENCE_DIR}/summary.json"
