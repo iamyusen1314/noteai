@@ -301,16 +301,67 @@ def enqueue_operation(
         )
 
 
-def _claimable_row(tx: db.Transaction, now_iso: str):
+def _claimable_lane_row(
+    tx: db.Transaction,
+    now_iso: str,
+    *,
+    priority_lane: bool,
+):
+    priority_predicate = "priority>0" if priority_lane else "priority=0"
     return tx.fetchone(
         "SELECT * FROM ai_operations WHERE "
         "((status='queued' AND available_at<=?) OR "
         "(status='running' AND provider_phase='not_started' "
         "AND lease_expires_at IS NOT NULL AND lease_expires_at<=?)) "
-        "ORDER BY priority DESC,created_at,id LIMIT 1"
+        f"AND {priority_predicate} "
+        "ORDER BY created_at,id LIMIT 1"
         f"{_lock_suffix(tx, skip_locked=True)}",
         (now_iso, now_iso),
     )
+
+
+def _claimable_row(tx: db.Transaction, now_iso: str):
+    """Select with a durable 3:1 priority/standard dispatch ceiling.
+
+    A priority-only backlog advances the streak to three, so a standard job
+    arriving later receives the next slot. FIFO is preserved inside each lane.
+    The singleton dispatch row serializes this decision on PostgreSQL; SQLite
+    writers are already serialized by ``BEGIN IMMEDIATE``.
+    """
+    state_lock = _lock_suffix(tx)
+    state = tx.fetchone(
+        f"SELECT priority_streak FROM ai_dispatch_state "
+        f"WHERE service_key='durable_ai'{state_lock}"
+    )
+    if not state:
+        tx.execute(
+            "INSERT INTO ai_dispatch_state(service_key,priority_streak,updated_at) "
+            "VALUES('durable_ai',0,?) ON CONFLICT(service_key) DO NOTHING",
+            (now_iso,),
+        )
+        state = tx.fetchone(
+            f"SELECT priority_streak FROM ai_dispatch_state "
+            f"WHERE service_key='durable_ai'{state_lock}"
+        )
+    state_data = dict(state) if state else {}
+    streak = min(3, max(0, int(state_data.get("priority_streak") or 0)))
+    priority_candidate = _claimable_lane_row(tx, now_iso, priority_lane=True)
+    standard_candidate = _claimable_lane_row(tx, now_iso, priority_lane=False)
+    priority_row = dict(priority_candidate) if priority_candidate else None
+    standard_row = dict(standard_candidate) if standard_candidate else None
+    if priority_row and standard_row:
+        selected = standard_row if streak >= 3 else priority_row
+    else:
+        selected = priority_row or standard_row
+    if not selected:
+        return None
+    next_streak = min(3, streak + 1) if int(selected.get("priority") or 0) > 0 else 0
+    tx.execute(
+        "UPDATE ai_dispatch_state SET priority_streak=?,updated_at=? "
+        "WHERE service_key='durable_ai'",
+        (next_streak, now_iso),
+    )
+    return selected
 
 
 def _unsafe_stale_row(tx: db.Transaction, now_iso: str):
@@ -362,6 +413,16 @@ def _quarantine_stale_started_tx(
     )
 
 
+def quarantine_stale_started_in_transaction(
+    tx: db.Transaction,
+    row: dict[str, Any],
+    *,
+    now_iso: str,
+) -> None:
+    """Public transaction hook for settlement-aware durable reconciliation."""
+    _quarantine_stale_started_tx(tx, row, now_iso)
+
+
 def _reap_stale_provider_outcomes_tx(
     tx: db.Transaction,
     now_iso: str,
@@ -409,37 +470,96 @@ def claim_next_operation(
         row = _claimable_row(tx, now_iso)
         if not row:
             return None
-        current = dict(row)
-        takeover = current.get("status") == OperationStatus.RUNNING.value
-        fence = int(current.get("lease_fence") or 0) + 1
-        tx.execute(
-            "UPDATE ai_operations SET status='running',lease_owner_hash=?,lease_fence=?,"
-            "lease_expires_at=?,heartbeat_at=?,claim_count=claim_count+1,"
-            "started_at=COALESCE(started_at,?),updated_at=? WHERE id=?",
-            (
-                owner_hash,
-                fence,
-                expires_iso,
-                now_iso,
-                now_iso,
-                now_iso,
-                current["id"],
-            ),
+        return _take_operation_lease_tx(
+            tx,
+            dict(row),
+            token=token,
+            owner_hash=owner_hash,
+            now_iso=now_iso,
+            expires_iso=expires_iso,
         )
-        current.update({
-            "status": OperationStatus.RUNNING.value,
-            "lease_owner_hash": owner_hash,
-            "lease_fence": fence,
-            "lease_expires_at": expires_iso,
-            "heartbeat_at": now_iso,
-        })
-        _append_event_tx(
+
+
+def _take_operation_lease_tx(
+    tx: db.Transaction,
+    current: dict[str, Any],
+    *,
+    token: str,
+    owner_hash: str,
+    now_iso: str,
+    expires_iso: str,
+) -> OperationLease:
+    takeover = current.get("status") == OperationStatus.RUNNING.value
+    fence = int(current.get("lease_fence") or 0) + 1
+    tx.execute(
+        "UPDATE ai_operations SET status='running',lease_owner_hash=?,lease_fence=?,"
+        "lease_expires_at=?,heartbeat_at=?,claim_count=claim_count+1,"
+        "started_at=COALESCE(started_at,?),updated_at=? WHERE id=?",
+        (
+            owner_hash,
+            fence,
+            expires_iso,
+            now_iso,
+            now_iso,
+            now_iso,
+            current["id"],
+        ),
+    )
+    current.update({
+        "status": OperationStatus.RUNNING.value,
+        "lease_owner_hash": owner_hash,
+        "lease_fence": fence,
+        "lease_expires_at": expires_iso,
+        "heartbeat_at": now_iso,
+    })
+    _append_event_tx(
+        tx,
+        current,
+        EventType.LEASE_TAKEN_OVER if takeover else EventType.CLAIMED,
+        now_iso,
+    )
+    return OperationLease(current["id"], token, fence, expires_iso)
+
+
+def claim_operation(
+    operation_id: str,
+    *,
+    lease_seconds: int,
+    owner_token: str | None = None,
+    now: datetime | None = None,
+) -> OperationLease | None:
+    """Claim one content-free operation id delivered by the outbox."""
+    op_id = _operation_id(operation_id)
+    seconds = _lease_seconds(lease_seconds)
+    token = str(owner_token or secrets.token_urlsafe(32))
+    if len(token) < 16 or len(token) > 512:
+        raise ValueError("owner token length is invalid")
+    now_value = _now(now)
+    now_iso = _iso(now_value)
+    expires_iso = _iso(now_value + timedelta(seconds=seconds))
+    with db.transaction(write=True) as tx:
+        row = _row_for_update(tx, op_id)
+        if not row:
+            return None
+        current = dict(row)
+        claimable = (
+            current.get("status") == OperationStatus.QUEUED.value
+            and str(current.get("available_at") or "") <= now_iso
+        ) or (
+            current.get("status") == OperationStatus.RUNNING.value
+            and current.get("provider_phase") == ProviderPhase.NOT_STARTED.value
+            and str(current.get("lease_expires_at") or "") <= now_iso
+        )
+        if not claimable:
+            return None
+        return _take_operation_lease_tx(
             tx,
             current,
-            EventType.LEASE_TAKEN_OVER if takeover else EventType.CLAIMED,
-            now_iso,
+            token=token,
+            owner_hash=sha256_digest(token),
+            now_iso=now_iso,
+            expires_iso=expires_iso,
         )
-        return OperationLease(current["id"], token, fence, expires_iso)
 
 
 def heartbeat_operation(
@@ -501,57 +621,95 @@ def begin_provider_attempt(
     input_count: int = 0,
     now: datetime | None = None,
 ) -> ProviderAttempt | None:
+    now_iso = _iso(now)
+    with db.transaction(write=True) as tx:
+        return begin_provider_attempt_in_transaction(
+            tx,
+            lease,
+            provider=provider,
+            request_hash=request_hash,
+            model_hash=model_hash,
+            input_count=input_count,
+            now_iso=now_iso,
+        )
+
+
+def begin_provider_attempt_in_transaction(
+    tx: db.Transaction,
+    lease: OperationLease,
+    *,
+    provider: str | Provider,
+    request_hash: str,
+    model_hash: str,
+    input_count: int = 0,
+    now_iso: str,
+) -> ProviderAttempt | None:
+    """Fence a provider attempt inside a caller-held user transaction."""
     provider_value = _enum_value(provider, Provider, "provider")
     request = _digest(request_hash, "request_hash")
     model = _digest(model_hash, "model_hash")
     inputs = _count(input_count, "input_count")
-    now_iso = _iso(now)
-    with db.transaction(write=True) as tx:
-        row = _row_for_update(tx, lease.operation_id)
-        if not row:
-            return None
-        current = dict(row)
-        if (
-            not _lease_matches(current, lease, now_iso)
-            or current.get("provider_phase") != ProviderPhase.NOT_STARTED.value
-        ):
-            return None
-        attempt_number = int(current.get("provider_attempt_count") or 0) + 1
-        attempt_id = str(uuid.uuid4())
-        tx.execute(
-            "INSERT INTO ai_provider_attempts("
-            "id,operation_id,attempt_number,fence,provider,state,request_hash,model_hash,"
-            "input_count,output_count,started_at,updated_at) "
-            "VALUES(?,?,?,?,?,'provider_started',?,?,?,0,?,?)",
-            (
-                attempt_id,
-                lease.operation_id,
-                attempt_number,
-                lease.fence,
-                provider_value,
-                request,
-                model,
-                inputs,
-                now_iso,
-                now_iso,
-            ),
+    row = _row_for_update(tx, lease.operation_id)
+    if not row:
+        return None
+    current = dict(row)
+    phase = current.get("provider_phase")
+    if (
+        not _lease_matches(current, lease, now_iso)
+        or phase not in {
+            ProviderPhase.NOT_STARTED.value,
+            ProviderPhase.TERMINAL.value,
+        }
+    ):
+        return None
+    if phase == ProviderPhase.TERMINAL.value:
+        latest = tx.fetchone(
+            "SELECT state FROM ai_provider_attempts WHERE operation_id=? "
+            "ORDER BY attempt_number DESC LIMIT 1"
+            f"{_lock_suffix(tx)}",
+            (lease.operation_id,),
         )
-        tx.execute(
-            "UPDATE ai_operations SET provider_phase='provider_started',"
-            "provider_attempt_count=?,updated_at=? WHERE id=?",
-            (attempt_number, now_iso, lease.operation_id),
-        )
-        current["provider_phase"] = ProviderPhase.STARTED.value
-        current["provider_attempt_count"] = attempt_number
-        _append_event_tx(
-            tx,
-            current,
-            EventType.PROVIDER_STARTED,
+        if not latest or latest["state"] not in {
+            AttemptState.SUCCEEDED.value,
+            AttemptState.FAILED.value,
+        }:
+            return None
+    attempt_number = int(current.get("provider_attempt_count") or 0) + 1
+    attempt_id = str(uuid.uuid4())
+    tx.execute(
+        "INSERT INTO ai_provider_attempts("
+        "id,operation_id,attempt_number,fence,provider,state,request_hash,model_hash,"
+        "input_count,output_count,started_at,updated_at) "
+        "VALUES(?,?,?,?,?,'provider_started',?,?,?,0,?,?)",
+        (
+            attempt_id,
+            lease.operation_id,
+            attempt_number,
+            lease.fence,
+            provider_value,
+            request,
+            model,
+            inputs,
             now_iso,
-            provider=provider_value,
-            detail_hash=model,
-            item_count=inputs,
-        )
+            now_iso,
+        ),
+    )
+    tx.execute(
+        "UPDATE ai_operations SET provider_phase='provider_started',"
+        "provider_attempt_count=?,updated_at=? WHERE id=?",
+        (attempt_number, now_iso, lease.operation_id),
+    )
+    current["provider_phase"] = ProviderPhase.STARTED.value
+    current["provider_attempt_count"] = attempt_number
+    _append_event_tx(
+        tx,
+        current,
+        EventType.PROVIDER_STARTED,
+        now_iso,
+        provider=provider_value,
+        detail_hash=model,
+        item_count=inputs,
+    )
     return ProviderAttempt(
         attempt_id,
         lease.operation_id,
@@ -652,6 +810,28 @@ def finish_operation(
     result_count: int = 0,
     now: datetime | None = None,
 ) -> bool:
+    now_iso = _iso(now)
+    with db.transaction(write=True) as tx:
+        return finish_operation_in_transaction(
+            tx,
+            lease,
+            status=status,
+            result_hash=result_hash,
+            result_count=result_count,
+            now_iso=now_iso,
+        )
+
+
+def finish_operation_in_transaction(
+    tx: db.Transaction,
+    lease: OperationLease,
+    *,
+    status: str | OperationStatus,
+    result_hash: str | None = None,
+    result_count: int = 0,
+    now_iso: str,
+) -> bool:
+    """Apply a fenced terminal transition inside the caller's transaction."""
     target = _enum_value(status, OperationStatus, "operation status")
     allowed = {
         OperationStatus.SUCCEEDED.value,
@@ -666,59 +846,124 @@ def finish_operation(
         raise ValueError("successful operation requires result_hash")
     if target != OperationStatus.SUCCEEDED.value and (result is not None or count != 0):
         raise ValueError("non-success terminal state cannot store result metadata")
+    row = _row_for_update(tx, lease.operation_id)
+    if not row:
+        return False
+    current = dict(row)
+    if not _lease_matches(current, lease, now_iso):
+        return False
+    attempt = tx.fetchone(
+        "SELECT * FROM ai_provider_attempts WHERE operation_id=? "
+        "ORDER BY attempt_number DESC LIMIT 1"
+        f"{_lock_suffix(tx)}",
+        (lease.operation_id,),
+    )
+    attempt_state = dict(attempt).get("state") if attempt else None
+    phase = current.get("provider_phase")
+    if target == OperationStatus.SUCCEEDED.value and not (
+        phase == ProviderPhase.TERMINAL.value
+        and attempt_state == AttemptState.SUCCEEDED.value
+    ):
+        return False
+    if target == OperationStatus.FAILED.value and not (
+        phase == ProviderPhase.NOT_STARTED.value
+        or (
+            phase == ProviderPhase.TERMINAL.value
+            and attempt_state == AttemptState.FAILED.value
+        )
+    ):
+        return False
+    if target == OperationStatus.CANCELLED.value and phase != ProviderPhase.NOT_STARTED.value:
+        return False
+    tx.execute(
+        "UPDATE ai_operations SET status=?,result_hash=?,result_count=?,"
+        "lease_owner_hash=NULL,lease_expires_at=NULL,terminal_at=?,updated_at=? "
+        "WHERE id=?",
+        (target, result, count, now_iso, now_iso, lease.operation_id),
+    )
+    current.update({
+        "status": target,
+        "result_hash": result,
+        "result_count": count,
+        "lease_owner_hash": None,
+        "lease_expires_at": None,
+    })
+    _append_event_tx(
+        tx,
+        current,
+        EventType(target),
+        now_iso,
+        detail_hash=result,
+        item_count=count,
+    )
+    return True
+
+
+def mark_operation_outcome_unknown_in_transaction(
+    tx: db.Transaction,
+    lease: OperationLease,
+    *,
+    now_iso: str,
+) -> bool:
+    """Quarantine a live lease after an externally ambiguous side effect."""
+    row = _row_for_update(tx, lease.operation_id)
+    if not row:
+        return False
+    current = dict(row)
+    if not _lease_matches(current, lease, now_iso):
+        return False
+    attempt = tx.fetchone(
+        "SELECT * FROM ai_provider_attempts WHERE operation_id=? "
+        "ORDER BY attempt_number DESC LIMIT 1"
+        f"{_lock_suffix(tx)}",
+        (lease.operation_id,),
+    )
+    provider = None
+    if attempt:
+        attempt_data = dict(attempt)
+        provider = attempt_data.get("provider")
+        if attempt_data.get("state") == AttemptState.STARTED.value:
+            tx.execute(
+                "UPDATE ai_provider_attempts SET state='outcome_unknown',"
+                "updated_at=?,terminal_at=? WHERE id=? AND state='provider_started'",
+                (now_iso, now_iso, attempt_data["id"]),
+            )
+    if current.get("provider_phase") == ProviderPhase.NOT_STARTED.value:
+        return False
+    tx.execute(
+        "UPDATE ai_operations SET status='outcome_unknown',"
+        "provider_phase='provider_terminal',lease_owner_hash=NULL,"
+        "lease_expires_at=NULL,terminal_at=?,updated_at=? WHERE id=?",
+        (now_iso, now_iso, lease.operation_id),
+    )
+    current.update({
+        "status": OperationStatus.OUTCOME_UNKNOWN.value,
+        "provider_phase": ProviderPhase.TERMINAL.value,
+        "lease_owner_hash": None,
+        "lease_expires_at": None,
+    })
+    _append_event_tx(
+        tx,
+        current,
+        EventType.OUTCOME_UNKNOWN,
+        now_iso,
+        provider=provider,
+    )
+    return True
+
+
+def mark_operation_outcome_unknown(
+    lease: OperationLease,
+    *,
+    now: datetime | None = None,
+) -> bool:
     now_iso = _iso(now)
     with db.transaction(write=True) as tx:
-        row = _row_for_update(tx, lease.operation_id)
-        if not row:
-            return False
-        current = dict(row)
-        if not _lease_matches(current, lease, now_iso):
-            return False
-        attempt = tx.fetchone(
-            "SELECT * FROM ai_provider_attempts WHERE operation_id=? "
-            "ORDER BY attempt_number DESC LIMIT 1"
-            f"{_lock_suffix(tx)}",
-            (lease.operation_id,),
-        )
-        attempt_state = dict(attempt).get("state") if attempt else None
-        phase = current.get("provider_phase")
-        if target == OperationStatus.SUCCEEDED.value and not (
-            phase == ProviderPhase.TERMINAL.value
-            and attempt_state == AttemptState.SUCCEEDED.value
-        ):
-            return False
-        if target == OperationStatus.FAILED.value and not (
-            phase == ProviderPhase.NOT_STARTED.value
-            or (
-                phase == ProviderPhase.TERMINAL.value
-                and attempt_state == AttemptState.FAILED.value
-            )
-        ):
-            return False
-        if target == OperationStatus.CANCELLED.value and phase != ProviderPhase.NOT_STARTED.value:
-            return False
-        tx.execute(
-            "UPDATE ai_operations SET status=?,result_hash=?,result_count=?,"
-            "lease_owner_hash=NULL,lease_expires_at=NULL,terminal_at=?,updated_at=? "
-            "WHERE id=?",
-            (target, result, count, now_iso, now_iso, lease.operation_id),
-        )
-        current.update({
-            "status": target,
-            "result_hash": result,
-            "result_count": count,
-            "lease_owner_hash": None,
-            "lease_expires_at": None,
-        })
-        _append_event_tx(
+        return mark_operation_outcome_unknown_in_transaction(
             tx,
-            current,
-            EventType(target),
-            now_iso,
-            detail_hash=result,
-            item_count=count,
+            lease,
+            now_iso=now_iso,
         )
-    return True
 
 
 def cancel_queued_operation(
@@ -740,6 +985,43 @@ def cancel_queued_operation(
         )
         current["status"] = OperationStatus.CANCELLED.value
         _append_event_tx(tx, current, EventType.CANCELLED, now_iso)
+    return True
+
+
+def cancel_unstarted_operation_in_transaction(
+    tx: db.Transaction,
+    operation_id: str,
+    *,
+    now_iso: str,
+) -> bool:
+    """Cancel queued/provider-free work under the caller-held user fence."""
+    op_id = _operation_id(operation_id)
+    row = _row_for_update(tx, op_id)
+    if not row:
+        return False
+    current = dict(row)
+    if not (
+        current.get("status") == OperationStatus.QUEUED.value
+        or (
+            current.get("status") == OperationStatus.RUNNING.value
+            and current.get("provider_phase") == ProviderPhase.NOT_STARTED.value
+        )
+    ):
+        return False
+    fence = int(current.get("lease_fence") or 0) + 1
+    tx.execute(
+        "UPDATE ai_operations SET status='cancelled',lease_fence=?,"
+        "lease_owner_hash=NULL,lease_expires_at=NULL,terminal_at=?,updated_at=? "
+        "WHERE id=?",
+        (fence, now_iso, now_iso, op_id),
+    )
+    current.update({
+        "status": OperationStatus.CANCELLED.value,
+        "lease_fence": fence,
+        "lease_owner_hash": None,
+        "lease_expires_at": None,
+    })
+    _append_event_tx(tx, current, EventType.CANCELLED, now_iso)
     return True
 
 

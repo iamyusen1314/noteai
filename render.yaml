@@ -132,6 +132,8 @@ services:
         value: model/artifacts/model_release_manifest.v04.json
       - key: NOTEAI_ENABLE_CLOUD_MODEL_MUTATION
         value: "0"
+      - key: NOTEAI_DURABLE_AI_ADMISSION_ENABLED
+        value: "0"
       - key: NOTEAI_FACT_SEARCH
         value: "1"
       - key: NOTEAI_FACT_SEARCH_PROVIDER

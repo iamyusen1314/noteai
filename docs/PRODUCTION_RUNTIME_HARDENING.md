@@ -53,10 +53,13 @@ NOTEAI_API_IMAGE_REPOSITORY=registry.example.invalid/noteai/api \
 NOTEAI_API_IMAGE_DIGEST_HEX=<64-lowercase-hex-characters> \
 NOTEAI_ADMIN_IMAGE_REPOSITORY=registry.example.invalid/noteai/admin \
 NOTEAI_ADMIN_IMAGE_DIGEST_HEX=<64-lowercase-hex-characters> \
+NOTEAI_AI_WORKER_IMAGE_REPOSITORY=registry.example.invalid/noteai/ai-worker \
+NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX=<64-lowercase-hex-characters> \
 NOTEAI_XHS_IMAGE_REPOSITORY=registry.example.invalid/noteai/xhs-http \
 NOTEAI_XHS_IMAGE_DIGEST_HEX=<64-lowercase-hex-characters> \
 NOTEAI_API_ENV_FILE=/path/to/api.env \
 NOTEAI_ADMIN_ENV_FILE=/path/to/admin.env \
+NOTEAI_AI_WORKER_ENV_FILE=/path/to/ai-worker.env \
 NOTEAI_XHS_TRENDS_ENV_FILE=/path/to/xhs-trends.env \
 NOTEAI_XHS_TRACKING_ENV_FILE=/path/to/xhs-tracking.env \
 docker compose -f deploy/production/docker-compose.yml config --quiet
@@ -64,7 +67,7 @@ docker compose -f deploy/production/docker-compose.yml config --quiet
 
 Before resolving Compose, run
 `scripts/validate_production_env_files.py --api ... --admin ...
---xhs-trends ... --xhs-tracking ...`.
+--ai-worker ... --xhs-trends ... --xhs-tracking ...`.
 The validator reads key names only for its decision, never prints values, and
 rejects duplicate/invalid names, overexposed permissions, unknown
 Secret-like names, and cross-role Secret injection. The canonical role

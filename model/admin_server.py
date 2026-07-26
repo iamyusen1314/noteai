@@ -45,6 +45,7 @@ import security_redaction as _redaction
 import prompt_baselines as _prompt_baselines
 import prompt_composer as _prompt_composer
 import tracking_contract as _tracking_contract
+import durable_ai as _durable_ai
 
 try:
     import xhs_acquisition as _xhs_acq
@@ -685,6 +686,12 @@ def build_usage_stats_payload(days: int = 30) -> dict:
 async def admin_usage_stats(days: int = 30, admin: dict = Depends(_aauth.get_admin_user)):
     """用量分析。"""
     return build_usage_stats_payload(days)
+
+
+@admin_app.get("/admin/ai-operations")
+async def admin_ai_operations(admin: dict = Depends(_aauth.get_admin_user)):
+    """Return queue/settlement/outbox truth without payload or owner metadata."""
+    return _durable_ai.admin_summary()
 
 
 # ══════════════════════════════════════════════════════════════════════════

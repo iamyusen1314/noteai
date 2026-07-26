@@ -23,6 +23,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - NOTEAI_RUNTIME_ROLE=api
+      - NOTEAI_DURABLE_AI_ADMISSION_ENABLED=0
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8000, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
@@ -63,6 +64,33 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+
+  noteai-ai-worker:
+    profiles:
+      - durable-ai
+    build:
+      context: .
+      target: ai-worker-runtime
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    command: ["python", "durable_ai_worker.py", "--once"]
+    env_file:
+      - ./model/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=ai-worker
+      - NOTEAI_DURABLE_AI_SUSPENDED=${NOTEAI_DURABLE_AI_SUSPENDED:-1}
+    restart: "no"
+    cpus: "1.00"
+    mem_limit: 1536m
+    pids_limit: 96
 
   noteai-trends-worker:
     build:

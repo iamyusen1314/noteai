@@ -216,6 +216,51 @@ permission fails closed as `trends_contract_unavailable` and must never fall
 back to legacy unbound freshness. API receives no write privilege on any
 Trends contract table and no access to the stored snapshot payload.
 
+## Durable AI roles
+
+Migration `0012_durable_ai_execution_contract.sql` adds
+`ai_payload_refs`, `ai_operation_outbox`, `ai_operation_settlements` and
+`ai_dispatch_state` without any `GRANT` or `REVOKE`. The complete behavior and
+data boundary are frozen in `docs/DURABLE_AI_PRODUCTION_CONTRACT.md`.
+
+The existing API role must receive only the columns required to:
+
+- insert one request ref, Outbox row and charged settlement in the same
+  transaction as the existing idempotency/usage admission;
+- cancel only a provider-free owner operation during account deletion,
+  changing its Outbox row to `dead` and its charged settlement to the exact
+  `refunded/cancelled` state; PostgreSQL RLS requires column-only
+  `SELECT(id,operation_id,state)` plus `UPDATE(state,updated_at)` on the
+  Outbox for this path, never table-level SELECT or lease-column access;
+- read owner-scoped operation state and the ready result-ref metadata;
+- never read or write lease owner hashes, provider attempts, dispatch state
+  or another user's join path.
+
+The exact `noteai_ai_dispatcher` role may select only Outbox identity/state,
+operation UUID/priority and dispatch streak, then update only Outbox lease,
+attempt, delivery and dispatch-streak columns. It receives no access to
+payload-ref hashes, user/idempotency/billing tables, provider attempts,
+results, XHS tables or model usage.
+
+The exact `noteai_ai_worker` role may:
+
+- select/update the fenced operation/event/provider-attempt state;
+- select the request/result ref metadata needed to verify an opaque object;
+- insert a result ref and update only settlement terminal columns;
+- select the linked admission, idempotency, user/subscription/credits/usage
+  rows required by the canonical user fence and atomic completion/refund;
+- insert numeric model-usage and exact refund ledger rows;
+- never select user credentials/profile content, Note/Diagnosis/Chat content,
+  raw XHS data, Secrets, prompts, migration metadata or Admin sessions.
+
+All three roles must lack object ownership, role membership, superuser,
+`BYPASSRLS`, database/schema creation, TEMP, DDL, TRUNCATE, REFERENCES,
+TRIGGER, grant option, sequence SELECT/UPDATE and `schema_migrations` access.
+Only reviewed sequences and the two existing user advisory-lock built-ins may
+be usable. The final positive/negative column matrix must be generated from
+the integrated API/Worker SQL call paths and proved on disposable PostgreSQL
+before any production privilege change.
+
 ## Verification required before production use
 
 A separately approved database task must:

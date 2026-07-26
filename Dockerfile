@@ -129,6 +129,21 @@ USER noteai
 ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
 CMD ["/app/scripts/render_start_admin.sh"]
 
+FROM runtime-common AS ai-worker-runtime
+
+LABEL com.noteai.runtime.role="ai-worker"
+ENV NOTEAI_RUNTIME_ROLE=ai-worker \
+    NOTEAI_DURABLE_AI_SUSPENDED=1
+RUN printf '%s\n' ai-worker > /etc/noteai-runtime-role \
+    && chmod 0444 /etc/noteai-runtime-role
+
+HEALTHCHECK NONE
+
+USER noteai
+
+ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
+CMD ["python", "durable_ai_worker.py", "--once"]
+
 FROM runtime-common AS xhs-http-runtime
 
 LABEL com.noteai.runtime.role="xhs-http"

@@ -107,7 +107,9 @@ test.describe('SSE warning-only guard', () => {
       __installSseMock('/chat/message', {
         chunks: [
           {data: 'data: {"type":"typing"}\n\n'},
-          {delayMs: 180, data: 'data: {"type":"done"}\n\n'},
+          // Keep the warning visible long enough for a five-worker suite to
+          // observe it even when Chromium timers are heavily contended.
+          {delayMs: 800, data: 'data: {"type":"done"}\n\n'},
         ],
         closeDelayMs: 10,
       });
@@ -115,9 +117,12 @@ test.describe('SSE warning-only guard', () => {
       chatSendMessage({text: '不应重复提交'});
     });
 
-    await expect(page.locator('[data-sse-warning="chat"]')).toContainText('任务可能仍在处理，请不要重复提交');
-    await expect.poll(() => page.evaluate(() => _chatBusy)).toBe(true);
-    await expect.poll(() => page.evaluate(() => __sseRequestCounts['/chat/message'] || 0)).toBe(1);
+    await expect.poll(() => page.evaluate(() => ({
+      warning: (document.querySelector('[data-sse-warning="chat"]')?.textContent || '')
+        .includes('任务可能仍在处理，请不要重复提交'),
+      busy: _chatBusy,
+      requests: __sseRequestCounts['/chat/message'] || 0,
+    }))).toEqual({warning: true, busy: true, requests: 1});
     await expect.poll(() => page.evaluate(() => _chatBusy)).toBe(false);
     await expect(page.locator('[data-sse-warning="chat"]')).toHaveCount(0);
   });

@@ -63,11 +63,17 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
 
         self.assert_hardened_services(
             compose,
-            ("noteai", "noteai-admin", "noteai-trends-worker", "noteai-tracking-worker"),
+            (
+                "noteai",
+                "noteai-admin",
+                "noteai-ai-worker",
+                "noteai-trends-worker",
+                "noteai-tracking-worker",
+            ),
         )
-        self.assertEqual(compose.count('user: "999:999"'), 4)
-        self.assertEqual(compose.count("read_only: true"), 4)
-        self.assertEqual(compose.count("no-new-privileges:true"), 4)
+        self.assertEqual(compose.count('user: "999:999"'), 5)
+        self.assertEqual(compose.count("read_only: true"), 5)
+        self.assertEqual(compose.count("no-new-privileges:true"), 5)
 
     def test_production_template_requires_immutable_role_images_and_hardening(self):
         compose = (ROOT / "deploy" / "production" / "docker-compose.yml").read_text(
@@ -76,7 +82,7 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
 
         self.assert_hardened_services(
             compose,
-            ("api", "admin", "xhs-trends", "xhs-tracking"),
+            ("api", "admin", "ai-worker", "xhs-trends", "xhs-tracking"),
         )
         self.assertNotIn("build:", compose)
         self.assertIn(
@@ -89,6 +95,12 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
             "${NOTEAI_ADMIN_IMAGE_REPOSITORY:?set NOTEAI_ADMIN_IMAGE_REPOSITORY}"
             "@sha256:${NOTEAI_ADMIN_IMAGE_DIGEST_HEX:"
             "?set NOTEAI_ADMIN_IMAGE_DIGEST_HEX to 64 lowercase hex characters}",
+            compose,
+        )
+        self.assertIn(
+            "${NOTEAI_AI_WORKER_IMAGE_REPOSITORY:?set NOTEAI_AI_WORKER_IMAGE_REPOSITORY}"
+            "@sha256:${NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX:"
+            "?set NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX to 64 lowercase hex characters}",
             compose,
         )
         self.assertEqual(
@@ -112,6 +124,12 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         )
         self.assertEqual(
             compose.count(
+                "${NOTEAI_AI_WORKER_ENV_FILE:-/etc/noteai/ai-worker.env}"
+            ),
+            1,
+        )
+        self.assertEqual(
+            compose.count(
                 "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
             ),
             1,
@@ -129,6 +147,10 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         self.assertIn(
             "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}",
             service_block(compose, "admin"),
+        )
+        self.assertIn(
+            "${NOTEAI_AI_WORKER_ENV_FILE:-/etc/noteai/ai-worker.env}",
+            service_block(compose, "ai-worker"),
         )
         self.assertIn(
             "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}",
@@ -152,6 +174,7 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         services = (
             "noteai",
             "noteai-admin",
+            "noteai-ai-worker",
             "noteai-trends-worker",
             "noteai-tracking-worker",
         )

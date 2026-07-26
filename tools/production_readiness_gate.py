@@ -238,6 +238,26 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             ("python", "-m", "uvicorn", "admin_server:admin_app", "--host", "0.0.0.0", "--port", "8001"),
             {},
         ),
+        "ai_worker_health": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--healthcheck"),
+            {},
+        ),
+        "ai_worker_once_suspended": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--once"),
+            {},
+        ),
+        "ai_worker_recover_unstarted": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--recover-unstarted"),
+            {},
+        ),
+        "ai_worker_reconcile_stale": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--reconcile-stale"),
+            {},
+        ),
         "xhs_market_wrapper": ("xhs-http", ("/app/scripts/render_run_market_timing.sh",), xhs_trends_env),
         "xhs_crawler_wrapper": ("xhs-http", ("/app/scripts/render_run_crawler.sh",), xhs_tracking_env),
         "xhs_market_bare": ("xhs-http", ("python", "market_timing_worker.py"), xhs_trends_env),
@@ -272,6 +292,17 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
         "admin_api_start": ("admin", ("/app/scripts/render_start_api.sh",)),
         "admin_crawler": ("admin", ("/app/scripts/render_run_crawler.sh",)),
         "admin_predeploy": ("admin", ("python", "/app/scripts/render_predeploy.py")),
+        "ai_worker_empty": ("ai-worker", ()),
+        "ai_worker_api": ("ai-worker", ("python", "api.py")),
+        "ai_worker_bare": ("ai-worker", ("python", "durable_ai_worker.py")),
+        "ai_worker_extra": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--once", "extra"),
+        ),
+        "ai_worker_shell": (
+            "ai-worker",
+            ("sh", "-c", "python durable_ai_worker.py --once"),
+        ),
         "xhs_api_start": ("xhs-http", ("/app/scripts/render_start_api.sh",)),
         "xhs_admin_start": ("xhs-http", ("/app/scripts/render_start_admin.sh",)),
         "xhs_predeploy": ("xhs-http", ("python", "/app/scripts/render_predeploy.py")),
@@ -707,6 +738,11 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         "FROM runtime-common AS admin-runtime", 1
     )[0]
     admin_runtime_stage = dockerfile.split("FROM runtime-common AS admin-runtime", 1)[1].split(
+        "FROM runtime-common AS ai-worker-runtime", 1
+    )[0]
+    ai_worker_runtime_stage = dockerfile.split(
+        "FROM runtime-common AS ai-worker-runtime", 1
+    )[1].split(
         "FROM runtime-common AS xhs-http-runtime", 1
     )[0]
     xhs_runtime_stage = dockerfile.split("FROM runtime-common AS xhs-http-runtime", 1)[1].split(
@@ -737,12 +773,16 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "docker_has_browser_free_production_role_targets",
             "FROM runtime-common AS api-runtime" in dockerfile
             and "FROM runtime-common AS admin-runtime" in dockerfile
+            and "FROM runtime-common AS ai-worker-runtime" in dockerfile
             and "FROM runtime-common AS xhs-http-runtime" in dockerfile
             and "FROM runtime-common AS worker-runtime" not in dockerfile
             and "ARG NOTEAI_RUNTIME_TARGET=api-runtime" in dockerfile
             and "FROM ${NOTEAI_RUNTIME_TARGET} AS noteai-runtime" in dockerfile
             and 'CMD ["/app/scripts/render_start_api.sh"]' in api_runtime_stage
             and 'CMD ["/app/scripts/render_start_admin.sh"]' in admin_runtime_stage
+            and 'CMD ["python", "durable_ai_worker.py", "--once"]' in ai_worker_runtime_stage
+            and "NOTEAI_DURABLE_AI_SUSPENDED=1" in ai_worker_runtime_stage
+            and "HEALTHCHECK NONE" in ai_worker_runtime_stage
             and 'CMD ["/bin/false"]' in xhs_runtime_stage
             and "NOTEAI_XHS_COLLECTION_SUSPENDED=1" in xhs_runtime_stage
             and "HEALTHCHECK NONE" in xhs_runtime_stage,
@@ -758,7 +798,12 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "production_targets_exclude_browser_dependencies_and_commands",
             all(
                 "playwright" not in stage.lower() and "chromium" not in stage.lower()
-                for stage in (api_runtime_stage, admin_runtime_stage, xhs_runtime_stage)
+                for stage in (
+                    api_runtime_stage,
+                    admin_runtime_stage,
+                    ai_worker_runtime_stage,
+                    xhs_runtime_stage,
+                )
             )
             and "python -m playwright install" not in dockerfile
             and "PLAYWRIGHT_BROWSERS_PATH" not in dockerfile,
@@ -773,7 +818,15 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
         ),
         _ok(
             "all_production_roles_are_non_root",
-            all("USER noteai" in stage for stage in (api_runtime_stage, admin_runtime_stage, xhs_runtime_stage)),
+            all(
+                "USER noteai" in stage
+                for stage in (
+                    api_runtime_stage,
+                    admin_runtime_stage,
+                    ai_worker_runtime_stage,
+                    xhs_runtime_stage,
+                )
+            ),
         ),
         _ok(
             "docker_removes_python_build_tooling",
@@ -858,10 +911,12 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "compose_runtime_targets_match_roles",
             compose.count("target: api-runtime") == 1
             and compose.count("target: admin-runtime") == 1
+            and compose.count("target: ai-worker-runtime") == 1
             and compose.count("target: xhs-http-runtime") == 2
             and "target: worker-runtime" not in compose
             and compose.count("NOTEAI_RUNTIME_ROLE=api") == 1
             and compose.count("NOTEAI_RUNTIME_ROLE=admin") == 1
+            and compose.count("NOTEAI_RUNTIME_ROLE=ai-worker") == 1
             and compose.count("NOTEAI_RUNTIME_ROLE=xhs-http") == 2
             and compose.count("NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http") == 2,
         ),
@@ -876,6 +931,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                 (
                     "noteai",
                     "noteai-admin",
+                    "noteai-ai-worker",
                     "noteai-trends-worker",
                     "noteai-tracking-worker",
                 ),
@@ -886,7 +942,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "build:" not in production_compose
             and _compose_services_have_runtime_hardening(
                 production_compose,
-                ("api", "admin", "xhs-trends", "xhs-tracking"),
+                ("api", "admin", "ai-worker", "xhs-trends", "xhs-tracking"),
             )
             and "${NOTEAI_API_IMAGE_REPOSITORY:?set NOTEAI_API_IMAGE_REPOSITORY}@sha256:${NOTEAI_API_IMAGE_DIGEST_HEX:?set NOTEAI_API_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
             and "${NOTEAI_ADMIN_IMAGE_REPOSITORY:?set NOTEAI_ADMIN_IMAGE_REPOSITORY}@sha256:${NOTEAI_ADMIN_IMAGE_DIGEST_HEX:?set NOTEAI_ADMIN_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
@@ -1122,6 +1178,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and "command is not allowed for this runtime role" in entrypoint
             and "api-runtime cannot start the trend scheduler" in entrypoint
             and "xhs-http runtime requires the pinned acquisition adapter" in entrypoint
+            and "ai-worker requires an exact production processor" in entrypoint
             and "is_unsigned_integer" in entrypoint
             and "*[!0-9]*" in entrypoint
             and all(value in entrypoint for value in (
@@ -1133,6 +1190,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                 "admin_server:admin_app",
                 "market_timing_worker.py",
                 "crawler_worker.py",
+                "durable_ai_worker.py",
                 "/bin/false",
             ))
             and 'case " $* "' not in entrypoint

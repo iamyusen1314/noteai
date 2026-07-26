@@ -21,7 +21,7 @@ if [ -z "$image_runtime_role" ]; then
 fi
 
 case "$image_runtime_role" in
-  api|admin|xhs-http) ;;
+  api|admin|xhs-http|ai-worker) ;;
   *)
     echo "runtime role marker is invalid" >&2
     exit 78
@@ -69,7 +69,7 @@ elif [ "$image_runtime_role" = "admin" ]; then
     && [ "$8" = "8001" ]; then
     command_allowed=1
   fi
-else
+elif [ "$image_runtime_role" = "xhs-http" ]; then
   if [ "${NOTEAI_XHS_ACQUISITION_ADAPTER:-}" != "spider_xhs_http" ]; then
     echo "xhs-http runtime requires the pinned acquisition adapter" >&2
     exit 78
@@ -128,6 +128,22 @@ else
     && is_unsigned_integer "$7" \
     && [ "$xhs_service" = "tracking" ]; then
     command_allowed=1
+  fi
+else
+  case "${NOTEAI_DURABLE_AI_SUSPENDED:-1}" in
+    0|false|FALSE|False|no|NO|No|off|OFF|Off)
+      if [ "${NOTEAI_DURABLE_AI_PROCESSOR:-}" != "production-v1" ]; then
+        echo "ai-worker requires an exact production processor" >&2
+        exit 78
+      fi
+      ;;
+  esac
+  if [ "$#" -eq 3 ] \
+    && [ "$1" = "python" ] \
+    && [ "$2" = "durable_ai_worker.py" ]; then
+    case "$3" in
+      --healthcheck|--once|--recover-unstarted|--reconcile-stale) command_allowed=1 ;;
+    esac
   fi
 fi
 

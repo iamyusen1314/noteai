@@ -94,6 +94,11 @@ def _operation_subject_hash(user_id: str) -> str:
     ).hexdigest()
 
 
+def operation_subject_hash(user_id: str) -> str:
+    """Return the stable, domain-separated storage subject for one user."""
+    return _operation_subject_hash(user_id)
+
+
 def _existing_admission(
     tx: db.Transaction,
     *,

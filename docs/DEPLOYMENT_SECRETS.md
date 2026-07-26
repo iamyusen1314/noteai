@@ -22,16 +22,17 @@ NoteAI 的生产密钥目前配置在 GitHub Environment：`production`。
 ## Production Role Env Files
 
 Alibaba Cloud production must not use one shared runtime env file. The
-production Compose contract accepts four external inputs:
+production Compose contract accepts five external inputs:
 
 | Role | Compose input | Default host path |
 |---|---|---|
 | API | `NOTEAI_API_ENV_FILE` | `/etc/noteai/api.env` |
 | Admin | `NOTEAI_ADMIN_ENV_FILE` | `/etc/noteai/admin.env` |
+| AI Worker | `NOTEAI_AI_WORKER_ENV_FILE` | `/etc/noteai/ai-worker.env` |
 | XHS Trends | `NOTEAI_XHS_TRENDS_ENV_FILE` | `/etc/noteai/xhs-trends.env` |
 | XHS Tracking | `NOTEAI_XHS_TRACKING_ENV_FILE` | `/etc/noteai/xhs-tracking.env` |
 
-The four roles must resolve to four distinct regular files with no
+The five roles must resolve to five distinct regular files with no
 group/world permission bits. The files remain outside Git and images. Do not
 source or print them during validation.
 
@@ -47,13 +48,23 @@ Allowed Secret key names are intentionally role-specific:
   `NOTEAI_CLAUDE_GATEWAY_PREVIOUS_HMAC_SECRET`,
   `NOTEAI_MARKET_TIMING_REFRESH_TOKEN`,
   `NOTEAI_AUTHORIZED_TREND_TOKEN`, `AWS_ACCESS_KEY_ID`,
-  `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`.
+  `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, and the dedicated
+  `NOTEAI_AI_API_STORE_ACCESS_KEY_ID`,
+  `NOTEAI_AI_API_STORE_SECRET_ACCESS_KEY` and optional
+  `NOTEAI_AI_API_STORE_SESSION_TOKEN`.
 - Admin: `DATABASE_URL` and `ADMIN_PASSWORD`.
+- AI Worker: `DATABASE_URL`, the exact Claude/Kimi credential names used by
+  the selected processor, and the dedicated
+  `NOTEAI_AI_WORKER_STORE_ACCESS_KEY_ID`,
+  `NOTEAI_AI_WORKER_STORE_SECRET_ACCESS_KEY` and optional
+  `NOTEAI_AI_WORKER_STORE_SESSION_TOKEN`.
 - XHS Trends: `DATABASE_URL` and `NOTEAI_XHS_COOKIES_JSON`.
 - XHS Tracking: `DATABASE_URL` and `NOTEAI_XHS_COOKIES_JSON`.
 
 These are allowed names, not mandatory values. Provider-specific credentials
 must only be present when that separately approved provider path is enabled.
+The API and AI Worker storage credentials are deliberately distinct and must
+not be reused across roles or as model-artifact credentials.
 `NOTEAI_XHS_COOKIES_JSON` is the only implemented direct-XHS session input.
 It may exist only in the two distinct `0600` XHS role files; API/Admin files
 must reject it. Values are never printed. The old snapshot-upload and
@@ -66,6 +77,7 @@ values:
 python scripts/validate_production_env_files.py \
   --api /etc/noteai/api.env \
   --admin /etc/noteai/admin.env \
+  --ai-worker /etc/noteai/ai-worker.env \
   --xhs-trends /etc/noteai/xhs-trends.env \
   --xhs-tracking /etc/noteai/xhs-tracking.env
 ```

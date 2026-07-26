@@ -75,6 +75,7 @@ import billing as _billing
 import content_retention as _retention
 import security_redaction as _redaction
 import idempotency as _idempotency
+import durable_ai as _durable_ai
 import prompt_manager as _pm
 import prompt_composer as _prompt_composer
 import fact_enrichment as _facts
@@ -18629,6 +18630,190 @@ async def chat_select_plan(
     if not option:
         raise HTTPException(status_code=404, detail="候选方案不存在或已失效")
     return _save_chat_plan_option_as_note(req.session_id, session, option, user["id"])
+
+
+def _durable_ai_admission_enabled() -> bool:
+    return str(os.environ.get("NOTEAI_DURABLE_AI_ADMISSION_ENABLED", "0")).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _durable_ai_http_error(exc: _durable_ai.DurableAiError) -> HTTPException:
+    return HTTPException(
+        status_code=exc.http_status,
+        detail={"code": exc.code, "message": str(exc)},
+    )
+
+
+def _submit_durable_ai_job(
+    *,
+    user: dict,
+    operation: str,
+    request_id: str | None,
+    payload: dict[str, Any],
+) -> JSONResponse:
+    if not _durable_ai_admission_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "DURABLE_AI_ADMISSION_DISABLED",
+                "message": "Durable AI admission is not enabled",
+            },
+        )
+    normalized_payload = dict(payload)
+    normalized_payload.pop("user_id", None)
+    try:
+        admitted = _durable_ai.admit_job(
+            user_id=user["id"],
+            operation=operation,
+            request_id=request_id or "",
+            payload=normalized_payload,
+        )
+    except _durable_ai.DurableAiError as exc:
+        raise _durable_ai_http_error(exc) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "DURABLE_AI_REQUEST_INVALID", "message": str(exc)},
+        ) from exc
+    if admitted.get("state") == "conflict":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "DURABLE_AI_IDEMPOTENCY_CONFLICT",
+                "message": "The request id is already bound to different content",
+            },
+        )
+    if admitted.get("state") == "legacy_unlinked":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "DURABLE_AI_LEGACY_IDEMPOTENCY_CONFLICT",
+                "message": "The request id belongs to a legacy synchronous request",
+            },
+        )
+    return JSONResponse(
+        {
+            "operation_id": admitted["operation_id"],
+            "status": admitted["status"],
+            "billing_state": admitted["billing_state"],
+            "idempotency_state": admitted["state"],
+        },
+        status_code=202,
+    )
+
+
+@app.post("/ai/jobs/analyze", status_code=202)
+async def durable_analyze_job(
+    req: AnalyzeInput,
+    user: dict = Depends(_auth.get_current_user),
+    request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
+):
+    return _submit_durable_ai_job(
+        user=user,
+        operation="analyze",
+        request_id=request_id,
+        payload=req.model_dump(mode="json"),
+    )
+
+
+@app.post("/ai/jobs/generate", status_code=202)
+async def durable_generate_job(
+    req: GenerateInput,
+    user: dict = Depends(_auth.get_current_user),
+    request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
+):
+    return _submit_durable_ai_job(
+        user=user,
+        operation="generate",
+        request_id=request_id,
+        payload=req.model_dump(mode="json"),
+    )
+
+
+@app.post("/ai/jobs/chat-rewrite", status_code=202)
+async def durable_chat_rewrite_job(
+    req: ChatMessageInput,
+    user: dict = Depends(_auth.get_current_user),
+    request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
+):
+    session = _chat_sessions.get(req.session_id)
+    if not session:
+        session = _load_chat_session_from_db(req.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if str(session.get("user_id") or "") != str(user["id"]):
+        raise HTTPException(status_code=403, detail="无权访问该对话")
+    if not _should_use_thinking(req.message):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "DURABLE_AI_REWRITE_REQUIRED",
+                "message": "This durable route accepts rewrite operations only",
+            },
+        )
+    return _submit_durable_ai_job(
+        user=user,
+        operation="chat_rewrite",
+        request_id=request_id,
+        payload=req.model_dump(mode="json"),
+    )
+
+
+@app.get("/ai/jobs/{operation_id}")
+async def durable_ai_job_status(
+    operation_id: str,
+    user: dict = Depends(_auth.get_current_user),
+):
+    status = _durable_ai.status_for_user(user["id"], operation_id)
+    if not status:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "DURABLE_AI_JOB_NOT_FOUND",
+                "message": "Durable AI job was not found",
+            },
+        )
+    return status
+
+
+@app.get("/ai/jobs/{operation_id}/events")
+async def durable_ai_job_events(
+    operation_id: str,
+    after_sequence: int = 0,
+    user: dict = Depends(_auth.get_current_user),
+):
+    try:
+        events = _durable_ai.events_for_user(
+            user["id"],
+            operation_id,
+            after_sequence=after_sequence,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if events is None:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "DURABLE_AI_JOB_NOT_FOUND",
+                "message": "Durable AI job was not found",
+            },
+        )
+    return {"events": events}
+
+
+@app.get("/ai/jobs/{operation_id}/result")
+async def durable_ai_job_result(
+    operation_id: str,
+    user: dict = Depends(_auth.get_current_user),
+):
+    try:
+        return _durable_ai.result_for_user(user["id"], operation_id)
+    except _durable_ai.DurableAiError as exc:
+        raise _durable_ai_http_error(exc) from exc
 
 
 @app.get("/chat/ui", response_class=HTMLResponse)

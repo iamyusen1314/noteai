@@ -34,12 +34,27 @@ ROLE_ALLOWED_SECRET_KEYS = {
             "NOTEAI_CLAUDE_GATEWAY_PREVIOUS_HMAC_SECRET",
             "NOTEAI_MARKET_TIMING_REFRESH_TOKEN",
             "NOTEAI_AUTHORIZED_TREND_TOKEN",
+            "NOTEAI_AI_API_STORE_ACCESS_KEY_ID",
+            "NOTEAI_AI_API_STORE_SECRET_ACCESS_KEY",
+            "NOTEAI_AI_API_STORE_SESSION_TOKEN",
             "AWS_ACCESS_KEY_ID",
             "AWS_SECRET_ACCESS_KEY",
             "AWS_SESSION_TOKEN",
         }
     ),
     "admin": frozenset({"DATABASE_URL", "ADMIN_PASSWORD"}),
+    "ai_worker": frozenset(
+        {
+            "DATABASE_URL",
+            "ANTHROPIC_API_KEY",
+            "MOONSHOT_API_KEY",
+            "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET",
+            "NOTEAI_CLAUDE_GATEWAY_PREVIOUS_HMAC_SECRET",
+            "NOTEAI_AI_WORKER_STORE_ACCESS_KEY_ID",
+            "NOTEAI_AI_WORKER_STORE_SECRET_ACCESS_KEY",
+            "NOTEAI_AI_WORKER_STORE_SESSION_TOKEN",
+        }
+    ),
     "xhs_trends": frozenset(
         {
             "DATABASE_URL",
@@ -156,6 +171,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--api", type=Path, required=True)
     parser.add_argument("--admin", type=Path, required=True)
+    parser.add_argument("--ai-worker", type=Path, required=True)
     parser.add_argument("--xhs-trends", type=Path, required=True)
     parser.add_argument("--xhs-tracking", type=Path, required=True)
     return parser
@@ -168,6 +184,7 @@ def main() -> int:
             (
                 ("api", args.api),
                 ("admin", args.admin),
+                ("ai_worker", args.ai_worker),
                 ("xhs_trends", args.xhs_trends),
                 ("xhs_tracking", args.xhs_tracking),
             )

@@ -36,6 +36,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
             "FROM runtime-common AS admin-runtime", 1
         )[0]
         admin_stage = dockerfile.split("FROM runtime-common AS admin-runtime", 1)[1].split(
+            "FROM runtime-common AS ai-worker-runtime", 1
+        )[0]
+        ai_worker_stage = dockerfile.split(
+            "FROM runtime-common AS ai-worker-runtime", 1
+        )[1].split(
             "FROM runtime-common AS xhs-http-runtime", 1
         )[0]
         xhs_stage = dockerfile.split("FROM runtime-common AS xhs-http-runtime", 1)[1].split(
@@ -44,15 +49,20 @@ class ProductionReadinessGateTests(unittest.TestCase):
 
         self.assertIn("FROM runtime-common AS api-runtime", dockerfile)
         self.assertIn("FROM runtime-common AS admin-runtime", dockerfile)
+        self.assertIn("FROM runtime-common AS ai-worker-runtime", dockerfile)
         self.assertIn("FROM runtime-common AS xhs-http-runtime", dockerfile)
         self.assertNotIn("FROM runtime-common AS worker-runtime", dockerfile)
         self.assertIn("FROM ${NOTEAI_RUNTIME_TARGET} AS noteai-runtime", dockerfile)
         self.assertIn('CMD ["/app/scripts/render_start_api.sh"]', api_stage)
         self.assertIn('CMD ["/app/scripts/render_start_admin.sh"]', admin_stage)
+        self.assertIn(
+            'CMD ["python", "durable_ai_worker.py", "--once"]',
+            ai_worker_stage,
+        )
         self.assertIn('CMD ["/bin/false"]', xhs_stage)
         self.assertIn("NOTEAI_XHS_COLLECTION_SUSPENDED=1", xhs_stage)
         self.assertIn("HEALTHCHECK NONE", xhs_stage)
-        for stage in (api_stage, admin_stage, xhs_stage):
+        for stage in (api_stage, admin_stage, ai_worker_stage, xhs_stage):
             self.assertNotIn("playwright", stage.lower())
             self.assertNotIn("chromium", stage.lower())
         for package in ("libgl1", "libglib2.0-0", "libsm6", "libxext6", "libxrender1"):
@@ -62,7 +72,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertNotIn("python -m playwright install", dockerfile)
         self.assertNotIn("apt-get autoremove", dockerfile)
         self.assertIn("CRYPTO_JS_VERSION=4.2.0", dockerfile)
-        for stage in (api_stage, admin_stage, xhs_stage):
+        for stage in (api_stage, admin_stage, ai_worker_stage, xhs_stage):
             self.assertIn("USER noteai", stage)
         self.assertIn("python -m pip uninstall -y setuptools wheel", dockerfile)
         self.assertIn("python -m pip check", dockerfile)
@@ -71,12 +81,13 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertEqual(compose.count("import http.client, sys"), 2)
         self.assertEqual(compose.count("target: api-runtime"), 1)
         self.assertEqual(compose.count("target: admin-runtime"), 1)
+        self.assertEqual(compose.count("target: ai-worker-runtime"), 1)
         self.assertEqual(compose.count("target: xhs-http-runtime"), 2)
-        self.assertEqual(compose.count("no-new-privileges:true"), 4)
-        self.assertEqual(compose.count("privileged: false"), 4)
-        self.assertEqual(compose.count('user: "999:999"'), 4)
-        self.assertEqual(compose.count("read_only: true"), 4)
-        self.assertEqual(compose.count("cap_drop:"), 4)
+        self.assertEqual(compose.count("no-new-privileges:true"), 5)
+        self.assertEqual(compose.count("privileged: false"), 5)
+        self.assertEqual(compose.count('user: "999:999"'), 5)
+        self.assertEqual(compose.count("read_only: true"), 5)
+        self.assertEqual(compose.count("cap_drop:"), 5)
         self.assertNotIn("seccomp=", compose)
 
     def test_role_requirements_are_exactly_pinned_and_compatibility_is_recursive(self):
@@ -199,6 +210,12 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 ["/app/scripts/render_start_admin.sh"],
                 ["python", "-m", "uvicorn", "admin_server:admin_app", "--host", "0.0.0.0", "--port", "8001"],
             ),
+            "ai-worker": (
+                ["python", "durable_ai_worker.py", "--healthcheck"],
+                ["python", "durable_ai_worker.py", "--once"],
+                ["python", "durable_ai_worker.py", "--recover-unstarted"],
+                ["python", "durable_ai_worker.py", "--reconcile-stale"],
+            ),
             "xhs-http": (
                 ["/app/scripts/render_run_market_timing.sh"],
                 ["/app/scripts/render_run_crawler.sh"],
@@ -258,6 +275,14 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 ["python", "/app/scripts/render_predeploy.py"],
                 ["python", "crawler_worker.py"],
             ),
+            "ai-worker": (
+                [],
+                ["/app/scripts/render_start_api.sh"],
+                ["python", "api.py"],
+                ["python", "durable_ai_worker.py"],
+                ["python", "durable_ai_worker.py", "--once", "extra"],
+                ["sh", "-c", "python durable_ai_worker.py --once"],
+            ),
             "xhs-http": (
                 [],
                 ["/app/scripts/render_start_api.sh"],
@@ -306,13 +331,25 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertIn("trend scheduler", result.stderr)
         self.assertFalse(artifact_called)
 
+    def test_ai_worker_unsuspend_requires_exact_processor_before_artifact_loading(self):
+        result, artifact_called = self._run_entrypoint_guard(
+            "ai-worker",
+            "ai-worker",
+            ["python", "durable_ai_worker.py", "--once"],
+            check_pre_artifact=True,
+            NOTEAI_DURABLE_AI_SUSPENDED="0",
+        )
+        self.assertEqual(result.returncode, 78, result.stderr)
+        self.assertIn("exact production processor", result.stderr)
+        self.assertFalse(artifact_called)
+
     def test_readiness_entrypoint_semantic_harness_accepts_current_contract(self):
         source = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")
 
         passed, detail = gate._check_entrypoint_runtime_contract(source)
 
         self.assertTrue(passed, detail)
-        self.assertIn("allowed=17", detail)
+        self.assertIn("allowed=21", detail)
 
     def test_readiness_entrypoint_semantic_harness_rejects_allowlist_backdoor(self):
         source = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")

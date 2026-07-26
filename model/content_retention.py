@@ -101,7 +101,13 @@ def assert_account_deletion_ready_with_storage(
     # Local import avoids a module-load cycle: idempotency itself uses this
     # user fence for admission and terminalization.
     import idempotency
+    import durable_ai
 
+    durable_ai.settle_unstarted_user_jobs_for_deletion_with_storage(
+        storage,
+        user_id,
+        now=_now(),
+    )
     idempotency.settle_expired_requests_for_account_deletion_with_storage(
         storage,
         user_id,
@@ -705,6 +711,7 @@ def process_due_account_deletions(
     *,
     limit: int = 10,
     now: datetime | None = None,
+    payload_store: Any = None,
 ) -> list[str]:
     """Delete primary personal data while retaining pseudonymous audit ledgers."""
     current = now or _now()
@@ -725,6 +732,21 @@ def process_due_account_deletions(
         user_id = candidate["user_id"]
         if not user_id:
             continue
+        # External request/result objects must be erased before the database
+        # join that proves their owner is pseudonymized. Admission is already
+        # fenced by deletion_requested_at, so no new owner object can race in.
+        try:
+            import durable_ai
+
+            durable_ai.delete_user_payloads(
+                user_id,
+                store=payload_store,
+                now=current,
+            )
+        except durable_ai.PayloadUnavailable:
+            # Fail closed: keep the deletion request pending and preserve the
+            # owner join for a later bounded retry.
+            continue
         with db.transaction(write=True) as tx:
             try:
                 lock_user_write_fence_with_storage(
@@ -741,6 +763,8 @@ def process_due_account_deletions(
                 (candidate["id"], user_id, _iso(current)),
             )
             if not request:
+                continue
+            if durable_ai.has_ready_user_payloads(tx, user_id):
                 continue
             subject_ref = request["subject_ref"]
             tx.execute("UPDATE usage_records SET user_id=? WHERE user_id=?", (

@@ -981,6 +981,140 @@ CREATE TABLE IF NOT EXISTS ai_operation_admissions (
     created_at             TEXT NOT NULL
 );
 
+-- Durable AI storage/outbox/settlement contract. Only opaque identifiers,
+-- digests, bounded counters, fixed states and clocks may cross this boundary.
+CREATE TABLE IF NOT EXISTS ai_payload_refs (
+    id                  TEXT NOT NULL PRIMARY KEY CHECK (
+                            length(id) = 36
+                            AND length(replace(id, '-', '')) = 32
+                            AND substr(id, 9, 1) = '-'
+                            AND substr(id, 14, 1) = '-'
+                            AND substr(id, 19, 1) = '-'
+                            AND substr(id, 24, 1) = '-'
+                            AND id NOT GLOB '*[^0-9a-f-]*'
+                        ),
+    operation_id        TEXT NOT NULL
+                        REFERENCES ai_operations(id) ON DELETE RESTRICT,
+    subject_hash        TEXT NOT NULL CHECK (
+                            length(subject_hash) = 64
+                            AND subject_hash NOT GLOB '*[^0-9a-f]*'
+                        ),
+    purpose             TEXT NOT NULL CHECK (purpose IN ('request','result')),
+    object_key_hash     TEXT NOT NULL CHECK (
+                            length(object_key_hash) = 64
+                            AND object_key_hash NOT GLOB '*[^0-9a-f]*'
+                        ),
+    content_sha256      TEXT NOT NULL CHECK (
+                            length(content_sha256) = 64
+                            AND content_sha256 NOT GLOB '*[^0-9a-f]*'
+                        ),
+    size_bytes          INTEGER NOT NULL CHECK (size_bytes BETWEEN 1 AND 134217728),
+    item_count          INTEGER NOT NULL CHECK (item_count BETWEEN 0 AND 1000),
+    schema_version      INTEGER NOT NULL CHECK (schema_version BETWEEN 1 AND 16),
+    encryption_mode     TEXT NOT NULL
+                        CHECK (encryption_mode IN ('provider_managed','envelope_aes256')),
+    key_epoch_hash      TEXT NOT NULL CHECK (
+                            length(key_epoch_hash) = 64
+                            AND key_epoch_hash NOT GLOB '*[^0-9a-f]*'
+                        ),
+    state               TEXT NOT NULL CHECK (state IN ('ready','expired','deleted')),
+    expires_at          TEXT NOT NULL,
+    created_at          TEXT NOT NULL,
+    ready_at            TEXT NOT NULL,
+    deleted_at          TEXT,
+    UNIQUE(operation_id, purpose),
+    CHECK (
+        (state = 'ready' AND deleted_at IS NULL)
+        OR (state IN ('expired','deleted') AND deleted_at IS NOT NULL)
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_ai_payload_refs_lifecycle
+    ON ai_payload_refs(state, expires_at, purpose);
+CREATE INDEX IF NOT EXISTS idx_ai_payload_refs_subject
+    ON ai_payload_refs(subject_hash, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS ai_operation_outbox (
+    id                  TEXT NOT NULL PRIMARY KEY CHECK (
+                            length(id) = 36
+                            AND length(replace(id, '-', '')) = 32
+                            AND substr(id, 9, 1) = '-'
+                            AND substr(id, 14, 1) = '-'
+                            AND substr(id, 19, 1) = '-'
+                            AND substr(id, 24, 1) = '-'
+                            AND id NOT GLOB '*[^0-9a-f-]*'
+                        ),
+    operation_id        TEXT NOT NULL UNIQUE
+                        REFERENCES ai_operations(id) ON DELETE RESTRICT,
+    event_type          TEXT NOT NULL CHECK (event_type = 'operation_ready'),
+    state               TEXT NOT NULL CHECK (state IN ('pending','delivered','dead')),
+    available_at        TEXT NOT NULL,
+    attempt_count       INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count BETWEEN 0 AND 20),
+    lease_owner_hash    TEXT CHECK (
+                            lease_owner_hash IS NULL OR (
+                                length(lease_owner_hash) = 64
+                                AND lease_owner_hash NOT GLOB '*[^0-9a-f]*'
+                            )
+                        ),
+    lease_fence         INTEGER NOT NULL DEFAULT 0 CHECK (lease_fence >= 0),
+    lease_expires_at    TEXT,
+    created_at          TEXT NOT NULL,
+    updated_at          TEXT NOT NULL,
+    delivered_at        TEXT,
+    CHECK (
+        (state = 'pending' AND delivered_at IS NULL)
+        OR (state = 'delivered' AND delivered_at IS NOT NULL)
+        OR state = 'dead'
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_ai_operation_outbox_dispatch
+    ON ai_operation_outbox(state, available_at, lease_expires_at, created_at);
+
+CREATE TABLE IF NOT EXISTS ai_operation_settlements (
+    operation_id        TEXT NOT NULL PRIMARY KEY
+                        REFERENCES ai_operations(id) ON DELETE RESTRICT,
+    request_ref_id      TEXT NOT NULL UNIQUE
+                        REFERENCES ai_payload_refs(id) ON DELETE RESTRICT,
+    result_ref_id       TEXT UNIQUE
+                        REFERENCES ai_payload_refs(id) ON DELETE RESTRICT,
+    billing_state       TEXT NOT NULL
+                        CHECK (billing_state IN ('charged','completed','refunded','needs_manual')),
+    failure_code        TEXT NOT NULL DEFAULT ''
+                        CHECK (failure_code IN (
+                            '', 'worker_failed', 'provider_failed',
+                            'payload_unavailable', 'cancelled',
+                            'provider_outcome_unknown', 'result_store_unknown'
+                        )),
+    created_at          TEXT NOT NULL,
+    updated_at          TEXT NOT NULL,
+    settled_at          TEXT,
+    CHECK (
+        (billing_state = 'charged' AND settled_at IS NULL AND result_ref_id IS NULL)
+        OR (
+            billing_state = 'completed'
+            AND settled_at IS NOT NULL
+            AND result_ref_id IS NOT NULL
+            AND failure_code = ''
+        )
+        OR (
+            billing_state IN ('refunded','needs_manual')
+            AND settled_at IS NOT NULL
+            AND result_ref_id IS NULL
+            AND failure_code <> ''
+        )
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_ai_operation_settlements_state
+    ON ai_operation_settlements(billing_state, updated_at);
+
+CREATE TABLE IF NOT EXISTS ai_dispatch_state (
+    service_key         TEXT NOT NULL PRIMARY KEY CHECK (service_key = 'durable_ai'),
+    priority_streak     INTEGER NOT NULL DEFAULT 0 CHECK (priority_streak BETWEEN 0 AND 3),
+    updated_at          TEXT NOT NULL
+);
+INSERT INTO ai_dispatch_state(service_key,priority_streak,updated_at)
+VALUES('durable_ai',0,'1970-01-01T00:00:00+00:00')
+ON CONFLICT(service_key) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS saved_diagnoses (
     id              TEXT PRIMARY KEY,
     user_id         TEXT NOT NULL,
