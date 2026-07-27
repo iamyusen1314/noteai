@@ -40,17 +40,20 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(report["complete_public_launch"]["percentage"], 37)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
-    def test_current_post_preflight_roots_are_actionable(self):
+    def test_current_schema_unknown_is_blocked_fail_closed(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
-        self.assertEqual(report["blocked"], [])
+        self.assertEqual(
+            [item["id"] for item in report["blocked"]],
+            ["production_schema_roles"],
+        )
         self.assertNotIn("immutable_release_candidate", actionable)
         self.assertNotIn("production_readonly_preflight", actionable)
         self.assertIsNone(report["next_safe_task"])
         self.assertEqual(
             actionable["production_schema_roles"]["status"],
-            "unverified",
+            "blocked",
         )
         self.assertEqual(
             actionable["production_schema_roles"]["next_task"],

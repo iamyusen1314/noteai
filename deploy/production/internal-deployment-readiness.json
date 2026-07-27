@@ -288,14 +288,20 @@
         {
           "id": "production_schema_roles",
           "title": "Production migrations 0009-0016 and exact runtime roles",
-          "status": "unverified",
+          "status": "blocked",
           "dependencies": [
             "production_readonly_preflight",
             "immutable_release_candidate"
           ],
-          "evidence": [],
-          "blocker": "Production remains at migrations 0001-0008 and the final role deltas are unapplied.",
-          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001"
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-roles-unknown-20260727.json"
+            }
+          ],
+          "blocker": "The single bounded production transaction and one independent forced-read-only resolution audit both returned database outcome UNKNOWN. No further database connection or retry is allowed under the active incident boundary.",
+          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
+          "resume_condition": "The product owner explicitly selects a bounded incident-resolution direction for a newly reviewed read-only audit, restore/reconciliation, or another defined recovery action."
         },
         {
           "id": "managed_secret_distribution",

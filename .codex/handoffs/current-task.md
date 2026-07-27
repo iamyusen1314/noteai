@@ -17,7 +17,9 @@
   without repeated approval, including bounded production/cloud changes.
 - Stop and request the owner only for interactive login/new credentials, public
   DNS cutover, real-user traffic, irreversible destruction, uncapped cost, a
-  new product decision or a public-launch-complete declaration.
+  new product decision, a public-launch-complete declaration, a database
+  connection with an unknown result, a real security conflict or a genuine
+  technical inability to continue.
 - Never print, persist, commit or document Secret values, private keys,
   passwords, cookies, complete connection strings, IP addresses, resource IDs,
   user data or long raw logs.
@@ -26,7 +28,7 @@
 
 - Expected branch: `codex/quality-stabilization-real-chain`.
 - Parent documentation checkpoint:
-  `692b9428c5a75d01eb6a2e1af3854578e62d0fb7`.
+  `9fcb88620e0f5781ac040a41665a6f6b65a12596`.
 - Schema executor repair:
   `e5883abc01c4b009907bee550209d7036d383771`.
 - Immutable application revision:
@@ -56,10 +58,15 @@
 `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`
 
 - Status:
-  `REPOSITORY + DISPOSABLE POSTGRESQL VERIFIED / PRODUCTION UNAPPLIED`.
-- Production remains at migrations `0001`–`0008`.
-- Migrations `0009`–`0016` and the final runtime role/ACL matrix remain
-  unapplied.
+  `INVESTIGATING / ONE PRODUCTION TRANSACTION RETURNED UNKNOWN / NO RETRY`.
+- The last deterministically verified production state is migrations
+  `0001`–`0008`, established by the successful forced-read-only pre-dispatch.
+- A single subsequent production transaction returned an executor failure with
+  database outcome `UNKNOWN`. One independent forced-read-only resolution
+  audit also failed with outcome `UNKNOWN`; therefore the current schema state
+  must not be assumed to be either `0001`–`0008` or `0001`–`0016`.
+- No further database connection, transaction, verification or retry is
+  permitted without an explicit product-owner decision after this checkpoint.
 - The current executor snapshots exact migration bytes, accepts only the
   reviewed legacy or complete ledger, upgrades the legacy ledger in one
   transaction, and verifies the full positive/negative role matrix.
@@ -90,97 +97,68 @@
 
 ## 6. Safe transition checkpoint
 
-- Fresh control-plane read-back on 2026-07-27 reconfirmed:
-  - one running PostgreSQL 16 RDS instance;
-  - three successful backups in the observed three-day window, with the newest
-    successful backup well inside 24 hours;
-  - `3 total accounts / 1 Super / 0 task accounts`;
-  - API-C/API-F running and API-C Admin running, ready and loopback-only;
-  - zero schema-task directory/file/container residue before staging.
-- Exact source `e5883ab` was rebuilt locally into a 21-file minimal package:
-  migrations `0001`–`0016`, executor, collector, read-only gate, runtime-role
-  SQL and registry evidence. The tarball was `48,631` bytes with SHA-256
-  `342e338e06203913d8f39865dd77a3ef1c0846a4419cb6eda745d9553d4a2bc2`;
-  unpack comparison and isolated no-DSN import both passed.
-- Cloud Shell received and hash-verified the exact tarball. API-C temporary RSA
-  creation then passed, but payload transfer stopped before decode/extract:
-  - the first host command deterministically failed with exit `127` because
-    `RunCommand.CommandContent` requires raw script text, not base64 text;
-  - the corrected RSA command succeeded;
-  - payload chunking stopped at the first exact-marker mismatch caused by
-    over-escaped shell `printf` placeholders.
-- No RDS task account was created. No DSN, ciphertext or `runner.env` existed.
-  No database connection, pre-dispatch query, transaction, migration, role
-  change or business-row write occurred.
-- The exact API-C task directory, RSA files and partial payload were deleted.
-  Final host read-back was:
-  `exact task path 0 / task directories 0 / maintenance containers 0`,
-  API-C API/Admin both active, all four live/ready probes `200`, and ports
-  `8000`/`8001` each had one loopback listener and zero non-loopback listeners.
-- Cloud Shell payload files and all `NOTEAI_` task variables were deleted and
-  independently read back as zero.
-- No service restart/redeploy, provider call, registry access, public traffic
-  change or production database write occurred. Production therefore remains
-  at the last verified `0001`–`0008` state and readiness remains `14/29 = 48%`.
+- Fresh pre-attempt control-plane and host read-back on 2026-07-27 confirmed:
+  one running PostgreSQL 16 RDS instance, an eligible successful backup inside
+  24 hours, `3 accounts / 1 Super / 0 task`, zero task residue, and unchanged
+  loopback-only API-C/API-F/API-C-Admin health.
+- Exact source `e5883ab` was rebuilt into the required 21-file package. The
+  first local archive was rejected before credentials because macOS `tar`
+  injected 30 AppleDouble `._*` entries. The corrected archive used
+  `COPYFILE_DISABLE=1` and independently verified:
+  - 21 regular files, 16 migrations and zero AppleDouble entries;
+  - 21/21 exact source hashes and exact registry evidence;
+  - 47,121 bytes;
+  - SHA-256
+    `b28cccdfe7be45b0f76cec3a1cdc77dd4a78e4120a52af95617fa475a9a85901`;
+  - host and network-disabled current-image imports, including `psycopg`.
+- After those zero-DB gates, exactly one short-lived task-described Super
+  account and one 3072-bit RSA pair were created. The DSN was encrypted into
+  384 bytes; no plaintext password or connection string was printed or
+  retained after staging.
+- The single forced-read-only pre-dispatch passed and proved:
+  - exact legacy ledger `0001`–`0008`;
+  - pending `0009`–`0016`;
+  - eight missing legacy hashes;
+  - zero drift, source blockers, retention candidates/deadlines, unexpected
+    grants, elevation and business-row values read.
+- The only production apply invocation then returned:
+  `executor failure / database outcome UNKNOWN / no retry`.
+- Exactly one independent forced-read-only resolution audit was attempted. It
+  also returned `database outcome UNKNOWN`; it was not retried. Consequently:
+  - actual database write counts are unknown;
+  - neither rollback nor commit may be claimed;
+  - readiness remains `14/29 = 48%`;
+  - `production_schema_roles` is fail-closed as `blocked`.
+- Secret-free reduced evidence is stored at
+  `deploy/production/evidence/production-schema-roles-unknown-20260727.json`.
+- Cleanup completed and was read back:
+  - `3 accounts / 1 Super / 0 task accounts`;
+  - API-C task directory, RSA, ciphertext, source, runner environment and
+    maintenance container all zero;
+  - Cloud Shell task files and task variables zero;
+  - API-C API/Admin and API-F API remain ready and loopback-only;
+  - no service restart/redeploy, provider/registry call, public traffic or
+    public-edge change occurred.
 
 ## 7. Exact resume sequence
 
-1. Fully read `AGENTS.md`, this file,
-   `.codex/notes/architecture-summary.md`,
-   `.codex/notes/risk-register.md` and the readiness manifest/verifier.
-2. Start three read-only Subagents:
-   - Handoff/Git/Readiness Auditor;
-   - Schema/Role Execution Verifier;
-   - Runtime/Cleanup Evidence Auditor.
-3. In the new conversation, re-observe Git and the cleanup baseline from
-   scratch. Do not assume browser, shell variables or Cloud Shell memory
-   survived, and do not treat this Handoff alone as fresh cloud evidence.
-4. Reconfirm an eligible fresh successful RDS backup, zero task
-   accounts/directories/containers, and unchanged loopback API/Admin health.
-   Treat `0001`–`0008` as the last verified ledger state until a new protected
-   privileged read-only pre-dispatch check is available.
-5. Rebuild the minimal executor package only from exact Git source
-   `e5883ab`: executor, preflight gate, migrations `0001`–`0016`, credential-free
-   runtime-role SQL and exact registry evidence.
-6. Verify every file hash. Registry evidence expected SHA-256 is
-   `b44b8861202d97b9f0784dd89f3b6056e5fc4af2b6939d28bdfe1b2f49b540f3`.
-7. In a no-DSN environment, require
-   `import tools.production_schema_roles` to pass before creating any temporary
-   privileged credential. A missing import dependency is a packaging failure,
-   not permission to connect to the database.
-8. Only after zero-DB import acceptance, create one new short-lived
-   task-described Super account and ephemeral RSA transport. Never expose the
-   plaintext credential.
-9. Transfer and hash-verify exact files on API-C; require `runner.env=0`,
-   maintenance container `0`, API/Admin unchanged and the exact new backup.
-   Alibaba `RunCommand.CommandContent` accepts raw script text. If chunking is
-   used, locally render and assert the exact first/last chunk scripts before
-   dispatch; do not reuse the over-escaped `printf` template from the stopped
-   attempt.
-10. With the protected temporary credential, force one read-only
-    pre-dispatch check that proves the production ledger is still exactly
-    `0001`–`0008` and every executor precondition is unchanged. A failure stops
-    the task and prohibits automatic retry.
-11. Execute at most one newly authenticated bounded production transaction.
-    After any database connection, failure or unknown outcome prohibits
-    automatic retry.
-12. Exact approved write ceilings:
-    - 8 fixed legacy ledger SHA backfills;
-    - 8 migration-ledger rows for `0009`–`0016`;
-    - 2 fixed service-state seeds;
-    - retention backfill `0`;
-    - existing business-row updates `0`.
-13. Independently force read-only verification of migration hashes, inventory,
-    role/column/sequence negatives, zero elevation and exact counters.
-14. Save only Secret-free reduced evidence before cleanup.
-15. Delete the task account, RSA/cipher/source directory, runner environment,
-    maintenance container and Cloud Shell task files; read back the exact
-    cleanup baseline and unchanged API-C/API-F/Admin health.
-16. Update the evidence artifact, readiness manifest, Handoff and risk register;
-    run focused tests, readiness gates and `git diff --check`; commit with
-    `[skip render]` and push normally.
-17. Select the next unique task from the validated dependency graph and
-    continue until internal readiness is genuinely `100%`.
+1. Do not create a database account, connect to RDS, run the executor, run a
+   database audit or select a downstream task while this UNKNOWN result is
+   unresolved.
+2. Re-observe Git and the already-clean cloud baseline read-only if work
+   resumes; do not infer database state from the last successful pre-dispatch.
+3. The product owner must explicitly choose the incident-resolution direction
+   because all choices require a new database connection or a rollback/restore
+   decision. The owner decision must define whether to:
+   - authorize a new, separately designed read-only state audit;
+   - restore/reconcile from the eligible backup;
+   - or take another bounded incident action.
+4. Any authorized audit must use a newly reviewed implementation, one new
+   short-lived account and fresh encrypted transport. It must never reuse or
+   retry the failed apply/audit command.
+5. Only after the database outcome is independently known may
+   `production_schema_roles` be accepted or a new corrective task be defined.
+   Until then no dependency-graph successor is eligible.
 
 ## 8. Stop conditions for this transaction
 
@@ -231,14 +209,12 @@ Do not reopen a completed item merely because a new conversation starts.
 - Keep the main thread limited to the goal, constraints, decisions, independent
   evidence, execution results and the next action. Subagent final reports must
   stay below 1,500 Chinese characters and omit long logs/code.
-- At an estimated `45K`–`50K` effective tokens, stop expanding investigation,
-  finish only the current safe atomic step, clean temporary resources, and
-  produce a Secret-free repository Handoff plus checkpoint.
-- Before `60K`, end the conversation. Do not start a new production write when
-  already near the lower threshold.
-- If exact token statistics are unavailable, treat every major task,
-  production transaction or Subagent round as a checkpoint; after two major
-  stages, proactively hand off.
-- Local/worktree notes do not reset context. Only a repository Handoff,
-  necessary checkpoint commit and a fresh conversation that independently
-  revalidates read-only state complete the transition.
+- The former fixed `45K`–`50K`/`60K` stop rules are revoked. Checkpoints and
+  rolling Secret-free Handoffs are recovery safeguards, not stop signals.
+- Do not stop merely because exact token statistics are unavailable, a
+  checkpoint was created, Handoff was updated or automatic context compaction
+  occurred.
+- After automatic compaction, reread Git, this Handoff and the risk/evidence
+  ledgers, then continue from the current safe state.
+- The database UNKNOWN stop condition in sections 4–8 is substantive and
+  independent of context size.

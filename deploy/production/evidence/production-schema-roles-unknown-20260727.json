@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
+  "observed_at_utc": "2026-07-27T15:35:04Z",
+  "status": "unknown",
+  "source": {
+    "checkpoint_commit": "9fcb88620e0f5781ac040a41665a6f6b65a12596",
+    "executor_fix_commit": "e5883abc01c4b009907bee550209d7036d383771",
+    "executor_source_match": true,
+    "worktree_clean_before_attempt": true,
+    "upstream_divergence_before_attempt": {
+      "ahead": 0,
+      "behind": 0
+    }
+  },
+  "fresh_baseline": {
+    "eligible_successful_backup_inside_24h": true,
+    "account_count": 3,
+    "super_account_count": 1,
+    "task_account_count": 0,
+    "task_directory_count": 0,
+    "maintenance_container_count": 0,
+    "api_c_ready_loopback_only": true,
+    "api_f_ready_loopback_only": true,
+    "api_c_admin_ready_loopback_only": true
+  },
+  "execution_package": {
+    "source_file_count": 21,
+    "migration_file_count": 16,
+    "verified_file_hash_count": 21,
+    "registry_evidence_sha256": "b44b8861202d97b9f0784dd89f3b6056e5fc4af2b6939d28bdfe1b2f49b540f3",
+    "archive_sha256": "b28cccdfe7be45b0f76cec3a1cdc77dd4a78e4120a52af95617fa475a9a85901",
+    "archive_size_bytes": 47121,
+    "appledouble_entry_count": 0,
+    "host_zero_dsn_import": true,
+    "container_zero_dsn_import": true,
+    "container_psycopg_import": true
+  },
+  "temporary_access": {
+    "task_account_created": 1,
+    "task_account_type": "Super",
+    "rsa_bits": 3072,
+    "ciphertext_size_bytes": 384,
+    "plaintext_value_exposed": 0,
+    "plaintext_value_retained_after_staging": 0
+  },
+  "predispatch": {
+    "attempt_count": 1,
+    "database_connected": true,
+    "session_read_only": true,
+    "transaction_read_only": true,
+    "ledger_versions": "0001-0008",
+    "pending_versions": "0009-0016",
+    "legacy_sha256_missing_count": 8,
+    "migration_drift_count": 0,
+    "source_blocker_count": 0,
+    "retention_backfill_candidate_count": 0,
+    "retention_immediate_deadline_count": 0,
+    "unexpected_grant_count": 0,
+    "elevation_count": 0,
+    "business_row_values_read": 0,
+    "result": "pass"
+  },
+  "production_transaction": {
+    "attempt_count": 1,
+    "automatic_retry_count": 0,
+    "executor_result": "failure",
+    "database_outcome": "UNKNOWN",
+    "approved_write_ceiling": {
+      "legacy_migration_sha256_backfills": 8,
+      "migration_ledger_rows_0009_0016": 8,
+      "fixed_service_state_seed_rows": 2,
+      "retention_backfill_rows": 0,
+      "existing_business_row_updates": 0
+    },
+    "actual_write_counts": null
+  },
+  "readonly_resolution_audit": {
+    "attempt_count": 1,
+    "forced_read_only": true,
+    "result": "failure",
+    "database_outcome": "UNKNOWN",
+    "automatic_retry_count": 0
+  },
+  "cleanup": {
+    "status": "completed",
+    "observed_at_utc": "2026-07-27T15:42:06Z",
+    "account_count": 3,
+    "super_account_count": 1,
+    "task_account_count": 0,
+    "task_directory_count": 0,
+    "rsa_file_count": 0,
+    "ciphertext_file_count": 0,
+    "source_directory_count": 0,
+    "runner_env_count": 0,
+    "maintenance_container_count": 0,
+    "cloud_shell_task_file_count": 0,
+    "cloud_shell_task_variable_count": 0,
+    "api_c_ready_loopback_only": true,
+    "api_f_ready_loopback_only": true,
+    "api_c_admin_ready_loopback_only": true
+  },
+  "readiness": {
+    "repository_items_verified": 12,
+    "repository_items_total": 12,
+    "internal_items_verified": 14,
+    "internal_items_total": 29,
+    "production_schema_roles_verified": false,
+    "public_launch_complete": false
+  },
+  "stop_reason": "Database outcome remained UNKNOWN after the single bounded transaction and one independent forced-read-only resolution audit."
+}
