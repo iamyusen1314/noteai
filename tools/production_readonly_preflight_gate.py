@@ -41,6 +41,7 @@ EXPECTED_READY_CORE_CHECKS = {
 EXPECTED_ROLE_STATE = {
     "noteai_app": "present",
     "noteai_admin": "present",
+    "noteai_admin_runtime": "absent",
     "noteai_xhs": "present",
     "noteai_ai_dispatcher": "absent",
     "noteai_ai_worker": "absent",
@@ -108,8 +109,8 @@ def _current_migration_hashes() -> dict[str, str]:
         version = path.name.split("_", 1)[0]
         _require(version.isdigit(), f"migration filename is invalid: {path.name}")
         hashes[version] = hashlib.sha256(path.read_bytes()).hexdigest()
-    _require(tuple(hashes) == tuple(f"{number:04d}" for number in range(1, 16)),
-             "repository migration set must be exactly 0001-0015")
+    _require(tuple(hashes) == tuple(f"{number:04d}" for number in range(1, 17)),
+             "repository migration set must be exactly 0001-0016")
     return hashes
 
 
@@ -466,6 +467,7 @@ def _verify_database(evidence: dict[str, Any]) -> None:
             "metadata_session_read_only",
             "business_row_values_read",
             "aggregate_query_count",
+            "migration_ledger_source",
             "applied_migration_hashes",
             "pending_versions",
             "stored_migration_drift_count",
@@ -491,6 +493,11 @@ def _verify_database(evidence: dict[str, Any]) -> None:
         and evidence["aggregate_query_count"] >= 1,
         "database aggregate evidence absent",
     )
+    _require(
+        evidence["migration_ledger_source"]
+        in {"stored_sha256", "pinned_legacy_versions"},
+        "database migration ledger source",
+    )
     hashes = _current_migration_hashes()
     _require(
         evidence["applied_migration_hashes"]
@@ -499,7 +506,7 @@ def _verify_database(evidence: dict[str, Any]) -> None:
     )
     _require(
         evidence["pending_versions"] == list(tuple(hashes)[8:]),
-        "pending migration set must be 0009-0015",
+        "pending migration set must be 0009-0016",
     )
     for key in (
         "stored_migration_drift_count",

@@ -31,7 +31,7 @@ class PaymentPostgresContractTests(unittest.TestCase):
     ROLES = (
         "noteai_app",
         "noteai_payment",
-        "noteai_admin",
+        "noteai_admin_runtime",
         "noteai_ai_worker",
         "noteai_ai_dispatcher",
         "noteai_xhs_tracking",
@@ -164,7 +164,7 @@ class PaymentPostgresContractTests(unittest.TestCase):
         cls.conn.execute(
             "GRANT SELECT ON "
             + ",".join(cls.TABLES)
-            + " TO noteai_admin"
+            + " TO noteai_admin_runtime"
         )
         cls.conn.execute(
             "GRANT SELECT ON payment_credit_positions,"
@@ -470,7 +470,7 @@ class PaymentPostgresContractTests(unittest.TestCase):
                 table: {"SELECT"}
                 for table in self.TABLES
             },
-            "noteai_admin": {
+            "noteai_admin_runtime": {
                 table: {"SELECT"}
                 for table in self.TABLES
             },
@@ -771,7 +771,7 @@ class PaymentPostgresContractTests(unittest.TestCase):
         )
         self.conn.execute("RESET ROLE")
 
-        self.conn.execute("SET LOCAL ROLE noteai_admin")
+        self.conn.execute("SET LOCAL ROLE noteai_admin_runtime")
         self.assertEqual(
             self.conn.execute(
                 "SELECT COUNT(*) AS count FROM payment_orders WHERE id=%s",

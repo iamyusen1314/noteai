@@ -34,7 +34,7 @@ class PrivateStoragePostgresContractTests(unittest.TestCase):
             "noteai_app",
             "noteai_ai_worker",
             "noteai_ai_dispatcher",
-            "noteai_admin",
+            "noteai_admin_runtime",
             "noteai_xhs_tracking",
             "noteai_xhs_trends",
         ):
@@ -69,7 +69,7 @@ class PrivateStoragePostgresContractTests(unittest.TestCase):
             "noteai_app",
             "noteai_ai_worker",
             "noteai_ai_dispatcher",
-            "noteai_admin",
+            "noteai_admin_runtime",
             "noteai_xhs_tracking",
             "noteai_xhs_trends",
         ):
@@ -307,7 +307,7 @@ class PrivateStoragePostgresContractTests(unittest.TestCase):
             "noteai_app",
             "noteai_ai_worker",
             "noteai_ai_dispatcher",
-            "noteai_admin",
+            "noteai_admin_runtime",
             "noteai_xhs_tracking",
             "noteai_xhs_trends",
         )

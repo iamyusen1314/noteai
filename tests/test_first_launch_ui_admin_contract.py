@@ -307,26 +307,38 @@ class FirstLaunchUiAdminContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("unpkg.com", frontend + admin)
 
     def test_admin_postgres_role_contract_is_credential_free_and_exact(self):
-        migration = (
+        migration_0015 = (
             MODEL_DIR
             / "migrations"
             / "postgres"
             / "0015_admin_runtime_contract.sql"
         ).read_text(encoding="utf-8")
+        migration_0016 = (
+            MODEL_DIR
+            / "migrations"
+            / "postgres"
+            / "0016_admin_runtime_role_collision.sql"
+        ).read_text(encoding="utf-8")
         role_sql = (
-            ROOT / "scripts" / "postgres" / "noteai_admin_role.sql"
+            ROOT / "scripts" / "postgres" / "noteai_admin_runtime_role.sql"
         ).read_text(encoding="utf-8")
         server = (MODEL_DIR / "admin_server.py").read_text(encoding="utf-8")
 
-        self.assertNotIn("GRANT ", migration.upper())
-        self.assertNotIn("REVOKE ", migration.upper())
-        self.assertIn("noteai_system_settings_admin_read_v1", migration)
-        self.assertIn("key IN ('model_registry','crawler_config')", migration)
-        self.assertIn("noteai_ai_outbox_admin_read_v1", migration)
+        self.assertNotIn("GRANT ", migration_0015.upper())
+        self.assertNotIn("REVOKE ", migration_0015.upper())
+        self.assertNotIn("GRANT ", migration_0016.upper())
+        self.assertNotIn("REVOKE ", migration_0016.upper())
+        self.assertIn("noteai_system_settings_admin_read_v1", migration_0016)
+        self.assertIn(
+            "key IN ('model_registry','crawler_config')",
+            migration_0016,
+        )
+        self.assertIn("noteai_ai_outbox_admin_read_v1", migration_0016)
         self.assertNotIn("CREATE ROLE", role_sql.upper())
         self.assertNotIn("PASSWORD", role_sql.upper())
         self.assertIn(
-            "GRANT SELECT, INSERT, DELETE ON admin_sessions TO noteai_admin",
+            "GRANT SELECT, INSERT, DELETE ON admin_sessions "
+            "TO noteai_admin_runtime",
             role_sql,
         )
         self.assertIn(

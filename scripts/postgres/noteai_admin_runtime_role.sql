@@ -4,9 +4,9 @@ DO $contract$
 DECLARE
     role_row RECORD;
 BEGIN
-    SELECT * INTO role_row FROM pg_roles WHERE rolname = 'noteai_admin';
+    SELECT * INTO role_row FROM pg_roles WHERE rolname = 'noteai_admin_runtime';
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'noteai_admin role must be created by the credential workflow';
+        RAISE EXCEPTION 'noteai_admin_runtime role must be created by the credential workflow';
     END IF;
     IF role_row.rolsuper
        OR role_row.rolinherit
@@ -15,29 +15,29 @@ BEGIN
        OR NOT role_row.rolcanlogin
        OR role_row.rolreplication
        OR role_row.rolbypassrls THEN
-        RAISE EXCEPTION 'noteai_admin role attributes violate runtime contract';
+        RAISE EXCEPTION 'noteai_admin_runtime role attributes violate runtime contract';
     END IF;
     IF EXISTS (
         SELECT 1 FROM pg_auth_members m
         JOIN pg_roles member_role ON member_role.oid = m.member
-        WHERE member_role.rolname = 'noteai_admin'
+        WHERE member_role.rolname = 'noteai_admin_runtime'
     ) THEN
-        RAISE EXCEPTION 'noteai_admin must not inherit or SET ROLE to another role';
+        RAISE EXCEPTION 'noteai_admin_runtime must not inherit or SET ROLE to another role';
     END IF;
     IF EXISTS (
         SELECT 1 FROM pg_class c
         JOIN pg_roles owner_role ON owner_role.oid = c.relowner
-        WHERE owner_role.rolname = 'noteai_admin'
+        WHERE owner_role.rolname = 'noteai_admin_runtime'
     ) OR EXISTS (
         SELECT 1 FROM pg_namespace n
         JOIN pg_roles owner_role ON owner_role.oid = n.nspowner
-        WHERE owner_role.rolname = 'noteai_admin'
+        WHERE owner_role.rolname = 'noteai_admin_runtime'
     ) OR EXISTS (
         SELECT 1 FROM pg_proc p
         JOIN pg_roles owner_role ON owner_role.oid = p.proowner
-        WHERE owner_role.rolname = 'noteai_admin'
+        WHERE owner_role.rolname = 'noteai_admin_runtime'
     ) THEN
-        RAISE EXCEPTION 'noteai_admin must not own database objects';
+        RAISE EXCEPTION 'noteai_admin_runtime must not own database objects';
     END IF;
 END
 $contract$;
@@ -45,7 +45,7 @@ $contract$;
 DO $database_acl$
 BEGIN
     EXECUTE format(
-        'REVOKE ALL PRIVILEGES ON DATABASE %I FROM noteai_admin',
+        'REVOKE ALL PRIVILEGES ON DATABASE %I FROM noteai_admin_runtime',
         current_database()
     );
     EXECUTE format(
@@ -53,28 +53,28 @@ BEGIN
         current_database()
     );
     EXECUTE format(
-        'GRANT CONNECT ON DATABASE %I TO noteai_admin',
+        'GRANT CONNECT ON DATABASE %I TO noteai_admin_runtime',
         current_database()
     );
 END
 $database_acl$;
 
-REVOKE ALL PRIVILEGES ON SCHEMA public FROM noteai_admin;
-GRANT USAGE ON SCHEMA public TO noteai_admin;
-REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM noteai_admin;
-REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM noteai_admin;
-REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM noteai_admin;
+REVOKE ALL PRIVILEGES ON SCHEMA public FROM noteai_admin_runtime;
+GRANT USAGE ON SCHEMA public TO noteai_admin_runtime;
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM noteai_admin_runtime;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM noteai_admin_runtime;
+REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM noteai_admin_runtime;
 
-GRANT SELECT, INSERT, DELETE ON admin_sessions TO noteai_admin;
+GRANT SELECT, INSERT, DELETE ON admin_sessions TO noteai_admin_runtime;
 
 GRANT SELECT (
     id, username, email, phone, nickname, avatar_emoji, created_at, last_login
-) ON users TO noteai_admin;
-GRANT SELECT (id, user_id, score) ON notes TO noteai_admin;
+) ON users TO noteai_admin_runtime;
+GRANT SELECT (id, user_id, score) ON notes TO noteai_admin_runtime;
 GRANT SELECT (
     user_id, type, amount, balance_after, description, paid_rmb, package_id,
     recorded_at
-) ON credit_transactions TO noteai_admin;
+) ON credit_transactions TO noteai_admin_runtime;
 
 GRANT SELECT ON
     subscriptions,
@@ -101,13 +101,13 @@ GRANT SELECT ON
     payment_reconciliation_runs,
     payment_reconciliation_items,
     payment_settlement_summaries
-TO noteai_admin;
+TO noteai_admin_runtime;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
-    REVOKE ALL PRIVILEGES ON TABLES FROM noteai_admin;
+    REVOKE ALL PRIVILEGES ON TABLES FROM noteai_admin_runtime;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
-    REVOKE ALL PRIVILEGES ON SEQUENCES FROM noteai_admin;
+    REVOKE ALL PRIVILEGES ON SEQUENCES FROM noteai_admin_runtime;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
-    REVOKE ALL PRIVILEGES ON FUNCTIONS FROM noteai_admin;
+    REVOKE ALL PRIVILEGES ON FUNCTIONS FROM noteai_admin_runtime;
 
 COMMIT;

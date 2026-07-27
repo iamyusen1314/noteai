@@ -173,7 +173,7 @@ production migration, grant, service start or cash movement.
   mutation.
 - `noteai_payment`: isolated callback/order/refund/reconciliation writer with
   only exact table/column privileges and no user profile/content access.
-- `noteai_admin`: read-only finance/reconciliation truth. Refund initiation
+- `noteai_admin_runtime`: read-only finance/reconciliation truth. Refund initiation
   must call the payment boundary; Admin never edits cash or entitlement rows.
 - AI, dispatcher, Trends and Tracking roles have zero payment-table access.
 - API and Payment receive distinct managed env files. The Adapay API key,

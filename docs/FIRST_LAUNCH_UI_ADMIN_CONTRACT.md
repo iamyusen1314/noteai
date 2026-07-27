@@ -81,15 +81,17 @@ HTTP 410 and the legacy in-process Crawler run remains HTTP 409.
 
 ## Deployment gate
 
-The application contract requires a dedicated `noteai_admin` login. It needs
-only Admin-session `SELECT, INSERT, DELETE` plus the documented read-only
-operational objects. It must not reuse `noteai_app` and must not use global
+The application contract requires a dedicated `noteai_admin_runtime` database
+login. It needs only Admin-session `SELECT, INSERT, DELETE` plus the documented
+read-only operational objects. It must not reuse `noteai_app`, must not reuse
+the managed RDS administrator named `noteai_admin`, and must not use global
 `default_transaction_read_only=on`, because login/logout legitimately write
 only the session table.
 
-The repository/isolated PostgreSQL gate is verified by migration
-`0015_admin_runtime_contract.sql` and
-`scripts/postgres/noteai_admin_role.sql`. The disposable proof covers an
+The repository/isolated PostgreSQL gate is verified by migrations
+`0015_admin_runtime_contract.sql`,
+`0016_admin_runtime_role_collision.sql` and
+`scripts/postgres/noteai_admin_runtime_role.sql`. The disposable proof covers an
 actual role login, session create/read/delete, secret-row filtering and the
 complete positive/negative table, column, sequence, DDL and role matrix.
 Production migration/ACL application, immutable image deployment,

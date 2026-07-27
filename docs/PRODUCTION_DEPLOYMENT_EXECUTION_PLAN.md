@@ -144,8 +144,9 @@ do not silently colocate more roles or buy capacity.
 
 - Pull only the exact Admin digest on API-C and verify its registry/OCI
   identity before start.
-- Require the dedicated `noteai_admin` role and the accepted exact
+- Require the dedicated `noteai_admin_runtime` database role and the accepted exact
   session/read-only operational permission matrix. Do not reuse `noteai_app`
+  or the managed RDS administrator named `noteai_admin`,
   and do not force the entire connection read-only: login/logout require only
   `admin_sessions` `SELECT, INSERT, DELETE`, while all business mutations are
   denied independently by application capability gates and database ACL/RLS.

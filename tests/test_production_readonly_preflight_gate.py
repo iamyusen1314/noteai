@@ -128,6 +128,7 @@ def valid_evidence() -> dict:
                 len(gate.SOURCE_ZERO_AGGREGATES)
                 + len(gate.SOURCE_INFORMATIONAL_AGGREGATES)
             ),
+            "migration_ledger_source": "pinned_legacy_versions",
             "applied_migration_hashes": {
                 version: migration_hashes[version]
                 for version in tuple(migration_hashes)[:8]

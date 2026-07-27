@@ -10,8 +10,8 @@ Last updated: 2026-07-27
 - 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。Durable AI、私有存储/恢复、provider-isolated支付合同及Adapay离线适配器/专用运行时仓库门禁已经通过，但商户/真实mock兼容、生产对象存储/PITR、真实queue/dispatcher/processor、Tracking/Trends managed runtime、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
-- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码`2fa3a5543876a6c8040ec17ca05a5461b101bbd7`已经原生AMD64五角色构建与VEX验收，但没有ACR digest、没有发布或部署。生产未访问，仍是migration `0001`–`0008`；`0009`–`0015`未应用。
-- 当前量化状态/下一步: fail-closed ledger现为仓库/隔离`12/12=100%`、内部生产部署`13/29=45%`、完整公开上线`13/38=34%`。`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`现为`PARTIAL / BLOCKED ON FRESH SIGN-IN + DATABASE METADATA CREDENTIAL/SESSION / ZERO MUTATION`。缓存ACR页面只刷新了历史`a635692`三角色AMD64 digest，当前`2fa3a55`仍未发布；Chrome和应用内浏览器的新ECS导航均停在Alibaba登录页，本机也没有Alibaba CLI/config/credential环境，ECS/RDS/数据库事实未刷新。仓库已有Secret-free Gate 0主机采集器、数据库采集器和总证据校验器；数据库工具双重强制只读、只输出迁移/预定义角色元数据和固定聚合计数、始终rollback/close，失败只给固定错误码。完整权限比较覆盖30表/5序列、App `82+5`、XHS `20+3`、Admin当前零runtime对象授权及全部负向；一次隔离PostgreSQL 16.14真实Psycopg执行已通过总Gate并清零容器/卷、恢复Colima停止。聚焦生产/部署`57/57`、全量Python`942`加`24`skip及readiness`102/102`通过，但工具和隔离库不继承为生产证据、分数不变。当前缺少的是真实Alibaba登录及受控最小权限数据库metadata credential/session，没有其他依赖已满足的内部任务；不得把缓存页面、采集/校验工具、旧生产服务、GitHub临时local image ID或VEX当作当前部署证据。
+- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码`2fa3a5543876a6c8040ec17ca05a5461b101bbd7`已经原生AMD64五角色构建与VEX验收，但没有ACR digest、没有发布或部署。生产已完成受控只读预检，仍是migration `0001`–`0008`；`0009`–`0016`未应用。
+- 当前量化状态/下一步: fail-closed ledger仍为仓库/隔离`12/12=100%`、内部生产部署`13/29=45%`、完整公开上线`13/38=34%`。`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`已解除登录/数据库证据阻断并进入真实修复阶段。当前确定阻断为：ACR PrivateZone控制面存在但两台节点均无法解析；RDS磁盘加密关闭且备份保留仅七天；托管RDS管理员占用旧的`noteai_admin`运行角色名。最后一项已由`PROD-FIRST-LAUNCH-ADMIN-RUNTIME-ROLE-COLLISION-001`在仓库新增`0016`和独立`noteai_admin_runtime`角色合同并通过Admin `4/4`、Payment `6/6`、Storage `4/4`、全量Python `945`加`24`skip及readiness `102/102`，但尚未部署。不得把只读预检、仓库修复、旧生产服务、GitHub临时local image ID或VEX当作生产接受。
 - 授权边界: 产品负责人已授权CTO自行批准并持续执行达到`内部生产部署准备度100%`所需的有限、有界、可回滚任务，无需重复询问。缺失的登录/凭据仍需产品负责人完成交互式认证；公开DNS、真实用户流量、不可逆破坏、新产品决策、无上限费用和公开上线完成声明仍不在授权内。
 
 ### Current-source immutable candidate is closed offline, not published
@@ -32,7 +32,7 @@ Last updated: 2026-07-27
 
 ### Auth/session/admin permission regression
 
-- 风险描述: User auth and admin auth are separate。仓库UI/Admin合同已在`d358114…`把生产业务变更全部fail-closed；`9d8cd57…`又通过实际LOGIN、Secret过滤及完整权限负向矩阵关闭专用`noteai_admin`仓库/隔离实现。当前生产仍未部署该版本或应用`0015`/ACL。
+- 风险描述: User auth and admin auth are separate。仓库UI/Admin合同已在`d358114…`把生产业务变更全部fail-closed；`9d8cd57…`完成原始低权限角色合同。真实只读预检随后证明托管RDS管理员已占用`noteai_admin`并具有管理权限，因此应用不得使用该同名角色。`PROD-FIRST-LAUNCH-ADMIN-RUNTIME-ROLE-COLLISION-001`已用新增`0016`和`noteai_admin_runtime`关闭仓库/隔离冲突，但生产仍未应用迁移/ACL或部署新镜像。
 - 涉及文件: `model/auth.py`, `model/admin_auth.py`, `model/api.py`, `model/admin_server.py`, `model/admin.html`.
 - 可能后果: Permission bypass, account takeover, unauthorized credit/subscription changes, leakage of user/admin data.
 - 建议验证方式: 不重复已通过的仓库UI/Admin或Admin-role PostgreSQL合同。未来生产任务先只读preflight，再应用精确migration/ACL并验证loopback登录、读取、退出、失效、重启及业务零写入。
@@ -40,6 +40,7 @@ Last updated: 2026-07-27
 - 2026-07-26进展: `REVERIFY-009` 独立确认既有删除/租约、Admin/Tracking栅栏、H6时间合同及固定异常边界继续通过；安全+reasoning `63/63`、聚焦`114/114`、API合同`152/152`、全量`702`（跳过`5`）及就绪门禁`86/86`通过。仓库子路径仍有下面单独记录的expert结构化持久化High；真实 PostgreSQL contention、生产 migration/精确授权、供应商与受控生产验收仍为首发门禁。
 - 2026-07-27进展: `PROD-FIRST-LAUNCH-UI-ADMIN-CONTRACT-001`为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。完整串行Python `895`加`20`skip、E2E `68/68`及readiness `100/100`通过；无生产或外部影响，费用`¥0`。本风险保留为High仅因为精确DB角色及生产部署/运行时证据仍缺失。
 - 2026-07-27角色进展: `PROD-FIRST-LAUNCH-ADMIN-ROLE-CONTRACT-001`为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。Migration `0015` SHA `3ee9b85c…d66c`、实际LOGIN/session生命周期、Secret RLS、完整表列序列/角色矩阵`4/4`及全量Python `901`通过；临时资源清零并恢复Colima停止。High仅保留在生产preflight、migration/ACL/credential/image及HTTP运行时证据。
+- 2026-07-27冲突修复: `PROD-FIRST-LAUNCH-ADMIN-RUNTIME-ROLE-COLLISION-001`为`PASS / 0C / 0H / 0M / NOT DEPLOYED`。新增migration `0016`不改写`0014/0015`，把Admin RLS身份改为`noteai_admin_runtime`；独立PostgreSQL Admin `4/4`、Payment `6/6`、Storage `4/4`和全量Python `945`通过，临时资源清零并恢复Colima停止。High仅保留在生产migration/ACL/credential/image及HTTP运行时证据。
 
 ### External browser CDN dependency is closed at repository level
 

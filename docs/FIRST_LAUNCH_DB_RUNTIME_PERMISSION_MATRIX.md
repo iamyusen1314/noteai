@@ -294,7 +294,7 @@ production privilege task must reproduce this positive matrix:
 |---|---|
 | `noteai_app` | `SELECT, INSERT` `payment_orders`; column `UPDATE(user_id,provider_payment_id,payment_status,updated_at,terminal_at)`; `SELECT` positions/consumptions; position `UPDATE(user_id,remaining_milli,state,updated_at)`; consumption `INSERT` and `UPDATE(state,updated_at)` |
 | `noteai_payment` | `SELECT` all ten payment tables; `INSERT` refunds, events, cash/entitlement ledgers, positions, reconciliation runs/items and settlements; exact order/refund/event/position update columns |
-| `noteai_admin` | read-only `SELECT` on all ten payment tables |
+| `noteai_admin_runtime` | read-only `SELECT` on all ten payment tables |
 | `noteai_ai_worker` | `SELECT` positions/consumptions; position `UPDATE(remaining_milli,state,updated_at)`; consumption `UPDATE(state,updated_at)` |
 | dispatcher, Trends, Tracking | zero payment-table access |
 
@@ -334,7 +334,8 @@ persistently, not trusted only to application code.
 
 The first-launch Admin contract is defined in
 `docs/FIRST_LAUNCH_UI_ADMIN_CONTRACT.md`. Production Admin must connect as a
-dedicated `noteai_admin` login, never as `noteai_app`. Its only positive DML is:
+dedicated `noteai_admin_runtime` login, never as `noteai_app` or the managed
+RDS administrator named `noteai_admin`. Its only positive DML is:
 
 - `admin_sessions`: `SELECT, INSERT, DELETE`; no `UPDATE`, `TRUNCATE`,
   `REFERENCES`, `TRIGGER`, ownership or grant option;
@@ -350,12 +351,15 @@ dedicated `noteai_admin` login, never as `noteai_app`. Its only positive DML is:
 
 Migration `0015_admin_runtime_contract.sql` adds the Admin session,
 non-secret settings, Durable AI Outbox and settlement RLS policies without an
-ACL statement. The credential-free, idempotent operator ACL is
-`scripts/postgres/noteai_admin_role.sql`; it requires an existing exact LOGIN
-role, rejects membership/ownership or elevated attributes, removes inherited
-object privileges, and grants only the set above. It also revokes database
-TEMP from PUBLIC because PostgreSQL has no per-role DENY capable of overriding
-a PUBLIC TEMP grant. No NoteAI runtime role requires TEMP.
+ACL statement. Migration `0016_admin_runtime_role_collision.sql` preserves
+those policies while moving the runtime identity away from the managed RDS
+administrator name. The credential-free, idempotent operator ACL is
+`scripts/postgres/noteai_admin_runtime_role.sql`; it requires an existing
+exact LOGIN role, rejects membership/ownership or elevated attributes,
+removes inherited object privileges, and grants only the set above. It also
+revokes database TEMP from PUBLIC because PostgreSQL has no per-role DENY
+capable of overriding a PUBLIC TEMP grant. No NoteAI runtime role requires
+TEMP.
 
 The disposable PostgreSQL proof checks every public table/column/sequence,
 schema/database capability, role attribute and SECURITY DEFINER function.

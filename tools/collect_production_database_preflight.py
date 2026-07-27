@@ -35,9 +35,9 @@ except ModuleNotFoundError:
 
 
 DATABASE_URL_ENV = "NOTEAI_PREFLIGHT_DATABASE_URL"
-RUNTIME_ROLES = ("noteai_app", "noteai_admin", "noteai_xhs")
+RUNTIME_ROLES = ("noteai_app", "noteai_admin_runtime", "noteai_xhs")
 EXPECTED_APPLIED_VERSIONS = tuple(f"{number:04d}" for number in range(1, 9))
-EXPECTED_PENDING_VERSIONS = tuple(f"{number:04d}" for number in range(9, 16))
+EXPECTED_PENDING_VERSIONS = tuple(f"{number:04d}" for number in range(9, 17))
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _MIGRATION_VERSION = re.compile(r"(?P<version>[0-9]{4})(?:_|$)")
 _RETENTION_CLOCK_PATTERN = (
@@ -172,9 +172,10 @@ EXPECTED_SEQUENCE_PRIVILEGE_ROWS = tuple(
 class CollectionError(RuntimeError):
     """A sanitized database collection failure."""
 
-    def __init__(self, code: str):
+    def __init__(self, code: str, *, stage: str | None = None):
         super().__init__(code)
         self.code = code
+        self.stage = stage
 
 
 def _invalid_required_clock(column: str, pattern: str) -> str:
@@ -346,8 +347,28 @@ SOURCE_AGGREGATE_QUERIES: dict[str, str] = {
     """,
 }
 
+MIGRATION_SHA256_COLUMN_COUNT_QUERY = """
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'schema_migrations'
+      AND column_name = 'sha256'
+"""
+MIGRATION_SELECT_CAPABILITY_QUERY = """
+    SELECT COUNT(*)
+    FROM pg_catalog.pg_roles
+    WHERE rolname = current_user
+      AND has_table_privilege(
+          current_user, 'public.schema_migrations', 'SELECT'
+      )
+"""
 MIGRATION_QUERY = """
     SELECT version, sha256
+    FROM public.schema_migrations
+    ORDER BY version
+"""
+LEGACY_MIGRATION_QUERY = """
+    SELECT version
     FROM public.schema_migrations
     ORDER BY version
 """
@@ -635,13 +656,63 @@ def _migration_state(
     return applied, pending, drift_count
 
 
+def _legacy_migration_state(
+    rows: Iterable[Sequence[Any]],
+) -> tuple[dict[str, str], list[str], int]:
+    """Map the pre-checksum ledger through the repository-pinned legacy trust."""
+    repository_hashes = _current_migration_hashes()
+    repository_filenames = {
+        path.name.split("_", 1)[0]: path.name
+        for path in MIGRATION_DIR.glob("*.sql")
+    }
+    observed: set[str] = set()
+    drift_count = 0
+    for row in rows:
+        if (
+            not isinstance(row, Sequence)
+            or isinstance(row, (str, bytes))
+            or len(row) != 1
+        ):
+            drift_count += 1
+            continue
+        raw_version = row[0]
+        match = _MIGRATION_VERSION.match(str(raw_version))
+        if match is None:
+            drift_count += 1
+            continue
+        version = match.group("version")
+        if (
+            version not in repository_hashes
+            or str(raw_version) != repository_filenames.get(version)
+            or version in observed
+        ):
+            drift_count += 1
+            continue
+        observed.add(version)
+    applied = {
+        version: repository_hashes[version]
+        if version in observed
+        else "0" * 64
+        for version in EXPECTED_APPLIED_VERSIONS
+    }
+    pending = [
+        version for version in repository_hashes if version not in observed
+    ]
+    drift_count += sum(
+        1 for version in EXPECTED_APPLIED_VERSIONS if version not in observed
+    )
+    return applied, pending, drift_count
+
+
 def _collect_with_connection(connection: Any) -> dict[str, Any]:
     aggregate_query_count = 0
     began = False
+    stage = "transaction_begin"
     try:
         with connection.cursor() as cursor:
             cursor.execute("BEGIN TRANSACTION READ ONLY")
             began = True
+            stage = "readonly_verification"
             cursor.execute("SHOW default_transaction_read_only")
             default_read_only = cursor.fetchone()
             cursor.execute("SHOW transaction_read_only")
@@ -649,16 +720,49 @@ def _collect_with_connection(connection: Any) -> dict[str, Any]:
             if default_read_only != ("on",) or transaction_read_only != ("on",):
                 raise CollectionError("readonly_not_enforced")
 
-            cursor.execute(MIGRATION_QUERY)
-            applied_hashes, pending_versions, drift_count = _migration_state(
-                cursor.fetchall()
+            stage = "migration_ledger"
+            migration_select_capability = _fetch_scalar(
+                cursor,
+                MIGRATION_SELECT_CAPABILITY_QUERY,
             )
+            if migration_select_capability == 1:
+                sha256_column_count = _fetch_scalar(
+                    cursor,
+                    MIGRATION_SHA256_COLUMN_COUNT_QUERY,
+                )
+                if sha256_column_count == 1:
+                    cursor.execute(MIGRATION_QUERY)
+                    (
+                        applied_hashes,
+                        pending_versions,
+                        drift_count,
+                    ) = _migration_state(cursor.fetchall())
+                    migration_ledger_source = "stored_sha256"
+                elif sha256_column_count == 0:
+                    cursor.execute(LEGACY_MIGRATION_QUERY)
+                    (
+                        applied_hashes,
+                        pending_versions,
+                        drift_count,
+                    ) = _legacy_migration_state(cursor.fetchall())
+                    migration_ledger_source = "pinned_legacy_versions"
+                else:
+                    raise CollectionError("migration_ledger_invalid")
+            elif migration_select_capability == 0:
+                applied_hashes = {}
+                pending_versions = []
+                drift_count = None
+                migration_ledger_source = "external_required"
+            else:
+                raise CollectionError("migration_capability_invalid")
 
             source_aggregates: dict[str, int] = {}
             for name, query in SOURCE_AGGREGATE_QUERIES.items():
+                stage = f"source_aggregate:{name}"
                 source_aggregates[name] = _fetch_scalar(cursor, query)
                 aggregate_query_count += 1
 
+            stage = "role_attributes"
             cursor.execute(ROLE_QUERY, (list(EXPECTED_ROLE_STATE),))
             role_rows = cursor.fetchall()
             present_roles: set[str] = set()
@@ -693,37 +797,44 @@ def _collect_with_connection(connection: Any) -> dict[str, Any]:
                 for role in EXPECTED_ROLE_STATE
             }
 
+            stage = "runtime_ownership"
             runtime_owner_count = _fetch_scalar(
                 cursor,
                 OWNER_COUNT_QUERY,
                 (list(RUNTIME_ROLES),) * 3,
             )
             unexpected_grant_count = elevated_attribute_count
+            stage = "role_memberships"
             unexpected_grant_count += _fetch_scalar(
                 cursor,
                 MEMBERSHIP_COUNT_QUERY,
                 (list(RUNTIME_ROLES),) * 2,
             )
+            stage = "database_capabilities"
             unexpected_grant_count += _fetch_scalar(
                 cursor,
                 DATABASE_CAPABILITY_COUNT_QUERY,
                 (list(RUNTIME_ROLES),),
             )
+            stage = "schema_capabilities"
             unexpected_grant_count += _fetch_scalar(
                 cursor,
                 SCHEMA_CAPABILITY_COUNT_QUERY,
                 (list(RUNTIME_ROLES),),
             )
+            stage = "migration_privileges"
             unexpected_grant_count += _fetch_scalar(
                 cursor,
                 MIGRATION_PRIVILEGE_COUNT_QUERY,
                 (list(RUNTIME_ROLES),),
             )
+            stage = "grant_options"
             unexpected_grant_count += _fetch_scalar(
                 cursor,
                 GRANT_OPTION_COUNT_QUERY,
                 (list(RUNTIME_ROLES),) * 4,
             )
+            stage = "table_privilege_matrix"
             unexpected_grant_count += _fetch_scalar(
                 cursor,
                 TABLE_PRIVILEGE_MISMATCH_COUNT_QUERY,
@@ -738,6 +849,7 @@ def _collect_with_connection(connection: Any) -> dict[str, Any]:
                     list(TABLE_PRIVILEGES),
                 ),
             )
+            stage = "sequence_privilege_matrix"
             unexpected_grant_count += _fetch_scalar(
                 cursor,
                 SEQUENCE_PRIVILEGE_MISMATCH_COUNT_QUERY,
@@ -765,6 +877,7 @@ def _collect_with_connection(connection: Any) -> dict[str, Any]:
                 "metadata_session_read_only": True,
                 "business_row_values_read": 0,
                 "aggregate_query_count": aggregate_query_count,
+                "migration_ledger_source": migration_ledger_source,
                 "applied_migration_hashes": applied_hashes,
                 "pending_versions": pending_versions,
                 "stored_migration_drift_count": drift_count,
@@ -778,10 +891,12 @@ def _collect_with_connection(connection: Any) -> dict[str, Any]:
                 "role_state": role_state,
                 "source_aggregates": source_aggregates,
             }
-    except CollectionError:
-        raise
+    except CollectionError as exc:
+        if exc.stage is not None:
+            raise
+        raise CollectionError(exc.code, stage=stage) from exc
     except Exception as exc:
-        raise CollectionError("database_query_failed") from exc
+        raise CollectionError("database_query_failed", stage=stage) from exc
     finally:
         if began:
             try:
@@ -834,9 +949,12 @@ def main() -> int:
     try:
         evidence = collect()
     except CollectionError as exc:
+        error_payload = {"status": "error", "error_code": exc.code}
+        if exc.stage is not None:
+            error_payload["error_stage"] = exc.stage
         print(
             json.dumps(
-                {"status": "error", "error_code": exc.code},
+                error_payload,
                 sort_keys=True,
                 separators=(",", ":"),
             ),

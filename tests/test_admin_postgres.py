@@ -83,12 +83,12 @@ class AdminPostgresContractTests(unittest.TestCase):
         cls.second_apply = db.apply_postgres_migrations()
         cls.owner = db.get_conn()
         if cls.owner.execute(
-            "SELECT 1 FROM pg_roles WHERE rolname='noteai_admin'"
+            "SELECT 1 FROM pg_roles WHERE rolname='noteai_admin_runtime'"
         ).fetchone():
-            cls.owner.execute("DROP OWNED BY noteai_admin")
-        cls.owner.execute("DROP ROLE IF EXISTS noteai_admin")
+            cls.owner.execute("DROP OWNED BY noteai_admin_runtime")
+        cls.owner.execute("DROP ROLE IF EXISTS noteai_admin_runtime")
         cls.owner.execute(
-            "CREATE ROLE noteai_admin LOGIN PASSWORD "
+            "CREATE ROLE noteai_admin_runtime LOGIN PASSWORD "
             "'admin-role-contract-disposable-only' "
             "NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT "
             "NOREPLICATION NOBYPASSRLS"
@@ -102,14 +102,14 @@ class AdminPostgresContractTests(unittest.TestCase):
             "updated_at=excluded.updated_at"
         )
         role_sql = (
-            ROOT / "scripts" / "postgres" / "noteai_admin_role.sql"
+            ROOT / "scripts" / "postgres" / "noteai_admin_runtime_role.sql"
         ).read_text(encoding="utf-8")
         cls.owner.execute(role_sql)
         cls.owner.commit()
 
         params = conninfo_to_dict(os.environ["NOTEAI_TEST_POSTGRES_URL"])
         params.update(
-            user="noteai_admin",
+            user="noteai_admin_runtime",
             password="admin-role-contract-disposable-only",
         )
         from psycopg.rows import dict_row
@@ -119,8 +119,8 @@ class AdminPostgresContractTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.admin.close()
-        cls.owner.execute("DROP OWNED BY noteai_admin")
-        cls.owner.execute("DROP ROLE IF EXISTS noteai_admin")
+        cls.owner.execute("DROP OWNED BY noteai_admin_runtime")
+        cls.owner.execute("DROP ROLE IF EXISTS noteai_admin_runtime")
         cls.owner.commit()
         cls.owner.close()
         if cls.old_database_url is None:
@@ -129,7 +129,7 @@ class AdminPostgresContractTests(unittest.TestCase):
             os.environ["DATABASE_URL"] = cls.old_database_url
 
     def test_apply_twice_and_migration_sha(self):
-        version = "0015_admin_runtime_contract.sql"
+        version = "0016_admin_runtime_role_collision.sql"
         self.assertEqual(self.second_apply, [])
         expected = hashlib.sha256(
             (MODEL_DIR / "migrations" / "postgres" / version).read_bytes()
@@ -165,7 +165,8 @@ class AdminPostgresContractTests(unittest.TestCase):
     def test_complete_table_column_sequence_and_role_matrix(self):
         attrs = self.owner.execute(
             "SELECT rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolcanlogin,"
-            "rolreplication,rolbypassrls FROM pg_roles WHERE rolname='noteai_admin'"
+            "rolreplication,rolbypassrls FROM pg_roles "
+            "WHERE rolname='noteai_admin_runtime'"
         ).fetchone()
         self.assertEqual(
             dict(attrs),
@@ -183,7 +184,7 @@ class AdminPostgresContractTests(unittest.TestCase):
             self.owner.execute(
                 "SELECT EXISTS("
                 "SELECT 1 FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member "
-                "WHERE r.rolname='noteai_admin') AS present"
+                "WHERE r.rolname='noteai_admin_runtime') AS present"
             ).fetchone()["present"]
         )
         privileges = (
@@ -211,7 +212,7 @@ class AdminPostgresContractTests(unittest.TestCase):
             for privilege in privileges:
                 actual = self.owner.execute(
                     "SELECT has_table_privilege("
-                    "'noteai_admin',%s,%s) AS allowed",
+                    "'noteai_admin_runtime',%s,%s) AS allowed",
                     (table, privilege),
                 ).fetchone()["allowed"]
                 self.assertEqual(actual, privilege in expected, (table, privilege))
@@ -232,7 +233,7 @@ class AdminPostgresContractTests(unittest.TestCase):
                 )
                 actual_select = self.owner.execute(
                     "SELECT has_column_privilege("
-                    "'noteai_admin',%s,%s,'SELECT') AS allowed",
+                    "'noteai_admin_runtime',%s,%s,'SELECT') AS allowed",
                     (table, column),
                 ).fetchone()["allowed"]
                 self.assertEqual(
@@ -250,7 +251,7 @@ class AdminPostgresContractTests(unittest.TestCase):
                 self.assertFalse(
                     self.owner.execute(
                         "SELECT has_sequence_privilege("
-                        "'noteai_admin',%s,%s) AS allowed",
+                        "'noteai_admin_runtime',%s,%s) AS allowed",
                         (row["sequence_name"], privilege),
                     ).fetchone()["allowed"],
                     (row["sequence_name"], privilege),
@@ -258,26 +259,27 @@ class AdminPostgresContractTests(unittest.TestCase):
         self.assertFalse(
             self.owner.execute(
                 "SELECT has_schema_privilege("
-                "'noteai_admin','public','CREATE') AS allowed"
+                "'noteai_admin_runtime','public','CREATE') AS allowed"
             ).fetchone()["allowed"]
         )
         self.assertFalse(
             self.owner.execute(
                 "SELECT has_database_privilege("
-                "'noteai_admin',current_database(),'TEMP') AS allowed"
+                "'noteai_admin_runtime',current_database(),'TEMP') AS allowed"
             ).fetchone()["allowed"]
         )
         self.assertFalse(
             self.owner.execute(
                 "SELECT has_table_privilege("
-                "'noteai_admin','schema_migrations','SELECT') AS allowed"
+                "'noteai_admin_runtime','schema_migrations','SELECT') AS allowed"
             ).fetchone()["allowed"]
         )
         self.assertFalse(
             self.owner.execute(
                 "SELECT EXISTS("
                 "SELECT 1 FROM pg_proc p WHERE p.prosecdef "
-                "AND has_function_privilege('noteai_admin',p.oid,'EXECUTE')) "
+                "AND has_function_privilege("
+                "'noteai_admin_runtime',p.oid,'EXECUTE')) "
                 "AS allowed"
             ).fetchone()["allowed"]
         )
