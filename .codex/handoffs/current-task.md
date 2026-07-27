@@ -90,22 +90,38 @@
 
 ## 6. Safe transition checkpoint
 
-- A fresh successful RDS backup was confirmed before the interrupted staging.
-- The resumption after `e5883ab` failed only during import packaging, before
-  `_connect()`. It created no database connection, transaction or business
-  write and did not reach the executor.
-- Before this Handoff was written, the unused task-scoped temporary Super
-  account was deleted. Control-plane read-back is:
-  `3 total accounts / 1 Super / 0 task accounts`.
-- API-C protected task directory, encrypted credential, RSA material, source
-  bundle and `runner.env` are absent.
-- API-C/API-F task maintenance-container residue is zero.
-- Cloud Shell task runner, gate bundle and registry bundle are absent.
-- API-C and API-F API services and API-C Admin remain active, ready and
-  loopback-only. No service was restarted or redeployed during cleanup.
-- No provider call, registry access, public traffic change or production
-  business-row write occurred during the interrupted resumption or cleanup.
-- Production therefore remains at the last verified `0001`–`0008` state.
+- Fresh control-plane read-back on 2026-07-27 reconfirmed:
+  - one running PostgreSQL 16 RDS instance;
+  - three successful backups in the observed three-day window, with the newest
+    successful backup well inside 24 hours;
+  - `3 total accounts / 1 Super / 0 task accounts`;
+  - API-C/API-F running and API-C Admin running, ready and loopback-only;
+  - zero schema-task directory/file/container residue before staging.
+- Exact source `e5883ab` was rebuilt locally into a 21-file minimal package:
+  migrations `0001`–`0016`, executor, collector, read-only gate, runtime-role
+  SQL and registry evidence. The tarball was `48,631` bytes with SHA-256
+  `342e338e06203913d8f39865dd77a3ef1c0846a4419cb6eda745d9553d4a2bc2`;
+  unpack comparison and isolated no-DSN import both passed.
+- Cloud Shell received and hash-verified the exact tarball. API-C temporary RSA
+  creation then passed, but payload transfer stopped before decode/extract:
+  - the first host command deterministically failed with exit `127` because
+    `RunCommand.CommandContent` requires raw script text, not base64 text;
+  - the corrected RSA command succeeded;
+  - payload chunking stopped at the first exact-marker mismatch caused by
+    over-escaped shell `printf` placeholders.
+- No RDS task account was created. No DSN, ciphertext or `runner.env` existed.
+  No database connection, pre-dispatch query, transaction, migration, role
+  change or business-row write occurred.
+- The exact API-C task directory, RSA files and partial payload were deleted.
+  Final host read-back was:
+  `exact task path 0 / task directories 0 / maintenance containers 0`,
+  API-C API/Admin both active, all four live/ready probes `200`, and ports
+  `8000`/`8001` each had one loopback listener and zero non-loopback listeners.
+- Cloud Shell payload files and all `NOTEAI_` task variables were deleted and
+  independently read back as zero.
+- No service restart/redeploy, provider call, registry access, public traffic
+  change or production database write occurred. Production therefore remains
+  at the last verified `0001`–`0008` state and readiness remains `14/29 = 48%`.
 
 ## 7. Exact resume sequence
 
@@ -116,8 +132,9 @@
    - Handoff/Git/Readiness Auditor;
    - Schema/Role Execution Verifier;
    - Runtime/Cleanup Evidence Auditor.
-3. Re-observe Git and the cleanup baseline. Do not assume browser or Cloud
-   Shell memory survived.
+3. In the new conversation, re-observe Git and the cleanup baseline from
+   scratch. Do not assume browser, shell variables or Cloud Shell memory
+   survived, and do not treat this Handoff alone as fresh cloud evidence.
 4. Reconfirm an eligible fresh successful RDS backup, zero task
    accounts/directories/containers, and unchanged loopback API/Admin health.
    Treat `0001`–`0008` as the last verified ledger state until a new protected
@@ -136,6 +153,10 @@
    plaintext credential.
 9. Transfer and hash-verify exact files on API-C; require `runner.env=0`,
    maintenance container `0`, API/Admin unchanged and the exact new backup.
+   Alibaba `RunCommand.CommandContent` accepts raw script text. If chunking is
+   used, locally render and assert the exact first/last chunk scripts before
+   dispatch; do not reuse the over-escaped `printf` template from the stopped
+   attempt.
 10. With the protected temporary credential, force one read-only
     pre-dispatch check that proves the production ledger is still exactly
     `0001`–`0008` and every executor precondition is unchanged. A failure stops
@@ -204,3 +225,20 @@ Do not reopen a completed item merely because a new conversation starts.
 - Do not use EntryPoint Override as a normal runtime mode.
 - Do not announce internal readiness `100%` until all 29 internal controls have
   independent evidence and the gate passes.
+
+## 11. Context-budget boundary
+
+- Keep the main thread limited to the goal, constraints, decisions, independent
+  evidence, execution results and the next action. Subagent final reports must
+  stay below 1,500 Chinese characters and omit long logs/code.
+- At an estimated `45K`–`50K` effective tokens, stop expanding investigation,
+  finish only the current safe atomic step, clean temporary resources, and
+  produce a Secret-free repository Handoff plus checkpoint.
+- Before `60K`, end the conversation. Do not start a new production write when
+  already near the lower threshold.
+- If exact token statistics are unavailable, treat every major task,
+  production transaction or Subagent round as a checkpoint; after two major
+  stages, proactively hand off.
+- Local/worktree notes do not reset context. Only a repository Handoff,
+  necessary checkpoint commit and a fresh conversation that independently
+  revalidates read-only state complete the transition.
