@@ -134,12 +134,15 @@ _RFC1918_NETWORKS = tuple(
 _PRIVATE_SERVICE_NETWORKS = _RFC1918_NETWORKS + (
     ipaddress.ip_network("100.64.0.0/10"),
 )
-_TEMP_PROCESS_PATTERNS = (
+_TEMP_PROCESS_BASENAMES = {
     "market_timing_worker.py",
     "crawler_worker.py",
     "durable_ai_worker.py",
     "payment_adapter_runtime.py",
-    r"noteai-\S*(canary|diag|snapshot|retry)",
+}
+_TEMP_RUNTIME_NAME = re.compile(
+    r"^noteai-\S*(?:canary|diag|snapshot|retry)\S*$",
+    re.IGNORECASE,
 )
 
 
@@ -458,6 +461,50 @@ def _unexpected_listener_count(runner: CommandRunner, host: str) -> int:
     return len(observed - expected) + len(expected - observed)
 
 
+def _temporary_process_count(proc_root: Path = Path("/proc")) -> int:
+    count = 0
+    try:
+        process_dirs = list(proc_root.iterdir())
+    except OSError as exc:
+        raise CollectionError("process metadata unavailable") from exc
+    for process_dir in process_dirs:
+        if not process_dir.name.isdigit():
+            continue
+        try:
+            raw = (process_dir / "cmdline").read_bytes()
+        except OSError:
+            continue
+        argv = [
+            token.decode("utf-8", errors="replace")
+            for token in raw.split(b"\0")
+            if token
+        ]
+        if not argv:
+            continue
+        executable = Path(argv[0]).name
+        script_tokens = {
+            Path(token).name
+            for token in argv[1:4]
+            if token and not token.startswith("-")
+        }
+        temporary = (
+            executable in _TEMP_PROCESS_BASENAMES
+            or bool(script_tokens & _TEMP_PROCESS_BASENAMES)
+        )
+        for index, token in enumerate(argv):
+            runtime_name = ""
+            if token == "--name" and index + 1 < len(argv):
+                runtime_name = argv[index + 1]
+            elif token.startswith("--name="):
+                runtime_name = token.split("=", 1)[1]
+            if runtime_name and _TEMP_RUNTIME_NAME.fullmatch(runtime_name):
+                temporary = True
+                break
+        if temporary:
+            count += 1
+    return count
+
+
 def collect_host(host: str, runner: CommandRunner | None = None) -> dict[str, Any]:
     if host not in EXPECTED_HOST_ROLES:
         raise CollectionError("host label must be API-C or API-F")
@@ -502,11 +549,7 @@ def collect_host(host: str, runner: CommandRunner | None = None) -> dict[str, An
         container["image_digest_hex"] != EXPECTED_DIGESTS[container["role"]]
         for container in containers
     )
-    temporary_process_count = 0
-    for pattern in _TEMP_PROCESS_PATTERNS:
-        count = command_runner.optional("pgrep", "-fc", pattern)
-        if count is not None and count.isdigit():
-            temporary_process_count += int(count)
+    temporary_process_count = _temporary_process_count()
     return {
         "label": host,
         "instance_state": "Running",

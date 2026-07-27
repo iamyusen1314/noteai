@@ -399,10 +399,7 @@ MEMBERSHIP_COUNT_QUERY = """
     FROM pg_catalog.pg_auth_members membership
     JOIN pg_catalog.pg_roles member_role
       ON member_role.oid = membership.member
-    JOIN pg_catalog.pg_roles granted_role
-      ON granted_role.oid = membership.roleid
     WHERE member_role.rolname = ANY(%s)
-       OR granted_role.rolname = ANY(%s)
 """
 DATABASE_CAPABILITY_COUNT_QUERY = """
     SELECT COUNT(*)
@@ -503,6 +500,8 @@ TABLE_PRIVILEGE_MISMATCH_COUNT_QUERY = """
     privilege_mismatch AS (
         SELECT COUNT(*) AS count
         FROM runtime_roles role
+        JOIN pg_catalog.pg_roles present_role
+          ON present_role.rolname = role.role_name
         CROSS JOIN expected_tables object
         JOIN pg_catalog.pg_tables actual
           ON actual.schemaname = 'public'
@@ -513,7 +512,7 @@ TABLE_PRIVILEGE_MISMATCH_COUNT_QUERY = """
          AND expected.object_name = object.object_name
          AND expected.privilege_type = privilege.privilege_type
         WHERE has_table_privilege(
-                  role.role_name,
+                  present_role.rolname,
                   format('public.%%I', object.object_name),
                   privilege.privilege_type
               )
@@ -572,6 +571,8 @@ SEQUENCE_PRIVILEGE_MISMATCH_COUNT_QUERY = """
     privilege_mismatch AS (
         SELECT COUNT(*) AS count
         FROM runtime_roles role
+        JOIN pg_catalog.pg_roles present_role
+          ON present_role.rolname = role.role_name
         CROSS JOIN expected_sequences object
         JOIN pg_catalog.pg_class actual
           ON actual.relname = object.object_name
@@ -585,7 +586,7 @@ SEQUENCE_PRIVILEGE_MISMATCH_COUNT_QUERY = """
          AND expected.object_name = object.object_name
          AND expected.privilege_type = privilege.privilege_type
         WHERE has_sequence_privilege(
-                  role.role_name,
+                  present_role.rolname,
                   format('public.%%I', object.object_name),
                   privilege.privilege_type
               )
@@ -785,7 +786,6 @@ def _collect_with_connection(connection: Any) -> dict[str, Any]:
                     elevated_attribute_count += sum(
                         int(flag)
                         for flag in (
-                            row[2] is True,
                             row[3] is True,
                             row[4] is True,
                             row[5] is not True,
@@ -808,7 +808,7 @@ def _collect_with_connection(connection: Any) -> dict[str, Any]:
             unexpected_grant_count += _fetch_scalar(
                 cursor,
                 MEMBERSHIP_COUNT_QUERY,
-                (list(RUNTIME_ROLES),) * 2,
+                (list(RUNTIME_ROLES),),
             )
             stage = "database_capabilities"
             unexpected_grant_count += _fetch_scalar(

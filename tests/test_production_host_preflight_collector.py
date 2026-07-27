@@ -138,6 +138,35 @@ class ProductionHostPreflightCollectorTests(unittest.TestCase):
         self.assertTrue(collector._private_network_only(private))
         self.assertFalse(collector._private_network_only(public))
 
+    def test_temporary_process_scan_ignores_canary_named_data_mount(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            proc_root = Path(temp_dir)
+            process_dir = proc_root / "101"
+            process_dir.mkdir()
+            (process_dir / "cmdline").write_bytes(
+                b"/usr/bin/docker\0run\0--mount\0"
+                b"type=bind,src=/var/lib/noteai-canary-data,"
+                b"dst=/app/model/data\0--name\0noteai-api-c\0"
+            )
+
+            self.assertEqual(collector._temporary_process_count(proc_root), 0)
+
+    def test_temporary_process_scan_detects_workers_and_temporary_runtime_names(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            proc_root = Path(temp_dir)
+            worker_dir = proc_root / "201"
+            worker_dir.mkdir()
+            (worker_dir / "cmdline").write_bytes(
+                b"/usr/bin/python3\0-u\0/app/crawler_worker.py\0"
+            )
+            canary_dir = proc_root / "202"
+            canary_dir.mkdir()
+            (canary_dir / "cmdline").write_bytes(
+                b"/usr/bin/docker\0run\0--name=noteai-xhs-canary\0"
+            )
+
+            self.assertEqual(collector._temporary_process_count(proc_root), 2)
+
     def test_host_labels_and_root_requirement_fail_closed(self):
         with self.assertRaisesRegex(collector.CollectionError, "host label"):
             collector.collect_host("UNKNOWN", FakeRunner({}))

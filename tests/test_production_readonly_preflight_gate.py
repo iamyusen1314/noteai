@@ -97,7 +97,13 @@ def valid_evidence() -> dict:
                 "historical_digests": gate.EXPECTED_DIGESTS,
                 "historical_images_normal": True,
                 "historical_tags_immutable": True,
-                "current_release_published": False,
+                "current_release_digests": gate.EXPECTED_CURRENT_DIGESTS,
+                "current_release_images_normal": True,
+                "current_release_tags_immutable": True,
+                "vpc_endpoint_running": True,
+                "product_managed_private_zone_count": 1,
+                "production_vpc_link_count": 1,
+                "builder_vpc_link_count": 0,
                 "registry_requests": 0,
             },
             "rds": {
@@ -110,7 +116,9 @@ def valid_evidence() -> dict:
                 "public_endpoint": False,
                 "backup_enabled": True,
                 "pitr_enabled": True,
-                "backup_retention_days": 14,
+                "data_backup_retention_days": 14,
+                "log_backup_enabled": True,
+                "log_backup_retention_days": 14,
                 "max_connections": 1600,
             },
             "edge": {
@@ -158,6 +166,10 @@ def valid_evidence() -> dict:
             "session_manager_enabled": False,
             "host_services_unchanged": True,
             "database_unchanged": True,
+            "publisher_role_exists": False,
+            "publisher_policy_exists": False,
+            "builder_acr_vpc_link_count": 0,
+            "production_acr_vpc_link_count": 1,
         },
     }
 
@@ -247,7 +259,10 @@ class ProductionReadonlyPreflightGateTests(unittest.TestCase):
                 "pitr_enabled", False
             ),
             "retention": lambda item: item["cloud"]["rds"].__setitem__(
-                "backup_retention_days", 13
+                "data_backup_retention_days", 13
+            ),
+            "log_retention": lambda item: item["cloud"]["rds"].__setitem__(
+                "log_backup_retention_days", 13
             ),
             "migration_drift": lambda item: item["database"].__setitem__(
                 "stored_migration_drift_count", 1

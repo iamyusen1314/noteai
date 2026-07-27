@@ -15,12 +15,21 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION_DIR = ROOT / "model" / "migrations" / "postgres"
 TASK_ID = "PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001"
-APPLICATION_REVISION = "2fa3a5543876a6c8040ec17ca05a5461b101bbd7"
+APPLICATION_REVISION = "b06671fbcca51f884b04c86edcf116e373c6cfa8"
 HISTORICAL_REVISION = "a635692a899ee02c6905cd694611c14e0da4594a"
+REGISTRY_RELEASE_EVIDENCE = (
+    ROOT / "security" / "vex" / "b06671f-registry-release-evidence.json"
+)
 EXPECTED_DIGESTS = {
     "api": "17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1",
     "admin": "d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733",
     "xhs-http": "452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af",
+}
+EXPECTED_CURRENT_DIGESTS = {
+    role: str(details["registry_digest"]).removeprefix("sha256:")
+    for role, details in json.loads(
+        REGISTRY_RELEASE_EVIDENCE.read_text(encoding="utf-8")
+    )["roles"].items()
 }
 EXPECTED_HOST_ROLES = {
     "API-C": ("api", "admin"),
@@ -399,7 +408,13 @@ def _verify_cloud(evidence: dict[str, Any]) -> None:
             "historical_digests",
             "historical_images_normal",
             "historical_tags_immutable",
-            "current_release_published",
+            "current_release_digests",
+            "current_release_images_normal",
+            "current_release_tags_immutable",
+            "vpc_endpoint_running",
+            "product_managed_private_zone_count",
+            "production_vpc_link_count",
+            "builder_vpc_link_count",
             "registry_requests",
         },
         "cloud.acr",
@@ -407,7 +422,28 @@ def _verify_cloud(evidence: dict[str, Any]) -> None:
     _require(acr["historical_digests"] == EXPECTED_DIGESTS, "ACR digest set")
     _require(acr["historical_images_normal"] is True, "ACR image status")
     _require(acr["historical_tags_immutable"] is True, "ACR mutable tags")
-    _require(acr["current_release_published"] is False, "unexpected current publish")
+    _require(
+        acr["current_release_digests"] == EXPECTED_CURRENT_DIGESTS,
+        "current ACR digest set",
+    )
+    _require(
+        acr["current_release_images_normal"] is True,
+        "current ACR image status",
+    )
+    _require(
+        acr["current_release_tags_immutable"] is True,
+        "current ACR mutable tags",
+    )
+    _require(acr["vpc_endpoint_running"] is True, "ACR VPC endpoint")
+    _require(
+        acr["product_managed_private_zone_count"] == 1,
+        "ACR product-managed PrivateZone count",
+    )
+    _require(
+        acr["production_vpc_link_count"] == 1,
+        "ACR production VPC link count",
+    )
+    _require(acr["builder_vpc_link_count"] == 0, "ACR builder VPC residue")
     _require(acr["registry_requests"] == 0, "ACR request occurred")
 
     rds = _mapping(evidence["rds"], "cloud.rds")
@@ -423,7 +459,9 @@ def _verify_cloud(evidence: dict[str, Any]) -> None:
             "public_endpoint",
             "backup_enabled",
             "pitr_enabled",
-            "backup_retention_days",
+            "data_backup_retention_days",
+            "log_backup_enabled",
+            "log_backup_retention_days",
             "max_connections",
         },
         "cloud.rds",
@@ -437,13 +475,19 @@ def _verify_cloud(evidence: dict[str, Any]) -> None:
         "ssl_enabled",
         "backup_enabled",
         "pitr_enabled",
+        "log_backup_enabled",
     ):
         _require(rds[key] is True, f"cloud.rds.{key}: must be true")
     _require(rds["public_endpoint"] is False, "RDS public endpoint")
     _require(
-        isinstance(rds["backup_retention_days"], int)
-        and rds["backup_retention_days"] >= 14,
-        "RDS backup retention below 14 days",
+        isinstance(rds["data_backup_retention_days"], int)
+        and rds["data_backup_retention_days"] >= 14,
+        "RDS data backup retention below 14 days",
+    )
+    _require(
+        isinstance(rds["log_backup_retention_days"], int)
+        and rds["log_backup_retention_days"] >= 14,
+        "RDS log backup retention below 14 days",
     )
     _require(
         isinstance(rds["max_connections"], int) and rds["max_connections"] >= 100,
@@ -560,6 +604,10 @@ def _verify_cleanup(evidence: dict[str, Any]) -> None:
             "session_manager_enabled",
             "host_services_unchanged",
             "database_unchanged",
+            "publisher_role_exists",
+            "publisher_policy_exists",
+            "builder_acr_vpc_link_count",
+            "production_acr_vpc_link_count",
         },
         "cleanup",
     )
@@ -567,11 +615,24 @@ def _verify_cleanup(evidence: dict[str, Any]) -> None:
         "temporary_file_count",
         "temporary_credential_count",
         "temporary_process_count",
+        "builder_acr_vpc_link_count",
     ):
         _require(evidence[key] == 0, f"cleanup.{key}: must be zero")
     _require(
         evidence["session_manager_enabled"] is False,
         "Session Manager remains enabled",
+    )
+    _require(
+        evidence["publisher_role_exists"] is False,
+        "temporary publisher role remains",
+    )
+    _require(
+        evidence["publisher_policy_exists"] is False,
+        "temporary publisher policy remains",
+    )
+    _require(
+        evidence["production_acr_vpc_link_count"] == 1,
+        "production ACR VPC link count",
     )
     _require(evidence["host_services_unchanged"] is True, "host service changed")
     _require(evidence["database_unchanged"] is True, "database changed")

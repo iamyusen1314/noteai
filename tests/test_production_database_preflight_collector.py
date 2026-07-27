@@ -331,6 +331,34 @@ class ProductionDatabasePreflightCollectorTests(unittest.TestCase):
                 command = statement.strip().split(None, 1)[0].upper()
                 self.assertIn(command, {"SELECT", "WITH", "SHOW", "BEGIN"})
 
+    def test_privilege_matrix_skips_roles_that_do_not_exist_yet(self):
+        for statement, privilege_function in (
+            (
+                collector.TABLE_PRIVILEGE_MISMATCH_COUNT_QUERY,
+                "has_table_privilege",
+            ),
+            (
+                collector.SEQUENCE_PRIVILEGE_MISMATCH_COUNT_QUERY,
+                "has_sequence_privilege",
+            ),
+        ):
+            with self.subTest(privilege_function=privilege_function):
+                normalized = " ".join(statement.split())
+                self.assertIn(
+                    "JOIN pg_catalog.pg_roles present_role "
+                    "ON present_role.rolname = role.role_name",
+                    normalized,
+                )
+                self.assertIn(
+                    f"{privilege_function}( present_role.rolname,",
+                    normalized,
+                )
+
+    def test_role_audit_checks_runtime_membership_direction_only(self):
+        normalized = " ".join(collector.MEMBERSHIP_COUNT_QUERY.split())
+        self.assertIn("member_role.rolname = ANY(%s)", normalized)
+        self.assertNotIn("granted_role.rolname", normalized)
+
     def test_connect_forces_session_read_only_before_queries(self):
         fake_psycopg = mock.Mock()
         fake_psycopg.connect.return_value = object()

@@ -2,7 +2,7 @@
 
 Task: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`
 
-Status: `EXECUTED / BASELINE REMEDIATIONS VERIFIED / FINAL MACHINE ARTIFACT OPEN`
+Status: `EXECUTED / BASELINE REMEDIATIONS VERIFIED / FINAL MACHINE ARTIFACT FAIL-CLOSED`
 
 Observed: 2026-07-27 (Asia/Shanghai)
 
@@ -61,6 +61,19 @@ Observed: 2026-07-27 (Asia/Shanghai)
   role. Repository commit `b06671f` closes the name collision with the
   dedicated `noteai_admin_runtime` contract, but migrations `0009`–`0016` and
   the new role/ACL remain unapplied in production.
+- A fresh bounded database collection after the network interruption returned
+  all fifteen predefined source aggregates at zero and exact table/sequence
+  privilege matrices. It also found two real preflight mismatches:
+  `noteai_app` and `noteai_xhs` each inherit database `TEMP` through the
+  current database ACL. The application credential remains intentionally
+  unable to read `schema_migrations`; that is not to be fixed by granting
+  migration-ledger access to a runtime role.
+- The first host collection produced one false temporary-process count because
+  broad command-line matching saw the accepted historical Canary name inside
+  API-C's persistent data-mount argument. The collector now matches only
+  known Worker script identities and Docker `--name` temporary objects.
+  Recollection on both production nodes returned zero temporary processes,
+  containers, listeners and authentication entries.
 
 ## Safety and disposition
 
@@ -88,8 +101,9 @@ was left behind.
 
 Gate 0 is no longer blocked on authentication, billing, ACR private DNS, RDS
 retention/encryption or exact-current publication. It remains fail-closed on
-retaining a final combined secret-free collector artifact and on unapplied
-schema/role conditions. The full checklist in
+the two database `TEMP` capabilities, binding the already accepted independent
+`0001`–`0008` migration proof without weakening a runtime role, and retaining
+a final combined secret-free collector artifact. The full checklist in
 `docs/PRODUCTION_DEPLOYMENT_EXECUTION_PLAN.md` remains mandatory.
 
 ## Evidence acceptance contract
