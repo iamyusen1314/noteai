@@ -2,7 +2,7 @@
 
 Task: `PROD-FIRST-LAUNCH-INTERNAL-READINESS-GATE-001`
 
-Status: `REPOSITORY GATE IMPLEMENTED / PRODUCTION NOT DEPLOYED`
+Status: `IMMUTABLE RELEASE PUBLISHED / PREFLIGHT EVIDENCE CLOSURE IN PROGRESS`
 
 This gate prevents three different meanings of “ready” from being collapsed
 into one number. It is offline and read-only: it does not contact Alibaba
@@ -21,7 +21,7 @@ complete-public-launch score is `13/38 = 34%`. These are evidence-completion
 ratios, not schedule estimates, quality grades or permission to deploy.
 
 The older `tools/production_readiness_gate.py` verifies deployable repository
-assets. Its current green `102/102` result remains useful, but it is not and never was
+assets. Its current green `103/103` result remains useful, but it is not and never was
 proof that the current release is deployed or publicly launchable.
 
 ## Fail-closed rules
@@ -71,31 +71,56 @@ The following commands must currently exit non-zero:
 
 ## Current decision
 
-`PROD-COMPLETE-FIRST-LAUNCH-001` remains `NO-GO` for public launch. The
-production read-only preflight is correctly `blocked`: a cached ACR page can
-show the historical `a635692` immutable digests, but fresh ECS navigation
-redirects to Alibaba login and no authenticated least-privilege
-production-database metadata credential/session exists. Cached content is
-partial evidence only and cannot satisfy the host, RDS, backup, schema or
-runtime controls.
+`PROD-COMPLETE-FIRST-LAUNCH-001` remains `NO-GO` for public launch. Fresh
+authenticated host, cloud-control-plane and read-only PostgreSQL observations
+prove the historical private services remain stable and loopback-only, all
+fixed source-data aggregate blockers are zero and the production migration
+ledger is exactly `0001`–`0008`.
 
-`PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001` is complete. Exact revision
+The authenticated baseline is now materially improved: ACR product-managed
+PrivateZone resolution passes on API-C and API-F, RDS data/log backup
+retention is fourteen days and service-key disk encryption is enabled. Both
+API nodes passed the bounded post-encryption loopback health/isolation check.
+The managed RDS administrator still occupies the former Admin runtime role
+name; repository commit `b06671f` closes that collision with
+`noteai_admin_runtime`, but production remains at migrations `0001`–`0008`.
+
+`PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001` remains complete only for
+its exact historical revision. Revision
 `2fa3a5543876a6c8040ec17ca05a5461b101bbd7` was built as five native AMD64
 roles; ordinary CI passed, `cryptography 48.0.1` is present once per role, and
 the exact-product VEX binds twelve dispositions to 115 SBOM BOM-Links while
 leaving the canonical `4 Critical / 19 High` per-role reports unsuppressed.
+Current HEAD `b06671f` changes migration/runtime-role content. Native workflow
+`30233565859` first re-earned an exact five-role GitHub source-candidate
+identity. The isolated retained AMD64 builder then rebuilt the same revision
+and published five role-specific immutable ACR tags. Five unique manifest
+digests passed authenticated control-plane binding, canonical evidence remains
+unsuppressed at `4 Critical / 19 High` per role, and the ACR-build CycloneDX
+1.6 VEX validates with 115 exact BOM-Links. GitHub and ACR local image
+identities remain deliberately separate.
 
-There is now no dependency-free repository/offline task in the internal
-runtime layer. The next dependency root remains the authenticated,
-read-only `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`. It must resume
-only after a fresh Alibaba console sign-in and an authenticated least-
-privilege database metadata credential/session exist. The partial evidence is
-recorded in
+The one-time publisher role/policy, builder ACR VPC link, Docker
+authentication and temporary authentication directories are removed. The
+production ACR PrivateZone binding is restored; API-C/API-F were not
+restarted or redeployed and retained matching pre/post loopback health
+fingerprints. No database write, provider call or public edge/traffic change
+occurred. Publication is evidence, not deployment acceptance.
+
+The active dependency root is now
+`PROD-FIRST-LAUNCH-PRODUCTION-PREFLIGHT-EVIDENCE-CLOSE-001`. Authenticated
+host, control-plane and read-only PostgreSQL observations exist, but the final
+secret-free combined collector artifact has not been retained locally and
+accepted by the offline preflight gate. The ledger therefore remains
+fail-closed at `13/29`; once that exact artifact passes, the next dependency
+root is `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`.
+The sanitized observations are recorded in
 `docs/PRODUCTION_READONLY_PREFLIGHT_EVIDENCE.md`.
 
 The credential-free offline evidence gate is now available at
-`tools/production_readonly_preflight_gate.py`. It verifies only a future
-sanitized observation artifact and therefore does not change the score. It
+`tools/production_readonly_preflight_gate.py`. It verifies only the final
+sanitized observation artifact; authenticated observations without that
+retained machine artifact do not change the score. It
 fails closed on missing API-C/API-F coverage, non-loopback listeners, mutable
 images, insufficient host headroom, RDS/backup/PITR gaps, migration drift,
 source-data blockers, unexpected runtime authority, side effects or cleanup
@@ -107,8 +132,9 @@ gate: Docker/systemd identity and hardening, loopback health, bounded log-hit
 counts, env key-name metadata, capacity, private/VPC-only network/ACR routing and
 temporary-access residue. It never outputs environment values, raw logs,
 addresses or instance identities and makes no registry/database/provider
-request. The collector and gate remain offline preparation until executed
-against authenticated production.
+request. Bounded authenticated host observations have executed; the remaining
+gap is preserving the exact combined secret-free artifact accepted by the
+gate.
 
 `tools/collect_production_database_preflight.py` is the database-side
 companion. It accepts a DSN only through a protected process environment,
@@ -116,8 +142,9 @@ forces both session- and transaction-level read-only mode, applies bounded
 timeouts, reads only migration metadata, predefined role/privilege state and
 fixed aggregate counts, and always rolls back. It emits no business row,
 connection value or raw exception. Its repository verification does not
-provide a production credential/session and therefore does not change the
-score.
+provide production acceptance by inheritance. The production read-only
+execution occurred and rolled back; the row remains unverified until its
+combined artifact is retained and passes the final gate.
 
 ## Updating evidence
 

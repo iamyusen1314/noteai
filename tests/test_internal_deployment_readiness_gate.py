@@ -40,28 +40,20 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(report["complete_public_launch"]["percentage"], 34)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
-    def test_fresh_production_auth_is_the_only_dependency_free_internal_blocker(self):
+    def test_current_preflight_evidence_closure_is_actionable(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
-        self.assertEqual(
-            report["blocked"],
-            [
-                {
-                    "id": "production_readonly_preflight",
-                    "resume_condition": (
-                        "A fresh Alibaba console sign-in and authenticated "
-                        "least-privilege production database metadata "
-                        "credential or session become available."
-                    ),
-                }
-            ],
-        )
+        self.assertEqual(report["blocked"], [])
         self.assertNotIn("immutable_release_candidate", actionable)
         self.assertIsNone(report["next_safe_task"])
         self.assertEqual(
             actionable["production_readonly_preflight"]["status"],
-            "blocked",
+            "unverified",
+        )
+        self.assertEqual(
+            actionable["production_readonly_preflight"]["next_task"],
+            "PROD-FIRST-LAUNCH-PRODUCTION-PREFLIGHT-EVIDENCE-CLOSE-001",
         )
         self.assertEqual(
             actionable["production_readonly_preflight"]["execution_class"],

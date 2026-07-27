@@ -10,17 +10,20 @@ Last updated: 2026-07-27
 - 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。Durable AI、私有存储/恢复、provider-isolated支付合同及Adapay离线适配器/专用运行时仓库门禁已经通过，但商户/真实mock兼容、生产对象存储/PITR、真实queue/dispatcher/processor、Tracking/Trends managed runtime、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
-- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码`2fa3a5543876a6c8040ec17ca05a5461b101bbd7`已经原生AMD64五角色构建与VEX验收，但没有ACR digest、没有发布或部署。生产已完成受控只读预检，仍是migration `0001`–`0008`；`0009`–`0016`未应用。
-- 当前量化状态/下一步: fail-closed ledger仍为仓库/隔离`12/12=100%`、内部生产部署`13/29=45%`、完整公开上线`13/38=34%`。`PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`已解除登录/数据库证据阻断并进入真实修复阶段。当前确定阻断为：ACR PrivateZone控制面存在但两台节点均无法解析；RDS磁盘加密关闭且备份保留仅七天；托管RDS管理员占用旧的`noteai_admin`运行角色名。最后一项已由`PROD-FIRST-LAUNCH-ADMIN-RUNTIME-ROLE-COLLISION-001`在仓库新增`0016`和独立`noteai_admin_runtime`角色合同并通过Admin `4/4`、Payment `6/6`、Storage `4/4`、全量Python `945`加`24`skip及readiness `102/102`，但尚未部署。不得把只读预检、仓库修复、旧生产服务、GitHub临时local image ID或VEX当作生产接受。
+- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码`b06671fbcca51f884b04c86edcf116e373c6cfa8`已有彼此分离的GitHub-source与隔离builder五角色原生AMD64/SBOM/VEX身份；五个唯一ACR manifest digest已绑定，但没有服务部署。生产仍是migration `0001`–`0008`；`0009`–`0016`未应用。
+- 当前量化状态/下一步: fail-closed ledger仍为仓库/隔离`12/12=100%`、内部生产部署`13/29=45%`、完整公开上线`13/38=34%`。ACR product-managed PrivateZone、RDS十四天data/log retention、service-key磁盘加密、双API健康隔离和精确五角色发布均已验证。当前根任务是`PROD-FIRST-LAUNCH-PRODUCTION-PREFLIGHT-EVIDENCE-CLOSE-001`：保留一个最终脱敏的host/control-plane/database组合artifact并让离线gate通过；随后才可执行生产`0009`–`0016`及精确roles/ACL。托管RDS管理员占用旧`noteai_admin`运行角色名的问题已由`b06671f`新增`0016`和独立`noteai_admin_runtime`角色合同关闭仓库根因，但尚未部署。
 - 授权边界: 产品负责人已授权CTO自行批准并持续执行达到`内部生产部署准备度100%`所需的有限、有界、可回滚任务，无需重复询问。缺失的登录/凭据仍需产品负责人完成交互式认证；公开DNS、真实用户流量、不可逆破坏、新产品决策、无上限费用和公开上线完成声明仍不在授权内。
 
-### Current-source immutable candidate is closed offline, not published
+### Current-source immutable release is published, not deployed
 
-- 状态: `CLOSED AT OFFLINE CANDIDATE LAYER / NOT PUBLISHED / NOT DEPLOYED` by `PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-OFFLINE-001`.
+- 状态: current `b06671f` is `EXACT GITHUB SOURCE + FIVE ACR PRODUCTS VERIFIED / NOT DEPLOYED`; historical `2fa3a55` remains scoped to its old revision.
 - 已关闭: exact revision `2fa3a5543876a6c8040ec17ca05a5461b101bbd7`在GitHub `x86_64` runner构建API、Admin、Payment、AI Worker、XHS五角色；普通CI通过，Secret和browser component均为0，每角色恰好一个`cryptography 48.0.1`。CycloneDX 1.6 VEX将12个Debian CVE绑定到五个local image ID、五份SBOM和115个BOM-Link。
 - 原始风险未隐藏: canonical Trivy报告仍为每角色`4 Critical / 19 High`，zero-C/H原始门禁保持fail-closed；VEX只在精确AMD64 base、command graph和non-root/read-only/cap-drop/no-device合同下给出`not_affected`，不是scanner suppression、waiver、production exception或deployment authorization。
-- 剩余High: local image ID不是registry digest，GitHub runner没有保留或发布镜像；当前ACR/API-C/API-F/Admin仍是历史`a635692`内容。任何ACR发布、生产部署或新内容重建都必须重新绑定精确digest/身份并验证。
-- 防重复/回滚: 无source/base/SBOM/architecture/command/runtime/CVE-scope冲突时不得重复本构建/VEX。任务只产生仓库证据，回滚只撤销`2fa3a55`依赖修复或`bccbb3a`证据提交，不触碰生产。
+- 已关闭: GitHub workflow `30233565859`从精确`b06671f`构建五角色，普通CI、原生构建、Secret/SBOM/inspect/证据上传与CycloneDX 1.6 schema均通过；每角色仍是原始`4 Critical / 19 High`、Secret/browser/forbidden OS package为0、`cryptography 48.0.1`恰好1。
+- 已关闭发布根: 隔离AMD64 builder从精确`b06671f`重建并发布五角色；ACR控制面tag/digest逐一匹配且五个digest唯一。GitHub与builder local image ID/SBOM serial明确分离；两套VEX各自保持12个disposition和115个BOM-Link。官方CycloneDX 1.6 schema为零错误。
+- 清理/非回归: 一次性publisher role/policy、builder ACR link、Docker auth、临时auth目录和运行容器均为零；production保留唯一RUNNING的ACR/PrivateZone link。API-C/API-F未重启、未部署，前后loopback健康fingerprint完全匹配。零provider、零业务DB写入、零ALB/TLS/public DNS/traffic变化。
+- 剩余High: 五个新digest尚未部署；生产schema/roles仍为`0001`–`0008`，最终preflight组合artifact未落库通过。local image ID仍不得当作registry digest，publication仍不得当作deployment acceptance。
+- 防重复/回滚: 无source/base/SBOM/architecture/command/runtime/CVE-scope冲突时不得重复本构建、扫描或VEX。发布标签不可变；未部署阶段无需服务回滚。后续失败应保留历史运行digest、暂停新服务并使用已接受的旧服务配置。
 
 ### Billing or credit accounting is wrong
 

@@ -33,6 +33,9 @@ if str(TOOLS_DIR) not in sys.path:
 from artifact_loader import ensure_model_artifacts, sha256_file  # noqa: E402
 from verify_browserless_vex import validate_bundle as validate_browserless_vex_bundle  # noqa: E402
 from verify_native_release_vex import validate_bundle as validate_native_release_vex_bundle  # noqa: E402
+from verify_registry_release_vex import (  # noqa: E402
+    validate_bundle as validate_registry_release_vex_bundle,
+)
 
 
 REQUIRED_MODEL_ROLES = {"quality_regressor", "ready_classifier", "preference_ranker", "train_report"}
@@ -1476,6 +1479,7 @@ def check_optional_runtime_dependencies() -> list[dict[str, Any]]:
 def check_browserless_vex() -> list[dict[str, Any]]:
     browserless_errors = validate_browserless_vex_bundle()
     native_errors = validate_native_release_vex_bundle()
+    registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
             "exact_a635692_browserless_vex_bundle",
@@ -1485,13 +1489,23 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             else "12 exact-product dispositions independently reviewed",
         ),
         _ok(
-            "exact_2fa3a55_native_five_role_vex_bundle",
+            "exact_b06671f_github_native_five_role_source_bundle",
             not native_errors,
             "; ".join(native_errors[:5])
             if native_errors
             else (
                 "five exact local images; 12 dispositions / 115 SBOM BOM-Links; "
                 "raw 4 Critical / 19 High per role remains unsuppressed"
+            ),
+        ),
+        _ok(
+            "exact_b06671f_registry_native_five_role_vex_bundle",
+            not registry_errors,
+            "; ".join(registry_errors[:5])
+            if registry_errors
+            else (
+                "five unique ACR manifest digests; exact control-plane binding; "
+                "temporary publication access cleaned; deployment unauthorized"
             ),
         ),
     ]

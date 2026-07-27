@@ -31,7 +31,12 @@ class ProductionReadinessGateTests(unittest.TestCase):
         checks = {item["name"]: item for item in gate.check_browserless_vex()}
 
         self.assertTrue(checks["exact_a635692_browserless_vex_bundle"]["passed"])
-        self.assertTrue(checks["exact_2fa3a55_native_five_role_vex_bundle"]["passed"])
+        self.assertTrue(
+            checks["exact_b06671f_github_native_five_role_source_bundle"]["passed"]
+        )
+        self.assertTrue(
+            checks["exact_b06671f_registry_native_five_role_vex_bundle"]["passed"]
+        )
 
     def test_production_roles_exclude_browser_dependencies_and_commands(self):
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")

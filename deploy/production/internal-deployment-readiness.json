@@ -215,7 +215,7 @@
         {
           "id": "production_readonly_preflight",
           "title": "Authenticated read-only ECS, RDS, backup and runtime preflight",
-          "status": "blocked",
+          "status": "unverified",
           "dependencies": [],
           "evidence": [
             {
@@ -235,9 +235,8 @@
               "ref": "tools/collect_production_database_preflight.py"
             }
           ],
-          "blocker": "A cached authenticated ACR page is readable, but fresh ECS navigation redirects to Alibaba login and no authenticated least-privilege production database metadata credential or session is available.",
-          "resume_condition": "A fresh Alibaba console sign-in and authenticated least-privilege production database metadata credential or session become available.",
-          "next_task": "PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001"
+          "blocker": "Authenticated host, control-plane and database observations exist, but the final secret-free collector artifact has not been retained locally and accepted by the offline preflight gate.",
+          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-PREFLIGHT-EVIDENCE-CLOSE-001"
         },
         {
           "id": "immutable_release_candidate",
@@ -248,29 +247,45 @@
           "evidence": [
             {
               "kind": "git",
-              "ref": "2fa3a5543876a6c8040ec17ca05a5461b101bbd7"
+              "ref": "b06671fbcca51f884b04c86edcf116e373c6cfa8"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/b06671f-github-native-release-evidence.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/b06671f-github-native-release.vex.cdx.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/b06671f-github-native-release-review.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/b06671f-registry-release-evidence.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/b06671f-registry-release.vex.cdx.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/b06671f-registry-release-review.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_registry_release_vex.py"
             },
             {
               "kind": "path",
               "ref": "docs/NATIVE_RELEASE_VEX_REVIEW.md"
-            },
-            {
-              "kind": "path",
-              "ref": "security/vex/2fa3a55-native-release-evidence.json"
-            },
-            {
-              "kind": "path",
-              "ref": "security/vex/2fa3a55-native-release.vex.cdx.json"
-            },
-            {
-              "kind": "path",
-              "ref": "security/vex/2fa3a55-native-release-review.json"
             }
           ]
         },
         {
           "id": "production_schema_roles",
-          "title": "Production migrations 0009-0015 and exact runtime roles",
+          "title": "Production migrations 0009-0016 and exact runtime roles",
           "status": "unverified",
           "dependencies": [
             "production_readonly_preflight",

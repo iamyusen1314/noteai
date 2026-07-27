@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Build and verify the exact local-image VEX bundle for the native release.
+"""Build and verify the GitHub local-image VEX source-candidate bundle.
 
 The canonical Trivy reports stay outside the repository and remain
 unsuppressed.  This module reduces their identities and exact package rows into
 a secret-free manifest, emits a CycloneDX VEX bound to the five local image
-IDs/SBOMs, and verifies the bundle offline.  It never treats a local image ID
-as a registry digest or as deployment authorization.
+IDs/SBOMs, and verifies the bundle offline. It is deliberately separate from
+the later ACR registry-publication bundle: the two builders produced different
+local image IDs and SBOM serials even though their reviewed package rows and
+source revision are the same. It never treats a local image ID as a registry
+digest or as deployment authorization.
 """
 
 from __future__ import annotations
@@ -21,41 +24,47 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_COMMIT = "2fa3a5543876a6c8040ec17ca05a5461b101bbd7"
+RELEASE_COMMIT = "b06671fbcca51f884b04c86edcf116e373c6cfa8"
 RELEASE_SHORT = RELEASE_COMMIT[:7]
-TASK_ID = "PROD-FIRST-LAUNCH-IMAGE-VULN-DISPOSITION-001"
-RUN_ID = 30216295810
-JOB_ID = 89830982353
+TASK_ID = "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-B06671F-001"
+RUN_ID = 30233565859
+JOB_ID = 89876856262
 RUN_URL = f"https://github.com/iamyusen1314/noteai/actions/runs/{RUN_ID}"
 ROLES = ("api", "admin", "payment", "ai-worker", "xhs-http")
-EVIDENCE_PATH = ROOT / "security" / "vex" / f"{RELEASE_SHORT}-native-release-evidence.json"
-VEX_PATH = ROOT / "security" / "vex" / f"{RELEASE_SHORT}-native-release.vex.cdx.json"
-REVIEW_PATH = ROOT / "security" / "vex" / f"{RELEASE_SHORT}-native-release-review.json"
+EVIDENCE_PATH = (
+    ROOT / "security" / "vex" / f"{RELEASE_SHORT}-github-native-release-evidence.json"
+)
+VEX_PATH = (
+    ROOT / "security" / "vex" / f"{RELEASE_SHORT}-github-native-release.vex.cdx.json"
+)
+REVIEW_PATH = (
+    ROOT / "security" / "vex" / f"{RELEASE_SHORT}-github-native-release-review.json"
+)
 EXPECTED_ROLE_IDENTITIES = {
     "api": {
-        "local_image_id": "sha256:d5b0066cca40c70b1fa9f84afb136bf1a933b89ca7d98a36b73382a1585118c1",
-        "sbom_sha256": "58b485d920b103d2cf1cb8ecd951752dec3153cd6c183de9858d1bdadb17c04c",
-        "vulnerability_sha256": "5a70699ceb5d3b8a519a8f65b710d6e48879dcf585b5e6ae5d21dc14343a062e",
+        "local_image_id": "sha256:b394922e1164a3b9e7a613bb521164ef0e7ec1ad4dd439d4adce22f6f911f97b",
+        "sbom_sha256": "806daa0996215f0507900a87ac67ef694125814719a72672296a264a49a869f1",
+        "vulnerability_sha256": "cadce0863ab991107be0fcdbb8a02849c498842af02591dacb0e41d494de6cca",
     },
     "admin": {
-        "local_image_id": "sha256:a87133a69cc460f17fd2ade6f36fe09401083c0b93ca087ea1c74aa757a80c60",
-        "sbom_sha256": "2829bc88f5e4dabfae7c2bc0c953b5d3071b8bd04c6db8eb2a00b0cec06230ee",
-        "vulnerability_sha256": "504aabc50a703685bf735e4e0b5c086c7d361cf562d9630441438bf06fe0b17b",
+        "local_image_id": "sha256:2035afcfd8f6b7172a29fdd30590c6c46e2b8ea228618152e9775895d6f17856",
+        "sbom_sha256": "b71d40e14eae64b60d8c4282d63ed1dcdbad4d1ac1c63a957ff4d9b2b9c3868e",
+        "vulnerability_sha256": "153a043172b1698b5c543558f8f1731fab4c0b0008df184f96f702ee1b2c2112",
     },
     "payment": {
-        "local_image_id": "sha256:b499cc6600a49a4ae4dc95302b20b99d8aa859f8d2c6eb44f51c7d63094a5ca5",
-        "sbom_sha256": "3e66a120720bc8905d11602541779823e21e5b9cd6a4682ea8a87e790c27ccde",
-        "vulnerability_sha256": "10becf8454e857726729b0eda6518802f2d4878359bdaf5c7deefa2a84553863",
+        "local_image_id": "sha256:998fc4078c19b8056ac7a33668071e55513b72f5fb975f7d2f33c81ff5cf5a9b",
+        "sbom_sha256": "c9ec4dd48e6a7cde7f2406ec57ea1460d70a2caffd16b6fad6e83e2e55ded52d",
+        "vulnerability_sha256": "47615d348274ba4064778c92f29189354e55c3a3d5fd972a3251f116c69e7f05",
     },
     "ai-worker": {
-        "local_image_id": "sha256:19d7ac22d33e12584037bed9abefd2dc5d84264a6df598071e7ca48ed89f27c4",
-        "sbom_sha256": "4656c6ad49f901dba3ca876eaf7aba39f90d2536cfa08955c586198b0e8bfff6",
-        "vulnerability_sha256": "318a8fb6f805577f6853793996bc33eeb71b2e407037e76ab7550dfaab947569",
+        "local_image_id": "sha256:e60fb4e42e675b07931a405ee4aaa1c8bb57f1089936c130587a57435588c6bd",
+        "sbom_sha256": "516a290cc731c5f3f40d3ce722506a6e9a36f3736895259a7162f750f0391962",
+        "vulnerability_sha256": "571a4d4a7a698108fd9f73d22734f195a15f9411456596cf162ed053eb587a1a",
     },
     "xhs-http": {
-        "local_image_id": "sha256:b5907d57feca619b6668f91ba278740799d4768f2816a7d48f0551f9b060c9ba",
-        "sbom_sha256": "2cabdeb2608dc3802a7fd6bba31ca98e933be4610a40557c2593813a3ec7761a",
-        "vulnerability_sha256": "4bab1def66febf338a80138a1cf161eb41a2e1b2553d80aafc66855923a5cc80",
+        "local_image_id": "sha256:6b71735dd53902d69c081305e333d3e93463f664eb135d6b2f903834fbd23dc0",
+        "sbom_sha256": "32d69e6c97afd670982336fbd852f8cfbf0de77177c94be5567631ae9e93c8d1",
+        "vulnerability_sha256": "292d0201e3e643bbdffa82bdb585d0b947b850f8bc8d88bd7fee613edaffca01",
     },
 }
 
@@ -762,7 +771,7 @@ def main() -> int:
             print(f"FAIL: {error}")
         return 1
     print(
-        "PASS: exact native five-role VEX bundle; raw reports remain "
+        "PASS: exact GitHub native five-role source-candidate VEX; raw reports remain "
         "unsuppressed at 4 Critical / 19 High per role"
     )
     return 0
