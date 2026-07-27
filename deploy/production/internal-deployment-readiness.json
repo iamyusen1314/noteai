@@ -215,7 +215,7 @@
         {
           "id": "production_readonly_preflight",
           "title": "Authenticated read-only ECS, RDS, backup and runtime preflight",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [],
           "evidence": [
             {
@@ -233,10 +233,12 @@
             {
               "kind": "path",
               "ref": "tools/collect_production_database_preflight.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-preflight-b06671f.json"
             }
-          ],
-          "blocker": "Fresh host and control-plane observations pass and all fixed source aggregates are zero, but noteai_app and noteai_xhs each retain database TEMP through the current ACL; the runtime credential intentionally cannot read the migration ledger. The accepted 0001-0008 proof must be bound without widening runtime access, the two TEMP capabilities must be closed, and the final secret-free artifact must pass the offline gate.",
-          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-PREFLIGHT-EVIDENCE-CLOSE-001"
+          ]
         },
         {
           "id": "immutable_release_candidate",

@@ -31,39 +31,43 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 13)
+        self.assertEqual(report["internal_deployment"]["verified"], 14)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 45)
+        self.assertEqual(report["internal_deployment"]["percentage"], 48)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 13)
+        self.assertEqual(report["complete_public_launch"]["verified"], 14)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 34)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 37)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
-    def test_current_preflight_evidence_closure_is_actionable(self):
+    def test_current_post_preflight_roots_are_actionable(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
         self.assertEqual(report["blocked"], [])
         self.assertNotIn("immutable_release_candidate", actionable)
+        self.assertNotIn("production_readonly_preflight", actionable)
         self.assertIsNone(report["next_safe_task"])
         self.assertEqual(
-            actionable["production_readonly_preflight"]["status"],
+            actionable["production_schema_roles"]["status"],
             "unverified",
         )
         self.assertEqual(
-            actionable["production_readonly_preflight"]["next_task"],
-            "PROD-FIRST-LAUNCH-PRODUCTION-PREFLIGHT-EVIDENCE-CLOSE-001",
+            actionable["production_schema_roles"]["next_task"],
+            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
         )
         self.assertEqual(
-            actionable["production_readonly_preflight"]["execution_class"],
+            actionable["production_schema_roles"]["execution_class"],
             "authenticated_production",
+        )
+        self.assertEqual(
+            actionable["managed_secret_distribution"]["next_task"],
+            "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001",
         )
         self.assertEqual(
             actionable["legal_provider_approval"]["execution_class"],
             "professional_review",
         )
-        self.assertNotIn("production_schema_roles", actionable)
         self.assertNotIn("dns_cutover", actionable)
 
     def test_verified_control_requires_existing_evidence(self):

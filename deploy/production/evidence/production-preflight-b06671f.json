@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001",
+  "status": "verified",
+  "observed_at_utc": "2026-07-27T11:16:46Z",
+  "application_revision": "b06671fbcca51f884b04c86edcf116e373c6cfa8",
+  "zero_mutation": {
+    "cloud_changes": 0,
+    "database_writes": 0,
+    "business_row_values_read": 0,
+    "registry_requests": 0,
+    "service_changes": 0,
+    "provider_calls": 0,
+    "public_traffic_requests": 0,
+    "secret_values_exposed": 0
+  },
+  "cloud": {
+    "acr": {
+      "historical_digests": {
+        "api": "17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1",
+        "admin": "d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733",
+        "xhs-http": "452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af"
+      },
+      "historical_images_normal": true,
+      "historical_tags_immutable": true,
+      "current_release_digests": {
+        "api": "c44354b5abfbb2b22f61e8db316d6abf9a44e805ba3ea3b64074508ff8562f1f",
+        "admin": "95103965242be003f03b8ac82d2d39528dab1b3ccc3b2eede908ab6958df503f",
+        "payment": "ed37365ad7881eae7577fba93123c3c012859079c33067f9d4e957ba3f18f230",
+        "ai-worker": "78c4db760c06818cdd4b9363594d11528840ec407a94a90b0f5c55b17a46328f",
+        "xhs-http": "7ce58fcfa891ae86e306c411559c037bb64b359c6ffae7665de1b49baee14a91"
+      },
+      "current_release_images_normal": true,
+      "current_release_tags_immutable": true,
+      "vpc_endpoint_running": true,
+      "product_managed_private_zone_count": 1,
+      "production_vpc_link_count": 1,
+      "builder_vpc_link_count": 0,
+      "registry_requests": 0
+    },
+    "rds": {
+      "state": "Running",
+      "engine": "PostgreSQL",
+      "major_version": 16,
+      "high_availability": true,
+      "encrypted": true,
+      "ssl_enabled": true,
+      "public_endpoint": false,
+      "backup_enabled": true,
+      "pitr_enabled": true,
+      "data_backup_retention_days": 14,
+      "log_backup_enabled": true,
+      "log_backup_retention_days": 14,
+      "max_connections": 1600
+    },
+    "edge": {
+      "alb_target_count": 0,
+      "tls_listener_count": 0,
+      "business_dns_record_count": 0,
+      "traffic_request_count": 0
+    }
+  },
+  "hosts": [
+    {
+      "architecture": "x86_64",
+      "compose_version": "5.3.1",
+      "containers": [
+        {
+          "cap_drop_all": true,
+          "image_digest_hex": "17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1",
+          "live_http_status": 200,
+          "local_image_id_hex": "b1983bab928ef93495d8be020030917d4ae54364234390047c3163af5414fedb",
+          "log_migration_hit_count": 0,
+          "log_provider_hit_count": 0,
+          "log_secret_pattern_hit_count": 0,
+          "loopback_listener": "127.0.0.1:8000",
+          "managed": true,
+          "mount_destinations": [
+            "/app/model/data"
+          ],
+          "no_new_privileges": true,
+          "oci_revision": "a635692a899ee02c6905cd694611c14e0da4594a",
+          "privileged": false,
+          "public_listener_count": 0,
+          "read_only_root": true,
+          "ready_core_checks": [
+            "database",
+            "model"
+          ],
+          "ready_http_status": 200,
+          "restart_policy": "no",
+          "role": "api",
+          "running": true,
+          "unit_active": true,
+          "unit_enabled": true,
+          "unit_result": "success",
+          "unit_sha256": "872c44e87b938a2ecb459651953196925e72798fa67f4a904c05409fb350cd25",
+          "user": "999:999"
+        },
+        {
+          "cap_drop_all": true,
+          "image_digest_hex": "d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733",
+          "live_http_status": 200,
+          "local_image_id_hex": "2283095764622e373e30b51ba749819751e6bfb0c37c6bb82e2d3bfe4937760f",
+          "log_migration_hit_count": 0,
+          "log_provider_hit_count": 0,
+          "log_secret_pattern_hit_count": 0,
+          "loopback_listener": "127.0.0.1:8001",
+          "managed": true,
+          "mount_destinations": [
+            "/app/model/data"
+          ],
+          "no_new_privileges": true,
+          "oci_revision": "a635692a899ee02c6905cd694611c14e0da4594a",
+          "privileged": false,
+          "public_listener_count": 0,
+          "read_only_root": true,
+          "ready_core_checks": [
+            "admin_credentials",
+            "database"
+          ],
+          "ready_http_status": 200,
+          "restart_policy": "no",
+          "role": "admin",
+          "running": true,
+          "unit_active": true,
+          "unit_enabled": true,
+          "unit_result": "success",
+          "unit_sha256": "c299059d167eab0863639355a6485094e58e3dca6bcec7adbe9f78a3857a1ab2",
+          "user": "999:999"
+        }
+      ],
+      "docker_free_gib": 26.17,
+      "docker_version": "28.3.3",
+      "env_files": [
+        {
+          "duplicate_key_count": 0,
+          "file_label": "api.env",
+          "key_count": 55,
+          "mode": "0600",
+          "owner": "root",
+          "regular": true,
+          "rejected_key_count": 0,
+          "role": "api"
+        },
+        {
+          "duplicate_key_count": 0,
+          "file_label": "admin.env",
+          "key_count": 2,
+          "mode": "0600",
+          "owner": "root",
+          "regular": true,
+          "rejected_key_count": 0,
+          "role": "admin"
+        }
+      ],
+      "instance_state": "Running",
+      "label": "API-C",
+      "memory_available_mib": 6584,
+      "mutable_image_ref_count": 0,
+      "private_acr_dns": true,
+      "private_acr_route": true,
+      "private_only": true,
+      "system_status": "OK",
+      "temporary_auth_entry_count": 0,
+      "temporary_process_count": 0,
+      "unexpected_container_count": 0,
+      "unexpected_listener_count": 0
+    },
+    {
+      "architecture": "x86_64",
+      "compose_version": "5.3.1",
+      "containers": [
+        {
+          "cap_drop_all": true,
+          "image_digest_hex": "17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1",
+          "live_http_status": 200,
+          "local_image_id_hex": "b1983bab928ef93495d8be020030917d4ae54364234390047c3163af5414fedb",
+          "log_migration_hit_count": 0,
+          "log_provider_hit_count": 0,
+          "log_secret_pattern_hit_count": 0,
+          "loopback_listener": "127.0.0.1:8000",
+          "managed": true,
+          "mount_destinations": [
+            "/app/model/data"
+          ],
+          "no_new_privileges": true,
+          "oci_revision": "a635692a899ee02c6905cd694611c14e0da4594a",
+          "privileged": false,
+          "public_listener_count": 0,
+          "read_only_root": true,
+          "ready_core_checks": [
+            "database",
+            "model"
+          ],
+          "ready_http_status": 200,
+          "restart_policy": "no",
+          "role": "api",
+          "running": true,
+          "unit_active": true,
+          "unit_enabled": true,
+          "unit_result": "success",
+          "unit_sha256": "32d552e3daba29130677d98927dff1701711763ef63573d5d9c199c99bf44268",
+          "user": "999:999"
+        }
+      ],
+      "docker_free_gib": 32.55,
+      "docker_version": "28.3.3",
+      "env_files": [
+        {
+          "duplicate_key_count": 0,
+          "file_label": "api.env",
+          "key_count": 55,
+          "mode": "0600",
+          "owner": "root",
+          "regular": true,
+          "rejected_key_count": 0,
+          "role": "api"
+        },
+        {
+          "duplicate_key_count": 0,
+          "file_label": "xhs.env",
+          "key_count": 1,
+          "mode": "0600",
+          "owner": "root",
+          "regular": true,
+          "rejected_key_count": 0,
+          "role": "xhs"
+        }
+      ],
+      "instance_state": "Running",
+      "label": "API-F",
+      "memory_available_mib": 6706,
+      "mutable_image_ref_count": 0,
+      "private_acr_dns": true,
+      "private_acr_route": true,
+      "private_only": true,
+      "system_status": "OK",
+      "temporary_auth_entry_count": 0,
+      "temporary_process_count": 0,
+      "unexpected_container_count": 0,
+      "unexpected_listener_count": 0
+    }
+  ],
+  "database": {
+    "aggregate_query_count": 15,
+    "applied_migration_hashes": {
+      "0001": "8ea5d32bc5c1a3e84452d93722324b9a9b4bb2e156c69b4a9656efa13ed51718",
+      "0002": "d3a939479990cfe080fce71ebd122e19e633874bd2cd6883b5b03507eadefcb7",
+      "0003": "772636cab88c2abf169a5b1a3fd5419ba1e3b12bbae92e211e296e89b1850192",
+      "0004": "1c817056eea3df9e0e1dd6ba6aceaf0c9a172b3cbba92ba3aeb621adb857a2a1",
+      "0005": "3a02a45bf0211580c5db97fc80ab9fb8eedab94a9cf981c59f3de231789981e6",
+      "0006": "392eb82adca68493566f6469ce6ce4f1fba0cfc9ab76757deb4e1404c45cb735",
+      "0007": "477d4ea776d701c4b359b36eb254c68263131f74dedeb766ff46081bff619037",
+      "0008": "3bdd896ce06f7a5ae8deeba01145d9556775c45a71cd83576240d24a01bc05fe"
+    },
+    "business_row_values_read": 0,
+    "effective_role_audit_complete": true,
+    "metadata_session_read_only": true,
+    "migration_ledger_source": "pinned_legacy_versions",
+    "pending_versions": [
+      "0009",
+      "0010",
+      "0011",
+      "0012",
+      "0013",
+      "0014",
+      "0015",
+      "0016"
+    ],
+    "role_state": {
+      "noteai_admin": "present",
+      "noteai_admin_runtime": "absent",
+      "noteai_ai_dispatcher": "absent",
+      "noteai_ai_worker": "absent",
+      "noteai_app": "present",
+      "noteai_payment": "absent",
+      "noteai_xhs": "present",
+      "noteai_xhs_tracking": "absent",
+      "noteai_xhs_trends": "absent"
+    },
+    "runtime_bypassrls_count": 0,
+    "runtime_owner_count": 0,
+    "runtime_superuser_count": 0,
+    "source_aggregates": {
+      "duplicate_phone_count": 0,
+      "invalid_diagnosis_created_at_count": 0,
+      "invalid_note_created_at_count": 0,
+      "invalid_subscription_expires_at_count": 0,
+      "invalid_subscription_started_at_count": 0,
+      "noncanonical_phone_count": 0,
+      "retention_backfill_candidate_count": 0,
+      "retention_immediate_deadline_count": 0,
+      "tracking_active_legacy_work_count": 0,
+      "tracking_duplicate_note_count": 0,
+      "tracking_duplicate_url_count": 0,
+      "tracking_incomplete_terminal_count": 0,
+      "tracking_invalid_or_unordered_clock_count": 0,
+      "tracking_invalid_status_or_metric_count": 0,
+      "tracking_noncanonical_identity_count": 0
+    },
+    "source_preflight_blocker_count": 0,
+    "source_preflight_complete": true,
+    "stored_migration_drift_count": 0,
+    "unexpected_grant_count": 0
+  },
+  "cleanup": {
+    "temporary_file_count": 0,
+    "temporary_credential_count": 0,
+    "temporary_process_count": 0,
+    "session_manager_enabled": false,
+    "host_services_unchanged": true,
+    "database_unchanged": true,
+    "publisher_role_exists": false,
+    "publisher_policy_exists": false,
+    "builder_acr_vpc_link_count": 0,
+    "production_acr_vpc_link_count": 1
+  }
+}

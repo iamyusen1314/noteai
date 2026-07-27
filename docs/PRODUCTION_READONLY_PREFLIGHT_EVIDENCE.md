@@ -2,7 +2,7 @@
 
 Task: `PROD-FIRST-LAUNCH-SEC-COMPLIANCE-PROD-PREFLIGHT-001`
 
-Status: `EXECUTED / BASELINE REMEDIATIONS VERIFIED / FINAL MACHINE ARTIFACT FAIL-CLOSED`
+Status: `COMPLETE / VERIFIED / FINAL MACHINE ARTIFACT PASS`
 
 Observed: 2026-07-27 (Asia/Shanghai)
 
@@ -63,11 +63,23 @@ Observed: 2026-07-27 (Asia/Shanghai)
   the new role/ACL remain unapplied in production.
 - A fresh bounded database collection after the network interruption returned
   all fifteen predefined source aggregates at zero and exact table/sequence
-  privilege matrices. It also found two real preflight mismatches:
+  privilege matrices. Before the bounded ACL closure it found two real
+  preflight mismatches:
   `noteai_app` and `noteai_xhs` each inherit database `TEMP` through the
   current database ACL. The application credential remains intentionally
   unable to read `schema_migrations`; that is not to be fixed by granting
   migration-ledger access to a runtime role.
+- `PROD-FIRST-LAUNCH-PREFLIGHT-TEMP-ACL-CLOSE-001` then executed one exact
+  transaction that revoked only database `TEMPORARY` from `PUBLIC`.
+  Preconditions proved both runtime roles had effective TEMP and no CREATE;
+  postconditions proved both TEMP capabilities were false and CREATE remained
+  false. The task performed no migration or business-row write. Its exact
+  rollback was available but not needed.
+- The final database collector ran exactly once after that closure. It forced
+  session and transaction read-only mode, returned all fifteen source
+  aggregates plus ownership/elevation/unexpected-grant counts at zero, and
+  retained the independently accepted exact `0001`–`0008` hashes as
+  `pinned_legacy_versions` without granting migration-ledger access.
 - The first host collection produced one false temporary-process count because
   broad command-line matching saw the accepted historical Canary name inside
   API-C's persistent data-mount argument. The collector now matches only
@@ -99,11 +111,11 @@ attempt to add the isolated builder as a second linked VPC was rejected by the
 platform's one-VPC limit and changed no endpoint row. No manual zone or record
 was left behind.
 
-Gate 0 is no longer blocked on authentication, billing, ACR private DNS, RDS
-retention/encryption or exact-current publication. It remains fail-closed on
-the two database `TEMP` capabilities, binding the already accepted independent
-`0001`–`0008` migration proof without weakening a runtime role, and retaining
-a final combined secret-free collector artifact. The full checklist in
+Gate 0 is `VERIFIED`. The combined Secret-free artifact is retained at
+`deploy/production/evidence/production-preflight-b06671f.json` and passes the
+offline verifier. This does not verify or authorize production migrations
+`0009`–`0016`, final roles/ACL, managed Secret distribution, service promotion
+or public traffic. The full checklist in
 `docs/PRODUCTION_DEPLOYMENT_EXECUTION_PLAN.md` remains mandatory.
 
 ## Evidence acceptance contract
@@ -120,7 +132,7 @@ The evidence file is created only after real observations exist. The verifier
 requires exactly API-C/API-F, historical managed-runtime identities and
 loopback listeners, at least 12 GiB Docker headroom, private ACR DNS/routing,
 RDS PostgreSQL 16 HA/encryption/SSL/private endpoint, backup/PITR retention,
-repository-bound migration `0001`–`0008` hashes, pending `0009`–`0015`,
+repository-bound migration `0001`–`0008` hashes, pending `0009`–`0016`,
 source-data aggregate preflight, effective-role negatives, no public edge,
 zero mutation and complete cleanup. Unknown fields, instance IDs, network
 addresses, connection values, private keys, long opaque values, drift,
@@ -131,8 +143,8 @@ they never print, persist or compare values. The evidence records zero Secret
 exposure rather than claiming the operating system did not read file bytes.
 
 This verifier is repository/deployment-control tooling and is excluded from
-the application image build context. Its existence does not unblock or verify
-production Gate 0.
+the application image build context. Gate 0 is verified only because the real
+sanitized artifact passes it; the tool's existence alone is not evidence.
 
 The companion host collector is:
 
@@ -170,9 +182,8 @@ and the exact source-data `COUNT` aggregates required before migrations
 `0009`–`0016`. It reads no business row value and returns no discovered role,
 table, exception or connection value outside that fixed schema. A failure
 emits only a fixed error code. The authenticated production execution has now
-occurred. Its sanitized results are summarized above; the gate remains
-non-zero until the final combined collector artifact is retained locally and
-passes.
+occurred. Its sanitized results are summarized above and the retained final
+combined collector artifact passes.
 
 The effective-role audit compares the complete current baseline, not a sample:
 30 exact public tables (including the migration ledger), five sequences,
@@ -184,6 +195,11 @@ informationally and is never accepted as a runtime role. Every other
 table/sequence privilege, inventory difference,
 TEMP/CREATE capability, membership, ownership, elevation, grant option or
 migration-ledger access increments the fail-closed mismatch count.
+
+The TEMP closure is recorded separately from the final zero-mutation
+observation window. Cleanup independently proved zero short-lived privileged
+accounts, transport keys and temporary cloud files. The pre-existing
+administrator password was neither reset nor exposed.
 
 A disposable PostgreSQL 16.14 execution applied exact migrations
 `0001`–`0008`, created only synthetic roles/data, and ran this collector
