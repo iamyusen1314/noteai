@@ -131,9 +131,30 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         self.assertIn("SET LOCAL lock_timeout='5s'", source)
         self.assertIn("NOTEAI_SCHEMA_APPLY_CONFIRM", source)
         self.assertIn("existing_business_row_updates", source)
+        self.assertIn("migration_ledger_hash_backfills", source)
         self.assertIn('"provider_calls": 0', source)
         self.assertNotIn("apply_postgres_migrations()", source)
         self.assertNotIn("render_predeploy.py", source)
+
+    def test_legacy_ledger_is_upgraded_before_hashes_are_selected(self):
+        source = schema_roles.Path(schema_roles.__file__).read_text(
+            encoding="utf-8"
+        )
+
+        prepare_call = source.index("\n        _prepare_migration_ledger(conn)\n")
+        ledger_select = source.index(
+            '"SELECT version,sha256 FROM schema_migrations ORDER BY version"',
+            prepare_call,
+        )
+        self.assertLess(prepare_call, ledger_select)
+        self.assertIn(
+            "ADD COLUMN IF NOT EXISTS sha256 TEXT",
+            source,
+        )
+        self.assertIn(
+            schema_roles.MIGRATION_LEDGER_CONSTRAINT,
+            source,
+        )
 
 
 if __name__ == "__main__":

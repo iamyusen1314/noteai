@@ -111,6 +111,7 @@ ADVISORY_FUNCTIONS = (
     "pg_catalog.hashtext(text)",
     "pg_catalog.pg_advisory_xact_lock(bigint)",
 )
+MIGRATION_LEDGER_CONSTRAINT = "schema_migrations_sha256_format"
 
 
 class SchemaRoleError(RuntimeError):
@@ -408,6 +409,32 @@ def _fetch_scalar(conn: Any, sql: str, params: tuple[Any, ...] = ()) -> Any:
     return next(iter(row.values())) if isinstance(row, dict) else row[0]
 
 
+def _prepare_migration_ledger(conn: Any) -> None:
+    """Upgrade the legacy 0001-0008 ledger before selecting its hashes."""
+    conn.execute(
+        "ALTER TABLE schema_migrations "
+        "ADD COLUMN IF NOT EXISTS sha256 TEXT"
+    )
+    conn.execute(
+        f"""
+        DO $ledger$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conrelid = 'schema_migrations'::regclass
+                  AND conname = '{MIGRATION_LEDGER_CONSTRAINT}'
+            ) THEN
+                ALTER TABLE schema_migrations
+                    ADD CONSTRAINT {MIGRATION_LEDGER_CONSTRAINT}
+                    CHECK (sha256 ~ '^[0-9a-f]{{64}}$');
+            END IF;
+        END
+        $ledger$;
+        """
+    )
+
+
 def _expected_column(
     role: str,
     table: str,
@@ -423,6 +450,26 @@ def _expected_column(
 
 def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int]:
     migration_payloads = _migration_payloads()
+    ledger_sha_column = conn.execute(
+        "SELECT data_type,is_nullable "
+        "FROM information_schema.columns "
+        "WHERE table_schema='public' AND table_name='schema_migrations' "
+        "AND column_name='sha256'"
+    ).fetchone()
+    if (
+        ledger_sha_column is None
+        or ledger_sha_column["data_type"] != "text"
+        or ledger_sha_column["is_nullable"] != "NO"
+    ):
+        raise SchemaRoleError("migration_ledger_contract")
+    if not _fetch_scalar(
+        conn,
+        "SELECT EXISTS ("
+        "SELECT 1 FROM pg_constraint "
+        "WHERE conrelid='schema_migrations'::regclass AND conname=%s)",
+        (MIGRATION_LEDGER_CONSTRAINT,),
+    ):
+        raise SchemaRoleError("migration_ledger_contract")
     ledger_rows = conn.execute(
         "SELECT version,sha256 FROM schema_migrations ORDER BY version"
     ).fetchall()
@@ -612,6 +659,7 @@ def apply_contract(conn: Any) -> dict[str, Any]:
         conn.execute(
             "SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))"
         )
+        _prepare_migration_ledger(conn)
         rows = conn.execute(
             "SELECT version,sha256 FROM schema_migrations ORDER BY version"
         ).fetchall()
@@ -631,6 +679,9 @@ def apply_contract(conn: Any) -> dict[str, Any]:
                     "WHERE version=%s AND sha256 IS NULL",
                     (payloads[version][1], row["version"]),
                 )
+        migration_hash_backfills = sum(
+            1 for row in rows if row["sha256"] is None
+        )
         conn.execute(
             "ALTER TABLE schema_migrations ALTER COLUMN sha256 SET NOT NULL"
         )
@@ -657,6 +708,7 @@ def apply_contract(conn: Any) -> dict[str, Any]:
         "applied_versions": applied,
         "database_writes": {
             "migration_ledger_rows": len(applied),
+            "migration_ledger_hash_backfills": migration_hash_backfills,
             "schema_seed_rows": verification["schema_seed_rows"],
             "retention_backfill_rows": verification["retention_backfill_rows"],
             "existing_business_row_updates": 0,
