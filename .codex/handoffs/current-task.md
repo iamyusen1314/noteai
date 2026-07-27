@@ -20,6 +20,16 @@
 - **Checkpoint verification:** focused preflight/readiness `14/14`; full Python `957` with `24` explicit-environment skips; production readiness `103/103`; quality gate, Python compilation, JSON validation and `git diff --check` pass.
 - **Next dependency root:** `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`. Production still has only migrations `0001`–`0008`; migrations/roles `0009`–`0016` remain unapplied.
 
+### Current production schema/role executor checkpoint — `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`
+
+- **Disposition:** `REPOSITORY + DISPOSABLE POSTGRESQL VERIFIED / NOT DEPLOYED / 0C / 0H / 0M`. Production remains at migrations `0001`–`0008`; readiness remains `14/29 = 48%`.
+- **Bounded implementation:** `tools/production_schema_roles.py` requires the exact task confirmation and a process-only privileged DSN. It snapshots exact migrations, accepts only ledger `0001`–`0008` or already-complete `0001`–`0016`, applies `0009`–`0016` plus the credential-free ACL in one transaction, and emits only fixed sanitized counters. It never calls `render_predeploy.py`, seeds managed prompts, enables a provider or starts a service.
+- **Role isolation:** `scripts/postgres/noteai_production_runtime_roles.sql` creates six new identities as `NOLOGIN`, preserves the existing `noteai_app`/`noteai_xhs` credential state, rejects elevation/membership/ownership and applies the exact API, Admin, Payment, Durable AI, Tracking and Trends table/column/sequence matrix. Database TEMP/CREATE, schema CREATE, migration-ledger DML, grant option and direct trigger-function execution remain denied.
+- **Disposable proof:** exact PostgreSQL `16.14-alpine` applied `0009`–`0016` once and the independent read-only verifier returned the same result: 16 migration hashes, 8 runtime roles, 56 tables, 5 sequences, 3,136 table checks and 9,728 column checks. Writes were exactly 8 migration-ledger rows plus 2 fixed service-state seeds; retention backfill and existing business-row updates were zero.
+- **Verification:** focused schema/readiness `31/31`; full Python `963` with `24` explicit-environment skips; production readiness `105/105`; quality, internal-readiness, compilation and diff checks pass.
+- **Cleanup/impact:** exact tmpfs PostgreSQL container and labelled volume residue are zero; Colima returned to stopped baseline. No production database, cloud, credential, image, service, provider, registry, traffic or public-edge action; incremental cost `¥0`.
+- **Next exact step:** commit/push this fail-closed executor, then execute one authenticated production transaction followed by an independent read-only verification and reduced Secret-free evidence checkpoint. Failure before commit rolls back the transaction; after success, leave additive schema dormant and keep all new roles `NOLOGIN`.
+
 ### Current authoritative Admin runtime role collision checkpoint — `PROD-FIRST-LAUNCH-ADMIN-RUNTIME-ROLE-COLLISION-001`
 
 - **Disposition:** `COMPLETE / PASS / REPOSITORY + DISPOSABLE POSTGRESQL VERIFIED / NOT DEPLOYED / 0C / 0H / 0M` at `b06671fbcca51f884b04c86edcf116e373c6cfa8`.

@@ -746,6 +746,17 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     private_storage_contract = (
         ROOT / "docs" / "PRIVATE_STORAGE_AND_RECOVERY_CONTRACT.md"
     ).read_text(encoding="utf-8")
+    production_role_acl = (
+        ROOT / "scripts" / "postgres" / "noteai_production_runtime_roles.sql"
+    ).read_text(encoding="utf-8")
+    production_schema_runner = (
+        ROOT / "tools" / "production_schema_roles.py"
+    ).read_text(encoding="utf-8")
+    production_role_acl_executable = "\n".join(
+        line
+        for line in production_role_acl.splitlines()
+        if not line.lstrip().startswith("--")
+    )
     market_worker = (
         MODEL_DIR / "market_timing_worker.py"
     ).read_text(encoding="utf-8")
@@ -1425,6 +1436,43 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and "render_predeploy.py" not in service_start_sources
             and "NOTEAI_MIGRATE_ON_START" not in service_start_sources
             and render_blueprint.count("preDeployCommand: python /app/scripts/render_predeploy.py") == 1,
+        ),
+        _ok(
+            "production_schema_role_acl_is_credential_free",
+            "CREATE ROLE %I NOLOGIN NOSUPERUSER" in production_role_acl
+            and "NOCREATEDB NOCREATEROLE" in production_role_acl
+            and "NOINHERIT NOREPLICATION NOBYPASSRLS" in production_role_acl
+            and "REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC" in production_role_acl
+            and "REVOKE UPDATE ON notes FROM noteai_app" in production_role_acl
+            and "REVOKE UPDATE ON saved_diagnoses FROM noteai_app" in production_role_acl
+            and not re.search(
+                r"\bPASSWORD\b", production_role_acl_executable, re.IGNORECASE
+            )
+            and not re.search(
+                r"\bLOGIN\b", production_role_acl_executable, re.IGNORECASE
+            )
+            and not re.search(
+                r"\bALTER\s+ROLE\b",
+                production_role_acl_executable,
+                re.IGNORECASE,
+            ),
+            "credential-free NOLOGIN runtime-role ACL",
+        ),
+        _ok(
+            "production_schema_role_runner_is_bounded",
+            'TASK_ID = "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001"'
+            in production_schema_runner
+            and 'CONFIRM_ENV = "NOTEAI_SCHEMA_APPLY_CONFIRM"'
+            in production_schema_runner
+            and 'conn.execute("SET TRANSACTION READ ONLY")'
+            in production_schema_runner
+            and "with conn.transaction():" in production_schema_runner
+            and "SET LOCAL statement_timeout='120s'" in production_schema_runner
+            and "SET LOCAL lock_timeout='5s'" in production_schema_runner
+            and '"existing_business_row_updates": 0' in production_schema_runner
+            and '"provider_calls": 0' in production_schema_runner
+            and "render_predeploy.py" not in production_schema_runner,
+            "single-transaction apply plus independent read-only verify",
         ),
         _ok(
             "docker_context_blocks_sensitive_material",

@@ -12,6 +12,7 @@ Last updated: 2026-07-27
 - 建议验证方式: 以 Handoff 中唯一功能矩阵、20个核心任务包及当前有界修复门禁为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码`b06671fbcca51f884b04c86edcf116e373c6cfa8`已有彼此分离的GitHub-source与隔离builder五角色原生AMD64/SBOM/VEX身份；五个唯一ACR manifest digest已绑定，但没有服务部署。生产仍是migration `0001`–`0008`；`0009`–`0016`未应用。
 - 当前量化状态/下一步: fail-closed ledger为仓库/隔离`12/12=100%`、内部生产部署`14/29=48%`、完整公开上线`14/38=37%`。ACR product-managed PrivateZone、RDS十四天data/log retention、service-key磁盘加密、双API健康隔离、精确五角色发布和Gate 0生产预检均已验证。`PROD-FIRST-LAUNCH-PREFLIGHT-TEMP-ACL-CLOSE-001`仅撤销数据库PUBLIC TEMPORARY，保持CREATE=false、零业务行写入，并清理短期账户、传输密钥和临时文件；最终只读取证窗口为零云/服务/数据库/registry/provider/traffic mutation。Secret-free artifact `deploy/production/evidence/production-preflight-b06671f.json`通过离线门禁。当前根任务是`PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`；production `0009`–`0016`和最终roles/ACL仍未应用。The managed-RDS Admin-name collision is fixed only in repository commit `b06671f`.
+- Schema/role执行器进展: `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`已达到`REPOSITORY + DISPOSABLE POSTGRESQL VERIFIED / NOT DEPLOYED`。单事务执行器、六个`NOLOGIN`新角色和完整正负权限矩阵在PostgreSQL 16.14通过；独立只读复核覆盖56表、5序列、8角色和12,864项表/列检查。隔离写入仅为8条migration ledger与2条固定seed，retention backfill和既有业务行更新为0；临时容器/卷清零并恢复Colima停止。生产仍是`0001`–`0008`，因此本进展不提升账本分数，也不能继承为生产验收。
 - 授权边界: 产品负责人已授权CTO自行批准并持续执行达到`内部生产部署准备度100%`所需的有限、有界、可回滚任务，无需重复询问。缺失的登录/凭据仍需产品负责人完成交互式认证；公开DNS、真实用户流量、不可逆破坏、新产品决策、无上限费用和公开上线完成声明仍不在授权内。
 
 ### Current-source immutable release is published, not deployed
@@ -61,6 +62,7 @@ Last updated: 2026-07-27
 - 建议验证方式: Apply every migration twice to a disposable PostgreSQL, run shared-state/trend/API/admin container probes, back up before any guarded SQLite import.
 - 是否需要用户确认后才能修改: yes.
 - 2026-07-26进展: additive migration `0009_account_security_compliance.sql` 仅存在于当前工作区，未对生产执行；最新生产证据仍为 `0001`–`0008`。R16接受H16的首写锁定期限、显式SAVEPOINT、SQLite严格时钟/purged形态、migration单读不可变bytes、八个历史锚、ASCII phone及权限非扩张，但发现未来`purged_at`不证明底层删除、SQLite付费创建时TEXT词法比较会误判合法时钟这两个Medium。权限流`PASS / 0C / 0H / 0M`，全量`721`加`5`skip、readiness`86/86`及既有门禁通过；总裁决仍为`FAIL / NO-GO / 0C / 0H / 2M`。生产preflight、备份、migration、GRANT和PostgreSQL预演继续禁止。
+- 2026-07-27执行器进展: 当前仓库已新增显式确认、迁移bytes快照、advisory lock、5秒lock timeout、120秒statement timeout、单事务apply和独立只读verify。隔离PostgreSQL证明精确`0009`–`0016`、8角色及完整负向权限矩阵可原子通过；不调用`render_predeploy.py`、不seed Prompt、不启用LOGIN/Secret或服务。生产执行前风险仍是RDS短锁等待与历史状态漂移；任一precondition/SQL/矩阵不匹配均在commit前回滚，成功后不做破坏性down migration，而是保持新schema dormant和六角色`NOLOGIN`。
 
 ### Secrets or tokens leak into Git/logs
 

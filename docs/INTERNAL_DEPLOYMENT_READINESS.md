@@ -2,7 +2,7 @@
 
 Task: `PROD-FIRST-LAUNCH-INTERNAL-READINESS-GATE-001`
 
-Status: `IMMUTABLE RELEASE PUBLISHED / PREFLIGHT EVIDENCE CLOSURE IN PROGRESS`
+Status: `PREFLIGHT VERIFIED / PRODUCTION SCHEMA-ROLE EXECUTOR READY`
 
 This gate prevents three different meanings of “ready” from being collapsed
 into one number. It is offline and read-only: it does not contact Alibaba
@@ -13,15 +13,15 @@ Cloud, a database, a provider or a payment service.
 | Layer | Meaning | Current evidence |
 |---|---|---|
 | `repository_isolated` | Code, tests, contracts and disposable-environment evidence exist | `12/12 = 100%` |
-| `internal_runtime` | The current source release is built, privately deployed and accepted on managed internal production resources | `1/17 = 6%` |
+| `internal_runtime` | The current source release is built, privately deployed and accepted on managed internal production resources | `2/17 = 12%` |
 | `public_launch` | Real suppliers/payment, legal confirmation, ALB/TLS, pre-DNS smoke and DNS ramp are accepted | `0/9 = 0%` |
 
-The combined internal-deployment score is therefore `13/29 = 45%`. The
-complete-public-launch score is `13/38 = 34%`. These are evidence-completion
+The combined internal-deployment score is therefore `14/29 = 48%`. The
+complete-public-launch score is `14/38 = 37%`. These are evidence-completion
 ratios, not schedule estimates, quality grades or permission to deploy.
 
 The older `tools/production_readiness_gate.py` verifies deployable repository
-assets. Its current green `103/103` result remains useful, but it is not and never was
+assets. Its current green `105/105` result remains useful, but it is not and never was
 proof that the current release is deployed or publicly launchable.
 
 ## Fail-closed rules
@@ -107,15 +107,11 @@ restarted or redeployed and retained matching pre/post loopback health
 fingerprints. No database write, provider call or public edge/traffic change
 occurred. Publication is evidence, not deployment acceptance.
 
-The active dependency root is now
-`PROD-FIRST-LAUNCH-PRODUCTION-PREFLIGHT-EVIDENCE-CLOSE-001`. Authenticated
-host, control-plane and read-only PostgreSQL observations exist, but the final
-secret-free combined collector artifact has not been retained locally and
-accepted by the offline preflight gate. The ledger therefore remains
-fail-closed at `13/29`; once that exact artifact passes, the next dependency
-root is `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`.
-The sanitized observations are recorded in
-`docs/PRODUCTION_READONLY_PREFLIGHT_EVIDENCE.md`.
+The production preflight is verified by the retained Secret-free artifact and
+the ledger is fail-closed at `14/29`. The active dependency root is now
+`PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`. Production remains at
+migrations `0001`–`0008`; repository/disposable evidence for the bounded
+schema-role executor does not inherit into production acceptance.
 
 The credential-free offline evidence gate is now available at
 `tools/production_readonly_preflight_gate.py`. It verifies only the final
@@ -132,9 +128,8 @@ gate: Docker/systemd identity and hardening, loopback health, bounded log-hit
 counts, env key-name metadata, capacity, private/VPC-only network/ACR routing and
 temporary-access residue. It never outputs environment values, raw logs,
 addresses or instance identities and makes no registry/database/provider
-request. Bounded authenticated host observations have executed; the remaining
-gap is preserving the exact combined secret-free artifact accepted by the
-gate.
+request. Bounded authenticated host observations have executed and are
+retained only in the reduced preflight evidence artifact.
 
 `tools/collect_production_database_preflight.py` is the database-side
 companion. It accepts a DSN only through a protected process environment,
@@ -143,8 +138,16 @@ timeouts, reads only migration metadata, predefined role/privilege state and
 fixed aggregate counts, and always rolls back. It emits no business row,
 connection value or raw exception. Its repository verification does not
 provide production acceptance by inheritance. The production read-only
-execution occurred and rolled back; the row remains unverified until its
-combined artifact is retained and passes the final gate.
+execution occurred, rolled back and is accepted by the final gate.
+
+`tools/production_schema_roles.py` is the next bounded production executor.
+It requires the exact task confirmation, accepts the privileged DSN only
+through a protected process environment, and commits migrations `0009`–`0016`
+plus `scripts/postgres/noteai_production_runtime_roles.sql` in one
+transaction. The six new identities remain `NOLOGIN`; managed credentials,
+services, providers, ACR, ALB/TLS/DNS and public traffic are outside this
+task. Its independent `--verify` path forces read-only mode and compares the
+complete positive and negative database capability matrix.
 
 ## Updating evidence
 

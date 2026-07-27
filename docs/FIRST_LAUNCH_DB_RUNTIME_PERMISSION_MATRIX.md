@@ -368,6 +368,17 @@ Prompt/model/Crawler/Tracking mutation, schema/database creation, TEMP, DDL,
 role membership, superuser, `BYPASSRLS`, `schema_migrations`, ownership or
 grant option.
 
+The production-wide credential-free ACL is
+`scripts/postgres/noteai_production_runtime_roles.sql`. The bounded executor
+`tools/production_schema_roles.py` applies migrations `0009`–`0016` and that
+ACL in one transaction only after the exact task confirmation is present.
+It creates the six new runtime identities as `NOLOGIN`, never changes the
+existing `noteai_app` or `noteai_xhs` credential state, never seeds managed
+prompts and never starts a service or provider. A separate `--verify` path
+forces the transaction read-only and compares every table, column, sequence,
+database, schema, function, ownership, membership and elevation boolean.
+Credentials and `LOGIN` remain a later managed-secret task.
+
 Do not force the whole Admin connection to
 `default_transaction_read_only=on`: that makes the exact session
 `INSERT`/`DELETE` contract unusable. The application itself fails closed on
