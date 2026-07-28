@@ -39,6 +39,8 @@
 - Resolve the fixed V4 runner checkpoint from the newest pushed
   `[skip render] Stabilize V4 schema runner` commit after this Handoff is
   committed; do not embed a self-referential hash.
+- V4 package checkpoint:
+  `13377d7ac37b090818c56be545f34a7ac5587d49`.
 - Historical UNKNOWN incident source checkpoint:
   `a5f2961089744eb1c0bf0eb0011b93a132d6493f`.
 - Schema executor repair:
@@ -48,15 +50,15 @@
 - Internal deployment readiness: `14/29 = 48%`.
 - Public launch completion: false.
 - This Handoff and its evidence must be committed and pushed as a new
-  `[skip render]` checkpoint. Resolve that checkpoint with `git log` rather
-  than assuming the incident source commit is current HEAD.
+  `[skip render]` V4 rollback checkpoint. Resolve that checkpoint with
+  `git log` rather than embedding a self-referential hash here.
 
 ## 3. Unique task and current incident boundary
 
 `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001`
 
 - Status:
-  `PRE_CONNECT / PACKAGE VERIFIED / NOT DISPATCHED / CLEAN`.
+  `CONNECTED_KNOWN / ROLLED_BACK / DATABASE WRITES 0 / CLEAN`.
 - Parent task:
   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`.
 - Repository authority-resolution task
@@ -99,11 +101,23 @@
   5 sequences and the 2 historical runtime roles. New roles, new tables,
   migration SHA backfills, new ledger rows, seed rows, retention backfill,
   existing business-row updates and total database writes are all zero.
-- The next task is the separately named
-  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001`. It may start only after
-  the stage-safe source, plan and tests are committed and pushed. It is a new
-  incident, cannot inherit V3B retry authority and permits at most one schema
-  transaction.
+- V4 fresh control-plane, package, zero-DSN/network-none and protected
+  credential gates passed. Its forced-readonly pre-dispatch used one
+  connection, rolled back, wrote zero rows and reconfirmed exact
+  `0001`-`0008`, 30 tables, 5 sequences and the two accepted-risk tuples.
+- V4 schema apply was dispatched exactly once. The runner returned
+  `CONNECTED_UNKNOWN` with the fixed stage code
+  `apply_runtime_acl_failed`; it was not retried.
+- The predeclared independent forced-readonly outcome audit used one
+  connection and deterministically resolved the transaction to
+  `CONNECTED_KNOWN / ROLLED_BACK / database writes 0`.
+- Production therefore remains exactly `0001`-`0008`; all five permitted
+  write categories are observed as zero. V4 is not deployed, cannot receive
+  readiness credit and the same database action must never be retried.
+- The short-term account, RSA/ciphertext, package, result/sentinel material,
+  task directory, containers, processes and Cloud Shell task state were
+  deleted and read back at zero. API-C/API-F/Admin remain active, ready and
+  loopback-only.
 
 ## 4. Product-owner first-launch risk decision
 
@@ -129,11 +143,19 @@
 
 ## 5. Current incident evidence
 
-Current Secret-free artifact:
+Current V4 Secret-free incident artifact:
+
+`deploy/production/evidence/production-schema-roles-v4-rolled-back-20260728.json`
+
+Artifact SHA-256:
+
+`b0b2b0ee44101809ab7c9e637556fc2d3febcf8cc683b52609eccc6caa32c301`
+
+Accepted-risk source artifact:
 
 `deploy/production/evidence/production-first-launch-role-risk-accepted-20260728.json`
 
-Artifact SHA-256:
+Accepted-risk source SHA-256:
 
 `2f25268539ee48d73bb6dcbff9af7ef8a9115d2e8a542f93fff29b9fa9b44c97`
 
@@ -199,6 +221,14 @@ connection/transaction/write all zero:
   after the database audit had already produced its immutable result;
 - two parser dispatch wrappers selected the Cloud Shell UI region instead of
   the business ECS region and exited before remote dispatch.
+- one post-incident local hash command used a nonexistent preflight filename;
+  the corrected command resolved the package's actual role-risk preflight
+  module and verified its expected hash;
+- one post-incident sensitive-pattern command had an unmatched shell quote;
+  the corrected invocation used separate fixed expressions and passed;
+- two focused-test assertions still expected the consumed V4 task name and
+  singular no-retry wording; only those stale expectations were updated to the
+  new root-cause task and dual V3B/V4 no-retry boundary.
 
 The material correction uses the existing authenticated Chrome session,
 project-and-zone API-node selection, explicit `ContentEncoding=Base64`,
@@ -294,6 +324,25 @@ service change.
   metadata in internal tool output. It contained no Secret, credential or user
   data, was not persisted to Git, submitted to a provider or exposed publicly,
   and all subsequent output was reduced to bounded counts/booleans.
+- Fresh cloud readback before dispatch proved one running private RDS, zero
+  public endpoint, two successful full backups inside 48 hours, baseline
+  `3 accounts / 1 Super / 0 task accounts`, zero task residue and healthy
+  loopback-only API-C/API-F/Admin.
+- One short-term protected Super account was created only after the package
+  gates passed. RSA-OAEP-SHA256 transfer retained zero plaintext in files,
+  environment, argv or logs.
+- The forced-readonly pre-dispatch result was 3,853 bytes with SHA-256
+  `66821db97930871d06fcf8538cbc0626bd820cb3e198c022f0c9d287b4bd7335`;
+  it rolled back and wrote zero rows.
+- The schema apply was dispatched once and never retried. Its sanitized fixed
+  failure stage is `apply_runtime_acl_failed`.
+- The independent outcome result was 1,410 bytes with SHA-256
+  `f7107f1c29d44904a4b71906f8f2ceead1d138685694838d396f59793baa95f3`;
+  it deterministically proves `ROLLED_BACK` and database writes zero.
+- Final readback restored `3 accounts / 1 Super / 0 task accounts` and zero
+  task account, key, ciphertext, directory, package, sentinel/result,
+  container, process, Cloud Shell file or task variable residue. No service
+  restart, deployment, provider call or public-traffic request occurred.
 
 ## 8. Repository checkpoint scope and verification
 
@@ -333,6 +382,7 @@ preserved, and exception text, DSNs and Secret material are never emitted.
 - Current role-policy delta suites: `38/38`.
 - Initial stage-safe checkpoint suites: `35/35`.
 - Current fixed-runner schema/outcome/readiness suites: `37/37`.
+- Post-V4 rollback schema/outcome/role-risk/readiness suites: `41/41`.
 - Full Python suite: `1035/1035`, with `25` explicit skips.
 - Disposable PostgreSQL 16 integration: one complete legacy setup, fixed
   `INHERIT FALSE` risk profile, fixed read-only audit, exact first apply,
@@ -346,6 +396,8 @@ preserved, and exception text, DSNs and Secret material are never emitted.
   `14/38 = 37%`; active accepted-risk entries `2`, readiness credit `0`.
 - Python compile, runner shell syntax, both JSON parses, sensitive-pattern scan
   with zero matches and `git diff --check`: pass.
+- Post-V4 incident evidence/readiness JSON parse, changed-file
+  sensitive-pattern scan and `git diff --check`: pass.
 - No database, cloud, service, provider, public-traffic or Secret-bearing action
   occurred during repository verification. The disposable local PostgreSQL
   container was deleted and Colima restored to its stopped baseline.
@@ -372,33 +424,30 @@ An outer browser, terminal or control-plane failure does not establish
 
 ## 10. Exact resume boundary
 
-1. Preserve both historical UNKNOWN artifacts and the new V3B
-   `CONNECTED_KNOWN / ROLLED_BACK` artifact without reclassification.
+1. Preserve all historical UNKNOWN artifacts plus the V3B and V4
+   `CONNECTED_KNOWN / ROLLED_BACK` artifacts without reclassification.
 2. Never retry
-   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V3B-001`.
+   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V3B-001` or
+   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001`.
 3. Keep the two fixed zero-credit `ACCEPTED_RISK` entries active exactly as
    observed; neither is `VERIFIED_FIXED` and neither authorizes a database
    action.
-4. Treat
-   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002` as complete
-   only after its stage-safe source, tests and Secret-free plan are committed
-   and pushed.
-5. Open
-   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001` only from that pushed
-   checkpoint. First re-prove fresh backup, private RDS, zero task residue,
-   API-C/API-F/Admin non-regression, exact `0001`-`0008` ledger and the two
-   accepted-risk tuples.
-6. Build one metadata-free minimal archive from the pushed checkpoint, split
-   it into bounded hash-addressed parts and use Cloud Assistant `SendFile`
-   rather than terminal-embedded source chunks. The local deterministic build
-   and zero-DSN import are complete; verify each remote part, reconstructed
-   archive and network-none import before any protected account is created.
-7. Create one new short-term managed RDS privileged account only after the
-   zero-DSN and network-none imports pass. Permit one schema transaction, zero
-   automatic retries and no owner or accepted-risk role changes.
-8. A connected failure may be followed only by the predeclared independent
-   forced-readonly outcome audit needed to classify `COMMITTED`,
-   `ROLLED_BACK` or `UNKNOWN`; it never authorizes another mutation.
-9. Until V4 independently verifies the committed state, production remains
-   `0001`-`0008`, `production_schema_roles` remains blocked and internal
-   readiness remains `14/29`.
+4. Treat the V4 fixed stage `apply_runtime_acl_failed` only as a sanitized
+   source-level diagnostic. Do not infer, reconstruct or persist raw database
+   error text.
+5. Production is still exactly `0001`-`0008`; `production_schema_roles`
+   remains blocked and internal readiness remains `14/29`.
+6. No new production schema write incident may be opened from this Handoff.
+   First complete source-level root-cause correction, independent offline
+   PostgreSQL validation, Secret-free evidence and a separately named
+   checkpoint. A later production incident requires explicit authority that
+   is distinct from the already-consumed V4 one-transaction allowance.
+7. Read-only diagnostics, process/container/sentinel checks and exact cleanup
+   are mandatory after any failure and do not count as retries. A proven
+   `PRE_CONNECT` failure may continue only through a materially corrected
+   path; any database-connected failure or UNKNOWN result stops that database
+   incident and forbids automatic retry.
+8. The unique non-production next task is
+   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-RUNTIME-ACL-ROOT-CAUSE-003`.
+   It may inspect and correct source plus run disposable PostgreSQL tests, but
+   it cannot connect to production or create production credentials/resources.

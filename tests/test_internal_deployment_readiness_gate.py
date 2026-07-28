@@ -57,7 +57,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertEqual(
             actionable["production_schema_roles"]["next_task"],
-            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001",
+            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-RUNTIME-ACL-ROOT-CAUSE-003",
         )
         self.assertEqual(
             actionable["production_schema_roles"]["execution_class"],
@@ -90,6 +90,16 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "ref": (
                     "deploy/production/evidence/"
                     "production-schema-authority-resolution-plan-20260728.json"
+                ),
+            },
+            schema["evidence"],
+        )
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-schema-roles-v4-rolled-back-20260728.json"
                 ),
             },
             schema["evidence"],
@@ -137,7 +147,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertIn("ACCEPTED_RISK", schema["blocker"])
         self.assertIn(
-            "never retry that database action",
+            "never retry either database action",
             schema["resume_condition"],
         )
         self.assertEqual(len(schema["accepted_risks"]), 2)
