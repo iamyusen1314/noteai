@@ -57,7 +57,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertEqual(
             actionable["production_schema_roles"]["next_task"],
-            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-PRIVILEGED-OWNER-PREFLIGHT-005",
+            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V5-OWNER-001",
         )
         self.assertEqual(
             actionable["production_schema_roles"]["execution_class"],
@@ -147,8 +147,19 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertIn("ACCEPTED_RISK", schema["blocker"])
         self.assertIn(
-            "never retry either database action",
+            "Never retry V3B, V4",
             schema["resume_condition"],
+        )
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-schema-privileged-owner-preflight-verified-"
+                    "20260729.json"
+                ),
+            },
+            schema["evidence"],
         )
         self.assertEqual(len(schema["accepted_risks"]), 2)
         self.assertEqual(len(report["accepted_risks"]), 2)
@@ -197,6 +208,57 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             evidence["cleanup"]["api_c_task_directory_count"],
             0,
         )
+
+    def test_privileged_owner_preflight_is_read_only_verified_and_clean(self):
+        evidence_path = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "evidence"
+            / "production-schema-privileged-owner-preflight-verified-"
+            "20260729.json"
+        )
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(evidence["status"], "VERIFIED_READ_ONLY_CLEAN")
+        audit = evidence["single_database_audit"]
+        self.assertEqual(audit["dispatch_count"], 1)
+        self.assertEqual(audit["automatic_retry_count"], 0)
+        self.assertEqual(audit["incident_class"], "CONNECTED_KNOWN")
+        self.assertTrue(audit["transaction_read_only"])
+        self.assertTrue(audit["transaction_rolled_back"])
+        self.assertEqual(audit["database_write_count"], 0)
+        self.assertTrue(audit["result_independently_validated"])
+        contract = evidence["verified_contract"]
+        self.assertEqual(contract["ledger_count"], 8)
+        self.assertEqual(contract["table_count"], 30)
+        self.assertEqual(contract["sequence_count"], 5)
+        self.assertEqual(contract["new_runtime_role_count"], 0)
+        self.assertEqual(contract["task_role_residue_count"], 0)
+        cleanup = evidence["cleanup_readback"]
+        self.assertEqual(
+            (
+                cleanup["accounts"],
+                cleanup["super_accounts"],
+                cleanup["task_accounts"],
+            ),
+            (3, 1, 0),
+        )
+        for key in (
+            "task_root_count",
+            "rsa_private_key_count",
+            "ciphertext_count",
+            "source_package_count",
+            "result_file_count",
+            "container_count",
+            "cloud_shell_task_file_count",
+            "cloud_shell_task_variable_count",
+            "rds_public_endpoint_count",
+            "public_api_node_count",
+            "non_loopback_listener_count",
+            "database_write_count",
+        ):
+            self.assertEqual(cleanup[key], 0, key)
 
     def test_fresh_role_risk_is_connected_known_and_accepted(self):
         evidence_path = (

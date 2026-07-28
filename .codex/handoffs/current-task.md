@@ -26,6 +26,8 @@
 ## 2. Git and readiness truth
 
 - Branch: `codex/quality-stabilization-real-chain`.
+- PRIVILEGED-OWNER-PREFLIGHT-005 source/import-fix checkpoint:
+  `7c4204f22aaa109249cef7c2ff84474528a5f106`.
 - OWNER-AUTHORITY-PREFLIGHT-004 outcome/evidence checkpoint:
   `8a533ac7c5efd7cbf44cade5287f909fce831a79`.
 - OWNER-AUTHORITY-PREFLIGHT-004 source checkpoint:
@@ -232,124 +234,97 @@ Secret-free evidence:
 This database action must never be retried. Its result only rejects the
 existing runtime Admin credential as an owner-activation executor.
 
-## 6.1. Unique next task
+## 6.1. Completed unique task: PRIVILEGED-OWNER-PREFLIGHT-005
 
 `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-PRIVILEGED-OWNER-PREFLIGHT-005`
 
-Execution class:
-separately named authenticated production forced-readonly capability preflight.
+Status:
+`VERIFIED_READ_ONLY_CLEAN / CONNECTED_KNOWN / ROLLED_BACK / WRITE 0`.
 
-Required path:
-
-1. Implement a new fixed source/task/run/application identity and a new API-C
-   task root. Do not reuse or redispatch 004.
-2. Locally prove the managed-RDS privileged contract: the short-term executor
-   is a member of `pg_rds_superuser`, is not a native superuser, can activate
-   the existing persistent owner and has no runtime-role membership or object
-   ownership.
-3. Rebuild a minimal package from the new pushed checkpoint; pass zero-DSN and
-   network-none imports and all hashes before credentials.
-4. Refresh only the production-write prerequisite baseline: current backup,
-   private endpoint, `3/1/0` accounts, zero task residue and API/Admin health.
-5. Generate one short-term privileged RDS account and RSA material. The
-   private key exists only on API-C; only the public key leaves that host.
-   Plaintext credentials must not enter files, environment, argv or logs.
-6. Execute exactly one forced-readonly transaction with a terminal rollback.
-   It must prove owner activation, exact owner capability/object ownership and
-   the production state `0001`-`0008`.
-7. Independently read the deterministic result, then remove the account, RSA,
-   ciphertext, task directory, containers/processes and Cloud Shell state.
-8. If and only if 005 passes, authorize a separately named V5 one-transaction
-   incident with a fresh single-write allowance and zero automatic retry.
-
-Alibaba RDS documentation confirms that a managed privileged account is a
-`pg_rds_superuser` member rather than a native superuser and can `SET ROLE` to
-a standard account. This is a capability hypothesis that 005 must verify,
-not assumed production evidence.
-
-Stage-safe 005 implementation checkpoint:
-
-- New auditor:
-  `tools/production_schema_privileged_owner_preflight.py`;
-  SHA-256
-  `091a96673f0391cf5196c4a2492702b6438ec49d462a47da19177dd15379c851`.
-- New host runner:
-  `tools/production_schema_privileged_owner_preflight_runner.sh`;
-  original SHA-256
-  `9ca9ad4b82ca980193cb84d01150a83ff6f2eb87734bdadd5f570be97146c79d`.
-- Existing 004 auditor, schema executor, V5 runner, runtime ACL and all 16
-  migrations retain their previously recorded hashes and bytes.
-- The session contract requires the exact task account, non-native-superuser,
-  one direct managed-privileged membership, no other direct membership, no
-  direct owner membership, no bidirectional runtime membership, no object/
-  default-ACL/shared ACL or ownership dependency, and a positive owner
-  activation path through the managed role.
-- Admin userinfo is removed at the API-C root boundary before the audit
-  container. Only sanitized topology and the decrypted short-term password
-  enter anonymous stdin; query credential/redirect overrides are rejected.
-- Task root is root-only `0700`; source is root-owned `0755`; key/ciphertext
-  are regular, single-link, root-only `0600` files. RSA private key transfer,
-  plaintext file/environment/argv and DSN persistence remain zero.
-- Decrypt and audit errors are separate. Success/state-change results use
-  structured JSON validation; a known failure requires one exact sanitized
-  line. Every audit-stage terminal state reports cleanup required until the
-  external account/material/host/Cloud Shell readback is zero.
-- Focused tests passed `31/31`; full Python passed `1055/1055` with 27
-  explicit skips; production readiness passed `105/105`; zero-DSN import,
-  Python compile, runner syntax and diff checks passed.
-- Disposable PostgreSQL 16 positive-equivalent two-level SET chain passed
-  `1/1`: session, owner and production-state contracts all verified, terminal
-  rollback and database writes zero. The temporary database, roles and
-  container were deleted and Colima restored stopped.
-- Three independent read-only auditors made no modifications. Their findings
-  produced the direct/bidirectional membership, dependency, sanitized
-  topology, exact classification and cleanup hardening above.
-- Production database/account/cloud/service/provider/public-traffic actions
-  for this implementation checkpoint remain zero.
-- Production cleanup order is fixed: save and hash the deterministic result;
-  stop and read back the exact container, process and connection counts at
-  zero; delete the short-term account; read back accounts at `3/1/0`; delete
-  RSA, ciphertext and the API-C task root; delete Cloud Shell task files,
-  variables and processes; finally read back all residue at zero and
-  API-C/API-F/Admin active, ready and loopback-only.
+- Production used exact pushed source `7c4204f`; the final deterministic
+  package contained 26 source files plus manifest, 16 migrations, 67,915
+  bytes, manifest SHA-256 `e359e44b…4439` and archive SHA-256
+  `66af35f6…0fc6`. Local top-level zero-DSN import, all hashes and remote
+  network-none import passed.
+- Fresh baseline proved one running private PostgreSQL instance, two
+  successful full backups within 48 hours, accounts `3/1/0`, two API nodes
+  with no public address, API-C API/Admin and API-F API active/ready and
+  loopback-only, and zero task residue.
+- One short-term managed-RDS privileged account and one API-C-only RSA keypair
+  were created. Plaintext credential files, environment, argv and logs were
+  zero; provider automatic retry was disabled.
+- Exactly one database audit ran. It proved the executor is a non-native
+  superuser with exactly one direct managed-privileged membership, no other
+  direct/owner/runtime membership or object/shared dependency, and can
+  activate `noteai_admin`.
+- The activated persistent owner is non-superuser+CREATEROLE, owns the
+  database and all existing public objects, and has the required schema
+  grantable CREATE capability with owner mismatches zero.
+- The same read-only snapshot independently re-established exact production
+  state: ledger `0001`-`0008`, 30 tables, 5 sequences, no ledger SHA column,
+  2 historical runtime roles, the exact two accepted-risk findings, no
+  high-privilege app inheritance, no retention source and no task-role
+  residue.
+- The audit result was 4,111 bytes / SHA-256
+  `fad95eaaa743ae6d87de75ead76468c1fe971c6bc829c0ba1dad7a154482ad2e`.
+  A separate host-only validator checked its hash and complete fixed field
+  matrix. The database transaction rolled back; writes and business-row value
+  reads were zero. This database action is permanently no-retry.
+- All packaging, shell, route, cleanup and Cloud Shell transport failures were
+  independently proven `PRE_CONNECT` with database connection, transaction
+  and write zero, then materially corrected without repeating a database
+  action.
+- Cleanup saved and hashed the result first, read back containers/processes
+  zero, deleted the short-term account once with provider retry disabled,
+  restored accounts `3/1/0`, then deleted RSA/ciphertext/source/result/
+  sentinel/error/task-root and Cloud Shell task files/variables. Final RDS
+  public endpoint and public API-node counts are zero; API-C/API-F/Admin remain
+  active, ready and loopback-only.
 
 Secret-free evidence:
 
-`deploy/production/evidence/production-schema-privileged-owner-preflight-local-20260729.json`
+- `deploy/production/evidence/production-schema-privileged-owner-preflight-local-20260729.json`
+- `deploy/production/evidence/production-schema-privileged-owner-preflight-remote-prepare-20260729.json`
+- `deploy/production/evidence/production-schema-privileged-owner-preflight-verified-20260729.json`
 
-Stage-safe remote prepare continuation:
+005 receives zero readiness credit because it is a capability preflight.
+Internal readiness remains `14/29 = 48%` until V5 commits and passes an
+independent complete outcome audit.
 
-- Fresh prerequisite-only control-plane and host evidence passed: one running
-  private PostgreSQL instance, two successful full backups within 48 hours,
-  accounts `3/1/0`, two production API nodes, API-C API/Admin and API-F API
-  active/ready, loopback-only and zero task residue.
-- The `a32cfb3` minimal package contained 24 source files plus manifest,
-  16 migrations, 57,374 deterministic gzip bytes and archive SHA-256
-  `68edfd45bc75eb364fd8fb5c81e519395231cbbb57b663526e6780e9a48518dc`.
-  Remote file/hash/manifest counts all passed.
-- The remote network-none import and a permission-normalized successor both
-  failed before database connection. Dedicated zero-network diagnosis proved
-  a production-image Python namespace collision: an existing concrete
-  `tools` package shadowed the task source namespace.
-- Both failures are `PRE_CONNECT`; task account, database connection,
-  transaction and write counts were zero. Import/audit containers, sentinel,
-  diagnostic error and the exact API-C task root were read back at zero.
-- A stale in-memory RDS handle caused one control-plane-only
-  `InvalidDBInstanceName.NotFound`; it was `PRE_CONNECT`, and anonymous
-  rediscovery of the unique running PostgreSQL instance restored the exact
-  `3 accounts / 1 Super / 0 task` readback without printing identifiers.
-- The material fix changes only the 005 runner: isolated containers now use
-  `PYTHONPATH=/task/tools` and import the top-level task module. New runner
-  SHA-256 is
-  `8bd3573889a756be208d17874b5d7aa7c7629d09721c661a77acd5503b8c9e28`;
-  migrations, runtime ACL, registry evidence and auditor bytes are unchanged.
-- Local top-level zero-DSN import, runner syntax, focused `10/10` tests and
-  diff checks pass. The fix must be committed and pushed before rebuilding;
-  no credential or production database action may use the old package.
+## 6.2. Unique next task
 
-Additional Secret-free evidence:
+`PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V5-OWNER-001`
 
-`deploy/production/evidence/production-schema-privileged-owner-preflight-remote-prepare-20260729.json`
+Execution class:
+separately named authenticated production single-transaction incident.
+
+Required path:
+
+1. Harden the V5 runner using the verified 005 import boundary and external
+   cleanup semantics; preserve every migration and runtime-ACL byte.
+2. Commit and push a new source checkpoint, then build a fresh deterministic
+   minimal package from that exact commit. Do not reuse 005 or V4 package,
+   account, RSA, root, runner identity or result.
+3. Repeat only the production-write prerequisites: fresh backup/private
+   network/`3/1/0`/zero-residue/service checks, all hashes, zero-DSN and
+   network-none imports.
+4. Create one fresh short-term managed-RDS privileged account and fresh
+   API-C-only RSA material with the same protected-input boundary.
+5. Run one fresh forced-readonly V5 pre-dispatch proving exact ledger
+   `0001`-`0008`.
+6. Execute V5 apply at most once. The only permitted writes are
+   `8 legacy SHA backfills + 8 new ledger rows + 2 fixed seeds`;
+   retention backfill and existing business-row updates must be zero.
+7. Any database-connected apply failure is permanently no-retry. Preserve the
+   result and run only the predeclared independent forced-readonly outcome
+   classifier.
+8. Require a deterministic `COMMITTED` outcome plus the complete ledger SHA,
+   inventory, role/table/column/sequence/function/default-ACL negative matrix,
+   zero elevation and exact write counts before marking
+   `production_schema_roles` verified.
+9. Save Secret-free evidence, restore accounts `3/1/0`, delete all task
+   material, read back services/network/residue, checkpoint/push, then
+   continue to the dependency graph without stopping.
 
 ## 7. Mandatory failure classification
 
@@ -384,19 +359,27 @@ Completed verification:
 - 004 production database connection: one forced-readonly transaction,
   terminal rollback, database write zero;
 - 004 account/cloud/service/provider/public-traffic mutations: zero.
+- 005 production database connection: exactly one forced-readonly transaction,
+  terminal rollback, independently validated 4,111-byte result and database
+  write zero;
+- 005 final cleanup: accounts `3/1/0`, task account/RSA/ciphertext/package/
+  result/container/process/Cloud Shell residue zero, RDS/API public endpoints
+  zero, API-C/API-F/Admin active/ready/loopback-only.
 
 ROOT-CAUSE-003 was committed and pushed normally at `ed5e699`.
 The 004 source was committed and pushed normally at `51ae877`.
 The 004 outcome/evidence was committed and pushed normally at `8a533ac`.
+The 005 production source/import fix was committed and pushed normally at
+`7c4204f`.
 
 Current remaining steps:
 
-- commit and push the 005 production-image import fix without changing
-  auditor, migration, runtime-ACL or registry-evidence bytes;
-- rebuild its exact minimal package from that checkpoint and repeat only the
-  zero-database remote prepare path;
-- create one short-term protected privileged account, run 005 once, preserve
-  its deterministic result and clean/read back all transient state;
-- only after a passing 005, open a separately named V5 single transaction;
+- commit and push the 005 verified outcome/evidence without changing
+  migration or runtime-ACL bytes;
+- harden the V5 runner around the verified task-tools import boundary,
+  structured result validation and external cleanup-required semantics;
+- build V5 from its own pushed checkpoint, refresh only required read-only
+  prerequisites, create fresh protected account/RSA material and run its
+  preflight/apply/outcome chain with at most one apply transaction;
 - independently verify V5, update readiness, then continue to the unique next
   dependency without stopping at the checkpoint or task boundary.
