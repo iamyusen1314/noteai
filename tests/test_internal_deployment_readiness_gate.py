@@ -303,6 +303,16 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertFalse(
             evidence["stage_safe_executor"]["migration_bytes_changed"]
         )
+        self.assertEqual(
+            evidence["stage_safe_executor"]["runner_modes"],
+            ["prepare", "preflight", "apply", "outcome"],
+        )
+        self.assertEqual(
+            evidence["stage_safe_executor"][
+                "database_input_environment_count"
+            ],
+            0,
+        )
 
     def test_provider_support_intake_stops_before_interactive_contact(self):
         evidence_path = (

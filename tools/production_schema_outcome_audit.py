@@ -693,14 +693,18 @@ def collect_outcome(
     }
 
 
-def _connect() -> Any:
+def _connect(database_url: str | None = None) -> Any:
     if psycopg is None:
         raise OutcomeAuditError("psycopg_unavailable", stage="connect")
-    database_url = os.environ.get(DATABASE_URL_ENV, "").strip()
-    if not database_url:
+    resolved_url = (
+        database_url
+        if database_url is not None
+        else os.environ.get(DATABASE_URL_ENV, "")
+    ).strip()
+    if not resolved_url:
         raise OutcomeAuditError("database_url_missing", stage="connect")
     return psycopg.connect(
-        database_url,
+        resolved_url,
         row_factory=dict_row,
         connect_timeout=10,
         application_name="noteai_schema_outcome_audit_v1",
@@ -735,13 +739,13 @@ def _report_failure(
     return 1
 
 
-def main() -> int:
+def main(*, database_url: str | None = None) -> int:
     connected = False
     connection_attempted = False
     try:
         migration_manifest = _migration_manifest()
         connection_attempted = True
-        conn = _connect()
+        conn = _connect(database_url)
         connected = True
         try:
             result = collect_outcome(

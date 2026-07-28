@@ -342,6 +342,29 @@ class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
             "database_outcome=NOT_CONNECTED retry_same_path=0",
         )
 
+    def test_explicit_protected_input_reaches_connect_without_environment(self):
+        connection = mock.Mock()
+        stdout = io.StringIO()
+        with (
+            mock.patch.object(
+                outcome_audit,
+                "_connect",
+                return_value=connection,
+            ) as connect,
+            mock.patch.object(
+                outcome_audit,
+                "collect_outcome",
+                return_value={"status": "classified"},
+            ),
+            contextlib.redirect_stdout(stdout),
+        ):
+            result = outcome_audit.main(database_url="opaque-protected-input")
+
+        self.assertEqual(result, 0)
+        connect.assert_called_once_with("opaque-protected-input")
+        connection.close.assert_called_once_with()
+        self.assertNotIn("opaque-protected-input", stdout.getvalue())
+
     def test_connect_exception_is_connected_unknown_not_preconnect(self):
         stderr = io.StringIO()
         with (

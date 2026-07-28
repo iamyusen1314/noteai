@@ -1,10 +1,14 @@
 import contextlib
+import hashlib
 import io
 import os
 import re
 import unittest
+from pathlib import Path
 from unittest import mock
 
+from tools import production_first_launch_role_risk_set_audit as risk_set_audit
+from tools import production_schema_outcome_audit as outcome_audit
 from tools import production_schema_roles as schema_roles
 
 
@@ -309,6 +313,56 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             "production_schema_roles=FAIL code=database_connection_failed",
         )
         self.assertNotIn("opaque-protected-input", stderr.getvalue())
+
+    def test_v4_runner_is_fixed_stdin_only_and_stage_safe(self):
+        runner_path = (
+            Path(schema_roles.__file__).resolve().parent
+            / "production_schema_roles_runner.sh"
+        )
+        runner = runner_path.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "task_root=/var/lib/noteai/schema-roles-v4",
+            runner,
+        )
+        self.assertIn(
+            "prepare | preflight | apply | outcome",
+            runner,
+        )
+        self.assertIn(
+            "SAFE_SCHEMA_ROLES_V4",
+            runner,
+        )
+        self.assertIn(
+            "database_url=value",
+            runner,
+        )
+        self.assertIn(
+            hashlib.sha256(
+                Path(schema_roles.__file__).read_bytes()
+            ).hexdigest(),
+            runner,
+        )
+        self.assertIn(
+            hashlib.sha256(
+                Path(outcome_audit.__file__).read_bytes()
+            ).hexdigest(),
+            runner,
+        )
+        self.assertIn(
+            hashlib.sha256(
+                Path(risk_set_audit.__file__).read_bytes()
+            ).hexdigest(),
+            runner,
+        )
+        self.assertIn("--network none", runner)
+        self.assertIn("--network host", runner)
+        self.assertIn("package_manifest_sha", runner)
+        self.assertIn("import=passed", runner)
+        self.assertIn("automatic_retry=0", runner)
+        self.assertNotIn("/etc/noteai/api.env", runner)
+        self.assertNotIn("-e NOTEAI_SCHEMA", runner)
+        self.assertNotIn("postgresql://", runner)
 
 
 if __name__ == "__main__":

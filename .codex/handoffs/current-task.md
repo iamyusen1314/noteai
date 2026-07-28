@@ -34,6 +34,11 @@
 - Resolve the stage-safe authority checkpoint from the newest pushed
   `[skip render] Prepare stage-safe schema authority path` commit after this
   Handoff is committed; do not embed a self-referential hash.
+- Stage-safe authority checkpoint:
+  `b9396ab709cf6fd2f3b9b45964617205452ee5c1`.
+- Resolve the fixed V4 runner checkpoint from the newest pushed
+  `[skip render] Stabilize V4 schema runner` commit after this Handoff is
+  committed; do not embed a self-referential hash.
 - Historical UNKNOWN incident source checkpoint:
   `a5f2961089744eb1c0bf0eb0011b93a132d6493f`.
 - Schema executor repair:
@@ -255,12 +260,19 @@ service change.
 - Secret-free authority-resolution plan:
   `deploy/production/evidence/production-schema-authority-resolution-plan-20260728.json`.
   Artifact SHA-256:
-  `bb048401a88dca9ab2cdb4c7f20bbd132afdcbaef05d66d60d4cf8ef61a0ce7a`.
+  `513e343c76cafbc0c1dba1bd577846c3b99df413cbdbef0f7ade29c0b530240d`.
   It records zero database/cloud/service/provider actions, 16 fixed failure
   stages, unchanged migration/runtime-ACL hashes, the official managed-RDS
   privileged-account authority path and a three-part bounded Cloud Assistant
   `SendFile` transfer design. Provider support is not required.
-- Stage-safe executor unit tests passed `14/14`; the disposable PostgreSQL 16
+- Fixed runner SHA-256:
+  `d104aafbd93b81c3250db1bb2aefbf39ddf5e22c5ec42a5739b9b8743e36c300`.
+  Its four modes are `prepare`, `preflight`, `apply` and `outcome`.
+  `prepare` performs the one network-none import without database material
+  and binds its sentinel to the package manifest SHA. Database modes receive
+  the protected value only through RSA-OAEP-SHA256 decrypt-to-stdin; the value
+  is never placed in environment variables, argv or result logs.
+- Stage-safe executor unit tests passed `15/15`; the disposable PostgreSQL 16
   first-apply/apply-twice/outcome/six-negative-mutation integration passed
   `1/1`. The exact task container was deleted and Colima restored stopped.
 - One broad control-console observation transiently emitted cloud resource
@@ -273,6 +285,7 @@ service change.
 - `tools/production_schema_roles.py`
 - `scripts/postgres/noteai_production_runtime_roles.sql`
 - `tools/production_schema_outcome_audit.py`
+- `tools/production_schema_roles_runner.sh`
 - `tools/production_first_launch_role_risk_set_audit.py`
 - `tools/production_first_launch_role_risk_set_audit_runner.sh`
 - `tools/production_first_launch_role_risk_audit.py`
@@ -303,8 +316,9 @@ preserved, and exception text, DSNs and Secret material are never emitted.
 
 - Historical focused schema/role/outcome/readiness suites: `66/66`.
 - Current role-policy delta suites: `38/38`.
-- Current stage-safe schema/outcome/readiness suites: `35/35`.
-- Full Python suite: `1033/1033`, with `25` explicit skips.
+- Initial stage-safe checkpoint suites: `35/35`.
+- Current fixed-runner schema/outcome/readiness suites: `37/37`.
+- Full Python suite: `1035/1035`, with `25` explicit skips.
 - Disposable PostgreSQL 16 integration: one complete legacy setup, fixed
   `INHERIT FALSE` risk profile, fixed read-only audit, exact first apply,
   apply-twice, independent outcome audit, six negative mutations and final
