@@ -167,10 +167,18 @@ Last updated: 2026-07-22
     The persistent owner must own the database and every public
     relation/function, so new migration objects never depend on a transient
     executor.
-  - Owner authority is independently checked by a fixed-query forced-readonly
-    preflight. Its host runner consumes the existing root-only Admin database
-    Secret through anonymous stdin after a network-none import, so this
-    read-only task needs no short-term account, RSA transfer or DSN file.
+  - The first fixed-query forced-readonly owner-authority preflight consumed
+    the existing root-only Admin database Secret through anonymous stdin after
+    a network-none import. Production deterministically rejected that runtime
+    identity at `SET LOCAL ROLE noteai_admin` with SQLSTATE `42501`; the
+    read-only transaction rolled back with database writes zero and is not
+    retriable.
+  - The successor capability preflight is separately named and uses one
+    short-term managed-RDS privileged account. Its RSA private key exists only
+    on API-C, plaintext credentials are consumed through protected stdin, and
+    no DSN or credential is persisted or emitted. Alibaba's managed
+    `pg_rds_superuser` contract permits `SET ROLE` to a standard account, but
+    production must prove that capability once in read-only mode before V5.
   - PostgreSQL 16 implicitly grants a non-superuser CREATEROLE creator
     `ADMIN OPTION` on every role it creates. The six new runtime roles
     therefore have exactly six management rows to persistent `noteai_admin`,
