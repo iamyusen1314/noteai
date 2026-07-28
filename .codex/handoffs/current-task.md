@@ -26,7 +26,7 @@
 
 - Branch: `codex/quality-stabilization-real-chain`.
 - Parent checkpoint before this evidence:
-  `f2ee7a91d827f950d4883d328c64840cd6653760`.
+  `a90a2ffe2be73d95df3fc3c207f1f46da77e9a2c`.
 - Schema executor repair:
   `e5883abc01c4b009907bee550209d7036d383771`.
 - Immutable application revision:
@@ -42,40 +42,46 @@
 
 ## 3. Unique current task and known production state
 
-`PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001`
+`PROD-FIRST-LAUNCH-MANAGED-SECRETS-001`
 
-- Parent: `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`.
-- Status: `IDENTITY VERIFIED / CORRECTION STAGED / NOT EXECUTED`.
-- One identity audit used exactly one forced-read-only connection and
-  transaction, returned `CONNECTED_KNOWN / IDENTIFIED`, and was not retried.
-- Exact schema observation:
-  - migration ledger is canonical `0001`–`0008`;
-  - no `sha256` ledger column or constraint;
+- The independent `managed_secret_distribution` control depends only on the
+  verified production read-only preflight and is the only safe technical task
+  currently ready in the dependency graph. The other ready node,
+  `legal_provider_approval`, requires professional/product-owner input.
+- Parent schema task
+  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001` remains blocked by
+  `PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001`.
+- The reviewed correction preflight was executed exactly once:
+  - `CONNECTED_KNOWN / READ_ONLY_REJECTED`;
+  - one connection and one forced-read-only transaction;
+  - transaction rolled back, database writes and business values read were 0;
+  - error stage was `database_precondition`;
+  - apply attempts and apply transactions were 0;
+  - no automatic retry is permitted for this incident.
+- The error format intentionally did not persist the exact failed predicate.
+  Prior exact identity evidence was unchanged, so executor capability is the
+  leading inference, not direct proof and not authorization to retry.
+- Last directly verified schema/role truth therefore remains:
+  - canonical migration ledger `0001`–`0008`, no ledger SHA column;
   - 30 public tables and 5 public sequences;
   - no migrations `0009`–`0016`, new runtime roles, schema seeds or retention
     table survived;
-  - zero business-row values were read.
-- Exact role observation:
-  - only historical `noteai_app` and `noteai_xhs` are present;
-  - the sole elevation is `noteai_app ROLINHERIT`;
-  - the sole edge grants `noteai_xhs` to `noteai_admin` with
+  - only historical `noteai_app` and `noteai_xhs`;
+  - sole elevation `noteai_app ROLINHERIT`;
+  - sole membership `noteai_xhs -> noteai_admin` with
     `ADMIN TRUE / INHERIT TRUE / SET FALSE`;
-  - both endpoints are LOGIN/non-superuser; ownership is `0`;
-  - the state predates and was not created by the rolled-back schema attempt.
-- The only authorized correction ceiling is one
-  `ALTER ROLE noteai_app NOINHERIT` and one grantor-bound revocation of that
-  exact membership. Ledger, schema, table/business rows, LOGIN, passwords,
-  ownership and ACLs must remain unchanged.
-- The correction preflight must additionally prove the temporary executor can
-  alter `noteai_app` and either is the membership grantor or is a true
-  PostgreSQL superuser able to revoke explicitly `GRANTED BY` the observed
-  grantor. Failure is deterministic `CONNECTED_KNOWN / zero writes`, not an
-  authorization to attempt the mutation.
+  - both endpoints LOGIN/non-superuser, ownership 0.
+- Do not perform another database action for this correction incident. A later
+  incident may resume only with an existing protected credential proven to be
+  the recorded membership grantor or a true PostgreSQL superuser. Interactive
+  login or a new credential remains a product-owner stop.
 
 ## 4. Evidence and cleanup
 
 - Current Secret-free identity artifact:
   `deploy/production/evidence/production-legacy-runtime-role-identity-20260728.json`.
+- Current correction-rejection artifact:
+  `deploy/production/evidence/production-legacy-runtime-role-correction-rejected-20260728.json`.
 - Parent conflict artifact:
   `deploy/production/evidence/production-schema-roles-conflict-20260728.json`.
 - Historical UNKNOWN artifact:
@@ -89,33 +95,34 @@
 - That historical runner placed the in-memory DSN in the ephemeral container
   process environment. It persisted and exposed zero Secret values, but it is
   not evidence for the new no-environment control.
-- The hardened successor auditor and correction candidates are not production
-  acceptance. They pass zero-DSN import, keep the DSN out of container
-  environment/argv/disk, require corrector-emitted classification markers,
-  guard sentinel/cleanup exits, pin exact source relative paths, and share the
-  schema executor's `noteai_schema_migrations` advisory lock.
+- The hardened correction runner was used for this preflight. It passed
+  zero-DSN import, kept the DSN out of container environment/argv/disk,
+  required corrector-emitted classification markers, pinned exact source
+  relative paths and shared the schema executor advisory lock. Its rejection
+  is production evidence, not production acceptance.
 - Current candidate SHA-256 values are:
   - auditor `195e5ff1cfec1d3a143ada91dd661663fd040ea9acf5f3a656f856a7ec2b8ab9`;
   - audit runner `43a5d59d52a4a8265bbd381f1a6c5e862be2072b43db345d3a5bb96850746988`;
   - corrector `73db08c9acc021adcc93803196503f5fbe3f04390fe83c690f9e326338a3f4ed`;
   - correction runner `6ff34363b40282d62644609291c79a6cad441eaf6f08e6f3a9b3bcee44e97f6d`.
-- Cleanup was read back:
+- Cleanup was read back after the rejected preflight:
   - one running PostgreSQL instance, `2` successful full backups inside 48h,
-    latest age `14h`, and RDS accounts `3 total / 1 Super / 0 task`;
+    latest age `15h`, and RDS accounts `3 total / 1 Super / 0 task`;
   - API-C task directories, sentinels, task processes, RSA, ciphertext,
     runner, result and both named maintenance containers all zero;
   - API-F task directories and both maintenance containers zero;
-  - Cloud Shell task files and variables zero;
+  - old and replacement Cloud Shell task files zero;
   - API-C/API-F API and API-C Admin active, live, ready and loopback-only;
   - zero restart, deploy, provider, registry or public-traffic action.
-- Two cleanup-only command defects were `PRE_CONNECT`: one hash check targeted
-  decoded content rather than transport bytes, and one RDS backup query used
-  the wrong timestamp format. Neither connected to the database. Both paths
-  were materially corrected; the final transport checks and readbacks passed.
+- Diagnostic `grep`/`pipefail`, a stale terminal binding and a Cloud Shell VM
+  expiry were `PRE_CONNECT`: the affected diagnostic/readback commands never
+  dispatched a database client. Each was materially corrected and the final
+  control-plane and service readbacks passed.
 - Current verification:
   - correction/audit focused suite is `35/35`, repeated five consecutive
     times after making both fake Docker fixtures consume protected stdin;
   - combined schema/outcome/readiness suite is `75/75`;
+  - rejection-evidence/schema/correction/readiness focused suite is `49/49`;
   - full Python suite is `1007` passed with `24` explicit skips;
   - production readiness gate is `105/105`; internal readiness remains a
     valid fail-closed `14/29`;
@@ -154,24 +161,19 @@ outer layer failed but the remote command completed, recover its
 
 ## 6. Exact resume boundary
 
-- Finish local review/gates, checkpoint and push. A checkpoint is recovery
-  protection and does not stop the task.
-- Then rebuild a fresh minimal package from the exact `e5883` executor, ACL and
-  migrations `0001`–`0016`, plus the reviewed corrector and registry evidence.
-- Re-observe backup/account/API/Admin/task-residue state. Only after zero-DSN
-  host and network-none imports pass may one short-lived task Super account
-  and fresh RSA/ciphertext be created.
-- Execute one forced-read-only correction preflight. It must reproduce
-  `0001`–`0008`, the exact conflict and both executor capability proofs.
-- If and only if preflight is exact, execute at most one correction
-  transaction under the shared schema lock. Any connected failure is not
-  retried; `CONNECTED_UNKNOWN` stops all further database actions.
-- Independently verify ledger/inventories unchanged, elevation/membership/
-  ownership all zero, then save reduced evidence and clean/read back every
-  temporary material and service baseline.
-- Continue the parent schema task only after that checkpoint. No schema-role
-  readiness promotion is allowed until an independent full executor
-  `--verify` passes the complete table/column/sequence/role negative matrix.
+- Complete local review/gates, checkpoint and normal push for the correction
+  rejection. The checkpoint is recovery protection, not a stop signal.
+- Continue only `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001`.
+- Begin with read-only discovery of current root-only API-C/API-F/Admin secret
+  file distribution, ownership/modes, rotation/revocation mechanism and
+  service references. Never read or emit values.
+- Reuse existing protected credentials and control-plane access only. Stop
+  before any interactive login, new credential, secret value rotation,
+  database connection, service restart/deploy or public exposure unless a
+  later bounded step is independently authorized by the standing rules.
+- The schema correction incident remains closed to automatic database retry.
+  Do not rebuild its package, recreate its account/RSA or rerun preflight,
+  apply or audit.
 
 ## 7. Completed work not to repeat without conflict evidence
 

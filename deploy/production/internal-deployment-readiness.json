@@ -305,11 +305,15 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-legacy-runtime-role-identity-20260728.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-legacy-runtime-role-correction-rejected-20260728.json"
             }
           ],
-          "blocker": "A single forced-read-only identity audit deterministically bound the legacy conflict to noteai_app ROLINHERIT and one noteai_xhs-to-noteai_admin membership with ADMIN TRUE, INHERIT TRUE and SET FALSE. The audit was CONNECTED_KNOWN with zero database writes and complete cleanup. The bounded correction and production migrations 0009-0016 have not yet run, so the final role matrix remains unverified.",
+          "blocker": "The only reviewed correction preflight connected once in forced-read-only mode and deterministically returned CONNECTED_KNOWN / READ_ONLY_REJECTED at database_precondition. Its transaction rolled back with zero writes; apply was not attempted and must not be retried automatically. The exact failed predicate was not persisted, while unchanged prior identity evidence makes executor capability the leading inference. Production remains at the last directly verified legacy conflict and migrations 0009-0016 remain unapplied.",
           "next_task": "PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001",
-          "resume_condition": "Continue under the standing CTO authorization only after the reviewed corrector proves the current executor can alter the legacy role and revoke the exact grantor-owned membership, shares the global schema advisory lock, and passes a fresh read-only preflight. Permit at most one correction transaction; any database-connected unknown outcome stops all further database actions."
+          "resume_condition": "Do not perform another database action for this correction incident. Resume the correction only in a later explicit incident boundary with an existing protected credential proven to be the recorded membership grantor or a true PostgreSQL superuser; obtaining or interactively using a new credential remains a product-owner stop. In the meantime continue the independent managed-secret-distribution control, which depends only on the verified production read-only preflight."
         },
         {
           "id": "managed_secret_distribution",
