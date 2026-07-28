@@ -329,6 +329,10 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-schema-role-apply-rolled-back-20260728.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-authority-resolution-plan-20260728.json"
             }
           ],
           "accepted_risks": [
@@ -419,9 +423,9 @@
               ]
             }
           ],
-          "blocker": "The two exact historical role findings remain active as zero-credit ACCEPTED_RISK entries. The separately named V3B production schema transaction connected once and returned a sanitized execution_failed result; it was not retried. An independent forced-readonly outcome audit deterministically classified the transaction ROLLED_BACK and proved production remains exactly at ledger 0001-0008, 30 tables, 5 sequences, 2 historical runtime roles, zero new roles/tables/seeds and zero database or business-row writes. All temporary accounts, RSA/ciphertext/source/result materials, task processes and containers were then removed, and API-C/API-F/Admin plus the private RDS/backup baseline passed. Production migrations 0009-0016 and runtime-role SQL remain unapplied.",
-          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002",
-          "resume_condition": "Preserve PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V3B-001 as CONNECTED_KNOWN/ROLLED_BACK and never retry that database action. First add and independently verify stage-safe executor diagnostics plus a separately named, non-mutating managed-RDS authority plan. Any future production mutation requires a new incident, new bounded proof, fresh protected access material and an explicit no-retry boundary; the accepted-risk profile remains exact and receives zero readiness credit."
+          "blocker": "The two exact historical role findings remain active as zero-credit ACCEPTED_RISK entries. The separately named V3B production schema transaction remains CONNECTED_KNOWN/ROLLED_BACK and non-retriable. Stage-safe sanitized diagnostics and a non-mutating, official-document-backed managed-RDS authority plan now pass repository and disposable PostgreSQL 16 validation without changing migration or runtime-ACL bytes. Production remains exactly at ledger 0001-0008, 30 tables, 5 sequences and 2 historical runtime roles; migrations 0009-0016 and runtime-role SQL remain unapplied.",
+          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001",
+          "resume_condition": "Preserve PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V3B-001 as CONNECTED_KNOWN/ROLLED_BACK and never retry that database action. The separately named V4 incident requires a pushed stage-safe checkpoint, fresh backup/private-network/zero-residue/API non-regression proof, a newly protected short-term managed RDS privileged account, one hash-verified SendFile package path and at most one schema transaction with zero automatic retry. The accepted-risk profile remains exact, receives zero readiness credit and cannot authorize any role expansion."
         },
         {
           "id": "managed_secret_distribution",

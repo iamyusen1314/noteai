@@ -118,6 +118,24 @@ ADVISORY_FUNCTIONS = (
 )
 COLUMN_PRIVILEGES = ("SELECT", "INSERT", "UPDATE", "REFERENCES")
 MIGRATION_LEDGER_CONSTRAINT = "schema_migrations_sha256_format"
+APPLY_FAILURE_STAGES = frozenset({
+    "local_source",
+    "transaction_begin",
+    "session_controls",
+    "advisory_lock",
+    "ledger_inventory",
+    "schema_inventory",
+    "role_preconditions",
+    "accepted_role_risk",
+    "ledger_contract",
+    "ledger_prepare",
+    "legacy_hash_backfill",
+    "migration_apply",
+    "runtime_acl",
+    "postcondition_verification",
+    "transaction_commit",
+    "result_build",
+})
 
 
 class SchemaRoleError(RuntimeError):
@@ -1118,18 +1136,40 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
 
 
 def apply_contract(conn: Any) -> dict[str, Any]:
+    """Apply atomically while converting unexpected failures to fixed stages."""
+    stage = {"name": "local_source"}
+    try:
+        return _apply_contract(conn, stage=stage)
+    except SchemaRoleError:
+        raise
+    except BaseException as exc:
+        stage_name = stage["name"]
+        if stage_name not in APPLY_FAILURE_STAGES:
+            stage_name = "result_build"
+        raise SchemaRoleError(f"apply_{stage_name}_failed") from exc
+
+
+def _apply_contract(
+    conn: Any,
+    *,
+    stage: dict[str, str],
+) -> dict[str, Any]:
     payloads = _migration_payloads()
     migration_paths = sorted(MIGRATION_DIR.glob("*.sql"))
     expected_ledger_names = tuple(path.name for path in migration_paths)
     legacy_ledger_names = expected_ledger_names[:8]
     acl_payload = ACL_PATH.read_text(encoding="utf-8")
+    stage["name"] = "transaction_begin"
     with conn.transaction():
+        stage["name"] = "session_controls"
         conn.execute("SET LOCAL statement_timeout='120s'")
         conn.execute("SET LOCAL lock_timeout='5s'")
         conn.execute("SET LOCAL idle_in_transaction_session_timeout='180s'")
+        stage["name"] = "advisory_lock"
         conn.execute(
             "SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))"
         )
+        stage["name"] = "ledger_inventory"
         ledger_names = tuple(
             str(row["version"])
             for row in conn.execute(
@@ -1138,6 +1178,7 @@ def apply_contract(conn: Any) -> dict[str, Any]:
         )
         if ledger_names not in (legacy_ledger_names, expected_ledger_names):
             raise SchemaRoleError("precondition_migration_versions")
+        stage["name"] = "schema_inventory"
         prewrite_tables = tuple(
             row["table_name"]
             for row in conn.execute(
@@ -1153,6 +1194,7 @@ def apply_contract(conn: Any) -> dict[str, Any]:
                 "WHERE sequence_schema='public' ORDER BY sequence_name"
             ).fetchall()
         )
+        stage["name"] = "role_preconditions"
         if ledger_names == legacy_ledger_names:
             if prewrite_tables != EXPECTED_PUBLIC_TABLES:
                 raise SchemaRoleError("precondition_table_inventory")
@@ -1184,11 +1226,13 @@ def apply_contract(conn: Any) -> dict[str, Any]:
                 raise SchemaRoleError("precondition_table_inventory")
             if prewrite_sequences != tuple(sorted(EXPECTED_PUBLIC_SEQUENCES)):
                 raise SchemaRoleError("precondition_sequence_inventory")
+        stage["name"] = "accepted_role_risk"
         _accepted_role_risk_state(
             conn,
             tables=prewrite_tables,
             sequences=prewrite_sequences,
         )
+        stage["name"] = "ledger_contract"
         ledger_sha_column = conn.execute(
             "SELECT data_type,is_nullable "
             "FROM information_schema.columns "
@@ -1227,7 +1271,9 @@ def apply_contract(conn: Any) -> dict[str, Any]:
                 if str(row["sha256"]) != payloads[version][1]:
                     raise SchemaRoleError("precondition_migration_drift")
 
+        stage["name"] = "ledger_prepare"
         _prepare_migration_ledger(conn)
+        stage["name"] = "legacy_hash_backfill"
         migration_hash_backfills = 0
         for row in rows:
             if row["sha256"] is None:
@@ -1250,6 +1296,7 @@ def apply_contract(conn: Any) -> dict[str, Any]:
             name.split("_", 1)[0]
             for name in ledger_names
         }
+        stage["name"] = "migration_apply"
         applied: list[str] = []
         for path in migration_paths:
             version = path.name.split("_", 1)[0]
@@ -1269,9 +1316,13 @@ def apply_contract(conn: Any) -> dict[str, Any]:
         ) else []
         if applied != expected_applied:
             raise SchemaRoleError("migration_ledger_insert_count")
+        stage["name"] = "runtime_acl"
         conn.execute(acl_payload)
+        stage["name"] = "postcondition_verification"
         verification = validate_contract(conn, expect_login=False)
         schema_seed_writes = 2 if applied else 0
+        stage["name"] = "transaction_commit"
+    stage["name"] = "result_build"
     return {
         "schema_version": 1,
         "task_id": TASK_ID,
@@ -1375,8 +1426,10 @@ def main(
     if args.apply and resolved_confirmation != TASK_ID:
         print("production_schema_roles=FAIL code=confirmation_missing", file=sys.stderr)
         return 2
+    connected = False
     try:
         conn = _connect(database_url)
+        connected = True
         try:
             result = (
                 apply_contract(conn)
@@ -1389,7 +1442,8 @@ def main(
         print(f"production_schema_roles=FAIL code={exc.code}", file=sys.stderr)
         return 1
     except BaseException:
-        print("production_schema_roles=FAIL code=execution_failed", file=sys.stderr)
+        code = "execution_failed" if connected else "database_connection_failed"
+        print(f"production_schema_roles=FAIL code={code}", file=sys.stderr)
         return 1
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0

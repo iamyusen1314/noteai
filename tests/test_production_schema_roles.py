@@ -246,6 +246,70 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         connect.assert_called_once_with("opaque-protected-input")
         self.assertNotIn("opaque-protected-input", stderr.getvalue())
 
+    def test_apply_unexpected_source_failure_uses_fixed_sanitized_stage(self):
+        with (
+            mock.patch.object(
+                schema_roles,
+                "_migration_payloads",
+                side_effect=RuntimeError("must-not-leak"),
+            ),
+            self.assertRaises(schema_roles.SchemaRoleError) as raised,
+        ):
+            schema_roles.apply_contract(mock.Mock())
+
+        self.assertEqual(raised.exception.code, "apply_local_source_failed")
+        self.assertNotIn("must-not-leak", raised.exception.code)
+
+    def test_apply_unexpected_transaction_begin_failure_uses_fixed_stage(self):
+        transaction = mock.MagicMock()
+        transaction.__enter__.side_effect = RuntimeError("must-not-leak")
+        conn = mock.Mock()
+        conn.transaction.return_value = transaction
+
+        with self.assertRaises(schema_roles.SchemaRoleError) as raised:
+            schema_roles.apply_contract(conn)
+
+        self.assertEqual(
+            raised.exception.code,
+            "apply_transaction_begin_failed",
+        )
+        self.assertNotIn("must-not-leak", raised.exception.code)
+
+    def test_apply_preserves_existing_fail_closed_contract_codes(self):
+        with (
+            mock.patch.object(
+                schema_roles,
+                "_migration_payloads",
+                side_effect=schema_roles.SchemaRoleError("migration_set"),
+            ),
+            self.assertRaises(schema_roles.SchemaRoleError) as raised,
+        ):
+            schema_roles.apply_contract(mock.Mock())
+
+        self.assertEqual(raised.exception.code, "migration_set")
+
+    def test_unexpected_connection_failure_is_sanitized_without_dsn(self):
+        stderr = io.StringIO()
+        with (
+            mock.patch.object(
+                schema_roles,
+                "_connect",
+                side_effect=RuntimeError("opaque-protected-input"),
+            ),
+            contextlib.redirect_stderr(stderr),
+        ):
+            result = schema_roles.main(
+                ["--verify"],
+                database_url="opaque-protected-input",
+            )
+
+        self.assertEqual(result, 1)
+        self.assertEqual(
+            stderr.getvalue().strip(),
+            "production_schema_roles=FAIL code=database_connection_failed",
+        )
+        self.assertNotIn("opaque-protected-input", stderr.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

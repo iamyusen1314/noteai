@@ -57,7 +57,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertEqual(
             actionable["production_schema_roles"]["next_task"],
-            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002",
+            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001",
         )
         self.assertEqual(
             actionable["production_schema_roles"]["execution_class"],
@@ -80,6 +80,16 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "ref": (
                     "deploy/production/evidence/"
                     "production-schema-role-resume-authority-audit-20260728.json"
+                ),
+            },
+            schema["evidence"],
+        )
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-schema-authority-resolution-plan-20260728.json"
                 ),
             },
             schema["evidence"],
@@ -248,6 +258,50 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn(
             "Advice or permission alone",
             evidence["resume_boundary"]["provider_support_boundary"],
+        )
+
+    def test_authority_resolution_plan_is_offline_and_opens_only_v4(self):
+        evidence_path = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "evidence"
+            / "production-schema-authority-resolution-plan-20260728.json"
+        )
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            evidence["status"],
+            "REPOSITORY_OFFLINE_VERIFIED",
+        )
+        self.assertEqual(
+            evidence["non_mutating_execution"]["database_connection_count"],
+            0,
+        )
+        self.assertEqual(
+            evidence["non_mutating_execution"]["cloud_mutation_count"],
+            0,
+        )
+        self.assertEqual(
+            evidence["next_incident"]["incident_id"],
+            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001",
+        )
+        self.assertFalse(evidence["next_incident"]["same_database_action_retry"])
+        self.assertEqual(
+            evidence["next_incident"]["maximum_schema_transaction_count"],
+            1,
+        )
+        self.assertEqual(
+            evidence["next_incident"]["write_ceiling"][
+                "accepted_risk_role_changes"
+            ],
+            0,
+        )
+        self.assertFalse(
+            evidence["next_incident"]["provider_ticket_required"]
+        )
+        self.assertFalse(
+            evidence["stage_safe_executor"]["migration_bytes_changed"]
         )
 
     def test_provider_support_intake_stops_before_interactive_contact(self):

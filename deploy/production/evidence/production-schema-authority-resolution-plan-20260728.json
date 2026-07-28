@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002",
+  "parent_task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
+  "observed_at_utc": "2026-07-28T13:44:40Z",
+  "status": "REPOSITORY_OFFLINE_VERIFIED",
+  "source": {
+    "base_checkpoint_commit": "7c24c81cba9237be53a6d2ec11bfa4d91e6921b0",
+    "rolled_back_incident_evidence": "deploy/production/evidence/production-schema-role-apply-rolled-back-20260728.json",
+    "accepted_risk_evidence": "deploy/production/evidence/production-first-launch-role-risk-accepted-20260728.json",
+    "executor_path": "tools/production_schema_roles.py",
+    "executor_sha256": "610003288b9a4cbdc7f23fc7a58707c209be5f3bd59bb340881f490a5e691902",
+    "runtime_acl_path": "scripts/postgres/noteai_production_runtime_roles.sql",
+    "runtime_acl_sha256": "448ca025fa013026536947201e3abec6c959557096de5cd5345164a62e342a40",
+    "migration_aggregate_sha256": "a6cc4fef8d988adb05108edeb16d8b520f600e4fd3bac06f61812c3db24ada73"
+  },
+  "official_managed_rds_authority": {
+    "account_reference": "https://help.aliyun.com/en/rds/apsaradb-rds-for-postgresql/create-an-account-on-an-apsaradb-rds-for-postgresql-instance",
+    "permission_reference": "https://help.aliyun.com/en/rds/apsaradb-rds-for-postgresql/account-permissions-1",
+    "owner_reference": "https://help.aliyun.com/en/rds/apsaradb-rds-for-postgresql/how-do-i-modify-the-owner-of-objects-in-an-rds-for-postgresql-instance",
+    "cloud_assistant_send_file_reference": "https://help.aliyun.com/en/ecs/api-sendfile",
+    "documented_facts": [
+      "A managed PostgreSQL privileged account has full permissions on all databases and can manage standard accounts and databases.",
+      "A managed PostgreSQL privileged account can create accounts and execute object GRANT and REVOKE operations for standard accounts.",
+      "Alibaba Cloud directs operators to use a privileged account for schema owner operations to avoid permission errors.",
+      "Cloud Assistant SendFile supports bounded Base64 file delivery with an explicit owner, group, mode and overwrite policy."
+    ],
+    "inference": "A newly created, short-lived managed RDS privileged account is the narrow no-ticket authority candidate for the unchanged migration and runtime-ACL contract. It is separate from all runtime roles and does not require expanding noteai_xhs or noteai_app."
+  },
+  "stage_safe_executor": {
+    "fixed_stage_count": 16,
+    "stages": [
+      "local_source",
+      "transaction_begin",
+      "session_controls",
+      "advisory_lock",
+      "ledger_inventory",
+      "schema_inventory",
+      "role_preconditions",
+      "accepted_role_risk",
+      "ledger_contract",
+      "ledger_prepare",
+      "legacy_hash_backfill",
+      "migration_apply",
+      "runtime_acl",
+      "postcondition_verification",
+      "transaction_commit",
+      "result_build"
+    ],
+    "connection_failure_code": "database_connection_failed",
+    "unexpected_stage_failure_shape": "apply_<fixed_stage>_failed",
+    "existing_fail_closed_codes_preserved": true,
+    "exception_text_emitted": false,
+    "dsn_emitted": false,
+    "migration_bytes_changed": false,
+    "runtime_acl_bytes_changed": false
+  },
+  "repository_validation": {
+    "schema_role_unit_tests_passed": 14,
+    "schema_role_unit_tests_total": 14,
+    "focused_schema_outcome_readiness_tests_passed": 35,
+    "focused_schema_outcome_readiness_tests_total": 35,
+    "disposable_postgresql_16_integration_passed": 1,
+    "disposable_postgresql_16_integration_total": 1,
+    "integration_scope": "Legacy 0001-0008 setup, accepted-risk profile, exact first apply, apply-twice, independent outcome audit and six negative mutations.",
+    "full_python_tests_passed": 1033,
+    "full_python_tests_total": 1033,
+    "full_python_tests_skipped": 25,
+    "production_readiness_checks_passed": 105,
+    "production_readiness_checks_total": 105,
+    "internal_readiness_verified": 14,
+    "internal_readiness_total": 29,
+    "local_database_container_count_after": 0,
+    "colima_restored_to_stopped_baseline": true,
+    "git_diff_check": "PASS",
+    "migration_hash_unchanged": true
+  },
+  "non_mutating_execution": {
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0,
+    "business_row_values_read": 0,
+    "cloud_mutation_count": 0,
+    "service_change_count": 0,
+    "deployment_count": 0,
+    "provider_ticket_count": 0,
+    "public_traffic_request_count": 0,
+    "secret_value_exposure_count": 0
+  },
+  "next_incident": {
+    "incident_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001",
+    "same_database_action_retry": false,
+    "prior_incident_reused": false,
+    "checkpoint_required_before_cloud_action": true,
+    "fresh_readonly_requirements": [
+      "Current successful full backup inside the fixed freshness window.",
+      "Zero public RDS endpoint and zero task account or task material residue.",
+      "API-C, API-F and Admin remain active, ready and loopback-only.",
+      "Production ledger remains exactly 0001-0008 with 30 tables, 5 sequences and no partial V3B writes.",
+      "The two accepted-risk findings still match their exact zero-credit profile."
+    ],
+    "protected_authority": "Create one new short-term managed RDS privileged account only after all fresh read-only requirements pass; never use a runtime role for schema migration.",
+    "transfer": "Build one metadata-free minimal archive from the pushed checkpoint, split it into bounded hash-addressed files, deliver those files with Cloud Assistant SendFile, verify every part before concatenation and delete all parts during cleanup.",
+    "maximum_schema_transaction_count": 1,
+    "automatic_retry_count": 0,
+    "write_ceiling": {
+      "legacy_ledger_sha_backfill": 8,
+      "new_migration_ledger_rows": 8,
+      "fixed_seed_rows": 2,
+      "retention_backfill_rows": 0,
+      "existing_business_row_updates": 0,
+      "ownership_changes": 0,
+      "accepted_risk_role_changes": 0
+    },
+    "failure_boundary": "After any database connection, a failure is never retried. Collect a fixed-stage result and use only an independently forced-readonly outcome audit to determine COMMITTED, ROLLED_BACK or UNKNOWN, then clean the exact task scope.",
+    "success_boundary": "After a successful commit, run one independent forced-readonly verification of migration SHA, inventory, role and ACL negative matrices, accepted-risk exactness, zero elevation and exact write counts before cleanup.",
+    "provider_ticket_required": false
+  },
+  "release_effect": {
+    "authority_resolution_task_complete": true,
+    "production_schema_roles_verified": false,
+    "production_schema_state": "0001-0008",
+    "internal_readiness_numerator": 14,
+    "internal_readiness_denominator": 29,
+    "public_launch_complete": false,
+    "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001"
+  }
+}

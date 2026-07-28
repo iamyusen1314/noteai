@@ -29,6 +29,11 @@
 - Resolve the current incident checkpoint from the newest pushed
   `[skip render] Record deterministic schema rollback` commit; this Handoff
   is part of that commit and must not attempt a self-referential hash.
+- Deterministic rollback checkpoint:
+  `7c24c81cba9237be53a6d2ec11bfa4d91e6921b0`.
+- Resolve the stage-safe authority checkpoint from the newest pushed
+  `[skip render] Prepare stage-safe schema authority path` commit after this
+  Handoff is committed; do not embed a self-referential hash.
 - Historical UNKNOWN incident source checkpoint:
   `a5f2961089744eb1c0bf0eb0011b93a132d6493f`.
 - Schema executor repair:
@@ -43,11 +48,17 @@
 
 ## 3. Unique task and current incident boundary
 
-`PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`
+`PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001`
 
 - Status:
-  `CONNECTED_KNOWN / PRODUCTION TRANSACTION ROLLED BACK / NOT DEPLOYED /
-  CLEAN`.
+  `PRE_CONNECT / CHECKPOINT REQUIRED / NOT DISPATCHED / CLEAN`.
+- Parent task:
+  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`.
+- Repository authority-resolution task
+  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002` is complete:
+  fixed stage-safe failure codes, independent tests, disposable PostgreSQL 16
+  integration and the non-mutating managed-RDS authority plan passed without
+  changing migration or runtime-ACL bytes.
 - The historical read-only artifact remains exactly
   `CONNECTED_UNKNOWN`; its database and transaction outcomes remain
   `UNKNOWN`, and it has not been reclassified or retried.
@@ -83,11 +94,11 @@
   5 sequences and the 2 historical runtime roles. New roles, new tables,
   migration SHA backfills, new ledger rows, seed rows, retention backfill,
   existing business-row updates and total database writes are all zero.
-- The next task is
-  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002`.
-  It must preserve the V3B incident as non-retriable, begin with repository
-  stage-safe diagnostics and a separately named non-mutating managed-RDS
-  authority plan, and cannot inherit authorization to repeat the transaction.
+- The next task is the separately named
+  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001`. It may start only after
+  the stage-safe source, plan and tests are committed and pushed. It is a new
+  incident, cannot inherit V3B retry authority and permits at most one schema
+  transaction.
 
 ## 4. Product-owner first-launch risk decision
 
@@ -241,6 +252,17 @@ service change.
   `deploy/production/evidence/production-schema-role-resume-baseline-20260728.json`.
   SHA-256:
   `d22d5f061d61c34fa03eaa6102ddab8da57439a5f1237834ee9da4308fda2355`.
+- Secret-free authority-resolution plan:
+  `deploy/production/evidence/production-schema-authority-resolution-plan-20260728.json`.
+  Artifact SHA-256:
+  `bb048401a88dca9ab2cdb4c7f20bbd132afdcbaef05d66d60d4cf8ef61a0ce7a`.
+  It records zero database/cloud/service/provider actions, 16 fixed failure
+  stages, unchanged migration/runtime-ACL hashes, the official managed-RDS
+  privileged-account authority path and a three-part bounded Cloud Assistant
+  `SendFile` transfer design. Provider support is not required.
+- Stage-safe executor unit tests passed `14/14`; the disposable PostgreSQL 16
+  first-apply/apply-twice/outcome/six-negative-mutation integration passed
+  `1/1`. The exact task container was deleted and Colima restored stopped.
 - One broad control-console observation transiently emitted cloud resource
   metadata in internal tool output. It contained no Secret, credential or user
   data, was not persisted to Git, submitted to a provider or exposed publicly,
@@ -256,6 +278,9 @@ service change.
 - `tools/production_first_launch_role_risk_audit.py`
 - `tools/production_first_launch_role_risk_audit_runner.sh`
 - `tools/internal_deployment_readiness_gate.py`
+- `deploy/production/evidence/production-schema-authority-resolution-plan-20260728.json`
+- `tests/test_production_schema_roles.py`
+- `tests/test_internal_deployment_readiness_gate.py`
 - focused tests for the executor, outcome auditor, role-risk auditor and gate
 - historical role-audit/corrector tests that preserve the e5883 hashes, require
   current source drift to fail closed, and mock source validation only when
@@ -271,9 +296,15 @@ inventory, role fingerprint and zero retention source before DDL, verifies
 exact rowcounts, exact seed fields and the full negative matrix, and leaves
 readiness scoring unchanged.
 
+Unexpected executor failures now become a fixed
+`apply_<stage>_failed` code across 16 bounded stages; pre-connection failures
+become `database_connection_failed`. Existing fail-closed contract codes are
+preserved, and exception text, DSNs and Secret material are never emitted.
+
 - Historical focused schema/role/outcome/readiness suites: `66/66`.
 - Current role-policy delta suites: `38/38`.
-- Full Python suite: `1028/1028`, with `25` explicit skips.
+- Current stage-safe schema/outcome/readiness suites: `35/35`.
+- Full Python suite: `1033/1033`, with `25` explicit skips.
 - Disposable PostgreSQL 16 integration: one complete legacy setup, fixed
   `INHERIT FALSE` risk profile, fixed read-only audit, exact first apply,
   apply-twice, independent outcome audit, six negative mutations and final
@@ -319,17 +350,25 @@ An outer browser, terminal or control-plane failure does not establish
 3. Keep the two fixed zero-credit `ACCEPTED_RISK` entries active exactly as
    observed; neither is `VERIFIED_FIXED` and neither authorizes a database
    action.
-4. Execute
-   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002` first as
-   repository/offline work: add stage-safe sanitized executor failure codes
-   and independent tests without changing migration bytes or SHA values.
-5. Establish a separately named, non-mutating managed-RDS authority plan from
-   control-plane evidence. Do not repeat the failed supplemental database
-   diagnostic.
-6. Any later database mutation is a new incident, not an automatic retry. It
-   requires a pushed checkpoint, fresh backup/private-network/non-regression
-   proof, newly protected short-term access, exact hashes, one transaction and
-   a new no-retry boundary.
-7. Until that independent resolution completes, production remains
+4. Treat
+   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002` as complete
+   only after its stage-safe source, tests and Secret-free plan are committed
+   and pushed.
+5. Open
+   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001` only from that pushed
+   checkpoint. First re-prove fresh backup, private RDS, zero task residue,
+   API-C/API-F/Admin non-regression, exact `0001`-`0008` ledger and the two
+   accepted-risk tuples.
+6. Build one metadata-free minimal archive from the pushed checkpoint, split
+   it into bounded hash-addressed parts and use Cloud Assistant `SendFile`
+   rather than terminal-embedded source chunks. Verify each part and the
+   reconstructed archive before any protected account is created.
+7. Create one new short-term managed RDS privileged account only after the
+   zero-DSN and network-none imports pass. Permit one schema transaction, zero
+   automatic retries and no owner or accepted-risk role changes.
+8. A connected failure may be followed only by the predeclared independent
+   forced-readonly outcome audit needed to classify `COMMITTED`,
+   `ROLLED_BACK` or `UNKNOWN`; it never authorizes another mutation.
+9. Until V4 independently verifies the committed state, production remains
    `0001`-`0008`, `production_schema_roles` remains blocked and internal
    readiness remains `14/29`.
