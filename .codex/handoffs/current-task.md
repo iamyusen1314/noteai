@@ -52,6 +52,45 @@
 - Public launch readiness: `14/38 = 37%`.
 - Public launch completion: false.
 
+## 2.1 Current V5 remote-prepare checkpoint
+
+- The exact package from pushed checkpoint `af58b897` was transferred to
+  API-C and independently reverified as 3 parts, 68,781 bytes, 26 regular
+  files, 16 migrations, archive SHA-256 `02a01997…1941`, manifest SHA-256
+  `a49a9786…9a0` and runner SHA-256 `98afd524…2be1`.
+- Fresh production prerequisites were re-established before transfer:
+  one running private PostgreSQL RDS, RDS public endpoint 0, three successful
+  full backups with latest age under 9 hours, accounts `3/1/0`, two private
+  API nodes, API `2/2` and Admin `1/1` active/ready/loopback-only, and task
+  residue 0.
+- The first remote `prepare` failed before creating any account, RSA,
+  ciphertext, runner environment, sentinel, database connection, transaction
+  or write. Import/audit container residue is zero. It is conclusively
+  `PRE_CONNECT`; no database action was attempted or retried.
+- Network-none diagnostics proved that `PYTHONPATH`, `sys.path`, uid 999,
+  the source root and `tools/` entry were correct, but the executor file was
+  not traversable. Host modes were source root `0755`, intermediate
+  `model/scripts/security/tools` directories `0700`, executor `0644` and
+  runner `0755`. The production image declares no `/task` or `/task/tools`
+  volume. The exact root cause is restrictive extraction umask applied to
+  archive-implied directories.
+- The runner now verifies all package bytes and nested root ownership before
+  any mode change; only `prepare` normalizes source directories to `0755`.
+  All modes then require exact directory `0755`, world-readable files and no
+  group/world-writable source file. Migration, executor, auditor and runtime
+  ACL bytes are unchanged. New working-tree runner SHA-256 is
+  `5a906ce7…1ef`.
+- Focused tests pass `43/43`; production gate passes `105/105`; zero-DSN
+  import, shell syntax and diff checks pass. Internal readiness remains
+  `14/29 = 48%`.
+- Secret-free evidence:
+  `deploy/production/evidence/production-schema-roles-v5-owner-remote-prepare-root-cause-20260729.json`.
+- Required next action: checkpoint and push this source fix, rebuild the
+  deterministic minimal package from that exact pushed commit, delete only
+  the proven PRE_CONNECT V5 task root/chunks, transfer the new package and
+  rerun network-none `prepare`. Do not create a task account or RSA until the
+  new prepare passes. Never run V3B, V4, 004 or 005 again.
+
 ## 3. Preserved production incident boundary
 
 - V3B and V4 are both

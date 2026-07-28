@@ -348,6 +348,31 @@ test "${observed_preflight_sha}" = "${preflight_sha256}" \
     || fail_preconnect
 (cd "${source_root}" && sha256sum -c package.sha256 >/dev/null 2>&1) \
     || fail_preconnect
+test -z "$(
+    find "${source_root}" -type d ! -uid 0 -print -quit
+)" || fail_preconnect
+test -z "$(
+    find "${source_root}" -type d ! -gid 0 -print -quit
+)" || fail_preconnect
+test -z "$(
+    find "${source_root}" -type f ! -uid 0 -print -quit
+)" || fail_preconnect
+test -z "$(
+    find "${source_root}" -type f ! -gid 0 -print -quit
+)" || fail_preconnect
+if test "${mode}" = prepare; then
+    find "${source_root}" -type d -exec chmod 0755 {} + \
+        || fail_preconnect
+fi
+test -z "$(
+    find "${source_root}" -type d ! -perm 0755 -print -quit
+)" || fail_preconnect
+test -z "$(
+    find "${source_root}" -type f ! -perm -004 -print -quit
+)" || fail_preconnect
+test -z "$(
+    find "${source_root}" -type f -perm /022 -print -quit
+)" || fail_preconnect
 package_manifest_line="$(
     sha256sum "${source_root}/package.sha256"
 )" || fail_preconnect

@@ -388,6 +388,39 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             "import production_first_launch_role_risk_set_audit",
             runner,
         )
+        self.assertIn(
+            'find "${source_root}" -type d -exec chmod 0755 {} +',
+            runner,
+        )
+        self.assertIn(
+            'find "${source_root}" -type d ! -perm 0755 -print -quit',
+            runner,
+        )
+        self.assertIn(
+            'find "${source_root}" -type f ! -perm -004 -print -quit',
+            runner,
+        )
+        self.assertIn(
+            'find "${source_root}" -type f -perm /022 -print -quit',
+            runner,
+        )
+        self.assertLess(
+            runner.index(
+                '(cd "${source_root}" && '
+                "sha256sum -c package.sha256"
+            ),
+            runner.index(
+                'find "${source_root}" -type d -exec chmod 0755 {} +'
+            ),
+        )
+        self.assertLess(
+            runner.index(
+                'find "${source_root}" -type d -exec chmod 0755 {} +'
+            ),
+            runner.index(
+                '-e PYTHONPATH=/task/tools'
+            ),
+        )
         self.assertNotIn("import tools.production_schema_roles", runner)
         self.assertNotIn("from tools.production_schema", runner)
         self.assertNotIn("from tools.production_first_launch", runner)
