@@ -56,7 +56,7 @@
 `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001`
 
 - Status:
-  `PRE_CONNECT / CHECKPOINT REQUIRED / NOT DISPATCHED / CLEAN`.
+  `PRE_CONNECT / PACKAGE VERIFIED / NOT DISPATCHED / CLEAN`.
 - Parent task:
   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`.
 - Repository authority-resolution task
@@ -187,6 +187,8 @@ or the fresh deterministic `CONNECTED_KNOWN` audit.
 Current resume-stage failures were also bounded `PRE_CONNECT` with database
 connection/transaction/write all zero:
 
+- the first V4 archive omitted the read-only preflight module and the fixed
+  registry evidence that module reads at import time;
 - the in-app browser had no authenticated Alibaba session;
 - the initial ECS topology filter included one non-API node;
 - three Cloud Assistant control attempts omitted the required Base64
@@ -260,11 +262,24 @@ service change.
 - Secret-free authority-resolution plan:
   `deploy/production/evidence/production-schema-authority-resolution-plan-20260728.json`.
   Artifact SHA-256:
-  `513e343c76cafbc0c1dba1bd577846c3b99df413cbdbef0f7ade29c0b530240d`.
+  `e567d0918c8e47e4351430d3a0be799e831c76ba605ce19bd69576082f01b7b9`.
   It records zero database/cloud/service/provider actions, 16 fixed failure
   stages, unchanged migration/runtime-ACL hashes, the official managed-RDS
   privileged-account authority path and a three-part bounded Cloud Assistant
   `SendFile` transfer design. Provider support is not required.
+- The V4 package is now rebuilt only from pushed checkpoint
+  `8f6b8b68e24726ab6a57abfb805b9fd222238d0f`: 26 source files including
+  its manifest, 25/25 hashes, 16 migrations, 64,252 bytes and deterministic
+  archive SHA-256
+  `0e16fd34404319902b1f15b9b1bccce6394f0ade5fb09ca0dd3979e1158bac5a`.
+  It has 34 ustar entries, zero AppleDouble/nonregular members and three
+  bounded parts with maximum raw/Base64 sizes 23,000/30,668 bytes, below the
+  documented 32,768-byte Base64 SendFile limit.
+- Explicit local import from the package itself passed with every supported
+  database URL and confirmation environment variable removed. The preceding
+  package omitted the transitive read-only preflight module and its fixed
+  registry evidence dependency; it is classified `PRE_CONNECT` with account,
+  database connection, transaction, write and cloud mutation counts all zero.
 - Fixed runner SHA-256:
   `d104aafbd93b81c3250db1bb2aefbf39ddf5e22c5ec42a5739b9b8743e36c300`.
   Its four modes are `prepare`, `preflight`, `apply` and `outcome`.
@@ -375,8 +390,9 @@ An outer browser, terminal or control-plane failure does not establish
    accepted-risk tuples.
 6. Build one metadata-free minimal archive from the pushed checkpoint, split
    it into bounded hash-addressed parts and use Cloud Assistant `SendFile`
-   rather than terminal-embedded source chunks. Verify each part and the
-   reconstructed archive before any protected account is created.
+   rather than terminal-embedded source chunks. The local deterministic build
+   and zero-DSN import are complete; verify each remote part, reconstructed
+   archive and network-none import before any protected account is created.
 7. Create one new short-term managed RDS privileged account only after the
    zero-DSN and network-none imports pass. Permit one schema transaction, zero
    automatic retries and no owner or accepted-risk role changes.
