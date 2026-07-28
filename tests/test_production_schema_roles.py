@@ -26,6 +26,13 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         self.assertEqual(len(schema_roles.EXPECTED_TABLES), 56)
         self.assertEqual(len(schema_roles.RUNTIME_ROLES), 8)
         self.assertEqual(len(schema_roles.NEW_RUNTIME_ROLES), 6)
+        self.assertEqual(
+            tuple(
+                name for name, _payload in
+                schema_roles._runtime_acl_payloads()
+            ),
+            schema_roles.EXPECTED_ACL_STAGES,
+        )
         for payload, digest in payloads.values():
             self.assertTrue(payload)
             self.assertRegex(digest, r"^[0-9a-f]{64}$")
@@ -42,6 +49,11 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         self.assertIn("CREATE ROLE %I NOLOGIN NOSUPERUSER", acl)
         self.assertIn("NOCREATEDB NOCREATEROLE", acl)
         self.assertIn("NOINHERIT NOREPLICATION NOBYPASSRLS", acl)
+        for stage in schema_roles.EXPECTED_ACL_STAGES:
+            self.assertIn(
+                f"{schema_roles.ACL_STAGE_MARKER}{stage}",
+                acl,
+            )
         self.assertNotRegex(
             executable_sql,
             re.compile(r"\bPASSWORD\b", re.IGNORECASE),
@@ -188,11 +200,12 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         self.assertEqual(len(schema_roles.ACCEPTED_ROLE_RISK_IDS), 2)
         self.assertIn("current_user <> 'noteai_xhs'", source)
         self.assertIn("session_user <> 'noteai_xhs'", source)
-        self.assertIn("session_user=current_user", source)
+        self.assertIn("SET LOCAL ROLE", source)
+        self.assertIn(schema_roles.MIGRATION_OWNER_ROLE, source)
         self.assertIn("member.rolname='noteai_app'", source)
         self.assertIn("pg_has_role('noteai_app',role.oid,'USAGE')", source)
         self.assertIn(
-            'membership["inherit_option"] is False',
+            'row["inherit_option"] is not False',
             source,
         )
         self.assertIn("WITH GRANT OPTION", source)
@@ -206,8 +219,10 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         self.assertIn("member.rolname = 'noteai_admin'", acl)
         self.assertIn("membership.admin_option", acl)
         self.assertIn(")::boolean IS FALSE", acl)
-        self.assertIn("session_user = 'noteai_xhs'", acl)
-        self.assertIn("session_user <> current_user", acl)
+        self.assertIn("current_user <> 'noteai_admin'", acl)
+        self.assertIn("current_role <> 'noteai_admin'", acl)
+        self.assertIn(") <> 7", acl)
+        self.assertIn(") <> 6", acl)
         self.assertIn("accepted runtime role membership changed", acl)
         self.assertNotIn("ACCEPTED_ROLE_RISK_PROFILE", os.environ)
 
@@ -314,7 +329,7 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         )
         self.assertNotIn("opaque-protected-input", stderr.getvalue())
 
-    def test_v4_runner_is_fixed_stdin_only_and_stage_safe(self):
+    def test_v5_runner_is_fixed_stdin_only_and_stage_safe(self):
         runner_path = (
             Path(schema_roles.__file__).resolve().parent
             / "production_schema_roles_runner.sh"
@@ -322,7 +337,7 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         runner = runner_path.read_text(encoding="utf-8")
 
         self.assertIn(
-            "task_root=/var/lib/noteai/schema-roles-v4",
+            "task_root=/var/lib/noteai/schema-roles-v5-owner",
             runner,
         )
         self.assertIn(
@@ -330,7 +345,7 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             runner,
         )
         self.assertIn(
-            "SAFE_SCHEMA_ROLES_V4",
+            "SAFE_SCHEMA_ROLES_V5",
             runner,
         )
         self.assertIn(
@@ -360,6 +375,13 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         self.assertIn("package_manifest_sha", runner)
         self.assertIn("import=passed", runner)
         self.assertIn("automatic_retry=0", runner)
+        self.assertIn("apply_transaction=committed", runner)
+        self.assertIn("audit_transaction=rolled_back", runner)
+        self.assertNotIn(" transaction=rolled_back", runner)
+        self.assertIn('"membership_count":7', runner)
+        self.assertIn('"management_membership_count":6', runner)
+        self.assertIn('"migration_owner_mismatch_count":0', runner)
+        self.assertIn('"executor_owned_object_count":0', runner)
         self.assertNotIn("/etc/noteai/api.env", runner)
         self.assertNotIn("-e NOTEAI_SCHEMA", runner)
         self.assertNotIn("postgresql://", runner)

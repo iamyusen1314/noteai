@@ -127,6 +127,7 @@ LEGACY_RUNTIME_ROLES = ("noteai_app", "noteai_xhs")
 NEW_RUNTIME_ROLES = tuple(
     role for role in RUNTIME_ROLES if role not in LEGACY_RUNTIME_ROLES
 )
+EXPECTED_MANAGEMENT_MEMBERSHIP_COUNT = len(NEW_RUNTIME_ROLES)
 ACCEPTED_ROLE_RISK_PROFILE = "FIRST_LAUNCH_LEGACY_ROLE_RISK_V1"
 
 
@@ -201,6 +202,8 @@ def _classify(observation: dict[str, Any]) -> str:
         and observation["accepted_role_risk_exact"]
         and observation["runtime_elevation_count"] == 1
         and observation["runtime_membership_count"] == 1
+        and observation["runtime_management_membership_count"] == 0
+        and observation["runtime_management_membership_exact"]
         and observation["app_incoming_membership_count"] == 0
         and observation["app_high_privilege_inheritance_count"] == 0
         and observation["runtime_ownership_count"] == 0
@@ -225,10 +228,17 @@ def _classify(observation: dict[str, Any]) -> str:
         and observation["new_runtime_login_count"] == 0
         and observation["accepted_role_risk_exact"]
         and observation["runtime_elevation_count"] == 1
-        and observation["runtime_membership_count"] == 1
+        and observation["runtime_membership_count"]
+        == 1 + EXPECTED_MANAGEMENT_MEMBERSHIP_COUNT
+        and observation["runtime_management_membership_count"]
+        == EXPECTED_MANAGEMENT_MEMBERSHIP_COUNT
+        and observation["runtime_management_membership_exact"]
         and observation["app_incoming_membership_count"] == 0
         and observation["app_high_privilege_inheritance_count"] == 0
         and observation["runtime_ownership_count"] == 0
+        and observation["migration_owner_role_exact"]
+        and observation["migration_owner_database_exact"]
+        and observation["migration_owner_mismatch_count"] == 0
         and observation["trends_seed_count"] == 1
         and observation["trends_seed_exact_count"] == 1
         and observation["dispatcher_seed_count"] == 1
@@ -423,13 +433,42 @@ def collect_outcome(
                 (list(RUNTIME_ROLES), list(RUNTIME_ROLES)),
             ).fetchall()
             membership_count = len(membership_rows)
+            accepted_membership_rows = [
+                row for row in membership_rows
+                if row["granted_name"] == "noteai_xhs"
+                and row["member_name"] == "noteai_admin"
+            ]
             accepted_membership_exact = (
-                membership_count == 1
-                and membership_rows[0]["granted_name"] == "noteai_xhs"
-                and membership_rows[0]["member_name"] == "noteai_admin"
-                and bool(membership_rows[0]["admin_option"])
-                and membership_rows[0]["inherit_option"] is False
-                and membership_rows[0]["set_option"] is False
+                len(accepted_membership_rows) == 1
+                and bool(accepted_membership_rows[0]["admin_option"])
+                and accepted_membership_rows[0]["inherit_option"] is False
+                and accepted_membership_rows[0]["set_option"] is False
+            )
+            present_new_roles = set(present_roles).intersection(
+                NEW_RUNTIME_ROLES
+            )
+            management_membership_rows = [
+                row for row in membership_rows
+                if row["granted_name"] in NEW_RUNTIME_ROLES
+                and row["member_name"] == "noteai_admin"
+            ]
+            management_membership_count = len(
+                management_membership_rows
+            )
+            management_membership_exact = (
+                {
+                    str(row["granted_name"])
+                    for row in management_membership_rows
+                }
+                == present_new_roles
+                and all(
+                    bool(row["admin_option"])
+                    and row["inherit_option"] is False
+                    and row["set_option"] is False
+                    for row in management_membership_rows
+                )
+                and membership_count
+                == 1 + len(present_new_roles)
             )
             app_incoming_membership_count = int(_scalar(
                 conn,
@@ -456,6 +495,7 @@ def collect_outcome(
                 and app_role_exact
                 and non_app_elevation_count == 0
                 and accepted_membership_exact
+                and management_membership_exact
                 and app_incoming_membership_count == 0
                 and app_high_privilege_inheritance_count == 0
             )
@@ -479,6 +519,38 @@ def collect_outcome(
                     ),
                 )
             )
+            migration_owner_role_exact = bool(_scalar(
+                conn,
+                "SELECT EXISTS("
+                "SELECT 1 FROM pg_roles "
+                "WHERE rolname=%s AND NOT rolsuper AND rolcreaterole)",
+                (schema_role_contract.MIGRATION_OWNER_ROLE,),
+            ))
+            migration_owner_database_exact = bool(_scalar(
+                conn,
+                "SELECT database.datdba=%s::regrole "
+                "FROM pg_database database "
+                "WHERE database.datname=current_database()",
+                (schema_role_contract.MIGRATION_OWNER_ROLE,),
+            ))
+            migration_owner_mismatch_count = int(_scalar(
+                conn,
+                "SELECT ("
+                "(SELECT COUNT(*) FROM pg_class object "
+                "JOIN pg_namespace namespace "
+                "ON namespace.oid=object.relnamespace "
+                "WHERE namespace.nspname='public' "
+                "AND object.relowner<>%s::regrole) + "
+                "(SELECT COUNT(*) FROM pg_proc object "
+                "JOIN pg_namespace namespace "
+                "ON namespace.oid=object.pronamespace "
+                "WHERE namespace.nspname='public' "
+                "AND object.proowner<>%s::regrole))",
+                (
+                    schema_role_contract.MIGRATION_OWNER_ROLE,
+                    schema_role_contract.MIGRATION_OWNER_ROLE,
+                ),
+            ))
             observation = {
                 "ledger_versions": ledger_versions,
                 "legacy_ledger_names_exact": (
@@ -499,6 +571,12 @@ def collect_outcome(
                 "new_runtime_login_count": new_login_count,
                 "runtime_elevation_count": elevation_count,
                 "runtime_membership_count": membership_count,
+                "runtime_management_membership_count": (
+                    management_membership_count
+                ),
+                "runtime_management_membership_exact": (
+                    management_membership_exact
+                ),
                 "accepted_role_risk_exact": accepted_role_risk_exact,
                 "app_incoming_membership_count": (
                     app_incoming_membership_count
@@ -508,6 +586,13 @@ def collect_outcome(
                 ),
                 "executor_not_xhs": executor_not_xhs,
                 "runtime_ownership_count": ownership_count,
+                "migration_owner_role_exact": migration_owner_role_exact,
+                "migration_owner_database_exact": (
+                    migration_owner_database_exact
+                ),
+                "migration_owner_mismatch_count": (
+                    migration_owner_mismatch_count
+                ),
                 "trends_seed_count": _optional_count(
                     conn,
                     "xhs_trends_service_state",
@@ -639,6 +724,12 @@ def collect_outcome(
         "new_runtime_login_count": observation["new_runtime_login_count"],
         "runtime_elevation_count": observation["runtime_elevation_count"],
         "runtime_membership_count": observation["runtime_membership_count"],
+        "runtime_management_membership_count": observation[
+            "runtime_management_membership_count"
+        ],
+        "runtime_management_membership_exact": observation[
+            "runtime_management_membership_exact"
+        ],
         "accepted_role_risk_profile": ACCEPTED_ROLE_RISK_PROFILE,
         "accepted_role_risk_exact": observation[
             "accepted_role_risk_exact"
@@ -651,6 +742,15 @@ def collect_outcome(
         ],
         "executor_not_xhs": observation["executor_not_xhs"],
         "runtime_ownership_count": observation["runtime_ownership_count"],
+        "migration_owner_role_exact": observation[
+            "migration_owner_role_exact"
+        ],
+        "migration_owner_database_exact": observation[
+            "migration_owner_database_exact"
+        ],
+        "migration_owner_mismatch_count": observation[
+            "migration_owner_mismatch_count"
+        ],
         "trends_seed_count": observation["trends_seed_count"],
         "trends_seed_exact_count": observation["trends_seed_exact_count"],
         "dispatcher_seed_count": observation["dispatcher_seed_count"],

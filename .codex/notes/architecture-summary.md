@@ -157,9 +157,24 @@ Last updated: 2026-07-22
   - PostgreSQL uses versioned SQL; SQLite keeps idempotent runtime additions for backward compatibility.
   - `scripts/migrate_sqlite_to_postgres.py` is dry-run by default and can copy application rows only after explicit guarded `--apply` approval.
   - Production completed structure-only migrations `0001`–`0008` on
-    2026-07-18. Repository candidates now extend through `0014`; `0009`–`0014`
-    remain unapplied. Disposable PostgreSQL evidence does not imply production
-    migration or privilege readiness.
+    2026-07-18. Repository candidates now extend through `0016`; `0009`–`0016`
+    remain unapplied. V3B and V4 each ran once and are independently proven
+    rolled back with database writes zero; neither may be retried. Disposable
+    PostgreSQL evidence does not imply production migration or privilege
+    readiness.
+  - The corrected managed-RDS migration architecture uses a protected
+    short-term executor only to activate persistent `noteai_admin` with
+    `SET LOCAL ROLE`. The persistent owner must own the database and every
+    public relation/function, so new migration objects never depend on the
+    short-term account.
+  - PostgreSQL 16 implicitly grants a non-superuser CREATEROLE creator
+    `ADMIN OPTION` on every role it creates. The six new runtime roles
+    therefore have exactly six management rows to persistent `noteai_admin`,
+    with `INHERIT FALSE` and `SET FALSE`; these are owner-management topology,
+    not runtime privilege inheritance. Any additional row fails closed.
+  - Runtime ACL execution is split into ten fixed sanitized sub-stages inside
+    the same transaction. Production must first pass a separately named
+    forced-readonly owner-authority preflight before any new V5 write incident.
 - Seed / initialization:
   - No standalone seed command is confirmed.
   - Test and local startup may initialize tables.

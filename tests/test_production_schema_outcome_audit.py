@@ -26,12 +26,17 @@ def _observation(**overrides):
         "new_runtime_role_count": 6,
         "new_runtime_login_count": 0,
         "runtime_elevation_count": 1,
-        "runtime_membership_count": 1,
+        "runtime_membership_count": 7,
+        "runtime_management_membership_count": 6,
+        "runtime_management_membership_exact": True,
         "accepted_role_risk_exact": True,
         "app_incoming_membership_count": 0,
         "app_high_privilege_inheritance_count": 0,
         "executor_not_xhs": True,
         "runtime_ownership_count": 0,
+        "migration_owner_role_exact": True,
+        "migration_owner_database_exact": True,
+        "migration_owner_mismatch_count": 0,
         "trends_seed_count": 1,
         "trends_seed_exact_count": 1,
         "dispatcher_seed_count": 1,
@@ -122,7 +127,7 @@ class CommittedConnection:
                 {"sequence_name": sequence}
                 for sequence in outcome_audit.EXPECTED_SEQUENCES
             ])
-        if "FROM pg_roles WHERE rolname" in normalized:
+        if normalized.startswith("SELECT rolname,rolsuper"):
             return FakeResult([
                 {
                     "rolname": role,
@@ -136,14 +141,28 @@ class CommittedConnection:
                 }
                 for role in outcome_audit.EXPECTED_PRESENT_RUNTIME_ROLES
             ])
+        if normalized.startswith("SELECT EXISTS(SELECT 1 FROM pg_roles"):
+            return FakeResult([(True,)])
         if "FROM pg_auth_members membership JOIN pg_roles granted_role" in normalized:
-            return FakeResult([{
-                "granted_name": "noteai_xhs",
-                "member_name": "noteai_admin",
-                "admin_option": True,
-                "inherit_option": False,
-                "set_option": False,
-            }])
+            return FakeResult([
+                {
+                    "granted_name": "noteai_xhs",
+                    "member_name": "noteai_admin",
+                    "admin_option": True,
+                    "inherit_option": False,
+                    "set_option": False,
+                },
+                *[
+                    {
+                        "granted_name": role,
+                        "member_name": "noteai_admin",
+                        "admin_option": True,
+                        "inherit_option": False,
+                        "set_option": False,
+                    }
+                    for role in outcome_audit.NEW_RUNTIME_ROLES
+                ],
+            ])
         if "WHERE member.rolname='noteai_app'" in normalized:
             return FakeResult([(0,)])
         if "AND pg_has_role('noteai_app'" in normalized:
@@ -152,6 +171,8 @@ class CommittedConnection:
             return FakeResult([(True,)])
         if normalized.startswith("SELECT ((SELECT COUNT(*) FROM pg_class"):
             return FakeResult([(0,)])
+        if "FROM pg_database database" in normalized:
+            return FakeResult([(True,)])
         if "FROM public.xhs_trends_service_state" in normalized:
             return FakeResult([(1,)])
         if "FROM public.ai_dispatch_state" in normalized:
@@ -183,7 +204,7 @@ class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn(
-            'membership_rows[0]["inherit_option"] is False',
+            'row["inherit_option"] is False',
             source,
         )
         self.assertEqual(len(outcome_audit.LEGACY_TABLES), 30)
@@ -210,6 +231,8 @@ class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
             tables=outcome_audit.LEGACY_TABLES,
             present_runtime_roles=outcome_audit.LEGACY_RUNTIME_ROLES,
             new_runtime_role_count=0,
+            runtime_membership_count=1,
+            runtime_management_membership_count=0,
             trends_seed_count=None,
             trends_seed_exact_count=None,
             dispatcher_seed_count=None,
@@ -236,10 +259,15 @@ class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
             {"new_runtime_login_count": 1},
             {"runtime_elevation_count": 2},
             {"runtime_membership_count": 2},
+            {"runtime_management_membership_count": 5},
+            {"runtime_management_membership_exact": False},
             {"accepted_role_risk_exact": False},
             {"app_incoming_membership_count": 1},
             {"app_high_privilege_inheritance_count": 1},
             {"runtime_ownership_count": 1},
+            {"migration_owner_role_exact": False},
+            {"migration_owner_database_exact": False},
+            {"migration_owner_mismatch_count": 1},
             {"trends_seed_exact_count": 0},
             {"dispatcher_seed_exact_count": 0},
             {"retention_row_count": 1},

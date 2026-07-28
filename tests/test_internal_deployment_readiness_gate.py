@@ -57,7 +57,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertEqual(
             actionable["production_schema_roles"]["next_task"],
-            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-RUNTIME-ACL-ROOT-CAUSE-003",
+            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-OWNER-AUTHORITY-PREFLIGHT-004",
         )
         self.assertEqual(
             actionable["production_schema_roles"]["execution_class"],

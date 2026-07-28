@@ -55,6 +55,7 @@ ACCEPTED_ROLE_RISK_IDS = (
     "FIRST-LAUNCH-LEGACY-XHS-ADMIN-MEMBERSHIP-20260728",
     "FIRST-LAUNCH-LEGACY-APP-INHERIT-20260728",
 )
+MIGRATION_OWNER_ROLE = "noteai_admin"
 EXPECTED_VERSIONS = tuple(f"{number:04d}" for number in range(1, 17))
 LEGACY_VERSIONS = EXPECTED_VERSIONS[:8]
 NEW_VERSIONS = EXPECTED_VERSIONS[8:]
@@ -70,6 +71,19 @@ RUNTIME_ROLES = (
 )
 NEW_RUNTIME_ROLES = tuple(
     role for role in RUNTIME_ROLES if role not in {"noteai_app", "noteai_xhs"}
+)
+ACL_STAGE_MARKER = "-- NOTEAI-RUNTIME-ACL-STAGE: "
+EXPECTED_ACL_STAGES = (
+    "role_contract",
+    "database_schema",
+    "clear_new_roles",
+    "api",
+    "tracking",
+    "trends",
+    "durable_ai",
+    "private_storage",
+    "payment",
+    "admin",
 )
 NEW_TABLES = (
     "account_deletion_requests",
@@ -122,6 +136,7 @@ APPLY_FAILURE_STAGES = frozenset({
     "local_source",
     "transaction_begin",
     "session_controls",
+    "migration_owner_activation",
     "advisory_lock",
     "ledger_inventory",
     "schema_inventory",
@@ -131,7 +146,7 @@ APPLY_FAILURE_STAGES = frozenset({
     "ledger_prepare",
     "legacy_hash_backfill",
     "migration_apply",
-    "runtime_acl",
+    *(f"runtime_acl_{name}" for name in EXPECTED_ACL_STAGES),
     "postcondition_verification",
     "transaction_commit",
     "result_build",
@@ -426,11 +441,132 @@ def _migration_payloads() -> dict[str, tuple[bytes, str]]:
     return result
 
 
+def _runtime_acl_payloads() -> tuple[tuple[str, str], ...]:
+    """Load the fixed ACL sections without changing their transaction scope."""
+    sections: list[tuple[str, str]] = []
+    stage_name: str | None = None
+    stage_lines: list[str] = []
+    preamble: list[str] = []
+    for line in ACL_PATH.read_text(encoding="utf-8").splitlines(keepends=True):
+        if line.startswith(ACL_STAGE_MARKER):
+            if stage_name is not None:
+                sections.append((stage_name, "".join(stage_lines)))
+            stage_name = line.removeprefix(ACL_STAGE_MARKER).strip()
+            stage_lines = [*preamble, line] if not sections else [line]
+            preamble = []
+        elif stage_name is None:
+            preamble.append(line)
+        else:
+            stage_lines.append(line)
+    if stage_name is not None:
+        sections.append((stage_name, "".join(stage_lines)))
+    if tuple(name for name, _ in sections) != EXPECTED_ACL_STAGES:
+        raise SchemaRoleError("runtime_acl_stage_set")
+    if preamble or any(not payload.strip() for _, payload in sections):
+        raise SchemaRoleError("runtime_acl_stage_set")
+    return tuple(sections)
+
+
 def _fetch_scalar(conn: Any, sql: str, params: tuple[Any, ...] = ()) -> Any:
     row = conn.execute(sql, params).fetchone()
     if row is None:
         raise SchemaRoleError("missing_scalar")
     return next(iter(row.values())) if isinstance(row, dict) else row[0]
+
+
+def _migration_owner_metrics(conn: Any) -> dict[str, int]:
+    owner = conn.execute(
+        "SELECT rolsuper,rolcreaterole FROM pg_roles WHERE rolname=%s",
+        (MIGRATION_OWNER_ROLE,),
+    ).fetchone()
+    if (
+        owner is None
+        or bool(owner["rolsuper"])
+        or not bool(owner["rolcreaterole"])
+    ):
+        raise SchemaRoleError("migration_owner_role")
+    if not bool(_fetch_scalar(
+        conn,
+        "SELECT database.datdba=%s::regrole "
+        "FROM pg_database database WHERE database.datname=current_database()",
+        (MIGRATION_OWNER_ROLE,),
+    )):
+        raise SchemaRoleError("migration_owner_database")
+    if not bool(_fetch_scalar(
+        conn,
+        "SELECT has_schema_privilege(%s,'public','USAGE') "
+        "AND has_schema_privilege(%s,'public','CREATE WITH GRANT OPTION')",
+        (MIGRATION_OWNER_ROLE, MIGRATION_OWNER_ROLE),
+    )):
+        raise SchemaRoleError("migration_owner_schema")
+    ownership = conn.execute(
+        "SELECT "
+        "(SELECT COUNT(*) FROM pg_class object "
+        "JOIN pg_namespace namespace ON namespace.oid=object.relnamespace "
+        "WHERE namespace.nspname='public')::integer AS relation_count,"
+        "(SELECT COUNT(*) FROM pg_proc object "
+        "JOIN pg_namespace namespace ON namespace.oid=object.pronamespace "
+        "WHERE namespace.nspname='public')::integer AS function_count,"
+        "((SELECT COUNT(*) FROM pg_class object "
+        "JOIN pg_namespace namespace ON namespace.oid=object.relnamespace "
+        "WHERE namespace.nspname='public' "
+        "AND object.relowner<>%s::regrole) + "
+        "(SELECT COUNT(*) FROM pg_proc object "
+        "JOIN pg_namespace namespace ON namespace.oid=object.pronamespace "
+        "WHERE namespace.nspname='public' "
+        "AND object.proowner<>%s::regrole))::integer AS mismatch_count",
+        (MIGRATION_OWNER_ROLE, MIGRATION_OWNER_ROLE),
+    ).fetchone()
+    if ownership is None or int(ownership["mismatch_count"]):
+        raise SchemaRoleError("migration_owner_ownership")
+    return {
+        "migration_owner_relation_count": int(ownership["relation_count"]),
+        "migration_owner_function_count": int(ownership["function_count"]),
+        "migration_owner_mismatch_count": 0,
+    }
+
+
+def _activate_migration_owner(conn: Any) -> dict[str, int]:
+    identity = conn.execute(
+        "SELECT session_user AS session_name,current_user AS current_name"
+    ).fetchone()
+    if (
+        identity is None
+        or str(identity["session_name"]) in RUNTIME_ROLES
+    ):
+        raise SchemaRoleError("migration_executor_identity")
+    if str(identity["current_name"]) != MIGRATION_OWNER_ROLE:
+        conn.execute(f"SET LOCAL ROLE {MIGRATION_OWNER_ROLE}")
+    if not bool(_fetch_scalar(
+        conn,
+        "SELECT current_user=%s AND current_role=%s "
+        "AND session_user::text <> ALL(%s::text[])",
+        (
+            MIGRATION_OWNER_ROLE,
+            MIGRATION_OWNER_ROLE,
+            list(RUNTIME_ROLES),
+        ),
+    )):
+        raise SchemaRoleError("migration_owner_activation")
+    metrics = _migration_owner_metrics(conn)
+    executor_owned_objects = int(_fetch_scalar(
+        conn,
+        "SELECT CASE WHEN session_user=current_user THEN 0 ELSE ("
+        "(SELECT COUNT(*) FROM pg_class object "
+        "JOIN pg_namespace namespace ON namespace.oid=object.relnamespace "
+        "WHERE namespace.nspname='public' "
+        "AND object.relowner=session_user::regrole) + "
+        "(SELECT COUNT(*) FROM pg_proc object "
+        "JOIN pg_namespace namespace ON namespace.oid=object.pronamespace "
+        "WHERE namespace.nspname='public' "
+        "AND object.proowner=session_user::regrole)) END",
+    ))
+    if executor_owned_objects:
+        raise SchemaRoleError("migration_executor_ownership")
+    return {
+        **metrics,
+        "executor_owned_object_count": executor_owned_objects,
+    }
 
 
 def _prepare_migration_ledger(conn: Any) -> None:
@@ -684,9 +820,7 @@ def _accepted_role_risk_state(
     if not bool(_fetch_scalar(
         conn,
         "SELECT session_user <> 'noteai_xhs' "
-        "AND current_user <> 'noteai_xhs' "
-        "AND session_user=current_user "
-        "AND current_user=current_role",
+        "AND current_user <> 'noteai_xhs'",
     )):
         raise SchemaRoleError("migration_executor_identity")
 
@@ -704,15 +838,30 @@ def _accepted_role_risk_state(
         "ORDER BY granted.rolname,member.rolname",
         (list(RUNTIME_ROLES), list(RUNTIME_ROLES)),
     ).fetchall()
-    if len(membership_rows) != 1:
-        raise SchemaRoleError("accepted_role_membership")
-    membership = membership_rows[0]
-    if not (
-        membership["granted_name"] == "noteai_xhs"
-        and membership["member_name"] == "noteai_admin"
-        and bool(membership["admin_option"])
-        and membership["inherit_option"] is False
-        and membership["set_option"] is False
+    present_new_roles = {
+        str(row["rolname"])
+        for row in conn.execute(
+            "SELECT rolname FROM pg_roles WHERE rolname = ANY(%s)",
+            (list(NEW_RUNTIME_ROLES),),
+        ).fetchall()
+    }
+    expected_memberships = {("noteai_xhs", MIGRATION_OWNER_ROLE)}
+    expected_memberships.update(
+        (role, MIGRATION_OWNER_ROLE) for role in present_new_roles
+    )
+    observed_memberships = {
+        (str(row["granted_name"]), str(row["member_name"]))
+        for row in membership_rows
+    }
+    if (
+        observed_memberships != expected_memberships
+        or len(membership_rows) != len(expected_memberships)
+        or any(
+            not bool(row["admin_option"])
+            or row["inherit_option"] is not False
+            or row["set_option"] is not False
+            for row in membership_rows
+        )
     ):
         raise SchemaRoleError("accepted_role_membership")
 
@@ -854,6 +1003,7 @@ def _accepted_role_risk_state(
         "accepted_risk_count": len(ACCEPTED_ROLE_RISK_IDS),
         "accepted_attribute_count": 1,
         "accepted_membership_count": 1,
+        "management_membership_count": len(present_new_roles),
         "unexpected_attribute_count": 0,
         "unexpected_membership_count": 0,
         "app_incoming_membership_count": app_incoming_memberships,
@@ -929,6 +1079,7 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
     if sequences != tuple(sorted(EXPECTED_PUBLIC_SEQUENCES)):
         raise SchemaRoleError("sequence_inventory")
 
+    migration_owner = _migration_owner_metrics(conn)
     accepted_role_risks = _accepted_role_risk_state(
         conn,
         tables=tables,
@@ -1123,6 +1274,9 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
         "accepted_role_membership_count": int(
             accepted_role_risks["accepted_membership_count"]
         ),
+        "runtime_management_membership_count": int(
+            accepted_role_risks["management_membership_count"]
+        ),
         "unexpected_role_attribute_count": int(
             accepted_role_risks["unexpected_attribute_count"]
         ),
@@ -1132,6 +1286,7 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
         "app_high_privilege_inheritance_count": int(
             accepted_role_risks["app_high_privilege_inheritance_count"]
         ),
+        **migration_owner,
     }
 
 
@@ -1158,13 +1313,15 @@ def _apply_contract(
     migration_paths = sorted(MIGRATION_DIR.glob("*.sql"))
     expected_ledger_names = tuple(path.name for path in migration_paths)
     legacy_ledger_names = expected_ledger_names[:8]
-    acl_payload = ACL_PATH.read_text(encoding="utf-8")
+    acl_payloads = _runtime_acl_payloads()
     stage["name"] = "transaction_begin"
     with conn.transaction():
         stage["name"] = "session_controls"
         conn.execute("SET LOCAL statement_timeout='120s'")
         conn.execute("SET LOCAL lock_timeout='5s'")
         conn.execute("SET LOCAL idle_in_transaction_session_timeout='180s'")
+        stage["name"] = "migration_owner_activation"
+        _activate_migration_owner(conn)
         stage["name"] = "advisory_lock"
         conn.execute(
             "SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))"
@@ -1316,9 +1473,11 @@ def _apply_contract(
         ) else []
         if applied != expected_applied:
             raise SchemaRoleError("migration_ledger_insert_count")
-        stage["name"] = "runtime_acl"
-        conn.execute(acl_payload)
+        for acl_stage, acl_payload in acl_payloads:
+            stage["name"] = f"runtime_acl_{acl_stage}"
+            conn.execute(acl_payload)
         stage["name"] = "postcondition_verification"
+        final_owner = _activate_migration_owner(conn)
         verification = validate_contract(conn, expect_login=False)
         schema_seed_writes = 2 if applied else 0
         stage["name"] = "transaction_commit"
@@ -1343,6 +1502,16 @@ def _apply_contract(
             "ownership_count": 0,
             "membership_count": (
                 verification["accepted_role_membership_count"]
+                + verification["runtime_management_membership_count"]
+            ),
+            "management_membership_count": (
+                verification["runtime_management_membership_count"]
+            ),
+            "migration_owner_mismatch_count": (
+                verification["migration_owner_mismatch_count"]
+            ),
+            "executor_owned_object_count": (
+                final_owner["executor_owned_object_count"]
             ),
             "elevation_count": (
                 verification["accepted_role_attribute_count"]

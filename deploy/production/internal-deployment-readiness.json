@@ -337,6 +337,10 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-schema-roles-v4-rolled-back-20260728.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-runtime-acl-root-cause-20260729.json"
             }
           ],
           "accepted_risks": [
@@ -362,7 +366,7 @@
               "compensating_controls": [
                 "RDS has no public endpoint and current full backups are available.",
                 "Runtime secrets remain node-local root-owned 0600 files and API/Admin listeners remain loopback-only.",
-                "Schema migrations execute through a separate short-term protected Super account, never noteai_xhs."
+                "Schema migrations execute as the persistent noteai_admin migration owner through a protected executor, never noteai_xhs."
               ],
               "owner": "CTO",
               "review_due": "first_public_launch_plus_30_days",
@@ -427,9 +431,9 @@
               ]
             }
           ],
-      "blocker": "The two exact historical role findings remain active as zero-credit ACCEPTED_RISK entries. The V3B and V4 production schema transactions are both CONNECTED_KNOWN/ROLLED_BACK and non-retriable. V4 passed fresh backup/private-network/zero-residue/API checks, exact remote package verification, network-none import and forced-readonly pre-dispatch; its one schema dispatch failed at the sanitized fixed stage apply_runtime_acl_failed. Independent forced-readonly outcome evidence proves database writes 0. Production remains exactly at ledger 0001-0008, 30 tables, 5 sequences and 2 historical runtime roles; migrations 0009-0016 and runtime-role SQL remain unapplied.",
-          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-RUNTIME-ACL-ROOT-CAUSE-003",
-      "resume_condition": "Preserve PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V3B-001 and PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001 as CONNECTED_KNOWN/ROLLED_BACK and never retry either database action. First complete a source-level correction for the fixed apply_runtime_acl_failed stage, independent offline PostgreSQL validation, Secret-free evidence and a separately named pushed checkpoint. No later production transaction may inherit V4's consumed one-transaction allowance; it requires distinct incident authority. The accepted-risk profile remains exact, receives zero readiness credit and cannot authorize any role expansion."
+      "blocker": "The two exact historical role findings remain active as zero-credit ACCEPTED_RISK entries. The V3B and V4 production schema transactions are CONNECTED_KNOWN/ROLLED_BACK and permanently non-retriable. ROOT-CAUSE-003 proved that managed RDS provides no native PostgreSQL superuser, so creating six roles directly as the short-term executor generated six implicit ADMIN-only membership rows and failed the old exact-one membership assertion before database/schema ACL. The corrected V5 source activates the persistent noteai_admin migration owner, requires exact database/public-object ownership, permits exactly six owner management rows with INHERIT/SET false, splits runtime ACL into ten fixed stages and proves the short-term executor owns zero objects and is deletable. Disposable PostgreSQL 16 complete apply/apply-twice/outcome/six-negative-mutation validation passed. Production itself remains exactly at ledger 0001-0008, 30 tables, 5 sequences and 2 historical runtime roles; migrations 0009-0016 and the corrected runtime-role SQL remain unapplied.",
+          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-OWNER-AUTHORITY-PREFLIGHT-004",
+      "resume_condition": "Preserve V3B and V4 as CONNECTED_KNOWN/ROLLED_BACK and never retry either database action. From the pushed ROOT-CAUSE-003 checkpoint, perform a separately named forced-readonly owner-authority preflight that proves noteai_admin is the current database owner, owns every existing public object, has the required schema/CREATEROLE capability, can be activated from the protected executor, and leaves production exactly at 0001-0008 with zero task residue. That preflight cannot write schema or roles. Only its deterministic success may authorize a separately named V5 one-transaction incident; V5 cannot inherit V4's consumed allowance. The accepted-risk profile remains exact, receives zero readiness credit and cannot authorize role expansion."
         },
         {
           "id": "managed_secret_distribution",

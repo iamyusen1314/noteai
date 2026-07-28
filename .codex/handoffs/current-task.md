@@ -1,453 +1,257 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-07-28 (Asia/Shanghai)
+> Updated: 2026-07-29 (Asia/Shanghai)
 >
-> This file is the sole current Handoff instruction source. Re-read it, Git,
-> the readiness manifest and the risk register after any context compression.
+> This file is the current Secret-free recovery source. After context
+> compression, re-read this file, Git, the readiness manifest and the risk
+> register before continuing.
 
-## 1. Objective and authority
+## 1. Objective and standing authority
 
 - Umbrella task: `PROD-COMPLETE-FIRST-LAUNCH-001`.
-- Goal: reach internal deployment readiness `29/29` through finite, bounded,
-  reversible and independently evidenced work.
-- Main CTO may approve bounded internal-production actions without repeated
-  approval.
-- Stop for interactive login/new credentials, public DNS or real traffic,
+- Goal: internal deployment readiness `29/29`.
+- Main CTO may approve finite, bounded, reversible internal-production work
+  without repeated product-owner confirmation.
+- Do not stop merely because a task, checkpoint, cleanup or Handoff completed.
+  Continue through the dependency graph.
+- Stop only for interactive login/new credentials, public DNS or real traffic,
   irreversible destruction, uncapped cost, a new product decision, public
-  launch completion, a real security conflict, a database-connected UNKNOWN
+  launch declaration, a true security conflict, a database-connected UNKNOWN
   result or genuine technical inability.
-- Never emit or persist Secret values, private keys, passwords, cookies, full
-  connection strings, IP addresses, cloud resource IDs, user data or long raw
-  logs. Never force-push, merge directly to `main`, run concurrent production
-  writes or automatically retry a database-connected failure.
+- Never print or persist Secret values, credentials, private keys, cookies,
+  complete connection strings, IP addresses, cloud resource IDs, user data or
+  long raw logs. Never force-push, merge directly to `main`, run concurrent
+  production writes or automatically retry a database-connected failure.
 
 ## 2. Git and readiness truth
 
 - Branch: `codex/quality-stabilization-real-chain`.
-- V3B source/policy checkpoint:
-  `39f6d046eb22870484baadb5b745316efacd0044`.
-- Resolve the current incident checkpoint from the newest pushed
-  `[skip render] Record deterministic schema rollback` commit; this Handoff
-  is part of that commit and must not attempt a self-referential hash.
-- Deterministic rollback checkpoint:
-  `7c24c81cba9237be53a6d2ec11bfa4d91e6921b0`.
-- Resolve the stage-safe authority checkpoint from the newest pushed
-  `[skip render] Prepare stage-safe schema authority path` commit after this
-  Handoff is committed; do not embed a self-referential hash.
-- Stage-safe authority checkpoint:
-  `b9396ab709cf6fd2f3b9b45964617205452ee5c1`.
-- Resolve the fixed V4 runner checkpoint from the newest pushed
-  `[skip render] Stabilize V4 schema runner` commit after this Handoff is
-  committed; do not embed a self-referential hash.
-- V4 package checkpoint:
+- ROOT-CAUSE-003 base:
+  `6dd7d6d6df22c92b39d51445ce543ee3658894aa`.
+- Historical V4 package binding:
   `13377d7ac37b090818c56be545f34a7ac5587d49`.
-- Historical UNKNOWN incident source checkpoint:
-  `a5f2961089744eb1c0bf0eb0011b93a132d6493f`.
-- Schema executor repair:
+- Historical V4 exact execution source:
+  `8f6b8b68e24726ab6a57abfb805b9fd222238d0f`.
+- Schema executor legacy-ledger repair:
   `e5883abc01c4b009907bee550209d7036d383771`.
-- Upstream divergence before the incident: `0/0`.
+- Resolve the pushed ROOT-CAUSE-003 checkpoint from the newest
+  `[skip render]` commit; do not embed a self-referential hash here.
 - Repository/isolated readiness: `12/12`.
 - Internal deployment readiness: `14/29 = 48%`.
+- Public launch readiness: `14/38 = 37%`.
 - Public launch completion: false.
-- This Handoff and its evidence must be committed and pushed as a new
-  `[skip render]` V4 rollback checkpoint. Resolve that checkpoint with
-  `git log` rather than embedding a self-referential hash here.
 
-## 3. Unique task and current incident boundary
+## 3. Preserved production incident boundary
 
-`PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001`
-
-- Status:
+- V3B and V4 are both
   `CONNECTED_KNOWN / ROLLED_BACK / DATABASE WRITES 0 / CLEAN`.
-- Parent task:
-  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`.
-- Repository authority-resolution task
-  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002` is complete:
-  fixed stage-safe failure codes, independent tests, disposable PostgreSQL 16
-  integration and the non-mutating managed-RDS authority plan passed without
-  changing migration or runtime-ACL bytes.
-- The historical read-only artifact remains exactly
-  `CONNECTED_UNKNOWN`; its database and transaction outcomes remain
-  `UNKNOWN`, and it has not been reclassified or retried.
-- Product-owner/CTO authorization operationally closes only that historical
-  read-only incident as `HISTORICAL_CLOSED_BY_AUTHORIZED_IMPACT_BOUND`.
-  The bound is source-proven: the pinned auditor contains only fixed session
-  `SET`, `SHOW`, catalog `SELECT` and built-in privilege `SELECT` statements;
-  its runner invokes no schema executor; schema apply count was zero.
-- A materially different database incident is now opened. It is not an
-  automatic retry and must use new audit/run IDs, directory, sentinels,
-  application name, fixed set-based SQL and a separate evidence artifact.
-- Exactly two fixed accepted-risk entries are active with zero readiness
-  credit. Neither is `VERIFIED_FIXED`, neither authorizes a database action,
-  and both are reviewed 30 days after first public launch.
-- New read-only incident:
-  `PROD-FIRST-LAUNCH-LEGACY-ROLE-RISK-SET-AUDIT-002`;
-  run `PROD-FIRST-LAUNCH-LEGACY-ROLE-RISK-SET-AUDIT-RUN-001`;
-  directory `/var/lib/noteai/role-risk-set-audit-v2`;
-  application name `noteai_role_risk_set_audit_v2`.
-- Before its one permitted connection, the main CTO must finish local
-  PostgreSQL 16 validation and rebuild a minimal hash-verified package.
-- The new database path is limited to one connection and one
-  `REPEATABLE READ READ ONLY` transaction with fixed stages:
-  `session`, `ledger_inventory`, `role_graph`, `xhs_acl`, terminal `ROLLBACK`.
-- The new audit completed all stages with terminal `ROLLBACK`, one connection,
-  database writes zero and a deterministic `CONNECTED_KNOWN` result. It must
-  not be repeated.
-- Production schema V3B apply used one connection and one bounded transaction.
-  Its runner returned the fixed `execution_failed` code after dispatch and was
-  not retried. The independent forced-readonly outcome audit deterministically
-  classified the database transaction `ROLLED_BACK`.
-- Production remains exactly at migrations `0001`-`0008`, 30 public tables,
-  5 sequences and the 2 historical runtime roles. New roles, new tables,
-  migration SHA backfills, new ledger rows, seed rows, retention backfill,
-  existing business-row updates and total database writes are all zero.
-- V4 fresh control-plane, package, zero-DSN/network-none and protected
-  credential gates passed. Its forced-readonly pre-dispatch used one
-  connection, rolled back, wrote zero rows and reconfirmed exact
-  `0001`-`0008`, 30 tables, 5 sequences and the two accepted-risk tuples.
-- V4 schema apply was dispatched exactly once. The runner returned
-  `CONNECTED_UNKNOWN` with the fixed stage code
-  `apply_runtime_acl_failed`; it was not retried.
-- The predeclared independent forced-readonly outcome audit used one
-  connection and deterministically resolved the transaction to
-  `CONNECTED_KNOWN / ROLLED_BACK / database writes 0`.
-- Production therefore remains exactly `0001`-`0008`; all five permitted
-  write categories are observed as zero. V4 is not deployed, cannot receive
-  readiness credit and the same database action must never be retried.
-- The short-term account, RSA/ciphertext, package, result/sentinel material,
-  task directory, containers, processes and Cloud Shell task state were
-  deleted and read back at zero. API-C/API-F/Admin remain active, ready and
-  loopback-only.
+- Never retry either database action.
+- V4 passed its fresh backup/private-network/zero-residue/API checks, exact
+  remote package verification, network-none import and forced-readonly
+  pre-dispatch before its one apply.
+- V4 returned the sanitized coarse stage `apply_runtime_acl_failed`.
+- The independent forced-readonly outcome audit proved the transaction rolled
+  back and all five permitted write categories were zero.
+- Production therefore remains exactly:
+  - ledger migrations `0001`-`0008`;
+  - 30 public tables;
+  - 5 public sequences;
+  - 2 historical runtime roles;
+  - no SHA backfill, new ledger row, new table, new role, seed, retention
+    backfill or existing business-row update.
+- Last independently observed cleanup baseline after V4:
+  `3 accounts / 1 Super / 0 task accounts`, zero task account/key/ciphertext/
+  directory/package/sentinel/result/container/process/Cloud Shell residue;
+  API-C/API-F/Admin active, ready and loopback-only.
+- ROOT-CAUSE-003 made no production database, cloud, service, provider or
+  public-traffic action. The next production read-only task must refresh the
+  cleanup and service baseline rather than inherit browser memory.
 
-## 4. Product-owner first-launch risk decision
+Historical evidence:
 
-- Alibaba provider support is optional after launch and is not an internal
-  readiness or first-launch hard blocker.
-- Existing `noteai_xhs -> noteai_admin` membership may be accepted for first
-  launch only after fresh read-only proof of the exact
-  `ADMIN / INHERIT / SET` options and complete effective privilege matrix.
-- Existing `noteai_app ROLINHERIT` may be accepted only after fresh proof that
-  it inherits zero high-privilege roles.
-- The decision authorizes no new role, `ADMIN OPTION`, DDL, role management or
-  extra database privilege for `noteai_xhs`.
-- The two findings must be `ACCEPTED_RISK`, never `VERIFIED_FIXED`, receive
-  zero readiness credit and be reviewed 30 days after first public launch.
-- Repository gate support is limited to the fixed profile
-  `FIRST_LAUNCH_LEGACY_ROLE_RISK_V1` and exactly two fixed risk IDs. There is
-  no global waiver.
-- Activation is true only for the exact observed tuple
-  `ADMIN TRUE / INHERIT FALSE / SET FALSE` and for `noteai_app ROLINHERIT`
-  with incoming membership zero and high-privilege inheritance zero. Backup
-  freshness, zero public RDS endpoint, protected runtime env metadata and
-  loopback-only services are freshly proven.
+- `deploy/production/evidence/production-schema-roles-v4-rolled-back-20260728.json`
+  - 26 files including manifest;
+  - 25/25 hashes;
+  - 16 migrations;
+  - 64,252 bytes;
+  - deterministic archive SHA-256
+    `0e16fd34404319902b1f15b9b1bccce6394f0ade5fb09ca0dd3979e1158bac5a`;
+  - preflight result 3,853 bytes / SHA-256
+    `66821db97930871d06fcf8538cbc0626bd820cb3e198c022f0c9d287b4bd7335`.
 
-## 5. Current incident evidence
+The older 25-file/62,275-byte package and 3,845-byte result belong to the
+accepted-risk read-only audit, not V4.
 
-Current V4 Secret-free incident artifact:
+## 4. First-launch accepted risks
 
-`deploy/production/evidence/production-schema-roles-v4-rolled-back-20260728.json`
+- Exactly two zero-credit accepted risks remain active:
+  - the existing `noteai_xhs -> noteai_admin` row is
+    `ADMIN TRUE / INHERIT FALSE / SET FALSE`;
+  - `noteai_app ROLINHERIT` has incoming membership 0 and high-privilege
+    inheritance 0.
+- They are `ACCEPTED_RISK`, never `VERIFIED_FIXED`, and are reviewed 30 days
+  after first public launch.
+- They authorize no new `noteai_xhs` role, membership, ADMIN OPTION, DDL,
+  ownership, role management or database privilege.
+- Provider support remains an optional post-launch remediation, not a
+  first-launch blocker.
 
-Artifact SHA-256:
+## 5. Completed unique task: ROOT-CAUSE-003
 
-`b0b2b0ee44101809ab7c9e637556fc2d3febcf8cc683b52609eccc6caa32c301`
+`PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-RUNTIME-ACL-ROOT-CAUSE-003`
 
-Accepted-risk source artifact:
+Status:
+`REPOSITORY + DISPOSABLE POSTGRESQL VERIFIED / PRODUCTION UNCHANGED`.
 
-`deploy/production/evidence/production-first-launch-role-risk-accepted-20260728.json`
+Exact root cause:
 
-Accepted-risk source SHA-256:
+1. Alibaba RDS PostgreSQL exposes no native PostgreSQL superuser.
+2. PostgreSQL 16 always gives a NOSUPERUSER+CREATEROLE creator implicit
+   `ADMIN OPTION` on each role it creates. The default empty
+   `createrole_self_grant` only omits `INHERIT` and `SET`.
+3. V4 created six runtime roles directly as the short-term managed-RDS
+   privileged executor.
+4. PostgreSQL therefore created six
+   `new_runtime_role -> executor / ADMIN TRUE / INHERIT FALSE / SET FALSE`
+   rows.
+5. With the one accepted legacy row, the old exact-one assertion observed
+   seven rows and failed inside the first runtime ACL `role_contract` block.
+   Database/schema ACL was not reached.
+6. The old disposable fixture used a native superuser for role creation and
+   could not reproduce this managed-RDS behavior.
 
-`2f25268539ee48d73bb6dcbff9af7ef8a9115d2e8a542f93fff29b9fa9b44c97`
+Corrected V5 owner contract:
 
-Deterministic facts:
+- Activate persistent `noteai_admin` with `SET LOCAL ROLE` inside the bounded
+  transaction before advisory lock or writes.
+- Require `noteai_admin` to be non-native-superuser, have `CREATEROLE`, own the
+  current database and own every existing/new public relation and function.
+- Create the six new NOLOGIN roles as the persistent owner.
+- Require exactly six owner management rows, each
+  `ADMIN TRUE / INHERIT FALSE / SET FALSE`; they allow role administration
+  but no privilege inheritance or `SET ROLE`.
+- Preserve the one historical accepted-risk row separately.
+- Require unexpected membership, runtime ownership, migration-owner mismatch
+  and short-term-executor ownership all to be zero.
+- Split runtime ACL into ten fixed sanitized stages:
+  `role_contract`, `database_schema`, `clear_new_roles`, `api`, `tracking`,
+  `trends`, `durable_ai`, `private_storage`, `payment`, `admin`.
+- Use the new task root `/var/lib/noteai/schema-roles-v5-owner`; never reuse
+  the V4 directory or runner identity.
+- Distinguish `apply_transaction=committed` from
+  `audit_transaction=rolled_back` in runner summaries.
 
-- Metadata-free ustar package: 25 files, 16 migrations, 24/24 hashes,
-  62,275 bytes, SHA-256
-  `84cfdea3f218168daa929f4f27536d13965999d7f1f6db84d5d1de588a1faa7a`.
-- Local zero-DSN import and remote `--network none` import passed.
-- One short-term protected Super account and one 3072-bit RSA pair were
-  created; plaintext persistence/environment/argv/log exposure counts are 0.
-- The audit made one database connection and one four-query
-  `REPEATABLE READ READ ONLY` transaction, then rolled back.
-- Result: 3,845 bytes, SHA-256
-  `59475549a9c969c9edd9019e656456861ac00bcadc09e7e1b13c30dadd645400`;
-  database writes 0, business-row values read 0, automatic retries 0.
-- Ledger is exactly `0001`–`0008`; inventory is 30 tables and 5 sequences;
-  new roles/tables, legacy SHA column/constraint and retention sources are 0.
-- The only legacy membership is
-  `noteai_xhs -> noteai_admin / ADMIN TRUE / INHERIT FALSE / SET FALSE`.
-- `noteai_app` incoming membership and high-privilege inheritance are both 0.
-- XHS database/schema/table/column/sequence/function/ownership/default-ACL
-  negative matrix is exact with mismatch and grantable counts 0.
-- The raw auditor returned `state_changed` only because its pre-observation
-  profile pinned historical `INHERIT TRUE`. Session, ledger and XHS ACL all
-  passed. The fixed accepted-risk profile is now narrowed to observed
-  `INHERIT FALSE`; migration bytes and SHA values are unchanged.
-- Focused repository tests: `38/38`; disposable PostgreSQL 16 complete
-  apply/apply-twice/six-negative-mutation integration: `1/1`; local task
-  container count 0 and Colima restored stopped.
+Secret-free evidence:
 
-The old
-`production-first-launch-role-risk-readonly-unknown-20260728.json` remains
-historical and unchanged. It is not reclassified or used as current evidence.
+`deploy/production/evidence/production-schema-runtime-acl-root-cause-20260729.json`
 
-## 6. PRE_CONNECT incidents
+Current hashes:
 
-All of the following were proven before database dispatch from sentinels,
-containers and result state, then materially corrected:
+- executor:
+  `56d148fbbbadc2f8b15c6cfdc5ef978f10b79dbd86dbbf5ccb272dc1ce23972a`;
+- outcome auditor:
+  `223ee1df52e53ef53a7e3247d78a8d4e40e4792876032807d78a25d8a04861fb`;
+- read-only preflight:
+  `2d873101db846689be20d8fee2d4adb21017fe51c54cc4ebfaffd54e58d3ad17`;
+- runtime ACL:
+  `b5fc9e7074c09b0ca26368049225873a6b342b810a17aab48ec7b89278a672d7`;
+- V5 runner:
+  `fea169abd58fa37b0c5c4c446abfc8ae6f7f38ab908e111b6f3cd1b78c8672bf`;
+- unchanged 16-migration aggregate:
+  `a6cc4fef8d988adb05108edeb16d8b520f600e4fd3bac06f61812c3db24ada73`.
 
-- source directory mode blocked the non-root import container;
-- the first minimal package omitted transitive registry evidence;
-- the replacement archive contained macOS AppleDouble metadata;
-- one root AppleDouble metadata file survived the first exclusion pass;
-- the Chrome file chooser timed out before any send-file execution.
+Disposable PostgreSQL 16 proof:
 
-No database connection, transaction or write occurred in those incidents.
-They do not weaken either the preserved historical `CONNECTED_UNKNOWN` record
-or the fresh deterministic `CONNECTED_KNOWN` audit.
+- `2/2` integration tests passed.
+- The first test pinned the implicit ADMIN edge and proved the non-super
+  creator cannot remove the bootstrap-granted row itself.
+- The second used a distinct short-term executor, activated the persistent
+  owner, completed first apply, apply-twice, independent outcome and six
+  negative mutations, then actually deleted the executor.
+- First apply exact counts:
+  `8 SHA backfills + 8 ledger inserts + 2 fixed seeds + 0 retention +
+  0 existing business updates`.
+- Apply-twice: all five categories zero.
+- Owner mismatch, executor-owned objects and executor residue: zero.
+- Focused schema/outcome unit tests: `24/24`.
 
-Current resume-stage failures were also bounded `PRE_CONNECT` with database
-connection/transaction/write all zero:
+Local diagnostic failures were bounded:
 
-- the first V4 archive omitted the read-only preflight module and the fixed
-  registry evidence that module reads at import time;
-- the in-app browser had no authenticated Alibaba session;
-- the initial ECS topology filter included one non-API node;
-- three Cloud Assistant control attempts omitted the required Base64
-  `ContentEncoding` declaration or inherited that output-contract error;
-- two failure branches exited the temporary Cloud Shell before the wrapper was
-  isolated in a subshell.
-- one result parser used an unavailable remote command path and exited `127`
-  after the database audit had already produced its immutable result;
-- two parser dispatch wrappers selected the Cloud Shell UI region instead of
-  the business ECS region and exited before remote dispatch.
-- one post-incident local hash command used a nonexistent preflight filename;
-  the corrected command resolved the package's actual role-risk preflight
-  module and verified its expected hash;
-- one post-incident sensitive-pattern command had an unmatched shell quote;
-  the corrected invocation used separate fixed expressions and passed;
-- two focused-test assertions still expected the consumed V4 task name and
-  singular no-retry wording; only those stale expectations were updated to the
-  new root-cause task and dual V3B/V4 no-retry boundary.
+- three package mount/import failures were `PRE_CONNECT`;
+- two disposable SQL probes were
+  `CONNECTED_KNOWN / ROLLED_BACK / WRITE 0`;
+- local `CONNECTED_UNKNOWN` count was zero;
+- none involved production.
 
-The material correction uses the existing authenticated Chrome session,
-project-and-zone API-node selection, explicit `ContentEncoding=Base64`,
-`InvocationStatus=Success` plus exit-code-zero validation, and isolated
-Secret-free failure handling. These incidents did not create a database
-account, DSN, transaction, host task directory, persistent command file or
-service change.
+## 6. Unique next task
 
-## 7. V3B transaction, cleanup and non-regression
+`PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-OWNER-AUTHORITY-PREFLIGHT-004`
 
-- Secret-free incident artifact:
-  `deploy/production/evidence/production-schema-role-apply-rolled-back-20260728.json`.
-  Artifact SHA-256:
-  `c7011ea6d248e18414d74b3bb62d8d4d86834cf9ef884823d861b0934f5e9887`.
-- The V3B package had 25 files, 16 migrations and 24/24 registry hashes.
-  Its manifest, executor, outcome-auditor and runtime-ACL hashes matched;
-  local zero-DSN import, remote network-none import and the corrected
-  byte-oriented network-none DSN validator passed.
-- The first validator failures were `PRE_CONNECT`: generated Python source
-  contained a literal newline. The material fix removed that escape boundary;
-  connection, transaction and write counts for those failures were zero.
-- The production runner SHA-256 was
-  `f252ede25bf5760b2a550348f606ad818eddebafa4f86cb342c0088749743f2a`.
-  It created prepared and dispatch sentinels, then returned the 51-byte fixed
-  `execution_failed` error with SHA-256
-  `2d5512e8d01ce69b325d7a48b10f2515080c1888d20acabe78b752808aa7fdb3`.
-  Automatic retries were zero.
-- The independent forced-readonly outcome audit used one connection with
-  `default_transaction_read_only=on`; its transaction rolled back and its
-  1,410-byte result SHA-256 was
-  `f7107f1c29d44904a4b71906f8f2ceead1d138685694838d396f59793baa95f3`.
-  The deterministic outcome is `ROLLED_BACK`, not `UNKNOWN`.
-- A supplemental aggregate authority diagnostic failed after a read-only
-  connection with sanitized class `UndefinedColumn`. It had no mutation path,
-  wrote zero rows, left zero container/process residue and was not repeated.
-- The short-term Super account was deleted and the control plane read back
-  `3 accounts / 1 Super / 0 task accounts`.
-- API-C's fixed task directory was deleted. RSA/private-key, ciphertext,
-  source package, result/error/sentinel files, task containers and task
-  processes are all zero.
-- API-F task directories, task containers and task processes are zero.
-- API-C API and Admin: active, live/ready `200`, one loopback listener each,
-  zero non-loopback listeners.
-- API-F API: active, live/ready `200`, one loopback listener, zero non-loopback
-  listeners.
-- Service restarts, deployments, provider submissions and public-traffic
-  requests: zero.
-- Final RDS control plane: one instance/one running, one network record/zero
-  public endpoint, two successful full backups inside 48 hours and newest
-  full-backup age zero hours at readback.
-- Cloud Shell task files and task variables are zero.
-- Post-incident focused schema/outcome/readiness tests: `30/30`.
-- Production readiness gate: `105/105 PASS`; internal readiness remains
-  fail-closed `14/29 = 48%`; public launch readiness remains `14/38 = 37%`.
-- Both JSON parses, Python compile, changed-file Secret/resource scan,
-  `git diff --check` and upstream pre-commit baseline `0/0`: pass.
-- Secret-free baseline artifact:
-  `deploy/production/evidence/production-schema-role-resume-baseline-20260728.json`.
-  SHA-256:
-  `d22d5f061d61c34fa03eaa6102ddab8da57439a5f1237834ee9da4308fda2355`.
-- Secret-free authority-resolution plan:
-  `deploy/production/evidence/production-schema-authority-resolution-plan-20260728.json`.
-  Artifact SHA-256:
-  `e567d0918c8e47e4351430d3a0be799e831c76ba605ce19bd69576082f01b7b9`.
-  It records zero database/cloud/service/provider actions, 16 fixed failure
-  stages, unchanged migration/runtime-ACL hashes, the official managed-RDS
-  privileged-account authority path and a three-part bounded Cloud Assistant
-  `SendFile` transfer design. Provider support is not required.
-- The V4 package is now rebuilt only from pushed checkpoint
-  `8f6b8b68e24726ab6a57abfb805b9fd222238d0f`: 26 source files including
-  its manifest, 25/25 hashes, 16 migrations, 64,252 bytes and deterministic
-  archive SHA-256
-  `0e16fd34404319902b1f15b9b1bccce6394f0ade5fb09ca0dd3979e1158bac5a`.
-  It has 34 ustar entries, zero AppleDouble/nonregular members and three
-  bounded parts with maximum raw/Base64 sizes 23,000/30,668 bytes, below the
-  documented 32,768-byte Base64 SendFile limit.
-- Explicit local import from the package itself passed with every supported
-  database URL and confirmation environment variable removed. The preceding
-  package omitted the transitive read-only preflight module and its fixed
-  registry evidence dependency; it is classified `PRE_CONNECT` with account,
-  database connection, transaction, write and cloud mutation counts all zero.
-- Fixed runner SHA-256:
-  `d104aafbd93b81c3250db1bb2aefbf39ddf5e22c5ec42a5739b9b8743e36c300`.
-  Its four modes are `prepare`, `preflight`, `apply` and `outcome`.
-  `prepare` performs the one network-none import without database material
-  and binds its sentinel to the package manifest SHA. Database modes receive
-  the protected value only through RSA-OAEP-SHA256 decrypt-to-stdin; the value
-  is never placed in environment variables, argv or result logs.
-- Stage-safe executor unit tests passed `15/15`; the disposable PostgreSQL 16
-  first-apply/apply-twice/outcome/six-negative-mutation integration passed
-  `1/1`. The exact task container was deleted and Colima restored stopped.
-- One broad control-console observation transiently emitted cloud resource
-  metadata in internal tool output. It contained no Secret, credential or user
-  data, was not persisted to Git, submitted to a provider or exposed publicly,
-  and all subsequent output was reduced to bounded counts/booleans.
-- Fresh cloud readback before dispatch proved one running private RDS, zero
-  public endpoint, two successful full backups inside 48 hours, baseline
-  `3 accounts / 1 Super / 0 task accounts`, zero task residue and healthy
-  loopback-only API-C/API-F/Admin.
-- One short-term protected Super account was created only after the package
-  gates passed. RSA-OAEP-SHA256 transfer retained zero plaintext in files,
-  environment, argv or logs.
-- The forced-readonly pre-dispatch result was 3,853 bytes with SHA-256
-  `66821db97930871d06fcf8538cbc0626bd820cb3e198c022f0c9d287b4bd7335`;
-  it rolled back and wrote zero rows.
-- The schema apply was dispatched once and never retried. Its sanitized fixed
-  failure stage is `apply_runtime_acl_failed`.
-- The independent outcome result was 1,410 bytes with SHA-256
-  `f7107f1c29d44904a4b71906f8f2ceead1d138685694838d396f59793baa95f3`;
-  it deterministically proves `ROLLED_BACK` and database writes zero.
-- Final readback restored `3 accounts / 1 Super / 0 task accounts` and zero
-  task account, key, ciphertext, directory, package, sentinel/result,
-  container, process, Cloud Shell file or task variable residue. No service
-  restart, deployment, provider call or public-traffic request occurred.
+Execution class: authenticated production, forced read-only only.
 
-## 8. Repository checkpoint scope and verification
+Required result:
 
-- `tools/production_schema_roles.py`
-- `scripts/postgres/noteai_production_runtime_roles.sql`
-- `tools/production_schema_outcome_audit.py`
-- `tools/production_schema_roles_runner.sh`
-- `tools/production_first_launch_role_risk_set_audit.py`
-- `tools/production_first_launch_role_risk_set_audit_runner.sh`
-- `tools/production_first_launch_role_risk_audit.py`
-- `tools/production_first_launch_role_risk_audit_runner.sh`
-- `tools/internal_deployment_readiness_gate.py`
-- `deploy/production/evidence/production-schema-authority-resolution-plan-20260728.json`
-- `tests/test_production_schema_roles.py`
-- `tests/test_internal_deployment_readiness_gate.py`
-- focused tests for the executor, outcome auditor, role-risk auditor and gate
-- historical role-audit/corrector tests that preserve the e5883 hashes, require
-  current source drift to fail closed, and mock source validation only when
-  testing downstream incident classification
-- the incident evidence, readiness manifest, this Handoff and risk register
+1. Reconfirm fresh successful full backup, zero public RDS endpoint, exact
+   account/task residue counts and API-C/API-F/Admin loopback health.
+2. Rebuild a minimal package only from the pushed ROOT-CAUSE-003 checkpoint;
+   verify every hash and complete zero-DSN/network-none imports before any
+   protected database material.
+3. Use one protected read-only connection/transaction, terminal `ROLLBACK`,
+   with fixed aggregate queries only.
+4. Reconfirm exact ledger `0001`-`0008`, 30 tables, 5 sequences and the two
+   accepted-risk tuples.
+5. Prove without changing state that:
+   - `noteai_admin` is the database owner;
+   - every existing public relation/function is owned by `noteai_admin`;
+   - the role is non-native-superuser with the required `CREATEROLE`;
+   - schema owner/grant-option requirements are satisfied;
+   - the protected executor can activate the owner;
+   - task/executor ownership and dependency counts are zero.
+6. Save one Secret-free deterministic result, clean all transient material,
+   and read back the baseline.
 
-The current code allows only the exact historical first-launch profile,
-requires unchanged `session_user/current_user/current_role` and a
-non-`noteai_xhs` executor, and rejects any extra membership, elevation,
-ownership, table/column/sequence/function privilege, grant option or default
-ACL. The write executor takes the advisory lock first, locks the exact ledger,
-inventory, role fingerprint and zero retention source before DDL, verifies
-exact rowcounts, exact seed fields and the full negative matrix, and leaves
-readiness scoring unchanged.
+This task cannot create roles, alter memberships, run migrations, update the
+ledger or open a V5 write transaction.
 
-Unexpected executor failures now become a fixed
-`apply_<stage>_failed` code across 16 bounded stages; pre-connection failures
-become `database_connection_failed`. Existing fail-closed contract codes are
-preserved, and exception text, DSNs and Secret material are never emitted.
+If and only if the read-only preflight passes, the later unique write incident
+must be separately named (V5), use a fresh one-transaction allowance and
+retain zero automatic retries. It cannot inherit V4 authority.
 
-- Historical focused schema/role/outcome/readiness suites: `66/66`.
-- Current role-policy delta suites: `38/38`.
-- Initial stage-safe checkpoint suites: `35/35`.
-- Current fixed-runner schema/outcome/readiness suites: `37/37`.
-- Post-V4 rollback schema/outcome/role-risk/readiness suites: `41/41`.
-- Full Python suite: `1035/1035`, with `25` explicit skips.
-- Disposable PostgreSQL 16 integration: one complete legacy setup, fixed
-  `INHERIT FALSE` risk profile, fixed read-only audit, exact first apply,
-  apply-twice, independent outcome audit, six negative mutations and final
-  clean outcome: pass.
-- Exact first-apply writes: 8 legacy SHA updates, 8 migration ledger inserts,
-  2 seed inserts, retention backfill 0, existing business-row updates 0.
-- Apply-twice writes: all five categories 0.
-- Production readiness gate: `105/105 PASS`.
-- Internal readiness gate: fail-closed `14/29 = 48%`; public launch
-  `14/38 = 37%`; active accepted-risk entries `2`, readiness credit `0`.
-- Python compile, runner shell syntax, both JSON parses, sensitive-pattern scan
-  with zero matches and `git diff --check`: pass.
-- Post-V4 incident evidence/readiness JSON parse, changed-file
-  sensitive-pattern scan and `git diff --check`: pass.
-- No database, cloud, service, provider, public-traffic or Secret-bearing action
-  occurred during repository verification. The disposable local PostgreSQL
-  container was deleted and Colima restored to its stopped baseline.
-- Secret-free local validation artifact:
-  `deploy/production/evidence/production-schema-role-v2-local-validation-20260728.json`.
-  SHA-256:
-  `08b9eb81a1943c06da47bf55d6cedc68f4e32e3a185e38a74c03c596d94d02e7`.
+## 7. Mandatory failure classification
 
-## 9. Mandatory failure classification
+After any nonzero exit or tool failure, collect Secret-free sentinels,
+process/container counts, connection/transaction state and result evidence:
 
-After any failure, collect Secret-free command fingerprint, sentinel, process,
-container, connection, transaction and result evidence before classifying:
-
-1. `PRE_CONNECT`: prove connection/transaction/write are zero. Clean exact
-   transient material and continue only after a material fix.
+1. `PRE_CONNECT`: prove database connection, transaction and write are zero;
+   clean exact material; continue only after a material correction.
 2. `CONNECTED_KNOWN`: preserve the deterministic result, never retry that
-   database action, clean and stop at its incident boundary.
-3. `CONNECTED_UNKNOWN`: no automatic retry or new database action. Preserve
-   evidence, clean and wait for the allowed external resolution/product-owner
-   incident decision.
+   database action, complete required cleanup and continue only with a
+   separately authorized non-retry path.
+3. `CONNECTED_UNKNOWN`: no automatic retry or new database action; preserve
+   evidence, clean and stop at that incident boundary.
 
-An outer browser, terminal or control-plane failure does not establish
-`PRE_CONNECT` by itself.
+Read-only diagnosis, process/container/sentinel inspection, connection-count
+checks and cleanup do not count as retries and are mandatory after failures.
 
-## 10. Exact resume boundary
+## 8. Verification and checkpoint requirements
 
-1. Preserve all historical UNKNOWN artifacts plus the V3B and V4
-   `CONNECTED_KNOWN / ROLLED_BACK` artifacts without reclassification.
-2. Never retry
-   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V3B-001` or
-   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V4-001`.
-3. Keep the two fixed zero-credit `ACCEPTED_RISK` entries active exactly as
-   observed; neither is `VERIFIED_FIXED` and neither authorizes a database
-   action.
-4. Treat the V4 fixed stage `apply_runtime_acl_failed` only as a sanitized
-   source-level diagnostic. Do not infer, reconstruct or persist raw database
-   error text.
-5. Production is still exactly `0001`-`0008`; `production_schema_roles`
-   remains blocked and internal readiness remains `14/29`.
-6. No new production schema write incident may be opened from this Handoff.
-   First complete source-level root-cause correction, independent offline
-   PostgreSQL validation, Secret-free evidence and a separately named
-   checkpoint. A later production incident requires explicit authority that
-   is distinct from the already-consumed V4 one-transaction allowance.
-7. Read-only diagnostics, process/container/sentinel checks and exact cleanup
-   are mandatory after any failure and do not count as retries. A proven
-   `PRE_CONNECT` failure may continue only through a materially corrected
-   path; any database-connected failure or UNKNOWN result stops that database
-   incident and forbids automatic retry.
-8. The unique non-production next task is
-   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-RUNTIME-ACL-ROOT-CAUSE-003`.
-   It may inspect and correct source plus run disposable PostgreSQL tests, but
-   it cannot connect to production or create production credentials/resources.
+Completed verification:
+
+- focused schema/outcome/readiness tests: `59/59`;
+- full Python suite: `1036/1036`, 26 explicit skips;
+- production readiness gate: `105/105 PASS`;
+- internal readiness: fail-closed `14/29 = 48%`;
+- public readiness: `14/38 = 37%`;
+- zero-DSN import, Python compile, runner shell syntax, JSON parses and
+  `git diff --check`: pass;
+- disposable PostgreSQL containers/network/volume: zero;
+- temporary package removed from active paths and Colima restored stopped;
+- production database/cloud/service/provider/public-traffic actions: zero.
+
+Remaining checkpoint step:
+
+- run the final changed-file Secret/resource scan;
+- create a `[skip render]` ROOT-CAUSE-003 checkpoint commit and push normally.
+
+After push, mark ROOT-CAUSE-003 complete, mark OWNER-AUTHORITY-PREFLIGHT-004
+in progress and continue without treating the checkpoint as a stop signal.

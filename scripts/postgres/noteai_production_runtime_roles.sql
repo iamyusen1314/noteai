@@ -1,20 +1,29 @@
 -- Credential-free first-launch production runtime-role ACL.
 --
--- The migration owner executes this file in the same transaction as
--- migrations 0009-0016. New roles are created NOLOGIN and remain inert until
--- the separate managed-secret task enables LOGIN with generated credentials.
--- Existing noteai_app/noteai_xhs credentials and role attributes are never
--- changed here.
+-- The executor must SET ROLE to the persistent noteai_admin migration owner
+-- before this file runs in the same transaction as migrations 0009-0016.
+-- New roles are created NOLOGIN and remain inert until the separate
+-- managed-secret task enables LOGIN with generated credentials. Existing
+-- noteai_app/noteai_xhs credentials and role attributes are never changed.
 
+-- NOTEAI-RUNTIME-ACL-STAGE: role_contract
 DO $contract$
 DECLARE
     role_name TEXT;
     role_row RECORD;
 BEGIN
-    IF session_user = 'noteai_xhs'
-       OR current_user = 'noteai_xhs'
-       OR session_user <> current_user
-       OR current_user <> current_role THEN
+    IF session_user = ANY(ARRAY[
+           'noteai_app',
+           'noteai_admin_runtime',
+           'noteai_ai_dispatcher',
+           'noteai_ai_worker',
+           'noteai_payment',
+           'noteai_xhs',
+           'noteai_xhs_tracking',
+           'noteai_xhs_trends'
+       ])
+       OR current_user <> 'noteai_admin'
+       OR current_role <> 'noteai_admin' THEN
         RAISE EXCEPTION 'runtime role cannot execute migrations';
     END IF;
 
@@ -101,7 +110,7 @@ BEGIN
             'noteai_xhs_tracking',
             'noteai_xhs_trends'
         ])
-    ) <> 1 OR NOT EXISTS (
+    ) <> 7 OR NOT EXISTS (
         SELECT 1
         FROM pg_auth_members membership
         JOIN pg_roles granted ON granted.oid = membership.roleid
@@ -115,12 +124,34 @@ BEGIN
           AND (
               to_jsonb(membership)->>'set_option'
           )::boolean IS FALSE
-    ) THEN
+    ) OR (
+        SELECT COUNT(*)
+        FROM pg_auth_members membership
+        JOIN pg_roles granted ON granted.oid = membership.roleid
+        JOIN pg_roles member ON member.oid = membership.member
+        WHERE granted.rolname = ANY(ARRAY[
+            'noteai_admin_runtime',
+            'noteai_ai_dispatcher',
+            'noteai_ai_worker',
+            'noteai_payment',
+            'noteai_xhs_tracking',
+            'noteai_xhs_trends'
+        ])
+          AND member.rolname = 'noteai_admin'
+          AND membership.admin_option
+          AND (
+              to_jsonb(membership)->>'inherit_option'
+          )::boolean IS FALSE
+          AND (
+              to_jsonb(membership)->>'set_option'
+          )::boolean IS FALSE
+    ) <> 6 THEN
         RAISE EXCEPTION 'accepted runtime role membership changed';
     END IF;
 END
 $contract$;
 
+-- NOTEAI-RUNTIME-ACL-STAGE: database_schema
 DO $database_acl$
 DECLARE
     role_name TEXT;
@@ -162,6 +193,7 @@ BEGIN
 END
 $database_acl$;
 
+-- NOTEAI-RUNTIME-ACL-STAGE: clear_new_roles
 DO $clear_new_roles$
 DECLARE
     role_name TEXT;
@@ -206,6 +238,7 @@ BEGIN
 END
 $clear_new_roles$;
 
+-- NOTEAI-RUNTIME-ACL-STAGE: api
 -- Migration 0009: existing API role additions and contractions.
 REVOKE ALL PRIVILEGES ON
     auth_login_limits,
@@ -241,6 +274,7 @@ GRANT UPDATE(user_id) ON credit_transactions TO noteai_app;
 GRANT DELETE ON user_learn TO noteai_app;
 GRANT DELETE ON users TO noteai_app;
 
+-- NOTEAI-RUNTIME-ACL-STAGE: tracking
 -- Migration 0010: dedicated Tracking role.
 GRANT SELECT ON tracked_notes TO noteai_xhs_tracking;
 GRANT UPDATE(
@@ -283,6 +317,7 @@ TO noteai_xhs_tracking;
 GRANT SELECT ON system_settings TO noteai_xhs_tracking;
 GRANT USAGE ON SEQUENCE crawler_events_id_seq TO noteai_xhs_tracking;
 
+-- NOTEAI-RUNTIME-ACL-STAGE: trends
 -- Migration 0011: dedicated Trends role and the API freshness projection.
 GRANT SELECT, INSERT ON hot_keywords TO noteai_xhs_trends;
 GRANT UPDATE(
@@ -341,6 +376,7 @@ TO noteai_xhs_trends;
 GRANT SELECT(id, status, completed_at)
     ON xhs_trends_runs TO noteai_app;
 
+-- NOTEAI-RUNTIME-ACL-STAGE: durable_ai
 -- Migration 0012: API, dispatcher and Worker durable-AI surfaces.
 GRANT SELECT, INSERT ON ai_payload_refs TO noteai_app;
 GRANT UPDATE(state, deleted_at) ON ai_payload_refs TO noteai_app;
@@ -439,6 +475,7 @@ GRANT INSERT ON credit_transactions TO noteai_ai_worker;
 GRANT UPDATE(source, credits_used) ON usage_records TO noteai_ai_worker;
 GRANT INSERT ON model_usage_records TO noteai_ai_worker;
 
+-- NOTEAI-RUNTIME-ACL-STAGE: private_storage
 -- Migration 0013: private object metadata.
 GRANT SELECT, INSERT ON private_media_refs TO noteai_app;
 GRANT UPDATE(state, deleted_at) ON private_media_refs TO noteai_app;
@@ -449,6 +486,7 @@ GRANT SELECT ON
     ai_operation_media_refs
 TO noteai_ai_worker;
 
+-- NOTEAI-RUNTIME-ACL-STAGE: payment
 -- Migration 0014: provider-isolated payment surfaces.
 REVOKE ALL ON FUNCTION
     noteai_validate_operation_media_link_v1(),
@@ -546,6 +584,7 @@ GRANT UPDATE(remaining_milli, state, updated_at)
 GRANT UPDATE(state, updated_at)
     ON payment_credit_consumptions TO noteai_ai_worker;
 
+-- NOTEAI-RUNTIME-ACL-STAGE: admin
 -- Migrations 0015-0016: dedicated Admin runtime role.
 GRANT SELECT, INSERT, DELETE
     ON admin_sessions TO noteai_admin_runtime;

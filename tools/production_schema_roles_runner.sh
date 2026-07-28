@@ -3,21 +3,21 @@ set -u
 set -o pipefail
 
 mode="${1:-}"
-task_root=/var/lib/noteai/schema-roles-v4
+task_root=/var/lib/noteai/schema-roles-v5-owner
 source_root="${task_root}/source"
 private_key="${task_root}/transport_private.pem"
 ciphertext="${task_root}/database_url.enc"
 import_sentinel="${task_root}/import.passed"
-container_name="noteai-schema-roles-v4-${mode}-once"
-import_container_name=noteai-schema-roles-v4-import-once
-executor_sha256=610003288b9a4cbdc7f23fc7a58707c209be5f3bd59bb340881f490a5e691902
-outcome_sha256=49cab9279005c21792b0f83753cafbf27b982edae44dba767086634490383aa7
+container_name="noteai-schema-roles-v5-owner-${mode}-once"
+import_container_name=noteai-schema-roles-v5-owner-import-once
+executor_sha256=56d148fbbbadc2f8b15c6cfdc5ef978f10b79dbd86dbbf5ccb272dc1ce23972a
+outcome_sha256=223ee1df52e53ef53a7e3247d78a8d4e40e4792876032807d78a25d8a04861fb
 preflight_sha256=2d873101db846689be20d8fee2d4adb21017fe51c54cc4ebfaffd54e58d3ad17
 confirmation=PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001
 
 fail_preconnect() {
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V4 mode=${mode} incident_class=PRE_CONNECT database_connection=0 transaction=0 database_write=0 retry_same_path=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=${mode} incident_class=PRE_CONNECT database_connection=0 transaction=0 database_write=0 retry_same_path=0 ids_printed=0 secrets=0"
     exit 2
 }
 
@@ -29,7 +29,7 @@ fail_connected_unknown() {
         *) cleanup_required=1 ;;
     esac
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V4 mode=${mode} incident_class=CONNECTED_UNKNOWN database_connection=unknown transaction=unknown database_write=unknown cleanup_required=${cleanup_required} automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=${mode} incident_class=CONNECTED_UNKNOWN database_connection=unknown transaction=unknown database_write=unknown cleanup_required=${cleanup_required} automatic_retry=0 ids_printed=0 secrets=0"
     exit 1
 }
 
@@ -38,7 +38,7 @@ fail_connected_known() {
     known_write_count="${2:-0}"
     cleanup_required="${3:-0}"
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V4 mode=${mode} incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=${outcome} database_write=${known_write_count} cleanup_required=${cleanup_required} automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=${mode} incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=${outcome} database_write=${known_write_count} cleanup_required=${cleanup_required} automatic_retry=0 ids_printed=0 secrets=0"
     exit 30
 }
 
@@ -47,7 +47,7 @@ case "${mode}" in
     *) fail_preconnect ;;
 esac
 case "${task_root}" in
-    /var/lib/noteai/schema-roles-v4) ;;
+    /var/lib/noteai/schema-roles-v5-owner) ;;
     *) fail_preconnect ;;
 esac
 
@@ -135,7 +135,7 @@ if test "${mode}" = prepare; then
     printf '%s\n' "${package_manifest_sha}" >"${import_sentinel}" \
         || fail_preconnect
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V4 mode=prepare incident_class=PRE_CONNECT database_connection=0 transaction=0 database_write=0 import=passed automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=prepare incident_class=PRE_CONNECT database_connection=0 transaction=0 database_write=0 import=passed automatic_retry=0 ids_printed=0 secrets=0"
     exit 0
 fi
 
@@ -279,7 +279,7 @@ if test "${mode}" = preflight \
     result_sha256="${result_sha_line%% *}"
     mv "${result_tmp}" "${result_path}" || fail_connected_unknown
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V4 mode=preflight incident_class=CONNECTED_KNOWN database_connection=1 transaction=rolled_back database_write=0 result_bytes=${result_bytes} result_sha256=${result_sha256} error_bytes=${error_bytes} container=0 automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=preflight incident_class=CONNECTED_KNOWN database_connection=1 audit_transaction=rolled_back database_write=0 result_bytes=${result_bytes} result_sha256=${result_sha256} error_bytes=${error_bytes} container=0 automatic_retry=0 ids_printed=0 secrets=0"
     exit 0
 fi
 
@@ -293,7 +293,11 @@ if test "${mode}" = apply \
     && grep -Fq '"migration_ledger_rows":8' "${result_tmp}" \
     && grep -Fq '"schema_seed_rows":2' "${result_tmp}" \
     && grep -Fq '"retention_backfill_rows":0' "${result_tmp}" \
-    && grep -Fq '"existing_business_row_updates":0' "${result_tmp}"; then
+    && grep -Fq '"existing_business_row_updates":0' "${result_tmp}" \
+    && grep -Fq '"membership_count":7' "${result_tmp}" \
+    && grep -Fq '"management_membership_count":6' "${result_tmp}" \
+    && grep -Fq '"migration_owner_mismatch_count":0' "${result_tmp}" \
+    && grep -Fq '"executor_owned_object_count":0' "${result_tmp}"; then
     test "${container_count}" = 0 \
         || fail_connected_known COMMITTED 18 1
     result_sha_line="$(sha256sum "${result_tmp}")" \
@@ -302,7 +306,7 @@ if test "${mode}" = apply \
     mv "${result_tmp}" "${result_path}" \
         || fail_connected_known COMMITTED 18 0
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V4 mode=apply incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=COMMITTED transaction=1 database_write=18 result_bytes=${result_bytes} result_sha256=${result_sha256} error_bytes=${error_bytes} container=0 automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=apply incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=COMMITTED apply_transaction=committed database_write=18 result_bytes=${result_bytes} result_sha256=${result_sha256} error_bytes=${error_bytes} container=0 automatic_retry=0 ids_printed=0 secrets=0"
     exit 0
 fi
 
@@ -327,7 +331,7 @@ if test "${mode}" = outcome \
     observed_writes=0
     test "${database_outcome}" = COMMITTED && observed_writes=18
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V4 mode=outcome incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=${database_outcome} transaction=rolled_back database_write=${observed_writes} result_bytes=${result_bytes} result_sha256=${result_sha256} error_bytes=${error_bytes} container=0 automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=outcome incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=${database_outcome} audit_transaction=rolled_back database_write=${observed_writes} result_bytes=${result_bytes} result_sha256=${result_sha256} error_bytes=${error_bytes} container=0 automatic_retry=0 ids_printed=0 secrets=0"
     exit 0
 fi
 

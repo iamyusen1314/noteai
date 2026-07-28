@@ -12,6 +12,7 @@ from tools import production_schema_roles as schema_roles
 
 
 LOCAL_DSN_ENV = "NOTEAI_LOCAL_PG16_SCHEMA_ROLE_DSN"
+TASK_EXECUTOR_ROLE = "noteai_schema_task_executor"
 
 
 @unittest.skipUnless(os.environ.get(LOCAL_DSN_ENV), "local PostgreSQL 16 only")
@@ -33,19 +34,8 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
         migration_paths = sorted(schema_roles.MIGRATION_DIR.glob("*.sql"))[:8]
         with psycopg.connect(database_url, row_factory=dict_row) as conn:
             conn.execute(
-                "CREATE TABLE schema_migrations("
-                "version TEXT PRIMARY KEY,"
-                "applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
-            )
-            for path in migration_paths:
-                conn.execute(path.read_text(encoding="utf-8"))
-                conn.execute(
-                    "INSERT INTO schema_migrations(version) VALUES(%s)",
-                    (path.name,),
-                )
-            conn.execute(
                 "CREATE ROLE noteai_admin NOLOGIN "
-                "NOSUPERUSER NOCREATEDB NOCREATEROLE "
+                "NOSUPERUSER NOCREATEDB CREATEROLE "
                 "NOINHERIT NOREPLICATION NOBYPASSRLS"
             )
             conn.execute(
@@ -59,17 +49,41 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
                 "NOINHERIT NOREPLICATION NOBYPASSRLS"
             )
             conn.execute(
-                "GRANT noteai_xhs TO noteai_admin WITH ADMIN OPTION"
+                sql.SQL(
+                    "CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB "
+                    "CREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS"
+                ).format(sql.Identifier(TASK_EXECUTOR_ROLE))
             )
             conn.execute(
-                "GRANT noteai_xhs TO noteai_admin WITH INHERIT FALSE"
+                sql.SQL(
+                    "GRANT noteai_admin TO {} "
+                    "WITH INHERIT FALSE, SET TRUE"
+                ).format(sql.Identifier(TASK_EXECUTOR_ROLE))
             )
             conn.execute(
-                "GRANT noteai_xhs TO noteai_admin WITH SET FALSE"
+                "GRANT noteai_xhs TO noteai_admin "
+                "WITH ADMIN OPTION, INHERIT FALSE, SET FALSE"
             )
             database_name = conn.execute(
                 "SELECT current_database() AS name"
             ).fetchone()["name"]
+            conn.execute(
+                sql.SQL("ALTER DATABASE {} OWNER TO noteai_admin").format(
+                    sql.Identifier(database_name)
+                )
+            )
+            conn.execute("SET ROLE noteai_admin")
+            conn.execute(
+                "CREATE TABLE schema_migrations("
+                "version TEXT PRIMARY KEY,"
+                "applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
+            )
+            for path in migration_paths:
+                conn.execute(path.read_text(encoding="utf-8"))
+                conn.execute(
+                    "INSERT INTO schema_migrations(version) VALUES(%s)",
+                    (path.name,),
+                )
             for role in ("noteai_app", "noteai_xhs"):
                 conn.execute(
                     sql.SQL(
@@ -131,6 +145,52 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
                             sql.Identifier(role),
                         )
                     )
+            conn.execute("RESET ROLE")
+
+    def _connect_as_task_executor(self, database_url):
+        conn = psycopg.connect(
+            database_url,
+            row_factory=dict_row,
+            autocommit=True,
+        )
+        conn.execute(
+            sql.SQL("SET SESSION AUTHORIZATION {}").format(
+                sql.Identifier(TASK_EXECUTOR_ROLE)
+            )
+        )
+        conn.autocommit = False
+        return conn
+
+    def _drop_task_executor(self, database_url):
+        with psycopg.connect(
+            database_url,
+            row_factory=dict_row,
+        ) as conn:
+            owned = conn.execute(
+                "SELECT ("
+                "(SELECT COUNT(*) FROM pg_class object "
+                "JOIN pg_namespace namespace "
+                "ON namespace.oid=object.relnamespace "
+                "WHERE namespace.nspname='public' "
+                "AND object.relowner=%s::regrole) + "
+                "(SELECT COUNT(*) FROM pg_proc object "
+                "JOIN pg_namespace namespace "
+                "ON namespace.oid=object.pronamespace "
+                "WHERE namespace.nspname='public' "
+                "AND object.proowner=%s::regrole)) AS count",
+                (TASK_EXECUTOR_ROLE, TASK_EXECUTOR_ROLE),
+            ).fetchone()["count"]
+            self.assertEqual(int(owned), 0)
+            conn.execute(
+                sql.SQL("DROP ROLE {}").format(
+                    sql.Identifier(TASK_EXECUTOR_ROLE)
+                )
+            )
+            self.assertFalse(conn.execute(
+                "SELECT EXISTS("
+                "SELECT 1 FROM pg_roles WHERE rolname=%s)",
+                (TASK_EXECUTOR_ROLE,),
+            ).fetchone()["exists"])
 
     def _assert_mutation_rejected(
         self,
@@ -185,10 +245,7 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
             0,
         )
 
-        with psycopg.connect(
-            database_url,
-            row_factory=dict_row,
-        ) as apply_conn:
+        with self._connect_as_task_executor(database_url) as apply_conn:
             first = schema_roles.apply_contract(apply_conn)
         self.assertEqual(first["status"], "verified")
         self.assertEqual(first["applied_versions"], list(
@@ -208,11 +265,18 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
             0,
         )
         self.assertEqual(first["verification"]["default_acl_entry_count"], 0)
+        self.assertEqual(first["roles"]["membership_count"], 7)
+        self.assertEqual(
+            first["roles"]["management_membership_count"],
+            6,
+        )
+        self.assertEqual(
+            first["roles"]["migration_owner_mismatch_count"],
+            0,
+        )
+        self.assertEqual(first["roles"]["executor_owned_object_count"], 0)
 
-        with psycopg.connect(
-            database_url,
-            row_factory=dict_row,
-        ) as apply_conn:
+        with self._connect_as_task_executor(database_url) as apply_conn:
             second = schema_roles.apply_contract(apply_conn)
         self.assertEqual(second["applied_versions"], [])
         self.assertEqual(second["database_writes"], {
@@ -222,6 +286,8 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
             "retention_backfill_rows": 0,
             "existing_business_row_updates": 0,
         })
+        self.assertEqual(second["roles"]["executor_owned_object_count"], 0)
+        self._drop_task_executor(database_url)
 
         with psycopg.connect(
             database_url,
@@ -297,6 +363,78 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
         self.assertTrue(
             final["observation"]["full_contract_matrix_verified"]
         )
+
+    def test_pg16_non_super_creator_gets_implicit_admin_membership(self):
+        database_url = os.environ[LOCAL_DSN_ENV]
+        creator = "noteai_acl_probe_creator"
+        runtime = "noteai_acl_probe_runtime"
+        with psycopg.connect(
+            database_url,
+            row_factory=dict_row,
+        ) as conn:
+            conn.execute(
+                sql.SQL(
+                    "CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB "
+                    "CREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS"
+                ).format(sql.Identifier(creator))
+            )
+            conn.execute(
+                sql.SQL("SET SESSION AUTHORIZATION {}").format(
+                    sql.Identifier(creator)
+                )
+            )
+            conn.execute(
+                sql.SQL(
+                    "CREATE ROLE {} NOLOGIN NOSUPERUSER NOCREATEDB "
+                    "NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS"
+                ).format(sql.Identifier(runtime))
+            )
+            conn.execute("RESET SESSION AUTHORIZATION")
+            edge = conn.execute(
+                "SELECT membership.admin_option,"
+                "(to_jsonb(membership)->>'inherit_option')::boolean "
+                "AS inherit_option,"
+                "(to_jsonb(membership)->>'set_option')::boolean "
+                "AS set_option,grantor.rolname AS grantor_name "
+                "FROM pg_auth_members membership "
+                "JOIN pg_roles granted ON granted.oid=membership.roleid "
+                "JOIN pg_roles member ON member.oid=membership.member "
+                "JOIN pg_roles grantor ON grantor.oid=membership.grantor "
+                "WHERE granted.rolname=%s AND member.rolname=%s",
+                (runtime, creator),
+            ).fetchone()
+            self.assertIsNotNone(edge)
+            self.assertTrue(edge["admin_option"])
+            self.assertFalse(edge["inherit_option"])
+            self.assertFalse(edge["set_option"])
+            self.assertEqual(edge["grantor_name"], "postgres")
+
+            conn.execute(
+                sql.SQL("SET SESSION AUTHORIZATION {}").format(
+                    sql.Identifier(creator)
+                )
+            )
+            conn.execute(
+                sql.SQL("REVOKE {} FROM {}").format(
+                    sql.Identifier(runtime),
+                    sql.Identifier(creator),
+                )
+            )
+            conn.execute("RESET SESSION AUTHORIZATION")
+            self.assertEqual(int(conn.execute(
+                "SELECT COUNT(*) FROM pg_auth_members membership "
+                "JOIN pg_roles granted ON granted.oid=membership.roleid "
+                "JOIN pg_roles member ON member.oid=membership.member "
+                "WHERE granted.rolname=%s AND member.rolname=%s",
+                (runtime, creator),
+            ).fetchone()["count"]), 1)
+
+            conn.execute(
+                sql.SQL("DROP ROLE {}").format(sql.Identifier(creator))
+            )
+            conn.execute(
+                sql.SQL("DROP ROLE {}").format(sql.Identifier(runtime))
+            )
 
 
 if __name__ == "__main__":
