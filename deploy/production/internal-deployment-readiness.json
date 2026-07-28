@@ -301,11 +301,15 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-schema-roles-conflict-20260728.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-legacy-runtime-role-identity-20260728.json"
             }
           ],
-          "blocker": "A newly reviewed forced-read-only outcome audit deterministically found exact legacy migrations 0001-0008 but one elevated historical runtime-role attribute and one bidirectional runtime-role membership edge. The state is CONNECTED_KNOWN / CONFLICT, so migrations 0009-0016 and the final role matrix are not verified.",
-          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
-          "resume_condition": "The product owner explicitly authorizes a separately reviewed, bounded role-attribute and membership identity audit, followed only if safe by a newly defined corrective transaction. The failed apply and completed outcome audit must not be retried."
+          "blocker": "A single forced-read-only identity audit deterministically bound the legacy conflict to noteai_app ROLINHERIT and one noteai_xhs-to-noteai_admin membership with ADMIN TRUE, INHERIT TRUE and SET FALSE. The audit was CONNECTED_KNOWN with zero database writes and complete cleanup. The bounded correction and production migrations 0009-0016 have not yet run, so the final role matrix remains unverified.",
+          "next_task": "PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001",
+          "resume_condition": "Continue under the standing CTO authorization only after the reviewed corrector proves the current executor can alter the legacy role and revoke the exact grantor-owned membership, shares the global schema advisory lock, and passes a fresh read-only preflight. Permit at most one correction transaction; any database-connected unknown outcome stops all further database actions."
         },
         {
           "id": "managed_secret_distribution",

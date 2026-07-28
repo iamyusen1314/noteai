@@ -40,7 +40,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(report["complete_public_launch"]["percentage"], 37)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
-    def test_current_schema_unknown_is_blocked_fail_closed(self):
+    def test_current_schema_role_correction_is_blocked_fail_closed(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
@@ -57,7 +57,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertEqual(
             actionable["production_schema_roles"]["next_task"],
-            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
+            "PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001",
         )
         self.assertEqual(
             actionable["production_schema_roles"]["execution_class"],
