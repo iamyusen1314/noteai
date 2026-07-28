@@ -7,6 +7,7 @@ from psycopg.rows import dict_row
 
 from tools import collect_production_database_preflight as preflight
 from tools import production_first_launch_role_risk_set_audit as set_audit
+from tools import production_schema_owner_authority_preflight as owner_preflight
 from tools import production_schema_outcome_audit as outcome_audit
 from tools import production_schema_roles as schema_roles
 
@@ -232,6 +233,43 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
     def test_fixed_read_audit_then_exact_apply_and_apply_twice(self):
         database_url = os.environ[LOCAL_DSN_ENV]
         self._prepare_legacy_state(database_url)
+
+        authority_conn = owner_preflight._connect(database_url)
+        try:
+            authority_conn.execute(
+                sql.SQL("SET SESSION AUTHORIZATION {}").format(
+                    sql.Identifier(TASK_EXECUTOR_ROLE)
+                )
+            )
+            authority = owner_preflight.collect_owner_authority(
+                authority_conn
+            )
+        finally:
+            authority_conn.close()
+        self.assertEqual(
+            authority["status"],
+            "owner_authority_verified",
+        )
+        self.assertFalse(authority["session"]["executor_is_owner"])
+        self.assertTrue(
+            authority["session"]["owner_activation_capable"]
+        )
+        self.assertEqual(
+            authority["session"]["direct_owner_set_membership_count"],
+            1,
+        )
+        self.assertEqual(
+            authority["session"]["transient_executor_dependency_count"],
+            0,
+        )
+        self.assertEqual(
+            authority["owner_contract"]["owner_mismatch_count"],
+            0,
+        )
+        self.assertEqual(
+            authority["production_state"]["task_role_residue_count"],
+            0,
+        )
 
         audit_conn = set_audit._connect(database_url)
         try:

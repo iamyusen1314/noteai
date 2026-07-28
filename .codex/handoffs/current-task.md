@@ -26,16 +26,14 @@
 ## 2. Git and readiness truth
 
 - Branch: `codex/quality-stabilization-real-chain`.
-- ROOT-CAUSE-003 base:
-  `6dd7d6d6df22c92b39d51445ce543ee3658894aa`.
+- ROOT-CAUSE-003 pushed checkpoint:
+  `ed5e699896c2f60fc303faa47139a068ac4fdb5f`.
 - Historical V4 package binding:
   `13377d7ac37b090818c56be545f34a7ac5587d49`.
 - Historical V4 exact execution source:
   `8f6b8b68e24726ab6a57abfb805b9fd222238d0f`.
 - Schema executor legacy-ledger repair:
   `e5883abc01c4b009907bee550209d7036d383771`.
-- Resolve the pushed ROOT-CAUSE-003 checkpoint from the newest
-  `[skip render]` commit; do not embed a self-referential hash here.
 - Repository/isolated readiness: `12/12`.
 - Internal deployment readiness: `14/29 = 48%`.
 - Public launch readiness: `14/38 = 37%`.
@@ -213,6 +211,41 @@ Required result:
 This task cannot create roles, alter memberships, run migrations, update the
 ledger or open a V5 write transaction.
 
+Stage-safe implementation checkpoint:
+
+- Dedicated fixed-query auditor:
+  `tools/production_schema_owner_authority_preflight.py`.
+- It uses one repeatable-read/read-only transaction, three aggregate queries,
+  one fixed `SET LOCAL ROLE noteai_admin` and terminal `ROLLBACK`.
+- Its result contains only booleans, counts and source hashes; no role/object
+  names, IDs, addresses, credentials or business-row values are emitted.
+- The two-mode
+  `tools/production_schema_owner_authority_preflight_runner.sh` performs
+  network-none `prepare`, then consumes the existing root-owned `0600`
+  `/etc/noteai/admin.env` database value through anonymous stdin for `audit`.
+  It creates no task account, RSA key, ciphertext, DSN file or Secret
+  environment/argv value.
+- Auditor SHA-256:
+  `108333e143f0ae64ae173d81b518ce90cbf108a42afa819c91aa33da253bbf91`.
+- Runner SHA-256:
+  `58f1b96f61fade74be28eb7f2aeef6b1b88d7b4fccc5952b3e034a1638220464`.
+- Focused unit/static checks passed `32/32`.
+- Full Python suite passed `1044/1044`, with 26 explicit skips;
+  production readiness passed `105/105`, and internal readiness remained
+  fail-closed at `14/29 = 48%`.
+- One disposable PostgreSQL 16 integration passed. It proved a distinct
+  protected executor can activate the persistent owner, the preflight rolls
+  back before migration apply, and the existing complete
+  apply/apply-twice/outcome/six-negative-mutation chain remains valid.
+- The first local integration observation was
+  `CONNECTED_KNOWN / READ ONLY / ROLLED BACK / WRITE 0`: only the fixture's
+  default-readonly session flag differed, and apply was not reached. After
+  correcting the fixture to use the production-equivalent connection, the
+  replacement disposable database passed.
+- Disposable PostgreSQL container count is zero and Colima is stopped.
+- Production database/cloud/service/provider/public-traffic actions for this
+  implementation checkpoint remain zero.
+
 If and only if the read-only preflight passes, the later unique write incident
 must be separately named (V5), use a fresh one-transaction allowance and
 retain zero automatic retries. It cannot inherit V4 authority.
@@ -248,10 +281,15 @@ Completed verification:
 - temporary package removed from active paths and Colima restored stopped;
 - production database/cloud/service/provider/public-traffic actions: zero.
 
-Remaining checkpoint step:
+ROOT-CAUSE-003 was committed and pushed normally at `ed5e699`.
 
-- run the final changed-file Secret/resource scan;
-- create a `[skip render]` ROOT-CAUSE-003 checkpoint commit and push normally.
+Current remaining steps:
 
-After push, mark ROOT-CAUSE-003 complete, mark OWNER-AUTHORITY-PREFLIGHT-004
-in progress and continue without treating the checkpoint as a stop signal.
+- create and push a `[skip render]` stage-safe preflight-tooling checkpoint;
+- from that exact pushed checkpoint, build and hash the minimal package;
+- refresh RDS backup/private-network/account and API-C/API-F/Admin baseline;
+- run remote network-none `prepare`, then at most one protected forced-readonly
+  owner audit with terminal `ROLLBACK`;
+- persist Secret-free evidence, remove the fixed task directory/results and
+  Cloud Shell task state, read back zero residue, checkpoint and continue to
+  the uniquely selected next dependency.

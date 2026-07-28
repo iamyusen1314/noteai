@@ -163,10 +163,14 @@ Last updated: 2026-07-22
     PostgreSQL evidence does not imply production migration or privilege
     readiness.
   - The corrected managed-RDS migration architecture uses a protected
-    short-term executor only to activate persistent `noteai_admin` with
-    `SET LOCAL ROLE`. The persistent owner must own the database and every
-    public relation/function, so new migration objects never depend on the
-    short-term account.
+    executor to activate persistent `noteai_admin` with `SET LOCAL ROLE`.
+    The persistent owner must own the database and every public
+    relation/function, so new migration objects never depend on a transient
+    executor.
+  - Owner authority is independently checked by a fixed-query forced-readonly
+    preflight. Its host runner consumes the existing root-only Admin database
+    Secret through anonymous stdin after a network-none import, so this
+    read-only task needs no short-term account, RSA transfer or DSN file.
   - PostgreSQL 16 implicitly grants a non-superuser CREATEROLE creator
     `ADMIN OPTION` on every role it creates. The six new runtime roles
     therefore have exactly six management rows to persistent `noteai_admin`,
