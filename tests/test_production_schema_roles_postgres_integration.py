@@ -9,6 +9,9 @@ from tools import collect_production_database_preflight as preflight
 from tools import production_first_launch_role_risk_set_audit as set_audit
 from tools import production_schema_owner_authority_preflight as owner_preflight
 from tools import production_schema_outcome_audit as outcome_audit
+from tools import (
+    production_schema_privileged_owner_preflight as privileged_owner,
+)
 from tools import production_schema_roles as schema_roles
 
 
@@ -229,6 +232,130 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
                 row_factory=dict_row,
             ) as conn:
                 conn.execute(cleanup_sql)
+
+    def test_000_privileged_owner_equivalent_chain_is_read_only(self):
+        base_url = os.environ[LOCAL_DSN_ENV]
+        database_name = "noteai_privileged_owner_preflight_005_test"
+        managed_role = "noteai_local_rds_privileged"
+        original_executor = globals()["TASK_EXECUTOR_ROLE"]
+        original_managed_role = privileged_owner.MANAGED_PRIVILEGED_ROLE
+        settings = psycopg.conninfo.conninfo_to_dict(base_url)
+        settings["dbname"] = database_name
+        database_url = psycopg.conninfo.make_conninfo(**settings)
+        try:
+            with psycopg.connect(base_url, autocommit=True) as conn:
+                conn.execute(
+                    sql.SQL("CREATE DATABASE {}").format(
+                        sql.Identifier(database_name)
+                    )
+                )
+            globals()["TASK_EXECUTOR_ROLE"] = (
+                privileged_owner.TASK_ACCOUNT_NAME
+            )
+            privileged_owner.MANAGED_PRIVILEGED_ROLE = managed_role
+            self._prepare_legacy_state(database_url)
+            with psycopg.connect(database_url) as conn:
+                conn.execute(
+                    sql.SQL(
+                        "CREATE ROLE {} NOLOGIN NOSUPERUSER NOCREATEDB "
+                        "NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS"
+                    ).format(sql.Identifier(managed_role))
+                )
+                conn.execute(
+                    sql.SQL(
+                        "GRANT noteai_admin TO {} "
+                        "WITH INHERIT FALSE, SET TRUE"
+                    ).format(sql.Identifier(managed_role))
+                )
+                conn.execute(
+                    sql.SQL(
+                        "GRANT {} TO {} WITH INHERIT FALSE, SET TRUE"
+                    ).format(
+                        sql.Identifier(managed_role),
+                        sql.Identifier(
+                            privileged_owner.TASK_ACCOUNT_NAME
+                        ),
+                    )
+                )
+                conn.execute(
+                    sql.SQL("REVOKE noteai_admin FROM {}").format(
+                        sql.Identifier(
+                            privileged_owner.TASK_ACCOUNT_NAME
+                        )
+                    )
+                )
+
+            audit_conn = privileged_owner._connect(database_url)
+            try:
+                audit_conn.execute(
+                    sql.SQL("SET SESSION AUTHORIZATION {}").format(
+                        sql.Identifier(
+                            privileged_owner.TASK_ACCOUNT_NAME
+                        )
+                    )
+                )
+                result = (
+                    privileged_owner.collect_privileged_owner_authority(
+                        audit_conn
+                    )
+                )
+            finally:
+                audit_conn.close()
+
+            self.assertEqual(
+                result["status"],
+                "privileged_owner_authority_verified",
+            )
+            self.assertEqual(result["database_write_count"], 0)
+            self.assertTrue(result["transaction_rolled_back"])
+            self.assertEqual(result["acceptance"], {
+                "session": True,
+                "owner_contract": True,
+                "production_state": True,
+            })
+            self.assertEqual(
+                result["session"][
+                    "direct_managed_privileged_membership_count"
+                ],
+                1,
+            )
+            self.assertEqual(
+                result["session"]["unexpected_direct_membership_count"],
+                0,
+            )
+            self.assertEqual(
+                result["session"]["direct_owner_membership_count"],
+                0,
+            )
+            self.assertEqual(
+                result["session"]["unexpected_runtime_membership_count"],
+                0,
+            )
+            self.assertEqual(
+                result["session"]["executor_shared_dependency_count"],
+                0,
+            )
+        finally:
+            privileged_owner.MANAGED_PRIVILEGED_ROLE = original_managed_role
+            globals()["TASK_EXECUTOR_ROLE"] = original_executor
+            with psycopg.connect(base_url, autocommit=True) as conn:
+                conn.execute(
+                    sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(
+                        sql.Identifier(database_name)
+                    )
+                )
+                for role in (
+                    privileged_owner.TASK_ACCOUNT_NAME,
+                    managed_role,
+                    "noteai_xhs",
+                    "noteai_app",
+                    "noteai_admin",
+                ):
+                    conn.execute(
+                        sql.SQL("DROP ROLE IF EXISTS {}").format(
+                            sql.Identifier(role)
+                        )
+                    )
 
     def test_fixed_read_audit_then_exact_apply_and_apply_twice(self):
         database_url = os.environ[LOCAL_DSN_ENV]

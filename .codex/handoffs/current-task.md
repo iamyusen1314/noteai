@@ -26,6 +26,8 @@
 ## 2. Git and readiness truth
 
 - Branch: `codex/quality-stabilization-real-chain`.
+- OWNER-AUTHORITY-PREFLIGHT-004 outcome/evidence checkpoint:
+  `8a533ac7c5efd7cbf44cade5287f909fce831a79`.
 - OWNER-AUTHORITY-PREFLIGHT-004 source checkpoint:
   `51ae87784d7e1e79358d95c7336c0e12bb2e9c04`.
 - ROOT-CAUSE-003 pushed checkpoint:
@@ -265,6 +267,56 @@ Alibaba RDS documentation confirms that a managed privileged account is a
 a standard account. This is a capability hypothesis that 005 must verify,
 not assumed production evidence.
 
+Stage-safe 005 implementation checkpoint:
+
+- New auditor:
+  `tools/production_schema_privileged_owner_preflight.py`;
+  SHA-256
+  `091a96673f0391cf5196c4a2492702b6438ec49d462a47da19177dd15379c851`.
+- New host runner:
+  `tools/production_schema_privileged_owner_preflight_runner.sh`;
+  SHA-256
+  `9ca9ad4b82ca980193cb84d01150a83ff6f2eb87734bdadd5f570be97146c79d`.
+- Existing 004 auditor, schema executor, V5 runner, runtime ACL and all 16
+  migrations retain their previously recorded hashes and bytes.
+- The session contract requires the exact task account, non-native-superuser,
+  one direct managed-privileged membership, no other direct membership, no
+  direct owner membership, no bidirectional runtime membership, no object/
+  default-ACL/shared ACL or ownership dependency, and a positive owner
+  activation path through the managed role.
+- Admin userinfo is removed at the API-C root boundary before the audit
+  container. Only sanitized topology and the decrypted short-term password
+  enter anonymous stdin; query credential/redirect overrides are rejected.
+- Task root is root-only `0700`; source is root-owned `0755`; key/ciphertext
+  are regular, single-link, root-only `0600` files. RSA private key transfer,
+  plaintext file/environment/argv and DSN persistence remain zero.
+- Decrypt and audit errors are separate. Success/state-change results use
+  structured JSON validation; a known failure requires one exact sanitized
+  line. Every audit-stage terminal state reports cleanup required until the
+  external account/material/host/Cloud Shell readback is zero.
+- Focused tests passed `31/31`; full Python passed `1055/1055` with 27
+  explicit skips; production readiness passed `105/105`; zero-DSN import,
+  Python compile, runner syntax and diff checks passed.
+- Disposable PostgreSQL 16 positive-equivalent two-level SET chain passed
+  `1/1`: session, owner and production-state contracts all verified, terminal
+  rollback and database writes zero. The temporary database, roles and
+  container were deleted and Colima restored stopped.
+- Three independent read-only auditors made no modifications. Their findings
+  produced the direct/bidirectional membership, dependency, sanitized
+  topology, exact classification and cleanup hardening above.
+- Production database/account/cloud/service/provider/public-traffic actions
+  for this implementation checkpoint remain zero.
+- Production cleanup order is fixed: save and hash the deterministic result;
+  stop and read back the exact container, process and connection counts at
+  zero; delete the short-term account; read back accounts at `3/1/0`; delete
+  RSA, ciphertext and the API-C task root; delete Cloud Shell task files,
+  variables and processes; finally read back all residue at zero and
+  API-C/API-F/Admin active, ready and loopback-only.
+
+Secret-free evidence:
+
+`deploy/production/evidence/production-schema-privileged-owner-preflight-local-20260729.json`
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
@@ -285,8 +337,9 @@ checks and cleanup do not count as retries and are mandatory after failures.
 
 Completed verification:
 
-- focused owner-preflight tests: `32/32`;
-- full Python suite: `1044/1044`, 26 explicit skips;
+- focused privileged-owner/readiness tests: `31/31`;
+- disposable PostgreSQL 16 privileged-owner chain: `1/1`;
+- full Python suite: `1055/1055`, 27 explicit skips;
 - production readiness gate: `105/105 PASS`;
 - internal readiness: fail-closed `14/29 = 48%`;
 - public readiness: `14/38 = 37%`;
@@ -300,12 +353,12 @@ Completed verification:
 
 ROOT-CAUSE-003 was committed and pushed normally at `ed5e699`.
 The 004 source was committed and pushed normally at `51ae877`.
+The 004 outcome/evidence was committed and pushed normally at `8a533ac`.
 
 Current remaining steps:
 
-- commit and push the 004 Secret-free known-failure/cleanup evidence;
-- implement, test, commit and push the separately named 005 privileged-owner
-  preflight without changing migration or runtime-ACL bytes;
+- commit and push the separately named 005 privileged-owner preflight
+  implementation without changing migration or runtime-ACL bytes;
 - rebuild its exact minimal package and refresh prerequisite-only cloud state;
 - create one short-term protected privileged account, run 005 once, preserve
   its deterministic result and clean/read back all transient state;
