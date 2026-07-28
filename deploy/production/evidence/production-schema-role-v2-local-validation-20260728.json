@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
+  "observed_at_utc": "2026-07-28T10:34:04Z",
+  "status": "local_validation_pass",
+  "source": {
+    "branch": "codex/quality-stabilization-real-chain",
+    "base_checkpoint_commit": "aaf1df42515ba810840208aaefba9921d439fbfb",
+    "executor_fix_ancestor": "e5883abc01c4b009907bee550209d7036d383771",
+    "set_auditor_sha256": "7cab8a8b946805db87a1edda1140252dd122211bfe11bc7851282013dcf26af1",
+    "set_audit_runner_sha256": "4ebf636e21ac8e0854a58c1bc558ad78f080cf0084bdf85532d947b6efa60c58",
+    "schema_executor_sha256": "748ad151e70093f02f2db6a382c87bccdd1847ddc69608c48e3536a5dc8785c4",
+    "outcome_auditor_sha256": "beda6e1262afa2c693b2ba832018a4b6b52f0272d57bebead538b42fcc424262",
+    "runtime_acl_sha256": "62862a2057e73b0246aa963fbf9a3a60794bd59b41c16abbfe0dce8f92eedbca",
+    "registry_review_file_sha256": "1f288d7d66e642aaae5a77e8de2e78b143ff3db085c263219303cafb9593fa14",
+    "registry_evidence_sha256": "b44b8861202d97b9f0784dd89f3b6056e5fc4af2b6939d28bdfe1b2f49b540f3"
+  },
+  "fixed_readonly_audit": {
+    "audit_id": "PROD-FIRST-LAUNCH-LEGACY-ROLE-RISK-SET-AUDIT-002",
+    "run_id": "PROD-FIRST-LAUNCH-LEGACY-ROLE-RISK-SET-AUDIT-RUN-001",
+    "connection_count": 1,
+    "transaction": "repeatable_read_read_only",
+    "query_count": 4,
+    "stage_order": [
+      "session",
+      "ledger_inventory",
+      "role_graph",
+      "xhs_acl",
+      "rollback"
+    ],
+    "legacy_ledger_exact_0001_0008": true,
+    "legacy_public_table_count": 30,
+    "legacy_public_sequence_count": 5,
+    "retention_backfill_source_count": 0,
+    "accepted_membership_exact": true,
+    "membership_admin": true,
+    "membership_inherit": true,
+    "membership_set": false,
+    "app_high_privilege_inheritance_count": 0,
+    "xhs_acl_mismatch_count": 0,
+    "xhs_grant_option_count": 0,
+    "database_write_count": 0,
+    "business_row_values_read": 0
+  },
+  "bounded_apply": {
+    "transaction_count": 1,
+    "advisory_lock_before_precondition": true,
+    "legacy_ledger_names_locked_before_ddl": true,
+    "retention_source_zero_locked_before_ddl": true,
+    "migration_hash_backfill_rows": 8,
+    "migration_ledger_insert_rows": 8,
+    "schema_seed_insert_rows": 2,
+    "retention_backfill_rows": 0,
+    "existing_business_row_updates": 0,
+    "applied_versions": [
+      "0009",
+      "0010",
+      "0011",
+      "0012",
+      "0013",
+      "0014",
+      "0015",
+      "0016"
+    ],
+    "transaction_committed": true
+  },
+  "apply_twice": {
+    "migration_hash_backfill_rows": 0,
+    "migration_ledger_insert_rows": 0,
+    "schema_seed_insert_rows": 0,
+    "retention_backfill_rows": 0,
+    "existing_business_row_updates": 0,
+    "transaction_committed": true
+  },
+  "independent_readonly_postcondition": {
+    "database_outcome": "COMMITTED",
+    "ledger_count": 16,
+    "matching_migration_hash_count": 16,
+    "public_table_count": 56,
+    "public_sequence_count": 5,
+    "runtime_role_count": 8,
+    "new_runtime_login_count": 0,
+    "accepted_role_membership_count": 1,
+    "unexpected_role_elevation_count": 0,
+    "app_high_privilege_inheritance_count": 0,
+    "runtime_ownership_count": 0,
+    "table_column_sequence_function_default_acl_matrix": "pass",
+    "grant_option_count": 0,
+    "retention_row_count": 0,
+    "trends_seed_exact_count": 1,
+    "dispatcher_seed_exact_count": 1
+  },
+  "negative_mutation_matrix": {
+    "case_count": 6,
+    "all_rejected": true,
+    "cases": [
+      "table_grant_option",
+      "column_privilege",
+      "sequence_privilege",
+      "trigger_function_execute",
+      "default_acl",
+      "extra_role_membership"
+    ],
+    "final_clean_postcondition": "COMMITTED"
+  },
+  "verification": {
+    "focused_test_count": 72,
+    "focused_test_failures": 0,
+    "full_python_test_count": 1027,
+    "full_python_test_failures": 0,
+    "full_python_test_skips": 25,
+    "postgresql16_integration_test_count": 1,
+    "postgresql16_integration_failures": 0,
+    "production_readiness_check_count": 105,
+    "production_readiness_failures": 0,
+    "internal_readiness_verified": 14,
+    "internal_readiness_total": 29,
+    "git_diff_check_passed": true,
+    "local_task_container_count_after_cleanup": 0,
+    "colima_restored_stopped": true
+  },
+  "production_impact": {
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0,
+    "database_account_change_count": 0,
+    "service_change_count": 0,
+    "provider_call_count": 0,
+    "public_traffic_request_count": 0,
+    "secret_values_exposed": 0
+  },
+  "readiness": {
+    "internal_verified": 14,
+    "internal_total": 29,
+    "production_schema_roles_verified": false,
+    "accepted_risk_entry_count": 0
+  }
+}

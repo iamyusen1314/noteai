@@ -37,6 +37,14 @@ def _observation(**overrides):
         "dispatcher_seed_count": 1,
         "dispatcher_seed_exact_count": 1,
         "retention_row_count": 0,
+        "full_contract_matrix_verified": True,
+        "table_privilege_checks": 3136,
+        "table_grant_option_count": 0,
+        "column_privilege_checks": 1,
+        "column_grant_option_count": 0,
+        "sequence_privilege_checks": 120,
+        "sequence_grant_option_count": 0,
+        "default_acl_entry_count": 0,
     }
     value.update(overrides)
     return value
@@ -200,6 +208,14 @@ class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
             dispatcher_seed_count=None,
             dispatcher_seed_exact_count=None,
             retention_row_count=None,
+            full_contract_matrix_verified=None,
+            table_privilege_checks=None,
+            table_grant_option_count=None,
+            column_privilege_checks=None,
+            column_grant_option_count=None,
+            sequence_privilege_checks=None,
+            sequence_grant_option_count=None,
+            default_acl_entry_count=None,
         )
         self.assertEqual(outcome_audit._classify(legacy), "ROLLED_BACK")
 
@@ -220,6 +236,11 @@ class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
             {"trends_seed_exact_count": 0},
             {"dispatcher_seed_exact_count": 0},
             {"retention_row_count": 1},
+            {"full_contract_matrix_verified": False},
+            {"table_grant_option_count": 1},
+            {"column_grant_option_count": 1},
+            {"sequence_grant_option_count": 1},
+            {"default_acl_entry_count": 1},
         ):
             with self.subTest(mismatch=mismatch):
                 self.assertEqual(
@@ -229,10 +250,26 @@ class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
 
     def test_collection_forces_read_only_and_reads_only_aggregates(self):
         connection = CommittedConnection()
-        result = outcome_audit.collect_outcome(connection)
+        with mock.patch.object(
+            outcome_audit.schema_role_contract,
+            "validate_contract",
+            return_value={
+                "table_privilege_checks": 3136,
+                "table_grant_option_count": 0,
+                "column_privilege_checks": 1,
+                "column_grant_option_count": 0,
+                "sequence_privilege_checks": 120,
+                "sequence_grant_option_count": 0,
+                "default_acl_entry_count": 0,
+            },
+        ):
+            result = outcome_audit.collect_outcome(connection)
 
         self.assertEqual(result["database_outcome"], "COMMITTED")
         self.assertTrue(result["read_only"])
+        self.assertTrue(
+            result["observation"]["full_contract_matrix_verified"]
+        )
         self.assertEqual(result["observation"]["business_row_values_read"], 0)
         statements = [statement for statement, _params in connection.calls]
         self.assertEqual(statements[0], "SET TRANSACTION READ ONLY")

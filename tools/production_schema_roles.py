@@ -116,6 +116,7 @@ ADVISORY_FUNCTIONS = (
     "pg_catalog.hashtext(text)",
     "pg_catalog.pg_advisory_xact_lock(bigint)",
 )
+COLUMN_PRIVILEGES = ("SELECT", "INSERT", "UPDATE", "REFERENCES")
 MIGRATION_LEDGER_CONSTRAINT = "schema_migrations_sha256_format"
 
 
@@ -449,8 +450,211 @@ def _expected_column(
     table_privileges = set(ROLE_TABLE_PRIVILEGES.get(role, {}).get(table, ()))
     if privilege in table_privileges:
         return True
-    scoped = SCOPED_SELECT if privilege == "SELECT" else SCOPED_UPDATE
+    if privilege == "SELECT":
+        scoped = SCOPED_SELECT
+    elif privilege == "UPDATE":
+        scoped = SCOPED_UPDATE
+    else:
+        return False
     return column in scoped.get((role, table), set())
+
+
+def _acl_matrix_metrics(
+    conn: Any,
+    *,
+    roles: tuple[str, ...],
+    tables: tuple[str, ...],
+    sequences: tuple[str, ...],
+) -> dict[str, int]:
+    """Validate table/column/sequence ACLs in one set-based query."""
+    columns = conn.execute(
+        "SELECT table_name,column_name FROM information_schema.columns "
+        "WHERE table_schema='public' AND table_name = ANY(%s) "
+        "ORDER BY table_name,ordinal_position",
+        (list(tables),),
+    ).fetchall()
+    expected_table = [
+        (role, table, privilege)
+        for role in roles
+        for table, privileges in ROLE_TABLE_PRIVILEGES.get(role, {}).items()
+        for privilege in privileges
+        if table in tables
+    ]
+    expected_column = [
+        (role, str(row["table_name"]), str(row["column_name"]), privilege)
+        for role in roles
+        for row in columns
+        for privilege in COLUMN_PRIVILEGES
+        if _expected_column(
+            role,
+            str(row["table_name"]),
+            str(row["column_name"]),
+            privilege,
+        )
+    ]
+    expected_sequence = [
+        (role, sequence, privilege)
+        for role in roles
+        for sequence in sequences
+        for privilege in SEQUENCE_PRIVILEGES
+        if (
+            privilege == "USAGE"
+            and sequence in ROLE_SEQUENCES.get(role, set())
+        )
+    ]
+
+    def _items(
+        rows: list[tuple[str, ...]],
+        index: int,
+    ) -> list[str]:
+        return [row[index] for row in rows]
+
+    row = conn.execute(
+        """
+        WITH
+        expected_table(role_name,object_name,privilege_type) AS (
+            SELECT * FROM unnest(%s::text[],%s::text[],%s::text[])
+        ),
+        table_matrix AS (
+            SELECT
+                role_name,object_name,privilege_type,
+                expected_table.role_name IS NOT NULL AS expected,
+                has_table_privilege(
+                    role_name,
+                    format('%%I.%%I','public',object_name),
+                    privilege_type
+                ) AS actual,
+                has_table_privilege(
+                    role_name,
+                    format('%%I.%%I','public',object_name),
+                    privilege_type || ' WITH GRANT OPTION'
+                ) AS grantable
+            FROM unnest(%s::text[]) AS role_name
+            CROSS JOIN unnest(%s::text[]) AS object_name
+            CROSS JOIN unnest(%s::text[]) AS privilege_type
+            LEFT JOIN expected_table
+                USING(role_name,object_name,privilege_type)
+        ),
+        expected_column(
+            role_name,object_name,column_name,privilege_type
+        ) AS (
+            SELECT * FROM unnest(
+                %s::text[],%s::text[],%s::text[],%s::text[]
+            )
+        ),
+        column_inventory(object_name,column_name) AS (
+            SELECT * FROM unnest(%s::text[],%s::text[])
+        ),
+        column_matrix AS (
+            SELECT
+                role_name,object_name,column_name,privilege_type,
+                expected_column.role_name IS NOT NULL AS expected,
+                has_column_privilege(
+                    role_name,
+                    format('%%I.%%I','public',object_name),
+                    column_name,
+                    privilege_type
+                ) AS actual,
+                has_column_privilege(
+                    role_name,
+                    format('%%I.%%I','public',object_name),
+                    column_name,
+                    privilege_type || ' WITH GRANT OPTION'
+                ) AS grantable
+            FROM unnest(%s::text[]) AS role_name
+            CROSS JOIN column_inventory
+            CROSS JOIN unnest(%s::text[]) AS privilege_type
+            LEFT JOIN expected_column
+                USING(role_name,object_name,column_name,privilege_type)
+        ),
+        expected_sequence(role_name,object_name,privilege_type) AS (
+            SELECT * FROM unnest(%s::text[],%s::text[],%s::text[])
+        ),
+        sequence_matrix AS (
+            SELECT
+                role_name,object_name,privilege_type,
+                expected_sequence.role_name IS NOT NULL AS expected,
+                has_sequence_privilege(
+                    role_name,
+                    format('%%I.%%I','public',object_name),
+                    privilege_type
+                ) AS actual,
+                has_sequence_privilege(
+                    role_name,
+                    format('%%I.%%I','public',object_name),
+                    privilege_type || ' WITH GRANT OPTION'
+                ) AS grantable
+            FROM unnest(%s::text[]) AS role_name
+            CROSS JOIN unnest(%s::text[]) AS object_name
+            CROSS JOIN unnest(%s::text[]) AS privilege_type
+            LEFT JOIN expected_sequence
+                USING(role_name,object_name,privilege_type)
+        )
+        SELECT
+            (SELECT COUNT(*) FROM table_matrix)::integer
+                AS table_checks,
+            (SELECT COUNT(*) FROM table_matrix
+             WHERE actual IS DISTINCT FROM expected)::integer
+                AS table_mismatches,
+            (SELECT COUNT(*) FROM table_matrix WHERE actual)::integer
+                AS table_positive,
+            (SELECT COUNT(*) FROM table_matrix WHERE grantable)::integer
+                AS table_grantable,
+            (SELECT COUNT(*) FROM column_matrix)::integer
+                AS column_checks,
+            (SELECT COUNT(*) FROM column_matrix
+             WHERE actual IS DISTINCT FROM expected)::integer
+                AS column_mismatches,
+            (SELECT COUNT(*) FROM column_matrix WHERE actual)::integer
+                AS column_positive,
+            (SELECT COUNT(*) FROM column_matrix WHERE grantable)::integer
+                AS column_grantable,
+            (SELECT COUNT(*) FROM sequence_matrix)::integer
+                AS sequence_checks,
+            (SELECT COUNT(*) FROM sequence_matrix
+             WHERE actual IS DISTINCT FROM expected)::integer
+                AS sequence_mismatches,
+            (SELECT COUNT(*) FROM sequence_matrix WHERE actual)::integer
+                AS sequence_positive,
+            (SELECT COUNT(*) FROM sequence_matrix WHERE grantable)::integer
+                AS sequence_grantable
+        """,
+        (
+            _items(expected_table, 0),
+            _items(expected_table, 1),
+            _items(expected_table, 2),
+            list(roles),
+            list(tables),
+            list(TABLE_PRIVILEGES),
+            _items(expected_column, 0),
+            _items(expected_column, 1),
+            _items(expected_column, 2),
+            _items(expected_column, 3),
+            [str(column["table_name"]) for column in columns],
+            [str(column["column_name"]) for column in columns],
+            list(roles),
+            list(COLUMN_PRIVILEGES),
+            _items(expected_sequence, 0),
+            _items(expected_sequence, 1),
+            _items(expected_sequence, 2),
+            list(roles),
+            list(sequences),
+            list(SEQUENCE_PRIVILEGES),
+        ),
+    ).fetchone()
+    if row is None:
+        raise SchemaRoleError("acl_matrix_shape")
+    metrics = {key: int(value) for key, value in row.items()}
+    if (
+        metrics["table_mismatches"]
+        or metrics["table_grantable"]
+        or metrics["column_mismatches"]
+        or metrics["column_grantable"]
+        or metrics["sequence_mismatches"]
+        or metrics["sequence_grantable"]
+    ):
+        raise SchemaRoleError("acl_matrix")
+    return metrics
 
 
 def _accepted_role_risk_state(
@@ -461,7 +665,10 @@ def _accepted_role_risk_state(
 ) -> dict[str, int | str]:
     if not bool(_fetch_scalar(
         conn,
-        "SELECT current_user <> 'noteai_xhs'",
+        "SELECT session_user <> 'noteai_xhs' "
+        "AND current_user <> 'noteai_xhs' "
+        "AND session_user=current_user "
+        "AND current_user=current_role",
     )):
         raise SchemaRoleError("migration_executor_identity")
 
@@ -540,6 +747,19 @@ def _accepted_role_risk_state(
             (privilege,),
         )):
             raise SchemaRoleError("accepted_xhs_effective_privileges")
+        if bool(_fetch_scalar(
+            conn,
+            "SELECT has_database_privilege("
+            "'noteai_xhs',current_database(),%s)",
+            (f"{privilege} WITH GRANT OPTION",),
+        )):
+            raise SchemaRoleError("accepted_xhs_effective_privileges")
+    if bool(_fetch_scalar(
+        conn,
+        "SELECT has_database_privilege("
+        "'noteai_xhs',current_database(),'CONNECT WITH GRANT OPTION')",
+    )):
+        raise SchemaRoleError("accepted_xhs_effective_privileges")
     if not bool(_fetch_scalar(
         conn,
         "SELECT has_schema_privilege('noteai_xhs','public','USAGE')",
@@ -548,60 +768,56 @@ def _accepted_role_risk_state(
         "SELECT has_schema_privilege('noteai_xhs','public','CREATE')",
     )):
         raise SchemaRoleError("accepted_xhs_effective_privileges")
+    for privilege in ("USAGE", "CREATE"):
+        if bool(_fetch_scalar(
+            conn,
+            "SELECT has_schema_privilege("
+            "'noteai_xhs','public',%s)",
+            (f"{privilege} WITH GRANT OPTION",),
+        )):
+            raise SchemaRoleError("accepted_xhs_effective_privileges")
 
-    table_checks = 0
-    table_positive = 0
-    for table in tables:
-        allowed = set(XHS_TABLE_PRIVILEGES.get(table, ()))
-        for privilege in TABLE_PRIVILEGES:
-            actual = bool(_fetch_scalar(
-                conn,
-                "SELECT has_table_privilege(%s,%s,%s)",
-                ("noteai_xhs", f"public.{table}", privilege),
-            ))
-            if actual != (privilege in allowed):
-                raise SchemaRoleError("accepted_xhs_effective_privileges")
-            if bool(_fetch_scalar(
-                conn,
-                "SELECT has_table_privilege(%s,%s,%s)",
-                (
-                    "noteai_xhs",
-                    f"public.{table}",
-                    f"{privilege} WITH GRANT OPTION",
-                ),
-            )):
-                raise SchemaRoleError("accepted_xhs_effective_privileges")
-            table_checks += 1
-            table_positive += int(actual)
-
-    sequence_checks = 0
-    sequence_positive = 0
-    expected_sequences = ROLE_SEQUENCES["noteai_xhs"]
-    for sequence in sequences:
-        for privilege in SEQUENCE_PRIVILEGES:
-            actual = bool(_fetch_scalar(
-                conn,
-                "SELECT has_sequence_privilege(%s,%s,%s)",
-                ("noteai_xhs", f"public.{sequence}", privilege),
-            ))
-            expected = (
-                privilege == "USAGE"
-                and sequence in expected_sequences
-            )
-            if actual != expected:
-                raise SchemaRoleError("accepted_xhs_effective_privileges")
-            if bool(_fetch_scalar(
-                conn,
-                "SELECT has_sequence_privilege(%s,%s,%s)",
-                (
-                    "noteai_xhs",
-                    f"public.{sequence}",
-                    f"{privilege} WITH GRANT OPTION",
-                ),
-            )):
-                raise SchemaRoleError("accepted_xhs_effective_privileges")
-            sequence_checks += 1
-            sequence_positive += int(actual)
+    acl_metrics = _acl_matrix_metrics(
+        conn,
+        roles=("noteai_xhs",),
+        tables=tables,
+        sequences=sequences,
+    )
+    public_function_count = int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM pg_proc function "
+        "JOIN pg_namespace namespace "
+        "ON namespace.oid=function.pronamespace "
+        "WHERE namespace.nspname='public'",
+    ))
+    public_function_execute_count = int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM pg_proc function "
+        "JOIN pg_namespace namespace "
+        "ON namespace.oid=function.pronamespace "
+        "WHERE namespace.nspname='public' "
+        "AND has_function_privilege("
+        "'noteai_xhs',function.oid,'EXECUTE')",
+    ))
+    public_function_grantable_count = int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM pg_proc function "
+        "JOIN pg_namespace namespace "
+        "ON namespace.oid=function.pronamespace "
+        "WHERE namespace.nspname='public' "
+        "AND has_function_privilege("
+        "'noteai_xhs',function.oid,'EXECUTE WITH GRANT OPTION')",
+    ))
+    if public_function_execute_count or public_function_grantable_count:
+        raise SchemaRoleError("accepted_xhs_effective_privileges")
+    default_acl_entry_count = int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM pg_default_acl default_acl "
+        "CROSS JOIN LATERAL aclexplode(default_acl.defaclacl) exploded "
+        "WHERE exploded.grantee='noteai_xhs'::regrole",
+    ))
+    if default_acl_entry_count:
+        raise SchemaRoleError("accepted_xhs_effective_privileges")
 
     if int(_fetch_scalar(
         conn,
@@ -626,10 +842,20 @@ def _accepted_role_risk_state(
         "app_high_privilege_inheritance_count": (
             app_high_privilege_inheritance
         ),
-        "xhs_effective_table_privilege_count": table_positive,
-        "xhs_table_privilege_checks": table_checks,
-        "xhs_effective_sequence_privilege_count": sequence_positive,
-        "xhs_sequence_privilege_checks": sequence_checks,
+        "xhs_effective_table_privilege_count": (
+            acl_metrics["table_positive"]
+        ),
+        "xhs_table_privilege_checks": acl_metrics["table_checks"],
+        "xhs_effective_column_privilege_count": (
+            acl_metrics["column_positive"]
+        ),
+        "xhs_column_privilege_checks": acl_metrics["column_checks"],
+        "xhs_effective_sequence_privilege_count": (
+            acl_metrics["sequence_positive"]
+        ),
+        "xhs_sequence_privilege_checks": acl_metrics["sequence_checks"],
+        "xhs_public_function_execute_count": public_function_execute_count,
+        "xhs_default_acl_entry_count": default_acl_entry_count,
     }
 
 
@@ -727,8 +953,6 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
     ):
         raise SchemaRoleError("role_ownership")
 
-    table_checks = 0
-    column_checks = 0
     for role in RUNTIME_ROLES:
         if not _fetch_scalar(
             conn,
@@ -743,6 +967,19 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
                 (role, privilege),
             ):
                 raise SchemaRoleError("database_capability")
+            if _fetch_scalar(
+                conn,
+                "SELECT has_database_privilege(%s,current_database(),%s)",
+                (role, f"{privilege} WITH GRANT OPTION"),
+            ):
+                raise SchemaRoleError("database_grant_option")
+        if _fetch_scalar(
+            conn,
+            "SELECT has_database_privilege("
+            "%s,current_database(),'CONNECT WITH GRANT OPTION')",
+            (role,),
+        ):
+            raise SchemaRoleError("database_grant_option")
         if not _fetch_scalar(
             conn,
             "SELECT has_schema_privilege(%s,'public','USAGE')",
@@ -753,47 +990,20 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
             (role,),
         ):
             raise SchemaRoleError("schema_capability")
-        for table in tables:
-            allowed = set(ROLE_TABLE_PRIVILEGES.get(role, {}).get(table, ()))
-            for privilege in TABLE_PRIVILEGES:
-                actual = bool(_fetch_scalar(
-                    conn,
-                    "SELECT has_table_privilege(%s,%s,%s)",
-                    (role, f"public.{table}", privilege),
-                ))
-                if actual != (privilege in allowed):
-                    raise SchemaRoleError("table_privilege")
-                table_checks += 1
-            columns = conn.execute(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_schema='public' AND table_name=%s "
-                "ORDER BY ordinal_position",
-                (table,),
-            ).fetchall()
-            for column_row in columns:
-                column = column_row["column_name"]
-                for privilege in ("SELECT", "UPDATE"):
-                    actual = bool(_fetch_scalar(
-                        conn,
-                        "SELECT has_column_privilege(%s,%s,%s,%s)",
-                        (role, f"public.{table}", column, privilege),
-                    ))
-                    if actual != _expected_column(role, table, column, privilege):
-                        raise SchemaRoleError("column_privilege")
-                    column_checks += 1
-        for sequence in sequences:
-            for privilege in SEQUENCE_PRIVILEGES:
-                expected = (
-                    privilege == "USAGE"
-                    and sequence in ROLE_SEQUENCES.get(role, set())
-                )
-                actual = bool(_fetch_scalar(
-                    conn,
-                    "SELECT has_sequence_privilege(%s,%s,%s)",
-                    (role, f"public.{sequence}", privilege),
-                ))
-                if actual != expected:
-                    raise SchemaRoleError("sequence_privilege")
+        for privilege in ("USAGE", "CREATE"):
+            if _fetch_scalar(
+                conn,
+                "SELECT has_schema_privilege(%s,'public',%s)",
+                (role, f"{privilege} WITH GRANT OPTION"),
+            ):
+                raise SchemaRoleError("schema_grant_option")
+
+    acl_metrics = _acl_matrix_metrics(
+        conn,
+        roles=RUNTIME_ROLES,
+        tables=tables,
+        sequences=sequences,
+    )
 
     for role in RUNTIME_ROLES:
         for signature in TRIGGER_FUNCTIONS:
@@ -803,6 +1013,13 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
                 (role, signature),
             ):
                 raise SchemaRoleError("trigger_function_execute")
+            if _fetch_scalar(
+                conn,
+                "SELECT has_function_privilege("
+                "%s,%s,'EXECUTE WITH GRANT OPTION')",
+                (role, signature),
+            ):
+                raise SchemaRoleError("function_grant_option")
     for role in (
         "noteai_app", "noteai_ai_worker", "noteai_payment", "noteai_xhs",
         "noteai_xhs_tracking", "noteai_xhs_trends",
@@ -814,12 +1031,55 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
                 (role, signature),
             ):
                 raise SchemaRoleError("advisory_function_execute")
+            if _fetch_scalar(
+                conn,
+                "SELECT has_function_privilege("
+                "%s,%s,'EXECUTE WITH GRANT OPTION')",
+                (role, signature),
+            ):
+                raise SchemaRoleError("function_grant_option")
+
+    default_acl_entries = int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM pg_default_acl default_acl "
+        "CROSS JOIN LATERAL aclexplode(default_acl.defaclacl) exploded "
+        "JOIN pg_roles grantee ON grantee.oid=exploded.grantee "
+        "WHERE grantee.rolname = ANY(%s)",
+        (list(RUNTIME_ROLES),),
+    ))
+    if default_acl_entries:
+        raise SchemaRoleError("default_acl")
 
     if int(_fetch_scalar(conn, "SELECT COUNT(*) FROM content_retention")) != 0:
         raise SchemaRoleError("unexpected_retention_backfill")
-    if int(_fetch_scalar(conn, "SELECT COUNT(*) FROM xhs_trends_service_state")) != 1:
+    if int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM xhs_trends_service_state "
+        "WHERE service_key='market_timing' "
+        "AND status='idle' "
+        "AND active_run_id IS NULL "
+        "AND lease_token_hash IS NULL "
+        "AND lease_fence=0 "
+        "AND lease_expires_at IS NULL "
+        "AND session_blocked IS FALSE "
+        "AND session_block_reason='' "
+        "AND session_blocked_at IS NULL "
+        "AND updated_at IS NOT NULL",
+    )) != 1 or int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM xhs_trends_service_state",
+    )) != 1:
         raise SchemaRoleError("trends_seed")
-    if int(_fetch_scalar(conn, "SELECT COUNT(*) FROM ai_dispatch_state")) != 1:
+    if int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM ai_dispatch_state "
+        "WHERE service_key='durable_ai' "
+        "AND priority_streak=0 "
+        "AND updated_at='1970-01-01T00:00:00+00:00'",
+    )) != 1 or int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM ai_dispatch_state",
+    )) != 1:
         raise SchemaRoleError("dispatcher_seed")
 
     return {
@@ -827,8 +1087,13 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
         "runtime_role_count": len(role_rows),
         "table_count": len(tables),
         "sequence_count": len(sequences),
-        "table_privilege_checks": table_checks,
-        "column_privilege_checks": column_checks,
+        "table_privilege_checks": acl_metrics["table_checks"],
+        "table_grant_option_count": acl_metrics["table_grantable"],
+        "column_privilege_checks": acl_metrics["column_checks"],
+        "column_grant_option_count": acl_metrics["column_grantable"],
+        "sequence_privilege_checks": acl_metrics["sequence_checks"],
+        "sequence_grant_option_count": acl_metrics["sequence_grantable"],
+        "default_acl_entry_count": default_acl_entries,
         "schema_seed_rows": 2,
         "retention_backfill_rows": 0,
         "accepted_role_risk_count": int(
@@ -854,11 +1119,25 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
 
 def apply_contract(conn: Any) -> dict[str, Any]:
     payloads = _migration_payloads()
+    migration_paths = sorted(MIGRATION_DIR.glob("*.sql"))
+    expected_ledger_names = tuple(path.name for path in migration_paths)
+    legacy_ledger_names = expected_ledger_names[:8]
     acl_payload = ACL_PATH.read_text(encoding="utf-8")
     with conn.transaction():
         conn.execute("SET LOCAL statement_timeout='120s'")
         conn.execute("SET LOCAL lock_timeout='5s'")
         conn.execute("SET LOCAL idle_in_transaction_session_timeout='180s'")
+        conn.execute(
+            "SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))"
+        )
+        ledger_names = tuple(
+            str(row["version"])
+            for row in conn.execute(
+                "SELECT version FROM schema_migrations ORDER BY version"
+            ).fetchall()
+        )
+        if ledger_names not in (legacy_ledger_names, expected_ledger_names):
+            raise SchemaRoleError("precondition_migration_versions")
         prewrite_tables = tuple(
             row["table_name"]
             for row in conn.execute(
@@ -874,55 +1153,125 @@ def apply_contract(conn: Any) -> dict[str, Any]:
                 "WHERE sequence_schema='public' ORDER BY sequence_name"
             ).fetchall()
         )
+        if ledger_names == legacy_ledger_names:
+            if prewrite_tables != EXPECTED_PUBLIC_TABLES:
+                raise SchemaRoleError("precondition_table_inventory")
+            if prewrite_sequences != EXPECTED_PUBLIC_SEQUENCES:
+                raise SchemaRoleError("precondition_sequence_inventory")
+            if int(_fetch_scalar(
+                conn,
+                "SELECT COUNT(*) FROM pg_roles "
+                "WHERE rolname = ANY(%s)",
+                (list(NEW_RUNTIME_ROLES),),
+            )):
+                raise SchemaRoleError("precondition_new_roles")
+            if int(_fetch_scalar(
+                conn,
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_schema='public' "
+                "AND table_name = ANY(%s)",
+                (list(NEW_TABLES),),
+            )):
+                raise SchemaRoleError("precondition_new_tables")
+            if int(_fetch_scalar(
+                conn,
+                "SELECT (SELECT COUNT(*) FROM notes) + "
+                "(SELECT COUNT(*) FROM saved_diagnoses)",
+            )):
+                raise SchemaRoleError("precondition_retention_backfill")
+        else:
+            if prewrite_tables != EXPECTED_TABLES:
+                raise SchemaRoleError("precondition_table_inventory")
+            if prewrite_sequences != tuple(sorted(EXPECTED_PUBLIC_SEQUENCES)):
+                raise SchemaRoleError("precondition_sequence_inventory")
         _accepted_role_risk_state(
             conn,
             tables=prewrite_tables,
             sequences=prewrite_sequences,
         )
-        conn.execute(
-            "SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))"
-        )
+        ledger_sha_column = conn.execute(
+            "SELECT data_type,is_nullable "
+            "FROM information_schema.columns "
+            "WHERE table_schema='public' "
+            "AND table_name='schema_migrations' "
+            "AND column_name='sha256'"
+        ).fetchone()
+        ledger_constraint_count = int(_fetch_scalar(
+            conn,
+            "SELECT COUNT(*) FROM pg_constraint "
+            "WHERE conrelid='schema_migrations'::regclass "
+            "AND conname=%s",
+            (MIGRATION_LEDGER_CONSTRAINT,),
+        ))
+        if ledger_names == legacy_ledger_names:
+            if ledger_sha_column is not None or ledger_constraint_count:
+                raise SchemaRoleError("precondition_legacy_ledger_shape")
+            rows = [
+                {"version": name, "sha256": None}
+                for name in ledger_names
+            ]
+        else:
+            if (
+                ledger_sha_column is None
+                or ledger_sha_column["data_type"] != "text"
+                or ledger_sha_column["is_nullable"] != "NO"
+                or ledger_constraint_count != 1
+            ):
+                raise SchemaRoleError("precondition_migration_ledger_contract")
+            rows = conn.execute(
+                "SELECT version,sha256 FROM schema_migrations "
+                "ORDER BY version"
+            ).fetchall()
+            for row in rows:
+                version = str(row["version"]).split("_", 1)[0]
+                if str(row["sha256"]) != payloads[version][1]:
+                    raise SchemaRoleError("precondition_migration_drift")
+
         _prepare_migration_ledger(conn)
-        rows = conn.execute(
-            "SELECT version,sha256 FROM schema_migrations ORDER BY version"
-        ).fetchall()
-        versions = tuple(str(row["version"]).split("_", 1)[0] for row in rows)
-        if versions not in (LEGACY_VERSIONS, EXPECTED_VERSIONS):
-            raise SchemaRoleError("precondition_migration_versions")
-        for row in rows:
-            version = str(row["version"]).split("_", 1)[0]
-            stored = row["sha256"]
-            if stored is not None and str(stored) != payloads[version][1]:
-                raise SchemaRoleError("precondition_migration_drift")
+        migration_hash_backfills = 0
         for row in rows:
             if row["sha256"] is None:
                 version = str(row["version"]).split("_", 1)[0]
-                conn.execute(
+                update_result = conn.execute(
                     "UPDATE schema_migrations SET sha256=%s "
                     "WHERE version=%s AND sha256 IS NULL",
                     (payloads[version][1], row["version"]),
                 )
-        migration_hash_backfills = sum(
-            1 for row in rows if row["sha256"] is None
-        )
+                if update_result.rowcount != 1:
+                    raise SchemaRoleError("migration_hash_backfill_count")
+                migration_hash_backfills += 1
+        expected_backfills = 8 if ledger_names == legacy_ledger_names else 0
+        if migration_hash_backfills != expected_backfills:
+            raise SchemaRoleError("migration_hash_backfill_count")
         conn.execute(
             "ALTER TABLE schema_migrations ALTER COLUMN sha256 SET NOT NULL"
         )
-        existing = set(versions)
+        existing = {
+            name.split("_", 1)[0]
+            for name in ledger_names
+        }
         applied: list[str] = []
-        for path in sorted(MIGRATION_DIR.glob("*.sql")):
+        for path in migration_paths:
             version = path.name.split("_", 1)[0]
             if version in existing:
                 continue
             payload, digest = payloads[version]
             conn.execute(payload.decode("utf-8"))
-            conn.execute(
+            insert_result = conn.execute(
                 "INSERT INTO schema_migrations(version,sha256) VALUES(%s,%s)",
                 (path.name, digest),
             )
+            if insert_result.rowcount != 1:
+                raise SchemaRoleError("migration_ledger_insert_count")
             applied.append(version)
+        expected_applied = list(NEW_VERSIONS) if (
+            ledger_names == legacy_ledger_names
+        ) else []
+        if applied != expected_applied:
+            raise SchemaRoleError("migration_ledger_insert_count")
         conn.execute(acl_payload)
         verification = validate_contract(conn, expect_login=False)
+        schema_seed_writes = 2 if applied else 0
     return {
         "schema_version": 1,
         "task_id": TASK_ID,
@@ -932,7 +1281,7 @@ def apply_contract(conn: Any) -> dict[str, Any]:
         "database_writes": {
             "migration_ledger_rows": len(applied),
             "migration_ledger_hash_backfills": migration_hash_backfills,
-            "schema_seed_rows": verification["schema_seed_rows"],
+            "schema_seed_rows": schema_seed_writes,
             "retention_backfill_rows": verification["retention_backfill_rows"],
             "existing_business_row_updates": 0,
         },
@@ -988,32 +1337,46 @@ def verify_contract(conn: Any, *, expect_login: bool = False) -> dict[str, Any]:
     }
 
 
-def _connect() -> Any:
+def _connect(database_url: str | None = None) -> Any:
     if psycopg is None:
         raise SchemaRoleError("psycopg_unavailable")
-    database_url = os.environ.get(DATABASE_URL_ENV, "").strip()
-    if not database_url:
+    resolved_url = (
+        database_url
+        if database_url is not None
+        else os.environ.get(DATABASE_URL_ENV, "")
+    ).strip()
+    if not resolved_url:
         raise SchemaRoleError("database_url_missing")
     return psycopg.connect(
-        database_url,
+        resolved_url,
         row_factory=dict_row,
         connect_timeout=10,
-        application_name="noteai_schema_roles_v1",
+        application_name="noteai_schema_roles_v2",
     )
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(
+    argv: list[str] | None = None,
+    *,
+    database_url: str | None = None,
+    confirmation: str | None = None,
+) -> int:
     parser = argparse.ArgumentParser()
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--apply", action="store_true")
     mode.add_argument("--verify", action="store_true")
     parser.add_argument("--expect-login", action="store_true")
     args = parser.parse_args(argv)
-    if args.apply and os.environ.get(CONFIRM_ENV) != TASK_ID:
+    resolved_confirmation = (
+        confirmation
+        if confirmation is not None
+        else os.environ.get(CONFIRM_ENV)
+    )
+    if args.apply and resolved_confirmation != TASK_ID:
         print("production_schema_roles=FAIL code=confirmation_missing", file=sys.stderr)
         return 2
     try:
-        conn = _connect()
+        conn = _connect(database_url)
         try:
             result = (
                 apply_contract(conn)

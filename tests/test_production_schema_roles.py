@@ -141,12 +141,27 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             encoding="utf-8"
         )
 
+        advisory_call = source.index(
+            "SELECT pg_advisory_xact_lock("
+            "hashtext('noteai_schema_migrations'))"
+        )
+        legacy_name_select = source.index(
+            '"SELECT version FROM schema_migrations ORDER BY version"',
+            advisory_call,
+        )
+        retention_precondition = source.index(
+            '"(SELECT COUNT(*) FROM saved_diagnoses)"',
+            legacy_name_select,
+        )
         prepare_call = source.index("\n        _prepare_migration_ledger(conn)\n")
-        ledger_select = source.index(
-            '"SELECT version,sha256 FROM schema_migrations ORDER BY version"',
+        ledger_update = source.index(
+            '"UPDATE schema_migrations SET sha256=%s "',
             prepare_call,
         )
-        self.assertLess(prepare_call, ledger_select)
+        self.assertLess(advisory_call, legacy_name_select)
+        self.assertLess(legacy_name_select, retention_precondition)
+        self.assertLess(retention_precondition, prepare_call)
+        self.assertLess(prepare_call, ledger_update)
         self.assertIn(
             "ADD COLUMN IF NOT EXISTS sha256 TEXT",
             source,
@@ -168,14 +183,63 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         )
         self.assertEqual(len(schema_roles.ACCEPTED_ROLE_RISK_IDS), 2)
         self.assertIn("current_user <> 'noteai_xhs'", source)
+        self.assertIn("session_user <> 'noteai_xhs'", source)
+        self.assertIn("session_user=current_user", source)
         self.assertIn("member.rolname='noteai_app'", source)
         self.assertIn("pg_has_role('noteai_app',role.oid,'USAGE')", source)
         self.assertIn("WITH GRANT OPTION", source)
+        self.assertEqual(
+            schema_roles.COLUMN_PRIVILEGES,
+            ("SELECT", "INSERT", "UPDATE", "REFERENCES"),
+        )
+        self.assertIn("default_acl", source)
+        self.assertIn("public_function_execute_count", source)
         self.assertIn("granted.rolname = 'noteai_xhs'", acl)
         self.assertIn("member.rolname = 'noteai_admin'", acl)
         self.assertIn("membership.admin_option", acl)
+        self.assertIn("session_user = 'noteai_xhs'", acl)
+        self.assertIn("session_user <> current_user", acl)
         self.assertIn("accepted runtime role membership changed", acl)
         self.assertNotIn("ACCEPTED_ROLE_RISK_PROFILE", os.environ)
+
+    def test_postconditions_bind_exact_seed_and_write_counts(self):
+        source = schema_roles.Path(schema_roles.__file__).read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("migration_hash_backfill_count", source)
+        self.assertIn("migration_ledger_insert_count", source)
+        self.assertIn("expected_backfills = 8", source)
+        self.assertIn("service_key='market_timing'", source)
+        self.assertIn("lease_fence=0", source)
+        self.assertIn("session_blocked IS FALSE", source)
+        self.assertIn("service_key='durable_ai'", source)
+        self.assertIn(
+            "updated_at='1970-01-01T00:00:00+00:00'",
+            source,
+        )
+
+    def test_protected_call_can_supply_dsn_and_confirmation_without_env(self):
+        stderr = io.StringIO()
+        with (
+            mock.patch.object(
+                schema_roles,
+                "_connect",
+                side_effect=schema_roles.SchemaRoleError(
+                    "database_url_missing"
+                ),
+            ) as connect,
+            contextlib.redirect_stderr(stderr),
+        ):
+            result = schema_roles.main(
+                ["--apply"],
+                database_url="opaque-protected-input",
+                confirmation=schema_roles.TASK_ID,
+            )
+
+        self.assertEqual(result, 1)
+        connect.assert_called_once_with("opaque-protected-input")
+        self.assertNotIn("opaque-protected-input", stderr.getvalue())
 
 
 if __name__ == "__main__":

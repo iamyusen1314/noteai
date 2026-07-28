@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Classify the outcome of the bounded production schema transaction.
 
-This incident audit is intentionally independent of the schema executor and
-its full contract verifier.  It opens one forced-read-only connection, reads
-only migration/schema/role metadata and fixed aggregate counts, and classifies
-the database as the exact legacy state, the exact committed state, or a
-conflict.  It never reads business-row values.
+This incident audit runs as a separate forced-read-only connection and
+process.  It independently classifies migration/schema/role inventory, then
+requires the complete committed table/column/sequence/function/default-ACL
+contract verifier to pass inside the same read-only snapshot.  It reads fixed
+aggregate counts but never business-row values.
 """
 
 from __future__ import annotations
@@ -23,6 +23,11 @@ try:
 except ImportError:  # pragma: no cover - exercised by deployment environment
     psycopg = None  # type: ignore[assignment]
     dict_row = None  # type: ignore[assignment]
+
+try:
+    from tools import production_schema_roles as schema_role_contract
+except ModuleNotFoundError:
+    import production_schema_roles as schema_role_contract  # type: ignore[no-redef]
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -229,6 +234,11 @@ def _classify(observation: dict[str, Any]) -> str:
         and observation["dispatcher_seed_count"] == 1
         and observation["dispatcher_seed_exact_count"] == 1
         and observation["retention_row_count"] == 0
+        and observation["full_contract_matrix_verified"] is True
+        and observation["table_grant_option_count"] == 0
+        and observation["column_grant_option_count"] == 0
+        and observation["sequence_grant_option_count"] == 0
+        and observation["default_acl_entry_count"] == 0
     )
     if legacy:
         return "ROLLED_BACK"
@@ -547,6 +557,56 @@ def collect_outcome(
                     tables,
                 ),
             }
+            if (
+                tables == EXPECTED_TABLES
+                and sequences == EXPECTED_SEQUENCES
+                and present_roles == EXPECTED_PRESENT_RUNTIME_ROLES
+            ):
+                try:
+                    full_contract = schema_role_contract.validate_contract(
+                        conn,
+                        expect_login=False,
+                    )
+                    observation["full_contract_matrix_verified"] = True
+                    observation["table_grant_option_count"] = int(
+                        full_contract["table_grant_option_count"]
+                    )
+                    observation["column_grant_option_count"] = int(
+                        full_contract["column_grant_option_count"]
+                    )
+                    observation["sequence_grant_option_count"] = int(
+                        full_contract["sequence_grant_option_count"]
+                    )
+                    observation["default_acl_entry_count"] = int(
+                        full_contract["default_acl_entry_count"]
+                    )
+                    observation["table_privilege_checks"] = int(
+                        full_contract["table_privilege_checks"]
+                    )
+                    observation["column_privilege_checks"] = int(
+                        full_contract["column_privilege_checks"]
+                    )
+                    observation["sequence_privilege_checks"] = int(
+                        full_contract["sequence_privilege_checks"]
+                    )
+                except schema_role_contract.SchemaRoleError:
+                    observation["full_contract_matrix_verified"] = False
+                    observation["table_grant_option_count"] = None
+                    observation["column_grant_option_count"] = None
+                    observation["sequence_grant_option_count"] = None
+                    observation["default_acl_entry_count"] = None
+                    observation["table_privilege_checks"] = None
+                    observation["column_privilege_checks"] = None
+                    observation["sequence_privilege_checks"] = None
+            else:
+                observation["full_contract_matrix_verified"] = None
+                observation["table_grant_option_count"] = None
+                observation["column_grant_option_count"] = None
+                observation["sequence_grant_option_count"] = None
+                observation["default_acl_entry_count"] = None
+                observation["table_privilege_checks"] = None
+                observation["column_privilege_checks"] = None
+                observation["sequence_privilege_checks"] = None
     except OutcomeAuditError:
         raise
     except BaseException as exc:
@@ -598,6 +658,22 @@ def collect_outcome(
             "dispatcher_seed_exact_count"
         ],
         "retention_row_count": observation["retention_row_count"],
+        "full_contract_matrix_verified": observation[
+            "full_contract_matrix_verified"
+        ],
+        "table_privilege_checks": observation["table_privilege_checks"],
+        "table_grant_option_count": observation["table_grant_option_count"],
+        "column_privilege_checks": observation["column_privilege_checks"],
+        "column_grant_option_count": observation[
+            "column_grant_option_count"
+        ],
+        "sequence_privilege_checks": observation[
+            "sequence_privilege_checks"
+        ],
+        "sequence_grant_option_count": observation[
+            "sequence_grant_option_count"
+        ],
+        "default_acl_entry_count": observation["default_acl_entry_count"],
         "business_row_values_read": 0,
     }
     return {

@@ -11,7 +11,10 @@ DECLARE
     role_name TEXT;
     role_row RECORD;
 BEGIN
-    IF current_user = 'noteai_xhs' THEN
+    IF session_user = 'noteai_xhs'
+       OR current_user = 'noteai_xhs'
+       OR session_user <> current_user
+       OR current_user <> current_role THEN
         RAISE EXCEPTION 'runtime role cannot execute migrations';
     END IF;
 
