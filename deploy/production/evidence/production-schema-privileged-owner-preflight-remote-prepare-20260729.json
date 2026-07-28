@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-PRIVILEGED-OWNER-PREFLIGHT-005",
+  "observed_at_utc": "2026-07-28T20:50:22Z",
+  "status": "PRE_CONNECT_ROOT_CAUSE_RESOLVED_SOURCE_CHECKPOINT_PENDING",
+  "production_database": {
+    "connection_count": 0,
+    "transaction_count": 0,
+    "write_count": 0,
+    "account_mutation_count": 0,
+    "schema_mutation_count": 0,
+    "business_row_read_count": 0
+  },
+  "fresh_prerequisite_baseline": {
+    "running_private_postgresql_instances": 1,
+    "public_endpoint_count": 0,
+    "successful_full_backups_within_48_hours": 2,
+    "accounts": 3,
+    "super_accounts": 1,
+    "task_accounts": 0,
+    "production_api_nodes": 2,
+    "non_loopback_listener_count": 0,
+    "api_c_api_active_ready": true,
+    "api_c_admin_active_ready": true,
+    "api_f_api_active_ready": true,
+    "task_residue_count": 0
+  },
+  "original_remote_package": {
+    "source_checkpoint": "a32cfb300fc80c58ac658cfd1a345d813a8b7588",
+    "source_files": 24,
+    "archive_entries_including_manifest": 25,
+    "migration_files": 16,
+    "manifest_sha256": "45938458e7daa514d8a26bde58e50dc6a79259e1be17fe7c5b80a252add10ad1",
+    "archive_sha256": "68edfd45bc75eb364fd8fb5c81e519395231cbbb57b663526e6780e9a48518dc",
+    "archive_bytes": 57374,
+    "deterministic_builds_equal": true,
+    "symlinks": 0,
+    "non_regular_members": 0,
+    "remote_manifest_verified": true,
+    "remote_file_count": 25,
+    "remote_migration_count": 16
+  },
+  "preconnect_incidents": [
+    {
+      "stage": "network_none_import",
+      "classification": "PRE_CONNECT",
+      "database_connection_count": 0,
+      "transaction_count": 0,
+      "database_write_count": 0,
+      "import_sentinel_count": 0,
+      "import_container_count": 0,
+      "audit_container_count": 0,
+      "automatic_retry_count": 0
+    },
+    {
+      "stage": "permission_normalized_network_none_import",
+      "classification": "PRE_CONNECT",
+      "database_connection_count": 0,
+      "transaction_count": 0,
+      "database_write_count": 0,
+      "import_sentinel_count": 0,
+      "import_container_count": 0,
+      "audit_container_count": 0,
+      "automatic_retry_count": 0
+    },
+    {
+      "stage": "account_control_handle_readback",
+      "classification": "PRE_CONNECT",
+      "cause": "stale_in_memory_control_plane_handle",
+      "resolution": "Rediscovered the unique running PostgreSQL instance without printing its identifier and read back the exact 3/1/0 account baseline.",
+      "database_connection_count": 0,
+      "transaction_count": 0,
+      "database_write_count": 0
+    }
+  ],
+  "root_cause": {
+    "class": "python_namespace_collision",
+    "evidence": "The production API image resolves a pre-existing concrete package named tools before the task source namespace. The isolated import therefore fell through to a missing top-level module even though every pinned source file and hash was present.",
+    "not_a_database_failure": true,
+    "not_a_permission_failure": true,
+    "not_a_hash_failure": true
+  },
+  "material_fix": {
+    "runner": "tools/production_schema_privileged_owner_preflight_runner.sh",
+    "old_runner_sha256": "9ca9ad4b82ca980193cb84d01150a83ff6f2eb87734bdadd5f570be97146c79d",
+    "new_runner_sha256": "8bd3573889a756be208d17874b5d7aa7c7629d09721c661a77acd5503b8c9e28",
+    "container_pythonpath": "/task/tools",
+    "imports_use_top_level_task_module": true,
+    "migration_bytes_changed": false,
+    "runtime_acl_bytes_changed": false,
+    "registry_evidence_changed": false,
+    "auditor_bytes_changed": false
+  },
+  "local_verification": {
+    "focused_tests_passed": 10,
+    "focused_tests_failed": 0,
+    "runner_shell_syntax": "PASS",
+    "zero_dsn_top_level_import": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "cleanup_readback": {
+    "task_root_count": 0,
+    "container_count": 0,
+    "process_count": 0,
+    "task_account_count": 0,
+    "accounts": 3,
+    "super_accounts": 1,
+    "database_connection_count": 0,
+    "transaction_count": 0,
+    "database_write_count": 0
+  },
+  "readiness_credit": 0,
+  "internal_readiness": "14/29",
+  "next_action": "Commit and push the material import fix, rebuild the exact minimal package from that checkpoint, then repeat only the zero-database remote prepare path before any credential material exists."
+}

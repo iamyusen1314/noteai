@@ -275,7 +275,7 @@ Stage-safe 005 implementation checkpoint:
   `091a96673f0391cf5196c4a2492702b6438ec49d462a47da19177dd15379c851`.
 - New host runner:
   `tools/production_schema_privileged_owner_preflight_runner.sh`;
-  SHA-256
+  original SHA-256
   `9ca9ad4b82ca980193cb84d01150a83ff6f2eb87734bdadd5f570be97146c79d`.
 - Existing 004 auditor, schema executor, V5 runner, runtime ACL and all 16
   migrations retain their previously recorded hashes and bytes.
@@ -317,6 +317,40 @@ Secret-free evidence:
 
 `deploy/production/evidence/production-schema-privileged-owner-preflight-local-20260729.json`
 
+Stage-safe remote prepare continuation:
+
+- Fresh prerequisite-only control-plane and host evidence passed: one running
+  private PostgreSQL instance, two successful full backups within 48 hours,
+  accounts `3/1/0`, two production API nodes, API-C API/Admin and API-F API
+  active/ready, loopback-only and zero task residue.
+- The `a32cfb3` minimal package contained 24 source files plus manifest,
+  16 migrations, 57,374 deterministic gzip bytes and archive SHA-256
+  `68edfd45bc75eb364fd8fb5c81e519395231cbbb57b663526e6780e9a48518dc`.
+  Remote file/hash/manifest counts all passed.
+- The remote network-none import and a permission-normalized successor both
+  failed before database connection. Dedicated zero-network diagnosis proved
+  a production-image Python namespace collision: an existing concrete
+  `tools` package shadowed the task source namespace.
+- Both failures are `PRE_CONNECT`; task account, database connection,
+  transaction and write counts were zero. Import/audit containers, sentinel,
+  diagnostic error and the exact API-C task root were read back at zero.
+- A stale in-memory RDS handle caused one control-plane-only
+  `InvalidDBInstanceName.NotFound`; it was `PRE_CONNECT`, and anonymous
+  rediscovery of the unique running PostgreSQL instance restored the exact
+  `3 accounts / 1 Super / 0 task` readback without printing identifiers.
+- The material fix changes only the 005 runner: isolated containers now use
+  `PYTHONPATH=/task/tools` and import the top-level task module. New runner
+  SHA-256 is
+  `8bd3573889a756be208d17874b5d7aa7c7629d09721c661a77acd5503b8c9e28`;
+  migrations, runtime ACL, registry evidence and auditor bytes are unchanged.
+- Local top-level zero-DSN import, runner syntax, focused `10/10` tests and
+  diff checks pass. The fix must be committed and pushed before rebuilding;
+  no credential or production database action may use the old package.
+
+Additional Secret-free evidence:
+
+`deploy/production/evidence/production-schema-privileged-owner-preflight-remote-prepare-20260729.json`
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
@@ -357,9 +391,10 @@ The 004 outcome/evidence was committed and pushed normally at `8a533ac`.
 
 Current remaining steps:
 
-- commit and push the separately named 005 privileged-owner preflight
-  implementation without changing migration or runtime-ACL bytes;
-- rebuild its exact minimal package and refresh prerequisite-only cloud state;
+- commit and push the 005 production-image import fix without changing
+  auditor, migration, runtime-ACL or registry-evidence bytes;
+- rebuild its exact minimal package from that checkpoint and repeat only the
+  zero-database remote prepare path;
 - create one short-term protected privileged account, run 005 once, preserve
   its deterministic result and clean/read back all transient state;
 - only after a passing 005, open a separately named V5 single transaction;

@@ -123,11 +123,12 @@ if test "${mode}" = prepare; then
         --cpus 0.25 \
         --tmpfs /tmp:rw,noexec,nosuid,nodev,size=8m \
         -e PYTHONDONTWRITEBYTECODE=1 \
+        -e PYTHONPATH=/task/tools \
         -v "${source_root}:/task:ro" \
         -w /task \
         --entrypoint python \
         "${image_id}" \
-        -c 'import tools.production_schema_privileged_owner_preflight' \
+        -c 'import production_schema_privileged_owner_preflight' \
         >/dev/null 2>&1 \
         || fail_preconnect
     printf '%s\n' "${package_manifest_sha}" >"${import_sentinel}" \
@@ -200,7 +201,7 @@ sanitize_admin_topology() {
         "${admin_env}" \
         | (
             cd "${source_root}" || exit 2
-            PYTHONDONTWRITEBYTECODE=1 python3 -c 'import sys; value=sys.stdin.read(); from tools.production_schema_privileged_owner_preflight import sanitize_admin_topology_from_protected_input; code=sanitize_admin_topology_from_protected_input(value); del value; raise SystemExit(code)'
+            PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="${source_root}/tools" python3 -c 'import sys; value=sys.stdin.read(); from production_schema_privileged_owner_preflight import sanitize_admin_topology_from_protected_input; code=sanitize_admin_topology_from_protected_input(value); del value; raise SystemExit(code)'
         )
 }
 
@@ -233,12 +234,13 @@ set +e
         --cpus 0.5 \
         --tmpfs /tmp:rw,noexec,nosuid,nodev,size=16m \
         -e PYTHONDONTWRITEBYTECODE=1 \
+        -e PYTHONPATH=/task/tools \
         -i \
         -v "${source_root}:/task:ro" \
         -w /task \
         --entrypoint python \
         "${image_id}" \
-        -c 'import sys; payload=sys.stdin.buffer.read(); from tools.production_schema_privileged_owner_preflight import main_from_protected_input; code=main_from_protected_input(payload); del payload; raise SystemExit(code)' \
+        -c 'import sys; payload=sys.stdin.buffer.read(); from production_schema_privileged_owner_preflight import main_from_protected_input; code=main_from_protected_input(payload); del payload; raise SystemExit(code)' \
         >"${result_tmp}" 2>"${audit_error_path}"
 pipeline_status=("${PIPESTATUS[@]}")
 

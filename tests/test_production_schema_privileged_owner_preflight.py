@@ -371,6 +371,15 @@ class ProductionSchemaPrivilegedOwnerPreflightTests(unittest.TestCase):
         self.assertIn("prepare | audit", runner)
         self.assertIn("--network none", runner)
         self.assertIn("--network host", runner)
+        self.assertEqual(runner.count("-e PYTHONPATH=/task/tools"), 2)
+        self.assertNotIn(
+            "import tools.production_schema_privileged_owner_preflight",
+            runner,
+        )
+        self.assertIn(
+            "from production_schema_privileged_owner_preflight import",
+            runner,
+        )
         self.assertIn("rsa_padding_mode:oaep", runner)
         self.assertIn("rsa_oaep_md:sha256", runner)
         self.assertIn("main_from_protected_input", runner)
