@@ -25,8 +25,8 @@
 ## 2. Git and readiness truth
 
 - Branch: `codex/quality-stabilization-real-chain`.
-- Parent checkpoint before this evidence:
-  `a90a2ffe2be73d95df3fc3c207f1f46da77e9a2c`.
+- Parent checkpoint for the managed-secret audit:
+  `8665e1a8c5d691cfcd22d7b50b9cc797f520eca6`.
 - Schema executor repair:
   `e5883abc01c4b009907bee550209d7036d383771`.
 - Immutable application revision:
@@ -42,15 +42,11 @@
 
 ## 3. Unique current task and known production state
 
-`PROD-FIRST-LAUNCH-MANAGED-SECRETS-001`
+`PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001`
 
-- The independent `managed_secret_distribution` control depends only on the
-  verified production read-only preflight and is the only safe technical task
-  currently ready in the dependency graph. The other ready node,
-  `legal_provider_approval`, requires professional/product-owner input.
-- Parent schema task
-  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001` remains blocked by
-  `PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001`.
+- Parent schema task:
+  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`.
+- Status: `BLOCKED / CONNECTED_KNOWN / NO AUTOMATIC RETRY`.
 - The reviewed correction preflight was executed exactly once:
   - `CONNECTED_KNOWN / READ_ONLY_REJECTED`;
   - one connection and one forced-read-only transaction;
@@ -75,6 +71,23 @@
   incident may resume only with an existing protected credential proven to be
   the recorded membership grantor or a true PostgreSQL superuser. Interactive
   login or a new credential remains a product-owner stop.
+- `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001` received a fresh Secret-free
+  production audit but cannot proceed independently:
+  - API-C API/Admin and API-F API final-named files are distinct,
+    root:root/`0600`, with zero duplicate/rejected key names;
+  - API-F legacy `xhs.env` is root-only but does not satisfy final split;
+  - Payment, AI Worker, Trends and Tracking files are absent;
+  - rotation and revocation tools are absent on both nodes;
+  - the four missing files require dedicated database roles from migrations
+    `0009`–`0016`, so its dependency now correctly includes
+    `production_schema_roles`.
+- This audit is discovery evidence, not managed-secret acceptance: it does not
+  inspect or compare values, prove non-placeholder content or target database
+  usernames, reject legacy/cross-role credential reuse by value, or execute
+  rotation/revocation behavior. The three observed copies are only
+  final-named files, not proof of final role credentials.
+- The only other dependency-ready control is `legal_provider_approval`,
+  execution class `professional_review`; it is not a technical substitute.
 
 ## 4. Evidence and cleanup
 
@@ -82,6 +95,8 @@
   `deploy/production/evidence/production-legacy-runtime-role-identity-20260728.json`.
 - Current correction-rejection artifact:
   `deploy/production/evidence/production-legacy-runtime-role-correction-rejected-20260728.json`.
+- Current managed-secret audit artifact:
+  `deploy/production/evidence/production-managed-secret-distribution-audit-20260728.json`.
 - Parent conflict artifact:
   `deploy/production/evidence/production-schema-roles-conflict-20260728.json`.
 - Historical UNKNOWN artifact:
@@ -105,6 +120,11 @@
   - audit runner `43a5d59d52a4a8265bbd381f1a6c5e862be2072b43db345d3a5bb96850746988`;
   - corrector `73db08c9acc021adcc93803196503f5fbe3f04390fe83c690f9e326338a3f4ed`;
   - correction runner `6ff34363b40282d62644609291c79a6cad441eaf6f08e6f3a9b3bcee44e97f6d`.
+- Managed-secret audit candidate SHA-256 values are:
+  - auditor `4f51f1bd0e1220c0b5e856eef1c9157189accabc524fbd8ed53b512f7ca9ead4`;
+  - role-key validator `0089e3a5736e675a45c8caa5452b3ec3919b64a8697a6b4272a900983402c875`;
+  - local audit test `b59e68c93b6299beec870b3ce02a5fb207f035a3ea49b178bb4424b684db8d7f`;
+  - two-file archive `78b35095e086b7584f8d55c72938cc9a81ad91c01c0469bb4dc732fef7713bad`.
 - Cleanup was read back after the rejected preflight:
   - one running PostgreSQL instance, `2` successful full backups inside 48h,
     latest age `15h`, and RDS accounts `3 total / 1 Super / 0 task`;
@@ -118,11 +138,17 @@
   expiry were `PRE_CONNECT`: the affected diagnostic/readback commands never
   dispatched a database client. Each was materially corrected and the final
   control-plane and service readbacks passed.
+- The managed-secret audit package and two local transfer/recovery scripts were
+  moved recoverably to
+  `/Users/openclaw/.Trash/noteai-managed-secret-audit-20260728-1330`;
+  their three precise `/tmp` paths now read back absent.
 - Current verification:
   - correction/audit focused suite is `35/35`, repeated five consecutive
     times after making both fake Docker fixtures consume protected stdin;
   - combined schema/outcome/readiness suite is `75/75`;
   - rejection-evidence/schema/correction/readiness focused suite is `49/49`;
+  - managed-secret auditor and role-file validator suite is `12/12`;
+  - managed-secret/env/readiness combined suite is `19/19`;
   - full Python suite is `1007` passed with `24` explicit skips;
   - production readiness gate is `105/105`; internal readiness remains a
     valid fail-closed `14/29`;
@@ -161,19 +187,21 @@ outer layer failed but the remote command completed, recover its
 
 ## 6. Exact resume boundary
 
-- Complete local review/gates, checkpoint and normal push for the correction
-  rejection. The checkpoint is recovery protection, not a stop signal.
-- Continue only `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001`.
-- Begin with read-only discovery of current root-only API-C/API-F/Admin secret
-  file distribution, ownership/modes, rotation/revocation mechanism and
-  service references. Never read or emit values.
-- Reuse existing protected credentials and control-plane access only. Stop
-  before any interactive login, new credential, secret value rotation,
-  database connection, service restart/deploy or public exposure unless a
-  later bounded step is independently authorized by the standing rules.
+- Complete local review/gates, checkpoint and normal push for the
+  managed-secret audit/dependency correction.
 - The schema correction incident remains closed to automatic database retry.
   Do not rebuild its package, recreate its account/RSA or rerun preflight,
   apply or audit.
+- Resume only after a protected credential is independently proven to be the
+  recorded membership grantor or a true PostgreSQL superuser. If proving or
+  using it requires interactive login or a new credential, product-owner
+  action is mandatory.
+- After the schema role matrix is independently verified, resume
+  `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001` with real final role-specific files,
+  transactional rotation/revocation evidence and no placeholder or legacy
+  credential reuse.
+- No other internal technical task has all dependencies satisfied. External
+  legal/provider approval remains a separate professional-review stop.
 
 ## 7. Completed work not to repeat without conflict evidence
 

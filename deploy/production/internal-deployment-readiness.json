@@ -313,17 +313,23 @@
           ],
           "blocker": "The only reviewed correction preflight connected once in forced-read-only mode and deterministically returned CONNECTED_KNOWN / READ_ONLY_REJECTED at database_precondition. Its transaction rolled back with zero writes; apply was not attempted and must not be retried automatically. The exact failed predicate was not persisted, while unchanged prior identity evidence makes executor capability the leading inference. Production remains at the last directly verified legacy conflict and migrations 0009-0016 remain unapplied.",
           "next_task": "PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001",
-          "resume_condition": "Do not perform another database action for this correction incident. Resume the correction only in a later explicit incident boundary with an existing protected credential proven to be the recorded membership grantor or a true PostgreSQL superuser; obtaining or interactively using a new credential remains a product-owner stop. In the meantime continue the independent managed-secret-distribution control, which depends only on the verified production read-only preflight."
+          "resume_condition": "Do not perform another database action for this correction incident. Resume the correction only in a later explicit incident boundary with an existing protected credential proven to be the recorded membership grantor or a true PostgreSQL superuser; obtaining or interactively using a new credential remains a product-owner stop. Managed-secret distribution is also blocked on this schema/role control and must not use placeholder files or copied legacy database credentials."
         },
         {
           "id": "managed_secret_distribution",
           "title": "Root-only managed secret distribution, rotation and revocation",
           "status": "unverified",
           "dependencies": [
-            "production_readonly_preflight"
+            "production_readonly_preflight",
+            "production_schema_roles"
           ],
-          "evidence": [],
-          "blocker": "Final role-specific production injection, file permissions, rotation and revocation are not observed.",
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-managed-secret-distribution-audit-20260728.json"
+            }
+          ],
+          "blocker": "Fresh Secret-free host audit proves the existing API-C API/Admin and API-F API files are distinct root-owned 0600 files with accepted key names, but final Payment, AI Worker, Trends and Tracking files are absent, the legacy XHS file does not satisfy the required split, and rotation/revocation tooling is absent. Dedicated role DATABASE_URL values cannot exist until production migrations 0009-0016 create the final database roles; placeholder files or copied legacy credentials cannot satisfy this control.",
           "next_task": "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001"
         },
         {

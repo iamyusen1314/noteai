@@ -63,8 +63,15 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             actionable["production_schema_roles"]["execution_class"],
             "authenticated_production",
         )
+        self.assertNotIn("managed_secret_distribution", actionable)
+        managed = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "managed_secret_distribution"
+        )
+        self.assertIn("production_schema_roles", managed["dependencies"])
         self.assertEqual(
-            actionable["managed_secret_distribution"]["next_task"],
+            managed["next_task"],
             "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001",
         )
         self.assertEqual(
