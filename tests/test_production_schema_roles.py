@@ -187,6 +187,10 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         self.assertIn("session_user=current_user", source)
         self.assertIn("member.rolname='noteai_app'", source)
         self.assertIn("pg_has_role('noteai_app',role.oid,'USAGE')", source)
+        self.assertIn(
+            'membership["inherit_option"] is False',
+            source,
+        )
         self.assertIn("WITH GRANT OPTION", source)
         self.assertEqual(
             schema_roles.COLUMN_PRIVILEGES,
@@ -197,6 +201,7 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         self.assertIn("granted.rolname = 'noteai_xhs'", acl)
         self.assertIn("member.rolname = 'noteai_admin'", acl)
         self.assertIn("membership.admin_option", acl)
+        self.assertIn(")::boolean IS FALSE", acl)
         self.assertIn("session_user = 'noteai_xhs'", acl)
         self.assertIn("session_user <> current_user", acl)
         self.assertIn("accepted runtime role membership changed", acl)

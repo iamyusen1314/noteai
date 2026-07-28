@@ -11,7 +11,7 @@ prepared_sentinel="${task_root}/runner.prepared"
 dispatch_sentinel="${task_root}/dispatch.started"
 container_name=noteai-role-risk-set-audit-v2-once
 import_container_name=noteai-role-risk-set-import-v2-once
-auditor_sha256=7cab8a8b946805db87a1edda1140252dd122211bfe11bc7851282013dcf26af1
+auditor_sha256=2d873101db846689be20d8fee2d4adb21017fe51c54cc4ebfaffd54e58d3ad17
 
 fail_preconnect() {
     printf '%s\n' \

@@ -52,6 +52,11 @@ class ProductionFirstLaunchRoleRiskSetAuditTests(unittest.TestCase):
         self.assertIn("schema_grantable_count", set_audit.XHS_ACL_SQL)
         self.assertIn("default_acl_entry_count", set_audit.XHS_ACL_SQL)
         self.assertIn("public_function_execute_count", set_audit.XHS_ACL_SQL)
+        source = pathlib.Path(set_audit.__file__).read_text(encoding="utf-8")
+        self.assertIn(
+            'role_graph["membership_inherit"] is False',
+            source,
+        )
 
     def test_no_dsn_is_preconnect_without_connection_attempt(self):
         stderr = io.StringIO()

@@ -62,7 +62,7 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
                 "GRANT noteai_xhs TO noteai_admin WITH ADMIN OPTION"
             )
             conn.execute(
-                "GRANT noteai_xhs TO noteai_admin WITH INHERIT TRUE"
+                "GRANT noteai_xhs TO noteai_admin WITH INHERIT FALSE"
             )
             conn.execute(
                 "GRANT noteai_xhs TO noteai_admin WITH SET FALSE"

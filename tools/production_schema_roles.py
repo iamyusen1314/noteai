@@ -693,7 +693,7 @@ def _accepted_role_risk_state(
         membership["granted_name"] == "noteai_xhs"
         and membership["member_name"] == "noteai_admin"
         and bool(membership["admin_option"])
-        and membership["inherit_option"] is True
+        and membership["inherit_option"] is False
         and membership["set_option"] is False
     ):
         raise SchemaRoleError("accepted_role_membership")

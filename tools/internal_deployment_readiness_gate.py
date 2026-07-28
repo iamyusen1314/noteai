@@ -33,7 +33,7 @@ EXPECTED_ACCEPTED_RISK_FINDINGS = {
         "granted_role": "noteai_xhs",
         "member_role": "noteai_admin",
         "admin_option": True,
-        "inherit_option": True,
+        "inherit_option": False,
         "set_option": False,
     },
     "FIRST-LAUNCH-LEGACY-APP-INHERIT-20260728": {

@@ -51,6 +51,10 @@ class ProductionFirstLaunchRoleRiskAuditTests(unittest.TestCase):
         self.assertIn("WITH GRANT OPTION", source)
         self.assertIn("session_user <> 'noteai_xhs'", source)
         self.assertIn("business_row_values_read", source)
+        self.assertIn(
+            'membership_rows[0]["inherit_option"] is False',
+            source,
+        )
 
     def test_runner_reads_existing_root_env_without_secret_argv_or_env(self):
         runner_path = (

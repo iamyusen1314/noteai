@@ -24,8 +24,8 @@
 ## 2. Git and readiness truth
 
 - Branch: `codex/quality-stabilization-real-chain`.
-- Current pushed checkpoint:
-  `aaf1df42515ba810840208aaefba9921d439fbfb`.
+- Current pushed pre-policy checkpoint:
+  `54914710be70b9bcafb80be8b74da21c04da5e11`.
 - Historical UNKNOWN incident source checkpoint:
   `a5f2961089744eb1c0bf0eb0011b93a132d6493f`.
 - Schema executor repair:
@@ -42,8 +42,7 @@
 
 `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`
 
-- Status: `IN PROGRESS / FRESH NON-DATABASE BASELINE PASS / PRODUCTION
-  DATABASE ACTIONS 0`.
+- Status: `IN PROGRESS / ROLE RISK ACCEPTED / SCHEMA WRITE NOT STARTED`.
 - The historical read-only artifact remains exactly
   `CONNECTED_UNKNOWN`; its database and transaction outcomes remain
   `UNKNOWN`, and it has not been reclassified or retried.
@@ -55,7 +54,9 @@
 - A materially different database incident is now opened. It is not an
   automatic retry and must use new audit/run IDs, directory, sentinels,
   application name, fixed set-based SQL and a separate evidence artifact.
-- No accepted-risk entry is active and no readiness credit was added.
+- Exactly two fixed accepted-risk entries are active with zero readiness
+  credit. Neither is `VERIFIED_FIXED`, neither authorizes a database action,
+  and both are reviewed 30 days after first public launch.
 - New read-only incident:
   `PROD-FIRST-LAUNCH-LEGACY-ROLE-RISK-SET-AUDIT-002`;
   run `PROD-FIRST-LAUNCH-LEGACY-ROLE-RISK-SET-AUDIT-RUN-001`;
@@ -66,10 +67,12 @@
 - The new database path is limited to one connection and one
   `REPEATABLE READ READ ONLY` transaction with fixed stages:
   `session`, `ledger_inventory`, `role_graph`, `xhs_acl`, terminal `ROLLBACK`.
-- Missing stages, a sanitized SQLSTATE error, connection ambiguity or an
-  incomplete result ends the new incident; no database action is retried.
-- Production schema apply is a later, separately named write incident and is
-  forbidden until the read-only result and all local execution gates pass.
+- The new audit completed all stages with terminal `ROLLBACK`, one connection,
+  database writes zero and a deterministic `CONNECTED_KNOWN` result. It must
+  not be repeated.
+- Production schema apply is now the next separately named write incident. It
+  remains forbidden until the exact policy checkpoint is committed/pushed and
+  a new hash-verified package from that checkpoint passes zero-DSN validation.
 
 ## 4. Product-owner first-launch risk decision
 
@@ -87,50 +90,53 @@
 - Repository gate support is limited to the fixed profile
   `FIRST_LAUNCH_LEGACY_ROLE_RISK_V1` and exactly two fixed risk IDs. There is
   no global waiver.
-- Activation remains false because the new independent database audit has not
-  run. Backup freshness, zero public RDS endpoint, protected runtime env
-  metadata, loopback-only services and zero task residuals are freshly proven.
+- Activation is true only for the exact observed tuple
+  `ADMIN TRUE / INHERIT FALSE / SET FALSE` and for `noteai_app ROLINHERIT`
+  with incoming membership zero and high-privilege inheritance zero. Backup
+  freshness, zero public RDS endpoint, protected runtime env metadata and
+  loopback-only services are freshly proven.
 
 ## 5. Current incident evidence
 
-Secret-free artifact:
+Current Secret-free artifact:
 
-`deploy/production/evidence/production-first-launch-role-risk-readonly-unknown-20260728.json`
+`deploy/production/evidence/production-first-launch-role-risk-accepted-20260728.json`
 
 Artifact SHA-256:
 
-`79f869aefef5a5abd86d7d61618286217dc553d2a2c646c61505fba3e885a1b2`
+`2f25268539ee48d73bb6dcbff9af7ef8a9115d2e8a542f93fff29b9fa9b44c97`
 
 Deterministic facts:
 
-- Final source package: 24 files, 16 migrations, 23/23 manifest hashes.
-- Exact registry evidence SHA-256:
-  `b44b8861202d97b9f0784dd89f3b6056e5fc4af2b6939d28bdfe1b2f49b540f3`.
-- Clean Linux archive: 53,830 bytes, SHA-256
-  `e8c9e876d4c8934be18e7e46ac9b7a4c04daf2c246a7d853ee017208d74340b8`,
-  zero AppleDouble and zero symlink.
-- Local isolated zero-DSN import and remote `--network none` import passed.
-- No new database account, credential, RSA or ciphertext was created.
-- One final database dispatch occurred after all pre-connect checks passed.
-- It created a database connection and failed at `database_read`.
-- `result.json` was absent; `result.json.tmp` was 0 bytes with the empty-file
-  SHA-256.
-- The sanitized error was 155 bytes with SHA-256
-  `e9efda9f785f95eb8df5595bd95b104ab5ca0371b80448700c990c0b08580fbb`.
-- Runner result: `CONNECTED_UNKNOWN`; transaction and database-write outcomes
-  are unknown; automatic retry count is zero.
+- Metadata-free ustar package: 25 files, 16 migrations, 24/24 hashes,
+  62,275 bytes, SHA-256
+  `84cfdea3f218168daa929f4f27536d13965999d7f1f6db84d5d1de588a1faa7a`.
+- Local zero-DSN import and remote `--network none` import passed.
+- One short-term protected Super account and one 3072-bit RSA pair were
+  created; plaintext persistence/environment/argv/log exposure counts are 0.
+- The audit made one database connection and one four-query
+  `REPEATABLE READ READ ONLY` transaction, then rolled back.
+- Result: 3,845 bytes, SHA-256
+  `59475549a9c969c9edd9019e656456861ac00bcadc09e7e1b13c30dadd645400`;
+  database writes 0, business-row values read 0, automatic retries 0.
+- Ledger is exactly `0001`–`0008`; inventory is 30 tables and 5 sequences;
+  new roles/tables, legacy SHA column/constraint and retention sources are 0.
+- The only legacy membership is
+  `noteai_xhs -> noteai_admin / ADMIN TRUE / INHERIT FALSE / SET FALSE`.
+- `noteai_app` incoming membership and high-privilege inheritance are both 0.
+- XHS database/schema/table/column/sequence/function/ownership/default-ACL
+  negative matrix is exact with mismatch and grantable counts 0.
+- The raw auditor returned `state_changed` only because its pre-observation
+  profile pinned historical `INHERIT TRUE`. Session, ledger and XHS ACL all
+  passed. The fixed accepted-risk profile is now narrowed to observed
+  `INHERIT FALSE`; migration bytes and SHA values are unchanged.
+- Focused repository tests: `38/38`; disposable PostgreSQL 16 complete
+  apply/apply-twice/six-negative-mutation integration: `1/1`; local task
+  container count 0 and Colima restored stopped.
 
-Historical identity evidence remains useful context but is not current truth:
-
-- ledger `0001`–`0008`;
-- 30 public tables and 5 sequences;
-- only historical `noteai_app` and `noteai_xhs`;
-- `noteai_app ROLINHERIT`;
-- one `noteai_xhs -> noteai_admin` membership with historical
-  `ADMIN TRUE / INHERIT TRUE / SET FALSE`;
-- ownership zero.
-
-Do not promote those historical facts into the current accepted-risk profile.
+The old
+`production-first-launch-role-risk-readonly-unknown-20260728.json` remains
+historical and unchanged. It is not reclassified or used as current evidence.
 
 ## 6. PRE_CONNECT incidents
 
@@ -144,7 +150,8 @@ containers and result state, then materially corrected:
 - the Chrome file chooser timed out before any send-file execution.
 
 No database connection, transaction or write occurred in those incidents.
-They do not weaken the final `CONNECTED_UNKNOWN` stop.
+They do not weaken either the preserved historical `CONNECTED_UNKNOWN` record
+or the fresh deterministic `CONNECTED_KNOWN` audit.
 
 Current resume-stage failures were also bounded `PRE_CONNECT` with database
 connection/transaction/write all zero:
@@ -155,6 +162,10 @@ connection/transaction/write all zero:
   `ContentEncoding` declaration or inherited that output-contract error;
 - two failure branches exited the temporary Cloud Shell before the wrapper was
   isolated in a subshell.
+- one result parser used an unavailable remote command path and exited `127`
+  after the database audit had already produced its immutable result;
+- two parser dispatch wrappers selected the Cloud Shell UI region instead of
+  the business ECS region and exited before remote dispatch.
 
 The material correction uses the existing authenticated Chrome session,
 project-and-zone API-node selection, explicit `ContentEncoding=Base64`,
@@ -163,10 +174,13 @@ Secret-free failure handling. These incidents did not create a database
 account, DSN, transaction, host task directory, persistent command file or
 service change.
 
-## 7. Cleanup and non-regression
+## 7. Active temporary material and non-regression
 
-- API-C task directory, source, archives, transfer chunks, sentinels, result,
-  error log, audit/import containers and runner processes: zero.
+- Cleanup is intentionally deferred until the separately named schema
+  transaction and outcome audit finish.
+- API-C has exactly one task directory containing the verified v2c source,
+  protected RSA/ciphertext and immutable read-only result; audit/import
+  containers and runner processes are zero.
 - API-F task directory, audit/import containers and runner processes: zero.
 - API-C API and Admin: active, live/ready `200`, one loopback listener each,
   zero non-loopback listeners.
@@ -177,13 +191,15 @@ service change.
   requests: zero.
 - Fresh RDS control plane: one instance/one running, one network record/zero
   public endpoint, two successful full backups inside 48 hours, newest backup
-  age bounded at 20 hours, data/log retention both 14 days, and
-  `3 accounts / 1 Super / 0 task account`.
+  under 24 hours, data/log retention both 14 days, and
+  `4 accounts / 2 Super / 1 task account`.
 - Fresh API-C: API and Admin active, live/ready pass, loopback-only, root-owned
-  `0600` non-symlink env metadata pass, fixed task residual zero.
+  `0600` non-symlink env metadata pass; the only task residual is the exact
+  active role/schema task directory.
 - Fresh API-F: API active, live/ready pass, loopback-only, root-owned `0600`
   non-symlink env metadata pass, fixed task residual zero.
-- Fresh Cloud Shell fixed task-file count: zero.
+- Cloud Shell home retains four known task uploads; no Secret plaintext is
+  stored there. They must be removed during final cleanup.
 - Secret-free baseline artifact:
   `deploy/production/evidence/production-schema-role-resume-baseline-20260728.json`.
   SHA-256:
@@ -219,17 +235,18 @@ exact rowcounts, exact seed fields and the full negative matrix, and leaves
 readiness scoring unchanged.
 
 - Historical focused schema/role/outcome/readiness suites: `66/66`.
-- Current focused schema/role/outcome/readiness suites: `72/72`.
-- Full Python suite: `1027/1027`, with `25` explicit skips.
+- Current role-policy delta suites: `38/38`.
+- Full Python suite: `1028/1028`, with `25` explicit skips.
 - Disposable PostgreSQL 16 integration: one complete legacy setup, fixed
-  read-only audit, exact first apply, apply-twice, independent outcome audit,
-  six negative mutations and final clean outcome: pass.
+  `INHERIT FALSE` risk profile, fixed read-only audit, exact first apply,
+  apply-twice, independent outcome audit, six negative mutations and final
+  clean outcome: pass.
 - Exact first-apply writes: 8 legacy SHA updates, 8 migration ledger inserts,
   2 seed inserts, retention backfill 0, existing business-row updates 0.
 - Apply-twice writes: all five categories 0.
 - Production readiness gate: `105/105 PASS`.
 - Internal readiness gate: fail-closed `14/29 = 48%`; public launch
-  `14/38 = 37%`; active accepted-risk entries `0`.
+  `14/38 = 37%`; active accepted-risk entries `2`, readiness credit `0`.
 - Python compile, runner shell syntax, both JSON parses, sensitive-pattern scan
   with zero matches and `git diff --check`: pass.
 - No database, cloud, service, provider, public-traffic or Secret-bearing action
@@ -269,9 +286,10 @@ An outer browser, terminal or control-plane failure does not establish
 5. Only then create the minimum short-term protected access material and run
    the single new read-only connection. DSN must enter by protected stdin or
    another ephemeral no-environment channel and must never be emitted.
-6. Activate only the two fixed zero-credit `ACCEPTED_RISK` entries after the
-   complete independent matrix succeeds; otherwise end the new incident.
-7. If and only if every local and read-only production gate passes, open a
+6. The two fixed zero-credit `ACCEPTED_RISK` entries are now active. Preserve
+   them as risk records, never as readiness credit or `VERIFIED_FIXED`.
+7. Commit and push the exact policy checkpoint, rebuild the minimal package
+   from that commit, verify every hash and both zero-DSN imports, then open the
    separate write incident with an advisory lock and locked precondition before
    the first DDL/DML. Its exact write ceiling remains 8 legacy SHA updates,
    8 migration ledger inserts and 2 fixed seed inserts; retention backfill and

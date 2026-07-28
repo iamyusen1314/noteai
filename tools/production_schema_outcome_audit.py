@@ -428,7 +428,7 @@ def collect_outcome(
                 and membership_rows[0]["granted_name"] == "noteai_xhs"
                 and membership_rows[0]["member_name"] == "noteai_admin"
                 and bool(membership_rows[0]["admin_option"])
-                and membership_rows[0]["inherit_option"] is True
+                and membership_rows[0]["inherit_option"] is False
                 and membership_rows[0]["set_option"] is False
             )
             app_incoming_membership_count = int(_scalar(

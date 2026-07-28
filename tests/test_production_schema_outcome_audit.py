@@ -141,7 +141,7 @@ class CommittedConnection:
                 "granted_name": "noteai_xhs",
                 "member_name": "noteai_admin",
                 "admin_option": True,
-                "inherit_option": True,
+                "inherit_option": False,
                 "set_option": False,
             }])
         if "WHERE member.rolname='noteai_app'" in normalized:
@@ -178,6 +178,13 @@ class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
         self.assertEqual(
             outcome_audit.RUNTIME_ROLES,
             schema_roles.RUNTIME_ROLES,
+        )
+        source = outcome_audit.Path(outcome_audit.__file__).read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            'membership_rows[0]["inherit_option"] is False',
+            source,
         )
         self.assertEqual(len(outcome_audit.LEGACY_TABLES), 30)
         self.assertEqual(len(outcome_audit.EXPECTED_TABLES), 56)

@@ -40,7 +40,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(report["complete_public_launch"]["percentage"], 37)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
-    def test_current_schema_role_unknown_is_blocked_fail_closed(self):
+    def test_current_schema_role_risk_is_accepted_but_schema_is_blocked(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
@@ -105,12 +105,23 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             schema["evidence"],
         )
-        self.assertIn("CONNECTED_UNKNOWN", schema["blocker"])
         self.assertIn(
-            "Do not perform another database connection",
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-first-launch-role-risk-accepted-20260728.json"
+                ),
+            },
+            schema["evidence"],
+        )
+        self.assertIn("ACCEPTED_RISK", schema["blocker"])
+        self.assertIn(
+            "Create and push a clean Secret-free policy checkpoint",
             schema["resume_condition"],
         )
-        self.assertNotIn("accepted_risks", schema)
+        self.assertEqual(len(schema["accepted_risks"]), 2)
+        self.assertEqual(len(report["accepted_risks"]), 2)
         self.assertIn("production_schema_roles", managed["dependencies"])
         self.assertEqual(
             managed["next_task"],
@@ -155,6 +166,45 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(
             evidence["cleanup"]["api_c_task_directory_count"],
             0,
+        )
+
+    def test_fresh_role_risk_is_connected_known_and_accepted(self):
+        evidence_path = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "evidence"
+            / "production-first-launch-role-risk-accepted-20260728.json"
+        )
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(evidence["incident_class"], "CONNECTED_KNOWN")
+        self.assertEqual(
+            evidence["database_observation"]["connection_count"],
+            1,
+        )
+        self.assertEqual(
+            evidence["database_observation"]["transaction_outcome"],
+            "rolled_back",
+        )
+        self.assertEqual(
+            evidence["database_observation"]["database_write_count"],
+            0,
+        )
+        self.assertFalse(
+            evidence["legacy_role_graph"]["inherit_option"]
+        )
+        self.assertEqual(
+            evidence["legacy_role_graph"][
+                "noteai_app_high_privilege_inheritance_count"
+            ],
+            0,
+        )
+        self.assertTrue(
+            evidence["policy_assessment"]["accepted_risk_activation"]
+        )
+        self.assertFalse(
+            evidence["policy_assessment"]["verified_fixed"]
         )
 
     def test_authority_audit_is_preconnect_and_preserves_retry_block(self):
@@ -336,7 +386,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "granted_role": "noteai_xhs",
                     "member_role": "noteai_admin",
                     "admin_option": True,
-                    "inherit_option": True,
+                    "inherit_option": False,
                     "set_option": False,
                 },
             },

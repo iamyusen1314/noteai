@@ -321,11 +321,103 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-first-launch-role-risk-readonly-unknown-20260728.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-first-launch-role-risk-accepted-20260728.json"
             }
           ],
-          "blocker": "The product owner accepted the existing noteai_xhs-to-noteai_admin membership and conditionally accepted noteai_app ROLINHERIT for first launch, and explicitly removed an Alibaba support ticket as a first-launch blocker. Repository support for exactly those two zero-credit ACCEPTED_RISK findings is implemented, but no exception is active: the current read-only role audit did not return membership options, effective privileges or noteai_app high-privilege inheritance. After all PRE_CONNECT packaging faults were corrected, the sole database dispatch connected and failed at database_read with an empty result payload, so its transaction and database-write outcomes remain CONNECTED_UNKNOWN. No schema apply was attempted, no accepted-risk credit was granted, and all task material and containers were cleaned. The last deterministic database inventory remains historical evidence and cannot be promoted as a fresh observation.",
+          "accepted_risks": [
+            {
+              "id": "FIRST-LAUNCH-LEGACY-XHS-ADMIN-MEMBERSHIP-20260728",
+              "status": "accepted_risk",
+              "accepted_by": "product_owner",
+              "decision_at_utc": "2026-07-28T11:48:25Z",
+              "environment": "production",
+              "finding": {
+                "granted_role": "noteai_xhs",
+                "member_role": "noteai_admin",
+                "admin_option": true,
+                "inherit_option": false,
+                "set_option": false
+              },
+              "scope": "The exact single legacy noteai_xhs-to-noteai_admin edge observed in production for first launch only.",
+              "prohibited_expansion": [
+                "No new membership edge, role, ADMIN OPTION, ownership, DDL, role-management or database privilege for noteai_xhs.",
+                "No change to the observed ADMIN true, INHERIT false and SET false option tuple."
+              ],
+              "actual_effective_privileges": "CONNECT and schema USAGE plus the fixed XHS table, column and three-sequence matrix; zero CREATE, TEMPORARY, grant option, ownership, function, default-ACL or matrix mismatch.",
+              "compensating_controls": [
+                "RDS has no public endpoint and current full backups are available.",
+                "Runtime secrets remain node-local root-owned 0600 files and API/Admin listeners remain loopback-only.",
+                "Schema migrations execute through a separate short-term protected Super account, never noteai_xhs."
+              ],
+              "owner": "CTO",
+              "review_due": "first_public_launch_plus_30_days",
+              "invalidates_on": [
+                "Any membership edge or option drift.",
+                "Any new effective or grantable privilege, ownership or default ACL for noteai_xhs.",
+                "Loss of the private-network, protected-secret or current-backup controls."
+              ],
+              "remediation": "Optionally remove the historical edge with provider assistance after first launch and complete review within 30 days.",
+              "readiness_credit": 0,
+              "migration_verified": false,
+              "database_action_authorized": false,
+              "not_verified_fixed": true,
+              "source_evidence_sha256": "2f25268539ee48d73bb6dcbff9af7ef8a9115d2e8a542f93fff29b9fa9b44c97",
+              "evidence": [
+                {
+                  "kind": "path",
+                  "ref": "deploy/production/evidence/production-first-launch-role-risk-accepted-20260728.json"
+                }
+              ]
+            },
+            {
+              "id": "FIRST-LAUNCH-LEGACY-APP-INHERIT-20260728",
+              "status": "accepted_risk",
+              "accepted_by": "product_owner",
+              "decision_at_utc": "2026-07-28T11:48:25Z",
+              "environment": "production",
+              "finding": {
+                "role": "noteai_app",
+                "rolinherit": true,
+                "incoming_membership_count": 0,
+                "high_privilege_inheritance_count": 0
+              },
+              "scope": "The exact existing noteai_app ROLINHERIT attribute observed with zero incoming membership and zero high-privilege inheritance for first launch only.",
+              "prohibited_expansion": [
+                "No incoming membership or high-privilege inheritance for noteai_app.",
+                "No new role-management, database-create, replication, bypass-RLS, ownership or grantable capability."
+              ],
+              "actual_effective_privileges": "ROLINHERIT is enabled, but incoming membership count and high-privilege inheritance count are both zero; the fixed role and ACL matrix remains otherwise exact.",
+              "compensating_controls": [
+                "The complete role graph and effective ACL matrix are checked before and after the schema transaction.",
+                "RDS remains private, runtime secrets remain protected and current full backups are available."
+              ],
+              "owner": "CTO",
+              "review_due": "first_public_launch_plus_30_days",
+              "invalidates_on": [
+                "Any incoming noteai_app membership.",
+                "Any inherited SUPERUSER, CREATEROLE, CREATEDB, REPLICATION or BYPASSRLS capability.",
+                "Loss of the private-network, protected-secret or current-backup controls."
+              ],
+              "remediation": "Review conversion to NOINHERIT after first launch and complete the review within 30 days.",
+              "readiness_credit": 0,
+              "migration_verified": false,
+              "database_action_authorized": false,
+              "not_verified_fixed": true,
+              "source_evidence_sha256": "2f25268539ee48d73bb6dcbff9af7ef8a9115d2e8a542f93fff29b9fa9b44c97",
+              "evidence": [
+                {
+                  "kind": "path",
+                  "ref": "deploy/production/evidence/production-first-launch-role-risk-accepted-20260728.json"
+                }
+              ]
+            }
+          ],
+          "blocker": "The two exact historical role findings are now active as zero-credit ACCEPTED_RISK entries after a fresh one-connection, four-query, repeatable-read read-only production observation proved ledger 0001-0008, the complete effective privilege matrix, noteai_app high-privilege inheritance zero and terminal rollback with database writes zero. The observed membership tuple is ADMIN true / INHERIT false / SET false; repository preconditions were narrowed to that exact tuple and passed focused unit plus disposable PostgreSQL 16 integration validation. Production migrations 0009-0016 and runtime-role SQL have not yet been applied, so this control remains blocked until the separately named bounded production schema transaction and independent post-transaction audit complete.",
           "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
-          "resume_condition": "Do not perform another database connection, audit retry, schema transaction or downstream database-dependent task while the current incident remains CONNECTED_UNKNOWN. The product-owner risk decision and optional provider ticket do not override this failure boundary. A later incident requires an external deterministic resolution or explicit product-owner incident decision that accounts for the unknown transaction/write result; it must begin from a clean Git checkpoint and fresh non-database control-plane readback. If a new database incident is authorized, it may activate only the two fixed ACCEPTED_RISK entries after independently proving the exact noteai_xhs membership options and effective privilege matrix, zero high-privilege inheritance for noteai_app, protected Secret/network/backup controls and a non-noteai_xhs migration executor. Managed-secret distribution remains blocked on production_schema_roles."
+          "resume_condition": "Create and push a clean Secret-free policy checkpoint, rebuild the minimal package from that committed source, verify all hashes and zero-DSN imports, then perform one separately named bounded schema transaction. Any database-connected failure or unknown result remains non-retriable; independent read-only outcome verification and deterministic cleanup are mandatory."
         },
         {
           "id": "managed_secret_distribution",

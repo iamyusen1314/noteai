@@ -111,7 +111,7 @@ BEGIN
           AND membership.admin_option
           AND (
               to_jsonb(membership)->>'inherit_option'
-          )::boolean IS TRUE
+          )::boolean IS FALSE
           AND (
               to_jsonb(membership)->>'set_option'
           )::boolean IS FALSE

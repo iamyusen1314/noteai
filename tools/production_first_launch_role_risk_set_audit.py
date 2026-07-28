@@ -690,7 +690,7 @@ def collect_role_risk_set(conn: Any) -> dict[str, Any]:
         and int(role_graph["membership_count"]) == 1
         and int(role_graph["exact_edge_count"]) == 1
         and bool(role_graph["membership_admin"])
-        and role_graph["membership_inherit"] is True
+        and role_graph["membership_inherit"] is False
         and role_graph["membership_set"] is False
         and int(role_graph["app_incoming_membership_count"]) == 0
         and int(role_graph["app_high_privilege_inheritance_count"]) == 0
