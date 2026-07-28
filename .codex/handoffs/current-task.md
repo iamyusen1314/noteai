@@ -25,8 +25,8 @@
 ## 2. Git and readiness truth
 
 - Branch: `codex/quality-stabilization-real-chain`.
-- Parent checkpoint for the managed-secret audit:
-  `8665e1a8c5d691cfcd22d7b50b9cc797f520eca6`.
+- Recovery source checkpoint:
+  `d763cccd471d0d97e4aac57a822137cf6eb64242`.
 - Schema executor repair:
   `e5883abc01c4b009907bee550209d7036d383771`.
 - Immutable application revision:
@@ -68,9 +68,24 @@
     `ADMIN TRUE / INHERIT TRUE / SET FALSE`;
   - both endpoints LOGIN/non-superuser, ownership 0.
 - Do not perform another database action for this correction incident. A later
-  incident may resume only with an existing protected credential proven to be
-  the recorded membership grantor or a true PostgreSQL superuser. Interactive
-  login or a new credential remains a product-owner stop.
+  incident may resume only with either a true PostgreSQL superuser or an
+  existing protected executor proven to be the exact membership grantor with
+  `CREATEROLE` and `ADMIN OPTION` on `noteai_app`. Grantor identity alone is
+  insufficient for the `NOINHERIT` change. Interactive login or a new
+  credential remains a product-owner stop.
+- A post-checkpoint `PRE_CONNECT`, control-plane-only authority audit exhausted
+  the available no-database evidence without proving that complete capability:
+  - RDS SQL audit is disabled;
+  - `6,060` retained error-log records contain zero exact membership-grant
+    statement matches;
+  - `1,152` records in the migration window contain zero runtime-role name
+    matches and zero relevant role co-occurrences;
+  - no database client, connection, transaction or write was started.
+- Zero log matches do not prove that a credential or grantor does not exist.
+  The control plane cannot prove either a true PostgreSQL superuser or the
+  complete non-superuser capability set. The original correction incident
+  remains `CONNECTED_KNOWN / NO RETRY`; the new authority audit itself is
+  `PRE_CONNECT`.
 - `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001` received a fresh Secret-free
   production audit but cannot proceed independently:
   - API-C API/Admin and API-F API final-named files are distinct,
@@ -97,6 +112,10 @@
   `deploy/production/evidence/production-legacy-runtime-role-correction-rejected-20260728.json`.
 - Current managed-secret audit artifact:
   `deploy/production/evidence/production-managed-secret-distribution-audit-20260728.json`.
+- Current no-database authority audit artifact:
+  `deploy/production/evidence/production-schema-role-resume-authority-audit-20260728.json`.
+  Its SHA-256 is
+  `d7810f8b5c7c0dc3e1f9ea35d080acbae05590892f46a79edf0bd5202cce1c99`.
 - Parent conflict artifact:
   `deploy/production/evidence/production-schema-roles-conflict-20260728.json`.
 - Historical UNKNOWN artifact:
@@ -134,10 +153,29 @@
   - old and replacement Cloud Shell task files zero;
   - API-C/API-F API and API-C Admin active, live, ready and loopback-only;
   - zero restart, deploy, provider, registry or public-traffic action.
+- Fresh recovery readback after checkpoint `d763ccc`:
+  - Git remained clean at `d763ccc`, upstream divergence `0/0`;
+  - one running PostgreSQL instance, `2` successful backups inside 49h,
+    latest completion `2026-07-27T13:08:52Z`, and accounts
+    `3 total / 1 Super / 0 task`;
+  - API-C API/Admin and API-F API were independently read as active,
+    live/ready `200`, with one listener each and zero non-loopback listeners;
+  - both hosts reported zero task directories, task material files, task
+    processes and task containers;
+  - Cloud Shell task files, transient task variables and control-plane query
+    processes all read back zero;
+  - database connections, transactions, writes, service changes, deployment,
+    public traffic and emitted Secret/ID/IP values were all zero.
 - Diagnostic `grep`/`pipefail`, a stale terminal binding and a Cloud Shell VM
   expiry were `PRE_CONNECT`: the affected diagnostic/readback commands never
   dispatched a database client. Each was materially corrected and the final
   control-plane and service readbacks passed.
+- During the recovery readback, one local JavaScript parse error and two
+  unfinished Cloud Shell input paths were classified `PRE_CONNECT`: the first
+  never reached the browser and the latter two stopped at an unclosed shell
+  continuation before `RunCommand`. The terminal was replaced, API-F was
+  dispatched once through a split in-memory/no-literal-newline method, and the
+  final host and Cloud Shell cleanup readbacks passed.
 - The managed-secret audit package and two local transfer/recovery scripts were
   moved recoverably to
   `/Users/openclaw/.Trash/noteai-managed-secret-audit-20260728-1330`;
@@ -149,6 +187,9 @@
   - rejection-evidence/schema/correction/readiness focused suite is `49/49`;
   - managed-secret auditor and role-file validator suite is `12/12`;
   - managed-secret/env/readiness combined suite is `19/19`;
+  - resumed authority/readiness focused suite is `12/12`;
+  - combined schema/outcome/correction/managed-secret/readiness suite is
+    `80/80`;
   - full Python suite is `1007` passed with `24` explicit skips;
   - production readiness gate is `105/105`; internal readiness remains a
     valid fail-closed `14/29`;
@@ -187,21 +228,30 @@ outer layer failed but the remote command completed, recover its
 
 ## 6. Exact resume boundary
 
-- Complete local review/gates, checkpoint and normal push for the
-  managed-secret audit/dependency correction.
+- Complete local review/gates, checkpoint and normal push for the no-database
+  authority audit.
 - The schema correction incident remains closed to automatic database retry.
   Do not rebuild its package, recreate its account/RSA or rerun preflight,
   apply or audit.
 - Resume only after a protected credential is independently proven to be the
-  recorded membership grantor or a true PostgreSQL superuser. If proving or
-  using it requires interactive login or a new credential, product-owner
-  action is mandatory.
+  true PostgreSQL superuser, or the exact membership grantor with
+  `CREATEROLE` and `ADMIN OPTION` on `noteai_app`. If proving or using it
+  requires interactive login or a new credential, product-owner action is
+  mandatory.
+- If no qualifying existing protected access path can be proven, provider
+  support must either execute exactly the bounded `NOINHERIT` correction and
+  grantor-bound membership revoke, or provide a protected path whose complete
+  capability is independently verified before a new explicit incident begins.
+  Advice or permission alone is not technical capability or retry
+  authorization. Do not send a credential through chat or infer authority from
+  the managed-RDS account label.
 - After the schema role matrix is independently verified, resume
   `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001` with real final role-specific files,
   transactional rotation/revocation evidence and no placeholder or legacy
   credential reuse.
 - No other internal technical task has all dependencies satisfied. External
-  legal/provider approval remains a separate professional-review stop.
+  legal approval is a separate professional-review stop and cannot substitute
+  for the schema authority requirement.
 
 ## 7. Completed work not to repeat without conflict evidence
 

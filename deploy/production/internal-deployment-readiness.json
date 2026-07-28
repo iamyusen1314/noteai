@@ -309,11 +309,15 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-legacy-runtime-role-correction-rejected-20260728.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-role-resume-authority-audit-20260728.json"
             }
           ],
-          "blocker": "The only reviewed correction preflight connected once in forced-read-only mode and deterministically returned CONNECTED_KNOWN / READ_ONLY_REJECTED at database_precondition. Its transaction rolled back with zero writes; apply was not attempted and must not be retried automatically. The exact failed predicate was not persisted, while unchanged prior identity evidence makes executor capability the leading inference. Production remains at the last directly verified legacy conflict and migrations 0009-0016 remain unapplied.",
+          "blocker": "The only reviewed correction preflight connected once in forced-read-only mode and deterministically returned CONNECTED_KNOWN / READ_ONLY_REJECTED at database_precondition. Its transaction rolled back with zero writes; apply was not attempted and must not be retried automatically. A later PRE_CONNECT control-plane-only authority audit found SQL audit disabled, no grant evidence in 6,060 retained error-log records and no runtime-role reference in 1,152 migration-window records. These negative log results do not prove absence and cannot prove either a true PostgreSQL superuser or the complete non-superuser capability set: exact membership grantor, CREATEROLE and ADMIN OPTION on noteai_app. Production remains at the last directly verified legacy conflict and migrations 0009-0016 remain unapplied.",
           "next_task": "PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001",
-          "resume_condition": "Do not perform another database action for this correction incident. Resume the correction only in a later explicit incident boundary with an existing protected credential proven to be the recorded membership grantor or a true PostgreSQL superuser; obtaining or interactively using a new credential remains a product-owner stop. Managed-secret distribution is also blocked on this schema/role control and must not use placeholder files or copied legacy database credentials."
+          "resume_condition": "Do not perform another database action for this correction incident. A later explicit incident may use either a true PostgreSQL superuser or an existing protected executor independently proven to be the exact membership grantor with CREATEROLE and ADMIN OPTION on noteai_app. If no qualifying existing protected access path can be proven, provider support must either execute exactly the bounded NOINHERIT attribute correction and grantor-bound membership revoke, or provide a protected access path whose complete capability set is independently verified before the new incident begins; advice or permission alone is not technical capability or retry authorization. Obtaining or interactively using a new credential remains a product-owner stop. Managed-secret distribution is also blocked on this schema/role control and must not use placeholder files or copied legacy database credentials."
         },
         {
           "id": "managed_secret_distribution",

@@ -69,6 +69,22 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             for control in self.manifest["layers"][1]["controls"]
             if control["id"] == "managed_secret_distribution"
         )
+        schema = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "production_schema_roles"
+        )
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-schema-role-resume-authority-audit-20260728.json"
+                ),
+            },
+            schema["evidence"],
+        )
+        self.assertIn("provider support", schema["resume_condition"])
         self.assertIn("production_schema_roles", managed["dependencies"])
         self.assertEqual(
             managed["next_task"],
@@ -79,6 +95,39 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             "professional_review",
         )
         self.assertNotIn("dns_cutover", actionable)
+
+    def test_authority_audit_is_preconnect_and_preserves_retry_block(self):
+        evidence_path = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "evidence"
+            / "production-schema-role-resume-authority-audit-20260728.json"
+        )
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(evidence["audit_incident_class"], "PRE_CONNECT")
+        self.assertEqual(
+            evidence["inherited_correction_incident_class"],
+            "CONNECTED_KNOWN",
+        )
+        self.assertEqual(evidence["execution"]["database_connection_count"], 0)
+        self.assertEqual(evidence["execution"]["database_transaction_count"], 0)
+        self.assertEqual(evidence["execution"]["database_write_count"], 0)
+        self.assertFalse(
+            evidence["authority_discovery"]["database_retry_authorized"]
+        )
+        self.assertFalse(
+            evidence["resume_boundary"]["database_action_allowed_now"]
+        )
+        self.assertIn(
+            "CREATEROLE",
+            evidence["resume_boundary"]["required_authority"],
+        )
+        self.assertIn(
+            "Advice or permission alone",
+            evidence["resume_boundary"]["provider_support_boundary"],
+        )
 
     def test_verified_control_requires_existing_evidence(self):
         broken = copy.deepcopy(self.manifest)
