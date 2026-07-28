@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-07-27",
+  "as_of_date": "2026-07-28",
   "status_values": [
     "verified",
     "unverified",
@@ -297,11 +297,15 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-schema-roles-unknown-20260727.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-roles-conflict-20260728.json"
             }
           ],
-          "blocker": "The single bounded production transaction and one independent forced-read-only resolution audit both returned database outcome UNKNOWN. No further database connection or retry is allowed under the active incident boundary.",
+          "blocker": "A newly reviewed forced-read-only outcome audit deterministically found exact legacy migrations 0001-0008 but one elevated historical runtime-role attribute and one bidirectional runtime-role membership edge. The state is CONNECTED_KNOWN / CONFLICT, so migrations 0009-0016 and the final role matrix are not verified.",
           "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
-          "resume_condition": "The product owner explicitly selects a bounded incident-resolution direction for a newly reviewed read-only audit, restore/reconciliation, or another defined recovery action."
+          "resume_condition": "The product owner explicitly authorizes a separately reviewed, bounded role-attribute and membership identity audit, followed only if safe by a newly defined corrective transaction. The failed apply and completed outcome audit must not be retried."
         },
         {
           "id": "managed_secret_distribution",

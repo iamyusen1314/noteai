@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -128,7 +128,7 @@ class TrendsContractTests(unittest.TestCase):
             trends_contract.claim_daily_run()
 
     def test_stale_no_provider_run_is_terminalized_without_rollback(self):
-        current = trends_contract._utc_now()
+        current = datetime(2026, 7, 28, 12, tzinfo=timezone.utc)
         lease = trends_contract.claim_daily_run(
             now=current - timedelta(hours=1)
         )
