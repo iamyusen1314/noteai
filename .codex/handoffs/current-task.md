@@ -24,8 +24,11 @@
 ## 2. Git and readiness truth
 
 - Branch: `codex/quality-stabilization-real-chain`.
-- Current pushed pre-policy checkpoint:
-  `54914710be70b9bcafb80be8b74da21c04da5e11`.
+- V3B source/policy checkpoint:
+  `39f6d046eb22870484baadb5b745316efacd0044`.
+- Resolve the current incident checkpoint from the newest pushed
+  `[skip render] Record deterministic schema rollback` commit; this Handoff
+  is part of that commit and must not attempt a self-referential hash.
 - Historical UNKNOWN incident source checkpoint:
   `a5f2961089744eb1c0bf0eb0011b93a132d6493f`.
 - Schema executor repair:
@@ -42,7 +45,9 @@
 
 `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001`
 
-- Status: `IN PROGRESS / ROLE RISK ACCEPTED / SCHEMA WRITE NOT STARTED`.
+- Status:
+  `CONNECTED_KNOWN / PRODUCTION TRANSACTION ROLLED BACK / NOT DEPLOYED /
+  CLEAN`.
 - The historical read-only artifact remains exactly
   `CONNECTED_UNKNOWN`; its database and transaction outcomes remain
   `UNKNOWN`, and it has not been reclassified or retried.
@@ -70,9 +75,19 @@
 - The new audit completed all stages with terminal `ROLLBACK`, one connection,
   database writes zero and a deterministic `CONNECTED_KNOWN` result. It must
   not be repeated.
-- Production schema apply is now the next separately named write incident. It
-  remains forbidden until the exact policy checkpoint is committed/pushed and
-  a new hash-verified package from that checkpoint passes zero-DSN validation.
+- Production schema V3B apply used one connection and one bounded transaction.
+  Its runner returned the fixed `execution_failed` code after dispatch and was
+  not retried. The independent forced-readonly outcome audit deterministically
+  classified the database transaction `ROLLED_BACK`.
+- Production remains exactly at migrations `0001`-`0008`, 30 public tables,
+  5 sequences and the 2 historical runtime roles. New roles, new tables,
+  migration SHA backfills, new ledger rows, seed rows, retention backfill,
+  existing business-row updates and total database writes are all zero.
+- The next task is
+  `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002`.
+  It must preserve the V3B incident as non-retriable, begin with repository
+  stage-safe diagnostics and a separately named non-mutating managed-RDS
+  authority plan, and cannot inherit authorization to repeat the transaction.
 
 ## 4. Product-owner first-launch risk decision
 
@@ -174,32 +189,54 @@ Secret-free failure handling. These incidents did not create a database
 account, DSN, transaction, host task directory, persistent command file or
 service change.
 
-## 7. Active temporary material and non-regression
+## 7. V3B transaction, cleanup and non-regression
 
-- Cleanup is intentionally deferred until the separately named schema
-  transaction and outcome audit finish.
-- API-C has exactly one task directory containing the verified v2c source,
-  protected RSA/ciphertext and immutable read-only result; audit/import
-  containers and runner processes are zero.
-- API-F task directory, audit/import containers and runner processes: zero.
+- Secret-free incident artifact:
+  `deploy/production/evidence/production-schema-role-apply-rolled-back-20260728.json`.
+  Artifact SHA-256:
+  `c7011ea6d248e18414d74b3bb62d8d4d86834cf9ef884823d861b0934f5e9887`.
+- The V3B package had 25 files, 16 migrations and 24/24 registry hashes.
+  Its manifest, executor, outcome-auditor and runtime-ACL hashes matched;
+  local zero-DSN import, remote network-none import and the corrected
+  byte-oriented network-none DSN validator passed.
+- The first validator failures were `PRE_CONNECT`: generated Python source
+  contained a literal newline. The material fix removed that escape boundary;
+  connection, transaction and write counts for those failures were zero.
+- The production runner SHA-256 was
+  `f252ede25bf5760b2a550348f606ad818eddebafa4f86cb342c0088749743f2a`.
+  It created prepared and dispatch sentinels, then returned the 51-byte fixed
+  `execution_failed` error with SHA-256
+  `2d5512e8d01ce69b325d7a48b10f2515080c1888d20acabe78b752808aa7fdb3`.
+  Automatic retries were zero.
+- The independent forced-readonly outcome audit used one connection with
+  `default_transaction_read_only=on`; its transaction rolled back and its
+  1,410-byte result SHA-256 was
+  `f7107f1c29d44904a4b71906f8f2ceead1d138685694838d396f59793baa95f3`.
+  The deterministic outcome is `ROLLED_BACK`, not `UNKNOWN`.
+- A supplemental aggregate authority diagnostic failed after a read-only
+  connection with sanitized class `UndefinedColumn`. It had no mutation path,
+  wrote zero rows, left zero container/process residue and was not repeated.
+- The short-term Super account was deleted and the control plane read back
+  `3 accounts / 1 Super / 0 task accounts`.
+- API-C's fixed task directory was deleted. RSA/private-key, ciphertext,
+  source package, result/error/sentinel files, task containers and task
+  processes are all zero.
+- API-F task directories, task containers and task processes are zero.
 - API-C API and Admin: active, live/ready `200`, one loopback listener each,
   zero non-loopback listeners.
 - API-F API: active, live/ready `200`, one loopback listener, zero non-loopback
   listeners.
-- API-F API env file: root-owned `0600`, not a symlink; no value was read.
 - Service restarts, deployments, provider submissions and public-traffic
   requests: zero.
-- Fresh RDS control plane: one instance/one running, one network record/zero
-  public endpoint, two successful full backups inside 48 hours, newest backup
-  under 24 hours, data/log retention both 14 days, and
-  `4 accounts / 2 Super / 1 task account`.
-- Fresh API-C: API and Admin active, live/ready pass, loopback-only, root-owned
-  `0600` non-symlink env metadata pass; the only task residual is the exact
-  active role/schema task directory.
-- Fresh API-F: API active, live/ready pass, loopback-only, root-owned `0600`
-  non-symlink env metadata pass, fixed task residual zero.
-- Cloud Shell home retains four known task uploads; no Secret plaintext is
-  stored there. They must be removed during final cleanup.
+- Final RDS control plane: one instance/one running, one network record/zero
+  public endpoint, two successful full backups inside 48 hours and newest
+  full-backup age zero hours at readback.
+- Cloud Shell task files and task variables are zero.
+- Post-incident focused schema/outcome/readiness tests: `30/30`.
+- Production readiness gate: `105/105 PASS`; internal readiness remains
+  fail-closed `14/29 = 48%`; public launch readiness remains `14/38 = 37%`.
+- Both JSON parses, Python compile, changed-file Secret/resource scan,
+  `git diff --check` and upstream pre-commit baseline `0/0`: pass.
 - Secret-free baseline artifact:
   `deploy/production/evidence/production-schema-role-resume-baseline-20260728.json`.
   SHA-256:
@@ -275,22 +312,24 @@ An outer browser, terminal or control-plane failure does not establish
 
 ## 10. Exact resume boundary
 
-1. Preserve the old UNKNOWN artifact and its exact classification/outcomes.
-2. Treat the new set-based read-only audit as a fresh incident, never as a
-   retry of the historical auditor.
-3. Implement fixed-length set-based SQL and repair the schema executor before
-   any production database action. This is complete on disposable PostgreSQL
-   16.
-4. Rebuild the minimal package from the exact committed source, require all
-   hashes, registry evidence, zero-DSN import and network-none import.
-5. Only then create the minimum short-term protected access material and run
-   the single new read-only connection. DSN must enter by protected stdin or
-   another ephemeral no-environment channel and must never be emitted.
-6. The two fixed zero-credit `ACCEPTED_RISK` entries are now active. Preserve
-   them as risk records, never as readiness credit or `VERIFIED_FIXED`.
-7. Commit and push the exact policy checkpoint, rebuild the minimal package
-   from that commit, verify every hash and both zero-DSN imports, then open the
-   separate write incident with an advisory lock and locked precondition before
-   the first DDL/DML. Its exact write ceiling remains 8 legacy SHA updates,
-   8 migration ledger inserts and 2 fixed seed inserts; retention backfill and
-   existing business-row updates remain zero.
+1. Preserve both historical UNKNOWN artifacts and the new V3B
+   `CONNECTED_KNOWN / ROLLED_BACK` artifact without reclassification.
+2. Never retry
+   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V3B-001`.
+3. Keep the two fixed zero-credit `ACCEPTED_RISK` entries active exactly as
+   observed; neither is `VERIFIED_FIXED` and neither authorizes a database
+   action.
+4. Execute
+   `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002` first as
+   repository/offline work: add stage-safe sanitized executor failure codes
+   and independent tests without changing migration bytes or SHA values.
+5. Establish a separately named, non-mutating managed-RDS authority plan from
+   control-plane evidence. Do not repeat the failed supplemental database
+   diagnostic.
+6. Any later database mutation is a new incident, not an automatic retry. It
+   requires a pushed checkpoint, fresh backup/private-network/non-regression
+   proof, newly protected short-term access, exact hashes, one transaction and
+   a new no-retry boundary.
+7. Until that independent resolution completes, production remains
+   `0001`-`0008`, `production_schema_roles` remains blocked and internal
+   readiness remains `14/29`.

@@ -325,6 +325,10 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-first-launch-role-risk-accepted-20260728.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-role-apply-rolled-back-20260728.json"
             }
           ],
           "accepted_risks": [
@@ -415,9 +419,9 @@
               ]
             }
           ],
-          "blocker": "The two exact historical role findings are now active as zero-credit ACCEPTED_RISK entries after a fresh one-connection, four-query, repeatable-read read-only production observation proved ledger 0001-0008, the complete effective privilege matrix, noteai_app high-privilege inheritance zero and terminal rollback with database writes zero. The observed membership tuple is ADMIN true / INHERIT false / SET false; repository preconditions were narrowed to that exact tuple and passed focused unit plus disposable PostgreSQL 16 integration validation. Production migrations 0009-0016 and runtime-role SQL have not yet been applied, so this control remains blocked until the separately named bounded production schema transaction and independent post-transaction audit complete.",
-          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
-          "resume_condition": "Create and push a clean Secret-free policy checkpoint, rebuild the minimal package from that committed source, verify all hashes and zero-DSN imports, then perform one separately named bounded schema transaction. Any database-connected failure or unknown result remains non-retriable; independent read-only outcome verification and deterministic cleanup are mandatory."
+          "blocker": "The two exact historical role findings remain active as zero-credit ACCEPTED_RISK entries. The separately named V3B production schema transaction connected once and returned a sanitized execution_failed result; it was not retried. An independent forced-readonly outcome audit deterministically classified the transaction ROLLED_BACK and proved production remains exactly at ledger 0001-0008, 30 tables, 5 sequences, 2 historical runtime roles, zero new roles/tables/seeds and zero database or business-row writes. All temporary accounts, RSA/ciphertext/source/result materials, task processes and containers were then removed, and API-C/API-F/Admin plus the private RDS/backup baseline passed. Production migrations 0009-0016 and runtime-role SQL remain unapplied.",
+          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002",
+          "resume_condition": "Preserve PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V3B-001 as CONNECTED_KNOWN/ROLLED_BACK and never retry that database action. First add and independently verify stage-safe executor diagnostics plus a separately named, non-mutating managed-RDS authority plan. Any future production mutation requires a new incident, new bounded proof, fresh protected access material and an explicit no-retry boundary; the accepted-risk profile remains exact and receives zero readiness credit."
         },
         {
           "id": "managed_secret_distribution",

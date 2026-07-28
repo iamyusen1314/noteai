@@ -57,7 +57,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertEqual(
             actionable["production_schema_roles"]["next_task"],
-            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
+            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-AUTHORITY-RESOLUTION-002",
         )
         self.assertEqual(
             actionable["production_schema_roles"]["execution_class"],
@@ -115,9 +115,19 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             schema["evidence"],
         )
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-schema-role-apply-rolled-back-20260728.json"
+                ),
+            },
+            schema["evidence"],
+        )
         self.assertIn("ACCEPTED_RISK", schema["blocker"])
         self.assertIn(
-            "Create and push a clean Secret-free policy checkpoint",
+            "never retry that database action",
             schema["resume_condition"],
         )
         self.assertEqual(len(schema["accepted_risks"]), 2)
