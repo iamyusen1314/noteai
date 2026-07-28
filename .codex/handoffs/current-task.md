@@ -26,8 +26,15 @@
 ## 2. Git and readiness truth
 
 - Branch: `codex/quality-stabilization-real-chain`.
+- PRIVILEGED-OWNER-PREFLIGHT-005 outcome/evidence checkpoint:
+  `465505e362752ea7f538d5a6ea821b934ea88863`.
 - PRIVILEGED-OWNER-PREFLIGHT-005 source/import-fix checkpoint:
   `7c4204f22aaa109249cef7c2ff84474528a5f106`.
+- Corrected V5 owner runner checkpoint:
+  `efeb5bb82f09e30066416d6571bfc19f63ab9422`.
+- The intermediate V5 checkpoint
+  `fa2ebae6e0745effdcc5eb7722ba8e9a90d13f14` was independently found
+  insufficiently fail-closed and is superseded. Never package or execute it.
 - OWNER-AUTHORITY-PREFLIGHT-004 outcome/evidence checkpoint:
   `8a533ac7c5efd7cbf44cade5287f909fce831a79`.
 - OWNER-AUTHORITY-PREFLIGHT-004 source checkpoint:
@@ -170,7 +177,7 @@ Current hashes:
 - runtime ACL:
   `b5fc9e7074c09b0ca26368049225873a6b342b810a17aab48ec7b89278a672d7`;
 - V5 runner:
-  `fea169abd58fa37b0c5c4c446abfc8ae6f7f38ab908e111b6f3cd1b78c8672bf`;
+  `98afd524d9cc9524d20b3c76c31076fa9c638f3557b3c699577d190d763e2be1`;
 - unchanged 16-migration aggregate:
   `a6cc4fef8d988adb05108edeb16d8b520f600e4fd3bac06f61812c3db24ada73`.
 
@@ -303,19 +310,28 @@ Stage-safe runner stabilization:
 - `tools/production_schema_roles_runner.sh` now uses the production-proven
   `/task/tools` Python path and top-level imports in both network-none prepare
   and database modes, eliminating the installed-image namespace collision.
-- Preflight, apply and outcome results are parsed as structured JSON and must
-  match exact task, rollback/commit, write-count, role, risk and zero-external-
-  action fields. A tampered retention write count is rejected by an executable
-  validator test.
-- The apply mode revalidates the saved preflight structure before writing.
-  Grep-only result acceptance is removed.
+- Preflight, state-changed preflight, apply and both COMMITTED/ROLLED_BACK
+  outcomes are parsed as structured JSON and must match the complete fixed
+  ledger, inventory, owner, role, risk, table/column/sequence/default-ACL,
+  exact-write and zero-external-action contracts.
+- Validation uses isolated Python with explicit fail-closed checks, contains
+  no optimization-removable `assert`, and is executable-tested under
+  `PYTHONOPTIMIZE=1`; a tampered retention write count is rejected.
+- Incident identity is bound to the package-manifest hash. Each saved result
+  is separately bound to incident, manifest, mode and result hash; apply
+  revalidates the exact saved preflight binding before writing, and outcome
+  revalidates any successful apply result binding.
+- Decrypt and task stderr are separate root-only files. A successful mode
+  requires both to be empty; known nonzero exits are accepted only through
+  exact structured state-change output or one fixed sanitized error line.
+  Grep-only result acceptance and broad exit-code classification are removed.
 - Task/source/key/ciphertext ownership, modes, symlink count and hard-link
   counts are fail-closed. Every prepare, preconnect, known, unknown and success
   terminal summary keeps `cleanup_required=1` until external cleanup readback.
 - New runner SHA-256:
-  `790e5ad175c970a9b79b646beb0085df77c5a64cb1425da167e10a6ed0900b10`.
+  `98afd524d9cc9524d20b3c76c31076fa9c638f3557b3c699577d190d763e2be1`.
 - Executor, outcome auditor, preflight auditor, runtime ACL and all migration
-  bytes remain unchanged. Focused tests pass `29/29`; runner syntax,
+  bytes remain unchanged. Final focused tests pass `43/43`; runner syntax,
   top-level zero-DSN import and diff checks pass.
 - This repository-only step made zero production database, cloud, account,
   service, provider or public-traffic action and receives no readiness credit.
@@ -391,12 +407,15 @@ The 004 source was committed and pushed normally at `51ae877`.
 The 004 outcome/evidence was committed and pushed normally at `8a533ac`.
 The 005 production source/import fix was committed and pushed normally at
 `7c4204f`.
+The 005 verified outcome/evidence was committed and pushed normally at
+`465505e`.
+The corrected V5 runner was committed at `efeb5bb`; it supersedes the unsafe
+intermediate `fa2ebae` and must be included by the next pushed source
+checkpoint.
 
 Current remaining steps:
 
-- commit and push the 005 verified outcome/evidence without changing
-  migration or runtime-ACL bytes;
-- commit and push the hardened V5 runner checkpoint;
+- update this rolling Handoff/risk record and push the corrected V5 checkpoint;
 - build V5 from that exact pushed checkpoint, refresh only required read-only
   prerequisites, create fresh protected account/RSA material and run its
   preflight/apply/outcome chain with at most one apply transaction;
