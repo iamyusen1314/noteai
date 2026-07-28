@@ -395,6 +395,13 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         self.assertIn("import=passed", runner)
         self.assertIn("validate_result()", runner)
         self.assertIn("json.load(handle)", runner)
+        self.assertIn("python3 -I -", runner)
+        self.assertIn("incident.binding", runner)
+        self.assertIn("result.binding", runner)
+        self.assertIn("verify_result_binding preflight", runner)
+        self.assertIn("decrypt_error_path=", runner)
+        self.assertIn("task_error_path=", runner)
+        self.assertNotRegex(runner, r"(?m)^error_path=")
         self.assertIn("automatic_retry=0", runner)
         self.assertGreaterEqual(runner.count("cleanup_required=1"), 5)
         self.assertIn("apply_transaction=committed", runner)
@@ -426,8 +433,9 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             / "production_schema_roles_runner.sh"
         )
         runner = runner_path.read_text(encoding="utf-8")
-        marker = "python3 - \"${1}\" \"${2}\" <<'PY'\n"
+        marker = "python3 -I - \"${1}\" \"${2}\" <<'PY'\n"
         validator = runner.split(marker, 1)[1].split("\nPY\n}", 1)[0]
+        self.assertNotIn("assert ", validator)
         common = {
             "task_id": schema_roles.TASK_ID,
             "provider_calls": 0,
@@ -444,6 +452,7 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             "fixed_query_count": 4,
             "database_connection_count": 1,
             "database_write_count": 0,
+            "business_row_values_read": 0,
             "acceptance": {
                 "session": True,
                 "ledger_inventory": True,
@@ -452,18 +461,28 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             },
             "ledger_inventory": {
                 "ledger_exact": True,
+                "tables_exact": True,
+                "sequences_exact": True,
                 "ledger_count": 8,
                 "table_count": 30,
                 "sequence_count": 5,
                 "ledger_sha_column_count": 0,
+                "ledger_sha_constraint_count": 0,
                 "new_runtime_role_count": 0,
+                "new_table_count": 0,
                 "retention_backfill_source_count": 0,
             },
             "role_graph": {
+                "runtime_role_count": 2,
+                "new_runtime_role_count": 0,
+                "app_attributes_exact": True,
+                "xhs_attributes_exact": True,
                 "membership_count": 1,
+                "exact_edge_count": 1,
                 "membership_admin": True,
                 "membership_inherit": False,
                 "membership_set": False,
+                "app_incoming_membership_count": 0,
                 "app_high_privilege_inheritance_count": 0,
             },
         }
@@ -482,37 +501,158 @@ class ProductionSchemaRolesTests(unittest.TestCase):
                 "existing_business_row_updates": 0,
             },
             "roles": {
+                "runtime_role_count": 8,
+                "new_roles_login_enabled": 0,
+                "privilege_mismatch_count": 0,
+                "ownership_count": 0,
                 "membership_count": 7,
                 "management_membership_count": 6,
                 "migration_owner_mismatch_count": 0,
                 "executor_owned_object_count": 0,
+                "elevation_count": 1,
+                "accepted_risk_profile": (
+                    "FIRST_LAUNCH_LEGACY_ROLE_RISK_V1"
+                ),
+                "accepted_risk_count": 2,
                 "unexpected_membership_count": 0,
                 "unexpected_elevation_count": 0,
                 "high_privilege_inheritance_count": 0,
             },
+            "verification": {
+                "migration_count": 16,
+                "runtime_role_count": 8,
+                "table_count": 56,
+                "sequence_count": 5,
+                "table_privilege_checks": 3136,
+                "table_grant_option_count": 0,
+                "column_privilege_checks": 1,
+                "column_grant_option_count": 0,
+                "sequence_privilege_checks": 120,
+                "sequence_grant_option_count": 0,
+                "default_acl_entry_count": 0,
+                "schema_seed_rows": 2,
+                "retention_backfill_rows": 0,
+                "accepted_role_risk_count": 2,
+                "accepted_role_attribute_count": 1,
+                "accepted_role_membership_count": 1,
+                "runtime_management_membership_count": 6,
+                "unexpected_role_attribute_count": 0,
+                "unexpected_role_membership_count": 0,
+                "app_high_privilege_inheritance_count": 0,
+                "migration_owner_relation_count": 1,
+                "migration_owner_function_count": 0,
+                "migration_owner_mismatch_count": 0,
+            },
         }
-        outcome = {
+        outcome_common = {
             **common,
             "status": "classified",
-            "database_outcome": "COMMITTED",
             "read_only": True,
             "default_transaction_read_only": True,
             "transaction_read_only": True,
-            "observation": {"business_row_values_read": 0},
+        }
+        observation_common = {
+            "business_row_values_read": 0,
+            "accepted_role_risk_profile": (
+                "FIRST_LAUNCH_LEGACY_ROLE_RISK_V1"
+            ),
+            "accepted_role_risk_exact": True,
+            "app_incoming_membership_count": 0,
+            "app_high_privilege_inheritance_count": 0,
+            "executor_not_xhs": True,
+            "runtime_ownership_count": 0,
+            "migration_owner_role_exact": True,
+            "migration_owner_database_exact": True,
+            "migration_owner_mismatch_count": 0,
+            "sequence_count": 5,
+            "runtime_elevation_count": 1,
+            "runtime_management_membership_exact": True,
+        }
+        committed = {
+            **outcome_common,
+            "database_outcome": "COMMITTED",
+            "observation": {
+                **observation_common,
+                "ledger_count": 16,
+                "ledger_first": "0001",
+                "ledger_last": "0016",
+                "sha_column_count": 1,
+                "sha_constraint_count": 1,
+                "sha_constraint_exact_count": 1,
+                "matching_migration_hash_count": 16,
+                "canonical_migration_name_count": 16,
+                "table_count": 56,
+                "runtime_role_count": 8,
+                "new_runtime_role_count": 6,
+                "new_runtime_login_count": 0,
+                "runtime_membership_count": 7,
+                "runtime_management_membership_count": 6,
+                "trends_seed_count": 1,
+                "trends_seed_exact_count": 1,
+                "dispatcher_seed_count": 1,
+                "dispatcher_seed_exact_count": 1,
+                "retention_row_count": 0,
+                "full_contract_matrix_verified": True,
+                "table_privilege_checks": 3136,
+                "table_grant_option_count": 0,
+                "column_privilege_checks": 1,
+                "column_grant_option_count": 0,
+                "sequence_privilege_checks": 120,
+                "sequence_grant_option_count": 0,
+                "default_acl_entry_count": 0,
+            },
+        }
+        rolled_back = {
+            **outcome_common,
+            "database_outcome": "ROLLED_BACK",
+            "observation": {
+                **observation_common,
+                "ledger_count": 8,
+                "ledger_first": "0001",
+                "ledger_last": "0008",
+                "sha_column_count": 0,
+                "sha_constraint_count": 0,
+                "sha_constraint_exact_count": 0,
+                "matching_migration_hash_count": 0,
+                "canonical_migration_name_count": 8,
+                "table_count": 30,
+                "runtime_role_count": 2,
+                "new_runtime_role_count": 0,
+                "new_runtime_login_count": 0,
+                "runtime_membership_count": 1,
+                "runtime_management_membership_count": 0,
+                **{
+                    key: None for key in (
+                        "trends_seed_count",
+                        "dispatcher_seed_count",
+                        "retention_row_count",
+                        "full_contract_matrix_verified",
+                        "table_privilege_checks",
+                        "table_grant_option_count",
+                        "column_privilege_checks",
+                        "column_grant_option_count",
+                        "sequence_privilege_checks",
+                        "sequence_grant_option_count",
+                        "default_acl_entry_count",
+                    )
+                },
+            },
         }
         with tempfile.TemporaryDirectory() as temp_dir:
-            for mode, result in (
-                ("preflight", preflight),
-                ("apply", apply_result),
-                ("outcome", outcome),
+            for name, mode, result in (
+                ("preflight", "preflight", preflight),
+                ("apply", "apply", apply_result),
+                ("committed", "outcome", committed),
+                ("rolled-back", "outcome", rolled_back),
             ):
-                path = Path(temp_dir) / f"{mode}.json"
+                path = Path(temp_dir) / f"{name}.json"
                 path.write_text(json.dumps(result), encoding="utf-8")
                 completed = subprocess.run(
-                    [sys.executable, "-", mode, str(path)],
+                    [sys.executable, "-I", "-", mode, str(path)],
                     input=validator,
                     text=True,
                     capture_output=True,
+                    env={**os.environ, "PYTHONOPTIMIZE": "1"},
                     check=False,
                 )
                 self.assertEqual(completed.returncode, 0, completed.stderr)
@@ -521,10 +661,11 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             path = Path(temp_dir) / "apply-drift.json"
             path.write_text(json.dumps(apply_result), encoding="utf-8")
             completed = subprocess.run(
-                [sys.executable, "-", "apply", str(path)],
+                [sys.executable, "-I", "-", "apply", str(path)],
                 input=validator,
                 text=True,
                 capture_output=True,
+                env={**os.environ, "PYTHONOPTIMIZE": "1"},
                 check=False,
             )
             self.assertNotEqual(completed.returncode, 0)

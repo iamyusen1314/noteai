@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -u
 set -o pipefail
+umask 077
 
 mode="${1:-}"
 task_root=/var/lib/noteai/schema-roles-v5-owner
@@ -8,6 +9,7 @@ source_root="${task_root}/source"
 private_key="${task_root}/transport_private.pem"
 ciphertext="${task_root}/database_url.enc"
 import_sentinel="${task_root}/import.passed"
+incident_sentinel="${task_root}/incident.binding"
 container_name="noteai-schema-roles-v5-owner-${mode}-once"
 import_container_name=noteai-schema-roles-v5-owner-import-once
 executor_sha256=56d148fbbbadc2f8b15c6cfdc5ef978f10b79dbd86dbbf5ccb272dc1ce23972a
@@ -37,16 +39,23 @@ fail_connected_known() {
 }
 
 validate_result() {
-    python3 - "${1}" "${2}" <<'PY'
+    python3 -I - "${1}" "${2}" <<'PY'
 import json
 import sys
+
+
+def require(condition):
+    if not condition:
+        raise SystemExit(1)
+
 
 mode = sys.argv[1]
 with open(sys.argv[2], encoding="utf-8") as handle:
     result = json.load(handle)
 
-assert result.get("task_id") == (
-    "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001"
+require(
+    result.get("task_id")
+    == "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001"
 )
 for key in (
     "provider_calls",
@@ -54,69 +63,240 @@ for key in (
     "public_traffic_requests",
     "secret_values_exposed",
 ):
-    assert result.get(key) == 0
+    require(result.get(key) == 0)
 
 if mode == "preflight":
-    assert result.get("status") == "accepted_risk_observed"
-    assert result.get("incident_class") == "CONNECTED_KNOWN"
-    assert result.get("read_only") is True
-    assert result.get("transaction_rolled_back") is True
-    assert result.get("fixed_query_count") == 4
-    assert result.get("database_connection_count") == 1
-    assert result.get("database_write_count") == 0
-    assert result.get("acceptance") == {
+    require(result.get("status") == "accepted_risk_observed")
+    require(result.get("acceptance") == {
         "session": True,
         "ledger_inventory": True,
         "role_graph": True,
         "xhs_acl": True,
-    }
+    })
+elif mode == "preflight_state_changed":
+    require(result.get("status") == "state_changed")
+else:
+    require(mode in {"apply", "outcome"})
+
+if mode in {"preflight", "preflight_state_changed"}:
+    require(result.get("incident_class") == "CONNECTED_KNOWN")
+    require(result.get("read_only") is True)
+    require(result.get("transaction_rolled_back") is True)
+    require(result.get("fixed_query_count") == 4)
+    require(result.get("database_connection_count") == 1)
+    require(result.get("database_write_count") == 0)
+    require(result.get("business_row_values_read") == 0)
+
+if mode == "preflight":
     ledger = result.get("ledger_inventory", {})
-    assert ledger.get("ledger_exact") is True
-    assert ledger.get("ledger_count") == 8
-    assert ledger.get("table_count") == 30
-    assert ledger.get("sequence_count") == 5
-    assert ledger.get("ledger_sha_column_count") == 0
-    assert ledger.get("new_runtime_role_count") == 0
-    assert ledger.get("retention_backfill_source_count") == 0
+    require(ledger.get("ledger_exact") is True)
+    require(ledger.get("tables_exact") is True)
+    require(ledger.get("sequences_exact") is True)
+    require(ledger.get("ledger_count") == 8)
+    require(ledger.get("table_count") == 30)
+    require(ledger.get("sequence_count") == 5)
+    require(ledger.get("ledger_sha_column_count") == 0)
+    require(ledger.get("ledger_sha_constraint_count") == 0)
+    require(ledger.get("new_runtime_role_count") == 0)
+    require(ledger.get("new_table_count") == 0)
+    require(ledger.get("retention_backfill_source_count") == 0)
     role = result.get("role_graph", {})
-    assert role.get("membership_count") == 1
-    assert role.get("membership_admin") is True
-    assert role.get("membership_inherit") is False
-    assert role.get("membership_set") is False
-    assert role.get("app_high_privilege_inheritance_count") == 0
+    require(role.get("runtime_role_count") == 2)
+    require(role.get("new_runtime_role_count") == 0)
+    require(role.get("app_attributes_exact") is True)
+    require(role.get("xhs_attributes_exact") is True)
+    require(role.get("membership_count") == 1)
+    require(role.get("exact_edge_count") == 1)
+    require(role.get("membership_admin") is True)
+    require(role.get("membership_inherit") is False)
+    require(role.get("membership_set") is False)
+    require(role.get("app_incoming_membership_count") == 0)
+    require(role.get("app_high_privilege_inheritance_count") == 0)
 elif mode == "apply":
-    assert result.get("status") == "verified"
-    assert result.get("transaction_committed") is True
-    assert result.get("applied_versions") == [
+    require(result.get("status") == "verified")
+    require(result.get("transaction_committed") is True)
+    require(result.get("applied_versions") == [
         f"{number:04d}" for number in range(9, 17)
-    ]
-    assert result.get("database_writes", {}) == {
+    ])
+    require(result.get("database_writes", {}) == {
         "migration_ledger_rows": 8,
         "migration_ledger_hash_backfills": 8,
         "schema_seed_rows": 2,
         "retention_backfill_rows": 0,
         "existing_business_row_updates": 0,
-    }
+    })
     roles = result.get("roles", {})
-    assert roles.get("membership_count") == 7
-    assert roles.get("management_membership_count") == 6
-    assert roles.get("migration_owner_mismatch_count") == 0
-    assert roles.get("executor_owned_object_count") == 0
-    assert roles.get("unexpected_membership_count") == 0
-    assert roles.get("unexpected_elevation_count") == 0
-    assert roles.get("high_privilege_inheritance_count") == 0
+    require(roles.get("runtime_role_count") == 8)
+    require(roles.get("new_roles_login_enabled") == 0)
+    require(roles.get("privilege_mismatch_count") == 0)
+    require(roles.get("ownership_count") == 0)
+    require(roles.get("membership_count") == 7)
+    require(roles.get("management_membership_count") == 6)
+    require(roles.get("migration_owner_mismatch_count") == 0)
+    require(roles.get("executor_owned_object_count") == 0)
+    require(roles.get("elevation_count") == 1)
+    require(
+        roles.get("accepted_risk_profile")
+        == "FIRST_LAUNCH_LEGACY_ROLE_RISK_V1"
+    )
+    require(roles.get("accepted_risk_count") == 2)
+    require(roles.get("unexpected_membership_count") == 0)
+    require(roles.get("unexpected_elevation_count") == 0)
+    require(roles.get("high_privilege_inheritance_count") == 0)
+    verification = result.get("verification", {})
+    require(verification.get("migration_count") == 16)
+    require(verification.get("runtime_role_count") == 8)
+    require(verification.get("table_count") == 56)
+    require(verification.get("sequence_count") == 5)
+    require(verification.get("table_privilege_checks") == 3136)
+    require(verification.get("table_grant_option_count") == 0)
+    require(verification.get("column_privilege_checks", 0) > 0)
+    require(verification.get("column_grant_option_count") == 0)
+    require(verification.get("sequence_privilege_checks") == 120)
+    require(verification.get("sequence_grant_option_count") == 0)
+    require(verification.get("default_acl_entry_count") == 0)
+    require(verification.get("schema_seed_rows") == 2)
+    require(verification.get("retention_backfill_rows") == 0)
+    require(verification.get("accepted_role_risk_count") == 2)
+    require(verification.get("accepted_role_attribute_count") == 1)
+    require(verification.get("accepted_role_membership_count") == 1)
+    require(
+        verification.get("runtime_management_membership_count") == 6
+    )
+    require(verification.get("unexpected_role_attribute_count") == 0)
+    require(verification.get("unexpected_role_membership_count") == 0)
+    require(
+        verification.get("app_high_privilege_inheritance_count") == 0
+    )
+    require(verification.get("migration_owner_relation_count", 0) > 0)
+    require(verification.get("migration_owner_function_count", -1) >= 0)
+    require(verification.get("migration_owner_mismatch_count") == 0)
 elif mode == "outcome":
-    assert result.get("status") == "classified"
-    assert result.get("database_outcome") in {"COMMITTED", "ROLLED_BACK"}
-    assert result.get("read_only") is True
-    assert result.get("default_transaction_read_only") is True
-    assert result.get("transaction_read_only") is True
-    assert result.get("observation", {}).get(
-        "business_row_values_read"
-    ) == 0
-else:
-    raise AssertionError("unsupported mode")
+    require(result.get("status") == "classified")
+    database_outcome = result.get("database_outcome")
+    require(database_outcome in {"COMMITTED", "ROLLED_BACK"})
+    require(result.get("read_only") is True)
+    require(result.get("default_transaction_read_only") is True)
+    require(result.get("transaction_read_only") is True)
+    observation = result.get("observation", {})
+    require(observation.get("business_row_values_read") == 0)
+    require(
+        observation.get("accepted_role_risk_profile")
+        == "FIRST_LAUNCH_LEGACY_ROLE_RISK_V1"
+    )
+    require(observation.get("accepted_role_risk_exact") is True)
+    require(observation.get("app_incoming_membership_count") == 0)
+    require(
+        observation.get("app_high_privilege_inheritance_count") == 0
+    )
+    require(observation.get("executor_not_xhs") is True)
+    require(observation.get("runtime_ownership_count") == 0)
+    require(observation.get("migration_owner_role_exact") is True)
+    require(observation.get("migration_owner_database_exact") is True)
+    require(observation.get("migration_owner_mismatch_count") == 0)
+    require(observation.get("sequence_count") == 5)
+    require(observation.get("runtime_elevation_count") == 1)
+    require(observation.get("runtime_management_membership_exact") is True)
+    if database_outcome == "COMMITTED":
+        require(observation.get("ledger_count") == 16)
+        require(observation.get("ledger_first") == "0001")
+        require(observation.get("ledger_last") == "0016")
+        require(observation.get("sha_column_count") == 1)
+        require(observation.get("sha_constraint_count") == 1)
+        require(observation.get("sha_constraint_exact_count") == 1)
+        require(observation.get("matching_migration_hash_count") == 16)
+        require(observation.get("canonical_migration_name_count") == 16)
+        require(observation.get("table_count") == 56)
+        require(observation.get("runtime_role_count") == 8)
+        require(observation.get("new_runtime_role_count") == 6)
+        require(observation.get("new_runtime_login_count") == 0)
+        require(observation.get("runtime_membership_count") == 7)
+        require(
+            observation.get("runtime_management_membership_count") == 6
+        )
+        require(observation.get("trends_seed_count") == 1)
+        require(observation.get("trends_seed_exact_count") == 1)
+        require(observation.get("dispatcher_seed_count") == 1)
+        require(observation.get("dispatcher_seed_exact_count") == 1)
+        require(observation.get("retention_row_count") == 0)
+        require(observation.get("full_contract_matrix_verified") is True)
+        require(observation.get("table_privilege_checks") == 3136)
+        require(observation.get("table_grant_option_count") == 0)
+        require(observation.get("column_privilege_checks", 0) > 0)
+        require(observation.get("column_grant_option_count") == 0)
+        require(observation.get("sequence_privilege_checks") == 120)
+        require(observation.get("sequence_grant_option_count") == 0)
+        require(observation.get("default_acl_entry_count") == 0)
+    else:
+        require(observation.get("ledger_count") == 8)
+        require(observation.get("ledger_first") == "0001")
+        require(observation.get("ledger_last") == "0008")
+        require(observation.get("sha_column_count") == 0)
+        require(observation.get("sha_constraint_count") == 0)
+        require(observation.get("sha_constraint_exact_count") == 0)
+        require(observation.get("matching_migration_hash_count") == 0)
+        require(observation.get("canonical_migration_name_count") == 8)
+        require(observation.get("table_count") == 30)
+        require(observation.get("runtime_role_count") == 2)
+        require(observation.get("new_runtime_role_count") == 0)
+        require(observation.get("new_runtime_login_count") == 0)
+        require(observation.get("runtime_membership_count") == 1)
+        require(
+            observation.get("runtime_management_membership_count") == 0
+        )
+        for key in (
+            "trends_seed_count",
+            "dispatcher_seed_count",
+            "retention_row_count",
+            "full_contract_matrix_verified",
+            "table_privilege_checks",
+            "table_grant_option_count",
+            "column_privilege_checks",
+            "column_grant_option_count",
+            "sequence_privilege_checks",
+            "sequence_grant_option_count",
+            "default_acl_entry_count",
+        ):
+            require(observation.get(key) is None)
 PY
+}
+
+result_binding_payload() {
+    result_mode="${1}"
+    result_file="${2}"
+    result_sha_line="$(sha256sum "${result_file}")" || return 1
+    result_sha="${result_sha_line%% *}"
+    printf '%s %s %s %s\n' \
+        "${incident_id}" \
+        "${package_manifest_sha}" \
+        "${result_mode}" \
+        "${result_sha}"
+}
+
+write_result_binding() {
+    result_mode="${1}"
+    result_file="${2}"
+    binding_file="${task_root}/${result_mode}-result.binding"
+    test ! -e "${binding_file}" || return 1
+    result_binding_payload "${result_mode}" "${result_file}" \
+        >"${binding_file}" || return 1
+    test ! -L "${binding_file}" || return 1
+    test "$(stat -c '%u:%g:%a:%h' "${binding_file}")" = "0:0:600:1" \
+        || return 1
+}
+
+verify_result_binding() {
+    result_mode="${1}"
+    result_file="${2}"
+    binding_file="${task_root}/${result_mode}-result.binding"
+    test -f "${binding_file}" || return 1
+    test ! -L "${binding_file}" || return 1
+    test "$(stat -c '%u:%g:%a:%h' "${binding_file}")" = "0:0:600:1" \
+        || return 1
+    expected_binding="$(
+        result_binding_payload "${result_mode}" "${result_file}"
+    )" || return 1
+    test "$(cat "${binding_file}")" = "${expected_binding}"
 }
 
 case "${mode}" in
@@ -172,6 +352,18 @@ package_manifest_line="$(
     sha256sum "${source_root}/package.sha256"
 )" || fail_preconnect
 package_manifest_sha="${package_manifest_line%% *}"
+incident_binding_line="$(
+    printf '%s\n' "${incident_id}:${package_manifest_sha}" | sha256sum
+)" || fail_preconnect
+incident_binding_sha="${incident_binding_line%% *}"
+if test "${mode}" != prepare; then
+    test -f "${incident_sentinel}" || fail_preconnect
+    test ! -L "${incident_sentinel}" || fail_preconnect
+    test "$(stat -c '%u:%g:%a:%h' "${incident_sentinel}")" = \
+        "0:0:600:1" || fail_preconnect
+    test "$(cat "${incident_sentinel}")" = "${incident_binding_sha}" \
+        || fail_preconnect
+fi
 
 api_container="$(
     docker ps \
@@ -201,6 +393,7 @@ if test "${mode}" = prepare; then
     )" || fail_preconnect
     test -z "${existing_import_container}" || fail_preconnect
     test ! -e "${import_sentinel}" || fail_preconnect
+    test ! -e "${incident_sentinel}" || fail_preconnect
     docker run \
         --rm \
         --pull never \
@@ -225,12 +418,21 @@ if test "${mode}" = prepare; then
         || fail_preconnect
     printf '%s\n' "${package_manifest_sha}" >"${import_sentinel}" \
         || fail_preconnect
+    printf '%s\n' "${incident_binding_sha}" >"${incident_sentinel}" \
+        || fail_preconnect
+    test "$(stat -c '%u:%g:%a:%h' "${import_sentinel}")" = "0:0:600:1" \
+        || fail_preconnect
+    test "$(stat -c '%u:%g:%a:%h' "${incident_sentinel}")" = \
+        "0:0:600:1" || fail_preconnect
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V5 mode=prepare incident_class=PRE_CONNECT database_connection=0 transaction=0 database_write=0 import=passed cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=prepare incident_class=PRE_CONNECT database_connection=0 transaction=0 database_write=0 import=passed incident_binding=1 cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
     exit 0
 fi
 
 test -f "${import_sentinel}" || fail_preconnect
+test ! -L "${import_sentinel}" || fail_preconnect
+test "$(stat -c '%u:%g:%a:%h' "${import_sentinel}")" = "0:0:600:1" \
+    || fail_preconnect
 observed_import_sha="$(tr -d '\n' <"${import_sentinel}")" \
     || fail_preconnect
 test "${observed_import_sha}" = "${package_manifest_sha}" \
@@ -253,34 +455,45 @@ openssl pkey -in "${private_key}" -check -noout >/dev/null 2>&1 \
 if test "${mode}" = preflight; then
     result_path="${task_root}/preflight-result.json"
     result_tmp="${result_path}.tmp"
-    error_path="${task_root}/preflight-error.log"
     prepared_sentinel="${task_root}/preflight.prepared"
     dispatch_sentinel="${task_root}/preflight.started"
     python_code='import sys; value=sys.stdin.read(); from production_first_launch_role_risk_set_audit import main; code=main(database_url=value); del value; raise SystemExit(code)'
 elif test "${mode}" = apply; then
     result_path="${task_root}/apply-result.json"
     result_tmp="${result_path}.tmp"
-    error_path="${task_root}/apply-error.log"
     prepared_sentinel="${task_root}/apply.prepared"
     dispatch_sentinel="${task_root}/apply.started"
     preflight_result="${task_root}/preflight-result.json"
     test -s "${preflight_result}" || fail_preconnect
     validate_result preflight "${preflight_result}" >/dev/null 2>&1 \
         || fail_preconnect
+    verify_result_binding preflight "${preflight_result}" \
+        || fail_preconnect
     python_code='import sys; value=sys.stdin.read(); from production_schema_roles import main; code=main(["--apply"],database_url=value,confirmation=sys.argv[1]); del value; raise SystemExit(code)'
 else
     result_path="${task_root}/outcome-result.json"
     result_tmp="${result_path}.tmp"
-    error_path="${task_root}/outcome-error.log"
     prepared_sentinel="${task_root}/outcome.prepared"
     dispatch_sentinel="${task_root}/outcome.started"
     test -f "${task_root}/apply.started" || fail_preconnect
+    if test -f "${task_root}/apply-result.json"; then
+        verify_result_binding apply "${task_root}/apply-result.json" \
+            || fail_preconnect
+    fi
     python_code='import sys; value=sys.stdin.read(); from production_schema_outcome_audit import main; code=main(database_url=value); del value; raise SystemExit(code)'
 fi
 
+decrypt_error_path="${task_root}/${mode}-decrypt-error.log"
+task_error_path="${task_root}/${mode}-task-error.log"
+result_binding_path="${task_root}/${mode}-result.binding"
 test ! -e "${dispatch_sentinel}" || fail_preconnect
 test ! -e "${result_path}" || fail_preconnect
-rm -f "${result_tmp}" "${error_path}" "${prepared_sentinel}" \
+test ! -e "${result_binding_path}" || fail_preconnect
+rm -f \
+    "${result_tmp}" \
+    "${decrypt_error_path}" \
+    "${task_error_path}" \
+    "${prepared_sentinel}" \
     || fail_preconnect
 printf 'prepared\n' >"${prepared_sentinel}" || fail_preconnect
 printf 'dispatched\n' >"${dispatch_sentinel}" || fail_preconnect
@@ -291,7 +504,7 @@ openssl pkeyutl \
     -inkey "${private_key}" \
     -pkeyopt rsa_padding_mode:oaep \
     -pkeyopt rsa_oaep_md:sha256 \
-    -in "${ciphertext}" 2>"${error_path}" \
+    -in "${ciphertext}" 2>"${decrypt_error_path}" \
     | docker run \
         --rm \
         --pull never \
@@ -314,12 +527,14 @@ openssl pkeyutl \
         "${image_id}" \
         -c "${python_code}" \
         "${confirmation}" \
-        >"${result_tmp}" 2>>"${error_path}"
+        >"${result_tmp}" 2>"${task_error_path}"
 pipeline_status=("${PIPESTATUS[@]}")
 
 openssl_exit="${pipeline_status[0]:-125}"
 task_exit="${pipeline_status[1]:-125}"
-error_bytes="$(wc -c <"${error_path}" | tr -d ' ')" \
+decrypt_error_bytes="$(wc -c <"${decrypt_error_path}" | tr -d ' ')" \
+    || fail_connected_unknown
+task_error_bytes="$(wc -c <"${task_error_path}" | tr -d ' ')" \
     || fail_connected_unknown
 container_ids="$(
     docker ps -a \
@@ -341,15 +556,37 @@ if { test "${task_exit}" = 126 || test "${task_exit}" = 127; } \
 fi
 
 if test "${task_exit}" = 2 \
-    && grep -Fq 'incident_class=PRE_CONNECT' "${error_path}" \
-    && test "${container_count}" = 0; then
-    rm -f "${result_tmp}" || true
-    fail_preconnect
+    && test "${container_count}" = 0 \
+    && test "${result_bytes}" = 0 \
+    && test "$(wc -l <"${task_error_path}" | tr -d ' ')" = 1; then
+    preconnect_error_ok=0
+    if test "${mode}" = preflight \
+        && grep -Eq \
+            '^production_first_launch_role_risk_set_audit=FAIL stage=(local_source|connect) sqlstate=[0-9A-Z]{5} incident_class=PRE_CONNECT database_connected=0 database_outcome=NOT_CONNECTED automatic_retry=0 secrets=0$' \
+            "${task_error_path}"; then
+        preconnect_error_ok=1
+    elif test "${mode}" = apply \
+        && grep -Fxq \
+            'production_schema_roles=FAIL code=confirmation_missing' \
+            "${task_error_path}"; then
+        preconnect_error_ok=1
+    elif test "${mode}" = outcome \
+        && grep -Eq \
+            '^production_schema_outcome_audit=FAIL stage=[a-z_]+ incident_class=PRE_CONNECT database_connected=0 connection_attempted=0 database_outcome=NOT_CONNECTED retry_same_path=0$' \
+            "${task_error_path}"; then
+        preconnect_error_ok=1
+    fi
+    if test "${preconnect_error_ok}" = 1; then
+        rm -f "${result_tmp}" || true
+        fail_preconnect
+    fi
 fi
 
 if test "${mode}" = preflight \
     && test "${openssl_exit}" = 0 \
     && test "${task_exit}" = 0 \
+    && test "${decrypt_error_bytes}" = 0 \
+    && test "${task_error_bytes}" = 0 \
     && test "${result_bytes}" -gt 0 \
     && validate_result preflight "${result_tmp}" >/dev/null 2>&1; then
     test "${container_count}" = 0 || fail_connected_unknown
@@ -357,14 +594,18 @@ if test "${mode}" = preflight \
         || fail_connected_unknown
     result_sha256="${result_sha_line%% *}"
     mv "${result_tmp}" "${result_path}" || fail_connected_unknown
+    write_result_binding preflight "${result_path}" \
+        || fail_connected_known READ_ONLY_VERIFIED 0
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V5 mode=preflight incident_class=CONNECTED_KNOWN database_connection=1 audit_transaction=rolled_back database_write=0 result_bytes=${result_bytes} result_sha256=${result_sha256} error_bytes=${error_bytes} container=0 cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=preflight incident_class=CONNECTED_KNOWN database_outcome=READ_ONLY_VERIFIED database_connection=1 audit_transaction=rolled_back database_write=0 result_bytes=${result_bytes} result_sha256=${result_sha256} decrypt_error_bytes=0 task_error_bytes=0 container=0 incident_binding=1 result_binding=1 cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
     exit 0
 fi
 
 if test "${mode}" = apply \
     && test "${openssl_exit}" = 0 \
     && test "${task_exit}" = 0 \
+    && test "${decrypt_error_bytes}" = 0 \
+    && test "${task_error_bytes}" = 0 \
     && test "${result_bytes}" -gt 0 \
     && validate_result apply "${result_tmp}" >/dev/null 2>&1; then
     test "${container_count}" = 0 \
@@ -374,22 +615,25 @@ if test "${mode}" = apply \
     result_sha256="${result_sha_line%% *}"
     mv "${result_tmp}" "${result_path}" \
         || fail_connected_known COMMITTED 18
+    write_result_binding apply "${result_path}" \
+        || fail_connected_known COMMITTED 18
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V5 mode=apply incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=COMMITTED apply_transaction=committed database_write=18 result_bytes=${result_bytes} result_sha256=${result_sha256} error_bytes=${error_bytes} container=0 cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=apply incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=COMMITTED apply_transaction=committed database_write=18 result_bytes=${result_bytes} result_sha256=${result_sha256} decrypt_error_bytes=0 task_error_bytes=0 container=0 incident_binding=1 result_binding=1 cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
     exit 0
 fi
 
 if test "${mode}" = outcome \
     && test "${openssl_exit}" = 0 \
     && test "${task_exit}" = 0 \
+    && test "${decrypt_error_bytes}" = 0 \
+    && test "${task_error_bytes}" = 0 \
     && test "${result_bytes}" -gt 0 \
     && validate_result outcome "${result_tmp}" >/dev/null 2>&1; then
     test "${container_count}" = 0 || fail_connected_unknown
     database_outcome="$(
-        grep -oE '"database_outcome":"(COMMITTED|ROLLED_BACK)"' \
-            "${result_tmp}" \
-        | head -1 \
-        | cut -d '"' -f 4
+        python3 -I -c \
+            'import json,sys; print(json.load(open(sys.argv[1],encoding="utf-8"))["database_outcome"])' \
+            "${result_tmp}"
     )" || fail_connected_unknown
     result_sha_line="$(sha256sum "${result_tmp}")" \
         || fail_connected_unknown
@@ -397,15 +641,48 @@ if test "${mode}" = outcome \
     mv "${result_tmp}" "${result_path}" || fail_connected_unknown
     observed_writes=0
     test "${database_outcome}" = COMMITTED && observed_writes=18
+    write_result_binding outcome "${result_path}" \
+        || fail_connected_known "${database_outcome}" "${observed_writes}"
     printf '%s\n' \
-        "SAFE_SCHEMA_ROLES_V5 mode=outcome incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=${database_outcome} audit_transaction=rolled_back database_write=${observed_writes} result_bytes=${result_bytes} result_sha256=${result_sha256} error_bytes=${error_bytes} container=0 cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
+        "SAFE_SCHEMA_ROLES_V5 mode=outcome incident_class=CONNECTED_KNOWN database_connection=1 database_outcome=${database_outcome} audit_transaction=rolled_back database_write=${observed_writes} result_bytes=${result_bytes} result_sha256=${result_sha256} decrypt_error_bytes=0 task_error_bytes=0 container=0 incident_binding=1 result_binding=1 cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
     exit 0
 fi
 
 if test "${mode}" = preflight \
-    && { test "${task_exit}" = 30 || test "${task_exit}" = 31; } \
+    && test "${openssl_exit}" = 0 \
+    && test "${task_exit}" = 30 \
+    && test "${decrypt_error_bytes}" = 0 \
+    && test "${task_error_bytes}" = 0 \
+    && test "${result_bytes}" -gt 0 \
+    && validate_result preflight_state_changed \
+        "${result_tmp}" >/dev/null 2>&1 \
     && test "${container_count}" = 0; then
-    fail_connected_known READ_ONLY_REJECTED 0
+    result_sha_line="$(sha256sum "${result_tmp}")" \
+        || fail_connected_known READ_ONLY_STATE_CHANGED 0
+    result_sha256="${result_sha_line%% *}"
+    mv "${result_tmp}" "${result_path}" \
+        || fail_connected_known READ_ONLY_STATE_CHANGED 0
+    write_result_binding preflight "${result_path}" \
+        || fail_connected_known READ_ONLY_STATE_CHANGED 0
+    printf '%s\n' \
+        "SAFE_SCHEMA_ROLES_V5 mode=preflight incident_class=CONNECTED_KNOWN database_outcome=READ_ONLY_STATE_CHANGED database_connection=1 audit_transaction=rolled_back database_write=0 result_bytes=${result_bytes} result_sha256=${result_sha256} decrypt_error_bytes=0 task_error_bytes=0 container=0 incident_binding=1 result_binding=1 cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
+    exit 30
+fi
+
+if test "${mode}" = preflight \
+    && test "${openssl_exit}" = 0 \
+    && test "${task_exit}" = 31 \
+    && test "${decrypt_error_bytes}" = 0 \
+    && test "${result_bytes}" = 0 \
+    && test "${task_error_bytes}" -gt 0 \
+    && test "$(wc -l <"${task_error_path}" | tr -d ' ')" = 1 \
+    && grep -Eq \
+        '^production_first_launch_role_risk_set_audit=FAIL stage=(session|ledger_inventory|role_graph|xhs_acl|rollback) sqlstate=[0-9A-Z]{5} incident_class=CONNECTED_KNOWN database_connected=1 database_outcome=KNOWN_READ_ONLY_FAILURE automatic_retry=0 secrets=0$' \
+        "${task_error_path}" \
+    && test "${container_count}" = 0; then
+    printf '%s\n' \
+        "SAFE_SCHEMA_ROLES_V5 mode=preflight incident_class=CONNECTED_KNOWN database_outcome=READ_ONLY_REJECTED database_connection=1 audit_transaction=rolled_back database_write=0 result_bytes=0 decrypt_error_bytes=0 task_error_lines=1 container=0 incident_binding=1 cleanup_required=1 automatic_retry=0 ids_printed=0 secrets=0"
+    exit 30
 fi
 
 fail_connected_unknown
