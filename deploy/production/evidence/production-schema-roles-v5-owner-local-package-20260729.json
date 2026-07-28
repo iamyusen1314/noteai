@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V5-OWNER-001",
+  "observed_at_utc": "2026-07-28T22:14:19Z",
+  "status": "LOCAL_PACKAGE_VERIFIED_PRODUCTION_UNCHANGED",
+  "source": {
+    "pushed_checkpoint_commit": "af58b8978822cf698303ae8c8c0fb8f281768fa4",
+    "superseded_unsafe_checkpoint_commit": "fa2ebae6e0745effdcc5eb7722ba8e9a90d13f14",
+    "unsafe_checkpoint_package_allowed": false,
+    "schema_executor_sha256": "56d148fbbbadc2f8b15c6cfdc5ef978f10b79dbd86dbbf5ccb272dc1ce23972a",
+    "outcome_auditor_sha256": "223ee1df52e53ef53a7e3247d78a8d4e40e4792876032807d78a25d8a04861fb",
+    "preflight_auditor_sha256": "2d873101db846689be20d8fee2d4adb21017fe51c54cc4ebfaffd54e58d3ad17",
+    "runner_sha256": "98afd524d9cc9524d20b3c76c31076fa9c638f3557b3c699577d190d763e2be1",
+    "runtime_acl_sha256": "b5fc9e7074c09b0ca26368049225873a6b342b810a17aab48ec7b89278a672d7",
+    "migration_count": 16,
+    "migration_aggregate_sha256": "a6cc4fef8d988adb05108edeb16d8b520f600e4fd3bac06f61812c3db24ada73",
+    "migration_bytes_changed": false,
+    "runtime_acl_bytes_changed": false
+  },
+  "package": {
+    "source_file_count": 25,
+    "manifest_file_count": 1,
+    "archive_regular_file_count": 26,
+    "manifest_entry_count": 25,
+    "manifest_sha256": "a49a97861516716db8c0e5e6a5d942ff74da82153208a133693e40a057c849a0",
+    "archive_sha256": "02a019972d79de032c58e17d4b2fd1bea13e1ea0cc56748cf55e6a6c0671941b",
+    "archive_bytes": 68781,
+    "archive_format": "USTAR_THEN_DETERMINISTIC_GZIP",
+    "deterministic_build_count": 2,
+    "deterministic_builds_equal": true,
+    "appledouble_member_count": 0,
+    "symlink_or_hardlink_member_count": 0,
+    "non_regular_member_count": 0,
+    "root_owned_archive_member_count": 26,
+    "runner_archive_mode": "0755",
+    "duplicate_manifest_path_count": 0,
+    "all_manifest_hashes_verified": true,
+    "zero_dsn_top_level_import": "PASS"
+  },
+  "stage_safe_runner": {
+    "isolated_python_validation": true,
+    "optimization_removable_assert_count": 0,
+    "optimizer_enabled_tamper_test": "PASS",
+    "incident_bound_to_manifest": true,
+    "result_bound_to_incident_manifest_mode_and_hash": true,
+    "apply_revalidates_preflight_binding": true,
+    "outcome_revalidates_successful_apply_binding": true,
+    "decrypt_and_task_errors_separate": true,
+    "successful_mode_requires_both_error_files_empty": true,
+    "full_preflight_apply_and_outcome_matrix_validation": true,
+    "cleanup_required_on_all_terminal_paths": true
+  },
+  "pre_connect_incidents": [
+    {
+      "stage": "archive_member_validation",
+      "classification": "PRE_CONNECT",
+      "cause": "The first local tar input listed directories and their descendants, producing duplicate recursive members.",
+      "material_fix": "Build two new archives from ordinary-file paths only and reject any archive whose complete member count is not exactly 26.",
+      "production_database_connection_count": 0,
+      "production_database_transaction_count": 0,
+      "production_database_write_count": 0
+    },
+    {
+      "stage": "failed_temp_cleanup_command",
+      "classification": "PRE_CONNECT",
+      "cause": "The local execution safety layer rejected the cleanup command before process launch.",
+      "material_fix": "Do not depend on destructive cleanup for package correctness; use a fresh random build root and exclude the failed archive from every later path.",
+      "production_database_connection_count": 0,
+      "production_database_transaction_count": 0,
+      "production_database_write_count": 0
+    },
+    {
+      "stage": "auxiliary_archive_metadata_validator",
+      "classification": "PRE_CONNECT",
+      "cause": "A local inline Python quoting error prevented the optional metadata validator from starting.",
+      "material_fix": "Replace interpolation with an isolated stdin script; it verified 26 regular root-owned members and runner mode 0755.",
+      "production_database_connection_count": 0,
+      "production_database_transaction_count": 0,
+      "production_database_write_count": 0
+    }
+  ],
+  "validation": {
+    "focused_tests_passed": 43,
+    "focused_tests_total": 43,
+    "production_readiness_checks_passed": 105,
+    "production_readiness_checks_total": 105,
+    "internal_readiness_verified": 14,
+    "internal_readiness_total": 29,
+    "runner_shell_syntax": "PASS",
+    "git_diff_check": "PASS",
+    "upstream_divergence_before_package": "0/0"
+  },
+  "production_boundary": {
+    "production_database_connection_count": 0,
+    "production_database_transaction_count": 0,
+    "production_database_write_count": 0,
+    "rds_account_create_count": 0,
+    "rds_account_delete_count": 0,
+    "rsa_private_key_create_count": 0,
+    "ciphertext_create_count": 0,
+    "cloud_mutation_count": 0,
+    "service_change_count": 0,
+    "provider_call_count": 0,
+    "public_traffic_request_count": 0,
+    "secret_value_exposure_count": 0,
+    "v3b_retry_count": 0,
+    "v4_retry_count": 0,
+    "004_retry_count": 0,
+    "005_retry_count": 0
+  },
+  "release_effect": {
+    "production_schema_roles_verified": false,
+    "internal_readiness_numerator": 14,
+    "internal_readiness_denominator": 29,
+    "public_launch_complete": false,
+    "next_action": "Checkpoint and push this exact local-package evidence, then refresh only the required backup, private-network, zero-residue and API/Admin baselines before any fresh V5 account or RSA material is created."
+  }
+}

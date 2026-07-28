@@ -336,6 +336,27 @@ Stage-safe runner stabilization:
 - This repository-only step made zero production database, cloud, account,
   service, provider or public-traffic action and receives no readiness credit.
 
+Exact pushed V5 package:
+
+- Source checkpoint:
+  `af58b8978822cf698303ae8c8c0fb8f281768fa4`.
+- Closure: 25 source files plus one manifest, 16 migrations.
+- Manifest SHA-256:
+  `a49a97861516716db8c0e5e6a5d942ff74da82153208a133693e40a057c849a0`.
+- Deterministic archive: 68,781 bytes, SHA-256
+  `02a019972d79de032c58e17d4b2fd1bea13e1ea0cc56748cf55e6a6c0671941b`;
+  two independent builds are byte-identical.
+- All 25 hashes, exact 26 regular archive members, root ownership metadata,
+  runner mode `0755`, zero AppleDouble/link/non-regular members and package
+  zero-DSN top-level import passed.
+- One recursive-member build, one rejected local cleanup command and one
+  auxiliary validator quoting error were independently classified
+  `PRE_CONNECT`; all had production connection/transaction/write/account/RSA/
+  cloud/service/provider/public-traffic counts zero. Only the corrected
+  ordinary-file archive is eligible for transfer.
+- Secret-free evidence:
+  `deploy/production/evidence/production-schema-roles-v5-owner-local-package-20260729.json`.
+
 Required path:
 
 1. Commit and push the hardened runner source checkpoint, then build a fresh deterministic
@@ -415,9 +436,9 @@ checkpoint.
 
 Current remaining steps:
 
-- update this rolling Handoff/risk record and push the corrected V5 checkpoint;
-- build V5 from that exact pushed checkpoint, refresh only required read-only
-  prerequisites, create fresh protected account/RSA material and run its
+- checkpoint and push the exact V5 local package evidence;
+- refresh only required read-only prerequisites, create fresh protected
+  account/RSA material and run its
   preflight/apply/outcome chain with at most one apply transaction;
 - independently verify V5, update readiness, then continue to the unique next
   dependency without stopping at the checkpoint or task boundary.
