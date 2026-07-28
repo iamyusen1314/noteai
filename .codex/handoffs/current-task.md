@@ -78,18 +78,28 @@
   any mode change; only `prepare` normalizes source directories to `0755`.
   All modes then require exact directory `0755`, world-readable files and no
   group/world-writable source file. Migration, executor, auditor and runtime
-  ACL bytes are unchanged. New working-tree runner SHA-256 is
-  `5a906ce7…1ef`.
+  ACL bytes are unchanged. The fix is pushed at checkpoint `93d5d3b`; runner
+  SHA-256 is `5a906ce7…1ef`.
 - Focused tests pass `43/43`; production gate passes `105/105`; zero-DSN
   import, shell syntax and diff checks pass. Internal readiness remains
   `14/29 = 48%`.
+- The exact mode-fix package was built twice from `93d5d3b` and is
+  byte-identical: 25 source files plus one manifest, 16 migrations,
+  68,915 bytes, archive SHA-256 `0624644a…9718`, manifest SHA-256
+  `9494ac7e…d9fc`, runner SHA-256 `5a906ce7…1ef`, root-owned fixed metadata,
+  runner mode `0755`, all other files `0644`, and zero links/AppleDouble.
+  Its three chunks are 23,000 / 23,000 / 22,915 bytes with independently
+  recorded SHA-256 values. All 25 hashes and package zero-DSN import pass.
+- The first local build route stopped because local bsdtar lacks fixed-mtime
+  support. It produced no eligible archive and is `PRE_CONNECT`; the
+  corrected standard-library USTAR writer was run twice with byte equality.
 - Secret-free evidence:
   `deploy/production/evidence/production-schema-roles-v5-owner-remote-prepare-root-cause-20260729.json`.
-- Required next action: checkpoint and push this source fix, rebuild the
-  deterministic minimal package from that exact pushed commit, delete only
-  the proven PRE_CONNECT V5 task root/chunks, transfer the new package and
-  rerun network-none `prepare`. Do not create a task account or RSA until the
-  new prepare passes. Never run V3B, V4, 004 or 005 again.
+  `deploy/production/evidence/production-schema-roles-v5-owner-mode-fix-package-20260729.json`.
+- Required next action: delete only the proven PRE_CONNECT V5 task
+  root/chunks, transfer the exact new three-part package and rerun
+  network-none `prepare`. Do not create a task account or RSA until the new
+  prepare passes. Never run V3B, V4, 004 or 005 again.
 
 ## 3. Preserved production incident boundary
 
