@@ -26,7 +26,7 @@
 
 - Branch: `codex/quality-stabilization-real-chain`.
 - Recovery source checkpoint:
-  `d763cccd471d0d97e4aac57a822137cf6eb64242`.
+  `4eb0be34078fc9eb3c8271912f5d93d21cb2e468`.
 - Schema executor repair:
   `e5883abc01c4b009907bee550209d7036d383771`.
 - Immutable application revision:
@@ -86,6 +86,12 @@
   complete non-superuser capability set. The original correction incident
   remains `CONNECTED_KNOWN / NO RETRY`; the new authority audit itself is
   `PRE_CONNECT`.
+- The same-site Alibaba Cloud support console is already authenticated and its
+  ticket-create form is reachable, but no support contact is configured. The
+  required contact modal demands a mobile number and verification. No
+  description, product/resource, contact value or ticket was submitted.
+  Product-owner interactive contact setup is therefore the exact current
+  hard stop.
 - `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001` received a fresh Secret-free
   production audit but cannot proceed independently:
   - API-C API/Admin and API-F API final-named files are distinct,
@@ -116,6 +122,10 @@
   `deploy/production/evidence/production-schema-role-resume-authority-audit-20260728.json`.
   Its SHA-256 is
   `d7810f8b5c7c0dc3e1f9ea35d080acbae05590892f46a79edf0bd5202cce1c99`.
+- Current provider-support intake artifact:
+  `deploy/production/evidence/production-schema-role-provider-support-intake-20260728.json`.
+  Its SHA-256 is
+  `28db85f3d59f032cf057c656966c3d42dbea38ad11c0b8299a03f0fe7712f4d2`.
 - Parent conflict artifact:
   `deploy/production/evidence/production-schema-roles-conflict-20260728.json`.
 - Historical UNKNOWN artifact:
@@ -176,6 +186,16 @@
   continuation before `RunCommand`. The terminal was replaced, API-F was
   dispatched once through a split in-memory/no-literal-newline method, and the
   final host and Cloud Shell cleanup readbacks passed.
+- Provider-support intake remained `PRE_CONNECT`: unsupported/retired browser
+  navigation methods, a hidden-dialog timeout and one ambiguous close locator
+  all occurred before any ticket/provider/database action. The contact modal
+  was closed with an exact locator, no ticket was submitted and all browser
+  tabs were finalized.
+- One broad read-only console DOM snapshot placed account metadata in transient
+  internal tool output. It contained no Secret, cookie, credential, private
+  key, connection string or user content and was not persisted to Git, sent to
+  a provider ticket or exposed publicly. Full-page snapshot output stopped
+  immediately; the remaining checks emitted sanitized booleans/counts only.
 - The managed-secret audit package and two local transfer/recovery scripts were
   moved recoverably to
   `/Users/openclaw/.Trash/noteai-managed-secret-audit-20260728-1330`;
@@ -187,9 +207,9 @@
   - rejection-evidence/schema/correction/readiness focused suite is `49/49`;
   - managed-secret auditor and role-file validator suite is `12/12`;
   - managed-secret/env/readiness combined suite is `19/19`;
-  - resumed authority/readiness focused suite is `12/12`;
+  - resumed authority/support-intake/readiness focused suite is `13/13`;
   - combined schema/outcome/correction/managed-secret/readiness suite is
-    `80/80`;
+    `81/81`;
   - full Python suite is `1007` passed with `24` explicit skips;
   - production readiness gate is `105/105`; internal readiness remains a
     valid fail-closed `14/29`;
@@ -245,6 +265,12 @@ outer layer failed but the remote command completed, recover its
   Advice or permission alone is not technical capability or retry
   authorization. Do not send a credential through chat or infer authority from
   the managed-RDS account label.
+- Before a provider ticket can be submitted, the product owner must configure
+  a support contact and complete phone verification inside the authenticated
+  Alibaba Cloud console. Do not send the phone number or verification code
+  through chat. The initial ticket must request capability confirmation and a
+  coordinated evidence plan and explicitly forbid provider production changes
+  until a separate incident is opened.
 - After the schema role matrix is independently verified, resume
   `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001` with real final role-specific files,
   transactional rotation/revocation evidence and no placeholder or legacy

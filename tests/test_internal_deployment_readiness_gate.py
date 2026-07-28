@@ -84,7 +84,17 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             schema["evidence"],
         )
-        self.assertIn("provider support", schema["resume_condition"])
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-schema-role-provider-support-intake-20260728.json"
+                ),
+            },
+            schema["evidence"],
+        )
+        self.assertIn("provider support", schema["resume_condition"].lower())
         self.assertIn("production_schema_roles", managed["dependencies"])
         self.assertEqual(
             managed["next_task"],
@@ -127,6 +137,46 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn(
             "Advice or permission alone",
             evidence["resume_boundary"]["provider_support_boundary"],
+        )
+
+    def test_provider_support_intake_stops_before_interactive_contact(self):
+        evidence_path = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "evidence"
+            / "production-schema-role-provider-support-intake-20260728.json"
+        )
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(evidence["audit_incident_class"], "PRE_CONNECT")
+        self.assertFalse(
+            evidence["support_portal_observation"][
+                "existing_support_contact_configured"
+            ]
+        )
+        self.assertTrue(
+            evidence["support_portal_observation"][
+                "contact_verification_required"
+            ]
+        )
+        self.assertEqual(evidence["actions"]["ticket_submit_click_count"], 0)
+        self.assertFalse(evidence["actions"]["ticket_created"])
+        self.assertEqual(evidence["actions"]["database_connection_count"], 0)
+        self.assertEqual(evidence["actions"]["database_write_count"], 0)
+        self.assertFalse(
+            evidence["minimal_disclosure_incident"]["secret_value_present"]
+        )
+        self.assertFalse(
+            evidence["minimal_disclosure_incident"][
+                "persisted_to_repository"
+            ]
+        )
+        self.assertTrue(evidence["cleanup"]["browser_tabs_finalized"])
+        self.assertTrue(
+            evidence["resume_boundary"][
+                "product_owner_interactive_action_required"
+            ]
         )
 
     def test_verified_control_requires_existing_evidence(self):

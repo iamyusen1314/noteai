@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001",
+  "parent_task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
+  "observed_at_utc": "2026-07-28T06:27:03Z",
+  "status": "blocked_contact_verification_required",
+  "audit_incident_class": "PRE_CONNECT",
+  "source": {
+    "checkpoint_commit": "4eb0be34078fc9eb3c8271912f5d93d21cb2e468",
+    "authority_audit_evidence": "deploy/production/evidence/production-schema-role-resume-authority-audit-20260728.json",
+    "support_reference": "https://www.alibabacloud.com/help/en/after-sales-support/latest/how-do-i-request-support-from-alibaba-cloud"
+  },
+  "support_portal_observation": {
+    "same_site_console_authenticated": true,
+    "support_ticket_create_form_accessible": true,
+    "international_support_portal_required_new_login": true,
+    "urgency_required": true,
+    "problem_description_required": true,
+    "product_category_required": true,
+    "contact_information_required": true,
+    "existing_support_contact_configured": false,
+    "mobile_number_input_required": true,
+    "contact_verification_required": true
+  },
+  "actions": {
+    "problem_description_entered": false,
+    "product_or_resource_selected": false,
+    "contact_information_entered": false,
+    "contact_information_saved": false,
+    "ticket_submit_click_count": 0,
+    "ticket_created": false,
+    "ticket_identifier_returned": false,
+    "provider_production_action_authorized": false,
+    "provider_production_action_count": 0,
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0,
+    "service_change_count": 0,
+    "deployment_count": 0,
+    "public_traffic_request_count": 0
+  },
+  "preconnect_incidents": {
+    "unsupported_browser_tab_open_method_count": 1,
+    "retired_workorder_endpoint_connection_closed_count": 1,
+    "hidden_product_dialog_escape_timeout_count": 1,
+    "ambiguous_close_button_count": 1,
+    "resolution": "Each UI failure occurred before ticket submission and before any provider or database action. The same-site authenticated create form was reached through a direct URL, the contact modal was closed with an exact accessible label, and every browser tab was finalized."
+  },
+  "minimal_disclosure_incident": {
+    "classification": "PRE_CONNECT_INTERNAL_TOOL_OUTPUT_ONLY",
+    "broad_console_dom_snapshot_count": 1,
+    "console_account_metadata_present_in_transient_tool_output": true,
+    "secret_value_present": false,
+    "cookie_present": false,
+    "credential_present": false,
+    "private_key_present": false,
+    "complete_connection_string_present": false,
+    "user_content_present": false,
+    "persisted_to_repository": false,
+    "sent_to_provider_ticket": false,
+    "publicly_exposed": false,
+    "mitigation": "Stopped full-page snapshot output, used only sanitized booleans and counts for remaining checks, submitted no ticket, and finalized all browser tabs."
+  },
+  "cleanup": {
+    "contact_modal_open": false,
+    "ticket_form_submitted": false,
+    "browser_tabs_finalized": true,
+    "cloud_shell_task_file_count": 0,
+    "cloud_shell_task_variable_count": 0,
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0,
+    "production_change_count": 0
+  },
+  "resume_boundary": {
+    "product_owner_interactive_action_required": true,
+    "required_action": "Configure a support contact and complete the phone verification inside the authenticated Alibaba Cloud console. Do not send a phone number, verification code or credential through chat.",
+    "after_contact_verification": "Open a fresh authenticated session and submit a bounded RDS PostgreSQL support intake. The initial ticket must request capability confirmation and a coordinated evidence plan and must forbid provider production changes until a separate explicit incident is opened.",
+    "database_action_allowed_now": false,
+    "provider_production_action_allowed_now": false,
+    "next_internal_technical_task_available": false
+  },
+  "readiness": {
+    "repository_items_verified": 12,
+    "repository_items_total": 12,
+    "internal_items_verified": 14,
+    "internal_items_total": 29,
+    "production_schema_roles_verified": false,
+    "public_launch_complete": false
+  }
+}
