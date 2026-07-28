@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,23 @@ VALID_EXECUTION_CLASSES = {
     "external_or_public",
     "professional_review",
 }
+ACCEPTED_RISK_CONTROL_ID = "production_schema_roles"
+EXPECTED_ACCEPTED_RISK_FINDINGS = {
+    "FIRST-LAUNCH-LEGACY-XHS-ADMIN-MEMBERSHIP-20260728": {
+        "granted_role": "noteai_xhs",
+        "member_role": "noteai_admin",
+        "admin_option": True,
+        "inherit_option": True,
+        "set_option": False,
+    },
+    "FIRST-LAUNCH-LEGACY-APP-INHERIT-20260728": {
+        "role": "noteai_app",
+        "rolinherit": True,
+        "incoming_membership_count": 0,
+        "high_privilege_inheritance_count": 0,
+    },
+}
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 class ManifestError(ValueError):
@@ -146,6 +164,128 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
                     _require(_verify_git_ref(ref, root=root), f"{control_id}: missing git evidence {ref}")
                 else:
                     _require(_verify_path(ref, root=root), f"{control_id}: missing path evidence {ref}")
+            accepted_risks = control.get("accepted_risks", [])
+            _require(
+                isinstance(accepted_risks, list),
+                f"{control_id}: accepted_risks must be a list",
+            )
+            if accepted_risks:
+                _require(
+                    control_id == ACCEPTED_RISK_CONTROL_ID,
+                    f"{control_id}: accepted_risks are not allowed",
+                )
+                _require(
+                    len(accepted_risks) == len(
+                        EXPECTED_ACCEPTED_RISK_FINDINGS
+                    ),
+                    f"{control_id}: exact accepted_risks required",
+                )
+                observed_ids = {
+                    item.get("id")
+                    for item in accepted_risks
+                    if isinstance(item, dict)
+                }
+                _require(
+                    observed_ids == set(EXPECTED_ACCEPTED_RISK_FINDINGS),
+                    f"{control_id}: accepted_risk ids changed",
+                )
+                for risk in accepted_risks:
+                    risk_id = risk["id"]
+                    _require(
+                        risk.get("status") == "accepted_risk",
+                        f"{risk_id}: status must be accepted_risk",
+                    )
+                    _require(
+                        risk.get("accepted_by") == "product_owner",
+                        f"{risk_id}: product-owner acceptance required",
+                    )
+                    _require(
+                        risk.get("environment") == "production",
+                        f"{risk_id}: production environment required",
+                    )
+                    _require(
+                        risk.get("finding")
+                        == EXPECTED_ACCEPTED_RISK_FINDINGS[risk_id],
+                        f"{risk_id}: finding changed",
+                    )
+                    _require(
+                        isinstance(risk.get("decision_at_utc"), str)
+                        and risk["decision_at_utc"].endswith("Z"),
+                        f"{risk_id}: UTC decision timestamp required",
+                    )
+                    _require(
+                        risk.get("owner") == "CTO",
+                        f"{risk_id}: CTO owner required",
+                    )
+                    _require(
+                        risk.get("review_due")
+                        == "first_public_launch_plus_30_days",
+                        f"{risk_id}: review trigger changed",
+                    )
+                    for field in (
+                        "scope",
+                        "remediation",
+                        "actual_effective_privileges",
+                    ):
+                        _require(
+                            isinstance(risk.get(field), str)
+                            and risk[field].strip(),
+                            f"{risk_id}: {field} required",
+                        )
+                    for field in (
+                        "prohibited_expansion",
+                        "compensating_controls",
+                        "invalidates_on",
+                    ):
+                        _require(
+                            isinstance(risk.get(field), list)
+                            and risk[field]
+                            and all(
+                                isinstance(value, str) and value.strip()
+                                for value in risk[field]
+                            ),
+                            f"{risk_id}: {field} required",
+                        )
+                    _require(
+                        risk.get("readiness_credit") == 0,
+                        f"{risk_id}: readiness credit must be zero",
+                    )
+                    _require(
+                        risk.get("migration_verified") is False,
+                        f"{risk_id}: migration cannot be accepted by risk",
+                    )
+                    _require(
+                        risk.get("database_action_authorized") is False,
+                        f"{risk_id}: risk cannot authorize database action",
+                    )
+                    _require(
+                        risk.get("not_verified_fixed") is True,
+                        f"{risk_id}: risk must not claim verified fixed",
+                    )
+                    digest = risk.get("source_evidence_sha256")
+                    _require(
+                        isinstance(digest, str)
+                        and SHA256.fullmatch(digest) is not None,
+                        f"{risk_id}: source evidence SHA-256 required",
+                    )
+                    risk_evidence = risk.get("evidence")
+                    _require(
+                        isinstance(risk_evidence, list)
+                        and risk_evidence,
+                        f"{risk_id}: evidence required",
+                    )
+                    for item in risk_evidence:
+                        _require(
+                            isinstance(item, dict)
+                            and item.get("kind") == "path",
+                            f"{risk_id}: path evidence required",
+                        )
+                        ref = item.get("ref")
+                        _require(
+                            isinstance(ref, str)
+                            and _verify_path(ref, root=root),
+                            f"{risk_id}: missing risk evidence {ref}",
+                        )
             controls_by_id[control_id] = control
 
     for control_id, control in controls_by_id.items():
@@ -246,6 +386,16 @@ def build_report(
         "complete_public_launch": _score(all_controls),
         "actionable": actionable,
         "next_safe_task": safe_actionable[0] if safe_actionable else None,
+        "accepted_risks": [
+            {
+                "control_id": control["id"],
+                "risk_id": risk["id"],
+                "readiness_credit": risk["readiness_credit"],
+                "not_verified_fixed": risk["not_verified_fixed"],
+            }
+            for control in all_controls
+            for risk in control.get("accepted_risks", [])
+        ],
         "blocked": [
             {
                 "id": control["id"],

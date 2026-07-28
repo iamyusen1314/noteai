@@ -156,6 +156,27 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             source,
         )
 
+    def test_two_accepted_role_risks_are_exact_and_not_configurable(self):
+        source = schema_roles.Path(schema_roles.__file__).read_text(
+            encoding="utf-8"
+        )
+        acl = schema_roles.ACL_PATH.read_text(encoding="utf-8")
+
+        self.assertEqual(
+            schema_roles.ACCEPTED_ROLE_RISK_PROFILE,
+            "FIRST_LAUNCH_LEGACY_ROLE_RISK_V1",
+        )
+        self.assertEqual(len(schema_roles.ACCEPTED_ROLE_RISK_IDS), 2)
+        self.assertIn("current_user <> 'noteai_xhs'", source)
+        self.assertIn("member.rolname='noteai_app'", source)
+        self.assertIn("pg_has_role('noteai_app',role.oid,'USAGE')", source)
+        self.assertIn("WITH GRANT OPTION", source)
+        self.assertIn("granted.rolname = 'noteai_xhs'", acl)
+        self.assertIn("member.rolname = 'noteai_admin'", acl)
+        self.assertIn("membership.admin_option", acl)
+        self.assertIn("accepted runtime role membership changed", acl)
+        self.assertNotIn("ACCEPTED_ROLE_RISK_PROFILE", os.environ)
+
 
 if __name__ == "__main__":
     unittest.main()

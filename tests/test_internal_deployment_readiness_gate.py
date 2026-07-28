@@ -40,7 +40,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(report["complete_public_launch"]["percentage"], 37)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
-    def test_current_schema_role_correction_is_blocked_fail_closed(self):
+    def test_current_schema_role_unknown_is_blocked_fail_closed(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
@@ -57,7 +57,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertEqual(
             actionable["production_schema_roles"]["next_task"],
-            "PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001",
+            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
         )
         self.assertEqual(
             actionable["production_schema_roles"]["execution_class"],
@@ -94,7 +94,23 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             schema["evidence"],
         )
-        self.assertIn("provider support", schema["resume_condition"].lower())
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-first-launch-role-risk-readonly-unknown-"
+                    "20260728.json"
+                ),
+            },
+            schema["evidence"],
+        )
+        self.assertIn("CONNECTED_UNKNOWN", schema["blocker"])
+        self.assertIn(
+            "Do not perform another database connection",
+            schema["resume_condition"],
+        )
+        self.assertNotIn("accepted_risks", schema)
         self.assertIn("production_schema_roles", managed["dependencies"])
         self.assertEqual(
             managed["next_task"],
@@ -105,6 +121,41 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             "professional_review",
         )
         self.assertNotIn("dns_cutover", actionable)
+
+    def test_current_role_risk_incident_is_unknown_not_accepted(self):
+        evidence_path = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "evidence"
+            / "production-first-launch-role-risk-readonly-unknown-20260728.json"
+        )
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(evidence["incident_class"], "CONNECTED_UNKNOWN")
+        self.assertEqual(
+            evidence["readonly_database_attempt"]["attempt_count"],
+            1,
+        )
+        self.assertEqual(
+            evidence["readonly_database_attempt"]["automatic_retry_count"],
+            0,
+        )
+        self.assertEqual(
+            evidence["readonly_database_attempt"]["database_outcome"],
+            "UNKNOWN",
+        )
+        self.assertFalse(
+            evidence["product_risk_decision"]["accepted_risk_activation"]
+        )
+        self.assertEqual(
+            evidence["readiness"]["accepted_risk_entry_count"],
+            0,
+        )
+        self.assertEqual(
+            evidence["cleanup"]["api_c_task_directory_count"],
+            0,
+        )
 
     def test_authority_audit_is_preconnect_and_preserves_retry_block(self):
         evidence_path = (
@@ -237,6 +288,95 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 for evidence in control["evidence"]:
                     if evidence["kind"] == "path":
                         self.assertFalse(Path(evidence["ref"]).is_absolute())
+
+    def test_only_two_exact_zero_credit_accepted_risks_are_supported(self):
+        candidate = copy.deepcopy(self.manifest)
+        schema = next(
+            control
+            for control in candidate["layers"][1]["controls"]
+            if control["id"] == "production_schema_roles"
+        )
+        evidence = [{
+            "kind": "path",
+            "ref": (
+                "deploy/production/evidence/"
+                "production-legacy-runtime-role-identity-20260728.json"
+            ),
+        }]
+        common = {
+            "status": "accepted_risk",
+            "accepted_by": "product_owner",
+            "decision_at_utc": "2026-07-28T00:00:00Z",
+            "environment": "production",
+            "scope": "Exact existing production finding only.",
+            "prohibited_expansion": ["No new role or privilege."],
+            "actual_effective_privileges": "Recorded by read-only evidence.",
+            "compensating_controls": ["Private network and split secrets."],
+            "owner": "CTO",
+            "review_due": "first_public_launch_plus_30_days",
+            "invalidates_on": ["Any role or option drift."],
+            "remediation": "Optional provider-assisted post-launch repair.",
+            "readiness_credit": 0,
+            "migration_verified": False,
+            "database_action_authorized": False,
+            "not_verified_fixed": True,
+            "source_evidence_sha256": (
+                "88a0daf878a3b42109c59bd70d8c8820e0aa5e62d80f73aea4c18ef10e607ae0"
+            ),
+            "evidence": evidence,
+        }
+        schema["accepted_risks"] = [
+            {
+                **common,
+                "id": (
+                    "FIRST-LAUNCH-LEGACY-XHS-ADMIN-"
+                    "MEMBERSHIP-20260728"
+                ),
+                "finding": {
+                    "granted_role": "noteai_xhs",
+                    "member_role": "noteai_admin",
+                    "admin_option": True,
+                    "inherit_option": True,
+                    "set_option": False,
+                },
+            },
+            {
+                **common,
+                "id": "FIRST-LAUNCH-LEGACY-APP-INHERIT-20260728",
+                "finding": {
+                    "role": "noteai_app",
+                    "rolinherit": True,
+                    "incoming_membership_count": 0,
+                    "high_privilege_inheritance_count": 0,
+                },
+            },
+        ]
+
+        gate.validate_manifest(candidate)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "manifest.json"
+            path.write_text(json.dumps(candidate), encoding="utf-8")
+            report = gate.build_report(path)
+        self.assertEqual(len(report["accepted_risks"]), 2)
+        self.assertEqual(report["internal_deployment"]["verified"], 14)
+        self.assertEqual(report["internal_deployment"]["total"], 29)
+
+        broken = copy.deepcopy(candidate)
+        broken["layers"][1]["controls"][2]["accepted_risks"][0][
+            "readiness_credit"
+        ] = 1
+        with self.assertRaisesRegex(
+            gate.ManifestError,
+            "readiness credit must be zero",
+        ):
+            gate.validate_manifest(broken)
+
+        broken = copy.deepcopy(candidate)
+        broken["layers"][1]["controls"][2]["accepted_risks"][0][
+            "finding"
+        ]["admin_option"] = False
+        with self.assertRaisesRegex(gate.ManifestError, "finding changed"):
+            gate.validate_manifest(broken)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,10 @@ DECLARE
     role_name TEXT;
     role_row RECORD;
 BEGIN
+    IF current_user = 'noteai_xhs' THEN
+        RAISE EXCEPTION 'runtime role cannot execute migrations';
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'noteai_app')
        OR NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'noteai_xhs') THEN
         RAISE EXCEPTION 'required historical runtime roles are absent';
@@ -47,20 +51,13 @@ BEGIN
     LOOP
         SELECT * INTO role_row FROM pg_roles WHERE rolname = role_name;
         IF role_row.rolsuper
-           OR role_row.rolinherit
+           OR (role_row.rolinherit AND role_name <> 'noteai_app')
+           OR (NOT role_row.rolinherit AND role_name = 'noteai_app')
            OR role_row.rolcreaterole
            OR role_row.rolcreatedb
            OR role_row.rolreplication
            OR role_row.rolbypassrls THEN
             RAISE EXCEPTION 'runtime role attributes violate contract';
-        END IF;
-        IF EXISTS (
-            SELECT 1
-            FROM pg_auth_members membership
-            JOIN pg_roles member_role ON member_role.oid = membership.member
-            WHERE member_role.rolname = role_name
-        ) THEN
-            RAISE EXCEPTION 'runtime role membership violates contract';
         END IF;
         IF EXISTS (
             SELECT 1 FROM pg_class object
@@ -75,6 +72,49 @@ BEGIN
             RAISE EXCEPTION 'runtime role ownership violates contract';
         END IF;
     END LOOP;
+
+    IF (
+        SELECT COUNT(*)
+        FROM pg_auth_members membership
+        JOIN pg_roles granted ON granted.oid = membership.roleid
+        JOIN pg_roles member ON member.oid = membership.member
+        WHERE granted.rolname = ANY(ARRAY[
+            'noteai_app',
+            'noteai_admin_runtime',
+            'noteai_ai_dispatcher',
+            'noteai_ai_worker',
+            'noteai_payment',
+            'noteai_xhs',
+            'noteai_xhs_tracking',
+            'noteai_xhs_trends'
+        ])
+        OR member.rolname = ANY(ARRAY[
+            'noteai_app',
+            'noteai_admin_runtime',
+            'noteai_ai_dispatcher',
+            'noteai_ai_worker',
+            'noteai_payment',
+            'noteai_xhs',
+            'noteai_xhs_tracking',
+            'noteai_xhs_trends'
+        ])
+    ) <> 1 OR NOT EXISTS (
+        SELECT 1
+        FROM pg_auth_members membership
+        JOIN pg_roles granted ON granted.oid = membership.roleid
+        JOIN pg_roles member ON member.oid = membership.member
+        WHERE granted.rolname = 'noteai_xhs'
+          AND member.rolname = 'noteai_admin'
+          AND membership.admin_option
+          AND (
+              to_jsonb(membership)->>'inherit_option'
+          )::boolean IS TRUE
+          AND (
+              to_jsonb(membership)->>'set_option'
+          )::boolean IS FALSE
+    ) THEN
+        RAISE EXCEPTION 'accepted runtime role membership changed';
+    END IF;
 END
 $contract$;
 

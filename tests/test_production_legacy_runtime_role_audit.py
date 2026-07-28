@@ -394,11 +394,15 @@ class ProductionLegacyRuntimeRoleAuditTests(unittest.TestCase):
         self.assertIn("incident_class=CONNECTED_UNKNOWN", completed.stdout)
         self.assertIn("cleanup_required=1", completed.stdout)
 
-    def test_exact_source_set_is_pinned_before_connection(self):
-        observed = role_audit._validate_local_source()
+    def test_exact_source_set_remains_pinned_and_current_drift_fails_closed(
+        self,
+    ):
+        self.assertEqual(len(role_audit.EXPECTED_SOURCE_SHA256), 18)
+        with self.assertRaises(role_audit.LegacyRoleAuditError) as raised:
+            role_audit._validate_local_source()
 
-        self.assertEqual(observed, role_audit.EXPECTED_SOURCE_SHA256)
-        self.assertEqual(len(observed), 18)
+        self.assertEqual(raised.exception.code, "source_drift")
+        self.assertEqual(raised.exception.stage, "local_source")
 
     def test_exact_conflict_is_identified_without_account_names(self):
         connection = ExactConflictConnection()
@@ -518,6 +522,11 @@ class ProductionLegacyRuntimeRoleAuditTests(unittest.TestCase):
     def test_missing_dsn_is_proven_preconnect(self):
         stderr = io.StringIO()
         with (
+            mock.patch.object(
+                role_audit,
+                "_validate_local_source",
+                return_value=role_audit.EXPECTED_SOURCE_SHA256,
+            ),
             mock.patch.object(role_audit, "psycopg", object()),
             contextlib.redirect_stderr(stderr),
         ):

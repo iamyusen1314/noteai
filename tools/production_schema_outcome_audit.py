@@ -122,6 +122,7 @@ LEGACY_RUNTIME_ROLES = ("noteai_app", "noteai_xhs")
 NEW_RUNTIME_ROLES = tuple(
     role for role in RUNTIME_ROLES if role not in LEGACY_RUNTIME_ROLES
 )
+ACCEPTED_ROLE_RISK_PROFILE = "FIRST_LAUNCH_LEGACY_ROLE_RISK_V1"
 
 
 class OutcomeAuditError(RuntimeError):
@@ -192,8 +193,11 @@ def _classify(observation: dict[str, Any]) -> str:
         and observation["sequences"] == EXPECTED_SEQUENCES
         and observation["present_runtime_roles"] == LEGACY_RUNTIME_ROLES
         and observation["new_runtime_role_count"] == 0
-        and observation["runtime_elevation_count"] == 0
-        and observation["runtime_membership_count"] == 0
+        and observation["accepted_role_risk_exact"]
+        and observation["runtime_elevation_count"] == 1
+        and observation["runtime_membership_count"] == 1
+        and observation["app_incoming_membership_count"] == 0
+        and observation["app_high_privilege_inheritance_count"] == 0
         and observation["runtime_ownership_count"] == 0
         and observation["trends_seed_count"] is None
         and observation["dispatcher_seed_count"] is None
@@ -214,8 +218,11 @@ def _classify(observation: dict[str, Any]) -> str:
         and observation["present_runtime_roles"] == EXPECTED_PRESENT_RUNTIME_ROLES
         and observation["new_runtime_role_count"] == len(NEW_RUNTIME_ROLES)
         and observation["new_runtime_login_count"] == 0
-        and observation["runtime_elevation_count"] == 0
-        and observation["runtime_membership_count"] == 0
+        and observation["accepted_role_risk_exact"]
+        and observation["runtime_elevation_count"] == 1
+        and observation["runtime_membership_count"] == 1
+        and observation["app_incoming_membership_count"] == 0
+        and observation["app_high_privilege_inheritance_count"] == 0
         and observation["runtime_ownership_count"] == 0
         and observation["trends_seed_count"] == 1
         and observation["trends_seed_exact_count"] == 1
@@ -369,18 +376,78 @@ def collect_outcome(
                     "rolbypassrls",
                 )
             )
-            membership_count = int(
-                _scalar(
-                    conn,
-                    "SELECT COUNT(*) FROM pg_auth_members membership "
-                    "JOIN pg_roles granted_role "
-                    "ON granted_role.oid=membership.roleid "
-                    "JOIN pg_roles member_role "
-                    "ON member_role.oid=membership.member "
-                    "WHERE granted_role.rolname = ANY(%s) "
-                    "OR member_role.rolname = ANY(%s)",
-                    (list(RUNTIME_ROLES), list(RUNTIME_ROLES)),
+            app_role_exact = any(
+                row["rolname"] == "noteai_app"
+                and bool(row["rolinherit"])
+                and not any(bool(row[key]) for key in (
+                    "rolsuper", "rolcreaterole", "rolcreatedb",
+                    "rolreplication", "rolbypassrls",
+                ))
+                for row in role_rows
+            )
+            non_app_elevation_count = sum(
+                bool(row[key])
+                for row in role_rows
+                if row["rolname"] != "noteai_app"
+                for key in (
+                    "rolsuper", "rolinherit", "rolcreaterole",
+                    "rolcreatedb", "rolreplication", "rolbypassrls",
                 )
+            )
+            membership_rows = conn.execute(
+                "SELECT granted_role.rolname AS granted_name,"
+                "member_role.rolname AS member_name,"
+                "membership.admin_option,"
+                "(to_jsonb(membership)->>'inherit_option')::boolean "
+                "AS inherit_option,"
+                "(to_jsonb(membership)->>'set_option')::boolean "
+                "AS set_option "
+                "FROM pg_auth_members membership "
+                "JOIN pg_roles granted_role "
+                "ON granted_role.oid=membership.roleid "
+                "JOIN pg_roles member_role "
+                "ON member_role.oid=membership.member "
+                "WHERE granted_role.rolname = ANY(%s) "
+                "OR member_role.rolname = ANY(%s) "
+                "ORDER BY granted_role.rolname,member_role.rolname",
+                (list(RUNTIME_ROLES), list(RUNTIME_ROLES)),
+            ).fetchall()
+            membership_count = len(membership_rows)
+            accepted_membership_exact = (
+                membership_count == 1
+                and membership_rows[0]["granted_name"] == "noteai_xhs"
+                and membership_rows[0]["member_name"] == "noteai_admin"
+                and bool(membership_rows[0]["admin_option"])
+                and membership_rows[0]["inherit_option"] is True
+                and membership_rows[0]["set_option"] is False
+            )
+            app_incoming_membership_count = int(_scalar(
+                conn,
+                "SELECT COUNT(*) FROM pg_auth_members membership "
+                "JOIN pg_roles member ON member.oid=membership.member "
+                "WHERE member.rolname='noteai_app'",
+            ))
+            app_high_privilege_inheritance_count = int(_scalar(
+                conn,
+                "SELECT COUNT(*) FROM pg_roles role "
+                "WHERE role.rolname <> 'noteai_app' "
+                "AND pg_has_role('noteai_app',role.oid,'USAGE') "
+                "AND (role.rolsuper OR role.rolcreaterole "
+                "OR role.rolcreatedb OR role.rolreplication "
+                "OR role.rolbypassrls)",
+            ))
+            executor_not_xhs = bool(_scalar(
+                conn,
+                "SELECT session_user <> 'noteai_xhs' "
+                "AND current_user <> 'noteai_xhs'",
+            ))
+            accepted_role_risk_exact = (
+                executor_not_xhs
+                and app_role_exact
+                and non_app_elevation_count == 0
+                and accepted_membership_exact
+                and app_incoming_membership_count == 0
+                and app_high_privilege_inheritance_count == 0
             )
             ownership_count = int(
                 _scalar(
@@ -422,6 +489,14 @@ def collect_outcome(
                 "new_runtime_login_count": new_login_count,
                 "runtime_elevation_count": elevation_count,
                 "runtime_membership_count": membership_count,
+                "accepted_role_risk_exact": accepted_role_risk_exact,
+                "app_incoming_membership_count": (
+                    app_incoming_membership_count
+                ),
+                "app_high_privilege_inheritance_count": (
+                    app_high_privilege_inheritance_count
+                ),
+                "executor_not_xhs": executor_not_xhs,
                 "runtime_ownership_count": ownership_count,
                 "trends_seed_count": _optional_count(
                     conn,
@@ -504,6 +579,17 @@ def collect_outcome(
         "new_runtime_login_count": observation["new_runtime_login_count"],
         "runtime_elevation_count": observation["runtime_elevation_count"],
         "runtime_membership_count": observation["runtime_membership_count"],
+        "accepted_role_risk_profile": ACCEPTED_ROLE_RISK_PROFILE,
+        "accepted_role_risk_exact": observation[
+            "accepted_role_risk_exact"
+        ],
+        "app_incoming_membership_count": observation[
+            "app_incoming_membership_count"
+        ],
+        "app_high_privilege_inheritance_count": observation[
+            "app_high_privilege_inheritance_count"
+        ],
+        "executor_not_xhs": observation["executor_not_xhs"],
         "runtime_ownership_count": observation["runtime_ownership_count"],
         "trends_seed_count": observation["trends_seed_count"],
         "trends_seed_exact_count": observation["trends_seed_exact_count"],

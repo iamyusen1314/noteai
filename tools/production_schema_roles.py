@@ -50,6 +50,11 @@ ACL_PATH = ROOT / "scripts" / "postgres" / "noteai_production_runtime_roles.sql"
 DATABASE_URL_ENV = "NOTEAI_SCHEMA_DATABASE_URL"
 CONFIRM_ENV = "NOTEAI_SCHEMA_APPLY_CONFIRM"
 TASK_ID = "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001"
+ACCEPTED_ROLE_RISK_PROFILE = "FIRST_LAUNCH_LEGACY_ROLE_RISK_V1"
+ACCEPTED_ROLE_RISK_IDS = (
+    "FIRST-LAUNCH-LEGACY-XHS-ADMIN-MEMBERSHIP-20260728",
+    "FIRST-LAUNCH-LEGACY-APP-INHERIT-20260728",
+)
 EXPECTED_VERSIONS = tuple(f"{number:04d}" for number in range(1, 17))
 LEGACY_VERSIONS = EXPECTED_VERSIONS[:8]
 NEW_VERSIONS = EXPECTED_VERSIONS[8:]
@@ -448,6 +453,186 @@ def _expected_column(
     return column in scoped.get((role, table), set())
 
 
+def _accepted_role_risk_state(
+    conn: Any,
+    *,
+    tables: tuple[str, ...],
+    sequences: tuple[str, ...],
+) -> dict[str, int | str]:
+    if not bool(_fetch_scalar(
+        conn,
+        "SELECT current_user <> 'noteai_xhs'",
+    )):
+        raise SchemaRoleError("migration_executor_identity")
+
+    membership_rows = conn.execute(
+        "SELECT granted.rolname AS granted_name,"
+        "member.rolname AS member_name,membership.admin_option,"
+        "(to_jsonb(membership)->>'inherit_option')::boolean "
+        "AS inherit_option,"
+        "(to_jsonb(membership)->>'set_option')::boolean AS set_option "
+        "FROM pg_auth_members membership "
+        "JOIN pg_roles granted ON granted.oid=membership.roleid "
+        "JOIN pg_roles member ON member.oid=membership.member "
+        "WHERE granted.rolname = ANY(%s) "
+        "OR member.rolname = ANY(%s) "
+        "ORDER BY granted.rolname,member.rolname",
+        (list(RUNTIME_ROLES), list(RUNTIME_ROLES)),
+    ).fetchall()
+    if len(membership_rows) != 1:
+        raise SchemaRoleError("accepted_role_membership")
+    membership = membership_rows[0]
+    if not (
+        membership["granted_name"] == "noteai_xhs"
+        and membership["member_name"] == "noteai_admin"
+        and bool(membership["admin_option"])
+        and membership["inherit_option"] is True
+        and membership["set_option"] is False
+    ):
+        raise SchemaRoleError("accepted_role_membership")
+
+    app_incoming_memberships = int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM pg_auth_members membership "
+        "JOIN pg_roles member ON member.oid=membership.member "
+        "WHERE member.rolname='noteai_app'",
+    ))
+    if app_incoming_memberships:
+        raise SchemaRoleError("accepted_app_inheritance")
+    app_high_privilege_inheritance = int(_fetch_scalar(
+        conn,
+        "SELECT COUNT(*) FROM pg_roles role "
+        "WHERE role.rolname <> 'noteai_app' "
+        "AND pg_has_role('noteai_app',role.oid,'USAGE') "
+        "AND (role.rolsuper OR role.rolcreaterole OR role.rolcreatedb "
+        "OR role.rolreplication OR role.rolbypassrls)",
+    ))
+    if app_high_privilege_inheritance:
+        raise SchemaRoleError("accepted_app_inheritance")
+
+    xhs_role = conn.execute(
+        "SELECT rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolcanlogin,"
+        "rolreplication,rolbypassrls FROM pg_roles "
+        "WHERE rolname='noteai_xhs'"
+    ).fetchone()
+    if xhs_role is None or any(
+        bool(xhs_role[key])
+        for key in (
+            "rolsuper", "rolinherit", "rolcreaterole", "rolcreatedb",
+            "rolreplication", "rolbypassrls",
+        )
+    ):
+        raise SchemaRoleError("accepted_xhs_effective_privileges")
+    if not bool(xhs_role["rolcanlogin"]):
+        raise SchemaRoleError("accepted_xhs_effective_privileges")
+
+    if not bool(_fetch_scalar(
+        conn,
+        "SELECT has_database_privilege("
+        "'noteai_xhs',current_database(),'CONNECT')",
+    )):
+        raise SchemaRoleError("accepted_xhs_effective_privileges")
+    for privilege in ("CREATE", "TEMP"):
+        if bool(_fetch_scalar(
+            conn,
+            "SELECT has_database_privilege("
+            "'noteai_xhs',current_database(),%s)",
+            (privilege,),
+        )):
+            raise SchemaRoleError("accepted_xhs_effective_privileges")
+    if not bool(_fetch_scalar(
+        conn,
+        "SELECT has_schema_privilege('noteai_xhs','public','USAGE')",
+    )) or bool(_fetch_scalar(
+        conn,
+        "SELECT has_schema_privilege('noteai_xhs','public','CREATE')",
+    )):
+        raise SchemaRoleError("accepted_xhs_effective_privileges")
+
+    table_checks = 0
+    table_positive = 0
+    for table in tables:
+        allowed = set(XHS_TABLE_PRIVILEGES.get(table, ()))
+        for privilege in TABLE_PRIVILEGES:
+            actual = bool(_fetch_scalar(
+                conn,
+                "SELECT has_table_privilege(%s,%s,%s)",
+                ("noteai_xhs", f"public.{table}", privilege),
+            ))
+            if actual != (privilege in allowed):
+                raise SchemaRoleError("accepted_xhs_effective_privileges")
+            if bool(_fetch_scalar(
+                conn,
+                "SELECT has_table_privilege(%s,%s,%s)",
+                (
+                    "noteai_xhs",
+                    f"public.{table}",
+                    f"{privilege} WITH GRANT OPTION",
+                ),
+            )):
+                raise SchemaRoleError("accepted_xhs_effective_privileges")
+            table_checks += 1
+            table_positive += int(actual)
+
+    sequence_checks = 0
+    sequence_positive = 0
+    expected_sequences = ROLE_SEQUENCES["noteai_xhs"]
+    for sequence in sequences:
+        for privilege in SEQUENCE_PRIVILEGES:
+            actual = bool(_fetch_scalar(
+                conn,
+                "SELECT has_sequence_privilege(%s,%s,%s)",
+                ("noteai_xhs", f"public.{sequence}", privilege),
+            ))
+            expected = (
+                privilege == "USAGE"
+                and sequence in expected_sequences
+            )
+            if actual != expected:
+                raise SchemaRoleError("accepted_xhs_effective_privileges")
+            if bool(_fetch_scalar(
+                conn,
+                "SELECT has_sequence_privilege(%s,%s,%s)",
+                (
+                    "noteai_xhs",
+                    f"public.{sequence}",
+                    f"{privilege} WITH GRANT OPTION",
+                ),
+            )):
+                raise SchemaRoleError("accepted_xhs_effective_privileges")
+            sequence_checks += 1
+            sequence_positive += int(actual)
+
+    if int(_fetch_scalar(
+        conn,
+        "SELECT ("
+        "(SELECT COUNT(*) FROM pg_class object "
+        "WHERE object.relowner='noteai_xhs'::regrole) + "
+        "(SELECT COUNT(*) FROM pg_namespace object "
+        "WHERE object.nspowner='noteai_xhs'::regrole) + "
+        "(SELECT COUNT(*) FROM pg_proc object "
+        "WHERE object.proowner='noteai_xhs'::regrole))",
+    )):
+        raise SchemaRoleError("accepted_xhs_effective_privileges")
+
+    return {
+        "profile": ACCEPTED_ROLE_RISK_PROFILE,
+        "accepted_risk_count": len(ACCEPTED_ROLE_RISK_IDS),
+        "accepted_attribute_count": 1,
+        "accepted_membership_count": 1,
+        "unexpected_attribute_count": 0,
+        "unexpected_membership_count": 0,
+        "app_incoming_membership_count": app_incoming_memberships,
+        "app_high_privilege_inheritance_count": (
+            app_high_privilege_inheritance
+        ),
+        "xhs_effective_table_privilege_count": table_positive,
+        "xhs_table_privilege_checks": table_checks,
+        "xhs_effective_sequence_privilege_count": sequence_positive,
+        "xhs_sequence_privilege_checks": sequence_checks,
+    }
+
+
 def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int]:
     migration_payloads = _migration_payloads()
     ledger_sha_column = conn.execute(
@@ -500,6 +685,11 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
     if sequences != tuple(sorted(EXPECTED_PUBLIC_SEQUENCES)):
         raise SchemaRoleError("sequence_inventory")
 
+    accepted_role_risks = _accepted_role_risk_state(
+        conn,
+        tables=tables,
+        sequences=sequences,
+    )
     role_rows = conn.execute(
         "SELECT rolname,rolsuper,rolinherit,rolcreaterole,rolcreatedb,"
         "rolcanlogin,rolreplication,rolbypassrls FROM pg_roles "
@@ -509,26 +699,21 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
     if {row["rolname"] for row in role_rows} != set(RUNTIME_ROLES):
         raise SchemaRoleError("role_inventory")
     for row in role_rows:
-        if any(
-            row[key]
-            for key in (
-                "rolsuper", "rolinherit", "rolcreaterole", "rolcreatedb",
-                "rolreplication", "rolbypassrls",
-            )
-        ):
+        prohibited = (
+            "rolsuper", "rolcreaterole", "rolcreatedb",
+            "rolreplication", "rolbypassrls",
+        )
+        if any(row[key] for key in prohibited):
+            raise SchemaRoleError("role_elevation")
+        if row["rolname"] == "noteai_app":
+            if not bool(row["rolinherit"]):
+                raise SchemaRoleError("accepted_app_inheritance")
+        elif bool(row["rolinherit"]):
             raise SchemaRoleError("role_elevation")
         if row["rolname"] in NEW_RUNTIME_ROLES:
             if bool(row["rolcanlogin"]) is not bool(expect_login):
                 raise SchemaRoleError("role_login_state")
 
-    if _fetch_scalar(
-        conn,
-        "SELECT COUNT(*) FROM pg_auth_members membership "
-        "JOIN pg_roles member_role ON member_role.oid=membership.member "
-        "WHERE member_role.rolname = ANY(%s)",
-        (list(RUNTIME_ROLES),),
-    ):
-        raise SchemaRoleError("role_membership")
     if _fetch_scalar(
         conn,
         "SELECT ("
@@ -646,6 +831,24 @@ def validate_contract(conn: Any, *, expect_login: bool = False) -> dict[str, int
         "column_privilege_checks": column_checks,
         "schema_seed_rows": 2,
         "retention_backfill_rows": 0,
+        "accepted_role_risk_count": int(
+            accepted_role_risks["accepted_risk_count"]
+        ),
+        "accepted_role_attribute_count": int(
+            accepted_role_risks["accepted_attribute_count"]
+        ),
+        "accepted_role_membership_count": int(
+            accepted_role_risks["accepted_membership_count"]
+        ),
+        "unexpected_role_attribute_count": int(
+            accepted_role_risks["unexpected_attribute_count"]
+        ),
+        "unexpected_role_membership_count": int(
+            accepted_role_risks["unexpected_membership_count"]
+        ),
+        "app_high_privilege_inheritance_count": int(
+            accepted_role_risks["app_high_privilege_inheritance_count"]
+        ),
     }
 
 
@@ -656,6 +859,26 @@ def apply_contract(conn: Any) -> dict[str, Any]:
         conn.execute("SET LOCAL statement_timeout='120s'")
         conn.execute("SET LOCAL lock_timeout='5s'")
         conn.execute("SET LOCAL idle_in_transaction_session_timeout='180s'")
+        prewrite_tables = tuple(
+            row["table_name"]
+            for row in conn.execute(
+                "SELECT table_name FROM information_schema.tables "
+                "WHERE table_schema='public' AND table_type='BASE TABLE' "
+                "ORDER BY table_name"
+            ).fetchall()
+        )
+        prewrite_sequences = tuple(
+            row["sequence_name"]
+            for row in conn.execute(
+                "SELECT sequence_name FROM information_schema.sequences "
+                "WHERE sequence_schema='public' ORDER BY sequence_name"
+            ).fetchall()
+        )
+        _accepted_role_risk_state(
+            conn,
+            tables=prewrite_tables,
+            sequences=prewrite_sequences,
+        )
         conn.execute(
             "SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))"
         )
@@ -718,8 +941,25 @@ def apply_contract(conn: Any) -> dict[str, Any]:
             "new_roles_login_enabled": 0,
             "privilege_mismatch_count": 0,
             "ownership_count": 0,
-            "membership_count": 0,
-            "elevation_count": 0,
+            "membership_count": (
+                verification["accepted_role_membership_count"]
+            ),
+            "elevation_count": (
+                verification["accepted_role_attribute_count"]
+            ),
+            "accepted_risk_profile": ACCEPTED_ROLE_RISK_PROFILE,
+            "accepted_risk_count": (
+                verification["accepted_role_risk_count"]
+            ),
+            "unexpected_membership_count": (
+                verification["unexpected_role_membership_count"]
+            ),
+            "unexpected_elevation_count": (
+                verification["unexpected_role_attribute_count"]
+            ),
+            "high_privilege_inheritance_count": (
+                verification["app_high_privilege_inheritance_count"]
+            ),
         },
         "verification": verification,
         "provider_calls": 0,

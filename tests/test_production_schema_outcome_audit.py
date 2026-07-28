@@ -25,8 +25,12 @@ def _observation(**overrides):
         "present_runtime_roles": outcome_audit.EXPECTED_PRESENT_RUNTIME_ROLES,
         "new_runtime_role_count": 6,
         "new_runtime_login_count": 0,
-        "runtime_elevation_count": 0,
-        "runtime_membership_count": 0,
+        "runtime_elevation_count": 1,
+        "runtime_membership_count": 1,
+        "accepted_role_risk_exact": True,
+        "app_incoming_membership_count": 0,
+        "app_high_privilege_inheritance_count": 0,
+        "executor_not_xhs": True,
         "runtime_ownership_count": 0,
         "trends_seed_count": 1,
         "trends_seed_exact_count": 1,
@@ -115,7 +119,7 @@ class CommittedConnection:
                 {
                     "rolname": role,
                     "rolsuper": False,
-                    "rolinherit": False,
+                    "rolinherit": role == "noteai_app",
                     "rolcreaterole": False,
                     "rolcreatedb": False,
                     "rolcanlogin": role in outcome_audit.LEGACY_RUNTIME_ROLES,
@@ -124,8 +128,20 @@ class CommittedConnection:
                 }
                 for role in outcome_audit.EXPECTED_PRESENT_RUNTIME_ROLES
             ])
-        if "FROM pg_auth_members" in normalized:
+        if "FROM pg_auth_members membership JOIN pg_roles granted_role" in normalized:
+            return FakeResult([{
+                "granted_name": "noteai_xhs",
+                "member_name": "noteai_admin",
+                "admin_option": True,
+                "inherit_option": True,
+                "set_option": False,
+            }])
+        if "WHERE member.rolname='noteai_app'" in normalized:
             return FakeResult([(0,)])
+        if "AND pg_has_role('noteai_app'" in normalized:
+            return FakeResult([(0,)])
+        if "SELECT session_user <> 'noteai_xhs'" in normalized:
+            return FakeResult([(True,)])
         if normalized.startswith("SELECT ((SELECT COUNT(*) FROM pg_class"):
             return FakeResult([(0,)])
         if "FROM public.xhs_trends_service_state" in normalized:
@@ -195,8 +211,11 @@ class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
             {"sha_constraint_exact_count": 0},
             {"tables": outcome_audit.EXPECTED_TABLES[:-1]},
             {"new_runtime_login_count": 1},
-            {"runtime_elevation_count": 1},
-            {"runtime_membership_count": 1},
+            {"runtime_elevation_count": 2},
+            {"runtime_membership_count": 2},
+            {"accepted_role_risk_exact": False},
+            {"app_incoming_membership_count": 1},
+            {"app_high_privilege_inheritance_count": 1},
             {"runtime_ownership_count": 1},
             {"trends_seed_exact_count": 0},
             {"dispatcher_seed_exact_count": 0},

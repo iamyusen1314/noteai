@@ -234,14 +234,12 @@ class ProductionLegacyRuntimeRoleCorrectionTests(unittest.TestCase):
         })
         return fixture, task_root, bin_root, runner_path, environment
 
-    def test_source_registry_is_exactly_the_audited_e5883_set(self):
+    def test_source_registry_remains_e5883_pinned_and_current_drift_fails_closed(
+        self,
+    ):
         self.assertEqual(
             set(correction.EXPECTED_SOURCE_PATH_SHA256.values()),
             set(identity_audit.EXPECTED_SOURCE_SHA256.values()),
-        )
-        self.assertEqual(
-            correction.validate_local_source(),
-            correction.EXPECTED_SOURCE_PATH_SHA256,
         )
         self.assertEqual(len(correction.EXPECTED_SOURCE_PATH_SHA256), 18)
         self.assertIn(
@@ -249,6 +247,11 @@ class ProductionLegacyRuntimeRoleCorrectionTests(unittest.TestCase):
             "0016_admin_runtime_role_collision.sql",
             correction.EXPECTED_SOURCE_PATH_SHA256,
         )
+        with self.assertRaises(correction.RoleCorrectionError) as raised:
+            correction.validate_local_source()
+
+        self.assertEqual(raised.exception.code, "source_drift")
+        self.assertEqual(raised.exception.stage, "local_source")
 
     def test_runner_is_single_use_and_never_persists_plaintext_dsn(self):
         runner = (
@@ -598,6 +601,11 @@ class ProductionLegacyRuntimeRoleCorrectionTests(unittest.TestCase):
         with (
             mock.patch.object(
                 correction,
+                "validate_local_source",
+                return_value=correction.EXPECTED_SOURCE_PATH_SHA256,
+            ),
+            mock.patch.object(
+                correction,
                 "_connect",
                 side_effect=AssertionError("must not connect"),
             ),
@@ -616,6 +624,11 @@ class ProductionLegacyRuntimeRoleCorrectionTests(unittest.TestCase):
     def test_missing_dsn_is_proven_preconnect(self):
         stderr = io.StringIO()
         with (
+            mock.patch.object(
+                correction,
+                "validate_local_source",
+                return_value=correction.EXPECTED_SOURCE_PATH_SHA256,
+            ),
             mock.patch.object(correction, "psycopg", object()),
             contextlib.redirect_stderr(stderr),
         ):
@@ -633,6 +646,11 @@ class ProductionLegacyRuntimeRoleCorrectionTests(unittest.TestCase):
     def test_connect_exception_is_connected_unknown(self):
         stderr = io.StringIO()
         with (
+            mock.patch.object(
+                correction,
+                "validate_local_source",
+                return_value=correction.EXPECTED_SOURCE_PATH_SHA256,
+            ),
             mock.patch.object(
                 correction,
                 "_connect",
@@ -655,6 +673,11 @@ class ProductionLegacyRuntimeRoleCorrectionTests(unittest.TestCase):
         connection.membership = False
         stderr = io.StringIO()
         with (
+            mock.patch.object(
+                correction,
+                "validate_local_source",
+                return_value=correction.EXPECTED_SOURCE_PATH_SHA256,
+            ),
             mock.patch.object(
                 correction,
                 "_connect",
@@ -686,6 +709,11 @@ class ProductionLegacyRuntimeRoleCorrectionTests(unittest.TestCase):
         connection.execute = execute
         stderr = io.StringIO()
         with (
+            mock.patch.object(
+                correction,
+                "validate_local_source",
+                return_value=correction.EXPECTED_SOURCE_PATH_SHA256,
+            ),
             mock.patch.object(
                 correction,
                 "_connect",
