@@ -1,8 +1,12 @@
 import contextlib
 import hashlib
 import io
+import json
 import os
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -341,6 +345,11 @@ class ProductionSchemaRolesTests(unittest.TestCase):
             runner,
         )
         self.assertIn(
+            "incident_id=PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-"
+            "ROLES-V5-OWNER-001",
+            runner,
+        )
+        self.assertIn(
             "prepare | preflight | apply | outcome",
             runner,
         )
@@ -372,19 +381,153 @@ class ProductionSchemaRolesTests(unittest.TestCase):
         )
         self.assertIn("--network none", runner)
         self.assertIn("--network host", runner)
+        self.assertEqual(runner.count("-e PYTHONPATH=/task/tools"), 2)
+        self.assertIn(
+            "import production_schema_roles; "
+            "import production_schema_outcome_audit; "
+            "import production_first_launch_role_risk_set_audit",
+            runner,
+        )
+        self.assertNotIn("import tools.production_schema_roles", runner)
+        self.assertNotIn("from tools.production_schema", runner)
+        self.assertNotIn("from tools.production_first_launch", runner)
         self.assertIn("package_manifest_sha", runner)
         self.assertIn("import=passed", runner)
+        self.assertIn("validate_result()", runner)
+        self.assertIn("json.load(handle)", runner)
         self.assertIn("automatic_retry=0", runner)
+        self.assertGreaterEqual(runner.count("cleanup_required=1"), 5)
         self.assertIn("apply_transaction=committed", runner)
         self.assertIn("audit_transaction=rolled_back", runner)
         self.assertNotIn(" transaction=rolled_back", runner)
-        self.assertIn('"membership_count":7', runner)
-        self.assertIn('"management_membership_count":6', runner)
-        self.assertIn('"migration_owner_mismatch_count":0', runner)
-        self.assertIn('"executor_owned_object_count":0', runner)
+        self.assertIn('roles.get("membership_count") == 7', runner)
+        self.assertIn(
+            'roles.get("management_membership_count") == 6',
+            runner,
+        )
+        self.assertIn(
+            'roles.get("migration_owner_mismatch_count") == 0',
+            runner,
+        )
+        self.assertIn(
+            'roles.get("executor_owned_object_count") == 0',
+            runner,
+        )
+        self.assertIn('"migration_ledger_hash_backfills": 8', runner)
+        self.assertIn('"retention_backfill_rows": 0', runner)
+        self.assertIn('"existing_business_row_updates": 0', runner)
         self.assertNotIn("/etc/noteai/api.env", runner)
         self.assertNotIn("-e NOTEAI_SCHEMA", runner)
         self.assertNotIn("postgresql://", runner)
+
+    def test_v5_runner_structured_result_validator_rejects_write_drift(self):
+        runner_path = (
+            Path(schema_roles.__file__).resolve().parent
+            / "production_schema_roles_runner.sh"
+        )
+        runner = runner_path.read_text(encoding="utf-8")
+        marker = "python3 - \"${1}\" \"${2}\" <<'PY'\n"
+        validator = runner.split(marker, 1)[1].split("\nPY\n}", 1)[0]
+        common = {
+            "task_id": schema_roles.TASK_ID,
+            "provider_calls": 0,
+            "service_changes": 0,
+            "public_traffic_requests": 0,
+            "secret_values_exposed": 0,
+        }
+        preflight = {
+            **common,
+            "status": "accepted_risk_observed",
+            "incident_class": "CONNECTED_KNOWN",
+            "read_only": True,
+            "transaction_rolled_back": True,
+            "fixed_query_count": 4,
+            "database_connection_count": 1,
+            "database_write_count": 0,
+            "acceptance": {
+                "session": True,
+                "ledger_inventory": True,
+                "role_graph": True,
+                "xhs_acl": True,
+            },
+            "ledger_inventory": {
+                "ledger_exact": True,
+                "ledger_count": 8,
+                "table_count": 30,
+                "sequence_count": 5,
+                "ledger_sha_column_count": 0,
+                "new_runtime_role_count": 0,
+                "retention_backfill_source_count": 0,
+            },
+            "role_graph": {
+                "membership_count": 1,
+                "membership_admin": True,
+                "membership_inherit": False,
+                "membership_set": False,
+                "app_high_privilege_inheritance_count": 0,
+            },
+        }
+        apply_result = {
+            **common,
+            "status": "verified",
+            "transaction_committed": True,
+            "applied_versions": [
+                f"{number:04d}" for number in range(9, 17)
+            ],
+            "database_writes": {
+                "migration_ledger_rows": 8,
+                "migration_ledger_hash_backfills": 8,
+                "schema_seed_rows": 2,
+                "retention_backfill_rows": 0,
+                "existing_business_row_updates": 0,
+            },
+            "roles": {
+                "membership_count": 7,
+                "management_membership_count": 6,
+                "migration_owner_mismatch_count": 0,
+                "executor_owned_object_count": 0,
+                "unexpected_membership_count": 0,
+                "unexpected_elevation_count": 0,
+                "high_privilege_inheritance_count": 0,
+            },
+        }
+        outcome = {
+            **common,
+            "status": "classified",
+            "database_outcome": "COMMITTED",
+            "read_only": True,
+            "default_transaction_read_only": True,
+            "transaction_read_only": True,
+            "observation": {"business_row_values_read": 0},
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            for mode, result in (
+                ("preflight", preflight),
+                ("apply", apply_result),
+                ("outcome", outcome),
+            ):
+                path = Path(temp_dir) / f"{mode}.json"
+                path.write_text(json.dumps(result), encoding="utf-8")
+                completed = subprocess.run(
+                    [sys.executable, "-", mode, str(path)],
+                    input=validator,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+
+            apply_result["database_writes"]["retention_backfill_rows"] = 1
+            path = Path(temp_dir) / "apply-drift.json"
+            path.write_text(json.dumps(apply_result), encoding="utf-8")
+            completed = subprocess.run(
+                [sys.executable, "-", "apply", str(path)],
+                input=validator,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(completed.returncode, 0)
 
 
 if __name__ == "__main__":

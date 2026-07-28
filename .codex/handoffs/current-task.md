@@ -298,31 +298,51 @@ independent complete outcome audit.
 Execution class:
 separately named authenticated production single-transaction incident.
 
+Stage-safe runner stabilization:
+
+- `tools/production_schema_roles_runner.sh` now uses the production-proven
+  `/task/tools` Python path and top-level imports in both network-none prepare
+  and database modes, eliminating the installed-image namespace collision.
+- Preflight, apply and outcome results are parsed as structured JSON and must
+  match exact task, rollback/commit, write-count, role, risk and zero-external-
+  action fields. A tampered retention write count is rejected by an executable
+  validator test.
+- The apply mode revalidates the saved preflight structure before writing.
+  Grep-only result acceptance is removed.
+- Task/source/key/ciphertext ownership, modes, symlink count and hard-link
+  counts are fail-closed. Every prepare, preconnect, known, unknown and success
+  terminal summary keeps `cleanup_required=1` until external cleanup readback.
+- New runner SHA-256:
+  `790e5ad175c970a9b79b646beb0085df77c5a64cb1425da167e10a6ed0900b10`.
+- Executor, outcome auditor, preflight auditor, runtime ACL and all migration
+  bytes remain unchanged. Focused tests pass `29/29`; runner syntax,
+  top-level zero-DSN import and diff checks pass.
+- This repository-only step made zero production database, cloud, account,
+  service, provider or public-traffic action and receives no readiness credit.
+
 Required path:
 
-1. Harden the V5 runner using the verified 005 import boundary and external
-   cleanup semantics; preserve every migration and runtime-ACL byte.
-2. Commit and push a new source checkpoint, then build a fresh deterministic
+1. Commit and push the hardened runner source checkpoint, then build a fresh deterministic
    minimal package from that exact commit. Do not reuse 005 or V4 package,
    account, RSA, root, runner identity or result.
-3. Repeat only the production-write prerequisites: fresh backup/private
+2. Repeat only the production-write prerequisites: fresh backup/private
    network/`3/1/0`/zero-residue/service checks, all hashes, zero-DSN and
    network-none imports.
-4. Create one fresh short-term managed-RDS privileged account and fresh
+3. Create one fresh short-term managed-RDS privileged account and fresh
    API-C-only RSA material with the same protected-input boundary.
-5. Run one fresh forced-readonly V5 pre-dispatch proving exact ledger
+4. Run one fresh forced-readonly V5 pre-dispatch proving exact ledger
    `0001`-`0008`.
-6. Execute V5 apply at most once. The only permitted writes are
+5. Execute V5 apply at most once. The only permitted writes are
    `8 legacy SHA backfills + 8 new ledger rows + 2 fixed seeds`;
    retention backfill and existing business-row updates must be zero.
-7. Any database-connected apply failure is permanently no-retry. Preserve the
+6. Any database-connected apply failure is permanently no-retry. Preserve the
    result and run only the predeclared independent forced-readonly outcome
    classifier.
-8. Require a deterministic `COMMITTED` outcome plus the complete ledger SHA,
+7. Require a deterministic `COMMITTED` outcome plus the complete ledger SHA,
    inventory, role/table/column/sequence/function/default-ACL negative matrix,
    zero elevation and exact write counts before marking
    `production_schema_roles` verified.
-9. Save Secret-free evidence, restore accounts `3/1/0`, delete all task
+8. Save Secret-free evidence, restore accounts `3/1/0`, delete all task
    material, read back services/network/residue, checkpoint/push, then
    continue to the dependency graph without stopping.
 
@@ -376,9 +396,8 @@ Current remaining steps:
 
 - commit and push the 005 verified outcome/evidence without changing
   migration or runtime-ACL bytes;
-- harden the V5 runner around the verified task-tools import boundary,
-  structured result validation and external cleanup-required semantics;
-- build V5 from its own pushed checkpoint, refresh only required read-only
+- commit and push the hardened V5 runner checkpoint;
+- build V5 from that exact pushed checkpoint, refresh only required read-only
   prerequisites, create fresh protected account/RSA material and run its
   preflight/apply/outcome chain with at most one apply transaction;
 - independently verify V5, update readiness, then continue to the unique next
