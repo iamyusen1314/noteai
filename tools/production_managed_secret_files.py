@@ -29,8 +29,8 @@ from scripts.validate_production_env_files import (
 
 
 TASK_ID = "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001"
-TASK_ROOT = Path("/var/lib/noteai/managed-secrets-v1")
 ENV_ROOT = Path("/etc/noteai")
+TASK_ROOT = ENV_ROOT / ".managed-secrets-v1"
 ROLE_FILES = {
     "api": "api.env",
     "admin": "admin.env",

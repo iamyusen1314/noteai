@@ -26,6 +26,16 @@ def database_url(role: str, password: str = "A" * 48) -> str:
 
 
 class ManagedSecretFileTests(unittest.TestCase):
+    def test_default_task_root_shares_the_env_root_mount(self):
+        self.assertEqual(
+            managed_files.TASK_ROOT,
+            managed_files.ENV_ROOT / ".managed-secrets-v1",
+        )
+        self.assertEqual(
+            managed_files.TASK_ROOT.parent,
+            managed_files.ENV_ROOT,
+        )
+
     def _private(self, path: Path, body: str) -> None:
         path.write_text(body, encoding="utf-8")
         path.chmod(0o600)
@@ -654,6 +664,14 @@ class ManagedSecretEnvelopeTests(unittest.TestCase):
             runner,
         )
         self.assertIn("docker image inspect", runner)
+        self.assertIn(
+            "file_task_root=/etc/noteai/.managed-secrets-v1",
+            runner,
+        )
+        self.assertNotIn(
+            "file_task_root=/var/lib/noteai/managed-secrets-v1",
+            runner,
+        )
         self.assertNotIn("filter label=com.noteai.runtime.role=api", runner)
         self.assertNotIn("\nset -e\n", runner)
 

@@ -467,7 +467,7 @@
         {
           "id": "managed_secret_distribution",
           "title": "Root-only managed secret distribution, rotation and revocation",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "production_readonly_preflight",
             "production_schema_roles"
@@ -476,10 +476,12 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-managed-secret-distribution-audit-20260728.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-managed-secret-distribution-verified-20260729.json"
             }
-          ],
-          "blocker": "Production migrations 0009-0016 and the dedicated NOLOGIN runtime roles are now independently verified. The existing API-C API/Admin and API-F API files remain distinct root-owned 0600 files, but final Payment, AI Worker, Trends and Tracking files are absent, the legacy XHS file cannot satisfy the required split, and atomic distribution plus rotation/revocation tooling is absent. Each dedicated runtime credential must be created and delivered through the protected boundary; placeholders, copied legacy credentials or service starts cannot satisfy this control.",
-          "next_task": "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001"
+          ]
         },
         {
           "id": "private_storage_runtime",

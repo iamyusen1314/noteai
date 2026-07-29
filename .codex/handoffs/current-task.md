@@ -617,6 +617,90 @@ Execution objective:
   a temporary protected ACR login on API-C then API-F, and repeat only
   network-none prepare/preflight.
 
+## 6.5 Managed Secrets production completion
+
+`PROD-FIRST-LAUNCH-MANAGED-SECRETS-001` is production `VERIFIED` and its
+database transaction is permanently no-retry.
+
+- Exact execution source was the pushed `ee2ff4f08f04aa85f613ba7c9701832e7135eb83`
+  checkpoint. Two deterministic packages were byte-identical: 25,588 bytes,
+  14 archive members and SHA-256
+  `18010ee49f0d71312b7e2ac45ae980c2309bf47567d3313c92d4c76628294ec6`.
+  Local zero-DSN import, both remote manifests and both network-none imports
+  passed against the pinned maintenance image.
+- Fresh prerequisites proved one private running PostgreSQL instance, no
+  public endpoint, two successful full backups within 48 hours, initial
+  accounts `3/1/0`, zero task residue and API-C/API-F/Admin
+  active/ready/loopback-only.
+- One short-term task account and three RSA keypairs were created through the
+  protected boundary. Plaintext Secret files, argv, logs and Cloud Shell
+  values remained zero. Forced-readonly pre-dispatch used one connection and
+  terminal rollback, proved ledger 16, six runtime roles, dispatcher
+  `NOLOGIN`, fixed membership seven, unexpected membership/ownership zero and
+  database writes zero.
+- The only production transaction was dispatched once with automatic retry
+  zero and deterministically `COMMITTED`: five runtime roles became LOGIN and
+  received five new passwords; membership, ACL, schema and business-row writes
+  were zero. Do not rerun it.
+- File promotion then failed after commit with the fixed
+  `connected_known_committed_file_promotion` code. An independent five-byte
+  network-none probe proved `EXDEV`: the staging root and `/etc/noteai` target
+  were separate container mounts. This was `CONNECTED_KNOWN / COMMITTED`, not
+  an unknown database outcome. API-C was recovered once from the exact
+  encrypted bundle using `/etc/noteai/.managed-secrets-v1`; API-F received
+  only its encrypted envelope and used the same same-filesystem promotion.
+  Both recovery paths had database connection/transaction/write zero.
+- Independent role-bound audits used four API-C plus three API-F forced
+  read-only connections and verified the full negative matrix, zero elevation,
+  incoming membership, ownership, ledger access, business-value reads and
+  writes. A separate global forced-readonly verifier proved ledger 16, five
+  LOGIN roles, one NOLOGIN dispatcher, six owner-management memberships,
+  unexpected membership zero and owned objects zero.
+- Final metadata is four API-C and three API-F distinct root-owned `0600`
+  files, zero rejected/duplicate keys or backup artifacts, two root-owned
+  `0750` rotate/revoke tools on each node and no legacy `xhs.env`. Trends and
+  Tracking intentionally contain database credentials only; real provider
+  credentials remain a separate runtime/public-launch gate.
+- Secret-free result hashes were independently inventoried before cleanup.
+  Finalize removed rollback roots. The short-term account was deleted through
+  exactly one provider request with automatic retry zero; all execution roots,
+  RSA/ciphertext/source/sentinels/results/errors, task containers/processes and
+  Cloud Shell task files are zero.
+- The new post-activation account baseline is `8/1/0`, not the historical
+  `3/1/0`: three existing accounts plus the five expected dedicated runtime
+  LOGIN accounts, one Super and zero task accounts. The exact runtime set is
+  five and unexpected accounts are zero. RDS remains private with two fresh
+  full backups; API-C/API-F/Admin remain active, ready and loopback-only.
+- The repository default staging root is corrected to
+  `/etc/noteai/.managed-secrets-v1` in
+  `tools/production_managed_secret_files.py` and the host runner, with a
+  regression assertion binding it to the `/etc/noteai` mount. This source fix
+  is for future lifecycle runs and does not require production reexecution.
+- Authoritative Secret-free evidence:
+  `deploy/production/evidence/production-managed-secret-distribution-verified-20260729.json`.
+  `managed_secret_distribution` is now verified; internal readiness is
+  `16/29 = 55%` and complete public readiness is `16/38 = 42%`.
+
+Unique next task:
+`PROD-FIRST-LAUNCH-STORAGE-RECOVERY-RUNTIME-001`.
+
+Required next path:
+
+1. Reuse the verified private-storage repository contract and current immutable
+   image identities. Do not repeat schema, role, managed-secret, registry,
+   SBOM/VEX, Gate 0 or historical service recovery work without conflict
+   evidence.
+2. Read the storage runtime contract, current API-C/API-F consumers and
+   production object-storage/RAM state before mutations.
+3. Prefer a private, least-privilege, bounded-cost bucket and role path with
+   explicit rollback and Secret-free evidence. Do not enable public access,
+   DNS or real user traffic.
+4. Prove cross-node recovery with synthetic task data only, delete all
+   synthetic objects and temporary permissions, then read back private access,
+   lifecycle/recovery controls, API/Admin non-regression and zero residue.
+5. Mark only `private_storage_runtime` verified, checkpoint/push and continue
+   to the next dependency without stopping at the task boundary.
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
@@ -639,10 +723,10 @@ Completed verification:
 
 - focused privileged-owner/readiness tests: `31/31`;
 - disposable PostgreSQL 16 privileged-owner chain: `1/1`;
-- full Python suite: `1055/1055`, 27 explicit skips;
+- full Python suite: `1081/1081`, 28 explicit skips;
 - production readiness gate: `105/105 PASS`;
-- internal readiness: fail-closed `15/29 = 52%`;
-- public readiness: `15/38 = 39%`;
+- internal readiness: fail-closed `16/29 = 55%`;
+- public readiness: `16/38 = 42%`;
 - zero-DSN import, Python compile, runner shell syntax, JSON parses and
   `git diff --check`: pass;
 - disposable PostgreSQL containers/network/volume: zero;
@@ -666,6 +750,17 @@ Completed verification:
 - V5 final cleanup: accounts `3/1/0`, task account/RSA/ciphertext/source/
   sentinel/result/error/container/process/Cloud Shell residue zero and
   API-C/API-F/Admin active/ready/loopback-only.
+- Managed Secrets production transaction: exactly one dispatch,
+  deterministic `COMMITTED`, five LOGIN and five password mutations, zero
+  membership/ACL/schema/business-row writes and automatic retry zero.
+- Managed Secrets independent audit: seven role-bound forced-readonly
+  connections plus one global forced-readonly verifier; full negative matrix,
+  five LOGIN roles, one NOLOGIN dispatcher and database write zero.
+- Managed Secrets final cleanup: accounts `8/1/0` with five expected runtime
+  accounts and zero unexpected/task accounts; node execution roots, RSA,
+  ciphertext, source, sentinels, results, errors, task containers/processes
+  and Cloud Shell task files zero; seven final root-only files and four
+  lifecycle tool installations verified; API-C/API-F/Admin non-regression.
 
 ROOT-CAUSE-003 was committed and pushed normally at `ed5e699`.
 The 004 source was committed and pushed normally at `51ae877`.
@@ -680,15 +775,12 @@ checkpoint.
 
 Current remaining steps:
 
-- run the production/internal gates, commit and push the managed-secret exact
-  source checkpoint;
-- from that clean checkpoint, repeat only fresh backup/private-network/
-  `3/1/0`/zero-residue/API/Admin prerequisites, build the minimal package and
-  execute the single managed-secret role transaction plus atomic node files;
-- independently audit seven role-bound read-only connections, file metadata,
-  lifecycle tools, dispatcher `NOLOGIN`, zero elevation and service
-  non-regression, then finalize and clean all task material;
-- save Secret-free evidence, mark only `managed_secret_distribution`
-  verified and advance readiness from `15/29` to `16/29`;
+- run final focused tests/gates and `git diff --check`, commit and push the
+  Managed Secrets verified checkpoint;
+- begin `PROD-FIRST-LAUNCH-STORAGE-RECOVERY-RUNTIME-001` from the clean pushed
+  checkpoint with fresh read-only production object-storage/RAM state;
+- build the smallest private, bounded-cost, rollback-safe cross-node recovery
+  path using synthetic objects only, with public access and real traffic zero;
+- save Secret-free evidence, mark only `private_storage_runtime` verified;
 - continue through the dependency graph without stopping at the checkpoint
   or task boundary.

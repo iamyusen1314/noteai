@@ -31,13 +31,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 15)
+        self.assertEqual(report["internal_deployment"]["verified"], 16)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 52)
+        self.assertEqual(report["internal_deployment"]["percentage"], 55)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 15)
+        self.assertEqual(report["complete_public_launch"]["verified"], 16)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 39)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 42)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -49,16 +49,17 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertNotIn("production_readonly_preflight", actionable)
         self.assertIsNone(report["next_safe_task"])
         self.assertNotIn("production_schema_roles", actionable)
+        self.assertNotIn("managed_secret_distribution", actionable)
         self.assertEqual(
-            actionable["managed_secret_distribution"]["status"],
+            actionable["private_storage_runtime"]["status"],
             "unverified",
         )
         self.assertEqual(
-            actionable["managed_secret_distribution"]["next_task"],
-            "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001",
+            actionable["private_storage_runtime"]["next_task"],
+            "PROD-FIRST-LAUNCH-STORAGE-RECOVERY-RUNTIME-001",
         )
         self.assertEqual(
-            actionable["managed_secret_distribution"]["execution_class"],
+            actionable["private_storage_runtime"]["execution_class"],
             "authenticated_production",
         )
         managed = next(
@@ -170,9 +171,19 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(len(schema["accepted_risks"]), 2)
         self.assertEqual(len(report["accepted_risks"]), 2)
         self.assertIn("production_schema_roles", managed["dependencies"])
-        self.assertEqual(
-            managed["next_task"],
-            "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001",
+        self.assertEqual(managed["status"], "verified")
+        self.assertNotIn("blocker", managed)
+        self.assertNotIn("next_task", managed)
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-managed-secret-distribution-verified-"
+                    "20260729.json"
+                ),
+            },
+            managed["evidence"],
         )
         self.assertEqual(
             actionable["legal_provider_approval"]["execution_class"],
@@ -451,7 +462,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "managed_secret_distribution"
+            if item["id"] == "private_storage_runtime"
         )
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
@@ -461,7 +472,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "managed_secret_distribution"
+            if item["id"] == "private_storage_runtime"
         )
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
@@ -568,7 +579,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 15)
+        self.assertEqual(report["internal_deployment"]["verified"], 16)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)
