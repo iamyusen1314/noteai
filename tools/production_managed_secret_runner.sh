@@ -8,6 +8,8 @@ host_label="${2:-}"
 execution_root=/var/lib/noteai/managed-secrets-execution-v1
 source_root="${execution_root}/source"
 file_task_root=/var/lib/noteai/managed-secrets-v1
+maintenance_image_ref=noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:c44354b5abfbb2b22f61e8db316d6abf9a44e805ba3ea3b64074508ff8562f1f
+maintenance_image_id=sha256:0b13cd9cafe7de65d5a2754f7cd119cf6fcb822ab134b66a5009c06e08248504
 control_private="${execution_root}/control-private.pem"
 control_cipher="${execution_root}/control-database-url.enc"
 api_f_private="${execution_root}/api-f-private.pem"
@@ -23,7 +25,7 @@ lifecycle_sha256=d8d35ac336452a26ed47152da775e64734b4aaa2e7db97313be8dd6c39f743d
 envelope_sha256=b6a67fab3fd66f8c378716935b105ac1fbe83c54190eb57baf1b1c3d6b7e2fbf
 apply_sha256=387914c293a88c2992e2519465a578ec0bae6876510ea2468212061cc1260201
 validator_sha256=0089e3a5736e675a45c8caa5452b3ec3919b64a8697a6b4272a900983402c875
-wrapper_sha256=e3794bf0f463682a757625cd98ec240ee5eeb3367ab3065c3b064ff6cb8a85ba
+wrapper_sha256=d5c5991fb37ac8279710b8160b99b1dfdd3273e9b975e8bb6e5c3a14138fdbbf
 
 fail_preconnect() {
     printf '%s\n' \
@@ -112,18 +114,12 @@ test -z "$(
     find "${source_root}" -type f -perm /022 -print -quit
 )" || fail_preconnect
 
-api_container="$(
-    docker ps \
-        --filter label=com.noteai.runtime.role=api \
-        --format '{{.ID}}'
+actual_image_id="$(
+    docker image inspect --format '{{.Id}}' "${maintenance_image_ref}" \
+        2>/dev/null
 )" || fail_preconnect
-case "${api_container}" in
-    "" | *$'\n'*) fail_preconnect ;;
-esac
-image_id="$(
-    docker inspect --format '{{.Image}}' "${api_container}" 2>/dev/null
-)" || fail_preconnect
-test -n "${image_id}" || fail_preconnect
+test "${actual_image_id}" = "${maintenance_image_id}" || fail_preconnect
+image_id="${maintenance_image_ref}"
 
 validate_result() {
     result_mode="${1}"

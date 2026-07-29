@@ -645,6 +645,16 @@ class ManagedSecretEnvelopeTests(unittest.TestCase):
         self.assertIn("database_outcome=COMMITTED", runner)
         self.assertIn("--network none", runner)
         self.assertIn("--network host", runner)
+        self.assertIn(
+            "sha256:c44354b5abfbb2b22f61e8db316d6abf9a44e805ba3ea3b64074508ff8562f1f",
+            runner,
+        )
+        self.assertIn(
+            "sha256:0b13cd9cafe7de65d5a2754f7cd119cf6fcb822ab134b66a5009c06e08248504",
+            runner,
+        )
+        self.assertIn("docker image inspect", runner)
+        self.assertNotIn("filter label=com.noteai.runtime.role=api", runner)
         self.assertNotIn("\nset -e\n", runner)
 
     def test_installed_wrapper_preserves_container_boundary_and_stdin(self):
@@ -659,6 +669,12 @@ class ManagedSecretEnvelopeTests(unittest.TestCase):
         self.assertIn("--read-only", wrapper)
         self.assertIn("-i", wrapper)
         self.assertIn("/etc/noteai:/etc/noteai:rw", wrapper)
+        self.assertIn(
+            "sha256:c44354b5abfbb2b22f61e8db316d6abf9a44e805ba3ea3b64074508ff8562f1f",
+            wrapper,
+        )
+        self.assertIn("docker image inspect", wrapper)
+        self.assertNotIn("filter label=com.noteai.runtime.role=api", wrapper)
         self.assertNotIn("source /etc/noteai", wrapper)
         self.assertNotIn("cat /etc/noteai", wrapper)
 

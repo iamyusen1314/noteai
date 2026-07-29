@@ -582,6 +582,41 @@ Execution objective:
    dependency. Public DNS, real traffic, real XHS and public-launch
    declaration remain prohibited.
 
+## 6.4 Managed Secrets live pre-connect correction
+
+- Fresh cloud readback, rather than browser memory, found both execution nodes
+  at zero task residue before staging. The exact package was transferred to
+  both nodes; API-C extraction/hash checks passed and API-F retained only the
+  exact archive. No task account, RSA, ciphertext, runner sentinel, task
+  container, PostgreSQL connection, transaction or write was created.
+- API-C `prepare` failed under `--network none` because the historical running
+  API image lacks `cryptography`; all other managed-secret imports passed.
+  Independent process/container/5432/result checks classified this
+  `PRE_CONNECT`. It does not authorize a database retry because no database
+  action occurred.
+- The immutable current-source API image already verified by ACR digest,
+  local-image identity, AMD64 SBOM and VEX contains exactly one
+  `cryptography 48.0.1`. The smallest reliable correction pins the execution
+  runner and installed rotate/revoke wrapper to that exact digest and image
+  ID, instead of discovering the historical running service image. It does
+  not deploy, restart or modify the API service.
+- ACR discovery found one running Shenzhen registry instance. An initial token
+  request inherited the wrong default region and returned before any token,
+  pull or host action; explicit `cn-shenzhen` returned a temporary-token
+  response. This is `PRE_CONNECT`. Credentials must remain in memory or an
+  RSA-encrypted envelope and must never enter Cloud Assistant command content,
+  process arguments, logs or Git.
+- Changed files:
+  `tools/production_managed_secret_runner.sh`,
+  `scripts/production/noteai-managed-secret-lifecycle-wrapper`, and
+  `tests/test_production_managed_secret_runtime.py`.
+- Focused tests pass `26/26`; both shell files pass `bash -n`. The updated
+  wrapper SHA-256 is bound into the runner. Before any database action, commit
+  and push this source checkpoint, build a new deterministic package, remove
+  the old PRE_CONNECT package roots, pull the exact maintenance digest through
+  a temporary protected ACR login on API-C then API-F, and repeat only
+  network-none prepare/preflight.
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
