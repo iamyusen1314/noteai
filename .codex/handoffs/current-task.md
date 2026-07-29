@@ -103,7 +103,47 @@
 - Unique next task:
   `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001`.
 
-## 2.2 Historical V5 remote-prepare checkpoint
+## 2.2 Managed-secret source stage ready for checkpoint
+
+- Production has not been touched by this source stage. Production database
+  connections, transactions, writes, account changes, service changes,
+  provider calls and public traffic are all zero.
+- The exact first-launch login set is five roles:
+  `noteai_admin_runtime`, `noteai_ai_worker`, `noteai_payment`,
+  `noteai_xhs_tracking` and `noteai_xhs_trends`.
+  `noteai_ai_dispatcher` remains `NOLOGIN` because no independently deployed
+  dispatcher consumer exists.
+- `tools/production_managed_secret_roles.py` binds the exact 16-row migration
+  ledger and six inert-role graph, then enables the five roles and sets five
+  distinct URL-safe passwords in one PostgreSQL transaction. Membership,
+  ACL, schema and business-row write counts are fixed at zero.
+- `tools/production_managed_secret_files.py` stages root-only files in a
+  fixed root-owned task directory, retains exact rollback copies, atomically
+  promotes three API-C files and two API-F files, independently verifies
+  role-bound DSN usernames/key allowlists/inodes, and removes rollback
+  artifacts only after validation.
+- The one-time executor generates credentials only in memory. API-F receives
+  only an RSA-OAEP-SHA256 plus AES-256-GCM envelope. The API-F-local legacy
+  XHS value never leaves that host and is deleted after the two final XHS
+  files and their read-only logins pass.
+- The installed root-owned `0750` rotation/revocation wrappers run the fixed
+  lifecycle implementation in a bounded existing API image. Protected input
+  is stdin-only. Rotation requires a new read-only login plus rejection of
+  the old credential; revocation sets the exact role `NOLOGIN`, removes the
+  exact file and requires rejection of the former credential. Neither path
+  starts or restarts a service.
+- Focused source/file/readiness checks pass `46/46`; the combined focused
+  checkpoint passes `47` tests with only the explicitly gated local
+  PostgreSQL test skipped. A fresh disposable PostgreSQL 16 run separately
+  passes `1/1`, proving the five-role transaction, all five read-only logins,
+  rotation rejection and `NOLOGIN` revocation. Its container was deleted and
+  Colima was restored stopped.
+- Three local test-harness failures were all production `PRE_CONNECT`:
+  UID/GID test metadata, transition-state Admin identity and Psycopg
+  connection-error SQLSTATE exposure. Each received a material fix; no
+  production path was dispatched.
+
+## 2.3 Historical V5 remote-prepare checkpoint
 
 - The exact package from pushed checkpoint `af58b897` was transferred to
   API-C and independently reverified as 3 parts, 68,781 bytes, 26 regular
@@ -506,9 +546,12 @@ Execution objective:
    runtime consumers before changing files.
 3. Build one minimal fail-closed distribution/rotation/revocation path for the
    final API, Admin, Payment, AI Worker, Trends and Tracking runtime files.
-4. Keep each Secret in a distinct root-owned `0600` file, never copy the
-   legacy XHS credential into the split Tracking/Trends roles, never print
-   values and never persist plaintext outside its final protected file.
+4. Keep each Secret in a distinct root-owned `0600` file. The protected
+   API-F-local legacy XHS value may be read only in memory to create the two
+   final XHS role files on that same host, after which the legacy file must
+   be deleted. Never move that value through Cloud Shell or into a non-XHS
+   role, never print values, and never persist plaintext outside its final
+   protected files.
 5. Verify consumers by key names, modes, owners, service identity and bounded
    loopback health only. Do not start Payment, Worker, Trends or Tracking as
    part of the secret-distribution control.
@@ -583,8 +626,15 @@ checkpoint.
 
 Current remaining steps:
 
-- run focused schema/readiness tests and gates, commit and push the V5
-  committed evidence/readiness/Handoff/risk checkpoint;
-- execute `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001` from the clean baseline;
+- run the production/internal gates, commit and push the managed-secret exact
+  source checkpoint;
+- from that clean checkpoint, repeat only fresh backup/private-network/
+  `3/1/0`/zero-residue/API/Admin prerequisites, build the minimal package and
+  execute the single managed-secret role transaction plus atomic node files;
+- independently audit seven role-bound read-only connections, file metadata,
+  lifecycle tools, dispatcher `NOLOGIN`, zero elevation and service
+  non-regression, then finalize and clean all task material;
+- save Secret-free evidence, mark only `managed_secret_distribution`
+  verified and advance readiness from `15/29` to `16/29`;
 - continue through the dependency graph without stopping at the checkpoint
   or task boundary.

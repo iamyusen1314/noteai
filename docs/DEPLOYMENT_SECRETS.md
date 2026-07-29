@@ -85,6 +85,32 @@ not be reused across roles or as model-artifact credentials.
 It may exist only in the two distinct `0600` XHS role files; API/Admin files
 must reject it. Values are never printed. The old snapshot-upload and
 authorized-trend tokens are not accepted by either managed XHS role.
+During the one-time role split, the protected host-local legacy `xhs.env`
+value may be read in memory solely to create the final Trends and Tracking
+files on the same host. It must not traverse Cloud Shell, command arguments,
+logs, API/Admin/Payment/Worker files or Git, and the legacy file must be
+deleted after both final files and their role-bound read-only connections
+have been independently verified. This is not permission to duplicate the
+credential into any non-XHS role.
+
+The first-launch credential workflow enables `LOGIN` only for
+`noteai_admin_runtime`, `noteai_payment`, `noteai_ai_worker`,
+`noteai_xhs_trends` and `noteai_xhs_tracking`. The credential-free
+`noteai_ai_dispatcher` remains `NOLOGIN` until a separately verified
+dispatcher consumer exists. Payment and AI Worker initially receive only
+their dedicated `DATABASE_URL`; their separately gated provider and storage
+credentials remain absent, and those services remain stopped.
+
+Both production nodes must retain root-owned `0750`
+`/usr/local/sbin/noteai-rotate-production-secrets` and
+`/usr/local/sbin/noteai-revoke-production-secrets`. They accept only the
+non-secret role/confirmation on argv. The protected control DSN and, for
+rotation, the new URL-safe password enter as stdin JSON. Rotation atomically
+replaces the role file, verifies the new credential in a read-only
+transaction and requires the old credential to fail with an authentication
+SQLSTATE. Revocation changes the exact role to `NOLOGIN`, quarantines then
+deletes the exact role file and likewise requires the old credential to be
+rejected. Neither tool starts or restarts a service.
 
 Before any production Compose resolution, validate key names without printing
 values:
