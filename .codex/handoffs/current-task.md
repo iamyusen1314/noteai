@@ -728,6 +728,28 @@ Required next path:
   fresh Secret-free OSS/RAM/ECS/API baseline through the stable CLI/Cloud
   Assistant path. Do not use iframe/DOM repair, static access keys, a public
   bucket/endpoint, real user data or a service restart.
+- The source checkpoint was pushed normally at
+  `a459d8189e3e2a2ce9ae39ce1c9b20f1df2e69c6`; the worktree was clean and
+  upstream divergence `0/0`.
+- The original in-app Cloud Shell session was expired, and the local host had
+  no Alibaba CLI/profile. A separately authenticated Chrome Cloud Shell was
+  reconnected without interactive login, and the optional paid NAS was
+  explicitly declined. The official CLI is available; no standalone OSS
+  binary or OSS Python package was installed in the ephemeral shell.
+- Fresh read-only control-plane discovery found three buckets total, one in
+  the production region and zero NoteAI regional buckets. Account-level Block
+  Public Access is currently false. Three running NoteAI ECS instances exist;
+  the one with a public address is excluded. The exact two private VPC API
+  instances both match the API naming boundary and have zero attached RAM
+  roles, so there is no replacement conflict. Their metadata-token mode is not
+  exposed by the control-plane response and must be proved from the hosts.
+- The credential adapter is now explicitly IMDSv2-only:
+  `enable_imds_v2=True`, `disable_imds_v1=True` and a bounded 60-second
+  metadata token. The first focused run failed two old source-shape checks
+  with production/cloud actions zero (`PRE_CONNECT`); the gates now assert
+  the stronger semantics. Focused regression is again `63/63`, compile and
+  diff checks pass. Push this hardening checkpoint before any storage/RAM/ECS
+  mutation.
 
 ## 7. Mandatory failure classification
 

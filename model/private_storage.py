@@ -1517,7 +1517,13 @@ def configure_from_environment() -> bool:
         from alibabacloud_credentials.models import Config as CredentialConfig
 
         credential_client = CredentialClient(
-            CredentialConfig(type="ecs_ram_role", role_name=role_name)
+            CredentialConfig(
+                type="ecs_ram_role",
+                role_name=role_name,
+                enable_imds_v2=True,
+                disable_imds_v1=True,
+                metadata_token_duration=60,
+            )
         )
 
         def credentials():

@@ -165,7 +165,10 @@ class ProductionReadinessGateTests(unittest.TestCase):
         api_source = (MODEL_DIR / "api.py").read_text(encoding="utf-8")
 
         self.assertIn("forbid_overwrite=True", source)
-        self.assertIn("CredentialConfig(type=\"ecs_ram_role\"", source)
+        self.assertIn('type="ecs_ram_role"', source)
+        self.assertIn("enable_imds_v2=True", source)
+        self.assertIn("disable_imds_v1=True", source)
+        self.assertIn("metadata_token_duration=60", source)
         self.assertIn("static OSS credentials are prohibited", source)
         self.assertIn("use_internal_endpoint = True", source)
         self.assertIn("CREATE TABLE IF NOT EXISTS private_media_refs", migration)

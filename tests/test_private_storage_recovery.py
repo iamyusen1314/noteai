@@ -613,8 +613,16 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
                     "NOTEAI_PRIVATE_STORAGE_KEY_EPOCH": "epoch-1",
                 },
                 clear=True,
+            ), mock.patch(
+                "alibabacloud_credentials.client.Client"
+            ) as credential_client, mock.patch(
+                "alibabacloud_oss_v2.Client"
             ):
                 self.assertTrue(private_storage.configure_from_environment())
+            credential_config = credential_client.call_args.args[0]
+            self.assertTrue(credential_config.enable_imds_v2)
+            self.assertTrue(credential_config.disable_imds_v1)
+            self.assertEqual(credential_config.metadata_token_duration, 60)
             self.assertIsInstance(
                 private_storage.get_object_backend(),
                 private_storage.AliyunOssObjectBackend,

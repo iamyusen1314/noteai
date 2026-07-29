@@ -918,8 +918,11 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "private_storage_sdk_and_role_credentials_are_fixed",
             "alibabacloud-oss-v2==1.3.2" in api_requirement_lines
             and "alibabacloud_credentials==1.0.10" in api_requirement_lines
-            and 'CredentialConfig(type="ecs_ram_role", role_name=role_name)'
-            in private_storage_source
+            and 'type="ecs_ram_role"' in private_storage_source
+            and "role_name=role_name" in private_storage_source
+            and "enable_imds_v2=True" in private_storage_source
+            and "disable_imds_v1=True" in private_storage_source
+            and "metadata_token_duration=60" in private_storage_source
             and "static OSS credentials are prohibited" in private_storage_source
             and "use_internal_endpoint = True" in private_storage_source,
         ),
