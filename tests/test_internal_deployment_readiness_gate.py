@@ -31,13 +31,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 16)
+        self.assertEqual(report["internal_deployment"]["verified"], 17)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 55)
+        self.assertEqual(report["internal_deployment"]["percentage"], 59)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 16)
+        self.assertEqual(report["complete_public_launch"]["verified"], 17)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 42)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 45)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -50,16 +50,17 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIsNone(report["next_safe_task"])
         self.assertNotIn("production_schema_roles", actionable)
         self.assertNotIn("managed_secret_distribution", actionable)
+        self.assertNotIn("private_storage_runtime", actionable)
         self.assertEqual(
-            actionable["private_storage_runtime"]["status"],
+            actionable["api_c_current_release"]["status"],
             "unverified",
         )
         self.assertEqual(
-            actionable["private_storage_runtime"]["next_task"],
-            "PROD-FIRST-LAUNCH-STORAGE-RECOVERY-RUNTIME-001",
+            actionable["api_c_current_release"]["next_task"],
+            "PROD-FIRST-LAUNCH-API-C-INTERNAL-001",
         )
         self.assertEqual(
-            actionable["private_storage_runtime"]["execution_class"],
+            actionable["api_c_current_release"]["execution_class"],
             "authenticated_production",
         )
         managed = next(
@@ -462,7 +463,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "private_storage_runtime"
+            if item["id"] == "api_c_current_release"
         )
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
@@ -472,7 +473,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "private_storage_runtime"
+            if item["id"] == "api_c_current_release"
         )
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
@@ -579,7 +580,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 16)
+        self.assertEqual(report["internal_deployment"]["verified"], 17)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)

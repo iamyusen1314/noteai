@@ -52,8 +52,8 @@
 - V5 package-evidence checkpoint:
   `883e874d4186e523b8110d44338c2e074b26c491`.
 - Repository/isolated readiness: `12/12`.
-- Internal deployment readiness: `16/29 = 55%`.
-- Public launch readiness: `16/38 = 42%`.
+- Internal deployment readiness: `17/29 = 59%`.
+- Public launch readiness: `17/38 = 45%`.
 - Public launch completion: false.
 
 ## 2.1 Completed V5 production schema and role deployment
@@ -799,6 +799,55 @@ Required next path:
   Push this second exact source checkpoint and replace the overlay on both
   nodes before repeating the fresh read-only two-key preflight.
 
+## 6.7 Private-storage runtime production completion
+
+- The SDK error-unwrapping checkpoint was pushed at
+  `b55f11882100e9ef919522540729e366a511f88f`. The exact source overlay was
+  hash-verified and passed network-none import on both private API nodes.
+- One private Standard OSS bucket, one least-privilege custom RAM policy and
+  one ECS-trusted RAM role are deployed only to the exact two private API
+  nodes. Block Public Access, private ACL, AES256 encryption, disabled
+  acceleration, empty logging target and the exact two-day
+  `noteai-private/` lifecycle plus one-day multipart abort are independently
+  read back. The policy has exactly four Put/Get/Delete/List actions, no
+  wildcard action/resource, no sensitive action and exact prefix/resource
+  scope. Static access keys are zero.
+- The bounded cross-node matrix used exactly two synthetic objects, each
+  under 64 bytes and containing no user data. It proved node-one Put,
+  node-two cross-read, node-two Put, node-one cross-read, metadata/SSE,
+  duplicate rejection, wrong-prefix rejection, bucket-ACL rejection and
+  static-key rejection. Both objects were deleted; independent Head and
+  prefix inventory prove residue zero. Never rerun this object write/delete
+  matrix without real conflict evidence.
+- Both nodes have one root-owned `0600` seven-key configuration with no static
+  access key. IMDSv1 is blocked; IMDSv2 token acquisition, exact role identity
+  and complete temporary-credential shape pass. API-C/API-F and API-C Admin
+  remain active, ready and loopback-only. Task roots, transfer material,
+  containers and processes are zero.
+- Fresh final RDS control-plane readback proves one running VPC PostgreSQL
+  instance, public endpoint zero, accounts `8/1/0`, seven successful full
+  backups within seven days and the latest under 48 hours. This storage task
+  made zero production database connections, transactions or writes.
+- All nonzero tool and parser outcomes were classified before continuing.
+  The initial signed object request is `CONNECTED_KNOWN / REJECTED / OBJECT
+  ABSENT`, independently verified by read-only Head and never retried for the
+  same object. Transport, import, parser, region, quoting and UI-tool failures
+  were `PRE_CONNECT` and received material corrections. `CONNECTED_UNKNOWN`
+  count is zero.
+- Current Cloud Shell exact task files were deleted with `before=9` and
+  `after=0`. Final object, host and task residue are zero. Secret-free
+  evidence is
+  `deploy/production/evidence/production-private-storage-runtime-verified-20260729.json`.
+  `private_storage_runtime` receives one readiness credit; internal readiness
+  is `17/29 = 59%` and complete public readiness is `17/38 = 45%`.
+- Final focused storage/PostgreSQL-contract/Worker/internal-readiness
+  regression passes `63/63` with four explicit local PostgreSQL skips;
+  production readiness passes `105/105`, Python compile, both JSON parses and
+  `git diff --check` pass.
+
+Unique next task:
+`PROD-FIRST-LAUNCH-API-C-INTERNAL-001`.
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
@@ -823,8 +872,8 @@ Completed verification:
 - disposable PostgreSQL 16 privileged-owner chain: `1/1`;
 - full Python suite: `1081/1081`, 28 explicit skips;
 - production readiness gate: `105/105 PASS`;
-- internal readiness: fail-closed `16/29 = 55%`;
-- public readiness: `16/38 = 42%`;
+- internal readiness: fail-closed `17/29 = 59%`;
+- public readiness: `17/38 = 45%`;
 - zero-DSN import, Python compile, runner shell syntax, JSON parses and
   `git diff --check`: pass;
 - disposable PostgreSQL containers/network/volume: zero;
@@ -859,6 +908,10 @@ Completed verification:
   ciphertext, source, sentinels, results, errors, task containers/processes
   and Cloud Shell task files zero; seven final root-only files and four
   lifecycle tool installations verified; API-C/API-F/Admin non-regression.
+- Private storage final cleanup: two sub-64-byte synthetic objects deleted,
+  prefix inventory zero, exact Cloud Shell task files zero, node task roots,
+  transfer material, containers and processes zero; private OSS/RAM/IMDSv2,
+  fresh RDS backup and API-C/API-F/Admin non-regression independently verified.
 
 ROOT-CAUSE-003 was committed and pushed normally at `ed5e699`.
 The 004 source was committed and pushed normally at `51ae877`.
@@ -873,13 +926,12 @@ checkpoint.
 
 Current remaining steps:
 
-- commit and push the bounded SDK-error-unwrapping checkpoint;
-- package that exact source overlay, validate it network-none on both nodes and
-  run the smallest private, bounded-cost cross-node matrix with at most two
-  sub-64-byte synthetic objects;
-- delete every synthetic object and task artifact, then independently read
-  back bucket privacy/lifecycle, role policy, IMDSv2, zero residue and
-  API-C/API-F/Admin non-regression;
-- save Secret-free evidence, mark only `private_storage_runtime` verified;
+- validate, commit and push the completed private-storage evidence and
+  readiness credit;
+- execute only `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`: reuse the published
+  current immutable API image, existing schema/roles, managed secrets and
+  private storage; establish a fresh read-only baseline before any service
+  mutation, preserve the historical release for deterministic rollback and
+  keep the service loopback-only with public traffic zero;
 - continue through the dependency graph without stopping at the checkpoint
   or task boundary.

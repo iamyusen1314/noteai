@@ -486,14 +486,21 @@
         {
           "id": "private_storage_runtime",
           "title": "Private OSS/RAM-role storage and cross-node recovery",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "production_schema_roles",
             "managed_secret_distribution"
           ],
-          "evidence": [],
-          "blocker": "The repository storage contract is not deployed to a private managed bucket or exercised across nodes.",
-          "next_task": "PROD-FIRST-LAUNCH-STORAGE-RECOVERY-RUNTIME-001"
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "b55f11882100e9ef919522540729e366a511f88f"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-private-storage-runtime-verified-20260729.json"
+            }
+          ]
         },
         {
           "id": "api_c_current_release",
