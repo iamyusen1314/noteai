@@ -41,6 +41,8 @@
   `51ae87784d7e1e79358d95c7336c0e12bb2e9c04`.
 - ROOT-CAUSE-003 pushed checkpoint:
   `ed5e699896c2f60fc303faa47139a068ac4fdb5f`.
+- Exact b55 native source-candidate/VEX checkpoint:
+  `d6a06ae5d933b14bd31d8bf5867df2f3c7421839`.
 - Historical V4 package binding:
   `13377d7ac37b090818c56be545f34a7ac5587d49`.
 - Historical V4 exact execution source:
@@ -884,10 +886,23 @@ Unique next task:
 
 Current next action:
 
-- commit and push this exact source/VEX checkpoint;
-- on the already audited private x86_64 builder, reconstruct exact b55 source,
-  build and rescan the immutable runtime images, then bind new ACR manifest
-  digests through one bounded private publication session;
+- resume read-only control-plane access after the Alibaba console session is
+  interactively re-authenticated. The in-app Cloud Shell returned
+  `NoPermission`, the existing Chrome console session redirected to login and
+  the local host has no Alibaba CLI profile. These failures are
+  `PRE_CONNECT`: no new Cloud Assistant command, database connection,
+  transaction, registry push or service action occurred;
+- locate and read the existing unique b55 builder invocation; do not
+  redispatch it. Its last independently observed state was `Running` while
+  the fixed Trivy download was progressing, with Syft ready, images zero,
+  running containers zero, database port connections zero, registry actions
+  zero and service actions zero;
+- if the existing invocation completed successfully, independently compare
+  its five-role image/SBOM/scan evidence with the exact GitHub b55 evidence
+  and reviewed predecessor, then bind new ACR manifest digests through one
+  bounded private publication session. If it failed, first recover its
+  Secret-free terminal state and classify it before considering any new
+  method;
 - deploy only the exact API image to API-C through loopback canary and a
   reversible managed-service promotion. Preserve the historical image and
   unit bytes until independent acceptance completes.
