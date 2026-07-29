@@ -1,0 +1,596 @@
+{
+  "manifest_version": 1,
+  "task": "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-B55F118-001",
+  "application_revision": "b55f11882100e9ef919522540729e366a511f88f",
+  "platform": "linux/amd64",
+  "native_workflow": {
+    "run_id": 30451355971,
+    "job_id": 90573920470,
+    "url": "https://github.com/iamyusen1314/noteai/actions/runs/30451355971",
+    "runner_architecture": "x86_64",
+    "created": "2026-07-29T08:44:37Z",
+    "version": "git-b55f118-amd64-r1",
+    "artifact_summary_sha256": "c6b1f206233583d271ff386e447ff5072900710203d5f78927bcbff4daf76162"
+  },
+  "base_images": {
+    "python": {
+      "index": "sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
+      "linux_amd64": "sha256:00af38ae2ed311628970782e8a2d7f014d8909dbc63cb97bc0a158187f4db045"
+    },
+    "node": {
+      "index": "sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0",
+      "linux_amd64": "sha256:3d0f05455dea2c82e2f76e7e2543964c30f6b7d673fc1a83286736d44fe4c41c"
+    }
+  },
+  "scanner": {
+    "sbom": {
+      "name": "Syft",
+      "version": "1.49.0"
+    },
+    "vulnerability": {
+      "name": "Trivy",
+      "version": "0.72.0"
+    },
+    "ignore_file_used": false,
+    "vex_applied_to_raw_report": false,
+    "ignore_unfixed": false,
+    "raw_reports_canonical_and_unsuppressed": true
+  },
+  "roles": {
+    "api": {
+      "target": "api-runtime",
+      "local_image_id": "sha256:d75ec1522963810058532bae82a28cbe22132dec32350e282350e65aa9e1f6a1",
+      "registry_digest": null,
+      "platform": "linux/amd64",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/app/scripts/render_start_api.sh"
+      ],
+      "sbom": {
+        "sha256": "6af23da49ab3247215706a0dc4da55a37d080c4c92d864bd48f05df81d8a360f",
+        "serial_number": "urn:uuid:9d907784-3217-4056-8fba-29a589d0b8dd",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs": {
+          "bsdutils": "pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5",
+          "gzip": "pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac",
+          "libacl1": "pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2",
+          "libblkid1": "pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux",
+          "liblastlog2-2": "pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux",
+          "libmount1": "pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux",
+          "libncursesw6": "pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses",
+          "libsmartcols1": "pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux",
+          "libtinfo6": "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses",
+          "libuuid1": "pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux",
+          "login": "pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5",
+          "mount": "pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux",
+          "ncurses-base": "pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses",
+          "ncurses-bin": "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses",
+          "perl-base": "pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl",
+          "util-linux": "pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        }
+      },
+      "raw_reports": {
+        "vulnerability_sha256": "85e01c3241bf8b9155f5ab8370a59785d6c9db06f7b09b03a5aca3322aae876e",
+        "secret_sha256": "dbe485facdbb8f6c7fb215959d7bce49a2c156023b4a40c24c9d6bac921dbd62",
+        "inspect_sha256": "15de3cf449c55eeac445759151ffe0762066e65beb06ea25a6025ab79b114604",
+        "build_metadata_sha256": "db0affa8aab14b478d82ab72866a11238fdd27ee66ff6e94cf8715072996e52a",
+        "history_sha256": "174dc95a388c498b0975b68832cdf51be71135ccba6ad203ddc6a8f823f7139d",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "admin": {
+      "target": "admin-runtime",
+      "local_image_id": "sha256:50a21bea7e496a6f09e3e71fd0e1d4a9fb06fb23815d2bea702808bc24d98a71",
+      "registry_digest": null,
+      "platform": "linux/amd64",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/app/scripts/render_start_admin.sh"
+      ],
+      "sbom": {
+        "sha256": "1a3556c7ec02a95365865a37a31804e484eac0d1a4383f341df347abb01e0661",
+        "serial_number": "urn:uuid:282569f1-b428-4f54-8615-3d5897357706",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs": {
+          "bsdutils": "pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5",
+          "gzip": "pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac",
+          "libacl1": "pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2",
+          "libblkid1": "pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux",
+          "liblastlog2-2": "pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux",
+          "libmount1": "pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux",
+          "libncursesw6": "pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses",
+          "libsmartcols1": "pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux",
+          "libtinfo6": "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses",
+          "libuuid1": "pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux",
+          "login": "pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5",
+          "mount": "pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux",
+          "ncurses-base": "pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses",
+          "ncurses-bin": "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses",
+          "perl-base": "pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl",
+          "util-linux": "pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        }
+      },
+      "raw_reports": {
+        "vulnerability_sha256": "940d5828ddb0f82f04644d1e940cb568f7ae531d0634f28b286d46ba3e365817",
+        "secret_sha256": "f6cd1b1135f5a9433b6e737eb61099522cfbf12fb54f91240baafb0adb4f166d",
+        "inspect_sha256": "a598e50cb327a082af957e91b3468c1077f5c8c6051ca8279830049f599f8647",
+        "build_metadata_sha256": "d3b916cdc6492c23417fc07ac9c256b3f20f90c6864631b49f4318b625ff7a63",
+        "history_sha256": "bfae52e9f91430bcab3419d4a9a53fd04ef8c4a58363f5184c921807903377e9",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "payment": {
+      "target": "payment-runtime",
+      "local_image_id": "sha256:8acd61e3640104207bad8f8018171640b69d2d760053bd7a152bf263de27a390",
+      "registry_digest": null,
+      "platform": "linux/amd64",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/app/scripts/render_start_payment.sh"
+      ],
+      "sbom": {
+        "sha256": "b6116a563d74d5058cffdbadd34c70196d9068d53c3db46d769fdb7a9e898347",
+        "serial_number": "urn:uuid:eac20a4e-e510-4dae-849b-fab05e1dc9c4",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs": {
+          "bsdutils": "pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5",
+          "gzip": "pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac",
+          "libacl1": "pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2",
+          "libblkid1": "pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux",
+          "liblastlog2-2": "pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux",
+          "libmount1": "pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux",
+          "libncursesw6": "pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses",
+          "libsmartcols1": "pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux",
+          "libtinfo6": "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses",
+          "libuuid1": "pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux",
+          "login": "pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5",
+          "mount": "pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux",
+          "ncurses-base": "pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses",
+          "ncurses-bin": "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses",
+          "perl-base": "pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl",
+          "util-linux": "pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        }
+      },
+      "raw_reports": {
+        "vulnerability_sha256": "75bb5a377afaf637a4fdf1edfe28d9726d7c843ca898a4380222b3b124160efa",
+        "secret_sha256": "51396701e2eb6fa4b722244894302bcd743fe5955177b57f5f0e8f6a2778d29b",
+        "inspect_sha256": "df6a35413b836dd1cc0a210252f5238d65cdba3118e4d74734a7e2c27a075628",
+        "build_metadata_sha256": "ae0a055864581a12954430fe82f73997caaa23980fc119c5117ea09f0968c2cf",
+        "history_sha256": "a29d3ab6f2e9324f6c1b37444a4b7b9e71b400b1ccb2a052435506375d5fc129",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "ai-worker": {
+      "target": "ai-worker-runtime",
+      "local_image_id": "sha256:b34021f692ef4f5aa08ec8837e7e925c3ff7d2773b416763bd85498cd5c09f85",
+      "registry_digest": null,
+      "platform": "linux/amd64",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "python",
+        "durable_ai_worker.py",
+        "--once"
+      ],
+      "sbom": {
+        "sha256": "47ef611142ca9d141b3b90a2217b7b5755c58a82d7974d7fc68e11925a9757e4",
+        "serial_number": "urn:uuid:105cf08f-624a-4ff4-863e-187112754eec",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs": {
+          "bsdutils": "pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5",
+          "gzip": "pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac",
+          "libacl1": "pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2",
+          "libblkid1": "pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux",
+          "liblastlog2-2": "pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux",
+          "libmount1": "pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux",
+          "libncursesw6": "pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses",
+          "libsmartcols1": "pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux",
+          "libtinfo6": "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses",
+          "libuuid1": "pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux",
+          "login": "pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5",
+          "mount": "pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux",
+          "ncurses-base": "pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses",
+          "ncurses-bin": "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses",
+          "perl-base": "pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl",
+          "util-linux": "pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        }
+      },
+      "raw_reports": {
+        "vulnerability_sha256": "96c45c5d09eab0c25e354dc477ad8fbe107ffb7e3b63f1355ab9c0294ef12257",
+        "secret_sha256": "af7c075d248cfec2bd6f142ecb3194af20899cb8046baf8cebed7cd0f669e1ab",
+        "inspect_sha256": "90ea6b9d67ad4e67ae319bc358c17f34b53ac1c29b2cf35df0860dd58dff7151",
+        "build_metadata_sha256": "8d93848c7b163209104a695e9580b644cd38544c04580af3c290a03acdfe281a",
+        "history_sha256": "a740ef1189db285a7d6f1059915c7fc2ad798497f0d9b0864d9fb9eac33eb447",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "xhs-http": {
+      "target": "xhs-http-runtime",
+      "local_image_id": "sha256:aae7bd0db630f642b970f7423ab27d1354985392657f17865b5cfab72f96aee3",
+      "registry_digest": null,
+      "platform": "linux/amd64",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/bin/false"
+      ],
+      "sbom": {
+        "sha256": "3a4e776a79676a224026115b0f0305181bd461501e17af0e389ce0e36dec16f1",
+        "serial_number": "urn:uuid:e7dc5810-ffec-4f32-962f-72b474433f04",
+        "version": 1,
+        "component_count": 3078,
+        "component_refs": {
+          "bsdutils": "pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5",
+          "gzip": "pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac",
+          "libacl1": "pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2",
+          "libblkid1": "pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux",
+          "liblastlog2-2": "pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux",
+          "libmount1": "pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux",
+          "libncursesw6": "pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses",
+          "libsmartcols1": "pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux",
+          "libtinfo6": "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses",
+          "libuuid1": "pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux",
+          "login": "pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5",
+          "mount": "pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux",
+          "ncurses-base": "pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses",
+          "ncurses-bin": "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses",
+          "perl-base": "pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl",
+          "util-linux": "pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        }
+      },
+      "raw_reports": {
+        "vulnerability_sha256": "1c9f4f8a1bfd16888d110f7a2d0993cfea9484a66d308eeccdcc42adf5c009b9",
+        "secret_sha256": "7b75ce83f70d8435d5f14397742a8ede6b99238b345f31138d2fdbee66555784",
+        "inspect_sha256": "aa6023d953feaf65f50a7da9ee4dd7a18beeb84d0427427cfdf8686e6559c384",
+        "build_metadata_sha256": "5a7252265e56dc146442e5b2dcf8715f2315999b825848147ff78068b18eaf14",
+        "history_sha256": "8654e39cf2e1ee4a8683b3fe0c715774867c96d4cf6c0e2eea74078546c42595",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    }
+  },
+  "vulnerability_rows_per_role": [
+    {
+      "id": "CVE-2025-69720",
+      "package": "libncursesw6",
+      "installed_version": "6.5+20250216-2",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "libtinfo6",
+      "installed_version": "6.5+20250216-2",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "ncurses-base",
+      "installed_version": "6.5+20250216-2",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "ncurses-bin",
+      "installed_version": "6.5+20250216-2",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-13221",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "CVE-2026-41992",
+      "package": "gzip",
+      "installed_version": "1.13-1",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-42496",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "CVE-2026-42497",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-48962",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "bsdutils",
+      "installed_version": "1:2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "libblkid1",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "liblastlog2-2",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "libmount1",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "libsmartcols1",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "libuuid1",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "login",
+      "installed_version": "1:4.16.0-2+really2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "mount",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "util-linux",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-54369",
+      "package": "libacl1",
+      "installed_version": "2.3.2-2+b1",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-57432",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-57433",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "CVE-2026-8376",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "HIGH"
+    }
+  ],
+  "dispositions": {
+    "CVE-2025-69720": {
+      "justification": "code_not_reachable",
+      "detail": "The affected infocmp command is not accepted by any exact role entrypoint or invoked by production Python code. Runtime roles are non-root, capability-free and read-only."
+    },
+    "CVE-2026-13221": {
+      "justification": "code_not_reachable",
+      "detail": "perl-base is present, but the fail-closed role marker, command allowlist and exact source contain no production Perl invocation or attacker-controlled Perl regular-expression path."
+    },
+    "CVE-2026-41992": {
+      "justification": "code_not_reachable",
+      "detail": "No accepted role command invokes gzip or accepts the crafted multi-file LZW/LZH sequence required by the affected path."
+    },
+    "CVE-2026-42496": {
+      "justification": "code_not_present",
+      "detail": "Trivy maps the Debian source package finding to perl-base. The affected Archive::Tar module is absent from the exact pinned base and no Docker stage installs Perl modules."
+    },
+    "CVE-2026-42497": {
+      "justification": "code_not_present",
+      "detail": "Trivy maps the Debian source package finding to perl-base. The affected Archive::Tar module is absent from the exact pinned base and no Docker stage installs Perl modules."
+    },
+    "CVE-2026-48962": {
+      "justification": "code_not_present",
+      "detail": "Trivy maps the Debian source package finding to perl-base. The affected IO::Compress module is absent from the exact pinned base and no Docker stage installs Perl modules."
+    },
+    "CVE-2026-53615": {
+      "justification": "code_not_reachable",
+      "detail": "No role invokes blkid, mount or another partition parser. The production contract exposes no devices or host namespace and enforces non-root, cap-drop ALL, no-new-privileges and read-only root filesystems."
+    },
+    "CVE-2026-54369": {
+      "justification": "code_not_reachable",
+      "detail": "No role invokes ACL tools or pathname ACL APIs. The production contract runs UID/GID 999 with cap-drop ALL, no-new-privileges and a read-only root filesystem."
+    },
+    "CVE-2026-57432": {
+      "justification": "code_not_reachable",
+      "detail": "No accepted role invokes Perl or accepts an attacker-controlled Perl pack/unpack template."
+    },
+    "CVE-2026-57433": {
+      "justification": "code_not_present",
+      "detail": "Trivy maps the Debian source package finding to perl-base. The affected Storable module is absent from the exact pinned base and no Docker stage installs Perl modules."
+    },
+    "CVE-2026-8376": {
+      "justification": "requires_environment",
+      "detail": "The vulnerable condition is limited to 32-bit Perl builds. Every exact candidate and its runner evidence is linux/amd64."
+    },
+    "CVE-2026-9538": {
+      "justification": "code_not_present",
+      "detail": "Trivy maps the Debian source package finding to perl-base. The affected Archive::Tar module is absent from the exact pinned base and no Docker stage installs Perl modules."
+    }
+  },
+  "source_constraints": {
+    "release_blob_sha256": {
+      "Dockerfile": "ed6282c422dde6e49c33da877bccf735dfbb19e29a834930fb2a1a52ef21b447",
+      "model/requirements-api.txt": "0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9",
+      "scripts/docker_entrypoint.sh": "77375834edc74d5d5a370de9ba106d77036a9aa1cf372b7d289083a822e20cfb",
+      "deploy/production/docker-compose.yml": "78a6f4d95f763fb90939d7a4e491170b73f9e3362ad6cf2b2167beb4044601da"
+    },
+    "process_call_allowlist": {
+      "model/admin_server.py": [
+        "asyncio.create_subprocess_exec"
+      ],
+      "model/fact_enrichment.py": [
+        "subprocess.run"
+      ],
+      "model/spider_xhs_http.py": [
+        "subprocess.run"
+      ]
+    },
+    "forbidden_runtime_programs": [
+      "perl",
+      "gzip",
+      "infocmp",
+      "blkid",
+      "setfacl",
+      "getfacl"
+    ],
+    "runtime_contract": {
+      "uid_gid": "999:999",
+      "read_only_root": true,
+      "privileged": false,
+      "cap_drop_all": true,
+      "no_new_privileges": true,
+      "devices": [],
+      "host_namespaces": []
+    },
+    "prior_exact_base_constraint_evidence": {
+      "evidence": "security/vex/a635692-browserless-evidence.json",
+      "review": "security/vex/a635692-browserless-review.json",
+      "vex": "security/vex/a635692-browserless.vex.cdx.json"
+    }
+  },
+  "decision": {
+    "status": "not_affected_for_exact_product",
+    "production_exception": false,
+    "deployment_authorization": false,
+    "registry_access_performed": false,
+    "provider_calls": 0,
+    "business_writes": 0,
+    "invalidation_triggers": [
+      "application revision or local image ID changes",
+      "base image, SBOM or package version changes",
+      "architecture changes",
+      "entrypoint, command or subprocess graph changes",
+      "runtime capabilities, devices, mounts or namespaces change",
+      "official vulnerability scope changes"
+    ]
+  },
+  "release_delta": {
+    "prior_application_revision": "b06671fbcca51f884b04c86edcf116e373c6cfa8",
+    "image_context_changed_paths": [
+      "model/durable_ai_worker.py",
+      "model/private_storage.py"
+    ],
+    "release_blob_sha256": {
+      "model/durable_ai_worker.py": "ca7b37d71de49bc77792ed3b9d36884c90c5b86f16741adbeed20b9f420b9749",
+      "model/private_storage.py": "d1e5a13dfedf76ff535acdfb26ef63628079c639330d5029cd433b61e0c8ad86"
+    },
+    "unchanged_build_contract_sha256": {
+      "Dockerfile": "ed6282c422dde6e49c33da877bccf735dfbb19e29a834930fb2a1a52ef21b447",
+      "model/requirements-api.txt": "0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9",
+      "scripts/docker_entrypoint.sh": "77375834edc74d5d5a370de9ba106d77036a9aa1cf372b7d289083a822e20cfb",
+      "deploy/production/docker-compose.yml": "78a6f4d95f763fb90939d7a4e491170b73f9e3362ad6cf2b2167beb4044601da"
+    },
+    "purpose": "Require the production-proven IMDSv2-only private-storage configuration, canonical OSS metadata headers and bounded SDK error unwrapping without changing the reviewed command graph."
+  }
+}

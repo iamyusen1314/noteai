@@ -848,6 +848,50 @@ Required next path:
 Unique next task:
 `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`.
 
+## 6.3. API-C exact-current-image source checkpoint
+
+- API-C must not reuse the already published `b06671f` API image. The current
+  storage runtime verified in production is bound to exact source `b55f118`;
+  the older image lacks IMDSv2-only credential acquisition, canonical OSS
+  metadata headers and bounded wrapped-SDK status extraction. Deploying it
+  would regress a verified control.
+- A fresh GitHub-hosted native AMD64 workflow checked out exact `b55f118` and
+  built/scanned all five existing runtime targets once. Build, inspect, SBOM,
+  secret scan, vulnerability scan and artifact upload completed; the terminal
+  raw zero-Critical/High gate failed closed as expected because every role
+  retains the same unsuppressed `4 Critical / 19 High` Debian rows as the
+  reviewed predecessor.
+- The downloaded 43-file artifact is bound by summary SHA-256
+  `c6b1f206…162`. Every role independently matches the reviewed base images,
+  exact 23 vulnerability rows, affected package set, linux/amd64 platform,
+  entrypoint/CMD and finding counts. Secrets, browser components and forbidden
+  OS packages are zero; `cryptography 48.0.1` occurs exactly once per role.
+- `tools/verify_b55_native_release_vex.py` preserves the historical b066
+  verifier and adds a fail-closed profile for b55. It proves the Docker image
+  context changed only in `model/private_storage.py` and
+  `model/durable_ai_worker.py`; Dockerfile, pinned runtime requirements,
+  entrypoint, hardening contract and process-call graph remain unchanged.
+  Source-candidate evidence, VEX and review explicitly keep registry access
+  and deployment authorization false.
+- The b55 bundle passes its own and the historical native tests `11/11`;
+  combined focused readiness tests pass `29/29`; the offline production gate
+  passes `106/106`. The VEX validates with zero errors against the exact
+  checksum-pinned CycloneDX 1.6 schema. Python compile and diff checks pass.
+- No Alibaba production write, registry push, database connection, service
+  change, provider call or public traffic occurred in this stage. A local
+  summary probe type mismatch was `PRE_CONNECT` and materially corrected;
+  database connection, transaction and write counts are zero.
+
+Current next action:
+
+- commit and push this exact source/VEX checkpoint;
+- on the already audited private x86_64 builder, reconstruct exact b55 source,
+  build and rescan the immutable runtime images, then bind new ACR manifest
+  digests through one bounded private publication session;
+- deploy only the exact API image to API-C through loopback canary and a
+  reversible managed-service promotion. Preserve the historical image and
+  unit bytes until independent acceptance completes.
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
@@ -926,12 +970,12 @@ checkpoint.
 
 Current remaining steps:
 
-- validate, commit and push the completed private-storage evidence and
-  readiness credit;
-- execute only `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`: reuse the published
-  current immutable API image, existing schema/roles, managed secrets and
-  private storage; establish a fresh read-only baseline before any service
-  mutation, preserve the historical release for deterministic rollback and
-  keep the service loopback-only with public traffic zero;
+- commit and push the exact b55 native source-candidate/VEX checkpoint;
+- execute only `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`: privately publish the
+  exact current immutable API product, then reuse the existing schema/roles,
+  managed secrets and private storage; establish a fresh read-only baseline
+  before any service mutation, preserve the historical release for
+  deterministic rollback and keep the service loopback-only with public
+  traffic zero;
 - continue through the dependency graph without stopping at the checkpoint
   or task boundary.
