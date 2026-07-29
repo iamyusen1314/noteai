@@ -666,6 +666,17 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
     def test_official_oss_adapter_uses_conditional_encrypted_requests(self):
         import alibabacloud_oss_v2 as oss
 
+        class WrappedSdkError(Exception):
+            def __init__(self, inner):
+                super().__init__("wrapped")
+                self.inner = inner
+
+            def unwrap(self):
+                return self.inner
+
+        class NotFoundError(Exception):
+            status_code = 404
+
         class FakeClient:
             def __init__(self):
                 self.objects = {}
@@ -712,6 +723,10 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
             client=client,
             bucket="noteai-private-test",
             kms_key_id="kms-test-key",
+        )
+        self.assertEqual(
+            backend._status(WrappedSdkError(NotFoundError())),
+            404,
         )
         reference_id = str(uuid.uuid4())
         subject_hash = "c" * 64

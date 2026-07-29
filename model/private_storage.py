@@ -364,13 +364,32 @@ class AliyunOssObjectBackend(ObjectBackend):
 
     @staticmethod
     def _status(exc: BaseException) -> int | None:
-        for name in ("status_code", "status", "http_status"):
-            value = getattr(exc, name, None)
-            try:
-                if value is not None:
-                    return int(value)
-            except (TypeError, ValueError):
-                continue
+        current = exc
+        seen: set[int] = set()
+        for _ in range(6):
+            identity = id(current)
+            if identity in seen:
+                break
+            seen.add(identity)
+            for name in ("status_code", "status", "http_status"):
+                value = getattr(current, name, None)
+                try:
+                    if value is not None:
+                        return int(value)
+                except (TypeError, ValueError):
+                    continue
+            nested = None
+            unwrap = getattr(current, "unwrap", None)
+            if callable(unwrap):
+                try:
+                    nested = unwrap()
+                except BaseException:
+                    nested = None
+            if not isinstance(nested, BaseException):
+                nested = getattr(current, "__cause__", None)
+            if not isinstance(nested, BaseException):
+                break
+            current = nested
         return None
 
     def put_if_absent(

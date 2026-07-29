@@ -781,6 +781,23 @@ Required next path:
   Worker/readiness `45/45`, production gate `105/105`, compile and diff checks
   pass. Checkpoint and push this root-cause fix before one new bounded
   synthetic validation method.
+- The metadata fix was pushed at
+  `23c6bdde2235c206db1679f2a3c5d998e8d6d049`. Direct host GitHub download
+  then failed before creating an overlay, container or object and was
+  classified `PRE_CONNECT`. Cloud Shell fetched and hash-verified the exact
+  56,490-byte file, split it into three Base64-bounded parts and delivered
+  each part serially through Cloud Assistant SendFile. Both nodes reassembled
+  the exact SHA, deleted every transfer part and passed network-none import.
+- A fresh random synthetic key then received `NoSuchKey 404` from an
+  independently dispatched read-only Head. This proved the object absent but
+  exposed another adapter boundary defect before any Put: OSS SDK V2 wraps
+  service errors in `OperationError`, while `_status` inspected only the
+  wrapper. Consequently 404/409/412 could not reach the existing
+  not-found/duplicate branches. `_status` now follows only bounded SDK
+  `unwrap()`/exception-cause links and still returns only integer HTTP status.
+  Focused `63/63`, production gate `105/105`, compile and diff checks pass.
+  Push this second exact source checkpoint and replace the overlay on both
+  nodes before repeating the fresh read-only two-key preflight.
 
 ## 7. Mandatory failure classification
 
@@ -856,7 +873,7 @@ checkpoint.
 
 Current remaining steps:
 
-- commit and push the OSS metadata wire-format root-cause checkpoint;
+- commit and push the bounded SDK-error-unwrapping checkpoint;
 - package that exact source overlay, validate it network-none on both nodes and
   run the smallest private, bounded-cost cross-node matrix with at most two
   sub-64-byte synthetic objects;
