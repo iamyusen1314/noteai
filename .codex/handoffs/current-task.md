@@ -47,12 +47,63 @@
   `8f6b8b68e24726ab6a57abfb805b9fd222238d0f`.
 - Schema executor legacy-ledger repair:
   `e5883abc01c4b009907bee550209d7036d383771`.
+- V5 exact execution source checkpoint:
+  `93d5d3b85688606b97e1716eec3b61d59d5b682d`.
+- V5 package-evidence checkpoint:
+  `883e874d4186e523b8110d44338c2e074b26c491`.
 - Repository/isolated readiness: `12/12`.
-- Internal deployment readiness: `14/29 = 48%`.
-- Public launch readiness: `14/38 = 37%`.
+- Internal deployment readiness: `15/29 = 52%`.
+- Public launch readiness: `15/38 = 39%`.
 - Public launch completion: false.
 
-## 2.1 Current V5 remote-prepare checkpoint
+## 2.1 Completed V5 production schema and role deployment
+
+- `PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001` is
+  `CONNECTED_KNOWN / COMMITTED / INDEPENDENTLY VERIFIED / CLEAN`.
+- The exact deterministic package from `93d5d3b` contained 25 source files
+  plus one manifest, 16 migrations, 68,915 bytes, archive SHA-256
+  `0624644a…9718`, manifest SHA-256 `9494ac7e…d9fc` and runner SHA-256
+  `5a906ce7…1ef`. Local and remote hashes, zero-DSN import and network-none
+  import all passed.
+- Fresh prerequisites proved one private running PostgreSQL RDS, no RDS
+  public endpoint, seven successful full backups within seven days with the
+  latest under ten hours old, accounts `3/1/0`, zero task residue and healthy
+  loopback-only API-C/API-F/Admin.
+- One short-term Super account and API-C-only RSA material were created after
+  zero-database preparation. No plaintext credential file, environment,
+  argument or log was retained.
+- The only V5 pre-dispatch database action was a forced-readonly transaction.
+  It independently proved ledger `0001`-`0008`, 30 tables, 5 sequences, no
+  SHA column/constraint, no new roles/tables, retention source zero and the
+  exact two accepted-risk findings; it rolled back with write zero.
+- V5 apply was dispatched exactly once and committed exactly
+  `8 legacy SHA backfills + 8 migration ledger rows + 2 fixed seeds`.
+  Retention backfill and existing business-row updates were zero. Automatic
+  retry count was zero.
+- One separately dispatched forced-readonly outcome audit independently
+  classified `COMMITTED` and rolled back its own transaction. Host-only
+  validators checked all result bindings and hashes plus ledger
+  `0001`-`0016`, 16/16 migration SHA values, 56 tables, 5 sequences,
+  8 runtime roles, 6 new NOLOGIN roles, 7 memberships, 6 owner-management
+  memberships, 2 fixed seeds, 3136 table checks, 419456 column checks and
+  120 sequence checks. Grant options, default ACL entries, owner mismatches,
+  unexpected memberships/elevations, app high-privilege inheritance,
+  retention rows and business updates were all zero.
+- Results were saved and hashed before cleanup. The task account was deleted
+  by one provider request with automatic retry zero, restoring accounts
+  `3/1/0`. API-C task root/key/ciphertext/source/sentinels/results/errors/
+  containers/processes, four exact-hash Cloud Shell transfer files and all
+  task variables were removed. API-C/API-F/Admin remain active, ready `200`
+  and loopback-only.
+- Secret-free evidence:
+  `deploy/production/evidence/production-schema-roles-v5-owner-committed-20260729.json`.
+- Current production schema state is `0001`-`0016`; the schema/role control
+  receives one readiness credit. The exact two historical role findings
+  remain zero-credit `ACCEPTED_RISK`, not `VERIFIED_FIXED`.
+- Unique next task:
+  `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001`.
+
+## 2.2 Historical V5 remote-prepare checkpoint
 
 - The exact package from pushed checkpoint `af58b897` was transferred to
   API-C and independently reverified as 3 parts, 68,781 bytes, 26 regular
@@ -96,10 +147,12 @@
 - Secret-free evidence:
   `deploy/production/evidence/production-schema-roles-v5-owner-remote-prepare-root-cause-20260729.json`.
   `deploy/production/evidence/production-schema-roles-v5-owner-mode-fix-package-20260729.json`.
-- Required next action: delete only the proven PRE_CONNECT V5 task
+- Historical next action at that checkpoint was to delete only the proven
+  PRE_CONNECT V5 task
   root/chunks, transfer the exact new three-part package and rerun
-  network-none `prepare`. Do not create a task account or RSA until the new
-  prepare passes. Never run V3B, V4, 004 or 005 again.
+  network-none `prepare`. That path has now completed through deterministic
+  commit, independent outcome and cleanup. Never run V3B, V4, 004 or 005
+  again, and never rerun the completed V5 apply.
 
 ## 3. Preserved production incident boundary
 
@@ -112,13 +165,17 @@
 - V4 returned the sanitized coarse stage `apply_runtime_acl_failed`.
 - The independent forced-readonly outcome audit proved the transaction rolled
   back and all five permitted write categories were zero.
-- Production therefore remains exactly:
+- Before the now-completed V5 deployment, production therefore remained
+  exactly:
   - ledger migrations `0001`-`0008`;
   - 30 public tables;
   - 5 public sequences;
   - 2 historical runtime roles;
   - no SHA backfill, new ledger row, new table, new role, seed, retention
     backfill or existing business-row update.
+- The current state is now superseded by the V5 evidence in section 2.1:
+  ledger `0001`-`0016`, 56 tables, 5 sequences, 8 runtime roles and exactly
+  2 fixed service-state seeds.
 - Last independently observed cleanup baseline after V4:
   `3 accounts / 1 Super / 0 task accounts`, zero task account/key/ciphertext/
   directory/package/sentinel/result/container/process/Cloud Shell residue;
@@ -432,6 +489,37 @@ Required path:
    material, read back services/network/residue, checkpoint/push, then
    continue to the dependency graph without stopping.
 
+## 6.3 Completed V5 and unique next task
+
+The required path in section 6.2 is now complete. V5 apply and its independent
+outcome are permanently no-retry. Do not repeat package preparation,
+pre-dispatch, apply or outcome without real conflict evidence.
+
+Unique next task:
+`PROD-FIRST-LAUNCH-MANAGED-SECRETS-001`.
+
+Execution objective:
+
+1. Reuse the now-created dedicated production runtime roles; do not create or
+   alter schema, roles, memberships or accepted-risk tuples.
+2. Inspect the existing Secret-free managed-secret audit and the production
+   runtime consumers before changing files.
+3. Build one minimal fail-closed distribution/rotation/revocation path for the
+   final API, Admin, Payment, AI Worker, Trends and Tracking runtime files.
+4. Keep each Secret in a distinct root-owned `0600` file, never copy the
+   legacy XHS credential into the split Tracking/Trends roles, never print
+   values and never persist plaintext outside its final protected file.
+5. Verify consumers by key names, modes, owners, service identity and bounded
+   loopback health only. Do not start Payment, Worker, Trends or Tracking as
+   part of the secret-distribution control.
+6. Use an explicit rollback copy or atomic replacement for every changed
+   runtime file. Rotation must prove the old credential is rejected or
+   revoked without exposing either value.
+7. Save Secret-free evidence, run focused gates, checkpoint/push, mark only
+   `managed_secret_distribution` verified, and continue to the next
+   dependency. Public DNS, real traffic, real XHS and public-launch
+   declaration remain prohibited.
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
@@ -456,8 +544,8 @@ Completed verification:
 - disposable PostgreSQL 16 privileged-owner chain: `1/1`;
 - full Python suite: `1055/1055`, 27 explicit skips;
 - production readiness gate: `105/105 PASS`;
-- internal readiness: fail-closed `14/29 = 48%`;
-- public readiness: `14/38 = 37%`;
+- internal readiness: fail-closed `15/29 = 52%`;
+- public readiness: `15/38 = 39%`;
 - zero-DSN import, Python compile, runner shell syntax, JSON parses and
   `git diff --check`: pass;
 - disposable PostgreSQL containers/network/volume: zero;
@@ -471,6 +559,16 @@ Completed verification:
 - 005 final cleanup: accounts `3/1/0`, task account/RSA/ciphertext/package/
   result/container/process/Cloud Shell residue zero, RDS/API public endpoints
   zero, API-C/API-F/Admin active/ready/loopback-only.
+- V5 production pre-dispatch: exactly one forced-readonly connection,
+  terminal rollback, ledger `0001`-`0008` and database write zero.
+- V5 production apply: exactly one dispatch, deterministic `COMMITTED`,
+  database writes `18`, automatic retry zero.
+- V5 independent outcome: exactly one forced-readonly connection,
+  deterministic `COMMITTED`, terminal audit rollback and the complete
+  post-commit negative matrix verified.
+- V5 final cleanup: accounts `3/1/0`, task account/RSA/ciphertext/source/
+  sentinel/result/error/container/process/Cloud Shell residue zero and
+  API-C/API-F/Admin active/ready/loopback-only.
 
 ROOT-CAUSE-003 was committed and pushed normally at `ed5e699`.
 The 004 source was committed and pushed normally at `51ae877`.
@@ -485,9 +583,8 @@ checkpoint.
 
 Current remaining steps:
 
-- checkpoint and push the exact V5 local package evidence;
-- refresh only required read-only prerequisites, create fresh protected
-  account/RSA material and run its
-  preflight/apply/outcome chain with at most one apply transaction;
-- independently verify V5, update readiness, then continue to the unique next
-  dependency without stopping at the checkpoint or task boundary.
+- run focused schema/readiness tests and gates, commit and push the V5
+  committed evidence/readiness/Handoff/risk checkpoint;
+- execute `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001` from the clean baseline;
+- continue through the dependency graph without stopping at the checkpoint
+  or task boundary.

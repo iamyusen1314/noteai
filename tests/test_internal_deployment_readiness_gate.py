@@ -31,39 +31,36 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 14)
+        self.assertEqual(report["internal_deployment"]["verified"], 15)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 48)
+        self.assertEqual(report["internal_deployment"]["percentage"], 52)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 14)
+        self.assertEqual(report["complete_public_launch"]["verified"], 15)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 37)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 39)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
-    def test_current_schema_role_risk_is_accepted_but_schema_is_blocked(self):
+    def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
-        self.assertEqual(
-            [item["id"] for item in report["blocked"]],
-            ["production_schema_roles"],
-        )
+        self.assertEqual(report["blocked"], [])
         self.assertNotIn("immutable_release_candidate", actionable)
         self.assertNotIn("production_readonly_preflight", actionable)
         self.assertIsNone(report["next_safe_task"])
+        self.assertNotIn("production_schema_roles", actionable)
         self.assertEqual(
-            actionable["production_schema_roles"]["status"],
-            "blocked",
+            actionable["managed_secret_distribution"]["status"],
+            "unverified",
         )
         self.assertEqual(
-            actionable["production_schema_roles"]["next_task"],
-            "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V5-OWNER-001",
+            actionable["managed_secret_distribution"]["next_task"],
+            "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001",
         )
         self.assertEqual(
-            actionable["production_schema_roles"]["execution_class"],
+            actionable["managed_secret_distribution"]["execution_class"],
             "authenticated_production",
         )
-        self.assertNotIn("managed_secret_distribution", actionable)
         managed = next(
             control
             for control in self.manifest["layers"][1]["controls"]
@@ -145,11 +142,6 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             schema["evidence"],
         )
-        self.assertIn("ACCEPTED_RISK", schema["blocker"])
-        self.assertIn(
-            "Never retry V3B, V4",
-            schema["resume_condition"],
-        )
         self.assertIn(
             {
                 "kind": "path",
@@ -161,6 +153,20 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             schema["evidence"],
         )
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-schema-roles-v5-owner-committed-"
+                    "20260729.json"
+                ),
+            },
+            schema["evidence"],
+        )
+        self.assertEqual(schema["status"], "verified")
+        self.assertNotIn("blocker", schema)
+        self.assertNotIn("resume_condition", schema)
         self.assertEqual(len(schema["accepted_risks"]), 2)
         self.assertEqual(len(report["accepted_risks"]), 2)
         self.assertIn("production_schema_roles", managed["dependencies"])
@@ -442,13 +448,21 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
 
     def test_nonverified_controls_require_blocker_and_task(self):
         broken = copy.deepcopy(self.manifest)
-        control = broken["layers"][1]["controls"][2]
+        control = next(
+            item
+            for item in broken["layers"][1]["controls"]
+            if item["id"] == "managed_secret_distribution"
+        )
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
             gate.validate_manifest(broken)
 
         broken = copy.deepcopy(self.manifest)
-        control = broken["layers"][1]["controls"][2]
+        control = next(
+            item
+            for item in broken["layers"][1]["controls"]
+            if item["id"] == "managed_secret_distribution"
+        )
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
             gate.validate_manifest(broken)
@@ -554,7 +568,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 14)
+        self.assertEqual(report["internal_deployment"]["verified"], 15)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)

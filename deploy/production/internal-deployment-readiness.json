@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-07-28",
+  "as_of_date": "2026-07-29",
   "status_values": [
     "verified",
     "unverified",
@@ -288,7 +288,7 @@
         {
           "id": "production_schema_roles",
           "title": "Production migrations 0009-0016 and exact runtime roles",
-          "status": "blocked",
+          "status": "verified",
           "dependencies": [
             "production_readonly_preflight",
             "immutable_release_candidate"
@@ -357,6 +357,22 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-schema-privileged-owner-preflight-verified-20260729.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-roles-v5-owner-local-package-20260729.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-roles-v5-owner-remote-prepare-root-cause-20260729.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-roles-v5-owner-mode-fix-package-20260729.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-schema-roles-v5-owner-committed-20260729.json"
             }
           ],
           "accepted_risks": [
@@ -446,10 +462,7 @@
                 }
               ]
             }
-          ],
-      "blocker": "The two exact historical role findings remain active as zero-credit ACCEPTED_RISK entries. V3B and V4 remain permanently non-retriable CONNECTED_KNOWN/ROLLED_BACK incidents. ROOT-CAUSE-003 corrected the managed-RDS implicit role-management edge by activating the persistent noteai_admin owner before role creation, requiring exact owner/object and executor-zero-dependency matrices, and splitting runtime ACL into ten fixed stages; disposable PostgreSQL 16 first-apply/apply-twice/outcome/six-negative-mutation validation passed. Production owner-authority preflight 004 permanently rejected the existing Admin runtime credential with a read-only rollback. The separately named privileged-owner preflight 005 then used one fresh short-term managed-RDS privileged account and exactly one forced-readonly production transaction. It verified direct pg_rds_superuser membership, non-native-superuser execution, SET ROLE activation of noteai_admin, exact owner capability and public-object ownership, zero executor/runtime dependency, exact ledger 0001-0008, 30 tables, 5 sequences, 2 historical runtime roles, the two accepted-risk tuples and zero retention source. Its result was independently hash/field validated; the transaction rolled back with database writes zero, and cleanup returned 3 accounts/1 Super/0 task accounts, zero RSA/ciphertext/package/result/container/process/Cloud Shell residue, private network boundaries and healthy loopback-only API-C/API-F/Admin. Pre-connect packaging, shell and cleanup failures were independently classified with connection/transaction/write zero and materially corrected. 005 is VERIFIED_READ_ONLY_CLEAN and permanently non-retriable. Production migrations 0009-0016 and corrected runtime-role SQL remain unapplied, so this control stays blocked at 14/29 until one separately named V5 transaction commits and an independent forced-readonly outcome audit verifies the exact write counts and complete negative matrix.",
-          "next_task": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V5-OWNER-001",
-      "resume_condition": "Never retry V3B, V4, owner-authority preflight 004 or privileged-owner preflight 005. Build V5 from a new pushed checkpoint and a new task identity/root. Reuse the verified owner path but create a fresh short-term managed-RDS privileged account and fresh API-C-only RSA material. Before the one V5 write, repeat only the necessary zero-database package/hash/network-none checks and one fresh forced-readonly pre-dispatch proving ledger 0001-0008. Permit at most one transaction and exactly 8 legacy SHA backfills, 8 new ledger rows and 2 fixed seeds, with retention backfill and existing business-row updates zero. Any database-connected failure is non-retriable and requires an independent outcome classification. Only a deterministic COMMITTED result plus a separate complete forced-readonly outcome audit and full cleanup may verify production_schema_roles. The accepted-risk profile remains exact, receives zero readiness credit and cannot authorize role expansion."
+          ]
         },
         {
           "id": "managed_secret_distribution",
@@ -465,7 +478,7 @@
               "ref": "deploy/production/evidence/production-managed-secret-distribution-audit-20260728.json"
             }
           ],
-          "blocker": "Fresh Secret-free host audit proves the existing API-C API/Admin and API-F API files are distinct root-owned 0600 files with accepted key names, but final Payment, AI Worker, Trends and Tracking files are absent, the legacy XHS file does not satisfy the required split, and rotation/revocation tooling is absent. Dedicated role DATABASE_URL values cannot exist until production migrations 0009-0016 create the final database roles; placeholder files or copied legacy credentials cannot satisfy this control.",
+          "blocker": "Production migrations 0009-0016 and the dedicated NOLOGIN runtime roles are now independently verified. The existing API-C API/Admin and API-F API files remain distinct root-owned 0600 files, but final Payment, AI Worker, Trends and Tracking files are absent, the legacy XHS file cannot satisfy the required split, and atomic distribution plus rotation/revocation tooling is absent. Each dedicated runtime credential must be created and delivered through the protected boundary; placeholders, copied legacy credentials or service starts cannot satisfy this control.",
           "next_task": "PROD-FIRST-LAUNCH-MANAGED-SECRETS-001"
         },
         {
