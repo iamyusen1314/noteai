@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import importlib
+import importlib.util
 import io
 import json
 import os
@@ -27,6 +28,14 @@ durable_ai = importlib.import_module("durable_ai")
 private_storage = importlib.import_module("private_storage")
 recovery_evidence = importlib.import_module("storage_recovery_evidence")
 api = importlib.import_module("api")
+_RECOVERY_TOOL_SPEC = importlib.util.spec_from_file_location(
+    "noteai_recovery_evidence_tool",
+    ROOT / "tools" / "recovery_evidence.py",
+)
+assert _RECOVERY_TOOL_SPEC is not None
+assert _RECOVERY_TOOL_SPEC.loader is not None
+recovery_evidence_tool = importlib.util.module_from_spec(_RECOVERY_TOOL_SPEC)
+_RECOVERY_TOOL_SPEC.loader.exec_module(recovery_evidence_tool)
 
 
 class PrivateStorageRecoveryContractTests(unittest.TestCase):
@@ -559,6 +568,35 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(RuntimeError, "static OSS credentials"):
                 private_storage.configure_from_environment()
+
+    def test_recovery_cli_initializes_oss_only_for_object_inventory(self):
+        with mock.patch.object(
+            recovery_evidence_tool.private_storage,
+            "configure_from_environment",
+            return_value=True,
+        ) as configure:
+            recovery_evidence_tool._configure_object_inventory(
+                database_only=False
+            )
+            recovery_evidence_tool._configure_object_inventory(
+                database_only=True
+            )
+
+        configure.assert_called_once_with()
+
+    def test_recovery_cli_rejects_missing_oss_for_object_inventory(self):
+        with mock.patch.object(
+            recovery_evidence_tool.private_storage,
+            "configure_from_environment",
+            return_value=False,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "private OSS configuration is required",
+            ):
+                recovery_evidence_tool._configure_object_inventory(
+                    database_only=False
+                )
 
     def test_explicit_ram_role_environment_builds_without_fetching_credentials(self):
         private_storage.reset_object_backend()

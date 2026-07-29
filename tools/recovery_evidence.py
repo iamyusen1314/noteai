@@ -18,6 +18,7 @@ if str(MODEL) not in sys.path:
     sys.path.insert(0, str(MODEL))
 
 import storage_recovery_evidence as recovery_evidence
+import private_storage
 
 
 def _release_commit(value: str | None) -> str:
@@ -47,6 +48,13 @@ def _write_once(path: str, body: bytes) -> None:
         os.fsync(stream.fileno())
 
 
+def _configure_object_inventory(*, database_only: bool) -> None:
+    if database_only:
+        return
+    if not private_storage.configure_from_environment():
+        raise RuntimeError("private OSS configuration is required")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -62,6 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "capture":
+        _configure_object_inventory(database_only=args.database_only)
         manifest = recovery_evidence.capture_manifest(
             release_commit=_release_commit(args.release_commit),
             require_objects=not args.database_only,

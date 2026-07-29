@@ -52,8 +52,8 @@
 - V5 package-evidence checkpoint:
   `883e874d4186e523b8110d44338c2e074b26c491`.
 - Repository/isolated readiness: `12/12`.
-- Internal deployment readiness: `15/29 = 52%`.
-- Public launch readiness: `15/38 = 39%`.
+- Internal deployment readiness: `16/29 = 55%`.
+- Public launch readiness: `16/38 = 42%`.
 - Public launch completion: false.
 
 ## 2.1 Completed V5 production schema and role deployment
@@ -701,6 +701,34 @@ Required next path:
 5. Mark only `private_storage_runtime` verified, checkpoint/push and continue
    to the next dependency without stopping at the task boundary.
 
+## 6.6 Private-storage runtime source checkpoint
+
+- Fresh Git takeover from `e9a7a5207d52a22d12a8062edabfa55342f76df8`
+  proved the expected branch, a clean worktree and upstream divergence `0/0`.
+  The authoritative manifest is `16/29`; the older `15/29` values at the top
+  of this Handoff were corrected without changing evidence credit.
+- Three independent read-only audits agree that this task must reuse the
+  verified V5 schema/role state, managed-secret distribution, immutable
+  release identities and repository storage contract. Production database
+  connections, transactions and writes for this task are fixed at zero.
+- Source inspection found two deployment-consumer gaps without changing the
+  storage protocol: the Durable AI Worker did not initialize the explicit OSS
+  adapter, and the recovery evidence CLI did not initialize OSS before an
+  object-inclusive capture. `model/durable_ai_worker.py` now invokes the same
+  fail-closed environment initializer as the API before any accepted runtime
+  command. `tools/recovery_evidence.py` now initializes it only for an
+  object-inclusive capture; `--database-only` and `verify` remain storage
+  network-free.
+- Focused storage/Worker/readiness regression is `63/63`; Python compile and
+  `git diff --check` pass. No production database, service, provider, object or
+  cloud mutation occurred. Two local search commands and one already-removed
+  SQLite sidecar cleanup probe returned nonzero with production connection,
+  transaction and write zero; all are `PRE_CONNECT`.
+- Before any cloud write, create and push a source checkpoint, then obtain a
+  fresh Secret-free OSS/RAM/ECS/API baseline through the stable CLI/Cloud
+  Assistant path. Do not use iframe/DOM repair, static access keys, a public
+  bucket/endpoint, real user data or a service restart.
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
@@ -775,10 +803,8 @@ checkpoint.
 
 Current remaining steps:
 
-- run final focused tests/gates and `git diff --check`, commit and push the
-  Managed Secrets verified checkpoint;
-- begin `PROD-FIRST-LAUNCH-STORAGE-RECOVERY-RUNTIME-001` from the clean pushed
-  checkpoint with fresh read-only production object-storage/RAM state;
+- commit and push the private-storage source checkpoint;
+- obtain fresh read-only production OSS/RAM/ECS/API state;
 - build the smallest private, bounded-cost, rollback-safe cross-node recovery
   path using synthetic objects only, with public access and real traffic zero;
 - save Secret-free evidence, mark only `private_storage_runtime` verified;

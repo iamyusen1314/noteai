@@ -20,6 +20,7 @@ from typing import Any, Callable
 import ai_operations
 import billing
 import durable_ai
+import private_storage
 
 
 class KnownProviderFailure(RuntimeError):
@@ -354,6 +355,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     ) != 1:
         parser.error("one exact command is required")
+    private_storage.configure_from_environment()
     if args.healthcheck:
         result = healthcheck()
         print(json.dumps(result, sort_keys=True))

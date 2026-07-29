@@ -103,6 +103,26 @@ class DurableAiExecutionContractTests(unittest.TestCase):
     def count(self, table: str) -> int:
         return int(db.fetchone(f"SELECT COUNT(*) AS c FROM {table}")["c"])
 
+    def test_worker_initializes_private_storage_before_runtime_command(self):
+        with (
+            mock.patch.object(
+                durable_ai_worker.private_storage,
+                "configure_from_environment",
+                return_value=True,
+            ) as configure,
+            mock.patch.object(
+                durable_ai_worker,
+                "healthcheck",
+                return_value={"ok": True},
+            ),
+        ):
+            self.assertEqual(
+                durable_ai_worker.main(["--healthcheck"]),
+                0,
+            )
+
+        configure.assert_called_once_with()
+
     def test_schema_and_migration_store_only_opaque_bounded_metadata(self):
         conn = db.get_conn()
         try:
