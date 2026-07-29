@@ -750,6 +750,37 @@ Required next path:
   the stronger semantics. Focused regression is again `63/63`, compile and
   diff checks pass. Push this hardening checkpoint before any storage/RAM/ECS
   mutation.
+- The IMDSv2 checkpoint was pushed at
+  `42500ef27aa48a2b82ede67f5602212e48d4e644`. One private Standard OSS
+  bucket, one least-privilege RAM role and one exact custom policy were then
+  created and independently read back: public access is blocked, server-side
+  encryption is AES256, lifecycle is limited to the `noteai-private/` prefix,
+  the policy permits only Put/Get/Delete/List on the exact bucket/object
+  resources, both private API nodes require IMDSv2 and static access keys are
+  zero. Database connections, transactions, writes, service deployment and
+  real-user object writes remain zero.
+- The same current-source immutable image and encrypted root-only seven-key
+  configuration were prepared on both private API nodes. Network-none import
+  initially failed because the absolute acceptance script did not add
+  `/app/model` to `sys.path`; zero container/process residue and zero database
+  or object action proved `PRE_CONNECT`. The corrected script passed syntax,
+  imports and network-none execution on both nodes.
+- The first synthetic SDK Put reached OSS and returned
+  `SignatureDoesNotMatch`. A separately dispatched forced-readonly Head now
+  deterministically proves that exact synthetic object is absent
+  (`NoSuchKey 404`); database connection/transaction/write, service write,
+  real-user data and retained object count are zero. Therefore the object
+  outcome is known and no blind retry is permitted or needed.
+- Offline SDK/source inspection and current Alibaba OSS metadata rules locate
+  the precise cause: NoteAI's internal metadata keys use underscores, while
+  OSS user-metadata header names allow letters, digits and hyphens only.
+  The SDK signs the underscored `x-oss-meta-*` headers but OSS does not accept
+  that wire shape. The smallest fix maps `_` to `-` only at the Aliyun OSS Put
+  boundary; existing Get/Head normalization already maps hyphens back to the
+  unchanged internal schema. Focused storage `18/18`, adjacent
+  Worker/readiness `45/45`, production gate `105/105`, compile and diff checks
+  pass. Checkpoint and push this root-cause fix before one new bounded
+  synthetic validation method.
 
 ## 7. Mandatory failure classification
 
@@ -825,10 +856,13 @@ checkpoint.
 
 Current remaining steps:
 
-- commit and push the private-storage source checkpoint;
-- obtain fresh read-only production OSS/RAM/ECS/API state;
-- build the smallest private, bounded-cost, rollback-safe cross-node recovery
-  path using synthetic objects only, with public access and real traffic zero;
+- commit and push the OSS metadata wire-format root-cause checkpoint;
+- package that exact source overlay, validate it network-none on both nodes and
+  run the smallest private, bounded-cost cross-node matrix with at most two
+  sub-64-byte synthetic objects;
+- delete every synthetic object and task artifact, then independently read
+  back bucket privacy/lifecycle, role policy, IMDSv2, zero residue and
+  API-C/API-F/Admin non-regression;
 - save Secret-free evidence, mark only `private_storage_runtime` verified;
 - continue through the dependency graph without stopping at the checkpoint
   or task boundary.

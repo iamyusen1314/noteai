@@ -389,7 +389,10 @@ class AliyunOssObjectBackend(ObjectBackend):
                 key=self._remote_key(key),
                 body=bytes(body),
                 content_type=_content_type_value(content_type),
-                metadata=_canonical_metadata(metadata),
+                metadata={
+                    key.replace("_", "-"): value
+                    for key, value in _canonical_metadata(metadata).items()
+                },
                 forbid_overwrite=True,
                 server_side_encryption="KMS" if self.kms_key_id else "AES256",
                 server_side_encryption_key_id=self.kms_key_id,

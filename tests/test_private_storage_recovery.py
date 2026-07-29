@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import stat
 import sys
@@ -737,6 +738,14 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
         )
         request = client.put_request
         self.assertTrue(request.forbid_overwrite)
+        self.assertTrue(request.metadata)
+        self.assertTrue(
+            all(
+                re.fullmatch(r"[a-z][a-z0-9-]{0,31}", key)
+                for key in request.metadata
+            )
+        )
+        self.assertFalse(any("_" in key for key in request.metadata))
         self.assertEqual(request.server_side_encryption, "KMS")
         self.assertIsNone(request.server_side_data_encryption)
         self.assertEqual(
