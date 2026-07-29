@@ -15,9 +15,10 @@ api_f_bundle="${execution_root}/api-f-bundle.enc"
 prepare_sentinel="${execution_root}/prepare.passed"
 incident_id=PROD-FIRST-LAUNCH-MANAGED-SECRETS-V1-001
 confirmation=PROD-FIRST-LAUNCH-MANAGED-SECRETS-001
-files_sha256=609d0a1e62b59f925f38cbe85bda742a9f5b028056c2c1852cf601aef7089b7a
+files_sha256=d9540eb6e38465993d0b95d857e3a306159c184ccd87c2326e9bb1c6b9cdaca8
 roles_sha256=8d42df5a6ac5b466cd9040757448602f6fedcf0b87ae33fce7a9c3b3fc24973f
 audit_sha256=e24f7227356b45ede866228e50911396f7491ed943365526ebd55abb05fed853
+distribution_audit_sha256=4f51f1bd0e1220c0b5e856eef1c9157189accabc524fbd8ed53b512f7ca9ead4
 lifecycle_sha256=d8d35ac336452a26ed47152da775e64734b4aaa2e7db97313be8dd6c39f743de
 envelope_sha256=b6a67fab3fd66f8c378716935b105ac1fbe83c54190eb57baf1b1c3d6b7e2fbf
 apply_sha256=387914c293a88c2992e2519465a578ec0bae6876510ea2468212061cc1260201
@@ -45,7 +46,7 @@ fail_connected_known() {
 }
 
 case "${mode}" in
-    prepare | api-c | api-f | audit | finalize | metadata | cleanup) ;;
+    prepare | preflight | api-c | api-f | audit | finalize | metadata | cleanup) ;;
     *) fail_preconnect ;;
 esac
 case "${host_label}" in
@@ -79,6 +80,11 @@ test "$(
         "${source_root}/tools/production_managed_secret_login_audit.py" \
         | cut -d' ' -f1
 )" = "${audit_sha256}" || fail_preconnect
+test "$(
+    sha256sum \
+        "${source_root}/tools/production_managed_secret_distribution_audit.py" \
+        | cut -d' ' -f1
+)" = "${distribution_audit_sha256}" || fail_preconnect
 test "$(
     sha256sum \
         "${source_root}/tools/production_managed_secret_lifecycle.py" \
@@ -161,6 +167,14 @@ if mode == "api-c":
     require(result.get("api_c_promoted_files") == 3)
     require(result.get("api_f_encrypted_bundle_count") == 1)
     require(result.get("plaintext_task_file_count") == 0)
+elif mode == "preflight":
+    require(result.get("status") == "preflight_verified")
+    require(result.get("host_label") == host)
+    require(result.get("existing_file_count") == 2)
+    require(result.get("new_file_count") == 0)
+    require(result.get("database_connections") == 0)
+    require(result.get("legacy_cookie_present") in {0, 1})
+    require(result.get("legacy_database_url_present") in {0, 1})
 elif mode == "api-f":
     require(result.get("status") == "api_f_promoted")
     require(result.get("incident_class") == "PRE_CONNECT")
@@ -276,6 +290,54 @@ existing="$(
         --format '{{.ID}}'
 )" || fail_preconnect
 test -z "${existing}" || fail_preconnect
+
+if test "${mode}" = preflight; then
+    docker run \
+        --rm \
+        --pull never \
+        --network none \
+        --name "${container_name}" \
+        --user 0:0 \
+        --read-only \
+        --cap-drop=ALL \
+        --security-opt=no-new-privileges:true \
+        --pids-limit 64 \
+        --memory 128m \
+        --cpus 0.25 \
+        --tmpfs /tmp:rw,noexec,nosuid,nodev,size=8m \
+        -e PYTHONDONTWRITEBYTECODE=1 \
+        -e PYTHONPATH=/task \
+        -v /etc/noteai:/etc/noteai:ro \
+        -v /var/lib/noteai:/var/lib/noteai:ro \
+        -v "${source_root}:/task:ro" \
+        -w /task \
+        --entrypoint python \
+        "${image_id}" \
+        -m tools.production_managed_secret_files \
+        preflight \
+        --host-label "${host_label}" \
+        >"${result_path}" 2>"${error_path}" \
+        || fail_preconnect
+    test ! -s "${error_path}" || fail_preconnect
+    validate_result preflight "${result_path}" "${host_label}" \
+        || fail_preconnect
+    legacy_cookie="$(
+        python3 -I -c \
+            'import json,sys; print(json.load(open(sys.argv[1],encoding="utf-8"))["legacy_cookie_present"])' \
+            "${result_path}"
+    )" || fail_preconnect
+    legacy_database="$(
+        python3 -I -c \
+            'import json,sys; print(json.load(open(sys.argv[1],encoding="utf-8"))["legacy_database_url_present"])' \
+            "${result_path}"
+    )" || fail_preconnect
+    result_sha="$(
+        sha256sum "${result_path}" | cut -d' ' -f1
+    )" || fail_preconnect
+    printf '%s\n' \
+        "SAFE_MANAGED_SECRETS mode=preflight host=${host_label} incident_class=PRE_CONNECT database_connection=0 transaction=0 database_write=0 existing_files=2 new_files=0 legacy_cookie=${legacy_cookie} legacy_database=${legacy_database} result_sha256=${result_sha} automatic_retry=0 cleanup_required=1 ids_printed=0 secrets=0"
+    exit 0
+fi
 
 if test "${mode}" = api-c; then
     test "${host_label}" = API-C || fail_preconnect

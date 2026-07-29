@@ -86,12 +86,17 @@ It may exist only in the two distinct `0600` XHS role files; API/Admin files
 must reject it. Values are never printed. The old snapshot-upload and
 authorized-trend tokens are not accepted by either managed XHS role.
 During the one-time role split, the protected host-local legacy `xhs.env`
-value may be read in memory solely to create the final Trends and Tracking
-files on the same host. It must not traverse Cloud Shell, command arguments,
-logs, API/Admin/Payment/Worker files or Git, and the legacy file must be
-deleted after both final files and their role-bound read-only connections
-have been independently verified. This is not permission to duplicate the
-credential into any non-XHS role.
+value, if present, may be read in memory solely to create the final Trends
+and Tracking files on the same host. It must not traverse Cloud Shell,
+command arguments, logs, API/Admin/Payment/Worker files or Git, and the
+legacy file must be deleted after both final files and their role-bound
+read-only connections have been independently verified. If the provider
+credential is absent while both XHS runtimes remain suspended, the final
+files contain only their dedicated `DATABASE_URL`; no placeholder, copied
+credential or readiness credit for the provider path is allowed. A real XHS
+credential must still be installed and verified through its separate gate
+before either runtime or public cutover. This is not permission to duplicate
+the credential into any non-XHS role.
 
 The first-launch credential workflow enables `LOGIN` only for
 `noteai_admin_runtime`, `noteai_payment`, `noteai_ai_worker`,

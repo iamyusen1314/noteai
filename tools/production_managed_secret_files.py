@@ -55,23 +55,21 @@ STAGED_ROLES = {
     "API-C": ("admin", "payment", "ai_worker"),
     "API-F": ("xhs_trends", "xhs_tracking"),
 }
+NEW_FILE_ROLES = {
+    "API-C": ("payment", "ai_worker"),
+    "API-F": ("xhs_trends", "xhs_tracking"),
+}
 REQUIRED_KEYS = {
     "api": frozenset({"DATABASE_URL"}),
     "admin": frozenset({"DATABASE_URL", "ADMIN_PASSWORD"}),
     "payment": frozenset({"DATABASE_URL"}),
     "ai_worker": frozenset({"DATABASE_URL"}),
-    "xhs_trends": frozenset(
-        {"DATABASE_URL", "NOTEAI_XHS_COOKIES_JSON"}
-    ),
-    "xhs_tracking": frozenset(
-        {"DATABASE_URL", "NOTEAI_XHS_COOKIES_JSON"}
-    ),
+    "xhs_trends": frozenset({"DATABASE_URL"}),
+    "xhs_tracking": frozenset({"DATABASE_URL"}),
 }
 MINIMAL_KEYS = {
     "payment": REQUIRED_KEYS["payment"],
     "ai_worker": REQUIRED_KEYS["ai_worker"],
-    "xhs_trends": REQUIRED_KEYS["xhs_trends"],
-    "xhs_tracking": REQUIRED_KEYS["xhs_tracking"],
 }
 LEGACY_XHS_FILE = "xhs.env"
 LEGACY_XHS_KEY = "NOTEAI_XHS_COOKIES_JSON"
@@ -215,6 +213,11 @@ def _validate_role_file(
         raise ManagedSecretFileError("required_keys")
     if role in MINIMAL_KEYS and set(values) != MINIMAL_KEYS[role]:
         raise ManagedSecretFileError("minimal_keys")
+    if role in {"xhs_trends", "xhs_tracking"} and set(values) not in {
+        frozenset({"DATABASE_URL"}),
+        frozenset({"DATABASE_URL", LEGACY_XHS_KEY}),
+    }:
+        raise ManagedSecretFileError("minimal_keys")
     _validate_database_url(role, values["DATABASE_URL"])
 
 
@@ -233,6 +236,82 @@ def _validate_transition_admin(
         raise ManagedSecretFileError("required_keys")
     if _database_user(values["DATABASE_URL"]) != "noteai_app":
         raise ManagedSecretFileError("admin_transition_prestate")
+
+
+def _legacy_xhs_state(
+    path: Path,
+    *,
+    expected_uid: int,
+) -> dict[str, str]:
+    _private_regular(path, expected_uid=expected_uid)
+    values = dict(_parse_env(path))
+    if not values or set(values) - {"DATABASE_URL", LEGACY_XHS_KEY}:
+        raise ManagedSecretFileError("legacy_xhs_contract")
+    database_url = values.get("DATABASE_URL")
+    if (
+        database_url is not None
+        and _database_user(database_url) != "noteai_xhs"
+    ):
+        raise ManagedSecretFileError("legacy_xhs_database_role")
+    cookie = values.get(LEGACY_XHS_KEY)
+    if cookie is not None and not cookie:
+        raise ManagedSecretFileError("legacy_xhs_contract")
+    return values
+
+
+def preflight_distribution(
+    host_label: str,
+    *,
+    env_root: Path = ENV_ROOT,
+    task_root: Path = TASK_ROOT,
+    expected_uid: int = 0,
+    require_root: bool = True,
+) -> dict[str, Any]:
+    if require_root:
+        _require_root()
+    if host_label not in HOST_ROLES:
+        raise ManagedSecretFileError("host_label")
+    if task_root.exists() or task_root.is_symlink():
+        raise ManagedSecretFileError("task_residue")
+    _validate_role_file(
+        "api",
+        env_root / ROLE_FILES["api"],
+        expected_uid=expected_uid,
+    )
+    legacy_cookie_present = 0
+    legacy_database_url_present = 0
+    if host_label == "API-C":
+        _validate_transition_admin(
+            env_root / ROLE_FILES["admin"],
+            expected_uid=expected_uid,
+        )
+    else:
+        legacy = _legacy_xhs_state(
+            env_root / LEGACY_XHS_FILE,
+            expected_uid=expected_uid,
+        )
+        legacy_cookie_present = int(LEGACY_XHS_KEY in legacy)
+        legacy_database_url_present = int("DATABASE_URL" in legacy)
+    if any(
+        (env_root / ROLE_FILES[role]).exists()
+        or (env_root / ROLE_FILES[role]).is_symlink()
+        for role in NEW_FILE_ROLES[host_label]
+    ):
+        raise ManagedSecretFileError("final_file_preexists")
+    return {
+        "schema_version": 1,
+        "task_id": TASK_ID,
+        "status": "preflight_verified",
+        "host_label": host_label,
+        "existing_file_count": 2,
+        "new_file_count": 0,
+        "legacy_cookie_present": legacy_cookie_present,
+        "legacy_database_url_present": legacy_database_url_present,
+        "secret_values_emitted": 0,
+        "service_changes": 0,
+        "public_traffic_requests": 0,
+        "database_connections": 0,
+    }
 
 
 def _manifest_path(task_root: Path) -> Path:
@@ -281,26 +360,19 @@ def stage_distribution(
     for role in STAGED_ROLES[host_label]:
         _validate_database_url(role, database_urls[role])
 
-    _validate_role_file(
-        "api",
-        env_root / ROLE_FILES["api"],
+    preflight_distribution(
+        host_label,
+        env_root=env_root,
+        task_root=task_root,
         expected_uid=expected_uid,
+        require_root=False,
     )
-    if host_label == "API-C":
-        _validate_transition_admin(
-            env_root / ROLE_FILES["admin"],
+    legacy_values: dict[str, str] = {}
+    if host_label == "API-F":
+        legacy_values = _legacy_xhs_state(
+            env_root / LEGACY_XHS_FILE,
             expected_uid=expected_uid,
         )
-    else:
-        legacy_path = env_root / LEGACY_XHS_FILE
-        _private_regular(legacy_path, expected_uid=expected_uid)
-        legacy_rows = _parse_env(legacy_path)
-        legacy_values = dict(legacy_rows)
-        if (
-            set(legacy_values) != {LEGACY_XHS_KEY}
-            or not legacy_values[LEGACY_XHS_KEY]
-        ):
-            raise ManagedSecretFileError("legacy_xhs_contract")
 
     try:
         (task_root / "stage").mkdir(parents=True, mode=0o700)
@@ -339,13 +411,11 @@ def stage_distribution(
             elif role in {"xhs_trends", "xhs_tracking"}:
                 staged_rows = [
                     ("DATABASE_URL", database_urls[role]),
-                    (
-                        LEGACY_XHS_KEY,
-                        dict(_parse_env(env_root / LEGACY_XHS_FILE))[
-                            LEGACY_XHS_KEY
-                        ],
-                    ),
                 ]
+                if LEGACY_XHS_KEY in legacy_values:
+                    staged_rows.append(
+                        (LEGACY_XHS_KEY, legacy_values[LEGACY_XHS_KEY])
+                    )
             else:
                 staged_rows = [("DATABASE_URL", database_urls[role])]
             staged_path = task_root / "stage" / ROLE_FILES[role]
@@ -577,14 +647,27 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "action",
-        choices=("stage", "promote", "verify", "rollback", "finalize"),
+        choices=(
+            "preflight",
+            "stage",
+            "promote",
+            "verify",
+            "rollback",
+            "finalize",
+        ),
     )
     parser.add_argument("--host-label", choices=tuple(HOST_ROLES), required=True)
     parser.add_argument("--env-root", type=Path, default=ENV_ROOT)
     parser.add_argument("--task-root", type=Path, default=TASK_ROOT)
     args = parser.parse_args(argv)
     try:
-        if args.action == "stage":
+        if args.action == "preflight":
+            result = preflight_distribution(
+                args.host_label,
+                env_root=args.env_root,
+                task_root=args.task_root,
+            )
+        elif args.action == "stage":
             result = stage_distribution(
                 args.host_label,
                 _protected_payload(),

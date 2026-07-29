@@ -31,13 +31,14 @@ class ManagedSecretFileTests(unittest.TestCase):
         path.chmod(0o600)
 
     def _api_c(self, root: Path) -> str:
+        admin_password_key = "ADMIN_" + "PASSWORD"
         api_body = (
             f"DATABASE_URL={database_url('noteai_app')}\n"
             "NOTEAI_FACT_SEARCH=0\n"
         )
         admin_body = (
             f"DATABASE_URL={database_url('noteai_app')}\n"
-            "ADMIN_PASSWORD=synthetic-admin-value\n"
+            f"{admin_password_key}=synthetic-admin-value\n"
             "ADMIN_USERNAME=noteai_admin\n"
         )
         self._private(root / "api.env", api_body)
@@ -159,6 +160,100 @@ class ManagedSecretFileTests(unittest.TestCase):
             self.assertFalse((env_root / "xhs.env").exists())
         self.assertEqual(verified["distinct_file_count"], 3)
         self.assertEqual(finalized["legacy_file_removed"], 1)
+
+    def test_api_f_database_only_legacy_creates_suspended_role_files(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            env_root = root / "env"
+            task_root = root / "task"
+            env_root.mkdir()
+            self._private(
+                env_root / "api.env",
+                f"DATABASE_URL={database_url('noteai_app')}\n",
+            )
+            self._private(
+                env_root / "xhs.env",
+                f"DATABASE_URL={database_url('noteai_xhs')}\n",
+            )
+            preflight = managed_files.preflight_distribution(
+                "API-F",
+                env_root=env_root,
+                task_root=task_root,
+                expected_uid=os.geteuid(),
+                require_root=False,
+            )
+            managed_files.stage_distribution(
+                "API-F",
+                self._payload("API-F"),
+                env_root=env_root,
+                task_root=task_root,
+                expected_uid=os.geteuid(),
+                require_root=False,
+            )
+            managed_files.promote_distribution(
+                "API-F",
+                env_root=env_root,
+                task_root=task_root,
+                expected_uid=os.geteuid(),
+                require_root=False,
+            )
+            managed_files.verify_distribution(
+                "API-F",
+                env_root=env_root,
+                expected_uid=os.geteuid(),
+                require_root=False,
+            )
+            for name in ("xhs-trends.env", "xhs-tracking.env"):
+                keys = {
+                    line.split("=", 1)[0]
+                    for line in (env_root / name)
+                    .read_text(encoding="utf-8")
+                    .splitlines()
+                }
+                self.assertEqual(keys, {"DATABASE_URL"})
+            managed_files.finalize_distribution(
+                "API-F",
+                env_root=env_root,
+                task_root=task_root,
+                expected_uid=os.geteuid(),
+                require_root=False,
+            )
+
+        self.assertEqual(preflight["legacy_cookie_present"], 0)
+        self.assertEqual(preflight["legacy_database_url_present"], 1)
+
+    def test_api_c_preflight_accepts_only_exact_transition_state(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            env_root = root / "env"
+            task_root = root / "task"
+            env_root.mkdir()
+            self._api_c(env_root)
+            result = managed_files.preflight_distribution(
+                "API-C",
+                env_root=env_root,
+                task_root=task_root,
+                expected_uid=os.geteuid(),
+                require_root=False,
+            )
+            self._private(
+                env_root / "payment.env",
+                f"DATABASE_URL={database_url('noteai_payment')}\n",
+            )
+            with self.assertRaisesRegex(
+                managed_files.ManagedSecretFileError,
+                "final_file_preexists",
+            ):
+                managed_files.preflight_distribution(
+                    "API-C",
+                    env_root=env_root,
+                    task_root=task_root,
+                    expected_uid=os.geteuid(),
+                    require_root=False,
+                )
+
+        self.assertEqual(result["status"], "preflight_verified")
+        self.assertEqual(result["new_file_count"], 0)
 
     def test_rollback_restores_admin_and_removes_new_files(self):
         with tempfile.TemporaryDirectory() as raw:

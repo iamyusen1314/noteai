@@ -103,11 +103,13 @@
 - Unique next task:
   `PROD-FIRST-LAUNCH-MANAGED-SECRETS-001`.
 
-## 2.2 Managed-secret source stage ready for checkpoint
+## 2.2 Managed-secret source and fresh production pre-dispatch baseline
 
-- Production has not been touched by this source stage. Production database
-  connections, transactions, writes, account changes, service changes,
-  provider calls and public traffic are all zero.
+- The initial managed-secret source checkpoint was pushed at
+  `922cfb815415399ae5dcaf8c3d2ade8298ea2627`. The subsequent fresh
+  production checks are read-only: production database connections,
+  transactions, writes, account changes, service changes, provider calls and
+  public traffic remain zero.
 - The exact first-launch login set is five roles:
   `noteai_admin_runtime`, `noteai_ai_worker`, `noteai_payment`,
   `noteai_xhs_tracking` and `noteai_xhs_trends`.
@@ -123,9 +125,16 @@
   role-bound DSN usernames/key allowlists/inodes, and removes rollback
   artifacts only after validation.
 - The one-time executor generates credentials only in memory. API-F receives
-  only an RSA-OAEP-SHA256 plus AES-256-GCM envelope. The API-F-local legacy
-  XHS value never leaves that host and is deleted after the two final XHS
-  files and their read-only logins pass.
+  only an RSA-OAEP-SHA256 plus AES-256-GCM envelope. An API-F-local legacy
+  XHS credential, if present, never leaves that host and is deleted with the
+  legacy file after the two final XHS files and their read-only logins pass.
+  Fresh protected key-name-only observation proves the current legacy
+  `xhs.env` contains the `noteai_xhs` database URL but no XHS cookie; exact
+  protected searches over `/etc/noteai` and the running API container also
+  found no cookie key. The managed-secret control therefore creates the two
+  suspended XHS files with their dedicated database URLs only. It does not
+  create a placeholder or award provider readiness; a real XHS credential
+  remains mandatory before provider runtime activation or public cutover.
 - The installed root-owned `0750` rotation/revocation wrappers run the fixed
   lifecycle implementation in a bounded existing API image. Protected input
   is stdin-only. Rotation requires a new read-only login plus rejection of
@@ -142,6 +151,16 @@
   UID/GID test metadata, transition-state Admin identity and Psycopg
   connection-error SQLSTATE exposure. Each received a material fix; no
   production path was dispatched.
+- Fresh control-plane observation proves one private running PostgreSQL RDS,
+  no public endpoint, seven successful backups with the latest under
+  thirteen hours old, accounts `3/1/0`, no task account and no managed-secret
+  control-plane object.
+- Fresh API-C/API-F host observation proves both API services and API-C Admin
+  are active, ready `200` and loopback-only. Managed-secret task roots,
+  maintenance containers, task processes, database connections,
+  transactions and writes are all zero. The current narrow source correction
+  adds an exact network-none preflight for this real database-only legacy
+  state before any account, RSA material or database action may be created.
 
 ## 2.3 Historical V5 remote-prepare checkpoint
 
