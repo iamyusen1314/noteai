@@ -173,6 +173,8 @@ class FirstLaunchUiAdminContractTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("models", registry)
         self.assertIn("enabled", crawler)
+        self.assertFalse(crawler["enabled"])
+        self.assertIsNone(crawler["last_run"])
 
     async def test_production_crawler_status_never_reads_cookie_setting(self):
         def get_json(key, default=None):
@@ -203,6 +205,8 @@ class FirstLaunchUiAdminContractTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(result["cookie_file_exists"])
         self.assertEqual(result["cookie_count"], 0)
+        self.assertFalse(result["enabled"])
+        self.assertIsNone(result["last_run"])
 
     async def test_admin_user_payload_is_masked_and_omits_payment_reference(self):
         db.execute(

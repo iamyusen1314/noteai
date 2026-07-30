@@ -1507,16 +1507,464 @@ The 005 verified outcome/evidence was committed and pushed normally at
 The corrected V5 runner was committed at `efeb5bb`; it supersedes the unsafe
 intermediate `fa2ebae` and must be included by the next pushed source
 checkpoint.
+The API-F exact-current runtime evidence/verifier/readiness checkpoint was
+committed and pushed normally at
+`216be18bab10e5e0358e1f61e3f6b70bd207a8a8`; branch, upstream and HEAD were
+equal with divergence `0/0` immediately afterward.
+
+## 9. Admin exact-current Stage C fresh baseline
+
+- The sole serial task is now
+  `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Internal readiness remains
+  `19/29 = 66%` and public readiness remains `19/38 = 50%`; no Admin credit
+  has been claimed.
+- The immutable Admin target is revision
+  `b55f11882100e9ef919522540729e366a511f88f`, manifest
+  `sha256:271a089e4e5ae7da3635b14d2ce8d5195955e7d74225723a4308d0c99cb79e56`
+  and config
+  `sha256:fac78f71d7b123621962738d2a93532ff98f2302232562dc75b6a8e0016b7626`.
+  Its role/platform/entrypoint/command are exactly
+  `admin`, `linux/amd64`, `/app/scripts/docker_entrypoint.sh` and
+  `/app/scripts/render_start_admin.sh`.
+- The rollback anchors are the installed unit SHA-256
+  `c299059d167eab0863639355a6485094e58e3dca6bcec7adbe9f78a3857a1ab2`,
+  historical manifest
+  `sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733`,
+  historical config
+  `sha256:2283095764622e373e30b51ba749819751e6bfb0c37c6bb82e2d3bfe4937760f`
+  and revision `a635692a899ee02c6905cd694611c14e0da4594a`.
+  The old Admin is active/enabled, systemd result success, Docker restart
+  zero, live/ready `200` and loopback-only on `8001`; `18001` is absent.
+- The installed Admin container remains exactly one `role=admin` generation,
+  user `999:999`, running/healthy, read-only root, unprivileged,
+  `no-new-privileges`, all capabilities dropped, `1 GiB / 1 CPU / 512 PIDs`,
+  private IPC, bridge network, a read-only `/app/model/data` mount, a
+  `512 MiB` noexec/nosuid/nodev `/tmp` tmpfs and no automatic restart.
+  Its Secret-free container-identity hash is
+  `38bfd55d88df86031a431edf8be808ba4e87cff33c492024e4a8bcd0f95fd66a`.
+- `/etc/noteai/admin.env` is a regular non-symlink, root-owned `0600` file
+  with SHA-256
+  `ddf4ef6f19a3234e077d08bb09faef23219299184213edc32aed085d34775d2a`
+  and exactly `DATABASE_URL` plus `ADMIN_PASSWORD`. The staged database
+  identity is exactly `noteai_admin_runtime` with a nonempty password.
+  The historical running container still carries the old `noteai_app`
+  database identity, as expected before its first managed restart.
+- Protected-file state is unchanged: the Admin node has five expected
+  root-only files with aggregate hash
+  `fe67cb77e04653a7501c69df6f1f2d7783e3352370eaedfe5604adc492f29663`;
+  the two lifecycle wrappers have aggregate hash
+  `24348af5ce3ce80301d570d1406974a42ce5fa89bba11ee2ee54c20778732196`.
+  Registry-auth, task-root, backup, canary and `18001` residue are zero,
+  the target Admin image is not yet cached, and bounded capacity is
+  sufficient.
+- Fresh peer checks bind API-C and API-F to their exact current units and
+  shared current API config image, active/enabled, Docker restart zero,
+  formal live/ready `200`, loopback-only `8000` and no canary listener.
+  Their Secret-free container-identity hashes are respectively
+  `3e0e26942e2352ee0b7f6e1540c2233b7634530e7e845848832be6a059362b53`
+  and
+  `9b9d3da2c4031609f7f9a70128376b707dfc00daaa5dd5d1cfbcf3bb13778dca`.
+  API-F's four protected files and both lifecycle wrappers remain exact.
+- The accepted immediately preceding API-F control-plane closeout proves one
+  Running PostgreSQL 16 instance, VPC/Intranet networking, one private and
+  zero public endpoint, accounts `8/1/0`, all eight accounts available, task
+  residue zero, production-VPC ALB zero, and seven successful automated full
+  backups in seven days with the latest about nineteen hours old.
+- A fresh read-only RDS Explorer refresh loaded the intended
+  `DescribeDBInstances` action but its first call produced no result link.
+  After proving there was no response residue, only one read-only retry was
+  issued; it again produced no parsable result and no authentication,
+  authorization or throttling signal. This is a control-console
+  result-extraction failure with cloud/database/service writes zero. The
+  accepted API-F snapshot above was not replaced and no further blind retry
+  is allowed.
+- Three remote read-only diagnostic source variants failed before changing
+  state: a Docker template applied `len` to a null field, two protected-file
+  shell traversal forms exited nonzero, and one backup command was not
+  dispatched. Corrected bounded variants passed. An API-F protected-file
+  command that exceeded the UI-safe shape was not dispatched; its shorter
+  form passed. All incidents had service/database/object/provider writes zero
+  and are preserved rather than retried blindly.
+- Exact Admin pull is complete. One short-lived Registry credential was
+  issued, encrypted with a fresh node-local RSA-OAEP-SHA256 key, transmitted
+  only as ciphertext, consumed through isolated Docker auth and
+  `--password-stdin`, and used for exactly one login plus one pull.
+  `pull-result.json` SHA-256 is
+  `9ca9764f5567e5a5708e794edb30296f3a75539dfbe216af472fac8749c970fa`;
+  it binds the exact target config image, RepoDigest, revision, `admin` role,
+  `linux/amd64`, entrypoint and command. Automatic retry, database connection,
+  service mutation, canary and public/provider/object writes are zero.
+- Cloud Assistant's paste-content mode has a bounded `512`-character editor,
+  so the locally compiled `4,432`-byte pull executor was transported as ten
+  root-owned `0600` PlainText parts. The parts were individually non-overwrite
+  sends, verified as a complete `00`–`09` set, assembled to exact SHA-256
+  `b0412afe625a2896f424f4d7139ced21a7d70e118dfba77ff1fd25fd40cb37b1`,
+  then deleted after the pull result passed. The encrypted credential was one
+  separate root-owned `0600` `512`-character payload.
+- The first direct SendFile wrapper selected upload/Base64 rather than the
+  PlainText radio and never dispatched the file. Initial part `00` and part
+  `01` wrappers likewise stopped in browser form handling; read-only absence
+  checks preceded their corrected sends. Part `04` stopped before text-mode
+  selection and a fresh presence bitmap proved `11110`; part `05` stopped at
+  the same local mode boundary. Each missing part was then sent once, no
+  existing part was overwritten, and all final sends had a success result
+  row. These are append-only `PRE_CONNECT` incidents with Registry, service,
+  database and provider actions zero.
+- The first read-only attempt to recover the historical private image
+  repository used a newline count on a scalar and failed before output. Its
+  corrected single-container assertion recovered the path in memory without
+  exposing it. The pull command's outer browser wait later expired and reset
+  the browser-control session, but the unique existing invocation was found
+  read-only as `successful` with `NOTEAI_ADMIN_PULL_V1=PASS`; it was not
+  resent.
+- Final exact-pull cleanup is zero for isolated Docker auth, RSA public/private
+  key, ciphertext and transfer parts. A separate post-pull audit proved the
+  target config image cached exactly, while the historical Admin unit,
+  historical running image, Docker restart zero and live/ready `200` remained
+  unchanged.
+- Candidate V1 was derived from the exact `1,263`-byte historical unit by
+  replacing only its one historical manifest digest. Its SHA-256 was
+  `92c4f9c9c5a36d8696f2853bbffabad7f600b90eae9afb443567e06fa8af9751`
+  and systemd syntax passed, but a token-level semantic audit then found the
+  historical API-only
+  `PGOPTIONS=-c default_transaction_read_only=on` environment item. This
+  conflicts with Admin's narrowly authorized session INSERT/DELETE. Candidate
+  V1 was never installed, never used for a canary and never connected to the
+  database; it is append-only `PRE_CONNECT` and its staged file was deleted.
+- Candidate V2 changes exactly the target manifest digest and removes exactly
+  that one API-only environment item. It is `1,209` bytes, has `46` tokens and
+  SHA-256
+  `fc824f32d4a24fed06a2223774d2cdbc6a6652e8a37721aa219d2d5b34293062`.
+  Re-inserting that token and restoring the old digest reconstructs the
+  historical unit byte-for-byte; all hardening, resource, mount, env-file,
+  loopback-port and service tokens are otherwise unchanged.
+  `systemd-analyze verify` passed on the node. The exact historical unit is
+  retained separately as root-only rollback with SHA-256
+  `c299059d167eab0863639355a6485094e58e3dca6bcec7adbe9f78a3857a1ab2`;
+  all Candidate V1/V2 transport parts are zero.
+- Admin differs intentionally from API-C/API-F: its database role must permit
+  the narrowly scoped `admin_sessions` `SELECT/INSERT/DELETE`, so the session
+  default must not be forced read-only. The catalog/ACL audit must instead use
+  a separate explicitly read-only transaction and terminal rollback. One
+  canary login may insert exactly one session; it must survive promotion and
+  the one explicit restart, then logout must delete exactly one session and
+  replay must return `403`. The seven mutation routes remain `409`, cookie
+  update `410`, crawler mutation `409`, all five mutation capabilities false,
+  and business/schema/role/object/provider/public writes zero.
 
 Current remaining steps:
 
 - preserve Stage A/build10, Stage B publication and Stage C ordered
   deployment/rollback/postcheck evidence; do not rebuild, rescan, republish or
   repeat API-C or API-F;
-- complete the full-suite and independent read-only audit, then checkpoint and
-  push the exact API-F runtime evidence/verifier/gate state;
 - execute only `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001` from a fresh Admin
   baseline, with exact Admin image identity, dedicated-role negative matrix,
   reversible promotion and independent API-C/API-F non-regression;
+- accept Admin only after exact image/unit/hardening/loopback identity,
+  the full `56 × 7 = 392` table ACL matrix, 15 sequence denials, function and
+  ownership/membership negatives, bounded login/restart/logout/replay
+  lifecycle, zero residue and rollback-ready evidence all pass; then wire the
+  independent verifier into the readiness gates and prove focused tests,
+  production gate `110/110`, internal `20/29 = 69%` and public
+  `20/38 = 53%`;
 - continue through the dependency graph without stopping at the checkpoint
   or task boundary.
+
+### Admin Stage C executor gate correction (2026-07-30)
+
+- No Admin canary, service restart, database session or production unit
+  mutation has started. A fresh marker-only pre-upload audit proved the remote
+  runtime executor, its compressed transport, results/state directory,
+  `/run` bearer directory, canary data directory and canary residue were all
+  absent. The remote Python runtime is compatible and `gzip` is available.
+- A marker-only Docker inspect resolves a conflicting historical sentence:
+  the current Admin `/app/model/data` bind mount is writable, and Candidate
+  V2's sole `--mount` contains only the unchanged `type/src/dst` keys. The
+  earlier statement describing this Admin bind mount as read-only is
+  incorrect; the read-only control applies to the container root filesystem.
+- The first locally compiled executor was held before upload after an
+  independent read-only review found contract blockers. In particular,
+  `system_settings.is_secret` is PostgreSQL `INTEGER`, and
+  `noteai_admin_runtime` intentionally has exactly one incoming
+  owner-management membership from `noteai_admin` with admin option true and
+  inherit/set both false. The earlier shorthand “membership zero” applies to
+  runtime inheritance/outgoing membership, not this accepted management
+  edge.
+- The corrected executor now validates the complete table, column and
+  sequence privilege matrices including every grant option, zero role-scoped
+  default ACL, the exact Admin RLS policy set, zero ownership/function
+  execution, exact database/schema privileges and the accepted one-edge
+  management topology. Its embedded Python sources compile locally and its
+  ACL allowlists match `tools/production_schema_roles.py`.
+- The bearer path is atomic and root-only. Runtime evidence checks that the
+  raw bearer has zero database rows while exactly one SHA-256 row exists
+  after login, then both are zero after logout; neither the bearer nor its
+  digest is persisted in task evidence. HTTP validation now checks response
+  shapes and user masking, takes database/catalog/process/data snapshots
+  around all read and mutation probes, and scans bounded logs for expanded
+  credential and bearer leak signatures.
+- Formal promotion, formal validation, explicit restart and session-close
+  failures restore the exact historical unit/image. A separate one-shot
+  `abort` mode cleans the task session/canary and proves the historical
+  service outcome; it refuses to turn any unresolved `CONNECTED_UNKNOWN`
+  history into a successful cleanup. Result files remain immutable, so no
+  failed mode is retried in place.
+- Local verification currently passes Python compilation, embedded-source
+  parsing, allowlist parity, atomic-token failure cleanup and preservation of
+  known rollback outcomes. The corrected package is awaiting the second
+  independent read-only review and has not been uploaded.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+second executor review has no blocking defect; then one exact upload,
+canary/ACL/session validation, reversible promotion, explicit restart,
+logout, zero-residue cleanup and independent peer/control-plane postcheck all
+pass before repository evidence may count Admin as internal `20/29`.
+
+### Admin Stage C executor upload checkpoint (2026-07-30)
+
+- The second targeted independent read-only review completed with no
+  deterministic production blocker. It confirmed that the corrected
+  PostgreSQL queries match the production audit contracts and that the HTTP
+  response-shape checks match the Admin source. The remaining risks are
+  fail-closed false negatives, not unsafe acceptance paths.
+- The first browser file-control attempt stalled before a file chooser was
+  captured. A fresh control-plane view proved that the send form had not been
+  submitted; this is an append-only `PRE_CONNECT` incident with remote
+  write, service, database and provider mutation all zero.
+- The exact audited transport was then sent once to only the API-C host. The
+  control plane reports one successful target, the intended isolated stage
+  directory, `root:root` and mode `0600`; overwrite remained disabled.
+- The remote verification command completed with exit code zero and marker
+  `NOTEAI_ADMIN_STAGE_UPLOAD_VERIFY=PASS`. It proved the compressed SHA-256
+  `e76cd8216ccc35e278b08bd41f64a75cb68eb72c450db8bfbefa97d9abd927a4`,
+  decompressed source SHA-256
+  `c2aac4d930e061b3e9d52c3f98a334d6af8349409fd455bb0603ee24e8cf252c`,
+  final ownership/mode `root:root:600`, and successful remote Python
+  compilation. The compressed transfer and generated bytecode cache were
+  removed after verification.
+- No Admin canary, formal service restart, production unit replacement or
+  database session has started at this checkpoint. Readiness remains
+  internal `19/29`, public `19/38`, production gate `109/109`.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+run the immutable `canary-start`, `canary-validate`, `acl-audit` and
+`session-open` modes exactly once each; require their exact PASS markers,
+zero connected-unknown state and no peer regression before formal promotion
+is eligible.
+
+### Admin Stage C V1 pre-connect failure and abort checkpoint (2026-07-30)
+
+- The unique immutable V1 `canary-start` invocation returned `FAILED` before
+  its mode-local result counters were created. Its secret-free result records
+  `failure_detail_code=candidate_mount`, `connected_unknown_count=0` and
+  `automatic_retry_count=0`. No canary container was created or started, no
+  formal service or unit was mutated, and no database connection or write was
+  attempted.
+- The failure is a local executor/parser defect, not a production runtime
+  fault. Candidate V2's already proved exact mount uses the historical
+  `type/src/dst` spellings, while V1's canary transformer required
+  `source/target`. V1 was not retried and its immutable failure result remains
+  preserved.
+- The unique V1 `abort` mode then passed. Its immutable result records
+  `cleanup_status=PASS`, `service_outcome=KNOWN_ROLLED_BACK`, formal rollback
+  restart `0`, canary remove `0`, connected unknown `0`, automatic retry `0`,
+  three formal health rounds, zero canary/container/listener/data/token
+  residue, complete prior-failure side-effect evidence with zero detected
+  side effects, API peer health true, and systemd
+  active/enabled/result-success with restart/status `0/0`.
+- Readiness is unchanged at internal `19/29`, public `19/38`, production gate
+  `109/109`. The V1 stage directory and results are evidence and must not be
+  overwritten.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+make the minimal `type/src/dst` mount-parser correction locally, compile and
+independently review the full V2 executor, upload it under a fresh V2 stage
+root, and require the fresh immutable `canary-start` PASS before any later
+Admin mode or formal promotion is eligible.
+
+### Admin Stage C V2 executor pre-upload checkpoint (2026-07-30)
+
+- The V2 executor uses fresh, non-overlapping stage, runtime-token, canary and
+  label namespaces. It preserves V1's immutable failure and abort results.
+- The only behavioral correction is fail-closed parsing of the already proved
+  Candidate V2 mount form. Both the canary transformer and runtime shape
+  verifier now require exactly three `key=value` segments with the exact
+  `type/src/dst` key set, `type=bind` and
+  `dst=/app/model/data`; the transformer changes only `src`.
+- Local positive and negative tests passed for the exact historical form and
+  rejection of `source/target`, duplicate `src`, an extra bare flag, the
+  wrong mount type and the wrong destination. Python compilation and package
+  round-trip also passed.
+- The targeted independent read-only re-review of exact source SHA-256
+  `ff36c70b4765b0ca96f9ab9c1bb3a85c7dc7bc5f9645ca57309a77b485c7e3f7`
+  found no blocker, no stale V1 namespace or `source/target` assumption, and
+  confirmed that canary, formal and final-cleanup paths reuse the complete
+  mount-shape gate. Its only non-blocking observation was that `src` is not
+  checked separately for an empty value; the exact candidate SHA binds a
+  non-empty source and later Docker/shape gates remain fail-closed.
+- The deterministic compressed transport is `18,877` bytes with SHA-256
+  `03c472bfab573d533858323ded43e071f8822dc92f1611db401248c7ec6e1837`;
+  its decompressed bytes are the exact audited `95,053`-byte source.
+  Readiness remains internal `19/29`, public `19/38`, production gate
+  `109/109`.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+create one fresh root-only V2 stage from the already verified candidate and
+rollback unit, upload and remotely compile the exact audited package once,
+then require the fresh immutable V2 `canary-start` PASS before dispatching
+any later mode.
+
+### Admin Stage C V2 executor upload checkpoint (2026-07-30)
+
+- One fresh root-only V2 stage was created after proving the V2 stage,
+  runtime-token root, canary name and port were absent and the historical
+  formal live/ready endpoints were healthy. The exact candidate and rollback
+  units were copied from the preserved V1 stage and reverified against their
+  accepted SHA-256 values; V1 files and results were not changed.
+- The exact audited V2 compressed transport was sent once to only the API-C
+  host with overwrite disabled, root ownership and mode `0600`. The
+  control-plane file result completed successfully.
+- The remote verification command returned
+  `NOTEAI_ADMIN_STAGE_V2_UPLOAD_VERIFY=PASS`. It proved the compressed and
+  decompressed SHA-256 values, installed the exact audited executor as
+  root-only mode `0600`, compiled it in memory, removed the compressed
+  transport and left exactly the candidate, rollback and executor files in
+  the fresh V2 stage.
+- No V2 canary, formal service restart, unit replacement or database session
+  has started. Readiness remains internal `19/29`, public `19/38`,
+  production gate `109/109`.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+run the fresh immutable V2 `canary-start` exactly once and require PASS,
+three health rounds, zero database/service mutations and zero peer regression
+before `canary-validate` is eligible.
+
+### Admin Stage C V2 canary identity checkpoint (2026-07-30)
+
+- The fresh immutable V2 `canary-start` ran exactly once and returned
+  `NOTEAI_ADMIN_STAGE_CANARY_START=PASS`. The corrected exact-mount path
+  created and started the isolated Canary and passed its bounded health gate;
+  the formal service and installed unit were not mutated.
+- The fresh immutable V2 `canary-validate` then ran exactly once and returned
+  `NOTEAI_ADMIN_STAGE_CANARY_VALIDATE=PASS`. It accepted the exact target
+  Admin image/revision/runtime identity, hardening, loopback port, writable
+  model-data bind shape, bounded clean logs, empty Canary data directory and
+  three live/ready/readiness-payload rounds.
+- Neither mode made a database connection or write, provider call, object
+  write or formal service mutation. Readiness remains internal `19/29`,
+  public `19/38`, production gate `109/109`.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+run the immutable V2 `acl-audit` once inside its forced read-only transaction
+and require the complete table/column/sequence/function/ownership/membership
+negative matrix PASS with terminal rollback before `session-open` is
+eligible.
+
+### Admin Stage C V2 ACL mismatch and abort checkpoint (2026-07-30)
+
+- The unique immutable V2 `acl-audit` returned
+  `NOTEAI_ADMIN_STAGE_ACL_AUDIT=FAIL`. Its immutable result is
+  `failure_detail_code=acl_matrix` with `connected_unknown_count=0`; it was
+  not retried. The formal service, installed unit and task session were not
+  mutated.
+- A targeted read-only diagnosis reused the exact audit source in a separate
+  forced read-only transaction and terminal rollback. Its secret-free
+  mismatch set contained only
+  `visible_system_settings_exact=false`; the command printed that complete
+  result and then returned nonzero solely because its trailing heredoc
+  delimiter was parsed as Python. A first narrow follow-up heredoc stopped at
+  Python parsing before opening a database connection.
+- A final compact narrow query opened one read-only transaction, selected only
+  `system_settings.key,is_secret`, rolled back and closed before printing. It
+  returned `VISIBLE_COUNT=0`, an empty key list and
+  `NOTEAI_ADMIN_STAGE_V2_SETTINGS_DIAG_COMPACT=PASS`; no setting value,
+  Secret, user data or credential was read or printed.
+- The unique V2 `abort` then returned
+  `NOTEAI_ADMIN_STAGE_ABORT=PASS`. The Canary and port were removed, token/data
+  residue is zero, the historical formal service remains the known healthy
+  outcome and V2 failure evidence is preserved.
+- This is now a precise production RLS/visibility-contract question, not an
+  unknown runtime state. Readiness remains internal `19/29`, public `19/38`,
+  production gate `109/109`.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+reconcile the zero visible `system_settings` rows against the versioned
+migrations, `production_schema_roles` contract, Admin source and tests; make
+no production ACL or data mutation until that read-only reconciliation proves
+whether the defect is the deployment state or the executor expectation.
+
+### Admin Stage C settings reconciliation and truthful-status blocker (2026-07-30)
+
+- Three independent read-only audits and the main-source review agree that
+  V2's exact-two-row expectation is false. Migrations `0001`–`0016` never seed
+  `model_registry` or `crawler_config`; the RLS policy only filters existing
+  rows. The disposable PostgreSQL contract intentionally inserts one eligible
+  row and expects one visible row, while the production restricted-read
+  contract permits zero rows, uses bundled fallback data and forbids lazy
+  persistence.
+- V3 must therefore accept an empty or partial visible subset only when every
+  visible row is a non-Secret member of the exact two-key allowlist. It must
+  also bind the `system_settings` policy's table, command, PUBLIC role,
+  predicate and no-`WITH CHECK` shape instead of using data cardinality as a
+  proxy. No production setting row, ACL or policy change is authorized or
+  needed.
+- An optional API-role aggregate command was abandoned after its compact
+  Python payload failed syntax parsing before connecting to the database. It
+  was not retried; database connections, transactions and writes were zero.
+  The accepted V5 ledger/migration hashes, complete runtime grant matrix,
+  exact policy-name set and successful runtime SELECT already distinguish the
+  observed empty set from a missing table grant.
+- Independent review found a separate real release blocker. With zero
+  `crawler_config` rows, b55 production Admin falls back to the bundled
+  `model/crawler_config.json`, whose `enabled=true` is rendered by the Admin
+  UI as “running”, although Trends and Tracking are not started. This is a
+  truthful-status defect and blocks Admin credit even though the ACL itself is
+  safe.
+- The smallest non-data repair is to change the bundled fallback to
+  suspended-by-default and add a production restricted-read regression test.
+  It requires a fresh Admin-only immutable build/publication/deployment
+  identity; the historical V1/V2 failure and abort evidence remains preserved.
+  Readiness remains internal `19/29`, public `19/38`, production gate
+  `109/109`.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+implement and verify the suspended-by-default fallback with the smallest
+source/test diff, create a clean pushed checkpoint, then build and publish a
+fresh Admin-only artifact before any new Stage C canary or formal promotion.
+
+### Admin truthful-status source checkpoint (2026-07-30)
+
+- The bundled fallback now sets `enabled=false` and `last_run=null`; no
+  runtime code, database row, migration, ACL, provider path or public surface
+  was changed. With no production settings row, Admin therefore reports the
+  actual suspended/not-started state instead of a synthetic running state.
+- The existing production restricted-read test now proves both the helper
+  fallback and the real `/admin/crawler/status` response return
+  `enabled=false` and `last_run=null` without lazy persistence or Cookie
+  setting access.
+- Targeted verification passed: Admin first-launch contract `10/10`, API
+  contracts `156/156`, frontend static `18/18`, Render deployment `17/17`,
+  full Python suite `1119/1119` with `28` expected skips, production gate
+  `109/109`, and internal readiness gate remains `19/29` / public `19/38`.
+- A targeted independent read-only diff review found the source change
+  minimal and sufficient. Its one blocking test-coverage request was the real
+  endpoint assertion above, which is now implemented and passing. It also
+  confirmed that the Tracking worker safely remains disabled by default;
+  any future Tracking promotion must explicitly and audibly enable it.
+- Readiness is intentionally unchanged. The current historical Admin image
+  remains in production, while the new source must first receive a clean
+  checkpoint and a fresh Admin-only immutable build/publication identity.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+commit and push the exact four-file source/risk/handoff/test checkpoint, then
+perform an Admin-only AMD64 build, scan and bounded private publication without
+rebuilding or redeploying API-C/API-F.
