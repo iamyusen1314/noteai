@@ -1,0 +1,622 @@
+{
+  "manifest_version": 1,
+  "task": "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-B55F118-PUBLISH-001",
+  "application_revision": "b55f11882100e9ef919522540729e366a511f88f",
+  "platform": "linux/amd64",
+  "builder": {
+    "runner_architecture": "x86_64",
+    "evidence_created": "2026-07-29T08:44:37Z",
+    "publication_recorded": "2026-07-30T05:42:21.099Z"
+  },
+  "publication_attestation_binding": {
+    "path": "security/vex/b55f118-registry-publication-attestation.json",
+    "file_sha256": "c27205495011debc49d8f4b7bfa235d36b08de6c2c96c0dc38dbb9d552076325",
+    "semantic_sha256": "6065f797cd16fc5b6c19a32f70e67e624adfa5e799151cf7bcb8432e6d202ab4"
+  },
+  "source_candidate_binding": {
+    "evidence": "security/vex/b55f118-github-native-release-evidence.json",
+    "evidence_semantic_sha256": "809fbe06a7336f899b213b6ace9f4a0dddab5e67ee02a8858fbf65f3084b804a",
+    "vex": "security/vex/b55f118-github-native-release.vex.cdx.json",
+    "vex_semantic_sha256": "c76d7eed4dc151ffcb630b146235096785b6f5ed29edc1ee1d84d293444671a8",
+    "review": "security/vex/b55f118-github-native-release-review.json",
+    "review_semantic_sha256": "e24eba3c21c34db116ea0770fa1b52e43ac50005984fb2687c3a835c677bc3ea"
+  },
+  "stage_a_binding": {
+    "raw_file_count": 43,
+    "original_invocation_status": "TIMEOUT",
+    "acceptance_version": 4,
+    "summary_sha256": "a8e1c7ca38e1d5886197f6f727a4fb51ce206817221cc404f4586d29588c41d0",
+    "manifest_sha256": "ec14390c4ccf9515f659ee29dfb20b60e6776d804dfe3005e2c2edb6d7bca865",
+    "acceptance_sha256": "e16a3c3d2308a6e4d1b9113d37059933efc4d7965a4f3c12f5cf0a43d9b10a75",
+    "state_sha256": "3bd7ed55948bf292ae969a4c159b03f10a17407788b950ca70b6a6b7d16403ef",
+    "publication_authorized": true,
+    "deployment_authorized": false,
+    "database_authorized": false,
+    "service_mutation_authorized": false,
+    "public_traffic_authorized": false
+  },
+  "base_images": {
+    "python": {
+      "index": "sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
+      "linux_amd64": "sha256:00af38ae2ed311628970782e8a2d7f014d8909dbc63cb97bc0a158187f4db045"
+    },
+    "node": {
+      "index": "sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0",
+      "linux_amd64": "sha256:3d0f05455dea2c82e2f76e7e2543964c30f6b7d673fc1a83286736d44fe4c41c"
+    }
+  },
+  "scanner": {
+    "sbom": {
+      "name": "Syft",
+      "version": "1.49.0"
+    },
+    "vulnerability": {
+      "name": "Trivy",
+      "version": "0.72.0"
+    },
+    "ignore_file_used": false,
+    "vex_applied_to_raw_report": false,
+    "ignore_unfixed": false,
+    "raw_reports_canonical_and_unsuppressed": true,
+    "cache": {
+      "database_sha256": "43c58b4f5d8c99a9480dd018596c2d907ac2df1f87e94f9da859b2563454bfa0",
+      "metadata_sha256": "c22e06141b5631651e7fda582ed629c876b0c500df2d78146053d157b6e4bb59",
+      "offline_scan": true,
+      "database_update_skipped": true,
+      "java_database_update_skipped": true
+    }
+  },
+  "retained_publication_evidence": {
+    "category": "registry_publication_files",
+    "retention_days": 14,
+    "retain_until": "2026-08-13T05:42:21.099Z",
+    "file_count": 19,
+    "file_bytes": 66763,
+    "tree_bytes": 83147,
+    "sha256sums_sha256": "151f676b27258e0ad02748bf2bb6f475b416ec2a2cd615e8a9df8c67cdd2b3ee",
+    "root_owned_private_files": true,
+    "symbolic_links": 0,
+    "special_files": 0,
+    "forbidden_credential_matches": 0
+  },
+  "registry": {
+    "repository": {
+      "private": true,
+      "status": "NORMAL",
+      "tag_immutability": true,
+      "tag_count_before": 10,
+      "tag_count_after": 15,
+      "baseline_tags_preserved": 10
+    },
+    "controls": {
+      "push_invocations": 5,
+      "manual_retries": 0,
+      "serial": true,
+      "unique_digests": 5,
+      "manifest_readbacks": 5,
+      "control_plane_readbacks": 5,
+      "registry_writes": 5,
+      "database_connections": 0,
+      "database_writes": 0,
+      "service_mutations": 0,
+      "public_endpoint_enabled": false,
+      "public_traffic_enabled": false,
+      "deployment_authorized": false
+    }
+  },
+  "cleanup": {
+    "builder_acr_vpc_links": 0,
+    "production_acr_vpc_links": 1,
+    "registry_public_endpoint_enabled": false,
+    "publisher_policy_exists": false,
+    "publisher_role_attached": false,
+    "publisher_role_exists": false,
+    "builder_ram_role_present": false,
+    "builder_imds_ram_role_http_status": 404,
+    "builder_acr_dns_records": 0,
+    "docker_auth_entries": 0,
+    "temporary_auth_directories": 0,
+    "running_containers": 0,
+    "push_processes": 0,
+    "database_connections": 0,
+    "source_images_retained": 5,
+    "api_c_api_active": true,
+    "api_c_admin_active": true,
+    "api_c_ready_http_status": 200,
+    "api_c_loopback_only": true,
+    "api_c_private_acr_dns_records": 1,
+    "api_f_api_active": true,
+    "api_f_ready_http_status": 200,
+    "api_f_loopback_only": true,
+    "api_f_private_acr_dns_records": 1
+  },
+  "components": {
+    "bsdutils": "pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5",
+    "gzip": "pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac",
+    "libacl1": "pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2",
+    "libblkid1": "pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux",
+    "liblastlog2-2": "pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux",
+    "libmount1": "pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux",
+    "libncursesw6": "pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses",
+    "libsmartcols1": "pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux",
+    "libtinfo6": "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses",
+    "libuuid1": "pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux",
+    "login": "pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5",
+    "mount": "pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux",
+    "ncurses-base": "pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses",
+    "ncurses-bin": "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses",
+    "perl-base": "pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl",
+    "util-linux": "pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+  },
+  "roles": {
+    "api": {
+      "target": "api-runtime",
+      "tag": "git-b55f118-amd64-api-r1",
+      "local_image_id": "sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53",
+      "config_digest": "sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53",
+      "push_digest": "sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+      "manifest_digest": "sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+      "control_plane_digest": "sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+      "registry_digest": "sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+      "platform": "linux/amd64",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4085,
+        "layer_count": 18,
+        "retained_json_sha256": "1ed505f987188dd72531c0fb4e8392b9f769530d19f84c2414b29b15278986d8"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "1828b5e46f6deb941a738fb9e9c5ca08c412584f0b796daf51cab2afc5aa7d31"
+      },
+      "registry_status": "NORMAL",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/app/scripts/render_start_api.sh"
+      ],
+      "sbom": {
+        "sha256": "2ebb2c874e3b2ebbde882e0f6950970fbf7d3598b3becbdc34b75f90d6c5cd98",
+        "serial_number": "urn:uuid:8d28e096-f58c-4619-b886-e1de9a3be2b6",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "e918a014a86f6f47e9992b87d079070451f0df88636fba9455d5e0f8cb3a25e0",
+        "history_sha256": "2aac126241963f0b52255ccab842d199dff74a93265e00f527322e23cf5509cc",
+        "inspect_sha256": "f273fdaafd9b1b94cf4c738db1e566652425ca0e6eeb5ebbaf404cfbe337f701",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "384dbece595dbcc93d82fdae8da75d33b526935e19fe06f545c5fd583d815a44",
+        "vulnerability_sha256": "11641b35599da94e4c05264a2d6db88226decbf6a5aadfda6f28977f2264159d"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "admin": {
+      "target": "admin-runtime",
+      "tag": "git-b55f118-amd64-admin-r1",
+      "local_image_id": "sha256:fac78f71d7b123621962738d2a93532ff98f2302232562dc75b6a8e0016b7626",
+      "config_digest": "sha256:fac78f71d7b123621962738d2a93532ff98f2302232562dc75b6a8e0016b7626",
+      "push_digest": "sha256:271a089e4e5ae7da3635b14d2ce8d5195955e7d74225723a4308d0c99cb79e56",
+      "manifest_digest": "sha256:271a089e4e5ae7da3635b14d2ce8d5195955e7d74225723a4308d0c99cb79e56",
+      "control_plane_digest": "sha256:271a089e4e5ae7da3635b14d2ce8d5195955e7d74225723a4308d0c99cb79e56",
+      "registry_digest": "sha256:271a089e4e5ae7da3635b14d2ce8d5195955e7d74225723a4308d0c99cb79e56",
+      "platform": "linux/amd64",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4085,
+        "layer_count": 18,
+        "retained_json_sha256": "cbeb8d36f790158153f7639627b3ce73ace28fa402c3360c98feb2a95adf34c7"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "9c8d18a11198eb17a303e07a98405aa4c6fccf0b32ff86b0b8fe987a70117fd2"
+      },
+      "registry_status": "NORMAL",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/app/scripts/render_start_admin.sh"
+      ],
+      "sbom": {
+        "sha256": "aa50f2c32f6f243afa635eaef2e0f7d17485fdfdac796022be5d17d936ec2f62",
+        "serial_number": "urn:uuid:312aa052-443d-4ce1-9b78-5f019686af42",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "0ea9c690fb9170f7275fae17d6e1ee124821e42060cd1960aebcbf674706e9a2",
+        "history_sha256": "393779257e550338114b3ba10c467bf48198ce151573d9c88b9f2d9494311af2",
+        "inspect_sha256": "4bb1e472d627106c5d4ec5fbde96b58bb9791eb8436ad77020c8a9220ea6b622",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "2bb8be1874e18e474bfd862769fd8ff21b4e320876889d297dd1d089c97ebb16",
+        "vulnerability_sha256": "efe31379c3cc8fed582c7e17b8d449e1a17422d9aae40e7325f69c9603991863"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "payment": {
+      "target": "payment-runtime",
+      "tag": "git-b55f118-amd64-payment-r1",
+      "local_image_id": "sha256:36b465dca36d5751318033cd494ed7544588f9ead18b781801542642ed2b1bc4",
+      "config_digest": "sha256:36b465dca36d5751318033cd494ed7544588f9ead18b781801542642ed2b1bc4",
+      "push_digest": "sha256:ad5827450ad187bd3cfb47f00a903b78106b00a5ca8dbee5e9a77770f0c02e2b",
+      "manifest_digest": "sha256:ad5827450ad187bd3cfb47f00a903b78106b00a5ca8dbee5e9a77770f0c02e2b",
+      "control_plane_digest": "sha256:ad5827450ad187bd3cfb47f00a903b78106b00a5ca8dbee5e9a77770f0c02e2b",
+      "registry_digest": "sha256:ad5827450ad187bd3cfb47f00a903b78106b00a5ca8dbee5e9a77770f0c02e2b",
+      "platform": "linux/amd64",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4085,
+        "layer_count": 18,
+        "retained_json_sha256": "f5adebf6578856355a9e6a1013030ef5d4e748d5ebf539e44fb5a6ff264359ec"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "5bdb454c6ec969d97037e967cf3a9224ba37f5b0dad6c1e5600bef44c63aecc6"
+      },
+      "registry_status": "NORMAL",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/app/scripts/render_start_payment.sh"
+      ],
+      "sbom": {
+        "sha256": "ca4e4c32252019d1de226f3cbd2c4a4b2f2c15e3eb218e957b442e29802591b5",
+        "serial_number": "urn:uuid:a67c9a2a-56c8-42c7-b1b5-f69f87498468",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "a08bfcd661c4b3b9c18c9e6c573276217128a7bfce9d35eca74f14763e6476c3",
+        "history_sha256": "2ac01cacbf87bd1afffc0a1ccfd0d1921196b018cb376cbfc9cbe02cff2ea1af",
+        "inspect_sha256": "7b6a88bbe097edce6bfea44a5b60613bbc8896877afdc8a54155f15cd1b4aad7",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "24fc60063ef1afc428d255bba807bdbb8c9d3d307b146f89bf674812ba48bee4",
+        "vulnerability_sha256": "bdd0c685f07a8bcfa856f13b9655a18ab6b24f029a76fe1ad075895fbc9c59c8"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "ai-worker": {
+      "target": "ai-worker-runtime",
+      "tag": "git-b55f118-amd64-ai-worker-r1",
+      "local_image_id": "sha256:eb3850db2f76001a25cbdd93c6fdbca6df18a3c734aaf6bb5096e5707fd71b2d",
+      "config_digest": "sha256:eb3850db2f76001a25cbdd93c6fdbca6df18a3c734aaf6bb5096e5707fd71b2d",
+      "push_digest": "sha256:d4c5d0dde6927ee9f422db35967be98c1d1066aec31db4e1f65c82ec6aeff34b",
+      "manifest_digest": "sha256:d4c5d0dde6927ee9f422db35967be98c1d1066aec31db4e1f65c82ec6aeff34b",
+      "control_plane_digest": "sha256:d4c5d0dde6927ee9f422db35967be98c1d1066aec31db4e1f65c82ec6aeff34b",
+      "registry_digest": "sha256:d4c5d0dde6927ee9f422db35967be98c1d1066aec31db4e1f65c82ec6aeff34b",
+      "platform": "linux/amd64",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4085,
+        "layer_count": 18,
+        "retained_json_sha256": "8fcb31c3f69fe606604fc0020cae100c69a34c4d636ba952612c526d13a8e217"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "21faa2ecb992086f77508b6fb4488fad4b25154512cbb5d3e1e59325a7224e63"
+      },
+      "registry_status": "NORMAL",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "python",
+        "durable_ai_worker.py",
+        "--once"
+      ],
+      "sbom": {
+        "sha256": "67137a20458aa12be6dd02c4eb1b1466bd0d0a35c58f4c0f36a6fcf35d613775",
+        "serial_number": "urn:uuid:cf5434c3-cdff-4bd4-b436-d7bcb0252a01",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "e297662242ad058e200b62faa997de8183f45cc261d21f547d2b2c39d11ffa17",
+        "history_sha256": "bdaba8b94556da3d56f8584e452ded5ee74c3eedb7d9fb3d8d661c1be79ab43c",
+        "inspect_sha256": "4bc86dbbc65b23ab9ba9cef2516c20840c884b1a193b45bc00cde77e93e0a76c",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "58d14da26f85aa5567c92f046927b6a80952fac683fc31194f71d33145a97d2d",
+        "vulnerability_sha256": "70e3b95ca69da3b7f24b41c39d0142ed724ce280dcc8c56e2751373ff3af3ea5"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "xhs-http": {
+      "target": "xhs-http-runtime",
+      "tag": "git-b55f118-amd64-xhs-http-r1",
+      "local_image_id": "sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+      "config_digest": "sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+      "push_digest": "sha256:406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50",
+      "manifest_digest": "sha256:406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50",
+      "control_plane_digest": "sha256:406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50",
+      "registry_digest": "sha256:406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50",
+      "platform": "linux/amd64",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4294,
+        "layer_count": 19,
+        "retained_json_sha256": "bacd36994c26fc0ba981ad476fc597d162af48f701a2411bb9adf140c294296f"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "57f57d4b263692d4f9193eb98726169d44e78866ad02ef49d6c3994a26f0fc7b"
+      },
+      "registry_status": "NORMAL",
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/bin/false"
+      ],
+      "sbom": {
+        "sha256": "5172777e6cd275923113841de8701b0e065db3d1664511f9ca7375e5301b86ec",
+        "serial_number": "urn:uuid:fb7a593f-dd23-4fad-ab64-5f9ef87aecd4",
+        "version": 1,
+        "component_count": 3078,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "4edd3e33044f04c2337791022eb9f58281ac0f3399dc5ef820a6ed3cfd88832f",
+        "history_sha256": "e45304ee9f26a0aeb496f60b9a735c013f0842775908d3a5d81e0eea2881ca40",
+        "inspect_sha256": "c9465453e0056c623b7986e94dc7d37fe55860c69e93c8abe68e648b569d7ae4",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "2358ac05f1cf62822e09c095568df4415b4eea1c141892ece9477b4a9dc401c8",
+        "vulnerability_sha256": "17baddea95906e2467ecc99133079343c8670b6a4736b624cc9b2195779a6ff5"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    }
+  },
+  "vulnerability_rows_per_role": [
+    {
+      "id": "CVE-2025-69720",
+      "package": "libncursesw6",
+      "installed_version": "6.5+20250216-2",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "libtinfo6",
+      "installed_version": "6.5+20250216-2",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "ncurses-base",
+      "installed_version": "6.5+20250216-2",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "ncurses-bin",
+      "installed_version": "6.5+20250216-2",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-13221",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "CVE-2026-41992",
+      "package": "gzip",
+      "installed_version": "1.13-1",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-42496",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "CVE-2026-42497",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-48962",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "bsdutils",
+      "installed_version": "1:2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "libblkid1",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "liblastlog2-2",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "libmount1",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "libsmartcols1",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "libuuid1",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "login",
+      "installed_version": "1:4.16.0-2+really2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "mount",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-53615",
+      "package": "util-linux",
+      "installed_version": "2.41-5",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-54369",
+      "package": "libacl1",
+      "installed_version": "2.3.2-2+b1",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-57432",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "HIGH"
+    },
+    {
+      "id": "CVE-2026-57433",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "CVE-2026-8376",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "perl-base",
+      "installed_version": "5.40.1-6",
+      "fixed_version": "",
+      "severity": "HIGH"
+    }
+  ],
+  "decision": {
+    "status": "not_affected_for_exact_registry_products",
+    "raw_reports_rewritten": false,
+    "registry_access_performed": true,
+    "acr_push_completed": true,
+    "control_plane_tag_digest_binding_verified": true,
+    "temporary_publication_access_cleaned": true,
+    "production_private_registry_path_restored": true,
+    "cloud_control_plane_changes_performed": true,
+    "temporary_identity_changes_performed": true,
+    "private_endpoint_changes_performed": true,
+    "production_exception": false,
+    "deployment_authorization": false,
+    "api_c_canary_completed": false,
+    "business_provider_calls": 0,
+    "business_writes": 0,
+    "services_restarted_or_redeployed": 0,
+    "public_traffic_changes": 0
+  }
+}

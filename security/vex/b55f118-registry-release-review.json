@@ -1,0 +1,81 @@
+{
+  "review_version": 1,
+  "task": "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-B55F118-PUBLISH-001",
+  "reviewer": "production-release-manager:/root",
+  "result": "PASS",
+  "application_revision": "b55f11882100e9ef919522540729e366a511f88f",
+  "roles": [
+    "api",
+    "admin",
+    "payment",
+    "ai-worker",
+    "xhs-http"
+  ],
+  "reviewed_cves": [
+    "CVE-2025-69720",
+    "CVE-2026-13221",
+    "CVE-2026-41992",
+    "CVE-2026-42496",
+    "CVE-2026-42497",
+    "CVE-2026-48962",
+    "CVE-2026-53615",
+    "CVE-2026-54369",
+    "CVE-2026-57432",
+    "CVE-2026-57433",
+    "CVE-2026-8376",
+    "CVE-2026-9538"
+  ],
+  "evidence_sha256": "fa38b5702639c6644b40dc316248d1526dc6ed657ab9c399add3efd5e03bd56b",
+  "vex_sha256": "140a20bc65091014a87c7cc63ed1e98aea21c5f3762e43f2374832202df3c75e",
+  "checks": {
+    "exact_b55_tags": true,
+    "five_unique_registry_manifest_digests": true,
+    "push_manifest_control_plane_three_way_binding": true,
+    "five_pushes_serial_and_no_retry": true,
+    "native_amd64": true,
+    "raw_reports_canonical_and_unsuppressed": true,
+    "raw_critical_per_role": 4,
+    "raw_high_per_role": 19,
+    "secret_findings_per_role": 0,
+    "browser_components_per_role": 0,
+    "cryptography_48_0_1_per_role": 1,
+    "cyclonedx_exact_bom_links": true,
+    "retained_evidence_secret_free": true,
+    "temporary_publication_access_cleanup": true,
+    "production_private_registry_path_restored": true,
+    "api_nodes_post_health_and_isolation": true,
+    "production_exception": false,
+    "deployment_authorization": false,
+    "api_c_canary_completed": false
+  },
+  "scope": {
+    "registry_publication_complete": true,
+    "registry_changed": true,
+    "cloud_control_plane_changed": true,
+    "temporary_identity_changed": true,
+    "private_endpoint_changed": true,
+    "application_deployed": false,
+    "database_changed": false,
+    "business_provider_called": false,
+    "service_restarted": false,
+    "public_traffic_changed": false,
+    "local_image_ids_are_registry_digests": false
+  },
+  "cyclonedx_schema_validation": {
+    "specification_commit": "55343ba19dee1785acf1ce9191540d5fd7b590db",
+    "schema": "schema/bom-1.6.schema.json",
+    "schema_sha256": "3e92dddbc30cf7f6a02b80f0942b1a4cfd4fb1c26f1dfc4310afa9d613cafb93",
+    "validation_errors": 0
+  },
+  "evidence_semantic_sha256": "9104a2bcca8cfac071299aee7c79ca50882702f95523e67dbe3dbb66326efea0",
+  "vex_semantic_sha256": "d31198720268316167513c170584d8f6c2e4fe445c74536f4be28d441957450e",
+  "source_candidate_evidence_semantic_sha256": "809fbe06a7336f899b213b6ace9f4a0dddab5e67ee02a8858fbf65f3084b804a",
+  "re_review_required_on": [
+    "application revision, exact tag or registry manifest digest changes",
+    "local image ID, SBOM or package inventory changes",
+    "base image or architecture changes",
+    "entrypoint, command or subprocess graph changes",
+    "runtime capabilities, devices, mounts or namespaces change",
+    "official vulnerability scope changes"
+  ]
+}

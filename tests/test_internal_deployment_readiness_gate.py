@@ -73,6 +73,23 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             for control in self.manifest["layers"][1]["controls"]
             if control["id"] == "production_schema_roles"
         )
+        immutable = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "immutable_release_candidate"
+        )
+        for ref in (
+            "security/vex/b55f118-registry-publication-attestation.json",
+            "security/vex/b55f118-registry-release-evidence.json",
+            "security/vex/b55f118-registry-release.vex.cdx.json",
+            "security/vex/b55f118-registry-release-review.json",
+            "tools/verify_b55_registry_release_vex.py",
+        ):
+            self.assertIn({"kind": "path", "ref": ref}, immutable["evidence"])
+        self.assertIn(
+            "five-role private ACR publication/digest binding are verified",
+            actionable["api_c_current_release"]["blocker"],
+        )
         self.assertIn(
             {
                 "kind": "path",

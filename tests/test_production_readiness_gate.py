@@ -40,6 +40,9 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(
             checks["exact_b55f118_github_native_five_role_source_bundle"]["passed"]
         )
+        self.assertTrue(
+            checks["exact_b55f118_registry_native_five_role_vex_bundle"]["passed"]
+        )
 
     def test_production_roles_exclude_browser_dependencies_and_commands(self):
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")

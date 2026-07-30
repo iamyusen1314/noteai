@@ -1,0 +1,391 @@
+{
+  "manifest_version": 1,
+  "task": "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-B55F118-PUBLISH-001",
+  "application_revision": "b55f11882100e9ef919522540729e366a511f88f",
+  "platform": "linux/amd64",
+  "runner_architecture": "x86_64",
+  "evidence_created": "2026-07-29T08:44:37Z",
+  "generated_at": "2026-07-30T05:42:21.099Z",
+  "semantic_sha256": "6065f797cd16fc5b6c19a32f70e67e624adfa5e799151cf7bcb8432e6d202ab4",
+  "stage_a": {
+    "raw_file_count": 43,
+    "original_invocation_status": "TIMEOUT",
+    "acceptance_version": 4,
+    "summary_sha256": "a8e1c7ca38e1d5886197f6f727a4fb51ce206817221cc404f4586d29588c41d0",
+    "manifest_sha256": "ec14390c4ccf9515f659ee29dfb20b60e6776d804dfe3005e2c2edb6d7bca865",
+    "acceptance_sha256": "e16a3c3d2308a6e4d1b9113d37059933efc4d7965a4f3c12f5cf0a43d9b10a75",
+    "state_sha256": "3bd7ed55948bf292ae969a4c159b03f10a17407788b950ca70b6a6b7d16403ef",
+    "publication_authorized": true,
+    "deployment_authorized": false,
+    "database_authorized": false,
+    "service_mutation_authorized": false,
+    "public_traffic_authorized": false
+  },
+  "scanner_cache": {
+    "database_sha256": "43c58b4f5d8c99a9480dd018596c2d907ac2df1f87e94f9da859b2563454bfa0",
+    "metadata_sha256": "c22e06141b5631651e7fda582ed629c876b0c500df2d78146053d157b6e4bb59",
+    "offline_scan": true,
+    "database_update_skipped": true,
+    "java_database_update_skipped": true
+  },
+  "repository": {
+    "private": true,
+    "status": "NORMAL",
+    "tag_immutability": true,
+    "tag_count_before": 10,
+    "tag_count_after": 15,
+    "baseline_tags_preserved": 10
+  },
+  "publication_controls": {
+    "push_invocations": 5,
+    "manual_retries": 0,
+    "serial": true,
+    "unique_digests": 5,
+    "manifest_readbacks": 5,
+    "control_plane_readbacks": 5,
+    "registry_writes": 5,
+    "database_connections": 0,
+    "database_writes": 0,
+    "service_mutations": 0,
+    "public_endpoint_enabled": false,
+    "public_traffic_enabled": false,
+    "deployment_authorized": false
+  },
+  "retained_publication_evidence": {
+    "category": "registry_publication_files",
+    "retention_days": 14,
+    "retain_until": "2026-08-13T05:42:21.099Z",
+    "file_count": 19,
+    "file_bytes": 66763,
+    "tree_bytes": 83147,
+    "sha256sums_sha256": "151f676b27258e0ad02748bf2bb6f475b416ec2a2cd615e8a9df8c67cdd2b3ee",
+    "root_owned_private_files": true,
+    "symbolic_links": 0,
+    "special_files": 0,
+    "forbidden_credential_matches": 0
+  },
+  "cleanup": {
+    "builder_acr_vpc_links": 0,
+    "production_acr_vpc_links": 1,
+    "registry_public_endpoint_enabled": false,
+    "publisher_policy_exists": false,
+    "publisher_role_attached": false,
+    "publisher_role_exists": false,
+    "builder_ram_role_present": false,
+    "builder_imds_ram_role_http_status": 404,
+    "builder_acr_dns_records": 0,
+    "docker_auth_entries": 0,
+    "temporary_auth_directories": 0,
+    "running_containers": 0,
+    "push_processes": 0,
+    "database_connections": 0,
+    "source_images_retained": 5,
+    "api_c_api_active": true,
+    "api_c_admin_active": true,
+    "api_c_ready_http_status": 200,
+    "api_c_loopback_only": true,
+    "api_c_private_acr_dns_records": 1,
+    "api_f_api_active": true,
+    "api_f_ready_http_status": 200,
+    "api_f_loopback_only": true,
+    "api_f_private_acr_dns_records": 1
+  },
+  "roles": {
+    "api": {
+      "target": "api-runtime",
+      "tag": "git-b55f118-amd64-api-r1",
+      "observed_local_image_id": "sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53",
+      "observed_config_digest": "sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53",
+      "observed_push_digest": "sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+      "observed_manifest_digest": "sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+      "observed_control_plane_digest": "sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+      "platform": "linux/amd64",
+      "registry_status": "NORMAL",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4085,
+        "layer_count": 18,
+        "retained_json_sha256": "1ed505f987188dd72531c0fb4e8392b9f769530d19f84c2414b29b15278986d8"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "1828b5e46f6deb941a738fb9e9c5ca08c412584f0b796daf51cab2afc5aa7d31"
+      },
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/app/scripts/render_start_api.sh"
+      ],
+      "sbom": {
+        "sha256": "2ebb2c874e3b2ebbde882e0f6950970fbf7d3598b3becbdc34b75f90d6c5cd98",
+        "serial_number": "urn:uuid:8d28e096-f58c-4619-b886-e1de9a3be2b6",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "e918a014a86f6f47e9992b87d079070451f0df88636fba9455d5e0f8cb3a25e0",
+        "history_sha256": "2aac126241963f0b52255ccab842d199dff74a93265e00f527322e23cf5509cc",
+        "inspect_sha256": "f273fdaafd9b1b94cf4c738db1e566652425ca0e6eeb5ebbaf404cfbe337f701",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "384dbece595dbcc93d82fdae8da75d33b526935e19fe06f545c5fd583d815a44",
+        "vulnerability_sha256": "11641b35599da94e4c05264a2d6db88226decbf6a5aadfda6f28977f2264159d"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "admin": {
+      "target": "admin-runtime",
+      "tag": "git-b55f118-amd64-admin-r1",
+      "observed_local_image_id": "sha256:fac78f71d7b123621962738d2a93532ff98f2302232562dc75b6a8e0016b7626",
+      "observed_config_digest": "sha256:fac78f71d7b123621962738d2a93532ff98f2302232562dc75b6a8e0016b7626",
+      "observed_push_digest": "sha256:271a089e4e5ae7da3635b14d2ce8d5195955e7d74225723a4308d0c99cb79e56",
+      "observed_manifest_digest": "sha256:271a089e4e5ae7da3635b14d2ce8d5195955e7d74225723a4308d0c99cb79e56",
+      "observed_control_plane_digest": "sha256:271a089e4e5ae7da3635b14d2ce8d5195955e7d74225723a4308d0c99cb79e56",
+      "platform": "linux/amd64",
+      "registry_status": "NORMAL",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4085,
+        "layer_count": 18,
+        "retained_json_sha256": "cbeb8d36f790158153f7639627b3ce73ace28fa402c3360c98feb2a95adf34c7"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "9c8d18a11198eb17a303e07a98405aa4c6fccf0b32ff86b0b8fe987a70117fd2"
+      },
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/app/scripts/render_start_admin.sh"
+      ],
+      "sbom": {
+        "sha256": "aa50f2c32f6f243afa635eaef2e0f7d17485fdfdac796022be5d17d936ec2f62",
+        "serial_number": "urn:uuid:312aa052-443d-4ce1-9b78-5f019686af42",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "0ea9c690fb9170f7275fae17d6e1ee124821e42060cd1960aebcbf674706e9a2",
+        "history_sha256": "393779257e550338114b3ba10c467bf48198ce151573d9c88b9f2d9494311af2",
+        "inspect_sha256": "4bb1e472d627106c5d4ec5fbde96b58bb9791eb8436ad77020c8a9220ea6b622",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "2bb8be1874e18e474bfd862769fd8ff21b4e320876889d297dd1d089c97ebb16",
+        "vulnerability_sha256": "efe31379c3cc8fed582c7e17b8d449e1a17422d9aae40e7325f69c9603991863"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "payment": {
+      "target": "payment-runtime",
+      "tag": "git-b55f118-amd64-payment-r1",
+      "observed_local_image_id": "sha256:36b465dca36d5751318033cd494ed7544588f9ead18b781801542642ed2b1bc4",
+      "observed_config_digest": "sha256:36b465dca36d5751318033cd494ed7544588f9ead18b781801542642ed2b1bc4",
+      "observed_push_digest": "sha256:ad5827450ad187bd3cfb47f00a903b78106b00a5ca8dbee5e9a77770f0c02e2b",
+      "observed_manifest_digest": "sha256:ad5827450ad187bd3cfb47f00a903b78106b00a5ca8dbee5e9a77770f0c02e2b",
+      "observed_control_plane_digest": "sha256:ad5827450ad187bd3cfb47f00a903b78106b00a5ca8dbee5e9a77770f0c02e2b",
+      "platform": "linux/amd64",
+      "registry_status": "NORMAL",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4085,
+        "layer_count": 18,
+        "retained_json_sha256": "f5adebf6578856355a9e6a1013030ef5d4e748d5ebf539e44fb5a6ff264359ec"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "5bdb454c6ec969d97037e967cf3a9224ba37f5b0dad6c1e5600bef44c63aecc6"
+      },
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/app/scripts/render_start_payment.sh"
+      ],
+      "sbom": {
+        "sha256": "ca4e4c32252019d1de226f3cbd2c4a4b2f2c15e3eb218e957b442e29802591b5",
+        "serial_number": "urn:uuid:a67c9a2a-56c8-42c7-b1b5-f69f87498468",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "a08bfcd661c4b3b9c18c9e6c573276217128a7bfce9d35eca74f14763e6476c3",
+        "history_sha256": "2ac01cacbf87bd1afffc0a1ccfd0d1921196b018cb376cbfc9cbe02cff2ea1af",
+        "inspect_sha256": "7b6a88bbe097edce6bfea44a5b60613bbc8896877afdc8a54155f15cd1b4aad7",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "24fc60063ef1afc428d255bba807bdbb8c9d3d307b146f89bf674812ba48bee4",
+        "vulnerability_sha256": "bdd0c685f07a8bcfa856f13b9655a18ab6b24f029a76fe1ad075895fbc9c59c8"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "ai-worker": {
+      "target": "ai-worker-runtime",
+      "tag": "git-b55f118-amd64-ai-worker-r1",
+      "observed_local_image_id": "sha256:eb3850db2f76001a25cbdd93c6fdbca6df18a3c734aaf6bb5096e5707fd71b2d",
+      "observed_config_digest": "sha256:eb3850db2f76001a25cbdd93c6fdbca6df18a3c734aaf6bb5096e5707fd71b2d",
+      "observed_push_digest": "sha256:d4c5d0dde6927ee9f422db35967be98c1d1066aec31db4e1f65c82ec6aeff34b",
+      "observed_manifest_digest": "sha256:d4c5d0dde6927ee9f422db35967be98c1d1066aec31db4e1f65c82ec6aeff34b",
+      "observed_control_plane_digest": "sha256:d4c5d0dde6927ee9f422db35967be98c1d1066aec31db4e1f65c82ec6aeff34b",
+      "platform": "linux/amd64",
+      "registry_status": "NORMAL",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4085,
+        "layer_count": 18,
+        "retained_json_sha256": "8fcb31c3f69fe606604fc0020cae100c69a34c4d636ba952612c526d13a8e217"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "21faa2ecb992086f77508b6fb4488fad4b25154512cbb5d3e1e59325a7224e63"
+      },
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "python",
+        "durable_ai_worker.py",
+        "--once"
+      ],
+      "sbom": {
+        "sha256": "67137a20458aa12be6dd02c4eb1b1466bd0d0a35c58f4c0f36a6fcf35d613775",
+        "serial_number": "urn:uuid:cf5434c3-cdff-4bd4-b436-d7bcb0252a01",
+        "version": 1,
+        "component_count": 3076,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "e297662242ad058e200b62faa997de8183f45cc261d21f547d2b2c39d11ffa17",
+        "history_sha256": "bdaba8b94556da3d56f8584e452ded5ee74c3eedb7d9fb3d8d661c1be79ab43c",
+        "inspect_sha256": "4bc86dbbc65b23ab9ba9cef2516c20840c884b1a193b45bc00cde77e93e0a76c",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "58d14da26f85aa5567c92f046927b6a80952fac683fc31194f71d33145a97d2d",
+        "vulnerability_sha256": "70e3b95ca69da3b7f24b41c39d0142ed724ce280dcc8c56e2751373ff3af3ea5"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    },
+    "xhs-http": {
+      "target": "xhs-http-runtime",
+      "tag": "git-b55f118-amd64-xhs-http-r1",
+      "observed_local_image_id": "sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+      "observed_config_digest": "sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+      "observed_push_digest": "sha256:406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50",
+      "observed_manifest_digest": "sha256:406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50",
+      "observed_control_plane_digest": "sha256:406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50",
+      "platform": "linux/amd64",
+      "registry_status": "NORMAL",
+      "manifest": {
+        "schema_version": 2,
+        "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+        "config_media_type": "application/vnd.docker.container.image.v1+json",
+        "size": 4294,
+        "layer_count": 19,
+        "retained_json_sha256": "bacd36994c26fc0ba981ad476fc597d162af48f701a2411bb9adf140c294296f"
+      },
+      "push": {
+        "state": "PUSH_REPORTED_SUCCESS",
+        "return_code": 0,
+        "invocations": 1,
+        "manual_retries": 0,
+        "retained_log_sha256": "57f57d4b263692d4f9193eb98726169d44e78866ad02ef49d6c3994a26f0fc7b"
+      },
+      "entrypoint": [
+        "/app/scripts/docker_entrypoint.sh"
+      ],
+      "cmd": [
+        "/bin/false"
+      ],
+      "sbom": {
+        "sha256": "5172777e6cd275923113841de8701b0e065db3d1664511f9ca7375e5301b86ec",
+        "serial_number": "urn:uuid:fb7a593f-dd23-4fad-ab64-5f9ef87aecd4",
+        "version": 1,
+        "component_count": 3078,
+        "component_refs_jsonl_sha256": "9cb5d680bce715c4c146e0cc5d7910f5c5a4cffb2094b8f2114afb381b2ca213"
+      },
+      "raw_reports": {
+        "build_metadata_sha256": "4edd3e33044f04c2337791022eb9f58281ac0f3399dc5ef820a6ed3cfd88832f",
+        "history_sha256": "e45304ee9f26a0aeb496f60b9a735c013f0842775908d3a5d81e0eea2881ca40",
+        "inspect_sha256": "c9465453e0056c623b7986e94dc7d37fe55860c69e93c8abe68e648b569d7ae4",
+        "os_packages_sha256": "1cf41e20e68ddfd8ed52bf5c95f1c6c20dc146e506815c679731962010a85a54",
+        "secret_sha256": "2358ac05f1cf62822e09c095568df4415b4eea1c141892ece9477b4a9dc401c8",
+        "vulnerability_sha256": "17baddea95906e2467ecc99133079343c8670b6a4736b624cc9b2195779a6ff5"
+      },
+      "findings": {
+        "critical": 4,
+        "high": 19,
+        "secrets": 0,
+        "browser_components": 0,
+        "cryptography_48_0_1_components": 1,
+        "forbidden_os_packages": 0
+      },
+      "raw_gate_passed": false
+    }
+  },
+  "scope": {
+    "registry_publication_complete": true,
+    "registry_changed": true,
+    "cloud_control_plane_changed": true,
+    "temporary_identity_changed": true,
+    "private_endpoint_changed": true,
+    "application_deployed": false,
+    "database_changed": false,
+    "business_provider_called": false,
+    "service_restarted": false,
+    "public_traffic_changed": false,
+    "deployment_authorized": false,
+    "api_c_canary_completed": false
+  }
+}

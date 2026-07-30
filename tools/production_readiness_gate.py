@@ -35,6 +35,9 @@ from verify_browserless_vex import validate_bundle as validate_browserless_vex_b
 from verify_b55_native_release_vex import (  # noqa: E402
     validate_bundle as validate_b55_native_release_vex_bundle,
 )
+from verify_b55_registry_release_vex import (  # noqa: E402
+    validate_bundle as validate_b55_registry_release_vex_bundle,
+)
 from verify_native_release_vex import validate_bundle as validate_native_release_vex_bundle  # noqa: E402
 from verify_registry_release_vex import (  # noqa: E402
     validate_bundle as validate_registry_release_vex_bundle,
@@ -1534,6 +1537,7 @@ def check_browserless_vex() -> list[dict[str, Any]]:
     browserless_errors = validate_browserless_vex_bundle()
     native_errors = validate_native_release_vex_bundle()
     b55_native_errors = validate_b55_native_release_vex_bundle()
+    b55_registry_errors = validate_b55_registry_release_vex_bundle()
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -1571,6 +1575,16 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             else (
                 "two-file image-context delta; five exact local images; "
                 "raw 4 Critical / 19 High per role remains unsuppressed"
+            ),
+        ),
+        _ok(
+            "exact_b55f118_registry_native_five_role_vex_bundle",
+            not b55_registry_errors,
+            "; ".join(b55_registry_errors[:5])
+            if b55_registry_errors
+            else (
+                "five exact immutable tags and unique ACR manifest digests; "
+                "serial no-retry publication; access cleaned; canary unauthorized"
             ),
         ),
     ]

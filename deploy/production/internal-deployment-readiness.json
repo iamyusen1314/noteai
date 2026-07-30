@@ -269,6 +269,26 @@
             },
             {
               "kind": "path",
+              "ref": "security/vex/b55f118-registry-release-evidence.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/b55f118-registry-publication-attestation.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/b55f118-registry-release.vex.cdx.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/b55f118-registry-release-review.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_b55_registry_release_vex.py"
+            },
+            {
+              "kind": "path",
               "ref": "scripts/ci/native_release_evidence.sh"
             },
             {
@@ -505,7 +525,7 @@
             "private_storage_runtime"
           ],
           "evidence": [],
-          "blocker": "The exact b55f118 source candidate, fresh isolated Trivy database cache and build10 offline scanner gate are verified. A complete self-consistent 43-file five-role builder bundle, private publication and the API-C loopback canary have not completed.",
+          "blocker": "The exact b55f118 build10 43-file bundle and five-role private ACR publication/digest binding are verified; temporary publication access is cleaned and the production private-registry path is restored. The API-C loopback canary, reversible promotion, explicit restart, independent postcheck and rollback-ready evidence have not completed.",
           "next_task": "PROD-FIRST-LAUNCH-API-C-INTERNAL-001"
         },
         {

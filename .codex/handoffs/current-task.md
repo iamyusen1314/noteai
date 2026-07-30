@@ -49,6 +49,8 @@
   `4646b17`.
 - b55 single full-build launch checkpoint:
   `18335615f3754a8ada424410b20ec59a649b0ddf`.
+- b55 build10 43-file acceptance checkpoint:
+  `dcced8e39c20fb637a2d0e4b42626b164d68e8bd`.
 - Historical V4 package binding:
   `13377d7ac37b090818c56be545f34a7ac5587d49`.
 - Historical V4 exact execution source:
@@ -1021,11 +1023,88 @@ Current next action:
 - Stage A is complete. Status remains `17/29 = 59%` internal and
   `17/38 = 45%` complete-public because evidence acceptance alone earns no
   readiness credit. The only task remains
-  `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`; next perform a fresh private-ACR
-  absence/precondition check, publish each of the five immutable b55 roles
-  once, bind five read-back digests and produce the new b55 Registry
-  evidence/VEX/review. Only then may the API-C loopback canary and reversible
-  promotion begin.
+  `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`. Stage B below supersedes the former
+  publication next step.
+
+## 6.5. API-C b55 private Registry publication completion
+
+- Stage B started only after a fresh control-plane read proved all five exact
+  immutable b55 tags absent. The private repository was `NORMAL`, private and
+  tag-immutable; its ten historical tags were retained.
+- The repository permits one VPC endpoint. The exact production endpoint was
+  first snapshotted and removed, the builder-only private endpoint was
+  created and read back `RUNNING`, and the ACR public endpoint remained
+  disabled. API-C/API-F stayed active, ready `200` and loopback-only during
+  this bounded control-plane change.
+- A temporary publisher role was recreated after the provider defaulted its
+  first version to console-login enabled. The accepted replacement had
+  console login disabled, exact ECS trust, a one-hour session bound and one
+  custom least-privilege policy: token read plus pull/push on the single
+  private repository only. It was attached only to the isolated builder.
+- Publisher setup exposed several fail-closed local/control-plane preparation
+  defects before any push: two unsupported CLI profile/region forms, one
+  overly narrow local profile validator, one token-response shell validation
+  error and two task-local state-writer/newline defects. The first returned
+  token was never logged, persisted, used for login or used for a registry
+  write. Each defect was materially corrected; no push had begun and no
+  database, service or public-traffic action occurred. Intermittent console
+  result polling failures were read-only UI failures.
+- Docker login then used the protected short-lived token. The five exact tags
+  were pushed serially in role order, once each, with manual retry zero:
+  `git-b55f118-amd64-api-r1`,
+  `git-b55f118-amd64-admin-r1`,
+  `git-b55f118-amd64-payment-r1`,
+  `git-b55f118-amd64-ai-worker-r1` and
+  `git-b55f118-amd64-xhs-http-r1`.
+- For every role, push return digest, retained manifest descriptor digest and
+  ACR control-plane digest are identical; all five are unique, `NORMAL` and
+  linux/amd64. The exact manifest digests are respectively
+  `sha256:612a7e57…17620`, `sha256:271a089e…79e56`,
+  `sha256:ad582745…2e2b`, `sha256:d4c5d0dd…ff34b` and
+  `sha256:40644582…1e50`. Each config digest equals the independently accepted
+  build10 local image ID and is distinct from its manifest digest.
+- Final repository readback is exactly fifteen tags: the ten baseline tags
+  plus five new b55 tags. Publication controls record five pushes, five
+  manifest readbacks, five control-plane readbacks, five unique digests,
+  serial execution and zero manual retry.
+- Cleanup removed Docker auth and the temporary auth root, detached the
+  builder role, deleted the custom policy and role, and removed the builder
+  ACR endpoint. Independent readbacks prove the role and policy absent,
+  builder IMDS role endpoint `404`, private ACR DNS zero, task target refs
+  zero, running containers/push processes/database connections zero and no
+  credentials retained. The exact production ACR VPC endpoint was restored
+  `RUNNING`; the public endpoint remains disabled.
+- API-C and API-F remain active, ready `200`, loopback-only and each resolve
+  exactly one production private ACR address. No service restart/redeploy,
+  production database connection/write, business-provider call, public
+  endpoint or public-traffic change occurred.
+- Nineteen root-only Secret-free publication files are retained for fourteen
+  days through `2026-08-13T05:42:21.099Z`. Their file bytes are 66,763,
+  directory-tree bytes are 83,147 and the retained `SHA256SUMS` file hash is
+  `151f676b27258e0ad02748bf2bb6f475b416ec2a2cd615e8a9df8c67cdd2b3ee`.
+  Links, special files, unsafe modes and credential-pattern matches are zero.
+- New fail-closed repository artifacts preserve historical b066 files and
+  bind exact Stage A, Trivy, build10 SBOM/report, tag, push-log, manifest and
+  control-plane identities:
+  `tools/verify_b55_registry_release_vex.py`,
+  `security/vex/b55f118-registry-publication-attestation.json`,
+  `security/vex/b55f118-registry-release-evidence.json`,
+  `security/vex/b55f118-registry-release.vex.cdx.json`,
+  `security/vex/b55f118-registry-release-review.json` and
+  `tests/test_b55_registry_release_vex.py`. The Secret-free attestation stores
+  local/config/push/manifest/control-plane observations independently and is
+  pinned by both file and semantic SHA-256. Exact tags are compared by role,
+  not by a regex or suffix.
+- The b55 Registry bundle, historical/current registry tests and production
+  integration tests pass. The offline production gate is `107/107 PASS`;
+  internal readiness remains fail-closed `17/29 = 59%` and complete-public
+  readiness remains `17/38 = 45%`. Stage B earns no readiness credit.
+- The only task remains `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`. The next
+  acceptance condition is exact-digest private pull plus API-C loopback
+  canary, reversible managed-service promotion, explicit restart, independent
+  non-regression postcheck and rollback-ready evidence. Only the complete
+  chain may verify `api_c_current_release` and advance internal readiness to
+  `18/29`.
 
 ## 7. Mandatory failure classification
 
@@ -1049,8 +1128,8 @@ Completed verification:
 
 - focused privileged-owner/readiness tests: `31/31`;
 - disposable PostgreSQL 16 privileged-owner chain: `1/1`;
-- full Python suite: `1081/1081`, 28 explicit skips;
-- production readiness gate: `105/105 PASS`;
+- full Python suite: `1097/1097`, 28 explicit skips;
+- production readiness gate: `107/107 PASS`;
 - internal readiness: fail-closed `17/29 = 59%`;
 - public readiness: `17/38 = 45%`;
 - zero-DSN import, Python compile, runner shell syntax, JSON parses and
