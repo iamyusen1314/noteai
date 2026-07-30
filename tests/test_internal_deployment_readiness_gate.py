@@ -131,6 +131,62 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "blocked-clean-20260731.json"
                     ),
                 },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_export_plan.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "scripts/ci/"
+                        "export_admin_dependency_cache.sh"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "scripts/ci/"
+                        "import_admin_dependency_cache.sh"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_bundle.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "scripts/ci/"
+                        "download_admin_dependency_cache_artifact.sh"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_provider_download.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v2.json"
+                    ),
+                },
             ],
         )
         api_c = next(

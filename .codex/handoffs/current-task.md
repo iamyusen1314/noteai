@@ -2257,3 +2257,87 @@ independently, a package-download or prewarmed-cache path that preserves exact
 source/model bytes, pinned base identities, canonical `--pull`, unsuppressed
 raw scans and a fresh Registry identity. Only then may a new bounded native
 build precede Stage A and the still-unattempted single private push.
+
+### Admin dependency-cache export and transfer plan prepared, not activated (2026-07-31)
+
+- Takeover began from exact local/upstream checkpoint
+  `8c983d3fc15a33065df5319470729f82d5e2c2a4`, clean `0/0`. The prior
+  two-hour builder authority had already expired; the stopped builder and
+  zero-publication cleanup evidence were re-used rather than rerun. No active
+  cache request, GitHub Actions run, provider artifact, authenticated download,
+  builder start, Registry action or production mutation was created in this
+  stage.
+- The inert V2 controller is
+  `.github/workflows/admin-dependency-cache-export.yml`; its only trigger is a
+  future one-file addition of
+  `.github/release-requests/admin-5335bda-dependency-cache-v2.json`.
+  `tools/verify_admin_dependency_cache_export_plan.py` distinguishes
+  `PREPARED_NOT_TRIGGERED`, `ARMED_OR_TRIGGERED_EXACT`,
+  `CONSUMED_OR_INVALID` and `INVALID` from real Git history. A request must be
+  the unique regular-file change in a single-parent child of the reviewed
+  plan and must remain an unchanged `100644` blob in current HEAD; reruns,
+  deletion/untracked recreation and request-path reuse are rejected. ARMED
+  never claims a provider result.
+- The export builds only exact Dockerfile lines `1-80` with the two
+  requirements files, pinned Python/Node indices, canonical `--pull`,
+  `linux/amd64`, max provenance, raw progress and a local cache-only output.
+  An isolated empty Docker config proves zero BuildKit auth entry; no
+  `--secret` or `--ssh` input exists. The actual `runtime-common` graph has
+  exactly three network-bearing dependency vertices: Meituan npm, apt and
+  pip. The pruned CryptoJS stage is deliberately not claimed.
+- A distinct fresh consumer validates the complete OCI descriptor and
+  BuildKit cache-config graph, including unique root-layer descriptors,
+  complete parent closure, reachability of every layer and reachability of
+  every record from a result-bearing record through input links. It imports
+  the local cache, requires those three vertices cached, removes the external
+  cache, then performs a second build with no `--cache-from` against the exact
+  full Dockerfile and full release context through `runtime-common` line
+  `100`. That replay must again cache the same three network vertices. It
+  truthfully consumes application/model source context but exports neither a
+  consumer cache nor an image.
+- Strict validators reject duplicate/non-finite JSON, unexpected files,
+  unreferenced or internally invalid OCI/cache-config records, unsafe or
+  sparse tar members, path traversal, hard/special links, excessive expansion
+  and non-contiguous chunks. The gzip is capped at `3.5 GiB`, raw tar at
+  `5 GiB`, complete upload input at `3.75 GiB`, each non-chunk file at
+  `128 MiB`, and the provider artifact at `4 GiB` with reserved headroom.
+  Cleanup of both builders, all transient Docker objects and the empty Docker
+  config precedes the only one-day public-repository upload.
+- Artifact-contained helpers are evidence only. The workflow executes
+  separately hash-pinned controller copies with explicit `bash`. A later
+  authenticated local step must use `gh` to read and validate the exact
+  artifact metadata before issuing the ZIP request; missing, expired,
+  oversized or identity-drifted metadata fails closed. The ZIP is then
+  received through a declared-size-bounded stream and must match the
+  provider-returned SHA-256 and byte size before any extraction. Artifact/run
+  identity, control commit, request and final sums are bound into a separately
+  hashed Secret-free receipt. Only after that proof is the original ZIP split
+  into receipt-bound contiguous `256 MiB` transport parts; the original
+  multi-gigabyte ZIP is not sent as one cross-provider file. The target
+  builder accepts only the receipt trust root, rechecks every part, reassembles
+  and revalidates the exact ZIP in task-local storage, recreates the exact
+  recorded BuildKit daemon image, and requires
+  `BUILDX_BUILDER == NOTEAI_BUILDX_BUILDER`.
+- The unchanged canonical Admin build must inherit that same
+  `BUILDX_BUILDER` in the same newly authorized builder window. Cache import
+  is not a release credit: a new Admin image, fresh SBOM/raw Trivy scan,
+  immutable private push/readback, Stage A, dedicated runtime, ACL negative
+  matrix, reversible promotion, API-C/API-F non-regression and complete
+  cleanup remain mandatory.
+- Local verification passes the plan verifier in
+  `PREPARED_NOT_TRIGGERED`; focused cache/export/provider/readiness tests
+  `73/73`; production gate `112/112`; internal gate `19/29`; full Python
+  regression `1175/1175` with `28` skips; shell syntax, Python compile,
+  strict JSON/YAML parsing and `git diff --check`. Independent read-only
+  audits were rerun only once against these hash-closed core bytes: evidence,
+  cache/provider security and Stage-C contract reviewers each returned
+  `Critical 0 / High 0 / Medium 0 / Low 0`.
+
+Readiness remains internal `19/29=66%`, public `19/38=50%`; the most recent
+credit is still `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary requires
+new explicit authority for exactly one GitHub-hosted run capped at `120`
+minutes, the one-day public-repository artifact up to the stated limits, and
+one authenticated local download/cross-provider transfer. A subsequent
+fresh PAYG builder window and one Admin private publication must be separately
+authorized because the prior two-hour builder authority is exhausted.

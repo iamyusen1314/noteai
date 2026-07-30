@@ -51,6 +51,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "bounded_5335bda_admin_private_publication_attempt_clean"
             ]["passed"]
         )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_export_plan_fail_closed"
+            ]["passed"]
+        )
 
         with mock.patch.object(
             gate,
@@ -73,6 +78,18 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertIn(
             "bounded_5335bda_admin_private_publication_attempt_clean",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
+        with mock.patch.object(
+            gate,
+            "validate_admin_dependency_cache_export_plan",
+            return_value=["tampered Admin dependency-cache export plan"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_admin_dependency_cache_export_plan_fail_closed",
             {item["name"] for item in report["failed_checks"]},
         )
 

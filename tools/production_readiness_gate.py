@@ -47,6 +47,12 @@ from verify_admin_private_publication_attempt_evidence import (  # noqa: E402
 from verify_admin_private_publication_attempt_evidence import (  # noqa: E402
     load_evidence as load_admin_private_publication_attempt_evidence,
 )
+from verify_admin_dependency_cache_export_plan import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state,
+)
+from verify_admin_dependency_cache_export_plan import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan,
+)
 from verify_api_c_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_c_current_release_evidence_bundle,
 )
@@ -1564,6 +1570,8 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         admin_publication_attempt_errors = [
             f"cannot load Admin publication attempt evidence: {exc}"
         ]
+    admin_dependency_cache_plan_errors = validate_admin_dependency_cache_export_plan()
+    dependency_cache_plan_state = admin_dependency_cache_plan_state()
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -1632,6 +1640,18 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             else (
                 "two bounded pre-publication failures; image/scan/login/push zero; "
                 "temporary material cleaned; saving-mode builder stop verified"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_export_plan_fail_closed",
+            not admin_dependency_cache_plan_errors,
+            "; ".join(admin_dependency_cache_plan_errors[:5])
+            if admin_dependency_cache_plan_errors
+            else (
+                f"state={dependency_cache_plan_state}; exact Dockerfile lines "
+                "1-80 exported; isolated producer/fresh-consumer import plus "
+                "full-context cacheless replay and pre-upload cleanup required; "
+                "Registry publication unauthorized"
             ),
         ),
     ]
