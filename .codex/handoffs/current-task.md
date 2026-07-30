@@ -1968,3 +1968,93 @@ Current exact task remains
 commit and push the exact four-file source/risk/handoff/test checkpoint, then
 perform an Admin-only AMD64 build, scan and bounded private publication without
 rebuilding or redeploying API-C/API-F.
+
+### Admin truthful-status pushed checkpoint (2026-07-30)
+
+- Commit `5335bdaed933b1f999b5f819c047ec50c11821ae` contains exactly the
+  suspended-by-default fallback, the endpoint regression assertions and the
+  associated Secret-free handoff/risk records. It was pushed normally to
+  `origin/codex/quality-stabilization-real-chain`.
+- Local HEAD, the upstream tracking ref and the exact pushed commit match;
+  ahead/behind is `0/0` and the tracked worktree is clean. No force-push,
+  merge, production resource mutation or deployment occurred.
+- The Docker build context excludes `.codex`, tests and evidence files. Of
+  the four checkpoint files, only `model/crawler_config.json` enters the
+  runtime image; the independent `admin-runtime` target permits a fresh
+  Admin-only build without rebuilding API-C, API-F or any worker role.
+- Readiness remains internal `19/29`, public `19/38`, production gate
+  `109/109`. The historical Admin service and image remain active and
+  unchanged.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+prove the isolated AMD64 builder, source, scanner cache and private Registry
+baseline read-only; then build, inspect, SBOM/scan and publish exactly one new
+immutable Admin tag with no API build, database access, service mutation or
+public endpoint.
+
+### Admin builder availability reconciliation checkpoint (2026-07-30)
+
+- Fresh ECS detail is authoritative over the stale three-row list: the
+  isolated AMD64 builder is stopped and explicitly marked insufficient
+  account balance. It therefore has no eligible Cloud Assistant target or
+  remote session. Its persistent disk and historical Build10/publication
+  evidence were not deleted, overwritten or read after the stop.
+- The builder remains the historical temporary pay-as-you-go 4-vCPU/16-GiB
+  x86_64 host. It has no RAM role or key pair; the prior temporary publisher,
+  private Registry link and Docker auth remain absent by the last accepted
+  cleanup evidence. No start, recharge, credential, role, endpoint, command
+  or Registry action was attempted in this reconciliation.
+- Local Docker has no running daemon and Colima is stopped. Project rules
+  require explicit confirmation before starting a Docker service, so neither
+  was started. The local architecture is arm64 and is not accepted as native
+  release evidence.
+- The existing GitHub Actions release path is authenticated, native x86_64,
+  checksum-pins Syft and Trivy, performs no login/push/container start and
+  retains evidence for fourteen days. The smallest safe continuation is a
+  source-tree-external exact-list reduction of the canonical five-role script
+  to Admin only, preserving exact `5335bda` source cleanliness and the raw
+  vulnerability gate. It does not authorize Registry publication or
+  deployment.
+- Production API-C, API-F and historical Admin were not touched. Readiness
+  remains internal `19/29`, public `19/38`, production gate `109/109`.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+run one native GitHub Admin-only build against exact `5335bda`, download and
+independently validate its exact eleven-file evidence bundle, then establish
+a funded/private publication path before any Registry or service mutation.
+
+### Admin native-evidence trigger correction checkpoint (2026-07-30)
+
+- Independent review identified one deterministic pre-dispatch blocker:
+  `workflow_dispatch` currently cannot be the Admin trigger because the active
+  workflow does not exist on the repository's `main` default branch. The
+  historical manual run proves only its historical control state and was not
+  treated as current authorization. No workflow was dispatched.
+- The corrected feature-branch contract adds one Secret-free request file.
+  Only a push event whose head commit first adds that exact path maps the
+  release ref to exact `5335bda` and scope to `admin`; ordinary workflow/script
+  pushes retain the existing exact-head five-role behavior.
+- Before build, the workflow verifies the push event, branch, request path,
+  exact release commit and request JSON. After exact-source checkout with full
+  history, it reads the request from the controller commit, fixes its SHA-256
+  and requires all Registry, deployment, database, service and public-traffic
+  authorizations false.
+- The Admin evidence summary binds the trigger event, controller commit,
+  request path/hash and both canonical/executed script hashes. The five-role
+  artifact name remains backward compatible; only Admin appends `-admin`.
+- Local syntax simulation of the external Admin script and its summary
+  constraint passed. Workflow tests, readiness integration, Admin/Render
+  regression, YAML parsing, production gate and diff checks remain green.
+  A final independent narrow review found deterministic blocker count `0`;
+  the canonical request SHA-256 is
+  `3b71fd07baa0a7bb80affb906c3ef0dfbc539429071c9f877431e575a2cb8c50`.
+  No GitHub run, Registry action, database access or service mutation has yet
+  occurred.
+
+Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is:
+commit and push the one-shot request/controller checkpoint once, observe the
+single exact-source Admin run to a terminal artifact state without rerun, then
+download and independently accept or reject the eleven-file bundle.

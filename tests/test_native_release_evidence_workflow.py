@@ -13,10 +13,14 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
         self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("release_scope:", workflow)
+        self.assertIn("default: five", workflow)
+        self.assertIn("          - five\n          - admin", workflow)
         self.assertIn("push:\n    branches:\n      - codex/quality-stabilization-real-chain", workflow)
         self.assertIn(
             "paths:\n"
             "      - .github/workflows/native-release-evidence.yml\n"
+            "      - .github/release-requests/admin-5335bda.json\n"
             "      - scripts/ci/native_release_evidence.sh",
             workflow,
         )
@@ -31,6 +35,61 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
         self.assertNotIn("docker/login-action", workflow)
         self.assertNotIn("docker push", workflow)
         self.assertNotIn("--push", workflow)
+
+    def test_admin_scope_is_source_external_exact_and_single_role(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn(
+            'NOTEAI_RELEASE_SCOPE: ${{ github.event_name == '
+            "'workflow_dispatch' && inputs.release_scope || "
+            "(contains(github.event.head_commit.added, "
+            "'.github/release-requests/admin-5335bda.json') && "
+            "'admin' || 'five') }}",
+            workflow,
+        )
+        self.assertIn(
+            'control_script="${RUNNER_TEMP}/noteai-native-release-evidence.sh"',
+            workflow,
+        )
+        self.assertIn(
+            'original = "roles=(api admin payment ai-worker xhs-http)"',
+            workflow,
+        )
+        self.assertIn('replacement = "roles=(admin)"', workflow)
+        self.assertIn('source.count(original) != 1', workflow)
+        self.assertIn('test -z "$(git status --short)"', workflow)
+        self.assertIn(
+            'test "$(find "${NOTEAI_EVIDENCE_DIR}" -maxdepth 1 -type f | wc -l)" = "11"',
+            workflow,
+        )
+        self.assertIn('.roles | length == 1', workflow)
+        self.assertIn('.[0].role == "admin"', workflow)
+        self.assertIn('.[0].target == "admin-runtime"', workflow)
+        self.assertIn('release_scope: "admin"', workflow)
+        self.assertIn("source_tree_clean_after_execution: true", workflow)
+        self.assertIn(
+            "contains(github.event.head_commit.added, "
+            "'.github/release-requests/admin-5335bda.json')",
+            workflow,
+        )
+        self.assertIn(
+            'test "${RELEASE_COMMIT}" = '
+            '"5335bdaed933b1f999b5f819c047ec50c11821ae"',
+            workflow,
+        )
+        self.assertIn("ref: ${{ env.RELEASE_COMMIT }}", workflow)
+        self.assertIn(
+            'request_json="$(git show '
+            '"${GITHUB_SHA}:${NOTEAI_ADMIN_PUSH_REQUEST}")"',
+            workflow,
+        )
+        self.assertIn('.trigger_mode == "one_shot_added_path"', workflow)
+        self.assertIn("request_sha256: $request_sha256", workflow)
+        self.assertIn(
+            "native-amd64-release-evidence-${{ env.RELEASE_COMMIT }}"
+            "${{ env.NOTEAI_RELEASE_SCOPE == 'admin' && '-admin' || '' }}",
+            workflow,
+        )
 
     def test_actions_and_scanner_archives_are_immutable(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")

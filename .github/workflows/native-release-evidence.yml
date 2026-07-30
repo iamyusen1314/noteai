@@ -6,6 +6,7 @@ on:
       - codex/quality-stabilization-real-chain
     paths:
       - .github/workflows/native-release-evidence.yml
+      - .github/release-requests/admin-5335bda.json
       - scripts/ci/native_release_evidence.sh
   workflow_dispatch:
     inputs:
@@ -13,6 +14,14 @@ on:
         description: Exact 40-character source commit to build
         required: true
         type: string
+      release_scope:
+        description: Exact runtime-role scope to build and scan
+        required: true
+        default: five
+        type: choice
+        options:
+          - five
+          - admin
 
 permissions:
   contents: read
@@ -23,12 +32,14 @@ concurrency:
 
 jobs:
   build-and-scan:
-    name: Build and scan five native AMD64 roles
+    name: Build and scan native AMD64 roles
     runs-on: ubuntu-24.04
     timeout-minutes: 120
 
     env:
-      RELEASE_COMMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.release_commit || github.sha }}
+      NOTEAI_ADMIN_PUSH_REQUEST: .github/release-requests/admin-5335bda.json
+      RELEASE_COMMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.release_commit || (contains(github.event.head_commit.added, '.github/release-requests/admin-5335bda.json') && '5335bdaed933b1f999b5f819c047ec50c11821ae' || github.sha) }}
+      NOTEAI_RELEASE_SCOPE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_scope || (contains(github.event.head_commit.added, '.github/release-requests/admin-5335bda.json') && 'admin' || 'five') }}
       NOTEAI_OCI_SOURCE: https://github.com/iamyusen1314/noteai
       SYFT_VERSION: "1.49.0"
       SYFT_SHA256: 7aa2f03ee92739cf643279ba3990548b9925d4e22cae13f46831ee62821147fe
@@ -45,11 +56,28 @@ jobs:
             echo "release_commit must be an exact lowercase 40-character Git SHA" >&2
             exit 2
           fi
+          case "${NOTEAI_RELEASE_SCOPE}" in
+            five|admin) ;;
+            *)
+              echo "release_scope must be five or admin" >&2
+              exit 2
+              ;;
+          esac
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${NOTEAI_RELEASE_SCOPE}" == "admin" ]]; then
+            test "${GITHUB_REF_NAME}" = "codex/quality-stabilization-real-chain"
+            test "${RELEASE_COMMIT}" = "5335bdaed933b1f999b5f819c047ec50c11821ae"
+            jq -e --arg request "${NOTEAI_ADMIN_PUSH_REQUEST}" \
+              '.head_commit.added | index($request) != null' \
+              "${GITHUB_EVENT_PATH}" >/dev/null
+          elif [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            test "${NOTEAI_RELEASE_SCOPE}" = "five"
+            test "${RELEASE_COMMIT}" = "${GITHUB_SHA}"
+          fi
 
       - name: Checkout exact source with full evidence history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_commit || github.sha }}
+          ref: ${{ env.RELEASE_COMMIT }}
           fetch-depth: 0
           lfs: true
           persist-credentials: false
@@ -68,8 +96,27 @@ jobs:
           python3 scripts/fetch_model_artifacts.py --check-only --required
           release_created="$(date -u -d "$(git show -s --format=%cI HEAD)" +%Y-%m-%dT%H:%M:%SZ)"
           release_short="$(git rev-parse --short=7 HEAD)"
+          request_sha256=""
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${NOTEAI_RELEASE_SCOPE}" == "admin" ]]; then
+            request_json="$(git show "${GITHUB_SHA}:${NOTEAI_ADMIN_PUSH_REQUEST}")"
+            printf '%s\n' "${request_json}" | jq -e \
+              --arg release_commit "${RELEASE_COMMIT}" '
+                .schema_version == 1
+                and .task == "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
+                and .release_commit == $release_commit
+                and .release_scope == "admin"
+                and .trigger_mode == "one_shot_added_path"
+                and .registry_publication_authorized == false
+                and .deployment_authorized == false
+                and .database_authorized == false
+                and .service_mutation_authorized == false
+                and .public_traffic_authorized == false
+              ' >/dev/null
+            request_sha256="$(printf '%s\n' "${request_json}" | sha256sum | awk '{print $1}')"
+          fi
           printf 'release_created=%s\n' "${release_created}" >> "${GITHUB_OUTPUT}"
           printf 'release_short=%s\n' "${release_short}" >> "${GITHUB_OUTPUT}"
+          printf 'request_sha256=%s\n' "${request_sha256}" >> "${GITHUB_OUTPUT}"
 
       - name: Install checksum-pinned scanners
         shell: bash
@@ -95,16 +142,75 @@ jobs:
           NOTEAI_OCI_CREATED: ${{ steps.source.outputs.release_created }}
           NOTEAI_OCI_VERSION: git-${{ steps.source.outputs.release_short }}-amd64-r1
           NOTEAI_EVIDENCE_DIR: ${{ runner.temp }}/noteai-native-release-evidence
+          NOTEAI_REQUEST_SHA256: ${{ steps.source.outputs.request_sha256 }}
         shell: bash
         run: |
-          bash scripts/ci/native_release_evidence.sh
+          set -euo pipefail
+          control_script="${RUNNER_TEMP}/noteai-native-release-evidence.sh"
+          cp scripts/ci/native_release_evidence.sh "${control_script}"
+          original_script_sha256="$(sha256sum "${control_script}" | awk '{print $1}')"
+          if [[ "${NOTEAI_RELEASE_SCOPE}" == "admin" ]]; then
+            python3 - "${control_script}" <<'PY'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          source = path.read_text(encoding="utf-8")
+          original = "roles=(api admin payment ai-worker xhs-http)"
+          replacement = "roles=(admin)"
+          if source.count(original) != 1:
+              raise SystemExit("canonical role list must occur exactly once")
+          path.write_text(source.replace(original, replacement), encoding="utf-8")
+          PY
+          fi
+          chmod 0500 "${control_script}"
+          executed_script_sha256="$(sha256sum "${control_script}" | awk '{print $1}')"
+          test -z "$(git status --short)"
+          bash "${control_script}"
+          test -z "$(git status --short)"
+
+          if [[ "${NOTEAI_RELEASE_SCOPE}" == "admin" ]]; then
+            if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+              test -n "${NOTEAI_REQUEST_SHA256}"
+            fi
+            test "$(find "${NOTEAI_EVIDENCE_DIR}" -maxdepth 1 -type f | wc -l)" = "11"
+            jq -e '
+              .roles | length == 1
+              and .[0].role == "admin"
+              and .[0].target == "admin-runtime"
+            ' "${NOTEAI_EVIDENCE_DIR}/summary.json" >/dev/null
+            summary_tmp="${NOTEAI_EVIDENCE_DIR}/summary.json.tmp"
+            jq \
+              --arg original_script_sha256 "${original_script_sha256}" \
+              --arg executed_script_sha256 "${executed_script_sha256}" \
+              --arg trigger_event "${GITHUB_EVENT_NAME}" \
+              --arg control_commit "${GITHUB_SHA}" \
+              --arg request_path "${NOTEAI_ADMIN_PUSH_REQUEST}" \
+              --arg request_sha256 "${NOTEAI_REQUEST_SHA256}" \
+              '. + {
+                control: {
+                  release_scope: "admin",
+                  source_tree_clean_after_execution: true,
+                  transformation: "exact canonical five-role list to admin only",
+                  original_script_sha256: $original_script_sha256,
+                  executed_script_sha256: $executed_script_sha256,
+                  trigger_event: $trigger_event,
+                  control_commit: $control_commit,
+                  request_path: $request_path,
+                  request_sha256: $request_sha256
+                }
+              }' "${NOTEAI_EVIDENCE_DIR}/summary.json" > "${summary_tmp}"
+            mv "${summary_tmp}" "${NOTEAI_EVIDENCE_DIR}/summary.json"
+          fi
           printf 'path=%s\n' "${NOTEAI_EVIDENCE_DIR}" >> "${GITHUB_OUTPUT}"
+          printf 'original_script_sha256=%s\n' "${original_script_sha256}" >> "${GITHUB_OUTPUT}"
+          printf 'executed_script_sha256=%s\n' "${executed_script_sha256}" >> "${GITHUB_OUTPUT}"
 
       - name: Upload evidence only
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: native-amd64-release-evidence-${{ github.event_name == 'workflow_dispatch' && inputs.release_commit || github.sha }}
+          name: native-amd64-release-evidence-${{ env.RELEASE_COMMIT }}${{ env.NOTEAI_RELEASE_SCOPE == 'admin' && '-admin' || '' }}
           path: ${{ runner.temp }}/noteai-native-release-evidence
           if-no-files-found: error
           include-hidden-files: false
