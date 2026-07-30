@@ -41,6 +41,12 @@ from verify_b55_registry_release_vex import (  # noqa: E402
 from verify_5335_admin_native_release_vex import (  # noqa: E402
     validate_bundle as validate_5335_admin_native_release_vex_bundle,
 )
+from verify_admin_private_publication_attempt_evidence import (  # noqa: E402
+    validate_evidence as validate_admin_private_publication_attempt_evidence,
+)
+from verify_admin_private_publication_attempt_evidence import (  # noqa: E402
+    load_evidence as load_admin_private_publication_attempt_evidence,
+)
 from verify_api_c_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_c_current_release_evidence_bundle,
 )
@@ -1548,6 +1554,16 @@ def check_browserless_vex() -> list[dict[str, Any]]:
     b55_native_errors = validate_b55_native_release_vex_bundle()
     b55_registry_errors = validate_b55_registry_release_vex_bundle()
     admin_5335_native_errors = validate_5335_admin_native_release_vex_bundle()
+    try:
+        admin_publication_attempt_errors = (
+            validate_admin_private_publication_attempt_evidence(
+                load_admin_private_publication_attempt_evidence()
+            )
+        )
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        admin_publication_attempt_errors = [
+            f"cannot load Admin publication attempt evidence: {exc}"
+        ]
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -1606,6 +1622,16 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "eleven exact Admin-only files; controller request and fresh "
                 "image identity bound; raw 4 Critical / 19 High remains "
                 "unsuppressed; publication and deployment unauthorized"
+            ),
+        ),
+        _ok(
+            "bounded_5335bda_admin_private_publication_attempt_clean",
+            not admin_publication_attempt_errors,
+            "; ".join(admin_publication_attempt_errors[:5])
+            if admin_publication_attempt_errors
+            else (
+                "two bounded pre-publication failures; image/scan/login/push zero; "
+                "temporary material cleaned; saving-mode builder stop verified"
             ),
         ),
     ]

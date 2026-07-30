@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-07-30 (Asia/Shanghai)
+> Updated: 2026-07-31 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -2177,3 +2177,81 @@ re-establish a funded native AMD64 publisher, bind a new local/config identity
 and fresh scan/SBOM to one new immutable Admin tag, perform one no-retry
 push/readback with no public endpoint, then clean all temporary access before
 any V3 canary or service mutation.
+
+### Admin funded native-builder attempt blocked and cleaned (2026-07-31)
+
+- The product owner confirmed the balance was effective and authorized only
+  the existing 4-vCPU/16-GiB x86_64 pay-as-you-go builder for at most two
+  hours, one Admin private publication and full cleanup. The cost window was
+  fixed at `2026-07-30T22:59:08+08:00` through
+  `2026-07-31T00:59:08+08:00`; no new paid resource, production service,
+  database or public-traffic authority was added.
+- Fresh builder preflight proved native `x86_64`, Docker active, available
+  memory `15028 MiB`, available disk `83010 MiB`, and zero running container,
+  Docker auth entry, build/push process or database connection. Both retained
+  b55 repositories had exact HEAD and only the three expected materialized
+  LFS model files. Their credential-free HTTPS origins agreed and resolved
+  exact upstream checkpoint `1c7c9c5`; a new root-only task clone checked out
+  exact `5335bda` tree `38e574e…37cd` and independently verified the three
+  model artifacts.
+- Historical acceptance, publication and scanner-cache hashes remained
+  present. One exact fresh cache copy retained DB
+  `43c58b4…bfa0` and metadata `c22e061…9f59`; its update/download ages were
+  under 24 hours and next update remained in the future. Fixed local Trivy
+  `0.72.0` and Syft `1.49.0`, the canonical script `639941a…7d3a`, exact
+  Admin transform `a242097…22c`, empty Docker config and restricted offline
+  Trivy shim were independently accepted before build.
+- Build attempt 1 ran once and failed after `61` seconds before image build:
+  direct `buildx imagetools inspect` could not reach Docker Hub. Its only
+  evidence file was an empty Python base-index file; local image, scan,
+  Registry login/push, database connection and service mutation counts were
+  all zero. Anonymous bounded probes confirmed Docker Hub Registry and token
+  endpoints unreachable while GHCR and Public ECR returned expected
+  unauthenticated responses; the daemon had one configured mirror.
+- The only corrected path preserved the canonical script and
+  `buildx build --pull` bytes. It copied two independently accepted historical
+  raw base-index documents and installed a hash-bound Docker wrapper that
+  served only the canonical Python/Node inspect calls; every other Docker
+  command passed unchanged to `/usr/bin/docker`. Negative and passthrough
+  checks passed before the corrected build.
+- Corrected attempt 2 ran once with an independent `1800`-second hard timeout.
+  Both exact base-index calls passed, then the build remained in the pinned
+  Admin Python dependency-install step and was canceled at exactly
+  `30:00 / exit 124` while downloading the public dependency set. It produced
+  no local image and no scan. The retained log SHA-256 is
+  `f46e646…3722`; the two index hashes are `8fc034c…c8bc` and
+  `2cbba3a…587d`. Automatic and manual retry counts remained zero.
+- Post-timeout audit proved task/running containers, build/push processes,
+  database connections, Docker auth, target image and Trivy calls all zero.
+  Registry repository/tag reads, token issuance, login, push, manifest
+  readback, ACR/IAM/VPC-link changes and production mutations were never
+  started. Therefore no Stage-A sidecar or private publication identity
+  exists and no readiness credit is possible.
+- Eight exact top-level temporary task paths—source, tools, scanner cache,
+  binary/wrapper directory, base-index cache, Docker config, build
+  environment and Admin script—were removed without touching
+  historical b55 evidence or Docker cache. Only two root-only failure
+  directories remain: six regular files, five directories, zero links,
+  special files, unsafe modes or credential-pattern matches. The builder was
+  stopped in saving mode and read back `已停止` before the two-hour deadline.
+- Secret-free receipt and fail-closed verifier:
+  `deploy/production/evidence/production-admin-private-publication-attempt-blocked-clean-20260731.json`
+  and `tools/verify_admin_private_publication_attempt_evidence.py`.
+- Final local verification passed: exact receipt verifier; `10/10`
+  receipt mutation/duplicate-key tests; combined readiness-focused tests
+  `46/46`; production gate `111/111`; internal gate `19/29`; full repository
+  suite `1138/1138` with `28` expected skips; JSON parse, `py_compile`,
+  `git diff --check` and Secret-free document scan. The independent read-only
+  audit first found partial-field and duplicate-key fail-open paths, then
+  confirmed blocker `0` after canonical semantic hashing, strict duplicate-key
+  rejection, sensitive-value scanning, exact time/source/cleanup binding and
+  exhaustive mutation tests.
+
+Readiness truth remains internal `19/29=66%`, public `19/38=50%`; the last
+credited item remains `api_f_current_release=VERIFIED`. Current exact task
+remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. A new builder-cost
+authorization is not yet actionable: first establish, offline and
+independently, a package-download or prewarmed-cache path that preserves exact
+source/model bytes, pinned base identities, canonical `--pull`, unsuppressed
+raw scans and a fresh Registry identity. Only then may a new bounded native
+build precede Stage A and the still-unattempted single private push.

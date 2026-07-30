@@ -116,6 +116,21 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "verified-20260730.json"
                     ),
                 },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_private_publication_attempt_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "production-admin-private-publication-attempt-"
+                        "blocked-clean-20260731.json"
+                    ),
+                },
             ],
         )
         api_c = next(

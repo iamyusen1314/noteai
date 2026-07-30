@@ -597,9 +597,17 @@
             {
               "kind": "path",
               "ref": "deploy/production/evidence/production-admin-native-source-candidate-verified-20260730.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_private_publication_attempt_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-admin-private-publication-attempt-blocked-clean-20260731.json"
             }
           ],
-          "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. The retained isolated native AMD64 publisher is stopped for insufficient account balance, and no compliant no-new-authority alternative exists; the dedicated runtime and negative matrix remain pending.",
+          "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. A separately authorized funded native-builder window completed two bounded pre-publication build attempts: direct Docker Hub base-index access timed out, then an exact retained-index correction preserved canonical --pull but reached its 1800-second limit during public Python dependency download. Both attempts produced no local image, scan, Registry login/push or production mutation; temporary build material was cleaned and the builder stopped in saving mode before the 7200-second authorization deadline. A new bounded cost authorization is ineligible until a package-download or prewarmed-cache path independently preserves the exact source, pinned bases, canonical pull and raw scan contract; the dedicated runtime and negative matrix remain pending.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

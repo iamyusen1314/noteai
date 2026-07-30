@@ -46,6 +46,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(
             checks["exact_5335bda_github_native_admin_only_source_bundle"]["passed"]
         )
+        self.assertTrue(
+            checks[
+                "bounded_5335bda_admin_private_publication_attempt_clean"
+            ]["passed"]
+        )
 
         with mock.patch.object(
             gate,
@@ -56,6 +61,18 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertIn(
             "exact_5335bda_github_native_admin_only_source_bundle",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
+        with mock.patch.object(
+            gate,
+            "validate_admin_private_publication_attempt_evidence",
+            return_value=["tampered Admin publication attempt evidence"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "bounded_5335bda_admin_private_publication_attempt_clean",
             {item["name"] for item in report["failed_checks"]},
         )
 
