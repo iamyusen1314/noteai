@@ -977,6 +977,20 @@ Current next action:
   processes, task containers, all running containers and database port
   connections are zero. This authorizes only the unchanged five-role build
   inside build10, not registry publication or deployment.
+- Exactly one full build10 invocation is now running the unchanged b55 native
+  evidence script against the five fixed roles. It uses the source-external
+  scanner shim, fixed fresh database hashes, a new empty Docker config,
+  deterministic b55 OCI metadata and a hard outer timeout. The invocation
+  does not log in or push to the registry and does not connect to the
+  production database, mutate services or send public traffic.
+- Read-only progress and silent-stage audits prove the invocation is alive,
+  not terminal and still inside the dependency-build phase: the retained log
+  advanced from 8,122 bytes / 108 lines to 24,347 bytes / 266 lines and
+  reached BuildKit step 16 while downloading a Python wheel. Five
+  source-directory processes remain, fatal matches are zero, running
+  containers and database-port connections are zero, and the sole `error`
+  text is a Dockerfile integrity-check source line rather than a runtime
+  failure. No second full-build invocation has been dispatched.
 - Status remains `17/29 = 59%` internal and `17/38 = 45%` complete-public.
   The only task remains `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`; the next
   acceptance boundary is terminal build10 plus a complete independent
