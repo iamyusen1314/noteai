@@ -2246,6 +2246,8 @@ any V3 canary or service mutation.
   confirmed blocker `0` after canonical semantic hashing, strict duplicate-key
   rejection, sensitive-value scanning, exact time/source/cleanup binding and
   exhaustive mutation tests.
+- Atomic evidence/check cleanup checkpoint:
+  `f2c4b0b3da83c522a762a6ec878276b6fb94865b`.
 
 Readiness truth remains internal `19/29=66%`, public `19/38=50%`; the last
 credited item remains `api_f_current_release=VERIFIED`. Current exact task
