@@ -2286,6 +2286,12 @@ build precede Stage A and the still-unattempted single private push.
   resource mutation and was not rerun. `DOCKER_CONFIG` is now defined only in
   the four step scopes where GitHub permits the `runner` context, and the plan
   verifier has a regression gate against job-level reuse.
+- Corrected core checkpoint
+  `dd3cdce4692a40b5e2bfb9c786dcb4da55aa6fb6` was accepted by GitHub's
+  parser and path filter: no dependency-cache workflow run exists for that
+  SHA. The repository's ordinary push run `30573970320` and pull-request run
+  `30573973644` each completed all CI steps successfully in `2m22s`. No
+  activation request or cache artifact was created.
 - The export builds only exact Dockerfile lines `1-80` with the two
   requirements files, pinned Python/Node indices, canonical `--pull`,
   `linux/amd64`, max provenance, raw progress and a local cache-only output.
