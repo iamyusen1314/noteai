@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-07-29 (Asia/Shanghai)
+> Updated: 2026-07-30 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -43,6 +43,12 @@
   `ed5e699896c2f60fc303faa47139a068ac4fdb5f`.
 - Exact b55 native source-candidate/VEX checkpoint:
   `d6a06ae5d933b14bd31d8bf5867df2f3c7421839`.
+- b55 scanner-cache recovery checkpoint:
+  `b981970`.
+- b55 build10 scanner-gate checkpoint:
+  `4646b17`.
+- b55 single full-build launch checkpoint:
+  `18335615f3754a8ada424410b20ec59a649b0ddf`.
 - Historical V4 package binding:
   `13377d7ac37b090818c56be545f34a7ac5587d49`.
 - Historical V4 exact execution source:
@@ -977,25 +983,49 @@ Current next action:
   processes, task containers, all running containers and database port
   connections are zero. This authorizes only the unchanged five-role build
   inside build10, not registry publication or deployment.
-- Exactly one full build10 invocation is now running the unchanged b55 native
-  evidence script against the five fixed roles. It uses the source-external
-  scanner shim, fixed fresh database hashes, a new empty Docker config,
-  deterministic b55 OCI metadata and a hard outer timeout. The invocation
-  does not log in or push to the registry and does not connect to the
-  production database, mutate services or send public traffic.
-- Read-only progress and silent-stage audits prove the invocation is alive,
-  not terminal and still inside the dependency-build phase: the retained log
-  advanced from 8,122 bytes / 108 lines to 24,347 bytes / 266 lines and
-  reached BuildKit step 16 while downloading a Python wheel. Five
-  source-directory processes remain, fatal matches are zero, running
-  containers and database-port connections are zero, and the sole `error`
-  text is a Dockerfile integrity-check source line rather than a runtime
-  failure. No second full-build invocation has been dispatched.
-- Status remains `17/29 = 59%` internal and `17/38 = 45%` complete-public.
-  The only task remains `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`; the next
-  acceptance boundary is terminal build10 plus a complete independent
-  43-file five-role bundle. Publication, deployment, service mutation and
-  public traffic have not started.
+- Exactly one full build10 invocation ran the unchanged b55 native evidence
+  script against the five fixed roles. It used the source-external scanner
+  shim, fixed fresh database hashes, a new empty Docker config and
+  deterministic b55 OCI metadata. It did not log in or push to the registry,
+  connect to the production database, mutate services or send public traffic.
+- The control-plane invocation reached its hard timeout after the native
+  script had completed all five builds. Its original post-build wrapper,
+  state and sidecar did not run, so the invocation itself remains truthfully
+  classified `TIMEOUT`, not `VERIFIED`. The retained native log ends at
+  `#28 DONE 0.0s`, has zero fatal matches and produced exactly the expected
+  43 raw files: two base indexes, eight files for each of five roles and one
+  total summary. Source processes, task/running containers and database-port
+  connections are zero.
+- A separate task-owned acceptance chain preserved the original timeout and
+  never changed the 43 raw files. Its first three fail-closed attempts exposed
+  validator-only assumptions: five Buildx metadata files are `0644` inside
+  root-only `0700` directories, summary role order is not contractual, and
+  build9 used a different OCI-created label so cross-run image-ID equality is
+  not a valid gate. Each failed state is retained; no failed attempt produced
+  a manifest or acceptance sidecar.
+- Corrected v4 acceptance and a separately dispatched read-only audit both
+  verified all 43 file hashes, exact file set and modes, five unique current
+  image identities, OCI/config/runtime-role contracts, SBOM/report hashes,
+  fixed scanner cache and all three failure records. Every role is
+  `4 Critical / 19 High / 0 Secret`; browser and forbidden OS packages are
+  zero and `cryptography 48.0.1` occurs exactly once. The canonical
+  vulnerability-row hash matches the reviewed b55/GitHub bundle.
+- v4 summary SHA-256 is
+  `a8e1c7ca38e1d5886197f6f727a4fb51ce206817221cc404f4586d29588c41d0`;
+  manifest SHA-256 is
+  `ec14390c4ccf9515f659ee29dfb20b60e6776d804dfe3005e2c2edb6d7bca865`;
+  acceptance-sidecar SHA-256 is
+  `e16a3c3d2308a6e4d1b9113d37059933efc4d7965a4f3c12f5cf0a43d9b10a75`.
+  The sidecar authorizes only one bounded private Registry publication.
+  Deployment, database, service and public-traffic authorization remain false.
+- Stage A is complete. Status remains `17/29 = 59%` internal and
+  `17/38 = 45%` complete-public because evidence acceptance alone earns no
+  readiness credit. The only task remains
+  `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`; next perform a fresh private-ACR
+  absence/precondition check, publish each of the five immutable b55 roles
+  once, bind five read-back digests and produce the new b55 Registry
+  evidence/VEX/review. Only then may the API-C loopback canary and reversible
+  promotion begin.
 
 ## 7. Mandatory failure classification
 
@@ -1075,13 +1105,14 @@ checkpoint.
 
 Current remaining steps:
 
-- keep the pushed `d66827f` control checkpoint and the recovered build9
-  evidence immutable while preparing a fresh verified scanner cache;
+- preserve the recovered build9 and accepted build10 evidence, all failed
+  validator states and the v4 manifest/sidecar; do not rebuild or rescan them;
 - execute only `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`: privately publish the
-  exact current immutable API product, then reuse the existing schema/roles,
-  managed secrets and private storage; establish a fresh read-only baseline
-  before any service mutation, preserve the historical release for
-  deterministic rollback and keep the service loopback-only with public
-  traffic zero;
+  exact five-role b55 set once after a fresh private-ACR absence check, bind
+  all read-back digests and complete the b55 Registry evidence/VEX/review;
+  then reuse the existing schema/roles, managed secrets and private storage,
+  establish a fresh read-only baseline before any service mutation, preserve
+  the historical release for deterministic rollback and keep the service
+  loopback-only with public traffic zero;
 - continue through the dependency graph without stopping at the checkpoint
   or task boundary.
