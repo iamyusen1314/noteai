@@ -542,13 +542,24 @@
         {
           "id": "api_f_current_release",
           "title": "API-F current-release loopback deployment and recovery",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "api_c_current_release"
           ],
-          "evidence": [],
-          "blocker": "API-F runs the historical release and requires independent acceptance after API-C.",
-          "next_task": "PROD-FIRST-LAUNCH-API-F-INTERNAL-001"
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "b55f11882100e9ef919522540729e366a511f88f"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-api-f-current-release-verified-20260730.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_api_f_current_release_evidence.py"
+            }
+          ]
         },
         {
           "id": "admin_current_release",

@@ -41,6 +41,9 @@ from verify_b55_registry_release_vex import (  # noqa: E402
 from verify_api_c_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_c_current_release_evidence_bundle,
 )
+from verify_api_f_current_release_evidence import (  # noqa: E402
+    validate_bundle as validate_api_f_current_release_evidence_bundle,
+)
 from verify_native_release_vex import validate_bundle as validate_native_release_vex_bundle  # noqa: E402
 from verify_registry_release_vex import (  # noqa: E402
     validate_bundle as validate_registry_release_vex_bundle,
@@ -1609,6 +1612,23 @@ def check_api_c_current_release_evidence() -> list[dict[str, Any]]:
     ]
 
 
+def check_api_f_current_release_evidence() -> list[dict[str, Any]]:
+    errors = validate_api_f_current_release_evidence_bundle()
+    return [
+        _ok(
+            "exact_api_f_b55_runtime_deployment_evidence",
+            not errors,
+            "; ".join(errors[:5])
+            if errors
+            else (
+                "API-F-owned pull identity and ordered no-retry deployment; "
+                "single canary; rollback exercised; peer non-regression; "
+                "final residue zero"
+            ),
+        )
+    ]
+
+
 def _line_has_secret_value(line: str) -> tuple[bool, str]:
     match = SECRET_NAME_RE.search(line)
     if not match:
@@ -1702,6 +1722,7 @@ def build_report() -> dict[str, Any]:
         "ci_and_deployment_config": check_ci_and_deployment_config(),
         "browserless_vex": check_browserless_vex(),
         "api_c_runtime_evidence": check_api_c_current_release_evidence(),
+        "api_f_runtime_evidence": check_api_f_current_release_evidence(),
         "optional_runtime_dependencies": check_optional_runtime_dependencies(),
         "git_hygiene": check_git_hygiene(),
     }

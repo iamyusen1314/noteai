@@ -65,6 +65,27 @@ class ProductionReadinessGateTests(unittest.TestCase):
             {item["name"] for item in report["failed_checks"]},
         )
 
+    def test_api_f_runtime_evidence_is_fail_closed_in_repository_gate(self):
+        checks = {
+            item["name"]: item
+            for item in gate.check_api_f_current_release_evidence()
+        }
+        self.assertTrue(
+            checks["exact_api_f_b55_runtime_deployment_evidence"]["passed"]
+        )
+
+        with mock.patch.object(
+            gate,
+            "validate_api_f_current_release_evidence_bundle",
+            return_value=["tampered runtime evidence"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_api_f_b55_runtime_deployment_evidence",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
     def test_production_roles_exclude_browser_dependencies_and_commands(self):
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
         compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")

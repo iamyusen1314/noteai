@@ -1195,6 +1195,238 @@ Current next action:
   canary, reversible promotion, explicit restart, API-C/Admin non-regression,
   independent postcheck, rollback-ready evidence and final residue zero.
 
+## 6.7. API-F Stage C fresh baseline
+
+- API-F began only after the API-C evidence/verifier checkpoint was pushed at
+  `07ddcbcc1a6b62e9992aed26f42ce05ec4d3b816`; branch, HEAD and upstream were
+  exact, divergence was `0/0` and the worktree was clean.
+- The first local browser command template was rejected before dispatch for
+  an escaped back-reference. The corrected read-only host dispatch then
+  captured the full API-F baseline, but its collector counted one existing
+  Docker configuration file instead of semantic auth entries and its error
+  trap observed a false condition inside that count. A narrower resolution
+  template was itself rejected locally before dispatch because shell
+  parameter syntax collided with the browser language. The materially
+  corrected narrow read-only dispatch proved semantic Docker auth entries
+  zero and completed without error. All four attempts are `PRE_CONNECT` with
+  service/database/object/provider/public mutations zero; exactly two reached
+  the host and neither changed state.
+- Fresh API-F state is the accepted historical unit SHA-256
+  `32d552e3…4268`, image ID `sha256:b1983bab…fedb`, manifest
+  `sha256:17706e18…e0d1` and revision `a635692a…94a`. The service is
+  active/enabled/result success with restart count zero, one managed
+  container, live/ready `200`, exact database/model readiness and only
+  loopback port `8000`. Runtime identity, entrypoint/command and hardening
+  remain exact: `999:999`, read-only root, cap-drop ALL,
+  no-new-privileges, Docker restart `no`, 1.5 GiB/2 CPU/PID 512, one bounded
+  `/tmp` tmpfs and one writable `/app/model/data` mount.
+- The target image is not cached on API-F. Private Registry DNS and route are
+  private and available; Docker free space is at least 32 GiB and available
+  memory is 6,706 MiB. Canary container/listener, temporary unit, task root,
+  database connection and semantic Registry auth counts are all zero.
+- API-F's three distinct managed-secret files remain regular root-owned
+  `0600` files with unchanged hashes, duplicate keys and backup residue zero.
+  The one root-owned `0600` private-storage configuration has exactly seven
+  keys, duplicate/static-access-key names zero and the same hash as API-C.
+  Both lifecycle entrypoints resolve to the previously accepted identical
+  wrapper hash.
+- Independent API-C peer baseline proves the promoted API unit
+  `364a5e53…fc77`, exact b55 image/revision, active/enabled/result success,
+  restart zero, live/ready `200`, loopback-only and unchanged hardening.
+  API-C Admin remains at unit `c299059d…1ab2`, its accepted historical image
+  and start time, restart zero, live/ready `200` and loopback-only. Their four
+  managed-secret hashes, storage hash and lifecycle hashes are unchanged;
+  API-C canary/auth/database-connection residue is zero, while its one
+  intentional sanitized Stage C evidence root remains retained.
+- Fresh control-plane reads prove one Running PostgreSQL 16 VPC/Intranet
+  instance, one private and zero public endpoint, accounts `8/1/0`, seven
+  successful automated full snapshots in the bounded seven-day window with
+  the latest approximately nineteen hours old, and zero production-VPC ALB.
+- No pull, token, login, service restart, database transaction/write, object
+  action, provider call, ALB/TLS/DNS or public-traffic change has occurred in
+  API-F Stage C. Readiness therefore remains `18/29 = 62%` internal and
+  `18/38 = 47%` complete-public. The only task remains
+  `PROD-FIRST-LAUNCH-API-F-INTERNAL-001`; next acceptance is one protected
+  exact-digest pull, a candidate derived only from the fresh API-F unit,
+  loopback canary, reversible promotion, explicit restart, independent
+  postcheck and cleanup.
+- Transport setup subsequently created the exact root-only Stage C root,
+  retained the fresh historical unit bytes and generated one ephemeral RSA
+  keypair without service or database action. One short-lived Registry token
+  was issued and encrypted, but the first exact-pull executor stopped before
+  Python began because two Docker label templates lost their nested quoting.
+  Independent incident audit proves `login=0`, `pull=0`, exact-image cache
+  zero, unit unchanged, live/ready `200`, database connection zero and
+  canary zero. The EXIT cleanup removed isolated auth, RSA public/private key
+  and ciphertext residue. This attempt is append-only `PRE_CONNECT`; a new
+  credential may be issued only after the materially corrected executor
+  passes a separate syntax compile.
+- The corrected pull executor passed an independent target-Python syntax
+  compile before a second ephemeral transport key and short-lived token were
+  created. Its outer observer returned only the initial markers, so the pull
+  was not repeated. A separate read-only outcome audit proved the sanitized
+  result is `PASS`: Registry login `1`, exact-digest pull `1`, automatic retry
+  `0`, and exact config image ID, RepoDigest, b55 revision, API role,
+  `linux/amd64`, entrypoint and command all match. The exact image is now
+  cached on API-F. Isolated/global auth entries, RSA, public key and ciphertext
+  residue are zero; the historical unit remains installed, live/ready
+  `200`, canary zero and database connection/write zero. Cumulative transport
+  counts are token issuance `2`, successful login `1`, successful pull `1`;
+  the first token never reached login or pull and was not reused.
+- The first candidate generator was syntax-valid but stopped before writing
+  because it assumed the API env argument was a continued line. A dedicated
+  read-only structural audit proved API-F's fresh unit uses a single-line
+  `ExecStart`; source/installed bytes, digest, storage file and container name
+  were otherwise exact. The corrected generator compiled first, inserted the
+  storage env argument on that same line and passed `systemd-analyze verify`.
+  Candidate SHA-256 is
+  `23750496447ad6e31ad27b1461f1164bbf14c28296a0ac28be7e5886eb4e65c1`
+  for 1,447 bytes. Replacing the new digest with the historical digest and
+  deleting the one storage argument reconstructs all 1,404 historical bytes
+  exactly; image-digest changes `1`, storage additions `1`, other semantic
+  changes `0`. No installed unit, service, canary or database state changed.
+- The canary command was derived from the 53 exact candidate tokens. It
+  changes only the container name, loopback mapping to port `18000` and data
+  source to the empty root-owned Stage C directory; API plus storage env
+  count is `2`, XHS env count `0`, exact image count `1`, restart policy
+  `no` and command SHA-256 is `0c0ace0b…c642`. A narrower read-only mount
+  probe was not observed externally and made no change; the fail-closed
+  generator itself proved the exact bind destination before writing.
+- Exactly one canary generation was created and started. Its combined
+  start-and-validation command exceeded the outer execution window after the
+  container began, so no result file was accepted and the generation was not
+  restarted or recreated. A separate read-only validator then passed three
+  live/ready rounds, exact database/model readiness, b55 identity, all
+  hardening/resource/mount/storage-env assertions, empty data, restart zero
+  and bounded log hits zero. The canary result SHA-256 is
+  `a8057cbb…8fd4`; the formal historical service remained `200/200`.
+- A first over-composed syntax wrapper for the canary database probe failed
+  before connection. The direct source compile passed, then one distinct
+  explicit canary session completed `1` connection, `1` read-only
+  transaction and `1` terminal rollback with runtime role exact,
+  default/transaction read-only on, XID unassigned, transaction tuple writes
+  zero, database writes zero and `CONNECTED_UNKNOWN=0`. Its result SHA-256 is
+  `d2eb6dad…e9de`. The known migration-ledger denial path was not repeated.
+- Promotion attempt 1 atomically installed the candidate and issued one
+  managed-service restart. Its immediate post-start `docker inspect` ran
+  before the stable container name became visible and raised a local
+  `CalledProcessError`; the executor conservatively restored the historical
+  unit, daemon-reloaded and restarted the old image once. Independent outcome
+  evidence SHA-256 `de656f8f…6895` proves `service_mutation_started=true`,
+  promotion restart `1`, rollback restart `1`, rollback `PASS`, automatic
+  retry `0` and database/object/provider writes zero.
+- Bounded journal/event diagnosis shows no unit failure, env-file failure or
+  application fatal. The candidate container did create and start; the exact
+  event chain contains the canary, candidate and rollback generations, while
+  the two expected old/candidate stops and destroys match the promotion and
+  rollback. Current installed/rollback unit SHA is again `32d552e3…4268`,
+  historical image and formal health are restored, and the original canary
+  remains running, healthy and restart zero. Any new promotion requires a
+  complete canary rearm and a materially corrected bounded container-visible
+  wait with explicit stage codes.
+- The unchanged canary was rearmed without restart and again passed three
+  live/ready/readiness-payload rounds; the fresh result SHA-256 is
+  `9271273d…2325`. Promotion executor V2 compiled before dispatch and adds a
+  bounded stable-container visibility wait plus precise failure stages. Its
+  first outer invocation stopped at the read-only guard because the caller
+  used two incorrect staged filenames and `/ready` instead of the already
+  validated `/health/ready`; the candidate, canary result and runtime were
+  untouched. A narrow always-success diagnosis resolved the actual staged
+  filenames and health path before any retry.
+- With the corrected read-only guard, promotion V2 atomically installed the
+  exact `23750496…65c1` candidate and issued one managed-service restart.
+  Result SHA-256 `90078e42…60dd` is
+  `STARTED_PENDING_HEALTH`: service mutation/restart `true/1`, stable
+  container visibility on poll `2`, container identity changed, Docker
+  restart `0`, automatic retry `0`, rollback required/restart
+  `false/0`, and database/object/provider calls and writes all zero.
+  Independent immediate checks prove the candidate unit installed,
+  systemd active/enabled/result success, formal live/ready `200`, and the
+  original canary still live/ready with restart zero. One provisional audit
+  incorrectly reconstructed a full config-image ID from an abbreviated
+  API-C handoff value and correctly failed only that comparison; it was not
+  a runtime mismatch. API-F identity acceptance remains independently bound
+  to the exact values in API-F's own pull/canary evidence, even where the
+  content-addressed API artifact is intentionally the same as API-C.
+- Formal-validator source V1 failed its separate syntax-only dispatch because
+  a generated dictionary entry used assignment syntax. Source V2 compiled
+  but its first read-only execution stopped before result creation because a
+  caller-added parser supported volume flags but not the candidate unit's
+  exact `--mount` form. Both attempts are `PRE_CONNECT` with service restart,
+  database/object/provider/public mutation and result writes zero; the
+  installed candidate, formal health and original canary remained exact.
+  A narrow read-only token audit proved one `--mount` across the 53 candidate
+  tokens, and source V3 added only that missing parser branch before passing
+  a fresh syntax compile.
+- Formal initial acceptance then passed in a separate read-only dispatch.
+  Result SHA-256 `f6726b17…7c9d` records three of three
+  live/ready/readiness-payload rounds; exact API-F pull-bound config image,
+  RepoDigest, b55 revision, role, user, hardening, resources, loopback port,
+  storage-env names and writable model-data mount; container restart zero;
+  bounded data files and migration/provider/secret/fatal log hits all zero;
+  and database/object/provider writes zero. The candidate unit, formal
+  service and unchanged canary independently remain healthy.
+- The explicit-restart executor V1 was rejected only by its syntax compile
+  because the generated result newline became an unterminated literal. The
+  one-line serialization correction compiled, then exactly one explicit
+  managed-service restart ran. Result SHA-256 `b0fc128a…1fcd` proves a new
+  container identity on visibility poll `2`, exact API-F unit/config-image/
+  digest identity, systemd active/enabled/result success, Docker restart
+  zero, automatic retry zero, rollback not required, and database/object/
+  provider calls and writes zero. Formal and canary health remained `200`.
+- Separate post-restart result SHA-256 `6f22be7d…b1e4` passed another three
+  live/ready/readiness-payload rounds with the same full identity,
+  hardening, resource, loopback, mount, storage-env and bounded-log
+  assertions. The final managed-service restart accounting is promotion
+  restarts `2`, failed-promotion rollback restart `1`, and explicit restart
+  `1`; the explicit restart itself was not retried.
+- One new formal runtime database session produced deterministic result
+  SHA-256 `addc5b90…3c80`: connection/read-only transaction/terminal rollback
+  `1/1/1`, runtime role exact, default and transaction read-only true, XID
+  unassigned, transaction tuple writes and database writes zero, and
+  `CONNECTED_UNKNOWN=0`. The outer shell then rejected only its own
+  string-valued expectation for those boolean read-only fields. This is
+  `CONNECTED_KNOWN / PASS / ROLLED_BACK / WRITE 0`; the database session was
+  not repeated.
+- Fresh peer runtime audit result SHA-256 `737d8485…1fc6` independently proves
+  API-C API and Admin unit/image/start-time/restart/health/listener state
+  unchanged. Its only failure was a first-level Secret-directory path
+  assumption. Hash-directed recursive follow-ups, without revealing paths or
+  values, prove four distinct root-owned `0600` managed-secret hashes, one
+  root-owned `0600` storage hash and two lifecycle-wrapper hashes exact.
+- Canary cleanup result SHA-256 `51d5f894…b39b` records exactly one canary
+  container removal and one nonrecursive removal of its previously empty,
+  non-symlink data directory. Container, listener `18000` and canary data are
+  absent; formal health remains `200`; database/object/provider calls and
+  writes are zero. The evidence root, candidate/current image, historical
+  unit and historical image are intentionally retained.
+- The first final-runtime guard used `set -e` directly on the expected
+  nonexistent canary inspection and stopped before validator execution.
+  Explicit negation was the only correction. Final runtime result SHA-256
+  `f392c3d2…3973` then passed three more live/ready/readiness-payload rounds
+  with the final formal container identity unchanged since the explicit
+  restart and canary/listener still absent.
+- Final postcheck V1 result SHA-256 `9bc22bfc…d076` passed every runtime,
+  rollback, Secret, storage, lifecycle, auth, credential, residue, listener,
+  process, temporary-unit and database-connection assertion except a caller
+  policy that allowed only `0600` JSON. A read-only mode census found six
+  root-owned `0644` sanitized evidence JSON files; a dedicated content scan
+  found parse failures, sensitive scalar values, IP addresses, complete DSNs,
+  PEM material and long strings all zero. Corrected V2 binds V1 append-only
+  and treats only those six scanned files as safe public-mode evidence.
+  Result SHA-256 `a98f5778…6b7f` is `PASS`: all required result hashes,
+  installed/rollback units, current/old images, one formal container, final
+  health, three Secret hashes, seven-key storage and two lifecycle hashes are
+  exact; canary/unexpected container/`18000`/auth/RSA/cipher/backup/process/
+  temporary-unit/established-DB-connection residue is zero.
+- Final control-plane reads again prove one Running PostgreSQL 16 instance,
+  one private and zero public endpoint, accounts `8/1/0`, available accounts
+  `8`, task residue zero and production-VPC ALB zero. The bounded backup
+  evidence from the fresh Stage C baseline remains seven successful automated
+  full snapshots within seven days with the latest about nineteen hours old;
+  a later Explorer-only refresh was not accepted because its date control did
+  not produce a response, so no newer backup claim was substituted.
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
@@ -1217,10 +1449,15 @@ Completed verification:
 
 - focused privileged-owner/readiness tests: `31/31`;
 - disposable PostgreSQL 16 privileged-owner chain: `1/1`;
-- full Python suite: `1108/1108`, 28 explicit skips;
-- production readiness gate: `108/108 PASS`;
-- internal readiness: fail-closed `18/29 = 62%`;
-- public readiness: `18/38 = 47%`;
+- full Python suite: `1119/1119`, 28 explicit skips;
+- API-F focused evidence/internal/production gate tests: `45/45`;
+- production readiness gate: `109/109 PASS`;
+- internal readiness: fail-closed `19/29 = 66%`;
+- public readiness: `19/38 = 50%`;
+- independent read-only API-F evidence/verifier adversarial audit: `PASS`;
+- one local JSON-format check initially invoked unavailable bare `python`
+  after compilation had already passed; the same JSON and compile checks were
+  rerun with `.venv/bin/python` and passed, with no remote or production action;
 - zero-DSN import, Python compile, runner shell syntax, JSON parses and
   `git diff --check`: pass;
 - disposable PostgreSQL containers/network/volume: zero;
@@ -1275,10 +1512,11 @@ Current remaining steps:
 
 - preserve Stage A/build10, Stage B publication and Stage C ordered
   deployment/rollback/postcheck evidence; do not rebuild, rescan, republish or
-  repeat API-C;
-- checkpoint and push the exact API-C runtime evidence/verifier/gate state,
-  then execute only `PROD-FIRST-LAUNCH-API-F-INTERNAL-001` against the same
-  immutable API digest with a fresh API-F baseline and independent API-C/Admin
-  non-regression;
+  repeat API-C or API-F;
+- complete the full-suite and independent read-only audit, then checkpoint and
+  push the exact API-F runtime evidence/verifier/gate state;
+- execute only `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001` from a fresh Admin
+  baseline, with exact Admin image identity, dedicated-role negative matrix,
+  reversible promotion and independent API-C/API-F non-regression;
 - continue through the dependency graph without stopping at the checkpoint
   or task boundary.

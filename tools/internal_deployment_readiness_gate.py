@@ -21,6 +21,12 @@ from verify_api_c_current_release_evidence import (
 from verify_api_c_current_release_evidence import (
     validate_bundle as validate_api_c_current_release_evidence,
 )
+from verify_api_f_current_release_evidence import (
+    EXPECTED_MANIFEST_EVIDENCE as API_F_EXPECTED_MANIFEST_EVIDENCE,
+)
+from verify_api_f_current_release_evidence import (
+    validate_bundle as validate_api_f_current_release_evidence,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -177,6 +183,19 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
                     f"{control_id}: exact runtime evidence refs required",
                 )
                 runtime_errors = validate_api_c_current_release_evidence(
+                    root=root
+                )
+                _require(
+                    not runtime_errors,
+                    f"{control_id}: invalid runtime evidence: "
+                    f"{runtime_errors[0] if runtime_errors else ''}",
+                )
+            if control_id == "api_f_current_release" and status == "verified":
+                _require(
+                    evidence == API_F_EXPECTED_MANIFEST_EVIDENCE,
+                    f"{control_id}: exact runtime evidence refs required",
+                )
+                runtime_errors = validate_api_f_current_release_evidence(
                     root=root
                 )
                 _require(
