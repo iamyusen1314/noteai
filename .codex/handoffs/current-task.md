@@ -2058,3 +2058,54 @@ Current exact task remains
 commit and push the one-shot request/controller checkpoint once, observe the
 single exact-source Admin run to a terminal artifact state without rerun, then
 download and independently accept or reject the eleven-file bundle.
+
+### Admin native-evidence V1 trigger incident and V2 correction checkpoint (2026-07-30)
+
+- The reviewed V1 controller was committed and pushed once as exact
+  `e7766ab903a2f2721521552c62a18573bc9990de`; local and upstream were clean at
+  `0/0`. GitHub created exactly one target push run, `30549134106`. Its
+  revision, checkout, native-runner, scanner, build/inspect/scan and artifact
+  upload steps all completed; only the terminal zero-Critical/High gate failed.
+- Terminal artifact metadata and downloaded contents exposed a scope error
+  before acceptance: the artifact was named for `e7766ab`, contained `43`
+  files and all five roles, and its summary bound release commit `e7766ab`
+  with no Admin control block. Job environment evidence showed
+  `NOTEAI_RELEASE_SCOPE=five`. GitHub had evaluated the pre-checkout
+  `github.event.head_commit.added` expression false and the workflow had
+  silently selected its ordinary five-role fallback.
+- This 43-file bundle is retained only as failure diagnosis. It is not exact
+  `5335bda` Admin evidence, gives no release authorization or readiness credit,
+  and will not be rerun. Registry login/push, private publication, deployment,
+  database, service, provider and public-traffic actions remained zero.
+- The local V2 correction removes all event-payload file inference. It first
+  checks out the controller commit with full history, then fail-closed resolves
+  the release from real Git objects: one parent, exactly one newly added and
+  non-renamed V2 request, regular-blob mode, exact ten-key schema, fixed
+  request SHA-256, exact `5335bda` ancestry and one-time addition history.
+  Registry publication, deployment, database, service mutation and public
+  traffic remain explicitly false. Only after those checks does a second
+  checkout select exact `5335bda` and externalize the canonical Admin-only
+  script transformation.
+- The V2 request is
+  `.github/release-requests/admin-5335bda-v2.json`, schema `2`, with SHA-256
+  `c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef`.
+  Static workflow/request tests pass `7/7`; combined readiness tests pass
+  `65/65`; production gate passes `109/109`; YAML/JSON parse and diff checks
+  pass. The exact control shell was also executed from a synthetic child
+  commit containing the staged tree: it resolved exact `5335bda`, scope
+  `admin`, the V2 path/hash and the synthetic controller commit. A deliberately
+  wrong pinned hash failed closed, while a no-request historical commit
+  resolved to its own SHA and five-role compatibility. This pre-push
+  simulation also caught and removed a local Bash `mapfile` portability
+  dependency. Independent review requires this two-checkout controller
+  contract and confirms the V1 artifact cannot be reused. Its final audit of
+  the staged implementation found deterministic blocker count `0` and
+  required correction count `0`.
+
+Readiness remains internal `19/29=66%`, public `19/38=50%`; the last credited
+item remains `api_f_current_release=VERIFIED`. Current exact task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is to
+form the V2 controller commit, execute its resolver locally against that exact
+commit, independently review blocker count `0`, push once, and accept only an
+eleven-file artifact bound to exact `5335bda`, Admin-only scope and the fixed
+V2 request hash.

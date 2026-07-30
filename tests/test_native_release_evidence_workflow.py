@@ -1,3 +1,5 @@
+import hashlib
+import json
 import re
 import unittest
 from pathlib import Path
@@ -6,6 +8,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "native-release-evidence.yml"
 SCRIPT = ROOT / "scripts" / "ci" / "native_release_evidence.sh"
+ADMIN_REQUEST = (
+    ROOT / ".github" / "release-requests" / "admin-5335bda-v2.json"
+)
+ADMIN_REQUEST_SHA256 = (
+    "c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef"
+)
 
 
 class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
@@ -20,7 +28,7 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
         self.assertIn(
             "paths:\n"
             "      - .github/workflows/native-release-evidence.yml\n"
-            "      - .github/release-requests/admin-5335bda.json\n"
+            "      - .github/release-requests/admin-5335bda-v2.json\n"
             "      - scripts/ci/native_release_evidence.sh",
             workflow,
         )
@@ -39,12 +47,58 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
     def test_admin_scope_is_source_external_exact_and_single_role(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
+        self.assertNotIn("github.event.head_commit.added", workflow)
+        self.assertNotIn("GITHUB_EVENT_PATH", workflow)
+        self.assertIn("ref: ${{ github.sha }}", workflow)
+        self.assertIn("Checkout controller commit with full history", workflow)
+        self.assertIn("Resolve and validate release control", workflow)
         self.assertIn(
-            'NOTEAI_RELEASE_SCOPE: ${{ github.event_name == '
-            "'workflow_dispatch' && inputs.release_scope || "
-            "(contains(github.event.head_commit.added, "
-            "'.github/release-requests/admin-5335bda.json') && "
-            "'admin' || 'five') }}",
+            "git diff-tree --no-commit-id --no-renames --diff-filter=A",
+            workflow,
+        )
+        self.assertIn('--name-only -z -r "${controller_parent}" "${GITHUB_SHA}"', workflow)
+        self.assertIn('test "${#added_requests[@]}" -eq 1', workflow)
+        self.assertIn(
+            'test "${added_requests[0]}" = "${NOTEAI_ADMIN_PUSH_REQUEST}"',
+            workflow,
+        )
+        self.assertNotIn("mapfile -t added_requests < <(", workflow)
+        self.assertNotIn("mapfile", workflow)
+        self.assertIn('read -r -a parent_fields <<<"${parent_record}"', workflow)
+        self.assertIn('test "${#parent_fields[@]}" -eq 2', workflow)
+        self.assertIn('test "${parent_fields[0]}" = "${GITHUB_SHA}"', workflow)
+        self.assertIn('git merge-base --is-ancestor "${release_commit}" "${GITHUB_SHA}"', workflow)
+        self.assertIn('test "${#request_add_commits[@]}" -eq 1', workflow)
+        self.assertIn('test "${request_add_commits[0]}" = "${GITHUB_SHA}"', workflow)
+        self.assertIn(
+            'git log --diff-filter=A --format=%H "${GITHUB_SHA}" --',
+            workflow,
+        )
+        self.assertIn("type == \"object\"", workflow)
+        self.assertIn("(keys | sort) == [", workflow)
+        self.assertIn("and .schema_version == 2", workflow)
+        self.assertIn(
+            'and .trigger_mode == "one_shot_controller_diff_v2"',
+            workflow,
+        )
+        self.assertIn(
+            f"NOTEAI_ADMIN_PUSH_REQUEST_SHA256: {ADMIN_REQUEST_SHA256}",
+            workflow,
+        )
+        self.assertIn(
+            'test "${request_sha256}" = "${NOTEAI_ADMIN_PUSH_REQUEST_SHA256}"',
+            workflow,
+        )
+        self.assertIn(
+            "ref: ${{ steps.control.outputs.release_commit }}",
+            workflow,
+        )
+        self.assertIn(
+            "NOTEAI_RELEASE_SCOPE: ${{ steps.control.outputs.release_scope }}",
+            workflow,
+        )
+        self.assertIn(
+            "NOTEAI_CONTROL_COMMIT: ${{ steps.control.outputs.control_commit }}",
             workflow,
         )
         self.assertIn(
@@ -63,39 +117,68 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
             workflow,
         )
         self.assertIn('.roles | length == 1', workflow)
-        self.assertIn('.[0].role == "admin"', workflow)
-        self.assertIn('.[0].target == "admin-runtime"', workflow)
+        self.assertIn('.roles[0].role == "admin"', workflow)
+        self.assertIn('.roles[0].target == "admin-runtime"', workflow)
         self.assertIn('release_scope: "admin"', workflow)
         self.assertIn("source_tree_clean_after_execution: true", workflow)
         self.assertIn(
-            "contains(github.event.head_commit.added, "
-            "'.github/release-requests/admin-5335bda.json')",
+            'resolution: "controller-checkout-single-parent-git-diff-tree-v2"',
             workflow,
         )
         self.assertIn(
-            'test "${RELEASE_COMMIT}" = '
+            'release_commit='
             '"5335bdaed933b1f999b5f819c047ec50c11821ae"',
             workflow,
         )
-        self.assertIn("ref: ${{ env.RELEASE_COMMIT }}", workflow)
-        self.assertIn(
-            'request_json="$(git show '
-            '"${GITHUB_SHA}:${NOTEAI_ADMIN_PUSH_REQUEST}")"',
-            workflow,
-        )
-        self.assertIn('.trigger_mode == "one_shot_added_path"', workflow)
         self.assertIn("request_sha256: $request_sha256", workflow)
         self.assertIn(
-            "native-amd64-release-evidence-${{ env.RELEASE_COMMIT }}"
-            "${{ env.NOTEAI_RELEASE_SCOPE == 'admin' && '-admin' || '' }}",
+            "native-amd64-release-evidence-"
+            "${{ steps.control.outputs.release_commit }}"
+            "${{ steps.control.outputs.release_scope == 'admin' && '-admin' || '' }}",
             workflow,
         )
+
+    def test_admin_v2_request_is_exact_secret_free_and_hash_pinned(self):
+        request_bytes = ADMIN_REQUEST.read_bytes()
+        request = json.loads(request_bytes)
+
+        self.assertEqual(hashlib.sha256(request_bytes).hexdigest(), ADMIN_REQUEST_SHA256)
+        self.assertEqual(
+            set(request),
+            {
+                "schema_version",
+                "task",
+                "release_commit",
+                "release_scope",
+                "trigger_mode",
+                "registry_publication_authorized",
+                "deployment_authorized",
+                "database_authorized",
+                "service_mutation_authorized",
+                "public_traffic_authorized",
+            },
+        )
+        self.assertEqual(request["schema_version"], 2)
+        self.assertEqual(
+            request["release_commit"],
+            "5335bdaed933b1f999b5f819c047ec50c11821ae",
+        )
+        self.assertEqual(request["release_scope"], "admin")
+        self.assertEqual(request["trigger_mode"], "one_shot_controller_diff_v2")
+        for authorization in (
+            "registry_publication_authorized",
+            "deployment_authorized",
+            "database_authorized",
+            "service_mutation_authorized",
+            "public_traffic_authorized",
+        ):
+            self.assertIs(request[authorization], False)
 
     def test_actions_and_scanner_archives_are_immutable(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
         action_uses = re.findall(r"uses:\s*([^@\s]+)@([^\s]+)", workflow)
-        self.assertEqual(len(action_uses), 2)
+        self.assertEqual(len(action_uses), 3)
         self.assertTrue(all(re.fullmatch(r"[0-9a-f]{40}", ref) for _, ref in action_uses))
         self.assertIn("SYFT_VERSION: \"1.49.0\"", workflow)
         self.assertIn(
