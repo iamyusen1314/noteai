@@ -2264,9 +2264,9 @@ build precede Stage A and the still-unattempted single private push.
   `8c983d3fc15a33065df5319470729f82d5e2c2a4`, clean `0/0`. The prior
   two-hour builder authority had already expired; the stopped builder and
   zero-publication cleanup evidence were re-used rather than rerun. No active
-  cache request, GitHub Actions run, provider artifact, authenticated download,
-  builder start, Registry action or production mutation was created in this
-  stage.
+  cache request, executable dependency-cache job, provider artifact,
+  authenticated download, builder start, Registry action or production
+  mutation was created in this stage.
 - The inert V2 controller is
   `.github/workflows/admin-dependency-cache-export.yml`; its only trigger is a
   future one-file addition of
@@ -2278,6 +2278,14 @@ build precede Stage A and the still-unattempted single private push.
   plan and must remain an unchanged `100644` blob in current HEAD; reruns,
   deletion/untracked recreation and request-path reuse are rejected. ARMED
   never claims a provider result.
+- The first pushed inert checkpoint `c0d049b56aa6efaff7133ac44a9fef7f010cd097`
+  exposed a GitHub parser-context false negative that local YAML parsing had
+  missed: run record `30572921215` rejected job-level
+  `${{ runner.temp }}` before job creation. The record has `jobs=[]`,
+  `artifacts=[]`, ran for zero billable job minutes, made no network build or
+  resource mutation and was not rerun. `DOCKER_CONFIG` is now defined only in
+  the four step scopes where GitHub permits the `runner` context, and the plan
+  verifier has a regression gate against job-level reuse.
 - The export builds only exact Dockerfile lines `1-80` with the two
   requirements files, pinned Python/Node indices, canonical `--pull`,
   `linux/amd64`, max provenance, raw progress and a local cache-only output.
@@ -2325,13 +2333,14 @@ build precede Stage A and the still-unattempted single private push.
   matrix, reversible promotion, API-C/API-F non-regression and complete
   cleanup remain mandatory.
 - Local verification passes the plan verifier in
-  `PREPARED_NOT_TRIGGERED`; focused cache/export/provider/readiness tests
-  `73/73`; production gate `112/112`; internal gate `19/29`; full Python
-  regression `1175/1175` with `28` skips; shell syntax, Python compile,
-  strict JSON/YAML parsing and `git diff --check`. Independent read-only
-  audits were rerun only once against these hash-closed core bytes: evidence,
-  cache/provider security and Stage-C contract reviewers each returned
-  `Critical 0 / High 0 / Medium 0 / Low 0`.
+  `PREPARED_NOT_TRIGGERED`; corrected focused
+  cache/export/provider/readiness tests `74/74`; production gate `112/112`;
+  internal gate `19/29`; full Python regression `1176/1176` with `28` skips;
+  shell syntax, Python compile, strict JSON/YAML parsing and
+  `git diff --check`. Three bounded independent read-only delta audits against
+  the corrected hashes each returned
+  `Critical 0 / High 0 / Medium 0 / Low 0`; none repeated the full matrix or
+  changed local/remote state.
 
 Readiness remains internal `19/29=66%`, public `19/38=50%`; the most recent
 credit is still `api_f_current_release=VERIFIED`, and the sole task remains

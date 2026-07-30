@@ -48,6 +48,21 @@ class AdminDependencyCacheExportPlanTests(unittest.TestCase):
             verifier.validate_plan(workflow_bytes=broken),
         )
 
+    def test_job_environment_rejects_unavailable_runner_context(self) -> None:
+        broken = self.workflow.replace(
+            b"      BUILDX_METADATA_PROVENANCE: max",
+            (
+                b"      DOCKER_CONFIG: "
+                b"${{ runner.temp }}/noteai-empty-docker-config\n"
+                b"      BUILDX_METADATA_PROVENANCE: max"
+            ),
+            1,
+        )
+        self.assertIn(
+            "workflow job environment uses unavailable runner context",
+            verifier.validate_plan(workflow_bytes=broken),
+        )
+
     def test_export_helper_mutation_fails_closed(self) -> None:
         broken = self.export_helper.replace(b"--pull", b"--pull=false", 1)
         self.assertIn(

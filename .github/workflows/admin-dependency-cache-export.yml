@@ -42,7 +42,6 @@ jobs:
       NOTEAI_ARTIFACT_NAME: "admin-dependency-prefix-cache-5335bda-v2"
       NOTEAI_PRODUCER_BUILDER: noteai-admin-cache-producer-${{ github.run_id }}
       NOTEAI_CONSUMER_BUILDER: noteai-admin-cache-consumer-${{ github.run_id }}
-      DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config
       BUILDX_METADATA_PROVENANCE: max
 
     steps:
@@ -273,6 +272,8 @@ jobs:
           )" = "0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9"
 
       - name: Create isolated producer and fresh consumer builders
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config
         shell: bash
         run: |
           set -euo pipefail
@@ -305,6 +306,7 @@ jobs:
 
       - name: Export dependency-only BuildKit local cache
         env:
+          DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config
           NOTEAI_CACHE_BUNDLE_DIR: ${{ runner.temp }}/noteai-admin-dependency-cache-bundle
           NOTEAI_PLAN_CHECKPOINT_COMMIT: ${{ steps.control.outputs.plan_checkpoint_commit }}
           NOTEAI_CONTROL_COMMIT: ${{ steps.control.outputs.control_commit }}
@@ -322,6 +324,7 @@ jobs:
 
       - name: Prove fresh-consumer import and cacheless full-context replay
         env:
+          DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config
           NOTEAI_IMPORT_MODE: ci_portability
           NOTEAI_CACHE_BUNDLE_DIR: ${{ runner.temp }}/noteai-admin-dependency-cache-bundle
           NOTEAI_SOURCE_DIR: ${{ github.workspace }}
@@ -342,6 +345,8 @@ jobs:
       - name: Remove isolated builders and all transient Docker state
         id: cleanup
         if: always()
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config
         shell: bash
         run: |
           set -euo pipefail

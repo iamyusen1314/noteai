@@ -39,7 +39,7 @@ ACTIVE_REQUEST_PATH = (
 
 # Updated only after the complete inert plan receives review.
 WORKFLOW_SHA256 = (
-    "9a095af15f399746346c01225cf5709789b577493fc9746bc3b1c51ba8f7e5ac"
+    "a98b72cb6f2bc167deb789954aa87fa0b62cf78560610dbe09ddb2849598903e"
 )
 EXPORT_HELPER_SHA256 = (
     "fabcdc2245c537c2fd56e88b6e0aced77d5c26234fc74d7d934b11ecda8d860c"
@@ -468,6 +468,21 @@ def validate_plan(
     require(
         "permissions:\n  contents: read" in workflow,
         "workflow permissions are not read-only",
+    )
+    job_environment = workflow.split("    env:\n", 1)[1].split(
+        "\n    steps:",
+        1,
+    )[0]
+    require(
+        "${{ runner." not in job_environment,
+        "workflow job environment uses unavailable runner context",
+    )
+    require(
+        workflow.count(
+            "DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config"
+        )
+        == 4,
+        "step-scoped empty Docker config count changed",
     )
     require(
         "      - .github/release-requests/"
