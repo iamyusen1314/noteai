@@ -1,0 +1,21 @@
+{
+  "schema_version": 2,
+  "task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001",
+  "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+  "plan_checkpoint_commit": "2306f4e1c446e33f4bf9bcab402c04d1016941d7",
+  "release_scope": "admin_dependency_prefix_cache",
+  "trigger_mode": "one_shot_added_request_v2",
+  "github_actions_maximum_runtime_minutes": 120,
+  "artifact_retention_days": 1,
+  "artifact_input_maximum_bytes": 4026531840,
+  "artifact_provider_maximum_bytes": 4294967296,
+  "artifact_visibility_assumption": "public_repository_readers",
+  "dependency_cache_export_authorized": true,
+  "public_repository_artifact_authorized": true,
+  "cross_provider_transfer_authorized": true,
+  "registry_publication_authorized": false,
+  "deployment_authorized": false,
+  "database_authorized": false,
+  "service_mutation_authorized": false,
+  "public_traffic_authorized": false
+}
