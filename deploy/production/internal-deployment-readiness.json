@@ -505,7 +505,7 @@
             "private_storage_runtime"
           ],
           "evidence": [],
-          "blocker": "The exact b55f118 source candidate and a fresh isolated Trivy database cache are verified. The retained builder run still has only one API image, seven incomplete evidence files and no summary; its hash-bound offline continuation, complete 43-file five-role evidence, private publication and API-C loopback canary have not completed.",
+          "blocker": "The exact b55f118 source candidate, fresh isolated Trivy database cache and build10 offline scanner gate are verified. A complete self-consistent 43-file five-role builder bundle, private publication and the API-C loopback canary have not completed.",
           "next_task": "PROD-FIRST-LAUNCH-API-C-INTERNAL-001"
         },
         {

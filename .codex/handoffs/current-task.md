@@ -896,8 +896,9 @@ Current next action:
   `c22e06141b5631651e7fda582ed629c876b0c500df2d78146053d157b6e4bb59`;
 - continue the exact b55 evidence chain only through a source-tree-external,
   hash-bound wrapper with explicit cache, skip-update and offline flags. It
-  must fail closed on cache, image, seven-file prefix, scanner or report
-  drift, and must produce a new complete 43-file bundle before publication;
+  must now run the unchanged b55 native evidence script in the prepared
+  build10 root, fail closed on cache, image, source, scanner or report drift,
+  and produce a new self-consistent 43-file bundle before publication;
 - independently compare the completed five-role image/SBOM/scan evidence
   with the exact GitHub b55 evidence and reviewed predecessor, then bind new
   ACR manifest digests through one bounded private publication session;
@@ -955,11 +956,32 @@ Current next action:
   `c22e06141b5631651e7fda582ed629c876b0c500df2d78146053d157b6e4bb59`.
   `UpdatedAt` and `DownloadedAt` are within 24 hours and `NextUpdate` is
   unexpired. Both historical DB hashes remain unchanged.
+- The remote source is exact b55 and its native evidence script, Dockerfile
+  and critical runtime inputs match fixed Git hashes. Git porcelain reports
+  only the three materialized LFS `.lgb` files; each and the fourth JSON
+  artifact match the release manifest, while ordinary diff, staged and
+  untracked counts are zero. The builder host's old Python cannot parse
+  future annotations, so its model CLI result is `PRE_CONNECT`, not an
+  artifact failure. One local-image Python 3.11 check with pull disabled,
+  network none, read-only root/source, all capabilities dropped and
+  no-new-privileges verified all four artifacts and removed its container.
+- A new root-only build10 task copied the verified DB and metadata, then
+  installed a source-tree-external Trivy shim. The shim accepts only the five
+  fixed b55 image roles and the expected vulnerability/secret output paths;
+  it rejects caller-supplied cache/repository/update/offline flags and adds
+  the exact cache plus skip-update and offline flags itself. A two-call API
+  smoke produced exactly `4 Critical / 19 High / 0 Secret`.
+- Independent scanner-prep acceptance verifies the wrapper, state, sidecar,
+  reports, source state and both cache hashes; directories/files are
+  root-owned `0700/0600`, links and special files are zero, and Trivy
+  processes, task containers, all running containers and database port
+  connections are zero. This authorizes only the unchanged five-role build
+  inside build10, not registry publication or deployment.
 - Status remains `17/29 = 59%` internal and `17/38 = 45%` complete-public.
   The only task remains `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`; the next
-  acceptance boundary is a hash-bound offline continuation producing a
-  complete independent 43-file five-role bundle. Publication, deployment,
-  service mutation and public traffic have not started.
+  acceptance boundary is terminal build10 plus a complete independent
+  43-file five-role bundle. Publication, deployment, service mutation and
+  public traffic have not started.
 
 ## 7. Mandatory failure classification
 
