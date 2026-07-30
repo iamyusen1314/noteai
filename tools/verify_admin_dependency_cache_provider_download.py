@@ -24,6 +24,7 @@ ARTIFACT_NAME = "admin-dependency-prefix-cache-5335bda-v2"
 RELEASE_COMMIT = "5335bdaed933b1f999b5f819c047ec50c11821ae"
 MAXIMUM_ARTIFACT_INPUT_BYTES = 4_026_531_840
 MAXIMUM_PROVIDER_ARTIFACT_BYTES = 4_294_967_296
+MAXIMUM_ARTIFACT_RETENTION_SECONDS = 86_400
 MAXIMUM_NON_CHUNK_FILE_BYTES = 134_217_728
 MAXIMUM_CHUNK_FILE_BYTES = 268_435_456
 MAXIMUM_ZIP_MEMBERS = 100
@@ -89,6 +90,21 @@ def parse_time(value: Any, label: str) -> datetime:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as exc:
         raise DownloadError(f"{label} invalid") from exc
+
+
+def require_one_day_retention(
+    created_value: Any,
+    expires_value: Any,
+    error_message: str,
+) -> None:
+    created = parse_time(created_value, "provider artifact created_at")
+    expires = parse_time(expires_value, "provider artifact expires_at")
+    require(
+        created < expires
+        and (expires - created).total_seconds()
+        <= MAXIMUM_ARTIFACT_RETENTION_SECONDS,
+        error_message,
+    )
 
 
 def safe_extract_provider_zip(zip_path: Path, extract_to: Path) -> None:
@@ -340,10 +356,9 @@ def validate_provider_metadata_preflight(
         metadata.get("archive_download_url") == f"{api_url}/zip",
         "provider artifact download identity changed",
     )
-    created = parse_time(metadata.get("created_at"), "provider artifact created_at")
-    expires = parse_time(metadata.get("expires_at"), "provider artifact expires_at")
-    require(
-        created < expires and (expires - created).total_seconds() <= 172_800,
+    require_one_day_retention(
+        metadata.get("created_at"),
+        metadata.get("expires_at"),
         "provider artifact retention exceeds reviewed window",
     )
     workflow_run = metadata.get("workflow_run")
@@ -444,10 +459,9 @@ def validate_provider_preflight_summary(
         provider["control_commit"] == expected_control_commit,
         "provider preflight control commit changed",
     )
-    created = parse_time(provider["created_at"], "provider preflight created_at")
-    expires = parse_time(provider["expires_at"], "provider preflight expires_at")
-    require(
-        created < expires and (expires - created).total_seconds() <= 172_800,
+    require_one_day_retention(
+        provider["created_at"],
+        provider["expires_at"],
         "provider preflight retention changed",
     )
     return provider
@@ -737,10 +751,9 @@ def verify_transfer(args: argparse.Namespace) -> dict[str, Any]:
         <= MAXIMUM_PROVIDER_ARTIFACT_BYTES,
         "provider receipt artifact size invalid",
     )
-    created = parse_time(artifact.get("created_at"), "receipt artifact created_at")
-    expires = parse_time(artifact.get("expires_at"), "receipt artifact expires_at")
-    require(
-        created < expires and (expires - created).total_seconds() <= 172_800,
+    require_one_day_retention(
+        artifact.get("created_at"),
+        artifact.get("expires_at"),
         "provider receipt retention changed",
     )
     require(

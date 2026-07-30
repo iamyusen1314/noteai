@@ -183,6 +183,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 {
                     "kind": "path",
                     "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_provider_download.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
                         "deploy/production/plans/"
                         "admin-dependency-cache-export-request-v2.json"
                     ),

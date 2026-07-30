@@ -62,8 +62,8 @@
 - V5 package-evidence checkpoint:
   `883e874d4186e523b8110d44338c2e074b26c491`.
 - Repository/isolated readiness: `12/12`.
-- Internal deployment readiness: `18/29 = 62%`.
-- Public launch readiness: `18/38 = 47%`.
+- Internal deployment readiness: `19/29 = 66%`.
+- Public launch readiness: `19/38 = 50%`.
 - Public launch completion: false.
 
 ## 2.1 Completed V5 production schema and role deployment
@@ -2356,3 +2356,46 @@ minutes, the one-day public-repository artifact up to the stated limits, and
 one authenticated local download/cross-provider transfer. A subsequent
 fresh PAYG builder window and one Admin private publication must be separately
 authorized because the prior two-hour builder authority is exhausted.
+
+### Admin dependency-cache one-day retention hardening checkpoint (2026-07-31)
+
+- The product owner explicitly authorized one GitHub-hosted dependency-cache
+  run capped at `120` minutes, one public-repository artifact retained for at
+  most one day with its internal gzip capped at `3.5 GiB`, complete upload
+  input capped at `3.75 GiB` and outer provider ZIP capped at `4 GiB`, one
+  authenticated download and cross-provider transfer, followed on cache
+  acceptance by one new
+  `4-vCPU / 16-GiB / AMD64` builder window capped at two hours, one Admin
+  private publication and complete cleanup.
+- Before any external activation, the exact parent-bound request was generated
+  only as an untracked local file. A bounded independent read-only audit found
+  that the provider metadata, preflight receipt and final transfer receipt
+  accepted a retention interval of up to two days, despite the authorization,
+  template and workflow all requiring one day.
+- The untracked request was deleted before staging, commit or push. Therefore
+  its addition history remains zero and GitHub Actions, artifact creation,
+  authenticated download, builder start, Registry action, production service,
+  database and public-traffic mutation all remain zero. The one-shot
+  authorization has not been consumed.
+- `tools/verify_admin_dependency_cache_provider_download.py` now uses one
+  `86,400`-second maximum for metadata, preflight and receipt validation.
+  Exactly one day passes and one day plus one second fails. The plan verifier
+  rejects the historical two-day literal and requires the one-day control.
+- The updated workflow SHA-256 is
+  `d01bf03d4725bb82c2ff34d35aeb0379a6987200278321a436d77d0b7fcd4870`;
+  the provider verifier SHA-256 is
+  `ca05697d12b8c02b183b1c611c33781d63641c5369bc54b2508a538591a0986b`.
+  Focused cache/export/provider tests pass `40/40`, production readiness gate
+  passes `112/112`, Python/YAML parsing and `git diff --check` pass.
+- The first full-suite run exposed one deterministic local evidence-list
+  expectation that did not yet include the new one-day retention regression
+  test path. It made no external action and was corrected only by adding that
+  path to the exact manifest expectation. The second full Python regression
+  passes `1178/1178` with `28` intentional skips.
+
+Readiness remains internal `19/29=66%`, public `19/38=50%`; the last credited
+item remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is a
+normal correction checkpoint with green remote CI, followed by exactly one
+new request-only child whose direct parent and bytes are freshly rebound to
+that checkpoint. No pre-fix request SHA may be reused.

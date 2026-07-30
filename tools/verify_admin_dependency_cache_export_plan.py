@@ -39,7 +39,7 @@ ACTIVE_REQUEST_PATH = (
 
 # Updated only after the complete inert plan receives review.
 WORKFLOW_SHA256 = (
-    "a98b72cb6f2bc167deb789954aa87fa0b62cf78560610dbe09ddb2849598903e"
+    "d01bf03d4725bb82c2ff34d35aeb0379a6987200278321a436d77d0b7fcd4870"
 )
 EXPORT_HELPER_SHA256 = (
     "fabcdc2245c537c2fd56e88b6e0aced77d5c26234fc74d7d934b11ecda8d860c"
@@ -57,7 +57,7 @@ DOWNLOAD_HELPER_SHA256 = (
     "66abfd513be7aa81946072493e1472030a8acccbf7a3e2d4dc461c94712e2a92"
 )
 PROVIDER_DOWNLOAD_VERIFIER_SHA256 = (
-    "943c294d92d2dea13d4cd3dc6396ea2522841634541562d2f22ef4d319c52b36"
+    "ca05697d12b8c02b183b1c611c33781d63641c5369bc54b2508a538591a0986b"
 )
 
 RELEASE_COMMIT = "5335bdaed933b1f999b5f819c047ec50c11821ae"
@@ -733,11 +733,17 @@ def validate_plan(
         "MAXIMUM_TRANSPORT_PARTS",
         "MAXIMUM_ARTIFACT_INPUT_BYTES",
         "MAXIMUM_PROVIDER_ARTIFACT_BYTES",
+        "MAXIMUM_ARTIFACT_RETENTION_SECONDS = 86_400",
+        "require_one_day_retention",
     ):
         require(
             required in provider_download_verifier,
             f"provider download verifier missing: {required}",
         )
+    require(
+        "172_800" not in provider_download_verifier,
+        "provider artifact retention exceeds one day",
+    )
     if (
         "def verify_download" in provider_download_verifier
         and "def verify_transfer" in provider_download_verifier

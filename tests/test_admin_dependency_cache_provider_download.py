@@ -97,6 +97,36 @@ class AdminDependencyCacheProviderDownloadTests(unittest.TestCase):
                     expected_artifact_id=123,
                 )
 
+    def test_provider_metadata_accepts_exactly_one_day_retention(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            artifact_zip = self._write_zip(root)
+            metadata = self._write_metadata(root, artifact_zip)
+            summary = verifier.validate_provider_metadata_preflight(
+                metadata,
+                expected_control_commit="a" * 40,
+                expected_artifact_id=123,
+            )
+            self.assertEqual(summary["expires_at"], "2026-08-01T00:00:00Z")
+
+    def test_provider_metadata_rejects_retention_over_one_day(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            artifact_zip = self._write_zip(root)
+            metadata = self._write_metadata(root, artifact_zip)
+            payload = json.loads(metadata.read_text(encoding="utf-8"))
+            payload["expires_at"] = "2026-08-01T00:00:01Z"
+            metadata.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(
+                verifier.DownloadError,
+                "retention exceeds reviewed window",
+            ):
+                verifier.validate_provider_metadata_preflight(
+                    metadata,
+                    expected_control_commit="a" * 40,
+                    expected_artifact_id=123,
+                )
+
     def test_provider_zip_receive_is_bounded_and_removes_partial_file(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "artifact.zip"
