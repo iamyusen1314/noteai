@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001",
+  "evidence_scope": "github_native_admin_source_candidate_only",
+  "status": "VERIFIED",
+  "observed_at": "2026-07-30T14:14:08Z",
+  "release": {
+    "commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+    "version": "git-5335bda-amd64-r1",
+    "created": "2026-07-30T13:29:02Z",
+    "role": "admin",
+    "target": "admin-runtime",
+    "platform": "linux/amd64"
+  },
+  "controller": {
+    "commit": "e7039a3fe73b539325593cf1ba78dcd4a9949910",
+    "parent": "e7766ab903a2f2721521552c62a18573bc9990de",
+    "workflow_path": ".github/workflows/native-release-evidence.yml",
+    "workflow_sha256": "6b8bacf383f1ee9b984b571d28a8a69437b8f69c949cc68a17691351180e430f",
+    "request_path": ".github/release-requests/admin-5335bda-v2.json",
+    "request_sha256": "c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef",
+    "canonical_script_sha256": "639941a22478cf83e1463babb9b838f8dbf951c4fcdcb8f0b4674a65bee7d3a2",
+    "admin_only_script_sha256": "a2420972f187f461d283964e71cb5b5d4980f8e5251faf0489993ac7ca6df22c"
+  },
+  "source_ci": {
+    "push_run_id": 30547127218,
+    "push_conclusion": "success",
+    "pull_request_run_id": 30547131218,
+    "pull_request_conclusion": "success"
+  },
+  "github_run": {
+    "run_id": 30550548144,
+    "job_id": 90897767171,
+    "event": "push",
+    "head_sha": "e7039a3fe73b539325593cf1ba78dcd4a9949910",
+    "created_at": "2026-07-30T14:12:16Z",
+    "updated_at": "2026-07-30T14:14:08Z",
+    "url": "https://github.com/iamyusen1314/noteai/actions/runs/30550548144",
+    "conclusion": "failure",
+    "expected_terminal_failure_only": true,
+    "steps": [
+      {
+        "name": "Checkout controller commit with full history",
+        "conclusion": "success"
+      },
+      {
+        "name": "Resolve and validate release control",
+        "conclusion": "success"
+      },
+      {
+        "name": "Checkout exact source with full evidence history",
+        "conclusion": "success"
+      },
+      {
+        "name": "Verify native runner and immutable source",
+        "conclusion": "success"
+      },
+      {
+        "name": "Install checksum-pinned scanners",
+        "conclusion": "success"
+      },
+      {
+        "name": "Build, inspect, inventory and scan",
+        "conclusion": "success"
+      },
+      {
+        "name": "Upload evidence only",
+        "conclusion": "success"
+      },
+      {
+        "name": "Enforce zero Critical or High findings",
+        "conclusion": "failure",
+        "reason": "canonical raw report remains 4 Critical / 19 High"
+      }
+    ]
+  },
+  "artifact": {
+    "artifact_id": 8762623105,
+    "name": "native-amd64-release-evidence-5335bdaed933b1f999b5f819c047ec50c11821ae-admin",
+    "size_bytes": 397148,
+    "created_at": "2026-07-30T14:14:03Z",
+    "expires_at": "2026-08-13T14:14:02Z",
+    "expired": false,
+    "downloaded_once_for_review": true,
+    "file_count": 11,
+    "regular_file_count": 11,
+    "symlink_count": 0,
+    "special_file_count": 0,
+    "summary_sha256": "19cbf14415e05d614e7e70caed67ecfefac2c12ae726edaae7a3525cb88d38f7",
+    "local_image_id": "sha256:9ab915287427e58b1be80faa3a4252eb98463519967aad0e18329ad74d6d8cf7",
+    "critical": 4,
+    "high": 19,
+    "secret_findings": 0,
+    "browser_components": 0,
+    "cryptography_48_0_1_components": 1,
+    "forbidden_os_packages": 0,
+    "raw_gate_passed": false
+  },
+  "independent_review": {
+    "content_blockers": 0,
+    "exact_file_set": true,
+    "identity_cross_links": true,
+    "base_image_cross_links": true,
+    "canonical_rows_equal_b55": true,
+    "image_context_delta": [
+      "model/crawler_config.json"
+    ],
+    "fresh_image_identity": true,
+    "historical_registry_authorization_reused": false
+  },
+  "authorization": {
+    "registry_publication": false,
+    "deployment": false,
+    "database": false,
+    "service_mutation": false,
+    "provider_calls": false,
+    "public_traffic": false
+  },
+  "observed_mutations": {
+    "github_artifact_created": 1,
+    "registry_login": 0,
+    "registry_push": 0,
+    "cloud_resource": 0,
+    "database_connection": 0,
+    "database_write": 0,
+    "service_mutation": 0,
+    "provider_call": 0,
+    "public_traffic": 0
+  },
+  "readiness": {
+    "credit_added": 0,
+    "internal_verified": 19,
+    "internal_total": 29,
+    "public_verified": 19,
+    "public_total": 38,
+    "admin_current_release": "UNVERIFIED"
+  },
+  "next_acceptance_condition": "Create a fresh private Admin publication identity and digest chain under a separately authorized, funded native builder path before any canary or service mutation."
+}

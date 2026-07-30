@@ -2109,3 +2109,71 @@ form the V2 controller commit, execute its resolver locally against that exact
 commit, independently review blocker count `0`, push once, and accept only an
 eleven-file artifact bound to exact `5335bda`, Admin-only scope and the fixed
 V2 request hash.
+
+### Admin exact 5335 native source-candidate acceptance checkpoint (2026-07-30)
+
+- V2 controller `e7039a3fe73b539325593cf1ba78dcd4a9949910` was committed,
+  locally executed against its own exact Git object, and pushed once. Its
+  resolver returned exact release `5335bdaed933b1f999b5f819c047ec50c11821ae`,
+  scope `admin`, V2 request path and SHA-256
+  `c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef`.
+  Local/upstream divergence returned to `0/0`.
+- GitHub created exactly one V2 run, `30550548144`, job `90897767171`.
+  Controller checkout, Git-object resolution, exact-source checkout, native
+  source/model verification, pinned scanner installation, Admin build/inspect/
+  inventory/scan and artifact upload all passed. The run's only failure was
+  the intentionally unsuppressed terminal zero-Critical/High gate.
+- The artifact identity is
+  `native-amd64-release-evidence-5335bdaed933b1f999b5f819c047ec50c11821ae-admin`.
+  It contains exactly eleven regular files; summary SHA-256 is
+  `19cbf14415e05d614e7e70caed67ecfefac2c12ae726edaae7a3525cb88d38f7`.
+  The fresh local Admin image ID is
+  `sha256:9ab915287427e58b1be80faa3a4252eb98463519967aad0e18329ad74d6d8cf7`,
+  distinct from both reviewed b55 Admin build identities.
+- Independent raw review found content blocker count `0`: linux/amd64,
+  `noteai`, Admin label/environment, exact OCI revision/source/version/created,
+  entrypoint/CMD, Buildx config, Trivy metadata and eighteen RootFS DiffIDs
+  cross-link. Base indices and AMD64 children remain pinned; SBOM has `3076`
+  components; the exact 23 raw vulnerability rows remain equal to b55 at
+  `4 Critical / 19 High`, fixed-version empty, with zero secret/browser/
+  forbidden-OS findings and exactly one `cryptography 48.0.1`.
+- The full b55-to-5335 image-context delta is exactly
+  `model/crawler_config.json`; its fallback is `enabled=false` and
+  `last_run=null`. Dockerfile, API requirements, entrypoint, Admin start,
+  compose hardening and production process-call graph remain unchanged.
+- Secret-free GitHub run/artifact receipt is
+  `deploy/production/evidence/production-admin-native-source-candidate-verified-20260730.json`.
+  Exact-product source VEX, review and verifier are:
+  `security/vex/5335bda-admin-github-native-release-evidence.json`,
+  `security/vex/5335bda-admin-github-native-release.vex.cdx.json`,
+  `security/vex/5335bda-admin-github-native-release-review.json`, and
+  `tools/verify_5335_admin_native_release_vex.py`.
+- The verifier binds all eleven raw hashes, run/job/artifact receipt,
+  controller/workflow/request/canonical/executed-script hashes, exact image
+  and scan identities, one-file delta, prior-row equality and historical
+  identity separation. Registry digest remains null; Registry publication,
+  deployment, database, service mutation and public traffic authorizations
+  are all false. The historical b55 publication authorization is not reused.
+- Focused Admin VEX/readiness tests pass `23/23`; production readiness tests
+  pass `20/20`; production gate is `110/110 PASS`; JSON, compile and diff
+  checks pass. The full Python regression passes `1128/1128` with `28`
+  intentional skips. The internal ledger now cites the source-candidate
+  evidence but deliberately keeps `admin_current_release=UNVERIFIED`, internal
+  `19/29=66%` and public `19/38=50%`.
+- Independent read-only publication-path audit found no compliant continuation
+  that avoids new authority or cost: repository and branch environments expose
+  no ACR/Aliyun/OIDC publication credential names; the GitHub artifact is
+  evidence-only and contains no relayable OCI image; API-C/API-F are expressly
+  excluded from build/publish duty; and the stopped arm64 local runtime cannot
+  provide native AMD64 or private-Registry evidence. The retained isolated
+  AMD64 publisher remains stopped for insufficient account balance. No local
+  Docker/builder start, cloud/Registry write or production-host mutation was
+  performed during that audit.
+
+Current exact task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`; the last
+credited item remains `api_f_current_release=VERIFIED`. The next acceptance
+boundary is a fresh, separately authorized private Admin publication:
+re-establish a funded native AMD64 publisher, bind a new local/config identity
+and fresh scan/SBOM to one new immutable Admin tag, perform one no-retry
+push/readback with no public endpoint, then clean all temporary access before
+any V3 canary or service mutation.

@@ -569,8 +569,37 @@
             "api_c_current_release",
             "production_schema_roles"
           ],
-          "evidence": [],
-          "blocker": "The dedicated Admin role and fail-closed UI/API contract are not deployed.",
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "5335bdaed933b1f999b5f819c047ec50c11821ae"
+            },
+            {
+              "kind": "git",
+              "ref": "e7039a3fe73b539325593cf1ba78dcd4a9949910"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/5335bda-admin-github-native-release-evidence.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/5335bda-admin-github-native-release.vex.cdx.json"
+            },
+            {
+              "kind": "path",
+              "ref": "security/vex/5335bda-admin-github-native-release-review.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_5335_admin_native_release_vex.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-admin-native-source-candidate-verified-20260730.json"
+            }
+          ],
+          "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. The retained isolated native AMD64 publisher is stopped for insufficient account balance, and no compliant no-new-authority alternative exists; the dedicated runtime and negative matrix remain pending.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

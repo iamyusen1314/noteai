@@ -66,6 +66,58 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             actionable["admin_current_release"]["execution_class"],
             "authenticated_production",
         )
+        admin = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "admin_current_release"
+        )
+        self.assertEqual(admin["status"], "unverified")
+        self.assertEqual(
+            admin["evidence"],
+            [
+                {
+                    "kind": "git",
+                    "ref": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+                },
+                {
+                    "kind": "git",
+                    "ref": "e7039a3fe73b539325593cf1ba78dcd4a9949910",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "security/vex/"
+                        "5335bda-admin-github-native-release-evidence.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "security/vex/"
+                        "5335bda-admin-github-native-release.vex.cdx.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "security/vex/"
+                        "5335bda-admin-github-native-release-review.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tools/verify_5335_admin_native_release_vex.py",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "production-admin-native-source-candidate-"
+                        "verified-20260730.json"
+                    ),
+                },
+            ],
+        )
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

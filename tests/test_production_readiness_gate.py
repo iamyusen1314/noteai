@@ -43,6 +43,21 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(
             checks["exact_b55f118_registry_native_five_role_vex_bundle"]["passed"]
         )
+        self.assertTrue(
+            checks["exact_5335bda_github_native_admin_only_source_bundle"]["passed"]
+        )
+
+        with mock.patch.object(
+            gate,
+            "validate_5335_admin_native_release_vex_bundle",
+            return_value=["tampered Admin native evidence"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_github_native_admin_only_source_bundle",
+            {item["name"] for item in report["failed_checks"]},
+        )
 
     def test_api_c_runtime_evidence_is_fail_closed_in_repository_gate(self):
         checks = {
