@@ -62,8 +62,8 @@
 - V5 package-evidence checkpoint:
   `883e874d4186e523b8110d44338c2e074b26c491`.
 - Repository/isolated readiness: `12/12`.
-- Internal deployment readiness: `17/29 = 59%`.
-- Public launch readiness: `17/38 = 45%`.
+- Internal deployment readiness: `18/29 = 62%`.
+- Public launch readiness: `18/38 = 47%`.
 - Public launch completion: false.
 
 ## 2.1 Completed V5 production schema and role deployment
@@ -1106,6 +1106,95 @@ Current next action:
   chain may verify `api_c_current_release` and advance internal readiness to
   `18/29`.
 
+## 6.6. API-C exact-current release deployment completion
+
+- Stage C began from pushed checkpoint
+  `84be4da7b6e9d395f1ed3b33716be6a3465f3c4b`. Fresh host state captured the
+  accepted historical API unit/image/revision, unchanged Admin and API-F
+  fingerprints, four protected managed-secret files, the seven-key
+  private-storage configuration, lifecycle tools, loopback listeners and
+  rollback assets before any service mutation.
+- API-C issued one short-lived private Registry token, performed one
+  protected login and one exact-digest pull. The manifest digest is
+  `sha256:612a7e57…17620`; the independent config/local image ID is
+  `sha256:dd955f9e…fd53`; platform, b55 OCI revision, API role, entrypoint and
+  command all match. Token, RSA, ciphertext, Docker auth and transport
+  residue are zero. A post-pull validator initially confused the build-stage
+  name with the runtime role; the pulled bytes were reused without another
+  token, login or pull.
+- Three canary generations were created with the same hashed command and
+  `restart=no`. Generation 1 was removed after a local duplicate-env-count
+  assumption. Generations 2 and 3 each passed three live/ready rounds, exact
+  database/model readiness, read-only database state, loopback port `18000`,
+  empty isolated data and zero provider/object/database writes. Generation 2
+  was removed by the mandatory rollback below; generation 3 was removed only
+  after the final independent postcheck. Automatic canary restart and blind
+  retry are zero.
+- The first promotion installed and restarted the candidate, then a local
+  validator incorrectly required a durable-worker-only key from the formal
+  API. Mandatory rollback restored the fresh historical unit/image and
+  health, and cleaned that canary. The same candidate was promoted only after
+  correcting the validator and fully rearming the canary. The candidate unit
+  SHA-256 is
+  `364a5e539b14a83d24ef9c1726ee3e14b988c398206b2711db5613b9e0a1fc77`;
+  its only semantic changes are the exact b55 digest and private-storage env
+  file reference. A subsequent single explicit systemd restart changed the
+  managed container identity and again passed three live/ready rounds.
+- The independent postcheck preserved every failed local validator state. A
+  zero-byte first database artifact was classified `PRE_CONNECT` because
+  container stdin was not attached. The first effective transaction was
+  `CONNECTED_KNOWN / READ_ONLY_REJECTED / ROLLED_BACK / WRITE 0` because the
+  least-privilege API role cannot select `schema_migrations`; that incident
+  was not retried. A separate narrower runtime-session audit used one
+  read-only transaction and terminal rollback to verify
+  `default_transaction_read_only=on`, `transaction_read_only=on`,
+  `noteai_app`, no assigned XID and transaction tuple writes zero.
+- Pre-cleanup validation passed all `15/15` assertion families after two
+  local assumptions were corrected without service or database action. The
+  final canary cleanup first stopped before deletion because its allowlist
+  excluded the task-root data path; exact parent/depth/hash/non-symlink/empty
+  checks then authorized removal of only the canary container and its empty
+  directory. Final validation passed `11/11` after two self-observation
+  classifiers were narrowed; failed validator artifacts remain append-only.
+- Final API-C state is one managed b55 API container, active/enabled/result
+  success, live/ready `200`, only loopback port `8000`, exact hardening
+  (`999:999`, read-only root, cap-drop ALL, no-new-privileges, bounded tmpfs,
+  one writable data mount, fixed CPU/memory/PID limits, Docker restart
+  `no`). Canary/container/data/listener, registry auth, credential material,
+  task scripts/processes and temporary unit files are zero. The fresh
+  historical unit SHA-256 `872c44e8…25` and old image ID
+  `sha256:b1983bab…fedb` remain root-only rollback assets.
+- API-C Admin and API-F were independently checked before and after cleanup:
+  their unit/image/revision/start-time fingerprints, restart count zero,
+  hardening, live/ready `200` and loopback listeners are unchanged. Protected
+  managed-secret/storage/lifecycle hashes are unchanged. Bounded final logs
+  have zero startup-failure, migration-execution, provider-call,
+  Secret-assignment, traceback or fatal matches; raw logs are not committed.
+- Fresh RDS control-plane readback is one Running PostgreSQL 16 VPC/Intranet
+  instance, one private and zero public endpoint, accounts `8/1/0`, and eight
+  successful automated full snapshots in the reviewed window with the latest
+  approximately eighteen hours old. The production VPC has zero ALB. No
+  schema/role/business/object/provider/ALB/TLS/DNS/public-traffic write
+  occurred.
+- Secret-free runtime evidence is
+  `deploy/production/evidence/production-api-c-current-release-verified-20260730.json`.
+  It records eighteen ordered attempts, nine failures, nine passes, one real
+  service rollback, three canary generations, six bounded database
+  connections, two explicit read-only transactions, automatic retry zero and
+  `CONNECTED_UNKNOWN=0`. A dedicated semantic verifier is bound by both the
+  internal and production gates; Stage B files remain unchanged with
+  deployment/canary authorization false.
+- Focused Stage C tests are `43/43`; Python compile, JSON, semantic verifier
+  and diff checks pass. The production gate is `108/108 PASS`. Only
+  `api_c_current_release` earns one new credit: internal readiness is now
+  `18/29 = 62%`, complete-public readiness is `18/38 = 47%`, and public
+  launch plus full-system rollback remain unverified.
+- The only serial task is now
+  `PROD-FIRST-LAUNCH-API-F-INTERNAL-001`. Its acceptance must independently
+  deploy the same exact API digest to API-F with a fresh baseline, loopback
+  canary, reversible promotion, explicit restart, API-C/Admin non-regression,
+  independent postcheck, rollback-ready evidence and final residue zero.
+
 ## 7. Mandatory failure classification
 
 After any nonzero exit or tool failure, collect Secret-free sentinels,
@@ -1128,10 +1217,10 @@ Completed verification:
 
 - focused privileged-owner/readiness tests: `31/31`;
 - disposable PostgreSQL 16 privileged-owner chain: `1/1`;
-- full Python suite: `1097/1097`, 28 explicit skips;
-- production readiness gate: `107/107 PASS`;
-- internal readiness: fail-closed `17/29 = 59%`;
-- public readiness: `17/38 = 45%`;
+- full Python suite: `1108/1108`, 28 explicit skips;
+- production readiness gate: `108/108 PASS`;
+- internal readiness: fail-closed `18/29 = 62%`;
+- public readiness: `18/38 = 47%`;
 - zero-DSN import, Python compile, runner shell syntax, JSON parses and
   `git diff --check`: pass;
 - disposable PostgreSQL containers/network/volume: zero;
@@ -1184,14 +1273,12 @@ checkpoint.
 
 Current remaining steps:
 
-- preserve the recovered build9 and accepted build10 evidence, all failed
-  validator states and the v4 manifest/sidecar; do not rebuild or rescan them;
-- execute only `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`: privately publish the
-  exact five-role b55 set once after a fresh private-ACR absence check, bind
-  all read-back digests and complete the b55 Registry evidence/VEX/review;
-  then reuse the existing schema/roles, managed secrets and private storage,
-  establish a fresh read-only baseline before any service mutation, preserve
-  the historical release for deterministic rollback and keep the service
-  loopback-only with public traffic zero;
+- preserve Stage A/build10, Stage B publication and Stage C ordered
+  deployment/rollback/postcheck evidence; do not rebuild, rescan, republish or
+  repeat API-C;
+- checkpoint and push the exact API-C runtime evidence/verifier/gate state,
+  then execute only `PROD-FIRST-LAUNCH-API-F-INTERNAL-001` against the same
+  immutable API digest with a fresh API-F baseline and independent API-C/Admin
+  non-regression;
 - continue through the dependency graph without stopping at the checkpoint
   or task boundary.

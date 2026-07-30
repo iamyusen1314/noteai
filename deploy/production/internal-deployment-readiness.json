@@ -517,16 +517,27 @@
         {
           "id": "api_c_current_release",
           "title": "API-C current-release loopback deployment and recovery",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "immutable_release_candidate",
             "production_schema_roles",
             "managed_secret_distribution",
             "private_storage_runtime"
           ],
-          "evidence": [],
-          "blocker": "The exact b55f118 build10 43-file bundle and five-role private ACR publication/digest binding are verified; temporary publication access is cleaned and the production private-registry path is restored. The API-C loopback canary, reversible promotion, explicit restart, independent postcheck and rollback-ready evidence have not completed.",
-          "next_task": "PROD-FIRST-LAUNCH-API-C-INTERNAL-001"
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "b55f11882100e9ef919522540729e366a511f88f"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-api-c-current-release-verified-20260730.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_api_c_current_release_evidence.py"
+            }
+          ]
         },
         {
           "id": "api_f_current_release",

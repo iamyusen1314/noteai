@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,13 +32,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 17)
+        self.assertEqual(report["internal_deployment"]["verified"], 18)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 59)
+        self.assertEqual(report["internal_deployment"]["percentage"], 62)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 17)
+        self.assertEqual(report["complete_public_launch"]["verified"], 18)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 45)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 47)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -51,18 +52,31 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertNotIn("production_schema_roles", actionable)
         self.assertNotIn("managed_secret_distribution", actionable)
         self.assertNotIn("private_storage_runtime", actionable)
+        self.assertNotIn("api_c_current_release", actionable)
         self.assertEqual(
-            actionable["api_c_current_release"]["status"],
+            actionable["api_f_current_release"]["status"],
             "unverified",
         )
         self.assertEqual(
-            actionable["api_c_current_release"]["next_task"],
-            "PROD-FIRST-LAUNCH-API-C-INTERNAL-001",
+            actionable["api_f_current_release"]["next_task"],
+            "PROD-FIRST-LAUNCH-API-F-INTERNAL-001",
         )
         self.assertEqual(
-            actionable["api_c_current_release"]["execution_class"],
+            actionable["api_f_current_release"]["execution_class"],
             "authenticated_production",
         )
+        api_c = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "api_c_current_release"
+        )
+        self.assertEqual(api_c["status"], "verified")
+        self.assertEqual(
+            api_c["evidence"],
+            gate.API_C_EXPECTED_MANIFEST_EVIDENCE,
+        )
+        self.assertNotIn("blocker", api_c)
+        self.assertNotIn("next_task", api_c)
         managed = next(
             control
             for control in self.manifest["layers"][1]["controls"]
@@ -86,10 +100,6 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             "tools/verify_b55_registry_release_vex.py",
         ):
             self.assertIn({"kind": "path", "ref": ref}, immutable["evidence"])
-        self.assertIn(
-            "five-role private ACR publication/digest binding are verified",
-            actionable["api_c_current_release"]["blocker"],
-        )
         self.assertIn(
             {
                 "kind": "path",
@@ -475,12 +485,37 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         with self.assertRaisesRegex(gate.ManifestError, "missing path evidence"):
             gate.validate_manifest(broken)
 
-    def test_nonverified_controls_require_blocker_and_task(self):
+    def test_verified_api_c_requires_exact_semantic_runtime_evidence(self):
         broken = copy.deepcopy(self.manifest)
         control = next(
             item
             for item in broken["layers"][1]["controls"]
             if item["id"] == "api_c_current_release"
+        )
+        control["evidence"] = list(reversed(control["evidence"]))
+        with self.assertRaisesRegex(
+            gate.ManifestError,
+            "exact runtime evidence refs required",
+        ):
+            gate.validate_manifest(broken)
+
+        with mock.patch.object(
+            gate,
+            "validate_api_c_current_release_evidence",
+            return_value=["tampered runtime evidence"],
+        ):
+            with self.assertRaisesRegex(
+                gate.ManifestError,
+                "invalid runtime evidence",
+            ):
+                gate.validate_manifest(copy.deepcopy(self.manifest))
+
+    def test_nonverified_controls_require_blocker_and_task(self):
+        broken = copy.deepcopy(self.manifest)
+        control = next(
+            item
+            for item in broken["layers"][1]["controls"]
+            if item["id"] == "api_f_current_release"
         )
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
@@ -490,7 +525,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "api_c_current_release"
+            if item["id"] == "api_f_current_release"
         )
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
@@ -597,7 +632,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 17)
+        self.assertEqual(report["internal_deployment"]["verified"], 18)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)

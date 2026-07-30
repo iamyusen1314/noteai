@@ -15,6 +15,13 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from verify_api_c_current_release_evidence import (
+    EXPECTED_MANIFEST_EVIDENCE as API_C_EXPECTED_MANIFEST_EVIDENCE,
+)
+from verify_api_c_current_release_evidence import (
+    validate_bundle as validate_api_c_current_release_evidence,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "deploy" / "production" / "internal-deployment-readiness.json"
@@ -164,6 +171,19 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
                     _require(_verify_git_ref(ref, root=root), f"{control_id}: missing git evidence {ref}")
                 else:
                     _require(_verify_path(ref, root=root), f"{control_id}: missing path evidence {ref}")
+            if control_id == "api_c_current_release" and status == "verified":
+                _require(
+                    evidence == API_C_EXPECTED_MANIFEST_EVIDENCE,
+                    f"{control_id}: exact runtime evidence refs required",
+                )
+                runtime_errors = validate_api_c_current_release_evidence(
+                    root=root
+                )
+                _require(
+                    not runtime_errors,
+                    f"{control_id}: invalid runtime evidence: "
+                    f"{runtime_errors[0] if runtime_errors else ''}",
+                )
             accepted_risks = control.get("accepted_risks", [])
             _require(
                 isinstance(accepted_risks, list),
