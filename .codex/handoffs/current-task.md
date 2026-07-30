@@ -886,26 +886,80 @@ Unique next task:
 
 Current next action:
 
-- resume read-only control-plane access after the Alibaba console session is
-  interactively re-authenticated. The in-app Cloud Shell returned
-  `NoPermission`, the existing Chrome console session redirected to login and
-  the local host has no Alibaba CLI profile. These failures are
-  `PRE_CONNECT`: no new Cloud Assistant command, database connection,
-  transaction, registry push or service action occurred;
-- locate and read the existing unique b55 builder invocation; do not
-  redispatch it. Its last independently observed state was `Running` while
-  the fixed Trivy download was progressing, with Syft ready, images zero,
-  running containers zero, database port connections zero, registry actions
-  zero and service actions zero;
-- if the existing invocation completed successfully, independently compare
-  its five-role image/SBOM/scan evidence with the exact GitHub b55 evidence
-  and reviewed predecessor, then bind new ACR manifest digests through one
-  bounded private publication session. If it failed, first recover its
-  Secret-free terminal state and classify it before considering any new
-  method;
+- preserve the recovered build9 task root, log, seven prefix evidence files
+  and one local b55 API image. Do not overwrite, clean or redispatch the
+  original build;
+- reuse only the verified task-owned Trivy cache; do not redownload or fall
+  back to either stale cache. Its DB SHA-256 is
+  `43c58b4f5d8c99a9480dd018596c2d907ac2df1f87e94f9da859b2563454bfa0`
+  and metadata SHA-256 is
+  `c22e06141b5631651e7fda582ed629c876b0c500df2d78146053d157b6e4bb59`;
+- continue the exact b55 evidence chain only through a source-tree-external,
+  hash-bound wrapper with explicit cache, skip-update and offline flags. It
+  must fail closed on cache, image, seven-file prefix, scanner or report
+  drift, and must produce a new complete 43-file bundle before publication;
+- independently compare the completed five-role image/SBOM/scan evidence
+  with the exact GitHub b55 evidence and reviewed predecessor, then bind new
+  ACR manifest digests through one bounded private publication session;
 - deploy only the exact API image to API-C through loopback canary and a
   reversible managed-service promotion. Preserve the historical image and
   unit bytes until independent acceptance completes.
+
+## 6.4. API-C interrupted builder reconciliation and scanner gate
+
+- Read-only takeover started from a clean
+  `codex/quality-stabilization-real-chain` worktree at
+  `d66827f6504c2400c9fa9ba7e04cdf5070ad1f56`. Local HEAD, the upstream
+  tracking ref and a fresh remote branch query all match exactly.
+- The prior control-plane chain continued after the last Git checkpoint.
+  Its latest build9 invocation reached the control-plane timeout and is no
+  longer running. A corrected read-only audit found the root-owned task root
+  intact, task processes zero, running containers zero, database port
+  connections zero, registry requests zero and service actions zero.
+- The six-line state file is only the initial fail-closed state because the
+  outer timeout prevented the exit trap from finalizing it. The retained log
+  is therefore authoritative for this incident: the first API image exported
+  successfully after the dependency build, then Trivy 0.72.0 failed while
+  downloading `trivy-db:2` over TCP 443. The retained result is one b55 image,
+  seven prefix evidence files and no role or total summary.
+- The first takeover audit copied collapsed console text and exited before a
+  remote connection; it is `PRE_CONNECT` with command, network, Docker,
+  database, registry and service actions all zero. The corrected terminal,
+  log and cache audits each executed once and were read-only.
+- The exact Trivy binary supports `--cache-dir`, `--skip-db-update`,
+  `--skip-java-db-update`, `--offline-scan` and DB-only download. Two local
+  databases have valid JSON metadata, root ownership, non-symlink regular
+  files and non-writable group/world permissions, but both exceed the
+  predeclared 24-hour freshness bound and both have expired `NextUpdate`.
+  Neither is eligible for continuation.
+- Anonymous endpoint probes found the default GCR mirror unavailable and the
+  official GHCR and Public ECR endpoints reachable. A first prefetch command
+  failed before task-root creation because `pipefail` observed the early
+  `grep -q` close; a materially corrected preflight then refused the
+  archive-preserved nonroot binary UID, also before task-root creation or a
+  network request. Both incidents are `PRE_CONNECT`, with files, processes,
+  network requests, Docker, database, registry writes and service actions
+  zero.
+- Independent provenance proved the build, tools and shared-cache parent
+  directories are root-only; the Trivy binary is a non-symlink single hard
+  link with no group/world write, the checksum-pinned official archive is
+  unique, and its sole `trivy` member is byte-identical to the executable.
+  The corrected prefetch therefore replaced the inaccurate UID rule with
+  fixed-archive bytes plus root-only containment.
+- One anonymous, bounded official-GHCR download populated a new task-owned
+  cache. Independent readback proves four root-owned `0700` directories, six
+  root-owned `0600` files, no links or special files, exact state/sidecar
+  agreement, no log errors and no remaining Trivy process. The DB SHA-256 is
+  `43c58b4f5d8c99a9480dd018596c2d907ac2df1f87e94f9da859b2563454bfa0`;
+  metadata SHA-256 is
+  `c22e06141b5631651e7fda582ed629c876b0c500df2d78146053d157b6e4bb59`.
+  `UpdatedAt` and `DownloadedAt` are within 24 hours and `NextUpdate` is
+  unexpired. Both historical DB hashes remain unchanged.
+- Status remains `17/29 = 59%` internal and `17/38 = 45%` complete-public.
+  The only task remains `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`; the next
+  acceptance boundary is a hash-bound offline continuation producing a
+  complete independent 43-file five-role bundle. Publication, deployment,
+  service mutation and public traffic have not started.
 
 ## 7. Mandatory failure classification
 
@@ -985,7 +1039,8 @@ checkpoint.
 
 Current remaining steps:
 
-- commit and push the exact b55 native source-candidate/VEX checkpoint;
+- keep the pushed `d66827f` control checkpoint and the recovered build9
+  evidence immutable while preparing a fresh verified scanner cache;
 - execute only `PROD-FIRST-LAUNCH-API-C-INTERNAL-001`: privately publish the
   exact current immutable API product, then reuse the existing schema/roles,
   managed secrets and private storage; establish a fresh read-only baseline

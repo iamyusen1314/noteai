@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-07-29",
+  "as_of_date": "2026-07-30",
   "status_values": [
     "verified",
     "unverified",
@@ -249,35 +249,27 @@
           "evidence": [
             {
               "kind": "git",
-              "ref": "b06671fbcca51f884b04c86edcf116e373c6cfa8"
+              "ref": "b55f11882100e9ef919522540729e366a511f88f"
             },
             {
               "kind": "path",
-              "ref": "security/vex/b06671f-github-native-release-evidence.json"
+              "ref": "security/vex/b55f118-github-native-release-evidence.json"
             },
             {
               "kind": "path",
-              "ref": "security/vex/b06671f-github-native-release.vex.cdx.json"
+              "ref": "security/vex/b55f118-github-native-release.vex.cdx.json"
             },
             {
               "kind": "path",
-              "ref": "security/vex/b06671f-github-native-release-review.json"
+              "ref": "security/vex/b55f118-github-native-release-review.json"
             },
             {
               "kind": "path",
-              "ref": "security/vex/b06671f-registry-release-evidence.json"
+              "ref": "tools/verify_b55_native_release_vex.py"
             },
             {
               "kind": "path",
-              "ref": "security/vex/b06671f-registry-release.vex.cdx.json"
-            },
-            {
-              "kind": "path",
-              "ref": "security/vex/b06671f-registry-release-review.json"
-            },
-            {
-              "kind": "path",
-              "ref": "tools/verify_registry_release_vex.py"
+              "ref": "scripts/ci/native_release_evidence.sh"
             },
             {
               "kind": "path",
@@ -509,10 +501,11 @@
           "dependencies": [
             "immutable_release_candidate",
             "production_schema_roles",
-            "managed_secret_distribution"
+            "managed_secret_distribution",
+            "private_storage_runtime"
           ],
           "evidence": [],
-          "blocker": "API-C runs the historical release rather than the current repository candidate.",
+          "blocker": "The exact b55f118 source candidate and a fresh isolated Trivy database cache are verified. The retained builder run still has only one API image, seven incomplete evidence files and no summary; its hash-bound offline continuation, complete 43-file five-role evidence, private publication and API-C loopback canary have not completed.",
           "next_task": "PROD-FIRST-LAUNCH-API-C-INTERNAL-001"
         },
         {
