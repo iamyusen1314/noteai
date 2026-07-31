@@ -2643,13 +2643,22 @@ main CTO authorizes one new request-only activation under the delegated bounds.
   that would have said the request was absent after a valid activation; the
   text is now state-neutral and a `V4_ARMED_OR_TRIGGERED_EXACT` regression
   test passes in the `21/21` production-gate suite.
+- The exact inert checkpoint is
+  `7b65c480604ab3aa3381d81e9692d2ed94f7c23c`. Ordinary push CI
+  `30598540875` and pull-request CI `30598541927` both completed
+  successfully with unit, quality, production-readiness and Docker Compose
+  steps green. The active request and local/all-ref/GitHub path addition
+  history remain zero; the global Actions inventory filtered by
+  `.github/workflows/admin-dependency-cache-export-v4.yml` remains zero.
+  Installing the workflow therefore consumed no V4 run or downstream
+  authority.
 
 The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`; no readiness
-credit is added by an inert controller. The next acceptance boundary is the
-pushed inert V4 checkpoint with ordinary push/PR CI all green and an exact
-zero V4 run list. Under the product owner's standing delegation, the main CTO
-will then authorize and create exactly one single-parent, request-only V4
-activation without asking again. Only successful portability, cleanup,
-nonzero provider identity, authenticated bounded download/transfer and
-target-side reassembly/import/cacheless replay may unlock the conditional
-`4-vCPU / 16-GiB / AMD64` builder and one Admin ACR private publication.
+credit is added by an inert controller. The inert checkpoint, ordinary remote
+CI and exact zero-run acceptance are complete. Under the product owner's
+standing delegation, the next atomic action is a Secret-free receipt
+checkpoint followed by exactly one single-parent, request-only V4 activation
+without asking again. Only successful portability, cleanup, nonzero provider
+identity, authenticated bounded download/transfer and target-side
+reassembly/import/cacheless replay may unlock the conditional `4-vCPU /
+16-GiB / AMD64` builder and one Admin ACR private publication.
