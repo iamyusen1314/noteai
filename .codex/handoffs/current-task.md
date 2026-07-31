@@ -2399,3 +2399,114 @@ item remains `api_f_current_release=VERIFIED`, and the sole task remains
 normal correction checkpoint with green remote CI, followed by exactly one
 new request-only child whose direct parent and bytes are freshly rebound to
 that checkpoint. No pre-fix request SHA may be reused.
+
+### Admin dependency-cache V2 terminal failure and inert V3 recovery checkpoint (2026-07-31)
+
+- Read-only takeover started on
+  `codex/quality-stabilization-real-chain` at exact local/upstream
+  `83b89262a33aed2cfa9fd623f232a66824398c2e`, clean `0/0`. The retained V2
+  request remains the unique `100644` request-only addition at that commit;
+  the V2 workflow, template, request and verifier are frozen byte-exact.
+- The authorized one-shot V2 execution is terminal:
+  GitHub run `30591103183`, job `91033410635`, attempt `1`, exact control
+  commit `83b89262a33aed2cfa9fd623f232a66824398c2e`, conclusion `failure`.
+  Controller/release checkout, request resolution, immutable source checks
+  and isolated builder creation passed. Export stopped at post-build evidence
+  validation with `FAIL: BuildKit platform changed`; portability, final
+  validation, upload and provider confirmation were skipped. Cleanup also
+  failed with `rmdir: Directory not empty`. The provider artifact API returned
+  `total_count=0`, and the attempt was never rerun.
+- Source-level reconciliation proves two control defects rather than a source
+  or target-architecture drift. BuildKit `v0.31.2` emits SLSA V0.2
+  `invocation.environment` with exact builder host
+  `platform=linux/amd64` and reviewed `dockerfileVersion=1.25.0`; V2 compared
+  that complete object to a one-field object. The real target remains
+  independently bound by the hash-pinned `--platform linux/amd64`, exact
+  LLB `op.platform` objects and pinned base-image identities. Buildx also
+  writes client state under `DOCKER_CONFIG/buildx` unless `BUILDX_CONFIG` is
+  separate, so V2's empty-config `rmdir` assumption was invalid.
+- Secret-free terminal evidence is
+  `deploy/production/evidence/admin-dependency-cache-v2-attempt1-failed-20260731.json`,
+  with exact verifier
+  `tools/verify_admin_dependency_cache_v2_failure_evidence.py`. It binds
+  artifacts/upload/provider confirmation/authenticated download/cross-cloud
+  transfer to zero; new cloud-builder start, Admin ACR private-repository
+  read/token/login/push/manifest operations, production service, database and
+  public-traffic mutations also remain zero. Public base-image and dependency
+  reads inside the GitHub cache build are not misclassified as zero. Ordinary
+  push and PR CI runs `30591103151` and `30591105105` passed for the V2
+  activation commit.
+- The single GitHub-run authorization is consumed and V2 attempt 1 is
+  permanently no-rerun. The unused artifact download/transfer and conditional
+  new `4-vCPU / 16-GiB / AMD64` builder/Admin ACR publication authority remain
+  dormant because cache acceptance did not pass; no builder may start from
+  that condition now.
+- Append-only V3 is an inert recovery plan, not an active request.
+  `.github/release-requests/admin-5335bda-dependency-cache-v3.json` does not
+  exist and has no addition history; the verified state is
+  `PREPARED_V3_NOT_TRIGGERED`. V3 pins the BuildKit `v0.31.2` multi-architecture
+  digest, requires exact host/frontend environment and exact
+  `Architecture=amd64 / OS=linux` LLB target objects, and reuses the frozen
+  deep V2 OCI/cache/archive validation only after that independent proof.
+- Docker authentication and Buildx client state now use distinct fixed
+  `RUNNER_TEMP` children. The V3 transient-state verifier requires an exact
+  empty Docker auth file, bounded regular Buildx state, safe ownership modes,
+  no links/special files/hardlinks and no credential-like content. Cleanup
+  aggregates builder-removal, Docker-object parity, state-validation and root
+  removal failures while still attempting both task-root removals; upload is
+  impossible unless cleanup and final portable-bundle validation both pass.
+  The reviewed one-day retention, `3.5-GiB` gzip, `3.75-GiB` upload-input,
+  `4-GiB` provider and authenticated receipt-bound transfer limits are
+  unchanged.
+- A bounded technical delta audit then exposed four source-level proof gaps
+  before any V3 activation: cleanup could stop before removing both roots
+  when its verifier was absent or drifted; duplicate-key or otherwise opaque
+  Buildx JSON was not constrained by an exact schema; platform semantics had
+  only synthetic tests; and the copied V3 wrapper plus frozen V2 base
+  verifier had no runtime-shape regression test. The corrected cleanup now
+  treats only an unresolved, redirected or non-task-owned `RUNNER_TEMP` as an
+  early stop, aggregates verifier/builder/snapshot/parity failures, and still
+  attempts both root removals. Behavior tests prove success, missing/drifted
+  validation, builder/snapshot/parity failure and symlinked-root handling.
+  The transient verifier now rejects duplicate/non-finite JSON, caps the
+  Docker config at 128 bytes with exact `{"auths": {}}`, and accepts only the
+  pinned BuildKit image plus official Buildx store/local-state path and field
+  shapes; embedded config/key material, extra driver options and opaque files
+  fail closed. A truthfully labeled
+  `SOURCE_PROJECTED_NOT_RETAINED_RUNTIME_METADATA` fixture records the pinned
+  BuildKit source boundary without claiming retained V2 runtime metadata, and
+  subprocess tests prove the copied two-file verifier trust root passes only
+  with the exact frozen base verifier.
+- The final reviewed V3 hashes are workflow
+  `60b48606e98ce9ea8b81b6afcc910701798cd3dff307661e11ff383dbb2eed39`,
+  template
+  `2ddca5c392f21cfa3b623197d07c2f8a983715a95ec58042aa0eece8930cd2f3`,
+  plan verifier
+  `f1de65d37f7bac35fcf1df7ac490a69df0057bef4d0800fbbdaa0ce0b4c85924`,
+  bundle verifier
+  `c2e318d5d9cbe196d8b9294277c85e1ee986ccb3e1970b3d25a31d28c8da0fef`,
+  transient verifier
+  `da19c4908fc73ee7bdd74342cf0c626a2db79299672ba5aa0511a7c9d92baae0`
+  and cleanup helper
+  `b6115cc641c563f90236bcbdea432e0ca18ff9908834f663c6eeadd27ffa3101`.
+  Focused cache/readiness tests pass `110/110`; cleanup behavior passes
+  `6/6`; production gate passes `114/114`; final full Python regression
+  passes `1212/1212` with `28` intentional skips. Bash/Python syntax,
+  strict JSON/YAML parsing, `git diff --check`, frozen V2 byte comparison,
+  Secret-pattern scan and V3 zero-addition checks pass. The final bounded
+  read-only technical re-audit closed M1/M2/L1/L2 at
+  `Critical 0 / High 0 / Medium 0 / Low 0`.
+- The readiness manifest now includes the exact V2 failure receipt and inert
+  V3 recovery controls. Production readiness passes `114/114`; internal
+  readiness remains fail-closed `19/29=66%` and complete-public readiness
+  remains `19/38=50%`. The most recent credited control remains
+  `api_f_current_release=VERIFIED`.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next
+acceptance boundary is a committed inert V3 checkpoint with green ordinary
+remote CI and zero V3 cache runs, followed by new explicit authority for
+exactly one V3 GitHub run. Only a successful nonzero provider artifact,
+fresh-consumer portability, complete cleanup, authenticated bounded
+download/transfer and target-side revalidation can activate the conditional
+builder path; Admin build/scan/private publication/runtime acceptance and
+complete cleanup remain required before readiness may become `20/29`.

@@ -641,9 +641,65 @@
             {
               "kind": "path",
               "ref": "deploy/production/plans/admin-dependency-cache-export-request-v2.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v2-attempt1-failed-20260731.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v2_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v2_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v3.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v3.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v3.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v3.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_bundle_v3.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v3.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_platform_projection.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_transient_state_v3.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_transient_state_v3.py"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/cleanup_admin_dependency_cache_v3.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_cleanup_v3.py"
             }
           ],
-          "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. The funded native-builder attempt was fully cleaned after Docker Hub and Python dependency timeouts, and its two-hour authority expired with the builder stopped. The fail-closed dependency-only BuildKit cache plan has an explicit Git-history state machine: PREPARED_NOT_TRIGGERED is possible only before any request-path addition, ARMED_OR_TRIGGERED_EXACT requires one retained 100644 parent-bound request-only activation whose bytes still match current HEAD, and deletion or repeated addition becomes CONSUMED_OR_INVALID; activation alone leaves the provider outcome UNKNOWN. Initial inert checkpoint c0d049b exposed a GitHub parser-context false negative: record 30572921215 rejected job-level runner.temp before scheduling, with zero jobs, artifacts, billable job minutes, builds or resource mutations and no rerun. DOCKER_CONFIG is now step-scoped and the local verifier rejects that invalid job-level context. Corrected core checkpoint dd3cdce was accepted by GitHub's parser and path filter with no dependency-cache run, while ordinary push/PR CI runs 30573970320 and 30573973644 passed. The one-shot plan rejects reruns, uses distinct docker-container producer and fresh-consumer builders, an isolated empty BuildKit Docker auth config, exact Dockerfile lines 1-80, canonical pinned bases, --pull, four exact minimal-context files, max provenance and raw progress. The export receives no application/model source input and no BuildKit credential, secret or SSH input. Before upload, the fresh consumer must import a recursively validated OCI/cache-config closure with unique root descriptors and complete record/layer reachability, prove the three actual runtime-common network vertices cached, delete the external cache, and perform a no-cache-from full-Dockerfile/full-release-context replay through line 100 with the same three vertices cached; that replay truthfully consumes application/model source context but exports no consumer cache or image. Trusted controller copies, not artifact-contained executable code, perform validation and import. All transient Docker images, containers, volumes, networks and the empty Docker config must be cleaned first. The deterministic archive is capped at 3.5 GiB gzip / 5 GiB raw, contiguous 256-MiB chunks, 3.75 GiB total upload input and 128 MiB per non-chunk file, leaving headroom under the 4 GiB provider-artifact ceiling; the one-day public-repository artifact must be treated as readable by repository readers. Before activation, the product owner must explicitly authorize exactly one run of at most 120 GitHub-hosted minutes, that public artifact and authenticated cross-provider transfer. Acceptance requires authenticated GitHub API metadata preflight to reject missing, expired, oversized or identity-drifted artifacts before the ZIP request; the original ZIP must then be received through a declared-size-bounded stream and match the provider SHA-256 and size before extraction. Provider run/control identity, request and final sums produce a separately hashed Secret-free receipt. Only after that validation is the ZIP split into contiguous 256-MiB receipt-bound transport parts, so no intact multi-gigabyte file is sent through the cross-provider per-file channel. A newly authorized target builder must recreate the recorded BuildKit daemon image, verify the receipt and every part, reassemble and revalidate the exact ZIP in task-local storage, repeat import plus cacheless full-context replay, and export the same BUILDX_BUILDER environment into the unchanged canonical Admin build; fresh scan/SBOM, private publication, dedicated runtime and negative matrix remain pending.",
+          "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. The unique V2 dependency-cache activation at control commit 83b89262a ran once as GitHub run 30591103183 / job 91033410635 / attempt 1 and failed before portability or upload: BuildKit v0.31.2 emitted the reviewed SLSA environment with both platform=linux/amd64 and dockerfileVersion=1.25.0, while the V2 verifier incorrectly required the entire object to contain only platform; cleanup then used rmdir on a Docker config root that also held default Buildx state. The provider artifact API returned total_count=0. Upload, provider confirmation, authenticated download, cross-provider transfer, new cloud-builder start, Admin ACR private-repository read/token/login/push/manifest, production service mutation, database connection/transaction/write and public-traffic mutation all remained zero; public base-image and dependency Registry reads performed by the cache build are not claimed as zero. The one GitHub run authority is consumed, V2 is frozen byte-exact, and attempt 1 must never be rerun. Ordinary push/PR CI for the activation commit passed. Append-only V3 is prepared but not triggered: its active request path is absent and its Git state is PREPARED_V3_NOT_TRIGGERED. V3 pins BuildKit v0.31.2, proves the host builder environment and Dockerfile frontend separately from exact linux/amd64 LLB target objects, assigns distinct task-owned Docker-auth and Buildx-state roots, rejects credential-like or unsafe transient state, aggregates cleanup failures while still removing both roots, and retains the reviewed one-day artifact, 3.5-GiB gzip, 3.75-GiB upload-input, 4-GiB provider, portable-cache closure, authenticated-download and receipt-bound transfer limits. No readiness credit is added for a failed run or inert recovery plan. The unused download/transfer and conditional 4C16G AMD64 builder/Admin ACR publication authority remain dormant because cache acceptance did not pass. The next acceptance boundary requires new explicit authority for exactly one V3 GitHub run, then one retained parent-bound request-only activation, successful fresh-consumer portability and cleanup, a nonzero provider artifact whose identity/retention/size/digest are authenticated before bounded download and transfer, and target-side reassembly/import/cacheless replay. Only after that cache acceptance may the conditional builder path be activated for the unchanged canonical Admin build, fresh SBOM/raw scan, immutable private publication, dedicated runtime, negative matrix, reversible promotion, API-C/API-F non-regression and complete cleanup.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

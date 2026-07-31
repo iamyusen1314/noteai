@@ -53,6 +53,18 @@ from verify_admin_dependency_cache_export_plan import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan,
 )
+from verify_admin_dependency_cache_export_plan_v3 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v3,
+)
+from verify_admin_dependency_cache_export_plan_v3 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v3,
+)
+from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
+    load_strict as load_admin_dependency_cache_v2_failure_evidence,
+)
+from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
+    verify as verify_admin_dependency_cache_v2_failure_evidence,
+)
 from verify_api_c_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_c_current_release_evidence_bundle,
 )
@@ -1572,6 +1584,20 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         ]
     admin_dependency_cache_plan_errors = validate_admin_dependency_cache_export_plan()
     dependency_cache_plan_state = admin_dependency_cache_plan_state()
+    try:
+        admin_dependency_cache_v2_failure_errors = (
+            verify_admin_dependency_cache_v2_failure_evidence(
+                load_admin_dependency_cache_v2_failure_evidence()
+            )
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        admin_dependency_cache_v2_failure_errors = [
+            f"cannot load Admin dependency-cache V2 failure evidence: {exc}"
+        ]
+    admin_dependency_cache_plan_v3_errors = (
+        validate_admin_dependency_cache_export_plan_v3()
+    )
+    dependency_cache_plan_state_v3 = admin_dependency_cache_plan_state_v3()
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -1652,6 +1678,30 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "1-80 exported; isolated producer/fresh-consumer import plus "
                 "full-context cacheless replay and pre-upload cleanup required; "
                 "Registry publication unauthorized"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v2_attempt1_failed_artifact0",
+            not admin_dependency_cache_v2_failure_errors,
+            "; ".join(admin_dependency_cache_v2_failure_errors[:5])
+            if admin_dependency_cache_v2_failure_errors
+            else (
+                "run 30591103183 attempt 1 failed before portability/upload; "
+                "artifacts, download, transfer, cloud-builder start, Admin ACR "
+                "private-publication and production mutations zero; V2 rerun "
+                "forbidden"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v3_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v3_errors,
+            "; ".join(admin_dependency_cache_plan_v3_errors[:5])
+            if admin_dependency_cache_plan_v3_errors
+            else (
+                f"state={dependency_cache_plan_state_v3}; BuildKit v0.31.2 "
+                "builder/frontend and LLB target platforms separated; Docker "
+                "auth and Buildx state use distinct task roots with aggregate "
+                "cleanup; active V3 request absent and new run authority required"
             ),
         ),
     ]

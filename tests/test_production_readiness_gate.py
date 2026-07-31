@@ -56,6 +56,16 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "exact_5335bda_admin_dependency_cache_export_plan_fail_closed"
             ]["passed"]
         )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v2_attempt1_failed_artifact0"
+            ]["passed"]
+        )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v3_recovery_plan_fail_closed"
+            ]["passed"]
+        )
 
         with mock.patch.object(
             gate,
@@ -90,6 +100,30 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertIn(
             "exact_5335bda_admin_dependency_cache_export_plan_fail_closed",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
+        with mock.patch.object(
+            gate,
+            "verify_admin_dependency_cache_v2_failure_evidence",
+            return_value=["tampered V2 failure evidence"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_admin_dependency_cache_v2_attempt1_failed_artifact0",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
+        with mock.patch.object(
+            gate,
+            "validate_admin_dependency_cache_export_plan_v3",
+            return_value=["tampered V3 recovery plan"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_admin_dependency_cache_v3_recovery_plan_fail_closed",
             {item["name"] for item in report["failed_checks"]},
         )
 
