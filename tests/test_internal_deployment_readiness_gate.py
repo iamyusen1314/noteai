@@ -747,6 +747,42 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "empty_source_location_projection.json"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "cf253f9b42b096f45405ac55fe546c281a2a748d",
+                },
+                {
+                    "kind": "git",
+                    "ref": "354bec3b2d36bfaabc5c3307d49f5dc66255cbbf",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/release-requests/"
+                        "admin-5335bda-dependency-cache-v8.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "admin-dependency-cache-v8-attempt1-failed-20260731.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_v8_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_v8_failure_evidence.py"
+                    ),
+                },
             ],
         )
         api_c = next(

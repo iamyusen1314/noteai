@@ -981,9 +981,33 @@
         {
           "kind": "path",
           "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_empty_source_location_projection.json"
+        },
+        {
+          "kind": "git",
+          "ref": "cf253f9b42b096f45405ac55fe546c281a2a748d"
+        },
+        {
+          "kind": "git",
+          "ref": "354bec3b2d36bfaabc5c3307d49f5dc66255cbbf"
+        },
+        {
+          "kind": "path",
+          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v8.json"
+        },
+        {
+          "kind": "path",
+          "ref": "deploy/production/evidence/admin-dependency-cache-v8-attempt1-failed-20260731.json"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_v8_failure_evidence.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_v8_failure_evidence.py"
         }
       ],
-      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V7 are permanently frozen at their unique failed attempt 1 and must not be rerun. V7 control commit 4494f50bf9a18422cef6252792bb9c6bbeaf1135, run 30622876575 and job 91131267190 passed controller, source, fixed-builder and producer-build checks before strict provenance location projection rejected BuildKit LLB step9 with PROVENANCE_LOCATION_INVALID. The exact rejected predicate and source-location payload remain UNKNOWN_NOT_RETAINED; role and package-network validation were not reached. Import, final validation, upload and provider confirmation were skipped, artifact count is zero, and authenticated download, cross-cloud transfer, the conditional new 4C16G AMD64 builder, Admin ACR publication and all production mutations remain zero. Cleanup proves both ephemeral builders removed and absent, Docker object parity, fixed state roots and enumerated diagnostics absent, and cleanup_effective/overall_pass true. Append-only V8 accepts only exact empty source-location wrappers as nonbinding, cannot use them to satisfy a dependency role, delegates every populated location and sourceIndex rule to frozen V7, and binds the V2/V3/V6/V7/V8 verifier chain while retaining V5 cleanup and the legacy provider artifact protocol. Secret-free inert checkpoint 3381c2fdbcb32480bb364a400250f8d24de74c84 is remotely accepted: exact-HEAD push run 30630764584/job 91156306054 and pull-request run 30630767695/job 91156315674 both passed 1419 tests with 28 intentional skips and production readiness 124/124. Fully paginated reads at 2026-07-31T12:37:24Z found exactly those two ordinary runs, V8 workflow run count zero and remote V8 request commit count zero; V7 remains exactly one terminal failed run with rerun zero and artifact zero. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and inert engineering evidence earn no deployment credit. The next acceptance boundary is a Secret-free receipt checkpoint whose own ordinary CI must pass while fully paginated V8 workflow history remains run zero, followed by exactly one single-parent request-only V8 activation under the standing bounded authorization.",
+      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V8 are permanently frozen at their unique failed attempt 1 and must not be rerun. V8 request-only control 354bec3b2d36bfaabc5c3307d49f5dc66255cbbf triggered exactly run 30632611051/job 91162335850/attempt 1. Controller, immutable source, two fixed ephemeral builders, producer build and strict producer verification passed; the portable core bundle contained 13 files and two archive chunks. The fresh-consumer import build completed, then strict same-digest input equality rejected processed vertex update 43 with RAWJSON_VERTEX_INPUT_CONFLICT before complete import parsing, role/log/cache validation, cacheless replay, portability proof, final validation or upload. The exact digest, prior/current vectors and actual transition remain UNKNOWN_NOT_RETAINED, so no runtime root cause shape is claimed. Artifact count, authenticated download, cross-cloud transfer, conditional 4C16G builder, Admin ACR publication and all production mutations are zero. Cleanup proves both ephemeral builders removed and absent, Docker object parity, fixed state roots and enumerated diagnostics absent, and cleanup_effective/overall_pass true. Exact control-head push and pull-request CI passed 1419 tests with 28 intentional skips and production readiness 124/124. Fully paginated workflow reads found exactly one V8 run with rerun zero; no artifact exists. Fixed BuildKit/Buildx source must now bound an append-only V9 compatibility layer to nonbinding omitted inputs only while all populated input vectors and every location, role, interval, cache, network, archive, trust-chain and cleanup rule remain fail-closed. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and engineering evidence earn no deployment credit. The next acceptance boundary is the Secret-free V8 terminal checkpoint's own ordinary remote CI plus a fully paginated V8 run1/rerun0/artifact0 ledger, followed by its receipt checkpoint before inert V9 engineering.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

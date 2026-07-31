@@ -3499,3 +3499,75 @@ receipt, require its own ordinary CI to remain green while fully paginated V8
 workflow history remains run zero, then create exactly one single-parent,
 request-only V8 activation under the standing bounded authorization. V2-V7
 are permanently no-rerun.
+
+### V8 unique attempt terminal closure and append-only V9 boundary (2026-07-31)
+
+- Read-only takeover found branch
+  `codex/quality-stabilization-real-chain` at exact local/upstream HEAD
+  `354bec3b2d36bfaabc5c3307d49f5dc66255cbbf`, ahead/behind `0/0`.
+  Inert-receipt commit `cf253f9b42b096f45405ac55fe546c281a2a748d`
+  had green exact-HEAD push CI `30631461469` and pull-request CI
+  `30631464114`; the fully paginated V8 workflow inventory was run zero
+  before activation. No related live local process, container, builder,
+  listener, Git operation or open temporary-file handle remained.
+- Single-parent request-only control
+  `354bec3b2d36bfaabc5c3307d49f5dc66255cbbf` added exactly
+  `.github/release-requests/admin-5335bda-dependency-cache-v8.json` with
+  SHA-256
+  `5283d1044e3fb783e4951019f2c137a23530fb6c09fc290718c305ee3e449cd5`.
+  It created exactly workflow run `30632611051`, job `91162335850`, run
+  number/attempt `1/1`, which is terminal `failure`; V8 is consumed and must
+  never be rerun.
+- The producer build and strict producer verification passed twice with an
+  identical Secret-free diagnostic: `169136` progress bytes, `80` vertex
+  updates, `18` unique digests, `85` statuses, `415` logs, `34495` decoded
+  bytes, zero warnings, `35` lifecycle intervals, all three dependency roles
+  exact and uncached, and package-network output observed. The portable core
+  bundle was generated with `13` files and two archive chunks.
+- The fresh-consumer core validation and first import build completed. Strict
+  import parsing then failed closed at processed vertex update `43` with
+  `RAWJSON_VERTEX_INPUT_CONFLICT` / `BuildKit vertex inputs conflict`.
+  Import parsing, role/log/cache validation, cacheless replay, portability
+  proof, final validation and upload did not complete. The exact conflicting
+  digest, prior/current vectors and actual transition were not retained or
+  reconstructed; therefore no runtime root-cause shape is claimed.
+- Cleanup completed successfully: both ephemeral builders were removed and
+  absent, Docker object parity and fixed state-root/diagnostic absence passed,
+  and `cleanup_effective=true` / `overall_pass=true`. Artifact API count is
+  zero; authenticated download, cross-provider transfer, conditional 4C16G
+  builder, Admin ACR publication, database/service/public-traffic mutation
+  and production write counts remain zero.
+- Exact control-HEAD ordinary push CI `30632610976` and pull-request CI
+  `30632616052` both passed `1419/1419` tests with `28` intentional skips and
+  production readiness `124/124`. Fully paginated reads observed exactly one
+  V8 workflow run, rerun zero and artifact zero.
+- Independent fixed-source review found BuildKit rawjson is an incremental
+  event stream: nonempty structural inputs appear as an ordered vector, while
+  a zero-input structural event or a same-digest cache/lifecycle controller
+  event can serialize with `inputs` absent; this fixed rawjson path performs
+  no field-level merge. The append-only V9 boundary is therefore narrow:
+  missing `inputs` is nonbinding; an explicit nonempty ordered vector binds
+  once and must remain byte-for-byte/order identical; explicit empty, null,
+  non-list, oversized, invalid or drifting vectors fail closed. Omission-only
+  remains UNKNOWN and cannot prove a leaf. Location, role, lifecycle,
+  network, cache, archive, trust-chain and cleanup semantics remain frozen.
+- Secret-free V8 terminal evidence, its hash/semantic/Git-chain verifier and
+  mutation tests are integrated into both readiness gates. Targeted Python
+  compilation, the V8 evidence suite, internal readiness suite and production
+  readiness suite passed `52/52` in `572.702` seconds; the production gate is
+  `125/125`. The final full repository suite passed `1430/1430` with `28`
+  intentional skips in `1881.891` seconds. This evidence adds no deployment
+  credit.
+
+Files changed in this atomic stage are the V8 terminal evidence, verifier and
+tests; the production readiness gate and tests; the internal readiness
+manifest and exact-evidence-list test; this handoff; and the risk ledger. No
+V2-V8 workflow, frozen verifier, cache request, cloud builder, registry,
+database, service or production runtime is modified.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`. The sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next commit/push this Secret-free V8
+terminal checkpoint, require its own ordinary remote CI to pass and fully
+paginate V8 as exactly run1/rerun0/artifact0, then checkpoint that receipt
+before implementing inert append-only V9. V2-V8 are permanently no-rerun.
