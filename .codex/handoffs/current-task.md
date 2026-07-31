@@ -3373,3 +3373,35 @@ remains `api_f_current_release=VERIFIED`. The sole task remains
 V7 terminal checkpoint, require its own ordinary CI to pass and fully
 paginate the V7 ledger as exactly one attempt with no rerun, then proceed
 directly to append-only inert V8. V2-V7 are permanently no-rerun.
+
+### V7 terminal checkpoint remote acceptance (2026-07-31)
+
+- Secret-free V7 terminal checkpoint
+  `6102ac231b68e3bc6b69db817fd834da0e37e1b9` is pushed; branch/upstream is
+  `0/0` and the worktree was clean immediately after the push.
+- Exact-HEAD ordinary push CI `30625742881` / job `91140465238` completed
+  `success`; it ran `1390/1390` tests in `255.880` seconds with `28`
+  intentional skips, passed production readiness `123/123`, quality,
+  required model-artifact validation and Docker Compose validation.
+- Exact-HEAD ordinary pull-request CI `30625746116` / job `91140475239`
+  completed `success`; it ran `1390/1390` tests in `265.219` seconds with
+  `28` intentional skips and passed the same production readiness
+  `123/123`, quality, model-artifact and Compose checks.
+- A fully paginated repository Actions-ledger read at
+  `2026-07-31T11:11:02Z` found exactly those two ordinary runs for the
+  checkpoint HEAD. A fully paginated workflow-id `324378036` read still found
+  exactly V7 run `30622876575`, run number/attempt `1/1`, terminal
+  `failure`, rerun count zero. Its artifact API remains exactly zero.
+- The V7 request path still has exactly one addition commit, control
+  `4494f50bf9a18422cef6252792bb9c6bbeaf1135`, with direct parent
+  `71692d5f25f6a2d3f248cc62a568f4a2bd5af2cd`. No request edit/re-add,
+  workflow rerun, authenticated download, cross-cloud transfer, conditional
+  new 4C16G AMD64 builder, Admin ACR publication or production mutation
+  occurred.
+
+This remote receipt adds no deployment credit. Internal/public readiness
+remains `19/29` / `19/38`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit and push this Secret-free
+receipt, require its ordinary CI to remain green while the fully paginated V7
+ledger remains run1/rerun0, then proceed directly to append-only inert V8.
+V2-V7 are permanently no-rerun.
