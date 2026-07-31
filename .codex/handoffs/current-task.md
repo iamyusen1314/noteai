@@ -3798,3 +3798,36 @@ ten-file Secret-free terminal checkpoint, require its own
 ordinary push/PR CI to pass while fully paginated V9 history remains
 run1/attempt1/failure/rerun0/artifact0, then commit the four-file terminal
 receipt before append-only V10. V2-V9 are permanently no-rerun.
+
+### V9 terminal checkpoint remote acceptance (2026-07-31)
+
+- Secret-free terminal checkpoint
+  `0e35e7dca22064402f8a7b569c6b966e4c6ec1a3` is pushed with single direct
+  parent `fbe629daad669191d4ea9903ffb488c98055f000`. Its exact ten-file delta
+  freezes the V9 failure evidence/verifier/tests, readiness integration and
+  state-aware activation test; it does not modify any V9 request, workflow,
+  template, core verifier or helper. Local and upstream HEAD are equal and
+  the worktree was clean before this receipt stage.
+- Exact-HEAD push CI `30657325032` / job `91244859680` completed `success`;
+  it passed `1468/1468` tests with `28` intentional skips in `480.065`
+  seconds and production readiness `127/127`, plus syntax, model, quality and
+  Docker Compose gates. Exact-HEAD pull-request CI `30657329972` / job
+  `91244875610` also completed `success`; it passed the same `1468/1468`,
+  `28` skips and readiness `127/127` in `456.938` seconds with every ordinary
+  step successful.
+- Fully paginated reads after `2026-07-31T19:08:15Z` found exactly those two
+  ordinary CI runs for checkpoint HEAD. V9 workflow `324655362` still has
+  exactly run `30651679657`, run number/attempt `1/1`, terminal `failure`;
+  attempt two is absent, rerun count is zero and the artifact API count is
+  exactly zero. Branch/upstream is `0/0`.
+- No V9 rerun, artifact, authenticated download, cross-provider transfer,
+  conditional builder, Admin ACR publication, database/service/public-traffic
+  mutation or production write occurred. This remote acceptance adds no
+  deployment credit.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit/push this exact four-file
+Secret-free terminal receipt, require its own ordinary push/PR CI while V9
+remains run1/attempt1/failure/rerun0/artifact0, then proceed directly to
+append-only inert V10. V2-V9 are permanently no-rerun.
