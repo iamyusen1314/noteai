@@ -3405,3 +3405,61 @@ remains `19/29` / `19/38`, and the sole task remains
 receipt, require its ordinary CI to remain green while the fully paginated V7
 ledger remains run1/rerun0, then proceed directly to append-only inert V8.
 V2-V7 are permanently no-rerun.
+
+### Append-only V8 inert local engineering closure (2026-07-31)
+
+- The V7 terminal remote-receipt checkpoint is
+  `3714cc2feec65d3059325d0d869ad007083b0276`, directly parented by terminal
+  evidence checkpoint `6102ac231b68e3bc6b69db817fd834da0e37e1b9`.
+  Exact-HEAD ordinary push CI `30626288688` / job `91142231451` and
+  pull-request CI `30626291782` / job `91142240612` both completed `success`,
+  each passing `1390/1390` tests with `28` intentional skips and production
+  readiness `123/123`. Fully paginated reads at
+  `2026-07-31T11:19:41Z` retained exactly V7 run `30622876575`,
+  run/attempt `1/1`, terminal `failure`, rerun zero and artifact zero.
+- Append-only V8 is locally `PREPARED_V8_NOT_TRIGGERED`. The active request
+  `.github/release-requests/admin-5335bda-dependency-cache-v8.json` is absent
+  and its all-ref addition history is zero. No GitHub Admin run, artifact,
+  authenticated download, cross-cloud transfer, conditional 4C16G AMD64
+  builder, Admin ACR publication or production mutation occurred in this
+  stage.
+- V8 accepts only an exact empty BuildKit source-location wrapper `{}` as a
+  nonbinding location. An empty wrapper cannot satisfy a dependency role.
+  Null, empty arrays, nested empty location groups, unknown keys and explicit
+  `sourceIndex` remain rejected. Every populated location, incremental
+  interval, structural role, decoded-log/network, cache, archive and cleanup
+  rule delegates to the hash-frozen V7 chain.
+- The exact V8 workflow/template/source-fixture/core-verifier/plan-verifier
+  SHA-256 values are respectively
+  `370e17b59ce457efda8b5a6cd23d40937379d23d1a2aeb3f36ac7b88f72333b3`,
+  `ba2f705eff90285e377e8d683a059f7f23aef088dc7df2498d167909fff48e7c`,
+  `b5f5e806b7e822b536a850eca8861bb7b6f8934832d7bdb4e898e698d7f20eeb`,
+  `b07f9dee54862969fe90ef438c357a3445a9fe9574b69a9f87440e3ed9920300`
+  and
+  `69fde0852832a2b6cdfc4e3542b835a74c3c939377220deb3009430292ef5915`.
+  Export, import and final validation each bind copied V2/V3/V6/V7/V8
+  verifier files; the V5 transient/cleanup namespace and legacy provider
+  artifact name `admin-dependency-prefix-cache-5335bda-v2` remain frozen.
+- Local verification passes V8 core `8/8`, V8 plan mutation
+  `20/20` in `380.181` seconds, internal readiness `16/16`, production
+  readiness tests `25/25` in `521.457` seconds, production gate `124/124`,
+  strict JSON/Python compilation, workflow YAML parsing and all `10` Bash
+  blocks. The full repository passes `1419/1419` with `28` intentional skips
+  in `1662.362` seconds. After two test-expectation P1 items found during the
+  initial audit were corrected, the final independent control-plane and
+  integration/readiness/documentation audits each found
+  `P0=0 / P1=0 / P2=0`, no required correction and no blocker.
+
+Files changed in this atomic stage are the inert V8 workflow and request
+template; the exact-empty BuildKit source projection; V8 core and plan
+verifiers plus tests; the production readiness gate and tests; the internal
+readiness manifest and exact-evidence-list test; this handoff; and the risk
+ledger. The active V8 request is deliberately not among the changed files.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`. The sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next commit/push the inert V8
+checkpoint, require green ordinary remote CI plus fully paginated V8 run
+count zero, checkpoint that receipt and reaccept its own CI/run-zero boundary,
+then create exactly one single-parent request-only V8 activation under the
+standing bounded authorization. V2-V7 remain permanently no-rerun.
