@@ -1,0 +1,240 @@
+{
+  "schema_version": "noteai.admin-dependency-cache-attempt-failure.v3",
+  "task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001",
+  "classification": "V4_TRIGGERED_ATTEMPT1_FAILED_CLOSED_ARTIFACT0",
+  "repository": "iamyusen1314/noteai",
+  "branch": "codex/quality-stabilization-real-chain",
+  "git": {
+    "plan_checkpoint_commit": "afeba532e9dee9c8fa27dfccadcb9f2414534451",
+    "control_commit": "d5aa7e537590ed138d254b9909a1ac105ee321ce",
+    "request_path": ".github/release-requests/admin-5335bda-dependency-cache-v4.json",
+    "request_sha256": "ad398386b7f01e8481a741c634da8e66ff1ba1d091bfaf0dff2f719b29172ec4",
+    "template_path": "deploy/production/plans/admin-dependency-cache-export-request-v4.json",
+    "template_sha256": "6e2a7ba6f6f242ef1bcaa84cc47cbab4d51763d2425b4999b6f506e769a614da",
+    "workflow_path": ".github/workflows/admin-dependency-cache-export-v4.yml",
+    "workflow_sha256": "5331e03bd2080651c5374b6f051e34da569eb16d50ed3f8b3b9856edc94304cc",
+    "plan_verifier_path": "tools/verify_admin_dependency_cache_export_plan_v4.py",
+    "plan_verifier_sha256": "b8f05cc19cdc59171f4e41d6b31f5c15809852e18b61046164dafedc2c8b9fbf",
+    "transient_verifier_path": "tools/verify_admin_dependency_cache_transient_state_v4.py",
+    "transient_verifier_sha256": "a6578845bc220f38ffc819ced26d8d0c3530b37e53ebc4c74cceeb4b523ea432",
+    "cleanup_helper_path": "scripts/ci/cleanup_admin_dependency_cache_v4.sh",
+    "cleanup_helper_sha256": "6cc130389abcd60a6f1e901160957ab2f2c33e0986e4b8c2a6c6fa89caa23ab2",
+    "bundle_verifier_path": "tools/verify_admin_dependency_cache_bundle_v3.py",
+    "bundle_verifier_sha256": "c2e318d5d9cbe196d8b9294277c85e1ee986ccb3e1970b3d25a31d28c8da0fef"
+  },
+  "github_run": {
+    "run_id": 30599069993,
+    "job_id": 91057664696,
+    "run_number": 1,
+    "attempt": 1,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "failure",
+    "created_at": "2026-07-31T02:28:39Z",
+    "job_started_at": "2026-07-31T02:28:42Z",
+    "job_completed_at": "2026-07-31T02:29:58Z",
+    "updated_at": "2026-07-31T02:29:59Z",
+    "head_sha": "d5aa7e537590ed138d254b9909a1ac105ee321ce",
+    "workflow_run_count_for_branch": 1,
+    "rerun_count": 0,
+    "rerun_authorized": false
+  },
+  "runner": {
+    "operating_system": "Ubuntu 24.04.4 LTS",
+    "image": "ubuntu-24.04",
+    "image_version": "20260726.254.1",
+    "included_software_ref": "actions/runner-images/ubuntu24/20260726.254/images/ubuntu/Ubuntu2404-Readme.md",
+    "recovery_basis_image": "ubuntu-24.04",
+    "recovery_basis_image_version": "20260720.247.2",
+    "runtime_image_matched_recovery_basis_version": false,
+    "docker_buildx_version": "0.35.0",
+    "docker_client_version": "28.0.4",
+    "docker_server_version": "28.0.4",
+    "buildx_source_tag": "v0.35.0",
+    "buildx_tag_object": "151a92201622eeb80e19bdd9681af2266772875f",
+    "buildx_source_commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+    "buildx_runtime_source_gate_passed": true,
+    "buildkit_image": "moby/buildkit@sha256:2f5adac4ecd194d9f8c10b7b5d7bceb5186853db1b26e5abd3a657af0b7e26ec",
+    "buildkit_version_gate": "v0.31.2",
+    "buildkit_platform_gate": "linux/amd64",
+    "version_basis": "job log plus the exact runner included-software manifest referenced by that log"
+  },
+  "step_outcome": {
+    "controller_checkout": "success",
+    "exact_request_resolution": "success",
+    "release_checkout": "success",
+    "immutable_source_verification": "success",
+    "isolated_builder_creation": "success",
+    "dependency_cache_export": "failure",
+    "fresh_consumer_portability": "skipped",
+    "transient_docker_cleanup": "failure",
+    "final_bundle_validation": "skipped",
+    "artifact_upload": "skipped",
+    "provider_identity_confirmation": "skipped",
+    "runner_local_bundle_cleanup": "success",
+    "release_checkout_post_cleanup": "success",
+    "controller_checkout_post_cleanup": "success"
+  },
+  "failure": {
+    "primary_message": "FAIL: BuildKit builder environment changed",
+    "primary_exit_code": 1,
+    "primary_boundary": "the dependency build command completed, then the hash-pinned bundle verifier rejected the provenance invocation.environment before portable archive generation",
+    "build_command_completed": true,
+    "actual_environment_payload_retained": false,
+    "actual_environment": null,
+    "dynamic_github_event_payload_observed": false,
+    "primary_root_cause_determined": true,
+    "root_cause_class": "buildx_default_github_actions_provenance_injection_breaks_exact_two_key_environment_contract",
+    "source_proven_incompatibility": {
+      "buildx_version": "v0.35.0",
+      "buildx_commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+      "buildx_source_coordinates": [
+        {
+          "path": "driver/docker-container/factory.go",
+          "lines": "41-54,115-119",
+          "git_blob_sha1": "ee95ae673205292879a702710f64d2fa5684319b"
+        },
+        {
+          "path": "driver/docker-container/driver.go",
+          "lines": "140-148,275-295",
+          "git_blob_sha1": "f8b803a48a2e9f143a90a6ba24f33edeba3bee05"
+        },
+        {
+          "path": "util/ghutil/ghutil.go",
+          "lines": "11-41",
+          "git_blob_sha1": "e1ca13bfb1cf67d1721d1d23e69eba9285e2e1ed"
+        }
+      ],
+      "docker_container_default_write_provenance_gha": true,
+      "v4_provenance_override_present": false,
+      "minimum_proven_extra_keys": [
+        "github_event_name",
+        "github_event_payload"
+      ],
+      "buildkit_version": "v0.31.2",
+      "buildkit_commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "buildkit_source_coordinates": [
+        {
+          "path": "cmd/buildkitd/util.go",
+          "lines": "74-101",
+          "git_blob_sha1": "16ef54fe1b9a5615553a75ab62a0b1adf6d92f9e"
+        },
+        {
+          "path": "cmd/buildkitd/main.go",
+          "lines": "939-963",
+          "git_blob_sha1": "1583e4e52b0855121f1a9dcf84e53ba2baaa69fc"
+        },
+        {
+          "path": "solver/llbsolver/provenance.go",
+          "lines": "516-520",
+          "git_blob_sha1": "d0fd0860fc0f55824ffa083f7ceedb25a13373e1"
+        },
+        {
+          "path": "solver/llbsolver/provenance/types/types.go",
+          "lines": "341-345,417-428,551-563",
+          "git_blob_sha1": "e5b5f3741c0cb4002b435a583ca625b479fd1ea1"
+        }
+      ],
+      "buildkit_custom_environment_flattened": true,
+      "v4_exact_two_key_equality_is_deterministically_incompatible": true,
+      "complete_dynamic_payload_claimed": false
+    },
+    "portable_archive_generation_reached": false,
+    "fresh_consumer_portability_reached": false,
+    "source_projection_expected_environment": {
+      "platform": "linux/amd64",
+      "dockerfileVersion": "1.25.0"
+    },
+    "source_projection_does_not_reconstruct_actual_payload": true
+  },
+  "cleanup": {
+    "step_conclusion": "failure",
+    "initial_transient_validation": "FAIL: Docker config contains Buildx or unexpected state",
+    "builder_removal_attempted": true,
+    "builder_removal_attempt_count": 2,
+    "builder_removal_outcome": "NOT_INDEPENDENTLY_OBSERVED",
+    "docker_parity_checks_attempted": true,
+    "docker_parity_check_count": 4,
+    "docker_parity_outcome": "NOT_INDEPENDENTLY_OBSERVED",
+    "post_removal_transient_validation": "FAIL: Docker config contains Buildx or unexpected state",
+    "task_owned_root_removal_attempted": true,
+    "task_owned_root_removal_attempt_count": 2,
+    "task_owned_root_removal_outcome": "NOT_INDEPENDENTLY_OBSERVED",
+    "runner_local_bundle_cleanup": "success",
+    "final_failure_message": "Admin dependency-cache cleanup failed closed",
+    "cleanup_root_cause_determined": false,
+    "ephemeral_job_completed": true,
+    "persistent_residue_zero_claimed": false
+  },
+  "provider_artifact": {
+    "api_total_count": 0,
+    "artifacts": [],
+    "upload_count": 0,
+    "provider_identity_confirmation_count": 0,
+    "authenticated_download_count": 0,
+    "cross_provider_transfer_count": 0
+  },
+  "execution_scope": {
+    "github_ephemeral_buildkit_builder_create_count": 2,
+    "github_ephemeral_buildkit_builder_bootstrap_count": 2,
+    "public_base_or_dependency_reads_may_have_occurred": true,
+    "zero_network_read_claimed": false,
+    "conditional_cloud_builder_start_count": 0,
+    "admin_acr_repository_read_count": 0,
+    "admin_acr_token_issuance_count": 0,
+    "admin_acr_login_count": 0,
+    "admin_acr_push_count": 0,
+    "admin_acr_manifest_readback_count": 0,
+    "production_service_mutation_count": 0,
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0,
+    "public_traffic_mutation_count": 0
+  },
+  "ordinary_ci": [
+    {
+      "run_id": 30599069949,
+      "job_id": 91057664385,
+      "event": "push",
+      "head_sha": "d5aa7e537590ed138d254b9909a1ac105ee321ce",
+      "status": "completed",
+      "conclusion": "success",
+      "test_count": 1244,
+      "failure_count": 0,
+      "skip_count": 28,
+      "quality_gate_passed": true,
+      "production_readiness_gate_passed": true,
+      "docker_compose_config_passed": true
+    },
+    {
+      "run_id": 30599071395,
+      "job_id": 91057668298,
+      "event": "pull_request",
+      "head_sha": "d5aa7e537590ed138d254b9909a1ac105ee321ce",
+      "status": "completed",
+      "conclusion": "success",
+      "test_count": 1244,
+      "failure_count": 0,
+      "skip_count": 28,
+      "quality_gate_passed": true,
+      "production_readiness_gate_passed": true,
+      "docker_compose_config_passed": true
+    }
+  ],
+  "authorization_outcome": {
+    "github_v4_one_shot_run_consumed": true,
+    "artifact_download_transfer_not_consumed": true,
+    "conditional_builder_publication_not_consumed": true,
+    "v4_attempt_may_not_be_rerun": true,
+    "new_append_only_versioned_request_required": true,
+    "bounded_cto_recovery_authority_active": true
+  },
+  "readiness": {
+    "internal_verified": 19,
+    "internal_total": 29,
+    "public_verified": 19,
+    "public_total": 38,
+    "credit_added": false,
+    "last_credited_item": "api_f_current_release"
+  }
+}

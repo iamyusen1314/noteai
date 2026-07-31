@@ -591,6 +591,10 @@
               "ref": "7b65c480604ab3aa3381d81e9692d2ed94f7c23c"
             },
             {
+              "kind": "git",
+              "ref": "d5aa7e537590ed138d254b9909a1ac105ee321ce"
+            },
+            {
               "kind": "path",
               "ref": "security/vex/5335bda-admin-github-native-release-evidence.json"
             },
@@ -753,9 +757,21 @@
         {
           "kind": "path",
           "ref": "tests/test_admin_dependency_cache_cleanup_v4.py"
+        },
+        {
+          "kind": "path",
+          "ref": "deploy/production/evidence/admin-dependency-cache-v4-attempt1-failed-20260731.json"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_v4_failure_evidence.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_v4_failure_evidence.py"
         }
       ],
-      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 and V3 remain frozen at their unique failed attempts with artifact zero and no rerun; V3's retained request-only activation is control commit 443bb1e and run 30596283342 / job 91049234229 / attempt 1. The V3 terminal receipt binds the Buildx 0.35.0 Node.Flags false negative, cleanup evidence, two activation-state-only ordinary-CI failures and all downstream zero counts. Append-only V4 is prepared but inert at checkpoint 7b65c480604ab3aa3381d81e9692d2ed94f7c23c. Its only trigger is a unique added request at .github/release-requests/admin-5335bda-dependency-cache-v4.json on the exact feature branch; the active request is absent, local/all-ref and remote path addition history are zero and state is PREPARED_V4_NOT_TRIGGERED. Ordinary push run 30598540875 and pull-request run 30598541927 both passed, while the global Actions run inventory contains zero runs whose workflow path is .github/workflows/admin-dependency-cache-export-v4.yml. V4 retains the exact 5335 source, pinned BuildKit v0.31.2, separate host/frontend versus linux/amd64 target proof, fresh-consumer portability, deep OCI/cache/archive validation, one-day / 3.5-GiB gzip / 3.75-GiB input / 4-GiB provider limits and authenticated receipt-bound transfer. Before either builder is created it requires the runner's Buildx module/version and revision prefix to bind official v0.35.0 commit a319e5b; both creates explicitly store only --allow-insecure-entitlement=network.host, and the transient verifier rejects null, empty, reordered, split, additional or security.insecure flags, embedded config and unsafe state. The immutable Dockerfile/export/import helpers are checked to contain no build-level --allow network.host or --network=host request. Aggregate cleanup still removes both exact V4 roots after validation, builder or Docker parity failures and occurs before upload. Workflow permissions remain contents-read only; Registry publication, deployment, database, service mutation and public traffic are false. The product owner's bounded CTO delegation remains active, but no V4 run, artifact, download, transfer, cloud-builder start or Admin ACR action is consumed by the accepted inert checkpoint and readiness remains 19/29. The next boundary is one main-CTO-authorized single-parent request-only V4 activation bound directly to the final receipt checkpoint. Only successful fresh-consumer portability, complete cleanup, authenticated nonzero provider identity and target-side reassembly/import/cacheless replay may activate the conditional 4C16G AMD64 builder and single Admin ACR publication path.",
+      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2, V3 and V4 are frozen at their unique failed attempts with artifact zero and no rerun. V4 request-only control commit d5aa7e537590ed138d254b9909a1ac105ee321ce triggered run 30599069993 / job 91057664696 / attempt 1. Controller, exact request/source checks and two pinned BuildKit builder bootstraps passed; the dependency build completed, then the bundle verifier failed closed on the provenance environment before portability, archive, upload or provider confirmation. The complete runtime metadata was not retained, but pinned Buildx v0.35.0 and BuildKit v0.31.2 source proves that default GitHub Actions provenance injection is deterministically incompatible with the verifier's exact two-key environment contract. Cleanup attempted both builder removals, four Docker-object parity checks and both task-root removals, but their individual outcomes and persistent zero residue remain NOT_INDEPENDENTLY_OBSERVED; only runner-local bundle removal and job completion are proven. Authenticated download, cross-cloud transfer, conditional 4C16G AMD64 cloud-builder start, Admin ACR actions and production mutations remain zero, while public dependency reads are not misreported as zero network activity. Readiness remains 19/29 and no failed attempt adds credit. The next boundary is an append-only inert V5 that freezes V4, disables GitHub provenance injection and BuildKit client-token state, handles the source-proven phase transition for .buildNodeID, and emits secret-free per-control cleanup outcomes. It must pass local and ordinary remote CI with exact V5 run zero before the main CTO may use the standing bounded delegation for one successor activation.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

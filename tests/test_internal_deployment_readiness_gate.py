@@ -96,6 +96,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "ref": "7b65c480604ab3aa3381d81e9692d2ed94f7c23c",
                 },
                 {
+                    "kind": "git",
+                    "ref": "d5aa7e537590ed138d254b9909a1ac105ee321ce",
+                },
+                {
                     "kind": "path",
                     "ref": (
                         "security/vex/"
@@ -380,6 +384,27 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "ref": (
                         "tests/"
                         "test_admin_dependency_cache_cleanup_v4.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "admin-dependency-cache-v4-attempt1-failed-20260731.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_v4_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_v4_failure_evidence.py"
                     ),
                 },
             ],

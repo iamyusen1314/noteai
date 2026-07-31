@@ -2662,3 +2662,80 @@ without asking again. Only successful portability, cleanup, nonzero provider
 identity, authenticated bounded download/transfer and target-side
 reassembly/import/cacheless replay may unlock the conditional `4-vCPU /
 16-GiB / AMD64` builder and one Admin ACR private publication.
+
+### Admin dependency-cache V4 terminal failure receipt (2026-07-31)
+
+- The single-parent request-only control commit
+  `d5aa7e537590ed138d254b9909a1ac105ee321ce`, whose direct parent is the
+  accepted plan checkpoint `afeba532e9dee9c8fa27dfccadcb9f2414534451`,
+  triggered exactly one V4 workflow run `30599069993`, job `91057664696`,
+  attempt `1`. The active request is the controller's sole added file and
+  remains byte-exact at SHA-256
+  `ad398386b7f01e8481a741c634da8e66ff1ba1d091bfaf0dff2f719b29172ec4`.
+  V4 is consumed, has no rerun authority and must never be rerun.
+- Controller checkout, parent-bound request resolution, exact `5335bda`
+  release checkout, immutable-source verification and both isolated pinned
+  BuildKit builder bootstraps passed. The dependency build command completed,
+  after which the hash-pinned verifier failed with
+  `FAIL: BuildKit builder environment changed`. Portability, final bundle
+  validation, upload and provider identity confirmation were skipped. The
+  artifact API returned exact `total_count=0` and an empty list, so
+  authenticated download, cross-cloud transfer, the conditional cloud
+  builder, Admin ACR publication and all production mutations remain zero.
+  Public base/dependency reads may have occurred during the completed build
+  and are not misreported as zero network activity.
+- The actual runner was Ubuntu `24.04.4`, image
+  `ubuntu-24.04/20260726.254.1`, which differs from the request's historical
+  recovery-basis observation `20260720.247.2`. Its referenced
+  included-software manifest still
+  binds Buildx `0.35.0` and Docker client/server `28.0.4`; the runtime
+  module/version/revision-prefix gate and both BuildKit
+  `v0.31.2`/`linux/amd64` bootstrap gates passed. The image-version drift is
+  recorded truthfully but is not classified as the primary failure.
+- Independent pinned-source review determines the primary export failure
+  without fabricating the unretained runtime object. Buildx `v0.35.0` commit
+  `a319e5b1…782` defaults the docker-container driver to
+  `writeProvenanceGHA=true`; V4 supplied no `provenance-add-gha=false`
+  override. In a GitHub Actions push this installs at least
+  `github_event_name` and `github_event_payload` under the BuildKit
+  provenance directory. BuildKit `v0.31.2` commit `e42e1bfd…85e9` reads that
+  directory and flattens the custom environment into SLSA
+  `invocation.environment`. The frozen V3 bundle verifier instead requires
+  exact equality to only `platform` and `dockerfileVersion`, so the mismatch
+  is deterministic. The complete dynamic event payload was not retained or
+  observed and is not claimed.
+- Cleanup failed closed twice with
+  `FAIL: Docker config contains Buildx or unexpected state`. The helper did
+  attempt two builder removals, four Docker-object parity checks and both
+  fixed task-root removals, but it suppressed their individual outcomes.
+  Therefore builder removal, Docker parity, exact task-root deletion and
+  persistent zero residue remain `NOT_INDEPENDENTLY_OBSERVED`; only the
+  runner-local bundle cleanup and terminal job completion are proven.
+  Cleanup's secondary root cause remains undetermined.
+- Ordinary push CI `30599069949` / job `91057664385` and pull-request CI
+  `30599071395` / job `91057668298` both passed. Each ran `1244` tests with
+  `28` intentional skips and zero failures; quality, production-readiness and
+  Docker Compose checks were green.
+- Secret-free terminal evidence is
+  `deploy/production/evidence/admin-dependency-cache-v4-attempt1-failed-20260731.json`
+  at SHA-256 `237891f4…6fb1`. Its strict semantic/file/Git-closure verifier is
+  `tools/verify_admin_dependency_cache_v4_failure_evidence.py` at SHA-256
+  `79805c3e…6b21`; it rejects duplicate/non-finite JSON, any nested or outcome
+  mutation, a fabricated runtime payload, upgraded cleanup claims, the old
+  runner version, downstream activity or false readiness credit. Focused
+  receipt/readiness tests pass `44/44`; production readiness passes
+  `117/117`; the full repository regression passes `1251/1251` with `28`
+  intentional skips. JSON, Python compile and diff checks pass.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Internal
+readiness remains `19/29`, public readiness remains `19/38`, and the latest
+credited item remains `api_f_current_release=VERIFIED`. The next acceptance
+boundary is an append-only inert V5 that freezes V4, disables Buildx GitHub
+provenance injection for both builders before spending the build budget,
+disables BuildKit client-token authority and keeps the public-build Docker
+config read-only so BuildKit cannot persist `.token_seed`, strictly handles Buildx's
+source-proven phase transition for `.buildNodeID`, and makes every cleanup
+outcome observable without exposing state contents. It must pass
+local and ordinary remote CI with exact V5 run zero before the main CTO uses
+the standing bounded delegation for one successor activation; no further
+product-owner prompt is required inside those reviewed limits.
