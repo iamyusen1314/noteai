@@ -1,0 +1,76 @@
+{
+  "schema_version": "noteai.admin-dependency-cache-buildkit-incremental-vertex-source.v1",
+  "classification": "SOURCE_PROVEN_INCREMENTAL_VERTEX_CONTRACT_NOT_V6_RUNTIME_EVIDENCE",
+  "actual_v6_runtime_metadata_retained": false,
+  "actual_v6_runtime_progress_retained": false,
+  "runtime_conflicting_digest_reconstructed": false,
+  "runtime_conflicting_field_reconstructed": false,
+  "buildkit": {
+    "version": "v0.31.2",
+    "tag_object_sha1": "37aba93910a245e9196ccf67f4afb55f18b39f81",
+    "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+    "sources": [
+      {
+        "path": "solver/jobs.go",
+        "git_blob_sha1": "297222b0535bd3c3eb294ef0dcf8f069c463620f",
+        "lines": "1035-1047,1136-1167,1209-1247,1324-1334,1367-1386"
+      },
+      {
+        "path": "solver/progress.go",
+        "git_blob_sha1": "65d1802341d344814db30734206608371cee8f69",
+        "lines": "17-40,105-157"
+      },
+      {
+        "path": "control/control.go",
+        "git_blob_sha1": "de0f4c931f57551a16cabf910ed7e089a62591ab",
+        "lines": "589-614"
+      }
+    ]
+  },
+  "buildx": {
+    "version": "v0.35.0",
+    "tag_object_sha1": "151a92201622eeb80e19bdd9681af2266772875f",
+    "commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+    "vendored_buildkit_client_version": "v0.31.0",
+    "sources": [
+      {
+        "path": "vendor/github.com/moby/buildkit/client/graph.go",
+        "git_blob_sha1": "1000cd78f6202100893dab87300c4ecf22629449",
+        "lines": "10-18,32-36,50-55"
+      },
+      {
+        "path": "vendor/github.com/moby/buildkit/client/status.go",
+        "git_blob_sha1": "92044e72a7c6e8e88756120a63490801b42beb8a",
+        "lines": "18-31,66-81"
+      },
+      {
+        "path": "vendor/github.com/moby/buildkit/client/solve.go",
+        "git_blob_sha1": "2285c568ac1a17edb53718ed12ab79983bff7c04",
+        "lines": "369-395"
+      },
+      {
+        "path": "vendor/github.com/moby/buildkit/util/progress/progressui/display.go",
+        "git_blob_sha1": "41d108586e80248af9e09e82ec29719676f73838",
+        "lines": "280-303"
+      }
+    ]
+  },
+  "v7_contract": {
+    "identity": "vertex digest",
+    "same_digest_incremental_updates_valid": true,
+    "same_digest_multiple_lifecycle_intervals_valid": true,
+    "each_vertex_update_is_full_value_copy": true,
+    "name_is_non_authoritative": true,
+    "name_variation_is_recovery_policy_not_source_claim": true,
+    "inputs_exact_across_same_digest_updates": true,
+    "progress_group_exact_across_same_digest_updates": true,
+    "interval_identity": "exact normalized UTC epoch nanoseconds from RFC3339 started timestamp",
+    "same_interval_transition": "open_to_terminal_or_idempotent_duplicate",
+    "terminal_to_open_regression_rejected": true,
+    "completion_before_start_rejected": true,
+    "latest_started_interval_controls_cached_result": true,
+    "all_structurally_bound_role_intervals_must_complete_inside_build_window": true,
+    "role_identity_remains_structural_provenance": true,
+    "decoded_log_and_network_output_contract_unchanged": true
+  }
+}

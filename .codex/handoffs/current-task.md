@@ -3203,3 +3203,57 @@ product-owner prompt. V2-V6 are permanently no-rerun.
 The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Proceed directly
 to append-only inert V7 implementation and independent review; do not modify
 or rerun V2-V6.
+
+### Append-only V7 inert local engineering closure (2026-07-31)
+
+- The append-only V7 recovery is locally
+  `PREPARED_V7_NOT_TRIGGERED`. The active request
+  `.github/release-requests/admin-5335bda-dependency-cache-v7.json` is absent
+  and its local all-ref addition history is zero. No GitHub Admin run,
+  artifact, authenticated download, cross-cloud transfer, conditional new
+  4C16G AMD64 builder, Admin ACR publication or production mutation occurred.
+- The V7 workflow/template/core verifier/plan verifier/source-projection
+  SHA-256 values are respectively
+  `3b4ec5ed8841253afe62ff54b7de7dfdd523d48d9dd3ce5837394fb4c5e9c427`,
+  `e690b968c935ffa721535a0282b3d108fe6ce651431622f262894225cd0a29e7`,
+  `76af4aa0c8dbe68b46cc71fb74f1582030c5f28a7218a2ee04bcbde5f4198cd7`,
+  `bed5ee29dd367caa4faafb7c711fd4d97d740319622aa459fcc5000a866ebc6b`
+  and
+  `fb5c944a0006cb8e04f32e3ac98e949e27036b10077e4ce10bc0a6c8b4fb5de1`.
+- V7 preserves the frozen V6 evidence and verifier bytes, then executes the
+  V2/V3/V6/V7 verifier chain in each export/import/final stage. It accepts
+  legitimate same-digest incremental updates only by full-copying structural
+  provenance and recording every exact UTC epoch-nanosecond lifecycle
+  interval; every bound interval must close in-window, while terminal-to-open,
+  terminal-to-announcement, conflicting completion/cache, truncated
+  nanoseconds, malformed/orphan provenance, invalid Base64 and forbidden
+  network evidence remain fail-closed. The latest-started interval controls
+  the final cached result.
+- The V5 transient and cleanup namespace remains byte-stable. The provider
+  artifact name intentionally remains the frozen legacy
+  `admin-dependency-prefix-cache-5335bda-v2`, because both the authenticated
+  download helper and provider verifier bind that exact name; V7 identity is
+  additionally bound by request, run, control commit and archive digest.
+- Independent read-only core and control-plane audits found no P0 or P1
+  blocker. The final read-only control-plane delta audit found
+  `P0=0 / P1=0 / P2=0`; it independently passed V7 plan `20/20`,
+  provider/download `9/9`, V6 failure evidence `8/8`, V5
+  transient/cleanup `27/27`, all workflow Bash blocks, JSON/YAML and Python
+  compile. V7 core tests pass `15/15`, internal-readiness tests pass `16/16`,
+  production-readiness tests pass `24/24`, and production readiness passes
+  `122/122`.
+- The full repository passes `1382/1382` with `28` intentional skips in
+  `1057.716` seconds. These are local inert engineering results and add no
+  deployment credit.
+- Files changed in this atomic stage are the V7 workflow and inert request
+  template; V7 core and plan verifiers plus their tests; the fixed BuildKit
+  incremental-update source projection; the production readiness gate and
+  tests; the internal readiness manifest and exact-evidence-list test; this
+  handoff; and the risk ledger.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`. The sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next push the inert V7 checkpoint and
+require green ordinary remote CI plus a fully paginated exact V7 workflow run
+count of zero. Only after that boundary may the main CTO create the unique
+single-parent, request-only V7 activation. V2-V6 remain permanently no-rerun.

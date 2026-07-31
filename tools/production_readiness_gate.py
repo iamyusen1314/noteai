@@ -77,6 +77,12 @@ from verify_admin_dependency_cache_export_plan_v6 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v6 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v6,
 )
+from verify_admin_dependency_cache_export_plan_v7 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v7,
+)
+from verify_admin_dependency_cache_export_plan_v7 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v7,
+)
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
 )
@@ -1693,6 +1699,10 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         validate_admin_dependency_cache_export_plan_v6()
     )
     dependency_cache_plan_state_v6 = admin_dependency_cache_plan_state_v6()
+    admin_dependency_cache_plan_v7_errors = (
+        validate_admin_dependency_cache_export_plan_v7()
+    )
+    dependency_cache_plan_state_v7 = admin_dependency_cache_plan_state_v7()
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -1889,6 +1899,21 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "and production mutations are zero, enumerated cleanup-helper "
                 "roots/files and Docker parity are proven, and V6 rerun is "
                 "forbidden"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v7_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v7_errors,
+            "; ".join(admin_dependency_cache_plan_v7_errors[:5])
+            if admin_dependency_cache_plan_v7_errors
+            else (
+                f"state={dependency_cache_plan_state_v7}; V6 terminal receipt "
+                "frozen; exact-nanosecond incremental same-digest intervals, "
+                "full-copy inputs/progressGroup, structural role binding, "
+                "decoded-log/network scan and V2/V3/V6/V7 verifier chain "
+                "bound; frozen V5 transient/cleanup and legacy provider "
+                "artifact protocol retained; request lifecycle represented "
+                "by the reported state"
             ),
         ),
     ]
