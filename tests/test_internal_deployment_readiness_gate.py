@@ -783,6 +783,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_v8_failure_evidence.py"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "6961876b35aba5e52fc7e44a59a4881469d0064f",
+                },
             ],
         )
         api_c = next(

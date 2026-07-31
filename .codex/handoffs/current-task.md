@@ -3571,3 +3571,36 @@ remains `api_f_current_release=VERIFIED`. The sole task remains
 terminal checkpoint, require its own ordinary remote CI to pass and fully
 paginate V8 as exactly run1/rerun0/artifact0, then checkpoint that receipt
 before implementing inert append-only V9. V2-V8 are permanently no-rerun.
+
+### V8 terminal checkpoint remote acceptance (2026-07-31)
+
+- Secret-free terminal checkpoint
+  `6961876b35aba5e52fc7e44a59a4881469d0064f` is pushed with single direct
+  parent `354bec3b2d36bfaabc5c3307d49f5dc66255cbbf`; its exact nine-file delta
+  contains the terminal evidence/integration closure and does not modify any
+  V2-V8 workflow, frozen verifier or release request. Branch/upstream is
+  `0/0` and the worktree is clean.
+- Exact-HEAD push CI `30639974456` / job `91187110993` completed `success`;
+  it passed `1430/1430` tests with `28` intentional skips in `401.883`
+  seconds, production readiness `125/125`, quality, required model artifacts
+  and Docker Compose validation.
+- Exact-HEAD pull-request CI `30639976664` / job `91187118526` completed
+  `success`; it passed `1430/1430` tests with `28` intentional skips in
+  `329.737` seconds and the same production readiness `125/125`, quality,
+  model-artifact and Compose checks.
+- Fully paginated reads at `2026-07-31T14:54:38Z` found exactly those two
+  ordinary runs for terminal-checkpoint HEAD. Workflow id `324467538` still
+  has exactly V8 run `30632611051`, run number/attempt `1/1`, terminal
+  `failure`, rerun zero. Its artifact API is exactly zero. Relevant local
+  process count is zero.
+- No authenticated download, cross-provider transfer, conditional 4C16G
+  builder, Admin ACR publication, database/service/public-traffic mutation or
+  production write occurred. This remote acceptance adds no deployment
+  credit.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next commit/push this Secret-free
+terminal receipt, require its own ordinary CI to pass while a fully paginated
+ledger remains V8 run1/rerun0/artifact0, then proceed directly to inert V9.
+V2-V8 are permanently no-rerun.
