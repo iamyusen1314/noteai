@@ -3287,3 +3287,89 @@ this Secret-free remote receipt, require its own ordinary CI to pass while the
 fully paginated V7 run count remains zero, then create the unique
 single-parent, request-only V7 activation directly under the standing bounded
 authorization. V2-V6 remain permanently no-rerun.
+
+### V7 unique attempt terminal closure and append-only V8 boundary (2026-07-31)
+
+- The unique V7 request-only control commit is
+  `4494f50bf9a18422cef6252792bb9c6bbeaf1135`, with direct parent
+  `71692d5f25f6a2d3f248cc62a568f4a2bd5af2cd`. Its only file addition is
+  `.github/release-requests/admin-5335bda-dependency-cache-v7.json`, mode
+  `100644`, SHA-256
+  `161dc1cfbc8683cbc18816baffd01edfa50c5d4fca8edb2e85054fb79eeb37dd`.
+- Workflow `324378036` ran exactly once as run `30622876575`, job
+  `91131267190`, run number/attempt `1/1`, event `push`, and completed
+  `failure`. Controller/request/release checkout/source checks, both fixed
+  BuildKit builder checks and the producer dependency build passed. The V7
+  verifier then failed with `PROVENANCE_LOCATION_INVALID` and
+  `BuildKit source location changed for step9`. `step9` is a BuildKit LLB
+  provenance identifier, not a GitHub workflow step number.
+- Strict producer rawjson parsing completed before structural binding failed:
+  progress is `171061` bytes with SHA-256
+  `ce0d2cc10f6a3e4922d9d6515e37c761d88989b0a1dc55b5fd5284a6688ec9db`;
+  the complete parsed counts are `525` nonblank records, `83` vertex updates,
+  `18` unique digests, `95` statuses, `404` log/decoded-log records,
+  `34495` decoded-log bytes, zero warnings/decoded-warning bytes, `36`
+  lifecycle intervals, `18` repeated digests and maximum `9` intervals per
+  digest.
+- The exact rejected child predicate and actual `step9` source-location
+  payload are `UNKNOWN_NOT_RETAINED`. Role classification and package-network
+  scanning were not reached, so the initialized unresolved/zero/false fields
+  are not runtime results. No zero-network, role-cache or completed-window
+  claim is made; `primary_root_cause_determined=false` and
+  `root_cause_class=null` remain frozen in terminal evidence.
+- Import, final verification, upload and provider confirmation were skipped.
+  The artifact API count is exactly zero. Authenticated download, cross-cloud
+  transfer, the conditional new 4C16G AMD64 builder, Admin ACR publication
+  and all production mutations remain zero.
+- Cleanup completed successfully. Compact cleanup receipt SHA-256 is
+  `66150b14b5a1dc05b73125403610c1ab94ec7a4dba9cddd28735b9af612b5194`;
+  it proves both ephemeral Buildx builders removed and absent, Docker
+  image/container/volume/network baseline parity, fixed Docker/Buildx roots
+  and enumerated diagnostic files absent, and
+  `cleanup_effective/overall_pass=true`. It does not prove hosted-VM physical
+  destruction or a global temporary-directory inventory.
+- Exact-control-HEAD ordinary push run `30622876687` / job `91131268889`
+  and pull-request run `30622878997` / job `91131274377` both completed
+  `success`, ran `1382/1382` tests with `28` intentional skips, and passed
+  production readiness `122/122`. A fully paginated read at
+  `2026-07-31T10:20:34Z` found exactly the single V7 run above; rerun count is
+  zero. V7 is permanently consumed and must not be rerun.
+- Added Secret-free terminal evidence
+  `deploy/production/evidence/admin-dependency-cache-v7-attempt1-failed-20260731.json`,
+  strict verifier
+  `tools/verify_admin_dependency_cache_v7_failure_evidence.py`, and eight
+  fail-closed tests. Their file SHA-256 values are respectively
+  `91950799263f19b8422534b685cd1e46856e9d03137976ccec08ce1d644e3ed4`,
+  `c1ae9caa594c48ff1a6d46f78d4aef84cb3a33e410ea9c2ae6bb2c17bf6ae476`
+  and
+  `5a27c7cc2ecba378f42d38272a3b1091c8bb516ca994abb6cec877c6924f4a95`;
+  the evidence semantic SHA-256 is
+  `6ea653978234820dad155784d22887dfd61352e28f97571e3a18423b3893ad9a`.
+  The combined evidence, production-readiness and internal-readiness tests
+  pass `48/48` in `365.782` seconds; the repository production gate passes
+  `123/123`. The full repository passes `1390/1390` with `28` intentional
+  skips in `1052.050` seconds. The final independent read-only terminal delta
+  audit found `P0=0 / P1=0 / P2=0`, no required correction, independently
+  reran V7 evidence plus internal-readiness `24/24`, and passed production
+  readiness `123/123`.
+- Independent fixed BuildKit v0.31.2 source review proves a deterministic
+  implementation explanation for V8: a vertex without source ranges can
+  legitimately serialize as an exact empty location wrapper `{}`, while
+  frozen V7 requires a nonempty `locations` list. This is
+  source-proven contract evidence, not reconstruction of removed V7 runtime
+  metadata. The minimum append-only V8 change must accept only exact `{}` as a
+  nonbinding empty range and freeze all populated-location, role, interval,
+  cache, network, archive, trust-chain and cleanup semantics.
+
+Files changed in this terminal stage are the V7 evidence, verifier and tests;
+the production readiness gate and tests; the internal readiness manifest and
+exact-evidence-list test; this handoff; and the risk ledger. No V7 workflow,
+request, frozen verifier, cloud builder, registry, database, service or
+production runtime is modified.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`. The sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next commit and push this Secret-free
+V7 terminal checkpoint, require its own ordinary CI to pass and fully
+paginate the V7 ledger as exactly one attempt with no rerun, then proceed
+directly to append-only inert V8. V2-V7 are permanently no-rerun.

@@ -645,6 +645,46 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "incremental_vertex_projection.json"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "27dcccf1736c40a832a3ca4875aa9ff7bdbe72d5",
+                },
+                {
+                    "kind": "git",
+                    "ref": "71692d5f25f6a2d3f248cc62a568f4a2bd5af2cd",
+                },
+                {
+                    "kind": "git",
+                    "ref": "4494f50bf9a18422cef6252792bb9c6bbeaf1135",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/release-requests/"
+                        "admin-5335bda-dependency-cache-v7.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "admin-dependency-cache-v7-attempt1-failed-20260731.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_v7_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_v7_failure_evidence.py"
+                    ),
+                },
             ],
         )
         api_c = next(
