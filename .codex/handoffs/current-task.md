@@ -2869,3 +2869,31 @@ item remains `api_f_current_release=VERIFIED`. The sole task remains
 single corrective inert checkpoint, ordinary push/PR CI green and exact V5
 workflow run zero; only then may the main CTO create the one request-only V5
 activation under the standing bounded delegation.
+
+### Corrective inert V5 remote acceptance (2026-07-31)
+
+- The tracked-file hygiene correction is checkpoint
+  `706235945cad4844050d9d11a0082d3bb45ad6a6`. Branch HEAD and upstream are
+  identical with ahead/behind `0/0` and a clean worktree before this receipt.
+- Exact-HEAD push CI `30605675715` / job `91077293078` and pull-request CI
+  `30605677994` / job `91077299035` both completed `success`. Checkout,
+  dependencies, Python and shell syntax, model artifacts, all Unit tests,
+  quality gate, production readiness gate and Docker Compose validation all
+  passed.
+- The V5 active request remains absent locally and on the remote branch.
+  Local/all-ref and GitHub path history are both zero. A fresh fully paginated
+  Actions inventory filtered by the exact V5 workflow path is also zero, so
+  neither ordinary CI run consumed the one V5 cache-run authorization.
+- V5 artifact, authenticated download, cross-cloud transfer, conditional
+  4C16G AMD64 builder, Admin ACR and production mutations remain zero. The
+  six audited V5 core hashes remain the local-acceptance hashes recorded
+  above.
+- This remote acceptance closes the inert V5 installation boundary but earns
+  no readiness credit. Internal/public readiness remains `19/29` / `19/38`
+  and the latest credited item remains `api_f_current_release=VERIFIED`.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. This
+Secret-free receipt must be checkpointed without the active request, pass its
+ordinary remote CI with exact V5 run zero, and then the main CTO will create
+the unique single-parent/request-only V5 activation under the standing
+bounded delegation. No further product-owner prompt is required.
