@@ -3463,3 +3463,39 @@ checkpoint, require green ordinary remote CI plus fully paginated V8 run
 count zero, checkpoint that receipt and reaccept its own CI/run-zero boundary,
 then create exactly one single-parent request-only V8 activation under the
 standing bounded authorization. V2-V7 remain permanently no-rerun.
+
+### V8 inert checkpoint remote acceptance (2026-07-31)
+
+- Secret-free inert V8 checkpoint
+  `3381c2fdbcb32480bb364a400250f8d24de74c84` is pushed with direct parent
+  `3714cc2feec65d3059325d0d869ad007083b0276`; branch/upstream is `0/0`.
+  The commit changes exactly the 13 reviewed inert V8/integration files and
+  does not contain
+  `.github/release-requests/admin-5335bda-dependency-cache-v8.json`.
+- Exact-HEAD ordinary push CI `30630764584` / job `91156306054` completed
+  `success`; it ran `1419/1419` tests in `356.752` seconds with `28`
+  intentional skips, passed production readiness `124/124`, quality,
+  required model-artifact validation and Docker Compose validation.
+- Exact-HEAD ordinary pull-request CI `30630767695` / job `91156315674`
+  completed `success`; it ran `1419/1419` tests in `376.915` seconds with
+  `28` intentional skips and passed the same production readiness `124/124`,
+  quality, model-artifact and Compose checks.
+- Fully paginated repository Actions reads at
+  `2026-07-31T12:37:24Z` found exactly those two ordinary runs for the
+  checkpoint HEAD and zero runs whose path is
+  `.github/workflows/admin-dependency-cache-export-v8.yml`. The remote branch
+  has zero commits touching the V8 request path, and the exact remote tree
+  contains the V8 workflow but no V8 request.
+- The same ledger read retained exactly V7 run `30622876575`, run
+  number/attempt `1/1`, terminal `failure`; its artifact API remains exactly
+  zero. No V2-V7 rerun, authenticated download, cross-cloud transfer, new
+  4C16G AMD64 builder, Admin ACR publication or production mutation occurred.
+
+This remote acceptance adds no deployment credit. Internal/public readiness
+remains `19/29` / `19/38`, the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next commit and push this Secret-free
+receipt, require its own ordinary CI to remain green while fully paginated V8
+workflow history remains run zero, then create exactly one single-parent,
+request-only V8 activation under the standing bounded authorization. V2-V7
+are permanently no-rerun.

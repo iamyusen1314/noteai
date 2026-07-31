@@ -694,6 +694,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "ref": "3714cc2feec65d3059325d0d869ad007083b0276",
                 },
                 {
+                    "kind": "git",
+                    "ref": "3381c2fdbcb32480bb364a400250f8d24de74c84",
+                },
+                {
                     "kind": "path",
                     "ref": (
                         "deploy/production/plans/"
