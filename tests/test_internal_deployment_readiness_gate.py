@@ -472,6 +472,35 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "provenance_gha_disabled_projection.json"
                     ),
                 },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/fixtures/"
+                        "admin_dependency_cache_buildx_v0.35.0_"
+                        "rawjson_schema_projection.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "admin-dependency-cache-v5-attempt1-failed-20260731.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_v5_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_v5_failure_evidence.py"
+                    ),
+                },
             ],
         )
         api_c = next(

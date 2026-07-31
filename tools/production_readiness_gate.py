@@ -89,6 +89,12 @@ from verify_admin_dependency_cache_v4_failure_evidence import (  # noqa: E402
 from verify_admin_dependency_cache_v4_failure_evidence import (  # noqa: E402
     verify as verify_admin_dependency_cache_v4_failure_evidence,
 )
+from verify_admin_dependency_cache_v5_failure_evidence import (  # noqa: E402
+    load_strict as load_admin_dependency_cache_v5_failure_evidence,
+)
+from verify_admin_dependency_cache_v5_failure_evidence import (  # noqa: E402
+    verify as verify_admin_dependency_cache_v5_failure_evidence,
+)
 from verify_api_c_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_c_current_release_evidence_bundle,
 )
@@ -1639,6 +1645,16 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         admin_dependency_cache_v4_failure_errors = [
             f"cannot load Admin dependency-cache V4 failure evidence: {exc}"
         ]
+    try:
+        admin_dependency_cache_v5_failure_errors = (
+            verify_admin_dependency_cache_v5_failure_evidence(
+                load_admin_dependency_cache_v5_failure_evidence()
+            )
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        admin_dependency_cache_v5_failure_errors = [
+            f"cannot load Admin dependency-cache V5 failure evidence: {exc}"
+        ]
     admin_dependency_cache_plan_v3_errors = (
         validate_admin_dependency_cache_export_plan_v3()
     )
@@ -1805,6 +1821,19 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "state prevention, phase-aware client-state validation and "
                 "per-control cleanup receipt bound; request lifecycle represented "
                 "by the reported state"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v5_attempt1_failed_artifact0",
+            not admin_dependency_cache_v5_failure_errors,
+            "; ".join(admin_dependency_cache_v5_failure_errors[:5])
+            if admin_dependency_cache_v5_failure_errors
+            else (
+                "run 30606218502 attempt 1 failed after build because the "
+                "frozen flat parser cannot consume nested SolveStatus rawjson; "
+                "artifact/download/transfer/cloud-builder/Admin ACR and "
+                "production mutations zero; cleanup zero-residue proven and "
+                "V5 rerun forbidden"
             ),
         ),
     ]

@@ -23,14 +23,20 @@ class AdminDependencyCacheExportPlanV5Tests(unittest.TestCase):
         cls.cleanup = verifier.CLEANUP_HELPER_PATH.read_bytes()
         cls.fixture = verifier.PROVENANCE_FIXTURE_PATH.read_bytes()
 
-    def test_exact_v5_plan_is_inert_and_passes(self) -> None:
-        self.assertFalse(verifier.ACTIVE_REQUEST_PATH.exists())
-        self.assertEqual(verifier._request_additions(), [])
+    def test_exact_v5_plan_passes_before_and_after_activation(self) -> None:
         self.assertEqual(verifier.validate_plan(), [])
-        self.assertEqual(
-            verifier.plan_state(),
-            "PREPARED_V5_NOT_TRIGGERED",
-        )
+        if verifier.ACTIVE_REQUEST_PATH.exists():
+            self.assertEqual(
+                verifier.plan_state(),
+                "V5_ARMED_OR_TRIGGERED_EXACT",
+            )
+            self.assertEqual(len(verifier._request_additions()), 1)
+        else:
+            self.assertEqual(
+                verifier.plan_state(),
+                "PREPARED_V5_NOT_TRIGGERED",
+            )
+            self.assertEqual(verifier._request_additions(), [])
 
     def test_state_classification_keeps_consumed_distinct(self) -> None:
         self.assertEqual(

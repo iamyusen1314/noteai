@@ -2897,3 +2897,81 @@ Secret-free receipt must be checkpointed without the active request, pass its
 ordinary remote CI with exact V5 run zero, and then the main CTO will create
 the unique single-parent/request-only V5 activation under the standing
 bounded delegation. No further product-owner prompt is required.
+
+### V5 unique attempt terminal closure and append-only V6 boundary (2026-07-31)
+
+- Branch `codex/quality-stabilization-real-chain` is at the V5 request-only
+  controller `58871b0be3427ed643f44bc198c9fe3c87a01600`; before this local
+  receipt work, HEAD and upstream were identical at ahead/behind `0/0`.
+  The controller has the single direct parent
+  `ec4b806ea7ffe24de6f8005d077bb6d81a0ec1c9` and added only
+  `.github/release-requests/admin-5335bda-dependency-cache-v5.json`.
+- Exact workflow run `30606218502`, job `91078891364`, run number `1`,
+  attempt `1` is the sole V5 run and completed `failure`. Rerun count is zero
+  and V5 is permanently consumed/no-rerun. Controller, request/source
+  binding, both pinned BuildKit builders, provenance/client-token controls
+  and the dependency build passed. The frozen bundle verifier then failed
+  with its first network-vertex unique-match assertion before portability,
+  portable archive generation, upload or provider confirmation.
+- Pinned Buildx `v0.35.0` source proves `--progress rawjson` serializes one
+  `client.SolveStatus` per line with top-level
+  `vertexes/statuses/logs/warnings`. The frozen verifier only reads a
+  top-level `vertex` or `id`, so its aggregated map and first marker match
+  count are deterministically zero. This is source-proven parser behavior,
+  not retained V5 runtime metadata. Because raw progress was removed and
+  artifact count is zero, the actual nested vertex count, names and IDs
+  remain `UNKNOWN`; no runtime name-drift, duplicate or actual-zero claim is
+  permitted. The source projection is retained locally as
+  `tests/fixtures/admin_dependency_cache_buildx_v0.35.0_rawjson_schema_projection.json`
+  with SHA-256 `44429de5…245ce` and is explicitly labeled source evidence,
+  never V5 runtime evidence.
+- The same source proves `VertexLog.data` is JSON Base64. The frozen replay
+  scanner searches the encoded raw JSON without decoding, so it cannot
+  reliably reject package-network output. V5 never reached replay. Any
+  successor must strictly parse original nested SolveStatus records, strictly
+  Base64-decode and scan original logs including cross-chunk matches, bind
+  the three dependency roles structurally, and fail closed on malformed,
+  ambiguous, incomplete or non-cached evidence.
+- V5 cleanup completed successfully with schema-v2 receipt:
+  both builders are removed and absent; image/container/volume/network
+  snapshots match the trusted atomic baselines; Docker and Buildx task roots
+  and diagnostic files are absent; `cleanup_effective=true` and
+  `overall_pass=true`. Public base or dependency reads may have occurred and
+  are not misreported as zero network activity.
+- GitHub artifact API returned `total_count=0`. Artifact upload/provider
+  confirmation, authenticated download, cross-cloud transfer, conditional
+  4C16G AMD64 builder, Admin ACR repository/token/login/push/readback,
+  production service/database and public-traffic mutations remain zero in
+  the authorized chain. Unrelated external cloud activity was not
+  independently observed and is not claimed globally absent.
+- A fully paginated read-only GitHub inventory at
+  `2026-07-31T05:50:02Z` still showed exactly one V5 workflow run. The
+  control HEAD had exactly three Actions runs: V5 plus the ordinary push and
+  pull-request CI, with no additional downstream workflow in that observed
+  scope.
+- Activation push CI `30606218457` and PR CI `30606220764` each ran `1297`
+  tests with one identical failure: the old test required the active V5
+  request to remain absent. The corrected test now accepts both the exact
+  inert state and the exact single request-only retained activation; existing
+  Git parent, byte, mode, uniqueness and all-ref history checks remain
+  fail-closed.
+- Secret-free terminal evidence is
+  `deploy/production/evidence/admin-dependency-cache-v5-attempt1-failed-20260731.json`;
+  its verifier and seven mutation/Git tests pass. The combined V5 plan and
+  receipt suite passes `22/22`; internal-readiness tests pass `16/16`;
+  production-readiness tests pass `22/22`; production readiness passes
+  `119/119`. The verifier also reconstructs the exact 20-field compact
+  cleanup JSON and its `66150b14…b5194` SHA instead of trusting the claimed
+  hash alone. The final full repository regression passes `1304/1304` with
+  `28` intentional skips in `421.792` seconds; two independent final delta
+  audits report `C0/H0/M0/L0`. Internal/public readiness remains `19/29` /
+  `19/38`, and the latest credited item remains
+  `api_f_current_release=VERIFIED`.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The current
+atomic work is to checkpoint this V5 terminal receipt and pass ordinary
+remote CI, then implement and independently audit append-only inert V6. Its
+next acceptance condition is green focused/full local verification, green
+ordinary push/PR CI and exact V6 workflow/request history/run zero. The main
+CTO may then directly approve exactly one bounded V6 successor under the
+standing delegation; V2-V5 must never be rerun.

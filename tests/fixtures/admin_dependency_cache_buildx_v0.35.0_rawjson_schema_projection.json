@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "classification": "SOURCE_PROVEN_RAWJSON_SCHEMA_NOT_V5_RUNTIME_EVIDENCE",
+  "actual_v5_runtime_progress_retained": false,
+  "source_repository": "docker/buildx",
+  "buildx": {
+    "version": "v0.35.0",
+    "commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+    "vendored_buildkit_client": {
+      "version": "v0.31.0",
+      "module_manifest_path": "vendor/modules.txt",
+      "module_manifest_lines": "656-658",
+      "module_manifest_blob_sha1": "6934c8b1132dcf595fa3b5aa3d86f9a55e19e49e",
+      "declared_go_version": "1.25.9"
+    },
+    "rawjson_display": {
+      "path": "vendor/github.com/moby/buildkit/util/progress/progressui/display.go",
+      "mode_lines": "136-138,147-160",
+      "encoder_lines": "280-303",
+      "git_blob_sha1": "41d108586e80248af9e09e82ec29719676f73838",
+      "update_parameter_type": "*client.SolveStatus",
+      "encoding_operation": "json.Encoder.Encode",
+      "one_solve_status_object_per_update": true
+    },
+    "solve_status_schema": {
+      "path": "vendor/github.com/moby/buildkit/client/graph.go",
+      "vertex_lines": "10-18",
+      "status_lines": "20-30",
+      "log_lines": "32-37",
+      "solve_status_lines": "50-55",
+      "git_blob_sha1": "1000cd78f6202100893dab87300c4ecf22629449",
+      "top_level_array_keys": [
+        "vertexes",
+        "statuses",
+        "logs",
+        "warnings"
+      ],
+      "top_level_vertex_key_present": false,
+      "top_level_id_key_present": false,
+      "vertex_item": {
+        "identity_field": "digest",
+        "name_field": "name",
+        "completed_field": "completed",
+        "cached_field": "cached"
+      },
+      "status_item": {
+        "status_identity_field": "id",
+        "parent_vertex_field": "vertex",
+        "status_id_is_vertex_identity": false
+      },
+      "log_item": {
+        "parent_vertex_field": "vertex",
+        "data_field": "data",
+        "data_go_type": "[]byte",
+        "data_json_encoding": "base64"
+      }
+    }
+  },
+  "frozen_v5_verifier_projection": {
+    "path": "tools/verify_admin_dependency_cache_bundle.py",
+    "sha256": "bf526c29b213dc15d257cb9aedc52790aa1dc9cf1f82bba0e6e85e41db3edf38",
+    "reads_only_top_level_identity_fields": [
+      "vertex",
+      "id"
+    ],
+    "iterates_nested_vertexes": false,
+    "decodes_nested_log_data": false,
+    "deterministic_aggregated_vertex_count_for_real_solve_status_lines": 0
+  },
+  "limitations": [
+    "This is a hash-bound source projection, not retained or simulated V5 runtime progress.",
+    "It proves the frozen top-level parser result for conforming Buildx v0.35.0 rawjson, not the actual nested V5 vertex count, names or ids.",
+    "The V5 artifact count is zero and the raw progress was deleted, so actual nested runtime values remain unknown."
+  ]
+}
