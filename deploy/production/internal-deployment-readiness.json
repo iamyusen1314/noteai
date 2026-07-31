@@ -825,9 +825,37 @@
         {
           "kind": "path",
           "ref": "tests/test_admin_dependency_cache_v5_failure_evidence.py"
+        },
+        {
+          "kind": "path",
+          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v6.json"
+        },
+        {
+          "kind": "path",
+          "ref": ".github/workflows/admin-dependency-cache-export-v6.yml"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_export_plan_v6.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_export_plan_v6.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_bundle_v6.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v6.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_solvestatus_structural_projection.json"
         }
       ],
-      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2, V3, V4 and V5 are frozen at their unique failed attempt 1 with artifact zero and no rerun. V5 request-only control commit 58871b0be3427ed643f44bc198c9fe3c87a01600 triggered the sole workflow run 30606218502 / job 91078891364. Controller, exact request/source checks, both pinned BuildKit builder bootstraps, the provenance/client-token controls and the dependency build passed; the frozen bundle verifier then failed before portability or archive generation. Pinned Buildx v0.35.0 source proves each rawjson line is a nested SolveStatus object, while the frozen verifier reads only top-level vertex/id, so its first marker match count was deterministically zero. The actual nested vertex names, ids and match count remain UNKNOWN because raw progress was removed and no artifact exists; no name-drift, duplicate or actual-zero claim is made. Source also proves VertexLog.data is Base64 JSON while the frozen replay scan does not decode it; V5 did not reach replay, and an append-only successor must strictly decode and scan the original logs. V5 cleanup schema v2 independently proves both builders removed and absent, four Docker-object baseline parities, both task roots and diagnostic files absent, and cleanup_effective/overall_pass true. Artifact upload, provider confirmation, authenticated download, cross-cloud transfer, conditional 4C16G AMD64 cloud-builder start, Admin ACR actions and production mutations remain zero in the authorized chain; public base or dependency reads may have occurred, and unrelated external cloud activity is not independently observed. The two ordinary activation CIs failed only the stale inert-state test after 1297 tests; the test now accepts the exact single request-only retained activation without weakening duplicate/history checks. Readiness remains 19/29 and no failed attempt adds credit. The next acceptance boundary is an append-only inert V6 that fixes nested SolveStatus parsing and strict Base64 log scanning while freezing V5, followed by green local and ordinary remote CI plus exact V6 run zero; the main CTO may then use the standing bounded delegation for one successor activation without another product-owner prompt.",
+      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2, V3, V4 and V5 are permanently frozen at their unique failed attempt 1 with artifact zero and no rerun; V5 is bound to request-only control commit 58871b0be3427ed643f44bc198c9fe3c87a01600, run 30606218502 and job 91078891364. Its controller, exact request/source checks, both pinned BuildKit builders, provenance/client-token controls and dependency build passed before the frozen flat rawjson parser failed ahead of portability/archive/upload. Buildx source establishes nested SolveStatus records and Base64 VertexLog data, but the removed V5 progress means actual nested runtime names, ids and match counts remain UNKNOWN. V5 cleanup schema v2 proves both builders absent, all four Docker-object baselines restored, task roots and diagnostics absent, and cleanup_effective/overall_pass true. Append-only V6 is locally PREPARED_V6_NOT_TRIGGERED with no active request: workflow 65afd81d42dbe16d3b4054aecc10e2c5861c9454cc8ec061c7227056292bb26, template fe34f3b07102478aa6e99e98b0deb399aeb95c0955ebd2ad8ce9ecc1afefd196, core verifier 86d93114e804bf6a51fdb160651d6a20c555f107b88020e0f8d811d0f0d358e5, plan verifier c9b89f85eab789cc967ce70d864a9a71d07526aaf63ef4bb00511ec4776b33d1 and structural source projection 4b7a087c813b82085dd8ccb1255b8e873e834510ee652d12ff9443b72a29dac5. V6 strictly validates original nested SolveStatus identity and structural provenance, lifecycle/platform/completion/cache semantics, strict Base64 including cross-chunk decoded network scanning, original evidence stability, the exact singleton branch/path trigger, and the frozen V2/V3 delegate chain while retaining the frozen V5 transient/cleanup namespace. Local V6 bundle tests pass 14/14, V6 plan mutations pass 19/19, full repository regression passes 1338/1338 with 28 intentional skips, production readiness passes 120/120, and internal/public readiness remains 19/29 / 19/38 because an inert plan and failed attempts add no deployment credit. Python/shell/YAML/JSON/diff/Secret, model-artifact, quality and Docker Compose checks also pass. Artifact upload/provider confirmation, authenticated download, cross-cloud transfer, the conditional new 4C16G AMD64 builder, Admin ACR publication and production mutations remain zero in the authorized chain. The next acceptance boundary is checkpointing this inert V6 closure, passing ordinary remote push/PR CI and proving exact V6 workflow/request history/run zero; the main CTO will then consume exactly one bounded V6 activation under standing authority without another product-owner prompt.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

@@ -86,6 +86,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "exact_5335bda_admin_dependency_cache_v5_attempt1_failed_artifact0"
             ]["passed"]
         )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v6_recovery_plan_fail_closed"
+            ]["passed"]
+        )
 
         with mock.patch.object(
             gate,
@@ -197,6 +202,18 @@ class ProductionReadinessGateTests(unittest.TestCase):
 
         with mock.patch.object(
             gate,
+            "validate_admin_dependency_cache_export_plan_v6",
+            return_value=["tampered V6 recovery plan"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_admin_dependency_cache_v6_recovery_plan_fail_closed",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
+        with mock.patch.object(
+            gate,
             "verify_admin_dependency_cache_v5_failure_evidence",
             return_value=["tampered V5 failure evidence"],
         ):
@@ -247,6 +264,27 @@ class ProductionReadinessGateTests(unittest.TestCase):
             "exact_5335bda_admin_dependency_cache_v5_recovery_plan_fail_closed"
         ]["detail"]
         self.assertIn("state=V5_ARMED_OR_TRIGGERED_EXACT", detail)
+        self.assertNotIn("activation absent", detail)
+
+    def test_v6_gate_detail_reports_armed_state_without_claiming_absence(self):
+        with (
+            mock.patch.object(
+                gate,
+                "validate_admin_dependency_cache_export_plan_v6",
+                return_value=[],
+            ),
+            mock.patch.object(
+                gate,
+                "admin_dependency_cache_plan_state_v6",
+                return_value="V6_ARMED_OR_TRIGGERED_EXACT",
+            ),
+        ):
+            checks = {item["name"]: item for item in gate.check_browserless_vex()}
+
+        detail = checks[
+            "exact_5335bda_admin_dependency_cache_v6_recovery_plan_fail_closed"
+        ]["detail"]
+        self.assertIn("state=V6_ARMED_OR_TRIGGERED_EXACT", detail)
         self.assertNotIn("activation absent", detail)
 
     def test_api_c_runtime_evidence_is_fail_closed_in_repository_gate(self):

@@ -2975,3 +2975,77 @@ next acceptance condition is green focused/full local verification, green
 ordinary push/PR CI and exact V6 workflow/request history/run zero. The main
 CTO may then directly approve exactly one bounded V6 successor under the
 standing delegation; V2-V5 must never be rerun.
+
+### Append-only V6 inert local engineering closure (2026-07-31)
+
+- Read-only takeover reconfirmed branch
+  `codex/quality-stabilization-real-chain` at
+  `17cac5eea2f8cb5aadef86ab78eee3e735c9ee1e`, with upstream ahead/behind
+  `0/0` before the V6 local work. That V5 terminal checkpoint was already
+  pushed, and exact-HEAD push CI `30608407375` plus pull-request CI
+  `30608409341` both completed `success`, closing the prior section's remote
+  acceptance boundary without adding readiness credit. The worktree contains
+  only the expected inert V6 workflow/template/verifiers/tests/source
+  projection plus the production/internal-readiness and Secret-free ledger
+  updates. The active V6 request is absent; no V6 run or external mutation is
+  claimed at this local stage.
+- V6 outer workflow/template SHA-256 are
+  `65afd81d42dbe16d3b4054aecc10e2c5861c9454cc8ec061c7227056292bb26b`
+  and
+  `fe34f3b07102478aa6e99e98b0deb399aeb95c0955ebd2ad8ce9ecc1afefd196`.
+  The outer trigger, concurrency, artifact and request identities are V6,
+  while the reviewed V5 transient verifier, cleanup helper, builder names,
+  Docker/Buildx roots, baseline marker, four object snapshots and cleanup
+  receipt remain byte-for-byte in the frozen V5 runtime namespace.
+- The new core verifier SHA-256 is
+  `86d93114e804bf6a51fdb160651d6a20c555f107b88020e0f8d811d0f0d358e5`;
+  its BuildKit v0.31.2 structural source projection SHA-256 is
+  `4b7a087c813b82085dd8ccb1255b8e873e834510ee652d12ff9443b72a29dac5`.
+  It strictly parses original nested SolveStatus records, uses only
+  `vertexes[].digest` as vertex identity, binds each unique dependency role
+  through `digestMapping -> llbDefinition -> sole Exec`, verifies exact
+  linux/amd64 platform, strict RFC3339 lifecycle/completion/cache state,
+  strictly decodes Base64 logs/warnings and scans decoded cross-chunk
+  network evidence. Original metadata/progress are same-FD stable-byte
+  captured and hash-rechecked unchanged.
+- The frozen V3 and V2 verifiers are loaded from same-FD captured,
+  hash-verified bytes. V6 creates a private deterministic three-record legacy
+  shim only after original evidence validation, checks the exact frozen V3
+  result, removes the shim fail-closed, scopes delegate patching under a
+  lock, and converts unexpected exceptions to a fixed bounded Secret-free
+  diagnostic without traceback or task path disclosure.
+- V6 plan verifier SHA-256 is
+  `c9b89f85eab789cc967ce70d864a9a71d07526aaf63ef4bb00511ec4776b33d1`.
+  It freezes V5 control/run/evidence and the V2/V3/V6 verifier trust chain,
+  requires the exact singleton branch and request-path trigger, preserves the
+  frozen V5 transient/cleanup namespace, and retains one 120-minute run,
+  one-day retention, 3.5/3.75/4-GiB bounds, one authenticated download and
+  one receipt-bound transfer, with registry/deploy/database/service/
+  public-traffic actions disabled.
+- Local acceptance is complete: the V2/V3/V5/V6 bundle chain passes `40/40`;
+  V6 plan mutation tests pass `19/19`; production-readiness and
+  internal-readiness tests pass `39/39`; the full repository regression
+  passes `1338/1338` with `28` intentional skips in `656.938` seconds.
+  Production readiness passes `120/120`; internal/public readiness remains
+  `19/29` / `19/38`. Full Python and shell syntax, all three JSON documents,
+  V6 YAML and its ten Bash blocks, staged tracked-file Secret hygiene,
+  model-artifact verification, quality gate, Docker Compose and cached-diff
+  checks pass. The latest credited item remains
+  `api_f_current_release=VERIFIED`; an inert plan earns no credit.
+  Independent security review reports no P0/P1 after the strict RFC3339
+  correction; its singleton trigger P2 is also closed by an exact semantic
+  assertion and two negative mutations.
+- GitHub artifact/provider confirmation, authenticated download,
+  cross-cloud transfer, a new 4C16G AMD64 builder, Admin ACR publication,
+  production service/database and public-traffic mutations remain zero in
+  the authorized chain. V2-V5 are permanently consumed and must not be
+  rerun.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next
+acceptance boundary is an inert V6 checkpoint with green ordinary push/PR CI
+and exact V6 workflow/request history/run zero. The main CTO will then create
+exactly one request-only V6 activation under the standing bounded
+authorization without another product-owner prompt, monitor it without blind
+duplicate/rerun, and only after cache acceptance proceed to the authorized
+authenticated transfer, new 4C16G AMD64 builder, single Admin ACR private
+publication and full cleanup.

@@ -71,6 +71,12 @@ from verify_admin_dependency_cache_export_plan_v5 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v5 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v5,
 )
+from verify_admin_dependency_cache_export_plan_v6 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v6,
+)
+from verify_admin_dependency_cache_export_plan_v6 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v6,
+)
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
 )
@@ -1667,6 +1673,10 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         validate_admin_dependency_cache_export_plan_v5()
     )
     dependency_cache_plan_state_v5 = admin_dependency_cache_plan_state_v5()
+    admin_dependency_cache_plan_v6_errors = (
+        validate_admin_dependency_cache_export_plan_v6()
+    )
+    dependency_cache_plan_state_v6 = admin_dependency_cache_plan_state_v6()
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -1834,6 +1844,19 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "artifact/download/transfer/cloud-builder/Admin ACR and "
                 "production mutations zero; cleanup zero-residue proven and "
                 "V5 rerun forbidden"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v6_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v6_errors,
+            "; ".join(admin_dependency_cache_plan_v6_errors[:5])
+            if admin_dependency_cache_plan_v6_errors
+            else (
+                f"state={dependency_cache_plan_state_v6}; V5 terminal receipt "
+                "frozen; nested SolveStatus identity, structural provenance "
+                "binding, decoded-log scan and V2/V3/V6 verifier trust chain "
+                "bound; frozen V5 transient/cleanup namespace retained; request "
+                "lifecycle represented by the reported state"
             ),
         ),
     ]

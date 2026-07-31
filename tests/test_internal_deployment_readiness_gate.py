@@ -501,6 +501,56 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_v5_failure_evidence.py"
                     ),
                 },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v6.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v6.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_export_plan_v6.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_export_plan_v6.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_bundle_v6.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_bundle_verifier_v6.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/fixtures/"
+                        "admin_dependency_cache_buildkit_v0.31.2_"
+                        "solvestatus_structural_projection.json"
+                    ),
+                },
             ],
         )
         api_c = next(
