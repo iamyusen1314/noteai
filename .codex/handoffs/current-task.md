@@ -3689,3 +3689,35 @@ zero while V8 remains run1/rerun0/artifact0, then checkpoint and remotely
 accept that receipt under the same zero-run boundary before creating exactly
 one single-parent, request-only V9 activation. V2-V8 are permanently
 no-rerun.
+
+### V9 inert checkpoint remote acceptance (2026-07-31)
+
+- Secret-free inert checkpoint
+  `590ffc863d7475b5637e644461c7ac7e8612052b` is pushed with single direct
+  parent `72f36354471e2d56ea77760d50417bf09b5cd9e1`. Its exact 13-file delta
+  installs the V9 workflow/template/source/verifiers/tests and readiness
+  integration but does not add the V9 active request. Local and upstream HEAD
+  are equal and the worktree is clean.
+- Exact-HEAD push CI `30649974618` / job `91220550087` completed `success`;
+  it passed `1459/1459` tests with `28` intentional skips in `467.799`
+  seconds and production readiness `126/126`, plus syntax, model, quality and
+  Docker Compose gates. Exact-HEAD pull-request CI `30649977007` / job
+  `91220557919` also completed `success`; it passed the same `1459/1459`,
+  `28` skips and readiness `126/126` in `336.367` seconds with every ordinary
+  step successful.
+- Fully paginated reads at `2026-07-31T17:18:19Z` found exactly those two
+  ordinary CI runs for checkpoint HEAD. The V9 workflow path has run count
+  zero. V8 workflow id `324467538` remains exactly run `30632611051`, run
+  number/attempt `1/1`, terminal `failure`, rerun zero; its artifact API count
+  remains exactly zero. Branch/upstream is `0/0`.
+- No V9 artifact, authenticated download, cross-provider transfer,
+  conditional builder, Admin ACR publication, database/service/public-traffic
+  mutation or production write occurred. This remote acceptance adds no
+  deployment credit.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit/push this Secret-free inert
+receipt, require its own ordinary push/PR CI and fully paginated V9 run zero
+while V8 remains run1/rerun0/artifact0, then create exactly one
+single-parent, request-only V9 activation. V2-V8 are permanently no-rerun.

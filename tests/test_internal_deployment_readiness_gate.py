@@ -841,6 +841,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "vertex_input_omission_projection.json"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "590ffc863d7475b5637e644461c7ac7e8612052b",
+                },
             ],
         )
         api_c = next(
