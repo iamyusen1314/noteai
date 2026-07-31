@@ -3049,3 +3049,39 @@ authorization without another product-owner prompt, monitor it without blind
 duplicate/rerun, and only after cache acceptance proceed to the authorized
 authenticated transfer, new 4C16G AMD64 builder, single Admin ACR private
 publication and full cleanup.
+
+### V6 inert checkpoint remote acceptance (2026-07-31)
+
+- Inert V6 checkpoint
+  `ff6e2d6e3849541f1d204769ea2052f850e783cd` contains the reviewed thirteen
+  files and no active request. It was pushed from a clean worktree; branch and
+  upstream returned to ahead/behind `0/0`.
+- Exact-HEAD ordinary push CI `30612580553` / job `91098507401` completed
+  `success` at `2026-07-31T07:26:07Z`. Checkout, Git LFS, Python/Node setup,
+  dependency installation, Python/shell syntax, model artifacts, all unit
+  tests, quality gate, production readiness and Docker Compose validation
+  passed.
+- Exact-HEAD ordinary pull-request CI `30612583077` / job `91098515480`
+  completed `success` at `2026-07-31T07:26:21Z` with the same complete step
+  matrix. The only annotation is GitHub's Node 20 action-runtime deprecation
+  notice; it is not a check failure and does not weaken V6 acceptance.
+- A fully paginated repository Actions read at
+  `2026-07-31T07:27:08Z`, filtered by the exact
+  `.github/workflows/admin-dependency-cache-export-v6.yml` path, returned
+  run count `0`. The exact HEAD has only the two successful ordinary CI runs.
+  The V6 active request is absent on the remote branch and local worktree,
+  its all-ref addition history remains `0`, and the plan state remains
+  `PREPARED_V6_NOT_TRIGGERED`.
+- This closes only the inert V6 installation boundary. V6 Admin authorization
+  remains unconsumed; artifact/provider confirmation, authenticated download,
+  cross-cloud transfer, new 4C16G AMD64 builder, Admin ACR publication and
+  production mutations remain zero. Internal/public readiness remains
+  `19/29` / `19/38`, with latest credited item
+  `api_f_current_release=VERIFIED`.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. This
+Secret-free remote receipt must be checkpointed without the active request,
+pass its ordinary remote CI with exact V6 run zero, and then the main CTO will
+create the unique single-parent/request-only V6 activation under the standing
+bounded delegation. V2-V5 remain permanently no-rerun, and V6 must not be
+blindly duplicated or rerun.
