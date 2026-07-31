@@ -3179,3 +3179,27 @@ passes local plus ordinary remote CI with V7 workflow/request history/run
 zero. Under the standing bounded delegation, the main CTO will then authorize
 and create exactly one V7 request-only activation without another
 product-owner prompt. V2-V6 are permanently no-rerun.
+
+### V6 terminal checkpoint remote acceptance (2026-07-31)
+
+- Secret-free terminal checkpoint
+  `65b79e14baf4ec9a2ea65442226de7c12f64f611` is pushed; the worktree is
+  clean and branch/upstream ahead/behind is `0/0`.
+- Exact-HEAD ordinary push CI `30616546023` / job `91110951533` completed
+  `success`; it ran `1346/1346` tests in `180.610` seconds with `28`
+  intentional skips and production readiness `121/121`.
+- Exact-HEAD ordinary pull-request CI `30616549483` / job `91110962291`
+  completed `success`; it ran `1346/1346` tests in `187.601` seconds with
+  `28` intentional skips and production readiness `121/121`.
+- A fully paginated read at `2026-07-31T08:35:07Z` found exactly those two
+  ordinary Actions runs for the checkpoint HEAD. The V6 workflow inventory
+  remains exactly one consumed run `30613707689`, run number/attempt `1/1`,
+  terminal `failure`, rerun count zero.
+- This remote receipt adds no deployment credit. Artifact upload/download,
+  cross-cloud transfer, the conditional Alibaba 4C16G AMD64 builder, Admin
+  ACR and production mutations remain zero; internal/public readiness remains
+  `19/29` / `19/38`.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Proceed directly
+to append-only inert V7 implementation and independent review; do not modify
+or rerun V2-V6.

@@ -564,6 +564,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "ref": "5770f00d7e5756302d34b5f9159066dc3fd5d36d",
                 },
                 {
+                    "kind": "git",
+                    "ref": "65b79e14baf4ec9a2ea65442226de7c12f64f611",
+                },
+                {
                     "kind": "path",
                     "ref": (
                         ".github/release-requests/"
