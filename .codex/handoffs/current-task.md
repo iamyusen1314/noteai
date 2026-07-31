@@ -2546,3 +2546,50 @@ complete cleanup remain required before readiness may become `20/29`.
   remains `19/29`; no external action or credit is claimed by authorization
   alone. The next atomic action is a single-parent request-only child bound
   to the final authorization checkpoint.
+
+### Admin dependency-cache V3 terminal failure receipt (2026-07-31)
+
+- The exact request-only control commit
+  `443bb1e534f98232541f44b744d753bfa7c09168` triggered exactly one V3
+  workflow run `30596283342`, job `91049234229`, attempt `1`. Controller,
+  parent-bound request, exact `5335bda` release checkout and immutable-source
+  checks passed. Both pinned BuildKit `v0.31.2` builders bootstrapped, then
+  the post-create transient-state check failed closed before export with
+  `Buildx state ...flags changed`.
+- The job's exact `ubuntu-24.04` image `20260720.247.2` manifest identifies
+  Docker Buildx `0.35.0`. Official tag `v0.35.0` (tag object
+  `151a9220…75f`, commit `a319e5b1…782`) proves that an empty-config
+  `docker-container` create stores exactly one ordered default flag:
+  `--allow-insecure-entitlement=network.host`. The V3 verifier incorrectly
+  accepted only null/empty flags. This daemon capability is not exercised:
+  the frozen export/import commands contain no build-level
+  `--allow network.host`, and `security.insecure` remains forbidden.
+- Cleanup preserved its initial fail-closed count, removed the two builders
+  far enough for the second transient-state validation to pass, attempted
+  Docker parity and both fixed-root removals without another observed error,
+  and the ephemeral runner completed. Export, portability, final validation,
+  upload and provider confirmation were skipped. The provider API returned
+  exactly `total_count=0`; authenticated download, cross-cloud transfer, new
+  builder start, Admin ACR private read/token/login/push/manifest and all
+  production mutations remain zero. V3 is consumed and must never be rerun.
+- Ordinary push CI `30596283325` and PR CI `30596285651` each ran `1212`
+  tests with `28` skips and had the same sole failure: the inert V3 state
+  test still expected `PREPARED_V3_NOT_TRIGGERED` after the retained exact
+  activation correctly became `V3_ARMED_OR_TRIGGERED_EXACT`. The assertion
+  now binds the retained activation; this is an evidence-state correction,
+  not a product-code regression.
+- Secret-free terminal evidence is
+  `deploy/production/evidence/admin-dependency-cache-v3-attempt1-failed-20260731.json`
+  with strict verifier
+  `tools/verify_admin_dependency_cache_v3_failure_evidence.py`; their
+  SHA-256 values are respectively `6ea71731…6425c` and
+  `74c2b3e2…7a012`. The focused failure/plan/readiness tests pass `51/51`,
+  production readiness passes `115/115`, JSON and diff checks pass, and the
+  internal gate remains `19/29` / public `19/38`. No failed run adds credit.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next
+acceptance boundary is an append-only inert V4 plan that asserts exact Buildx
+`v0.35.0`/commit before creation and accepts only the one source-proven ordered
+default flag while rejecting all additional, reordered or privileged variants.
+It must pass local and ordinary remote CI with zero V4 workflow runs before the
+main CTO authorizes one new request-only activation under the delegated bounds.

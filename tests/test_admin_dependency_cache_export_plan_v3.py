@@ -23,11 +23,14 @@ class AdminDependencyCacheExportPlanV3Tests(unittest.TestCase):
         cls.transient_verifier = verifier.TRANSIENT_VERIFIER_PATH.read_bytes()
         cls.cleanup_helper = verifier.CLEANUP_HELPER_PATH.read_bytes()
 
-    def test_exact_inert_v3_plan_passes(self) -> None:
+    def test_exact_activated_v3_plan_passes(self) -> None:
         self.assertEqual(verifier.validate_plan(), [])
-        self.assertEqual(verifier.plan_state(), "PREPARED_V3_NOT_TRIGGERED")
-        self.assertFalse(verifier.ACTIVE_REQUEST_PATH.exists())
-        self.assertEqual(verifier._request_additions(), [])
+        self.assertEqual(verifier.plan_state(), "V3_ARMED_OR_TRIGGERED_EXACT")
+        self.assertTrue(verifier.ACTIVE_REQUEST_PATH.exists())
+        self.assertEqual(
+            verifier._request_additions(),
+            ["443bb1e534f98232541f44b744d753bfa7c09168"],
+        )
 
     def test_state_classification_keeps_consumed_distinct_from_invalid(self) -> None:
         self.assertEqual(

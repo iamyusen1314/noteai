@@ -65,6 +65,12 @@ from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     verify as verify_admin_dependency_cache_v2_failure_evidence,
 )
+from verify_admin_dependency_cache_v3_failure_evidence import (  # noqa: E402
+    load_strict as load_admin_dependency_cache_v3_failure_evidence,
+)
+from verify_admin_dependency_cache_v3_failure_evidence import (  # noqa: E402
+    verify as verify_admin_dependency_cache_v3_failure_evidence,
+)
 from verify_api_c_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_c_current_release_evidence_bundle,
 )
@@ -1594,6 +1600,16 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         admin_dependency_cache_v2_failure_errors = [
             f"cannot load Admin dependency-cache V2 failure evidence: {exc}"
         ]
+    try:
+        admin_dependency_cache_v3_failure_errors = (
+            verify_admin_dependency_cache_v3_failure_evidence(
+                load_admin_dependency_cache_v3_failure_evidence()
+            )
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        admin_dependency_cache_v3_failure_errors = [
+            f"cannot load Admin dependency-cache V3 failure evidence: {exc}"
+        ]
     admin_dependency_cache_plan_v3_errors = (
         validate_admin_dependency_cache_export_plan_v3()
     )
@@ -1693,6 +1709,18 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             ),
         ),
         _ok(
+            "exact_5335bda_admin_dependency_cache_v3_attempt1_failed_artifact0",
+            not admin_dependency_cache_v3_failure_errors,
+            "; ".join(admin_dependency_cache_v3_failure_errors[:5])
+            if admin_dependency_cache_v3_failure_errors
+            else (
+                "run 30596283342 attempt 1 failed closed before export; "
+                "Buildx 0.35.0 source proves one exact default network.host "
+                "daemon-entitlement flag; artifact/download/transfer/cloud-builder/"
+                "Admin ACR and production mutations zero; V3 rerun forbidden"
+            ),
+        ),
+        _ok(
             "exact_5335bda_admin_dependency_cache_v3_recovery_plan_fail_closed",
             not admin_dependency_cache_plan_v3_errors,
             "; ".join(admin_dependency_cache_plan_v3_errors[:5])
@@ -1701,7 +1729,8 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 f"state={dependency_cache_plan_state_v3}; BuildKit v0.31.2 "
                 "builder/frontend and LLB target platforms separated; Docker "
                 "auth and Buildx state use distinct task roots with aggregate "
-                "cleanup; active V3 request absent and new run authority required"
+                "cleanup; exact request-only V3 activation retained and terminal "
+                "failure recorded without rerun"
             ),
         ),
     ]
