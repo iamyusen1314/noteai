@@ -71,6 +71,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "exact_5335bda_admin_dependency_cache_v3_recovery_plan_fail_closed"
             ]["passed"]
         )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v4_recovery_plan_fail_closed"
+            ]["passed"]
+        )
 
         with mock.patch.object(
             gate,
@@ -143,6 +148,39 @@ class ProductionReadinessGateTests(unittest.TestCase):
             "exact_5335bda_admin_dependency_cache_v3_recovery_plan_fail_closed",
             {item["name"] for item in report["failed_checks"]},
         )
+
+        with mock.patch.object(
+            gate,
+            "validate_admin_dependency_cache_export_plan_v4",
+            return_value=["tampered V4 recovery plan"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_admin_dependency_cache_v4_recovery_plan_fail_closed",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
+    def test_v4_gate_detail_reports_armed_state_without_claiming_absence(self):
+        with (
+            mock.patch.object(
+                gate,
+                "validate_admin_dependency_cache_export_plan_v4",
+                return_value=[],
+            ),
+            mock.patch.object(
+                gate,
+                "admin_dependency_cache_plan_state_v4",
+                return_value="V4_ARMED_OR_TRIGGERED_EXACT",
+            ),
+        ):
+            checks = {item["name"]: item for item in gate.check_browserless_vex()}
+
+        detail = checks[
+            "exact_5335bda_admin_dependency_cache_v4_recovery_plan_fail_closed"
+        ]["detail"]
+        self.assertIn("state=V4_ARMED_OR_TRIGGERED_EXACT", detail)
+        self.assertNotIn("activation absent", detail)
 
     def test_api_c_runtime_evidence_is_fail_closed_in_repository_gate(self):
         checks = {

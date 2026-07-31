@@ -2593,3 +2593,63 @@ acceptance boundary is an append-only inert V4 plan that asserts exact Buildx
 default flag while rejecting all additional, reordered or privileged variants.
 It must pass local and ordinary remote CI with zero V4 workflow runs before the
 main CTO authorizes one new request-only activation under the delegated bounds.
+
+### Inert Admin dependency-cache V4 local acceptance (2026-07-31)
+
+- The V3 terminal receipt checkpoint is
+  `10a05ebc5857ece9307af207753b36845b47d704`. Its ordinary push CI
+  `30597178856` and pull-request CI `30597180914` both completed
+  successfully. The retained V3 activation remains consumed and must never be
+  rerun.
+- Append-only V4 is prepared on that clean upstream parent but remains inert.
+  The active path
+  `.github/release-requests/admin-5335bda-dependency-cache-v4.json` is absent;
+  local/all-ref and GitHub path addition history are zero; the Actions API
+  workflow-path query is zero; and the verified state is
+  `PREPARED_V4_NOT_TRIGGERED`. No V4 run, artifact, authenticated download,
+  transfer, cloud builder, Admin ACR operation or production mutation exists.
+- The workflow binds runner Buildx module/version and a `7`-to-`40`-character
+  revision prefix to official Buildx `v0.35.0` source commit
+  `a319e5b15052cf6557ceb666eb8ff6e32380b782` before either builder is
+  created. Both creates explicitly pass only
+  `--allow-insecure-entitlement=network.host`; the transient verifier accepts
+  only that exact one-element ordered array and rejects null, empty, split,
+  reordered, additional or `security.insecure` flags, embedded config,
+  unsafe paths, links and credential-like state.
+- The immutable Dockerfile and frozen export/import helpers are checked before
+  builder creation for any build-level `--allow network.host`,
+  `--allow=network.host` or `--network host` request. V4 preserves the exact
+  `5335bda` source, pinned BuildKit `v0.31.2`, separate host/frontend and
+  `linux/amd64` target proof, fresh-consumer portability, deep OCI/cache/tar
+  validation, one-day retention, `3.5-GiB` gzip, `3.75-GiB` upload-input,
+  `4-GiB` provider ceiling and authenticated receipt-bound transfer.
+- Cleanup remains aggregate and fail-closed: it attempts both builder removals,
+  four Docker-object parity checks, both transient validations and deletion of
+  both exact V4 task roots, and it runs before final validation/upload.
+  Workflow permissions are only `contents: read`; Registry publication,
+  deployment, database, service and public-traffic mutation remain false.
+- Final reviewed V4 SHA-256 values are workflow
+  `5331e03b…304cc`, request template `6e2a7ba6…614da`, plan verifier
+  `b8f05cc1…b9fbf`, transient verifier `a6578845…ea432` and cleanup helper
+  `6cc13038…23ab2`. The independent read-only split audit returned
+  `Critical 0 / High 0 / Medium 0 / Low 0`, confirmed V2/V3 byte locks and
+  zero V4 local/GitHub history/runs, and made no repository or external
+  mutation.
+- Focused V4/readiness tests pass `62/62`; full repository regression passes
+  `1243/1243` with `28` intentional skips; production readiness passes
+  `116/116`; internal readiness remains `19/29` and public readiness
+  `19/38`. Bash/Python syntax, strict JSON/YAML parsing and
+  `git diff --check` pass. The audit also caught a non-core readiness detail
+  that would have said the request was absent after a valid activation; the
+  text is now state-neutral and a `V4_ARMED_OR_TRIGGERED_EXACT` regression
+  test passes in the `21/21` production-gate suite.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`; no readiness
+credit is added by an inert controller. The next acceptance boundary is the
+pushed inert V4 checkpoint with ordinary push/PR CI all green and an exact
+zero V4 run list. Under the product owner's standing delegation, the main CTO
+will then authorize and create exactly one single-parent, request-only V4
+activation without asking again. Only successful portability, cleanup,
+nonzero provider identity, authenticated bounded download/transfer and
+target-side reassembly/import/cacheless replay may unlock the conditional
+`4-vCPU / 16-GiB / AMD64` builder and one Admin ACR private publication.

@@ -88,6 +88,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "ref": "8434da99b70b3623d619d0fafdac893a97e7b0e3",
                 },
                 {
+                    "kind": "git",
+                    "ref": "10a05ebc5857ece9307af207753b36845b47d704",
+                },
+                {
                     "kind": "path",
                     "ref": (
                         "security/vex/"
@@ -316,6 +320,62 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "ref": (
                         "tests/"
                         "test_admin_dependency_cache_v3_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v4.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v4.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_export_plan_v4.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_export_plan_v4.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_transient_state_v4.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_transient_state_v4.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "scripts/ci/"
+                        "cleanup_admin_dependency_cache_v4.sh"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_cleanup_v4.py"
                     ),
                 },
             ],

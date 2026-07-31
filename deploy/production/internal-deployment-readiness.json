@@ -583,6 +583,10 @@
               "ref": "8434da99b70b3623d619d0fafdac893a97e7b0e3"
             },
             {
+              "kind": "git",
+              "ref": "10a05ebc5857ece9307af207753b36845b47d704"
+            },
+            {
               "kind": "path",
               "ref": "security/vex/5335bda-admin-github-native-release-evidence.json"
             },
@@ -713,9 +717,41 @@
         {
           "kind": "path",
           "ref": "tests/test_admin_dependency_cache_v3_failure_evidence.py"
+        },
+        {
+          "kind": "path",
+          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v4.json"
+        },
+        {
+          "kind": "path",
+          "ref": ".github/workflows/admin-dependency-cache-export-v4.yml"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_export_plan_v4.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_export_plan_v4.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_transient_state_v4.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_transient_state_v4.py"
+        },
+        {
+          "kind": "path",
+          "ref": "scripts/ci/cleanup_admin_dependency_cache_v4.sh"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_cleanup_v4.py"
         }
       ],
-      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 remains frozen at its unique failed attempt with artifact zero and no rerun. The CTO-authorized V3 request-only activation is retained at control commit 443bb1e and triggered exactly one GitHub run 30596283342 / job 91049234229 / attempt 1. Controller/request/release/source checks passed, both pinned BuildKit builders bootstrapped, then the transient-state verifier failed closed before cache export because it required Node.Flags to be null or empty. The exact ubuntu-24.04 runner image carried Docker Buildx 0.35.0; the official tagged source and unit test prove that an isolated docker-container builder with no explicit flags or config stores the sole ordered default [--allow-insecure-entitlement=network.host]. The frozen build commands never request network.host, and security.insecure was neither authorized nor requested. Cleanup retained the initial validation failure but removed both builders sufficiently for the second transient-state validation to pass, attempted task-root and Docker parity cleanup, and the ephemeral runner completed. Export, portability, final validation, upload and provider confirmation were skipped; the provider artifact API returned total_count=0. Authenticated download, cross-provider transfer, new cloud-builder start, Admin ACR private-repository read/token/login/push/manifest, production service mutation, database connection/transaction/write and public-traffic mutation remain zero. V3 is consumed and must never be rerun. Its ordinary push and PR CI each failed only because one repository test still expected PREPARED_V3_NOT_TRIGGERED after the exact activation had correctly changed state to V3_ARMED_OR_TRIGGERED_EXACT; the terminal receipt and corrected state assertion now fail closed on the retained activation. No readiness credit is added for either failed run. The product owner's bounded CTO delegation remains active. The next boundary is an append-only V4 plan that pins/asserts Buildx 0.35.0 and its source commit before builder creation, accepts only the single exact ordered default flag, rejects empty/additional/reordered/security.insecure flags and any build-level network.host request, preserves the one-day / 3.5-GiB gzip / 3.75-GiB input / 4-GiB provider and authenticated receipt-bound transfer limits, passes local and ordinary remote CI while inert with zero V4 runs, and only then receives one CTO-authorized request-only activation. Only successful fresh-consumer portability, complete cleanup, authenticated nonzero provider identity and target-side reassembly/import/cacheless replay may activate the conditional 4C16G AMD64 builder and single Admin ACR publication path.",
+      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 and V3 remain frozen at their unique failed attempts with artifact zero and no rerun; V3's retained request-only activation is control commit 443bb1e and run 30596283342 / job 91049234229 / attempt 1. The V3 terminal receipt binds the Buildx 0.35.0 Node.Flags false negative, cleanup evidence, two activation-state-only ordinary-CI failures and all downstream zero counts. Append-only V4 is now prepared but inert. Its only trigger is a unique added request at .github/release-requests/admin-5335bda-dependency-cache-v4.json on the exact feature branch; the active request is absent, all-ref addition history is zero and state is PREPARED_V4_NOT_TRIGGERED. V4 retains the exact 5335 source, pinned BuildKit v0.31.2, separate host/frontend versus linux/amd64 target proof, fresh-consumer portability, deep OCI/cache/archive validation, one-day / 3.5-GiB gzip / 3.75-GiB input / 4-GiB provider limits and authenticated receipt-bound transfer. Before either builder is created it requires the runner's Buildx module/version and revision prefix to bind official v0.35.0 commit a319e5b; both creates explicitly store only --allow-insecure-entitlement=network.host, and the transient verifier rejects null, empty, reordered, split, additional or security.insecure flags, embedded config and unsafe state. The immutable Dockerfile/export/import helpers are checked to contain no build-level --allow network.host or --network=host request. Aggregate cleanup still removes both exact V4 roots after validation, builder or Docker parity failures and occurs before upload. Workflow permissions remain contents-read only; Registry publication, deployment, database, service mutation and public traffic are false. The product owner's bounded CTO delegation remains active, but no V4 run, artifact, download, transfer, cloud-builder start or Admin ACR action is consumed by this inert plan and readiness remains 19/29. The next boundary is a pushed inert V4 checkpoint with ordinary push/PR CI all green and a zero V4 run list; only then may the main CTO authorize one parent-bound request-only V4 activation. Only successful fresh-consumer portability, complete cleanup, authenticated nonzero provider identity and target-side reassembly/import/cacheless replay may activate the conditional 4C16G AMD64 builder and single Admin ACR publication path.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

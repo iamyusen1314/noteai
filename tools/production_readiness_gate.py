@@ -59,6 +59,12 @@ from verify_admin_dependency_cache_export_plan_v3 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v3 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v3,
 )
+from verify_admin_dependency_cache_export_plan_v4 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v4,
+)
+from verify_admin_dependency_cache_export_plan_v4 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v4,
+)
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
 )
@@ -1614,6 +1620,10 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         validate_admin_dependency_cache_export_plan_v3()
     )
     dependency_cache_plan_state_v3 = admin_dependency_cache_plan_state_v3()
+    admin_dependency_cache_plan_v4_errors = (
+        validate_admin_dependency_cache_export_plan_v4()
+    )
+    dependency_cache_plan_state_v4 = admin_dependency_cache_plan_state_v4()
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -1731,6 +1741,18 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "auth and Buildx state use distinct task roots with aggregate "
                 "cleanup; exact request-only V3 activation retained and terminal "
                 "failure recorded without rerun"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v4_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v4_errors,
+            "; ".join(admin_dependency_cache_plan_v4_errors[:5])
+            if admin_dependency_cache_plan_v4_errors
+            else (
+                f"state={dependency_cache_plan_state_v4}; Buildx v0.35.0 "
+                "source identity and sole ordered network.host daemon flag "
+                "bound; build-level host networking and additional entitlements "
+                "forbidden; request lifecycle represented by the reported state"
             ),
         ),
     ]
