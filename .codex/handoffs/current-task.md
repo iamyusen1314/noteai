@@ -3909,3 +3909,37 @@ checkpoint. Require its own ordinary push/PR CI and fully paginated V10 run
 zero with the V9 ledger unchanged, then commit and remotely accept a
 Secret-free inert receipt before creating exactly one single-parent,
 request-only V10 activation. V2-V9 are permanently no-rerun.
+
+### V10 inert checkpoint remote acceptance (2026-08-01)
+
+- Secret-free inert checkpoint
+  `9199fb598790a03302c21dd3968c63b58d03f2c2` is pushed with single direct
+  parent `512638647c5851aa3258cd472da42894110465af` and exact 14-file scope.
+  Its delta contains the eight new V10 workflow/template/source/helper/
+  verifier/test files plus production-gate integration, the readiness
+  manifest and exact-evidence-list test, this handoff and the risk ledger.
+  The active V10 request is absent.
+- Exact-HEAD push CI `30670568835` / job `91287217391` completed `success`
+  with `1513/1513` tests, `28` intentional skips, `547.582` seconds and
+  production gate `128/128`. Pull-request CI `30670570806` / job
+  `91287223709` also completed `success` with `1513/1513`, `28` skips,
+  `574.873` seconds and production gate `128/128`; every ordinary job step
+  succeeded in both runs.
+- Fully paginated repository Actions reads after
+  `2026-07-31T22:49:06Z` found exactly those two ordinary CI runs for the
+  checkpoint SHA and zero records whose workflow path is
+  `.github/workflows/admin-dependency-cache-export-v10.yml`. V9 workflow
+  `324655362` still has exactly run `30651679657`, run number/attempt `1/1`,
+  terminal `failure`; attempt two is absent and its artifact API result is
+  empty. Branch/upstream is `0/0`.
+- No V10 workflow run, cache artifact, authenticated download, transfer,
+  conditional builder, Admin ACR, database, service, production write or
+  public-traffic mutation occurred. This remote acceptance adds no
+  deployment credit.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit/push this exact four-file
+Secret-free inert receipt and require its own ordinary push/PR CI, fully
+paginated V10 run zero and unchanged V9 ledger. Then create exactly one
+single-parent, request-only V10 activation. V2-V9 are permanently no-rerun.

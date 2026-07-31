@@ -943,6 +943,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "path",
                     "ref": "scripts/ci/import_admin_dependency_cache_v10.sh",
                 },
+                {
+                    "kind": "git",
+                    "ref": "9199fb598790a03302c21dd3968c63b58d03f2c2",
+                },
             ],
         )
         api_c = next(
