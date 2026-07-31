@@ -65,6 +65,12 @@ from verify_admin_dependency_cache_export_plan_v4 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v4 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v4,
 )
+from verify_admin_dependency_cache_export_plan_v5 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v5,
+)
+from verify_admin_dependency_cache_export_plan_v5 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v5,
+)
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
 )
@@ -1640,6 +1646,10 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         validate_admin_dependency_cache_export_plan_v4()
     )
     dependency_cache_plan_state_v4 = admin_dependency_cache_plan_state_v4()
+    admin_dependency_cache_plan_v5_errors = (
+        validate_admin_dependency_cache_export_plan_v5()
+    )
+    dependency_cache_plan_state_v5 = admin_dependency_cache_plan_state_v5()
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -1781,6 +1791,19 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "provenance environment contract; artifact/download/transfer/"
                 "cloud-builder/Admin ACR and production mutations zero; cleanup "
                 "zero-residue remains unclaimed and V4 rerun is forbidden"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v5_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v5_errors,
+            "; ".join(admin_dependency_cache_plan_v5_errors[:5])
+            if admin_dependency_cache_plan_v5_errors
+            else (
+                f"state={dependency_cache_plan_state_v5}; V4 terminal receipt "
+                "frozen; exact provenance injection disablement, client-token "
+                "state prevention, phase-aware client-state validation and "
+                "per-control cleanup receipt bound; request lifecycle represented "
+                "by the reported state"
             ),
         ),
     ]

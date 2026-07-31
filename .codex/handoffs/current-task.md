@@ -2732,10 +2732,101 @@ readiness remains `19/29`, public readiness remains `19/38`, and the latest
 credited item remains `api_f_current_release=VERIFIED`. The next acceptance
 boundary is an append-only inert V5 that freezes V4, disables Buildx GitHub
 provenance injection for both builders before spending the build budget,
-disables BuildKit client-token authority and keeps the public-build Docker
-config read-only so BuildKit cannot persist `.token_seed`, strictly handles Buildx's
-source-proven phase transition for `.buildNodeID`, and makes every cleanup
-outcome observable without exposing state contents. It must pass
+disables BuildKit client-token authority, requires the Docker config to remain
+the exact empty-auth state, strictly handles Buildx's source-proven phase
+transition for `.buildNodeID`, and makes every cleanup outcome observable
+without exposing state contents. It must pass
 local and ordinary remote CI with exact V5 run zero before the main CTO uses
 the standing bounded delegation for one successor activation; no further
 product-owner prompt is required inside those reviewed limits.
+
+### Inert Admin dependency-cache V5 local acceptance (2026-07-31)
+
+- The V4 terminal-receipt checkpoint is
+  `3501b242b17e30ddf004a73882ecf588c428800b`. Ordinary push CI
+  `30600946535` / job `91063262924` and pull-request CI `30600949389` /
+  job `91063271596` both completed successfully. The branch and upstream
+  were clean `0/0` before V5 work; a fresh Actions inventory still showed
+  exactly one V4 run, `30599069993` / attempt `1` / failure. V4 must never
+  be rerun.
+- Append-only V5 is locally prepared but remains inert. The active request
+  `.github/release-requests/admin-5335bda-dependency-cache-v5.json` is
+  absent, all-ref addition history is zero and plan state is
+  `PREPARED_V5_NOT_TRIGGERED`. No V5 run, artifact, authenticated download,
+  transfer, cloud builder, Admin ACR action or production mutation is
+  claimed. Remote checkpoint CI and workflow-path run-zero acceptance are
+  still pending.
+- The local V5 workflow/template/plan-verifier/transient-verifier/cleanup/
+  source-fixture SHA-256 values are respectively
+  `a784ed67…3546a`, `766a87ae…dfad`, `78d58b5b…86ef`,
+  `4b81fb25…cb5f`, `a291c724…f239` and `33de770d…999d`.
+- The V5 workflow gives both isolated builders the exact ordered driver
+  options `image=<pinned digest>` and `provenance-add-gha=false`; it retains
+  max provenance and the exact V3 two-key bundle verifier. After both pinned
+  BuildKit containers bootstrap and before the first dependency build, a
+  silent two-builder gate rejects any direct regular, hidden or linked
+  provenance JSON drop-in without printing filenames or contents.
+- A job-wide source-proven client-auth control prevents the BuildKit client
+  token seed path. The exact empty Docker config remains at the frozen
+  helper-compatible `0700/0600` modes; any seed, lock or other entry fails
+  closed. This deliberately avoids forking the large frozen export/import
+  helpers merely to make the config read-only. The new wrapper hash-locks the
+  frozen V4 verifier and adds required `pre-build`, `post-build` and
+  `cleanup-active` phases. `.buildNodeID` is forbidden before build, required
+  after a successful build and, if present, must be a single-link regular
+  `0600` file containing exactly 16 lowercase hexadecimal bytes. No value or
+  hash is reported.
+- A pre-activation cleanup audit found three High and three Medium evidence
+  gaps without consuming a remote run. This atomic hardening changed only the
+  V5 workflow/template/plan verifier/cleanup helper and their V5 tests, plus
+  this Handoff, the risk register and the existing readiness description.
+  The first workflow step now anchors absolute `5700`-second pre-cleanup and
+  `6300`-second cleanup deadlines before either checkout; export/import are
+  bounded to `3600/900` seconds and cleanup external calls to `15` seconds.
+  No later step can reset those deadlines.
+- All four Docker baselines are written to `0600` temporary files and become
+  trusted only after the final completion marker is atomically moved after
+  the last snapshot. An absent, partial, linked, hard-linked, malformed or
+  mode-drifted baseline forbids image-difference deletion. Cleanup continues
+  all new-image removal attempts after an individual failure; builder
+  inventory distinguishes `already_absent` from
+  `rm_nonzero_absent_after`; exact owner-nonwritable roots are reopened only
+  for bounded deletion. It also removes its diagnostic files and publishes a
+  schema-checked `0600` receipt atomically. A final compact-read failure can
+  never print PASS.
+- Cleanup records deadline validity, baseline validity, builder remove plus
+  independent absence readback, new-image removal, four Docker-object parity
+  results, diagnostic-file and both exact-root removals, pre/post client-state
+  classification, cleanup effectiveness and overall status. Drift or a
+  nonzero builder remove remains a run failure even when physical cleanup is
+  independently effective.
+- Revised V5 plan/transient/cleanup/bundle behavior passes `45/45`; the
+  combined plan/production-gate/internal-readiness modules pass `53/53`.
+  The complete repository regression passes `1297/1297` with `28`
+  intentional skips in `400.091` seconds.
+  Production readiness passes `118/118`, internal/public readiness remains
+  `19/29` / `19/38`, and ten workflow run scripts, shell syntax, Python
+  compile, strict JSON/YAML and `git diff --check` pass. The prior
+  `1289/1289` result is superseded by this post-audit full run.
+- Two final read-only split audits close the runtime implementation and
+  future semantic-regression coverage at `Critical 0 / High 0 / Medium 0 /
+  Low 0`. Behavior tests prove a blocked Docker call still yields root
+  deletion and a receipt, an incomplete baseline issues no image removal,
+  first-image failure still attempts all remaining IDs, owner-nonwritable
+  roots are removed, and receipt-directory/final-`jq` failures never claim
+  success.
+- The source fixture is explicitly classified
+  `SOURCE_PROVEN_CONFIGURATION_CONTRACT_NOT_V5_RUNTIME_EVIDENCE`; it binds
+  Buildx `v0.35.0` and BuildKit `v0.31.2` tag/commit/blob coordinates without
+  retaining or simulating an event payload. The one disposable V5 run is
+  still required to prove real post-build metadata, client state and Docker
+  parity.
+- Internal readiness remains `19/29`, public readiness remains `19/38`, and
+  the latest credited item remains `api_f_current_release=VERIFIED`. No plan,
+  authority, failed attempt or cleanup implementation earns readiness credit.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next
+acceptance boundary is to commit and push this inert V5 closure, pass ordinary
+push/PR CI, and prove exact remote V5 workflow run zero. The main CTO may then
+create exactly one request-only activation under the standing bounded
+delegation without asking the product owner again.

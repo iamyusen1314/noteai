@@ -407,6 +407,71 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_v4_failure_evidence.py"
                     ),
                 },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v5.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v5.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_export_plan_v5.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_export_plan_v5.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_transient_state_v5.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_transient_state_v5.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "scripts/ci/cleanup_admin_dependency_cache_v5.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": "tests/test_admin_dependency_cache_cleanup_v5.py",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_bundle_verifier_v5.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/fixtures/"
+                        "admin_dependency_cache_buildx_v0.35.0_"
+                        "provenance_gha_disabled_projection.json"
+                    ),
+                },
             ],
         )
         api_c = next(
