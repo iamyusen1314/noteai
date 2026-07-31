@@ -2518,3 +2518,31 @@ fresh-consumer portability, complete cleanup, authenticated bounded
 download/transfer and target-side revalidation can activate the conditional
 builder path; Admin build/scan/private publication/runtime acceptance and
 complete cleanup remain required before readiness may become `20/29`.
+
+### Product-owner delegation and V3 execution authority (2026-07-31)
+
+- The product owner explicitly delegated to the main CTO the authority to
+  approve and execute subsequent bounded, previously defined and reversible
+  release stages without asking again. This supersedes the prior V3
+  authorization stop. It does not authorize fabricating credentials,
+  bypassing interactive login, unbounded spend, destructive data actions,
+  public DNS/real-user traffic cutover or a false production-complete claim.
+- The CTO now authorizes exactly one append-only V3 GitHub
+  dependency-cache run capped at `120` minutes, one public-repository
+  artifact retained for at most one day with the reviewed
+  `3.5-GiB` gzip / `3.75-GiB` upload-input / `4-GiB` provider limits, and
+  one authenticated download plus receipt-bound cross-cloud transfer. The
+  previously unused transfer authority is explicitly rebound to this V3
+  run.
+- Only successful fresh-consumer portability, complete transient cleanup,
+  nonzero authenticated provider identity and target-side reassembly/import/
+  cacheless replay may activate one new `4-vCPU / 16-GiB / AMD64` builder
+  window capped at two hours, one Admin ACR private publication and complete
+  cleanup. Registry publication remains distinct from deployment acceptance.
+- At this authorization checkpoint, branch and upstream are exact
+  `e869b146080f3b2b34f3db77ed9916cdcc118b7f`, clean `0/0`; the V3 active
+  request is absent, all-ref addition history is zero, the V3 Actions run
+  list is empty and plan state is `PREPARED_V3_NOT_TRIGGERED`. Readiness
+  remains `19/29`; no external action or credit is claimed by authorization
+  alone. The next atomic action is a single-parent request-only child bound
+  to the final authorization checkpoint.
