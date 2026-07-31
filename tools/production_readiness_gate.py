@@ -148,6 +148,7 @@ SAFE_SECRET_VALUES = {
     "<your-value>",
     "redacted",
     "placeholder",
+    "buildkit_no_client_token",
 }
 
 

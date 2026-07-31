@@ -723,11 +723,30 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertEqual(gate._line_has_secret_value("ANTHROPIC_API_KEY=test-key"), (False, ""))
         self.assertEqual(gate._line_has_secret_value("ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}"), (False, ""))
         self.assertEqual(gate._line_has_secret_value("HARDENING_TOKENS = ("), (False, ""))
+        self.assertEqual(
+            gate._line_has_secret_value(
+                'CLIENT_TOKEN_CONTROL = "BUILDKIT_NO_CLIENT_TOKEN"'
+            ),
+            (False, ""),
+        )
 
         fake_key = "abcd1234" + "ef567890abcd1234ef567890"
         has_secret, name = gate._line_has_secret_value(f"AMAP_WEB_KEY={fake_key}")
         self.assertTrue(has_secret)
         self.assertEqual(name, "AMAP_WEB_KEY")
+        self.assertEqual(
+            gate._line_has_secret_value(
+                f'CLIENT_TOKEN_CONTROL="{fake_key}"'
+            ),
+            (True, "CLIENT_TOKEN_CONTROL"),
+        )
+        client_control_name = "BUILDKIT_NO_CLIENT_" + "TOKEN"
+        self.assertEqual(
+            gate._line_has_secret_value(
+                f'{client_control_name}: "unexpected"'
+            ),
+            (True, "BUILDKIT_NO_CLIENT_TOKEN"),
+        )
 
     def test_human_model_release_manifest_hashes_match_all_declared_files(self):
         declared = gate._load_human_release_hashes(gate.HUMAN_MODEL_RELEASE_MANIFEST)

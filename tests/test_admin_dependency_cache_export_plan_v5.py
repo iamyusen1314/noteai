@@ -326,11 +326,12 @@ class AdminDependencyCacheExportPlanV5Tests(unittest.TestCase):
                 )
 
     def test_client_token_control_requires_exact_job_wide_value(self) -> None:
+        client_token_key = b"BUILDKIT_NO_CLIENT_TOKEN"
         for replacement in (b'"0"', b'"true"', b"1", b'"01"'):
             with self.subTest(replacement=replacement):
                 broken = self.workflow.replace(
-                    b'BUILDKIT_NO_CLIENT_TOKEN: "1"',
-                    b"BUILDKIT_NO_CLIENT_TOKEN: " + replacement,
+                    client_token_key + b': "1"',
+                    client_token_key + b": " + replacement,
                     1,
                 )
                 self.assertIn(

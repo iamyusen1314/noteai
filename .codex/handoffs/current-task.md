@@ -2830,3 +2830,42 @@ acceptance boundary is to commit and push this inert V5 closure, pass ordinary
 push/PR CI, and prove exact remote V5 workflow run zero. The main CTO may then
 create exactly one request-only activation under the standing bounded
 delegation without asking the product owner again.
+
+### Inert V5 checkpoint tracked-file hygiene correction (2026-07-31)
+
+- The inert V5 closure was committed as
+  `b503caf5d2774a9a73a215f3229edda1229e5be5` and pushed with the active
+  request still absent. Its ordinary push CI `30604681282` / job
+  `91074418049` and pull-request CI `30604682784` / job `91074422409`
+  both reached Unit tests and failed the same single repository-hygiene
+  assertion after `1297` tests with `28` intentional skips. This was not a
+  V5 cache workflow run: exact V5 workflow-path inventory remained zero, so
+  no cache-run, artifact, download/transfer, builder, ACR or production
+  authority was consumed.
+- The exact failure was
+  `tracked_files_no_obvious_secret_values`: once the previously untracked V5
+  files became tracked, the heuristic scanner interpreted the public control
+  sentinel `BUILDKIT_NO_CLIENT_TOKEN` and one test-only mutation expression as
+  secret values. Local pre-checkpoint full regression could not expose that
+  tracked-file-only transition.
+- The minimal correction does not change the V5 workflow, template, plan
+  verifier, transient verifier, cleanup helper or source fixture, so all six
+  audited V5 hashes remain unchanged. The scanner allowlists only the exact
+  lowercase public sentinel value `buildkit_no_client_token`; it does not
+  allowlist the variable name or arbitrary token-like values. The two
+  mutation tests now construct their keys at runtime. Regression assertions
+  prove a realistic fake value and `unexpected` client-token value are still
+  rejected.
+- The corrected scanner regression passes `1/1`, direct tracked-file hygiene
+  passes, the combined V5 plan/production-gate/internal-readiness modules pass
+  `53/53`, and production readiness passes `118/118`. The complete repository
+  regression passes `1297/1297` with `28` intentional skips in `395.234`
+  seconds. Final syntax, strict-data, diff and V5 run-zero checks remain
+  required before the corrective checkpoint is pushed.
+
+Readiness remains internal `19/29`, public `19/38`, and the latest credited
+item remains `api_f_current_release=VERIFIED`. The sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is a
+single corrective inert checkpoint, ordinary push/PR CI green and exact V5
+workflow run zero; only then may the main CTO create the one request-only V5
+activation under the standing bounded delegation.
