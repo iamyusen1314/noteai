@@ -3085,3 +3085,97 @@ pass its ordinary remote CI with exact V6 run zero, and then the main CTO will
 create the unique single-parent/request-only V6 activation under the standing
 bounded delegation. V2-V5 remain permanently no-rerun, and V6 must not be
 blindly duplicated or rerun.
+
+### V6 unique attempt terminal closure and append-only V7 boundary (2026-07-31)
+
+- The one-shot activation is permanently consumed. Control commit
+  `5770f00d7e5756302d34b5f9159066dc3fd5d36d` has the single direct parent
+  `4455af46c775eb68cff3a7356324bae99263013b` and adds only the regular
+  `100644` request
+  `.github/release-requests/admin-5335bda-dependency-cache-v6.json`.
+  Its request SHA-256 is
+  `e44ea8fa685d7a605d6cf37ec0e389189a804b5790e07ea3edb0bc5b5f176341`
+  and its bytes equal the frozen V6 template after the sole parent
+  placeholder is replaced.
+- GitHub workflow `324291491` has exactly one fully paginated run:
+  `30613707689` / job `91101989637` / run number `1` / attempt `1`,
+  event `push`, terminal `failure`. It started at
+  `2026-07-31T07:41:43Z`; the job ran from `07:41:46Z` through
+  `07:43:14Z`. Rerun count is zero and V6 may never be rerun.
+- Controller checkout, exact request/source resolution, both isolated
+  fixed BuildKit builders and the dependency build/local-cache command
+  passed. The export step then stopped in the hash-pinned V6 verifier with
+  `RAWJSON_VERTEX_CONFLICT` / `FAIL: BuildKit vertex updates conflict`
+  before portability, portable archive generation, final validation,
+  upload or provider confirmation.
+- The retained Secret-free diagnostic binds the original progress to
+  `171396` bytes and SHA-256
+  `e514e5752560f140ed5ddd305f70254df737400e7a58d00d83d8a61cfde9582a`.
+  It observed three nonblank SolveStatus events and accepted two vertex
+  updates before a repeated update for the same digest conflicted on the
+  third candidate. Nonblank/event/status/log/warning/decoded-record counts
+  are processed-prefix counters; role results, unique-digest count, decoded
+  byte totals and package-network result are defaults whose final evaluation
+  was not reached. Original metadata and progress were intentionally removed;
+  the exact repeated digest and whether `name`, `started` or `completed`
+  crossed the limit remain `UNKNOWN_NOT_RETAINED`. No name drift, duplicate
+  role-marker/provenance classification, zero-network, structural-role or
+  cache-result claim is inferred.
+- Fixed BuildKit `v0.31.2` commit
+  `e42e1bfd389af7203238cce77b1f7dad447285e9` and Buildx `v0.35.0` commit
+  `a319e5b15052cf6557ceb666eb8ff6e32380b782` source establish that the same
+  digest legitimately receives incremental updates and multiple lifecycle
+  intervals. V6 instead rejects incremental same-digest updates through a
+  single-value cardinality invariant over name/start/completion. This general
+  implementation-level root cause is determined without selecting or
+  reconstructing the missing dynamic field.
+- Cleanup completed successfully. Both GitHub-hosted ephemeral Buildx builders were
+  removed and proved absent; image/container/volume/network baselines match;
+  the fixed Docker and Buildx roots plus enumerated cleanup-helper diagnostic
+  files are absent; and `cleanup_effective/overall_pass=true`. This does not
+  claim a global `RUNNER_TEMP` inventory or hosted-VM physical destruction.
+  The exact no-newline cleanup receipt derives SHA-256
+  `66150b14b5a1dc05b73125403610c1ab94ec7a4dba9cddd28735b9af612b5194`.
+- Artifact API is exactly `total_count=0`. Upload/provider confirmation,
+  authenticated download, cross-cloud transfer, the conditional new 4C16G
+  AMD64 builder, Admin ACR repository/token/login/push/readback and all
+  production service/database/public-traffic mutations remain zero. The two
+  GitHub-hosted ephemeral Buildx builders are recorded separately. External
+  network reads are known nonzero from checkout and the fixed BuildKit image;
+  the exact count and public base/dependency subset remain unknown.
+- Exact-control-HEAD ordinary push CI `30613707809` / job `91101990101`
+  and pull-request CI `30613710360` / job `91101997460` both completed
+  `success`; each ran `1338/1338` tests with `28` intentional skips and the
+  prior production gate `120/120`. A fully paginated exact-HEAD inventory at
+  `2026-07-31T07:52:37Z` contains exactly those two ordinary runs and the
+  unique V6 run.
+- Added and verified the Secret-free terminal evidence
+  `deploy/production/evidence/admin-dependency-cache-v6-attempt1-failed-20260731.json`,
+  its strict verifier
+  `tools/verify_admin_dependency_cache_v6_failure_evidence.py`, and eight
+  fail-closed tests. Evidence file/semantic/verifier SHA-256 are respectively
+  `d3902b323dd4e214b06c5674098d5c113a3b6571e21c4eb3c7ccfcd42ec16a11`,
+  `15d2f88390985773261ca4b8cd6b921e4b2a28bf2da8191748b3d26a11861f5a`
+  and
+  `a8a37c466a73d25a0d481504890e227a1b9dfb0f3cca964f4e17a846ff27679e`.
+  The full repository passed `1346/1346` with `28` intentional skips in
+  `597.919` seconds before the final fact-wording hardening; all affected
+  evidence/internal/production tests then passed `47/47`. The evidence is
+  integrated into repository production readiness, which passes `121/121`;
+  the deployment score remains truthfully `19/29` internal / `19/38` public.
+  The latest credited item remains
+  `api_f_current_release=VERIFIED`.
+- Files changed in this atomic terminal stage are the V6 evidence, verifier
+  and tests; production readiness gate and tests; internal readiness
+  manifest and exact-evidence-list test; this handoff; and the risk ledger.
+  No workflow, V6 request, frozen V6 verifier, export/import helper, cloud
+  resource or production runtime was modified.
+
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next
+acceptance boundary is an append-only inert V7 that keeps every V6 byte and
+terminal fact frozen, models lifecycle intervals under digest identity
+fail-closed, preserves provenance/decoded-log/cache/cleanup controls, and
+passes local plus ordinary remote CI with V7 workflow/request history/run
+zero. Under the standing bounded delegation, the main CTO will then authorize
+and create exactly one V7 request-only activation without another
+product-owner prompt. V2-V6 are permanently no-rerun.

@@ -555,6 +555,42 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "solvestatus_structural_projection.json"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "4455af46c775eb68cff3a7356324bae99263013b",
+                },
+                {
+                    "kind": "git",
+                    "ref": "5770f00d7e5756302d34b5f9159066dc3fd5d36d",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/release-requests/"
+                        "admin-5335bda-dependency-cache-v6.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "admin-dependency-cache-v6-attempt1-failed-20260731.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_v6_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_v6_failure_evidence.py"
+                    ),
+                },
             ],
         )
         api_c = next(

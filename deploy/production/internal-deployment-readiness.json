@@ -857,9 +857,33 @@
         {
           "kind": "path",
           "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_solvestatus_structural_projection.json"
+        },
+        {
+          "kind": "git",
+          "ref": "4455af46c775eb68cff3a7356324bae99263013b"
+        },
+        {
+          "kind": "git",
+          "ref": "5770f00d7e5756302d34b5f9159066dc3fd5d36d"
+        },
+        {
+          "kind": "path",
+          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v6.json"
+        },
+        {
+          "kind": "path",
+          "ref": "deploy/production/evidence/admin-dependency-cache-v6-attempt1-failed-20260731.json"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_v6_failure_evidence.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_v6_failure_evidence.py"
         }
       ],
-      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2, V3, V4 and V5 are permanently frozen at their unique failed attempt 1 with artifact zero and no rerun; V5 is bound to request-only control commit 58871b0be3427ed643f44bc198c9fe3c87a01600, run 30606218502 and job 91078891364. Its controller, exact request/source checks, both pinned BuildKit builders, provenance/client-token controls and dependency build passed before the frozen flat rawjson parser failed ahead of portability/archive/upload. Buildx source establishes nested SolveStatus records and Base64 VertexLog data, but the removed V5 progress means actual nested runtime names, ids and match counts remain UNKNOWN. V5 cleanup schema v2 proves both builders absent, all four Docker-object baselines restored, task roots and diagnostics absent, and cleanup_effective/overall_pass true. Append-only V6 checkpoint ff6e2d6e3849541f1d204769ea2052f850e783cd is remotely accepted and remains PREPARED_V6_NOT_TRIGGERED with no active request: workflow 65afd81d42dbe16d3b4054aecc10e2c5861c9454cc8ec061c7227056292bb26, template fe34f3b07102478aa6e99e98b0deb399aeb95c0955ebd2ad8ce9ecc1afefd196, core verifier 86d93114e804bf6a51fdb160651d6a20c555f107b88020e0f8d811d0f0d358e5, plan verifier c9b89f85eab789cc967ce70d864a9a71d07526aaf63ef4bb00511ec4776b33d1 and structural source projection 4b7a087c813b82085dd8ccb1255b8e873e834510ee652d12ff9443b72a29dac5. V6 strictly validates original nested SolveStatus identity and structural provenance, lifecycle/platform/completion/cache semantics, strict Base64 including cross-chunk decoded network scanning, original evidence stability, the exact singleton branch/path trigger, and the frozen V2/V3 delegate chain while retaining the frozen V5 transient/cleanup namespace. Local V6 bundle tests pass 14/14, V6 plan mutations pass 19/19, full repository regression passes 1338/1338 with 28 intentional skips, production readiness passes 120/120, and internal/public readiness remains 19/29 / 19/38 because an inert plan and failed attempts add no deployment credit. Python/shell/YAML/JSON/diff/Secret, model-artifact, quality and Docker Compose checks also pass. Exact-HEAD push run 30612580553 / job 91098507401 and pull-request run 30612583077 / job 91098515480 completed success; a fully paginated read at 2026-07-31T07:27:08Z proved exact V6 workflow run count zero, request addition history zero and no remote request. Artifact upload/provider confirmation, authenticated download, cross-cloud transfer, the conditional new 4C16G AMD64 builder, Admin ACR publication and production mutations remain zero in the authorized chain. The next acceptance boundary is checkpointing this Secret-free remote receipt with ordinary CI and V6 run zero, then the main CTO will consume exactly one bounded request-only V6 activation under standing authority without another product-owner prompt.",
+      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V6 are permanently frozen at their unique failed attempt 1 with artifact zero and no rerun. V6 request-only control commit 5770f00d7e5756302d34b5f9159066dc3fd5d36d, run 30613707689 and job 91101989637 passed controller/request/source checks, both fixed BuildKit builders and the dependency build before the V6 verifier failed with RAWJSON_VERTEX_CONFLICT. Fixed BuildKit v0.31.2 and Buildx v0.35.0 source prove that a digest legitimately receives incremental updates and multiple lifecycle intervals, while V6 rejects incremental same-digest updates through a single-value cardinality invariant over name/start/completion. A repeated update for the same digest is proven, but the removed raw progress leaves the exact digest and triggering field UNKNOWN. Nonblank/vertex/status/log/warning/decoded-record values are processed-prefix counters; roles, unique-digest, decoded-byte and package-network values are unreached defaults, not complete runtime results. V6 cleanup schema v2 proves both GitHub-hosted ephemeral Buildx builders removed and absent, all Docker object baselines restored, fixed Docker/Buildx roots and enumerated cleanup-helper diagnostics absent, and cleanup_effective/overall_pass true; it does not claim a global RUNNER_TEMP inventory or hosted-VM physical destruction. Artifact upload/provider confirmation, authenticated download, cross-cloud transfer, the conditional new 4C16G AMD64 builder, Admin ACR publication and all production mutations remain zero in the authorized chain. External reads are known nonzero from checkout and the fixed BuildKit image, while exact count and the public base/dependency subset remain unknown. Exact-control-HEAD ordinary push run 30613707809 and pull-request run 30613710360 both passed 1338 tests with 28 intentional skips and production readiness 120/120. The new V6 terminal evidence gate passes and raises current repository production readiness to 121/121, but internal/public deployment readiness remains 19/29 / 19/38 because no failed cache attempt earns deployment credit. The next acceptance boundary is an append-only inert V7 that preserves V6 byte-exact, models incremental per-digest lifecycle intervals fail-closed, passes local and ordinary remote CI with V7 run zero, and is then uniquely activated by the main CTO under standing bounded authority.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {
