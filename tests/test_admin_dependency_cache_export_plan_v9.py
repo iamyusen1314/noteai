@@ -60,11 +60,20 @@ class AdminDependencyCacheExportPlanV9Tests(unittest.TestCase):
         self._git(root, "commit", "-q", "-m", "base")
         return self._git(root, "rev-parse", "HEAD")
 
-    def test_inert_plan_passes_and_has_zero_request_history(self) -> None:
-        self.assertFalse(plan.ACTIVE_REQUEST_PATH.exists())
-        self.assertEqual(plan._request_additions(), [])
+    def test_exact_plan_passes_before_and_after_activation(self) -> None:
         self.assertEqual(plan.validate_plan(), [])
-        self.assertEqual(plan.plan_state(), "PREPARED_V9_NOT_TRIGGERED")
+        if plan.ACTIVE_REQUEST_PATH.exists():
+            self.assertEqual(
+                plan.plan_state(),
+                "V9_ARMED_OR_TRIGGERED_EXACT",
+            )
+            self.assertEqual(len(plan._request_additions()), 1)
+        else:
+            self.assertEqual(
+                plan.plan_state(),
+                "PREPARED_V9_NOT_TRIGGERED",
+            )
+            self.assertEqual(plan._request_additions(), [])
 
     def test_exact_hash_closure_is_frozen(self) -> None:
         expected = {

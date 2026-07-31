@@ -3721,3 +3721,80 @@ remains `api_f_current_release=VERIFIED`, and the sole task remains
 receipt, require its own ordinary push/PR CI and fully paginated V9 run zero
 while V8 remains run1/rerun0/artifact0, then create exactly one
 single-parent, request-only V9 activation. V2-V8 are permanently no-rerun.
+
+### V9 unique attempt terminal closure and append-only V10 boundary (2026-07-31)
+
+- Inert receipt `c2aebc9bdae9cc26c6c29d994bf55b547349e231` was
+  remotely accepted before exact request-only activation. Control commit
+  `fbe629daad669191d4ea9903ffb488c98055f000` has that receipt as its single
+  direct parent and adds only
+  `.github/release-requests/admin-5335bda-dependency-cache-v9.json`, mode
+  `100644`, SHA-256
+  `57c1506bb6e483e2e9f74e510847e278dbe336869cdc113ecc0230aebabd07d6`.
+- The fully paginated V9 workflow ledger contains exactly workflow
+  `324655362` run `30651679657`, job `91226182660`, run number/attempt
+  `1/1`, terminal `failure`; attempt two is absent and rerun count is zero.
+  V9 is consumed and must never be rerun.
+- Producer build, strict verification and portable core generation passed
+  with `13` files and two archive chunks. The producer diagnostic occurred
+  twice identically: `168894` progress bytes, `81` vertex updates, `18`
+  digests, `35` intervals, `414` logs, `34495` decoded bytes, zero warnings,
+  all three exact roles uncached as expected, and package-network output
+  observed.
+- Fresh-consumer core validation and the import build completed. The full V9
+  parser exercised one digest with mixed omitted/explicit inputs and thereby
+  crossed V8's input-conflict boundary. Its complete import diagnostic binds
+  `62137` progress bytes, `90` updates, `18` digests, `43` intervals and all
+  three exact/completed roles; `meituan_npm_pack` and `runtime_apt` were
+  cached, while `runtime_pip` had cached count zero. The frozen cache predicate
+  failed with `NETWORK_VERTEX_NOT_CACHED` and
+  `FAIL: BuildKit runtime_pip vertex was not cached`.
+- Cacheless replay, portability proof, final bundle validation, upload and
+  provider identity confirmation were not reached. Raw metadata/progress,
+  the role-bound digest and ordered interval details were removed, so the
+  dynamic cause remains `UNKNOWN_NOT_RETAINED`; zero decoded import logs and
+  zero package-network output do not authorize treating the miss as a hit.
+- Cleanup passed: both GitHub-hosted ephemeral builders were removed and
+  absent; image/container/volume/network baseline parity and fixed
+  Docker/Buildx/diagnostic-root absence passed; `cleanup_effective` and
+  `overall_pass` are true. Artifact API count, authenticated download,
+  cross-provider transfer, conditional builder, Admin ACR, database, service,
+  production write and public-traffic mutation counts are zero.
+- Activation-HEAD push CI `30651677386` / job `91226175143` and pull-request
+  CI `30651679124` / job `91226180370` each ran `1459` tests with one failure
+  and `28` skips in `462.291` and `447.442` seconds. The sole failure was the
+  V9 plan test still requiring an absent request after valid activation;
+  quality/readiness/Compose steps were skipped. The history is retained as
+  red. The test now accepts and verifies both exact PREPARED and exact ARMED
+  lifecycle states; its local suite passes `15/15`.
+- Secret-free V9 terminal evidence, strict semantic/hash/Git-chain verifier
+  and mutation tests are integrated with the readiness gates. The evidence
+  suite passes `9/9`; combined evidence/plan/internal readiness tests pass
+  `40/40`, the production readiness suite passes `27/27` in `939.095`
+  seconds, and the repository production gate passes `127/127`. The final
+  full repository suite passes `1468/1468` with `28` skips in `2232.945`
+  seconds on the exact pre-checkpoint source snapshot.
+- Fixed-source review does not claim a V9 historical root cause. In pinned
+  BuildKit commit `e42e1bfd389af7203238cce77b1f7dad447285e9`,
+  `solver/jobs.go::sharedOp.LoadCache` emits cached=true, while
+  `solver/progress.go::vertexStream.append` can also infer an unfinished input
+  as cached when a child starts. The bounded append-only V10 direction
+  therefore keeps the producer graph and all cache requirements frozen and
+  adds a consumer-only, zero-network, deliberately uncached observer child.
+  That child must execute and make `runtime_pip` non-terminal; V10 will still
+  fail if pip is noncached, and will retain canonical role/interval evidence
+  instead of relaxing the predicate.
+
+Files in this terminal atomic stage are the V9 evidence, verifier and tests;
+the production readiness gate and tests; the internal readiness manifest and
+exact evidence-list test; the state-aware V9 plan test; this handoff; and the
+risk ledger. No V9 request/workflow/core/helper, cloud builder, Registry,
+database, service or production runtime is modified.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next commit and push the exact
+ten-file Secret-free terminal checkpoint, require its own
+ordinary push/PR CI to pass while fully paginated V9 history remains
+run1/attempt1/failure/rerun0/artifact0, then commit the four-file terminal
+receipt before append-only V10. V2-V9 are permanently no-rerun.

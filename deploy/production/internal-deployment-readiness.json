@@ -1045,9 +1045,33 @@
         {
           "kind": "git",
           "ref": "590ffc863d7475b5637e644461c7ac7e8612052b"
+        },
+        {
+          "kind": "git",
+          "ref": "c2aebc9bdae9cc26c6c29d994bf55b547349e231"
+        },
+        {
+          "kind": "git",
+          "ref": "fbe629daad669191d4ea9903ffb488c98055f000"
+        },
+        {
+          "kind": "path",
+          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v9.json"
+        },
+        {
+          "kind": "path",
+          "ref": "deploy/production/evidence/admin-dependency-cache-v9-attempt1-failed-20260731.json"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_v9_failure_evidence.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_v9_failure_evidence.py"
         }
       ],
-      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V8 are permanently frozen at their unique failed attempt 1 and must not be rerun. V8 request-only control 354bec3b2d36bfaabc5c3307d49f5dc66255cbbf triggered exactly run 30632611051/job 91162335850/attempt 1, which failed closed at processed import vertex update 43 with RAWJSON_VERTEX_INPUT_CONFLICT after producer verification and fresh-consumer import build; the exact digest, prior/current vectors and transition remain UNKNOWN_NOT_RETAINED. Artifact count, authenticated download, cross-provider transfer, conditional 4C16G builder, Admin ACR publication and every production mutation remain zero; cleanup passed. Secret-free V8 terminal receipt 72f36354471e2d56ea77760d50417bf09b5cd9e1 is remotely accepted. Append-only V9 remains PREPARED_V9_NOT_TRIGGERED: its active request is absent with all-ref addition history zero. Workflow/template/source/core/plan SHA-256 are respectively ece8eb8e9c9d8a8997faa838c87a3a06a407bc3382670bf8f294433982e62f34, ae5114d66eb2aedd4db875b857974b0631caa1a39ad75a16e22ccbaecc424a3b, 3738f1b5bea4490c063cee7749fe39134b0f63005201496ac74aa1d125efb9fd, a69103e899dc74b4d34e4837e29f40284be9b252281fed262a2dd1afee3d6032 and d3d4b32d3a2f98b4311d1576e7c69446b9e95cbd1e92a85b7562fe9a4d7bb0d0. V9 treats only a missing inputs member as nonbinding; explicit empty, null, non-array, oversized, invalid, drifting or reordered vectors fail closed, omission-only remains UNKNOWN, and every frozen V8 location, role, lifecycle, network, cache, archive, trust-chain and cleanup rule remains delegated. Local core 12/12, plan/history 15/15, internal readiness 16/16 and production readiness 27/27 tests pass; the full repository passes 1459/1459 with 28 intentional skips in 2135.126 seconds; the repository production gate passes 126/126; all three final independent read-only audits report P0=0/P1=0/P2=0/P3=0. Secret-free inert V9 checkpoint 590ffc863d7475b5637e644461c7ac7e8612052b has direct parent 72f36354471e2d56ea77760d50417bf09b5cd9e1 and an exact 13-file delta without the active request. Its exact-HEAD push run 30649974618/job 91220550087 passed 1459 tests with 28 intentional skips in 467.799 seconds and production readiness 126/126; pull-request run 30649977007/job 91220557919 passed the same 1459/28 in 336.367 seconds and readiness 126/126. Fully paginated reads at 2026-07-31T17:18:19Z found exactly those two ordinary CI runs for the checkpoint HEAD, V9 workflow run count zero, exactly one V8 run with attempt 1/failure/rerun zero, and V8 artifact count zero. No authenticated download, transfer, conditional builder, Registry, database, service or public-traffic mutation occurred. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and inert engineering evidence earn no deployment credit. The next acceptance boundary is a Secret-free inert-receipt checkpoint whose own ordinary remote CI must pass while V9 remains run zero and V8 remains run1/rerun0/artifact0; then create exactly one single-parent request-only V9 activation.",
+      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V9 are permanently frozen at their unique failed attempt 1 and must not be rerun. V9 request-only control fbe629daad669191d4ea9903ffb488c98055f000 has direct parent c2aebc9bdae9cc26c6c29d994bf55b547349e231 and triggered exactly workflow 324655362 run 30651679657/job 91226182660/attempt 1. Producer build, strict verification and 13-file/two-chunk portable core generation passed. Fresh-consumer core validation and import build completed; full V9 parsing exercised one mixed-present/omitted inputs digest and crossed the V8 conflict, then exact role validation found meituan_npm_pack and runtime_apt cached but runtime_pip completed with cached_count zero, failing NETWORK_VERTEX_NOT_CACHED. Raw metadata/progress, role digest and interval sequence were cleaned, so the dynamic root cause remains UNKNOWN_NOT_RETAINED; cacheless replay, portability proof, final validation and upload were not reached. Artifact/download/transfer/conditional builder/Admin ACR/database/service/public-traffic mutation counts are zero; enumerated cleanup and Docker parity passed. The activation HEAD push CI 30651677386 and PR CI 30651679124 each ran 1459 tests with one failure and 28 skips solely because an inert-only V9 test still required the now-valid active request to be absent; production readiness and later CI steps were skipped. The state-aware terminal evidence closure passes local evidence 9/9, combined 40/40, production readiness 27/27, repository gate 127/127 and full repository 1468/1468 with 28 skips; the terminal checkpoint itself must still pass both ordinary remote CI runs before acceptance. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and engineering evidence earn no deployment credit. The next boundary is a Secret-free single-parent ten-file V9 terminal checkpoint, exact V9 run1/rerun0/artifact0 pagination and green checkpoint CI, followed by a four-file terminal receipt and only then append-only V10.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {
