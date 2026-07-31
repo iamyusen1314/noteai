@@ -116,6 +116,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "exact_5335bda_admin_dependency_cache_v8_attempt1_failed_artifact0"
             ]["passed"]
         )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v9_recovery_plan_fail_closed"
+            ]["passed"]
+        )
 
         with mock.patch.object(
             gate,
@@ -309,6 +314,18 @@ class ProductionReadinessGateTests(unittest.TestCase):
             {item["name"] for item in report["failed_checks"]},
         )
 
+        with mock.patch.object(
+            gate,
+            "validate_admin_dependency_cache_export_plan_v9",
+            return_value=["tampered V9 recovery plan"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_admin_dependency_cache_v9_recovery_plan_fail_closed",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
     def test_v4_gate_detail_reports_armed_state_without_claiming_absence(self):
         with (
             mock.patch.object(
@@ -413,6 +430,46 @@ class ProductionReadinessGateTests(unittest.TestCase):
         ]["detail"]
         self.assertIn("state=V8_ARMED_OR_TRIGGERED_EXACT", detail)
         self.assertNotIn("activation absent", detail)
+
+    def test_v9_gate_detail_reports_armed_state_without_claiming_absence(self):
+        with (
+            mock.patch.object(
+                gate,
+                "validate_admin_dependency_cache_export_plan_v9",
+                return_value=[],
+            ),
+            mock.patch.object(
+                gate,
+                "admin_dependency_cache_plan_state_v9",
+                return_value="V9_ARMED_OR_TRIGGERED_EXACT",
+            ),
+        ):
+            checks = {item["name"]: item for item in gate.check_browserless_vex()}
+
+        detail = checks[
+            "exact_5335bda_admin_dependency_cache_v9_recovery_plan_fail_closed"
+        ]["detail"]
+        self.assertIn("state=V9_ARMED_OR_TRIGGERED_EXACT", detail)
+        self.assertNotIn("activation absent", detail)
+
+    def test_v9_gate_rejects_invalid_or_consumed_state(self):
+        for state in ("INVALID", "V9_CONSUMED_OR_INVALID"):
+            with self.subTest(state=state), mock.patch.object(
+                gate,
+                "validate_admin_dependency_cache_export_plan_v9",
+                return_value=[],
+            ), mock.patch.object(
+                gate,
+                "admin_dependency_cache_plan_state_v9",
+                return_value=state,
+            ):
+                report = gate.build_report()
+            self.assertFalse(report["passed"])
+            failed = {item["name"] for item in report["failed_checks"]}
+            self.assertIn(
+                "exact_5335bda_admin_dependency_cache_v9_recovery_plan_fail_closed",
+                failed,
+            )
 
     def test_api_c_runtime_evidence_is_fail_closed_in_repository_gate(self):
         checks = {

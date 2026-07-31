@@ -787,6 +787,60 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "6961876b35aba5e52fc7e44a59a4881469d0064f",
                 },
+                {
+                    "kind": "git",
+                    "ref": "72f36354471e2d56ea77760d50417bf09b5cd9e1",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v9.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v9.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_export_plan_v9.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_export_plan_v9.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_bundle_v9.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_bundle_verifier_v9.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/fixtures/"
+                        "admin_dependency_cache_buildkit_v0.31.2_"
+                        "vertex_input_omission_projection.json"
+                    ),
+                },
             ],
         )
         api_c = next(

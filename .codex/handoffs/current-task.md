@@ -3604,3 +3604,88 @@ remains `api_f_current_release=VERIFIED`, and the sole task remains
 terminal receipt, require its own ordinary CI to pass while a fully paginated
 ledger remains V8 run1/rerun0/artifact0, then proceed directly to inert V9.
 V2-V8 are permanently no-rerun.
+
+### V8 terminal receipt acceptance and inert V9 local closure (2026-07-31)
+
+- Read-only takeover reconciled branch
+  `codex/quality-stabilization-real-chain` at exact local/upstream HEAD
+  `72f36354471e2d56ea77760d50417bf09b5cd9e1`, ahead/behind `0/0`, with a
+  clean starting worktree. The receipt has single direct parent
+  `6961876b35aba5e52fc7e44a59a4881469d0064f`.
+- Exact receipt-HEAD push CI `30640810703` / job `91189970727` completed
+  `success`, passing `1430/1430` tests with `28` intentional skips in
+  `381.082` seconds and production readiness `125/125`. Pull-request CI
+  `30640814504` / job `91189983479` also completed `success`, passing the
+  same `1430/1430`, `28` skips and readiness `125/125` in `397.407`
+  seconds. A fully paginated read at `2026-07-31T15:05:30Z` retained exactly
+  one V8 run `30632611051`, run number/attempt `1/1`, terminal `failure`,
+  rerun zero and artifact zero.
+- Append-only V9 is installed only as inert local engineering. The active
+  path `.github/release-requests/admin-5335bda-dependency-cache-v9.json`
+  remains absent and its all-ref addition history is zero, so state is
+  `PREPARED_V9_NOT_TRIGGERED`; no V9 workflow run, artifact, authenticated
+  download, transfer, conditional builder, Registry publication, database,
+  service or public-traffic mutation has occurred.
+- The V9 compatibility contract is intentionally narrower than the unknown
+  V8 runtime transition. A missing `inputs` member is nonbinding before and
+  after a binding; the first explicit nonempty ordered digest vector binds;
+  later explicit vectors must be exactly value- and order-identical.
+  Explicit empty, null, non-array, oversized, invalid, drifting or reordered
+  vectors fail closed. Omission-only remains unbound/UNKNOWN and does not
+  prove a leaf or zero inputs. Location, lifecycle, role, decoded-log,
+  network, cache, archive, trust-chain and cleanup semantics remain delegated
+  to the frozen V8 chain.
+- The V9 workflow remains exact-branch/exact-request-path push-only with no
+  dispatch, pull-request, schedule or repository-dispatch trigger. It copies
+  and binds the V2/V3/V6/V7/V8/V9 six-layer verifier chain for producer,
+  fresh-consumer import and final verification, requires a nonzero mixed
+  present/omitted input diagnostic on import, retains the frozen V5 cleanup
+  and transient-state contract, uses the legacy provider artifact protocol,
+  and preserves the one-run, attempt-one, deadline, size, retention, cleanup,
+  cost and no-production-mutation bounds.
+- Final local SHA-256 closure currently is: workflow
+  `ece8eb8e9c9d8a8997faa838c87a3a06a407bc3382670bf8f294433982e62f34`;
+  request template
+  `ae5114d66eb2aedd4db875b857974b0631caa1a39ad75a16e22ccbaecc424a3b`;
+  fixed-source projection
+  `3738f1b5bea4490c063cee7749fe39134b0f63005201496ac74aa1d125efb9fd`;
+  core verifier
+  `a69103e899dc74b4d34e4837e29f40284be9b252281fed262a2dd1afee3d6032`;
+  plan verifier
+  `d3d4b32d3a2f98b4311d1576e7c69446b9e95cbd1e92a85b7562fe9a4d7bb0d0`.
+- Initial independent read-only audits found no P0/P1 and three P2
+  fail-closed gaps. The main CTO serially closed them by guarding the complete
+  V8/V7/V6/V3/V2 module-global keysets, identities and links before patching
+  and after full restoration; freezing activation-time request bytes/mode
+  plus the actual-parent and activation
+  blobs/hashes/modes of workflow/template/source/core, and allowing the
+  repository Gate to pass only `PREPARED_V9_NOT_TRIGGERED` or
+  `V9_ARMED_OR_TRIGGERED_EXACT`. The reproduced forged-summary,
+  activation-repair, executable-mode-repair, INVALID and consumed-state
+  attacks are now negative tests. Core tests pass `12/12`, plan/history tests
+  pass `15/15`, internal-readiness tests pass `16/16`, and the full production
+  readiness suite passes `27/27` in `819.745` seconds. JSON, workflow YAML and
+  diff checks pass, the repository production gate is `126/126`, and the
+  final full repository suite passes `1459/1459` with `28` intentional skips
+  in `2135.126` seconds. Both final independent read-only correction audits
+  report `P0=0 / P1=0 / P2=0 / P3=0`.
+- A third independent read-only release-boundary audit reports the same all-zero
+  severity tally and explicitly accepts checkpointing after verifying the
+  exact 13-file inert delta, request/history zero, six-layer wiring,
+  trigger/deadline/artifact/cleanup/cost/no-production-mutation bounds and
+  unchanged `19/29` credit. Its focused verification passed `43/43`.
+
+Files changed in this local atomic stage are the V9 fixed-source projection,
+core verifier and tests, inert request template, request-only workflow, plan
+verifier and tests; the production readiness gate and tests; the internal
+readiness manifest and exact-evidence-list test; this handoff; and the risk
+ledger. The V9 active request is deliberately not among them.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit/push the Secret-free inert V9
+checkpoint, require its own ordinary push/PR CI and fully paginated V9 run
+zero while V8 remains run1/rerun0/artifact0, then checkpoint and remotely
+accept that receipt under the same zero-run boundary before creating exactly
+one single-parent, request-only V9 activation. V2-V8 are permanently
+no-rerun.

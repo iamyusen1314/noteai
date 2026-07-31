@@ -89,6 +89,12 @@ from verify_admin_dependency_cache_export_plan_v8 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v8 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v8,
 )
+from verify_admin_dependency_cache_export_plan_v9 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v9,
+)
+from verify_admin_dependency_cache_export_plan_v9 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v9,
+)
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
 )
@@ -1745,6 +1751,14 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         validate_admin_dependency_cache_export_plan_v8()
     )
     dependency_cache_plan_state_v8 = admin_dependency_cache_plan_state_v8()
+    admin_dependency_cache_plan_v9_errors = (
+        validate_admin_dependency_cache_export_plan_v9()
+    )
+    dependency_cache_plan_state_v9 = admin_dependency_cache_plan_state_v9()
+    accepted_dependency_cache_plan_states_v9 = {
+        "PREPARED_V9_NOT_TRIGGERED",
+        "V9_ARMED_OR_TRIGGERED_EXACT",
+    }
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -2003,6 +2017,32 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "were not reached, artifact/download/transfer/cloud-builder/Admin "
                 "ACR and production mutations are zero, enumerated cleanup and "
                 "Docker parity are proven, and V8 rerun is forbidden"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v9_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v9_errors
+            and dependency_cache_plan_state_v9
+            in accepted_dependency_cache_plan_states_v9,
+            "; ".join(admin_dependency_cache_plan_v9_errors[:5])
+            if admin_dependency_cache_plan_v9_errors
+            else (
+                f"state={dependency_cache_plan_state_v9} is not an accepted "
+                "V9 control-plane state"
+                if dependency_cache_plan_state_v9
+                not in accepted_dependency_cache_plan_states_v9
+                else (
+                    f"state={dependency_cache_plan_state_v9}; V8 terminal "
+                    "checkpoint/receipt and failure evidence frozen; only an "
+                    "absent inputs member is nonbinding, explicit empty/null/"
+                    "non-array values fail closed, the first nonempty ordered "
+                    "vector binds and later values require an exact ordered "
+                    "match; omission-only remains UNKNOWN and V8 runtime digest/"
+                    "vectors/transition remain UNKNOWN_NOT_RETAINED; V2/V3/V6/"
+                    "V7/V8/V9 verifier chain, V5 transient/cleanup and legacy "
+                    "provider artifact protocol retained; request lifecycle "
+                    "represented by the reported state"
+                )
             ),
         ),
     ]

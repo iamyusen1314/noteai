@@ -1,0 +1,114 @@
+{
+  "schema_version": "noteai.admin-dependency-cache-buildkit-vertex-input-omission-source.v1",
+  "classification": "SOURCE_PROVEN_OMITTED_VERTEX_INPUTS_COMPATIBILITY_CONTRACT_NOT_V8_RUNTIME_EVIDENCE",
+  "actual_v8_runtime_metadata_retained": false,
+  "actual_v8_runtime_progress_retained": false,
+  "actual_v8_conflicting_digest_retained": false,
+  "actual_v8_previous_input_vector_retained": false,
+  "actual_v8_current_input_vector_retained": false,
+  "runtime_conflicting_digest_reconstructed": false,
+  "runtime_prior_input_vector_reconstructed": false,
+  "runtime_current_input_vector_reconstructed": false,
+  "runtime_input_transition_reconstructed": false,
+  "buildkit": {
+    "version": "v0.31.2",
+    "tag_object_sha1": "37aba93910a245e9196ccf67f4afb55f18b39f81",
+    "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+    "sources": [
+      {
+        "path": "solver/jobs.go",
+        "git_blob_sha1": "297222b0535bd3c3eb294ef0dcf8f069c463620f",
+        "lines": "575-593,664-679,1181-1191,1324-1334,1367-1385"
+      },
+      {
+        "path": "solver/progress.go",
+        "git_blob_sha1": "65d1802341d344814db30734206608371cee8f69",
+        "lines": "17-40,81-101,105-132"
+      },
+      {
+        "path": "util/progress/controller/controller.go",
+        "git_blob_sha1": "3d9693d44cd754d3a1d7850600ff3df58d2e4fdc",
+        "lines": "30-70"
+      },
+      {
+        "path": "util/progress/progress.go",
+        "git_blob_sha1": "2c2d517dba0a53424f8d91c93f0238ea78295882",
+        "lines": "14-16,95-115,140-172,241-246"
+      },
+      {
+        "path": "api/services/control/control.proto",
+        "git_blob_sha1": "0c5cdb17e81b0831ddae9b43f394e588f602dece",
+        "lines": "120-136"
+      },
+      {
+        "path": "client/graph.go",
+        "git_blob_sha1": "1000cd78f6202100893dab87300c4ecf22629449",
+        "lines": "10-18"
+      },
+      {
+        "path": "client/status.go",
+        "git_blob_sha1": "92044e72a7c6e8e88756120a63490801b42beb8a",
+        "lines": "18-30,66-81"
+      },
+      {
+        "path": "control/control.go",
+        "git_blob_sha1": "de0f4c931f57551a16cabf910ed7e089a62591ab",
+        "lines": "589-619"
+      }
+    ]
+  },
+  "buildx": {
+    "version": "v0.35.0",
+    "tag_object_sha1": "151a92201622eeb80e19bdd9681af2266772875f",
+    "commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+    "vendored_buildkit_client_version": "v0.31.0",
+    "sources": [
+      {
+        "path": "vendor/github.com/moby/buildkit/client/graph.go",
+        "git_blob_sha1": "1000cd78f6202100893dab87300c4ecf22629449",
+        "lines": "10-18"
+      },
+      {
+        "path": "vendor/github.com/moby/buildkit/client/status.go",
+        "git_blob_sha1": "92044e72a7c6e8e88756120a63490801b42beb8a",
+        "lines": "18-30,66-81"
+      },
+      {
+        "path": "vendor/github.com/moby/buildkit/client/solve.go",
+        "git_blob_sha1": "2285c568ac1a17edb53718ed12ab79983bff7c04",
+        "lines": "369-397"
+      },
+      {
+        "path": "vendor/github.com/moby/buildkit/util/progress/progressui/display.go",
+        "git_blob_sha1": "41d108586e80248af9e09e82ec29719676f73838",
+        "lines": "120-159,280-303"
+      }
+    ]
+  },
+  "source_findings": {
+    "structural_vertex_preserves_ordered_nonempty_inputs": true,
+    "controller_lifecycle_vertex_omits_inputs": true,
+    "zero_input_vertex_omits_inputs_via_json_omitempty": true,
+    "rawjson_is_incremental_vertex_event_stream": true,
+    "progress_collapses_unread_events_by_opaque_progress_id": true,
+    "field_level_vertex_merge_before_rawjson": false,
+    "same_digest_nonempty_and_omission_path_is_source_valid": true,
+    "v8_observed_transition_reconstructed": false
+  },
+  "v9_contract": {
+    "missing_inputs_member_allowed_as_nonbinding": true,
+    "first_explicit_nonempty_ordered_vector_binds": true,
+    "bound_vector_requires_exact_ordered_match": true,
+    "explicit_empty_inputs_member_allowed": false,
+    "explicit_null_inputs_member_allowed": false,
+    "non_array_inputs_member_allowed": false,
+    "over_limit_inputs_member_allowed": false,
+    "invalid_digest_inputs_member_allowed": false,
+    "omission_only_digest_remains_unbound": true,
+    "omission_only_proves_zero_inputs_or_leaf": false,
+    "union_append_last_write_or_ignore_recovery_allowed": false,
+    "original_progress_bytes_and_sha256_preserved": true,
+    "location_role_lifecycle_log_network_cache_archive_and_cleanup_delegated_to_frozen_v8": true,
+    "v8_runtime_input_transition_reconstructed": false
+  }
+}
