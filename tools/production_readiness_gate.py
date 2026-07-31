@@ -95,6 +95,12 @@ from verify_admin_dependency_cache_export_plan_v9 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v9 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v9,
 )
+from verify_admin_dependency_cache_export_plan_v10 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v10,
+)
+from verify_admin_dependency_cache_export_plan_v10 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v10,
+)
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
 )
@@ -1775,6 +1781,14 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         "PREPARED_V9_NOT_TRIGGERED",
         "V9_ARMED_OR_TRIGGERED_EXACT",
     }
+    admin_dependency_cache_plan_v10_errors = (
+        validate_admin_dependency_cache_export_plan_v10()
+    )
+    dependency_cache_plan_state_v10 = admin_dependency_cache_plan_state_v10()
+    accepted_dependency_cache_plan_states_v10 = {
+        "PREPARED_V10_NOT_TRIGGERED",
+        "V10_ARMED_OR_TRIGGERED_EXACT",
+    }
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -2078,6 +2092,32 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "enumerated cleanup and Docker parity are proven, the "
                 "activation-HEAD ordinary CI failure is bound to one stale "
                 "inert-only test, and V9 rerun is forbidden"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v10_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v10_errors
+            and dependency_cache_plan_state_v10
+            in accepted_dependency_cache_plan_states_v10,
+            "; ".join(admin_dependency_cache_plan_v10_errors[:5])
+            if admin_dependency_cache_plan_v10_errors
+            else (
+                f"state={dependency_cache_plan_state_v10} is not an accepted "
+                "V10 control-plane state"
+                if dependency_cache_plan_state_v10
+                not in accepted_dependency_cache_plan_states_v10
+                else (
+                    f"state={dependency_cache_plan_state_v10}; V9 terminal "
+                    "checkpoint/receipt and failure evidence frozen; producer "
+                    "prefix and full replay remain byte-identical, while a "
+                    "consumer-only network-none observer must execute uncached "
+                    "and bind directly to runtime_pip; every dependency role "
+                    "interval must remain uncached on producer and cached on "
+                    "replay, the post-pip cacheless witness must execute "
+                    "uncached, V2/V3/V6/V7/V8/V9/V10 verifier chain and legacy "
+                    "provider protocol are retained, and request lifecycle is "
+                    "represented by the reported state"
+                )
             ),
         ),
     ]

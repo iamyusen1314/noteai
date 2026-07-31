@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-07-31",
+  "as_of_date": "2026-08-01",
   "status_values": [
     "verified",
     "unverified",
@@ -1073,9 +1073,45 @@
         {
           "kind": "path",
           "ref": "tests/test_admin_dependency_cache_v9_failure_evidence.py"
+        },
+        {
+          "kind": "git",
+          "ref": "512638647c5851aa3258cd472da42894110465af"
+        },
+        {
+          "kind": "path",
+          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v10.json"
+        },
+        {
+          "kind": "path",
+          "ref": ".github/workflows/admin-dependency-cache-export-v10.yml"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_export_plan_v10.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_export_plan_v10.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_bundle_v10.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v10.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_cache_observer_projection.json"
+        },
+        {
+          "kind": "path",
+          "ref": "scripts/ci/import_admin_dependency_cache_v10.sh"
         }
       ],
-      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V9 are permanently frozen at their unique failed attempt 1 and must not be rerun. V9 request-only control fbe629daad669191d4ea9903ffb488c98055f000 has direct parent c2aebc9bdae9cc26c6c29d994bf55b547349e231 and triggered exactly workflow 324655362 run 30651679657/job 91226182660/attempt 1. Producer build, strict verification and 13-file/two-chunk portable core generation passed. Fresh-consumer core validation and import build completed; full V9 parsing exercised one mixed-present/omitted inputs digest and crossed the V8 conflict, then exact role validation found meituan_npm_pack and runtime_apt cached but runtime_pip completed with cached_count zero, failing NETWORK_VERTEX_NOT_CACHED. Raw metadata/progress, role digest and interval sequence were cleaned, so the dynamic root cause remains UNKNOWN_NOT_RETAINED; cacheless replay, portability proof, final validation and upload were not reached. Artifact/download/transfer/conditional builder/Admin ACR/database/service/public-traffic mutation counts are zero; enumerated cleanup and Docker parity passed. Secret-free terminal checkpoint 0e35e7dca22064402f8a7b569c6b966e4c6ec1a3 has single parent fbe629daad669191d4ea9903ffb488c98055f000 and exact ten-file scope. Its push CI 30657325032/job 91244859680 and pull-request CI 30657329972/job 91244875610 both passed 1468/1468 tests with 28 skips and repository gate 127/127; fully paginated V9 history remains exactly run 1/attempt 1/failure, attempt two absent, rerun zero and artifact zero. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and engineering evidence earn no deployment credit. The next boundary is a Secret-free four-file terminal receipt with its own green ordinary CI and unchanged V9 ledger, followed immediately by append-only inert V10.",
+          "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V9 are permanently frozen at their unique failed attempt 1 and must not be rerun. V9 request-only control fbe629daad669191d4ea9903ffb488c98055f000 has direct parent c2aebc9bdae9cc26c6c29d994bf55b547349e231 and triggered exactly workflow 324655362 run 30651679657/job 91226182660/attempt 1. Producer build, strict verification and 13-file/two-chunk portable core generation passed. Fresh-consumer core validation and import build completed; full V9 parsing exercised one mixed-present/omitted inputs digest and crossed the V8 conflict, then exact role validation found meituan_npm_pack and runtime_apt cached but runtime_pip completed with cached_count zero, failing NETWORK_VERTEX_NOT_CACHED. Raw metadata/progress, role digest and interval sequence were cleaned, so the dynamic root cause remains UNKNOWN_NOT_RETAINED; cacheless replay, portability proof, final validation and upload were not reached. Artifact/download/transfer/conditional builder/Admin ACR/database/service/public-traffic mutation counts are zero; enumerated cleanup and Docker parity passed. Secret-free terminal checkpoint 0e35e7dca22064402f8a7b569c6b966e4c6ec1a3 and terminal receipt 512638647c5851aa3258cd472da42894110465af are remotely accepted. Receipt push CI 30658134722/job 91247556880 and pull-request CI 30658136947/job 91247564136 both passed 1468/1468 tests with 28 skips and repository gate 127/127; fully paginated V9 history remains exactly run 1/attempt 1/failure, attempt two absent, rerun zero and artifact zero. Append-only V10 is inert and fail-closed: its active request is absent, producer prefix/full replay are byte-frozen, and only a consumer-side network-none observer child is added to prove runtime_pip is nonterminal while all producer/replay cache predicates remain strict. Frozen local acceptance passed focused plan/bundle 70/70, internal readiness 16/16, production readiness 29/29 in 1342.428 seconds, repository gate 128/128, and the full repository suite 1513/1513 with 28 skips in 2730.589 seconds; three independent read-only audits report P0/P1/P2/P3 zero. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and engineering evidence earn no deployment credit. The next boundary is remote acceptance of the exact Secret-free inert V10 checkpoint and receipt with V10 run zero and the V9 ledger unchanged, followed by exactly one single-parent request-only V10 activation.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

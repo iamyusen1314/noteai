@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-07-31 (Asia/Shanghai)
+> Updated: 2026-08-01 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -3831,3 +3831,81 @@ remains `api_f_current_release=VERIFIED`, and the sole task remains
 Secret-free terminal receipt, require its own ordinary push/PR CI while V9
 remains run1/attempt1/failure/rerun0/artifact0, then proceed directly to
 append-only inert V10. V2-V9 are permanently no-rerun.
+
+### V9 terminal receipt remote acceptance and inert V10 local closure (2026-08-01)
+
+- Secret-free V9 terminal receipt
+  `512638647c5851aa3258cd472da42894110465af` is pushed with single direct
+  parent `0e35e7dca22064402f8a7b569c6b966e4c6ec1a3` and exact four-file scope.
+  Its push CI `30658134722` / job `91247556880` completed `success` with
+  `1468/1468` tests, `28` intentional skips, `486.917` seconds and production
+  gate `127/127`. Pull-request CI `30658136947` / job `91247564136` also
+  completed `success` with `1468/1468`, `28` skips, `450.453` seconds and
+  production gate `127/127`.
+- Fully paginated readback retained exactly one V9 workflow run:
+  `30651679657` / job `91226182660`, run number/attempt `1/1`, terminal
+  `failure`. Attempt two is absent, rerun count and artifact count remain
+  zero. No authenticated download, transfer, conditional cloud builder,
+  Admin ACR, database, service, production write or public-traffic mutation
+  occurred.
+- Append-only V10 is locally `PREPARED_V10_NOT_TRIGGERED`: the active request
+  is absent and all-ref addition history is zero. The producer Dockerfile
+  prefix, producer build projection and original full replay are frozen;
+  only the fresh consumer derives target `noteai-cache-observer`, whose
+  `RUN --network=none` must execute uncached with the exact marker and direct
+  `runtime_pip` parent. Producer role intervals must all remain uncached,
+  imported-replay role intervals must all remain cached, and the cacheless
+  post-pip witness must execute uncached. No predicate, no-cache filter,
+  GitHub provenance injection, credential behavior or production authority
+  was relaxed.
+- Frozen V10 SHA-256 values are workflow
+  `fd9570833c35aa3fc0d8632d26d68cca9ef33e960c26c4f4410eaaa6f7572d96`,
+  template
+  `2ac7f6ed83be057ffc79ca349888e8691d9324f3474942fe65571055e59c8bcc`,
+  import helper
+  `d8388ff776290b05aa699f3a09363fc2087c3b8bd5ada23b556d6cb14953b85f`,
+  source projection
+  `f743084bb704d0fd6858510d81ebe6479ac0c6baae982b353715c328bc6fcd27`,
+  bundle verifier
+  `77c2410406448998c81d09b04d93d12db1cb3a4a032a0b78d9fc25626014758f`
+  and plan verifier
+  `6e89496a983151a953560083c7c327d7c98847f77ed09cb027755f8f1d65c136`.
+- After the fail-closed, frozen-origin, mode-matrix, nested-dispatch and final
+  control-history repairs, the V10 plan reports
+  `PREPARED_V10_NOT_TRIGGERED` and the V10/V9 focused plan/bundle regression
+  passes `70/70`. The remote controller now uses the same merge-aware,
+  deduplicated all-ref request-addition rule as the local verifier, freezes
+  its five runtime files at one common regular-file addition anchor through
+  activation, and rejects any post-receipt touch to the same explicit
+  recursive 70-path V2-V9 authority union as the local verifier. Before any
+  resource creation, a fixed lifecycle-wide concurrency group and a bounded,
+  paginated Actions-read ledger require the entire V10 workflow history to
+  contain exactly the current run ID, SHA, branch, push event and attempt one;
+  zero visibility is polled only within 60 seconds and duplicate runs fail
+  immediately. The local verifier also rejects symlink/mode substitution,
+  broken links, FIFO reads and non-single-parent frozen anchors. Three
+  independent read-only audits of the core, workflow/plan and control plane
+  all report P0/P1/P2/P3 zero. They independently replayed the producer,
+  observer and full projections, exercised the Actions ledger state machine,
+  and rechecked the exact frozen hashes and 14-file scope without modifying
+  project files.
+- Final frozen-snapshot validation passed: V10/V9 focused plan/bundle
+  `70/70` in `26.648` seconds; internal readiness `16/16`; production
+  readiness `29/29` in `1342.428` seconds; repository production gate
+  `128/128`; and the full repository suite `1513/1513` with `28` intentional
+  skips in `2730.589` seconds. The independent control-plane integration run
+  also passed `45/45` in `1349.927` seconds. These test counts do not create
+  deployment credit.
+
+Files in this inert atomic stage are exactly eight new V10 workflow/template/
+source/helper/verifiers/tests plus the production gate and tests, internal
+readiness manifest and exact-evidence-list test, this Secret-free handoff and
+risk ledger. The V10 active request is deliberately absent. Internal/public
+readiness remains `19/29` / `19/38`; the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Local regression and independent
+read-only audits are complete; commit/push the exact 14-file inert V10
+checkpoint. Require its own ordinary push/PR CI and fully paginated V10 run
+zero with the V9 ledger unchanged, then commit and remotely accept a
+Secret-free inert receipt before creating exactly one single-parent,
+request-only V10 activation. V2-V9 are permanently no-rerun.

@@ -885,6 +885,64 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_v9_failure_evidence.py"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "512638647c5851aa3258cd472da42894110465af",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v10.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v10.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_export_plan_v10.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_export_plan_v10.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_bundle_v10.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_bundle_verifier_v10.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/fixtures/"
+                        "admin_dependency_cache_buildkit_v0.31.2_"
+                        "cache_observer_projection.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "scripts/ci/import_admin_dependency_cache_v10.sh",
+                },
             ],
         )
         api_c = next(

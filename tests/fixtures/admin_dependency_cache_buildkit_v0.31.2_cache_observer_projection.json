@@ -1,0 +1,86 @@
+{
+  "classification": "SOURCE_PROVEN_CACHE_OBSERVER_CHILD_CONTRACT_NOT_V9_RUNTIME_EVIDENCE",
+  "actual_v9_runtime_metadata_retained": false,
+  "actual_v9_runtime_progress_retained": false,
+  "actual_v9_runtime_role_digest_retained": false,
+  "runtime_v9_cache_miss_cause_reconstructed": false,
+  "historical_v9_root_cause_status": "UNKNOWN_NOT_RETAINED",
+  "buildkit": {
+    "repository": "moby/buildkit",
+    "version": "v0.31.2",
+    "tag_object_sha1": "37aba93910a245e9196ccf67f4afb55f18b39f81",
+    "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+    "sources": [
+      {
+        "path": "client/graph.go",
+        "git_blob_sha1": "1000cd78f6202100893dab87300c4ecf22629449",
+        "sha256": "febc7bd7687fd25c5ef63760f1ffa7eec59f393a533015e721363aa7858cc067",
+        "lines": "10-18",
+        "contract": "a progress vertex carries the ordered input digest vector emitted by the solver"
+      },
+      {
+        "path": "solver/progress.go",
+        "git_blob_sha1": "65d1802341d344814db30734206608371cee8f69",
+        "sha256": "97487123375b30c76fd7d6e952e95e07f03949c671f65d7aee4a06a4b36e077d",
+        "lines": "17-40,81-101,105-132",
+        "contract": "child start may cause unfinished input lifecycle state to be projected as cached"
+      },
+      {
+        "path": "solver/jobs.go",
+        "git_blob_sha1": "297222b0535bd3c3eb294ef0dcf8f069c463620f",
+        "sha256": "80e80c85312f0c55a6beb0937669254d4320140478046a1c6f872135fee06561",
+        "lines": "575-593,664-679,1181-1191,1324-1334,1367-1385",
+        "contract": "a cache hit completes the shared operation vertex with cached true"
+      },
+      {
+        "path": "solver/llbsolver/provenance/buildconfig.go",
+        "git_blob_sha1": "7e92990c88f2a31ac4c3f4d9807e199745da03d5",
+        "sha256": "31fb4454bf21b3d38e76038fc2b19e5064117d4a06387233fe91ccba9f55e67e",
+        "lines": "14-75,77-152",
+        "contract": "LLB inputs are serialized as ordered stepN:index parents and digests map to exact step ids"
+      },
+      {
+        "path": "solver/pb/ops.proto",
+        "git_blob_sha1": "c58fc6126f04005ceb08711ab8fe71d17b050fb3",
+        "sha256": "309d9735d15cd945372a0dade3672cea19f94b61b6d0c05cf22856c608ff2a9c",
+        "lines": "19-52,82-86",
+        "contract": "ExecOp network NONE is enum value 2 and is distinct from sandbox UNSET and HOST"
+      }
+    ]
+  },
+  "v10_contract": {
+    "producer_dependency_prefix_bytes_unchanged": true,
+    "producer_target_runtime_common_unchanged": true,
+    "producer_cache_contains_observer": false,
+    "consumer_only_observer_required": true,
+    "observer_direct_parent_runtime_pip_required": true,
+    "observer_network_none_enum_required": 2,
+    "observer_completed_uncached_required": true,
+    "observer_decoded_log_marker_exact_once_required": true,
+    "dependency_cache_predicate_relaxed": false,
+    "runtime_pip_cached_false_accepted": false,
+    "full_replay_dockerfile_or_target_changed": false,
+    "full_replay_post_pip_line_93_witness_required": true,
+    "v9_dynamic_root_cause_reconstructed": false
+  },
+  "observer_dockerfile": {
+    "base_prefix_line_count": 80,
+    "base_prefix_sha256": "93fd024e5af678b7885bcab8e72d980a9f92cfc70de4f2fd2870284e25b8ec1e",
+    "suffix_bytes": 105,
+    "suffix_sha256": "7cdfa59482f73d3274bc6080468671aeb42f5e45f5b6c868d52f13e8ee7c5266",
+    "derived_bytes": 5062,
+    "derived_line_count": 83,
+    "derived_sha256": "8a2692fb460557e0159bc9e000364b515ce80aaf08eeeb186bf4930ce6357068",
+    "target": "noteai-cache-observer",
+    "run_start_line": 83,
+    "decoded_stdout": "noteai-cache-observer-v10\n"
+  },
+  "full_replay": {
+    "dockerfile_sha256": "ed6282c422dde6e49c33da877bccf735dfbb19e29a834930fb2a1a52ef21b447",
+    "target": "runtime-common",
+    "cache_from_local": false,
+    "external_cache_removed_before_replay": true,
+    "post_runtime_pip_witness_start_line": 93,
+    "post_runtime_pip_witness_completed_uncached_required": true
+  }
+}
