@@ -2496,16 +2496,24 @@ that checkpoint. No pre-fix request SHA may be reused.
   Secret-pattern scan and V3 zero-addition checks pass. The final bounded
   read-only technical re-audit closed M1/M2/L1/L2 at
   `Critical 0 / High 0 / Medium 0 / Low 0`.
+- The inert V3 core checkpoint is
+  `8434da99b70b3623d619d0fafdac893a97e7b0e3`. GitHub ordinary push CI
+  `30595340831` and pull-request CI `30595343141` both completed
+  successfully. A fresh Actions API query filtered to
+  `.github/workflows/admin-dependency-cache-export-v3.yml` returned an empty
+  run list. The core checkpoint therefore installed the request-only
+  controller without consuming a V3 run, creating an artifact or activating
+  download/transfer/builder/ACR authority.
 - The readiness manifest now includes the exact V2 failure receipt and inert
   V3 recovery controls. Production readiness passes `114/114`; internal
   readiness remains fail-closed `19/29=66%` and complete-public readiness
   remains `19/38=50%`. The most recent credited control remains
   `api_f_current_release=VERIFIED`.
 
-The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next
-acceptance boundary is a committed inert V3 checkpoint with green ordinary
-remote CI and zero V3 cache runs, followed by new explicit authority for
-exactly one V3 GitHub run. Only a successful nonzero provider artifact,
+The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The inert V3
+checkpoint, ordinary remote CI and zero-run acceptance are complete. The next
+acceptance boundary is new explicit authority for exactly one V3 GitHub run.
+Only a successful nonzero provider artifact,
 fresh-consumer portability, complete cleanup, authenticated bounded
 download/transfer and target-side revalidation can activate the conditional
 builder path; Admin build/scan/private publication/runtime acceptance and

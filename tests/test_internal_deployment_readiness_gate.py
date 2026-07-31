@@ -84,6 +84,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "ref": "e7039a3fe73b539325593cf1ba78dcd4a9949910",
                 },
                 {
+                    "kind": "git",
+                    "ref": "8434da99b70b3623d619d0fafdac893a97e7b0e3",
+                },
+                {
                     "kind": "path",
                     "ref": (
                         "security/vex/"
