@@ -4026,3 +4026,33 @@ run1/attempt1/failure/rerun0/artifact0 and V9 is unchanged, then commit the
 exact four-file terminal receipt. Continue directly to append-only V11 with a
 producer export-anchor and distinct consumer observer; V2-V10 are permanently
 no-rerun.
+
+### V10 terminal checkpoint synthetic-merge test isolation correction (2026-08-01)
+
+- Terminal checkpoint `8c8567b99541f1f260d988754daa88f97f00f68e`
+  has direct parent `ea2a3b489e74b21a88ea21ecd243cd6a433c7fac`
+  and the exact twelve-path delta described above. Its push CI
+  `30678246254` / job `91309786181` passed `1525/1525` tests with `28`
+  intentional skips in `591.848` seconds and production gate `129/129`.
+- Pull-request CI `30678248247` / job `91309792275` checked out synthetic
+  merge `d3bbb785aeb3bf11eac5ed1303a582240c415fa3`, whose parents are main
+  `5afc1717f09618de7ed7a191133a087d83317e39` and checkpoint `8c8567b…f68e`
+  and whose tree equals the checkpoint tree. Its sole error after `1525`
+  tests and `28` skips was a test-only `KeyError`: the parent-drift mutation
+  test mocked `_commit_parents` with a finite map but did not isolate
+  `_true_additions`, so the real synthetic merge candidate reached that map.
+  The verifier itself had already accepted the synthetic merge, and no cache,
+  evidence, billing or production predicate failed.
+- The corrective test now mocks `_true_additions` to the already-covered
+  valid control origin while mutating only the controller parent under test.
+  Independent tests continue to cover synthetic merges, merge-only real
+  additions, descendant side-branch changes and tamper/revert histories.
+  The V10 failure-evidence suite passes `9/9`; no verifier or production code
+  is changed.
+
+The corrective atomic delta is exactly four paths: the one test plus this
+handoff, the readiness manifest and the risk ledger. Commit it without amend
+or rerun, require its own ordinary push/PR CI to pass, then fully paginate the
+V9/V10 ledgers and create the exact four-file terminal receipt. Readiness
+remains `19/29` internal / `19/38` public and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`; V2-V10 are permanently no-rerun.

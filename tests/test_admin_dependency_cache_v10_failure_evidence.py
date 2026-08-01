@@ -155,6 +155,10 @@ class AdminDependencyCacheV10FailureEvidenceTests(unittest.TestCase):
                     ],
                 }[commit]
             ),
+        ), mock.patch.object(
+            verifier,
+            "_true_additions",
+            return_value=[verifier.CONTROL_COMMIT],
         ):
             self.assertIn(
                 "V10 controller parent binding changed",
