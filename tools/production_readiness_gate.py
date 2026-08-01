@@ -102,7 +102,7 @@ from verify_admin_dependency_cache_export_plan_v10 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v10,
 )
 from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
-    plan_state as admin_dependency_cache_plan_state_v12,
+    effective_plan_state as admin_dependency_cache_plan_state_v12,
 )
 from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v12,

@@ -238,12 +238,16 @@ class AdminDependencyCacheExportPlanV12Tests(unittest.TestCase):
         terminal_checkpoint = plan.v12_failure.terminal_checkpoint()
         if terminal_checkpoint is not None:
             self.assertIn(
-                plan.plan_state(),
+                plan.effective_plan_state(),
                 {
                     "V12_TRIGGERED_ATTEMPT1_FAILED_"
                     "TERMINAL_SUPERSESSION_EXACT",
                     "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
                 },
+            )
+            self.assertEqual(
+                plan.plan_state(),
+                "V12_ARMED_OR_TRIGGERED_EXACT",
             )
             self.assertEqual(
                 plan.v11_untriggered_supersession_state(),
@@ -276,6 +280,21 @@ class AdminDependencyCacheExportPlanV12Tests(unittest.TestCase):
             ),
         ):
             self.assertIn("terminal evidence drift", plan.validate_plan())
+
+    def test_effective_terminal_state_preserves_legacy_activation_api(self) -> None:
+        terminal = (
+            "V12_TRIGGERED_ATTEMPT1_FAILED_"
+            "TERMINAL_SUPERSESSION_EXACT"
+        )
+        with mock.patch.object(
+            plan,
+            "effective_plan_state",
+            return_value=terminal,
+        ):
+            self.assertEqual(
+                plan.plan_state(),
+                "V12_ARMED_OR_TRIGGERED_EXACT",
+            )
 
     def test_v11_supersession_state_fails_closed(self) -> None:
         with mock.patch.object(

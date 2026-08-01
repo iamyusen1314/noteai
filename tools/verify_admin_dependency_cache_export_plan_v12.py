@@ -1336,7 +1336,7 @@ def classify_plan_state(
     return "PREPARED_V12_NOT_TRIGGERED"
 
 
-def plan_state() -> str:
+def effective_plan_state() -> str:
     try:
         if v12_failure.terminal_checkpoint() is not None:
             return v12_failure.terminal_state()
@@ -1374,6 +1374,22 @@ def plan_state() -> str:
         active_git_errors=git_errors,
         additions=additions,
     )
+
+
+def plan_state() -> str:
+    """Return the legacy request-activation lifecycle state.
+
+    Frozen V11 consumers predate V12 execution-terminal states.  Preserve
+    their public activation view while exposing the authoritative release
+    outcome through ``effective_plan_state``.
+    """
+    state = effective_plan_state()
+    if state in {
+        "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+        "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
+    }:
+        return "V12_ARMED_OR_TRIGGERED_EXACT"
+    return state
 
 
 def _require(condition: bool, message: str) -> None:
@@ -1949,7 +1965,10 @@ def main() -> int:
         for error in errors:
             print(f"FAIL: {error}")
         return 1
-    print(f"admin_dependency_cache_export_plan_v12=PASS state={plan_state()}")
+    print(
+        "admin_dependency_cache_export_plan_v12=PASS "
+        f"state={effective_plan_state()}"
+    )
     return 0
 
 

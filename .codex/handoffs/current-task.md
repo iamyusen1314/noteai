@@ -4178,6 +4178,33 @@ Internal/public readiness remains `19/29` / `19/38`, the latest credited item
 remains `api_f_current_release=VERIFIED`, and the sole task remains
 `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
 
+### V12 layered-state ordinary-CI correction candidate (2026-08-01)
+
+- The exact-four direct child `37c3b3fdc24ad90ff6135a7f1e254f92062470b3`
+  records efef713's ordinary-CI
+  compatibility failure and is the structural V12 terminal receipt. It
+  changes only the handoff, risk ledger, readiness manifest and internal
+  readiness test; all V12 terminal authorities and runtime files remain
+  byte-identical.
+- The correction does not edit the frozen V11 test. V12 `plan_state()` now
+  deliberately remains the backward-compatible request-activation view and
+  returns `V12_ARMED_OR_TRIGGERED_EXACT` for the retained exact request.
+  New `effective_plan_state()` returns the authoritative terminal execution
+  outcome. The V12 command-line verifier and production readiness gate use
+  the effective state; frozen V11 callers continue using the legacy state.
+  Invalid evidence or Git state remains `INVALID` in both views.
+- The changed implementation surface is limited to the V12 plan verifier,
+  its test and the production gate. Together with the four required ledgers,
+  this correction candidate is an exact seven-file descendant after the
+  receipt. It adds no dependency, permission, trigger, runtime action or
+  readiness credit.
+
+Before acceptance, require normal/optimized V12 terminal and plan verifiers,
+the V11/V12/failure/readiness focused suites, repository gate `132/132`, then
+new exact-HEAD ordinary push and PR CI. Do not rerun efef713, its failed CI or
+the V12 workflow. Readiness remains `19/29` / `19/38`; the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
 ### V11 remote acceptance, deterministic ledger defect and append-only V12 (2026-08-01)
 
 - Read-only takeover reconciled branch
