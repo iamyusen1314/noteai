@@ -1247,6 +1247,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "path",
                     "ref": "tests/test_admin_dependency_cache_export_plan_v15.py",
                 },
+                {
+                    "kind": "git",
+                    "ref": "90f9606d6eb860572814cc3ccc0731fb9d366a5a",
+                },
             ],
         )
         self.assertNotIn(
@@ -1319,11 +1323,15 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             admin["blocker"],
         )
         self.assertIn("V14 must never activate", admin["blocker"])
-        self.assertIn("append-only V15 successor", admin["blocker"])
         self.assertIn("1ca885d61c48f3cfdb4e99eeedc6fb9f17238bb4", admin["blocker"])
-        self.assertIn("exact-eleven staged candidate", admin["blocker"])
-        self.assertIn("PREPARED_V15_NOT_TRIGGERED", admin["blocker"])
-        self.assertIn("C15 exact-HEAD push/PR CI", admin["blocker"])
+        self.assertIn("90f9606d6eb860572814cc3ccc0731fb9d366a5a", admin["blocker"])
+        self.assertIn("30709036776", admin["blocker"])
+        self.assertIn("91393091573", admin["blocker"])
+        self.assertIn("30709038582", admin["blocker"])
+        self.assertIn("91393095974", admin["blocker"])
+        self.assertIn("1682 tests", admin["blocker"])
+        self.assertIn("482/482/482", admin["blocker"])
+        self.assertIn("R15's own exact-HEAD push/PR CI", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
         api_c = next(

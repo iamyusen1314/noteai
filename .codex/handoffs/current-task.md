@@ -4689,3 +4689,42 @@ and passed the repository production gate `133/133`; the clone was moved to
 Trash after the check. Commit and push C15 once, then require its own
 exact-HEAD push/PR CI and fresh V11/V12/V13/V14/V15 ledger reconciliation.
 No C14, V12, V13 or V14 workflow rerun is permitted.
+
+### V15 inert checkpoint remote acceptance and R15 receipt (2026-08-02)
+
+- C15 `90f9606d6eb860572814cc3ccc0731fb9d366a5a` is the exact eleven-file,
+  all-`100644`, direct child of R14
+  `1ca885d61c48f3cfdb4e99eeedc6fb9f17238bb4`. Its active V15 request is
+  absent and its V15 workflow-path run count is zero.
+- Exact-HEAD push CI `30709036776` / job `91393091573` completed attempt one
+  `success`. Ambient regression passed `1659/1659` with `28` skips in
+  `1137.047s`; V13 passed `10/10` with ambient context plus the isolated
+  temporary-Git test `1/1`; detached exact-C14 V14 passed `12/12`. Quality,
+  production readiness `133/133` and Docker Compose all passed.
+- Exact-HEAD pull-request CI `30709038582` / job `91393095974` also completed
+  attempt one `success`. Ambient regression passed `1659/1659` with `28`
+  skips in `1076.818s`; V13 passed `10/10 + 1/1`, detached exact-C14 V14
+  passed `12/12`, and Quality, production readiness `133/133` and Docker
+  Compose all passed. Each ordinary run therefore executed `1682` tests.
+- Fresh no-cache pagination observed five pages and
+  `482/482/482` advertised/fetched/unique Actions records. C15 has exactly
+  those two ordinary attempt-one success records. Repository workflow-path
+  counts remain V11 `0`, V12 `1`, V13 `0`, V14 `0`, V15 `0`; V12 remains
+  exactly run `30696298423`, attempt one, failure, unique job
+  `91359681758` and artifact zero.
+
+This exact-four Secret-free descendant records the accepted inert checkpoint
+without changing any of its seven non-receipt authorities. It adds no
+readiness credit and creates no V15 request, external cache run, builder,
+artifact, download, transfer, ACR publication, deployment, database/service
+write or public traffic. Internal/public readiness remains `19/29` / `19/38`,
+the latest credited item remains `api_f_current_release=VERIFIED`, and the
+sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. A disposable clone
+committed these exact four paths over C15, reported
+`PREPARED_V15_NOT_TRIGGERED` and passed production readiness `133/133`; it
+was moved to Trash after validation. Commit and push only this exact-four R15
+receipt and require its own exact-HEAD push/PR CI plus a fresh unchanged
+ledger. After R15 remote acceptance, the sole next write is the exact-one V15
+request; creating it and consuming the unique external cache-export run
+require new explicit user authorization. No historical checkpoint, receipt
+or workflow may be rerun.
