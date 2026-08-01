@@ -329,6 +329,72 @@ def _git(*args: str) -> str:
     return _git_at(ROOT, *args)
 
 
+def _commit_parents(root: Path, commit: str) -> list[str]:
+    record = _git_at(
+        root,
+        "rev-list",
+        "--parents",
+        "-n",
+        "1",
+        commit,
+    ).split()
+    if not record or record[0] != commit:
+        raise ValueError(f"cannot resolve commit parents: {commit}")
+    return record[1:]
+
+
+def _tree_entry(root: Path, commit: str, relative: Path) -> str:
+    return _git_at(root, "ls-tree", commit, "--", relative.as_posix())
+
+
+def _lineage_path_changes(
+    *,
+    root: Path,
+    anchor: str,
+    paths: tuple[Path, ...],
+    head: str = "HEAD",
+) -> list[str]:
+    """Return real path changes on the anchor lineage, including merged sides.
+
+    GitHub pull-request CI checks out a synthetic merge whose other parent may
+    predate the append-only anchor.  Comparing that merge to every parent (as
+    ``git log -m`` does) reports false additions.  Only parents descended from
+    the anchor are authoritative lineage parents; comparing against every such
+    parent still rejects side-branch changes and change-then-revert histories.
+    """
+
+    output = _git_at(
+        root,
+        "rev-list",
+        "--ancestry-path",
+        "--parents",
+        f"{anchor}..{head}",
+    )
+    records = [line.split() for line in output.splitlines() if line]
+    lineage = {anchor, *(record[0] for record in records)}
+    changes: list[str] = []
+    path_names = tuple(path.as_posix() for path in paths)
+    for record in records:
+        commit, parents = record[0], record[1:]
+        for parent in (parent for parent in parents if parent in lineage):
+            changed = _git_at(
+                root,
+                "diff-tree",
+                "--no-commit-id",
+                "--no-renames",
+                "--name-only",
+                "-r",
+                parent,
+                commit,
+                "--",
+                *path_names,
+            )
+            if changed:
+                changes.append(commit)
+                break
+    return changes
+
+
 def _strict_json(value: bytes) -> Any:
     return v9_plan._strict_json(value)
 
@@ -357,7 +423,13 @@ def _request_additions(
     )
     additions: list[str] = []
     for line in output.splitlines():
-        if line and line not in additions:
+        if not line or line in additions:
+            continue
+        parents = _commit_parents(root, line)
+        current_entry = _tree_entry(root, line, relative)
+        if current_entry and all(
+            not _tree_entry(root, parent, relative) for parent in parents
+        ):
             additions.append(line)
     return additions
 
@@ -378,20 +450,14 @@ def _validate_legacy_frozen_history(
             stderr=subprocess.PIPE,
         ).returncode != 0:
             return ["V9 terminal receipt is not an ancestor"]
-        history = _git_at(
-            root,
-            "log",
-            "--full-history",
-            "-m",
-            "--no-renames",
-            "--format=%H",
-            f"{anchor}..HEAD",
-            "--",
-            *(path.as_posix() for path in frozen_paths),
+        history = _lineage_path_changes(
+            root=root,
+            anchor=anchor,
+            paths=frozen_paths,
         )
         if history:
             errors.append("V2-V9 frozen authority changed after terminal receipt")
-    except (OSError, subprocess.CalledProcessError) as exc:
+    except (OSError, subprocess.CalledProcessError, ValueError) as exc:
         errors.append(f"cannot verify V2-V9 frozen history: {exc}")
     return errors
 
@@ -565,15 +631,10 @@ def _validate_active_request(
         if activation_bytes != request_bytes:
             errors.append("V10 request activation bytes differ from reviewed request")
 
-        request_history = _git_at(
-            root,
-            "log",
-            "--full-history",
-            "-m",
-            "--format=%H",
-            f"{activation}..HEAD",
-            "--",
-            str(relative),
+        request_history = _lineage_path_changes(
+            root=root,
+            anchor=activation,
+            paths=(relative,),
         )
         if request_history:
             errors.append("V10 request changed after activation")
@@ -660,16 +721,10 @@ def _validate_active_request(
                     f"the controller parent: {frozen_relative}"
                 )
                 continue
-            frozen_history_from_anchor = _git_at(
-                root,
-                "log",
-                "--full-history",
-                "-m",
-                "--no-renames",
-                "--format=%H",
-                f"{frozen_anchor}..HEAD",
-                "--",
-                str(frozen_relative),
+            frozen_history_from_anchor = _lineage_path_changes(
+                root=root,
+                anchor=frozen_anchor,
+                paths=(frozen_relative,),
             )
             if frozen_history_from_anchor:
                 errors.append(
@@ -694,15 +749,12 @@ def _validate_active_request(
             if len(frozen_anchor_record) != 2:
                 errors.append("V10 frozen activation anchor is not single-parent")
 
-        frozen_history = _git_at(
-            root,
-            "log",
-            "--full-history",
-            "-m",
-            "--format=%H",
-            f"{activation}..HEAD",
-            "--",
-            *(str(relative) for relative, _sha256 in FROZEN_ACTIVATION_FILES),
+        frozen_history = _lineage_path_changes(
+            root=root,
+            anchor=activation,
+            paths=tuple(
+                relative for relative, _sha256 in FROZEN_ACTIVATION_FILES
+            ),
         )
         if frozen_history:
             errors.append("V10 frozen activation files changed after activation")
@@ -719,7 +771,7 @@ def _validate_active_request(
         ).stdout
         if current != request_bytes:
             errors.append("V10 request bytes changed after activation")
-    except (OSError, subprocess.CalledProcessError) as exc:
+    except (OSError, subprocess.CalledProcessError, ValueError) as exc:
         errors.append(f"cannot verify V10 active request Git state: {exc}")
     return errors
 
@@ -1314,7 +1366,7 @@ def validate_plan(
         try:
             if _request_additions():
                 errors.append("inactive V10 request has prior addition history")
-        except (OSError, subprocess.CalledProcessError) as exc:
+        except (OSError, subprocess.CalledProcessError, ValueError) as exc:
             errors.append(f"cannot verify inactive V10 request history: {exc}")
     return errors
 
@@ -1344,7 +1396,7 @@ def plan_state() -> str:
     active_exists, active_request_bytes, load_errors = _load_active_request()
     try:
         additions = _request_additions()
-    except (OSError, subprocess.CalledProcessError):
+    except (OSError, subprocess.CalledProcessError, ValueError):
         return "INVALID"
     active_git_errors: list[str] = list(load_errors)
     if active_request_bytes is not None:

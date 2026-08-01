@@ -138,7 +138,7 @@ class AdminDependencyCacheExportPlanV10Tests(unittest.TestCase):
                 )
         self.assertEqual(
             hashlib.sha256(Path(plan.__file__).read_bytes()).hexdigest(),
-            "6e89496a983151a953560083c7c327d7c98847f77ed09cb027755f8f1d65c136",
+            "bcd29ac744be75e05cd1ea90dec4c92c2175171e5d372ca739d04833ea4346cf",
         )
         self.assertEqual(len(plan.LEGACY_FROZEN_PATHS), 70)
         self.assertEqual(len(set(plan.LEGACY_FROZEN_PATHS)), 70)
@@ -605,15 +605,93 @@ print(json.dumps(payload, separators=(",", ":")))
             )
 
     def test_request_addition_query_is_merge_and_rename_aware(self) -> None:
+        candidate = "a" * 40
+        parent = "b" * 40
+        entry = "100644 blob deadbeef\trequest.json"
+
+        def git_result(_root: Path, *args: str) -> str:
+            if args and args[0] == "log":
+                return candidate
+            if args[:4] == ("rev-list", "--parents", "-n", "1"):
+                return f"{candidate} {parent}"
+            if args[:2] == ("ls-tree", candidate):
+                return entry
+            if args[:2] == ("ls-tree", parent):
+                return ""
+            raise AssertionError(args)
+
         with mock.patch.object(
             plan,
             "_git_at",
-            return_value="a" * 40,
+            side_effect=git_result,
         ) as git_at:
-            self.assertEqual(plan._request_additions(), ["a" * 40])
-        arguments = git_at.call_args.args
+            self.assertEqual(plan._request_additions(), [candidate])
+        arguments = next(
+            call.args for call in git_at.call_args_list if call.args[1] == "log"
+        )
         for required in ("--all", "--full-history", "-m", "--no-renames"):
             self.assertIn(required, arguments)
+
+    def test_request_origin_resolution_errors_fail_closed(self) -> None:
+        with mock.patch.object(
+            plan,
+            "_load_active_request",
+            return_value=(False, None, []),
+        ), mock.patch.object(
+            plan,
+            "_request_additions",
+            side_effect=ValueError("malformed commit graph"),
+        ):
+            errors = plan.validate_plan()
+            self.assertTrue(
+                any(
+                    "cannot verify inactive V10 request history" in error
+                    for error in errors
+                )
+            )
+            self.assertEqual(plan.plan_state(), "INVALID")
+
+    def test_synthetic_pr_merge_is_not_a_second_addition_or_touch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            parent = self._initialize_activation_repository(root)
+            seed = self._git(root, "rev-parse", f"{parent}^")
+            self._git(root, "checkout", "-q", "-b", "topic", parent)
+            relative, request = self._activate(root, parent)
+            activation = self._git(root, "rev-parse", "HEAD")
+
+            self._git(root, "checkout", "-q", "-b", "synthetic-main", seed)
+            (root / "main-only").write_text("base advanced\n", encoding="utf-8")
+            self._git(root, "add", "main-only")
+            self._git(root, "commit", "-q", "-m", "advance base")
+            self._git(root, "merge", "--no-ff", "-q", "-m", "PR merge", "topic")
+
+            self.assertEqual(
+                plan._request_additions(root=root, request_path=relative),
+                [activation],
+            )
+            self.assertEqual(
+                plan._validate_active_request(
+                    request,
+                    plan.TEMPLATE_PATH.read_bytes(),
+                    plan_parent=parent,
+                    verify_git_state=True,
+                    root=root,
+                    request_path=relative,
+                ),
+                [],
+            )
+            self.assertEqual(
+                plan._validate_legacy_frozen_history(
+                    root=root,
+                    anchor=parent,
+                    frozen_paths=tuple(
+                        relative
+                        for relative, _sha256 in plan.FROZEN_ACTIVATION_FILES
+                    ),
+                ),
+                [],
+            )
 
     def test_active_request_git_history_survives_receipt_and_rejects_readd(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -769,6 +847,45 @@ print(json.dumps(payload, separators=(",", ":")))
                 verify_git_state=True,
                 root=root,
                 request_path=relative,
+            )
+            self.assertIn(
+                "V10 frozen activation files changed after activation",
+                errors,
+            )
+
+    def test_merged_side_branch_frozen_change_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            parent = self._initialize_activation_repository(root)
+            relative, request = self._activate(root, parent)
+            activation = self._git(root, "rev-parse", "HEAD")
+
+            self._git(root, "checkout", "-q", "-b", "clean", activation)
+            (root / "clean-only").write_text("clean\n", encoding="utf-8")
+            self._git(root, "add", "clean-only")
+            self._git(root, "commit", "-q", "-m", "clean side")
+
+            self._git(root, "checkout", "-q", "-b", "tamper", activation)
+            frozen_relative, _expected_sha256 = plan.FROZEN_ACTIVATION_FILES[0]
+            frozen_path = root / frozen_relative
+            frozen_path.write_bytes(frozen_path.read_bytes() + b"\n# tampered\n")
+            self._git(root, "add", frozen_relative.as_posix())
+            self._git(root, "commit", "-q", "-m", "tamper side")
+
+            self._git(root, "checkout", "-q", "clean")
+            self._git(root, "merge", "--no-ff", "-q", "-m", "merge side", "tamper")
+            errors = plan._validate_active_request(
+                request,
+                plan.TEMPLATE_PATH.read_bytes(),
+                plan_parent=parent,
+                verify_git_state=True,
+                root=root,
+                request_path=relative,
+            )
+            self.assertIn(
+                "V10 frozen activation file changed after its addition: "
+                f"{frozen_relative}",
+                errors,
             )
             self.assertIn(
                 "V10 frozen activation files changed after activation",

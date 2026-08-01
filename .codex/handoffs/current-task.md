@@ -3943,3 +3943,86 @@ remains `api_f_current_release=VERIFIED`, and the sole task remains
 Secret-free inert receipt and require its own ordinary push/PR CI, fully
 paginated V10 run zero and unchanged V9 ledger. Then create exactly one
 single-parent, request-only V10 activation. V2-V9 are permanently no-rerun.
+
+### V10 unique attempt terminal closure and append-only V11 boundary (2026-08-01)
+
+- Read-only takeover reconfirmed branch
+  `codex/quality-stabilization-real-chain`, activation HEAD
+  `ea2a3b489e74b21a88ea21ecd243cd6a433c7fac`, upstream equality and the
+  single-parent control chain `9199fb598790a03302c21dd3968c63b58d03f2c2`
+  → `b02c4a18d6b77024f17d0e56c1d081a578854b1f` → `ea2a3b489…c7fac`.
+  The controller adds only the regular `100644` V10 request with SHA-256
+  `4b3c8950bea4a0e9cdc578a69f193fb63cccb5be447bba777951718249d96db0`.
+- Fully paginated V10 workflow `324820330` history has exactly run
+  `30672160324` / job `91291967175`, run number/attempt `1/1`, terminal
+  `failure`; attempt two is absent, rerun count is zero and the artifact API
+  is empty. Producer build and both strict diagnostics passed, and export
+  produced `13` files in `2` archive chunks. The fresh-consumer observer
+  build and V10 parse completed, then the unchanged all-interval predicate
+  rejected `runtime_pip` with `NETWORK_VERTEX_NOT_CACHED` before the V9
+  delegate, cacheless replay, portability proof, final validation or upload.
+- Producer V10 diagnostic SHA is
+  `c226196068788b3c84f5235e9e40b24f55c2294a1b1cc546858922426ec8f3c8`;
+  import failure diagnostic SHA is
+  `2b4e6b26d2fa5897624cbdadd420e67a3b0765a82a57322b986edbadd86548ac`.
+  The latter proves the rejecting V10 verifier boundary, not the underlying
+  cache mechanism. V10 added an observer only to the consumer graph; the
+  producer still exported with pip terminal, so the producer-terminal-result
+  hypothesis was not tested and remains plausible. Import pip digest and
+  intervals, observer details, decoded dependency logs and cache record/result
+  mapping were not retained; root cause remains `UNKNOWN_NOT_RETAINED`.
+- Cleanup canonical SHA is
+  `66150b14b5a1dc05b73125403610c1ab94ec7a4dba9cddd28735b9af612b5194`
+  for `558` bytes and every enumerated field passes. Both ephemeral builders,
+  Docker object deltas, fixed roots, diagnostics and the runner-local bundle
+  were removed. Authenticated download, cross-provider transfer, conditional
+  builder, Admin ACR, database, service, production-write and public-traffic
+  counts remain zero.
+- Activation push CI `30672160310` / job `91291967030` passed `1513/1513`
+  tests with `28` skips in `582.253` seconds and production gate `128/128`.
+  Pull-request CI `30672161852` / job `91291971809` retained an accurate red
+  result: its three failures all arose because synthetic merge
+  `6dbf0daddd308a8501aea1ea53a23981ab4550ef` was misclassified as a second
+  request addition. The terminal fix now defines a true origin as a commit
+  whose result contains the path while every parent lacks it, and checks
+  post-anchor changes only against parents in the anchor-descended lineage.
+  Regression coverage accepts the unchanged GitHub synthetic merge and still
+  rejects merge-only real additions, merged side-branch changes and
+  change-then-revert histories.
+- Secret-free evidence
+  `deploy/production/evidence/admin-dependency-cache-v10-attempt1-failed-20260731.json`,
+  its strict semantic/file/Git-chain verifier and mutation tests are integrated
+  with the production and internal readiness gates. The evidence file SHA is
+  `9b8a1e3a28c5ca2e1a6d4c495e2404f7ea027abf42bfa27ccd4649909f043103`
+  and semantic SHA is
+  `352debb0294df5c442bf1b0ea0594576e49f649c830c2e1f568d4f0a4e9e4336`;
+  all three diagnostic hashes and the cleanup hash recompute exactly. Focused
+  V10 plan/evidence regression passes `38/38` after the lineage optimization.
+- The first full-repository pre-checkpoint run completed `1525` tests with
+  `28` intentional skips and exactly one failure in
+  `test_monthly_refund_is_bound_to_original_subscription_period`. The test's
+  hard-coded supposed next period was `2026-08-01T00:00:00+00:00`, which
+  became equal to the real UTC monthly charge period on 2026-08-01; the
+  production refund code correctly matched that period and reduced usage to
+  zero. The fixture now derives a different next-month period from the period
+  captured by the claim. The focused case passes `1/1` and the complete
+  idempotency module passes `25/25`; a fresh full-repository run must pass
+  before this checkpoint is committed.
+
+Files in this terminal atomic stage are the V10 terminal evidence, verifier
+and tests; the lineage-aware V10 plan verifier and tests; the production gate
+and tests; the internal readiness manifest and exact evidence-list test; this
+handoff; the risk ledger; and the deterministic subscription-period test
+fixture: exactly twelve paths. No production billing code or V10 runtime
+workflow, template, import helper, source projection or bundle verifier is
+modified.
+
+Internal/public readiness remains `19/29` / `19/38`; the latest credited item
+remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next validate the exact twelve-file
+snapshot, commit and push it as the V10 terminal checkpoint, require its own
+ordinary push/PR CI to pass while fully paginated V10 remains
+run1/attempt1/failure/rerun0/artifact0 and V9 is unchanged, then commit the
+exact four-file terminal receipt. Continue directly to append-only V11 with a
+producer export-anchor and distinct consumer observer; V2-V10 are permanently
+no-rerun.

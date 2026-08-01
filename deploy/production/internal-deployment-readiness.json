@@ -1113,9 +1113,33 @@
         {
           "kind": "git",
           "ref": "9199fb598790a03302c21dd3968c63b58d03f2c2"
+        },
+        {
+          "kind": "git",
+          "ref": "b02c4a18d6b77024f17d0e56c1d081a578854b1f"
+        },
+        {
+          "kind": "git",
+          "ref": "ea2a3b489e74b21a88ea21ecd243cd6a433c7fac"
+        },
+        {
+          "kind": "path",
+          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v10.json"
+        },
+        {
+          "kind": "path",
+          "ref": "deploy/production/evidence/admin-dependency-cache-v10-attempt1-failed-20260731.json"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_v10_failure_evidence.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_v10_failure_evidence.py"
         }
       ],
-          "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V9 are permanently frozen at their unique failed attempt 1 and must not be rerun. V9 request-only control fbe629daad669191d4ea9903ffb488c98055f000 has direct parent c2aebc9bdae9cc26c6c29d994bf55b547349e231 and triggered exactly workflow 324655362 run 30651679657/job 91226182660/attempt 1. Producer build, strict verification and 13-file/two-chunk portable core generation passed. Fresh-consumer core validation and import build completed; full V9 parsing exercised one mixed-present/omitted inputs digest and crossed the V8 conflict, then exact role validation found meituan_npm_pack and runtime_apt cached but runtime_pip completed with cached_count zero, failing NETWORK_VERTEX_NOT_CACHED. Raw metadata/progress, role digest and interval sequence were cleaned, so the dynamic root cause remains UNKNOWN_NOT_RETAINED; cacheless replay, portability proof, final validation and upload were not reached. Artifact/download/transfer/conditional builder/Admin ACR/database/service/public-traffic mutation counts are zero; enumerated cleanup and Docker parity passed. Secret-free terminal checkpoint 0e35e7dca22064402f8a7b569c6b966e4c6ec1a3 and terminal receipt 512638647c5851aa3258cd472da42894110465af are remotely accepted. Receipt push CI 30658134722/job 91247556880 and pull-request CI 30658136947/job 91247564136 both passed 1468/1468 tests with 28 skips and repository gate 127/127; fully paginated V9 history remains exactly run 1/attempt 1/failure, attempt two absent, rerun zero and artifact zero. Append-only V10 is inert and fail-closed: its active request is absent, producer prefix/full replay are byte-frozen, and only a consumer-side network-none observer child is added to prove runtime_pip is nonterminal while all producer/replay cache predicates remain strict. Frozen local acceptance passed focused plan/bundle 70/70, internal readiness 16/16, production readiness 29/29 in 1342.428 seconds, repository gate 128/128, and the full repository suite 1513/1513 with 28 skips in 2730.589 seconds; three independent read-only audits report P0/P1/P2/P3 zero. Secret-free inert checkpoint 9199fb598790a03302c21dd3968c63b58d03f2c2 has single parent 512638647c5851aa3258cd472da42894110465af and exact 14-file scope. Its push CI 30670568835/job 91287217391 and pull-request CI 30670570806/job 91287223709 both passed 1513/1513 tests with 28 skips and repository gate 128/128; fully paginated repository Actions history has exactly those two ordinary runs for the checkpoint SHA, V10 workflow-path run zero, and the unchanged V9 run 1/attempt 1/failure with attempt two absent and artifact zero. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and engineering evidence earn no deployment credit. The next boundary is a Secret-free four-file inert receipt with its own green ordinary CI, V10 run zero and unchanged V9 ledger, followed by exactly one single-parent request-only V10 activation.",
+      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V10 are permanently frozen at their unique failed attempt 1 and must not be rerun. V10 inert checkpoint 9199fb598790a03302c21dd3968c63b58d03f2c2, inert receipt b02c4a18d6b77024f17d0e56c1d081a578854b1f and request-only control ea2a3b489e74b21a88ea21ecd243cd6a433c7fac form a single-parent append-only chain. Control ea2a3b4 triggered exactly workflow 324820330 run 30672160324/job 91291967175/run 1/attempt 1. Producer build, strict verification and 13-file/two-chunk portable core generation passed. The fresh-consumer observer build and V10 parse completed, but the unchanged all-interval cache predicate rejected runtime_pip with NETWORK_VERTEX_NOT_CACHED before the V9 delegate, cacheless replay, portability proof, final validation or upload. V10 proves the rejecting verifier boundary, not the underlying cache mechanism: fresh-consumer pip digest/intervals, observer details, decoded dependency logs and cache record/result mapping were not retained, so root cause remains UNKNOWN_NOT_RETAINED. V10 changed only the consumer graph; producer still exported with runtime_pip terminal, so the producer-terminal-result hypothesis was not tested and remains plausible. Artifact/download/transfer/conditional builder/Admin ACR/database/service/public-traffic mutation counts are zero; enumerated cleanup and Docker parity passed. Fully paginated V10 history contains only run 30672160324 attempt 1 failure, attempt two absent, rerun zero and artifact zero; V9 remains unchanged. Activation push CI 30672160310/job 91291967030 passed 1513/1513 tests with 28 skips and repository gate 128/128. Activation pull-request CI 30672161852/job 91291971809 failed three tests solely because synthetic merge 6dbf0daddd308a8501aea1ea53a23981ab4550ef was falsely counted as a second request addition; the terminal checkpoint includes lineage-aware origin/history regression coverage for this control-plane defect. The first local full-suite checkpoint candidate exposed one date-sensitive test fixture whose hard-coded 2026-08-01 next period equaled the actual UTC charge period; the fixture now derives a distinct next period from the claim without changing production billing code, and the final full suite must pass before checkpointing. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and engineering evidence earn no deployment credit. The current boundary is the Secret-free twelve-file V10 terminal checkpoint with its own green push/pull-request CI and unchanged V9/V10 ledgers, followed by an exact four-file terminal receipt and append-only V11 producer export-anchor recovery.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

@@ -149,6 +149,12 @@ from verify_admin_dependency_cache_v9_failure_evidence import (  # noqa: E402
 from verify_admin_dependency_cache_v9_failure_evidence import (  # noqa: E402
     verify as verify_admin_dependency_cache_v9_failure_evidence,
 )
+from verify_admin_dependency_cache_v10_failure_evidence import (  # noqa: E402
+    load_strict as load_admin_dependency_cache_v10_failure_evidence,
+)
+from verify_admin_dependency_cache_v10_failure_evidence import (  # noqa: E402
+    verify as verify_admin_dependency_cache_v10_failure_evidence,
+)
 from verify_api_c_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_c_current_release_evidence_bundle,
 )
@@ -1749,6 +1755,16 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         admin_dependency_cache_v9_failure_errors = [
             f"cannot load Admin dependency-cache V9 failure evidence: {exc}"
         ]
+    try:
+        admin_dependency_cache_v10_failure_errors = (
+            verify_admin_dependency_cache_v10_failure_evidence(
+                load_admin_dependency_cache_v10_failure_evidence()
+            )
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        admin_dependency_cache_v10_failure_errors = [
+            f"cannot load Admin dependency-cache V10 failure evidence: {exc}"
+        ]
     admin_dependency_cache_plan_v3_errors = (
         validate_admin_dependency_cache_export_plan_v3()
     )
@@ -2118,6 +2134,26 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                     "provider protocol are retained, and request lifecycle is "
                     "represented by the reported state"
                 )
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v10_attempt1_failed_artifact0",
+            not admin_dependency_cache_v10_failure_errors,
+            "; ".join(admin_dependency_cache_v10_failure_errors[:5])
+            if admin_dependency_cache_v10_failure_errors
+            else (
+                "run 30672160324 attempt 1 completed producer verification and "
+                "a 13-file/2-chunk portable core export, then the fresh-consumer "
+                "observer build failed the unchanged all-interval cache predicate "
+                "at runtime_pip; V10 identifies the rejecting verifier boundary "
+                "but the underlying cache mechanism remains UNKNOWN_NOT_RETAINED, "
+                "the producer-terminal-pip hypothesis was not tested and remains "
+                "plausible, cacheless replay/final validation/upload were not "
+                "reached, artifact/download/transfer/cloud-builder/Admin ACR and "
+                "production mutations are zero, enumerated cleanup and Docker "
+                "parity are proven, the activation PR-only failure is bound to "
+                "the now-regressed synthetic-merge history false positive, and "
+                "V10 rerun is forbidden"
             ),
         ),
     ]

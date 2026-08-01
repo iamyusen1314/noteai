@@ -947,6 +947,42 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "9199fb598790a03302c21dd3968c63b58d03f2c2",
                 },
+                {
+                    "kind": "git",
+                    "ref": "b02c4a18d6b77024f17d0e56c1d081a578854b1f",
+                },
+                {
+                    "kind": "git",
+                    "ref": "ea2a3b489e74b21a88ea21ecd243cd6a433c7fac",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/release-requests/"
+                        "admin-5335bda-dependency-cache-v10.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "admin-dependency-cache-v10-attempt1-failed-20260731.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_v10_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_v10_failure_evidence.py"
+                    ),
+                },
             ],
         )
         api_c = next(

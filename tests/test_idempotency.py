@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -272,9 +273,21 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         self._create_user("u-period-bound")
         claim = self._claim("u-period-bound", "period-bound")
         charged_subscription_id = claim["charge"]["subscription_id"]
+        charged_period_start = datetime.fromisoformat(
+            claim["charge"]["subscription_period_start"]
+        )
+        if charged_period_start.month == 12:
+            different_period_start = charged_period_start.replace(
+                year=charged_period_start.year + 1,
+                month=1,
+            )
+        else:
+            different_period_start = charged_period_start.replace(
+                month=charged_period_start.month + 1
+            )
         db.execute(
             "UPDATE subscriptions SET period_start=?,used_monthly_credits=2 WHERE id=?",
-            ("2026-08-01T00:00:00+00:00", charged_subscription_id),
+            (different_period_start.isoformat(), charged_subscription_id),
         )
 
         self.assertTrue(idempotency.mark_failed_and_refund(claim))
