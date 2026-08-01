@@ -1144,6 +1144,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "ref": "ae7ce751d842b2880cdb2d31213a983bcb1f7484",
                 },
                 {
+                    "kind": "git",
+                    "ref": "4df6a77e39f2488b852414bb0649babbb37eb98a",
+                },
+                {
                     "kind": "path",
                     "ref": (
                         "deploy/production/plans/"
@@ -1224,9 +1228,21 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("91366363365", admin["blocker"])
         self.assertIn("30698919672", admin["blocker"])
         self.assertIn("91366366249", admin["blocker"])
-        self.assertIn("476/476", admin["blocker"])
-        self.assertIn("exact 14-file checkpoint", admin["blocker"])
-        self.assertIn("SAME_DIGEST_CACHED", admin["blocker"])
+        self.assertIn("4df6a77e39f2488b852414bb0649babbb37eb98a", admin["blocker"])
+        self.assertIn("30701666137", admin["blocker"])
+        self.assertIn("91373623999", admin["blocker"])
+        self.assertIn("30701667259", admin["blocker"])
+        self.assertIn("91373626894", admin["blocker"])
+        self.assertIn("1655/1655", admin["blocker"])
+        self.assertIn("6209.827s", admin["blocker"])
+        self.assertIn("478/478", admin["blocker"])
+        self.assertIn("CI-hermeticity failure", admin["blocker"])
+        self.assertIn(
+            "V13_INERT_CHECKPOINT_CI_HERMETICITY_FAILED_RECEIPT_EXACT",
+            admin["blocker"],
+        )
+        self.assertIn("V13 must never activate", admin["blocker"])
+        self.assertIn("append-only V14 checkpoint", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
         api_c = next(

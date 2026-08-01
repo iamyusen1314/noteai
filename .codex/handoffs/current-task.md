@@ -4494,3 +4494,45 @@ readiness remains `19/29` / `19/38`, the latest credited item remains
 and accept the exact-four receipt. Creating the exact-one V13 request and
 consuming its single external run require a new explicit user authorization;
 no V12 or failed ordinary-CI rerun is permitted.
+
+### V13 inert-checkpoint CI hermeticity failure and structural receipt (2026-08-01)
+
+- C13 `4df6a77e39f2488b852414bb0649babbb37eb98a` is the exact fourteen-file,
+  all-`100644`, direct child of the accepted V12 correction receipt
+  `ae7ce751d842b2880cdb2d31213a983bcb1f7484`. Before any receipt write, its
+  local full suite completed `1655/1655` with `28` intentional skips in
+  `6209.827s`; focused V13 normal and optimized-Python suites remained
+  `32/32`, and the repository gate remained `133/133`.
+- C13 ordinary push CI `30701666137` / job `91373623999` completed failure in
+  `17m29s`: `1655` tests, `28` skips and exactly one failure in `994.470s`.
+  Pull-request CI `30701667259` / job `91373626894` completed the identical
+  one-failure boundary in `14m40s`, with unit time `826.474s`. In both jobs,
+  Quality gate, Production readiness gate, Docker Compose and the two post
+  setup steps were skipped, so neither run has a readiness check count.
+- The sole failure is
+  `test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_exact_checkpoint_receipt_and_activation_git_history`
+  at line `522`. Its first temporary-repository validation inherited the
+  outer runner's `GITHUB_ACTIONS=true` and C13 `GITHUB_SHA`, then correctly
+  rejected that real checkout SHA as unequal to the synthetic temporary
+  repository HEAD. The frozen V13 verifier, cache predicates and production
+  boundaries did not fail; a CI-hermetic invocation with the four checkout
+  context variables removed passes the exact test `1/1`.
+- Fresh five-page reconciliation at `2026-08-01T13:45:54Z` observed
+  `478/478` unique repository Actions records. C13 has only those two ordinary
+  CI runs; V11 workflow-path run count remains zero; V12 remains exactly run
+  `30696298423`, run/attempt one, failure, unique job `91359681758` and
+  artifact zero. V13 workflow-path run count is zero, and its active request
+  is absent from the C13 tree with C13-ancestry addition count zero.
+
+This exact-four Secret-free descendant changes only this handoff, the risk
+ledger, the readiness manifest and its test. It is a structural failure
+receipt, not a green remote acceptance: `V13_INERT_CHECKPOINT_CI_HERMETICITY_FAILED_RECEIPT_EXACT`.
+To avoid blindly reproducing the same deterministic red run, this receipt is
+not pushed as an exact remote HEAD. It must be followed locally by an
+append-only V14 checkpoint, and only the V14 HEAD will receive the next
+ordinary push/PR CI. V13 is permanently untriggered and must never receive a
+request or run. No cache artifact, builder, authenticated download, transfer,
+Admin ACR, database, service, production write or public-traffic mutation
+occurred. Internal/public readiness remains `19/29` / `19/38`; the latest
+credited item remains `api_f_current_release=VERIFIED`, and the sole task
+remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
