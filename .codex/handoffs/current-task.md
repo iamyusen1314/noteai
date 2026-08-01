@@ -4056,3 +4056,35 @@ or rerun, require its own ordinary push/PR CI to pass, then fully paginate the
 V9/V10 ledgers and create the exact four-file terminal receipt. Readiness
 remains `19/29` internal / `19/38` public and the sole task remains
 `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`; V2-V10 are permanently no-rerun.
+
+### V10 corrective checkpoint remote acceptance and terminal receipt boundary (2026-08-01)
+
+- Corrective checkpoint `b01c65d507cf087bea0d80038eafdb08a8e23bf1`
+  has direct parent `8c8567b99541f1f260d988754daa88f97f00f68e`
+  and exactly four changed paths: the failure-evidence test, this handoff,
+  readiness and the risk ledger. It does not modify any verifier, workflow,
+  request, runtime helper, evidence bytes or production source.
+- Exact-HEAD push CI `30678960987` / job `91311902300` and pull-request CI
+  `30678962485` / job `91311907477` both completed successfully. Each passed
+  `1525/1525` tests with `28` intentional skips and production gate `129/129`;
+  unit-test times were `641.156` and `594.765` seconds. A fully paginated
+  repository Actions read found exactly those two ordinary runs for the
+  corrective HEAD.
+- Fully paginated V10 workflow `324820330` history remains exactly run
+  `30672160324`, run/attempt `1/1`, terminal failure at activation
+  `ea2a3b489…c7fac`; its artifact API remains empty. V9 workflow `324655362`
+  likewise remains exactly run `30651679657`, run/attempt `1/1`, terminal
+  failure at `fbe629da…f000`, with an empty artifact API. Neither attempt was
+  rerun. Branch and upstream are equal at `b01c65d…23bf1` with `0/0` drift.
+- No cache artifact, authenticated download, transfer, conditional builder,
+  Admin ACR, database, service, production-write or public-traffic action was
+  introduced by either terminal checkpoint.
+
+This Secret-free terminal receipt changes exactly this handoff, readiness,
+the risk ledger and the internal readiness exact-evidence test. It adds the
+two terminal checkpoint SHAs to the manifest evidence list without deployment
+credit. Commit and push the receipt, require its own ordinary push/PR CI and
+unchanged fully paginated V9/V10 ledgers, then continue directly to append-only
+V11 with a distinct producer export-anchor and consumer observer. Readiness
+remains `19/29` internal / `19/38` public, the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`, and V2-V10 are permanently no-rerun.
