@@ -151,6 +151,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "exact_5335bda_admin_dependency_cache_v12_attempt1_failed_artifact0"
             ]["passed"]
         )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v13_recovery_plan_fail_closed"
+            ]["passed"]
+        )
 
         with mock.patch.object(
             gate,
@@ -425,6 +430,18 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertIn(
             "exact_5335bda_admin_dependency_cache_v12_attempt1_failed_artifact0",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
+        with mock.patch.object(
+            gate,
+            "validate_admin_dependency_cache_export_plan_v13",
+            return_value=["tampered V13 recovery plan"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_admin_dependency_cache_v13_recovery_plan_fail_closed",
             {item["name"] for item in report["failed_checks"]},
         )
 
@@ -787,6 +804,52 @@ class ProductionReadinessGateTests(unittest.TestCase):
                     "recovery_plan_fail_closed"
                 ]["passed"]
             )
+
+    def test_v13_gate_accepts_only_prepared_or_exact_armed_states(self):
+        check_name = (
+            "exact_5335bda_admin_dependency_cache_v13_"
+            "recovery_plan_fail_closed"
+        )
+        for state in (
+            "PREPARED_V13_NOT_TRIGGERED",
+            "V13_ARMED_OR_TRIGGERED_EXACT",
+        ):
+            with (
+                self.subTest(state=state),
+                mock.patch.object(
+                    gate,
+                    "validate_admin_dependency_cache_export_plan_v13",
+                    return_value=[],
+                ),
+                mock.patch.object(
+                    gate,
+                    "admin_dependency_cache_plan_state_v13",
+                    return_value=state,
+                ),
+            ):
+                checks = {
+                    item["name"]: item for item in gate.check_browserless_vex()
+                }
+            self.assertTrue(checks[check_name]["passed"])
+
+        for state in ("INVALID", "V13_CONSUMED_OR_INVALID"):
+            with (
+                self.subTest(state=state),
+                mock.patch.object(
+                    gate,
+                    "validate_admin_dependency_cache_export_plan_v13",
+                    return_value=[],
+                ),
+                mock.patch.object(
+                    gate,
+                    "admin_dependency_cache_plan_state_v13",
+                    return_value=state,
+                ),
+            ):
+                checks = {
+                    item["name"]: item for item in gate.check_browserless_vex()
+                }
+            self.assertFalse(checks[check_name]["passed"])
 
     def test_api_c_runtime_evidence_is_fail_closed_in_repository_gate(self):
         checks = {

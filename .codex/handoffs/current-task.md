@@ -4441,3 +4441,56 @@ four ledgers, then obtain new ordinary push/PR CI; it will not modify V11,
 V12 evidence/workflow/request/runtime, rerun either failed CI, or rerun V12.
 Readiness remains `19/29` / `19/38`, and the sole task remains
 `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
+### V12 correction-receipt acceptance and inert V13 checkpoint candidate (2026-08-01)
+
+- Read-only takeover reconciled branch
+  `codex/quality-stabilization-real-chain` at local/upstream
+  `ae7ce751d842b2880cdb2d31213a983bcb1f7484`, ahead/behind `0/0` before
+  V13 work. The commit is the exact four-file correction receipt and direct
+  child of `81730a511acb553c9a1e29af834924f71650dc9a`.
+- Exact-HEAD push CI `30698918645` / job `91366363365` passed in `14m57s`
+  with `1622/1622` tests, `28` skips and production gate `132/132`.
+  Pull-request CI `30698919672` / job `91366366249` passed in `15m48s`
+  with the same `1622/28/132` boundary. Fresh five-page reconciliation
+  observed `476/476` unique Actions runs: V11 path remains zero and V12
+  remains exactly run `30696298423`, attempt one, failure, job
+  `91359681758`, artifact zero. V12 must never be rerun.
+- The append-only V13 candidate corrects only the unsupported V12 evidence
+  predicate. Pinned BuildKit v0.31.2 source commit
+  `e42e1bfd389af7203238cce77b1f7dad447285e9` proves cache-config
+  `records[].digest` and progress `vertex_digest` are different identity
+  domains. V13 therefore validates the cache config as a bounded DAG with
+  closure, reachability, result/link and depth limits; runtime portability is
+  accepted only when a fresh isolated consumer reports
+  `SAME_DIGEST_CACHED` for the same runtime-pip vertex digest.
+- The V13 verifier binds producer, cache record, index, root manifest,
+  config and consumer summaries to the exact bytes parsed. Descriptor blobs
+  are opened through directory file descriptors with `O_NOFOLLOW`, bounded
+  before reading, and rejected on parent/final symlink, hardlink, size,
+  digest or in-read mutation. Core validation exports the exact retained
+  cache-record SHA to the frozen import helper and final portability check.
+- The V13 control plane uses two fresh, duplicate-rejecting and bounded GitHub
+  API snapshots. It fixes the full canonical V2-V12 ledger, repository-wide
+  V11 zero, the unique V12 failure and the unique current V13 run; the
+  private `0400` contract copy and `0600` snapshots remain in runner temp.
+  The trigger is only the exact addition of
+  `.github/release-requests/admin-5335bda-dependency-cache-v13.json`.
+- The inert Git contract is
+  `ae7ce75…7484 → exact-14 checkpoint → exact-4 receipt → exact-1 request`.
+  Eight V13 authorities share one addition anchor; ten checkpoint
+  non-receipt paths are immutable afterward. The candidate introduces no
+  request, run, builder, artifact, download, transfer, ACR publication,
+  database/service mutation or traffic authority. Bundle verification passes
+  normal and optimized Python `21/21`; plan verification passes normal and
+  optimized Python `11/11`; readiness, gate and full-suite
+  results are recorded before commit and remote acceptance.
+
+This Secret-free checkpoint adds no readiness credit: internal/public
+readiness remains `19/29` / `19/38`, the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit and push only the exact
+14-file inert checkpoint, require its own ordinary push/PR CI, then create
+and accept the exact-four receipt. Creating the exact-one V13 request and
+consuming its single external run require a new explicit user authorization;
+no V12 or failed ordinary-CI rerun is permitted.

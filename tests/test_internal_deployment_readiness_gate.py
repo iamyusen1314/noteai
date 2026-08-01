@@ -1139,6 +1139,54 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "81730a511acb553c9a1e29af834924f71650dc9a",
                 },
+                {
+                    "kind": "git",
+                    "ref": "ae7ce751d842b2880cdb2d31213a983bcb1f7484",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v13.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v13.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "scripts/ci/import_admin_dependency_cache_v13.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_"
+                        "cache_record_identity_domains_projection.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tools/verify_admin_dependency_cache_bundle_v13.py",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_bundle_verifier_v13.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tools/verify_admin_dependency_cache_export_plan_v13.py",
+                },
+                {
+                    "kind": "path",
+                    "ref": "tests/test_admin_dependency_cache_export_plan_v13.py",
+                },
             ],
         )
         self.assertNotIn(
@@ -1161,48 +1209,26 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             admin["evidence"],
         )
-        self.assertIn(
-            "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
-            admin["blocker"],
-        )
-        self.assertIn(
-            "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
-            admin["blocker"],
-        )
         self.assertIn("V11 must never activate", admin["blocker"])
         self.assertIn("exactly two", admin["blocker"])
         self.assertIn("30572921215", admin["blocker"])
         self.assertIn("30591103183", admin["blocker"])
         self.assertIn("91033410635", admin["blocker"])
-        self.assertIn("workflow-path run count remain zero", admin["blocker"])
-        self.assertIn(
-            "8b1f197141b9c84b4ffa812080ecabd6af1bbbce",
-            admin["blocker"],
-        )
-        self.assertIn("30691062509", admin["blocker"])
-        self.assertIn("91345758810", admin["blocker"])
-        self.assertIn("30691063859", admin["blocker"])
-        self.assertIn("91345762808", admin["blocker"])
-        self.assertIn("328c07ed173754585c635ebb7b1d8c2587cadf57", admin["blocker"])
-        self.assertIn("2883d3e216fd64a70b94b1ba27b0838dca280f61", admin["blocker"])
+        self.assertIn("workflow-path run count remains zero", admin["blocker"])
         self.assertIn("30696298423", admin["blocker"])
         self.assertIn("91359681758", admin["blocker"])
         self.assertIn("zero provider artifacts", admin["blocker"])
-        self.assertIn("UNKNOWN_NOT_REACHED", admin["blocker"])
-        self.assertIn("separate authorization", admin["blocker"])
-        self.assertIn("30697559060", admin["blocker"])
-        self.assertIn("91362907859", admin["blocker"])
-        self.assertIn("30697560965", admin["blocker"])
-        self.assertIn("91362912909", admin["blocker"])
-        self.assertIn("1621", admin["blocker"])
-        self.assertIn("legacy activation lifecycle", admin["blocker"])
-        self.assertIn("effective terminal state", admin["blocker"])
-        self.assertIn("37c3b3f", admin["blocker"])
-        self.assertIn("30698294887", admin["blocker"])
-        self.assertIn("91364781788", admin["blocker"])
-        self.assertIn("30698296274", admin["blocker"])
-        self.assertIn("91364785205", admin["blocker"])
-        self.assertIn("474/474", admin["blocker"])
+        self.assertIn("V12 may never be rerun", admin["blocker"])
+        self.assertIn("ae7ce751d842b2880cdb2d31213a983bcb1f7484", admin["blocker"])
+        self.assertIn("30698918645", admin["blocker"])
+        self.assertIn("91366363365", admin["blocker"])
+        self.assertIn("30698919672", admin["blocker"])
+        self.assertIn("91366366249", admin["blocker"])
+        self.assertIn("476/476", admin["blocker"])
+        self.assertIn("exact 14-file checkpoint", admin["blocker"])
+        self.assertIn("SAME_DIGEST_CACHED", admin["blocker"])
+        self.assertIn("new explicit authorization", admin["blocker"])
+        self.assertIn("19/29 / 19/38", admin["blocker"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

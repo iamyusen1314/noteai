@@ -1,0 +1,68 @@
+{
+  "schema_version": "noteai.buildkit-cache-record-identity-domains.v13",
+  "repository": "moby/buildkit",
+  "tag": "v0.31.2",
+  "tag_object": "37aba93910a245e9196ccf67f4afb55f18b39f81",
+  "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+  "classification": "SOURCE_PROVEN_DISTINCT_CACHE_KEY_AND_LLB_VERTEX_IDENTITY_DOMAINS",
+  "claims": {
+    "cache_key_digest_and_vertex_digest_are_distinct_fields": true,
+    "root_key_rehashes_cache_map_digest_and_output": true,
+    "cache_export_record_digest_is_root_key_of_cache_map_digest_and_output": true,
+    "cache_config_serializes_cache_export_record_digest": true,
+    "cache_config_record_has_vertex_digest_field": false,
+    "cache_export_result_edge_vertex_is_serialized_in_v1_cache_config": false,
+    "record_digest_equals_progress_vertex_digest_is_source_supported": false,
+    "source_review_is_runtime_cache_portability_evidence": false
+  },
+  "v13_contract": {
+    "cache_config_validation_scope": "STRUCTURAL_DAG_CLOSURE_REACHABILITY_RESULT_AND_LINK_COUNTS_ONLY",
+    "vertex_digest_binding_attempted": false,
+    "direct_identity_path_claimed": false,
+    "runtime_portability_acceptance": "FRESH_CONSUMER_SAME_DIGEST_CACHED_ONLY",
+    "same_digest_noncached_accepted": false,
+    "digest_drift_accepted": false,
+    "bounded_structure_diagnostic_maximum_bytes": 8192,
+    "record_count_maximum": 4096,
+    "record_graph_depth_maximum": 512,
+    "record_link_count_maximum": 262144
+  },
+  "sources": [
+    {
+      "path": "solver/cachekey.go",
+      "git_blob_sha1": "1f34467b8f416ae3e785bece6c39c8adea3968dd",
+      "sha256": "2283df8f65b921f875bcc16570fc5f71b71c40817a8e58b51166f3b4dd5d8ca5",
+      "contract": "CacheKey.digest is the CacheMap digest while CacheKey.vtx is the LLB vertex digest"
+    },
+    {
+      "path": "solver/cachemanager.go",
+      "git_blob_sha1": "bdf2f9cf5555f823c0354bd8ffaed6db9f449c85",
+      "sha256": "7e68c8d1927b6a342990e6a9f7eab856cf14ca77c3d509b2dfd2164737e0801b",
+      "contract": "rootKey hashes the cache-map digest together with the output index"
+    },
+    {
+      "path": "solver/exporter.go",
+      "git_blob_sha1": "6ade2f44ce111b2ce61c64fc82cfa1a7c1bc2442",
+      "sha256": "cb6c41d3693689f139bd54190a18032e58d7b349c0babd859d8be8684c48465e",
+      "contract": "cache export passes rootKey(CacheKey.Digest(), CacheKey.Output()) to the exporter target"
+    },
+    {
+      "path": "cache/remotecache/v1/chains.go",
+      "git_blob_sha1": "8fd91964a062e7ad8ea62a4faee819022f8f7bcf",
+      "sha256": "d4e874a6b89b407a322c4104fba403958e1ee20a62fa1440a65e75065e91fda5",
+      "contract": "the remote cache chain retains the exporter record digest and one vertex may have multiple cache keys"
+    },
+    {
+      "path": "cache/remotecache/v1/utils.go",
+      "git_blob_sha1": "0c481fbd62394ac4e9de9668eea032949317848a",
+      "sha256": "cfb71e54c168827e0811ba02d79aa803d2fb8610e858c7a16ff3d85a22cdb853",
+      "contract": "marshalItem writes item.dgst to CacheRecord.Digest and serializes inputs and results"
+    },
+    {
+      "path": "cache/remotecache/v1/types/spec.go",
+      "git_blob_sha1": "179d48a175d99648cc545dd150194fd50b389c00",
+      "sha256": "005c6dd5e0ab6790c8e358e24613a41f0541f244bae12561f088f63ab4038601",
+      "contract": "CacheRecord contains digest, inputs, layers and chains but no vertex digest field"
+    }
+  ]
+}

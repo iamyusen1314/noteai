@@ -475,6 +475,16 @@ Last updated: 2026-08-01
 - 建议验证方式: 每轮记录 `homefeed / search_result / search_recommend / hot_search` 独立数量及 API 响应指标；云端至少确认搜索结果和推荐来源非零，再评估是否增加来源多样性门禁。
 - 是否需要用户确认后才能修改: 观测与解析修复不需要；新增硬性来源门禁需要产品确认和生产样本校准。
 
+### V13 dependency-cache successor is inert; its one external run is not authorized
+
+- 状态: Open High / first-launch hard gate。V12唯一 attempt-1 已失败并永久禁止重跑；其终态、清理、artifact-zero和 `ae7ce75` 双CI均已接受。V13当前仅为exact-14惰性checkpoint候选，没有request或run。
+- 风险描述: BuildKit cache-config `records[].digest` 属于cache-key/rootKey域，不能与progress LLB `vertex_digest`直接判等。V13已改为只验证有界结构DAG，并仅以fresh consumer的 `SAME_DIGEST_CACHED` 证明运行时可移植性；但这仍需一次新的、唯一的外部GitHub Actions执行才能产生真实证据。
+- 涉及文件: `.github/workflows/admin-dependency-cache-export-v13.yml`, `deploy/production/plans/admin-dependency-cache-export-request-v13.json`, `scripts/ci/import_admin_dependency_cache_v13.sh`, `tools/verify_admin_dependency_cache_bundle_v13.py`, `tools/verify_admin_dependency_cache_export_plan_v13.py`及其固定fixture/tests。
+- 可能后果: 若跳过exact checkpoint/receipt远端验收、重复V12、手工触发、放宽权限/清理/账本条件，或在没有新授权时添加V13 request，可能消耗唯一运行、产生不可审计资源，或把结构证据误报为可移植性证据。
+- 建议验证方式: 保持 `ae7ce75… → exact14 → exact4 → exact1` 单父首链；普通push/PR CI只验惰性控制面。V13运行前后分别冻结完整V2-V13账本，要求V11路径零、V12唯一失败/artifact-zero、V13唯一push/attempt-1/artifact-zero；descriptor逐级`openat/O_NOFOLLOW`，core record SHA贯穿import/final verifier，最终只接受fresh consumer `SAME_DIGEST_CACHED`，cleanup完成后才允许上传。
+- 费用和回滚: 惰性checkpoint/receipt仅产生普通CI成本且不创建外部资源。V13 activation会创建短期BuildKit builders并可能上传一天期公开仓库artifact；失败时必须清理并版本化terminal evidence，不得rerun。没有生产部署、数据库、服务、ACR或流量权限。
+- 是否需要用户确认后才能修改: exact-14 checkpoint、exact-4 receipt及普通CI不需要额外确认；创建exact-one V13 request或执行其外部run需要新的明确授权。任何下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作仍需各自授权。
+
 ## Low Risks
 
 ### `model/api.py` is too large

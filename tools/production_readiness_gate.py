@@ -113,6 +113,12 @@ from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
     v11_untriggered_supersession_state,
 )
+from verify_admin_dependency_cache_export_plan_v13 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v13,
+)
+from verify_admin_dependency_cache_export_plan_v13 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v13,
+)
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
 )
@@ -1849,6 +1855,14 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
         "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
     }
+    admin_dependency_cache_plan_v13_errors = (
+        validate_admin_dependency_cache_export_plan_v13()
+    )
+    dependency_cache_plan_state_v13 = admin_dependency_cache_plan_state_v13()
+    accepted_dependency_cache_plan_states_v13 = {
+        "PREPARED_V13_NOT_TRIGGERED",
+        "V13_ARMED_OR_TRIGGERED_EXACT",
+    }
     accepted_dependency_cache_v11_supersession = (
         dependency_cache_v11_supersession_state
         == "V11_UNTRIGGERED_SUPERSEDED_EXACT"
@@ -2264,6 +2278,27 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "both builders and transient Docker state were removed, "
                 "fresh pre/post ledgers passed, portability is "
                 "UNKNOWN_NOT_REACHED, and V12 rerun is forbidden"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v13_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v13_errors
+            and dependency_cache_plan_state_v13
+            in accepted_dependency_cache_plan_states_v13,
+            "; ".join(admin_dependency_cache_plan_v13_errors[:5])
+            if admin_dependency_cache_plan_v13_errors
+            else (
+                f"state={dependency_cache_plan_state_v13} is not an accepted "
+                "V13 control-plane state"
+                if dependency_cache_plan_state_v13
+                not in accepted_dependency_cache_plan_states_v13
+                else (
+                    f"state={dependency_cache_plan_state_v13}; V12 remains "
+                    "terminal and must not rerun, cache-config records are "
+                    "validated only as a bounded structural DAG, and runtime "
+                    "portability requires a fresh-consumer SAME_DIGEST_CACHED "
+                    "observation under two exact live-ledger snapshots"
+                )
             ),
         ),
     ]
