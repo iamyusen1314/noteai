@@ -7,6 +7,7 @@ Last updated: 2026-08-01
 ### Complete first commercial launch is not yet releaseable
 
 - 状态: Open Critical under `PROD-COMPLETE-FIRST-LAUNCH-001`; current release decision is `NO-GO`.
+- 2026-08-01 append-only V14惰性checkpoint候选: exact4 R13 `585edf…d54c`仅记录V13普通CI hermeticity失败且不单独push；其直接子C14固定为exact11，新增V14 workflow/template/verifier/test并仅版本化CI、production gate/test和四账本。V13八份core authority逐字冻结且语义惰性复验；V14复用V13 helper/fixture/bundle/data schema，legacy ledger扩为V2–V13并要求V13 workflow/request永久0、V14 current唯一。CI ambient测试保留真实GitHub上下文，仅冻结V13模块清除`GITHUB_ACTIONS/GITHUB_SHA/GITHUB_EVENT_NAME/GITHUB_REF`；V14 temp Git测试自身scoped隔离并真实验证synthetic PR第二父。完整Unit-test步骤、CI SHA、C14/R14/A14 `11/4/1`、12-entry ledger和禁止V13 full-plan CLI均fail closed。V14 normal/`-O`各`12/12`，模拟push ambient `12/12`，internal `16/16`，13个workflow Bash block全通过；一次性克隆中的真实R13→C14 exact11候选报告`PREPARED_V14_NOT_TRIGGERED`且production gate `133/133`。当前不加credit，仍`19/29`。C14须先由exact-HEAD push/PR双CI和fresh ledger接受，再形成exact4 R14；V14 activation/run仍需新明确授权。
 - 2026-08-01 V13惰性checkpoint普通CI隔离失败与结构回执: exact14 C13 `4df6a77…98a`以`ae7ce75…7484`为直接父且本地全仓`1655/1655`、28 skip、`6209.827s`通过；其push `30701666137`/job `91373623999`与PR `30701667259`/job `91373626894`均为1655 tests、28 skip、唯一1 failure，后续quality/readiness/Docker均skipped。唯一错误是冻结V13 temp-repo测试首次调用继承外层`GITHUB_ACTIONS/GITHUB_SHA`，把真实C13 SHA与临时HEAD比较；不是V13 verifier、缓存或生产谓词失败。Fresh `478/478` Actions保持V11 path0、V12唯一`30696298423`/attempt1/failure/job`91359681758`/artifact0、V13 workflow path0，V13 request在C13 tree及其祖先addition均0。当前exact4仅形成`V13_INERT_CHECKPOINT_CI_HERMETICITY_FAILED_RECEIPT_EXACT`，不声称green、不加credit、不单独push制造已知红灯；其直接子必须是append-only V14 checkpoint，只在Unit-test子边界隔离checkout env，保留真实Production Gate GitHub上下文并版本化supersede V13 current-Git集成。V13永久request0/run0；V14 activation/run仍需新授权，readiness`19/29`。
 - 2026-08-01 V12 layered-state修正远端接受与receipt: `81730a5…dc9a`为`37c3b3f…70b3`直接子且精确7个允许integration/ledger路径，V11、V12 request/workflow/runtime及terminal三authority零改动。Push `30698294887`/job `91364781788`为`1622/1622`、28 skip、gate`132/132`、15m11s；PR `30698296274`/job `91364785205`同为`1622/1622`、28 skip、`132/132`、15m29s，quality/Docker全绿。Fresh `474/474` Actions仍为V11 path0、V12唯一`30696298423`/attempt1/failure/job`91359681758`/artifact0。当前精确4文件Secret-free correction receipt不增加credit/授权；须自身双CI接受后作为V13 exact13唯一直接父。V13 activation/run需新授权，V12永久no-rerun，readiness`19/29`。
 - 2026-08-01 V12 layered-state最小修正候选: exact4 `37c3b3f`作为efef713的直接子只记录双CI兼容失败并形成结构terminal receipt，V12三份新增authority及workflow/request/runtime零改动。后继exact7不修改冻结V11 test，而把V12 `plan_state()`固定为旧request activation视图、增加`effective_plan_state()`承载terminal execution truth；CLI与production gate改用effective接口，旧V11 consumer继续armed状态，任何证据/Git错误仍为INVALID。该变更仅V12 plan verifier/test、production gate及四账本，无权限/触发/生产动作/credit；须经本地normal/`-O`、V11/V12组合、gate`132/132`及新HEAD双CI接受，禁止rerun efef或V12。
@@ -476,15 +477,15 @@ Last updated: 2026-08-01
 - 建议验证方式: 每轮记录 `homefeed / search_result / search_recommend / hot_search` 独立数量及 API 响应指标；云端至少确认搜索结果和推荐来源非零，再评估是否增加来源多样性门禁。
 - 是否需要用户确认后才能修改: 观测与解析修复不需要；新增硬性来源门禁需要产品确认和生产样本校准。
 
-### V13 dependency-cache successor is inert; its one external run is not authorized
+### V14 dependency-cache successor is inert; its one external run is not authorized
 
-- 状态: Open High / first-launch hard gate。V12唯一 attempt-1 已失败并永久禁止重跑；其终态、清理、artifact-zero和 `ae7ce75` 双CI均已接受。V13当前仅为exact-14惰性checkpoint候选，没有request或run。
-- 风险描述: BuildKit cache-config `records[].digest` 属于cache-key/rootKey域，不能与progress LLB `vertex_digest`直接判等。V13已改为只验证有界结构DAG，并仅以fresh consumer的 `SAME_DIGEST_CACHED` 证明运行时可移植性；但这仍需一次新的、唯一的外部GitHub Actions执行才能产生真实证据。
-- 涉及文件: `.github/workflows/admin-dependency-cache-export-v13.yml`, `deploy/production/plans/admin-dependency-cache-export-request-v13.json`, `scripts/ci/import_admin_dependency_cache_v13.sh`, `tools/verify_admin_dependency_cache_bundle_v13.py`, `tools/verify_admin_dependency_cache_export_plan_v13.py`及其固定fixture/tests。
-- 可能后果: 若跳过exact checkpoint/receipt远端验收、重复V12、手工触发、放宽权限/清理/账本条件，或在没有新授权时添加V13 request，可能消耗唯一运行、产生不可审计资源，或把结构证据误报为可移植性证据。
-- 建议验证方式: 保持 `ae7ce75… → exact14 → exact4 → exact1` 单父首链；普通push/PR CI只验惰性控制面。V13运行前后分别冻结完整V2-V13账本，要求V11路径零、V12唯一失败/artifact-zero、V13唯一push/attempt-1/artifact-zero；descriptor逐级`openat/O_NOFOLLOW`，core record SHA贯穿import/final verifier，最终只接受fresh consumer `SAME_DIGEST_CACHED`，cleanup完成后才允许上传。
-- 费用和回滚: 惰性checkpoint/receipt仅产生普通CI成本且不创建外部资源。V13 activation会创建短期BuildKit builders并可能上传一天期公开仓库artifact；失败时必须清理并版本化terminal evidence，不得rerun。没有生产部署、数据库、服务、ACR或流量权限。
-- 是否需要用户确认后才能修改: exact-14 checkpoint、exact-4 receipt及普通CI不需要额外确认；创建exact-one V13 request或执行其外部run需要新的明确授权。任何下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作仍需各自授权。
+- 状态: Open High / first-launch hard gate。V12唯一 attempt-1 已失败并永久禁止重跑；V13因普通CI hermeticity失败已由exact4 `585edf…d54c`结构化supersede，且永久request0/run0。V14当前仅为exact11惰性checkpoint候选，没有request或run。
+- 风险描述: V14逐字复用V13的source-backed有界结构DAG和fresh-consumer `SAME_DIGEST_CACHED`运行时谓词，只修复控制面CI隔离、Git测试与V13零运行账本。它仍需一次新的、唯一的外部GitHub Actions执行才能产生真实可移植性证据。
+- 涉及文件: `.github/workflows/admin-dependency-cache-export-v14.yml`, `deploy/production/plans/admin-dependency-cache-export-request-v14.json`, `tools/verify_admin_dependency_cache_export_plan_v14.py`, `tests/test_admin_dependency_cache_export_plan_v14.py`, `.github/workflows/ci.yml`及逐字冻结的V13 helper/fixture/bundle authorities。
+- 可能后果: 若跳过C14/R14远端验收、重跑V12/V13、让冻结V13模块继承外层checkout上下文、全局清除Production Gate的GitHub上下文，或在没有新授权时添加V14 request，可能制造假绿、消耗唯一运行或产生不可审计资源。
+- 建议验证方式: 保持 `585edf… → exact11 C14 → exact4 R14 → exact1 A14` 单父首链；普通push/PR CI须分别证明ambient suite与隔离V13 suite全绿、gate和Docker通过。Fresh账本要求V11/V13路径零、V12唯一failure/artifact-zero、V14在activation前路径零；运行时仍要求descriptor逐级`openat/O_NOFOLLOW`、core record SHA贯穿import/final verifier、fresh consumer `SAME_DIGEST_CACHED`且cleanup后才上传。
+- 费用和回滚: 惰性checkpoint/receipt仅产生普通CI成本且不创建外部资源。V14 activation会创建短期BuildKit builders并可能上传一天期公开仓库artifact；失败时必须清理并版本化terminal evidence，不得rerun。没有生产部署、数据库、服务、ACR或流量权限。
+- 是否需要用户确认后才能修改: exact11 C14、exact4 R14及普通CI不需要额外确认；创建exact-one V14 request或执行其外部run需要新的明确授权。任何下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作仍需各自授权。
 
 ## Low Risks
 

@@ -153,7 +153,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
         )
         self.assertTrue(
             checks[
-                "exact_5335bda_admin_dependency_cache_v13_recovery_plan_fail_closed"
+                "exact_5335bda_admin_dependency_cache_v14_recovery_plan_fail_closed"
             ]["passed"]
         )
 
@@ -435,13 +435,13 @@ class ProductionReadinessGateTests(unittest.TestCase):
 
         with mock.patch.object(
             gate,
-            "validate_admin_dependency_cache_export_plan_v13",
-            return_value=["tampered V13 recovery plan"],
+            "validate_admin_dependency_cache_export_plan_v14",
+            return_value=["tampered V14 recovery plan"],
         ):
             report = gate.build_report()
         self.assertFalse(report["passed"])
         self.assertIn(
-            "exact_5335bda_admin_dependency_cache_v13_recovery_plan_fail_closed",
+            "exact_5335bda_admin_dependency_cache_v14_recovery_plan_fail_closed",
             {item["name"] for item in report["failed_checks"]},
         )
 
@@ -805,25 +805,25 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 ]["passed"]
             )
 
-    def test_v13_gate_accepts_only_prepared_or_exact_armed_states(self):
+    def test_v14_gate_accepts_only_prepared_or_exact_armed_states(self):
         check_name = (
-            "exact_5335bda_admin_dependency_cache_v13_"
+            "exact_5335bda_admin_dependency_cache_v14_"
             "recovery_plan_fail_closed"
         )
         for state in (
-            "PREPARED_V13_NOT_TRIGGERED",
-            "V13_ARMED_OR_TRIGGERED_EXACT",
+            "PREPARED_V14_NOT_TRIGGERED",
+            "V14_ARMED_OR_TRIGGERED_EXACT",
         ):
             with (
                 self.subTest(state=state),
                 mock.patch.object(
                     gate,
-                    "validate_admin_dependency_cache_export_plan_v13",
+                    "validate_admin_dependency_cache_export_plan_v14",
                     return_value=[],
                 ),
                 mock.patch.object(
                     gate,
-                    "admin_dependency_cache_plan_state_v13",
+                    "admin_dependency_cache_plan_state_v14",
                     return_value=state,
                 ),
             ):
@@ -832,17 +832,17 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 }
             self.assertTrue(checks[check_name]["passed"])
 
-        for state in ("INVALID", "V13_CONSUMED_OR_INVALID"):
+        for state in ("INVALID", "V14_CONSUMED_OR_INVALID"):
             with (
                 self.subTest(state=state),
                 mock.patch.object(
                     gate,
-                    "validate_admin_dependency_cache_export_plan_v13",
+                    "validate_admin_dependency_cache_export_plan_v14",
                     return_value=[],
                 ),
                 mock.patch.object(
                     gate,
-                    "admin_dependency_cache_plan_state_v13",
+                    "admin_dependency_cache_plan_state_v14",
                     return_value=state,
                 ),
             ):
@@ -891,6 +891,55 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertIn(
             "exact_api_f_b55_runtime_deployment_evidence",
             {item["name"] for item in report["failed_checks"]},
+        )
+
+    def test_ci_unit_test_environment_isolation_contract_is_exact(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertTrue(gate._ci_unit_test_contract_valid(workflow))
+
+        mutations = {
+            "missing-v13-exclusion": (
+                "              ! -name 'test_admin_dependency_cache_export_plan_v13.py' \\\n",
+                "",
+            ),
+            "wrong-isolated-target": (
+                "              tests/test_admin_dependency_cache_export_plan_v13.py\n",
+                "              tests/test_admin_dependency_cache_export_plan_v14.py\n",
+            ),
+            "ambient-command-moved": (
+                '          python -m unittest "${ambient_test_files[@]}"\n',
+                '          env python -m unittest "${ambient_test_files[@]}"\n',
+            ),
+            "trailing-ambient-v13-invocation": (
+                "\n      - name: Quality gate\n",
+                "\n          python -m unittest "
+                "tests/test_admin_dependency_cache_export_plan_v13.py\n"
+                "\n      - name: Quality gate\n",
+            ),
+        }
+        for variable in (
+            "GITHUB_ACTIONS",
+            "GITHUB_SHA",
+            "GITHUB_EVENT_NAME",
+            "GITHUB_REF",
+        ):
+            mutations[f"missing-{variable.lower()}"] = (
+                f"            -u {variable} \\\n",
+                "",
+            )
+
+        for name, (before, after) in mutations.items():
+            with self.subTest(name=name):
+                self.assertIn(before, workflow)
+                candidate = workflow.replace(before, after, 1)
+                self.assertFalse(gate._ci_unit_test_contract_valid(candidate))
+
+        self.assertFalse(
+            gate._ci_unit_test_contract_valid(
+                workflow + "\n" + gate.CI_UNIT_TEST_CONTRACT
+            )
         )
 
     def test_production_roles_exclude_browser_dependencies_and_commands(self):

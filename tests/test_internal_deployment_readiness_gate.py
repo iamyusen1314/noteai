@@ -1191,6 +1191,32 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "path",
                     "ref": "tests/test_admin_dependency_cache_export_plan_v13.py",
                 },
+                {
+                    "kind": "git",
+                    "ref": "585edfcb2789b112bbf559bf1d6d75e1843dd54c",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v14.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v14.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tools/verify_admin_dependency_cache_export_plan_v14.py",
+                },
+                {
+                    "kind": "path",
+                    "ref": "tests/test_admin_dependency_cache_export_plan_v14.py",
+                },
             ],
         )
         self.assertNotIn(
@@ -1243,6 +1269,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertIn("V13 must never activate", admin["blocker"])
         self.assertIn("append-only V14 checkpoint", admin["blocker"])
+        self.assertIn("585edfcb2789b112bbf559bf1d6d75e1843dd54c", admin["blocker"])
+        self.assertIn("exact eleven-file direct child", admin["blocker"])
+        self.assertIn("reuses the V13 data plane", admin["blocker"])
+        self.assertIn("V13 workflow path zero", admin["blocker"])
+        self.assertIn("V13 request ancestry zero", admin["blocker"])
+        self.assertIn("V14 plan tests pass normal and optimized Python 12/12", admin["blocker"])
+        self.assertIn("exact-HEAD ordinary push and pull-request CI", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
         api_c = next(

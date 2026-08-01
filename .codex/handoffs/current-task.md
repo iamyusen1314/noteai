@@ -4536,3 +4536,64 @@ Admin ACR, database, service, production write or public-traffic mutation
 occurred. Internal/public readiness remains `19/29` / `19/38`; the latest
 credited item remains `api_f_current_release=VERIFIED`, and the sole task
 remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
+### Append-only V14 inert checkpoint candidate (2026-08-01)
+
+- R13 `585edfcb2789b112bbf559bf1d6d75e1843dd54c` is the exact four-file,
+  all-`100644`, direct child of failed C13. It records
+  `V13_INERT_CHECKPOINT_CI_HERMETICITY_FAILED_RECEIPT_EXACT`, is not a green
+  acceptance and is intentionally not pushed alone. V13 remains permanently
+  request-zero/run-zero and must never activate.
+- C14 is constrained to the exact eleven-file direct child of R13: this
+  handoff, the risk register, the V14 workflow/template/plan verifier/test,
+  `.github/workflows/ci.yml`, the readiness manifest/test and the production
+  gate/test. Its four new V14 authorities share one addition anchor; the seven
+  non-receipt checkpoint paths are immutable after C14. R14 must be the exact
+  four-file direct child and any later A14 must be a single request-only
+  direct child of R14.
+- V14 reuses the V13 import helper, source fixture, bundle verifier, bundle
+  test and runtime cache-record schema byte-for-byte. The frozen V13 plan
+  verifier is loaded lazily by exact SHA-256 and revalidated without current
+  Git integration; V13's eight core authorities retain their single C13
+  addition anchor and zero post-anchor changes.
+- The CI correction preserves real GitHub checkout context for ambient tests
+  and the Production Gate. Only the frozen V13 test module runs with
+  `GITHUB_ACTIONS`, `GITHUB_SHA`, `GITHUB_EVENT_NAME` and `GITHUB_REF`
+  removed. V14's temporary-Git test controls that context within its own
+  scope and proves a real synthetic pull-request checkout projects the second
+  parent. The entire Unit-test YAML block and CI SHA-256
+  `cf21455c03887657ecafb0c4a224144bf4fbe63c3a5de204ffdb31fd0480201e`
+  are frozen and mutation-tested.
+- The V14 live ledger contains twelve immutable legacy entries V2-V13 plus
+  the unique V14 current entry. It requires V11 and V13 repository-wide
+  workflow-path run counts zero, the unique V12 attempt-one failure and
+  artifact zero, and a unique V14 push/attempt-one/artifact-zero run only
+  after authorization. The V13 full plan CLI is forbidden in the V14
+  workflow; standalone live-ledger mode does not load repository modules.
+- Frozen hashes are: workflow
+  `98850e28f74d5b4d4bafacffed07d118cba3378c81a0c93457cb46dc83ac7db1`,
+  template
+  `9fd2f7d07eb7d9495ba4b27b2b71e6df650d8ef6dd6f599fb8a0da2edeadb4ca`,
+  V14 plan test
+  `f908bf33fda2e6c49e95fda43589a9f3376aec9681a038245b12ac55d9055a7d`
+  and legacy-ledger canonical projection
+  `168c17c5f14e1dbf69fe4b4e1ae84fb7335b00eef06bb55ebd23657699537ea2`.
+  Independent read-only review found no remaining P0/P1 mechanical or runtime
+  defect. V14 plan tests pass normal and optimized Python `12/12`, simulated
+  ambient-push execution passes `12/12`, the frozen V13 suite passes `11/11`,
+  all thirteen workflow Bash blocks pass syntax, and internal readiness tests
+  pass `16/16`.
+
+This candidate adds no readiness credit or production authority. Internal /
+public readiness remains `19/29` / `19/38`, the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. A disposable clone committed these
+exact eleven candidate paths over R13, reported
+`PREPARED_V14_NOT_TRIGGERED`, and passed the repository production gate
+`133/133`; both temporary clones were moved to Trash after the check. Commit
+and push C14 once, require exact-HEAD push/PR CI plus fresh
+V11/V12/V13/V14 ledger reconciliation, form and accept exact-four R14, and
+continue to the authorization boundary. Creating A14 or consuming its one
+external cache-export run requires new explicit user authorization; no
+V12/V13 rerun, production deployment, database, service, ACR or public-traffic
+mutation is authorized.
