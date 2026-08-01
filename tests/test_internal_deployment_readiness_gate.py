@@ -1127,6 +1127,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_v12_failure_evidence.py"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "efef71395fce4319ef11c8065b45db482ba12669",
+                },
             ],
         )
         self.assertNotIn(
@@ -1178,6 +1182,12 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("zero provider artifacts", admin["blocker"])
         self.assertIn("UNKNOWN_NOT_REACHED", admin["blocker"])
         self.assertIn("separate authorization", admin["blocker"])
+        self.assertIn("30697559060", admin["blocker"])
+        self.assertIn("91362907859", admin["blocker"])
+        self.assertIn("30697560965", admin["blocker"])
+        self.assertIn("91362912909", admin["blocker"])
+        self.assertIn("1621", admin["blocker"])
+        self.assertIn("legacy activation lifecycle", admin["blocker"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

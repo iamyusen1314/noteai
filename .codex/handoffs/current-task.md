@@ -4345,3 +4345,40 @@ acceptance, continue immediately with append-only V13 using the source-backed
 structural cache-config contract and fresh-consumer `SAME_DIGEST_CACHED`
 acceptance. A V13 external run requires a new explicit authorization; local
 design, tests and ordinary CI do not.
+
+### V12 terminal checkpoint ordinary-CI compatibility failure (2026-08-01)
+
+- Terminal checkpoint `efef71395fce4319ef11c8065b45db482ba12669`
+  remains the exact eleven-file, all-`100644`, direct child of A12. Its
+  failure/plan verifiers pass in normal and optimized Python and report
+  `V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT`; focused V12
+  terminal/plan/readiness tests passed `61/61`, production gate passed
+  `132/132`, and the three new production-gate state tests passed `3/3`.
+- Exact-HEAD ordinary push CI `30697559060` / job `91362907859` nevertheless
+  failed after `1621` tests passed, `28` skipped and one assertion failed
+  (`708.903s`; job `12m56s`). Pull-request CI `30697560965` / job
+  `91362912909` failed identically after `1621` passed, `28` skipped and one
+  failure (`826.110s`; job `14m36s`). Quality, repository gate and Docker
+  steps were skipped, so no gate count exists for either run.
+- The sole failure is an old V11 compatibility assertion: it calls V12's
+  public `plan_state()` and only accepts the historical request-lifecycle
+  values `PREPARED_V12_NOT_TRIGGERED` and `V12_ARMED_OR_TRIGGERED_EXACT`.
+  It does not question V12 evidence, Git lineage, cleanup, artifact zero or
+  the BuildKit root cause. The V11 test is a frozen authority and cannot be
+  edited after activation.
+- Fresh five-page Actions reconciliation observed `472/472` unique runs.
+  V11 workflow-path run count remains zero; V12 remains exactly run
+  `30696298423`, attempt one, failure, job `91359681758`, artifact zero.
+  The efef checkpoint triggered only its two ordinary CI runs and did not
+  trigger or rerun V12.
+
+This exact-four Secret-free descendant records the failed remote acceptance
+without changing runtime or terminal authorities. The minimal append-only
+correction will preserve `plan_state()` as the legacy request-activation
+lifecycle API for frozen V11 consumers, add a distinct effective terminal
+state API, and make the production gate/main V12 verifier consume that
+effective state. It will update only permitted integration surfaces plus the
+four ledgers, then obtain new ordinary push/PR CI; it will not modify V11,
+V12 evidence/workflow/request/runtime, rerun either failed CI, or rerun V12.
+Readiness remains `19/29` / `19/38`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
