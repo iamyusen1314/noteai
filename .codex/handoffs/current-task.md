@@ -4638,3 +4638,54 @@ service, production write or public-traffic mutation occurred. Internal /
 public readiness remains `19/29` / `19/38`; the latest credited item remains
 `api_f_current_release=VERIFIED`, and the sole task remains
 `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
+### Append-only V15 inert checkpoint candidate (2026-08-02)
+
+- R14 `1ca885d61c48f3cfdb4e99eeedc6fb9f17238bb4` is the exact four-file,
+  all-`100644`, direct child of C14. It records
+  `V14_INERT_CHECKPOINT_PR_CONTEXT_FAILED_RECEIPT_EXACT`, is intentionally
+  not pushed alone, adds no readiness credit, and permanently keeps V14 at
+  request zero / workflow-run zero.
+- C15 is constrained to the exact eleven-file direct child of R14: the four
+  ledgers, V15 workflow/template/plan verifier/test, `.github/workflows/ci.yml`
+  and the production gate/test. R15 must be the exact four-file direct child;
+  any later A15 may add only the single V15 request after new explicit user
+  authorization.
+- CI now excludes the frozen V13 and V14 modules from ambient discovery. Ten
+  V13 real-repository tests retain the real checkout context; only V13's
+  temporary-repository history test clears `GITHUB_ACTIONS`, `GITHUB_SHA`,
+  `GITHUB_EVENT_NAME` and `GITHUB_REF`. The complete V14 suite is run from a
+  detached clone of exact C14, so its historical CI contract is evaluated
+  against the tree it actually froze. The unit-test timeout is 25 minutes.
+- V15 validates the C14 exact-eleven / R14 exact-four first-parent chain,
+  historical C14 CI bytes, current V14 authority bytes and `0644` modes, and
+  V14 request/run zero without invoking V14's current-Git/full-plan APIs.
+  Its live ledger contains thirteen immutable V2-V14 entries plus the unique
+  V15 current run, with V11/V13/V14 repository workflow-path counts fixed at
+  zero and V12 fixed to its sole attempt-one failure/artifact-zero record.
+- Frozen candidate hashes are: workflow
+  `33a57116c7462bb4f73f48f0d94f41158b8bf676886c19518610d172fc6ba457`,
+  template
+  `b89820b318f98363b768a43663bdf6c730a4d78894c3d1c28547fdb86e42d777`,
+  V15 plan verifier
+  `6c22eb50b04c3e7ff4a6957554a705179b3d5c5998a670969acafcd6c67e72e5`,
+  V15 plan test
+  `8e739cd5edc97a33db34ce1fcf5086671101a629a5aa2fb80ae03c6aa1f7c024`,
+  CI `d4830c55563e18304c60c04cbe729e9d6c657c2fb5caa61d983eef50fe8a28e9`
+  and legacy-ledger canonical projection
+  `056103160f2ba8521032073ae7b5e523e82716ba1ae264b2a6b44a788ce30fe9`.
+  V15 plan tests pass normal and optimized Python `14/14`; its workflow's
+  thirteen Bash blocks and CI's eleven Bash blocks pass syntax; the split
+  V13 `10/10 + 1/1` and detached-C14 V14 `12/12` tests pass.
+
+This Secret-free candidate creates no request, external cache run, builder,
+artifact, authenticated download, transfer, ACR publication, deployment,
+database/service write or public traffic. Internal/public readiness remains
+`19/29` / `19/38`, the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. A disposable clone committed the
+exact eleven staged paths over R14, reported `PREPARED_V15_NOT_TRIGGERED`
+and passed the repository production gate `133/133`; the clone was moved to
+Trash after the check. Commit and push C15 once, then require its own
+exact-HEAD push/PR CI and fresh V11/V12/V13/V14/V15 ledger reconciliation.
+No C14, V12, V13 or V14 workflow rerun is permitted.

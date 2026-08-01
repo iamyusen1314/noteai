@@ -113,11 +113,11 @@ from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
     v11_untriggered_supersession_state,
 )
-from verify_admin_dependency_cache_export_plan_v14 import (  # noqa: E402
-    plan_state as admin_dependency_cache_plan_state_v14,
+from verify_admin_dependency_cache_export_plan_v15 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v15,
 )
-from verify_admin_dependency_cache_export_plan_v14 import (  # noqa: E402
-    validate_plan as validate_admin_dependency_cache_export_plan_v14,
+from verify_admin_dependency_cache_export_plan_v15 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v15,
 )
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
@@ -847,17 +847,43 @@ CI_UNIT_TEST_CONTRACT = """      - name: Unit tests
           mapfile -t ambient_test_files < <(
             find tests -maxdepth 1 -type f -name 'test_*.py' \\
               ! -name 'test_admin_dependency_cache_export_plan_v13.py' \\
+              ! -name 'test_admin_dependency_cache_export_plan_v14.py' \\
               -print | LC_ALL=C sort
           )
           test "${#ambient_test_files[@]}" -gt 0
           python -m unittest "${ambient_test_files[@]}"
+          python -m unittest \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_reviewed_authorities_validate_without_git_state \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_template_fail_closed_matrix \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_workflow_fail_closed_matrix \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_strict_json_rejects_duplicate_noncanonical_and_nonfinite \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_plan_state_classifier \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_live_ledger_pre_and_post_cleanup_snapshots \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_live_ledger_rejects_history_and_current_drift \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_live_ledger_contract_copy_requires_private_mode \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_pagination_rejects_duplicate_and_incomplete_pages \\
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_python_optimized_mode_has_no_assert_contract
           env \\
             -u GITHUB_ACTIONS \\
             -u GITHUB_SHA \\
             -u GITHUB_EVENT_NAME \\
             -u GITHUB_REF \\
             python -m unittest \\
-              tests/test_admin_dependency_cache_export_plan_v13.py
+              tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_exact_checkpoint_receipt_and_activation_git_history
+          historical_v14_root="$(mktemp -d "${RUNNER_TEMP:-/tmp}/noteai-v14-history.XXXXXX")"
+          git clone --quiet --no-hardlinks . "${historical_v14_root}/repo"
+          git -C "${historical_v14_root}/repo" checkout --quiet --detach \\
+            e18d24a204c33127a95fe3035b7fce43bdb0b4f8
+          (
+            cd "${historical_v14_root}/repo"
+            env \\
+              -u GITHUB_ACTIONS \\
+              -u GITHUB_SHA \\
+              -u GITHUB_EVENT_NAME \\
+              -u GITHUB_REF \\
+              python -m unittest \\
+                tests/test_admin_dependency_cache_export_plan_v14.py
+          )
 
       - name: Quality gate
 """
@@ -866,7 +892,17 @@ CI_UNIT_TEST_CONTRACT = """      - name: Unit tests
 def _ci_unit_test_contract_valid(workflow: str) -> bool:
     return (
         workflow.count(CI_UNIT_TEST_CONTRACT) == 1
-        and workflow.count("test_admin_dependency_cache_export_plan_v13.py") == 2
+        and workflow.count(
+            "tests.test_admin_dependency_cache_export_plan_v13."
+            "AdminDependencyCacheExportPlanV13Tests."
+        ) == 11
+        and workflow.count(
+            "test_admin_dependency_cache_export_plan_v13.py"
+        ) == 1
+        and workflow.count(
+            "test_admin_dependency_cache_export_plan_v14.py"
+        ) == 2
+        and workflow.count("timeout-minutes: 25") == 1
     )
 
 
@@ -1888,13 +1924,13 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
         "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
     }
-    admin_dependency_cache_plan_v14_errors = (
-        validate_admin_dependency_cache_export_plan_v14()
+    admin_dependency_cache_plan_v15_errors = (
+        validate_admin_dependency_cache_export_plan_v15()
     )
-    dependency_cache_plan_state_v14 = admin_dependency_cache_plan_state_v14()
-    accepted_dependency_cache_plan_states_v14 = {
-        "PREPARED_V14_NOT_TRIGGERED",
-        "V14_ARMED_OR_TRIGGERED_EXACT",
+    dependency_cache_plan_state_v15 = admin_dependency_cache_plan_state_v15()
+    accepted_dependency_cache_plan_states_v15 = {
+        "PREPARED_V15_NOT_TRIGGERED",
+        "V15_ARMED_OR_TRIGGERED_EXACT",
     }
     accepted_dependency_cache_v11_supersession = (
         dependency_cache_v11_supersession_state
@@ -2314,20 +2350,20 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             ),
         ),
         _ok(
-            "exact_5335bda_admin_dependency_cache_v14_recovery_plan_fail_closed",
-            not admin_dependency_cache_plan_v14_errors
-            and dependency_cache_plan_state_v14
-            in accepted_dependency_cache_plan_states_v14,
-            "; ".join(admin_dependency_cache_plan_v14_errors[:5])
-            if admin_dependency_cache_plan_v14_errors
+            "exact_5335bda_admin_dependency_cache_v15_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v15_errors
+            and dependency_cache_plan_state_v15
+            in accepted_dependency_cache_plan_states_v15,
+            "; ".join(admin_dependency_cache_plan_v15_errors[:5])
+            if admin_dependency_cache_plan_v15_errors
             else (
-                f"state={dependency_cache_plan_state_v14} is not an accepted "
-                "V14 control-plane state"
-                if dependency_cache_plan_state_v14
-                not in accepted_dependency_cache_plan_states_v14
+                f"state={dependency_cache_plan_state_v15} is not an accepted "
+                "V15 control-plane state"
+                if dependency_cache_plan_state_v15
+                not in accepted_dependency_cache_plan_states_v15
                 else (
-                    f"state={dependency_cache_plan_state_v14}; V12 remains "
-                    "terminal and V13 remains inert with zero workflow runs; "
+                    f"state={dependency_cache_plan_state_v15}; V12 remains "
+                    "terminal and V13/V14 remain inert with zero workflow runs; "
                     "cache-config records are "
                     "validated only as a bounded structural DAG, and runtime "
                     "portability requires a fresh-consumer SAME_DIGEST_CACHED "

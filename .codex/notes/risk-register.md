@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-01
+Last updated: 2026-08-02
 
 ## Critical Risks
 
@@ -478,15 +478,15 @@ Last updated: 2026-08-01
 - 建议验证方式: 每轮记录 `homefeed / search_result / search_recommend / hot_search` 独立数量及 API 响应指标；云端至少确认搜索结果和推荐来源非零，再评估是否增加来源多样性门禁。
 - 是否需要用户确认后才能修改: 观测与解析修复不需要；新增硬性来源门禁需要产品确认和生产样本校准。
 
-### V14 dependency-cache successor is inert; its one external run is not authorized
+### V15 dependency-cache successor is inert; its one external run is not authorized
 
-- 状态: Open High / first-launch hard gate。V12唯一 attempt-1 已失败并永久禁止重跑；V13因普通CI hermeticity失败已由exact4 `585edf…d54c`结构化supersede，且永久request0/run0。V14当前仅为exact11惰性checkpoint候选，没有request或run。
-- 风险描述: V14逐字复用V13的source-backed有界结构DAG和fresh-consumer `SAME_DIGEST_CACHED`运行时谓词，只修复控制面CI隔离、Git测试与V13零运行账本。它仍需一次新的、唯一的外部GitHub Actions执行才能产生真实可移植性证据。
-- 涉及文件: `.github/workflows/admin-dependency-cache-export-v14.yml`, `deploy/production/plans/admin-dependency-cache-export-request-v14.json`, `tools/verify_admin_dependency_cache_export_plan_v14.py`, `tests/test_admin_dependency_cache_export_plan_v14.py`, `.github/workflows/ci.yml`及逐字冻结的V13 helper/fixture/bundle authorities。
-- 可能后果: 若跳过C14/R14远端验收、重跑V12/V13、让冻结V13模块继承外层checkout上下文、全局清除Production Gate的GitHub上下文，或在没有新授权时添加V14 request，可能制造假绿、消耗唯一运行或产生不可审计资源。
-- 建议验证方式: 保持 `585edf… → exact11 C14 → exact4 R14 → exact1 A14` 单父首链；普通push/PR CI须分别证明ambient suite与隔离V13 suite全绿、gate和Docker通过。Fresh账本要求V11/V13路径零、V12唯一failure/artifact-zero、V14在activation前路径零；运行时仍要求descriptor逐级`openat/O_NOFOLLOW`、core record SHA贯穿import/final verifier、fresh consumer `SAME_DIGEST_CACHED`且cleanup后才上传。
-- 费用和回滚: 惰性checkpoint/receipt仅产生普通CI成本且不创建外部资源。V14 activation会创建短期BuildKit builders并可能上传一天期公开仓库artifact；失败时必须清理并版本化terminal evidence，不得rerun。没有生产部署、数据库、服务、ACR或流量权限。
-- 是否需要用户确认后才能修改: exact11 C14、exact4 R14及普通CI不需要额外确认；创建exact-one V14 request或执行其外部run需要新的明确授权。任何下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作仍需各自授权。
+- 状态: Open High / first-launch hard gate。V12唯一 attempt-1 已失败并永久禁止重跑；V13与V14分别因ordinary-CI hermeticity和PR-context partition失败被exact-four receipt结构化supersede，且永久request0/run0。R14 `1ca885d…8bb4`已在本地形成但不单独推送；V15当前仅为exact-eleven惰性checkpoint候选，没有request或run。
+- 风险描述: V15逐字复用V13的source-backed有界结构DAG、descriptor边界和fresh-consumer `SAME_DIGEST_CACHED`运行时谓词，只修复CI测试分区及V14历史树验证。它仍需先获得C15/R15普通push与PR双绿，再经一次新的、唯一的外部GitHub Actions执行产生真实可移植性证据。
+- 涉及文件: `.github/workflows/admin-dependency-cache-export-v15.yml`, `deploy/production/plans/admin-dependency-cache-export-request-v15.json`, `tools/verify_admin_dependency_cache_export_plan_v15.py`, `tests/test_admin_dependency_cache_export_plan_v15.py`, `.github/workflows/ci.yml`及逐字冻结的V13 data-plane authorities、V14历史authorities。
+- 可能后果: 若重跑C14/V12/V13/V14、让V13 temporary-Git test继承外层checkout、让V13 real-repository tests丢失PR上下文、在C15当前树直接执行V14 full-plan validator，或在没有新授权时添加V15 request，可能制造假绿、重复已知红灯、消耗唯一运行或产生不可审计资源。
+- 建议验证方式: 保持 `e18d… → exact4 R14 → exact11 C15 → exact4 R15 → exact1 A15` 单父首链；ambient discovery排除V13/V14，V13精确`10 ambient + 1 context-isolated`，完整V14 suite仅在detached exact-C14树验证。C15/R15普通push/PR CI均须首轮全绿。Fresh账本要求V11/V13/V14路径零、V12唯一failure/artifact-zero、V15在activation前路径零；运行时仍要求core record SHA贯穿import/final verifier、fresh consumer `SAME_DIGEST_CACHED`且cleanup后才上传。
+- 费用和回滚: 惰性checkpoint/receipt仅产生普通CI成本且不创建外部资源。V15 activation会创建短期BuildKit builders并可能上传一天期公开仓库artifact；失败时必须清理并版本化terminal evidence，不得rerun。没有生产部署、数据库、服务、ACR或流量权限。
+- 是否需要用户确认后才能修改: exact-eleven C15、exact-four R15及普通CI不需要额外确认；创建exact-one V15 request或执行其外部run需要新的明确授权。任何下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作仍需各自授权。
 
 ## Low Risks
 

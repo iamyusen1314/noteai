@@ -16,7 +16,7 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     env:
       ANTHROPIC_API_KEY: test-key
@@ -90,17 +90,43 @@ jobs:
           mapfile -t ambient_test_files < <(
             find tests -maxdepth 1 -type f -name 'test_*.py' \
               ! -name 'test_admin_dependency_cache_export_plan_v13.py' \
+              ! -name 'test_admin_dependency_cache_export_plan_v14.py' \
               -print | LC_ALL=C sort
           )
           test "${#ambient_test_files[@]}" -gt 0
           python -m unittest "${ambient_test_files[@]}"
+          python -m unittest \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_reviewed_authorities_validate_without_git_state \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_template_fail_closed_matrix \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_workflow_fail_closed_matrix \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_strict_json_rejects_duplicate_noncanonical_and_nonfinite \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_plan_state_classifier \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_live_ledger_pre_and_post_cleanup_snapshots \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_live_ledger_rejects_history_and_current_drift \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_live_ledger_contract_copy_requires_private_mode \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_pagination_rejects_duplicate_and_incomplete_pages \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_python_optimized_mode_has_no_assert_contract
           env \
             -u GITHUB_ACTIONS \
             -u GITHUB_SHA \
             -u GITHUB_EVENT_NAME \
             -u GITHUB_REF \
             python -m unittest \
-              tests/test_admin_dependency_cache_export_plan_v13.py
+              tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_exact_checkpoint_receipt_and_activation_git_history
+          historical_v14_root="$(mktemp -d "${RUNNER_TEMP:-/tmp}/noteai-v14-history.XXXXXX")"
+          git clone --quiet --no-hardlinks . "${historical_v14_root}/repo"
+          git -C "${historical_v14_root}/repo" checkout --quiet --detach \
+            e18d24a204c33127a95fe3035b7fce43bdb0b4f8
+          (
+            cd "${historical_v14_root}/repo"
+            env \
+              -u GITHUB_ACTIONS \
+              -u GITHUB_SHA \
+              -u GITHUB_EVENT_NAME \
+              -u GITHUB_REF \
+              python -m unittest \
+                tests/test_admin_dependency_cache_export_plan_v14.py
+          )
 
       - name: Quality gate
         run: |

@@ -153,7 +153,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
         )
         self.assertTrue(
             checks[
-                "exact_5335bda_admin_dependency_cache_v14_recovery_plan_fail_closed"
+                "exact_5335bda_admin_dependency_cache_v15_recovery_plan_fail_closed"
             ]["passed"]
         )
 
@@ -435,13 +435,13 @@ class ProductionReadinessGateTests(unittest.TestCase):
 
         with mock.patch.object(
             gate,
-            "validate_admin_dependency_cache_export_plan_v14",
-            return_value=["tampered V14 recovery plan"],
+            "validate_admin_dependency_cache_export_plan_v15",
+            return_value=["tampered V15 recovery plan"],
         ):
             report = gate.build_report()
         self.assertFalse(report["passed"])
         self.assertIn(
-            "exact_5335bda_admin_dependency_cache_v14_recovery_plan_fail_closed",
+            "exact_5335bda_admin_dependency_cache_v15_recovery_plan_fail_closed",
             {item["name"] for item in report["failed_checks"]},
         )
 
@@ -805,25 +805,25 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 ]["passed"]
             )
 
-    def test_v14_gate_accepts_only_prepared_or_exact_armed_states(self):
+    def test_v15_gate_accepts_only_prepared_or_exact_armed_states(self):
         check_name = (
-            "exact_5335bda_admin_dependency_cache_v14_"
+            "exact_5335bda_admin_dependency_cache_v15_"
             "recovery_plan_fail_closed"
         )
         for state in (
-            "PREPARED_V14_NOT_TRIGGERED",
-            "V14_ARMED_OR_TRIGGERED_EXACT",
+            "PREPARED_V15_NOT_TRIGGERED",
+            "V15_ARMED_OR_TRIGGERED_EXACT",
         ):
             with (
                 self.subTest(state=state),
                 mock.patch.object(
                     gate,
-                    "validate_admin_dependency_cache_export_plan_v14",
+                    "validate_admin_dependency_cache_export_plan_v15",
                     return_value=[],
                 ),
                 mock.patch.object(
                     gate,
-                    "admin_dependency_cache_plan_state_v14",
+                    "admin_dependency_cache_plan_state_v15",
                     return_value=state,
                 ),
             ):
@@ -832,17 +832,17 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 }
             self.assertTrue(checks[check_name]["passed"])
 
-        for state in ("INVALID", "V14_CONSUMED_OR_INVALID"):
+        for state in ("INVALID", "V15_CONSUMED_OR_INVALID"):
             with (
                 self.subTest(state=state),
                 mock.patch.object(
                     gate,
-                    "validate_admin_dependency_cache_export_plan_v14",
+                    "validate_admin_dependency_cache_export_plan_v15",
                     return_value=[],
                 ),
                 mock.patch.object(
                     gate,
-                    "admin_dependency_cache_plan_state_v14",
+                    "admin_dependency_cache_plan_state_v15",
                     return_value=state,
                 ),
             ):
@@ -904,13 +904,33 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "              ! -name 'test_admin_dependency_cache_export_plan_v13.py' \\\n",
                 "",
             ),
+            "missing-v14-exclusion": (
+                "              ! -name 'test_admin_dependency_cache_export_plan_v14.py' \\\n",
+                "",
+            ),
             "wrong-isolated-target": (
-                "              tests/test_admin_dependency_cache_export_plan_v13.py\n",
-                "              tests/test_admin_dependency_cache_export_plan_v14.py\n",
+                "              tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_exact_checkpoint_receipt_and_activation_git_history\n",
+                "              tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_reviewed_authorities_validate_without_git_state\n",
+            ),
+            "topology-test-moved-to-ambient": (
+                "            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_reviewed_authorities_validate_without_git_state \\\n",
+                "            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_exact_checkpoint_receipt_and_activation_git_history \\\n",
             ),
             "ambient-command-moved": (
                 '          python -m unittest "${ambient_test_files[@]}"\n',
                 '          env python -m unittest "${ambient_test_files[@]}"\n',
+            ),
+            "historical-c14-drift": (
+                "            e18d24a204c33127a95fe3035b7fce43bdb0b4f8\n",
+                "            4df6a77e39f2488b852414bb0649babbb37eb98a\n",
+            ),
+            "historical-v14-target-drift": (
+                "                tests/test_admin_dependency_cache_export_plan_v14.py\n",
+                "                tests/test_admin_dependency_cache_export_plan_v13.py\n",
+            ),
+            "timeout-budget-drift": (
+                "    timeout-minutes: 25\n",
+                "    timeout-minutes: 20\n",
             ),
             "trailing-ambient-v13-invocation": (
                 "\n      - name: Quality gate\n",
