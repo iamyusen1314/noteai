@@ -141,6 +141,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "exact_5335bda_admin_dependency_cache_v11_recovery_plan_fail_closed"
             ]["passed"]
         )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v12_recovery_plan_fail_closed"
+            ]["passed"]
+        )
 
         with mock.patch.object(
             gate,
@@ -384,13 +389,25 @@ class ProductionReadinessGateTests(unittest.TestCase):
 
         with mock.patch.object(
             gate,
-            "validate_admin_dependency_cache_export_plan_v11",
-            return_value=["tampered V11 recovery plan"],
+            "validate_v11_untriggered_supersession",
+            return_value=["tampered V11 supersession"],
         ):
             report = gate.build_report()
         self.assertFalse(report["passed"])
         self.assertIn(
             "exact_5335bda_admin_dependency_cache_v11_recovery_plan_fail_closed",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
+        with mock.patch.object(
+            gate,
+            "validate_admin_dependency_cache_export_plan_v12",
+            return_value=["tampered V12 recovery plan"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_admin_dependency_cache_v12_recovery_plan_fail_closed",
             {item["name"] for item in report["failed_checks"]},
         )
 
@@ -579,17 +596,17 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 failed,
             )
 
-    def test_v11_gate_detail_reports_armed_state_without_claiming_absence(self):
+    def test_v11_gate_requires_exact_untriggered_supersession(self):
         with (
             mock.patch.object(
                 gate,
-                "validate_admin_dependency_cache_export_plan_v11",
+                "validate_v11_untriggered_supersession",
                 return_value=[],
             ),
             mock.patch.object(
                 gate,
-                "admin_dependency_cache_plan_state_v11",
-                return_value="V11_ARMED_OR_TRIGGERED_EXACT",
+                "v11_untriggered_supersession_state",
+                return_value="V11_UNTRIGGERED_SUPERSEDED_EXACT",
             ),
         ):
             checks = {item["name"]: item for item in gate.check_browserless_vex()}
@@ -597,18 +614,26 @@ class ProductionReadinessGateTests(unittest.TestCase):
         detail = checks[
             "exact_5335bda_admin_dependency_cache_v11_recovery_plan_fail_closed"
         ]["detail"]
-        self.assertIn("state=V11_ARMED_OR_TRIGGERED_EXACT", detail)
-        self.assertNotIn("activation absent", detail)
+        self.assertIn("state=V11_UNTRIGGERED_SUPERSEDED_EXACT", detail)
+        self.assertIn("never triggered", detail)
+        self.assertIn("superseded", detail)
+        self.assertNotIn("completed", detail)
+        self.assertNotIn("artifact created", detail)
 
-    def test_v11_gate_rejects_invalid_or_consumed_state(self):
-        for state in ("INVALID", "V11_CONSUMED_OR_INVALID"):
+    def test_v11_gate_rejects_every_non_superseded_state(self):
+        for state in (
+            "PREPARED_V11_NOT_TRIGGERED",
+            "V11_ARMED_OR_TRIGGERED_EXACT",
+            "V11_CONSUMED_OR_INVALID",
+            "INVALID",
+        ):
             with self.subTest(state=state), mock.patch.object(
                 gate,
-                "validate_admin_dependency_cache_export_plan_v11",
+                "validate_v11_untriggered_supersession",
                 return_value=[],
             ), mock.patch.object(
                 gate,
-                "admin_dependency_cache_plan_state_v11",
+                "v11_untriggered_supersession_state",
                 return_value=state,
             ):
                 report = gate.build_report()
@@ -616,6 +641,105 @@ class ProductionReadinessGateTests(unittest.TestCase):
             failed = {item["name"] for item in report["failed_checks"]}
             self.assertIn(
                 "exact_5335bda_admin_dependency_cache_v11_recovery_plan_fail_closed",
+                failed,
+            )
+
+    def test_v11_pending_supersession_requires_exact_v12_prepared_state(self):
+        with (
+            mock.patch.object(
+                gate,
+                "validate_v11_untriggered_supersession",
+                return_value=[],
+            ),
+            mock.patch.object(
+                gate,
+                "v11_untriggered_supersession_state",
+                return_value="V11_UNTRIGGERED_SUPERSESSION_PENDING",
+            ),
+            mock.patch.object(
+                gate,
+                "validate_admin_dependency_cache_export_plan_v12",
+                return_value=[],
+            ),
+            mock.patch.object(
+                gate,
+                "admin_dependency_cache_plan_state_v12",
+                return_value="PREPARED_V12_NOT_TRIGGERED",
+            ),
+        ):
+            checks = {item["name"]: item for item in gate.check_browserless_vex()}
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v11_recovery_plan_fail_closed"
+            ]["passed"]
+        )
+
+        with (
+            mock.patch.object(
+                gate,
+                "validate_v11_untriggered_supersession",
+                return_value=[],
+            ),
+            mock.patch.object(
+                gate,
+                "v11_untriggered_supersession_state",
+                return_value="V11_UNTRIGGERED_SUPERSESSION_PENDING",
+            ),
+            mock.patch.object(
+                gate,
+                "validate_admin_dependency_cache_export_plan_v12",
+                return_value=[],
+            ),
+            mock.patch.object(
+                gate,
+                "admin_dependency_cache_plan_state_v12",
+                return_value="V12_ARMED_OR_TRIGGERED_EXACT",
+            ),
+        ):
+            checks = {item["name"]: item for item in gate.check_browserless_vex()}
+        self.assertFalse(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v11_recovery_plan_fail_closed"
+            ]["passed"]
+        )
+
+    def test_v12_gate_detail_reports_armed_state_without_claiming_absence(self):
+        with (
+            mock.patch.object(
+                gate,
+                "validate_admin_dependency_cache_export_plan_v12",
+                return_value=[],
+            ),
+            mock.patch.object(
+                gate,
+                "admin_dependency_cache_plan_state_v12",
+                return_value="V12_ARMED_OR_TRIGGERED_EXACT",
+            ),
+        ):
+            checks = {item["name"]: item for item in gate.check_browserless_vex()}
+
+        detail = checks[
+            "exact_5335bda_admin_dependency_cache_v12_recovery_plan_fail_closed"
+        ]["detail"]
+        self.assertIn("state=V12_ARMED_OR_TRIGGERED_EXACT", detail)
+        self.assertNotIn("active request is absent", detail)
+
+    def test_v12_gate_rejects_invalid_or_consumed_state(self):
+        for state in ("INVALID", "V12_CONSUMED_OR_INVALID"):
+            with self.subTest(state=state), mock.patch.object(
+                gate,
+                "validate_admin_dependency_cache_export_plan_v12",
+                return_value=[],
+            ), mock.patch.object(
+                gate,
+                "admin_dependency_cache_plan_state_v12",
+                return_value=state,
+            ):
+                report = gate.build_report()
+            self.assertFalse(report["passed"])
+            failed = {item["name"] for item in report["failed_checks"]}
+            self.assertIn(
+                "exact_5335bda_admin_dependency_cache_v12_recovery_plan_fail_closed",
                 failed,
             )
 

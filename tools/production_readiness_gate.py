@@ -101,11 +101,17 @@ from verify_admin_dependency_cache_export_plan_v10 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v10 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v10,
 )
-from verify_admin_dependency_cache_export_plan_v11 import (  # noqa: E402
-    plan_state as admin_dependency_cache_plan_state_v11,
+from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v12,
 )
-from verify_admin_dependency_cache_export_plan_v11 import (  # noqa: E402
-    validate_plan as validate_admin_dependency_cache_export_plan_v11,
+from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v12,
+)
+from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
+    validate_v11_untriggered_supersession,
+)
+from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
+    v11_untriggered_supersession_state,
 )
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
@@ -1811,14 +1817,31 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         "PREPARED_V10_NOT_TRIGGERED",
         "V10_ARMED_OR_TRIGGERED_EXACT",
     }
-    admin_dependency_cache_plan_v11_errors = (
-        validate_admin_dependency_cache_export_plan_v11()
+    admin_dependency_cache_v11_supersession_errors = (
+        validate_v11_untriggered_supersession()
     )
-    dependency_cache_plan_state_v11 = admin_dependency_cache_plan_state_v11()
-    accepted_dependency_cache_plan_states_v11 = {
-        "PREPARED_V11_NOT_TRIGGERED",
-        "V11_ARMED_OR_TRIGGERED_EXACT",
+    dependency_cache_v11_supersession_state = (
+        v11_untriggered_supersession_state()
+    )
+    admin_dependency_cache_plan_v12_errors = (
+        validate_admin_dependency_cache_export_plan_v12()
+    )
+    dependency_cache_plan_state_v12 = admin_dependency_cache_plan_state_v12()
+    accepted_dependency_cache_plan_states_v12 = {
+        "PREPARED_V12_NOT_TRIGGERED",
+        "V12_ARMED_OR_TRIGGERED_EXACT",
     }
+    accepted_dependency_cache_v11_supersession = (
+        dependency_cache_v11_supersession_state
+        == "V11_UNTRIGGERED_SUPERSEDED_EXACT"
+        or (
+            dependency_cache_v11_supersession_state
+            == "V11_UNTRIGGERED_SUPERSESSION_PENDING"
+            and dependency_cache_plan_state_v12
+            == "PREPARED_V12_NOT_TRIGGERED"
+            and not admin_dependency_cache_plan_v12_errors
+        )
+    )
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -2172,26 +2195,41 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         ),
         _ok(
             "exact_5335bda_admin_dependency_cache_v11_recovery_plan_fail_closed",
-            not admin_dependency_cache_plan_v11_errors
-            and dependency_cache_plan_state_v11
-            in accepted_dependency_cache_plan_states_v11,
-            "; ".join(admin_dependency_cache_plan_v11_errors[:5])
-            if admin_dependency_cache_plan_v11_errors
+            not admin_dependency_cache_v11_supersession_errors
+            and accepted_dependency_cache_v11_supersession,
+            "; ".join(admin_dependency_cache_v11_supersession_errors[:5])
+            if admin_dependency_cache_v11_supersession_errors
             else (
-                f"state={dependency_cache_plan_state_v11} is not an accepted "
-                "V11 control-plane state"
-                if dependency_cache_plan_state_v11
-                not in accepted_dependency_cache_plan_states_v11
+                f"state={dependency_cache_v11_supersession_state} is not an "
+                "accepted V11 supersession state"
+                if not accepted_dependency_cache_v11_supersession
                 else (
-                    f"state={dependency_cache_plan_state_v11}; V10 terminal "
-                    "checkpoint/corrective checkpoint/receipt and failure "
-                    "evidence are frozen; producer export-anchor and consumer "
-                    "import-observer are sibling zero-network children of the "
-                    "same byte-pinned runtime_pip graph, cacheconfig must retain "
-                    "a direct result-bearing anchor-to-pip record path, and the "
-                    "producer/consumer pair is classified before the unchanged "
-                    "all-interval cache predicate; the frozen V10 full replay, "
-                    "V2-V10 no-rerun ledger and request lifecycle are retained"
+                    f"state={dependency_cache_v11_supersession_state}; V11 was "
+                    "never triggered, has no receipt or active request, and "
+                    "is explicitly superseded by the exact V12 candidate "
+                    "without editing its seven frozen authorities"
+                )
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v12_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v12_errors
+            and dependency_cache_plan_state_v12
+            in accepted_dependency_cache_plan_states_v12,
+            "; ".join(admin_dependency_cache_plan_v12_errors[:5])
+            if admin_dependency_cache_plan_v12_errors
+            else (
+                f"state={dependency_cache_plan_state_v12} is not an accepted "
+                "V12 control-plane state"
+                if dependency_cache_plan_state_v12
+                not in accepted_dependency_cache_plan_states_v12
+                else (
+                    f"state={dependency_cache_plan_state_v12}; V11 remains "
+                    "untriggered and is explicitly superseded because the V2 "
+                    "workflow has two immutable run records; V12 freezes both "
+                    "V2 records, each unique V3-V10 attempt, V11 run zero and "
+                    "the reused V11 runtime core under two fresh fully paginated "
+                    "pre-resource/post-cleanup ledgers"
                 )
             ),
         ),

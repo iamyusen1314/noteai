@@ -4177,3 +4177,77 @@ state.
 Internal/public readiness remains `19/29` / `19/38`, the latest credited item
 remains `api_f_current_release=VERIFIED`, and the sole task remains
 `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
+### V11 remote acceptance, deterministic ledger defect and append-only V12 (2026-08-01)
+
+- Read-only takeover reconciled branch
+  `codex/quality-stabilization-real-chain`, local HEAD and upstream at
+  `606c474d347b4dad4e08e6f9fd038a82bdae5315` with ahead/behind `0/0`.
+  That commit is the single direct child of V10 receipt
+  `458f2482f9a3267bb9050a274f33ae21fc546ed7`, changes exactly the fifteen
+  frozen V11 checkpoint paths, and records every path as a regular `100644`
+  blob. The V11 request is absent, its all-ref addition history is zero, and
+  no V11 receipt or activation exists.
+- Exact-HEAD push CI `30686018935` / job `91331830809` completed `success`
+  with `1572/1572` tests, `28` intentional skips, unit time `747.326s` and
+  production gate `130/130`. Pull-request CI `30686020149` / job
+  `91331834394` also completed `success` with `1572/1572`, `28` skips, unit
+  time `774.185s` and gate `130/130`. Job wall times were `827s` and `857s`.
+  Five fully paginated repository Actions pages contained `463` records and
+  exactly zero records whose path is
+  `.github/workflows/admin-dependency-cache-export-v11.yml`.
+- Independent read-only reconciliation found a deterministic pre-resource
+  V11 defect before any bounded run was consumed. Workflow `323980939` has
+  two immutable records, not one: parser-context run `30572921215` at
+  `c0d049b56aa6efaff7133ac44a9fef7f010cd097` is push/attempt-1/failure with
+  zero jobs and artifacts; terminal run `30591103183` at
+  `83b89262a33aed2cfa9fd623f232a66824398c2e` is
+  push/attempt-1/failure with unique job `91033410635` and artifact zero.
+  Both duplicated V11 ledgers require `len(runs) == 1`, so V11 would fail
+  before builder creation. V3 through V10 each retain their one exact
+  attempt-1 failure/job/artifact-zero record. V11 is therefore permanently
+  untriggered and explicitly superseded; never create its request or run it.
+- Append-only V12 reuses and hash-binds the reviewed V11 workflow data plane:
+  export/import helpers, source projection and bundle verifier are unchanged.
+  The only runtime-control correction is one executable ledger implementation
+  that performs two fresh, complete and duplicate-rejecting API snapshots. It
+  binds both V2 records and their exact job vectors, each V3-V10 record and
+  job, zero artifacts for every legacy run, repository-wide V11 path run zero,
+  and the sole current V12 push/attempt-1/artifact-zero run. The second read
+  occurs after cleanup and before upload and requires the canonical legacy
+  projection to be byte-equivalent to the first.
+- The V12 Git contract is
+  `606c474…5315 → exact-11 checkpoint → exact-4 receipt → exact-1 request`.
+  Its checkpoint contains four new V12 workflow/template/verifier/test files
+  and seven controlled modifications: the V11 supersession test, production
+  gate/test, readiness manifest/test, this handoff and the risk ledger. Four
+  authorities must share one addition anchor; the seven non-receipt paths are
+  immutable afterward. Partial sets, wrong parents or modes, side-chain
+  merges, post-stage commits, touch/revert history, reruns, API field/count/
+  pagination drift and optimized-Python assertion removal all fail closed.
+  The final V12 focused suite passes `37/37`, including V2 dual-record,
+  V3-V10, V11-zero, V12-current, pagination, duplicate, pre/post, private
+  snapshot, standalone-release-checkout, no-cache and bounded-response tests.
+  The preserved V11 suite passes `25/25`, internal readiness passes `16/16`,
+  normal and optimized-Python V12 verification both report
+  `PREPARED_V12_NOT_TRIGGERED`, all thirteen workflow Bash blocks pass syntax,
+  and the repository gate passes `131/131`. Independent read-only runtime
+  review reports `P0/P1/P2/P3=0`. The first production-gate mutation run found
+  one wording-only `supersedes` / `superseded` assertion mismatch; the
+  one-line detail correction passed its target test `1/1` in `52.598s` and
+  the full suite then passed `34/34` in `2354.577s`. Only ordinary remote CI
+  remains for checkpoint acceptance.
+
+At this exact-11 checkpoint snapshot no V11/V12 workflow, artifact,
+authenticated download, cross-provider transfer, cloud builder, Admin ACR,
+database, service, production write or public-traffic mutation has occurred,
+and the standing bounded authorization is unconsumed. If Git later contains
+the exact request-only A12, `V12_ARMED_OR_TRIGGERED_EXACT` and immutable
+Git/API evidence supersede this historical zero-run snapshot; no documentation
+commit is allowed during the run. Internal/public readiness remains `19/29` /
+`19/38`, the latest
+credited item remains `api_f_current_release=VERIFIED`, and the sole task
+remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit/push the exact-11
+checkpoint, require its own ordinary push/PR CI plus fresh V11 run-zero and
+unchanged V2-V10 ledgers, then create and remotely accept the exact-four
+receipt before the sole request-only V12 activation.

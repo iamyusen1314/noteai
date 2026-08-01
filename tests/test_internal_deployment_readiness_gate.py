@@ -1050,6 +1050,42 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_export_plan_v11.py"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "c0d049b56aa6efaff7133ac44a9fef7f010cd097",
+                },
+                {
+                    "kind": "git",
+                    "ref": "606c474d347b4dad4e08e6f9fd038a82bdae5315",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v12.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v12.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_export_plan_v12.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_export_plan_v12.py"
+                    ),
+                },
             ],
         )
         self.assertNotIn(
@@ -1062,7 +1098,24 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             admin["evidence"],
         )
-        self.assertIn("PREPARED_V11_NOT_TRIGGERED", admin["blocker"])
+        self.assertNotIn(
+            {
+                "kind": "path",
+                "ref": (
+                    ".github/release-requests/"
+                    "admin-5335bda-dependency-cache-v12.json"
+                ),
+            },
+            admin["evidence"],
+        )
+        self.assertIn("PREPARED_V12_NOT_TRIGGERED", admin["blocker"])
+        self.assertIn("V12_ARMED_OR_TRIGGERED_EXACT", admin["blocker"])
+        self.assertIn("V11 must never activate", admin["blocker"])
+        self.assertIn("exactly two", admin["blocker"])
+        self.assertIn("30572921215", admin["blocker"])
+        self.assertIn("30591103183", admin["blocker"])
+        self.assertIn("91033410635", admin["blocker"])
+        self.assertIn("zero V11-path runs", admin["blocker"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]
