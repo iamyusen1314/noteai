@@ -4597,3 +4597,44 @@ continue to the authorization boundary. Creating A14 or consuming its one
 external cache-export run requires new explicit user authorization; no
 V12/V13 rerun, production deployment, database, service, ACR or public-traffic
 mutation is authorized.
+
+### V14 inert-checkpoint PR-context failure and structural receipt (2026-08-02)
+
+- C14 `e18d24a204c33127a95fe3035b7fce43bdb0b4f8` is the exact eleven-file,
+  all-`100644`, direct child of the V13 structural receipt
+  `585edfcb2789b112bbf559bf1d6d75e1843dd54c`. Its ordinary push CI
+  `30706546764` / job `91386553347` passed in `18m02s`: ambient regression
+  `1657/1657` with `28` skips in `1001.153s`, frozen V13 `11/11` in
+  `1.266s`, Quality, production gate `133/133` and Docker Compose all passed.
+- C14 pull-request CI `30706547955` / job `91386556528` completed failure in
+  `19m01s`. Ambient regression still passed `1657/1657` with `28` skips in
+  `1077.223s`; the separately invoked frozen V13 suite had exactly one of
+  eleven tests fail, after which Quality, production readiness and Docker
+  were skipped. The failure was
+  `test_reviewed_authorities_validate_without_git_state`: clearing the four
+  GitHub checkout variables for the entire V13 module removed the synthetic
+  PR merge's second-parent projection needed by V13's real-repository V12
+  predecessor validation. The push checkout is linear, so it did not expose
+  this boundary.
+- Fresh five-page reconciliation at `2026-08-01T16:09:19Z` observed
+  `480/480` unique repository Actions records. C14 has exactly those two
+  ordinary CI records; V11, V13 and V14 workflow-path run counts remain zero.
+  V12 remains exactly run `30696298423`, run/attempt one, failure, unique job
+  `91359681758` and artifact zero. V13/V14 active requests are absent and
+  their addition histories remain zero.
+
+This exact-four Secret-free descendant changes only this handoff, the risk
+ledger, the readiness manifest and its test. It records
+`V14_INERT_CHECKPOINT_PR_CONTEXT_FAILED_RECEIPT_EXACT`, is not green remote
+acceptance and adds no readiness credit. C14 will not be rerun and this known
+red receipt will not be pushed alone. V14 is permanently untriggered and must
+never receive a request or run. Its append-only V15 successor must exclude
+the frozen V13 and V14 modules from ambient discovery, run V13's ten
+real-repository tests with ambient GitHub context, run only V13's temporary-
+repository history test with the four checkout variables removed, and
+validate the complete frozen V14 suite against the exact C14 tree. No cache
+artifact, builder, authenticated download, transfer, Admin ACR, database,
+service, production write or public-traffic mutation occurred. Internal /
+public readiness remains `19/29` / `19/38`; the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.

@@ -1196,6 +1196,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "ref": "585edfcb2789b112bbf559bf1d6d75e1843dd54c",
                 },
                 {
+                    "kind": "git",
+                    "ref": "e18d24a204c33127a95fe3035b7fce43bdb0b4f8",
+                },
+                {
                     "kind": "path",
                     "ref": (
                         "deploy/production/plans/"
@@ -1275,7 +1279,21 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("V13 workflow path zero", admin["blocker"])
         self.assertIn("V13 request ancestry zero", admin["blocker"])
         self.assertIn("V14 plan tests pass normal and optimized Python 12/12", admin["blocker"])
-        self.assertIn("exact-HEAD ordinary push and pull-request CI", admin["blocker"])
+        self.assertIn("e18d24a204c33127a95fe3035b7fce43bdb0b4f8", admin["blocker"])
+        self.assertIn("30706546764", admin["blocker"])
+        self.assertIn("91386553347", admin["blocker"])
+        self.assertIn("30706547955", admin["blocker"])
+        self.assertIn("91386556528", admin["blocker"])
+        self.assertIn("1657/1657", admin["blocker"])
+        self.assertIn("133/133", admin["blocker"])
+        self.assertIn("480/480", admin["blocker"])
+        self.assertIn("synthetic pull-request context", admin["blocker"])
+        self.assertIn(
+            "V14_INERT_CHECKPOINT_PR_CONTEXT_FAILED_RECEIPT_EXACT",
+            admin["blocker"],
+        )
+        self.assertIn("V14 must never activate", admin["blocker"])
+        self.assertIn("append-only V15 successor", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
         api_c = next(
