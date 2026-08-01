@@ -4251,3 +4251,36 @@ remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit/push the exact-11
 checkpoint, require its own ordinary push/PR CI plus fresh V11 run-zero and
 unchanged V2-V10 ledgers, then create and remotely accept the exact-four
 receipt before the sole request-only V12 activation.
+
+### V12 exact-11 checkpoint remote acceptance and R12 receipt (2026-08-01)
+
+- C12 `8b1f197141b9c84b4ffa812080ecabd6af1bbbce` is the direct child of
+  C11 `606c474d347b4dad4e08e6f9fd038a82bdae5315` and contains exactly the
+  eleven contracted regular `100644` paths. The worktree is clean and
+  branch/upstream are `0/0`. The V11 verifier remains byte-identical at
+  `be6203f63a1c35603c1e7a851cd0a4fe0577807a28bf64c10e87530f953a28fe`;
+  V11 is `V11_UNTRIGGERED_SUPERSEDED_EXACT` and V12 remains
+  `PREPARED_V12_NOT_TRIGGERED`.
+- Exact-HEAD push CI `30691062509` / job `91345758810` completed success
+  with `1612/1612` tests, `28` skips, unit time `808.792s` and production
+  gate `131/131`; the job completed in `14m39s`. Pull-request CI
+  `30691063859` / job `91345762808` also completed success with
+  `1612/1612`, `28` skips, unit time `819.750s`, gate `131/131` and job
+  time `14m46s`.
+- The V12 verifier's strict fresh API replay observed `465` fully paginated
+  repository runs. V2 remains exactly runs `30572921215` and `30591103183`
+  with parser jobs zero and terminal unique job `91033410635`; V3-V10 each
+  retain their exact unique attempt-1 failure job and artifact zero. V11 and
+  V12 workflow-path run counts are both zero across repeated fresh
+  observations. No recovery authorization has been consumed.
+
+This four-file Secret-free snapshot is the exact R12 receipt candidate and
+changes only this handoff, the risk ledger, the readiness manifest and its
+test. It adds no deployment credit: internal/public readiness remains
+`19/29` / `19/38`, the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Require R12's own exact-HEAD push/PR
+CI plus unchanged V2-V10 and V11/V12 run zero; only then create the exact-one
+request A12. No V11/V12 workflow, artifact, authenticated download, transfer,
+cloud builder, Admin ACR, database, service or public-traffic mutation has
+occurred.

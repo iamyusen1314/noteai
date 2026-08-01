@@ -1086,6 +1086,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_export_plan_v12.py"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "8b1f197141b9c84b4ffa812080ecabd6af1bbbce",
+                },
             ],
         )
         self.assertNotIn(
@@ -1116,6 +1120,17 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("30591103183", admin["blocker"])
         self.assertIn("91033410635", admin["blocker"])
         self.assertIn("zero V11-path runs", admin["blocker"])
+        self.assertIn(
+            "8b1f197141b9c84b4ffa812080ecabd6af1bbbce",
+            admin["blocker"],
+        )
+        self.assertIn("30691062509", admin["blocker"])
+        self.assertIn("91345758810", admin["blocker"])
+        self.assertIn("30691063859", admin["blocker"])
+        self.assertIn("91345762808", admin["blocker"])
+        self.assertIn("465 repository runs", admin["blocker"])
+        self.assertIn("V11/V12 workflow-path run zero", admin["blocker"])
+        self.assertIn("exact four-file R12 receipt", admin["blocker"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]
