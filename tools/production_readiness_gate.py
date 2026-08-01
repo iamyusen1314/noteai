@@ -101,6 +101,12 @@ from verify_admin_dependency_cache_export_plan_v10 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v10 import (  # noqa: E402
     validate_plan as validate_admin_dependency_cache_export_plan_v10,
 )
+from verify_admin_dependency_cache_export_plan_v11 import (  # noqa: E402
+    plan_state as admin_dependency_cache_plan_state_v11,
+)
+from verify_admin_dependency_cache_export_plan_v11 import (  # noqa: E402
+    validate_plan as validate_admin_dependency_cache_export_plan_v11,
+)
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
 )
@@ -1805,6 +1811,14 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         "PREPARED_V10_NOT_TRIGGERED",
         "V10_ARMED_OR_TRIGGERED_EXACT",
     }
+    admin_dependency_cache_plan_v11_errors = (
+        validate_admin_dependency_cache_export_plan_v11()
+    )
+    dependency_cache_plan_state_v11 = admin_dependency_cache_plan_state_v11()
+    accepted_dependency_cache_plan_states_v11 = {
+        "PREPARED_V11_NOT_TRIGGERED",
+        "V11_ARMED_OR_TRIGGERED_EXACT",
+    }
     registry_errors = validate_registry_release_vex_bundle()
     return [
         _ok(
@@ -2154,6 +2168,31 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 "parity are proven, the activation PR-only failure is bound to "
                 "the now-regressed synthetic-merge history false positive, and "
                 "V10 rerun is forbidden"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v11_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v11_errors
+            and dependency_cache_plan_state_v11
+            in accepted_dependency_cache_plan_states_v11,
+            "; ".join(admin_dependency_cache_plan_v11_errors[:5])
+            if admin_dependency_cache_plan_v11_errors
+            else (
+                f"state={dependency_cache_plan_state_v11} is not an accepted "
+                "V11 control-plane state"
+                if dependency_cache_plan_state_v11
+                not in accepted_dependency_cache_plan_states_v11
+                else (
+                    f"state={dependency_cache_plan_state_v11}; V10 terminal "
+                    "checkpoint/corrective checkpoint/receipt and failure "
+                    "evidence are frozen; producer export-anchor and consumer "
+                    "import-observer are sibling zero-network children of the "
+                    "same byte-pinned runtime_pip graph, cacheconfig must retain "
+                    "a direct result-bearing anchor-to-pip record path, and the "
+                    "producer/consumer pair is classified before the unchanged "
+                    "all-interval cache predicate; the frozen V10 full replay, "
+                    "V2-V10 no-rerun ledger and request lifecycle are retained"
+                )
             ),
         ),
     ]

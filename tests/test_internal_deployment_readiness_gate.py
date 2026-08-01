@@ -991,8 +991,78 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_v10_failure_evidence.py"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "458f2482f9a3267bb9050a274f33ae21fc546ed7",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v11.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v11.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "scripts/ci/export_admin_dependency_cache_v11.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": "scripts/ci/import_admin_dependency_cache_v11.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/fixtures/"
+                        "admin_dependency_cache_buildkit_v0.31.2_"
+                        "export_anchor_observer_projection.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tools/verify_admin_dependency_cache_bundle_v11.py",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_bundle_verifier_v11.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_export_plan_v11.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_export_plan_v11.py"
+                    ),
+                },
             ],
         )
+        self.assertNotIn(
+            {
+                "kind": "path",
+                "ref": (
+                    ".github/release-requests/"
+                    "admin-5335bda-dependency-cache-v11.json"
+                ),
+            },
+            admin["evidence"],
+        )
+        self.assertIn("PREPARED_V11_NOT_TRIGGERED", admin["blocker"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

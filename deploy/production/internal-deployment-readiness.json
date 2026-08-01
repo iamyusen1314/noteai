@@ -1145,9 +1145,49 @@
         {
           "kind": "path",
           "ref": "tests/test_admin_dependency_cache_v10_failure_evidence.py"
+        },
+        {
+          "kind": "git",
+          "ref": "458f2482f9a3267bb9050a274f33ae21fc546ed7"
+        },
+        {
+          "kind": "path",
+          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v11.json"
+        },
+        {
+          "kind": "path",
+          "ref": ".github/workflows/admin-dependency-cache-export-v11.yml"
+        },
+        {
+          "kind": "path",
+          "ref": "scripts/ci/export_admin_dependency_cache_v11.sh"
+        },
+        {
+          "kind": "path",
+          "ref": "scripts/ci/import_admin_dependency_cache_v11.sh"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_export_anchor_observer_projection.json"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_bundle_v11.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v11.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tools/verify_admin_dependency_cache_export_plan_v11.py"
+        },
+        {
+          "kind": "path",
+          "ref": "tests/test_admin_dependency_cache_export_plan_v11.py"
         }
       ],
-      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V10 are permanently frozen at their unique failed attempt 1 and must not be rerun. V10 inert checkpoint 9199fb598790a03302c21dd3968c63b58d03f2c2, inert receipt b02c4a18d6b77024f17d0e56c1d081a578854b1f and request-only control ea2a3b489e74b21a88ea21ecd243cd6a433c7fac form a single-parent append-only chain. Control ea2a3b4 triggered exactly workflow 324820330 run 30672160324/job 91291967175/run 1/attempt 1. Producer build, strict verification and 13-file/two-chunk portable core generation passed. The fresh-consumer observer build and V10 parse completed, but the unchanged all-interval cache predicate rejected runtime_pip with NETWORK_VERTEX_NOT_CACHED before the V9 delegate, cacheless replay, portability proof, final validation or upload. V10 proves the rejecting verifier boundary, not the underlying cache mechanism: fresh-consumer pip digest/intervals, observer details, decoded dependency logs and cache record/result mapping were not retained, so root cause remains UNKNOWN_NOT_RETAINED. V10 changed only the consumer graph; producer still exported with runtime_pip terminal, so the producer-terminal-result hypothesis was not tested and remains plausible. Artifact/download/transfer/conditional builder/Admin ACR/database/service/public-traffic mutation counts are zero; enumerated cleanup and Docker parity passed. Fully paginated V10 history contains only run 30672160324 attempt 1 failure, attempt two absent, rerun zero and artifact zero; V9 remains unchanged. Activation push CI 30672160310/job 91291967030 passed 1513/1513 tests with 28 skips and repository gate 128/128. Activation pull-request CI 30672161852/job 91291971809 failed three tests solely because synthetic merge 6dbf0daddd308a8501aea1ea53a23981ab4550ef was falsely counted as a second request addition; the terminal checkpoint includes lineage-aware origin/history regression coverage for this control-plane defect. The first local full-suite checkpoint candidate exposed one date-sensitive test fixture whose hard-coded 2026-08-01 next period equaled the actual UTC charge period; the fixture now derives a distinct next period from the claim without changing production billing code, and the corrected local full suite passed 1525/1525 with 28 skips. Terminal checkpoint 8c8567b99541f1f260d988754daa88f97f00f68e has exact push CI 30678246254/job 91309786181 success with 1525/1525 tests, 28 skips and repository gate 129/129. Its pull-request CI 30678248247/job 91309792275 failed solely because the new failure-evidence parent-drift test did not isolate _true_additions from synthetic merge d3bbb785aeb3bf11eac5ed1303a582240c415fa3; the verifier itself accepted that merge. Corrective checkpoint b01c65d507cf087bea0d80038eafdb08a8e23bf1 changes exactly that test plus three Secret-free ledgers and passed exact push CI 30678960987/job 91311902300 and pull-request CI 30678962485/job 91311907477, each with 1525/1525 tests, 28 skips and repository gate 129/129. Fully paginated exact-HEAD Actions contains only those two ordinary runs, while V9/V10 ledgers and artifact-zero states remain unchanged. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and engineering evidence earn no deployment credit. The current boundary is the exact four-file Secret-free terminal receipt with its own green push/pull-request CI and unchanged V9/V10 ledgers, followed directly by append-only V11 producer export-anchor recovery.",
+      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. V2 through V10 are permanently frozen at their unique failed attempt 1 and must not be rerun. V10 control ea2a3b489e74b21a88ea21ecd243cd6a433c7fac triggered only workflow 324820330 run 30672160324/job 91291967175/attempt 1. Producer verification and portable-core generation passed; the fresh-consumer observer build then proved runtime_pip was not cached and failed with NETWORK_VERTEX_NOT_CACHED before cacheless replay, final validation or upload. The underlying V10 cache mechanism remains UNKNOWN_NOT_RETAINED because the producer-terminal hypothesis, fresh-consumer pip digest/interval vector, decoded dependency logs and cache-record path were not retained. Terminal checkpoint 8c8567b99541f1f260d988754daa88f97f00f68e, corrective checkpoint b01c65d507cf087bea0d80038eafdb08a8e23bf1 and terminal receipt 458f2482f9a3267bb9050a274f33ae21fc546ed7 preserve the failure evidence and lineage-aware synthetic-merge correction; the corrective checkpoint passed exact push CI 30678960987/job 91311902300 and pull-request CI 30678962485/job 91311907477 with 1525/1525 tests, 28 skips and repository gate 129/129, and the receipt is the current branch/upstream boundary. Fully paginated V9/V10 histories and artifact-zero states are unchanged. V11 is PREPARED_V11_NOT_TRIGGERED: its active request is absent, workflow run/artifact counts are zero, and its seven same-anchor authorities define a same-Dockerfile producer export-anchor plus consumer import-observer experiment. Before the unchanged all-interval cache predicate, V11 persists the complete bounded role, child, cacheconfig direct result-bearing anchor-to-runtime_pip path and producer/consumer pair projections; success also requires the frozen V2-V9 provenance/package-network chain, unchanged original evidence bytes and exact pre-predicate/final diagnostic binding. The control plane requires a direct-child exact 15-file 100644 inert checkpoint, a direct-child exact four-file 100644 receipt and only then an exact one-file request activation; every stage must remain the latest canonical head, so side-chain merges, post-stage commits, post-anchor touches and Git history enumeration errors fail closed. Local final acceptance passed V11 focus 45/45, V9-V11 combined 118/118, internal 16/16, repository gate 130/130, production-readiness 31/31 and full repository 1572/1572 with 28 skips; independent review reports P0/P1/P2/P3 all zero. The V11 contract ends at the exact activation: the run is observed read-only and the first later write must atomically add a separately versioned and reviewed terminal-supersession contract binding that activation, all seven frozen authority hashes and exact terminal deltas without relaxing V11. No artifact download, transfer, builder publication, Admin ACR, database, service or public-traffic mutation has occurred. Internal/public readiness remains 19/29 / 19/38 because failed cache attempts and engineering evidence earn no deployment credit. The next acceptance boundary is the exact 15-file V11 inert checkpoint, its own green push/pull-request CI, fully paginated V11 run zero and unchanged V2-V10 ledgers, followed by the exact four-file receipt and only then the single-parent request-only V11 activation.",
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

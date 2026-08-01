@@ -4088,3 +4088,92 @@ unchanged fully paginated V9/V10 ledgers, then continue directly to append-only
 V11 with a distinct producer export-anchor and consumer observer. Readiness
 remains `19/29` internal / `19/38` public, the sole task remains
 `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`, and V2-V10 are permanently no-rerun.
+
+### V10 terminal receipt takeover and inert V11 local closure (2026-08-01)
+
+- Read-only takeover reconciled branch
+  `codex/quality-stabilization-real-chain`, local HEAD and upstream at the
+  V10 terminal receipt `458f2482f9a3267bb9050a274f33ae21fc546ed7`, and
+  ahead/behind `0/0`. The worktree initially contained only nine untracked
+  V11 control/runtime/test files; no active V11 request, runtime output,
+  provider artifact, credential or production mutation was present.
+- Append-only V11 is locally `PREPARED_V11_NOT_TRIGGERED`. Both producer and
+  consumer construct the same exact `5191`-byte / `86`-line Dockerfile at
+  SHA-256 `c665ac4356bec6751d44878a416bbaa278a77df77754f5461ba0adb13f43c2a0`.
+  `noteai-cache-export-anchor` and `noteai-cache-import-observer` are distinct
+  sibling `--network=none` children of `runtime_pip`; each solve targets only
+  its own child. The original release Dockerfile and V10 full replay remain
+  byte-frozen.
+- The V11 verifier preserves all three role interval vectors, bounded decoded
+  log projections, child identity and producer/consumer pair diagnostics
+  before enforcing cache predicates. It follows the extracted BuildKit OCI
+  `index → root manifest → cacheconfig` chain and requires unique,
+  result-bearing anchor and `runtime_pip` records joined by exactly one direct
+  identity input link. Pair outcomes are limited to `DIGEST_DRIFT`,
+  `SAME_DIGEST_NONCACHED` and `SAME_DIGEST_CACHED`; only the last can pass.
+  Historical V10 root cause remains `UNKNOWN_NOT_RETAINED`.
+- The workflow preserves the V10 concurrency group and performs two fresh,
+  fully paginated V2-V11 run/artifact ledgers: once before any builder or
+  resource exists and again after cleanup immediately before final validation
+  and upload. V2-V10 must retain their exact unique attempt-1 terminal states;
+  V11 must contain only its current run/attempt and artifact zero. Git history
+  uses all-parent true-origin and anchor-lineage comparisons so unchanged
+  GitHub synthetic merges pass while merge-only additions, side-branch touches
+  and tamper/revert histories fail closed.
+- Frozen V11 authority SHA-256 values are workflow
+  `61d72e35823730851e45900219935e12324ff42862fd9920285ade5ececbaca6`,
+  template `ca97b59c409e478a5f375a9446a580415004f90451d2219a3a8abf432b43c0ac`,
+  export helper `40618ad0db154061b1480dfd7b1e630fd6cc2f1529b54407509b412efb90b141`,
+  import helper `e131246229e90ecb81dea1957d3ebe72173562a47803f67213b9eedddb1f31df`,
+  source fixture `70e38ea8f77db46dd9a2325ac7fda22428c17dfe6d9318c7244107699ae9eb49`,
+  bundle verifier `27c3788bce8065440ccf370cf3a7192c227546d30ed96c612f9acadebca97ca7`
+  and plan verifier
+  `be6203f63a1c35603c1e7a851cd0a4fe0577807a28bf64c10e87530f953a28fe`.
+- Independent review found and the main CTO closed all control/runtime
+  gaps before checkpointing: exact-15 and exact-4 Git deltas, partial-authority
+  rejection, exact receipt parentage, `100644` modes, optimization-safe ledger
+  assertions, two bounded 60-second snapshots, late-snapshot failure handling,
+  and durable pre-predicate/pair/final diagnostics. Combined-prefix success now
+  also delegates through the frozen V2-V9 provenance/package-network chain;
+  unlocated sibling children fail closed, original metadata/progress bytes are
+  re-read unchanged, and the retained pre-predicate object is reconstructed
+  exactly from the regenerated final diagnostic so extra keys, wrong self-hash
+  or role-vector drift cannot pass final validation.
+- The control state machine also requires the exact checkpoint, receipt and
+  activation to remain the latest canonical stage, accepts only GitHub's
+  verified pull-request synthetic-merge projection, freezes all eleven
+  non-receipt checkpoint paths after their common addition anchor, and treats
+  Git history enumeration errors as hard failures. A side-chain no-ff merge,
+  post-stage commit, mode drift or post-anchor touch cannot satisfy the plan.
+- V11 bundle and plan mutation suites pass `45/45`; the combined V9/V10/V11
+  bundle/plan regression set passes `118/118`; the exact-state test now accepts
+  both the inert and unique armed state so activation cannot inherit a stale
+  request-absent assertion. Shell syntax, strict JSON/YAML,
+  extracted workflow Bash/Python syntax and optimized-mode plan validation
+  pass. Internal readiness passes `16/16`, the repository production gate is
+  `130/130`, and the plan reports `PREPARED_V11_NOT_TRIGGERED`. The dedicated
+  production-readiness unit set passes `31/31` with no skip in `2134.918`
+  seconds; full repository validation passes `1572/1572` with 28 skips in
+  `3619.271` seconds. Final independent read-only review reports
+  `P0=0/P1=0/P2=0/P3=0`. The added V11 gate is engineering evidence only and
+  adds no deployment credit.
+
+The locally accepted inert checkpoint changes exactly fifteen paths: the nine new V11
+files plus production gate/test, internal readiness manifest/test, this
+handoff and the risk ledger. The V11 active request remains absent. Complete
+the final post-ledger focused/internal/direct-gate byte check, then commit and
+push this exact snapshot. Require its own ordinary push and pull-request CI,
+fully paginated V11 run zero and unchanged V2-V10 ledgers; then create an exact
+four-file Secret-free inert receipt and require the same remote boundary before
+the sole request-only V11 activation.
+The current V11 control contract ends at that exact activation commit. After
+activation, make no further commit while the run is executing; collect its
+result read-only. The first later write must atomically introduce a separately
+versioned and reviewed terminal-supersession contract that binds the activation
+commit, all seven frozen authority hashes and the exact terminal deltas. It may
+not silently relax or edit the V11 activation contract; designing and accepting
+that terminal contract is the first task after the run reaches a terminal
+state.
+Internal/public readiness remains `19/29` / `19/38`, the latest credited item
+remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
