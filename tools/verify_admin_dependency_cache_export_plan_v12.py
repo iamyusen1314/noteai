@@ -20,8 +20,10 @@ from typing import Any, Callable
 LIVE_LEDGER_MODE = len(sys.argv) > 1 and sys.argv[1] == "live-ledger"
 if LIVE_LEDGER_MODE:
     v11_plan = None
+    v12_failure = None
 else:
     import verify_admin_dependency_cache_export_plan_v11 as v11_plan
+    import verify_admin_dependency_cache_v12_failure_evidence as v12_failure
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -904,6 +906,8 @@ def validate_v11_untriggered_supersession(
 def v11_untriggered_supersession_state(*, root: Path = ROOT) -> str:
     if validate_v11_untriggered_supersession(root=root):
         return "INVALID"
+    if root == ROOT and v12_failure.terminal_checkpoint() is not None:
+        return "V11_UNTRIGGERED_SUPERSEDED_EXACT"
     anchor, anchor_errors = _authority_anchor(root=root)
     if anchor_errors or _validate_same_anchor(root=root):
         return "INVALID"
@@ -1167,6 +1171,12 @@ def validate_plan(
     active_request: dict[str, Any] | None = None,
 ) -> list[str]:
     errors: list[str] = []
+    terminal_checkpoint = None
+    if verify_git_state and active_request is None:
+        try:
+            terminal_checkpoint = v12_failure.terminal_checkpoint()
+        except (OSError, subprocess.CalledProcessError, ValueError) as exc:
+            errors.append(f"cannot resolve V12 terminal checkpoint: {exc}")
     try:
         workflow_bytes = _regular_file(WORKFLOW_PATH)
         template_bytes = _regular_file(TEMPLATE_PATH)
@@ -1261,28 +1271,48 @@ def validate_plan(
             or active_bytes != expected
         ):
             errors.append("V12 active request differs from reviewed template")
-        if verify_git_state and not supplied:
+        if verify_git_state and not supplied and terminal_checkpoint is None:
             errors.extend(_validate_active_git(active))
     elif present:
         errors.append("V12 active request is invalid")
 
     if verify_git_state:
         errors.extend(validate_v11_untriggered_supersession())
-        errors.extend(_validate_same_anchor())
-        _receipt, receipt_errors = _validate_inert_receipt()
-        errors.extend(receipt_errors)
-        errors.extend(
-            _validate_latest_stage_head(active_present=present)
-        )
-        if not present:
+        if terminal_checkpoint is not None:
             try:
-                if _true_additions(
-                    root=ROOT,
-                    path=ACTIVE_REQUEST_PATH.relative_to(ROOT),
-                ):
-                    errors.append("inactive V12 request has prior addition history")
-            except (OSError, subprocess.CalledProcessError, ValueError) as exc:
-                errors.append(f"cannot verify inactive V12 request history: {exc}")
+                terminal_payload = v12_failure.load_strict()
+                errors.extend(v12_failure.verify(terminal_payload))
+            except (
+                OSError,
+                UnicodeDecodeError,
+                json.JSONDecodeError,
+                ValueError,
+            ) as exc:
+                errors.append(f"cannot load V12 terminal evidence: {exc}")
+        else:
+            errors.extend(_validate_same_anchor())
+            _receipt, receipt_errors = _validate_inert_receipt()
+            errors.extend(receipt_errors)
+            errors.extend(
+                _validate_latest_stage_head(active_present=present)
+            )
+            if not present:
+                try:
+                    if _true_additions(
+                        root=ROOT,
+                        path=ACTIVE_REQUEST_PATH.relative_to(ROOT),
+                    ):
+                        errors.append(
+                            "inactive V12 request has prior addition history"
+                        )
+                except (
+                    OSError,
+                    subprocess.CalledProcessError,
+                    ValueError,
+                ) as exc:
+                    errors.append(
+                        f"cannot verify inactive V12 request history: {exc}"
+                    )
     return errors
 
 
@@ -1307,6 +1337,11 @@ def classify_plan_state(
 
 
 def plan_state() -> str:
+    try:
+        if v12_failure.terminal_checkpoint() is not None:
+            return v12_failure.terminal_state()
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        return "INVALID"
     base_errors = validate_plan(verify_git_state=False)
     present, active, active_errors = _active_request()
     try:

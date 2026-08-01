@@ -1090,6 +1090,43 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "8b1f197141b9c84b4ffa812080ecabd6af1bbbce",
                 },
+                {
+                    "kind": "git",
+                    "ref": "328c07ed173754585c635ebb7b1d8c2587cadf57",
+                },
+                {
+                    "kind": "git",
+                    "ref": "2883d3e216fd64a70b94b1ba27b0838dca280f61",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/release-requests/"
+                        "admin-5335bda-dependency-cache-v12.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "admin-dependency-cache-v12-attempt1-failed-"
+                        "20260801.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_v12_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_v12_failure_evidence.py"
+                    ),
+                },
             ],
         )
         self.assertNotIn(
@@ -1102,7 +1139,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             admin["evidence"],
         )
-        self.assertNotIn(
+        self.assertIn(
             {
                 "kind": "path",
                 "ref": (
@@ -1112,14 +1149,20 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             admin["evidence"],
         )
-        self.assertIn("PREPARED_V12_NOT_TRIGGERED", admin["blocker"])
-        self.assertIn("V12_ARMED_OR_TRIGGERED_EXACT", admin["blocker"])
+        self.assertIn(
+            "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+            admin["blocker"],
+        )
+        self.assertIn(
+            "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
+            admin["blocker"],
+        )
         self.assertIn("V11 must never activate", admin["blocker"])
         self.assertIn("exactly two", admin["blocker"])
         self.assertIn("30572921215", admin["blocker"])
         self.assertIn("30591103183", admin["blocker"])
         self.assertIn("91033410635", admin["blocker"])
-        self.assertIn("zero V11-path runs", admin["blocker"])
+        self.assertIn("workflow-path run count remain zero", admin["blocker"])
         self.assertIn(
             "8b1f197141b9c84b4ffa812080ecabd6af1bbbce",
             admin["blocker"],
@@ -1128,9 +1171,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("91345758810", admin["blocker"])
         self.assertIn("30691063859", admin["blocker"])
         self.assertIn("91345762808", admin["blocker"])
-        self.assertIn("465 repository runs", admin["blocker"])
-        self.assertIn("V11/V12 workflow-path run zero", admin["blocker"])
-        self.assertIn("exact four-file R12 receipt", admin["blocker"])
+        self.assertIn("328c07ed173754585c635ebb7b1d8c2587cadf57", admin["blocker"])
+        self.assertIn("2883d3e216fd64a70b94b1ba27b0838dca280f61", admin["blocker"])
+        self.assertIn("30696298423", admin["blocker"])
+        self.assertIn("91359681758", admin["blocker"])
+        self.assertIn("zero provider artifacts", admin["blocker"])
+        self.assertIn("UNKNOWN_NOT_REACHED", admin["blocker"])
+        self.assertIn("separate authorization", admin["blocker"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

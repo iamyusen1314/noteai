@@ -146,6 +146,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "exact_5335bda_admin_dependency_cache_v12_recovery_plan_fail_closed"
             ]["passed"]
         )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v12_attempt1_failed_artifact0"
+            ]["passed"]
+        )
 
         with mock.patch.object(
             gate,
@@ -408,6 +413,18 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertIn(
             "exact_5335bda_admin_dependency_cache_v12_recovery_plan_fail_closed",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
+        with mock.patch.object(
+            gate,
+            "verify_admin_dependency_cache_v12_failure_evidence",
+            return_value=["tampered V12 failure evidence"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_5335bda_admin_dependency_cache_v12_attempt1_failed_artifact0",
             {item["name"] for item in report["failed_checks"]},
         )
 
@@ -741,6 +758,34 @@ class ProductionReadinessGateTests(unittest.TestCase):
             self.assertIn(
                 "exact_5335bda_admin_dependency_cache_v12_recovery_plan_fail_closed",
                 failed,
+            )
+
+    def test_v12_gate_accepts_versioned_terminal_states(self):
+        for state in (
+            "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+            "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
+        ):
+            with (
+                self.subTest(state=state),
+                mock.patch.object(
+                    gate,
+                    "validate_admin_dependency_cache_export_plan_v12",
+                    return_value=[],
+                ),
+                mock.patch.object(
+                    gate,
+                    "admin_dependency_cache_plan_state_v12",
+                    return_value=state,
+                ),
+            ):
+                checks = {
+                    item["name"]: item for item in gate.check_browserless_vex()
+                }
+            self.assertTrue(
+                checks[
+                    "exact_5335bda_admin_dependency_cache_v12_"
+                    "recovery_plan_fail_closed"
+                ]["passed"]
             )
 
     def test_api_c_runtime_evidence_is_fail_closed_in_repository_gate(self):

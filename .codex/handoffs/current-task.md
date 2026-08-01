@@ -4284,3 +4284,64 @@ CI plus unchanged V2-V10 and V11/V12 run zero; only then create the exact-one
 request A12. No V11/V12 workflow, artifact, authenticated download, transfer,
 cloud builder, Admin ACR, database, service or public-traffic mutation has
 occurred.
+
+### V12 exact-one activation, unique failed attempt and terminal supersession candidate (2026-08-01)
+
+- R12 `328c07ed173754585c635ebb7b1d8c2587cadf57` was remotely accepted before
+  activation. Its exact-HEAD push CI `30695599968` / job `91357836237` and
+  pull-request CI `30695601555` / job `91357839993` both passed `1612/1612`
+  tests, `28` skips and repository gate `131/131`.
+- A12 `2883d3e216fd64a70b94b1ba27b0838dca280f61` is R12's single-parent,
+  request-only child. The sole added `100644` request is `14221` bytes,
+  SHA-256 `1bfd1be7c6a03042397c57e2788180a92c51e4843890d141671cc4b29eff432e`
+  and blob `5d3112b41ea654479d68b46099f67b5cbe8816b6`. A12 push CI
+  `30696298410` / job `91359681561` and pull-request CI `30696299851` / job
+  `91359684931` both passed `1612/1612`, `28` skips and gate `131/131`.
+- The one authorized V12 workflow attempt is permanently consumed. Run
+  `30696298423`, workflow `325026609`, job `91359681758`, run number `1`,
+  attempt `1` completed failure. The producer reached its export verifier;
+  `Export V12 dependency-only BuildKit local cache` failed exactly once with
+  `FAIL: BuildKit anchor cache record binding changed`. The fresh consumer,
+  final validation, upload and provider identity steps were never reached.
+  Provider artifact count is exactly zero, and rerun is forbidden.
+- Resource cleanup passed after the failure: two ephemeral builders were
+  created and two removed; builder, image, container, volume and network
+  parity passed; the compact 20-field cleanup payload is `558` bytes with
+  SHA-256 `66150b14b5a1dc05b73125403610c1ab94ec7a4dba9cddd28735b9af612b5194`.
+  Both in-workflow fresh ledgers passed. A later uncached full pagination
+  observed `470/470` unique repository runs with immutable V2-V10 records,
+  V11 path run zero and exactly this one V12 failure/artifact-zero run.
+- Retained producer diagnostics prove V9 and V11 completed their own checks,
+  but no cache-record projection or consumer observation was retained. The
+  exact runtime portability verdict is therefore `UNKNOWN_NOT_REACHED`.
+  Independent source review at BuildKit v0.31.2 commit
+  `e42e1bfd389af7203238cce77b1f7dad447285e9` found the verifier defect:
+  cache-config `records[].digest` is a cache-key/rootKey identity, whereas
+  progress `vertex_digest` is an LLB vertex identity. BuildKit does not define
+  those fields as equal. V12's equality predicate was unsupported and failed
+  before testing the portable cache itself.
+- Secret-free terminal evidence is versioned at
+  `deploy/production/evidence/admin-dependency-cache-v12-attempt1-failed-20260801.json`.
+  Its strict verifier binds the exact activation lineage, run/job/log,
+  diagnostic self-hashes, six pinned BuildKit sources, cleanup, ledger,
+  artifact-zero, ordinary CI and authorization boundaries. The direct-child
+  terminal checkpoint must contain exactly eleven `100644` paths and report
+  `V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT`; its direct-child
+  four-file receipt must report
+  `V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT`. The three added V12
+  terminal authorities remain immutable, while later explicitly versioned
+  successors may evolve shared gate and ledger integrations after the receipt.
+
+This terminal candidate changes exactly the contracted eleven files: this
+handoff, the risk ledger, readiness manifest, V12 plan verifier/test, new V12
+failure evidence/verifier/test, production gate/test and internal-readiness
+test. Focused and repository verification must be recorded after the commit;
+no V12 rerun, download, transfer, cloud builder, Admin ACR, database, service
+or public-traffic action is authorized. Readiness remains `19/29` internally
+and `19/38` publicly; the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. After exact-11 and exact-four remote
+acceptance, continue immediately with append-only V13 using the source-backed
+structural cache-config contract and fresh-consumer `SAME_DIGEST_CACHED`
+acceptance. A V13 external run requires a new explicit authorization; local
+design, tests and ordinary CI do not.

@@ -167,6 +167,12 @@ from verify_admin_dependency_cache_v10_failure_evidence import (  # noqa: E402
 from verify_admin_dependency_cache_v10_failure_evidence import (  # noqa: E402
     verify as verify_admin_dependency_cache_v10_failure_evidence,
 )
+from verify_admin_dependency_cache_v12_failure_evidence import (  # noqa: E402
+    load_strict as load_admin_dependency_cache_v12_failure_evidence,
+)
+from verify_admin_dependency_cache_v12_failure_evidence import (  # noqa: E402
+    verify as verify_admin_dependency_cache_v12_failure_evidence,
+)
 from verify_api_c_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_c_current_release_evidence_bundle,
 )
@@ -1777,6 +1783,16 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         admin_dependency_cache_v10_failure_errors = [
             f"cannot load Admin dependency-cache V10 failure evidence: {exc}"
         ]
+    try:
+        admin_dependency_cache_v12_failure_errors = (
+            verify_admin_dependency_cache_v12_failure_evidence(
+                load_admin_dependency_cache_v12_failure_evidence()
+            )
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        admin_dependency_cache_v12_failure_errors = [
+            f"cannot load Admin dependency-cache V12 failure evidence: {exc}"
+        ]
     admin_dependency_cache_plan_v3_errors = (
         validate_admin_dependency_cache_export_plan_v3()
     )
@@ -1830,6 +1846,8 @@ def check_browserless_vex() -> list[dict[str, Any]]:
     accepted_dependency_cache_plan_states_v12 = {
         "PREPARED_V12_NOT_TRIGGERED",
         "V12_ARMED_OR_TRIGGERED_EXACT",
+        "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+        "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
     }
     accepted_dependency_cache_v11_supersession = (
         dependency_cache_v11_supersession_state
@@ -2231,6 +2249,21 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                     "the reused V11 runtime core under two fresh fully paginated "
                     "pre-resource/post-cleanup ledgers"
                 )
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v12_attempt1_failed_artifact0",
+            not admin_dependency_cache_v12_failure_errors,
+            "; ".join(admin_dependency_cache_v12_failure_errors[:5])
+            if admin_dependency_cache_v12_failure_errors
+            else (
+                "unique run 30696298423/job 91359681758 attempt 1 failed "
+                "closed before consumer import because the V11 verifier "
+                "compared BuildKit cache-key and vertex digest domains; "
+                "artifact/download/transfer/production mutations are zero, "
+                "both builders and transient Docker state were removed, "
+                "fresh pre/post ledgers passed, portability is "
+                "UNKNOWN_NOT_REACHED, and V12 rerun is forbidden"
             ),
         ),
     ]

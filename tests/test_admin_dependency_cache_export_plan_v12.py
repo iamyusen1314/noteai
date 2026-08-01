@@ -235,12 +235,47 @@ class AdminDependencyCacheExportPlanV12Tests(unittest.TestCase):
         additions = plan._true_additions(
             path=plan.ACTIVE_REQUEST_PATH.relative_to(plan.ROOT)
         )
-        if plan.ACTIVE_REQUEST_PATH.exists():
+        terminal_checkpoint = plan.v12_failure.terminal_checkpoint()
+        if terminal_checkpoint is not None:
+            self.assertIn(
+                plan.plan_state(),
+                {
+                    "V12_TRIGGERED_ATTEMPT1_FAILED_"
+                    "TERMINAL_SUPERSESSION_EXACT",
+                    "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
+                },
+            )
+            self.assertEqual(
+                plan.v11_untriggered_supersession_state(),
+                "V11_UNTRIGGERED_SUPERSEDED_EXACT",
+            )
+            self.assertEqual(len(additions), 1)
+        elif plan.ACTIVE_REQUEST_PATH.exists():
             self.assertEqual(plan.plan_state(), "V12_ARMED_OR_TRIGGERED_EXACT")
             self.assertEqual(len(additions), 1)
         else:
             self.assertEqual(plan.plan_state(), "PREPARED_V12_NOT_TRIGGERED")
             self.assertEqual(additions, [])
+
+    def test_terminal_plan_delegates_to_versioned_failure_evidence(self) -> None:
+        with (
+            mock.patch.object(
+                plan.v12_failure,
+                "terminal_checkpoint",
+                return_value="f" * 40,
+            ),
+            mock.patch.object(
+                plan.v12_failure,
+                "load_strict",
+                return_value={"terminal": True},
+            ),
+            mock.patch.object(
+                plan.v12_failure,
+                "verify",
+                return_value=["terminal evidence drift"],
+            ),
+        ):
+            self.assertIn("terminal evidence drift", plan.validate_plan())
 
     def test_v11_supersession_state_fails_closed(self) -> None:
         with mock.patch.object(
