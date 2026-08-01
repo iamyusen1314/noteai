@@ -1135,6 +1135,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "37c3b3fdc24ad90ff6135a7f1e254f92062470b3",
                 },
+                {
+                    "kind": "git",
+                    "ref": "81730a511acb553c9a1e29af834924f71650dc9a",
+                },
             ],
         )
         self.assertNotIn(
@@ -1194,6 +1198,11 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("legacy activation lifecycle", admin["blocker"])
         self.assertIn("effective terminal state", admin["blocker"])
         self.assertIn("37c3b3f", admin["blocker"])
+        self.assertIn("30698294887", admin["blocker"])
+        self.assertIn("91364781788", admin["blocker"])
+        self.assertIn("30698296274", admin["blocker"])
+        self.assertIn("91364785205", admin["blocker"])
+        self.assertIn("474/474", admin["blocker"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

@@ -4178,6 +4178,38 @@ Internal/public readiness remains `19/29` / `19/38`, the latest credited item
 remains `api_f_current_release=VERIFIED`, and the sole task remains
 `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
 
+### V12 layered-state correction remote acceptance and receipt (2026-08-01)
+
+- Correction checkpoint `81730a511acb553c9a1e29af834924f71650dc9a`
+  is the direct child of structural terminal receipt
+  `37c3b3fdc24ad90ff6135a7f1e254f92062470b3` and changes exactly the seven
+  declared integration/ledger paths. V11, the V12 request/workflow/runtime
+  and the three terminal authorities remain unchanged.
+- Exact-HEAD push CI `30698294887` / job `91364781788` completed success in
+  `15m11s`: `1622/1622` tests, `28` skips, unit time `832.703s`, production
+  gate `132/132`, quality and Docker success. Pull-request CI `30698296274` /
+  job `91364785205` completed success in `15m29s`: `1622/1622`, `28` skips,
+  unit time `845.056s`, gate `132/132`, quality and Docker success.
+- Fresh five-page Actions pagination observed `474/474` unique runs. V11
+  workflow-path run count remains zero. V12 remains exactly workflow
+  `325026609`, run `30696298423`, run number/attempt `1/1`, failure, job
+  `91359681758`, artifact zero. The correction SHA produced only its two
+  ordinary CI runs and no V12 run.
+- Normal/optimized V12 failure and plan verifiers report
+  `V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT`; the legacy
+  `plan_state()` remains `V12_ARMED_OR_TRIGGERED_EXACT`, while
+  `effective_plan_state()` carries the terminal release truth.
+
+This exact-four Secret-free snapshot is the layered-state correction receipt
+candidate and updates only handoff, risk, readiness and internal-readiness
+test. It adds no readiness credit or execution authority. Require its own
+ordinary push/PR CI and unchanged V11/V12 ledgers; then use the accepted
+receipt as the single direct parent of the inert V13 exact-13 checkpoint.
+V13 local design and ordinary CI are allowed, but its exact-one activation
+and external run require a new explicit authorization. Readiness remains
+`19/29` / `19/38`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
 ### V12 layered-state ordinary-CI correction candidate (2026-08-01)
 
 - The exact-four direct child `37c3b3fdc24ad90ff6135a7f1e254f92062470b3`
