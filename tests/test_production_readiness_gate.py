@@ -28,7 +28,12 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self._v16_snapshot_patcher = mock.patch.object(
             gate,
             "evaluate_admin_dependency_cache_export_plan_v16",
-            return_value=([], "V16_ARMED_OR_TRIGGERED_EXACT", []),
+            return_value=(
+                [],
+                "V16_TRIGGERED_ATTEMPT1_FAILED_"
+                "TERMINAL_SUPERSESSION_EXACT",
+                [],
+            ),
         )
         self._v16_snapshot_patcher.start()
         self._v15_predecessor_patcher = mock.patch.object(
@@ -73,6 +78,9 @@ class ProductionReadinessGateTests(unittest.TestCase):
             {
                 "PREPARED_V16_NOT_TRIGGERED",
                 "V16_ARMED_OR_TRIGGERED_EXACT",
+                "V16_TRIGGERED_ATTEMPT1_FAILED_"
+                "TERMINAL_SUPERSESSION_EXACT",
+                "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
             },
         )
 
@@ -208,6 +216,12 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(
             checks[
                 "exact_5335bda_admin_dependency_cache_v16_recovery_plan_fail_closed"
+            ]["passed"]
+        )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v16_"
+                "attempt1_failed_artifact0"
             ]["passed"]
         )
 
@@ -518,6 +532,44 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "attempt1_failed_artifact0"
             ]["passed"]
         )
+
+    def test_v16_terminal_evidence_is_fail_closed_in_repository_gate(self):
+        self.assertFalse(
+            gate._v16_terminal_failure_evidence_accepted(
+                "V16_TRIGGERED_ATTEMPT1_FAILED_"
+                "TERMINAL_SUPERSESSION_EXACT",
+                ["tampered V16 failure evidence"],
+            )
+        )
+        self.assertIn(
+            "tampered V16 failure evidence",
+            gate._v16_terminal_failure_evidence_detail(
+                "V16_TRIGGERED_ATTEMPT1_FAILED_"
+                "TERMINAL_SUPERSESSION_EXACT",
+                ["tampered V16 failure evidence"],
+            ),
+        )
+
+    def test_v16_terminal_evidence_is_not_claimed_while_only_armed(self):
+        state = "V16_ARMED_OR_TRIGGERED_EXACT"
+        self.assertFalse(
+            gate._v16_terminal_failure_evidence_accepted(state, [])
+        )
+        self.assertIn(
+            "not active",
+            gate._v16_terminal_failure_evidence_detail(state, []),
+        )
+
+    def test_v16_terminal_evidence_accepts_both_exact_terminal_states(self):
+        for state in gate.V16_TERMINAL_FAILURE_STATES:
+            with self.subTest(state=state):
+                self.assertTrue(
+                    gate._v16_terminal_failure_evidence_accepted(state, [])
+                )
+                self.assertIn(
+                    "UNKNOWN_NOT_REACHED",
+                    gate._v16_terminal_failure_evidence_detail(state, []),
+                )
 
     def test_v4_gate_detail_reports_armed_state_without_claiming_absence(self):
         with (
@@ -879,7 +931,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 ]["passed"]
             )
 
-    def test_v16_gate_accepts_prepared_and_armed_states(self):
+    def test_v16_gate_accepts_prepared_armed_and_terminal_states(self):
         check_name = (
             "exact_5335bda_admin_dependency_cache_v16_"
             "recovery_plan_fail_closed"
@@ -887,6 +939,8 @@ class ProductionReadinessGateTests(unittest.TestCase):
         for state in (
             "PREPARED_V16_NOT_TRIGGERED",
             "V16_ARMED_OR_TRIGGERED_EXACT",
+            "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+            "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
         ):
             with (
                 self.subTest(state=state),

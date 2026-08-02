@@ -1349,6 +1349,43 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "b6f642e68c21341c90bb3c66f810945ada4e084a",
                 },
+                {
+                    "kind": "git",
+                    "ref": "095529e03f735494a98ce2302a6e1be570291d8c",
+                },
+                {
+                    "kind": "git",
+                    "ref": "fd1444d0a62549b3c353cbc1188e6ba25a77e96e",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/release-requests/"
+                        "admin-5335bda-dependency-cache-v16.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "admin-dependency-cache-v16-attempt1-failed-"
+                        "20260802.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_v16_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_v16_failure_evidence.py"
+                    ),
+                },
             ],
         )
         self.assertNotIn(
@@ -1455,13 +1492,23 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             "external-cache-removed same-consumer-builder replay",
             admin["blocker"],
         )
-        self.assertIn("full-commit Git main context", admin["blocker"])
-        self.assertIn("exact16/4/1 append-only successor", admin["blocker"])
-        self.assertIn("one top-level Git SourceOp", admin["blocker"])
-        self.assertIn("private compatibility projection", admin["blocker"])
-        self.assertIn("14-entry ledger", admin["blocker"])
-        self.assertIn("V16 remains inert", admin["blocker"])
-        self.assertIn("no request exists", admin["blocker"])
+        self.assertIn("b6f642e68c21341c90bb3c66f810945ada4e084a", admin["blocker"])
+        self.assertIn("095529e03f735494a98ce2302a6e1be570291d8c", admin["blocker"])
+        self.assertIn("fd1444d0a62549b3c353cbc1188e6ba25a77e96e", admin["blocker"])
+        self.assertIn("exact 16/4/1", admin["blocker"])
+        self.assertIn("30739167685", admin["blocker"])
+        self.assertIn("91473336783", admin["blocker"])
+        self.assertIn("30739168799", admin["blocker"])
+        self.assertIn("91473339876", admin["blocker"])
+        self.assertIn("30739167701", admin["blocker"])
+        self.assertIn("91473336858", admin["blocker"])
+        self.assertIn("producer Git SourceOp", admin["blocker"])
+        self.assertIn("UNKNOWN_NOT_REACHED", admin["blocker"])
+        self.assertIn("cleanup_effective is true", admin["blocker"])
+        self.assertIn("overall_pass is false", admin["blocker"])
+        self.assertIn("498/498/498", admin["blocker"])
+        self.assertIn("V16 may never be rerun", admin["blocker"])
+        self.assertIn("append-only V17", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
         self.assertEqual(
@@ -1549,6 +1596,48 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "external_run_requires_new_explicit_authorization": True,
             },
         )
+        v16_failure = admin["v16_attempt1_failure_checkpoint"]
+        self.assertEqual(
+            v16_failure["control_commit"],
+            "fd1444d0a62549b3c353cbc1188e6ba25a77e96e",
+        )
+        self.assertEqual(
+            v16_failure["direct_parent_commit"],
+            "095529e03f735494a98ce2302a6e1be570291d8c",
+        )
+        self.assertEqual(v16_failure["request"]["addition_count"], 1)
+        self.assertEqual(v16_failure["unique_run"]["run_id"], 30739167701)
+        self.assertEqual(v16_failure["unique_run"]["job_id"], 91473336858)
+        self.assertEqual(v16_failure["unique_run"]["run_attempt"], 1)
+        self.assertEqual(v16_failure["unique_run"]["conclusion"], "failure")
+        self.assertEqual(v16_failure["unique_run"]["artifact_count"], 0)
+        self.assertEqual(
+            v16_failure["control_head_ci"]["push"]["total_test_count"],
+            1714,
+        )
+        self.assertEqual(
+            v16_failure["control_head_ci"]["pull_request"][
+                "total_test_count"
+            ],
+            1714,
+        )
+        self.assertEqual(
+            v16_failure["fresh_actions_ledger"]["unique_run_count"],
+            498,
+        )
+        self.assertEqual(
+            v16_failure["failure"]["source_correlated_failure_code"],
+            "NETWORK_VERTEX_LIFECYCLE_OUTSIDE_BUILD",
+        )
+        self.assertEqual(
+            v16_failure["failure"]["portability"],
+            "UNKNOWN_NOT_REACHED",
+        )
+        self.assertTrue(v16_failure["cleanup"]["cleanup_effective"])
+        self.assertFalse(v16_failure["cleanup"]["overall_pass"])
+        self.assertTrue(v16_failure["authorization"]["v16_one_shot_consumed"])
+        self.assertTrue(v16_failure["authorization"]["v16_rerun_forbidden"])
+        self.assertFalse(v16_failure["readiness"]["credit_added"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

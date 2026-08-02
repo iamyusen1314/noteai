@@ -491,16 +491,15 @@ Last updated: 2026-08-02
 - 费用和回滚: V15创建的两个临时builder已删除，Docker images/containers/volumes/networks回到baseline；无artifact、下载、transfer、ACR、部署、数据库/service或public traffic变更，无生产回滚动作。Terminal/V16 inert checkpoint只产生普通CI成本。
 - 是否需要用户确认后才能修改: V15 terminal checkpoint/receipt和V16惰性设计验证可按append-only规则继续；任何V16外部GitHub cache-export run必须获得新的明确授权。任何artifact下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作仍需各自授权。
 
-### V16 Git-context recovery is inert and has not earned readiness credit
+### V16 one-shot failed at producer Git SourceOp lifecycle validation; rerun is forbidden
 
-- 状态: Open High / first-launch hard gate。已接受的V15 terminal receipt为`a94ee2b…cbc4`；V16 exact-16惰性checkpoint `b6f642e…e084a`已获ordinary push/PR首轮双绿，当前正在形成exact-4 Secret-free receipt。V16请求不存在、workflow-path run为0，内部/公开进度仍为`19/29` / `19/38`。
-- 风险描述: V16以同一full-commit Git main context替代两个独立local main context，并将Git source、两个COPY及`runtime_pip`纳入identity投影。这关闭了V15已知的local session identity传播机制，但在唯一真实V16 run之前仍只是严格可验证的恢复假设，不得提前声称跨builder可移植性或发布就绪。
-- 接受边界: producer与fresh consumer必须观察完全相同的`runtime_pip` digest；consumer所有completed intervals必须cached且noncached为0。V13结构验证仅能作为经SHA固定的兼容投影，不能替代V16原始Git metadata、platform、ordered explicit inputs、COPY cache和pair predicate验证。任何DIGEST_DRIFT、SAME_DIGEST_NONCACHED、结构DAG单独通过或零日志都必须fail closed。
-- 术语边界: 删除external cache后在同一consumer builder回放只能称`external-cache-removed same-consumer-builder replay`，并固定`true_empty_cache_replay_claimed=false`。只有新增并清理第三个fresh builder且完整绑定创建、输入、结果与清理证据时，才可主张真正empty-cache replay；当前V16不作此主张。
-- 权限与拓扑: 先提交并远程验收exact-16惰性checkpoint，再提交exact-4 Secret-free receipt。未来activation只能是其直接exact-one child并新增唯一request。V15授权已经消费，不能授权V16；任何V16 external cache-export run都必须获得新的明确用户授权，且失败后不得盲目重跑。
-- 当前验证: V16 bundle test `9/9`、plan test `13/13`、internal readiness test `16/16`、冻结V13兼容合同`21/21`、V15 detached exact-receipt plan/evidence `22/22`、三项selected production-gate合同`3/3`和最终production readiness `135/135`均通过；JSON、Python compile与helper shell syntax也通过。上述检查无外部cache workflow、builder、artifact、下载、transfer、ACR、部署、数据库/service或public traffic变更。
-- 远程验收: C16 push CI `30731965367` / job `91453812740`和PR CI `30731966620` / job `91453816296`均run1/attempt1成功；每条执行ambient `1669`（28 skips）、V13 `10+1`、detached V14 `12`、detached V15 `22`，合计`1714` tests，并通过Quality、production readiness `135/135`与Docker。Fresh no-cache分页为`493/493/493`，V11/V13/V14/V16 path均0，V12/V15各保留唯一历史失败，V16 request ancestry与external run均0。
-- 是否需要用户确认后才能修改: exact-16惰性checkpoint、ordinary CI验收和exact-4 receipt可按append-only项目规则继续；创建exact-one V16 request或触发唯一V16外部run必须重新获得明确授权。
+- 状态: Open High / first-launch hard gate。C16 `b6f642e…e084a`、R16 `095529e…91d8c`与exact-one A16 `fd1444d…7e96e`形成严格`16/4/1`链；A16普通push/PR CI均首轮双绿。唯一V16 run `30739167701` / job `91473336858`、run1/attempt1为failure，artifact为0且无attempt2/rerun/duplicate。内部/公开进度仍为`19/29` / `19/38`。
+- 风险描述: `docker buildx build --cache-to local`本身成功，紧随其后的producer证据验证在冻结V13 `_collect_interval(role=git_main_context)`生命周期谓词安全失败，精确信息为`FAIL: BuildKit git_main_context lifecycle changed`与`NETWORK_VERTEX_LIFECYCLE_OUTSIDE_BUILD`。consumer import、同consumer的external-cache-removed replay、final validation和upload均未到达，portability只能记录`UNKNOWN_NOT_REACHED`。
+- 根因证据边界: 未保留metadata/rawjson/identity或compatibility diagnostic，因此不能区分Git SourceOp早于`buildStartedOn`、晚于`buildFinishedOn`还是completion缺失，也不能重构真实时间值。Cleanup-active的`transient_state_contract_changed`与Buildx v0.35.0将remote Git `ContextPath`原样保存为`LocalPath`的源码行为高度一致，但实际ref payload未保留，必须标为source-proven likely而非runtime field observed。
+- 清理与影响: 两个builder和新增image已移除；builder absent、images/containers/volumes/networks parity及Docker/Buildx/diagnostic roots absent均pass。`cleanup_effective=true`但`overall_pass=false`，因为清理前`pre_state=drift`；不得写成cleanup overall PASS。artifact/download/transfer/ACR/deployment/database/service/public traffic均0。
+- 账本: A16 push CI `30739167685`/job `91473336783`与PR CI `30739168799`/job `91473339876`均通过`1714` tests、28 ambient skips、Quality、gate `135/135`与Docker，artifact均0。Fresh no-cache仓库Actions为`498/498/498`；V11/V13/V14 path0、V12/V15各1个历史failure、V16恰唯一当前failure。
+- Append-only修复边界: V16 request/workflow/template/helper/fixture/bundle authority全部冻结，V16永久禁止rerun。V17必须先保留bounded、Secret-free的pre-assertion Git SourceOp lifecycle diagnostic，再将Git frontend SourceOp时序与network ExecOp时序分开建模；transient verifier只能接受当前精确canonical HTTPS Git query，不能泛化接受任意URL。
+- 是否需要用户确认后才能修改: V16 exact11 terminal checkpoint、ordinary CI验收、exact4 receipt及V17惰性设计可按append-only规则继续；任何V17 external cache-export run、artifact下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作都需要新的明确授权。
 
 ## Low Risks
 

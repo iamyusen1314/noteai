@@ -4960,3 +4960,69 @@ direct child, then require its own ordinary exact-HEAD push/PR CI and a fresh
 unchanged ledger. Creating the future exact-one V16 request and consuming a
 single V16 external cache-export run still require new explicit user
 authorization; no historical workflow may be rerun.
+
+### V16 exact-one activation and terminal failure checkpoint candidate (2026-08-02)
+
+- Accepted V16 inert topology is C16
+  `b6f642e68c21341c90bb3c66f810945ada4e084a` -> R16
+  `095529e03f735494a98ce2302a6e1be570291d8c`. Authorized A16
+  `fd1444d0a62549b3c353cbc1188e6ba25a77e96e` is R16's direct single-parent,
+  exact-one child and adds only the immutable `100644` V16 request: `18,342`
+  bytes, SHA-256 `65f606db…ff28`, blob `3353fa69…491f`.
+- A16 ordinary push CI `30739167685` / job `91473336783` and pull-request CI
+  `30739168799` / job `91473339876` both completed run one / attempt one
+  `success`. Each ran ambient `1669` tests with `28` skips, V13 `10+1`,
+  detached V14 `12` and detached V15 `22`, for `1714` total, then passed
+  Quality, production readiness `135/135` and Docker Compose. Their artifact
+  inventories are both zero.
+- The authorized external execution is exactly one V16 run `30739167701` /
+  job `91473336858`, run one / attempt one / `failure`, at A16. Buildx and the
+  local cache export completed, then producer evidence validation failed
+  closed with `FAIL: BuildKit git_main_context lifecycle changed`, correlated
+  to `NETWORK_VERTEX_LIFECYCLE_OUTSIDE_BUILD` in the frozen V13 interval
+  predicate. No metadata, raw JSON, identity projection or lifecycle timestamp
+  diagnostic survived, so evidence cannot distinguish early start, late
+  completion or missing completion and must not invent actual interval values.
+- Cleanup-active validation separately reported
+  `FAIL: transient_state_contract_changed`. Fixed Buildx v0.35.0 source gives
+  a high-confidence explanation that the remote Git context is persisted as a
+  non-absolute `LocalPath`, but the runtime ref payload was not retained; this
+  is source-proven likely, not an observed field value.
+- Consumer import, external-cache-removed same-consumer-builder replay, final
+  validation and upload were not reached. Portability is therefore
+  `UNKNOWN_NOT_REACHED`. Provider artifact, authenticated download, transfer,
+  ACR, deployment, production database/service and public-traffic mutations
+  are all zero.
+- Cleanup removed both ephemeral builders and new images; both builders are
+  absent, enumerated image/container/volume/network parity passed, and Docker,
+  Buildx and diagnostic roots are absent. `cleanup_effective=true`, but the
+  receipt remains correctly fail-closed with `overall_pass=false` because
+  `pre_state=drift`; it is not a cleanup PASS claim.
+- Fresh no-cache pagination at `2026-08-02T08:33:00Z` observed five pages and
+  `498/498/498` advertised/fetched/unique repository Actions records. A16 has
+  exactly its two ordinary CI successes and this one V16 failure. Workflow
+  counts are V11 `0`, V12 `1`, V13 `0`, V14 `0`, V15 `1`, V16 `1`; V16 has
+  no attempt two, rerun, duplicate or artifact.
+- Local terminal validation passes the final focused contract set `43/43` in
+  `18.438s`, optimized-Python V16 plan/evidence `21/21` in `2.115s`, JSON,
+  Python compilation, diff hygiene, all eight frozen-authority hashes and the
+  real precommit evaluator (`V16_ARMED_OR_TRIGGERED_EXACT`). A combined local
+  legacy production-gate sweep was stopped after the 25-minute observation
+  boundary while still repeatedly evaluating frozen V4-V10 Git history; the
+  first `45` tests had no failure, sampling showed active controlled Git
+  subprocesses, and no external action occurred. Exact-HEAD remote CI remains
+  the required full-suite/gate acceptance for the terminal commit.
+
+The V16 one-shot authorization is consumed and V16 may never be rerun. This
+exact-eleven terminal supersession candidate changes only the three new
+Secret-free failure authorities, the four versioned plan/gate authorities and
+the four ledgers; all request/workflow/CI/template/helper/fixture/bundle
+authorities remain frozen. It adds no credit: readiness remains `19/29` /
+`19/38`, latest credit remains `api_f_current_release=VERIFIED`, and the sole
+task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. After exact-eleven commit,
+push, exact-HEAD ordinary CI, artifact-zero and fresh ledger acceptance, form
+the exact-four terminal receipt and continue append-only V17. V17 must retain a
+bounded Secret-free pre-assertion Git SourceOp lifecycle diagnostic, model Git
+frontend timing separately from network ExecOps, and accept only the exact
+canonical HTTPS Git query in transient validation. Any V17 external run needs
+new explicit user authorization.

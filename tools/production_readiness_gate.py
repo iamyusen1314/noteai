@@ -682,6 +682,41 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
     return not failures, detail
 
 
+V16_TERMINAL_FAILURE_STATES = frozenset(
+    {
+        "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+        "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
+    }
+)
+
+
+def _v16_terminal_failure_evidence_accepted(
+    state: str,
+    errors: list[str],
+) -> bool:
+    return state in V16_TERMINAL_FAILURE_STATES and not errors
+
+
+def _v16_terminal_failure_evidence_detail(
+    state: str,
+    errors: list[str],
+) -> str:
+    if errors:
+        return "; ".join(errors[:5])
+    if state not in V16_TERMINAL_FAILURE_STATES:
+        return f"V16 terminal failure evidence is not active: state={state}"
+    return (
+        "unique run 30739167701/job 91473336858 attempt 1 failed "
+        "closed after the producer Git SourceOp lifecycle assertion; "
+        "consumer import, external-cache-removed same-consumer-builder "
+        "replay and upload were not reached, portability remains "
+        "UNKNOWN_NOT_REACHED, artifact/download/transfer/production "
+        "mutations are zero, cleanup was effective with post-state "
+        "parity but overall failed closed on pre-state drift, and V16 "
+        "rerun is forbidden"
+    )
+
+
 def _run_git(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *args],
@@ -1926,7 +1961,7 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         (
             admin_dependency_cache_plan_v16_errors,
             dependency_cache_plan_state_v16,
-            _admin_dependency_cache_v16_terminal_errors,
+            admin_dependency_cache_v16_failure_errors,
         ) = evaluate_admin_dependency_cache_export_plan_v16()
     except (
         OSError,
@@ -1939,6 +1974,7 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             "cannot evaluate Admin dependency-cache V16 lifecycle: " f"{exc}"
         )
         admin_dependency_cache_plan_v16_errors = [evaluation_error]
+        admin_dependency_cache_v16_failure_errors = [evaluation_error]
         dependency_cache_plan_state_v16 = "INVALID"
     admin_dependency_cache_plan_v3_errors = (
         validate_admin_dependency_cache_export_plan_v3()
@@ -1999,6 +2035,8 @@ def check_browserless_vex() -> list[dict[str, Any]]:
     accepted_dependency_cache_plan_states_v16 = {
         "PREPARED_V16_NOT_TRIGGERED",
         "V16_ARMED_OR_TRIGGERED_EXACT",
+        "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+        "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
     }
     accepted_dependency_cache_v11_supersession = (
         dependency_cache_v11_supersession_state
@@ -2462,6 +2500,17 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                     "its terminal predecessor, and no V16 external run is "
                     "authorized by repository state alone"
                 )
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v16_attempt1_failed_artifact0",
+            _v16_terminal_failure_evidence_accepted(
+                dependency_cache_plan_state_v16,
+                admin_dependency_cache_v16_failure_errors,
+            ),
+            _v16_terminal_failure_evidence_detail(
+                dependency_cache_plan_state_v16,
+                admin_dependency_cache_v16_failure_errors,
             ),
         ),
     ]

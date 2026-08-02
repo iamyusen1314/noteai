@@ -40,6 +40,15 @@ V15_TERMINAL_TEST_PATH = ROOT / "tests" / "test_admin_dependency_cache_v15_failu
 V15_EVIDENCE_PATH = ROOT / "deploy" / "production" / "evidence" / "admin-dependency-cache-v15-attempt1-failed-20260802.json"
 PRODUCTION_GATE_PATH = ROOT / "tools" / "production_readiness_gate.py"
 PRODUCTION_GATE_TEST_PATH = ROOT / "tests" / "test_production_readiness_gate.py"
+V16_TERMINAL_VERIFIER_PATH = (
+    ROOT / "tools" / "verify_admin_dependency_cache_v16_failure_evidence.py"
+)
+V16_TERMINAL_TEST_PATH = (
+    ROOT / "tests" / "test_admin_dependency_cache_v16_failure_evidence.py"
+)
+V16_EVIDENCE_PATH = ROOT / "deploy" / "production" / "evidence" / (
+    "admin-dependency-cache-v16-attempt1-failed-20260802.json"
+)
 
 WORKFLOW_SHA256 = "8a86d032b03c3f9df624cb68c53509cb4729cb3687f3736d8697876a0474e170"
 TEMPLATE_SHA256 = "e49c8d94d347cd4afabcd2d116036b2a9dda1e008bb9f0759d01abf259e517d6"
@@ -48,10 +57,10 @@ IMPORT_HELPER_SHA256 = "41150005187726281752ed5b39e03ceba7618d77319c9a92d134a3a1
 SOURCE_FIXTURE_SHA256 = "2010890934f05c8ada09328c433962d5ae648346351accdeec62e1aafdb1f701"
 BUNDLE_VERIFIER_SHA256 = "0a7198daccea5463e33b5d19fbe64ea3d8eed3d96f6fb3f63060ed0928acd74c"
 BUNDLE_TEST_SHA256 = "7930b1060299bf50d8e50588e4d19b6ad0c8fa5157383a0db125f418895b9dca"
-PLAN_TEST_SHA256 = "b14943cc6058f0814faa8b714f963da049ad44cfb889434431e0746651818607"
+PLAN_TEST_SHA256 = "cd90fa85a48f2e31ca42acc883ec4d35f995ba880d8d6884e993e6f29ec77444"
 CI_WORKFLOW_SHA256 = "2244fd150eed055c6da1a9ce52a043cf48bd95e6a3784920f180662b5746875e"
-PRODUCTION_GATE_SHA256 = "9cc39316770768d04b100f6f1b64bbd8ea21718caf76fba235b784b810766c7e"
-PRODUCTION_GATE_TEST_SHA256 = "f5436caeb0c491aa214abd5daaa7c3af0e758d064bb136eb0246f91b8b3558fa"
+PRODUCTION_GATE_SHA256 = "91a1ee82361d320d5ae13c98f5187f973545f19491bd026f64156d5e450130f8"
+PRODUCTION_GATE_TEST_SHA256 = "e196dc1f1c7b40d0bd032dd0fd13567987166009b234f50b5cf1ef5aaa7c704e"
 V15_TERMINAL_VERIFIER_SHA256 = "6bad4483b6ddfd036f9cc810766bafa7b344d00e2decd00b335fe94ac776feee"
 V15_TERMINAL_TEST_SHA256 = "1c372639ba112daf4c6a37b52912c23d9dfe998122ab77878f237d65fd013387"
 V15_EVIDENCE_SHA256 = "277aa193041b7010a3ecc75de79b98b30846e60bf72b0763612d30e359a4f378"
@@ -59,6 +68,9 @@ V15_WORKFLOW_SHA256 = "33a57116c7462bb4f73f48f0d94f41158b8bf676886c19518610d172f
 V15_TEMPLATE_SHA256 = "b89820b318f98363b768a43663bdf6c730a4d78894c3d1c28547fdb86e42d777"
 V15_PLAN_VERIFIER_SHA256 = "4981eae08e0233a6ca8b25b4c62ce1f3b5481125c1b4cc487f2acb7990368596"
 V15_PLAN_TEST_SHA256 = "e9a4520cbbf859a242d2240325be82dd2ff25f5a379ded84ad654b631c7f7e8a"
+V16_TERMINAL_VERIFIER_SHA256 = "1d6f53c9f812e2dfc93a4ec8c7c452e47585d1b0186777a25ea84d97ecc67d34"
+V16_TERMINAL_TEST_SHA256 = "8834e00c732f84dbb9866c31b038d74b4f3bd35922b80ac95878aed3a2d9f9b4"
+V16_EVIDENCE_SHA256 = "3b5881161d560b2a20da313a828faa04b7d0da374136eab3cc7f171a6f1f5d97"
 
 RELEASE_COMMIT = "5335bdaed933b1f999b5f819c047ec50c11821ae"
 V15_ACTIVATION = "c61ba14ab77f98dbc63697dc2b3cbe26afdf9df1"
@@ -137,6 +149,9 @@ FROZEN_WORKTREE_FILES = (
     (V15_TERMINAL_VERIFIER_PATH, V15_TERMINAL_VERIFIER_SHA256),
     (V15_TERMINAL_TEST_PATH, V15_TERMINAL_TEST_SHA256),
     (V15_EVIDENCE_PATH, V15_EVIDENCE_SHA256),
+    (V16_TERMINAL_VERIFIER_PATH, V16_TERMINAL_VERIFIER_SHA256),
+    (V16_TERMINAL_TEST_PATH, V16_TERMINAL_TEST_SHA256),
+    (V16_EVIDENCE_PATH, V16_EVIDENCE_SHA256),
 )
 
 def _require(condition: bool, message: str) -> None:
@@ -400,6 +415,30 @@ def _load_v15_terminal_verifier():
     try:
         exec(
             compile(source, str(V15_TERMINAL_VERIFIER_PATH), "exec"),
+            module.__dict__,
+        )
+    except BaseException:
+        sys.modules.pop(module_name, None)
+        raise
+    return module
+
+
+def _load_v16_terminal_verifier():
+    source = _read_frozen_bytes(
+        V16_TERMINAL_VERIFIER_PATH,
+        label="V16 terminal verifier",
+        required_mode=0o644,
+    )
+    if hashlib.sha256(source).hexdigest() != V16_TERMINAL_VERIFIER_SHA256:
+        raise ValueError("V16 terminal verifier hash drift")
+    module_name = "_noteai_v16_terminal_for_v16"
+    module = types.ModuleType(module_name)
+    module.__file__ = str(V16_TERMINAL_VERIFIER_PATH)
+    module.__package__ = ""
+    sys.modules[module_name] = module
+    try:
+        exec(
+            compile(source, str(V16_TERMINAL_VERIFIER_PATH), "exec"),
             module.__dict__,
         )
     except BaseException:
@@ -1210,19 +1249,50 @@ def validate_plan(
 
     if verify_git_state:
         errors.extend(_validate_v15_predecessor())
-        errors.extend(_validate_same_anchor())
-        _receipt, receipt_errors = _validate_inert_receipt()
-        errors.extend(receipt_errors)
-        errors.extend(_validate_latest_stage_head(active_present=present))
-        if not present:
+        try:
+            terminal = _load_v16_terminal_verifier()
+            terminal_checkpoint = terminal.terminal_checkpoint()
+        except (
+            OSError,
+            UnicodeDecodeError,
+            ValueError,
+            subprocess.CalledProcessError,
+        ) as exc:
+            terminal = None
+            terminal_checkpoint = None
+            errors.append(f"cannot load V16 terminal supersession: {exc}")
+        if terminal_checkpoint is not None and terminal is not None:
             try:
-                if _true_additions(
-                    root=ROOT,
-                    path=ACTIVE_REQUEST_PATH.relative_to(ROOT),
-                ):
-                    errors.append("inactive V16 request has prior addition history")
-            except (OSError, ValueError, subprocess.CalledProcessError) as exc:
-                errors.append(f"cannot verify inactive V16 request history: {exc}")
+                errors.extend(terminal.verify(terminal.load_strict()))
+            except (
+                OSError,
+                UnicodeDecodeError,
+                json.JSONDecodeError,
+                ValueError,
+            ) as exc:
+                errors.append(f"cannot verify V16 terminal supersession: {exc}")
+        else:
+            errors.extend(_validate_same_anchor())
+            _receipt, receipt_errors = _validate_inert_receipt()
+            errors.extend(receipt_errors)
+            errors.extend(_validate_latest_stage_head(active_present=present))
+            if not present:
+                try:
+                    if _true_additions(
+                        root=ROOT,
+                        path=ACTIVE_REQUEST_PATH.relative_to(ROOT),
+                    ):
+                        errors.append(
+                            "inactive V16 request has prior addition history"
+                        )
+                except (
+                    OSError,
+                    ValueError,
+                    subprocess.CalledProcessError,
+                ) as exc:
+                    errors.append(
+                        f"cannot verify inactive V16 request history: {exc}"
+                    )
     return errors
 
 
@@ -1255,17 +1325,75 @@ def _activation_plan_state() -> str:
 
 
 def evaluate_plan() -> tuple[list[str], str, list[str]]:
-    errors = validate_plan()
-    state = "INVALID" if errors else _activation_plan_state()
-    return errors, state, []
+    """Evaluate activation and its versioned terminal overlay exactly once."""
+    try:
+        terminal = _load_v16_terminal_verifier()
+        checkpoint = terminal.terminal_checkpoint()
+    except (
+        OSError,
+        UnicodeDecodeError,
+        ValueError,
+        subprocess.CalledProcessError,
+    ) as exc:
+        terminal_errors = [f"cannot load V16 terminal supersession: {exc}"]
+        plan_errors = validate_plan(verify_git_state=False)
+        plan_errors.extend(_validate_v15_predecessor())
+        plan_errors.extend(terminal_errors)
+        return plan_errors, "INVALID", terminal_errors
+
+    if checkpoint is None:
+        plan_errors = validate_plan()
+        return plan_errors, _activation_plan_state(), []
+
+    try:
+        terminal_errors = list(terminal.verify(terminal.load_strict()))
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        ValueError,
+    ) as exc:
+        terminal_errors = [f"cannot verify V16 terminal supersession: {exc}"]
+
+    plan_errors = validate_plan(verify_git_state=False)
+    plan_errors.extend(_validate_v15_predecessor())
+    plan_errors.extend(terminal_errors)
+    if plan_errors:
+        return plan_errors, "INVALID", terminal_errors
+    try:
+        receipt = terminal.terminal_receipt(checkpoint)
+    except (
+        OSError,
+        UnicodeDecodeError,
+        ValueError,
+        subprocess.CalledProcessError,
+    ) as exc:
+        plan_errors.append(f"cannot classify V16 terminal lifecycle: {exc}")
+        return plan_errors, "INVALID", terminal_errors
+    state = (
+        "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT"
+        if receipt is not None
+        else "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT"
+    )
+    return plan_errors, state, terminal_errors
 
 
 def effective_plan_state() -> str:
     return evaluate_plan()[1]
 
 
+def _legacy_plan_state(effective_state: str) -> str:
+    if effective_state in {
+        "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+        "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
+    }:
+        return "V16_ARMED_OR_TRIGGERED_EXACT"
+    return effective_state
+
+
 def plan_state() -> str:
-    return effective_plan_state()
+    """Preserve the request-activation view for frozen consumers."""
+    return _legacy_plan_state(effective_plan_state())
 
 
 def _strict_int(value: Any, label: str) -> int:
@@ -2005,7 +2133,7 @@ def main() -> int:
             return 1
         print(
             "admin_dependency_cache_export_plan_v16=PASS "
-            f"state={state}"
+            f"state={_legacy_plan_state(state)}"
         )
         return 0
     except (OSError, RuntimeError, ValueError) as exc:
