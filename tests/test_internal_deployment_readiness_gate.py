@@ -1288,6 +1288,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_v15_failure_evidence.py"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "46595fef4916ca2881dd38c0a14ee630bba79c32",
+                },
             ],
         )
         self.assertNotIn(
@@ -1378,8 +1382,20 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("SAME_DIGEST_CACHED was not proven", admin["blocker"])
         self.assertIn("487/487/487", admin["blocker"])
         self.assertIn("V15 may never be rerun", admin["blocker"])
-        self.assertIn("exact-eleven versioned V15 terminal checkpoint", admin["blocker"])
-        self.assertIn("fixed-Git-main-context", admin["blocker"])
+        self.assertIn("46595fef4916ca2881dd38c0a14ee630bba79c32", admin["blocker"])
+        self.assertIn("30727588135", admin["blocker"])
+        self.assertIn("91442042559", admin["blocker"])
+        self.assertIn("30727589274", admin["blocker"])
+        self.assertIn("91442045947", admin["blocker"])
+        self.assertIn("1692 tests", admin["blocker"])
+        self.assertIn("134/134", admin["blocker"])
+        self.assertIn("489/489/489", admin["blocker"])
+        self.assertIn(
+            "external-cache-removed same-consumer-builder replay",
+            admin["blocker"],
+        )
+        self.assertIn("full-commit Git main context", admin["blocker"])
+        self.assertIn("rather than force an eleven-file shape", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
         api_c = next(

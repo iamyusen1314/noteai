@@ -4791,3 +4791,54 @@ and fresh ledger, then create the exact-four terminal receipt and continue to
 the separately versioned V16 inert checkpoint. Any V16 external run requires
 new explicit user authorization; no V15 or historical workflow rerun is
 permitted.
+
+### V15 terminal checkpoint remote acceptance and exact-four receipt (2026-08-02)
+
+- T15 `46595fef4916ca2881dd38c0a14ee630bba79c32` is the exact eleven-file,
+  all-`100644`, direct child of A15
+  `c61ba14ab77f98dbc63697dc2b3cbe26afdf9df1`. The three terminal
+  evidence/verifier/test additions share T15 as their sole addition anchor;
+  the V15 request, workflow, template, CI and frozen V13 data plane were not
+  changed.
+- Exact-HEAD push CI `30727588135` / job `91442042559` completed attempt one
+  `success`. Ambient regression passed `1669/1669` with `28` skips in
+  `1003.458s`; V13 passed `10/10` plus its isolated temporary-Git test `1/1`,
+  and detached exact-C14 V14 passed `12/12`, for `1692` tests total. Quality
+  (`7` pass plus one expected-fail fixture), production readiness `134/134`
+  and Docker Compose all passed.
+- Exact-HEAD pull-request CI `30727589274` / job `91442045947` also completed
+  attempt one `success`. Ambient regression passed `1669/1669` with `28`
+  skips in `1036.600s`; V13 passed `10/10 + 1/1`, detached exact-C14 V14
+  passed `12/12`, and Quality, production readiness `134/134` and Docker
+  Compose all passed. The jobs completed in about `18m10s` and `18m36s`,
+  below the fixed `25m` limit.
+- Fresh no-cache pagination observed five pages and `489/489/489`
+  advertised/fetched/unique Actions records. T15 has exactly those two
+  ordinary attempt-one success records. Workflow-path counts remain V11 `0`,
+  V12 `1`, V13 `0`, V14 `0`, V15 `1`; V15 is still exactly run
+  `30724578319`, attempt one, failure, unique job `91433793914`, rerun zero
+  and artifact `0`.
+
+This exact-four Secret-free descendant records T15 acceptance without changing
+the V15 request, workflow, terminal evidence/verifier/test or any other
+nonreceipt authority. It adds no readiness credit and performs no workflow,
+builder, artifact, download, transfer, ACR, deployment, database/service or
+public-traffic action. Internal/public readiness remains `19/29` / `19/38`,
+the latest credited item remains `api_f_current_release=VERIFIED`, and the
+sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
+The prior V15 step label `cacheless replay` means only that the exported local
+cache directory was removed before a replay on the same consumer builder; it
+does not prove that builder's internal cache was empty. V15 never reached that
+replay, so its terminal verdict is unchanged. V16 must call this an
+`external-cache-removed same-consumer-builder replay`, or create and clean a
+third fresh builder before claiming a true empty-cache replay. V16 must also
+use a fixed full-commit Git main context for both solves and may keep the
+combined Dockerfile as a separately decoded, byte-bound local input. Its
+checkpoint path count must follow the independently tested authority set; it
+must not be forced into an eleven-file shape by embedding data-plane logic in
+the workflow or by changing frozen V15 authorities. Commit and push only this
+exact-four receipt, accept its own ordinary CI and unchanged ledger, then
+continue directly to the separately versioned V16 inert control plane. Any
+V16 external run still requires new explicit authorization; no V15 or
+historical workflow may be rerun.
