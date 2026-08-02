@@ -988,6 +988,15 @@ class ProductionReadinessGateTests(unittest.TestCase):
                     item["name"]: item for item in gate.check_browserless_vex()
                 }
             self.assertTrue(checks[check_name]["passed"])
+            if state == "PREPARED_V17_NOT_TRIGGERED":
+                detail = checks[check_name]["detail"]
+                self.assertIn("fixed C17 data plane", detail)
+                self.assertIn("GitHub-native", detail)
+                self.assertIn(
+                    "custom ledger, receipt and R17 topology",
+                    detail,
+                )
+                self.assertNotIn("exact18/4/1", detail)
 
         for state in ("INVALID", "V17_CONSUMED_OR_INVALID"):
             with (

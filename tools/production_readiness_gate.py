@@ -2595,11 +2595,10 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                 if dependency_cache_plan_state_v17
                 not in accepted_dependency_cache_plan_states_v17
                 else (
-                    f"state={dependency_cache_plan_state_v17}; the exact18/4/1 "
-                    "successor uses command envelopes, bounded pre-assertion "
-                    "Git lifecycle diagnostics, exact remote local-state "
-                    "validation, and does not authorize an external run by "
-                    "repository state alone"
+                    f"state={dependency_cache_plan_state_v17}; fixed C17 data "
+                    "plane, exact-one request activation and GitHub-native "
+                    "run/artifact/fresh-builder evidence are required; custom "
+                    "ledger, receipt and R17 topology are not prerequisites"
                 )
             ),
         ),
