@@ -4918,3 +4918,45 @@ ordinary exact-HEAD push and pull-request CI, fresh fully paginated ledgers,
 and an exact-four Secret-free receipt. Any exact-one V16 activation and its
 single external cache-export run require a new explicit user authorization;
 the already consumed V15 authorization cannot be reused.
+
+### V16 inert checkpoint remote acceptance and exact-four receipt candidate (2026-08-02)
+
+- C16 `b6f642e68c21341c90bb3c66f810945ada4e084a` is the exact-sixteen,
+  all-`100644`, direct child of accepted V15 terminal receipt
+  `a94ee2b2feb81eafbcb523be2c95da4ee952cbc4`. Its active V16 request is
+  absent and V16's workflow-path run count is zero.
+- Exact-HEAD push CI `30731965367` / job `91453812740` completed run one /
+  attempt one `success`. Ambient regression passed `1669/1669` with `28`
+  skips in `1147.429s`; V13 passed `10/10` plus its isolated exact-Git test
+  `1/1`, detached exact-C14 V14 passed `12/12`, and detached exact-a94 V15
+  plan/evidence passed `22/22`, for `1714` tests total. Quality Gate passed
+  seven delivery samples plus one expected-fail sample, production readiness
+  passed `135/135`, and Docker Compose configuration passed. The sole `test`
+  job ran from `2026-08-02T04:12:29Z` to `04:33:00Z` and produced no
+  artifact.
+- Exact-HEAD pull-request CI `30731966620` / job `91453816296` also completed
+  run one / attempt one `success`. Ambient regression passed `1669/1669`
+  with `28` skips in `979.317s`; V13 passed `10/10 + 1/1`, detached V14
+  `12/12`, detached V15 `22/22`, and Quality, production readiness `135/135`
+  and Docker Compose all passed. The sole `test` job ran from
+  `2026-08-02T04:12:26Z` to `04:30:13Z` and produced no artifact.
+- Fresh no-cache pagination observed five pages and `493/493/493`
+  advertised/fetched/unique Actions records. C16 has exactly those two
+  ordinary attempt-one success records. Workflow-path counts remain V11 `0`,
+  V12 `1`, V13 `0`, V14 `0`, V15 `1` and V16 `0`; V12 remains exactly run
+  `30696298423` / attempt one / failure, and V15 remains exactly run
+  `30724578319` / job `91433793914` / attempt one / failure. The V16 request
+  addition history and V16 external-run count are both zero.
+
+This exact-four Secret-free receipt candidate changes only Handoff, Risk,
+Readiness and its internal-readiness test. It does not change the twelve V16
+nonreceipt authorities and creates no request, cache workflow, builder,
+artifact, download, transfer, ACR publication, deployment, database/service
+write or public traffic. It adds no readiness credit: internal/public
+readiness remains `19/29` / `19/38`, the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit and push only this exact-four
+direct child, then require its own ordinary exact-HEAD push/PR CI and a fresh
+unchanged ledger. Creating the future exact-one V16 request and consuming a
+single V16 external cache-export run still require new explicit user
+authorization; no historical workflow may be rerun.

@@ -1345,6 +1345,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "path",
                     "ref": "tests/test_admin_dependency_cache_export_plan_v16.py",
                 },
+                {
+                    "kind": "git",
+                    "ref": "b6f642e68c21341c90bb3c66f810945ada4e084a",
+                },
             ],
         )
         self.assertNotIn(
@@ -1460,6 +1464,91 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("no request exists", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
+        self.assertEqual(
+            admin["v16_inert_checkpoint_receipt"],
+            {
+                "checkpoint_commit": (
+                    "b6f642e68c21341c90bb3c66f810945ada4e084a"
+                ),
+                "parent_commit": (
+                    "a94ee2b2feb81eafbcb523be2c95da4ee952cbc4"
+                ),
+                "exact_changed_path_count": 16,
+                "all_changed_paths_mode": "100644",
+                "push_ci": {
+                    "run_id": 30731965367,
+                    "job_id": 91453812740,
+                    "run_attempt": 1,
+                    "conclusion": "success",
+                    "ambient_test_count": 1669,
+                    "ambient_skipped_count": 28,
+                    "ambient_duration_seconds": 1147.429,
+                    "v13_scoped_test_count": 10,
+                    "v13_isolated_test_count": 1,
+                    "v14_detached_test_count": 12,
+                    "v15_detached_test_count": 22,
+                    "total_test_count": 1714,
+                    "production_readiness_checks": "135/135",
+                    "quality_gate_passed": True,
+                    "docker_compose_passed": True,
+                    "artifact_count": 0,
+                },
+                "pull_request_ci": {
+                    "run_id": 30731966620,
+                    "job_id": 91453816296,
+                    "run_attempt": 1,
+                    "conclusion": "success",
+                    "ambient_test_count": 1669,
+                    "ambient_skipped_count": 28,
+                    "ambient_duration_seconds": 979.317,
+                    "v13_scoped_test_count": 10,
+                    "v13_isolated_test_count": 1,
+                    "v14_detached_test_count": 12,
+                    "v15_detached_test_count": 22,
+                    "total_test_count": 1714,
+                    "production_readiness_checks": "135/135",
+                    "quality_gate_passed": True,
+                    "docker_compose_passed": True,
+                    "artifact_count": 0,
+                },
+                "fresh_actions_ledger": {
+                    "page_count": 5,
+                    "advertised_run_count": 493,
+                    "fetched_run_count": 493,
+                    "unique_run_count": 493,
+                    "checkpoint_run_count": 2,
+                    "v11_workflow_path_run_count": 0,
+                    "v12_workflow_path_run_count": 1,
+                    "v13_workflow_path_run_count": 0,
+                    "v14_workflow_path_run_count": 0,
+                    "v15_workflow_path_run_count": 1,
+                    "v16_workflow_path_run_count": 0,
+                    "v16_request_present": False,
+                    "v16_request_addition_count": 0,
+                    "v16_external_run_count": 0,
+                },
+                "readiness": {
+                    "internal_verified_count": 19,
+                    "internal_total_count": 29,
+                    "public_verified_count": 19,
+                    "public_total_count": 38,
+                    "credit_added": False,
+                },
+                "execution_scope": {
+                    "builder_create_count": 0,
+                    "provider_artifact_count": 0,
+                    "authenticated_download_count": 0,
+                    "cross_provider_transfer_count": 0,
+                    "acr_publication_count": 0,
+                    "production_deployment_count": 0,
+                    "production_database_write_count": 0,
+                    "production_service_mutation_count": 0,
+                    "public_traffic_mutation_count": 0,
+                },
+                "activation_authorized": False,
+                "external_run_requires_new_explicit_authorization": True,
+            },
+        )
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]
