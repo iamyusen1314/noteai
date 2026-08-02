@@ -5026,3 +5026,44 @@ bounded Secret-free pre-assertion Git SourceOp lifecycle diagnostic, model Git
 frontend timing separately from network ExecOps, and accept only the exact
 canonical HTTPS Git query in transient validation. Any V17 external run needs
 new explicit user authorization.
+
+### V16 terminal checkpoint remote acceptance and exact-four receipt candidate (2026-08-02)
+
+- T16 `4c2df3b19b4f5493adba78eed89c3a015d76972d` is A16's direct
+  single-parent, exact-eleven, all-`100644` terminal supersession. The committed
+  failure verifier reports
+  `V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT`; all eight frozen
+  authorities and the immutable V16 request remain byte-exact.
+- Exact-HEAD push CI `30741594513` / job `91479900314` completed run one /
+  attempt one `success`. Ambient regression passed `1680/1680` with `28` skips
+  in `1089.286s`; V13 passed `10/10` in `0.660s` plus its isolated exact-Git
+  test `1/1` in `0.911s`, detached V14 passed `12/12` in `1.297s`, and
+  detached V15 passed `22/22` in `4.263s`, for `1725` tests total. Quality,
+  production readiness `136/136` and Docker Compose passed. The job ran from
+  `2026-08-02T09:21:11Z` to `09:40:47Z` and produced no artifact.
+- Exact-HEAD pull-request CI `30741595902` / job `91479904223` also completed
+  run one / attempt one `success`. Ambient regression passed `1680/1680` with
+  `28` skips in `1052.530s`; V13 passed `10/10` in `0.665s` plus isolated
+  `1/1` in `0.851s`, detached V14 `12/12` in `1.198s`, detached V15 `22/22`
+  in `3.958s`, for `1725` total. Quality, production readiness `136/136` and
+  Docker Compose passed. The job ran from `2026-08-02T09:21:15Z` to
+  `09:40:17Z` and produced no artifact.
+- Fresh no-cache pagination at `2026-08-02T09:42:05Z` observed five pages and
+  `500/500/500` advertised/fetched/unique repository Actions records. T16 has
+  exactly those two ordinary attempt-one success records. Workflow-path counts
+  remain V11 `0`, V12 `1`, V13 `0`, V14 `0`, V15 `1`, V16 `1`; the unique
+  V16 run remains `30739167701` / job `91473336858` / attempt one / failure /
+  artifact zero with no rerun or duplicate. Local, upstream and remote branch
+  heads all resolve T16.
+
+This exact-four Secret-free terminal receipt candidate may change only Handoff,
+Risk, Readiness and its internal-readiness test. It records T16 acceptance,
+adds no readiness credit and performs no request, cache workflow, builder,
+artifact, download, transfer, ACR, deployment, database/service or public-
+traffic action. Internal/public readiness remains `19/29` / `19/38`, latest
+credit remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. It must be T16's first first-parent
+successor. After its own exact-HEAD ordinary CI and fresh ledger acceptance,
+continue to the independently audited exact-eighteen V17 inert checkpoint and
+exact-four receipt. Stop before any exact-one V17 request: a V17 external run
+requires new explicit user authorization, and V16 may never be rerun.

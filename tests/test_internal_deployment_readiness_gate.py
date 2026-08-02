@@ -1386,6 +1386,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "test_admin_dependency_cache_v16_failure_evidence.py"
                     ),
                 },
+                {
+                    "kind": "git",
+                    "ref": "4c2df3b19b4f5493adba78eed89c3a015d76972d",
+                },
             ],
         )
         self.assertNotIn(
@@ -1507,6 +1511,16 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("cleanup_effective is true", admin["blocker"])
         self.assertIn("overall_pass is false", admin["blocker"])
         self.assertIn("498/498/498", admin["blocker"])
+        self.assertIn("4c2df3b19b4f5493adba78eed89c3a015d76972d", admin["blocker"])
+        self.assertIn("30741594513", admin["blocker"])
+        self.assertIn("91479900314", admin["blocker"])
+        self.assertIn("30741595902", admin["blocker"])
+        self.assertIn("91479904223", admin["blocker"])
+        self.assertIn("1725 tests", admin["blocker"])
+        self.assertIn("136/136", admin["blocker"])
+        self.assertIn("500/500/500", admin["blocker"])
+        self.assertIn("exact-four Secret-free terminal receipt", admin["blocker"])
+        self.assertIn("exact18/4/1", admin["blocker"])
         self.assertIn("V16 may never be rerun", admin["blocker"])
         self.assertIn("append-only V17", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
@@ -1638,6 +1652,96 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertTrue(v16_failure["authorization"]["v16_one_shot_consumed"])
         self.assertTrue(v16_failure["authorization"]["v16_rerun_forbidden"])
         self.assertFalse(v16_failure["readiness"]["credit_added"])
+        terminal = v16_failure["terminal_checkpoint_acceptance"]
+        self.assertEqual(
+            terminal["checkpoint_commit"],
+            "4c2df3b19b4f5493adba78eed89c3a015d76972d",
+        )
+        self.assertEqual(
+            terminal["parent_commit"],
+            "fd1444d0a62549b3c353cbc1188e6ba25a77e96e",
+        )
+        self.assertEqual(terminal["exact_changed_path_count"], 11)
+        self.assertEqual(terminal["all_changed_paths_mode"], "100644")
+        self.assertEqual(
+            terminal["effective_state"],
+            "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+        )
+        self.assertEqual(terminal["push_ci"]["run_id"], 30741594513)
+        self.assertEqual(terminal["push_ci"]["job_id"], 91479900314)
+        self.assertEqual(terminal["push_ci"]["conclusion"], "success")
+        self.assertEqual(terminal["push_ci"]["total_test_count"], 1725)
+        self.assertEqual(
+            terminal["push_ci"]["production_readiness_checks"],
+            "136/136",
+        )
+        self.assertEqual(terminal["push_ci"]["artifact_count"], 0)
+        self.assertEqual(
+            terminal["pull_request_ci"]["run_id"],
+            30741595902,
+        )
+        self.assertEqual(
+            terminal["pull_request_ci"]["job_id"],
+            91479904223,
+        )
+        self.assertEqual(
+            terminal["pull_request_ci"]["conclusion"],
+            "success",
+        )
+        self.assertEqual(
+            terminal["pull_request_ci"]["total_test_count"],
+            1725,
+        )
+        self.assertEqual(
+            terminal["pull_request_ci"]["production_readiness_checks"],
+            "136/136",
+        )
+        self.assertEqual(
+            terminal["pull_request_ci"]["artifact_count"],
+            0,
+        )
+        self.assertEqual(
+            terminal["fresh_actions_ledger"]["page_count"],
+            5,
+        )
+        self.assertEqual(
+            terminal["fresh_actions_ledger"]["advertised_run_count"],
+            500,
+        )
+        self.assertEqual(
+            terminal["fresh_actions_ledger"]["fetched_run_count"],
+            500,
+        )
+        self.assertEqual(
+            terminal["fresh_actions_ledger"]["unique_run_count"],
+            500,
+        )
+        self.assertEqual(
+            terminal["fresh_actions_ledger"]["checkpoint_run_count"],
+            2,
+        )
+        self.assertEqual(
+            terminal["fresh_actions_ledger"]["v16_workflow_path_run_count"],
+            1,
+        )
+        self.assertEqual(
+            [
+                terminal["fresh_actions_ledger"][
+                    f"v{version}_workflow_path_run_count"
+                ]
+                for version in range(11, 16)
+            ],
+            [0, 1, 0, 0, 1],
+        )
+        self.assertEqual(
+            terminal["fresh_actions_ledger"]["v16_rerun_or_duplicate_count"],
+            0,
+        )
+        self.assertEqual(
+            terminal["execution_scope"]["new_external_cache_run_count"],
+            0,
+        )
+        self.assertFalse(terminal["readiness"]["credit_added"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]
