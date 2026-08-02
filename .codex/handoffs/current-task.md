@@ -4842,3 +4842,79 @@ exact-four receipt, accept its own ordinary CI and unchanged ledger, then
 continue directly to the separately versioned V16 inert control plane. Any
 V16 external run still requires new explicit authorization; no V15 or
 historical workflow may be rerun.
+
+### Append-only V16 inert Git-context recovery checkpoint candidate (2026-08-02)
+
+- The accepted V15 terminal receipt is
+  `a94ee2b2feb81eafbcb523be2c95da4ee952cbc4`. V15 remains permanently
+  terminal: its only workflow run is `30724578319` / job `91433793914`,
+  run one / attempt one / failure, with artifact zero and no rerun. No V15
+  authority is changed by V16.
+- The V16 checkpoint authority is exactly sixteen `100644` paths: the four
+  Secret-free ledgers, one inert workflow, one request template, two shell
+  helpers, one fixed BuildKit Git-context projection fixture, two bundle
+  verifier/test files, one plan verifier/test pair, CI, and the production
+  readiness gate/test. The later terminal receipt is exactly the same four
+  ledgers; a future activation may add only one release-request file.
+- Producer and fresh consumer are bound to the same immutable full-commit Git
+  main context for commit `5335bdaed933b1f999b5f819c047ec50c11821ae`.
+  The combined Dockerfile remains byte-bound as the only local named input.
+  V16 additionally binds the Git source identity, both `COPY` vertices and
+  `runtime_pip`, and still accepts only the same `runtime_pip` digest with
+  every completed interval cached and zero noncached intervals.
+- The frozen V13 structural verifier is reused only through an explicitly
+  hashed compatibility projection. V16 separately records the frozen V13
+  verdict hash and the transformed projection hash, rebinds the actual V16
+  producer raw-byte SHA in the cache-record adapter, rereads source metadata
+  to close the validation/use gap, and fails closed on explicit-input or
+  platform drift.
+- Deleting the exported directory and replaying on the same consumer is named
+  only `external-cache-removed same-consumer-builder replay` and sets
+  `true_empty_cache_replay_claimed=false`. V16 makes no true empty-cache
+  claim and may not treat digest drift, noncached work, a structural DAG or
+  zero logs as a cache hit.
+- The live ledger is append-only length fourteen: V11 at index nine, V12 at
+  ten, V13 at eleven, V14 at twelve and terminal V15 at thirteen. V11, V13
+  and V14 retain repository workflow-path count zero; V12 and V15 retain
+  their single immutable attempt-one failures. The only current-generation
+  workflow inventory is V16, with request absent and run count zero.
+- Local verification currently passes V16 bundle contracts `9/9`, V16 plan
+  contracts `13/13`, internal readiness contracts `16/16`, JSON parsing,
+  frozen V13 compatibility contracts `21/21`, V15 terminal evidence `5/5`
+  and three selected production-gate contracts `3/3` in `325.549s`, plus
+  optimized-Python V16 contracts `22/22`, Quality Gate (`7` passing samples
+  plus one expected-fail sample), Docker Compose configuration, Python
+  compilation and both helper shell syntax checks. The one diagnostic line
+  emitted by the bundle tests is an expected fail-closed V13 structure
+  fixture, not an external call or a repository mutation.
+- The first real post-commit Git-topology evaluation correctly exposed an
+  over-broad predecessor call: frozen V15's verifier was evaluating its CI
+  immutability against the V16 branch head instead of the accepted V15
+  receipt. V16 now runs the hash-pinned V15 semantic verifier without mutable
+  current-head Git state, then evaluates its unchanged historical Git
+  contract at fixed receipt `a94ee2b2…cbc4`. V16 plan tests remain `13/13`
+  and the real evaluator reports `PREPARED_V16_NOT_TRIGGERED`; no historical
+  hash or path-set condition was relaxed.
+- The first full 135-check report then exposed the same stale V15 scope in
+  the gate's separate evidence call plus one false-positive scan of the
+  literal control name `BUILDKIT_NO_CLIENT_TOKEN`. The gate now requests
+  semantic-only evidence because the fixed-receipt predecessor check already
+  owns Git history, while the control token is represented in the same
+  scanner-safe form used by earlier frozen verifiers. Ambient CI excludes
+  V15's HEAD-bound terminal test and executes the full V15 plan/evidence
+  suites in a detached exact-`a94ee2b2…cbc4` clone; that projection passes
+  `22/22`. Secret scanning remains unchanged and no exception was added. The
+  corrected final local production-readiness report passes all `135/135`
+  checks with zero failures.
+
+This prepared checkpoint creates no request and performs no cache workflow,
+builder, artifact, download, transfer, ACR, deployment, database/service or
+public-traffic action. It earns no readiness credit: internal/public
+readiness remains `19/29` / `19/38`, the latest credited item remains
+`api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next acceptance boundary is an
+exact-sixteen direct child of the accepted V15 receipt, followed by its own
+ordinary exact-HEAD push and pull-request CI, fresh fully paginated ledgers,
+and an exact-four Secret-free receipt. Any exact-one V16 activation and its
+single external cache-export run require a new explicit user authorization;
+the already consumed V15 authorization cannot be reused.

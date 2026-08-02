@@ -22,23 +22,37 @@ import production_readiness_gate as gate  # noqa: E402
 
 class ProductionReadinessGateTests(unittest.TestCase):
     def setUp(self):
-        # Most tests mutate an unrelated gate input. Keep one bounded V15
+        # Most tests mutate an unrelated gate input. Keep one bounded V16
         # lifecycle snapshot for those cases; the dedicated integration test
         # below executes the real repository evaluator exactly once.
-        self._v15_snapshot_patcher = mock.patch.object(
+        self._v16_snapshot_patcher = mock.patch.object(
             gate,
-            "evaluate_admin_dependency_cache_export_plan_v15",
-            return_value=([], "V15_ARMED_OR_TRIGGERED_EXACT", []),
+            "evaluate_admin_dependency_cache_export_plan_v16",
+            return_value=([], "V16_ARMED_OR_TRIGGERED_EXACT", []),
         )
-        self._v15_snapshot_patcher.start()
+        self._v16_snapshot_patcher.start()
+        self._v15_predecessor_patcher = mock.patch.object(
+            gate,
+            "validate_admin_dependency_cache_v15_predecessor",
+            return_value=[],
+        )
+        self._v15_predecessor_patcher.start()
+        self._v15_evidence_patcher = mock.patch.object(
+            gate,
+            "verify_admin_dependency_cache_v15_failure_evidence",
+            return_value=[],
+        )
+        self._v15_evidence_patcher.start()
 
     def tearDown(self):
-        if self._v15_snapshot_patcher is not None:
-            self._v15_snapshot_patcher.stop()
+        if self._v16_snapshot_patcher is not None:
+            self._v16_snapshot_patcher.stop()
+        self._v15_predecessor_patcher.stop()
+        self._v15_evidence_patcher.stop()
 
-    def _use_real_v15_evaluator(self):
-        self._v15_snapshot_patcher.stop()
-        self._v15_snapshot_patcher = None
+    def _use_real_v16_evaluator(self):
+        self._v16_snapshot_patcher.stop()
+        self._v16_snapshot_patcher = None
 
     def test_current_repo_passes_production_readiness_gate(self):
         report = gate.build_report()
@@ -46,10 +60,10 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(report["passed"], report["failed_checks"])
         self.assertGreaterEqual(report["check_count"], 30)
 
-    def test_current_v15_repository_lifecycle_is_validated_once(self):
-        self._use_real_v15_evaluator()
+    def test_current_v16_repository_lifecycle_is_validated_once(self):
+        self._use_real_v16_evaluator()
         errors, state, terminal_errors = (
-            gate.evaluate_admin_dependency_cache_export_plan_v15()
+            gate.evaluate_admin_dependency_cache_export_plan_v16()
         )
 
         self.assertEqual(errors, [])
@@ -57,9 +71,8 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertIn(
             state,
             {
-                "V15_ARMED_OR_TRIGGERED_EXACT",
-                "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
-                "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
+                "PREPARED_V16_NOT_TRIGGERED",
+                "V16_ARMED_OR_TRIGGERED_EXACT",
             },
         )
 
@@ -190,6 +203,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(
             checks[
                 "exact_5335bda_admin_dependency_cache_v15_recovery_plan_fail_closed"
+            ]["passed"]
+        )
+        self.assertTrue(
+            checks[
+                "exact_5335bda_admin_dependency_cache_v16_recovery_plan_fail_closed"
             ]["passed"]
         )
 
@@ -471,9 +489,9 @@ class ProductionReadinessGateTests(unittest.TestCase):
 
         with mock.patch.object(
             gate,
-            "evaluate_admin_dependency_cache_export_plan_v15",
+            "evaluate_admin_dependency_cache_export_plan_v16",
             return_value=(
-                ["tampered V15 recovery plan"],
+                ["tampered V16 recovery plan"],
                 "INVALID",
                 [],
             ),
@@ -481,19 +499,15 @@ class ProductionReadinessGateTests(unittest.TestCase):
             report = gate.build_report()
         self.assertFalse(report["passed"])
         self.assertIn(
-            "exact_5335bda_admin_dependency_cache_v15_recovery_plan_fail_closed",
+            "exact_5335bda_admin_dependency_cache_v16_recovery_plan_fail_closed",
             {item["name"] for item in report["failed_checks"]},
         )
 
     def test_v15_terminal_evidence_is_fail_closed_in_repository_gate(self):
         with mock.patch.object(
             gate,
-            "evaluate_admin_dependency_cache_export_plan_v15",
-            return_value=(
-                ["tampered V15 failure evidence"],
-                "INVALID",
-                ["tampered V15 failure evidence"],
-            ),
+            "verify_admin_dependency_cache_v15_failure_evidence",
+            return_value=["tampered V15 failure evidence"],
         ):
             checks = {
                 item["name"]: item for item in gate.check_browserless_vex()
@@ -865,22 +879,20 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 ]["passed"]
             )
 
-    def test_v15_gate_accepts_prepared_armed_and_versioned_terminal_states(self):
+    def test_v16_gate_accepts_prepared_and_armed_states(self):
         check_name = (
-            "exact_5335bda_admin_dependency_cache_v15_"
+            "exact_5335bda_admin_dependency_cache_v16_"
             "recovery_plan_fail_closed"
         )
         for state in (
-            "PREPARED_V15_NOT_TRIGGERED",
-            "V15_ARMED_OR_TRIGGERED_EXACT",
-            "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
-            "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
+            "PREPARED_V16_NOT_TRIGGERED",
+            "V16_ARMED_OR_TRIGGERED_EXACT",
         ):
             with (
                 self.subTest(state=state),
                 mock.patch.object(
                     gate,
-                    "evaluate_admin_dependency_cache_export_plan_v15",
+                    "evaluate_admin_dependency_cache_export_plan_v16",
                     return_value=([], state, []),
                 ),
             ):
@@ -889,12 +901,12 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 }
             self.assertTrue(checks[check_name]["passed"])
 
-        for state in ("INVALID", "V15_CONSUMED_OR_INVALID"):
+        for state in ("INVALID", "V16_CONSUMED_OR_INVALID"):
             with (
                 self.subTest(state=state),
                 mock.patch.object(
                     gate,
-                    "evaluate_admin_dependency_cache_export_plan_v15",
+                    "evaluate_admin_dependency_cache_export_plan_v16",
                     return_value=([], state, []),
                 ),
             ):

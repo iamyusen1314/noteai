@@ -113,8 +113,11 @@ from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
     v11_untriggered_supersession_state,
 )
-from verify_admin_dependency_cache_export_plan_v15 import (  # noqa: E402
-    evaluate_plan as evaluate_admin_dependency_cache_export_plan_v15,
+from verify_admin_dependency_cache_export_plan_v16 import (  # noqa: E402
+    _validate_v15_predecessor as validate_admin_dependency_cache_v15_predecessor,
+)
+from verify_admin_dependency_cache_export_plan_v16 import (  # noqa: E402
+    evaluate_plan as evaluate_admin_dependency_cache_export_plan_v16,
 )
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
@@ -175,6 +178,12 @@ from verify_admin_dependency_cache_v12_failure_evidence import (  # noqa: E402
 )
 from verify_admin_dependency_cache_v12_failure_evidence import (  # noqa: E402
     verify as verify_admin_dependency_cache_v12_failure_evidence,
+)
+from verify_admin_dependency_cache_v15_failure_evidence import (  # noqa: E402
+    load_strict as load_admin_dependency_cache_v15_failure_evidence,
+)
+from verify_admin_dependency_cache_v15_failure_evidence import (  # noqa: E402
+    verify as verify_admin_dependency_cache_v15_failure_evidence,
 )
 from verify_api_c_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_c_current_release_evidence_bundle,
@@ -845,6 +854,8 @@ CI_UNIT_TEST_CONTRACT = """      - name: Unit tests
             find tests -maxdepth 1 -type f -name 'test_*.py' \\
               ! -name 'test_admin_dependency_cache_export_plan_v13.py' \\
               ! -name 'test_admin_dependency_cache_export_plan_v14.py' \\
+              ! -name 'test_admin_dependency_cache_export_plan_v15.py' \\
+              ! -name 'test_admin_dependency_cache_v15_failure_evidence.py' \\
               -print | LC_ALL=C sort
           )
           test "${#ambient_test_files[@]}" -gt 0
@@ -881,6 +892,21 @@ CI_UNIT_TEST_CONTRACT = """      - name: Unit tests
               python -m unittest \\
                 tests/test_admin_dependency_cache_export_plan_v14.py
           )
+          historical_v15_root="$(mktemp -d "${RUNNER_TEMP:-/tmp}/noteai-v15-history.XXXXXX")"
+          git clone --quiet --no-hardlinks . "${historical_v15_root}/repo"
+          git -C "${historical_v15_root}/repo" checkout --quiet --detach \\
+            a94ee2b2feb81eafbcb523be2c95da4ee952cbc4
+          (
+            cd "${historical_v15_root}/repo"
+            env \\
+              -u GITHUB_ACTIONS \\
+              -u GITHUB_SHA \\
+              -u GITHUB_EVENT_NAME \\
+              -u GITHUB_REF \\
+              python -m unittest \\
+                tests/test_admin_dependency_cache_export_plan_v15.py \\
+                tests/test_admin_dependency_cache_v15_failure_evidence.py
+          )
 
       - name: Quality gate
 """
@@ -898,6 +924,12 @@ def _ci_unit_test_contract_valid(workflow: str) -> bool:
         ) == 1
         and workflow.count(
             "test_admin_dependency_cache_export_plan_v14.py"
+        ) == 2
+        and workflow.count(
+            "test_admin_dependency_cache_export_plan_v15.py"
+        ) == 2
+        and workflow.count(
+            "test_admin_dependency_cache_v15_failure_evidence.py"
         ) == 2
         and workflow.count("timeout-minutes: 25") == 1
     )
@@ -1866,11 +1898,36 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             f"cannot load Admin dependency-cache V12 failure evidence: {exc}"
         ]
     try:
+        admin_dependency_cache_v15_predecessor_errors = (
+            validate_admin_dependency_cache_v15_predecessor()
+        )
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        ValueError,
+        subprocess.CalledProcessError,
+    ) as exc:
+        admin_dependency_cache_v15_predecessor_errors = [
+            f"cannot evaluate Admin dependency-cache V15 predecessor: {exc}"
+        ]
+    try:
+        admin_dependency_cache_v15_failure_errors = (
+            verify_admin_dependency_cache_v15_failure_evidence(
+                load_admin_dependency_cache_v15_failure_evidence(),
+                verify_git_state=False,
+            )
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        admin_dependency_cache_v15_failure_errors = [
+            f"cannot load Admin dependency-cache V15 failure evidence: {exc}"
+        ]
+    try:
         (
-            admin_dependency_cache_plan_v15_errors,
-            dependency_cache_plan_state_v15,
-            admin_dependency_cache_v15_failure_errors,
-        ) = evaluate_admin_dependency_cache_export_plan_v15()
+            admin_dependency_cache_plan_v16_errors,
+            dependency_cache_plan_state_v16,
+            _admin_dependency_cache_v16_terminal_errors,
+        ) = evaluate_admin_dependency_cache_export_plan_v16()
     except (
         OSError,
         UnicodeDecodeError,
@@ -1879,11 +1936,10 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         subprocess.CalledProcessError,
     ) as exc:
         evaluation_error = (
-            "cannot evaluate Admin dependency-cache V15 lifecycle: " f"{exc}"
+            "cannot evaluate Admin dependency-cache V16 lifecycle: " f"{exc}"
         )
-        admin_dependency_cache_plan_v15_errors = [evaluation_error]
-        admin_dependency_cache_v15_failure_errors = [evaluation_error]
-        dependency_cache_plan_state_v15 = "INVALID"
+        admin_dependency_cache_plan_v16_errors = [evaluation_error]
+        dependency_cache_plan_state_v16 = "INVALID"
     admin_dependency_cache_plan_v3_errors = (
         validate_admin_dependency_cache_export_plan_v3()
     )
@@ -1940,11 +1996,9 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
         "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
     }
-    accepted_dependency_cache_plan_states_v15 = {
-        "PREPARED_V15_NOT_TRIGGERED",
-        "V15_ARMED_OR_TRIGGERED_EXACT",
-        "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
-        "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
+    accepted_dependency_cache_plan_states_v16 = {
+        "PREPARED_V16_NOT_TRIGGERED",
+        "V16_ARMED_OR_TRIGGERED_EXACT",
     }
     accepted_dependency_cache_v11_supersession = (
         dependency_cache_v11_supersession_state
@@ -2365,24 +2419,13 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         ),
         _ok(
             "exact_5335bda_admin_dependency_cache_v15_recovery_plan_fail_closed",
-            not admin_dependency_cache_plan_v15_errors
-            and dependency_cache_plan_state_v15
-            in accepted_dependency_cache_plan_states_v15,
-            "; ".join(admin_dependency_cache_plan_v15_errors[:5])
-            if admin_dependency_cache_plan_v15_errors
+            not admin_dependency_cache_v15_predecessor_errors,
+            "; ".join(admin_dependency_cache_v15_predecessor_errors[:5])
+            if admin_dependency_cache_v15_predecessor_errors
             else (
-                f"state={dependency_cache_plan_state_v15} is not an accepted "
-                "V15 control-plane state"
-                if dependency_cache_plan_state_v15
-                not in accepted_dependency_cache_plan_states_v15
-                else (
-                    f"state={dependency_cache_plan_state_v15}; V12 remains "
-                    "terminal and V13/V14 remain inert with zero workflow runs; "
-                    "cache-config records are "
-                    "validated only as a bounded structural DAG, and runtime "
-                    "portability requires a fresh-consumer SAME_DIGEST_CACHED "
-                    "observation under two exact live-ledger snapshots"
-                )
+                "V15 exact-one activation, unique attempt-one failure, terminal "
+                "checkpoint and exact-four receipt remain immutable on the "
+                "first-parent chain; V15 rerun remains forbidden"
             ),
         ),
         _ok(
@@ -2393,11 +2436,32 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             else (
                 "unique run 30724578319/job 91433793914 attempt 1 failed "
                 "closed on fresh-consumer runtime_pip DIGEST_DRIFT; the "
-                "bounded cache structure passed, cacheless replay and upload "
-                "were not reached, artifact/download/transfer/production "
+                "bounded cache structure passed, external-cache-removed "
+                "same-consumer-builder replay and upload were not reached, "
+                "artifact/download/transfer/production "
                 "mutations are zero, both builders and transient Docker state "
                 "were removed, fresh pre/post ledgers passed, and V15 rerun "
                 "is forbidden"
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v16_recovery_plan_fail_closed",
+            not admin_dependency_cache_plan_v16_errors
+            and dependency_cache_plan_state_v16
+            in accepted_dependency_cache_plan_states_v16,
+            "; ".join(admin_dependency_cache_plan_v16_errors[:5])
+            if admin_dependency_cache_plan_v16_errors
+            else (
+                f"state={dependency_cache_plan_state_v16} is not an accepted "
+                "V16 control-plane state"
+                if dependency_cache_plan_state_v16
+                not in accepted_dependency_cache_plan_states_v16
+                else (
+                    f"state={dependency_cache_plan_state_v16}; the exact16/4/1 "
+                    "controller is Git-main-context bound, V15 is frozen as "
+                    "its terminal predecessor, and no V16 external run is "
+                    "authorized by repository state alone"
+                )
             ),
         ),
     ]

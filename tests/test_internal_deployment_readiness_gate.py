@@ -1292,6 +1292,59 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "46595fef4916ca2881dd38c0a14ee630bba79c32",
                 },
+                {
+                    "kind": "git",
+                    "ref": "a94ee2b2feb81eafbcb523be2c95da4ee952cbc4",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v16.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v16.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "scripts/ci/export_admin_dependency_cache_v16.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": "scripts/ci/import_admin_dependency_cache_v16.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/fixtures/"
+                        "admin_dependency_cache_buildkit_v0.31.2_"
+                        "git_main_context_identity_projection.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tools/verify_admin_dependency_cache_bundle_v16.py",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_bundle_verifier_v16.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tools/verify_admin_dependency_cache_export_plan_v16.py",
+                },
+                {
+                    "kind": "path",
+                    "ref": "tests/test_admin_dependency_cache_export_plan_v16.py",
+                },
             ],
         )
         self.assertNotIn(
@@ -1379,7 +1432,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("91433796451", admin["blocker"])
         self.assertIn("30724578319", admin["blocker"])
         self.assertIn("91433793914", admin["blocker"])
-        self.assertIn("SAME_DIGEST_CACHED was not proven", admin["blocker"])
+        self.assertIn(
+            "SAME_SOURCE_COPY_PIP_DIGESTS_CACHED identity chain was not proven",
+            admin["blocker"],
+        )
         self.assertIn("487/487/487", admin["blocker"])
         self.assertIn("V15 may never be rerun", admin["blocker"])
         self.assertIn("46595fef4916ca2881dd38c0a14ee630bba79c32", admin["blocker"])
@@ -1390,12 +1446,18 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("1692 tests", admin["blocker"])
         self.assertIn("134/134", admin["blocker"])
         self.assertIn("489/489/489", admin["blocker"])
+        self.assertIn("a94ee2b2feb81eafbcb523be2c95da4ee952cbc4", admin["blocker"])
         self.assertIn(
             "external-cache-removed same-consumer-builder replay",
             admin["blocker"],
         )
         self.assertIn("full-commit Git main context", admin["blocker"])
-        self.assertIn("rather than force an eleven-file shape", admin["blocker"])
+        self.assertIn("exact16/4/1 append-only successor", admin["blocker"])
+        self.assertIn("one top-level Git SourceOp", admin["blocker"])
+        self.assertIn("private compatibility projection", admin["blocker"])
+        self.assertIn("14-entry ledger", admin["blocker"])
+        self.assertIn("V16 remains inert", admin["blocker"])
+        self.assertIn("no request exists", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
         api_c = next(

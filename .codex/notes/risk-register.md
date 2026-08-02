@@ -491,6 +491,16 @@ Last updated: 2026-08-02
 - 费用和回滚: V15创建的两个临时builder已删除，Docker images/containers/volumes/networks回到baseline；无artifact、下载、transfer、ACR、部署、数据库/service或public traffic变更，无生产回滚动作。Terminal/V16 inert checkpoint只产生普通CI成本。
 - 是否需要用户确认后才能修改: V15 terminal checkpoint/receipt和V16惰性设计验证可按append-only规则继续；任何V16外部GitHub cache-export run必须获得新的明确授权。任何artifact下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作仍需各自授权。
 
+### V16 Git-context recovery is inert and has not earned readiness credit
+
+- 状态: Open High / first-launch hard gate。已接受的V15 terminal receipt为`a94ee2b…cbc4`；V16当前仅为exact-16惰性控制面候选，请求不存在、workflow-path run为0，内部/公开进度仍为`19/29` / `19/38`。
+- 风险描述: V16以同一full-commit Git main context替代两个独立local main context，并将Git source、两个COPY及`runtime_pip`纳入identity投影。这关闭了V15已知的local session identity传播机制，但在唯一真实V16 run之前仍只是严格可验证的恢复假设，不得提前声称跨builder可移植性或发布就绪。
+- 接受边界: producer与fresh consumer必须观察完全相同的`runtime_pip` digest；consumer所有completed intervals必须cached且noncached为0。V13结构验证仅能作为经SHA固定的兼容投影，不能替代V16原始Git metadata、platform、ordered explicit inputs、COPY cache和pair predicate验证。任何DIGEST_DRIFT、SAME_DIGEST_NONCACHED、结构DAG单独通过或零日志都必须fail closed。
+- 术语边界: 删除external cache后在同一consumer builder回放只能称`external-cache-removed same-consumer-builder replay`，并固定`true_empty_cache_replay_claimed=false`。只有新增并清理第三个fresh builder且完整绑定创建、输入、结果与清理证据时，才可主张真正empty-cache replay；当前V16不作此主张。
+- 权限与拓扑: 先提交并远程验收exact-16惰性checkpoint，再提交exact-4 Secret-free receipt。未来activation只能是其直接exact-one child并新增唯一request。V15授权已经消费，不能授权V16；任何V16 external cache-export run都必须获得新的明确用户授权，且失败后不得盲目重跑。
+- 当前验证: V16 bundle test `9/9`、plan test `13/13`、internal readiness test `16/16`、冻结V13兼容合同`21/21`、V15 detached exact-receipt plan/evidence `22/22`、三项selected production-gate合同`3/3`和最终production readiness `135/135`均通过；JSON、Python compile与helper shell syntax也通过。上述检查无外部cache workflow、builder、artifact、下载、transfer、ACR、部署、数据库/service或public traffic变更。
+- 是否需要用户确认后才能修改: exact-16惰性checkpoint、ordinary CI验收和exact-4 receipt可按append-only项目规则继续；创建exact-one V16 request或触发唯一V16外部run必须重新获得明确授权。
+
 ## Low Risks
 
 ### `model/api.py` is too large

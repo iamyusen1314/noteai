@@ -78,6 +78,8 @@ jobs:
         run: |
           bash -n scripts/push_remote.sh
           bash -n scripts/docker_entrypoint.sh
+          bash -n scripts/ci/export_admin_dependency_cache_v16.sh
+          bash -n scripts/ci/import_admin_dependency_cache_v16.sh
 
       - name: Verify model artifacts
         run: |
@@ -91,6 +93,8 @@ jobs:
             find tests -maxdepth 1 -type f -name 'test_*.py' \
               ! -name 'test_admin_dependency_cache_export_plan_v13.py' \
               ! -name 'test_admin_dependency_cache_export_plan_v14.py' \
+              ! -name 'test_admin_dependency_cache_export_plan_v15.py' \
+              ! -name 'test_admin_dependency_cache_v15_failure_evidence.py' \
               -print | LC_ALL=C sort
           )
           test "${#ambient_test_files[@]}" -gt 0
@@ -126,6 +130,21 @@ jobs:
               -u GITHUB_REF \
               python -m unittest \
                 tests/test_admin_dependency_cache_export_plan_v14.py
+          )
+          historical_v15_root="$(mktemp -d "${RUNNER_TEMP:-/tmp}/noteai-v15-history.XXXXXX")"
+          git clone --quiet --no-hardlinks . "${historical_v15_root}/repo"
+          git -C "${historical_v15_root}/repo" checkout --quiet --detach \
+            a94ee2b2feb81eafbcb523be2c95da4ee952cbc4
+          (
+            cd "${historical_v15_root}/repo"
+            env \
+              -u GITHUB_ACTIONS \
+              -u GITHUB_SHA \
+              -u GITHUB_EVENT_NAME \
+              -u GITHUB_REF \
+              python -m unittest \
+                tests/test_admin_dependency_cache_export_plan_v15.py \
+                tests/test_admin_dependency_cache_v15_failure_evidence.py
           )
 
       - name: Quality gate
