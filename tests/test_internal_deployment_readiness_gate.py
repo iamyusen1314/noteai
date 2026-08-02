@@ -1251,6 +1251,43 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "90f9606d6eb860572814cc3ccc0731fb9d366a5a",
                 },
+                {
+                    "kind": "git",
+                    "ref": "788a2b48d3dc04bea0f7c26fe7207887131436a7",
+                },
+                {
+                    "kind": "git",
+                    "ref": "c61ba14ab77f98dbc63697dc2b3cbe26afdf9df1",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/release-requests/"
+                        "admin-5335bda-dependency-cache-v15.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/evidence/"
+                        "admin-dependency-cache-v15-attempt1-failed-"
+                        "20260802.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_v15_failure_evidence.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_v15_failure_evidence.py"
+                    ),
+                },
             ],
         )
         self.assertNotIn(
@@ -1330,8 +1367,19 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("30709038582", admin["blocker"])
         self.assertIn("91393095974", admin["blocker"])
         self.assertIn("1682 tests", admin["blocker"])
-        self.assertIn("482/482/482", admin["blocker"])
-        self.assertIn("R15's own exact-HEAD push/PR CI", admin["blocker"])
+        self.assertIn("788a2b48d3dc04bea0f7c26fe7207887131436a7", admin["blocker"])
+        self.assertIn("c61ba14ab77f98dbc63697dc2b3cbe26afdf9df1", admin["blocker"])
+        self.assertIn("30724578299", admin["blocker"])
+        self.assertIn("91433793813", admin["blocker"])
+        self.assertIn("30724579324", admin["blocker"])
+        self.assertIn("91433796451", admin["blocker"])
+        self.assertIn("30724578319", admin["blocker"])
+        self.assertIn("91433793914", admin["blocker"])
+        self.assertIn("SAME_DIGEST_CACHED was not proven", admin["blocker"])
+        self.assertIn("487/487/487", admin["blocker"])
+        self.assertIn("V15 may never be rerun", admin["blocker"])
+        self.assertIn("exact-eleven versioned V15 terminal checkpoint", admin["blocker"])
+        self.assertIn("fixed-Git-main-context", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
         api_c = next(

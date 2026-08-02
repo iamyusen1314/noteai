@@ -114,10 +114,7 @@ from verify_admin_dependency_cache_export_plan_v12 import (  # noqa: E402
     v11_untriggered_supersession_state,
 )
 from verify_admin_dependency_cache_export_plan_v15 import (  # noqa: E402
-    plan_state as admin_dependency_cache_plan_state_v15,
-)
-from verify_admin_dependency_cache_export_plan_v15 import (  # noqa: E402
-    validate_plan as validate_admin_dependency_cache_export_plan_v15,
+    evaluate_plan as evaluate_admin_dependency_cache_export_plan_v15,
 )
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
@@ -1868,6 +1865,25 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         admin_dependency_cache_v12_failure_errors = [
             f"cannot load Admin dependency-cache V12 failure evidence: {exc}"
         ]
+    try:
+        (
+            admin_dependency_cache_plan_v15_errors,
+            dependency_cache_plan_state_v15,
+            admin_dependency_cache_v15_failure_errors,
+        ) = evaluate_admin_dependency_cache_export_plan_v15()
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        ValueError,
+        subprocess.CalledProcessError,
+    ) as exc:
+        evaluation_error = (
+            "cannot evaluate Admin dependency-cache V15 lifecycle: " f"{exc}"
+        )
+        admin_dependency_cache_plan_v15_errors = [evaluation_error]
+        admin_dependency_cache_v15_failure_errors = [evaluation_error]
+        dependency_cache_plan_state_v15 = "INVALID"
     admin_dependency_cache_plan_v3_errors = (
         validate_admin_dependency_cache_export_plan_v3()
     )
@@ -1924,13 +1940,11 @@ def check_browserless_vex() -> list[dict[str, Any]]:
         "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
         "V12_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
     }
-    admin_dependency_cache_plan_v15_errors = (
-        validate_admin_dependency_cache_export_plan_v15()
-    )
-    dependency_cache_plan_state_v15 = admin_dependency_cache_plan_state_v15()
     accepted_dependency_cache_plan_states_v15 = {
         "PREPARED_V15_NOT_TRIGGERED",
         "V15_ARMED_OR_TRIGGERED_EXACT",
+        "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+        "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
     }
     accepted_dependency_cache_v11_supersession = (
         dependency_cache_v11_supersession_state
@@ -2369,6 +2383,21 @@ def check_browserless_vex() -> list[dict[str, Any]]:
                     "portability requires a fresh-consumer SAME_DIGEST_CACHED "
                     "observation under two exact live-ledger snapshots"
                 )
+            ),
+        ),
+        _ok(
+            "exact_5335bda_admin_dependency_cache_v15_attempt1_failed_artifact0",
+            not admin_dependency_cache_v15_failure_errors,
+            "; ".join(admin_dependency_cache_v15_failure_errors[:5])
+            if admin_dependency_cache_v15_failure_errors
+            else (
+                "unique run 30724578319/job 91433793914 attempt 1 failed "
+                "closed on fresh-consumer runtime_pip DIGEST_DRIFT; the "
+                "bounded cache structure passed, cacheless replay and upload "
+                "were not reached, artifact/download/transfer/production "
+                "mutations are zero, both builders and transient Docker state "
+                "were removed, fresh pre/post ledgers passed, and V15 rerun "
+                "is forbidden"
             ),
         ),
     ]

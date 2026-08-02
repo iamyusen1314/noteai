@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import os
 import subprocess
@@ -705,6 +706,80 @@ class AdminDependencyCacheExportPlanV15Tests(unittest.TestCase):
             self.assertEqual(
                 verifier._canonical_branch_head(verifier.ROOT),
                 second_parent,
+            )
+
+    def test_terminal_supersession_is_a_separate_frozen_version(self):
+        terminal = verifier._load_v15_terminal_verifier()
+        payload = terminal.load_strict()
+        self.assertEqual(
+            terminal.verify(payload, verify_git_state=False),
+            [],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                verifier.V15_TERMINAL_VERIFIER_PATH.read_bytes()
+            ).hexdigest(),
+            verifier.V15_TERMINAL_VERIFIER_SHA256,
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                verifier.V15_TERMINAL_TEST_PATH.read_bytes()
+            ).hexdigest(),
+            verifier.V15_TERMINAL_TEST_SHA256,
+        )
+        self.assertEqual(
+            hashlib.sha256(verifier.V15_EVIDENCE_PATH.read_bytes()).hexdigest(),
+            verifier.V15_EVIDENCE_SHA256,
+        )
+        self.assertEqual(len(terminal.TERMINAL_CHECKPOINT_FILES), 11)
+        self.assertEqual(len(terminal.RECEIPT_FILES), 4)
+
+    def test_terminal_evaluation_performs_one_full_verification(self):
+        terminal = mock.Mock()
+        terminal.terminal_checkpoint.return_value = "a" * 40
+        terminal.load_strict.return_value = {"evidence": "bounded"}
+        terminal.verify.return_value = []
+        terminal.terminal_receipt.return_value = None
+        with (
+            mock.patch.object(
+                verifier,
+                "_load_v15_terminal_verifier",
+                return_value=terminal,
+            ),
+            mock.patch.object(verifier, "validate_plan", return_value=[]),
+            mock.patch.object(
+                verifier,
+                "_validate_v14_superseded_predecessor",
+                return_value=[],
+            ),
+        ):
+            errors, state, terminal_errors = verifier.evaluate_plan()
+        self.assertEqual(errors, [])
+        self.assertEqual(terminal_errors, [])
+        self.assertEqual(
+            state,
+            "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT",
+        )
+        terminal.verify.assert_called_once_with({"evidence": "bounded"})
+        terminal.terminal_receipt.assert_called_once_with("a" * 40)
+
+    def test_effective_and_legacy_states_share_the_evaluated_overlay(self):
+        terminal_state = (
+            "V15_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_SUPERSESSION_EXACT"
+        )
+        with mock.patch.object(
+            verifier,
+            "evaluate_plan",
+            return_value=([], terminal_state, []),
+        ):
+            self.assertEqual(
+                verifier.effective_plan_state(),
+                "V15_TRIGGERED_ATTEMPT1_FAILED_"
+                "TERMINAL_SUPERSESSION_EXACT",
+            )
+            self.assertEqual(
+                verifier.plan_state(),
+                "V15_ARMED_OR_TRIGGERED_EXACT",
             )
 
     def test_python_optimized_mode_has_no_assert_contract(self):

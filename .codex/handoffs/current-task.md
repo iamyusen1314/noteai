@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-01 (Asia/Shanghai)
+> Updated: 2026-08-02 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -4728,3 +4728,66 @@ ledger. After R15 remote acceptance, the sole next write is the exact-one V15
 request; creating it and consuming the unique external cache-export run
 require new explicit user authorization. No historical checkpoint, receipt
 or workflow may be rerun.
+
+### V15 exact-one activation and terminal failure checkpoint candidate (2026-08-02)
+
+- R15 `788a2b48d3dc04bea0f7c26fe7207887131436a7` is the accepted exact-four
+  inert receipt. A15 `c61ba14ab77f98dbc63697dc2b3cbe26afdf9df1` is its direct
+  exact-one child and adds only
+  `.github/release-requests/admin-5335bda-dependency-cache-v15.json` as a
+  `100644` blob. The request is `16424` bytes, SHA-256
+  `0de3959f100e272e98b19238b670b99dd8fa096ad49179375014063420c37c4a`
+  and has one true addition with no later touch.
+- A15 created exactly three attempt-one records. Ordinary push CI
+  `30724578299` / job `91433793813` and pull-request CI `30724579324` /
+  job `91433796451` both passed exact A15. Each ran ambient `1659` tests
+  with `28` skips, V13 `10 + 1`, detached exact-C14 V14 `12`, for `1682`
+  tests total, then passed Quality, production readiness `133/133` and
+  Docker Compose.
+- The one authorized V15 workflow run `30724578319` / job `91433793914`,
+  workflow `325309521`, run one / attempt one, completed `failure`. Export,
+  source validation, both live-ledger snapshots and cleanup passed. The sole
+  failed step was fresh-consumer import/cacheless replay, exit `3`, code
+  `V13_PAIR_CACHE_PREDICATE_FAILED`: producer `runtime_pip` digest
+  `sha256:f3c7f2ff52b744ba6773ea26aa2a853092202fdc86e7679e93f44646eedb0c9a`
+  drifted to consumer digest
+  `sha256:8ed38b7ab56a85d1783d009e5ffbedf0d4fe769254004b1ef220c98152357e8a`.
+  The consumer had `23` completed intervals, only `1` cached and `22`
+  noncached, so `SAME_DIGEST_CACHED` was correctly rejected.
+- The imported cache structure itself remained bounded and valid: config
+  SHA-256 `eb3ea9fcc5872a0732915d99b5f58727c46038e570896a5fd288e39c2bd94e20`,
+  `4873` bytes, `17` records, `10` result-bearing records, `17` links and
+  `19` layers; DAG and reachability checks passed. This does not prove
+  runtime portability. Cacheless replay, final validation and upload were
+  not reached; artifact/download/transfer counts are zero.
+- Cleanup removed both ephemeral builders and restored image, container,
+  volume and network parity. Fresh no-cache pagination at
+  `2026-08-02T00:28:03Z` observed five pages and `487/487/487`
+  advertised/fetched/unique runs. V11/V13/V14 workflow paths remain zero,
+  V12 remains its sole failure, and V15 has exactly this one failure, unique
+  job and artifact zero. V15 must never be rerun.
+- The dynamically proven boundary is `runtime_pip DIGEST_DRIFT`. Fixed
+  BuildKit source explains a high-confidence mechanism: separate local main
+  contexts carry per-solve session identity into the first local `COPY` and
+  downstream LLB digest. V15 did not retain the two actual session values or
+  the two `COPY requirements` vertex digests, so those values are not claimed
+  as directly observed. The consumer emitted zero decoded pip log bytes;
+  actual dependency download or network execution is also not claimed.
+- The minimal V16 direction keeps the combined Dockerfile byte-exact but uses
+  the same full-commit Git main context for both solves, adds a bounded
+  source-to-COPY-to-pip identity projection, and retains the strict fresh
+  consumer `SAME_DIGEST_CACHED` predicate. It may not accept digest drift,
+  noncached intervals, a structural-DAG-only result or zero logs as a cache
+  hit.
+
+This exact-eleven candidate adds the Secret-free evidence JSON, its verifier
+and test, and updates only the four ledgers plus the V15 plan/gate verifier
+and tests. It is the required first post-activation write and adds no readiness
+credit. Internal/public readiness remains `19/29` / `19/38`, the latest
+credited item remains `api_f_current_release=VERIFIED`, and the sole task
+remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Commit and push only this
+exact-eleven terminal checkpoint, require its exact-HEAD ordinary push/PR CI
+and fresh ledger, then create the exact-four terminal receipt and continue to
+the separately versioned V16 inert checkpoint. Any V16 external run requires
+new explicit user authorization; no V15 or historical workflow rerun is
+permitted.
