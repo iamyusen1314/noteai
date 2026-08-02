@@ -5108,3 +5108,55 @@ R17 receipt and repeat remote acceptance. V16 is permanently non-rerunnable.
 Creating an exact-one A17 request or triggering any V17 external cache-export
 run remains outside current authority and requires a new explicit user
 authorization.
+
+The C17/R17 instructions immediately above are historical and are superseded
+by the terminal V17 record below. Do not execute them.
+
+### V17 minimal native-control activation and terminal run (2026-08-02)
+
+- C17 `7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e` is the immutable V17
+  data-plane anchor. Minimal control-plane simplification commit
+  `d930990d6a4393c565927306d7ae6b5db1ec4e88` removed R17 and the custom
+  ledger/receipt/topology prerequisites from only the V17 workflow, request
+  template, plan verifier/tests and production-gate hash/tests. The six
+  C17 build/import/cleanup workflow steps and all seven C17 data-plane witness
+  files remained byte-identical; no image, build content or production
+  resource changed.
+- D930 exact-HEAD push CI `30747482874` / job `91495423631` and pull-request
+  CI `30747484142` / job `91495426765` both passed attempt one. Each completed
+  the ambient `1696`-test suite with `28` skips, frozen-chain total `1762`,
+  Quality, production readiness `137/137` and Docker Compose.
+- Exact-one activation commit `6b8fba3dd8eb5b387b890f7b486a4cfa5e373f36`
+  is D930's direct child and adds only
+  `.github/release-requests/admin-5335bda-dependency-cache-v17.json`. It
+  created exactly one native V17 workflow run: run `30748098684`, job
+  `91497111488`, push event, run attempt one, head SHA `6b8fba3…73f36`.
+- The activation head's ordinary push CI `30748098675` / job `91497111413`
+  and pull-request CI `30748100955` / job `91497116914` both passed attempt
+  one. Each passed ambient `1696` tests with `28` skips, frozen-chain total
+  `1762`, Quality, production readiness `137/137` and Docker Compose; both
+  ordinary runs have artifact count zero.
+- The producer BuildKit build and local cache-export command completed, and
+  the V17 Git SourceOp lifecycle predicate passed. The immediately following
+  frozen V13 → V9 → V6 → V3 compatibility path rejected the first-run
+  evidence as `FROZEN_V9_EVIDENCE_INVALID` /
+  `FROZEN_V3_VALIDATION_FAILED`. The available log cannot identify a narrower
+  V3 subfield because raw metadata was not uploaded. Packaging/upload and the
+  fresh-builder import were not reached.
+- Native acceptance evidence is therefore: workflow run ID present
+  (`30748098684`), fixed C17 SHA present (`7ee9a154…2d6e`), artifact digest
+  absent (`artifact_count=0`), and fresh-builder import success absent. The
+  one-shot V17 authorization is consumed. V17 will not be rerun; no R17 or V18
+  will be created.
+- Cleanup removed both builders and all new images; image, container, volume
+  and network parity, Docker/Buildx roots and diagnostic-file absence all
+  passed. `cleanup_effective=true`; `overall_pass=false` only because the
+  cleanup step entered with `pre_state=drift`. There was no artifact download,
+  transfer, ACR publication, deployment, database/service or public-traffic
+  mutation.
+- Readiness remains `19/29` internal and `19/38` public. The sole current task
+  remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. V17's immediate unmet hard
+  condition is one uploaded cache artifact plus a successful import by a fresh
+  builder; item 20's ultimate hard condition remains the real private Admin
+  current-release deployment with negative runtime, health and rollback
+  acceptance. No implementation change is authorized from this failed run.

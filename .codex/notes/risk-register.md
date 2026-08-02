@@ -499,8 +499,16 @@ Last updated: 2026-08-02
 - 清理与影响: 两个builder和新增image已移除；builder absent、images/containers/volumes/networks parity及Docker/Buildx/diagnostic roots absent均pass。`cleanup_effective=true`但`overall_pass=false`，因为清理前`pre_state=drift`；不得写成cleanup overall PASS。artifact/download/transfer/ACR/deployment/database/service/public traffic均0。
 - 账本: A16 push CI `30739167685`/job `91473336783`与PR CI `30739168799`/job `91473339876`均通过`1714` tests、28 ambient skips、Quality、gate `135/135`与Docker，artifact均0。T16 push CI `30741594513`/job `91479900314`与PR CI `30741595902`/job `91479904223`均通过ambient `1680`、28 skips、总计`1725` tests、Quality、gate `136/136`及Docker，artifact均0。Fresh no-cache仓库Actions为`500/500/500`；T16恰两条普通CI，V11/V13/V14 path0、V12/V15各1个历史failure、V16仍恰唯一当前failure。
 - TR16验收与C17边界: TR16 push `30742513491`/job `91482331187`及PR `30742515068`/job `91482335383`各通过总计`1725` tests、28 ambient skips、Quality、gate `136/136`、Docker且artifact0；fresh no-cache Actions为六页`502/502/502`，V17 path/request/history/run均0。当前C17仅是TR16直接子代的本地exact18候选（11 new + 7 updated），不含request且未触发外部run；focused transient/bundle/plan为`12/12 + 12/12 + 13/13`。它新增bounded、Secret-free、pre-assertion Git SourceOp lifecycle diagnostic与command envelope，将Git frontend时序与冻结network ExecOp/FileOp谓词分开，并只接受byte-exact canonical HTTPS Git query。V17通过固定TR16 authority验证V16，不在未来HEAD重跑V16 Git verifier。
-- Append-only修复边界: V16 request/workflow/template/helper/fixture/bundle/evidence authority全部冻结，V16永久禁止rerun。C17必须保持exact18，完成本地Git拓扑/全gate后才可提交和推送；其远程双CI及fresh ledger接受后只能形成exact4 R17。C17/R17均不加发布积分、不创建V17 request、不触发cache-export run。
-- 是否需要用户确认后才能修改: V16 exact4 terminal receipt、其ordinary CI验收及V17 exact18/4惰性checkpoint/receipt可按append-only规则继续；任何exact-one V17 request或external cache-export run、artifact下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作都需要新的明确授权。
+- 历史边界（已被下方V17终态取代）: V16 request/workflow/template/helper/fixture/bundle/evidence authority全部冻结，V16永久禁止rerun；本段原有C17/R17惰性计划不得再执行。
+- 当前授权边界: 以后述V17终态为准；不得rerun V17，不得创建R17/V18。artifact下载、跨供应商传输、云builder、ACR、部署、数据库、服务或流量动作仍需要相应明确授权。
+
+### V17 one-shot stopped at the frozen compatibility verifier; rerun is forbidden
+
+- 状态: Open High / first-launch hard gate。固定数据面锚点C17为`7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e`；最小控制面简化`d930990d…4e88`已获push/PR双CI通过。exact-one activation `6b8fba3d…3f36`只新增一个V17 request；其ordinary push `30748098675`/job `91497111413`和PR `30748100955`/job `91497116914`均以`1762` tests、28 ambient skips、gate `137/137`首轮通过，并只产生GitHub原生V17 run `30748098684` / job `91497111488` / attempt1 / failure。V17授权已消费，禁止rerun，禁止R17/V18。
+- 风险描述: BuildKit producer构建和`--cache-to type=local`命令完成，V17 Git SourceOp lifecycle、requirements-copy、runtime-pip及producer首轮noncached谓词均通过；随后冻结V13→V9→V6→V3兼容链以`FROZEN_V9_EVIDENCE_INVALID` / `FROZEN_V3_VALIDATION_FAILED`拒绝证据。由于raw metadata未上传，不能严谨声称某个更细V3子字段是根因。
+- 四项原生证据: workflow run ID已取得；C17 SHA已固定；artifact digest缺失（GitHub artifact API `total_count=0`）；fresh-builder导入成功证明缺失（import步骤未到达）。因此本次V17不满足缓存可移植性验收，也不增加第20项积分。
+- 清理与影响: 两个builder和新增images均删除，images/containers/volumes/networks parity、Docker/Buildx roots及diagnostic files absence均pass，`cleanup_effective=true`。`overall_pass=false`仅因进入cleanup时`pre_state=drift`，不是资源泄漏。artifact download、transfer、ACR、部署、数据库/service及public traffic变更均为0。
+- 唯一硬条件: V17缓存证据缺一个已上传artifact及fresh builder成功导入它的证明；第20项最终仍需真实私有Admin当前版本部署及负向runtime、health、rollback验收。除非产品负责人另行授权新的、明确不同的执行范围，否则不得修改实现或再次运行缓存导出。
 
 ## Low Risks
 

@@ -1485,9 +1485,25 @@
         {
           "kind": "path",
           "ref": "tests/test_admin_dependency_cache_export_plan_v17.py"
+        },
+        {
+          "kind": "git",
+          "ref": "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e"
+        },
+        {
+          "kind": "git",
+          "ref": "d930990d6a4393c565927306d7ae6b5db1ec4e88"
+        },
+        {
+          "kind": "git",
+          "ref": "6b8fba3dd8eb5b387b890f7b486a4cfa5e373f36"
+        },
+        {
+          "kind": "path",
+          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v17.json"
         }
       ],
-      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. Immutable V2 history remains exactly two push/attempt-1/failure records: parser-context run 30572921215 has zero jobs and artifacts, while terminal run 30591103183 has unique job 91033410635 and artifact zero; V3 through V10 each retain one exact failure run/job with artifact zero. V11 must never activate and its workflow-path run count remains zero. The only authorized V12 workflow run 30696298423/job 91359681758, run 1/attempt 1, completed failure before consumer import with zero provider artifacts; V12 may never be rerun. Exact terminal checkpoint efef71395fce4319ef11c8065b45db482ba12669, structural receipt 37c3b3fdc24ad90ff6135a7f1e254f92062470b3, layered-state correction 81730a511acb553c9a1e29af834924f71650dc9a and correction receipt ae7ce751d842b2880cdb2d31213a983bcb1f7484 are accepted. ae7 exact-HEAD push CI 30698918645/job 91366363365 and pull-request CI 30698919672/job 91366366249 each passed 1622 tests, 28 skips and gate 132/132. V13 exact checkpoint 4df6a77e39f2488b852414bb0649babbb37eb98a passed the local full suite 1655/1655 with 28 skips in 6209.827s, but push CI 30701666137/job 91373623999 and pull-request CI 30701667259/job 91373626894 each had the same sole CI-hermeticity failure because the frozen temporary-Git test inherited the outer GITHUB_ACTIONS/GITHUB_SHA checkout context. Fresh 478/478 Actions reconciliation keeps V11 path zero, V12 exactly one failure/artifact-zero run, V13 workflow path zero and V13 request ancestry zero. Exact-four receipt 585edfcb2789b112bbf559bf1d6d75e1843dd54c is only V13_INERT_CHECKPOINT_CI_HERMETICITY_FAILED_RECEIPT_EXACT; it is intentionally not pushed alone, adds no credit and V13 must never activate. The append-only V14 checkpoint is the exact eleven-file direct child of 585edf: it preserves all eight V13 core authorities byte-for-byte, reuses the V13 data plane and record schema, adds a V13-zero/V14-current live ledger, and freezes the exact CI block and its SHA-256. V14 plan tests pass normal and optimized Python 12/12; its synthetic pull-request projection, frozen V13 semantic verifier, exact 11/4/1 Git chain, 12-entry legacy ledger and zero-run guards fail closed. C14 e18d24a204c33127a95fe3035b7fce43bdb0b4f8 passed push CI 30706546764/job 91386553347 with ambient 1657/1657, 28 skips, frozen V13 11/11, Quality, gate 133/133 and Docker Compose. Pull-request CI 30706547955/job 91386556528 kept ambient 1657/1657 and 28 skips but failed the sole frozen V13 reviewed-authorities test because module-wide checkout-variable isolation removed the synthetic pull-request context required for real-repository second-parent projection; Quality, production readiness and Docker were skipped. Fresh 480/480 Actions reconciliation keeps V11, V13 and V14 workflow paths zero, V12 exactly one failure/artifact-zero run and both V13/V14 request histories zero. Exact-four R14 1ca885d61c48f3cfdb4e99eeedc6fb9f17238bb4 records only V14_INERT_CHECKPOINT_PR_CONTEXT_FAILED_RECEIPT_EXACT; C14 will not be rerun, R14 will not be pushed alone, it adds no credit and V14 must never activate. C15 90f9606d6eb860572814cc3ccc0731fb9d366a5a is the exact-eleven direct child of R14. Its exact-HEAD push CI 30709036776/job 91393091573 and pull-request CI 30709038582/job 91393095974 both passed attempt one; each ran 1682 tests with 28 skips, including V13 10 ambient plus 1 isolated and detached exact-C14 V14 12/12, then passed Quality, production readiness 133/133 and Docker Compose. Fresh 482/482/482 advertised/fetched/unique Actions records keep V11/V13/V14/V15 workflow paths zero and V12 exactly one failure/artifact-zero run. Exact-four R15 788a2b48d3dc04bea0f7c26fe7207887131436a7 is the accepted inert receipt and exact-one A15 c61ba14ab77f98dbc63697dc2b3cbe26afdf9df1 adds only the immutable V15 request. A15 ordinary push CI 30724578299/job 91433793813 and pull-request CI 30724579324/job 91433796451 both passed attempt one with 1682 tests, 28 skips, Quality, production readiness 133/133 and Docker Compose. The unique V15 workflow run 30724578319/job 91433793914, run 1/attempt 1, completed failure at the fresh-consumer runtime_pip pair predicate: producer digest f3c7f2ff52b744ba6773ea26aa2a853092202fdc86e7679e93f44646eedb0c9a drifted to consumer digest 8ed38b7ab56a85d1783d009e5ffbedf0d4fe769254004b1ef220c98152357e8a, so the required SAME_SOURCE_COPY_PIP_DIGESTS_CACHED identity chain was not proven. Cache structure validation passed, but external-cache-removed same-consumer-builder replay, final validation and upload were not reached; artifact, authenticated download, transfer, ACR, deployment, database/service and public-traffic mutations remain zero. Cleanup removed both builders and restored Docker parity. Fresh 487/487/487 Actions reconciliation keeps V11/V13/V14 paths zero, V12 exactly one failure and V15 exactly this one failure with artifact zero; V15 may never be rerun. Exact-eleven V15 terminal checkpoint 46595fef4916ca2881dd38c0a14ee630bba79c32 is the direct child of A15. Its push CI 30727588135/job 91442042559 and pull-request CI 30727589274/job 91442045947 both passed attempt one with 1692 tests, 28 ambient skips, Quality, production readiness 134/134 and Docker Compose. Fresh 489/489/489 Actions reconciliation shows exactly those two records at T15; V11/V13/V14 paths remain zero, V12 remains one failure, and V15 remains its unique attempt-one failure/job/artifact-zero run with no rerun. Exact-four a94ee2b2feb81eafbcb523be2c95da4ee952cbc4 records T15 acceptance without changing V15 nonreceipt authorities or adding credit. V16 chain C16 b6f642e68c21341c90bb3c66f810945ada4e084a -> R16 095529e03f735494a98ce2302a6e1be570291d8c -> A16 fd1444d0a62549b3c353cbc1188e6ba25a77e96e is exact 16/4/1; A16 adds only the immutable 18,342-byte V16 request. A16 push CI 30739167685/job 91473336783 and pull-request CI 30739168799/job 91473339876 both passed attempt one with 1714 tests, 28 ambient skips, Quality, production readiness 135/135, Docker Compose and artifact zero. The unique V16 workflow run 30739167701/job 91473336858, run 1/attempt 1, failed closed after buildx completed when the producer Git SourceOp violated the frozen lifecycle predicate; retained evidence cannot distinguish early start, late or missing completion. Consumer import, external-cache-removed same-consumer-builder replay, final validation and upload were not reached, so portability is UNKNOWN_NOT_REACHED. Cleanup removed both builders and new images and restored enumerated image/container/volume/network parity; cleanup_effective is true while overall_pass is false because pre_state was drift. Provider artifact, download, transfer, ACR, deployment, database/service and public-traffic mutations are zero. A16 terminal evidence inventory was fresh 498/498/498 with V16 exactly this one failure and no rerun or duplicate. Exact-eleven T16 4c2df3b19b4f5493adba78eed89c3a015d76972d is A16's direct all-100644 terminal supersession. T16 push CI 30741594513/job 91479900314 and pull-request CI 30741595902/job 91479904223 both passed run one/attempt one with ambient 1680 tests, 28 skips, total 1725 tests, Quality, production readiness 136/136, Docker Compose and artifact zero. Fresh no-cache Actions reconciliation is 500/500/500; T16 has exactly those two ordinary successes, V11/V13/V14 path zero, V12 and V15 each one historical failure, and V16 remains exactly its unique attempt-one failure with no rerun. The V16 one-shot authorization is consumed and V16 may never be rerun. Exact-four Secret-free terminal receipt TR16 751da973dd7136d792adfafa11e50f5e5e0bd689 is T16's first first-parent successor. Its push CI 30742513491/job 91482331187 and pull-request CI 30742515068/job 91482335383 each passed attempt one with 1725 tests, 28 ambient skips, Quality, production readiness 136/136, Docker Compose and artifact zero. Fresh no-cache Actions reconciliation is six pages and 502/502/502 advertised/fetched/unique records; V17 workflow path, request history and external run counts remain zero. C17 is the local uncommitted exact18 direct-child candidate, with 11 new and 7 updated all-100644 paths, bounded Secret-free pre-assertion Git SourceOp lifecycle diagnostics, command envelopes and exact canonical remote-Git transient-state validation; it creates no request or external run and adds no credit. Its next acceptance is the exact C17 commit, full local gate, ordinary push/pull-request CI, artifact zero and a fresh unchanged ledger, followed by exact-four R17 acceptance. Continue append-only V17 under the audited exact18/4/1 topology. Any exact-one V17 request or external run requires new explicit authorization. V16 may never be rerun. Internal/public readiness remains 19/29 / 19/38.",
+      "blocker": "The exact 5335 Admin-only source candidate is built, scanned and VEX-reviewed but is not privately published or deployed. Immutable V2 history remains exactly two push/attempt-1/failure records: parser-context run 30572921215 has zero jobs and artifacts, while terminal run 30591103183 has unique job 91033410635 and artifact zero; V3 through V10 each retain one exact failure run/job with artifact zero. V11 must never activate and its workflow-path run count remains zero. The only authorized V12 workflow run 30696298423/job 91359681758, run 1/attempt 1, completed failure before consumer import with zero provider artifacts; V12 may never be rerun. Exact terminal checkpoint efef71395fce4319ef11c8065b45db482ba12669, structural receipt 37c3b3fdc24ad90ff6135a7f1e254f92062470b3, layered-state correction 81730a511acb553c9a1e29af834924f71650dc9a and correction receipt ae7ce751d842b2880cdb2d31213a983bcb1f7484 are accepted. ae7 exact-HEAD push CI 30698918645/job 91366363365 and pull-request CI 30698919672/job 91366366249 each passed 1622 tests, 28 skips and gate 132/132. V13 exact checkpoint 4df6a77e39f2488b852414bb0649babbb37eb98a passed the local full suite 1655/1655 with 28 skips in 6209.827s, but push CI 30701666137/job 91373623999 and pull-request CI 30701667259/job 91373626894 each had the same sole CI-hermeticity failure because the frozen temporary-Git test inherited the outer GITHUB_ACTIONS/GITHUB_SHA checkout context. Fresh 478/478 Actions reconciliation keeps V11 path zero, V12 exactly one failure/artifact-zero run, V13 workflow path zero and V13 request ancestry zero. Exact-four receipt 585edfcb2789b112bbf559bf1d6d75e1843dd54c is only V13_INERT_CHECKPOINT_CI_HERMETICITY_FAILED_RECEIPT_EXACT; it is intentionally not pushed alone, adds no credit and V13 must never activate. The append-only V14 checkpoint is the exact eleven-file direct child of 585edf: it preserves all eight V13 core authorities byte-for-byte, reuses the V13 data plane and record schema, adds a V13-zero/V14-current live ledger, and freezes the exact CI block and its SHA-256. V14 plan tests pass normal and optimized Python 12/12; its synthetic pull-request projection, frozen V13 semantic verifier, exact 11/4/1 Git chain, 12-entry legacy ledger and zero-run guards fail closed. C14 e18d24a204c33127a95fe3035b7fce43bdb0b4f8 passed push CI 30706546764/job 91386553347 with ambient 1657/1657, 28 skips, frozen V13 11/11, Quality, gate 133/133 and Docker Compose. Pull-request CI 30706547955/job 91386556528 kept ambient 1657/1657 and 28 skips but failed the sole frozen V13 reviewed-authorities test because module-wide checkout-variable isolation removed the synthetic pull-request context required for real-repository second-parent projection; Quality, production readiness and Docker were skipped. Fresh 480/480 Actions reconciliation keeps V11, V13 and V14 workflow paths zero, V12 exactly one failure/artifact-zero run and both V13/V14 request histories zero. Exact-four R14 1ca885d61c48f3cfdb4e99eeedc6fb9f17238bb4 records only V14_INERT_CHECKPOINT_PR_CONTEXT_FAILED_RECEIPT_EXACT; C14 will not be rerun, R14 will not be pushed alone, it adds no credit and V14 must never activate. C15 90f9606d6eb860572814cc3ccc0731fb9d366a5a is the exact-eleven direct child of R14. Its exact-HEAD push CI 30709036776/job 91393091573 and pull-request CI 30709038582/job 91393095974 both passed attempt one; each ran 1682 tests with 28 skips, including V13 10 ambient plus 1 isolated and detached exact-C14 V14 12/12, then passed Quality, production readiness 133/133 and Docker Compose. Fresh 482/482/482 advertised/fetched/unique Actions records keep V11/V13/V14/V15 workflow paths zero and V12 exactly one failure/artifact-zero run. Exact-four R15 788a2b48d3dc04bea0f7c26fe7207887131436a7 is the accepted inert receipt and exact-one A15 c61ba14ab77f98dbc63697dc2b3cbe26afdf9df1 adds only the immutable V15 request. A15 ordinary push CI 30724578299/job 91433793813 and pull-request CI 30724579324/job 91433796451 both passed attempt one with 1682 tests, 28 skips, Quality, production readiness 133/133 and Docker Compose. The unique V15 workflow run 30724578319/job 91433793914, run 1/attempt 1, completed failure at the fresh-consumer runtime_pip pair predicate: producer digest f3c7f2ff52b744ba6773ea26aa2a853092202fdc86e7679e93f44646eedb0c9a drifted to consumer digest 8ed38b7ab56a85d1783d009e5ffbedf0d4fe769254004b1ef220c98152357e8a, so the required SAME_SOURCE_COPY_PIP_DIGESTS_CACHED identity chain was not proven. Cache structure validation passed, but external-cache-removed same-consumer-builder replay, final validation and upload were not reached; artifact, authenticated download, transfer, ACR, deployment, database/service and public-traffic mutations remain zero. Cleanup removed both builders and restored Docker parity. Fresh 487/487/487 Actions reconciliation keeps V11/V13/V14 paths zero, V12 exactly one failure and V15 exactly this one failure with artifact zero; V15 may never be rerun. Exact-eleven V15 terminal checkpoint 46595fef4916ca2881dd38c0a14ee630bba79c32 is the direct child of A15. Its push CI 30727588135/job 91442042559 and pull-request CI 30727589274/job 91442045947 both passed attempt one with 1692 tests, 28 ambient skips, Quality, production readiness 134/134 and Docker Compose. Fresh 489/489/489 Actions reconciliation shows exactly those two records at T15; V11/V13/V14 paths remain zero, V12 remains one failure, and V15 remains its unique attempt-one failure/job/artifact-zero run with no rerun. Exact-four a94ee2b2feb81eafbcb523be2c95da4ee952cbc4 records T15 acceptance without changing V15 nonreceipt authorities or adding credit. V16 chain C16 b6f642e68c21341c90bb3c66f810945ada4e084a -> R16 095529e03f735494a98ce2302a6e1be570291d8c -> A16 fd1444d0a62549b3c353cbc1188e6ba25a77e96e is exact 16/4/1; A16 adds only the immutable 18,342-byte V16 request. A16 push CI 30739167685/job 91473336783 and pull-request CI 30739168799/job 91473339876 both passed attempt one with 1714 tests, 28 ambient skips, Quality, production readiness 135/135, Docker Compose and artifact zero. The unique V16 workflow run 30739167701/job 91473336858, run 1/attempt 1, failed closed after buildx completed when the producer Git SourceOp violated the frozen lifecycle predicate; retained evidence cannot distinguish early start, late or missing completion. Consumer import, external-cache-removed same-consumer-builder replay, final validation and upload were not reached, so portability is UNKNOWN_NOT_REACHED. Cleanup removed both builders and new images and restored enumerated image/container/volume/network parity; cleanup_effective is true while overall_pass is false because pre_state was drift. Provider artifact, download, transfer, ACR, deployment, database/service and public-traffic mutations are zero. A16 terminal evidence inventory was fresh 498/498/498 with V16 exactly this one failure and no rerun or duplicate. Exact-eleven T16 4c2df3b19b4f5493adba78eed89c3a015d76972d is A16's direct all-100644 terminal supersession. T16 push CI 30741594513/job 91479900314 and pull-request CI 30741595902/job 91479904223 both passed run one/attempt one with ambient 1680 tests, 28 skips, total 1725 tests, Quality, production readiness 136/136, Docker Compose and artifact zero. Fresh no-cache Actions reconciliation is 500/500/500; T16 has exactly those two ordinary successes, V11/V13/V14 path zero, V12 and V15 each one historical failure, and V16 remains exactly its unique attempt-one failure with no rerun. The V16 one-shot authorization is consumed and V16 may never be rerun. Exact-four Secret-free terminal receipt TR16 751da973dd7136d792adfafa11e50f5e5e0bd689 is T16's first first-parent successor. Its push CI 30742513491/job 91482331187 and pull-request CI 30742515068/job 91482335383 each passed attempt one with 1725 tests, 28 ambient skips, Quality, production readiness 136/136, Docker Compose and artifact zero. Fresh no-cache Actions reconciliation is six pages and 502/502/502 advertised/fetched/unique records; V17 workflow path, request history and external run counts remain zero. C17 7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e is now the immutable V17 data-plane anchor. Minimal control-plane simplification d930990d6a4393c565927306d7ae6b5db1ec4e88 removed R17 and custom ledger/receipt/topology prerequisites without changing the C17 data plane; push CI 30747482874/job 91495423631 and pull-request CI 30747484142/job 91495426765 both passed attempt one with 1762 total tests, 28 ambient skips, Quality, production readiness 137/137 and Docker Compose. Exact-one activation 6b8fba3dd8eb5b387b890f7b486a4cfa5e373f36 adds only the V17 request. Its ordinary push CI 30748098675/job 91497111413 and pull-request CI 30748100955/job 91497116914 both passed attempt one with 1762 total tests, 28 ambient skips, Quality, production readiness 137/137, Docker Compose and artifact zero. It created exactly one native workflow run 30748098684/job 91497111488, push event, attempt one, failure. The BuildKit producer build and local cache-export command completed and the V17 Git SourceOp lifecycle predicate passed, but the frozen V13-to-V9-to-V6-to-V3 compatibility path rejected the evidence as FROZEN_V9_EVIDENCE_INVALID/FROZEN_V3_VALIDATION_FAILED; the narrower V3 subfield is unknown because raw metadata was not uploaded. Packaging/upload and fresh-builder import were not reached: artifact_count is zero, artifact digest is absent and fresh-builder import success proof is absent. Cleanup removed both builders and new images and restored enumerated Docker resource parity; cleanup_effective is true while overall_pass is false only because pre_state was drift. No artifact download, transfer, ACR, deployment, database/service or public-traffic mutation occurred. The V17 authorization is consumed; V17 will not be rerun and no R17 or V18 will be created. Internal/public readiness remains 19/29 / 19/38.",
           "v16_inert_checkpoint_receipt": {
             "checkpoint_commit": "b6f642e68c21341c90bb3c66f810945ada4e084a",
             "parent_commit": "a94ee2b2feb81eafbcb523be2c95da4ee952cbc4",
@@ -1862,66 +1878,63 @@
               "latest_verified_item": "api_f_current_release"
             }
           },
-          "v17_inert_checkpoint_candidate": {
-            "state": "LOCAL_VALIDATED_NOT_COMMITTED",
-            "predecessor_terminal_receipt_commit": "751da973dd7136d792adfafa11e50f5e5e0bd689",
-            "exact_changed_path_count": 18,
-            "new_path_count": 11,
-            "updated_path_count": 7,
-            "all_changed_paths_mode": "100644",
-            "exact_new_paths": [
-              ".github/workflows/admin-dependency-cache-export-v17.yml",
-              "deploy/production/plans/admin-dependency-cache-export-request-v17.json",
-              "scripts/ci/export_admin_dependency_cache_v17.sh",
-              "scripts/ci/import_admin_dependency_cache_v17.sh",
-              "tests/fixtures/admin_dependency_cache_v17_frontend_lifecycle_and_localstate_projection.json",
-              "tools/verify_admin_dependency_cache_transient_state_v17.py",
-              "tests/test_admin_dependency_cache_transient_state_v17.py",
-              "tools/verify_admin_dependency_cache_bundle_v17.py",
-              "tests/test_admin_dependency_cache_bundle_verifier_v17.py",
-              "tools/verify_admin_dependency_cache_export_plan_v17.py",
-              "tests/test_admin_dependency_cache_export_plan_v17.py"
-            ],
-            "exact_updated_paths": [
-              ".github/workflows/ci.yml",
-              "tools/production_readiness_gate.py",
-              "tests/test_production_readiness_gate.py",
-              ".codex/handoffs/current-task.md",
-              ".codex/notes/risk-register.md",
-              "deploy/production/internal-deployment-readiness.json",
-              "tests/test_internal_deployment_readiness_gate.py"
-            ],
-            "authority_hashes": {
-              "source_fixture_sha256": "5c020473f8f8e7cc189c3e936a8b41c76bdc2a9fde38fc79c7d11d31e9050b54",
-              "transient_verifier_sha256": "967e3545b6ca080574d33c137d77e89449dd6affc3a48473bbc460f8dfbf7e20",
-              "transient_test_sha256": "4fbb5e711e6ab44ce8d83d70880397db0d94c6a17cc050f696d7af1b8725c9fa",
-              "export_helper_sha256": "e2eb4b1466b245880fbb3bef7b34ae5f868ca8c1279def268038642d061b6eda",
-              "import_helper_sha256": "b39b98d969052417d779a124c7c942fe89d4bcd50db0ad1bcde5121800b8185d",
-              "bundle_verifier_sha256": "d25fc0ea403b12f87810dd12d9bcdd304ed6e73730873a980782d621293e9402",
-              "bundle_test_sha256": "6934d3e83053d0d5e91ce58625dc402667274b8811bb1ae486a364ced9c21902",
-              "request_template_sha256": "60f9b84550373665f1ce1652fdf218e7dc38233090faec71015274708256941f",
-              "workflow_sha256": "d14214a0f9cdfee9befb593b01c844d4233a43e20f2b036de70c7b51691c44ea",
-              "plan_test_sha256": "e96a6bbbf8d55e3a2db7d6063d93dc0335a0202ba1a078e45285046a844378f8",
-              "ci_sha256": "8a4e96f9539be4ee1a53688247706976084370047205831103322e330f1e6b04",
-              "production_gate_sha256": "975e90a6c5513da6d92afc52064f26a239244b9f7468fb66dd81964d8a1b3935",
-              "production_gate_test_sha256": "c3f203a50d0257edba735bfe2ad314a3129e5cfcfa5a60f727f3abb995ebc923"
+          "v17_native_run_acceptance": {
+            "result": "FAILED_BEFORE_ARTIFACT_AND_FRESH_BUILDER_IMPORT",
+            "activation_head_ci": {
+              "push": {
+                "run_id": 30748098675,
+                "job_id": 91497111413,
+                "run_attempt": 1,
+                "conclusion": "success",
+                "total_test_count": 1762,
+                "ambient_skipped_count": 28,
+                "production_readiness_checks": "137/137",
+                "artifact_count": 0
+              },
+              "pull_request": {
+                "run_id": 30748100955,
+                "job_id": 91497116914,
+                "run_attempt": 1,
+                "conclusion": "success",
+                "total_test_count": 1762,
+                "ambient_skipped_count": 28,
+                "production_readiness_checks": "137/137",
+                "artifact_count": 0
+              }
             },
-            "local_validation": {
-              "transient_state_tests": "12/12",
-              "bundle_verifier_tests": "12/12",
-              "export_plan_tests": "13/13",
-              "bash_syntax_passed": true,
-              "python_compile_passed": true,
-              "yaml_parse_passed": true,
-              "static_plan_validation_error_count": 0
+            "native_evidence": {
+              "workflow_run_id": 30748098684,
+              "workflow_job_id": 91497111488,
+              "run_attempt": 1,
+              "head_sha": "6b8fba3dd8eb5b387b890f7b486a4cfa5e373f36",
+              "c17_sha": "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e",
+              "artifact_digest": null,
+              "artifact_count": 0,
+              "fresh_builder_import_success": false
             },
-            "control_plane": {
-              "request_present": false,
-              "request_addition_count": 0,
-              "workflow_path_run_count": 0,
-              "external_run_count": 0,
-              "activation_authorized": false,
-              "external_run_requires_new_explicit_authorization": true
+            "failure": {
+              "buildkit_cache_export_command_completed": true,
+              "git_source_lifecycle_passed": true,
+              "stage": "post-export frozen compatibility verification",
+              "codes": [
+                "FROZEN_V9_EVIDENCE_INVALID",
+                "FROZEN_V3_VALIDATION_FAILED"
+              ],
+              "narrower_v3_subfield_known": false
+            },
+            "cleanup": {
+              "cleanup_effective": true,
+              "overall_pass": false,
+              "pre_state": "drift",
+              "builders_absent": true,
+              "new_images_removed": true,
+              "docker_resource_parity": true
+            },
+            "authorization": {
+              "one_shot_consumed": true,
+              "v17_rerun_forbidden": true,
+              "r17_forbidden": true,
+              "v18_forbidden": true
             },
             "readiness": {
               "internal_verified_count": 19,

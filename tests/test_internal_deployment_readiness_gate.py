@@ -1460,6 +1460,25 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "path",
                     "ref": "tests/test_admin_dependency_cache_export_plan_v17.py",
                 },
+                {
+                    "kind": "git",
+                    "ref": "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e",
+                },
+                {
+                    "kind": "git",
+                    "ref": "d930990d6a4393c565927306d7ae6b5db1ec4e88",
+                },
+                {
+                    "kind": "git",
+                    "ref": "6b8fba3dd8eb5b387b890f7b486a4cfa5e373f36",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/release-requests/"
+                        "admin-5335bda-dependency-cache-v17.json"
+                    ),
+                },
             ],
         )
         self.assertNotIn(
@@ -1590,10 +1609,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("136/136", admin["blocker"])
         self.assertIn("500/500/500", admin["blocker"])
         self.assertIn("Exact-four Secret-free terminal receipt", admin["blocker"])
-        self.assertIn("exact18/4/1", admin["blocker"])
         self.assertIn("V16 may never be rerun", admin["blocker"])
-        self.assertIn("append-only V17", admin["blocker"])
-        self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
         self.assertIn("751da973dd7136d792adfafa11e50f5e5e0bd689", admin["blocker"])
         self.assertIn("30742513491", admin["blocker"])
@@ -1602,6 +1618,27 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("91482335383", admin["blocker"])
         self.assertIn("502/502/502", admin["blocker"])
         self.assertIn("C17", admin["blocker"])
+        self.assertIn(
+            "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e",
+            admin["blocker"],
+        )
+        self.assertIn(
+            "d930990d6a4393c565927306d7ae6b5db1ec4e88",
+            admin["blocker"],
+        )
+        self.assertIn("30747482874", admin["blocker"])
+        self.assertIn("30747484142", admin["blocker"])
+        self.assertIn(
+            "6b8fba3dd8eb5b387b890f7b486a4cfa5e373f36",
+            admin["blocker"],
+        )
+        self.assertIn("30748098684", admin["blocker"])
+        self.assertIn("91497111488", admin["blocker"])
+        self.assertIn("FROZEN_V9_EVIDENCE_INVALID", admin["blocker"])
+        self.assertIn("FROZEN_V3_VALIDATION_FAILED", admin["blocker"])
+        self.assertIn("artifact digest is absent", admin["blocker"])
+        self.assertIn("fresh-builder import success proof is absent", admin["blocker"])
+        self.assertIn("no R17 or V18 will be created", admin["blocker"])
         self.assertEqual(
             admin["v16_inert_checkpoint_receipt"],
             {
@@ -1871,29 +1908,63 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(receipt["fresh_actions_ledger"]["v17_external_run_count"], 0)
         self.assertFalse(receipt["readiness"]["credit_added"])
 
-        v17 = admin["v17_inert_checkpoint_candidate"]
-        self.assertEqual(v17["state"], "LOCAL_VALIDATED_NOT_COMMITTED")
+        v17 = admin["v17_native_run_acceptance"]
         self.assertEqual(
-            v17["predecessor_terminal_receipt_commit"],
-            "751da973dd7136d792adfafa11e50f5e5e0bd689",
+            v17["result"],
+            "FAILED_BEFORE_ARTIFACT_AND_FRESH_BUILDER_IMPORT",
         )
         self.assertEqual(
-            (
-                v17["exact_changed_path_count"],
-                v17["new_path_count"],
-                v17["updated_path_count"],
-            ),
-            (18, 11, 7),
+            v17["activation_head_ci"]["push"],
+            {
+                "run_id": 30748098675,
+                "job_id": 91497111413,
+                "run_attempt": 1,
+                "conclusion": "success",
+                "total_test_count": 1762,
+                "ambient_skipped_count": 28,
+                "production_readiness_checks": "137/137",
+                "artifact_count": 0,
+            },
         )
-        self.assertEqual(v17["all_changed_paths_mode"], "100644")
-        self.assertEqual(len(v17["exact_new_paths"]), 11)
-        self.assertEqual(len(v17["exact_updated_paths"]), 7)
-        self.assertEqual(v17["local_validation"]["transient_state_tests"], "12/12")
-        self.assertEqual(v17["local_validation"]["bundle_verifier_tests"], "12/12")
-        self.assertEqual(v17["local_validation"]["export_plan_tests"], "13/13")
-        self.assertFalse(v17["control_plane"]["request_present"])
-        self.assertEqual(v17["control_plane"]["external_run_count"], 0)
-        self.assertFalse(v17["control_plane"]["activation_authorized"])
+        self.assertEqual(
+            v17["activation_head_ci"]["pull_request"],
+            {
+                "run_id": 30748100955,
+                "job_id": 91497116914,
+                "run_attempt": 1,
+                "conclusion": "success",
+                "total_test_count": 1762,
+                "ambient_skipped_count": 28,
+                "production_readiness_checks": "137/137",
+                "artifact_count": 0,
+            },
+        )
+        native = v17["native_evidence"]
+        self.assertEqual(native["workflow_run_id"], 30748098684)
+        self.assertEqual(native["workflow_job_id"], 91497111488)
+        self.assertEqual(native["run_attempt"], 1)
+        self.assertEqual(
+            native["c17_sha"],
+            "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e",
+        )
+        self.assertIsNone(native["artifact_digest"])
+        self.assertEqual(native["artifact_count"], 0)
+        self.assertFalse(native["fresh_builder_import_success"])
+        self.assertTrue(
+            v17["failure"]["buildkit_cache_export_command_completed"]
+        )
+        self.assertTrue(v17["failure"]["git_source_lifecycle_passed"])
+        self.assertEqual(
+            v17["failure"]["codes"],
+            ["FROZEN_V9_EVIDENCE_INVALID", "FROZEN_V3_VALIDATION_FAILED"],
+        )
+        self.assertFalse(v17["failure"]["narrower_v3_subfield_known"])
+        self.assertTrue(v17["cleanup"]["cleanup_effective"])
+        self.assertFalse(v17["cleanup"]["overall_pass"])
+        self.assertTrue(v17["authorization"]["one_shot_consumed"])
+        self.assertTrue(v17["authorization"]["v17_rerun_forbidden"])
+        self.assertTrue(v17["authorization"]["r17_forbidden"])
+        self.assertTrue(v17["authorization"]["v18_forbidden"])
         self.assertFalse(v17["readiness"]["credit_added"])
         api_c = next(
             control
