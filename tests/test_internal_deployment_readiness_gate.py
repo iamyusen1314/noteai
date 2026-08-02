@@ -1390,6 +1390,76 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "4c2df3b19b4f5493adba78eed89c3a015d76972d",
                 },
+                {
+                    "kind": "git",
+                    "ref": "751da973dd7136d792adfafa11e50f5e5e0bd689",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        ".github/workflows/"
+                        "admin-dependency-cache-export-v17.yml"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/plans/"
+                        "admin-dependency-cache-export-request-v17.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "scripts/ci/export_admin_dependency_cache_v17.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": "scripts/ci/import_admin_dependency_cache_v17.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/fixtures/"
+                        "admin_dependency_cache_v17_frontend_lifecycle_and_"
+                        "localstate_projection.json"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_transient_state_v17.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_transient_state_v17.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tools/verify_admin_dependency_cache_bundle_v17.py",
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tests/"
+                        "test_admin_dependency_cache_bundle_verifier_v17.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "tools/"
+                        "verify_admin_dependency_cache_export_plan_v17.py"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tests/test_admin_dependency_cache_export_plan_v17.py",
+                },
             ],
         )
         self.assertNotIn(
@@ -1519,12 +1589,19 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("1725 tests", admin["blocker"])
         self.assertIn("136/136", admin["blocker"])
         self.assertIn("500/500/500", admin["blocker"])
-        self.assertIn("exact-four Secret-free terminal receipt", admin["blocker"])
+        self.assertIn("Exact-four Secret-free terminal receipt", admin["blocker"])
         self.assertIn("exact18/4/1", admin["blocker"])
         self.assertIn("V16 may never be rerun", admin["blocker"])
         self.assertIn("append-only V17", admin["blocker"])
         self.assertIn("new explicit authorization", admin["blocker"])
         self.assertIn("19/29 / 19/38", admin["blocker"])
+        self.assertIn("751da973dd7136d792adfafa11e50f5e5e0bd689", admin["blocker"])
+        self.assertIn("30742513491", admin["blocker"])
+        self.assertIn("91482331187", admin["blocker"])
+        self.assertIn("30742515068", admin["blocker"])
+        self.assertIn("91482335383", admin["blocker"])
+        self.assertIn("502/502/502", admin["blocker"])
+        self.assertIn("C17", admin["blocker"])
         self.assertEqual(
             admin["v16_inert_checkpoint_receipt"],
             {
@@ -1742,6 +1819,82 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             0,
         )
         self.assertFalse(terminal["readiness"]["credit_added"])
+        receipt = admin["v16_terminal_receipt_acceptance"]
+        self.assertEqual(
+            receipt["receipt_commit"],
+            "751da973dd7136d792adfafa11e50f5e5e0bd689",
+        )
+        self.assertEqual(
+            receipt["parent_commit"],
+            "4c2df3b19b4f5493adba78eed89c3a015d76972d",
+        )
+        self.assertEqual(receipt["exact_changed_path_count"], 4)
+        self.assertEqual(receipt["all_changed_paths_mode"], "100644")
+        self.assertEqual(receipt["push_ci"]["run_id"], 30742513491)
+        self.assertEqual(receipt["push_ci"]["job_id"], 91482331187)
+        self.assertEqual(receipt["push_ci"]["total_test_count"], 1725)
+        self.assertEqual(
+            receipt["push_ci"]["production_readiness_checks"],
+            "136/136",
+        )
+        self.assertEqual(receipt["push_ci"]["artifact_count"], 0)
+        self.assertEqual(receipt["pull_request_ci"]["run_id"], 30742515068)
+        self.assertEqual(receipt["pull_request_ci"]["job_id"], 91482335383)
+        self.assertEqual(receipt["pull_request_ci"]["total_test_count"], 1725)
+        self.assertEqual(
+            receipt["pull_request_ci"]["production_readiness_checks"],
+            "136/136",
+        )
+        self.assertEqual(receipt["pull_request_ci"]["artifact_count"], 0)
+        self.assertEqual(receipt["fresh_actions_ledger"]["page_count"], 6)
+        self.assertEqual(
+            [
+                receipt["fresh_actions_ledger"][field]
+                for field in (
+                    "advertised_run_count",
+                    "fetched_run_count",
+                    "unique_run_count",
+                )
+            ],
+            [502, 502, 502],
+        )
+        self.assertEqual(
+            [
+                receipt["fresh_actions_ledger"][
+                    f"v{version}_workflow_path_run_count"
+                ]
+                for version in range(11, 18)
+            ],
+            [0, 1, 0, 0, 1, 1, 0],
+        )
+        self.assertFalse(receipt["fresh_actions_ledger"]["v17_request_present"])
+        self.assertEqual(receipt["fresh_actions_ledger"]["v17_external_run_count"], 0)
+        self.assertFalse(receipt["readiness"]["credit_added"])
+
+        v17 = admin["v17_inert_checkpoint_candidate"]
+        self.assertEqual(v17["state"], "LOCAL_VALIDATED_NOT_COMMITTED")
+        self.assertEqual(
+            v17["predecessor_terminal_receipt_commit"],
+            "751da973dd7136d792adfafa11e50f5e5e0bd689",
+        )
+        self.assertEqual(
+            (
+                v17["exact_changed_path_count"],
+                v17["new_path_count"],
+                v17["updated_path_count"],
+            ),
+            (18, 11, 7),
+        )
+        self.assertEqual(v17["all_changed_paths_mode"], "100644")
+        self.assertEqual(len(v17["exact_new_paths"]), 11)
+        self.assertEqual(len(v17["exact_updated_paths"]), 7)
+        self.assertEqual(v17["local_validation"]["transient_state_tests"], "12/12")
+        self.assertEqual(v17["local_validation"]["bundle_verifier_tests"], "12/12")
+        self.assertEqual(v17["local_validation"]["export_plan_tests"], "13/13")
+        self.assertFalse(v17["control_plane"]["request_present"])
+        self.assertEqual(v17["control_plane"]["external_run_count"], 0)
+        self.assertFalse(v17["control_plane"]["activation_authorized"])
+        self.assertFalse(v17["readiness"]["credit_added"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

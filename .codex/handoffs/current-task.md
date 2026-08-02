@@ -5067,3 +5067,44 @@ successor. After its own exact-HEAD ordinary CI and fresh ledger acceptance,
 continue to the independently audited exact-eighteen V17 inert checkpoint and
 exact-four receipt. Stop before any exact-one V17 request: a V17 external run
 requires new explicit user authorization, and V16 may never be rerun.
+
+### V16 terminal receipt remote acceptance and V17 exact18 inert candidate (2026-08-02)
+
+- TR16 `751da973dd7136d792adfafa11e50f5e5e0bd689` is T16's first
+  first-parent successor and exact-four, all-`100644` Secret-free terminal
+  receipt. Exact-HEAD push CI `30742513491` / job `91482331187` and
+  pull-request CI `30742515068` / job `91482335383` both passed run one /
+  attempt one. Each ran ambient `1680` tests with `28` skips, V13 `10+1`,
+  detached V14 `12` and detached V15 `22`, for `1725` total, then passed
+  Quality, production readiness `136/136` and Docker Compose with artifact
+  count zero.
+- Fresh no-cache reconciliation observed six pages and identical
+  `502/502/502` advertised/fetched/unique Actions records. TR16 has exactly
+  those two ordinary successes. Workflow-path counts are V11 `0`, V12 `1`,
+  V13 `0`, V14 `0`, V15 `1`, V16 `1`, V17 `0`; the unique V16 attempt-one
+  failure remains unchanged, and V17 request/history/run counts remain zero.
+- C17 is now a local, uncommitted exact-eighteen direct-child candidate of
+  TR16: eleven new V17 authorities and seven existing CI/gate/ledger
+  authorities, all intended mode `100644`. It keeps the V5 cleanup namespace,
+  accepts only the byte-exact canonical remote-Git query, records bounded
+  `0600` Secret-free pre-assertion Git lifecycle diagnostics and command
+  envelopes, separates Git frontend timing from the frozen network ExecOp and
+  FileOp predicates, rereads all bound inputs against TOCTOU, and validates
+  V16 only through the fixed TR16 terminal authority.
+- Local focused validation is transient-state `12/12`, bundle-verifier
+  `12/12`, V17 plan `13/13`, plus Bash syntax, Python compilation, YAML parse
+  and static no-Git plan validation. One real current-repository production
+  readiness gate test also passed before ledger insertion; the full gate will
+  be rerun once C17 is committed so its exact Git topology is observable.
+- No V17 request exists and no cache-export workflow, builder, provider
+  artifact, authenticated download, transfer, ACR publication, deployment,
+  database/service mutation or public-traffic action has occurred. Readiness
+  remains `19/29` internal and `19/38` public; no credit is added and the sole
+  task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
+Next, validate and commit only the exact18 C17 direct child, push it, require
+its exact-HEAD push/PR CI plus a fresh unchanged ledger, then form the exact4
+R17 receipt and repeat remote acceptance. V16 is permanently non-rerunnable.
+Creating an exact-one A17 request or triggering any V17 external cache-export
+run remains outside current authority and requires a new explicit user
+authorization.
