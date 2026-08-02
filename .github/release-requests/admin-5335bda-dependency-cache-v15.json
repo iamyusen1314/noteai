@@ -1,0 +1,413 @@
+{
+  "schema_version": 15,
+  "task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001",
+  "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+  "plan_checkpoint_commit": "788a2b48d3dc04bea0f7c26fe7207887131436a7",
+  "release_scope": "admin_dependency_prefix_cache_recovery",
+  "trigger_mode": "one_shot_added_request_v15",
+  "predecessor": {
+    "state": "V14_INERT_CHECKPOINT_PR_CONTEXT_FAILED_RECEIPT_EXACT",
+    "checkpoint_parent_commit": "585edfcb2789b112bbf559bf1d6d75e1843dd54c",
+    "inert_checkpoint_commit": "e18d24a204c33127a95fe3035b7fce43bdb0b4f8",
+    "failure_receipt_commit": "1ca885d61c48f3cfdb4e99eeedc6fb9f17238bb4",
+    "workflow_path": ".github/workflows/admin-dependency-cache-export-v14.yml",
+    "workflow_sha256": "98850e28f74d5b4d4bafacffed07d118cba3378c81a0c93457cb46dc83ac7db1",
+    "template_sha256": "9fd2f7d07eb7d9495ba4b27b2b71e6df650d8ef6dd6f599fb8a0da2edeadb4ca",
+    "plan_verifier_sha256": "940c86bf337eb23307e3a2bbb8ce12724f984a8064c5419a17244fb8ada1991a",
+    "plan_test_sha256": "f908bf33fda2e6c49e95fda43589a9f3376aec9681a038245b12ac55d9055a7d",
+    "ci_workflow_sha256": "cf21455c03887657ecafb0c4a224144bf4fbe63c3a5de204ffdb31fd0480201e",
+    "active_request_path": ".github/release-requests/admin-5335bda-dependency-cache-v14.json",
+    "active_request_addition_count": 0,
+    "workflow_run_count": 0,
+    "ordinary_ci_failure_count": 1,
+    "push_ci_run_id": 30706546764,
+    "push_ci_job_id": 91386553347,
+    "push_ci_conclusion": "success",
+    "pull_request_ci_run_id": 30706547955,
+    "pull_request_ci_job_id": 91386556528,
+    "pull_request_ci_conclusion": "failure",
+    "receipt_created": true,
+    "activation_created": false,
+    "supersession_reason": "MODULE_WIDE_GITHUB_CONTEXT_ISOLATION_BROKE_PR_PREDECESSOR_PROJECTION"
+  },
+  "recovery_basis": {
+    "runner_image": "ubuntu-24.04",
+    "predecessor_runner_image_observed_version": "20260720.247.2",
+    "runner_image_version_pinned": false,
+    "buildx_version": "v0.35.0",
+    "buildx_source_commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+    "buildkit_daemon_observed_version": "v0.31.2",
+    "buildkit_source_commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+    "buildx_vendored_buildkit_client_version": "v0.31.0",
+    "cache_record_identity_domains_source_projection_sha256": "176fd702836a46ab30584aa3b0d0072c6c2a31ea8eda6c306d3d7cdfd87d6b66",
+    "base_dependency_prefix_sha256": "93fd024e5af678b7885bcab8e72d980a9f92cfc70de4f2fd2870284e25b8ec1e",
+    "combined_suffix_sha256": "7b7a5a5877567f568f6a5ff6b00481e4cf92bcc24939231098a5f2623e5104c0",
+    "combined_dockerfile_sha256": "c665ac4356bec6751d44878a416bbaa278a77df77754f5461ba0adb13f43c2a0",
+    "combined_dockerfile_line_count": 86,
+    "producer_target": "noteai-cache-export-anchor",
+    "producer_run_start_line": 83,
+    "producer_marker": "noteai-cache-export-anchor-v11",
+    "consumer_target": "noteai-cache-import-observer",
+    "consumer_run_start_line": 86,
+    "consumer_marker": "noteai-cache-import-observer-v11",
+    "child_network_mode": "NONE",
+    "child_network_enum": 2,
+    "v11_export_helper_sha256": "40618ad0db154061b1480dfd7b1e630fd6cc2f1529b54407509b412efb90b141",
+    "v11_import_helper_sha256": "e131246229e90ecb81dea1957d3ebe72173562a47803f67213b9eedddb1f31df",
+    "v13_import_helper_sha256": "ab824fa6ec1ed54b21c748736a81b80a418f179a82b701131a8a01c981d061b7",
+    "full_replay_block_projection_sha256": "2715041a8cb52c6c5d5cfa70fd80fb6656086e759bbd1d431851cb113b561c50",
+    "full_replay_dockerfile_sha256": "ed6282c422dde6e49c33da877bccf735dfbb19e29a834930fb2a1a52ef21b447",
+    "full_replay_target": "runtime-common",
+    "full_replay_post_pip_witness_line": 93,
+    "producer_solve_contains_import_observer": false,
+    "consumer_solve_contains_export_anchor": false,
+    "full_replay_contains_v11_children": false,
+    "no_cache_filter_authorized": false,
+    "cache_config_vertex_digest_binding_authorized": false,
+    "cache_config_structural_validation_required": true,
+    "fresh_consumer_same_digest_cached_required": true,
+    "dependency_cache_predicate_relaxed": false,
+    "github_actions_provenance_injection_authorized": false,
+    "buildkit_auth_behavior": "ordinary_credentials_only",
+    "phase_aware_client_state_required": true,
+    "structured_cleanup_receipt_required": true,
+    "frozen_v5_transient_cleanup_namespace_required": true,
+    "pre_cleanup_deadline_seconds_from_control": 5700,
+    "cleanup_deadline_seconds_from_control": 6300,
+    "setup_call_maximum_seconds": 300,
+    "export_call_maximum_seconds": 3600,
+    "import_call_maximum_seconds": 900,
+    "cleanup_external_call_maximum_seconds": 15,
+    "atomic_docker_baseline_required": true
+  },
+  "bundle_verifier_chain": {
+    "v2_sha256": "bf526c29b213dc15d257cb9aedc52790aa1dc9cf1f82bba0e6e85e41db3edf38",
+    "v3_sha256": "c2e318d5d9cbe196d8b9294277c85e1ee986ccb3e1970b3d25a31d28c8da0fef",
+    "v6_sha256": "86d93114e804bf6a51fdb160651d6a20c555f107b88020e0f8d811d0f0d358e5",
+    "v7_sha256": "76af4aa0c8dbe68b46cc71fb74f1582030c5f28a7218a2ee04bcbde5f4198cd7",
+    "v8_sha256": "b07f9dee54862969fe90ef438c357a3445a9fe9574b69a9f87440e3ed9920300",
+    "v9_sha256": "a69103e899dc74b4d34e4837e29f40284be9b252281fed262a2dd1afee3d6032",
+    "v10_sha256": "77c2410406448998c81d09b04d93d12db1cb3a4a032a0b78d9fc25626014758f",
+    "v11_sha256": "27c3788bce8065440ccf370cf3a7192c227546d30ed96c612f9acadebca97ca7",
+    "v13_sha256": "c9a0f130879f8381ea94584a600b3ee388b91d380c079ec0b5efa145bff8b2d9"
+  },
+  "control_plane": {
+    "reused_concurrency_group": "admin-dependency-cache-export-v10",
+    "inert_checkpoint_exact_changed_path_count": 11,
+    "inert_receipt_exact_changed_path_count": 4,
+    "activation_exact_changed_path_count": 1,
+    "prepared_branch_head_exact_v15_inert_checkpoint_required": true,
+    "canonical_branch_latest_exact_stage_required": true,
+    "github_pr_merge_second_parent_projection_only": true,
+    "checkpoint_nonreceipt_immutable_path_count": 7,
+    "ci_workflow_sha256": "d4830c55563e18304c60c04cbe729e9d6c657c2fb5caa61d983eef50fe8a28e9",
+    "active_request_worktree_mode": "100644",
+    "git_diff_errors_must_propagate": true,
+    "run_ledger_snapshot_count": 2,
+    "run_ledger_fresh_api_reads_required": true,
+    "run_ledger_budget_seconds_per_snapshot": 60,
+    "run_ledger_page_maximum": 10,
+    "v2_exact_two_run_records_required": true,
+    "v2_parser_zero_job_and_terminal_unique_job_required": true,
+    "v3_v10_unique_attempt1_failure_artifact0_required": true,
+    "v11_run_zero_required": true,
+    "v12_unique_attempt1_failure_artifact0_required": true,
+    "v13_run_zero_required": true,
+    "v15_current_attempt1_artifact0_required": true,
+    "late_snapshot_after_cleanup_required": true,
+    "late_snapshot_runs_on_prior_failure_after_cleanup": true,
+    "python_optimized_mode_must_not_disable_checks": true,
+    "post_activation_first_write_versioned_terminal_supersession_required": true,
+    "v14_run_zero_required": true,
+    "v14_pr_context_failure_receipt_required": true,
+    "v14_historical_tree_validation_required": true
+  },
+  "run_ledger_contract": {
+    "schema": "noteai.admin-dependency-cache-ledger.v15",
+    "page_size": 100,
+    "page_maximum": 10,
+    "item_maximum": 1000,
+    "deadline_seconds": 60,
+    "legacy": [
+      {
+        "version": "v2",
+        "workflow_ref": "323980939",
+        "runs": [
+          {
+            "id": 30572921215,
+            "head_sha": "c0d049b56aa6efaff7133ac44a9fef7f010cd097",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [],
+            "artifact_count": 0
+          },
+          {
+            "id": 30591103183,
+            "head_sha": "83b89262a33aed2cfa9fd623f232a66824398c2e",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91033410635
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v3",
+        "workflow_ref": "324138560",
+        "runs": [
+          {
+            "id": 30596283342,
+            "head_sha": "443bb1e534f98232541f44b744d753bfa7c09168",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91049234229
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v4",
+        "workflow_ref": "324161234",
+        "runs": [
+          {
+            "id": 30599069993,
+            "head_sha": "d5aa7e537590ed138d254b9909a1ac105ee321ce",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91057664696
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v5",
+        "workflow_ref": "324220718",
+        "runs": [
+          {
+            "id": 30606218502,
+            "head_sha": "58871b0be3427ed643f44bc198c9fe3c87a01600",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91078891364
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v6",
+        "workflow_ref": "324291491",
+        "runs": [
+          {
+            "id": 30613707689,
+            "head_sha": "5770f00d7e5756302d34b5f9159066dc3fd5d36d",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91101989637
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v7",
+        "workflow_ref": "324378036",
+        "runs": [
+          {
+            "id": 30622876575,
+            "head_sha": "4494f50bf9a18422cef6252792bb9c6bbeaf1135",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91131267190
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v8",
+        "workflow_ref": "324467538",
+        "runs": [
+          {
+            "id": 30632611051,
+            "head_sha": "354bec3b2d36bfaabc5c3307d49f5dc66255cbbf",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91162335850
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v9",
+        "workflow_ref": "324655362",
+        "runs": [
+          {
+            "id": 30651679657,
+            "head_sha": "fbe629daad669191d4ea9903ffb488c98055f000",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91226182660
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v10",
+        "workflow_ref": "324820330",
+        "runs": [
+          {
+            "id": 30672160324,
+            "head_sha": "ea2a3b489e74b21a88ea21ecd243cd6a433c7fac",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91291967175
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v11",
+        "workflow_path": ".github/workflows/admin-dependency-cache-export-v11.yml",
+        "runs": []
+      },
+      {
+        "version": "v12",
+        "workflow_ref": "325026609",
+        "workflow_path": ".github/workflows/admin-dependency-cache-export-v12.yml",
+        "runs": [
+          {
+            "id": 30696298423,
+            "head_sha": "2883d3e216fd64a70b94b1ba27b0838dca280f61",
+            "event": "push",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "failure",
+            "job_ids": [
+              91359681758
+            ],
+            "artifact_count": 0
+          }
+        ]
+      },
+      {
+        "version": "v13",
+        "workflow_path": ".github/workflows/admin-dependency-cache-export-v13.yml",
+        "runs": []
+      },
+      {
+        "version": "v14",
+        "workflow_path": ".github/workflows/admin-dependency-cache-export-v14.yml",
+        "runs": []
+      }
+    ],
+    "current": {
+      "version": "v15",
+      "workflow_path": ".github/workflows/admin-dependency-cache-export-v15.yml",
+      "expected_run_count": 1,
+      "event": "push",
+      "run_attempt": 1,
+      "artifact_count": 0
+    }
+  },
+  "build_evidence_recovery": {
+    "frozen_v10_delegate_required_for_full_replay": true,
+    "frozen_v2_v9_delegate_required_for_combined_prefix": true,
+    "producer_prefix_bytes_unchanged": true,
+    "producer_and_consumer_combined_dockerfile_identical_required": true,
+    "producer_export_anchor_required": true,
+    "consumer_import_observer_required": true,
+    "export_anchor_direct_parent_runtime_pip_required": true,
+    "observer_direct_parent_runtime_pip_required": true,
+    "both_children_provenance_network_none_required": true,
+    "both_children_progress_parent_binding_required": true,
+    "both_children_completed_uncached_required": true,
+    "both_children_decoded_stdout_marker_exact_once_required": true,
+    "other_sibling_digest_and_marker_absent_per_solve_required": true,
+    "cache_config_structural_dag_closure_reachability_required": true,
+    "cache_config_result_and_link_counts_positive_required": true,
+    "cache_config_record_count_maximum": 4096,
+    "cache_config_layer_count_maximum": 4096,
+    "cache_config_record_graph_depth_maximum": 512,
+    "cache_config_record_link_count_maximum": 262144,
+    "cache_config_record_digest_vertex_binding_required": false,
+    "cache_config_direct_identity_path_claimed": false,
+    "runtime_pip_pair_classification_required": "SAME_DIGEST_CACHED",
+    "runtime_portability_proven_only_by_fresh_consumer": true,
+    "core_validated_cache_record_sha256_required": true,
+    "diagnostic_written_before_cache_predicate_enforcement_required": true,
+    "pre_predicate_and_terminal_diagnostics_persisted_required": true,
+    "all_dependency_role_intervals_cached_required_on_replay": true,
+    "all_dependency_role_intervals_noncached_required_on_producer": true,
+    "latest_interval_only_cache_acceptance_allowed": false,
+    "runtime_pip_cached_false_accepted": false,
+    "full_replay_original_dockerfile_and_target_required": true,
+    "full_replay_external_cache_removed_required": true,
+    "full_replay_post_pip_witness_completed_uncached_required": true,
+    "original_metadata_and_progress_sha256_required": true,
+    "cache_structure_diagnostic_maximum_bytes": 8192,
+    "compatibility_evidence_persistence_authorized": false,
+    "v10_dynamic_metadata_retained": false,
+    "v10_dynamic_progress_retained": false,
+    "v10_root_cause_reconstructed": false,
+    "historical_v10_root_cause_status": "UNKNOWN_NOT_RETAINED"
+  },
+  "provider_artifact_protocol": {
+    "artifact_name": "admin-dependency-prefix-cache-5335bda-v2",
+    "legacy_name_required_by_frozen_download_chain": true,
+    "identity_bound_by_artifact_id_run_control_request_and_digest": true
+  },
+  "recovery_run_authorized_after_predecessor_failure": true,
+  "github_actions_maximum_run_count": 1,
+  "github_actions_maximum_runtime_minutes": 120,
+  "artifact_retention_days": 1,
+  "artifact_compressed_maximum_bytes": 3758096384,
+  "artifact_input_maximum_bytes": 4026531840,
+  "artifact_provider_maximum_bytes": 4294967296,
+  "authenticated_artifact_download_maximum_count": 1,
+  "cross_provider_transfer_maximum_count": 1,
+  "artifact_visibility_assumption": "public_repository_readers",
+  "dependency_cache_export_authorized": true,
+  "public_repository_artifact_authorized": true,
+  "cross_provider_transfer_authorized": true,
+  "registry_publication_authorized": false,
+  "deployment_authorized": false,
+  "database_authorized": false,
+  "service_mutation_authorized": false,
+  "public_traffic_authorized": false
+}
