@@ -1499,6 +1499,14 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "git",
                     "ref": "6951a003097599f8c82fb46cbdc84b316238ff05",
                 },
+                {
+                    "kind": "path",
+                    "ref": "deploy/production/admin_item20_stage_a_v4.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": "tests/test_admin_item20_stage_a_v4.py",
+                },
             ],
         )
         self.assertNotIn(
@@ -2419,6 +2427,71 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(checkpoint["focused_test_count"], 21)
         self.assertEqual(checkpoint["production_readiness_checks"], "137/137")
         self.assertTrue(checkpoint["temporary_transfer_files_deleted"])
+        v4 = admin["admin_stage_a_v4_preparation"]
+        self.assertEqual(v4["result"], "OFFLINE_VALIDATED_EXACT_HEAD_CI_PENDING")
+        self.assertEqual(
+            v4["controller_base_commit"],
+            "cfe06fa453e66ade80a25070dec380ea8bd65590",
+        )
+        self.assertEqual(v4["executor"]["byte_count"], 30980)
+        self.assertEqual(
+            v4["executor"]["sha256"],
+            "2b811021305e81c3250c4b72f7707ac5f8d4c5fcd87ab0ae93e5c671086a8c75",
+        )
+        local_transport = v4["local_source_transport"]
+        self.assertEqual(local_transport["bundle_byte_count"], 159507)
+        self.assertEqual(
+            local_transport["bundle_sha256"],
+            "4e62b0627b4be73d7ccc14d821d34f01894340297729456f9f3e22b45a6e75b3",
+        )
+        self.assertEqual(local_transport["delta_commit_count"], 11)
+        self.assertEqual(local_transport["recovered_history_commit_count"], 197)
+        self.assertEqual(local_transport["independent_generation_view_count"], 2)
+        self.assertTrue(local_transport["byte_identical_generation_passed"])
+        self.assertTrue(local_transport["clean_recipient_import_passed"])
+        self.assertTrue(local_transport["file_protocol_only"])
+        self.assertEqual(local_transport["remote_count_after_import"], 0)
+        self.assertEqual(local_transport["retry_count"], 0)
+        self.assertFalse(local_transport["mirror_proxy_or_credential_change"])
+        data_plane_v4 = v4["data_plane_immutability"]
+        for key in (
+            "source_commit_or_tree_changed",
+            "dockerfile_changed",
+            "model_materialization_changed",
+            "build_arguments_changed",
+            "image_tags_changed",
+            "native_evidence_contract_changed",
+        ):
+            self.assertFalse(data_plane_v4[key], key)
+        review_v4 = v4["independent_review"]
+        self.assertTrue(review_v4["p1_evidence_directory_precreation_found"])
+        self.assertTrue(review_v4["p1_fixed"])
+        self.assertTrue(review_v4["regression_assertion_added"])
+        self.assertFalse(review_v4["final_re_review_pending"])
+        self.assertEqual(review_v4["final_result"], "PASS")
+        self.assertEqual(v4["offline_validation"]["v2_v3_v4_focused_test_count"], 13)
+        self.assertEqual(
+            v4["offline_validation"]["production_readiness_checks"],
+            "137/137",
+        )
+        for key, value in v4["external_scope"].items():
+            self.assertEqual(value, 0, key)
+        authorization_v4 = v4["authorization"]
+        self.assertTrue(
+            authorization_v4[
+                "exact_one_v4_external_execution_authorized_after_exact_head_dual_ci"
+            ]
+        )
+        self.assertEqual(authorization_v4["maximum_v4_external_execution_count"], 1)
+        self.assertTrue(authorization_v4["v3_rerun_forbidden"])
+        self.assertFalse(authorization_v4["v4_rerun_on_failure_authorized"])
+        self.assertFalse(authorization_v4["public_traffic_mutation_authorized"])
+        self.assertFalse(authorization_v4["schema_or_business_data_mutation_authorized"])
+        self.assertFalse(authorization_v4["paid_ai_or_crawler_authorized"])
+        self.assertTrue(authorization_v4["v17_rerun_forbidden"])
+        self.assertTrue(authorization_v4["r17_forbidden"])
+        self.assertTrue(authorization_v4["v18_forbidden"])
+        self.assertFalse(v4["readiness"]["credit_added"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

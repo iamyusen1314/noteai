@@ -641,6 +641,31 @@ Last updated: 2026-08-03
   执行、换源、mirror、proxy或credential。checkpoint和只读根因审计可继续；任何
   新外部执行或来源交付方式必须先有新的明确范围，不得以“重试”名义盲目触发。
 
+### Admin Stage A V4 local-bundle recovery is offline-proven, exact-HEAD CI pending
+
+- 状态: Mitigated offline / exact-HEAD CI pending。最终独立复审为PASS且无新增代码
+  阻断。V3保持永久禁止rerun；V4尚未启动任何builder、上传、命令、网络source
+  fetch、Docker build、ACR或生产动作，进度仍为`19/29` / `19/38`。
+- 根因缓解: V4不再从builder访问GitHub。固定b55 commit/tree作为唯一前置，传入仅含
+  b55到5335之11个提交的local-only Git bundle；两次独立shared-bare构造逐字一致，
+  固定为`159,507`字节、SHA-256 `4e62b062…6e75b3`。clean recipient只先导入b55，
+  再通过bundle verify/import恢复精确5335 HEAD、`38e574…` tree、固定parent、delta
+  `11`、history `197`、clean status、remote zero和strict/full fsck。
+- 独立审计修正: 审计发现V2/V3未到达的潜伏必失败条件——executor提前创建evidence
+  目录，而固定native脚本要求该目录不存在。V4已最小修正为只预建task root，native
+  入口自行建目录，并加入双边静态回归断言；V2/V3/V4 focused tests `13/13`通过。
+- 数据面边界: source commit/tree、Dockerfile、模型materialization、构建参数、镜像
+  tags、Admin角色投影、Trivy及11文件证据合同均不变；没有mirror、proxy、credential、
+  自定义ledger/receipt/topology、registry或生产实现扩展。
+- 剩余风险: 旧builder上保留的b55仓库尚需在唯一V4执行前只读证明非shallow、无
+  alternate/promisor/replace且严格fsck通过；真实Trivy DB刷新、Docker build/scan和
+  漏洞集合仍可能发生fail-closed变化。先做一次只读宿主preflight并复用同一次builder
+  启动执行V4，不放宽门禁；V4失败不得自动或手工rerun。
+- 是否需要用户确认后才能修改: 不需要；用户已明确授权主CTO在现有成本和范围内
+  自主完成V4双CI、唯一一次Stage A、成功后的私有ACR及可逆Stage C（含恰好一次
+  `admin_sessions` INSERT+DELETE）。公网流量、schema/业务数据写、付费AI/crawler、
+  V17 rerun、R17和V18仍明确禁止。
+
 ## Low Risks
 
 ### `model/api.py` is too large

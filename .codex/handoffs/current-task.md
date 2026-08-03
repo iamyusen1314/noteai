@@ -5477,3 +5477,49 @@ credit remains `api_f_current_release=VERIFIED`, and the sole task remains
 condition is: an authorized builder execution must actually receive the exact
 5335 source and finish producing the Admin image plus its 11 proofs; without
 that image, neither private publication nor production canary is admissible.
+
+### Item 20 Admin Stage A V4 local-bundle recovery candidate (2026-08-03)
+
+- The user explicitly authorized the main CTO to continue the bounded release
+  chain autonomously. V3 remains terminal and may not be rerun. The successor
+  is a new exact-one V4 execution after its own exact-HEAD push and pull-request
+  CI; this does not authorize R17, V18, public traffic, schema/business writes,
+  paid AI or crawler work.
+- V4 removes the failed builder-to-GitHub source transport entirely. It requires
+  the retained b55 repository at exact commit
+  `b55f11882100e9ef919522540729e366a511f88f` / tree
+  `ad3c949ae585ed529854d47a8599b7cb36a25ab2`, then imports one local-only
+  incremental Git bundle containing the exact 11-commit successor ref. Two
+  independent shared-bare views produced byte-identical `159,507`-byte bundles
+  with SHA-256 `4e62b0627b4be73d7ccc14d821d34f01894340297729456f9f3e22b45a6e75b3`.
+  A clean recipient seeded only with b55 verified the bundle and recovered exact
+  HEAD `5335bdaed933b1f999b5f819c047ec50c11821ae`, tree
+  `38e574e56406ba3380acb78edbe784508cc537cd`, parent
+  `216be18bab10e5e0358e1f61e3f6b70bd207a8a8`, delta count `11`, full history
+  count `197`, no remote, clean status and strict/full fsck.
+- The current executor is
+  `deploy/production/admin_item20_stage_a_v4.sh`, `30,980` bytes, SHA-256
+  `2b811021305e81c3250c4b72f7707ac5f8d4c5fcd87ab0ae93e5c671086a8c75`.
+  It accepts only the fixed root-owned bundle path and modes, has no HTTP source
+  fetch, retry, mirror, proxy or credential path, and preserves the fixed 5335
+  Dockerfile, model materialization, Admin-only native build/scan and 11-file
+  evidence contract.
+- Independent read-only review found one latent pre-build failure inherited from
+  the unexecuted tail of V2/V3: the executor pre-created the evidence directory,
+  while the fixed native evidence entry point requires it not to exist and
+  creates it itself. V4 now creates only the task root; a regression assertion
+  freezes both sides of that contract. Combined V2/V3/V4 focused tests pass
+  `13/13`, Bash syntax and `git diff --check` pass. Final independent re-review
+  returned PASS with no additional blocker; Readiness tests pass and production
+  readiness remains `137/137`.
+- No builder start, upload, Cloud Assistant command, source-network request,
+  Docker build, ACR action, production connection, database/service write or
+  public-traffic mutation has occurred for V4. This preparation adds no credit;
+  readiness remains `19/29` internal and `19/38` public.
+
+Next, commit and push only the reconciled V4 checkpoint. Require fresh exact-HEAD
+push and pull-request CI before starting the existing builder. In that same
+builder start, first perform the remaining read-only retained-b55 repository
+preflight; only a passing preflight may admit the single V4 execution. The
+immediate external acceptance condition is the exact 5335 Admin local image plus
+all 11 native evidence files; no V4 rerun is implied by a failure.
