@@ -5523,3 +5523,59 @@ builder start, first perform the remaining read-only retained-b55 repository
 preflight; only a passing preflight may admit the single V4 execution. The
 immediate external acceptance condition is the exact 5335 Admin local image plus
 all 11 native evidence files; no V4 rerun is implied by a failure.
+
+### Item 20 Admin Stage A V4 unique terminal attempt (2026-08-03)
+
+- Exact controller checkpoint
+  `bc14c6aa6d129816a307b5ffa5241e6882e3e97c` passed its ordinary push CI
+  `30788036947` / job `91605487114` and pull-request CI `30788039997` / job
+  `91605496219`, both on attempt one. Each ran `1774` tests with `28` ambient
+  skips, production readiness `137/137` and artifact zero. No CI rerun occurred.
+- The existing builder was started once. Eight root-only file sends delivered
+  one `168,179`-byte payload, SHA-256
+  `911b0fefb3501d15d9f2070202e0db0bf4216df23aeb7eb96967c5b3cb9b70e4`,
+  containing the fixed `30,980`-byte executor and `159,507`-byte Git bundle.
+  The single `noteai-admin-item20-stage-a-execute-v4` command started at
+  `2026-08-03T14:29:49+08:00`, terminated after `306` seconds with exit `1`,
+  and was not retried or rerun.
+- V4 emitted `NOTEAI_ADMIN_STAGE_A_V4_PREFLIGHT=PASS`. The retained b55
+  repository, bundle, exact 5335 source identity, host and collision gates all
+  passed. Source import, model materialization and tool preparation completed.
+  Docker build, the 11-file native evidence set, ACR login/publication and all
+  production actions were not reached.
+- The terminal phase is `scanner_db_refresh`. Trivy logged the GHCR database
+  download at `14:29:54` and its own `context deadline exceeded` at `14:34:54`.
+  The executor supplied an outer GNU timeout of `1200` seconds but omitted
+  Trivy's own `--timeout`, leaving Trivy 0.72 at its `5m0s` default. The outer
+  timeout was therefore not reached. Because the invocation also used
+  `--no-progress`, the retained log cannot distinguish a stalled transfer from
+  a slow transfer and does **not** prove zero progress. The normalized outcome
+  is `trivy_internal_default_timeout_progress_unknown`, not a proven GHCR
+  outage or a proven zero-throughput download.
+- Historical project evidence proves the same GHCR path was reachable: one
+  bounded anonymous download completed within a `15m` upper bound into a
+  task-owned cache and was followed by a successful offline scan. It does not
+  retain enough throughput evidence to label that prior download slow. Those
+  old database bytes were freshness-bound and are not automatically reusable
+  now; the relevant lesson is to give a fresh download enough observable time,
+  not to weaken freshness or scan gates.
+- Failure cleanup reported target images absent, task root absent and running
+  containers zero. The transfer cleanup marker was observed. The builder was
+  returned to `已停止 / 节省停机模式` at
+  `2026-08-03T14:40:22+08:00`, with its temporary public IPv4 released. New
+  builder, image, native evidence, registry object, database connection/write,
+  service mutation and public-traffic mutation counts are all zero.
+- The Secret-free failure checkpoint changes only this Handoff, the risk
+  register, internal readiness and its gate test. JSON parsing and
+  `git diff --check` pass; the focused set passes `21/21`, internal readiness
+  reports `19/29` / `19/38`, production readiness passes `137/137`, and the
+  hash-recorded local transfer directory has been deleted.
+
+The exact-one V4 authority is consumed and V4 must not be rerun. Readiness stays
+`19/29` internal and `19/38` public; the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next hard acceptance condition is
+still one exact 5335 Admin AMD64 local image plus all 11 native evidence files.
+Any separately authorized successor must keep the existing `1200`-second outer
+bound, set Trivy's internal timeout explicitly below it, and retain observable
+download progress; only after Stage A succeeds may private ACR publication and
+Stage C begin.

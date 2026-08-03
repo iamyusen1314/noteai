@@ -641,30 +641,37 @@ Last updated: 2026-08-03
   执行、换源、mirror、proxy或credential。checkpoint和只读根因审计可继续；任何
   新外部执行或来源交付方式必须先有新的明确范围，不得以“重试”名义盲目触发。
 
-### Admin Stage A V4 local-bundle recovery is offline-proven, exact-HEAD CI pending
+### Admin Stage A V4 ended at Trivy's internal default timeout with progress unknown
 
-- 状态: Mitigated offline / exact-HEAD CI pending。最终独立复审为PASS且无新增代码
-  阻断。V3保持永久禁止rerun；V4尚未启动任何builder、上传、命令、网络source
-  fetch、Docker build、ACR或生产动作，进度仍为`19/29` / `19/38`。
-- 根因缓解: V4不再从builder访问GitHub。固定b55 commit/tree作为唯一前置，传入仅含
-  b55到5335之11个提交的local-only Git bundle；两次独立shared-bare构造逐字一致，
-  固定为`159,507`字节、SHA-256 `4e62b062…6e75b3`。clean recipient只先导入b55，
-  再通过bundle verify/import恢复精确5335 HEAD、`38e574…` tree、固定parent、delta
-  `11`、history `197`、clean status、remote zero和strict/full fsck。
-- 独立审计修正: 审计发现V2/V3未到达的潜伏必失败条件——executor提前创建evidence
-  目录，而固定native脚本要求该目录不存在。V4已最小修正为只预建task root，native
-  入口自行建目录，并加入双边静态回归断言；V2/V3/V4 focused tests `13/13`通过。
-- 数据面边界: source commit/tree、Dockerfile、模型materialization、构建参数、镜像
-  tags、Admin角色投影、Trivy及11文件证据合同均不变；没有mirror、proxy、credential、
-  自定义ledger/receipt/topology、registry或生产实现扩展。
-- 剩余风险: 旧builder上保留的b55仓库尚需在唯一V4执行前只读证明非shallow、无
-  alternate/promisor/replace且严格fsck通过；真实Trivy DB刷新、Docker build/scan和
-  漏洞集合仍可能发生fail-closed变化。先做一次只读宿主preflight并复用同一次builder
-  启动执行V4，不放宽门禁；V4失败不得自动或手工rerun。
-- 是否需要用户确认后才能修改: 不需要；用户已明确授权主CTO在现有成本和范围内
-  自主完成V4双CI、唯一一次Stage A、成功后的私有ACR及可逆Stage C（含恰好一次
-  `admin_sessions` INSERT+DELETE）。公网流量、schema/业务数据写、付费AI/crawler、
-  V17 rerun、R17和V18仍明确禁止。
+- 状态: Open High / exact-one V4已消耗且安全清理。控制提交`bc14c6a…e97c`的
+  exact-HEAD push/PR CI均首轮通过，每路`1774` tests、`28` ambient skips、gate
+  `137/137`、artifact zero。随后V4只执行一次，`306`秒后exit `1`；进度仍为
+  `19/29` / `19/38`。
+- 精确诊断: retained b55、本地Git bundle、exact 5335 source、宿主与collision
+  preflight均通过；源码导入、模型物化和工具准备已完成。Trivy数据库下载从
+  `14:29:54`到`14:34:54`，然后由其自身`context deadline exceeded`终止。executor
+  只设置了GNU外层`1200s`保护，没有显式传入Trivy `--timeout`，因此Trivy 0.72的
+  默认`5m0s`先到期，外层保护并未触发。
+- 不确定性边界: 命令使用`--no-progress`，保留日志没有吞吐或字节进度。因此不能证明
+  五分钟内“完全没动静”，也不能证明GHCR硬故障；慢传输仍然可能。正确分类是
+  `trivy_internal_default_timeout_progress_unknown`，此前任何“零进度/网络硬失败”表述
+  均不得作为事实。
+- 历史证据: 项目Handoff证明同一GHCR路径可达，且一次有界匿名下载在`15m`上限内
+  完成并进入task-owned cache，随后offline scan成功；它没有保留足以断言该次下载
+  “很慢”的吞吐证据。旧缓存受新鲜度合同约束，不能直接继承；但它证明该路径并非
+  确定不可达，也证明应先修正超时与可观测性，而不是扩展控制层。
+- 影响与清理: Docker build/scan、11文件native evidence、ACR和Stage C均未到达；
+  target images/task root/running containers为`absent/absent/0`，transfer cleanup
+  marker已观察。builder已恢复`已停止 / 节省停机模式`且临时公网IPv4释放。新builder、
+  registry、生产数据库连接/写入、service和public traffic动作均为0。
+- 最小后继边界: V4永久不得rerun。若另行授权一个successor，只允许显式设置Trivy
+  内部timeout（例如`15m`）并保持低于既有`1200s`外层上限，同时保留下载进度可观测；
+  source/tree、Dockerfile、镜像、构建/扫描/11文件证据、生产资源及门禁均不得改变。
+  下一硬条件仍是exact 5335 Admin AMD64本地镜像加11文件native evidence，之后才可
+  进入private ACR immutable digest/readback和Stage C。
+- 是否需要用户确认后才能修改: 失败检查点和只读审计不需要；V4授权已耗尽，任何新的
+  外部Stage A执行仍需新的明确一次性范围。V17 rerun、R17、V18、公网流量、schema/
+  业务数据写、付费AI和crawler仍禁止。
 
 ## Low Risks
 

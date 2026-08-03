@@ -2428,10 +2428,17 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(checkpoint["production_readiness_checks"], "137/137")
         self.assertTrue(checkpoint["temporary_transfer_files_deleted"])
         v4 = admin["admin_stage_a_v4_preparation"]
-        self.assertEqual(v4["result"], "OFFLINE_VALIDATED_EXACT_HEAD_CI_PENDING")
+        self.assertEqual(
+            v4["result"],
+            "EXACT_HEAD_DUAL_CI_PASSED_ATTEMPT1_FAILED_SCANNER_DB_REFRESH",
+        )
         self.assertEqual(
             v4["controller_base_commit"],
             "cfe06fa453e66ade80a25070dec380ea8bd65590",
+        )
+        self.assertEqual(
+            v4["controller_commit"],
+            "bc14c6aa6d129816a307b5ffa5241e6882e3e97c",
         )
         self.assertEqual(v4["executor"]["byte_count"], 30980)
         self.assertEqual(
@@ -2474,8 +2481,28 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             v4["offline_validation"]["production_readiness_checks"],
             "137/137",
         )
-        for key, value in v4["external_scope"].items():
-            self.assertEqual(value, 0, key)
+        external_scope_v4 = v4["external_scope"]
+        for key, value in (
+            ("builder_start_count", 1),
+            ("cloud_assistant_file_send_count", 8),
+            ("cloud_assistant_execution_count", 1),
+            ("stage_a_execution_count", 1),
+            ("trivy_database_download_count", 1),
+        ):
+            self.assertEqual(external_scope_v4[key], value, key)
+        for key in (
+            "network_source_fetch_count",
+            "docker_build_count",
+            "native_evidence_set_count",
+            "acr_login_count",
+            "acr_publication_count",
+            "production_deployment_count",
+            "production_database_connection_count",
+            "production_database_write_count",
+            "production_service_mutation_count",
+            "public_traffic_mutation_count",
+        ):
+            self.assertEqual(external_scope_v4[key], 0, key)
         authorization_v4 = v4["authorization"]
         self.assertTrue(
             authorization_v4[
@@ -2483,8 +2510,18 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             ]
         )
         self.assertEqual(authorization_v4["maximum_v4_external_execution_count"], 1)
+        self.assertTrue(
+            authorization_v4["exact_one_v4_external_execution_consumed"]
+        )
         self.assertTrue(authorization_v4["v3_rerun_forbidden"])
         self.assertFalse(authorization_v4["v4_rerun_on_failure_authorized"])
+        self.assertTrue(authorization_v4["v4_rerun_forbidden"])
+        self.assertFalse(
+            authorization_v4["additional_stage_a_external_execution_authorized"]
+        )
+        self.assertTrue(
+            authorization_v4["downstream_stage_b_and_c_blocked_without_image"]
+        )
         self.assertFalse(authorization_v4["public_traffic_mutation_authorized"])
         self.assertFalse(authorization_v4["schema_or_business_data_mutation_authorized"])
         self.assertFalse(authorization_v4["paid_ai_or_crawler_authorized"])
@@ -2492,6 +2529,156 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertTrue(authorization_v4["r17_forbidden"])
         self.assertTrue(authorization_v4["v18_forbidden"])
         self.assertFalse(v4["readiness"]["credit_added"])
+        v4_attempt = admin["admin_stage_a_v4_attempt1"]
+        self.assertEqual(
+            v4_attempt["result"],
+            "FAILED_DURING_FRESH_TRIVY_DB_REFRESH_BEFORE_DOCKER_BUILD",
+        )
+        self.assertEqual(v4_attempt["controller_commit"], v4["controller_commit"])
+        self.assertEqual(v4_attempt["source_commit"], v4["source_commit"])
+        self.assertEqual(v4_attempt["source_tree"], v4["source_tree"])
+        for event, run_id, job_id in (
+            ("push", 30788036947, 91605487114),
+            ("pull_request", 30788039997, 91605496219),
+        ):
+            ci = v4_attempt["exact_head_ci"][event]
+            self.assertEqual(ci["run_id"], run_id)
+            self.assertEqual(ci["job_id"], job_id)
+            self.assertEqual(ci["attempt"], 1)
+            self.assertEqual(ci["head_sha"], v4_attempt["controller_commit"])
+            self.assertEqual(ci["conclusion"], "success")
+            self.assertEqual(ci["total_test_count"], 1774)
+            self.assertEqual(ci["ambient_skipped_count"], 28)
+            self.assertEqual(ci["production_readiness_checks"], "137/137")
+            self.assertEqual(ci["artifact_count"], 0)
+        self.assertEqual(v4_attempt["exact_head_ci"]["rerun_count"], 0)
+        payload = v4_attempt["transport"]["payload"]
+        self.assertEqual(payload["byte_count"], 168179)
+        self.assertEqual(
+            payload["sha256"],
+            "911b0fefb3501d15d9f2070202e0db0bf4216df23aeb7eb96967c5b3cb9b70e4",
+        )
+        self.assertEqual(payload["executor_byte_count"], 30980)
+        self.assertEqual(
+            payload["executor_sha256"],
+            "2b811021305e81c3250c4b72f7707ac5f8d4c5fcd87ab0ae93e5c671086a8c75",
+        )
+        self.assertEqual(payload["bundle_byte_count"], 159507)
+        self.assertEqual(
+            payload["bundle_sha256"],
+            "4e62b0627b4be73d7ccc14d821d34f01894340297729456f9f3e22b45a6e75b3",
+        )
+        transport_v4 = v4_attempt["transport"]
+        self.assertEqual(transport_v4["chunk_count"], 8)
+        self.assertEqual(transport_v4["file_send_count"], 8)
+        self.assertEqual(transport_v4["target_count"], 1)
+        self.assertFalse(transport_v4["api_c_selected"])
+        self.assertFalse(transport_v4["api_f_selected"])
+        loader = transport_v4["command_loader"]
+        self.assertEqual(loader["character_count"], 9351)
+        self.assertEqual(loader["wrapper_byte_count"], 6690)
+        self.assertEqual(
+            loader["wrapper_sha256"],
+            "9129df30baa3a77a23d4d896e56b68093857450cfb9354b75734712d2ed174f2",
+        )
+        self.assertTrue(loader["remote_wrapper_size_and_sha_gate_passed"])
+        command_v4 = v4_attempt["cloud_assistant"]
+        self.assertEqual(
+            command_v4["command_name"],
+            "noteai-admin-item20-stage-a-execute-v4",
+        )
+        self.assertEqual(command_v4["target_count"], 1)
+        self.assertEqual(command_v4["execution_count"], 1)
+        self.assertEqual(command_v4["duration_seconds"], 306)
+        self.assertEqual(command_v4["exit_code"], 1)
+        preflight_v4 = v4_attempt["preflight"]
+        self.assertTrue(preflight_v4["retained_b55_repository_passed"])
+        self.assertTrue(preflight_v4["bundle_identity_passed"])
+        self.assertTrue(preflight_v4["host_and_collision_gate_passed"])
+        failure_v4 = v4_attempt["failure"]
+        self.assertEqual(failure_v4["phase"], "scanner_db_refresh")
+        self.assertEqual(
+            failure_v4["normalized_error_class"],
+            "trivy_internal_default_timeout_progress_unknown",
+        )
+        self.assertEqual(failure_v4["database_download_attempt_count"], 1)
+        self.assertEqual(failure_v4["trivy_internal_timeout_seconds"], 300)
+        self.assertEqual(failure_v4["outer_timeout_seconds"], 1200)
+        self.assertFalse(failure_v4["outer_timeout_reached"])
+        self.assertTrue(failure_v4["download_progress_suppressed"])
+        self.assertFalse(failure_v4["zero_progress_proven"])
+        self.assertTrue(failure_v4["slow_transfer_possible"])
+        self.assertTrue(failure_v4["source_bundle_import_reached"])
+        self.assertTrue(failure_v4["model_materialization_reached"])
+        self.assertTrue(failure_v4["tool_prep_reached"])
+        self.assertFalse(failure_v4["docker_build_reached"])
+        self.assertFalse(failure_v4["native_release_evidence_reached"])
+        self.assertFalse(failure_v4["acr_login_reached"])
+        cleanup_v4 = v4_attempt["cleanup"]
+        self.assertTrue(cleanup_v4["target_images_absent"])
+        self.assertTrue(cleanup_v4["task_root_absent"])
+        self.assertEqual(cleanup_v4["running_container_count"], 0)
+        self.assertTrue(cleanup_v4["transfer_cleanup_marker_observed"])
+        self.assertEqual(cleanup_v4["builder_instance_status"], "stopped")
+        self.assertEqual(cleanup_v4["builder_stop_mode"], "saving")
+        self.assertTrue(cleanup_v4["public_ipv4_released_in_saving_mode"])
+        scope_v4 = v4_attempt["execution_scope"]
+        for key, value in (
+            ("existing_builder_start_count", 1),
+            ("cloud_assistant_file_send_count", 8),
+            ("cloud_assistant_execution_count", 1),
+            ("stage_a_execution_count", 1),
+            ("trivy_database_download_count", 1),
+        ):
+            self.assertEqual(scope_v4[key], value, key)
+        for key in (
+            "new_builder_create_count",
+            "network_source_fetch_count",
+            "automatic_retry_count",
+            "manual_rerun_count",
+            "second_v4_execution_count",
+            "docker_build_count",
+            "native_evidence_set_count",
+            "acr_login_count",
+            "acr_publication_count",
+            "acr_readback_count",
+            "stage_c_execution_count",
+            "production_database_connection_count",
+            "production_database_write_count",
+            "production_service_mutation_count",
+            "public_traffic_mutation_count",
+        ):
+            self.assertEqual(scope_v4[key], 0, key)
+        v4_attempt_authorization = v4_attempt["authorization"]
+        self.assertTrue(
+            v4_attempt_authorization["exact_one_v4_external_execution_consumed"]
+        )
+        self.assertTrue(v4_attempt_authorization["v4_rerun_forbidden"])
+        self.assertFalse(
+            v4_attempt_authorization[
+                "additional_stage_a_external_execution_authorized"
+            ]
+        )
+        self.assertTrue(
+            v4_attempt_authorization[
+                "downstream_stage_b_and_c_blocked_without_image"
+            ]
+        )
+        self.assertFalse(v4_attempt["readiness"]["credit_added"])
+        self.assertFalse(v4_attempt["secret_free"]["alibaba_resource_ids_persisted"])
+        v4_serialized = json.dumps(v4_attempt, ensure_ascii=False)
+        self.assertNotRegex(v4_serialized, r"\b[ictf]-[a-z0-9]{8,}\b")
+        self.assertNotRegex(
+            v4_serialized,
+            r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+        )
+        v4_checkpoint = v4_attempt["checkpoint_validation"]
+        self.assertEqual(v4_checkpoint["changed_path_count"], 4)
+        self.assertTrue(v4_checkpoint["json_parse_passed"])
+        self.assertTrue(v4_checkpoint["diff_check_passed"])
+        self.assertEqual(v4_checkpoint["focused_test_count"], 21)
+        self.assertEqual(v4_checkpoint["production_readiness_checks"], "137/137")
+        self.assertTrue(v4_checkpoint["temporary_transfer_directory_deleted"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]
