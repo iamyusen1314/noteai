@@ -1479,6 +1479,14 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "admin-5335bda-dependency-cache-v17.json"
                     ),
                 },
+                {
+                    "kind": "path",
+                    "ref": "deploy/production/admin_item20_stage_a_v2.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": "tests/test_admin_item20_stage_a_v2.py",
+                },
             ],
         )
         self.assertNotIn(
@@ -1999,6 +2007,47 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             stage_a["authorization"]["second_external_execution_authorized"]
         )
         self.assertFalse(stage_a["readiness"]["credit_added"])
+        stage_a_v2 = admin["admin_stage_a_v2_preparation"]
+        self.assertEqual(stage_a_v2["result"], "OFFLINE_VALIDATED_NOT_EXECUTED")
+        self.assertEqual(
+            stage_a_v2["executor"]["path"],
+            "deploy/production/admin_item20_stage_a_v2.sh",
+        )
+        self.assertEqual(stage_a_v2["executor"]["byte_count"], 22254)
+        self.assertEqual(
+            stage_a_v2["executor"]["sha256"],
+            "85e4e60e40e2a3f00c7fe9d1220ec37fdce2eb2772b8ce74ee92b0249755abd6",
+        )
+        self.assertEqual(stage_a_v2["executor"]["host_python_call_count"], 0)
+        self.assertFalse(
+            stage_a_v2["compatibility_changes"]["build_context_changed"]
+        )
+        self.assertFalse(
+            stage_a_v2["compatibility_changes"]["dockerfile_changed"]
+        )
+        self.assertFalse(
+            stage_a_v2["compatibility_changes"]["image_content_changed"]
+        )
+        self.assertTrue(
+            stage_a_v2["offline_validation"]["positive_and_negative_fixture_passed"]
+        )
+        self.assertEqual(
+            stage_a_v2["external_scope"]["cloud_assistant_execution_count"],
+            0,
+        )
+        self.assertTrue(
+            stage_a_v2["authorization"]["standing_cto_execution_authority_recorded"]
+        )
+        self.assertTrue(
+            stage_a_v2["authorization"]["single_corrected_stage_a_execution_authorized"]
+        )
+        self.assertFalse(
+            stage_a_v2["authorization"]["public_traffic_mutation_authorized"]
+        )
+        self.assertTrue(stage_a_v2["authorization"]["v17_rerun_forbidden"])
+        self.assertTrue(stage_a_v2["authorization"]["r17_forbidden"])
+        self.assertTrue(stage_a_v2["authorization"]["v18_forbidden"])
+        self.assertFalse(stage_a_v2["readiness"]["credit_added"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

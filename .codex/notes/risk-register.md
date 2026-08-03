@@ -512,7 +512,7 @@ Last updated: 2026-08-03
 
 ### Admin Stage A attempt 1 failed before build on the builder host Python runtime
 
-- 状态: Open High / Item 20 hard gate。唯一Cloud Assistant执行
+- 状态: Mitigated offline / external acceptance pending。唯一Cloud Assistant执行
   `t-sz06stvryp6jaww`（command `c-sz06stvryorjwu8`）在三秒内以exit `1`
   失败；`docker buildx build`、ACR发布和生产Admin变更均未开始，进度仍为
   `19/29` / `19/38`。
@@ -529,8 +529,24 @@ Last updated: 2026-08-03
   或在付费执行前先证明兼容解释器；对全部宿主侧snippet做离线fixture测试，不能只
   修改第一个失败行。新的外部执行必须先获得一次新的有界授权，并仍以精确5335
   ACR immutable manifest digest为下一硬条件。
-- 是否需要用户确认后才能修改: 离线修正和测试不需要；启动builder或再次执行任何
-  外部Stage A命令需要新的明确授权。V17仍禁止rerun，禁止R17/V18。
+- 离线缓解: 已从已记账的`16,776`字节/
+  `0843d513…d2342`合同恢复exact V1，并版本化为
+  `deploy/production/admin_item20_stage_a_v2.sh`（`22,254`字节，
+  `85e4e60e…55abd6`）。两处Docker auth计数、模型manifest校验、Admin角色投影和
+  Trivy时间戳校验均改为明确fail-closed的shell/jq/sed实现，宿主`python3`调用为0。
+  固定5335 commit/tree、Dockerfile SHA、native evidence输入SHA、投影后SHA、
+  构建参数、镜像标签、扫描和证据合同均未改变。正负fixture、Bash syntax和focused
+  tests已通过；云端执行计数仍为0。
+- 独立审计补充缓解: 真实运行的Trivy新鲜度不再接受环境时间覆盖，fixture固定时间
+  仅通过测试专用第二位置参数传入；`jq fromdateiso8601`能力在Git fetch、Trivy下载和
+  Docker build之前即固定断言，避免旧jq在网络动作后才失败。
+- 剩余风险: 纠正后的Stage A尚未在旧builder宿主实际执行；真实Git fetch、Trivy DB
+  下载和Docker构建仍可能暴露新的外部或资源限制。任何失败必须保留唯一invocation、
+  明确根因与完整清理，不允许盲目重复。
+- 是否需要用户确认后才能修改: CTO常设授权现已明确覆盖一次纠正后的Stage A、私有
+  ACR发布/readback及后续API-C Admin canary/promotion/restart/组件回滚和一次有界
+  `admin_sessions` INSERT+DELETE；这些范围内不再逐步询问。公网流量、schema/业务
+  数据写、V17 rerun、R17和V18仍未授权且禁止。
 
 ## Low Risks
 

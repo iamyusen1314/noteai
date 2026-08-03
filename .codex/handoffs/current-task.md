@@ -5219,3 +5219,58 @@ corrected Stage A execution. Its next hard acceptance condition is still the
 immutable ACR manifest digest for exact source
 `5335bdaed933b1f999b5f819c047ec50c11821ae`; only after that digest exists may
 the audited Admin canary, negative runtime matrix and component rollback run.
+
+### Item 20 Admin Stage A V2 host-compatibility checkpoint candidate (2026-08-03)
+
+- CTO takeover reconfirmed branch `codex/quality-stabilization-real-chain`,
+  local/upstream HEAD `78887aab7878ac58882b16ca23ab6210569f6b84`,
+  divergence `0/0` and a clean starting worktree. The prior checkpoint's push
+  CI `30775349836` / job `91569707920` and pull-request CI `30775350973` /
+  job `91569711063` both passed run one / attempt one at that exact HEAD.
+- The deleted V1 source was recovered read-only from the Codex patch record and
+  accepted only after recomputing the already recorded contract: exactly
+  `16,776` bytes and SHA-256
+  `0843d51302f01e9e865e0f0c6bb864a7a29d98c73079a5c58b189892cb9d2342`.
+  An independent read-only subagent confirmed the same byte/hash contract and
+  enumerated all five direct host-Python call sites. No external command ran.
+- The corrected executor is now versioned at
+  `deploy/production/admin_item20_stage_a_v2.sh`: `22,254` bytes, SHA-256
+  `85e4e60e40e2a3f00c7fe9d1220ec37fdce2eb2772b8ce74ee92b0249755abd6`.
+  It replaces both Docker-auth snippets, model-artifact verification, exact
+  Admin-role projection and Trivy-metadata freshness with explicit fail-closed
+  shell/jq/sed checks. Direct host `python3` calls are zero.
+- Independent review found and the main CTO fixed two additional host-control
+  edges before publication: runtime Trivy freshness can no longer be overridden
+  by an environment timestamp, and a fixed `jq fromdateiso8601` capability
+  assertion now runs before source fetch, Trivy download or Docker build.
+- Exact data-plane anchors remain unchanged: source
+  `5335bdaed933b1f999b5f819c047ec50c11821ae`, tree
+  `38e574e56406ba3380acb78edbe784508cc537cd`, Dockerfile SHA
+  `ed6282c4…21b447`, native evidence input SHA `639941a2…7d3a2`, projected
+  Admin-only SHA `a2420972…df22c`, OCI version
+  `git-5335bda-amd64-r1`, canonical/local image tags, pinned base indexes,
+  one native build/scan invocation and all scan/evidence acceptance predicates.
+  The script contains no ACR login/push, production service, database or public
+  traffic mutation.
+- Offline acceptance currently passes Bash syntax, positive and negative
+  fixtures, the new focused test `3/3`, combined Stage-A/readiness tests
+  `19/19`, `git diff --check`, the full production gate at `137/137`, and the
+  internal gate at `19/29` / `19/38`.
+  Builder start, upload, Cloud Assistant execution, Docker build, ACR publish,
+  production deployment, database/service mutation and public traffic mutation
+  counts for V2 remain zero.
+- Standing CTO authority now covers the remaining bounded chain without further
+  stepwise confirmation: exact-HEAD push/PR CI; one corrected Stage A execution
+  on the existing isolated builder; one private ACR publication/readback; then
+  API-C Admin loopback canary, negative runtime matrix, reversible promotion,
+  explicit restart, component rollback and cleanup, including exactly one
+  bounded `admin_sessions` INSERT+DELETE. It does not authorize public traffic,
+  schema/business writes, paid AI/crawler work, V17 rerun, R17 or V18.
+
+Readiness remains `19/29` internal and `19/38` public with
+`api_f_current_release=VERIFIED` as the latest credit. The sole current task is
+still `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next, commit and push only this
+V2 compatibility checkpoint, require its exact-HEAD push and PR CI, then start
+the existing stopped builder and submit exactly one V2 execution. Its immediate
+hard acceptance is the exact 5335 local Admin image plus native evidence; the
+following hard acceptance remains one immutable private ACR manifest digest.
