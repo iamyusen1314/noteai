@@ -673,6 +673,25 @@ Last updated: 2026-08-03
   外部Stage A执行仍需新的明确一次性范围。V17 rerun、R17、V18、公网流量、schema/
   业务数据写、付费AI和crawler仍禁止。
 
+### Admin Stage A V5 applies only the timeout and observability correction
+
+- 状态: Mitigated locally / exact-HEAD CI pending。V4终态checkpoint `2cc6bf7…cdcd`
+  的push/PR CI均首轮成功，各`1775` tests、`28` skip、gate `137/137`、artifact
+  zero，且该HEAD精确只有两条普通CI。V5外部builder/upload/command/Trivy/Docker/
+  ACR/生产动作仍全为0，readiness仍`19/29` / `19/38`。
+- 最小实现: V5 executor为`31,071`字节、SHA-256 `4f2e6c11…3a249`。它只隔离
+  V5 task/transfer/container/invocation namespace，并在同一fresh Trivy DB命令上增加
+  显式`--timeout 15m`、删除`--no-progress`、通过`tee`同步输出并保留日志；既有
+  `set -Eeuo pipefail`确保Trivy非零仍传播。外层`1200s`保护不变且高于内部`900s`。
+- 不变边界: exact 5335 source/tree/parent、本地Git bundle、Dockerfile、模型、构建
+  参数、镜像tag、GHCR DB源、freshness、offline scan、Admin投影、11文件证据、ACR及
+  生产逻辑均未改变；未增加ledger/receipt/topology。独立复审要求补锁历史V4 SHA后
+  最终`P0=0/P1=0/P2=0`；V4/V5定向`9/9`、组合focused `25/25`及gate `137/137`
+  通过。
+- 执行边界: 独立只读复审及自身exact-HEAD双CI通过后，主CTO既有有限内部授权只允许
+  一次V5，不允许自动retry；V4永久不得rerun。Stage A硬条件仍是fresh DB、exact 5335
+  Admin AMD64本地镜像及11文件证据全部通过，之后才允许private ACR和可逆Stage C。
+
 ## Low Risks
 
 ### `model/api.py` is too large

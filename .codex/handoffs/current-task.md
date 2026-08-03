@@ -5579,3 +5579,43 @@ Any separately authorized successor must keep the existing `1200`-second outer
 bound, set Trivy's internal timeout explicitly below it, and retain observable
 download progress; only after Stage A succeeds may private ACR publication and
 Stage C begin.
+
+### Item 20 Admin Stage A V5 timeout-corrected successor candidate (2026-08-03)
+
+- The V4 terminal correction checkpoint is pushed at
+  `2cc6bf72258464a6754ee4594a721f64a247cdcd`; branch/upstream is `0/0`.
+  Its exact HEAD has exactly two ordinary CI runs and no other workflow run:
+  push `30792006004` / job `91617330241` and pull request `30792008479` /
+  job `91617338071`. Both completed success on attempt one, each passing
+  `1775` total tests with `28` ambient skips, Quality, production readiness
+  `137/137` and Docker Compose; artifact count and rerun count are zero.
+- The timeout-corrected successor is the direct executor
+  `deploy/production/admin_item20_stage_a_v5.sh`, `31,071` bytes, SHA-256
+  `4f2e6c116694347cbfb748ac486f1ab391f9e346df155b50d45c6f158db3a249`.
+  It has a distinct V5 task/transfer/container namespace and success invocation,
+  so terminal V4 is not rewritten or rerun.
+- The scanner delta is intentionally small: require the Trivy help surface to
+  expose `--timeout`, set the Trivy internal timeout explicitly to `15m` below
+  the unchanged GNU outer bound of `1200` seconds, remove `--no-progress`, and
+  stream while retaining the same scanner log through `tee`. The script already
+  uses `set -Eeuo pipefail`, so a failed or timed-out Trivy process remains a
+  failed pipeline and enters the existing cleanup trap.
+- Exact source commit/tree/parent and Git bundle, Dockerfile, model
+  materialization, build arguments, image tags, GHCR database repository,
+  database freshness validation, offline scan, Admin projection and 11-file
+  native evidence contract are unchanged. No ACR, database, service, public
+  traffic, custom ledger, receipt or topology logic was added.
+- Bash syntax, the offline self-test, exact V4-to-V5 delta assertion, timeout /
+  progress contract and mutation-boundary tests pass `4/4`. Independent
+  read-only re-review found the test had not pinned the historical V4 SHA; the
+  main CTO added that one assertion without changing the executor. Final
+  re-review is PASS with `P0=0 / P1=0 / P2=0`. The combined focused set passes
+  `25/25`, JSON and diff checks pass, production readiness remains `137/137`,
+  V5 external scope remains zero and the score stays `19/29` / `19/38`.
+
+Under the main CTO's standing finite, bounded internal authority, V5 may execute
+exactly once only after its own exact-HEAD push and pull-request CI pass. It has
+no automatic retry. V4 remains permanently non-rerunnable. The immediate hard
+acceptance condition remains a fresh Trivy database, exact 5335 Admin AMD64
+local image and all 11 unchanged native evidence files; only success admits
+private ACR Stage B and reversible Stage C.
