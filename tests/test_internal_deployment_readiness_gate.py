@@ -1487,6 +1487,14 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "path",
                     "ref": "tests/test_admin_item20_stage_a_v2.py",
                 },
+                {
+                    "kind": "path",
+                    "ref": "deploy/production/admin_item20_stage_a_v3.sh",
+                },
+                {
+                    "kind": "path",
+                    "ref": "tests/test_admin_item20_stage_a_v3.py",
+                },
             ],
         )
         self.assertNotIn(
@@ -2119,6 +2127,118 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             attempt2["authorization"]["additional_stage_a_execution_authorized"]
         )
         self.assertFalse(attempt2["readiness"]["credit_added"])
+
+        stage_a_v3 = admin["admin_stage_a_v3_preparation"]
+        self.assertEqual(stage_a_v3["result"], "OFFLINE_VALIDATED_NOT_EXECUTED")
+        self.assertEqual(
+            stage_a_v3["predecessor_failure_checkpoint"]["commit"],
+            "df9fb2b5167285aedb6fd618d9b819e082fd067e",
+        )
+        for event in ("push_ci", "pull_request_ci"):
+            ci = stage_a_v3["predecessor_failure_checkpoint"][event]
+            self.assertEqual(ci["attempt"], 1)
+            self.assertEqual(ci["conclusion"], "success")
+            self.assertEqual(ci["total_test_count"], 1765)
+            self.assertEqual(ci["production_readiness_checks"], "137/137")
+            self.assertEqual(ci["artifact_count"], 0)
+        self.assertEqual(
+            stage_a_v3["predecessor_failure_checkpoint"]["push_ci"]["run_id"],
+            30779761306,
+        )
+        self.assertEqual(
+            stage_a_v3["predecessor_failure_checkpoint"]["pull_request_ci"][
+                "run_id"
+            ],
+            30779762936,
+        )
+        self.assertEqual(
+            stage_a_v3["predecessor_failure_checkpoint"]["rerun_count"],
+            0,
+        )
+        self.assertEqual(
+            stage_a_v3["executor"]["path"],
+            "deploy/production/admin_item20_stage_a_v3.sh",
+        )
+        self.assertEqual(stage_a_v3["executor"]["byte_count"], 31609)
+        self.assertEqual(
+            stage_a_v3["executor"]["sha256"],
+            "562cceb3f6b08da0b8e0723e4b636d664b6fc67cf622c6da3061601ee8b3f31a",
+        )
+        self.assertEqual(stage_a_v3["executor"]["host_python_call_count"], 0)
+        transport = stage_a_v3["transport_recovery"]
+        self.assertEqual(transport["retryable_exit_code"], 128)
+        self.assertTrue(transport["retryable_stdout_must_be_empty"])
+        self.assertEqual(
+            transport["retryable_stderr_lines"],
+            [
+                "error: RPC failed; curl 52 Empty reply from server",
+                "fatal: expected 'packfile'",
+            ],
+        )
+        self.assertEqual(transport["stderr_normalization"], "terminal_cr_only")
+        self.assertEqual(transport["maximum_fetch_attempts"], 2)
+        self.assertEqual(transport["maximum_conditional_retry_count"], 1)
+        self.assertEqual(transport["retry_delay_seconds"], 2)
+        self.assertTrue(transport["clean_room_source_root_each_attempt"])
+        self.assertEqual(transport["fetch_http_version"], "HTTP/1.1")
+        self.assertEqual(transport["git_http_max_requests"], 1)
+        self.assertFalse(transport["source_url_changed"])
+        self.assertFalse(transport["mirror_proxy_or_credential_change"])
+        data_plane = stage_a_v3["data_plane_immutability"]
+        self.assertFalse(data_plane["build_context_changed"])
+        self.assertFalse(data_plane["dockerfile_changed"])
+        self.assertFalse(data_plane["image_content_changed"])
+        self.assertEqual(
+            data_plane["checkout_identity_block_sha256"],
+            "8e2fc83b2c55d5d34e42c46141e7691e4781b9d0931c10b26951adb63e238467",
+        )
+        self.assertEqual(
+            data_plane["model_through_success_cleanup_sha256"],
+            "bbb1975a2d0f78c02620850c1d4fedeffd6958b47e7533d3cc7dd23b88c0e3a8",
+        )
+        offline = stage_a_v3["offline_validation"]
+        self.assertEqual(offline["fixture_scenario_count"], 16)
+        self.assertTrue(offline["embedded_cr_rejected_without_retry"])
+        self.assertTrue(offline["exact_transient_twice_stops_after_two"])
+        self.assertTrue(offline["near_and_nontransient_failures_stop_after_one"])
+        self.assertTrue(offline["clean_room_residue_reuse_rejected"])
+        self.assertTrue(offline["byte_identical_transport_parameters_passed"])
+        self.assertEqual(offline["focused_test_count"], 5)
+        self.assertEqual(offline["independent_reviewer_pass_count"], 2)
+        external_scope = stage_a_v3["external_scope"]
+        for key in (
+            "builder_start_count",
+            "cloud_assistant_upload_count",
+            "cloud_assistant_execution_count",
+            "source_fetch_count",
+            "docker_build_count",
+            "acr_login_count",
+            "acr_publication_count",
+            "production_deployment_count",
+            "production_database_connection_count",
+            "production_database_write_count",
+            "production_service_mutation_count",
+            "public_traffic_mutation_count",
+        ):
+            self.assertEqual(external_scope[key], 0, key)
+        authorization = stage_a_v3["authorization"]
+        self.assertTrue(
+            authorization["single_v3_external_execution_authorized_after_exact_head_ci"]
+        )
+        self.assertTrue(authorization["authorization_is_root_cause_bound"])
+        self.assertEqual(
+            authorization["maximum_external_stage_a_execution_count"],
+            1,
+        )
+        self.assertFalse(
+            authorization["additional_stage_a_execution_on_failure_authorized"]
+        )
+        self.assertFalse(authorization["public_traffic_mutation_authorized"])
+        self.assertFalse(authorization["schema_or_business_data_mutation_authorized"])
+        self.assertTrue(authorization["v17_rerun_forbidden"])
+        self.assertTrue(authorization["r17_forbidden"])
+        self.assertTrue(authorization["v18_forbidden"])
+        self.assertFalse(stage_a_v3["readiness"]["credit_added"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

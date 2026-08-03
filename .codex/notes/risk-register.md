@@ -575,6 +575,30 @@ Last updated: 2026-08-03
   扩大费用或范围则必须请求用户决策。公网流量、schema/业务数据写、V17 rerun、
   R17和V18仍未授权且禁止。
 
+### Admin Stage A V3 source-fetch recovery is offline-proven, external acceptance pending
+
+- 状态: Mitigated offline / exact-HEAD CI与单次外部验收pending。V2保持冻结；V3
+  executor为`31,609`字节、SHA-256 `562cceb3…b3f31a`，尚未上传或执行，进度仍为
+  `19/29` / `19/38`。
+- 缓解: 只有exit `128`、stdout为空且stderr在仅去除行尾CR后恰为已观察到的两行
+  `curl 52`签名，首次失败才可触发一次重试。每次先删除受精确路径和symlink gate
+  限定的V3 source root，再以`0700`重建、重新Git init和添加唯一固定origin；两次
+  transport均固定HTTP/1.1、maxRequests=1、depth=1、exact release和两秒间隔。
+- 离线证据: `16`个fixture覆盖首轮成功、瞬时后成功、CRLF、行内CR拒绝、连续两次
+  瞬时失败、额外/缺失行、stdout、curl56、timeout、TLS/auth/repository/ref/permission/
+  disk；最多两次、clean-room residue删除和byte-identical参数均通过。focused tests
+  `5/5`；两名独立只读审计者最终均PASS。
+- 数据面边界: checkout identity block及model materialization到success cleanup与V2
+  byte-identical；source/tree、Dockerfile、OCI/image tags、native/projected脚本SHA、
+  build/scan和11文件证据合同均未变。无mirror、proxy、credential、换源、ACR或生产
+  实现扩展。
+- 剩余风险: 真实Git第二次传输（如需要）、Trivy下载和Docker构建仍未在旧builder
+  通过。V3必须先通过自身exact-HEAD push/PR双CI，之后只允许一次外部Stage A执行；
+  无论在第几次fetch或后续阶段失败，都不自动授权新的Stage A执行。
+- 是否需要用户确认后才能修改: 常设CTO授权覆盖上述双CI后唯一一次V3执行及成功后的
+  私有ACR/Stage C链，不再逐步询问。mirror、proxy、credential、换源、扩大费用/范围、
+  公网流量、schema/业务数据写、V17 rerun、R17或V18仍须新决策或明确禁止。
+
 ## Low Risks
 
 ### `model/api.py` is too large

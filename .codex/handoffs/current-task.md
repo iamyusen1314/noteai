@@ -5329,3 +5329,59 @@ and gated retry without another stepwise user confirmation. No blind retry is
 authorized. The immediate success condition remains the exact 5335 local Admin
 image plus 11 native evidence files; the next external hard condition remains
 one immutable private ACR manifest digest.
+
+### Item 20 Admin Stage A V3 bounded source-fetch recovery candidate (2026-08-03)
+
+- The append-only V2 failure checkpoint is committed and pushed at
+  `df9fb2b5167285aedb6fd618d9b819e082fd067e`. Its push CI
+  `30779761306` and pull-request CI `30779762936` both passed run one / attempt
+  one with `1765` total tests, `28` ambient skips, Quality, production
+  readiness `137/137`, Docker Compose and artifact count zero. Neither run was
+  rerun.
+- V2 remains frozen historical evidence. Its successor is
+  `deploy/production/admin_item20_stage_a_v3.sh`: `31,609` bytes, SHA-256
+  `562cceb3f6b08da0b8e0723e4b636d664b6fc67cf622c6da3061601ee8b3f31a`.
+  The only runtime change is source transport recovery. A retry is possible
+  only when attempt one exits `128`, stdout is empty, and stderr—after removing
+  only terminal CR from CRLF—contains exactly, and only, the two observed
+  `curl 52 Empty reply from server` / `fatal: expected 'packfile'` lines.
+  Every other exit, missing/extra/reordered line, stdout byte, embedded CR,
+  timeout, TLS, authentication, repository/ref, permission or disk failure
+  stops after one attempt.
+- The maximum is two fetch attempts. Before each, the exact V3 source root is
+  removed only after a fixed path/symlink safety gate, recreated at mode `0700`,
+  initialized as a new Git repository and given only the fixed GitHub origin.
+  Both transports are byte-identical: HTTP/1.1, `GIT_HTTP_MAX_REQUESTS=1`, Git
+  `http.maxRequests=1`, no tags, depth one, exact release and a fixed two-second
+  delay. No mirror, proxy, credential, source URL, TLS verification or build
+  input changed; no third attempt is expressible.
+- Offline acceptance passes Bash 3.2 syntax/runtime, `16` source-fetch fixture
+  scenarios and focused tests `5/5`. Fixtures prove first-attempt success,
+  exact transient then success, CRLF acceptance, embedded-CR rejection,
+  exact transient twice then stop, near/non-transient one-attempt stop,
+  clean-room removal of sentinel/FETCH_HEAD/partial objects and byte-identical
+  transport arguments. One independent auditor found the initial all-CR
+  normalization too broad; the main CTO narrowed it to terminal CR only, added
+  the embedded-CR negative fixture, reran `5/5`, and the auditor returned PASS.
+  A second independent audit also returned PASS.
+- Data-plane immutability is independently proven: the checkout identity block
+  is the same `316` bytes / SHA-256 `8e2fc83b…e238467`; model materialization
+  through success cleanup is the same `12,143` bytes / SHA-256
+  `bbb1975a…c0e3a8`; source/tree, Dockerfile, OCI/image tags, native script
+  `639941a2…7d3a2`, projected Admin script `a2420972…df22c`, build/scan and all
+  11-file acceptance predicates are unchanged.
+- V3 external counts are all zero: builder start, file upload, command
+  execution, source fetch, Docker build, ACR login/publication, production
+  connection/deployment/database/service/public-traffic mutation. This
+  preparation earns no credit; readiness remains `19/29` internal and `19/38`
+  public, with sole task `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
+Next, commit and push this exact V3 successor and require its exact-HEAD push
+and pull-request CI to pass on first attempt. The standing CTO authorization
+then permits exactly one V3 external execution on the existing isolated builder
+without another stepwise confirmation. The immediate hard acceptance is the
+exact 5335 local Admin image plus all 11 native evidence files; the following
+hard acceptance is one immutable private ACR manifest digest. A terminal V3
+failure authorizes no additional Stage A execution. Mirror/proxy/credential,
+source change, expanded cost/scope, public traffic, schema/business writes,
+V17 rerun, R17 and V18 remain outside authority.
