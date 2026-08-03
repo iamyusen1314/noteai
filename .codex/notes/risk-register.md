@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-02
+Last updated: 2026-08-03
 
 ## Critical Risks
 
@@ -509,6 +509,28 @@ Last updated: 2026-08-02
 - 四项原生证据: workflow run ID已取得；C17 SHA已固定；artifact digest缺失（GitHub artifact API `total_count=0`）；fresh-builder导入成功证明缺失（import步骤未到达）。因此本次V17不满足缓存可移植性验收，也不增加第20项积分。
 - 清理与影响: 两个builder和新增images均删除，images/containers/volumes/networks parity、Docker/Buildx roots及diagnostic files absence均pass，`cleanup_effective=true`。`overall_pass=false`仅因进入cleanup时`pre_state=drift`，不是资源泄漏。artifact download、transfer、ACR、部署、数据库/service及public traffic变更均为0。
 - 唯一硬条件: V17缓存证据缺一个已上传artifact及fresh builder成功导入它的证明；第20项最终仍需真实私有Admin当前版本部署及负向runtime、health、rollback验收。除非产品负责人另行授权新的、明确不同的执行范围，否则不得修改实现或再次运行缓存导出。
+
+### Admin Stage A attempt 1 failed before build on the builder host Python runtime
+
+- 状态: Open High / Item 20 hard gate。唯一Cloud Assistant执行
+  `t-sz06stvryp6jaww`（command `c-sz06stvryorjwu8`）在三秒内以exit `1`
+  失败；`docker buildx build`、ACR发布和生产Admin变更均未开始，进度仍为
+  `19/29` / `19/38`。
+- 风险描述: 临时Stage A脚本调用builder宿主机的`python3`执行固定5335源码内
+  `scripts/fetch_model_artifacts.py`，但宿主解释器不支持
+  `from __future__ import annotations`。原只读preflight未验证最低Python兼容性；
+  脚本后续还使用`datetime.fromisoformat`，因此只绕过首个报错会在后续再次暴露
+  同类版本问题。
+- 影响与清理: 失败发生在`model_materialization`，候选镜像和task root均不存在，
+  运行容器为0；artifact、ACR login/push/readback、Admin canary、service、数据库、
+  公网流量写均为0。既有builder已读回`已停止 / 节省停机模式`。自动重试、手工
+  rerun和第二次执行均为0。
+- 建议验证方式: 将Stage A宿主侧验证改为不依赖旧Python的确定性shell/jq检查，
+  或在付费执行前先证明兼容解释器；对全部宿主侧snippet做离线fixture测试，不能只
+  修改第一个失败行。新的外部执行必须先获得一次新的有界授权，并仍以精确5335
+  ACR immutable manifest digest为下一硬条件。
+- 是否需要用户确认后才能修改: 离线修正和测试不需要；启动builder或再次执行任何
+  外部Stage A命令需要新的明确授权。V17仍禁止rerun，禁止R17/V18。
 
 ## Low Risks
 

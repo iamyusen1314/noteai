@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-08-02",
+  "as_of_date": "2026-08-03",
   "status_values": [
     "verified",
     "unverified",
@@ -1944,6 +1944,72 @@
               "credit_added": false,
               "latest_verified_item": "api_f_current_release"
             }
+          },
+          "admin_stage_a_attempt1": {
+            "result": "FAILED_BEFORE_DOCKER_BUILD",
+            "source_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+            "source_tree": "38e574e56406ba3380acb78edbe784508cc537cd",
+            "target_tag": "git-5335bda-amd64-admin-r1",
+            "cloud_assistant": {
+              "upload_invocation_id": "f-sz06stvaenzfp4w",
+              "command_invocation_id": "t-sz06stvryp6jaww",
+              "command_id": "c-sz06stvryorjwu8",
+              "command_name": "noteai-admin-item20-stage-a-execute-v1",
+              "created_at": "2026-08-03T08:37:01+08:00",
+              "completed_at": "2026-08-03T08:37:05+08:00",
+              "duration_seconds": 3,
+              "exit_code": 1
+            },
+            "uploaded_script": {
+              "path": "/root/admin_item20_stage_a_v1.sh",
+              "owner_group_mode": "0:0:600",
+              "byte_count": 16776,
+              "sha256": "0843d51302f01e9e865e0f0c6bb864a7a29d98c73079a5c58b189892cb9d2342"
+            },
+            "failure": {
+              "phase": "model_materialization",
+              "entrypoint": "python3 scripts/fetch_model_artifacts.py --check-only --required",
+              "message": "SyntaxError: future feature annotations is not defined",
+              "minimum_python_preflight_missing": true,
+              "docker_build_reached": false,
+              "native_release_evidence_reached": false,
+              "acr_publication_reached": false,
+              "production_deployment_reached": false
+            },
+            "cleanup": {
+              "target_images_absent": true,
+              "task_root_absent": true,
+              "running_container_count": 0,
+              "builder_instance_status": "stopped",
+              "builder_stop_mode": "saving",
+              "builder_stop_observed_at": "2026-08-03T08:43:57+08:00"
+            },
+            "execution_scope": {
+              "existing_builder_start_count": 1,
+              "builder_reboot_count": 1,
+              "cloud_assistant_execution_count": 1,
+              "docker_build_count": 0,
+              "acr_publication_count": 0,
+              "production_deployment_count": 0,
+              "production_database_write_count": 0,
+              "production_service_mutation_count": 0,
+              "public_traffic_mutation_count": 0
+            },
+            "authorization": {
+              "bounded_attempt_consumed": true,
+              "automatic_retry_count": 0,
+              "rerun_count": 0,
+              "second_external_execution_authorized": false
+            },
+            "readiness": {
+              "internal_verified_count": 19,
+              "internal_total_count": 29,
+              "public_verified_count": 19,
+              "public_total_count": 38,
+              "credit_added": false,
+              "latest_verified_item": "api_f_current_release"
+            },
+            "next_hard_condition": "A newly authorized single external attempt must first prove a compatible host-side validation path, then produce and privately publish the exact 5335 Admin image by immutable ACR manifest digest before any production Admin mutation."
           },
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },

@@ -5160,3 +5160,62 @@ by the terminal V17 record below. Do not execute them.
   builder; item 20's ultimate hard condition remains the real private Admin
   current-release deployment with negative runtime, health and rollback
   acceptance. No implementation change is authorized from this failed run.
+
+### Item 20 exact-5335 Admin Stage A attempt 1 failed before Docker build (2026-08-03)
+
+- Read-only takeover reconfirmed branch
+  `codex/quality-stabilization-real-chain`, local/upstream HEAD
+  `da59c425c1faef02b7c1349ceb16b818ff47fdda`, divergence `0/0` and a
+  clean tracked worktree. Item 20 remains the only task; V17 is not an Item 20
+  prerequisite and will not be rerun. No R17 or V18 was created.
+- Existing isolated AMD64 PAYG builder
+  `i-wz99180s9ig5ecq10uaj` passed the bounded read-only preflight after one
+  controlled reboot: `x86_64`, Docker active, zero running containers, zero
+  Docker auth/helper/store entries, zero build processes, at least `82,899`
+  MiB free disk and `15,032` MiB available memory. No new builder was created.
+- Secret-free Stage A script `/root/admin_item20_stage_a_v1.sh` was sent to
+  that builder only by Cloud Assistant file invocation
+  `f-sz06stvaenzfp4w`. The accepted file contract was root/root mode `0600`,
+  `16,776` bytes and SHA-256
+  `0843d51302f01e9e865e0f0c6bb864a7a29d98c73079a5c58b189892cb9d2342`.
+- Exactly one execution was submitted: Cloud Assistant invocation
+  `t-sz06stvryp6jaww`, command `c-sz06stvryorjwu8`, name
+  `noteai-admin-item20-stage-a-execute-v1`, created
+  `2026-08-03T08:37:01+08:00`, completed
+  `2026-08-03T08:37:05+08:00`, duration three seconds, exit code `1`.
+  API-F and API-C were not selected. Automatic retry, manual rerun and a
+  second execution are all zero.
+- The attempt failed closed in `model_materialization` before any Docker build.
+  The exact failing entrypoint was
+  `python3 scripts/fetch_model_artifacts.py --check-only --required`; the
+  builder host interpreter rejected `from __future__ import annotations` as
+  an undefined future feature. This proves the preflight omitted a required
+  host-Python compatibility check. `docker buildx build`, native release
+  evidence, ACR login/push/readback, Admin canary, service mutation, database
+  writes and public-traffic mutation were not reached.
+- Failure cleanup reported
+  `NOTEAI_ADMIN_STAGE_A_CLEANUP target_images=absent task_root=absent running=0`.
+  The wrapper returned normally through its unconditional uploaded-file EXIT
+  trap. The builder was then observed `已停止 / 节省停机模式` at
+  `2026-08-03T08:43:57+08:00`. No candidate image, registry tag/digest,
+  provider artifact, production resource or residual running container was
+  created.
+- Secret-free checkpoint validation passed JSON parsing, all `16/16` focused
+  internal-readiness tests, the internal gate at `19/29` / `19/38`, the full
+  production gate at `137/137` and `git diff --check`.
+- This attempt earns no credit. Internal/public readiness remains `19/29` /
+  `19/38`, latest credit remains `api_f_current_release=VERIFIED`, and the sole
+  task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
+The current bounded external attempt is consumed and must not be retried under
+the same authority. The smallest technical correction is to remove the legacy
+host-Python dependency from all Stage A validation snippets, or prove a
+compatible interpreter before any paid execution; the current script also has
+a later `datetime.fromisoformat` host-version dependency, so changing only the
+first failing line would be insufficient. Before any new external attempt, the
+corrected validation path must be versioned and pass offline syntax/fixture
+checks. A new explicit bounded authority is then required for exactly one
+corrected Stage A execution. Its next hard acceptance condition is still the
+immutable ACR manifest digest for exact source
+`5335bdaed933b1f999b5f819c047ec50c11821ae`; only after that digest exists may
+the audited Admin canary, negative runtime matrix and component rollback run.

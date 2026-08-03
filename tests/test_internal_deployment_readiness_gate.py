@@ -1966,6 +1966,39 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertTrue(v17["authorization"]["r17_forbidden"])
         self.assertTrue(v17["authorization"]["v18_forbidden"])
         self.assertFalse(v17["readiness"]["credit_added"])
+
+        stage_a = admin["admin_stage_a_attempt1"]
+        self.assertEqual(stage_a["result"], "FAILED_BEFORE_DOCKER_BUILD")
+        self.assertEqual(
+            stage_a["source_commit"],
+            "5335bdaed933b1f999b5f819c047ec50c11821ae",
+        )
+        self.assertEqual(
+            stage_a["cloud_assistant"]["command_invocation_id"],
+            "t-sz06stvryp6jaww",
+        )
+        self.assertEqual(stage_a["cloud_assistant"]["exit_code"], 1)
+        self.assertEqual(stage_a["failure"]["phase"], "model_materialization")
+        self.assertIn(
+            "future feature annotations is not defined",
+            stage_a["failure"]["message"],
+        )
+        self.assertFalse(stage_a["failure"]["docker_build_reached"])
+        self.assertFalse(stage_a["failure"]["acr_publication_reached"])
+        self.assertFalse(stage_a["failure"]["production_deployment_reached"])
+        self.assertTrue(stage_a["cleanup"]["target_images_absent"])
+        self.assertTrue(stage_a["cleanup"]["task_root_absent"])
+        self.assertEqual(stage_a["cleanup"]["running_container_count"], 0)
+        self.assertEqual(stage_a["cleanup"]["builder_instance_status"], "stopped")
+        self.assertEqual(stage_a["cleanup"]["builder_stop_mode"], "saving")
+        self.assertEqual(stage_a["execution_scope"]["docker_build_count"], 0)
+        self.assertEqual(stage_a["execution_scope"]["acr_publication_count"], 0)
+        self.assertEqual(stage_a["authorization"]["automatic_retry_count"], 0)
+        self.assertEqual(stage_a["authorization"]["rerun_count"], 0)
+        self.assertFalse(
+            stage_a["authorization"]["second_external_execution_authorized"]
+        )
+        self.assertFalse(stage_a["readiness"]["credit_added"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]
