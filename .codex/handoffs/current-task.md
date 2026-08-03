@@ -5682,3 +5682,33 @@ The next action is one bounded, download-only throughput probe against the
 official Public ECR repository. It must not build an image, touch ACR or
 production, or repeat V5. Only a demonstrated adequate blob path may justify
 the minimal scanner-repository transport change.
+
+### Item 20 official Public ECR probe and repository-only successor (2026-08-03)
+
+- The authorized download-only probe ran exactly once against
+  `public.ecr.aws/aquasecurity/trivy-db:2`: the full fresh `103.39 MiB`
+  target completed in `26s`, Trivy/tee/command all returned `0`, and
+  freshness validation passed. The unpacked DB was `1,223,847,936` bytes,
+  SHA-256 `4f61ad6f60fe87055d2a9d43ab43e9da0f76a219f5aa6d59167e387cce2b5285`;
+  metadata SHA-256 was
+  `5f4a6c2cf1c0650a50f2c46d5c41849fd36ff37bc8b1b64268a1351ed7859d83`.
+- Cleanup proved the probe root absent; Docker build, ACR and production
+  actions were zero. The builder returned `已停止 / 节省停机模式` and released
+  its temporary public IPv4. This closes the diagnosis as GHCR-route severe
+  slowness; the official Public ECR route is adequate and the probe will not
+  rerun.
+- The repository-only successor
+  `deploy/production/admin_item20_stage_a_public_ecr.sh` is `31,143` bytes,
+  SHA-256 `a7cf0f48e23171aef3774f2f6db2620f90ccbb8d35b48dadeb0b039a5ff99259`.
+  Relative to frozen V5, only its isolated namespace and DB repository change.
+  Exact source/tree/bundle, Dockerfile, model materialization, image tags,
+  build arguments, timeout/freshness/offline-scan and 11-file evidence
+  contracts remain fixed. Its exact-delta test passes `4/4`; combined focused
+  tests pass `29/29` and production readiness passes `137/137`. No workflow,
+  custom ledger, receipt or topology layer was added.
+
+Readiness remains `19/29` internal and `19/38` public; the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next require the successor's exact-HEAD
+push/PR CI, then execute Stage A once and produce the exact 5335 Admin AMD64
+local image plus all 11 unchanged native evidence files; continue to private
+ACR and reversible Stage C after that acceptance.

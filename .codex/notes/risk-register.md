@@ -691,20 +691,22 @@ Last updated: 2026-08-03
   命令的绝对context budget，不是无进展timeout，因此V5只能归类为builder→GHCR
   blob严重低吞吐，不能归类为stalled、zero progress或源码/构建失败。
 - 恢复边界: Trivy 0.72失败后不保留partial/resume；慢body copy耗尽deadline后也不能
-  可靠依赖多repository fallback。官方替代候选精确为
-  `public.ecr.aws/aquasecurity/trivy-db:2`。历史只证明同一builder匿名Public ECR
-  endpoint可达，尚未证明当前103.39 MiB DB blob吞吐；不得把reachability写成完成证据。
-  唯一合理下一步是一次有界、download-only、fresh-cache吞吐探针；不得构建镜像、登录
-  ACR、触碰生产或把它伪装成V5 rerun。
+  可靠依赖多repository fallback。唯一download-only fresh-cache探针现已证明官方
+  `public.ecr.aws/aquasecurity/trivy-db:2`可用：完整`103.39 MiB`在`26s`内完成、exit
+  `0`、freshness PASS，DB/metadata SHA-256分别为`4f61ad6f…b5285`/
+  `5f4a6c2c…59d83`，probe root清理且builder恢复停止节省模式并释放临时公网IPv4。
+  因此GHCR严重低吞吐已由官方替代路径绕开；探针不得rerun。
 - 清理/影响: target image/task root/running container为absent/absent/0，transfer
   chunks/root为0/absent；builder已回到停止节省模式并释放临时公网IPv4。本机两份精确
   transfer目录已从`/private/tmp`移入Trash，可恢复。ACR login/publication、生产DB连接/
   写、service和public traffic mutation均0。V5 exact-one授权已消费且永久no-rerun；
   V4/V17不得rerun，R17/V18不得创建；不新增ledger/receipt/topology。
-- readiness/唯一硬条件: 仍为`19/29` / `19/38`，不加credit。通俗地说，当前只缺一件
-  硬证据：完整fresh `103.39 MiB` Trivy DB必须通过一个官方路径足够快地到达builder，
-  然后原封不动完成exact 5335 Admin镜像与11文件native evidence。未证明该传输前，
-  不应继续靠延长GHCR timeout或新增版本号来消耗时间。
+- readiness/剩余风险: 仍为`19/29` / `19/38`，不加credit。repository-only successor
+  `admin_item20_stage_a_public_ecr.sh`仅隔离namespace并替换DB repository；source、
+  build、image和11文件evidence合同不变。当前真实风险转为fresh build/scan能否通过既有
+  23-row漏洞安全门禁；在真实证据出现前不得预改该门禁。下一边界是successor exact-HEAD
+  push/PR双CI，然后exact-one Stage A取得exact 5335 Admin镜像和11文件evidence；不得
+  延长GHCR timeout、创建新cache版本或扩展ledger/receipt/topology。
 
 ## Low Risks
 

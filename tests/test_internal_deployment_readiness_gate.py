@@ -1515,6 +1515,17 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "path",
                     "ref": "tests/test_admin_item20_stage_a_v5.py",
                 },
+                {
+                    "kind": "path",
+                    "ref": (
+                        "deploy/production/"
+                        "admin_item20_stage_a_public_ecr.sh"
+                    ),
+                },
+                {
+                    "kind": "path",
+                    "ref": "tests/test_admin_item20_stage_a_public_ecr.py",
+                },
             ],
         )
         self.assertNotIn(
@@ -2906,6 +2917,94 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             v5_serialized,
             r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
         )
+        public_ecr = admin["admin_stage_a_public_ecr_transition"]
+        self.assertEqual(
+            public_ecr["result"],
+            "PROBE_PASS_SUCCESSOR_PREPARED_NOT_EXECUTED",
+        )
+        probe = public_ecr["probe"]
+        self.assertEqual(
+            probe["repository"],
+            "public.ecr.aws/aquasecurity/trivy-db:2",
+        )
+        self.assertEqual(probe["target_mebibytes"], 103.39)
+        self.assertEqual(probe["elapsed_seconds"], 26)
+        self.assertEqual(probe["exit_code"], 0)
+        self.assertTrue(probe["freshness_validation_passed"])
+        self.assertEqual(probe["database_byte_count"], 1223847936)
+        self.assertEqual(
+            probe["database_sha256"],
+            "4f61ad6f60fe87055d2a9d43ab43e9da0f76a219f5aa6d59167e387cce2b5285",
+        )
+        self.assertEqual(
+            probe["metadata_sha256"],
+            "5f4a6c2cf1c0650a50f2c46d5c41849fd36ff37bc8b1b64268a1351ed7859d83",
+        )
+        for key in (
+            "probe_root_absent",
+            "builder_stopped_in_saving_mode",
+            "temporary_public_ipv4_released",
+        ):
+            self.assertTrue(probe[key], key)
+        for key in (
+            "docker_build_count",
+            "acr_action_count",
+            "production_mutation_count",
+        ):
+            self.assertEqual(probe[key], 0, key)
+        successor = public_ecr["successor"]
+        self.assertEqual(
+            successor["base_checkpoint_commit"],
+            "f606f49cc88fa4e3993a2e7fb5d2dbba463bc55f",
+        )
+        self.assertEqual(
+            successor["executor_path"],
+            "deploy/production/admin_item20_stage_a_public_ecr.sh",
+        )
+        self.assertEqual(successor["executor_byte_count"], 31143)
+        self.assertEqual(
+            successor["executor_sha256"],
+            "a7cf0f48e23171aef3774f2f6db2620f90ccbb8d35b48dadeb0b039a5ff99259",
+        )
+        self.assertEqual(
+            successor["v5_executor_sha256"],
+            "4f2e6c116694347cbfb748ac486f1ab391f9e346df155b50d45c6f158db3a249",
+        )
+        self.assertEqual(
+            successor["repository_before"],
+            "ghcr.io/aquasecurity/trivy-db:2",
+        )
+        self.assertEqual(
+            successor["repository_after"],
+            "public.ecr.aws/aquasecurity/trivy-db:2",
+        )
+        self.assertTrue(successor["namespace_isolated"])
+        self.assertTrue(
+            successor["source_build_image_and_evidence_contracts_unchanged"]
+        )
+        self.assertFalse(successor["custom_ledger_receipt_or_topology_added"])
+        self.assertEqual(
+            successor["local_gate"],
+            "29/29 focused; production 137/137",
+        )
+        self.assertEqual(successor["external_execution_count"], 0)
+        self.assertEqual(public_ecr["readiness"]["internal"], "19/29")
+        self.assertEqual(public_ecr["readiness"]["public"], "19/38")
+        self.assertFalse(public_ecr["readiness"]["credit_added"])
+        public_ecr_serialized = json.dumps(public_ecr, ensure_ascii=False)
+        self.assertNotRegex(
+            public_ecr_serialized,
+            r"\b[ictf]-[a-z0-9]{8,}\b",
+        )
+        self.assertNotRegex(
+            public_ecr_serialized,
+            r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+        )
+        self.assertIn(
+            "completed the full 103.39 MiB transfer in 26 seconds",
+            admin["blocker"],
+        )
+        self.assertIn("exact-head push and pull-request CI", admin["blocker"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]
