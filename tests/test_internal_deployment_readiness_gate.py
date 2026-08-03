@@ -1495,6 +1495,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                     "kind": "path",
                     "ref": "tests/test_admin_item20_stage_a_v3.py",
                 },
+                {
+                    "kind": "git",
+                    "ref": "6951a003097599f8c82fb46cbdc84b316238ff05",
+                },
             ],
         )
         self.assertNotIn(
@@ -2294,6 +2298,127 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertTrue(authorization["r17_forbidden"])
         self.assertTrue(authorization["v18_forbidden"])
         self.assertFalse(stage_a_v3["readiness"]["credit_added"])
+        v3_attempt = admin["admin_stage_a_v3_attempt1"]
+        self.assertEqual(
+            v3_attempt["result"],
+            "FAILED_DURING_FIRST_SOURCE_FETCH_BEFORE_DOCKER_BUILD",
+        )
+        self.assertEqual(
+            v3_attempt["controller_commit"],
+            "6951a003097599f8c82fb46cbdc84b316238ff05",
+        )
+        for event, run_id, job_id in (
+            ("push", 30782246083, 91589070216),
+            ("pull_request", 30782247926, 91589075091),
+        ):
+            ci = v3_attempt["exact_head_ci"][event]
+            self.assertEqual(ci["run_id"], run_id)
+            self.assertEqual(ci["job_id"], job_id)
+            self.assertEqual(ci["attempt"], 1)
+            self.assertEqual(ci["head_sha"], v3_attempt["controller_commit"])
+            self.assertEqual(ci["conclusion"], "success")
+            self.assertEqual(ci["total_test_count"], 1770)
+            self.assertEqual(ci["ambient_skipped_count"], 28)
+            self.assertEqual(ci["production_readiness_checks"], "137/137")
+            self.assertEqual(ci["artifact_count"], 0)
+        self.assertEqual(v3_attempt["exact_head_ci"]["rerun_count"], 0)
+        transport = v3_attempt["transport"]
+        self.assertEqual(transport["archive"]["byte_count"], 8851)
+        self.assertEqual(
+            transport["archive"]["sha256"],
+            "a36777a59d5bd364e6757e6abfa697b7e44517427e50386407f235e0c4201c8e",
+        )
+        self.assertEqual(transport["executor"]["byte_count"], 31609)
+        self.assertEqual(
+            transport["executor"]["sha256"],
+            "562cceb3f6b08da0b8e0723e4b636d664b6fc67cf622c6da3061601ee8b3f31a",
+        )
+        self.assertEqual(transport["command_wrapper"]["byte_count"], 1142)
+        self.assertEqual(
+            transport["command_wrapper"]["sha256"],
+            "ca69e854cd423c7e2a624c942b5a9f9561c69730a08c92941137157e6303d263",
+        )
+        self.assertTrue(
+            transport["command_wrapper"][
+                "pre_execution_archive_and_executor_gate_passed"
+            ]
+        )
+        self.assertEqual(transport["file_send_count"], 1)
+        self.assertFalse(transport["api_c_selected"])
+        self.assertFalse(transport["api_f_selected"])
+        command = v3_attempt["cloud_assistant"]
+        self.assertEqual(
+            command["command_name"],
+            "noteai-admin-item20-stage-a-execute-v3",
+        )
+        self.assertEqual(command["execution_count"], 1)
+        self.assertEqual(command["duration_seconds"], 91)
+        self.assertEqual(command["exit_code"], 128)
+        failure = v3_attempt["failure"]
+        self.assertEqual(failure["phase"], "source_fetch")
+        self.assertEqual(failure["source_fetch_attempt_count"], 1)
+        self.assertEqual(
+            failure["normalized_error_class"],
+            "fixed_origin_empty_reply",
+        )
+        self.assertFalse(failure["v3_retry_signature_match"])
+        self.assertEqual(failure["conditional_retry_count"], 0)
+        self.assertFalse(failure["docker_build_reached"])
+        self.assertFalse(failure["native_release_evidence_reached"])
+        cleanup = v3_attempt["cleanup"]
+        self.assertTrue(cleanup["target_images_absent"])
+        self.assertTrue(cleanup["task_root_absent"])
+        self.assertEqual(cleanup["running_container_count"], 0)
+        self.assertEqual(cleanup["builder_instance_status"], "stopped")
+        self.assertEqual(cleanup["builder_stop_mode"], "saving")
+        self.assertTrue(cleanup["public_ipv4_released_in_saving_mode"])
+        scope = v3_attempt["execution_scope"]
+        self.assertEqual(scope["source_fetch_attempt_count"], 1)
+        for key in (
+            "conditional_retry_count",
+            "automatic_retry_count",
+            "manual_rerun_count",
+            "second_v3_execution_count",
+            "stage_a_v4_execution_count",
+            "docker_build_count",
+            "native_evidence_set_count",
+            "acr_login_count",
+            "acr_publication_count",
+            "acr_readback_count",
+            "stage_c_execution_count",
+            "production_database_connection_count",
+            "production_database_write_count",
+            "production_service_mutation_count",
+            "public_traffic_mutation_count",
+        ):
+            self.assertEqual(scope[key], 0, key)
+        v3_authorization = v3_attempt["authorization"]
+        self.assertTrue(
+            v3_authorization["exact_one_v3_external_execution_consumed"]
+        )
+        self.assertTrue(v3_authorization["v3_rerun_forbidden"])
+        self.assertFalse(
+            v3_authorization["additional_stage_a_external_execution_authorized"]
+        )
+        self.assertTrue(v3_authorization["stage_a_v4_forbidden"])
+        self.assertTrue(
+            v3_authorization["downstream_stage_b_and_c_blocked_without_image"]
+        )
+        self.assertFalse(v3_attempt["readiness"]["credit_added"])
+        self.assertFalse(v3_attempt["secret_free"]["alibaba_resource_ids_persisted"])
+        v3_serialized = json.dumps(v3_attempt, ensure_ascii=False)
+        self.assertNotRegex(v3_serialized, r"\b[ictf]-[a-z0-9]{8,}\b")
+        self.assertNotRegex(
+            v3_serialized,
+            r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+        )
+        checkpoint = v3_attempt["checkpoint_validation"]
+        self.assertEqual(checkpoint["changed_path_count"], 4)
+        self.assertTrue(checkpoint["json_parse_passed"])
+        self.assertTrue(checkpoint["diff_check_passed"])
+        self.assertEqual(checkpoint["focused_test_count"], 21)
+        self.assertEqual(checkpoint["production_readiness_checks"], "137/137")
+        self.assertTrue(checkpoint["temporary_transfer_files_deleted"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

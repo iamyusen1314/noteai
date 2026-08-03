@@ -617,6 +617,30 @@ Last updated: 2026-08-03
 - 是否需要用户确认后才能修改: 不需要；常设CTO授权覆盖CI根因的最小离线修复。
   任何降低真实100-job验收、扩大生产范围或重跑外部Stage A仍不由本修复授权。
 
+### Admin Stage A V3 unique external attempt failed on a new Git transport signature
+
+- 状态: Open High / exact-one V3已消耗且安全清理。修正后的exact-HEAD push/PR CI
+  均首轮通过，每路`1770` tests、`28` ambient skips、gate `137/137`、artifact
+  zero；随后V3仅执行一次，`1分31秒`后exit `128`。进度仍为`19/29` / `19/38`。
+- 根因边界: `8,851`字节archive和`31,609`字节executor的size/SHA/owner/mode验证
+  通过；失败发生在首次固定GitHub source fetch。实际终态为
+  `fatal: unable to access ... Empty reply from server`，不等于V3唯一允许重试的
+  两行`curl 52` / `expected 'packfile'`精确签名，因此执行器正确没有触发第二次
+  clean-room fetch。该证据只能说明外部Git HTTPS连接被空响应中止，不能归因于
+  Dockerfile、构建内容、镜像或扫描。
+- 影响与清理: checkout、model materialization、Trivy、Docker build/scan、11文件
+  native evidence、ACR、Admin canary、数据库/service和public traffic均未到达。
+  脚本证明target images和task root不存在、running containers为0；SHA验证后的
+  wrapper通过EXIT trap删除传输archive/executor。builder最终为
+  `已停止 / 节省停机模式`且公网IP字段为`-`，没有新builder、镜像、registry对象、
+  provider artifact或生产资源。
+- 剩余硬条件: 必须有一次合规且获授权的builder执行真正取得exact 5335 source，并
+  完成Admin本地镜像及11文件证据；其后才允许私有ACR immutable manifest digest，
+  再后才是Stage C。没有镜像时，ACR/Stage C不能以缓存、CI或文档证据替代。
+- 是否需要用户确认后才能修改: V3永久禁止rerun；当前授权不包含第二次Stage A外部
+  执行、换源、mirror、proxy或credential。checkpoint和只读根因审计可继续；任何
+  新外部执行或来源交付方式必须先有新的明确范围，不得以“重试”名义盲目触发。
+
 ## Low Risks
 
 ### `model/api.py` is too large

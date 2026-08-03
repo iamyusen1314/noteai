@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-02 (Asia/Shanghai)
+> Updated: 2026-08-03 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -5421,3 +5421,59 @@ V17 rerun, R17 and V18 remain outside authority.
 Next, commit and push this scheduler-hermetic test-only successor, require its
 fresh exact-HEAD push and pull-request CI to pass, then execute V3 exactly once
 under the existing standing authority. Do not rerun either `682a18d` CI.
+
+### Item 20 Admin Stage A V3 unique external attempt failed closed (2026-08-03)
+
+- Scheduler-hermetic successor `6951a003097599f8c82fb46cbdc84b316238ff05`
+  is pushed and equals local/upstream HEAD. Push CI `30782246083` / job
+  `91589070216` and pull-request CI `30782247926` / job `91589075091` both
+  passed run one / attempt one at that exact HEAD. Each completed `1770`
+  tests with `28` ambient skips, Quality, production readiness `137/137`,
+  Docker Compose and artifact count zero. Neither run was rerun.
+- The frozen V3 executor remains exactly `31,609` bytes / SHA-256
+  `562cceb3f6b08da0b8e0723e4b636d664b6fc67cf622c6da3061601ee8b3f31a`.
+  It was compressed into one `8,851`-byte archive with SHA-256
+  `a36777a59d5bd364e6757e6abfa697b7e44517427e50386407f235e0c4201c8e`.
+  Exactly one root-owned mode-`0600` file was sent to only the existing
+  isolated builder; API-C and API-F were not selected. The exact command
+  wrapper was independently SHA-checked locally, verified archive/executor
+  owner, mode, size and SHA before execution, ran exactly one `bash`, and has
+  an unconditional EXIT cleanup for both transferred files.
+- Exactly one command named `noteai-admin-item20-stage-a-execute-v3` was run
+  as root in immediate Shell mode with a `7200`-second timeout and ProcessTree
+  termination. It ran `1m31s`, returned exit `128`, and was not retried or
+  rerun. Transfer and decompression verification passed before the executor
+  emitted `NOTEAI_ADMIN_STAGE_A_V3_TRANSFER_SHA=OK`.
+- Source fetch attempt one then returned a new fail-closed signature:
+  `fatal: unable to access` the fixed GitHub source with
+  `Empty reply from server`. It did not contain the exact two-line
+  `curl 52` / `expected 'packfile'` signature authorized for V3's single
+  conditional clean-room retry, so no second fetch was attempted. The executor
+  correctly reported `phase=source_fetch exit=128` after one attempt.
+- Checkout, model materialization, Trivy DB download, Docker build/scan,
+  native evidence, ACR login/publication/readback, Admin canary, production
+  database/service mutation and public traffic were not reached. Failure
+  cleanup proved both target images absent, the V3 task root absent and zero
+  running containers. The verified wrapper EXIT trap removed the archive and
+  executor; this file removal was not separately probed by another external
+  command.
+- The builder was explicitly returned to `已停止 / 节省停机模式`. At
+  `2026-08-03T12:13:42+08:00`, its public IP field was `-` and only the
+  bind/allocate actions remained, proving the temporary public IPv4 had been
+  released. No new builder, image, registry object, production resource or
+  provider artifact was created.
+- The Secret-free checkpoint changes only Handoff, Risk, Readiness and its
+  internal-readiness test. JSON parsing, `git diff --check`, the combined
+  focused set `21/21`, the internal gate at `19/29` / `19/38` and the full
+  production gate at `137/137` all pass. The two local transfer-only temporary
+  files were hash-checked and deleted after their contracts were recorded.
+
+The exact-one V3 external authority is consumed and V3 must not be rerun.
+Stage B and Stage C remain blocked because there is no exact 5335 local Admin
+image, no 11-file native evidence set and no immutable private ACR manifest
+digest. Readiness therefore remains `19/29` internal and `19/38` public, latest
+credit remains `api_f_current_release=VERIFIED`, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. In plain terms, the one missing hard
+condition is: an authorized builder execution must actually receive the exact
+5335 source and finish producing the Admin image plus its 11 proofs; without
+that image, neither private publication nor production canary is admissible.
