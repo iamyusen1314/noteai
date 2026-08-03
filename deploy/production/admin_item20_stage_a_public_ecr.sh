@@ -147,6 +147,105 @@ verify_trivy_metadata() {
   ' "$metadata_path" >/dev/null
 }
 
+extract_native_wheelhouse_artifact() {
+  local archive_path="$1"
+  local expected_archive_sha256="$2"
+  local repo_root="$3"
+  local destination="$4"
+  local wheelhouse_root="$destination/wheelhouse"
+
+  [[ "$expected_archive_sha256" =~ ^[0-9a-f]{64}$ ]] || return 1
+  [ -f "$archive_path" ] && [ ! -L "$archive_path" ] || return 1
+  [ ! -e "$destination" ] && [ ! -L "$destination" ] || return 1
+  [ "$(sha256sum "$archive_path" | awk '{print $1}')" = \
+    "$expected_archive_sha256" ] || return 1
+
+  python3 - "$archive_path" "$destination" <<'PY'
+import pathlib
+import stat
+import sys
+import zipfile
+
+archive = pathlib.Path(sys.argv[1])
+destination = pathlib.Path(sys.argv[2])
+with zipfile.ZipFile(archive) as package:
+    members = package.infolist()
+    if not 1 <= len(members) <= 256:
+        raise SystemExit("unsafe artifact entry count")
+    total_size = 0
+    seen = set()
+    for member in members:
+        name = member.filename
+        path = pathlib.PurePosixPath(name)
+        if (
+            not name
+            or "\\" in name
+            or path.is_absolute()
+            or ".." in path.parts
+            or name in seen
+        ):
+            raise SystemExit("unsafe artifact path")
+        seen.add(name)
+        mode = (member.external_attr >> 16) & 0o170000
+        if mode not in (0, stat.S_IFREG, stat.S_IFDIR):
+            raise SystemExit("unsafe artifact entry type")
+        total_size += member.file_size
+    if total_size > 1024 * 1024 * 1024:
+        raise SystemExit("artifact expands beyond one GiB")
+    package.extractall(destination)
+PY
+
+  [ -d "$wheelhouse_root" ] && [ ! -L "$wheelhouse_root" ] || return 1
+  [ -z "$(find "$destination" -type l -print -quit)" ] || return 1
+  cmp "$repo_root/Dockerfile" "$destination/source/Dockerfile" || return 1
+  cmp "$repo_root/model/requirements-api.txt" \
+    "$destination/source/requirements-api.txt" || return 1
+  [ "$(find "$wheelhouse_root" -maxdepth 1 -type f \
+    -name '*.tar.gz' -exec basename {} \;)" = 'jieba-0.42.1.tar.gz' ] ||
+    return 1
+  [ -z "$(find "$wheelhouse_root" -mindepth 1 -maxdepth 1 \
+    -type f ! -name '*.whl' ! -name 'jieba-0.42.1.tar.gz' -print -quit)" ] ||
+    return 1
+  [ -z "$(find "$wheelhouse_root" -mindepth 1 -maxdepth 1 \
+    ! -type f -print -quit)" ] || return 1
+  [ -z "$(find "$destination" -mindepth 1 -maxdepth 1 \
+    ! -type d -print -quit)" ] || return 1
+  [ "$(find "$destination" -mindepth 1 -maxdepth 1 -type d | wc -l | \
+    tr -d ' ')" = '2' ] || return 1
+}
+
+derive_wheelhouse_dockerfile() {
+  local source_path="$1"
+  local destination_path="$2"
+  [ -f "$source_path" ] && [ ! -L "$source_path" ] || return 1
+  [ ! -e "$destination_path" ] && [ ! -L "$destination_path" ] || return 1
+  python3 - "$source_path" "$destination_path" <<'PY'
+import pathlib
+import sys
+
+source = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+needle = "RUN pip install --no-cache-dir -r requirements-api.txt \\\n"
+replacement = (
+    "RUN --network=none --mount=type=bind,from=noteai_wheelhouse,"
+    "target=/wheelhouse,ro \\\n"
+    "    pip install --no-cache-dir --no-index --find-links=/wheelhouse "
+    "-r requirements-api.txt \\\n"
+)
+if source.count(needle) != 1:
+    raise SystemExit("unexpected production pip install command")
+pathlib.Path(sys.argv[2]).write_text(
+    source.replace(needle, replacement), encoding="utf-8"
+)
+PY
+  chmod 0600 "$destination_path"
+  [ "$(grep -Fxc \
+    'RUN --network=none --mount=type=bind,from=noteai_wheelhouse,target=/wheelhouse,ro \' \
+    "$destination_path")" = '1' ]
+  [ "$(grep -Fxc \
+    '    pip install --no-cache-dir --no-index --find-links=/wheelhouse -r requirements-api.txt \' \
+    "$destination_path")" = '1' ]
+}
+
 verify_source_repository() {
   local repo_root="$1"
   local git_bin
@@ -368,6 +467,42 @@ STALE_TRIVY_METADATA
     exit 1
   fi
 
+  fixture_artifact="$fixture_root/wheelhouse-artifact"
+  fixture_archive="$fixture_root/wheelhouse.zip"
+  mkdir -p "$fixture_artifact/source" "$fixture_artifact/wheelhouse"
+  cp "$repo_root/Dockerfile" "$fixture_artifact/source/Dockerfile"
+  cp "$repo_root/model/requirements-api.txt" \
+    "$fixture_artifact/source/requirements-api.txt"
+  printf 'fixture wheel\n' > \
+    "$fixture_artifact/wheelhouse/fixture-1.0-py3-none-any.whl"
+  printf 'fixture sdist\n' > \
+    "$fixture_artifact/wheelhouse/jieba-0.42.1.tar.gz"
+  python3 - "$fixture_artifact" "$fixture_archive" <<'PY'
+import pathlib
+import sys
+import zipfile
+
+source = pathlib.Path(sys.argv[1])
+with zipfile.ZipFile(sys.argv[2], "w", zipfile.ZIP_STORED) as package:
+    for path in sorted(source.rglob("*")):
+        if path.is_file():
+            package.write(path, path.relative_to(source).as_posix())
+PY
+  fixture_archive_sha256="$(sha256sum "$fixture_archive" | awk '{print $1}')"
+  extract_native_wheelhouse_artifact \
+    "$fixture_archive" "$fixture_archive_sha256" "$repo_root" \
+    "$fixture_root/extracted-wheelhouse"
+  derive_wheelhouse_dockerfile \
+    "$repo_root/Dockerfile" "$fixture_root/Dockerfile.wheelhouse"
+  cp "$fixture_archive" "$fixture_root/tampered-wheelhouse.zip"
+  printf 'x' >> "$fixture_root/tampered-wheelhouse.zip"
+  if extract_native_wheelhouse_artifact \
+    "$fixture_root/tampered-wheelhouse.zip" "$fixture_archive_sha256" \
+    "$repo_root" "$fixture_root/tampered-wheelhouse" >/dev/null 2>&1; then
+    exit 1
+  fi
+  [ ! -e "$fixture_root/tampered-wheelhouse" ]
+
   printf 'NOTEAI_ADMIN_STAGE_A_OFFLINE_SELF_TEST=PASS\n'
 )
 if [ "${1:-}" = '--offline-self-test' ]; then
@@ -376,11 +511,13 @@ if [ "${1:-}" = '--offline-self-test' ]; then
   exit
 fi
 
-[ "$#" = '1' ] || {
+[ "$#" = '3' ] || {
   echo 'NOTEAI_ADMIN_STAGE_A=FAIL phase=source_bundle_argument'
   exit 90
 }
 source_bundle_path="$1"
+wheelhouse_archive_path="$2"
+wheelhouse_archive_sha256="$3"
 case "$source_bundle_path" in
   /root/noteai-admin-stage-a-public-ecr-transfer/source.bundle) ;;
   *) echo 'NOTEAI_ADMIN_STAGE_A=FAIL phase=unsafe_source_bundle_path'; exit 90 ;;
@@ -396,6 +533,23 @@ esac
 }
 [ "$(stat -c '%u:%g:%a' "$source_bundle_path")" = '0:0:600' ] || {
   echo 'NOTEAI_ADMIN_STAGE_A=FAIL phase=unsafe_source_bundle_mode'
+  exit 90
+}
+case "$wheelhouse_archive_path" in
+  /root/noteai-admin-stage-a-public-ecr-transfer/admin-dependency-wheelhouse-v17.zip) ;;
+  *) echo 'NOTEAI_ADMIN_STAGE_A=FAIL phase=unsafe_wheelhouse_path'; exit 90 ;;
+esac
+[ "$(readlink -f "$(dirname "$wheelhouse_archive_path")")" = \
+  '/root/noteai-admin-stage-a-public-ecr-transfer' ] || {
+  echo 'NOTEAI_ADMIN_STAGE_A=FAIL phase=unsafe_wheelhouse_parent'
+  exit 90
+}
+[ "$(stat -c '%u:%g:%a' "$wheelhouse_archive_path")" = '0:0:600' ] || {
+  echo 'NOTEAI_ADMIN_STAGE_A=FAIL phase=unsafe_wheelhouse_mode'
+  exit 90
+}
+[[ "$wheelhouse_archive_sha256" =~ ^[0-9a-f]{64}$ ]] || {
+  echo 'NOTEAI_ADMIN_STAGE_A=FAIL phase=unsafe_wheelhouse_sha256'
   exit 90
 }
 [ "$(stat -c '%u:%g' "$source_repository" "$source_repository/.git" | \
@@ -493,6 +647,15 @@ verify_model_artifacts "$source_root"
 [ "$(sha256sum "$source_root/scripts/docker_entrypoint.sh" | awk '{print $1}')" = '77375834edc74d5d5a370de9ba106d77036a9aa1cf372b7d289083a822e20cfb' ]
 jq -e '. == {"enabled":false,"cookie_valid":false,"last_run":null,"total_collected":0,"daily_limit":300,"schedule_hour":3}'   "$source_root/model/crawler_config.json" >/dev/null
 
+phase='wheelhouse_import'
+extract_native_wheelhouse_artifact \
+  "$wheelhouse_archive_path" "$wheelhouse_archive_sha256" "$source_root" \
+  "$task_root/wheelhouse-artifact"
+wheelhouse_root="$task_root/wheelhouse-artifact/wheelhouse"
+[ "$(find "$wheelhouse_root" -maxdepth 1 -type f | wc -l | tr -d ' ')" -ge 25 ]
+derive_wheelhouse_dockerfile \
+  "$source_root/Dockerfile" "$task_root/Dockerfile.wheelhouse"
+
 phase='tool_prep'
 real_docker="$(command -v docker)"
 [ -x "$real_docker" ]
@@ -526,6 +689,12 @@ if [ "$#" -eq 5 ] && [ "$1" = 'buildx' ] && [ "$2" = 'imagetools' ] && [ "$3" = 
       exit 64
       ;;
   esac
+fi
+if [ "$#" -ge 3 ] && [ "$1" = 'buildx' ] && [ "$2" = 'build' ]; then
+  exec "$NOTEAI_REAL_DOCKER" buildx build \
+    --file "$NOTEAI_WHEELHOUSE_DOCKERFILE" \
+    --build-context "noteai_wheelhouse=$NOTEAI_WHEELHOUSE_ROOT" \
+    "${@:3}"
 fi
 exec "$NOTEAI_REAL_DOCKER" "$@"
 DOCKER_WRAPPER
@@ -566,7 +735,7 @@ trivy_metadata_sha="$(sha256sum "$task_root/trivy-cache/db/metadata.json" | awk 
 phase='admin_build_scan'
 (
   cd "$source_root"
-  timeout --foreground --signal=TERM --kill-after=30s 3600s     env       PATH="$task_root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"       DOCKER_CONFIG="$task_root/docker-empty"       NOTEAI_REAL_DOCKER="$real_docker"       NOTEAI_PYTHON_INDEX_FILE="$task_root/base-index/python-base-index.json"       NOTEAI_NODE_INDEX_FILE="$task_root/base-index/node-base-index.json"       NOTEAI_TRIVY_REAL="$task_root/tools/trivy-real"       NOTEAI_TRIVY_CACHE="$task_root/trivy-cache"       RELEASE_COMMIT="$release"       NOTEAI_OCI_SOURCE="$oci_source"       NOTEAI_OCI_VERSION="$release_version"       NOTEAI_OCI_CREATED="$release_created"       NOTEAI_EVIDENCE_DIR="$evidence_root"       bash "$task_root/admin-native-release.sh"
+  timeout --foreground --signal=TERM --kill-after=30s 3600s     env       PATH="$task_root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"       DOCKER_CONFIG="$task_root/docker-empty"       NOTEAI_REAL_DOCKER="$real_docker"       NOTEAI_PYTHON_INDEX_FILE="$task_root/base-index/python-base-index.json"       NOTEAI_NODE_INDEX_FILE="$task_root/base-index/node-base-index.json"       NOTEAI_TRIVY_REAL="$task_root/tools/trivy-real"       NOTEAI_TRIVY_CACHE="$task_root/trivy-cache"       NOTEAI_WHEELHOUSE_DOCKERFILE="$task_root/Dockerfile.wheelhouse"       NOTEAI_WHEELHOUSE_ROOT="$wheelhouse_root"       RELEASE_COMMIT="$release"       NOTEAI_OCI_SOURCE="$oci_source"       NOTEAI_OCI_VERSION="$release_version"       NOTEAI_OCI_CREATED="$release_created"       NOTEAI_EVIDENCE_DIR="$evidence_root"       bash "$task_root/admin-native-release.sh"
 ) >"$task_root/build-scan.log" 2>&1
 
 phase='evidence_acceptance'
@@ -647,7 +816,10 @@ secret_sha="$(sha256sum "$evidence_root/admin-secret.json" | awk '{print $1}')"
 summary_sha="$(sha256sum "$evidence_root/summary.json" | awk '{print $1}')"
 
 phase='success_cleanup'
-rm -rf -- "$task_root/trivy-cache" "$task_root/bin" "$task_root/tools" "$task_root/base-index" "$task_root/docker-empty"
+rm -rf -- \
+  "$task_root/trivy-cache" "$task_root/bin" "$task_root/tools" \
+  "$task_root/base-index" "$task_root/docker-empty" \
+  "$task_root/wheelhouse-artifact" "$task_root/Dockerfile.wheelhouse"
 trap - EXIT
 printf 'NOTEAI_ADMIN_STAGE_A=PASS invocation=public-ecr release=%s tree=%s image_id=%s local_tag=%s evidence_files=11 vuln_rows=23 secrets=0 browser=0 source_bundle_sha256=%s trivy_db_sha256=%s trivy_metadata_sha256=%s\n'   "$release" "$release_tree" "$image_id" "$local_image" "$source_bundle_sha256" "$trivy_db_sha" "$trivy_metadata_sha"
 printf 'NOTEAI_ADMIN_STAGE_A_HASHES build_metadata=%s inspect=%s sbom=%s vuln=%s secret=%s summary=%s\n'   "$build_metadata_sha" "$inspect_sha" "$sbom_sha" "$vuln_sha" "$secret_sha" "$summary_sha"

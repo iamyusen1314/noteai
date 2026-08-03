@@ -2920,7 +2920,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         public_ecr = admin["admin_stage_a_public_ecr_transition"]
         self.assertEqual(
             public_ecr["result"],
-            "PROBE_PASS_SUCCESSOR_PREPARED_NOT_EXECUTED",
+            "TERMINAL_PUBLIC_ECR_DB_PASS_PYTHON_DEPENDENCY_READ_TIMEOUT_CLEAN",
         )
         probe = public_ecr["probe"]
         self.assertEqual(
@@ -2987,7 +2987,70 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             successor["local_gate"],
             "29/29 focused; production 137/137",
         )
-        self.assertEqual(successor["external_execution_count"], 0)
+        self.assertEqual(successor["external_execution_count"], 1)
+        exact_head_ci = public_ecr["accepted_exact_head_ci"]
+        self.assertEqual(
+            exact_head_ci["head_sha"],
+            "c3de9ed3030b5d581d398ceb494d2f5677e6a753",
+        )
+        self.assertEqual(exact_head_ci["push_run_id"], 30804908699)
+        self.assertEqual(exact_head_ci["pull_request_run_id"], 30804912220)
+        self.assertTrue(exact_head_ci["attempt_one_success"])
+        self.assertEqual(exact_head_ci["rerun_count"], 0)
+        terminal = public_ecr["terminal_execution"]
+        self.assertEqual(
+            terminal["source_commit"],
+            "5335bdaed933b1f999b5f819c047ec50c11821ae",
+        )
+        self.assertEqual(terminal["execution_count"], 1)
+        self.assertEqual(terminal["duration_seconds"], 1298)
+        self.assertEqual(terminal["exit_code"], 1)
+        self.assertEqual(terminal["phase"], "admin_build_scan")
+        self.assertEqual(terminal["trivy_download_mebibytes"], 103.39)
+        self.assertTrue(terminal["trivy_freshness_validation_passed"])
+        self.assertEqual(terminal["dependency_host"], "files.pythonhosted.org")
+        self.assertEqual(terminal["error_class"], "pip_urllib3_read_timeout")
+        self.assertFalse(terminal["local_admin_image_produced"])
+        self.assertEqual(terminal["accepted_native_evidence_file_count"], 0)
+        for key in (
+            "acr_action_count",
+            "database_connection_count",
+            "production_mutation_count",
+        ):
+            self.assertEqual(terminal[key], 0, key)
+        self.assertTrue(terminal["authority_consumed"])
+        cleanup = public_ecr["cleanup"]
+        for key in (
+            "target_images_absent",
+            "task_root_absent",
+            "remote_transfer_root_absent",
+            "local_transfer_root_moved_to_trash",
+            "builder_stopped_in_saving_mode",
+            "temporary_public_ipv4_released",
+        ):
+            self.assertTrue(cleanup[key], key)
+        self.assertEqual(cleanup["running_container_count"], 0)
+        recovery = public_ecr["direct_recovery"]
+        self.assertEqual(
+            recovery["status"],
+            "IMPLEMENTED_GATE_PASS_PENDING_SINGLE_CI_AND_V17",
+        )
+        self.assertEqual(
+            recovery["c17_sha"],
+            "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e",
+        )
+        self.assertEqual(recovery["activation"], "single_workflow_dispatch")
+        self.assertEqual(recovery["configured_maximum_seconds"], 5700)
+        self.assertEqual(
+            recovery["local_complete_readiness_gate"],
+            "136/136_once",
+        )
+        self.assertEqual(
+            recovery["native_digest_source_required"],
+            "authenticated_github_artifact_metadata",
+        )
+        self.assertTrue(recovery["dockerfile_and_requirements_bytes_unchanged"])
+        self.assertFalse(recovery["custom_gate_version_or_control_layer_added"])
         self.assertEqual(public_ecr["readiness"]["internal"], "19/29")
         self.assertEqual(public_ecr["readiness"]["public"], "19/38")
         self.assertFalse(public_ecr["readiness"]["credit_added"])
@@ -3004,7 +3067,12 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             "completed the full 103.39 MiB transfer in 26 seconds",
             admin["blocker"],
         )
-        self.assertIn("exact-head push and pull-request CI", admin["blocker"])
+        self.assertIn("files.pythonhosted.org", admin["blocker"])
+        self.assertIn("exact 5335 Admin AMD64 image", admin["blocker"])
+        self.assertIn(
+            "11-file native evidence set",
+            public_ecr["next_hard_condition"],
+        )
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

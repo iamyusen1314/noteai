@@ -5712,3 +5712,50 @@ Readiness remains `19/29` internal and `19/38` public; the sole task remains
 push/PR CI, then execute Stage A once and produce the exact 5335 Admin AMD64
 local image plus all 11 unchanged native evidence files; continue to private
 ACR and reversible Stage C after that acceptance.
+
+### Item 20 Public ECR Stage A unique terminal attempt (2026-08-03)
+
+- Checkpoint `c3de9ed3030b5d581d398ceb494d2f5677e6a753` passed
+  exact-HEAD push run `30804908699` and pull-request run `30804912220`,
+  both on attempt one.
+- The unique Stage A execution ran `1298s` and exited `1` at
+  `admin_build_scan`. Public ECR first delivered the full `103.39 MiB`
+  Trivy target and the freshness gate passed; Dockerfile line 76 then failed
+  on a pip/urllib3 read timeout from `files.pythonhosted.org`. This was not a
+  Trivy stall and does not prove a permanent package-host outage.
+- No Admin image or complete accepted 11-file evidence set was produced. Two
+  pre-build base-index files existed temporarily and were removed with the task
+  root. ACR, database, service and public-traffic mutations were zero. Target
+  images, task and remote-transfer roots are absent, running containers are
+  zero, the local transfer root is in recoverable Trash, and the builder is
+  saving-stopped with its temporary public IPv4 released.
+- The execution authority is consumed and the failed command will not rerun.
+  Readiness remains `19/29` internal and `19/38` public, with no credit.
+  The sole task remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`; its hard
+  condition is the exact 5335 Admin AMD64 image plus the complete accepted
+  11-file native evidence set.
+
+The direct P2 recovery is now implemented without changing C17, Dockerfile or
+`requirements-api.txt` bytes. V17 is a manual-only native workflow that
+predownloads the official PyPI Linux/AMD64 wheelhouse with a 300-second
+no-data timeout, four pip retries and at most two whole-download attempts. Its
+configured hard-call envelope is 5700 seconds inside the 120-minute job, and
+two distinct BuildKit builders each prove a no-cache, network-none import.
+Stage A accepts the resulting ZIP only with an independently obtained GitHub
+native artifact digest, safely extracts it, compares the exact Dockerfile and
+requirements bytes, and uses one derived network-none/no-index pip RUN. The
+old custom V17 recovery-plan check was removed from the production gate; no
+new version, ledger, receipt, topology or gate was added.
+
+Focused validation passes `12/12`, including the current repository gate
+report, plus Bash/YAML-shell syntax and `git diff --check`. One accidentally
+over-broad historical gate-test module was interrupted after 17 minutes while
+still traversing frozen V12 Git evidence; it had no assertion failure and was
+replaced by the targeted current-report test rather than restarted. No full
+readiness gate was repeated during implementation. The single post-fix local
+complete gate then passed `136/136` with zero failures; the prior custom V17
+recovery-plan check is the removed 137th check. Next is exactly one push/PR CI
+pair, then exactly one V17 `workflow_dispatch` within 120 minutes. Accept only
+its authenticated run ID, fixed C17 SHA, native artifact digest and
+fresh-builder success; never derive the expected digest from the downloaded
+ZIP. Stage B/C remain closed until Stage A succeeds.

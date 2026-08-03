@@ -27,33 +27,31 @@ class AdminItem20StageAPublicECRTests(unittest.TestCase):
         )
         self.assertEqual(result.stderr, "")
 
-    def test_successor_delta_is_exact_and_transport_only(self) -> None:
+    def test_public_ecr_baseline_and_wheelhouse_recovery_are_fixed(self) -> None:
         v5_bytes = V5_SCRIPT.read_bytes()
         self.assertEqual(
             hashlib.sha256(v5_bytes).hexdigest(),
             "4f2e6c116694347cbfb748ac486f1ab391f9e346df155b50d45c6f158db3a249",
         )
-        expected = v5_bytes.decode("utf-8")
-        for old, new in (
-            ("admin-5335-current-v5", "admin-5335-current-public-ecr"),
-            (
-                "noteai-admin-item20-inspect-v5",
-                "noteai-admin-item20-inspect-public-ecr",
-            ),
-            ("noteai-admin-stage-a-v5", "noteai-admin-stage-a-public-ecr"),
-            (
-                "NOTEAI_ADMIN_STAGE_A=PASS invocation=5",
-                "NOTEAI_ADMIN_STAGE_A=PASS invocation=public-ecr",
-            ),
-            (
-                "ghcr.io/aquasecurity/trivy-db:2",
-                "public.ecr.aws/aquasecurity/trivy-db:2",
-            ),
+        source = SCRIPT.read_text(encoding="utf-8")
+        for expected in (
+            "admin-5335-current-public-ecr",
+            "noteai-admin-item20-inspect-public-ecr",
+            "noteai-admin-stage-a-public-ecr",
+            "NOTEAI_ADMIN_STAGE_A=PASS invocation=public-ecr",
+            "public.ecr.aws/aquasecurity/trivy-db:2",
+            "admin-dependency-wheelhouse-v17.zip",
+            "extract_native_wheelhouse_artifact",
+            "derive_wheelhouse_dockerfile",
+            "--build-context \"noteai_wheelhouse=$NOTEAI_WHEELHOUSE_ROOT\"",
+            "RUN --network=none --mount=type=bind,from=noteai_wheelhouse",
+            "--no-cache-dir --no-index --find-links=/wheelhouse",
         ):
-            self.assertIn(old, expected)
-            expected = expected.replace(old, new)
-
-        self.assertEqual(SCRIPT.read_text(encoding="utf-8"), expected)
+            self.assertIn(expected, source)
+        self.assertNotIn("ghcr.io/aquasecurity/trivy-db:2", source)
+        self.assertEqual(source.count("phase='wheelhouse_import'"), 1)
+        self.assertEqual(source.count("NOTEAI_WHEELHOUSE_DOCKERFILE="), 1)
+        self.assertEqual(source.count("NOTEAI_WHEELHOUSE_ROOT="), 1)
 
     def test_public_ecr_scanner_contract_remains_fail_closed(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
@@ -101,8 +99,36 @@ class AdminItem20StageAPublicECRTests(unittest.TestCase):
             "admin_sessions",
             "curl ",
             "wget ",
+            "--trusted-host",
+            "--extra-index-url",
         ):
             self.assertNotIn(forbidden, source)
+
+    def test_original_dockerfile_and_requirements_hashes_are_unchanged(self) -> None:
+        self.assertEqual(
+            hashlib.sha256((ROOT / "Dockerfile").read_bytes()).hexdigest(),
+            "ed6282c422dde6e49c33da877bccf735dfbb19e29a834930fb2a1a52ef21b447",
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (ROOT / "model" / "requirements-api.txt").read_bytes()
+            ).hexdigest(),
+            "0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9",
+        )
+
+    def test_stage_a_requires_an_independent_native_artifact_digest(self) -> None:
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("[ \"$#\" = '3' ]", source)
+        self.assertIn('wheelhouse_archive_sha256="$3"', source)
+        self.assertIn(
+            '"$(sha256sum "$archive_path" | awk \'{print $1}\')" = \\\n'
+            '    "$expected_archive_sha256"',
+            source,
+        )
+        self.assertNotIn(
+            'wheelhouse_archive_sha256="$(sha256sum',
+            source,
+        )
 
 
 if __name__ == "__main__":

@@ -119,9 +119,6 @@ from verify_admin_dependency_cache_export_plan_v16 import (  # noqa: E402
 from verify_admin_dependency_cache_export_plan_v17 import (  # noqa: E402
     _validate_v16_predecessor as validate_admin_dependency_cache_v16_predecessor,
 )
-from verify_admin_dependency_cache_export_plan_v17 import (  # noqa: E402
-    evaluate_plan as evaluate_admin_dependency_cache_export_plan_v17,
-)
 from verify_admin_dependency_cache_v2_failure_evidence import (  # noqa: E402
     load_strict as load_admin_dependency_cache_v2_failure_evidence,
 )
@@ -2028,23 +2025,6 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             admin_dependency_cache_v16_failure_errors = [
                 f"cannot load Admin dependency-cache V16 failure evidence: {exc}"
             ]
-    try:
-        (
-            admin_dependency_cache_plan_v17_errors,
-            dependency_cache_plan_state_v17,
-            _admin_dependency_cache_v17_terminal_errors,
-        ) = evaluate_admin_dependency_cache_export_plan_v17()
-    except (
-        OSError,
-        UnicodeDecodeError,
-        json.JSONDecodeError,
-        ValueError,
-        subprocess.CalledProcessError,
-    ) as exc:
-        admin_dependency_cache_plan_v17_errors = [
-            f"cannot evaluate Admin dependency-cache V17 lifecycle: {exc}"
-        ]
-        dependency_cache_plan_state_v17 = "INVALID"
     admin_dependency_cache_plan_v3_errors = (
         validate_admin_dependency_cache_export_plan_v3()
     )
@@ -2103,10 +2083,6 @@ def check_browserless_vex() -> list[dict[str, Any]]:
     }
     accepted_dependency_cache_plan_states_v16 = {
         "V16_TRIGGERED_ATTEMPT1_FAILED_TERMINAL_RECEIPT_EXACT",
-    }
-    accepted_dependency_cache_plan_states_v17 = {
-        "PREPARED_V17_NOT_TRIGGERED",
-        "V17_ARMED_OR_TRIGGERED_EXACT",
     }
     accepted_dependency_cache_v11_supersession = (
         dependency_cache_v11_supersession_state
@@ -2580,26 +2556,6 @@ def check_browserless_vex() -> list[dict[str, Any]]:
             _v16_terminal_failure_evidence_detail(
                 dependency_cache_plan_state_v16,
                 admin_dependency_cache_v16_failure_errors,
-            ),
-        ),
-        _ok(
-            "exact_5335bda_admin_dependency_cache_v17_recovery_plan_fail_closed",
-            not admin_dependency_cache_plan_v17_errors
-            and dependency_cache_plan_state_v17
-            in accepted_dependency_cache_plan_states_v17,
-            "; ".join(admin_dependency_cache_plan_v17_errors[:5])
-            if admin_dependency_cache_plan_v17_errors
-            else (
-                f"state={dependency_cache_plan_state_v17} is not an accepted "
-                "V17 control-plane state"
-                if dependency_cache_plan_state_v17
-                not in accepted_dependency_cache_plan_states_v17
-                else (
-                    f"state={dependency_cache_plan_state_v17}; fixed C17 data "
-                    "plane, exact-one request activation and GitHub-native "
-                    "run/artifact/fresh-builder evidence are required; custom "
-                    "ledger, receipt and R17 topology are not prerequisites"
-                )
             ),
         ),
     ]

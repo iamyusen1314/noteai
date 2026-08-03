@@ -708,6 +708,22 @@ Last updated: 2026-08-03
   push/PR双CI，然后exact-one Stage A取得exact 5335 Admin镜像和11文件evidence；不得
   延长GHCR timeout、创建新cache版本或扩展ledger/receipt/topology。
 
+### Admin Stage A Public ECR successor hit a recoverable Python package read timeout
+
+- 状态: Open P2 / `19/29`。Public ECR完整交付Trivy DB并通过freshness；
+  唯一Stage A随后在`files.pythonhosted.org` pip read timeout失败。该builder此前
+  同一pip阶段也曾超时，因此路径在有界窗口内重复不可靠，但GitHub原生构建成功过，
+  不能断言永久outage。
+- 影响: 未形成Admin image或完整accepted 11-file evidence set，不加credit；
+  ACR/DB/service/public traffic均未变更，远端任务、镜像、容器和传输残留已清理，
+  builder已saving-stopped并释放临时公网IPv4。原执行权限已消费，禁止盲目重跑。
+- 已实施缓解: C17、Dockerfile与requirements字节不变；V17从官方PyPI预下载
+  wheelhouse，300秒无数据timeout、pip retry 4、整组最多2次，总硬上限5700秒，
+  并由两个独立BuildKit builder在network-none下验证。Stage A仅接收已认证GitHub
+  artifact metadata独立给出的digest，以network-none/no-index派生RUN安装；禁止用
+  ZIP本地重算值冒充期望digest。未新增version/gate/ledger/receipt/topology。
+- 剩余风险: 当前尚未取得唯一V17原生run/artifact/fresh-import证据，也未完成恢复性
+  Stage A。exact image和完整11-file evidence成功前，Stage B/C保持关闭。
 ## Low Risks
 
 ### `model/api.py` is too large
