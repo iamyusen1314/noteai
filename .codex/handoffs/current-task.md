@@ -5619,3 +5619,66 @@ no automatic retry. V4 remains permanently non-rerunnable. The immediate hard
 acceptance condition remains a fresh Trivy database, exact 5335 Admin AMD64
 local image and all 11 unchanged native evidence files; only success admits
 private ACR Stage B and reversible Stage C.
+
+### Item 20 Admin Stage A V5 unique terminal attempt (2026-08-03)
+
+- The V5 candidate was committed and pushed at
+  `cfa7ad336e01befccfd0e9a0dace19761d36fa2e`. Its exact-HEAD push CI
+  `30794361508` / job `91624483011` and pull-request CI `30794364596` / job
+  `91624493517` both completed success on attempt one. Each passed `1779`
+  total tests with `28` ambient skips, Quality, production readiness `137/137`
+  and Docker Compose; artifact and rerun counts were zero.
+- The existing AMD64 builder was started once. Eight root-only Cloud Assistant
+  file sends delivered one deterministic `168,202`-byte transfer payload,
+  SHA-256
+  `ba6115299a308d3791a65da42ac980be99fa96efdc315a336f03c2d9b3dfe805`,
+  containing the unchanged `159,507`-byte Git bundle and the fixed V5
+  executor. The final collision-safe transfer wrapper was `4,529` bytes,
+  SHA-256
+  `94f3f2253d437077058d94df8746faa96ed988347da7677078ad89576125e5a8`.
+  The unique `noteai-admin-item20-stage-a-execute-v5` command was dispatched
+  exactly once, ran for `905` seconds and exited `1`; automatic retry, manual
+  retry and rerun counts are zero.
+- V5 passed the retained-b55 repository, deterministic bundle, exact 5335
+  source, host and collision gates. Source import, model materialization and
+  tool preparation completed. The terminal phase was again
+  `scanner_db_refresh`; Docker build, native evidence generation, private ACR,
+  database, service and public-traffic actions were not reached.
+- The complete retained Trivy progress stream corrects the initial truncated
+  view: this was **not** a zero-progress or silent download. From
+  `2026-08-03T16:28:58+08:00`, the official GHCR artifact target was
+  `103.39 MiB`; by the `15m` absolute Trivy deadline it had reached
+  `8.61 MiB / 8.33%`, with the final displayed rate about `9.89 KiB/s`.
+  Trivy then emitted `context deadline exceeded`. At that observed rate a full
+  transfer would take roughly three hours. The `15m` flag is a whole-command
+  context budget, not an inactivity timer, so the exact failure is severe
+  builder-to-GHCR blob throughput under the bounded Stage A window, not a
+  stalled process and not a source/build defect.
+- Trivy 0.72 does not retain the failed partial blob for resume. Its documented
+  multi-repository fallback is not a reliable recovery after a slow body copy
+  consumes the whole context deadline. The official alternative candidate is
+  `public.ecr.aws/aquasecurity/trivy-db:2`; historical project evidence proves
+  anonymous Public ECR reachability from this builder, but does not yet prove
+  current DB blob throughput. No repository or executor change is authorized
+  merely from endpoint reachability.
+- Failure cleanup reported target images absent, task root absent and running
+  containers zero. Transfer cleanup reported chunks zero and transfer root
+  absent. The builder returned to stopped saving mode and its temporary public
+  IPv4 was released. The two exact local transfer directories were moved out
+  of `/private/tmp` to Trash and remain recoverable. Production database
+  connections/writes, ACR logins/publications, service mutations and public
+  traffic mutations are all zero.
+- The V5 exact-one authority is consumed. V5 must not be rerun; V4/V17 remain
+  non-rerunnable, and R17/V18 remain forbidden. This checkpoint uses only the
+  existing Handoff, risk register, readiness manifest and readiness test; it
+  adds no custom ledger, receipt or topology layer and adds no readiness credit.
+
+Readiness remains `19/29` internal and `19/38` public; the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. In plain terms, the one missing hard
+condition is now: a complete fresh `103.39 MiB` Trivy database must reach the
+builder over an official route fast enough for bounded Stage A, after which the
+unchanged exact 5335 Admin image and all 11 native evidence files must pass.
+The next action is one bounded, download-only throughput probe against the
+official Public ECR repository. It must not build an image, touch ACR or
+production, or repeat V5. Only a demonstrated adequate blob path may justify
+the minimal scanner-repository transport change.

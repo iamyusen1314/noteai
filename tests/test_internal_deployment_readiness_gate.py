@@ -2687,14 +2687,18 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(v4_checkpoint["focused_test_count"], 21)
         self.assertEqual(v4_checkpoint["production_readiness_checks"], "137/137")
         self.assertTrue(v4_checkpoint["temporary_transfer_directory_deleted"])
-        v5 = admin["admin_stage_a_v5_preparation"]
+        v5 = admin["admin_stage_a_v5_attempt1"]
         self.assertEqual(
             v5["result"],
-            "TIMEOUT_OBSERVABILITY_FIX_LOCAL_VALIDATED_EXACT_HEAD_CI_PENDING",
+            "TERMINAL_OFFICIAL_GHCR_SEVERE_THROUGHPUT_TIMEOUT_CLEAN",
         )
         self.assertEqual(
             v5["controller_base_commit"],
             "2cc6bf72258464a6754ee4594a721f64a247cdcd",
+        )
+        self.assertEqual(
+            v5["controller_commit"],
+            "cfa7ad336e01befccfd0e9a0dace19761d36fa2e",
         )
         self.assertEqual(v5["source_commit"], v4_attempt["source_commit"])
         self.assertEqual(v5["source_tree"], v4_attempt["source_tree"])
@@ -2721,6 +2725,23 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             self.assertEqual(ci["artifact_count"], 0)
         self.assertEqual(checkpoint_ci_v5["exact_head_run_count"], 2)
         self.assertEqual(checkpoint_ci_v5["rerun_count"], 0)
+        candidate_ci_v5 = v5["accepted_v5_candidate_ci"]
+        self.assertEqual(candidate_ci_v5["head_sha"], v5["controller_commit"])
+        for event, run_id, job_id in (
+            ("push", 30794361508, 91624483011),
+            ("pull_request", 30794364596, 91624493517),
+        ):
+            ci = candidate_ci_v5[event]
+            self.assertEqual(ci["run_id"], run_id)
+            self.assertEqual(ci["job_id"], job_id)
+            self.assertEqual(ci["attempt"], 1)
+            self.assertEqual(ci["conclusion"], "success")
+            self.assertEqual(ci["total_test_count"], 1779)
+            self.assertEqual(ci["ambient_skipped_count"], 28)
+            self.assertEqual(ci["production_readiness_checks"], "137/137")
+            self.assertEqual(ci["artifact_count"], 0)
+        self.assertEqual(candidate_ci_v5["exact_head_run_count"], 2)
+        self.assertEqual(candidate_ci_v5["rerun_count"], 0)
         delta_v5 = v5["minimal_delta_from_v4"]
         self.assertEqual(delta_v5["trivy_internal_timeout_explicit"], "15m")
         self.assertEqual(delta_v5["outer_timeout_seconds"], 1200)
@@ -2758,20 +2779,116 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertTrue(validation_v5["diff_check_passed"])
         self.assertEqual(validation_v5["combined_focused_test_count"], 25)
         self.assertEqual(validation_v5["production_readiness_checks"], "137/137")
-        for key, value in v5["external_scope"].items():
-            self.assertEqual(value, 0, key)
+        transfer_v5 = v5["transfer"]
+        self.assertEqual(transfer_v5["git_bundle_byte_count"], 159507)
+        self.assertEqual(
+            transfer_v5["git_bundle_sha256"],
+            "4e62b0627b4be73d7ccc14d821d34f01894340297729456f9f3e22b45a6e75b3",
+        )
+        self.assertEqual(transfer_v5["payload_byte_count"], 168202)
+        self.assertEqual(
+            transfer_v5["payload_sha256"],
+            "ba6115299a308d3791a65da42ac980be99fa96efdc315a336f03c2d9b3dfe805",
+        )
+        self.assertEqual(transfer_v5["chunk_count"], 8)
+        self.assertEqual(transfer_v5["root_only_file_send_count"], 8)
+        self.assertEqual(transfer_v5["wrapper_byte_count"], 4529)
+        self.assertEqual(
+            transfer_v5["wrapper_sha256"],
+            "94f3f2253d437077058d94df8746faa96ed988347da7677078ad89576125e5a8",
+        )
+        self.assertTrue(transfer_v5["wrapper_calls_v5_executor_exactly_once"])
+        self.assertFalse(transfer_v5["custom_ledger_receipt_or_topology_used"])
+        terminal_v5 = v5["terminal_execution"]
+        self.assertEqual(
+            terminal_v5["command_name"],
+            "noteai-admin-item20-stage-a-execute-v5",
+        )
+        self.assertEqual(terminal_v5["command_dispatch_count"], 1)
+        self.assertEqual(terminal_v5["command_duration_seconds"], 905)
+        self.assertEqual(terminal_v5["exit_code"], 1)
+        self.assertEqual(terminal_v5["terminal_phase"], "scanner_db_refresh")
+        for key in (
+            "retained_b55_preflight_passed",
+            "source_import_reached",
+            "model_materialization_reached",
+            "tool_preparation_reached",
+        ):
+            self.assertTrue(terminal_v5[key], key)
+        for key in (
+            "docker_build_reached",
+            "native_evidence_reached",
+            "acr_reached",
+            "stage_c_reached",
+        ):
+            self.assertFalse(terminal_v5[key], key)
+        trivy_v5 = terminal_v5["trivy"]
+        self.assertEqual(trivy_v5["repository"], "ghcr.io/aquasecurity/trivy-db:2")
+        self.assertEqual(trivy_v5["target_mebibytes"], 103.39)
+        self.assertEqual(trivy_v5["final_downloaded_mebibytes"], 8.61)
+        self.assertEqual(trivy_v5["final_percent"], 8.33)
+        self.assertEqual(trivy_v5["final_displayed_kibibytes_per_second"], 9.89)
+        self.assertTrue(trivy_v5["download_was_progressing"])
+        self.assertFalse(trivy_v5["zero_progress_proven"])
+        self.assertTrue(trivy_v5["severe_slowness_observed"])
+        self.assertEqual(trivy_v5["internal_timeout_seconds"], 900)
+        self.assertEqual(trivy_v5["outer_timeout_seconds"], 1200)
+        self.assertFalse(trivy_v5["outer_timeout_reached"])
+        self.assertEqual(
+            trivy_v5["timeout_semantics"],
+            "absolute_command_context_budget_not_inactivity_timeout",
+        )
+        self.assertEqual(
+            trivy_v5["terminal_error_class"],
+            "context_deadline_exceeded_during_artifact_copy",
+        )
+        self.assertFalse(trivy_v5["partial_download_resume_available"])
+        scope_v5 = v5["external_scope"]
+        for key, value in (
+            ("builder_start_count", 1),
+            ("cloud_assistant_file_send_count", 8),
+            ("cloud_assistant_execution_count", 1),
+            ("stage_a_execution_count", 1),
+            ("trivy_database_download_count", 1),
+        ):
+            self.assertEqual(scope_v5[key], value, key)
+        for key in (
+            "docker_build_count",
+            "native_evidence_set_count",
+            "acr_login_count",
+            "acr_publication_count",
+            "stage_c_execution_count",
+            "production_database_connection_count",
+            "production_database_write_count",
+            "production_service_mutation_count",
+            "public_traffic_mutation_count",
+        ):
+            self.assertEqual(scope_v5[key], 0, key)
+        cleanup_v5 = v5["cleanup"]
+        for key in (
+            "target_images_absent",
+            "task_root_absent",
+            "remote_transfer_root_absent",
+            "builder_stopped_in_saving_mode",
+            "temporary_public_ipv4_released",
+            "local_temporary_transfer_directories_absent_from_private_tmp",
+            "local_temporary_transfer_directories_moved_to_trash",
+            "local_trash_cleanup_recoverable",
+        ):
+            self.assertTrue(cleanup_v5[key], key)
+        self.assertEqual(cleanup_v5["running_container_count"], 0)
+        self.assertEqual(cleanup_v5["remote_transfer_chunk_count"], 0)
+        self.assertEqual(cleanup_v5["local_temporary_transfer_directory_count"], 2)
         authorization_v5 = v5["authorization"]
         self.assertTrue(
             authorization_v5["main_cto_finite_bounded_internal_authority_applied"]
         )
-        self.assertTrue(
-            authorization_v5[
-                "exact_one_v5_external_execution_authorized_after_exact_head_dual_ci"
-            ]
-        )
+        self.assertTrue(authorization_v5["exact_one_v5_external_execution_consumed"])
         self.assertEqual(authorization_v5["maximum_v5_external_execution_count"], 1)
         self.assertTrue(authorization_v5["v4_rerun_forbidden"])
         self.assertTrue(authorization_v5["automatic_retry_forbidden"])
+        self.assertFalse(authorization_v5["manual_retry_performed"])
+        self.assertTrue(authorization_v5["v5_rerun_forbidden"])
         self.assertFalse(authorization_v5["public_traffic_mutation_authorized"])
         self.assertFalse(
             authorization_v5["schema_or_business_data_mutation_authorized"]
@@ -2781,6 +2898,14 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertTrue(authorization_v5["r17_forbidden"])
         self.assertTrue(authorization_v5["v18_forbidden"])
         self.assertFalse(v5["readiness"]["credit_added"])
+        self.assertEqual(v5["readiness"]["internal_verified_count"], 19)
+        self.assertEqual(v5["readiness"]["public_verified_count"], 19)
+        v5_serialized = json.dumps(v5, ensure_ascii=False)
+        self.assertNotRegex(v5_serialized, r"\b[ictf]-[a-z0-9]{8,}\b")
+        self.assertNotRegex(
+            v5_serialized,
+            r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+        )
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]

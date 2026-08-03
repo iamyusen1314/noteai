@@ -673,24 +673,38 @@ Last updated: 2026-08-03
   外部Stage A执行仍需新的明确一次性范围。V17 rerun、R17、V18、公网流量、schema/
   业务数据写、付费AI和crawler仍禁止。
 
-### Admin Stage A V5 applies only the timeout and observability correction
+### Admin Stage A V5 proves severe GHCR blob slowness, not a silent timeout
 
-- 状态: Mitigated locally / exact-HEAD CI pending。V4终态checkpoint `2cc6bf7…cdcd`
-  的push/PR CI均首轮成功，各`1775` tests、`28` skip、gate `137/137`、artifact
-  zero，且该HEAD精确只有两条普通CI。V5外部builder/upload/command/Trivy/Docker/
-  ACR/生产动作仍全为0，readiness仍`19/29` / `19/38`。
-- 最小实现: V5 executor为`31,071`字节、SHA-256 `4f2e6c11…3a249`。它只隔离
-  V5 task/transfer/container/invocation namespace，并在同一fresh Trivy DB命令上增加
-  显式`--timeout 15m`、删除`--no-progress`、通过`tee`同步输出并保留日志；既有
-  `set -Eeuo pipefail`确保Trivy非零仍传播。外层`1200s`保护不变且高于内部`900s`。
-- 不变边界: exact 5335 source/tree/parent、本地Git bundle、Dockerfile、模型、构建
-  参数、镜像tag、GHCR DB源、freshness、offline scan、Admin投影、11文件证据、ACR及
-  生产逻辑均未改变；未增加ledger/receipt/topology。独立复审要求补锁历史V4 SHA后
-  最终`P0=0/P1=0/P2=0`；V4/V5定向`9/9`、组合focused `25/25`及gate `137/137`
-  通过。
-- 执行边界: 独立只读复审及自身exact-HEAD双CI通过后，主CTO既有有限内部授权只允许
-  一次V5，不允许自动retry；V4永久不得rerun。Stage A硬条件仍是fresh DB、exact 5335
-  Admin AMD64本地镜像及11文件证据全部通过，之后才允许private ACR和可逆Stage C。
+- 状态: `TERMINAL_OFFICIAL_GHCR_SEVERE_THROUGHPUT_TIMEOUT_CLEAN`。V5候选
+  `cfa7ad3…6fa2e`的exact-HEAD push `30794361508`/job `91624483011`与PR
+  `30794364596`/job `91624493517`均为attempt1 success；每路`1779` tests、`28`
+  ambient skip、Quality、gate `137/137`、Docker通过，artifact/rerun均0。
+- 唯一外部事实: 既有builder启动1次、root-only文件发送8次、Cloud Assistant命令1次、
+  V5 Stage A 1次、fresh DB下载1次；命令运行`905s`后exit `1`，没有自动或人工retry。
+  `168,202`-byte payload SHA-256为`ba611529…fe805`，最终`4,529`-byte transfer
+  wrapper SHA-256为`94f3f225…e5a8`。retained-b55、bundle、exact 5335、host、
+  collision、source import、模型和工具均通过；Docker build、11文件evidence、ACR及
+  Stage C均未到达。
+- 关键更正: 完整原生进度流证明并非“完全没动静”。官方GHCR目标`103.39 MiB`，
+  `15m`时已下载`8.61 MiB / 8.33%`，末帧约`9.89 KiB/s`，随后才发生
+  `context deadline exceeded`；按末帧速率全量约需三小时。Trivy `--timeout`是整条
+  命令的绝对context budget，不是无进展timeout，因此V5只能归类为builder→GHCR
+  blob严重低吞吐，不能归类为stalled、zero progress或源码/构建失败。
+- 恢复边界: Trivy 0.72失败后不保留partial/resume；慢body copy耗尽deadline后也不能
+  可靠依赖多repository fallback。官方替代候选精确为
+  `public.ecr.aws/aquasecurity/trivy-db:2`。历史只证明同一builder匿名Public ECR
+  endpoint可达，尚未证明当前103.39 MiB DB blob吞吐；不得把reachability写成完成证据。
+  唯一合理下一步是一次有界、download-only、fresh-cache吞吐探针；不得构建镜像、登录
+  ACR、触碰生产或把它伪装成V5 rerun。
+- 清理/影响: target image/task root/running container为absent/absent/0，transfer
+  chunks/root为0/absent；builder已回到停止节省模式并释放临时公网IPv4。本机两份精确
+  transfer目录已从`/private/tmp`移入Trash，可恢复。ACR login/publication、生产DB连接/
+  写、service和public traffic mutation均0。V5 exact-one授权已消费且永久no-rerun；
+  V4/V17不得rerun，R17/V18不得创建；不新增ledger/receipt/topology。
+- readiness/唯一硬条件: 仍为`19/29` / `19/38`，不加credit。通俗地说，当前只缺一件
+  硬证据：完整fresh `103.39 MiB` Trivy DB必须通过一个官方路径足够快地到达builder，
+  然后原封不动完成exact 5335 Admin镜像与11文件native evidence。未证明该传输前，
+  不应继续靠延长GHCR timeout或新增版本号来消耗时间。
 
 ## Low Risks
 
