@@ -3121,7 +3121,7 @@
               "temporary_public_ipv4_released": true
             },
             "direct_recovery": {
-              "status": "IMPLEMENTED_GATE_PASS_PENDING_SINGLE_CI_AND_V17",
+              "status": "STAGE_B_SCHEME_ONE_AUTHORIZED_LOCAL_GATE_PASS_PENDING_EXACT_HEAD_CI",
               "c17_sha": "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e",
               "activation": "single_workflow_dispatch",
               "download_policy": "official_pypi_300s_inactivity_4_pip_retries_2_whole_attempts",
@@ -3131,14 +3131,61 @@
               "stage_a_install": "github_native_digest_verified_wheelhouse_network_none_no_index",
               "native_digest_source_required": "authenticated_github_artifact_metadata",
               "dockerfile_and_requirements_bytes_unchanged": true,
-              "custom_gate_version_or_control_layer_added": false
+              "custom_gate_version_or_control_layer_added": false,
+              "accepted_recovery_checkpoint": {
+                "head_sha": "18705620ddc0ba35d91a8d4424cde5cf07e1538d",
+                "push_workflow_run_id": 30815301049,
+                "pull_request_workflow_run_id": 30815303994,
+                "attempt_one_success": true
+              },
+              "v17_native_acceptance": {
+                "workflow_run_id": 30816912157,
+                "c17_sha": "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e",
+                "artifact_digest": "sha256:742a01d2f4f1dc14cb6a9bf620591d1fc7288dbc64113ba0db9d223d6e6ee139",
+                "fresh_builder_network_none_import_success": true,
+                "workflow_dispatch_count": 1,
+                "rerun_count": 0
+              },
+              "stage_a_native_acceptance": {
+                "status": "SUCCESS_AND_TEMPORARY_INPUTS_CLEANED",
+                "execution_count": 1,
+                "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+                "canonical_image": "noteai-native-evidence:5335bda-admin",
+                "local_image": "noteai-local:git-5335bda-amd64-admin-r1",
+                "platform": "linux/amd64",
+                "native_evidence_file_count": 11,
+                "python_install": "builder_local_wheelhouse_buildkit_network_none_pip_no_index",
+                "temporary_builder_iam_removed_after_three_input_sha_checks": true,
+                "temporary_private_objects_and_bucket_removed_after_success": true,
+                "registry_service_database_public_traffic_actions": 0
+              },
+              "stage_b_private_publication": {
+                "status": "AUTHORIZED_NOT_EXECUTED",
+                "repository": "noteai/app",
+                "tag": "git-5335bda-amd64-admin-r1",
+                "repository_private_normal_tag_immutable": true,
+                "target_tag_absent_at_preflight": true,
+                "public_registry_endpoint_enabled": false,
+                "executor_path": "deploy/production/admin_item20_stage_b_private_acr.sh",
+                "executor_sha256": "0342f9ebadda91a8131930170fbc9ee4d116b58286da1a3049b8f02bfb3fd624",
+                "publisher_focused_tests": "6/6",
+                "combined_focused_tests": "12/12",
+                "local_complete_readiness_gate": "136/136_once",
+                "scope": "one_admin_tag_one_private_push",
+                "temporary_link_swap": "snapshot_production_link_remove_attach_isolated_builder_publish_remove_builder_link_restore_exact_production_link",
+                "push_attempt_limit": 1,
+                "native_control_plane_readback_required": true,
+                "acceptance": "push_digest_equals_manifest_descriptor_digest_equals_control_plane_digest_and_manifest_config_equals_local_image_id",
+                "production_service_database_public_traffic_mutation_authorized": false,
+                "custom_ledger_receipt_or_topology_added": false
+              }
             },
             "readiness": {
               "internal": "19/29",
               "public": "19/38",
               "credit_added": false
             },
-            "next_hard_condition": "Produce the exact 5335 Admin AMD64 local image plus the complete accepted 11-file native evidence set; Stage B/C remain closed until then."
+            "next_hard_condition": "Pass one exact-HEAD push and pull-request CI pair, then execute the authorized temporary private-link swap and exactly one Admin tag push. Accept Stage B only after the push, manifest-descriptor and native control-plane digests agree, the manifest config equals the accepted local image ID, and the exact production link plus API-C/API-F health are restored."
           },
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },

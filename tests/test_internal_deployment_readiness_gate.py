@@ -3033,7 +3033,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         recovery = public_ecr["direct_recovery"]
         self.assertEqual(
             recovery["status"],
-            "IMPLEMENTED_GATE_PASS_PENDING_SINGLE_CI_AND_V17",
+            "STAGE_B_SCHEME_ONE_AUTHORIZED_LOCAL_GATE_PASS_PENDING_EXACT_HEAD_CI",
         )
         self.assertEqual(
             recovery["c17_sha"],
@@ -3051,6 +3051,76 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         )
         self.assertTrue(recovery["dockerfile_and_requirements_bytes_unchanged"])
         self.assertFalse(recovery["custom_gate_version_or_control_layer_added"])
+        checkpoint = recovery["accepted_recovery_checkpoint"]
+        self.assertEqual(
+            checkpoint["head_sha"],
+            "18705620ddc0ba35d91a8d4424cde5cf07e1538d",
+        )
+        self.assertEqual(checkpoint["push_workflow_run_id"], 30815301049)
+        self.assertEqual(
+            checkpoint["pull_request_workflow_run_id"],
+            30815303994,
+        )
+        self.assertTrue(checkpoint["attempt_one_success"])
+        native = recovery["v17_native_acceptance"]
+        self.assertEqual(native["workflow_run_id"], 30816912157)
+        self.assertEqual(native["c17_sha"], recovery["c17_sha"])
+        self.assertEqual(
+            native["artifact_digest"],
+            "sha256:742a01d2f4f1dc14cb6a9bf620591d1fc7288dbc64113ba0db9d223d6e6ee139",
+        )
+        self.assertTrue(native["fresh_builder_network_none_import_success"])
+        self.assertEqual(native["workflow_dispatch_count"], 1)
+        self.assertEqual(native["rerun_count"], 0)
+        stage_a = recovery["stage_a_native_acceptance"]
+        self.assertEqual(
+            stage_a["status"],
+            "SUCCESS_AND_TEMPORARY_INPUTS_CLEANED",
+        )
+        self.assertEqual(stage_a["execution_count"], 1)
+        self.assertEqual(
+            stage_a["release_commit"],
+            "5335bdaed933b1f999b5f819c047ec50c11821ae",
+        )
+        self.assertEqual(stage_a["platform"], "linux/amd64")
+        self.assertEqual(stage_a["native_evidence_file_count"], 11)
+        self.assertTrue(
+            stage_a["temporary_builder_iam_removed_after_three_input_sha_checks"]
+        )
+        self.assertTrue(
+            stage_a["temporary_private_objects_and_bucket_removed_after_success"]
+        )
+        self.assertEqual(
+            stage_a["registry_service_database_public_traffic_actions"],
+            0,
+        )
+        stage_b = recovery["stage_b_private_publication"]
+        self.assertEqual(stage_b["status"], "AUTHORIZED_NOT_EXECUTED")
+        self.assertEqual(stage_b["repository"], "noteai/app")
+        self.assertEqual(stage_b["tag"], "git-5335bda-amd64-admin-r1")
+        self.assertTrue(stage_b["repository_private_normal_tag_immutable"])
+        self.assertTrue(stage_b["target_tag_absent_at_preflight"])
+        self.assertFalse(stage_b["public_registry_endpoint_enabled"])
+        self.assertEqual(
+            stage_b["executor_path"],
+            "deploy/production/admin_item20_stage_b_private_acr.sh",
+        )
+        self.assertEqual(
+            stage_b["executor_sha256"],
+            "0342f9ebadda91a8131930170fbc9ee4d116b58286da1a3049b8f02bfb3fd624",
+        )
+        self.assertEqual(stage_b["publisher_focused_tests"], "6/6")
+        self.assertEqual(stage_b["combined_focused_tests"], "12/12")
+        self.assertEqual(
+            stage_b["local_complete_readiness_gate"],
+            "136/136_once",
+        )
+        self.assertEqual(stage_b["push_attempt_limit"], 1)
+        self.assertTrue(stage_b["native_control_plane_readback_required"])
+        self.assertFalse(
+            stage_b["production_service_database_public_traffic_mutation_authorized"]
+        )
+        self.assertFalse(stage_b["custom_ledger_receipt_or_topology_added"])
         self.assertEqual(public_ecr["readiness"]["internal"], "19/29")
         self.assertEqual(public_ecr["readiness"]["public"], "19/38")
         self.assertFalse(public_ecr["readiness"]["credit_added"])
@@ -3070,7 +3140,11 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertIn("files.pythonhosted.org", admin["blocker"])
         self.assertIn("exact 5335 Admin AMD64 image", admin["blocker"])
         self.assertIn(
-            "11-file native evidence set",
+            "native control-plane digests agree",
+            public_ecr["next_hard_condition"],
+        )
+        self.assertIn(
+            "API-C/API-F health are restored",
             public_ecr["next_hard_condition"],
         )
         api_c = next(

@@ -5759,3 +5759,42 @@ pair, then exactly one V17 `workflow_dispatch` within 120 minutes. Accept only
 its authenticated run ID, fixed C17 SHA, native artifact digest and
 fresh-builder success; never derive the expected digest from the downloaded
 ZIP. Stage B/C remain closed until Stage A succeeds.
+
+### Item 20 V17/Stage A closure and authorized Stage B scheme one (2026-08-04)
+
+- V17 is terminal and accepted from four native facts: workflow run
+  `30816912157`, fixed C17
+  `7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e`, artifact digest
+  `sha256:742a01d2f4f1dc14cb6a9bf620591d1fc7288dbc64113ba0db9d223d6e6ee139`
+  and successful fresh-builder network-none import. Dispatch count is one and
+  rerun count is zero; R17/V18 remain forbidden.
+- Stage A then completed exactly once and accepted release
+  `5335bdaed933b1f999b5f819c047ec50c11821ae`, the Admin `linux/amd64` local
+  image and all 11 native evidence files. Python installation used only the
+  builder-local wheelhouse with BuildKit network-none and pip no-index. The
+  temporary builder IAM was removed after the three input SHA checks; the
+  three private objects and bucket were removed after success. Registry,
+  service, database and public-traffic actions were zero.
+- Fresh Stage B reads found `noteai/app` private, normal and tag-immutable,
+  with `git-5335bda-amd64-admin-r1` absent and the public Registry endpoint
+  disabled. Because the existing private endpoint permits one linked VPC and
+  the isolated builder is elsewhere, the user explicitly authorized scheme
+  one: snapshot/remove the production link, attach the isolated builder,
+  publish once, remove the builder link and restore the exact production link.
+- The minimal Admin-only publisher is
+  `deploy/production/admin_item20_stage_b_private_acr.sh`, SHA-256
+  `0342f9ebadda91a8131930170fbc9ee4d116b58286da1a3049b8f02bfb3fd624`.
+  It allows one private push, keeps credentials off argv/env/logs, binds the
+  Stage A image and 11-file evidence, compares push/descriptor/config digests
+  and always removes task-local auth and its remote alias. Publisher tests pass
+  `6/6`, combined focused tests pass `12/12`, and the only complete local
+  readiness gate passes `136/136`; an independent read-only security review
+  reports GO with no P0/P1. No cloud write or registry login/push has occurred
+  in this checkpoint.
+
+Readiness remains `19/29` internal and `19/38` public. The sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. Next, pass exactly one exact-HEAD
+push/PR CI pair, execute the authorized swap and one push, obtain the native
+control-plane digest, require all three registry digests plus the local config
+identity to agree, and restore the exact production link and API-C/API-F health
+before Stage B is accepted and Stage C opens.

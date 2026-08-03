@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 ## Critical Risks
 
@@ -708,22 +708,21 @@ Last updated: 2026-08-03
   push/PR双CI，然后exact-one Stage A取得exact 5335 Admin镜像和11文件evidence；不得
   延长GHCR timeout、创建新cache版本或扩展ledger/receipt/topology。
 
-### Admin Stage A Public ECR successor hit a recoverable Python package read timeout
+### Admin Stage A recovery is closed; Stage B private-link restoration is open
 
-- 状态: Open P2 / `19/29`。Public ECR完整交付Trivy DB并通过freshness；
-  唯一Stage A随后在`files.pythonhosted.org` pip read timeout失败。该builder此前
-  同一pip阶段也曾超时，因此路径在有界窗口内重复不可靠，但GitHub原生构建成功过，
-  不能断言永久outage。
-- 影响: 未形成Admin image或完整accepted 11-file evidence set，不加credit；
-  ACR/DB/service/public traffic均未变更，远端任务、镜像、容器和传输残留已清理，
-  builder已saving-stopped并释放临时公网IPv4。原执行权限已消费，禁止盲目重跑。
-- 已实施缓解: C17、Dockerfile与requirements字节不变；V17从官方PyPI预下载
-  wheelhouse，300秒无数据timeout、pip retry 4、整组最多2次，总硬上限5700秒，
-  并由两个独立BuildKit builder在network-none下验证。Stage A仅接收已认证GitHub
-  artifact metadata独立给出的digest，以network-none/no-index派生RUN安装；禁止用
-  ZIP本地重算值冒充期望digest。未新增version/gate/ledger/receipt/topology。
-- 剩余风险: 当前尚未取得唯一V17原生run/artifact/fresh-import证据，也未完成恢复性
-  Stage A。exact image和完整11-file evidence成功前，Stage B/C保持关闭。
+- 状态: Open P1 operational / `19/29`。唯一V17原生run、固定C17、artifact digest和
+  fresh-builder network-none导入均已验收；唯一Stage A也已产生exact 5335 Admin
+  `linux/amd64`镜像与11件原生证据。临时builder IAM及三项私有输入/bucket均按顺序清理。
+- 当前风险: ACR公网入口保持关闭，而私网Registry一次只允许一个VPC link。方案一已获
+  明确授权：快照并移除现有生产link，临时接入隔离builder，仅发布一个Admin tag，随后
+  删除builder link并精确恢复原生产link。恢复生产link、DNS及API-C/API-F健康优先于发布清理。
+- 控制: 版本化发布器只允许一次push，凭据仅走受保护stdin，固定本机Docker daemon，
+  不构建/拉取/运行镜像，不连接数据库，不改变服务或公网流量；任意`push_started=1`
+  终态只做一次原生`GetRepoTag`，禁止重推。未新增ledger、receipt或topology控制层。
+- 验收: 一次exact-HEAD双CI通过后执行；push digest、manifest descriptor digest和原生
+  控制面digest必须一致，manifest config必须等于Stage A local image ID，且原生产link与
+  API-C/API-F健康必须恢复。本地publisher/combined focused为`6/6`/`12/12`，本阶段唯一
+  完整readiness gate为`136/136`。Stage B满足前Stage C保持关闭。
 ## Low Risks
 
 ### `model/api.py` is too large
