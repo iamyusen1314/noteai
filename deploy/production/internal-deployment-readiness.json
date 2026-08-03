@@ -2086,6 +2086,122 @@
             },
             "next_hard_condition": "After exact-HEAD push and pull-request CI accept this executor, run it once on the existing isolated builder and obtain the exact 5335 Admin local image plus native evidence; the following hard condition is one immutable private ACR manifest digest."
           },
+          "admin_stage_a_attempt2": {
+            "result": "FAILED_DURING_SOURCE_FETCH_BEFORE_DOCKER_BUILD",
+            "controller_commit": "eea0504acf8b6253d066116a5278833dc681ff74",
+            "source_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+            "source_tree": "38e574e56406ba3380acb78edbe784508cc537cd",
+            "target_tag": "git-5335bda-amd64-admin-r1",
+            "exact_head_ci": {
+              "push": {
+                "run_id": 30777395304,
+                "job_id": 91575375837,
+                "attempt": 1,
+                "conclusion": "success",
+                "total_test_count": 1765,
+                "production_readiness_checks": "137/137",
+                "artifact_count": 0
+              },
+              "pull_request": {
+                "run_id": 30777397136,
+                "job_id": 91575380930,
+                "attempt": 1,
+                "conclusion": "success",
+                "total_test_count": 1765,
+                "production_readiness_checks": "137/137",
+                "artifact_count": 0
+              },
+              "rerun_count": 0
+            },
+            "uploaded_script": {
+              "path": "/root/admin_item20_stage_a_v2.sh",
+              "status": "success",
+              "scope": "builder_only",
+              "api_c_selected": false,
+              "api_f_selected": false,
+              "owner_group_mode": "0:0:600",
+              "byte_count": 22254,
+              "sha256": "85e4e60e40e2a3f00c7fe9d1220ec37fdce2eb2772b8ce74ee92b0249755abd6",
+              "sha256_verified": true,
+              "completed_at": "2026-08-03T10:03:36+08:00"
+            },
+            "cloud_assistant": {
+              "command_name": "noteai-admin-item20-stage-a-execute-v2",
+              "target_count": 1,
+              "created_at": "2026-08-03T10:05:30+08:00",
+              "completed_at": "2026-08-03T10:07:32+08:00",
+              "duration_seconds": 122,
+              "exit_code": 128,
+              "execution_count": 1
+            },
+            "failure": {
+              "phase": "source_fetch",
+              "curl_code": 52,
+              "transport_message": "Empty reply from server",
+              "git_terminal_message": "fatal: expected 'packfile'",
+              "git_fetch_attempt_count": 1,
+              "source_checkout_reached": false,
+              "model_materialization_reached": false,
+              "trivy_database_download_reached": false,
+              "docker_build_reached": false,
+              "native_release_evidence_reached": false,
+              "acr_publication_reached": false,
+              "production_deployment_reached": false
+            },
+            "cleanup": {
+              "target_images_absent": true,
+              "task_root_absent": true,
+              "running_container_count": 0,
+              "uploaded_script_removal": "wrapper_exit_trap_reached_not_independently_probed",
+              "builder_ordinary_stop_count": 1,
+              "cleanup_only_builder_start_count": 1,
+              "builder_saving_stop_count": 1,
+              "script_execution_during_cleanup_restart": false,
+              "builder_instance_status": "stopped",
+              "builder_stop_mode": "saving",
+              "public_ipv4_released_in_saving_mode": true,
+              "builder_stop_observed_at": "2026-08-03T10:18:44+08:00"
+            },
+            "execution_scope": {
+              "existing_builder_start_count": 2,
+              "new_builder_create_count": 0,
+              "cloud_assistant_upload_count": 1,
+              "cloud_assistant_execution_count": 1,
+              "stage_a_execution_count": 1,
+              "source_fetch_attempt_count": 1,
+              "automatic_retry_count": 0,
+              "manual_rerun_count": 0,
+              "second_stage_a_execution_count": 0,
+              "trivy_database_download_count": 0,
+              "docker_build_count": 0,
+              "acr_login_count": 0,
+              "acr_publication_count": 0,
+              "production_deployment_count": 0,
+              "production_database_connection_count": 0,
+              "production_database_write_count": 0,
+              "production_service_mutation_count": 0,
+              "public_traffic_mutation_count": 0
+            },
+            "authorization": {
+              "single_corrected_stage_a_execution_consumed": true,
+              "additional_stage_a_execution_authorized": false,
+              "root_cause_fix_and_bounded_retry_require_cto_gate_not_stepwise_user_confirmation": true,
+              "private_acr_and_stage_c_standing_authority_recorded": true,
+              "downstream_execution_blocked_without_local_image_and_manifest_digest": true,
+              "v17_rerun_forbidden": true,
+              "r17_forbidden": true,
+              "v18_forbidden": true
+            },
+            "readiness": {
+              "internal_verified_count": 19,
+              "internal_total_count": 29,
+              "public_verified_count": 19,
+              "public_total_count": 38,
+              "credit_added": false,
+              "latest_verified_item": "api_f_current_release"
+            },
+            "next_hard_condition": "Version and offline-prove a bounded, error-classified clean-room recovery for the observed transient Git transport failure, pass exact-HEAD push and pull-request CI, then obtain the exact 5335 Admin local image plus all 11 native evidence files in one new bounded execution; only then proceed to one immutable private ACR manifest digest."
+          },
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },
         {

@@ -5274,3 +5274,58 @@ V2 compatibility checkpoint, require its exact-HEAD push and PR CI, then start
 the existing stopped builder and submit exactly one V2 execution. Its immediate
 hard acceptance is the exact 5335 local Admin image plus native evidence; the
 following hard acceptance remains one immutable private ACR manifest digest.
+
+### Item 20 Admin Stage A V2 attempt 1 failed cleanly in source fetch (2026-08-03)
+
+- Checkpoint `eea0504acf8b6253d066116a5278833dc681ff74` was already pushed before
+  any external action. Its exact-HEAD push CI `30777395304` / job
+  `91575375837` and pull-request CI `30777397136` / job `91575380930` both
+  passed run one / attempt one. Each completed `1765` tests, Quality,
+  production readiness `137/137` and Docker Compose; artifact count was zero.
+- The frozen `22,254`-byte V2 executor with SHA-256
+  `85e4e60e40e2a3f00c7fe9d1220ec37fdce2eb2772b8ce74ee92b0249755abd6`
+  was sent once to only the existing isolated builder. The file invocation
+  succeeded; remote path was `/root/admin_item20_stage_a_v2.sh`, owner/group
+  `root:root`, mode `0600`. API-C and API-F were not selected.
+- Exactly one Stage A execution was submitted, created
+  `2026-08-03T10:05:30+08:00` and completed
+  `2026-08-03T10:07:32+08:00`. Duration was `122` seconds and exit code was
+  `128`. The wrapper's frozen-SHA precheck passed. Automatic retry, manual
+  rerun and a second Stage A execution are all zero.
+- The exact terminal output was limited to the SHA precheck plus
+  `error: RPC failed; curl 52 Empty reply from server`,
+  `fatal: expected 'packfile'`,
+  `NOTEAI_ADMIN_STAGE_A_FAIL phase=source_fetch exit=128` and
+  `NOTEAI_ADMIN_STAGE_A_CLEANUP target_images=absent task_root=absent running=0`.
+  This identifies an upstream Git transport connection termination during the
+  single shallow fetch. Checkout, model materialization, Trivy DB download,
+  Docker build/scan, native evidence, ACR and all production actions were not
+  reached.
+- Failure cleanup removed the task root and left both target images absent with
+  zero running containers. The upload wrapper contained an unconditional EXIT
+  trap; script-file removal was not separately probed because that would have
+  required an extra external command. The first console stop used ordinary
+  mode, so the CTO performed one start with no script or Stage A command and
+  immediately stopped again after explicitly selecting
+  `节省停机模式（原停机不收费）`. Final observed state at
+  `2026-08-03T10:18:44+08:00` was `已停止 / 节省停机模式`, with public IPv4
+  released. These two extra power transitions were cost cleanup only, not a
+  Stage A retry.
+- No image, scan evidence, registry tag/digest, provider artifact, ACR auth or
+  publication, production deployment, database/service mutation, schema or
+  business write, business-provider call, paid-AI/crawler call or public-traffic
+  mutation occurred. The single GitHub source-fetch read is the only external
+  data access performed by the executor. This attempt earns no credit.
+  Readiness remains `19/29` internal and `19/38` public; the sole task remains
+  `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`.
+
+Next, version the smallest error-classified source-fetch recovery: only the
+observed transient transport signature may receive a bounded clean-room retry;
+non-transient failures must still stop immediately. Prove positive,
+transient-then-success and non-transient fixtures offline, preserve every 5335
+data-plane/build/image anchor, then require exact-HEAD push and PR CI before a
+new bounded execution. The standing CTO authority covers that root-cause fix
+and gated retry without another stepwise user confirmation. No blind retry is
+authorized. The immediate success condition remains the exact 5335 local Admin
+image plus 11 native evidence files; the next external hard condition remains
+one immutable private ACR manifest digest.

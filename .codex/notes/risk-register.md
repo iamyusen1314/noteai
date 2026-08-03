@@ -548,6 +548,33 @@ Last updated: 2026-08-03
   `admin_sessions` INSERT+DELETE；这些范围内不再逐步询问。公网流量、schema/业务
   数据写、V17 rerun、R17和V18仍未授权且禁止。
 
+### Admin Stage A V2 failed closed during source fetch
+
+- 状态: Open High / bounded source-fetch recovery engineering pending。V2在exact-HEAD
+  双CI首轮通过后仅执行一次，`122`秒后exit `128`；自动重试、手工rerun和第二次
+  Stage A执行均为0，进度仍为`19/29` / `19/38`。
+- 风险描述: 冻结executor SHA预检已通过；唯一失败签名为
+  `curl 52 Empty reply from server`与`fatal: expected 'packfile'`，脚本标记
+  `phase=source_fetch`。这是builder到GitHub的单次exact-commit shallow fetch传输
+  被对端中止，不是构建内容、镜像或扫描失败。
+- 影响与清理: source checkout未完成，model materialization、Trivy DB下载、
+  Docker build/scan、native evidence、ACR和所有生产动作均未到达。脚本报告
+  `target_images=absent task_root=absent running=0`。成本清理期间曾普通停机一次，
+  随后仅启动实例且未执行脚本，再明确选择saving stop；最终builder为
+  `已停止 / 节省停机模式`且公网IPv4释放。GitHub source-fetch读取一次；业务provider、
+  付费AI、crawler、生产数据库/service和public traffic变更均为0。
+- 建议验证方式: V2是历史执行证据，禁止原地改写。successor只可对精确观察到的两行
+  瞬时传输签名进行一次clean-room有界重试；任何近似或非瞬时错误必须立即失败。
+  离线fixture必须固定首次成功、瞬时失败后成功、连续两次瞬时失败、近似及非瞬时失败，
+  并证明每次重新初始化source root、两次参数完全相同且最多两次fetch。
+- 剩余风险: 在上述fixture、静态数据面锚点和exact-HEAD双CI通过前不得再启动外部
+  Stage A。真实Trivy下载和Docker构建仍未被旧builder验证；任何后续失败仍必须保留
+  唯一执行、明确根因和完整清理，不允许盲目重复。
+- 是否需要用户确认后才能修改: CTO常设授权覆盖root-cause successor的离线修复、
+  双CI及其后一次有界执行，不再逐步询问。若需要mirror、proxy、credential、换源、
+  扩大费用或范围则必须请求用户决策。公网流量、schema/业务数据写、V17 rerun、
+  R17和V18仍未授权且禁止。
+
 ## Low Risks
 
 ### `model/api.py` is too large

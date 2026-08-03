@@ -2048,6 +2048,77 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertTrue(stage_a_v2["authorization"]["r17_forbidden"])
         self.assertTrue(stage_a_v2["authorization"]["v18_forbidden"])
         self.assertFalse(stage_a_v2["readiness"]["credit_added"])
+
+        attempt2 = admin["admin_stage_a_attempt2"]
+        self.assertEqual(
+            attempt2["result"],
+            "FAILED_DURING_SOURCE_FETCH_BEFORE_DOCKER_BUILD",
+        )
+        self.assertEqual(
+            attempt2["controller_commit"],
+            "eea0504acf8b6253d066116a5278833dc681ff74",
+        )
+        self.assertEqual(attempt2["exact_head_ci"]["push"]["run_id"], 30777395304)
+        self.assertEqual(
+            attempt2["exact_head_ci"]["pull_request"]["run_id"],
+            30777397136,
+        )
+        self.assertEqual(attempt2["exact_head_ci"]["push"]["artifact_count"], 0)
+        self.assertEqual(
+            attempt2["exact_head_ci"]["pull_request"]["artifact_count"],
+            0,
+        )
+        self.assertEqual(attempt2["uploaded_script"]["status"], "success")
+        self.assertEqual(attempt2["uploaded_script"]["scope"], "builder_only")
+        self.assertTrue(attempt2["uploaded_script"]["sha256_verified"])
+        self.assertEqual(attempt2["cloud_assistant"]["target_count"], 1)
+        self.assertEqual(attempt2["cloud_assistant"]["execution_count"], 1)
+        self.assertEqual(attempt2["cloud_assistant"]["exit_code"], 128)
+        self.assertEqual(attempt2["failure"]["phase"], "source_fetch")
+        self.assertEqual(attempt2["failure"]["curl_code"], 52)
+        self.assertEqual(attempt2["failure"]["git_fetch_attempt_count"], 1)
+        self.assertFalse(attempt2["failure"]["docker_build_reached"])
+        self.assertFalse(attempt2["failure"]["acr_publication_reached"])
+        self.assertTrue(attempt2["cleanup"]["target_images_absent"])
+        self.assertTrue(attempt2["cleanup"]["task_root_absent"])
+        self.assertEqual(attempt2["cleanup"]["running_container_count"], 0)
+        self.assertEqual(attempt2["cleanup"]["builder_instance_status"], "stopped")
+        self.assertEqual(attempt2["cleanup"]["builder_stop_mode"], "saving")
+        self.assertEqual(attempt2["cleanup"]["builder_ordinary_stop_count"], 1)
+        self.assertEqual(attempt2["cleanup"]["cleanup_only_builder_start_count"], 1)
+        self.assertEqual(attempt2["cleanup"]["builder_saving_stop_count"], 1)
+        self.assertFalse(
+            attempt2["cleanup"]["script_execution_during_cleanup_restart"]
+        )
+        execution_scope = attempt2["execution_scope"]
+        self.assertEqual(execution_scope["existing_builder_start_count"], 2)
+        self.assertEqual(execution_scope["new_builder_create_count"], 0)
+        self.assertEqual(execution_scope["cloud_assistant_upload_count"], 1)
+        self.assertEqual(execution_scope["cloud_assistant_execution_count"], 1)
+        self.assertEqual(execution_scope["stage_a_execution_count"], 1)
+        self.assertEqual(execution_scope["source_fetch_attempt_count"], 1)
+        self.assertEqual(execution_scope["automatic_retry_count"], 0)
+        self.assertEqual(execution_scope["manual_rerun_count"], 0)
+        self.assertEqual(execution_scope["second_stage_a_execution_count"], 0)
+        self.assertEqual(execution_scope["trivy_database_download_count"], 0)
+        self.assertEqual(execution_scope["docker_build_count"], 0)
+        self.assertEqual(execution_scope["acr_login_count"], 0)
+        self.assertEqual(execution_scope["acr_publication_count"], 0)
+        self.assertEqual(execution_scope["production_deployment_count"], 0)
+        self.assertEqual(
+            execution_scope["production_database_connection_count"],
+            0,
+        )
+        self.assertEqual(execution_scope["production_database_write_count"], 0)
+        self.assertEqual(execution_scope["production_service_mutation_count"], 0)
+        self.assertEqual(execution_scope["public_traffic_mutation_count"], 0)
+        self.assertTrue(
+            attempt2["authorization"]["single_corrected_stage_a_execution_consumed"]
+        )
+        self.assertFalse(
+            attempt2["authorization"]["additional_stage_a_execution_authorized"]
+        )
+        self.assertFalse(attempt2["readiness"]["credit_added"])
         api_c = next(
             control
             for control in self.manifest["layers"][1]["controls"]
