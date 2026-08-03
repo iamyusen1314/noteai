@@ -2211,7 +2211,7 @@
             "next_hard_condition": "Version and offline-prove a bounded, error-classified clean-room recovery for the observed transient Git transport failure, pass exact-HEAD push and pull-request CI, then obtain the exact 5335 Admin local image plus all 11 native evidence files in one new bounded execution; only then proceed to one immutable private ACR manifest digest."
           },
           "admin_stage_a_v3_preparation": {
-            "result": "OFFLINE_VALIDATED_NOT_EXECUTED",
+            "result": "OFFLINE_VALIDATED_CI_SUCCESSOR_PENDING",
             "source_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
             "source_tree": "38e574e56406ba3380acb78edbe784508cc537cd",
             "predecessor_failure_checkpoint": {
@@ -2235,6 +2235,34 @@
                 "artifact_count": 0
               },
               "rerun_count": 0
+            },
+            "exact_head_ci_attempt": {
+              "candidate_commit": "682a18d94322eaae38bcd341e3fd2d741e73580d",
+              "push_ci": {
+                "run_id": 30780944104,
+                "job_id": 91585301363,
+                "attempt": 1,
+                "conclusion": "failure",
+                "completed_ambient_test_count": 1704,
+                "ambient_skipped_count": 28,
+                "failed_test": "tests.test_ai_operation_admission.AiOperationAdmissionTests.test_one_hundred_distinct_admissions_are_bounded_and_make_no_provider_attempts",
+                "observed_elapsed_seconds": 2.3832472390000135,
+                "shared_runner_wall_clock_limit_seconds": 2.0,
+                "production_readiness_gate_reached": false,
+                "artifact_count": 0
+              },
+              "pull_request_ci": {
+                "run_id": 30780947418,
+                "job_id": 91585310629,
+                "attempt": 1,
+                "conclusion": "success",
+                "total_test_count": 1770,
+                "ambient_skipped_count": 28,
+                "production_readiness_checks": "137/137",
+                "artifact_count": 0
+              },
+              "rerun_count": 0,
+              "external_execution_started": false
             },
             "executor": {
               "path": "deploy/production/admin_item20_stage_a_v3.sh",
@@ -2293,6 +2321,21 @@
               "public_gate": "19/38",
               "production_readiness_checks": "137/137"
             },
+            "ci_hermeticity_correction": {
+              "affected_path": "tests/test_ai_operation_admission.py",
+              "shared_runner_sqlite_wall_clock_assertion_removed": true,
+              "arbitrary_wall_clock_limit_relaxed": false,
+              "hundred_admission_persistence_assertions_preserved": true,
+              "provider_attempt_and_model_call_zero_assertions_preserved": true,
+              "stage_a_executor_changed": false,
+              "build_or_image_content_changed": false,
+              "main_local_repeat_count": 5,
+              "main_local_pass_count": 5,
+              "independent_local_repeat_count": 20,
+              "independent_local_pass_count": 20,
+              "independent_review_result": "SHARED_RUNNER_WALL_CLOCK_FIXTURE_NOT_PRODUCT_REGRESSION",
+              "managed_capacity_item_remains_unverified": true
+            },
             "external_scope": {
               "builder_start_count": 0,
               "cloud_assistant_upload_count": 0,
@@ -2330,7 +2373,7 @@
               "credit_added": false,
               "latest_verified_item": "api_f_current_release"
             },
-            "next_hard_condition": "Pass exact-HEAD push and pull-request CI for this exact V3 executor, then execute it exactly once on the existing isolated builder and obtain the exact 5335 Admin local image plus all 11 native evidence files; only then proceed to one immutable private ACR manifest digest."
+            "next_hard_condition": "Commit the scheduler-hermetic unit-test correction without changing the V3 executor, pass fresh exact-HEAD push and pull-request CI, then execute V3 exactly once on the existing isolated builder and obtain the exact 5335 Admin local image plus all 11 native evidence files; only then proceed to one immutable private ACR manifest digest."
           },
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },

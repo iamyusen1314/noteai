@@ -599,6 +599,24 @@ Last updated: 2026-08-03
   私有ACR/Stage C链，不再逐步询问。mirror、proxy、credential、换源、扩大费用/范围、
   公网流量、schema/业务数据写、V17 rerun、R17或V18仍须新决策或明确禁止。
 
+### Admin Stage A V3 exact-HEAD push CI exposed a shared-runner timing oracle
+
+- 状态: Mitigated offline / fresh successor CI pending。`682a18d`的PR CI首轮
+  `1770`测试和全部gate通过；push CI首轮仅因100次串行SQLite admission耗时
+  `2.383247239s`超过历史硬编码`2.0s`而失败，artifact为0且未rerun。
+- 根因与证据: 同一HEAD未改admission/billing/database；本地主CTO `5/5`约
+  `0.22s`，独立审计`20/20`为`0.163`–`0.195s`。该wall-clock oracle受共享
+  runner调度与临时盘fsync影响，不是100个并发PostgreSQL生产受理证明。
+- 最小缓解: 不把阈值放宽为任意`3/5s`；仅删除不合格的共享runner墙钟断言，
+  保留100 durable admission、五表精确计数、provider/model call为0和usage清理
+  全部确定性断言。真正`capacity_100_jobs`仍为unverified，须在第29项完成受管
+  并发、恢复和计费验收，不能由本修复加分。
+- 影响边界: V3 executor、source、build/image、ACR及生产资源均未变化；builder
+  仍saving-stopped，V3外部执行计数仍0。下一步仅允许新HEAD正常双CI；禁止rerun
+  已失败run，双CI通过前不得启动Stage A。
+- 是否需要用户确认后才能修改: 不需要；常设CTO授权覆盖CI根因的最小离线修复。
+  任何降低真实100-job验收、扩大生产范围或重跑外部Stage A仍不由本修复授权。
+
 ## Low Risks
 
 ### `model/api.py` is too large

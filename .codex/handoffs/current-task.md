@@ -5385,3 +5385,39 @@ hard acceptance is one immutable private ACR manifest digest. A terminal V3
 failure authorizes no additional Stage A execution. Mirror/proxy/credential,
 source change, expanded cost/scope, public traffic, schema/business writes,
 V17 rerun, R17 and V18 remain outside authority.
+
+### Item 20 Admin Stage A V3 exact-HEAD CI hermeticity correction (2026-08-03)
+
+- V3 checkpoint `682a18d94322eaae38bcd341e3fd2d741e73580d` was pushed with a
+  clean/upstream-equal worktree. Pull-request CI `30780947418` / job
+  `91585310629` passed run one / attempt one with `1770` total tests, `28`
+  ambient skips, Quality, production readiness `137/137`, Docker Compose and
+  artifact count zero.
+- Push CI `30780944104` / job `91585301363` was not rerun. It completed run one /
+  attempt one with one failure in the ambient suite: the historical
+  `test_one_hundred_distinct_admissions_are_bounded_and_make_no_provider_attempts`
+  measured `2.383247239` seconds against an arbitrary shared-runner SQLite
+  wall-clock limit of `2.0` seconds. It completed `1704` ambient tests with `28`
+  skips, then correctly skipped later gates; artifact count remained zero.
+- This is not an Admin V3 or production-capacity regression. The exact same
+  HEAD passed PR CI; `682a18d` changes no admission, billing or database code;
+  both direct-predecessor CIs passed; main local repetition passed `5/5` at
+  about `0.22` seconds and an independent read-only audit passed `20/20` at
+  `0.163`–`0.195` seconds. The test measured 100 serial local SQLite
+  transactions on a shared runner, not 100 concurrent PostgreSQL admissions.
+- The smallest correction removes only that non-hermetic wall-clock oracle and
+  renames the test to state its actual contract. All deterministic assertions
+  remain: 100/100 admitted, the five durable tables each contain exactly 100
+  rows, provider attempts and model calls remain zero, and usage context is
+  cleared. The `capacity_100_jobs` readiness item remains unverified and still
+  requires its later managed concurrent admission/recovery/accounting proof;
+  no latency SLA was relaxed or credited.
+- The V3 executor remains byte-for-byte `31,609` bytes / SHA-256
+  `562cceb3f6b08da0b8e0723e4b636d664b6fc67cf622c6da3061601ee8b3f31a`.
+  Builder starts, uploads, Cloud Assistant commands, source fetches, builds,
+  ACR and production actions for V3 remain zero. Readiness remains `19/29`
+  internal and `19/38` public.
+
+Next, commit and push this scheduler-hermetic test-only successor, require its
+fresh exact-HEAD push and pull-request CI to pass, then execute V3 exactly once
+under the existing standing authority. Do not rerun either `682a18d` CI.

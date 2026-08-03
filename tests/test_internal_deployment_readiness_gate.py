@@ -2129,7 +2129,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertFalse(attempt2["readiness"]["credit_added"])
 
         stage_a_v3 = admin["admin_stage_a_v3_preparation"]
-        self.assertEqual(stage_a_v3["result"], "OFFLINE_VALIDATED_NOT_EXECUTED")
+        self.assertEqual(
+            stage_a_v3["result"],
+            "OFFLINE_VALIDATED_CI_SUCCESSOR_PENDING",
+        )
         self.assertEqual(
             stage_a_v3["predecessor_failure_checkpoint"]["commit"],
             "df9fb2b5167285aedb6fd618d9b819e082fd067e",
@@ -2155,6 +2158,42 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             stage_a_v3["predecessor_failure_checkpoint"]["rerun_count"],
             0,
         )
+        ci_attempt = stage_a_v3["exact_head_ci_attempt"]
+        self.assertEqual(
+            ci_attempt["candidate_commit"],
+            "682a18d94322eaae38bcd341e3fd2d741e73580d",
+        )
+        self.assertEqual(ci_attempt["push_ci"]["run_id"], 30780944104)
+        self.assertEqual(ci_attempt["push_ci"]["job_id"], 91585301363)
+        self.assertEqual(ci_attempt["push_ci"]["attempt"], 1)
+        self.assertEqual(ci_attempt["push_ci"]["conclusion"], "failure")
+        self.assertEqual(
+            ci_attempt["push_ci"]["completed_ambient_test_count"],
+            1704,
+        )
+        self.assertEqual(ci_attempt["push_ci"]["ambient_skipped_count"], 28)
+        self.assertEqual(ci_attempt["push_ci"]["artifact_count"], 0)
+        self.assertFalse(
+            ci_attempt["push_ci"]["production_readiness_gate_reached"]
+        )
+        self.assertEqual(
+            ci_attempt["pull_request_ci"]["run_id"],
+            30780947418,
+        )
+        self.assertEqual(
+            ci_attempt["pull_request_ci"]["job_id"],
+            91585310629,
+        )
+        self.assertEqual(ci_attempt["pull_request_ci"]["attempt"], 1)
+        self.assertEqual(ci_attempt["pull_request_ci"]["conclusion"], "success")
+        self.assertEqual(ci_attempt["pull_request_ci"]["total_test_count"], 1770)
+        self.assertEqual(
+            ci_attempt["pull_request_ci"]["production_readiness_checks"],
+            "137/137",
+        )
+        self.assertEqual(ci_attempt["pull_request_ci"]["artifact_count"], 0)
+        self.assertEqual(ci_attempt["rerun_count"], 0)
+        self.assertFalse(ci_attempt["external_execution_started"])
         self.assertEqual(
             stage_a_v3["executor"]["path"],
             "deploy/production/admin_item20_stage_a_v3.sh",
@@ -2205,6 +2244,22 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertTrue(offline["byte_identical_transport_parameters_passed"])
         self.assertEqual(offline["focused_test_count"], 5)
         self.assertEqual(offline["independent_reviewer_pass_count"], 2)
+        ci_fix = stage_a_v3["ci_hermeticity_correction"]
+        self.assertEqual(
+            ci_fix["affected_path"],
+            "tests/test_ai_operation_admission.py",
+        )
+        self.assertTrue(ci_fix["shared_runner_sqlite_wall_clock_assertion_removed"])
+        self.assertFalse(ci_fix["arbitrary_wall_clock_limit_relaxed"])
+        self.assertTrue(ci_fix["hundred_admission_persistence_assertions_preserved"])
+        self.assertTrue(
+            ci_fix["provider_attempt_and_model_call_zero_assertions_preserved"]
+        )
+        self.assertFalse(ci_fix["stage_a_executor_changed"])
+        self.assertFalse(ci_fix["build_or_image_content_changed"])
+        self.assertEqual(ci_fix["main_local_pass_count"], 5)
+        self.assertEqual(ci_fix["independent_local_pass_count"], 20)
+        self.assertTrue(ci_fix["managed_capacity_item_remains_unverified"])
         external_scope = stage_a_v3["external_scope"]
         for key in (
             "builder_start_count",
