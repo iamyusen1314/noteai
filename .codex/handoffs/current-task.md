@@ -5857,3 +5857,43 @@ is for the account owner to clear the Alibaba Cloud billing lock so the existing
 on-demand builder can start. After it reaches stable `Running`, first inspect
 shutdown scheduling and the local Stage A image/evidence; only then recreate the
 temporary IAM/link and perform the still-first actual private Registry push.
+
+### Item 20 Stage B post-top-up preflight found production runtime loss (2026-08-04)
+
+- After the account owner replenished the account, `StartInstance` returned
+  `200`; the existing builder reached stable `Running` with empty
+  `AutoReleaseTime`. Read-only lifecycle checks found no systemd, cron or `at`
+  shutdown schedule. Runtime state was clean, both accepted Stage A image tags
+  still resolve to one `linux/amd64` Admin image, and no Docker auth, container,
+  build/push process, database connection or remote Registry alias exists.
+- The fresh evidence check isolated two metadata-only deviations:
+  `admin-build-metadata.json` was `0644` instead of the publisher contract's
+  `0600`, and the exact publisher was `0600` instead of executable `0700`.
+  One bounded repair changed only those two modes; SHA-256 before/after was
+  identical. The final combined preflight then passed lifecycle, runtime,
+  image identity, all 11 evidence files, six evidence hash reads and the exact
+  publisher SHA/offline self-test.
+- The fresh cloud preflight passed: `noteai/app` is `PRIVATE`, `NORMAL` and
+  tag-immutable; the fixed target tag remains absent; the public Registry
+  endpoint remains disabled; the frozen production link is `RUNNING` with
+  default access disabled; and both temporary IAM objects remain absent. No
+  IAM or VPC-link write, Registry login, tag, push or production database/
+  public-traffic action occurred.
+- The mandatory production health baseline failed before any Stage B control
+  mutation. API-C and API-F ECS instances are both `Running`, but each has no
+  `8000`/`8001` listener, no running container, no installed or retained NoteAI
+  systemd unit, and no live/ready response. Each node still retains `35` NoteAI
+  images. This state therefore predates and blocks the proposed link swap; it
+  was not caused by this Stage B attempt.
+- A normal stop of the still-billable isolated builder was prepared, but
+  Alibaba Cloud account security verification appeared before submission.
+  No verification message was sent and `StopInstance` was not called. The
+  builder is still `Running`; the verification page is handed back to the
+  account owner.
+
+Readiness remains `19/29` internal and `19/38` public, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. First complete the Alibaba Cloud account
+security verification so the builder can be stopped. Continuing Stage B also
+requires new explicit authority for the smallest production recovery that
+recreates the missing API-C/API-F units from the already accepted images and
+restores loopback live/ready `200`, without database or public-traffic changes.

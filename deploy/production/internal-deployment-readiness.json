@@ -3171,7 +3171,7 @@
               },
               "stage_b_private_publication": {
                 "status": "AUTHORIZED_NOT_EXECUTED",
-                "current_operational_state": "BLOCKED_BUILDER_INSTANCE_EXPIRED_NO_PUSH_PRODUCTION_RESTORED",
+                "current_operational_state": "BLOCKED_PREEXISTING_API_C_API_F_RUNTIME_ABSENT_NO_PUSH_PRODUCTION_LINK_UNCHANGED",
                 "repository": "noteai/app",
                 "tag": "git-5335bda-amd64-admin-r1",
                 "repository_private_normal_tag_immutable": true,
@@ -3196,17 +3196,40 @@
                 "actual_registry_push_count": 0,
                 "target_tag_absent_after_invocation": true,
                 "post_recovery_native_tag_read_count": 1,
+                "pre_publication_native_tag_read_count": 1,
+                "native_tag_read_result": "IMAGE_NOT_EXIST",
                 "temporary_builder_link_removed": true,
                 "exact_production_link_restored_running": true,
                 "public_registry_endpoint_still_disabled": true,
-                "api_c_api_f_health_after_restore": "live_ready_200_loopback_only",
+                "api_c_api_f_health_after_restore": "historical_live_ready_200_loopback_only",
+                "current_api_c_api_f_health": "failed_no_8000_or_8001_listener_no_unit_no_container",
+                "api_c_api_f_ecs_state": "Running",
+                "api_c_api_f_noteai_images_per_node": 35,
+                "api_c_api_f_installed_or_retained_unit_count": 0,
+                "production_service_mutation_count": 0,
                 "temporary_iam_absent": true,
-                "builder_state": "Stopped",
-                "builder_start_error": "InstanceExpired",
-                "account_available_balance_positive": false,
-                "paid_action_performed": false,
+                "builder_state": "Running_stop_submission_blocked_by_account_security_verification",
+                "historical_builder_start_error": "InstanceExpired",
+                "builder_start_after_account_replenishment": "success_http_200",
+                "builder_auto_release_time_empty": true,
+                "builder_shutdown_schedule_count": 0,
+                "builder_stop_api_call_submitted": false,
+                "builder_stop_security_verification_pending": true,
+                "paid_action_performed_by_automation": false,
                 "new_instance_created": false,
                 "code_ci_or_full_gate_repeated": false,
+                "builder_permission_metadata_repair": {
+                  "file_count": 2,
+                  "content_sha_unchanged": true,
+                  "admin_build_metadata_mode": "0600",
+                  "publisher_mode": "0700"
+                },
+                "post_top_up_builder_preflight": {
+                  "lifecycle_runtime_image_groups": "3/3_pass",
+                  "native_evidence_file_count": 11,
+                  "evidence_hash_reads": "6/6_pass",
+                  "publisher_exact_sha_and_self_test": true
+                },
                 "secret_free_diagnosis": {
                   "system_runtime_image_and_evidence_groups": "5/5_pass",
                   "same_sts_username_shape": "nonempty_length_12_current_regex_pass_no_control_or_crlf",
@@ -3226,7 +3249,7 @@
               "public": "19/38",
               "credit_added": false
             },
-            "next_hard_condition": "The account owner must clear the Alibaba Cloud billing lock so the existing on-demand builder can start. After stable Running and read-only shutdown-schedule plus Stage A asset checks, recreate the temporary IAM/link and execute the still-first actual registry push; accept Stage B only after the push, manifest-descriptor and native control-plane digests agree, the manifest config equals the accepted local image ID, and the exact production link plus API-C/API-F health are restored."
+            "next_hard_condition": "The account owner must complete Alibaba Cloud account security verification so the already-prepared normal builder stop can be submitted. Continuing Stage B additionally requires explicit authority for the minimum production recovery that recreates the missing API-C/API-F systemd units from already accepted images and restores loopback live/ready 200 without database or public-traffic changes. Only after that fresh baseline may the temporary IAM/link and still-first actual Registry push proceed; Stage B acceptance still requires that push, manifest-descriptor and native control-plane digests agree, the local config identity matches, and the exact production link plus API-C/API-F health are restored."
           },
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },

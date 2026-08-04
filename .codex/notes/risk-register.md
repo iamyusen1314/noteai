@@ -742,6 +742,19 @@ Last updated: 2026-08-04
   新建实例、代码修改、CI/full gate重跑或registry操作。当前唯一硬阻塞是账户所有者
   解除阿里云计费锁；解锁后必须先检查builder稳定性/关停调度与Stage A本地资产，再
   重建临时IAM/link并完成仍属第一笔的actual private push。
+- 2026-08-04 补款后生产健康前置阻塞: builder已成功启动且`AutoReleaseTime`为空，
+  生命周期/运行态/双镜像身份均通过。只对`admin-build-metadata.json`和exact publisher
+  执行一次`0644→0600`、`0600→0700`权限修正，前后SHA不变；最终合并preflight通过
+  lifecycle/runtime/image/11 evidence/6 hashes/publisher SHA+self-test。ACR仓库仍为
+  private/NORMAL/immutable，目标tag absent，公网关闭，冻结生产link `RUNNING`且
+  default access false，临时RAM仍不存在；IAM/link/login/tag/push/DB/public动作均0。
+  但Stage B任何控制写前的强制健康基线发现API-C/API-F ECS虽均`Running`，两台都无
+  8000/8001监听、运行容器、已安装或保留的NoteAI systemd unit及live/ready响应，各自
+  仍保留35个NoteAI镜像。这是本轮ACR动作前已存在的生产runtime丢失，禁止在当前方案
+  内擅自安装unit或启动生产服务。正常停止builder又在提交前触发账户安全验证；验证码
+  未发送、`StopInstance`未调用，builder仍`Running`。当前需账户所有者先完成验证以
+  停止计费builder；继续Stage B还需明确授权仅用既有已验收镜像恢复API-C/API-F unit与
+  loopback live/ready 200，数据库及公网流量不得改变。
 ## Low Risks
 
 ### `model/api.py` is too large
