@@ -5923,3 +5923,15 @@ accepted images and restores loopback live/ready `200` on ports `8000`/`8001`,
 with database and public-traffic changes remaining zero. Until that baseline is
 restored, temporary Stage B IAM/link creation and the still-first actual private
 Registry push remain closed.
+
+The post-stop read-only recovery audit found no safe byte-reuse path. The three
+accepted API-C/API-F systemd unit byte streams are absent from both current Git
+refs and the two hosts; only their hashes, sizes and semantic contracts remain.
+The tracked production Compose file is not an admissible substitute because its
+API default bind, restart policy, resource bounds and container identities do
+not match the accepted loopback-hardened services. Therefore the single missing
+implementation condition is a minimal deterministic three-unit recovery
+executor/template, offline-verified before use and limited to the already
+accepted API image on API-C/API-F plus the accepted historical Admin image on
+API-C. Creating or running that production-recovery path requires explicit
+authority; no recovery code or production service mutation has been made.

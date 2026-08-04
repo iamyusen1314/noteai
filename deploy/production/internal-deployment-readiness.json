@@ -3251,7 +3251,7 @@
               "public": "19/38",
               "credit_added": false
             },
-            "next_hard_condition": "Builder stop is complete and adds no readiness credit. Continuing Stage B requires explicit authority for the minimum production recovery that recreates the missing API-C/API-F systemd units from already accepted images and restores loopback live/ready 200 without database or public-traffic changes. Only after that fresh baseline may the temporary IAM/link and still-first actual Registry push proceed; Stage B acceptance still requires that push, manifest-descriptor and native control-plane digests agree, the local config identity matches, and the exact production link plus API-C/API-F health are restored."
+            "next_hard_condition": "Builder stop is complete and adds no readiness credit. Exact accepted unit bytes are absent from current Git refs and both production hosts, and the tracked Compose file does not satisfy the accepted loopback hardening contract. Continuing requires explicit authority to implement, offline-verify and run one minimal deterministic three-unit recovery path using only already accepted images, restoring API-C/API-F loopback live/ready 200 without database or public-traffic changes. Only after that fresh baseline may the temporary IAM/link and still-first actual Registry push proceed; Stage B acceptance still requires that push, manifest-descriptor and native control-plane digests agree, the local config identity matches, and the exact production link plus API-C/API-F health are restored."
           },
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },

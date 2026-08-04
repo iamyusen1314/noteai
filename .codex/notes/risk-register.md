@@ -763,6 +763,12 @@ Last updated: 2026-08-04
   已关闭；唯一开放P1仍是API-C/API-F缺少unit/container/listener/live/ready。继续前需明确
   授权最小生产恢复：只使用既有已验收镜像恢复两节点loopback live/ready 200，数据库和
   公网流量变化保持0；在此基线恢复前禁止重建Stage B临时IAM/link或执行private push。
+- 2026-08-04 停机后恢复路径只读审计: 三个已验收systemd unit的精确字节不在当前Git
+  refs且两台生产主机均未保留，只剩hash、字节数和语义合同。tracked production Compose
+  的API默认bind、restart policy、资源限制和container identity不符合既有loopback hardened
+  验收，禁止直接`docker compose up`。唯一缺失的实现条件是一个最小、确定性、先离线验证
+  的三unit恢复executor/template，仅允许API-C/API-F复用已验收API镜像及API-C复用已验收
+  历史Admin镜像；其创建和生产执行仍需明确授权。当前未新增恢复代码或生产service mutation。
 ## Low Risks
 
 ### `model/api.py` is too large
