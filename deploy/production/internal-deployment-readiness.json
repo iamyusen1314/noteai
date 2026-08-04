@@ -3122,6 +3122,7 @@
             },
             "direct_recovery": {
               "status": "STAGE_B_SCHEME_ONE_AUTHORIZED_LOCAL_GATE_PASS_PENDING_EXACT_HEAD_CI",
+              "current_operational_state": "STAGE_B_BLOCKED_BUILDER_INSTANCE_EXPIRED_NO_PUSH_PRODUCTION_RESTORED",
               "c17_sha": "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e",
               "activation": "single_workflow_dispatch",
               "download_policy": "official_pypi_300s_inactivity_4_pip_retries_2_whole_attempts",
@@ -3137,6 +3138,15 @@
                 "push_workflow_run_id": 30815301049,
                 "pull_request_workflow_run_id": 30815303994,
                 "attempt_one_success": true
+              },
+              "accepted_stage_b_exact_head_ci": {
+                "head_sha": "ec5b81df466613fc7c3ff145026d7ef490f0efde",
+                "push_workflow_run_id": 30862102590,
+                "pull_request_workflow_run_id": 30862105246,
+                "attempt_one_success": true,
+                "tests_per_run": 1781,
+                "production_readiness_per_run": "136/136",
+                "rerun_count": 0
               },
               "v17_native_acceptance": {
                 "workflow_run_id": 30816912157,
@@ -3161,6 +3171,7 @@
               },
               "stage_b_private_publication": {
                 "status": "AUTHORIZED_NOT_EXECUTED",
+                "current_operational_state": "BLOCKED_BUILDER_INSTANCE_EXPIRED_NO_PUSH_PRODUCTION_RESTORED",
                 "repository": "noteai/app",
                 "tag": "git-5335bda-amd64-admin-r1",
                 "repository_private_normal_tag_immutable": true,
@@ -3174,6 +3185,36 @@
                 "scope": "one_admin_tag_one_private_push",
                 "temporary_link_swap": "snapshot_production_link_remove_attach_isolated_builder_publish_remove_builder_link_restore_exact_production_link",
                 "push_attempt_limit": 1,
+                "publisher_invocation_count": 1,
+                "publisher_terminal_phase": "preflight",
+                "recovery_wrapper_dispatch_count": 1,
+                "recovery_wrapper_execution_count": 0,
+                "recovery_native_error_code": "InstanceNotRunning",
+                "recovery_native_repeats": 0,
+                "push_started_count": 0,
+                "published_count": 0,
+                "actual_registry_push_count": 0,
+                "target_tag_absent_after_invocation": true,
+                "post_recovery_native_tag_read_count": 1,
+                "temporary_builder_link_removed": true,
+                "exact_production_link_restored_running": true,
+                "public_registry_endpoint_still_disabled": true,
+                "api_c_api_f_health_after_restore": "live_ready_200_loopback_only",
+                "temporary_iam_absent": true,
+                "builder_state": "Stopped",
+                "builder_start_error": "InstanceExpired",
+                "account_available_balance_positive": false,
+                "paid_action_performed": false,
+                "new_instance_created": false,
+                "code_ci_or_full_gate_repeated": false,
+                "secret_free_diagnosis": {
+                  "system_runtime_image_and_evidence_groups": "5/5_pass",
+                  "same_sts_username_shape": "nonempty_length_12_current_regex_pass_no_control_or_crlf",
+                  "evidence_hash_reads": "6/6_pass",
+                  "persistent_code_defect_proven": false,
+                  "historical_failure_class": "unattributed_transient_preflight",
+                  "publisher_or_test_change_required": false
+                },
                 "native_control_plane_readback_required": true,
                 "acceptance": "push_digest_equals_manifest_descriptor_digest_equals_control_plane_digest_and_manifest_config_equals_local_image_id",
                 "production_service_database_public_traffic_mutation_authorized": false,
@@ -3185,7 +3226,7 @@
               "public": "19/38",
               "credit_added": false
             },
-            "next_hard_condition": "Pass one exact-HEAD push and pull-request CI pair, then execute the authorized temporary private-link swap and exactly one Admin tag push. Accept Stage B only after the push, manifest-descriptor and native control-plane digests agree, the manifest config equals the accepted local image ID, and the exact production link plus API-C/API-F health are restored."
+            "next_hard_condition": "The account owner must clear the Alibaba Cloud billing lock so the existing on-demand builder can start. After stable Running and read-only shutdown-schedule plus Stage A asset checks, recreate the temporary IAM/link and execute the still-first actual registry push; accept Stage B only after the push, manifest-descriptor and native control-plane digests agree, the manifest config equals the accepted local image ID, and the exact production link plus API-C/API-F health are restored."
           },
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },

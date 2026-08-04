@@ -5798,3 +5798,62 @@ push/PR CI pair, execute the authorized swap and one push, obtain the native
 control-plane digest, require all three registry digests plus the local config
 identity to agree, and restore the exact production link and API-C/API-F health
 before Stage B is accepted and Stage C opens.
+
+### Item 20 Stage B scheme-one first invocation and clean recovery point (2026-08-04)
+
+- Exact publisher checkpoint `ec5b81df466613fc7c3ff145026d7ef490f0efde`
+  passed push run `30862102590` and pull-request run `30862105246`, both on
+  attempt one. Each ran `1781` tests and passed production readiness `136/136`,
+  Quality and Docker Compose; rerun count is zero.
+- Scheme one was executed once: the frozen production ACR VPC link was removed,
+  the isolated builder link reached `RUNNING`, and the public Registry endpoint
+  remained disabled. The single publisher invocation exited in `preflight`
+  with `push_started=0` and `published=0`; Docker login, tag, push and registry
+  publication were not reached. Native `GetRepoTag` still reports the target
+  tag absent.
+- Failure recovery completed before diagnosis: the builder link was removed,
+  the exact frozen production link was restored to `RUNNING`, and API-C/API-F
+  live/ready returned `200` over loopback with private Registry DNS restored.
+  The temporary builder role and custom policy were detached and deleted; a
+  fresh control-plane read reports no builder role and both IAM objects absent.
+- Secret-free diagnosis is complete. Correctly Base64-decoded grouped checks
+  passed system, runtime state, image identity, 11 evidence files and evidence
+  semantics (`5/5`). A same-ECS-role token-shape probe performed no login/tag/
+  push and proved a nonempty length-12 username that matches the current
+  publisher regex with no control or CR/LF characters; its temporary IAM was
+  immediately removed. The six publisher evidence hash reads also pass `6/6`.
+  Therefore no persistent username/code defect is proved and the publisher,
+  image, dependencies, tests and gates remain unchanged. The historical
+  preflight failure is classified as an unattributed transient, not permission
+  to add a new control layer or repeat CI/full readiness.
+
+Readiness remains `19/29` internal and `19/38` public, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The next hard condition is one recovery
+execution that remains the first actual Registry push: require push,
+manifest-descriptor and native control-plane digests to agree, require manifest
+config to equal the accepted local image ID, then remove temporary IAM/link and
+restore the exact production link plus API-C/API-F health before Stage C opens.
+
+### Item 20 Stage B recovery dispatch blocked before execution (2026-08-04)
+
+- The recovery wrapper was dispatched only after a fresh safe-state check and
+  after the isolated builder link reached `RUNNING`. Alibaba Cloud terminated
+  the remote task as `InstanceNotRunning` with `Repeats=0`: it has no start or
+  finish time, exit code or output, so the wrapper and publisher did not execute
+  and the actual Registry push count remains zero.
+- Recovery was immediate and complete. The builder link was removed, the exact
+  frozen production link was restored to `RUNNING`, the public Registry endpoint
+  remains disabled, API-C/API-F live/ready are `200` over loopback/private DNS,
+  and the temporary builder role and policy are absent. The one required native
+  post-terminal tag read reports the target tag absent.
+- A subsequent `StartInstance` call was rejected with `403 InstanceExpired`.
+  A zero-cost read-only billing query confirms the account has no positive
+  available balance. No paid action, new instance, code change, CI rerun, full
+  readiness rerun, Docker login, tag or push was performed.
+
+Readiness therefore remains `19/29` internal and `19/38` public. The sole task
+remains `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The only external hard condition
+is for the account owner to clear the Alibaba Cloud billing lock so the existing
+on-demand builder can start. After it reaches stable `Running`, first inspect
+shutdown scheduling and the local Stage A image/evidence; only then recreate the
+temporary IAM/link and perform the still-first actual private Registry push.

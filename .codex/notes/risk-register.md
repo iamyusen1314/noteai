@@ -723,6 +723,25 @@ Last updated: 2026-08-04
   控制面digest必须一致，manifest config必须等于Stage A local image ID，且原生产link与
   API-C/API-F健康必须恢复。本地publisher/combined focused为`6/6`/`12/12`，本阶段唯一
   完整readiness gate为`136/136`。Stage B满足前Stage C保持关闭。
+- 2026-08-04 scheme-one首调用安全收口: `ec5b81d`的push/PR双CI均首轮通过；临时
+  builder link达到`RUNNING`后，唯一publisher调用在`preflight`退出，明确
+  `push_started=0 / published=0`，目标tag仍不存在。builder link随后删除，冻结的生产
+  link精确恢复`RUNNING`，公网Registry仍关闭，API-C/API-F live/ready均为`200`且仅
+  loopback；临时RAM role/policy均已删除。后续只读诊断通过system/runtime/image/
+  evidence files/evidence semantics `5/5`、同一ECS RAM身份用户名当前正则与无控制字符
+  合同、以及六项evidence hash读取`6/6`，未证明持续代码缺陷。因此禁止为该瞬态失败
+  修改publisher、创建新版本/ledger/receipt/topology或重复CI/full gate。真实剩余风险
+  仅是恢复执行能否完成第一笔实际private push及三方digest/readback；在此之前仍为
+  `19/29` / `19/38`，Stage C保持关闭。
+- 2026-08-04 recovery dispatch计费阻塞: recovery远程任务由阿里云以
+  `InstanceNotRunning`终止，原生记录为`Repeats=0`且无开始/结束时间、exit code或
+  output，因此wrapper/publisher未执行，实际push仍为0。生产link随后精确恢复
+  `RUNNING`，builder link和临时RAM均删除，公网Registry仍关闭，API-C/API-F健康，
+  唯一post-terminal原生tag读取仍为absent。`StartInstance`进一步返回
+  `403 InstanceExpired`，只读账务查询确认账户无正可用余额。未执行充值、续费、
+  新建实例、代码修改、CI/full gate重跑或registry操作。当前唯一硬阻塞是账户所有者
+  解除阿里云计费锁；解锁后必须先检查builder稳定性/关停调度与Stage A本地资产，再
+  重建临时IAM/link并完成仍属第一笔的actual private push。
 ## Low Risks
 
 ### `model/api.py` is too large
