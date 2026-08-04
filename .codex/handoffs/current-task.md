@@ -5897,3 +5897,29 @@ security verification so the builder can be stopped. Continuing Stage B also
 requires new explicit authority for the smallest production recovery that
 recreates the missing API-C/API-F units from the already accepted images and
 restores loopback live/ready `200`, without database or public-traffic changes.
+
+### Item 20 builder stop verified; production runtime recovery remains blocked (2026-08-04)
+
+- After the account owner completed Alibaba Cloud account security verification,
+  the already-prepared `StopInstance` request returned success with one native
+  request ID observed. No duplicate stop submission was made. A separate ECS
+  console read then confirmed the existing builder is `已停止 / 普通停机模式`.
+  This record does not claim saving-stop mode, public-IP release or zero billing.
+- This stop phase created no IAM role or policy, changed no ACR VPC link, and
+  performed no Registry login, tag, push, database, production-service or
+  public-traffic action. The actual Registry push count therefore remains zero;
+  no readiness credit is added.
+- Stage A temporary IAM, its three private OSS objects and bucket were already
+  removed after Stage A success. Stage B temporary IAM and the builder ACR link
+  remain absent; the restored production ACR link is retained. The stopped
+  builder and the accepted images retained on API-C/API-F are not cleanup
+  targets.
+
+Readiness remains `19/29` internal and `19/38` public, and the sole task remains
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`. The account-verification stop blocker is
+closed. The only next hard condition is explicit authority for the minimum
+production recovery that recreates the missing API-C/API-F units from already
+accepted images and restores loopback live/ready `200` on ports `8000`/`8001`,
+with database and public-traffic changes remaining zero. Until that baseline is
+restored, temporary Stage B IAM/link creation and the still-first actual private
+Registry push remain closed.

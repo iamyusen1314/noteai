@@ -755,6 +755,14 @@ Last updated: 2026-08-04
   未发送、`StopInstance`未调用，builder仍`Running`。当前需账户所有者先完成验证以
   停止计费builder；继续Stage B还需明确授权仅用既有已验收镜像恢复API-C/API-F unit与
   loopback live/ready 200，数据库及公网流量不得改变。
+- 2026-08-04 builder停机验证收口: 账户所有者完成安全验证后，已准备的
+  `StopInstance`返回成功并观察到一个原生request ID；未重复提交。独立ECS控制台读取
+  确认existing builder为`已停止 / 普通停机模式`。本记录不宣称节省停机、公网IP释放或
+  账单归零。该阶段未创建IAM、未改变ACR link，Registry login/tag/push、数据库、生产服务
+  与公网流量动作均为0，actual push仍为0，readiness保持`19/29` / `19/38`。账户验证阻塞
+  已关闭；唯一开放P1仍是API-C/API-F缺少unit/container/listener/live/ready。继续前需明确
+  授权最小生产恢复：只使用既有已验收镜像恢复两节点loopback live/ready 200，数据库和
+  公网流量变化保持0；在此基线恢复前禁止重建Stage B临时IAM/link或执行private push。
 ## Low Risks
 
 ### `model/api.py` is too large
