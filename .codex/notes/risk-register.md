@@ -769,6 +769,16 @@ Last updated: 2026-08-04
   验收，禁止直接`docker compose up`。唯一缺失的实现条件是一个最小、确定性、先离线验证
   的三unit恢复executor/template，仅允许API-C/API-F复用已验收API镜像及API-C复用已验收
   历史Admin镜像；其创建和生产执行仍需明确授权。当前未新增恢复代码或生产service mutation。
+- 2026-08-04 三unit恢复实现收口: 用户已明确授权仅恢复API-C API/历史Admin及API-F API。
+  新增`deploy/production/recover_minimal_api_runtimes.sh`，SHA-256为
+  `62645404c4734dfce3f3e57a4fd98ae8a25df336cc9d9a25c9552838cb0ec7a5`；它明确是
+  semantic recovery而非遗失unit字节复原。executor在首次写前绑定4/3受管Secret拓扑、
+  精确cached RepoDigest/config/revision/role/entrypoint/CMD和七键OSS内网配置；unit固定
+  `--pull=never`、loopback、PG只读默认、accepted hardening/resources，并以owner label、
+  no-overwrite exact-hash安装和API-C双unit rollback避免误删。focused `9/9`、离线render、
+  七故障边界与cleanup-failure fail-closed均通过，两个独立只读审查均GO且无P0/P1。
+  实现checkpoint前生产写仍为0，readiness保持`19/29` / `19/38`；下一步仅下发/执行各节点
+  一次并完成三轮live/ready 200，ACR/IAM/link/push/builder/数据库写/公网流量仍禁止。
 ## Low Risks
 
 ### `model/api.py` is too large

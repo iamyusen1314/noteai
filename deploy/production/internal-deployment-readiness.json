@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-08-03",
+  "as_of_date": "2026-08-04",
   "status_values": [
     "verified",
     "unverified",
@@ -3206,6 +3206,16 @@
                 "api_c_api_f_ecs_state": "Running",
                 "api_c_api_f_noteai_images_per_node": 35,
                 "api_c_api_f_installed_or_retained_unit_count": 0,
+                "production_service_recovery_authorized": true,
+                "recovery_authorized_scope": "API-C_api_and_historical_admin_plus_API-F_api_cached_images_loopback_only",
+                "recovery_executor_path": "deploy/production/recover_minimal_api_runtimes.sh",
+                "recovery_executor_sha256": "62645404c4734dfce3f3e57a4fd98ae8a25df336cc9d9a25c9552838cb0ec7a5",
+                "recovery_focused_tests": "9/9_pass",
+                "recovery_offline_unit_render": "PASS",
+                "recovery_rollback_fault_injection": "7_boundaries_plus_cleanup_failure_fail_closed_PASS",
+                "recovery_independent_read_only_reviews": "2_GO_no_P0_or_P1",
+                "recovery_execution_count": 0,
+                "recovery_production_mutation_count": 0,
                 "production_service_mutation_count": 0,
                 "temporary_iam_absent": true,
                 "builder_state": "Stopped_normal_mode_control_plane_confirmed",
@@ -3251,7 +3261,7 @@
               "public": "19/38",
               "credit_added": false
             },
-            "next_hard_condition": "Builder stop is complete and adds no readiness credit. Exact accepted unit bytes are absent from current Git refs and both production hosts, and the tracked Compose file does not satisfy the accepted loopback hardening contract. Continuing requires explicit authority to implement, offline-verify and run one minimal deterministic three-unit recovery path using only already accepted images, restoring API-C/API-F loopback live/ready 200 without database or public-traffic changes. Only after that fresh baseline may the temporary IAM/link and still-first actual Registry push proceed; Stage B acceptance still requires that push, manifest-descriptor and native control-plane digests agree, the local config identity matches, and the exact production link plus API-C/API-F health are restored."
+            "next_hard_condition": "Recovery authority and the independently reviewed exact executor are now present. Create the local implementation checkpoint, deliver those exact bytes once to API-C and API-F, execute one semantic recovery per node, and require exact cached image identity, accepted hardening, loopback-only listeners and three rounds of live/ready 200 with database writes, public traffic, ACR/IAM/link/push and builder startup all zero. Only after that fresh baseline may the temporary IAM/link and still-first actual Registry push proceed; Stage B acceptance still requires that push, manifest-descriptor and native control-plane digests agree, the local config identity matches, and the exact production link plus API-C/API-F health are restored."
           },
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },

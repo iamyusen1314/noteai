@@ -5935,3 +5935,42 @@ executor/template, offline-verified before use and limited to the already
 accepted API image on API-C/API-F plus the accepted historical Admin image on
 API-C. Creating or running that production-recovery path requires explicit
 authority; no recovery code or production service mutation has been made.
+
+### Minimal three-unit production recovery implementation checkpoint (2026-08-04)
+
+- The account owner explicitly authorized one minimum recovery: API-C API plus
+  historical Admin, and API-F API, using only accepted cached images and only
+  `127.0.0.1:8000/8001`. Database writes, public traffic, ACR/IAM/link/push,
+  builder startup and unrelated production resources remain forbidden.
+- `deploy/production/recover_minimal_api_runtimes.sh` is the new semantic
+  recovery executor, SHA-256
+  `62645404c4734dfce3f3e57a4fd98ae8a25df336cc9d9a25c9552838cb0ec7a5`.
+  It does not claim any lost historical unit SHA. It binds the accepted b55 API
+  RepoDigest/config/revision and historical a635 Admin RepoDigest/config/
+  revision, requires the exact API-C four-file or API-F three-file Secret
+  topology, discovers exactly one seven-key OSS runtime file and validates
+  `aliyun_oss`, regional internal HTTPS endpoint and exact normalized prefix
+  without emitting values.
+- Generated units use `--pull=never`, an exact recovery ownership label,
+  Docker auto-remove/restart `no`, user `999:999`, read-only rootfs, cap-drop
+  ALL, no-new-privileges, private IPC, bridge networking, accepted CPU/memory/
+  PID/tmpfs/data-mount bounds, API-only scheduler disablement and direct
+  `PGOPTIONS=-c default_transaction_read_only=on`. Host publishing is only
+  `127.0.0.1:8000` and API-C Admin `127.0.0.1:8001`.
+- Unit staging passes `systemd-analyze verify` before mutation. Installation is
+  pre-registered, exact-hash-bound and no-overwrite; API-C's two units are one
+  rollback group. Cleanup only removes exact labeled containers and exact-hash
+  units, proves enable symlinks/temp units/containers/listeners absent and
+  reports `CLEANUP_UNKNOWN` rather than false success.
+- Focused tests pass `9/9`; offline unit rendering passes; the production
+  rollback function passes seven injected boundaries plus a cleanup-failure
+  fail-closed case. Two independent read-only reviews now report GO with no
+  remaining P0/P1. `bash -n` and `git diff --check` pass.
+- No production file, unit, container, listener, database, Registry, IAM, link,
+  OSS or builder mutation has occurred in this implementation checkpoint.
+  Readiness remains internal `19/29` and public `19/38`.
+
+The exact task is now in execution: create a local checkpoint, send these exact
+audited bytes once to each production API node, execute API-C and API-F once,
+and require three rounds of live/ready `200`, exact runtime identity/hardening,
+loopback-only listeners and zero prohibited actions before recording recovery.
