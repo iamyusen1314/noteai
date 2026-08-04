@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -163,6 +165,101 @@ class RecoverMinimalApiRuntimesTests(unittest.TestCase):
         self.assertIn("database_connection_count", acceptance)
         self.assertIn("verify_no_container_connections", acceptance)
         self.assertIn("health_rounds=3", acceptance)
+
+    def test_health_validation_does_not_require_host_jq(self) -> None:
+        self.assertNotIn("jq", self.source)
+        self.assertIn(
+            'docker exec -i "$container" /usr/local/bin/python -c',
+            self.source,
+        )
+        self.assertIn('assert set(checks) == expected_checks', self.source)
+        self.assertIn('< "$body" >/dev/null 2>&1', self.source)
+
+    def test_embedded_health_validator_accepts_only_exact_contracts(self) -> None:
+        validator = self.source.split(
+            'docker exec -i "$container" /usr/local/bin/python -c \'\n',
+            1,
+        )[1].split(
+            '\n\' "$role" "$endpoint" < "$body" >/dev/null 2>&1',
+            1,
+        )[0]
+        valid = (
+            (
+                "api",
+                "live",
+                {"status": "ok", "service": "noteai-api"},
+            ),
+            (
+                "api",
+                "ready",
+                {
+                    "status": "ready",
+                    "service": "noteai-api",
+                    "checks": {
+                        "database": {"ok": True, "backend": "postgresql"},
+                        "model": {"ok": True, "version": "v0.4-composite"},
+                    },
+                },
+            ),
+            (
+                "admin",
+                "ready",
+                {
+                    "status": "ready",
+                    "service": "noteai-admin",
+                    "checks": {
+                        "admin_credentials": {"ok": True},
+                        "database": {"ok": True, "backend": "postgresql"},
+                    },
+                },
+            ),
+        )
+        for role, endpoint, payload in valid:
+            result = subprocess.run(
+                [sys.executable, "-c", validator, role, endpoint],
+                input=json.dumps(payload),
+                text=True,
+                check=True,
+                capture_output=True,
+            )
+            self.assertEqual(result.stdout, "")
+            self.assertEqual(result.stderr, "")
+
+        invalid = (
+            "not-json",
+            json.dumps({"status": "ok", "service": "wrong"}),
+            json.dumps({"status": "ready", "service": "noteai-api"}),
+            json.dumps(
+                {
+                    "status": "ready",
+                    "service": "noteai-api",
+                    "checks": {
+                        "database": {"ok": True},
+                        "model": {"ok": True},
+                        "unexpected": {"ok": True},
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "status": "ready",
+                    "service": "noteai-api",
+                    "checks": {
+                        "database": {"ok": False},
+                        "model": {"ok": True},
+                    },
+                }
+            ),
+        )
+        for payload in invalid:
+            result = subprocess.run(
+                [sys.executable, "-c", validator, "api", "ready"],
+                input=payload,
+                text=True,
+                check=False,
+                capture_output=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
 
     def test_executor_has_no_forbidden_control_plane_or_database_commands(self) -> None:
         forbidden = (

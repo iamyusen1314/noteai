@@ -779,6 +779,22 @@ Last updated: 2026-08-04
   七故障边界与cleanup-failure fail-closed均通过，两个独立只读审查均GO且无P0/P1。
   实现checkpoint前生产写仍为0，readiness保持`19/29` / `19/38`；下一步仅下发/执行各节点
   一次并完成三轮live/ready 200，ACR/IAM/link/push/builder/数据库写/公网流量仍禁止。
+- 2026-08-04 三unit生产基线P1关闭与provenance边界: 首次plain `SendFile`因
+  `FileSize.ExceedLimit`在控制面拒绝且实例文件未创建；压缩包下发成功后，API-C唯一
+  semantic executor invocation `t-sz06sza74dxwjk0`在`host_preflight`因宿主缺`jq`
+  退出，发生在task root及任何unit/container/listener mutation之前，上传包和任务目录
+  最终均absent，未重跑且API-F executor执行为0。随后只读状态发现三unit已恢复，并由
+  主机直接hash精确对上历史accepted bytes：API-C API `364a5e…fc77`、历史Admin
+  `c29905…1ab2`、API-F API `237504…e65c1`；三者均active/enabled/result success、
+  exact accepted image/hardening/loopback，每个角色三轮live/ready 200，宿主最终DB
+  established为0。因新semantic template含custom recovery label，其字节不可能生成上述
+  历史SHA，故禁止把本次写成executor安装PASS；正确结论是current exact accepted units
+  已恢复并通过状态验收，恢复actor不归因且不影响当前接受。自定义label或新template
+  mount/env不属于用户本次硬条件，也不得为此替换健康单元。生产恢复P1现为Closed，
+  readiness不重复加分，仍`19/29` / `19/38`。本地只做直接缺陷修复：健康JSON改用已验收
+  容器内Python stdlib、移除host jq依赖，新executor SHA `b8e6c9…d4f3`，focused
+  `11/11`及既有offline/rollback验证通过；已有runtime存在时必须禁止生产重派发。
+  Secret-free证据为`deploy/production/evidence/production-minimal-runtime-baseline-reconciled-20260804.json`。
 ## Low Risks
 
 ### `model/api.py` is too large

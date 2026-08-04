@@ -5974,3 +5974,66 @@ The exact task is now in execution: create a local checkpoint, send these exact
 audited bytes once to each production API node, execute API-C and API-F once,
 and require three rounds of live/ready `200`, exact runtime identity/hardening,
 loopback-only listeners and zero prohibited actions before recording recovery.
+
+### Three-unit production runtime baseline reconciled and accepted (2026-08-04)
+
+- The first plain `SendFile` request was rejected by the Alibaba control plane
+  with `FileSize.ExceedLimit` before an instance file was created. The same
+  executor was gzip-compressed to `8,195` bytes; compressed SHA-256
+  `cfde3919def7acff1d80f91e4f7eac41e89f256f8cd43316e5ae4baaf89a8801`
+  and decompressed executor SHA-256
+  `62645404c4734dfce3f3e57a4fd98ae8a25df336cc9d9a25c9552838cb0ec7a5`
+  were both fixed before dispatch. Native file invocation
+  `f-sz06sza0iodrg8w` completed `Success` on API-C with overwrite disabled.
+- The exact-one API-C semantic executor invocation
+  `t-sz06sza74dxwjk0` exited `1` in `host_preflight` with `missing_command`.
+  A separate read-only diagnostic identified only host `jq` as missing. This
+  phase precedes task-root creation and every unit/container/listener mutation;
+  the uploaded gzip and task root are both absent. No automatic or manual
+  recovery rerun was made and API-F executor invocation count is zero.
+- The same read-only diagnostic found API-C's two NoteAI units already
+  `loaded/active/enabled`, result `success`, with exactly the API and Admin
+  containers present. Direct host hashes then reconciled them to the historical
+  accepted byte anchors: API-C API
+  `364a5e539b14a83d24ef9c1726ee3e14b988c398206b2711db5613b9e0a1fc77`
+  and historical Admin
+  `c299059d167eab0863639355a6485094e58e3dca6bcec7adbe9f78a3857a1ab2`.
+  API-F independently matched its accepted current unit SHA-256
+  `23750496447ad6e31ad27b1461f1164bbf14c28296a0ac28be7e5886eb4e65c1`.
+- This is a current-state acceptance, not an executor-installation claim. The
+  new semantic template contains a recovery label and therefore cannot have
+  produced those three historical SHA-256 byte identities. The actor or command
+  that restored the accepted bytes is not attributed. Exact accepted unit bytes
+  plus current systemd/container/image/health evidence are sufficient for the
+  user's recovery outcome; custom recovery labels or new template mount/env
+  spellings are not additional acceptance conditions.
+- API-C read-only acceptance invocation `t-sz06szau74b8hz4` and API-F
+  invocation `t-sz06szb2ykb45j4` both exited zero. API-C has exactly two managed
+  containers and loopback listeners `127.0.0.1:8000/8001`; API-F has exactly one
+  managed container and `127.0.0.1:8000`. All three use the previously accepted
+  config/image digests and hardening. API-C API/Admin and API-F API each passed
+  three fresh live/ready rounds with HTTP `200` and exact ready-check sets.
+  Host established PostgreSQL connections were zero after each acceptance.
+- Recovery-phase counts are database write commands `0`, public-network
+  commands `0`, ACR/IAM/VPC-link actions `0`, Registry pushes `0`, builder
+  starts `0`, service/unit/container/listener mutations by the attempted
+  executor `0`, and one temporary compressed transfer file write with final
+  residue `0`. Readiness remains internal `19/29` and public `19/38`; baseline
+  restoration adds no duplicate credit.
+- The direct production finding was fixed locally without adding a dependency
+  or control layer: health JSON validation now uses the already accepted
+  container's Python standard library through stdin, and host `jq` is no longer
+  required. Current executor SHA-256 is
+  `b8e6c977c8b0a27fc69b75297a2afe1d5fdaca89ef11d18b6603ac08cc68d4f3`;
+  focused tests pass `11/11`, including exact API/Admin positive fixtures and
+  malformed/wrong/extra/false negative fixtures. `bash -n`, offline render,
+  seven-boundary rollback, cleanup-failure fail-closed and `git diff --check`
+  pass; the complete production readiness gate also passes once. Because exact
+  accepted runtimes are present, this fixed executor must not be dispatched to
+  either node.
+- Secret-free durable evidence is
+  `deploy/production/evidence/production-minimal-runtime-baseline-reconciled-20260804.json`.
+  The recovery precondition is closed. The sole task returns to the already
+  authorized exact-one Stage B Scheme One private Admin publication; it must
+  begin with a fresh read-only builder/repository/link/runtime preflight and
+  must not repeat any accepted Stage A build, scan or recovery execution.

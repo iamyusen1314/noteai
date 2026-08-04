@@ -550,7 +550,8 @@ wait_for_ready() {
     status="$(curl --noproxy '*' --silent --show-error --output "$body" \
       --write-out '%{http_code}' --connect-timeout 2 --max-time 8 \
       "http://127.0.0.1:${port}/health/ready" 2>/dev/null || true)"
-    if [ "$status" = '200' ] && validate_health_body "$role" ready "$body" && \
+    if [ "$status" = '200' ] && \
+      validate_health_body "$role" ready "$body" "$container" && \
       [ "$(docker container inspect "$container" --format '{{.State.Running}}' 2>/dev/null)" = 'true' ]; then
       return 0
     fi
@@ -563,22 +564,31 @@ validate_health_body() {
   local role="$1"
   local endpoint="$2"
   local body="$3"
-  if [ "$endpoint" = 'live' ]; then
-    jq -e --arg service "noteai-${role}" \
-      '.status == "ok" and .service == $service' "$body" >/dev/null
-  elif [ "$role" = 'api' ]; then
-    jq -e '
-      .status == "ready" and .service == "noteai-api" and
-      (.checks | keys) == ["database", "model"] and
-      .checks.database.ok == true and .checks.model.ok == true
-    ' "$body" >/dev/null
-  else
-    jq -e '
-      .status == "ready" and .service == "noteai-admin" and
-      (.checks | keys) == ["admin_credentials", "database"] and
-      .checks.admin_credentials.ok == true and .checks.database.ok == true
-    ' "$body" >/dev/null
-  fi
+  local container="$4"
+
+  docker exec -i "$container" /usr/local/bin/python -c '
+import json
+import sys
+
+payload = json.load(sys.stdin)
+role, endpoint = sys.argv[1:3]
+expected_status = "ok" if endpoint == "live" else "ready"
+assert payload.get("status") == expected_status
+assert payload.get("service") == f"noteai-{role}"
+if endpoint == "ready":
+    expected_checks = (
+        {"database", "model"}
+        if role == "api"
+        else {"admin_credentials", "database"}
+    )
+    checks = payload.get("checks")
+    assert isinstance(checks, dict)
+    assert set(checks) == expected_checks
+    assert all(
+        isinstance(checks[name], dict) and checks[name].get("ok") is True
+        for name in expected_checks
+    )
+' "$role" "$endpoint" < "$body" >/dev/null 2>&1
 }
 
 health_request() {
@@ -586,12 +596,14 @@ health_request() {
   local port="$2"
   local endpoint="$3"
   local round="$4"
+  local container="$5"
   local body="${TASK_ROOT}/${role}.${endpoint}.${round}.json"
   local status
   status="$(curl --noproxy '*' --silent --show-error --output "$body" \
     --write-out '%{http_code}' --connect-timeout 2 --max-time 10 \
     "http://127.0.0.1:${port}/health/${endpoint}")"
-  [ "$status" = '200' ] && validate_health_body "$role" "$endpoint" "$body"
+  [ "$status" = '200' ] && \
+    validate_health_body "$role" "$endpoint" "$body" "$container"
 }
 
 verify_runtime_env() {
@@ -729,7 +741,7 @@ phase='host_preflight'
 [ "$(id -u)" = '0' ] || fail root_required
 [ "$(uname -s)" = 'Linux' ] || fail linux_required
 [ "$(uname -m)" = 'x86_64' ] || fail amd64_required
-for command_name in awk cat curl docker find grep install jq ln readlink rm seq sha256sum sleep sort ss stat systemctl systemd-analyze uniq; do
+for command_name in awk cat curl docker find grep install ln readlink rm seq sha256sum sleep sort ss stat systemctl systemd-analyze uniq; do
   command -v "$command_name" >/dev/null || fail missing_command
 done
 [ "$(docker context show)" = 'default' ] || fail docker_context
@@ -810,11 +822,11 @@ fi
 
 phase='three_round_health_acceptance'
 for round in 1 2 3; do
-  health_request api 8000 live "$round" || fail api_live
-  health_request api 8000 ready "$round" || fail api_ready
+  health_request api 8000 live "$round" "${target_containers[0]}" || fail api_live
+  health_request api 8000 ready "$round" "${target_containers[0]}" || fail api_ready
   if [ "$host_role" = 'API-C' ]; then
-    health_request admin 8001 live "$round" || fail admin_live
-    health_request admin 8001 ready "$round" || fail admin_ready
+    health_request admin 8001 live "$round" noteai-admin-c || fail admin_live
+    health_request admin 8001 ready "$round" noteai-admin-c || fail admin_ready
   fi
 done
 
