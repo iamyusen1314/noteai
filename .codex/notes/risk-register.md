@@ -795,6 +795,21 @@ Last updated: 2026-08-04
   容器内Python stdlib、移除host jq依赖，新executor SHA `b8e6c9…d4f3`，focused
   `11/11`及既有offline/rollback验证通过；已有runtime存在时必须禁止生产重派发。
   Secret-free证据为`deploy/production/evidence/production-minimal-runtime-baseline-reconciled-20260804.json`。
+- 2026-08-04 Stage B首笔实际push拒绝并安全收口: fresh builder/repository/link/
+  runtime preflight通过，exact publisher及11件Stage A证据通过；唯一一次实际
+  `docker push`在STS token和私网Registry login成功后进入layer preparation，随后以
+  repository authorization `denied`退出，`push_started=1 / published=0`、自动/人工
+  retry均0、manifest未产生且immutable target tag仍absent。两个独立只读审计高置信
+  定位为临时RAM策略沿用了personal-style Resource，缺少ACR Enterprise实例段；正确
+  形状为`repository/<enterprise-instance-id>/<namespace>/<repository>`，Actions无需扩大，
+  禁止`cr:*`或repository通配。publisher、镜像、Stage A、测试、CI及full gate均无需
+  修改或重复。失败后builder link删除、生产link精确恢复、临时role/policy删除、builder
+  role/Docker auth/task root/container/push process/DB connection/remote alias均为0，
+  builder正常停机；API-C/API-F三轮loopback live/ready 200，公网Registry仍关闭。
+  原exact-one attempt已消费且不得伪装未执行；依据standing CTO authority，新编号
+  `...STAGE_B_CORRECTED_001`自行授权上限1次，只修正临时exact instance-qualified ARN、
+  原生读回、fresh token并在tag仍absent后执行一次private push。当前仍`19/29`，Stage C
+  在三方digest/config/link/cleanup/健康全部验收前保持关闭。
 ## Low Risks
 
 ### `model/api.py` is too large

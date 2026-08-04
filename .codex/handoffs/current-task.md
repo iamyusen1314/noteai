@@ -6037,3 +6037,47 @@ loopback-only listeners and zero prohibited actions before recording recovery.
   authorized exact-one Stage B Scheme One private Admin publication; it must
   begin with a fresh read-only builder/repository/link/runtime preflight and
   must not repeat any accepted Stage A build, scan or recovery execution.
+
+### Stage B first actual private push denied and cleanly closed (2026-08-04)
+
+- The fresh builder, repository, private-link and production-runtime preflight
+  passed. The exact accepted publisher and all 11 Stage A evidence files passed
+  again without repeating Stage A, CI or the full readiness gate. The target
+  immutable Admin tag was absent both before the control mutation and directly
+  before publication.
+- One `RepeatMode=Once` wrapper invoked the publisher once. STS token retrieval
+  and private Registry login succeeded; the only `docker push` reached layer
+  preparation and then returned repository authorization `denied`. The attempt
+  ended with `push_started=1`, `published=0`, retry count zero, no manifest and
+  the target tag still absent. The original exact-one attempt is consumed and
+  may not be relabelled as unexecuted or replayed.
+- Two independent read-only audits agree on the direct cause: the temporary RAM
+  policy used the personal-style repository Resource shape and omitted the ACR
+  Enterprise instance segment. The official Enterprise repository shape is
+  `repository/<enterprise-instance-id>/<namespace>/<repository>`.
+  `GetAuthorizationToken` remains scoped to `*`; `PullRepository` and
+  `PushRepository` remain scoped only to the one exact instance-qualified
+  repository. No wildcard repository permission, publisher, image, build,
+  Stage A, test, CI or gate change is required.
+- Failure cleanup completed before diagnosis: the builder link was removed,
+  the exact production link restored, temporary role/policy detached and
+  deleted, builder role binding/Docker auth/task roots/containers/push
+  processes/database connections/remote alias returned to zero, and the
+  builder is stopped in normal mode. API-C/API-F retain the exact accepted
+  units and passed three fresh loopback live/ready `200` rounds after link
+  restoration; the public Registry endpoint remains disabled.
+- Secret-free evidence is
+  `deploy/production/evidence/production-admin-stage-b-private-push-denied-clean-20260804.json`.
+  Readiness remains internal `19/29` and public `19/38`; Stage C remains closed.
+
+The standing CTO authority in this Handoff covers the finite, reversible,
+private-only correction. A new attempt
+`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001_STAGE_B_CORRECTED_001` is therefore
+self-authorized with an execution limit of one: rebuild only the ephemeral
+least-privilege policy with the exact Enterprise instance-qualified repository
+Resource, read it back, obtain fresh STS/Registry credentials, confirm the tag
+remains absent, perform one private push, then require native digest agreement,
+exact production-link restoration, cleanup and API-C/API-F non-regression.
+This is not a retry of the consumed attempt and does not authorize any code,
+image, Stage A, database, public endpoint, public traffic or production-runtime
+change. Continue immediately without another product-owner pause.

@@ -3170,8 +3170,8 @@
                 "registry_service_database_public_traffic_actions": 0
               },
               "stage_b_private_publication": {
-                "status": "AUTHORIZED_NOT_EXECUTED",
-                "current_operational_state": "READY_EXACT_ACCEPTED_API_C_API_F_RUNTIME_ACTIVE_BUILDER_STOPPED_NORMAL_MODE_NO_PUSH_PRODUCTION_LINK_UNCHANGED",
+                "status": "FIRST_ACTUAL_PUSH_DENIED_CLEAN_CORRECTED_ATTEMPT_AUTHORIZED",
+                "current_operational_state": "CLEAN_TERMINAL_TARGET_TAG_ABSENT_PRODUCTION_LINK_RESTORED_RUNTIME_HEALTHY_BUILDER_STOPPED",
                 "repository": "noteai/app",
                 "tag": "git-5335bda-amd64-admin-r1",
                 "repository_private_normal_tag_immutable": true,
@@ -3237,6 +3237,46 @@
                   "custom_recovery_label_or_new_template_mount_required": false,
                   "readiness_credit_added": false
                 },
+                "stage_b_first_actual_push_terminal": {
+                  "evidence": "deploy/production/evidence/production-admin-stage-b-private-push-denied-clean-20260804.json",
+                  "attempt_id": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001_STAGE_B_ATTEMPT_001",
+                  "wrapper_sha256": "29678f435c53f1b162a218b6c860c24fed6437679202fa4c607f855264fb6fd9",
+                  "repeat_mode": "Once",
+                  "wrapper_dispatch_count": 1,
+                  "wrapper_execution_count": 1,
+                  "publisher_invocation_count": 1,
+                  "docker_push_invocation_count": 1,
+                  "registry_token_obtained": true,
+                  "registry_login_succeeded": true,
+                  "terminal_phase": "single_push",
+                  "terminal_error_class": "REGISTRY_AUTHORIZATION_DENIED",
+                  "push_started_count": 1,
+                  "published_count": 0,
+                  "automatic_retry_count": 0,
+                  "manual_retry_count": 0,
+                  "target_tag_absent_after_attempt": true,
+                  "manifest_digest_created": false,
+                  "root_cause": "temporary Enterprise repository Resource omitted the instance-id segment",
+                  "required_resource_shape": "acs:cr:<region>:<account>:repository/<enterprise-instance-id>/<namespace>/<repository>",
+                  "publisher_image_stage_a_ci_or_gate_change_required": false,
+                  "temporary_builder_link_removed": true,
+                  "exact_production_link_restored": true,
+                  "temporary_role_policy_removed": true,
+                  "builder_local_residue_count": 0,
+                  "production_health_after_restore": "API-C_API_Admin_and_API-F_API_three_rounds_live_ready_200_loopback_only",
+                  "database_connection_count": 0,
+                  "builder_state": "Stopped_normal_mode",
+                  "readiness_credit_added": false,
+                  "original_exact_one_attempt_consumed": true,
+                  "corrected_attempt": {
+                    "attempt_id": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001_STAGE_B_CORRECTED_001",
+                    "standing_cto_authority_applies": true,
+                    "execution_limit": 1,
+                    "scope": "exact instance-qualified repository Resource plus native policy readback and fresh STS/Registry credentials",
+                    "wildcard_repository_permission_authorized": false,
+                    "status": "AUTHORIZED_IN_PROGRESS"
+                  }
+                },
                 "temporary_iam_absent": true,
                 "builder_state": "Stopped_normal_mode_control_plane_confirmed",
                 "historical_builder_start_error": "InstanceExpired",
@@ -3281,7 +3321,7 @@
               "public": "19/38",
               "credit_added": false
             },
-            "next_hard_condition": "The production runtime baseline is restored with exact historical accepted unit bytes and current three-round loopback health; no duplicate recovery execution is allowed. Resume the already authorized exact-one Stage B Scheme One from a fresh read-only builder/repository/link/runtime preflight, without repeating Stage A. Stage B acceptance still requires the still-first private push, push/manifest-descriptor/native-control-plane digest agreement, local config identity match, exact production link restoration and post-publication API-C/API-F non-regression."
+            "next_hard_condition": "The first actual private push is terminal denied and clean; it cannot be relabelled or replayed. Under standing CTO authority, execute the separately numbered corrected attempt exactly once using only the exact Enterprise instance-qualified repository Resource, native policy readback and fresh STS/Registry credentials, without repeating Stage A, CI or the full gate. Acceptance requires one successful private push, push/manifest-descriptor/native-control-plane digest agreement, local config identity match, exact production-link restoration, complete temporary cleanup and API-C/API-F non-regression."
           },
           "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
         },

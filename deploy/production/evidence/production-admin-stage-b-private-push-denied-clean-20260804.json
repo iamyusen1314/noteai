@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001_STAGE_B_ATTEMPT_001",
+  "observed_at_utc": "2026-08-04T13:53:52Z",
+  "status": "PRIVATE_PUSH_DENIED_REPOSITORY_RESOURCE_MISMATCH_CLEAN",
+  "readiness_credit": 0,
+  "source_anchors": {
+    "recording_checkpoint_parent": "171975ae5b69dc5f6d0a49acf4951d9a0a7ee9c6",
+    "accepted_stage_b_ci_head": "ec5b81df466613fc7c3ff145026d7ef490f0efde",
+    "accepted_stage_b_push_workflow_run_id": 30862102590,
+    "accepted_stage_b_pull_request_workflow_run_id": 30862105246,
+    "publisher_sha256": "0342f9ebadda91a8131930170fbc9ee4d116b58286da1a3049b8f02bfb3fd624",
+    "wrapper_sha256": "29678f435c53f1b162a218b6c860c24fed6437679202fa4c607f855264fb6fd9",
+    "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+    "local_image": "noteai-local:git-5335bda-amd64-admin-r1",
+    "target_repository": "noteai/app",
+    "target_tag": "git-5335bda-amd64-admin-r1",
+    "native_evidence_file_count": 11
+  },
+  "fresh_preflight": {
+    "builder_started_once": true,
+    "builder_auto_release_time_empty": true,
+    "system_runtime_image_evidence_groups": "5/5_pass",
+    "publisher_exact_sha_and_offline_self_test": true,
+    "target_tag_absent_before_control_mutation": true,
+    "target_tag_absent_immediately_before_push": true,
+    "public_registry_endpoint_enabled": false,
+    "unique_private_link_was_production_vpc": true,
+    "temporary_role_or_policy_present_before_attempt": false,
+    "builder_role_binding_present_before_attempt": false,
+    "production_api_c_api_f_health": "exact_accepted_units_three_rounds_live_ready_200_loopback_only"
+  },
+  "attempt": {
+    "wrapper_dispatch_count": 1,
+    "wrapper_execution_count": 1,
+    "publisher_invocation_count": 1,
+    "repeat_mode": "Once",
+    "started_at_utc": "2026-08-04T13:41:05Z",
+    "finished_at_utc": "2026-08-04T13:41:06Z",
+    "exit_code": 1,
+    "terminal_phase": "single_push",
+    "registry_token_obtained": true,
+    "registry_login_succeeded": true,
+    "docker_push_invocation_count": 1,
+    "layer_transfer_state_observed": [
+      "Preparing",
+      "Waiting"
+    ],
+    "terminal_error_class": "REGISTRY_AUTHORIZATION_DENIED",
+    "push_started_count": 1,
+    "published_count": 0,
+    "automatic_retry_count": 0,
+    "manual_retry_count": 0,
+    "second_push_count": 0,
+    "target_tag_absent_after_attempt": true,
+    "manifest_digest_created": false
+  },
+  "root_cause": {
+    "classification": "HIGH_CONFIDENCE_ENTERPRISE_REPOSITORY_RESOURCE_MISMATCH",
+    "evidence": "STS and registry authentication succeeded, the fixed repository push reached layer preparation, and repository authorization alone returned denied while the immutable target tag remained absent.",
+    "incorrect_resource_shape": "acs:cr:<region>:<account>:repository/<namespace>/<repository>",
+    "required_enterprise_resource_shape": "acs:cr:<region>:<account>:repository/<enterprise-instance-id>/<namespace>/<repository>",
+    "missing_segment": "enterprise-instance-id",
+    "actions_remain_minimal": [
+      "cr:GetAuthorizationToken",
+      "cr:PullRepository",
+      "cr:PushRepository"
+    ],
+    "wildcard_repository_permission_required": false,
+    "publisher_change_required": false,
+    "image_or_build_change_required": false,
+    "stage_a_repeat_required": false,
+    "ci_or_full_gate_repeat_required": false,
+    "official_sources": [
+      "https://www.alibabacloud.com/help/en/acr/user-guide/ram-authorization-information",
+      "https://www.alibabacloud.com/help/en/acr/user-guide/configure-access-credentials"
+    ]
+  },
+  "terminal_cleanup": {
+    "builder_private_link_removed": true,
+    "exact_production_private_link_restored": true,
+    "public_registry_endpoint_enabled": false,
+    "temporary_role_detached_and_deleted": true,
+    "temporary_policy_detached_and_deleted": true,
+    "builder_role_binding_present": false,
+    "docker_auth_residue_count": 0,
+    "task_root_residue_count": 0,
+    "running_container_count": 0,
+    "registry_push_process_count": 0,
+    "database_connection_count": 0,
+    "remote_image_alias_present": false,
+    "accepted_local_images_retained": true,
+    "builder_state": "Stopped_normal_mode",
+    "production_health_after_link_restore": {
+      "api_c_listener_count": 2,
+      "api_c_loopback_ports": [
+        8000,
+        8001
+      ],
+      "api_f_listener_count": 1,
+      "api_f_loopback_ports": [
+        8000
+      ],
+      "live_ready_rounds_per_role": 3,
+      "live_ready_http_200": true,
+      "database_established_connection_count": 0
+    }
+  },
+  "continuation": {
+    "original_exact_one_attempt_consumed": true,
+    "failed_attempt_may_not_be_relabelled_or_replayed": true,
+    "standing_cto_authority_applies": true,
+    "corrected_attempt_id": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001_STAGE_B_CORRECTED_001",
+    "corrected_attempt_limit": 1,
+    "corrected_scope": "Replace only the temporary policy repository Resource with the exact enterprise-instance-qualified repository ARN, read it back, obtain fresh STS and registry credentials, confirm the target tag is absent, and perform one bounded private push.",
+    "status": "AUTHORIZED_IN_PROGRESS",
+    "stage_c_closed_until_stage_b_acceptance": true,
+    "readiness": {
+      "internal": "19/29",
+      "public": "19/38"
+    }
+  }
+}
