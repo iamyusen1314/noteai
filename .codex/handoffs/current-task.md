@@ -6081,3 +6081,49 @@ exact production-link restoration, cleanup and API-C/API-F non-regression.
 This is not a retry of the consumed attempt and does not authorize any code,
 image, Stage A, database, public endpoint, public traffic or production-runtime
 change. Continue immediately without another product-owner pause.
+
+### Corrected Stage B private publication accepted; builder stop auth pending (2026-08-04)
+
+- Corrected attempt
+  `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001_STAGE_B_CORRECTED_001` used one
+  temporary least-privilege role and policy whose repository Resource included
+  the exact Enterprise ACR instance segment. The corrected wrapper changed one
+  role-name literal only; publisher bytes remained the accepted 13,754-byte
+  SHA-256 `0342f9ebadda91a8131930170fbc9ee4d116b58286da1a3049b8f02bfb3fd624`.
+  Exact offline preflight invocation `t-sz06szkh5thlse8` exited zero.
+- Native tag read `019FCD44-C001-554E-BDB0-D4FBE7E984AC` proved the immutable
+  target absent immediately before publication. The one corrected publisher
+  invocation `t-sz06szktwe51hj4` / command `c-sz06szktwdnk740` then ran once,
+  exited zero and reported `PUSH_MANIFEST_PASS`; publisher count, Docker push
+  count and published count are each one, with automatic and manual retry count
+  zero.
+- Push digest, manifest descriptor digest and native ACR tag digest all equal
+  `sha256:d417718ff16ae9a456d2e099182661d320283c2755d3b3978eb82a5cee928c2a`.
+  Manifest config, native ImageId and accepted local image config all equal
+  `sha256:fa0e658cba59a0adda16f64efb9bdfe543f459d90fe35997bd39046eb7743bd4`.
+  Native post-push `GetRepoTag` request
+  `019FCD4D-7E99-5E38-A8FA-36077EE88871` returned `NORMAL` for the exact tag.
+- The builder ACR link was removed and the exact production VPC/vSwitch link
+  restored `RUNNING`, with `DefaultAccess=false` and the public Registry
+  endpoint still disabled. The builder role was detached; the temporary policy
+  and role were detached/deleted. Docker auth, publisher/task roots, remote
+  alias, containers, push processes and database connections are absent on the
+  builder; accepted local images remain.
+- After link restoration, API-C invocation `t-sz06szo4d9qegao` and API-F
+  invocation `t-sz06sznzne00dfk` each exited zero. The three exact accepted
+  units/containers/listeners passed three fresh live/ready rounds with HTTP
+  `200`, loopback-only listeners and zero established PostgreSQL connections.
+  These checks made no service, unit, container, listener, database, ACR, IAM,
+  link, public-traffic or builder-start mutation.
+- The remaining cleanup is only graceful stopping of existing builder
+  `i-wz99180s9ig5ecq10uaj`. It has no RAM role and no builder ACR link, but the
+  Alibaba account UI requires interactive security verification before a
+  `StopInstance` success receipt can exist; current control-plane state remains
+  `Running`. No duplicate stop submission has been made.
+- Secret-free evidence is
+  `deploy/production/evidence/production-admin-stage-b-private-publication-verified-20260804.json`.
+  While stop authentication is pending, readiness remains internal `19/29` and
+  public `19/38`; Stage C remains closed. After one successful graceful stop
+  and native `Stopped` readback, finalize this same record/checkpoint and
+  continue directly into Admin Stage C without repeating Stage A, CI, the full
+  readiness gate or the publication.

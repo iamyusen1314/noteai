@@ -810,6 +810,18 @@ Last updated: 2026-08-04
   `...STAGE_B_CORRECTED_001`自行授权上限1次，只修正临时exact instance-qualified ARN、
   原生读回、fresh token并在tag仍absent后执行一次private push。当前仍`19/29`，Stage C
   在三方digest/config/link/cleanup/健康全部验收前保持关闭。
+- 2026-08-04 corrected Stage B publication已通过、仅停机认证待收口: 修正后的临时
+  Enterprise repository Resource精确包含ACR instance segment；唯一corrected publisher
+  invocation和唯一docker push均exit 0，未重试。push/manifest/native digest一致为
+  `sha256:d417718f…c2a`，manifest config/native ImageId/local config一致为
+  `sha256:fa0e658c…bd4`。builder link已删除，生产link精确恢复`RUNNING`且default access
+  false，临时role/policy及builder绑定均删除；API-C/API-F在恢复后各通过三轮loopback
+  live/ready 200且DB established为0。唯一残余是existing builder仍`Running`：其已无RAM
+  role和ACR builder link，但阿里云在graceful `StopInstance`前要求账户交互安全验证，当前
+  尚无success receipt且未重复提交。此时仍`19/29` / `19/38`，Stage C保持关闭；验证后
+  仅需原生`Stopped`读回并收口同一evidence/checkpoint，不得重复Stage A、CI、full gate或
+  publication。
+
 ## Low Risks
 
 ### `model/api.py` is too large
