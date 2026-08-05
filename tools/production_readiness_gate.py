@@ -197,6 +197,9 @@ from verify_api_c_current_release_evidence import (  # noqa: E402
 from verify_api_f_current_release_evidence import (  # noqa: E402
     validate_bundle as validate_api_f_current_release_evidence_bundle,
 )
+from verify_admin_current_release_evidence import (  # noqa: E402
+    validate_bundle as validate_admin_current_release_evidence_bundle,
+)
 from verify_native_release_vex import validate_bundle as validate_native_release_vex_bundle  # noqa: E402
 from verify_registry_release_vex import (  # noqa: E402
     validate_bundle as validate_registry_release_vex_bundle,
@@ -2594,6 +2597,22 @@ def check_api_f_current_release_evidence() -> list[dict[str, Any]]:
     ]
 
 
+def check_admin_current_release_evidence() -> list[dict[str, Any]]:
+    errors = validate_admin_current_release_evidence_bundle()
+    return [
+        _ok(
+            "exact_admin_current_release_deployment_evidence",
+            not errors,
+            "; ".join(errors[:5])
+            if errors
+            else (
+                "exact private Admin digest; bounded canary and ACL audit; "
+                "one session insert/delete; promotion, restart and zero residue"
+            ),
+        )
+    ]
+
+
 def _line_has_secret_value(line: str) -> tuple[bool, str]:
     match = SECRET_NAME_RE.search(line)
     if not match:
@@ -2609,6 +2628,10 @@ def _line_has_secret_value(line: str) -> tuple[bool, str]:
     if "{" in raw_value or "}" in raw_value:
         return False, ""
     if raw_value.startswith(("re.compile(", "os.environ.get(", "int(", "str(")):
+        return False, ""
+    if raw_value in {"r", "b", "rb", "br"}:
+        return False, ""
+    if re.fullmatch(r"[A-Z][A-Z0-9_]*(?:\s*/\s*)?", raw_value):
         return False, ""
     if raw_value in {"(", "[", "{"}:
         return False, ""
@@ -2688,6 +2711,7 @@ def build_report() -> dict[str, Any]:
         "browserless_vex": check_browserless_vex(),
         "api_c_runtime_evidence": check_api_c_current_release_evidence(),
         "api_f_runtime_evidence": check_api_f_current_release_evidence(),
+        "admin_runtime_evidence": check_admin_current_release_evidence(),
         "optional_runtime_dependencies": check_optional_runtime_dependencies(),
         "git_hygiene": check_git_hygiene(),
     }

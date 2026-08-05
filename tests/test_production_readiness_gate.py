@@ -969,6 +969,27 @@ class ProductionReadinessGateTests(unittest.TestCase):
             {item["name"] for item in report["failed_checks"]},
         )
 
+    def test_admin_runtime_evidence_is_fail_closed_in_repository_gate(self):
+        checks = {
+            item["name"]: item
+            for item in gate.check_admin_current_release_evidence()
+        }
+        self.assertTrue(
+            checks["exact_admin_current_release_deployment_evidence"]["passed"]
+        )
+
+        with mock.patch.object(
+            gate,
+            "validate_admin_current_release_evidence_bundle",
+            return_value=["tampered runtime evidence"],
+        ):
+            report = gate.build_report()
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "exact_admin_current_release_deployment_evidence",
+            {item["name"] for item in report["failed_checks"]},
+        )
+
     def test_ci_unit_test_environment_isolation_contract_is_exact(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
             encoding="utf-8"
@@ -1499,6 +1520,16 @@ class ProductionReadinessGateTests(unittest.TestCase):
             gate._line_has_secret_value(
                 'CLIENT_TOKEN_CONTROL = "BUILDKIT_NO_CLIENT_TOKEN"'
             ),
+            (False, ""),
+        )
+        self.assertEqual(
+            gate._line_has_secret_value(
+                'TOKEN_FILE = RUN_ROOT / "admin-bearer"'
+            ),
+            (False, ""),
+        )
+        self.assertEqual(
+            gate._line_has_secret_value("SESSION_TOKEN_SNAPSHOT_SOURCE = r'''"),
             (False, ""),
         )
 

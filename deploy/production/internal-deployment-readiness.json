@@ -564,7 +564,7 @@
         {
           "id": "admin_current_release",
           "title": "Private Admin current-release deployment and negative runtime matrix",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "api_c_current_release",
             "production_schema_roles"
@@ -1557,9 +1557,16 @@
             {
               "kind": "path",
               "ref": "tests/test_admin_stagec_runtime.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-admin-current-release-verified-20260805.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_current_release_evidence.py"
             }
           ],
-          "blocker": "Stage B private publication and terminal cleanup are accepted: the exact 5335 Admin manifest/config are available through the restored production private Registry link, temporary IAM/link resources are absent and the builder is stopped. Stage C remains unverified because the new private digest has not yet completed its bounded production canary, exact ACL/RLS negative audit, single normal Admin session insert/delete, reversible promotion, explicit restart, cleanup and independent API-C/API-F non-regression. The audited V3 executor and candidate are prepared; execute that one bounded sequence without repeating Stage A, CI, the full readiness gate or private publication.",
           "v16_inert_checkpoint_receipt": {
             "checkpoint_commit": "b6f642e68c21341c90bb3c66f810945ada4e084a",
             "parent_commit": "a94ee2b2feb81eafbcb523be2c95da4ee952cbc4",
@@ -3386,8 +3393,7 @@
               "credit_added": false
             },
             "next_hard_condition": "Execute the authorized Admin Stage C private-digest canary, negative matrix, reversible promotion and non-regression acceptance without repeating Stage A, CI, the full readiness gate or the private publication."
-          },
-          "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
+          }
         },
         {
           "id": "durable_ai_workers",

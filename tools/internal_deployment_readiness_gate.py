@@ -27,6 +27,9 @@ from verify_api_f_current_release_evidence import (
 from verify_api_f_current_release_evidence import (
     validate_bundle as validate_api_f_current_release_evidence,
 )
+from verify_admin_current_release_evidence import (
+    validate_bundle as validate_admin_current_release_evidence,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -196,6 +199,37 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
                     f"{control_id}: exact runtime evidence refs required",
                 )
                 runtime_errors = validate_api_f_current_release_evidence(
+                    root=root
+                )
+                _require(
+                    not runtime_errors,
+                    f"{control_id}: invalid runtime evidence: "
+                    f"{runtime_errors[0] if runtime_errors else ''}",
+                )
+            if control_id == "admin_current_release" and status == "verified":
+                required_refs = {
+                    (
+                        "git",
+                        "5335bdaed933b1f999b5f819c047ec50c11821ae",
+                    ),
+                    (
+                        "path",
+                        "deploy/production/evidence/"
+                        "production-admin-current-release-verified-20260805.json",
+                    ),
+                    (
+                        "path",
+                        "tools/verify_admin_current_release_evidence.py",
+                    ),
+                }
+                actual_refs = {
+                    (item.get("kind"), item.get("ref")) for item in evidence
+                }
+                _require(
+                    required_refs.issubset(actual_refs),
+                    f"{control_id}: final runtime evidence refs required",
+                )
+                runtime_errors = validate_admin_current_release_evidence(
                     root=root
                 )
                 _require(

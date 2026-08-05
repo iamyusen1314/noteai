@@ -1,5 +1,12 @@
+import contextlib
 import importlib.util
+import io
+import json
+import os
+import sys
+import types
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -44,13 +51,16 @@ class AdminStageCRuntimeTests(unittest.TestCase):
             "5335bdaed933b1f999b5f819c047ec50c11821ae",
         )
 
-    def test_v3_namespace_is_fresh_and_v2_identity_is_absent(self):
+    def test_v4_namespace_is_fresh_and_failed_v3_identity_is_absent(self):
         runtime = self.runtime
-        self.assertEqual(str(runtime.STAGE), "/root/.noteai-admin-stagec-5335-v3")
-        self.assertEqual(str(runtime.RUN_ROOT), "/run/noteai-admin-stagec-5335-v3")
-        self.assertEqual(runtime.CANARY, "noteai-admin-canary-stagec-5335-v3")
+        self.assertEqual(str(runtime.STAGE), "/root/.noteai-admin-stagec-5335-v4")
+        self.assertEqual(str(runtime.RUN_ROOT), "/run/noteai-admin-stagec-5335-v4")
+        self.assertEqual(runtime.CANARY, "noteai-admin-canary-stagec-5335-v4")
         source = RUNTIME_PATH.read_text(encoding="utf-8")
         for stale in (
+            "noteai-admin-stagec-5335-v3",
+            "noteai-admin.candidate-5335-v3.service",
+            "noteai-admin-canary-stagec-5335-v3",
             "noteai-admin-stagec-b55-v2",
             "noteai-admin-stagec-v2",
             "noteai-admin.candidate-v2.service",
@@ -59,6 +69,81 @@ class AdminStageCRuntimeTests(unittest.TestCase):
             "sha256:fac78f71d7b123621962738d2a93532ff98f2302232562dc75b6a8e0016b7626",
         ):
             self.assertNotIn(stale, source)
+
+    def test_side_effect_snapshot_uses_named_dict_row_xid(self):
+        source = self.runtime.SIDE_EFFECT_SNAPSHOT_SOURCE
+        self.assertIn("SELECT txid_current_if_assigned() AS xid", source)
+        self.assertIn('fetchone()["xid"] is None', source)
+        self.assertNotIn(
+            'SELECT txid_current_if_assigned()\").fetchone()[0]',
+            source,
+        )
+
+    def test_side_effect_snapshot_executes_with_dict_row(self):
+        class Cursor:
+            def __init__(self, row=None):
+                self.row = row
+
+            def fetchone(self):
+                return self.row
+
+        class Connection:
+            def __init__(self):
+                self.autocommit = False
+                self.closed = False
+
+            def execute(self, query):
+                if "business_tuple_writes" in query:
+                    return Cursor(
+                        {
+                            "business_tuple_writes": 0,
+                            "table_count": 56,
+                            "sequence_count": 5,
+                            "function_count": 10,
+                            "policy_count": 14,
+                            "role_count": 8,
+                        }
+                    )
+                if "txid_current_if_assigned() AS xid" in query:
+                    return Cursor({"xid": None})
+                return Cursor()
+
+            def close(self):
+                self.closed = True
+
+        connection = Connection()
+        dict_row = object()
+        psycopg = types.ModuleType("psycopg")
+        rows = types.ModuleType("psycopg.rows")
+        rows.dict_row = dict_row
+
+        def connect(_dsn, *, row_factory):
+            self.assertIs(row_factory, dict_row)
+            return connection
+
+        psycopg.connect = connect
+        output = io.StringIO()
+        with (
+            mock.patch.dict(
+                sys.modules,
+                {"psycopg": psycopg, "psycopg.rows": rows},
+            ),
+            mock.patch.dict(os.environ, {"DATABASE_URL": "postgresql://stub"}),
+            contextlib.redirect_stdout(output),
+        ):
+            exec(
+                compile(
+                    self.runtime.SIDE_EFFECT_SNAPSHOT_SOURCE,
+                    "<SIDE_EFFECT_SNAPSHOT_SOURCE>",
+                    "exec",
+                ),
+                {},
+            )
+
+        payload = json.loads(output.getvalue())
+        self.assertTrue(payload["xid_unassigned"])
+        self.assertEqual(payload["business_tuple_writes"], 0)
+        self.assertTrue(connection.closed)
 
     def test_visible_settings_accept_only_nonsecret_allowlisted_subset(self):
         source = self.runtime.ACL_AUDIT_SOURCE

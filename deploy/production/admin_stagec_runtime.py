@@ -18,17 +18,17 @@ import urllib.request
 from pathlib import Path
 
 
-STAGE = Path("/root/.noteai-admin-stagec-5335-v3")
+STAGE = Path("/root/.noteai-admin-stagec-5335-v4")
 RESULTS = STAGE / "results"
 STATE = STAGE / "state.json"
-RUN_ROOT = Path("/run/noteai-admin-stagec-5335-v3")
+RUN_ROOT = Path("/run/noteai-admin-stagec-5335-v4")
 TOKEN_FILE = RUN_ROOT / "admin-bearer"
-CANDIDATE = STAGE / "noteai-admin.candidate-5335-v3.service"
+CANDIDATE = STAGE / "noteai-admin.candidate-5335-v4.service"
 ROLLBACK = STAGE / "noteai-admin.rollback.service"
 INSTALLED = Path("/etc/systemd/system/noteai-admin.service")
 SERVICE = "noteai-admin"
 FORMAL = "noteai-admin-c"
-CANARY = "noteai-admin-canary-stagec-5335-v3"
+CANARY = "noteai-admin-canary-stagec-5335-v4"
 CANARY_DATA = STAGE / "canary-data"
 
 OLD_UNIT_SHA = "c299059d167eab0863639355a6485094e58e3dca6bcec7adbe9f78a3857a1ab2"
@@ -972,7 +972,9 @@ try:
     ).fetchone()
     out=dict(out)
     out["xid_unassigned"]=(
-        conn.execute("SELECT txid_current_if_assigned()").fetchone()[0] is None
+        conn.execute(
+            "SELECT txid_current_if_assigned() AS xid"
+        ).fetchone()["xid"] is None
     )
 finally:
     try: conn.execute("ROLLBACK")
@@ -1266,7 +1268,7 @@ def canary_command() -> list[str]:
     ]
     if len(service_labels) != 1:
         raise RuntimeError("candidate_service_label")
-    tokens[service_labels[0]] = "com.noteai.service=noteai-admin-canary-stagec-5335-v3"
+    tokens[service_labels[0]] = "com.noteai.service=noteai-admin-canary-stagec-5335-v4"
     return tokens
 
 

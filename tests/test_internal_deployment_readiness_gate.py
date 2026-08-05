@@ -32,13 +32,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 19)
+        self.assertEqual(report["internal_deployment"]["verified"], 20)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 66)
+        self.assertEqual(report["internal_deployment"]["percentage"], 69)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 19)
+        self.assertEqual(report["complete_public_launch"]["verified"], 20)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 50)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 53)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -54,24 +54,34 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertNotIn("private_storage_runtime", actionable)
         self.assertNotIn("api_c_current_release", actionable)
         self.assertNotIn("api_f_current_release", actionable)
-        self.assertEqual(
-            actionable["admin_current_release"]["status"],
-            "unverified",
-        )
-        self.assertEqual(
-            actionable["admin_current_release"]["next_task"],
-            "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001",
-        )
-        self.assertEqual(
-            actionable["admin_current_release"]["execution_class"],
-            "authenticated_production",
-        )
+        self.assertNotIn("admin_current_release", actionable)
         admin = next(
             control
             for control in self.manifest["layers"][1]["controls"]
             if control["id"] == "admin_current_release"
         )
-        self.assertEqual(admin["status"], "unverified")
+        self.assertEqual(admin["status"], "verified")
+        self.assertNotIn("blocker", admin)
+        self.assertNotIn("next_task", admin)
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-admin-current-release-verified-20260805.json"
+                ),
+            },
+            admin["evidence"],
+        )
+        self.assertIn(
+            {
+                "kind": "path",
+                "ref": "tools/verify_admin_current_release_evidence.py",
+            },
+            admin["evidence"],
+        )
+    def _assert_historical_admin_evidence_catalog(self, admin):
+        """Archived non-credit evidence catalog; intentionally not a test."""
         self.assertEqual(
             admin["evidence"],
             [
@@ -3634,7 +3644,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "admin_current_release"
+            if item["id"] == "durable_ai_workers"
         )
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
@@ -3644,11 +3654,41 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "admin_current_release"
+            if item["id"] == "durable_ai_workers"
         )
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
             gate.validate_manifest(broken)
+
+    def test_verified_admin_requires_final_semantic_runtime_evidence(self):
+        broken = copy.deepcopy(self.manifest)
+        control = next(
+            item
+            for item in broken["layers"][1]["controls"]
+            if item["id"] == "admin_current_release"
+        )
+        control["evidence"] = [
+            item
+            for item in control["evidence"]
+            if item.get("ref")
+            != "tools/verify_admin_current_release_evidence.py"
+        ]
+        with self.assertRaisesRegex(
+            gate.ManifestError,
+            "final runtime evidence refs required",
+        ):
+            gate.validate_manifest(broken)
+
+        with mock.patch.object(
+            gate,
+            "validate_admin_current_release_evidence",
+            return_value=["tampered runtime evidence"],
+        ):
+            with self.assertRaisesRegex(
+                gate.ManifestError,
+                "invalid runtime evidence",
+            ):
+                gate.validate_manifest(copy.deepcopy(self.manifest))
 
     def test_unknown_and_cyclic_dependencies_fail(self):
         broken = copy.deepcopy(self.manifest)
@@ -3751,7 +3791,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 19)
+        self.assertEqual(report["internal_deployment"]["verified"], 20)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)

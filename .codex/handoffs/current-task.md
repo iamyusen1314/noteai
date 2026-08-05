@@ -62,8 +62,8 @@
 - V5 package-evidence checkpoint:
   `883e874d4186e523b8110d44338c2e074b26c491`.
 - Repository/isolated readiness: `12/12`.
-- Internal deployment readiness: `19/29 = 66%`.
-- Public launch readiness: `19/38 = 50%`.
+- Internal deployment readiness: `20/29 = 69%`.
+- Public launch readiness: `20/38 = 53%`.
 - Public launch completion: false.
 
 ## 2.1 Completed V5 production schema and role deployment
@@ -6176,3 +6176,119 @@ preflight, transfer only the fixed V3 executor and candidate, pull only the
 accepted private digest if absent, then execute the bounded canary, ACL/RLS
 negative audit, one normal Admin login/logout session, reversible promotion,
 one explicit restart, cleanup and independent API-C/API-F non-regression.
+
+### Admin Stage C V3 failure truth and minimal V4 correction (2026-08-05)
+
+- The accepted Admin image was initially absent from API-C. Exactly one
+  short-lived Registry credential was issued. The first login reached a host
+  pre-pull check that incorrectly required host `jq`, so it performed no pull;
+  cleanup was exact. The same still-valid credential was reused without a new
+  token, and exactly one real private `docker pull` cached the accepted
+  manifest/config. Two independent read-only inspections verified the exact
+  `linux/amd64` Admin identity. Aggregate Registry token/login/pull counts are
+  `1/2/1`; automatic retry, push, tag, IAM, link and builder-start counts are
+  zero, and auth/key/cipher residue is zero.
+- V3 `canary-start`, `canary-validate` and `acl-audit` passed. Its single
+  `session-open` then failed with `subprocess_failed` after one normal session
+  INSERT. Failure cleanup deleted that same task session, leaving residue zero
+  and `CONNECTED_UNKNOWN=0`. The one V3 `abort` restored the historical Admin,
+  removed canary/listener/token residue and correctly kept release acceptance
+  false because the side-effect baseline had not completed. V3 was not rerun
+  and its failed result was not rewritten.
+- The deterministic cause was a `dict_row` query result accessed as positional
+  index `[0]` in `side_effect_snapshot`. The only data-path correction aliases
+  the value as `xid` and reads `["xid"]`; V4 changes only the fresh task/canary
+  namespace needed to preserve V3 result immutability. Candidate unit, image,
+  database contract, hardening and production resource semantics are
+  unchanged. Independent read-only review returned GO.
+- V4 runtime SHA-256 is
+  `f8ccd0cc2bd1c939e23986719c7c64c663183f2e4fb8ee856ebf3215d8ae2356`;
+  deterministic transport gzip is
+  `24a40d73a07fbad669598e0a859c17da60a04946f7901ea2c849cb6a8fc6ffac`.
+  Focused normal and optimized tests pass `8/8`; Python compile and diff check
+  pass. No V5/V18, workflow, template, ledger, receipt or topology layer was
+  added.
+
+### Admin current release accepted; readiness 20/29 (2026-08-05)
+
+- Fresh V4 preflight proved the historical Admin active/enabled/healthy, the
+  V4 namespace/canary/`18001` listener absent and the exact target image cached.
+  The rollback unit, candidate unit and runtime transport were each verified on
+  API-C by their fixed SHA and root-only mode before execution.
+- The nine modes executed once in the fixed order
+  `canary-start -> canary-validate -> acl-audit -> session-open -> promote ->
+  formal-validate -> explicit-restart -> session-close -> cleanup`. Every mode
+  exited zero with `PASS`, `Repeats=1`, automatic retry zero and
+  `CONNECTED_UNKNOWN=0`.
+- Canary creation/start/restart was `1/1/0`; canary and formal validation each
+  completed three live/ready `200` rounds against the exact target image and
+  loopback ports. ACL audit covered `56` tables / `392` table checks, `2,432`
+  column checks and `5` sequences / `15` sequence checks; all mismatch and
+  grantable counts were zero, the transaction rolled back and XID remained
+  unassigned.
+- The normal Admin session completed one login and exactly one controlled
+  session INSERT. Eight exact side-effect observation rounds found zero
+  business tuple, catalog, process, provider or object effect. Promotion
+  installed candidate unit SHA
+  `101f8814d89736c2aa920f3107916b9b1ab53cabffdde0d69908285fd6d1fe8a`
+  with one service restart and no rollback. One explicit restart changed the
+  container identity and again passed three health rounds. Logout completed one
+  matching DELETE; both old-token replays returned `403`, and final
+  session/token residue is zero.
+- Cleanup removed the single canary and left canary container/listener/data,
+  token, database business writes, provider/object calls and public-traffic
+  changes at zero. Independent read-only postchecks bound API-C API, target
+  Admin and API-F API to their exact unit/image identities, active/enabled
+  systemd state, restart zero, three fresh live/ready rounds and loopback-only
+  listeners. A final exact cleanup removed only the V3/V4 temporary Stage C
+  roots; both runtime roots, both canaries and `18001` are absent while API-C
+  API/Admin remain healthy.
+- Secret-free final evidence is
+  `deploy/production/evidence/production-admin-current-release-verified-20260805.json`;
+  its offline fail-closed verifier is
+  `tools/verify_admin_current_release_evidence.py`. The evidence binds the
+  accepted Stage B, API-C, API-F and recovery baseline file hashes and records
+  native invocation IDs without credentials, tokens, DSNs or user data.
+- Focused verifier tests pass `6/6`; Admin runtime tests pass normal/optimized
+  `8/8`; combined Admin evidence/internal readiness tests pass `23/23`.
+  Current manifest validation reports repository/isolated `12/12`, internal
+  production `20/29 = 69%` and complete public launch `20/38 = 53%`. Admin
+  current release is `VERIFIED`; public launch and full-system rollback remain
+  unverified.
+- Branch is `codex/quality-stabilization-real-chain`, HEAD before the new local
+  checkpoint is `a31a29d9461a43182169d724ede03f28cb9eef0a`, upstream divergence
+  `ahead 10 / behind 0`. Current changed files are the minimal V4 runtime/test,
+  final Admin evidence/verifier/test, readiness manifest and its internal/
+  production gate integrations/tests, plus this Handoff and the risk register.
+  Do not push merely to repeat CI; create one local checkpoint after the single
+  complete readiness gate passes.
+- The already-running `tests.test_production_readiness_gate` process completed
+  after about 64 minutes, but its detached wrapper no longer retained an exit
+  status; it is therefore not counted as a passing result and was not rerun.
+  The two exact Admin/readiness fail-closed tests then passed `2/2` in 75.823s.
+  The single formal repository gate evaluated `137` checks and returned
+  `136/137`; its only failure was the Secret scanner treating two Python code
+  expressions in the immutable V4 runtime as literal Secret assignments.
+- The production-bound runtime was restored byte-for-byte and again hashes to
+  `f8ccd0cc2bd1c939e23986719c7c64c663183f2e4fb8ee856ebf3215d8ae2356`.
+  The existing scanner now excludes only uppercase variable-reference/path
+  expressions and raw/bytes source prefixes; direct literal values remain
+  fail-closed and have explicit negative tests. The exact failed check then
+  passed, scanner/Admin fail-closed tests passed `2/2`, Admin runtime tests
+  passed normal/optimized `8/8` each, the final evidence verifier passed and
+  the internal gate reports `20/29`. No second full gate was run merely to
+  repeat the other `136` unchanged successful checks.
+- A read-only Alibaba ECS inventory/price check after interactive verification
+  found historical `ecs.c9i.xlarge` available in zone C but closed in zone F.
+  The current common X86 equivalent `ecs.c9a.xlarge` is `WithStock` in C/F and
+  is natively reported as `4 vCPU / 8 GiB / X86`; native monthly quotes are
+  CNY `391.72` per zone, CNY `783.44` total. No order, instance, builder,
+  database transaction, role, Secret, network or production resource changed.
+
+The sole task now advances to
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. Begin with a fresh read-only audit
+of the existing durable publisher/dispatcher/worker contract, accepted image,
+dedicated role/Secret topology and production runtime baseline. Do not treat
+this readiness checkpoint as a stop point, and do not mutate production until
+the existing contract establishes the exact bounded execution plan and its
+standing authority.

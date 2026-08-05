@@ -60,8 +60,8 @@ Last updated: 2026-08-05
 - 风险描述: 产品负责人已正式决定首次公开生产切流必须同时包含 XHS Trends、Tracking 和现有全部首发商业能力。Durable AI、私有存储/恢复、provider-isolated支付合同及Adapay离线适配器/专用运行时仓库门禁已经通过，但商户/真实mock兼容、生产对象存储/PITR、真实queue/dispatcher/processor、Tracking/Trends managed runtime、真实 XHS/AI 供应商、100任务容量、合规、ALB/TLS/监控/Smoke 等门禁尚未全部通过。任何把功能标为 `DEFERRED`、隐藏入口或先切 DNS 的做法都会违反产品范围且掩盖发布风险。
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以当前Handoff和readiness manifest的已验证依赖图为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
-- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码候选为精确`b55f11882100e9ef919522540729e366a511f88f`；GitHub原生、隔离builder、五角色AMD64/SBOM/VEX、五个私有ACR immutable manifest及控制面digest绑定均已独立验证，精确API镜像现已分别部署并独立验收于API-C与API-F；Admin当前版本及其余运行时尚未部署。
-- 当前量化状态/下一步: fail-closed ledger为仓库/隔离`12/12=100%`、内部生产部署`19/29=66%`、完整公开上线`19/38=50%`。最近计分完成项是`api_f_current_release=VERIFIED`；schema/roles、managed secrets、private storage及API-C/Admin peer均已在API-F Stage C保持非回归。当前唯一串行任务是`PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001`：必须从新鲜Admin前态部署精确Admin镜像与专用角色，完成loopback、权限负向矩阵、可逆晋升、API-C/API-F独立非回归、postcheck、rollback-ready与零残留闭环；完成前不得增加第20个readiness credit。
+- 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码候选为精确`b55f11882100e9ef919522540729e366a511f88f`，Admin专用修正版本为`5335bdaed933b1f999b5f819c047ec50c11821ae`；GitHub原生、隔离builder、五角色AMD64/SBOM/VEX、私有ACR immutable manifest及控制面digest绑定均已独立验证。精确API镜像已分别部署于API-C/API-F，精确Admin镜像也已部署并完成Stage C；其余运行时尚未部署。
+- 当前量化状态/下一步: 仓库/隔离`12/12=100%`、内部生产部署`20/29=69%`、完整公开上线`20/38=53%`。最近计分完成项是`admin_current_release=VERIFIED`；API-C API、Admin和API-F API均保持精确unit/image、active/ready和loopback-only，Stage C临时资源为零。当前唯一串行任务是`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`：先只读核对既有publisher/dispatcher/worker合同、专用role/Secret、精确镜像和生产基线，再确定最小有界执行；不得把Admin收口checkpoint当作停工点。
 - 2026-07-30 Admin-only builder availability: fresh实例详情证明隔离AMD64 builder已因账户余额不足停止，故不再是Cloud Assistant可执行目标；持久磁盘和历史Build10/发布证据未被删除或覆盖。该builder无RAM role/key pair，未尝试启动、充值、创建凭据、执行命令、变更Registry endpoint或push。本机Docker daemon与Colima同样未运行，依据项目规则未在无确认时启动，arm64本机也不作为native证据。当前先以既有GitHub原生x86_64、固定Syft/Trivy和零Registry权限路径生成精确5335的Admin-only十一文件证据；default `main`不含该workflow，故独立审查拒绝不可触发的manual-dispatch假设。修正为feature-branch一次性added-path request：event、branch、exact commit、request内容/hash和五项false授权均在build前fail closed，普通push仍保持五角色与旧artifact名。该路径不等于私库发布或部署。生产API-C/API-F/旧Admin未触碰，readiness仍`19/29`。
 - 2026-07-30 Admin evidence V1触发偏差: 唯一push run `30549134106`的构建/扫描/上传步骤完成，但实证GitHub在checkout前把`github.event.head_commit.added`表达式求值为false，工作流静默回落到controller commit `e7766ab`的五角色路径；下载包为43文件、五角色、无Admin control block，故只作为失败诊断，绝不作为精确`5335bda` Admin证据或readiness credit，也不盲目rerun。Registry/部署/数据库/服务/供应商/公开流量写均0。V2改为先checkout controller，再由真实Git对象强制单父、唯一新增非rename request、regular blob、精确十键schema2、固定SHA-256、`5335bda`祖先和唯一addition history；任何歧义直接失败，随后才第二次checkout精确release。V2 request SHA-256为`c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef`，尚未push/run，readiness仍`19/29`。
 - 2026-07-30 Admin exact 5335 native source candidate完成: V2 controller `e7039a3`本地exact resolver与唯一远端run `30550548144`均通过双checkout/control/build/scan/upload；唯一失败是保留的raw 0C/0H gate。下载artifact为精确11个regular files，summary SHA `19cbf144…38f7`，新Admin local ID `sha256:9ab915…d8cf7`且区别于两套b55身份；linux/amd64、noteai、OCI/role/entrypoint/CMD、Buildx/Trivy/RootFS/base-index均交叉一致。23行raw findings与b55完全相同（4C/19H，fixed-version空），secret/browser/forbidden OS均0，cryptography48.0.1恰1；image-context delta仅`model/crawler_config.json`。Secret-free GitHub receipt、新Admin-only VEX/review/verifier已由production gate `110/110`绑定，独立内容blocker0。该证据仅接受source candidate：registry digest为空，publication/deployment/database/service/public authorization全false，历史b55发布授权不复用；readiness仍`19/29`。下一硬阻塞仍是隔离AMD64 builder余额不足/停止，须先建立新的funded native publisher与单次不可变Admin tag证据，才能进入V3 canary。
@@ -851,6 +851,36 @@ Last updated: 2026-08-05
 - 剩余风险: 唯一未闭合条件是生产Stage C本身尚未执行。任一DB-connected UNKNOWN、
   candidate身份不一致、健康失败或rollback/cleanup不确定均必须fail closed并保留原Admin；
   不得以可选诊断文案或WorkBench控制面表单差异扩大设计或增加版本。
+
+### Admin current release Stage C closed; durable AI is next
+
+- 状态: `VERIFIED / 20/29`。V3在唯一`session-open`中因`dict_row`返回值被错误地以
+  `[0]`读取而确定失败；其一次session INSERT已由failure cleanup精确DELETE，residue0、
+  `CONNECTED_UNKNOWN=0`，随后唯一abort恢复历史Admin并清除canary/listener/token。V3未
+  重跑、历史failure未改写。V4只改为named `xid` lookup并使用fresh namespace，未改变
+  candidate、镜像、数据库合同或生产资源语义；normal/`-O` focused均`8/8`。
+- 生产验收: Registry credential/login/pull累计`1/2/1`且只有一次真实pull；push/tag、IAM、
+  link、builder和自动重试均0。V4九个模式固定顺序各执行1次且全部PASS。canary/formal均
+  三轮live/ready 200；ACL覆盖56表/392项、2,432列项、5序列/15项，mismatch/grantable0、
+  事务rollback、XID未分配。正常session为login1、INSERT1、logout1、DELETE1、residue0，
+  8轮副作用观察为0，旧token replay均403。promotion restart1、explicit restart1且容器
+  identity改变，无rollback调用；业务/schema/role/ACL/object/provider/public traffic写0。
+- 非回归/清理: API-C API、目标Admin和API-F API独立只读postcheck均绑定精确unit/image，
+  active/enabled、restart0、三轮live/ready200、loopback-only、established DB connection0。
+  canary/container/listener/data/token/runtime root全0；最终只删除精确V3/V4临时Stage C目录，
+  三个生产unit/镜像/服务未删除或改写。Secret-free证据为
+  `deploy/production/evidence/production-admin-current-release-verified-20260805.json`，离线
+  verifier为`tools/verify_admin_current_release_evidence.py`，未新增workflow/template/
+  ledger/receipt/topology或V18。
+- 本地门禁收口: 已启动的全量test进程结束但detached wrapper未保留exit code，因此不虚报通过、
+  也不重跑。唯一正式repository gate为136/137，唯一失败是Secret scanner把immutable V4
+  runtime中的变量引用/原始源码前缀误判为literal。runtime恢复精确`f8ccd0…2356`并重新通过
+  evidence verifier；scanner仅排除非literal代码表达式，真实literal负例仍闭锁且focused
+  通过。失败项随后单独PASS，其他136项未因文案重复全跑。
+- 剩余风险: Admin本项关闭不等于公开上线或完整failure rollback。Durable AI、Trends、
+  Tracking、Payment、备份/PITR、监控、完整私有smoke及公网层仍未验收。当前唯一任务切换到
+  `PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`；必须从只读生产基线和现有合同开始，不能复用
+  Admin权限、session写或发布动作，也不得在没有精确运行计划时启动worker或真实provider。
 
 ## Low Risks
 
