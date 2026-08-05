@@ -6557,3 +6557,30 @@ standing authority.
   reviewed manual-only v2 source bytes, and push one final checkpoint. That
   final SHA must receive both push and PR CI before the single complete gate
   and exact-one manual successor native run. Readiness remains `20/29`.
+
+### Protected-main workflow ancestry conflict closed (2026-08-05)
+
+- Current protected `origin/main` was re-fetched and fixed at
+  `e8fa2837566ced8fe55bdf686ade0675952b8fa3`. A normal non-force merge into
+  the source branch produced exactly the pre-audited add/add conflict in
+  `.github/workflows/native-release-evidence.yml`; the unmerged-path count was
+  one and no other path changed or conflicted.
+- The conflict was resolved to the reviewed source bytes: manual
+  `workflow_dispatch` only and `native_release_evidence_v2.sh`. The resolved
+  workflow SHA-256 remains
+  `3b3efb3235c700ecb4f4ff91978c7a49d83a8208e000e14eae7bff824dcf3aa1`;
+  old push activation and the legacy runner were not reintroduced.
+- Merge commit `cfc838b040e2582eca199f5c4d7dea94efa97f50` has exact parents
+  `92d01eadc50809774c399f97b99cdb72f4bd194f` and
+  `e8fa2837566ced8fe55bdf686ade0675952b8fa3`. Its tree
+  `612ebc969df8af2b6830d3c9d63b1c1dc9b183f8` is byte-identical to its first
+  parent tree, proving the merge changed ancestry only. Protected main is now
+  an ancestor of the source branch.
+- Post-resolution workflow/V17 tests pass `13/13`; both native runner shell
+  checks pass; the worktree is clean. No native run, Registry, image,
+  production, database, Alibaba, Secret, provider or public-traffic action
+  occurred.
+- Readiness remains internal `20/29` and public `20/38`. The next exact
+  condition is one final source push and one push/PR CI pair on its resulting
+  exact SHA, with native run count still zero; then execute one complete
+  readiness gate before the single manual successor native run.
