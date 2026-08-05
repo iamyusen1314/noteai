@@ -6666,3 +6666,62 @@ standing authority.
   is a private deployable AI Worker manifest plus a successful fresh-builder
   import. Only after that may production 0017, Dispatcher LOGIN/Secret and the
   default-suspended Stage A/B/C acceptance proceed.
+
+### Durable AI minimum Stage A implementation checkpoint (2026-08-05)
+
+- The cad5ce3 local-only VEX checkpoint is remotely accepted. Push run
+  `31022136160` / job `92361272534` and PR run `31022140750` / job
+  `92361288685` both completed `success`, attempt `1`, on exact head
+  `fec23879bd54826df92f50a3bda3d1c46311f2a1`. Unit tests, Quality,
+  production readiness and Compose all passed; neither run was rerun.
+- The minimum Stage A implementation is exactly two executors plus one focused
+  test module. `deploy/production/durable_ai_cad5_stage_a.sh` has separate
+  build/publish modes; `deploy/production/durable_ai_cad5_fresh_importer.sh`
+  is pull-only; `tests/test_durable_ai_cad5_stage_a.py` contains the directly
+  coupled contract tests. No workflow, request, V18, R17, custom ledger,
+  receipt or topology layer was added.
+- Build is fixed to source commit
+  `cad5ce35664f617c6e19f90a6159285ddf975594`, tree
+  `a1ce9c812a74a7e3824851581d1b4b6aaaaddb1c`, the 1,513,408-byte incremental
+  bundle SHA-256 `2a37c49c...bd19b`, current requirements, and the projected
+  AI-Worker-only v2 native runner SHA-256 `f6793eae...36a8`. It accepts only
+  the fixed source bundle, a hash-bound wheelhouse and a hash-bound scanner
+  bundle. BuildKit runs with network disabled, pip uses
+  `--no-index --find-links=/wheelhouse`, and Trivy uses the supplied offline
+  database; there is no public PyPI or scanner-download fallback.
+- Outer acceptance independently rechecks all eleven AI Worker evidence files,
+  exact 4 Critical / 19 High rows, cryptography 50.0.0 exactly once and zero
+  cryptography vulnerability/Secret/browser/forbidden-OS findings. It also
+  binds build metadata, SBOM/report hashes, OCI labels, non-root UID/GID 999,
+  entrypoint, once-only command, default suspension and `HEALTHCHECK NONE`.
+  The expected raw findings remain unsuppressed and therefore do not make the
+  GitHub local image ID a Registry identity.
+- Publication permits exactly one push of immutable tag
+  `git-cad5ce3-amd64-ai-worker-r1`. Its state remains `unknown` until push,
+  digest-qualified descriptor/raw readback and manifest-config binding all
+  agree. Any failure after push starts requires native control-plane
+  reconciliation and forbids a rerun. The fresh importer starts from zero
+  images/containers/volumes/build cache/auth, pulls the exact manifest digest
+  once for `linux/amd64`, validates the separate config identity and complete
+  runtime metadata, then removes the image and auth state. Any importer failure
+  permanently forbids host reuse.
+- Focused tests pass `10/10`; both shell syntax checks, Python compilation and
+  diff hygiene pass. Two independent read-only final audits returned `GO` with
+  no P0/P1. They also fixed progress observability: the single offline
+  build/scan streams through `tee`, so a slow or failed cache vertex retains
+  native progress instead of becoming an artificial silent timeout.
+- This checkpoint made no Alibaba, IAM, ACR, Docker-daemon, production,
+  database, Secret, provider or public-traffic mutation. Readiness remains
+  internal `20/29` and public `20/38`. Before real execution the main CTO must
+  first prove the retained BuildKit/base cache and three transferred object
+  hashes, remove the transfer IAM role/policy, and use the native ACR control
+  plane to prove the private NORMAL immutable repository and exact tag absence.
+  After push starts there is never a second push. Freshness additionally
+  requires a newly created ECS instance, native creation-time evidence and
+  final instance/system-disk deletion; Docker zero-state alone is insufficient.
+
+The task continues without a permission pause: checkpoint and push only this
+minimum implementation plus Secret-free records, accept its one push/PR CI
+pair, then execute Stage A in the existing 120-minute budget. Ordinary Git,
+CI and Alibaba decisions are CTO-authorized; only an actual SMS/scan/face
+challenge pauses for the product owner.

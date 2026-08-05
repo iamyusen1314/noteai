@@ -890,6 +890,29 @@ Last updated: 2026-08-05
   `PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`；必须从只读生产基线和现有合同开始，不能复用
   Admin权限、session写或发布动作，也不得在没有精确运行计划时启动worker或真实provider。
 
+### Durable AI Stage A prepared with offline inputs; real manifest remains open
+
+- 状态: `PREPARED / 20/29`。cad5ce3 VEX checkpoint
+  `fec23879bd54826df92f50a3bda3d1c46311f2a1`的push/PR CI
+  `31022136160` / `31022140750`均为exact-head attempt1 success且未rerun。
+  新增范围仅为AI Worker Stage A build/publish执行器、pull-only fresh importer
+  及一份focused test；`10/10`、双方shell syntax、compile和diff check均通过，
+  两路独立只读终审均GO/P0-P1=0。
+- 风险控制: 三个builder输入必须在任何build state前分别核对SHA；实际build全局
+  `network=none`，pip只读本地wheelhouse且`--no-index`，Trivy只读本地数据库。
+  publisher只有一次push，push开始即把结果视为UNKNOWN，只有push/descriptor/raw
+  manifest/config四项一致才转为verified；任一后续异常只允许原生控制面对账，禁止重推。
+  importer必须是原生新建ECS，Docker初始全零，只按manifest digest拉取一次、不启动容器，
+  验收后镜像/auth/task/cache全零；失败主机永久禁止复用并必须销毁系统盘。
+- 剩余风险: 脚本尚未在真实builder/importer执行；Docker零状态本身不能证明fresh ECS。
+  BuildKit固定base/npm/apt缓存、当前wheelhouse/scanner bundle、ACR private/NORMAL/tag
+  immutability及exact tag absence仍需原生只读preflight。三对象校验后必须先删除transfer
+  IAM再build；ACR push前另建最小publisher权限，push后恢复生产link并清理。任何真实
+  交互仅限阿里云实际短信/扫码/扫脸页面，不因502/504、轮询或文案新建V18/R17/控制层。
+- 当前硬条件: 产生一个真实private immutable AI Worker manifest，并由创建时间晚于该
+  manifest的新ECS完成一次digest-only fresh import、验收及销毁。完成前禁止0017、
+  Dispatcher LOGIN/Secret和生产unit部署；因此本阶段不加readiness credit。
+
 ## Low Risks
 
 ### `model/api.py` is too large
