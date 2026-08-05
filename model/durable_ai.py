@@ -36,6 +36,7 @@ MAX_MEDIA_REFS = 10
 REQUEST_TTL_SECONDS = 7 * 24 * 60 * 60
 RESULT_TTL_SECONDS = 30 * 24 * 60 * 60
 OUTBOX_MAX_ATTEMPTS = 20
+DURABLE_AI_NOTIFY_CHANNEL = "noteai_durable_ai_ready_v1"
 
 _OPERATION_NAMESPACE = uuid.UUID("c5098114-a6c5-4c9f-a527-565123d2e1bd")
 _REFERENCE_NAMESPACE = uuid.UUID("c1b87e7b-234d-44f7-83c8-b219ea1ec68a")
@@ -851,15 +852,17 @@ def _settlement_rows(
     tx: db.Transaction,
     operation_id: str,
 ) -> tuple[dict[str, Any], dict[str, Any]] | tuple[None, None]:
-    lock = " FOR UPDATE" if tx.postgres else ""
+    admission_lock = " FOR UPDATE OF i" if tx.postgres else ""
+    settlement_lock = " FOR UPDATE" if tx.postgres else ""
     admission = tx.fetchone(
         "SELECT i.* FROM ai_operation_admissions a "
         "JOIN idempotency_requests i ON i.id=a.idempotency_request_id "
-        f"WHERE a.operation_id=?{lock}",
+        f"WHERE a.operation_id=?{admission_lock}",
         (operation_id,),
     )
     settlement = tx.fetchone(
-        f"SELECT * FROM ai_operation_settlements WHERE operation_id=?{lock}",
+        "SELECT * FROM ai_operation_settlements WHERE operation_id=?"
+        f"{settlement_lock}",
         (operation_id,),
     )
     if not admission or not settlement:
@@ -891,14 +894,17 @@ def begin_provider_attempt_for_user(
     now_iso = _utc(now).isoformat()
     with db.transaction(write=True) as tx:
         try:
-            content_retention.assert_user_writable_with_storage(tx, user_id)
+            content_retention.assert_user_writable_with_storage(
+                tx,
+                user_id,
+                lock_row=False,
+            )
         except ValueError:
             return None
-        lock = " FOR UPDATE" if tx.postgres else ""
         owned = tx.fetchone(
             "SELECT a.operation_id FROM ai_operation_admissions a "
             "JOIN idempotency_requests i ON i.id=a.idempotency_request_id "
-            f"WHERE a.operation_id=? AND i.user_id=?{lock}",
+            "WHERE a.operation_id=? AND i.user_id=?",
             (lease.operation_id, user_id),
         )
         if not owned:
@@ -960,7 +966,11 @@ def settle_success(
         user_id=user_id,
     ) as reference_guard, db.transaction(write=True) as tx:
         try:
-            content_retention.assert_user_writable_with_storage(tx, user_id)
+            content_retention.assert_user_writable_with_storage(
+                tx,
+                user_id,
+                lock_row=False,
+            )
         except ValueError:
             return False
         claim, settlement = _settlement_rows(tx, lease.operation_id)
@@ -1015,7 +1025,11 @@ def settle_failure(
     now_iso = _utc(now).isoformat()
     with db.transaction(write=True) as tx:
         try:
-            content_retention.assert_user_writable_with_storage(tx, user_id)
+            content_retention.assert_user_writable_with_storage(
+                tx,
+                user_id,
+                lock_row=False,
+            )
         except ValueError:
             return False
         claim, settlement = _settlement_rows(tx, lease.operation_id)
@@ -1068,7 +1082,11 @@ def settle_outcome_unknown(
     now_iso = _utc(now).isoformat()
     with db.transaction(write=True) as tx:
         try:
-            content_retention.assert_user_writable_with_storage(tx, user_id)
+            content_retention.assert_user_writable_with_storage(
+                tx,
+                user_id,
+                lock_row=False,
+            )
         except ValueError:
             return False
         claim, settlement = _settlement_rows(tx, lease.operation_id)
@@ -1103,6 +1121,7 @@ def claim_outbox(
     *,
     lease_seconds: int = 30,
     owner_token: str | None = None,
+    operation_id: str | None = None,
     now: datetime | None = None,
 ) -> OutboxLease | None:
     seconds = _bounded_int(
@@ -1114,62 +1133,88 @@ def claim_outbox(
     token = str(owner_token or secrets.token_urlsafe(32))
     if len(token) < 16 or len(token) > 512:
         raise ValueError("owner token length is invalid")
+    exact_operation_id = (
+        _canonical_uuid(operation_id, "operation_id")
+        if operation_id is not None
+        else None
+    )
     now_value = _utc(now)
     now_iso = now_value.isoformat()
     expires_iso = (now_value + timedelta(seconds=seconds)).isoformat()
     with db.transaction(write=True) as tx:
-        state_lock = " FOR UPDATE" if tx.postgres else ""
-        dispatch = tx.fetchone(
-            f"SELECT priority_streak FROM ai_dispatch_state "
-            f"WHERE service_key='durable_ai'{state_lock}"
-        )
-        streak = min(
-            3,
-            max(0, int(dict(dispatch).get("priority_streak") or 0))
-            if dispatch else 0,
-        )
         row_lock = " FOR UPDATE OF b SKIP LOCKED" if tx.postgres else ""
-
-        def candidate(priority_lane: bool):
-            predicate = "o.priority>0" if priority_lane else "o.priority=0"
-            return tx.fetchone(
+        if exact_operation_id is not None:
+            exact = tx.fetchone(
                 "SELECT b.* FROM ai_operation_outbox b "
-                "JOIN ai_operations o ON o.id=b.operation_id "
-                "WHERE b.state='pending' AND b.available_at<=? "
-                "AND b.attempt_count<? "
+                "WHERE b.operation_id=? AND b.state='pending' "
+                "AND b.available_at<=? AND b.attempt_count<? "
                 "AND (b.lease_expires_at IS NULL OR b.lease_expires_at<=?) "
-                f"AND {predicate} "
                 f"ORDER BY b.created_at,b.id LIMIT 1{row_lock}",
-                (now_iso, OUTBOX_MAX_ATTEMPTS, now_iso),
+                (
+                    exact_operation_id,
+                    now_iso,
+                    OUTBOX_MAX_ATTEMPTS,
+                    now_iso,
+                ),
+            )
+            current = dict(exact) if exact else None
+        else:
+            state_lock = " FOR UPDATE" if tx.postgres else ""
+            dispatch = tx.fetchone(
+                f"SELECT priority_streak FROM ai_dispatch_state "
+                f"WHERE service_key='durable_ai'{state_lock}"
+            )
+            streak = min(
+                3,
+                max(0, int(dict(dispatch).get("priority_streak") or 0))
+                if dispatch else 0,
             )
 
-        priority_candidate = candidate(True)
-        standard_candidate = candidate(False)
-        priority_row = dict(priority_candidate) if priority_candidate else None
-        standard_row = dict(standard_candidate) if standard_candidate else None
-        if priority_row and standard_row:
-            current = standard_row if streak >= 3 else priority_row
-        else:
-            current = priority_row or standard_row
+            def candidate(priority_lane: bool):
+                predicate = "o.priority>0" if priority_lane else "o.priority=0"
+                return tx.fetchone(
+                    "SELECT b.* FROM ai_operation_outbox b "
+                    "JOIN ai_operations o ON o.id=b.operation_id "
+                    "WHERE b.state='pending' AND b.available_at<=? "
+                    "AND b.attempt_count<? "
+                    "AND (b.lease_expires_at IS NULL OR b.lease_expires_at<=?) "
+                    f"AND {predicate} "
+                    f"ORDER BY b.created_at,b.id LIMIT 1{row_lock}",
+                    (now_iso, OUTBOX_MAX_ATTEMPTS, now_iso),
+                )
+
+            priority_candidate = candidate(True)
+            standard_candidate = candidate(False)
+            priority_row = (
+                dict(priority_candidate) if priority_candidate else None
+            )
+            standard_row = (
+                dict(standard_candidate) if standard_candidate else None
+            )
+            if priority_row and standard_row:
+                current = standard_row if streak >= 3 else priority_row
+            else:
+                current = priority_row or standard_row
         if not current:
             return None
-        next_streak = (
-            min(3, streak + 1)
-            if int(
-                tx.fetchone(
-                    "SELECT priority FROM ai_operations WHERE id=?",
-                    (current["operation_id"],),
-                )["priority"]
-                or 0
+        if exact_operation_id is None:
+            next_streak = (
+                min(3, streak + 1)
+                if int(
+                    tx.fetchone(
+                        "SELECT priority FROM ai_operations WHERE id=?",
+                        (current["operation_id"],),
+                    )["priority"]
+                    or 0
+                )
+                > 0
+                else 0
             )
-            > 0
-            else 0
-        )
-        tx.execute(
-            "UPDATE ai_dispatch_state SET priority_streak=?,updated_at=? "
-            "WHERE service_key='durable_ai'",
-            (next_streak, now_iso),
-        )
+            tx.execute(
+                "UPDATE ai_dispatch_state SET priority_streak=?,updated_at=? "
+                "WHERE service_key='durable_ai'",
+                (next_streak, now_iso),
+            )
         fence = int(current.get("lease_fence") or 0) + 1
         tx.execute(
             "UPDATE ai_operation_outbox SET lease_owner_hash=?,lease_fence=?,"
@@ -1186,36 +1231,157 @@ def claim_outbox(
     )
 
 
+def _mark_outbox_delivered_in_transaction(
+    tx: db.Transaction,
+    lease: OutboxLease,
+    *,
+    now_iso: str,
+    notify: bool,
+) -> bool:
+    if notify and not tx.postgres:
+        raise DurableAiError(
+            "DURABLE_AI_POSTGRES_REQUIRED",
+            "Native durable AI wake-up requires PostgreSQL",
+        )
+    lock = " FOR UPDATE" if tx.postgres else ""
+    row = tx.fetchone(
+        f"SELECT * FROM ai_operation_outbox WHERE id=?{lock}",
+        (lease.outbox_id,),
+    )
+    if not row:
+        return False
+    current = dict(row)
+    if not (
+        current.get("state") == "pending"
+        and current.get("operation_id") == lease.operation_id
+        and int(current.get("lease_fence") or 0) == lease.fence
+        and current.get("lease_owner_hash") == _sha256(lease.owner_token)
+        and str(current.get("lease_expires_at") or "") > now_iso
+    ):
+        return False
+    cursor = tx.execute(
+        "UPDATE ai_operation_outbox SET state='delivered',"
+        "lease_owner_hash=NULL,lease_expires_at=NULL,delivered_at=?,updated_at=? "
+        "WHERE id=? AND state='pending'",
+        (now_iso, now_iso, lease.outbox_id),
+    )
+    if int(getattr(cursor, "rowcount", 0) or 0) != 1:
+        return False
+    if notify:
+        tx.execute(
+            "SELECT pg_notify(?,?)",
+            (DURABLE_AI_NOTIFY_CHANNEL, lease.operation_id),
+        )
+    return True
+
+
 def mark_outbox_delivered(
     lease: OutboxLease,
     *,
     now: datetime | None = None,
 ) -> bool:
+    """Acknowledge an injected publisher after it emits the operation UUID."""
     now_iso = _utc(now).isoformat()
     with db.transaction(write=True) as tx:
-        lock = " FOR UPDATE" if tx.postgres else ""
+        return _mark_outbox_delivered_in_transaction(
+            tx,
+            lease,
+            now_iso=now_iso,
+            notify=False,
+        )
+
+
+def mark_outbox_delivered_and_notify(
+    lease: OutboxLease,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """Commit delivered state and a PostgreSQL wake hint in one transaction."""
+    now_iso = _utc(now).isoformat()
+    with db.transaction(write=True) as tx:
+        return _mark_outbox_delivered_in_transaction(
+            tx,
+            lease,
+            now_iso=now_iso,
+            notify=True,
+        )
+
+
+def _claim_delivered_operation(
+    *,
+    operation_id: str | None,
+    lease_seconds: int,
+    owner_token: str | None,
+    now: datetime | None,
+) -> ai_operations.OperationLease | None:
+    now_value = _utc(now)
+    now_iso = now_value.isoformat()
+    op_id = (
+        _canonical_uuid(operation_id, "operation id")
+        if operation_id is not None
+        else None
+    )
+    with db.transaction(write=True) as tx:
+        exact_predicate = "AND o.id=? " if op_id else ""
+        params: tuple[Any, ...] = (
+            (op_id, now_iso, now_iso)
+            if op_id
+            else (now_iso, now_iso)
+        )
+        lock = " FOR UPDATE OF o SKIP LOCKED" if tx.postgres else ""
         row = tx.fetchone(
-            f"SELECT * FROM ai_operation_outbox WHERE id=?{lock}",
-            (lease.outbox_id,),
+            "SELECT o.id FROM ai_operation_outbox b "
+            "JOIN ai_operations o ON o.id=b.operation_id "
+            "JOIN ai_operation_settlements s ON s.operation_id=o.id "
+            "WHERE b.state='delivered' AND s.billing_state='charged' "
+            f"{exact_predicate}"
+            "AND ((o.status='queued' AND o.available_at<=?) OR "
+            "(o.status='running' AND o.provider_phase='not_started' "
+            "AND o.lease_expires_at IS NOT NULL AND o.lease_expires_at<=?)) "
+            "ORDER BY b.delivered_at,b.id LIMIT 1"
+            f"{lock}",
+            params,
         )
         if not row:
-            return False
-        current = dict(row)
-        if not (
-            current.get("state") == "pending"
-            and current.get("operation_id") == lease.operation_id
-            and int(current.get("lease_fence") or 0) == lease.fence
-            and current.get("lease_owner_hash") == _sha256(lease.owner_token)
-            and str(current.get("lease_expires_at") or "") > now_iso
-        ):
-            return False
-        tx.execute(
-            "UPDATE ai_operation_outbox SET state='delivered',"
-            "lease_owner_hash=NULL,lease_expires_at=NULL,delivered_at=?,updated_at=? "
-            "WHERE id=? AND state='pending'",
-            (now_iso, now_iso, lease.outbox_id),
+            return None
+        return ai_operations.claim_operation_in_transaction(
+            tx,
+            row["id"],
+            lease_seconds=lease_seconds,
+            owner_token=owner_token,
+            now=now_value,
         )
-    return True
+
+
+def claim_delivered_operation(
+    operation_id: str,
+    *,
+    lease_seconds: int = 900,
+    owner_token: str | None = None,
+    now: datetime | None = None,
+) -> ai_operations.OperationLease | None:
+    """Claim one exact UUID only while its authoritative Outbox row is delivered."""
+    return _claim_delivered_operation(
+        operation_id=operation_id,
+        lease_seconds=lease_seconds,
+        owner_token=owner_token,
+        now=now,
+    )
+
+
+def claim_next_delivered_operation(
+    *,
+    lease_seconds: int = 900,
+    owner_token: str | None = None,
+    now: datetime | None = None,
+) -> ai_operations.OperationLease | None:
+    """Claim the next delivered UUID; notifications are only wake hints."""
+    return _claim_delivered_operation(
+        operation_id=None,
+        lease_seconds=lease_seconds,
+        owner_token=owner_token,
+        now=now,
+    )
 
 
 def recover_unstarted_leases(
@@ -1246,7 +1412,11 @@ def recover_unstarted_leases(
         user_id = candidate["user_id"]
         with db.transaction(write=True) as tx:
             try:
-                content_retention.assert_user_writable_with_storage(tx, user_id)
+                content_retention.assert_user_writable_with_storage(
+                    tx,
+                    user_id,
+                    lock_row=False,
+                )
             except ValueError:
                 continue
             lock = " FOR UPDATE" if tx.postgres else ""
@@ -1314,7 +1484,11 @@ def reconcile_stale_provider_outcomes(
         user_id = candidate["user_id"]
         with db.transaction(write=True) as tx:
             try:
-                content_retention.assert_user_writable_with_storage(tx, user_id)
+                content_retention.assert_user_writable_with_storage(
+                    tx,
+                    user_id,
+                    lock_row=False,
+                )
             except ValueError:
                 continue
             lock = " FOR UPDATE" if tx.postgres else ""
@@ -1363,7 +1537,7 @@ def settle_unstarted_user_jobs_for_deletion_with_storage(
 ) -> int:
     """Cancel/refund only work proved provider-free under the user write fence."""
     now_iso = _utc(now).isoformat()
-    lock = " FOR UPDATE" if tx.postgres else ""
+    lock = " FOR UPDATE OF o,s,i" if tx.postgres else ""
     rows = tx.fetchall(
         "SELECT o.id AS operation_id,o.status AS operation_status,"
         "o.provider_phase,s.billing_state,i.* "
@@ -1454,7 +1628,7 @@ def delete_user_payloads(
             raise PayloadUnavailable(
                 "DURABLE_AI_PAYLOAD_OWNER_UNAVAILABLE"
             ) from exc
-        lock = " FOR UPDATE" if tx.postgres else ""
+        lock = " FOR UPDATE OF r,i" if tx.postgres else ""
         for reference in references:
             owned = tx.fetchone(
                 "SELECT r.id,r.state FROM ai_payload_refs r "
@@ -1605,6 +1779,121 @@ def admin_summary() -> dict[str, Any]:
         "raw_payload_included": False,
         "provider_called": False,
     }
+
+
+def dispatcher_health() -> dict[str, Any]:
+    """Read only the dispatcher-owned pending queue surface."""
+    if not database_role_matches("noteai_ai_dispatcher"):
+        return {
+            "ok": False,
+            "reason": "database_role_mismatch",
+            "provider_called": False,
+            "database_write": False,
+        }
+    try:
+        row = db.fetchone(
+            "SELECT COUNT(*) AS pending_outbox,"
+            "COALESCE(SUM(CASE WHEN attempt_count>=? THEN 1 ELSE 0 END),0) "
+            "AS exhausted_outbox "
+            "FROM ai_operation_outbox WHERE state='pending'",
+            (OUTBOX_MAX_ATTEMPTS,),
+        )
+        data = dict(row) if row else {}
+        exhausted = int(data.get("exhausted_outbox") or 0)
+        return {
+            "ok": exhausted == 0,
+            "reason": "ready" if exhausted == 0 else "manual_attention_required",
+            "pending_outbox": int(data.get("pending_outbox") or 0),
+            "exhausted_outbox": exhausted,
+            "provider_called": False,
+            "database_write": False,
+        }
+    except Exception:
+        return {
+            "ok": False,
+            "reason": "durable_ai_schema_unavailable",
+            "provider_called": False,
+            "database_write": False,
+        }
+
+
+def worker_health() -> dict[str, Any]:
+    """Read only worker-visible delivered, payload and settlement surfaces."""
+    if not database_role_matches("noteai_ai_worker"):
+        return {
+            "ok": False,
+            "reason": "database_role_mismatch",
+            "provider_called": False,
+            "database_write": False,
+        }
+    try:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        row = db.fetchone(
+            "SELECT "
+            "(SELECT COUNT(*) FROM ai_operation_settlements "
+            " WHERE billing_state='needs_manual') AS needs_manual,"
+            "(SELECT COUNT(*) FROM ai_payload_refs "
+            " WHERE state='ready' AND expires_at<=?) AS expired_ready,"
+            "(SELECT COUNT(*) FROM ai_operations o "
+            " JOIN ai_operation_settlements s ON s.operation_id=o.id "
+            " WHERE o.status='running' AND o.provider_phase<>'not_started' "
+            " AND o.lease_expires_at IS NOT NULL AND o.lease_expires_at<=? "
+            " AND s.billing_state='charged') AS stale_provider_outcome,"
+            "(SELECT COUNT(*) FROM ai_operations o "
+            " JOIN ai_operation_settlements s ON s.operation_id=o.id "
+            " JOIN ai_operation_outbox b ON b.operation_id=o.id "
+            " WHERE o.status='running' AND o.provider_phase='not_started' "
+            " AND o.lease_expires_at IS NOT NULL AND o.lease_expires_at<=? "
+            " AND s.billing_state='charged' AND b.state='delivered') "
+            "AS recoverable_unstarted",
+            (now_iso, now_iso, now_iso),
+        )
+        data = dict(row) if row else {}
+        blocking = (
+            int(data.get("needs_manual") or 0)
+            + int(data.get("expired_ready") or 0)
+            + int(data.get("stale_provider_outcome") or 0)
+        )
+        return {
+            "ok": blocking == 0,
+            "reason": "ready" if blocking == 0 else "manual_attention_required",
+            "needs_manual": int(data.get("needs_manual") or 0),
+            "expired_ready": int(data.get("expired_ready") or 0),
+            "stale_provider_outcome": int(
+                data.get("stale_provider_outcome") or 0
+            ),
+            "recoverable_unstarted": int(
+                data.get("recoverable_unstarted") or 0
+            ),
+            "provider_called": False,
+            "database_write": False,
+        }
+    except Exception:
+        return {
+            "ok": False,
+            "reason": "durable_ai_schema_unavailable",
+            "provider_called": False,
+            "database_write": False,
+        }
+
+
+def database_role_matches(expected_role: str) -> bool:
+    """Fail closed unless PostgreSQL reports the exact dedicated login role."""
+    if expected_role not in {"noteai_ai_dispatcher", "noteai_ai_worker"}:
+        return False
+    if not db.using_postgres():
+        return False
+    try:
+        row = db.fetchone(
+            "SELECT session_user AS session_role,current_user AS database_role"
+        )
+    except Exception:
+        return False
+    return bool(
+        row
+        and str(row["session_role"]) == expected_role
+        and str(row["database_role"]) == expected_role
+    )
 
 
 def health() -> dict[str, Any]:

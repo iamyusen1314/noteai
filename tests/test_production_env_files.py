@@ -22,7 +22,7 @@ class ProductionEnvFileTests(unittest.TestCase):
         path.chmod(stat.S_IRUSR | stat.S_IWUSR)
         return path
 
-    def test_production_compose_uses_six_role_specific_env_inputs(self):
+    def test_production_compose_uses_seven_role_specific_env_inputs(self):
         compose = (
             ROOT / "deploy" / "production" / "docker-compose.yml"
         ).read_text(encoding="utf-8")
@@ -42,6 +42,12 @@ class ProductionEnvFileTests(unittest.TestCase):
         self.assertEqual(
             compose.count(
                 "${NOTEAI_PAYMENT_ENV_FILE:-/etc/noteai/payment.env}"
+            ),
+            1,
+        )
+        self.assertEqual(
+            compose.count(
+                "${NOTEAI_AI_DISPATCHER_ENV_FILE:-/etc/noteai/ai-dispatcher.env}"
             ),
             1,
         )
@@ -103,6 +109,14 @@ class ProductionEnvFileTests(unittest.TestCase):
                     ),
                 ),
                 (
+                    "ai_dispatcher",
+                    self._env_file(
+                        directory,
+                        "ai-dispatcher.env",
+                        f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n",
+                    ),
+                ),
+                (
                     "ai_worker",
                     self._env_file(
                         directory,
@@ -144,6 +158,7 @@ class ProductionEnvFileTests(unittest.TestCase):
                 "api",
                 "admin",
                 "payment",
+                "ai_dispatcher",
                 "ai_worker",
                 "xhs_trends",
                 "xhs_tracking",
@@ -151,7 +166,7 @@ class ProductionEnvFileTests(unittest.TestCase):
         )
         self.assertEqual(
             [result["secret_key_count"] for result in results],
-            [2, 2, 4, 3, 2, 2],
+            [2, 2, 4, 1, 3, 2, 2],
         )
 
     def test_cross_role_and_unknown_secret_names_fail_closed(self):
@@ -159,6 +174,8 @@ class ProductionEnvFileTests(unittest.TestCase):
             ("api", "ADMIN_PASSWORD"),
             ("admin", "ANTHROPIC_API_KEY"),
             ("payment", "ANTHROPIC_API_KEY"),
+            ("ai_dispatcher", "ANTHROPIC_API_KEY"),
+            ("ai_dispatcher", "NOTEAI_AI_WORKER_STORE_SECRET_ACCESS_KEY"),
             ("admin", "NOTEAI_ADAPAY_MERCHANT_PRIVATE_KEY"),
             ("admin", "NOTEAI_ADAPAY_PUBLIC_KEY"),
             ("ai_worker", "NOTEAI_ADAPAY_PUBLIC_KEY"),
@@ -203,6 +220,7 @@ class ProductionEnvFileTests(unittest.TestCase):
                         ("api", shared),
                         ("admin", shared),
                         ("payment", shared),
+                        ("ai_dispatcher", shared),
                         ("ai_worker", shared),
                         ("xhs_trends", shared),
                         ("xhs_tracking", shared),
@@ -287,6 +305,11 @@ class ProductionEnvFileTests(unittest.TestCase):
                 "ai-worker.env",
                 f"NOTEAI_AI_WORKER_STORE_SECRET_ACCESS_KEY={synthetic_secret}\n",
             )
+            ai_dispatcher = self._env_file(
+                directory,
+                "ai-dispatcher.env",
+                f"DATABASE_URL={synthetic_secret}\n",
+            )
             xhs_trends = self._env_file(
                 directory,
                 "xhs-trends.env",
@@ -306,6 +329,8 @@ class ProductionEnvFileTests(unittest.TestCase):
                 os.fspath(admin),
                 "--payment",
                 os.fspath(payment_env),
+                "--ai-dispatcher",
+                os.fspath(ai_dispatcher),
                 "--ai-worker",
                 os.fspath(ai_worker),
                 "--xhs-trends",
@@ -318,7 +343,7 @@ class ProductionEnvFileTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertNotIn(synthetic_secret, output.getvalue())
-        self.assertEqual(output.getvalue().count("PASS role="), 6)
+        self.assertEqual(output.getvalue().count("PASS role="), 7)
 
     def test_documented_allowlists_cover_every_implemented_secret_key(self):
         documentation = (ROOT / "docs" / "DEPLOYMENT_SECRETS.md").read_text(

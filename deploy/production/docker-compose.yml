@@ -106,9 +106,43 @@ services:
       retries: 3
       start_period: 20s
 
+  ai-dispatcher:
+    profiles:
+      - durable-ai-dispatcher
+    image: "${NOTEAI_AI_WORKER_IMAGE_REPOSITORY:?set NOTEAI_AI_WORKER_IMAGE_REPOSITORY}@sha256:${NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX:?set NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777,uid=999,gid=999
+    env_file:
+      - "${NOTEAI_AI_DISPATCHER_ENV_FILE:-/etc/noteai/ai-dispatcher.env}"
+    environment:
+      NOTEAI_RUNTIME_ROLE: ai-worker
+      NOTEAI_DEPLOYMENT_STAGE: production
+      NOTEAI_CLOUD_RUNTIME: "1"
+      NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
+      NOTEAI_DURABLE_AI_COMPONENT: dispatcher
+      NOTEAI_DURABLE_AI_SUSPENDED: "${NOTEAI_DURABLE_AI_SUSPENDED:-1}"
+    command: ["python", "durable_ai_worker.py", "--dispatcher-loop"]
+    restart: "no"
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "durable_ai_worker.py", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   ai-worker:
     profiles:
-      - durable-ai
+      - durable-ai-worker
     image: "${NOTEAI_AI_WORKER_IMAGE_REPOSITORY:?set NOTEAI_AI_WORKER_IMAGE_REPOSITORY}@sha256:${NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX:?set NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
     user: "999:999"
     read_only: true
@@ -121,17 +155,28 @@ services:
       - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
     env_file:
       - "${NOTEAI_AI_WORKER_ENV_FILE:-/etc/noteai/ai-worker.env}"
+      - "${NOTEAI_PRIVATE_STORAGE_ENV_FILE:-/etc/noteai/private-storage.env}"
     environment:
       NOTEAI_RUNTIME_ROLE: ai-worker
       NOTEAI_DEPLOYMENT_STAGE: production
       NOTEAI_CLOUD_RUNTIME: "1"
+      NOTEAI_DURABLE_AI_COMPONENT: worker
       NOTEAI_DURABLE_AI_SUSPENDED: "${NOTEAI_DURABLE_AI_SUSPENDED:-1}"
       NOTEAI_DURABLE_AI_PROCESSOR: "${NOTEAI_DURABLE_AI_PROCESSOR:-}"
-    command: ["python", "durable_ai_worker.py", "--once"]
+      NOTEAI_DURABLE_AI_ACCEPTANCE_MODE: "${NOTEAI_DURABLE_AI_ACCEPTANCE_MODE:-0}"
+      NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION: "${NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION:-}"
+      NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID: "${NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID:-}"
+    command: ["python", "durable_ai_worker.py", "--worker-loop"]
     restart: "no"
     cpus: "1.00"
     mem_limit: 1536m
     pids_limit: 96
+    healthcheck:
+      test: ["CMD", "python", "durable_ai_worker.py", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   xhs-trends:
     image: "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"

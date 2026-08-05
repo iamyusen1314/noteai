@@ -41,6 +41,18 @@ is_unsigned_integer() {
   esac
 }
 
+is_canonical_uuid() {
+  [ "${#1}" -eq 36 ] || return 1
+  case "$1" in
+    ????????-????-????-????-????????????) ;;
+    *) return 1 ;;
+  esac
+  case "$1" in
+    *[!0-9a-f-]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
 command_allowed=0
 if [ "$image_runtime_role" = "api" ]; then
   case "${NOTEAI_API_STARTS_TREND_SCHEDULER:-0}" in
@@ -135,20 +147,87 @@ elif [ "$image_runtime_role" = "xhs-http" ]; then
     command_allowed=1
   fi
 else
+  durable_component="${NOTEAI_DURABLE_AI_COMPONENT:-}"
+  dispatcher_acceptance=0
+  case "$durable_component" in
+    ''|dispatcher|worker) ;;
+    *)
+      echo "ai-worker runtime requires an exact durable component" >&2
+      exit 78
+      ;;
+  esac
+  if [ "$durable_component" = "dispatcher" ] \
+    && { [ "${NOTEAI_PRIVATE_STORAGE_BACKEND+x}" = x ] \
+      || [ "${NOTEAI_OSS_PRIVATE_BUCKET+x}" = x ] \
+      || [ "${NOTEAI_OSS_REGION+x}" = x ] \
+      || [ "${NOTEAI_OSS_ENDPOINT+x}" = x ] \
+      || [ "${NOTEAI_OSS_RAM_ROLE+x}" = x ] \
+      || [ "${NOTEAI_PRIVATE_STORAGE_KEY_EPOCH+x}" = x ] \
+      || [ "${NOTEAI_OSS_KEY_PREFIX+x}" = x ]; }; then
+    echo "ai-dispatcher rejects private storage configuration" >&2
+    exit 78
+  fi
+  if [ "$durable_component" = "dispatcher" ] \
+    && { [ "${NOTEAI_DURABLE_AI_ACCEPTANCE_MODE+x}" = x ] \
+      || [ "${NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID+x}" = x ]; }; then
+    if [ "${NOTEAI_DURABLE_AI_ACCEPTANCE_MODE:-}" != "1" ] \
+      || ! is_canonical_uuid \
+        "${NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID:-}"; then
+      echo "ai-dispatcher acceptance requires exact bounded operation" >&2
+      exit 78
+    fi
+    dispatcher_acceptance=1
+  fi
   case "${NOTEAI_DURABLE_AI_SUSPENDED:-1}" in
     0|false|FALSE|False|no|NO|No|off|OFF|Off)
-      if [ "${NOTEAI_DURABLE_AI_PROCESSOR:-}" != "production-v1" ]; then
-        echo "ai-worker requires an exact production processor" >&2
-        exit 78
+      if [ "$durable_component" = "worker" ]; then
+        case "${NOTEAI_DURABLE_AI_PROCESSOR:-}" in
+          production-v1) ;;
+          internal-acceptance-v1)
+            if [ "${NOTEAI_DURABLE_AI_ACCEPTANCE_MODE:-}" != "1" ] \
+              || ! is_canonical_uuid \
+                "${NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID:-}"; then
+              echo "ai-worker acceptance processor requires exact bounded mode" >&2
+              exit 78
+            fi
+            ;;
+          *)
+            echo "ai-worker requires an exact production processor" >&2
+            exit 78
+            ;;
+        esac
+      elif [ -z "$durable_component" ] \
+        && [ "${NOTEAI_DURABLE_AI_PROCESSOR:-}" != "production-v1" ]; then
+          echo "ai-worker requires an exact production processor" >&2
+          exit 78
       fi
       ;;
   esac
   if [ "$#" -eq 3 ] \
     && [ "$1" = "python" ] \
     && [ "$2" = "durable_ai_worker.py" ]; then
-    case "$3" in
-      --healthcheck|--once|--recover-unstarted|--reconcile-stale) command_allowed=1 ;;
-    esac
+    if [ -z "$durable_component" ]; then
+      case "$3" in
+        --healthcheck|--once|--recover-unstarted|--reconcile-stale) command_allowed=1 ;;
+      esac
+    elif [ "$durable_component" = "dispatcher" ]; then
+      case "$3" in
+        --healthcheck|--dispatcher-once|--dispatcher-loop) command_allowed=1 ;;
+      esac
+      if [ "$dispatcher_acceptance" -eq 1 ] \
+        && [ "$3" != "--dispatcher-once" ]; then
+        command_allowed=0
+      fi
+    else
+      case "$3" in
+        --healthcheck|--worker-once|--worker-loop|--reconcile-stale) command_allowed=1 ;;
+      esac
+      if [ "${NOTEAI_DURABLE_AI_PROCESSOR:-}" = "internal-acceptance-v1" ] \
+        && [ "$3" != "--healthcheck" ] \
+        && [ "$3" != "--worker-once" ]; then
+        command_allowed=0
+      fi
+    fi
   fi
 fi
 

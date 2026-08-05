@@ -1871,6 +1871,35 @@ class AccountSecurityComplianceTests(unittest.TestCase):
         )
         self.assertEqual(completed["status"], "complete")
 
+    def test_primary_deletion_processor_can_target_one_exact_request(self):
+        first = self._create_user()
+        second = auth.create_user(
+            "exact-delete-second",
+            "Strong!Pass234",
+        )
+        first_request = content_retention.request_account_deletion(first["id"])
+        second_request = content_retention.request_account_deletion(second["id"])
+
+        processed = content_retention.process_due_account_deletions(
+            now=datetime.now(timezone.utc) + timedelta(days=2),
+            request_id=second_request["id"],
+        )
+
+        self.assertEqual(processed, [second_request["id"]])
+        self.assertIsNotNone(
+            db.fetchone("SELECT id FROM users WHERE id=?", (first["id"],))
+        )
+        self.assertIsNone(
+            db.fetchone("SELECT id FROM users WHERE id=?", (second["id"],))
+        )
+        self.assertEqual(
+            db.fetchone(
+                "SELECT status FROM account_deletion_requests WHERE id=?",
+                (first_request["id"],),
+            )["status"],
+            "requested",
+        )
+
     def test_repository_contract_contains_no_plaintext_cookie_fallback(self):
         runtime_source = (MODEL_DIR / "runtime_settings.py").read_text(encoding="utf-8")
         scheduler_source = (MODEL_DIR / "scheduler_a.py").read_text(encoding="utf-8")

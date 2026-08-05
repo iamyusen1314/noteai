@@ -25,12 +25,13 @@ variables separately so the resulting image reference always contains
 `@sha256:`. Each `*_IMAGE_DIGEST_HEX` value must be exactly 64 lowercase
 hexadecimal characters and must not include `sha256:`, a tag, or repository
 text.
-The six role environment files are external to the repository, must resolve
+The seven database-role environment files are external to the repository, must resolve
 to distinct regular files, and must have no group/world permission bits. API
 uses `/etc/noteai/api.env`, Admin uses `/etc/noteai/admin.env`, Trends uses
 `/etc/noteai/xhs-trends.env`, Tracking uses
 `/etc/noteai/xhs-tracking.env`, Payment uses
-`/etc/noteai/payment.env`, and AI Worker uses
+`/etc/noteai/payment.env`, AI Dispatcher uses
+`/etc/noteai/ai-dispatcher.env`, and AI Worker uses
 `/etc/noteai/ai-worker.env`. Never reuse a shared runtime env file, print a
 file, or pass its values through image build arguments.
 
@@ -76,6 +77,7 @@ NOTEAI_XHS_IMAGE_DIGEST_HEX=<64-lowercase-hex-characters> \
 NOTEAI_API_ENV_FILE=/path/to/api.env \
 NOTEAI_ADMIN_ENV_FILE=/path/to/admin.env \
 NOTEAI_PAYMENT_ENV_FILE=/path/to/payment.env \
+NOTEAI_AI_DISPATCHER_ENV_FILE=/path/to/ai-dispatcher.env \
 NOTEAI_AI_WORKER_ENV_FILE=/path/to/ai-worker.env \
 NOTEAI_XHS_TRENDS_ENV_FILE=/path/to/xhs-trends.env \
 NOTEAI_XHS_TRACKING_ENV_FILE=/path/to/xhs-tracking.env \
@@ -84,7 +86,8 @@ docker compose -f deploy/production/docker-compose.yml config --quiet
 
 Before resolving Compose, run
 `scripts/validate_production_env_files.py --api ... --admin ...
---payment ... --ai-worker ... --xhs-trends ... --xhs-tracking ...`.
+--payment ... --ai-dispatcher ... --ai-worker ... --xhs-trends ...
+--xhs-tracking ...`.
 The validator reads key names only for its decision, never prints values, and
 rejects duplicate/invalid names, overexposed permissions, unknown
 Secret-like names, and cross-role Secret injection. The canonical role

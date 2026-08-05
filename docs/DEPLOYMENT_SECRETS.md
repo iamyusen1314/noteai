@@ -22,18 +22,20 @@ NoteAI 的生产密钥目前配置在 GitHub Environment：`production`。
 ## Production Role Env Files
 
 Alibaba Cloud production must not use one shared runtime env file. The
-production Compose contract accepts six external inputs:
+production Compose contract accepts seven database-role inputs plus the
+already verified private-storage configuration used only by API and Worker:
 
 | Role | Compose input | Default host path |
 |---|---|---|
 | API | `NOTEAI_API_ENV_FILE` | `/etc/noteai/api.env` |
 | Admin | `NOTEAI_ADMIN_ENV_FILE` | `/etc/noteai/admin.env` |
 | Payment | `NOTEAI_PAYMENT_ENV_FILE` | `/etc/noteai/payment.env` |
+| AI Dispatcher | `NOTEAI_AI_DISPATCHER_ENV_FILE` | `/etc/noteai/ai-dispatcher.env` |
 | AI Worker | `NOTEAI_AI_WORKER_ENV_FILE` | `/etc/noteai/ai-worker.env` |
 | XHS Trends | `NOTEAI_XHS_TRENDS_ENV_FILE` | `/etc/noteai/xhs-trends.env` |
 | XHS Tracking | `NOTEAI_XHS_TRACKING_ENV_FILE` | `/etc/noteai/xhs-tracking.env` |
 
-The six roles must resolve to six distinct regular files with no
+The seven database roles must resolve to seven distinct regular files with no
 group/world permission bits. The files remain outside Git and images. Do not
 source or print them during validation.
 
@@ -64,6 +66,9 @@ Allowed Secret key names are intentionally role-specific:
   `NOTEAI_ADAPAY_PUBLIC_KEY`. The app id, exact QR channel, HTTPS callback URL
   and exact checkout/bill host lists are non-secret configuration, but still
   belong only in the API and Payment managed files.
+- AI Dispatcher: only `DATABASE_URL`. Provider and private-storage names are
+  prohibited; its dedicated database login is enabled only by the separately
+  verified Durable AI runtime task.
 - AI Worker: `DATABASE_URL`, the exact Claude/Kimi credential names used by
   the selected processor, and the dedicated
   `NOTEAI_AI_WORKER_STORE_ACCESS_KEY_ID`,
@@ -125,6 +130,7 @@ python scripts/validate_production_env_files.py \
   --api /etc/noteai/api.env \
   --admin /etc/noteai/admin.env \
   --payment /etc/noteai/payment.env \
+  --ai-dispatcher /etc/noteai/ai-dispatcher.env \
   --ai-worker /etc/noteai/ai-worker.env \
   --xhs-trends /etc/noteai/xhs-trends.env \
   --xhs-tracking /etc/noteai/xhs-tracking.env
@@ -194,8 +200,9 @@ environment: production
 - `CORS_ORIGINS` 等正式域名确定后再配置，不能长期使用通配策略。
 - `MEITUAN_TRAVEL_CLI` 不从本机路径同步到云端；云端镜像需要单独安装或用部署脚本设置可执行路径。
 - Docker 容器启动会先执行 `python -m artifact_loader`；若生产模型缺失或 SHA256 不一致，服务必须启动失败。
-- 生产 Compose 必须分别使用 API、Admin、Payment、AI Worker、Trends 和
-  Tracking 六个 env 文件；禁止回退到共享 `runtime.env`。
+- 生产 Compose 必须分别使用 API、Admin、Payment、AI Dispatcher、AI
+  Worker、Trends 和 Tracking 七个数据库角色 env 文件；禁止回退到共享
+  `runtime.env`。Dispatcher 不得挂载私有存储配置。
 - 部署前必须运行 `scripts/validate_production_env_files.py`，只输出计数和错误键名，不输出 Secret 值。
 - API 容器默认不得启动热词采集器；市场时机证据只由独立
   `xhs-trends` 写入共享 DB。

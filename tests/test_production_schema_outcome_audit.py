@@ -1,7 +1,10 @@
 import contextlib
 import io
 import os
+import shutil
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from tools import production_schema_outcome_audit as outcome_audit
@@ -183,6 +186,29 @@ class CommittedConnection:
 
 
 class ProductionSchemaOutcomeAuditTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # This auditor is bound to the completed V5 0001-0016 package. Later
+        # migrations receive their own current-state tests and execution path.
+        cls._migration_fixture = tempfile.TemporaryDirectory()
+        fixture = Path(cls._migration_fixture.name)
+        for version in outcome_audit.EXPECTED_VERSIONS:
+            matches = tuple(outcome_audit.MIGRATION_DIR.glob(f"{version}_*.sql"))
+            if len(matches) != 1:
+                raise AssertionError(f"historical migration {version} is not exact")
+            shutil.copyfile(matches[0], fixture / matches[0].name)
+        cls._migration_patch = mock.patch.object(
+            outcome_audit,
+            "MIGRATION_DIR",
+            fixture,
+        )
+        cls._migration_patch.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._migration_patch.stop()
+        cls._migration_fixture.cleanup()
+
     def test_static_inventory_matches_executor_without_import_dependency(self):
         self.assertEqual(
             outcome_audit.EXPECTED_VERSIONS,

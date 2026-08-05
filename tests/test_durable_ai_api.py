@@ -94,6 +94,14 @@ class DurableAiApiTests(unittest.TestCase):
             )
         )
 
+    def deliver(self, operation_id: str) -> None:
+        delivered = []
+        result = durable_ai_worker.OutboxDispatcher(delivered.append).run_once(
+            owner_token=f"api-test-dispatch-{operation_id}",
+        )
+        self.assertEqual(result["status"], "delivered")
+        self.assertEqual(delivered, [operation_id])
+
     def test_202_duplicate_status_events_and_owner_hiding(self):
         first = self.submit()
         duplicate = self.submit()
@@ -183,6 +191,7 @@ class DurableAiApiTests(unittest.TestCase):
 
     def test_result_endpoint_replays_only_owner_bound_result(self):
         admitted = self._body(self.submit(request_id="result-replay"))
+        self.deliver(admitted["operation_id"])
 
         def processor(payload, context):
             context.invoke_provider(

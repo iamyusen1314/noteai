@@ -4,6 +4,7 @@ import io
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -17,6 +18,30 @@ from tools import production_schema_roles as schema_roles
 
 
 class ProductionSchemaRolesTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # The V5 executor is an immutable 0001-0016 production artifact. Keep
+        # exercising that exact contract after later migrations are added,
+        # without changing its source hash or making it runnable for 0017.
+        cls._migration_fixture = tempfile.TemporaryDirectory()
+        fixture = Path(cls._migration_fixture.name)
+        for version in schema_roles.EXPECTED_VERSIONS:
+            matches = tuple(schema_roles.MIGRATION_DIR.glob(f"{version}_*.sql"))
+            if len(matches) != 1:
+                raise AssertionError(f"historical migration {version} is not exact")
+            shutil.copyfile(matches[0], fixture / matches[0].name)
+        cls._migration_patch = mock.patch.object(
+            schema_roles,
+            "MIGRATION_DIR",
+            fixture,
+        )
+        cls._migration_patch.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._migration_patch.stop()
+        cls._migration_fixture.cleanup()
+
     def test_migration_and_runtime_role_inventories_are_exact(self):
         payloads = schema_roles._migration_payloads()
 

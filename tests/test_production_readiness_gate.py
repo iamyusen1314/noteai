@@ -1451,13 +1451,107 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertIn("exact production processor", result.stderr)
         self.assertFalse(artifact_called)
 
+    def test_ai_worker_component_contracts_fail_closed_before_artifact_loading(self):
+        operation_id = "00000000-0000-4000-8000-000000000017"
+        dispatcher_env = {"NOTEAI_DURABLE_AI_COMPONENT": "dispatcher"}
+        dispatcher_acceptance_env = {
+            **dispatcher_env,
+            "NOTEAI_DURABLE_AI_SUSPENDED": "0",
+            "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+            "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": operation_id,
+        }
+        worker_env = {"NOTEAI_DURABLE_AI_COMPONENT": "worker"}
+        acceptance_env = {
+            **worker_env,
+            "NOTEAI_DURABLE_AI_SUSPENDED": "0",
+            "NOTEAI_DURABLE_AI_PROCESSOR": "internal-acceptance-v1",
+            "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+            "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": operation_id,
+            "NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION": "fail_before_provider",
+        }
+        allowed = (
+            (["python", "durable_ai_worker.py", "--healthcheck"], dispatcher_env),
+            (["python", "durable_ai_worker.py", "--dispatcher-once"], dispatcher_env),
+            (["python", "durable_ai_worker.py", "--dispatcher-loop"], dispatcher_env),
+            (
+                ["python", "durable_ai_worker.py", "--dispatcher-once"],
+                dispatcher_acceptance_env,
+            ),
+            (["python", "durable_ai_worker.py", "--healthcheck"], worker_env),
+            (["python", "durable_ai_worker.py", "--worker-once"], worker_env),
+            (["python", "durable_ai_worker.py", "--worker-loop"], worker_env),
+            (["python", "durable_ai_worker.py", "--worker-once"], acceptance_env),
+        )
+        for command, extra_env in allowed:
+            with self.subTest(allowed=command, extra_env=extra_env):
+                result, artifact_called = self._run_entrypoint_guard(
+                    "ai-worker",
+                    "ai-worker",
+                    command,
+                    **extra_env,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertFalse(artifact_called)
+
+        rejected = (
+            (
+                ["python", "durable_ai_worker.py", "--worker-loop"],
+                dispatcher_env,
+            ),
+            (
+                ["python", "durable_ai_worker.py", "--dispatcher-loop"],
+                worker_env,
+            ),
+            (
+                ["python", "durable_ai_worker.py", "--healthcheck"],
+                {"NOTEAI_DURABLE_AI_COMPONENT": "combined"},
+            ),
+            (
+                ["python", "durable_ai_worker.py", "--healthcheck"],
+                {**dispatcher_env, "NOTEAI_PRIVATE_STORAGE_BACKEND": ""},
+            ),
+            (
+                ["python", "durable_ai_worker.py", "--worker-loop"],
+                acceptance_env,
+            ),
+            (
+                ["python", "durable_ai_worker.py", "--worker-once"],
+                {
+                    **acceptance_env,
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": "not-a-uuid",
+                },
+            ),
+            (
+                ["python", "durable_ai_worker.py", "--dispatcher-loop"],
+                dispatcher_acceptance_env,
+            ),
+            (
+                ["python", "durable_ai_worker.py", "--dispatcher-once"],
+                {
+                    **dispatcher_acceptance_env,
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": "not-a-uuid",
+                },
+            ),
+        )
+        for command, extra_env in rejected:
+            with self.subTest(rejected=command, extra_env=extra_env):
+                result, artifact_called = self._run_entrypoint_guard(
+                    "ai-worker",
+                    "ai-worker",
+                    command,
+                    check_pre_artifact=True,
+                    **extra_env,
+                )
+                self.assertEqual(result.returncode, 78, result.stderr)
+                self.assertFalse(artifact_called)
+
     def test_readiness_entrypoint_semantic_harness_accepts_current_contract(self):
         source = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")
 
         passed, detail = gate._check_entrypoint_runtime_contract(source)
 
         self.assertTrue(passed, detail)
-        self.assertIn("allowed=22", detail)
+        self.assertIn("allowed=30", detail)
 
     def test_readiness_entrypoint_semantic_harness_rejects_allowlist_backdoor(self):
         source = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")

@@ -3405,7 +3405,7 @@
             "immutable_release_candidate"
           ],
           "evidence": [],
-          "blocker": "No managed AI Worker or cross-process durable execution evidence exists.",
+          "blocker": "PostgreSQL-native dispatcher/Worker and provider-free exact-operation acceptance are implemented locally, but production 0017 application, dispatcher LOGIN/Secret activation, accepted-image runtime, and managed cross-host takeover evidence do not yet exist.",
           "next_task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
         },
         {

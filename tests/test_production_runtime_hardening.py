@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 
@@ -14,7 +15,10 @@ HARDENING_TOKENS = (
     "privileged: false",
     "cap_drop:\n      - ALL",
     "security_opt:\n      - no-new-privileges:true",
-    "/tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999",
+)
+TMPFS_PATTERN = re.compile(
+    r"/tmp:rw,noexec,nosuid,nodev,size=(?:64|512)m,"
+    r"mode=1777,uid=999,gid=999"
 )
 
 FORBIDDEN_TOKENS = (
@@ -55,6 +59,7 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
                 self.assertTrue(block, f"missing service {service}")
                 for token in HARDENING_TOKENS:
                     self.assertIn(token, block)
+                self.assertRegex(block, TMPFS_PATTERN)
         for token in FORBIDDEN_TOKENS:
             self.assertNotIn(token, compose)
 
@@ -87,6 +92,7 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
                 "api",
                 "admin",
                 "payment",
+                "ai-dispatcher",
                 "ai-worker",
                 "xhs-trends",
                 "xhs-tracking",
@@ -120,6 +126,14 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         )
         self.assertEqual(
             compose.count(
+                "${NOTEAI_AI_WORKER_IMAGE_REPOSITORY:?set NOTEAI_AI_WORKER_IMAGE_REPOSITORY}"
+                "@sha256:${NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX:"
+                "?set NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+            ),
+            2,
+        )
+        self.assertEqual(
+            compose.count(
                 "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}"
                 "@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:"
                 "?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
@@ -140,6 +154,12 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         self.assertEqual(
             compose.count(
                 "${NOTEAI_PAYMENT_ENV_FILE:-/etc/noteai/payment.env}"
+            ),
+            1,
+        )
+        self.assertEqual(
+            compose.count(
+                "${NOTEAI_AI_DISPATCHER_ENV_FILE:-/etc/noteai/ai-dispatcher.env}"
             ),
             1,
         )
@@ -174,8 +194,20 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
             service_block(compose, "payment"),
         )
         self.assertIn(
+            "${NOTEAI_AI_DISPATCHER_ENV_FILE:-/etc/noteai/ai-dispatcher.env}",
+            service_block(compose, "ai-dispatcher"),
+        )
+        self.assertIn(
             "${NOTEAI_AI_WORKER_ENV_FILE:-/etc/noteai/ai-worker.env}",
             service_block(compose, "ai-worker"),
+        )
+        self.assertIn(
+            "${NOTEAI_PRIVATE_STORAGE_ENV_FILE:-/etc/noteai/private-storage.env}",
+            service_block(compose, "ai-worker"),
+        )
+        self.assertNotIn(
+            "NOTEAI_PRIVATE_STORAGE_ENV_FILE",
+            service_block(compose, "ai-dispatcher"),
         )
         self.assertIn(
             "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}",

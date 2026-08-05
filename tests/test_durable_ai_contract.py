@@ -6,6 +6,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
@@ -102,6 +103,20 @@ class DurableAiExecutionContractTests(unittest.TestCase):
 
     def count(self, table: str) -> int:
         return int(db.fetchone(f"SELECT COUNT(*) AS c FROM {table}")["c"])
+
+    def deliver(self, operation_id: str) -> None:
+        lease = durable_ai.claim_outbox(
+            owner_token=f"test-dispatch-{operation_id}",
+            now=self.now + timedelta(milliseconds=250),
+        )
+        self.assertIsNotNone(lease)
+        self.assertEqual(lease.operation_id, operation_id)
+        self.assertTrue(
+            durable_ai.mark_outbox_delivered(
+                lease,
+                now=self.now + timedelta(milliseconds=500),
+            )
+        )
 
     def test_worker_initializes_private_storage_before_runtime_command(self):
         with (
@@ -377,6 +392,569 @@ class DurableAiExecutionContractTests(unittest.TestCase):
         self.assertEqual(row["attempt_count"], 1)
         self.assertIsNotNone(row["lease_expires_at"])
 
+    def test_exact_outbox_claim_never_mutates_an_unrelated_queue_row(self):
+        self.create_user("u-exact-dispatch-first")
+        self.create_user("u-exact-dispatch-target")
+        first = self.admit("u-exact-dispatch-first")
+        target = self.admit("u-exact-dispatch-target")
+        before_streak = db.fetchone(
+            "SELECT priority_streak FROM ai_dispatch_state "
+            "WHERE service_key='durable_ai'"
+        )["priority_streak"]
+
+        lease = durable_ai.claim_outbox(
+            operation_id=target["operation_id"],
+            owner_token="exact-dispatch-owner-token",
+            now=self.now + timedelta(seconds=1),
+        )
+
+        self.assertEqual(lease.operation_id, target["operation_id"])
+        rows = {
+            row["operation_id"]: dict(row)
+            for row in db.fetchall(
+                "SELECT operation_id,attempt_count,lease_owner_hash "
+                "FROM ai_operation_outbox"
+            )
+        }
+        self.assertEqual(rows[first["operation_id"]]["attempt_count"], 0)
+        self.assertIsNone(rows[first["operation_id"]]["lease_owner_hash"])
+        self.assertEqual(rows[target["operation_id"]]["attempt_count"], 1)
+        self.assertIsNotNone(
+            rows[target["operation_id"]]["lease_owner_hash"]
+        )
+        self.assertEqual(
+            db.fetchone(
+                "SELECT priority_streak FROM ai_dispatch_state "
+                "WHERE service_key='durable_ai'"
+            )["priority_streak"],
+            before_streak,
+        )
+
+    def test_native_dispatcher_passes_exact_operation_into_sql_claim(self):
+        operation_id = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        lease = mock.Mock(operation_id=operation_id)
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"NOTEAI_DURABLE_AI_SUSPENDED": "0"},
+            ),
+            mock.patch.object(db, "using_postgres", return_value=True),
+            mock.patch.object(
+                durable_ai,
+                "database_role_matches",
+                return_value=True,
+            ),
+            mock.patch.object(
+                durable_ai,
+                "claim_outbox",
+                return_value=lease,
+            ) as claim,
+            mock.patch.object(
+                durable_ai,
+                "mark_outbox_delivered_and_notify",
+                return_value=True,
+            ),
+        ):
+            result = durable_ai_worker.PostgresOutboxDispatcher().run_once(
+                operation_id=operation_id,
+            )
+
+        self.assertEqual(result["status"], "delivered")
+        claim.assert_called_once_with(
+            owner_token=None,
+            operation_id=operation_id,
+            now=None,
+        )
+
+    def test_postgres_dispatcher_fails_closed_before_sqlite_claim(self):
+        self.create_user("u-native-dispatch-sqlite")
+        self.admit("u-native-dispatch-sqlite")
+        before = dict(db.fetchone("SELECT * FROM ai_operation_outbox"))
+
+        result = durable_ai_worker.PostgresOutboxDispatcher().run_once()
+
+        after = dict(db.fetchone("SELECT * FROM ai_operation_outbox"))
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["reason"], "postgres_required")
+        self.assertEqual(after, before)
+
+    def test_native_dispatcher_rejects_wrong_database_session_before_claim(self):
+        with (
+            mock.patch.object(db, "using_postgres", return_value=True),
+            mock.patch.object(
+                durable_ai,
+                "database_role_matches",
+                return_value=False,
+            ),
+            mock.patch.object(
+                durable_ai,
+                "claim_outbox",
+                side_effect=AssertionError("claim must not run"),
+            ),
+        ):
+            result = durable_ai_worker.PostgresOutboxDispatcher().run_once()
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["reason"], "database_role_mismatch")
+
+    def test_database_role_requires_matching_session_and_current_user(self):
+        rows = (
+            {
+                "session_role": "noteai_ai_worker",
+                "database_role": "noteai_ai_worker",
+            },
+            {
+                "session_role": "noteai_admin",
+                "database_role": "noteai_ai_worker",
+            },
+        )
+        with mock.patch.object(db, "using_postgres", return_value=True):
+            with mock.patch.object(db, "fetchone", return_value=rows[0]):
+                self.assertTrue(
+                    durable_ai.database_role_matches("noteai_ai_worker")
+                )
+            with mock.patch.object(db, "fetchone", return_value=rows[1]):
+                self.assertFalse(
+                    durable_ai.database_role_matches("noteai_ai_worker")
+                )
+
+    def test_postgres_notify_helper_rejects_sqlite_without_ack(self):
+        self.create_user("u-native-notify-sqlite")
+        self.admit("u-native-notify-sqlite")
+        lease = durable_ai.claim_outbox(
+            owner_token="sqlite-native-notify-owner",
+            now=self.now + timedelta(milliseconds=250),
+        )
+        with self.assertRaises(durable_ai.DurableAiError) as rejected:
+            durable_ai.mark_outbox_delivered_and_notify(
+                lease,
+                now=self.now + timedelta(milliseconds=500),
+            )
+        self.assertEqual(rejected.exception.code, "DURABLE_AI_POSTGRES_REQUIRED")
+        row = dict(db.fetchone("SELECT * FROM ai_operation_outbox"))
+        self.assertEqual(row["state"], "pending")
+        self.assertIsNone(row["delivered_at"])
+
+    def test_pending_outbox_uuid_never_reaches_processor(self):
+        self.create_user("u-pending-worker")
+        admitted = self.admit("u-pending-worker")
+        processor = mock.Mock()
+
+        result = durable_ai_worker.DurableAiWorker(
+            processor=processor,
+            store=self.store,
+        ).run_message(
+            admitted["operation_id"],
+            owner_token="pending-worker-owner",
+            now=self.now + timedelta(seconds=1),
+        )
+
+        self.assertEqual(result["status"], "not_claimed")
+        processor.assert_not_called()
+        self.assertEqual(self.count("ai_provider_attempts"), 0)
+        self.assertEqual(
+            db.fetchone("SELECT state FROM ai_operation_outbox")["state"],
+            "pending",
+        )
+
+    def test_expired_delivered_operation_is_reclaimed_without_requeue(self):
+        self.create_user("u-direct-takeover")
+        admitted = self.admit("u-direct-takeover")
+        self.deliver(admitted["operation_id"])
+        first = durable_ai.claim_delivered_operation(
+            admitted["operation_id"],
+            lease_seconds=10,
+            owner_token="direct-takeover-worker-one",
+            now=self.now + timedelta(seconds=1),
+        )
+        self.assertEqual(first.fence, 1)
+
+        replacement = durable_ai.claim_next_delivered_operation(
+            lease_seconds=10,
+            owner_token="direct-takeover-worker-two",
+            now=self.now + timedelta(seconds=12),
+        )
+
+        self.assertEqual(replacement.operation_id, admitted["operation_id"])
+        self.assertEqual(replacement.fence, 2)
+        self.assertIsNone(
+            ai_operations.heartbeat_operation(
+                first,
+                lease_seconds=10,
+                now=self.now + timedelta(seconds=13),
+            )
+        )
+        operation = ai_operations.get_operation(admitted["operation_id"])
+        self.assertEqual(operation["claim_count"], 2)
+        self.assertEqual(
+            [
+                event["event_type"]
+                for event in ai_operations.list_events(
+                    admitted["operation_id"]
+                )
+            ][-2:],
+            ["claimed", "lease_taken_over"],
+        )
+        outbox = dict(db.fetchone("SELECT * FROM ai_operation_outbox"))
+        self.assertEqual(outbox["state"], "delivered")
+        self.assertIsNotNone(outbox["delivered_at"])
+        self.assertEqual(self.count("ai_provider_attempts"), 0)
+
+    def test_provider_started_delivered_operation_is_not_reclaimed(self):
+        self.create_user("u-started-no-takeover")
+        admitted = self.admit("u-started-no-takeover")
+        self.deliver(admitted["operation_id"])
+        lease = durable_ai.claim_delivered_operation(
+            admitted["operation_id"],
+            lease_seconds=10,
+            owner_token="provider-started-worker-one",
+            now=self.now + timedelta(seconds=1),
+        )
+        attempt = durable_ai.begin_provider_attempt_for_user(
+            lease,
+            user_id="u-started-no-takeover",
+            provider="claude",
+            request_hash=ai_operations.sha256_digest("started-request"),
+            model_hash=ai_operations.sha256_digest("started-model"),
+            now=self.now + timedelta(seconds=2),
+        )
+        self.assertIsNotNone(attempt)
+
+        replacement = durable_ai.claim_next_delivered_operation(
+            lease_seconds=10,
+            owner_token="provider-started-worker-two",
+            now=self.now + timedelta(seconds=12),
+        )
+
+        self.assertIsNone(replacement)
+        self.assertEqual(
+            ai_operations.get_operation(admitted["operation_id"])[
+                "provider_phase"
+            ],
+            "provider_started",
+        )
+
+    def test_two_concurrent_delivered_claims_have_one_winner(self):
+        self.create_user("u-two-workers")
+        admitted = self.admit("u-two-workers")
+        self.deliver(admitted["operation_id"])
+
+        def claim(index):
+            return durable_ai.claim_delivered_operation(
+                admitted["operation_id"],
+                lease_seconds=30,
+                owner_token=f"concurrent-worker-owner-{index:02d}",
+                now=self.now + timedelta(seconds=1),
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            leases = list(executor.map(claim, range(2)))
+        winners = [lease for lease in leases if lease is not None]
+        self.assertEqual(len(winners), 1)
+        self.assertEqual(winners[0].fence, 1)
+
+    def test_worker_loop_polls_after_lost_notification_timeout(self):
+        events = []
+
+        class Listener:
+            def open(inner_self):
+                events.append("open")
+                return inner_self
+
+            def wait(inner_self, _timeout):
+                events.append("wait")
+                return False
+
+            def close(inner_self):
+                events.append("close")
+
+        class Worker:
+            def run_once(inner_self):
+                events.append("poll")
+                return {"status": "idle", "provider_called": False}
+
+        result = durable_ai_worker.run_worker_loop(
+            Worker(),
+            listener=Listener(),
+            max_iterations=2,
+        )
+
+        self.assertEqual(result["iterations"], 2)
+        self.assertEqual(events, ["open", "poll", "wait", "poll", "close"])
+
+    def test_lost_notification_is_recovered_by_authoritative_database_poll(self):
+        self.create_user("u-lost-real-poll")
+        admitted = self.admit("u-lost-real-poll")
+        processor = mock.Mock(side_effect=RuntimeError("stop before provider"))
+        testcase = self
+
+        class Listener:
+            def open(inner_self):
+                return inner_self
+
+            def wait(inner_self, _timeout):
+                testcase.deliver(admitted["operation_id"])
+                return False
+
+            def close(inner_self):
+                pass
+
+        result = durable_ai_worker.run_worker_loop(
+            durable_ai_worker.DurableAiWorker(
+                processor=processor,
+                store=self.store,
+            ),
+            listener=Listener(),
+            max_iterations=2,
+        )
+
+        self.assertEqual(result["status"], "refunded")
+        processor.assert_called_once()
+        self.assertEqual(self.count("ai_provider_attempts"), 0)
+
+    def test_fail_closed_loops_stop_without_wait_or_repeat(self):
+        dispatcher = mock.Mock()
+        dispatcher.run_once.return_value = {
+            "status": "blocked",
+            "provider_called": False,
+        }
+        with (
+            mock.patch.object(
+                durable_ai_worker,
+                "PostgresOutboxDispatcher",
+                return_value=dispatcher,
+            ),
+            mock.patch.object(durable_ai_worker.time, "sleep") as sleep,
+            self.assertRaisesRegex(RuntimeError, "dispatcher loop stopped"),
+        ):
+            durable_ai_worker.run_dispatcher_loop(max_iterations=2)
+        dispatcher.run_once.assert_called_once_with()
+        sleep.assert_not_called()
+
+        listener = mock.Mock()
+        listener.open.return_value = listener
+        worker = mock.Mock()
+        worker.run_once.return_value = {
+            "status": "fence_lost",
+            "provider_called": False,
+        }
+        with self.assertRaisesRegex(RuntimeError, "worker loop stopped"):
+            durable_ai_worker.run_worker_loop(
+                worker,
+                listener=listener,
+                max_iterations=2,
+            )
+        worker.run_once.assert_called_once_with()
+        listener.wait.assert_not_called()
+        listener.close.assert_called_once_with()
+
+    def test_listener_closes_connection_when_listen_fails(self):
+        connection = mock.Mock()
+        connection.execute.side_effect = RuntimeError("listen rejected")
+        with (
+            mock.patch.object(db, "using_postgres", return_value=True),
+            mock.patch("psycopg.connect", return_value=connection),
+            mock.patch.dict(
+                os.environ,
+                {"DATABASE_URL": "postgresql://synthetic.invalid/db"},
+            ),
+            self.assertRaisesRegex(RuntimeError, "listen rejected"),
+        ):
+            durable_ai_worker.PostgresWakeListener().open()
+        connection.close.assert_called_once_with()
+
+    def test_internal_acceptance_is_exact_one_with_short_lease(self):
+        operation_id = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        worker = mock.Mock()
+        worker.run_message.return_value = {
+            "status": "refunded",
+            "provider_called": False,
+        }
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "NOTEAI_DURABLE_AI_COMPONENT": "worker",
+                    "NOTEAI_DURABLE_AI_SUSPENDED": "0",
+                    "NOTEAI_DURABLE_AI_PROCESSOR": "internal-acceptance-v1",
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": operation_id,
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION": "fail_before_provider",
+                },
+            ),
+            mock.patch.object(
+                durable_ai_worker.private_storage,
+                "configure_from_environment",
+                return_value=True,
+            ),
+            mock.patch.object(
+                durable_ai_worker,
+                "DurableAiWorker",
+                return_value=worker,
+            ) as worker_type,
+        ):
+            result = durable_ai_worker.main(["--worker-once"])
+
+        self.assertEqual(result, 0)
+        self.assertEqual(
+            worker_type.call_args.kwargs["lease_seconds"],
+            durable_ai_worker.INTERNAL_ACCEPTANCE_LEASE_SECONDS,
+        )
+        worker.run_message.assert_called_once_with(operation_id)
+        worker.run_once.assert_not_called()
+
+    def test_internal_acceptance_dispatcher_is_exact_one(self):
+        operation_id = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        dispatcher = mock.Mock()
+        dispatcher.run_once.return_value = {
+            "status": "delivered",
+            "operation_id": operation_id,
+            "provider_called": False,
+        }
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "NOTEAI_DURABLE_AI_COMPONENT": "dispatcher",
+                    "NOTEAI_DURABLE_AI_SUSPENDED": "0",
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": operation_id,
+                },
+            ),
+            mock.patch.object(
+                durable_ai_worker,
+                "PostgresOutboxDispatcher",
+                return_value=dispatcher,
+            ),
+        ):
+            result = durable_ai_worker.main(["--dispatcher-once"])
+
+        self.assertEqual(result, 0)
+        dispatcher.run_once.assert_called_once_with(
+            operation_id=operation_id,
+        )
+
+    def test_internal_acceptance_dispatcher_does_not_accept_idle(self):
+        operation_id = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        dispatcher = mock.Mock()
+        dispatcher.run_once.return_value = {
+            "status": "idle",
+            "provider_called": False,
+        }
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "NOTEAI_DURABLE_AI_COMPONENT": "dispatcher",
+                    "NOTEAI_DURABLE_AI_SUSPENDED": "0",
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": operation_id,
+                },
+            ),
+            mock.patch.object(
+                durable_ai_worker,
+                "PostgresOutboxDispatcher",
+                return_value=dispatcher,
+            ),
+        ):
+            result = durable_ai_worker.main(["--dispatcher-once"])
+
+        self.assertEqual(result, 1)
+        dispatcher.run_once.assert_called_once_with(
+            operation_id=operation_id,
+        )
+
+    def test_internal_acceptance_hold_is_bounded_but_kill_safe(self):
+        operation_id = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        context = durable_ai_worker.WorkerContext(
+            lease=mock.Mock(operation_id=operation_id),
+            user_id="synthetic-acceptance-user",
+            operation_kind="analyze",
+            queue=mock.Mock(),
+        )
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": operation_id,
+                    "NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION": "hold_after_payload",
+                },
+            ),
+            mock.patch.object(
+                ai_operations,
+                "append_progress_event",
+                return_value=True,
+            ),
+            mock.patch.object(durable_ai_worker.time, "sleep") as sleep,
+            self.assertRaisesRegex(RuntimeError, "hold expired"),
+        ):
+            durable_ai_worker._internal_acceptance_processor(
+                {"acceptance": "durable-ai-v1"},
+                context,
+            )
+        sleep.assert_called_once_with(
+            durable_ai_worker.INTERNAL_ACCEPTANCE_HOLD_SECONDS
+        )
+        self.assertGreaterEqual(
+            durable_ai_worker.INTERNAL_ACCEPTANCE_HOLD_SECONDS,
+            120,
+        )
+
+    def test_worker_component_requires_private_storage_before_command(self):
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "NOTEAI_DURABLE_AI_COMPONENT": "worker",
+                    "NOTEAI_DURABLE_AI_SUSPENDED": "1",
+                },
+            ),
+            mock.patch.object(
+                durable_ai_worker.private_storage,
+                "configure_from_environment",
+                return_value=False,
+            ),
+            mock.patch.object(durable_ai_worker, "DurableAiWorker") as worker,
+        ):
+            result = durable_ai_worker.main(["--worker-once"])
+
+        self.assertEqual(result, 78)
+        worker.assert_not_called()
+
+    def test_notification_payload_never_selects_pending_work(self):
+        self.create_user("u-fake-notify")
+        admitted = self.admit("u-fake-notify")
+        processor = mock.Mock()
+
+        class Listener:
+            def open(inner_self):
+                return inner_self
+
+            def wait(inner_self, _timeout):
+                return True
+
+            def close(inner_self):
+                pass
+
+        result = durable_ai_worker.run_worker_loop(
+            durable_ai_worker.DurableAiWorker(
+                processor=processor,
+                store=self.store,
+            ),
+            listener=Listener(),
+            max_iterations=2,
+        )
+
+        self.assertEqual(result["status"], "idle")
+        processor.assert_not_called()
+        self.assertEqual(
+            durable_ai.status_for_user(
+                "u-fake-notify", admitted["operation_id"]
+            )["status"],
+            "queued",
+        )
+
     def test_dispatch_is_fifo_with_three_to_one_priority_ceiling(self):
         self.create_user("u-standard")
         self.create_user("u-priority")
@@ -536,6 +1114,7 @@ class DurableAiExecutionContractTests(unittest.TestCase):
     def test_worker_supports_multiple_provider_attempts_and_atomic_success(self):
         self.create_user("u-success")
         admitted = self.admit("u-success")
+        self.deliver(admitted["operation_id"])
 
         def processor(payload, context):
             first = context.invoke_provider(
@@ -595,6 +1174,7 @@ class DurableAiExecutionContractTests(unittest.TestCase):
         self.create_user("u-known-fail")
         before = billing.get_subscription("u-known-fail")["used_monthly_credits"]
         admitted = self.admit("u-known-fail")
+        self.deliver(admitted["operation_id"])
         charged = billing.get_subscription("u-known-fail")["used_monthly_credits"]
         self.assertEqual(charged - before, 6)
 
@@ -648,6 +1228,7 @@ class DurableAiExecutionContractTests(unittest.TestCase):
         self.create_user("u-unknown")
         before = billing.get_subscription("u-unknown")["used_monthly_credits"]
         admitted = self.admit("u-unknown")
+        self.deliver(admitted["operation_id"])
         charged = billing.get_subscription("u-unknown")["used_monthly_credits"]
 
         def processor(_payload, context):
@@ -699,6 +1280,7 @@ class DurableAiExecutionContractTests(unittest.TestCase):
         self.create_user("u-worker-fail")
         before = billing.get_subscription("u-worker-fail")["used_monthly_credits"]
         admitted = self.admit("u-worker-fail")
+        self.deliver(admitted["operation_id"])
         worker = durable_ai_worker.DurableAiWorker(
             processor=lambda _payload, _context: (_ for _ in ()).throw(
                 RuntimeError("private processor error")
@@ -721,6 +1303,7 @@ class DurableAiExecutionContractTests(unittest.TestCase):
     def test_terminal_billing_failure_rolls_back_operation_transition(self):
         self.create_user("u-atomic-fail")
         admitted = self.admit("u-atomic-fail")
+        self.deliver(admitted["operation_id"])
 
         def processor(payload, context):
             return context.invoke_provider(
@@ -766,6 +1349,7 @@ class DurableAiExecutionContractTests(unittest.TestCase):
     def test_result_object_is_removed_when_terminal_transaction_fails(self):
         self.create_user("u-result-rollback")
         admitted = self.admit("u-result-rollback")
+        self.deliver(admitted["operation_id"])
 
         def processor(payload, context):
             context.invoke_provider(
@@ -833,8 +1417,8 @@ class DurableAiExecutionContractTests(unittest.TestCase):
         os.environ["NOTEAI_DURABLE_AI_SUSPENDED"] = "1"
         processor = mock.Mock()
         with mock.patch.object(
-            ai_operations,
-            "claim_operation",
+            durable_ai,
+            "claim_delivered_operation",
             side_effect=AssertionError("database claim must not run"),
         ):
             result = durable_ai_worker.DurableAiWorker(
@@ -948,6 +1532,7 @@ class DurableAiExecutionContractTests(unittest.TestCase):
     def test_account_deletion_erases_objects_before_owner_join(self):
         self.create_user("u-delete-payloads")
         admitted = self.admit("u-delete-payloads")
+        self.deliver(admitted["operation_id"])
 
         def processor(payload, context):
             context.invoke_provider(

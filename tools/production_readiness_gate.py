@@ -300,7 +300,7 @@ def _compose_services_have_runtime_hardening(
         r"^    privileged:\s*false\s*$",
         r"^    cap_drop:\s*\n      -\s*ALL\s*$",
         r"^    security_opt:\s*\n      -\s*no-new-privileges:true\s*$",
-        r"^      -\s*/tmp:rw,noexec,nosuid,nodev,size=512m,"
+        r"^      -\s*/tmp:rw,noexec,nosuid,nodev,size=(?:64|512)m,"
         r"mode=1777,uid=999,gid=999\s*$",
     )
     forbidden_patterns = (
@@ -402,6 +402,30 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
         "NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http",
         "NOTEAI_XHS_SERVICE": "tracking",
     }
+    durable_dispatcher_env = {
+        "NOTEAI_DURABLE_AI_COMPONENT": "dispatcher",
+    }
+    durable_worker_env = {
+        "NOTEAI_DURABLE_AI_COMPONENT": "worker",
+    }
+    durable_dispatcher_acceptance_env = {
+        **durable_dispatcher_env,
+        "NOTEAI_DURABLE_AI_SUSPENDED": "0",
+        "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+        "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": (
+            "00000000-0000-4000-8000-000000000017"
+        ),
+    }
+    durable_acceptance_env = {
+        **durable_worker_env,
+        "NOTEAI_DURABLE_AI_SUSPENDED": "0",
+        "NOTEAI_DURABLE_AI_PROCESSOR": "internal-acceptance-v1",
+        "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+        "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": (
+            "00000000-0000-4000-8000-000000000017"
+        ),
+        "NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION": "fail_before_provider",
+    }
     allowed_cases = {
         "api_start": ("api", ("/app/scripts/render_start_api.sh",), {}),
         "api_predeploy": ("api", ("python", "/app/scripts/render_predeploy.py"), {}),
@@ -435,6 +459,46 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             "ai-worker",
             ("python", "durable_ai_worker.py", "--reconcile-stale"),
             {},
+        ),
+        "ai_dispatcher_health": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--healthcheck"),
+            durable_dispatcher_env,
+        ),
+        "ai_dispatcher_once": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--dispatcher-once"),
+            durable_dispatcher_env,
+        ),
+        "ai_dispatcher_loop": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--dispatcher-loop"),
+            durable_dispatcher_env,
+        ),
+        "ai_dispatcher_internal_acceptance_once": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--dispatcher-once"),
+            durable_dispatcher_acceptance_env,
+        ),
+        "ai_worker_component_health": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--healthcheck"),
+            durable_worker_env,
+        ),
+        "ai_worker_component_once": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--worker-once"),
+            durable_worker_env,
+        ),
+        "ai_worker_component_loop": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--worker-loop"),
+            durable_worker_env,
+        ),
+        "ai_worker_internal_acceptance_once": (
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--worker-once"),
+            durable_acceptance_env,
         ),
         "xhs_market_wrapper": ("xhs-http", ("/app/scripts/render_run_market_timing.sh",), xhs_trends_env),
         "xhs_crawler_wrapper": ("xhs-http", ("/app/scripts/render_run_crawler.sh",), xhs_tracking_env),
@@ -684,8 +748,81 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             allowed=False,
             extra_env=xhs_trends_env,
         )
+        run_case(
+            "ai_dispatcher_rejects_worker_loop",
+            "ai-worker",
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--worker-loop"),
+            allowed=False,
+            extra_env=durable_dispatcher_env,
+        )
+        run_case(
+            "ai_worker_rejects_dispatcher_loop",
+            "ai-worker",
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--dispatcher-loop"),
+            allowed=False,
+            extra_env=durable_worker_env,
+        )
+        run_case(
+            "ai_worker_rejects_invalid_component",
+            "ai-worker",
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--healthcheck"),
+            allowed=False,
+            extra_env={"NOTEAI_DURABLE_AI_COMPONENT": "combined"},
+        )
+        run_case(
+            "ai_dispatcher_rejects_private_storage",
+            "ai-worker",
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--healthcheck"),
+            allowed=False,
+            extra_env={
+                **durable_dispatcher_env,
+                "NOTEAI_PRIVATE_STORAGE_BACKEND": "",
+            },
+        )
+        run_case(
+            "ai_acceptance_rejects_worker_loop",
+            "ai-worker",
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--worker-loop"),
+            allowed=False,
+            extra_env=durable_acceptance_env,
+        )
+        run_case(
+            "ai_acceptance_rejects_malformed_uuid",
+            "ai-worker",
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--worker-once"),
+            allowed=False,
+            extra_env={
+                **durable_acceptance_env,
+                "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": "not-a-uuid",
+            },
+        )
+        run_case(
+            "ai_dispatcher_acceptance_rejects_loop",
+            "ai-worker",
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--dispatcher-loop"),
+            allowed=False,
+            extra_env=durable_dispatcher_acceptance_env,
+        )
+        run_case(
+            "ai_dispatcher_acceptance_rejects_malformed_uuid",
+            "ai-worker",
+            "ai-worker",
+            ("python", "durable_ai_worker.py", "--dispatcher-once"),
+            allowed=False,
+            extra_env={
+                **durable_dispatcher_acceptance_env,
+                "NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID": "not-a-uuid",
+            },
+        )
 
-    detail = f"allowed={len(allowed_cases)} rejected={len(rejected_command_cases) + len(marker_cases) + 4}"
+    detail = f"allowed={len(allowed_cases)} rejected={len(rejected_command_cases) + len(marker_cases) + 12}"
     if failures:
         detail += f" failures={failures[:8]}"
     return not failures, detail
@@ -1277,10 +1414,19 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and 'purpose="video_frames"' in api_source
             and 'purpose="image"' in api_source
             and "_private_storage.load_media_bytes(" in api_source
-            and production_compose.count(
+            and all(
                 "NOTEAI_DEPLOYMENT_STAGE: production"
+                in _compose_service_block(production_compose, service)
+                for service in (
+                    "api",
+                    "admin",
+                    "payment",
+                    "ai-dispatcher",
+                    "ai-worker",
+                    "xhs-trends",
+                    "xhs-tracking",
+                )
             )
-            == 6
             and "NOTEAI_VIDEO_CACHE_DIR" not in production_compose,
         ),
         _ok(
@@ -1469,6 +1615,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                     "api",
                     "admin",
                     "payment",
+                    "ai-dispatcher",
                     "ai-worker",
                     "xhs-trends",
                     "xhs-tracking",
@@ -1477,6 +1624,9 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and "${NOTEAI_API_IMAGE_REPOSITORY:?set NOTEAI_API_IMAGE_REPOSITORY}@sha256:${NOTEAI_API_IMAGE_DIGEST_HEX:?set NOTEAI_API_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
             and "${NOTEAI_ADMIN_IMAGE_REPOSITORY:?set NOTEAI_ADMIN_IMAGE_REPOSITORY}@sha256:${NOTEAI_ADMIN_IMAGE_DIGEST_HEX:?set NOTEAI_ADMIN_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
             and "${NOTEAI_PAYMENT_IMAGE_REPOSITORY:?set NOTEAI_PAYMENT_IMAGE_REPOSITORY}@sha256:${NOTEAI_PAYMENT_IMAGE_DIGEST_HEX:?set NOTEAI_PAYMENT_IMAGE_DIGEST_HEX to 64 lowercase hex characters}" in production_compose
+            and production_compose.count(
+                "${NOTEAI_AI_WORKER_IMAGE_REPOSITORY:?set NOTEAI_AI_WORKER_IMAGE_REPOSITORY}@sha256:${NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX:?set NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+            ) == 2
             and production_compose.count(
                 "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
             ) == 2
@@ -1490,6 +1640,15 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                 "${NOTEAI_PAYMENT_ENV_FILE:-/etc/noteai/payment.env}"
             ) == 1
             and production_compose.count(
+                "${NOTEAI_AI_DISPATCHER_ENV_FILE:-/etc/noteai/ai-dispatcher.env}"
+            ) == 1
+            and production_compose.count(
+                "${NOTEAI_AI_WORKER_ENV_FILE:-/etc/noteai/ai-worker.env}"
+            ) == 1
+            and production_compose.count(
+                "${NOTEAI_PRIVATE_STORAGE_ENV_FILE:-/etc/noteai/private-storage.env}"
+            ) == 1
+            and production_compose.count(
                 "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
             ) == 1
             and production_compose.count(
@@ -1497,6 +1656,12 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             ) == 1
             and "NOTEAI_XHS_ENV_FILE" not in production_compose
             and "NOTEAI_PRODUCTION_ENV_FILE" not in production_compose
+            and "durable-ai-dispatcher"
+            in _compose_service_block(production_compose, "ai-dispatcher")
+            and "durable-ai-worker"
+            in _compose_service_block(production_compose, "ai-worker")
+            and "NOTEAI_PRIVATE_STORAGE_ENV_FILE"
+            not in _compose_service_block(production_compose, "ai-dispatcher")
             and production_compose.count("target: /app/model/data") == 3
             and "target: /app/model/data" not in _compose_service_block(
                 production_compose,

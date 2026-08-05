@@ -521,14 +521,15 @@ def _take_operation_lease_tx(
     return OperationLease(current["id"], token, fence, expires_iso)
 
 
-def claim_operation(
+def claim_operation_in_transaction(
+    tx: db.Transaction,
     operation_id: str,
     *,
     lease_seconds: int,
     owner_token: str | None = None,
     now: datetime | None = None,
 ) -> OperationLease | None:
-    """Claim one content-free operation id delivered by the outbox."""
+    """Claim one operation while the caller owns the surrounding transaction."""
     op_id = _operation_id(operation_id)
     seconds = _lease_seconds(lease_seconds)
     token = str(owner_token or secrets.token_urlsafe(32))
@@ -537,28 +538,45 @@ def claim_operation(
     now_value = _now(now)
     now_iso = _iso(now_value)
     expires_iso = _iso(now_value + timedelta(seconds=seconds))
+    row = _row_for_update(tx, op_id)
+    if not row:
+        return None
+    current = dict(row)
+    claimable = (
+        current.get("status") == OperationStatus.QUEUED.value
+        and str(current.get("available_at") or "") <= now_iso
+    ) or (
+        current.get("status") == OperationStatus.RUNNING.value
+        and current.get("provider_phase") == ProviderPhase.NOT_STARTED.value
+        and str(current.get("lease_expires_at") or "") <= now_iso
+    )
+    if not claimable:
+        return None
+    return _take_operation_lease_tx(
+        tx,
+        current,
+        token=token,
+        owner_hash=sha256_digest(token),
+        now_iso=now_iso,
+        expires_iso=expires_iso,
+    )
+
+
+def claim_operation(
+    operation_id: str,
+    *,
+    lease_seconds: int,
+    owner_token: str | None = None,
+    now: datetime | None = None,
+) -> OperationLease | None:
+    """Claim one content-free operation id."""
     with db.transaction(write=True) as tx:
-        row = _row_for_update(tx, op_id)
-        if not row:
-            return None
-        current = dict(row)
-        claimable = (
-            current.get("status") == OperationStatus.QUEUED.value
-            and str(current.get("available_at") or "") <= now_iso
-        ) or (
-            current.get("status") == OperationStatus.RUNNING.value
-            and current.get("provider_phase") == ProviderPhase.NOT_STARTED.value
-            and str(current.get("lease_expires_at") or "") <= now_iso
-        )
-        if not claimable:
-            return None
-        return _take_operation_lease_tx(
+        return claim_operation_in_transaction(
             tx,
-            current,
-            token=token,
-            owner_hash=sha256_digest(token),
-            now_iso=now_iso,
-            expires_iso=expires_iso,
+            operation_id,
+            lease_seconds=lease_seconds,
+            owner_token=owner_token,
+            now=now,
         )
 
 

@@ -229,13 +229,13 @@ Last updated: 2026-08-05
 - 是否需要用户确认后才能修改: 本地状态机、测试和监控合同不需要；阿里云付费资源、migration、真实AI样本、自动扩容预算及任何供应商/消费门禁升级需要。
 - 2026-07-26进展: `PROD-FIRST-LAUNCH-DURABLE-AI-CONTRACT-001`已在`f0aaa20`完成仓库与隔离PostgreSQL验证；`PROD-FIRST-LAUNCH-STORAGE-RECOVERY-CONTRACT-001`又在`d2dfb37`关闭了私有OSS adapter、owner-bound media、对象补偿/生命周期、跨进程恢复和内容为空的restore manifest仓库合同。最终全量Python `833 run / 14 skipped / 0 failed`、E2E`66/66`、readiness`95/95`。这仍不关闭生产bucket/RAM角色、queue/processor、migration/roles、监控或100任务负载门禁。
 
-### Durable AI repository contract is verified; production execution remains open
+### Durable AI PostgreSQL-native runtime source is ready; production execution remains open
 
-- 状态: `REPOSITORY + DISPOSABLE POSTGRESQL PASS / 0C / 0H / 0M / NOT DEPLOYED`；production仍为Open High。
-- 已关闭: 默认禁用的owner-bound `202` admission、无原始内容SQL、opaque request/result refs、Outbox fenced claim/ack、3:1公平、逐调用provider admission、provider-free安全重投、unknown outcome不重试、成功/退款/settlement原子终态、结果回放、删除栅栏和对象补偿均有仓库/SQLite/PostgreSQL证据。migration `0012` SHA为`df72dedfb292700104fc394b5b326f33e4339cbf195f704278c56e08e44bec83`。
-- 剩余 High: 生产私有bucket/RAM角色尚未创建或绑定，消息publisher、dispatcher进程和provider processor不存在；生产migration/角色/权限未应用，AI Worker镜像未构建/部署，监控、回滚、provider链和容量均未验收。Compose中的AI Worker仅为default-suspended fail-closed骨架，`--once`不能正常处理任务。
-- 防重复: 没有Durable AI或Storage代码/migration SHA冲突时，不重复其离线/隔离PostgreSQL合同测试。下一证据必须来自生产只读preflight或后续正式runtime/provider/capacity门禁。
-- 回滚: 当前无生产变更。后续保持admission disabled和Worker suspended；失败时停publisher/dispatcher/Worker、恢复旧digest和旧角色权限，但保留operation/settlement审计账本且不猜测provider unknown outcome。
+- 状态: `REPOSITORY + DISPOSABLE POSTGRESQL + LOCAL PG-NATIVE SOURCE PASS / NOT DEPLOYED`；内部readiness仍为`20/29`，production仍为Open High。
+- 已关闭: 既有owner-bound `202` admission、opaque payload、fenced operation/billing/退款合同继续不变；本阶段增加PostgreSQL权威Outbox、原子`delivered + NOTIFY`、通知丢失轮询恢复、delivered-only Worker claim、15秒lease直接takeover、exact UUID dispatcher和provider-free两轮验收。0017固定SHA为`a73cbefd853cefe7b56c42bed2c5a7f0ba1626e57755c6f9464629b49c42cbbe`，不会重复执行增量ACL或改变现有Worker LOGIN。验收控制器从exact账务、usage、payload、admission、删除请求和匿名审计后态生成证据，不再硬编码成功。
+- 剩余 High: 生产尚未应用0017，Dispatcher仍为NOLOGIN且无专用Secret；新源码尚未完成唯一双CI、唯一完整readiness gate和原生AI Worker镜像证据。还没有受管跨主机两Worker接管、默认暂停正式单元、监控/回滚、真实provider fence或100任务容量证据。真实provider链明确后置，不能由provider-free验收代替。
+- 防重复: 不重复已接受的Durable/Storage合同、Admin构建、历史V5执行或完整gate。下一证据顺序固定为源码checkpoint与一次push双CI、一次完整gate、一次原生镜像证据，再进入获准的0017/Dispatcher凭据/跨主机provider-free生产验收。
+- 回滚: 当前无生产变更。后续保持admission disabled和正式Worker/Dispatcher suspended；失败时停止exact acceptance/正式单元、保持旧镜像和旧权限，保留operation/settlement匿名审计，不猜测数据库或provider unknown outcome。
 
 ### ALB health semantics could turn a Gateway outage into a whole-site outage
 

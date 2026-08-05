@@ -732,21 +732,38 @@ def process_due_account_deletions(
     now: datetime | None = None,
     payload_store: Any = None,
     media_backend: Any = None,
+    request_id: str | None = None,
 ) -> list[str]:
     """Delete primary personal data while retaining pseudonymous audit ledgers."""
     current = now or _now()
     completed: list[str] = []
     postgres = db.using_postgres()
+    exact_request_id = None
+    if request_id is not None:
+        raw_request_id = str(request_id or "")
+        try:
+            exact_request_id = str(uuid.UUID(raw_request_id))
+        except (ValueError, AttributeError) as exc:
+            raise ValueError("request_id must be a canonical UUID") from exc
+        if exact_request_id != raw_request_id:
+            raise ValueError("request_id must be a canonical UUID")
     due_predicate = (
         "primary_delete_by::timestamptz<=?::timestamptz"
         if postgres
         else "primary_delete_by<=?"
     )
+    exact_predicate = "AND id=? " if exact_request_id is not None else ""
+    params = (
+        (_iso(current), exact_request_id, 1)
+        if exact_request_id is not None
+        else (_iso(current), max(1, min(int(limit), 50)))
+    )
     candidates = db.fetchall(
         "SELECT id,user_id FROM account_deletion_requests "
         f"WHERE status='requested' AND {due_predicate} "
+        f"{exact_predicate}"
         "ORDER BY primary_delete_by ASC LIMIT ?",
-        (_iso(current), max(1, min(int(limit), 50))),
+        params,
     )
     for candidate in candidates:
         user_id = candidate["user_id"]

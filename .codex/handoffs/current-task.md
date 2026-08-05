@@ -6292,3 +6292,49 @@ dedicated role/Secret topology and production runtime baseline. Do not treat
 this readiness checkpoint as a stop point, and do not mutate production until
 the existing contract establishes the exact bounded execution plan and its
 standing authority.
+
+### Durable AI PostgreSQL-native source checkpoint (2026-08-05)
+
+- Alibaba interactive verification is restored. A read-only
+  `DescribeInstanceTypes` call for `ecs.c9a.xlarge` in Shenzhen returned native
+  HTTP `200` / `调用成功`; no order, instance, IAM, link, database or service
+  mutation occurred.
+- The sole task remains `PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`; readiness
+  remains internal `20/29` and public `20/38`. PostgreSQL is authoritative:
+  dispatcher delivery and UUID-only `NOTIFY` commit together, Worker claims
+  only delivered rows and lost notifications recover by polling. Exact
+  acceptance dispatch does not touch unrelated Outbox rows or fairness state.
+- Fixed migration `0017` SHA-256 is
+  `a73cbefd853cefe7b56c42bed2c5a7f0ba1626e57755c6f9464629b49c42cbbe`.
+  Its minimal owner-bound executor validates the native 0001-0016 ledger,
+  applies only 0017 and one native ledger row, and compares the existing
+  Dispatcher/Worker role snapshot before/after. It no longer rejects the
+  legitimate Worker LOGIN or repeats the incremental ACL. Historical V5
+  sources and ACL SHA remain unchanged.
+- Four native systemd templates separate Dispatcher DB-only and Worker
+  DB/private-storage inputs, use digest-only images, expose no ports, set
+  `Restart=no`, and bound exact acceptance at 120/360 seconds. Formal units
+  remain default suspended. Dispatcher storage env is rejected before model
+  artifact loading; internal acceptance requires a canonical exact operation
+  and once-only command.
+- Independent read-only review found and the main CTO fixed four concrete
+  acceptance blockers: the Worker LOGIN false assumption, duplicate ACL
+  execution, takeover event count (`claimed=1`, `lease_taken_over=1`), and two
+  PostgreSQL JOIN locks that incorrectly included the read-only admission
+  alias. The final controller now derives refund, usage, payload deletion,
+  admission/idempotency removal, deletion-request state and retained
+  pseudonymous audit from exact database rows instead of hardcoded claims.
+- Focused Durable AI/API/PostgreSQL-source/schema/env/runtime/account-deletion
+  and exact entrypoint tests pass `223/223` with `10` approved real-PostgreSQL
+  skips. Python compile, shell syntax, production Compose parse and
+  `git diff --check` pass. One mistakenly broad local unittest invocation was
+  interrupted after it was found to call the complete `build_report()` more
+  than once; exit `130` is not counted as a test result and no formal full gate
+  has been claimed.
+- No production connection, transaction, row, object, role, Secret, unit,
+  container, image, Registry, IAM, network or provider was changed. No custom
+  ledger/receipt/topology or V18 was added. The next atomic sequence is one
+  source checkpoint, one push to the existing draft PR (thereby one push/PR
+  dual CI), one complete readiness gate and one native AI Worker image-evidence
+  run. Production 0017, Dispatcher LOGIN/Secret, instance purchase/start and
+  cross-host synthetic writes remain separately bounded production actions.
