@@ -6584,3 +6584,33 @@ standing authority.
   condition is one final source push and one push/PR CI pair on its resulting
   exact SHA, with native run count still zero; then execute one complete
   readiness gate before the single manual successor native run.
+
+### Cryptography successor dual-CI and formal-gate closure (2026-08-05)
+
+- Final pushed source SHA is
+  `cad5ce35664f617c6e19f90a6159285ddf975594`; local and upstream branches
+  were equal and clean at dispatch inventory time. It contains the 50.0.0
+  pin, frozen legacy runner, manual-only v2 successor runner, V17 historical
+  blob correction and protected-main ancestry merge.
+- GitHub push CI run `31015535682`, job `92338496582`, and PR CI run
+  `31015538898`, job `92338506796`, both completed `success` on exact
+  `cad5ce3...5594`, attempt `1`. Each passed `1857` tests
+  (`1791 + 10 + 1 + 12 + 22 + 21`) with `33` approved skips and zero
+  failures, the quality contract, production readiness `137/137` and Docker
+  Compose validation.
+- One separately executed formal local readiness gate then passed exactly
+  `137/137`, failed `0`. It was run once after dual CI; no duplicate full
+  local gate was run before or after it.
+- Native workflow ID `320926028` has zero runs for the final SHA. The failed
+  predecessor CI `31013738621` and predecessor native run `31011637924`
+  remain immutable attempt-1 terminal records and were not rerun.
+- No image, artifact, Registry, builder, Alibaba, production, database,
+  Secret, provider or public-traffic mutation occurred in this closure.
+  Readiness remains internal `20/29` and public `20/38`.
+- The next and only action is one manual `workflow_dispatch` of
+  `native-release-evidence.yml`, ref and `release_commit` both fixed to
+  `cad5ce35664f617c6e19f90a6159285ddf975594`, scope `five`. Acceptance is
+  build/inspect/SBOM/scan/upload success, exact 43-file artifact, one
+  cryptography 50.0.0 component per role, zero cryptography CVEs and the
+  expected unsuppressed canonical Debian `4 Critical / 19 High`; final raw
+  gate failure alone is expected and is never a rerun reason.
