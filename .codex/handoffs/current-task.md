@@ -6441,3 +6441,45 @@ standing authority.
   new request commit or V18. Bootstrap changed no application source, build
   contents, image, production service, Alibaba resource, IAM, Registry,
   database, provider or public traffic.
+
+### Durable AI exact-one native run security finding (2026-08-05)
+
+- The sole authorized dispatch was submitted exactly once for source
+  `0149888d16468c8e8ea055e62ce0aa5d56a28971` and scope `five`. GitHub-native
+  run `31011637924`, job `92325049605`, workflow ID `320926028`, attempt `1`
+  completed `failure`; the exact-SHA dispatch inventory contains only this
+  run and it will not be rerun.
+- Release-control parsing, exact-source checkout, immutable-source checks,
+  checksum-pinned scanner installation, all five native builds, inspection,
+  inventory/scanning and evidence upload passed. Only the final raw
+  zero-Critical/High assertion failed after `summary.json.passed=false`.
+  This was not a timeout, 502/504, polling difference or download stall.
+- GitHub artifact `8932806283`, named
+  `native-amd64-release-evidence-0149888d16468c8e8ea055e62ce0aa5d56a28971`,
+  has archive digest
+  `sha256:ed819cbc85228770c1ca9d3923b8e1a3a624412c2e6b03da3ae1983279ed351b`,
+  contains the exact `43` regular evidence files and expires on 2026-08-19.
+  The archive digest is not an OCI Registry manifest digest.
+- Every role has identical normalized vulnerability rows: `4 Critical / 21
+  High`, zero Secrets, zero browser components and zero forbidden OS packages.
+  The canonical Debian 13.6 base contributes the existing `4 Critical / 19
+  High` across twelve unique CVEs with no fixed Debian version; project policy
+  keeps those raw reports unsuppressed and requires an exact-product
+  CycloneDX VEX. The two newly actionable High findings are
+  `CVE-2026-69247` and `CVE-2026-69249` in `cryptography 48.0.1`; covering both
+  requires upstream `50.0.0`.
+- The artifact contains no image tar or OCI layout and all role
+  `RepoDigests` are empty. AI Worker identity
+  `sha256:57ecea43bc0cb4c8a700670ce7aa7b6bd24004d5ebb4587da31256028a122c5e`
+  is a runner-local image/config identity only; it is not a deployable
+  Registry manifest or fresh-builder import proof.
+- A source-unchanged isolated compatibility probe loaded public
+  `cryptography 50.0.0` ahead of the local environment and passed the Adapay
+  plus managed-Secret focused suites `42/42` with one approved environment
+  skip. No `.venv`, source, image, Registry, production or Secret changed.
+  The next repair is the smallest dependency/SBOM-gate update to `50.0.0`,
+  followed by focused verification and one replacement source CI cycle; it
+  must not weaken raw scanning or add V18/custom ledger/receipt/topology.
+- Readiness remains internal `20/29` and public `20/38`. Production 0017,
+  Dispatcher LOGIN/Secret, an accepted private AI Worker manifest and managed
+  cross-host takeover remain open and no production/cloud mutation occurred.

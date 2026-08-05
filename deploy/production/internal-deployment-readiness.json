@@ -3405,7 +3405,7 @@
             "immutable_release_candidate"
           ],
           "evidence": [],
-          "blocker": "PostgreSQL-native dispatcher/Worker and provider-free exact-operation acceptance passed replacement push/PR CI on exact commit 0149888d16468c8e8ea055e62ce0aa5d56a28971 and the one formal 137-check readiness gate. Protected bootstrap PR 5 registered the exact frozen native evidence workflow on main at e8fa2837566ced8fe55bdf686ade0675952b8fa3; PR run 31011143306 and main run 31011334233 passed attempt 1. The exact-one native image evidence dispatch has not yet run; production 0017, dispatcher LOGIN/Secret, accepted-image runtime, and managed cross-host takeover evidence do not yet exist.",
+          "blocker": "PostgreSQL-native dispatcher/Worker and provider-free exact-operation acceptance passed replacement push/PR CI on exact commit 0149888d16468c8e8ea055e62ce0aa5d56a28971 and the one formal 137-check readiness gate. Protected bootstrap PR 5 registered the frozen workflow on main. Exact-one native run 31011637924 built, inspected, scanned and uploaded all 43 evidence files, but its final raw security gate failed: every role has canonical Debian 4 Critical and 19 High plus two actionable cryptography 48.0.1 High findings fixed by 50.0.0. Artifact 8932806283 digest sha256:ed819cbc85228770c1ca9d3923b8e1a3a624412c2e6b03da3ae1983279ed351b contains no deployable image or Registry digest. A minimal dependency repair and exact-product VEX re-review are required; production 0017, dispatcher LOGIN/Secret, accepted private AI Worker manifest, and managed cross-host takeover evidence do not yet exist.",
           "next_task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
         },
         {
