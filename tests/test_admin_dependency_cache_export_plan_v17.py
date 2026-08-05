@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -11,8 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = (
     ROOT / ".github" / "workflows" / "admin-dependency-cache-export-v17.yml"
 )
-DOCKERFILE = ROOT / "Dockerfile"
-REQUIREMENTS = ROOT / "model" / "requirements-api.txt"
+RELEASE_SHA = "5335bdaed933b1f999b5f819c047ec50c11821ae"
 
 
 class AdminDependencyCacheExportV17Tests(unittest.TestCase):
@@ -57,12 +57,24 @@ class AdminDependencyCacheExportV17Tests(unittest.TestCase):
             "38e574e56406ba3380acb78edbe784508cc537cd",
             self.source,
         )
+        historical_dockerfile = subprocess.run(
+            ["git", "show", f"{RELEASE_SHA}:Dockerfile"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        historical_requirements = subprocess.run(
+            ["git", "show", f"{RELEASE_SHA}:model/requirements-api.txt"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
         self.assertEqual(
-            hashlib.sha256(DOCKERFILE.read_bytes()).hexdigest(),
+            hashlib.sha256(historical_dockerfile).hexdigest(),
             "ed6282c422dde6e49c33da877bccf735dfbb19e29a834930fb2a1a52ef21b447",
         )
         self.assertEqual(
-            hashlib.sha256(REQUIREMENTS.read_bytes()).hexdigest(),
+            hashlib.sha256(historical_requirements).hexdigest(),
             "0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9",
         )
         self.assertIn(

@@ -6524,3 +6524,36 @@ standing authority.
   cycle, and one complete readiness gate. Only after those pass may one
   manual successor native run be submitted for the new exact SHA; run
   `31011637924` remains permanently no-rerun.
+
+### Cryptography repair first-push CI diagnosis (2026-08-05)
+
+- Repair checkpoint `2c490249b6f4caf9548f18b890704072f3af8c3b` was pushed
+  once. GitHub CI run `31013738621`, job `92332268654`, attempt `1`, completed
+  `failure` after `1791` tests with exactly one failure and `33` skips.
+  Installation, LFS, Python/shell syntax and model-artifact checks passed;
+  quality, readiness and Compose were skipped after the unit-test failure.
+- The sole failure was
+  `test_c17_release_and_dependency_inputs_stay_immutable`. It compared the
+  moving HEAD `model/requirements-api.txt` to the fixed historical 5335/C17
+  hash, so the intentional 50.0.0 pin produced current hash
+  `7a6adb458c44521dae7aa9cfa7fc36ae0f5ff0603e810901d7ce6da2e3ae4f6a`
+  instead of historical hash
+  `0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9`.
+  This is a test-source binding defect, not a cryptography compatibility,
+  runtime, download or timeout failure.
+- The minimal correction changes only that test to read the fixed
+  `5335bdaed933b1f999b5f819c047ec50c11821ae` Dockerfile and requirements
+  blobs through Git, matching the already-fixed V17 workflow semantics. C17,
+  its dependency hash, workflow, artifact, image and all historical evidence
+  remain unchanged. The focused V17 module passes `5/5`, Python compilation
+  and diff checks pass.
+- The exact repair SHA produced zero native workflow runs. PR #2 did not
+  produce a pull-request CI because bootstrap PR #5 independently added the
+  same workflow on `main`, leaving one add/add conflict once the source copy
+  changed. A read-only three-way merge audit found exactly that one workflow
+  conflict and no application, dependency or production-file conflict.
+- Next, record this diagnosis, merge current protected `origin/main` into the
+  source branch without force-push, resolve the one workflow conflict to the
+  reviewed manual-only v2 source bytes, and push one final checkpoint. That
+  final SHA must receive both push and PR CI before the single complete gate
+  and exact-one manual successor native run. Readiness remains `20/29`.
