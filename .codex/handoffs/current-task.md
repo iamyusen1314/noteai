@@ -6382,3 +6382,33 @@ standing authority.
   replacement push/PR runs, then execute one formal readiness gate. Do not
   dispatch native evidence or modify `main` without resolving the default-
   branch workflow hard condition.
+
+### Durable AI replacement CI and formal gate closure (2026-08-05)
+
+- Remote PR head is `0149888d16468c8e8ea055e62ce0aa5d56a28971`.
+  Replacement push run `30980871956` and pull-request run `30980874916`
+  both completed `success`, attempt `1`, on that exact SHA; their jobs are
+  `92224803613` and `92224812813`. All native steps, including Unit tests,
+  quality gate, production readiness gate and Compose validation, passed.
+- The one reserved local formal command
+  `.venv/bin/python tools/production_readiness_gate.py` completed `PASS` with
+  `137/137` checks and zero failures. It was not repeated. The earlier failed
+  run IDs remain terminal and were not rerun.
+- Draft PR #2 is GitHub `MERGEABLE/CLEAN`, but it is still Draft and is `291`
+  commits ahead of current `main`. Default-branch protection requires the
+  `test` check, resolved conversations and linear history; force pushes and
+  merge commits are disabled. Squash and rebase merges are enabled.
+- `main` still contains only `.github/workflows/ci.yml`; there is no
+  `workflow_dispatch` run for `0149888...8971`. The two historical native
+  evidence runs target other SHAs and cannot be reused. No dispatch was tried.
+- Readiness therefore remains internal `20/29`, public `20/38`. The sole task
+  remains `PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. The only immediate hard
+  condition is a release-governance decision that makes the already-reviewed
+  `native-release-evidence.yml` exist on protected `main` while preserving the
+  dual-CI source SHA. The smallest-scope option is a dedicated workflow-only
+  protected PR from `main`; merging Draft PR #2 would instead publish all 291
+  accumulated commits. Either action changes the default branch and is not
+  inferred from CI authorization.
+- This is a Secret-free local evidence checkpoint only and must not be pushed
+  merely to trigger more CI. No production, Alibaba, Registry, database,
+  service, IAM, Secret, Provider or public-traffic mutation occurred.

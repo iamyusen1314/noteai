@@ -3405,7 +3405,7 @@
             "immutable_release_candidate"
           ],
           "evidence": [],
-          "blocker": "PostgreSQL-native dispatcher/Worker and provider-free exact-operation acceptance are implemented locally. The first dual CI failed on three directly repaired repository compatibility issues; replacement dual CI and one formal gate remain pending. Native image evidence cannot be manually dispatched until its workflow exists on default branch main, and production 0017, dispatcher LOGIN/Secret, accepted-image runtime, and managed cross-host takeover evidence do not yet exist.",
+          "blocker": "PostgreSQL-native dispatcher/Worker and provider-free exact-operation acceptance passed replacement push/PR CI on exact commit 0149888d16468c8e8ea055e62ce0aa5d56a28971 and the one formal 137-check readiness gate. Native image evidence still cannot be manually dispatched until its existing workflow is published through protected default branch main; production 0017, dispatcher LOGIN/Secret, accepted-image runtime, and managed cross-host takeover evidence do not yet exist.",
           "next_task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
         },
         {
