@@ -231,10 +231,10 @@ Last updated: 2026-08-05
 
 ### Durable AI PostgreSQL-native runtime source is ready; production execution remains open
 
-- 状态: `REPOSITORY + DISPOSABLE POSTGRESQL + LOCAL PG-NATIVE SOURCE PASS / NOT DEPLOYED`；内部readiness仍为`20/29`，production仍为Open High。
+- 状态: `REPOSITORY + DISPOSABLE POSTGRESQL + LOCAL PG-NATIVE SOURCE PASS / FIRST DUAL-CI FAILED / DIRECT REPAIR FOCUSED PASS / NOT DEPLOYED`；内部readiness仍为`20/29`，production仍为Open High。首次push/PR runs `30978847303`/`30978849570`均在同一`80be069`上终态失败且未rerun；`60 errors + 4 failures`已归并为历史0001-0016 selector误收0017、两个dispatcher测试环境污染和测试占位符Secret误报三类，并完成最小本地修复。
 - 已关闭: 既有owner-bound `202` admission、opaque payload、fenced operation/billing/退款合同继续不变；本阶段增加PostgreSQL权威Outbox、原子`delivered + NOTIFY`、通知丢失轮询恢复、delivered-only Worker claim、15秒lease直接takeover、exact UUID dispatcher和provider-free两轮验收。0017固定SHA为`a73cbefd853cefe7b56c42bed2c5a7f0ba1626e57755c6f9464629b49c42cbbe`，不会重复执行增量ACL或改变现有Worker LOGIN。验收控制器从exact账务、usage、payload、admission、删除请求和匿名审计后态生成证据，不再硬编码成功。
-- 剩余 High: 生产尚未应用0017，Dispatcher仍为NOLOGIN且无专用Secret；新源码尚未完成唯一双CI、唯一完整readiness gate和原生AI Worker镜像证据。还没有受管跨主机两Worker接管、默认暂停正式单元、监控/回滚、真实provider fence或100任务容量证据。真实provider链明确后置，不能由provider-free验收代替。
-- 防重复: 不重复已接受的Durable/Storage合同、Admin构建、历史V5执行或完整gate。下一证据顺序固定为源码checkpoint与一次push双CI、一次完整gate、一次原生镜像证据，再进入获准的0017/Dispatcher凭据/跨主机provider-free生产验收。
+- 剩余 High: 直接修复尚需一次新commit所产生的replacement双CI和其后唯一完整readiness gate；生产尚未应用0017，Dispatcher仍为NOLOGIN且无专用Secret。`native-release-evidence.yml`不在默认分支`main`，GitHub原生拒绝手动dispatch，因此在合并/发布该workflow的独立授权前不能产生AI Worker镜像证据。还没有受管跨主机两Worker接管、默认暂停正式单元、监控/回滚、真实provider fence或100任务容量证据。
+- 防重复: 首次失败runs只保留原生终态证据，不rerun；不重复已接受的Durable/Storage合同、Admin构建、历史V5执行或完整gate。下一证据顺序固定为一次直接修复checkpoint/push及其replacement双CI、一次完整gate，再解决default-branch workflow硬条件；禁止试探dispatch、V18或把artifact digest冒充Registry manifest digest。
 - 回滚: 当前无生产变更。后续保持admission disabled和正式Worker/Dispatcher suspended；失败时停止exact acceptance/正式单元、保持旧镜像和旧权限，保留operation/settlement匿名审计，不猜测数据库或provider unknown outcome。
 
 ### ALB health semantics could turn a Gateway outage into a whole-site outage

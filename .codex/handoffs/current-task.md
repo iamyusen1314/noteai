@@ -6338,3 +6338,47 @@ standing authority.
   dual CI), one complete readiness gate and one native AI Worker image-evidence
   run. Production 0017, Dispatcher LOGIN/Secret, instance purchase/start and
   cross-host synthetic writes remain separately bounded production actions.
+
+### Durable AI first dual-CI failure repair checkpoint (2026-08-05)
+
+- Source checkpoint `80be069902c4ebb9e9931c96667227c9cbfd40b4` was pushed
+  exactly once to the existing Draft PR #2. GitHub created push run
+  `30978847303` and pull-request run `30978849570`; both are terminal failure
+  on the same SHA and were not rerun. Each completed `1790` tests with
+  `4 failures / 60 errors / 33 skipped` in the Unit tests step.
+- Native logs and three independent read-only reviews reduced the output to
+  three repository-only causes. Historical 0001-0016 auditors globbed the new
+  independent 0017 migration and failed `source_set` (all 60 errors plus one
+  protected-input test cascade); two dispatcher tests inherited blank private
+  storage keys loaded from `.env.example`; and three test placeholder names
+  ending in `_TOKEN` triggered the existing Secret scanner. The two CI runs
+  were otherwise identical, so this was not runner or network flakiness.
+- The minimal local repair keeps 0017, its executor, V5 execution semantics,
+  ACL SQL, production dispatcher storage boundary and Secret scanner rules
+  unchanged. Frozen auditors now select and strictly require exactly one each
+  of 0001-0016 while permitting independently gated later migrations; only
+  their bound runner hashes changed. The two dispatcher tests explicitly mock
+  the orthogonal no-storage precondition, and all three test constants now use
+  `_PLACEHOLDER` names.
+- Direct regression groups pass `33/33` historical source/auditor tests and
+  `7/7` dispatcher/runtime-unit tests. Database collector/schema-role runner
+  coverage passes `28/28` with `3` approved real-PostgreSQL skips, and internal
+  readiness passes `17/17`. Python compile, five runner shell syntax checks,
+  runner-source hash parity, git hygiene/Secret scan and `git diff --check`
+  pass. A complete readiness test started concurrently and completed, but its
+  wrapper did not retain an exit status; it is not counted and will not replace
+  the single formal gate after replacement dual CI.
+- A separate read-only workflow audit found a GitHub-native hard condition:
+  remote `main` contains only `ci.yml`, while
+  `native-release-evidence.yml` exists only on this branch. GitHub will not
+  accept its `workflow_dispatch` until that workflow exists on the default
+  branch. No exploratory dispatch was sent. Once that condition is authorized
+  and satisfied, the sole valid input is the exact replacement-repair commit
+  that passes both CI runs, with scope `five`; artifact digest is evidence-
+  bundle identity and must not be represented as a Registry manifest digest.
+- Readiness remains internal `20/29`, public `20/38`. No production, Alibaba,
+  Registry, database, service, IAM, Secret, Provider or public-traffic mutation
+  occurred. Next: checkpoint and push this direct repair once, observe only its
+  replacement push/PR runs, then execute one formal readiness gate. Do not
+  dispatch native evidence or modify `main` without resolving the default-
+  branch workflow hard condition.

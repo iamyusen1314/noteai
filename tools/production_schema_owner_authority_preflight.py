@@ -331,9 +331,24 @@ FROM ledger, tables, sequences
 
 
 def _source_registry() -> dict[str, str]:
-    migrations = sorted(MIGRATION_DIR.glob("*.sql"))
+    expected_versions = schema_role_contract.EXPECTED_VERSIONS
+    migrations = []
+    for path in sorted(MIGRATION_DIR.glob("*.sql")):
+        version = path.name.split("_", 1)[0]
+        if not (
+            len(version) == 4
+            and version.isdigit()
+            and (version in expected_versions or version > expected_versions[-1])
+        ):
+            raise OwnerAuthorityPreflightError(
+                "source_set",
+                stage="local_source",
+                incident_class="PRE_CONNECT",
+            )
+        if version in expected_versions:
+            migrations.append(path)
     versions = tuple(path.name.split("_", 1)[0] for path in migrations)
-    if versions != schema_role_contract.EXPECTED_VERSIONS:
+    if versions != expected_versions:
         raise OwnerAuthorityPreflightError(
             "source_set",
             stage="local_source",

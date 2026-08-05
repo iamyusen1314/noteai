@@ -82,9 +82,20 @@ class RoleRiskAuditError(RuntimeError):
 
 
 def _source_registry() -> dict[str, str]:
-    migrations = sorted(MIGRATION_DIR.glob("*.sql"))
+    expected_versions = tuple(f"{number:04d}" for number in range(1, 17))
+    migrations = []
+    for path in sorted(MIGRATION_DIR.glob("*.sql")):
+        version = path.name.split("_", 1)[0]
+        if not (
+            len(version) == 4
+            and version.isdigit()
+            and (version in expected_versions or version > expected_versions[-1])
+        ):
+            raise RoleRiskAuditError("source_set", stage="local_source")
+        if version in expected_versions:
+            migrations.append(path)
     versions = tuple(path.name.split("_", 1)[0] for path in migrations)
-    if versions != tuple(f"{number:04d}" for number in range(1, 17)):
+    if versions != expected_versions:
         raise RoleRiskAuditError("source_set", stage="local_source")
     return {
         "executor": hashlib.sha256(EXECUTOR_PATH.read_bytes()).hexdigest(),

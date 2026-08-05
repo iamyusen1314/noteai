@@ -14,7 +14,7 @@ container_name="noteai-schema-roles-v5-owner-${mode}-once"
 import_container_name=noteai-schema-roles-v5-owner-import-once
 executor_sha256=56d148fbbbadc2f8b15c6cfdc5ef978f10b79dbd86dbbf5ccb272dc1ce23972a
 outcome_sha256=223ee1df52e53ef53a7e3247d78a8d4e40e4792876032807d78a25d8a04861fb
-preflight_sha256=2d873101db846689be20d8fee2d4adb21017fe51c54cc4ebfaffd54e58d3ad17
+preflight_sha256=1d8fcbdc854267f148220f877521d21b9a8b644d552678189c6ad4e3c7d94131
 incident_id=PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V5-OWNER-001
 confirmation=PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001
 

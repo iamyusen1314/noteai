@@ -14,7 +14,7 @@ prepared_sentinel="${task_root}/audit.prepared"
 dispatch_sentinel="${task_root}/audit.started"
 container_name=noteai-schema-owner-authority-audit-once
 import_container_name=noteai-schema-owner-authority-import-once
-auditor_sha256=108333e143f0ae64ae173d81b518ce90cbf108a42afa819c91aa33da253bbf91
+auditor_sha256=449f2583daea5ea9cbe47b5a8dd0aa87fb3944ea80e83806248f226206974917
 
 fail_preconnect() {
     printf '%s\n' \

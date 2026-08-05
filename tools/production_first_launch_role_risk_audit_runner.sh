@@ -12,7 +12,7 @@ dispatch_sentinel="${task_root}/dispatch.started"
 api_env=/etc/noteai/api.env
 container_name=noteai-first-launch-role-risk-audit-once
 import_container_name=noteai-first-launch-role-risk-import-once
-auditor_sha256=ff02b14f2b3d0d24b4719d2de41c3d31c3e0b59b63476d10e699e51752b2c437
+auditor_sha256=d146dbd1a9b359b02465233ba66b819bb5fade649a4269c5e4ebb8c0de866f45
 
 fail_preconnect() {
     printf '%s\n' \

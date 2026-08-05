@@ -5,9 +5,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 UNIT_ROOT = ROOT / "deploy" / "production" / "systemd"
-IMAGE_TOKEN = "@@NOTEAI_AI_WORKER_IMAGE@@"
-OPERATION_TOKEN = "@@NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID@@"
-ACTION_TOKEN = "@@NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION@@"
+IMAGE_PLACEHOLDER = "@@NOTEAI_AI_WORKER_IMAGE@@"
+OPERATION_PLACEHOLDER = "@@NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID@@"
+ACTION_PLACEHOLDER = "@@NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION@@"
 
 
 class DurableAiRuntimeUnitTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class DurableAiRuntimeUnitTests(unittest.TestCase):
         )
         for name, source in self.units.items():
             with self.subTest(name=name):
-                self.assertEqual(source.count(IMAGE_TOKEN), 2)
+                self.assertEqual(source.count(IMAGE_PLACEHOLDER), 2)
                 self.assertIn("--pull=never", source)
                 self.assertIn("--user=999:999", source)
                 self.assertIn("--read-only", source)
@@ -92,7 +92,7 @@ class DurableAiRuntimeUnitTests(unittest.TestCase):
             self.assertIn("Restart=no", source)
             self.assertIn("NOTEAI_DURABLE_AI_SUSPENDED=0", source)
             self.assertIn("NOTEAI_DURABLE_AI_ACCEPTANCE_MODE=1", source)
-            self.assertEqual(source.count(OPERATION_TOKEN), 1)
+            self.assertEqual(source.count(OPERATION_PLACEHOLDER), 1)
             self.assertNotIn("production-v1", source)
         self.assertIn("--dispatcher-once", dispatcher)
         self.assertNotIn("--dispatcher-loop", dispatcher)
@@ -100,7 +100,7 @@ class DurableAiRuntimeUnitTests(unittest.TestCase):
         self.assertIn("--worker-once", worker)
         self.assertNotIn("--worker-loop", worker)
         self.assertIn("RuntimeMaxSec=360", worker)
-        self.assertEqual(worker.count(ACTION_TOKEN), 1)
+        self.assertEqual(worker.count(ACTION_PLACEHOLDER), 1)
         self.assertIn("internal-acceptance-v1", worker)
 
 

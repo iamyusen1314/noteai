@@ -113,12 +113,26 @@ def _exact_keys(value: dict[str, Any], expected: set[str], label: str) -> None:
 
 
 def _current_migration_hashes() -> dict[str, str]:
+    expected_versions = tuple(f"{number:04d}" for number in range(1, 17))
     hashes: dict[str, str] = {}
     for path in sorted(MIGRATION_DIR.glob("*.sql")):
         version = path.name.split("_", 1)[0]
-        _require(version.isdigit(), f"migration filename is invalid: {path.name}")
+        _require(
+            len(version) == 4 and version.isdigit(),
+            f"migration filename is invalid: {path.name}",
+        )
+        if version not in expected_versions:
+            _require(
+                version > expected_versions[-1],
+                "repository historical migration set is invalid",
+            )
+            continue
+        _require(
+            version not in hashes,
+            "repository historical migration version is duplicated",
+        )
         hashes[version] = hashlib.sha256(path.read_bytes()).hexdigest()
-    _require(tuple(hashes) == tuple(f"{number:04d}" for number in range(1, 17)),
+    _require(tuple(hashes) == expected_versions,
              "repository migration set must be exactly 0001-0016")
     return hashes
 

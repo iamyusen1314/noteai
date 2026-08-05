@@ -445,6 +445,11 @@ class DurableAiExecutionContractTests(unittest.TestCase):
                 return_value=True,
             ),
             mock.patch.object(
+                durable_ai_worker,
+                "_dispatcher_storage_env_present",
+                return_value=False,
+            ),
+            mock.patch.object(
                 durable_ai,
                 "claim_outbox",
                 return_value=lease,
@@ -484,6 +489,11 @@ class DurableAiExecutionContractTests(unittest.TestCase):
             mock.patch.object(
                 durable_ai,
                 "database_role_matches",
+                return_value=False,
+            ),
+            mock.patch.object(
+                durable_ai_worker,
+                "_dispatcher_storage_env_present",
                 return_value=False,
             ),
             mock.patch.object(
