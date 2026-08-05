@@ -1,13 +1,6 @@
 name: Native AMD64 release evidence
 
 on:
-  push:
-    branches:
-      - codex/quality-stabilization-real-chain
-    paths:
-      - .github/workflows/native-release-evidence.yml
-      - .github/release-requests/admin-5335bda-v2.json
-      - scripts/ci/native_release_evidence.sh
   workflow_dispatch:
     inputs:
       release_commit:
@@ -245,7 +238,7 @@ jobs:
         run: |
           set -euo pipefail
           control_script="${RUNNER_TEMP}/noteai-native-release-evidence.sh"
-          cp scripts/ci/native_release_evidence.sh "${control_script}"
+          cp scripts/ci/native_release_evidence_v2.sh "${control_script}"
           original_script_sha256="$(sha256sum "${control_script}" | awk '{print $1}')"
           if [[ "${NOTEAI_RELEASE_SCOPE}" == "admin" ]]; then
             python3 - "${control_script}" <<'PY'

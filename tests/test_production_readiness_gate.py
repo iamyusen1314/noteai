@@ -1173,7 +1173,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertTrue(api_lines)
         self.assertTrue(all(re.fullmatch(r"[A-Za-z0-9_.-]+(?:\[[A-Za-z0-9_,.-]+\])?==[^\s]+", line) for line in api_lines))
         self.assertIn("pillow==12.3.0", api_lines)
-        self.assertIn("cryptography==48.0.1", api_lines)
+        self.assertIn("cryptography==50.0.0", api_lines)
         self.assertFalse(any(line.lower().startswith("mlflow==") for line in api_lines))
         self.assertIn("alibabacloud-oss-v2==1.3.2", api_lines)
         self.assertIn("alibabacloud_credentials==1.0.10", api_lines)

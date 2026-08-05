@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "native-release-evidence.yml"
 SCRIPT = ROOT / "scripts" / "ci" / "native_release_evidence.sh"
+SUCCESSOR_SCRIPT = ROOT / "scripts" / "ci" / "native_release_evidence_v2.sh"
 ADMIN_REQUEST = (
     ROOT / ".github" / "release-requests" / "admin-5335bda-v2.json"
 )
@@ -17,6 +18,12 @@ ADMIN_REQUEST_SHA256 = (
 
 
 class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
+    def test_legacy_build_script_remains_exact_for_historical_evidence(self):
+        self.assertEqual(
+            hashlib.sha256(SCRIPT.read_bytes()).hexdigest(),
+            "639941a22478cf83e1463babb9b838f8dbf951c4fcdcb8f0b4674a65bee7d3a2",
+        )
+
     def test_workflow_is_bounded_read_only_and_native_amd64(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
@@ -24,15 +31,7 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
         self.assertIn("release_scope:", workflow)
         self.assertIn("default: five", workflow)
         self.assertIn("          - five\n          - admin", workflow)
-        self.assertIn("push:\n    branches:\n      - codex/quality-stabilization-real-chain", workflow)
-        self.assertIn(
-            "paths:\n"
-            "      - .github/workflows/native-release-evidence.yml\n"
-            "      - .github/release-requests/admin-5335bda-v2.json\n"
-            "      - scripts/ci/native_release_evidence.sh",
-            workflow,
-        )
-        self.assertNotRegex(workflow, r"(?m)^  (?:pull_request|schedule):")
+        self.assertNotRegex(workflow, r"(?m)^  (?:push|pull_request|schedule):")
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("runs-on: ubuntu-24.04", workflow)
         self.assertIn('test "$(uname -m)" = "x86_64"', workflow)
@@ -193,8 +192,13 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
         self.assertEqual(workflow.count("sha256sum --check -"), 2)
 
     def test_build_script_covers_five_roles_and_never_starts_or_publishes(self):
-        source = SCRIPT.read_text(encoding="utf-8")
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        source = SUCCESSOR_SCRIPT.read_text(encoding="utf-8")
 
+        self.assertIn(
+            'cp scripts/ci/native_release_evidence_v2.sh "${control_script}"',
+            workflow,
+        )
         self.assertIn("roles=(api admin payment ai-worker xhs-http)", source)
         for target in (
             "api-runtime",
@@ -213,7 +217,7 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
         self.assertNotIn("--push", source)
 
     def test_build_script_enforces_provenance_runtime_and_zero_findings(self):
-        source = SCRIPT.read_text(encoding="utf-8")
+        source = SUCCESSOR_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn("org.opencontainers.image.revision", source)
         self.assertIn("org.opencontainers.image.source", source)
@@ -228,7 +232,11 @@ class NativeReleaseEvidenceWorkflowTests(unittest.TestCase):
         self.assertIn("--scanners secret", source)
         self.assertIn("browser_component_count", source)
         self.assertIn("cryptography_component_count", source)
-        self.assertIn('.name == "cryptography" and .version == "48.0.1"', source)
+        self.assertIn('.name == "cryptography" and .version == "50.0.0"', source)
+        self.assertIn("cryptography_version", source)
+        self.assertIn("cryptography_components", source)
+        self.assertIn('noteai.native-release-evidence.v2', source)
+        self.assertNotIn("cryptography_48_0_1_components", source)
         self.assertIn("forbidden_os_count", source)
         self.assertIn("all($roles[]; .passed == true)", source)
 

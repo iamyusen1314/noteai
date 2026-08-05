@@ -1326,8 +1326,9 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and all(package not in dockerfile for package in ("libgl1", "libglib2.0-0", "libsm6", "libxext6", "libxrender1")),
         ),
         _ok(
-            "cryptography_pins_first_fixed_openssl_wheel",
-            "cryptography==48.0.1" in api_requirement_lines
+            "cryptography_pins_native_scan_fixed_wheel",
+            "cryptography==50.0.0" in api_requirement_lines
+            and "cryptography==48.0.1" not in api_requirement_lines
             and "cryptography==46.0.7" not in api_requirement_lines,
         ),
         _ok(

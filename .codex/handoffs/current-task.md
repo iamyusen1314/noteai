@@ -6483,3 +6483,44 @@ standing authority.
 - Readiness remains internal `20/29` and public `20/38`. Production 0017,
   Dispatcher LOGIN/Secret, an accepted private AI Worker manifest and managed
   cross-host takeover remain open and no production/cloud mutation occurred.
+
+### Durable AI cryptography successor repair prepared (2026-08-05)
+
+- The actionable native finding is repaired at the dependency contract:
+  `model/requirements-api.txt` now pins `cryptography 50.0.0`. No application,
+  payment, Secret-envelope, database, image-base, provider or production
+  runtime behavior was changed.
+- Historical evidence remains immutable. The original
+  `scripts/ci/native_release_evidence.sh` still has exact SHA-256
+  `639941a22478cf83e1463babb9b838f8dbf951c4fcdcb8f0b4674a65bee7d3a2`
+  and retains its v1/48.0.1 contract. The successor runner is the single new
+  `scripts/ci/native_release_evidence_v2.sh`, SHA-256
+  `35f59b31cd7038160c23746909aea6e325251d914cb91b645f65cf8bc7d509a9`;
+  it requires exactly one `cryptography 50.0.0` component and emits the
+  self-describing v2 fields `cryptography_version` and
+  `cryptography_components` while preserving unsuppressed raw findings.
+- The source workflow now invokes only the v2 runner and is manual-only. Its
+  SHA-256 is
+  `3b3efb3235c700ecb4f4ff91978c7a49d83a8208e000e14eae7bff824dcf3aa1`.
+  Removing its legacy push trigger prevents a repair push from consuming a
+  native build before replacement dual CI is accepted; permissions remain
+  `contents: read`, and Registry, deployment, database, service, Secret and
+  public-traffic paths remain absent.
+- Focused verification passed: isolated 50.0.0 Adapay/managed-Secret suites
+  `42/42` with one approved environment skip; native workflow/VEX/current
+  dependency tests `17/17`; frozen Admin Stage-A v2/v3/v4/v5/public-ECR tests
+  `23/23`; both runner shell syntax, Python compilation and diff checks pass.
+  One ad-hoc readiness probe initially asserted the wrong result key
+  (`status` instead of `passed`); its returned product value was already
+  `passed=true`, and the corrected single probe passed without a product
+  change or widened test run.
+- Changed implementation surface is limited to the dependency pin, manual
+  native workflow, successor runner, production dependency description,
+  readiness predicate and directly coupled tests. No historical VEX,
+  evidence, Stage-A executor, image, production resource or custom
+  ledger/receipt/topology was modified.
+- Readiness remains internal `20/29` and public `20/38`. The next acceptance
+  condition is one source checkpoint push, its single replacement push/PR CI
+  cycle, and one complete readiness gate. Only after those pass may one
+  manual successor native run be submitted for the new exact SHA; run
+  `31011637924` remains permanently no-rerun.

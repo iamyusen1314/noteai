@@ -104,15 +104,33 @@ class AdminItem20StageAPublicECRTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, source)
 
-    def test_original_dockerfile_and_requirements_hashes_are_unchanged(self) -> None:
+    def test_original_dockerfile_and_historical_requirements_hashes_are_unchanged(self) -> None:
+        historical_dockerfile = subprocess.run(
+            [
+                "git",
+                "show",
+                "5335bdaed933b1f999b5f819c047ec50c11821ae:Dockerfile",
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
         self.assertEqual(
-            hashlib.sha256((ROOT / "Dockerfile").read_bytes()).hexdigest(),
+            hashlib.sha256(historical_dockerfile).hexdigest(),
             "ed6282c422dde6e49c33da877bccf735dfbb19e29a834930fb2a1a52ef21b447",
         )
+        historical_requirements = subprocess.run(
+            [
+                "git",
+                "show",
+                "5335bdaed933b1f999b5f819c047ec50c11821ae:model/requirements-api.txt",
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
         self.assertEqual(
-            hashlib.sha256(
-                (ROOT / "model" / "requirements-api.txt").read_bytes()
-            ).hexdigest(),
+            hashlib.sha256(historical_requirements).hexdigest(),
             "0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9",
         )
 

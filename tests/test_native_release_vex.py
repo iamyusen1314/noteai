@@ -81,7 +81,7 @@ class NativeReleaseVexTests(unittest.TestCase):
 
     def test_release_dependency_and_training_environments_remain_separate(self):
         requirements = (ROOT / "model" / "requirements-api.txt").read_text(encoding="utf-8")
-        self.assertIn("cryptography==48.0.1", requirements)
+        self.assertIn("cryptography==50.0.0", requirements)
         self.assertNotIn("mlflow==", requirements.lower())
 
 

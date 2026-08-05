@@ -47,8 +47,9 @@ production migration, grant, service start or cash movement.
   implementation uses process-global credential state and can log request
   parameters or signatures. NoteAI reproduces its documented wire signature
   contract with instance-local credentials and pinned
-  `cryptography==48.0.1`, the first release fixed for
-  `GHSA-537c-gmf6-5ccf`. Production role requirements deliberately exclude
+  `cryptography==50.0.0`, which covers the fixes for `CVE-2026-69247` and
+  `CVE-2026-69249` required by the native release scan. Production role
+  requirements deliberately exclude
   MLflow: the current local training-tool release requires
   `cryptography<47`, so training and payment/runtime dependencies must not
   share one production environment.
