@@ -6134,3 +6134,45 @@ change. Continue immediately without another product-owner pause.
   Continue directly with the private-digest canary, negative matrix, reversible
   promotion and non-regression acceptance without repeating Stage A, CI, the
   full readiness gate or the publication.
+
+### Admin Stage C V3 implementation checkpoint (2026-08-05)
+
+- A fresh read-only Cloud Assistant retrieval of the installed historical Admin
+  unit completed through command `c-sz06t11wuzyyigw` / invocation
+  `t-sz06t11wv0gfsw0`; the returned 1,263-byte stream matched accepted SHA-256
+  `c299059d167eab0863639355a6485094e58e3dca6bcec7adbe9f78a3857a1ab2`.
+  Two preceding Workbench form submissions were rejected in the control plane
+  (`InvalidInstance.NotFound` and `InvalidRepeatMode.NotFound`) and did not reach
+  the host or mutate a resource.
+- The Stage C candidate is a deterministic 1,209-byte transform that replaces
+  only the historical private manifest and removes the one direct
+  `PGOPTIONS=-c default_transaction_read_only=on` token. Its SHA-256 is
+  `101f8814d89736c2aa920f3107916b9b1ab53cabffdde0d69908285fd6d1fe8a`;
+  the inverse transform reproduces the historical unit byte-for-byte.
+- `deploy/production/admin_stagec_runtime.py` binds the accepted 5335 revision,
+  private manifest `sha256:d417718ff16ae9a456d2e099182661d320283c2755d3b3978eb82a5cee928c2a`,
+  config `sha256:fa0e658cba59a0adda16f64efb9bdfe543f459d90fe35997bd39046eb7743bd4`,
+  fresh V3 namespace and exact candidate SHA. Source SHA-256 is
+  `503aed01467a1571d5985982505471edf6e10cac07d9c3a28171dfec2046149a`;
+  deterministic transport gzip SHA-256 is
+  `bc8c5619a14365fab31e4ab06283b49deb487db7dd3c9d779677f35edf264f82`
+  and decompresses to the same source SHA.
+- The runtime keeps the previously audited bounded mode order, rollback,
+  session and cleanup behavior. The only contract correction accepts the
+  permitted empty/partial non-secret settings subset and requires the exact
+  PostgreSQL 16 `system_settings` SELECT policy shape, including exact PUBLIC
+  role, canonical qualifier and null `WITH CHECK`. Independent authority and
+  contract audits report GO. Focused normal and optimized tests pass `6/6`,
+  embedded sources compile and `git diff --check` passes.
+- One optional narrow read-only policy query completed through command
+  `c-sz06t13jte9lb0g` / invocation `t-sz06t13jter2lfk` with exit zero but empty
+  output, so it is inconclusive and will not be retried. No production unit,
+  container, listener, database row, Registry, IAM, link or builder state was
+  changed by this implementation checkpoint. Readiness remains `19/29`
+  internal and `19/38` public.
+
+The exact task continues without another pause: perform one fresh API-C
+preflight, transfer only the fixed V3 executor and candidate, pull only the
+accepted private digest if absent, then execute the bounded canary, ACL/RLS
+negative audit, one normal Admin login/logout session, reversible promotion,
+one explicit restart, cleanup and independent API-C/API-F non-regression.

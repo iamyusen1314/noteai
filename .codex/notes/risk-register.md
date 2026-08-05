@@ -836,6 +836,22 @@ Last updated: 2026-08-05
   canary、negative matrix、reversible promotion及non-regression acceptance，禁止重复
   Stage A、CI、full gate或publication。
 
+### Admin Stage C V3 implementation accepted; bounded production execution open
+
+- 状态: Open P1 operational / `19/29`。Stage B private publication、生产link恢复、
+  临时IAM清理及builder正常停机均已验收。Stage C V3 executor固定当前private digest、
+  config、revision和fresh namespace；candidate正向SHA与反向历史unit复原均精确通过。
+- 控制: 仅允许API-C一次fresh preflight、必要时一次exact private-digest pull、loopback
+  canary、只读ACL/RLS负向审计、正常登录/登出产生的一次`admin_sessions` INSERT/DELETE、
+  可逆promotion和一次明确restart；API-F只做独立非回归读取。禁止schema/role/ACL/业务写、
+  公网listener/流量、ACR push/tag/link、IAM、builder启动及重复Stage A/CI/full gate。
+- 验证: V3 source SHA `503aed…149a`，transport gzip SHA `bc8c56…f82`且解压一致；
+  focused normal与`-O`均`6/6`，embedded source compile及diff check通过，独立authority/
+  contract复审均GO。一次可选只读policy查询exit 0但stdout为空，结论inconclusive且不重试。
+- 剩余风险: 唯一未闭合条件是生产Stage C本身尚未执行。任一DB-connected UNKNOWN、
+  candidate身份不一致、健康失败或rollback/cleanup不确定均必须fail closed并保留原Admin；
+  不得以可选诊断文案或WorkBench控制面表单差异扩大设计或增加版本。
+
 ## Low Risks
 
 ### `model/api.py` is too large
