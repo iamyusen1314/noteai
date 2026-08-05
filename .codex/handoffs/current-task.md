@@ -6412,3 +6412,32 @@ standing authority.
 - This is a Secret-free local evidence checkpoint only and must not be pushed
   merely to trigger more CI. No production, Alibaba, Registry, database,
   service, IAM, Secret, Provider or public-traffic mutation occurred.
+
+### Durable AI native-workflow bootstrap closure (2026-08-05)
+
+- The product owner explicitly authorized the smallest protected bootstrap PR.
+  Three independent read-only audits agreed that remote `main` was
+  `5afc1717f09618de7ed7a191133a087d83317e39`, source remained fixed at
+  `0149888d16468c8e8ea055e62ce0aa5d56a28971`, and no bootstrap branch, PR or
+  workflow dispatch for that source SHA existed.
+- A fresh temporary worktree from `origin/main` added exactly one file:
+  `.github/workflows/native-release-evidence.yml`. Its SHA-256 is the frozen
+  source identity `6b8bacf383f1ee9b984b571d28a8a69437b8f69c949cc68a17691351180e430f`;
+  the PR contained one commit, `334` additions and zero deletions. The
+  bootstrap branch push produced zero workflow runs.
+- Ready PR #5 passed its sole required `test` check in GitHub-native run
+  `31011143306`, job `92323340988`, attempt `1`. It had zero review threads,
+  was `MERGEABLE/CLEAN`, and was squash-merged through protected `main` as
+  `e8fa2837566ced8fe55bdf686ade0675952b8fa3`. The unavoidable `main` push CI
+  then passed in run `31011334233`, job `92323999754`, attempt `1`.
+- GitHub now registers workflow ID `320926028` on the default branch, and its
+  default-branch bytes retain the exact frozen SHA-256 above. The remote and
+  local bootstrap branches, clean temporary worktree and two temporary text
+  files were removed after merge; the original source worktree and local
+  checkpoint were not changed by that cleanup.
+- No native evidence dispatch has yet been submitted for `0149888...8971`.
+  Readiness remains internal `20/29` and public `20/38`; the immediate next
+  action is the exact-one `workflow_dispatch` with `release_scope=five`, not a
+  new request commit or V18. Bootstrap changed no application source, build
+  contents, image, production service, Alibaba resource, IAM, Registry,
+  database, provider or public traffic.

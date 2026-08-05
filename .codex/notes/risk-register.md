@@ -233,8 +233,9 @@ Last updated: 2026-08-05
 
 - 状态: `REPOSITORY + DISPOSABLE POSTGRESQL + LOCAL PG-NATIVE SOURCE PASS / REPLACEMENT DUAL-CI PASS / FORMAL GATE 137/137 / NOT DEPLOYED`；内部readiness仍为`20/29`，production仍为Open High。首次失败runs `30978847303`/`30978849570`保持终态且未rerun；直接修复SHA `0149888d16468c8e8ea055e62ce0aa5d56a28971`的push/PR runs `30980871956`/`30980874916`均attempt 1成功，随后唯一正式readiness gate `137/137`通过。
 - 已关闭: 既有owner-bound `202` admission、opaque payload、fenced operation/billing/退款合同继续不变；本阶段增加PostgreSQL权威Outbox、原子`delivered + NOTIFY`、通知丢失轮询恢复、delivered-only Worker claim、15秒lease直接takeover、exact UUID dispatcher和provider-free两轮验收。0017固定SHA为`a73cbefd853cefe7b56c42bed2c5a7f0ba1626e57755c6f9464629b49c42cbbe`，不会重复执行增量ACL或改变现有Worker LOGIN。验收控制器从exact账务、usage、payload、admission、删除请求和匿名审计后态生成证据，不再硬编码成功。
-- 剩余 High: 生产尚未应用0017，Dispatcher仍为NOLOGIN且无专用Secret。`native-release-evidence.yml`不在默认分支`main`，GitHub原生拒绝手动dispatch；Draft PR #2虽`MERGEABLE/CLEAN`但包含相对main的291个累计commit，不能把“启用一个workflow”和“发布全部累计源码”视为同一默认授权。还没有AI Worker镜像证据、受管跨主机两Worker接管、默认暂停正式单元、监控/回滚、真实provider fence或100任务容量证据。
-- 防重复: 首次失败runs和replacement成功runs均保留原生终态，不rerun；唯一完整gate已通过且不重复。下一证据必须先通过受保护main发布既有workflow，再对精确`0149888...8971`和scope `five`发送唯一一次dispatch；禁止试探dispatch、V18或把artifact digest冒充Registry manifest digest。
+- 2026-08-05 workflow bootstrap已关闭: 最小ready PR #5仅增加冻结workflow一文件，SHA-256保持`6b8bacf3…430f`；required PR CI `31011143306`与squash merge `e8fa2837…fa3`后的main push CI `31011334233`均attempt1成功。GitHub已在默认分支注册workflow ID `320926028`，bootstrap远端/本地分支及临时worktree均清理。source仍固定`0149888...8971`，该SHA的manual dispatch计数仍为0。
+- 剩余 High: 生产尚未应用0017，Dispatcher仍为NOLOGIN且无专用Secret。还没有本次AI Worker原生镜像证据、受管跨主机两Worker接管、默认暂停正式单元、监控/回滚、真实provider fence或100任务容量证据。默认分支缺workflow这一硬阻塞已关闭；下一动作是精确一次`0149888...8971`/`five` native dispatch。
+- 防重复: 首次失败runs和replacement成功runs均保留原生终态，不rerun；唯一完整gate已通过且不重复。bootstrap CI和merge CI均已终态成功，不再重复。下一证据只允许一次精确`workflow_dispatch`；若CLI返回502/504或轮询差异，必须从原生run列表发现既有run，禁止重发、V18或把artifact digest冒充Registry manifest digest。
 - 回滚: 当前无生产变更。后续保持admission disabled和正式Worker/Dispatcher suspended；失败时停止exact acceptance/正式单元、保持旧镜像和旧权限，保留operation/settlement匿名审计，不猜测数据库或provider unknown outcome。
 
 ### ALB health semantics could turn a Gateway outage into a whole-site outage
