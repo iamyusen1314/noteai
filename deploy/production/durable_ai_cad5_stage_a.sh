@@ -589,7 +589,7 @@ if [ "$#" -eq 5 ] && [ "$1" = buildx ] && [ "$2" = imagetools ] && [ "$3" = insp
 fi
 if [ "$#" -ge 2 ] && [ "$1" = buildx ] && [ "$2" = build ]; then
   shift 2
-  args=(buildx build --network=none --file "$NOTEAI_WHEELHOUSE_DOCKERFILE" --build-context "noteai_wheelhouse=$NOTEAI_WHEELHOUSE_ROOT")
+  args=(buildx build --network=default --file "$NOTEAI_WHEELHOUSE_DOCKERFILE" --build-context "noteai_wheelhouse=$NOTEAI_WHEELHOUSE_ROOT")
   pull_count=0
   for arg in "$@"; do
     if [ "$arg" = --pull ]; then
@@ -674,7 +674,7 @@ TRIVY_WRAPPER
   [ "$(database_connection_count)" = '0' ]
   [ "$(docker_auth_entry_count)" = '0' ]
   trap - EXIT
-  printf 'NOTEAI_DURABLE_AI_CAD5_STAGE_A=BUILD_PASS release=%s tree=%s image_id=%s evidence_files=11 network=none pip_index=none\n' \
+  printf 'NOTEAI_DURABLE_AI_CAD5_STAGE_A=BUILD_PASS release=%s tree=%s image_id=%s evidence_files=11 build_network=default pip_network=none pip_index=none scanner_mode=offline\n' \
     "$release" "$release_tree" "$image_id"
   printf 'NOTEAI_DURABLE_AI_CAD5_STAGE_A_INPUTS source_bundle_sha256=%s wheelhouse_sha256=%s scanner_bundle_sha256=%s trivy_db_sha256=%s trivy_metadata_sha256=%s\n' \
     "$source_bundle_sha256" "$wheelhouse_sha256" "$scanner_sha256" \

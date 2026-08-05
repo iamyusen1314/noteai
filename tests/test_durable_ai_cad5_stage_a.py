@@ -131,18 +131,20 @@ class DurableAICad5StageATests(unittest.TestCase):
             self.assertEqual((extracted / "SHA256SUMS").read_bytes(), manifest)
             self.assertFalse(any(path.name.startswith("._") for path in root.rglob("*")))
 
-    def test_build_is_offline_and_pip_has_no_index_fallback(self) -> None:
+    def test_build_uses_local_pip_and_offline_scanner_without_global_network_block(self) -> None:
         source = STAGE_A.read_text(encoding="utf-8")
         for expected in (
-            "args=(buildx build --network=none",
+            "args=(buildx build --network=default",
+            "RUN --network=none",
             "--mount=type=bind,from=noteai_wheelhouse,target=/wheelhouse,ro",
             "pip install --no-cache-dir --no-index --find-links=/wheelhouse",
             "--skip-db-update --skip-java-db-update --offline-scan",
             'if [ "$arg" = --pull ]',
             '[ "$pull_count" = 1 ]',
-            "network=none pip_index=none",
+            "build_network=default pip_network=none pip_index=none scanner_mode=offline",
         ):
             self.assertIn(expected, source)
+        self.assertNotIn("args=(buildx build --network=none", source)
         for forbidden in (
             "pip download",
             "--download-db-only",

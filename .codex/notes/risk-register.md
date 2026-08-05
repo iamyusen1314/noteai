@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-05
+Last updated: 2026-08-06
 
 ## Critical Risks
 
@@ -920,6 +920,31 @@ Last updated: 2026-08-05
 - 当前硬条件: 产生一个真实private immutable AI Worker manifest，并由创建时间晚于该
   manifest的新ECS完成一次digest-only fresh import、验收及销毁。完成前禁止0017、
   Dispatcher LOGIN/Secret和生产unit部署；因此本阶段不加readiness credit。
+
+### Durable AI Stage A global network isolation blocked non-PyPI build prerequisites
+
+- 风险描述: Recovery invocation `t-sz06t3nhq4ind34` proved the Stage A
+  wrapper's global BuildKit `--network=none` also disabled the cad5 Dockerfile's
+  reachable Debian `libgomp1` and Meituan npm vertices. It failed in 127 seconds
+  at `offline_ai_worker_build_scan`; this was deterministic DNS isolation, not a
+  slow public download. The AppleDouble import correction itself passed.
+- 直接修复: Restore only the build-level network to `default`. The projected
+  pip RUN remains explicitly `RUN --network=none` with `--no-index` and the
+  hash-verified local wheelhouse; Trivy remains offline with the transferred
+  scanner database. No fourth dependency object, new workflow/version, ledger,
+  receipt or topology layer is added. Focused tests pass `11/11`; two
+  independent reviews return GO with P0/P1=`0/0`.
+- 保留风险: The cad5 source Dockerfile pins the top Meituan package integrity
+  and bundle SHA but not every npm transitive dependency; Debian `libgomp1` is
+  also not snapshot/version pinned. A cold standard-network build can therefore
+  produce a new image/config identity while preserving the accepted runtime
+  semantics. Existing SBOM, vulnerability, role, OCI and runtime checks must
+  accept the actual result; do not claim byte identity with the GitHub local
+  image. Expanding dependency reproducibility is outside this recovery stage.
+- 下一验收: Exact-head push/PR CI must pass before installing the corrected
+  script. Then use the same retained inputs for one budget-bounded recovery.
+  No ACR push is permitted until BUILD_PASS and native tag-absence readback.
+  Readiness remains `20/29`.
 
 ## Low Risks
 

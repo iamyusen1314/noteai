@@ -6767,3 +6767,46 @@ new hash-bound script on the retained clean builder, then perform the bounded
 recovery. Because the failed invocation never reached Docker, that recovery is
 still the sole actual AI Worker build. Registry publication remains exact-one
 and may begin only after `BUILD_PASS` plus native immutable-tag absence.
+
+### Durable AI Stage A build-network scope correction (2026-08-06)
+
+- The AppleDouble correction checkpoint is `e432bab15d3d6900ee243a2f13626d9c69325c8c`.
+  Push run `31031575736` and PR run `31031585132` both completed `success`,
+  attempt `1`, on that exact head; unit tests, Quality, production readiness and
+  Compose all passed without rerun.
+- The reviewed script was sent with `Overwrite=false` and atomically installed
+  on the retained builder as root:root `0500`, SHA-256
+  `7ad43a315f120218a4d105ad1a7f99cf5255581bf891e1d0cd5f458ddceeffe6`.
+  A fail-closed installation preflight first exposed one evidence-boundary
+  mistake: the outer wrapper FAIL marker was in Cloud Assistant output, not in
+  the inner build logfile. Read-only reconciliation fixed the command input;
+  the old logfile was then accepted by exact size/SHA and removed. No build or
+  script replacement occurred during the failed preflight.
+- Recovery invocation `t-sz06t3nhq4ind34` ran once and terminated in `127`
+  seconds at `offline_ai_worker_build_scan`, after archive import but before any
+  image, scan, publish, database or production mutation. The native output
+  proves `apt-get libgomp1` could not resolve Debian and the reachable Meituan
+  `npm pack` vertex was cancelled because the Docker wrapper imposed global
+  `--network=none`. The three source/wheelhouse/scanner inputs remained
+  byte-exact and were not removed.
+- This is a deterministic network-scope defect, not a slow download. The source
+  Dockerfile intentionally requires one apt package and an integrity-pinned
+  Meituan npm package. None of the three retained inputs contains deb/npm
+  payloads. A fully disconnected build would therefore require a new fourth
+  dependency bundle, which is outside the authorized minimal recovery.
+- The direct candidate changes only the Stage A wrapper and focused assertion:
+  BuildKit uses standard `--network=default`; the projected pip RUN alone stays
+  `--network=none --no-index --find-links=/wheelhouse`; Trivy remains in
+  offline mode and uses only the supplied database. C17, cad5 source/tree,
+  requirements, npm
+  version/integrity/bundle SHA, input archives, target and image semantics are
+  unchanged. Focused tests pass `11/11`, shell syntax and diff hygiene pass;
+  candidate script/test SHA-256 values are `2540302e...e4dfd` and
+  `3522ebdb...9a2d0` respectively. Independent read-only review is `GO`,
+  P0/P1=`0/0`.
+
+Readiness remains internal `20/29` and public `20/38`. The exact next
+acceptance is one checkpoint and exact-head push/PR CI pair for this two-line
+network-scope correction, followed by a budget-bounded recovery using the same
+three retained inputs. Publication is still forbidden until `BUILD_PASS` and a
+fresh native ACR tag-absence readback; push remains exact-one.
