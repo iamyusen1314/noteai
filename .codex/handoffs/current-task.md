@@ -6725,3 +6725,45 @@ minimum implementation plus Secret-free records, accept its one push/PR CI
 pair, then execute Stage A in the existing 120-minute budget. Ordinary Git,
 CI and Alibaba decisions are CTO-authorized; only an actual SMS/scan/face
 challenge pauses for the product owner.
+
+### Durable AI Stage A pre-build portability correction (2026-08-06)
+
+- The existing builder received the fixed source bundle, wheelhouse and scanner
+  bundle over the private OSS endpoint. Exact sizes and SHA-256 values matched
+  `1,513,408 / 2a37c49c...bd19b`, `251,013,120 / e1ff9647...01cab` and
+  `185,921,249 / 138cd4ff...e299`. The transfer executor was removed, then the
+  builder role, attached policy, policy and role were deleted in order; native
+  readback proved an empty builder role and both IAM objects absent.
+- The first Stage A invocation terminated deterministically after 26 seconds at
+  `offline_input_extract`, before source import or any Docker build. It created
+  no target image, container, registry auth, database connection, push or
+  production change. Failure cleanup removed the task root and target images;
+  the hash-verified transfer inputs remain on the builder for bounded recovery.
+- Two independent read-only audits plus a builder-side streaming inspection
+  identified one cause: the scanner PAX archive contains twelve macOS
+  AppleDouble `._*` metadata files. Linux GNU tar exposes the top-level
+  `._scanner-bundle`, while local bsdtar hid it. The 119 provenance messages
+  were warnings, not a network timeout. After excluding AppleDouble metadata,
+  wheelhouse manifest coverage is `74/74`, scanner coverage is `6/6`, and all
+  payload hashes match the already accepted archive SHA values.
+- The direct correction changes only
+  `deploy/production/durable_ai_cad5_stage_a.sh` and its focused test. Member
+  validation permits only exact top-level `._$prefix`; extraction discards
+  `._*` and `*/._*` so metadata never enters the manifest tree. C17, source and
+  input hashes, dependencies, scanner payload, evidence acceptance, build
+  network policy and image semantics are unchanged. Corrected script SHA-256 is
+  `7ad43a31...ffe6`; focused test SHA-256 is `f3147737...cede`; tests pass
+  `11/11`.
+- The three private OSS objects were deleted after the definite failed
+  invocation and the bucket is empty. Final empty-bucket deletion reached an
+  actual Alibaba security-verification dialog and is the only interactive
+  cleanup still pending. Readiness remains internal `20/29` and public
+  `20/38`; the sole task remains
+  `PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`.
+
+The exact next acceptance is: finish only the interactive empty-bucket cleanup,
+checkpoint and remotely accept the two-file portability correction, install the
+new hash-bound script on the retained clean builder, then perform the bounded
+recovery. Because the failed invocation never reached Docker, that recovery is
+still the sole actual AI Worker build. Registry publication remains exact-one
+and may begin only after `BUILD_PASS` plus native immutable-tag absence.

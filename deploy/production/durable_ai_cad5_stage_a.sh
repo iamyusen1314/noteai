@@ -219,7 +219,7 @@ verify_archive_members() {
     [ -n "$member" ]
     case "$member" in
       /*|*'../'*|../*|*'/..'|.|..) return 1 ;;
-      "$prefix"|"$prefix"/*) ;;
+      "$prefix"|"$prefix"/*|"._$prefix") ;;
       *) return 1 ;;
     esac
   done < <(tar -tf "$archive")
@@ -245,7 +245,8 @@ extract_verified_archive() {
   local archive="$1" prefix="$2" destination="$3"
   verify_archive_members "$archive" "$prefix"
   install -d -m 0700 "$destination"
-  tar -xf "$archive" --no-same-owner --no-same-permissions -C "$destination"
+  tar --exclude='._*' --exclude='*/._*' -xf "$archive" \
+    --no-same-owner --no-same-permissions -C "$destination"
   [ -d "$destination/$prefix" ] && [ ! -L "$destination/$prefix" ]
   [ -z "$(find "$destination/$prefix" \( -type l -o ! -type d -a ! -type f \) -print -quit)" ]
   chmod -R go-rwx "$destination/$prefix"

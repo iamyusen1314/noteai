@@ -890,21 +890,29 @@ Last updated: 2026-08-05
   `PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`；必须从只读生产基线和现有合同开始，不能复用
   Admin权限、session写或发布动作，也不得在没有精确运行计划时启动worker或真实provider。
 
-### Durable AI Stage A prepared with offline inputs; real manifest remains open
+### Durable AI Stage A portability fix focused; real manifest remains open
 
-- 状态: `PREPARED / 20/29`。cad5ce3 VEX checkpoint
+- 状态: `PRE-BUILD FAILURE IDENTIFIED / DIRECT FIX FOCUSED PASS / 20/29`。cad5ce3 VEX checkpoint
   `fec23879bd54826df92f50a3bda3d1c46311f2a1`的push/PR CI
   `31022136160` / `31022140750`均为exact-head attempt1 success且未rerun。
   新增范围仅为AI Worker Stage A build/publish执行器、pull-only fresh importer
-  及一份focused test；`10/10`、双方shell syntax、compile和diff check均通过，
+  及一份focused test；原始`10/10`、双方shell syntax、compile和diff check均通过，
   两路独立只读终审均GO/P0-P1=0。
+- 真实执行事实: 三个离线输入在builder逐一通过固定size/SHA，transfer IAM随后完整删除。
+  首次Stage A在26秒内、任何Docker build前确定性失败于`offline_input_extract`；零image、
+  container、registry auth、push、DB或生产变更。唯一根因是scanner PAX归档中的12个
+  macOS AppleDouble `._*`元数据项被Linux GNU tar显示、却被本地bsdtar隐藏；业务manifest
+  与payload仍为wheelhouse `74/74`、scanner `6/6`且SHA全匹配。最小修复仅精确允许顶层
+  `._$prefix`并在解包时排除AppleDouble，保持C17、归档SHA、依赖及镜像语义不变；focused
+  tests通过`11/11`。三个OSS对象已删除，空bucket删除只等待真实安全验证完成。
 - 风险控制: 三个builder输入必须在任何build state前分别核对SHA；实际build全局
   `network=none`，pip只读本地wheelhouse且`--no-index`，Trivy只读本地数据库。
   publisher只有一次push，push开始即把结果视为UNKNOWN，只有push/descriptor/raw
   manifest/config四项一致才转为verified；任一后续异常只允许原生控制面对账，禁止重推。
   importer必须是原生新建ECS，Docker初始全零，只按manifest digest拉取一次、不启动容器，
   验收后镜像/auth/task/cache全零；失败主机永久禁止复用并必须销毁系统盘。
-- 剩余风险: 脚本尚未在真实builder/importer执行；Docker零状态本身不能证明fresh ECS。
+- 剩余风险: 修正脚本尚未在真实builder完成Docker build，也未在fresh importer执行；
+  Docker零状态本身不能证明fresh ECS。
   BuildKit固定base/npm/apt缓存、当前wheelhouse/scanner bundle、ACR private/NORMAL/tag
   immutability及exact tag absence仍需原生只读preflight。三对象校验后必须先删除transfer
   IAM再build；ACR push前另建最小publisher权限，push后恢复生产link并清理。任何真实

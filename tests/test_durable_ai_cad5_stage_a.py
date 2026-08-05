@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import io
 import subprocess
+import tarfile
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -84,6 +88,48 @@ class DurableAICad5StageATests(unittest.TestCase):
         self.assertIn("verify_archive_members", source)
         self.assertIn("verify_embedded_manifest", source)
         self.assertIn("scanner-bundle/SHA256SUMS", source.replace('"$root/', "scanner-bundle/"))
+
+    def test_appledouble_metadata_is_validated_but_not_extracted(self) -> None:
+        source = STAGE_A.read_text(encoding="utf-8")
+        self.assertIn('"$prefix"|"$prefix"/*|"._$prefix") ;;', source)
+        self.assertIn(
+            "tar --exclude='._*' --exclude='*/._*' -xf \"$archive\"",
+            source,
+        )
+
+        payload = b"fixed scanner payload\n"
+        manifest = f"{hashlib.sha256(payload).hexdigest()}  bin/scanner\n".encode()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = root / "scanner.tar"
+            destination = root / "out"
+            destination.mkdir()
+            with tarfile.open(archive, "w", format=tarfile.PAX_FORMAT) as bundle:
+                for name, content in (
+                    ("._scanner-bundle", b"appledouble"),
+                    ("scanner-bundle/bin/._scanner", b"appledouble"),
+                    ("scanner-bundle/bin/scanner", payload),
+                    ("scanner-bundle/SHA256SUMS", manifest),
+                ):
+                    member = tarfile.TarInfo(name)
+                    member.size = len(content)
+                    bundle.addfile(member, io.BytesIO(content))
+            subprocess.run(
+                [
+                    "tar",
+                    "--exclude=._*",
+                    "--exclude=*/._*",
+                    "-xf",
+                    str(archive),
+                    "-C",
+                    str(destination),
+                ],
+                check=True,
+            )
+            extracted = destination / "scanner-bundle"
+            self.assertEqual((extracted / "bin/scanner").read_bytes(), payload)
+            self.assertEqual((extracted / "SHA256SUMS").read_bytes(), manifest)
+            self.assertFalse(any(path.name.startswith("._") for path in root.rglob("*")))
 
     def test_build_is_offline_and_pip_has_no_index_fallback(self) -> None:
         source = STAGE_A.read_text(encoding="utf-8")
