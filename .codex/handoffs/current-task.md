@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-03 (Asia/Shanghai)
+> Updated: 2026-08-05 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -6082,7 +6082,7 @@ This is not a retry of the consumed attempt and does not authorize any code,
 image, Stage A, database, public endpoint, public traffic or production-runtime
 change. Continue immediately without another product-owner pause.
 
-### Corrected Stage B private publication accepted; builder stop auth pending (2026-08-04)
+### Corrected Stage B private publication and terminal cleanup accepted (2026-08-05)
 
 - Corrected attempt
   `PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001_STAGE_B_CORRECTED_001` used one
@@ -6115,15 +6115,22 @@ change. Continue immediately without another product-owner pause.
   `200`, loopback-only listeners and zero established PostgreSQL connections.
   These checks made no service, unit, container, listener, database, ACR, IAM,
   link, public-traffic or builder-start mutation.
-- The remaining cleanup is only graceful stopping of existing builder
-  `i-wz99180s9ig5ecq10uaj`. It has no RAM role and no builder ACR link, but the
-  Alibaba account UI requires interactive security verification before a
-  `StopInstance` success receipt can exist; current control-plane state remains
-  `Running`. No duplicate stop submission has been made.
+- After account verification, exact-ID `DescribeInstances` request
+  `019FCF49-7F5C-5EE6-92DC-84A364522D5C` returned HTTP `200` and proved the
+  existing builder was still `Running`. An earlier `StopInstance` request
+  `019FCF45-0CA5-5130-8B03-F7581F063AA0` had carried a UI-inserted trailing
+  newline, returned `404 InvalidInstanceId.NotFound` and changed no resource;
+  it is not counted as a valid stop submission.
+- The one valid graceful `StopInstance` request
+  `019FCF4C-0AE1-511B-9F30-71359AB13864` returned HTTP `200` with `ForceStop`
+  unset/false. Post-stop exact-ID `DescribeInstances` request
+  `019FCF4D-63FF-5647-929E-7DA060C7955E` returned HTTP `200` and native state
+  `Stopped`. The builder remains without a RAM role or builder ACR link; no
+  second valid stop was submitted.
 - Secret-free evidence is
   `deploy/production/evidence/production-admin-stage-b-private-publication-verified-20260804.json`.
-  While stop authentication is pending, readiness remains internal `19/29` and
-  public `19/38`; Stage C remains closed. After one successful graceful stop
-  and native `Stopped` readback, finalize this same record/checkpoint and
-  continue directly into Admin Stage C without repeating Stage A, CI, the full
-  readiness gate or the publication.
+  Terminal cleanup is complete. Readiness remains internal `19/29` and public
+  `19/38` because Stage B adds no duplicate credit; Admin Stage C is now open.
+  Continue directly with the private-digest canary, negative matrix, reversible
+  promotion and non-regression acceptance without repeating Stage A, CI, the
+  full readiness gate or the publication.

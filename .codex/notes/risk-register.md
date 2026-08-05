@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-04
+Last updated: 2026-08-05
 
 ## Critical Risks
 
@@ -821,6 +821,20 @@ Last updated: 2026-08-04
   尚无success receipt且未重复提交。此时仍`19/29` / `19/38`，Stage C保持关闭；验证后
   仅需原生`Stopped`读回并收口同一evidence/checkpoint，不得重复Stage A、CI、full gate或
   publication。
+- 2026-08-05 corrected Stage B publication及builder终态清理已通过: 修正后的临时
+  Enterprise repository Resource精确包含ACR instance segment；唯一corrected publisher
+  invocation和唯一docker push均exit 0，未重试。push/manifest/native digest一致为
+  `sha256:d417718f…c2a`，manifest config/native ImageId/local config一致为
+  `sha256:fa0e658c…bd4`。builder link已删除，生产link精确恢复`RUNNING`且default access
+  false，临时role/policy及builder绑定均删除；API-C/API-F在恢复后各通过三轮loopback
+  live/ready 200且DB established为0。账户验证后，精确ID只读请求`019FCF49…2D5C`
+  证明builder仍`Running`；此前一次带UI尾随换行的无效`StopInstance`请求
+  `019FCF45…3AA0`仅返回`404 InvalidInstanceId.NotFound`且未改变资源。唯一有效的
+  graceful stop `019FCF4C…3864`返回HTTP 200、`ForceStop=false`，随后精确ID只读请求
+  `019FCF4D…955E`确认原生`Stopped`；未提交第二次有效stop。Stage B终态清理Closed，
+  仍为`19/29` / `19/38`且不重复加分；Stage C现已开放，下一硬条件是private-digest
+  canary、negative matrix、reversible promotion及non-regression acceptance，禁止重复
+  Stage A、CI、full gate或publication。
 
 ## Low Risks
 
