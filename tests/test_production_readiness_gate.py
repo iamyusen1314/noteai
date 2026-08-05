@@ -73,6 +73,9 @@ class ProductionReadinessGateTests(unittest.TestCase):
             checks["exact_b55f118_github_native_five_role_source_bundle"]["passed"]
         )
         self.assertTrue(
+            checks["exact_cad5ce3_github_native_five_role_source_bundle"]["passed"]
+        )
+        self.assertTrue(
             checks["exact_b55f118_registry_native_five_role_vex_bundle"]["passed"]
         )
         self.assertTrue(

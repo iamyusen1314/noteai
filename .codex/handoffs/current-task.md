@@ -6614,3 +6614,55 @@ standing authority.
   cryptography 50.0.0 component per role, zero cryptography CVEs and the
   expected unsuppressed canonical Debian `4 Critical / 19 High`; final raw
   gate failure alone is expected and is never a rerun reason.
+
+### Durable AI cad5ce3 native successor and VEX closure (2026-08-05)
+
+- The exact-SHA preflight found zero prior native dispatches. The approved
+  `workflow_dispatch` was then submitted exactly once for
+  `cad5ce35664f617c6e19f90a6159285ddf975594`, scope `five`. Run
+  `31017791512`, job `92346323999`, attempt `1` is terminal and will never be
+  rerun. Source checkout, all five AMD64 builds, inspection, inventory, SBOM,
+  vulnerability/Secret scans and artifact upload passed; only the final raw
+  zero-Critical/High assertion failed as expected.
+- GitHub artifact `8935383018`, named
+  `native-amd64-release-evidence-cad5ce35664f617c6e19f90a6159285ddf975594`,
+  contains exactly `43` regular files, is `1,963,638` bytes and has native
+  archive digest
+  `sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949`.
+  Its `summary.json` SHA-256 is
+  `f35516fb0030e16c8f392db7e308f10e2858cb8f7b9ed2fd3f10a11b0fce6160`.
+  This archive digest is not an OCI Registry manifest digest.
+- Every role has exactly one `cryptography 50.0.0` component and zero
+  cryptography CVEs, Secrets, browser components or forbidden OS packages.
+  The canonical Debian findings remain byte-consistent across all roles at
+  `4 Critical / 19 High`, 23 rows and twelve unique CVEs, with no scanner
+  suppression or fixed Debian version. AI Worker local image/config identity
+  is
+  `sha256:18db7ceff942788bc4ca1c77a466c17570c3fcc6f109957661e1a35f047ba62f`;
+  it is local evidence only and has no `RepoDigest`.
+- The successor CycloneDX 1.6 bundle directly binds the native run/job,
+  attempt, artifact archive digest, five local image/SBOM/raw-report identities,
+  twelve dispositions and `115` exact BOM-Links. It also binds all four
+  production and one-shot acceptance systemd templates at the fixed release
+  blob hashes and checks non-root/read-only/capability-free, no-port,
+  `--pull=never`, default-suspended and bounded acceptance semantics. The VEX
+  serial is `urn:uuid:04d80bd9-6213-520c-9b5f-7089ab2e8752`; evidence/VEX
+  semantic SHA-256 values are `4c9d997f...9c71f` and `7ef605d1...27a9`.
+- Official CycloneDX schema commit
+  `55343ba19dee1785acf1ce9191540d5fd7b590db` and exact schema SHA-256
+  `3e92dddb...afb93` validate the generated VEX with zero errors. Successor and
+  historical focused suites pass `16/16`; all four native VEX verifiers,
+  compilation, JSON parsing and diff hygiene pass. The already-running
+  all-history gate-integration test completed `1/1` in `2149.503s`; it was not
+  restarted or repeated. A final independent read-only audit returned `GO`
+  with no P0/P1. No request, workflow, custom ledger, receipt, topology, V18,
+  Registry, builder, Alibaba, production, database, Secret, provider or
+  public-traffic change was made.
+- The bundle remains `local-image-only`: `production_exception=false`,
+  `deployment_authorization=false`, all Registry digests are null, and the
+  GitHub artifact contains no OCI tar/layout. Internal readiness therefore
+  remains `20/29` and public remains `20/38`. The sole task is still
+  `PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`; the unique next hard condition
+  is a private deployable AI Worker manifest plus a successful fresh-builder
+  import. Only after that may production 0017, Dispatcher LOGIN/Secret and the
+  default-suspended Stage A/B/C acceptance proceed.

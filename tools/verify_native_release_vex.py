@@ -68,6 +68,17 @@ EXPECTED_ROLE_IDENTITIES = {
     },
 }
 
+EXPECTED_NATIVE_SUMMARY_SCHEMA = "noteai.native-release-evidence.v1"
+EXPECTED_FINDINGS = {
+    "critical": 4,
+    "high": 19,
+    "secrets": 0,
+    "browser_components": 0,
+    "cryptography_48_0_1_components": 1,
+    "forbidden_os_packages": 0,
+}
+REVIEW_DEPENDENCY_CHECKS = {"cryptography_48_0_1_per_role": 1}
+
 SOURCE_PATHS = (
     "Dockerfile",
     "model/requirements-api.txt",
@@ -207,6 +218,14 @@ EXPECTED_PROCESS_CALLS = {
     "model/fact_enrichment.py": ("subprocess.run",),
     "model/spider_xhs_http.py": ("subprocess.run",),
 }
+EXPECTED_PRODUCTION_SERVICES = (
+    "api",
+    "admin",
+    "payment",
+    "ai-worker",
+    "xhs-trends",
+    "xhs-tracking",
+)
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -291,14 +310,7 @@ def _source_constraints() -> dict[str, Any]:
             raise ValueError(f"entrypoint accepts forbidden command: {forbidden_command}")
 
     compose = _git_blob("deploy/production/docker-compose.yml").decode("utf-8")
-    service_names = (
-        "api",
-        "admin",
-        "payment",
-        "ai-worker",
-        "xhs-trends",
-        "xhs-tracking",
-    )
+    service_names = EXPECTED_PRODUCTION_SERVICES
     if compose.count('user: "999:999"') != len(service_names):
         raise ValueError("production UID/GID hardening count changed")
     if compose.count("read_only: true") != len(service_names):
@@ -367,6 +379,8 @@ def _component_refs(sbom: dict[str, Any], package_names: set[str]) -> dict[str, 
 def build_evidence(source_dir: Path) -> dict[str, Any]:
     evidence_root = _find_evidence_root(source_dir)
     summary = _json(evidence_root / "summary.json")
+    if summary.get("schema_version") != EXPECTED_NATIVE_SUMMARY_SCHEMA:
+        raise ValueError("native evidence schema mismatch")
     if summary.get("release_commit") != RELEASE_COMMIT:
         raise ValueError("native evidence release commit mismatch")
     if summary.get("runner_architecture") != "x86_64":
@@ -419,14 +433,7 @@ def build_evidence(source_dir: Path) -> dict[str, Any]:
         if any(row["fixed_version"] for row in rows):
             raise ValueError(f"{role}: unexpected fixed Debian row")
         findings = role_summary.get("findings", {})
-        if findings != {
-            "critical": 4,
-            "high": 19,
-            "secrets": 0,
-            "browser_components": 0,
-            "cryptography_48_0_1_components": 1,
-            "forbidden_os_packages": 0,
-        }:
+        if findings != EXPECTED_FINDINGS:
             raise ValueError(f"{role}: native summary finding contract changed")
         if role_summary.get("passed") is not False:
             raise ValueError(f"{role}: raw gate result must remain false")
@@ -637,7 +644,7 @@ def build_review(evidence: dict[str, Any], vex: dict[str, Any]) -> dict[str, Any
             "native_build_and_artifact_upload_passed": True,
             "raw_zero_critical_high_gate_passed": False,
             "raw_reports_canonical_and_unsuppressed": True,
-            "cryptography_48_0_1_per_role": 1,
+            **REVIEW_DEPENDENCY_CHECKS,
             "secret_findings_per_role": 0,
             "browser_components_per_role": 0,
             "cyclonedx_exact_bom_links": True,
@@ -699,20 +706,19 @@ def validate_documents(
                 != identity["vulnerability_sha256"]
             ):
                 errors.append(f"{role}: immutable vulnerability report hash mismatch")
+            expected_secret_sha256 = identity.get("secret_sha256")
+            if expected_secret_sha256 and (
+                role_data.get("raw_reports", {}).get("secret_sha256")
+                != expected_secret_sha256
+            ):
+                errors.append(f"{role}: immutable Secret report hash mismatch")
             if role_data.get("registry_digest") is not None:
                 errors.append(f"{role}: local evidence must not claim a registry digest")
             if role_data.get("platform") != "linux/amd64":
                 errors.append(f"{role}: platform mismatch")
             if role_data.get("raw_gate_passed") is not False:
                 errors.append(f"{role}: raw vulnerability gate result was rewritten")
-            if role_data.get("findings") != {
-                "critical": 4,
-                "high": 19,
-                "secrets": 0,
-                "browser_components": 0,
-                "cryptography_48_0_1_components": 1,
-                "forbidden_os_packages": 0,
-            }:
+            if role_data.get("findings") != EXPECTED_FINDINGS:
                 errors.append(f"{role}: exact finding counts changed")
 
         expected_vex = build_vex(evidence)
