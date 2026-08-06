@@ -331,7 +331,7 @@ verify_stage_a_evidence() {
       .runner_architecture == "x86_64" and (.roles | length) == 1 and
       .roles[0].role == "ai-worker" and .roles[0].target == "ai-worker-runtime" and
       .roles[0].image_id == $image_id and .roles[0].platform == "linux/amd64" and
-      .roles[0].findings.critical == 4 and .roles[0].findings.high == 19 and
+      .roles[0].findings.critical == 0 and .roles[0].findings.high == 2 and
       .roles[0].findings.secrets == 0 and .roles[0].findings.browser_components == 0 and
       .roles[0].findings.cryptography_version == "50.0.0" and
       .roles[0].findings.cryptography_components == 1 and
@@ -393,29 +393,8 @@ verify_stage_a_evidence() {
     [.VulnerabilityID,.PkgName,.InstalledVersion,(.FixedVersion // ""),.Severity] | @tsv' \
     "$evidence_root/ai-worker-vuln-high-critical.json" | LC_ALL=C sort)"
   expected_vulnerabilities="$(LC_ALL=C sort <<'VULNERABILITIES'
-CVE-2025-69720	libncursesw6	6.5+20250216-2		HIGH
-CVE-2025-69720	libtinfo6	6.5+20250216-2		HIGH
-CVE-2025-69720	ncurses-base	6.5+20250216-2		HIGH
-CVE-2025-69720	ncurses-bin	6.5+20250216-2		HIGH
-CVE-2026-13221	perl-base	5.40.1-6		CRITICAL
 CVE-2026-41992	gzip	1.13-1		HIGH
-CVE-2026-42496	perl-base	5.40.1-6		CRITICAL
-CVE-2026-42497	perl-base	5.40.1-6		HIGH
-CVE-2026-48962	perl-base	5.40.1-6		HIGH
-CVE-2026-53615	bsdutils	1:2.41-5		HIGH
-CVE-2026-53615	libblkid1	2.41-5		HIGH
-CVE-2026-53615	liblastlog2-2	2.41-5		HIGH
-CVE-2026-53615	libmount1	2.41-5		HIGH
-CVE-2026-53615	libsmartcols1	2.41-5		HIGH
-CVE-2026-53615	libuuid1	2.41-5		HIGH
-CVE-2026-53615	login	1:4.16.0-2+really2.41-5		HIGH
-CVE-2026-53615	mount	2.41-5		HIGH
 CVE-2026-53615	util-linux	2.41-5		HIGH
-CVE-2026-54369	libacl1	2.3.2-2+b1		HIGH
-CVE-2026-57432	perl-base	5.40.1-6		HIGH
-CVE-2026-57433	perl-base	5.40.1-6		CRITICAL
-CVE-2026-8376	perl-base	5.40.1-6		CRITICAL
-CVE-2026-9538	perl-base	5.40.1-6		HIGH
 VULNERABILITIES
 )"
   [ "$expected_vulnerabilities" = "$actual_vulnerabilities" ]

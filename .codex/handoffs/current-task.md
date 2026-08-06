@@ -6810,3 +6810,240 @@ acceptance is one checkpoint and exact-head push/PR CI pair for this two-line
 network-scope correction, followed by a budget-bounded recovery using the same
 three retained inputs. Publication is still forbidden until `BUILD_PASS` and a
 fresh native ACR tag-absence readback; push remains exact-one.
+
+### Durable AI Stage A network-scope CI accepted; recovery timeout terminally reconciled (2026-08-06)
+
+- The network-scope correction checkpoint is
+  `2254257cedbec4bc27bdde5092ca0bed1051e617`. Push run `31035048544` / job
+  `92404917241` and PR run `31035052862` / job `92404932395` both completed
+  `success`, attempt `1`, on that exact head. Unit tests, Quality, production
+  readiness and Compose all passed; neither run was rerun. The checkpoint and
+  upstream were at divergence `0/0` before these Secret-free record updates.
+- Native `DescribeInstances` first reported the retained builder
+  `i-wz99180s9ig5ecq10uaj` as `Stopped` with a `financial` operation lock. The
+  single bounded `StartInstance` submission was rejected before start as
+  `InstanceExpired`, request `019FD348-C245-58B9-8A2F-C550016A3FD5`.
+  `QueryAccountBalance` then returned cash `0.00 CNY` and available amount
+  `-0.35 CNY`. Automation opened the official recharge page but did not enter
+  an amount or perform payment.
+- After the account owner recharged, native request
+  `019FD708-86E9-5113-AE10-8EE22FBF3AC2` proved cash and available amount both
+  `48.18 CNY`; request `019FD708-C579-591C-81E9-5E14B56CFA8A` proved the
+  builder `Running`, no operation lock, empty auto-release time and native
+  `StartTime=2026-08-06T12:22Z`. No second `StartInstance` was submitted.
+- Read-only preflight invocation `t-sz06t6clvbpiozk` re-proved all three input
+  size/SHA values, the old `7ad43a31...ffe6` script and exact old failed log,
+  with task/image/container/auth/build/DB state all zero. SendFile invoke
+  `f-sz06t6cpu9uca2o` used `Overwrite=false`; atomic install invoke
+  `t-sz06t6csl3p7fnk` replaced the script with root:root `0500`, SHA-256
+  `2540302e88b65927655d4284a046d0cf8f1bcd9554357492beaf5d8aab2e4dfd`,
+  removed only the accepted old failed log and preserved all inputs.
+- The unique recovery build invocation `t-sz06t6cy4r7jbi8` ran from
+  `12:32:17Z` to `12:44:58Z`. Standard-network apt was slow but completed;
+  Meituan npm was cached, and pip installed solely from the local wheelhouse.
+  BuildKit wrote image
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`.
+  The CTO-selected outer `720s` timeout then expired during
+  `evidence_acceptance`, producing stage FAIL plus wrapper exit `124` before a
+  `BUILD_PASS`. Failure cleanup removed the task root and image. This is an
+  execution-timeout error after a slow but successful image build, not a
+  dependency-content, pip-network or Trivy failure.
+- A client stream disconnect delayed control-plane cleanup. Read-only terminal
+  reconciliation invocation `t-sz06t6h6m3q1se8` nevertheless proved the three
+  inputs and installed script unchanged; logfile root:root `0600` has SHA-256
+  `fbb8ead8ae16fc03ba96e1dab8b586653522fb0f71a0b5db0c63c28cbc5a8def`,
+  exactly one stage FAIL, zero BUILD_PASS, one wrapper FAIL and one image-write
+  marker. Task root, exact image ID, canonical/local images, containers, auth,
+  build processes and DB connections were all absent. Registry login/tag/push,
+  IAM, ACR link, database and production mutations remained zero.
+- A stopped-instance control-plane read of the prior network-failure invocation
+  required no builder restart and returned actual builder version
+  `github.com/docker/buildx v0.14.0 171fcbe`, request
+  `019FD745-C90E-55B1-A342-F02E8541D9D3`; the same output proves
+  `default` instance using the `docker` driver, not a `docker-container`
+  builder. The official v0.14.0 command list and root registration contain no
+  `history` command, and there is no `buildx_buildkit_*` container in which to
+  run `buildctl debug histories/get`. The newer Buildx history-attachment
+  forensic route is therefore unavailable through the installed native command
+  surface. Installing another client, creating a Docker `/grpc` proxy or
+  writing a content-store exporter would add an unaccepted recovery control
+  path and is outside the owner's explicit simplification boundary.
+- After the account owner completed the real security verification, the one
+  prepared graceful stop succeeded with request
+  `019FD73C-233D-5063-BDC1-0217FEC1B7AE`. Native read request
+  `019FD73C-E527-5601-8DC5-119B45E51081` proves `Stopped / StopCharging`, no
+  operation lock and empty auto-release time. This record does not claim an
+  exact charge amount or that the declared 30-minute wall-clock window was met.
+
+Readiness remains internal `20/29` and public `20/38`; the sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. Stage A is not accepted because no
+BUILD_PASS, deployable manifest or fresh import exists. Two independent
+read-only audits found no supported no-build recovery: the Engine image, task
+root, eleven evidence files, Docker/OCI archive and Registry source are absent,
+the actual v0.14.0/default-docker-driver command surface has no history export,
+and retained BuildKit cache cannot materialize an Engine image without a new
+build solve. Existing exact-one/no-rerun authority does not cover a second build
+invocation or renewed paid builder window. The minimum required exception is one
+cache-assisted rematerialization using the identical `2254257` script,
+C17 source and three verified inputs, with an outer timeout that covers evidence
+acceptance and cleanup; no code, CI/gate, image-semantic, V18/R17 or custom
+control-layer change is permitted. Publication remains forbidden unless that
+single invocation emits BUILD_PASS, reproduces the exact written image ID and
+then passes native tag-absence, exact-one push and fresh import.
+
+### Authorized cache recovery stopped before build on expired scanner metadata (2026-08-06)
+
+- The product owner explicitly delegated continuing CTO authorization through
+  `29/29`, with pauses only for interactive authentication, expired credentials
+  or insufficient balance. Native balance read request
+  `019FD753-FED0-5C53-BAB4-11AAFC7E24CB` returned `48.18 CNY`; instance read
+  `019FD753-E670-5DAA-93E1-D3220DF93304` proved the retained builder
+  `Stopped / StopCharging` without locks. The one start request
+  `019FD754-4AF6-5A50-A64C-8BE30907F14A` succeeded, and read request
+  `019FD754-9343-58F3-A119-D6D66AC73041` proved `Running` with native
+  `StartTime=2026-08-06T13:47Z`.
+- Read-only preflight invocation `t-sz06t6jvoddm51c` passed. It re-proved the
+  three exact input sizes and hashes, script SHA-256
+  `2540302e88b65927655d4284a046d0cf8f1bcd9554357492beaf5d8aab2e4dfd`,
+  prior failure-log SHA-256
+  `fbb8ead8ae16fc03ba96e1dab8b586653522fb0f71a0b5db0c63c28cbc5a8def`,
+  task/image/container/auth/build/DB state all zero and `22.18GB` retained
+  BuildKit cache.
+- Exactly one authorized cache-recovery command was submitted: invocation
+  `t-sz06t6k2kdmokjk`, command `c-sz06t6k2kd2pds0`, created
+  `2026-08-06T13:52:07Z`, outer timeout `6600s`, Cloud Assistant timeout
+  `7200s`. It terminated after about 52 seconds at `offline_input_extract`,
+  before any Docker build, with one stage FAIL, zero BUILD_PASS and one wrapper
+  FAIL. It was not resubmitted.
+- Read-only terminal reconcile invocation `t-sz06t6kak5qjri8` bound the new
+  failure log to SHA-256
+  `480917e991b4f695c576a0c536ce2346944804e243ba92690b41366570813b2f`.
+  All three input hashes remained exact; task/image/container/auth/build/DB
+  state was zero and Docker had `80107MiB` free. The scanner metadata itself
+  proves the deterministic cause: `UpdatedAt=2026-08-05T13:23:37.971556067Z`,
+  `DownloadedAt=2026-08-05T17:05:02Z` and
+  `NextUpdate=2026-08-06T13:23:37.971555767Z`, while reconciliation time was
+  epoch `1786024483` (`2026-08-06T13:54:43Z`). The strict less-than-24-hour and
+  future-NextUpdate predicates had both expired by about 31 minutes.
+- This is a scanner-input lifecycle expiry, not archive corruption, cache miss,
+  public-download timeout, pip fallback, Trivy scan failure or image change.
+  Stop request `019FD75B-F5A9-5F26-8257-8584D946D55F` succeeded; read request
+  `019FD75C-407E-51CE-B118-B00D588F54FF` proves the builder again
+  `Stopped / StopCharging` without locks. Registry login/tag/push, IAM, ACR
+  link, database and production mutations remained zero.
+
+Readiness remains internal `20/29` and public `20/38`; the sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. The direct recovery is to refresh
+only the offline Trivy DB inside a new root-only scanner-bundle generation,
+recompute its embedded manifest and archive SHA, then pass that new scanner SHA
+to the unchanged accepted script. C17, source, wheelhouse, dependency hashes,
+Dockerfile, image semantics, V18/R17 and CI/full gates remain unchanged. No new
+build is authorized by this record until the refreshed bundle passes native
+freshness, permission, member, manifest and hash acceptance.
+
+### Offline scanner bundle refresh accepted (2026-08-06)
+
+- The owner delegated continuous CTO authorization through `29/29`, pausing
+  only for interactive authentication, expired credentials or insufficient
+  balance. Read request `019FD76D-898E-53F3-8522-0C8D241C65A2` proved the
+  retained builder `Stopped / StopCharging` without locks; balance request
+  `019FD76D-BA7A-59B6-AEB3-DE42B26DA354` returned `47.20 CNY`. Start request
+  `019FD770-F9E5-5B46-93F2-B8ACAAADB0F4` succeeded and read request
+  `019FD771-6896-5410-B83A-1A52F91DE290` proved `Running` with native
+  `StartTime=2026-08-06T14:18Z`.
+- The root-only refresh payload SHA-256
+  `6d45f6f8a2fba6b8c58260665d72f3d9dde3b9276044e264b4bad371511b99e7`
+  passed `bash -n` and independent read-only review with P0/P1=`0/0`. It
+  inherited no credentials, used an empty Docker config and only the bundled
+  Trivy `0.72.0`; Public ECR was first and GHCR only a bounded fallback. It had
+  no build, push, Registry login, IAM or database path.
+- Two overlong pre-submit API-page navigations were reconciled as native
+  `TotalCount=0`; neither created a run. The sole created refresh is command
+  `c-sz06t6ms19ad8u8`, invocation `t-sz06t6ms19kcu80`, created
+  `2026-08-06T14:22:28Z`. It ran once from `14:22:29Z` to `14:24:42Z`, exited
+  zero and downloaded the complete `103.68MiB` Public ECR artifact in about
+  31 seconds; native output has `Dropped=0`, exactly one PASS and zero FAIL.
+- The accepted refreshed scanner archive is
+  `186,587,382 / 1c307bf5f9031a1933b8f45397f64420aec617fc14a06af8ffb428309388d938`.
+  Its DB SHA-256 is
+  `bcd78f506eee5af415d6419644001d162188e2e3f0504b48e50be577a5b55121`
+  and metadata SHA-256 is
+  `4eacd2d4e761a8f8ad0c2d0cdaa87035a5aad4a05857440aed2a1ba4329a3d31`.
+  Metadata is Version 2 with
+  `UpdatedAt=2026-08-06T13:26:59.911565102Z`,
+  `DownloadedAt=2026-08-06T14:23:21.499595503Z` and
+  `NextUpdate=2026-08-07T13:26:59.911564962Z`. All six embedded payload hashes,
+  twelve members, permissions, compression/expansion limits and the retained
+  exact old backup were verified before atomic replacement. Final output
+  proves build/push/auth/database counts all zero.
+- A proposed extra read-only reconcile command was blocked before submission;
+  native read request `019FD780-C2B8-5324-BDAF-D851E8C0E5FD` proves its exact
+  CommandName has `TotalCount=0`. It was not worked around or resubmitted.
+  Existing native output request `019FD781-1870-5489-B4D1-4AAE63E6491A`
+  supplied the complete undropped terminal evidence instead.
+
+Readiness remains internal `20/29` and public `20/38`; the sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. The immediate acceptance is one
+new-input, exact-one successor build using unchanged script SHA
+`2540302e...e4dfd`, C17/source/wheelhouse and the accepted scanner SHA above,
+with outer `6900s` inside Cloud Assistant `7200s`, no retry. Only BUILD_PASS
+and the exact expected image identity permit native immutable-tag absence,
+exact-one private push and fresh-builder import.
+
+### Fresh DB exposed stale vulnerability-row acceptance (2026-08-06)
+
+- The exact-one new-input successor is command `c-sz06t6picf186io`, invocation
+  `t-sz06t6picfg7klc`, created `2026-08-06T14:53:05Z`. It ran once from
+  `14:53:06Z` to `14:56:19Z`, `RepeatMode=Once`, `Repeats=1`, outer `6900s`,
+  Cloud Assistant `7200s`, and exited `1` rather than timing out. Native
+  terminal request `019FD793-DF9C-599B-931D-D746C670318B` records dropped
+  progress bytes but preserves the decisive markers: all build layers were
+  cached, image write reproduced exact ID
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`,
+  then Stage A failed in `evidence_acceptance`. The wrapper records
+  `build_exit=1`, `tee_exit=0`, no retry and no rerun. Fail-closed cleanup
+  removed the task/image before any Registry login, tag, push, database or
+  production mutation.
+- The failure is now reproduced independently without another build. GitHub
+  artifact `8935383018` supplied the immutable C17 AI Worker CycloneDX SBOM.
+  Official Public ECR manifest
+  `sha256:61694172fffbc56e80f347684010b479b29f2f5117279a56579e3781e9e5cbeb`
+  supplied layer
+  `sha256:989166d536c2f1c058895513f54d164de978f3fc03e6afda32e900d4b8730ba4`;
+  its extracted DB SHA is the exact builder value
+  `bcd78f506eee5af415d6419644001d162188e2e3f0504b48e50be577a5b55121`.
+  Official macOS-arm64 Trivy `0.72.0` archive was checksum-verified as
+  `88f208680dc05da2b459e19b4f5aa2b4dc7c2117892ba4aab2ae63baba330016`.
+  Offline SBOM rescan reports exactly `0 Critical / 2 High / 2 rows`, with
+  only `CVE-2026-41992 / gzip / 1.13-1 / HIGH` and
+  `CVE-2026-53615 / util-linux / 2.41-5 / HIGH`; report SHA-256 is
+  `077276d3ed6efb2f3cb1e4a65b9731373615ee6bc0fd0d0f4cfc157d17b379b1`.
+- The sole hard mismatch is the Stage A verifier's historical old-DB contract
+  of `4 Critical / 19 High / 23 rows`. The minimum direct repair changes only
+  that count and exact-row set in
+  `deploy/production/durable_ai_cad5_stage_a.sh`, plus its focused assertions
+  in `tests/test_durable_ai_cad5_stage_a.py`. C17, source/tree, dependencies,
+  Dockerfile, build/pip/Trivy network semantics, image contents, Registry,
+  production resources, V18/R17 and custom control layers are unchanged.
+  Shell syntax and focused Stage A tests pass `11/11`; the readiness JSON
+  parses successfully and the staged diff is clean.
+
+Readiness remains internal `20/29` and public `20/38`. Next checkpoint only
+this direct two-file fix with the current Secret-free records, obtain one
+exact-HEAD push/PR CI pair and one complete readiness gate, then reinstall the
+hash-bound script and perform one new-code recovery. Publication remains
+forbidden until BUILD_PASS, exact image identity, native immutable-tag absence,
+exact-one private push and fresh-builder import all pass.
+
+- Independent read-only review of the final two-file implementation returned
+  `GO`, P0/P1=`0/0`. It independently matched the checksum-verified fresh DB
+  report and confirmed that exact-row equality remains fail-closed while C17,
+  source, wheelhouse, dependency, image, network and exact-one publication
+  semantics are unchanged. Final candidate SHA-256 values are
+  `b2b47ce6e51426646a4f0dec762da695194af6761fe70b95b602428e2cf05a1e`
+  for the Stage A script and
+  `ef7b8366a9c8d86f3d0dac0aee84a91c2fad1921a550f6322fb38eb55a0ef730`
+  for its focused test. `bash -n`, focused `11/11`, JSON parse and
+  `git diff --check` all pass. No successor recovery has been
+  submitted after the terminal failed invocation; the retained builder remains
+  available only for the post-CI new-code recovery.

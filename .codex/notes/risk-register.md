@@ -946,6 +946,109 @@ Last updated: 2026-08-06
   No ACR push is permitted until BUILD_PASS and native tag-absence readback.
   Readiness remains `20/29`.
 
+### Stage A image build completed but outer timeout prevented acceptance
+
+- 风险描述: Checkpoint `2254257cedbec4bc27bdde5092ca0bed1051e617`
+  passed exact-head push/PR CI at attempt 1. After recharge, the unique recovery
+  invocation completed slow apt, local-wheelhouse-only pip and the Docker image
+  write, but the CTO-selected `720s` outer timeout expired during
+  `evidence_acceptance`. The script emitted no BUILD_PASS and fail-closed
+  cleanup removed the image and task root.
+- 可能后果: The written image ID cannot be treated as accepted or published;
+  Stage A still lacks the four required native facts: deployable manifest
+  digest, accepted config/image identity, exact tag reconciliation and a fresh
+  importer success. A second build would conflict with the wrapper's
+  `no_rerun=1` and the product owner's exact-one recovery instruction unless a
+  valid non-build recovery path or an explicit exception is established.
+- 当前控制: Terminal readback binds logfile SHA
+  `fbb8ead8...a8def`, one image-write marker, one stage FAIL, zero BUILD_PASS and
+  zero surviving task/image/container/auth/build/DB state. No registry
+  login/tag/push, IAM, ACR link, database or production mutation occurred. The
+  builder is natively `Stopped / StopCharging`. A stopped-instance native read
+  of the prior invocation proved its actual Buildx is v0.14.0 using the default
+  `docker` driver, not a `docker-container` builder; that installed command
+  surface has no newer `history` attachment export path or BuildKit container
+  target. Installing a new client/proxy/exporter would violate the explicit
+  control-plane simplification boundary. Do not create V18/R17, change image
+  contents, repeat CI/full gates or dispatch another build without the narrow
+  exception below.
+- 下一验收: Two independent read-only audits are complete: no supported
+  no-build recovery exists through the actual v0.14.0/default-docker-driver
+  command surface under the current no-new-control-path boundary, and current
+  exact-one/no-rerun authority does not permit a second build invocation or
+  renewed paid builder window. The minimum exception is one cache-assisted
+  rematerialization with the identical
+  `2254257` script, C17 source and three inputs, sufficient outer timeout for
+  evidence acceptance and cleanup, and no code/CI/gate/image-semantic/V18/R17
+  change. It must reproduce the exact written image ID before native
+  tag-absence, exact-one push and fresh import; otherwise readiness stays
+  `20/29` and publication remains prohibited.
+
+### Offline scanner bundle expired before the authorized cache recovery build
+
+- 风险描述: The authorized cache-recovery invocation
+  `t-sz06t6k2kdmokjk` failed closed in `offline_input_extract` after 52 seconds
+  and before Docker build. Native metadata proves the bundled Trivy DB crossed
+  both its strict 24-hour age and future-NextUpdate limits by about 31 minutes;
+  all archive/input hashes themselves remained exact.
+- 可能后果: The unchanged scanner archive can never pass the current freshness
+  contract at a later wall clock. Repeating the build with that archive would
+  be a blind retry and is prohibited; relaxing time checks or changing host time
+  would falsely accept stale security evidence.
+- 当前控制: Failure log SHA is `480917e9...13b2f`; BUILD_PASS/image/push/auth/DB
+  counts remain zero, task and images are absent, and the builder is natively
+  `Stopped / StopCharging`. C17, dependencies, wheelhouse and image semantics
+  are unchanged. No CI/full gate or V18/R17 is added.
+- 下一验收: Refresh only Trivy DB from its official repository into a new
+  root-only cache with bounded timeout/retry and observable progress; rebuild
+  the scanner archive with a complete SHA256SUMS, then independently verify
+  freshness, permissions, members and hashes. Only its new accepted SHA may be
+  supplied to the unchanged Stage A script; until then readiness stays `20/29`.
+
+### Refreshed scanner is accepted; Stage A successor remains exact-one
+
+- 风险描述: Scanner refresh invocation `t-sz06t6ms19kcu80` succeeded once,
+  but its new archive is an operational input rather than an image acceptance.
+  A second submission of the same successor build would violate the exact-one
+  recovery boundary.
+- 当前控制: Native undropped output binds archive
+  `1c307bf5...8d938`, DB `bcd78f50...b55121`, metadata
+  `4eacd2d4...9a3d31`, Version 2 and NextUpdate
+  `2026-08-07T13:26:59.911564962Z`; it proves build/push/auth/database zero.
+  C17, source, wheelhouse, script, image semantics, CI and gate hashes remain
+  unchanged. A blocked auxiliary reconcile has native `TotalCount=0` and was
+  not resubmitted.
+- 下一验收: Execute one successor build with the new scanner SHA, outer
+  `6900s` and Cloud Assistant `7200s`. Poll only its native InvokeId. Accept
+  only BUILD_PASS plus the expected image ID before immutable-tag absence,
+  exact-one push and a newly created fresh-builder import; otherwise stop
+  publication and preserve the terminal evidence without rerun.
+
+### Historical vulnerability snapshot rejects the fresh official DB
+
+- 风险描述: Exact-one invocation `t-sz06t6picfg7klc` reproduced the expected
+  image ID but failed in evidence acceptance because Stage A hard-coded the old
+  DB's 4 Critical/19 High/23 rows. The exact fresh DB now returns 0 Critical/2
+  High for the immutable C17 AI Worker SBOM.
+- 可能后果: Repeating the unchanged build cannot pass. Relaxing the verifier
+  to counts only would permit arbitrary row drift; retaining the stale list
+  would reject current security truth and encourage stale DB reuse.
+- 当前控制: The build is terminal/no-rerun and fail-closed before Registry or
+  production mutation. Independent local reproduction binds GitHub artifact
+  `8935383018`, Public ECR DB SHA `bcd78f50...b55121`, checksum-verified Trivy
+  `0.72.0`, exact two rows and report SHA `077276d3...79b1`. The direct patch
+  keeps exact-row equality and changes only the expected set plus focused test;
+  it does not change image contents, dependencies, network semantics or
+  production resources. Independent final review is `GO` with P0/P1=`0/0`;
+  final script/test SHA-256 values are `b2b47ce6...05a1e` and
+  `ef7b8366...ef730`, with shell syntax, focused `11/11`, JSON parse and diff
+  checks passing. The single complete readiness gate remains ordered after the
+  exact-HEAD dual CI pair.
+- 下一验收: One checkpoint and one exact-HEAD push/PR CI pair for the two-file
+  direct fix, followed by the single complete readiness gate. Only then install
+  the new script SHA and execute one new-code recovery. Do not reinterpret the
+  failed invocation as BUILD_PASS or start Registry publication early.
+
 ## Low Risks
 
 ### `model/api.py` is too large

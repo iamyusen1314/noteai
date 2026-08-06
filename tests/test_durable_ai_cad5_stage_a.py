@@ -161,8 +161,8 @@ class DurableAICad5StageATests(unittest.TestCase):
         for expected in (
             '.roles[0].role == "ai-worker"',
             '.roles[0].target == "ai-worker-runtime"',
-            ".roles[0].findings.critical == 4",
-            ".roles[0].findings.high == 19",
+            ".roles[0].findings.critical == 0",
+            ".roles[0].findings.high == 2",
             '.roles[0].findings.cryptography_version == "50.0.0"',
             ".roles[0].findings.cryptography_components == 1",
             '["python","durable_ai_worker.py","--once"]',
@@ -171,6 +171,18 @@ class DurableAICad5StageATests(unittest.TestCase):
             "noteai:x:999:999:",
         ):
             self.assertIn(expected, source)
+        vulnerability_rows = (
+            source.split("<<'VULNERABILITIES'\n", 1)[1]
+            .split("\nVULNERABILITIES", 1)[0]
+            .splitlines()
+        )
+        self.assertEqual(
+            vulnerability_rows,
+            [
+                "CVE-2026-41992\tgzip\t1.13-1\t\tHIGH",
+                "CVE-2026-53615\tutil-linux\t2.41-5\t\tHIGH",
+            ],
+        )
 
     def test_publisher_is_exact_one_push_and_keeps_digest_domains_distinct(self) -> None:
         source = STAGE_A.read_text(encoding="utf-8")
