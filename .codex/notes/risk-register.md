@@ -1048,6 +1048,45 @@ Last updated: 2026-08-06
   direct fix, followed by the single complete readiness gate. Only then install
   the new script SHA and execute one new-code recovery. Do not reinterpret the
   failed invocation as BUILD_PASS or start Registry publication early.
+- 当前进展: Checkpoint `0d5179fb...ffcf` is immutable. PR run `31115042410`
+  completed all repository steps successfully at attempt 1; push run
+  `31115038512` failed at action-metadata download before Checkout on native
+  GitHub `Service Unavailable` and was not rerun. The single local complete gate
+  passed `138/138`. This infrastructure failure does not justify code change,
+  V18 or another CI dispatch.
+- 新下一验收: Install only script `b2b47ce6...05a1e` through the independently
+  reviewed atomic payload, then submit one new-code recovery with Cloud
+  Assistant `Timeout=7200` and inner `6900s`. Accept only BUILD_PASS and exact
+  image identity; otherwise reconcile terminal state without rerun.
+
+### Fresh native image-scan report was removed by fail-closed cleanup
+
+- 风险描述: Exact-one invocation `t-sz06t6wangr8s8w` reproduced image ID
+  `sha256:1f503665...0c95` but failed at `evidence_acceptance`. The failure log
+  does not identify the first rejected predicate or print the actual fresh
+  `trivy image` Critical/High row set, and cleanup removed the generated report.
+  The offline CycloneDX SBOM rescan's `0/2` result is not inventory-equivalent
+  proof for the native image scan.
+- 可能后果: Changing the expected vulnerability rows again would be guessing;
+  repeating the build merely to recover diagnostics would violate the recorded
+  exact-one/no-rerun boundary. Treating the reproduced image ID as BUILD_PASS
+  would bypass evidence acceptance.
+- 当前控制: The invocation is terminal with one build, zero retries and zero
+  BUILD_PASS. Read-only reconcile `t-sz06t6x1mbuht6o` binds log SHA
+  `e3a4e94d...df63`, exact marker counts and zero task/image/container/auth/build/
+  database state; all three offline input hashes remain exact. No Registry,
+  ACR, database or production mutation occurred. Stop/read requests
+  `019FD7DE-CC78-584A-983F-DC3CCD0F2984` /
+  `019FD7DF-D421-5C5B-ADFA-3AFEB1327922` prove the builder
+  `Stopped / StopCharging` without locks. Final native output read
+  `019FD7E8-B7B8-58D1-9A91-E47672BC592F` confirms no CVE, summary, count or
+  exact-predicate detail exists in the retained output. Independent audit is
+  `NO-GO`, P0/P1=`0/1`; the rescanned GitHub artifact's AI Worker image ID
+  `18db7cef...a62f` differs from the actual new image `1f503665...0c95`.
+- 下一验收: Obtain the actual native image-scan report or exact failed verifier
+  predicate without inventing V18/R17 or another control layer. Do not change
+  the verifier or restart Stage A from the offline SBOM result alone. Stage B/C
+  and private publication remain closed.
 
 ## Low Risks
 

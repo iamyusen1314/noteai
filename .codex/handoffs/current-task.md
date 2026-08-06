@@ -7047,3 +7047,103 @@ exact-one private push and fresh-builder import all pass.
   `git diff --check` all pass. No successor recovery has been
   submitted after the terminal failed invocation; the retained builder remains
   available only for the post-CI new-code recovery.
+
+### Fresh-DB verifier checkpoint accepted for new-code recovery (2026-08-06)
+
+- The direct verifier checkpoint is
+  `0d5179fb766163ebd2277c77046716089a66ffcf`, tree
+  `8c7ce051adc3e70ab45c6250f29aa04c300371dd`, pushed to the existing branch and
+  draft PR #2 at upstream divergence `0/0`. No second PR or activation version
+  was created.
+- The exact-HEAD push run `31115038512` / job `92662255062` is terminal
+  `failure`, attempt `1`, solely in `Set up job` before Checkout. Its native log
+  records `Service Unavailable`, then `Internal Server Error`, then terminal
+  `Service Unavailable` while resolving action download metadata. No repository
+  code or check step ran, and it was not rerun.
+- The exact-HEAD PR run `31115042410` / job `92662267833` completed `success`,
+  attempt `1`, in `24m35s`. Checkout, model verification, syntax, complete unit
+  tests, Quality, production readiness and Compose all passed. This is the
+  content-executing CI acceptance for the immutable checkpoint; the push-side
+  platform 503 is retained as native infrastructure evidence rather than
+  converted into a code change, V18 or rerun.
+- The single local complete gate then returned
+  `production_readiness=PASS`, `checks=138`, `failed=0`. No duplicate gate
+  process remained. Script/test SHA-256 values remain `b2b47ce6...05a1e` and
+  `ef7b8366...ef730`.
+- Read-only Alibaba requests `019FD7A6-C6C4-5426-B424-6EF583983932` and
+  `019FD7A6-E148-5626-B39C-78FF4AD19148` proved available balance `46.43 CNY`
+  and the retained builder `Running`, no operation lock, no auto-release time,
+  native `StartTime=2026-08-06T14:18Z`. No start or Cloud Assistant command was
+  submitted during CI.
+- The post-gate install payload is gzip
+  `10,926 / 822ec9e5b0375e915daab5f3dbb21d7511cd3a592fdd732f2b2faf071d2739cb`
+  expanding to the accepted script exactly. Minimal install/recovery payloads
+  have SHA-256 `7e6ce65f4ec70e79108ab2d8d3a7b3e2856a40db8d6977bc3904bbef2181383e`
+  and `7b67c08f4290fb3f312911c16c8f280b3ff35d090db25cde6c6eb08e480b4a11`;
+  independent read-only review returned `GO`, P0/P1=`0/0`. The recovery has one
+  build call, no loop/retry, a noclobber log, inner `6900s`; the Cloud Assistant
+  request must itself be set to `7200s`.
+
+Readiness remains internal `20/29` and public `20/38`; the sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. Next acceptance is a small native
+preflight, one overwrite-disabled SendFile plus atomic install, then exactly one
+new-code recovery invocation. Publication remains forbidden until BUILD_PASS,
+the exact expected image identity and native immutable-tag absence all pass.
+
+### New-code Stage A terminal failure and cost-safe reconciliation (2026-08-06)
+
+- Corrected read-only preflight invocation `t-sz06t6v4pys7u2o` passed with the
+  three offline input hashes unchanged, zero task/image/container/auth/build/DB
+  state and the accepted old script still installed. One overwrite-disabled
+  SendFile invocation `f-sz06t6vqal084cg` transferred only gzip
+  `10,926 / 822ec9e5b0375e915daab5f3dbb21d7511cd3a592fdd732f2b2faf071d2739cb`;
+  atomic install invocation `t-sz06t6vyb8bturk` replaced only the Stage A
+  script and proved final `root:root:0500:39125 / b2b47ce6e51426646a4f0dec762da695194af6761fe70b95b602428e2cf05a1e`.
+  The payload was removed and build/push/auth/database state remained zero.
+- Exact pre-submit reconciliation proved no prior command with the selected
+  name. The sole new-code Stage A is command `c-sz06t6wangc9e68`, invocation
+  `t-sz06t6wangr8s8w`, `RepeatMode=Once`, `Repeats=1`, Cloud Assistant timeout
+  `7200s` and inner timeout `6900s`. It ran from `2026-08-06T16:09:10Z` to
+  `16:11:56Z`, exited `1` rather than timing out, reused all Docker build layers
+  and wrote the exact expected image ID
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`.
+  It then emitted exactly one Stage A FAIL at `evidence_acceptance`, zero
+  BUILD_PASS and exactly one wrapper FAIL with `build_exit=1`, `tee_exit=0`,
+  manual/automatic retries `0/0` and `no_rerun=1`. Registry publication was not
+  entered.
+- Read-only terminal reconcile command `c-sz06t6x1mbaimf4`, invocation
+  `t-sz06t6x1mbuht6o`, exited zero with undropped output. It bound the failure
+  log to `51,895 / e3a4e94dc7e6477a37b572d29e8f06053af7e1e171008e7afd38002ce286df63`,
+  proved start/build-pass/stage-fail/wrapper-pass/wrapper-fail/image-write marker
+  counts `1/0/1/0/1/1`, reverified all three offline inputs and proved final
+  task/canonical-image/local-image/container/auth/build/DB state
+  `0/0/0/0/0/0/0`. No ACR tag, Registry auth, database or production mutation
+  exists.
+- Graceful stop request `019FD7DE-CC78-584A-983F-DC3CCD0F2984` succeeded.
+  Native read request `019FD7DF-D421-5C5B-ADFA-3AFEB1327922` proves the PostPaid
+  builder is now `Stopped / StopCharging`, with no operation lock and no
+  auto-release time.
+- Final read-only Cloud Assistant request
+  `019FD7E8-B7B8-58D1-9A91-E47672BC592F` re-read the terminal invocation without
+  starting the builder. Its retained `24,576` output bytes contain no CVE,
+  summary, Critical/High count or verifier-predicate detail; the only decisive
+  tail is the exact image write followed by `phase=evidence_acceptance` and the
+  no-rerun wrapper FAIL. The native record reports `Dropped=27,319`, so it
+  cannot recover the file-only Trivy report.
+- Independent read-only terminal audit is `NO-GO`, P0/P1=`0/1`. The locally
+  rescanned GitHub artifact is CycloneDX for AI Worker image
+  `sha256:18db7ceff942788bc4ca1c77a466c17570c3fcc6f109957661e1a35f047ba62f`,
+  not the actual new image `sha256:1f503665...0c95`; Stage A's shared phase also
+  contains summary, exact-row, inspect, SBOM, secret and base-index predicates.
+  Existing read-only evidence therefore cannot prove which predicate failed.
+
+Readiness remains internal `20/29` and public `20/38`; the sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. The single missing hard fact is the
+fresh native `trivy image` report for the actual immutable image—its exact
+Critical/High counts and CVE row set (equivalently, the exact failed verifier
+predicate). The failure cleanup removed that report, while the retained log
+records only `evidence_acceptance`; the checksum-bound offline CycloneDX SBOM
+rescan is useful but is not proof of the image scanner's inventory. No verifier,
+image, V18/R17, ledger/receipt/topology or production change is authorized by a
+guess. Stage B/C and ACR publication remain closed until this hard fact is
+obtained without reinterpreting the failed invocation as BUILD_PASS.
