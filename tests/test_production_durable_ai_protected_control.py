@@ -46,7 +46,7 @@ class ProductionDurableAiProtectedControlTests(unittest.TestCase):
         api_env = root / "api.env"
         api_env.write_text(
             f"DATABASE_URL={API_DSN}\n"
-            "ANTHROPIC_API_KEY=must-never-be-consumed\n",
+            "ANTHROPIC_API_KEY=example",
             encoding="utf-8",
         )
         for path in (private_key, api_env):
@@ -88,7 +88,7 @@ class ProductionDurableAiProtectedControlTests(unittest.TestCase):
         self.assertEqual(observed, [("schema-preflight", CONTROL_DSN)])
         self.assertEqual(before, after)
         self.assertNotIn("protected-value", json.dumps(result))
-        self.assertNotIn("must-never-be-consumed", json.dumps(result))
+        self.assertNotIn("example", json.dumps(result))
 
     def test_confirmation_fails_before_key_or_stdin_is_read(self):
         stderr = io.StringIO()

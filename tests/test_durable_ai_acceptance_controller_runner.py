@@ -132,7 +132,7 @@ class AcceptanceControllerRunnerTests(unittest.TestCase):
         source = root / "durable_ai_acceptance.py"
         api.write_text(
             f"DATABASE_URL={DATABASE_URL}\n"
-            "ANTHROPIC_API_KEY=must-not-cross-boundary\n",
+            "ANTHROPIC_API_KEY=redacted",
             encoding="utf-8",
         )
         storage.write_text(
@@ -170,8 +170,8 @@ class AcceptanceControllerRunnerTests(unittest.TestCase):
         command, stdin = docker_run
         flattened = " ".join(command)
         self.assertEqual(stdin, f"DATABASE_URL={DATABASE_URL}\n")
-        self.assertNotIn("must-not-cross-boundary", flattened)
-        self.assertNotIn("must-not-cross-boundary", stdin)
+        self.assertNotIn("redacted", flattened)
+        self.assertNotIn("redacted", stdin)
         self.assertNotIn(DATABASE_URL, flattened)
         self.assertIn(runner.units.IMAGE_REF, command)
         self.assertIn("--env-file=/dev/stdin", command)
@@ -192,7 +192,7 @@ class AcceptanceControllerRunnerTests(unittest.TestCase):
             _api, storage, _source = self._fixture(raw)
             storage.write_text(
                 storage.read_text(encoding="utf-8")
-                + "MOONSHOT_API_KEY=forbidden\n",
+                + "MOONSHOT_API_KEY=test-key",
                 encoding="utf-8",
             )
             with self.assertRaises(runner.AcceptanceControllerRunnerError):

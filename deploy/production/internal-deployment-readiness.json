@@ -3743,6 +3743,25 @@
               "py_compile": "pass",
               "direct_script_smoke": "4/4",
               "diff_check": "pass",
+              "pre_ci_hygiene_fixture_fix": {
+                "initial_checkpoint": "e78eadb6ed5980a50f03031cc80ffe478406167b",
+                "push_ci_run_id": 31197650583,
+                "pull_request_ci_run_id": 31197654370,
+                "runs_cancelled_before_readiness_gate": true,
+                "acceptance_credit": false,
+                "cause": "four synthetic provider-key fixture values were outside the existing safe-value set",
+                "files": [
+                  "tests/test_durable_ai_acceptance_controller_runner.py",
+                  "tests/test_durable_ai_unit_installer.py",
+                  "tests/test_production_durable_ai_protected_control.py"
+                ],
+                "focused_tests": "28/28",
+                "targeted_git_hygiene": "6/6",
+                "gate_allowlist_or_hash_changed": false,
+                "production_source_changed": false,
+                "production_calls": 0,
+                "production_mutations": 0
+              },
               "c17_changed": false,
               "production_calls": 0,
               "production_mutations": 0,

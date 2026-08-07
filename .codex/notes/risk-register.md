@@ -1233,6 +1233,13 @@ Last updated: 2026-08-07
   single Dispatcher LOGIN/managed Secret, exact default-suspended units,
   provider-free Worker-C to Worker-F fenced takeover, terminal/refund/deletion
   cleanup and zero temporary residue. Stage A/B/fresh import must not be rerun.
+- The first candidate push exposed only a deterministic repository-hygiene
+  fixture issue: four synthetic provider-key values were outside the gate's
+  existing safe-value set. Its two runs were cancelled before readiness-gate
+  execution. The minimal test-only correction passes the three affected suites
+  `28/28` and targeted git hygiene `6/6`; the gate allowlist, production source
+  and all runtime semantics remain unchanged. This is closed and is not a
+  reason to expand control code or repeat the cancelled runs.
 
 ## Low Risks
 

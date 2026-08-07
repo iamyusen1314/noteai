@@ -7446,3 +7446,24 @@ repeating Stage A/B/fresh import: apply/verify `0017`, activate/reconcile the
 single Dispatcher Secret, install exact default-suspended units, prove the
 provider-free Worker-C to Worker-F fenced takeover and terminal/refund/deletion
 cleanup, then decide Item 21 from native evidence.
+
+### Pre-CI synthetic Secret fixture corrected before gate execution (2026-08-08)
+
+- Checkpoint `e78eadb6ed5980a50f03031cc80ffe478406167b` was pushed once and
+  created push run `31197650583` and pull-request run `31197654370`. A read-only
+  gate audit then proved four synthetic provider-key fixture values would fail
+  the existing tracked-file Secret detector even though they were not real
+  credentials. Both runs were cancelled during unit tests before quality,
+  readiness or compose execution; they are not acceptance evidence.
+- The correction changes only those four synthetic test values to existing
+  approved placeholders and removes their trailing literal newline so the
+  source scanner sees the placeholder exactly. No gate allowlist/hash,
+  production source, C17, image, template, readiness status or cloud resource
+  changed. The three affected suites pass `28/28`; the targeted git-hygiene
+  slice passes `6/6`; `git diff --check` passes.
+
+Readiness remains internal `20/29` and public `20/38`. The sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. The immediate hard condition is one
+minimal fixture-fix checkpoint and its resulting push/PR dual-CI success,
+followed by the single complete readiness-gate run and the bounded production
+acceptance chain. The cancelled pre-fix runs must not be rerun.

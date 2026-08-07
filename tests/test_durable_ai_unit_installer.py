@@ -281,7 +281,7 @@ class DurableAiUnitInstallerTests(unittest.TestCase):
             worker.write_text(
                 "DATABASE_URL=postgresql://noteai_ai_worker:synthetic@"
                 "db.invalid:5432/noteai\n"
-                "ANTHROPIC_API_KEY=forbidden\n",
+                "ANTHROPIC_API_KEY=placeholder",
                 encoding="utf-8",
             )
             storage.write_text("TEST=synthetic\n", encoding="utf-8")
