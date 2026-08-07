@@ -161,8 +161,8 @@ class DurableAICad5StageATests(unittest.TestCase):
         for expected in (
             '.roles[0].role == "ai-worker"',
             '.roles[0].target == "ai-worker-runtime"',
-            ".roles[0].findings.critical == 0",
-            ".roles[0].findings.high == 2",
+            ".roles[0].findings.critical == 4",
+            ".roles[0].findings.high == 19",
             '.roles[0].findings.cryptography_version == "50.0.0"',
             ".roles[0].findings.cryptography_components == 1",
             '["python","durable_ai_worker.py","--once"]',
@@ -179,10 +179,51 @@ class DurableAICad5StageATests(unittest.TestCase):
         self.assertEqual(
             vulnerability_rows,
             [
+                "CVE-2025-69720\tlibncursesw6\t6.5+20250216-2\t\tHIGH",
+                "CVE-2025-69720\tlibtinfo6\t6.5+20250216-2\t\tHIGH",
+                "CVE-2025-69720\tncurses-base\t6.5+20250216-2\t\tHIGH",
+                "CVE-2025-69720\tncurses-bin\t6.5+20250216-2\t\tHIGH",
+                "CVE-2026-13221\tperl-base\t5.40.1-6\t\tCRITICAL",
                 "CVE-2026-41992\tgzip\t1.13-1\t\tHIGH",
+                "CVE-2026-42496\tperl-base\t5.40.1-6\t\tCRITICAL",
+                "CVE-2026-42497\tperl-base\t5.40.1-6\t\tHIGH",
+                "CVE-2026-48962\tperl-base\t5.40.1-6\t\tHIGH",
+                "CVE-2026-53615\tbsdutils\t1:2.41-5\t\tHIGH",
+                "CVE-2026-53615\tlibblkid1\t2.41-5\t\tHIGH",
+                "CVE-2026-53615\tliblastlog2-2\t2.41-5\t\tHIGH",
+                "CVE-2026-53615\tlibmount1\t2.41-5\t\tHIGH",
+                "CVE-2026-53615\tlibsmartcols1\t2.41-5\t\tHIGH",
+                "CVE-2026-53615\tlibuuid1\t2.41-5\t\tHIGH",
+                "CVE-2026-53615\tlogin\t1:4.16.0-2+really2.41-5\t\tHIGH",
+                "CVE-2026-53615\tmount\t2.41-5\t\tHIGH",
                 "CVE-2026-53615\tutil-linux\t2.41-5\t\tHIGH",
+                "CVE-2026-54369\tlibacl1\t2.3.2-2+b1\t\tHIGH",
+                "CVE-2026-57432\tperl-base\t5.40.1-6\t\tHIGH",
+                "CVE-2026-57433\tperl-base\t5.40.1-6\t\tCRITICAL",
+                "CVE-2026-8376\tperl-base\t5.40.1-6\t\tCRITICAL",
+                "CVE-2026-9538\tperl-base\t5.40.1-6\t\tHIGH",
             ],
         )
+
+    def test_build_normalizes_exact_native_evidence_to_root_only_modes(self) -> None:
+        source = STAGE_A.read_text(encoding="utf-8")
+        for expected in (
+            "normalize_stage_a_evidence_permissions()",
+            'for evidence_name in "${expected_evidence_files[@]}"',
+            '[ -f "$evidence_path" ] && [ ! -L "$evidence_path" ]',
+            'chmod 0600 -- "$evidence_path"',
+        ):
+            self.assertIn(expected, source)
+        self.assertEqual(source.count('chmod 0600 -- "$evidence_path"'), 1)
+        acceptance = source.index("phase='evidence_acceptance'")
+        normalization = source.index(
+            "  normalize_stage_a_evidence_permissions\n", acceptance
+        )
+        image_inspection = source.index(
+            '  image_id="$(docker image inspect', normalization
+        )
+        self.assertLess(acceptance, normalization)
+        self.assertLess(normalization, image_inspection)
 
     def test_publisher_is_exact_one_push_and_keeps_digest_domains_distinct(self) -> None:
         source = STAGE_A.read_text(encoding="utf-8")

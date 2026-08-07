@@ -1088,6 +1088,42 @@ Last updated: 2026-08-06
   the verifier or restart Stage A from the offline SBOM result alone. Stage B/C
   and private publication remain closed.
 
+### Evidence-preserving cache rematerialization exposed permission normalization and wrong-image scan attribution
+
+- 状态: Open High / direct fix focused PASS / `20/29`. The explicitly
+  authorized one-time diagnostic is native command `c-sz06t821mue5a0w`,
+  invocation `t-sz06t821muvmkg0`, `Repeats=1`, no retry and no publication. It
+  reproduced exact image ID `sha256:1f503665...0c95`, then failed closed at the
+  first evidence-file `0600` assertion. The exact failing first member is
+  `ai-worker-build-metadata.json`: Buildx atomic metadata output fixes mode
+  `0644` independently of Stage A's `umask 077`.
+- The preserved native image report is authoritative:
+  `4 Critical / 19 High / 23 rows`, SHA-256
+  `ea1ca715e3ccb21c29b2d8372dbccc6513164dfd3de2f3f39d5b100e7b14798e`.
+  Its sorted TSV is identical to GitHub native run `31017791512`. The prior
+  `0/2` verifier change relied on a CycloneDX rescan for image ID
+  `18db7cef...a62f`, not the actual `1f503665...0c95` image, and is therefore
+  reversed rather than compounded.
+- Reconcile invocation `t-sz06t8318a4etc0` verified 11 copied evidence files,
+  manifest `2b36b1b4...a435e`, log
+  `56,994 / 1e43794d...26cab`, all three inputs and final
+  task/image/container/auth/build/DB state `0/0/0/0/0/0/0`. No Registry, IAM,
+  ACR, database or production mutation occurred. Stop/read requests
+  `019FD990-C910-58D5-8CBE-C617C81ECF1B` /
+  `019FD992-B432-525A-A58D-C82204A6663B` prove the builder
+  `Stopped / StopCharging`, unlocked.
+- Minimum mitigation is limited to Stage A plus its focused test: validate the
+  exact 11 expected paths are regular/non-symlink, normalize each to `0600`
+  before verification, and restore exact canonical `4/19/23` acceptance.
+  This preserves fail-closed exact rows and root-only evidence without changing
+  C17, image bytes, dependencies, Dockerfile, network semantics or production.
+  Candidate script/test hashes are `e4643920...cbd18` /
+  `ea142246...af8fc`; `bash -n`, focused `12/12` and diff check pass.
+- 下一验收: final independent GO, checkpoint, one exact-HEAD push/PR CI pair
+  and one complete readiness gate; only then one recovery Stage A. V18/R17,
+  custom ledger/receipt/topology and any premature ACR/Stage B/C action remain
+  prohibited.
+
 ## Low Risks
 
 ### `model/api.py` is too large

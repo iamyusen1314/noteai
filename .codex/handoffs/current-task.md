@@ -7147,3 +7147,70 @@ rescan is useful but is not proof of the image scanner's inventory. No verifier,
 image, V18/R17, ledger/receipt/topology or production change is authorized by a
 guess. Stage B/C and ACR publication remain closed until this hard fact is
 obtained without reinterpreting the failed invocation as BUILD_PASS.
+
+### Evidence-preserving cache rematerialization identified both direct Stage A defects (2026-08-07)
+
+- The owner explicitly overrode the prior exact-one/no-rerun restriction for
+  one evidence-preserving cache rematerialization and delegated subsequent
+  authorization to the CTO. Two independent read-only reviews accepted only
+  diagnostic main script
+  `40,138 / 39a700f4f1732e0147649e7748c379aad77e18876b756bce9196cb2a18273622`,
+  gzip
+  `11,113 / 7d3ecf262a93fb8270891bd55ad001a220bd24904bc855421e89e0dc9a45a8b9`
+  and exact-one wrapper
+  `2,146 / c2784e1e7f92d79cbd4a65363064742589cde845d92bdc5a35daa9b5913257a0`;
+  both reviews were `GO`, P0/P1=`0/0`.
+- Builder preflight invocation `t-sz06t81ea8xr4e8` returned
+  `Success / ExitCode=0 / Repeats=1` with the three input hashes exact, fresh
+  scanner accepted and task/image/container/auth/build/database state zero.
+  Overwrite-disabled SendFile `f-sz06t81n1wkbpxc` installed only the reviewed
+  gzip as `root:root:0600`; atomic install `t-sz06t81st9bw9og` returned
+  `Success / ExitCode=0 / Repeats=1`, installed the exact script SHA and removed
+  the gzip. Exact command-name preflight returned `TotalCount=0`.
+- The sole diagnostic build is command `c-sz06t821mue5a0w`, invocation
+  `t-sz06t821muvmkg0`, request
+  `019FD982-696A-5202-A1A0-310E11C8E2CA`, `RepeatMode=Once`, `Repeats=1`,
+  Cloud timeout `7200s`, outer `6900s`, inner `5400s`, retries `0` and
+  publication disabled. It ran from `2026-08-06T23:57:11Z` to
+  `2026-08-07T00:00:25Z`, exited `1` rather than timing out, reused the local
+  cache and reproduced exact image ID
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`.
+- Native diagnostic evidence proves the actual image has exactly
+  `4 Critical / 19 High / 23 rows`, vulnerability report SHA-256
+  `ea1ca715e3ccb21c29b2d8372dbccc6513164dfd3de2f3f39d5b100e7b14798e`,
+  no secrets and the expected cryptography `50.0.0`. Its sorted 23-row set is
+  byte-identical to GitHub native run `31017791512`; the prior `0/2` contract
+  came from a different-image CycloneDX rescan and is not valid image-scan
+  evidence. The first failed verifier command was the exact `0600` mode check,
+  because Buildx atomically creates `--metadata-file` as `0644` independently
+  of the inherited `umask`.
+- Evidence reconciliation command `c-sz06t83189pff9c`, invocation
+  `t-sz06t8318a4etc0`, returned `Success / ExitCode=0 / Repeats=1`. It verified
+  exact 11 root-only copied evidence files and manifest SHA
+  `2b36b1b4c1a19479b3a6c2c63fd6fdb948a579045a9c234999c4c5ff058a435e`,
+  failure-command SHA
+  `c2a153b423caa2f2cca4bd5f2add93807dd705fd7616af498a176a36a2942a90`
+  and log
+  `56,994 / 1e43794d1d2b1fa4e600e2ffe39aaa5376f3714b8b7101cd6e06f6c940c26cab`.
+  Fail-closed cleanup left task, both images, containers, auth, build and
+  database counts all zero; ACR, IAM, production and database mutations were
+  zero. Stop request `019FD990-C910-58D5-8CBE-C617C81ECF1B` required owner
+  verification; native read `019FD992-B432-525A-A58D-C82204A6663B` now proves
+  `Stopped / StopCharging / PostPaid`, no lock and no auto-release.
+- The minimum direct repair changes only
+  `deploy/production/durable_ai_cad5_stage_a.sh` and
+  `tests/test_durable_ai_cad5_stage_a.py`: exact 11 regular/non-symlink native
+  evidence files are normalized to `0600` before first verification, and the
+  verifier is restored to canonical exact `4/19/23`. C17, source/tree, three
+  inputs, dependency locks, Dockerfile, image contents, build/pip/Trivy network
+  semantics, workflow, Registry and production resources are unchanged.
+  Candidate hashes are `e4643920...cbd18` and `ea142246...af8fc`; shell syntax,
+  focused `12/12` and diff check pass.
+
+Readiness remains internal `20/29` and public `20/38`; the sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. Next acceptance is final independent
+read-only review, one checkpoint and one exact-HEAD push/PR CI pair, followed
+by one complete readiness gate. Only after all pass may one recovery Stage A
+be installed and executed; BUILD_PASS, exact image identity, native private-tag
+absence, exact-one push and fresh-builder import remain required before Stage
+B/C. No V18/R17 or custom ledger/receipt/topology expansion is permitted.
