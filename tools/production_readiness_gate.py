@@ -1138,7 +1138,7 @@ def _ci_unit_test_contract_valid(workflow: str) -> bool:
         and workflow.count(
             "test_admin_dependency_cache_v16_failure_evidence.py"
         ) == 2
-        and workflow.count("timeout-minutes: 25") == 1
+        and workflow.count("timeout-minutes: 35") == 1
     )
 
 

@@ -1124,6 +1124,21 @@ Last updated: 2026-08-06
   custom ledger/receipt/topology and any premature ACR/Stage B/C action remain
   prohibited.
 
+### Exact-HEAD PR CI bounded-timeout cancellation
+
+- 2026-08-07: checkpoint `e3c727a...` push CI `31134471751` completed success,
+  but PR CI `31134476571` / job `92730688438` was cancelled at `25m03s`, exactly
+  at `.github/workflows/ci.yml`'s `timeout-minutes: 25`. The final observed unit
+  group returned `OK`; downstream Quality/readiness/Compose were skipped. This
+  is a real bounded-timeout reliability defect, not a repository test failure,
+  GitHub 502/504, polling difference or reason to create V18.
+- Minimum mitigation: change only the CI timeout to `35` minutes and update the
+  exact readiness-gate/test contract. Focused `6/6`, Python/YAML and diff checks
+  pass; C17, test commands, dependency/build/image/production semantics and
+  V14-V17 historical hashes remain unchanged. Do not rerun the cancelled job.
+  Obtain one new exact-HEAD push/PR CI pair, then run the complete readiness
+  gate exactly once before the already authorized recovery Stage A.
+
 ## Low Risks
 
 ### `model/api.py` is too large

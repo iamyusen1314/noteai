@@ -7214,3 +7214,34 @@ by one complete readiness gate. Only after all pass may one recovery Stage A
 be installed and executed; BUILD_PASS, exact image identity, native private-tag
 absence, exact-one push and fresh-builder import remain required before Stage
 B/C. No V18/R17 or custom ledger/receipt/topology expansion is permitted.
+
+### Exact-HEAD CI timeout root cause and direct repair (2026-08-07)
+
+- Implementation checkpoint `e3c727a35c4af5c51b46081ea45e17bc1255c7d5`
+  is pushed on the existing branch with a clean `0/0` upstream. Its push CI
+  `31134471751` / job `92730674731` / attempt `1` completed `success`, including
+  unit, Quality, production readiness and Compose steps.
+- The parallel PR CI `31134476571` / job `92730688438` / attempt `1` was not a
+  code-test failure. It ran from `00:23:28Z` to `00:48:31Z` and was cancelled
+  exactly at the workflow's bounded `25` minute job timeout. The last observed
+  unit-test group returned `OK` immediately before native
+  `The operation was canceled`; Quality, production readiness and Compose were
+  skipped. The cancelled run is retained and will not be rerun.
+- The direct reliability repair changes only the CI job timeout `25 -> 35` and
+  the exact corresponding readiness-gate and anti-drift test assertions. It
+  does not change triggers, permissions, test commands, C17, dependencies,
+  builds, images, Stage A, Registry or production resources. V14-V17 historical
+  hashes remain frozen and are not rewritten.
+- Focused checks pass `6/6`; Python compilation, YAML parsing and
+  `git diff --check` pass. New Secret-free hashes are CI
+  `96821e6c...9fe1`, gate `36e8406d...7463`, and test
+  `d3149dca...135b`. The reviewed recovery payload remains
+  `11,187 / 4d10f148...4ec76`; preflight/install/run wrappers are independently
+  `GO`, P0/P1=`0/0`, with a single build and no retry or publication.
+
+Readiness remains internal `20/29` and public `20/38`. The next action is one
+checkpoint and push of this direct timeout repair, then one new exact-HEAD
+push/PR CI pair. Only after both succeed will one complete local readiness gate
+run; then the retained builder may be started for the already authorized single
+recovery Stage A. No V18/R17, cancelled-job rerun or custom control expansion is
+permitted.
