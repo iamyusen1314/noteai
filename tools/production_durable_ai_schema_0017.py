@@ -85,10 +85,17 @@ def source_contract() -> dict[str, Any]:
 
 
 def _connect() -> Any:
-    if psycopg is None:
-        raise DurableAiSchemaError("psycopg_unavailable")
     database_url = os.environ.get(DATABASE_URL_ENV, "").strip()
     if not database_url:
+        raise DurableAiSchemaError("database_url_missing")
+    return connect_database_url(database_url)
+
+
+def connect_database_url(database_url: str) -> Any:
+    """Connect from an in-memory protected value without using argv or env."""
+    if psycopg is None:
+        raise DurableAiSchemaError("psycopg_unavailable")
+    if not isinstance(database_url, str) or not database_url:
         raise DurableAiSchemaError("database_url_missing")
     try:
         return psycopg.connect(
@@ -99,7 +106,11 @@ def _connect() -> Any:
         raise DurableAiSchemaError("database_connect") from None
 
 
-def _activate_owner(conn: Any) -> None:
+def _activate_owner(
+    conn: Any,
+    *,
+    expected_session_role: str | None = None,
+) -> None:
     conn.execute(f"SET LOCAL ROLE {OWNER_ROLE}")
     identity = conn.execute(
         "SELECT session_user AS session_role,current_user AS current_role"
@@ -108,6 +119,10 @@ def _activate_owner(conn: Any) -> None:
         identity is None
         or identity["current_role"] != OWNER_ROLE
         or identity["session_role"] in RUNTIME_ROLES
+        or (
+            expected_session_role is not None
+            and identity["session_role"] != expected_session_role
+        )
     ):
         raise DurableAiSchemaError("owner_activation")
 
@@ -245,30 +260,77 @@ def _verify_postconditions(conn: Any, contract: dict[str, Any]) -> dict[str, Any
     }
 
 
-def apply_schema(conn: Any, contract: dict[str, Any]) -> dict[str, Any]:
+def _verify_preconditions(conn: Any, contract: dict[str, Any]) -> dict[str, Any]:
+    _verify_ledger(
+        _ledger_rows(conn),
+        PRIOR_MIGRATION_NAMES,
+        contract["migration_hashes"],
+    )
+    if _worker_select_columns(conn) != WORKER_SELECT_BEFORE:
+        raise DurableAiSchemaError("precondition_worker_select_columns")
+    present = conn.execute(
+        "SELECT to_regclass(%s) IS NOT NULL AS index_present,"
+        "EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' "
+        "AND tablename='ai_operation_outbox' AND policyname=%s) "
+        "AS policy_present",
+        (f"public.{INDEX_NAME}", POLICY_NAME),
+    ).fetchone()
+    if (
+        present is None
+        or bool(present["index_present"])
+        or bool(present["policy_present"])
+    ):
+        raise DurableAiSchemaError("precondition_schema_object")
+    _runtime_role_snapshot(conn)
+    return {
+        "ledger_count": len(PRIOR_MIGRATION_NAMES),
+        "ledger_last": PRIOR_MIGRATION_NAMES[-1],
+        "delivered_index_count": 0,
+        "delivered_policy_count": 0,
+        "worker_scoped_select_column_count": sum(
+            map(len, WORKER_SELECT_BEFORE.values())
+        ),
+        "runtime_role_count": len(RUNTIME_ROLES),
+    }
+
+
+def preflight_schema(
+    conn: Any,
+    contract: dict[str, Any],
+    *,
+    expected_session_role: str | None = None,
+) -> dict[str, Any]:
+    with conn.transaction():
+        conn.execute("SET TRANSACTION READ ONLY")
+        conn.execute("SET LOCAL statement_timeout='30s'")
+        conn.execute("SET LOCAL lock_timeout='5s'")
+        _activate_owner(conn, expected_session_role=expected_session_role)
+        verification = _verify_preconditions(conn, contract)
+    return {
+        "status": "verified",
+        "mode": "preflight",
+        "read_only": True,
+        "database_writes": 0,
+        "provider_calls": 0,
+        "verification": verification,
+    }
+
+
+def apply_schema(
+    conn: Any,
+    contract: dict[str, Any],
+    *,
+    expected_session_role: str | None = None,
+) -> dict[str, Any]:
     with conn.transaction():
         conn.execute("SET LOCAL statement_timeout='60s'")
         conn.execute("SET LOCAL lock_timeout='5s'")
         conn.execute("SET LOCAL idle_in_transaction_session_timeout='90s'")
-        _activate_owner(conn)
+        _activate_owner(conn, expected_session_role=expected_session_role)
         conn.execute(
             "SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))"
         )
-        _verify_ledger(
-            _ledger_rows(conn), PRIOR_MIGRATION_NAMES,
-            contract["migration_hashes"],
-        )
-        if _worker_select_columns(conn) != WORKER_SELECT_BEFORE:
-            raise DurableAiSchemaError("precondition_worker_select_columns")
-        present = conn.execute(
-            "SELECT to_regclass(%s) IS NOT NULL AS index_present,"
-            "EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' "
-            "AND tablename='ai_operation_outbox' AND policyname=%s) "
-            "AS policy_present",
-            (f"public.{INDEX_NAME}", POLICY_NAME),
-        ).fetchone()
-        if present["index_present"] or present["policy_present"]:
-            raise DurableAiSchemaError("precondition_schema_object")
+        _verify_preconditions(conn, contract)
         role_before = _runtime_role_snapshot(conn)
         conn.execute(contract["migration_payload"].decode("utf-8"))
         inserted = conn.execute(
@@ -290,12 +352,17 @@ def apply_schema(conn: Any, contract: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def verify_schema(conn: Any, contract: dict[str, Any]) -> dict[str, Any]:
+def verify_schema(
+    conn: Any,
+    contract: dict[str, Any],
+    *,
+    expected_session_role: str | None = None,
+) -> dict[str, Any]:
     with conn.transaction():
         conn.execute("SET TRANSACTION READ ONLY")
         conn.execute("SET LOCAL statement_timeout='30s'")
         conn.execute("SET LOCAL lock_timeout='5s'")
-        _activate_owner(conn)
+        _activate_owner(conn, expected_session_role=expected_session_role)
         verification = _verify_postconditions(conn, contract)
     return {
         "status": "verified", "mode": "verify", "read_only": True,
@@ -307,6 +374,7 @@ def verify_schema(conn: Any, contract: dict[str, Any]) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument("--preflight", action="store_true")
     action.add_argument("--apply", action="store_true")
     action.add_argument("--verify", action="store_true")
     args = parser.parse_args(argv)
@@ -318,9 +386,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         contract = source_contract()
         conn = _connect()
-        result = apply_schema(conn, contract) if args.apply else verify_schema(
-            conn, contract
-        )
+        if args.preflight:
+            result = preflight_schema(conn, contract)
+        elif args.apply:
+            result = apply_schema(conn, contract)
+        else:
+            result = verify_schema(conn, contract)
     except DurableAiSchemaError as exc:
         print(f"production_durable_ai_schema_0017=FAIL code={exc.code}",
               file=sys.stderr)

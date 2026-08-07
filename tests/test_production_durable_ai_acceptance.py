@@ -27,14 +27,20 @@ class ProductionDurableAiAcceptanceTests(unittest.TestCase):
                     "NOTEAI_DEPLOYMENT_STAGE": "production",
                     "NOTEAI_RUNTIME_ROLE": "api",
                     "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+                    acceptance.CARRIER_ENV: acceptance.CARRIER_ROLE,
                     acceptance.CONFIRM_ENV: "",
                 },
                 clear=True,
             ),
             mock.patch.object(acceptance.db, "using_postgres", return_value=True),
             mock.patch.object(
-                acceptance.durable_ai,
-                "database_role_matches",
+                acceptance,
+                "_api_database_role_matches",
+                return_value=True,
+            ),
+            mock.patch.object(
+                acceptance,
+                "_carrier_role_matches",
                 return_value=True,
             ),
             mock.patch.object(
@@ -50,29 +56,83 @@ class ProductionDurableAiAcceptanceTests(unittest.TestCase):
             acceptance._require_context(mutate=True)
 
     def test_provider_secret_presence_fails_closed(self):
-        with (
-            mock.patch.dict(
-                os.environ,
-                {
-                    "NOTEAI_DEPLOYMENT_STAGE": "production",
-                    "NOTEAI_RUNTIME_ROLE": "api",
-                    "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
-                    "ANTHROPIC_API_KEY": "synthetic-never-print",
-                },
-                clear=True,
-            ),
-            mock.patch.object(acceptance.db, "using_postgres", return_value=True),
-            mock.patch.object(
-                acceptance.durable_ai,
-                "database_role_matches",
-                return_value=True,
-            ),
-            self.assertRaisesRegex(
-                acceptance.AcceptanceError,
-                "provider_secret_present",
-            ),
+        for secret_name in ("ANTHROPIC_API_KEY", "AMAP_WEB_KEY"):
+            with (
+                self.subTest(secret_name=secret_name),
+                mock.patch.dict(
+                    os.environ,
+                    {
+                        "NOTEAI_DEPLOYMENT_STAGE": "production",
+                        "NOTEAI_RUNTIME_ROLE": "api",
+                        "NOTEAI_DURABLE_AI_ACCEPTANCE_MODE": "1",
+                        acceptance.CARRIER_ENV: acceptance.CARRIER_ROLE,
+                        secret_name: "synthetic-never-print",
+                    },
+                    clear=True,
+                ),
+                mock.patch.object(
+                    acceptance.db, "using_postgres", return_value=True
+                ),
+                mock.patch.object(
+                    acceptance,
+                    "_api_database_role_matches",
+                    return_value=True,
+                ),
+                mock.patch.object(
+                    acceptance,
+                    "_carrier_role_matches",
+                    return_value=True,
+                ),
+                self.assertRaisesRegex(
+                    acceptance.AcceptanceError,
+                    "provider_secret_present",
+                ),
+            ):
+                acceptance._require_context(mutate=False)
+
+    def test_api_database_role_requires_exact_session_and_current_role(self):
+        with mock.patch.object(
+            acceptance.db,
+            "fetchone",
+            return_value={
+                "session_role": "noteai_app",
+                "database_role": "noteai_app",
+            },
         ):
-            acceptance._require_context(mutate=False)
+            self.assertTrue(acceptance._api_database_role_matches())
+        for row in (
+            {"session_role": "task", "database_role": "noteai_app"},
+            {"session_role": "noteai_app", "database_role": "noteai_admin"},
+            None,
+        ):
+            with self.subTest(row=row), mock.patch.object(
+                acceptance.db, "fetchone", return_value=row
+            ):
+                self.assertFalse(acceptance._api_database_role_matches())
+
+    def test_carrier_role_requires_exact_env_and_immutable_marker(self):
+        with mock.patch.dict(
+            os.environ,
+            {acceptance.CARRIER_ENV: acceptance.CARRIER_ROLE},
+            clear=True,
+        ), mock.patch.object(
+            acceptance.Path,
+            "read_text",
+            return_value="ai-worker\n",
+        ):
+            self.assertTrue(acceptance._carrier_role_matches())
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(acceptance._carrier_role_matches())
+        with mock.patch.dict(
+            os.environ,
+            {acceptance.CARRIER_ENV: acceptance.CARRIER_ROLE},
+            clear=True,
+        ), mock.patch.object(
+            acceptance.Path,
+            "read_text",
+            return_value="api\n",
+        ):
+            self.assertFalse(acceptance._carrier_role_matches())
 
     def test_hold_and_terminal_observations_are_exact(self):
         nonce = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
@@ -119,6 +179,266 @@ class ProductionDurableAiAcceptanceTests(unittest.TestCase):
                 acceptance.observe(nonce, "terminal")["acceptance"],
                 "terminal",
             )
+
+    def test_resolve_admission_proves_full_commit_read_only(self):
+        nonce = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        user_id = "00000000-0000-4000-8000-000000000101"
+        operation_id = acceptance.durable_ai.operation_id_for(
+            user_id,
+            "analyze",
+            acceptance._request_id(nonce),
+        )
+        request_ref_id = acceptance.durable_ai.payload_reference_id_for(
+            operation_id,
+            "request",
+        )
+        with (
+            mock.patch.object(acceptance, "_require_context"),
+            mock.patch.object(
+                acceptance.db,
+                "fetchone",
+                side_effect=(
+                    {"id": user_id},
+                    {
+                        "status": "queued",
+                        "provider_phase": "not_started",
+                        "claim_count": 0,
+                        "provider_attempt_count": 0,
+                        "idempotency_request_id": acceptance._admission_request_id(
+                            operation_id
+                        ),
+                        "idempotency_status": "running",
+                        "charge_applied": 1,
+                        "usage_created": 1,
+                        "billing_state": "charged",
+                        "request_ref_id": request_ref_id,
+                        "payload_state": "ready",
+                        "purpose": "request",
+                        "outbox_state": "pending",
+                    },
+                ),
+            ),
+        ):
+            result = acceptance.resolve_admission(nonce)
+        self.assertEqual(result["status"], "admission_resolved")
+        self.assertEqual(result["operation_id"], operation_id)
+        self.assertTrue(result["read_only"])
+
+    def test_resolve_admission_classifies_user_only_partial_state(self):
+        nonce = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        user_id = "00000000-0000-4000-8000-000000000101"
+        with (
+            mock.patch.object(acceptance, "_require_context"),
+            mock.patch.object(
+                acceptance.db,
+                "fetchone",
+                side_effect=(
+                    {"id": user_id},
+                    None,
+                    {
+                        "operation_count": 0,
+                        "admission_count": 0,
+                        "idempotency_count": 0,
+                        "settlement_count": 0,
+                        "outbox_count": 0,
+                        "payload_ref_count": 0,
+                    },
+                ),
+            ),
+        ):
+            result = acceptance.resolve_admission(nonce)
+        self.assertEqual(result["status"], "admission_absent")
+        self.assertTrue(result["user_present"])
+        self.assertTrue(result["recoverable"])
+
+    def test_admit_reuses_only_a_classified_user_only_partial_state(self):
+        nonce = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        user_id = "00000000-0000-4000-8000-000000000101"
+        operation_id = acceptance.durable_ai.operation_id_for(
+            user_id,
+            "analyze",
+            acceptance._request_id(nonce),
+        )
+        with (
+            mock.patch.object(acceptance, "_require_context", return_value=object()),
+            mock.patch.object(acceptance.db, "fetchone", return_value={"id": user_id}),
+            mock.patch.object(
+                acceptance,
+                "resolve_admission",
+                return_value={
+                    "status": "admission_absent",
+                    "user_present": True,
+                },
+            ),
+            mock.patch.object(
+                acceptance,
+                "_admission_database_absent",
+                return_value=True,
+            ),
+            mock.patch.object(
+                acceptance,
+                "_ensure_admission_anchor",
+                return_value={
+                    "anchor_created": False,
+                    "private_object_anchor_writes": 0,
+                    "private_object_anchor_reads": 1,
+                },
+            ),
+            mock.patch.object(
+                acceptance.durable_ai,
+                "admit_job",
+                return_value={
+                    "state": "admitted",
+                    "operation_id": operation_id,
+                },
+            ) as admit_job,
+            mock.patch.object(acceptance.auth, "create_user") as create_user,
+        ):
+            result = acceptance.admit(nonce)
+        self.assertEqual(result["status"], "admitted")
+        self.assertEqual(result["operation_id"], operation_id)
+        admit_job.assert_called_once()
+        create_user.assert_not_called()
+
+    def test_admit_unknown_preserves_new_user_as_deterministic_recovery_anchor(self):
+        nonce = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        user_id = "00000000-0000-4000-8000-000000000101"
+        store = acceptance.durable_ai.InMemoryPayloadStore()
+        with (
+            mock.patch.object(acceptance, "_require_context", return_value=store),
+            mock.patch.object(acceptance.db, "fetchone", return_value=None),
+            mock.patch.object(
+                acceptance.auth,
+                "create_user",
+                return_value={"id": user_id},
+            ),
+            mock.patch.object(
+                acceptance.durable_ai,
+                "admit_job",
+                side_effect=OSError("synthetic object outcome unknown"),
+            ),
+            mock.patch.object(acceptance.db, "transaction") as transaction,
+            self.assertRaises(OSError),
+        ):
+            acceptance.admit(nonce)
+        transaction.assert_not_called()
+        operation_id = acceptance.durable_ai.operation_id_for(
+            user_id,
+            "analyze",
+            acceptance._request_id(nonce),
+        )
+        retained = acceptance._ensure_admission_anchor(
+            store,
+            user_id=user_id,
+            operation_id=operation_id,
+        )
+        self.assertFalse(retained["anchor_created"])
+
+    def test_delete_reuses_deterministic_pending_request(self):
+        nonce = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        operation_id = "00000000-0000-4000-8000-000000000117"
+        user_id = "00000000-0000-4000-8000-000000000101"
+        deletion_id = acceptance._deletion_request_id(operation_id)
+        with (
+            mock.patch.object(acceptance, "_require_context", return_value=object()),
+            mock.patch.object(
+                acceptance,
+                "observe",
+                return_value={"operation_id": operation_id, "user_id": user_id},
+            ),
+            mock.patch.object(
+                acceptance.db,
+                "fetchone",
+                return_value={
+                    "id": deletion_id,
+                    "user_id": user_id,
+                    "status": "requested",
+                },
+            ),
+            mock.patch.object(
+                acceptance.content_retention,
+                "request_account_deletion_with_storage",
+            ) as request_deletion,
+            mock.patch.object(
+                acceptance.content_retention,
+                "process_due_account_deletions",
+                return_value=[deletion_id],
+            ),
+            mock.patch.object(
+                acceptance,
+                "resolve_primary_deletion",
+                return_value={
+                    "status": "primary_deleted",
+                    "nonce": nonce,
+                    "operation_id": operation_id,
+                    "provider_calls": 0,
+                },
+            ),
+        ):
+            result = acceptance.delete_primary(nonce, operation_id)
+        self.assertEqual(result["status"], "primary_deleted")
+        request_deletion.assert_not_called()
+
+    def test_resolve_primary_deletion_uses_retained_rows_only(self):
+        nonce = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        operation_id = "00000000-0000-4000-8000-000000000117"
+        deletion_id = acceptance._deletion_request_id(operation_id)
+        request_ref_id = acceptance.durable_ai.payload_reference_id_for(
+            operation_id,
+            "request",
+        )
+        subject_ref = "deleted:" + "b" * 32
+        with (
+            mock.patch.object(acceptance, "_require_context"),
+            mock.patch.object(
+                acceptance.db,
+                "fetchone",
+                side_effect=(
+                    {
+                        "status": "failed",
+                        "provider_phase": "not_started",
+                        "claim_count": 2,
+                        "provider_attempt_count": 0,
+                        "subject_hash": "a" * 64,
+                        "billing_state": "refunded",
+                        "failure_code": "worker_failed",
+                        "request_ref_id": request_ref_id,
+                        "request_ref_state": "deleted",
+                        "deleted_at": "2026-08-08T00:00:00+00:00",
+                        "outbox_state": "delivered",
+                    },
+                    {
+                        "id": deletion_id,
+                        "user_id": None,
+                        "subject_ref": subject_ref,
+                        "status": "backup_clear_pending",
+                        "primary_deleted_at": "2026-08-08T00:00:00+00:00",
+                    },
+                    {
+                        "user_count": 0,
+                        "admission_count": 0,
+                        "idempotency_count": 0,
+                        "ready_payload_count": 0,
+                        "deleted_request_payload_count": 1,
+                    },
+                    {
+                        "claimed_count": 1,
+                        "takeover_count": 1,
+                        "progress_count": 2,
+                    },
+                    {
+                        "usage_count": 1,
+                        "usage_source": "refunded",
+                        "min_credits_used": 0,
+                        "max_credits_used": 0,
+                    },
+                ),
+            ),
+        ):
+            result = acceptance.resolve_primary_deletion(nonce, operation_id)
+        self.assertEqual(result["deletion_request_id"], deletion_id)
+        self.assertEqual(result["status"], "primary_deleted")
+        self.assertTrue(result["read_only"])
 
     def test_cleanup_evidence_is_derived_from_exact_rows(self):
         terminal = {

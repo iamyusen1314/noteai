@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-05 (Asia/Shanghai)
+> Updated: 2026-08-07 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -7245,3 +7245,204 @@ push/PR CI pair. Only after both succeed will one complete local readiness gate
 run; then the retained builder may be started for the already authorized single
 recovery Stage A. No V18/R17, cancelled-job rerun or custom control expansion is
 permitted.
+
+### Bounded CI repair accepted; single Stage A recovery open (2026-08-07)
+
+- Direct timeout checkpoint `8c58995187769d2e01d7944b6a772191c4e22597`
+  is on the existing branch/PR at clean upstream `0/0`. Exact-HEAD push CI
+  `31136383455` / job `92736571813` and PR CI `31136385115` / job
+  `92736576633` both completed `success`, attempt `1`; every Checkout,
+  dependency, syntax, model, unit, Quality, production-readiness and Compose
+  step passed. The cancelled predecessor was not rerun.
+- The single complete local gate then returned
+  `production_readiness=PASS`, `checks=138`, `failed=0`; no second gate process
+  exists. C17, Stage A `40,403 / e4643920...cbd18`, test
+  `ea142246...af8fc`, wheelhouse/source/scanner hashes and expected image ID are
+  unchanged.
+- Recovery transport is independently `GO`, P0/P1=`0/0`: reproducible gzip is
+  `11,187 / 4d10f148...4ec76`; preflight/install/recovery wrappers are
+  `3,742 / 5519f578...025da`, `1,930 / 9b526d9b...e82da`, and
+  `2,622 / de346337...c9603`. Preflight requires scanner validity beyond the
+  complete `7200s` budget; install is atomic; recovery fixes expected image ID,
+  invokes one build, uses outer `6900s`/Cloud `7200s`, has zero retry and keeps
+  publication disabled.
+
+Readiness remains internal `20/29` and public `20/38`. The sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. Start only retained builder
+`i-wz99180s9ig5ecq10uaj`, pass read-only preflight, transfer/install the exact
+script once and submit one recovery invocation. Only BUILD_PASS plus exact image
+identity opens native immutable-tag absence, exact-one private publication and
+fresh-builder import; no report/checkpoint is a stopping point.
+
+### Bounded Stage A recovery accepted; native publication open (2026-08-07)
+
+- Native builder read `019FD9D5-14AD-5707-B82E-A49872E4115F` proved the exact
+  retained PostPaid builder stopped, unlocked and without auto-release. The
+  single start request `019FD9D7-C87A-5F7D-A506-7A732F14356D` reached stable
+  `Running`; no second start was submitted.
+- Exact-name preflight was zero before creation. Command
+  `c-sz06t8bet7cmark` / invocation `t-sz06t8bet7wlhj4` finished once with
+  `ExitCode=0`: all three retained offline inputs were exact, scanner validity
+  exceeded the full `7200s` budget, and task/canonical image/local
+  image/container/auth/build/database counts were all zero. Overwrite-disabled
+  SendFile invocation `f-sz06t8br5e93h1c` delivered only reproducible gzip
+  `11,187 / 4d10f148...4ec76` as root-only `0600`.
+- Atomic install command `c-sz06t8c0grrtfcw` / invocation
+  `t-sz06t8c0gs9aps0` finished once with `ExitCode=0`, replaced only the
+  accepted Stage A script from `b2b47ce6...05a1e` to
+  `40,403 / e4643920...cbd18`, removed the transfer payload and retained zero
+  build, push, Registry-auth and database actions.
+- Recovery command `c-sz06t8c7wqb6t4w` / invocation
+  `t-sz06t8c7wqso3k0` ran from `2026-08-07T01:51:14Z` to
+  `2026-08-07T01:54:32Z` and finished `ExitCode=0 / Repeats=1`. It emitted
+  exactly one `BUILD_PASS` and wrapper `PASS`, zero FAIL, manual retries or
+  automatic retries, and kept publication disabled. Canonical and local image
+  IDs both equal
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`;
+  all 11 evidence files passed. Exact inputs remain source
+  `2a37c49c...bd19b`, wheelhouse `e1ff9647...01cab`, scanner
+  `1c307bf5...d938`; Trivy DB/metadata remain `bcd78f50...b55121` /
+  `4eacd2d4...9a3d31`. Secret-free evidence hashes are metadata
+  `fec2f97e...96dc6`, inspect `4ffb4bb6...04547`, SBOM
+  `d3b9678e...3f4b`, vulnerability `0c791495...63ac`, Secret
+  `626bda98...25df` and summary `7b8880f2...906ad`.
+- The transfer IAM role/policy and private OSS objects were already absent by
+  native readback before this recovery. This stage performed no IAM, ACR link,
+  Registry login/tag/push, production, database or public-traffic mutation.
+
+Readiness remains internal `20/29` and public `20/38`; the sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. BUILD_PASS and exact local image
+identity now open the next acceptance: native private-repository and immutable
+tag reads, exact target-tag absence, one Scheme One private publication with
+digest agreement, then a truly fresh pull/import host. Production migration
+0017, dispatcher LOGIN/Secret, default-suspended units and cross-host takeover
+remain required before Item 21 can become verified.
+
+### Native private publication accepted; fresh import open (2026-08-07)
+
+- Native ACR readback proved the exact immutable target tag absent before any
+  publisher invocation. A first wrapper stopped at local preflight with
+  `publisher_invocations=0`; the tag remained absent, so it consumed no push.
+  The corrected wrapper then invoked the retained publisher exactly once:
+  command `c-sz06t8kn3ma2k1s` / invocation `t-sz06t8kn3mrjugw` completed
+  `ExitCode=0`, `Repeats=1`, `PUBLISH_PASS`, `pushes=1`, retries `0`.
+- The pushed, descriptor and native ACR manifest digest all equal
+  `sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b`.
+  The native ACR ImageId/config and accepted Stage A local image both equal
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`;
+  native tag state is `NORMAL`.
+- Temporary publisher IAM and the builder ACR VPC link were removed. The sole
+  production ACR VPC link was restored, the public Registry endpoint remains
+  disabled, and API-C/API-F plus historical Admin passed exact-unit/image,
+  active/ready, three-round HTTP 200, loopback-only, restart-zero and
+  database-connection-zero postchecks.
+
+Readiness remains internal `20/29` and public `20/38`; the sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. The immediate hard condition is a
+single pull by manifest digest on a host created after publication with zero
+prior Docker state, no container start, exact config/OCI identity and complete
+host/system-disk destruction. Item 21 still also requires production migration
+0017, Dispatcher LOGIN/Secret, default-suspended units and provider-free
+cross-host lease takeover. No V18/R17 or custom control expansion is permitted.
+
+### Fresh importer prepared; balance blocks host creation (2026-08-07)
+
+- Native reads accepted the restored production VPC path: the target vSwitch is
+  `Available` in `cn-shenzhen-c`, the exact AMD64 instance type is `WithStock`,
+  the private ACR link remains attached, and an available VPC-wide SNAT rule
+  permits private-address package bootstrap without assigning a public IP.
+- A new short-lived ECS trust role and exact pull-only policy were created and
+  attached; permissions are limited to `GetAuthorizationToken` plus
+  `PullRepository` on the exact Enterprise repository. A new empty temporary
+  security group was also created. No instance is attached to the role or
+  group, and none of these objects has billable compute or storage.
+- The one idempotent `RunInstances` request
+  `019FDA5E-9DF6-5BDC-998A-0FEFCC178DEF` was rejected before resource creation
+  with `InvalidAccountStatus.NotEnoughBalance`. Native follow-up request
+  `019FDA5F-60A7-52D0-BE16-664F0CD28271` proves the exact instance name count is
+  zero; no system disk, Docker state, Registry token, pull or importer
+  invocation exists. Billing read `019FDA5F-AA18-592B-9145-4F31582C8B56`
+  reports available cash/credit `38.83 CNY`.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 and the sole task
+remain unchanged. This is a real external balance blocker. After recharge,
+resubmit the same exact `RunInstances` payload and ClientToken, set bounded
+auto-release, then continue the one-pull/no-start import and immediate IAM,
+host, system-disk and security-group cleanup without repeating Stage A/B, CI or
+the full readiness gate.
+
+### Fresh C17 import accepted and all temporary resources removed (2026-08-07)
+
+- The post-publication importer was created fresh and private, then invoked
+  exactly once by command `c-sz06ta7gzar6g3k` / invocation
+  `t-sz06ta7gzb8nqio`. It completed `ExitCode=0`, `Repeats=1` from
+  `14:25:09Z` to `14:25:25Z`: one Registry token request, one pull, zero
+  retries and zero container starts. The imported manifest is
+  `sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b`;
+  its config is
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`,
+  exactly matching Stage A/native ACR and bound to accepted C17 commit
+  `cad5ce35664f617c6e19f90a6159285ddf975594`.
+- Final host audit command `c-sz06ta7xi6d5am8` / invocation
+  `t-sz06ta7xi6uml1d` completed `ExitCode=0`, `Repeats=1` with upload,
+  importer, CLI home, task root, Docker auth, images, containers, volumes,
+  build cache and database connections all zero. Temporary RAM was detached
+  and deleted. Native absence reads then proved fresh instance
+  `i-wz91tijzvnfb89ygphju` and system disk `d-wz91tijzvnfb89y9zglq` both
+  `TotalCount=0` (`019FDCB6-96EC-5C24-BBED-A54F93D8CA41`,
+  `019FDCB6-FA4C-536A-A4A5-6D1A97D18B00`), and the role/policy both absent
+  (`019FDCB7-3F23-5E34-B189-0C3E66A02D61`,
+  `019FDCB7-BE22-52A7-A423-48BE7EE71932`).
+- The remaining temporary security group was independently read as the exact
+  import-only group with `EcsCount=0` and `RuleCount=0`
+  (`019FDCB8-431C-54A4-AF01-DB353F51FD2C`), deleted once
+  (`019FDCB8-BC86-52D2-AFA1-D124B336CA12`), and read back at
+  `TotalCount=0` (`019FDCB8-F873-58BB-BB4C-005EAAEAE880`). The retained old
+  builder and production API-C/API-F/Admin were not started or modified.
+
+Readiness remains internal `20/29` and public `20/38`. Fresh import is now
+accepted and must not be rerun. The sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`; its next hard condition is the
+production-only chain: migration `0017`, Dispatcher `LOGIN` plus managed
+Secret, exact default-suspended units, and provider-free cross-host lease
+takeover. No V18/R17 or custom ledger/receipt/topology layer is permitted.
+
+### Item 21 production executor candidate is locally closed (2026-08-08)
+
+- The smallest direct production execution surface is now implemented without
+  changing C17, its dependency lock/hash, image contents, production resources,
+  or the accepted four systemd templates. It consists only of the fixed `0017`
+  transaction/session-account check, one-role Dispatcher Secret activation,
+  fixed-C17 unit installation/removal, a protected in-memory database control
+  transport, and the provider-free acceptance controller/runner. There is no
+  new ledger, receipt, persistent topology, automatic retry or exposed
+  container-local rollback path.
+- The candidate remains bound to release commit
+  `cad5ce35664f617c6e19f90a6159285ddf975594`, ACR manifest
+  `sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b`,
+  config
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`,
+  and migration payload
+  `sha256:a73cbefd853cefe7b56c42bed2c5a7f0ba1626e57755c6f9464629b49c42cbbe`.
+  The fixed controller source is
+  `sha256:d7053597fbe60ebab78624b7cdaa74d19804f1a492afb8d679c2b700337eac1b`.
+- Expanded focused regression passed `300/300`, with the existing ten
+  real-PostgreSQL-only cases explicitly skipped; the final six-suite security
+  review passed `67/67`. `py_compile`, four direct-script `--help` smokes and
+  `git diff --check` pass. Three independent read-only reviews report
+  `P0=0/P1=0`, including admission commit-acknowledgement recovery, exact
+  database session identity, systemd `static/0` acceptance semantics, Secret
+  confinement and mutation-unknown/no-retry behavior.
+- This is local evidence only: no production connection, database/storage
+  mutation, provider/public call, image operation or cloud-resource mutation
+  occurred, and no readiness credit is added. Internal/public readiness stays
+  `20/29` and `20/38`.
+
+The sole task remains `PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. The immediate
+hard condition is one intentional source checkpoint on the existing branch,
+one resulting push/PR dual-CI acceptance, and one complete readiness gate.
+After those pass, execute the already bounded production sequence without
+repeating Stage A/B/fresh import: apply/verify `0017`, activate/reconcile the
+single Dispatcher Secret, install exact default-suspended units, prove the
+provider-free Worker-C to Worker-F fenced takeover and terminal/refund/deletion
+cleanup, then decide Item 21 from native evidence.

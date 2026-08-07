@@ -3438,6 +3438,50 @@
               "ref": "tests/test_durable_ai_cad5_stage_a.py"
             },
             {
+              "kind": "path",
+              "ref": "tools/production_durable_ai_schema_0017.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/production_ai_dispatcher_secret_activator.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/production_durable_ai_protected_control.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/durable_ai_unit_installer.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/durable_ai_acceptance.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/durable_ai_acceptance_controller_runner.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_production_ai_dispatcher_secret_activator.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_production_durable_ai_protected_control.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_durable_ai_unit_installer.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_production_durable_ai_acceptance.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_durable_ai_acceptance_controller_runner.py"
+            },
+            {
               "kind": "git",
               "ref": "2254257cedbec4bc27bdde5092ca0bed1051e617"
             },
@@ -3454,10 +3498,10 @@
               "ref": ".codex/notes/risk-register.md"
             }
           ],
-          "blocker": "PostgreSQL-native dispatcher/Worker and provider-free exact-operation acceptance passed prior repository and disposable-PostgreSQL gates. Final cryptography repair SHA cad5ce35664f617c6e19f90a6159285ddf975594 passed push CI 31015535682 and PR CI 31015538898 at attempt 1 plus the single formal 137/137 gate. Its exact-one native run 31017791512/job 92346323999 built, inspected, scanned and uploaded all five roles; artifact 8935383018 has the GitHub archive digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949 and 43 regular files. Every role contains cryptography 50.0.0 exactly once with zero cryptography vulnerability, zero Secret/browser/forbidden-OS findings and the unchanged unsuppressed Debian 4 Critical/19 High rows. The exact-product CycloneDX 1.6 VEX binds five local image identities, twelve CVEs, 115 BOM-Links, the four production/acceptance systemd templates and the native run/artifact metadata; its checkpoint fec23879bd54826df92f50a3bda3d1c46311f2a1 passed push CI 31022136160 and PR CI 31022140750 at attempt 1. The minimum Stage A producer/publisher and pull-only fresh importer remain deployment-inert. Three private offline inputs reached the builder with exact SHA values and transfer IAM was completely removed. The first Stage A invocation failed before Docker build at offline_input_extract because Linux GNU tar exposed macOS AppleDouble metadata hidden by local bsdtar; no image, registry auth, push, database or production change occurred. The direct two-file correction permits only the exact top-level AppleDouble name and excludes all AppleDouble metadata from extraction while preserving C17, all input hashes, dependencies and image semantics; focused tests pass 11/11. Checkpoint e432bab15d3d6900ee243a2f13626d9c69325c8c then passed push CI 31031575736 and PR CI 31031585132 on exact-head attempt 1 without rerun. Its single recovery invocation t-sz06t3nhq4ind34 passed archive import and failed deterministically after 127 seconds at offline_ai_worker_build_scan because global BuildKit network isolation also blocked the source Dockerfile's reachable apt libgomp1 and integrity-pinned Meituan npm vertices; no accepted image, scan, registry auth, push, database or production mutation occurred and all three inputs remain preserved. The minimal network-scope correction restores only build-level network=default while the projected pip RUN remains network=none/no-index against the verified wheelhouse and Trivy remains offline; focused tests pass 11/11 and two independent reviews are GO with no P0/P1. Checkpoint 2254257cedbec4bc27bdde5092ca0bed1051e617 then passed push CI 31035048544 and PR CI 31035052862 on exact-head attempt 1 without rerun. After recharge, balance readback was 48.18 CNY and the retained builder ran unlocked. Preflight t-sz06t6clvbpiozk reverified the three exact input hashes; SendFile f-sz06t6cpu9uca2o and atomic install t-sz06t6csl3p7fnk installed only the accepted script SHA 2540302e88b65927655d4284a046d0cf8f1bcd9554357492beaf5d8aab2e4dfd. The unique recovery build t-sz06t6cy4r7jbi8 completed slow apt, cached npm and network-disabled wheelhouse-only pip, then wrote image sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95. The CTO-selected 720-second outer timeout expired during evidence_acceptance, so the script emitted stage FAIL and wrapper exit 124 with zero BUILD_PASS; fail-closed cleanup removed the task and image. Terminal read t-sz06t6h6m3q1se8 bound log SHA fbb8ead8ae16fc03ba96e1dab8b586653522fb0f71a0b5db0c63c28cbc5a8def and proved the three inputs and installed script intact, with task/image/container/auth/build/database state all zero and no Registry login/tag/push, IAM, ACR link, database or production mutation. Graceful stop request 019FD73C-233D-5063-BDC1-0217FEC1B7AE succeeded; native read 019FD73C-E527-5601-8DC5-119B45E51081 proves Stopped/StopCharging without an operation lock. The fresh-DB direct verifier fix is immutable checkpoint 0d5179fb766163ebd2277c77046716089a66ffcf; PR run 31115042410 passed every repository step and the single complete gate passed 138/138, while push run 31115038512 failed before Checkout on GitHub action-metadata 503 and was not rerun. Preflight, one overwrite-disabled SendFile and atomic install placed only script b2b47ce6e51426646a4f0dec762da695194af6761fe70b95b602428e2cf05a1e. The sole new-code invocation t-sz06t6wangr8s8w ran once without timeout, reproduced exact image ID sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95, then failed at evidence_acceptance with zero BUILD_PASS and no Registry publication. Terminal reconcile t-sz06t6x1mbuht6o bound log 51895/e3a4e94dc7e6477a37b572d29e8f06053af7e1e171008e7afd38002ce286df63, exact marker counts 1/0/1/0/1/1, all three input hashes and zero task/image/container/auth/build/database state. Stop/read requests 019FD7DE-CC78-584A-983F-DC3CCD0F2984 and 019FD7DF-D421-5C5B-ADFA-3AFEB1327922 prove the PostPaid builder Stopped/StopCharging without locks. Final native read 019FD7E8-B7B8-58D1-9A91-E47672BC592F confirms the retained output contains no CVE, summary, Critical/High count or exact-predicate detail. Independent read-only audit is NO-GO with P0/P1=0/1: the rescanned GitHub artifact is CycloneDX for AI Worker image sha256:18db7ceff942788bc4ca1c77a466c17570c3fcc6f109957661e1a35f047ba62f, not the actual new image sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95, and evidence_acceptance covers multiple predicates. The unique missing hard fact is the actual immutable image's fresh native trivy image report or the exact failed verifier predicate. Fail-closed cleanup removed it; the checksum-bound offline CycloneDX SBOM rescan is not image-inventory proof. Stage A therefore remains unverified at 20/29. Do not guess another verifier change, create V18/R17/custom control layers, treat image identity as BUILD_PASS, publish to ACR or enter Stage B/C. Production 0017, dispatcher LOGIN/Secret, default-suspended managed units and cross-host takeover evidence remain open.",
+          "blocker": "Repository and disposable-PostgreSQL durable dispatcher/Worker contracts are accepted. Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949 and exact-product VEX remain fixed. Stage A produced and accepted image/config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95; Stage B published exactly once at manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b. A host created after publication then imported that exact manifest once with one token request, zero retry and zero container start, verified the exact config/OCI identity, passed a final zero-state audit, and was destroyed with its system disk. Temporary RAM role/policy/security group are natively absent. Item 21 remains unverified only because production migration 0017, Dispatcher LOGIN/managed Secret, exact default-suspended units and provider-free cross-host lease takeover remain open. Do not repeat Stage A/B/fresh import, create V18/R17, or add custom ledger/receipt/topology controls.",
           "latest_reconciliation": {
             "as_of": "2026-08-07",
-            "status": "exact_head_pr_timeout_direct_fix_pending",
+            "status": "fresh_import_accepted_cleanup_complete",
             "diagnostic_invocation": "t-sz06t821muvmkg0",
             "diagnostic_command": "c-sz06t821mue5a0w",
             "repeats": 1,
@@ -3501,6 +3545,25 @@
               "yaml_parse": "pass",
               "diff_check": "pass"
             },
+            "accepted_checkpoint": "8c58995187769d2e01d7944b6a772191c4e22597",
+            "accepted_push_ci": {
+              "run_id": 31136383455,
+              "job_id": 92736571813,
+              "attempt": 1,
+              "conclusion": "success"
+            },
+            "accepted_pull_request_ci": {
+              "run_id": 31136385115,
+              "job_id": 92736576633,
+              "attempt": 1,
+              "conclusion": "success"
+            },
+            "complete_readiness_gate": {
+              "runs": 1,
+              "result": "PASS",
+              "checks": 138,
+              "failed": 0
+            },
             "direct_fix_files": [
               "deploy/production/durable_ai_cad5_stage_a.sh",
               "tests/test_durable_ai_cad5_stage_a.py"
@@ -3510,7 +3573,184 @@
             "focused_tests": "12/12",
             "internal_gate": "20/29",
             "public_gate": "20/38",
-            "next_hard_condition": "Commit and push only the direct bounded CI-timeout repair plus Secret-free records, obtain one successful exact-HEAD push/PR CI pair, then run one complete readiness gate before one recovery Stage A; do not rerun the cancelled job or create V18. Publication still requires BUILD_PASS, exact image identity, native immutable-tag absence, exact-one private push and fresh-builder import."
+            "stage_b_private_publication": {
+              "target_tag": "git-cad5ce3-amd64-ai-worker-r1",
+              "pre_push_tag_absent": true,
+              "preflight_zero_invocation_failure": {
+                "request_id": "019FDA3D-490E-5CD5-9EE5-32A93CE1BE27",
+                "command_id": "c-sz06t8k94zulibk",
+                "invocation_id": "t-sz06t8k950ekp34",
+                "phase": "preflight",
+                "publisher_invocations": 0,
+                "post_failure_tag_absence_request_id": "019FDA3E-A9F7-514C-A224-04BBED1637A4"
+              },
+              "publisher": {
+                "request_id": "019FDA41-44A2-5321-93ED-4D710C7013D9",
+                "command_id": "c-sz06t8kn3ma2k1s",
+                "invocation_id": "t-sz06t8kn3mrjugw",
+                "repeat_mode": "Once",
+                "repeats": 1,
+                "exit_code": 0,
+                "publisher_invocations": 1,
+                "pushes": 1,
+                "manual_retries": 0
+              },
+              "manifest_digest": "sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b",
+              "config_digest": "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95",
+              "config_equals_accepted_stage_a_image": true,
+              "native_tag_read": {
+                "request_id": "019FDA43-E51D-5BEA-922D-4ABC1BCE865C",
+                "status": "NORMAL",
+                "manifest_digest_matches": true,
+                "image_id_matches_config": true
+              },
+              "cleanup": {
+                "builder_role_detach_request_id": "019FDA44-4557-513E-AE38-15D8C3C279FF",
+                "builder_link_delete_request_id": "019FDA44-A427-50E0-A2BC-A026034E4893",
+                "production_link_restore_request_id": "019FDA45-3EAC-578B-B3B3-8FA6569D1121",
+                "production_link_read_request_id": "019FDA45-6DED-5B54-B4C8-76B9D7442472",
+                "temporary_role_absence_request_id": "019FDA48-D491-5292-BBDA-80D9966F39A5",
+                "temporary_policy_absence_request_id": "019FDA49-0D21-5D3B-9706-4BC049D5F6B5",
+                "endpoint_read_request_id": "019FDA49-7849-5FF8-AAD3-053E409F3015",
+                "public_registry_endpoint_enabled": false
+              },
+              "production_health": {
+                "api_c_admin_invocation_id": "t-sz06t8l3drxstmo",
+                "api_f_invocation_id": "t-sz06t8l6slw1udc",
+                "three_round_live_ready_200": true,
+                "loopback_only": true,
+                "restarts": 0,
+                "database_connections": 0
+              },
+              "readiness_credit_added": false
+            },
+            "fresh_import_preparation": {
+              "v_switch_read_request_id": "019FDA50-8DBD-502E-ABEA-7E3E8C89CE4C",
+              "v_switch_status": "Available",
+              "zone_id": "cn-shenzhen-c",
+              "vpc_snat_read_request_id": "019FDA56-FE46-5FCC-BB01-21B0A3524477",
+              "vpc_wide_snat_status": "Available",
+              "instance_type_availability_request_id": "019FDA5C-FD64-5370-BB27-358440E11038",
+              "instance_type_status": "WithStock",
+              "temporary_role_create_request_id": "019FDA5A-8F0D-5490-8FA4-8F21853931E2",
+              "temporary_policy_create_request_id": "019FDA5B-4C37-525B-8B02-4485CB5FD305",
+              "temporary_policy_attach_request_id": "019FDA5B-D3FC-595C-9A29-B25DF2E1B793",
+              "temporary_security_group_create_request_id": "019FDA5C-86E8-5B7E-B178-09BBE59A0A9F",
+              "host_create": {
+                "request_id": "019FDA5E-9DF6-5BDC-998A-0FEFCC178DEF",
+                "client_token": "noteai-cad5-fresh-import-20260807-01",
+                "result": "rejected_before_resource_creation",
+                "code": "InvalidAccountStatus.NotEnoughBalance"
+              },
+              "exact_name_zero_read_request_id": "019FDA5F-60A7-52D0-BE16-664F0CD28271",
+              "exact_name_instance_count": 0,
+              "balance_read_request_id": "019FDA5F-AA18-592B-9145-4F31582C8B56",
+              "available_amount_cny": "38.83",
+              "instance_created": false,
+              "system_disk_created": false,
+              "registry_token_requests": 0,
+              "image_pulls": 0,
+              "importer_invocations": 0
+            },
+            "fresh_import_acceptance": {
+              "status": "PASS",
+              "release_commit": "cad5ce35664f617c6e19f90a6159285ddf975594",
+              "target_tag": "git-cad5ce3-amd64-ai-worker-r1",
+              "manifest_digest": "sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b",
+              "config_digest": "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95",
+              "host_created_after_publication": true,
+              "pre_import_docker_state_zero": true,
+              "import": {
+                "create_request_id": "019FDC9D-0BEE-56FD-8408-7FD1DF68FFD7",
+                "command_id": "c-sz06ta7gzar6g3k",
+                "invocation_id": "t-sz06ta7gzb8nqio",
+                "result_request_id": "019FDC9D-63EB-5FC8-B7A3-2A8834F0867C",
+                "repeat_mode": "Once",
+                "repeats": 1,
+                "exit_code": 0,
+                "registry_token_requests": 1,
+                "pulls": 1,
+                "retries": 0,
+                "containers_started": 0,
+                "manifest_matches_native_acr": true,
+                "config_matches_stage_a": true
+              },
+              "final_host_audit": {
+                "command_id": "c-sz06ta7xi6d5am8",
+                "invocation_id": "t-sz06ta7xi6uml1d",
+                "create_request_id": "019FDCA1-C269-59F6-9001-06650BE3727A",
+                "result_request_id": "019FDCA2-0437-5B12-8B74-10E7C0036223",
+                "exit_code": 0,
+                "repeats": 1,
+                "dropped": 0,
+                "upload_absent": true,
+                "importer_absent": true,
+                "cli_home_absent": true,
+                "task_root_absent": true,
+                "docker_auth_entries": 0,
+                "images": 0,
+                "containers": 0,
+                "volumes": 0,
+                "build_cache": 0,
+                "database_connections": 0
+              },
+              "cleanup": {
+                "instance_id": "i-wz91tijzvnfb89ygphju",
+                "instance_absence_read_request_id": "019FDCB6-96EC-5C24-BBED-A54F93D8CA41",
+                "instance_count": 0,
+                "system_disk_id": "d-wz91tijzvnfb89y9zglq",
+                "system_disk_absence_read_request_id": "019FDCB6-FA4C-536A-A4A5-6D1A97D18B00",
+                "system_disk_count": 0,
+                "role_absence_read_request_id": "019FDCB7-3F23-5E34-B189-0C3E66A02D61",
+                "policy_absence_read_request_id": "019FDCB7-BE22-52A7-A423-48BE7EE71932",
+                "security_group_predelete_read_request_id": "019FDCB8-431C-54A4-AF01-DB353F51FD2C",
+                "security_group_predelete_ecs_count": 0,
+                "security_group_predelete_rule_count": 0,
+                "security_group_delete_request_id": "019FDCB8-BC86-52D2-AFA1-D124B336CA12",
+                "security_group_absence_read_request_id": "019FDCB8-F873-58BB-BB4C-005EAAEAE880",
+                "security_group_count": 0,
+                "temporary_ram_absent": true,
+                "temporary_compute_storage_absent": true
+              },
+              "readiness_credit_added": false
+            },
+            "production_execution_source_candidate": {
+              "as_of": "2026-08-08",
+              "status": "local_focused_verified",
+              "release_commit": "cad5ce35664f617c6e19f90a6159285ddf975594",
+              "manifest_digest": "sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b",
+              "config_digest": "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95",
+              "migration_payload_sha256": "a73cbefd853cefe7b56c42bed2c5a7f0ba1626e57755c6f9464629b49c42cbbe",
+              "source_sha256": {
+                "durable_ai_acceptance": "d7053597fbe60ebab78624b7cdaa74d19804f1a492afb8d679c2b700337eac1b",
+                "durable_ai_acceptance_controller_runner": "4b5b5b2f5e544f0e87507a2a7567a6c1fda53dbec8f62a8872b1f8cf3676a65a",
+                "durable_ai_unit_installer": "cc696dac4c315f6a9fbb152367c0dfbd3d517f36892b1526965d3697944a6435",
+                "ai_dispatcher_secret_activator": "258a7831de36d158c5b346f220f38073f97dfd0d70109cb46a65fcbd52a13f3f",
+                "durable_ai_protected_control": "c6e3c370495365c07dcbf8e4bf7cd8e250091dde563610741b7c7868841a2bb6",
+                "durable_ai_schema_0017": "c64cb74799cecb908902895f7151a13464980ec3ba2e0dccc7525c3536c4a8be"
+              },
+              "focused_regression": {
+                "tests": 300,
+                "passed": 300,
+                "real_postgres_only_skipped": 10
+              },
+              "final_security_subset": "67/67",
+              "independent_reviews": 3,
+              "blocking_findings": {
+                "p0": 0,
+                "p1": 0
+              },
+              "py_compile": "pass",
+              "direct_script_smoke": "4/4",
+              "diff_check": "pass",
+              "c17_changed": false,
+              "production_calls": 0,
+              "production_mutations": 0,
+              "provider_or_public_calls": 0,
+              "custom_ledger_receipt_topology_added": false,
+              "readiness_credit_added": false
+            },
+            "next_hard_condition": "Checkpoint the locally verified direct executor, obtain the resulting push and pull-request CI success plus one complete readiness-gate pass, then apply production migration 0017 under the existing fail-closed database protocol, give the Dispatcher only its exact LOGIN and managed Secret, install the exact release units default-suspended, and prove provider-free cross-host fenced lease takeover before changing Item 21 from unverified. Fresh import is accepted and must not be rerun."
           },
           "next_task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
         },

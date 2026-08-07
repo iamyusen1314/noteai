@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Bounded provider-free production acceptance admission and observation.
 
-Run this controller only in an exact API-role container with the existing
-private-storage environment. It creates one synthetic account/job, observes
-only that deterministic namespace, and uses the product's account-deletion
-path to erase the external payload and primary account after terminal proof.
+Run this controller only through the fixed C17 carrier with an exact API
+database login and the existing private-storage environment. It creates one
+synthetic account/job, observes only that deterministic namespace, and uses
+the product's account-deletion path to erase the external payload and primary
+account after terminal proof.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import secrets
 import sys
 import uuid
@@ -20,12 +22,11 @@ from pathlib import Path
 from typing import Any
 
 
-REPOSITORY_MODEL_DIR = Path(__file__).resolve().parents[2] / "model"
-MODEL_DIR = (
-    Path("/app/model")
-    if Path("/app/model").is_dir()
-    else REPOSITORY_MODEL_DIR
-)
+CONTAINER_MODEL_DIR = Path("/app/model")
+if CONTAINER_MODEL_DIR.is_dir():
+    MODEL_DIR = CONTAINER_MODEL_DIR
+else:
+    MODEL_DIR = Path(__file__).resolve().parents[2] / "model"
 if str(MODEL_DIR) not in sys.path:
     sys.path.insert(0, str(MODEL_DIR))
 
@@ -38,14 +39,30 @@ import private_storage  # noqa: E402
 
 TASK_ID = "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
 CONFIRM_ENV = "NOTEAI_DURABLE_AI_ACCEPTANCE_MUTATION_CONFIRM"
+CARRIER_ENV = "NOTEAI_DURABLE_AI_ACCEPTANCE_CARRIER_ROLE"
+CARRIER_ROLE = "ai-worker"
+RUNTIME_ROLE_MARKER = Path("/etc/noteai-runtime-role")
 PROVIDER_SECRET_NAMES = (
     "ANTHROPIC_API_KEY",
     "MOONSHOT_API_KEY",
     "KIMI_API_KEY",
     "AMAP_API_KEY",
+    "AMAP_WEB_KEY",
+    "BAIDU_MAP_AK",
+    "TENCENT_MAP_KEY",
+    "SERPAPI_API_KEY",
+    "BING_SEARCH_API_KEY",
+    "GOOGLE_API_KEY",
     "MEITUAN_AI_HUB_TOKEN",
     "MEITUAN_OPEN_TOKEN",
+    "MEITUAN_SIGN_KEY",
+    "MEITUAN_APP_AUTH_TOKEN",
+    "MEITUAN_OPEN_APP_KEY",
+    "MEITUAN_OPEN_APP_SECRET",
+    "MEITUAN_OPEN_SIGN",
+    "MEITUAN_OPEN_AES_KEY",
 )
+ADMISSION_NAMESPACE = uuid.UUID("c5098114-a6c5-4c9f-a527-565123d2e1bd")
 
 
 class AcceptanceError(RuntimeError):
@@ -65,6 +82,17 @@ def _canonical_nonce(value: str) -> str:
     return raw
 
 
+def _canonical_operation_id(value: str) -> str:
+    raw = str(value or "")
+    try:
+        normalized = str(uuid.UUID(raw))
+    except (ValueError, AttributeError) as exc:
+        raise AcceptanceError("operation_id_shape") from exc
+    if raw != normalized:
+        raise AcceptanceError("operation_id_shape")
+    return raw
+
+
 def _username(nonce: str) -> str:
     return f"naiacc_{uuid.UUID(nonce).hex[:24]}"
 
@@ -73,13 +101,56 @@ def _request_id(nonce: str) -> str:
     return f"durable-ai-acceptance-{uuid.UUID(nonce).hex}"
 
 
+def _admission_request_id(operation_id: str) -> str:
+    return str(
+        uuid.uuid5(
+            ADMISSION_NAMESPACE,
+            f"{_canonical_operation_id(operation_id)}:admission",
+        )
+    )
+
+
+def _deletion_request_id(operation_id: str) -> str:
+    return str(
+        uuid.uuid5(
+            ADMISSION_NAMESPACE,
+            f"{_canonical_operation_id(operation_id)}:account-deletion",
+        )
+    )
+
+
+def _api_database_role_matches() -> bool:
+    """Fail closed on the exact API login without widening Worker helpers."""
+    try:
+        row = db.fetchone(
+            "SELECT session_user AS session_role,current_user AS database_role"
+        )
+    except Exception:
+        return False
+    return bool(
+        row
+        and str(row["session_role"]) == "noteai_app"
+        and str(row["database_role"]) == "noteai_app"
+    )
+
+
+def _carrier_role_matches() -> bool:
+    if os.environ.get(CARRIER_ENV) != CARRIER_ROLE:
+        return False
+    try:
+        return RUNTIME_ROLE_MARKER.read_text(encoding="utf-8").strip() == CARRIER_ROLE
+    except (OSError, UnicodeError):
+        return False
+
+
 def _require_context(*, mutate: bool) -> durable_ai.PayloadStore | None:
     if (
         os.environ.get("NOTEAI_DEPLOYMENT_STAGE") != "production"
         or os.environ.get("NOTEAI_RUNTIME_ROLE") != "api"
         or os.environ.get("NOTEAI_DURABLE_AI_ACCEPTANCE_MODE") != "1"
         or not db.using_postgres()
-        or not durable_ai.database_role_matches("noteai_app")
+        or not _api_database_role_matches()
+        or not _carrier_role_matches()
     ):
         raise AcceptanceError("runtime_boundary")
     if any(name in os.environ for name in PROVIDER_SECRET_NAMES):
@@ -114,26 +185,127 @@ def _identity(nonce: str) -> tuple[str, str]:
     return user_id, operation_id
 
 
+def _admission_database_absent(user_id: str, operation_id: str) -> bool:
+    row = db.fetchone(
+        "SELECT "
+        "(SELECT COUNT(*) FROM ai_operations WHERE id=?) AS operation_count,"
+        "(SELECT COUNT(*) FROM ai_operation_admissions "
+        " WHERE operation_id=?) AS admission_count,"
+        "(SELECT COUNT(*) FROM idempotency_requests "
+        " WHERE id=? OR user_id=?) AS idempotency_count,"
+        "(SELECT COUNT(*) FROM ai_operation_settlements "
+        " WHERE operation_id=?) AS settlement_count,"
+        "(SELECT COUNT(*) FROM ai_operation_outbox "
+        " WHERE operation_id=?) AS outbox_count,"
+        "(SELECT COUNT(*) FROM ai_payload_refs "
+        " WHERE operation_id=?) AS payload_ref_count",
+        (
+            operation_id,
+            operation_id,
+            _admission_request_id(operation_id),
+            user_id,
+            operation_id,
+            operation_id,
+            operation_id,
+        ),
+    )
+    return bool(row) and all(int(value or 0) == 0 for value in dict(row).values())
+
+
+def _ensure_admission_anchor(
+    store: durable_ai.PayloadStore,
+    *,
+    user_id: str,
+    operation_id: str,
+) -> dict[str, Any]:
+    """Pre-place and read back the deterministic request object.
+
+    C17's later ``admit_job`` then observes ``created=False`` for the same
+    object, so a database COMMIT acknowledgement loss cannot delete it.
+    """
+    payload = {"acceptance": "durable-ai-v1"}
+    body, item_count = durable_ai.canonical_payload(payload)
+    reference = store.put(
+        operation_id=operation_id,
+        user_id=user_id,
+        purpose=durable_ai.RefPurpose.REQUEST,
+        payload=body,
+        item_count=item_count,
+        ttl_seconds=durable_ai.REQUEST_TTL_SECONDS,
+    )
+    try:
+        durable_ai._validate_reference(
+            reference,
+            operation_id=operation_id,
+            subject_hash=reference.subject_hash,
+            purpose=durable_ai.RefPurpose.REQUEST,
+        )
+        observed = store.get(reference, user_id=user_id)
+    except BaseException as exc:
+        raise AcceptanceError("admission_anchor") from exc
+    if observed != body:
+        raise AcceptanceError("admission_anchor")
+    return {
+        "anchor_created": bool(reference.created),
+        "private_object_anchor_writes": int(bool(reference.created)),
+        "private_object_anchor_reads": 1,
+    }
+
+
 def admit(nonce: str) -> dict[str, Any]:
     store = _require_context(mutate=True)
     username = _username(nonce)
-    if db.fetchone("SELECT id FROM users WHERE username=?", (username,)):
-        raise AcceptanceError("synthetic_namespace_exists")
-    password = f"{secrets.token_urlsafe(48)}Aa1!"
-    user = auth.create_user(username, password)
-    user_id = str(user["id"])
-    try:
-        result = durable_ai.admit_job(
-            user_id=user_id,
-            operation="analyze",
-            request_id=_request_id(nonce),
-            payload={"acceptance": "durable-ai-v1"},
-            store=store,
+    existing = db.fetchone("SELECT id FROM users WHERE username=?", (username,))
+    if existing:
+        user_id = str(existing["id"])
+        operation_id = durable_ai.operation_id_for(
+            user_id,
+            "analyze",
+            _request_id(nonce),
         )
-    except BaseException:
-        with db.transaction(write=True) as tx:
-            tx.execute("DELETE FROM users WHERE id=?", (user_id,))
-        raise
+        anchor = _ensure_admission_anchor(
+            store,
+            user_id=user_id,
+            operation_id=operation_id,
+        )
+        try:
+            resolved = resolve_admission(nonce)
+        except AcceptanceError as exc:
+            raise AcceptanceError("synthetic_namespace_unknown") from exc
+        if resolved["status"] == "admission_resolved":
+            return {
+                **resolved,
+                "status": "admitted",
+                "read_only_recovery": True,
+                **anchor,
+            }
+        if (
+            resolved["status"] != "admission_absent"
+            or resolved.get("user_present") is not True
+            or not _admission_database_absent(user_id, operation_id)
+        ):
+            raise AcceptanceError("synthetic_namespace_unknown")
+    else:
+        password = f"{secrets.token_urlsafe(48)}Aa1!"
+        user = auth.create_user(username, password)
+        user_id = str(user["id"])
+        operation_id = durable_ai.operation_id_for(
+            user_id,
+            "analyze",
+            _request_id(nonce),
+        )
+        anchor = _ensure_admission_anchor(
+            store,
+            user_id=user_id,
+            operation_id=operation_id,
+        )
+    result = durable_ai.admit_job(
+        user_id=user_id,
+        operation="analyze",
+        request_id=_request_id(nonce),
+        payload={"acceptance": "durable-ai-v1"},
+        store=store,
+    )
     if result.get("state") != "admitted":
         raise AcceptanceError("admission_state")
     operation_id = str(result["operation_id"])
@@ -150,6 +322,87 @@ def admit(nonce: str) -> dict[str, Any]:
         "operation_id": operation_id,
         "billing_state": "charged",
         "provider_calls": 0,
+        **anchor,
+    }
+
+
+def resolve_admission(nonce: str) -> dict[str, Any]:
+    """Read back one fully committed admission after client-output loss."""
+    _require_context(mutate=False)
+    user = db.fetchone(
+        "SELECT id FROM users WHERE username=?",
+        (_username(nonce),),
+    )
+    if not user:
+        return {
+            "status": "admission_absent",
+            "nonce": nonce,
+            "user_present": False,
+            "recoverable": True,
+            "provider_calls": 0,
+            "read_only": True,
+        }
+    user_id = str(user["id"])
+    operation_id = durable_ai.operation_id_for(
+        user_id,
+        "analyze",
+        _request_id(nonce),
+    )
+    row = db.fetchone(
+        "SELECT o.status,o.provider_phase,o.claim_count,"
+        "o.provider_attempt_count,a.idempotency_request_id,"
+        "i.status AS idempotency_status,i.charge_applied,i.usage_created,"
+        "s.billing_state,s.request_ref_id,r.state AS payload_state,"
+        "r.purpose,b.state AS outbox_state "
+        "FROM ai_operations o "
+        "JOIN ai_operation_admissions a ON a.operation_id=o.id "
+        "JOIN idempotency_requests i ON i.id=a.idempotency_request_id "
+        "JOIN ai_operation_settlements s ON s.operation_id=o.id "
+        "JOIN ai_payload_refs r ON r.id=s.request_ref_id "
+        "JOIN ai_operation_outbox b ON b.operation_id=o.id "
+        "WHERE o.id=? AND i.user_id=?",
+        (operation_id, user_id),
+    )
+    if not row:
+        if _admission_database_absent(user_id, operation_id):
+            return {
+                "status": "admission_absent",
+                "nonce": nonce,
+                "user_present": True,
+                "user_id": user_id,
+                "operation_id": operation_id,
+                "recoverable": True,
+                "provider_calls": 0,
+                "read_only": True,
+            }
+        raise AcceptanceError("admission_not_committed")
+    accepted = (
+        str(row["status"]) == "queued"
+        and str(row["provider_phase"]) == "not_started"
+        and int(row["claim_count"] or 0) == 0
+        and int(row["provider_attempt_count"] or 0) == 0
+        and str(row["idempotency_request_id"])
+        == _admission_request_id(operation_id)
+        and str(row["idempotency_status"]) == "running"
+        and int(row["charge_applied"] or 0) == 1
+        and int(row["usage_created"] or 0) == 1
+        and str(row["billing_state"]) == "charged"
+        and str(row["request_ref_id"])
+        == durable_ai.payload_reference_id_for(operation_id, "request")
+        and str(row["payload_state"]) == "ready"
+        and str(row["purpose"]) == "request"
+        and str(row["outbox_state"]) == "pending"
+    )
+    if not accepted:
+        raise AcceptanceError("admission_resolve_contract")
+    return {
+        "status": "admission_resolved",
+        "nonce": nonce,
+        "user_id": user_id,
+        "operation_id": operation_id,
+        "billing_state": "charged",
+        "provider_calls": 0,
+        "read_only": True,
     }
 
 
@@ -340,45 +593,207 @@ def _cleanup_evidence(
     }
 
 
-def delete_primary(nonce: str) -> dict[str, Any]:
+def resolve_primary_deletion(
+    nonce: str,
+    operation_id: str,
+) -> dict[str, Any]:
+    """Prove the deterministic post-deletion state without another write."""
+    _require_context(mutate=False)
+    operation_id = _canonical_operation_id(operation_id)
+    deletion_id = _deletion_request_id(operation_id)
+    request_ref_id = durable_ai.payload_reference_id_for(
+        operation_id,
+        "request",
+    )
+    idempotency_request_id = _admission_request_id(operation_id)
+    operation = db.fetchone(
+        "SELECT o.status,o.provider_phase,o.claim_count,"
+        "o.provider_attempt_count,o.subject_hash,s.billing_state,"
+        "s.failure_code,s.request_ref_id,r.state AS request_ref_state,"
+        "r.deleted_at,b.state AS outbox_state "
+        "FROM ai_operations o "
+        "JOIN ai_operation_settlements s ON s.operation_id=o.id "
+        "JOIN ai_payload_refs r ON r.id=s.request_ref_id "
+        "JOIN ai_operation_outbox b ON b.operation_id=o.id "
+        "WHERE o.id=?",
+        (operation_id,),
+    )
+    deletion = db.fetchone(
+        "SELECT id,user_id,subject_ref,status,primary_deleted_at "
+        "FROM account_deletion_requests WHERE id=?",
+        (deletion_id,),
+    )
+    counts = db.fetchone(
+        "SELECT "
+        "(SELECT COUNT(*) FROM users WHERE username=?) AS user_count,"
+        "(SELECT COUNT(*) FROM ai_operation_admissions "
+        " WHERE operation_id=?) AS admission_count,"
+        "(SELECT COUNT(*) FROM idempotency_requests "
+        " WHERE id=?) AS idempotency_count,"
+        "(SELECT COUNT(*) FROM ai_payload_refs "
+        " WHERE operation_id=? AND state='ready') AS ready_payload_count,"
+        "(SELECT COUNT(*) FROM ai_payload_refs WHERE id=? "
+        " AND operation_id=? AND purpose='request' AND state='deleted' "
+        " AND deleted_at IS NOT NULL) AS deleted_request_payload_count",
+        (
+            _username(nonce),
+            operation_id,
+            idempotency_request_id,
+            operation_id,
+            request_ref_id,
+            operation_id,
+        ),
+    )
+    events = db.fetchone(
+        "SELECT "
+        "SUM(CASE WHEN event_type='claimed' THEN 1 ELSE 0 END) "
+        "AS claimed_count,"
+        "SUM(CASE WHEN event_type='lease_taken_over' THEN 1 ELSE 0 END) "
+        "AS takeover_count,"
+        "SUM(CASE WHEN event_type='progress' THEN 1 ELSE 0 END) "
+        "AS progress_count "
+        "FROM ai_operation_events WHERE operation_id=?",
+        (operation_id,),
+    )
+    if not operation or not deletion or not counts or not events:
+        raise AcceptanceError("deletion_resolve_rows")
+    subject_ref = str(deletion["subject_ref"] or "")
+    usage = db.fetchone(
+        "SELECT COUNT(*) AS usage_count,"
+        "MIN(source) AS usage_source,"
+        "MIN(credits_used) AS min_credits_used,"
+        "MAX(credits_used) AS max_credits_used "
+        "FROM usage_records WHERE user_id=? AND operation='analyze'",
+        (subject_ref,),
+    )
+    observed = {name: int(value or 0) for name, value in dict(counts).items()}
+    accepted = (
+        str(operation["status"]) == "failed"
+        and str(operation["provider_phase"]) == "not_started"
+        and int(operation["claim_count"] or 0) == 2
+        and int(operation["provider_attempt_count"] or 0) == 0
+        and re.fullmatch(r"[0-9a-f]{64}", str(operation["subject_hash"] or ""))
+        is not None
+        and str(operation["billing_state"]) == "refunded"
+        and str(operation["failure_code"]) == "worker_failed"
+        and str(operation["request_ref_id"]) == request_ref_id
+        and str(operation["request_ref_state"]) == "deleted"
+        and operation["deleted_at"] is not None
+        and str(operation["outbox_state"]) == "delivered"
+        and str(deletion["id"]) == deletion_id
+        and deletion["user_id"] is None
+        and re.fullmatch(r"deleted:[0-9a-f]{32}", subject_ref) is not None
+        and str(deletion["status"]) == "backup_clear_pending"
+        and deletion["primary_deleted_at"] is not None
+        and all(value == 0 for name, value in observed.items() if name != "deleted_request_payload_count")
+        and observed["deleted_request_payload_count"] == 1
+        and int(events["claimed_count"] or 0) == 1
+        and int(events["takeover_count"] or 0) == 1
+        and int(events["progress_count"] or 0) == 2
+        and usage is not None
+        and int(usage["usage_count"] or 0) == 1
+        and str(usage["usage_source"]) == "refunded"
+        and float(usage["min_credits_used"] or 0) == 0
+        and float(usage["max_credits_used"] or 0) == 0
+    )
+    if not accepted:
+        raise AcceptanceError("deletion_resolve_contract")
+    return {
+        "status": "primary_deleted",
+        "nonce": nonce,
+        "operation_id": operation_id,
+        "deletion_request_id": deletion_id,
+        "external_payload_residue_count": observed["ready_payload_count"],
+        "primary_user_residue_count": observed["user_count"],
+        "admission_residue_count": observed["admission_count"],
+        "idempotency_residue_count": observed["idempotency_count"],
+        "deleted_request_payload_count": observed[
+            "deleted_request_payload_count"
+        ],
+        "deletion_request_status": "backup_clear_pending",
+        "usage_subject_ref_match": True,
+        "pseudonymous_audit_retained": True,
+        "read_only": True,
+        "provider_calls": 0,
+    }
+
+
+def delete_primary(nonce: str, operation_id: str) -> dict[str, Any]:
     store = _require_context(mutate=True)
     terminal = observe(nonce, "terminal")
+    operation_id = _canonical_operation_id(operation_id)
+    if terminal["operation_id"] != operation_id:
+        raise AcceptanceError("operation_identity")
     user_id = terminal["user_id"]
     now = datetime.now(timezone.utc)
-    deletion = content_retention.request_account_deletion(user_id)
+    deletion_id = _deletion_request_id(operation_id)
+    existing = db.fetchone(
+        "SELECT * FROM account_deletion_requests WHERE id=?",
+        (deletion_id,),
+    )
+    if existing:
+        deletion = dict(existing)
+        if (
+            str(deletion.get("user_id") or "") != user_id
+            or str(deletion.get("status") or "") != "requested"
+        ):
+            raise AcceptanceError("deletion_request_contract")
+    else:
+        with db.transaction(write=True) as tx:
+            deletion = content_retention.request_account_deletion_with_storage(
+                tx,
+                user_id,
+                now=now,
+                request_id=deletion_id,
+            )
+        if str(deletion.get("id") or "") != deletion_id:
+            raise AcceptanceError("deletion_request_contract")
     completed = content_retention.process_due_account_deletions(
         limit=1,
         now=now + timedelta(hours=25),
         payload_store=store,
-        request_id=str(deletion["id"]),
+        request_id=deletion_id,
     )
-    if completed != [str(deletion["id"])]:
+    if completed != [deletion_id]:
         raise AcceptanceError("primary_deletion")
-    evidence = _cleanup_evidence(terminal, deletion)
-    return {
-        "status": "primary_deleted",
-        "operation_id": terminal["operation_id"],
-        "provider_calls": 0,
-        **evidence,
-    }
+    return resolve_primary_deletion(nonce, operation_id)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument("--admit", action="store_true")
+    action.add_argument("--resolve-admit", action="store_true")
     action.add_argument("--observe", choices=("hold", "terminal"))
     action.add_argument("--delete-primary", action="store_true")
+    action.add_argument("--resolve-delete", action="store_true")
     parser.add_argument("--nonce", required=True)
+    parser.add_argument("--operation-id")
     args = parser.parse_args(argv)
     try:
         nonce = _canonical_nonce(args.nonce)
         if args.admit:
+            if args.operation_id is not None:
+                raise AcceptanceError("unexpected_operation_id")
             result = admit(nonce)
+        elif args.resolve_admit:
+            if args.operation_id is not None:
+                raise AcceptanceError("unexpected_operation_id")
+            result = resolve_admission(nonce)
         elif args.observe:
+            if args.operation_id is not None:
+                raise AcceptanceError("unexpected_operation_id")
             result = observe(nonce, args.observe)
+        elif args.delete_primary:
+            result = delete_primary(
+                nonce,
+                _canonical_operation_id(args.operation_id or ""),
+            )
         else:
-            result = delete_primary(nonce)
+            result = resolve_primary_deletion(
+                nonce,
+                _canonical_operation_id(args.operation_id or ""),
+            )
     except AcceptanceError as exc:
         print(
             f"production_durable_ai_acceptance=FAIL code={exc.code}",

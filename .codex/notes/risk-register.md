@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-06
+Last updated: 2026-08-07
 
 ## Critical Risks
 
@@ -1138,6 +1138,101 @@ Last updated: 2026-08-06
   V14-V17 historical hashes remain unchanged. Do not rerun the cancelled job.
   Obtain one new exact-HEAD push/PR CI pair, then run the complete readiness
   gate exactly once before the already authorized recovery Stage A.
+- 2026-08-07 terminal closure: checkpoint `8c589951...2597` exact-HEAD push/PR
+  runs `31136383455` / `31136385115` both completed attempt-1 success with all
+  workflow steps green. The only post-CI complete local gate passed `138/138`;
+  the cancelled predecessor was not rerun. CI timeout risk is closed. Stage A
+  recovery is now open under the reviewed single-build/no-retry/no-publication
+  envelope; readiness remains `20/29` until native build, private manifest,
+  fresh import and production durable-queue recovery all pass.
+
+### Durable AI Stage A recovery closure and publication boundary
+
+- 2026-08-07: the one authorized recovery invocation
+  `t-sz06t8c7wqso3k0` finished once with `ExitCode=0`, exact image
+  `sha256:1f503665...0c95`, exactly one BUILD_PASS, 11 accepted evidence files
+  and zero manual/automatic retry. The retained local wheelhouse/source/scanner
+  path completed in about 198 seconds; no public PyPI fallback or fresh Trivy
+  download occurred. The former P2 single-download fragility and evidence-mode
+  mismatch are therefore closed for this Stage A run.
+- The cloud result reports `Dropped=28563` because Cloud Assistant retains a
+  bounded output window, but the terminal window contains BUILD_PASS, all
+  input/evidence hashes and wrapper PASS; the complete root-only builder log is
+  retained for the existing publisher. This is an evidence-retention limit,
+  not a build failure or reason for a rerun.
+- Residual risk is now confined to the already designed native path: verify the
+  private repository and immutable target-tag absence before mutation, permit
+  exactly one publisher push, require local/push/descriptor/config digest
+  agreement, remove temporary IAM/link, restore the production link, and prove
+  pull/import on a truly fresh host that is destroyed afterward. Builder
+  billing remains active only while this immediate chain proceeds. No V18/R17
+  or custom ledger/receipt/topology change is justified.
+
+### Durable AI native publication closure and fresh-import boundary
+
+- 2026-08-07: pre-push native ACR read proved the immutable target tag absent.
+  The only failed wrapper ended in local preflight with zero publisher
+  invocation and the tag still absent. The sole actual publisher invocation
+  `t-sz06t8kn3mrjugw` then passed once with one push and zero retry. Pushed,
+  descriptor and native manifest digest all equal
+  `sha256:407eef2b...321b`; native config/ImageId and accepted C17 Stage A image
+  all equal `sha256:1f503665...0c95`, with exact tag state `NORMAL`.
+- Publisher IAM and the builder Registry link are absent; the sole production
+  link is restored, public Registry access remains disabled, and API-C,
+  historical Admin and API-F retain their exact healthy loopback-only state.
+  Stage B is therefore closed without readiness credit. Residual Item 21 risk
+  is strictly the truly fresh one-pull/no-start import proof followed by
+  production migration 0017, Dispatcher LOGIN/Secret, default-suspended units
+  and cross-host provider-free lease takeover. No V18/R17 or new custom
+  ledger/receipt/topology layer is permitted.
+- Fresh-import infrastructure was then prepared with one unattached temporary
+  ECS role, exact pull-only policy and empty security group. Native inventory
+  proved the private vSwitch available, the selected AMD64 type in stock and a
+  VPC-wide SNAT path active. The idempotent host-create request was rejected
+  before resource creation only because available credit was `38.83 CNY` and
+  ECS returned `InvalidAccountStatus.NotEnoughBalance`; exact-name readback is
+  zero. This is an external billing blocker, not an importer failure or a reason
+  to rebuild/republish. After recharge, reuse the same ClientToken and continue;
+  do not repeat Stage A/B, CI or the full readiness gate.
+- 2026-08-07 terminal closure: the later fresh private host pulled the exact
+  C17 manifest once with one token request, zero retry and zero container start;
+  manifest/config identity matched the accepted Stage A and native ACR values.
+  The final host audit proved all task, auth, Docker and database state zero.
+- Native cleanup readback proves the fresh host and system disk absent, the
+  temporary RAM role/policy absent, and the exact empty import security group
+  deleted with post-delete count zero. The fresh-import balance and resource
+  residue risks are closed; no additional cache-export/import run is allowed.
+- Residual Item 21 High is now only production migration `0017`, Dispatcher
+  `LOGIN`/managed Secret, default-suspended units and provider-free cross-host
+  lease takeover. Internal readiness stays `20/29`; this closure alone adds no
+  item credit and does not justify V18/R17 or custom control expansion.
+
+### Durable AI production execution source boundary
+
+- 2026-08-08: the direct Item 21 production executor candidate is locally
+  closed while C17, its dependency/image semantics, the accepted systemd
+  templates and all production resources remain unchanged. The new surface is
+  limited to the fixed `0017` transaction/session-account check, one-role
+  Dispatcher activation, exact-C17 unit installation/removal, protected
+  in-memory control transport and provider-free acceptance controller/runner.
+- Commit-acknowledgement loss, deterministic private-object recovery, exact
+  database topology/account, mutation UNKNOWN/no-retry classification,
+  systemd static-unit and stale-fence cleanup, root-only Secret files, and
+  Secret-free argv/env/output were independently reviewed. Three read-only
+  reviews found no remaining P0/P1. Expanded focused regression is `300/300`
+  with ten existing real-PostgreSQL-only skips; the final security subset is
+  `67/67`; compile, direct-script smoke and diff checks pass.
+- No custom ledger, receipt, persistent topology, retry control or exposed
+  container-local rollback was added. No cloud, database, storage, provider,
+  image or production-host action occurred during this source stage. Therefore
+  readiness remains internal `20/29` and public `20/38`; local tests do not
+  satisfy Item 21.
+- Residual High risk is now execution evidence only: the candidate must receive
+  one source checkpoint, one push/PR dual-CI acceptance and one complete
+  readiness-gate pass, then production must prove exact migration `0017`, the
+  single Dispatcher LOGIN/managed Secret, exact default-suspended units,
+  provider-free Worker-C to Worker-F fenced takeover, terminal/refund/deletion
+  cleanup and zero temporary residue. Stage A/B/fresh import must not be rerun.
 
 ## Low Risks
 

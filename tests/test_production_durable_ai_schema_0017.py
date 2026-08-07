@@ -36,6 +36,29 @@ class ProductionDurableAiSchema0017Tests(unittest.TestCase):
 
         self.assertIn('"rolcanlogin":true', snapshot)
 
+    def test_owner_activation_checks_expected_session_inside_action_transaction(self):
+        connection = mock.Mock()
+        connection.execute.return_value.fetchone.return_value = {
+            "session_role": "noteai_schema_task_durable_ai_0017",
+            "current_role": schema_0017.OWNER_ROLE,
+        }
+        schema_0017._activate_owner(
+            connection,
+            expected_session_role="noteai_schema_task_durable_ai_0017",
+        )
+        connection.execute.return_value.fetchone.return_value = {
+            "session_role": "other_executor",
+            "current_role": schema_0017.OWNER_ROLE,
+        }
+        with self.assertRaisesRegex(
+            schema_0017.DurableAiSchemaError,
+            "owner_activation",
+        ):
+            schema_0017._activate_owner(
+                connection,
+                expected_session_role="noteai_schema_task_durable_ai_0017",
+            )
+
     def test_apply_requires_exact_confirmation_before_connecting(self):
         stderr = io.StringIO()
         with (
@@ -88,6 +111,28 @@ class ProductionDurableAiSchema0017Tests(unittest.TestCase):
         connection.close.assert_called_once_with()
         self.assertNotIn("DATABASE_URL", stdout.getvalue())
         self.assertIn('"read_only":true', stdout.getvalue())
+
+    def test_preflight_is_read_only_and_uses_only_prior_contract(self):
+        connection = mock.Mock()
+        verified = {
+            "status": "verified",
+            "mode": "preflight",
+            "read_only": True,
+            "database_writes": 0,
+            "provider_calls": 0,
+        }
+        with (
+            mock.patch.object(schema_0017, "_connect", return_value=connection),
+            mock.patch.object(
+                schema_0017,
+                "preflight_schema",
+                return_value=verified,
+            ) as preflight,
+        ):
+            result = schema_0017.main(["--preflight"])
+        self.assertEqual(result, 0)
+        preflight.assert_called_once()
+        connection.close.assert_called_once_with()
 
     def test_source_preserves_owner_bound_bounded_transaction(self):
         source = schema_0017.Path(schema_0017.__file__).read_text(
