@@ -3498,10 +3498,10 @@
               "ref": ".codex/notes/risk-register.md"
             }
           ],
-            "blocker": "Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949, ACR manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b and config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95 remain fixed. Stage A/B, exact-one publication, fresh import, executor CI/gate, API health, private storage, PostPaid capacity, independent Worker IAM, Worker Docker bootstrap and the exact-one three-host C17 transport key generation remain accepted. Both retained encrypted C/F Workers are Running with automatic release empty. Keygen command c-sz06tdqd3f6wpog / invocation t-sz06tdqd3foe03k completed API-C, Worker-C and Worker-F with three distinct RSA-3072 public keys, zero private-key output and root-only host key roots retained for the immediate transport; it must not be repeated. API-C has healthy Docker and expected API/Admin containers; C17 is absent and its one unclassified candidate Docker config path remains non-blocking and untouched. Worker-C/F have matching Docker 28.3.3 linux/amd64, active/enabled engines and C17 absent. Item 21 now requires a temporary pull-only broker on the retained Stopped/StopCharging builder and serial per-host JIT fixed-digest transport in Worker-C, Worker-F, API-C order, followed by encrypted Worker Secret delivery, production migration 0017, Dispatcher LOGIN/managed Secret, exact default-suspended units and provider-free cross-host lease takeover plus terminal cleanup. Do not repeat the baseline, bootstrap or keygen, balance/stock/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request, create V18/R17, reuse the API storage role for Workers, delete an unclassified candidate Docker config file, or add custom ledger/receipt/topology controls.",
+            "blocker": "Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949, ACR manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b and config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95 remain fixed. Stage A/B, exact-one publication, fresh import, executor CI/gate, API health, private storage, PostPaid capacity, independent Worker IAM, Worker Docker bootstrap and the exact-one three-host C17 transport key generation remain accepted. The temporary broker role now has console login disabled, exact ECS-only trust and exactly one two-statement pull-only custom policy; it is attached only to the retained builder. The builder consumed one StartInstance request and is natively Running/PostPaid with no auto-release or operation lock, the exact role attached, Cloud Assistant healthy with ActiveTaskCount=0 and Pending/Running/Stopping/Scheduled invocation counts all zero. No Registry credential or image pull has occurred. Item 21 now requires one JIT credential and at most one fixed-digest pull for Worker-C, then Worker-F and API-C in strict order, followed by broker IAM cleanup, builder StopCharging, encrypted Worker Secret delivery, production migration 0017, Dispatcher LOGIN/managed Secret, exact default-suspended units and provider-free cross-host lease takeover plus terminal cleanup. Do not repeat the baseline, bootstrap, keygen, broker creation, role attachment or builder start; do not repeat balance/stock/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, create V18/R17, reuse the API storage role for Workers, delete an unclassified candidate Docker config file, or add custom ledger/receipt/topology controls.",
           "latest_reconciliation": {
             "as_of": "2026-08-08",
-            "status": "c17_transport_keygen_accepted_jit_pull_broker_required",
+            "status": "temporary_pull_broker_ready_worker_c_jit_required",
             "native_vulnerability_diagnostic_invocation": "t-sz06t821muvmkg0",
             "native_vulnerability_diagnostic_command": "c-sz06t821mue5a0w",
             "native_vulnerability_diagnostic_repeats": 1,
@@ -3518,7 +3518,7 @@
             "native_vulnerability_diagnostic_log_sha256": "1e43794d1d2b1fa4e600e2ffe39aaa5376f3714b8b7101cd6e06f6c940c26cab",
             "builder_stop_request": "019FD990-C910-58D5-8CBE-C617C81ECF1B",
             "builder_stop_read": "019FD992-B432-525A-A58D-C82204A6663B",
-            "builder_state": "Stopped/StopCharging",
+            "builder_state_after_prior_v17_cleanup": "Stopped/StopCharging",
             "implementation_checkpoint": "e3c727a35c4af5c51b46081ea45e17bc1255c7d5",
             "push_ci": {
               "run_id": 31134471751,
@@ -4423,6 +4423,55 @@
                 "automatic_retry_allowed": false,
                 "readiness_credit_added": false
               },
+              "temporary_c17_pull_broker": {
+                "status": "READY",
+                "incident_class": "CONNECTED_KNOWN_COMMITTED",
+                "role_name": "noteai-c17-pull-broker-20260808-v1",
+                "policy_name": "noteai-c17-pull-only-20260808-v1",
+                "role_create_request_id": "019FE1C3-1626-5F66-91AC-0C30F159737B",
+                "role_console_login_update_request_id": "019FE1C4-D18F-5BA0-AF5F-65E64D0C4BF6",
+                "role_read_request_id": "019FE1C5-0199-5E17-A8CE-99384AB37709",
+                "allow_console_login": false,
+                "max_session_duration_seconds": 43200,
+                "trust_service": "ecs.aliyuncs.com",
+                "trust_action": "sts:AssumeRole",
+                "trust_principal_count": 1,
+                "policy_create_request_id": "019FE1C5-ABF3-571A-B6EA-5EDB227F22EC",
+                "policy_read_request_id": "019FE1C5-E206-5E5F-BCFF-7B0348895FE0",
+                "policy_statement_count": 2,
+                "authorization_token_action_count": 1,
+                "exact_repository_pull_action_count": 1,
+                "repository_wildcard_count": 0,
+                "push_list_delete_action_count": 0,
+                "policy_attach_request_id": "019FE1C6-97A8-5389-8A33-C58843F2B17E",
+                "policy_attachment_read_request_id": "019FE1C6-CE95-5957-B268-A2ADAD6FE8DF",
+                "attached_policy_count": 1,
+                "builder_role_attach_request_id": "019FE1C8-DEC4-57BD-AF2E-681BA8F74F23",
+                "builder_role_prestart_read_request_id": "019FE1C9-2488-5470-8797-392A36C20182",
+                "builder_start_request_id": "019FE1C9-8828-52D3-9BD0-424903C570E3",
+                "builder_running_read_request_id": "019FE1C9-D2C3-5787-8552-C6BA6223E54F",
+                "builder_running_role_read_request_id": "019FE1CC-AC4D-5908-9351-3F9B45E482A5",
+                "builder_start_submit_count": 1,
+                "builder_status": "Running",
+                "builder_charge_type": "PostPaid",
+                "builder_auto_release_time_empty": true,
+                "builder_operation_lock_count": 0,
+                "builder_role_count": 1,
+                "cloud_assistant_status_request_id": "019FE1CB-1EE6-58DF-94A0-02EDDAF3A6BA",
+                "cloud_assistant_healthy": true,
+                "cloud_assistant_active_task_count": 0,
+                "active_invocation_reads": {
+                  "pending": "019FE1CB-A51B-5E9B-9FBA-9BA2AAF0E2CC",
+                  "running": "019FE1CB-EA50-5B74-8076-CFC75EAED4EB",
+                  "stopping": "019FE1CC-2856-543A-A572-E1E19B8C9FF4",
+                  "scheduled": "019FE1CC-5F70-5226-A3BF-86A855105360"
+                },
+                "active_invocation_count": 0,
+                "registry_credential_issuance_count": 0,
+                "image_pull_count": 0,
+                "automatic_retry_allowed": false,
+                "readiness_credit_added": false
+              },
               "final_worker_count": 2,
               "worker_docker_bootstrap_complete": true,
               "c17_transport_keygen_complete": true,
@@ -4439,7 +4488,7 @@
               "noteai_application_public_traffic": 0,
               "readiness_credit_added": false
             },
-            "next_hard_condition": "Do not repeat the terminal three-host baseline, accepted Worker Docker bootstrap or accepted C17 keygen invocation. Create one bounded temporary ECS-trust pull-only broker role and exact-repository policy on the retained builder without changing API/Worker storage roles; start that exact Stopped/StopCharging builder once, then issue one per-host JIT Registry credential and privately transport the fixed C17 digest in strict Worker-C, Worker-F, API-C order. Each host gets at most one digest pull, isolated root-only DOCKER_CONFIG, exact manifest/config/C17 inspection, zero container starts and complete credential/key/task-root cleanup; any pull-started UNKNOWN is read back and never resubmitted. Do not stop or reboot API-C, Worker-C or Worker-F until each volatile /run key root has been consumed by its matching retained-image transport or a terminal failure has been read back and its residue cleanup closed. Remove the temporary broker IAM and return the builder to Stopped/StopCharging after the three host results are terminal. The unclassified API-C candidate config path must not be read, deleted or changed. Then continue encrypted Worker Secret delivery, task-account migration 0017, Dispatcher activation, exact default-suspended units and provider-free C-to-F fenced takeover plus terminal cleanup. Do not repeat balance/stock/network/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import or the rejected v1 request."
+            "next_hard_condition": "Do not repeat the terminal three-host baseline, accepted Worker Docker bootstrap, accepted C17 keygen invocation, temporary broker creation, role/policy attachment or builder start. The temporary ECS-only pull broker and exact-repository policy are accepted and the exact builder is Running, healthy and idle. Issue exactly one Worker-C JIT Registry credential on that builder and consume it with at most one fixed-digest pull on Worker-C. Accept only exact manifest/config/C17 inspection, zero container starts and complete isolated credential/key/task-root cleanup; any broker or pull UNKNOWN is read back and never resubmitted. Only after Worker-C terminal PASS continue the same JIT sequence once for Worker-F and then API-C. Do not stop or reboot API-C, Worker-C or Worker-F until each volatile /run key root has been consumed or terminal-failure cleanup is closed. After all three results are terminal, remove the temporary broker IAM and return the builder to Stopped/StopCharging. The unclassified API-C candidate config path must not be read, deleted or changed. Then continue encrypted Worker Secret delivery, task-account migration 0017, Dispatcher activation, exact default-suspended units and provider-free C-to-F fenced takeover plus terminal cleanup. Do not repeat balance/stock/network/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import or the rejected v1 request."
           },
           "next_task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
         },

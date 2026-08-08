@@ -7919,3 +7919,41 @@ read back and never resubmitted. After all three terminal results, remove the
 temporary broker IAM and return the builder to Stopped/StopCharging, then
 continue Worker Secret, migration `0017`, Dispatcher, units and fenced
 takeover without repeating closed stages.
+
+### Temporary C17 pull broker ready; Worker-C JIT transport is next (2026-08-08)
+
+- A temporary broker role and custom policy were created for this transport
+  only. The role's provider default `AllowConsoleLogin=true` was corrected
+  once, before attachment or builder start, through request
+  `019FE1C4-D18F-5BA0-AF5F-65E64D0C4BF6`; native read
+  `019FE1C5-0199-5E17-A8CE-99384AB37709` proves console login disabled,
+  `MaxSessionDuration=43200` and exact service-only trust for
+  `ecs.aliyuncs.com / sts:AssumeRole`. The custom policy has exactly two
+  statements: authorization-token issuance and pull of the exact Enterprise
+  `noteai/app` repository. It has zero Push/List/Delete actions and zero
+  wildcard repository. Policy attachment request
+  `019FE1C6-97A8-5389-8A33-C58843F2B17E` and read
+  `019FE1C6-CE95-5957-B268-A2ADAD6FE8DF` prove the role has exactly this one
+  custom policy. API and Worker storage roles were not changed.
+- Builder role attachment request
+  `019FE1C8-DEC4-57BD-AF2E-681BA8F74F23` returned one success and zero
+  failures. The builder consumed exactly one StartInstance request,
+  `019FE1C9-8828-52D3-9BD0-424903C570E3`. Native instance read
+  `019FE1C9-D2C3-5787-8552-C6BA6223E54F` proves the exact retained builder is
+  `Running / PostPaid`, with empty automatic release and zero operation locks;
+  role read `019FE1CC-AC4D-5908-9351-3F9B45E482A5` proves the exact temporary
+  role remains its sole instance role. Cloud Assistant read
+  `019FE1CB-1EE6-58DF-94A0-02EDDAF3A6BA` proves the agent healthy and
+  `ActiveTaskCount=0`; exact Pending, Running, Stopping and Scheduled reads all
+  returned zero invocations. No Registry credential or image pull has
+  occurred.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. Do not recreate the broker, reattach it or restart the builder.
+The unique next action is one Worker-C JIT token broker invocation followed by
+at most one fixed-digest C17 pull on Worker-C. Only its terminal PASS permits
+Worker-F and then API-C. Any lost/unknown broker or pull result is reconciled
+from its native invocation and never resubmitted. After the three hosts are
+terminal, detach/delete the temporary IAM and return the builder to
+`Stopped/StopCharging`, then continue Worker Secret, migration `0017`,
+Dispatcher, units and fenced takeover without stopping at the cleanup record.

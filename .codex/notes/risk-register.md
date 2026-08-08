@@ -1412,6 +1412,22 @@ Last updated: 2026-08-08
   transport or terminal-failure cleanup closes. Item21 remains `20/29` and
   unverified.
 
+- 2026-08-08 the temporary C17 pull broker is ready and bounded. A provider
+  default that initially allowed console login was corrected before any role
+  attachment or builder start; the accepted final role has console login
+  disabled, exact ECS-only trust and one exact-repository pull-only custom
+  policy with zero Push/List/Delete or wildcard-repository permission. The
+  retained builder was attached once and started exactly once, and native
+  reads prove it Running/PostPaid, unlocked, without auto-release, with the
+  exact role, a healthy idle Cloud Assistant agent and zero Pending/Running/
+  Stopping/Scheduled invocations. Registry credential issuance and image pulls
+  remain zero. Residual High risk is now the per-host JIT
+  token lifetime and exact-one pull UNKNOWN boundary: Worker-C must finish and
+  clean its credential/key/task root before Worker-F, then API-C; no broker or
+  pull request may be repeated after ambiguous submission. The broker IAM must
+  be deleted and builder returned to StopCharging after terminal transport.
+  Item21 remains `20/29` and unverified.
+
 ## Low Risks
 
 ### `model/api.py` is too large
