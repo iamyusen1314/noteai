@@ -1445,6 +1445,20 @@ Last updated: 2026-08-08
   No IAM, C17, image, timeout, Registry or control-layer semantics change;
   Item21 remains `20/29` and unverified.
 
+- 2026-08-08 the bounded Worker-C v2 broker recovery succeeded exactly once.
+  Native result `019FE1FD-2354-5344-8E6C-368041441BB6` proves
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0`, one token request, exact
+  Worker-C/public-key binding, one 384-byte ciphertext and no UNKNOWN marker.
+  The plaintext Registry secret remains only in process memory. The username,
+  expiry and encrypted ciphertext remain in the native invocation result and
+  ephemeral process memory, but their actual values are absent from Git and
+  the tracked Secret-free records. Residual High risk is now the single pull
+  boundary: the host-bound
+  credential may be consumed only once on Worker-C; any pull-started timeout,
+  disconnect or incomplete cleanup must be reconciled from the original
+  invocation and never resubmitted. Worker-F/API-C credentials must not be
+  issued until Worker-C pull PASS. Item21 remains `20/29` and unverified.
+
 ## Low Risks
 
 ### `model/api.py` is too large

@@ -8006,3 +8006,34 @@ PASS permits the existing one-pull Worker-C executor, followed by Worker-F and
 API-C. Any token-request-started UNKNOWN remains no-retry. The temporary IAM,
 builder and three volatile key roots remain intentionally retained while this
 known pre-token failure is recovered.
+
+### Worker-C v2 broker accepted; the single digest pull is next (2026-08-08)
+
+- The reviewed 13,657-byte Python 3.6-compatible broker and 7,520-byte wrapper
+  were submitted under the new fixed v2 name only after native absence was
+  proven. Exact request `019FE1FC-1832-5799-9651-28157B7D333C` returned command
+  `c-sz06tdxg8egswlc` and invocation `t-sz06tdxg8eya70g`; no v1 request was
+  reused or resubmitted.
+- Read-only result request `019FE1FD-2354-5344-8E6C-368041441BB6` proves one
+  terminal `Success / ExitCode=0 / Repeats=1 / Dropped=0` record at
+  `2026-08-08T15:27:04Z`. The 861-byte broker output has SHA-256
+  `a039e7d93a65cf15f067e9ea2ee277d466983cdee64e26ee6e2a2e880e25254d`
+  and exactly one accepted PASS object: host `Worker-C`, the already accepted
+  Worker-C public DER hash, `token_requests=1`, a 384-byte RSA-OAEP-SHA256
+  ciphertext and `automatic_retry_allowed=false`. The credential had more than
+  five hours remaining at acceptance. The plaintext Registry secret exists
+  only in process memory. The username, expiry and encrypted ciphertext exist
+  in the native invocation result and current ephemeral process memory; their
+  actual values are not copied into Git, Handoff, Readiness, Risk or user
+  output by this checkpoint.
+- The broker's temporary task root was cleaned by its accepted path. No image
+  pull has occurred yet. The token is host-bound and may be
+  consumed only by the already reviewed retained-image executor on Worker-C;
+  it cannot be fanned out or used for Worker-F/API-C.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The only next action is one Worker-C executor invocation with at
+most one private fixed-digest C17 pull, exact manifest/config/OCI inspection,
+zero container starts and complete isolated auth/key/task-root cleanup. A
+pull-started UNKNOWN is read back and never resubmitted. Only terminal
+Worker-C pull PASS permits a fresh JIT broker for Worker-F, then API-C.
