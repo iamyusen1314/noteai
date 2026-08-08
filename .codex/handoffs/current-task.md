@@ -7728,3 +7728,37 @@ that passes may encrypted Worker Secret transport, task-account migration
 `0017`, Dispatcher activation, default-suspended units and provider-free C-to-F
 takeover proceed. Do not repeat balance, stock, quote, API/OSS, CI, gate,
 Stage A/B, fresh import or the rejected v1 payload.
+
+### Item 21 host baseline is audit-ready but requires one client-side Workbench submission (2026-08-08)
+
+- The official ECS `RunCommand` request was not submitted. Attempting to open
+  the long prefilled Workbench URL was stopped by the Codex browser safety
+  boundary before any provider request, `CommandId` or `InvokeId` existed.
+  This is `PRE_CONNECT`: remote command submissions, host executions, service
+  mutations, database/storage calls and public/provider traffic are all `0`.
+  It is not a failed Cloud Assistant invocation and must not be blindly rerun.
+- A fresh API-C role read, request
+  `019FDF17-415D-5993-A515-58009795C1F3`, bound the preflight to the accepted
+  API storage role; the independent Worker role remains the exact C/F
+  expectation. The final local, untracked, Secret-free pretransport script is
+  `/tmp/noteai-item21-host-baseline.sh`, SHA-256
+  `6a65678a58bfe268983f9946dc6973b2a15db3a95bf0a3e72173fe281c56b4a5`.
+  Bash and embedded-Python syntax pass, and two independent read-only reviews
+  report `P0=0 / P1=0 / GO`.
+- The script is read-only and fail closed: it disables proxies and redirects
+  for link-local IMDS, never outputs temporary credentials, never reads an env
+  file or Docker auth contents, never calls API health, database, OSS,
+  Registry or public endpoints, and never starts/stops/enables a service or
+  container. It emits only fixed labels, counts, booleans, role hash and exact
+  C17 state. `absent` is explicitly pretransport-only; `drift/unknown` fails.
+- The only hard condition is one user-mechanical submission of that exact
+  script in the signed-in official Alibaba Workbench to API-C, Worker-C and
+  Worker-F together (`RunShellScript`, plaintext, root, `/root`, timeout 120,
+  repeat once, keep-command false). This is not a request for technical
+  authorization or a design decision. After the one submission, only its
+  returned native IDs may be polled; no second command is permitted because of
+  a disconnect, delayed output or a failing host predicate.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. Both Workers remain `Running` with automatic release cancelled,
+so the client boundary cannot delete or invalidate their accepted capacity.

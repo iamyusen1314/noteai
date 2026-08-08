@@ -1331,6 +1331,21 @@ Last updated: 2026-08-08
   default-suspended units and provider-free cross-host takeover/cleanup. Item
   21 remains unverified at `20/29`; do not repeat the rejected v1 payload or
   any closed quote/CI/build/import evidence.
+- 2026-08-08 Item21 host-baseline client boundary: the final Secret-free
+  pretransport script is fixed locally at SHA-256
+  `6a65678a58bfe268983f9946dc6973b2a15db3a95bf0a3e72173fe281c56b4a5` and
+  has two independent `P0=0/P1=0/GO` reviews. It disables IMDS proxy/redirect
+  inheritance, holds STS values only in memory, binds exact API/Worker roles,
+  fails closed on Docker/C17 query errors and returns nonzero when any host
+  predicate fails. The Codex browser safety boundary rejected the long
+  prefilled Workbench navigation before any provider request, so Cloud
+  Assistant submission/execution and all host/database/storage/service writes
+  remain zero (`PRE_CONNECT`). Do not use DOM injection, Cloud Shell, SendFile,
+  shorter commands or alternate browser automation to bypass that boundary.
+  One mechanical user submission through the signed-in official Workbench is
+  required; after it returns native IDs, poll only that invocation and never
+  resubmit on disconnect or delayed output. Item21 remains `20/29` and
+  unverified; both Workers are retained with auto-release cancelled.
 
 ## Low Risks
 
