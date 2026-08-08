@@ -1496,6 +1496,19 @@ Last updated: 2026-08-09
   unclassified candidate Docker config path. Item21 remains `20/29` and
   unverified.
 
+- 2026-08-09 the API-C host-bound JIT broker succeeded exactly once after
+  native absence was proven. Its source was the accepted, hash-verified
+  Worker-C Python 3.6 broker; only the host and two public-key bindings
+  changed, with reverse equality outside those spans. Native terminal evidence
+  binds one token request to API-C, a 384-byte encrypted envelope and no
+  UNKNOWN; exact-name readback proves one invocation. Plaintext Secret remains
+  ephemeral, while encrypted material remains only in the native result and
+  current process and is absent from tracked records. Residual High risk is
+  the single API-C pull: preserve existing API/Admin identity, use only the
+  isolated Docker config, never read the unclassified candidate config, and
+  never resubmit after pull-started UNKNOWN. Item21 remains `20/29` and
+  unverified.
+
 ## Low Risks
 
 ### `model/api.py` is too large

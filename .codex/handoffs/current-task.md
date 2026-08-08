@@ -8172,3 +8172,45 @@ keygen and then at most one fixed-name API-C digest pull. Worker-C/F material
 cannot be reused. API-C must retain its existing API/Admin containers, health,
 listeners and restart identity, and its unclassified candidate Docker config
 path must not be read or changed.
+
+### API-C JIT broker accepted; the single API-C pull is next (2026-08-09)
+
+- API-C public material was recovered only from the accepted original keygen
+  result and revalidated as canonical RSA-3072/e65537 with SPKI DER SHA-256
+  `8521a6f989194eb570f698ee59ae17dad256220c41abba19b03c2595abda4fb6`;
+  keygen was not rerun. The accepted Worker-C Python 3.6 broker bytes were
+  reused with exactly three public binding substitutions: host, public DER
+  hash and public key. Reverse substitution reproduced the source byte-for-byte
+  and the fixed `API-C|Worker-C|Worker-F` allowlist remained unchanged.
+- The derived API-C broker is 13,654 bytes, SHA-256
+  `f1e5e57f6fd1f250da83363f9318736a259f702b0cfbc3565d4923fd172de4af`;
+  deterministic gzip is 5,006 bytes; its 7,520-byte Python 3.6-compatible
+  wrapper has SHA-256
+  `93084d1166705d59cc7fe7b6eba04f0cf586393fb6bddee56d036e86fafb40be`.
+  Workbench bytes/hash matched, all optional fields were empty, and native
+  request `019FE233-9C2E-5B30-8330-B919A0C781A4` proved fixed command name
+  `noteai-item21-c17-token-api-c-20260808-v1` absent before submission.
+- Exact RunCommand request `019FE235-4032-53B6-AB12-4468FB3E510D`
+  returned command `c-sz06te30pwjv9c0` and invocation
+  `t-sz06te30pwrcydc`. Read-only result request
+  `019FE235-D69F-52F1-A3FF-AA6DFBEFCB04` proves one terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` record from
+  `2026-08-08T16:29:29Z` through `2026-08-08T16:29:30Z`. Its single
+  858-byte PASS output has SHA-256
+  `e706ee8f06caf5fdae184b99e2008d8e2b5e3a2bfe572ef4c8daf3bd9e6342e3`
+  and binds exactly host `API-C`, the accepted public-key hash, one token
+  request, one 384-byte RSA-OAEP-SHA256 ciphertext and
+  `automatic_retry_allowed=false`. The credential had 18,567 seconds
+  remaining at acceptance. Exact-name readback request
+  `019FE237-337E-5F9B-B669-6EA60FCA0881` proves one invocation only.
+- The plaintext Registry secret exists only in ephemeral process memory. The
+  username, expiry and encrypted ciphertext exist in the native invocation
+  result and current ephemeral process memory; their actual values are not
+  copied into Git, Handoff, Readiness, Risk or user output.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The only next action is one fixed-name API-C executor with at
+most one private C17 digest pull, exact manifest/config/OCI inspection, zero
+container starts, preservation of existing API/Admin runtime identity and
+complete isolated auth/key/task-root cleanup. API-C broker/token may never be
+repeated or reused.
