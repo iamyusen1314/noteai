@@ -8130,3 +8130,45 @@ most one private C17 digest pull, exact manifest/config/OCI inspection, zero
 container starts and complete isolated auth/key/task-root cleanup. Worker-F
 broker/token may never be repeated or reused; only terminal pull PASS permits
 the API-C JIT sequence.
+
+### Worker-F fixed-digest C17 pull accepted; API-C JIT is next (2026-08-09)
+
+- Native request `019FE227-A252-501B-B6A0-D12A33ABE266` proved fixed command
+  name `noteai-item21-c17-pull-worker-f-20260808-v1` absent before submission.
+  The accepted 16,177-byte fixed template rendered to 16,660 bytes with
+  SHA-256
+  `870fb07c7654b1afd2043a6f81a77d718e0016747e1f72245786dd2834c8e80d`;
+  deterministic gzip was 5,628 bytes; the 8,345-byte Python 3.6-compatible
+  wrapper has SHA-256
+  `c77c5e591367adc6d6acbe2f6f7923780dc452a5ecf1ef9521782ee067c4c009`.
+  Workbench bytes/hash matched and optional fields were empty.
+- Exact RunCommand request `019FE228-BADA-5ECF-964B-EA62D517EEC4` returned
+  command `c-sz06te1ssx8fv9c` and invocation `t-sz06te1ssxsf20w`. Read-only
+  result request `019FE229-4085-53C6-807A-77CE3759012D` proves one terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` record from
+  `2026-08-08T16:15:49Z` through `2026-08-08T16:16:05Z`. Its single 344-byte
+  PASS output has SHA-256
+  `db11f7e496f2ffe9ff34a1677d7693ea55eebfab17b9ff3f5200a04610142317`.
+- PASS binds host `Worker-F`, immutable C17 commit
+  `cad5ce35664f617c6e19f90a6159285ddf975594`, manifest
+  `sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b`
+  and config
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`.
+  The reviewed executor path reports one orchestrated digest pull, zero
+  executor retries, zero container starts and complete isolated credential,
+  key, auth and task-root cleanup. This does not claim Docker performed no
+  internal transport retry.
+- Native exact-one request `019FE229-E21B-5970-88B8-9CAEEA8E4ECA` proves one
+  command/invocation under the fixed name and the same terminal identity.
+  Worker-F broker, token and pull must never be resubmitted. Rendered
+  credential material was not copied into the local workspace, Git or tracked
+  evidence; native command input and root-only remote runtime material were
+  consumed by this execution and its accepted cleanup path.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. C17 transport is accepted on two of three hosts. The only next
+action is a fresh API-C host-bound JIT credential recovered from the original
+keygen and then at most one fixed-name API-C digest pull. Worker-C/F material
+cannot be reused. API-C must retain its existing API/Admin containers, health,
+listeners and restart identity, and its unclassified candidate Docker config
+path must not be read or changed.

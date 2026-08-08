@@ -1484,6 +1484,18 @@ Last updated: 2026-08-09
   JIT cannot begin before Worker-F pull PASS. Item21 remains `20/29` and
   unverified.
 
+- 2026-08-09 Worker-F fixed-digest transport closed with one exact-name native
+  terminal success: exact C17/manifest/config, one orchestrated digest pull,
+  zero executor retries, zero container starts and complete isolated
+  credential/key/auth/task-root cleanup. The zero-retry evidence is limited to
+  executor/orchestration and does not claim Docker internal transport behavior.
+  Worker-F broker, credential and pull are terminal and cannot be reused.
+  Residual High risk moves to API-C: it requires a fresh host-bound JIT
+  credential and one fixed-name pull while preserving the existing API/Admin
+  containers, three-round health, listener/restart identity and the untouched
+  unclassified candidate Docker config path. Item21 remains `20/29` and
+  unverified.
+
 ## Low Risks
 
 ### `model/api.py` is too large
