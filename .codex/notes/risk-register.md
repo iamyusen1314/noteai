@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-08
+Last updated: 2026-08-09
 
 ## Critical Risks
 
@@ -1470,6 +1470,19 @@ Last updated: 2026-08-08
   JIT credential and at most one fixed-name pull; Worker-C material and
   invocation are terminal and must never be reused. Item21 remains `20/29`
   and unverified.
+
+- 2026-08-09 the Worker-F host-bound JIT broker succeeded exactly once after
+  native absence was proven. Its source was the native, hash-verified accepted
+  Worker-C Python 3.6 broker bytes; only the host assignment, public DER hash
+  and public key changed, and reverse substitution proved all other bytes and
+  the host allowlist unchanged. Native terminal evidence binds one token
+  request to Worker-F, a 384-byte encrypted envelope and no UNKNOWN; exact-name
+  readback proves one invocation. Plaintext Secret remains ephemeral, while
+  encrypted material remains only in the native result/current process and is
+  absent from tracked records. Residual High risk is the single Worker-F pull:
+  token-request-started or pull-started UNKNOWN is never resubmitted, and API-C
+  JIT cannot begin before Worker-F pull PASS. Item21 remains `20/29` and
+  unverified.
 
 ## Low Risks
 

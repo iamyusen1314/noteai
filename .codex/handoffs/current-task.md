@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-08 (Asia/Shanghai)
+> Updated: 2026-08-09 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -8083,3 +8083,50 @@ Readiness remains internal `20/29` and public `20/38`; Item 21 remains
 broker for Worker-F using its already accepted key, followed by at most one
 Worker-F fixed-digest pull. Worker-C credentials and invocation may not be
 reused or fanned out.
+
+### Worker-F JIT broker accepted; the single Worker-F pull is next (2026-08-09)
+
+- Worker-F public material was recovered only from the accepted original
+  keygen result and revalidated as canonical RSA-3072/e65537 with SPKI DER
+  SHA-256
+  `e0207fe48a21b962bc6b5f84554e68bcfee4762278aff25ea24d93d318cdb46f`;
+  keygen was not rerun.
+- Read-only native request `019FE21B-BDDD-5EA0-90EB-9E3A74CBCAD4` recovered
+  the already successful Worker-C v2 broker CommandContent. Its strict Base64
+  decode exactly reproduced the accepted 7,520-byte wrapper SHA-256
+  `f81e4f5074b2d37e5f5914e064ee0c9b4e4d74c4106932fc444e311293738d9a`
+  and 13,657-byte inner broker SHA-256
+  `33cb295d11df79909446008849d34c7287f485a770e51a608086922ce3c33a1f`.
+  Worker-F changed only the exact host assignment, public DER hash and public
+  key bytes; reverse substitution reproduced the source byte-for-byte and the
+  fixed `API-C|Worker-C|Worker-F` allowlist remained unchanged.
+- The derived Worker-F broker is 13,657 bytes, SHA-256
+  `f94ab335a24b7711ba47be6fb9bd585f54b49e825a946439e2b7f2dc49d9d307`;
+  deterministic gzip is 5,001 bytes; its 7,512-byte Python 3.6-compatible
+  wrapper has SHA-256
+  `83343539b2464d15b7e2c6fc3526b4c8b9f3ba09c5ae7b2fded41e8db6fbf9ed`.
+  Workbench bytes/hash matched, all optional fields were empty, and native
+  request `019FE21D-BFFF-5876-8A33-E0A842D51A0D` proved the fixed Worker-F
+  broker name absent before submission.
+- Exact RunCommand request `019FE21F-02E6-56EF-B2EC-9A329B0FC9F8` returned
+  command `c-sz06te0upn1f85c` and invocation `t-sz06te0upn8wx6o`. Read-only
+  result request `019FE21F-6B5C-5461-AD49-7C994813F72F` proves one terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` record at
+  `2026-08-08T16:05:12Z`. Its single 861-byte PASS output has SHA-256
+  `d8cb6c50e4bb478011d63ea3eefbdfa282b4eabca5844ddc8ebe6eaa9d1af938`
+  and binds exactly host `Worker-F`, the accepted public-key hash, one token
+  request, one 384-byte RSA-OAEP-SHA256 ciphertext and
+  `automatic_retry_allowed=false`. The credential had more than five hours
+  remaining at acceptance. Exact-name readback request
+  `019FE220-1FBA-5E7C-8F9E-EC85B6067025` proves one invocation only.
+- The plaintext Registry secret exists only in ephemeral process memory. The
+  username, expiry and encrypted ciphertext exist in the native invocation
+  result and current ephemeral process memory; their actual values are not
+  copied into Git, Handoff, Readiness, Risk or user output.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The only next action is one fixed-name Worker-F executor with at
+most one private C17 digest pull, exact manifest/config/OCI inspection, zero
+container starts and complete isolated auth/key/task-root cleanup. Worker-F
+broker/token may never be repeated or reused; only terminal pull PASS permits
+the API-C JIT sequence.
