@@ -7879,3 +7879,43 @@ Worker-C, Worker-F and API-C through per-host isolated root-only Docker
 configs, with one digest pull per missing host, exact image inspection, zero
 container starts and complete credential/task-root cleanup. API-C's existing
 candidate Docker config path remains untouched.
+
+### Three-host C17 transport keygen accepted; JIT pull broker is next (2026-08-08)
+
+- The independently accepted 5,843-byte keygen payload, SHA-256
+  `625b70de101bd25a732757898766b96f2d1a9c8ad408c522657affe2bc06cf6d`,
+  was carried by a 3,546-byte one-line in-memory gzip wrapper, SHA-256
+  `4becf54161db18ba5459dbdd2d5ce7493a9931dca8e6e346ea32724273c6f630`.
+  The wrapper verified the decoded length and hash before one `/bin/bash`
+  child and created no transfer file.
+- Exact-one native request `019FE1B3-5B90-5A81-84E9-63D5C9D12BF7`
+  returned command `c-sz06tdqd3f6wpog` and invocation
+  `t-sz06tdqd3foe03k`. Read-only result request
+  `019FE1B4-CDFB-5DEA-AA1D-D09DC290D8C4` returned exactly one invocation and
+  three records, all `Finished / Success / ExitCode=0 / Repeats=1 /
+  Dropped=0`, from `2026-08-08T14:07:37Z` through `14:07:38Z`.
+- API-C, Worker-C and Worker-F each produced one canonical RSA-3072 public
+  key. Their public DER hashes are respectively
+  `8521a6f989194eb570f698ee59ae17dad256220c41abba19b03c2595abda4fb6`,
+  `c7babaa2752547540e63e71c4788ec122d7bd1caea895b2178b2592879a3496c`
+  and `e0207fe48a21b962bc6b5f84554e68bcfee4762278aff25ea24d93d318cdb46f`;
+  all three are distinct and independently matched the native output. No
+  private key appeared in output. Each host deliberately retains one
+  root-only key root for immediate credential-envelope consumption. Because
+  those roots live under volatile `/run`, API-C, Worker-C and Worker-F must not
+  be stopped or rebooted until the matching transport consumes each root or a
+  terminal failure is read back and its residue cleanup is closed.
+- Registry credential issuance, image pulls, container starts, database
+  connections and storage calls remain zero. This invocation is terminal and
+  must not be repeated merely because later transport or wording fails.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The unique next hard condition is a bounded temporary pull-only
+broker on the retained Stopped/StopCharging builder, followed by exactly one
+JIT credential and at most one fixed-digest pull per host in strict
+Worker-C, Worker-F, API-C order. Every host must pass exact C17 inspection and
+credential/key/task-root cleanup before the next host; pull-started UNKNOWN is
+read back and never resubmitted. After all three terminal results, remove the
+temporary broker IAM and return the builder to Stopped/StopCharging, then
+continue Worker Secret, migration `0017`, Dispatcher, units and fenced
+takeover without repeating closed stages.

@@ -1393,6 +1393,24 @@ Last updated: 2026-08-08
   isolated fixed-digest C17 pull and credential cleanup, followed by Secret,
   migration `0017`, Dispatcher, units and cross-host takeover; Item21 remains
   `20/29` and unverified.
+- 2026-08-08 the exact-one three-host C17 transport keygen is accepted and
+  must not be repeated. Request `019FE1B3-5B90-5A81-84E9-63D5C9D12BF7`
+  returned command `c-sz06tdqd3f6wpog` / invocation
+  `t-sz06tdqd3foe03k`; native result request
+  `019FE1B4-CDFB-5DEA-AA1D-D09DC290D8C4` proved three terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` records. API-C, Worker-C and
+  Worker-F produced three distinct canonical RSA-3072 public keys whose DER
+  hashes match the host outputs; private-key output was zero and the root-only
+  host key roots are retained only for immediate envelope consumption. No
+  Registry credential, pull, container start, database or storage call has
+  occurred. Residual High risk is now the temporary pull-only builder broker,
+  per-host JIT credential lifetime and one-pull UNKNOWN handling in strict
+  Worker-C→Worker-F→API-C order; after terminal transport, all broker IAM,
+  credentials and task roots must be removed and the builder returned to
+  StopCharging. The retained host keys are under volatile `/run`, so API-C,
+  Worker-C and Worker-F must not be stopped or rebooted until their matching
+  transport or terminal-failure cleanup closes. Item21 remains `20/29` and
+  unverified.
 
 ## Low Risks
 
