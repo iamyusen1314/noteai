@@ -1428,6 +1428,23 @@ Last updated: 2026-08-08
   be deleted and builder returned to StopCharging after terminal transport.
   Item21 remains `20/29` and unverified.
 
+- 2026-08-08 the first Worker-C JIT broker invocation ended in a deterministic
+  pre-mutation Python compatibility failure, not a timeout. Native result
+  `019FE1E4-9534-5C84-BFFD-D8910D2197C9` proves
+  `Failed / ExitCode=1 / Repeats=1 / Dropped=0`; the 80-byte Secret-free
+  output is only `future feature annotations is not defined`. Because parsing
+  failed on wrapper stdin line 1, the child broker never started and token,
+  credential envelope and pull counts remain zero. Residual High risk is now
+  accidental resubmission of the immutable v1 name or an incomplete Python
+  3.6 fix. The bounded candidate removes only the unsupported future import,
+  `fromisoformat`, three `capture_output` uses and the Python 3.6 dict-order
+  reliance; both Python blocks pass 3.6 grammar checks and have fixed rendered
+  and wrapper hashes. Independent final review is `GO / P0=0 / P1=0`, with
+  timestamp and canonical-Header fixtures passing. Permit one new fixed v2
+  recovery, then retain the original token-started UNKNOWN/no-retry boundary.
+  No IAM, C17, image, timeout, Registry or control-layer semantics change;
+  Item21 remains `20/29` and unverified.
+
 ## Low Risks
 
 ### `model/api.py` is too large

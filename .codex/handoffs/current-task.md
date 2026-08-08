@@ -7957,3 +7957,52 @@ from its native invocation and never resubmitted. After the three hosts are
 terminal, detach/delete the temporary IAM and return the builder to
 `Stopped/StopCharging`, then continue Worker Secret, migration `0017`,
 Dispatcher, units and fenced takeover without stopping at the cleanup record.
+
+### Worker-C broker v1 failed before child start; Python 3.6 recovery is bounded (2026-08-08)
+
+- The exact Worker-C broker v1 wrapper was 7,435 bytes, SHA-256
+  `86149d770701da274d269b86de2eb2e7c98a2fcf92a56d83da27526be2ee4160`,
+  and anchored a 13,159-byte rendered broker, SHA-256
+  `5a196f3fb83ac403a913d726f3db2ed4a4d43191a46db5e15a42527a61b5a068`.
+  The Workbench form was read back before submission with exact
+  `PlainText / Once / root / ProcessTree`, one builder target and the fixed
+  v1 name/client token. Native request
+  `019FE1E1-8763-57C7-BCEA-F9D263004423` returned command
+  `c-sz06tduv1x6omww` and invocation `t-sz06tduv1xgo8ao`.
+- Read-only result request `019FE1E4-9534-5C84-BFFD-D8910D2197C9`
+  proves one terminal `Failed / ExitCode=1 / Repeats=1 / Dropped=0` record at
+  `2026-08-08T14:58:03Z`. The 80-byte output, SHA-256
+  `68c9e03ae00df9824816bdc72a033e499696921f2b9119fe27a0ed1596a54ade`,
+  contains only the deterministic parser error `future feature annotations is
+  not defined` at wrapper stdin line 1 and no Secret-like value. The wrapper
+  Python parser therefore never launched its `/bin/bash` child:
+  `child_started=0 / token_request_started=0 / credential_issuance=0 /
+  envelope=0 / pull=0`. This is a connected-known pre-mutation compatibility
+  failure, not a slow download and not an ambiguous token request. The v1
+  command must not be submitted again.
+- The minimal recovery candidate changes no IAM, C17, image, pull, timeout or
+  control design. It removes the unsupported future import in both layers,
+  replaces `datetime.fromisoformat` with strict UTC `strptime`, replaces three
+  Python 3.7-only `capture_output` uses with explicit pipes, and makes ACS
+  signed-header ordering explicit. Its rendered broker is 13,657 bytes,
+  SHA-256
+  `33cb295d11df79909446008849d34c7287f485a770e51a608086922ce3c33a1f`;
+  the deterministic 7,520-byte in-memory wrapper is SHA-256
+  `f81e4f5074b2d37e5f5914e064ee0c9b4e4d74c4106932fc444e311293738d9a`.
+  Both Python blocks parse under Python 3.6 grammar and the wrapper remains
+  below the observed 10,000-byte Workbench boundary. Independent final review
+  returned `GO / P0=0 / P1=0`; its no-network fixtures accepted four valid UTC
+  timestamp forms/cases, rejected five invalid cases, and confirmed canonical
+  Header ordering. It explicitly permits one new fixed v2 recovery and forbids
+  resubmission or reuse of v1. Native DescribeInvocations request
+  `019FE1F3-2D1D-52A2-9331-C94C9DB44592` proves the fixed v2 command name has
+  zero existing invocations before submission.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The only next action is an independently reviewed, single
+Worker-C compatibility recovery under a new fixed v2 command/client token;
+the failed v1 name is immutable and cannot be reused. Only a terminal broker
+PASS permits the existing one-pull Worker-C executor, followed by Worker-F and
+API-C. Any token-request-started UNKNOWN remains no-retry. The temporary IAM,
+builder and three volatile key roots remain intentionally retained while this
+known pre-token failure is recovered.
