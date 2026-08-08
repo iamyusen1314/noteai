@@ -8214,3 +8214,55 @@ most one private C17 digest pull, exact manifest/config/OCI inspection, zero
 container starts, preservation of existing API/Admin runtime identity and
 complete isolated auth/key/task-root cleanup. API-C broker/token may never be
 repeated or reused.
+
+### API-C fixed-digest C17 pull accepted; three-host transport is complete (2026-08-09)
+
+- Native read-only requests `019FE243-1F9C-52F6-8236-47F31D857A8C`
+  and `019FE246-CA4C-53F1-8CE5-DA7977719A4D` both proved fixed command name
+  `noteai-item21-c17-pull-api-c-20260808-v1` absent before submission. An
+  independent preflight found that the accepted 16,177-byte base template did
+  not itself prove the complete API-C image-ID set delta. The unsubmitted
+  command was replaced by a minimal three-span in-memory patch that records the
+  full pre-pull image-ID set, rejects the C17 config if already present under
+  any reference, and requires the post-pull set to equal the pre-set plus only
+  the exact C17 config.
+- The patched template is 16,766 bytes, SHA-256
+  `6caccfe6e09fa93078ed33cb2f5b22656f93b086529f55115320b520928461b9`;
+  outside the three image-set spans it is byte-equal to base template SHA-256
+  `0cd3413c9235376abdec07c9706b1ab4eaa477233a68665b4990883cb9b90d6f`.
+  The rendered executor is 17,249 bytes, SHA-256
+  `99f286ea2cbe3f317aaf538562a1ff8bc96a551738d1fe62f660f0751145a170`;
+  deterministic gzip is 5,746 bytes. Its 8,504-byte in-memory wrapper has
+  SHA-256
+  `205ec2c7eee13ce4e7ff5b63c054191414f2b15907acb4fee05347df6b92061e`.
+  Bash syntax, gzip round-trip, Workbench bytes/hash, one API-C target and
+  empty optional fields all passed before submission.
+- Exact RunCommand request `019FE248-0AD1-5041-85D2-11303E0B49FC`
+  returned command `c-sz06te4un0mlo8w` and invocation
+  `t-sz06te4un142yo0`. Result request
+  `019FE248-4914-5C56-B09A-8F5FBC1BCEED` proves one terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` record from
+  `2026-08-08T16:50:01Z` through `2026-08-08T16:50:15Z`. Its single
+  341-byte PASS output has SHA-256
+  `2dcced6e37bf993096313a2612064c74473d232618b24fb3383a16946022259c`.
+- PASS binds API-C to immutable C17 commit
+  `cad5ce35664f617c6e19f90a6159285ddf975594`, manifest
+  `sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b`
+  and config
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`.
+  It proves one orchestrated pull, zero executor retries, zero container
+  starts, exact pre-set-plus-C17 image-ID delta, preserved API/Admin container
+  fingerprint and three-round health, and complete isolated credential/key/
+  auth/task-root cleanup. No claim is made about Docker-internal retries.
+- Exact-name request `019FE248-C7B7-5C75-95AE-450B363C06B3` proves one
+  command/invocation only. API-C broker, credential and pull are terminal and
+  cannot be repeated. The unclassified candidate Docker config path was not
+  read or changed.
+
+C17 transport is now terminal accepted on Worker-C, Worker-F and API-C
+(`3/3`). Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The immediate next atomic action is native cleanup: detach the
+temporary pull-broker RAM role from the old builder, return that builder to
+`Stopped/StopCharging`, detach/delete the temporary policy and delete the
+temporary role with exact absence readback. Then continue encrypted Worker
+Secret delivery; no transport action may be repeated.

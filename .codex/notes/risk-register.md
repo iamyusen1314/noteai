@@ -1509,6 +1509,18 @@ Last updated: 2026-08-09
   never resubmit after pull-started UNKNOWN. Item21 remains `20/29` and
   unverified.
 
+- 2026-08-09 API-C fixed-digest transport closed with one exact-name native
+  terminal success after the unsubmitted executor was minimally strengthened
+  to prove the full image-ID set changed only by the exact C17 config. Native
+  evidence proves exact C17/manifest/config, preserved API/Admin container
+  fingerprint and three-round health, one orchestrated pull, zero executor
+  retries, zero container starts and complete isolated credential/key/auth/
+  task-root cleanup. The zero-retry evidence does not describe Docker-internal
+  transport. All three C17 transports are terminal and must never be repeated.
+  Residual High risk moves to exact cleanup of the temporary broker IAM and
+  builder StopCharging, then encrypted Worker Secret delivery and the remaining
+  Item21 activation/takeover sequence. Item21 remains `20/29` and unverified.
+
 ## Low Risks
 
 ### `model/api.py` is too large
