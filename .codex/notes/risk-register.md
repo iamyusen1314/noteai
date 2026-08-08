@@ -1322,7 +1322,11 @@ Last updated: 2026-08-08
   host in each C/F zone. Both have no public IP, the zero-ingress Worker group,
   encrypted 40-GiB ESSD PL0 system disks with KMS identity, the independent
   Worker role, two labels, no operation lock and a common four-hour
-  auto-release. Residual High risk is now host bootstrap/C17 transport,
+  auto-release guard. That guard was subsequently cancelled once per Worker
+  through the provider's omission form and native reads proved both remained
+  `Running` with empty `AutoReleaseTime`; accidental timed deletion is closed,
+  while ordinary PostPaid compute and disk charges continue. Residual High
+  risk is now host bootstrap/C17 transport,
   encrypted Worker Secret delivery, migration `0017`, Dispatcher activation,
   default-suspended units and provider-free cross-host takeover/cleanup. Item
   21 remains unverified at `20/29`; do not repeat the rejected v1 payload or

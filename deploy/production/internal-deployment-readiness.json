@@ -3498,10 +3498,10 @@
               "ref": ".codex/notes/risk-register.md"
             }
           ],
-          "blocker": "Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949, ACR manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b and config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95 remain fixed. Stage A/B, exact-one publication and the one-pull/no-start fresh import are accepted; direct executor checkpoint f1a5cc014578e10243174a80d643a67a57921c17 is accepted by push/PR CI and the sole complete 138/138 readiness gate. API-C/API-F health, private-storage RAM/OSS and exact PostPaid stock/network/price are accepted. A balance-only refresh returned 122.71 CNY and the bounded funding threshold passed. A separate Worker storage role/policy is natively accepted without API-role reuse. Corrected v2 DryRuns passed and one encrypted PostPaid/NoSpot Worker is now retained in each C/F zone with no public IP, exact zero-ingress security group, two labels, independent role and a 2026-08-08T05:35Z auto-release deadline. One earlier blank C host whose generated request omitted encryption was proven unused, gracefully stopped, released and read back with its disk absent. Item 21 still requires the three-host Cloud Assistant/time/Docker/systemd/IMDSv2/C17 baseline, encrypted Worker Secret delivery, production migration 0017, Dispatcher LOGIN/managed Secret, exact default-suspended units and provider-free cross-host lease takeover plus terminal cleanup. The rejected 783.44/681.34 CNY PrePaid observations are not funding targets. The retained builder remains Stopped/StopCharging with its system disk retained. Do not repeat balance/stock/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request, create V18/R17, reuse the API storage role for Workers, or add custom ledger/receipt/topology controls.",
+          "blocker": "Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949, ACR manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b and config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95 remain fixed. Stage A/B, exact-one publication and the one-pull/no-start fresh import are accepted; direct executor checkpoint f1a5cc014578e10243174a80d643a67a57921c17 is accepted by push/PR CI and the sole complete 138/138 readiness gate. API-C/API-F health, private-storage RAM/OSS and exact PostPaid stock/network/price are accepted. A balance-only refresh returned 122.71 CNY and the bounded funding threshold passed. A separate Worker storage role/policy is natively accepted without API-role reuse. Corrected v2 DryRuns passed and one encrypted PostPaid/NoSpot Worker is retained in each C/F zone with no public IP, exact zero-ingress security group, two labels and the independent role. The initial four-hour auto-release guards were cancelled once and native reads prove both Workers remain Running with empty AutoReleaseTime. One earlier blank C host whose generated request omitted encryption was proven unused, gracefully stopped, released and read back with its disk absent. Item 21 still requires the three-host Cloud Assistant/time/Docker/systemd/IMDSv2/C17 baseline, encrypted Worker Secret delivery, production migration 0017, Dispatcher LOGIN/managed Secret, exact default-suspended units and provider-free cross-host lease takeover plus terminal cleanup. The rejected 783.44/681.34 CNY PrePaid observations are not funding targets. The retained builder remains Stopped/StopCharging with its system disk retained. Do not repeat balance/stock/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request, create V18/R17, reuse the API storage role for Workers, or add custom ledger/receipt/topology controls.",
           "latest_reconciliation": {
             "as_of": "2026-08-08",
-            "status": "worker_capacity_v2_native_shape_accepted_runtime_pending",
+            "status": "worker_capacity_v2_retained_auto_release_cancelled_runtime_pending",
             "diagnostic_invocation": "t-sz06t821muvmkg0",
             "diagnostic_command": "c-sz06t821mue5a0w",
             "repeats": 1,
@@ -4055,7 +4055,7 @@
               "readiness_credit_added": false
             },
             "worker_capacity_activation": {
-              "as_of_utc": "2026-08-08T01:36:15Z",
+              "as_of_utc": "2026-08-08T01:48:14Z",
               "status": "PASS_CAPACITY_ONLY",
               "balance_refresh": {
                 "request_id": "019FDEE2-36B4-542D-A662-3A24660A75F2",
@@ -4127,7 +4127,9 @@
                   "worker_iam_role_attached": true,
                   "label_count": 2,
                   "operation_locks": 0,
-                  "auto_release_utc": "2026-08-08T05:35:00Z",
+                  "creation_guard_auto_release_utc": "2026-08-08T05:35:00Z",
+                  "auto_release_cancelled": true,
+                  "current_auto_release_time": "",
                   "requested_http_endpoint": "enabled",
                   "requested_http_tokens": "required",
                   "host_imdsv2_verification_pending": true
@@ -4152,6 +4154,20 @@
                   "role_read_request_id": "019FDF01-73A0-5D02-AC4E-C8E82B80560A",
                   "status": "Running"
                 }
+              },
+              "auto_release_cancellation": {
+                "provider_contract": "omit AutoReleaseTime to cancel",
+                "worker_c_request_id": "019FDF0D-6E53-5E4F-BBD2-FF758533764F",
+                "worker_f_request_id": "019FDF0E-730B-55ED-8B68-4539F43C5794",
+                "worker_c_readback_request_id": "019FDF0E-C512-5E34-88CF-8D9E66878B6D",
+                "worker_f_readback_request_id": "019FDF0E-EE33-5B6C-9612-192700CE4E41",
+                "http_200_count": 2,
+                "running_count": 2,
+                "empty_auto_release_time_count": 2,
+                "cloud_mutations": 2,
+                "instance_deletions": 0,
+                "service_or_task_mutations": 0,
+                "cost_zero_claimed": false
               },
               "final_worker_count": 2,
               "host_runtime_baseline_complete": false,

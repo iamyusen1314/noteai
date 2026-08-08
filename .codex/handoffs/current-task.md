@@ -7699,8 +7699,8 @@ checks.
 - Retained Worker-C `i-wz98zwcdtcmxzmmoso3w` and Worker-F
   `i-wz93qgvlu1bllpjcfwfj` are `Running / PostPaid / NoSpot`, one in each
   exact C/F switch, with no public IP, the zero-ingress Worker security group,
-  two exact task/node labels, no operation lock and common automatic release
-  `2026-08-08T05:35Z`. Each has one `40 GiB / cloud_essd / PL0` system disk
+  two exact task/node labels and no operation lock. Each has one
+  `40 GiB / cloud_essd / PL0` system disk
   with `Encrypted=true`, a non-empty provider KMS identity and the independent
   Worker role. Native instance/disk/role reads are respectively
   `019FDEFF-C692-5E22-BEE4-0FB80F11F157` /
@@ -7709,6 +7709,16 @@ checks.
   `019FDF01-1B40-55CA-A653-D601257CCDE4` /
   `019FDF01-4A9E-5E8D-BA9E-D295EE83EDEB` /
   `019FDF01-73A0-5D02-AC4E-C8E82B80560A` for F.
+- The four-hour creation guard was not allowed to become a deletion deadline.
+  After the capacity checkpoint, the provider-documented cancellation form
+  (omit `AutoReleaseTime`) was applied once per retained Worker. Requests
+  `019FDF0D-6E53-5E4F-BBD2-FF758533764F` and
+  `019FDF0E-730B-55ED-8B68-4539F43C5794` returned HTTP `200`. Exact-instance
+  reads `019FDF0E-C512-5E34-88CF-8D9E66878B6D` and
+  `019FDF0E-EE33-5B6C-9612-192700CE4E41` then proved both Workers still
+  `Running`, with `AutoReleaseTime=""` and no runtime, disk, network or IAM
+  mutation. They are retained until deliberate lifecycle cleanup; this does
+  not claim compute or disk cost is zero.
 
 Readiness remains internal `20/29` and public `20/38`; Item 21 remains
 `unverified`. The immediate hard condition is a fresh three-host baseline:
