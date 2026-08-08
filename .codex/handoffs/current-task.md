@@ -7762,3 +7762,32 @@ Stage A/B, fresh import or the rejected v1 payload.
 Readiness remains internal `20/29` and public `20/38`; Item 21 remains
 `unverified`. Both Workers remain `Running` with automatic release cancelled,
 so the client boundary cannot delete or invalidate their accepted capacity.
+
+### Worker capacity preserved in StopCharging while client action is unavailable (2026-08-08)
+
+- The user was away from the computer and explicitly authorized the CTO to
+  submit the host audit, but authorization cannot override the Codex browser's
+  mandatory user-action boundary. No `RunCommand` was submitted. A new native
+  Cloud Assistant read, request `019FDF1D-7965-5426-AEF1-69E342B5E48F`,
+  proved both Workers healthy at the agent layer with `ActiveTaskCount=0`,
+  `InvocationCount=0` and empty last-invoked time.
+- To avoid paying for idle compute while preserving the accepted capacity,
+  Worker-C and Worker-F were each stopped once through graceful
+  `ForceStop=false / StoppedMode=StopCharging` requests
+  `019FDF1D-EAC4-5DC8-9C0A-FED0ADCE35E4` and
+  `019FDF1E-3515-54D5-9BC7-828E11DEF955`. Exact paired read
+  `019FDF1E-66E5-5663-AD60-EBA453DFB095` proved both
+  `Stopped / StopCharging`, empty `AutoReleaseTime` and zero operation locks.
+- Disk read `019FDF1E-977B-5C84-AAB7-4E46E4457561` proved both original
+  `40 GiB / cloud_essd / PL0 / Encrypted=true` system disks still exist,
+  remain attached `In_use` to the exact Workers and were not detached,
+  replaced or deleted. The independent Worker IAM, VPC, zero-ingress security
+  group and all capacity acceptance remain intact. StopCharging removes idle
+  compute charging only; retained disks and other provider resources may
+  continue to incur cost.
+
+Item 21 remains `20/29` and `unverified`. When the user is available for the
+mandatory Workbench action, the CTO may restart both exact Workers, re-read
+`Running` plus Cloud Assistant idle state, and then the user submits the one
+fixed-hash host baseline. No recreate, new quote, new balance check or repeated
+RunCommand is permitted.

@@ -1346,6 +1346,18 @@ Last updated: 2026-08-08
   required; after it returns native IDs, poll only that invocation and never
   resubmit on disconnect or delayed output. Item21 remains `20/29` and
   unverified; both Workers are retained with auto-release cancelled.
+- 2026-08-08 idle Worker cost containment: after an exact Cloud Assistant read
+  proved both new Workers had zero active tasks, zero invocation history and
+  no prior command, each was gracefully stopped once with
+  `ForceStop=false/StopCharging`. A paired native read proves both current
+  states are `Stopped/StopCharging`, automatic release remains empty and
+  operation locks are zero. A separate disk read proves both encrypted
+  40-GiB ESSD PL0 system disks remain attached and `In_use`; no instance,
+  disk, IAM or network resource was deleted. This preserves capacity while the
+  mandatory user-action boundary is unavailable and stops only compute
+  charging, not all provider charges. Resume is bounded to restarting these
+  exact two Workers, re-reading agent idle state and performing the single
+  fixed-hash Workbench submission; no recreation or repeated command.
 
 ## Low Risks
 

@@ -3498,10 +3498,10 @@
               "ref": ".codex/notes/risk-register.md"
             }
           ],
-          "blocker": "Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949, ACR manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b and config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95 remain fixed. Stage A/B, exact-one publication and the one-pull/no-start fresh import are accepted; direct executor checkpoint f1a5cc014578e10243174a80d643a67a57921c17 is accepted by push/PR CI and the sole complete 138/138 readiness gate. API-C/API-F health, private-storage RAM/OSS and exact PostPaid stock/network/price are accepted. A balance-only refresh returned 122.71 CNY and the bounded funding threshold passed. A separate Worker storage role/policy is natively accepted without API-role reuse. Corrected v2 DryRuns passed and one encrypted PostPaid/NoSpot Worker is retained in each C/F zone with no public IP, exact zero-ingress security group, two labels and the independent role. The initial four-hour auto-release guards were cancelled once and native reads prove both Workers remain Running with empty AutoReleaseTime. One earlier blank C host whose generated request omitted encryption was proven unused, gracefully stopped, released and read back with its disk absent. Item 21 still requires the three-host Cloud Assistant/time/Docker/systemd/IMDSv2/C17 baseline, encrypted Worker Secret delivery, production migration 0017, Dispatcher LOGIN/managed Secret, exact default-suspended units and provider-free cross-host lease takeover plus terminal cleanup. The rejected 783.44/681.34 CNY PrePaid observations are not funding targets. The retained builder remains Stopped/StopCharging with its system disk retained. Do not repeat balance/stock/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request, create V18/R17, reuse the API storage role for Workers, or add custom ledger/receipt/topology controls.",
+          "blocker": "Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949, ACR manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b and config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95 remain fixed. Stage A/B, exact-one publication and the one-pull/no-start fresh import are accepted; direct executor checkpoint f1a5cc014578e10243174a80d643a67a57921c17 is accepted by push/PR CI and the sole complete 138/138 readiness gate. API-C/API-F health, private-storage RAM/OSS and exact PostPaid stock/network/price are accepted. A balance-only refresh returned 122.71 CNY and the bounded funding threshold passed. A separate Worker storage role/policy is natively accepted without API-role reuse. Corrected v2 DryRuns passed and one encrypted PostPaid/NoSpot Worker is retained in each C/F zone with no public IP, exact zero-ingress security group, two labels and the independent role. The initial four-hour auto-release guards were cancelled once. While the mandatory user-action Workbench boundary is unavailable, both idle Workers are natively retained as Stopped/StopCharging with their original encrypted system disks attached; no instance, disk, IAM or network resource was deleted. One earlier blank C host whose generated request omitted encryption was proven unused, gracefully stopped, released and read back with its disk absent. Item 21 still requires restart of the exact two Workers followed by the one fixed-hash three-host Cloud Assistant/time/Docker/systemd/IMDSv2/C17 baseline, encrypted Worker Secret delivery, production migration 0017, Dispatcher LOGIN/managed Secret, exact default-suspended units and provider-free cross-host lease takeover plus terminal cleanup. The rejected 783.44/681.34 CNY PrePaid observations are not funding targets. The retained builder remains Stopped/StopCharging with its system disk retained. Do not repeat balance/stock/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request, create V18/R17, reuse the API storage role for Workers, or add custom ledger/receipt/topology controls.",
           "latest_reconciliation": {
             "as_of": "2026-08-08",
-            "status": "worker_capacity_retained_host_runcommand_client_action_pending",
+            "status": "worker_capacity_stopped_stopcharging_host_runcommand_client_action_pending",
             "diagnostic_invocation": "t-sz06t821muvmkg0",
             "diagnostic_command": "c-sz06t821mue5a0w",
             "repeats": 1,
@@ -4055,7 +4055,7 @@
               "readiness_credit_added": false
             },
             "worker_capacity_activation": {
-              "as_of_utc": "2026-08-08T01:48:14Z",
+              "as_of_utc": "2026-08-08T02:05:26Z",
               "status": "PASS_CAPACITY_ONLY",
               "balance_refresh": {
                 "request_id": "019FDEE2-36B4-542D-A662-3A24660A75F2",
@@ -4130,6 +4130,7 @@
                   "creation_guard_auto_release_utc": "2026-08-08T05:35:00Z",
                   "auto_release_cancelled": true,
                   "current_auto_release_time": "",
+                  "current_instance_state": "Stopped/StopCharging",
                   "requested_http_endpoint": "enabled",
                   "requested_http_tokens": "required",
                   "host_imdsv2_verification_pending": true
@@ -4142,7 +4143,7 @@
                   "instance_read_request_id": "019FDEFF-C692-5E22-BEE4-0FB80F11F157",
                   "disk_read_request_id": "019FDEFF-F628-544F-B2D3-119FA9DD4E77",
                   "role_read_request_id": "019FDF00-2390-5809-BAE2-891B7EDE9296",
-                  "status": "Running"
+                  "status": "Stopped/StopCharging"
                 },
                 "worker_f": {
                   "instance_id": "i-wz93qgvlu1bllpjcfwfj",
@@ -4152,7 +4153,7 @@
                   "instance_read_request_id": "019FDF01-1B40-55CA-A653-D601257CCDE4",
                   "disk_read_request_id": "019FDF01-4A9E-5E8D-BA9E-D295EE83EDEB",
                   "role_read_request_id": "019FDF01-73A0-5D02-AC4E-C8E82B80560A",
-                  "status": "Running"
+                  "status": "Stopped/StopCharging"
                 }
               },
               "auto_release_cancellation": {
@@ -4169,8 +4170,31 @@
                 "service_or_task_mutations": 0,
                 "cost_zero_claimed": false
               },
+              "idle_stop_charging": {
+                "cloud_assistant_idle_read_request_id": "019FDF1D-7965-5426-AEF1-69E342B5E48F",
+                "cloud_assistant_target_count": 2,
+                "active_task_count": 0,
+                "invocation_count": 0,
+                "worker_c_stop_request_id": "019FDF1D-EAC4-5DC8-9C0A-FED0ADCE35E4",
+                "worker_f_stop_request_id": "019FDF1E-3515-54D5-9BC7-828E11DEF955",
+                "paired_instance_read_request_id": "019FDF1E-66E5-5663-AD60-EBA453DFB095",
+                "paired_disk_read_request_id": "019FDF1E-977B-5C84-AAB7-4E46E4457561",
+                "force_stop": false,
+                "stopped_mode": "StopCharging",
+                "stopped_worker_count": 2,
+                "empty_auto_release_time_count": 2,
+                "operation_lock_count": 0,
+                "retained_encrypted_system_disk_count": 2,
+                "system_disks_attached_in_use": true,
+                "instances_deleted": 0,
+                "disks_deleted_or_detached": 0,
+                "iam_or_network_changes": 0,
+                "compute_charging_stopped": true,
+                "all_provider_costs_zero_claimed": false,
+                "cloud_mutations": 2
+              },
               "pretransport_host_baseline": {
-                "status": "CLIENT_SIDE_WORKBENCH_SUBMISSION_REQUIRED",
+                "status": "CLIENT_SIDE_WORKBENCH_SUBMISSION_REQUIRED_WORKERS_STOPPED",
                 "incident_class": "PRE_CONNECT",
                 "local_untracked_script": "/tmp/noteai-item21-host-baseline.sh",
                 "script_sha256": "6a65678a58bfe268983f9946dc6973b2a15db3a95bf0a3e72173fe281c56b4a5",
@@ -4199,7 +4223,7 @@
                 "storage_or_registry_calls": 0,
                 "provider_or_public_calls": 0,
                 "automatic_retry_allowed": false,
-                "required_client_action": "submit this exact script once through the signed-in official Workbench",
+                "required_client_action": "after the CTO restarts and revalidates the exact Workers, submit this exact script once through the signed-in official Workbench",
                 "technical_authorization_or_design_decision_required": false
               },
               "final_worker_count": 2,
@@ -4216,7 +4240,7 @@
               "public_traffic": 0,
               "readiness_credit_added": false
             },
-            "next_hard_condition": "A user must mechanically submit the independently accepted SHA-256 6a65678a58bfe268983f9946dc6973b2a15db3a95bf0a3e72173fe281c56b4a5 pretransport script exactly once through the signed-in official Alibaba Workbench because the Codex browser safety boundary prevents the client from making that RunCommand request. This is not a technical authorization or design decision. Poll only the returned native command/invocation IDs and require exact API-C/Worker-C/Worker-F result coverage. If C17 is absent on any otherwise-passing host, perform the already-defined fixed-digest private transport before encrypted Worker Secret delivery, task-account migration 0017, Dispatcher activation, exact default-suspended units and provider-free C-to-F fenced takeover plus terminal cleanup. Do not bypass the browser boundary or repeat balance/stock/network/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request or this RunCommand."
+            "next_hard_condition": "When the user is available for the mandatory Workbench action, the CTO must restart only the exact retained Worker-C/F instances, natively revalidate Running plus empty Cloud Assistant activity, then the user mechanically submits the independently accepted SHA-256 6a65678a58bfe268983f9946dc6973b2a15db3a95bf0a3e72173fe281c56b4a5 pretransport script exactly once through the signed-in official Alibaba Workbench. This is not a technical authorization or design decision. Poll only the returned native command/invocation IDs and require exact API-C/Worker-C/Worker-F result coverage. If C17 is absent on any otherwise-passing host, perform the already-defined fixed-digest private transport before encrypted Worker Secret delivery, task-account migration 0017, Dispatcher activation, exact default-suspended units and provider-free C-to-F fenced takeover plus terminal cleanup. Do not bypass the browser boundary or repeat balance/stock/network/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request or this RunCommand."
           },
           "next_task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
         },
