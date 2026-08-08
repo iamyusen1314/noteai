@@ -3498,24 +3498,24 @@
               "ref": ".codex/notes/risk-register.md"
             }
           ],
-          "blocker": "Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949, ACR manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b and config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95 remain fixed. Stage A/B, exact-one publication and the one-pull/no-start fresh import are accepted; direct executor checkpoint f1a5cc014578e10243174a80d643a67a57921c17 is accepted by push/PR CI and the sole complete 138/138 readiness gate. API-C/API-F health, private-storage RAM/OSS and exact PostPaid stock/network/price are accepted. A balance-only refresh returned 122.71 CNY and the bounded funding threshold passed. A separate Worker storage role/policy is natively accepted without API-role reuse. Corrected v2 DryRuns passed and one encrypted PostPaid/NoSpot Worker is retained in each C/F zone with no public IP, exact zero-ingress security group, two labels and the independent role. The initial four-hour auto-release guards were cancelled once. While the mandatory user-action Workbench boundary is unavailable, both idle Workers are natively retained as Stopped/StopCharging with their original encrypted system disks attached; no instance, disk, IAM or network resource was deleted. One earlier blank C host whose generated request omitted encryption was proven unused, gracefully stopped, released and read back with its disk absent. Item 21 still requires restart of the exact two Workers followed by the one fixed-hash three-host Cloud Assistant/time/Docker/systemd/IMDSv2/C17 baseline, encrypted Worker Secret delivery, production migration 0017, Dispatcher LOGIN/managed Secret, exact default-suspended units and provider-free cross-host lease takeover plus terminal cleanup. The rejected 783.44/681.34 CNY PrePaid observations are not funding targets. The retained builder remains Stopped/StopCharging with its system disk retained. Do not repeat balance/stock/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request, create V18/R17, reuse the API storage role for Workers, or add custom ledger/receipt/topology controls.",
+          "blocker": "Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949, ACR manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b and config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95 remain fixed. Stage A/B, exact-one publication, fresh import, executor CI/gate, API health, private storage, PostPaid capacity and independent Worker IAM remain accepted. Both retained encrypted C/F Workers are Running with automatic release empty. The unique fixed-hash pretransport invocation is terminal and must not be repeated: API-C has healthy Docker and expected API/Admin containers, C17 is absent and one of three candidate Docker config paths contains a regular non-symlink file whose ownership, mode and credential semantics remain unclassified; no content was read, the file must not be deleted, and isolated root-only Docker config makes it non-blocking for C17 transport. Worker-C/F pass OS, root/memory capacity, NTP, IMDSv2, IAM and residue checks but lack active/enabled Docker, so Docker data-root capacity and C17 remain unknown until bounded Docker bootstrap. Item 21 still requires Worker Docker bootstrap, fixed-digest private C17 transport, encrypted Worker Secret delivery, production migration 0017, Dispatcher LOGIN/managed Secret, exact default-suspended units and provider-free cross-host lease takeover plus terminal cleanup. The retained builder remains Stopped/StopCharging. Do not repeat the baseline, balance/stock/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request, create V18/R17, reuse the API storage role for Workers, delete an unclassified candidate Docker config file, or add custom ledger/receipt/topology controls.",
           "latest_reconciliation": {
             "as_of": "2026-08-08",
-            "status": "worker_capacity_stopped_stopcharging_host_runcommand_client_action_pending",
-            "diagnostic_invocation": "t-sz06t821muvmkg0",
-            "diagnostic_command": "c-sz06t821mue5a0w",
-            "repeats": 1,
-            "image_id": "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95",
+            "status": "pretransport_diagnostic_finished_worker_docker_bootstrap_required",
+            "native_vulnerability_diagnostic_invocation": "t-sz06t821muvmkg0",
+            "native_vulnerability_diagnostic_command": "c-sz06t821mue5a0w",
+            "native_vulnerability_diagnostic_repeats": 1,
+            "native_vulnerability_diagnostic_image_id": "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95",
             "native_vulnerability_report_sha256": "ea1ca715e3ccb21c29b2d8372dbccc6513164dfd3de2f3f39d5b100e7b14798e",
             "native_findings": {
               "critical": 4,
               "high": 19,
               "rows": 23
             },
-            "first_failed_predicate": "exact native evidence file mode must be root:root:0600",
-            "reconcile_invocation": "t-sz06t8318a4etc0",
-            "evidence_manifest_sha256": "2b36b1b4c1a19479b3a6c2c63fd6fdb948a579045a9c234999c4c5ff058a435e",
-            "diagnostic_log_sha256": "1e43794d1d2b1fa4e600e2ffe39aaa5376f3714b8b7101cd6e06f6c940c26cab",
+            "native_vulnerability_diagnostic_first_failed_predicate": "exact native evidence file mode must be root:root:0600",
+            "native_vulnerability_reconcile_invocation": "t-sz06t8318a4etc0",
+            "native_vulnerability_evidence_manifest_sha256": "2b36b1b4c1a19479b3a6c2c63fd6fdb948a579045a9c234999c4c5ff058a435e",
+            "native_vulnerability_diagnostic_log_sha256": "1e43794d1d2b1fa4e600e2ffe39aaa5376f3714b8b7101cd6e06f6c940c26cab",
             "builder_stop_request": "019FD990-C910-58D5-8CBE-C617C81ECF1B",
             "builder_stop_read": "019FD992-B432-525A-A58D-C82204A6663B",
             "builder_state": "Stopped/StopCharging",
@@ -4130,10 +4130,10 @@
                   "creation_guard_auto_release_utc": "2026-08-08T05:35:00Z",
                   "auto_release_cancelled": true,
                   "current_auto_release_time": "",
-                  "current_instance_state": "Stopped/StopCharging",
+                  "current_instance_state": "Running",
                   "requested_http_endpoint": "enabled",
                   "requested_http_tokens": "required",
-                  "host_imdsv2_verification_pending": true
+                  "host_imdsv2_verification_pending": false
                 },
                 "worker_c": {
                   "instance_id": "i-wz98zwcdtcmxzmmoso3w",
@@ -4143,7 +4143,7 @@
                   "instance_read_request_id": "019FDEFF-C692-5E22-BEE4-0FB80F11F157",
                   "disk_read_request_id": "019FDEFF-F628-544F-B2D3-119FA9DD4E77",
                   "role_read_request_id": "019FDF00-2390-5809-BAE2-891B7EDE9296",
-                  "status": "Stopped/StopCharging"
+                  "status": "Running"
                 },
                 "worker_f": {
                   "instance_id": "i-wz93qgvlu1bllpjcfwfj",
@@ -4153,7 +4153,7 @@
                   "instance_read_request_id": "019FDF01-1B40-55CA-A653-D601257CCDE4",
                   "disk_read_request_id": "019FDF01-4A9E-5E8D-BA9E-D295EE83EDEB",
                   "role_read_request_id": "019FDF01-73A0-5D02-AC4E-C8E82B80560A",
-                  "status": "Stopped/StopCharging"
+                  "status": "Running"
                 }
               },
               "auto_release_cancellation": {
@@ -4193,9 +4193,24 @@
                 "all_provider_costs_zero_claimed": false,
                 "cloud_mutations": 2
               },
+              "worker_restart_after_idle_stop": {
+                "worker_c_start_request_id": "019FE121-EE5B-5F1A-8A9E-05FF7E657ACF",
+                "worker_f_start_request_id": "019FE122-303C-50BE-9B94-1EABCCBC63D8",
+                "paired_instance_read_request_id": "019FE122-8D0E-519C-A16F-619D3AD8055C",
+                "cloud_assistant_status_request_id": "019FE122-D195-53E7-BEB1-125CDD97B1E0",
+                "running_count": 2,
+                "stopped_mode": "Not-applicable",
+                "empty_auto_release_time_count": 2,
+                "operation_lock_count": 0,
+                "cloud_assistant_agent_ready_count": 2,
+                "active_task_count": 0,
+                "prior_invocation_count": 0,
+                "cloud_mutations": 2,
+                "instance_or_disk_recreation_count": 0
+              },
               "pretransport_host_baseline": {
-                "status": "CLIENT_SIDE_WORKBENCH_SUBMISSION_REQUIRED_WORKERS_STOPPED",
-                "incident_class": "PRE_CONNECT",
+                "status": "FINISHED_DIAGNOSTIC_BOOTSTRAP_REQUIRED",
+                "incident_class": "CONNECTED_KNOWN_READ_ONLY",
                 "local_untracked_script": "/tmp/noteai-item21-host-baseline.sh",
                 "script_sha256": "6a65678a58bfe268983f9946dc6973b2a15db3a95bf0a3e72173fe281c56b4a5",
                 "bash_syntax_pass": true,
@@ -4213,17 +4228,99 @@
                 "timeout_seconds": 120,
                 "repeat_mode": "Once",
                 "keep_command": false,
-                "run_command_submit_count": 0,
-                "command_id_count": 0,
-                "invoke_id_count": 0,
-                "host_execution_count": 0,
-                "cloud_or_host_mutations": 0,
+                "run_command_request_id": "019FE12B-CD7D-5C47-B409-B5769AB4BD57",
+                "command_id": "c-sz06tdd5m0d67sw",
+                "invoke_id": "t-sz06tdd5m0znaww",
+                "result_request_id": "019FE12D-EC83-5E85-BC02-86186B17DCDF",
+                "run_command_submit_count": 1,
+                "command_id_count": 1,
+                "invoke_id_count": 1,
+                "host_execution_count": 3,
+                "terminal_result_count": 3,
+                "repeat_one_count": 3,
+                "dropped_output_count": 0,
+                "diagnostic_exit_code_3_count": 3,
+                "automatic_retry_allowed": false,
+                "persistent_host_or_service_mutations": 0,
+                "cloud_control_mutations": 1,
                 "database_connections": 0,
                 "database_writes": 0,
                 "storage_or_registry_calls": 0,
-                "provider_or_public_calls": 0,
-                "automatic_retry_allowed": false,
-                "required_client_action": "after the CTO restarts and revalidates the exact Workers, submit this exact script once through the signed-in official Workbench",
+                "public_calls_from_host_script": 0,
+                "per_host": {
+                  "api_c": {
+                    "instance_id": "i-wz9j36od3nf2b1uw7bvg",
+                    "host_label": "API-C",
+                    "docker_active": true,
+                    "docker_enabled": true,
+                    "docker_server": "28.3.3/linux/amd64",
+                    "container_total": 2,
+                    "unexpected_container_count": 0,
+                    "c17_local_state": "absent",
+                    "c17_transport_required": true,
+                    "docker_auth_file_count": 1,
+                    "docker_auth_unsafe_count": 0,
+                    "failed_checks": [
+                      "docker_auth"
+                    ]
+                  },
+                  "worker_c": {
+                    "instance_id": "i-wz98zwcdtcmxzmmoso3w",
+                    "host_label": "Worker-C",
+                    "os": "alinux/4/x86_64",
+                    "docker_active": false,
+                    "docker_enabled": false,
+                    "c17_local_state": "unknown",
+                    "root_free_mib": 34793,
+                    "memory_available_mib": 7030,
+                    "worker_role_exact_match": true,
+                    "imdsv1_rejected": true,
+                    "imdsv2_token_acquired": true,
+                    "failed_checks": [
+                      "c17",
+                      "capacity",
+                      "containers",
+                      "docker_active",
+                      "docker_enabled",
+                      "docker_queries",
+                      "docker_server"
+                    ]
+                  },
+                  "worker_f": {
+                    "instance_id": "i-wz93qgvlu1bllpjcfwfj",
+                    "host_label": "Worker-F",
+                    "os": "alinux/4/x86_64",
+                    "docker_active": false,
+                    "docker_enabled": false,
+                    "c17_local_state": "unknown",
+                    "root_free_mib": 34793,
+                    "memory_available_mib": 7026,
+                    "worker_role_exact_match": true,
+                    "imdsv1_rejected": true,
+                    "imdsv2_token_acquired": true,
+                    "failed_checks": [
+                      "c17",
+                      "capacity",
+                      "containers",
+                      "docker_active",
+                      "docker_enabled",
+                      "docker_queries",
+                      "docker_server"
+                    ]
+                  }
+                },
+                "shared_passed_checks": {
+                  "ntp_synchronized": true,
+                  "systemd_running": true,
+                  "storage_role_exact_match": true,
+                  "temporary_credential_shape_valid": true,
+                  "task_process_count": 0,
+                  "task_container_count": 0,
+                  "durable_ai_unit_file_count": 0,
+                  "task_root_count": 0,
+                  "established_5432_connection_count": 0
+                },
+                "required_client_action": "none for this completed invocation; it is terminal and must not be repeated",
                 "technical_authorization_or_design_decision_required": false
               },
               "final_worker_count": 2,
@@ -4236,11 +4333,11 @@
               "database_connections": 0,
               "database_writes": 0,
               "storage_object_writes": 0,
-              "provider_calls": 0,
+              "ai_provider_calls": 0,
               "public_traffic": 0,
               "readiness_credit_added": false
             },
-            "next_hard_condition": "When the user is available for the mandatory Workbench action, the CTO must restart only the exact retained Worker-C/F instances, natively revalidate Running plus empty Cloud Assistant activity, then the user mechanically submits the independently accepted SHA-256 6a65678a58bfe268983f9946dc6973b2a15db3a95bf0a3e72173fe281c56b4a5 pretransport script exactly once through the signed-in official Alibaba Workbench. This is not a technical authorization or design decision. Poll only the returned native command/invocation IDs and require exact API-C/Worker-C/Worker-F result coverage. If C17 is absent on any otherwise-passing host, perform the already-defined fixed-digest private transport before encrypted Worker Secret delivery, task-account migration 0017, Dispatcher activation, exact default-suspended units and provider-free C-to-F fenced takeover plus terminal cleanup. Do not bypass the browser boundary or repeat balance/stock/network/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request or this RunCommand."
+            "next_hard_condition": "Do not repeat the terminal three-host baseline. Perform one bounded minimal Docker Engine bootstrap on Worker-C/F, then use targeted native readback to require active/enabled linux/amd64 Docker, zero Worker containers/task residue/5432 connections, adequate Docker free space and C17 state exact or absent (never unknown/drift). The unclassified API-C candidate config file is not a transport prerequisite and must not be read, deleted or changed merely to satisfy the baseline; fixed-digest transport must use an isolated root-only DOCKER_CONFIG. After the Worker predicates pass, privately transport the fixed C17 manifest digest to missing hosts without starting containers, then continue encrypted Worker Secret delivery, task-account migration 0017, Dispatcher activation, exact default-suspended units and provider-free C-to-F fenced takeover plus terminal cleanup. Do not repeat balance/stock/network/price/API/IAM/OSS/CI/gate/Stage A/B/fresh import, the rejected v1 request or this RunCommand."
           },
           "next_task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
         },

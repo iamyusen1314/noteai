@@ -7791,3 +7791,50 @@ mandatory Workbench action, the CTO may restart both exact Workers, re-read
 `Running` plus Cloud Assistant idle state, and then the user submits the one
 fixed-hash host baseline. No recreate, new quote, new balance check or repeated
 RunCommand is permitted.
+
+### Unique three-host pretransport invocation closed; Worker Docker bootstrap is next (2026-08-08)
+
+- Worker-C and Worker-F were restarted only from their retained
+  `Stopped/StopCharging` state. Start requests
+  `019FE121-EE5B-5F1A-8A9E-05FF7E657ACF` and
+  `019FE122-303C-50BE-9B94-1EABCCBC63D8`, followed by exact paired read
+  `019FE122-8D0E-519C-A16F-619D3AD8055C`, proved both exact instances
+  `Running`, `StoppedMode=Not-applicable`, empty `AutoReleaseTime` and zero
+  operation locks. Cloud Assistant read
+  `019FE122-D195-53E7-BEB1-125CDD97B1E0` proved both agents healthy and idle
+  before submission (`ActiveTaskCount=0`, `InvocationCount=0`).
+- The independently accepted script SHA-256
+  `6a65678a58bfe268983f9946dc6973b2a15db3a95bf0a3e72173fe281c56b4a5`
+  was submitted exactly once to API-C, Worker-C and Worker-F. Native request
+  `019FE12B-CD7D-5C47-B409-B5769AB4BD57` returned command
+  `c-sz06tdd5m0d67sw` and invocation `t-sz06tdd5m0znaww`. Read-only result
+  request `019FE12D-EC83-5E85-BC02-86186B17DCDF` returned exactly three
+  terminal records, each `Repeats=1`, with no dropped output. Exit code `3` is
+  the script's intentional fail-closed diagnostic result and is not grounds to
+  resubmit the command.
+- API-C passed its exact role, IMDSv2-only, NTP, systemd, capacity, expected
+  two-container, no-task/no-unit/no-task-root and zero-established-5432
+  checks. Docker is `active/enabled`, server `28.3.3 / linux / amd64`, and C17
+  is natively `absent`, so fixed-digest transport is required. Its sole failed
+  predicate is one metadata-only Docker config-file presence signal
+  (`docker_auth_file_count=1`, unsafe-file count `0`); no auth content or value
+  was read. The file is not a C17-transport blocker: the already-defined
+  isolated `DOCKER_CONFIG` path neither reads nor changes it. Do not delete or
+  rewrite it merely to satisfy the deliberately conservative baseline; any
+  later semantic audit is a separate read-only security observation.
+- Worker-C and Worker-F passed exact Alibaba Cloud Linux 4/x86_64, NTP,
+  systemd, IMDSv2-only, independent Worker role, valid temporary credential
+  shape, roughly `7 GiB` available memory, `34,793 MiB` root free space,
+  zero containers/tasks/units/task roots and zero established PostgreSQL
+  connections. Both hosts lack an active/enabled Docker service, so Docker
+  queries fail closed and C17 is correctly `unknown`, not `absent`. This is a
+  concrete bootstrap prerequisite, not a cache-export or C17 defect.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The next hard condition is one bounded, minimal Docker Engine
+bootstrap on Worker-C/F followed by targeted post-bootstrap native readback.
+Do not repeat this baseline invocation. After both Workers have healthy
+`linux/amd64` Docker, the fixed C17 digest may be transported to the missing
+hosts through isolated root-only Docker configs, still without reading or
+changing API-C's existing candidate config file, starting a container or
+changing API/Admin service state.

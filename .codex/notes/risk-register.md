@@ -1359,6 +1359,25 @@ Last updated: 2026-08-08
   exact two Workers, re-reading agent idle state and performing the single
   fixed-hash Workbench submission; no recreation or repeated command.
 
+- 2026-08-08 the single three-host pretransport invocation is terminal and must
+  not be repeated. Both retained Workers were restarted and natively read back
+  `Running`, unlocked and without auto-release; their Cloud Assistant agents
+  were healthy and idle. Exact-one command `c-sz06tdd5m0d67sw` / invocation
+  `t-sz06tdd5m0znaww` produced three terminal `Repeats=1` results. API-C has
+  healthy Docker and exactly its two expected containers, but C17 is absent and
+  one of three candidate Docker config paths contains a regular non-symlink
+  file whose ownership, mode and credential semantics remain unclassified; no
+  content was read and the file must not be deleted. Isolated root-only Docker
+  config makes it non-blocking for C17 transport. Worker-C/F pass
+  OS, root/memory capacity, IMDSv2, role, NTP and residue checks but have no
+  active/enabled Docker service, so Docker data-root capacity and C17 remain
+  unknown until a bounded Docker bootstrap.
+  Residual High risk is now package/bootstrap provenance and timeout handling,
+  then fixed-digest private transport; any API-C config semantic audit is a
+  separate read-only observation, not a transport gate.
+  exit code 3 is deliberate fail-closed evidence and never authorizes a blind
+  rerun. Item21 remains `20/29` and unverified.
+
 ## Low Risks
 
 ### `model/api.py` is too large
