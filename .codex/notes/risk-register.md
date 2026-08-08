@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-07
+Last updated: 2026-08-08
 
 ## Critical Risks
 
@@ -1240,6 +1240,93 @@ Last updated: 2026-08-07
   `28/28` and targeted git hygiene `6/6`; the gate allowlist, production source
   and all runtime semantics remain unchanged. This is closed and is not a
   reason to expand control code or repeat the cancelled runs.
+- Checkpoint `f1a5cc014578e10243174a80d643a67a57921c17` is now source-accepted:
+  push CI `31198299691` and pull-request CI `31198302530` both passed every
+  step, then the sole complete local readiness gate passed `138/138`. This
+  closes source/CI risk without adding readiness credit. Residual High risk is
+  exclusively native production baseline and execution evidence; begin with
+  read-only balance, Worker inventory/price, RDS backup/private/task-account,
+  ACR/VPC/network, API health and IAM/OSS residue checks before any paid or
+  mutating action.
+- 2026-08-08 production-capacity baseline remains safely before any Worker
+  order: native balance is `102.10 CNY`; exact one-month PrePaid C/F
+  `ecs.c9a.xlarge` quotes were `391.72 CNY` each and both zones were
+  `Available / WithStock`. The `783.44 CNY` pair and `681.34 CNY` arithmetic
+  difference are a rejected point-in-time PrePaid observation, not the selected
+  plan, a recharge target or a funding gate. The bounded execution plan is two
+  exact `PostPaid + NoSpot` private Workers, whose current quote, stock and
+  billing qualification still require one refresh. Production RDS remains
+  `Running`, PostgreSQL 16, VPC/Intranet, with seven successful automated full
+  backups in seven days and the latest about four hours old; the exact 0017
+  task account is absent. ACR remains VPC-enabled/public-disabled, both target
+  zone switches are available, and API-C/API-F were `Running`. The read-only
+  baseline created no order or Worker and made no cloud mutation, database
+  connection/write, storage write or provider/public call. After a fresh idle
+  audit, the non-production old builder was stopped by one graceful
+  `StopInstance` and natively read back as `Stopped/StopCharging`; its original
+  encrypted system disk remains attached, so accepted cache/prepared state is
+  retained. This stops compute charging but does not claim all storage cost is
+  zero. Refresh the PostPaid quote/stock/balance qualification and finish
+  API-health plus IAM/OSS-residue reads before the bounded two-Worker sequence;
+  do not repeat CI, the full readiness gate, Stage A/B or fresh import.
+- 2026-08-08 Item21 remaining API/IAM/OSS baseline is closed. Exact current
+  API-C API/Admin and API-F API unit/image identities, `2/1` containers, three
+  loopback live/ready rounds, restart `0` and established PostgreSQL connection
+  `0` passed without service mutation. Four predecessor diagnostics failed
+  closed only on stale/non-contract assertions and are not evidence. Native RAM
+  inventory now contains exactly one NoteAI ECS role and one custom policy: the
+  role is bound to API-C/F only, the stopped builder has none, the policy is
+  attached to that role only and retains the exact four prefix-scoped OSS
+  actions with no wildcard/global resource. Persistent OSS controls and zero
+  objects/versions/delete-markers/multipart uploads passed. A fresh inventory
+  also exposed the distinct empty Stage A transfer bucket whose prior deletion
+  had stopped at account verification; after three separate zero-residue reads,
+  only that bucket was deleted (`204`) and final inventory returned account
+  buckets `4`, Shenzhen `2`, persistent NoteAI bucket `1`, temporary NoteAI
+  bucket `0`. The two private-storage files then passed root:root `0600`, exact
+  seven-key, static-AK-zero, internal-endpoint and role-match checks. The first
+  read-only attempt failed because it incorrectly required the lifecycle
+  `noteai-private/` form instead of the runtime `noteai-private` prefix; one
+  corrected command passed both hosts. Database/storage-object/provider/public
+  calls remained `0`; the only new storage control mutation was deletion of the
+  proven-empty temporary bucket. Residual execution risk is now the fresh
+  PostPaid/NoSpot hourly quote/stock/balance bundle and an independent Worker
+  storage IAM identity; never reuse the API role for Worker-C/F.
+- 2026-08-08 exact PostPaid capacity bundle is now closed without ordering.
+  Balance is `93.36 CNY`; C/F exact `ecs.c9a.xlarge / PostPaid / NoSpot` and
+  `40 GiB cloud_essd` stock are both Available/WithStock. The two app switches
+  remain Available with `249/251` addresses and the unique Worker security
+  group has zero ingress rules. Exact VPC/no-public/no-data-disk/40-GiB-PL0
+  hourly price is `0.8164 CNY` per zone, `1.6328 CNY` for the pair, with no
+  promotion. One additional read-only C quote occurred only because the
+  Workbench exposed the first result after its retry threshold; it carried no
+  resource/cost mutation and must not justify another quote. With a frozen
+  four-hour acceptance envelope, the conservative quote cap is `6.5312 CNY`;
+  the internal balance threshold is `106.5312 CNY`, so the real rounded gap is
+  `13.18 CNY`, not `681.34 CNY`. No dry run, order or Worker exists. After a
+  recommended `15 CNY` top-up, refresh balance once; do not repeat current
+  stock/network/price or any earlier closed acceptance.
+- 2026-08-08 the balance blocker and Worker-capacity risk are now closed.
+  A single refresh returned `122.71 CNY`, above the `106.5312 CNY` internal
+  threshold. A new Worker-only ECS role and custom policy were created with
+  ECS trust, one role attachment, zero user/group attachment and the same exact
+  two-statement/four-action prefix boundary as the accepted API policy; the API
+  role was not reused. The first blank Worker-C creation exposed a Workbench
+  serialization defect: generated CLI omitted system-disk encryption and a
+  second label, and native disk read proved `Encrypted=false`. Before any
+  image, Secret, unit, container or task data was placed, that host was
+  gracefully stopped and released; exact instance and disk inventories then
+  returned zero. Corrected nested v2 C/F payloads serialized
+  `SystemDisk.Encrypted=true`, both labels and the primary NIC boundary, passed
+  independent DryRuns, and created one retained `Running / PostPaid / NoSpot`
+  host in each C/F zone. Both have no public IP, the zero-ingress Worker group,
+  encrypted 40-GiB ESSD PL0 system disks with KMS identity, the independent
+  Worker role, two labels, no operation lock and a common four-hour
+  auto-release. Residual High risk is now host bootstrap/C17 transport,
+  encrypted Worker Secret delivery, migration `0017`, Dispatcher activation,
+  default-suspended units and provider-free cross-host takeover/cleanup. Item
+  21 remains unverified at `20/29`; do not repeat the rejected v1 payload or
+  any closed quote/CI/build/import evidence.
 
 ## Low Risks
 

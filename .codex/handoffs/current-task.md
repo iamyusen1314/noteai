@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-07 (Asia/Shanghai)
+> Updated: 2026-08-08 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -7467,3 +7467,254 @@ Readiness remains internal `20/29` and public `20/38`. The sole task remains
 minimal fixture-fix checkpoint and its resulting push/PR dual-CI success,
 followed by the single complete readiness-gate run and the bounded production
 acceptance chain. The cancelled pre-fix runs must not be rerun.
+
+### Item 21 production source accepted by dual CI and complete gate (2026-08-08)
+
+- The minimal fixture correction is checkpoint
+  `f1a5cc014578e10243174a80d643a67a57921c17`. Its push CI
+  `31198299691` / job `92931838012` passed every step in `23m37s`; its
+  pull-request CI `31198302530` / job `92931848859` passed every step in
+  `25m27s`. Both bind the exact checkpoint and include unit tests, quality,
+  production-readiness and compose checks.
+- After and only after both CI runs succeeded, the complete local production
+  readiness gate was run once and passed `138/138`, failed `0`. The branch is
+  clean at the accepted checkpoint before this Secret-free record update.
+- The earlier cancelled e78eadb runs remain non-evidence and were not rerun.
+  No production connection, cloud mutation, database/storage write, image
+  operation or provider/public call occurred in this acceptance stage.
+
+Readiness remains internal `20/29` and public `20/38`; source acceptance alone
+does not satisfy Item 21. The sole task remains
+`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`. The immediate hard condition is the
+native read-only production baseline: current balance and Worker-C/Worker-F
+inventory/price, RDS private/backup/task-account zero state, ACR/VPC/Worker
+network path, existing API-C/API-F health, and IAM/OSS residue. Only if that
+baseline passes may the bounded paid Worker and synthetic database/OSS sequence
+begin; C17 and Stage A/B/fresh import remain frozen.
+
+### Production capacity baseline corrected to bounded PostPaid execution (2026-08-08)
+
+- Native read-only billing request
+  `019FDD30-67EE-5B6E-BD6F-23373159430E` reports `102.10 CNY`
+  available cash and zero credit. The point-in-time `PrePaid / 1 Month`
+  quotes for exact `ecs.c9a.xlarge` Worker-C and Worker-F shapes were each
+  `391.72 CNY`: four vCPU, eight GiB memory, VPC networking, zero public
+  bandwidth and one 40-GiB ESSD PL0 system disk. Quote requests
+  `019FDD32-A3E1-59EB-829E-573060785D5F` and
+  `019FDD33-397E-59EB-97D7-B61E69D832AB` both returned no promotion. The pair
+  observation was `783.44 CNY`, with an arithmetic difference of `681.34 CNY`
+  from the observed cash balance. That monthly PrePaid option is rejected: it
+  is not the selected execution shape, a recharge target or a funding gate.
+  The required replacement is a fresh exact `PostPaid + NoSpot` quote for two
+  bounded private Workers, followed by current balance/stock qualification.
+- Inventory requests `019FDD33-B216-5B0A-9DDF-C3CF66BE89CE` and
+  `019FDD34-C0BA-5C6C-9223-D6B1AC91EFA3` report exact c9a stock
+  `Available / WithStock` in Shenzhen C and F. The production VPC has an
+  `Available` switch in each zone with 249 and 251 free addresses
+  (`019FDD3B-5549-5B49-95BB-1F51FD77F067`), while native ACR read
+  `019FDD3A-D898-5393-87A5-80F44E33BA30` confirms the public Registry endpoint
+  disabled and the VPC endpoint enabled and linked to the production VPC.
+- Native RDS reads prove one `Running` PostgreSQL 16 primary on VPC/Intranet,
+  seven successful automated full snapshot backups in the last seven days,
+  latest backup end `2026-08-07T13:04:43Z`, eight retained accounts and zero
+  exact `noteai_schema_task_durable_ai_0017` account. Their request IDs are
+  `019FDD36-D4BA-5860-9F4E-9EF38B30B232`,
+  `019FDD37-365A-5BEA-B911-C9F1AF7F9225` and
+  `019FDD37-9D17-5305-BC2C-C4BEAD7A95B6`.
+- Exact-instance status request `019FDD3A-6E20-5177-8B5E-38B686230756` reports
+  API-C, API-F and the retained old builder all initially `Running`. No order,
+  Worker instance, database connection, database/storage write or
+  provider/public call was made during this read-only baseline.
+
+### Retained builder stopped without deleting prepared state (2026-08-08)
+
+- The old builder `i-wz99180s9ig5ecq10uaj` is not a production service or an
+  Item 21 dependency. Fresh exact-instance, Cloud Assistant, host-process,
+  Docker-credential and system-disk checks established one idle PostPaid
+  instance, zero active invocation, zero running container/build/download task,
+  zero Docker auth/helper/store entry, zero PostgreSQL connection, no RAM role,
+  no operation lock and no automatic release. Its encrypted 120-GiB system disk
+  was `d-wz99180s9ig5ecpy5cup`, attached and lock-free.
+- After that read-only baseline, exactly one graceful
+  `StopInstance(ForceStop=false, StoppedMode=StopCharging, Hibernate=false)`
+  succeeded with request `019FDE95-3FE2-5F69-9857-7212D712DCE1`. No duplicate
+  submission occurred around interactive verification. Native instance read
+  `019FDE97-AA0A-50FA-95A8-656A29F14031` then proved exact state
+  `Stopped / StopCharging / PostPaid`, empty operation locks and empty
+  `AutoReleaseTime`; disk read `019FDE99-BD5A-50EC-87D3-9F9E1F325B2E`
+  proved the same encrypted system disk remains attached and `In_use`.
+- The builder instance and disk were not deleted, so its accepted local cache
+  and prepared state remain recoverable. This stops compute charging only;
+  retained storage may still incur cost. API-C/API-F, RDS, OSS, ACR, IAM and
+  production traffic were unchanged. The read-only baseline had zero cloud
+  mutation; this separate cost-control action had exactly one lifecycle
+  mutation.
+
+Readiness stays internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. Execution is not gated by the rejected monthly quote. Refresh the
+exact `PostPaid + NoSpot` two-Worker quote, current balance/qualification and
+C/F stock once, finish the remaining API-health and IAM/OSS-residue read-only
+checks, then execute the bounded Worker-C/Worker-F production chain. Do not
+repeat CI, the complete readiness gate, Stage A/B or fresh import.
+
+### Item 21 API health and private-storage baseline closed (2026-08-08)
+
+- Fresh Cloud Assistant checks accepted the current API-C API/Admin pair and
+  API-F API unit without reinstalling or restarting anything. API-C command
+  `c-sz06tbndawcedxc` / invocation `t-sz06tbndawovvnk` and API-F command
+  `c-sz06tbnjq42jjls` / invocation `t-sz06tbnjq4k0u0w` each completed once
+  with exit `0`. Their result reads were
+  `019FDEB1-E951-54CB-9CCC-E02EF7920F83` and
+  `019FDEB3-BB9D-55B6-9942-BDA0ED78B192`. Exact installed unit and image
+  identities passed; container counts were `2/1`; all three loopback
+  live/ready rounds returned `200`; listener, unit restart, container restart
+  and established PostgreSQL counts were respectively loopback-only, `0`, `0`
+  and `0`. Four earlier strict read-only diagnostics failed closed because they
+  applied stale Admin or non-contract runtime assertions; they made no service,
+  container, database, provider or public-traffic change and are not acceptance
+  evidence.
+- Native RAM reads proved API-C and API-F still share exactly one persistent
+  private-storage ECS role, the stopped builder has none, and the account has
+  exactly one NoteAI role and one NoteAI custom policy. That policy is attached
+  only to the persistent role and remains two statements with the exact four
+  prefix-scoped OSS actions, zero wildcard action and zero global resource.
+  The bounded request set is
+  `019FDEB7-249A-538F-B73D-426C6D075C4C`,
+  `019FDEB7-522B-511E-B64A-39EA912FF154`,
+  `019FDEB7-75C5-556B-8346-B51AAD786902`,
+  `019FDEB8-45E7-586A-A635-E4A33C7B9794`,
+  `019FDEB8-93D3-53A8-938F-00C0BC76E3CB`,
+  `019FDEB9-1369-5729-9F76-B2C6139ED7D5`,
+  `019FDEB9-64C2-52E1-BC5E-4969BD9E2FBB`,
+  `019FDEBD-2A49-5A70-B8B8-1B798E25AEEE` and
+  `019FDEBD-C35B-5C31-B27D-D0BC71A059EA`. Temporary NoteAI RAM role/policy
+  residue is therefore `0`.
+- The persistent OSS bucket remains unique, Standard/private, bucket BPA on,
+  AES256 encrypted, acceleration unset/disabled, logging target empty, bucket
+  policy absent, versioning unset and lifecycle restricted to
+  `noteai-private/` with two-day expiry and one-day incomplete-multipart abort.
+  Fresh bounded inventories proved objects `0`, versions `0`, delete markers
+  `0` and multipart uploads `0`. API-C/F then passed one corrected two-node
+  metadata audit: both files are root:root `0600`, have the exact seven keys,
+  no static AK, the internal endpoint and the persistent role. The first
+  read-only attempt failed identically on both nodes because its assertion
+  confused runtime prefix `noteai-private` with lifecycle prefix
+  `noteai-private/`; corrected command `c-sz06tbpp4yfu9ds` / invocation
+  `t-sz06tbpp4ynbyf4` passed twice with result request
+  `019FDEC9-E287-5ED5-ADF9-BAF0793F2EEC`.
+- The first fresh bucket inventory found one extra NoteAI bucket created at the
+  Stage A transfer timestamp, matching the historical empty-bucket deletion
+  that had stopped at interactive verification. Exact reads again proved its
+  objects, versions, delete markers and multipart uploads all `0` via requests
+  `6A7677F0CC8CEC3034E35A47`, `6A7677FFCF2E63393096A30E` and
+  `6A76780EDDD87E3034C8E2E2`. Only that distinct empty temporary bucket was
+  deleted (`204`, request `6A767821ABB8F83537D6DE31`). Final inventory request
+  `6A7678478A6E183238F4BA18` proves account buckets `4`, Shenzhen buckets `2`,
+  the persistent bucket exactly `1`, NoteAI buckets exactly `1`, and the Stage A
+  temporary bucket absent. No persistent object was put or deleted.
+
+Readiness remains internal `20/29` and public `20/38`; the baseline and cleanup
+add no duplicate credit. The remaining pre-order condition is now only one
+fresh exact `PostPaid + NoSpot` balance/qualification, C/F stock/network and
+hourly-price bundle. Before either Worker can consume private storage it must
+receive a separate Worker IAM identity; the existing API role must not be
+reused. Do not repeat the API/OSS matrix, CI, the complete readiness gate,
+Stage A/B or fresh import.
+
+### Exact PostPaid Worker quote closed; small balance gap remains (2026-08-08)
+
+- Current billing request `019FDECD-856A-522B-942C-03060D51D424` succeeded in
+  CNY and returned available cash/amount `93.36`, credit `0.00`. This is below
+  the provider's `100.00` PostPaid qualification line; no order or dry run was
+  submitted after that fact.
+- Fresh native instance-stock requests
+  `019FDED0-5D52-5C3E-ACCE-8EC748CE3309` and
+  `019FDED1-07EE-585B-98ED-000C54E451A8` prove exact
+  `ecs.c9a.xlarge / PostPaid / NoSpot / VPC` stock is
+  `Available / WithStock` in C and F. System-disk requests
+  `019FDED1-40BF-57CF-A31A-22E05D8C2C10` and
+  `019FDED1-7A9A-568F-A556-26AECD15C99F` prove `cloud_essd` is available in
+  both zones with supported size range `20–2048 GiB`, so exact `40 GiB / PL0`
+  is valid. VPC request `019FDECE-6D4D-5F7F-BE04-1D33FC953871` read the exact
+  app switches as Available with `249/251` free addresses. ECS request
+  `019FDECE-DA4F-5AAD-A7FC-1BD59840459C` found exactly one
+  `noteai-prod-worker-sg` in the production VPC; attribute request
+  `019FDECF-744C-5AF7-B157-82E1FC2D352F` proved ingress rules `0`.
+- Exact hourly quote input was one `linux/amd64` Alibaba Cloud Linux 4 image,
+  `ecs.c9a.xlarge`, VPC, no public bandwidth, no data disk, one encrypted-design
+  `40 GiB ESSD PL0` system disk, `PriceUnit=Hour`, `Period=1`, `Amount=1` and
+  `SpotStrategy=NoSpot`, queried separately for C and F. Each response is CNY
+  with original/trade price `0.8164` and zero promotion. C result-latency caused
+  one additional read-only quote request before the Workbench exposed the
+  first result; the accepted C request is
+  `019FDED2-1086-5F66-8FE9-EA20A20C909F` and F is
+  `019FDED2-7705-58FF-92DF-EC98CC9182C9`. No quote carries cost or creates a
+  resource, and neither zone will be queried again in this window.
+- The two-Worker hourly ceiling is therefore `1.6328 CNY`. The CTO freezes a
+  four-hour acceptance envelope, giving a conservative compute/disk quote cap
+  of `6.5312 CNY`. The internal funding threshold is
+  `100.00 + 6.5312 = 106.5312 CNY`; against `93.36 CNY`, the exact shortfall is
+  `13.1712 CNY` (`13.18 CNY` after cent rounding). This replaces—not adds to—the
+  rejected `681.34 CNY` monthly arithmetic observation.
+
+Readiness remains `20/29` and `20/38`; Item 21 remains `unverified`. The only
+immediate external blocker is the small balance shortfall. After at least
+`13.18 CNY` is added (recommended operational round amount `15 CNY`), refresh
+balance once only. If it reaches `106.5312 CNY`, continue with exact-name
+absence, bounded dry runs and the two Worker orders without repeating the
+accepted stock, network, price, API, IAM/OSS, CI, gate, Stage A/B or fresh-import
+checks.
+
+### Worker capacity funded, independent IAM bound and C/F hosts retained (2026-08-08)
+
+- One balance-only refresh, request
+  `019FDEE2-36B4-542D-A662-3A24660A75F2`, returned available cash/amount
+  `122.71 CNY`. The `106.5312 CNY` internal threshold therefore passed; the
+  rejected monthly PrePaid arithmetic remains neither a target nor a gate.
+- A separate persistent Worker storage role and custom policy were created and
+  attached by requests `019FDEE8-1D86-5D4F-A8CC-7E54E069CF0F`,
+  `019FDEE8-80E1-59CB-A85B-3FDBD4C06B62` and
+  `019FDEE9-1883-5BD0-B34E-0817796E26A2`. Native readback proved ECS-only
+  trust, one exact role attachment, zero user/group attachment, two policy
+  statements, four prefix-scoped OSS actions and no wildcard action/global
+  resource. The API-C/API-F storage role was not reused or changed.
+- Initial Workbench DryRun calls passed, but generated-CLI inspection proved
+  that the first real C payload had omitted system-disk encryption and its
+  second label. Native disk read `019FDEF8-4898-539C-A3B0-16ECD9D8C35E`
+  confirmed `Encrypted=false`. That new blank host had received no image,
+  Secret, unit, container or task data. It was gracefully stopped
+  (`019FDEFC-5046-50B7-A298-440FB555D6FF`), read back `Stopped`, released
+  (`019FDEFC-F118-5314-89E1-D4DDBA9E93B5`), then independently read back as
+  instance count `0` and system-disk count `0` by
+  `019FDEFD-203A-5131-B734-31B06603E9DF` and
+  `019FDEFD-4F78-53A9-97D5-2FB5ED5CB8F9`. This closed a known rejected
+  payload; it was not an ambiguous retry.
+- Corrected nested v2 C/F requests explicitly serialized encrypted system
+  disks, two labels and the primary-NIC boundary. DryRun requests
+  `019FDEFE-47DD-54AC-9D99-3624D93AC941` and
+  `019FDEFE-C638-515E-AA0B-3EAE90CF0657` both returned
+  `DryRunOperation`. The final C/F creates succeeded exactly once with requests
+  `019FDEFF-8402-5440-B03E-F46420F0DDC5` and
+  `019FDF00-D277-52B4-BF37-9E3ADD14AA63`.
+- Retained Worker-C `i-wz98zwcdtcmxzmmoso3w` and Worker-F
+  `i-wz93qgvlu1bllpjcfwfj` are `Running / PostPaid / NoSpot`, one in each
+  exact C/F switch, with no public IP, the zero-ingress Worker security group,
+  two exact task/node labels, no operation lock and common automatic release
+  `2026-08-08T05:35Z`. Each has one `40 GiB / cloud_essd / PL0` system disk
+  with `Encrypted=true`, a non-empty provider KMS identity and the independent
+  Worker role. Native instance/disk/role reads are respectively
+  `019FDEFF-C692-5E22-BEE4-0FB80F11F157` /
+  `019FDEFF-F628-544F-B2D3-119FA9DD4E77` /
+  `019FDF00-2390-5809-BAE2-891B7EDE9296` for C and
+  `019FDF01-1B40-55CA-A653-D601257CCDE4` /
+  `019FDF01-4A9E-5E8D-BA9E-D295EE83EDEB` /
+  `019FDF01-73A0-5D02-AC4E-C8E82B80560A` for F.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The immediate hard condition is a fresh three-host baseline:
+Cloud Assistant readiness, time, Docker/systemd, IMDSv2-only behavior, no
+unexpected workload and exact C17 image availability/transport. Only after
+that passes may encrypted Worker Secret transport, task-account migration
+`0017`, Dispatcher activation, default-suspended units and provider-free C-to-F
+takeover proceed. Do not repeat balance, stock, quote, API/OSS, CI, gate,
+Stage A/B, fresh import or the rejected v1 payload.
