@@ -1459,6 +1459,18 @@ Last updated: 2026-08-08
   invocation and never resubmitted. Worker-F/API-C credentials must not be
   issued until Worker-C pull PASS. Item21 remains `20/29` and unverified.
 
+- 2026-08-08 Worker-C fixed-digest transport closed with one native terminal
+  success: command `c-sz06tdzm7wnd1j4`, invocation `t-sz06tdzm7x2cfls`,
+  `ExitCode=0 / Repeats=1 / Dropped=0`, exact C17/manifest/config binding, one
+  orchestrated digest pull, zero executor retries, zero container starts and
+  complete isolated credential/key/auth/task-root cleanup. Exact-name native
+  readback proves one command only. The zero-retry value describes the
+  executor and orchestration path, not Docker's internal transport. Residual
+  High risk moves to Worker-F then API-C: each must receive a fresh host-bound
+  JIT credential and at most one fixed-name pull; Worker-C material and
+  invocation are terminal and must never be reused. Item21 remains `20/29`
+  and unverified.
+
 ## Low Risks
 
 ### `model/api.py` is too large

@@ -8037,3 +8037,49 @@ most one private fixed-digest C17 pull, exact manifest/config/OCI inspection,
 zero container starts and complete isolated auth/key/task-root cleanup. A
 pull-started UNKNOWN is read back and never resubmitted. Only terminal
 Worker-C pull PASS permits a fresh JIT broker for Worker-F, then API-C.
+
+### Worker-C fixed-digest C17 pull accepted; Worker-F JIT is next (2026-08-08)
+
+- Fixed command name `noteai-item21-c17-pull-worker-c-20260808-v1` was proven
+  absent by native request `019FE20D-3925-5839-885F-9895AB9A37CC`. A safety
+  confirmation control became non-actionable before any confirm click; the
+  required no-blind-retry reconciliation request
+  `019FE211-4147-58DF-AE1B-D32F138EF1BA` again proved count zero before the
+  same validated form was rebuilt. This was not a second cloud command.
+- The accepted 16,177-byte fixed executor template rendered to 16,660 bytes
+  with SHA-256
+  `cbb1869aaf01782690256ce8002f97826a2f803129edb544f3dd543a0ed43cee`.
+  Its 5,625-byte deterministic gzip payload was bound into one 8,341-byte
+  Python 3.6-compatible in-memory wrapper with SHA-256
+  `27655a818dcdc2b9d431f1adefa3873d469047471b907511185a902faf898917`.
+  Workbench bytes and hash matched before submission. Rendered credential
+  material was not copied into the local workspace, Git or tracked evidence;
+  the native command input and root-only remote runtime material were consumed
+  only by this host-bound execution and the accepted cleanup path removed its
+  isolated remote files.
+- Exact RunCommand request `019FE212-5327-5C48-AE5F-8D91F3F44346` returned
+  command `c-sz06tdzm7wnd1j4` and invocation `t-sz06tdzm7x2cfls`. Read-only
+  result request `019FE213-6D25-588E-A162-D4324D4825FA` proves one terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` record from
+  `2026-08-08T15:51:21Z` through `2026-08-08T15:51:36Z`. Its single 344-byte
+  PASS output has SHA-256
+  `e27072a84f122798d9e4a1ed407a72bbfaaadb4dfa9c24c048f70af63f294651`.
+- PASS binds host `Worker-C`, immutable C17 commit
+  `cad5ce35664f617c6e19f90a6159285ddf975594`, manifest
+  `sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b`
+  and config
+  `sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95`.
+  The reviewed executor path reports one orchestrated digest pull, zero
+  executor retries, zero container starts and complete isolated credential,
+  key, auth and task-root cleanup. Those retry counts do not make a claim
+  about Docker's internal transport behavior.
+- Native exact-one readback request `019FE215-7A5D-5DA3-98D7-7D99A797325C`
+  proves exactly one command/invocation under the fixed name and the same
+  terminal success identity. Worker-C broker, token and pull must never be
+  resubmitted.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The only next action is one fresh, independent, host-bound JIT
+broker for Worker-F using its already accepted key, followed by at most one
+Worker-F fixed-digest pull. Worker-C credentials and invocation may not be
+reused or fanned out.
