@@ -1377,6 +1377,22 @@ Last updated: 2026-08-08
   separate read-only observation, not a transport gate.
   exit code 3 is deliberate fail-closed evidence and never authorizes a blind
   rerun. Item21 remains `20/29` and unverified.
+- 2026-08-08 Worker Docker bootstrap is accepted and must not be repeated.
+  The 17,956-byte reviewed payload was carried by a hash-verifying 9,156-byte
+  in-memory wrapper after the Workbench UI was observed truncating the original
+  input at 10,000 bytes; the truncated form was never submitted. Exact-one
+  command `c-sz06tdguybf045c` / invocation `t-sz06tdguybyzaww` completed on
+  Worker-C/F in six seconds with two `Success / ExitCode=0 / Repeats=1`
+  records. Both hosts now have matching `moby`, `moby-client` and
+  `moby-engine 28.3.3-4.alnx4`, active containerd/Docker, enabled Docker,
+  `linux/amd64`, adequate data-root capacity and zero containers, images,
+  volumes, build cache, auth files, registry actions, task residue or database
+  connections. C17 is explicitly absent. Native `TerminationMode=Process` and
+  two harmless awk warnings per host do not weaken the completed postconditions
+  and do not justify a reinstall. Residual High risk is now the one-per-host
+  isolated fixed-digest C17 pull and credential cleanup, followed by Secret,
+  migration `0017`, Dispatcher, units and cross-host takeover; Item21 remains
+  `20/29` and unverified.
 
 ## Low Risks
 

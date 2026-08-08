@@ -7838,3 +7838,44 @@ Do not repeat this baseline invocation. After both Workers have healthy
 hosts through isolated root-only Docker configs, still without reading or
 changing API-C's existing candidate config file, starting a container or
 changing API/Admin service state.
+
+### Worker-C/F Docker bootstrap accepted; fixed C17 transport is next (2026-08-08)
+
+- The final bootstrap payload was fixed at SHA-256
+  `aac64a189accda87fc961646122d18cf554969f4802a9ce63f960df3264680a4`
+  and was submitted through a 9,156-byte in-memory gzip wrapper, SHA-256
+  `d24926dd485ff3fec91e8247d5028bd1c6bbeeab88f2f7ae1441706f7151c6cb`.
+  The wrapper verified the 17,956-byte decoded payload and its hash before one
+  `/bin/bash` child; it created no transfer file. This avoided the Workbench
+  UI's observed 10,000-byte input truncation without changing execution
+  semantics.
+- Exact-one Cloud Assistant command `c-sz06tdguybf045c` / invocation
+  `t-sz06tdguybyzaww` targeted Worker-C and Worker-F together. Native result
+  requests `019FE159-DA35-5997-B392-8B97DCA9B374` and
+  `019FE159-DA33-504B-9B3E-D8248C1A0754` returned two terminal records, both
+  `Finished / Success / ExitCode=0 / Dropped=0 / Repeats=1`, from
+  `2026-08-08T12:21:04Z` through `12:21:10Z`. Native readback reported
+  `TerminationMode=Process`; because both children completed normally in six
+  seconds, this is a non-impacting observed parameter fact, not grounds to
+  rerun.
+- Both hosts now have identical Alibaba Linux packages
+  `moby`, `moby-client` and `moby-engine` at `28.3.3-4.alnx4.x86_64`.
+  Docker and containerd are active, Docker is enabled, the default engine is
+  `28.3.3 / linux / amd64`, the data root has `34,483 MiB` free, and TCP Docker
+  listeners, containers, images, volumes, build cache, Docker auth files,
+  registry logins, pulls, container starts, task paths and established `5432`
+  connections are all `0`. C17 is explicitly `absent` on both Workers.
+- Each host emitted the same two non-JSON `awk` warning lines from a quoting
+  expression (four warning lines in aggregate); every fixed postcondition passed with
+  `host_pass=true / failed_checks=[]`. The bootstrap made exactly the intended
+  one package/service mutation per host, two in aggregate, and made no C17,
+  database, storage-object, Registry or AI-provider call. It must not be
+  repeated for warning wording.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The host runtime bootstrap prerequisite is closed. The unique
+next hard condition is serial private transport of the fixed C17 manifest to
+Worker-C, Worker-F and API-C through per-host isolated root-only Docker
+configs, with one digest pull per missing host, exact image inspection, zero
+container starts and complete credential/task-root cleanup. API-C's existing
+candidate Docker config path remains untouched.
