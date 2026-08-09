@@ -8266,3 +8266,48 @@ temporary pull-broker RAM role from the old builder, return that builder to
 `Stopped/StopCharging`, detach/delete the temporary policy and delete the
 temporary role with exact absence readback. Then continue encrypted Worker
 Secret delivery; no transport action may be repeated.
+
+### Temporary C17 broker cleanup accepted; Worker Secret delivery is next (2026-08-09)
+
+- A prior browser-side stop attempt produced no service RequestId. Mature
+  ActionTrail reads `019FE25A-6CD3-5EE3-BD7B-040CF736D5BB` and
+  `019FE25A-D77F-5CED-856D-0A57669A4354` found zero `StopInstance` events while
+  still finding the exact builder's known RAM-role detach, and native instance
+  read `019FE25A-153C-52B8-AF20-59EE89CC03CE` still showed `Running`. It was
+  therefore reconciled as `PRE_SUBMIT / NOT_REACHED_SERVICE`, not retried as an
+  unknown service mutation.
+- The one accepted graceful stop returned HTTP 200 with RequestId
+  `019FE3E8-2452-54CE-A57B-309636EC3F65`. Native read
+  `019FE3E8-88CE-552C-B720-26C855AD6D2B` proves the exact old builder is
+  `Stopped / StopCharging / PostPaid` with zero operation locks. Disk read
+  `019FE3E9-8DB2-5FA7-BB54-992866B41174` proves the original 120-GiB system
+  disk `d-wz99180s9ig5ecpy5cup` remains attached to that builder, `In_use`,
+  unlocked and undeleted. StopCharging closes compute billing only; retained
+  disk storage can continue to incur its normal charge.
+- Builder-role read `019FE3EA-3D6D-5307-B2C1-A42CAC56C0AB` reports the exact
+  builder with an empty RAM role. The temporary pull-only policy was detached
+  once by `019FE3EA-C8F0-5DE3-96ED-3E1D97F3B1C8`; complete role-policy read
+  `019FE3EB-1D0F-570B-A11F-BD3BF7225C15` is empty. Non-cascading policy delete
+  `019FE3EB-91E2-50B6-B852-45C230B312F9` and role delete
+  `019FE3EC-47E3-5A34-A587-F40C0FA9642B` were each submitted once. Exact native
+  reads `019FE3EB-CE6F-5E56-B318-DD524F96039E` and
+  `019FE3EC-78BB-5AA1-9A43-C1A9C3DF813C` return
+  `EntityNotExist.Policy` and `EntityNotExist.Role` respectively.
+- The builder and disk were not deleted; the builder changed only through the
+  accepted graceful stop and RAM-role detach. No production storage role,
+  API/Admin service, C17 image, database or object-store data was changed. All
+  three transport brokers and pulls remain terminal and must never be repeated.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified`. The unique next atomic action is encrypted delivery of the
+accepted API-C Worker database file unchanged plus a Worker-specific
+private-storage payload derived only in root-owned process memory. The derived
+payload must change only `NOTEAI_OSS_RAM_ROLE` to the already accepted
+independent Worker role `noteai-storage-worker-20260808-item21`; its other six
+keys must equal the accepted API-C source without exposing values, and
+Worker-C/F must receive identical derived bytes. Validate exact root-only
+file/content contracts and complete transfer residue cleanup. Do not generate
+or rotate database login material, connect/write the database, start a unit or
+repeat any C17 transport. After Secret delivery, continue migration `0017`,
+Dispatcher activation, exact default-suspended units and provider-free fenced
+takeover.

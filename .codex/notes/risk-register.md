@@ -1521,6 +1521,21 @@ Last updated: 2026-08-09
   builder StopCharging, then encrypted Worker Secret delivery and the remaining
   Item21 activation/takeover sequence. Item21 remains `20/29` and unverified.
 
+- 2026-08-09 the temporary C17 pull broker cleanup closed without touching
+  production services or deleting prepared builder state. The only accepted
+  graceful stop returned HTTP 200 and native readback proves the old builder
+  `Stopped / StopCharging / PostPaid`, unlocked, with its original system disk
+  still attached and `In_use`. Builder RAM-role attachment is empty; the
+  temporary policy was detached and deleted non-cascading, and the temporary
+  role was deleted. Exact native reads returned `EntityNotExist.Policy` and
+  `EntityNotExist.Role`. The earlier browser attempt was independently
+  reconciled as pre-submit through mature ActionTrail absence plus a still-
+  running instance read, so no unknown mutation was replayed. Residual High
+  risk is now host-bound encrypted Worker Secret delivery and residue cleanup,
+  followed by migration `0017`, Dispatcher activation, default-suspended units
+  and provider-free cross-host takeover. All C17 broker/pull actions remain
+  terminal and forbidden from replay; Item21 remains `20/29` and unverified.
+
 ## Low Risks
 
 ### `model/api.py` is too large
