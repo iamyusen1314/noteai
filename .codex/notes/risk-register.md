@@ -1536,6 +1536,33 @@ Last updated: 2026-08-09
   and provider-free cross-host takeover. All C17 broker/pull actions remain
   terminal and forbidden from replay; Item21 remains `20/29` and unverified.
 
+- 2026-08-09 API-C Worker Secret tools and the single dual-target Worker
+  keygen closed with native terminal evidence. API-C retains two hash-bound
+  non-Secret tools; Worker-C/F retain distinct root-only RSA-3072 keys whose
+  public DER hashes are recorded without public-key bodies. Both targets
+  reported zero private-key/Secret output, database connection, object-store/
+  provider/registry call, application container or unit change. Native
+  CommandContent readback binds the exact 9,759-byte keygen wrapper received by
+  Alibaba Cloud, so the command must not be repeated. Residual High risk is
+  consuming those retained keys in one API-C source-encryption result, then
+  serial Worker-C/F install and source cleanup last; any ambiguous result must
+  be recovered from the original invocation rather than replayed. Item21
+  remains `20/29`, unverified and receives no readiness credit.
+
+- 2026-08-09 the first API-C Worker Secret source-encryption command is no
+  longer an unresolved data-plane `UNKNOWN`. Native terminal evidence plus
+  one metadata-only inventory prove stdout 0, the exact 72-byte fixed helper
+  error, envelope count 0, task-container count 0, intact root-only
+  task/tool/input state and zero source-Secret/ciphertext reads. The root cause
+  is deterministic: GNU `timeout` was asked to exec the Bash function
+  `docker_task`, so Docker never started. The original name is permanently
+  no-replay. Residual High risk is the one new fixed-name controlled recovery
+  using the absolute timeout/env/docker executable chain; any post-attempt
+  ambiguity remains fail-closed and permits only original-invocation/readback,
+  not a second encryption. Worker stage and cleanup remain forbidden until
+  recovery returns four canonical envelopes. Item21 stays `20/29`,
+  unverified, with no readiness credit.
+
 ## Low Risks
 
 ### `model/api.py` is too large

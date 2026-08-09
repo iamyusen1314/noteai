@@ -8311,3 +8311,90 @@ or rotate database login material, connect/write the database, start a unit or
 repeat any C17 transport. After Secret delivery, continue migration `0017`,
 Dispatcher activation, exact default-suspended units and provider-free fenced
 takeover.
+
+### Worker Secret tools and host-bound keys accepted; envelope generation is next (2026-08-09)
+
+- API-C source-tools command `noteai-item21-worker-secret-source-tools-20260809-v1`
+  is bound by exact-name read `019FE57E-8B1D-595E-92A9-A31AA075CF95` to
+  command `c-sz06tgcqw7jqy2o` and invocation `t-sz06tgcqw83q4u8`; the original
+  RunCommand RequestId is not available from the current readback and is not
+  inferred or replayed. Read-only result
+  `019FE580-E043-5E54-986B-251809330684` proves one API-C terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` record at
+  `2026-08-09T07:45:40Z`. Its 164-byte output, SHA-256
+  `c15da57adf2bc5f46c8cc76e1d5baf6ca81a47f08bb354920c64407fc27736af`,
+  binds two non-Secret tool files and zero Secret reads. The root-only tool
+  root is intentionally retained for the following source-encryption command.
+- The single dual-target keygen command
+  `noteai-item21-worker-secret-keygen-20260809-v1` returned native request
+  `019FE584-FC70-521C-9385-1855BF1C0393`, command `c-sz06tgdmbcxgagw` and
+  invocation `t-sz06tgdmbdcfojk`. Native command read
+  `019FE588-4D77-56F6-A730-40C75C41254C` decodes to the exact submitted
+  9,759-byte wrapper, SHA-256
+  `0d5adf7ba0e97f2f70d617f77f2a3ed24b6ba3e09632ef94b5c462392da44858`,
+  byte-equal to the locally verified wrapper for the fixed 28,059-byte source
+  SHA-256 `b050ea031ba02fa9c1eb9e8248ebdc1912cfd4ff97d66b6fcfdeefb89e070876`.
+- Worker-C result `019FE585-E491-5033-9D19-C4CF930516C4` and Worker-F result
+  `019FE587-92FF-57AA-AE20-6691DC54E860` each prove terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` at
+  `2026-08-09T07:55:27Z`. Both outputs are 1,496 bytes; they bind distinct
+  RSA-3072/e65537 public DER hashes
+  `bf55278e59bc9911ab77a51c59f117e3afc575fd2c941c32d4bf2186fa8f94e0`
+  and `53abc24853f96a2882d756632d2f6781c211bbc3966a652d1cff50d090858863`.
+  Both hosts prove exact C17 and Worker role, absent final/unit paths, zero
+  containers, database connections, IMDS Secret reads, registry/object/AI
+  calls, provider-control mutations, unit changes, private-key output and
+  Secret-value output. The two root-only key roots are intentionally retained
+  until their matching encrypted payloads are installed.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified` and receives no credit. Source-tools preparation and Worker
+keygen are terminal and must never be repeated. The unique next command is
+API-C source encryption using only these accepted public bindings, followed by
+Worker-C stage/install, Worker-F stage/install, and API-C source cleanup last.
+No database connection/write, object-store/provider/registry call, unit start
+or C17 transport is authorized in this Secret-delivery stage.
+
+### Source encryption pre-start failure reconciled; controlled recovery is next (2026-08-09)
+
+- The first API-C source-encryption command
+  `noteai-item21-worker-secret-source-encrypt-20260809-v1` returned request
+  `019FE58F-B91B-5034-B090-6412E0F161F1`, command
+  `c-sz06tgenzeijny8`, invocation `t-sz06tgenzf2iups` and terminal result read
+  `019FE590-0124-5E97-8AB2-ADA21377605D`. Its sole API-C record was
+  `Failed / ExitCode=4 / Repeats=1 / Dropped=0` from
+  `2026-08-09T08:07:10Z` to `08:07:11Z`; the 169-byte fixed output has
+  SHA-256 `af4ce3544a34c0f7864006d55798286d2d889508d12053df3ab4684288bf6169`
+  and retained both root-only recovery roots. The original command is frozen
+  and must never be repeated.
+- Exact-name absence read `019FE59B-3E52-5278-B74C-EA148D22BC93`
+  preceded the one metadata-only inventory request
+  `019FE59D-F511-528F-A02D-2A22654A1598`, command
+  `c-sz06tgg1wvy52io` and invocation `t-sz06tgg1wwd4glc`. Result read
+  `019FE5A0-DF7C-551C-B0F1-721D9DB742DA` proves one terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` record at
+  `2026-08-09T08:22:43Z`. Its 755-byte output, SHA-256
+  `4c78d2c8ee25405f715b9e40e5fc66e220217c48d775cc916e3bbed2fed14ffc`,
+  reports helper stdout 0 bytes, the fixed 72-byte helper error, envelope
+  count 0, task-container count 0, exact safe task/tool/input metadata, two
+  matching tool hashes, and zero source-Secret or ciphertext reads.
+- Static execution reconciliation closes the former `UNKNOWN` as
+  `KNOWN_PRE_DOCKER_EXEC_NOT_FOUND`: GNU `timeout` was given the current Bash
+  function `docker_task`, which is not an executable operand. Under fixed
+  `LC_ALL=C`, its exact error is the observed 72-byte pre-start result. No
+  encryption container or envelope ever existed, so a new fixed-name recovery
+  is the first actual encryption attempt rather than a data-plane replay.
+- Local Data volume availability was raised from 109 MiB to 3.4 GiB by
+  emptying only the recoverable Playwright, Homebrew, uv and pip cache
+  directories. No Codex session, Chrome state, repository file or production
+  evidence was removed; those caches can be downloaded again when needed.
+
+Readiness remains internal `20/29` and public `20/38`; Item 21 remains
+`unverified` and receives no credit. The unique next command name is
+`noteai-item21-worker-secret-source-encrypt-recovery-20260809-v1`: it must
+bind the retained exact pre-start state, call the fixed C17 Docker binary
+directly exactly once, retain four verified host-bound envelopes and never
+emit plaintext. Any ambiguous recovery result is reconciled from its original
+invocation and retained files only; it does not authorize another encryption.
+After terminal recovery acceptance, continue Worker-C stage/install,
+Worker-F stage/install and API-C source cleanup last without stopping.
