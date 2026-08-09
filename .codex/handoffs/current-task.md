@@ -8453,3 +8453,64 @@ no credit yet. The unique next production mutation is protected migration
 closure to an exact compatible host execution context. Then continue Dispatcher
 LOGIN/managed-Secret activation, exact default-suspended units, provider-free
 Worker-C-to-Worker-F fenced takeover and terminal cleanup.
+
+### Item21 protected-control runtime and source closure preflight accepted (2026-08-09)
+
+- The API-C native-user runtime command
+  `noteai-i21-0017-runtime-preflight-noteai-20260809-v1` is bound by request
+  `019FE64A-A3B0-589F-BD5C-E38944E5F256`, command
+  `c-sz06tgwvmpnyjuo`, invocation `t-sz06tgwvmq7xqm8`, result read
+  `019FE64C-1AFC-5924-8629-7656C732BCC0` and exact-name read
+  `019FE650-290D-51E1-AE75-40C83CEE6F23`. The exact 15,360-byte executor,
+  SHA-256 `a1e9874c3ad1c065e7aec05b56fcce474e23ba580efdefdc69e8b7dd21aee35e`,
+  was received through the 6,854-byte in-memory wrapper, SHA-256
+  `ca8996b626a8fccda57031d2763e2c7c185f12956d78b51e8861fbdfa85fb6fc`.
+  Its one API-C record was terminal `Success / ExitCode=0 / Repeats=1 /
+  Dropped=0` from `2026-08-09T11:31:20Z` to `11:31:22Z`; the 456-byte output,
+  SHA-256 `965afc820533a5be1ae5404d2bbde7c6dfbf6d695566d8071ab4867e8ae8cff7`,
+  proves the fixed C17 image running as `noteai:noteai` with all capabilities
+  dropped, network disabled and no host mounts. Python 3.11.15, Psycopg 3.3.4
+  and Cryptography 50.0.0 were actually imported; the exact 17-name migration
+  set and exact 0017 content/hash were readable. The diagnostic container was removed, API/image state did
+  not drift, and database connections/writes and Secret reads were zero.
+- The accepted `f1a5cc` six-file archive was sent once to API-C with overwrite
+  disabled and `root:root 0600`: absence read
+  `019FE657-E717-5762-BE8D-4B9DC417F97F`, SendFile request
+  `019FE65B-B0AD-5769-B50D-4078FC172EA3`, invocation
+  `f-sz06tgyjfj92gao` and result read
+  `019FE65C-B4DF-548E-9E07-8B89BB388F1E`. The gzip is 20,625 bytes with
+  SHA-256 `8abb1fca9f67e98daca292932eb10ec9b39d5c79f8cbbd6e405e680de23d5c37`;
+  its 112,640-byte tar has SHA-256
+  `083120e433dc76a1c7b34474c4272ae55e89278ce5879cb7f8d482d7b1f4850d`.
+- Source preflight command `noteai-i21-0017-source-preflight-20260809-v1`
+  used the exact 25,325-byte executor, SHA-256
+  `2bcf851ce508307d3c8e0e8872cceab162e6f4e6ef5a9f46f0031eb959caa0a4`,
+  through a 9,350-byte in-memory wrapper, SHA-256
+  `a28a6125c2898a5994eb112d731b49f803a59a837cb457e3d9513169a76c234b`.
+  Request `019FE66A-8911-5CE2-9242-A920E3FFE6D1`, command
+  `c-sz06tgzzifjdnnk`, invocation `t-sz06tgzzig0uy2o`, result read
+  `019FE66C-8B32-5A81-A56F-A38854C11BB7` and exact-name read
+  `019FE66F-111E-5C76-9935-991CBE18363E` bind one API-C terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0 / ProcessTree` record from
+  `2026-08-09T12:06:10Z` to `12:06:12Z`. Its 617-byte output, SHA-256
+  `e8ad3f4b9b7b0fadd47befce09d1cf62df661365b63658c81d270a41f123bf37`,
+  proves six files / 95,096 bytes, all 17 migration hashes and exact 0017 under
+  EUID 0 with only `DAC_READ_SEARCH` (`Eff/Prm/Bnd=0x4`), `NoNewPrivs`, two
+  read-only source mounts and network disabled. The diagnostic container and
+  task root are zero; API/image drift, database connections/writes, source
+  Secret reads, provider-control mutations and registry calls are zero.
+
+Local checkpoint validation passed JSON parsing, `git diff --check` and all
+17 focused internal-readiness tests; the full readiness gate was intentionally
+not repeated.
+
+The protected-control source root and transfer archive are intentionally
+retained through Dispatcher terminal acceptance and then terminal cleanup; they
+are not Worker-Secret residue. Neither the SendFile nor
+either preflight may be repeated. Item21 remains `unverified`, internal
+`20/29`, public `20/38`, and receives no readiness credit. The unique next
+serial stage is API-C control-key and encrypted task-account-envelope
+preparation, a fresh RDS task-account absence read, exact-one task-account
+creation, read-only schema preflight, exact-one protected 0017 apply and an
+independent read-only verify. Any account/apply ambiguity is reconciled without
+mutation replay.
