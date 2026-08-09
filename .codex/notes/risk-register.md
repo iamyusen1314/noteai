@@ -1563,6 +1563,24 @@ Last updated: 2026-08-09
   recovery returns four canonical envelopes. Item21 stays `20/29`,
   unverified, with no readiness credit.
 
+- 2026-08-09 host-bound Worker Secret delivery is terminal accepted on both
+  Workers. The deterministic pre-container failures were reconciled without
+  replay; Worker-C's lost-key path used one single-target rekey plus C-only
+  reencryption, while Worker-F retained its original host-bound envelopes and
+  key. Both hosts now have exactly two distinct-inode `root:root 0600` final
+  files with the exact database contract, independent Worker storage role and
+  seven-key private-storage contract. Target key/cipher/stage/task residue is
+  zero. The final API-C cleanup reports source task roots `0`, source tool roots
+  `0`, encrypted-envelope residue `0`, source-Secret reads `0` and ciphertext
+  reads `0`. No application container, database connection/write, object-store,
+  provider, registry or unit mutation occurred in this Secret stage. All
+  preparation, keygen, encryption, stage, install and cleanup invocations are
+  terminal and forbidden from replay. Residual High risk moves to binding the
+  accepted `f1a5cc` control-source closure to a compatible host execution
+  context, then protected migration `0017`, Dispatcher LOGIN/managed Secret,
+  default-suspended units, provider-free fenced takeover and terminal cleanup.
+  Item21 remains `20/29`, unverified and receives no readiness credit.
+
 ## Low Risks
 
 ### `model/api.py` is too large

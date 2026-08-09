@@ -8398,3 +8398,58 @@ emit plaintext. Any ambiguous recovery result is reconciled from its original
 invocation and retained files only; it does not authorize another encryption.
 After terminal recovery acceptance, continue Worker-C stage/install,
 Worker-F stage/install and API-C source cleanup last without stopping.
+
+### Worker Secret delivery and terminal source cleanup accepted; protected migration 0017 is next (2026-08-09)
+
+- Metadata-only precheck command `c-sz06tgiq3xvdtkw` / invocation
+  `t-sz06tgiq3yad7nk` passed all `25/25` predicates without reading a source
+  Secret or ciphertext value. The first actual fixed-binary recovery command
+  `c-sz06tgje69i4h6o` / `t-sz06tgje69zlrls` then returned one terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` result and four canonical
+  host-bound envelopes. Its task container used fixed C17 with `--pull never`
+  and network disabled; no application container, database, object-store,
+  provider or registry action occurred.
+- The first Worker-C install attempt was natively reconciled as
+  `KNOWN_PRE_DOCKER_ROLLED_BACK_KEY_ROOT_REMOVED`: final files, stage, task root
+  and task-container counts were all zero, and the old Worker-C private key was
+  gone. It was not retried. One single-target rekey used request
+  `019FE5CC-4725-5844-8FC6-7835A5181B30`, command `c-sz06tgkke9srx1c` and
+  invocation `t-sz06tgkkeaf905c`; result
+  `019FE5CC-DF83-5803-AA96-413FB7F035E7` proves terminal success and binds the
+  replacement RSA-3072 public DER hash without recording the public-key body.
+- API-C performed one C-only reencryption after exact-name absence. Request
+  `019FE5E0-8519-55B7-B2E5-9790F601DF7B`, command
+  `c-sz06tgmje94wqv4`, invocation `t-sz06tgmje9me1a8` and result
+  `019FE5E0-F4E8-579E-ABA6-494E8F23C851` prove
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0`, exactly two Worker-C
+  envelopes, zero Worker-F artifact reads/writes and zero database, storage,
+  provider, registry or application-container action. The accepted API source
+  files had no write between the original Worker-F encryption and this C-only
+  encryption, so the two Workers remain bound to equal database bytes and the
+  same storage payload apart from the already accepted API-role-to-Worker-role
+  substitution.
+- Worker-C stage/install closed with commands `c-sz06tgmvgdj4d1c` and
+  `c-sz06tgnjl06zny8`; Worker-F stage/install closed with commands
+  `c-sz06tgnx4ro7h1c` and `c-sz06tgo2wwj4g74`. All four records are terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0`. Native install outputs bind
+  each host to exactly two distinct-inode `root:root 0600` files, the exact
+  Worker database contract, the independent Worker storage role, seven storage
+  keys, complete target key/cipher/stage/task cleanup and zero application
+  starts, database connections, object/provider/registry calls or unit changes.
+- Cleanup-last request `019FE600-2775-5745-AB8C-5449328E8FDB` returned command
+  `c-sz06tgpmcya5ibk` and invocation `t-sz06tgpmcyk53pc`. Result read
+  `019FE600-CECC-5475-AA47-F26642D01D13` proves one API-C terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0` at
+  `2026-08-09T10:09:59Z`. Its 235-byte fixed output, SHA-256
+  `c793357fd045a84708c43635dad5bc0754eeaf9f8de18d41b4c5e3bd35d5e8b0`,
+  reports source task roots `0`, source tool roots `0`, encrypted-envelope
+  residue `0`, source-Secret reads `0` and ciphertext-value reads `0`.
+
+Worker Secret delivery is terminal and none of its preparation, keygen,
+encryption, stage, install or cleanup commands may be repeated. Readiness stays
+internal `20/29` and public `20/38`; Item 21 remains `unverified` and receives
+no credit yet. The unique next production mutation is protected migration
+`0017`, after one read-only check binds the accepted `f1a5cc` control-source
+closure to an exact compatible host execution context. Then continue Dispatcher
+LOGIN/managed-Secret activation, exact default-suspended units, provider-free
+Worker-C-to-Worker-F fenced takeover and terminal cleanup.
