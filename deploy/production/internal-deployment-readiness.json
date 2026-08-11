@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-08-10",
+  "as_of_date": "2026-08-11",
   "status_values": [
     "verified",
     "unverified",
@@ -5806,15 +5806,98 @@
         {
           "id": "payment_internal_runtime",
           "title": "Dedicated disabled-by-default payment callback runtime",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "production_schema_roles",
             "immutable_release_candidate",
             "managed_secret_distribution"
           ],
-          "evidence": [],
-          "blocker": "The dedicated payment runtime, callback reachability boundary and exact database role are not deployed.",
-          "next_task": "PROD-FIRST-LAUNCH-PAYMENT-INTERNAL-RUNTIME-001"
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": "docs/PAYMENT_PRODUCTION_CONTRACT.md"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/systemd/noteai-payment.service.template"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_adapay_adapter.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_production_runtime_hardening.py"
+            },
+            {
+              "kind": "path",
+              "ref": ".codex/handoffs/current-task.md"
+            }
+          ],
+          "production_acceptance": {
+            "as_of": "2026-08-11",
+            "status": "PASS",
+            "incident_class": "CONNECTED_KNOWN_COMMITTED",
+            "task_id": "PROD-FIRST-LAUNCH-PAYMENT-INTERNAL-RUNTIME-001",
+            "host_label": "API-C",
+            "release_commit": "b55f11882100e9ef919522540729e366a511f88f",
+            "image_manifest": "sha256:ad5827450ad187bd3cfb47f00a903b78106b00a5ca8dbee5e9a77770f0c02e2b",
+            "image_config": "sha256:36b465dca36d5751318033cd494ed7544588f9ead18b781801542642ed2b1bc4",
+            "template_bytes": 1178,
+            "template_sha256": "c3825feb08bdb17e8f2d37279c24039ed46c34da5cfc37c720ca6f210744e5cd",
+            "rendered_unit_bytes": 1418,
+            "rendered_unit_sha256": "3f7b7594b26862c5a760a6015fe491f215ee4a59abe1452ea3141c12bb2367a2",
+            "executor_bytes": 18091,
+            "executor_sha256": "a4fdaf7670f77a6cf58bf4403671b5cfb526c08c852f0221fd15e5efbde3c1e5",
+            "rendered_executor_bytes": 19963,
+            "rendered_executor_sha256": "b62fd4abedd9c18975341529d1f00b7a936f29c1c0a58387c4633aa45acf8d2b",
+            "wrapper_bytes": 9898,
+            "wrapper_sha256": "cf387a32805184a17063810210c674590b2ca2d401ab60cfbace1ba85b08c920",
+            "command_name": "noteai-item24-payment-unit-install-recovery-20260811-v6",
+            "exact_name_absence_request_id": "019FEEF2-C956-5272-89B8-790037D4331D",
+            "run_request_id": "019FEEF3-78E8-5852-98A6-9BB29B69ED26",
+            "command_id": "c-sz06tmwvlu0b4zk",
+            "invocation_id": "t-sz06tmwvluhsfeo",
+            "result_read_request_id": "019FEEF3-EFE6-5880-B057-11D001ED5DE9",
+            "start_utc": "2026-08-11T03:52:42Z",
+            "finish_utc": "2026-08-11T03:52:46Z",
+            "exit_code": 0,
+            "repeats": 1,
+            "dropped": 0,
+            "output_bytes": 722,
+            "output_sha256": "fd3ec78d05fed1ac699a0e913f743bb2b93ac7024a590f277b496652061e1239",
+            "managed_singleton_count": 1,
+            "unit_active": false,
+            "unit_enabled": false,
+            "restart_policy": "no",
+            "callback_default_enabled": false,
+            "loopback_publish": true,
+            "synthetic_callback_request_count": 2,
+            "synthetic_callback_accept_count": 2,
+            "synthetic_event_row_count": 1,
+            "synthetic_cash_ledger_row_count": 1,
+            "synthetic_test_container_start_count": 1,
+            "formal_unit_start_count": 0,
+            "formal_application_container_start_count": 0,
+            "api_live_check_count": 12,
+            "production_database_connection_count": 0,
+            "production_database_write_count": 0,
+            "provider_call_count": 0,
+            "ledger_persistence": "temporary_sqlite_only",
+            "task_root_residue": 0,
+            "pre_mutation_rejection_count": 6,
+            "pre_mutation_host_change_count": 0,
+            "pre_mutation_rejection_reasons": [
+              "absent_systemd_unit_state",
+              "readonly_environment_assignment",
+              "known_systemd_verify_warning",
+              "temporary_sqlite_path_initialization",
+              "known_testclient_deprecation_warning",
+              "unavailable_provider_type_contract"
+            ],
+            "automatic_retry_allowed": false,
+            "readiness_credit_added": true
+          }
         },
         {
           "id": "monitoring_alerting",

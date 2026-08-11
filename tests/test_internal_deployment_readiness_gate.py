@@ -32,13 +32,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 23)
+        self.assertEqual(report["internal_deployment"]["verified"], 24)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 79)
+        self.assertEqual(report["internal_deployment"]["percentage"], 83)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 23)
+        self.assertEqual(report["complete_public_launch"]["verified"], 24)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 61)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 63)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -58,7 +58,8 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertNotIn("durable_ai_workers", actionable)
         self.assertNotIn("trends_suspended_runtime", actionable)
         self.assertNotIn("tracking_suspended_runtime", actionable)
-        self.assertIn("payment_internal_runtime", actionable)
+        self.assertNotIn("payment_internal_runtime", actionable)
+        self.assertIn("monitoring_alerting", actionable)
         durable_ai = next(
             control
             for control in self.manifest["layers"][1]["controls"]
@@ -104,6 +105,25 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(tracking_acceptance["application_container_start_count"], 0)
         self.assertEqual(tracking_acceptance["provider_call_count"], 0)
         self.assertTrue(tracking_acceptance["readiness_credit_added"])
+        payment = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "payment_internal_runtime"
+        )
+        self.assertEqual(payment["status"], "verified")
+        self.assertNotIn("blocker", payment)
+        self.assertNotIn("next_task", payment)
+        payment_acceptance = payment["production_acceptance"]
+        self.assertEqual(payment_acceptance["status"], "PASS")
+        self.assertFalse(payment_acceptance["unit_active"])
+        self.assertFalse(payment_acceptance["unit_enabled"])
+        self.assertEqual(payment_acceptance["formal_unit_start_count"], 0)
+        self.assertEqual(
+            payment_acceptance["formal_application_container_start_count"], 0
+        )
+        self.assertEqual(payment_acceptance["provider_call_count"], 0)
+        self.assertEqual(payment_acceptance["production_database_write_count"], 0)
+        self.assertTrue(payment_acceptance["readiness_credit_added"])
         admin = next(
             control
             for control in self.manifest["layers"][1]["controls"]
@@ -3693,7 +3713,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "payment_internal_runtime"
+            if item["id"] == "monitoring_alerting"
         )
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
@@ -3703,7 +3723,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "payment_internal_runtime"
+            if item["id"] == "monitoring_alerting"
         )
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
@@ -3840,7 +3860,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 23)
+        self.assertEqual(report["internal_deployment"]["verified"], 24)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)

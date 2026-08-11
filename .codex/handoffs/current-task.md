@@ -8678,3 +8678,51 @@ Readiness remains exactly internal `23/29`, public `23/38`; Item24 remains the
 unique active item. Items21-23 and every terminal production action remain
 no-replay. Resume Item24 from the accepted immutable payment-image transport
 boundary using the retained stopped builder and exact temporary role.
+
+### Item 24 dedicated disabled-by-default Payment runtime accepted (2026-08-11)
+
+- The bounded unit template is
+  `deploy/production/systemd/noteai-payment.service.template`, 1,178 bytes,
+  SHA-256 `c3825feb08bdb17e8f2d37279c24039ed46c34da5cfc37c720ca6f210744e5cd`.
+  Its exact-image render is 1,418 bytes, SHA-256
+  `3f7b7594b26862c5a760a6015fe491f215ee4a59abe1452ea3141c12bb2367a2`.
+  The accepted executor is 18,091 bytes, SHA-256
+  `a4fdaf7670f77a6cf58bf4403671b5cfb526c08c852f0221fd15e5efbde3c1e5`;
+  its rendered bytes and in-memory wrapper are respectively 19,963 / SHA-256
+  `b62fd4abedd9c18975341529d1f00b7a936f29c1c0a58387c4633aa45acf8d2b`
+  and 9,898 / SHA-256
+  `cf387a32805184a17063810210c674590b2ca2d401ab60cfbace1ba85b08c920`.
+- The sole committed fixed-name invocation
+  `noteai-item24-payment-unit-install-recovery-20260811-v6` was absent under
+  request `019FEEF2-C956-5272-89B8-790037D4331D`, then created by request
+  `019FEEF3-78E8-5852-98A6-9BB29B69ED26` as command
+  `c-sz06tmwvlu0b4zk` / invocation `t-sz06tmwvluhsfeo`. Result read request
+  `019FEEF3-EFE6-5880-B057-11D001ED5DE9` binds one terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0`, from
+  `2026-08-11T03:52:42Z` to `03:52:46Z`. Its 722-byte output has SHA-256
+  `fd3ec78d05fed1ac699a0e913f743bb2b93ac7024a590f277b496652061e1239`.
+- Exactly one Payment unit is loaded from release
+  `b55f11882100e9ef919522540729e366a511f88f`, manifest
+  `sha256:ad5827450ad187bd3cfb47f00a903b78106b00a5ca8dbee5e9a77770f0c02e2b`
+  and config
+  `sha256:36b465dca36d5751318033cd494ed7544588f9ead18b781801542642ed2b1bc4`.
+  It is inactive/dead, disabled, `Restart=no`, callback-default-off and
+  loopback-only. The formal unit and application container start counts are
+  zero. One isolated temporary test container accepted two deterministic
+  synthetic callbacks, producing exactly one event row and one cash-ledger row
+  in disposable SQLite. Production database connections/writes and provider
+  calls are zero; twelve API live checks passed and task residue is zero.
+- Six earlier fixed-name candidates are frozen terminal pre-mutation
+  rejections: absent-unit state handling, readonly environment assignment, the
+  known systemd verify warning, temporary SQLite initialization, a known
+  TestClient deprecation warning and the unavailable-provider type contract.
+  Each proved zero host change before the next new fixed-name correction. The
+  image transport, builder/IAM cleanup and accepted v6 install are terminal and
+  must not be replayed.
+
+Item 24 is now `verified`. Internal readiness is `24/29`; complete public
+readiness is `24/38`. The active task advances immediately to Item 25,
+`PROD-FIRST-LAUNCH-OBSERVABILITY-001`: accept bounded redacted logs, metrics,
+retention and actionable alerts for every final runtime role without enabling a
+provider, starting the disabled Payment/Trends/Tracking roles or exposing a new
+public endpoint.

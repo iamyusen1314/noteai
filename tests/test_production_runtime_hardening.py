@@ -360,6 +360,39 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         self.assertNotIn("WantedBy=default.target", unit)
         self.assertNotIn("EnvironmentFile=", unit)
 
+    def test_payment_systemd_template_is_bounded_and_default_disabled(self):
+        unit = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "systemd"
+            / "noteai-payment.service.template"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(unit.count("@@NOTEAI_PAYMENT_IMAGE@@"), 2)
+        self.assertIn("--name=noteai-payment", unit)
+        self.assertIn("--label=com.noteai.service=noteai-payment", unit)
+        self.assertIn("--pull=never", unit)
+        self.assertIn("--restart=no", unit)
+        self.assertIn("--user=999:999", unit)
+        self.assertIn("--read-only", unit)
+        self.assertIn("--cap-drop=ALL", unit)
+        self.assertIn("--security-opt=no-new-privileges:true", unit)
+        self.assertIn("--memory=256m", unit)
+        self.assertIn("--cpus=0.25", unit)
+        self.assertIn("--pids-limit=64", unit)
+        self.assertIn("--env-file=/etc/noteai/payment.env", unit)
+        self.assertIn("--env=NOTEAI_RUNTIME_ROLE=payment", unit)
+        self.assertIn("--env=NOTEAI_DEPLOYMENT_STAGE=production", unit)
+        self.assertIn("--env=NOTEAI_PAYMENT_CALLBACK_ENABLED=0", unit)
+        self.assertIn("--env=NOTEAI_TRUSTED_PROXY_IPS=127.0.0.1", unit)
+        self.assertIn("--publish=127.0.0.1:8002:8002", unit)
+        self.assertIn("Restart=no", unit)
+        self.assertNotIn("Restart=always", unit)
+        self.assertNotIn("Restart=on-failure", unit)
+        self.assertNotIn("WantedBy=default.target", unit)
+        self.assertNotIn("EnvironmentFile=", unit)
+
 
 if __name__ == "__main__":
     unittest.main()

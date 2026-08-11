@@ -61,7 +61,7 @@ Last updated: 2026-08-09
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以当前Handoff和readiness manifest的已验证依赖图为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码候选为精确`b55f11882100e9ef919522540729e366a511f88f`，Admin专用修正版本为`5335bdaed933b1f999b5f819c047ec50c11821ae`；GitHub原生、隔离builder、五角色AMD64/SBOM/VEX、私有ACR immutable manifest及控制面digest绑定均已独立验证。精确API镜像已分别部署于API-C/API-F，精确Admin镜像也已部署并完成Stage C；其余运行时尚未部署。
-- 当前量化状态/下一步: 仓库/隔离`12/12=100%`、内部生产部署`23/29=79%`、完整公开上线`23/38=61%`。API-C API、Admin和API-F API均保持精确unit/image、active/ready和loopback-only；Item21全部动作及Item22 Trends均保持终态/no-replay。Item23的Tracking角色现已作为一个有界受管singleton安装，且保持inactive/dead、disabled、`Restart=no`、collection suspended，服务/应用容器启动和provider调用均为0；Item23现为`verified`。当前唯一串行任务已推进为`PROD-FIRST-LAUNCH-PAYMENT-INTERNAL-RUNTIME-001`：接受专用、默认禁用且隔离的支付回调运行时，只走已批准的synthetic callback，不连接真实支付网关。
+- 当前量化状态/下一步: 仓库/隔离`12/12=100%`、内部生产部署`24/29=83%`、完整公开上线`24/38=63%`。API-C API、Admin和API-F API均保持精确unit/image、active/ready和loopback-only；Items21–23及其全部生产动作保持终态/no-replay。Item24的Payment角色现已作为一个专用、受限的managed singleton安装，保持inactive/dead、disabled、`Restart=no`、callback默认关闭且仅loopback发布；正式unit/应用容器启动、生产数据库连接/写入和provider调用均为0，synthetic callback只写临时SQLite，Item24现为`verified`。当前唯一串行任务推进为`PROD-FIRST-LAUNCH-OBSERVABILITY-001`：对最终运行角色接受有界、脱敏且可执行告警的日志/指标证据，不启动真实provider或扩大公网面。
 - 2026-07-30 Admin-only builder availability: fresh实例详情证明隔离AMD64 builder已因账户余额不足停止，故不再是Cloud Assistant可执行目标；持久磁盘和历史Build10/发布证据未被删除或覆盖。该builder无RAM role/key pair，未尝试启动、充值、创建凭据、执行命令、变更Registry endpoint或push。本机Docker daemon与Colima同样未运行，依据项目规则未在无确认时启动，arm64本机也不作为native证据。当前先以既有GitHub原生x86_64、固定Syft/Trivy和零Registry权限路径生成精确5335的Admin-only十一文件证据；default `main`不含该workflow，故独立审查拒绝不可触发的manual-dispatch假设。修正为feature-branch一次性added-path request：event、branch、exact commit、request内容/hash和五项false授权均在build前fail closed，普通push仍保持五角色与旧artifact名。该路径不等于私库发布或部署。生产API-C/API-F/旧Admin未触碰，readiness仍`19/29`。
 - 2026-07-30 Admin evidence V1触发偏差: 唯一push run `30549134106`的构建/扫描/上传步骤完成，但实证GitHub在checkout前把`github.event.head_commit.added`表达式求值为false，工作流静默回落到controller commit `e7766ab`的五角色路径；下载包为43文件、五角色、无Admin control block，故只作为失败诊断，绝不作为精确`5335bda` Admin证据或readiness credit，也不盲目rerun。Registry/部署/数据库/服务/供应商/公开流量写均0。V2改为先checkout controller，再由真实Git对象强制单父、唯一新增非rename request、regular blob、精确十键schema2、固定SHA-256、`5335bda`祖先和唯一addition history；任何歧义直接失败，随后才第二次checkout精确release。V2 request SHA-256为`c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef`，尚未push/run，readiness仍`19/29`。
 - 2026-07-30 Admin exact 5335 native source candidate完成: V2 controller `e7039a3`本地exact resolver与唯一远端run `30550548144`均通过双checkout/control/build/scan/upload；唯一失败是保留的raw 0C/0H gate。下载artifact为精确11个regular files，summary SHA `19cbf144…38f7`，新Admin local ID `sha256:9ab915…d8cf7`且区别于两套b55身份；linux/amd64、noteai、OCI/role/entrypoint/CMD、Buildx/Trivy/RootFS/base-index均交叉一致。23行raw findings与b55完全相同（4C/19H，fixed-version空），secret/browser/forbidden OS均0，cryptography48.0.1恰1；image-context delta仅`model/crawler_config.json`。Secret-free GitHub receipt、新Admin-only VEX/review/verifier已由production gate `110/110`绑定，独立内容blocker0。该证据仅接受source candidate：registry digest为空，publication/deployment/database/service/public authorization全false，历史b55发布授权不复用；readiness仍`19/29`。下一硬阻塞仍是隔离AMD64 builder余额不足/停止，须先建立新的funded native publisher与单次不可变Admin tag证据，才能进入V3 canary。
@@ -1657,6 +1657,22 @@ Last updated: 2026-08-09
   recoverable, and the stop is terminal/no-replay. Readiness remains `23/29`;
   residual High risk remains the immutable payment image transport and disabled
   synthetic-only Item24 runtime, not storage cleanup.
+
+- 2026-08-11 Item24 dedicated Payment runtime is terminal accepted. The exact
+  immutable payment image and one bounded systemd singleton are installed on
+  API-C, but the service remains inactive/dead and disabled with `Restart=no`,
+  callback default off and loopback-only publication. One temporary isolated
+  test container accepted two deterministic synthetic callbacks and produced
+  exactly one event row plus one cash-ledger row in disposable SQLite; it made
+  zero production database connections/writes and zero provider calls. The
+  formal unit and application container were never started, API live checks did
+  not regress, and task residue is zero. Six earlier fixed-name candidates were
+  terminal pre-mutation rejections with verified zero host change and remain
+  no-replay. The builder and temporary publication IAM were terminal-cleaned;
+  no restart, pull, credential issuance or install may be repeated. Item24 is
+  `verified`; readiness is `24/29`. Residual High risk advances to Item25:
+  bounded redacted logs, metrics, retention and actionable alerts for all final
+  runtime roles, without enabling a provider or exposing a new public endpoint.
 
 ## Low Risks
 
