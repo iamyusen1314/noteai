@@ -5902,7 +5902,7 @@
         {
           "id": "monitoring_alerting",
           "title": "Bounded logs, metrics and actionable alerts for every runtime role",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "api_c_current_release",
             "api_f_current_release",
@@ -5912,9 +5912,197 @@
             "tracking_suspended_runtime",
             "payment_internal_runtime"
           ],
-          "evidence": [],
-          "blocker": "Managed logs, alerts and redacted evidence retention are not accepted for the final services.",
-          "next_task": "PROD-FIRST-LAUNCH-OBSERVABILITY-001"
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": "deploy/production/apply_observability_log_bounds.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/observability-signals.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/systemd/30-noteai-runtime-log-bounds.conf"
+            },
+            {
+              "kind": "path",
+              "ref": ".codex/handoffs/current-task.md"
+            }
+          ],
+          "production_acceptance": {
+            "status": "PASS",
+            "incident_class": "CONNECTED_KNOWN_COMMITTED",
+            "task_id": "PROD-FIRST-LAUNCH-OBSERVABILITY-001",
+            "accepted_at_utc": "2026-08-11T07:28:02Z",
+            "environment": "production",
+            "executor_bytes": 28495,
+            "executor_sha256": "6624cc74ad700bb61c36437bb60d53bd8581a47c76d17fdb56fc0f8cf0b26650",
+            "wrapper_bytes": 9861,
+            "wrapper_sha256": "d3049d1daeff3b5693ea386b6f4dc110288b95efba2f24219e4427d0a13828c6",
+            "run_request_id": "019FEF85-5E14-599C-96A6-14A1D1C386AE",
+            "command_id": "c-sz06tnb3dkrw0lc",
+            "invocation_id": "t-sz06tnb3dlgv01s",
+            "target_host_count": 4,
+            "terminal_success_count": 4,
+            "exit_code_zero_count": 4,
+            "repeat_once_count": 4,
+            "dropped_output_count": 0,
+            "host_results": [
+              {
+                "host": "Worker-F",
+                "output_bytes": 801,
+                "output_sha256": "9d6033b072251e20399b2cb54650c2c51b389c0d0957d196adef3bd07889dee1"
+              },
+              {
+                "host": "Worker-C",
+                "output_bytes": 801,
+                "output_sha256": "269f4e031ccb6e45c755a18467fa720d8f7aa766950bf21a8a769783dd94a32c"
+              },
+              {
+                "host": "API-F",
+                "output_bytes": 984,
+                "output_sha256": "2026346185b7d3af3a045811181a84a2e1f94bf3c6aed557171a0abb69fd4c6e"
+              },
+              {
+                "host": "API-C",
+                "output_bytes": 1075,
+                "output_sha256": "70ce5b3019a2263c61b9f78a4d7f8632f138bcf8981219d8c1b59603f42c71c7"
+              }
+            ],
+            "final_runtime_role_count": 9,
+            "active_runtime_role_count": 3,
+            "suspended_runtime_role_count": 6,
+            "final_unit_log_bound_count": 9,
+            "docker_log_driver": "local",
+            "docker_log_max_size": "10m",
+            "docker_log_max_files": 2,
+            "journald_storage": "persistent",
+            "journald_system_max_use": "256M",
+            "journald_runtime_max_use": "64M",
+            "journald_max_retention": "7day",
+            "journald_max_file_age": "1day",
+            "recovery_unit_update_count": 7,
+            "resumed_unit_count": 2,
+            "admin_restart_count": 1,
+            "application_container_start_count": 1,
+            "api_restart_count": 0,
+            "suspended_unit_start_count": 0,
+            "acceptance_unit_residue": 0,
+            "acceptance_container_residue": 0,
+            "task_root_residue": 0,
+            "process_metric_namespace": "acs_ecs_dashboard",
+            "process_metric_name": "process.number",
+            "process_metric_period_seconds": 60,
+            "process_metric_statistic": "Average",
+            "process_metric_missing_data": "INSUFFICIENT_DATA",
+            "process_metric_metadata_request_id": "019FEF8E-C6C3-5458-9C7E-2ABC19F19F7A",
+            "process_metric_latest_read_request_id": "019FEFAB-519B-5329-A584-4E13EA47B2BC",
+            "process_metric_latest_value": 1,
+            "registered_process_target_count": 9,
+            "process_inventory": [
+              {
+                "host": "API-C",
+                "request_id": "019FEFAC-1567-51FA-858E-15A75626ABD6",
+                "registered_process_count": 5,
+                "required_target_count": 4,
+                "all_required_targets_present": true
+              },
+              {
+                "host": "API-F",
+                "request_id": "019FEFB7-729B-5505-BF35-3E48708BE488",
+                "registered_process_count": 3,
+                "required_target_count": 3,
+                "all_required_targets_present": true
+              },
+              {
+                "host": "Worker-C",
+                "request_id": "019FEFB7-AC63-5284-9C68-272819FF214A",
+                "registered_process_count": 1,
+                "required_target_count": 1,
+                "all_required_targets_present": true
+              },
+              {
+                "host": "Worker-F",
+                "request_id": "019FEFB7-D8DC-51D9-93B2-532103727278",
+                "registered_process_count": 1,
+                "required_target_count": 1,
+                "all_required_targets_present": true
+              }
+            ],
+            "alert_rule_count": 9,
+            "alert_rule_ids": [
+              "noteai-item25-process-api-c-20260811-v1",
+              "noteai-item25-process-api-f-20260811-v1",
+              "noteai-item25-process-admin-20260811-v1",
+              "noteai-item25-process-dispatcher-20260811-v1",
+              "noteai-item25-process-worker-c-20260811-v1",
+              "noteai-item25-process-worker-f-20260811-v1",
+              "noteai-item25-process-trends-20260811-v1",
+              "noteai-item25-process-tracking-20260811-v1",
+              "noteai-item25-process-payment-20260811-v1"
+            ],
+            "alert_rule_create_request_ids": [
+              "019FEF97-7B66-5F08-A85B-7BE0815001D6",
+              "019FEF99-772B-534F-9BCB-39D8FF791926",
+              "019FEF9A-583F-5621-8A27-1F425958AFA5",
+              "019FEFA0-7670-5588-965D-D16DF49CA290",
+              "019FEFA3-61F6-50E9-B3D2-3BDB5F876859",
+              "019FEFA4-0D04-5BD1-BA73-E861F687356C",
+              "019FEFA4-C881-5B0F-B160-66EA8576B693",
+              "019FEFA5-6F16-52D2-9541-DEAC3EA14680",
+              "019FEFA6-2B94-5B42-A212-C97BC951EEBA"
+            ],
+            "alert_rule_read_request_ids": [
+              "019FEFB8-E451-54D2-ADBB-6B61B9C655CA",
+              "019FEFB9-0249-5845-A727-B5A64FE19942",
+              "019FEFB9-1F6F-5F7B-A348-A343BB1337A5",
+              "019FEFB9-51D2-578C-A45E-8AED899D563D",
+              "019FEFB9-644A-50DA-850E-99FA2DE78072",
+              "019FEFB9-81B0-5498-8E81-74B84664776A",
+              "019FEFB9-CB9B-5643-8703-FEB8E93E28A4",
+              "019FEFB9-E950-591D-AAB4-50A94227623B",
+              "019FEFBA-063E-5DCE-9D00-06573E445339"
+            ],
+            "final_rule_list_request_id": "019FEFB4-CBD0-5D22-BBA1-A7E4AFDC0177",
+            "all_alert_rules_enabled": true,
+            "all_alert_rule_contracts_exact": true,
+            "known_rejected_rule_request_count": 1,
+            "notification_contact_group_count": 1,
+            "notification_contact_count": 1,
+            "notification_test": {
+              "status": "PASS",
+              "temporary_rule_create_request_id": "019FEFA8-E88C-5F64-872D-1C0675597341",
+              "temporary_rule_read_request_id": "019FEFA8-FD9F-5F1F-891C-F311301BF474",
+              "active_alert_read_request_id": "019FEFAF-3853-5840-ABA0-068AFAECBFF7",
+              "sent_log_read_request_id": "019FEFB2-2E90-52A2-8E6D-03F2D52619D0",
+              "sent_log_match_count": 1,
+              "send_status_zero_count": 1,
+              "send_result_list_count": 1,
+              "notification_target_list_nonempty": true,
+              "temporary_rule_disable_request_id": "019FEFB3-7F5D-5078-8E6A-8BE403EC4621",
+              "temporary_rule_disable_read_request_id": "019FEFB3-ABB1-5982-8DF6-2326CD7864E2",
+              "temporary_rule_delete_request_id": "019FEFB4-7C02-5D64-98DD-19878666CFB3",
+              "temporary_rule_absence_read_request_id": "019FEFB4-BA83-58F8-94BB-0ED5BBC16B6E",
+              "temporary_rule_residue_count": 0,
+              "actual_notification_delivery_accepted": true
+            },
+            "observability_catalog_bytes": 5440,
+            "observability_catalog_sha256": "3c136239903ca2aa08ce93636932557c20fa7461cf54c44cf429a9ac7fca6f79",
+            "journald_contract_bytes": 102,
+            "journald_contract_sha256": "b703a523ce01cfea84a843f526b98b6fa0f39f4f91043cd5dabb20646130065b",
+            "redacted_evidence_retention": true,
+            "raw_payload_retention": false,
+            "sls_resource_create_count": 0,
+            "paid_resource_create_count": 0,
+            "production_database_connection_count": 0,
+            "production_database_write_count": 0,
+            "host_executor_provider_control_plane_mutation_count": 0,
+            "public_endpoint_change_count": 0,
+            "automatic_paid_scaling": false,
+            "automatic_retry_allowed": false,
+            "readiness_credit_added": true
+          }
         },
         {
           "id": "backup_pitr_restore",

@@ -1,4 +1,7 @@
+import json
 import re
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -147,6 +150,7 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
             compose.count("${NOTEAI_API_ENV_FILE:-/etc/noteai/api.env}"),
             1,
         )
+
         self.assertEqual(
             compose.count("${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"),
             1,
@@ -225,6 +229,185 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         )
         self.assertNotIn("target: /app/model/artifacts", compose)
         self.assertNotIn("NOTEAI_ENABLE_CLOUD_MODEL_MUTATION: \"1\"", compose)
+
+    def test_all_final_compose_roles_have_exact_bounded_local_logs(self):
+        compose = (
+            ROOT / "deploy" / "production" / "docker-compose.yml"
+        ).read_text(encoding="utf-8")
+        services = (
+            "api",
+            "admin",
+            "payment",
+            "ai-dispatcher",
+            "ai-worker",
+            "xhs-trends",
+            "xhs-tracking",
+        )
+        for service in services:
+            with self.subTest(service=service):
+                block = service_block(compose, service)
+                self.assertEqual(block.count("logging:"), 1)
+                self.assertEqual(block.count("driver: local"), 1)
+                self.assertEqual(block.count('max-size: "10m"'), 1)
+                self.assertEqual(block.count('max-file: "2"'), 1)
+
+    def test_final_systemd_and_recovery_units_have_exact_bounded_local_logs(self):
+        systemd = ROOT / "deploy" / "production" / "systemd"
+        for name in (
+            "noteai-ai-dispatcher.service.template",
+            "noteai-ai-worker.service.template",
+            "noteai-xhs-trends.service.template",
+            "noteai-xhs-tracking.service.template",
+            "noteai-payment.service.template",
+        ):
+            with self.subTest(name=name):
+                unit = (systemd / name).read_text(encoding="utf-8")
+                self.assertEqual(unit.count("--log-driver=local"), 1)
+                self.assertEqual(unit.count("--log-opt=max-size=10m"), 1)
+                self.assertEqual(unit.count("--log-opt=max-file=2"), 1)
+
+        recovery = (
+            ROOT / "deploy" / "production" / "recover_minimal_api_runtimes.sh"
+        ).read_text(encoding="utf-8")
+        self.assertEqual(recovery.count("--log-driver=local"), 2)
+        self.assertEqual(recovery.count("--log-opt=max-size=10m"), 2)
+        self.assertEqual(recovery.count("--log-opt=max-file=2"), 2)
+
+    def test_journald_and_signal_catalog_are_bounded_and_secret_free(self):
+        journald = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "systemd"
+            / "30-noteai-runtime-log-bounds.conf"
+        ).read_text(encoding="utf-8")
+        self.assertEqual(
+            journald,
+            "[Journal]\n"
+            "Storage=persistent\n"
+            "SystemMaxUse=256M\n"
+            "RuntimeMaxUse=64M\n"
+            "MaxRetentionSec=7day\n"
+            "MaxFileSec=1day\n",
+        )
+
+        catalog = json.loads(
+            (
+                ROOT / "deploy" / "production" / "observability-signals.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(catalog["schema"], "noteai.production.observability/v1")
+        roles = catalog["role_process_alerts"]
+        self.assertEqual(len(roles), 9)
+        self.assertEqual(
+            {item["key"] for item in roles},
+            {
+                "api-c",
+                "api-f",
+                "admin",
+                "dispatcher",
+                "worker-c",
+                "worker-f",
+                "trends",
+                "tracking",
+                "payment",
+            },
+        )
+        self.assertEqual(
+            {item["key"] for item in roles if item["expected_state"] == "running"},
+            {"api-c", "api-f", "admin"},
+        )
+        self.assertEqual(
+            {item["key"] for item in roles if item["expected_state"] == "suspended"},
+            {"dispatcher", "worker-c", "worker-f", "trends", "tracking", "payment"},
+        )
+        for item in roles:
+            if item["expected_state"] == "running":
+                self.assertEqual(item["operator"], "LessThanThreshold")
+                self.assertEqual(item["threshold"], 1)
+                self.assertEqual(item["evaluation_count"], 3)
+            else:
+                self.assertEqual(
+                    item["operator"],
+                    "GreaterThanOrEqualToThreshold",
+                )
+                self.assertEqual(item["threshold"], 1)
+                self.assertEqual(item["evaluation_count"], 1)
+        self.assertTrue(catalog["process_metric"]["notification_test_required"])
+        self.assertFalse(catalog["process_metric"]["automatic_resource_action"])
+        signal_fields = {
+            field
+            for signal in catalog["application_signals"]
+            for field in signal["fields"]
+        }
+        for field in (
+            "oldest_queued_at",
+            "ConnectionUsage",
+            "429",
+            "5xx",
+            "timeout",
+            "rpm",
+            "itpm",
+            "otpm",
+            "p50_ms",
+            "p95_ms",
+            "p99_ms",
+        ):
+            self.assertIn(field, signal_fields)
+        self.assertFalse(catalog["redaction_contract"]["raw_payload_retention"])
+        self.assertFalse(catalog["budget_contract"]["automatic_paid_scaling"])
+
+    def test_item25_log_bounds_executor_has_offline_fail_closed_contract(self):
+        script = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "apply_observability_log_bounds.py"
+        )
+        result = subprocess.run(
+            [sys.executable, str(script), "--offline-self-test"],
+            cwd=ROOT,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        self.assertEqual(
+            result.stdout,
+            "NOTEAI_ITEM25_LOG_BOUNDS_OFFLINE_SELF_TEST=PASS\n",
+        )
+        self.assertEqual(result.stderr, "")
+
+        source = script.read_text(encoding="utf-8")
+        self.assertIn('mutation_started = True', source)
+        self.assertIn('"automatic_retry_allowed": False', source)
+        self.assertIn('"production_database_write_count": 0', source)
+        self.assertIn('"provider_control_plane_mutation_count": 0', source)
+        self.assertIn('"metadata_identity_read_count": 2', source)
+        self.assertIn('"admin_restart_count": admin_restarts', source)
+        self.assertIn('"api_restart_count": 0', source)
+        self.assertIn('"suspended_unit_start_count": 0', source)
+        self.assertIn('"acceptance_unit_residue": 0', source)
+        self.assertIn('"acceptance_container_residue": 0', source)
+        self.assertIn('"id": inspect_value(name, "{{.Id}}")', source)
+        self.assertIn('"started_at": inspect_value(name, "{{.State.StartedAt}}")', source)
+        self.assertIn('"restart_count": inspect_value(name, "{{.RestartCount}}")', source)
+        self.assertIn('{"database", "model"}', source)
+        self.assertIn('{"admin_credentials", "database"}', source)
+        self.assertIn('"ActiveState": "inactive"', source)
+        self.assertIn('"SubState": "dead"', source)
+        self.assertIn('"LoadState": "loaded"', source)
+        self.assertIn('"DropInPaths": ""', source)
+        self.assertIn('"FragmentPath": SYSTEMD_ROOT + "/" + unit', source)
+        self.assertIn('wait_for_admin_ready(before_fingerprints["noteai-admin-c"])', source)
+        self.assertIn('def verify_resume_state(host, units):', source)
+        self.assertIn('"resumed_unit_updates": len(resumed)', source)
+        self.assertIn('os.chmod(JOURNALD_ROOT, 0o755)', source)
+        self.assertIn('INSERTION_POINT = b"ExecStart=/usr/bin/docker run "', source)
+        self.assertNotIn('INSERTION_POINT = b"/usr/bin/docker run --pull=never "', source)
+        self.assertEqual(source.count('"restart", "noteai-admin.service"'), 1)
+        self.assertNotIn('container", "run"', source)
+        self.assertNotIn("/etc/noteai/", source)
 
     def test_hardening_helper_rejects_comment_spoof_and_unsafe_mutations(self):
         compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")

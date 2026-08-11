@@ -3,6 +3,11 @@ name: noteai-production
 services:
   api:
     image: "${NOTEAI_API_IMAGE_REPOSITORY:?set NOTEAI_API_IMAGE_REPOSITORY}@sha256:${NOTEAI_API_IMAGE_DIGEST_HEX:?set NOTEAI_API_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
     user: "999:999"
     read_only: true
     privileged: false
@@ -39,6 +44,11 @@ services:
 
   admin:
     image: "${NOTEAI_ADMIN_IMAGE_REPOSITORY:?set NOTEAI_ADMIN_IMAGE_REPOSITORY}@sha256:${NOTEAI_ADMIN_IMAGE_DIGEST_HEX:?set NOTEAI_ADMIN_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
     user: "999:999"
     read_only: true
     privileged: false
@@ -75,6 +85,11 @@ services:
     profiles:
       - payment
     image: "${NOTEAI_PAYMENT_IMAGE_REPOSITORY:?set NOTEAI_PAYMENT_IMAGE_REPOSITORY}@sha256:${NOTEAI_PAYMENT_IMAGE_DIGEST_HEX:?set NOTEAI_PAYMENT_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
     user: "999:999"
     read_only: true
     privileged: false
@@ -110,6 +125,11 @@ services:
     profiles:
       - durable-ai-dispatcher
     image: "${NOTEAI_AI_WORKER_IMAGE_REPOSITORY:?set NOTEAI_AI_WORKER_IMAGE_REPOSITORY}@sha256:${NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX:?set NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
     user: "999:999"
     read_only: true
     privileged: false
@@ -144,6 +164,11 @@ services:
     profiles:
       - durable-ai-worker
     image: "${NOTEAI_AI_WORKER_IMAGE_REPOSITORY:?set NOTEAI_AI_WORKER_IMAGE_REPOSITORY}@sha256:${NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX:?set NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
     user: "999:999"
     read_only: true
     privileged: false
@@ -180,6 +205,11 @@ services:
 
   xhs-trends:
     image: "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
     user: "999:999"
     read_only: true
     privileged: false
@@ -213,6 +243,11 @@ services:
 
   xhs-tracking:
     image: "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
     user: "999:999"
     read_only: true
     privileged: false

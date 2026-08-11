@@ -30,6 +30,7 @@ def latency_stats(values: list[float]) -> dict[str, Any]:
         "sample_count": count,
         "p50_ms": nearest_rank(values, 50),
         "p95_ms": nearest_rank(values, 95),
+        "p99_ms": nearest_rank(values, 99),
         "p95_reliable": count >= MIN_RELIABLE_P95_SAMPLES,
         "p95_reliability": "reliable" if count >= MIN_RELIABLE_P95_SAMPLES else "insufficient_sample",
     }
@@ -90,7 +91,7 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Compute P50/P95 from sanitized operation/outcome/elapsed_ms JSONL."
+        description="Compute P50/P95/P99 from sanitized operation/outcome/elapsed_ms JSONL."
     )
     parser.add_argument("jsonl", type=Path)
     args = parser.parse_args()

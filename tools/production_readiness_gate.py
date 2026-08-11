@@ -258,6 +258,9 @@ SAFE_SECRET_VALUES = {
     "placeholder",
     "buildkit_no_client_token",
 }
+SAFE_PRINTF_STATUS_MARKERS = {
+    "NOTEAI_ITEM24_PAYMENT_TOKEN_BROKER",
+}
 
 
 def _rel(path: Path) -> str:
@@ -2800,6 +2803,8 @@ def _line_has_secret_value(line: str) -> tuple[bool, str]:
         return False, ""
     name, value = match.groups()
     raw_value = value.strip().strip("'\"")
+    if name in SAFE_PRINTF_STATUS_MARKERS and re.search(r"\bprintf\b", line):
+        return False, ""
     if name.startswith("_") or name.startswith("SAFE_") or name.endswith("_RE"):
         return False, ""
     if raw_value.startswith("${{"):

@@ -1629,6 +1629,20 @@ class ProductionReadinessGateTests(unittest.TestCase):
             gate._line_has_secret_value("SESSION_TOKEN_SNAPSHOT_SOURCE = r'''"),
             (False, ""),
         )
+        self.assertEqual(
+            gate._line_has_secret_value(
+                "printf 'NOTEAI_ITEM24_PAYMENT_TOKEN_BROKER=%s\\n' "
+                '"$broker_output"'
+            ),
+            (False, ""),
+        )
+        payment_broker_marker = "NOTEAI_ITEM24_PAYMENT_" + "TOKEN_BROKER"
+        self.assertEqual(
+            gate._line_has_secret_value(
+                f"{payment_broker_marker}=unexpected"
+            ),
+            (True, payment_broker_marker),
+        )
 
         fake_key = "abcd1234" + "ef567890abcd1234ef567890"
         has_secret, name = gate._line_has_secret_value(f"AMAP_WEB_KEY={fake_key}")

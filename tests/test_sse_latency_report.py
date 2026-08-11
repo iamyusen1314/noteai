@@ -4,11 +4,12 @@ from tools.sse_latency_report import latency_stats, summarize_records
 
 
 class SSELatencyReportTests(unittest.TestCase):
-    def test_nearest_rank_p50_p95_and_small_sample_disclosure(self):
+    def test_nearest_rank_p50_p95_p99_and_small_sample_disclosure(self):
         stats = latency_stats(list(range(1, 21)))
         self.assertEqual(stats["sample_count"], 20)
         self.assertEqual(stats["p50_ms"], 10)
         self.assertEqual(stats["p95_ms"], 19)
+        self.assertEqual(stats["p99_ms"], 20)
         self.assertFalse(stats["p95_reliable"])
         self.assertEqual(stats["p95_reliability"], "insufficient_sample")
 
@@ -17,6 +18,7 @@ class SSELatencyReportTests(unittest.TestCase):
         self.assertEqual(stats["sample_count"], 100)
         self.assertEqual(stats["p50_ms"], 50)
         self.assertEqual(stats["p95_ms"], 95)
+        self.assertEqual(stats["p99_ms"], 99)
         self.assertTrue(stats["p95_reliable"])
         self.assertEqual(stats["p95_reliability"], "reliable")
 

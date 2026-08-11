@@ -8726,3 +8726,64 @@ readiness is `24/38`. The active task advances immediately to Item 25,
 retention and actionable alerts for every final runtime role without enabling a
 provider, starting the disabled Payment/Trends/Tracking roles or exposing a new
 public endpoint.
+
+### Item 25 bounded logs, process metrics and real notification accepted (2026-08-11)
+
+- The accepted host executor is
+  `deploy/production/apply_observability_log_bounds.py`, 28,495 bytes, SHA-256
+  `6624cc74ad700bb61c36437bb60d53bd8581a47c76d17fdb56fc0f8cf0b26650`;
+  its in-memory wrapper is 9,861 bytes, SHA-256
+  `d3049d1daeff3b5693ea386b6f4dc110288b95efba2f24219e4427d0a13828c6`.
+  The sole recovery invocation is fixed name
+  `noteai-item25-observability-log-bounds-recovery-20260811-v1`, request
+  `019FEF85-5E14-599C-96A6-14A1D1C386AE`, command
+  `c-sz06tnb3dkrw0lc` and invocation `t-sz06tnb3dlgv01s`. All four host rows
+  are terminal `Success / ExitCode=0 / Repeats=1 / Dropped=0`; their decoded
+  outputs are Worker-F 801 bytes / SHA-256
+  `9d6033b072251e20399b2cb54650c2c51b389c0d0957d196adef3bd07889dee1`,
+  Worker-C 801 / `269f4e031ccb6e45c755a18467fa720d8f7aa766950bf21a8a769783dd94a32c`,
+  API-F 984 / `2026346185b7d3af3a045811181a84a2e1f94bf3c6aed557171a0abb69fd4c6e`
+  and API-C 1,075 /
+  `70ce5b3019a2263c61b9f78a4d7f8632f138bcf8981219d8c1b59603f42c71c7`.
+- All nine final systemd roles now resolve to Docker's `local` log driver with
+  `10m` files and two-file retention. Journald is persistent and bounded to
+  `256M` system / `64M` runtime, seven-day retention and one-day files. The two
+  Worker rows resumed their exact accepted partial state without a second unit
+  write; the two API hosts completed the remaining seven unit updates. API
+  services were not restarted, disabled roles were not started, and API-C made
+  the sole required Admin restart with a new healthy container fingerprint.
+  Acceptance-only unit/container residue and task roots are all zero.
+- Native CloudMonitor metadata and four process inventories bind all nine role
+  targets to the live `acs_ecs_dashboard / process.number / Average / 60s`
+  metric. Nine fixed production alert objects are enabled and independently
+  read back exact under final list request
+  `019FEFB4-CBD0-5D22-BBA1-A7E4AFDC0177`; running roles alert below one process,
+  while suspended roles use the service-supported equivalent `>=1` condition.
+  One unsupported `>0` request was a deterministic HTTP 400 with no object
+  mutation; one UI-serialized interval drift was corrected on the same fixed
+  rule before final acceptance, without creating a duplicate.
+- The approved real-notification proof used one short-lived fixed test rule.
+  Native history request `019FEFB2-2E90-52A2-8E6D-03F2D52619D0` returns exactly
+  one matching `SendStatus=0` row with a send-result list and a non-empty
+  notification target list. The rule was then disabled once, deleted once and
+  read back absent under request `019FEFB4-BA83-58F8-94BB-0ED5BBC16B6E`;
+  the nine production rules remain enabled `9/9`. No SLS resource, paid
+  resource, production database connection/write, provider invocation or
+  public endpoint change occurred. The current catalog is 5,440 bytes / SHA-256
+  `3c136239903ca2aa08ce93636932557c20fa7461cf54c44cf429a9ac7fca6f79`;
+  the journald contract is 102 bytes / SHA-256
+  `b703a523ce01cfea84a843f526b98b6fa0f39f4f91043cd5dabb20646130065b`.
+  These are Item25 successor bytes; Items21-24 retain their historical hashes.
+- Local verification passed JSON parsing, `git diff --check`, 31 focused
+  observability/readiness tests, the dedicated scanner regression and the full
+  production readiness gate at `138/138`. The first gate run exposed only a
+  historical Item24 `printf` status marker false positive; the scanner now
+  narrowly allows that exact printed marker while still rejecting an actual
+  assignment to the same name. No Item24 source, historical hash or production
+  action was changed.
+
+Item 25 is now `verified`. Internal readiness is `25/29`; complete public
+readiness is `25/38`. All accepted Item25 host and CloudMonitor mutations are
+terminal/no-replay. The active task advances immediately to Item 26,
+`PROD-FIRST-LAUNCH-PITR-RESTORE-001`: reconcile a current-schema backup/PITR
+point and one isolated restore drill without touching the production writer.

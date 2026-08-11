@@ -1,0 +1,209 @@
+{
+  "schema": "noteai.production.observability/v1",
+  "task_id": "PROD-FIRST-LAUNCH-OBSERVABILITY-001",
+  "log_contract": {
+    "docker": {
+      "driver": "local",
+      "max_size": "10m",
+      "max_files": 2
+    },
+    "journald": {
+      "storage": "persistent",
+      "system_max_use": "256M",
+      "runtime_max_use": "64M",
+      "max_retention": "7day",
+      "max_file_age": "1day"
+    }
+  },
+  "role_process_alerts": [
+    {
+      "key": "api-c",
+      "host": "API-C",
+      "role": "api",
+      "process_name": "api:app",
+      "expected_state": "running",
+      "operator": "LessThanThreshold",
+      "threshold": 1,
+      "evaluation_count": 3
+    },
+    {
+      "key": "api-f",
+      "host": "API-F",
+      "role": "api",
+      "process_name": "api:app",
+      "expected_state": "running",
+      "operator": "LessThanThreshold",
+      "threshold": 1,
+      "evaluation_count": 3
+    },
+    {
+      "key": "admin",
+      "host": "API-C",
+      "role": "admin",
+      "process_name": "admin_server:admin_app",
+      "expected_state": "running",
+      "operator": "LessThanThreshold",
+      "threshold": 1,
+      "evaluation_count": 3
+    },
+    {
+      "key": "dispatcher",
+      "host": "API-C",
+      "role": "dispatcher",
+      "process_name": "--dispatcher-loop",
+      "expected_state": "suspended",
+      "operator": "GreaterThanOrEqualToThreshold",
+      "threshold": 1,
+      "evaluation_count": 1
+    },
+    {
+      "key": "worker-c",
+      "host": "Worker-C",
+      "role": "worker",
+      "process_name": "--worker-loop",
+      "expected_state": "suspended",
+      "operator": "GreaterThanOrEqualToThreshold",
+      "threshold": 1,
+      "evaluation_count": 1
+    },
+    {
+      "key": "worker-f",
+      "host": "Worker-F",
+      "role": "worker",
+      "process_name": "--worker-loop",
+      "expected_state": "suspended",
+      "operator": "GreaterThanOrEqualToThreshold",
+      "threshold": 1,
+      "evaluation_count": 1
+    },
+    {
+      "key": "trends",
+      "host": "API-F",
+      "role": "trends",
+      "process_name": "market_timing_worker.py",
+      "expected_state": "suspended",
+      "operator": "GreaterThanOrEqualToThreshold",
+      "threshold": 1,
+      "evaluation_count": 1
+    },
+    {
+      "key": "tracking",
+      "host": "API-F",
+      "role": "tracking",
+      "process_name": "crawler_worker.py",
+      "expected_state": "suspended",
+      "operator": "GreaterThanOrEqualToThreshold",
+      "threshold": 1,
+      "evaluation_count": 1
+    },
+    {
+      "key": "payment",
+      "host": "API-C",
+      "role": "payment",
+      "process_name": "payment_runtime:app",
+      "expected_state": "suspended",
+      "operator": "GreaterThanOrEqualToThreshold",
+      "threshold": 1,
+      "evaluation_count": 1
+    }
+  ],
+  "process_metric": {
+    "namespace": "acs_ecs_dashboard",
+    "metric_name": "process.number",
+    "period_seconds": 60,
+    "statistic": "Average",
+    "missing_data": "fail_closed",
+    "notification_test_required": true,
+    "automatic_resource_action": false
+  },
+  "application_signals": [
+    {
+      "key": "durable-ai-queue",
+      "source": "/admin/ai-operations",
+      "fields": [
+        "operations",
+        "settlements",
+        "outbox",
+        "oldest_queued_at"
+      ],
+      "action": "hold admission and inspect the private queue before enabling suspended workers"
+    },
+    {
+      "key": "model-usage-cost",
+      "source": "/admin/usage-stats",
+      "fields": [
+        "input_tokens",
+        "output_tokens",
+        "known_cost_rmb",
+        "pricing_complete",
+        "usage_complete"
+      ],
+      "action": "fail closed on incomplete usage or pricing; never raise a provider spend cap automatically"
+    },
+    {
+      "key": "provider-errors-and-quota",
+      "source": "sanitized application logs and official provider response headers when available",
+      "fields": [
+        "429",
+        "5xx",
+        "timeout",
+        "rpm",
+        "itpm",
+        "otpm",
+        "balance"
+      ],
+      "action": "apply approved backpressure or keep the provider path unavailable; never purchase capacity automatically"
+    },
+    {
+      "key": "database-pressure",
+      "source": "Alibaba Cloud RDS read-only metrics",
+      "fields": [
+        "ConnectionUsage",
+        "cpu",
+        "memory",
+        "disk"
+      ],
+      "action": "investigate connection or resource pressure; capacity purchase requires user approval"
+    },
+    {
+      "key": "stage-latency",
+      "source": "tools/sse_latency_report.py",
+      "fields": [
+        "p50_ms",
+        "p95_ms",
+        "p99_ms",
+        "sample_count",
+        "p95_reliability"
+      ],
+      "action": "treat insufficient samples as non-SLA evidence and investigate only sanitized operation/outcome groups"
+    }
+  ],
+  "redaction_contract": {
+    "implementation": "model/security_redaction.py",
+    "allowed_evidence": [
+      "fixed enums",
+      "counts",
+      "timestamps",
+      "latency",
+      "token totals",
+      "cost totals"
+    ],
+    "forbidden_evidence": [
+      "prompt",
+      "generated content",
+      "request body",
+      "response body",
+      "cookie",
+      "authorization header",
+      "secret",
+      "raw provider reasoning"
+    ],
+    "raw_payload_retention": false
+  },
+  "budget_contract": {
+    "cloudmonitor_basic_only": true,
+    "sls_required": false,
+    "automatic_spend_cap_increase": false,
+    "automatic_paid_scaling": false
+  }
+}

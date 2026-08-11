@@ -32,13 +32,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 24)
+        self.assertEqual(report["internal_deployment"]["verified"], 25)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 83)
+        self.assertEqual(report["internal_deployment"]["percentage"], 86)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 24)
+        self.assertEqual(report["complete_public_launch"]["verified"], 25)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 63)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 66)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -59,7 +59,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertNotIn("trends_suspended_runtime", actionable)
         self.assertNotIn("tracking_suspended_runtime", actionable)
         self.assertNotIn("payment_internal_runtime", actionable)
-        self.assertIn("monitoring_alerting", actionable)
+        self.assertNotIn("monitoring_alerting", actionable)
         durable_ai = next(
             control
             for control in self.manifest["layers"][1]["controls"]
@@ -124,6 +124,48 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(payment_acceptance["provider_call_count"], 0)
         self.assertEqual(payment_acceptance["production_database_write_count"], 0)
         self.assertTrue(payment_acceptance["readiness_credit_added"])
+        monitoring = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "monitoring_alerting"
+        )
+        self.assertEqual(monitoring["status"], "verified")
+        self.assertNotIn("blocker", monitoring)
+        self.assertNotIn("next_task", monitoring)
+        monitoring_acceptance = monitoring["production_acceptance"]
+        self.assertEqual(monitoring_acceptance["status"], "PASS")
+        self.assertEqual(monitoring_acceptance["final_runtime_role_count"], 9)
+        self.assertEqual(monitoring_acceptance["final_unit_log_bound_count"], 9)
+        self.assertEqual(monitoring_acceptance["alert_rule_count"], 9)
+        self.assertEqual(
+            len(set(monitoring_acceptance["alert_rule_ids"])),
+            9,
+        )
+        self.assertTrue(monitoring_acceptance["all_alert_rules_enabled"])
+        self.assertTrue(monitoring_acceptance["all_alert_rule_contracts_exact"])
+        self.assertEqual(
+            monitoring_acceptance["registered_process_target_count"],
+            9,
+        )
+        self.assertTrue(
+            all(
+                item["all_required_targets_present"]
+                for item in monitoring_acceptance["process_inventory"]
+            )
+        )
+        notification = monitoring_acceptance["notification_test"]
+        self.assertEqual(notification["status"], "PASS")
+        self.assertEqual(notification["sent_log_match_count"], 1)
+        self.assertEqual(notification["send_status_zero_count"], 1)
+        self.assertEqual(notification["send_result_list_count"], 1)
+        self.assertTrue(notification["actual_notification_delivery_accepted"])
+        self.assertEqual(notification["temporary_rule_residue_count"], 0)
+        self.assertEqual(
+            monitoring_acceptance["production_database_write_count"],
+            0,
+        )
+        self.assertEqual(monitoring_acceptance["paid_resource_create_count"], 0)
+        self.assertTrue(monitoring_acceptance["readiness_credit_added"])
         admin = next(
             control
             for control in self.manifest["layers"][1]["controls"]
@@ -3713,7 +3755,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "monitoring_alerting"
+            if item["id"] == "backup_pitr_restore"
         )
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
@@ -3723,7 +3765,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "monitoring_alerting"
+            if item["id"] == "backup_pitr_restore"
         )
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
@@ -3860,7 +3902,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 24)
+        self.assertEqual(report["internal_deployment"]["verified"], 25)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)
