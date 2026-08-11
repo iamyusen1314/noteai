@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-11
+Last updated: 2026-08-12
 
 ## Critical Risks
 
@@ -61,7 +61,7 @@ Last updated: 2026-08-11
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以当前Handoff和readiness manifest的已验证依赖图为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码候选为精确`b55f11882100e9ef919522540729e366a511f88f`，Admin专用修正版本为`5335bdaed933b1f999b5f819c047ec50c11821ae`；GitHub原生、隔离builder、五角色AMD64/SBOM/VEX、私有ACR immutable manifest及控制面digest绑定均已独立验证。精确API镜像已分别部署于API-C/API-F，精确Admin镜像也已部署并完成Stage C；其余运行时尚未部署。
-- 当前量化状态/下一步: 仓库/隔离`12/12=100%`、内部生产部署`25/29=86%`、完整公开上线`25/38=66%`。Items21–25及其全部生产动作保持终态/no-replay；九个最终运行角色均已接受有界Docker/journald日志、精确进程指标与启用告警，且一次真实通知已送达后清除临时规则。SLS、付费资源、生产数据库写、provider调用和公网入口变化均为0，Item25现为`verified`。当前唯一串行任务推进为`PROD-FIRST-LAUNCH-PITR-RESTORE-001`：只读确认当前schema备份/PITR能力并执行一个隔离恢复演练，不触碰生产writer。
+- 当前量化状态/下一步: 仓库/隔离`12/12=100%`、内部生产部署`25/29=86%`、完整公开上线`25/38=66%`。Items21–25及其全部生产动作保持终态/no-replay；Item26仍为`unverified`。当前唯一硬阻塞是云助手记录面故障：两次分别命名的metadata-only读取均已到达API-C代理并终止，但Command/Invocation/Result索引均不可见，当前manifest状态严格为`UNKNOWN`。禁止第三次capture/readback、账户变更或数据库事务；唯一安全下一步是继续查询既有identity或取得provider权威readback，之后才恢复`PROD-FIRST-LAUNCH-PITR-RESTORE-001`的隔离恢复链。
 - 2026-07-30 Admin-only builder availability: fresh实例详情证明隔离AMD64 builder已因账户余额不足停止，故不再是Cloud Assistant可执行目标；持久磁盘和历史Build10/发布证据未被删除或覆盖。该builder无RAM role/key pair，未尝试启动、充值、创建凭据、执行命令、变更Registry endpoint或push。本机Docker daemon与Colima同样未运行，依据项目规则未在无确认时启动，arm64本机也不作为native证据。当前先以既有GitHub原生x86_64、固定Syft/Trivy和零Registry权限路径生成精确5335的Admin-only十一文件证据；default `main`不含该workflow，故独立审查拒绝不可触发的manual-dispatch假设。修正为feature-branch一次性added-path request：event、branch、exact commit、request内容/hash和五项false授权均在build前fail closed，普通push仍保持五角色与旧artifact名。该路径不等于私库发布或部署。生产API-C/API-F/旧Admin未触碰，readiness仍`19/29`。
 - 2026-07-30 Admin evidence V1触发偏差: 唯一push run `30549134106`的构建/扫描/上传步骤完成，但实证GitHub在checkout前把`github.event.head_commit.added`表达式求值为false，工作流静默回落到controller commit `e7766ab`的五角色路径；下载包为43文件、五角色、无Admin control block，故只作为失败诊断，绝不作为精确`5335bda` Admin证据或readiness credit，也不盲目rerun。Registry/部署/数据库/服务/供应商/公开流量写均0。V2改为先checkout controller，再由真实Git对象强制单父、唯一新增非rename request、regular blob、精确十键schema2、固定SHA-256、`5335bda`祖先和唯一addition history；任何歧义直接失败，随后才第二次checkout精确release。V2 request SHA-256为`c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef`，尚未push/run，readiness仍`19/29`。
 - 2026-07-30 Admin exact 5335 native source candidate完成: V2 controller `e7039a3`本地exact resolver与唯一远端run `30550548144`均通过双checkout/control/build/scan/upload；唯一失败是保留的raw 0C/0H gate。下载artifact为精确11个regular files，summary SHA `19cbf144…38f7`，新Admin local ID `sha256:9ab915…d8cf7`且区别于两套b55身份；linux/amd64、noteai、OCI/role/entrypoint/CMD、Buildx/Trivy/RootFS/base-index均交叉一致。23行raw findings与b55完全相同（4C/19H，fixed-version空），secret/browser/forbidden OS均0，cryptography48.0.1恰1；image-context delta仅`model/crawler_config.json`。Secret-free GitHub receipt、新Admin-only VEX/review/verifier已由production gate `110/110`绑定，独立内容blocker0。该证据仅接受source candidate：registry digest为空，publication/deployment/database/service/public authorization全false，历史b55发布授权不复用；readiness仍`19/29`。下一硬阻塞仍是隔离AMD64 builder余额不足/停止，须先建立新的funded native publisher与单次不可变Admin tag证据，才能进入V3 canary。
@@ -1702,6 +1702,22 @@ Last updated: 2026-08-11
   named, CTO-approved source-read attempt and the still-unperformed isolated
   restore; the original transfer/capture/readback/diagnostic/delete/cleanup
   actions must never be replayed.
+
+- 2026-08-12 the deterministic API-environment selector defect was corrected
+  locally without replaying the cleaned capture. One newly named recovery
+  executor removed only the exact pre-connect residue and entered one corrected
+  read-only capture, but its terminal marker remained `CONNECTED_UNKNOWN`. Two
+  separately named metadata-only current-state reads then each reached the
+  API-C Cloud Assistant agent and terminated with active tasks back at zero,
+  while the provider exposed no matching command, invocation or result record.
+  The second read exhausted the approved reconciliation budget: no third
+  command may be created, and absence from the result index must not be treated
+  as absence of execution. Item26 remains `unverified` at `25/29`; the current
+  manifest state and capture outcome are UNKNOWN, and the temporary reader plus
+  root-only recovery material must remain untouched until an existing result
+  becomes visible or provider support supplies an authoritative readback.
+  Residual High risk is now the provider recording incident, not another local
+  parser or proof-layer task.
 
 ## Low Risks
 

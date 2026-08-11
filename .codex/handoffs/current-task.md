@@ -8845,3 +8845,51 @@ is local, Secret-free diagnosis of the exact `Fixed` exception and a
 deterministic minimal correction. A new CTO-approved temporary read account may
 be created only after that correction passes; none of the transfer, capture,
 readback, diagnostic, deletion or cleanup actions above may be repeated.
+
+### Item 26 corrected capture reached the host but its result index is unavailable (2026-08-12)
+
+- The first cleaned incident was not replayed. Local diagnosis proved the old
+  driver incorrectly required the production API environment to contain only
+  `DATABASE_URL`; the accepted parser now validates the full multi-key file,
+  selects only that key, supports the repository's blank/comment/`export`
+  syntax, and keeps the private-storage seven-key contract unchanged. The
+  corrected template is 27,158 bytes / SHA-256
+  `19df94fb2893a134e32779ce4e899b3589e55412a3826b4897eca293acccd7c8`.
+  Its accepted one-time render is 27,231 bytes / SHA-256
+  `f949e43a4882b679f9947f59af891e8da9fe9bdbb0e39b58e0db22a1bc513e0c`;
+  the embedded driver is 10,837 bytes / SHA-256
+  `4927436ed8cf09942f76ff986770e165f71f2615976aca17e655676ed1cfeb5a`.
+- One fixed recovery executor, 9,310 bytes / SHA-256
+  `dfa4c106bd8cc5bef09c910d236112a9e6d68080142e288395080d6898a027c8`,
+  verified and removed only the exact prior pre-connect residue, then started
+  one corrected read-only inner capture. Its native terminal record is
+  `Failed / ExitCode=4 / Repeats=1 / Dropped=0` with the fixed
+  `CONNECTED_UNKNOWN / phase=inner_execute` marker. The recovery executor and
+  that inner database transaction are permanently frozen and must not be
+  submitted again.
+- The bounded metadata-only readback is now reproducibly stored as 17,547 bytes
+  / SHA-256
+  `243d7a719da404e245ec8cfee470922502df7bd81aab68957b07b27e81482ba3`;
+  its in-memory wrapper was 6,776 bytes / SHA-256
+  `3aee48c2c7a17f3722bdd15c08d9fccbd8767142116a27547b0cf61e33dd3a45`.
+  It cannot read either environment value, a manifest body, ciphertext, rows or
+  object contents and cannot write the database or object store.
+- The first fixed-name readback and one independently named `KeepCommand=true`
+  current-state reconciliation were each submitted exactly once to API-C. For
+  both, Cloud Assistant status proved the agent was online, the invocation
+  counter and last-invoked timestamp advanced, and the active-task count
+  returned to zero. Nevertheless, the exact command, invocation and result
+  indexes remained empty. The second attempt therefore closes the allowed
+  execution budget: this is
+  `PROVIDER_RECORDING_INCIDENT / AGENT_REACHED / TASK_TERMINATED /
+  OUTPUT_RECORD_UNKNOWN`, not evidence that either command was unsubmitted.
+  Both native identity sets remain frozen in the live cloud-console handoff;
+  no third readback or capture may be created.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new readiness credit. The current manifest/final-root state
+and the corrected capture outcome are `UNKNOWN`. Treat the temporary read
+account and root-only control material as retained until the existing result
+indexes become visible or provider support supplies an authoritative readback.
+Only polling the existing identities or provider-side reconciliation is safe;
+do not create another account, database transaction, capture or readback.
