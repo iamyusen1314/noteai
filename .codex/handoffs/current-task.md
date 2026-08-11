@@ -8787,3 +8787,61 @@ readiness is `25/38`. All accepted Item25 host and CloudMonitor mutations are
 terminal/no-replay. The active task advances immediately to Item 26,
 `PROD-FIRST-LAUNCH-PITR-RESTORE-001`: reconcile a current-schema backup/PITR
 point and one isolated restore drill without touching the production writer.
+
+### Item 26 first source-manifest capture failed terminally and was fully cleaned (2026-08-11)
+
+- The content-free source-manifest template is 26,622 bytes, SHA-256
+  `1c1c968c698d7dbd499f873ddfd839b4c78ef9807f692e7ffda9645f80c47488`.
+  Its one-time render is 26,710 bytes / SHA-256
+  `d18eec0c1de4278bc47c9340ec5d8df32db6efc2aa7c12de8b5c2bf157ed1397`;
+  the transferred gzip is 8,528 bytes / SHA-256
+  `73b28e95db149f572197e1d1e1e35c6fb16f12c111b8d8a18ecdaee65cca113a`,
+  and the in-memory wrapper is 2,219 bytes / SHA-256
+  `f143031037b714637647233b00130d29e4c4ec4b5ee3300a6c4d588840611863`.
+  The overwrite-disabled transfer `noteai-item26-source-manifest-v1.sh.gz`
+  completed once under request `019FF0C0-EA63-5FB4-8558-3077F9D3A76C`
+  and must not be sent again.
+- The sole capture invocation
+  `noteai-item26-source-manifest-capture-20260811-v1` was created by request
+  `019FF0C4-94F0-5154-98BD-FBE0CA93511C` as command
+  `c-sz06to672ixmku8` / invocation `t-sz06to672j7m680`; result read request
+  `019FF0C5-E7D5-5E25-866B-A0D7D030130E` binds one terminal
+  `Failed / ExitCode=4 / Finished / Repeats=1 / Dropped=0`. Its fixed output
+  reports `CONNECTED_UNKNOWN`, `phase=database_read_only_capture`,
+  `database_attempted=1`, `manifest_committed=0`, database/object writes zero,
+  no row/object-key/Secret values emitted and automatic retry disabled. This
+  invocation and its transaction are permanently no-replay.
+- The first fixed-name readback, command `c-sz06to6mkyhfcw0` / invocation
+  `t-sz06to6mkyywnb4` under request
+  `019FF0C9-0099-5D82-9D8C-6EC2D4B2284A`, terminated `Failed / ExitCode=4`
+  and classified the residue as unsafe without mutating it; result read request
+  was `019FF0C9-773E-5505-AA8E-457F43F34EE8`. The subsequent metadata-only
+  diagnostic, request `019FF0CB-C3A2-5FEF-B016-6986BA648945`, command
+  `c-sz06to6w9hcwhds`, invocation `t-sz06to6w9hudrsw` and result read request
+  `019FF0CC-218F-5996-B67F-5A63249DA06B`, is terminal
+  `Success / ExitCode=0 / Finished / Repeats=1 / Dropped=0`. It found the
+  fixed failure code `Fixed`, zero helper stdout, 83 bytes of bounded helper
+  stderr, no committed manifest/final root, no task container, no established
+  5432 connection and zero database writes. It did not read source values or a
+  manifest body.
+- A fresh unfiltered account read under request
+  `019FF0CE-48A6-57D8-930B-76C7B2C938A4` proved the temporary source-reader
+  was the sole delta (`10 accounts / 2 Super / exact temporary=1`). Exactly one
+  account deletion completed under request
+  `019FF0CF-A8A5-5B5C-924F-B2B94A9096C7`; readback request
+  `019FF0D1-E5A5-5FA9-8173-B2CE76BD8B9C` restored the accepted
+  `9 / 1 / 0` account baseline. The terminal API-C cleanup was created by
+  request `019FF0D2-7BF9-5FD7-AA53-BFE432604C47` as command
+  `c-sz06to7jucy677k` / invocation `t-sz06to7judfnhmo`; result read request
+  `019FF0D2-CA2B-5360-B52B-FC982CC497EB` binds one
+  `Success / ExitCode=0 / Finished / Repeats=1 / Dropped=0`. Task root,
+  control key, envelope, transferred archive, source-manifest, container and
+  database-connection residue are all zero. The deletion and cleanup are
+  terminal/no-replay.
+
+Item 26 remains `unverified`; readiness remains exactly internal `25/29` and
+public `25/38`, with readiness credit zero for this attempt. The only next step
+is local, Secret-free diagnosis of the exact `Fixed` exception and a
+deterministic minimal correction. A new CTO-approved temporary read account may
+be created only after that correction passes; none of the transfer, capture,
+readback, diagnostic, deletion or cleanup actions above may be repeated.

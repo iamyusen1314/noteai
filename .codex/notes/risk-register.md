@@ -1690,6 +1690,19 @@ Last updated: 2026-08-11
   current-schema backup/PITR observation plus one isolated restore drill, with
   no production-writer mutation.
 
+- 2026-08-11 the first Item26 content-free source-manifest capture ended in a
+  fixed `Fixed` driver exception before any manifest commit. Its read-only
+  transaction is terminal/no-replay; diagnostic evidence shows no final
+  manifest, no task container, no established 5432 connection and database/
+  object writes zero. The temporary source-reader account was deleted exactly
+  once and full inventory returned from `10/2/1` to `9/1/0`; the API-C control
+  key, envelope, transfer, task and manifest namespaces were then proven empty.
+  No readiness credit was added and Item26 remains unverified at `25/29`.
+  Residual High risk is the locally unresolved exception followed by one newly
+  named, CTO-approved source-read attempt and the still-unperformed isolated
+  restore; the original transfer/capture/readback/diagnostic/delete/cleanup
+  actions must never be replayed.
+
 ## Low Risks
 
 ### `model/api.py` is too large
