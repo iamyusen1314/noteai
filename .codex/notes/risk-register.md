@@ -1651,10 +1651,12 @@ Last updated: 2026-08-09
   archive. Fresh native cloud reconciliation found the retained Item24 builder
   idle with zero active tasks, the exact temporary role attached, and zero
   keygen/broker/pull fixed-name invocations. A single graceful StopCharging flow
-  is awaiting Alibaba Cloud security verification and has no native result;
-  it must not be resubmitted, and only native readback may close its outcome.
-  Readiness remains `23/29`; residual High risk remains the immutable payment
-  image transport and disabled synthetic-only Item24 runtime, not storage cleanup.
+  completed after user security verification with one native HTTP 200 result;
+  fresh readback proves the retained builder is `Stopped / PostPaid /
+  StopCharging / operation-locks=0`. The temporary role and builder disk remain
+  recoverable, and the stop is terminal/no-replay. Readiness remains `23/29`;
+  residual High risk remains the immutable payment image transport and disabled
+  synthetic-only Item24 runtime, not storage cleanup.
 
 ## Low Risks
 

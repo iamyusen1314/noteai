@@ -8667,12 +8667,14 @@ synthetic callback path approved by the execution baseline.
   builder credential broker and API-C fixed-digest pull each returned count `0`.
   Therefore no Item24 credential was issued and no payment image pull was
   dispatched before the interruption. One graceful `StopCharging` request was
-  opened only after those zero-state reads, but it is currently held at Alibaba
-  Cloud security verification with no native service result. It must not be
-  clicked or submitted again; after the user completes that existing verification,
-  reconcile only by native instance readback.
+  opened only after those zero-state reads, completed after the user satisfied
+  Alibaba Cloud security verification, and returned one native HTTP 200 result.
+  Fresh readback proves the retained builder is now exactly `Stopped / PostPaid /
+  StopCharging / operation-locks=0`. The temporary role remains attached and the
+  builder/disk are retained for recovery. The accepted stop must not be repeated;
+  start the retained builder again only when resuming the same Item24 transport.
 
 Readiness remains exactly internal `23/29`, public `23/38`; Item24 remains the
 unique active item. Items21-23 and every terminal production action remain
 no-replay. Resume Item24 from the accepted immutable payment-image transport
-boundary only after the existing builder-stop verification/readback is closed.
+boundary using the retained stopped builder and exact temporary role.
