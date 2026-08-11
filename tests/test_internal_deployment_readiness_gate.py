@@ -32,13 +32,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 20)
+        self.assertEqual(report["internal_deployment"]["verified"], 23)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 69)
+        self.assertEqual(report["internal_deployment"]["percentage"], 79)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 20)
+        self.assertEqual(report["complete_public_launch"]["verified"], 23)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 53)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 61)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -55,6 +55,55 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertNotIn("api_c_current_release", actionable)
         self.assertNotIn("api_f_current_release", actionable)
         self.assertNotIn("admin_current_release", actionable)
+        self.assertNotIn("durable_ai_workers", actionable)
+        self.assertNotIn("trends_suspended_runtime", actionable)
+        self.assertNotIn("tracking_suspended_runtime", actionable)
+        self.assertIn("payment_internal_runtime", actionable)
+        durable_ai = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "durable_ai_workers"
+        )
+        self.assertEqual(durable_ai["status"], "verified")
+        self.assertNotIn("blocker", durable_ai)
+        self.assertNotIn("next_task", durable_ai)
+        self.assertTrue(
+            durable_ai["latest_reconciliation"]
+            ["production_terminal_acceptance"]
+            ["readiness_credit_added"]
+        )
+        trends = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "trends_suspended_runtime"
+        )
+        self.assertEqual(trends["status"], "verified")
+        self.assertNotIn("blocker", trends)
+        self.assertNotIn("next_task", trends)
+        trends_acceptance = trends["production_acceptance"]
+        self.assertEqual(trends_acceptance["status"], "PASS")
+        self.assertFalse(trends_acceptance["unit_active"])
+        self.assertFalse(trends_acceptance["unit_enabled"])
+        self.assertEqual(trends_acceptance["unit_start_count"], 0)
+        self.assertEqual(trends_acceptance["application_container_start_count"], 0)
+        self.assertEqual(trends_acceptance["provider_call_count"], 0)
+        self.assertTrue(trends_acceptance["readiness_credit_added"])
+        tracking = next(
+            control
+            for control in self.manifest["layers"][1]["controls"]
+            if control["id"] == "tracking_suspended_runtime"
+        )
+        self.assertEqual(tracking["status"], "verified")
+        self.assertNotIn("blocker", tracking)
+        self.assertNotIn("next_task", tracking)
+        tracking_acceptance = tracking["production_acceptance"]
+        self.assertEqual(tracking_acceptance["status"], "PASS")
+        self.assertFalse(tracking_acceptance["unit_active"])
+        self.assertFalse(tracking_acceptance["unit_enabled"])
+        self.assertEqual(tracking_acceptance["unit_start_count"], 0)
+        self.assertEqual(tracking_acceptance["application_container_start_count"], 0)
+        self.assertEqual(tracking_acceptance["provider_call_count"], 0)
+        self.assertTrue(tracking_acceptance["readiness_credit_added"])
         admin = next(
             control
             for control in self.manifest["layers"][1]["controls"]
@@ -3644,7 +3693,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "durable_ai_workers"
+            if item["id"] == "payment_internal_runtime"
         )
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
@@ -3654,7 +3703,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         control = next(
             item
             for item in broken["layers"][1]["controls"]
-            if item["id"] == "durable_ai_workers"
+            if item["id"] == "payment_internal_runtime"
         )
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
@@ -3791,7 +3840,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 20)
+        self.assertEqual(report["internal_deployment"]["verified"], 23)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)

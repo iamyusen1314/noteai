@@ -134,6 +134,51 @@ class ProductionDurableAiSchema0017Tests(unittest.TestCase):
         preflight.assert_called_once()
         connection.close.assert_called_once_with()
 
+    def test_postconditions_accept_postgres_uppercase_current_user(self):
+        connection = mock.Mock()
+        connection.execute.side_effect = (
+            mock.Mock(fetchone=mock.Mock(return_value={
+                "indexdef": (
+                    "CREATE INDEX ON ai_operation_outbox "
+                    "(delivered_at, id) INCLUDE (operation_id) "
+                    "WHERE (state = 'delivered'::text)"
+                ),
+            })),
+            mock.Mock(fetchone=mock.Mock(return_value={
+                "permissive": "PERMISSIVE",
+                "roles": "{public}",
+                "cmd": "SELECT",
+                "qual": (
+                    "((CURRENT_USER = 'noteai_ai_worker'::name) AND "
+                    "(state = 'delivered'::text))"
+                ),
+                "with_check": None,
+            })),
+            mock.Mock(fetchone=mock.Mock(return_value={
+                "relrowsecurity": True,
+            })),
+            mock.Mock(fetchone=mock.Mock(return_value={"count": 0})),
+        )
+        with (
+            mock.patch.object(
+                schema_0017,
+                "_ledger_rows",
+                return_value=[{}] * len(schema_0017.EXPECTED_MIGRATION_NAMES),
+            ),
+            mock.patch.object(schema_0017, "_verify_ledger"),
+            mock.patch.object(
+                schema_0017,
+                "_worker_select_columns",
+                return_value=schema_0017.WORKER_SELECT_AFTER,
+            ),
+        ):
+            result = schema_0017._verify_postconditions(
+                connection,
+                {"migration_hashes": {}},
+            )
+
+        self.assertEqual(result["delivered_policy_count"], 1)
+
     def test_source_preserves_owner_bound_bounded_transaction(self):
         source = schema_0017.Path(schema_0017.__file__).read_text(
             encoding="utf-8"

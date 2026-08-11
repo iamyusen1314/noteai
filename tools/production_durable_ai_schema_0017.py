@@ -226,7 +226,7 @@ def _verify_postconditions(conn: Any, contract: dict[str, Any]) -> dict[str, Any
         "FROM pg_policies WHERE schemaname='public' "
         "AND tablename='ai_operation_outbox' AND policyname=%s", (POLICY_NAME,),
     ).fetchone()
-    qual = re.sub(r"\s+", "", str(policy["qual"] if policy else ""))
+    qual = re.sub(r"\s+", "", str(policy["qual"] if policy else "")).lower()
     if (
         policy is None or str(policy["permissive"]) != "PERMISSIVE"
         or str(policy["roles"]) != "{public}" or str(policy["cmd"]) != "SELECT"

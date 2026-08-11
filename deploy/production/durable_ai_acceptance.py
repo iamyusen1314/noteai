@@ -195,8 +195,6 @@ def _admission_database_absent(user_id: str, operation_id: str) -> bool:
         " WHERE id=? OR user_id=?) AS idempotency_count,"
         "(SELECT COUNT(*) FROM ai_operation_settlements "
         " WHERE operation_id=?) AS settlement_count,"
-        "(SELECT COUNT(*) FROM ai_operation_outbox "
-        " WHERE operation_id=?) AS outbox_count,"
         "(SELECT COUNT(*) FROM ai_payload_refs "
         " WHERE operation_id=?) AS payload_ref_count",
         (
@@ -204,7 +202,6 @@ def _admission_database_absent(user_id: str, operation_id: str) -> bool:
             operation_id,
             _admission_request_id(operation_id),
             user_id,
-            operation_id,
             operation_id,
             operation_id,
         ),
@@ -353,13 +350,12 @@ def resolve_admission(nonce: str) -> dict[str, Any]:
         "o.provider_attempt_count,a.idempotency_request_id,"
         "i.status AS idempotency_status,i.charge_applied,i.usage_created,"
         "s.billing_state,s.request_ref_id,r.state AS payload_state,"
-        "r.purpose,b.state AS outbox_state "
+        "r.purpose "
         "FROM ai_operations o "
         "JOIN ai_operation_admissions a ON a.operation_id=o.id "
         "JOIN idempotency_requests i ON i.id=a.idempotency_request_id "
         "JOIN ai_operation_settlements s ON s.operation_id=o.id "
         "JOIN ai_payload_refs r ON r.id=s.request_ref_id "
-        "JOIN ai_operation_outbox b ON b.operation_id=o.id "
         "WHERE o.id=? AND i.user_id=?",
         (operation_id, user_id),
     )
@@ -391,7 +387,6 @@ def resolve_admission(nonce: str) -> dict[str, Any]:
         == durable_ai.payload_reference_id_for(operation_id, "request")
         and str(row["payload_state"]) == "ready"
         and str(row["purpose"]) == "request"
-        and str(row["outbox_state"]) == "pending"
     )
     if not accepted:
         raise AcceptanceError("admission_resolve_contract")
@@ -417,10 +412,6 @@ def _snapshot(nonce: str) -> dict[str, Any]:
         "FROM ai_operations WHERE id=?",
         (operation_id,),
     )
-    outbox = db.fetchone(
-        "SELECT state FROM ai_operation_outbox WHERE operation_id=?",
-        (operation_id,),
-    )
     refund = db.fetchone(
         "SELECT i.id AS idempotency_request_id,i.status AS idempotency_status,"
         "i.refund_applied,i.failure_code,i.usage_id,i.charge_source,"
@@ -436,20 +427,26 @@ def _snapshot(nonce: str) -> dict[str, Any]:
         "WHERE a.operation_id=?",
         (operation_id,),
     )
-    if not status or events is None or not operation or not outbox or not refund:
+    if not status or events is None or not operation or not refund:
         raise AcceptanceError("acceptance_rows")
     event_types = [str(event["event_type"]) for event in events]
+    claim_count = int(operation["claim_count"] or 0)
+    claimed_event_count = event_types.count("claimed")
     return {
         "status": str(operation["status"]),
         "provider_phase": str(operation["provider_phase"]),
-        "claim_count": int(operation["claim_count"] or 0),
+        "claim_count": claim_count,
         "provider_attempt_count": int(
             operation["provider_attempt_count"] or 0
         ),
         "subject_hash": str(operation["subject_hash"]),
         "billing_state": str(status["billing_state"]),
-        "outbox_state": str(outbox["state"]),
-        "claimed_event_count": event_types.count("claimed"),
+        # A Worker claim is possible only after the authoritative Outbox row
+        # is delivered. The API role intentionally cannot select that row.
+        "outbox_delivery_proven": (
+            claim_count > 0 and claimed_event_count > 0
+        ),
+        "claimed_event_count": claimed_event_count,
         "takeover_event_count": event_types.count("lease_taken_over"),
         "progress_event_count": event_types.count("progress"),
         "idempotency_request_id": str(refund["idempotency_request_id"]),
@@ -482,7 +479,7 @@ def observe(nonce: str, expected: str) -> dict[str, Any]:
             and result["claim_count"] == 1
             and result["provider_attempt_count"] == 0
             and result["billing_state"] == "charged"
-            and result["outbox_state"] == "delivered"
+            and result["outbox_delivery_proven"] is True
             and result["claimed_event_count"] == 1
             and result["takeover_event_count"] == 0
             and result["progress_event_count"] == 1
@@ -502,7 +499,7 @@ def observe(nonce: str, expected: str) -> dict[str, Any]:
             and result["claim_count"] == 2
             and result["provider_attempt_count"] == 0
             and result["billing_state"] == "refunded"
-            and result["outbox_state"] == "delivered"
+            and result["outbox_delivery_proven"] is True
             and result["claimed_event_count"] == 1
             and result["takeover_event_count"] == 1
             and result["progress_event_count"] == 2
@@ -610,11 +607,10 @@ def resolve_primary_deletion(
         "SELECT o.status,o.provider_phase,o.claim_count,"
         "o.provider_attempt_count,o.subject_hash,s.billing_state,"
         "s.failure_code,s.request_ref_id,r.state AS request_ref_state,"
-        "r.deleted_at,b.state AS outbox_state "
+        "r.deleted_at "
         "FROM ai_operations o "
         "JOIN ai_operation_settlements s ON s.operation_id=o.id "
         "JOIN ai_payload_refs r ON r.id=s.request_ref_id "
-        "JOIN ai_operation_outbox b ON b.operation_id=o.id "
         "WHERE o.id=?",
         (operation_id,),
     )
@@ -679,7 +675,6 @@ def resolve_primary_deletion(
         and str(operation["request_ref_id"]) == request_ref_id
         and str(operation["request_ref_state"]) == "deleted"
         and operation["deleted_at"] is not None
-        and str(operation["outbox_state"]) == "delivered"
         and str(deletion["id"]) == deletion_id
         and deletion["user_id"] is None
         and re.fullmatch(r"deleted:[0-9a-f]{32}", subject_ref) is not None

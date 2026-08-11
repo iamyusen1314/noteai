@@ -61,7 +61,7 @@ Last updated: 2026-08-09
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以当前Handoff和readiness manifest的已验证依赖图为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码候选为精确`b55f11882100e9ef919522540729e366a511f88f`，Admin专用修正版本为`5335bdaed933b1f999b5f819c047ec50c11821ae`；GitHub原生、隔离builder、五角色AMD64/SBOM/VEX、私有ACR immutable manifest及控制面digest绑定均已独立验证。精确API镜像已分别部署于API-C/API-F，精确Admin镜像也已部署并完成Stage C；其余运行时尚未部署。
-- 当前量化状态/下一步: 仓库/隔离`12/12=100%`、内部生产部署`20/29=69%`、完整公开上线`20/38=53%`。API-C API、Admin和API-F API均保持精确unit/image、active/ready和loopback-only；Worker Secret交付已终态，C17原生运行时与accepted `f1a5cc`六文件protected-control closure也已在network-none、零数据库/Secret影响下通过。Item21仍`unverified`且credit为0。当前唯一串行任务仍是`PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001`，下一原子阶段为protected 0017控制密钥/加密信封/短期任务账户准备，随后只读preflight、exact-one apply和独立只读verify；不得把本检查点当作停工点或重复SendFile/runtime/source preflight。
+- 当前量化状态/下一步: 仓库/隔离`12/12=100%`、内部生产部署`23/29=79%`、完整公开上线`23/38=61%`。API-C API、Admin和API-F API均保持精确unit/image、active/ready和loopback-only；Item21全部动作及Item22 Trends均保持终态/no-replay。Item23的Tracking角色现已作为一个有界受管singleton安装，且保持inactive/dead、disabled、`Restart=no`、collection suspended，服务/应用容器启动和provider调用均为0；Item23现为`verified`。当前唯一串行任务已推进为`PROD-FIRST-LAUNCH-PAYMENT-INTERNAL-RUNTIME-001`：接受专用、默认禁用且隔离的支付回调运行时，只走已批准的synthetic callback，不连接真实支付网关。
 - 2026-07-30 Admin-only builder availability: fresh实例详情证明隔离AMD64 builder已因账户余额不足停止，故不再是Cloud Assistant可执行目标；持久磁盘和历史Build10/发布证据未被删除或覆盖。该builder无RAM role/key pair，未尝试启动、充值、创建凭据、执行命令、变更Registry endpoint或push。本机Docker daemon与Colima同样未运行，依据项目规则未在无确认时启动，arm64本机也不作为native证据。当前先以既有GitHub原生x86_64、固定Syft/Trivy和零Registry权限路径生成精确5335的Admin-only十一文件证据；default `main`不含该workflow，故独立审查拒绝不可触发的manual-dispatch假设。修正为feature-branch一次性added-path request：event、branch、exact commit、request内容/hash和五项false授权均在build前fail closed，普通push仍保持五角色与旧artifact名。该路径不等于私库发布或部署。生产API-C/API-F/旧Admin未触碰，readiness仍`19/29`。
 - 2026-07-30 Admin evidence V1触发偏差: 唯一push run `30549134106`的构建/扫描/上传步骤完成，但实证GitHub在checkout前把`github.event.head_commit.added`表达式求值为false，工作流静默回落到controller commit `e7766ab`的五角色路径；下载包为43文件、五角色、无Admin control block，故只作为失败诊断，绝不作为精确`5335bda` Admin证据或readiness credit，也不盲目rerun。Registry/部署/数据库/服务/供应商/公开流量写均0。V2改为先checkout controller，再由真实Git对象强制单父、唯一新增非rename request、regular blob、精确十键schema2、固定SHA-256、`5335bda`祖先和唯一addition history；任何歧义直接失败，随后才第二次checkout精确release。V2 request SHA-256为`c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef`，尚未push/run，readiness仍`19/29`。
 - 2026-07-30 Admin exact 5335 native source candidate完成: V2 controller `e7039a3`本地exact resolver与唯一远端run `30550548144`均通过双checkout/control/build/scan/upload；唯一失败是保留的raw 0C/0H gate。下载artifact为精确11个regular files，summary SHA `19cbf144…38f7`，新Admin local ID `sha256:9ab915…d8cf7`且区别于两套b55身份；linux/amd64、noteai、OCI/role/entrypoint/CMD、Buildx/Trivy/RootFS/base-index均交叉一致。23行raw findings与b55完全相同（4C/19H，fixed-version空），secret/browser/forbidden OS均0，cryptography48.0.1恰1；image-context delta仅`model/crawler_config.json`。Secret-free GitHub receipt、新Admin-only VEX/review/verifier已由production gate `110/110`绑定，独立内容blocker0。该证据仅接受source candidate：registry digest为空，publication/deployment/database/service/public authorization全false，历史b55发布授权不复用；readiness仍`19/29`。下一硬阻塞仍是隔离AMD64 builder余额不足/停止，须先建立新的funded native publisher与单次不可变Admin tag证据，才能进入V3 canary。
@@ -1598,6 +1598,63 @@ Last updated: 2026-08-09
   0017 preflight/apply/verify; any account/apply ambiguity permits only native
   readback or read-only database verification. Item21 remains `20/29`,
   unverified, and receives no readiness credit.
+
+- 2026-08-10 Item21 production terminal acceptance closes the remaining High
+  risk without replaying any accepted stage. Protected `0017` has one native
+  ledger write and an independent read-only verify at ledger `0017`;
+  Dispatcher activation has one intended role-attribute/password write, a
+  root-only managed file and independent forced-readonly verification. The
+  three formal units are installed but remain inactive and disabled. The
+  provider-free acceptance proves two claims, one fenced takeover, authoritative
+  outbox delivery, zero provider attempts/calls, exact refund and zero terminal
+  used credits; synthetic primary residue is zero and the intended pseudonymous
+  audit remains. The temporary privileged account is absent, the Dispatcher
+  account remains Available, and terminal host cleanup proves control key,
+  envelope, source/archive, acceptance source and recovery namespace residue
+  all zero without reading private or ciphertext values. Acceptance-only units
+  and containers are absent; formal units are unchanged. Item21 is now
+  `verified`, readiness is `21/29`, and every Item21 production action is
+  terminal/no-replay. Residual High risk advances to Item22: accept the existing
+  default-stopped Trends role as one bounded managed singleton without starting
+  it or adding a replacement control system.
+
+- 2026-08-10 Item22 default-suspended Trends singleton is terminal accepted.
+  One exact immutable-image unit is installed with the accepted root-only env
+  path, fixed Trends role and collection-suspended flag, but remains inactive,
+  dead and disabled with `Restart=no`. Unit starts, application-container starts
+  and provider calls are all zero; API live checks did not regress and task
+  residue is zero. Three earlier candidates are fixed-name pre-mutation
+  rejections with zero host change and are permanently no-replay. Item22 is
+  `verified`; readiness is `22/29`. The real supplier/public canary remains a
+  separate public gate. Residual High risk advances to Item23: accept Tracking
+  as the corresponding default-suspended singleton without starting it.
+
+- 2026-08-10 Item23 default-suspended Tracking singleton is terminal accepted.
+  One exact immutable-image unit is installed with the accepted root-only env
+  and existing data paths, fixed Tracking role, bounded limit and collection-
+  suspended flag, but remains inactive, dead and disabled with `Restart=no`.
+  Unit starts, application-container starts, provider calls, tracking cycles
+  and production data writes are all zero; API live checks and path metadata did
+  not regress, and task residue is zero. Item23 is `verified`; readiness is
+  `23/29`. The real XHS canary remains a separate public gate. Residual High
+  risk advances to Item24: the dedicated isolated, disabled-by-default payment
+  callback runtime with only its approved synthetic callback exercise.
+
+- 2026-08-11 local disk exhaustion was contained through a user-approved
+  unencrypted ExFAT ORICO archive. Exactly 174 inactive historical Codex session
+  payloads / 31,611,483,833 bytes were copied with identical source/destination
+  SHA-256 manifests before their exact local source paths were individually
+  deleted. Current/open NoteAI parents, all 219 descendants, the last seven days,
+  credentials, configuration, NoteAI, Colima, Docker and production material
+  were excluded. The user accepted 49,254,187,008 available local bytes as
+  sufficient and accepted the temporary physical-access risk of the unencrypted
+  archive. Fresh native cloud reconciliation found the retained Item24 builder
+  idle with zero active tasks, the exact temporary role attached, and zero
+  keygen/broker/pull fixed-name invocations. A single graceful StopCharging flow
+  is awaiting Alibaba Cloud security verification and has no native result;
+  it must not be resubmitted, and only native readback may close its outcome.
+  Readiness remains `23/29`; residual High risk remains the immutable payment
+  image transport and disabled synthetic-only Item24 runtime, not storage cleanup.
 
 ## Low Risks
 

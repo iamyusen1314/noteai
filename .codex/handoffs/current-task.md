@@ -8514,3 +8514,165 @@ preparation, a fresh RDS task-account absence read, exact-one task-account
 creation, read-only schema preflight, exact-one protected 0017 apply and an
 independent read-only verify. Any account/apply ambiguity is reconciled without
 mutation replay.
+
+### Item 21 production Durable AI chain terminal accepted (2026-08-10)
+
+- The protected schema sequence is terminal. The accepted recovery preflight
+  returned `READ_ONLY_VERIFIED` at ledger `0016` with writes `0`; the only
+  protected apply returned `COMMITTED`, advanced the native ledger exactly
+  once to `0017`, wrote one migration-ledger row and changed no business or
+  prompt row; the independent verify returned `READ_ONLY_VERIFIED` at exact
+  `0017` with writes `0`. All three native records are
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0`. The production-only policy
+  normalization hotfix is now the tracked 15,999-byte schema source with
+  SHA-256 `023a390a124fbcfff399a1ff34e2e3172e8b81e2b02e8a53041862feab4e0a78`.
+- Dispatcher activation is terminal. Read-only preflight proved no prior
+  LOGIN; the exact apply created the intended LOGIN/password and one managed
+  root-only env file with no membership, ACL, schema or business-row write.
+  Independent forced-readonly result readback verified the role/file contract,
+  and terminal cleanup proved the control container/task root absent, API live
+  checks non-regressed and database connections `0`. The managed Dispatcher
+  account remains `Available` as production state.
+- The formal Dispatcher unit on API-C and formal Worker unit on Worker-C/F are
+  each installed with their accepted hashes but remain `active=false` and
+  `enabled=false`; service starts, application-container starts and provider
+  calls are `0`. The three acceptance-only units and containers were removed
+  after their native terminal results, with all formal units unchanged.
+- The provider-free fenced acceptance reached exactly two claims, one claimed
+  event, one takeover event and two progress events. Authoritative outbox
+  delivery is proven; provider attempts/calls are `0`; the synthetic failure
+  is `worker_failed`; its charge was refunded exactly once and terminal used
+  credits are `0`. Primary synthetic payload/admission/idempotency/user residue
+  is `0`, while only the intended pseudonymous audit remains. The production
+  acceptance source is 29,996 bytes, SHA-256
+  `5897aed7ae8cce032c4b5cb57dcebf49a43e5f9aa5891f704f89c32360368b74`;
+  its RLS-safe runner is bound by SHA-256
+  `279939f6e8db5f41a7baf8dc0d7bcc6e5ab6e4a794faf037978c306f540e8504`.
+  Focused regression is `33/33`; `py_compile` and `git diff --check` pass.
+- The temporary privileged task account was deleted exactly once. Fresh native
+  inventory is now `9 total / 9 Available / 1 Super / 0 task / 1 Dispatcher`.
+  The final API-C cleanup then removed the control private/public key,
+  encrypted control envelope, accepted source root/archive, production
+  acceptance source and all four fixed recovery namespaces. Its sole mutating
+  terminal run is `Success / ExitCode=0 / Repeats=1 / Dropped=0` and reports
+  every listed residue `0`, database writes `0`, formal-unit changes `0`,
+  private-key reads `0` and ciphertext reads `0`. Two earlier cleanup
+  candidates are permanently classified as pre-mutation false rejections and
+  must not be replayed.
+
+Item 21 is now `verified`. Internal readiness is `21/29`; complete public
+readiness is `21/38`. None of its Stage A/B/import, transport, Secret,
+migration, Dispatcher, formal-unit, acceptance, account or cleanup actions may
+be repeated. The active task advances immediately to Item 22,
+`PROD-XHS-TRENDS-INTERNAL-SUSPENDED-001`: accept the existing default-stopped
+Trends role as one bounded managed singleton without starting it or adding a
+new control system.
+
+### Item 22 default-suspended Trends singleton accepted (2026-08-10)
+
+- The bounded unit template is
+  `deploy/production/systemd/noteai-xhs-trends.service.template`, 1,481 bytes,
+  SHA-256 `9eb5daf275bb29f10a4fd0c17f0929bd752269b372af0ea91548c514b8c781ac`.
+  Its exact-image render is 1,729 bytes, SHA-256
+  `3557cfa0e15cd12d676ef652f8436a6d37ee9bb9490b6f90a886a75e7571fcd6`.
+  The accepted executor is 11,392 bytes, SHA-256
+  `ad1e5e64e435b5438d8971fcec4b5058a8b973b132f1aec9ab0c4c16e1a61936`;
+  its in-memory wrapper is 6,712 bytes, SHA-256
+  `dcfa7ab6e7241fd572cd92c5ad4da38db26ca7a6940b3ae26b3820e3364b6a0c`.
+- The only committed invocation is fixed name
+  `noteai-item22-trends-suspended-install-20260810-v4`: absence request
+  `019FE7F7-3D31-5317-B180-A34A8CBE719A`, command read
+  `019FE7F7-F3BC-5643-A112-0A059C9AE53C`, command
+  `c-sz06ti2od87yww0`, invocation `t-sz06ti2od8myayo`, and result read
+  `019FE7F8-24A9-5FAF-922C-A8DDE97B0FA5`. Its native terminal is
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0`; the 935-byte output has
+  SHA-256 `64d5e920ed2eab109e463024cceb68c0ac07c5f5c132b6b0cd0ae430faaadc5c`.
+- Exactly one managed Trends unit is now loaded from the retained immutable XHS
+  image and `/etc/noteai/xhs-trends.env`. It is inactive, dead, disabled,
+  `Restart=no`, and fixes `NOTEAI_XHS_COLLECTION_SUSPENDED=1`; unit starts,
+  application-container starts and provider calls are all `0`. Six API live
+  checks passed and the installer task root is absent. No real supplier cycle
+  or public-readiness promotion was attempted.
+- Three earlier fixed-name candidates are terminal pre-mutation rejections:
+  strict-Base64 newline handling, an incorrect Docker-enabled assumption, and
+  a readonly-variable environment assignment. They made no host change and
+  are frozen against replay; the successful v4 command is also terminal and
+  must not be repeated.
+
+Item 22 is now `verified`. Internal readiness is `22/29`; complete public
+readiness is `22/38`. The active task advances immediately to Item 23,
+`PROD-XHS-TRACKING-INTERNAL-SUSPENDED-001`: install the existing Tracking role
+as one bounded default-suspended singleton without starting it or calling a
+provider.
+
+### Item 23 default-suspended Tracking singleton accepted (2026-08-10)
+
+- The bounded unit template is
+  `deploy/production/systemd/noteai-xhs-tracking.service.template`, 1,484 bytes,
+  SHA-256 `c9fcf016f375fa537725087ce8623e6f687f3c14d95db8f8d1fc5bde93229d3e`.
+  Its exact-image render is 1,732 bytes, SHA-256
+  `20997e7661381e767aaa6ad1b3dda9b04fc4d9ed5317f44108973a5d0d1e52f7`.
+  The accepted executor is 11,652 bytes, SHA-256
+  `0ad11486d3ae9c63e012c7f06fd209bb505fba9a74458e9e198fb68739094fcf`;
+  its in-memory wrapper is 6,788 bytes, SHA-256
+  `91137b81374eacfe8be3d26619c253933d18606d5633d737f376bc9c3c34444d`.
+- The sole fixed-name invocation
+  `noteai-item23-tracking-suspended-install-20260810-v1` was absent under
+  request `019FE804-FB5D-5B1C-8C83-961EEAE1CDF0`, then created command
+  `c-sz06ti422770xs0` / invocation `t-sz06ti4227m0buo`. Command read request
+  `019FE806-1C0C-593A-A532-E5D62651CBFB` and result read request
+  `019FE806-88AE-5FBB-AECC-141B55D0B027` bind one terminal
+  `Success / ExitCode=0 / Repeats=1 / Dropped=0`. Its 937-byte output has
+  SHA-256 `3d25885eaac13d7088f23ceb6f3de7658ebd9aba132287acb77271100ed01257`.
+- Exactly one managed Tracking unit is loaded from the retained immutable XHS
+  image, `/etc/noteai/xhs-tracking.env` and the existing production data path.
+  It is inactive, dead, disabled, `Restart=no`, and fixes
+  `NOTEAI_XHS_COLLECTION_SUSPENDED=1`; unit starts, application-container starts
+  and provider calls are all `0`. Six API live checks passed, the env/data
+  metadata did not drift and the installer task root is absent. No 24-hour or
+  7-day tracking cycle, database job or real XHS call was attempted.
+
+Item 23 is now `verified`. Internal readiness is `23/29`; complete public
+readiness is `23/38`. Its one accepted command is terminal/no-replay. The active
+task advances immediately to Item 24,
+`PROD-FIRST-LAUNCH-PAYMENT-INTERNAL-RUNTIME-001`: accept a dedicated isolated
+payment callback runtime that remains disabled by default and uses only the
+synthetic callback path approved by the execution baseline.
+
+### Emergency disk-reset checkpoint; Item24 cloud state reconciled (2026-08-11)
+
+- Local storage exhaustion was contained without touching the NoteAI repository,
+  `.git`, Colima, Docker volumes, credentials, configuration or production
+  material. A user-approved unencrypted ExFAT ORICO archive now contains exactly
+  174 inactive historical Codex session payloads / 31,611,483,833 bytes under an
+  independent archive root. The source and destination SHA-256 manifests are
+  byte-identical with manifest SHA-256
+  `3d5e19ebff2c3bcfe0f477d1b725fad3d7f7da22d45cbcd20b3346b433b7c7ae`;
+  the verification summary SHA-256 is
+  `04440e092e3f0a8278bea55fccb4ab2e4bb4bbc2241b0d07715d6f1ec767f3ed`.
+  Only those 174 verified source paths were individually removed. All sessions
+  modified in the last seven days, both process-open NoteAI parent threads and
+  all 219 sessions in their descendant graph were excluded. The resulting
+  49,254,187,008 available local bytes were accepted by the user as sufficient,
+  and no further local cleanup is authorized or required.
+- Git remains on `codex/quality-stabilization-real-chain` at pre-checkpoint HEAD
+  `9d8e0683b76c82dab0a172ba9b93feae02ce78d0`, three commits ahead of its
+  upstream before this emergency checkpoint. `git diff --check`, readiness JSON
+  parsing and a high-confidence dirty-file Secret scan passed. No full or
+  focused test suite was rerun during the storage emergency; readiness receives
+  no credit from this checkpoint.
+- Fresh native cloud reads prove the retained Item24 builder was `Running`, its
+  Cloud Assistant was online with active-task count `0`, and the exact temporary
+  pull role remained attached. Exact-name reads for the planned API-C keygen,
+  builder credential broker and API-C fixed-digest pull each returned count `0`.
+  Therefore no Item24 credential was issued and no payment image pull was
+  dispatched before the interruption. One graceful `StopCharging` request was
+  opened only after those zero-state reads, but it is currently held at Alibaba
+  Cloud security verification with no native service result. It must not be
+  clicked or submitted again; after the user completes that existing verification,
+  reconcile only by native instance readback.
+
+Readiness remains exactly internal `23/29`, public `23/38`; Item24 remains the
+unique active item. Items21-23 and every terminal production action remain
+no-replay. Resume Item24 from the accepted immutable payment-image transport
+boundary only after the existing builder-stop verification/readback is closed.

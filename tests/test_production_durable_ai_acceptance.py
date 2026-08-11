@@ -142,7 +142,7 @@ class ProductionDurableAiAcceptanceTests(unittest.TestCase):
             "claim_count": 1,
             "provider_attempt_count": 0,
             "billing_state": "charged",
-            "outbox_state": "delivered",
+            "outbox_delivery_proven": True,
             "claimed_event_count": 1,
             "takeover_event_count": 0,
             "progress_event_count": 1,
@@ -214,7 +214,6 @@ class ProductionDurableAiAcceptanceTests(unittest.TestCase):
                         "request_ref_id": request_ref_id,
                         "payload_state": "ready",
                         "purpose": "request",
-                        "outbox_state": "pending",
                     },
                 ),
             ),
@@ -223,6 +222,66 @@ class ProductionDurableAiAcceptanceTests(unittest.TestCase):
         self.assertEqual(result["status"], "admission_resolved")
         self.assertEqual(result["operation_id"], operation_id)
         self.assertTrue(result["read_only"])
+
+    def test_snapshot_uses_worker_claim_as_outbox_delivery_proof(self):
+        nonce = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
+        user_id = "00000000-0000-4000-8000-000000000101"
+        operation_id = "00000000-0000-4000-8000-000000000117"
+        with (
+            mock.patch.object(
+                acceptance,
+                "_identity",
+                return_value=(user_id, operation_id),
+            ),
+            mock.patch.object(acceptance, "_require_context"),
+            mock.patch.object(
+                acceptance.durable_ai,
+                "status_for_user",
+                return_value={"billing_state": "charged"},
+            ),
+            mock.patch.object(
+                acceptance.durable_ai,
+                "events_for_user",
+                return_value=[
+                    {"event_type": "claimed"},
+                    {"event_type": "progress"},
+                ],
+            ),
+            mock.patch.object(
+                acceptance.db,
+                "fetchone",
+                side_effect=(
+                    {
+                        "status": "running",
+                        "provider_phase": "not_started",
+                        "claim_count": 1,
+                        "provider_attempt_count": 0,
+                        "subject_hash": "a" * 64,
+                    },
+                    {
+                        "idempotency_request_id": "request-id",
+                        "idempotency_status": "running",
+                        "refund_applied": 0,
+                        "failure_code": "",
+                        "usage_id": "usage-id",
+                        "charge_source": "subscription",
+                        "monthly_credits_used": 6,
+                        "wallet_credits_used": 0,
+                        "usage_source": "subscription",
+                        "usage_credits_used": 6,
+                        "subscription_used_monthly_credits": 6,
+                        "request_ref_id": "request-ref-id",
+                    },
+                ),
+            ) as fetchone,
+        ):
+            result = acceptance._snapshot(nonce)
+        self.assertTrue(result["outbox_delivery_proven"])
+        self.assertEqual(result["claimed_event_count"], 1)
+        self.assertNotIn(
+            "ai_operation_outbox",
+            " ".join(call.args[0] for call in fetchone.call_args_list),
+        )
 
     def test_resolve_admission_classifies_user_only_partial_state(self):
         nonce = "57c14a47-f10d-4bac-8456-34cf10e6e88d"
@@ -405,7 +464,6 @@ class ProductionDurableAiAcceptanceTests(unittest.TestCase):
                         "request_ref_id": request_ref_id,
                         "request_ref_state": "deleted",
                         "deleted_at": "2026-08-08T00:00:00+00:00",
-                        "outbox_state": "delivered",
                     },
                     {
                         "id": deletion_id,

@@ -35,7 +35,7 @@ API_ENV = Path("/etc/noteai/api.env")
 STORAGE_ENV = Path("/etc/noteai/private-storage.env")
 CONTROLLER_SOURCE = ROOT / "deploy" / "production" / "durable_ai_acceptance.py"
 CONTROLLER_SHA256 = (
-    "d7053597fbe60ebab78624b7cdaa74d19804f1a492afb8d679c2b700337eac1b"
+    "5897aed7ae8cce032c4b5cb57dcebf49a43e5f9aa5891f704f89c32360368b74"
 )
 CONTAINER_NAME = "noteai-durable-ai-acceptance-controller"
 LOCK_PATH = Path("/run/lock/noteai-durable-ai-controller.lock")

@@ -291,6 +291,75 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         self.assertNotIn('restart: "on-failure', tracking)
         self.assertIn("--healthcheck", tracking)
 
+    def test_trends_systemd_template_is_bounded_and_default_suspended(self):
+        unit = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "systemd"
+            / "noteai-xhs-trends.service.template"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(unit.count("@@NOTEAI_XHS_IMAGE@@"), 2)
+        self.assertIn("--name=noteai-xhs-trends", unit)
+        self.assertIn("--label=com.noteai.service=noteai-xhs-trends", unit)
+        self.assertIn("--pull=never", unit)
+        self.assertIn("--user=999:999", unit)
+        self.assertIn("--read-only", unit)
+        self.assertIn("--cap-drop=ALL", unit)
+        self.assertIn("--security-opt=no-new-privileges:true", unit)
+        self.assertIn("--memory=512m", unit)
+        self.assertIn("--cpus=0.50", unit)
+        self.assertIn("--pids-limit=64", unit)
+        self.assertIn("--env-file=/etc/noteai/xhs-trends.env", unit)
+        self.assertIn("--env=NOTEAI_RUNTIME_ROLE=xhs-http", unit)
+        self.assertIn("--env=NOTEAI_XHS_SERVICE=trends", unit)
+        self.assertIn("--env=NOTEAI_XHS_COLLECTION_SUSPENDED=1", unit)
+        self.assertIn("python market_timing_worker.py --daemon --interval 360", unit)
+        self.assertIn("Restart=no", unit)
+        self.assertNotIn("Restart=always", unit)
+        self.assertNotIn("Restart=on-failure", unit)
+        self.assertNotIn("WantedBy=default.target", unit)
+        self.assertNotIn("EnvironmentFile=", unit)
+
+    def test_tracking_systemd_template_is_bounded_and_default_suspended(self):
+        unit = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "systemd"
+            / "noteai-xhs-tracking.service.template"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(unit.count("@@NOTEAI_XHS_IMAGE@@"), 2)
+        self.assertIn("--name=noteai-xhs-tracking", unit)
+        self.assertIn("--label=com.noteai.service=noteai-xhs-tracking", unit)
+        self.assertIn("--pull=never", unit)
+        self.assertIn("--user=999:999", unit)
+        self.assertIn("--read-only", unit)
+        self.assertIn("--cap-drop=ALL", unit)
+        self.assertIn("--security-opt=no-new-privileges:true", unit)
+        self.assertIn("--memory=256m", unit)
+        self.assertIn("--cpus=0.25", unit)
+        self.assertIn("--pids-limit=64", unit)
+        self.assertIn(
+            "--mount=type=bind,src=/var/lib/noteai/data,dst=/app/model/data",
+            unit,
+        )
+        self.assertIn("--env-file=/etc/noteai/xhs-tracking.env", unit)
+        self.assertIn("--env=NOTEAI_RUNTIME_ROLE=xhs-http", unit)
+        self.assertIn("--env=NOTEAI_XHS_SERVICE=tracking", unit)
+        self.assertIn("--env=NOTEAI_XHS_COLLECTION_SUSPENDED=1", unit)
+        self.assertIn(
+            "python crawler_worker.py --loop --interval-minutes 60 --limit 50",
+            unit,
+        )
+        self.assertIn("Restart=no", unit)
+        self.assertNotIn("Restart=always", unit)
+        self.assertNotIn("Restart=on-failure", unit)
+        self.assertNotIn("WantedBy=default.target", unit)
+        self.assertNotIn("EnvironmentFile=", unit)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-08-09",
+  "as_of_date": "2026-08-10",
   "status_values": [
     "verified",
     "unverified",
@@ -3398,7 +3398,7 @@
         {
           "id": "durable_ai_workers",
           "title": "Managed publisher, dispatcher and AI Worker recovery chain",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "private_storage_runtime",
             "production_schema_roles",
@@ -3498,10 +3498,9 @@
               "ref": ".codex/notes/risk-register.md"
             }
           ],
-            "blocker": "Immutable C17 commit cad5ce35664f617c6e19f90a6159285ddf975594, native workflow run 31017791512, GitHub artifact digest sha256:281f208b3047fbff6dddb0fe0de3065203f1b507ca0f6a71381880f306390949, ACR manifest sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b and config sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95 remain fixed. Stage A/B, exact-one publication, fresh import, executor CI/gate, API health, private storage, PostPaid capacity, independent Worker IAM, Worker Docker bootstrap, all three fixed-digest C17 transports and temporary broker cleanup remain accepted. Host-bound encrypted Worker Secret delivery is terminal accepted on Worker-C and Worker-F; its API-C Worker-Secret source/tool/envelope namespace is clean. API-C has now also passed the separate C17 native-user runtime preflight and the accepted f1a5cc six-file protected-control source-closure preflight under root with only DAC_READ_SEARCH, network disabled and zero database connections, writes or Secret reads. The protected-control source root and transfer archive are intentionally retained through Dispatcher terminal acceptance and then terminal cleanup; they are not Worker-Secret residue. Item 21 still requires API-C control key and encrypted task-account envelope preparation, a fresh exact-account absence read, exact-one temporary RDS task account creation, protected schema preflight/apply/verify, Dispatcher LOGIN/managed-Secret activation, exact default-suspended units, provider-free cross-host fenced takeover and terminal cleanup. Do not repeat either accepted runtime/source preflight, its SendFile, any Worker Secret command, any C17 broker/pull/baseline/bootstrap, Stage A/B/fresh import, CI/full gate, or create V18/R17/custom ledger/receipt/topology controls.",
           "latest_reconciliation": {
-            "as_of": "2026-08-09",
-            "status": "protected_control_runtime_source_preflight_complete_0017_preparation_required",
+            "as_of": "2026-08-10",
+            "status": "terminal_verified",
             "native_vulnerability_diagnostic_invocation": "t-sz06t821muvmkg0",
             "native_vulnerability_diagnostic_command": "c-sz06t821mue5a0w",
             "native_vulnerability_diagnostic_repeats": 1,
@@ -5273,10 +5272,10 @@
               "c17_transport_host_complete_count": 3,
               "c17_transport_complete": true,
               "host_runtime_baseline_complete": true,
-              "production_migration_0017_complete": false,
-              "dispatcher_secret_complete": false,
-              "units_complete": false,
-              "fenced_takeover_complete": false,
+              "production_migration_0017_complete": true,
+              "dispatcher_secret_complete": true,
+              "units_complete": true,
+              "fenced_takeover_complete": true,
               "noteai_task_data_or_service_mutations": 0,
               "database_connections": 0,
               "database_writes": 0,
@@ -5416,33 +5415,393 @@
               "production_migration_0017_complete": false,
               "readiness_credit_added": false
             },
-            "next_hard_condition": "The API-C native runtime and accepted f1a5cc six-file protected-control source closure have terminal read-only PASS evidence and must not be repeated; the protected source root and transfer archive are intentionally retained. The unique next serial stage is protected migration 0017 preparation: first generate one API-C root-only RSA control key and safely materialize a matching encrypted task-account DSN envelope without persisting plaintext, then refresh the native RDS private/running/backup and exact task-account absence baseline, create the exact temporary RDS task account once and read back the expected 9 total / 2 Super / 1 task-account state. Only then run a new read-only protected schema preflight, the exact-once schema apply with confirmation PROD-FIRST-LAUNCH-DURABLE-AI-PROTECTED-CONTROL-001, and an independent read-only schema verify. Any account or apply response ambiguity permits only original-request/native inventory or read-only verification, never mutation replay. Retain the task account, key, envelope, source root and transfer archive through Dispatcher terminal acceptance and then terminal cleanup; then continue default-suspended units and provider-free C-to-F fenced takeover."
-          },
-          "next_task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001"
+            "production_terminal_acceptance": {
+              "status": "PASS",
+              "incident_class": "CONNECTED_KNOWN_COMMITTED",
+              "as_of_utc": "2026-08-09T18:12:40Z",
+              "source_hotfixes": {
+                "schema_0017_bytes": 15999,
+                "schema_0017_sha256": "023a390a124fbcfff399a1ff34e2e3172e8b81e2b02e8a53041862feab4e0a78",
+                "acceptance_bytes": 29996,
+                "acceptance_sha256": "5897aed7ae8cce032c4b5cb57dcebf49a43e5f9aa5891f704f89c32360368b74",
+                "acceptance_controller_runner_sha256": "279939f6e8db5f41a7baf8dc0d7bcc6e5ab6e4a794faf037978c306f540e8504",
+                "focused_tests_passed": 33,
+                "focused_tests_failed": 0,
+                "py_compile": "pass",
+                "database_calls_from_local_tests": 0
+              },
+              "schema_0017": {
+                "preflight": {
+                  "command_id": "c-sz06theq64cxx4w",
+                  "invoke_id": "t-sz06theq64uf7k0",
+                  "result_request_id": "019FE7DA-AF5B-5F37-9256-DC7D9F84A73C",
+                  "status": "READ_ONLY_VERIFIED",
+                  "exit_code": 0,
+                  "repeats": 1,
+                  "dropped": 0,
+                  "ledger_count": 16,
+                  "ledger_last": "0016",
+                  "database_writes": 0,
+                  "output_bytes": 531,
+                  "output_sha256": "cdcfca6d6489567f3e0a6d4ea4369392b449d3bc6a8f0907dcefc81430850a3f"
+                },
+                "apply": {
+                  "command_id": "c-sz06thjmfjm6kn4",
+                  "invoke_id": "t-sz06thjmfk3nv28",
+                  "result_request_id": "019FE7DA-C037-58A0-9FFB-36B69C31FE86",
+                  "status": "COMMITTED",
+                  "exit_code": 0,
+                  "repeats": 1,
+                  "dropped": 0,
+                  "ledger_count": 17,
+                  "ledger_last": "0017",
+                  "migration_ledger_writes": 1,
+                  "business_row_updates": 0,
+                  "prompt_row_updates": 0,
+                  "output_bytes": 565,
+                  "output_sha256": "4f455a86a40fb68f7a186353ff7974ff13e1a1c6aed66084bfa3320b1215f61f"
+                },
+                "verify": {
+                  "command_id": "c-sz06thjsq414s1s",
+                  "invoke_id": "t-sz06thjsq4g464g",
+                  "result_request_id": "019FE7DA-D07A-55A8-A711-2EB54DFBA995",
+                  "status": "READ_ONLY_VERIFIED",
+                  "exit_code": 0,
+                  "repeats": 1,
+                  "dropped": 0,
+                  "ledger_count": 17,
+                  "ledger_last": "0017",
+                  "database_writes": 0,
+                  "output_bytes": 532,
+                  "output_sha256": "d7b6fc7ff14c6fd8841a596552381ad07cf220ba676497033e7d7ce67c52f2cd"
+                },
+                "production_migration_0017_complete": true,
+                "automatic_retry_count": 0
+              },
+              "dispatcher_activation": {
+                "preflight_command_id": "c-sz06thljj4dx3pc",
+                "preflight_invoke_id": "t-sz06thljj4lesqo",
+                "preflight_result_request_id": "019FE7DA-E1CF-5E2E-9425-B702D3A2655C",
+                "preflight_status": "READ_ONLY_VERIFIED",
+                "preflight_database_writes": 0,
+                "apply_command_id": "c-sz06thlrrkplfcw",
+                "apply_invoke_id": "t-sz06thlrrl4ktfk",
+                "apply_result_request_id": "019FE7DA-F27B-58A1-AF2E-EEBEFD42E362",
+                "apply_status": "ACTIVATED",
+                "dispatcher_login": true,
+                "role_attribute_writes": 1,
+                "login_credential_writes": 1,
+                "membership_writes": 0,
+                "acl_writes": 0,
+                "schema_writes": 0,
+                "business_row_writes": 0,
+                "dispatcher_file_count": 1,
+                "verify_result_command_id": "c-sz06thmelnk2t4w",
+                "verify_result_invoke_id": "t-sz06thmelnz277k",
+                "verify_result_request_id": "019FE7DB-032B-51D9-97B1-B02EE82ECE26",
+                "verify_status": "verified",
+                "verify_forced_read_only": true,
+                "verify_secret_values_emitted": 0,
+                "cleanup_command_id": "c-sz06thmkwnuvta8",
+                "cleanup_invoke_id": "t-sz06thmkwo2dibk",
+                "cleanup_result_request_id": "019FE7DB-2705-505B-8A69-92DEB5B3A561",
+                "task_root_residue": 0,
+                "control_container_residue": 0,
+                "dispatcher_secret_complete": true,
+                "automatic_retry_count": 0
+              },
+              "formal_default_suspended_units": {
+                "api_c": {
+                  "command_id": "c-sz06tho0qiofh1c",
+                  "invoke_id": "t-sz06tho0qiyf2f4",
+                  "result_request_id": "019FE7DB-8B7C-58F5-901E-3F26B8B7AE73",
+                  "output_sha256": "0e9f31312cbeed0523a5f256027db14dae2c0023f16c33e52cb201678ff51c08"
+                },
+                "worker_c": {
+                  "command_id": "c-sz06tho7wbv5jpc",
+                  "invoke_id": "t-sz06tho7wc55534",
+                  "result_request_id": "019FE7DB-9C18-53B4-A210-A901F7128B5A",
+                  "output_sha256": "de0f12dc03bee444b6e00cac8d20a8e2e7040aeb6ba8ac97dfa5f36bb3194435"
+                },
+                "worker_f": {
+                  "command_id": "c-sz06tho9tl8asqo",
+                  "invoke_id": "t-sz06tho9tliae4g",
+                  "result_request_id": "019FE7DB-ACCB-52E4-B3AE-831B6EB02B27",
+                  "output_sha256": "c3a57eea3a3b1bbcb9092cbe0423eb80689da5d661c157cbfc384934c50335b0"
+                },
+                "installed_unit_count": 3,
+                "active_unit_count": 0,
+                "enabled_unit_count": 0,
+                "service_start_count": 0,
+                "container_start_count": 0,
+                "provider_call_count": 0,
+                "units_complete": true
+              },
+              "provider_free_fenced_takeover": {
+                "acceptance_source_command_id": "c-sz06thv19i9v5s0",
+                "acceptance_source_invoke_id": "t-sz06thv19ioujuo",
+                "acceptance_source_result_request_id": "019FE7E0-438A-5781-8499-FA6668F2023D",
+                "terminal_command_id": "c-sz06thvi8wco0sg",
+                "terminal_invoke_id": "t-sz06thvi8wu5b7k",
+                "terminal_result_request_id": "019FE7DB-BD81-5EAA-809E-632E4E7DDEB4",
+                "terminal_output_bytes": 1383,
+                "terminal_output_sha256": "8b72d76040e14a4033df0f22589ddeab09f41b2b556e6d8cf1818ddbb9b3d37b",
+                "claim_count": 2,
+                "claimed_event_count": 1,
+                "takeover_event_count": 1,
+                "progress_event_count": 2,
+                "outbox_delivery_proven": true,
+                "provider_attempt_count": 0,
+                "provider_call_count": 0,
+                "failure_code": "worker_failed",
+                "billing_state": "refunded",
+                "refund_applied": 1,
+                "usage_credits_used": 0,
+                "subscription_used_monthly_credits": 0,
+                "primary_delete_command_id": "c-sz06thvnxnejchs",
+                "primary_delete_invoke_id": "t-sz06thvnxnw0mww",
+                "primary_delete_result_request_id": "019FE7DB-CE56-5C07-80BF-95ACDD982AC1",
+                "external_payload_residue_count": 0,
+                "primary_user_residue_count": 0,
+                "admission_residue_count": 0,
+                "idempotency_residue_count": 0,
+                "pseudonymous_audit_retained": true,
+                "fenced_takeover_complete": true
+              },
+              "acceptance_unit_cleanup": {
+                "api_c_command_id": "c-sz06thwogike41s",
+                "api_c_invoke_id": "t-sz06thwogj1vegw",
+                "worker_c_command_id": "c-sz06thwioicsb9c",
+                "worker_c_invoke_id": "t-sz06thwioika0ao",
+                "worker_f_command_id": "c-sz06thwldoz2fwg",
+                "worker_f_invoke_id": "t-sz06thwldpe1tz4",
+                "acceptance_unit_residue": 0,
+                "acceptance_container_residue": 0,
+                "formal_units_unchanged": true
+              },
+              "temporary_task_account_cleanup": {
+                "pre_create_total_accounts": 8,
+                "pre_create_super_accounts": 1,
+                "pre_create_exact_task_accounts": 0,
+                "post_create_total_accounts": 9,
+                "post_create_super_accounts": 2,
+                "post_create_exact_task_accounts": 1,
+                "post_create_task_account_status": "Available",
+                "provider_create_request_count": 1,
+                "provider_create_retry_count": 0,
+                "delete_request_id": "019FE7BF-5EA6-5EE8-8642-73E5020A45E8",
+                "final_read_request_id": "019FE7C0-1695-527F-A321-A7B75995FA97",
+                "final_total_accounts": 9,
+                "final_available_accounts": 9,
+                "final_super_accounts": 1,
+                "final_exact_task_accounts": 0,
+                "final_dispatcher_accounts": 1,
+                "cleanup_complete": true
+              },
+              "terminal_host_material_cleanup": {
+                "command_name": "noteai-item21-0017-terminal-host-cleanup-20260810-v3",
+                "raw_executor_bytes": 13863,
+                "raw_executor_sha256": "41ab2c3b2be1f389bcd42c1352653a4b23677e581ac15a05da3b97ed4f649961",
+                "in_memory_wrapper_bytes": 5579,
+                "in_memory_wrapper_sha256": "e587c47848ce93a00fc65bef1ba06d6af67697a497ada8717dc61015aa5101eb",
+                "pre_submit_name_absence_request_id": "019FE7D3-A27A-591C-98B6-92E504745F73",
+                "command_id": "c-sz06thz78475jpc",
+                "invoke_id": "t-sz06thz784omu4g",
+                "result_request_id": "019FE7D4-7D1F-5484-9B6F-F1EC9C863B04",
+                "exact_one_readback_request_id": "019FE7D4-2D6D-5652-A32A-4535778494B7",
+                "exact_name_invocation_count": 1,
+                "terminal_success_count": 1,
+                "exit_code": 0,
+                "repeats": 1,
+                "dropped": 0,
+                "output_bytes": 465,
+                "output_sha256": "850475b3c7a03e8952553c910bdf240dc2ee1a55c04a03dc1329fc9224d26b60",
+                "known_pre_mutation_rejections": 2,
+                "terminal_mutation_submission_count": 1,
+                "control_key_residue": 0,
+                "control_envelope_residue": 0,
+                "source_root_residue": 0,
+                "transfer_archive_residue": 0,
+                "acceptance_source_residue": 0,
+                "recovery_namespace_residue": 0,
+                "task_root_residue": 0,
+                "database_connections": 0,
+                "database_writes": 0,
+                "formal_units_changed": 0,
+                "private_key_reads": 0,
+                "ciphertext_reads": 0,
+                "cleanup_complete": true,
+                "automatic_retry_allowed": false
+              },
+              "production_migration_0017_complete": true,
+              "dispatcher_secret_complete": true,
+              "units_complete": true,
+              "fenced_takeover_complete": true,
+              "terminal_cleanup_complete": true,
+              "readiness_credit_added": true
+            }
+          }
         },
         {
           "id": "trends_suspended_runtime",
           "title": "Default-suspended Trends managed singleton baseline",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "production_schema_roles",
             "immutable_release_candidate"
           ],
-          "evidence": [],
-          "blocker": "Trends is stopped and has not been promoted as a bounded managed singleton.",
-          "next_task": "PROD-XHS-TRENDS-INTERNAL-SUSPENDED-001"
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": "docs/XHS_TRENDS_PRODUCTION_CONTRACT.md"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/docker-compose.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/systemd/noteai-xhs-trends.service.template"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_trends_contract.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_production_runtime_hardening.py"
+            },
+            {
+              "kind": "path",
+              "ref": ".codex/handoffs/current-task.md"
+            }
+          ],
+          "production_acceptance": {
+            "as_of": "2026-08-10",
+            "status": "PASS",
+            "incident_class": "CONNECTED_KNOWN_COMMITTED",
+            "task_id": "PROD-XHS-TRENDS-INTERNAL-SUSPENDED-001",
+            "host_label": "API-F",
+            "template_bytes": 1481,
+            "template_sha256": "9eb5daf275bb29f10a4fd0c17f0929bd752269b372af0ea91548c514b8c781ac",
+            "rendered_unit_bytes": 1729,
+            "rendered_unit_sha256": "3557cfa0e15cd12d676ef652f8436a6d37ee9bb9490b6f90a886a75e7571fcd6",
+            "executor_bytes": 11392,
+            "executor_sha256": "ad1e5e64e435b5438d8971fcec4b5058a8b973b132f1aec9ab0c4c16e1a61936",
+            "wrapper_bytes": 6712,
+            "wrapper_sha256": "dcfa7ab6e7241fd572cd92c5ad4da38db26ca7a6940b3ae26b3820e3364b6a0c",
+            "command_name": "noteai-item22-trends-suspended-install-20260810-v4",
+            "exact_name_absence_request_id": "019FE7F7-3D31-5317-B180-A34A8CBE719A",
+            "command_read_request_id": "019FE7F7-F3BC-5643-A112-0A059C9AE53C",
+            "command_id": "c-sz06ti2od87yww0",
+            "invocation_id": "t-sz06ti2od8myayo",
+            "result_read_request_id": "019FE7F8-24A9-5FAF-922C-A8DDE97B0FA5",
+            "start_utc": "2026-08-09T19:19:54Z",
+            "finish_utc": "2026-08-09T19:19:54Z",
+            "exit_code": 0,
+            "repeats": 1,
+            "dropped": 0,
+            "output_bytes": 935,
+            "output_sha256": "64d5e920ed2eab109e463024cceb68c0ac07c5f5c132b6b0cd0ae430faaadc5c",
+            "image_manifest": "sha256:452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af",
+            "image_config": "sha256:5b44114d4bd9c28a8e93c39140466c542e8babeead038fb0d1cfe45c3cd75966",
+            "managed_singleton_count": 1,
+            "unit_active": false,
+            "unit_enabled": false,
+            "restart_policy": "no",
+            "collection_suspended": true,
+            "unit_start_count": 0,
+            "application_container_start_count": 0,
+            "provider_call_count": 0,
+            "api_live_checks": 6,
+            "task_root_residue": 0,
+            "pre_mutation_rejections": [
+              "strict_base64_trailing_newline",
+              "docker_service_enabled_state_assumption",
+              "readonly_environment_assignment"
+            ],
+            "pre_mutation_rejection_count": 3,
+            "pre_mutation_host_changes": 0,
+            "automatic_retry_allowed": false,
+            "readiness_credit_added": true
+          }
         },
         {
           "id": "tracking_suspended_runtime",
           "title": "Default-suspended Tracking managed singleton baseline",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "production_schema_roles",
             "immutable_release_candidate"
           ],
-          "evidence": [],
-          "blocker": "Tracking is stopped and has no independent managed-runtime acceptance.",
-          "next_task": "PROD-XHS-TRACKING-INTERNAL-SUSPENDED-001"
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": "docs/XHS_TRACKING_PRODUCTION_CONTRACT.md"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/docker-compose.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/systemd/noteai-xhs-tracking.service.template"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_tracking_contract.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_production_runtime_hardening.py"
+            },
+            {
+              "kind": "path",
+              "ref": ".codex/handoffs/current-task.md"
+            }
+          ],
+          "production_acceptance": {
+            "as_of": "2026-08-10",
+            "status": "PASS",
+            "incident_class": "CONNECTED_KNOWN_COMMITTED",
+            "task_id": "PROD-XHS-TRACKING-INTERNAL-SUSPENDED-001",
+            "host_label": "API-F",
+            "template_bytes": 1484,
+            "template_sha256": "c9fcf016f375fa537725087ce8623e6f687f3c14d95db8f8d1fc5bde93229d3e",
+            "rendered_unit_bytes": 1732,
+            "rendered_unit_sha256": "20997e7661381e767aaa6ad1b3dda9b04fc4d9ed5317f44108973a5d0d1e52f7",
+            "executor_bytes": 11652,
+            "executor_sha256": "0ad11486d3ae9c63e012c7f06fd209bb505fba9a74458e9e198fb68739094fcf",
+            "wrapper_bytes": 6788,
+            "wrapper_sha256": "91137b81374eacfe8be3d26619c253933d18606d5633d737f376bc9c3c34444d",
+            "command_name": "noteai-item23-tracking-suspended-install-20260810-v1",
+            "exact_name_absence_request_id": "019FE804-FB5D-5B1C-8C83-961EEAE1CDF0",
+            "command_read_request_id": "019FE806-1C0C-593A-A532-E5D62651CBFB",
+            "command_id": "c-sz06ti422770xs0",
+            "invocation_id": "t-sz06ti4227m0buo",
+            "result_read_request_id": "019FE806-88AE-5FBB-AECC-141B55D0B027",
+            "start_utc": "2026-08-09T19:35:22Z",
+            "finish_utc": "2026-08-09T19:35:23Z",
+            "exit_code": 0,
+            "repeats": 1,
+            "dropped": 0,
+            "output_bytes": 937,
+            "output_sha256": "3d25885eaac13d7088f23ceb6f3de7658ebd9aba132287acb77271100ed01257",
+            "image_manifest": "sha256:452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af",
+            "image_config": "sha256:5b44114d4bd9c28a8e93c39140466c542e8babeead038fb0d1cfe45c3cd75966",
+            "managed_singleton_count": 1,
+            "unit_active": false,
+            "unit_enabled": false,
+            "restart_policy": "no",
+            "collection_suspended": true,
+            "unit_start_count": 0,
+            "application_container_start_count": 0,
+            "provider_call_count": 0,
+            "api_live_checks": 6,
+            "task_root_residue": 0,
+            "automatic_retry_allowed": false,
+            "readiness_credit_added": true
+          }
         },
         {
           "id": "payment_internal_runtime",
