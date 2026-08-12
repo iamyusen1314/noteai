@@ -135,6 +135,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 ACCOUNT="noteai_item26_source_read_20260811_v2"; ROLE="noteai-storage-api-20260729-c60cc608"; RELEASE="cad5ce35664f617c6e19f90a6159285ddf975594"
 OWNER="noteai_admin"; MANAGED="pg_rds_superuser"
+IMPORT_GUARD_DATABASE_URL="postgresql:///noteai_item26_import_guard"
 QUERY=frozenset({"sslmode","connect_timeout","target_session_attrs","channel_binding","keepalives","keepalives_idle","keepalives_interval","keepalives_count","tcp_user_timeout"})
 STORAGE=frozenset({"NOTEAI_PRIVATE_STORAGE_BACKEND","NOTEAI_OSS_PRIVATE_BUCKET","NOTEAI_OSS_REGION","NOTEAI_OSS_ENDPOINT","NOTEAI_OSS_RAM_ROLE","NOTEAI_PRIVATE_STORAGE_KEY_EPOCH","NOTEAI_OSS_KEY_PREFIX"})
 TABLES=("account_deletion_requests","admin_sessions","ai_dispatch_state","ai_operation_admissions","ai_operation_events","ai_operation_media_refs","ai_operation_outbox","ai_operation_settlements","ai_operations","ai_payload_refs","ai_provider_attempts","analysis_log","auth_login_limits","auth_verification_challenges","chat_sessions","content_retention","crawler_events","credit_transactions","credits","growth_records","hot_keywords","idempotency_requests","keyword_snapshots","managed_prompts","model_usage_records","notes","payment_cash_ledger","payment_credit_consumptions","payment_credit_positions","payment_entitlement_ledger","payment_events","payment_orders","payment_reconciliation_items","payment_reconciliation_runs","payment_refunds","payment_settlement_summaries","private_media_refs","prompt_history","saved_diagnoses","schema_migrations","subscriptions","system_settings","tracked_notes","tracking_provider_attempts","usage_records","user_contract_acceptances","user_learn","user_memories","user_sessions","users","xhs_crawler_health","xhs_freshness_ledger","xhs_trends_provider_attempts","xhs_trends_runs","xhs_trends_service_state","xhs_trends_snapshot_evidence")
@@ -268,6 +269,17 @@ FROM base_tables
     ledger=[dict(row) for row in connection.execute("SELECT version,sha256 FROM schema_migrations ORDER BY version").fetchall()]
     if ledger!=migrations: raise Fixed("migrations")
 
+def runtime_modules():
+    os.environ["DATABASE_URL"]=IMPORT_GUARD_DATABASE_URL
+    try:
+        sys.path.insert(0,"/app/model")
+        import private_storage, storage_recovery_evidence as recovery, psycopg
+        from psycopg.rows import dict_row
+        from psycopg.pq import TransactionStatus
+    finally:
+        os.environ.pop("DATABASE_URL",None)
+    return private_storage,recovery,psycopg,dict_row,TransactionStatus
+
 def write_once(body):
     fd=os.open("/output/source-manifest.json",os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
     try:
@@ -298,10 +310,7 @@ def main():
     for name in list(os.environ):
         if name.startswith(("ALIBABA_CLOUD_","ALICLOUD_","OSS_","PG")) or name=="DATABASE_URL": os.environ.pop(name,None)
     os.environ.update(storage)
-    sys.path.insert(0,"/app/model")
-    import private_storage, storage_recovery_evidence as recovery, psycopg
-    from psycopg.rows import dict_row
-    from psycopg.pq import TransactionStatus
+    private_storage,recovery,psycopg,dict_row,TransactionStatus=runtime_modules()
     if not private_storage.configure_from_environment(): raise Fixed("backend")
     migrations=[]
     for path in sorted(Path("/app/model/migrations/postgres").glob("*.sql")):

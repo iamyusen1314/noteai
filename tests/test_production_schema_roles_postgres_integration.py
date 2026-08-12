@@ -3,6 +3,9 @@ import hashlib
 import os
 import pathlib
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 
 import psycopg
@@ -85,6 +88,171 @@ def _expected_rls_tables_from_migrations():
         enabled.update(match.lower() for match in enable_pattern.findall(source))
         forced.update(match.lower() for match in force_pattern.findall(source))
     return tuple(sorted(enabled)), tuple(sorted(forced))
+
+
+class Item26SourceManifestImportGuardTests(unittest.TestCase):
+    def test_runtime_import_guard_prevents_sqlite_initialization(self):
+        repository_root = pathlib.Path(__file__).resolve().parents[1]
+        probe = r'''
+import ast
+import os
+import pathlib
+import re
+import sqlite3
+import sys
+
+template_path = pathlib.Path(sys.argv[1])
+repository_root = pathlib.Path(sys.argv[2])
+sqlite_path = pathlib.Path(sys.argv[3])
+source = template_path.read_text(encoding="utf-8")
+match = re.search(
+    r'cat >"\$DRIVER_PATH" <<\'PY\'\n(.*?)\nPY\n',
+    source,
+    re.DOTALL,
+)
+if match is None:
+    raise SystemExit(11)
+tree = ast.parse(match.group(1))
+selected = []
+for node in tree.body:
+    if (
+        isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Name)
+            and target.id == "IMPORT_GUARD_DATABASE_URL"
+            for target in node.targets
+        )
+    ) or (
+        isinstance(node, ast.FunctionDef)
+        and node.name == "runtime_modules"
+    ):
+        selected.append(node)
+module = ast.Module(body=selected, type_ignores=[])
+namespace = {"os": os, "sys": sys}
+exec(compile(module, str(template_path), "exec"), namespace)
+if namespace.get("IMPORT_GUARD_DATABASE_URL") != (
+    "postgresql:///noteai_item26_import_guard"
+):
+    raise SystemExit(12)
+os.environ.pop("DATABASE_URL", None)
+os.environ["NOTEAI_SQLITE_PATH"] = str(sqlite_path)
+sys.path.insert(0, str(repository_root / "model"))
+modules = namespace["runtime_modules"]()
+if len(modules) != 5:
+    raise SystemExit(13)
+if "DATABASE_URL" in os.environ:
+    raise SystemExit(14)
+if sqlite_path.exists():
+    raise SystemExit(15)
+database_module = sys.modules.get("db")
+if database_module is None or database_module.using_postgres():
+    raise SystemExit(16)
+if pathlib.Path(database_module._DB_PATH) != sqlite_path:
+    raise SystemExit(17)
+private_storage, recovery, psycopg, _dict_row, _transaction_status = modules
+blocked_calls = []
+def blocked(name):
+    def fail(*_args, **_kwargs):
+        blocked_calls.append(name)
+        raise AssertionError(name)
+    return fail
+sqlite3.connect = blocked("sqlite3.connect")
+psycopg.connect = blocked("psycopg.connect")
+for name in (
+    "transaction",
+    "get_conn",
+    "_get_sqlite_conn",
+    "_get_postgres_conn",
+):
+    setattr(database_module, name, blocked("db." + name))
+
+class EmptyCursor:
+    def fetchall(self):
+        return []
+
+class EmptyConnection:
+    def __init__(self):
+        self.execute_count = 0
+    def execute(self, _statement, _parameters=()):
+        self.execute_count += 1
+        return EmptyCursor()
+
+class EmptyBackend:
+    def list(self, _prefix, *, limit, cursor=None):
+        if not 1 <= limit <= private_storage.MAX_OBJECT_LIST_LIMIT:
+            raise AssertionError("limit")
+        if cursor is not None:
+            raise AssertionError("cursor")
+        return [], None
+
+connection = EmptyConnection()
+adapter = type(
+    "Adapter",
+    (),
+    {
+        "postgres": True,
+        "fetchall": lambda self, statement, parameters=(): (
+            self.connection.execute(
+                statement.replace("?", "%s"),
+                tuple(parameters),
+            ).fetchall()
+        ),
+    },
+)()
+adapter.connection = connection
+manifest = recovery.capture_manifest(
+    release_commit="0" * 40,
+    storage=adapter,
+    backend=EmptyBackend(),
+    require_objects=True,
+    max_rows_per_table=1,
+    max_objects=1,
+)
+if manifest["database"]["engine"] != "postgresql":
+    raise SystemExit(18)
+if manifest["database"]["table_count"] != 0:
+    raise SystemExit(19)
+if manifest["objects"]["object_count"] != 0:
+    raise SystemExit(20)
+if connection.execute_count != 1:
+    raise SystemExit(21)
+if blocked_calls:
+    raise SystemExit(22)
+if sqlite_path.exists():
+    raise SystemExit(23)
+'''
+        clean_environment = {
+            "LANG": "C",
+            "LC_ALL": "C",
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "PYTHONDONTWRITEBYTECODE": "1",
+        }
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            sqlite_path = pathlib.Path(temporary_directory) / "noteai.db"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-I",
+                    "-B",
+                    "-c",
+                    probe,
+                    str(ITEM26_TEMPLATE_PATH),
+                    str(repository_root),
+                    str(sqlite_path),
+                ],
+                cwd=str(repository_root),
+                env=clean_environment,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=60,
+                check=False,
+            )
+            self.assertEqual(
+                result.returncode,
+                0,
+                result.stderr.decode("utf-8", errors="replace")[:2000],
+            )
+            self.assertFalse(sqlite_path.exists())
 
 
 @unittest.skipUnless(os.environ.get(LOCAL_DSN_ENV), "local PostgreSQL 16 only")

@@ -1763,6 +1763,21 @@ Last updated: 2026-08-12
   result. This candidate is not a production dispatch authorization and does
   not change Item26 or 25/29 readiness.
 
+- 2026-08-12 independent review rejected that 34,967-byte successor before any
+  production use because importing the recovery modules without a PostgreSQL
+  environment selector could trigger the repository's backward-compatible
+  SQLite initializer inside a read-only container. The superseding local-only
+  template is 35,352 bytes / SHA-256
+  `7e2bc2651a9dcd4ca546a03a9ada937c9133f21c725b5d1508f69eb6ebe9668e`.
+  It uses a fixed non-Secret PostgreSQL guard only during module import and
+  always removes it before the single explicit control connection. An isolated
+  subprocess regression proves no SQLite file, implicit SQLite/Psycopg
+  connection or guard residue, and an adapter-level manifest probe remains
+  PostgreSQL. The old candidate is permanently non-executable. Residual High
+  remains the real disposable PostgreSQL 16 matrix plus a wholly new v3
+  render/transport/readback chain; every v2 execution and residue identity is
+  frozen. Item26 remains unverified at 25/29 with zero new readiness credit.
+
 ## Low Risks
 
 ### `model/api.py` is too large

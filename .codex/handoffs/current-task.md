@@ -8980,3 +8980,38 @@ account and root-only key/envelope/transfer/task evidence remain retained and
 unchanged. The next step is local, Secret-free implementation and disposable
 PostgreSQL 16 validation of the fail-closed owner/RLS gates; no production
 permission mutation or successor capture is authorized by this checkpoint.
+
+### Item 26 successor import isolation corrected before production use (2026-08-12)
+
+- Independent review found that the 34,967-byte successor checkpoint could
+  import `db.py` without `DATABASE_URL` and therefore enter backward-compatible
+  SQLite initialization inside the read-only container. That exact candidate is
+  permanently non-executable and was never dispatched.
+- The current successor template is 35,352 bytes / SHA-256
+  `7e2bc2651a9dcd4ca546a03a9ada937c9133f21c725b5d1508f69eb6ebe9668e`;
+  its embedded driver is 18,083 bytes / SHA-256
+  `08caa5068e1d740e5d8ed8594ae71fdbd84a3c39d9b66d580c66bac3d6faf5b9`.
+  During imports only, it sets a fixed, non-Secret, local PostgreSQL guard URL
+  and removes it in `finally`. This prevents both import-time SQLite initializers
+  without opening a PostgreSQL connection or exposing the decrypted control URL.
+  The manifest capture still receives the sole explicit Psycopg connection
+  through its PostgreSQL adapter and a separately configured metadata-only OSS
+  backend.
+- A new isolated subprocess regression extracts the actual embedded driver,
+  points SQLite at a disposable sentinel path, performs the real imports, then
+  blocks every SQLite/Psycopg/database connection helper while exercising the
+  post-import PostgreSQL adapter capture. It passes with no SQLite file, no
+  guard environment residue and no implicit database connection. The focused
+  private-storage/recovery suite passes `18/18` with four separately gated
+  PostgreSQL tests skipped locally; the existing 34 owner/role/migration tests,
+  17 readiness tests and the 138-check production gate remain passing.
+- This correction authorizes only source review and CI. Production remains
+  blocked on the real disposable PostgreSQL 16 positive/negative matrix and a
+  new v3 render/gzip/executor/readback chain. Every v2 transfer, task, command,
+  invocation and result identity remains frozen and must not be modified,
+  cleaned or reused.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero readiness credit. The retained temporary reader and root-only
+recovery material remain unchanged. No production permission mutation,
+database transaction or successor dispatch has occurred.

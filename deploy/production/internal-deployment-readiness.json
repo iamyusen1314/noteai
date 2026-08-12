@@ -6265,15 +6265,26 @@
               "successor_capture_authorized": false,
               "successor_owner_rls_candidate": {
                 "template_path": ".codex/item26-source-manifest.template.sh",
-                "template_bytes": 34967,
-                "template_sha256": "7b82bae343d18c38303bc2fbba5e5b3dd1663bead8d3a8ecdbd6cbd5cfeb4299",
+                "template_bytes": 35352,
+                "template_sha256": "7e2bc2651a9dcd4ca546a03a9ada937c9133f21c725b5d1508f69eb6ebe9668e",
+                "embedded_driver_bytes": 18083,
+                "embedded_driver_sha256": "08caa5068e1d740e5d8ed8594ae71fdbd84a3c39d9b66d580c66bac3d6faf5b9",
+                "superseded_template_bytes": 34967,
+                "superseded_template_sha256": "7b82bae343d18c38303bc2fbba5e5b3dd1663bead8d3a8ecdbd6cbd5cfeb4299",
+                "superseded_template_execution_allowed": false,
                 "postgresql_major_version_required": 16,
                 "expected_table_count": 56,
                 "expected_rls_table_count": 19,
                 "force_rls_table_count_required": 0,
                 "persistent_permission_mutation_count": 0,
+                "import_guard_nonsecret": true,
+                "import_guard_removed_after_import": true,
+                "import_time_sqlite_initialization_count": 0,
+                "implicit_database_connection_count": 0,
+                "import_guard_regression_passed": true,
                 "local_static_contract_passed": true,
                 "disposable_postgresql16_integration_passed": false,
+                "v3_transport_and_readback_ready": false,
                 "production_dispatch_authorized": false,
                 "readiness_credit_added": false
               },
@@ -6285,7 +6296,7 @@
             "readiness_credit_added": false,
             "automatic_retry_allowed": false
           },
-          "blocker": "Both relevant frozen result records are now visible and parsed, so the provider-recording incident is closed. The metadata readback proves NO_MANIFEST with DB_BARRIER_NO_COMMIT_UNKNOWN; a separate existing observer recorded psycopg.errors.InsufficientPrivilege in the generic db.py execute path, but that frame does not bind the rejected SQL or session identity to the corrected source-reader capture. All prior executions remain frozen/no-replay. A separately named local candidate now implements the exact 56-table owner/SET ROLE, 19-table RLS, zero FORCE RLS and read-only rollback gates without persistent permission mutation; a real disposable PostgreSQL 16 positive/negative integration result is still required before any production successor dispatch can be considered.",
+          "blocker": "Both relevant frozen result records are now visible and parsed, so the provider-recording incident is closed. The metadata readback proves NO_MANIFEST with DB_BARRIER_NO_COMMIT_UNKNOWN; a separate existing observer recorded psycopg.errors.InsufficientPrivilege in the generic db.py execute path, but that frame does not bind the rejected SQL or session identity to the corrected source-reader capture. All prior executions remain frozen/no-replay. The first local owner/RLS candidate was rejected before dispatch because of import-time SQLite initialization and is permanently non-executable. Its successor closes that defect with a tested non-Secret import guard while retaining the exact 56-table owner/SET ROLE, 19-table RLS, zero FORCE RLS and read-only rollback gates without persistent permission mutation. A real disposable PostgreSQL 16 positive/negative integration result and an independent v3 transport/readback chain are still required before any production successor dispatch can be considered.",
           "next_task": "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
         },
         {
