@@ -1719,6 +1719,16 @@ Last updated: 2026-08-12
   Residual High risk is now the provider recording incident, not another local
   parser or proof-layer task.
 
+- 2026-08-12 a later read-only query against one original frozen execution
+  identity returned exactly one terminal result with exit code zero. No command
+  was re-executed and no new execution identity was created. The fixed output
+  contract is not yet parsed, so exit zero does not establish the manifest
+  state, database-barrier class or Item26 acceptance. Item26 therefore remains
+  `unverified` at `25/29`; the temporary reader and root-only recovery material
+  remain retained. Residual High risk is authoritative interpretation of the
+  existing result output and provider-side recovery of any remaining invisible
+  record, never another capture/readback execution.
+
 ## Low Risks
 
 ### `model/api.py` is too large

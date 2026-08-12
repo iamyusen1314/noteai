@@ -6215,9 +6215,17 @@
               "active_task_count_after_each": 0,
               "visible_command_record_count": 0,
               "visible_invocation_record_count": 0,
-              "visible_result_record_count": 0,
+              "visible_result_record_count": 1,
+              "existing_result_record_recovered": true,
+              "existing_result_record_count": 1,
+              "existing_result_exit_code": 0,
+              "existing_result_finished_time": "2026-08-11T18:19:24Z",
+              "existing_result_output_contract_parsed": false,
+              "existing_result_business_status": "UNKNOWN",
               "keep_command_reconciliation_attempted": true,
               "provider_recording_incident": true,
+              "provider_recording_incident_partially_recovered": true,
+              "remaining_existing_identity_provider_readback_required": true,
               "third_readback_execution_allowed": false,
               "third_capture_execution_allowed": false,
               "current_manifest_state": "UNKNOWN",
@@ -6227,7 +6235,7 @@
             "readiness_credit_added": false,
             "automatic_retry_allowed": false
           },
-          "blocker": "The deterministic parser defect is corrected, but two separately named metadata-only reads reached and terminated on API-C while the provider exposed no command, invocation or result record. Current manifest state is UNKNOWN; no third capture/readback, account mutation or database transaction is allowed until an existing result becomes visible or provider support supplies authoritative readback.",
+          "blocker": "The deterministic parser defect is corrected and one original frozen result record is now visible with ExitCode 0, but its fixed output contract is not yet parsed and the remaining existing identity still requires authoritative provider readback. Current manifest state is UNKNOWN; no third capture/readback, account mutation or database transaction is allowed. Only the existing identities may be queried, with Alibaba Cloud support correlation if a remaining record stays unavailable.",
           "next_task": "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
         },
         {

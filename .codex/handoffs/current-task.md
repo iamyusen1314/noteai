@@ -8893,3 +8893,26 @@ account and root-only control material as retained until the existing result
 indexes become visible or provider support supplies an authoritative readback.
 Only polling the existing identities or provider-side reconciliation is safe;
 do not create another account, database transaction, capture or readback.
+
+### Item 26 one frozen readback result record became visible (2026-08-12)
+
+- A read-only query against the original frozen execution identity now returns
+  exactly one terminal result record. The provider reports `ExitCode=0` and a
+  finished timestamp; no command was re-executed and no new execution identity
+  was created. This supersedes only the earlier assertion that this result
+  index was empty.
+- Exit zero alone is not the accepted readback contract. The bounded fixed JSON
+  output has not yet been parsed and authenticated, so the current manifest,
+  final-root and database-barrier classification remain `UNKNOWN`. The other
+  already-created reconciliation identity is also still frozen and is not a
+  retry path.
+- The CTO-approved temporary read account and all root-only recovery material
+  remain retained and unchanged. No cleanup, account mutation, database
+  transaction, capture or additional readback execution is authorized. Further
+  work is limited to reading the existing result identities; if a remaining
+  record stays unavailable beyond the provider visibility window, prepare a
+  Secret-free Alibaba Cloud support correlation request rather than issuing a
+  replacement command.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new readiness credit.
