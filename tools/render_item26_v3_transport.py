@@ -53,10 +53,16 @@ SUMMARY_LAYER_NAMES = (
     "controller_gzip",
     "wrapper",
     "readback",
+    "readback_validator",
+    "readback_payload",
+    "readback_payload_gzip",
+    "readback_wrapper",
 )
+SUMMARY_COMMAND_NAMES = ("command_content", "readback_command_content")
 SUMMARY_KEYS = frozenset(
     SUMMARY_LAYER_NAMES
-    + ("command_content", "production_provenance", "public_bindings")
+    + SUMMARY_COMMAND_NAMES
+    + ("production_provenance", "public_bindings")
 )
 PLACEHOLDER = re.compile(br"@@[A-Z][A-Z0-9_]*@@")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -111,6 +117,249 @@ PRODUCTION_PROVENANCE = MappingProxyType(
         "templates": TEMPLATE_IDENTITIES,
     }
 )
+
+READBACK_VALIDATOR_SOURCE = b"""import json
+import os
+import signal
+import subprocess
+
+
+FULL_KEYS = frozenset("NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK,host,host_identity_exact,control_metadata_exact,control_value_read_count,transfer_exact,task_root_present,task_root_exact,task_inventory_state,driver_exact,task_docker_config_exact,final_root_present,final_root_exact,output_state,helper_stdout_bytes,helper_stdout_value_read_count,helper_error_code,task_container_query_ok,task_container_count,task_container_exact,established_5432_count,original_database_state,manifest_readback_allowed,same_invocation_replay_allowed,new_capture_allowed,cleanup_allowed,temporary_account_delete_allowed,pitr_stage_allowed,worker_stage_allowed,automatic_retry_allowed,api_environment_value_read_count,storage_environment_value_read_count,source_secret_value_read_count,ciphertext_value_read_count,manifest_value_read_count,database_connection_count,database_write_count,object_read_count,object_write_count,provider_control_plane_mutation_count,runtime_container_start_count".split(","))
+FIXED_KEYS = frozenset("NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK,automatic_retry_allowed,cleanup_allowed,manifest_readback_allowed,new_capture_allowed,pitr_stage_allowed,same_invocation_replay_allowed,temporary_account_delete_allowed,worker_stage_allowed".split(","))
+BOOL_KEYS = frozenset("host_identity_exact,control_metadata_exact,transfer_exact,task_root_present,task_root_exact,driver_exact,task_docker_config_exact,final_root_present,final_root_exact,task_container_query_ok,task_container_exact,manifest_readback_allowed,same_invocation_replay_allowed,new_capture_allowed,cleanup_allowed,temporary_account_delete_allowed,pitr_stage_allowed,worker_stage_allowed,automatic_retry_allowed".split(","))
+ZERO_KEYS = frozenset("control_value_read_count,helper_stdout_value_read_count,api_environment_value_read_count,storage_environment_value_read_count,source_secret_value_read_count,ciphertext_value_read_count,manifest_value_read_count,database_connection_count,database_write_count,object_read_count,object_write_count,provider_control_plane_mutation_count,runtime_container_start_count".split(","))
+INVENTORIES = frozenset({"ABSENT", "UNSAFE", "PRE_DOCKER_EXACT", "HELPER_EXACT", "POST_MOVE_EXACT"})
+OUTPUTS = frozenset({"ABSENT", "UNSAFE", "EMPTY", "MANIFEST_PRESENT"})
+FIXED_CODES = frozenset("metadata,race,read,env,dsn,identity,capability,envelope,key,write,output,payload,api_env,topology,storage,backend,session,owner,tables,rls,migrations,database,references,privacy,size,rollback".split(","))
+PRE_CONNECT_CODES = frozenset("metadata,race,read,env,dsn,identity,capability,envelope,key,output,payload,api_env,topology,storage,backend".split(","))
+DEFINITE_CONNECTED_CODES = frozenset("session,owner,tables,rls,write,database,references,privacy,size".split(","))
+FIXED = {"NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK":"READBACK_UNKNOWN","automatic_retry_allowed":False,"cleanup_allowed":False,"manifest_readback_allowed":False,"new_capture_allowed":False,"pitr_stage_allowed":False,"same_invocation_replay_allowed":False,"temporary_account_delete_allowed":False,"worker_stage_allowed":False}
+
+
+def canonical(value):
+    return (json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\\n").encode("ascii")
+
+
+def no_duplicates(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate")
+        result[key] = value
+    return result
+
+
+def optional_int(value, maximum):
+    return value is None or (type(value) is int and 0 <= value <= maximum)
+
+
+def classify(value):
+    identity_exact, control_exact, transfer_exact = (value[key] for key in ("host_identity_exact", "control_metadata_exact", "transfer_exact"))
+    socket_count, container_ok, container_count = (value[key] for key in ("established_5432_count", "task_container_query_ok", "task_container_count"))
+    task_present, task_exact, inventory, output = (value[key] for key in ("task_root_present", "task_root_exact", "task_inventory_state", "output_state"))
+    final_present, final_exact, stdout_bytes, code = (value[key] for key in ("final_root_present", "final_root_exact", "helper_stdout_bytes", "helper_error_code"))
+    status, database_state, allowed = "UNCLASSIFIED_UNKNOWN", "UNKNOWN", False
+    if not identity_exact or not control_exact or socket_count is None:
+        status = "IDENTITY_OR_CONTROL_UNKNOWN"
+    elif socket_count != 0:
+        status, database_state = "DATABASE_SOCKET_PRESENT_UNKNOWN", "CURRENT_CONNECTION_PRESENT_UNKNOWN"
+    elif not container_ok or container_count is None:
+        status = "CONTAINER_STATE_UNKNOWN"
+    elif container_count > 0:
+        status, database_state = "CONTAINER_PRESENT_UNKNOWN", "TASK_EXECUTION_OR_RESIDUE_UNKNOWN"
+    elif final_present:
+        path_exact = (not task_present and transfer_exact) or (task_exact and inventory == "POST_MOVE_EXACT" and value["driver_exact"])
+        if final_exact and path_exact:
+            status, database_state, allowed = "MANIFEST_COMMITTED_READBACK_REQUIRED", "CONNECTED_READ_ONLY_ROLLBACK", True
+        else:
+            status = "UNSAFE_FINAL_RESIDUE"
+    elif not task_present:
+        if transfer_exact:
+            status, database_state = "NO_TASK_NO_FINAL_EXECUTION_UNPROVEN", "EXECUTION_UNPROVEN"
+        else:
+            status = "MISSING_OR_UNSAFE_INPUT"
+    elif not task_exact:
+        status = "UNSAFE_TASK_RESIDUE"
+    elif inventory == "PRE_DOCKER_EXACT" and output == "EMPTY":
+        status, database_state = "PRE_DOCKER_RESIDUE", "PRE_DATABASE_BARRIER"
+    elif inventory == "HELPER_EXACT" and output == "MANIFEST_PRESENT":
+        status, database_state, allowed = "STAGED_UNCOMMITTED_READBACK_REQUIRED", "CONNECTED_READ_ONLY_ROLLBACK", True
+    elif inventory == "HELPER_EXACT" and output == "EMPTY" and stdout_bytes == 0 and code in PRE_CONNECT_CODES:
+        status, database_state = "PRECONNECT_FIXED_RETAINED", "PRE_CONNECT"
+    elif inventory == "HELPER_EXACT" and output == "EMPTY" and stdout_bytes == 0 and code in DEFINITE_CONNECTED_CODES:
+        status, database_state = "POSTCONNECT_FIXED_NO_COMMIT", "CONNECTED_READ_ONLY_ROLLBACK_EXPECTED"
+    elif inventory == "HELPER_EXACT" and output == "EMPTY" and stdout_bytes == 0 and code == "migrations":
+        status, database_state = "MIGRATIONS_PHASE_NO_COMMIT_UNKNOWN", "MIGRATIONS_BARRIER_UNKNOWN"
+    elif inventory == "HELPER_EXACT" and output == "EMPTY" and stdout_bytes == 0 and code == "rollback":
+        status, database_state = "ROLLBACK_OUTCOME_UNKNOWN", "CONNECTED_ROLLBACK_UNKNOWN"
+    elif inventory == "HELPER_EXACT" and output == "EMPTY" and stdout_bytes == 0:
+        status, database_state = "DB_BARRIER_NO_COMMIT_UNKNOWN", "DB_BARRIER_UNKNOWN"
+    return status, database_state, allowed
+
+
+def validate_full(value):
+    status = value.get("NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK")
+    container_count = value.get("task_container_count")
+    task_present = value.get("task_root_present")
+    task_exact = value.get("task_root_exact")
+    inventory = value.get("task_inventory_state")
+    output = value.get("output_state")
+    helper_bytes = value.get("helper_stdout_bytes")
+    helper_code = value.get("helper_error_code")
+    task_absent_exact = (
+        not task_present
+        and not task_exact
+        and inventory == "ABSENT"
+        and not value.get("driver_exact")
+        and not value.get("task_docker_config_exact")
+        and output == "ABSENT"
+        and helper_bytes is None
+        and helper_code is None
+    )
+    task_exact_shape = (
+        task_present
+        and task_exact
+        and value.get("driver_exact")
+        and value.get("task_docker_config_exact")
+        and (
+            (inventory == "PRE_DOCKER_EXACT" and output == "EMPTY" and helper_bytes is None and helper_code is None)
+            or (inventory == "HELPER_EXACT" and output in {"EMPTY", "MANIFEST_PRESENT"} and type(helper_bytes) is int)
+            or (inventory == "POST_MOVE_EXACT" and output == "ABSENT" and type(helper_bytes) is int and helper_code is None)
+        )
+    )
+    task_unsafe_shape = task_present and not task_exact and inventory == "UNSAFE"
+    if (
+        set(value) != FULL_KEYS
+        or type(status) is not str
+        or value.get("host") != "API-C"
+        or value.get("task_inventory_state") not in INVENTORIES
+        or value.get("output_state") not in OUTPUTS
+        or value.get("helper_error_code") not in FIXED_CODES | {None}
+        or any(type(value.get(key)) is not bool for key in BOOL_KEYS)
+        or any(type(value.get(key)) is not int or value[key] != 0 for key in ZERO_KEYS)
+        or not optional_int(value.get("helper_stdout_bytes"), 4096)
+        or not optional_int(container_count, 65536)
+        or not optional_int(value.get("established_5432_count"), 65536)
+        or not (task_absent_exact or task_exact_shape or task_unsafe_shape)
+        or (helper_code is not None and not (task_exact and inventory == "HELPER_EXACT"))
+        or (not value.get("final_root_present") and value.get("final_root_exact"))
+        or value.get("manifest_readback_allowed") is not (status in {"MANIFEST_COMMITTED_READBACK_REQUIRED", "STAGED_UNCOMMITTED_READBACK_REQUIRED"})
+        or any(value.get(key) is not False for key in ("same_invocation_replay_allowed", "new_capture_allowed", "cleanup_allowed", "temporary_account_delete_allowed", "pitr_stage_allowed", "worker_stage_allowed", "automatic_retry_allowed"))
+        or (not value["task_container_query_ok"] and (container_count not in {None, 1} or value["task_container_exact"]))
+        or (value["task_container_query_ok"] and container_count is None)
+        or (value["task_container_query_ok"] and container_count == 0 and not value["task_container_exact"])
+        or (value["task_container_query_ok"] and type(container_count) is int and container_count > 1 and value["task_container_exact"])
+        or classify(value) != (status, value.get("original_database_state"), value.get("manifest_readback_allowed"))
+    ):
+        raise ValueError("full_schema")
+
+
+def emit(value, code):
+    body = canonical(value)
+    if len(body) > 4096:
+        os._exit(4)
+    try:
+        if os.write(1, body) != len(body):
+            os._exit(4)
+    except BaseException:
+        os._exit(4)
+    os._exit(code)
+
+
+try:
+    process = subprocess.Popen(
+        ["/bin/bash", "-s"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, env={"PATH":"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","LC_ALL":"C"},
+        close_fds=True, start_new_session=True,
+    )
+    try:
+        stdout, stderr = process.communicate(READBACK_RAW, timeout=90)
+    except BaseException:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except BaseException:
+            pass
+        try:
+            process.communicate(timeout=5)
+        except BaseException:
+            pass
+        raise
+    if stderr or not stdout.endswith(b"\\n") or stdout.count(b"\\n") != 1 or len(stdout) > 4096 or process.returncode not in (0, 4):
+        raise ValueError("terminal_shape")
+    value = json.loads(stdout.decode("ascii"), object_pairs_hook=no_duplicates)
+    if not isinstance(value, dict) or canonical(value) != stdout:
+        raise ValueError("terminal_canonical")
+    if process.returncode == 0:
+        validate_full(value)
+    elif set(value) != FIXED_KEYS or value != FIXED:
+        raise ValueError("fixed_schema")
+    emit(value, process.returncode)
+except BaseException:
+    emit(FIXED, 4)
+"""
+
+
+READBACK_WRAPPER_TEMPLATE = b"""#!/bin/bash
+set -Eeuo pipefail
+set +x
+umask 077
+export LC_ALL=C
+export PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONINSPECT PYTHONOPTIMIZE
+unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NO_PROXY no_proxy
+unset DATABASE_URL NOTEAI_SQLITE_PATH PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD PGSERVICE PGSERVICEFILE
+unset ALIBABA_CLOUD_ACCESS_KEY_ID ALIBABA_CLOUD_ACCESS_KEY_SECRET ALIBABA_CLOUD_SECURITY_TOKEN
+unset ALICLOUD_ACCESS_KEY ALICLOUD_SECRET_KEY ALICLOUD_SECURITY_TOKEN OSS_ACCESS_KEY_ID OSS_ACCESS_KEY_SECRET
+
+exec python3 -I -B - <<'PY'
+import base64, gzip, hashlib, os, re
+
+
+GZIP_BYTES = @@READBACK_PAYLOAD_GZIP_BYTES@@
+GZIP_SHA256 = "@@READBACK_PAYLOAD_GZIP_SHA256@@"
+RAW_BYTES = @@READBACK_PAYLOAD_BYTES@@
+RAW_SHA256 = "@@READBACK_PAYLOAD_SHA256@@"
+GZIP_B85 = b"@@READBACK_PAYLOAD_GZIP_B85@@"
+VALIDATOR_BYTES = @@READBACK_VALIDATOR_BYTES@@
+VALIDATOR_SHA256 = "@@READBACK_VALIDATOR_SHA256@@"
+READBACK_BYTES = @@READBACK_BYTES@@
+READBACK_SHA256 = "@@READBACK_SHA256@@"
+HEX64 = re.compile(r"^[0-9a-f]{64}$")
+B85 = re.compile(br"^[0-9A-Za-z!#$%&()*+\\-;<=>?@^_\\x60{|}~]+$")
+FIXED = b'{"NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK":"READBACK_UNKNOWN","automatic_retry_allowed":false,"cleanup_allowed":false,"manifest_readback_allowed":false,"new_capture_allowed":false,"pitr_stage_allowed":false,"same_invocation_replay_allowed":false,"temporary_account_delete_allowed":false,"worker_stage_allowed":false}\\n'
+
+
+def fixed():
+    try:
+        if os.write(1, FIXED) != len(FIXED):
+            os._exit(4)
+    except BaseException:
+        os._exit(4)
+    os._exit(4)
+
+
+try:
+    if type(GZIP_BYTES) is not int or type(RAW_BYTES) is not int or type(VALIDATOR_BYTES) is not int or type(READBACK_BYTES) is not int or not 1 <= GZIP_BYTES <= 131072 or RAW_BYTES != 8 + VALIDATOR_BYTES + READBACK_BYTES or not 1 <= VALIDATOR_BYTES <= 131072 or not 1 <= READBACK_BYTES <= 131072 or any(HEX64.fullmatch(value) is None for value in (GZIP_SHA256, RAW_SHA256, VALIDATOR_SHA256, READBACK_SHA256)) or B85.fullmatch(GZIP_B85) is None or len(GZIP_B85) != (GZIP_BYTES * 5 + 3) // 4:
+        raise ValueError("binding")
+    compressed = base64.b85decode(GZIP_B85)
+    if len(compressed) != GZIP_BYTES or hashlib.sha256(compressed).hexdigest() != GZIP_SHA256:
+        raise ValueError("gzip_hash")
+    raw = gzip.decompress(compressed)
+    if len(raw) != RAW_BYTES or hashlib.sha256(raw).hexdigest() != RAW_SHA256:
+        raise ValueError("raw_hash")
+    if not raw[:8].isdigit() or int(raw[:8]) != VALIDATOR_BYTES:
+        raise ValueError("split")
+    validator = raw[8:8 + VALIDATOR_BYTES]
+    readback = raw[8 + VALIDATOR_BYTES:]
+    if hashlib.sha256(validator).hexdigest() != VALIDATOR_SHA256 or hashlib.sha256(readback).hexdigest() != READBACK_SHA256:
+        raise ValueError("component_hash")
+    code = compile(validator.decode("ascii"), "<item26-v3-readback-validator>", "exec", dont_inherit=True)
+    exec(code, {"__name__": "__main__", "READBACK_RAW": readback})
+    raise RuntimeError("validator_returned")
+except BaseException:
+    fixed()
+PY
+"""
 
 
 class RenderError(ValueError):
@@ -432,6 +681,83 @@ def _layer(payload: bytes) -> dict[str, object]:
     return {"bytes": len(payload), "sha256": _sha256(payload)}
 
 
+def _command_content(name: str, payload: bytes) -> dict[str, object]:
+    encoded = base64.b64encode(payload)
+    try:
+        decoded = base64.b64decode(encoded, validate=True)
+    except BaseException as exc:
+        raise RenderError(name + "_roundtrip") from exc
+    if (
+        decoded != payload
+        or b"\n" in encoded
+        or len(encoded) > MAX_COMMAND_CONTENT_BYTES
+    ):
+        raise RenderError(name + "_limit")
+    return {
+        "base64": encoded.decode("ascii"),
+        "bytes": len(encoded),
+        "sha256": _sha256(encoded),
+    }
+
+
+def _render_readback_transport(
+    readback: bytes,
+    gzip_compressor: Callable[[bytes], bytes],
+) -> tuple[bytes, bytes, bytes, bytes, dict[str, object]]:
+    readback_validator = READBACK_VALIDATOR_SOURCE
+    _validate_ascii_lf("readback_validator", readback_validator)
+    _python36_syntax("readback_validator", readback_validator)
+    readback_payload = (
+        "{:08d}".format(len(readback_validator)).encode("ascii")
+        + readback_validator
+        + readback
+    )
+    readback_payload_gzip = _compress(
+        "readback_payload",
+        readback_payload,
+        gzip_compressor,
+    )
+    readback_wrapper = _render(
+        "readback_wrapper",
+        READBACK_WRAPPER_TEMPLATE,
+        {
+            b"@@READBACK_PAYLOAD_GZIP_BYTES@@": str(
+                len(readback_payload_gzip)
+            ).encode("ascii"),
+            b"@@READBACK_PAYLOAD_GZIP_SHA256@@": _sha256(
+                readback_payload_gzip
+            ).encode("ascii"),
+            b"@@READBACK_PAYLOAD_BYTES@@": str(
+                len(readback_payload)
+            ).encode("ascii"),
+            b"@@READBACK_PAYLOAD_SHA256@@": _sha256(
+                readback_payload
+            ).encode("ascii"),
+            b"@@READBACK_PAYLOAD_GZIP_B85@@": _b85(
+                "readback_payload",
+                readback_payload_gzip,
+            ),
+            b"@@READBACK_VALIDATOR_BYTES@@": str(
+                len(readback_validator)
+            ).encode("ascii"),
+            b"@@READBACK_VALIDATOR_SHA256@@": _sha256(
+                readback_validator
+            ).encode("ascii"),
+            b"@@READBACK_BYTES@@": str(len(readback)).encode("ascii"),
+            b"@@READBACK_SHA256@@": _sha256(readback).encode("ascii"),
+        },
+    )
+    _validate_bash_python("readback_wrapper", readback_wrapper, 1)
+    command = _command_content("readback_command_content", readback_wrapper)
+    return (
+        readback_validator,
+        readback_payload,
+        readback_payload_gzip,
+        readback_wrapper,
+        command,
+    )
+
+
 def _validate_public_inputs(
     envelope_bytes: int,
     envelope_sha256: str,
@@ -532,18 +858,15 @@ def _render_item26_v3_transport_core(
         },
     )
     _validate_bash_python("readback", readback, 1)
+    (
+        readback_validator,
+        readback_payload,
+        readback_payload_gzip,
+        readback_wrapper,
+        readback_command_content,
+    ) = _render_readback_transport(readback, gzip_compressor)
 
-    command_content = base64.b64encode(wrapper)
-    try:
-        decoded = base64.b64decode(command_content, validate=True)
-    except BaseException as exc:
-        raise RenderError("command_content_roundtrip") from exc
-    if (
-        decoded != wrapper
-        or b"\n" in command_content
-        or len(command_content) > MAX_COMMAND_CONTENT_BYTES
-    ):
-        raise RenderError("command_content_limit")
+    command_content = _command_content("command_content", wrapper)
 
     artifacts = {
         "source": source,
@@ -555,15 +878,16 @@ def _render_item26_v3_transport_core(
         "controller_gzip": controller_gzip,
         "wrapper": wrapper,
         "readback": readback,
+        "readback_validator": readback_validator,
+        "readback_payload": readback_payload,
+        "readback_payload_gzip": readback_payload_gzip,
+        "readback_wrapper": readback_wrapper,
     }
     if set(artifacts) != set(SUMMARY_LAYER_NAMES):
         raise RenderError("artifact_contract")
     sizing = {name: _layer(artifacts[name]) for name in SUMMARY_LAYER_NAMES}
-    sizing["command_content"] = {
-        "base64": command_content.decode("ascii"),
-        "bytes": len(command_content),
-        "sha256": _sha256(command_content),
-    }
+    sizing["command_content"] = command_content
+    sizing["readback_command_content"] = readback_command_content
     return {"artifacts": artifacts, "sizing": sizing}
 
 
@@ -628,29 +952,34 @@ def canonical_summary(summary: dict[str, object]) -> bytes:
             or HEX64.fullmatch(value["sha256"]) is None
         ):
             raise RenderError("summary_contract")
-    command = summary.get("command_content")
-    if (
-        type(command) is not dict
-        or set(command) != {"base64", "bytes", "sha256"}
-        or type(command.get("base64")) is not str
-        or type(command.get("bytes")) is not int
-        or not 1 <= command["bytes"] <= MAX_COMMAND_CONTENT_BYTES
-        or len(command["base64"].encode("ascii")) != command["bytes"]
-        or type(command.get("sha256")) is not str
-        or HEX64.fullmatch(command["sha256"]) is None
-    ):
-        raise RenderError("summary_contract")
-    try:
-        command_bytes = command["base64"].encode("ascii")
-        decoded_command = base64.b64decode(command_bytes, validate=True)
-    except BaseException as exc:
-        raise RenderError("summary_contract") from exc
-    if (
-        _sha256(command_bytes) != command["sha256"]
-        or len(decoded_command) != summary["wrapper"]["bytes"]
-        or _sha256(decoded_command) != summary["wrapper"]["sha256"]
-    ):
-        raise RenderError("summary_contract")
+    command_targets = {
+        "command_content": "wrapper",
+        "readback_command_content": "readback_wrapper",
+    }
+    for command_name, target_name in command_targets.items():
+        command = summary.get(command_name)
+        if (
+            type(command) is not dict
+            or set(command) != {"base64", "bytes", "sha256"}
+            or type(command.get("base64")) is not str
+            or type(command.get("bytes")) is not int
+            or not 1 <= command["bytes"] <= MAX_COMMAND_CONTENT_BYTES
+            or len(command["base64"].encode("ascii")) != command["bytes"]
+            or type(command.get("sha256")) is not str
+            or HEX64.fullmatch(command["sha256"]) is None
+        ):
+            raise RenderError("summary_contract")
+        try:
+            command_bytes = command["base64"].encode("ascii")
+            decoded_command = base64.b64decode(command_bytes, validate=True)
+        except BaseException as exc:
+            raise RenderError("summary_contract") from exc
+        if (
+            _sha256(command_bytes) != command["sha256"]
+            or len(decoded_command) != summary[target_name]["bytes"]
+            or _sha256(decoded_command) != summary[target_name]["sha256"]
+        ):
+            raise RenderError("summary_contract")
     public_bindings = summary.get("public_bindings")
     if (
         type(public_bindings) is not dict

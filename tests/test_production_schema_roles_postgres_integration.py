@@ -255,6 +255,7 @@ if sqlite_path.exists():
 
     def test_v3_transport_and_readback_templates_are_bound_and_bounded(self):
         import base64
+        import gzip
         import inspect
         import json
         from unittest import mock
@@ -330,7 +331,7 @@ if sqlite_path.exists():
         self.assertEqual(
             set(summary),
             set(item26_transport_renderer.SUMMARY_LAYER_NAMES)
-            | {"command_content"},
+            | set(item26_transport_renderer.SUMMARY_COMMAND_NAMES),
         )
         for name in item26_transport_renderer.SUMMARY_LAYER_NAMES:
             self.assertEqual(set(summary[name]), {"bytes", "sha256"})
@@ -363,6 +364,22 @@ if sqlite_path.exists():
         self.assertEqual(
             base64.b64decode(command_bytes, validate=True),
             artifacts["wrapper"],
+        )
+        readback_command = summary["readback_command_content"]
+        self.assertEqual(
+            set(readback_command),
+            {"base64", "bytes", "sha256"},
+        )
+        readback_command_bytes = readback_command["base64"].encode("ascii")
+        self.assertEqual(readback_command["bytes"], len(readback_command_bytes))
+        self.assertLessEqual(readback_command["bytes"], 18000)
+        self.assertEqual(
+            readback_command["sha256"],
+            hashlib.sha256(readback_command_bytes).hexdigest(),
+        )
+        self.assertEqual(
+            base64.b64decode(readback_command_bytes, validate=True),
+            artifacts["readback_wrapper"],
         )
         with self.assertRaises(item26_transport_renderer.RenderError):
             item26_transport_renderer.canonical_summary(summary)
@@ -404,9 +421,29 @@ if sqlite_path.exists():
                 "bytes": 25895,
                 "sha256": "a79fb6312605599e232d70833f05b07d9b078b4a33d8f528eb2d082c852660d8",
             },
+            "readback_validator": {
+                "bytes": 11528,
+                "sha256": "f22cd609d2935d24f85c98057b603edc48ff938cb6d661419a8abb89104b4562",
+            },
+            "readback_payload": {
+                "bytes": 37431,
+                "sha256": "af8c385a25b63fc94f5a75e40d8ff9cb8464b65adfbd12ed2a979695059ae330",
+            },
+            "readback_payload_gzip": {
+                "bytes": 8227,
+                "sha256": "183aa39f6a79ccd8e38d406db4983b1023382d77235cca87f4e2fe6057dff960",
+            },
+            "readback_wrapper": {
+                "bytes": 13451,
+                "sha256": "0aeaf413dbd9d5fc8415d1f46d0eea038e821d36aa5e46f265c34b6a41a87339",
+            },
             "command_content": {
                 "bytes": 17080,
                 "sha256": "a6ace3aef127817396ff75e794379c18003732384ee6191b3459cc1f61b82ec7",
+            },
+            "readback_command_content": {
+                "bytes": 17936,
+                "sha256": "e1982e0759fb4390f818e30a0c190e60efb5d809d4c31828e492d333476b643d",
             },
         }
         expected_gnu_sizing = {
@@ -446,9 +483,29 @@ if sqlite_path.exists():
                 "bytes": 25895,
                 "sha256": "b8d7c78b987d00360e298b2ccbbb6d7b822b79ad040157bb23003daab32a342f",
             },
+            "readback_validator": {
+                "bytes": 11528,
+                "sha256": "f22cd609d2935d24f85c98057b603edc48ff938cb6d661419a8abb89104b4562",
+            },
+            "readback_payload": {
+                "bytes": 37431,
+                "sha256": "543388587968bb51435fe0211ee55a24c87990e045347d4384b0948c27ee257f",
+            },
+            "readback_payload_gzip": {
+                "bytes": 8173,
+                "sha256": "df68c86a17f5019bcd24554ce6c8f7cff9b3228a3c91cb1a90cadd53ae501089",
+            },
+            "readback_wrapper": {
+                "bytes": 13384,
+                "sha256": "7abe1416179a455c92f807b6fd24880f797df5ad72555abd9f46c69713c38911",
+            },
             "command_content": {
                 "bytes": 17072,
                 "sha256": "fb3c0ee5768341fcb54cb62c94c33a3a3592cb6770307de918cfefcda84d8a0d",
+            },
+            "readback_command_content": {
+                "bytes": 17848,
+                "sha256": "9f903382e097dd2d00b606f058c42e6392e6723cec331dc360a5515d38e4208e",
             },
         }
         expected_sizing = (
@@ -477,6 +534,359 @@ if sqlite_path.exists():
         )
         self.assertEqual(readback.count("manifest_readback_allowed = True"), 2)
         self.assertNotIn("same_invocation_replay_allowed\": True", readback)
+
+        fixed_readback = {
+            "NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK": "READBACK_UNKNOWN",
+            "automatic_retry_allowed": False,
+            "cleanup_allowed": False,
+            "manifest_readback_allowed": False,
+            "new_capture_allowed": False,
+            "pitr_stage_allowed": False,
+            "same_invocation_replay_allowed": False,
+            "temporary_account_delete_allowed": False,
+            "worker_stage_allowed": False,
+        }
+
+        def canonical(value):
+            return (
+                json.dumps(
+                    value,
+                    ensure_ascii=True,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                )
+                + "\n"
+            ).encode("ascii")
+
+        def raw_fixture(value, returncode):
+            body_b64 = base64.b64encode(canonical(value))
+            return (
+                b"#!/bin/bash\nexec python3 -I -B - <<'PY'\n"
+                b"import base64,os\n"
+                b"body=base64.b64decode(b'"
+                + body_b64
+                + b"')\n"
+                b"written=os.write(1,body)\n"
+                b"raise SystemExit("
+                + str(returncode).encode("ascii")
+                + b" if written==len(body) else 4)\nPY\n"
+            )
+
+        def sleeping_raw_fixture():
+            return (
+                b"#!/bin/bash\nexec python3 -I -B - <<'PY'\n"
+                b"import os,time\n"
+                b"if os.fork()==0: time.sleep(120)\n"
+                b"time.sleep(120)\nPY\n"
+            )
+
+        def rendered_readback_wrapper(value, returncode):
+            raw = raw_fixture(value, returncode)
+            chain = item26_transport_renderer._render_readback_transport(
+                raw,
+                deterministic_gzip,
+            )
+            self.assertEqual(len(chain), 5)
+            validator_bytes = len(chain[0])
+            payload = chain[1]
+            self.assertEqual(
+                payload[:8],
+                ("{:08d}".format(validator_bytes)).encode("ascii"),
+            )
+            self.assertEqual(
+                gzip.decompress(chain[2]),
+                payload,
+            )
+            self.assertEqual(payload[8:8 + validator_bytes], chain[0])
+            self.assertEqual(payload[8 + validator_bytes:], raw)
+            self.assertLessEqual(chain[4]["bytes"], 18000)
+            return raw, chain[2], chain[3]
+
+        def run_readback_wrapper(wrapper):
+            return subprocess.run(
+                ["/bin/bash", "-s"],
+                input=wrapper,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
+                timeout=30,
+                check=False,
+            )
+
+        full_readback = {
+            "NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK": (
+                "NO_TASK_NO_FINAL_EXECUTION_UNPROVEN"
+            ),
+            "host": "API-C",
+            "host_identity_exact": True,
+            "control_metadata_exact": True,
+            "control_value_read_count": 0,
+            "transfer_exact": True,
+            "task_root_present": False,
+            "task_root_exact": False,
+            "task_inventory_state": "ABSENT",
+            "driver_exact": False,
+            "task_docker_config_exact": False,
+            "final_root_present": False,
+            "final_root_exact": False,
+            "output_state": "ABSENT",
+            "helper_stdout_bytes": None,
+            "helper_stdout_value_read_count": 0,
+            "helper_error_code": None,
+            "task_container_query_ok": True,
+            "task_container_count": 0,
+            "task_container_exact": True,
+            "established_5432_count": 0,
+            "original_database_state": "EXECUTION_UNPROVEN",
+            "manifest_readback_allowed": False,
+            "same_invocation_replay_allowed": False,
+            "new_capture_allowed": False,
+            "cleanup_allowed": False,
+            "temporary_account_delete_allowed": False,
+            "pitr_stage_allowed": False,
+            "worker_stage_allowed": False,
+            "automatic_retry_allowed": False,
+            "api_environment_value_read_count": 0,
+            "storage_environment_value_read_count": 0,
+            "source_secret_value_read_count": 0,
+            "ciphertext_value_read_count": 0,
+            "manifest_value_read_count": 0,
+            "database_connection_count": 0,
+            "database_write_count": 0,
+            "object_read_count": 0,
+            "object_write_count": 0,
+            "provider_control_plane_mutation_count": 0,
+            "runtime_container_start_count": 0,
+        }
+        self.assertEqual(len(full_readback), 41)
+        _raw, _gzip, valid_wrapper = rendered_readback_wrapper(full_readback, 0)
+        valid_result = run_readback_wrapper(valid_wrapper)
+        self.assertEqual(valid_result.returncode, 0)
+        self.assertEqual(valid_result.stdout, canonical(full_readback))
+        self.assertEqual(valid_result.stderr, b"")
+
+        for status in (
+            "MANIFEST_COMMITTED_READBACK_REQUIRED",
+            "STAGED_UNCOMMITTED_READBACK_REQUIRED",
+        ):
+            manifest_row = dict(full_readback)
+            manifest_row.update(
+                {
+                    "NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK": status,
+                    "original_database_state": "CONNECTED_READ_ONLY_ROLLBACK",
+                    "manifest_readback_allowed": True,
+                }
+            )
+            if status == "MANIFEST_COMMITTED_READBACK_REQUIRED":
+                manifest_row.update(
+                    {
+                        "final_root_present": True,
+                        "final_root_exact": True,
+                        "task_root_present": True,
+                        "task_root_exact": True,
+                        "task_inventory_state": "POST_MOVE_EXACT",
+                        "driver_exact": True,
+                        "task_docker_config_exact": True,
+                        "helper_stdout_bytes": 512,
+                    }
+                )
+            else:
+                manifest_row.update(
+                    {
+                        "task_root_present": True,
+                        "task_root_exact": True,
+                        "task_inventory_state": "HELPER_EXACT",
+                        "driver_exact": True,
+                        "task_docker_config_exact": True,
+                        "output_state": "MANIFEST_PRESENT",
+                        "helper_stdout_bytes": 512,
+                    }
+                )
+            _raw, _gzip, manifest_wrapper = rendered_readback_wrapper(
+                manifest_row,
+                0,
+            )
+            manifest_result = run_readback_wrapper(manifest_wrapper)
+            self.assertEqual(manifest_result.returncode, 0)
+            self.assertEqual(manifest_result.stdout, canonical(manifest_row))
+            self.assertEqual(manifest_result.stderr, b"")
+
+        container_row = dict(full_readback)
+        container_row.update(
+            {
+                "NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK": (
+                    "CONTAINER_PRESENT_UNKNOWN"
+                ),
+                "task_container_count": 1,
+                "task_container_exact": True,
+                "original_database_state": (
+                    "TASK_EXECUTION_OR_RESIDUE_UNKNOWN"
+                ),
+            }
+        )
+        _raw, _gzip, container_wrapper = rendered_readback_wrapper(
+            container_row,
+            0,
+        )
+        container_result = run_readback_wrapper(container_wrapper)
+        self.assertEqual(container_result.returncode, 0)
+        container_terminal = json.loads(container_result.stdout.decode("ascii"))
+        for key in (
+            "same_invocation_replay_allowed",
+            "new_capture_allowed",
+            "cleanup_allowed",
+            "temporary_account_delete_allowed",
+            "pitr_stage_allowed",
+            "worker_stage_allowed",
+            "automatic_retry_allowed",
+        ):
+            self.assertIs(container_terminal[key], False)
+
+        docker_race_row = dict(container_row)
+        docker_race_row.update(
+            {
+                "task_container_query_ok": False,
+                "task_container_exact": False,
+                "NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK": (
+                    "CONTAINER_STATE_UNKNOWN"
+                ),
+                "original_database_state": "UNKNOWN",
+            }
+        )
+        _raw, _gzip, docker_race_wrapper = rendered_readback_wrapper(
+            docker_race_row,
+            0,
+        )
+        docker_race_result = run_readback_wrapper(docker_race_wrapper)
+        self.assertEqual(docker_race_result.returncode, 0)
+        self.assertEqual(docker_race_result.stdout, canonical(docker_race_row))
+        self.assertEqual(docker_race_result.stderr, b"")
+
+        _raw, _gzip, fixed_wrapper = rendered_readback_wrapper(fixed_readback, 4)
+        fixed_result = run_readback_wrapper(fixed_wrapper)
+        self.assertEqual(fixed_result.returncode, 4)
+        self.assertEqual(fixed_result.stdout, canonical(fixed_readback))
+        self.assertEqual(fixed_result.stderr, b"")
+
+        for invalid in (
+            dict(full_readback, unexpected_field=0),
+            dict(full_readback, host_identity_exact=1),
+            dict(
+                full_readback,
+                NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK=(
+                    "MANIFEST_COMMITTED_READBACK_REQUIRED"
+                ),
+                original_database_state="CONNECTED_READ_ONLY_ROLLBACK",
+                manifest_readback_allowed=False,
+            ),
+            dict(
+                full_readback,
+                NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK=(
+                    "MANIFEST_COMMITTED_READBACK_REQUIRED"
+                ),
+                original_database_state="CONNECTED_READ_ONLY_ROLLBACK",
+                manifest_readback_allowed=True,
+            ),
+            dict(
+                full_readback,
+                NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK=(
+                    "CONTAINER_PRESENT_UNKNOWN"
+                ),
+                original_database_state=(
+                    "TASK_EXECUTION_OR_RESIDUE_UNKNOWN"
+                ),
+            ),
+            dict(
+                full_readback,
+                NOTEAI_ITEM26_SOURCE_MANIFEST_READBACK=(
+                    "STAGED_UNCOMMITTED_READBACK_REQUIRED"
+                ),
+                original_database_state="CONNECTED_READ_ONLY_ROLLBACK",
+                manifest_readback_allowed=True,
+            ),
+        ):
+            _raw, _gzip, invalid_wrapper = rendered_readback_wrapper(invalid, 0)
+            invalid_result = run_readback_wrapper(invalid_wrapper)
+            self.assertEqual(invalid_result.returncode, 4)
+            self.assertEqual(invalid_result.stdout, canonical(fixed_readback))
+            self.assertEqual(invalid_result.stderr, b"")
+
+        tamper_raw, tamper_gzip, tamper_wrapper = rendered_readback_wrapper(
+            full_readback,
+            0,
+        )
+        for supplied in (
+            hashlib.sha256(tamper_gzip).hexdigest().encode("ascii"),
+            hashlib.sha256(tamper_raw).hexdigest().encode("ascii"),
+        ):
+            self.assertEqual(tamper_wrapper.count(supplied), 1)
+            replacement = b"0" * 64 if supplied != b"0" * 64 else b"f" * 64
+            tampered_result = run_readback_wrapper(
+                tamper_wrapper.replace(supplied, replacement, 1)
+            )
+            self.assertEqual(tampered_result.returncode, 4)
+            self.assertEqual(tampered_result.stdout, canonical(fixed_readback))
+            self.assertEqual(tampered_result.stderr, b"")
+
+        validator = item26_transport_renderer.READBACK_VALIDATOR_SOURCE.decode(
+            "ascii"
+        )
+        self.assertIn("start_new_session=True", validator)
+        self.assertIn("os.killpg(process.pid, signal.SIGKILL)", validator)
+        self.assertIn("process.communicate(timeout=5)", validator)
+        timeout_source = validator.replace(
+            "process.communicate(READBACK_RAW, timeout=90)",
+            "process.communicate(READBACK_RAW, timeout=1)",
+        ).encode("ascii")
+        timeout_result = item26_transport_renderer._render_readback_transport(
+            sleeping_raw_fixture(),
+            deterministic_gzip,
+        )
+        self.assertEqual(timeout_result[0], item26_transport_renderer.READBACK_VALIDATOR_SOURCE)
+        timeout_payload = (
+            "{:08d}".format(len(timeout_source)).encode("ascii")
+            + timeout_source
+            + sleeping_raw_fixture()
+        )
+        timeout_gzip = deterministic_gzip(timeout_payload)
+        timeout_wrapper = item26_transport_renderer._render(
+            "timeout_readback_wrapper",
+            item26_transport_renderer.READBACK_WRAPPER_TEMPLATE,
+            {
+                b"@@READBACK_PAYLOAD_GZIP_BYTES@@": str(
+                    len(timeout_gzip)
+                ).encode("ascii"),
+                b"@@READBACK_PAYLOAD_GZIP_SHA256@@": hashlib.sha256(
+                    timeout_gzip
+                ).hexdigest().encode("ascii"),
+                b"@@READBACK_PAYLOAD_BYTES@@": str(
+                    len(timeout_payload)
+                ).encode("ascii"),
+                b"@@READBACK_PAYLOAD_SHA256@@": hashlib.sha256(
+                    timeout_payload
+                ).hexdigest().encode("ascii"),
+                b"@@READBACK_PAYLOAD_GZIP_B85@@": base64.b85encode(
+                    timeout_gzip
+                ),
+                b"@@READBACK_VALIDATOR_BYTES@@": str(
+                    len(timeout_source)
+                ).encode("ascii"),
+                b"@@READBACK_VALIDATOR_SHA256@@": hashlib.sha256(
+                    timeout_source
+                ).hexdigest().encode("ascii"),
+                b"@@READBACK_BYTES@@": str(
+                    len(sleeping_raw_fixture())
+                ).encode("ascii"),
+                b"@@READBACK_SHA256@@": hashlib.sha256(
+                    sleeping_raw_fixture()
+                ).hexdigest().encode("ascii"),
+            },
+        )
+        timeout_terminal = run_readback_wrapper(timeout_wrapper)
+        self.assertEqual(timeout_terminal.returncode, 4)
+        self.assertEqual(timeout_terminal.stdout, canonical(fixed_readback))
+        self.assertEqual(timeout_terminal.stderr, b"")
 
         if sys.platform.startswith("linux"):
             production_render = item26_transport_renderer.render_item26_v3_transport(

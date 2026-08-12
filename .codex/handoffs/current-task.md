@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-09 (Asia/Shanghai)
+> Updated: 2026-08-12 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -62,8 +62,8 @@
 - V5 package-evidence checkpoint:
   `883e874d4186e523b8110d44338c2e074b26c491`.
 - Repository/isolated readiness: `12/12`.
-- Internal deployment readiness: `20/29 = 69%`.
-- Public launch readiness: `20/38 = 53%`.
+- Internal deployment readiness: `25/29 = 86%`.
+- Public launch readiness: `25/38 = 66%`.
 - Public launch completion: false.
 
 ## 2.1 Completed V5 production schema and role deployment
@@ -9150,3 +9150,55 @@ passes the complete CI, including the disposable PostgreSQL 16 matrix and GNU
 transport binding. No cloud command, database transaction, account mutation or
 new resource was issued; the temporary reader and root-only recovery material
 remain retained.
+
+### Item 26 corrected GNU checkpoint accepted; operational readback transport remains a successor candidate (2026-08-12)
+
+- Checkpoint `bbfffc30090af76a470c92d065ce50f5b456390a` is the direct child of
+  `13cde34de8fb8073812cb6491ecdd07326119c1a`. Its ordinary push and pull-request
+  CI runs both completed successfully. Each ran 1,878 unit tests with 34 skips,
+  passed all six PostgreSQL 16 integration cases without a PostgreSQL skip,
+  passed Quality, the `138/138` production-readiness gate and Compose, and had
+  no failed setup or cleanup stage. This closes the earlier cross-platform gzip
+  fixture defect and proves the disposable PostgreSQL 16 matrix for the exact
+  `bbfffc3` checkpoint only.
+- That accepted checkpoint still carried the historical 23,439-byte renderer
+  binding. The operational readback packaging that followed is deliberately
+  recorded as a distinct successor checkpoint candidate; none of the
+  historical renderer or transport hashes above is overwritten, and the green
+  `bbfffc3` runs are not inherited by the new candidate.
+- The successor candidate changes only the existing v3 renderer and its
+  integration regression. The renderer is now 41,246 bytes / SHA-256
+  `6db210c6e04e98d022a25c9b4212ea98ed532f9287fb6be2ff69a54368ab4e92`;
+  the regression is 71,137 bytes / SHA-256
+  `40d42e250875db2218ec0a6fa0785be75484cb1622c87defa5eed5c91865d371`.
+  It packages the already accepted raw readback together with its semantic
+  validator in one double-hash-bound gzip payload and a bounded loader. It does
+  not change the raw readback logic, the accepted metadata states, the manifest
+  validator or any Item26 acceptance criterion.
+- The exact GNU candidate readback layers are: validator 11,528 bytes / SHA-256
+  `f22cd609d2935d24f85c98057b603edc48ff938cb6d661419a8abb89104b4562`,
+  combined payload 37,431 bytes / SHA-256
+  `543388587968bb51435fe0211ee55a24c87990e045347d4384b0948c27ee257f`,
+  gzip 8,173 bytes / SHA-256
+  `df68c86a17f5019bcd24554ce6c8f7cff9b3228a3c91cb1a90cadd53ae501089`,
+  wrapper 13,384 bytes / SHA-256
+  `7abe1416179a455c92f807b6fd24880f797df5ad72555abd9f46c69713c38911`,
+  and Base64 CommandContent 17,848 bytes / SHA-256
+  `9f903382e097dd2d00b606f058c42e6392e6723cec331dc360a5515d38e4208e`.
+  The original GNU capture CommandContent remains 17,072 bytes; both remain
+  below the fixed 18,000-byte ceiling. Apple sizing is separately bound at
+  17,080 and 17,936 bytes and is not a production receipt.
+- Final independent review is `GO`, `P0=0 / P1=0`. Focused tests pass `2/2` and
+  `git diff --check` passes. The review reproduced every Apple/GNU layer,
+  accepted all 18 legal state representatives, rejected 15 semantic/type/shape
+  false states with the fixed fail-closed result, found no mismatch across
+  100,000 raw/validator classifier cases, and verified bounded process-group
+  termination without a residual child. No cloud or database action was
+  performed by this review.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new readiness credit. The successor candidate must receive
+its own complete push and pull-request CI before any production dispatch can be
+authorized. `production_dispatch_authorized` and the current transport-ready
+flags remain false; all prior v2 identities remain frozen/no-replay, and the
+temporary reader plus root-only recovery material remain retained unchanged.
