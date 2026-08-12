@@ -1,4 +1,8 @@
+import ast
+import hashlib
 import os
+import pathlib
+import re
 import unittest
 
 import psycopg
@@ -17,6 +21,70 @@ from tools import production_schema_roles as schema_roles
 
 LOCAL_DSN_ENV = "NOTEAI_LOCAL_PG16_SCHEMA_ROLE_DSN"
 TASK_EXECUTOR_ROLE = "noteai_schema_task_executor"
+ITEM26_TEMPLATE_PATH = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / ".codex"
+    / "item26-source-manifest.template.sh"
+)
+
+
+def _load_item26_owner_gate():
+    source = ITEM26_TEMPLATE_PATH.read_text(encoding="utf-8")
+    match = re.search(
+        r'cat >"\$DRIVER_PATH" <<\'PY\'\n(.*?)\nPY\n',
+        source,
+        re.DOTALL,
+    )
+    if match is None:
+        raise AssertionError("Item26 driver heredoc is missing")
+    tree = ast.parse(match.group(1))
+    required_assignments = {
+        "ACCOUNT", "OWNER", "MANAGED", "TABLES", "RLS",
+    }
+    required_definitions = {"Fixed", "one", "owner_gate"}
+    selected = []
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Name)
+                and target.id in required_assignments
+                for target in node.targets
+            )
+        ):
+            selected.append(node)
+        elif (
+            isinstance(node, (ast.ClassDef, ast.FunctionDef))
+            and node.name in required_definitions
+        ):
+            selected.append(node)
+    module = ast.Module(body=selected, type_ignores=[])
+    namespace = {}
+    exec(compile(module, str(ITEM26_TEMPLATE_PATH), "exec"), namespace)
+    missing = (required_assignments | required_definitions) - set(namespace)
+    if missing:
+        raise AssertionError(f"Item26 owner gate definitions missing: {missing}")
+    return namespace
+
+
+def _expected_rls_tables_from_migrations():
+    enabled = set()
+    forced = set()
+    enable_pattern = re.compile(
+        r"\bALTER\s+TABLE\s+([a-z_][a-z0-9_]*)\s+"
+        r"ENABLE\s+ROW\s+LEVEL\s+SECURITY\s*;",
+        re.IGNORECASE,
+    )
+    force_pattern = re.compile(
+        r"\bALTER\s+TABLE\s+([a-z_][a-z0-9_]*)\s+"
+        r"FORCE\s+ROW\s+LEVEL\s+SECURITY\s*;",
+        re.IGNORECASE,
+    )
+    for path in sorted(schema_roles.MIGRATION_DIR.glob("*.sql")):
+        source = path.read_text(encoding="utf-8")
+        enabled.update(match.lower() for match in enable_pattern.findall(source))
+        forced.update(match.lower() for match in force_pattern.findall(source))
+    return tuple(sorted(enabled)), tuple(sorted(forced))
 
 
 @unittest.skipUnless(os.environ.get(LOCAL_DSN_ENV), "local PostgreSQL 16 only")
@@ -353,6 +421,283 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
                 ):
                     conn.execute(
                         sql.SQL("DROP ROLE IF EXISTS {}").format(
+                            sql.Identifier(role)
+                        )
+                    )
+
+    def test_001_item26_owner_gate_is_exact_on_postgresql16(self):
+        base_url = os.environ[LOCAL_DSN_ENV]
+        contract = _load_item26_owner_gate()
+        account = contract["ACCOUNT"]
+        owner = contract["OWNER"]
+        tables = tuple(contract["TABLES"])
+        rls_tables = tuple(contract["RLS"])
+        self.assertEqual(tables, tuple(sorted(schema_roles.EXPECTED_TABLES)))
+        migration_rls_tables, migration_force_rls_tables = (
+            _expected_rls_tables_from_migrations()
+        )
+        self.assertEqual(rls_tables, migration_rls_tables)
+        self.assertEqual(migration_force_rls_tables, ())
+        fixed_error = contract["Fixed"]
+        owner_gate = contract["owner_gate"]
+        self.assertEqual(contract["MANAGED"], "pg_rds_superuser")
+        managed = "noteai_item26_managed_equivalent"
+        owner_gate.__globals__["MANAGED"] = managed
+        database_name = "noteai_item26_owner_gate_pg16_test"
+        settings = psycopg.conninfo.conninfo_to_dict(base_url)
+        settings["dbname"] = database_name
+        database_url = psycopg.conninfo.make_conninfo(**settings)
+        migrations = [
+            {
+                "version": path.name,
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+            for path in sorted(schema_roles.MIGRATION_DIR.glob("*.sql"))
+        ]
+        database_created = False
+        created_roles = []
+
+        class RecordingConnection:
+            def __init__(self, connection):
+                self.connection = connection
+                self.statements = []
+
+            def execute(self, statement, params=()):
+                self.statements.append(" ".join(statement.split()))
+                return self.connection.execute(statement, params)
+
+        def connect_as_task():
+            connection = psycopg.connect(
+                database_url,
+                row_factory=dict_row,
+                autocommit=True,
+                options="-c default_transaction_read_only=on",
+            )
+            connection.execute(
+                sql.SQL("SET SESSION AUTHORIZATION {}").format(
+                    sql.Identifier(account)
+                )
+            )
+            return connection
+
+        def run_positive():
+            connection = connect_as_task()
+            try:
+                connection.execute(
+                    "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY"
+                )
+                self.assertEqual(
+                    connection.info.transaction_status.name,
+                    "INTRANS",
+                )
+                owner_gate(connection, migrations)
+                row = connection.execute(
+                    "SELECT COUNT(*)::integer AS count "
+                    "FROM admin_sessions"
+                ).fetchone()
+                self.assertEqual(row["count"], 1)
+                connection.rollback()
+                self.assertEqual(
+                    connection.info.transaction_status.name,
+                    "IDLE",
+                )
+                identity = connection.execute(
+                    "SELECT session_user=current_user AS restored,"
+                    "current_setting('row_security')='on' AS rls_restored"
+                ).fetchone()
+                self.assertEqual(identity, {
+                    "restored": True,
+                    "rls_restored": True,
+                })
+            finally:
+                connection.close()
+
+        def run_negative():
+            connection = connect_as_task()
+            recorder = RecordingConnection(connection)
+            try:
+                connection.execute(
+                    "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY"
+                )
+                with self.assertRaises(fixed_error):
+                    owner_gate(recorder, migrations)
+                connection.rollback()
+                self.assertEqual(
+                    connection.info.transaction_status.name,
+                    "IDLE",
+                )
+                identity = connection.execute(
+                    "SELECT session_user=current_user AS restored,"
+                    "current_setting('row_security')='on' AS rls_restored"
+                ).fetchone()
+                self.assertEqual(identity, {
+                    "restored": True,
+                    "rls_restored": True,
+                })
+                business_reads = [
+                    statement
+                    for statement in recorder.statements
+                    if 'FROM "' in statement
+                ]
+                self.assertEqual(business_reads, [])
+            finally:
+                connection.close()
+
+        try:
+            with psycopg.connect(base_url, autocommit=True) as connection:
+                existing = connection.execute(
+                    "SELECT rolname FROM pg_roles WHERE rolname=ANY(%s)",
+                    ([account, managed, owner],),
+                ).fetchall()
+                self.assertEqual(existing, [])
+                database_exists = connection.execute(
+                    "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname=%s)",
+                    (database_name,),
+                ).fetchone()[0]
+                self.assertFalse(database_exists)
+                connection.execute(
+                    sql.SQL(
+                        "CREATE ROLE {} NOLOGIN NOSUPERUSER NOCREATEDB "
+                        "NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS"
+                    ).format(sql.Identifier(owner))
+                )
+                created_roles.append(owner)
+                connection.execute(
+                    sql.SQL(
+                        "CREATE ROLE {} NOLOGIN NOSUPERUSER NOCREATEDB "
+                        "NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS"
+                    ).format(sql.Identifier(managed))
+                )
+                created_roles.append(managed)
+                connection.execute(
+                    sql.SQL(
+                        "CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB "
+                        "NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS"
+                    ).format(sql.Identifier(account))
+                )
+                created_roles.append(account)
+                connection.execute(
+                    sql.SQL(
+                        "GRANT {} TO {} WITH INHERIT FALSE, SET TRUE"
+                    ).format(sql.Identifier(owner), sql.Identifier(managed))
+                )
+                connection.execute(
+                    sql.SQL(
+                        "GRANT {} TO {} WITH INHERIT FALSE, SET TRUE"
+                    ).format(sql.Identifier(managed), sql.Identifier(account))
+                )
+                connection.execute(
+                    sql.SQL("CREATE DATABASE {}").format(
+                        sql.Identifier(database_name)
+                    )
+                )
+                database_created = True
+            with psycopg.connect(database_url) as connection:
+                for table in tables:
+                    if table == "schema_migrations":
+                        connection.execute(
+                            "CREATE TABLE schema_migrations("
+                            "version text PRIMARY KEY,sha256 text NOT NULL)"
+                        )
+                    else:
+                        connection.execute(
+                            sql.SQL(
+                                "CREATE TABLE {}(id bigint PRIMARY KEY)"
+                            ).format(sql.Identifier(table))
+                        )
+                    connection.execute(
+                        sql.SQL("ALTER TABLE {} OWNER TO {}").format(
+                            sql.Identifier(table),
+                            sql.Identifier(owner),
+                        )
+                    )
+                connection.executemany(
+                    "INSERT INTO schema_migrations(version,sha256) "
+                    "VALUES(%s,%s)",
+                    [
+                        (row["version"], row["sha256"])
+                        for row in migrations
+                    ],
+                )
+                connection.execute("INSERT INTO admin_sessions(id) VALUES(1)")
+                for table in rls_tables:
+                    connection.execute(
+                        sql.SQL("ALTER TABLE {} ENABLE ROW LEVEL SECURITY").format(
+                            sql.Identifier(table)
+                        )
+                    )
+
+            run_positive()
+
+            mutations = (
+                (
+                    ("CREATE TABLE item26_extra_table(id bigint)",
+                     f"ALTER TABLE item26_extra_table OWNER TO {owner}"),
+                    ("DROP TABLE item26_extra_table",),
+                ),
+                (
+                    ("ALTER TABLE users RENAME TO item26_users_missing",),
+                    ("ALTER TABLE item26_users_missing RENAME TO users",),
+                ),
+                (
+                    ("ALTER TABLE account_deletion_requests OWNER TO postgres",),
+                    (f"ALTER TABLE account_deletion_requests OWNER TO {owner}",),
+                ),
+                (
+                    ("ALTER TABLE admin_sessions DISABLE ROW LEVEL SECURITY",),
+                    ("ALTER TABLE admin_sessions ENABLE ROW LEVEL SECURITY",),
+                ),
+                (
+                    ("ALTER TABLE account_deletion_requests ENABLE ROW LEVEL SECURITY",),
+                    ("ALTER TABLE account_deletion_requests DISABLE ROW LEVEL SECURITY",),
+                ),
+                (
+                    ("ALTER TABLE admin_sessions FORCE ROW LEVEL SECURITY",),
+                    ("ALTER TABLE admin_sessions NO FORCE ROW LEVEL SECURITY",),
+                ),
+                (
+                    (f"REVOKE {managed} FROM {account}",),
+                    (f"GRANT {managed} TO {account} WITH INHERIT FALSE, SET TRUE",),
+                ),
+                (
+                    (f"REVOKE {owner} FROM {managed}",),
+                    (f"GRANT {owner} TO {managed} WITH INHERIT FALSE, SET TRUE",),
+                ),
+                (
+                    ("UPDATE schema_migrations SET sha256=repeat('0',64) "
+                     "WHERE version=(SELECT MIN(version) FROM schema_migrations)",),
+                    (
+                        "UPDATE schema_migrations SET sha256='{}' "
+                        "WHERE version='{}'".format(
+                            migrations[0]["sha256"],
+                            migrations[0]["version"],
+                        ),
+                    ),
+                ),
+            )
+            for apply_statements, restore_statements in mutations:
+                with self.subTest(mutation=apply_statements[0]):
+                    with psycopg.connect(database_url) as connection:
+                        for statement in apply_statements:
+                            connection.execute(statement)
+                    try:
+                        run_negative()
+                    finally:
+                        with psycopg.connect(database_url) as connection:
+                            for statement in restore_statements:
+                                connection.execute(statement)
+                    run_positive()
+        finally:
+            with psycopg.connect(base_url, autocommit=True) as connection:
+                if database_created:
+                    connection.execute(
+                        sql.SQL("DROP DATABASE {} WITH (FORCE)").format(
+                            sql.Identifier(database_name)
+                        )
+                    )
+                for role in reversed(created_roles):
+                    connection.execute(
+                        sql.SQL("DROP ROLE {}").format(
                             sql.Identifier(role)
                         )
                     )

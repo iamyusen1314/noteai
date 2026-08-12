@@ -8916,3 +8916,67 @@ do not create another account, database transaction, capture or readback.
 
 Item 26 remains `unverified`; readiness remains internal `25/29` and public
 `25/38`, with zero new readiness credit.
+
+### Item 26 frozen result records recovered; no manifest and database barrier remains unresolved (2026-08-12)
+
+- Read-only provider queries now return exactly one terminal result for each of
+  the two relevant frozen execution identities. No Cloud Assistant command was
+  submitted, retried or replaced while recovering these records; the earlier
+  provider-recording incident is closed.
+- The fixed metadata-only readback is `Success / ExitCode=0 / Finished /
+  Repeats=1 / Dropped=0`. Its bounded output is 859 bytes / SHA-256
+  `dcfec826f103f3d55fe2bc772035620733ca56e020406e2da9f751038fdedbc4`
+  and parses as `DB_BARRIER_NO_COMMIT_UNKNOWN`. Control metadata and the
+  retained transfer are exact, the task inventory is `HELPER_EXACT`, helper
+  stdout is empty, output is empty, no final manifest exists, the task
+  container count is zero and the current established-5432 count is zero.
+  Those zero counts describe only the metadata readback/current state; they do
+  not prove that the earlier database transaction never started. Manifest
+  readback remains disallowed.
+- The separate already-existing source-error observer is also terminal
+  `Success / ExitCode=0 / Finished / Repeats=1 / Dropped=0`. Its fixed output
+  is 485 bytes / SHA-256
+  `51bfb22a39633f829cb1e17a5e35c4e66917e4712577a8ff54344080f2cf4cda`
+  and reports `psycopg.errors.InsufficientPrivilege`, with the last retained
+  application frame at the generic `db.py execute` boundary. Database writes,
+  object reads/writes and manifest output are zero, while
+  `database_transaction_may_have_started=true`. The retained frame does not
+  identify the rejected SQL and does not bind the observer's session identity
+  to the corrected source-reader capture; it must not be presented as a proven
+  table-specific root cause.
+- All prior capture, recovery, observer and readback executions remain
+  terminal/no-replay. No third diagnostic or readback is allowed. The current
+  source-manifest state is `NO_MANIFEST`; the corrected capture database state
+  remains `DB_BARRIER_NO_COMMIT_UNKNOWN`.
+- The minimal successor design does not add a persistent grant, `ALTER ROLE`
+  or `BYPASSRLS`. Existing production evidence proves the managed RDS
+  privileged path can enter `SET LOCAL ROLE noteai_admin` inside a
+  `REPEATABLE READ READ ONLY` transaction and terminate with `ROLLBACK`. Before
+  reading any business row, a successor must fail closed on the current
+  session identity and SET capability, the exact 56-table owner/name contract,
+  the exact 19-table RLS set, zero `relforcerowsecurity`, transaction
+  read-only/isolation state and `row_security=off`. The frozen 27,158-byte
+  predecessor does not implement those gates and remains permanently
+  non-executable.
+- A separately named local successor candidate now implements those gates in
+  `.codex/item26-source-manifest.template.sh`: 34,967 bytes / SHA-256
+  `7b82bae343d18c38303bc2fbba5e5b3dd1663bead8d3a8ecdbd6cbd5cfeb4299`.
+  It requires PostgreSQL 16, a native non-superuser with exactly one direct
+  managed-privileged membership, the two-level owner `SET` capability, exact
+  56-table ownership, the exact 19-table RLS set, zero forced RLS, and the
+  exact 17-row migration ledger before it can read a business row. It uses
+  `SET LOCAL ROLE noteai_admin`, then `SET LOCAL row_security=off`, and only
+  reports success after explicit `ROLLBACK` and an idle connection. It contains
+  no `GRANT`, `ALTER ROLE`, `BYPASSRLS`, persistent permission mutation or
+  automatic retry path. Bash/Python static checks, the independent 56/19/FORCE
+  source mapping, 34 existing owner/role/migration tests, 17 readiness tests
+  and the 138-check production gate pass locally. A real disposable
+  PostgreSQL 16 positive/negative matrix remains required in CI before any
+  production successor dispatch can be considered.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new readiness credit. The CTO-approved temporary read
+account and root-only key/envelope/transfer/task evidence remain retained and
+unchanged. The next step is local, Secret-free implementation and disposable
+PostgreSQL 16 validation of the fail-closed owner/RLS gates; no production
+permission mutation or successor capture is authorized by this checkpoint.
