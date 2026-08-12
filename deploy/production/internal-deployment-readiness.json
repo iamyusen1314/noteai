@@ -6315,6 +6315,19 @@
                 "v3_local_readback_sha256": "a79fb6312605599e232d70833f05b07d9b078b4a33d8f528eb2d082c852660d8",
                 "v3_transport_limit_bytes": 18000,
                 "v3_local_compressor": "APPLE_GZIP_479_SIZING_ONLY",
+                "v3_linux_gnu_candidate_source_bytes": 35425,
+                "v3_linux_gnu_candidate_source_sha256": "c3d86745eb12a1155100a55106f6cead2e0b9577dffe5950cddcb0668ab87d2a",
+                "v3_linux_gnu_candidate_transfer_gzip_bytes": 10534,
+                "v3_linux_gnu_candidate_transfer_gzip_sha256": "0c2ad55242e9d8cb5b410f5e8ad782d60b59772ba722daeb9418e10e94dc053a",
+                "v3_linux_gnu_candidate_wrapper_bytes": 12802,
+                "v3_linux_gnu_candidate_wrapper_sha256": "e5e56b8cffb8c363c56c12800de01563de451a111924c8a03ffd2245fd1a6d55",
+                "v3_linux_gnu_candidate_wrapper_base64_bytes": 17072,
+                "v3_linux_gnu_candidate_wrapper_base64_sha256": "fb3c0ee5768341fcb54cb62c94c33a3a3592cb6770307de918cfefcda84d8a0d",
+                "v3_linux_gnu_candidate_readback_bytes": 25895,
+                "v3_linux_gnu_candidate_readback_sha256": "b8d7c78b987d00360e298b2ccbbb6d7b822b79ad040157bb23003daab32a342f",
+                "v3_linux_gnu_candidate_independently_reproduced": true,
+                "v3_platform_specific_compression_outputs_bound_separately": true,
+                "v3_previous_ci_cross_platform_identity_assumption_rejected": true,
                 "v3_linux_gnu_render_binding_required": true,
                 "v3_renderer_independent_review_p0": 0,
                 "v3_renderer_independent_review_p1": 0,
@@ -6341,7 +6354,7 @@
             "readiness_credit_added": false,
             "automatic_retry_allowed": false
           },
-          "blocker": "Both relevant frozen result records are now visible and parsed, so the provider-recording incident is closed. The metadata readback proves NO_MANIFEST with DB_BARRIER_NO_COMMIT_UNKNOWN; a separate existing observer recorded psycopg.errors.InsufficientPrivilege in the generic db.py execute path, but that frame does not bind the rejected SQL or session identity to the corrected source-reader capture. All prior executions remain frozen/no-replay. The first local owner/RLS candidate was rejected before dispatch because of import-time SQLite initialization and is permanently non-executable. Its successor closes that defect with a tested non-Secret import guard while retaining the exact 56-table owner/SET ROLE, 19-table RLS, zero FORCE RLS and read-only rollback gates without persistent permission mutation. The wholly new v3 executor/controller/wrapper/readback contract is locally accepted and preserves a retained transfer anchor, but its current render is non-Secret Apple-gzip sizing evidence only. A real disposable PostgreSQL 16 positive/negative CI result plus a final Linux/GNU deterministic render bound to actual public envelope metadata remain required before any production successor dispatch can be considered.",
+          "blocker": "Both relevant frozen result records are now visible and parsed, so the provider-recording incident is closed. The metadata readback proves NO_MANIFEST with DB_BARRIER_NO_COMMIT_UNKNOWN; a separate existing observer recorded psycopg.errors.InsufficientPrivilege in the generic db.py execute path, but that frame does not bind the rejected SQL or session identity to the corrected source-reader capture. All prior executions remain frozen/no-replay. The first local owner/RLS candidate was rejected before dispatch because of import-time SQLite initialization and is permanently non-executable. Its successor closes that defect with a tested non-Secret import guard while retaining the exact 56-table owner/SET ROLE, 19-table RLS, zero FORCE RLS and read-only rollback gates without persistent permission mutation. The wholly new v3 executor/controller/wrapper/readback contract is locally accepted and preserves a retained transfer anchor. The first Linux CI correctly demonstrated that GNU and Apple gzip produce different deterministic bytes, so its sole unit-test failure was the invalid cross-platform equality fixture rather than a production renderer defect; the independently reproduced GNU candidate is now bound separately. A fresh CI must still prove the corrected GNU fixture and disposable PostgreSQL 16 positive/negative matrix before any production successor dispatch can be considered.",
           "next_task": "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
         },
         {

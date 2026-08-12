@@ -9120,3 +9120,33 @@ Item 26 remains `unverified`; readiness remains internal `25/29` and public
 until a newly pushed CI run proves both the disposable PostgreSQL 16 matrix and
 the Linux/GNU byte-for-byte render. All v2 identities remain frozen/no-replay,
 and the temporary reader plus root-only recovery material remain retained.
+
+### Item 26 Linux/GNU transport fixture correction (2026-08-12)
+
+- Both GitHub CI executions for checkpoint `13cde34` reached the unit suite and
+  failed only the v3 transport sizing assertion: 1 failure among 1,878 tests,
+  with 34 skips. The PostgreSQL 16, quality, readiness and compose stages did
+  not run after that failure, so none is claimed as passing.
+- The failure is a test-fixture defect, not a renderer or production-control
+  defect. Deterministic gzip output is stable within a compressor/platform but
+  Apple gzip 479 and GNU gzip 1.14 do not produce identical bytes for these
+  layers. The production renderer already requires Linux/GNU and was not
+  changed. The test now binds Apple sizing and Linux/GNU production bytes as
+  two explicit, non-interchangeable maps.
+- An independently verified GNU gzip 1.14 reproduction matches the Linux CI
+  transfer layer exactly and derives the full candidate chain: source 35,425
+  bytes, transfer 10,534 bytes, wrapper 12,802 bytes, Base64 CommandContent
+  17,072 bytes and readback 25,895 bytes. The CommandContent remains below the
+  fixed 18,000-byte ceiling. These values are a candidate binding until a fresh
+  CI run passes the complete workflow; they do not add readiness credit.
+- The existing semantic manifest validator remains sufficient and unchanged:
+  `model/storage_recovery_evidence.py` supplies validation/restore comparison,
+  and `python tools/recovery_evidence.py verify` supplies the committed CLI.
+  No new validator, proof layer or acceptance standard is introduced.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`. Production dispatch remains prohibited until the corrected new HEAD
+passes the complete CI, including the disposable PostgreSQL 16 matrix and GNU
+transport binding. No cloud command, database transaction, account mutation or
+new resource was issued; the temporary reader and root-only recovery material
+remain retained.

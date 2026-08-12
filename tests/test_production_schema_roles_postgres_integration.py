@@ -367,7 +367,7 @@ if sqlite_path.exists():
         with self.assertRaises(item26_transport_renderer.RenderError):
             item26_transport_renderer.canonical_summary(summary)
 
-        expected_sizing = {
+        expected_apple_sizing = {
             "source": {
                 "bytes": 35425,
                 "sha256": "c3d86745eb12a1155100a55106f6cead2e0b9577dffe5950cddcb0668ab87d2a",
@@ -409,6 +409,53 @@ if sqlite_path.exists():
                 "sha256": "a6ace3aef127817396ff75e794379c18003732384ee6191b3459cc1f61b82ec7",
             },
         }
+        expected_gnu_sizing = {
+            "source": {
+                "bytes": 35425,
+                "sha256": "c3d86745eb12a1155100a55106f6cead2e0b9577dffe5950cddcb0668ab87d2a",
+            },
+            "driver": {
+                "bytes": 18084,
+                "sha256": "282c789b8918cdbe9e1512a0a54e248ab7d9e2814aea1629f8353487d962d67e",
+            },
+            "transfer_gzip": {
+                "bytes": 10534,
+                "sha256": "0c2ad55242e9d8cb5b410f5e8ad782d60b59772ba722daeb9418e10e94dc053a",
+            },
+            "executor": {
+                "bytes": 17035,
+                "sha256": "b19920ce377e4f9b1d4272ff6c27a89e33de0311a7c98be96dbea088ff09c673",
+            },
+            "executor_gzip": {
+                "bytes": 4473,
+                "sha256": "72354a463675d576cd1ee1c4b9ff4fe0c7fee9832ede3d60d6e4c2a81d9282c5",
+            },
+            "controller": {
+                "bytes": 15663,
+                "sha256": "79c693b64b64bc9ba7cda3f4c4abde3bb980e7a229843c79447cdb5104b87c9c",
+            },
+            "controller_gzip": {
+                "bytes": 7603,
+                "sha256": "507bcc92bbb1bfb8e94d2de7bbc5a287cc9b975df064ec1b3240666aafe28560",
+            },
+            "wrapper": {
+                "bytes": 12802,
+                "sha256": "e5e56b8cffb8c363c56c12800de01563de451a111924c8a03ffd2245fd1a6d55",
+            },
+            "readback": {
+                "bytes": 25895,
+                "sha256": "b8d7c78b987d00360e298b2ccbbb6d7b822b79ad040157bb23003daab32a342f",
+            },
+            "command_content": {
+                "bytes": 17072,
+                "sha256": "fb3c0ee5768341fcb54cb62c94c33a3a3592cb6770307de918cfefcda84d8a0d",
+            },
+        }
+        expected_sizing = (
+            expected_gnu_sizing
+            if sys.platform.startswith("linux")
+            else expected_apple_sizing
+        )
         actual_sizing = {
             name: {
                 "bytes": summary[name]["bytes"],

@@ -1811,6 +1811,18 @@ Last updated: 2026-08-12
   gates pass, no v3 production dispatch is authorized, all v2 identities stay
   frozen, and Item26 remains unverified at 25/29.
 
+- 2026-08-12 the first CI for the v3 renderer failed only one transport sizing
+  assertion because the regression incorrectly required Apple gzip 479 and
+  Linux GNU gzip 1.14 to emit identical compressed bytes. The production path
+  was already Linux/GNU-only and is unchanged. An independent GNU reproduction
+  matches CI's 10,534-byte transfer layer and derives a 17,072-byte Base64
+  command below the 18,000-byte cap; the regression now binds Apple sizing and
+  GNU production results separately. This correction adds no readiness credit:
+  the original CI did not reach the disposable PostgreSQL 16, quality,
+  readiness or compose stages, and a fresh complete CI remains required before
+  any v3 production dispatch. No cloud, database, account or resource mutation
+  occurred; all v2 identities remain frozen and retained materials stay intact.
+
 ## Low Risks
 
 ### `model/api.py` is too large
