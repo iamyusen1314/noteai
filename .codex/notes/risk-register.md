@@ -1887,6 +1887,25 @@ Last updated: 2026-08-12
   Item26 remains unverified at 25/29 internal and 25/38 public; no paid restore
   has started.
 
+- 2026-08-12 storage-maintenance pause: the exact-one isolated Postpaid clone
+  remains Running and billable, while the only approved builder remains
+  Stopped/StopCharging. Clone baseline control-plane postchecks, the exact
+  builder-private `/32` reader boundary and the task-scoped OSS metadata-only
+  RAM-role readback are PASS; clone database connection/transaction/capture/write
+  counts remain `0/0/0/0`. All Item26 subagents were interrupted and no new
+  Cloud Assistant, SendFile, builder-start, database, restore or production
+  command was dispatched during closeout. The local encrypted restored-capture
+  chain is determinately NO-GO before production: three P0 gaps remain in the
+  SendFile API schema, loader terminal-output boundary and persistent
+  password-rewrap transport; one P1 remains in Linux/GNU production provenance,
+  and the root-only persistent-parent preflight is unconsumed. Storage migration
+  does not end the 29-item program and does not authorize a new task/window,
+  second clone, RestoreTime change or cleanup. Residual High remains closing
+  those local transport gates in this same conversation, one exact restored
+  capture/reconciliation, and separately approved exact-instance deletion.
+  Item26 remains unverified at 25/29 internal and 25/38 public with zero credit;
+  all source, clone and root-only recovery materials remain retained.
+
 ## Low Risks
 
 ### `model/api.py` is too large

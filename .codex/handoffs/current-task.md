@@ -9337,3 +9337,43 @@ exactly one restored capture and exact source/restored reconciliation. No
 second clone or `RestoreTime` change is allowed. The source manifest, v3
 transfer, temporary reader account and root-only control material remain
 retained.
+
+### Item 26 storage-maintenance pause after terminal local NO-GO (2026-08-12)
+
+- The exact clone reader boundary is now closed at the control plane before this
+  pause: the clone whitelist is the single approved builder private `/32`, the
+  task-scoped OSS metadata-only RAM role is attached to that exact builder and
+  read back exact, and the builder itself remains `Stopped / StopCharging`.
+  These actions did not connect to either database and did not start the
+  restored capture.
+- The only in-flight work at the pause boundary was local construction and
+  review of the encrypted restored-capture transport. All three subagents were
+  explicitly interrupted and are no longer running. No new Cloud Assistant,
+  SendFile, builder-start, database, restore or production command was
+  dispatched during this closeout.
+- Independent review gives the local operational chain a determinate `NO-GO`,
+  not an UNKNOWN production result. Three P0 gaps remain: the SendFile request
+  object still mixes non-API evidence fields with the provider payload; the
+  compressed command loader does not enforce bounded canonical terminal
+  schemas before forwarding output; and the required password-rewrap operation
+  has no current persistent, no-replay production transport. One P1 remains:
+  the production post-broker path calls a test-only sizing renderer and bypasses
+  the public Linux/GNU provenance closure. The exact root-only persistent parent
+  state on both API-C and the stopped builder also remains an unconsumed
+  preflight gate. None of these candidates is authorized for execution.
+- The accepted clone remains `Running` and billable; it is not deleted or
+  modified by this checkpoint. Clone database connection, transaction, capture
+  and write counts remain `0/0/0/0`. There is still exactly one clone and one
+  accepted `RestoreTime`; creating a second clone, changing the restore time,
+  starting the builder, or entering the first database transaction is forbidden
+  until this same task resumes after local storage maintenance.
+- This is a storage-maintenance pause, not completion of the 29-item program.
+  The NoteAI repository, Colima, desktop data, cloud resources, current source
+  manifest, temporary reader, v3 transfer and all root-only recovery material
+  remain in place. The next action after reopening this same conversation is to
+  resume the same Item 26 transport hardening from this checkpoint; it is not a
+  new task or a replacement window.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new readiness credit. Exact-instance deletion remains a
+separate destructive approval and is not authorized.
