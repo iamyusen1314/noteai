@@ -9301,3 +9301,39 @@ temporary reader account, root-only control material and Cloud Assistant
 records remain retained. The next task is the explicitly approved paid isolated
 PITR restore and exact source/restored reconciliation; no paid resource has been
 created.
+
+### Item 26 exact-one isolated PITR clone is Running; baseline postchecks passed and restored capture remains closed (2026-08-12)
+
+- The freshly approved exact-one Postpaid `CloneDBInstance` request returned
+  HTTP `200` with non-empty control identifiers retained only in root-only
+  material. The exact returned clone has now been read back as `Running`.
+  Clone dispatch count remains one; replay and automatic retry remain
+  forbidden.
+- The two exact task-isolated vSwitches were each read back as `Available`.
+  Their incremental cloud cost is CNY `0`; they do not add readiness credit.
+- `Running` alone proved only provider provisioning state. Subsequent read-only
+  control-plane postchecks are `PASS` for the exact returned clone's PostgreSQL
+  16/high-availability specification, ordered C/F-zone isolated topology,
+  exact class and 200-GiB storage shape, private endpoint count `1`, public and
+  database-proxy endpoint counts `0`, inherited service-key disk encryption,
+  deletion protection, complete account tuple, inherited whitelist inventory
+  and zero RDS security-group attachment. The source stable safety tuple was
+  re-read unchanged. These postchecks made no database connection.
+- No connection, transaction, restored-manifest capture or database write has
+  been made against the clone. Application and workload-provider traffic remain
+  unauthorized. Exact reader `/32` access, task-scoped OSS metadata-only RAM
+  identity and the one-shot capture transport remain pending; database access
+  stays closed until all three are independently read back exact. The first
+  allowed database connection remains the existing single bounded
+  restored-manifest capture.
+- One paid restore resource now exists and its Postpaid billing clock is active
+  at the previously accepted quote boundary. Exact-instance deletion remains a
+  separately destructive approval and is not authorized by this checkpoint.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new readiness credit. The next action remains the same Item
+26 task: close exact reader access and the bounded capture transport, then run
+exactly one restored capture and exact source/restored reconciliation. No
+second clone or `RestoreTime` change is allowed. The source manifest, v3
+transfer, temporary reader account and root-only control material remain
+retained.
