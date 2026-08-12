@@ -1778,6 +1778,22 @@ Last updated: 2026-08-12
   render/transport/readback chain; every v2 execution and residue identity is
   frozen. Item26 remains unverified at 25/29 with zero new readiness credit.
 
+- 2026-08-12 the wholly new Item26 v3 transport/readback contract is locally
+  closed without touching any frozen v2 identity or retained production
+  material. The hash-bound executor preserves its transfer anchor and emits one
+  bounded terminal result; a strict controller accepts only the exact PASS or
+  FAIL/UNKNOWN schemas; the loader keeps synthetic Base64 sizing at 17,076
+  bytes; and the independent metadata-only readback grants manifest validation
+  only for exact committed/staged states while every replay, cleanup, account,
+  PITR and automatic-retry permission remains false. Local focused tests pass,
+  but this adds no readiness credit. Residual High remains two genuine
+  pre-production gates: the corrected disposable PostgreSQL 16 CI matrix must
+  pass, and the final source/executor/controller/wrapper must be rendered and
+  byte-bound on Linux/GNU gzip with actual public envelope metadata. Until both
+  pass, no successor production transaction or command is authorized; Item26
+  remains unverified at 25/29 and the temporary reader/root-only materials stay
+  retained.
+
 ## Low Risks
 
 ### `model/api.py` is too large

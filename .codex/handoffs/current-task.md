@@ -9015,3 +9015,58 @@ Item 26 remains `unverified`; readiness remains internal `25/29` and public
 `25/38`, with zero readiness credit. The retained temporary reader and root-only
 recovery material remain unchanged. No production permission mutation,
 database transaction or successor dispatch has occurred.
+
+### Item 26 v3 transport and readback contract closed locally; production remains gated (2026-08-12)
+
+- The current successor source template remains 35,352 bytes / SHA-256
+  `7e2bc2651a9dcd4ca546a03a9ada937c9133f21c725b5d1508f69eb6ebe9668e`;
+  its embedded driver remains 18,083 bytes / SHA-256
+  `08caa5068e1d740e5d8ed8594ae71fdbd84a3c39d9b66d580c66bac3d6faf5b9`.
+  No v2 transfer, task, command, invocation, result or retained forensic
+  artifact was modified or reused.
+- A wholly new v3 transport chain is now locally closed: the executor template
+  is 16,961 bytes / SHA-256
+  `87d70818bcf695e843325e0a1a475549c2e661f65919c695b8651acc53aad0b4`;
+  the strict terminal controller is 10,039 bytes / SHA-256
+  `b89ee0fdcf3420694d7a45547664e3ef12bb810ad2285b9feaf09c175c096c07`;
+  and the minimal loader wrapper is 3,276 bytes / SHA-256
+  `5fd926666ccabd678be44fde5c0b3e1bdf5555ae249899448ea6746dd457c021`.
+  The executor preserves the exact v3 transfer as the no-replay/readback anchor,
+  caps child output, emits one terminal JSON, and distinguishes known
+  pre-connect failure from connected unknown. The controller accepts only the
+  exact 39-key PASS or 7-key FAIL/UNKNOWN schemas and rejects type confusion or
+  added fields before the loader emits anything.
+- The independent v3 metadata-only readback is 25,827 bytes / SHA-256
+  `ef80ff4eb3a090959882ff0dff392a309c7cb691f128394fb9767c5f07eca8b1`.
+  It partitions all 26 fixed driver codes, freezes every nonzero container or
+  unsafe inventory state, never opens control keys, environment files,
+  manifests or helper stdout, and allows a later manifest validator only for
+  the two exact committed/staged metadata states. Capture replay, cleanup,
+  account deletion, PITR progression and automatic retry remain false in every
+  readback result.
+- A non-Secret local sizing render produced a 12,805-byte wrapper and
+  17,076-byte Base64 CommandContent, below the 18,000-byte transport ceiling.
+  These are sizing evidence only: this Mac uses Apple gzip 479. Production
+  binding still requires the same pure renderer on Linux with GNU
+  `gzip -9 -n`, using the then-current public envelope metadata, and must record
+  the resulting exact bytes and hashes before any dispatch.
+- The first disposable PostgreSQL 16 workflow exposed only two integration
+  fixture defects: Psycopg connection-level `executemany` usage and an older
+  0016 schema-role fixture seeing the repository's 0017 migration. Both are
+  corrected locally without changing the production owner/RLS driver. The
+  focused v3 transport/import tests pass `2/2`; owner/role/migration tests pass
+  `34/34`; readiness tests pass `17/17`; and the production readiness gate
+  remains passing. A new pushed CI run must still produce the real disposable
+  PostgreSQL 16 positive/negative result before production use.
+- Any production successor, if all remaining gates pass, must use one new fixed
+  name and one target with `ContentEncoding=Base64`, `KeepCommand=true`,
+  `RepeatMode=Once`, timeout 1,500 seconds and process-tree termination. A
+  missing result can only be reconciled through the retained transfer and the
+  pre-audited v3 readback; it never authorizes a repeat submission.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero readiness credit. The only remaining local gates are a real
+disposable PostgreSQL 16 CI PASS and Linux/GNU deterministic byte binding. No
+production database transaction, provider mutation or successor command has
+been issued; the temporary reader and root-only recovery material remain
+retained unchanged.

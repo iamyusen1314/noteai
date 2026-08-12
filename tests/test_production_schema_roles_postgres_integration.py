@@ -29,6 +29,26 @@ ITEM26_TEMPLATE_PATH = (
     / ".codex"
     / "item26-source-manifest.template.sh"
 )
+ITEM26_EXECUTOR_PATH = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / ".codex"
+    / "item26-source-manifest-executor-v3.template.sh"
+)
+ITEM26_CONTROLLER_PATH = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / ".codex"
+    / "item26-source-manifest-executor-v3-controller.template.py"
+)
+ITEM26_WRAPPER_PATH = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / ".codex"
+    / "item26-source-manifest-executor-v3-wrapper.template.sh"
+)
+ITEM26_READBACK_PATH = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / ".codex"
+    / "item26-source-manifest-readback-v3.template.sh"
+)
 
 
 def _load_item26_owner_gate():
@@ -253,6 +273,100 @@ if sqlite_path.exists():
                 result.stderr.decode("utf-8", errors="replace")[:2000],
             )
             self.assertFalse(sqlite_path.exists())
+
+    def test_v3_transport_and_readback_templates_are_bound_and_bounded(self):
+        import base64
+
+        def deterministic_gzip(payload):
+            result = subprocess.run(
+                ["/usr/bin/gzip", "-9", "-n"],
+                input=payload,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=30,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr[:2000])
+            return result.stdout
+
+        source_bytes = ITEM26_TEMPLATE_PATH.read_bytes()
+        source = source_bytes.decode("ascii")
+        source_bindings = {
+            "@@ENVELOPE_BYTES@@": "894",
+            "@@ENVELOPE_SHA256@@": hashlib.sha256(b"envelope").hexdigest(),
+            "@@PUBLIC_KEY_SHA256@@": hashlib.sha256(b"public-key").hexdigest(),
+        }
+        for token, value in source_bindings.items():
+            self.assertEqual(source.count(token), 1)
+            source = source.replace(token, value)
+        self.assertNotIn("@@", source)
+        source_bytes = source.encode("ascii")
+        source_gzip = deterministic_gzip(source_bytes)
+
+        executor = ITEM26_EXECUTOR_PATH.read_text(encoding="ascii")
+        executor_bindings = {
+            "@@TRANSFER_BYTES@@": str(len(source_gzip)),
+            "@@TRANSFER_SHA256@@": hashlib.sha256(source_gzip).hexdigest(),
+            "@@RAW_BYTES@@": str(len(source_bytes)),
+            "@@RAW_SHA256@@": hashlib.sha256(source_bytes).hexdigest(),
+        }
+        for token, value in executor_bindings.items():
+            self.assertEqual(executor.count(token), 1)
+            executor = executor.replace(token, value)
+        self.assertNotIn("@@", executor)
+        executor_bytes = executor.encode("ascii")
+        executor_gzip = deterministic_gzip(executor_bytes)
+
+        controller = ITEM26_CONTROLLER_PATH.read_text(encoding="ascii")
+        controller_bindings = {
+            "@@EXECUTOR_GZIP_BYTES@@": str(len(executor_gzip)),
+            "@@EXECUTOR_GZIP_SHA256@@": hashlib.sha256(executor_gzip).hexdigest(),
+            "@@EXECUTOR_BYTES@@": str(len(executor_bytes)),
+            "@@EXECUTOR_SHA256@@": hashlib.sha256(executor_bytes).hexdigest(),
+            "@@EXECUTOR_GZIP_B85@@": base64.b85encode(executor_gzip).decode("ascii"),
+        }
+        for token, value in controller_bindings.items():
+            self.assertEqual(controller.count(token), 1)
+            controller = controller.replace(token, value)
+        self.assertTrue(all(token not in controller for token in controller_bindings))
+        controller_bytes = controller.encode("ascii")
+        controller_gzip = deterministic_gzip(controller_bytes)
+
+        wrapper = ITEM26_WRAPPER_PATH.read_text(encoding="ascii")
+        wrapper_bindings = {
+            "@@CONTROLLER_GZIP_BYTES@@": str(len(controller_gzip)),
+            "@@CONTROLLER_GZIP_SHA256@@": hashlib.sha256(controller_gzip).hexdigest(),
+            "@@CONTROLLER_BYTES@@": str(len(controller_bytes)),
+            "@@CONTROLLER_SHA256@@": hashlib.sha256(controller_bytes).hexdigest(),
+            "@@CONTROLLER_GZIP_B85@@": base64.b85encode(controller_gzip).decode("ascii"),
+        }
+        for token, value in wrapper_bindings.items():
+            self.assertEqual(wrapper.count(token), 1)
+            wrapper = wrapper.replace(token, value)
+        self.assertTrue(all(token not in wrapper for token in wrapper_bindings))
+        self.assertLessEqual(len(base64.b64encode(wrapper.encode("ascii"))), 18000)
+
+        for path in (
+            ITEM26_EXECUTOR_PATH,
+            ITEM26_WRAPPER_PATH,
+            ITEM26_READBACK_PATH,
+        ):
+            syntax = subprocess.run(
+                ["/bin/bash", "-n", str(path)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=30,
+                check=False,
+            )
+            self.assertEqual(syntax.returncode, 0, syntax.stderr[:2000])
+
+        readback = ITEM26_READBACK_PATH.read_text(encoding="ascii")
+        self.assertIn(
+            'TRANSFER = "/run/noteai-item26-source-manifest-transfer-v3.sh.gz"',
+            readback,
+        )
+        self.assertEqual(readback.count("manifest_readback_allowed = True"), 2)
+        self.assertNotIn("same_invocation_replay_allowed\": True", readback)
 
 
 @unittest.skipUnless(os.environ.get(LOCAL_DSN_ENV), "local PostgreSQL 16 only")
@@ -779,14 +893,15 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
                             sql.Identifier(owner),
                         )
                     )
-                connection.executemany(
-                    "INSERT INTO schema_migrations(version,sha256) "
-                    "VALUES(%s,%s)",
-                    [
-                        (row["version"], row["sha256"])
-                        for row in migrations
-                    ],
-                )
+                with connection.cursor() as cursor:
+                    cursor.executemany(
+                        "INSERT INTO schema_migrations(version,sha256) "
+                        "VALUES(%s,%s)",
+                        [
+                            (row["version"], row["sha256"])
+                            for row in migrations
+                        ],
+                    )
                 connection.execute("INSERT INTO admin_sessions(id) VALUES(1)")
                 for table in rls_tables:
                     connection.execute(
@@ -872,6 +987,21 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
 
     def test_fixed_read_audit_then_exact_apply_and_apply_twice(self):
         database_url = os.environ[LOCAL_DSN_ENV]
+        canonical_migration_dir = schema_roles.MIGRATION_DIR
+        legacy_migration_root = tempfile.TemporaryDirectory(
+            prefix="noteai-schema-roles-0016-"
+        )
+        self.addCleanup(legacy_migration_root.cleanup)
+        self.addCleanup(
+            setattr,
+            schema_roles,
+            "MIGRATION_DIR",
+            canonical_migration_dir,
+        )
+        legacy_migration_dir = pathlib.Path(legacy_migration_root.name)
+        for path in sorted(canonical_migration_dir.glob("*.sql"))[:16]:
+            (legacy_migration_dir / path.name).write_bytes(path.read_bytes())
+        schema_roles.MIGRATION_DIR = legacy_migration_dir
         self._prepare_legacy_state(database_url)
 
         authority_conn = owner_preflight._connect(database_url)
