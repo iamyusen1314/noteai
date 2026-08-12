@@ -6437,7 +6437,11 @@
                 "container_residue_count": 0,
                 "current_established_5432_count": 0,
                 "generated_at_in_capture_receipt": false,
-                "provider_restore_time_uniquely_bound": false,
+                "generated_at_operationally_bound": true,
+                "provider_restore_time_uniquely_bound": true,
+                "provider_restore_time_mapping": "UTC_FLOOR_TO_SECOND",
+                "provider_restore_time_utc": "2026-08-12T07:37:56Z",
+                "provider_restore_time_floor_delta_microseconds": 512993,
                 "capture_replay_allowed": false,
                 "readback_replay_allowed": false,
                 "readiness_credit_added": false
@@ -6467,6 +6471,33 @@
                 "redispatch_allowed": false,
                 "new_validator_allowed": false,
                 "pitr_stage_allowed": false,
+                "readiness_credit_added": false
+              },
+              "operational_generated_at_reader": {
+                "status": "PASS",
+                "provider_status": "Success",
+                "record_status": "Finished",
+                "exit_code": 0,
+                "target_count": 1,
+                "duration_seconds": 1,
+                "output_key_count": 4,
+                "generated_at": "2026-08-12T07:37:56.512993+00:00",
+                "provider_restore_time_mapping": "UTC_FLOOR_TO_SECOND",
+                "provider_restore_time_utc": "2026-08-12T07:37:56Z",
+                "cloud_assistant_dispatch_count": 1,
+                "manifest_body_read_count": 1,
+                "other_manifest_values_emitted_count": 0,
+                "runtime_container_start_count": 0,
+                "database_connection_count": 0,
+                "database_write_count": 0,
+                "oss_api_call_count": 0,
+                "secret_value_read_or_emitted_count": 0,
+                "workload_provider_api_call_count": 0,
+                "database_snapshot_timestamp_claimed": false,
+                "semantic_validator_replacement": false,
+                "pitr_stage_allowed": false,
+                "same_invocation_replay_allowed": false,
+                "automatic_retry_allowed": false,
                 "readiness_credit_added": false
               },
               "rds_recovery_metadata_and_price": {
@@ -6504,7 +6535,8 @@
                 "production_database_write_count": 0,
                 "paid_restore_started": false,
                 "fresh_paid_resource_approval_required": true,
-                "paid_restore_blocked_until_restore_time_bound": true,
+                "paid_restore_blocked_until_restore_time_bound": false,
+                "paid_restore_blocked_until_fresh_paid_resource_approval": true,
                 "readiness_credit_added": false
               },
               "current_manifest_state": "MANIFEST_COMMITTED_READBACK_REQUIRED",
@@ -6515,7 +6547,7 @@
             "readiness_credit_added": false,
             "automatic_retry_allowed": false
           },
-          "blocker": "The v3 source capture and metadata readback are terminal: one PostgreSQL 16 repeatable-read/read-only snapshot committed a retained root-only source manifest with 56 tables, all 17 migration entries and the exact 19-RLS/zero-FORCE owner contract, terminal rollback/idle and zero database/object/permission writes. The capture and readback are permanently no-replay. The separate semantic validator is terminal UNKNOWN because its O_NOATIME migration-file read required file ownership or CAP_FOWNER while the accepted capability boundary intentionally granted only CAP_DAC_READ_SEARCH; this deterministic validator false negative is neither PASS nor a migration mismatch and authorizes no redispatch or replacement proof layer. Free RDS metadata proves a running private-only PostgreSQL 16 source, enabled non-expiring service-key encryption, 14-day data/log retention, successful automated full backups and completed checksummed WAL coverage across the capture time. Before any paid restore, the retained manifest's exact generated_at still must be bound to the provider's UTC-second RestoreTime: the 39-key PASS did not emit it, the UNKNOWN validator emitted no value and the two-second invocation interval is not a unique substitute. A separately authorized narrow read of only that retained timestamp and an accepted second-precision mapping must precede fresh paid-resource approval, isolated PITR restore, exact source/restored manifest reconciliation and separately approved exact-instance deletion. No restore resource has been created and no readiness credit is added.",
+          "blocker": "The v3 source capture and metadata readback are terminal: one PostgreSQL 16 repeatable-read/read-only snapshot committed a retained root-only source manifest with 56 tables, all 17 migration entries and the exact 19-RLS/zero-FORCE owner contract, terminal rollback/idle and zero database/object/permission writes. The capture and readback are permanently no-replay. The separate semantic validator is terminal UNKNOWN because its O_NOATIME migration-file read required file ownership or CAP_FOWNER while the accepted capability boundary intentionally granted only CAP_DAC_READ_SEARCH; this deterministic validator false negative is neither PASS nor a migration mismatch and authorizes no redispatch or replacement proof layer. The separately authorized host-only operational reader is terminal PASS and binds the retained manifest generated_at exactly as 2026-08-12T07:37:56.512993+00:00 through one Cloud Assistant dispatch with zero payload database/OSS/Secret/container/workload-provider activity. It is not a semantic validator and adds no credit. The provider RestoreTime is conservatively bound by UTC floor-to-second as 2026-08-12T07:37:56Z; this does not claim the manifest wall clock is the database snapshot timestamp, and exact source/restored reconciliation remains the final acceptance test. Free RDS metadata proves a running private-only PostgreSQL 16 source, enabled non-expiring service-key encryption, 14-day data/log retention, successful automated full backups and completed checksummed WAL coverage across the capture time. The remaining hard path is fresh paid-resource approval, one isolated PITR restore, exact source/restored reconciliation and separately approved exact-instance deletion. No restore resource has been created and no readiness credit is added.",
           "next_task": "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
         },
         {

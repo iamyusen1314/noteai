@@ -1872,6 +1872,21 @@ Last updated: 2026-08-12
   validator UNKNOWN adds no credit and authorizes no replacement proof layer.
   Item26 remains unverified at 25/29 internal and 25/38 public.
 
+- 2026-08-12 the separately authorized one-target operational timestamp reader
+  completed through exactly one Cloud Assistant dispatch and returned the
+  receipt-bound canonical retained-manifest clock
+  `2026-08-12T07:37:56.512993+00:00`. Its payload used no container, emitted no
+  other manifest value and performed zero database, OSS, Secret or
+  workload-provider call/write; it is terminal/no-replay, does not replace the
+  semantic-validator UNKNOWN and adds no readiness credit. The accepted
+  provider mapping is conservative UTC floor-to-second,
+  `2026-08-12T07:37:56Z`, which never moves later than the manifest wall clock
+  but does not claim to equal the earlier database snapshot timestamp. Residual
+  High is fresh paid-resource approval, one isolated PITR restore and exact
+  source/restore reconciliation followed by separately approved exact cleanup.
+  Item26 remains unverified at 25/29 internal and 25/38 public; no paid restore
+  has started.
+
 ## Low Risks
 
 ### `model/api.py` is too large

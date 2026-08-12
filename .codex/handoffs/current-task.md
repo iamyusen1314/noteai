@@ -9265,3 +9265,39 @@ Item 26 remains `unverified`; readiness remains internal `25/29` and public
 and authorizes no replacement proof layer. The temporary reader, source
 manifest, transfer and root-only recovery material remain retained until
 Item26 terminal acceptance or a separately approved exact cleanup.
+
+### Item 26 retained manifest time bound; paid PITR remains frozen (2026-08-12)
+
+- The separately authorized fixed-name operational timestamp reader ran once
+  against exactly one API-C target and is terminal `Success / ExitCode=0 /
+  Finished` in one second. Its exact four-key PASS output binds the retained
+  capture receipt and returns canonical `generated_at` value
+  `2026-08-12T07:37:56.512993+00:00`. The command and invocation are permanently
+  no-replay.
+- The reader was host-only and started no container. Its payload read the one
+  exact retained manifest body solely to verify its receipt hashes and emit the
+  timestamp field; it made zero database, OSS, Secret or workload-provider
+  call/write and emitted no other manifest value. The outer Cloud Assistant
+  control-plane dispatch count is exactly one. It did not run manifest
+  semantics, table, migration, RLS or capture-window validation, does not
+  replace the terminal UNKNOWN semantic validator and adds no readiness credit.
+- The provider accepts only UTC-second `RestoreTime`. The accepted conservative
+  mapping is UTC floor-to-second, producing `2026-08-12T07:37:56Z`; this is
+  `0.512993` seconds earlier than the manifest wall clock and never moves the
+  restore point into the future. It is not a claim that `generated_at` is the
+  database snapshot timestamp. The restored manifest's exact comparison with
+  the retained source remains the final acceptance test; a mismatch must stop
+  without switching rounding rules or creating another restore.
+- The paid PITR restore has not started. Current same-region pay-as-you-go
+  pricing remains CNY `2.861` per hour payable and CNY `3.201` per hour list,
+  with a four-hour list ceiling of CNY `12.804` and a 24-hour list ceiling of
+  CNY `76.824`. Fresh explicit approval is still required before creating the
+  isolated paid RDS resource, and exact-instance deletion remains a separate
+  destructive approval after reconciliation.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new readiness credit. The source manifest, v3 transfer,
+temporary reader account, root-only control material and Cloud Assistant
+records remain retained. The next task is the explicitly approved paid isolated
+PITR restore and exact source/restored reconciliation; no paid resource has been
+created.
