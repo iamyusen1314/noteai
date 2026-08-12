@@ -303,6 +303,18 @@ if sqlite_path.exists():
         source_bytes = source.encode("ascii")
         source_gzip = deterministic_gzip(source_bytes)
 
+        driver_start = b'cat >"$DRIVER_PATH" <<\'PY\'\n'
+        driver_end = b'PY\nchmod 0600 "$DRIVER_PATH"'
+        self.assertEqual(source_bytes.count(driver_start), 1)
+        self.assertEqual(source_bytes.count(driver_end), 1)
+        driver_bytes = source_bytes.partition(driver_start)[2].partition(driver_end)[0]
+        self.assertTrue(driver_bytes.endswith(b"\n"))
+        self.assertEqual(len(driver_bytes), 18084)
+        self.assertEqual(
+            hashlib.sha256(driver_bytes).hexdigest(),
+            "282c789b8918cdbe9e1512a0a54e248ab7d9e2814aea1629f8353487d962d67e",
+        )
+
         executor = ITEM26_EXECUTOR_PATH.read_text(encoding="ascii")
         executor_bindings = {
             "@@TRANSFER_BYTES@@": str(len(source_gzip)),
@@ -346,13 +358,27 @@ if sqlite_path.exists():
         self.assertTrue(all(token not in wrapper for token in wrapper_bindings))
         self.assertLessEqual(len(base64.b64encode(wrapper.encode("ascii"))), 18000)
 
-        for path in (
-            ITEM26_EXECUTOR_PATH,
-            ITEM26_WRAPPER_PATH,
-            ITEM26_READBACK_PATH,
-        ):
+        readback = ITEM26_READBACK_PATH.read_text(encoding="ascii")
+        readback_bindings = {
+            "@@TRANSFER_BYTES@@": str(len(source_gzip)),
+            "@@TRANSFER_SHA256@@": hashlib.sha256(source_gzip).hexdigest(),
+            "@@DRIVER_BYTES@@": str(len(driver_bytes)),
+            "@@DRIVER_SHA256@@": hashlib.sha256(driver_bytes).hexdigest(),
+        }
+        for token, value in readback_bindings.items():
+            self.assertEqual(readback.count(token), 1)
+            readback = readback.replace(token, value)
+        self.assertNotIn("@@", readback)
+
+        syntax_inputs = {
+            ITEM26_EXECUTOR_PATH: ITEM26_EXECUTOR_PATH.read_bytes(),
+            ITEM26_WRAPPER_PATH: ITEM26_WRAPPER_PATH.read_bytes(),
+            ITEM26_READBACK_PATH: readback.encode("ascii"),
+        }
+        for path, script_bytes in syntax_inputs.items():
             syntax = subprocess.run(
-                ["/bin/bash", "-n", str(path)],
+                ["/bin/bash", "-n"],
+                input=script_bytes,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=30,
@@ -360,7 +386,6 @@ if sqlite_path.exists():
             )
             self.assertEqual(syntax.returncode, 0, syntax.stderr[:2000])
 
-        readback = ITEM26_READBACK_PATH.read_text(encoding="ascii")
         self.assertIn(
             'TRANSFER = "/run/noteai-item26-source-manifest-transfer-v3.sh.gz"',
             readback,

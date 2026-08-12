@@ -1792,7 +1792,9 @@ Last updated: 2026-08-12
   byte-bound on Linux/GNU gzip with actual public envelope metadata. Until both
   pass, no successor production transaction or command is authorized; Item26
   remains unverified at 25/29 and the temporary reader/root-only materials stay
-  retained.
+  retained. The regression also binds the actual 18,084-byte shell-created
+  driver, including its terminating content newline; the earlier 18,083-byte
+  source-fragment hash is explicitly not accepted as a runtime-file hash.
 
 ## Low Risks
 

@@ -9020,8 +9020,11 @@ database transaction or successor dispatch has occurred.
 
 - The current successor source template remains 35,352 bytes / SHA-256
   `7e2bc2651a9dcd4ca546a03a9ada937c9133f21c725b5d1508f69eb6ebe9668e`;
-  its embedded driver remains 18,083 bytes / SHA-256
-  `08caa5068e1d740e5d8ed8594ae71fdbd84a3c39d9b66d580c66bac3d6faf5b9`.
+  its shell-created embedded driver is 18,084 bytes / SHA-256
+  `282c789b8918cdbe9e1512a0a54e248ab7d9e2814aea1629f8353487d962d67e`.
+  This runtime-file binding includes the heredoc's terminating content newline;
+  the earlier 18,083-byte source-fragment hash excluded that byte and is not a
+  valid runtime-file binding.
   No v2 transfer, task, command, invocation, result or retained forensic
   artifact was modified or reused.
 - A wholly new v3 transport chain is now locally closed: the executor template
@@ -9053,7 +9056,10 @@ database transaction or successor dispatch has occurred.
 - The first disposable PostgreSQL 16 workflow exposed only two integration
   fixture defects: Psycopg connection-level `executemany` usage and an older
   0016 schema-role fixture seeing the repository's 0017 migration. Both are
-  corrected locally without changing the production owner/RLS driver. The
+  corrected locally without changing the production owner/RLS driver. The v3
+  regression now derives the actual shell-created driver bytes from the
+  rendered source and binds those bytes into the readback before syntax checks.
+  The
   focused v3 transport/import tests pass `2/2`; owner/role/migration tests pass
   `34/34`; readiness tests pass `17/17`; and the production readiness gate
   remains passing. A new pushed CI run must still produce the real disposable
