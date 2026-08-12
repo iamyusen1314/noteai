@@ -19,6 +19,7 @@ from tools import production_schema_outcome_audit as outcome_audit
 from tools import (
     production_schema_privileged_owner_preflight as privileged_owner,
 )
+from tools import render_item26_v3_transport as item26_transport_renderer
 from tools import production_schema_roles as schema_roles
 
 
@@ -29,28 +30,6 @@ ITEM26_TEMPLATE_PATH = (
     / ".codex"
     / "item26-source-manifest.template.sh"
 )
-ITEM26_EXECUTOR_PATH = (
-    pathlib.Path(__file__).resolve().parents[1]
-    / ".codex"
-    / "item26-source-manifest-executor-v3.template.sh"
-)
-ITEM26_CONTROLLER_PATH = (
-    pathlib.Path(__file__).resolve().parents[1]
-    / ".codex"
-    / "item26-source-manifest-executor-v3-controller.template.py"
-)
-ITEM26_WRAPPER_PATH = (
-    pathlib.Path(__file__).resolve().parents[1]
-    / ".codex"
-    / "item26-source-manifest-executor-v3-wrapper.template.sh"
-)
-ITEM26_READBACK_PATH = (
-    pathlib.Path(__file__).resolve().parents[1]
-    / ".codex"
-    / "item26-source-manifest-readback-v3.template.sh"
-)
-
-
 def _load_item26_owner_gate():
     source = ITEM26_TEMPLATE_PATH.read_text(encoding="utf-8")
     match = re.search(
@@ -276,6 +255,9 @@ if sqlite_path.exists():
 
     def test_v3_transport_and_readback_templates_are_bound_and_bounded(self):
         import base64
+        import inspect
+        import json
+        from unittest import mock
 
         def deterministic_gzip(payload):
             result = subprocess.run(
@@ -289,109 +271,209 @@ if sqlite_path.exists():
             self.assertEqual(result.returncode, 0, result.stderr[:2000])
             return result.stdout
 
-        source_bytes = ITEM26_TEMPLATE_PATH.read_bytes()
-        source = source_bytes.decode("ascii")
-        source_bindings = {
-            "@@ENVELOPE_BYTES@@": "894",
-            "@@ENVELOPE_SHA256@@": hashlib.sha256(b"envelope").hexdigest(),
-            "@@PUBLIC_KEY_SHA256@@": hashlib.sha256(b"public-key").hexdigest(),
-        }
-        for token, value in source_bindings.items():
-            self.assertEqual(source.count(token), 1)
-            source = source.replace(token, value)
-        self.assertNotIn("@@", source)
-        source_bytes = source.encode("ascii")
-        source_gzip = deterministic_gzip(source_bytes)
-
-        driver_start = b'cat >"$DRIVER_PATH" <<\'PY\'\n'
-        driver_end = b'PY\nchmod 0600 "$DRIVER_PATH"'
-        self.assertEqual(source_bytes.count(driver_start), 1)
-        self.assertEqual(source_bytes.count(driver_end), 1)
-        driver_bytes = source_bytes.partition(driver_start)[2].partition(driver_end)[0]
-        self.assertTrue(driver_bytes.endswith(b"\n"))
-        self.assertEqual(len(driver_bytes), 18084)
+        envelope_sha256 = (
+            "2c522a13b236301c5276088dd6ae83cabb5ac9c6a45923385831ec582d81e90a"
+        )
+        public_key_sha256 = (
+            "dc8f8283248dd232030bb63d19f669ccdaad89faa87dbdffb7b5eb5aae83969a"
+        )
+        rendered = item26_transport_renderer._render_item26_v3_transport_for_test(
+            894,
+            envelope_sha256,
+            public_key_sha256,
+            gzip_compressor=deterministic_gzip,
+        )
+        artifacts = rendered["artifacts"]
+        summary = rendered["sizing"]
+        self.assertEqual(rendered["mode"], "TEST_SIZING_ONLY")
+        self.assertNotIn("summary", rendered)
         self.assertEqual(
-            hashlib.sha256(driver_bytes).hexdigest(),
+            tuple(
+                inspect.signature(
+                    item26_transport_renderer.render_item26_v3_transport
+                ).parameters
+            ),
+            ("envelope_bytes", "envelope_sha256", "public_key_sha256"),
+        )
+        with self.assertRaises(TypeError):
+            item26_transport_renderer.render_item26_v3_transport(
+                894,
+                envelope_sha256,
+                public_key_sha256,
+                gzip_compressor=deterministic_gzip,
+            )
+        with mock.patch.object(
+            item26_transport_renderer,
+            "_sha256",
+            return_value="0" * 64,
+        ):
+            with self.assertRaises(item26_transport_renderer.RenderError):
+                item26_transport_renderer._read_template("source")
+        partial_writes = []
+
+        def short_write(_file_descriptor, payload):
+            chunk = bytes(payload[:3])
+            partial_writes.append(chunk)
+            return len(chunk)
+
+        with mock.patch.object(
+            item26_transport_renderer.os,
+            "write",
+            side_effect=short_write,
+        ):
+            self.assertTrue(item26_transport_renderer._write_all(1, b"abcdefgh"))
+        self.assertEqual(b"".join(partial_writes), b"abcdefgh")
+        self.assertEqual(
+            set(artifacts),
+            set(item26_transport_renderer.SUMMARY_LAYER_NAMES),
+        )
+        self.assertEqual(
+            set(summary),
+            set(item26_transport_renderer.SUMMARY_LAYER_NAMES)
+            | {"command_content"},
+        )
+        for name in item26_transport_renderer.SUMMARY_LAYER_NAMES:
+            self.assertEqual(set(summary[name]), {"bytes", "sha256"})
+            self.assertEqual(summary[name]["bytes"], len(artifacts[name]))
+            self.assertEqual(
+                summary[name]["sha256"],
+                hashlib.sha256(artifacts[name]).hexdigest(),
+            )
+
+        self.assertEqual(len(artifacts["driver"]), 18084)
+        self.assertEqual(
+            hashlib.sha256(artifacts["driver"]).hexdigest(),
             "282c789b8918cdbe9e1512a0a54e248ab7d9e2814aea1629f8353487d962d67e",
         )
-
-        executor = ITEM26_EXECUTOR_PATH.read_text(encoding="ascii")
-        executor_bindings = {
-            "@@TRANSFER_BYTES@@": str(len(source_gzip)),
-            "@@TRANSFER_SHA256@@": hashlib.sha256(source_gzip).hexdigest(),
-            "@@RAW_BYTES@@": str(len(source_bytes)),
-            "@@RAW_SHA256@@": hashlib.sha256(source_bytes).hexdigest(),
-        }
-        for token, value in executor_bindings.items():
-            self.assertEqual(executor.count(token), 1)
-            executor = executor.replace(token, value)
-        self.assertNotIn("@@", executor)
-        executor_bytes = executor.encode("ascii")
-        executor_gzip = deterministic_gzip(executor_bytes)
-
-        controller = ITEM26_CONTROLLER_PATH.read_text(encoding="ascii")
-        controller_bindings = {
-            "@@EXECUTOR_GZIP_BYTES@@": str(len(executor_gzip)),
-            "@@EXECUTOR_GZIP_SHA256@@": hashlib.sha256(executor_gzip).hexdigest(),
-            "@@EXECUTOR_BYTES@@": str(len(executor_bytes)),
-            "@@EXECUTOR_SHA256@@": hashlib.sha256(executor_bytes).hexdigest(),
-            "@@EXECUTOR_GZIP_B85@@": base64.b85encode(executor_gzip).decode("ascii"),
-        }
-        for token, value in controller_bindings.items():
-            self.assertEqual(controller.count(token), 1)
-            controller = controller.replace(token, value)
-        self.assertTrue(all(token not in controller for token in controller_bindings))
-        controller_bytes = controller.encode("ascii")
-        controller_gzip = deterministic_gzip(controller_bytes)
-
-        wrapper = ITEM26_WRAPPER_PATH.read_text(encoding="ascii")
-        wrapper_bindings = {
-            "@@CONTROLLER_GZIP_BYTES@@": str(len(controller_gzip)),
-            "@@CONTROLLER_GZIP_SHA256@@": hashlib.sha256(controller_gzip).hexdigest(),
-            "@@CONTROLLER_BYTES@@": str(len(controller_bytes)),
-            "@@CONTROLLER_SHA256@@": hashlib.sha256(controller_bytes).hexdigest(),
-            "@@CONTROLLER_GZIP_B85@@": base64.b85encode(controller_gzip).decode("ascii"),
-        }
-        for token, value in wrapper_bindings.items():
-            self.assertEqual(wrapper.count(token), 1)
-            wrapper = wrapper.replace(token, value)
-        self.assertTrue(all(token not in wrapper for token in wrapper_bindings))
-        self.assertLessEqual(len(base64.b64encode(wrapper.encode("ascii"))), 18000)
-
-        readback = ITEM26_READBACK_PATH.read_text(encoding="ascii")
-        readback_bindings = {
-            "@@TRANSFER_BYTES@@": str(len(source_gzip)),
-            "@@TRANSFER_SHA256@@": hashlib.sha256(source_gzip).hexdigest(),
-            "@@DRIVER_BYTES@@": str(len(driver_bytes)),
-            "@@DRIVER_SHA256@@": hashlib.sha256(driver_bytes).hexdigest(),
-        }
-        for token, value in readback_bindings.items():
-            self.assertEqual(readback.count(token), 1)
-            readback = readback.replace(token, value)
-        self.assertNotIn("@@", readback)
-
-        syntax_inputs = {
-            ITEM26_EXECUTOR_PATH: ITEM26_EXECUTOR_PATH.read_bytes(),
-            ITEM26_WRAPPER_PATH: ITEM26_WRAPPER_PATH.read_bytes(),
-            ITEM26_READBACK_PATH: readback.encode("ascii"),
-        }
-        for path, script_bytes in syntax_inputs.items():
-            syntax = subprocess.run(
-                ["/bin/bash", "-n"],
-                input=script_bytes,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=30,
-                check=False,
+        self.assertTrue(artifacts["driver"].endswith(b"\n"))
+        for name in ("source", "executor", "controller", "wrapper", "readback"):
+            self.assertIsNone(
+                item26_transport_renderer.PLACEHOLDER.search(artifacts[name])
             )
-            self.assertEqual(syntax.returncode, 0, syntax.stderr[:2000])
 
+        command = summary["command_content"]
+        self.assertEqual(set(command), {"base64", "bytes", "sha256"})
+        command_bytes = command["base64"].encode("ascii")
+        self.assertEqual(command["bytes"], len(command_bytes))
+        self.assertLessEqual(command["bytes"], 18000)
+        self.assertEqual(
+            command["sha256"],
+            hashlib.sha256(command_bytes).hexdigest(),
+        )
+        self.assertEqual(
+            base64.b64decode(command_bytes, validate=True),
+            artifacts["wrapper"],
+        )
+        with self.assertRaises(item26_transport_renderer.RenderError):
+            item26_transport_renderer.canonical_summary(summary)
+
+        expected_sizing = {
+            "source": {
+                "bytes": 35425,
+                "sha256": "c3d86745eb12a1155100a55106f6cead2e0b9577dffe5950cddcb0668ab87d2a",
+            },
+            "driver": {
+                "bytes": 18084,
+                "sha256": "282c789b8918cdbe9e1512a0a54e248ab7d9e2814aea1629f8353487d962d67e",
+            },
+            "transfer_gzip": {
+                "bytes": 10594,
+                "sha256": "d9b66022e78b1f659252e79bd1952b79ad35ba18b88fa28f484d5cc2f6c55023",
+            },
+            "executor": {
+                "bytes": 17035,
+                "sha256": "456fa3c25c69f96d573c8167d6c65fbbdb30f22c258b0b33d0cef1009acdcd37",
+            },
+            "executor_gzip": {
+                "bytes": 4476,
+                "sha256": "d07378c61de3dc4d5d109f865c729ac74771492a390f257c499c25b5cbcb7942",
+            },
+            "controller": {
+                "bytes": 15666,
+                "sha256": "e1450626559bd8656f81c8413065e93d9cf481b7baf1ba6a282e3231c85a9d0e",
+            },
+            "controller_gzip": {
+                "bytes": 7609,
+                "sha256": "54d273d11c9c2da7e4b9c6fa2859ff7e1a7f430d4c3df8fe57abf92552d78bc1",
+            },
+            "wrapper": {
+                "bytes": 12810,
+                "sha256": "42edd3534f5293455178cb457f251783c68ed3cf1a28be90c5c333ad8e27f268",
+            },
+            "readback": {
+                "bytes": 25895,
+                "sha256": "a79fb6312605599e232d70833f05b07d9b078b4a33d8f528eb2d082c852660d8",
+            },
+            "command_content": {
+                "bytes": 17080,
+                "sha256": "a6ace3aef127817396ff75e794379c18003732384ee6191b3459cc1f61b82ec7",
+            },
+        }
+        actual_sizing = {
+            name: {
+                "bytes": summary[name]["bytes"],
+                "sha256": summary[name]["sha256"],
+            }
+            for name in expected_sizing
+        }
+        self.assertEqual(actual_sizing, expected_sizing)
+
+        readback = artifacts["readback"].decode("ascii")
+        self.assertIn("DRIVER_BYTES = 18084", readback)
+        self.assertIn(
+            'DRIVER_SHA256 = "282c789b8918cdbe9e1512a0a54e248ab7d9e2814aea1629f8353487d962d67e"',
+            readback,
+        )
         self.assertIn(
             'TRANSFER = "/run/noteai-item26-source-manifest-transfer-v3.sh.gz"',
             readback,
         )
         self.assertEqual(readback.count("manifest_readback_allowed = True"), 2)
         self.assertNotIn("same_invocation_replay_allowed\": True", readback)
+
+        if sys.platform.startswith("linux"):
+            production_render = item26_transport_renderer.render_item26_v3_transport(
+                894,
+                envelope_sha256,
+                public_key_sha256,
+            )
+            self.assertEqual(production_render["artifacts"], artifacts)
+            production_summary = production_render["summary"]
+            self.assertEqual(
+                set(production_summary),
+                item26_transport_renderer.SUMMARY_KEYS,
+            )
+            production_sizing = {
+                name: {
+                    "bytes": production_summary[name]["bytes"],
+                    "sha256": production_summary[name]["sha256"],
+                }
+                for name in expected_sizing
+            }
+            self.assertEqual(production_sizing, expected_sizing)
+            self.assertEqual(
+                production_summary["public_bindings"],
+                {
+                    "envelope_bytes": 894,
+                    "envelope_sha256": envelope_sha256,
+                    "public_key_sha256": public_key_sha256,
+                },
+            )
+            self.assertEqual(
+                production_summary["production_provenance"],
+                item26_transport_renderer._production_provenance_summary(),
+            )
+            canonical = item26_transport_renderer.canonical_summary(
+                production_summary
+            )
+            self.assertEqual(
+                json.loads(canonical.decode("ascii")),
+                production_summary,
+            )
+            invalid_summary = json.loads(canonical.decode("ascii"))
+            invalid_summary["wrapper"]["sha256"] = "0" * 64
+            with self.assertRaises(item26_transport_renderer.RenderError):
+                item26_transport_renderer.canonical_summary(invalid_summary)
 
 
 @unittest.skipUnless(os.environ.get(LOCAL_DSN_ENV), "local PostgreSQL 16 only")
@@ -1013,6 +1095,7 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
     def test_fixed_read_audit_then_exact_apply_and_apply_twice(self):
         database_url = os.environ[LOCAL_DSN_ENV]
         canonical_migration_dir = schema_roles.MIGRATION_DIR
+        canonical_outcome_migration_dir = outcome_audit.MIGRATION_DIR
         legacy_migration_root = tempfile.TemporaryDirectory(
             prefix="noteai-schema-roles-0016-"
         )
@@ -1023,10 +1106,17 @@ class ProductionSchemaRolesPostgresIntegrationTests(unittest.TestCase):
             "MIGRATION_DIR",
             canonical_migration_dir,
         )
+        self.addCleanup(
+            setattr,
+            outcome_audit,
+            "MIGRATION_DIR",
+            canonical_outcome_migration_dir,
+        )
         legacy_migration_dir = pathlib.Path(legacy_migration_root.name)
         for path in sorted(canonical_migration_dir.glob("*.sql"))[:16]:
             (legacy_migration_dir / path.name).write_bytes(path.read_bytes())
         schema_roles.MIGRATION_DIR = legacy_migration_dir
+        outcome_audit.MIGRATION_DIR = legacy_migration_dir
         self._prepare_legacy_state(database_url)
 
         authority_conn = owner_preflight._connect(database_url)

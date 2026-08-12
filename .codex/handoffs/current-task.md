@@ -9076,3 +9076,47 @@ disposable PostgreSQL 16 CI PASS and Linux/GNU deterministic byte binding. No
 production database transaction, provider mutation or successor command has
 been issued; the temporary reader and root-only recovery material remain
 retained unchanged.
+
+### Item 26 v3 renderer bound to the retained public control metadata (2026-08-12)
+
+- A single operational renderer now replaces the duplicated test-only render
+  logic: `tools/render_item26_v3_transport.py`, 23,439 bytes / SHA-256
+  `de1fd5ae31b2c71ba11062031c67e7dd1704018d2fd7fd373d27927ecdbfb7c9`.
+  It accepts only the retained envelope size/hash and recipient public-key DER
+  hash, fixes the five committed template byte identities, preserves the
+  18,084-byte shell-created driver binding, and derives source, transfer,
+  executor, controller, wrapper, CommandContent and v3 readback in one memory
+  graph. The production entry point is Linux-only and requires GNU
+  `gzip -9 -n -c`; compressor injection can produce only an explicitly
+  non-production `TEST_SIZING_ONLY` result.
+- Existing accepted control-material evidence supplies the three public inputs:
+  envelope size 894 bytes, active envelope SHA-256
+  `2c522a13b236301c5276088dd6ae83cabb5ac9c6a45923385831ec582d81e90a`,
+  and SPKI DER SHA-256
+  `dc8f8283248dd232030bb63d19f669ccdaad89faa87dbdffb7b5eb5aae83969a`.
+  No private key, envelope body, password, DSN or environment value was read or
+  copied. The already accepted envelope promotion receipt remains terminal
+  `NEW_COMMITTED`, with its successor path absent and database/provider writes
+  zero; it was not replayed.
+- On this Mac, the actual public tuple produces sizing-only source 35,425 bytes,
+  transfer gzip 10,594 bytes, wrapper 12,810 bytes, CommandContent 17,080 bytes
+  and readback 25,895 bytes. Their exact public hashes are fixed by the existing
+  transport regression. Linux CI must reproduce every byte count and SHA with
+  GNU gzip before any production render can be accepted; Mac sizing is not a
+  production receipt.
+- The previous CI run passed the full unit and quality gates, then exposed one
+  test-fixture mismatch: the legacy 0016 schema-role fixture redirected
+  `schema_roles.MIGRATION_DIR` but not the independent outcome-audit migration
+  source. The test now binds both readers to the same temporary 0016 directory
+  and restores both on every exit. This changes no production driver, schema,
+  migration or acceptance criterion.
+- Local focused checks pass: the renderer/import tests are `2/2`, the complete
+  integration module is `2 passed / 4 PostgreSQL-gated skipped`, the production
+  readiness gate passes, `py_compile`, Secret scan and `git diff --check` pass,
+  and two independent reviews report `P0=0 / P1=0`.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero readiness credit. Production dispatch remains prohibited
+until a newly pushed CI run proves both the disposable PostgreSQL 16 matrix and
+the Linux/GNU byte-for-byte render. All v2 identities remain frozen/no-replay,
+and the temporary reader plus root-only recovery material remain retained.
