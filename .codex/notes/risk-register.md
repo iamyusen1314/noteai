@@ -61,7 +61,7 @@ Last updated: 2026-08-12
 - 可能后果: 残缺商业版本、不可恢复或重复扣费、供应商/支付/隐私事故、真实用户暴露以及错误宣布上线完成。
 - 建议验证方式: 以当前Handoff和readiness manifest的已验证依赖图为权威顺序；每个首发必需项必须有独立证据并达到 `VERIFIED`，且没有未接受的 Critical/High，才能申请 `PROD-FIRST-LAUNCH-DNS-CUTOVER-001`。
 - 产品合同进展: `PROD-FIRST-LAUNCH-PRODUCT-CONTRACT-001` 已由产品经理总监独立审查并由产品负责人批准，状态 `VERIFIED`。H17–H22/R22及最终隔离PostgreSQL rehearsal/R23均为`PASS / 0C / 0H / 0M`。Tracking、Trends、Durable AI、私有存储/恢复、支付、UI/Admin及角色合同均为仓库/隔离`VERIFIED / NOT DEPLOYED`。当前源码候选为精确`b55f11882100e9ef919522540729e366a511f88f`，Admin专用修正版本为`5335bdaed933b1f999b5f819c047ec50c11821ae`；GitHub原生、隔离builder、五角色AMD64/SBOM/VEX、私有ACR immutable manifest及控制面digest绑定均已独立验证。精确API镜像已分别部署于API-C/API-F，精确Admin镜像也已部署并完成Stage C；其余运行时尚未部署。
-- 当前量化状态/下一步: 仓库/隔离`12/12=100%`、内部生产部署`25/29=86%`、完整公开上线`25/38=66%`。Items21–25及其全部生产动作保持终态/no-replay；Item26仍为`unverified`。两条相关冻结执行的结果记录现已只读可见，记录面故障不再是阻塞；固定metadata readback证明`NO_MANIFEST / DB_BARRIER_NO_COMMIT_UNKNOWN`，另一既有观察器仅证明通用`db.py execute`路径发生`InsufficientPrivilege`，不能绑定原capture的具体SQL或session identity。禁止重放既有capture/readback、第三次诊断或持久权限变更。精确checkpoint `bbfffc3`的双CI已闭合disposable PostgreSQL16矩阵及原capture Linux/GNU逐字节绑定；当前唯一安全下一步是让同一语义readback的可执行压缩包装获得新checkpoint双CI，再执行既定生产只读前检与单次no-replay successor。临时读取账户及root-only恢复材料继续保留。
+- 当前量化状态/下一步: 仓库/隔离`12/12=100%`、内部生产部署`25/29=86%`、完整公开上线`25/38=66%`。Items21–25及其全部生产动作保持终态/no-replay；Item26仍为`unverified`。v3 source capture与metadata readback现均为terminal/no-replay：一个PostgreSQL16 repeatable-read/read-only snapshot已提交root-only manifest，覆盖56表、17 migration及19 RLS/0 FORCE合同，显式rollback/idle且数据库、对象和持久权限写均为0；readback将其精确分类为`MANIFEST_COMMITTED_READBACK_REQUIRED`。单次semantic validator因`O_NOATIME`缺少file-owner/`CAP_FOWNER`而确定性假阴性，保持UNKNOWN、无credit、禁止替代validator或重派。免费RDS只读面已证明private-only source、14天data/log保留、成功full backup及覆盖capture窗口的completed WAL。付费创建前还缺retain manifest唯一`generated_at`到provider UTC-second `RestoreTime`的审计绑定：39-key PASS没有该值、UNKNOWN validator未输出，且两秒invocation窗口不能替代。必须先明确授权仅提取该时间戳并固定秒精度映射，随后才是费用重新批准后的隔离PITR恢复、source/restore exact reconciliation，以及单独批准的精确临时实例删除。临时读取账户、source manifest、transfer及root-only恢复材料继续保留。
 - 2026-07-30 Admin-only builder availability: fresh实例详情证明隔离AMD64 builder已因账户余额不足停止，故不再是Cloud Assistant可执行目标；持久磁盘和历史Build10/发布证据未被删除或覆盖。该builder无RAM role/key pair，未尝试启动、充值、创建凭据、执行命令、变更Registry endpoint或push。本机Docker daemon与Colima同样未运行，依据项目规则未在无确认时启动，arm64本机也不作为native证据。当前先以既有GitHub原生x86_64、固定Syft/Trivy和零Registry权限路径生成精确5335的Admin-only十一文件证据；default `main`不含该workflow，故独立审查拒绝不可触发的manual-dispatch假设。修正为feature-branch一次性added-path request：event、branch、exact commit、request内容/hash和五项false授权均在build前fail closed，普通push仍保持五角色与旧artifact名。该路径不等于私库发布或部署。生产API-C/API-F/旧Admin未触碰，readiness仍`19/29`。
 - 2026-07-30 Admin evidence V1触发偏差: 唯一push run `30549134106`的构建/扫描/上传步骤完成，但实证GitHub在checkout前把`github.event.head_commit.added`表达式求值为false，工作流静默回落到controller commit `e7766ab`的五角色路径；下载包为43文件、五角色、无Admin control block，故只作为失败诊断，绝不作为精确`5335bda` Admin证据或readiness credit，也不盲目rerun。Registry/部署/数据库/服务/供应商/公开流量写均0。V2改为先checkout controller，再由真实Git对象强制单父、唯一新增非rename request、regular blob、精确十键schema2、固定SHA-256、`5335bda`祖先和唯一addition history；任何歧义直接失败，随后才第二次checkout精确release。V2 request SHA-256为`c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef`，尚未push/run，readiness仍`19/29`。
 - 2026-07-30 Admin exact 5335 native source candidate完成: V2 controller `e7039a3`本地exact resolver与唯一远端run `30550548144`均通过双checkout/control/build/scan/upload；唯一失败是保留的raw 0C/0H gate。下载artifact为精确11个regular files，summary SHA `19cbf144…38f7`，新Admin local ID `sha256:9ab915…d8cf7`且区别于两套b55身份；linux/amd64、noteai、OCI/role/entrypoint/CMD、Buildx/Trivy/RootFS/base-index均交叉一致。23行raw findings与b55完全相同（4C/19H，fixed-version空），secret/browser/forbidden OS均0，cryptography48.0.1恰1；image-context delta仅`model/crawler_config.json`。Secret-free GitHub receipt、新Admin-only VEX/review/verifier已由production gate `110/110`绑定，独立内容blocker0。该证据仅接受source candidate：registry digest为空，publication/deployment/database/service/public authorization全false，历史b55发布授权不复用；readiness仍`19/29`。下一硬阻塞仍是隔离AMD64 builder余额不足/停止，须先建立新的funded native publisher与单次不可变Admin tag证据，才能进入V3 canary。
@@ -1841,6 +1841,36 @@ Last updated: 2026-08-12
   dispatch path. Until then Item26 remains unverified at 25/29 internal and
   25/38 public, transport/dispatch authority and credit stay false, all v2
   identities remain frozen, and retained temporary materials stay unchanged.
+
+- 2026-08-12 exact checkpoint `ba975598ec5b9de9c208d7262acdf8e1f2d6b88f`
+  passed both ordinary push and pull-request CI, including 1,944 tests with 34
+  skips, all six PostgreSQL 16 integration cases, Quality, production readiness
+  `138/138` and Compose. The resulting v3 source capture is terminal PASS and
+  no-replay: one PostgreSQL 16 repeatable-read/read-only transaction captured
+  56 tables, 17 migration entries and the exact 19-RLS/zero-FORCE owner
+  contract, rolled back to idle, and wrote neither the database, objects nor
+  persistent permissions. Its terminal metadata readback proves the root-only
+  manifest committed, with task/container/current-5432 residue zero; the
+  manifest and transfer remain retained. A separately dispatched semantic
+  validator is terminal UNKNOWN and frozen. Its migration check is a
+  deterministic false negative because `O_NOATIME` requires file ownership or
+  `CAP_FOWNER`, while the exact validator intentionally had only
+  `CAP_DAC_READ_SEARCH`; all preceding host/image/capability/file/semantic/table
+  gates passed and the validator performed zero database/object/provider/Secret
+  action. This is not PASS and not evidence of a migration mismatch, so no new
+  validator or proof layer is authorized. Free RDS reads prove PostgreSQL 16
+  Running, private-only VPC networking, an enabled non-expiring RDS service key,
+  14-day data/log retention, fourteen successful automated full snapshots and
+  completed checksummed WAL metadata covering the capture time. The current
+  same-region, pay-as-you-go, high-availability 4-vCPU/16-GiB/200-GB quote is
+  CNY 2.861/hour payable and CNY 3.201/hour list, with no resource created.
+  Residual High first requires a uniquely bound `generated_at` and accepted
+  UTC-second provider mapping, because neither the 39-key capture receipt nor
+  the UNKNOWN validator emitted that retained-manifest field and the invocation
+  interval is not a substitute. It then remains one paid isolated PITR restore
+  and source/restore reconciliation followed by exact approved cleanup; the
+  validator UNKNOWN adds no credit and authorizes no replacement proof layer.
+  Item26 remains unverified at 25/29 internal and 25/38 public.
 
 ## Low Risks
 

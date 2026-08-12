@@ -9202,3 +9202,66 @@ its own complete push and pull-request CI before any production dispatch can be
 authorized. `production_dispatch_authorized` and the current transport-ready
 flags remain false; all prior v2 identities remain frozen/no-replay, and the
 temporary reader plus root-only recovery material remain retained unchanged.
+
+### Item 26 v3 source manifest committed; semantic-validator false negative and recovery metadata closed read-only (2026-08-12)
+
+- Exact checkpoint `ba975598ec5b9de9c208d7262acdf8e1f2d6b88f` passed both
+  ordinary push and pull-request CI. Each completed 1,944 tests with 34 skips,
+  including all six PostgreSQL 16 integration cases without a PostgreSQL skip,
+  Quality, production readiness `138/138` and Compose. The accepted v3
+  transport/readback package was then rendered from that exact checkpoint and
+  dispatched only under its fixed, no-replay identities.
+- The v3 source capture is terminal `Success / ExitCode=0 / Finished /
+  Repeats=1 / Dropped=0` with the exact 39-key PASS contract. It captured one
+  PostgreSQL 16 repeatable-read/read-only snapshot covering 56 tables, all 17
+  migration ledger entries and the exact 19-RLS/zero-FORCE-RLS owner contract.
+  The owner activation was exact; database connection/transaction counts were
+  `1/1`; database, object and persistent-permission writes were zero; terminal
+  rollback/idle passed. The root-only source manifest and exact transfer remain
+  retained, and this capture is permanently no-replay.
+- The existing v3 metadata-only readback is terminal `Success / ExitCode=0 /
+  Finished / Repeats=1 / Dropped=0` and classifies the retained result as
+  `MANIFEST_COMMITTED_READBACK_REQUIRED`. Its task root is absent, its exact
+  container count and current established PostgreSQL socket count are zero,
+  and the readback itself performed zero database, object, Secret or provider
+  operation. It is also terminal/no-replay.
+- The separately reviewed semantic validator ran exactly once and is terminal
+  `UNKNOWN / phase=semantic`; it is not PASS and will not be replaced or
+  re-dispatched. Host, image, capability, pre/child/post file binding, manifest
+  semantics and the exact table-name contract all passed, with two host reads,
+  one container read and zero database/object/provider/Secret activity. Its
+  migration-name/SHA step was a deterministic validator false negative: the
+  validator used `O_NOATIME` as root with only `CAP_DAC_READ_SEARCH` against
+  immutable migration files owned by the image runtime user, but Linux requires
+  the file owner or `CAP_FOWNER` for that flag. The resulting `EPERM` was mapped
+  to UNKNOWN before the migration comparison. This is neither a validator PASS
+  nor evidence of a migration mismatch; the accepted capture's pre-commit
+  image-to-ledger-to-manifest 17-hash chain remains the authority.
+- Free control-plane reads now prove the source is a running PostgreSQL 16
+  high-availability VPC instance with only one private endpoint; its RDS KMS
+  service key is enabled for encrypt/decrypt with no material expiry or planned
+  deletion. Data and log backup retention are both 14 days. Fourteen successful
+  automated full snapshots are present. Fourteen PostgreSQL WAL metadata files
+  in the capture window are completed and checksummed, and their time coverage
+  includes the capture invocation. No backup body, WAL body, endpoint value or
+  credential was read or retained.
+- The official RDS purchase page's current same-region, pay-as-you-go,
+  high-availability 4-vCPU/16-GiB/200-GB quote is CNY `2.861` per hour payable,
+  with CNY `3.201` per hour list price. The four-hour list-price ceiling is CNY
+  `12.804`; the 24-hour list-price ceiling is CNY `76.824`. This phase created
+  no resource and made no database write. The paid restore remains frozen even
+  before its fee approval: the retained manifest's exact `generated_at` was not
+  included in the 39-key capture receipt, and the terminal UNKNOWN validator
+  intentionally emitted no value. The two-second invocation interval cannot
+  uniquely determine the required UTC-second provider `RestoreTime`, and no
+  rounding rule was accepted. Thus the next hard boundaries are an explicitly
+  authorized narrow read of only that already-retained timestamp plus an
+  accepted UTC-second mapping, then the separately approved paid isolated PITR
+  restore, exact source/restored manifest reconciliation, and subsequently
+  approved exact-instance deletion.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new readiness credit. The validator UNKNOWN adds no credit
+and authorizes no replacement proof layer. The temporary reader, source
+manifest, transfer and root-only recovery material remain retained until
+Item26 terminal acceptance or a separately approved exact cleanup.
