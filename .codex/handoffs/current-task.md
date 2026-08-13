@@ -9424,3 +9424,56 @@ separate destructive approval and is not authorized.
 Item 26 remains `unverified`; readiness remains internal `25/29` and public
 `25/38`, with zero new readiness credit. The next task is the exact pre-connect
 readback and then the one no-replay restored capture/reconciliation.
+
+### Item 26 restored pre-connect successor sealed locally; cloud execution remains closed (2026-08-13)
+
+- The previous `32/32` local transport result and its push/pull-request CI
+  belong only to the preceding committed HEAD. Both prior CI runs completed all
+  `22/22` steps successfully, but neither certifies this successor; the exact
+  new checkpoint still requires its own push and pull-request CI before any
+  remote command is dispatched.
+- The package broker now persists a self-contained canonical composite
+  READBACK. CREATE exit `0` or `4` requires exactly one READBACK, CREATE exit
+  `3` stops, and only READBACK exit `0` unlocks post-broker rendering. CID,
+  name, image and task-label cleanup requires full untruncated inventory,
+  exact inspect and post-removal absence; every uncertain query retains
+  material and fails closed.
+- The API-C and builder preflight contracts are locally `GO`. They bind the
+  persistent parents, source control, retained source manifest, runtime image,
+  Docker state, fixed builder RAM role, port and container absence without
+  reading environment or private-key values. Neither remote preflight has been
+  consumed. Fresh read-only history checks covered all `11` reserved Cloud
+  Assistant names and both reserved SendFile names and found zero matching
+  commands, invocations or transfers.
+- The Linux rendering bridge permanently fences replay before creating its
+  source bundle, supports crash-only READBACK to canonical `UNKNOWN`, mounts
+  only a minimal read-only SHA-bound source bundle, passes renderer input over
+  explicit container stdin and projects only its exact task label from Docker
+  inventory. The final bridge suite is `15/15`, and the complete Item 26
+  successor suite is `58/58`; independent review is `GO / P0=0 / P1=0`.
+- Two pre-fix real Docker fixtures stopped fail-closed as `UNKNOWN` and remain
+  retained without readiness credit. The final Docker-shared `0700` private-root
+  fixture is terminal `PASS`: RUN and READBACK produced byte-identical canonical
+  summaries, container absence was proven, result material is `0600`, and
+  Colima returned to `Stopped`. These were synthetic local renders only; they
+  made no cloud, database or object-storage call.
+- Fresh read-only cloud reconciliation still shows the exact clone running and
+  billable at the accepted shape, while the exact builder remains
+  `Stopped / StopCharging`. This successor stage made zero cloud writes, zero
+  builder starts and zero clone database connections, transactions, captures
+  or writes. No resource identifier, endpoint, private address or Secret is
+  recorded in this checkpoint.
+- The repository-wide raw `unittest discover` command is not the CI unit-test
+  contract: its first fail-fast result was the expected V14 historical
+  authority hash drift against the current CI workflow. The checked-in CI
+  workflow excludes V14 through V16 successor-era tests from the ambient tree
+  and runs each from its exact historical detached commit. Current-tree Item26,
+  readiness and production gates pass; the exact pushed checkpoint will run
+  that authoritative historical matrix in CI.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new credit. The next task is to commit and push this exact
+checkpoint, wait for both exact-HEAD CI runs, repeat the free read-only cloud
+gates, then consume the two remote preflights and the one no-replay restored
+capture. A second clone or different `RestoreTime` is forbidden; exact clone
+and IAM cleanup remain separately destructive and are not authorized.

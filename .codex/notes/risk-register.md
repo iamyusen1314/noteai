@@ -1926,6 +1926,24 @@ Last updated: 2026-08-12
   cleanup. Item26 remains unverified at 25/29 internal and 25/38 public with
   zero credit.
 
+- 2026-08-13 Item26 restored pre-connect successor: the broker composite
+  readback, fail-closed cleanup and API-C/builder preflight contracts are
+  locally closed. Fresh read-only history checks covered 11 Cloud Assistant
+  command names and two SendFile names and found zero matching command,
+  invocation or transfer records. The final Linux bridge suite is 15/15 and
+  the complete successor suite is 58/58; independent review is GO with P0=0
+  and P1=0. The prior committed HEAD's push and pull-request CI each passed all
+  22 steps but do not certify this successor. Two pre-fix real Docker fixtures
+  failed closed as UNKNOWN and remain retained with no credit; the final
+  Docker-shared private-root fixture passed with byte-exact READBACK and
+  container absence proven. Colima is stopped. The builder remains stopped,
+  the clone remains running and billable, and cloud write, builder-start and
+  clone database connection/transaction/capture/write counts remain zero.
+  Item26 remains unverified at 25/29 internal and 25/38 public with zero credit.
+  Residual High is current exact-HEAD CI, the two remote preflights, one
+  no-replay restored capture and exact reconciliation, terminal builder stop,
+  and separately approved exact-instance and IAM cleanup.
+
 ## Low Risks
 
 ### `model/api.py` is too large

@@ -62,12 +62,8 @@ print("API_C_IDENTITY_EXACT")
 PY
 }
 
-cleanup_container() {
-  [ "$container_attempted" -eq 1 ] && [ -n "$task_identity" ] || return 1
-  [ -d "$TASK_ROOT" ] && [ ! -L "$TASK_ROOT" ] && [ "$(stat -c '%d:%i' "$TASK_ROOT")" = "$task_identity" ] || return 1
-  if [ -e "$CIDFILE" ] || [ -L "$CIDFILE" ]; then
-    local cid row
-    cid="$(python3 -I -B - "$CIDFILE" <<'PY'
+read_full_cid() {
+  python3 -I -B - "$CIDFILE" <<'PY'
 import os,re,stat,sys
 p=sys.argv[1]; row=os.lstat(p)
 if not stat.S_ISREG(row.st_mode) or stat.S_ISLNK(row.st_mode) or row.st_uid or row.st_gid or stat.S_IMODE(row.st_mode)!=0o600 or row.st_nlink!=1 or not 64<=row.st_size<=65: raise SystemExit(2)
@@ -79,14 +75,40 @@ body=raw.decode("ascii").strip()
 if re.fullmatch(r"[0-9a-f]{64}",body) is None: raise SystemExit(2)
 print(body)
 PY
-)" || return 1
-    if row="$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default inspect "$cid" --format '{{.Id}}|{{.Name}}|{{.Image}}|{{index .Config.Labels "com.noteai.task"}}' 2>/dev/null)"; then
+}
+
+cleanup_container() {
+  [ "$container_attempted" -eq 1 ] && [ -n "$task_identity" ] || return 1
+  [ -d "$TASK_ROOT" ] && [ ! -L "$TASK_ROOT" ] && [ "$(stat -c '%d:%i|%u|%g|%a' "$TASK_ROOT")" = "$task_identity|0|0|700" ] || return 1
+  local ids='' all_ids='' cid='' row='' cid_present=0 value=''
+  ids="$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default container ls -aq --no-trunc --filter "name=^/${CONTAINER_NAME}$" 2>/dev/null)" || return 1
+  all_ids="$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default container ls -aq --no-trunc 2>/dev/null)" || return 1
+  [ -z "$ids" ] || { [ "$(printf '%s\n' "$ids" | wc -l | tr -d ' ')" = '1' ] || return 1; }
+  if [ -e "$CIDFILE" ] || [ -L "$CIDFILE" ]; then
+    cid="$(read_full_cid 2>/dev/null)" || return 1
+    if [ -n "$ids" ] && [ "$ids" != "$cid" ]; then return 1; fi
+    while IFS= read -r value; do
+      [ -z "$value" ] && continue
+      [ "$value" = "$cid" ] && cid_present=$((cid_present+1))
+    done <<<"$all_ids"
+    [ "$cid_present" -le 1 ] || return 1
+    if [ "$cid_present" -eq 1 ]; then
+      [ "$container_attempted" -eq 1 ] || return 1
+      row="$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default inspect "$cid" --format '{{.Id}}|{{.Name}}|{{.Image}}|{{index .Config.Labels "com.noteai.task"}}' 2>/dev/null)" || return 1
       [ "$row" = "$cid|/$CONTAINER_NAME|$IMAGE_CONFIG|${CONTAINER_LABEL#com.noteai.task=}" ] || return 1
       /usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default rm -f "$cid" >/dev/null 2>&1 || return 1
-      /usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default inspect "$cid" >/dev/null 2>&1 && return 1
+    elif [ -n "$ids" ]; then
+      return 1
     fi
+  elif [ -n "$ids" ]; then
+    return 1
   fi
-  [ -z "$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default container ls -aq --filter "name=^/${CONTAINER_NAME}$")" ] || return 1
+  ids="$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default container ls -aq --no-trunc --filter "name=^/${CONTAINER_NAME}$" 2>/dev/null)" || return 1
+  [ -z "$ids" ] || return 1
+  all_ids="$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default container ls -aq --no-trunc 2>/dev/null)" || return 1
+  if [ -n "$cid" ]; then
+    while IFS= read -r value; do [ "$value" != "$cid" ] || return 1; done <<<"$all_ids"
+  fi
 }
 
 fixed() {
@@ -106,9 +128,9 @@ readback() {
   [ -d "$BASE_ROOT" ] && [ ! -L "$BASE_ROOT" ] && [ "$(stat -c '%u|%g|%a' "$BASE_ROOT")" = '0|0|700' ] || fixed UNKNOWN base_root 4
   [ -d "$BROKER_ROOT" ] && [ ! -L "$BROKER_ROOT" ] && [ "$(stat -c '%u|%g|%a' "$BROKER_ROOT")" = '0|0|700' ] || fixed UNKNOWN broker_root 4
   [ "$(find "$BROKER_ROOT" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)" = $'broker-receipt.json\ncontrol-envelope.json' ] || fixed UNKNOWN inventory 4
-  python3 -I -B - "$ENVELOPE" "$RECEIPT" <<'PY' 2>/dev/null || fixed UNKNOWN readback 4
+  python3 -I -B - "$ENVELOPE" "$RECEIPT" "$RECIPIENT_PUBLIC_KEY_SHA256" <<'PY' 2>/dev/null || fixed UNKNOWN readback 4
 import base64,hashlib,json,os,re,stat,sys
-envelope_path,receipt_path=sys.argv[1:]
+envelope_path,receipt_path,recipient_sha=sys.argv[1:]
 def no_duplicates(pairs):
     result={}
     for key,value in pairs:
@@ -139,8 +161,11 @@ except BaseException: raise SystemExit(2)
 if len(wrapped)!=384 or len(nonce)!=12 or len(ciphertext)<16: raise SystemExit(2)
 expected={"NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER","algorithm","automatic_retry_allowed","control_envelope_bytes","control_envelope_sha256","payload_schema_exact","recipient_public_key_sha256","restored_topology_sha256","same_invocation_replay_allowed","schema_version","secret_values_emitted","source_manifest_bytes","source_manifest_file_sha256","source_manifest_sha256","storage_config_sha256"}
 hash_keys={"control_envelope_sha256","recipient_public_key_sha256","restored_topology_sha256","source_manifest_file_sha256","source_manifest_sha256","storage_config_sha256"}
-if set(row)!=expected or row["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]!="PASS" or row["schema_version"]!=1 or row["algorithm"]!="RSA-OAEP-SHA256+AES-256-GCM" or type(row["control_envelope_bytes"]) is not int or row["control_envelope_bytes"]!=len(envelope) or row["control_envelope_sha256"]!=hashlib.sha256(envelope).hexdigest() or row["payload_schema_exact"] is not True or row["automatic_retry_allowed"] is not False or row["same_invocation_replay_allowed"] is not False or row["secret_values_emitted"]!=0 or row["source_manifest_bytes"]!=9794 or row["source_manifest_file_sha256"]!="dba5251aaf489358eab6b800dfa43ff108290abd851410da9a16f97b86d0b1f4" or row["source_manifest_sha256"]!="99fc8321d11db344af51f69b735f7dcdd4d09ea3a988148896034258067a842a" or any(type(row[key]) is not str or re.fullmatch(r"[0-9a-f]{64}",row[key]) is None for key in hash_keys): raise SystemExit(2)
-os.write(1,receipt)
+if set(row)!=expected or row["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]!="PASS" or type(row["schema_version"]) is not int or row["schema_version"]!=1 or row["algorithm"]!="RSA-OAEP-SHA256+AES-256-GCM" or type(row["control_envelope_bytes"]) is not int or row["control_envelope_bytes"]!=len(envelope) or row["control_envelope_sha256"]!=hashlib.sha256(envelope).hexdigest() or row["recipient_public_key_sha256"]!=recipient_sha or row["payload_schema_exact"] is not True or row["automatic_retry_allowed"] is not False or row["same_invocation_replay_allowed"] is not False or type(row["secret_values_emitted"]) is not int or row["secret_values_emitted"]!=0 or type(row["source_manifest_bytes"]) is not int or row["source_manifest_bytes"]!=9794 or row["source_manifest_file_sha256"]!="dba5251aaf489358eab6b800dfa43ff108290abd851410da9a16f97b86d0b1f4" or row["source_manifest_sha256"]!="99fc8321d11db344af51f69b735f7dcdd4d09ea3a988148896034258067a842a" or any(type(row[key]) is not str or re.fullmatch(r"[0-9a-f]{64}",row[key]) is None for key in hash_keys): raise SystemExit(2)
+transport={"control_envelope_b64":base64.b64encode(envelope).decode("ascii"),"control_envelope_bytes":len(envelope),"control_envelope_sha256":row["control_envelope_sha256"],"recipient_public_key_sha256":row["recipient_public_key_sha256"],"same_invocation_replay_allowed":False,"schema_version":1,"secret_values_emitted":0}
+body=canonical({"receipt":row,"transport":transport},True)
+if len(body)>18000: raise SystemExit(2)
+if os.write(1,body)!=len(body): raise SystemExit(2)
 PY
 }
 

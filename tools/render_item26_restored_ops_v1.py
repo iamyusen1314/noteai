@@ -32,7 +32,7 @@ PATHS = MappingProxyType({
 })
 IDENTITIES = MappingProxyType({
     "keygen": MappingProxyType({"bytes":10007,"sha256":"91f6c99049ab9eb5fe5ef13427d4adcd93af99a85d5ab90306c1e4360ddcb32d"}),
-    "broker": MappingProxyType({"bytes":24197,"sha256":"d5c0176cc8c8a9700cc7c590b9fe40052db811d6d44e9742a13a3c333b34e15d"}),
+    "broker": MappingProxyType({"bytes":26007,"sha256":"4204e5c240138d77592e13b67044c3635139ec6d5307a19f3b538aed1c7eaaad"}),
     "rewrap": MappingProxyType({"bytes":34231,"sha256":"6a8b36590f5d3f7972be25544dc2c90d68fae493d21d9fda209578780ff9bf61"}),
     "stage": MappingProxyType({"bytes":10562,"sha256":"babdbe7d6daad55db04d1247ec26741cc77925c1c8ba8ca20398bac9de0069e5"}),
 })
@@ -61,19 +61,19 @@ set +x
 umask 077
 export LC_ALL=C
 exec /usr/bin/python3 -I -B - <<'PY'
-import base64,gzip,hashlib,os
-N=@@N@@;H="@@H@@";Z=b"@@Z@@";T=@@T@@
+import base64 as b,gzip as g,hashlib as h,os
+N=@@N@@;H=b"@@H@@";Z=b"@@Z@@";T=@@T@@
 FIX=b'{"NOTEAI_ITEM26_RESTORED_OPS_LOADER":"UNKNOWN","automatic_retry_allowed":false,"same_invocation_replay_allowed":false}\\n'
-def fixed():
+def f():
  try:
-  if os.write(2,FIX)!=len(FIX): raise OSError
+  if os.write(2,FIX)!=len(FIX):1/0
  except: pass
  os._exit(4)
 try:
- p=gzip.decompress(base64.b85decode(Z))
- if hashlib.sha256(p).hexdigest()!=H or not 1<=N<len(p): raise ValueError
- raw=p[:N];exec(p[N:],globals())
-except: fixed()
+ p=g.decompress(b.b85decode(Z))
+ if h.sha256(p).digest()!=b.b85decode(H) or not 1<=N<len(p):1/0
+ raw=p[:N];exec(p[N:])
+except:f()
 PY
 """
 
@@ -115,13 +115,18 @@ def ok(v,r):
  except: return False
  return len(x)==v["control_envelope_bytes"] and hashlib.sha256(x).hexdigest()==v["control_envelope_sha256"]
 """,
-"broker_readback":b"""F=set("db_socket docker identity image input_metadata mode parent root tool".split());U=set("base_root broker_root container container_cleanup container_execute helper_stderr helper_stdout inventory output preexisting_base promote promote_fsync readback stage_input task_create task_identity unexpected".split())
+"broker_readback":b"""R="@@RECIPIENT@@";F=set("db_socket docker identity image input_metadata mode parent root tool".split());U=set("base_root broker_root container container_cleanup container_execute helper_stderr helper_stdout inventory output preexisting_base promote promote_fsync readback stage_input task_create task_identity unexpected".split())
 def ok(v,r):
  if r:
   k="NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER automatic_retry_allowed phase same_invocation_replay_allowed secret_values_emitted"
   return ex(v,k) and v["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]==("FAIL" if r==3 else "UNKNOWN") and cm(v) and i(v["secret_values_emitted"],0,0) and type(v["phase"]) is str and v["phase"] in (F if r==3 else U)
- k="NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER algorithm automatic_retry_allowed control_envelope_bytes control_envelope_sha256 payload_schema_exact recipient_public_key_sha256 restored_topology_sha256 same_invocation_replay_allowed schema_version secret_values_emitted source_manifest_bytes source_manifest_file_sha256 source_manifest_sha256 storage_config_sha256"
- return ex(v,k) and v["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]=="PASS" and v["algorithm"]=="RSA-OAEP-SHA256+AES-256-GCM" and cm(v) and q(v["payload_schema_exact"],True) and i(v["schema_version"],1,1) and i(v["secret_values_emitted"],0,0) and i(v["control_envelope_bytes"],1,12288) and i(v["source_manifest_bytes"],9794,9794) and v["source_manifest_file_sha256"]=="dba5251aaf489358eab6b800dfa43ff108290abd851410da9a16f97b86d0b1f4" and v["source_manifest_sha256"]=="99fc8321d11db344af51f69b735f7dcdd4d09ea3a988148896034258067a842a" and all(h(v[x]) for x in ("control_envelope_sha256","recipient_public_key_sha256","restored_topology_sha256","storage_config_sha256"))
+ if not ex(v,"receipt transport"):return False
+ p=v["receipt"];t=v["transport"];pk="NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER algorithm automatic_retry_allowed control_envelope_bytes control_envelope_sha256 payload_schema_exact recipient_public_key_sha256 restored_topology_sha256 same_invocation_replay_allowed schema_version secret_values_emitted source_manifest_bytes source_manifest_file_sha256 source_manifest_sha256 storage_config_sha256";tk="control_envelope_b64 control_envelope_bytes control_envelope_sha256 recipient_public_key_sha256 same_invocation_replay_allowed schema_version secret_values_emitted"
+ if not ex(p,pk) or not ex(t,tk) or p["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]!="PASS" or p["algorithm"]!="RSA-OAEP-SHA256+AES-256-GCM" or not cm(p) or not q(p["payload_schema_exact"],True) or not i(p["schema_version"],1,1) or not i(p["secret_values_emitted"],0,0) or not i(p["control_envelope_bytes"],1,12288) or not i(p["source_manifest_bytes"],9794,9794) or p["source_manifest_file_sha256"]!="dba5251aaf489358eab6b800dfa43ff108290abd851410da9a16f97b86d0b1f4" or p["source_manifest_sha256"]!="99fc8321d11db344af51f69b735f7dcdd4d09ea3a988148896034258067a842a" or not all(h(p[x]) for x in ("control_envelope_sha256","recipient_public_key_sha256","restored_topology_sha256","storage_config_sha256")):return False
+ if not q(t["same_invocation_replay_allowed"],False) or not i(t["schema_version"],1,1) or not i(t["secret_values_emitted"],0,0) or not i(t["control_envelope_bytes"],1,12288) or not h(t["control_envelope_sha256"]) or t["recipient_public_key_sha256"]!=R or p["recipient_public_key_sha256"]!=R or p["control_envelope_bytes"]!=t["control_envelope_bytes"] or p["control_envelope_sha256"]!=t["control_envelope_sha256"] or type(t["control_envelope_b64"]) is not str:return False
+ try:x=base64.b64decode(t["control_envelope_b64"],validate=True)
+ except:return False
+ return len(x)==t["control_envelope_bytes"] and hashlib.sha256(x).hexdigest()==t["control_envelope_sha256"]
 """,
 "rewrap_create":b"""R="@@RECIPIENT@@";F=set("preflight root binding tool persistent_parent identity source_control_root source_control_metadata source_control_key_pair source_envelope_contract docker_service image db_socket_before".split());U=set("preflight root binding tool persistent_parent identity preexisting_persistent_root preexisting_container persistent_root_create attempt_commit task_create container_execute container_cleanup helper_stderr result_commit task_cleanup db_socket_after terminal_readback".split())
 def ok(v,r):
@@ -189,7 +194,7 @@ os._exit(r)
 def strict_validator(contract,expected_recipient=None):
     try: result=STRICT_VALIDATOR_PREFIX+STRICT_VALIDATOR_CASES[contract]+STRICT_VALIDATOR_SUFFIX
     except KeyError as exc: raise RenderError("loader_contract") from exc
-    if contract.startswith("rewrap_"):
+    if contract.startswith("rewrap_") or contract=="broker_readback":
         if type(expected_recipient) is not str or HEX64.fullmatch(expected_recipient) is None or result.count(b"@@RECIPIENT@@")!=1: raise RenderError("loader_recipient")
         result=result.replace(b"@@RECIPIENT@@",expected_recipient.encode("ascii"))
     elif expected_recipient is not None: raise RenderError("loader_recipient")
@@ -243,7 +248,7 @@ def _wrapper(raw,compressor,contract,timeout,expected_recipient=None):
     payload=raw+strict_validator(contract,expected_recipient)
     try: packed=v3._compress("ops",payload,compressor)
     except v3.RenderError as exc: raise RenderError("gzip") from exc
-    result=LOADER.replace(b"@@N@@",str(len(raw)).encode()).replace(b"@@H@@",sha(payload).encode()).replace(b"@@Z@@",base64.b85encode(packed)).replace(b"@@T@@",str(timeout).encode())
+    result=LOADER.replace(b"@@N@@",str(len(raw)).encode()).replace(b"@@H@@",base64.b85encode(hashlib.sha256(payload).digest())).replace(b"@@Z@@",base64.b85encode(packed)).replace(b"@@T@@",str(timeout).encode())
     if PLACEHOLDER.search(result): raise RenderError("loader")
     try: v3._validate_bash_python("ops_loader",result,1)
     except v3.RenderError as exc: raise RenderError("loader") from exc
@@ -288,8 +293,9 @@ def broker_commands(api_c_instance_id,api_c_ram_role,restored_host,public,rewrap
     common={b"@@API_C_IDENTITY_SHA256@@":api_identity.encode(),b"@@RESTORED_HOST@@":restored_host.encode(),b"@@RECIPIENT_PUBLIC_KEY_SHA256@@":recipient.encode(),b"@@RECIPIENT_PUBLIC_KEY_B64@@":base64.b64encode(public),b"@@PASSWORD_REWRAP_RESULT_B64@@":base64.b64encode(rewrap)}
     commands={}
     for mode in ("CREATE","READBACK"):
-        bindings=dict(common); bindings[b"@@MODE@@"]=mode.encode(); commands[mode.lower()]=wrapper(render("broker",bindings),compressor,"broker_"+mode.lower())
-    return {"api_c_identity_sha256":api_identity,"commands":commands,"recipient_public_key_sha256":recipient,"template":dict(IDENTITIES["broker"])}
+        bindings=dict(common); bindings[b"@@MODE@@"]=mode.encode(); contract="broker_"+mode.lower(); commands[mode.lower()]=wrapper(render("broker",bindings),compressor,contract,recipient if mode=="READBACK" else None)
+    state_machine={"create":{"0":"READBACK_REQUIRED","3":"STOP","4":"READBACK_REQUIRED"},"post_broker_requires_composite":True,"readback":{"0":"POST_BROKER_ALLOWED","3":"STOP","4":"STOP"},"readback_dispatch_count":1}
+    return {"api_c_identity_sha256":api_identity,"commands":commands,"recipient_public_key_sha256":recipient,"state_machine":state_machine,"template":dict(IDENTITIES["broker"])}
 def validate_keygen(value,builder):
     expected={"NOTEAI_ITEM26_RESTORED_BUILDER_KEYGEN","automatic_retry_allowed","builder_identity_sha256","private_key_created","private_key_pair_verified","private_key_value_read_count","public_der_sha256","public_key_pem_b64","same_invocation_replay_allowed","schema_version"}
     if set(value)!=expected or value["NOTEAI_ITEM26_RESTORED_BUILDER_KEYGEN"]!="PASS" or type(value["schema_version"]) is not int or value["schema_version"]!=1 or value["builder_identity_sha256"]!=builder or value["private_key_created"] is not True or value["private_key_pair_verified"] is not True or type(value["private_key_value_read_count"]) is not int or value["private_key_value_read_count"]!=1 or value["automatic_retry_allowed"] is not False or value["same_invocation_replay_allowed"] is not False or type(value["public_key_pem_b64"]) is not str: raise RenderError("keygen_result")
@@ -297,16 +303,23 @@ def validate_keygen(value,builder):
     except BaseException as exc: raise RenderError("keygen_result") from exc
     if public_key(public)!=value["public_der_sha256"]: raise RenderError("keygen_result")
     return value["public_der_sha256"]
-def validate_broker(create,receipt,recipient):
+def validate_broker_transport(create,recipient):
     create_keys={"control_envelope_b64","control_envelope_bytes","control_envelope_sha256","recipient_public_key_sha256","same_invocation_replay_allowed","schema_version","secret_values_emitted"}
     if set(create)!=create_keys or type(create["schema_version"]) is not int or create["schema_version"]!=1 or create["recipient_public_key_sha256"]!=recipient or create["same_invocation_replay_allowed"] is not False or type(create["secret_values_emitted"]) is not int or create["secret_values_emitted"]!=0 or type(create["control_envelope_bytes"]) is not int or type(create["control_envelope_b64"]) is not str: raise RenderError("broker_create")
     try: envelope=base64.b64decode(create["control_envelope_b64"],validate=True)
     except BaseException as exc: raise RenderError("broker_create") from exc
     capture._validate_control_envelope(envelope)
     if create["control_envelope_bytes"]!=len(envelope) or create["control_envelope_sha256"]!=sha(envelope): raise RenderError("broker_create")
+    return envelope
+def validate_broker(composite,recipient,create=None):
+    if type(composite) is not dict or set(composite)!={"receipt","transport"} or type(composite["receipt"]) is not dict or type(composite["transport"]) is not dict: raise RenderError("broker_readback")
+    receipt=composite["receipt"]; transport=composite["transport"]; envelope=validate_broker_transport(transport,recipient)
     keys={"NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER","algorithm","automatic_retry_allowed","control_envelope_bytes","control_envelope_sha256","payload_schema_exact","recipient_public_key_sha256","restored_topology_sha256","same_invocation_replay_allowed","schema_version","secret_values_emitted","source_manifest_bytes","source_manifest_file_sha256","source_manifest_sha256","storage_config_sha256"}
     if set(receipt)!=keys or receipt["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]!="PASS" or receipt["algorithm"]!="RSA-OAEP-SHA256+AES-256-GCM" or type(receipt["schema_version"]) is not int or receipt["schema_version"]!=1 or type(receipt["control_envelope_bytes"]) is not int or receipt["control_envelope_bytes"]!=len(envelope) or receipt["control_envelope_sha256"]!=sha(envelope) or receipt["recipient_public_key_sha256"]!=recipient or type(receipt["source_manifest_bytes"]) is not int or receipt["source_manifest_bytes"]!=SOURCE_BYTES or receipt["source_manifest_file_sha256"]!=SOURCE_FILE_SHA or receipt["source_manifest_sha256"]!=SOURCE_SHA or receipt["payload_schema_exact"] is not True or receipt["automatic_retry_allowed"] is not False or receipt["same_invocation_replay_allowed"] is not False or type(receipt["secret_values_emitted"]) is not int or receipt["secret_values_emitted"]!=0 or any(type(receipt[key]) is not str or HEX64.fullmatch(receipt[key]) is None for key in ("restored_topology_sha256","storage_config_sha256")): raise RenderError("broker_readback")
-    return envelope
+    if create is not None:
+        validate_broker_transport(create,recipient)
+        if create!=transport: raise RenderError("broker_create_mismatch")
+    return envelope,receipt
 def stage_bindings(mode,builder,recipient,envelope,transfer):
     return {b"@@MODE@@":mode.encode(),b"@@BUILDER_IDENTITY_SHA256@@":builder.encode(),b"@@RECIPIENT_PUBLIC_KEY_SHA256@@":recipient.encode(),b"@@ENVELOPE_BYTES@@":str(len(envelope)).encode(),b"@@ENVELOPE_SHA256@@":sha(envelope).encode(),b"@@TRANSFER_BYTES@@":str(len(transfer)).encode(),b"@@TRANSFER_SHA256@@":sha(transfer).encode()}
 def sendfile(name,target_dir,body,builder_instance_id):
@@ -314,9 +327,9 @@ def sendfile(name,target_dir,body,builder_instance_id):
     if len(body)>24576 or len(encoded)>MAX_SENDFILE: raise RenderError("sendfile_limit")
     request={"Content":encoded.decode("ascii"),"ContentType":"Base64","Description":"noteai-item26-restored-v1-write-once","FileGroup":"root","FileMode":"0600","FileOwner":"root","InstanceId":[builder_instance_id],"Name":name,"Overwrite":False,"RegionId":"cn-shenzhen","Tag":[{"Key":"noteai-task","Value":"item26-restored-v1"}],"TargetDir":target_dir}
     return {"evidence":{"content_base64_bytes":len(encoded),"content_sha256":sha(body)},"request":request}
-def _post_broker_context(builder_instance_id,builder_ram_role,keygen_raw,create_raw,readback_raw):
+def _post_broker_context(builder_instance_id,builder_ram_role,keygen_raw,readback_raw,create_raw=None):
     builder=builder_identity(builder_instance_id,builder_ram_role); keygen=parse(keygen_raw,"keygen_result",4096); recipient=validate_keygen(keygen,builder)
-    create=parse(create_raw,"broker_create",18000); receipt=parse(readback_raw,"broker_readback",4096); envelope=validate_broker(create,receipt,recipient)
+    composite=parse(readback_raw,"broker_readback",18000); create=parse(create_raw,"broker_create",18000) if create_raw is not None else None; envelope,receipt=validate_broker(composite,recipient,create)
     return builder,recipient,envelope,receipt
 def _assemble_post_broker(builder_instance_id,builder,recipient,envelope,receipt,artifacts,capture_command,compressor,capture_summary=None,capture_sizing=None):
     transfer=artifacts["capture_gzip"]
@@ -336,13 +349,13 @@ def _validated_production_render(rendered,envelope):
         if type(body) is not bytes or len(body)!=summary[name]["bytes"] or sha(body)!=summary[name]["sha256"]: raise RenderError("capture_artifact")
     if rendered["artifacts"]["control_envelope"]!=envelope: raise RenderError("capture_envelope")
     return rendered["artifacts"],summary
-def post_broker(builder_instance_id,builder_ram_role,keygen_raw,create_raw,readback_raw):
-    builder,recipient,envelope,receipt=_post_broker_context(builder_instance_id,builder_ram_role,keygen_raw,create_raw,readback_raw)
+def post_broker(builder_instance_id,builder_ram_role,keygen_raw,readback_raw,create_raw=None):
+    builder,recipient,envelope,receipt=_post_broker_context(builder_instance_id,builder_ram_role,keygen_raw,readback_raw,create_raw)
     rendered=capture.render_item26_restored_v1_transport(envelope,recipient,builder,SOURCE_BYTES,SOURCE_FILE_SHA,SOURCE_SHA,receipt["restored_topology_sha256"],receipt["storage_config_sha256"])
     artifacts,summary=_validated_production_render(rendered,envelope)
     return _assemble_post_broker(builder_instance_id,builder,recipient,envelope,receipt,artifacts,summary["capture_command_content"],production_compressor(),capture_summary=summary)
-def _post_broker_for_test(builder_instance_id,builder_ram_role,keygen_raw,create_raw,readback_raw,compressor):
-    builder,recipient,envelope,receipt=_post_broker_context(builder_instance_id,builder_ram_role,keygen_raw,create_raw,readback_raw)
+def _post_broker_for_test(builder_instance_id,builder_ram_role,keygen_raw,readback_raw,create_raw,compressor):
+    builder,recipient,envelope,receipt=_post_broker_context(builder_instance_id,builder_ram_role,keygen_raw,readback_raw,create_raw)
     rendered=capture._render_item26_restored_v1_transport_for_test(envelope,recipient,builder,SOURCE_BYTES,SOURCE_FILE_SHA,SOURCE_SHA,receipt["restored_topology_sha256"],receipt["storage_config_sha256"],gzip_compressor=compressor)
     return _assemble_post_broker(builder_instance_id,builder,recipient,envelope,receipt,rendered["artifacts"],rendered["sizing"]["capture_command_content"],compressor,capture_sizing=rendered["sizing"])
 def production_compressor():
@@ -357,7 +370,7 @@ def cli():
         if mode=="keygen" and set(request)=={"builder_instance_id","builder_ram_role"}: result=keygen_commands(request["builder_instance_id"],request["builder_ram_role"],production_compressor())
         elif mode=="rewrap" and set(request)=={"api_c_instance_id","api_c_ram_role","recipient_public_key_pem_base64"}: result=rewrap_commands(request["api_c_instance_id"],request["api_c_ram_role"],decode(request["recipient_public_key_pem_base64"],"public_key"),production_compressor())
         elif mode=="broker" and set(request)=={"api_c_instance_id","api_c_ram_role","password_rewrap_result_base64","recipient_public_key_pem_base64","restored_host"}: result=broker_commands(request["api_c_instance_id"],request["api_c_ram_role"],request["restored_host"],decode(request["recipient_public_key_pem_base64"],"public_key"),decode(request["password_rewrap_result_base64"],"rewrap"),production_compressor())
-        elif mode=="post_broker" and set(request)=={"broker_create_result_base64","broker_readback_result_base64","builder_instance_id","builder_ram_role","keygen_result_base64"}: result=post_broker(request["builder_instance_id"],request["builder_ram_role"],decode(request["keygen_result_base64"],"keygen_result"),decode(request["broker_create_result_base64"],"broker_create"),decode(request["broker_readback_result_base64"],"broker_readback"))
+        elif mode=="post_broker" and set(request) in ({"broker_readback_result_base64","builder_instance_id","builder_ram_role","keygen_result_base64"},{"broker_create_result_base64","broker_readback_result_base64","builder_instance_id","builder_ram_role","keygen_result_base64"}): result=post_broker(request["builder_instance_id"],request["builder_ram_role"],decode(request["keygen_result_base64"],"keygen_result"),decode(request["broker_readback_result_base64"],"broker_readback"),decode(request["broker_create_result_base64"],"broker_create") if "broker_create_result_base64" in request else None)
         else: raise RenderError("request_contract")
         output=canonical(result)
     except RenderError as exc:
