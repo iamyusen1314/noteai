@@ -6563,10 +6563,18 @@
                 "restored_capture_loader_terminal_schema_exact": true,
                 "restored_capture_credential_rewrap_transport_ready": true,
                 "restored_capture_linux_gnu_provenance_exact": true,
-                "restored_capture_focused_test_count": 31,
+                "restored_capture_builder_ram_role_binding_exact": true,
+                "restored_capture_builder_ram_policy_default_version": "v1",
+                "restored_capture_builder_ram_policy_statement_count": 2,
+                "restored_capture_builder_ram_policy_write_delete_acl_multipart_action_count": 0,
+                "restored_capture_runtime_object_body_get_allowed": false,
+                "restored_capture_focused_test_count": 32,
                 "restored_capture_focused_test_failure_count": 0,
                 "restored_capture_command_max_bytes": 17840,
                 "restored_capture_command_limit_bytes": 18000,
+                "restored_capture_builder_full_config_price_per_hour_cny": 0.98748,
+                "restored_capture_builder_two_hour_price_ceiling_cny": 1.97496,
+                "restored_capture_fresh_available_balance_cny": 39.3,
                 "restored_capture_independent_review_status": "GO_P0_0_P1_0",
                 "restored_capture_persistent_parent_preflight_consumed": false,
                 "builder_start_authorized_during_storage_pause": false,
@@ -6588,7 +6596,7 @@
             "readiness_credit_added": false,
             "automatic_retry_allowed": false
           },
-          "blocker": "The v3 source capture, metadata readback and operational timestamp binding are terminal/no-replay, and the exact-one isolated Postpaid clone remains Running with baseline control-plane postchecks PASS. Fresh read-only reconciliation after storage maintenance again confirms the exact clone is Running/Postpaid/PostgreSQL 16/high availability/4 cores/16 GiB/200 GiB, F-primary/C-secondary, private-only with one endpoint, proxy disabled and release protection enabled; the exact builder remains Stopped/StopCharging with its task-scoped metadata-only RAM role. Clone database connection, transaction, capture and write counts remain zero. The local encrypted restored-capture transport is now independently reviewed LOCAL_GO with P0=0/P1=0: the SendFile API request and evidence are separated, loader terminal schemas are bounded and exact, a persistent no-replay credential-rewrap CREATE/READBACK path is bound, and production uses the public Linux/GNU renderer. The remaining pre-connect gate is the unconsumed exact persistent-parent and command-history preflight, followed by the single no-replay restored-manifest capture, exact source/restored reconciliation and separately approved exact-instance deletion. No second clone or RestoreTime change is allowed, and no readiness credit is added.",
+          "blocker": "The v3 source capture, metadata readback and operational timestamp binding are terminal/no-replay, and the exact-one isolated Postpaid clone remains Running with baseline control-plane postchecks PASS. Fresh read-only reconciliation after storage maintenance again confirms the exact clone is Running/Postpaid/PostgreSQL 16/high availability/4 cores/16 GiB/200 GiB, F-primary/C-secondary, private-only with one endpoint, proxy disabled and release protection enabled; the exact builder remains Stopped/StopCharging with its fixed task-scoped metadata-only RAM role. Its default v1 policy is freshly read back as two exact private-subtree allow statements with no write/delete/ACL/multipart action, and the runtime adapter permits only list/head metadata operations. Clone database connection, transaction, capture and write counts remain zero. The local encrypted restored-capture transport is now independently reviewed LOCAL_GO with P0=0/P1=0: the SendFile API request and evidence are separated, loader terminal schemas are bounded and exact, a persistent no-replay credential-rewrap CREATE/READBACK path is bound, production uses the public Linux/GNU renderer, and both builder render entry points reject a non-fixed RAM role. The remaining pre-connect gate is the unconsumed exact persistent-parent and command-history preflight, followed by the single no-replay restored-manifest capture, exact source/restored reconciliation and separately approved exact-instance deletion. No second clone or RestoreTime change is allowed, and no readiness credit is added.",
           "next_task": "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
         },
         {

@@ -1912,9 +1912,13 @@ Last updated: 2026-08-12
   SendFile request/evidence separation, bounded canonical terminal loaders,
   persistent no-replay password rewrap and public Linux/GNU production
   rendering are now closed, including bool/int alias and algorithm-mismatch
-  rejection. Focused tests are 31/31 and the maximum sampled command is
-  17,840/18,000 bytes. Fresh read-only cloud reconciliation keeps the builder
-  Stopped/StopCharging and confirms the exact clone remains Running, private,
+  rejection. Both builder render entry points now also reject every non-fixed
+  RAM role. Focused tests are 32/32 and the maximum sampled command is
+  17,840/18,000 bytes. Fresh read-only policy reconciliation proves default v1,
+  two exact private-subtree allow statements and zero write/delete/ACL/multipart
+  actions; the runtime remains list/head-only. The exact current builder quote
+  is 0.98748 CNY/hour with a two-hour 1.97496 CNY ceiling and 39.30 CNY available
+  balance. The builder remains Stopped/StopCharging and the exact clone remains Running, private,
   protected and at the accepted PG16/HA/4-core/16-GiB/200-GiB dual-zone shape;
   no cloud command or database connection was made. Residual High is now the
   unconsumed persistent-parent/command-history preflight, one no-replay

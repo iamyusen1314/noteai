@@ -49,6 +49,7 @@ SOURCE_BYTES=9794
 SOURCE_FILE_SHA="dba5251aaf489358eab6b800dfa43ff108290abd851410da9a16f97b86d0b1f4"
 SOURCE_SHA="99fc8321d11db344af51f69b735f7dcdd4d09ea3a988148896034258067a842a"
 SOURCE_CONTROL_PUBLIC_SHA="dc8f8283248dd232030bb63d19f669ccdaad89faa87dbdffb7b5eb5aae83969a"
+BUILDER_RAM_ROLE="noteai-item26-pitr-oss-reader-v1"
 MAX_COMMAND=18000
 MAX_SENDFILE=18000
 LOADER_CONTRACTS=frozenset({"keygen","broker_create","broker_readback","rewrap_create","rewrap_readback","stage_finalize","stage_readback"})
@@ -217,6 +218,9 @@ def parse(raw,label,limit=65536):
 def identity(instance,role):
     if type(instance) is not str or re.fullmatch(r"i-[a-z0-9]+",instance) is None or type(role) is not str or re.fullmatch(r"[A-Za-z0-9._-]{1,64}",role) is None: raise RenderError("identity")
     return sha(json.dumps({"instance_id":instance,"ram_role":role},ensure_ascii=True,sort_keys=True,separators=(",",":")).encode("ascii"))
+def builder_identity(instance,role):
+    if role!=BUILDER_RAM_ROLE: raise RenderError("builder_ram_role")
+    return identity(instance,role)
 def read_template(name):
     path=PATHS[name]; expected=IDENTITIES[name]; before=path.lstat()
     if not stat.S_ISREG(before.st_mode) or stat.S_ISLNK(before.st_mode) or before.st_size!=expected["bytes"]: raise RenderError(name+"_template")
@@ -251,7 +255,7 @@ def command(raw):
     if len(encoded)>MAX_COMMAND: raise RenderError("command_limit")
     return {"base64":encoded.decode("ascii"),"bytes":len(encoded),"sha256":sha(encoded)}
 def keygen_commands(builder_instance_id,builder_ram_role,compressor):
-    builder=identity(builder_instance_id,builder_ram_role); template=read_template("keygen")
+    builder=builder_identity(builder_instance_id,builder_ram_role); template=read_template("keygen")
     result={}
     for mode in ("GENERATE","READBACK"):
         raw=render("keygen",{b"@@MODE@@":mode.encode(),b"@@BUILDER_IDENTITY_SHA256@@":builder.encode()})
@@ -311,7 +315,7 @@ def sendfile(name,target_dir,body,builder_instance_id):
     request={"Content":encoded.decode("ascii"),"ContentType":"Base64","Description":"noteai-item26-restored-v1-write-once","FileGroup":"root","FileMode":"0600","FileOwner":"root","InstanceId":[builder_instance_id],"Name":name,"Overwrite":False,"RegionId":"cn-shenzhen","Tag":[{"Key":"noteai-task","Value":"item26-restored-v1"}],"TargetDir":target_dir}
     return {"evidence":{"content_base64_bytes":len(encoded),"content_sha256":sha(body)},"request":request}
 def _post_broker_context(builder_instance_id,builder_ram_role,keygen_raw,create_raw,readback_raw):
-    builder=identity(builder_instance_id,builder_ram_role); keygen=parse(keygen_raw,"keygen_result",4096); recipient=validate_keygen(keygen,builder)
+    builder=builder_identity(builder_instance_id,builder_ram_role); keygen=parse(keygen_raw,"keygen_result",4096); recipient=validate_keygen(keygen,builder)
     create=parse(create_raw,"broker_create",18000); receipt=parse(readback_raw,"broker_readback",4096); envelope=validate_broker(create,receipt,recipient)
     return builder,recipient,envelope,receipt
 def _assemble_post_broker(builder_instance_id,builder,recipient,envelope,receipt,artifacts,capture_command,compressor,capture_summary=None,capture_sizing=None):

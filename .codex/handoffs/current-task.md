@@ -9391,8 +9391,11 @@ separate destructive approval and is not authorized.
   types, phases, streams and exit codes; the password rewrap now has persistent
   write-once CREATE/READBACK state with no replay; and the production
   post-broker path calls only the public Linux/GNU renderer. Boolean/integer
-  aliases and a wrong envelope algorithm are explicitly rejected.
-- The combined Item 26 focused suite is `31/31` PASS. Shell and embedded Python
+  aliases and a wrong envelope algorithm are explicitly rejected. A resumed
+  independent audit also closed the builder-role binding: both key generation
+  and post-broker rendering now reject every RAM role except the one fixed
+  task-scoped metadata role.
+- The combined Item 26 focused suite is `32/32` PASS. Shell and embedded Python
   syntax, Python compilation and `git diff --check` pass. Twelve random
   RSA-3072 samples keep the largest rendered command at `17,840` bytes under
   the fixed `18,000`-byte ceiling. Independent terminal review is `GO`, with
@@ -9403,8 +9406,14 @@ separate destructive approval and is not authorized.
   availability, 4 cores, 16 GiB and 200 GiB, F-primary/C-secondary, private
   VPC, one private endpoint, no public endpoint value, proxy disabled and
   release protection enabled. The dashboard's `locked` marker is the release
-  protection state, not a runtime failure. No Cloud Assistant, SendFile,
-  builder-start or database command was dispatched by this reconciliation.
+  protection state, not a runtime failure. Fresh RAM reads prove the attached
+  custom policy is the default `v1`, has exactly two allow statements over the
+  exact private subtree and has zero object-write, delete, ACL or multipart
+  actions; the capture adapter itself still permits only list and head metadata
+  operations. A current full-configuration quote is `0.98748 CNY/hour`, so the
+  two-hour builder window is capped at `1.97496 CNY`; fresh available balance is
+  `39.30 CNY`. No Cloud Assistant, SendFile, builder-start or database command
+  was dispatched by this reconciliation.
 - Clone database connection, transaction, capture and write counts remain
   `0/0/0/0`. The exact persistent-parent and command-history preflight remains
   unconsumed; builder start and the single restored capture stay closed until

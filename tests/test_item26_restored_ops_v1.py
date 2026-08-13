@@ -55,7 +55,7 @@ class Item26RestoredOpsV1Tests(unittest.TestCase):
         })
 
     def fixtures(self):
-        builder = ops.identity("i-builder123", "builder-role")
+        builder = ops.identity("i-builder123", ops.BUILDER_RAM_ROLE)
         envelope = json.dumps({
             "algorithm": "RSA-OAEP-SHA256+AES-256-GCM",
             "ciphertext": base64.b64encode(b"c" * 1200).decode("ascii"),
@@ -151,7 +151,7 @@ class Item26RestoredOpsV1Tests(unittest.TestCase):
         )
 
     def production_render(self):
-        builder = ops.identity("i-builder123", "builder-role")
+        builder = ops.identity("i-builder123", ops.BUILDER_RAM_ROLE)
         keygen, create, receipt_raw = self.fixtures()
         create_value = json.loads(create)
         receipt = json.loads(receipt_raw)
@@ -180,7 +180,9 @@ class Item26RestoredOpsV1Tests(unittest.TestCase):
         return {"artifacts": rendered["artifacts"], "summary": summary}
 
     def test_all_operational_commands_and_sendfiles_are_bounded(self):
-        keygen = ops.keygen_commands("i-builder123", "builder-role", self.compressor)
+        keygen = ops.keygen_commands(
+            "i-builder123", ops.BUILDER_RAM_ROLE, self.compressor,
+        )
         rewrap = ops.rewrap_commands(
             "i-api123", "api-role", self.public, self.compressor,
         )
@@ -189,7 +191,8 @@ class Item26RestoredOpsV1Tests(unittest.TestCase):
             self.public, self.rewrap(), self.compressor,
         )
         result = ops._post_broker_for_test(
-            "i-builder123", "builder-role", *self.fixtures(), self.compressor,
+            "i-builder123", ops.BUILDER_RAM_ROLE,
+            *self.fixtures(), self.compressor,
         )
         commands = list(keygen["commands"].values()) + list(rewrap["commands"].values())
         commands += list(broker["commands"].values())
@@ -366,7 +369,7 @@ class Item26RestoredOpsV1Tests(unittest.TestCase):
             ops, "production_compressor", return_value=self.compressor,
         ):
             result = ops.post_broker(
-                "i-builder123", "builder-role", *self.fixtures(),
+                "i-builder123", ops.BUILDER_RAM_ROLE, *self.fixtures(),
             )
         public_renderer.assert_called_once()
         self.assertEqual(result["capture_summary"], rendered["summary"])
@@ -416,7 +419,7 @@ class Item26RestoredOpsV1Tests(unittest.TestCase):
             ops.broker_commands("i-api123", "api-role", "restore.example.rds.aliyuncs.com", self.public, bad, self.compressor)
 
     def test_outer_validators_reject_bool_integer_aliases_and_wrong_algorithm(self):
-        builder = ops.identity("i-builder123", "builder-role")
+        builder = ops.identity("i-builder123", ops.BUILDER_RAM_ROLE)
         keygen_raw, create_raw, receipt_raw = self.fixtures()
         keygen = json.loads(keygen_raw)
         for field in ("schema_version", "private_key_value_read_count"):
@@ -460,6 +463,14 @@ class Item26RestoredOpsV1Tests(unittest.TestCase):
             mutated[field] = value
             with self.subTest(contract="broker_readback", field=field), self.assertRaises(ops.RenderError):
                 ops.validate_broker(create, mutated, self.recipient)
+
+    def test_builder_role_is_fixed_before_render_or_post_broker(self):
+        with self.assertRaisesRegex(ops.RenderError, "builder_ram_role"):
+            ops.keygen_commands("i-builder123", "other-role", self.compressor)
+        with self.assertRaisesRegex(ops.RenderError, "builder_ram_role"):
+            ops._post_broker_for_test(
+                "i-builder123", "other-role", *self.fixtures(), self.compressor,
+            )
 
 
 if __name__ == "__main__":
