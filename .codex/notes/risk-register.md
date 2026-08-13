@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-12
+Last updated: 2026-08-13
 
 ## Critical Risks
 
@@ -1943,6 +1943,26 @@ Last updated: 2026-08-12
   Residual High is current exact-HEAD CI, the two remote preflights, one
   no-replay restored capture and exact reconciliation, terminal builder stop,
   and separately approved exact-instance and IAM cleanup.
+
+- 2026-08-13 Item26 Cloud Assistant outer request successor: exact checkpoint
+  `c53d06be5022312cc1e1ebad8c916c02229fdb7f` now has terminal-success push and
+  pull-request CI, each with 22/22 steps, 2,002 unit/history tests, 6/6
+  PostgreSQL 16 owner/RLS tests and production readiness 138/138. A final
+  pre-dispatch review correctly refused to rely on hand-entered provider form
+  fields even though the command bodies were frozen. The new Secret-free
+  request contract fixes 11 unique action/name/target/timeout tuples, derives
+  11 distinct root-only-plan-bound ClientTokens, rejects any extra or
+  type-confused RunCommand field and binds the two SendFile requests in exact
+  order. SendFile has no ClientToken, so unknown acknowledgement is readback
+  only by exact name and instance across all pages and never permits resend.
+  The added suite is 13/13, the combined Item26 chain is 71/71 and independent
+  review is GO with P0=0/P1=0. This successor has not yet been committed or
+  certified by its own CI; cloud writes, builder starts and clone database
+  connection/transaction/capture/write remain zero. Item26 stays unverified at
+  25/29 internal and 25/38 public with zero credit. Residual High is the new
+  exact-HEAD CI, fresh history/baseline reads, two remote preflights, the one
+  no-replay capture/reconciliation, terminal builder stop and separately
+  approved exact-instance/IAM cleanup.
 
 ## Low Risks
 

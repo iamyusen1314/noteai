@@ -9477,3 +9477,44 @@ checkpoint, wait for both exact-HEAD CI runs, repeat the free read-only cloud
 gates, then consume the two remote preflights and the one no-replay restored
 capture. A second clone or different `RestoreTime` is forbidden; exact clone
 and IAM cleanup remain separately destructive and are not authorized.
+
+### Item 26 Cloud Assistant outer request contract closed locally; successor CI required (2026-08-13)
+
+- Exact checkpoint `c53d06be5022312cc1e1ebad8c916c02229fdb7f` is now
+  remotely accepted. Its push and pull-request CI each completed all `22/22`
+  steps successfully: `2,002` unit/history tests and the separate `6/6`
+  PostgreSQL 16 owner/RLS matrix passed, quality was `7 PASS / 1
+  EXPECTED_FAIL`, production readiness was `138/138`, and Compose validation
+  passed. Each run had one Node-runtime deprecation warning and zero error
+  annotations; neither run was retried or cancelled.
+- A final pre-dispatch audit found that the frozen renderers bound every
+  `CommandContent` byte but did not machine-bind the provider's outer
+  `RunCommand` tuple. A new Secret-free renderer now closes that gap without
+  changing any command body. It fixes all `11` action/name/target/timeout
+  mappings and binds an exact one-target request with `RunShellScript`, Base64,
+  `KeepCommand=true`, `Once`, root, `/root`, parameters disabled and
+  `ProcessTree`. One root-only plan nonce deterministically derives `11`
+  distinct 64-hex ClientTokens; the nonce itself is never emitted.
+- The same contract validates the two existing SendFile requests as an ordered
+  exact pair. Both remain root:root `0600`, Base64, single-builder,
+  `Overwrite=false`, fixed name/path and content-hash bound. SendFile has no
+  ClientToken: its no-replay boundary is fresh all-page name/instance history
+  zero plus fixed names and overwrite denial. An unknown provider response
+  authorizes only all-page readback of the original name and instance, never a
+  resend.
+- The outer request suite is `13/13` PASS; the complete Item 26 chain is
+  `71/71` PASS, and readiness tests remain `17/17`. Python compilation,
+  `git diff --check` and production readiness pass. Independent review is
+  `GO / P0=0 / P1=0`; it also confirms that a stage-readback exit zero does not
+  blindly unlock capture—the exact result must itself be stage `PASS`.
+- This is a new successor after `c53d06b`, so that commit's successful CI does
+  not certify these two new files. No cloud request may be submitted until this
+  outer-contract checkpoint is committed, pushed and both of its exact-HEAD CI
+  runs pass. Cloud writes, builder starts and clone database
+  connection/transaction/capture/write counts remain zero in this successor.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new credit. The next action is the small outer-contract
+checkpoint and exact-HEAD CI, then fresh free cloud history/baseline reads and
+the API-C preflight. No second clone or different `RestoreTime` is allowed;
+exact clone and IAM cleanup remain separately destructive and unapproved.
