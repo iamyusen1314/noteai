@@ -9554,3 +9554,48 @@ Item 26 remains `unverified`; readiness remains internal `25/29` and public
 checkpoint and exact-HEAD CI, followed by a new root-only v2 plan and one fresh
 API-C preflight. Builder start, database capture, a second clone, RestoreTime
 change and cleanup remain closed.
+
+### Item 26 API-C preflight v2 terminal known-fail; persistent-parent metadata probe required (2026-08-13)
+
+- The v2 successor was frozen at exact checkpoint
+  `6fd4b9d5247df13c7f5d6343c664243c0bc26607`. Its push run
+  `31704390258` / job `94461156603` and pull-request run `31704394244` /
+  job `94461169008` both completed `success` on attempt 1 with all `22/22`
+  steps green. Each ran `2015` unit/history tests with `34` skips and zero
+  failures, PostgreSQL 16 owner/RLS `6/6`, quality PASS, production readiness
+  `138/138` and Compose PASS. Each had one Node-runtime deprecation warning
+  and zero error annotations; neither run was retried or cancelled.
+- Before dispatch, a fresh all-page v2 Cloud Assistant history scan covered
+  `2496` rows across `50` pages and found exact command-name matches `0` and
+  exact invocation-name matches `0`. The official CLI dry-run bound the exact
+  RPC endpoint/action and `16` wire query keys, proved
+  `OssOutputDelivery` absent, and disabled CLI/throttling retries.
+- Exactly one v2 API-C preflight was accepted. It is terminal
+  `Failed / ExitCode=3 / Repeats=1 / Dropped=0`, with canonical phase
+  `persistent_parent`, and it is permanently no-replay. Database connections
+  and writes, container starts, environment/Secret/private-key value reads and
+  emitted resource identifiers are all zero; every declared side-effect and
+  protected-value-read counter is zero. Builder start, restored capture, OSS
+  action and cleanup action counts remain zero.
+- The Secret-free terminal receipt is retained root-only at `0600`, `1109`
+  bytes, SHA-256
+  `cf932f3e6a96fc90cd87793fec1f75b894bc1ed73b158676cb0b10a595fd057f`.
+  Provider identities and raw readbacks remain outside the repository.
+- `persistent_parent` does not distinguish absent path, wrong object type,
+  symbolic-link traversal, owner mismatch or mode mismatch. No mutation may be
+  inferred from this phase. The next successor must be a frozen, content-free,
+  read-only parent-metadata probe that reports only existence/type/symlink,
+  numeric owner and mode for the exact required path chain. It must receive its
+  own checkpoint and exact-HEAD push/PR CI before one dispatch. `mkdir`,
+  `chmod`, `chown`, deletion and any other repair remain prohibited.
+- This Secret-free checkpoint update changes only the handoff, risk register
+  and internal-readiness manifest. JSON parsing and `git diff --check` pass;
+  production readiness is `138/138`, internal readiness is `25/29`, public
+  readiness is `25/38`, and the isolated focused internal-readiness suite is
+  `17/17`.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new credit. The unique next stage is the read-only metadata
+probe source/checkpoint/dual CI and then one no-retry probe. Builder start,
+clone database connection/transaction/capture/write, OSS transfer, second
+clone, RestoreTime change and exact clone/IAM cleanup remain closed.

@@ -1983,6 +1983,27 @@ Last updated: 2026-08-13
   Item26 remains unverified at 25/29 internal and 25/38 public; builder starts,
   restored DB actions and cleanup remain zero/unapproved.
 
+- 2026-08-13 Item26 API-C preflight v2 terminal known-fail: exact successor
+  checkpoint `6fd4b9d5247df13c7f5d6343c664243c0bc26607` has terminal-success
+  push `31704390258` and pull-request `31704394244` runs, both attempt 1 with
+  22/22 steps, 2015 unit/history tests (34 skipped, zero failed), PostgreSQL 16
+  6/6, quality PASS, readiness 138/138 and Compose PASS. Fresh v2 history
+  inspected all 2496 rows over 50 pages and found exact command and invocation
+  matches 0. The official CLI dry-run bound 16 wire keys, omitted
+  `OssOutputDelivery` and disabled retries. Exactly one API-C request was
+  accepted and is terminal `Failed / ExitCode=3 / Repeats=1 / Dropped=0`,
+  phase `persistent_parent`, permanently no-replay. Its 1109-byte root-only
+  Secret-free receipt has SHA-256
+  `cf932f3e6a96fc90cd87793fec1f75b894bc1ed73b158676cb0b10a595fd057f`;
+  database connection/write, container start, environment/Secret/private-key
+  value read and emitted-resource counts are all zero, as are every declared
+  side-effect and protected-value-read counter. The phase is ambiguous between
+  absence, wrong type, symlink, numeric owner and mode, so no repair is
+  authorized. The sole next step is a frozen content-free read-only metadata
+  probe with its own checkpoint and exact-HEAD dual CI; `mkdir`, `chmod`,
+  `chown`, deletion, builder start, DB/OSS action and cleanup remain closed.
+  Item26 stays unverified at 25/29 internal and 25/38 public with zero credit.
+
 ## Low Risks
 
 ### `model/api.py` is too large
