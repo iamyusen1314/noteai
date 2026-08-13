@@ -1906,6 +1906,22 @@ Last updated: 2026-08-12
   Item26 remains unverified at 25/29 internal and 25/38 public with zero credit;
   all source, clone and root-only recovery materials remain retained.
 
+- 2026-08-13 Item26 storage resume: the migrated Codex state reopened the same
+  task without moving or deleting NoteAI, Colima or cloud material. The local
+  restored-capture transport is independently `GO / P0=0 / P1=0`: exact
+  SendFile request/evidence separation, bounded canonical terminal loaders,
+  persistent no-replay password rewrap and public Linux/GNU production
+  rendering are now closed, including bool/int alias and algorithm-mismatch
+  rejection. Focused tests are 31/31 and the maximum sampled command is
+  17,840/18,000 bytes. Fresh read-only cloud reconciliation keeps the builder
+  Stopped/StopCharging and confirms the exact clone remains Running, private,
+  protected and at the accepted PG16/HA/4-core/16-GiB/200-GiB dual-zone shape;
+  no cloud command or database connection was made. Residual High is now the
+  unconsumed persistent-parent/command-history preflight, one no-replay
+  restored capture and exact reconciliation, followed by separately approved
+  cleanup. Item26 remains unverified at 25/29 internal and 25/38 public with
+  zero credit.
+
 ## Low Risks
 
 ### `model/api.py` is too large

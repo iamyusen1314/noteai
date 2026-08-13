@@ -9377,3 +9377,41 @@ retained.
 Item 26 remains `unverified`; readiness remains internal `25/29` and public
 `25/38`, with zero new readiness credit. Exact-instance deletion remains a
 separate destructive approval and is not authorized.
+
+### Item 26 storage resume; restored transport is locally GO and cloud writes remain closed (2026-08-13)
+
+- The original task was reopened from the migrated Codex state and the storage
+  pause is closed. The NoteAI repository, Colima, retained source manifest,
+  temporary reader, v3 transfer and all cloud recovery resources were not
+  migrated, deleted or recreated.
+- The four local transport blockers recorded at the pause are now closed. The
+  two SendFile provider requests contain only the exact supported request
+  fields and keep local bytes/hash evidence outside the request; the compressed
+  loaders validate one bounded canonical terminal record with exact keys,
+  types, phases, streams and exit codes; the password rewrap now has persistent
+  write-once CREATE/READBACK state with no replay; and the production
+  post-broker path calls only the public Linux/GNU renderer. Boolean/integer
+  aliases and a wrong envelope algorithm are explicitly rejected.
+- The combined Item 26 focused suite is `31/31` PASS. Shell and embedded Python
+  syntax, Python compilation and `git diff --check` pass. Twelve random
+  RSA-3072 samples keep the largest rendered command at `17,840` bytes under
+  the fixed `18,000`-byte ceiling. Independent terminal review is `GO`, with
+  `P0=0 / P1=0`.
+- Fresh cloud reads confirm the exact builder is still
+  `Stopped / StopCharging / PostPaid` with its expected task-scoped RAM role.
+  The exact clone detail is still `Running / Postpaid / PostgreSQL 16`, high
+  availability, 4 cores, 16 GiB and 200 GiB, F-primary/C-secondary, private
+  VPC, one private endpoint, no public endpoint value, proxy disabled and
+  release protection enabled. The dashboard's `locked` marker is the release
+  protection state, not a runtime failure. No Cloud Assistant, SendFile,
+  builder-start or database command was dispatched by this reconciliation.
+- Clone database connection, transaction, capture and write counts remain
+  `0/0/0/0`. The exact persistent-parent and command-history preflight remains
+  unconsumed; builder start and the single restored capture stay closed until
+  this checkpoint is pushed and that preflight is exact. A second clone or a
+  different `RestoreTime` remains forbidden. Exact clone deletion and cleanup
+  remain separately destructive and are not authorized.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new readiness credit. The next task is the exact pre-connect
+readback and then the one no-replay restored capture/reconciliation.
