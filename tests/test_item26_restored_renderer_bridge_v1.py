@@ -1,4 +1,5 @@
 import contextlib
+import gzip
 import io
 import json
 import os
@@ -8,21 +9,34 @@ import tempfile
 import unittest
 from unittest import mock
 
+from tools import render_item26_restored_parent_probe_v1 as parent_probe
 from tools import run_item26_restored_renderer_bridge_v1 as bridge
 
 
 class Item26RestoredRendererBridgeV1Tests(unittest.TestCase):
     INVOCATION_ID = "0123456789abcdef0123456789abcdef"
+    API_C = "i-api123"
+    PLAN_NONCE = "fedcba9876543210fedcba9876543210"
 
     @contextlib.contextmanager
-    def private_root(self, mode="preflight"):
+    def private_root(self, mode="preflight", request=None):
         with tempfile.TemporaryDirectory() as parent:
             root = Path(parent) / "private"
             root.mkdir(mode=0o700)
             os.chmod(root, 0o700)
+            if request is None:
+                request = (
+                    {
+                        "api_c_instance_id": self.API_C,
+                        "mode": "parent_probe",
+                        "plan_nonce": self.PLAN_NONCE,
+                    }
+                    if mode == "parent_probe"
+                    else {"mode": mode}
+                )
             bridge._create_exclusive(
                 root / (self.INVOCATION_ID + ".request.json"),
-                bridge._canonical({"mode": mode}),
+                bridge._canonical(request),
             )
             yield root
 
@@ -62,8 +76,156 @@ class Item26RestoredRendererBridgeV1Tests(unittest.TestCase):
         self.assertEqual(set(bridge.MODE_ENTRYPOINTS), bridge.MODES)
         self.assertEqual(set(bridge.MODE_ENTRYPOINTS.values()), {
             "tools/render_item26_restored_ops_v1.py",
+            "tools/render_item26_restored_parent_probe_v1.py",
             "tools/render_item26_restored_preflight_v1.py",
         })
+
+    def test_parent_probe_run_readback_no_replay_and_exact_source_bundle(self):
+        request = {
+            "api_c_instance_id": self.API_C,
+            "mode": "parent_probe",
+            "plan_nonce": self.PLAN_NONCE,
+        }
+        rendered = parent_probe.render_plan(
+            self.API_C,
+            self.PLAN_NONCE,
+            lambda body: gzip.compress(body, 9, mtime=0),
+        )
+        rendered_raw = parent_probe.canonical(rendered)
+        calls = []
+
+        def fake_run(command, **kwargs):
+            calls.append((command, kwargs))
+            return self.completed(rendered_raw)
+
+        with self.private_root("parent_probe", request) as root, mock.patch.object(
+            bridge, "_safe_cleanup", return_value="ABSENT_PROVEN",
+        ):
+            summary = bridge.run_bridge(
+                mode="parent_probe",
+                private_root=root,
+                token=self.INVOCATION_ID,
+                run=fake_run,
+            )
+            self.assertEqual(summary["outcome"], "PASS")
+            self.assertEqual(summary["mode"], "parent_probe")
+            paths = bridge._mode_paths(root, "parent_probe", self.INVOCATION_ID)
+            self.assertEqual(paths["result"].read_bytes(), rendered_raw)
+            self.assertEqual(paths["stderr"].read_bytes(), b"")
+            self.assertEqual(
+                json.loads(paths["attempt"].read_bytes())["mode"],
+                "parent_probe",
+            )
+            self.assertEqual(len(calls), 1)
+            command, options = calls[0]
+            self.assertEqual(options["input"], bridge._canonical(request))
+            self.assertEqual(options["timeout"], bridge.TIMEOUT_SECONDS)
+            self.assertIn(
+                "/work/tools/render_item26_restored_parent_probe_v1.py",
+                command,
+            )
+            joined = "\n".join(command)
+            self.assertEqual(joined.count("type=bind,"), 1)
+            self.assertIn("dst=/work,readonly", joined)
+            self.assertNotIn(str(bridge.REPOSITORY_ROOT), joined)
+
+            expected = {
+                "tools/render_item26_restored_parent_probe_v1.py",
+                "tools/render_item26_v3_transport.py",
+                ".codex/item26-restored-parent-probe-api-c-v1.template.sh",
+            }
+            self.assertEqual(bridge.MODE_SOURCE_FILES["parent_probe"], expected)
+            bundle = root / "parent_probe.source-bundle"
+            observed = {
+                str(path.relative_to(bundle))
+                for path in bundle.rglob("*")
+                if path.is_file() and path.name != "manifest.json"
+            }
+            self.assertEqual(observed, expected)
+            manifest = json.loads((bundle / "manifest.json").read_bytes())
+            self.assertEqual(set(manifest["files"]), expected)
+            for relative in expected:
+                body = (bundle / relative).read_bytes()
+                identity = bridge.SOURCE_IDENTITIES[relative]
+                self.assertEqual(len(body), identity["bytes"])
+                self.assertEqual(bridge._sha256(body), identity["sha256"])
+                self.assertEqual((bundle / relative).stat().st_mode & 0o777, 0o444)
+
+            readback_run = mock.Mock()
+            self.assertEqual(
+                bridge.readback(
+                    mode="parent_probe",
+                    private_root=root,
+                    token=self.INVOCATION_ID,
+                    run=readback_run,
+                ),
+                summary,
+            )
+            readback_run.assert_not_called()
+            with self.assertRaisesRegex(bridge.BridgeError, "mode_already_attempted"):
+                bridge.run_bridge(
+                    mode="parent_probe",
+                    private_root=root,
+                    token="f" * 32,
+                    run=mock.Mock(),
+                )
+
+    def test_parent_probe_request_contract_and_known_failure_are_fail_closed(self):
+        valid = {
+            "api_c_instance_id": self.API_C,
+            "mode": "parent_probe",
+            "plan_nonce": self.PLAN_NONCE,
+        }
+        invalid = (
+            {**valid, "extra": False},
+            {**valid, "api_c_instance_id": True},
+            {**valid, "api_c_instance_id": "api123"},
+            {**valid, "plan_nonce": True},
+            {**valid, "plan_nonce": "F" * 32},
+        )
+        for index, request in enumerate(invalid):
+            with self.subTest(index=index), self.private_root(
+                "parent_probe", request,
+            ) as root:
+                run = mock.Mock()
+                with self.assertRaisesRegex(
+                    bridge.BridgeError, "parent_probe_request_contract",
+                ):
+                    bridge.run_bridge(
+                        mode="parent_probe",
+                        private_root=root,
+                        token=self.INVOCATION_ID,
+                        run=run,
+                    )
+                run.assert_not_called()
+                self.assertFalse((root / "parent_probe.attempt.json").exists())
+                self.assertFalse((root / "parent_probe.source-bundle").exists())
+
+        with self.private_root("parent_probe", valid) as root, self.mocked_sources(), mock.patch.object(
+            bridge, "_safe_cleanup", return_value="ABSENT_PROVEN",
+        ):
+            summary = bridge.run_bridge(
+                mode="parent_probe",
+                private_root=root,
+                token=self.INVOCATION_ID,
+                run=lambda *args, **kwargs: self.completed(
+                    b"",
+                    b"ITEM26_RESTORED_PARENT_PROBE_RENDER_FAILED:input_contract\n",
+                    2,
+                ),
+            )
+            self.assertEqual(summary["outcome"], "FAIL")
+            self.assertIsNone(summary["result_path"])
+            self.assertEqual(
+                (root / (self.INVOCATION_ID + ".stderr.bin")).read_bytes(),
+                b"ITEM26_RESTORED_PARENT_PROBE_RENDER_FAILED:input_contract\n",
+            )
+        self.assertFalse(bridge._known_renderer_failure(
+            "broker",
+            2,
+            b"",
+            b"ITEM26_RESTORED_OPS_RENDER_FAILED:input_contract\n",
+        ))
 
     def test_pass_retains_bundle_attempt_result_stderr_meta_and_readback(self):
         calls = []
@@ -409,6 +571,11 @@ class Item26RestoredRendererBridgeV1Tests(unittest.TestCase):
             "tools/render_item26_v3_transport.py",
             ".codex/item26-restored-api-c-preflight-v1.template.sh",
             ".codex/item26-restored-builder-preflight-v1.template.sh",
+        })
+        self.assertEqual(bridge.MODE_SOURCE_FILES["parent_probe"], {
+            "tools/render_item26_restored_parent_probe_v1.py",
+            "tools/render_item26_v3_transport.py",
+            ".codex/item26-restored-parent-probe-api-c-v1.template.sh",
         })
         self.assertNotIn(
             ".codex/item26-password-rewrap.template.sh",

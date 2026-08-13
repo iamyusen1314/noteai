@@ -37,10 +37,12 @@ TIMEOUT_SECONDS = 240
 CONTAINER_USER = "65532:65532"
 CONTAINER_NAME_PREFIX = "noteai-item26-render-v1-"
 TOKEN = re.compile(r"^[0-9a-f]{32}$")
-MODES = frozenset({"preflight", "keygen", "rewrap", "broker", "post_broker"})
+INSTANCE_ID = re.compile(r"^i-[a-z0-9]+$")
+MODES = frozenset({
+    "preflight", "keygen", "rewrap", "broker", "post_broker", "parent_probe",
+})
 
-# Two rows intentionally remain unbound until their concurrently reviewed
-# source patch is frozen.  A None row makes all real executions fail closed.
+# Every source admitted to a mode is byte- and SHA-256-bound before bundling.
 _SOURCE_ROWS = (
     (
         "tools/render_item26_restored_ops_v1.py",
@@ -61,6 +63,11 @@ _SOURCE_ROWS = (
         "tools/render_item26_v3_transport.py",
         41246,
         "6db210c6e04e98d022a25c9b4212ea98ed532f9287fb6be2ff69a54368ab4e92",
+    ),
+    (
+        "tools/render_item26_restored_parent_probe_v1.py",
+        16034,
+        "80d2f2a877b085431575298e4064694d94f5364ae9cde97662d6d836904171fa",
     ),
     (
         ".codex/item26-restored-builder-keygen-v1.template.sh",
@@ -102,6 +109,11 @@ _SOURCE_ROWS = (
         16286,
         "690b01e8abb2822d7141130761177d321357771e075b501f08b3ee4025967137",
     ),
+    (
+        ".codex/item26-restored-parent-probe-api-c-v1.template.sh",
+        8107,
+        "38f455663d300ea16170c9c845def60d0686c6dd4186e2fd117065d070fae4d4",
+    ),
 )
 SOURCE_IDENTITIES = MappingProxyType(
     {
@@ -116,6 +128,7 @@ MODE_ENTRYPOINTS = MappingProxyType(
         "rewrap": "tools/render_item26_restored_ops_v1.py",
         "broker": "tools/render_item26_restored_ops_v1.py",
         "post_broker": "tools/render_item26_restored_ops_v1.py",
+        "parent_probe": "tools/render_item26_restored_parent_probe_v1.py",
     }
 )
 _COMMON_OPS = frozenset({
@@ -138,6 +151,11 @@ MODE_SOURCE_FILES = MappingProxyType({
         ".codex/item26-restored-capture-v1.template.sh",
         ".codex/item26-restored-capture-executor-v1.template.sh",
     },
+    "parent_probe": frozenset({
+        "tools/render_item26_restored_parent_probe_v1.py",
+        "tools/render_item26_v3_transport.py",
+        ".codex/item26-restored-parent-probe-api-c-v1.template.sh",
+    }),
 })
 RENDER_FAILURE_CODES = frozenset({
     "api_c_binding", "api_c_bindings", "api_c_residue", "api_c_syntax",
@@ -154,6 +172,15 @@ RENDER_FAILURE_CODES = frozenset({
     "rewrap_binding", "rewrap_bindings", "rewrap_residue", "rewrap_syntax",
     "rewrap_template", "sendfile_limit", "stage_binding", "stage_bindings",
     "stage_residue", "stage_syntax", "stage_template", "template_name", "validator",
+})
+PARENT_PROBE_RENDER_FAILURE_CODES = frozenset({
+    "api_c_instance_id", "client_token", "command_base64", "command_binding",
+    "command_contract", "command_limit", "command_roundtrip", "command_source",
+    "command_source_syntax", "duplicate_json_key", "input_canonical",
+    "input_contract", "input_json", "input_shape", "internal", "json", "gzip",
+    "gnu_gzip_required", "linux_required", "loader", "loader_syntax", "plan_nonce",
+    "request_binding", "request_contract", "request_types", "template",
+    "template_syntax",
 })
 
 
@@ -449,6 +476,14 @@ def _validate_request(path: Path, mode: str) -> bytes:
     value = _parse_canonical(body, "request", MAX_REQUEST_BYTES)
     if value.get("mode") != mode:
         raise BridgeError("request_mode")
+    if mode == "parent_probe" and (
+        set(value) != {"api_c_instance_id", "mode", "plan_nonce"}
+        or type(value.get("api_c_instance_id")) is not str
+        or INSTANCE_ID.fullmatch(value["api_c_instance_id"]) is None
+        or type(value.get("plan_nonce")) is not str
+        or TOKEN.fullmatch(value["plan_nonce"]) is None
+    ):
+        raise BridgeError("parent_probe_request_contract")
     return body
 
 
@@ -459,11 +494,15 @@ def _validate_result(body: bytes) -> None:
 def _known_renderer_failure(mode: str, returncode: object, stdout: bytes, stderr: bytes) -> bool:
     if type(returncode) is not int or returncode != 2 or stdout:
         return False
-    prefix = (
-        b"ITEM26_RESTORED_PREFLIGHT_RENDER_FAILED:"
-        if mode == "preflight"
-        else b"ITEM26_RESTORED_OPS_RENDER_FAILED:"
-    )
+    if mode == "parent_probe":
+        prefix = b"ITEM26_RESTORED_PARENT_PROBE_RENDER_FAILED:"
+        allowed_codes = PARENT_PROBE_RENDER_FAILURE_CODES
+    elif mode == "preflight":
+        prefix = b"ITEM26_RESTORED_PREFLIGHT_RENDER_FAILED:"
+        allowed_codes = RENDER_FAILURE_CODES
+    else:
+        prefix = b"ITEM26_RESTORED_OPS_RENDER_FAILED:"
+        allowed_codes = RENDER_FAILURE_CODES
     if (
         not stderr.startswith(prefix)
         or not stderr.endswith(b"\n")
@@ -476,7 +515,7 @@ def _known_renderer_failure(mode: str, returncode: object, stdout: bytes, stderr
         code = stderr[len(prefix):-1].decode("ascii")
     except UnicodeError:
         return False
-    return code in RENDER_FAILURE_CODES
+    return code in allowed_codes
 
 
 def _source_manifest(source_bodies: dict[str, bytes]) -> bytes:
