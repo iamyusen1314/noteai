@@ -563,7 +563,7 @@ def docker_exact():
 
 def tcp_5432_zero():
     returncode, stdout, stderr = command(
-        ["/usr/bin/ss", "-Htan", "state", "established"],
+        ["/usr/sbin/ss", "-Htan", "state", "established"],
         "socket",
         limit=131072,
     )
@@ -602,7 +602,7 @@ try:
         raise Failure("root")
     if HEX64.fullmatch(API_C_IDENTITY_SHA256) is None:
         raise Failure("binding")
-    for path in ("/usr/bin/docker", "/usr/bin/openssl", "/usr/bin/ss", "/usr/bin/systemctl"):
+    for path in ("/usr/bin/docker", "/usr/bin/openssl", "/usr/sbin/ss", "/usr/bin/systemctl"):
         required_tool(path)
     persistent = pin_directory(PERSISTENT_PARENT, "persistent_parent")
     roots_absent(persistent)

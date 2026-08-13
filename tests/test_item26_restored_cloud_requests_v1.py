@@ -64,57 +64,57 @@ class Item26RestoredCloudRequestsV1Tests(unittest.TestCase):
     def test_fixed_eleven_action_matrix(self):
         expected = {
             "preflight_api_c": (
-                "noteai-item26-restored-preflight-api-c-20260813-v1",
+                "noteai-item26-restored-preflight-api-c-20260813-v2",
                 "api_c",
                 120,
             ),
             "preflight_builder": (
-                "noteai-item26-restored-preflight-builder-20260813-v1",
+                "noteai-item26-restored-preflight-builder-20260813-v2",
                 "builder",
                 120,
             ),
             "keygen_generate": (
-                "noteai-item26-restored-keygen-generate-20260813-v1",
+                "noteai-item26-restored-keygen-generate-20260813-v2",
                 "builder",
                 120,
             ),
             "keygen_readback": (
-                "noteai-item26-restored-keygen-readback-20260813-v1",
+                "noteai-item26-restored-keygen-readback-20260813-v2",
                 "builder",
                 120,
             ),
             "password_rewrap_create": (
-                "noteai-item26-restored-password-rewrap-create-20260813-v1",
+                "noteai-item26-restored-password-rewrap-create-20260813-v2",
                 "api_c",
                 120,
             ),
             "password_rewrap_readback": (
-                "noteai-item26-restored-password-rewrap-readback-20260813-v1",
+                "noteai-item26-restored-password-rewrap-readback-20260813-v2",
                 "api_c",
                 120,
             ),
             "package_broker_create": (
-                "noteai-item26-restored-package-broker-create-20260813-v1",
+                "noteai-item26-restored-package-broker-create-20260813-v2",
                 "api_c",
                 120,
             ),
             "package_broker_readback": (
-                "noteai-item26-restored-package-broker-readback-20260813-v1",
+                "noteai-item26-restored-package-broker-readback-20260813-v2",
                 "api_c",
                 120,
             ),
             "builder_stage_finalize": (
-                "noteai-item26-restored-builder-stage-finalize-20260813-v1",
+                "noteai-item26-restored-builder-stage-finalize-20260813-v2",
                 "builder",
                 120,
             ),
             "builder_stage_readback": (
-                "noteai-item26-restored-builder-stage-readback-20260813-v1",
+                "noteai-item26-restored-builder-stage-readback-20260813-v2",
                 "builder",
                 120,
             ),
             "restored_capture": (
-                "noteai-item26-restored-capture-20260813-v1",
+                "noteai-item26-restored-capture-20260813-v2",
                 "builder",
                 1500,
             ),

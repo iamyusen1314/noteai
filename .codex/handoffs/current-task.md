@@ -9518,3 +9518,39 @@ Item 26 remains `unverified`; readiness remains internal `25/29` and public
 checkpoint and exact-HEAD CI, then fresh free cloud history/baseline reads and
 the API-C preflight. No second clone or different `RestoreTime` is allowed;
 exact clone and IAM cleanup remain separately destructive and unapproved.
+
+### Item 26 API-C preflight v1 terminal known-fail; tool-path successor prepared (2026-08-13)
+
+- Exact checkpoint `f940106b9f7df0c23ea4a1e67063cfb35bf9927b` passed its
+  push and pull-request CI with every step green before the first restored
+  API-C preflight. A root-only plan used the committed outer-request contract,
+  an exact single API-C target, a fresh unique ClientToken, `Once`, no SDK or
+  throttling retry and a provider dry-run that proved the unsupported
+  `OssOutputDelivery` field absent.
+- The one accepted preflight is terminal `Failed / ExitCode=3 / Repeats=1 /
+  Dropped=0`, with canonical phase `tool`. It is permanently no-replay. The
+  provider readback proves `Username=root`, the exact fixed command name and
+  `ProcessTree`; the 406-byte canonical output proves database connections,
+  database writes, container starts, environment/Secret/private-key reads and
+  emitted resource identifiers are all zero. The builder remains stopped and
+  no restored database operation started.
+- Root cause is a deterministic pre-connect contract error, not host drift:
+  the API-C preflight required `/usr/bin/ss`, while the same accepted host's
+  previously frozen source-manifest readback uses the actual `/usr/sbin/ss`.
+  The retained provider identities and raw readbacks remain root-only; this
+  Secret-free checkpoint records only terminal status and cryptographic
+  commitments.
+- The local successor changes both API-C socket checks to `/usr/sbin/ss`,
+  mechanically refreshes the preflight renderer and bridge source identities,
+  and advances all eleven RunCommand names from the consumed `20260813-v1`
+  namespace to fresh `20260813-v2` names. The two SendFile target filenames do
+  not change. The complete Item26 focused suite is `71/71` PASS; Python/shell
+  syntax and `git diff --check` pass. This successor still requires its own
+  push and pull-request CI plus fresh all-page history zero before any v2
+  command can be submitted.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`, with zero new credit. The unique next stage is the six-file successor
+checkpoint and exact-HEAD CI, followed by a new root-only v2 plan and one fresh
+API-C preflight. Builder start, database capture, a second clone, RestoreTime
+change and cleanup remain closed.

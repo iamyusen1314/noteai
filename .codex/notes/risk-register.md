@@ -1964,6 +1964,25 @@ Last updated: 2026-08-13
   no-replay capture/reconciliation, terminal builder stop and separately
   approved exact-instance/IAM cleanup.
 
+- 2026-08-13 Item26 API-C preflight v1 terminal known-fail and v2 successor:
+  the exact `f940106` checkpoint and both of its CI runs were green before one
+  fresh, single-target API-C preflight was accepted. The request disabled SDK
+  and throttling retry, omitted `OssOutputDelivery` after an exact provider
+  dry-run, and will never be resubmitted. Provider readback is terminal
+  `Failed / ExitCode=3 / Repeats=1 / Dropped=0`, canonical phase `tool`, with
+  root execution and zero database connections/writes, container starts,
+  Secret/environment/private-key reads or emitted resource identifiers. The
+  deterministic root cause is the candidate's `/usr/bin/ss` path; the same
+  accepted host's frozen source readback already binds `/usr/sbin/ss`. The
+  minimal local successor corrects the two API-C references, refreshes only
+  their renderer/bridge identities and advances all eleven Cloud Assistant
+  names to an unused `20260813-v2` namespace while leaving SendFile filenames
+  unchanged. Focused tests are 71/71 and local syntax/diff gates pass. Residual
+  High is independent successor review, an exact pushed checkpoint and both
+  exact-HEAD CI runs, then fresh v2 history zero and one new API-C preflight.
+  Item26 remains unverified at 25/29 internal and 25/38 public; builder starts,
+  restored DB actions and cleanup remain zero/unapproved.
+
 ## Low Risks
 
 ### `model/api.py` is too large

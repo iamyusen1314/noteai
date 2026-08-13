@@ -264,9 +264,11 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
             'stable_read_at(pinned, "control-private.pem"',
             'stable_read_at(pinned, "api.env"',
             'stable_read_at(pinned, "storage.env"',
+            '"/usr/bin/ss"',
             "os.path.lexists",
         ):
             self.assertNotIn(forbidden, source)
+        self.assertEqual(source.count('"/usr/sbin/ss"'), 2)
         self.assertIn("SOURCE_MANIFEST_BYTES = 9794", source)
         self.assertIn("SOURCE_ENVELOPE_BYTES = 894", source)
         builder_source = ops.PATHS["builder"].read_text()
