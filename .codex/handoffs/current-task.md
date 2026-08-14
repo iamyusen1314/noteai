@@ -10010,3 +10010,40 @@ successor must be committed and its exact push and pull-request runs must both
 pass on attempt 1 before a new single-line, no-redirection in-memory command is
 frozen. No Cloud Shell, CLI, provider, database, model, service or business-data
 action occurred in this repair stage.
+
+### Item 26 first CI successor exposed historical LFS smudge; second successor ready (2026-08-14)
+
+- The first CI successor was committed as
+  `7cfe583d5ad968e6a30b6bec2369cfee2376d925`. Its exact push run/job
+  `31808675462`/`94793694508` and pull-request run/job
+  `31808679772`/`94793708234` were both attempt 1 and both terminal failures.
+  The new non-LFS checkout and manifest restore worked as designed in both
+  jobs: four artifacts were checked, exactly three `.lgb` pointers were
+  repaired, the follow-up verification accepted all four manifest hashes, and
+  the main `2,177` tests plus the next `10 + 1` tests all passed with 34 skips
+  and zero assertion failures.
+- Both jobs then failed in the frozen historical-v14 fixture. Its local
+  `git clone` checkout of an old commit invoked the Git LFS smudge filter for a
+  historical PDF whose remote LFS object is absent, returning exit 128. The
+  quality, PostgreSQL 16, production-readiness and Compose steps were therefore
+  skipped. The checkpoint was not rerun and is permanently ineligible for the
+  one-shot Item 26 execution; its previously rendered command identity is
+  retired.
+- The minimal second successor sets job-level
+  `GIT_LFS_SKIP_SMUDGE=1`. This changes only automatic checkout materialization;
+  it does not disable the clean filter, alter the manifest restore, or weaken
+  artifact SHA verification. A structured YAML contract test binds both this
+  job environment and `checkout.lfs=false`.
+- Exact historical-checkout rehearsals now pass v14 `12/12`, v15 `22/22` and
+  v16 `21/21`; the focused workflow contract passes `1/1`, Python compilation,
+  YAML parsing and diff checks pass, and independent review is
+  `GO / P0=0 / P1=0`. Frozen candidate identities are workflow `8,263` bytes /
+  `5260fd79bcd190704324386bbcf43214a7d82a37285b3a266d5c484a08cabe01`
+  and test `2,084` bytes /
+  `aa3e6d2edf753408e1673cc5b6def5cf9ba15e651bd3c6f0aa73296ead2e61c5`.
+
+Item 26 remains `unverified` at internal `25/29` and public `25/38`. This
+second successor still requires an independently audited checkpoint and exact
+push/PR attempt-1 green CI before any history guard or Cloud Shell payload.
+No Chrome, Cloud Shell, CLI, provider, database, service or business-data action
+occurred in this stage.

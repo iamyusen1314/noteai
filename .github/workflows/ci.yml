@@ -34,6 +34,7 @@ jobs:
 
     env:
       ANTHROPIC_API_KEY: test-key
+      GIT_LFS_SKIP_SMUDGE: "1"
       MOONSHOT_API_KEY: test-key
       NOTEAI_FACT_SEARCH: "0"
       NOTEAI_ENABLE_TEST_BILLING: "0"

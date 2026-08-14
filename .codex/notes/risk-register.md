@@ -2210,6 +2210,24 @@ Last updated: 2026-08-14
   committed manifest hashes; no model/manifest/loader/native-release changes,
   cloud action, database action or execution authorization occurred.
 
+- 2026-08-14 Item26 first CI successor was also terminally blocked, but after
+  its new artifact path had already succeeded. Exact commit
+  `7cfe583d5ad968e6a30b6bec2369cfee2376d925` had attempt-1 push
+  `31808675462` and pull request `31808679772`; both restored three pointer
+  `.lgb` files, verified all four manifest artifacts, and passed
+  `2,177 + 10 + 1` tests with 34 skips and no assertion failures. The shared
+  failure was a historical-v14 local clone checkout that invoked LFS smudge for
+  a missing historical PDF object, exit 128; all later gates were skipped.
+  That commit and its rendered payload are permanently NO-GO and were not
+  rerun. The second minimal successor uses job-level
+  `GIT_LFS_SKIP_SMUDGE=1`, preserves manifest SHA enforcement, and passes exact
+  historical v14/v15/v16 rehearsals `12/12`, `22/22`, `21/21` plus focused
+  `1/1`; independent review is `GO / P0=0 / P1=0`. Residual High remains an
+  exact checkpoint with first-attempt green push and PR CI. Residual Medium
+  remains that future tests needing other LFS objects will receive pointer
+  files unless they add an explicit hash-verified restore. Item26 execution,
+  Chrome history probing and all cloud/business actions remain prohibited.
+
 ## Low Risks
 
 ### `model/api.py` is too large
