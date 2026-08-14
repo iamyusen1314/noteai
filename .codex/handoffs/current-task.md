@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-12 (Asia/Shanghai)
+> Updated: 2026-08-14 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -10047,3 +10047,44 @@ second successor still requires an independently audited checkpoint and exact
 push/PR attempt-1 green CI before any history guard or Cloud Shell payload.
 No Chrome, Cloud Shell, CLI, provider, database, service or business-data action
 occurred in this stage.
+
+### Item 26 second CI successor dual-green reboot handoff (2026-08-14)
+
+- The exact pre-handoff source checkpoint is
+  `04c76d169307c354f216dc822280d122c19b138a`, with tree
+  `5fd5f150688d2758f95ae2ce2912601ce55b8700`. Its push run/job
+  `31812805594`/`94807234785` and pull-request run/job
+  `31812808753`/`94807245245` both completed `success` on attempt 1 with all
+  `22/22` steps green. Neither run was retried, cancelled or edited; each job
+  had exactly one GitHub check annotation, the existing Node runtime
+  deprecation warning.
+- In each job the commit-bound artifact restore checked four manifest entries,
+  repaired exactly three `.lgb` pointers and left zero missing/invalid entries;
+  the separate check-only verification checked four and reported zero repairs
+  and zero missing/invalid entries. Unit/history components
+  `2,177 + 10 + 1 + 12 + 22 + 21` passed as `2,243` tests with `34` skips and
+  zero failures/errors. PostgreSQL 16 passed `6/6`, production readiness passed
+  `138/138`, and the quality matrix and Docker Compose configuration were green.
+- A content-free history front door is frozen at `456` bytes / SHA-256
+  `43c07160d5798ca915e68aeb582e0f166c8490ee19202b92f65715e89a8a4efd`.
+  The checkpoint-bound impact-assessment body is frozen at `13,316` bytes /
+  SHA-256
+  `82c5e0d52d6ff5735f1c02d6f58a4fc237f96cc794e2d6d7712cb8724c51f754`.
+  Both are only `CONDITIONAL_GO` and neither has been executed. After restart,
+  Chrome must begin a fresh browser-control session. The history probe and body
+  may be used only in the same uninterrupted Cloud Shell session, with the
+  probe first and its exact PASS required before one body execution. Any
+  `UNKNOWN` is terminal/no-replay; every body result remains `BLOCKED` and
+  authorizes no mutation, next-stage unlock or readiness credit.
+- This is the pre-reboot recovery boundary. The three ledger updates that
+  record it change the Git checkpoint. Therefore the `04c76d1`-bound
+  `13,316`-byte body must be retired after that ledger-only checkpoint is
+  committed, and a new body must be rendered and independently rebound to the
+  resulting exact commit/tree before any execution. Do not reuse the old body
+  merely because its source triplet is byte-identical.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`. Execution count, provider calls, database operations, cloud-resource
+mutations, host writes and readiness credits added by this stage are all zero.
+Builder start, clone database access, source/restored reconciliation, OSS
+transfer and clone/IAM cleanup remain closed.

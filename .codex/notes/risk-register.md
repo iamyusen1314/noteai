@@ -2228,6 +2228,31 @@ Last updated: 2026-08-14
   files unless they add an explicit hash-verified restore. Item26 execution,
   Chrome history probing and all cloud/business actions remain prohibited.
 
+- 2026-08-14 Item26 second CI successor is exact-HEAD dual green but remains a
+  runtime High/reboot boundary. Exact checkpoint/tree
+  `04c76d169307c354f216dc822280d122c19b138a` /
+  `5fd5f150688d2758f95ae2ce2912601ce55b8700` passed attempt-1 push run/job
+  `31812805594`/`94807234785` and pull-request run/job
+  `31812808753`/`94807245245`, each `22/22`. In each job restore was
+  checked/repaired/missing-or-invalid `4/3/0`, verify was `4/0/0`, unit/history
+  was `2,177 + 10 + 1 + 12 + 22 + 21 = 2,243` with 34 skips and zero
+  failures/errors, PostgreSQL 16 was `6/6`, readiness was `138/138`, and
+  quality/Compose were green. Each job had exactly one GitHub check annotation,
+  the existing Node deprecation warning. Residual High is deliberate: the
+  `456`-byte history guard
+  (`43c07160d5798ca915e68aeb582e0f166c8490ee19202b92f65715e89a8a4efd`)
+  and `13,316`-byte checkpoint body
+  (`82c5e0d52d6ff5735f1c02d6f58a4fc237f96cc794e2d6d7712cb8724c51f754`)
+  are conditional GO only and have not executed. After reboot Chrome must use
+  a fresh control session; history PASS and the one-shot body must share one
+  uninterrupted Cloud Shell session. `UNKNOWN` and every body outcome are
+  terminal/no-replay `BLOCKED`, with no mutation, unlock or credit. Committing
+  this ledger-only handoff changes the checkpoint and retires the `04c76d1`
+  body, which must be re-rendered and independently rebound to the new exact
+  commit/tree. Item26 remains unverified at internal `25/29` and public
+  `25/38`; no Chrome, Cloud Shell, provider, database, cloud-resource, host or
+  business-data action occurred in this handoff.
+
 ## Low Risks
 
 ### `model/api.py` is too large
