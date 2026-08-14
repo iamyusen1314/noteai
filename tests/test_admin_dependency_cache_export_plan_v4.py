@@ -240,7 +240,14 @@ class AdminDependencyCacheExportPlanV4Tests(unittest.TestCase):
 
             def run(*args: str) -> str:
                 return subprocess.run(
-                    ["git", *args],
+                    [
+                        "git",
+                        "-c",
+                        "gc.auto=0",
+                        "-c",
+                        "maintenance.auto=false",
+                        *args,
+                    ],
                     cwd=root,
                     check=True,
                     stdout=subprocess.PIPE,
