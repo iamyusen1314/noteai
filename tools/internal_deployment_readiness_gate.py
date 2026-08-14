@@ -30,6 +30,10 @@ from verify_api_f_current_release_evidence import (
 from verify_admin_current_release_evidence import (
     validate_bundle as validate_admin_current_release_evidence,
 )
+from verify_internal_zero_provider_smoke_evidence import (
+    validate_item26_terminal_evidence,
+    validate_manifest_evidence as validate_internal_zero_provider_smoke_evidence,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -360,6 +364,82 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
                             f"{risk_id}: missing risk evidence {ref}",
                         )
             controls_by_id[control_id] = control
+
+    smoke = controls_by_id.get("internal_zero_provider_smoke") or {}
+    if smoke.get("status") == "verified":
+        item26 = controls_by_id.get("backup_pitr_restore") or {}
+        _require(
+            item26.get("status") == "verified",
+            "internal_zero_provider_smoke: Item26 terminal verification required",
+        )
+        item26_errors, item26_acceptance_sha256 = (
+            validate_item26_terminal_evidence(item26.get("evidence"), root=root)
+        )
+        _require(
+            not item26_errors and item26_acceptance_sha256 is not None,
+            "internal_zero_provider_smoke: Item26 semantic evidence invalid: "
+            f"{item26_errors[0] if item26_errors else ''}",
+        )
+        internal_controls = [
+            *manifest["layers"][0]["controls"],
+            *manifest["layers"][1]["controls"],
+        ]
+        all_controls = [
+            control
+            for layer in manifest["layers"]
+            for control in layer["controls"]
+        ]
+        internal_before = sum(
+            control["status"] == "verified"
+            for control in internal_controls
+            if control["id"] != "internal_zero_provider_smoke"
+        )
+        public_before = sum(
+            control["status"] == "verified"
+            for control in all_controls
+            if control["id"] != "internal_zero_provider_smoke"
+        )
+        _require(
+            internal_before == 26
+            and public_before == 26
+            and len(internal_controls) == 29
+            and len(all_controls) == 38,
+            "internal_zero_provider_smoke: exact 26/29 predecessor state required",
+        )
+        internal_after = internal_before + 1
+        public_after = public_before + 1
+        expected_readiness = {
+            "internal_verified_before": internal_before,
+            "internal_verified_after": internal_after,
+            "internal_total": len(internal_controls),
+            "internal_percentage_after": (
+                internal_after * 100 + len(internal_controls) // 2
+            ) // len(internal_controls),
+            "complete_public_verified_before": public_before,
+            "complete_public_verified_after": public_after,
+            "complete_public_total": len(all_controls),
+            "complete_public_percentage_after": (
+                public_after * 100 + len(all_controls) // 2
+            ) // len(all_controls),
+            "next_task": "PROD-FIRST-LAUNCH-INTERNAL-ROLLBACK-001",
+            "public_launch_authorized": False,
+            "real_provider_chain_verified": False,
+            "full_system_failure_rollback_verified": False,
+            "capacity_100_jobs_verified": False,
+        }
+        runtime_errors = validate_internal_zero_provider_smoke_evidence(
+            smoke["evidence"],
+            root=root,
+            expected_item26_terminal_acceptance_sha256=(
+                item26_acceptance_sha256
+            ),
+            expected_readiness=expected_readiness,
+        )
+        _require(
+            not runtime_errors,
+            "internal_zero_provider_smoke: invalid semantic evidence: "
+            f"{runtime_errors[0] if runtime_errors else ''}",
+        )
 
     for control_id, control in controls_by_id.items():
         for dependency in control["dependencies"]:

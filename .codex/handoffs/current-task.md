@@ -9599,3 +9599,62 @@ Item 26 remains `unverified`; readiness remains internal `25/29` and public
 probe source/checkpoint/dual CI and then one no-retry probe. Builder start,
 clone database connection/transaction/capture/write, OSS transfer, second
 clone, RestoreTime change and exact clone/IAM cleanup remain closed.
+
+### Item 26 parent-metadata probe checkpoints and crash-safe recovery (2026-08-14)
+
+- The read-only parent probe was sealed at checkpoint
+  `77c79b7df0095d4a06ec1b6a58e2f683b6fad111`. Its push and pull-request
+  workflows both completed all `22/22` steps successfully: `2,021`
+  unit/history tests, PostgreSQL 16 `6/6`, production readiness `138/138`,
+  quality and Compose all passed. The probe pins `/var/lib` by descriptor and
+  observes only the fixed `noteai` child metadata; it never opens or enumerates
+  that child and explicitly cannot unlock an initializer or v3 by itself.
+- The hardened local bridge gained only the `parent_probe` mode at checkpoint
+  `bbd82cd92ce3eafd1aa269f49abc5f5bca95b456`. Its exact-HEAD push and
+  pull-request workflows also passed `22/22` steps, `2,023` unit/history tests,
+  PostgreSQL 16 `6/6` and production readiness `138/138`. Independent review
+  was `GO / P0=0 / P1=0`.
+- A fresh root-only local RUN and READBACK are byte-identical and terminal
+  `PASS`, with bridge cleanup and residue both `ABSENT_PROVEN`; they are only
+  Linux/GNU command-render evidence and did not contact the provider or the
+  target host. The retained provider request remains private and no provider
+  submission marker, response identifier or terminal probe receipt exists.
+- The first Cloud Shell history/dry-run helper remains unexecuted after the
+  Codex crash. Independent review found one fail-closed P1: it pins the
+  1,289-byte `/usr/shell/bin/aliyun` wrapper but not the interpreter and final
+  CLI implementation that wrapper executes. The helper has no submit path and
+  must not run. Recovery must first read and bind the complete wrapper exec
+  chain, then generate and independently review a new helper. No actual
+  `RunCommand` may be retried or inferred from the crash.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`. The next action is read-only Cloud Shell tool-chain identification,
+then fresh all-page history zero and an exact CLI dry run. Only after those
+gates pass may one no-retry metadata probe be submitted. No directory repair,
+builder start, database/OSS action or cleanup is authorized by this checkpoint.
+
+### Item 27 zero-provider smoke source sealed; execution waits for Item 26 (2026-08-14)
+
+- A dedicated four-host zero-provider smoke executor, exact Cloud Assistant
+  request renderer, raw provider-closure builder, semantic verifier, external
+  authority verifier and readiness-gate integration are now locally frozen.
+  The executor preserves the original state of dormant units, serializes every
+  role, binds systemd fragments/drop-ins and the local Docker socket, and
+  restores only units it started. It performs no provider, OSS, synthetic
+  business-data or database-write operation.
+- The evidence builder now preserves every official provider response body and
+  its SHA-256 while projecting only required ECS 2014-05-26 fields. It follows
+  the official `DescribeCommands`, `DescribeInvocations` and nested
+  `DescribeInvocationResults` structures, allows documented extra fields, and
+  rejects legacy cropped fixtures, wrong nesting, wrong status, type aliases,
+  replay, extra rows and out-of-order host dispatch.
+- Focused Item 27 and readiness verification is `90/90` PASS; Python
+  compilation and `git diff --check` pass. Independent review currently finds
+  no P0/P1 in the frozen source. Runtime trust roots and the Item 26 terminal
+  acceptance remain deliberately absent, so the standalone verifier fails
+  closed and Item 27 receives no readiness credit.
+
+Item 27 remains `unverified`. The source checkpoint may be committed and sent
+through exact-HEAD push/pull-request CI, but no production smoke dispatch may
+occur until Item 26 is independently terminal PASS and the external authority
+roots are installed through their separately bound trust path.

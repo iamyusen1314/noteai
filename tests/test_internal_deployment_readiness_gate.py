@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 import internal_deployment_readiness_gate as gate  # noqa: E402
+import verify_internal_zero_provider_smoke_evidence as item27_verifier  # noqa: E402
 
 
 class InternalDeploymentReadinessGateTests(unittest.TestCase):
@@ -3800,6 +3801,125 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "invalid runtime evidence",
             ):
                 gate.validate_manifest(copy.deepcopy(self.manifest))
+
+    def test_verified_internal_smoke_requires_semantic_evidence(self):
+        candidate = copy.deepcopy(self.manifest)
+        control = next(
+            item
+            for item in candidate["layers"][1]["controls"]
+            if item["id"] == "internal_zero_provider_smoke"
+        )
+        control["status"] = "verified"
+        control.pop("blocker")
+        control.pop("next_task")
+        control["evidence"] = [
+            {"kind": "git", "ref": "f940106b9f7df0c23ea4a1e67063cfb35bf9927b"},
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-internal-zero-provider-smoke-"
+                    "verified-20260813.json"
+                ),
+            },
+            {
+                "kind": "path",
+                "ref": "tools/verify_internal_zero_provider_smoke_evidence.py",
+            },
+            {
+                "kind": "path",
+                "ref": "deploy/production/internal_zero_provider_smoke.py",
+            },
+            {
+                "kind": "path",
+                "ref": "tools/render_item27_internal_smoke_requests_v1.py",
+            },
+            *[
+                {"kind": "path", "ref": ref}
+                for ref in sorted(
+                    item27_verifier.RECEIPT_REFS.values()
+                )
+            ],
+        ]
+        with mock.patch.object(gate, "_verify_path", return_value=True):
+            with self.assertRaisesRegex(
+                gate.ManifestError, "Item26 terminal verification required"
+            ):
+                gate.validate_manifest(candidate)
+
+        item26 = next(
+            item
+            for item in candidate["layers"][1]["controls"]
+            if item["id"] == "backup_pitr_restore"
+        )
+        item26["status"] = "verified"
+        item26.pop("blocker")
+        item26.pop("next_task")
+        item26["evidence"] = [
+            {
+                "kind": "git",
+                "ref": "f940106b9f7df0c23ea4a1e67063cfb35bf9927b",
+            }
+        ]
+        with mock.patch.object(gate, "_verify_path", return_value=True):
+            with self.assertRaisesRegex(
+                gate.ManifestError,
+                "Item26 semantic evidence invalid: "
+                "Item26 terminal semantic verifier is not finalized",
+            ):
+                gate.validate_manifest(candidate)
+
+        item26_acceptance = "a" * 64
+        with mock.patch.object(
+            gate, "_verify_path", return_value=True
+        ), mock.patch.object(
+            gate,
+            "validate_item26_terminal_evidence",
+            return_value=([], item26_acceptance),
+        ), mock.patch.object(
+            gate,
+            "validate_internal_zero_provider_smoke_evidence",
+            return_value=[],
+        ) as validate:
+            gate.validate_manifest(candidate)
+            validate.assert_called_once()
+            args, kwargs = validate.call_args
+            self.assertEqual(args, (control["evidence"],))
+            self.assertEqual(kwargs["root"], gate.ROOT)
+            self.assertRegex(
+                kwargs["expected_item26_terminal_acceptance_sha256"],
+                r"^[0-9a-f]{64}$",
+            )
+            self.assertEqual(
+                kwargs["expected_item26_terminal_acceptance_sha256"],
+                item26_acceptance,
+            )
+            self.assertEqual(
+                kwargs["expected_readiness"]["internal_verified_before"], 26
+            )
+            self.assertEqual(
+                kwargs["expected_readiness"]["internal_verified_after"], 27
+            )
+            self.assertEqual(
+                kwargs["expected_readiness"]["complete_public_verified_before"],
+                26,
+            )
+
+        with mock.patch.object(
+            gate, "_verify_path", return_value=True
+        ), mock.patch.object(
+            gate,
+            "validate_item26_terminal_evidence",
+            return_value=([], item26_acceptance),
+        ), mock.patch.object(
+            gate,
+            "validate_internal_zero_provider_smoke_evidence",
+            return_value=["tampered Item27 result"],
+        ):
+            with self.assertRaisesRegex(
+                gate.ManifestError, "invalid semantic evidence"
+            ):
+                gate.validate_manifest(candidate)
 
     def test_unknown_and_cyclic_dependencies_fail(self):
         broken = copy.deepcopy(self.manifest)

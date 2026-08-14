@@ -2004,6 +2004,33 @@ Last updated: 2026-08-13
   `chown`, deletion, builder start, DB/OSS action and cleanup remain closed.
   Item26 stays unverified at 25/29 internal and 25/38 public with zero credit.
 
+- 2026-08-14 Item26 crash-safe parent-probe recovery: the metadata probe source
+  checkpoint `77c79b7` and hardened bridge checkpoint `bbd82cd` each have
+  exact-HEAD push and pull-request CI fully green. A fresh local Linux/GNU
+  bridge RUN/READBACK is terminal PASS with byte-identical summaries and
+  container residue absent, but it is not a provider execution. The Codex crash
+  left no local submit marker, provider response identity or terminal probe
+  receipt, so replay remains forbidden. The prepared Cloud Shell helper is
+  BLOCKED because it pins only the 1,289-byte aliyun wrapper rather than its
+  complete interpreter/final-binary exec chain. The helper has no submit path
+  and remains unexecuted. Residual High is read-only complete tool-chain
+  binding, a replacement history-zero/dry-run helper, and only then one fresh
+  no-retry metadata probe. Directory mutation, builder start, DB/OSS work and
+  cleanup remain closed. Item26 is still 25/29 internal and 25/38 public.
+
+- 2026-08-14 Item27 source checkpoint candidate: dedicated zero-provider
+  executor, request renderer, provider raw-closure builder, semantic verifier,
+  external-authority verifier and readiness-gate integration pass 90 focused
+  tests and independent source review reports P0=0/P1=0. Official ECS response
+  bodies are retained byte-for-byte and hash-bound; parsing uses documented
+  nesting and required projections while tolerating documented extra fields.
+  The executor serializes dormant roles and restores original unit state,
+  performs zero provider/OSS/synthetic/business-write work and fail-closes on
+  runtime uncertainty. Residual High is exact checkpoint CI, Item26 terminal
+  dependency, external authority roots and one authenticated four-host smoke.
+  The verifier intentionally remains BLOCKED while those roots/dependencies
+  are absent; Item27 remains unverified and adds no readiness credit.
+
 ## Low Risks
 
 ### `model/api.py` is too large
