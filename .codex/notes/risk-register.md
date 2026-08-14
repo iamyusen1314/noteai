@@ -2149,6 +2149,47 @@ Last updated: 2026-08-14
   green push and pull-request CI before one read-only Cloud Shell use; until
   then Item26 and all downstream execution remain High/fail-closed.
 
+- 2026-08-14 Item26 wrapper-parent diagnostic terminal result: exact source
+  checkpoint `9c3b055e2f24b4c82f894d87ff954ae49a4b553a` passed first-attempt push
+  run/job `31773090550`/`94682837601` and pull-request run/job
+  `31773092554`/`94682844233`, each `22/22`, unit `2,224` with 34 skips and
+  zero failures, PostgreSQL 16 `6/6` and readiness `138/138`. The exact
+  `8,732`-byte command
+  (`4081b80e10399a7119b3b2963f101ade1b702b8cdf48fd1853c92ecbdb71e7c4`)
+  then executed once. Its directly observed `4,191`-byte receipt
+  (`260bb8abdcd0936625712042ee6c485ccc6c906308622318f2210889b8b2b9f0`)
+  and commitment
+  `a09720b831b1141ff16b6b35a2c4d5abeff3e380c78893a9c70fdc340045479e`
+  validate only as `SCHEMA_VALID_UNAUTHENTICATED CURRENT_STABLE_MATCH`; raw
+  receipt bytes are not committed. The match is fixed `LEXICAL` parent index
+  0 `/usr`, `root:root`, mode `01777`, group/world writable, with identical
+  before/after observations. CLI, wrapper, provider, database, cloud mutation
+  and host-write counts are all zero; optional persistent NAS was declined and
+  no paid resource was created. Because origin is unauthenticated and the
+  commitment is not a signature, this terminal/no-replay receipt cannot unlock
+  Item26 or award credit. Residual High is a separately frozen read-only impact
+  assessment; `chmod` and all inferred repair remain prohibited. Item26 stays
+  unverified at internal `25/29` and public `25/38`.
+
+- 2026-08-14 Item26 `/usr` impact-assessment source closure: the separately
+  frozen read-only candidate has template/validator/test identities
+  `67767adce27c51b7bd28d0e44308bacc0f8b29a2004649f9a56570f261b54e9b`
+  / `28,219` bytes,
+  `debdd73299fe19547b553aeb602645a6a8f599c76a0432b76e797f1b75b2b06a`
+  / `17,658` bytes and
+  `b66fd296268ef8bb9ef7c151aead9f3dcf08b07b4b6ce43fb1c0ab5dc295b153`
+  / `19,460` bytes. Focused tests are `18/18`, all Item26 tests are
+  `132/132`, three Python 3.6 AST cases pass and both independent reviews are
+  `GO / P0=0 / P1=0`. Every schema-valid result remains `BLOCKED`, with no
+  mutation, unlock or replay; `allowlist_proven_safe=false` is invariant.
+  Raw mountinfo, mount/namespace identifiers, overlay/source/root values and
+  non-fixed paths are excluded from evidence. This is source-only: no commit,
+  exact-HEAD dual CI or execution exists yet. Residual High is an exact source
+  checkpoint and first-attempt green push/PR CI before any one read-only use.
+  No result may authorize `chmod`, repair or readiness credit. Item26 remains
+  unverified at internal `25/29` and public `25/38`, and the next task remains
+  Item26.
+
 ## Low Risks
 
 ### `model/api.py` is too large

@@ -9906,3 +9906,71 @@ closed behind this new diagnostic gate.
 Item 26 remains `unverified`; readiness stays internal `25/29` and public
 `25/38` until the one-shot diagnostic, its direct receipt review and all later
 terminal evidence are complete.
+
+### Item 26 wrapper-parent diagnostic terminal receipt (2026-08-14)
+
+- The exact source checkpoint is
+  `9c3b055e2f24b4c82f894d87ff954ae49a4b553a`. Push run `31773090550` /
+  job `94682837601` and pull-request run `31773092554` / job `94682844233`
+  both completed `success` on attempt 1 with all `22/22` steps green. Each
+  completed `2,224` unit/history tests with `34` skips and zero failures,
+  PostgreSQL 16 `6/6` and production readiness `138/138`.
+- After that dual-CI closure, the frozen `8,732`-byte in-memory command with
+  SHA-256
+  `4081b80e10399a7119b3b2963f101ade1b702b8cdf48fd1853c92ecbdb71e7c4`
+  executed exactly once. The directly observed `4,191`-byte receipt has
+  SHA-256
+  `260bb8abdcd0936625712042ee6c485ccc6c906308622318f2210889b8b2b9f0`
+  and commitment
+  `a09720b831b1141ff16b6b35a2c4d5abeff3e380c78893a9c70fdc340045479e`.
+  The raw receipt is deliberately not committed to the repository.
+- The validator returned
+  `SCHEMA_VALID_UNAUTHENTICATED CURRENT_STABLE_MATCH`. The stable match is
+  fixed `LEXICAL` parent index `0`, path `/usr`, owner/group `root:root`, mode
+  `01777`, with the group/world-writable predicate true. Before and after
+  observations are equal. The command invoked no CLI or wrapper and made zero
+  provider calls, database operations, cloud-resource changes or host writes.
+  Optional persistent NAS was declined, so paid-resource creation remained
+  zero.
+- The receipt origin remains unauthenticated and its commitment is not a
+  signature. It is usable only with the exact command and direct single-run
+  provenance. The execution is terminal/no-replay and does not authorize an
+  Item 26 next stage or add readiness credit. No `chmod` or inferred repair is
+  allowed. The unique successor is a separately reviewed read-only impact
+  assessment of the stable writable-parent finding.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`. Builder start, clone database access, source/restored reconciliation,
+OSS transfer and clone/IAM cleanup remain closed.
+
+### Item 26 `/usr` impact-assessment source ready (2026-08-14)
+
+- A separately frozen, read-only successor now assesses only the stable fixed
+  `/usr` finding. Its public schema keeps every outcome `BLOCKED` and keeps
+  mutation, next-stage unlock and replay unauthorized. In particular,
+  `allowlist_proven_safe` is always false; an offline classification candidate
+  is not proof that the live path is safe and cannot relax the parent-security
+  predicate.
+- The evidence surface is content-minimized. Raw mountinfo lines, mount and
+  namespace identifiers, overlay/source/root path values and non-fixed paths
+  are never emitted as evidence. The assessment performs no CLI invocation,
+  provider call, database operation, cloud-resource mutation or host write.
+- Frozen source identities are template `28,219` bytes /
+  `67767adce27c51b7bd28d0e44308bacc0f8b29a2004649f9a56570f261b54e9b`,
+  validator `17,658` bytes /
+  `debdd73299fe19547b553aeb602645a6a8f599c76a0432b76e797f1b75b2b06a`
+  and tests `19,460` bytes /
+  `b66fd296268ef8bb9ef7c151aead9f3dcf08b07b4b6ce43fb1c0ab5dc295b153`.
+  Focused tests pass `18/18`, all Item 26 tests pass `132/132`, three Python
+  3.6 AST cases pass, and two independent reviews are both
+  `GO / P0=0 / P1=0`.
+- This remains source-only: it has not been committed, certified by exact-HEAD
+  CI or executed. First-attempt green push and pull-request CI for the exact
+  committed source are required before any single read-only execution. The
+  prior diagnostic is terminal/no-replay and this successor cannot authorize a
+  repair, `chmod`, Item 26 unlock or readiness credit under any result.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`. The unique next task remains Item 26 exact-source checkpoint and dual
+CI. Builder start, clone database access, source/restored reconciliation, OSS
+transfer and clone/IAM cleanup remain closed.
