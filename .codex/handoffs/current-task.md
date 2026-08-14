@@ -9747,8 +9747,75 @@ gates pass.
   readiness credit is possible. No cloud, service, database, provider or host
   operation occurred in this source stage.
 
-Item 28 remains `unverified`. Item 26's toolchain-source CI is terminal; this
-Item 28 source must now receive its own isolated checkpoint and dual CI.
-Runtime execution remains downstream of terminal Items 25/26/27 and will use
-one retained Cloud Assistant command/invocation audit object; any unknown
-provider or guardian state is readback-only and never resubmitted.
+Item 28 remains `unverified`. Its source/CI gate is now closed, but runtime
+execution remains downstream of terminal Items 25/26/27 and will use one
+retained Cloud Assistant command/invocation audit object; any unknown provider
+or guardian state is readback-only and never resubmitted.
+
+The first exact source commit was
+`0e106a3631e640e2b7ed9624f0d14f5fea18451d`. Its push run `31762687110`
+completed all `22/22` steps successfully with `2,152` unit/history tests,
+PostgreSQL 16 `6/6` and production readiness `138/138`. The matching
+pull-request run `31762689896` did not establish a second green result: its
+only error occurred after test assertions when `TemporaryDirectory.cleanup`
+encountered a non-empty temporary Git `objects` directory. The same test and
+HEAD passed on the push runner, so this is a cleanup race rather than an Item
+28 assertion regression. A one-file successor, exact commit
+`d5241679ad4c7b32d5dc17a9ec45159721a9bcdd`, disables both new and legacy
+automatic Git maintenance inside that test-only repository. The module passes
+`12/12`, the failing test passes `100/100` repeated local runs, and independent
+review is `GO / P0=0 / P1=0`. Its push run `31764596925` / job `94657727154`
+and pull-request run `31764600327` / job `94657735800` both completed `success`
+on attempt 1 with `22/22` steps. Each ran `2,152` unit/history tests with `34`
+skips and zero failures/errors, PostgreSQL 16 `6/6`, production readiness
+`138/138`, quality and Compose PASS. Each had only the existing Node 20-to-24
+warning and zero error annotations. The failed predecessor workflow was not
+rerun or cancelled.
+
+### Item 29 capacity-100 source candidate frozen; runtime remains blocked (2026-08-14)
+
+- A source-only capacity contract is now frozen for exactly `100` admitted
+  operations, `102` exact claims, two stale-lease takeovers, `100` unique fake
+  provider calls, an exact `50:50` Worker-C/Worker-F split and `600000` milli
+  units of accounting. It never calls the global recovery path and does not
+  claim a production multi-host run.
+- The request wrapper owns an exclusive private `0700` runtime directory and
+  tracks every created file before cleanup. Directory and per-file collision
+  fixtures prove that pre-existing sentinels survive, while successful and
+  non-zero child exits preserve output and prove all task-owned residue absent.
+- The evidence builder accepts only a stable root-owned `0700` capture root
+  containing the exact thirteen `0600`, regular, no-follow, single-link files
+  bound by its manifest. Provider and CI signing keys are canonicalized to
+  SPKI DER and must be mathematically distinct. The predecessor check compiles
+  and invokes the frozen Item 28 verifier instead of accepting a reduced local
+  projection.
+- Provider raw data, offline receipts/evidence and externally signed payloads
+  all use recursive type-exact comparison. Bool, float and numeric-string
+  aliases are rejected across pagination, exit/repeat/drop counts, dispatch,
+  accounting and CI-attempt fields.
+- Frozen core identities are executor `19,237` bytes / SHA-256
+  `ad9b7e219c9129ed919d2b3dcb966fbfa710400ea5e05335bc87daceb0e75343`,
+  renderer `11,917` bytes /
+  `54845d318aa78b041b4d6a4930e6611686bf72e7fa1af30bb0bf07331afb155e`,
+  result validator
+  `dd020ad076c08090465eb721b23fb56ca9a8dc178eb17c00e9620576d4df155f`,
+  raw builder
+  `2d6e4e83997a6f9d2fd90ba87b873f9c34ef04be032d9403d39122e10442d3cf`,
+  external-authority verifier
+  `b83f63c56ec4789379c329195499ff39874e597d6803137a7c0f02178d129644`
+  and offline verifier
+  `d77eb8a8f6a81c855277c84fca7f97b9c68c11b849b694f3c4c9eaadb976111c`.
+  Independent final review is `GO / P0=0 / P1=0`; focused tests are `50/50`,
+  all fourteen modules compile, production readiness remains `138/138`, and
+  per-file no-index/EOF checks pass.
+- The Item 28 terminal authority, external signing roots and production
+  Worker-C/F runtime adapter remain intentionally unbound. All three gates
+  fail closed, so this candidate cannot dispatch and receives no readiness
+  credit. This source stage performed no cloud, service, database, provider,
+  business-data or host operation.
+
+Item 29 remains `unverified`; readiness stays internal `25/29` and public
+`25/38`. The Item 28 source successor is now dual-green, so this isolated Item
+29 source checkpoint may be committed and must then receive its own push and
+pull-request CI. Production execution is still downstream of terminal Item 28
+evidence and separately bound runtime/authority roots.

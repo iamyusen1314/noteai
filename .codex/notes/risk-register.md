@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-13
+Last updated: 2026-08-14
 
 ## Critical Risks
 
@@ -2075,6 +2075,34 @@ Last updated: 2026-08-13
   Item25/26/27 authority roots. Those roots remain empty, so Item28 is
   fail-closed, unverified and cannot execute. This source stage performed no
   cloud, service, DB, provider or host mutation.
+
+- 2026-08-14 Item28 first source-CI cleanup race: exact source commit
+  `0e106a3631e640e2b7ed9624f0d14f5fea18451d` had a fully green push run but
+  its PR run ended with one post-assertion `TemporaryDirectory` error while
+  deleting a temporary Git `objects` directory. No Item28 assertion failed.
+  The one-file successor `d5241679ad4c7b32d5dc17a9ec45159721a9bcdd`
+  disables `maintenance.auto` and legacy `gc.auto` for every command in that
+  test repository; the module is `12/12`, the affected test is `100/100` under
+  repetition and independent review is GO/P0=0/P1=0. Its push `31764596925`
+  and pull-request `31764600327` runs both completed attempt 1 with `22/22`
+  steps, `2,152` unit/history tests, PostgreSQL 16 `6/6`, readiness `138/138`,
+  quality and Compose PASS, zero failures/errors and only the existing Node
+  deprecation warning. The failed predecessor workflow was not rerun. This
+  closes the Item28 source/CI risk, while runtime authority dependencies remain
+  the separate blocker and Item28 remains unverified.
+
+- 2026-08-14 Item29 source-only capacity contract: the frozen candidate binds
+  exactly 100 operations, 102 claims, two stale-lease takeovers, 100 unique
+  fake-provider results, a 50:50 Worker-C/Worker-F projection and 600000 milli
+  accounting units. Independent review is GO/P0=0/P1=0 after closing wrapper
+  collision ownership, stable root-only thirteen-file capture, mathematically
+  distinct SPKI signing roots, actual invocation of the Item28 verifier and
+  recursive JSON type-exactness. Focused tests are 50/50 and all compile,
+  production, internal, no-index and EOF gates pass. Residual High is source
+  checkpoint/dual CI plus the still-absent Item28 terminal authority, external
+  signing roots and production runtime adapter. Those three gates deliberately
+  BLOCK dispatch; Item29 remains unverified, adds no readiness credit and has
+  performed no cloud, database, service, provider, business-data or host work.
 
 ## Low Risks
 
