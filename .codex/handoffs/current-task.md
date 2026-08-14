@@ -9648,13 +9648,59 @@ builder start, database/OSS action or cleanup is authorized by this checkpoint.
   `DescribeInvocationResults` structures, allows documented extra fields, and
   rejects legacy cropped fixtures, wrong nesting, wrong status, type aliases,
   replay, extra rows and out-of-order host dispatch.
-- Focused Item 27 and readiness verification is `90/90` PASS; Python
+- Focused Item 27 and readiness verification is `92/92` PASS; Python
   compilation and `git diff --check` pass. Independent review currently finds
   no P0/P1 in the frozen source. Runtime trust roots and the Item 26 terminal
   acceptance remain deliberately absent, so the standalone verifier fails
   closed and Item 27 receives no readiness credit.
+- The source checkpoint is exact commit
+  `5c7ef801e040d2e5a89385d3429aa8b1f4fd7ee5`. Its push run
+  `31756357110` and pull-request run `31756360497` both completed `success`
+  on attempt 1 with `22/22` steps green. Each executed `2,098` unit/history
+  tests with `34` skips and zero failures, PostgreSQL 16 `6/6`, production
+  readiness `138/138`, quality and Compose PASS. Each had one Node runtime
+  deprecation warning and zero error annotations; neither was retried or
+  cancelled.
 
-Item 27 remains `unverified`. The source checkpoint may be committed and sent
-through exact-HEAD push/pull-request CI, but no production smoke dispatch may
-occur until Item 26 is independently terminal PASS and the external authority
-roots are installed through their separately bound trust path.
+Item 27 remains `unverified`. Its source/CI gate is closed, but no production
+smoke dispatch may occur until Item 26 is independently terminal PASS and the
+external authority roots are installed through their separately bound trust
+path.
+
+### Item 26 Cloud Shell executable-chain identification source ready for checkpoint (2026-08-14)
+
+- Crash recovery proved that the parent-metadata probe has not been submitted:
+  the retained local bridge result is render-only, and no local submit marker,
+  provider response identity or terminal probe receipt exists. Remote Cloud
+  Shell state must still be reconciled read-only before any new provider call.
+- A dedicated read-only identification atom now binds the fixed
+  `/usr/shell/bin/aliyun` wrapper to its exact interpreter and final executable
+  without invoking the CLI. It accepts only a narrow literal `exec` chain,
+  rejects `PATH` and inherited-environment dispatch, pins root-owned executable
+  metadata and hashes before/after, and requires a structurally valid static
+  Linux amd64 ELF with an executable load segment.
+- The independent validator is recursively type-exact and rejects duplicate
+  keys, bool/int/float aliases and malformed nested structures with one fixed
+  invalid result. Independent attack replay rejected all type-alias,
+  environment-dispatch and malformed-ELF fixtures; review is `GO / P0=0 /
+  P1=0`.
+- Frozen source identities are: template `21,258` bytes / SHA-256
+  `e1ce4f28a0159f7c92ae7f8b0a542a2e7fbf49a2b6244c93899239bc66e25cd8`;
+  validator `7,105` bytes /
+  `127782eac676fd5435b3ae07e57aa77a9f2100880ef7880e1dee2654287f2772`;
+  tests `13,566` bytes /
+  `826e7f24c1a4dfcbe6f54fab3e087a53518a015f609fcd0d3fbf6f3521e2fa86`.
+  Focused tests are `13/13`, all Item 26 tests are `92/92`, and pycompile,
+  Python 3.6 AST and per-file no-index whitespace checks pass.
+- No browser, Cloud Shell, provider, database, OSS, Docker or host mutation was
+  performed by this source stage. The old history/dry-run helper remains
+  blocked and unexecuted because it does not bind the complete executable
+  chain.
+
+Item 26 remains `unverified` at internal `25/29` and public `25/38`. The next
+gate is an exact source checkpoint with push and pull-request CI. Only after
+both CI runs succeed may the identification atom run once in the already
+authorized Cloud Shell session; it performs zero CLI invocations. A validated
+PASS receipt is then required before generating a replacement history-zero /
+dry-run helper. The actual metadata probe remains closed until all of those
+read-only gates pass.

@@ -2020,7 +2020,7 @@ Last updated: 2026-08-13
 
 - 2026-08-14 Item27 source checkpoint candidate: dedicated zero-provider
   executor, request renderer, provider raw-closure builder, semantic verifier,
-  external-authority verifier and readiness-gate integration pass 90 focused
+  external-authority verifier and readiness-gate integration pass 92 focused
   tests and independent source review reports P0=0/P1=0. Official ECS response
   bodies are retained byte-for-byte and hash-bound; parsing uses documented
   nesting and required projections while tolerating documented extra fields.
@@ -2030,6 +2030,32 @@ Last updated: 2026-08-13
   dependency, external authority roots and one authenticated four-host smoke.
   The verifier intentionally remains BLOCKED while those roots/dependencies
   are absent; Item27 remains unverified and adds no readiness credit.
+
+- 2026-08-14 Item27 source CI acceptance: exact checkpoint
+  `5c7ef801e040d2e5a89385d3429aa8b1f4fd7ee5` has terminal-success push and
+  pull-request runs `31756357110` and `31756360497`, both attempt 1 with all
+  `22/22` steps green. Each ran 2,098 unit/history tests (34 skipped, zero
+  failed), PostgreSQL 16 6/6 and production readiness 138/138; quality and
+  Compose passed. Both runs had only the existing Node-runtime deprecation
+  warning and zero errors. This closes the Item27 source/CI risk but not its
+  production dependency risk: Item26 terminal acceptance and separately bound
+  external authority roots remain absent, so Item27 stays fail-closed and
+  unverified.
+
+- 2026-08-14 Item26 Cloud Shell executable-chain identification source:
+  the previous history/dry-run helper remains blocked and unexecuted because
+  it binds only the 1,289-byte wrapper. A new read-only atom and independent
+  validator now bind the exact wrapper/interpreter/final-executable chain,
+  reject inherited-environment dispatch and malformed ELF files, and perform
+  zero CLI invocations. Independent review is GO with P0=0/P1=0; focused tests
+  are 13/13 and all Item26 tests are 92/92. Frozen SHA-256 identities are
+  `e1ce4f28a0159f7c92ae7f8b0a542a2e7fbf49a2b6244c93899239bc66e25cd8`,
+  `127782eac676fd5435b3ae07e57aa77a9f2100880ef7880e1dee2654287f2772`
+  and `826e7f24c1a4dfcbe6f54fab3e087a53518a015f609fcd0d3fbf6f3521e2fa86`.
+  Residual High is the exact source checkpoint and dual CI, one read-only
+  Cloud Shell identification receipt, and only then a replacement
+  history-zero/dry-run helper. The parent probe has not been submitted; no
+  provider or host mutation is authorized by this source checkpoint.
 
 ## Low Risks
 
