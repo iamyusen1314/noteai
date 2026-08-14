@@ -9819,3 +9819,90 @@ Item 29 remains `unverified`; readiness stays internal `25/29` and public
 29 source checkpoint may be committed and must then receive its own push and
 pull-request CI. Production execution is still downstream of terminal Item 28
 evidence and separately bound runtime/authority roots.
+
+### Item 29 source checkpoint dual CI closed; runtime still blocked (2026-08-14)
+
+- The exact source-only checkpoint is
+  `e435f37daf80514cf189b205164dfb061b053bb1`. Push run `31766481982` /
+  job `94663353815` and pull-request run `31766484094` / job `94663359961`
+  both completed `success` on attempt 1 with all `22/22` steps green.
+- Each run completed `2,202` unit/history tests with `34` skips and zero
+  failures/errors, PostgreSQL 16 `6/6`, production readiness `138/138`, the
+  quality matrix and Docker Compose configuration. Each had only the existing
+  Node 20-to-24 deprecation warning and zero error annotations; neither was
+  retried, cancelled or edited.
+- This closes only the Item 29 source/CI gate. Item 29 remains `unverified`
+  and receives no readiness credit because Item 28 terminal authority,
+  external signing roots and the production Worker-C/F runtime adapter remain
+  deliberately unbound.
+
+### Item 26 Cloud Shell tool-chain identification terminal BLOCKED (2026-08-14)
+
+- The Chrome extension/native-host connection was restored after the desktop
+  crash. The existing authenticated Cloud Shell was reconnected, and the
+  optional persistent-storage creation was explicitly declined, so no paid
+  storage resource was created.
+- The frozen identification atom was transmitted as one `8,506`-byte in-memory
+  here-document with SHA-256
+  `8fbed548cff9d47ca19492f6c7e9c7509f0060ad9c961318b710c53fe3de9de7`.
+  Its packed and raw source identities were verified before execution; the
+  raw source was the exact `21,258`-byte checkpoint artifact with SHA-256
+  `e1ce4f28a0159f7c92ae7f8b0a542a2e7fbf49a2b6244c93899239bc66e25cd8`.
+- The atom ran exactly once and returned canonical terminal `BLOCKED` with
+  reason `WRITABLE_EXECUTABLE_PARENT`. Its commitment
+  `9c86a12e84786793a04789ced1cca12a39f9edf00436568c5c1edbd4e1f5bbb5`
+  was independently recomputed from the exact schema/status/reason payload.
+  The frozen atom invokes neither the wrapper nor the final CLI; CLI calls,
+  provider calls, ECS/RDS/OSS/IAM actions and database activity were all zero.
+  It created no remote file or retained process, and the temporary browser
+  clipboard payload was cleared after the single paste.
+- This is a fail-closed security result, not a retryable transport error. The
+  v1 atom must never be replayed. The current receipt proves that at least one
+  executable-chain parent failed the group/world-writable prohibition, but the
+  shared reason can arise from either the fixed lexical parents or the resolved
+  canonical parents; wrapper bytes were not read. The next allowed step is a
+  new, separately frozen, content-free read-only diagnostic. It may emit the
+  three fixed lexical parent paths, but canonical paths and symlink targets are
+  represented only by hashes. It must receive its own independent review,
+  checkpoint and exact-HEAD push/PR CI before one Cloud Shell execution. It
+  may not relax the security predicate or invoke the CLI.
+
+Item 26 remains `unverified`; readiness remains internal `25/29` and public
+`25/38`. The parent metadata probe, any replacement history/dry-run helper,
+the actual API-C probe, builder start and all database/OSS/cleanup actions stay
+closed behind this new diagnostic gate.
+
+### Item 26 wrapper-parent diagnostic source frozen (2026-08-14)
+
+- The content-free successor now observes only the fixed wrapper role. It pins
+  the three lexical parents and, only when needed, a bounded canonical
+  resolution using `O_PATH|O_NOFOLLOW` descriptors, two complete observation
+  boundaries and final `lstat`/`fstat` reconciliation. Symlink resolution is
+  capped at eight hops, 256 steps, depth 64 and 4,096 path bytes. Stable
+  diagnostic outcomes exit 3; instability exits 4. The top-level status is
+  always `BLOCKED`.
+- Canonical paths and symlink targets are never emitted. Target SHA-256 values
+  are explicitly opaque evidence: the schema validator does not independently
+  prove target normalization or receipt origin. The commitment is not an
+  authentication signature. The exact source/command and a single directly
+  observed execution are therefore mandatory provenance, and the validator's
+  positive class is deliberately named `SCHEMA_VALID_UNAUTHENTICATED`.
+  Regardless of result, `next_stage_authorized`, retry and replay remain false.
+- Frozen identities are template `18,719` bytes /
+  `435c4e2809f35f676258ede96bf0fd21eb5a73105b62d98a8147a4431ae75ce6`,
+  validator `19,865` bytes /
+  `94bcf4b1193c68f3b3c051e8b980de09f1cbf60d9f3650b0e9ba5a08a7738a43`
+  and tests `28,550` bytes /
+  `f95d749e7c0ce16614db67619c04f5d68a7835dd10c78ea04e6a7f332930bb6c`.
+  Focused tests pass `22/22`, the complete Item 26 set passes `114/114`,
+  Python 3.6 AST/compile and per-file whitespace checks pass, and independent
+  final review is `GO / P0=0 / P1=0`.
+- This is a source-only checkpoint. It has not used Chrome, Cloud Shell, the
+  CLI, provider APIs, databases or host writes and costs `¥0`. One execution
+  is allowed only after this exact source revision receives first-attempt green
+  push and pull-request CI. No diagnostic result itself unlocks Item 26; it
+  only selects the separately reviewed next reconciliation branch.
+
+Item 26 remains `unverified`; readiness stays internal `25/29` and public
+`25/38` until the one-shot diagnostic, its direct receipt review and all later
+terminal evidence are complete.

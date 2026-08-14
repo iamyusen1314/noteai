@@ -2104,6 +2104,51 @@ Last updated: 2026-08-14
   BLOCK dispatch; Item29 remains unverified, adds no readiness credit and has
   performed no cloud, database, service, provider, business-data or host work.
 
+- 2026-08-14 Item29 source CI closure: exact checkpoint
+  `e435f37daf80514cf189b205164dfb061b053bb1` has terminal-success push run
+  `31766481982` and pull-request run `31766484094`, both attempt 1 with all
+  `22/22` steps green. Each ran 2,202 unit/history tests with 34 skips and zero
+  failures/errors, PostgreSQL 16 6/6 and readiness 138/138; quality and
+  Compose passed. This removes the source/CI risk only. Item28 terminal
+  authority, external signing roots and the production runtime adapter remain
+  High blockers, so Item29 is still unverified and receives no credit.
+
+- 2026-08-14 Item26 Cloud Shell tool-chain identification terminal result:
+  after Chrome/native-host recovery, the already authenticated ephemeral Cloud
+  Shell was reconnected and optional persistent storage was declined. The
+  exact 8,506-byte in-memory atom
+  (`8fbed548cff9d47ca19492f6c7e9c7509f0060ad9c961318b710c53fe3de9de7`)
+  executed once and returned canonical `BLOCKED` /
+  `WRITABLE_EXECUTABLE_PARENT`; commitment
+  `9c86a12e84786793a04789ced1cca12a39f9edf00436568c5c1edbd4e1f5bbb5`
+  independently recomputes exactly. Wrapper/final CLI invocations, provider
+  and ECS/RDS/OSS/IAM actions, DB activity, remote files and retained processes
+  were all zero. The v1 atom is permanently no-replay. Residual High is a new
+  frozen read-only diagnostic that distinguishes the three fixed lexical
+  parents from hashed canonical-parent roles using stable metadata. The shared
+  predecessor reason does not reveal which branch failed, and wrapper content
+  was not read. The successor must not relax the security condition and needs
+  independent review, checkpoint and dual exact-HEAD CI before one execution.
+  Item26 and downstream Items 27-29 remain fail-closed and unverified.
+
+- 2026-08-14 Item26 wrapper-parent diagnostic source closure: the new atom is
+  content-free, descriptor-pinned and bounded to eight symlink hops, 256
+  resolution steps, depth 64 and 4,096 path bytes. It never reads wrapper
+  content, environment values or directory contents and cannot invoke the CLI,
+  cloud APIs or databases. Stable findings remain terminal `BLOCKED`/rc3 and
+  unstable observations rc4; every result denies retry, replay and next-stage
+  authorization. Frozen template/validator/test identities are respectively
+  `435c4e28…75ce6` / 18,719 bytes, `94bcf4b1…38a43` / 19,865 bytes and
+  `f95d749e…bb6c` / 28,550 bytes. Focused `22/22`, all Item26 `114/114`,
+  Python 3.6 parsing/compile and whitespace checks pass; independent review is
+  `GO / P0=0 / P1=0`. Residual evidence limitation is explicit rather than
+  hidden: target hashes are opaque, the validator class is
+  `SCHEMA_VALID_UNAUTHENTICATED`, and the commitment is not a signature. Only
+  exact source/command plus a directly observed single execution can supply
+  provenance. This source checkpoint still requires exact-HEAD first-attempt
+  green push and pull-request CI before one read-only Cloud Shell use; until
+  then Item26 and all downstream execution remain High/fail-closed.
+
 ## Low Risks
 
 ### `model/api.py` is too large
