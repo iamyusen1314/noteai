@@ -2190,6 +2190,26 @@ Last updated: 2026-08-14
   unverified at internal `25/29` and public `25/38`, and the next task remains
   Item26.
 
+- 2026-08-14 Item26 `/usr` impact-assessment first exact-HEAD CI was blocked by
+  Git LFS quota, not source failure: commit
+  `a7c33504dbc8a908efba4bd16fce2ea2796d6582` had attempt-1 push
+  `31805994177` and pull-request `31805999502` stop in checkout after Git LFS
+  reported the repository bandwidth budget exhausted. All substantive gates
+  were skipped, so the commit is permanently ineligible for Cloud Shell
+  execution and was not rerun. The minimal successor uses non-LFS checkout and
+  the existing manifest verifier to restore three mismatched `.lgb` pointers
+  from a validated exact-repository/exact-commit GitHub raw URL; push and PR
+  merge-commit rehearsals both repaired exactly three files and passed all four
+  SHA checks. Static contract `1/1`, production readiness `138/138`, YAML,
+  compile and independent review pass. Residual Medium availability risk:
+  GitHub does not promise that the raw media path permanently bypasses LFS
+  bandwidth accounting, and the frozen manual native-release workflow still
+  uses LFS. A durable private S3 source or restored LFS budget remains required
+  before treating artifact availability as solved. Integrity remains
+  fail-closed because every download and the later check-only gate use the
+  committed manifest hashes; no model/manifest/loader/native-release changes,
+  cloud action, database action or execution authorization occurred.
+
 ## Low Risks
 
 ### `model/api.py` is too large

@@ -9974,3 +9974,39 @@ Item 26 remains `unverified`; readiness remains internal `25/29` and public
 `25/38`. The unique next task remains Item 26 exact-source checkpoint and dual
 CI. Builder start, clone database access, source/restored reconciliation, OSS
 transfer and clone/IAM cleanup remain closed.
+
+### Item 26 `/usr` impact-assessment first CI blocked by LFS quota; CI successor ready (2026-08-14)
+
+- The frozen source was committed as
+  `a7c33504dbc8a908efba4bd16fce2ea2796d6582` without source-byte drift. Its
+  push run `31805994177` / job `94784933334` and pull-request run
+  `31805999502` / job `94784950331` were both attempt 1 and both stopped in
+  `actions/checkout` because the repository Git LFS bandwidth budget was
+  exceeded. Unit tests, quality, PostgreSQL 16, production readiness and
+  Compose never ran. The failed commit was not rerun and is permanently
+  ineligible for the one-shot Cloud Shell execution.
+- The minimal source-ready CI successor keeps full-history checkout but sets
+  `lfs: false`, removes `git lfs pull`, and restores only manifest-declared
+  hash-mismatched model artifacts after Python 3.11 setup. The source URL is
+  bound to validated `${GITHUB_REPOSITORY}` and exact `${GITHUB_SHA}`; every
+  downloaded file is verified against the release manifest, and the existing
+  `--check-only --required` step remains as a second fail-closed check.
+- An isolated pointer-file rehearsal against both the exact push commit and
+  the exact pull-request merge commit repaired exactly the three `.lgb`
+  pointers, left the already-valid training report unchanged, and then passed
+  all four manifest SHA checks. The focused workflow contract passes `1/1`,
+  production readiness remains `138/138`, YAML parsing and Python compilation
+  pass, and independent review is `GO / P0=0`.
+- This is an availability repair, not a change to model content, the manifest,
+  the loader, production behavior or the frozen native-release workflow. The
+  commit-addressed GitHub raw route is currently verified but is not an
+  official permanent replacement for Git LFS bandwidth; private S3 or restored
+  LFS capacity remains the durable artifact-source path. The manual native
+  release evidence workflow therefore remains separately exposed to the
+  current LFS quota and was deliberately left untouched.
+
+Item 26 remains `unverified` at internal `25/29` and public `25/38`. The CI
+successor must be committed and its exact push and pull-request runs must both
+pass on attempt 1 before a new single-line, no-redirection in-memory command is
+frozen. No Cloud Shell, CLI, provider, database, model, service or business-data
+action occurred in this repair stage.

@@ -49,13 +49,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          lfs: true
-
-      - name: Ensure Git LFS files
-        run: |
-          git lfs install --local
-          git lfs pull
-          git lfs ls-files
+          lfs: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -63,6 +57,16 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: model/requirements.txt
+
+      - name: Restore required model artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REPOSITORY}" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          [[ "${GITHUB_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          python scripts/fetch_model_artifacts.py \
+            --base-url "https://github.com/${GITHUB_REPOSITORY}/raw/${GITHUB_SHA}" \
+            --required
 
       - name: Set up Node
         uses: actions/setup-node@v4
