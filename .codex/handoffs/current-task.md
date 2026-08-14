@@ -9692,15 +9692,63 @@ path.
   `826e7f24c1a4dfcbe6f54fab3e087a53518a015f609fcd0d3fbf6f3521e2fa86`.
   Focused tests are `13/13`, all Item 26 tests are `92/92`, and pycompile,
   Python 3.6 AST and per-file no-index whitespace checks pass.
+- The exact source checkpoint is
+  `05db0478980df9ee74ac5b7f5187289f709351a2`. Push run `31760821551` /
+  job `94646578683` and pull-request run `31760823793` / job `94646584609`
+  both completed `success` on attempt 1 with `22/22` steps green. Each ran
+  `2,111` unit/history tests with `34` skips and zero failures/errors,
+  PostgreSQL 16 `6/6`, production readiness `138/138`, quality and Compose
+  PASS. Each had only the existing Node 20-to-24 deprecation warning and zero
+  error annotations; neither was retried or cancelled.
 - No browser, Cloud Shell, provider, database, OSS, Docker or host mutation was
   performed by this source stage. The old history/dry-run helper remains
   blocked and unexecuted because it does not bind the complete executable
   chain.
 
 Item 26 remains `unverified` at internal `25/29` and public `25/38`. The next
-gate is an exact source checkpoint with push and pull-request CI. Only after
-both CI runs succeed may the identification atom run once in the already
-authorized Cloud Shell session; it performs zero CLI invocations. A validated
-PASS receipt is then required before generating a replacement history-zero /
-dry-run helper. The actual metadata probe remains closed until all of those
-read-only gates pass.
+gate is one execution of the identification atom in the already authorized
+Cloud Shell session; it performs zero CLI invocations. A validated PASS receipt
+is then required before generating a replacement history-zero / dry-run
+helper. The actual metadata probe remains closed until all of those read-only
+gates pass.
+
+### Item 28 internal failure/rollback source ready for checkpoint (2026-08-14)
+
+- A dedicated source-only Item 28 executor, request renderer, result validator,
+  root-only provider receipt builder, offline evidence verifier and semantic
+  readiness-gate branch are now frozen. They exercise one API-F managed
+  restart failure before application/DB connection and restore the accepted
+  release through a separately managed host-local guardian; they do not claim
+  public traffic, ALB, DNS or RDS failover.
+- The wrapper acquires an exclusive private `/run` directory before setting an
+  ownership flag, so collision or setup failure cannot delete pre-existing
+  paths. The fault drop-in is built and verified under the task-owned root,
+  then published atomically with `renameat2(RENAME_NOREPLACE)` and no unsafe
+  fallback.
+- The guardian's parent-death matrix distinguishes empty, complete, partial,
+  collided and already-published states. It removes only exact task-owned
+  staging or the exact published artifact; ambiguous states return `UNKNOWN`
+  with non-zero retained residue instead of claiming cleanup. Independent
+  collision and crash-window review is `GO / P0=0 / P1=0`.
+- Frozen core identities include executor `41,841` bytes / SHA-256
+  `5f233668966bef323d036393ab21a0f1f67d3e935a38e766e857a4110dcb5499`,
+  renderer
+  `cc4c9894694eecaf322df22e48deef9b1e998f1a5d60b088cff0b5f9aa4dab21`,
+  validator
+  `148adc1052afcd81a95afaa929084798da60c28c3c4555983ee60317d22dc885`,
+  receipt builder
+  `4af3c8e948f20b7c82ac9c1e72432aa4c6d7e1e80d4661bffd207c98c8f6abe9`
+  and verifier
+  `52405249b8dcf31969186af75932f81386b9354d90403f1e98aa46e40bd778b6`.
+  Focused tests are `59/59`; pycompile, per-file no-index checks, production
+  readiness `138/138` and internal manifest validation all pass.
+- Item 25, Item 26 and Item 27 terminal authority roots remain intentionally
+  empty, so the standalone verifier returns BLOCK and no Item 28 execution or
+  readiness credit is possible. No cloud, service, database, provider or host
+  operation occurred in this source stage.
+
+Item 28 remains `unverified`. Item 26's toolchain-source CI is terminal; this
+Item 28 source must now receive its own isolated checkpoint and dual CI.
+Runtime execution remains downstream of terminal Items 25/26/27 and will use
+one retained Cloud Assistant command/invocation audit object; any unknown
+provider or guardian state is readback-only and never resubmitted.

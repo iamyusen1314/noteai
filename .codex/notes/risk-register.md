@@ -2052,10 +2052,29 @@ Last updated: 2026-08-13
   `e1ce4f28a0159f7c92ae7f8b0a542a2e7fbf49a2b6244c93899239bc66e25cd8`,
   `127782eac676fd5435b3ae07e57aa77a9f2100880ef7880e1dee2654287f2772`
   and `826e7f24c1a4dfcbe6f54fab3e087a53518a015f609fcd0d3fbf6f3521e2fa86`.
-  Residual High is the exact source checkpoint and dual CI, one read-only
-  Cloud Shell identification receipt, and only then a replacement
-  history-zero/dry-run helper. The parent probe has not been submitted; no
-  provider or host mutation is authorized by this source checkpoint.
+  Exact checkpoint `05db0478980df9ee74ac5b7f5187289f709351a2` now has
+  terminal-success push run `31760821551` and pull-request run `31760823793`,
+  both attempt 1 with `22/22` steps green. Each ran 2,111 unit/history tests
+  with 34 skips and zero failures, PostgreSQL 16 6/6 and production readiness
+  138/138; quality and Compose passed. Residual High is one read-only Cloud
+  Shell identification receipt and only then a replacement history-zero /
+  dry-run helper. The parent probe has not been submitted; no provider or host
+  mutation is authorized by this source checkpoint.
+
+- 2026-08-14 Item28 source-only failure/rollback contract: the executor,
+  request renderer, validator, root-only receipt builder, semantic verifier and
+  readiness branch now pass 59 focused tests and independent review is
+  GO/P0=0/P1=0. The wrapper owns a private `/run` directory before cleanup; the
+  systemd drop-in is fully staged then atomically published with
+  `RENAME_NOREPLACE`; guardian crash recovery cleans only exact owned states and
+  records ambiguous partial/collision states as UNKNOWN with retained residue.
+  Core executor and renderer SHA-256 identities are
+  `5f233668966bef323d036393ab21a0f1f67d3e935a38e766e857a4110dcb5499`
+  and `cc4c9894694eecaf322df22e48deef9b1e998f1a5d60b088cff0b5f9aa4dab21`.
+  Residual High is the isolated source checkpoint/dual CI and terminal
+  Item25/26/27 authority roots. Those roots remain empty, so Item28 is
+  fail-closed, unverified and cannot execute. This source stage performed no
+  cloud, service, DB, provider or host mutation.
 
 ## Low Risks
 
