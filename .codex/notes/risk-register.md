@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-14
+Last updated: 2026-08-15
 
 ## Critical Risks
 
@@ -2252,6 +2252,30 @@ Last updated: 2026-08-14
   commit/tree. Item26 remains unverified at internal `25/29` and public
   `25/38`; no Chrome, Cloud Shell, provider, database, cloud-resource, host or
   business-data action occurred in this handoff.
+
+- 2026-08-15 Codex local-state continuity is a temporary High risk and blocks
+  Item 26. The current App has fallen back to the retained internal-disk
+  `.codex`; the ORICO APFS volume is unmounted and the launch environment is
+  unset. The internal root rollout is structurally readable but contains no
+  August 14 events, while the accepted August 13 migration receipt recorded
+  432 threads and the nonempty sparsebundle has substantial August 14 band
+  writes. Permanent deletion is not proven; the two copies must be treated as
+  divergent evidence until a full-exit, read-only DB/WAL/SHM and JSONL common-
+  ancestor audit completes. The v9 cold-start root cause is macOS System Policy
+  denying background `hdiutil` access to required sparsebundle `token`
+  metadata, followed by ten-second retries. Both old labels are now disabled
+  and unloaded without deleting their files or changing the image. Active
+  white-screen risk is more strongly associated with the giant rollout and
+  full-history inheritance than ORICO I/O: app-server/renderer RSS was observed
+  near 3.22/0.60 GB with historical memory compression and swap pressure, but
+  no JSON corruption or current crash report was found. Full-history subagents,
+  cache/session trimming, direct JSONL concatenation, source DB edits and any
+  automatic fallback switch are forbidden. The frozen offline auditor is
+  statically verified and unexecuted; only a successful Secret-free report may
+  advance to a third-copy candidate, a fail-closed user-session launcher, one
+  cold-start test and one new-message write test. Item 26 remains unverified at
+  internal `25/29` and public `25/38`; all builder, database, OSS, restore,
+  cleanup and other cloud actions remain closed with zero new credit.
 
 ## Low Risks
 

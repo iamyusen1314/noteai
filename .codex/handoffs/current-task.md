@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-14 (Asia/Shanghai)
+> Updated: 2026-08-15 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -10088,3 +10088,68 @@ Item 26 remains `unverified`; readiness remains internal `25/29` and public
 mutations, host writes and readiness credits added by this stage are all zero.
 Builder start, clone database access, source/restored reconciliation, OSS
 transfer and clone/IAM cleanup remain closed.
+
+### Codex local-state recovery gate; Item 26 and every cloud action frozen (2026-08-15)
+
+- Project continuity is preserved at exact pushed checkpoint
+  `2262b38070b225e51404f51f13a38b8cac2c8ebd` / tree
+  `f378b0f424da249a6b10bdfa1e96491a799545f3`. The final August 14 Item 26
+  handoff is committed there. Item 26 remains `unverified`; readiness remains
+  internal `25/29` and public `25/38`. No NoteAI, Colima, builder, database,
+  restore-instance, OSS, IAM or other cloud action is authorized during this
+  local recovery gate.
+- The current App is not running from ORICO. The inner APFS volume is not
+  mounted, the launch environment has no `CODEX_HOME`, and the live Codex
+  processes are writing the retained internal-disk source copy. That source
+  database and root rollout are structurally readable, but the root rollout
+  has no event records for August 14. The August 13 migration receipt instead
+  records a fully verified retained-source migration with `432` threads and
+  explicitly says `cold_login_runtime_tested=false`; the nonempty sparsebundle
+  has substantial August 14 band writes. This is a confirmed split-copy
+  reconciliation requirement, not proof that August 14 was permanently
+  deleted.
+- The cold-start failure has an exact local cause: the v9 LaunchAgent's
+  background `hdiutil` was denied by macOS System Policy while reading the
+  sparsebundle's required `token` metadata, then retried every ten seconds.
+  The image is still a structurally readable, unencrypted UDSB sparsebundle;
+  the `token` is not a checksum and was not changed. Both legacy and v9
+  storage-switch labels are now disabled and unloaded, while their plist and
+  script files remain unchanged and recoverable. No mount, format, image
+  rewrite, source deletion or `CODEX_HOME` switch occurred in this
+  containment.
+- The white-screen incident is not attributable to active ORICO reads: the
+  current Chromium and Codex state is on the internal disk. The stronger local
+  risk is the very large original rollout plus full-history agent inheritance:
+  the app server was observed near `3.22 GB` RSS and the main renderer near
+  `0.60 GB`, with historical compression/swap pressure. No rollout JSON
+  corruption or current Codex crash report was found. Full-history subagent
+  forks are now prohibited during recovery; the failed anchor retry loop has
+  been stopped, and no cache, database or session history may be trimmed as an
+  inferred fix.
+- A Secret-free offline auditor is prepared but deliberately not executed:
+  `Codex-ORICO-恢复工具/只读对账.py` is `34,046` bytes / SHA-256
+  `2076c391a91550530b5e06b4222cd0f0f4644552fb30e386bfe50f85272b6ef4`;
+  the byte-bound double-click wrapper is `1,027` bytes / SHA-256
+  `e23948d51a71c6a3909737c088509932fbf4ea111089609fdda93fa300ebb6aa`.
+  Bash/Python syntax, atomic receipt lifecycle, process refusal, streaming
+  common-prefix/tail analysis, missing-tool-output rejection and missing-final-
+  LF rejection pass isolated fixtures. After ChatGPT/Codex, Chrome and local
+  connectors are fully exited, it may attach only the exact image read-only at
+  a separate audit mount, run `diskutil verifyVolume`, take stable SQLite
+  DB/WAL/SHM snapshots, stream both root rollouts, detach, clear temporary
+  state and only then atomically publish one Secret-free report. It cannot
+  merge, reindex, overwrite, switch or delete either source.
+- Ledger validation is terminal green: JSON parsing and `git diff --check`
+  pass; the combined internal/production readiness unit suite passes `61/61`
+  in `5,870.530s`; the internal gate remains exactly `25/29` and public
+  `25/38`; the formal production gate remains `138/138` with zero failures.
+  The audit tool itself remains unexecuted against ORICO.
+
+The unique next action is local recovery, not Item 26: run the frozen read-only
+auditor once after a complete application exit, review its report, and only
+then design a third-copy reconciliation candidate. A replacement user-session
+launcher must mount and verify the exact image before setting `CODEX_HOME` and
+starting ChatGPT; it remains locked until that candidate is accepted. One cold
+start of the original task, one test message written to the accepted candidate
+and a white-screen/RSS check are required before this pause can close. No
+previous Item 26 payload may be revived or re-rendered before then.
