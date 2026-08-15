@@ -2277,6 +2277,24 @@ Last updated: 2026-08-15
   internal `25/29` and public `25/38`; all builder, database, OSS, restore,
   cleanup and other cloud actions remain closed with zero new credit.
 
+- 2026-08-15 the August 14 archive clone remains a local-recovery High gate.
+  The corrected state-only SQLite semantic gate passed, and the next attempt
+  copied the full tree before stopping on a deterministic metadata
+  false-negative: macOS regenerated the system-managed
+  `com.apple.provenance` xattr on a target whose source lacked it. Source
+  content, manifests and APFS were not disproven. Clone/viewer v1.1 now exclude
+  only that fixed non-portable xattr, bind the exception in receipt schema v2,
+  and keep all other xattrs exact; focused fixtures and independent static
+  checks pass. The unaccepted candidate remains isolated as
+  `PARTIAL-UNKNOWN`, unmounted and without a receipt; it cannot be viewed or
+  reused. Rather than rename or delete it, the clone now admits only that exact
+  reviewed basename through an alias-aware, twice-evaluated stable-identity
+  precondition. Any other partial or drift rejects before candidate creation.
+  Static/isolated checks pass, but the corrected clone main has not run; the
+  residual High is one full-exit invocation followed by receipt and viewer
+  validation. Item 26 remains unverified at internal `25/29` and public
+  `25/38`; every cloud and production action remains frozen.
+
 ## Low Risks
 
 ### `model/api.py` is too large

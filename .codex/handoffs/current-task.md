@@ -10153,3 +10153,46 @@ starting ChatGPT; it remains locked until that candidate is accepted. One cold
 start of the original task, one test message written to the accepted candidate
 and a white-screen/RSS check are required before this pause can close. No
 previous Item 26 payload may be revived or re-rendered before then.
+
+### Codex August 14 archive-clone metadata false-negative repaired; one offline retry prepared (2026-08-15)
+
+- The first archive-clone attempt stopped before candidate creation because an
+  over-broad SQLite semantic gate inspected auxiliary/cache databases. The
+  corrected unique top-level `state_[0-9]+.sqlite` gate then passed on the next
+  attempt, as did the source manifest, root binding, new sparsebundle creation
+  and full tree copy. That attempt stopped fail-closed during immediate metadata
+  verification and preserved its unaccepted candidate under a distinct
+  `PARTIAL-UNKNOWN` name. No final archive or receipt was created; the source
+  sparsebundle was not deleted, overwritten or switched into `CODEX_HOME`.
+- The metadata failure was reproduced without mounting the partial. macOS
+  automatically materializes the system-managed, non-portable
+  `com.apple.provenance` xattr on the copied target whose source uniquely lacks
+  it. Mode, UID, GID and mtime remained exact; the only mismatch was that one
+  auto-generated xattr. This was a clone-tool false-negative, not evidence of
+  source content damage, APFS damage or a SHA mismatch.
+- The frozen clone/viewer contract is now version `1.1` with receipt schema v2.
+  It symmetrically excludes only `com.apple.provenance`; every other xattr still
+  requires exact name and byte equality. The receipt records the one-name
+  exclusion, and the viewer rejects any widened, narrowed or altered policy.
+  Metadata mismatch codes are field-specific. Frozen identities are clone
+  `89db53ab1d8d792d83e4f572990ba8053afa6bc197677d7bae35a52236cf0597`,
+  viewer `516914e8d605002c1e44dfb43336ddc3a2072816d2c29dccb4ea0f15a562b932`,
+  and their byte-pinned wrappers
+  `05154809a99a1b8c2375fa370268fd75de13aed2a28a297d8e94fcb79dd71b67` /
+  `2050bc5ba7350107966f8ae4d3b1c7ad2859ee97d1244df6bbacfe212681a227`.
+  Python AST, Bash syntax, SHA pins, FinderInfo/provenance, non-excluded-xattr
+  rejection and clone/viewer schema fixtures pass.
+
+The existing partial remains isolated, unmounted and without a receipt. It is
+not a valid archive or recovery source and was not deleted, renamed, mounted or
+reused. A no-move coexistence gate now admits only that one exact reviewed
+basename after two same-run identity, owner/mode, UDSB, encryption and
+alias-aware unattached checks, once before source attach and again immediately
+before candidate creation. Any extra/case-variant partial, identity drift,
+attachment alias or fixed target rejects fail-closed. The real old-partial
+double gate and `12/12` positive/negative fixtures pass, while clone main,
+rename, mount, image creation, copy and deletion counts remain zero. The next
+runtime action is one full-exit invocation of the fixed clone wrapper; no
+online action can replace its process gate. Item 26 remains `unverified`;
+readiness remains internal `25/29` and public `25/38`; all NoteAI, Colima,
+builder, database, restore, OSS, IAM and other cloud actions remain frozen.
