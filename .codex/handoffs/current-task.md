@@ -10196,3 +10196,82 @@ runtime action is one full-exit invocation of the fixed clone wrapper; no
 online action can replace its process gate. Item 26 remains `unverified`;
 readiness remains internal `25/29` and public `25/38`; all NoteAI, Colima,
 builder, database, restore, OSS, IAM and other cloud actions remain frozen.
+
+### Current internal Codex home selected as the new ORICO live baseline; v6 execution remains closed (2026-08-15)
+
+- The user has explicitly deprioritized loading the divergent August 14 root
+  history and selected the current internal `~/.codex` as the
+  sole authoritative live baseline. No shared-thread JSONL/SQLite merge, raw
+  concatenation or compaction rebase is authorized. The old ORICO
+  `CodexHome.sparsebundle` and both unaccepted archive `PARTIAL-UNKNOWN`
+  sparsebundles remain preserved, unmounted and outside the new runtime path.
+- A new add-only local tool set is frozen under
+  `Codex-ORICO-活跃存储-v6`. It can create only the fixed, no-overwrite
+  `CodexHome-Live-v6.sparsebundle`; it first requires every ChatGPT/Codex,
+  Chrome, Computer Use and connector process to be fully exited, both legacy
+  storage anchors to remain disabled/unloaded and both Codex environment
+  variables to be genuinely unset. It copies the complete current home,
+  rejects ACL/special/SQLite ambiguity, preserves hardlinks, symlink modes,
+  flags and all xattrs except the fixed system-managed
+  `com.apple.provenance`, and changes only candidate-local runtime bindings.
+  Source bytes and old ORICO top-level identities/inventory are re-read as
+  unchanged before an O_EXCL/`RENAME_EXCL` receipt and binding can be
+  committed.
+- Frozen identities are prepare
+  `096ab7d4a25431ab527f4df247a98beca6dffcbe2d585e795c9c5fe435c4de67`,
+  prepare wrapper
+  `ea6026dc4aa2790bed9ce9ba7d8b743f5092dd863ccf03103c68a6dae2d93255`,
+  guarded launcher
+  `213ebf4eaf2dd74a1af30b389bf150767c363226083fa74c606b5b80b66936a1`,
+  launcher wrapper
+  `acd2b7aa86ae8c08cc01179cc096f1c7c61a33977e09dbe99c9326d5233f1f3c`,
+  write verifier
+  `1ab765795b0d514eb7054cfd938745e69e8889008426dd1eade859fa3a48ab71`,
+  verifier wrapper
+  `948ce360ed3d1635431a86ad531d9c3d3f083cc71b6e4eab381d2ad637962254`
+  offline sealer
+  `3e98e56655fb73264c2271908f3c005701afd39ce00c4f89296640664a48ae94`,
+  sealer wrapper
+  `209c4b36d011d16f908ce8d8d2cbe87f90e2d6e681fc007c69f5a4d0bc54f1b6`
+  and README
+  `006a8b3ab696e826f983643f6582c8ff799bdc7cbdd1722e38d14f0141682d4e`.
+  Directory/Python/README/wrapper modes are respectively `0700`, `0600`,
+  `0600` and `0700`, all owned by UID 501. Four Darwin disposable self-tests,
+  four Python AST checks, four Bash syntax checks, wrapper pins and two
+  stable rehash passes are green; independent review found no open P0.
+- The launcher is intentionally `UNSEALED`: until a real prepare PASS exists,
+  it has no accepted receipt SHA, binding SHA or APFS UUID and therefore can
+  only refuse. A frozen, separate offline sealer now closes the execution gap:
+  after prepare PASS and without reopening ChatGPT/Codex, it independently
+  rechecks the source, receipt/binding, application, outer device and one
+  read-only candidate attach/APFS/full-manifest cycle, then creates a new
+  no-overwrite `Codex-ORICO-活跃存储-v6-sealed` directory with those three
+  values mechanically pinned. The original unsealed files remain unchanged.
+  A launch PASS requires the
+  exact app build to adopt ORICO with writable state-main/WAL/current-rollout
+  descriptors and zero internal-home opens before it reveals the one test
+  phrase. The post-message verifier runs only after another full exit and must
+  prove one structured new user event on ORICO, exact SQLite/thread binding,
+  unchanged internal source and a Secret-free atomic PASS receipt.
+- Known fail-closed P1 boundaries are: generic orphan SQLite super-journal
+  naming is not exhaustively enumerated although the current source has zero
+  journal/super-journal files; full-tree hashing of roughly 65 GiB may exceed
+  the launcher time budget and then refuses; and old images/partials are
+  intentionally protected by top-level identity/inventory rather than reading
+  their bands. None authorizes a bypass or retry after `UNKNOWN`.
+
+This is an execution-preparation checkpoint only. New v6 image creation,
+prepare/sealer execution, history merge, `CODEX_HOME` switch, launcher
+execution, test-message write and verifier execution counts all remain zero.
+The App is
+still writing the retained internal source. Item 26 remains `unverified`;
+readiness remains internal `25/29` and public `25/38`, with zero new credit.
+Every NoteAI, Colima, builder, database, restore, OSS, IAM and cloud action
+remains frozen. Direct gates pass at internal `25/29`, public `25/38` and
+production `138/138`; a long historical unit subset was intentionally stopped
+after about fourteen minutes with all emitted cases green because its known
+full duration is roughly ninety-eight minutes. The unique next chain is:
+full exit, one prepare invocation, one offline sealer invocation without
+reopening the App, then only the sealed launcher, one displayed test phrase,
+another full exit and the sealed verifier. No online action can replace those
+process gates.

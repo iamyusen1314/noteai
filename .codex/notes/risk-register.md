@@ -2,6 +2,42 @@
 
 Last updated: 2026-08-15
 
+## Local Codex storage recovery risks
+
+### Live state is still internal until the v6 three-stage proof completes
+
+- 状态: Open local Critical. The current internal `.codex` is the selected
+  authoritative live baseline; divergent August 14 ORICO history is preserved
+  but is not authorized for same-thread merge. The old ORICO image and two
+  unaccepted `PARTIAL-UNKNOWN` images remain retained and unmounted.
+- 风险描述: A white screen or forced exit can still leave durable bytes that
+  the oversized original task cannot render. Starting ChatGPT without first
+  mounting and verifying the accepted ORICO v6 image would continue writing
+  the low-space internal disk. A stale candidate, environment split, wrong
+  APFS device, SQLite companion ambiguity or unproven app adoption could create
+  two writable timelines.
+- 当前控制: The frozen v6 prepare/launcher/verifier chain has independent
+  `P0=0` review. It requires full process/lsof quiescence, no-follow manifests,
+  ACL rejection, metadata/hardlink/SQLite semantic gates, atomic no-overwrite
+  receipts, exact app-build/device/source bindings and zero internal-home opens
+  before a test phrase is authorized. The launcher remains deliberately
+  `UNSEALED`; a separately frozen offline sealer with independent `P0=0`
+  review must, without reopening the App, perform one read-only candidate
+  attach/APFS/full-manifest audit and atomically create a new sealed tool
+  directory. All production execution/switch/write counts remain zero.
+- 残余 P1: Generic orphan SQLite super-journal names are not exhaustively
+  enumerated (current source count is zero); about 65 GiB of full-tree hashing
+  may time out fail-closed; old ORICO images are protected by top-level
+  identity/inventory without reading their bands. Any timeout, mismatch or
+  `UNKNOWN` must stop without bypass or retry.
+- 下一验证: After this checkpoint, completely quit ChatGPT/Codex, Chrome,
+  Computer Use and connectors, run the prepare wrapper once, then without
+  reopening any App run the offline sealer once. Only after `SEAL_PASS` may the
+  newly generated sealed guarded launcher run. Send only its displayed test
+  phrase, quit again and run the sealed verifier. Only its atomic PASS
+  can prove the new message was written to ORICO while the internal source
+  stayed unchanged. Item 26 and all cloud actions remain frozen throughout.
+
 ## Critical Risks
 
 ### Complete first commercial launch is not yet releaseable
