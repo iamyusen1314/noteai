@@ -59,20 +59,36 @@ Last updated: 2026-08-16
   A source-only terminal-verifier scaffold now independently enforces exact
   restore semantics and a 25-entry no-replay registry, but its pre-execution
   authority root is intentionally empty and it cannot authorize dispatch or
-  add readiness credit.
+  add readiness credit. A separate abort v1 source contract now rederives its
+  exact-target action plan and aggregate projections from Secret-free leaf
+  commitments for billing observations, ownership dispositions and current
+  mutation identities; the root-owned extractor that must derive those leaves
+  from provider/confirmation raw bytes is not finalized. The contract fixes
+  readiness at `25 -> 25/29`. The future restore predecessor is
+  domain-separated and must execute the hash/Git-blob-locked abort verifier in
+  an isolated subprocess.
 - 残余边界: The existing retention contract permits either terminal acceptance
   or exact approved cleanup. Under the current fee boundary only a
   `COST_CONTAINMENT_ABORT` is admissible, but disabling deletion protection and
-  deleting the clone require immediate browser action confirmation. An abort
-  keeps Item 26 `unverified` and readiness at `25/29`; a future restore requires
-  a new successor and fee authorization.
-- 下一验证: First freeze and checkpoint a dedicated
-  `COST_CONTAINMENT_ABORT` receipt/evidence/verifier contract that cannot add
-  readiness credit. Then transmit only the minimum exact identifiers to
-  official Alibaba Cloud endpoints for final readback and—if action-time
-  confirmation is received—disable protection, delete the one clone once,
-  prove absence and billing closure, and clean only exact task-scoped temporary
-  material. Any `UNKNOWN` permits readback of the same identity only.
+  deleting the clone require immediate browser action confirmation. The abort
+  scaffold is still deliberately non-dispatchable: its root hash is empty, its
+  provider raw extractor and three-authority bundle do not exist, and no
+  action-time confirmation has been issued. An abort keeps Item 26 `unverified`
+  and readiness at `25/29`; a future restore requires a fully disjoint
+  successor identity/request/name/body/token set and a new fee authorization
+  issued after abort by an independent user-confirmation authority. The
+  provider authority may cross-bind that confirmation but cannot issue it.
+- 下一验证: Complete independent red-team review, checkpoint and normally push
+  the Secret-free source-only abort contract, then install and pre-freeze the
+  root-owned provider/confirmation/CI extraction plan without dispatching it.
+  Only after the immediate action-time confirmation may the main CTO transmit
+  the minimum exact identifiers, re-read the same clone, disable protection,
+  delete it once, prove exact-ID absence and non-accruing billing closure, and
+  clean only ownership-proven task resources. Any mutation `UNKNOWN` permits
+  readback of the same identity only; it never permits resubmission. Abort v1
+  cannot resume a partial known/unprotected state: continuation would require a
+  new versioned recovery contract, fresh preflight and new confirmation while
+  preserving every already-submitted mutation as no-replay.
 
 ## Critical Risks
 

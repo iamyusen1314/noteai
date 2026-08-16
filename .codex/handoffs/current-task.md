@@ -10547,9 +10547,11 @@ Colima, database, builder, restore and cloud actions remain frozen.
   state, disable protection on that one clone, delete it once, prove absence
   and billing closure by exact-identity readback, then remove only confirmed
   Item 26 temporary IAM/network/account/control material. That action remains
-  pending the required action-time confirmation. Until then the clone remains
-  billable and protected; no builder start, database capture, new clone,
-  RestoreTime change, historical command replay or replacement is authorized.
+  pending a new source revision that installs and pre-freezes the root-owned raw
+  extractor and three mutually distinct authorities, followed by a fresh
+  action-time preflight and confirmation. Until then the clone remains billable
+  and protected; no builder start, database capture, new clone, RestoreTime
+  change, historical command replay or replacement is authorized.
   If the abort completes, Item 26 remains unverified and any future restore
   must be a wholly new successor with a new explicit fee ceiling.
 
@@ -10568,10 +10570,11 @@ Colima, database, builder, restore and cloud actions remain frozen.
   reloads and revalidates the two root-owned manifests rather than trusting a
   builder projection.
 - Detached authority is fail-closed by construction. The only repository
-  trust root is currently empty and may be populated only after two distinct
-  provider/CI public keys are installed and their canonical root file hash is
-  frozen in a new source checkpoint before any successor cloud action. A
-  signed terminal bundle must then bind the raw closure, both manifest file and
+  trust root is currently empty and may be populated only after three mutually
+  distinct provider, user-confirmation and CI public keys are installed and
+  their canonical root file hash is frozen in a new source checkpoint before
+  any successor cloud action. A signed terminal bundle must then bind the raw
+  closure, the independently signed fee confirmation, both manifest file and
   semantic hashes, all four terminal artifacts, the exact execution ->
   evidence -> terminal ancestry, and six attempt-one push/PR CI receipts.
   Item 26-specific control bytes must remain identical across all three stages
@@ -10605,3 +10608,92 @@ Colima, database, builder, restore and cloud actions remain frozen.
   one protection-disable and one delete with same-identity readback only. A
   future successful restore requires a wholly new successor plan and a new
   explicit fee ceiling.
+
+### Item 26 cost-containment abort fail-closed source contract (2026-08-16)
+
+- A dedicated abort v1 stack now separates cost containment from restore
+  success. Its only terminal artifact status is
+  `COST_CONTAINMENT_ABORT_TERMINAL_CLEAN`, its evidence status is
+  `PASS_NO_READINESS_CREDIT`, and its readiness contract is exactly internal
+  `25 -> 25/29` and complete-public `25 -> 25/38`; Item 26 remains
+  `unverified` even after a successful abort.
+- The lower-level semantic contract rederives a canonical exact-target action
+  plan and binds 16 ordered slots. The only unconditional mutations are one
+  deletion-protection disable and one delete against the already-bound clone.
+  Each task-resource disposition is either exact task-owned deletion,
+  positively proven shared retention or positively proven absence; incomplete
+  IAM, account, vSwitch or control-material ownership cannot be called
+  terminal. All mutations must start inside the same at-most-600-second
+  action-time confirmation window, with no retry, resend, parameter change or
+  replacement target.
+- Secret-free aggregate projections are deterministically rederived from their
+  leaf commitments for the preflight, plan, provider request and response
+  sets, page inventory, billing observations, resource dispositions, final
+  builder/disk/source state and the new abort mutation identity set. This does
+  not yet make the leaf commitments authoritative: terminal trust still
+  requires the future root-owned raw extractor to rederive every leaf from raw
+  provider/confirmation bytes. Mutation `UNKNOWN` can close only through the
+  following same-identity readback. The existing 25-entry historical no-replay
+  registry remains unchanged and is reloaded from its actual canonical
+  repository artifact.
+- The action-time preflight and signed plan freeze the observed `2026-08`
+  billing resource and fresh full-readback commitment. Runtime pretax gross and
+  service seconds must be at least the recorded `185.658 CNY` / `331200`
+  baseline and remain above the `76.824 CNY` ceiling; the closure must use the
+  exact fresh values, not replay the recorded snapshot. Confirmation must be
+  issued no more than 120 seconds after that preflight and expire within 600
+  seconds. Clone absence does not erase historical charges or independently
+  prove billing closure. Abort v1 permits terminal billing closure only when
+  the future raw extractor proves a provider terminal release plus exact-ID
+  absence/non-accruing condition. Settlement-only observations remain
+  explicitly non-terminal in v1; schema labels alone are not provider
+  evidence. The source, stopped/StopCharging builder and its attached 120 GiB
+  Postpaid disk must remain unchanged.
+- The evidence graph is acyclic: the pre-action root and provider/confirmation
+  exports feed the receipt, evidence and checkpoint; the final detached bundle
+  and CI export bind those artifacts but are not embedded back into evidence.
+  The terminal interface now includes the authority root/bundle, root-owned raw
+  and confirmation hashes, execution/evidence/terminal revisions, and the old
+  clone's create request/body/client-token/name commitments.
+- A future successful restore may consume this abort only through exact
+  artifact hashes and a domain-separated predecessor root. Its abort verifier,
+  validator and builder bytes must match every Git stage; terminal artifacts
+  must match the terminal Git blobs. Verification runs through a fresh
+  `python -I` subprocess containing only the hash-locked abort verifier and
+  validator, so parent-process `sys.modules` or path poisoning cannot satisfy
+  the dependency. The successor clone ID, name, create request, request body
+  and client token must form a set fully disjoint from the abandoned clone. A
+  new fee authorization must be issued after the abort terminal observation,
+  signed by the independent user-confirmation authority, active before the new
+  clone-create begins and unexpired through that start. The provider authority
+  may only cross-bind the signed confirmation export; it cannot grant the fee
+  authorization itself.
+- Abort v1 has no mutation-resume branch. If protection-disable, clone-delete
+  or any ownership-proven cleanup reaches a partial or unresolved `UNKNOWN`,
+  v1 stops and permits same-identity readback only. Continuing from a known
+  unprotected/partial state requires a new versioned recovery contract, a fresh
+  preflight and a new immediate confirmation; no already-submitted mutation may
+  be replayed or disguised as a new slot.
+- This remains a source-only, non-dispatchable scaffold. The pre-action abort
+  authority hash is empty, the provider raw extractor and three-authority
+  bundle are not installed, no action-time confirmation has been issued, and
+  no receipt/evidence/checkpoint exists. Nothing in this stage authorizes
+  transmitting full resource identities, disabling protection, deleting the
+  clone or cleaning adjacent resources.
+- Verification currently passes 157 focused Item 26/27/28/29/shared-gate test
+  executions from 149 distinct test methods, across abort `55`, PITR success
+  `25`, success authority `10`, shared
+  readiness `20`, Item 27 `24`, Item 28 `5`, Item 29 adapter `2` and full Item
+  29 readiness `16`,
+  `git diff --check`, internal readiness at exactly `25/29`, and production
+  readiness `138/138`. The prior `0821ed8` push and PR CI are both attempt-one
+  terminal green; this newer working tree has not yet been checkpointed. This
+  stage performed zero cloud writes, database connections, builder starts,
+  command dispatches, SendFile operations or readiness-credit changes. Five
+  historical untracked scripts remain preserved, unexecuted, undeleted and
+  unstaged.
+- The immediate task remains serial: finish independent red-team review of
+  this contract, create and push the Secret-free non-dispatchable checkpoint,
+  then freeze the real root-owned extractor/authority plan. Exact cloud cleanup
+  still requires the immediate action-time confirmation before full identifiers
+  can be transmitted. A checkpoint or completed review is not a stopping point.

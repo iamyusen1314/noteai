@@ -9,17 +9,22 @@ therefore cannot grant Item 26 readiness credit.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import stat
+import subprocess
+import sys
+import tempfile
 from typing import Any
 
 from verify_item26_external_authority_v1 import (
     VERIFIER_REF as EXTERNAL_AUTHORITY_VERIFIER_REF,
+    _frozen_before as _revision_is_strict_ancestor,
     git_tree_binding,
     validate_authority_bundle,
 )
@@ -31,6 +36,18 @@ ROOT = Path(__file__).resolve().parents[1]
 VERIFIER_REF = "tools/verify_pitr_restore_evidence.py"
 RESULT_VALIDATOR_REF = "tools/validate_item26_pitr_restore_result_v1.py"
 EVIDENCE_BUILDER_REF = "tools/build_item26_pitr_restore_evidence_v1.py"
+ABORT_VERIFIER_REF = "tools/verify_item26_cost_containment_abort_evidence_v1.py"
+ABORT_VALIDATOR_REF = "tools/validate_item26_cost_containment_abort_result_v1.py"
+ABORT_BUILDER_REF = "tools/build_item26_cost_containment_abort_evidence_v1.py"
+ABORT_EVIDENCE_REF = (
+    "deploy/production/evidence/production-item26-cost-containment-abort-20260816.json"
+)
+ABORT_RECEIPT_REF = (
+    "deploy/production/evidence/item26-cost-containment-abort-provider-receipt-20260816.json"
+)
+ABORT_CHECKPOINT_REF = (
+    "deploy/production/evidence/item26-cost-containment-abort-terminal-checkpoint-20260816.json"
+)
 TASK_ID = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
 RECEIPT_SCHEMA = "noteai.item26.pitr-restore-provider-receipt.v1"
 EVIDENCE_SCHEMA = "noteai.item26.pitr-restore-evidence.v1"
@@ -48,6 +65,7 @@ NO_REPLAY_REGISTRY_REF = (
     "deploy/production/plans/item26-no-replay-registry-v1.json"
 )
 NO_REPLAY_REGISTRY_SCHEMA = "noteai.item26.no-replay-registry.v1"
+ABORT_DEPENDENCY_SCHEMA = "noteai.item26.cost-containment-abort-dependency.v1"
 REQUIRED_MANIFEST_PATH_REFS = {
     EVIDENCE_REF,
     RECEIPT_REF,
@@ -57,16 +75,58 @@ REQUIRED_MANIFEST_PATH_REFS = {
     EXTERNAL_AUTHORITY_VERIFIER_REF,
     RESULT_VALIDATOR_REF,
     EVIDENCE_BUILDER_REF,
+    ABORT_VERIFIER_REF,
+    ABORT_VALIDATOR_REF,
+    ABORT_BUILDER_REF,
     "tools/internal_deployment_readiness_gate.py",
     "model/storage_recovery_evidence.py",
 }
 
-# Populated only in a new source checkpoint after the two detached authority
-# keys have been installed and before any successor cloud action.  All
+# Populated only in a new source checkpoint after the three detached provider,
+# user-confirmation and CI authority keys have been installed and before any
+# successor cloud action.  All
 # terminal roots are then supplied by the independently signed authority
 # bundle, so this verifier and its control files remain byte-identical across
 # execution, evidence and terminal revisions.
 EXPECTED_AUTHORITY_ROOT_FILE_SHA256 = ""
+
+# Filled mechanically only after the cost-containment abort freezes its
+# independent provider/confirmation/CI authority and terminal artifacts.  A
+# future PITR successor must dynamically reload that exact verifier and bundle;
+# it may not trust six receipt-owned booleans as predecessor evidence.
+EXPECTED_ABORT_DEPENDENCY = {
+    "schema": ABORT_DEPENDENCY_SCHEMA,
+    "authority_root": "",
+    "verifier_path": "",
+    "verifier_sha256": "",
+    "validator_path": "",
+    "validator_sha256": "",
+    "builder_path": "",
+    "builder_sha256": "",
+    "evidence_path": "",
+    "evidence_sha256": "",
+    "receipt_path": "",
+    "receipt_sha256": "",
+    "checkpoint_path": "",
+    "checkpoint_sha256": "",
+    "authority_root_file_sha256": "",
+    "authority_bundle_file_sha256": "",
+    "raw_closure_file_sha256": "",
+    "confirmation_envelope_file_sha256": "",
+    "terminal_acceptance_sha256": "",
+    "old_clone_sha256": "",
+    "billing_closure_sha256": "",
+    "resource_disposition_sha256": "",
+    "no_replay_registry_sha256": "",
+    "old_clone_create_request_sha256": "",
+    "old_clone_create_body_sha256": "",
+    "old_clone_client_token_sha256": "",
+    "old_clone_name_sha256": "",
+    "abort_terminal_observed_at_utc": "",
+    "execution_revision": "",
+    "evidence_revision": "",
+    "terminal_revision": "",
+}
 
 DEFAULT_READINESS = {
     "internal_verified_before": 25,
@@ -89,6 +149,11 @@ HEX64 = re.compile(r"^[0-9a-f]{64}$")
 UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 DECIMAL_CNY = re.compile(r"^(0|[1-9]\d*)(?:\.\d{1,6})?$")
 MAX_BYTES = 2 * 1024 * 1024
+GIT = Path("/usr/bin/git")
+ABORT_DEPENDENCY_AUTHORITY_DOMAIN = (
+    b"noteai-item26-cost-containment-abort-dependency-authority-v1\0"
+)
+SUCCESSOR_IDENTITY_DOMAIN = b"noteai-item26-pitr-successor-identity-v1\0"
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 ACCEPTANCE_DOMAIN = b"noteai-item26-pitr-terminal-acceptance-v1\0"
 RAW_CLOSURE_DOMAIN = b"noteai-item26-raw-closure-v1\0"
@@ -399,6 +464,33 @@ def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def _utc(value: Any) -> datetime | None:
+    if type(value) is not str or UTC.fullmatch(value) is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError:
+        return None
+    if parsed.tzinfo != timezone.utc or parsed.microsecond != 0:
+        return None
+    return parsed
+
+
+def successor_clone_identity_set_sha256(identity: dict[str, Any]) -> str:
+    keys = (
+        "successor_clone_sha256",
+        "successor_clone_name_sha256",
+        "successor_clone_create_request_sha256",
+        "successor_clone_create_body_sha256",
+        "successor_clone_client_token_sha256",
+        "restore_time_sha256",
+    )
+    return _sha(
+        SUCCESSOR_IDENTITY_DOMAIN
+        + _canonical({key: identity.get(key) for key in keys})[:-1]
+    )
+
+
 def _semantic(value: Any) -> str:
     return _sha(_canonical(value)[:-1])
 
@@ -499,6 +591,399 @@ def _load(path: Path) -> tuple[dict[str, Any] | None, bytes | None, str | None]:
 
 def _terminal_roots_finalized() -> bool:
     return _hex64(EXPECTED_AUTHORITY_ROOT_FILE_SHA256)
+
+
+def _abort_dependency_complete(value: Any) -> bool:
+    def safe_ref(candidate: Any, prefix: str, suffix: str) -> bool:
+        if type(candidate) is not str:
+            return False
+        parsed = PurePosixPath(candidate)
+        return bool(
+            str(parsed) == candidate
+            and not parsed.is_absolute()
+            and ".." not in parsed.parts
+            and candidate.startswith(prefix)
+            and candidate.endswith(suffix)
+        )
+
+    digest_keys = {
+        "authority_root",
+        "verifier_sha256",
+        "validator_sha256",
+        "builder_sha256",
+        "evidence_sha256",
+        "receipt_sha256",
+        "checkpoint_sha256",
+        "authority_root_file_sha256",
+        "authority_bundle_file_sha256",
+        "raw_closure_file_sha256",
+        "confirmation_envelope_file_sha256",
+        "terminal_acceptance_sha256",
+        "old_clone_sha256",
+        "billing_closure_sha256",
+        "resource_disposition_sha256",
+        "no_replay_registry_sha256",
+        "old_clone_create_request_sha256",
+        "old_clone_create_body_sha256",
+        "old_clone_client_token_sha256",
+        "old_clone_name_sha256",
+    }
+    revision_keys = {
+        "execution_revision",
+        "evidence_revision",
+        "terminal_revision",
+    }
+    return bool(
+        type(value) is dict
+        and set(value) == set(EXPECTED_ABORT_DEPENDENCY)
+        and value.get("schema") == ABORT_DEPENDENCY_SCHEMA
+        and value.get("verifier_path") == ABORT_VERIFIER_REF
+        and value.get("validator_path") == ABORT_VALIDATOR_REF
+        and value.get("builder_path") == ABORT_BUILDER_REF
+        and value.get("evidence_path") == ABORT_EVIDENCE_REF
+        and value.get("receipt_path") == ABORT_RECEIPT_REF
+        and value.get("checkpoint_path") == ABORT_CHECKPOINT_REF
+        and safe_ref(value.get("verifier_path"), "tools/", ".py")
+        and safe_ref(value.get("validator_path"), "tools/", ".py")
+        and safe_ref(value.get("builder_path"), "tools/", ".py")
+        and all(_hex64(value.get(key)) for key in digest_keys)
+        and all(
+            type(value.get(key)) is str
+            and HEX40.fullmatch(value[key]) is not None
+            for key in revision_keys
+        )
+        and len({value[key] for key in revision_keys}) == 3
+        and type(value.get("abort_terminal_observed_at_utc")) is str
+        and UTC.fullmatch(value["abort_terminal_observed_at_utc"]) is not None
+        and len({
+            value["old_clone_create_request_sha256"],
+            value["old_clone_create_body_sha256"],
+            value["old_clone_client_token_sha256"],
+            value["old_clone_name_sha256"],
+        }) == 4
+    )
+
+
+def abort_dependency_authority_root(dependency: dict[str, str]) -> str:
+    return _sha(
+        ABORT_DEPENDENCY_AUTHORITY_DOMAIN
+        + _canonical({
+            key: dependency[key]
+            for key in sorted(dependency)
+            if key != "authority_root"
+        })[:-1]
+    )
+
+
+def _read_stable_bytes(path: Path) -> bytes:
+    before = path.lstat()
+    if (
+        not stat.S_ISREG(before.st_mode)
+        or stat.S_ISLNK(before.st_mode)
+        or before.st_nlink != 1
+        or stat.S_IMODE(before.st_mode) != 0o644
+    ):
+        raise ValueError("abort dependency file identity invalid")
+    descriptor = os.open(
+        path,
+        os.O_RDONLY
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_CLOEXEC", 0),
+    )
+    try:
+        opened = os.fstat(descriptor)
+        raw = b""
+        while len(raw) <= MAX_BYTES:
+            chunk = os.read(descriptor, min(65536, MAX_BYTES + 1 - len(raw)))
+            if not chunk:
+                break
+            raw += chunk
+        closed = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    after = path.lstat()
+    if (
+        not 1 <= len(raw) <= MAX_BYTES
+        or _stable(before) != _stable(opened)
+        or _stable(opened) != _stable(closed)
+        or _stable(closed) != _stable(after)
+    ):
+        raise ValueError("abort dependency file identity changed")
+    return raw
+
+
+def _git_blob_bytes(
+    revision: str,
+    path_ref: str,
+    *,
+    root: Path,
+) -> bytes:
+    if HEX40.fullmatch(revision or "") is None:
+        raise ValueError("abort dependency revision invalid")
+    result = subprocess.run(
+        [
+            str(GIT),
+            "--no-replace-objects",
+            "show",
+            revision + ":" + path_ref,
+        ],
+        cwd=root,
+        env={
+            "PATH": "/usr/bin:/bin",
+            "LC_ALL": "C",
+            "LANG": "C",
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_NO_REPLACE_OBJECTS": "1",
+            "GIT_OPTIONAL_LOCKS": "0",
+        },
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        timeout=10,
+        check=False,
+    )
+    if result.returncode != 0 or not 1 <= len(result.stdout) <= MAX_BYTES:
+        raise ValueError("abort dependency Git blob unavailable")
+    return result.stdout
+
+
+def _write_exclusive(path: Path, raw: bytes) -> None:
+    descriptor = os.open(
+        path,
+        os.O_WRONLY
+        | os.O_CREAT
+        | os.O_EXCL
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_CLOEXEC", 0),
+        0o600,
+    )
+    try:
+        offset = 0
+        while offset < len(raw):
+            offset += os.write(descriptor, raw[offset:])
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _run_frozen_abort_verifier(
+    *,
+    verifier_raw: bytes,
+    validator_raw: bytes,
+    root: Path,
+) -> tuple[list[str], dict[str, Any] | None]:
+    try:
+        python = Path(sys.executable).resolve(strict=True)
+    except OSError as exc:
+        raise ValueError("isolated Python unavailable") from exc
+    try:
+        python_stat = python.lstat()
+    except OSError as exc:
+        raise ValueError("isolated Python unavailable") from exc
+    if (
+        not python.is_absolute()
+        or not stat.S_ISREG(python_stat.st_mode)
+        or stat.S_ISLNK(python_stat.st_mode)
+        or stat.S_IMODE(python_stat.st_mode) & 0o022
+    ):
+        raise ValueError("isolated Python identity invalid")
+    wrapper = (
+        "import runpy,sys;"
+        "d=sys.argv[1];p=sys.argv[2];"
+        "sys.path.insert(0,d);"
+        "sys.argv=[p,*sys.argv[3:]];"
+        "runpy.run_path(p,run_name='__main__')"
+    )
+    with tempfile.TemporaryDirectory(
+        prefix="noteai-item26-abort-verifier-"
+    ) as directory:
+        temp_root = Path(directory)
+        verifier_path = temp_root / Path(ABORT_VERIFIER_REF).name
+        validator_path = temp_root / Path(ABORT_VALIDATOR_REF).name
+        _write_exclusive(verifier_path, verifier_raw)
+        _write_exclusive(validator_path, validator_raw)
+        result = subprocess.run(
+            [
+                str(python),
+                "-I",
+                "-c",
+                wrapper,
+                str(temp_root),
+                str(verifier_path),
+                "--root",
+                str(root.resolve()),
+                "--json",
+            ],
+            cwd=temp_root,
+            env={
+                "PATH": "/usr/bin:/bin",
+                "LC_ALL": "C",
+                "LANG": "C",
+                "PYTHONHASHSEED": "0",
+                "PYTHONDONTWRITEBYTECODE": "1",
+            },
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+            check=False,
+        )
+    if not 1 <= len(result.stdout) <= MAX_BYTES:
+        raise ValueError("isolated abort verifier output invalid")
+    try:
+        value = json.loads(result.stdout.decode("ascii"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("isolated abort verifier output invalid") from exc
+    if (
+        type(value) is not dict
+        or set(value) != {"errors", "binding"}
+        or _canonical(value) != result.stdout
+        or type(value["errors"]) is not list
+        or any(type(item) is not str or not item for item in value["errors"])
+        or (value["binding"] is not None and type(value["binding"]) is not dict)
+    ):
+        raise ValueError("isolated abort verifier output schema mismatch")
+    if result.returncode != 0:
+        return value["errors"] or ["isolated abort verifier rejected"], None
+    if value["errors"] or type(value["binding"]) is not dict:
+        raise ValueError("isolated abort verifier success output mismatch")
+    return [], value["binding"]
+
+
+def validate_abort_dependency(
+    *,
+    expected_successor_revision: str,
+    root: Path = ROOT,
+) -> tuple[list[str], dict[str, str] | None]:
+    if not _abort_dependency_complete(EXPECTED_ABORT_DEPENDENCY):
+        return ["Item26 cost-containment abort dependency is not finalized"], None
+    dependency = dict(EXPECTED_ABORT_DEPENDENCY)
+    if dependency["authority_root"] != abort_dependency_authority_root(dependency):
+        return ["Item26 abort dependency authority root mismatch"], None
+    bindings = (
+        ("verifier_path", "verifier_sha256"),
+        ("validator_path", "validator_sha256"),
+        ("builder_path", "builder_sha256"),
+        ("evidence_path", "evidence_sha256"),
+        ("receipt_path", "receipt_sha256"),
+        ("checkpoint_path", "checkpoint_sha256"),
+    )
+    try:
+        loaded_raw: dict[str, bytes] = {}
+        for path_key, digest_key in bindings:
+            raw = _read_stable_bytes(root / dependency[path_key])
+            loaded_raw[path_key] = raw
+            if _sha(raw) != dependency[digest_key]:
+                return ["Item26 abort dependency artifact mismatch"], None
+        for path_key, digest_key in (
+            ("verifier_path", "verifier_sha256"),
+            ("validator_path", "validator_sha256"),
+            ("builder_path", "builder_sha256"),
+        ):
+            for revision_key in (
+                "execution_revision",
+                "evidence_revision",
+                "terminal_revision",
+            ):
+                if _sha(
+                    _git_blob_bytes(
+                        dependency[revision_key],
+                        dependency[path_key],
+                        root=root,
+                    )
+                ) != dependency[digest_key]:
+                    return ["Item26 abort control source drifted"], None
+        for path_key, digest_key in (
+            ("evidence_path", "evidence_sha256"),
+            ("receipt_path", "receipt_sha256"),
+            ("checkpoint_path", "checkpoint_sha256"),
+        ):
+            if _sha(
+                _git_blob_bytes(
+                    dependency["terminal_revision"],
+                    dependency[path_key],
+                    root=root,
+                )
+            ) != dependency[digest_key]:
+                return ["Item26 abort terminal artifact blob mismatch"], None
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        return ["Item26 abort dependency unavailable: " + str(exc)], None
+    if not _revision_is_strict_ancestor(
+        dependency["terminal_revision"],
+        expected_successor_revision,
+        root=root,
+    ):
+        return ["Item26 successor must strictly descend from terminal abort"], None
+    try:
+        errors, binding = _run_frozen_abort_verifier(
+            verifier_raw=loaded_raw["verifier_path"],
+            validator_raw=loaded_raw["validator_path"],
+            root=root,
+        )
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        return ["Item26 isolated abort verifier failed: " + str(exc)], None
+    if errors or type(binding) is not dict:
+        return [
+            "Item26 frozen abort verifier rejected: "
+            + (errors[0] if errors else "binding missing")
+        ], None
+    expected_binding = {
+        "status": "COST_CONTAINMENT_ABORT_TERMINAL_CLEAN",
+        "terminal_acceptance_sha256": dependency[
+            "terminal_acceptance_sha256"
+        ],
+        "old_clone_sha256": dependency["old_clone_sha256"],
+        "billing_closure_sha256": dependency["billing_closure_sha256"],
+        "resource_disposition_sha256": dependency[
+            "resource_disposition_sha256"
+        ],
+        "no_replay_registry_sha256": dependency[
+            "no_replay_registry_sha256"
+        ],
+        "authority_root_file_sha256": dependency[
+            "authority_root_file_sha256"
+        ],
+        "authority_bundle_file_sha256": dependency[
+            "authority_bundle_file_sha256"
+        ],
+        "raw_closure_file_sha256": dependency["raw_closure_file_sha256"],
+        "confirmation_envelope_file_sha256": dependency[
+            "confirmation_envelope_file_sha256"
+        ],
+        "old_clone_create_request_sha256": dependency[
+            "old_clone_create_request_sha256"
+        ],
+        "old_clone_create_body_sha256": dependency[
+            "old_clone_create_body_sha256"
+        ],
+        "old_clone_client_token_sha256": dependency[
+            "old_clone_client_token_sha256"
+        ],
+        "old_clone_name_sha256": dependency["old_clone_name_sha256"],
+        "terminal_observed_at_utc": dependency[
+            "abort_terminal_observed_at_utc"
+        ],
+        "execution_revision": dependency["execution_revision"],
+        "evidence_revision": dependency["evidence_revision"],
+        "terminal_revision": dependency["terminal_revision"],
+        "readiness": {
+            "internal_verified_before": 25,
+            "internal_verified_after": 25,
+            "internal_total": 29,
+            "internal_percentage_after": 86,
+            "complete_public_verified_before": 25,
+            "complete_public_verified_after": 25,
+            "complete_public_total": 38,
+            "complete_public_percentage_after": 66,
+            "item26_status_before": "unverified",
+            "item26_status_after": "unverified",
+            "manifest_status_unchanged": True,
+            "readiness_credit_added": False,
+            "future_successor_requires_new_fee_authorization": True,
+        },
+    }
+    if not _strict(binding, expected_binding):
+        return ["Item26 abort dependency terminal binding mismatch"], None
+    return [], dependency
 
 
 def terminal_acceptance_sha256(receipt: dict[str, Any]) -> str:
@@ -650,6 +1135,7 @@ def validate_receipt(
     value: Any,
     *,
     expected_execution_revision: str | None = None,
+    expected_abort_dependency: dict[str, str] | None = None,
     root: Path = ROOT,
 ) -> tuple[list[str], str | None]:
     errors: list[str] = []
@@ -662,7 +1148,7 @@ def validate_receipt(
         "observed_at_utc",
         "source_revision",
         "source_binding",
-        "predecessor_abort",
+        "abort_dependency",
         "provider_identity",
         "raw_closure",
         "ordered_actions",
@@ -717,30 +1203,22 @@ def validate_receipt(
     ):
         errors.append("receipt source binding mismatch")
 
-    predecessor = value.get("predecessor_abort")
-    if type(predecessor) is not dict or set(predecessor) != {
-        "status",
-        "acceptance_sha256",
-        "old_clone_absent",
-        "billing_closed",
-        "temporary_cleanup_terminal",
-        "readiness_credit_added",
-    }:
-        errors.append("receipt predecessor abort schema mismatch")
-    elif (
-        predecessor["status"] != "COST_CONTAINMENT_ABORT_TERMINAL"
-        or not _hex64(predecessor["acceptance_sha256"])
-        or predecessor["old_clone_absent"] is not True
-        or predecessor["billing_closed"] is not True
-        or predecessor["temporary_cleanup_terminal"] is not True
-        or predecessor["readiness_credit_added"] is not False
+    dependency = expected_abort_dependency or EXPECTED_ABORT_DEPENDENCY
+    if (
+        not _abort_dependency_complete(dependency)
+        or not _strict(value.get("abort_dependency"), dependency)
     ):
-        errors.append("receipt predecessor abort mismatch")
+        errors.append("receipt strict abort dependency mismatch")
 
     identity = value.get("provider_identity")
     identity_keys = {
         "source_rds_sha256",
         "successor_clone_sha256",
+        "successor_clone_name_sha256",
+        "successor_clone_create_request_sha256",
+        "successor_clone_create_body_sha256",
+        "successor_clone_client_token_sha256",
+        "successor_clone_identity_set_sha256",
         "builder_sha256",
         "restore_time_sha256",
         "region_sha256",
@@ -764,6 +1242,40 @@ def validate_receipt(
         or identity["private_endpoint_count"] != 1
         or identity["public_endpoint_count"] != 0
         or identity["source_clone_distinct"] is not True
+        or identity["successor_clone_identity_set_sha256"]
+        != successor_clone_identity_set_sha256(identity)
+        or identity["successor_clone_sha256"]
+        == dependency.get("old_clone_sha256")
+        or identity["successor_clone_name_sha256"]
+        == dependency.get("old_clone_name_sha256")
+        or identity["successor_clone_create_request_sha256"]
+        == dependency.get("old_clone_create_request_sha256")
+        or identity["successor_clone_create_body_sha256"]
+        == dependency.get("old_clone_create_body_sha256")
+        or identity["successor_clone_client_token_sha256"]
+        == dependency.get("old_clone_client_token_sha256")
+        or len({
+            identity["successor_clone_name_sha256"],
+            identity["successor_clone_create_request_sha256"],
+            identity["successor_clone_create_body_sha256"],
+            identity["successor_clone_client_token_sha256"],
+        }) != 4
+        or bool(
+            {
+                identity["successor_clone_sha256"],
+                identity["successor_clone_name_sha256"],
+                identity["successor_clone_create_request_sha256"],
+                identity["successor_clone_create_body_sha256"],
+                identity["successor_clone_client_token_sha256"],
+            }
+            & {
+                dependency.get("old_clone_sha256"),
+                dependency.get("old_clone_name_sha256"),
+                dependency.get("old_clone_create_request_sha256"),
+                dependency.get("old_clone_create_body_sha256"),
+                dependency.get("old_clone_client_token_sha256"),
+            }
+        )
     ):
         errors.append("receipt provider identity mismatch")
 
@@ -775,6 +1287,8 @@ def validate_receipt(
         "billing_readback_sha256",
         "account_inventory_sha256",
         "network_inventory_sha256",
+        "successor_clone_identity_set_sha256",
+        "fee_authorization_sha256",
         "raw_payload_retained_in_repository",
         "secret_value_emitted_count",
     }:
@@ -787,6 +1301,18 @@ def validate_receipt(
         )
         or raw_closure["raw_payload_retained_in_repository"] is not False
         or raw_closure["secret_value_emitted_count"] != 0
+        or raw_closure["successor_clone_identity_set_sha256"]
+        != (
+            identity.get("successor_clone_identity_set_sha256")
+            if type(identity) is dict
+            else None
+        )
+        or raw_closure["fee_authorization_sha256"]
+        != (
+            value["cost_boundary"].get("fee_authorization_sha256")
+            if type(value.get("cost_boundary")) is dict
+            else None
+        )
     ):
         errors.append("receipt raw closure mismatch")
 
@@ -832,6 +1358,19 @@ def validate_receipt(
                 or action["manual_resend_count"] != 0
             ):
                 errors.append("receipt ordered action mismatch: " + expected_name)
+        if type(identity) is dict and len(actions) > 1:
+            clone_create = actions[1]
+            if type(clone_create) is not dict or (
+                clone_create.get("target_sha256")
+                != identity.get("successor_clone_name_sha256")
+                or clone_create.get("request_sha256")
+                != identity.get("successor_clone_create_body_sha256")
+                or clone_create.get("provider_request_id_sha256")
+                != identity.get("successor_clone_create_request_sha256")
+                or clone_create.get("client_token_sha256")
+                != identity.get("successor_clone_client_token_sha256")
+            ):
+                errors.append("receipt successor clone request identity mismatch")
 
     errors.extend(_validate_capture(value.get("source_capture"), "source"))
     errors.extend(_validate_capture(value.get("restored_capture"), "restored"))
@@ -908,6 +1447,15 @@ def validate_receipt(
     cost_keys = {
         "currency",
         "approved_cap_cny",
+        "fee_authorization_cap_cny",
+        "fee_authorization_sha256",
+        "fee_confirmation_sha256",
+        "fee_authorization_nonce_sha256",
+        "fee_authorization_issued_at_utc",
+        "fee_authorization_approved_at_utc",
+        "fee_authorization_expires_at_utc",
+        "clone_create_started_at_utc",
+        "fee_authorization_postdates_abort",
         "actual_incremental_cny",
         "rds_incremental_cny",
         "builder_incremental_cny",
@@ -926,6 +1474,29 @@ def validate_receipt(
         }
         if (
             cost["currency"] != "CNY"
+            or not _hex64(cost["fee_authorization_sha256"])
+            or not _hex64(cost["fee_confirmation_sha256"])
+            or not _hex64(cost["fee_authorization_nonce_sha256"])
+            or cost["fee_authorization_sha256"]
+            == cost["fee_confirmation_sha256"]
+            or cost["fee_authorization_postdates_abort"] is not True
+            or _utc(cost["fee_authorization_issued_at_utc"]) is None
+            or _utc(cost["fee_authorization_approved_at_utc"]) is None
+            or _utc(cost["fee_authorization_expires_at_utc"]) is None
+            or _utc(cost["clone_create_started_at_utc"]) is None
+            or _utc(dependency.get("abort_terminal_observed_at_utc")) is None
+            or _utc(value.get("observed_at_utc")) is None
+            or not (
+                _utc(dependency["abort_terminal_observed_at_utc"])
+                < _utc(cost["fee_authorization_issued_at_utc"])
+                == _utc(cost["fee_authorization_approved_at_utc"])
+                <= _utc(cost["clone_create_started_at_utc"])
+                < _utc(cost["fee_authorization_expires_at_utc"])
+                <= _utc(value["observed_at_utc"])
+            )
+            or _utc(cost["fee_authorization_expires_at_utc"])
+            - _utc(cost["fee_authorization_approved_at_utc"])
+            > timedelta(minutes=10)
             or cost["attribution_proven"] is not True
             or cost["noncleanup_paid_action_after_breach_count"] != 0
             or any(item is None for item in amounts.values())
@@ -939,6 +1510,9 @@ def validate_receipt(
             + amounts["other_incremental_cny"]
             or amounts["actual_incremental_cny"]
             > amounts["approved_cap_cny"]
+            or amounts["approved_cap_cny"] <= 0
+            or amounts["fee_authorization_cap_cny"]
+            != amounts["approved_cap_cny"]
         ):
             errors.append("receipt cost arithmetic mismatch")
 
@@ -949,6 +1523,9 @@ def validate_receipt(
         "historical_replay_count",
         "historical_replacement_count",
         "successor_names_disjoint",
+        "successor_identity_set_sha256",
+        "successor_fee_authorization_nonce_sha256",
+        "old_clone_identity_reuse_count",
         "provider_unknown_count",
         "automatic_retry_count",
         "manual_resend_count",
@@ -960,6 +1537,20 @@ def validate_receipt(
         errors.append("receipt no-replay schema mismatch")
     elif (
         not _hex64(no_replay["registry_sha256"])
+        or not _hex64(no_replay["successor_identity_set_sha256"])
+        or not _hex64(no_replay["successor_fee_authorization_nonce_sha256"])
+        or no_replay["successor_identity_set_sha256"]
+        != (
+            identity.get("successor_clone_identity_set_sha256")
+            if type(identity) is dict
+            else None
+        )
+        or no_replay["successor_fee_authorization_nonce_sha256"]
+        != (
+            cost.get("fee_authorization_nonce_sha256")
+            if type(cost) is dict
+            else None
+        )
         or not _nonnegative(no_replay["historical_entry_count"])
         or no_replay["historical_entry_count"] == 0
         or no_replay["successor_names_disjoint"] is not True
@@ -1076,8 +1667,9 @@ def validate_evidence(
         {
             "required": True,
             "provider_authority": "DETACHED_ROOT_OWNED",
+            "confirmation_authority": "DETACHED_ROOT_OWNED",
             "ci_authority": "DETACHED_ROOT_OWNED",
-            "mathematically_distinct_keys_required": True,
+            "mathematically_distinct_key_count": 3,
         },
     ):
         errors.append("evidence external authority contract mismatch")
@@ -1220,9 +1812,23 @@ def validate_manifest_evidence(
     receipt, receipt_raw = loaded[RECEIPT_REF]
     checkpoint, _checkpoint_raw = loaded[TERMINAL_CHECKPOINT_REF]
     registry, _registry_raw = loaded[NO_REPLAY_REGISTRY_REF]
+    abort_errors, abort_dependency = validate_abort_dependency(
+        expected_successor_revision=execution_revision,
+        root=root,
+    )
+    if abort_errors or abort_dependency is None:
+        return abort_errors or ["Item26 terminal abort dependency missing"], None
+    if (
+        authority.get("abort_dependency_authority_root")
+        != abort_dependency["authority_root"]
+        or authority.get("abort_terminal_acceptance_sha256")
+        != abort_dependency["terminal_acceptance_sha256"]
+    ):
+        return ["Item26 provider authority abort dependency mismatch"], None
     receipt_errors, acceptance = validate_receipt(
         receipt,
         expected_execution_revision=execution_revision,
+        expected_abort_dependency=abort_dependency,
         root=root,
     )
     if receipt_errors or acceptance is None:
@@ -1231,6 +1837,25 @@ def validate_manifest_evidence(
         return ["Item26 frozen terminal acceptance mismatch"], None
     if raw_closure_sha256(receipt) != authority["raw_closure_sha256"]:
         return ["Item26 provider raw closure binding mismatch"], None
+    if (
+        authority.get("successor_clone_identity_set_sha256")
+        != receipt["provider_identity"]["successor_clone_identity_set_sha256"]
+        or authority.get("successor_fee_authorization_sha256")
+        != receipt["cost_boundary"]["fee_authorization_sha256"]
+        or authority.get("fee_confirmation_sha256")
+        != receipt["cost_boundary"]["fee_confirmation_sha256"]
+        or authority.get("fee_authorization_nonce_sha256")
+        != receipt["cost_boundary"]["fee_authorization_nonce_sha256"]
+        or authority.get("fee_authorization_cap_cny")
+        != receipt["cost_boundary"]["fee_authorization_cap_cny"]
+        or authority.get("fee_authorization_approved_at_utc")
+        != receipt["cost_boundary"]["fee_authorization_approved_at_utc"]
+        or authority.get("fee_authorization_expires_at_utc")
+        != receipt["cost_boundary"]["fee_authorization_expires_at_utc"]
+        or authority.get("successor_confirmation_export_semantic_sha256")
+        != authority.get("confirmation_export_semantic_sha256")
+    ):
+        return ["Item26 provider successor authorization mismatch"], None
     result_errors = validate_terminal_result(
         source_manifest=authority["source_manifest"],
         restored_manifest=authority["restored_manifest"],

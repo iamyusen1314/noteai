@@ -4,7 +4,8 @@
 The builder is pure: it neither contacts Alibaba Cloud nor reads a database.
 Callers must provide the exact root-only source/restored manifests and a
 Secret-free provider receipt projection.  The detached authority verifier is
-responsible for binding that projection to external provider and CI exports.
+responsible for binding that projection to external provider,
+user-confirmation and CI exports.
 """
 
 from __future__ import annotations
@@ -60,6 +61,7 @@ def build_receipt(
     *,
     source_manifest: Any,
     restored_manifest: Any,
+    expected_abort_dependency: dict[str, str],
 ) -> dict[str, Any]:
     if type(candidate) is not dict:
         raise ValueError("Item26 receipt candidate must be an object")
@@ -80,6 +82,7 @@ def build_receipt(
     receipt_errors, acceptance = validate_receipt(
         receipt,
         expected_execution_revision=receipt.get("source_revision"),
+        expected_abort_dependency=expected_abort_dependency,
     )
     errors = [*result_errors, *receipt_errors]
     if errors or acceptance != receipt["terminal_acceptance_sha256"]:
@@ -92,6 +95,7 @@ def build_evidence(
     *,
     source_manifest: Any,
     restored_manifest: Any,
+    expected_abort_dependency: dict[str, str],
 ) -> dict[str, Any]:
     if type(receipt) is not dict:
         raise ValueError("Item26 terminal receipt required")
@@ -99,6 +103,7 @@ def build_evidence(
     errors, acceptance = validate_receipt(
         receipt,
         expected_execution_revision=receipt.get("source_revision"),
+        expected_abort_dependency=expected_abort_dependency,
     )
     result_errors = validate_terminal_result(
         source_manifest=source_manifest,

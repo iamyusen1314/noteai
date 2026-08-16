@@ -1,9 +1,11 @@
 import copy
 import contextlib
+import hashlib
 import io
 from pathlib import Path
 import sys
 import tempfile
+import types
 import unittest
 from unittest import mock
 
@@ -26,6 +28,44 @@ from build_item26_pitr_restore_evidence_v1 import (  # noqa: E402
 
 EXECUTION_REVISION = "1860ab5ca1f3eb2e0dc7f90b97a956224895f341"
 H = "1" * 64
+
+
+def abort_dependency():
+    value = {
+        "schema": verifier.ABORT_DEPENDENCY_SCHEMA,
+        "authority_root": "",
+        "verifier_path": "tools/verify_item26_cost_containment_abort_evidence_v1.py",
+        "verifier_sha256": "1" * 64,
+        "validator_path": "tools/validate_item26_cost_containment_abort_result_v1.py",
+        "validator_sha256": "e" * 64,
+        "builder_path": "tools/build_item26_cost_containment_abort_evidence_v1.py",
+        "builder_sha256": "f" * 64,
+        "evidence_path": verifier.ABORT_EVIDENCE_REF,
+        "evidence_sha256": "2" * 64,
+        "receipt_path": verifier.ABORT_RECEIPT_REF,
+        "receipt_sha256": "3" * 64,
+        "checkpoint_path": verifier.ABORT_CHECKPOINT_REF,
+        "checkpoint_sha256": "4" * 64,
+        "authority_root_file_sha256": "5" * 64,
+        "authority_bundle_file_sha256": "6" * 64,
+        "raw_closure_file_sha256": "7" * 64,
+        "confirmation_envelope_file_sha256": "8" * 64,
+        "terminal_acceptance_sha256": "9" * 64,
+        "old_clone_sha256": "a" * 64,
+        "billing_closure_sha256": "b" * 64,
+        "resource_disposition_sha256": "c" * 64,
+        "no_replay_registry_sha256": "d" * 64,
+        "old_clone_create_request_sha256": "0" * 64,
+        "old_clone_create_body_sha256": "1" * 64,
+        "old_clone_client_token_sha256": "2" * 64,
+        "old_clone_name_sha256": "3" * 64,
+        "abort_terminal_observed_at_utc": "2026-08-16T00:00:00Z",
+        "execution_revision": "1" * 40,
+        "evidence_revision": "2" * 40,
+        "terminal_revision": "3" * 40,
+    }
+    value["authority_root"] = verifier.abort_dependency_authority_root(value)
+    return value
 
 
 def manifest():
@@ -164,7 +204,7 @@ def receipt_candidate():
         "schema": verifier.RECEIPT_SCHEMA,
         "task_id": verifier.TASK_ID,
         "status": "PROVIDER_TERMINAL_VERIFIED_CLEAN",
-        "observed_at_utc": "2026-08-16T00:00:00Z",
+        "observed_at_utc": "2026-08-16T00:10:00Z",
         "source_revision": EXECUTION_REVISION,
         "source_binding": {
             "revision": EXECUTION_REVISION,
@@ -172,17 +212,15 @@ def receipt_candidate():
             "tracked_file_count": tracked_file_count,
             "dirty_path_count": 0,
         },
-        "predecessor_abort": {
-            "status": "COST_CONTAINMENT_ABORT_TERMINAL",
-            "acceptance_sha256": "4" * 64,
-            "old_clone_absent": True,
-            "billing_closed": True,
-            "temporary_cleanup_terminal": True,
-            "readiness_credit_added": False,
-        },
+        "abort_dependency": abort_dependency(),
         "provider_identity": {
             "source_rds_sha256": "5" * 64,
             "successor_clone_sha256": "6" * 64,
+            "successor_clone_name_sha256": "d" * 64,
+            "successor_clone_create_request_sha256": "e" * 64,
+            "successor_clone_create_body_sha256": "f" * 64,
+            "successor_clone_client_token_sha256": "4" * 64,
+            "successor_clone_identity_set_sha256": "0" * 64,
             "builder_sha256": "7" * 64,
             "restore_time_sha256": "8" * 64,
             "region_sha256": "9" * 64,
@@ -200,6 +238,8 @@ def receipt_candidate():
             "billing_readback_sha256": "f" * 64,
             "account_inventory_sha256": "1" * 64,
             "network_inventory_sha256": "2" * 64,
+            "successor_clone_identity_set_sha256": "0" * 64,
+            "fee_authorization_sha256": "7" * 64,
             "raw_payload_retained_in_repository": False,
             "secret_value_emitted_count": 0,
         },
@@ -247,6 +287,15 @@ def receipt_candidate():
         "cost_boundary": {
             "currency": "CNY",
             "approved_cap_cny": "10.000000",
+            "fee_authorization_cap_cny": "10.000000",
+            "fee_authorization_sha256": "7" * 64,
+            "fee_confirmation_sha256": "8" * 64,
+            "fee_authorization_nonce_sha256": "9" * 64,
+            "fee_authorization_issued_at_utc": "2026-08-16T00:00:01Z",
+            "fee_authorization_approved_at_utc": "2026-08-16T00:00:01Z",
+            "fee_authorization_expires_at_utc": "2026-08-16T00:05:00Z",
+            "clone_create_started_at_utc": "2026-08-16T00:00:02Z",
+            "fee_authorization_postdates_abort": True,
             "actual_incremental_cny": "5.000000",
             "rds_incremental_cny": "4.000000",
             "builder_incremental_cny": "1.000000",
@@ -261,6 +310,9 @@ def receipt_candidate():
             "historical_replay_count": 0,
             "historical_replacement_count": 0,
             "successor_names_disjoint": True,
+            "successor_identity_set_sha256": "0" * 64,
+            "successor_fee_authorization_nonce_sha256": "9" * 64,
+            "old_clone_identity_reuse_count": 0,
             "provider_unknown_count": 0,
             "automatic_retry_count": 0,
             "manual_resend_count": 0,
@@ -285,7 +337,55 @@ def receipt_candidate():
         },
         "terminal_acceptance_sha256": "",
     }
+    successor_identity = value["provider_identity"]
+    successor_identity["successor_clone_identity_set_sha256"] = (
+        verifier.successor_clone_identity_set_sha256(successor_identity)
+    )
+    clone_create = value["ordered_actions"][1]
+    clone_create["target_sha256"] = successor_identity[
+        "successor_clone_name_sha256"
+    ]
+    clone_create["request_sha256"] = successor_identity[
+        "successor_clone_create_body_sha256"
+    ]
+    clone_create["provider_request_id_sha256"] = successor_identity[
+        "successor_clone_create_request_sha256"
+    ]
+    clone_create["client_token_sha256"] = successor_identity[
+        "successor_clone_client_token_sha256"
+    ]
+    value["raw_closure"]["successor_clone_identity_set_sha256"] = (
+        successor_identity["successor_clone_identity_set_sha256"]
+    )
+    value["no_replay"]["successor_identity_set_sha256"] = (
+        successor_identity["successor_clone_identity_set_sha256"]
+    )
     return value, source
+
+
+def refresh_successor_bindings(value):
+    identity = value["provider_identity"]
+    identity["successor_clone_identity_set_sha256"] = (
+        verifier.successor_clone_identity_set_sha256(identity)
+    )
+    clone_create = value["ordered_actions"][1]
+    clone_create["target_sha256"] = identity["successor_clone_name_sha256"]
+    clone_create["request_sha256"] = identity[
+        "successor_clone_create_body_sha256"
+    ]
+    clone_create["provider_request_id_sha256"] = identity[
+        "successor_clone_create_request_sha256"
+    ]
+    clone_create["client_token_sha256"] = identity[
+        "successor_clone_client_token_sha256"
+    ]
+    value["raw_closure"]["successor_clone_identity_set_sha256"] = identity[
+        "successor_clone_identity_set_sha256"
+    ]
+    value["no_replay"]["successor_identity_set_sha256"] = identity[
+        "successor_clone_identity_set_sha256"
+    ]
+    return value
 
 
 def no_replay_registry():
@@ -343,10 +443,12 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
             candidate,
             source_manifest=source,
             restored_manifest=copy.deepcopy(source),
+            expected_abort_dependency=abort_dependency(),
         )
         errors, acceptance = verifier.validate_receipt(
             receipt,
             expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=abort_dependency(),
         )
         self.assertEqual(errors, [])
         self.assertEqual(acceptance, receipt["terminal_acceptance_sha256"])
@@ -354,6 +456,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
             receipt,
             source_manifest=source,
             restored_manifest=copy.deepcopy(source),
+            expected_abort_dependency=abort_dependency(),
         )
         self.assertEqual(evidence["status"], "PASS")
         self.assertEqual(evidence["readiness"], verifier.DEFAULT_READINESS)
@@ -367,8 +470,193 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=abort_dependency(),
         )
         self.assertTrue(any("database_write_count" in error for error in errors))
+        self.assertIsNone(acceptance)
+
+    def test_receipt_cannot_self_assert_abort_dependency(self):
+        candidate, _source = receipt_candidate()
+        candidate["abort_dependency"]["terminal_acceptance_sha256"] = "f" * 64
+        candidate["terminal_acceptance_sha256"] = (
+            verifier.terminal_acceptance_sha256(candidate)
+        )
+        errors, acceptance = verifier.validate_receipt(
+            candidate,
+            expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=abort_dependency(),
+        )
+        self.assertIn("receipt strict abort dependency mismatch", errors)
+        self.assertIsNone(acceptance)
+
+    def test_default_abort_dependency_is_unfinalized(self):
+        errors, dependency = verifier.validate_abort_dependency(
+            expected_successor_revision=EXECUTION_REVISION,
+            root=ROOT,
+        )
+        self.assertEqual(
+            errors,
+            ["Item26 cost-containment abort dependency is not finalized"],
+        )
+        self.assertIsNone(dependency)
+
+    def test_frozen_abort_verifier_runs_in_isolated_process(self):
+        poisoned = types.ModuleType(
+            "validate_item26_cost_containment_abort_result_v1"
+        )
+        poisoned.validate_abort_result = lambda _value: []
+        with mock.patch.dict(
+            sys.modules,
+            {"validate_item26_cost_containment_abort_result_v1": poisoned},
+        ):
+            errors, binding = verifier._run_frozen_abort_verifier(
+                verifier_raw=(ROOT / verifier.ABORT_VERIFIER_REF).read_bytes(),
+                validator_raw=(ROOT / verifier.ABORT_VALIDATOR_REF).read_bytes(),
+                root=ROOT,
+            )
+        self.assertIsNone(binding)
+        self.assertEqual(
+            errors,
+            ["abort external authority/raw extractor is not finalized"],
+        )
+
+    def test_abort_dependency_authority_root_is_domain_separated(self):
+        dependency = abort_dependency()
+        bare = hashlib.sha256(
+            verifier._canonical({
+                key: dependency[key]
+                for key in sorted(dependency)
+                if key != "authority_root"
+            })[:-1]
+        ).hexdigest()
+        self.assertNotEqual(dependency["authority_root"], bare)
+
+    def test_successor_clone_must_not_reuse_aborted_clone_identity(self):
+        candidate, _source = receipt_candidate()
+        dependency = abort_dependency()
+        candidate["provider_identity"]["successor_clone_sha256"] = dependency[
+            "old_clone_sha256"
+        ]
+        candidate["terminal_acceptance_sha256"] = (
+            verifier.terminal_acceptance_sha256(candidate)
+        )
+        errors, acceptance = verifier.validate_receipt(
+            candidate,
+            expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=dependency,
+        )
+        self.assertIn("receipt provider identity mismatch", errors)
+        self.assertIsNone(acceptance)
+
+    def test_successor_request_name_body_and_token_must_be_disjoint(self):
+        dependency = abort_dependency()
+        pairs = (
+            (
+                "successor_clone_name_sha256",
+                "old_clone_name_sha256",
+            ),
+            (
+                "successor_clone_create_request_sha256",
+                "old_clone_create_request_sha256",
+            ),
+            (
+                "successor_clone_create_body_sha256",
+                "old_clone_create_body_sha256",
+            ),
+            (
+                "successor_clone_client_token_sha256",
+                "old_clone_client_token_sha256",
+            ),
+        )
+        for successor_key, old_key in pairs:
+            with self.subTest(successor_key=successor_key):
+                candidate, _source = receipt_candidate()
+                candidate["provider_identity"][successor_key] = dependency[old_key]
+                candidate["provider_identity"][
+                    "successor_clone_identity_set_sha256"
+                ] = verifier.successor_clone_identity_set_sha256(
+                    candidate["provider_identity"]
+                )
+                candidate["terminal_acceptance_sha256"] = (
+                    verifier.terminal_acceptance_sha256(candidate)
+                )
+                errors, acceptance = verifier.validate_receipt(
+                    candidate,
+                    expected_execution_revision=EXECUTION_REVISION,
+                    expected_abort_dependency=dependency,
+                )
+                self.assertTrue(any("provider identity" in error for error in errors))
+                self.assertIsNone(acceptance)
+
+    def test_successor_fee_authorization_must_postdate_abort(self):
+        candidate, _source = receipt_candidate()
+        dependency = abort_dependency()
+        candidate["cost_boundary"]["fee_authorization_issued_at_utc"] = dependency[
+            "abort_terminal_observed_at_utc"
+        ]
+        candidate["terminal_acceptance_sha256"] = (
+            verifier.terminal_acceptance_sha256(candidate)
+        )
+        errors, acceptance = verifier.validate_receipt(
+            candidate,
+            expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=dependency,
+        )
+        self.assertTrue(any("cost boundary" in error for error in errors))
+        self.assertIsNone(acceptance)
+
+    def test_successor_fee_authorization_cannot_postdate_receipt(self):
+        candidate, _source = receipt_candidate()
+        cost = candidate["cost_boundary"]
+        cost["fee_authorization_issued_at_utc"] = "2026-08-16T00:11:00Z"
+        cost["fee_authorization_approved_at_utc"] = "2026-08-16T00:11:00Z"
+        cost["clone_create_started_at_utc"] = "2026-08-16T00:11:01Z"
+        cost["fee_authorization_expires_at_utc"] = "2026-08-16T00:12:00Z"
+        candidate["terminal_acceptance_sha256"] = (
+            verifier.terminal_acceptance_sha256(candidate)
+        )
+        errors, acceptance = verifier.validate_receipt(
+            candidate,
+            expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=abort_dependency(),
+        )
+        self.assertTrue(any("cost boundary" in error for error in errors))
+        self.assertIsNone(acceptance)
+
+    def test_successor_identity_cross_swap_with_old_set_fails(self):
+        candidate, _source = receipt_candidate()
+        dependency = abort_dependency()
+        identity = candidate["provider_identity"]
+        identity["successor_clone_create_request_sha256"] = dependency[
+            "old_clone_create_body_sha256"
+        ]
+        identity["successor_clone_create_body_sha256"] = dependency[
+            "old_clone_create_request_sha256"
+        ]
+        refresh_successor_bindings(candidate)
+        candidate["terminal_acceptance_sha256"] = (
+            verifier.terminal_acceptance_sha256(candidate)
+        )
+        errors, acceptance = verifier.validate_receipt(
+            candidate,
+            expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=dependency,
+        )
+        self.assertTrue(any("provider identity" in error for error in errors))
+        self.assertIsNone(acceptance)
+
+    def test_clone_create_action_must_bind_successor_request_identity(self):
+        candidate, _source = receipt_candidate()
+        candidate["ordered_actions"][1]["client_token_sha256"] = "a" * 64
+        candidate["terminal_acceptance_sha256"] = (
+            verifier.terminal_acceptance_sha256(candidate)
+        )
+        errors, acceptance = verifier.validate_receipt(
+            candidate,
+            expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=abort_dependency(),
+        )
+        self.assertIn("receipt successor clone request identity mismatch", errors)
         self.assertIsNone(acceptance)
 
     def test_source_tree_binding_must_match_the_exact_git_revision(self):
@@ -380,6 +668,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=abort_dependency(),
             root=ROOT,
         )
         self.assertIn("receipt source binding mismatch", errors)
@@ -397,6 +686,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, _acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=abort_dependency(),
         )
         self.assertTrue(any("no-replay" in error for error in errors))
         self.assertTrue(any("ordered action" in error for error in errors))
@@ -411,6 +701,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, _acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=abort_dependency(),
         )
         self.assertIn("receipt cleanup mismatch", errors)
 
@@ -424,6 +715,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, _acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
+            expected_abort_dependency=abort_dependency(),
         )
         self.assertTrue(any("canonical CNY" in error for error in errors))
 

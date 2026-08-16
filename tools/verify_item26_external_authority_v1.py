@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify detached provider and CI authority for Item 26.
+"""Verify detached provider, user-confirmation and CI authority for Item 26.
 
 Repository artifacts cannot authorize their own production claims.  The
 root-owned authority root must be installed and hash-frozen in a source
@@ -29,6 +29,7 @@ TASK_ID = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
 ROOT_SCHEMA = "noteai.item26.external-authority-root.v1"
 BUNDLE_SCHEMA = "noteai.item26.external-authority-bundle.v1"
 PROVIDER_SCHEMA = "noteai.item26.provider-authority-export.v1"
+CONFIRMATION_SCHEMA = "noteai.item26.confirmation-authority-export.v1"
 CI_SCHEMA = "noteai.item26.ci-authority-export.v1"
 AUTHORITY_ROOT_PATH = Path(
     "/Library/Application Support/NoteAI/item26-external-authority-root-v1.json"
@@ -52,6 +53,9 @@ REQUIRED_CONTROL_SOURCE_REFS = (
     "tools/verify_item26_external_authority_v1.py",
     "tools/validate_item26_pitr_restore_result_v1.py",
     "tools/build_item26_pitr_restore_evidence_v1.py",
+    "tools/verify_item26_cost_containment_abort_evidence_v1.py",
+    "tools/validate_item26_cost_containment_abort_result_v1.py",
+    "tools/build_item26_cost_containment_abort_evidence_v1.py",
     "model/storage_recovery_evidence.py",
     "deploy/production/plans/item26-no-replay-registry-v1.json",
 )
@@ -540,6 +544,7 @@ def validate_authority_bundle(
             "source_ref",
             "frozen_before_revision",
             "provider",
+            "confirmation",
             "ci",
         } or set(bundle) != {
             "schema",
@@ -548,6 +553,7 @@ def validate_authority_bundle(
             "evidence_revision",
             "terminal_revision",
             "provider",
+            "confirmation",
             "ci",
         }:
             raise ValueError("authority_schema")
@@ -595,8 +601,11 @@ def validate_authority_bundle(
         provider_key, provider_spki = _decode_key(
             authority_root["provider"], "provider"
         )
+        confirmation_key, confirmation_spki = _decode_key(
+            authority_root["confirmation"], "confirmation"
+        )
         ci_key, ci_spki = _decode_key(authority_root["ci"], "ci")
-        if provider_spki == ci_spki:
+        if len({provider_spki, confirmation_spki, ci_spki}) != 3:
             raise ValueError("authority_keys_not_distinct")
         provider = _envelope(
             bundle["provider"],
@@ -604,6 +613,13 @@ def validate_authority_bundle(
             key_row=authority_root["provider"],
             key=provider_key,
             schema=PROVIDER_SCHEMA,
+        )
+        confirmation = _envelope(
+            bundle["confirmation"],
+            authority="confirmation",
+            key_row=authority_root["confirmation"],
+            key=confirmation_key,
+            schema=CONFIRMATION_SCHEMA,
         )
         ci = _envelope(
             bundle["ci"],
@@ -620,10 +636,27 @@ def validate_authority_bundle(
             "receipt_file_sha256",
             "terminal_acceptance_sha256",
             "raw_closure_sha256",
+            "abort_dependency_authority_root",
+            "abort_terminal_acceptance_sha256",
+            "successor_clone_identity_set_sha256",
+            "successor_fee_authorization_sha256",
+            "successor_confirmation_export_semantic_sha256",
             "source_manifest_file_sha256",
             "source_manifest_sha256",
             "restored_manifest_file_sha256",
             "restored_manifest_sha256",
+        } or set(confirmation) != {
+            "schema",
+            "task_id",
+            "execution_revision",
+            "abort_terminal_acceptance_sha256",
+            "successor_clone_identity_set_sha256",
+            "fee_authorization_sha256",
+            "fee_confirmation_sha256",
+            "fee_authorization_nonce_sha256",
+            "fee_authorization_cap_cny",
+            "fee_authorization_approved_at_utc",
+            "fee_authorization_expires_at_utc",
         } or set(ci) != {
             "schema",
             "task_id",
@@ -654,6 +687,11 @@ def validate_authority_bundle(
                     "receipt_file_sha256",
                     "terminal_acceptance_sha256",
                     "raw_closure_sha256",
+                    "abort_dependency_authority_root",
+                    "abort_terminal_acceptance_sha256",
+                    "successor_clone_identity_set_sha256",
+                    "successor_fee_authorization_sha256",
+                    "successor_confirmation_export_semantic_sha256",
                     "source_manifest_file_sha256",
                     "source_manifest_sha256",
                     "restored_manifest_file_sha256",
@@ -668,6 +706,36 @@ def validate_authority_bundle(
             != _sha(restored_manifest_raw)
             or restored_manifest.get("manifest_sha256")
             != provider["restored_manifest_sha256"]
+            or confirmation["schema"] != CONFIRMATION_SCHEMA
+            or confirmation["task_id"] != TASK_ID
+            or confirmation["execution_revision"] != execution_revision
+            or UTC.fullmatch(
+                confirmation["fee_authorization_approved_at_utc"] or ""
+            )
+            is None
+            or UTC.fullmatch(
+                confirmation["fee_authorization_expires_at_utc"] or ""
+            )
+            is None
+            or any(
+                HEX64.fullmatch(confirmation[key] or "") is None
+                for key in (
+                    "abort_terminal_acceptance_sha256",
+                    "successor_clone_identity_set_sha256",
+                    "fee_authorization_sha256",
+                    "fee_confirmation_sha256",
+                    "fee_authorization_nonce_sha256",
+                )
+            )
+            or type(confirmation["fee_authorization_cap_cny"]) is not str
+            or provider["abort_terminal_acceptance_sha256"]
+            != confirmation["abort_terminal_acceptance_sha256"]
+            or provider["successor_clone_identity_set_sha256"]
+            != confirmation["successor_clone_identity_set_sha256"]
+            or provider["successor_fee_authorization_sha256"]
+            != confirmation["fee_authorization_sha256"]
+            or provider["successor_confirmation_export_semantic_sha256"]
+            != _semantic(confirmation)
             or ci["execution_revision"] != execution_revision
             or ci["evidence_revision"] != evidence_revision
             or ci["terminal_revision"] != terminal_revision
@@ -789,8 +857,10 @@ def validate_authority_bundle(
         "authority_root_file_sha256": _sha(root_raw),
         "authority_bundle_file_sha256": _sha(bundle_raw),
         "provider_export_semantic_sha256": _semantic(provider),
+        "confirmation_export_semantic_sha256": _semantic(confirmation),
         "ci_export_semantic_sha256": _semantic(ci),
         "provider_key_spki_sha256": provider_spki,
+        "confirmation_key_spki_sha256": confirmation_spki,
         "ci_key_spki_sha256": ci_spki,
         "authority_keys_distinct": True,
         "execution_revision": execution_revision,
@@ -806,6 +876,36 @@ def validate_authority_bundle(
             "terminal_acceptance_sha256"
         ],
         "raw_closure_sha256": provider["raw_closure_sha256"],
+        "abort_dependency_authority_root": provider[
+            "abort_dependency_authority_root"
+        ],
+        "abort_terminal_acceptance_sha256": provider[
+            "abort_terminal_acceptance_sha256"
+        ],
+        "successor_clone_identity_set_sha256": provider[
+            "successor_clone_identity_set_sha256"
+        ],
+        "successor_fee_authorization_sha256": provider[
+            "successor_fee_authorization_sha256"
+        ],
+        "successor_confirmation_export_semantic_sha256": provider[
+            "successor_confirmation_export_semantic_sha256"
+        ],
+        "fee_confirmation_sha256": confirmation[
+            "fee_confirmation_sha256"
+        ],
+        "fee_authorization_nonce_sha256": confirmation[
+            "fee_authorization_nonce_sha256"
+        ],
+        "fee_authorization_cap_cny": confirmation[
+            "fee_authorization_cap_cny"
+        ],
+        "fee_authorization_approved_at_utc": confirmation[
+            "fee_authorization_approved_at_utc"
+        ],
+        "fee_authorization_expires_at_utc": confirmation[
+            "fee_authorization_expires_at_utc"
+        ],
         "source_manifest": source_manifest,
         "restored_manifest": restored_manifest,
         "source_manifest_file_sha256": _sha(source_manifest_raw),
