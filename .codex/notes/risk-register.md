@@ -30,14 +30,17 @@ Last updated: 2026-08-17
   No further cleanup mutation is authorized against that released clone; both
   consumed mutation identities are terminal/no-replay. A stale local or cloud
   record must not authorize a replay.
-- 下一验证: The scanner-only Secret-free checkpoint is accepted and its two
-  attempt-one CI runs are green. Preserve the released clone and both consumed
-  cloud mutation identities as terminal/no-replay, checkpoint the fail-closed
-  manual post-action predecessor source, and then freeze its independent local
-  authority root before any fresh read-only provider capture. A future Item 26
-  success successor must be fully disjoint and carry a new explicit fee
-  authorization; do not start a builder, connect to a database or dispatch any
-  historical command.
+- 下一验证: M0 revision `85bf60f` is accepted with attempt-one push/PR CI both
+  green. Preserve the released clone and both consumed cloud mutation
+  identities as terminal/no-replay. The current A0 source candidate binds a
+  locally validated Secret-free three-key root candidate and a fail-closed
+  read-only extractor/authority chain, but the root is not installed and no
+  fresh provider capture has started. Checkpoint A0, require its own new
+  attempt-one dual-green CI, then complete the exact root-only install before
+  any ActionTrail/Describe readback. A future Item 26 success successor must be
+  fully disjoint, carry a new explicit fee authorization and first provide a
+  Secret-free CI-replayable predecessor capsule; do not start a builder,
+  connect to a database or dispatch any historical command.
   The local rollback cleanup remains a separate full-App-exit operation using
   only the exact `FREE-INTERNAL-SPACE` path, followed by the reviewed ORICO
   daily launcher; do not mix that destructive local cleanup into the NoteAI
@@ -79,14 +82,16 @@ Last updated: 2026-08-17
   `DeleteDBInstance` had no ClientToken; the manual contract records
   `clone_delete_client_token_present=false` and does not invent a replacement.
   Accepted scanner checkpoint `d0f2612` has new attempt-one push and PR CI both
-  green. The current M0 candidate appends the two failed CI checkpoints and two
+  green. M0 appends the two failed CI checkpoints and two
   consumed clone mutations to immutable no-replay registry v1, producing an
   exact 29-entry v2 registry while preserving v1 unchanged. It also introduces
-  a domain-separated manual post-action cost-stop predecessor. That predecessor
-  is deliberately source-only: its authority-root hash is empty, its raw
-  extractor and three-party authority implementations remain disabled, it emits
-  no terminal artifacts, and its builder refuses to emit PASS evidence. It
-  cannot authorize a cloud action or add readiness credit. Historical abort-v1
+  a domain-separated manual post-action cost-stop predecessor. The current A0
+  source candidate binds the non-empty Secret-free root-candidate hash
+  `f0f7cfce…14f3c`, strict provider and ActionTrail projections, an acyclic
+  M1/M2 candidate-artifact chain and provider/user-confirmation/CI terminal
+  verification. It still cannot authorize a cloud action or add readiness
+  credit: the root-owned inventory, live raw capture, final envelopes and Git
+  artifacts are absent. Historical abort-v1
   remains frozen evidence and is explicitly superseded as the future success
   predecessor; the success verifier loads only the future hash/Git-blob-locked
   manual predecessor in an isolated subprocess. Linux anchors that subprocess
@@ -94,9 +99,10 @@ Last updated: 2026-08-17
   runtime continuity, not full loader/stdlib supply-chain attestation.
 - 残余边界: The exact approved-cleanup branch of the retention contract was used,
   but this manual browser cost stop is not a retroactive terminal acceptance for
-  the deliberately non-dispatchable abort v1 scaffold. Its root hash remains
-  empty; no real pre-action root/three-authority bundle, complete task-owned
-  resource lineage or O_EXCL runner was installed. Ownership-unproven IAM,
+  the deliberately non-dispatchable abort v1 scaffold. The A0 root candidate is
+  validated outside Git but not root-installed; no live ActionTrail/provider
+  capture, final three-authority bundle or complete task-owned resource lineage
+  exists. Ownership-unproven IAM,
   account and vSwitch candidates therefore remain untouched. Historical billing
   may still settle or appear in later statements, and no native terminal marker
   is claimed. Commit `80c5091` has terminal failed
@@ -111,13 +117,19 @@ Last updated: 2026-08-17
   successor identity/request/name/body/token set and a new fee authorization
   issued after the later manual terminal acceptance by an independent
   user-confirmation authority. The provider authority may cross-bind that
-  confirmation but cannot issue it.
-- 下一验证: Finish and normally checkpoint the M0 source-only manual predecessor
-  without any cloud write. Then create three mathematically distinct local keys
-  and a root, install the exact raw/authority implementation in a separate A0
-  activation checkpoint, and require A0 attempt-one dual-green CI before any
-  fresh read-only ActionTrail/Describe capture. Only later M1/M2 evidence may
-  become the predecessor of a fully disjoint paid successor under a new fee
+  confirmation but cannot issue it. The three current SPKIs prove mathematical
+  role separation only, not independent organizational custody. Native
+  ActionTrail shape compatibility remains unproven until the first A0-gated
+  readback and must fail closed if direct request parameters are absent. A
+  Mac-only root-owned verifier also cannot be replayed by GitHub-hosted CI; S0
+  therefore requires a Secret-free portable terminal capsule before Item 26
+  can be credited.
+- 下一验证: Normally checkpoint and push the A0 source candidate without any
+  cloud call, then require A0 attempt-one dual-green CI. Only afterward install
+  the exact root-owned inventory and signing custody, perform fresh read-only
+  ActionTrail/Describe/billing capture, and build M1/M2 candidate artifacts.
+  Only a later portable terminal predecessor may become the dependency of a
+  fully disjoint paid successor under a new fee
   authorization. Do not replay either consumed cloud request or infer terminal
   abort-v1 authority. Any future mutation `UNKNOWN` permits readback of the same
   identity only; it never permits resubmission.

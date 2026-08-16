@@ -3,23 +3,33 @@
 
 This evidence domain records a cost stop after two already-consumed browser
 mutations.  It is neither the abort-v1 terminal authority nor a PITR success,
-and it cannot add readiness credit.  M0 intentionally leaves detached
-authority and raw extraction unfinalized.
+and it cannot add readiness credit.  The A0 source candidate installs the
+post-action read-only verifier while defaulting closed until root-owned raw
+material, staged artifacts, and detached terminal authority all exist.
 """
 
 from __future__ import annotations
 
 import argparse
+from decimal import Decimal, InvalidOperation
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import stat
 from typing import Any
 
 from extract_item26_manual_cost_stop_raw_v1 import (
+    RAW_ACTIONTRAIL_EXTRACTION_IMPLEMENTED,
     RAW_PROVIDER_EXTRACTION_IMPLEMENTED,
+    consumed_mutation_identity_set_sha256 as raw_mutation_set_sha256,
 )
 from verify_item26_manual_cost_stop_authority_v1 import (
+    EXPECTED_AUTHORITY_ROOT_FILE_SHA256,
+    git_blob_absent,
+    git_blob_bytes,
+    revision_is_strict_ancestor,
     validate_authority_bundle,
 )
 
@@ -55,8 +65,7 @@ CHECKPOINT_REF = (
 RECEIPT_SCHEMA = "noteai.item26.manual-cost-stop-provider-receipt.v1"
 EVIDENCE_SCHEMA = "noteai.item26.manual-cost-stop-evidence.v1"
 CHECKPOINT_SCHEMA = "noteai.item26.manual-cost-stop-terminal-checkpoint.v1"
-EXPECTED_AUTHORITY_ROOT_FILE_SHA256 = ""
-MANUAL_RAW_EXTRACTOR_FINALIZED = False
+MANUAL_RAW_EXTRACTOR_FINALIZED = True
 EXPECTED_NO_REPLAY_REGISTRY_FILE_SHA256 = (
     "994c521e22abd9be0c88d4b252ce4d3ef9a47f8131a065ab7964018f224d0f47"
 )
@@ -66,6 +75,12 @@ EXPECTED_NO_REPLAY_REGISTRY_SHA256 = (
 EXPECTED_NO_REPLAY_ENTRY_COUNT = 29
 EXPECTED_CONSUMED_MANUAL_MUTATION_SET_SHA256 = (
     "8647c02f5879dcb7a986fc87ce3668ac4e35d63d610c4da1e54a57a8b7263105"
+)
+EXPECTED_SOURCE_PRE_TUPLE_SHA256 = (
+    "7b19a9ce8091ef52b11cd722d3d3a52671ba7888811ad47adbbae80abe5d5771"
+)
+EXPECTED_RECORDED_BILLING_RESPONSE_SHA256 = (
+    "ed2fda069a1902bda37abfb7e551929cc40f3c139cb4117179b1176b0127631a"
 )
 LEDGER_CONTEXT_REVISION = "41c489cf5ebfedfa2959bcee1f09183a9491f7f6"
 EXPECTED_IDENTITY_COMMITMENTS = {
@@ -112,6 +127,7 @@ HEX64 = re.compile(r"^[0-9a-f]{64}$")
 RFC3339 = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$"
 )
+DECIMAL_CNY = re.compile(r"^(?:0|[1-9]\d*)(?:\.\d{1,6})?$")
 ACCEPTANCE_DOMAIN = b"noteai-item26-manual-cost-stop-terminal-v1\0"
 RAW_CLOSURE_DOMAIN = b"noteai-item26-manual-cost-stop-raw-closure-v1\0"
 MUTATION_IDENTITY_DOMAIN = (
@@ -136,6 +152,7 @@ READINESS_25_TO_25 = {
     "readiness_credit_added": False,
     "future_successor_requires_new_fee_authorization": True,
 }
+MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 
 
 def canonical_bytes(value: Any) -> bytes:
@@ -177,6 +194,84 @@ def _strict(value: Any, expected: Any) -> bool:
     return value == expected
 
 
+def _stable_file_identity(row: os.stat_result) -> tuple[int, ...]:
+    return (
+        row.st_dev,
+        row.st_ino,
+        row.st_mode,
+        row.st_uid,
+        row.st_gid,
+        row.st_nlink,
+        row.st_size,
+        row.st_mtime_ns,
+        row.st_ctime_ns,
+    )
+
+
+def _read_repo_artifact(path: Path) -> bytes:
+    before = path.lstat()
+    if (
+        not stat.S_ISREG(before.st_mode)
+        or stat.S_ISLNK(before.st_mode)
+        or stat.S_IMODE(before.st_mode) != 0o644
+        or before.st_nlink != 1
+    ):
+        raise ValueError("manual terminal artifact file identity")
+    descriptor = os.open(
+        path,
+        os.O_RDONLY
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_CLOEXEC", 0),
+    )
+    try:
+        opened = os.fstat(descriptor)
+        raw = b""
+        while len(raw) <= MAX_ARTIFACT_BYTES:
+            chunk = os.read(
+                descriptor,
+                min(65536, MAX_ARTIFACT_BYTES + 1 - len(raw)),
+            )
+            if not chunk:
+                break
+            raw += chunk
+        closed = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    after = path.lstat()
+    if (
+        not 1 <= len(raw) <= MAX_ARTIFACT_BYTES
+        or _stable_file_identity(before) != _stable_file_identity(opened)
+        or _stable_file_identity(opened) != _stable_file_identity(closed)
+        or _stable_file_identity(closed) != _stable_file_identity(after)
+    ):
+        raise ValueError("manual terminal artifact file changed")
+    return raw
+
+
+def _parse_artifact(raw: bytes, label: str) -> dict[str, Any]:
+    def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in result:
+                raise ValueError(label + " duplicate key")
+            result[key] = item
+        return result
+
+    try:
+        value = json.loads(
+            raw.decode("ascii"),
+            object_pairs_hook=reject_duplicates,
+            parse_constant=lambda _value: (_ for _ in ()).throw(
+                ValueError(label + " number")
+            ),
+        )
+    except (UnicodeError, json.JSONDecodeError, ValueError) as exc:
+        raise ValueError(label + " JSON") from exc
+    if type(value) is not dict or canonical_bytes(value) != raw:
+        raise ValueError(label + " canonical")
+    return value
+
+
 def terminal_acceptance_sha256(receipt: dict[str, Any]) -> str:
     projection = dict(receipt)
     projection.pop("terminal_acceptance_sha256", None)
@@ -193,27 +288,17 @@ def consumed_mutation_identity_set_sha256(receipt: dict[str, Any]) -> str:
     mutations = receipt.get("mutation_outcomes", {})
     protection = mutations.get("protection_disable", {})
     deletion = mutations.get("delete", {})
-    base_projection = {
-        "protection_disable_request_id_sha256": protection.get(
-            "request_id_sha256"
-        ),
-        "protection_disable_request_body_sha256": protection.get(
+    return raw_mutation_set_sha256(
+        protection_request_id_sha256=protection.get("request_id_sha256"),
+        protection_request_body_sha256=protection.get(
             "request_body_sha256"
         ),
-        "protection_disable_client_token_sha256": protection.get(
+        protection_client_token_sha256=protection.get(
             "client_token_sha256"
         ),
-        "delete_request_id_sha256": deletion.get("request_id_sha256"),
-        "delete_request_body_sha256": deletion.get("request_body_sha256"),
-    }
-    projection = {
-        "delete_client_token_present": deletion.get("client_token_present"),
-        "mutation_identity_v1_sha256": sha256(
-            MUTATION_IDENTITY_DOMAIN + canonical_bytes(base_projection)[:-1]
-        ),
-    }
-    return sha256(
-        MUTATION_IDENTITY_TOKEN_BOUND_DOMAIN + canonical_bytes(projection)[:-1]
+        delete_request_id_sha256=deletion.get("request_id_sha256"),
+        delete_request_body_sha256=deletion.get("request_body_sha256"),
+        delete_client_token_present=deletion.get("client_token_present"),
     )
 
 
@@ -275,6 +360,7 @@ def validate_receipt(
         errors.append("manual receipt revision/timestamp mismatch")
 
     identity = value.get("identity_ledger")
+    identity_safe = identity if type(identity) is dict else {}
     identity_keys = {
         "old_clone_sha256",
         "old_clone_name_sha256",
@@ -339,7 +425,8 @@ def validate_receipt(
                     "same_identity_readback_sha256",
                 )
             )
-            or protection["target_sha256"] != identity.get("old_clone_sha256")
+            or protection["target_sha256"]
+            != identity_safe.get("old_clone_sha256")
             or any(
                 protection.get(key) != expected
                 for key, expected in EXPECTED_PROTECTION_COMMITMENTS.items()
@@ -374,7 +461,8 @@ def validate_receipt(
                     "exact_identity_absence_readback_sha256",
                 )
             )
-            or deletion["target_sha256"] != identity.get("old_clone_sha256")
+            or deletion["target_sha256"]
+            != identity_safe.get("old_clone_sha256")
             or any(
                 deletion.get(key) != expected
                 for key, expected in EXPECTED_DELETE_COMMITMENTS.items()
@@ -390,17 +478,20 @@ def validate_receipt(
             )
         ):
             errors.append("manual delete outcome mismatch")
-        computed_mutation_set_sha256 = consumed_mutation_identity_set_sha256(
-            value
-        )
-        if (
-            not _hex64(mutations.get("ordered_mutation_set_sha256"))
-            or mutations["ordered_mutation_set_sha256"]
-            != computed_mutation_set_sha256
-            or computed_mutation_set_sha256
-            != EXPECTED_CONSUMED_MANUAL_MUTATION_SET_SHA256
-        ):
+        if type(protection) is not dict or type(deletion) is not dict:
             errors.append("manual mutation-set digest mismatch")
+        else:
+            computed_mutation_set_sha256 = (
+                consumed_mutation_identity_set_sha256(value)
+            )
+            if (
+                not _hex64(mutations.get("ordered_mutation_set_sha256"))
+                or mutations["ordered_mutation_set_sha256"]
+                != computed_mutation_set_sha256
+                or computed_mutation_set_sha256
+                != EXPECTED_CONSUMED_MANUAL_MUTATION_SET_SHA256
+            ):
+                errors.append("manual mutation-set digest mismatch")
 
     source = value.get("source_reconciliation")
     if (
@@ -414,6 +505,8 @@ def validate_receipt(
             "source_deleted",
         }
         or not _hex64(source.get("pre_tuple_sha256"))
+        or source.get("pre_tuple_sha256")
+        != EXPECTED_SOURCE_PRE_TUPLE_SHA256
         or source.get("pre_tuple_sha256") != source.get("post_tuple_sha256")
         or source.get("source_unchanged") is not True
         or source.get("source_status") != "Running"
@@ -430,19 +523,44 @@ def validate_receipt(
             "pretax_gross_cny",
             "service_seconds",
             "response_sha256",
+            "recorded_baseline_pretax_gross_cny",
+            "recorded_baseline_service_seconds",
+            "recorded_baseline_response_sha256",
             "historical_snapshot_only",
             "native_non_accruing_marker_proven",
             "settlement_terminal_proven",
         }
         or billing.get("currency") != "CNY"
-        or billing.get("pretax_gross_cny") != "198.462"
-        or billing.get("service_seconds") != 345600
+        or type(billing.get("pretax_gross_cny")) is not str
+        or DECIMAL_CNY.fullmatch(billing["pretax_gross_cny"]) is None
+        or (
+            "." in billing["pretax_gross_cny"]
+            and billing["pretax_gross_cny"].endswith("0")
+        )
+        or type(billing.get("service_seconds")) is not int
+        or billing["service_seconds"] < 345600
         or not _hex64(billing.get("response_sha256"))
+        or billing.get("recorded_baseline_pretax_gross_cny")
+        != "198.462"
+        or billing.get("recorded_baseline_service_seconds") != 345600
+        or not _hex64(
+            billing.get("recorded_baseline_response_sha256")
+        )
+        or billing.get("recorded_baseline_response_sha256")
+        != EXPECTED_RECORDED_BILLING_RESPONSE_SHA256
         or billing.get("historical_snapshot_only") is not True
         or billing.get("native_non_accruing_marker_proven") is not False
         or billing.get("settlement_terminal_proven") is not False
     ):
         errors.append("manual historical billing snapshot mismatch")
+    else:
+        try:
+            gross = Decimal(billing["pretax_gross_cny"])
+        except InvalidOperation:
+            errors.append("manual historical billing snapshot mismatch")
+        else:
+            if not gross.is_finite() or gross < Decimal("198.462"):
+                errors.append("manual historical billing snapshot mismatch")
 
     residual = value.get("residual_resources")
     if not _strict(
@@ -468,6 +586,8 @@ def validate_receipt(
         "actiontrail_projection_sha256",
         "complete_pagination_proven",
         "secret_free_projection",
+        "historical_response_commitments_are_ledger_context",
+        "historical_response_bytes_rederived_from_fresh_raw",
     }
     if (
         type(raw) is not dict
@@ -475,6 +595,12 @@ def validate_receipt(
         or any(not _hex64(raw.get(key)) for key in raw_keys if key.endswith("_sha256"))
         or raw.get("complete_pagination_proven") is not True
         or raw.get("secret_free_projection") is not True
+        or raw.get(
+            "historical_response_commitments_are_ledger_context"
+        ) is not True
+        or raw.get(
+            "historical_response_bytes_rederived_from_fresh_raw"
+        ) is not False
     ):
         errors.append("manual raw closure mismatch")
 
@@ -547,7 +673,7 @@ def validate_evidence(
         "task_id": TASK_ID,
         "operation_id": OPERATION_ID,
         "kind": KIND,
-        "status": "PASS_NO_READINESS_CREDIT",
+        "status": "CANDIDATE_NO_READINESS_CREDIT",
         "control_revision": expected_control_revision,
         "provider_receipt": {
             "file_sha256": sha256(receipt_raw),
@@ -557,12 +683,13 @@ def validate_evidence(
         },
         "external_authority": {
             "required": True,
-            "provider_authority": "DETACHED_ROOT_OWNED",
-            "confirmation_authority": "DETACHED_ROOT_OWNED",
-            "ci_authority": "DETACHED_ROOT_OWNED",
+            "provider_authority_validated": False,
+            "confirmation_authority_validated": False,
+            "ci_authority_validated": False,
             "mathematically_distinct_key_count": 3,
             "root_frozen_before_action": False,
             "authorizes_new_action": False,
+            "terminal_authority_pending": True,
         },
         "cost_stop_outcome": {
             "status": TERMINAL_STATUS,
@@ -607,7 +734,7 @@ def validate_checkpoint(
         "task_id": TASK_ID,
         "operation_id": OPERATION_ID,
         "kind": KIND,
-        "status": "MANUAL_COST_STOP_EVIDENCE_CHECKPOINT_ACCEPTED",
+        "status": "MANUAL_COST_STOP_CANDIDATE_AWAITING_AUTHORITY",
         "control_revision": expected_control_revision,
         "evidence_revision": expected_evidence_revision,
         "evidence_file_sha256": sha256(evidence_raw),
@@ -639,18 +766,249 @@ def validate_terminal_artifacts(
     if (
         not MANUAL_RAW_EXTRACTOR_FINALIZED
         or not RAW_PROVIDER_EXTRACTION_IMPLEMENTED
+        or not RAW_ACTIONTRAIL_EXTRACTION_IMPLEMENTED
         or not _hex64(EXPECTED_AUTHORITY_ROOT_FILE_SHA256)
     ):
         return ["manual cost-stop external authority is not finalized"], None
+    try:
+        receipt_raw = _read_repo_artifact(root / RECEIPT_REF)
+        evidence_raw = _read_repo_artifact(root / EVIDENCE_REF)
+        checkpoint_raw = _read_repo_artifact(root / CHECKPOINT_REF)
+        receipt = _parse_artifact(receipt_raw, "manual receipt")
+        evidence = _parse_artifact(evidence_raw, "manual evidence")
+        checkpoint = _parse_artifact(
+            checkpoint_raw, "manual checkpoint"
+        )
+    except FileNotFoundError:
+        return ["manual cost-stop terminal artifacts are not installed"], None
+    except (OSError, ValueError) as exc:
+        return ["manual cost-stop terminal artifacts rejected: " + str(exc)], None
+    control_revision = receipt.get("control_revision")
+    evidence_revision = checkpoint.get("evidence_revision")
+    receipt_errors, acceptance = validate_receipt(
+        receipt,
+        expected_control_revision=control_revision,
+    )
+    if receipt_errors or acceptance is None:
+        return receipt_errors or ["manual cost-stop acceptance missing"], None
+    evidence_errors = validate_evidence(
+        evidence,
+        receipt,
+        receipt_raw,
+        expected_control_revision=control_revision,
+    )
+    if evidence_errors:
+        return evidence_errors, None
+    checkpoint_errors = validate_checkpoint(
+        checkpoint,
+        evidence,
+        evidence_raw,
+        receipt,
+        receipt_raw,
+        expected_control_revision=control_revision,
+        expected_evidence_revision=evidence_revision,
+    )
+    if checkpoint_errors:
+        return checkpoint_errors, None
+    receipt_binding = {
+        "receipt_file_sha256": sha256(receipt_raw),
+        "receipt_semantic_sha256": semantic_sha256(receipt),
+        "terminal_acceptance_sha256": acceptance,
+        "raw_closure_sha256": raw_closure_sha256(receipt),
+    }
     authority_errors, authority = validate_authority_bundle(
         expected_authority_root_file_sha256=(
             EXPECTED_AUTHORITY_ROOT_FILE_SHA256
         ),
+        expected_receipt_binding=receipt_binding,
         root=root,
     )
     if authority_errors or authority is None:
         return authority_errors or ["manual cost-stop authority missing"], None
-    return ["manual cost-stop terminal artifact implementation is not installed"], None
+    identity = receipt["identity_ledger"]
+    mutations = receipt["mutation_outcomes"]
+    protection = mutations["protection_disable"]
+    deletion = mutations["delete"]
+    source = receipt["source_reconciliation"]
+    billing = receipt["billing_snapshot"]
+    raw = receipt["raw_closure"]
+    no_replay = receipt["no_replay"]
+    if not (
+        receipt["observed_at_utc"]
+        == authority.get("post_action_observed_at_utc")
+        and identity["old_clone_sha256"]
+        == authority.get("old_clone_sha256")
+        and identity["old_clone_name_sha256"]
+        == authority.get("old_clone_name_sha256")
+        and identity["old_clone_create_request_sha256"]
+        == authority.get("old_clone_create_request_sha256")
+        and identity["old_clone_create_body_sha256"]
+        == authority.get("old_clone_create_body_sha256")
+        and identity["old_clone_client_token_sha256"]
+        == authority.get("old_clone_client_token_sha256")
+        and protection["request_id_sha256"]
+        == authority.get("protection_disable_request_id_sha256")
+        and protection["request_body_sha256"]
+        == authority.get("protection_disable_request_body_sha256")
+        and protection["client_token_sha256"]
+        == authority.get("protection_disable_client_token_sha256")
+        and deletion["request_id_sha256"]
+        == authority.get("delete_request_id_sha256")
+        and deletion["request_body_sha256"]
+        == authority.get("delete_request_body_sha256")
+        and deletion["client_token_present"]
+        is authority.get("delete_client_token_present")
+        and mutations["ordered_mutation_set_sha256"]
+        == authority.get("consumed_mutation_identity_set_sha256")
+        and source["pre_tuple_sha256"]
+        == authority.get("source_pre_tuple_sha256")
+        and source["post_tuple_sha256"]
+        == authority.get("source_post_tuple_sha256")
+        and semantic_sha256(billing)
+        == authority.get("billing_snapshot_sha256")
+        and raw["provider_raw_file_sha256"]
+        == authority.get("provider_raw_file_sha256")
+        and raw["actiontrail_raw_file_sha256"]
+        == authority.get("actiontrail_raw_file_sha256")
+        and raw["provider_projection_sha256"]
+        == authority.get("provider_projection_sha256")
+        and raw["actiontrail_projection_sha256"]
+        == authority.get("actiontrail_projection_sha256")
+        and no_replay["registry_sha256"]
+        == authority.get("no_replay_registry_sha256")
+    ):
+        return ["manual cost-stop receipt/raw authority mismatch"], None
+    terminal_revision = authority.get("terminal_revision")
+    if (
+        authority.get("control_revision") != control_revision
+        or authority.get("evidence_revision") != evidence_revision
+        or not all(
+            type(value) is str and HEX40.fullmatch(value) is not None
+            for value in (
+                control_revision,
+                evidence_revision,
+                terminal_revision,
+            )
+        )
+        or not revision_is_strict_ancestor(
+            control_revision, evidence_revision, root=root
+        )
+        or not revision_is_strict_ancestor(
+            evidence_revision, terminal_revision, root=root
+        )
+        or authority.get("receipt_file_sha256") != sha256(receipt_raw)
+        or authority.get("evidence_file_sha256") != sha256(evidence_raw)
+        or authority.get("checkpoint_file_sha256")
+        != sha256(checkpoint_raw)
+        or authority.get("terminal_acceptance_sha256") != acceptance
+    ):
+        return ["manual cost-stop terminal authority mismatch"], None
+    artifact_rows = (
+        (RECEIPT_REF, receipt_raw),
+        (EVIDENCE_REF, evidence_raw),
+        (CHECKPOINT_REF, checkpoint_raw),
+    )
+    try:
+        if any(
+            not git_blob_absent(control_revision, ref, root=root)
+            for ref, _raw in artifact_rows
+        ):
+            return [
+                "manual cost-stop control revision contains artifact"
+            ], None
+        for ref, raw in artifact_rows[:2]:
+            if git_blob_bytes(evidence_revision, ref, root=root) != raw:
+                return [
+                    "manual cost-stop evidence revision artifact mismatch"
+                ], None
+        if not git_blob_absent(
+            evidence_revision, CHECKPOINT_REF, root=root
+        ):
+            return [
+                "manual cost-stop checkpoint appeared before terminal"
+            ], None
+        for ref, raw in artifact_rows:
+            if git_blob_bytes(terminal_revision, ref, root=root) != raw:
+                return [
+                    "manual cost-stop terminal revision artifact mismatch"
+                ], None
+    except (OSError, ValueError) as exc:
+        return ["manual cost-stop Git evidence rejected: " + str(exc)], None
+    return [], {
+        "status": TERMINAL_STATUS,
+        "kind": KIND,
+        "terminal_acceptance_sha256": acceptance,
+        "old_clone_sha256": authority["old_clone_sha256"],
+        "old_clone_name_sha256": authority["old_clone_name_sha256"],
+        "source_pre_tuple_sha256": authority[
+            "source_pre_tuple_sha256"
+        ],
+        "source_post_tuple_sha256": authority[
+            "source_post_tuple_sha256"
+        ],
+        "billing_snapshot_sha256": authority["billing_snapshot_sha256"],
+        "no_replay_registry_sha256": authority[
+            "no_replay_registry_sha256"
+        ],
+        "authority_root_file_sha256": authority[
+            "authority_root_file_sha256"
+        ],
+        "authority_bundle_file_sha256": authority[
+            "authority_bundle_file_sha256"
+        ],
+        "provider_raw_file_sha256": authority[
+            "provider_raw_file_sha256"
+        ],
+        "actiontrail_raw_file_sha256": authority[
+            "actiontrail_raw_file_sha256"
+        ],
+        "confirmation_envelope_file_sha256": authority[
+            "confirmation_envelope_file_sha256"
+        ],
+        "old_clone_create_request_sha256": authority[
+            "old_clone_create_request_sha256"
+        ],
+        "old_clone_create_body_sha256": authority[
+            "old_clone_create_body_sha256"
+        ],
+        "old_clone_client_token_sha256": authority[
+            "old_clone_client_token_sha256"
+        ],
+        "protection_disable_request_id_sha256": authority[
+            "protection_disable_request_id_sha256"
+        ],
+        "protection_disable_request_body_sha256": authority[
+            "protection_disable_request_body_sha256"
+        ],
+        "protection_disable_client_token_sha256": authority[
+            "protection_disable_client_token_sha256"
+        ],
+        "delete_request_id_sha256": authority[
+            "delete_request_id_sha256"
+        ],
+        "delete_request_body_sha256": authority[
+            "delete_request_body_sha256"
+        ],
+        "delete_client_token_present": False,
+        "consumed_mutation_identity_set_sha256": authority[
+            "consumed_mutation_identity_set_sha256"
+        ],
+        "post_action_observed_at_utc": authority[
+            "post_action_observed_at_utc"
+        ],
+        "terminal_accepted_at_utc": authority[
+            "terminal_accepted_at_utc"
+        ],
+        "control_revision": control_revision,
+        "evidence_revision": evidence_revision,
+        "terminal_revision": terminal_revision,
+        "readiness": READINESS_25_TO_25,
+        "abort_v1_terminal_authority": False,
+        "action_authorization_granted": False,
+        "non_clone_resource_disposition": (
+            "UNPROVEN_RETAINED_FRESH_PREFLIGHT_REQUIRED"
+        ),
+    }
 
 
 def _main() -> int:

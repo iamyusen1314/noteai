@@ -738,7 +738,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         self.assertIsNone(binding)
         self.assertEqual(
             errors,
-            ["manual cost-stop external authority is not finalized"],
+            ["manual cost-stop terminal artifacts are not installed"],
         )
 
     def test_python_identity_hashes_stable_group_writable_file(self):

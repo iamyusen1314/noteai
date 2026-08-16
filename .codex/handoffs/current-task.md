@@ -10959,3 +10959,84 @@ Colima, database, builder, restore and cloud actions remain frozen.
   terminal checkpoint follow. A future paid PITR successor still requires a
   new explicit fee ceiling; checkpoints and individual stages are not stopping
   signals.
+
+### Item 26 manual predecessor A0 source candidate (2026-08-17)
+
+- M0 is now exact pushed revision
+  `85bf60f51f823c9e55e33dbf9bf6a84768a48f3e`. Push run `31962925383`/job
+  `95203569966` and pull-request run `31962928312`/job `95203577020` both
+  completed attempt 1 with `success`; neither was rerun or cancelled. Each
+  ordinary CI run passed 2,331 main unit tests with 34 skips and zero
+  failure/error, the additional `10+12+22+21` unit batches, PostgreSQL 16
+  `6/6`, production readiness `138/138`, Quality and Compose.
+- A canonical Secret-free authority-root candidate was generated outside Git
+  after M0. It is 5,989 bytes with SHA-256
+  `f0f7cfce319009ad696cf762f30ca25b2f237d4bda2f4f0643baeea409514f3c`.
+  Main-CTO local validation recomputed the exact file hash, mode `0600`,
+  containing-directory mode `0700`, three mutually distinct SPKI identities
+  and RSA-3072 public-key shape. No private-key bytes were read, printed or
+  added to Git. The three keys currently prove cryptographic role separation,
+  not independent organizational custody; no stronger custody claim may be
+  made without a separately evidenced handoff.
+- The A0 source candidate binds that non-empty root hash and implements a
+  post-action, read-only raw path. Exact `DescribeDBInstances` requests are
+  allowlisted to the frozen `cn-shenzhen` region and exact target identity;
+  response counts and pagination must prove old-clone count `0` and source
+  count `1`. `QueryInstanceBill` remains a delayed historical snapshot with a
+  dynamic value no earlier than the recorded `198.462 CNY` / `345600`-second
+  baseline. Wrong-region absence, extra filters, business errors and incomplete
+  page evidence fail closed.
+- ActionTrail capture is a separate exact read-only stream. It enforces
+  complete NextToken pagination without token reuse/cycles, exactly one
+  protection-disable and one delete after the recorded user confirmation and
+  before exact absence, one earlier clone-create identity, one user-identity
+  commitment, and request-ID/body/token derivation from direct management-event
+  fields. `EventDetail` is ignored and cannot authorize a field. No live native
+  ActionTrail payload has yet been captured; an incompatible provider shape or
+  missing direct request parameters must stop as UNKNOWN rather than be
+  inferred from synthetic fixtures.
+- Receipt, evidence and checkpoint form an acyclic candidate chain. M1 receipt
+  and evidence remain `CANDIDATE_NO_READINESS_CREDIT`; M2 remains
+  `MANUAL_COST_STOP_CANDIDATE_AWAITING_AUTHORITY`. Only after M2 dual-green CI
+  may the provider, user-confirmation and CI envelopes form final authority.
+  The verifier binds the exact raw projections to every receipt identity,
+  source tuple, billing snapshot and no-replay root; freezes the manual
+  extractor/verifiers/builder, contract, v2 registry, shared readiness gate and
+  `.github/workflows/ci.yml` across A0/M1/M2; and requires six distinct ordinary
+  attempt-one CI runs with Unit, Quality, PostgreSQL, readiness and Compose
+  outcomes plus the strict timeline `A0 CI < raw < M1 CI < M2 CI < final
+  confirmation/provider/CI acceptance`.
+- The default repository path remains fail closed: the root-owned five-file
+  inventory and the three Git artifacts are absent, post-action provider and
+  ActionTrail readback counts remain zero, and no cloud call or write was made
+  while building A0. The root candidate is not installed at
+  `/Library/Application Support/NoteAI`; current non-interactive privilege is
+  insufficient. Installation, if still required after A0 dual-green CI, is an
+  explicit interactive-admin stop under the user boundary. Before capture,
+  the root and signing keys must be migrated to exact root-only custody and
+  ordinary-user signing copies removed or isolated.
+- Current validation is 237 focused executions from 152 distinct methods: 85
+  normal plus the same 85 under optimized Python across the manual raw, manual
+  authority, manual evidence and PITR-success modules, plus 67 normal executions
+  across shared internal readiness and the frozen Item 27–29 dependency adapters.
+  The terminal-authority positive fixture uses the real strict raw extractor
+  and proves the three-envelope/six-CI DAG is constructible; negatives cover a
+  repeated pagination token, wrong-region absence, noncanonical billing,
+  early CI, malformed nested receipt data, invalid M1 evidence, semantic
+  receipt/raw drift and premature/drifted artifacts. Python compilation passes,
+  production readiness is `138/138`,
+  internal readiness remains `25/29` and public aggregate remains `25/38`.
+- A future verified Item 26 commit cannot depend on this Mac-only root-owned
+  inventory inside GitHub-hosted CI. Before any paid successor dispatch, S0
+  must define a Secret-free, CI-replayable predecessor capsule (or an equally
+  explicit trusted distribution contract) that preserves the locally verified
+  raw commitments and detached signatures without exposing raw identifiers or
+  private keys. This is a hard successor gate, not readiness credit.
+- The immediate serial path is: checkpoint and normally push this A0 source
+  candidate; require its own new attempt-one push/PR CI; then perform the exact
+  root-only install before any fresh ActionTrail/Describe readback. No consumed
+  mutation, failed CI or historical script may be replayed. Item 26 remains
+  `unverified`, `evidence: []`, internal readiness remains `25/29`, and all five
+  historical scripts remain unexecuted, undeleted and unstaged. A0 completion
+  is not a stopping signal; only the interactive privilege boundary may require
+  user action.
