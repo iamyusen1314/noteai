@@ -2,7 +2,9 @@ import copy
 import contextlib
 import hashlib
 import io
+import os
 from pathlib import Path
+import shutil
 import sys
 import tempfile
 import types
@@ -40,6 +42,12 @@ def abort_dependency():
         "validator_sha256": "e" * 64,
         "builder_path": "tools/build_item26_cost_containment_abort_evidence_v1.py",
         "builder_sha256": "f" * 64,
+        "authority_verifier_path": verifier.ABORT_AUTHORITY_VERIFIER_REF,
+        "authority_verifier_sha256": "4" * 64,
+        "raw_extractor_path": verifier.ABORT_RAW_EXTRACTOR_REF,
+        "raw_extractor_sha256": "5" * 64,
+        "release_contract_path": verifier.ABORT_RELEASE_CONTRACT_REF,
+        "release_contract_sha256": "6" * 64,
         "evidence_path": verifier.ABORT_EVIDENCE_REF,
         "evidence_sha256": "2" * 64,
         "receipt_path": verifier.ABORT_RECEIPT_REF,
@@ -512,6 +520,12 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
             errors, binding = verifier._run_frozen_abort_verifier(
                 verifier_raw=(ROOT / verifier.ABORT_VERIFIER_REF).read_bytes(),
                 validator_raw=(ROOT / verifier.ABORT_VALIDATOR_REF).read_bytes(),
+                authority_verifier_raw=(
+                    ROOT / verifier.ABORT_AUTHORITY_VERIFIER_REF
+                ).read_bytes(),
+                raw_extractor_raw=(
+                    ROOT / verifier.ABORT_RAW_EXTRACTOR_REF
+                ).read_bytes(),
                 root=ROOT,
             )
         self.assertIsNone(binding)
@@ -519,6 +533,158 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
             errors,
             ["abort external authority/raw extractor is not finalized"],
         )
+
+    def test_python_identity_hashes_stable_group_writable_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "python"
+            shutil.copyfile(Path(sys.executable).resolve(strict=True), target)
+            target.chmod(0o775)
+            identity = verifier._python_executable_identity(target)
+        self.assertRegex(identity[-1], r"^[0-9a-f]{64}$")
+
+    def test_frozen_abort_verifier_rejects_real_python_inode_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            target = base / "python"
+            replacement = base / "python-replacement"
+            source = Path(sys.executable).resolve(strict=True)
+            shutil.copyfile(source, target)
+            shutil.copyfile(source, replacement)
+            target.chmod(0o755)
+            replacement.chmod(0o755)
+
+            def replace_interpreter(arguments, **_kwargs):
+                self.assertEqual(Path(arguments[0]), target.resolve(strict=True))
+                self.assertEqual(arguments[1], "-I")
+                self.assertEqual(arguments[2:4], ["-S", "-B"])
+                os.replace(replacement, target)
+                return types.SimpleNamespace(
+                    returncode=0,
+                    stdout=verifier._canonical({"errors": [], "binding": {}}),
+                )
+
+            with (
+                mock.patch.object(verifier.sys, "executable", str(target)),
+                mock.patch.object(verifier.sys, "platform", "darwin"),
+                mock.patch.object(
+                    verifier.subprocess,
+                    "run",
+                    side_effect=replace_interpreter,
+                ),
+                self.assertRaisesRegex(
+                    ValueError, "isolated Python identity changed"
+                ),
+            ):
+                verifier._run_frozen_abort_verifier(
+                    verifier_raw=b"verifier",
+                    validator_raw=b"validator",
+                    authority_verifier_raw=b"authority",
+                    raw_extractor_raw=b"extractor",
+                    root=ROOT,
+                )
+
+    def test_darwin_rejects_group_writable_python(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "python"
+            shutil.copyfile(Path(sys.executable).resolve(strict=True), target)
+            target.chmod(0o775)
+            with (
+                mock.patch.object(verifier.sys, "executable", str(target)),
+                mock.patch.object(verifier.sys, "platform", "darwin"),
+                self.assertRaisesRegex(
+                    ValueError, "isolated Python identity invalid"
+                ),
+            ):
+                verifier._run_frozen_abort_verifier(
+                    verifier_raw=b"verifier",
+                    validator_raw=b"validator",
+                    authority_verifier_raw=b"authority",
+                    raw_extractor_raw=b"extractor",
+                    root=ROOT,
+                )
+
+    def test_linux_executes_current_process_inode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            proc_link = Path(directory) / "self-exe"
+            proc_link.symlink_to(Path(sys.executable).resolve(strict=True))
+            response = verifier._canonical({
+                "errors": ["expected fail closed"],
+                "binding": None,
+            })
+            with (
+                mock.patch.object(verifier.sys, "platform", "linux"),
+                mock.patch.object(verifier, "PROC_SELF_EXE", proc_link),
+                mock.patch.object(
+                    verifier.subprocess,
+                    "run",
+                    return_value=types.SimpleNamespace(
+                        returncode=1,
+                        stdout=response,
+                    ),
+                ) as run,
+            ):
+                errors, binding = verifier._run_frozen_abort_verifier(
+                    verifier_raw=b"verifier",
+                    validator_raw=b"validator",
+                    authority_verifier_raw=b"authority",
+                    raw_extractor_raw=b"extractor",
+                    root=ROOT,
+                )
+            self.assertEqual(errors, ["expected fail closed"])
+            self.assertIsNone(binding)
+            arguments = run.call_args.args[0]
+            self.assertEqual(arguments[1:4], ["-I", "-S", "-B"])
+            self.assertEqual(run.call_args.kwargs["executable"], str(proc_link))
+
+    def test_linux_missing_proc_identity_fails_closed(self):
+        missing = ROOT / "does-not-exist-item26-proc-self-exe"
+        with (
+            mock.patch.object(verifier.sys, "platform", "linux"),
+            mock.patch.object(verifier, "PROC_SELF_EXE", missing),
+            self.assertRaisesRegex(ValueError, "isolated Python unavailable"),
+        ):
+            verifier._run_frozen_abort_verifier(
+                verifier_raw=b"verifier",
+                validator_raw=b"validator",
+                authority_verifier_raw=b"authority",
+                raw_extractor_raw=b"extractor",
+                root=ROOT,
+            )
+
+    def test_linux_proc_identity_mismatch_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            different = Path(directory) / "different-python-inode"
+            shutil.copyfile(Path(sys.executable).resolve(strict=True), different)
+            different.chmod(0o755)
+            proc_link = Path(directory) / "self-exe"
+            proc_link.symlink_to(different)
+            with (
+                mock.patch.object(verifier.sys, "platform", "linux"),
+                mock.patch.object(verifier, "PROC_SELF_EXE", proc_link),
+                self.assertRaisesRegex(
+                    ValueError, "isolated Python identity invalid"
+                ),
+            ):
+                verifier._run_frozen_abort_verifier(
+                    verifier_raw=b"verifier",
+                    validator_raw=b"validator",
+                    authority_verifier_raw=b"authority",
+                    raw_extractor_raw=b"extractor",
+                    root=ROOT,
+                )
+
+    def test_frozen_abort_verifier_rejects_relative_python_identity(self):
+        with (
+            mock.patch.object(verifier.sys, "executable", "python"),
+            self.assertRaisesRegex(ValueError, "isolated Python identity invalid"),
+        ):
+            verifier._run_frozen_abort_verifier(
+                verifier_raw=b"verifier",
+                validator_raw=b"validator",
+                authority_verifier_raw=b"authority",
+                raw_extractor_raw=b"extractor",
+                root=ROOT,
+            )
 
     def test_abort_dependency_authority_root_is_domain_separated(self):
         dependency = abort_dependency()

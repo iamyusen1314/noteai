@@ -21,8 +21,10 @@ import subprocess
 from typing import Any
 
 from validate_item26_cost_containment_abort_result_v1 import (
+    EXPECTED_RELEASE_BILLING_CONTRACT_SHA256,
     OPERATION_ID,
     READINESS_25_TO_25,
+    RELEASE_BILLING_CONTRACT_REF,
     TASK_ID,
     TERMINAL_STATUS,
     VALIDATOR_REF,
@@ -31,6 +33,10 @@ from validate_item26_cost_containment_abort_result_v1 import (
 ROOT = Path(__file__).resolve().parents[1]
 VERIFIER_REF = "tools/verify_item26_cost_containment_abort_evidence_v1.py"
 BUILDER_REF = "tools/build_item26_cost_containment_abort_evidence_v1.py"
+AUTHORITY_VERIFIER_REF = (
+    "tools/verify_item26_cost_containment_abort_authority_v1.py"
+)
+RAW_EXTRACTOR_REF = "tools/extract_item26_cost_containment_abort_raw_v1.py"
 RECEIPT_SCHEMA = "noteai.item26.cost-containment-abort-provider-receipt.v1"
 EVIDENCE_SCHEMA = "noteai.item26.cost-containment-abort-evidence.v1"
 CHECKPOINT_SCHEMA = (
@@ -51,6 +57,9 @@ REQUIRED_ARTIFACT_REFS = {
     EVIDENCE_REF,
     TERMINAL_CHECKPOINT_REF,
     NO_REPLAY_REGISTRY_REF,
+    RELEASE_BILLING_CONTRACT_REF,
+    AUTHORITY_VERIFIER_REF,
+    RAW_EXTRACTOR_REF,
     VERIFIER_REF,
     BUILDER_REF,
     VALIDATOR_REF,
@@ -549,6 +558,14 @@ def validate_receipt(
             errors.extend(
                 registry_errors or ["abort receipt no-replay registry mismatch"]
             )
+    contract_path = root / RELEASE_BILLING_CONTRACT_REF
+    try:
+        contract_raw = contract_path.read_bytes()
+    except OSError:
+        errors.append("abort release billing contract unavailable")
+    else:
+        if _sha(contract_raw) != EXPECTED_RELEASE_BILLING_CONTRACT_SHA256:
+            errors.append("abort release billing contract identity mismatch")
     errors.extend(validate_abort_result(value))
     acceptance = terminal_acceptance_sha256(value)
     if not _hex64(value.get("terminal_acceptance_sha256")) or value[
@@ -713,11 +730,14 @@ def validate_abort_authority_bundle(
 ) -> tuple[list[str], dict[str, Any] | None]:
     """Fail closed until the pre-action root and raw extractor are frozen.
 
-    The terminal implementation must reload root-owned provider raw bytes and
+    The installed authority implementation must reload root-owned provider raw bytes and
     the action-time confirmation, derive the receipt projection, verify three
     distinct provider/confirmation/CI signatures, and bind three revisions plus
     six attempt-one CI receipts.  This source revision intentionally cannot do
-    that because no destructive-action confirmation has been issued.
+    that because no destructive-action confirmation has been issued.  The
+    standalone pre-action authority and raw extractor sources are present, but
+    this terminal entry point remains unreachable until their exact root hash
+    and post-action authority-bundle validation are frozen.
     """
 
     del root

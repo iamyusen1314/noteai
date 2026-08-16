@@ -39,6 +39,13 @@ EVIDENCE_BUILDER_REF = "tools/build_item26_pitr_restore_evidence_v1.py"
 ABORT_VERIFIER_REF = "tools/verify_item26_cost_containment_abort_evidence_v1.py"
 ABORT_VALIDATOR_REF = "tools/validate_item26_cost_containment_abort_result_v1.py"
 ABORT_BUILDER_REF = "tools/build_item26_cost_containment_abort_evidence_v1.py"
+ABORT_AUTHORITY_VERIFIER_REF = (
+    "tools/verify_item26_cost_containment_abort_authority_v1.py"
+)
+ABORT_RAW_EXTRACTOR_REF = "tools/extract_item26_cost_containment_abort_raw_v1.py"
+ABORT_RELEASE_CONTRACT_REF = (
+    "deploy/production/plans/item26-rds-release-billing-contract-v1.json"
+)
 ABORT_EVIDENCE_REF = (
     "deploy/production/evidence/production-item26-cost-containment-abort-20260816.json"
 )
@@ -78,6 +85,9 @@ REQUIRED_MANIFEST_PATH_REFS = {
     ABORT_VERIFIER_REF,
     ABORT_VALIDATOR_REF,
     ABORT_BUILDER_REF,
+    ABORT_AUTHORITY_VERIFIER_REF,
+    ABORT_RAW_EXTRACTOR_REF,
+    ABORT_RELEASE_CONTRACT_REF,
     "tools/internal_deployment_readiness_gate.py",
     "model/storage_recovery_evidence.py",
 }
@@ -103,6 +113,12 @@ EXPECTED_ABORT_DEPENDENCY = {
     "validator_sha256": "",
     "builder_path": "",
     "builder_sha256": "",
+    "authority_verifier_path": "",
+    "authority_verifier_sha256": "",
+    "raw_extractor_path": "",
+    "raw_extractor_sha256": "",
+    "release_contract_path": "",
+    "release_contract_sha256": "",
     "evidence_path": "",
     "evidence_sha256": "",
     "receipt_path": "",
@@ -150,6 +166,7 @@ UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 DECIMAL_CNY = re.compile(r"^(0|[1-9]\d*)(?:\.\d{1,6})?$")
 MAX_BYTES = 2 * 1024 * 1024
 GIT = Path("/usr/bin/git")
+PROC_SELF_EXE = Path("/proc/self/exe")
 ABORT_DEPENDENCY_AUTHORITY_DOMAIN = (
     b"noteai-item26-cost-containment-abort-dependency-authority-v1\0"
 )
@@ -611,6 +628,9 @@ def _abort_dependency_complete(value: Any) -> bool:
         "verifier_sha256",
         "validator_sha256",
         "builder_sha256",
+        "authority_verifier_sha256",
+        "raw_extractor_sha256",
+        "release_contract_sha256",
         "evidence_sha256",
         "receipt_sha256",
         "checkpoint_sha256",
@@ -640,12 +660,22 @@ def _abort_dependency_complete(value: Any) -> bool:
         and value.get("verifier_path") == ABORT_VERIFIER_REF
         and value.get("validator_path") == ABORT_VALIDATOR_REF
         and value.get("builder_path") == ABORT_BUILDER_REF
+        and value.get("authority_verifier_path") == ABORT_AUTHORITY_VERIFIER_REF
+        and value.get("raw_extractor_path") == ABORT_RAW_EXTRACTOR_REF
+        and value.get("release_contract_path") == ABORT_RELEASE_CONTRACT_REF
         and value.get("evidence_path") == ABORT_EVIDENCE_REF
         and value.get("receipt_path") == ABORT_RECEIPT_REF
         and value.get("checkpoint_path") == ABORT_CHECKPOINT_REF
         and safe_ref(value.get("verifier_path"), "tools/", ".py")
         and safe_ref(value.get("validator_path"), "tools/", ".py")
         and safe_ref(value.get("builder_path"), "tools/", ".py")
+        and safe_ref(value.get("authority_verifier_path"), "tools/", ".py")
+        and safe_ref(value.get("raw_extractor_path"), "tools/", ".py")
+        and safe_ref(
+            value.get("release_contract_path"),
+            "deploy/production/plans/",
+            ".json",
+        )
         and all(_hex64(value.get(key)) for key in digest_keys)
         and all(
             type(value.get(key)) is str
@@ -766,27 +796,96 @@ def _write_exclusive(path: Path, raw: bytes) -> None:
         os.close(descriptor)
 
 
+def _python_executable_identity(path: Path) -> tuple[Any, ...]:
+    """Return a continuity token, not an origin policy, for an executable."""
+
+    try:
+        before = path.lstat()
+        descriptor = os.open(
+            path,
+            os.O_RDONLY
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_CLOEXEC", 0),
+        )
+    except OSError as exc:
+        raise ValueError("isolated Python unavailable") from exc
+    digest = hashlib.sha256()
+    total = 0
+    try:
+        opened = os.fstat(descriptor)
+        while True:
+            chunk = os.read(descriptor, 65536)
+            if not chunk:
+                break
+            digest.update(chunk)
+            total += len(chunk)
+        closed = os.fstat(descriptor)
+    except OSError as exc:
+        raise ValueError("isolated Python unavailable") from exc
+    finally:
+        os.close(descriptor)
+    try:
+        after = path.lstat()
+    except OSError as exc:
+        raise ValueError("isolated Python unavailable") from exc
+
+    def identity(row: os.stat_result) -> tuple[int, ...]:
+        return (
+            row.st_dev,
+            row.st_ino,
+            row.st_mode,
+            row.st_nlink,
+            row.st_uid,
+            row.st_gid,
+            row.st_size,
+            row.st_mtime_ns,
+            row.st_ctime_ns,
+        )
+
+    if (
+        not path.is_absolute()
+        or not stat.S_ISREG(before.st_mode)
+        or stat.S_ISLNK(before.st_mode)
+        or not stat.S_IMODE(before.st_mode) & 0o111
+        or before.st_size <= 0
+        or total != before.st_size
+        or identity(before) != identity(opened)
+        or identity(opened) != identity(closed)
+        or identity(closed) != identity(after)
+    ):
+        raise ValueError("isolated Python identity invalid")
+    return (*identity(opened), digest.hexdigest())
+
+
 def _run_frozen_abort_verifier(
     *,
     verifier_raw: bytes,
     validator_raw: bytes,
+    authority_verifier_raw: bytes,
+    raw_extractor_raw: bytes,
     root: Path,
 ) -> tuple[list[str], dict[str, Any] | None]:
-    try:
-        python = Path(sys.executable).resolve(strict=True)
-    except OSError as exc:
-        raise ValueError("isolated Python unavailable") from exc
-    try:
-        python_stat = python.lstat()
-    except OSError as exc:
-        raise ValueError("isolated Python unavailable") from exc
-    if (
-        not python.is_absolute()
-        or not stat.S_ISREG(python_stat.st_mode)
-        or stat.S_ISLNK(python_stat.st_mode)
-        or stat.S_IMODE(python_stat.st_mode) & 0o022
-    ):
+    configured_python = Path(sys.executable)
+    if not configured_python.is_absolute():
         raise ValueError("isolated Python identity invalid")
+    try:
+        python = configured_python.resolve(strict=True)
+    except OSError as exc:
+        raise ValueError("isolated Python unavailable") from exc
+    python_identity = _python_executable_identity(python)
+    subprocess_executable: str | None = None
+    if sys.platform.startswith("linux"):
+        try:
+            proc_python = PROC_SELF_EXE.resolve(strict=True)
+        except OSError as exc:
+            raise ValueError("isolated Python unavailable") from exc
+        if _python_executable_identity(proc_python) != python_identity:
+            raise ValueError("isolated Python identity invalid")
+        subprocess_executable = str(PROC_SELF_EXE)
+    else:
+        python_stat = python.lstat()
+        if stat.S_IMODE(python_stat.st_mode) & 0o022:
+            raise ValueError("isolated Python identity invalid")
     wrapper = (
         "import runpy,sys;"
         "d=sys.argv[1];p=sys.argv[2];"
@@ -800,33 +899,54 @@ def _run_frozen_abort_verifier(
         temp_root = Path(directory)
         verifier_path = temp_root / Path(ABORT_VERIFIER_REF).name
         validator_path = temp_root / Path(ABORT_VALIDATOR_REF).name
+        authority_verifier_path = temp_root / Path(
+            ABORT_AUTHORITY_VERIFIER_REF
+        ).name
+        raw_extractor_path = temp_root / Path(ABORT_RAW_EXTRACTOR_REF).name
         _write_exclusive(verifier_path, verifier_raw)
         _write_exclusive(validator_path, validator_raw)
+        _write_exclusive(authority_verifier_path, authority_verifier_raw)
+        _write_exclusive(raw_extractor_path, raw_extractor_raw)
+        arguments = [
+            str(python),
+            "-I",
+            "-S",
+            "-B",
+            "-c",
+            wrapper,
+            str(temp_root),
+            str(verifier_path),
+            "--root",
+            str(root.resolve()),
+            "--json",
+        ]
+        run_kwargs: dict[str, Any] = {}
+        if subprocess_executable is not None:
+            run_kwargs["executable"] = subprocess_executable
         result = subprocess.run(
-            [
-                str(python),
-                "-I",
-                "-c",
-                wrapper,
-                str(temp_root),
-                str(verifier_path),
-                "--root",
-                str(root.resolve()),
-                "--json",
-            ],
+            arguments,
             cwd=temp_root,
             env={
                 "PATH": "/usr/bin:/bin",
                 "LC_ALL": "C",
                 "LANG": "C",
                 "PYTHONHASHSEED": "0",
-                "PYTHONDONTWRITEBYTECODE": "1",
             },
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             timeout=30,
             check=False,
+            **run_kwargs,
         )
+    if _python_executable_identity(python) != python_identity:
+        raise ValueError("isolated Python identity changed")
+    if sys.platform.startswith("linux"):
+        try:
+            proc_python = PROC_SELF_EXE.resolve(strict=True)
+        except OSError as exc:
+            raise ValueError("isolated Python unavailable") from exc
+        if _python_executable_identity(proc_python) != python_identity:
+            raise ValueError("isolated Python identity changed")
     if not 1 <= len(result.stdout) <= MAX_BYTES:
         raise ValueError("isolated abort verifier output invalid")
     try:
@@ -863,6 +983,9 @@ def validate_abort_dependency(
         ("verifier_path", "verifier_sha256"),
         ("validator_path", "validator_sha256"),
         ("builder_path", "builder_sha256"),
+        ("authority_verifier_path", "authority_verifier_sha256"),
+        ("raw_extractor_path", "raw_extractor_sha256"),
+        ("release_contract_path", "release_contract_sha256"),
         ("evidence_path", "evidence_sha256"),
         ("receipt_path", "receipt_sha256"),
         ("checkpoint_path", "checkpoint_sha256"),
@@ -878,6 +1001,9 @@ def validate_abort_dependency(
             ("verifier_path", "verifier_sha256"),
             ("validator_path", "validator_sha256"),
             ("builder_path", "builder_sha256"),
+            ("authority_verifier_path", "authority_verifier_sha256"),
+            ("raw_extractor_path", "raw_extractor_sha256"),
+            ("release_contract_path", "release_contract_sha256"),
         ):
             for revision_key in (
                 "execution_revision",
@@ -917,6 +1043,8 @@ def validate_abort_dependency(
         errors, binding = _run_frozen_abort_verifier(
             verifier_raw=loaded_raw["verifier_path"],
             validator_raw=loaded_raw["validator_path"],
+            authority_verifier_raw=loaded_raw["authority_verifier_path"],
+            raw_extractor_raw=loaded_raw["raw_extractor_path"],
             root=root,
         )
     except (OSError, ValueError, subprocess.SubprocessError) as exc:

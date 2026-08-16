@@ -56,8 +56,11 @@ REQUIRED_CONTROL_SOURCE_REFS = (
     "tools/verify_item26_cost_containment_abort_evidence_v1.py",
     "tools/validate_item26_cost_containment_abort_result_v1.py",
     "tools/build_item26_cost_containment_abort_evidence_v1.py",
+    "tools/verify_item26_cost_containment_abort_authority_v1.py",
+    "tools/extract_item26_cost_containment_abort_raw_v1.py",
     "model/storage_recovery_evidence.py",
     "deploy/production/plans/item26-no-replay-registry-v1.json",
+    "deploy/production/plans/item26-rds-release-billing-contract-v1.json",
 )
 STAGE_ONLY_CONTROL_SOURCE_REFS = {
     "tools/internal_deployment_readiness_gate.py",

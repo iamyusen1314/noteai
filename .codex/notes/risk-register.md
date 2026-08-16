@@ -29,10 +29,10 @@ Last updated: 2026-08-16
   exposed a PITR clone cost-ceiling breach; cloud writes remain frozen except
   for the separately confirmed exact cost-containment cleanup path. A stale
   local or cloud record must not authorize a replay.
-- 下一验证: Checkpoint the new read-only cloud evidence, then request the
-  action-time confirmation required to stop billing through exact cleanup; do
-  not start a builder, connect to the clone database, or dispatch any historical
-  command. The local
+- 下一验证: Keep the separately ledgered Item 26 abort successor moving through
+  its source-only raw/resource-lineage and exact-once gates, then take the fresh
+  action-time confirmation required for exact cleanup; do not start a builder,
+  connect to the clone database, or dispatch any historical command. The local
   rollback cleanup remains a separate full-App-exit operation using only the
   exact `FREE-INTERNAL-SPACE` path, followed by the reviewed ORICO daily
   launcher; do not mix that destructive local cleanup into the NoteAI cloud
@@ -62,25 +62,38 @@ Last updated: 2026-08-16
   add readiness credit. A separate abort v1 source contract now rederives its
   exact-target action plan and aggregate projections from Secret-free leaf
   commitments for billing observations, ownership dispositions and current
-  mutation identities; the root-owned extractor that must derive those leaves
-  from provider/confirmation raw bytes is not finalized. The contract fixes
-  readiness at `25 -> 25/29`. The future restore predecessor is
+  mutation identities. A pure RDS-critical extractor and three-authority
+  pre-action verifier are now implemented in source: they preserve no-response
+  mutations as `UNKNOWN`, reject HTTP-200 provider errors and hidden capture
+  slots, bind the official release contract, and treat QueryInstanceBill only
+  as a delayed historical snapshot. The complete terminal root-owned extractor
+  is still not finalized. The contract fixes readiness at `25 -> 25/29`. The
+  future restore predecessor is
   domain-separated and must execute the hash/Git-blob-locked abort verifier in
-  an isolated subprocess.
+  an isolated subprocess. Linux now anchors that subprocess to the current
+  parent executable inode through `/proc/self/exe`; this is runtime continuity,
+  not full loader/stdlib supply-chain attestation.
 - 残余边界: The existing retention contract permits either terminal acceptance
   or exact approved cleanup. Under the current fee boundary only a
   `COST_CONTAINMENT_ABORT` is admissible, but disabling deletion protection and
   deleting the clone require immediate browser action confirmation. The abort
-  scaffold is still deliberately non-dispatchable: its root hash is empty, its
-  provider raw extractor and three-authority bundle do not exist, and no
-  action-time confirmation has been issued. An abort keeps Item 26 `unverified`
-  and readiness at `25/29`; a future restore requires a fully disjoint
+  scaffold is still deliberately non-dispatchable: its root hash is empty, no
+  real pre-action root or three-authority bundle is installed, complete
+  regional new-paid-resource and task-owned IAM/account/vSwitch derivation is
+  absent, the O_EXCL exact-once state runner is absent, and no action-time
+  confirmation has been issued. Commit `80c5091` also has terminal failed
+  attempt-one push/PR CI due its now-corrected hosted-toolcache mode false
+  rejection; those runs are no-replay and the current successor still needs its
+  own dual-green CI. An abort keeps Item 26 `unverified` and readiness at
+  `25/29`; a future restore requires a fully disjoint
   successor identity/request/name/body/token set and a new fee authorization
   issued after abort by an independent user-confirmation authority. The
   provider authority may cross-bind that confirmation but cannot issue it.
-- 下一验证: Complete independent red-team review, checkpoint and normally push
-  the Secret-free source-only abort contract, then install and pre-freeze the
-  root-owned provider/confirmation/CI extraction plan without dispatching it.
+- 下一验证: Complete the terminal raw/resource-lineage extractor and O_EXCL
+  mutation state machine, checkpoint and normally push the Secret-free
+  source-only successor, and require its own attempt-one dual-green CI. Then
+  install and pre-freeze the root-owned provider/confirmation/CI plan without
+  dispatching it.
   Only after the immediate action-time confirmation may the main CTO transmit
   the minimum exact identifiers, re-read the same clone, disable protection,
   delete it once, prove exact-ID absence and non-accruing billing closure, and

@@ -18,6 +18,12 @@ from typing import Any
 
 
 VALIDATOR_REF = "tools/validate_item26_cost_containment_abort_result_v1.py"
+RELEASE_BILLING_CONTRACT_REF = (
+    "deploy/production/plans/item26-rds-release-billing-contract-v1.json"
+)
+EXPECTED_RELEASE_BILLING_CONTRACT_SHA256 = (
+    "985d08f9fb5350b3c48e11b1193a683991e60ad4b8dd4ca087c00ae4ebb908e2"
+)
 TASK_ID = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
 OPERATION_ID = TASK_ID + ":COST_CONTAINMENT_ABORT:v1"
 TERMINAL_STATUS = "COST_CONTAINMENT_ABORT_TERMINAL_CLEAN"
@@ -46,6 +52,9 @@ PAGE_INVENTORY_DOMAIN = b"noteai-item26-cost-containment-abort-page-inventory-v1
 BILLING_SET_DOMAIN = b"noteai-item26-cost-containment-abort-billing-set-v1\0"
 DISPOSITION_SET_DOMAIN = b"noteai-item26-cost-containment-abort-disposition-set-v1\0"
 FINAL_STATE_DOMAIN = b"noteai-item26-cost-containment-abort-final-state-v1\0"
+RELEASE_EVIDENCE_DOMAIN = (
+    b"noteai-item26-cost-containment-abort-release-evidence-v1\0"
+)
 MUTATION_SET_DOMAIN = b"noteai-item26-cost-containment-abort-mutation-set-v1\0"
 INVENTORY_SCOPE_DOMAIN = b"noteai-item26-cost-containment-abort-inventory-scope-v1\0"
 BUILDER_DISK_TUPLE_DOMAIN = b"noteai-item26-cost-containment-abort-builder-disk-v1\0"
@@ -206,7 +215,7 @@ ACTION_STATE_BOUNDARIES = {
     ),
     "clone_billing_terminal_readback": (
         "ABSENT_FULL_PAGE",
-        "NON_ACCRUING_TERMINAL",
+        "POST_RELEASE_BILLING_SNAPSHOT_RECORDED",
     ),
     "task_cleanup_readback": ("DISPOSITIONS_COMPLETE", "TASK_CLEANUP_TERMINAL"),
     "shared_builder_disk_retention_readback": (
@@ -315,7 +324,6 @@ BILLING_OBSERVATION_KEYS = {
     "settlement_watermark_at_utc",
     "open_meter_row_count",
     "full_page_complete",
-    "provider_terminal_non_accruing",
     "raw_observation_sha256",
 }
 
@@ -475,6 +483,10 @@ def abort_plan_sha256(
             "new_paid_resource_allowed": authorization.get(
                 "new_paid_resource_allowed"
             ),
+            "release_billing_contract": {
+                "ref": RELEASE_BILLING_CONTRACT_REF,
+                "sha256": EXPECTED_RELEASE_BILLING_CONTRACT_SHA256,
+            },
             "confirmation_nonce_sha256": authorization.get(
                 "confirmation_nonce_sha256"
             ),
@@ -564,6 +576,74 @@ def billing_observation_set_sha256(billing: dict[str, Any]) -> str:
     return _domain_sha256(BILLING_SET_DOMAIN, billing.get("observations"))
 
 
+def release_evidence_projection_sha256(
+    billing: dict[str, Any],
+    actions: list[dict[str, Any]],
+    final_state: dict[str, Any],
+    execution_boundary: dict[str, Any],
+) -> str:
+    delete = actions[3] if len(actions) > 3 else {}
+    absence = actions[4] if len(actions) > 4 else {}
+    return _domain_sha256(
+        RELEASE_EVIDENCE_DOMAIN,
+        {
+            "schema": "noteai.item26.rds-release-evidence-projection.v1",
+            "release_billing_contract_ref": billing.get(
+                "release_billing_contract_ref"
+            ),
+            "release_billing_contract_sha256": billing.get(
+                "release_billing_contract_sha256"
+            ),
+            "delete": {
+                key: delete.get(key)
+                for key in (
+                    "sequence",
+                    "name",
+                    "operation",
+                    "target_sha256",
+                    "request_body_sha256",
+                    "request_set_sha256",
+                    "response_set_sha256",
+                    "provider_request_id_set_sha256",
+                    "mutation_submit_count",
+                    "submission_outcome",
+                    "completed_at_utc",
+                )
+            },
+            "absence": {
+                key: absence.get(key)
+                for key in (
+                    "sequence",
+                    "name",
+                    "operation",
+                    "target_sha256",
+                    "request_set_sha256",
+                    "response_set_sha256",
+                    "observation_set_sha256",
+                    "provider_request_id_set_sha256",
+                    "read_request_count",
+                    "same_identity_readback_count",
+                    "provider_state_after",
+                    "terminal_outcome",
+                    "completed_at_utc",
+                )
+            },
+            "source": {
+                "source_rds_sha256": final_state.get("source_rds_sha256"),
+                "source_running_prepaid_unchanged": final_state.get(
+                    "source_running_prepaid_unchanged"
+                ),
+                "source_readback_sha256": final_state.get(
+                    "source_readback_sha256"
+                ),
+            },
+            "new_paid_resource_count": execution_boundary.get(
+                "new_paid_resource_count"
+            ),
+        },
+    )
+
+
 def resource_disposition_set_sha256(dispositions: list[dict[str, Any]]) -> str:
     return _domain_sha256(DISPOSITION_SET_DOMAIN, dispositions)
 
@@ -625,7 +705,10 @@ def _validate_authorization(value: Any, preflight: Any) -> list[str]:
                 "protection_disable_client_token_sha256",
             )
         )
-        or not _strict(value["allowed_mutations"], ALLOWED_MUTATIONS)
+        or type(value["allowed_mutations"]) is not list
+        or not value["allowed_mutations"]
+        or len(value["allowed_mutations"]) != len(set(value["allowed_mutations"]))
+        or any(operation not in ALLOWED_MUTATIONS for operation in value["allowed_mutations"])
         or type(preflight) is not dict
         or value["preflight_sha256"] != preflight_projection_sha256(preflight)
         or type(value["destructive_clone_target_count"]) is not int
@@ -989,8 +1072,7 @@ def _validate_actions(
                 or row["read_request_count"] != 0
                 or row["same_identity_readback_count"] != 0
                 or row["terminal_outcome"] != "SUBMITTED_ONCE_NO_REPLAY"
-                or row["submission_outcome"]
-                not in {"ACCEPTED", "RESPONSE_LOST_RESOLVED_SAME_IDENTITY"}
+                or row["submission_outcome"] != "ACCEPTED"
                 or row["client_token_used"] is not expected_client_token_used
                 or row["operation"] not in authorization["allowed_mutations"]
                 or (
@@ -1047,7 +1129,7 @@ def _validate_actions(
                 else READ_ONLY_DISPOSITION_OPERATIONS[name.removesuffix("_disposition")]
             )
             expected_submission = (
-                {"ACCEPTED", "RESPONSE_LOST_RESOLVED_SAME_IDENTITY"}
+                {"ACCEPTED"}
                 if outcome == "TASK_OWNED"
                 else {"NOT_APPLICABLE"}
             )
@@ -1092,21 +1174,6 @@ def _validate_actions(
     ):
         if len(digests) != len(set(digests)):
             errors.append("abort action " + label + " commitments are not distinct")
-    if type(value) is list and len(value) >= 5:
-        disable = value[1]
-        protection_readback = value[2]
-        delete = value[3]
-        absence_readback = value[4]
-        if disable.get("submission_outcome") == "RESPONSE_LOST_RESOLVED_SAME_IDENTITY" and (
-            protection_readback.get("same_identity_readback_count", 0) < 1
-            or protection_readback.get("provider_state_after") != "UNPROTECTED"
-        ):
-            errors.append("abort protection UNKNOWN did not resolve by same identity")
-        if delete.get("submission_outcome") == "RESPONSE_LOST_RESOLVED_SAME_IDENTITY" and (
-            absence_readback.get("same_identity_readback_count", 0) < 1
-            or absence_readback.get("provider_state_after") != "ABSENT_FULL_PAGE"
-        ):
-            errors.append("abort delete UNKNOWN did not resolve by same identity")
     return errors
 
 
@@ -1118,6 +1185,8 @@ def _validate_billing(
 ) -> list[str]:
     keys = {
         "resource_sha256",
+        "release_billing_contract_ref",
+        "release_billing_contract_sha256",
         "currency",
         "billing_cycle",
         "approved_24h_ceiling_cny",
@@ -1131,7 +1200,7 @@ def _validate_billing(
         "final_observed_at_utc",
         "billed_through_at_utc",
         "closure_method",
-        "provider_terminal_marker",
+        "release_contract_outcome",
         "stable_readback_count",
         "open_meter_row_count",
         "metering_closed",
@@ -1152,6 +1221,10 @@ def _validate_billing(
     errors: list[str] = []
     if (
         value["resource_sha256"] != identities["old_clone_sha256"]
+        or value["release_billing_contract_ref"]
+        != RELEASE_BILLING_CONTRACT_REF
+        or value["release_billing_contract_sha256"]
+        != EXPECTED_RELEASE_BILLING_CONTRACT_SHA256
         or value["currency"] != "CNY"
         or value["billing_cycle"] != KNOWN_BILLING_CYCLE
         or value["approved_24h_ceiling_cny"] != KNOWN_24H_CEILING_CNY
@@ -1192,7 +1265,7 @@ def _validate_billing(
     if type(observations) is not list or not observations:
         return [*errors, "abort billing observation vector missing"]
     parsed_observations: list[
-        tuple[datetime, Decimal, int, datetime, datetime, bool, str]
+        tuple[datetime, Decimal, int, datetime, datetime, str]
     ] = []
     for row in observations:
         if type(row) is not dict or set(row) != BILLING_OBSERVATION_KEYS:
@@ -1212,7 +1285,6 @@ def _validate_billing(
             or not row_billed <= row_watermark <= row_observed
             or not _nonnegative(row["open_meter_row_count"])
             or row["full_page_complete"] is not True
-            or type(row["provider_terminal_non_accruing"]) is not bool
             or not _hex64(row["raw_observation_sha256"])
         ):
             errors.append("abort billing observation mismatch")
@@ -1224,7 +1296,6 @@ def _validate_billing(
                 row["service_seconds"],
                 row_billed,
                 row_watermark,
-                row["provider_terminal_non_accruing"],
                 row["raw_observation_sha256"],
             )
         )
@@ -1233,7 +1304,7 @@ def _validate_billing(
     if any(
         parsed_observations[index - 1][0] >= parsed_observations[index][0]
         for index in range(1, len(parsed_observations))
-    ) or len({row[6] for row in parsed_observations}) != len(parsed_observations):
+    ) or len({row[5] for row in parsed_observations}) != len(parsed_observations):
         errors.append("abort billing observations are not distinct and ordered")
     last = parsed_observations[-1]
     if (
@@ -1267,22 +1338,20 @@ def _validate_billing(
             or parsed_observations[0][0] < absent
         ):
             errors.append("abort billing/action timeline mismatch")
-    if method == "PROVIDER_TERMINAL_NON_ACCRUING":
+    if method == "OFFICIAL_RELEASE_CONTRACT_PLUS_EXACT_ABSENCE":
         if (
             len(parsed_observations) != 1
             or value["stable_readback_count"] != 1
-            or value["provider_terminal_marker"]
-            != "RDS_RELEASE_ACCEPTED_EXACT_ID_ABSENT"
-            or parsed_observations[-1][5] is not True
+            or value["release_contract_outcome"]
+            != "DELETE_ACCEPTED_EXACT_ID_ABSENT_CONTRACT_APPLIED"
         ):
-            errors.append("abort provider terminal billing proof missing")
+            errors.append("abort official release billing proof missing")
     elif method == "SETTLEMENT_WATERMARK_STABLE_TWO_READS":
         stable_projection = [row[1:4] for row in parsed_observations]
         if (
             len(parsed_observations) != 2
             or value["stable_readback_count"] != 2
-            or value["provider_terminal_marker"] != "NOT_APPLICABLE"
-            or any(row[5] is not False for row in parsed_observations)
+            or value["release_contract_outcome"] != "NOT_APPLICABLE"
             or stable_projection[0] != stable_projection[1]
             or any(row["open_meter_row_count"] != 0 for row in observations)
         ):
@@ -1346,6 +1415,7 @@ def _validate_raw_closure(
     billing: dict[str, Any],
     dispositions: list[dict[str, Any]],
     final_state: dict[str, Any],
+    execution_boundary: dict[str, Any],
 ) -> list[str]:
     keys = {
         "schema",
@@ -1359,6 +1429,7 @@ def _validate_raw_closure(
         "response_projection_sha256",
         "page_inventory_sha256",
         "billing_observation_set_sha256",
+        "release_evidence_projection_sha256",
         "resource_disposition_set_sha256",
         "final_state_sha256",
         "raw_record_count",
@@ -1389,6 +1460,10 @@ def _validate_raw_closure(
         or value["page_inventory_sha256"] != page_inventory_sha256(actions)
         or value["billing_observation_set_sha256"]
         != billing_observation_set_sha256(billing)
+        or value["release_evidence_projection_sha256"]
+        != release_evidence_projection_sha256(
+            billing, actions, final_state, execution_boundary
+        )
         or value["resource_disposition_set_sha256"]
         != resource_disposition_set_sha256(dispositions)
         or value["final_state_sha256"] != final_state_sha256(final_state)
@@ -1411,11 +1486,6 @@ def _validate_no_replay(
     mutation_rows = [
         row for row in actions if row.get("mutation_submit_count") == 1
     ] if type(actions) is list else []
-    unknown_resolutions = sum(
-        row.get("submission_outcome")
-        == "RESPONSE_LOST_RESOLVED_SAME_IDENTITY"
-        for row in mutation_rows
-    )
     expected = {
         "registry_ref": "deploy/production/plans/item26-no-replay-registry-v1.json",
         "registry_sha256": EXPECTED_HISTORICAL_REGISTRY_SHA256,
@@ -1441,7 +1511,7 @@ def _validate_no_replay(
             actions
         ),
         "abort_mutation_submit_count": len(mutation_rows),
-        "abort_mutation_unknown_resolution_count": unknown_resolutions,
+        "abort_mutation_unknown_resolution_count": 0,
     }
     if not _strict(value, expected):
         return ["abort no-replay boundary mismatch"]
@@ -1584,6 +1654,15 @@ def validate_abort_result(receipt: Any) -> list[str]:
             )
         )
         if type(actions) is list and all(type(row) is dict for row in actions):
+            exact_planned_mutations = list(
+                dict.fromkeys(
+                    row["operation"]
+                    for row in actions
+                    if row.get("mutation_submit_count") == 1
+                )
+            )
+            if authorization["allowed_mutations"] != exact_planned_mutations:
+                errors.append("abort allowed mutation set exceeds exact plan")
             errors.extend(
                 _validate_execution_boundary(
                     receipt.get("execution_boundary"), dispositions, actions
@@ -1615,6 +1694,7 @@ def validate_abort_result(receipt: Any) -> list[str]:
         and type(resource_rows) is list
         and all(type(row) is dict for row in resource_rows)
         and type(final_state) is dict
+        and type(receipt.get("execution_boundary")) is dict
     ):
         errors.extend(
             _validate_raw_closure(
@@ -1625,6 +1705,7 @@ def validate_abort_result(receipt: Any) -> list[str]:
                 receipt["billing_closure"],
                 receipt.get("resource_dispositions"),
                 receipt.get("final_state"),
+                receipt.get("execution_boundary"),
             )
         )
         errors.extend(
@@ -1662,8 +1743,11 @@ __all__ = [
     "OPERATION_ID",
     "READINESS_25_TO_25",
     "RESOURCE_SLOTS",
+    "RELEASE_BILLING_CONTRACT_REF",
+    "EXPECTED_RELEASE_BILLING_CONTRACT_SHA256",
     "TASK_ID",
     "TERMINAL_STATUS",
     "VALIDATOR_REF",
+    "release_evidence_projection_sha256",
     "validate_abort_result",
 ]

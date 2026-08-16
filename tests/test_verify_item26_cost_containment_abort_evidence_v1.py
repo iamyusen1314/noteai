@@ -283,6 +283,12 @@ def receipt_candidate():
         "ordered_actions": actions(identity, resource_dispositions),
         "billing_closure": {
             "resource_sha256": identity["old_clone_sha256"],
+            "release_billing_contract_ref": (
+                result_validator.RELEASE_BILLING_CONTRACT_REF
+            ),
+            "release_billing_contract_sha256": (
+                result_validator.EXPECTED_RELEASE_BILLING_CONTRACT_SHA256
+            ),
             "currency": "CNY",
             "billing_cycle": "2026-08",
             "approved_24h_ceiling_cny": "76.824",
@@ -295,8 +301,10 @@ def receipt_candidate():
             "first_absent_at_utc": "2026-08-16T00:00:04Z",
             "final_observed_at_utc": "2026-08-16T00:00:06Z",
             "billed_through_at_utc": "2026-08-16T00:00:04Z",
-            "closure_method": "PROVIDER_TERMINAL_NON_ACCRUING",
-            "provider_terminal_marker": "RDS_RELEASE_ACCEPTED_EXACT_ID_ABSENT",
+            "closure_method": "OFFICIAL_RELEASE_CONTRACT_PLUS_EXACT_ABSENCE",
+            "release_contract_outcome": (
+                "DELETE_ACCEPTED_EXACT_ID_ABSENT_CONTRACT_APPLIED"
+            ),
             "stable_readback_count": 1,
             "open_meter_row_count": 0,
             "metering_closed": True,
@@ -311,7 +319,6 @@ def receipt_candidate():
                     "settlement_watermark_at_utc": "2026-08-16T00:00:04Z",
                     "open_meter_row_count": 0,
                     "full_page_complete": True,
-                    "provider_terminal_non_accruing": True,
                     "raw_observation_sha256": digest("billing-observation-1"),
                 },
             ],
@@ -347,6 +354,9 @@ def receipt_candidate():
             "response_projection_sha256": digest("unbound-response-projection"),
             "page_inventory_sha256": digest("unbound-page-inventory"),
             "billing_observation_set_sha256": digest("unbound-billing"),
+            "release_evidence_projection_sha256": digest(
+                "unbound-release-evidence"
+            ),
             "resource_disposition_set_sha256": digest("unbound-dispositions"),
             "final_state_sha256": digest("unbound-final-state"),
             "raw_record_count": 32,
@@ -418,6 +428,13 @@ def receipt_candidate():
 
 def rebind_candidate(candidate):
     actions_value = candidate["ordered_actions"]
+    candidate["authorization"]["allowed_mutations"] = list(
+        dict.fromkeys(
+            row["operation"]
+            for row in actions_value
+            if row["mutation_submit_count"] == 1
+        )
+    )
     candidate["preflight"]["raw_projection_sha256"] = (
         result_validator.preflight_projection_sha256(candidate["preflight"])
     )
@@ -449,6 +466,14 @@ def rebind_candidate(candidate):
     raw["billing_observation_set_sha256"] = (
         result_validator.billing_observation_set_sha256(
             candidate["billing_closure"]
+        )
+    )
+    raw["release_evidence_projection_sha256"] = (
+        result_validator.release_evidence_projection_sha256(
+            candidate["billing_closure"],
+            actions_value,
+            candidate["final_state"],
+            candidate["execution_boundary"],
         )
     )
     raw["resource_disposition_set_sha256"] = (
@@ -646,6 +671,14 @@ class Item26CostContainmentAbortEvidenceTests(unittest.TestCase):
         candidate["billing_closure"]["metering_closed"] = False
         self.assertTrue(result_validator.validate_abort_result(candidate))
 
+    def test_release_billing_contract_identity_is_frozen(self):
+        candidate = receipt_candidate()
+        candidate["billing_closure"]["release_billing_contract_sha256"] = (
+            digest("wrong-release-billing-contract")
+        )
+        rebind_candidate(candidate)
+        self.assertTrue(result_validator.validate_abort_result(candidate))
+
     def test_known_billing_baseline_cannot_be_replaced_and_rebound(self):
         candidate = receipt_candidate()
         candidate["billing_closure"]["billing_cycle"] = "2099-12"
@@ -698,14 +731,12 @@ class Item26CostContainmentAbortEvidenceTests(unittest.TestCase):
         candidate = receipt_candidate()
         billing = candidate["billing_closure"]
         billing["closure_method"] = "SETTLEMENT_WATERMARK_STABLE_TWO_READS"
-        billing["provider_terminal_marker"] = "NOT_APPLICABLE"
+        billing["release_contract_outcome"] = "NOT_APPLICABLE"
         billing["stable_readback_count"] = 2
         first = copy.deepcopy(billing["observations"][0])
         first["observed_at_utc"] = "2026-08-16T00:00:05Z"
-        first["provider_terminal_non_accruing"] = False
         first["raw_observation_sha256"] = digest("settlement-observation-1")
         second = copy.deepcopy(billing["observations"][0])
-        second["provider_terminal_non_accruing"] = False
         second["raw_observation_sha256"] = digest("settlement-observation-2")
         billing["observations"] = [first, second]
         rebind_candidate(candidate)
@@ -715,11 +746,9 @@ class Item26CostContainmentAbortEvidenceTests(unittest.TestCase):
         candidate = receipt_candidate()
         billing = candidate["billing_closure"]
         billing["closure_method"] = "SETTLEMENT_WATERMARK_STABLE_TWO_READS"
-        billing["provider_terminal_marker"] = "NOT_APPLICABLE"
+        billing["release_contract_outcome"] = "NOT_APPLICABLE"
         billing["stable_readback_count"] = 2
         billing["observations"].append(copy.deepcopy(billing["observations"][0]))
-        billing["observations"][0]["provider_terminal_non_accruing"] = False
-        billing["observations"][1]["provider_terminal_non_accruing"] = False
         candidate["billing_closure"]["final_observed_at_utc"] = (
             "2026-08-16T00:00:06Z"
         )
@@ -840,6 +869,17 @@ class Item26CostContainmentAbortEvidenceTests(unittest.TestCase):
         rebind_candidate(candidate)
         self.assertTrue(result_validator.validate_abort_result(candidate))
 
+    def test_unknown_mutation_stops_v1_even_after_same_identity_resolution(self):
+        candidate = receipt_candidate()
+        candidate["ordered_actions"][1]["submission_outcome"] = (
+            "RESPONSE_LOST_RESOLVED_SAME_IDENTITY"
+        )
+        rebind_candidate(candidate)
+        errors = result_validator.validate_abort_result(candidate)
+        self.assertTrue(
+            any("exact-once mutation boundary" in error for error in errors)
+        )
+
     def test_fake_historical_registry_digest_fails_after_rebinding(self):
         candidate = receipt_candidate()
         candidate["no_replay"]["registry_sha256"] = digest("fake-registry")
@@ -877,6 +917,13 @@ class Item26CostContainmentAbortEvidenceTests(unittest.TestCase):
         candidate = receipt_candidate()
         candidate["raw_closure"]["provider_request_set_sha256"] = digest(
             "detached-raw-request-set"
+        )
+        self.assertTrue(result_validator.validate_abort_result(candidate))
+
+    def test_release_evidence_projection_cannot_drift(self):
+        candidate = receipt_candidate()
+        candidate["raw_closure"]["release_evidence_projection_sha256"] = (
+            digest("detached-release-evidence")
         )
         self.assertTrue(result_validator.validate_abort_result(candidate))
 

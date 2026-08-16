@@ -10697,3 +10697,81 @@ Colima, database, builder, restore and cloud actions remain frozen.
   then freeze the real root-owned extractor/authority plan. Exact cloud cleanup
   still requires the immediate action-time confirmation before full identifiers
   can be transmitted. A checkpoint or completed review is not a stopping point.
+
+### Item 26 abort raw-authority successor and failed-CI correction (2026-08-16)
+
+- This section supersedes the immediately preceding source-contract test and
+  CI snapshot. Commit `80c5091f9736c79f9034be3b83522f8025b9f364` was pushed,
+  but its ordinary push run `31947870473`/job `95166655458` and pull-request
+  run `31947872104`/job `95166659686` both failed on attempt 1. Each ran 2,269
+  tests with 34 skips and exactly one error:
+  `test_frozen_abort_verifier_runs_in_isolated_process` rejected the GitHub
+  setup-python toolcache executable as `isolated Python identity invalid`.
+  Quality, PostgreSQL, readiness and Compose were skipped downstream. Neither
+  failed run was rerun, cancelled or represented as green.
+- The local successor fixes the false rejection without weakening the Linux
+  execution identity. Linux now requires the resolved `sys.executable` to
+  match `/proc/self/exe` by device, inode, complete SHA-256 and stable metadata,
+  then executes the already-loaded parent image through `/proc/self/exe` with
+  canonical argv and `-I -S -B`. Darwin keeps the host-path non-writable rule
+  and before/after identity digest. Negative coverage includes missing or
+  mismatched proc identity, relative executables, group-writable Darwin paths,
+  and a forged successful child result followed by a real inode swap. This is
+  runtime-continuity protection, not a full attestation of libpython, the
+  dynamic loader or the standard library; Darwin also inherits the trusted
+  host and same-UID path boundary.
+- A Secret-free official release/billing contract is now source-bound at
+  `deploy/production/plans/item26-rds-release-billing-contract-v1.json`, 2,672
+  bytes, SHA-256
+  `985d08f9fb5350b3c48e11b1193a683991e60ad4b8dd4ca087c00ae4ebb908e2`.
+  It records the provider documentation boundary: a successful pay-as-you-go
+  RDS release stops later instance fees, while `QueryInstanceBill` is a
+  delayed historical snapshot and is not a provider-native non-accruing
+  marker. Terminal release therefore requires the frozen contract plus one
+  accepted exact `DeleteDBInstance`, complete exact-ID absence, an unchanged
+  source tuple and zero newly authorized paid resources; absence alone does
+  not erase or settle prior charges.
+- The new pure RDS raw extractor performs no I/O. It consumes a canonical
+  root-owned capture containing the exact Secret-free logical RPC parameter
+  maps and exact provider response bytes, preserves a submitted request with
+  no response as `NO_RESPONSE_UNKNOWN`, rejects HTTP-200 business-error
+  payloads, enforces the documented `DeletionProtection=false` plus unique
+  `ClientToken` request, requires the documented delete response region, and
+  refuses unconsumed capture slots. Its release projection now binds exact
+  delete/absence identities and requires the final source engine, billing,
+  protection and VPC/vSwitch/zone commitments to equal the signed preflight
+  tuple. Raw identifiers remain outside all emitted projections.
+- A separate pre-action authority verifier now loads the exact root-owned file
+  inventory with dirfd/nofollow/stable-identity controls, rederives clone,
+  source and delayed-billing projections, checks the exact two-mutation plan,
+  validates fresh provider and user-confirmation envelopes under mutually
+  distinct keys, and requires exact-revision attempt-one green push/PR CI under
+  the third key. The preflight capture slot ledger is exact; extra or hidden
+  mutation attempts fail closed.
+- This is still deliberately non-dispatchable. The repository pre-action root
+  hash remains empty; no real root, confirmation or authority bundle is
+  installed; the terminal extractor still lacks complete regional new-paid
+  inventory and exact task-owned IAM/account/vSwitch lineage; and no O_EXCL
+  mutation-intent/result state machine exists. The logical RPC parameter map is
+  not claimed to be the signed wire query. Consequently
+  `provider_raw_extractor_finalized=false`, terminal raw-leaf derivation is
+  false and abort dispatch remains false. These are activation gates, not
+  reasons to replay or retain the billable clone indefinitely.
+- Current local verification passes 195 focused executions from 187 distinct
+  methods: abort `58`, PITR success `32`, success authority `10`, RDS raw
+  extractor `17`, abort pre-action authority `11`, shared readiness `20`, Item
+  27 `24`, Item 28 `5`, Item 29 adapter `2`, and Item 29 readiness `16` across
+  its normal/optimized variants. JSON parsing, `git diff --check`, changed-file
+  Python compilation, the internal gate at exactly `25/29` (`25/38` complete
+  public), and production readiness `138/138` also pass. Cloud writes, database
+  connections/writes,
+  builder starts, command/SendFile dispatches and readiness changes remain
+  zero. Item 26 remains `unverified`, internal readiness is `25/29`, and the
+  five historical untracked scripts remain preserved, unexecuted, undeleted
+  and unstaged.
+- The immediate serial path is: finish the terminal raw/resource lineage and
+  exact-once state runner; create a new Secret-free source checkpoint and
+  obtain its own attempt-one dual-green CI; only then install the pre-frozen
+  root, take a fresh read-only action-time snapshot and seek the already
+  authorized immediate confirmation for the exact clone abort. The failed
+  `80c5091` runs are terminal evidence and must not be rerun.
