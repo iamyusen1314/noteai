@@ -10552,3 +10552,56 @@ Colima, database, builder, restore and cloud actions remain frozen.
   RestoreTime change, historical command replay or replacement is authorized.
   If the abort completes, Item 26 remains unverified and any future restore
   must be a wholly new successor with a new explicit fee ceiling.
+
+### Item 26 fail-closed terminal-verifier source scaffold (2026-08-16)
+
+- The shared readiness gate now validates Item 26 directly whenever
+  `backup_pitr_restore` is marked `verified`; a manifest-only status change can
+  no longer raise the score. The same gate now calls the already versioned
+  Item 29 readiness adapter, closing the previous standalone-adapter gap.
+- A new source-only Item 26 verifier stack defines strict canonical receipt,
+  evidence and checkpoint schemas; exact PostgreSQL 16, 56-table, 17-migration,
+  19-RLS/0-FORCE and `noteai_admin` owner semantics; full content-free object
+  inventory; read-only repeatable-read/rollback/write-zero captures; exact
+  source/restored semantic reconciliation; cleanup, cost and data boundaries;
+  and a domain-separated terminal acceptance. The terminal verifier itself
+  reloads and revalidates the two root-owned manifests rather than trusting a
+  builder projection.
+- Detached authority is fail-closed by construction. The only repository
+  trust root is currently empty and may be populated only after two distinct
+  provider/CI public keys are installed and their canonical root file hash is
+  frozen in a new source checkpoint before any successor cloud action. A
+  signed terminal bundle must then bind the raw closure, both manifest file and
+  semantic hashes, all four terminal artifacts, the exact execution ->
+  evidence -> terminal ancestry, and six attempt-one push/PR CI receipts.
+  Item 26-specific control bytes must remain identical across all three stages
+  and at verification time; the shared gate must be identical across the three
+  Item 26 stages but may evolve later for Items 27-29.
+- The canonical no-replay registry contains exactly 25 frozen identities. It
+  covers every historical v1/v2/v3 capture/readback/validator identity, both
+  API-C preflights, the Cloud Shell and wrapper diagnostics, retired 04c
+  history/body, both failed CI checkpoints, the consumed exact-one clone
+  request and all five preserved untracked scripts. Its domain-separated digest
+  is `763ae967af95f55347e427f9df8e6c7014b16e645957417915e3ccd44d20e5d9`;
+  every entry has replay/replacement/automatic retry disabled. The five scripts
+  remain unexecuted, undeleted and unstaged.
+- Independent review closed the three original P0 fail-open findings: real
+  manifests are revalidated at the terminal gate, the authority root cannot be
+  replaced after execution without changing its pre-frozen hash, and the
+  source/evidence/terminal revisions plus control bytes and CI stages are
+  independently bound. The source scaffold nevertheless remains deliberately
+  non-dispatchable: the authority root and terminal bundle are absent, the
+  separate cost-containment-abort dependency is not yet finalized, and the
+  future successor's per-action/raw-response derivation contract still needs a
+  new source revision after the current abort.
+- Focused Item 26-29 and shared-gate regression passes 91 tests; production
+  readiness remains `138/138`, internal readiness remains exactly `25/29` and
+  complete public readiness remains `25/38`. This stage made zero cloud writes,
+  database connections, database writes, builder starts, command dispatches or
+  SendFile requests and adds no readiness credit.
+- The next serial task is not a restore dispatch. First freeze a dedicated
+  `COST_CONTAINMENT_ABORT` evidence/verifier contract. After the still-required
+  action-time confirmation, close the exact existing clone's metering through
+  one protection-disable and one delete with same-identity readback only. A
+  future successful restore requires a wholly new successor plan and a new
+  explicit fee ceiling.

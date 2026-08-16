@@ -143,6 +143,9 @@ class Item28ReadinessTests(unittest.TestCase):
         ), mock.patch.object(
             gate, "validate_internal_failure_rollback_evidence",
             return_value=[],
+        ), mock.patch.object(
+            gate, "validate_capacity_control",
+            return_value=[],
         ):
             gate.validate_manifest(candidate)
 

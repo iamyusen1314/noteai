@@ -3864,7 +3864,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         with mock.patch.object(gate, "_verify_path", return_value=True):
             with self.assertRaisesRegex(
                 gate.ManifestError,
-                "Item26 semantic evidence invalid: "
+                "backup_pitr_restore: invalid semantic evidence: "
                 "Item26 terminal semantic verifier is not finalized",
             ):
                 gate.validate_manifest(candidate)
@@ -3876,12 +3876,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             gate,
             "validate_item26_terminal_evidence",
             return_value=([], item26_acceptance),
-        ), mock.patch.object(
+        ) as validate_item26, mock.patch.object(
             gate,
             "validate_internal_zero_provider_smoke_evidence",
             return_value=[],
         ) as validate:
             gate.validate_manifest(candidate)
+            self.assertEqual(validate_item26.call_count, 2)
             validate.assert_called_once()
             args, kwargs = validate.call_args
             self.assertEqual(args, (control["evidence"],))
@@ -3920,6 +3921,63 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 gate.ManifestError, "invalid semantic evidence"
             ):
                 gate.validate_manifest(candidate)
+
+    def test_verified_item26_requires_direct_semantic_evidence(self):
+        candidate = copy.deepcopy(self.manifest)
+        control = next(
+            item
+            for item in candidate["layers"][1]["controls"]
+            if item["id"] == "backup_pitr_restore"
+        )
+        control["status"] = "verified"
+        control.pop("blocker")
+        control.pop("next_task")
+        control["evidence"] = [
+            {
+                "kind": "git",
+                "ref": "f940106b9f7df0c23ea4a1e67063cfb35bf9927b",
+            },
+        ]
+        with mock.patch.object(
+            gate, "_verify_path", return_value=True
+        ), mock.patch.object(
+            gate,
+            "validate_item26_terminal_evidence",
+            return_value=(["terminal sentinel"], None),
+        ) as validate:
+            with self.assertRaisesRegex(
+                gate.ManifestError,
+                "backup_pitr_restore: invalid semantic evidence: terminal sentinel",
+            ):
+                gate.validate_manifest(candidate)
+        validate.assert_called_once_with(control["evidence"], root=gate.ROOT)
+
+        with mock.patch.object(
+            gate, "_verify_path", return_value=True
+        ), mock.patch.object(
+            gate,
+            "validate_item26_terminal_evidence",
+            return_value=([], "a" * 64),
+        ) as validate:
+            gate.validate_manifest(candidate)
+        validate.assert_called_once_with(control["evidence"], root=gate.ROOT)
+
+    def test_shared_gate_always_invokes_item29_semantic_adapter(self):
+        with mock.patch.object(
+            gate,
+            "validate_capacity_control",
+            return_value=["capacity_100_jobs: adapter sentinel"],
+        ) as validate:
+            with self.assertRaisesRegex(
+                gate.ManifestError,
+                "capacity_100_jobs: adapter sentinel",
+            ):
+                gate.validate_manifest(copy.deepcopy(self.manifest))
+        validate.assert_called_once()
+        args, kwargs = validate.call_args
+        self.assertIsInstance(args[0], dict)
+        self.assertIsInstance(args[1], dict)
+        self.assertEqual(kwargs["root"], gate.ROOT)
 
     def test_unknown_and_cyclic_dependencies_fail(self):
         broken = copy.deepcopy(self.manifest)

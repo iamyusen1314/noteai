@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Narrow Item 29 semantic adapter for the production readiness gate.
+"""Narrow Item 29 semantic adapter used by the shared readiness gate.
 
-This file is deliberately standalone while Item 28 is still editing the shared
-gate.  After Item 28 freezes, the gate integration is a mechanical import plus
-one call to ``validate_capacity_control``; no Item 29 predicate needs to be
-reimplemented in the shared file.
+The shared gate delegates Item 29's strict dependency, evidence and exact
+predecessor-count checks to ``validate_capacity_control`` so those predicates
+remain versioned in one place.
 """
 
 from __future__ import annotations

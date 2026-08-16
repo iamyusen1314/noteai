@@ -53,6 +53,9 @@ from verify_item27_external_authority_v1 import (
     VERIFIER_REF as AUTHORITY_VERIFIER_REF,
     validate_authority_bundle,
 )
+from verify_pitr_restore_evidence import (
+    validate_manifest_evidence as validate_item26_terminal_evidence,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -100,15 +103,6 @@ EXPECTED_RECEIPT_SEMANTIC_SHA256 = {action: "" for action in RECEIPT_REFS}
 EXPECTED_TERMINAL_CHECKPOINT_FILE_SHA256 = ""
 EXPECTED_TERMINAL_CHECKPOINT_SEMANTIC_SHA256 = ""
 
-# Item 26 has not reached terminal PASS yet.  These stay empty so Item 27 can
-# never inherit credit from a manifest-only `verified` declaration.  Once the
-# independent Item 26 semantic verifier exists, its exact paths and acceptance
-# digest are frozen here and `_validate_item26_terminal_evidence` is completed.
-EXPECTED_ITEM26_TERMINAL_VERIFIER_REF = ""
-EXPECTED_ITEM26_TERMINAL_EVIDENCE_REF = ""
-EXPECTED_ITEM26_TERMINAL_VERIFIER_SHA256 = ""
-EXPECTED_ITEM26_TERMINAL_EVIDENCE_SHA256 = ""
-EXPECTED_ITEM26_TERMINAL_ACCEPTANCE_SHA256 = ""
 REQUIRED_MANIFEST_PATH_REFS = {
     EVIDENCE_REF,
     TERMINAL_CHECKPOINT_REF,
@@ -244,33 +238,6 @@ def _semantic_sha256(value: Any) -> str:
 
 def _hex64(value: Any) -> bool:
     return isinstance(value, str) and HEX64.fullmatch(value) is not None
-
-
-def validate_item26_terminal_evidence(
-    entries: Any, *, root: Path = ROOT
-) -> tuple[list[str], str | None]:
-    """Return Item 26's independently verified terminal acceptance digest.
-
-    Item 26 is still open.  A manifest status or a hash of that same manifest
-    control is not evidence, so the pre-terminal implementation is deliberately
-    fail closed.  The constants provide an explicit integration point for the
-    future Item 26 semantic verifier without weakening Item 27 meanwhile.
-    """
-
-    del entries, root
-    roots = (
-        EXPECTED_ITEM26_TERMINAL_VERIFIER_REF,
-        EXPECTED_ITEM26_TERMINAL_EVIDENCE_REF,
-        EXPECTED_ITEM26_TERMINAL_VERIFIER_SHA256,
-        EXPECTED_ITEM26_TERMINAL_EVIDENCE_SHA256,
-        EXPECTED_ITEM26_TERMINAL_ACCEPTANCE_SHA256,
-    )
-    if (
-        not all(isinstance(value, str) and value for value in roots)
-        or not all(_hex64(value) for value in roots[2:])
-    ):
-        return ["Item26 terminal semantic verifier is not finalized"], None
-    return ["Item26 terminal semantic verifier integration is incomplete"], None
 
 
 def _file_binding(value: Any, expected_ref: str, *, root: Path) -> bool:
@@ -2126,9 +2093,41 @@ def validate_manifest_evidence(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--evidence", type=Path, default=EVIDENCE_PATH)
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=(
+            ROOT
+            / "deploy"
+            / "production"
+            / "internal-deployment-readiness.json"
+        ),
+    )
     args = parser.parse_args()
+    try:
+        manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+        item26_controls = [
+            control
+            for layer in manifest["layers"]
+            for control in layer["controls"]
+            if control.get("id") == "backup_pitr_restore"
+        ]
+        if len(item26_controls) != 1:
+            raise ValueError("exact Item26 control required")
+        item26_entries = item26_controls[0].get("evidence")
+    except (
+        OSError,
+        UnicodeError,
+        json.JSONDecodeError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        print("internal_zero_provider_smoke_evidence=FAIL")
+        print("- Item27 readiness manifest unavailable: " + str(exc))
+        return 1
     item26_errors, item26_acceptance = validate_item26_terminal_evidence(
-        None, root=ROOT
+        item26_entries, root=ROOT
     )
     errors = item26_errors
     if not errors and item26_acceptance is not None:

@@ -56,17 +56,23 @@ Last updated: 2026-08-16
   dispatch, SendFile, second-clone creation, RestoreTime change and every
   historical replay remain prohibited. Secret-free hashes bind the exact clone,
   source, builder, disk and Item 26 RAM candidates without recording secrets.
+  A source-only terminal-verifier scaffold now independently enforces exact
+  restore semantics and a 25-entry no-replay registry, but its pre-execution
+  authority root is intentionally empty and it cannot authorize dispatch or
+  add readiness credit.
 - 残余边界: The existing retention contract permits either terminal acceptance
   or exact approved cleanup. Under the current fee boundary only a
   `COST_CONTAINMENT_ABORT` is admissible, but disabling deletion protection and
   deleting the clone require immediate browser action confirmation. An abort
   keeps Item 26 `unverified` and readiness at `25/29`; a future restore requires
   a new successor and fee authorization.
-- 下一验证: After checkpointing this evidence, transmit only the minimum exact
-  identifiers to official Alibaba Cloud endpoints for final readback, then—if
-  action-time confirmation is received—disable protection, delete the one clone
-  once, prove absence and billing closure, and clean only exact task-scoped
-  temporary material. Any `UNKNOWN` permits readback of the same identity only.
+- 下一验证: First freeze and checkpoint a dedicated
+  `COST_CONTAINMENT_ABORT` receipt/evidence/verifier contract that cannot add
+  readiness credit. Then transmit only the minimum exact identifiers to
+  official Alibaba Cloud endpoints for final readback and—if action-time
+  confirmation is received—disable protection, delete the one clone once,
+  prove absence and billing closure, and clean only exact task-scoped temporary
+  material. Any `UNKNOWN` permits readback of the same identity only.
 
 ## Critical Risks
 

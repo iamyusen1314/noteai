@@ -31,13 +31,16 @@ from verify_admin_current_release_evidence import (
     validate_bundle as validate_admin_current_release_evidence,
 )
 from verify_internal_zero_provider_smoke_evidence import (
-    validate_item26_terminal_evidence,
     validate_manifest_evidence as validate_internal_zero_provider_smoke_evidence,
+)
+from verify_pitr_restore_evidence import (
+    validate_manifest_evidence as validate_item26_terminal_evidence,
 )
 from verify_internal_failure_rollback_evidence import (
     validate_manifest_evidence as validate_internal_failure_rollback_evidence,
     validate_predecessor_evidence as validate_item28_predecessor_evidence,
 )
+from item29_readiness_adapter import validate_capacity_control
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -369,6 +372,51 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
                         )
             controls_by_id[control_id] = control
 
+    item26 = controls_by_id.get("backup_pitr_restore") or {}
+    if item26.get("status") == "verified":
+        item26_errors, item26_acceptance_sha256 = (
+            validate_item26_terminal_evidence(item26.get("evidence"), root=root)
+        )
+        _require(
+            not item26_errors
+            and isinstance(item26_acceptance_sha256, str)
+            and SHA256.fullmatch(item26_acceptance_sha256) is not None,
+            "backup_pitr_restore: invalid semantic evidence: "
+            f"{item26_errors[0] if item26_errors else ''}",
+        )
+        internal_controls = [
+            *manifest["layers"][0]["controls"],
+            *manifest["layers"][1]["controls"],
+        ]
+        all_controls = [
+            control
+            for layer in manifest["layers"]
+            for control in layer["controls"]
+        ]
+        deferred = {
+            "backup_pitr_restore",
+            "internal_zero_provider_smoke",
+            "internal_failure_rollback",
+            "capacity_100_jobs",
+        }
+        internal_before = sum(
+            control["status"] == "verified"
+            for control in internal_controls
+            if control["id"] not in deferred
+        )
+        public_before = sum(
+            control["status"] == "verified"
+            for control in all_controls
+            if control["id"] not in deferred
+        )
+        _require(
+            internal_before == 25
+            and public_before == 25
+            and len(internal_controls) == 29
+            and len(all_controls) == 38,
+            "backup_pitr_restore: exact 25/29 predecessor state required",
+        )
+
     smoke = controls_by_id.get("internal_zero_provider_smoke") or {}
     if smoke.get("status") == "verified":
         item26 = controls_by_id.get("backup_pitr_restore") or {}
@@ -380,7 +428,9 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
             validate_item26_terminal_evidence(item26.get("evidence"), root=root)
         )
         _require(
-            not item26_errors and item26_acceptance_sha256 is not None,
+            not item26_errors
+            and isinstance(item26_acceptance_sha256, str)
+            and SHA256.fullmatch(item26_acceptance_sha256) is not None,
             "internal_zero_provider_smoke: Item26 semantic evidence invalid: "
             f"{item26_errors[0] if item26_errors else ''}",
         )
@@ -523,6 +573,16 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
             "internal_failure_rollback: invalid semantic evidence: "
             f"{runtime_errors[0] if runtime_errors else ''}",
         )
+
+    capacity_errors = validate_capacity_control(
+        manifest,
+        controls_by_id,
+        root=root,
+    )
+    _require(
+        not capacity_errors,
+        capacity_errors[0] if capacity_errors else "capacity_100_jobs: invalid",
+    )
 
     for control_id, control in controls_by_id.items():
         for dependency in control["dependencies"]:
