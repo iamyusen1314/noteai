@@ -1,4 +1,5 @@
 import base64
+import copy
 import io
 import json
 import os
@@ -29,6 +30,7 @@ from tests.test_extract_item26_manual_cost_stop_raw_v1 import (  # noqa: E402
 
 
 VALIDATE_RUNTIME_ACTIVATION = collector._validate_runtime_activation
+SOURCE_HASHES = collector._source_hashes
 
 
 def decoded(value):
@@ -37,7 +39,10 @@ def decoded(value):
 
 class ManualCostStopCollectorTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory()
+        self.temporary = tempfile.TemporaryDirectory(
+            prefix=".item26-collector-test-",
+            dir=ROOT,
+        )
         self.addCleanup(self.temporary.cleanup)
         root = Path(self.temporary.name).resolve()
         self.journal = root / "journal"
@@ -254,10 +259,11 @@ class ManualCostStopCollectorTests(unittest.TestCase):
             "schema": collector.ACTIVATION_RECEIPT_SCHEMA,
             "task_id": collector.TASK_ID,
             "operation_id": collector.OPERATION_ID,
-            "status": "A1_ATTEMPT1_DUAL_CI_SUCCESS_ACTIVATED",
+            "status": "A2_ATTEMPT1_DUAL_CI_SUCCESS_ACTIVATED",
             "repository": collector.authority.REPOSITORY,
             "ref": collector.authority.SOURCE_REF,
-            "a0_terminal": collector.EXPECTED_A0_TERMINAL,
+            "a0_terminal": copy.deepcopy(collector.EXPECTED_A0_TERMINAL),
+            "a1_terminal": copy.deepcopy(collector.EXPECTED_A1_TERMINAL),
             "control_revision": CONTROL_REVISION,
             "authority_root_file_sha256": "d" * 64,
             "source_file_sha256": {
@@ -399,7 +405,7 @@ class ManualCostStopCollectorTests(unittest.TestCase):
             require_root_only=True,
         )
 
-    def test_runtime_receipt_binds_a0_a1_root_and_source_blobs(self):
+    def test_runtime_receipt_binds_a0_a1_a2_root_and_source_blobs(self):
         runtime = Path(self.temporary.name).resolve() / "runtime"
         runtime.mkdir(mode=0o700)
         receipt_path = runtime / collector.ACTIVATION_RECEIPT_FILE
@@ -420,6 +426,10 @@ class ManualCostStopCollectorTests(unittest.TestCase):
                 collector.AUTHORITY_REF: "c" * 64,
                 collector.authority.CI_WORKFLOW_REF: "f" * 64,
             }[ref],
+        ), mock.patch.object(
+            collector.authority,
+            "_ancestor",
+            return_value=True,
         ), mock.patch.object(
             collector.authority,
             "_verify_signature",
@@ -453,7 +463,78 @@ class ManualCostStopCollectorTests(unittest.TestCase):
             collector._sha(receipt_path.read_bytes()),
         )
 
-    def test_runtime_receipt_rejects_failed_or_early_a1(self):
+    def test_a2_runtime_tool_inventory_is_exact_and_versioned(self):
+        runtime = Path(self.temporary.name).resolve() / "runtime-inventory"
+        runtime.mkdir(mode=0o700)
+        contents = {
+            Path(collector.COLLECTOR_REF).name: b"collector-v2\n",
+            Path(collector.EXTRACTOR_REF).name: b"extractor-v2\n",
+            Path(collector.AUTHORITY_REF).name: b"authority-v2\n",
+            collector.ACTIVATION_RECEIPT_FILE: b"receipt-v2\n",
+        }
+        for name, raw in contents.items():
+            path = runtime / name
+            path.write_bytes(raw)
+            path.chmod(0o600)
+        self.assertEqual(
+            collector.ACTIVATION_RECEIPT_FILE,
+            "runtime-activation-receipt-v2.json",
+        )
+        self.assertEqual(
+            collector.ACTIVATION_RECEIPT_SCHEMA,
+            "noteai.item26.manual-cost-stop-runtime-activation-receipt.v2",
+        )
+        self.assertEqual(collector.TOOL_INVENTORY, set(contents))
+        self.assertEqual(
+            collector.authority.RUNTIME_INVENTORY,
+            (
+                Path(collector.COLLECTOR_REF).name,
+                Path(collector.EXTRACTOR_REF).name,
+                Path(collector.AUTHORITY_REF).name,
+                collector.ACTIVATION_RECEIPT_FILE,
+            ),
+        )
+        with mock.patch.object(
+            collector,
+            "__file__",
+            str(runtime / Path(collector.COLLECTOR_REF).name),
+        ), mock.patch.object(
+            extractor,
+            "__file__",
+            str(runtime / Path(collector.EXTRACTOR_REF).name),
+        ), mock.patch.object(
+            collector.authority,
+            "__file__",
+            str(runtime / Path(collector.AUTHORITY_REF).name),
+        ), mock.patch.object(
+            collector,
+            "RUNTIME_DIRECTORY",
+            runtime,
+        ):
+            self.assertEqual(
+                SOURCE_HASHES(owner_uid=self.owner_uid),
+                {
+                    "collector_source_sha256": collector._sha(
+                        contents[Path(collector.COLLECTOR_REF).name]
+                    ),
+                    "extractor_source_sha256": collector._sha(
+                        contents[Path(collector.EXTRACTOR_REF).name]
+                    ),
+                    "authority_source_sha256": collector._sha(
+                        contents[Path(collector.AUTHORITY_REF).name]
+                    ),
+                },
+            )
+            legacy = runtime / "runtime-activation-receipt-v1.json"
+            legacy.write_bytes(b"legacy\n")
+            legacy.chmod(0o600)
+            with self.assertRaisesRegex(
+                collector.CollectorError,
+                "source_inventory",
+            ):
+                SOURCE_HASHES(owner_uid=self.owner_uid)
+
+    def test_runtime_receipt_rejects_failed_or_early_a2(self):
         runtime = Path(self.temporary.name).resolve() / "runtime-negative"
         runtime.mkdir(mode=0o700)
         receipt_path = runtime / collector.ACTIVATION_RECEIPT_FILE
@@ -464,8 +545,18 @@ class ManualCostStopCollectorTests(unittest.TestCase):
             "installed_source_drift",
             "signature",
             "future",
-            "before_a0",
+            "before_a1",
             "a0_run_reuse",
+            "a0_job_reuse",
+            "a1_run_reuse",
+            "a1_job_reuse",
+            "a2_run_reuse",
+            "a2_job_reuse",
+            "a1_terminal_drift",
+            "a1_failure_summary_drift",
+            "missing_a1_a2_ancestry",
+            "legacy_status",
+            "missing_a1_terminal",
         ):
             with self.subTest(mutation=mutation):
                 receipt = self.activation_receipt()
@@ -485,18 +576,52 @@ class ManualCostStopCollectorTests(unittest.TestCase):
                     receipt["payload"]["activated_at_utc"] = (
                         "2099-08-17T00:00:03Z"
                     )
-                elif mutation == "before_a0":
+                elif mutation == "before_a1":
                     for row in receipt["payload"]["control_ci"].values():
                         row["created_at_utc"] = (
-                            "2026-08-16T20:30:28Z"
+                            "2026-08-16T23:08:54Z"
                         )
                         row["started_at_utc"] = (
-                            "2026-08-16T20:30:29Z"
+                            "2026-08-16T23:08:55Z"
                         )
                 elif mutation == "a0_run_reuse":
                     receipt["payload"]["control_ci"]["push"][
                         "run_id"
                     ] = collector.EXPECTED_A0_TERMINAL["push"]["run_id"]
+                elif mutation == "a0_job_reuse":
+                    receipt["payload"]["control_ci"]["push"][
+                        "job_id"
+                    ] = collector.EXPECTED_A0_TERMINAL["push"]["job_id"]
+                elif mutation == "a1_run_reuse":
+                    receipt["payload"]["control_ci"]["push"][
+                        "run_id"
+                    ] = collector.EXPECTED_A1_TERMINAL["push"]["run_id"]
+                elif mutation == "a1_job_reuse":
+                    receipt["payload"]["control_ci"]["push"][
+                        "job_id"
+                    ] = collector.EXPECTED_A1_TERMINAL["push"]["job_id"]
+                elif mutation == "a2_run_reuse":
+                    receipt["payload"]["control_ci"]["pull_request"][
+                        "run_id"
+                    ] = receipt["payload"]["control_ci"]["push"]["run_id"]
+                elif mutation == "a2_job_reuse":
+                    receipt["payload"]["control_ci"]["pull_request"][
+                        "job_id"
+                    ] = receipt["payload"]["control_ci"]["push"]["job_id"]
+                elif mutation == "a1_terminal_drift":
+                    receipt["payload"]["a1_terminal"]["push"][
+                        "conclusion"
+                    ] = "success"
+                elif mutation == "a1_failure_summary_drift":
+                    receipt["payload"]["a1_terminal"]["push"][
+                        "unit_test_error_count"
+                    ] = 33
+                elif mutation == "legacy_status":
+                    receipt["payload"]["status"] = (
+                        "A1_ATTEMPT1_DUAL_CI_SUCCESS_ACTIVATED"
+                    )
+                elif mutation == "missing_a1_terminal":
+                    del receipt["payload"]["a1_terminal"]
                 receipt_path.write_bytes(collector._canonical(receipt))
                 receipt_path.chmod(0o600)
                 with mock.patch.object(
@@ -512,6 +637,17 @@ class ManualCostStopCollectorTests(unittest.TestCase):
                         collector.AUTHORITY_REF: "c" * 64,
                         collector.authority.CI_WORKFLOW_REF: "f" * 64,
                     }[ref],
+                ), mock.patch.object(
+                    collector.authority,
+                    "_ancestor",
+                    side_effect=lambda earlier, later, root: (
+                        mutation != "missing_a1_a2_ancestry"
+                        or (earlier, later)
+                        != (
+                            collector.authority.A1_PREDECESSOR_REVISION,
+                            CONTROL_REVISION,
+                        )
+                    ),
                 ), mock.patch.object(
                     collector.authority,
                     "_verify_signature",
@@ -1307,6 +1443,20 @@ class ManualCostStopCollectorTests(unittest.TestCase):
                 journal_directory=self.journal,
                 owner_uid=self.owner_uid,
             )
+
+    def test_world_writable_parent_is_rejected(self):
+        parent = self.journal.parent
+        parent.chmod(0o777)
+        try:
+            with self.assertRaisesRegex(
+                collector.CollectorError, "source_parent_identity"
+            ):
+                collector.status(
+                    journal_directory=self.journal,
+                    owner_uid=self.owner_uid,
+                )
+        finally:
+            parent.chmod(0o700)
 
     def test_partial_event_write_is_not_treated_as_a_frozen_request(self):
         partial = self.journal / collector._event_writing_name(

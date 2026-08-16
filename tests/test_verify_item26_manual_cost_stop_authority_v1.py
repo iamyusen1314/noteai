@@ -3,6 +3,7 @@ import copy
 from contextlib import ExitStack
 import os
 from pathlib import Path
+import stat
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -98,7 +99,10 @@ def root_object():
 
 class ManualCostStopAuthorityTests(unittest.TestCase):
     def make_directory(self):
-        temporary = tempfile.TemporaryDirectory()
+        temporary = tempfile.TemporaryDirectory(
+            prefix=".item26-authority-test-",
+            dir=ROOT,
+        )
         self.addCleanup(temporary.cleanup)
         directory = Path(temporary.name) / "authority"
         directory.mkdir(mode=0o700)
@@ -107,6 +111,18 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
         path.write_bytes(raw)
         path.chmod(0o600)
         return directory, raw
+
+    def test_world_writable_parent_is_rejected(self):
+        world_writable = SimpleNamespace(
+            st_mode=stat.S_IFDIR | 0o777,
+            st_uid=authority.ROOT_UID,
+        )
+        with mock.patch.object(
+            Path,
+            "lstat",
+            return_value=world_writable,
+        ), self.assertRaisesRegex(ValueError, "manual authority parent identity"):
+            authority._validate_parent_chain(Path("/unsafe/authority"))
 
     def root_patches(self, raw, *, duplicate_spki=False):
         digest = authority._sha(raw)
@@ -160,22 +176,97 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
         self.assertFalse(binding["readiness_credit_allowed"])
         self.assertTrue(binding["authority_keys_distinct"])
 
-    def test_activation_requires_exact_a0_predecessor(self):
+    def test_activation_requires_exact_a0_a1_a2_ancestry(self):
         directory, raw = self.make_directory()
         digest = self.root_patches(raw)
-        with mock.patch.object(
-            authority,
-            "_ancestor",
-            side_effect=lambda earlier, later, root: (
-                earlier != authority.A0_PREDECESSOR_REVISION
+        control_revision = "2" * 40
+        for blocked_edge in (
+            (
+                authority.M0_ANCHOR_REVISION,
+                authority.A0_PREDECESSOR_REVISION,
             ),
-        ), self.assertRaisesRegex(ValueError, "control revision"):
-            authority.load_activation_root(
-                expected_control_revision="2" * 40,
-                expected_authority_root_file_sha256=digest,
-                root=ROOT,
-                authority_directory=directory,
-            )
+            (
+                authority.A0_PREDECESSOR_REVISION,
+                authority.A1_PREDECESSOR_REVISION,
+            ),
+            (authority.A1_PREDECESSOR_REVISION, control_revision),
+        ):
+            with self.subTest(blocked_edge=blocked_edge), mock.patch.object(
+                authority,
+                "_ancestor",
+                side_effect=lambda earlier, later, root: (
+                    (earlier, later) != blocked_edge
+                ),
+            ), self.assertRaisesRegex(ValueError, "control revision"):
+                authority.load_activation_root(
+                    expected_control_revision=control_revision,
+                    expected_authority_root_file_sha256=digest,
+                    root=ROOT,
+                    authority_directory=directory,
+                )
+
+    def test_a1_failed_checkpoint_is_exact_and_no_replay(self):
+        self.assertEqual(
+            authority.EXPECTED_A1_TERMINAL,
+            {
+                "revision": authority.A1_PREDECESSOR_REVISION,
+                "native_dispatch_count": 2,
+                "push": {
+                    "run_id": 31976746482,
+                    "job_id": 95237268946,
+                    "event": "push",
+                    "attempt": 1,
+                    "status": "completed",
+                    "conclusion": "failure",
+                    "head_sha": authority.A1_PREDECESSOR_REVISION,
+                    "workflow_name": "CI",
+                    "workflow_path": authority.CI_WORKFLOW_REF,
+                    "job_name": "test",
+                    "created_at_utc": "2026-08-16T22:35:12Z",
+                    "started_at_utc": "2026-08-16T22:35:15Z",
+                    "completed_at_utc": "2026-08-16T23:05:35Z",
+                    "failure_class": "UNIT_TEST_STEP_NONZERO_EXIT",
+                    "failed_step_name": "Unit tests",
+                    "failure_annotation": (
+                        "Process completed with exit code 1."
+                    ),
+                    "unit_test_count": 2413,
+                    "unit_test_failure_count": 11,
+                    "unit_test_error_count": 34,
+                    "unit_test_skip_count": 34,
+                    "dispatch_count": 1,
+                    "rerun_count": 0,
+                },
+                "pull_request": {
+                    "run_id": 31976748605,
+                    "job_id": 95237273323,
+                    "event": "pull_request",
+                    "attempt": 1,
+                    "status": "completed",
+                    "conclusion": "failure",
+                    "head_sha": authority.A1_PREDECESSOR_REVISION,
+                    "workflow_name": "CI",
+                    "workflow_path": authority.CI_WORKFLOW_REF,
+                    "job_name": "test",
+                    "created_at_utc": "2026-08-16T22:35:15Z",
+                    "started_at_utc": "2026-08-16T22:35:18Z",
+                    "completed_at_utc": "2026-08-16T23:08:54Z",
+                    "failure_class": "UNIT_TEST_STEP_NONZERO_EXIT",
+                    "failed_step_name": "Unit tests",
+                    "failure_annotation": (
+                        "Process completed with exit code 1."
+                    ),
+                    "unit_test_count": 2413,
+                    "unit_test_failure_count": 11,
+                    "unit_test_error_count": 34,
+                    "unit_test_skip_count": 34,
+                    "dispatch_count": 1,
+                    "rerun_count": 0,
+                },
+                "rerun_allowed": False,
+                "replacement_required": True,
+            },
+        )
 
     def test_extra_file_breaks_exact_inventory(self):
         directory, raw = self.make_directory()
@@ -303,6 +394,9 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
         early_evidence=False,
         source_drift_ref=None,
         reuse_a0_evidence_run=False,
+        reuse_a1_evidence_run=False,
+        reuse_a2_evidence_run=False,
+        reuse_a2_evidence_job=False,
     ):
         control_revision = raw_fixtures.CONTROL_REVISION
         evidence_revision = "3" * 40
@@ -391,10 +485,11 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
             "schema": authority.ACTIVATION_RECEIPT_SCHEMA,
             "task_id": authority.TASK_ID,
             "operation_id": authority.OPERATION_ID,
-            "status": "A1_ATTEMPT1_DUAL_CI_SUCCESS_ACTIVATED",
+            "status": "A2_ATTEMPT1_DUAL_CI_SUCCESS_ACTIVATED",
             "repository": authority.REPOSITORY,
             "ref": authority.SOURCE_REF,
             "a0_terminal": copy.deepcopy(authority.EXPECTED_A0_TERMINAL),
+            "a1_terminal": copy.deepcopy(authority.EXPECTED_A1_TERMINAL),
             "control_revision": control_revision,
             "authority_root_file_sha256": root_sha256,
             "source_file_sha256": {
@@ -753,6 +848,17 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
                 ci["evidence_push"]["job_id"] = (
                     authority.EXPECTED_A0_TERMINAL["push"]["job_id"]
                 )
+            if reuse_a1_evidence_run:
+                ci["evidence_push"]["run_id"] = (
+                    authority.EXPECTED_A1_TERMINAL["push"]["run_id"]
+                )
+                ci["evidence_push"]["job_id"] = (
+                    authority.EXPECTED_A1_TERMINAL["push"]["job_id"]
+                )
+            if reuse_a2_evidence_run:
+                ci["evidence_push"]["run_id"] = control_push["run_id"]
+            if reuse_a2_evidence_job:
+                ci["evidence_push"]["job_id"] = control_push["job_id"]
             provider_envelope = envelope("provider", provider)
             confirmation_envelope = envelope("confirmation", confirmation)
             ci_envelope = envelope("ci", ci)
@@ -873,6 +979,23 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
         )
         self.assertTrue(any("historical CI run reuse" in row for row in errors))
         self.assertIsNone(binding)
+
+    def test_final_authority_rejects_m1_reuse_of_a1_native_run(self):
+        errors, binding = self.validate_final_bundle_fixture(
+            reuse_a1_evidence_run=True,
+        )
+        self.assertTrue(any("historical CI run reuse" in row for row in errors))
+        self.assertIsNone(binding)
+
+    def test_final_authority_rejects_m1_reuse_of_a2_run_or_job(self):
+        for field in ("run", "job"):
+            with self.subTest(field=field):
+                errors, binding = self.validate_final_bundle_fixture(
+                    reuse_a2_evidence_run=field == "run",
+                    reuse_a2_evidence_job=field == "job",
+                )
+                self.assertTrue(any("CI run reuse" in row for row in errors))
+                self.assertIsNone(binding)
 
     def test_production_root_hash_is_frozen_and_nonempty(self):
         self.assertTrue(authority.AUTHORITY_IMPLEMENTED)

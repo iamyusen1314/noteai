@@ -85,6 +85,7 @@ SOURCE_FILES = {
 }
 TOOL_INVENTORY = SOURCE_FILES | {ACTIVATION_RECEIPT_FILE}
 EXPECTED_A0_TERMINAL = authority.EXPECTED_A0_TERMINAL
+EXPECTED_A1_TERMINAL = authority.EXPECTED_A1_TERMINAL
 
 COST_SLOT = "cost_stop_rds_write_lookup_page"
 CREATE_SLOT = "clone_create_lookup_page"
@@ -861,6 +862,11 @@ def _validate_activation(
         )
         or not authority.revision_is_strict_ancestor(
             authority.A0_PREDECESSOR_REVISION,
+            authority.A1_PREDECESSOR_REVISION,
+            root=REPOSITORY_ROOT,
+        )
+        or not authority.revision_is_strict_ancestor(
+            authority.A1_PREDECESSOR_REVISION,
             control_revision,
             root=REPOSITORY_ROOT,
         )

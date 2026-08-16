@@ -11119,3 +11119,44 @@ Colima, database, builder, restore and cloud actions remain frozen.
   begins before it. The five historical Item 26 scripts remain preserved,
   unexecuted, undeleted and unstaged; no checkpoint or individual CI stage is a
   stopping signal.
+
+### Item 26 A1 dual-CI fixture failure and append-only A2 successor (2026-08-17)
+
+- A1 is exact pushed revision
+  `db7b99d86e4fcf022e243ad1833c5f5d01d97095`. Push run
+  `31976746482`/job `95237268946` and pull-request run
+  `31976748605`/job `95237273323` both completed attempt 1 with `failure`.
+  They are the only ordinary runs for that exact SHA and must not be rerun.
+  Each Unit step ran 2,413 tests with 34 skips and reported 11 failures plus
+  34 errors; Quality, PostgreSQL, production readiness and Compose were
+  skipped. The fixed shared cause was the Linux test fixture creating its
+  supposedly trusted root below world-writable `/tmp`, which the production
+  parent-chain contract correctly rejected as `source_parent_identity`.
+- The append-only A2 correction does not weaken production ownership or mode
+  checks. Only the two affected test modules move their temporary roots below
+  the owner-controlled repository using mode `0700`; each module also keeps an
+  explicit world-writable-parent rejection test. The two changed modules pass
+  `65/65` in normal and optimized Python; the full four-module A1/A2 collector,
+  extractor, authority and evidence set passes `106/106` in both modes, with
+  the future predecessor/authority set passes `48/48`, production readiness is
+  `138/138`, internal readiness is `25/29` and `git diff --check` passes.
+- A2 also freezes the complete A1 push/PR failure pair as a signed control-flow
+  predecessor, following the existing A0 timeout overlay rather than changing
+  the immutable 29-entry v2 cloud/mutation registry or replacing the existing
+  authority root. Runtime activation receipt v2 must bind exact A0 and A1
+  terminal rows, prove `A0 < A1 < A2`, keep all A0/A1/A2 run and job
+  identities distinct and place the new A2 CI interval strictly after both A1
+  failures. A1 supplied no
+  activation clearance, readiness evidence or cloud execution authority.
+- No root-owned authority/runtime material was installed; no activation receipt
+  was signed; ActionTrail, RDS, billing, database and builder operation counts
+  remain zero. Item 26 remains `unverified` with `evidence: []`, internal
+  readiness remains `25/29`, and the five historical Item 26 scripts remain
+  preserved, unexecuted, undeleted and unstaged.
+- The next serial action is to finish the Secret-free A2 ledger and verifier
+  correction, run the full local gates, normally checkpoint/push a new SHA and
+  require its own attempt-one push/PR dual-green pair. Only that exact A2 pair
+  may be signed into a runtime activation receipt. The subsequent root-only
+  install still requires interactive administrator privilege and remains the
+  next permitted user stop before any fresh read-only cloud response is
+  imported.

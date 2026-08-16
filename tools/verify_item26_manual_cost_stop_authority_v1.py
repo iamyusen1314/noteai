@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TASK_ID = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
 OPERATION_ID = TASK_ID + ":MANUAL-POST-ACTION-COST-STOP:v1"
 A0_PREDECESSOR_REVISION = "34bfcf029d7ba641728fc18777b11943cb02fe1d"
+A1_PREDECESSOR_REVISION = "db7b99d86e4fcf022e243ad1833c5f5d01d97095"
 VERIFIER_REF = "tools/verify_item26_manual_cost_stop_authority_v1.py"
 RAW_EXTRACTOR_REF = "tools/extract_item26_manual_cost_stop_raw_v1.py"
 COLLECTOR_REF = "tools/collect_item26_manual_cost_stop_raw_v1.py"
@@ -80,7 +81,7 @@ PROVIDER_RAW_FILE = PROVIDER_RAW_PATH.name
 ACTIONTRAIL_RAW_FILE = ACTIONTRAIL_RAW_PATH.name
 CONFIRMATION_FILE = CONFIRMATION_ENVELOPE_PATH.name
 BUNDLE_FILE = AUTHORITY_BUNDLE_PATH.name
-ACTIVATION_RECEIPT_FILE = "runtime-activation-receipt-v1.json"
+ACTIVATION_RECEIPT_FILE = "runtime-activation-receipt-v2.json"
 RUNTIME_INVENTORY = (
     Path(COLLECTOR_REF).name,
     Path(RAW_EXTRACTOR_REF).name,
@@ -105,7 +106,7 @@ CONFIRMATION_SCHEMA = (
 )
 CI_SCHEMA = "noteai.item26.manual-cost-stop-ci-authority.v1"
 ACTIVATION_RECEIPT_SCHEMA = (
-    "noteai.item26.manual-cost-stop-runtime-activation-receipt.v1"
+    "noteai.item26.manual-cost-stop-runtime-activation-receipt.v2"
 )
 EXPECTED_AUTHORITY_ROOT_FILE_SHA256 = (
     "f0f7cfce319009ad696cf762f30ca25b2f237d4bda2f4f0643baeea409514f3c"
@@ -188,6 +189,60 @@ EXPECTED_A0_TERMINAL = {
         "timeout_annotation": (
             "The job has exceeded the maximum execution time of 35m0s"
         ),
+        "dispatch_count": 1,
+        "rerun_count": 0,
+    },
+    "rerun_allowed": False,
+    "replacement_required": True,
+}
+EXPECTED_A1_TERMINAL = {
+    "revision": A1_PREDECESSOR_REVISION,
+    "native_dispatch_count": 2,
+    "push": {
+        "run_id": 31976746482,
+        "job_id": 95237268946,
+        "event": "push",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "failure",
+        "head_sha": A1_PREDECESSOR_REVISION,
+        "workflow_name": "CI",
+        "workflow_path": CI_WORKFLOW_REF,
+        "job_name": "test",
+        "created_at_utc": "2026-08-16T22:35:12Z",
+        "started_at_utc": "2026-08-16T22:35:15Z",
+        "completed_at_utc": "2026-08-16T23:05:35Z",
+        "failure_class": "UNIT_TEST_STEP_NONZERO_EXIT",
+        "failed_step_name": "Unit tests",
+        "failure_annotation": "Process completed with exit code 1.",
+        "unit_test_count": 2413,
+        "unit_test_failure_count": 11,
+        "unit_test_error_count": 34,
+        "unit_test_skip_count": 34,
+        "dispatch_count": 1,
+        "rerun_count": 0,
+    },
+    "pull_request": {
+        "run_id": 31976748605,
+        "job_id": 95237273323,
+        "event": "pull_request",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "failure",
+        "head_sha": A1_PREDECESSOR_REVISION,
+        "workflow_name": "CI",
+        "workflow_path": CI_WORKFLOW_REF,
+        "job_name": "test",
+        "created_at_utc": "2026-08-16T22:35:15Z",
+        "started_at_utc": "2026-08-16T22:35:18Z",
+        "completed_at_utc": "2026-08-16T23:08:54Z",
+        "failure_class": "UNIT_TEST_STEP_NONZERO_EXIT",
+        "failed_step_name": "Unit tests",
+        "failure_annotation": "Process completed with exit code 1.",
+        "unit_test_count": 2413,
+        "unit_test_failure_count": 11,
+        "unit_test_error_count": 34,
+        "unit_test_skip_count": 34,
         "dispatch_count": 1,
         "rerun_count": 0,
     },
@@ -751,6 +806,11 @@ def load_activation_root(
         not _ancestor(M0_ANCHOR_REVISION, A0_PREDECESSOR_REVISION, root=root)
         or not _ancestor(
             A0_PREDECESSOR_REVISION,
+            A1_PREDECESSOR_REVISION,
+            root=root,
+        )
+        or not _ancestor(
+            A1_PREDECESSOR_REVISION,
             expected_control_revision,
             root=root,
         )
@@ -788,6 +848,11 @@ def load_verified_projection(
         not _ancestor(M0_ANCHOR_REVISION, A0_PREDECESSOR_REVISION, root=root)
         or not _ancestor(
             A0_PREDECESSOR_REVISION,
+            A1_PREDECESSOR_REVISION,
+            root=root,
+        )
+        or not _ancestor(
+            A1_PREDECESSOR_REVISION,
             expected_control_revision,
             root=root,
         )
@@ -928,7 +993,8 @@ def validate_runtime_activation_receipt(
     payload_keys = {
         "schema", "task_id", "operation_id", "status",
         "repository", "ref",
-        "a0_terminal", "control_revision", "authority_root_file_sha256",
+        "a0_terminal", "a1_terminal", "control_revision",
+        "authority_root_file_sha256",
         "source_file_sha256", "control_ci", "activated_at_utc",
         "readback_started", "cloud_call_count", "database_connection_count",
     }
@@ -961,9 +1027,25 @@ def validate_runtime_activation_receipt(
         or payload.get("repository") != REPOSITORY
         or payload.get("ref") != SOURCE_REF
         or payload.get("status")
-        != "A1_ATTEMPT1_DUAL_CI_SUCCESS_ACTIVATED"
+        != "A2_ATTEMPT1_DUAL_CI_SUCCESS_ACTIVATED"
         or not _strict(payload.get("a0_terminal"), EXPECTED_A0_TERMINAL)
+        or not _strict(payload.get("a1_terminal"), EXPECTED_A1_TERMINAL)
         or payload.get("control_revision") != control_revision
+        or not _ancestor(
+            M0_ANCHOR_REVISION,
+            A0_PREDECESSOR_REVISION,
+            root=root,
+        )
+        or not _ancestor(
+            A0_PREDECESSOR_REVISION,
+            A1_PREDECESSOR_REVISION,
+            root=root,
+        )
+        or not _ancestor(
+            A1_PREDECESSOR_REVISION,
+            control_revision,
+            root=root,
+        )
         or payload.get("authority_root_file_sha256")
         != expected_authority_root_file_sha256
         or installed_sources
@@ -999,23 +1081,39 @@ def validate_runtime_activation_receipt(
     pull = payload["control_ci"]["pull_request"]
     a0_push = EXPECTED_A0_TERMINAL["push"]
     a0_pull = EXPECTED_A0_TERMINAL["pull_request"]
+    a1_push = EXPECTED_A1_TERMINAL["push"]
+    a1_pull = EXPECTED_A1_TERMINAL["pull_request"]
+    historical_and_control_rows = (
+        a0_push,
+        a0_pull,
+        a1_push,
+        a1_pull,
+        push,
+        pull,
+    )
     activated = _utc(payload.get("activated_at_utc"))
     if (
-        len({
-            a0_push["run_id"],
-            a0_pull["run_id"],
-            push["run_id"],
-            pull["run_id"],
-        }) != 4
-        or len({
-            a0_push["job_id"],
-            a0_pull["job_id"],
-            push["job_id"],
-            pull["job_id"],
-        }) != 4
+        len({row["run_id"] for row in historical_and_control_rows}) != 6
+        or len({row["job_id"] for row in historical_and_control_rows}) != 6
         or max(
             _utc(a0_push["completed_at_utc"]),
             _utc(a0_pull["completed_at_utc"]),
+        )
+        >= min(
+            _utc(a1_push["created_at_utc"]),
+            _utc(a1_pull["created_at_utc"]),
+        )
+        or any(
+            not (
+                _utc(row["created_at_utc"])
+                <= _utc(row["started_at_utc"])
+                < _utc(row["completed_at_utc"])
+            )
+            for row in (a1_push, a1_pull)
+        )
+        or max(
+            _utc(a1_push["completed_at_utc"]),
+            _utc(a1_pull["completed_at_utc"]),
         )
         >= min(
             _utc(push["created_at_utc"]),
@@ -1034,6 +1132,8 @@ def validate_runtime_activation_receipt(
         "activated_at_utc": payload["activated_at_utc"],
         "control_revision": control_revision,
         "source_file_sha256": expected_sources,
+        "a0_terminal": payload["a0_terminal"],
+        "a1_terminal": payload["a1_terminal"],
         "control_ci": payload["control_ci"],
     }
 
@@ -1360,6 +1460,11 @@ def validate_authority_bundle(
             )
             or not _ancestor(
                 A0_PREDECESSOR_REVISION,
+                A1_PREDECESSOR_REVISION,
+                root=root,
+            )
+            or not _ancestor(
+                A1_PREDECESSOR_REVISION,
                 control_revision,
                 root=root,
             )
@@ -1469,13 +1574,15 @@ def validate_authority_bundle(
         if len({row["run_id"] for row, _event, _revision in run_rows}) != 6 or len({row["job_id"] for row, _event, _revision in run_rows}) != 6:
             raise ValueError("manual CI run reuse")
         all_ci_rows = (
-            EXPECTED_A0_TERMINAL["push"],
-            EXPECTED_A0_TERMINAL["pull_request"],
+            activation["a0_terminal"]["push"],
+            activation["a0_terminal"]["pull_request"],
+            activation["a1_terminal"]["push"],
+            activation["a1_terminal"]["pull_request"],
             *(row for row, _event, _revision in run_rows),
         )
         if (
-            len({row["run_id"] for row in all_ci_rows}) != 8
-            or len({row["job_id"] for row in all_ci_rows}) != 8
+            len({row["run_id"] for row in all_ci_rows}) != 10
+            or len({row["job_id"] for row in all_ci_rows}) != 10
         ):
             raise ValueError("manual historical CI run reuse")
         control_completed = max(
@@ -1597,7 +1704,8 @@ def validate_authority_bundle(
 
 
 __all__ = [
-    "A0_PREDECESSOR_REVISION", "ACTIONTRAIL_RAW_PATH",
+    "A0_PREDECESSOR_REVISION", "A1_PREDECESSOR_REVISION",
+    "ACTIONTRAIL_RAW_PATH",
     "ACTIVATION_INVENTORY", "AUTHORITY_BUNDLE_PATH",
     "AUTHORITY_DIRECTORY", "AUTHORITY_IMPLEMENTED", "AUTHORITY_ROOT_PATH",
     "BUNDLE_SCHEMA", "CAPTURE_INVENTORY", "COLLECTOR_REF",

@@ -34,10 +34,14 @@ Last updated: 2026-08-17
   green. Preserve the released clone and both consumed cloud mutation
   identities as terminal/no-replay. A0 revision `34bfcf0` has one successful
   push run and one terminal PR cancellation at the exact 35-minute limit; the
-  PR must not be rerun and A0 provides no activation clearance. Checkpoint the
-  append-only A1 offline collector with the exact 45-minute CI contract, then
-  require its own new attempt-one dual-green pair before creating a signed
-  runtime activation receipt or completing the root-only install. No fresh
+  PR must not be rerun and A0 provides no activation clearance. A1 revision
+  `db7b99d` has terminal attempt-one push/PR failures caused only by its Linux
+  tests placing a trusted-root fixture below world-writable `/tmp`; those runs
+  also must not be rerun and provide no activation clearance. Checkpoint the
+  append-only A2 secure-temp correction while preserving the exact 45-minute
+  CI contract, then require its own new attempt-one dual-green pair before
+  creating a signed runtime activation receipt or completing the root-only
+  install. No fresh
   provider capture has started. A future Item 26 success successor must be
   fully disjoint, carry a new explicit fee authorization and first provide a
   Secret-free CI-replayable predecessor capsule; do not start a builder,
@@ -103,7 +107,14 @@ Last updated: 2026-08-17
   a below-baseline value upward. An invalid official export is reduced to a
   durable UNKNOWN marker and cannot remain pending through a raw parser
   exception. Neither revision can authorize a cloud action or add readiness
-  credit: the
+  credit. A1 revision `db7b99d` reached terminal attempt-one failure in both
+  ordinary CI runs because the Linux tests created an owner-checked fixture
+  below world-writable `/tmp`; the production parent-chain rejection was
+  correct. The append-only A2 correction moves only the two test roots below
+  the owner-controlled repository and retains explicit world-writable-parent
+  rejection coverage. A2 must additionally bind A1's exact terminal pair in
+  the runtime activation overlay, without changing the frozen v2
+  cloud/mutation registry or replacing the existing root. The
   root-owned inventory, live raw capture, final envelopes and Git artifacts are
   absent. Historical abort-v1
   remains frozen evidence and is explicitly superseded as the future success
@@ -133,7 +144,7 @@ Last updated: 2026-08-17
   user-confirmation authority. The provider authority may cross-bind that
   confirmation but cannot issue it. The three current SPKIs prove mathematical
   role separation only, not independent organizational custody. Native
-  ActionTrail shape compatibility remains unproven until the first A1 dual-
+  ActionTrail shape compatibility remains unproven until the first A2 dual-
   green/runtime-receipt-gated readback and must fail closed if direct request
   parameters are absent. A
   Mac-only root-owned verifier also cannot be replayed by GitHub-hosted CI; S0
@@ -142,8 +153,10 @@ Last updated: 2026-08-17
   cannot be replayed. A non-identical partial local journal write remains a
   fail-closed `LOCAL_WRITE_RECOVERY_REQUIRED` boundary rather than automatic
   recovery.
-- 下一验证: Normally checkpoint and push the append-only A1 source candidate
-  without any cloud call, then require a new A1 attempt-one dual-green CI pair.
+- 下一验证: Normally checkpoint and push the append-only A2 secure-temp and
+  A1-terminal-overlay correction without any cloud call, then require a new A2
+  attempt-one dual-green CI pair. The A1 push and PR failures are terminal and
+  must not be rerun.
   Only afterward sign the exact runtime activation receipt, install the exact
   root-owned inventory and signing custody, perform fresh read-only
   ActionTrail/Describe/billing capture, and build M1/M2 candidate artifacts.
