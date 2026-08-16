@@ -10325,3 +10325,68 @@ The sole next operation is a new full-exit invocation of the corrected prepare
 wrapper after this correction checkpoint is pushed. It is a new attempt against
 new bytes, not a retry of the revoked command. Any failure or `UNKNOWN` again
 stops the chain without bypass.
+
+### V6 prepare step-3 historical rollout false-negative repaired; exact reviewed partition frozen (2026-08-16)
+
+- Two later invocations also stopped fail-closed. One ended in step 1 because
+  `ChatGPT for Chrome` was still present; the next passed the process,
+  environment, anchor, ORICO and full-tree gates, then ended in step 3 with
+  `rollout_file_missing`. Both executions preceded candidate/image creation.
+  Read-only terminal audit proves every v6 image/candidate/receipt/binding,
+  build/live/audit mountpoint and lock remains absent, attached-image count is
+  zero, the ORICO storage identity/mtime did not change, and the temporary
+  SQLite snapshot was removed. Across all three prepare invocations there were
+  zero source writes, zero ORICO writes, zero attachments, zero image creates
+  and zero accepted candidates.
+- The step-3 result was a deterministic source-shape false-negative, not a new
+  missing conversation. The healthy `state_5.sqlite` snapshot contains exactly
+  `459` thread rows partitioned into `285` present regular rollout files and
+  `174` reviewed historical leaf absences. The current root rollout is present.
+  All `174` absences have canonical `sessions/YYYY/MM/DD/rollout-...-<thread
+  id>.jsonl` paths, real nofollow directory ancestors, `has_user_event=0` and
+  `history_mode=legacy`. They form seven acyclic depth-one historical trees
+  with `167` internal edges and zero missing/present cross-edge. Edge `open`
+  status and one stale historical goal are deliberately not treated as live
+  activity; the observed queue row count was zero.
+- The corrected contract does not ignore arbitrary missing files. It pins the
+  exact canonical missing descriptor set at count `174` / SHA-256
+  `c8f96f08db72a7eeb4e782f5cf5c3496e6f76748eca2acf44e4360a5f771cc18`
+  and the exact missing-edge set at count `167` / SHA-256
+  `864f10c4d81867293fe46cf458b237aebc9c00de07d29f54094b0cf74c5b7185`.
+  Every other thread must bind a regular rollout by relative path, size and
+  SHA-256; the root must remain present. Added, removed, renamed or nonregular
+  missing entries, broken ancestors, metadata drift, graph crossing, cycles,
+  candidate materialization of a missing leaf, or loss of a present file all
+  reject. Candidate transformation still changes only all `459`
+  `threads.rollout_path` prefixes; it creates no history and deletes no row or
+  rollout.
+- Final frozen identities are prepare
+  `a6b4dff8573791144095f5806cff4e2e249a63c934003b78f10dfcc82d90b616`,
+  prepare wrapper
+  `86f0bdde69fc0e27fca0c8d9148b0410b75e4fc148670ec93bd75d7de28ec9cf`,
+  guarded launcher
+  `029b99d693b806a9efa85a262c79c4ae6ae64004a3003bbc4cd4d91a3ffea0b0`,
+  launcher wrapper
+  `ec83374e7914f7933255fc0bce3d7a2c3ed461ae2fbee8307c1b143e5b917ff3`,
+  verifier
+  `38379142b8836e7b12c2c21c95d3f9f7be42f8720ce990a41eec7adaf33eaec9`,
+  verifier wrapper
+  `efa13daf19f4cf73f8cbc42a0c51b46de50dd822491096a9fe074469f0492ef4`,
+  sealer
+  `e9506a2c1378de7175bcd2dc49191257a38bd3f10bca84148c064cd2b7076194`,
+  sealer wrapper
+  `076f47af4bd7cf3c5f1fe9beaeb36a89337f73d3a67479933d096497420cf978`
+  and README
+  `b930b685a1a9802db4c2fd4d3727da5c95da83886e33c3895f0e53285cc35ca0`.
+  Four disposable self-tests, four AST parses, four Bash syntax checks,
+  canonical sealer rendering, closed-world file checks, wrapper pin propagation
+  and two stable SHA reads pass. Independent focused review is `GO`, `P0=0`,
+  `P1=0`; production calls remain zero.
+
+The launcher remains intentionally `UNSEALED`, because no prepare PASS receipt,
+binding or APFS UUID exists. After this ledger-only checkpoint is pushed, the
+only next operation is one complete-exit invocation of the newly pinned prepare
+wrapper. A PASS may advance to the offline sealer; any failure or `UNKNOWN`
+again ends the attempt without bypass. Item 26 remains `unverified`; readiness
+remains internal `25/29`, public `25/38` and production `138/138`. All NoteAI,
+Colima, database, builder, restore and cloud actions remain frozen.

@@ -2337,6 +2337,25 @@ Last updated: 2026-08-16
   validation. Item 26 remains unverified at internal `25/29` and public
   `25/38`; every cloud and production action remains frozen.
 
+- 2026-08-16 the v6 live-home prepare step-3 rollout partition is a corrected,
+  still-unexecuted local-storage High gate. The prior frozen tool required every
+  `threads.rollout_path` row to resolve to a regular file and therefore rejected
+  the retained source's long-standing shape: `459` rows split into `285`
+  present files and an exact reviewed set of `174` historical leaf absences.
+  The root is present; the absences are `has_user_event=0`, legacy-mode,
+  canonical-path records in seven depth-one trees, with `167` internal edges
+  and zero cross-edge. They are not silently repaired, fabricated or deleted.
+  The replacement contract pins the missing descriptors and edges by fixed
+  count/SHA, requires nofollow ancestor and leaf-absence proof, separately
+  binds every present rollout by content SHA, and requires source/candidate
+  symmetry. Any missing-set drift or current-root loss is terminal. Focused
+  static/disposable review is GO with `P0=0` and `P1=0`, but no real prepare
+  PASS, image, receipt, binding, seal, switch or ORICO write exists yet. The
+  residual High is the next full-exit prepare execution and all later
+  prepare/seal/launch/write-verifier runtime gates; no bypass or manual DB/JSONL
+  mutation is authorized. Item 26 and all cloud/production actions remain
+  frozen with zero readiness credit.
+
 ## Low Risks
 
 ### `model/api.py` is too large
