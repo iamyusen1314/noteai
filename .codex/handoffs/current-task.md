@@ -10390,3 +10390,49 @@ wrapper. A PASS may advance to the offline sealer; any failure or `UNKNOWN`
 again ends the attempt without bypass. Item 26 remains `unverified`; readiness
 remains internal `25/29`, public `25/38` and production `138/138`. All NoteAI,
 Colima, database, builder, restore and cloud actions remain frozen.
+
+### Complex v6 retired; minimal ORICO relocation path prepared (2026-08-16)
+
+- The repeated v6 prepare failures were implementation false-negatives caused
+  by an architecture that attempted to model and rewrite private Codex state.
+  The user explicitly narrowed the objective to relieving internal-disk
+  pressure and making future Codex launches depend on ORICO. The v6 directory
+  was therefore recoverably renamed to
+  `/Users/openclaw/Desktop/Codex-ORICO-活跃存储-v6-已停用`; none of its production
+  prepare/seal/launch paths completed.
+- A new local-only tool set exists at
+  `/Users/openclaw/Desktop/Codex-ORICO-简化迁移`. It uses the public
+  `CODEX_HOME`/`CODEX_SQLITE_HOME` contract and preserves the existing logical
+  path `/Users/openclaw/.codex`: a one-time tool creates a new APFS sparsebundle
+  on ORICO, copies the current authoritative internal `.codex` with `ditto`,
+  retains the original as `.codex-internal-backup`, and replaces only the
+  logical path with a symlink to the mounted ORICO `.codex`. It does not merge
+  the old ORICO branch, rewrite `threads.rollout_path`, or modify private
+  SQLite tables. A separate daily launcher mounts ORICO, sets both public
+  environment variables to the unchanged logical path, opens ChatGPT, and
+  requires observable ORICO state/session adoption.
+- Frozen local tool identities are `orico_storage.py`
+  `8d97dc444502c1c82650c156bc3b4f8a9bee65aa09d42ebeb669aff82923454e`,
+  migration wrapper
+  `89eb8407df60d8a28404fed155698c90a9c314d6f7387593b0b881a8f52a0207`,
+  daily launcher
+  `f73a59b8c8556af8c7ff83b1ecbc1cb43d01a6f38d8626faecaf318d8c585669`
+  and README
+  `91c4d9ca90790a4b159e161683380fe78d827ec973a98086c8dd067bf151970b`.
+  Directory/core/README modes are `0700/0600/0600`; wrappers are `0700`.
+- Verification passed without touching production data: Python AST and both
+  Bash syntax checks, the built-in `ditto` socket/hardlink/symlink fixture, a
+  disposable 256 MiB APFS create/attach/copy/read-only-state-check/detach/
+  reattach fixture, and a direct end-to-end build/activate/symlink-read/rollback
+  fixture. All fixture images were detached and their temporary directories
+  removed. Current ORICO identity and capacity preflight pass; the active App
+  and open-handle gates correctly reject this still-running task.
+- No real sparsebundle, copy, symlink, receipt, environment change, App open,
+  backup deletion or NoteAI/cloud action occurred in this stage. The necessary
+  next operation is physical: Command-Q the current ChatGPT/Codex process, keep
+  ORICO connected, run `1-迁移到ORICO.command`, and enter
+  `MIGRATE-TO-ORICO`. After `ORICO_LAUNCH_PASS`, send one normal message and
+  verify it writes only to ORICO. Only after that proof may a second full-exit
+  invocation accept `FREE-INTERNAL-SPACE` to delete the retained internal
+  backup and release roughly 65 GiB. Item 26 remains `unverified`; readiness
+  and all NoteAI/cloud gates remain unchanged and frozen.

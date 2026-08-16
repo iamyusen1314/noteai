@@ -2356,6 +2356,22 @@ Last updated: 2026-08-16
   mutation is authorized. Item 26 and all cloud/production actions remain
   frozen with zero readiness credit.
 
+- 2026-08-16 local Codex storage remains a temporary High risk until the new
+  simplified migration completes. The previous v6 architecture is retired and
+  must not be retried: it over-modeled private SQLite/history state and caused
+  repeated false-negative stops without creating an accepted candidate. The
+  replacement deliberately keeps `/Users/openclaw/.codex` as the logical path
+  and moves its physical bytes into a new ORICO APFS sparsebundle, avoiding
+  private SQL/path rewriting. Static and disposable APFS/end-to-end fixtures
+  pass, but the real copy has not run because this task is itself an active
+  writer. Until a full-exit migration reports `ORICO_LAUNCH_PASS` and a new
+  message is proven to open/write ORICO state and session files only, the
+  internal `.codex` remains authoritative and no internal backup may be
+  deleted. Even after storage migration, a giant single task can still exhaust
+  renderer/app-server memory; storage relocation reduces disk-pressure risk but
+  does not replace a compact handoff into a fresh successor task. Item 26 and
+  all NoteAI/cloud actions remain frozen with zero readiness credit.
+
 ## Low Risks
 
 ### `model/api.py` is too large
