@@ -10275,3 +10275,53 @@ full exit, one prepare invocation, one offline sealer invocation without
 reopening the App, then only the sealed launcher, one displayed test phrase,
 another full exit and the sealed verifier. No online action can replace those
 process gates.
+
+### First v6 prepare attempt failed safely at the launchctl unset gate; corrected bytes are frozen (2026-08-16)
+
+- The first user-run prepare invocation terminated in step 1 with the exact
+  fixed code `launchctl_codex_environment_not_unset`. This was a deterministic
+  tool defect, not a user exit error: this Mac reports an unset launchctl
+  variable as return code `0` with zero stdout/stderr bytes, while the old
+  prepare accepted only return code `1` with zero bytes. The corrected gate
+  accepts only return code `0` or `1` with both streams exactly empty; every
+  other return code or any output still fails closed. Process-environment
+  membership remains strict, so even a defined empty string is rejected.
+- Independent read-only terminal audit proves the failure preceded lock,
+  temporary directory, storage-baseline and candidate creation. The new v6
+  image/candidate/receipt/binding and all three build/live/audit mountpoints,
+  all three locks and both sealed output paths are absent; attached image count
+  is zero. ORICO storage inventory/mtime still contains only the old retained
+  image and two old partial groups. This prepare attempt therefore made zero
+  source writes, zero ORICO writes, zero image creates and zero attachments.
+- The old prepare chain recorded in checkpoint `0cfddb560a0cbb47f665270bbb134968665b5966`
+  is revoked for execution. Corrected frozen identities are prepare
+  `2049c362863135e3bfa34d409b85171a8d69bcea075ce096e6134a004d00b7a0`,
+  prepare wrapper
+  `9d622c7642e0ef807f2aebc4119f510451131f2f5ac55774e8b406a710bf711e`,
+  guarded launcher
+  `2e81717be0f696239cc53941bbe57332547cdda9780dae04fdbb0b349f5ac6b4`,
+  launcher wrapper
+  `3ae36b66aa6b3f887557562a0e35df0b57eb6efd9495359c83003e6b439f8890`,
+  write verifier
+  `1ab765795b0d514eb7054cfd938745e69e8889008426dd1eade859fa3a48ab71`,
+  verifier wrapper
+  `2e6d2362ad6859f062a3c527e28e2b87930e1fd596e02fd1b8e06e74850d4b1b`,
+  offline sealer
+  `4fa63e48e08b629e173166a36f3dc73aae168420007399c15bf171c3858963c8`,
+  sealer wrapper
+  `51ecc024535b10cfb362b9e6077fff1e4595662b962d1743debf6f6bc37dc8de`
+  and README
+  `b26b40ed265132f219ee0ed1bf4919ecca6606fb6875355c142df2d01acf3b75`.
+  Modes remain Python/README `0600`, wrappers `0700`, owner UID 501.
+- Pure regression fixtures cover `rc0/empty` and `rc1/empty` acceptance plus
+  nonempty stdout/stderr and other-return-code rejection. Four disposable
+  self-tests, four AST parses, four Bash syntax checks, the complete pin graph,
+  canonical sealer wrapper and two stable SHA reads pass; independent review
+  reports `P0=0`. Production prepare/sealer/launcher/verifier success counts,
+  image create, attach, switch, test-message and readiness-credit counts remain
+  zero. Item 26 and every NoteAI/cloud action remain frozen.
+
+The sole next operation is a new full-exit invocation of the corrected prepare
+wrapper after this correction checkpoint is pushed. It is a new attempt against
+new bytes, not a retry of the revoked command. Any failure or `UNKNOWN` again
+stops the chain without bypass.

@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 
 ## Local Codex storage recovery risks
 
@@ -24,13 +24,19 @@ Last updated: 2026-08-15
   `UNSEALED`; a separately frozen offline sealer with independent `P0=0`
   review must, without reopening the App, perform one read-only candidate
   attach/APFS/full-manifest audit and atomically create a new sealed tool
-  directory. All production execution/switch/write counts remain zero.
+  directory. The first prepare attempt stopped before locks or storage access
+  because the old environment gate rejected macOS's real `rc0/empty` unset
+  shape. Read-only audit proves zero source/ORICO writes, zero image creation,
+  zero attach and no residual output. That old command is revoked; the repaired
+  chain accepts only `rc0|rc1` with exactly empty streams, is fully SHA-rebound
+  and independently reviewed at `P0=0`. Successful prepare, sealer, switch and
+  write counts remain zero.
 - 残余 P1: Generic orphan SQLite super-journal names are not exhaustively
   enumerated (current source count is zero); about 65 GiB of full-tree hashing
   may time out fail-closed; old ORICO images are protected by top-level
   identity/inventory without reading their bands. Any timeout, mismatch or
   `UNKNOWN` must stop without bypass or retry.
-- 下一验证: After this checkpoint, completely quit ChatGPT/Codex, Chrome,
+- 下一验证: After the correction checkpoint, completely quit ChatGPT/Codex, Chrome,
   Computer Use and connectors, run the prepare wrapper once, then without
   reopening any App run the offline sealer once. Only after `SEAL_PASS` may the
   newly generated sealed guarded launcher run. Send only its displayed test
