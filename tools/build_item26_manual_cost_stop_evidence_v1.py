@@ -86,6 +86,11 @@ def build_receipt(
         for row in (protection_event, delete_event, create_event)
     ):
         raise ValueError("manual historical predecessor event set incomplete")
+    if (
+        provider.get("activation_receipt_sha256")
+        != trail.get("activation_receipt_sha256")
+    ):
+        raise ValueError("manual runtime activation receipt mismatch")
     receipt: dict[str, Any] = {
         "schema_version": 1,
         "schema": RECEIPT_SCHEMA,
@@ -207,6 +212,9 @@ def build_receipt(
             "shared_disk_retained": True,
         },
         "raw_closure": {
+            "activation_receipt_sha256": provider[
+                "activation_receipt_sha256"
+            ],
             "provider_raw_file_sha256": provider[
                 "provider_raw_file_sha256"
             ],

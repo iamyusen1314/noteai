@@ -19,7 +19,7 @@ import re
 import stat
 import subprocess
 import tempfile
-from typing import Any
+from typing import Any, Optional
 
 from extract_item26_manual_cost_stop_raw_v1 import (
     EXPECTED_DELETE_REQUEST_ID_SHA256,
@@ -38,8 +38,10 @@ from extract_item26_manual_cost_stop_raw_v1 import (
 ROOT = Path(__file__).resolve().parents[1]
 TASK_ID = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
 OPERATION_ID = TASK_ID + ":MANUAL-POST-ACTION-COST-STOP:v1"
+A0_PREDECESSOR_REVISION = "34bfcf029d7ba641728fc18777b11943cb02fe1d"
 VERIFIER_REF = "tools/verify_item26_manual_cost_stop_authority_v1.py"
 RAW_EXTRACTOR_REF = "tools/extract_item26_manual_cost_stop_raw_v1.py"
+COLLECTOR_REF = "tools/collect_item26_manual_cost_stop_raw_v1.py"
 EVIDENCE_VERIFIER_REF = "tools/verify_item26_manual_cost_stop_evidence_v1.py"
 BUILDER_REF = "tools/build_item26_manual_cost_stop_evidence_v1.py"
 SUCCESSOR_VERIFIER_REF = "tools/verify_pitr_restore_evidence.py"
@@ -49,6 +51,7 @@ CONTRACT_REF = "deploy/production/plans/item26-manual-cost-stop-contract-v1.json
 NO_REPLAY_REF = "deploy/production/plans/item26-no-replay-registry-v2.json"
 HANDOFF_REF = ".codex/handoffs/current-task.md"
 REQUIRED_CONTROL_SOURCE_REFS = (
+    COLLECTOR_REF,
     RAW_EXTRACTOR_REF,
     VERIFIER_REF,
     EVIDENCE_VERIFIER_REF,
@@ -62,6 +65,9 @@ REQUIRED_CONTROL_SOURCE_REFS = (
 AUTHORITY_DIRECTORY = Path(
     "/Library/Application Support/NoteAI/item26-manual-cost-stop-v1"
 )
+RUNTIME_DIRECTORY = Path(
+    "/Library/Application Support/NoteAI/item26-manual-cost-stop-v1-tools"
+)
 AUTHORITY_ROOT_PATH = AUTHORITY_DIRECTORY / "authority-root-v1.json"
 AUTHORITY_BUNDLE_PATH = AUTHORITY_DIRECTORY / "authority-bundle-v1.json"
 PROVIDER_RAW_PATH = AUTHORITY_DIRECTORY / "provider-raw-v1.json"
@@ -74,6 +80,13 @@ PROVIDER_RAW_FILE = PROVIDER_RAW_PATH.name
 ACTIONTRAIL_RAW_FILE = ACTIONTRAIL_RAW_PATH.name
 CONFIRMATION_FILE = CONFIRMATION_ENVELOPE_PATH.name
 BUNDLE_FILE = AUTHORITY_BUNDLE_PATH.name
+ACTIVATION_RECEIPT_FILE = "runtime-activation-receipt-v1.json"
+RUNTIME_INVENTORY = (
+    Path(COLLECTOR_REF).name,
+    Path(RAW_EXTRACTOR_REF).name,
+    Path(VERIFIER_REF).name,
+    ACTIVATION_RECEIPT_FILE,
+)
 ACTIVATION_INVENTORY = (ROOT_FILE,)
 CAPTURE_INVENTORY = (ROOT_FILE, PROVIDER_RAW_FILE, ACTIONTRAIL_RAW_FILE)
 FINAL_INVENTORY = (
@@ -91,6 +104,9 @@ CONFIRMATION_SCHEMA = (
     "noteai.item26.manual-cost-stop-confirmation-authority.v1"
 )
 CI_SCHEMA = "noteai.item26.manual-cost-stop-ci-authority.v1"
+ACTIVATION_RECEIPT_SCHEMA = (
+    "noteai.item26.manual-cost-stop-runtime-activation-receipt.v1"
+)
 EXPECTED_AUTHORITY_ROOT_FILE_SHA256 = (
     "f0f7cfce319009ad696cf762f30ca25b2f237d4bda2f4f0643baeea409514f3c"
 )
@@ -137,6 +153,46 @@ EXPECTED_M0_CI = {
         "conclusion": "success",
         "head_sha": M0_ANCHOR_REVISION,
     },
+}
+EXPECTED_A0_TERMINAL = {
+    "revision": A0_PREDECESSOR_REVISION,
+    "native_dispatch_count": 2,
+    "push": {
+        "run_id": 31969004410,
+        "job_id": 95218382487,
+        "event": "push",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": A0_PREDECESSOR_REVISION,
+        "workflow_name": "CI",
+        "workflow_path": CI_WORKFLOW_REF,
+        "job_name": "test",
+        "completed_at_utc": "2026-08-16T20:26:05Z",
+        "dispatch_count": 1,
+        "rerun_count": 0,
+    },
+    "pull_request": {
+        "run_id": 31969006941,
+        "job_id": 95218387957,
+        "event": "pull_request",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "cancelled",
+        "head_sha": A0_PREDECESSOR_REVISION,
+        "workflow_name": "CI",
+        "workflow_path": CI_WORKFLOW_REF,
+        "job_name": "test",
+        "completed_at_utc": "2026-08-16T20:30:28Z",
+        "timeout_minutes": 35,
+        "timeout_annotation": (
+            "The job has exceeded the maximum execution time of 35m0s"
+        ),
+        "dispatch_count": 1,
+        "rerun_count": 0,
+    },
+    "rerun_allowed": False,
+    "replacement_required": True,
 }
 PROVIDER_PAYLOAD_KEYS = {
     "schema", "task_id", "operation_id", "control_revision",
@@ -210,7 +266,7 @@ def _strict(value: Any, expected: Any) -> bool:
     return value == expected
 
 
-def _utc(value: Any) -> datetime | None:
+def _utc(value: Any) -> Optional[datetime]:
     if type(value) is not str or RFC3339.fullmatch(value) is None:
         return None
     try:
@@ -691,7 +747,14 @@ def load_activation_root(
     root: Path = ROOT,
     authority_directory: Path = AUTHORITY_DIRECTORY,
 ) -> dict[str, Any]:
-    if not _ancestor(M0_ANCHOR_REVISION, expected_control_revision, root=root):
+    if (
+        not _ancestor(M0_ANCHOR_REVISION, A0_PREDECESSOR_REVISION, root=root)
+        or not _ancestor(
+            A0_PREDECESSOR_REVISION,
+            expected_control_revision,
+            root=root,
+        )
+    ):
         raise ValueError("manual authority control revision")
     material = _read_exact_directory(authority_directory, ACTIVATION_INVENTORY)
     value, keys = _validate_root(
@@ -721,7 +784,14 @@ def load_verified_projection(
     root: Path = ROOT,
     authority_directory: Path = AUTHORITY_DIRECTORY,
 ) -> tuple[VerifiedManualProjection, dict[str, Any]]:
-    if not _ancestor(M0_ANCHOR_REVISION, expected_control_revision, root=root):
+    if (
+        not _ancestor(M0_ANCHOR_REVISION, A0_PREDECESSOR_REVISION, root=root)
+        or not _ancestor(
+            A0_PREDECESSOR_REVISION,
+            expected_control_revision,
+            root=root,
+        )
+    ):
         raise ValueError("manual authority control revision")
     material = _read_exact_directory(authority_directory, CAPTURE_INVENTORY)
     root_value, keys = _validate_root(
@@ -785,7 +855,9 @@ def _run_row(value: Any, *, event: str, revision: str) -> bool:
         type(value) is dict
         and set(value) == {
             "run_id", "job_id", "event", "attempt", "status",
-            "conclusion", "head_sha", "completed_at_utc",
+            "conclusion", "head_sha", "created_at_utc",
+            "started_at_utc", "completed_at_utc", "dispatch_count",
+            "rerun_count",
             "workflow_name", "workflow_path", "job_name", "job_count",
             "failed_step_count", "step_count", "unit_test_count",
             "postgres_test_count", "readiness_check_count",
@@ -800,7 +872,16 @@ def _run_row(value: Any, *, event: str, revision: str) -> bool:
         and value["status"] == "completed"
         and value["conclusion"] == "success"
         and value["head_sha"] == revision
+        and _utc(value["created_at_utc"]) is not None
+        and _utc(value["started_at_utc"]) is not None
         and _utc(value["completed_at_utc"]) is not None
+        and _utc(value["created_at_utc"])
+        <= _utc(value["started_at_utc"])
+        < _utc(value["completed_at_utc"])
+        and type(value["dispatch_count"]) is int
+        and value["dispatch_count"] == 1
+        and type(value["rerun_count"]) is int
+        and value["rerun_count"] == 0
         and value["workflow_name"] == "CI"
         and value["workflow_path"] == ".github/workflows/ci.yml"
         and value["job_name"] == "test"
@@ -826,6 +907,137 @@ def _run_row(value: Any, *, event: str, revision: str) -> bool:
     )
 
 
+def validate_runtime_activation_receipt(
+    raw: bytes,
+    *,
+    root_value: dict[str, Any],
+    keys: dict[str, tuple[bytes, str]],
+    control_revision: str,
+    expected_authority_root_file_sha256: str,
+    expected_source_hashes: dict[str, str],
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    envelope = _parse(raw, "manual runtime activation receipt")
+    payload = _envelope(
+        envelope,
+        authority="ci",
+        key_row=root_value["ci"],
+        key=keys["ci"][0],
+        schema=ACTIVATION_RECEIPT_SCHEMA,
+    )
+    payload_keys = {
+        "schema", "task_id", "operation_id", "status",
+        "repository", "ref",
+        "a0_terminal", "control_revision", "authority_root_file_sha256",
+        "source_file_sha256", "control_ci", "activated_at_utc",
+        "readback_started", "cloud_call_count", "database_connection_count",
+    }
+    expected_sources = {
+        ref: _git_blob_sha256(control_revision, ref, root=root)
+        for ref in (
+            COLLECTOR_REF,
+            RAW_EXTRACTOR_REF,
+            VERIFIER_REF,
+            CI_WORKFLOW_REF,
+        )
+    }
+    installed_sources = {
+        COLLECTOR_REF: expected_source_hashes.get(
+            "collector_source_sha256"
+        ),
+        RAW_EXTRACTOR_REF: expected_source_hashes.get(
+            "extractor_source_sha256"
+        ),
+        VERIFIER_REF: expected_source_hashes.get(
+            "authority_source_sha256"
+        ),
+    }
+    if (
+        type(payload) is not dict
+        or set(payload) != payload_keys
+        or payload.get("schema") != ACTIVATION_RECEIPT_SCHEMA
+        or payload.get("task_id") != TASK_ID
+        or payload.get("operation_id") != OPERATION_ID
+        or payload.get("repository") != REPOSITORY
+        or payload.get("ref") != SOURCE_REF
+        or payload.get("status")
+        != "A1_ATTEMPT1_DUAL_CI_SUCCESS_ACTIVATED"
+        or not _strict(payload.get("a0_terminal"), EXPECTED_A0_TERMINAL)
+        or payload.get("control_revision") != control_revision
+        or payload.get("authority_root_file_sha256")
+        != expected_authority_root_file_sha256
+        or installed_sources
+        != {
+            ref: expected_sources[ref]
+            for ref in (
+                COLLECTOR_REF,
+                RAW_EXTRACTOR_REF,
+                VERIFIER_REF,
+            )
+        }
+        or not _strict(payload.get("source_file_sha256"), expected_sources)
+        or type(payload.get("control_ci")) is not dict
+        or set(payload["control_ci"]) != {"push", "pull_request"}
+        or not _run_row(
+            payload["control_ci"]["push"],
+            event="push",
+            revision=control_revision,
+        )
+        or not _run_row(
+            payload["control_ci"]["pull_request"],
+            event="pull_request",
+            revision=control_revision,
+        )
+        or payload.get("readback_started") is not False
+        or type(payload.get("cloud_call_count")) is not int
+        or payload["cloud_call_count"] != 0
+        or type(payload.get("database_connection_count")) is not int
+        or payload["database_connection_count"] != 0
+    ):
+        raise ValueError("manual runtime activation receipt identity")
+    push = payload["control_ci"]["push"]
+    pull = payload["control_ci"]["pull_request"]
+    a0_push = EXPECTED_A0_TERMINAL["push"]
+    a0_pull = EXPECTED_A0_TERMINAL["pull_request"]
+    activated = _utc(payload.get("activated_at_utc"))
+    if (
+        len({
+            a0_push["run_id"],
+            a0_pull["run_id"],
+            push["run_id"],
+            pull["run_id"],
+        }) != 4
+        or len({
+            a0_push["job_id"],
+            a0_pull["job_id"],
+            push["job_id"],
+            pull["job_id"],
+        }) != 4
+        or max(
+            _utc(a0_push["completed_at_utc"]),
+            _utc(a0_pull["completed_at_utc"]),
+        )
+        >= min(
+            _utc(push["created_at_utc"]),
+            _utc(pull["created_at_utc"]),
+        )
+        or activated is None
+        or activated
+        <= max(
+            _utc(push["completed_at_utc"]),
+            _utc(pull["completed_at_utc"]),
+        )
+    ):
+        raise ValueError("manual runtime activation receipt timeline")
+    return {
+        "activation_receipt_sha256": _sha(raw),
+        "activated_at_utc": payload["activated_at_utc"],
+        "control_revision": control_revision,
+        "source_file_sha256": expected_sources,
+        "control_ci": payload["control_ci"],
+    }
+
+
 def _validated_projection_exports(
     *,
     material: dict[str, bytes],
@@ -834,6 +1046,7 @@ def _validated_projection_exports(
     bundle: dict[str, Any],
     control_revision: str,
     expected_receipt_binding: dict[str, str],
+    root: Path,
 ) -> tuple[dict[str, Any], dict[str, Any], VerifiedManualProjection]:
     expected_binding_keys = {
         "receipt_file_sha256",
@@ -878,6 +1091,21 @@ def _validated_projection_exports(
     )
     provider_projection = projection.provider
     actiontrail_projection = projection.actiontrail
+    collector_source_sha256 = _git_blob_sha256(
+        control_revision,
+        COLLECTOR_REF,
+        root=root,
+    )
+    extractor_source_sha256 = _git_blob_sha256(
+        control_revision,
+        RAW_EXTRACTOR_REF,
+        root=root,
+    )
+    authority_source_sha256 = _git_blob_sha256(
+        control_revision,
+        VERIFIER_REF,
+        root=root,
+    )
     actiontrail_events = {
         row.get("event_name"): row
         for row in actiontrail_projection.get("events", [])
@@ -949,6 +1177,22 @@ def _validated_projection_exports(
         != provider_projection.get("observed_at_utc")
         or provider.get("observed_at_utc")
         != actiontrail_projection.get("observed_at_utc")
+        or provider_projection.get("capture_transport")
+        != "OFFLINE_OFFICIAL_RESPONSE_IMPORT_V1"
+        or actiontrail_projection.get("capture_transport")
+        != provider_projection.get("capture_transport")
+        or provider_projection.get("collector_source_sha256")
+        != collector_source_sha256
+        or actiontrail_projection.get("collector_source_sha256")
+        != collector_source_sha256
+        or provider_projection.get("extractor_source_sha256")
+        != extractor_source_sha256
+        or actiontrail_projection.get("extractor_source_sha256")
+        != extractor_source_sha256
+        or provider_projection.get("authority_source_sha256")
+        != authority_source_sha256
+        or actiontrail_projection.get("authority_source_sha256")
+        != authority_source_sha256
         or provider.get("authority_root_file_sha256")
         != _sha(material[ROOT_FILE])
         or provider.get("provider_raw_file_sha256")
@@ -1072,7 +1316,8 @@ def validate_authority_bundle(
     expected_receipt_binding: dict[str, str],
     root: Path = ROOT,
     authority_directory: Path = AUTHORITY_DIRECTORY,
-) -> tuple[list[str], dict[str, Any] | None]:
+    runtime_directory: Path = RUNTIME_DIRECTORY,
+) -> tuple[list[str], Optional[dict[str, Any]]]:
     if (
         not AUTHORITY_IMPLEMENTED
         or expected_authority_root_file_sha256 != EXPECTED_AUTHORITY_ROOT_FILE_SHA256
@@ -1085,6 +1330,10 @@ def validate_authority_bundle(
             material[ROOT_FILE],
             expected_hash=expected_authority_root_file_sha256,
             root=root,
+        )
+        runtime_material = _read_exact_directory(
+            runtime_directory,
+            RUNTIME_INVENTORY,
         )
         bundle = _parse(material[BUNDLE_FILE], "manual authority bundle")
         confirmation_file = _parse(material[CONFIRMATION_FILE], "manual confirmation file")
@@ -1104,11 +1353,39 @@ def validate_authority_bundle(
             or bundle["operation_id"] != OPERATION_ID
             or bundle["status"] != "POST_ACTION_RECONCILIATION_TERMINAL_AUTHORITY"
             or any(HEX40.fullmatch(value or "") is None for value in (control_revision, evidence_revision, terminal_revision))
-            or not _ancestor(M0_ANCHOR_REVISION, control_revision, root=root)
+            or not _ancestor(
+                M0_ANCHOR_REVISION,
+                A0_PREDECESSOR_REVISION,
+                root=root,
+            )
+            or not _ancestor(
+                A0_PREDECESSOR_REVISION,
+                control_revision,
+                root=root,
+            )
             or not _ancestor(control_revision, evidence_revision, root=root)
             or not _ancestor(evidence_revision, terminal_revision, root=root)
         ):
             raise ValueError("manual authority bundle identity")
+        activation = validate_runtime_activation_receipt(
+            runtime_material[ACTIVATION_RECEIPT_FILE],
+            root_value=root_value,
+            keys=keys,
+            control_revision=control_revision,
+            expected_authority_root_file_sha256=_sha(material[ROOT_FILE]),
+            expected_source_hashes={
+                "collector_source_sha256": _sha(
+                    runtime_material[Path(COLLECTOR_REF).name]
+                ),
+                "extractor_source_sha256": _sha(
+                    runtime_material[Path(RAW_EXTRACTOR_REF).name]
+                ),
+                "authority_source_sha256": _sha(
+                    runtime_material[Path(VERIFIER_REF).name]
+                ),
+            },
+            root=root,
+        )
         if canonical_bytes(confirmation_file) != canonical_bytes(bundle["confirmation"]):
             raise ValueError("manual confirmation envelope mismatch")
         provider, confirmation, projection = _validated_projection_exports(
@@ -1118,6 +1395,7 @@ def validate_authority_bundle(
             bundle=bundle,
             control_revision=control_revision,
             expected_receipt_binding=expected_receipt_binding,
+            root=root,
         )
         ci = _envelope(
             bundle["ci"], authority="ci",
@@ -1180,23 +1458,41 @@ def validate_authority_bundle(
         )
         if not all(_run_row(row, event=event, revision=revision) for row, event, revision in run_rows):
             raise ValueError("manual CI run identity")
+        if not _strict(
+            activation["control_ci"],
+            {
+                "push": ci["control_push"],
+                "pull_request": ci["control_pull_request"],
+            },
+        ):
+            raise ValueError("manual runtime activation CI binding")
         if len({row["run_id"] for row, _event, _revision in run_rows}) != 6 or len({row["job_id"] for row, _event, _revision in run_rows}) != 6:
             raise ValueError("manual CI run reuse")
+        all_ci_rows = (
+            EXPECTED_A0_TERMINAL["push"],
+            EXPECTED_A0_TERMINAL["pull_request"],
+            *(row for row, _event, _revision in run_rows),
+        )
+        if (
+            len({row["run_id"] for row in all_ci_rows}) != 8
+            or len({row["job_id"] for row in all_ci_rows}) != 8
+        ):
+            raise ValueError("manual historical CI run reuse")
         control_completed = max(
             _utc(ci["control_push"]["completed_at_utc"]),
             _utc(ci["control_pull_request"]["completed_at_utc"]),
         )
-        evidence_first_completed = min(
-            _utc(ci["evidence_push"]["completed_at_utc"]),
-            _utc(ci["evidence_pull_request"]["completed_at_utc"]),
+        evidence_first_started = min(
+            _utc(ci["evidence_push"]["started_at_utc"]),
+            _utc(ci["evidence_pull_request"]["started_at_utc"]),
         )
         evidence_completed = max(
             _utc(ci["evidence_push"]["completed_at_utc"]),
             _utc(ci["evidence_pull_request"]["completed_at_utc"]),
         )
-        terminal_first_completed = min(
-            _utc(ci["terminal_push"]["completed_at_utc"]),
-            _utc(ci["terminal_pull_request"]["completed_at_utc"]),
+        terminal_first_started = min(
+            _utc(ci["terminal_push"]["started_at_utc"]),
+            _utc(ci["terminal_pull_request"]["started_at_utc"]),
         )
         terminal_completed = max(
             _utc(ci["terminal_push"]["completed_at_utc"]),
@@ -1208,15 +1504,25 @@ def validate_authority_bundle(
         )
         raw_observed = _utc(provider_projection["observed_at_utc"])
         if not (
-            control_completed < first_raw_started <= raw_observed
-            < evidence_first_completed
-            and evidence_completed < terminal_first_completed
+            control_completed
+            < _utc(activation["activated_at_utc"])
+            < first_raw_started
+            <= raw_observed
+            < evidence_first_started
+            and evidence_completed < terminal_first_started
             and terminal_completed
             < _utc(confirmation["confirmed_at_utc"])
             <= _utc(provider["signed_at_utc"])
             < _utc(ci["terminal_accepted_at_utc"])
         ):
             raise ValueError("manual authority timeline")
+        if (
+            provider_projection.get("activation_receipt_sha256")
+            != activation["activation_receipt_sha256"]
+            or actiontrail_projection.get("activation_receipt_sha256")
+            != activation["activation_receipt_sha256"]
+        ):
+            raise ValueError("manual runtime activation binding")
     except OSError:
         return ["manual cost-stop authority material is not installed"], None
     except (KeyError, TypeError, ValueError, subprocess.SubprocessError) as exc:
@@ -1224,6 +1530,9 @@ def validate_authority_bundle(
     return [], {
         "authority_root_file_sha256": _sha(material[ROOT_FILE]),
         "authority_bundle_file_sha256": _sha(material[BUNDLE_FILE]),
+        "activation_receipt_sha256": activation[
+            "activation_receipt_sha256"
+        ],
         "provider_raw_file_sha256": _sha(material[PROVIDER_RAW_FILE]),
         "actiontrail_raw_file_sha256": _sha(material[ACTIONTRAIL_RAW_FILE]),
         "provider_projection_sha256": _semantic(provider_projection),
@@ -1288,11 +1597,14 @@ def validate_authority_bundle(
 
 
 __all__ = [
-    "ACTIONTRAIL_RAW_PATH", "ACTIVATION_INVENTORY", "AUTHORITY_BUNDLE_PATH",
+    "A0_PREDECESSOR_REVISION", "ACTIONTRAIL_RAW_PATH",
+    "ACTIVATION_INVENTORY", "AUTHORITY_BUNDLE_PATH",
     "AUTHORITY_DIRECTORY", "AUTHORITY_IMPLEMENTED", "AUTHORITY_ROOT_PATH",
-    "BUNDLE_SCHEMA", "CAPTURE_INVENTORY", "CONFIRMATION_ENVELOPE_PATH",
+    "BUNDLE_SCHEMA", "CAPTURE_INVENTORY", "COLLECTOR_REF",
+    "CONFIRMATION_ENVELOPE_PATH",
     "EXPECTED_AUTHORITY_ROOT_FILE_SHA256", "FINAL_INVENTORY", "OPERATION_ID",
-    "PROVIDER_RAW_PATH", "ROOT_SCHEMA", "ROOT_UID", "TASK_ID", "VERIFIER_REF",
+    "PROVIDER_RAW_PATH", "REQUIRED_CONTROL_SOURCE_REFS", "ROOT_SCHEMA",
+    "ROOT_UID", "TASK_ID", "VERIFIER_REF",
     "git_blob_absent", "git_blob_bytes", "load_activation_root",
     "load_verified_projection", "revision_is_strict_ancestor",
     "validate_authority_bundle",

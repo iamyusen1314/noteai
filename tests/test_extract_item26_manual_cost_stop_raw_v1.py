@@ -100,6 +100,11 @@ def provider_capture():
         "m0_anchor_revision": extractor.M0_ANCHOR_REVISION,
         "control_revision": CONTROL_REVISION,
         "observed_at_utc": "2026-08-17T00:00:10.475Z",
+        "capture_transport": extractor.EXPECTED_CAPTURE_TRANSPORT,
+        "collector_source_sha256": "a" * 64,
+        "extractor_source_sha256": "b" * 64,
+        "authority_source_sha256": "c" * 64,
+        "activation_receipt_sha256": "d" * 64,
         "records": [
             record(
                 1,
@@ -217,6 +222,11 @@ def actiontrail_capture():
         "m0_anchor_revision": extractor.M0_ANCHOR_REVISION,
         "control_revision": CONTROL_REVISION,
         "observed_at_utc": "2026-08-17T00:00:10.475Z",
+        "capture_transport": extractor.EXPECTED_CAPTURE_TRANSPORT,
+        "collector_source_sha256": "a" * 64,
+        "extractor_source_sha256": "b" * 64,
+        "authority_source_sha256": "c" * 64,
+        "activation_receipt_sha256": "d" * 64,
         "records": [
             record(
                 1,
@@ -478,6 +488,272 @@ class ManualCostStopRawExtractorTests(unittest.TestCase):
                 expected_control_revision=CONTROL_REVISION,
             )
 
+    def test_non_finite_float_overflow_is_rejected_at_json_boundaries(self):
+        for literal in (b"1e999", b"-1e999"):
+            with self.subTest(boundary="capture", literal=literal):
+                value = actiontrail_capture()
+                value["overflowProbe"] = 1
+                raw = extractor.canonical_bytes(value).replace(
+                    b'"overflowProbe":1',
+                    b'"overflowProbe":' + literal,
+                )
+                with self.assertRaisesRegex(
+                    extractor.ExtractionError,
+                    "actiontrail_capture_number",
+                ):
+                    extractor.project_actiontrail_readback(
+                        raw,
+                        expected_control_revision=CONTROL_REVISION,
+                    )
+
+            with self.subTest(boundary="response", literal=literal):
+                value = actiontrail_capture()
+                response = extractor.decode_canonical_json(
+                    value["records"][0]["response_json_base64"],
+                    "fixture",
+                )
+                response["Events"][0]["userIdentity"] = {"weight": 1}
+                response_raw = extractor.canonical_bytes(response).replace(
+                    b'"weight":1',
+                    b'"weight":' + literal,
+                )
+                value["records"][0]["response_json_base64"] = (
+                    base64.b64encode(response_raw).decode("ascii")
+                )
+                with self.assertRaisesRegex(
+                    extractor.ExtractionError,
+                    "response_number",
+                ):
+                    extractor.project_actiontrail_readback(
+                        extractor.canonical_bytes(value),
+                        expected_control_revision=CONTROL_REVISION,
+                    )
+
+            with self.subTest(boundary="string_identity", literal=literal):
+                value = actiontrail_capture()
+                response = extractor.decode_canonical_json(
+                    value["records"][0]["response_json_base64"],
+                    "fixture",
+                )
+                response["Events"][0]["userIdentity"] = (
+                    '{"weight":' + literal.decode("ascii") + "}"
+                )
+                value["records"][0]["response_json_base64"] = encoded(
+                    response
+                )
+                with mock.patch.object(
+                    extractor,
+                    "EXPECTED_OLD_CLONE_SHA256",
+                    extractor.value_sha256(CLONE_ID),
+                ), self.assertRaisesRegex(
+                    extractor.ExtractionError,
+                    "actiontrail_user_identity_number",
+                ):
+                    extractor.project_actiontrail_readback(
+                        extractor.canonical_bytes(value),
+                        expected_control_revision=CONTROL_REVISION,
+                    )
+
+        deep_value = (
+            b"[" * (extractor.MAX_JSON_NESTING_DEPTH + 1)
+            + b"0"
+            + b"]" * (extractor.MAX_JSON_NESTING_DEPTH + 1)
+        )
+        value = actiontrail_capture()
+        value["overflowProbe"] = 0
+        raw = extractor.canonical_bytes(value).replace(
+            b'"overflowProbe":0',
+            b'"overflowProbe":' + deep_value,
+        )
+        with self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "actiontrail_capture_depth",
+        ):
+            extractor.project_actiontrail_readback(
+                raw,
+                expected_control_revision=CONTROL_REVISION,
+            )
+
+        value = actiontrail_capture()
+        response = extractor.decode_canonical_json(
+            value["records"][0]["response_json_base64"],
+            "fixture",
+        )
+        response["ignoredDepthProbe"] = 0
+        response_raw = extractor.canonical_bytes(response).replace(
+            b'"ignoredDepthProbe":0',
+            b'"ignoredDepthProbe":' + deep_value,
+        )
+        value["records"][0]["response_json_base64"] = (
+            base64.b64encode(response_raw).decode("ascii")
+        )
+        with self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "response_depth",
+        ):
+            extractor.project_actiontrail_readback(
+                extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+
+        value = actiontrail_capture()
+        response = extractor.decode_canonical_json(
+            value["records"][0]["response_json_base64"],
+            "fixture",
+        )
+        response["Events"][0]["userIdentity"] = deep_value.decode("ascii")
+        value["records"][0]["response_json_base64"] = encoded(response)
+        with mock.patch.object(
+            extractor,
+            "EXPECTED_OLD_CLONE_SHA256",
+            extractor.value_sha256(CLONE_ID),
+        ), self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "actiontrail_user_identity_depth",
+        ):
+            extractor.project_actiontrail_readback(
+                extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+
+        oversized_integer = "9" * 5000
+        value = actiontrail_capture()
+        response = extractor.decode_canonical_json(
+            value["records"][0]["response_json_base64"],
+            "fixture",
+        )
+        response["Events"][0]["userIdentity"] = (
+            '{"principal":' + oversized_integer + "}"
+        )
+        value["records"][0]["response_json_base64"] = encoded(response)
+        with mock.patch.object(
+            extractor,
+            "EXPECTED_OLD_CLONE_SHA256",
+            extractor.value_sha256(CLONE_ID),
+        ), self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "actiontrail_user_identity_number",
+        ):
+            extractor.project_actiontrail_readback(
+                extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+
+        value = actiontrail_capture()
+        response = extractor.decode_canonical_json(
+            value["records"][0]["response_json_base64"],
+            "fixture",
+        )
+        response["Events"][0]["requestParameterJson"] = (
+            '{"principal":' + oversized_integer + "}"
+        )
+        value["records"][0]["response_json_base64"] = encoded(response)
+        with mock.patch.object(
+            extractor,
+            "EXPECTED_OLD_CLONE_SHA256",
+            extractor.value_sha256(CLONE_ID),
+        ), self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "actiontrail_request_parameter_number",
+        ):
+            extractor.project_actiontrail_readback(
+                extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+
+        for field in ("userIdentity", "requestParameterJson"):
+            with self.subTest(boundary="nested_unicode", field=field):
+                value = actiontrail_capture()
+                response = extractor.decode_canonical_json(
+                    value["records"][0]["response_json_base64"],
+                    "fixture",
+                )
+                response["Events"][0][field] = "\ud800"
+                value["records"][0]["response_json_base64"] = encoded(
+                    response
+                )
+                expected_error = (
+                    "actiontrail_user_identity"
+                    if field == "userIdentity"
+                    else "actiontrail_request_parameter_json"
+                )
+                with mock.patch.object(
+                    extractor,
+                    "EXPECTED_OLD_CLONE_SHA256",
+                    extractor.value_sha256(CLONE_ID),
+                ), self.assertRaisesRegex(
+                    extractor.ExtractionError,
+                    expected_error,
+                ):
+                    extractor.project_actiontrail_readback(
+                        extractor.canonical_bytes(value),
+                        expected_control_revision=CONTROL_REVISION,
+                    )
+
+        value = provider_capture()
+        request = extractor.decode_canonical_json(
+            value["records"][0]["request_json_base64"],
+            "fixture",
+        )
+        request["DBInstanceId"] = "\ud800"
+        value["records"][0]["request_json_base64"] = encoded(request)
+        with self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "identity_value",
+        ):
+            extractor.project_provider_readback(
+                extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+
+        billing_mutations = (
+            ("ServicePeriod", "9" * 5000),
+            ("PretaxGrossAmount", "1e999999999"),
+        )
+        for field, replacement in billing_mutations:
+            with self.subTest(boundary="billing", field=field):
+                value = provider_capture()
+                response = extractor.decode_canonical_json(
+                    value["records"][2]["response_json_base64"],
+                    "fixture",
+                )
+                response["Data"]["Items"]["Item"][0][field] = replacement
+                value["records"][2]["response_json_base64"] = encoded(
+                    response
+                )
+                self.patches(response)
+                with self.assertRaisesRegex(
+                    extractor.ExtractionError,
+                    "billing_snapshot",
+                ):
+                    extractor.project_provider_readback(
+                        extractor.canonical_bytes(value),
+                        expected_control_revision=CONTROL_REVISION,
+                    )
+
+        value = provider_capture()
+        request = extractor.decode_canonical_json(
+            value["records"][2]["request_json_base64"],
+            "fixture",
+        )
+        response = extractor.decode_canonical_json(
+            value["records"][2]["response_json_base64"],
+            "fixture",
+        )
+        response_raw = extractor.canonical_bytes(response).replace(
+            b'"PretaxGrossAmount":"198.462"',
+            b'"PretaxGrossAmount":198.46199999999999',
+        )
+        _raw, decoded_response = extractor._decode_json_body(
+            base64.b64encode(response_raw).decode("ascii"),
+            "response",
+        )
+        with self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "billing_snapshot",
+        ):
+            extractor._billing_snapshot(request, decoded_response)
+
     def test_next_token_gap_is_rejected(self):
         value = actiontrail_capture()
         request = extractor.decode_canonical_json(
@@ -494,6 +770,67 @@ class ManualCostStopRawExtractorTests(unittest.TestCase):
         ):
             extractor.project_actiontrail_readback(
                 extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+
+    def test_lookup_window_max_results_and_attribute_order_are_exact(self):
+        mutations = (
+            ("StartTime", "2026-08-16T14:37:59Z"),
+            ("EndTime", "2026-08-16T14:46:01Z"),
+            ("MaxResults", "49"),
+        )
+        for key, replacement in mutations:
+            with self.subTest(key=key):
+                value = actiontrail_capture()
+                request = extractor.decode_canonical_json(
+                    value["records"][0]["request_json_base64"], "fixture"
+                )
+                request[key] = replacement
+                value["records"][0]["request_json_base64"] = encoded(
+                    request
+                )
+                with mock.patch.object(
+                    extractor,
+                    "EXPECTED_OLD_CLONE_SHA256",
+                    extractor.value_sha256(CLONE_ID),
+                ), self.assertRaises(extractor.ExtractionError):
+                    extractor.project_actiontrail_readback(
+                        extractor.canonical_bytes(value),
+                        expected_control_revision=CONTROL_REVISION,
+                    )
+        value = actiontrail_capture()
+        request = extractor.decode_canonical_json(
+            value["records"][0]["request_json_base64"], "fixture"
+        )
+        request["LookupAttribute"].reverse()
+        value["records"][0]["request_json_base64"] = encoded(request)
+        with mock.patch.object(
+            extractor,
+            "EXPECTED_OLD_CLONE_SHA256",
+            extractor.value_sha256(CLONE_ID),
+        ), self.assertRaisesRegex(
+            extractor.ExtractionError, "actiontrail_lookup_attributes"
+        ):
+            extractor.project_actiontrail_readback(
+                extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+
+    def test_capture_source_bindings_must_match_across_domains(self):
+        provider = provider_capture()
+        actiontrail = actiontrail_capture()
+        actiontrail["collector_source_sha256"] = "c" * 64
+        billing_response = extractor.decode_canonical_json(
+            provider["records"][2]["response_json_base64"], "fixture"
+        )
+        self.patches(billing_response)
+        with self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "projection_capture_binding_mismatch",
+        ):
+            extractor.extract_verified_projection(
+                extractor.canonical_bytes(provider),
+                extractor.canonical_bytes(actiontrail),
                 expected_control_revision=CONTROL_REVISION,
             )
 
@@ -531,6 +868,27 @@ class ManualCostStopRawExtractorTests(unittest.TestCase):
             extractor.value_sha256(CLONE_ID),
         ), self.assertRaisesRegex(
             extractor.ExtractionError, "actiontrail_event_count"
+        ):
+            extractor.project_actiontrail_readback(
+                extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+
+    def test_lookup_page_cannot_exceed_requested_event_limit(self):
+        value = actiontrail_capture()
+        response = extractor.decode_canonical_json(
+            value["records"][0]["response_json_base64"],
+            "fixture",
+        )
+        response["Events"] = [response["Events"][0]] * 51
+        value["records"][0]["response_json_base64"] = encoded(response)
+        with mock.patch.object(
+            extractor,
+            "EXPECTED_OLD_CLONE_SHA256",
+            extractor.value_sha256(CLONE_ID),
+        ), self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "actiontrail_response",
         ):
             extractor.project_actiontrail_readback(
                 extractor.canonical_bytes(value),

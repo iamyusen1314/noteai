@@ -32,12 +32,13 @@ Last updated: 2026-08-17
   record must not authorize a replay.
 - 下一验证: M0 revision `85bf60f` is accepted with attempt-one push/PR CI both
   green. Preserve the released clone and both consumed cloud mutation
-  identities as terminal/no-replay. The current A0 source candidate binds a
-  locally validated Secret-free three-key root candidate and a fail-closed
-  read-only extractor/authority chain, but the root is not installed and no
-  fresh provider capture has started. Checkpoint A0, require its own new
-  attempt-one dual-green CI, then complete the exact root-only install before
-  any ActionTrail/Describe readback. A future Item 26 success successor must be
+  identities as terminal/no-replay. A0 revision `34bfcf0` has one successful
+  push run and one terminal PR cancellation at the exact 35-minute limit; the
+  PR must not be rerun and A0 provides no activation clearance. Checkpoint the
+  append-only A1 offline collector with the exact 45-minute CI contract, then
+  require its own new attempt-one dual-green pair before creating a signed
+  runtime activation receipt or completing the root-only install. No fresh
+  provider capture has started. A future Item 26 success successor must be
   fully disjoint, carry a new explicit fee authorization and first provide a
   Secret-free CI-replayable predecessor capsule; do not start a builder,
   connect to a database or dispatch any historical command.
@@ -85,13 +86,26 @@ Last updated: 2026-08-17
   green. M0 appends the two failed CI checkpoints and two
   consumed clone mutations to immutable no-replay registry v1, producing an
   exact 29-entry v2 registry while preserving v1 unchanged. It also introduces
-  a domain-separated manual post-action cost-stop predecessor. The current A0
-  source candidate binds the non-empty Secret-free root-candidate hash
+  a domain-separated manual post-action cost-stop predecessor. A0 binds the
+  non-empty Secret-free root-candidate hash
   `f0f7cfce…14f3c`, strict provider and ActionTrail projections, an acyclic
   M1/M2 candidate-artifact chain and provider/user-confirmation/CI terminal
-  verification. It still cannot authorize a cloud action or add readiness
-  credit: the root-owned inventory, live raw capture, final envelopes and Git
-  artifacts are absent. Historical abort-v1
+  verification. Its push CI succeeded but its PR CI was terminally cancelled
+  by the 35-minute limit, so A0 is no-replay and cannot activate capture. A1
+  adds a network-free offline collector and a CI-signed runtime receipt that
+  must freeze A0's exact terminal result plus a new A1 attempt-one dual-green
+  pair and installed source Git blobs before the first journal write. Its JSON
+  boundary rejects non-finite constants and finite-grammar exponent overflow;
+  nested parser-limit integer encodings and structures deeper than 64 levels
+  are also converted to fixed extraction failures, as are invalid Unicode
+  scalar encodings in nested JSON or provider identity fields. Billing gross
+  must remain a bounded provider decimal string, so a binary float cannot round
+  a below-baseline value upward. An invalid official export is reduced to a
+  durable UNKNOWN marker and cannot remain pending through a raw parser
+  exception. Neither revision can authorize a cloud action or add readiness
+  credit: the
+  root-owned inventory, live raw capture, final envelopes and Git artifacts are
+  absent. Historical abort-v1
   remains frozen evidence and is explicitly superseded as the future success
   predecessor; the success verifier loads only the future hash/Git-blob-locked
   manual predecessor in an isolated subprocess. Linux anchors that subprocess
@@ -119,14 +133,19 @@ Last updated: 2026-08-17
   user-confirmation authority. The provider authority may cross-bind that
   confirmation but cannot issue it. The three current SPKIs prove mathematical
   role separation only, not independent organizational custody. Native
-  ActionTrail shape compatibility remains unproven until the first A0-gated
-  readback and must fail closed if direct request parameters are absent. A
+  ActionTrail shape compatibility remains unproven until the first A1 dual-
+  green/runtime-receipt-gated readback and must fail closed if direct request
+  parameters are absent. A
   Mac-only root-owned verifier also cannot be replayed by GitHub-hosted CI; S0
   therefore requires a Secret-free portable terminal capsule before Item 26
-  can be credited.
-- 下一验证: Normally checkpoint and push the A0 source candidate without any
-  cloud call, then require A0 attempt-one dual-green CI. Only afterward install
-  the exact root-owned inventory and signing custody, perform fresh read-only
+  can be credited. A1 malformed/sensitive input becomes durable UNKNOWN and
+  cannot be replayed. A non-identical partial local journal write remains a
+  fail-closed `LOCAL_WRITE_RECOVERY_REQUIRED` boundary rather than automatic
+  recovery.
+- 下一验证: Normally checkpoint and push the append-only A1 source candidate
+  without any cloud call, then require a new A1 attempt-one dual-green CI pair.
+  Only afterward sign the exact runtime activation receipt, install the exact
+  root-owned inventory and signing custody, perform fresh read-only
   ActionTrail/Describe/billing capture, and build M1/M2 candidate artifacts.
   Only a later portable terminal predecessor may become the dependency of a
   fully disjoint paid successor under a new fee

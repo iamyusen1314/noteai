@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-16 (Asia/Shanghai)
+> Updated: 2026-08-17 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -11040,3 +11040,82 @@ Colima, database, builder, restore and cloud actions remain frozen.
   historical scripts remain unexecuted, undeleted and unstaged. A0 completion
   is not a stopping signal; only the interactive privilege boundary may require
   user action.
+
+### Item 26 A0 terminal CI and append-only A1 offline collector candidate (2026-08-17)
+
+- A0 is exact pushed revision
+  `34bfcf029d7ba641728fc18777b11943cb02fe1d`. Push run
+  `31969004410`/job `95218382487` completed attempt 1 with `success`. Pull-
+  request run `31969006941`/job `95218387957` completed attempt 1 as
+  `cancelled` after the repository's exact 35-minute job limit; the native
+  annotation is `The job has exceeded the maximum execution time of 35m0s`.
+  Before cancellation, the PR run completed 2,360 main unit tests with 34
+  skips, the additional `10+12+22+21` batches, Quality and PostgreSQL `6/6`;
+  production readiness printed `PASS` with `138/138`, but that step is still
+  terminal `cancelled` and Compose was skipped. A0 therefore does not have
+  dual-green CI. The PR run is terminal/no-replay and must not be rerun.
+- No root-owned material was installed and no ActionTrail, RDS, billing,
+  database or builder operation was performed after A0. A0 remains a valid
+  source predecessor but not an activation clearance. Its exact terminal
+  outcome is now frozen inside the A1 runtime-activation contract, including
+  both native dispatches, attempt/replay counts, workflow/job identity and the
+  timeout annotation. The immutable 29-entry cloud/mutation no-replay registry
+  remains unchanged; the A0 CI retirement is a separate signed control-flow
+  overlay rather than a fabricated cloud execution identity.
+- A1 is an append-only successor. It raises the ordinary CI job ceiling from
+  exactly 35 to exactly 45 minutes and updates the repository readiness
+  contract to reject any other value. It adds a root-only offline collector;
+  the collector has no network client, cloud SDK or subprocess transport and
+  can only freeze an exact logical read-only request, import the unmodified JSON
+  body supplied from an already authenticated official transport, and locally
+  validate/promote the resulting provider and ActionTrail envelopes.
+- Before the first journal write, the collector requires an exact CI-key-signed
+  runtime activation receipt. That receipt binds the A0 timeout/no-rerun fact,
+  a new A1 attempt-one push/PR dual-green pair, repository/ref, the canonical
+  root hash, the A1 Git blobs for collector/extractor/authority/workflow and the
+  installed root-owned source bytes. A0, A1, M1 and M2 run/job identities must
+  be globally distinct and their created/started/completed intervals strictly
+  ordered. Terminal authority reopens the same runtime receipt, revalidates its
+  signature and exact A1 CI rows, and requires its digest in both raw
+  projections. A future-dated activation cannot create the first journal row.
+- Collector sequencing is fixed to complete cost-stop ActionTrail pages,
+  complete clone-create ActionTrail pages, exact old-clone Describe, exact
+  source Describe and historical QueryInstanceBill. Request allowlists,
+  NextToken uniqueness, region commitment, response request IDs, exact event
+  sets and aggregate capture limits fail closed. Timeout, absent body,
+  oversize body, official-export failure or sensitive Browser/HAR/header/cookie
+  wrappers become a durable fixed-enum `UNKNOWN_INFLIGHT`; malformed JSON bytes
+  and non-finite numeric values, including finite-grammar exponent overflow,
+  are discarded rather than persisted. Parser-limit integer encodings inside
+  nested provider strings and JSON nesting beyond the fixed 64-level limit are
+  converted to the same fixed failure class; invalid Unicode scalar encodings
+  in nested JSON or provider identity strings are handled identically rather
+  than escaping as implementation exceptions. Billing gross is accepted only
+  as a bounded provider decimal string, never through binary-float rounding.
+  Those failures leave a durable marker instead of a pending request or
+  traceback. UNKNOWN never permits a repeated cloud request. CLI errors and TTY
+  input use fixed Secret-free status values.
+- Event `.writing` filenames now bind the original timestamp, so begin, finish
+  and fixed-enum UNKNOWN events can resume even when a crash truncated the
+  file inside the timestamp value or after fsync but before publication. A
+  published hard-link also completes idempotently. Any mismatched or
+  unidentifiable partial remains `LOCAL_WRITE_RECOVERY_REQUIRED`; local recovery
+  never authorizes another provider query. Native Alibaba
+  ActionTrail response compatibility also remains unproven until the first
+  A1-gated official response and must become UNKNOWN on any shape mismatch.
+- Current local A1 verification is 100 focused tests in normal mode and the same
+  100 under optimized Python, 48 Item 26 future-success/predecessor tests and 67
+  shared readiness/Item 27–29 dependency tests, all passing. A production-style
+  `/usr/bin/python3 -E -S -B` import test proves the three-file runtime creates
+  no `__pycache__`. The internal gate remains `25/29` and public aggregate
+  remains `25/38`; a fresh production readiness run is `PASS` with `138/138`.
+  Item 26 is still `unverified` with `evidence: []`.
+- The next serial action is to finish Secret-free ledger reconciliation,
+  checkpoint and normally push A1, then observe exactly one new attempt-one
+  push and PR run without rerunning A0. Only A1 dual-green may be used to create
+  and sign the runtime activation receipt and perform the exact root-only
+  install. That installation still requires interactive administrator
+  privilege on this Mac and is the next permitted user stop. No cloud readback
+  begins before it. The five historical Item 26 scripts remain preserved,
+  unexecuted, undeleted and unstaged; no checkpoint or individual CI stage is a
+  stopping signal.

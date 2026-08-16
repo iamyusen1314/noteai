@@ -160,6 +160,23 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
         self.assertFalse(binding["readiness_credit_allowed"])
         self.assertTrue(binding["authority_keys_distinct"])
 
+    def test_activation_requires_exact_a0_predecessor(self):
+        directory, raw = self.make_directory()
+        digest = self.root_patches(raw)
+        with mock.patch.object(
+            authority,
+            "_ancestor",
+            side_effect=lambda earlier, later, root: (
+                earlier != authority.A0_PREDECESSOR_REVISION
+            ),
+        ), self.assertRaisesRegex(ValueError, "control revision"):
+            authority.load_activation_root(
+                expected_control_revision="2" * 40,
+                expected_authority_root_file_sha256=digest,
+                root=ROOT,
+                authority_directory=directory,
+            )
+
     def test_extra_file_breaks_exact_inventory(self):
         directory, raw = self.make_directory()
         digest = self.root_patches(raw)
@@ -236,7 +253,11 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
             "status": "completed",
             "conclusion": "success",
             "head_sha": revision,
+            "created_at_utc": "2026-08-17T00:59:58Z",
+            "started_at_utc": "2026-08-17T00:59:59Z",
             "completed_at_utc": "2026-08-17T01:00:00Z",
+            "dispatch_count": 1,
+            "rerun_count": 0,
             "workflow_name": "CI",
             "workflow_path": ".github/workflows/ci.yml",
             "job_name": "test",
@@ -256,6 +277,9 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
         )
         for field, bad_value in (
             ("attempt", True),
+            ("dispatch_count", True),
+            ("rerun_count", 1),
+            ("started_at_utc", "2026-08-17T01:00:01Z"),
             ("workflow_path", ".github/workflows/other.yml"),
             ("job_name", "other"),
             ("failed_step_count", 1),
@@ -273,7 +297,13 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
                 field,
             )
 
-    def validate_final_bundle_fixture(self, *, early_evidence=False):
+    def validate_final_bundle_fixture(
+        self,
+        *,
+        early_evidence=False,
+        source_drift_ref=None,
+        reuse_a0_evidence_run=False,
+    ):
         control_revision = raw_fixtures.CONTROL_REVISION
         evidence_revision = "3" * 40
         terminal_revision = "4" * 40
@@ -301,8 +331,120 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
         protection_marker_sha256 = raw_extractor.value_sha256(
             protection_marker
         )
+
+        def run_row(
+            run_id,
+            event,
+            revision,
+            started_at,
+            completed_at,
+        ):
+            return {
+                "run_id": run_id,
+                "job_id": run_id + 100,
+                "event": event,
+                "attempt": 1,
+                "status": "completed",
+                "conclusion": "success",
+                "head_sha": revision,
+                "created_at_utc": started_at,
+                "started_at_utc": started_at,
+                "completed_at_utc": completed_at,
+                "dispatch_count": 1,
+                "rerun_count": 0,
+                "workflow_name": "CI",
+                "workflow_path": ".github/workflows/ci.yml",
+                "job_name": "test",
+                "job_count": 1,
+                "failed_step_count": 0,
+                "step_count": 22,
+                "unit_test_count": 2331,
+                "postgres_test_count": 6,
+                "readiness_check_count": 138,
+                "quality_gate_pass_count": 7,
+                "quality_expected_fail_count": 1,
+                "error_annotation_count": 0,
+                "compose_config_success": True,
+            }
+
+        control_sources = {
+            ref: authority._sha(ref.encode("ascii"))
+            for ref in authority.REQUIRED_CONTROL_SOURCE_REFS
+        }
+        root_raw = authority.canonical_bytes(root_object())
+        root_sha256 = authority._sha(root_raw)
+        control_push = run_row(
+            1,
+            "push",
+            control_revision,
+            "2026-08-17T00:00:00Z",
+            "2026-08-17T00:00:01Z",
+        )
+        control_pull_request = run_row(
+            2,
+            "pull_request",
+            control_revision,
+            "2026-08-17T00:00:00.5Z",
+            "2026-08-17T00:00:01.5Z",
+        )
+        activation_payload = {
+            "schema": authority.ACTIVATION_RECEIPT_SCHEMA,
+            "task_id": authority.TASK_ID,
+            "operation_id": authority.OPERATION_ID,
+            "status": "A1_ATTEMPT1_DUAL_CI_SUCCESS_ACTIVATED",
+            "repository": authority.REPOSITORY,
+            "ref": authority.SOURCE_REF,
+            "a0_terminal": copy.deepcopy(authority.EXPECTED_A0_TERMINAL),
+            "control_revision": control_revision,
+            "authority_root_file_sha256": root_sha256,
+            "source_file_sha256": {
+                authority.COLLECTOR_REF: control_sources[
+                    authority.COLLECTOR_REF
+                ],
+                authority.RAW_EXTRACTOR_REF: control_sources[
+                    authority.RAW_EXTRACTOR_REF
+                ],
+                authority.VERIFIER_REF: control_sources[
+                    authority.VERIFIER_REF
+                ],
+                authority.CI_WORKFLOW_REF: control_sources[
+                    authority.CI_WORKFLOW_REF
+                ],
+            },
+            "control_ci": {
+                "push": control_push,
+                "pull_request": control_pull_request,
+            },
+            "activated_at_utc": "2026-08-17T00:00:02Z",
+            "readback_started": False,
+            "cloud_call_count": 0,
+            "database_connection_count": 0,
+        }
+        activation_envelope = {
+            "authority": "ci",
+            "issuer": root_object()["ci"]["issuer"],
+            "audience": root_object()["ci"]["audience"],
+            "payload": activation_payload,
+            "signature_base64": base64.b64encode(b"signature").decode(
+                "ascii"
+            ),
+        }
+        activation_raw = authority.canonical_bytes(activation_envelope)
         provider_value = raw_fixtures.provider_capture()
         actiontrail_value = raw_fixtures.actiontrail_capture()
+        for capture in (provider_value, actiontrail_value):
+            capture["collector_source_sha256"] = control_sources[
+                authority.COLLECTOR_REF
+            ]
+            capture["extractor_source_sha256"] = control_sources[
+                authority.RAW_EXTRACTOR_REF
+            ]
+            capture["authority_source_sha256"] = control_sources[
+                authority.VERIFIER_REF
+            ]
+            capture["activation_receipt_sha256"] = authority._sha(
+                activation_raw
+            )
         first_page = raw_extractor.decode_canonical_json(
             actiontrail_value["records"][0]["response_json_base64"],
             "fixture",
@@ -422,8 +564,6 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
                 "terminal_acceptance_sha256": "3" * 64,
                 "raw_closure_sha256": "4" * 64,
             }
-            root_raw = authority.canonical_bytes(root_object())
-            root_sha256 = authority._sha(root_raw)
             confirmation = {
                 "schema": authority.CONFIRMATION_SCHEMA,
                 "task_id": authority.TASK_ID,
@@ -541,35 +681,6 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
                     ),
                 }
 
-            def run_row(run_id, event, revision, completed_at):
-                return {
-                    "run_id": run_id,
-                    "job_id": run_id + 100,
-                    "event": event,
-                    "attempt": 1,
-                    "status": "completed",
-                    "conclusion": "success",
-                    "head_sha": revision,
-                    "completed_at_utc": completed_at,
-                    "workflow_name": "CI",
-                    "workflow_path": ".github/workflows/ci.yml",
-                    "job_name": "test",
-                    "job_count": 1,
-                    "failed_step_count": 0,
-                    "step_count": 22,
-                    "unit_test_count": 2331,
-                    "postgres_test_count": 6,
-                    "readiness_check_count": 138,
-                    "quality_gate_pass_count": 7,
-                    "quality_expected_fail_count": 1,
-                    "error_annotation_count": 0,
-                    "compose_config_success": True,
-                }
-
-            control_sources = {
-                ref: authority._sha(ref.encode("ascii"))
-                for ref in authority.REQUIRED_CONTROL_SOURCE_REFS
-            }
             evidence_pull_completed = (
                 "2026-08-17T00:00:09.475Z"
                 if early_evidence
@@ -599,41 +710,49 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
                 "evidence_file_sha256": "5" * 64,
                 "checkpoint_file_sha256": "6" * 64,
                 "control_sources": control_sources,
-                "control_push": run_row(
-                    1, "push", control_revision, "2026-08-17T00:00:01Z"
-                ),
-                "control_pull_request": run_row(
-                    2,
-                    "pull_request",
-                    control_revision,
-                    "2026-08-17T00:00:01.5Z",
-                ),
+                "control_push": control_push,
+                "control_pull_request": control_pull_request,
                 "evidence_push": run_row(
                     3,
                     "push",
                     evidence_revision,
+                    "2026-08-17T00:00:10.975Z",
                     "2026-08-17T00:00:11.475Z",
                 ),
                 "evidence_pull_request": run_row(
                     4,
                     "pull_request",
                     evidence_revision,
+                    (
+                        "2026-08-17T00:00:08.975Z"
+                        if early_evidence
+                        else "2026-08-17T00:00:11.975Z"
+                    ),
                     evidence_pull_completed,
                 ),
                 "terminal_push": run_row(
                     5,
                     "push",
                     terminal_revision,
+                    "2026-08-17T00:00:12.975Z",
                     "2026-08-17T00:00:13.475Z",
                 ),
                 "terminal_pull_request": run_row(
                     6,
                     "pull_request",
                     terminal_revision,
+                    "2026-08-17T00:00:13.975Z",
                     "2026-08-17T00:00:14.475Z",
                 ),
                 "terminal_accepted_at_utc": "2026-08-17T00:00:17.475Z",
             }
+            if reuse_a0_evidence_run:
+                ci["evidence_push"]["run_id"] = (
+                    authority.EXPECTED_A0_TERMINAL["push"]["run_id"]
+                )
+                ci["evidence_push"]["job_id"] = (
+                    authority.EXPECTED_A0_TERMINAL["push"]["job_id"]
+                )
             provider_envelope = envelope("provider", provider)
             confirmation_envelope = envelope("confirmation", confirmation)
             ci_envelope = envelope("ci", ci)
@@ -658,6 +777,18 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
                 ),
                 authority.BUNDLE_FILE: authority.canonical_bytes(bundle),
             }
+            runtime_material = {
+                Path(authority.COLLECTOR_REF).name: (
+                    authority.COLLECTOR_REF.encode("ascii")
+                ),
+                Path(authority.RAW_EXTRACTOR_REF).name: (
+                    authority.RAW_EXTRACTOR_REF.encode("ascii")
+                ),
+                Path(authority.VERIFIER_REF).name: (
+                    authority.VERIFIER_REF.encode("ascii")
+                ),
+                authority.ACTIVATION_RECEIPT_FILE: activation_raw,
+            }
             root_value = root_object()
             keys = {
                 "provider": (b"provider-key", "a" * 64),
@@ -666,7 +797,13 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
             }
             stack.enter_context(
                 mock.patch.object(
-                    authority, "_read_exact_directory", return_value=material
+                    authority,
+                    "_read_exact_directory",
+                    side_effect=lambda directory, _inventory: (
+                        runtime_material
+                        if directory == authority.RUNTIME_DIRECTORY
+                        else material
+                    ),
                 )
             )
             stack.enter_context(
@@ -688,9 +825,11 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
                 mock.patch.object(
                     authority,
                     "_git_blob_sha256",
-                    side_effect=lambda _revision, ref, root: control_sources[
-                        ref
-                    ],
+                    side_effect=lambda _revision, ref, root: (
+                        "f" * 64
+                        if ref == source_drift_ref
+                        else control_sources[ref]
+                    ),
                 )
             )
             return authority.validate_authority_bundle(
@@ -713,6 +852,26 @@ class ManualCostStopAuthorityTests(unittest.TestCase):
             early_evidence=True
         )
         self.assertTrue(any("timeline" in error for error in errors))
+        self.assertIsNone(binding)
+
+    def test_final_authority_rejects_collector_source_drift(self):
+        errors, binding = self.validate_final_bundle_fixture(
+            source_drift_ref=authority.COLLECTOR_REF,
+        )
+        self.assertTrue(
+            any(
+                "runtime activation" in error
+                or "projection binding" in error
+                for error in errors
+            )
+        )
+        self.assertIsNone(binding)
+
+    def test_final_authority_rejects_m1_reuse_of_a0_native_run(self):
+        errors, binding = self.validate_final_bundle_fixture(
+            reuse_a0_evidence_run=True,
+        )
+        self.assertTrue(any("historical CI run reuse" in row for row in errors))
         self.assertIsNone(binding)
 
     def test_production_root_hash_is_frozen_and_nonempty(self):

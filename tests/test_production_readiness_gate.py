@@ -1037,8 +1037,8 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 "            4c2df3b19b4f5493adba78eed89c3a015d76972d\n",
             ),
             "timeout-budget-drift": (
+                "    timeout-minutes: 45\n",
                 "    timeout-minutes: 35\n",
-                "    timeout-minutes: 25\n",
             ),
             "trailing-ambient-v13-invocation": (
                 "\n      - name: Quality gate\n",

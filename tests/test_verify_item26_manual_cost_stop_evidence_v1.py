@@ -146,6 +146,7 @@ def candidate():
             "shared_disk_retained": True,
         },
         "raw_closure": {
+            "activation_receipt_sha256": "8" * 64,
             "provider_raw_file_sha256": "4" * 64,
             "actiontrail_raw_file_sha256": "5" * 64,
             "provider_projection_sha256": "6" * 64,
@@ -272,6 +273,7 @@ class ManualCostStopEvidenceTests(unittest.TestCase):
             control_revision=control_revision,
             provider={
                 "observed_at_utc": value["observed_at_utc"],
+                "activation_receipt_sha256": "8" * 64,
                 "source": {
                     "tuple_sha256": verifier.EXPECTED_SOURCE_PRE_TUPLE_SHA256,
                     "status": "Running",
@@ -282,6 +284,7 @@ class ManualCostStopEvidenceTests(unittest.TestCase):
             },
             actiontrail={
                 "observed_at_utc": value["observed_at_utc"],
+                "activation_receipt_sha256": "8" * 64,
                 "events": events,
                 "clone_create": {
                     "provider_request_id_sha256": value["identity_ledger"][
@@ -463,6 +466,9 @@ class ManualCostStopEvidenceTests(unittest.TestCase):
             ],
             "authority_root_file_sha256": "8" * 64,
             "authority_bundle_file_sha256": "9" * 64,
+            "activation_receipt_sha256": receipt["raw_closure"][
+                "activation_receipt_sha256"
+            ],
             "provider_raw_file_sha256": receipt["raw_closure"][
                 "provider_raw_file_sha256"
             ],

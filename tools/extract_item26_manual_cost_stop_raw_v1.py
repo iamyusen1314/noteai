@@ -19,8 +19,9 @@ from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
+import math
 import re
-from typing import Any
+from typing import Any, Optional
 
 
 TASK_ID = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
@@ -47,7 +48,11 @@ MAX_BODY_BYTES = 8 * 1024 * 1024
 MAX_CAPTURE_BYTES = 24 * 1024 * 1024
 MAX_RECORDS = 64
 MAX_EVENTS = 256
+MAX_LOOKUP_PAGE_EVENTS = 50
+MAX_JSON_INTEGER_DIGITS = 128
+MAX_JSON_NESTING_DEPTH = 64
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
+HEX64 = re.compile(r"^[0-9a-f]{64}$")
 RFC3339 = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$"
 )
@@ -78,8 +83,17 @@ EXPECTED_PROTECTION_CLIENT_TOKEN_SHA256 = (
 )
 EXPECTED_HISTORICAL_CONFIRMATION_AT = "2026-08-16T14:39:11.475Z"
 EXPECTED_FINAL_ABSENCE_AT = "2026-08-16T14:44:50.237Z"
+EXPECTED_CAPTURE_TRANSPORT = "OFFLINE_OFFICIAL_RESPONSE_IMPORT_V1"
+COST_STOP_LOOKUP_START = "2026-08-16T14:38:00Z"
+COST_STOP_LOOKUP_END = "2026-08-16T14:46:00Z"
+CLONE_CREATE_LOOKUP_START = "2026-08-12T00:00:00Z"
+CLONE_CREATE_LOOKUP_END = "2026-08-13T00:00:00Z"
+LOOKUP_MAX_RESULTS = "50"
 EXPECTED_REGION_SHA256 = (
     "c30c2414d1124664f36b6f1972809876bb4ca83039b24684eafe3186fe1f8bba"
+)
+BILLING_DECIMAL_TEXT = re.compile(
+    r"^-?(?:0|[1-9][0-9]{0,63})(?:\.[0-9]{1,30})?$"
 )
 
 PROVIDER_REQUIRED_SLOTS = (
@@ -117,6 +131,53 @@ class ExtractionError(ValueError):
         self.code = code
 
 
+def _finite_json_float(raw: str, code: str) -> float:
+    value = float(raw)
+    if not math.isfinite(value):
+        raise ExtractionError(code)
+    return value
+
+
+def _bounded_json_int(raw: str, code: str) -> int:
+    digits = raw[1:] if raw.startswith("-") else raw
+    if not digits or len(digits) > MAX_JSON_INTEGER_DIGITS:
+        raise ExtractionError(code)
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ExtractionError(code) from exc
+
+
+def _bounded_json_depth(raw: bytes, code: str) -> None:
+    depth = 0
+    in_string = False
+    escaped = False
+    for item in raw:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif item == 0x5C:
+                escaped = True
+            elif item == 0x22:
+                in_string = False
+            continue
+        if item == 0x22:
+            in_string = True
+        elif item in {0x5B, 0x7B}:
+            depth += 1
+            if depth > MAX_JSON_NESTING_DEPTH:
+                raise ExtractionError(code)
+        elif item in {0x5D, 0x7D}:
+            depth -= 1
+
+
+def _nested_json_bytes(value: str, code: str) -> bytes:
+    try:
+        return value.encode("utf-8")
+    except UnicodeError as exc:
+        raise ExtractionError(code) from exc
+
+
 def canonical_bytes(value: Any) -> bytes:
     return (
         json.dumps(
@@ -137,7 +198,11 @@ def sha256(raw: bytes) -> str:
 def value_sha256(value: str) -> str:
     if type(value) is not str or not value:
         raise ExtractionError("identity_value")
-    return sha256(value.encode("utf-8"))
+    try:
+        raw = value.encode("utf-8")
+    except UnicodeError as exc:
+        raise ExtractionError("identity_value") from exc
+    return sha256(raw)
 
 
 def decimal_text(value: Decimal) -> str:
@@ -204,6 +269,7 @@ def consumed_mutation_identity_set_sha256(
 def _strict_json(raw: bytes, label: str) -> dict[str, Any]:
     if not 1 <= len(raw) <= MAX_CAPTURE_BYTES or b"\0" in raw:
         raise ExtractionError(label + "_shape")
+    _bounded_json_depth(raw, label + "_depth")
 
     def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -217,13 +283,19 @@ def _strict_json(raw: bytes, label: str) -> dict[str, Any]:
         value = json.loads(
             raw.decode("ascii"),
             object_pairs_hook=reject_duplicates,
+            parse_float=lambda item: _finite_json_float(
+                item, label + "_number"
+            ),
+            parse_int=lambda item: _bounded_json_int(
+                item, label + "_number"
+            ),
             parse_constant=lambda _value: (_ for _ in ()).throw(
                 ExtractionError(label + "_number")
             ),
         )
     except ExtractionError:
         raise
-    except (UnicodeError, json.JSONDecodeError, ValueError) as exc:
+    except (UnicodeError, json.JSONDecodeError, RecursionError, ValueError) as exc:
         raise ExtractionError(label + "_json") from exc
     if type(value) is not dict or canonical_bytes(value) != raw:
         raise ExtractionError(label + "_canonical")
@@ -249,6 +321,7 @@ def _decode_json_body(
         raise ExtractionError(label + "_base64") from exc
     if not 1 <= len(raw) <= MAX_BODY_BYTES or b"\0" in raw:
         raise ExtractionError(label + "_shape")
+    _bounded_json_depth(raw, label + "_depth")
 
     def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -262,13 +335,19 @@ def _decode_json_body(
         value = json.loads(
             raw.decode("utf-8"),
             object_pairs_hook=reject_duplicates,
+            parse_float=lambda item: _finite_json_float(
+                item, label + "_number"
+            ),
+            parse_int=lambda item: _bounded_json_int(
+                item, label + "_number"
+            ),
             parse_constant=lambda _value: (_ for _ in ()).throw(
                 ExtractionError(label + "_number")
             ),
         )
     except ExtractionError:
         raise
-    except (UnicodeError, json.JSONDecodeError, ValueError) as exc:
+    except (UnicodeError, json.JSONDecodeError, RecursionError, ValueError) as exc:
         raise ExtractionError(label + "_json") from exc
     if type(value) is not dict:
         raise ExtractionError(label + "_object")
@@ -296,6 +375,9 @@ def _capture_header(
     keys = {
         "schema", "task_id", "operation_id", "phase",
         "m0_anchor_revision", "control_revision", "observed_at_utc",
+        "capture_transport", "collector_source_sha256",
+        "extractor_source_sha256", "authority_source_sha256",
+        "activation_receipt_sha256",
         "records",
     }
     if type(value) is not dict or set(value) != keys:
@@ -309,6 +391,11 @@ def _capture_header(
         or value["control_revision"] != expected_control_revision
         or HEX40.fullmatch(expected_control_revision or "") is None
         or expected_control_revision in {M0_ANCHOR_REVISION, LEDGER_CONTEXT_REVISION}
+        or value["capture_transport"] != EXPECTED_CAPTURE_TRANSPORT
+        or HEX64.fullmatch(value["collector_source_sha256"] or "") is None
+        or HEX64.fullmatch(value["extractor_source_sha256"] or "") is None
+        or HEX64.fullmatch(value["authority_source_sha256"] or "") is None
+        or HEX64.fullmatch(value["activation_receipt_sha256"] or "") is None
         or type(value["records"]) is not list
         or not 1 <= len(value["records"]) <= MAX_RECORDS
     ):
@@ -492,6 +579,56 @@ def _billing_rows(
     return rows
 
 
+def _billing_snapshot(
+    request: dict[str, Any],
+    response: dict[str, Any],
+) -> tuple[Decimal, int]:
+    billing_rows = _billing_rows(request, response)
+    matches = [
+        row for row in billing_rows
+        if type(row.get("InstanceID")) is str
+        and value_sha256(row["InstanceID"]) == EXPECTED_OLD_CLONE_SHA256
+    ]
+    if len(matches) != 1:
+        raise ExtractionError("billing_identity")
+    billing = matches[0]
+    service_seconds = billing.get("ServicePeriod")
+    if type(service_seconds) is str:
+        if re.fullmatch(r"[0-9]{1,18}", service_seconds) is None:
+            raise ExtractionError("billing_snapshot")
+        try:
+            service_seconds = int(service_seconds)
+        except ValueError as exc:
+            raise ExtractionError("billing_snapshot") from exc
+    gross_value = billing.get("PretaxGrossAmount")
+    if type(gross_value) is not str:
+        raise ExtractionError("billing_snapshot")
+    gross_text = str(gross_value)
+    if (
+        billing.get("Currency") != "CNY"
+        or type(billing.get("SubscriptionType")) is not str
+        or billing["SubscriptionType"] != "PayAsYouGo"
+        or str(billing.get("ProductCode", "")).lower() != "rds"
+        or str(billing.get("PipCode", "")).lower() != "rds"
+        or billing.get("ServicePeriodUnit") not in {"Second", "Seconds", "秒"}
+        or BILLING_DECIMAL_TEXT.fullmatch(gross_text) is None
+        or service_seconds is None
+    ):
+        raise ExtractionError("billing_snapshot")
+    try:
+        gross = Decimal(gross_text)
+    except (InvalidOperation, ValueError) as exc:
+        raise ExtractionError("billing_snapshot") from exc
+    if (
+        not gross.is_finite()
+        or gross < Decimal("198.462")
+        or type(service_seconds) is not int
+        or service_seconds < 345600
+    ):
+        raise ExtractionError("billing_snapshot")
+    return gross, service_seconds
+
+
 def project_provider_readback(
     raw: bytes,
     *,
@@ -515,9 +652,9 @@ def project_provider_readback(
         tuple[bytes, dict[str, Any], bytes, dict[str, Any]],
     ] = {}
     response_hashes: dict[str, str] = {}
-    prior_completed: datetime | None = None
-    first_started_text: str | None = None
-    last_completed_text: str | None = None
+    prior_completed: Optional[datetime] = None
+    first_started_text: Optional[str] = None
+    last_completed_text: Optional[str] = None
     for record in records:
         slot = record["slot"]
         expected_operation, expected_version = PROVIDER_OPERATIONS[slot]
@@ -563,40 +700,10 @@ def project_provider_readback(
         _billing_response_raw,
         billing_response,
     ) = parsed["historical_billing_snapshot"]
-    billing_rows = _billing_rows(billing_request, billing_response)
-    matches = [
-        row for row in billing_rows
-        if type(row.get("InstanceID")) is str
-        and value_sha256(row["InstanceID"]) == EXPECTED_OLD_CLONE_SHA256
-    ]
-    if len(matches) != 1:
-        raise ExtractionError("billing_identity")
-    billing = matches[0]
-    service_seconds = billing.get("ServicePeriod")
-    if type(service_seconds) is str and service_seconds.isdecimal():
-        service_seconds = int(service_seconds)
-    if (
-        billing.get("Currency") != "CNY"
-        or type(billing.get("SubscriptionType")) is not str
-        or billing["SubscriptionType"] != "PayAsYouGo"
-        or str(billing.get("ProductCode", "")).lower() != "rds"
-        or str(billing.get("PipCode", "")).lower() != "rds"
-        or billing.get("ServicePeriodUnit") not in {"Second", "Seconds", "秒"}
-        or type(billing.get("PretaxGrossAmount")) not in {int, float, str}
-        or service_seconds is None
-    ):
-        raise ExtractionError("billing_snapshot")
-    try:
-        gross = Decimal(str(billing["PretaxGrossAmount"]))
-    except (InvalidOperation, ValueError) as exc:
-        raise ExtractionError("billing_snapshot") from exc
-    if (
-        not gross.is_finite()
-        or gross < Decimal("198.462")
-        or type(service_seconds) is not int
-        or service_seconds < 345600
-    ):
-        raise ExtractionError("billing_snapshot")
+    gross, service_seconds = _billing_snapshot(
+        billing_request,
+        billing_response,
+    )
 
     return {
         "schema": PROVIDER_PROJECTION_SCHEMA,
@@ -606,6 +713,19 @@ def project_provider_readback(
         "observed_at_utc": capture["observed_at_utc"],
         "first_started_at_utc": first_started_text,
         "last_completed_at_utc": last_completed_text,
+        "capture_transport": capture["capture_transport"],
+        "collector_source_sha256": capture[
+            "collector_source_sha256"
+        ],
+        "extractor_source_sha256": capture[
+            "extractor_source_sha256"
+        ],
+        "authority_source_sha256": capture[
+            "authority_source_sha256"
+        ],
+        "activation_receipt_sha256": capture[
+            "activation_receipt_sha256"
+        ],
         "provider_raw_file_sha256": sha256(raw),
         "region_sha256": EXPECTED_REGION_SHA256,
         "old_clone": {
@@ -652,7 +772,10 @@ def _lookup_attributes(request: dict[str, Any], stream: str) -> None:
     if len(values) != 2:
         raise ExtractionError("actiontrail_lookup_attributes")
     if stream == "cost_stop":
-        if values != {"ServiceName": "Rds", "EventRW": "Write"}:
+        if attributes != [
+            {"Key": "ServiceName", "Value": "Rds"},
+            {"Key": "EventRW", "Value": "Write"},
+        ]:
             raise ExtractionError("actiontrail_lookup_attributes")
     elif stream == "clone_create":
         if (
@@ -661,16 +784,22 @@ def _lookup_attributes(request: dict[str, Any], stream: str) -> None:
             or type(values["ResourceName"]) is not str
             or value_sha256(values["ResourceName"])
             != EXPECTED_OLD_CLONE_SHA256
+            or attributes != [
+                {"Key": "EventName", "Value": "CloneDBInstance"},
+                {"Key": "ResourceName", "Value": values["ResourceName"]},
+            ]
         ):
             raise ExtractionError("actiontrail_lookup_attributes")
     else:
         raise ExtractionError("actiontrail_lookup_stream")
 
 
-def _event_request_parameters(event: dict[str, Any]) -> dict[str, Any] | None:
+def _event_request_parameters(
+    event: dict[str, Any],
+) -> Optional[dict[str, Any]]:
     direct = event.get("requestParameters")
     encoded = event.get("requestParameterJson")
-    parsed: dict[str, Any] | None = None
+    parsed: Optional[dict[str, Any]] = None
     if direct is not None:
         if type(direct) is not dict:
             raise ExtractionError("actiontrail_request_parameters")
@@ -678,6 +807,13 @@ def _event_request_parameters(event: dict[str, Any]) -> dict[str, Any] | None:
     if encoded is not None:
         if type(encoded) is not str or not encoded:
             raise ExtractionError("actiontrail_request_parameter_json")
+        _bounded_json_depth(
+            _nested_json_bytes(
+                encoded,
+                "actiontrail_request_parameter_json",
+            ),
+            "actiontrail_request_parameter_depth",
+        )
         def reject_duplicates(
             pairs: list[tuple[str, Any]],
         ) -> dict[str, Any]:
@@ -694,6 +830,12 @@ def _event_request_parameters(event: dict[str, Any]) -> dict[str, Any] | None:
             decoded = json.loads(
                 encoded,
                 object_pairs_hook=reject_duplicates,
+                parse_float=lambda item: _finite_json_float(
+                    item, "actiontrail_request_parameter_number"
+                ),
+                parse_int=lambda item: _bounded_json_int(
+                    item, "actiontrail_request_parameter_number"
+                ),
                 parse_constant=lambda _value: (_ for _ in ()).throw(
                     ExtractionError("actiontrail_request_parameter_number")
                 ),
@@ -702,6 +844,14 @@ def _event_request_parameters(event: dict[str, Any]) -> dict[str, Any] | None:
             raise
         except json.JSONDecodeError as exc:
             raise ExtractionError("actiontrail_request_parameter_json") from exc
+        except RecursionError as exc:
+            raise ExtractionError(
+                "actiontrail_request_parameter_depth"
+            ) from exc
+        except ValueError as exc:
+            raise ExtractionError(
+                "actiontrail_request_parameter_number"
+            ) from exc
         if type(decoded) is not dict or (parsed is not None and decoded != parsed):
             raise ExtractionError("actiontrail_request_parameter_json")
         parsed = decoded
@@ -729,16 +879,16 @@ def _lookup_stream(
 ]:
     if not records:
         raise ExtractionError("actiontrail_stream_missing")
-    prior_next_token: str | None = None
+    prior_next_token: Optional[str] = None
     seen_nonterminal_tokens: set[str] = set()
     terminal_seen = False
     page_request_ids: list[str] = []
     events: list[dict[str, Any]] = []
-    query_start: datetime | None = None
-    query_end: datetime | None = None
-    first_started_text: str | None = None
-    last_completed_text: str | None = None
-    prior_completed: datetime | None = None
+    query_start: Optional[datetime] = None
+    query_end: Optional[datetime] = None
+    first_started_text: Optional[str] = None
+    last_completed_text: Optional[str] = None
+    prior_completed: Optional[datetime] = None
     response_body_hashes: list[str] = []
     for index, record in enumerate(records):
         if (
@@ -775,16 +925,24 @@ def _lookup_stream(
             or request.get("Action") != "LookupEvents"
             or request.get("Version") != "2020-07-06"
             or request.get("Direction") != "FORWARD"
-            or type(request.get("MaxResults")) is not str
-            or not request["MaxResults"].isdecimal()
-            or not 1 <= int(request["MaxResults"]) <= 50
+            or request.get("MaxResults") != LOOKUP_MAX_RESULTS
         ):
             raise ExtractionError("actiontrail_request")
         _lookup_attributes(request, stream)
         start = _utc(request.get("StartTime"), "actiontrail_start")
         end = _utc(request.get("EndTime"), "actiontrail_end")
+        expected_window = (
+            (COST_STOP_LOOKUP_START, COST_STOP_LOOKUP_END)
+            if stream == "cost_stop"
+            else (CLONE_CREATE_LOOKUP_START, CLONE_CREATE_LOOKUP_END)
+        )
         if not start < end <= observed_at:
             raise ExtractionError("actiontrail_window")
+        if (
+            request.get("StartTime") != expected_window[0]
+            or request.get("EndTime") != expected_window[1]
+        ):
+            raise ExtractionError("actiontrail_window_identity")
         if index == 0:
             if request.get("NextToken") not in {None, ""}:
                 raise ExtractionError("actiontrail_first_token")
@@ -801,7 +959,7 @@ def _lookup_stream(
             type(request_id) is not str
             or not request_id
             or type(page_events) is not list
-            or len(page_events) > MAX_EVENTS
+            or len(page_events) > MAX_LOOKUP_PAGE_EVENTS
             or any(type(event) is not dict for event in page_events)
             or _utc(response.get("StartTime"), "actiontrail_response_start")
             != start
@@ -862,6 +1020,13 @@ def _event_base(
     resource_name = event["resourceName"]
     user_identity = event["userIdentity"]
     if type(user_identity) is str:
+        _bounded_json_depth(
+            _nested_json_bytes(
+                user_identity,
+                "actiontrail_user_identity",
+            ),
+            "actiontrail_user_identity_depth",
+        )
         def reject_identity_duplicates(
             pairs: list[tuple[str, Any]],
         ) -> dict[str, Any]:
@@ -878,13 +1043,25 @@ def _event_base(
             user_identity = json.loads(
                 user_identity,
                 object_pairs_hook=reject_identity_duplicates,
+                parse_float=lambda item: _finite_json_float(
+                    item, "actiontrail_user_identity_number"
+                ),
+                parse_int=lambda item: _bounded_json_int(
+                    item, "actiontrail_user_identity_number"
+                ),
                 parse_constant=lambda _value: (_ for _ in ()).throw(
                     ExtractionError("actiontrail_user_identity_number")
                 ),
             )
         except ExtractionError:
             raise
-        except (TypeError, json.JSONDecodeError) as exc:
+        except json.JSONDecodeError as exc:
+            raise ExtractionError("actiontrail_user_identity") from exc
+        except RecursionError as exc:
+            raise ExtractionError("actiontrail_user_identity_depth") from exc
+        except ValueError as exc:
+            raise ExtractionError("actiontrail_user_identity_number") from exc
+        except TypeError as exc:
             raise ExtractionError("actiontrail_user_identity") from exc
     event_time = _utc(event["eventTime"], "actiontrail_event_time")
     if (
@@ -915,6 +1092,165 @@ def _event_base(
         "user_identity_sha256": sha256(canonical_bytes(user_identity)),
     }
     return event_id, event_name, user_identity, event_time, base
+
+
+def validate_offline_import_response(
+    slot: str,
+    request: dict[str, Any],
+    response: dict[str, Any],
+) -> None:
+    """Reject a response before the importer advances to another query.
+
+    The complete projection remains the terminal authority.  This narrower
+    check makes malformed native pages and semantically wrong provider rows a
+    durable UNKNOWN immediately, so the importer cannot continue collecting
+    later pages after a response that the terminal extractor would reject.
+    """
+
+    if slot == "fresh_clone_inventory":
+        _require_describe_request(
+            request,
+            expected_identity_sha256=EXPECTED_OLD_CLONE_SHA256,
+        )
+        if _instance_rows(response):
+            raise ExtractionError("old_clone_still_present")
+        return
+    if slot == "fresh_source_inventory":
+        _require_describe_request(
+            request,
+            expected_identity_sha256=EXPECTED_SOURCE_SHA256,
+        )
+        rows = _instance_rows(response)
+        if len(rows) != 1:
+            raise ExtractionError("source_match_count")
+        _source_row(rows[0])
+        return
+    if slot == "historical_billing_snapshot":
+        _billing_snapshot(request, response)
+        return
+    if slot not in {
+        "cost_stop_rds_write_lookup_page",
+        "clone_create_lookup_page",
+    }:
+        raise ExtractionError("offline_import_slot")
+
+    stream = (
+        "cost_stop"
+        if slot == "cost_stop_rds_write_lookup_page"
+        else "clone_create"
+    )
+    expected_window = (
+        (COST_STOP_LOOKUP_START, COST_STOP_LOOKUP_END)
+        if stream == "cost_stop"
+        else (CLONE_CREATE_LOOKUP_START, CLONE_CREATE_LOOKUP_END)
+    )
+    expected_request_keys = {
+        "Action", "Version", "Direction", "EndTime",
+        "LookupAttribute", "MaxResults", "StartTime",
+    }
+    if "NextToken" in request:
+        expected_request_keys.add("NextToken")
+    if (
+        set(request) != expected_request_keys
+        or request.get("Action") != "LookupEvents"
+        or request.get("Version") != "2020-07-06"
+        or request.get("Direction") != "FORWARD"
+        or request.get("StartTime") != expected_window[0]
+        or request.get("EndTime") != expected_window[1]
+        or request.get("MaxResults") != LOOKUP_MAX_RESULTS
+    ):
+        raise ExtractionError("actiontrail_request")
+    _lookup_attributes(request, stream)
+    start = _utc(request["StartTime"], "actiontrail_start")
+    end = _utc(request["EndTime"], "actiontrail_end")
+    events = response.get("Events")
+    if (
+        type(response.get("RequestId")) is not str
+        or not response["RequestId"]
+        or type(events) is not list
+        or len(events) > MAX_LOOKUP_PAGE_EVENTS
+        or any(type(event) is not dict for event in events)
+        or _utc(response.get("StartTime"), "actiontrail_response_start")
+        != start
+        or _utc(response.get("EndTime"), "actiontrail_response_end") != end
+        or (
+            response.get("NextToken") not in {None, ""}
+            and type(response.get("NextToken")) is not str
+        )
+    ):
+        raise ExtractionError("actiontrail_response")
+
+    for event in events:
+        _event_id, event_name, _identity, _time, _base = _event_base(
+            event,
+            allowed_names=(
+                set(EXPECTED_ACTIONTRAIL_ACTIONS)
+                if stream == "cost_stop"
+                else {"CloneDBInstance"}
+            ),
+            start=start,
+            end=end,
+        )
+        request_id = event.get("requestId")
+        parameters = _event_request_parameters(event)
+        if type(request_id) is not str or not request_id or parameters is None:
+            raise ExtractionError("actiontrail_direct_identity")
+        if stream == "cost_stop":
+            expected_request_id = (
+                EXPECTED_PROTECTION_REQUEST_ID_SHA256
+                if event_name == "ModifyDBInstanceDeletionProtection"
+                else EXPECTED_DELETE_REQUEST_ID_SHA256
+            )
+            if value_sha256(request_id) != expected_request_id:
+                raise ExtractionError("actiontrail_provider_request_id")
+            target = parameters.get("DBInstanceId")
+            if (
+                type(target) is not str
+                or value_sha256(target) != EXPECTED_OLD_CLONE_SHA256
+            ):
+                raise ExtractionError("actiontrail_request_target")
+            if event_name == "ModifyDBInstanceDeletionProtection":
+                disabled = parameters.get("DeletionProtection")
+                marker = parameters.get("ClientToken")
+                if (
+                    not (
+                        disabled is False
+                        or (type(disabled) is str and disabled == "false")
+                    )
+                    or type(marker) is not str
+                    or value_sha256(marker)
+                    != EXPECTED_PROTECTION_CLIENT_TOKEN_SHA256
+                ):
+                    raise ExtractionError(
+                        "actiontrail_protection_parameters"
+                    )
+            elif "ClientToken" in parameters:
+                raise ExtractionError("actiontrail_delete_client_token")
+        else:
+            source_candidates = [
+                parameters.get("DBInstanceId"),
+                parameters.get("SourceDBInstanceId"),
+            ]
+            source_candidates = [
+                value
+                for value in source_candidates
+                if type(value) is str and value
+            ]
+            description = parameters.get("DBInstanceDescription")
+            marker = parameters.get("ClientToken")
+            if (
+                len(source_candidates) != 1
+                or value_sha256(source_candidates[0])
+                != EXPECTED_SOURCE_SHA256
+                or type(description) is not str
+                or value_sha256(description)
+                != EXPECTED_OLD_CLONE_NAME_SHA256
+                or type(marker) is not str
+                or not marker
+            ):
+                raise ExtractionError(
+                    "actiontrail_clone_create_parameters"
+                )
 
 
 def project_actiontrail_readback(
@@ -1177,6 +1513,19 @@ def project_actiontrail_readback(
         "observed_at_utc": capture["observed_at_utc"],
         "first_started_at_utc": first_started_text,
         "last_completed_at_utc": last_completed_text,
+        "capture_transport": capture["capture_transport"],
+        "collector_source_sha256": capture[
+            "collector_source_sha256"
+        ],
+        "extractor_source_sha256": capture[
+            "extractor_source_sha256"
+        ],
+        "authority_source_sha256": capture[
+            "authority_source_sha256"
+        ],
+        "activation_receipt_sha256": capture[
+            "activation_receipt_sha256"
+        ],
         "actiontrail_raw_file_sha256": sha256(raw),
         "cost_stop_lookup_page_count": len(cost_records),
         "clone_create_lookup_page_count": len(create_records),
@@ -1223,6 +1572,16 @@ class VerifiedManualProjection:
             raise ExtractionError("verified_projection_loader_required")
         if provider["control_revision"] != actiontrail["control_revision"]:
             raise ExtractionError("projection_revision_mismatch")
+        for key in (
+            "observed_at_utc",
+            "capture_transport",
+            "collector_source_sha256",
+            "extractor_source_sha256",
+            "authority_source_sha256",
+            "activation_receipt_sha256",
+        ):
+            if provider[key] != actiontrail[key]:
+                raise ExtractionError("projection_capture_binding_mismatch")
         self._provider = copy.deepcopy(provider)
         self._actiontrail = copy.deepcopy(actiontrail)
 
@@ -1260,7 +1619,10 @@ def extract_projection(_capture: Any) -> dict[str, Any]:
 
 __all__ = [
     "ACTIONTRAIL_CAPTURE_SCHEMA", "ACTIONTRAIL_PROJECTION_SCHEMA",
-    "CAPTURE_SCHEMA", "EXPECTED_ACTIONTRAIL_ACTIONS", "ExtractionError",
+    "CAPTURE_SCHEMA", "CLONE_CREATE_LOOKUP_END", "CLONE_CREATE_LOOKUP_START",
+    "COST_STOP_LOOKUP_END", "COST_STOP_LOOKUP_START",
+    "EXPECTED_ACTIONTRAIL_ACTIONS", "EXPECTED_CAPTURE_TRANSPORT",
+    "ExtractionError", "LOOKUP_MAX_RESULTS", "MAX_LOOKUP_PAGE_EVENTS",
     "M0_ANCHOR_REVISION", "OPERATION_ID", "PROJECTION_SCHEMA",
     "PROVIDER_CAPTURE_SCHEMA", "PROVIDER_PROJECTION_SCHEMA",
     "PROVIDER_REQUIRED_SLOTS", "RAW_ACTIONTRAIL_EXTRACTION_IMPLEMENTED",
@@ -1268,5 +1630,6 @@ __all__ = [
     "VerifiedManualProjection", "canonical_bytes", "decode_canonical_json",
     "extract_projection", "extract_verified_projection",
     "project_actiontrail_readback", "project_provider_readback", "sha256",
-    "validate_capture_envelope", "value_sha256",
+    "validate_capture_envelope", "validate_offline_import_response",
+    "value_sha256",
 ]

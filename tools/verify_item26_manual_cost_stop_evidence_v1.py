@@ -580,6 +580,7 @@ def validate_receipt(
 
     raw = value.get("raw_closure")
     raw_keys = {
+        "activation_receipt_sha256",
         "provider_raw_file_sha256",
         "actiontrail_raw_file_sha256",
         "provider_projection_sha256",
@@ -874,6 +875,8 @@ def validate_terminal_artifacts(
         == authority.get("provider_projection_sha256")
         and raw["actiontrail_projection_sha256"]
         == authority.get("actiontrail_projection_sha256")
+        and raw["activation_receipt_sha256"]
+        == authority.get("activation_receipt_sha256")
         and no_replay["registry_sha256"]
         == authority.get("no_replay_registry_sha256")
     ):
