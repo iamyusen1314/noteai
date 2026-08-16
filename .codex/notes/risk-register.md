@@ -25,18 +25,48 @@ Last updated: 2026-08-16
   without runtime merge. All old v6 tools, historical Item 26 payloads and
   UNKNOWN/no-replay executions remain frozen.
 - 残余边界: Storage adoption adds no NoteAI readiness credit. Item 26 remains
-  `unverified`, and cloud writes remain paused until this ledger is checkpointed,
-  the local rollback cleanup is explicitly completed, and a fresh read-only
-  reconciliation proves the current clone, billing, temporary-account and
-  frozen-execution state. A stale local or cloud record must not authorize a
-  replay.
-- 下一验证: After this ledger checkpoint, perform the separately scoped,
-  main-CTO serial cloud read-only reconciliation; do not start a builder,
-  connect to the clone database, or dispatch any historical command. The local
+  `unverified`. The fresh cloud reconciliation is now complete and independently
+  exposed a PITR clone cost-ceiling breach; cloud writes remain frozen except
+  for the separately confirmed exact cost-containment cleanup path. A stale
+  local or cloud record must not authorize a replay.
+- 下一验证: Checkpoint the new read-only cloud evidence, then request the
+  action-time confirmation required to stop billing through exact cleanup; do
+  not start a builder, connect to the clone database, or dispatch any historical
+  command. The local
   rollback cleanup remains a separate full-App-exit operation using only the
   exact `FREE-INTERNAL-SPACE` path, followed by the reviewed ORICO daily
   launcher; do not mix that destructive local cleanup into the NoteAI cloud
   reconciliation.
+
+## Item 26 PITR cost-containment risk
+
+### Paid restore clone exceeded its explicit ceiling; exact abort is pending
+
+- 状态: Open High. Fresh official billing readback attributes `185.658 CNY`
+  pretax gross in the August cycle to the sole Item 26 Postpaid restore clone,
+  versus the recorded 24-hour list-price ceiling of `76.824 CNY`. Available
+  account cash readback is `40.99 CNY`.
+- 风险描述: The clone is still `Running`, deletion-protected and billable while
+  restored capture remains `NOT_STARTED`; starting the stopped builder would
+  add compute cost and still would not close the frozen pre-connect gates.
+  Retaining the clone without a new explicit ceiling continues an already
+  exceeded cost exposure.
+- 当前控制: All non-cleanup paid activity is frozen. Database connection,
+  transaction and write counts remain zero; builder start, Cloud Assistant
+  dispatch, SendFile, second-clone creation, RestoreTime change and every
+  historical replay remain prohibited. Secret-free hashes bind the exact clone,
+  source, builder, disk and Item 26 RAM candidates without recording secrets.
+- 残余边界: The existing retention contract permits either terminal acceptance
+  or exact approved cleanup. Under the current fee boundary only a
+  `COST_CONTAINMENT_ABORT` is admissible, but disabling deletion protection and
+  deleting the clone require immediate browser action confirmation. An abort
+  keeps Item 26 `unverified` and readiness at `25/29`; a future restore requires
+  a new successor and fee authorization.
+- 下一验证: After checkpointing this evidence, transmit only the minimum exact
+  identifiers to official Alibaba Cloud endpoints for final readback, then—if
+  action-time confirmation is received—disable protection, delete the one clone
+  once, prove absence and billing closure, and clean only exact task-scoped
+  temporary material. Any `UNKNOWN` permits readback of the same identity only.
 
 ## Critical Risks
 

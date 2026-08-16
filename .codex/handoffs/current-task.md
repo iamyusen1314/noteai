@@ -10502,3 +10502,53 @@ Colima, database, builder, restore and cloud actions remain frozen.
   or error. `git diff --check` also passed. No database, provider, builder,
   clone, service, billing or other cloud operation occurred during this
   reconciliation.
+
+### Fresh Item 26 cloud reconciliation and cost ceiling breach (2026-08-16)
+
+- A fresh authenticated, read-only control-plane reconciliation used the
+  official Alibaba Cloud RDS, ECS, RAM, Billing and Cloud Assistant surfaces.
+  It made zero database connections or transactions, started no builder,
+  dispatched no command or SendFile request, and performed no cloud write.
+- Shenzhen RDS contains exactly two instances and both are `Running`. The sole
+  Item 26 restore candidate is bound in the Secret-free ledger by SHA-256
+  prefix `820121638125`: it remains `Running`, `Postpaid`, PostgreSQL 16,
+  deletion-protected, and was created at `2026-08-12T12:21:58Z`. The source
+  instance is separately bound by prefix `d3712c09b28e` and remains
+  `Running`/`Prepaid`. The restore database still has capture `NOT_STARTED`,
+  reconciliation `PENDING`, terminal acceptance false and write count zero.
+- The current August bill gives the exact restore candidate `185.658 CNY`
+  pretax gross over `331200` service seconds. This exceeds the recorded 24-hour
+  list-price ceiling of `76.824 CNY`; current available account cash readback
+  is `40.99 CNY`. Consequently every non-cleanup paid action is frozen. In
+  particular, starting the stopped builder or attempting restored capture is
+  not authorized under the existing ceiling.
+- The exact builder candidate, SHA-256 prefix `7374d0b36049`, remains
+  `Stopped`/`StopCharging` with start count zero. Its single 120 GiB Postpaid
+  system disk, prefix `66963c57f745`, remains attached and billable; the
+  observed builder billing row is not safely attributable to Item 26 and does
+  not authorize deleting that shared builder. One Item 26 RAM role and one
+  custom policy candidate share prefix `d6a029f6b503`; the policy has exactly
+  one attachment. No IAM mutation occurred.
+- Cloud Assistant reports 26 saved commands over two pages, including seven
+  retained Item 26 commands with exactly one call record each. The newest
+  invocation page independently shows the expected terminal v1/v2 preflight,
+  v3 capture/readback/validator and timestamp-reader outcomes. No invocation
+  was replayed. Exact-name all-history invocation and SendFile searches remain
+  pending because transmitting those identifiers and any destructive cleanup
+  require an action-time browser confirmation; absence from the retained
+  command inventory is not overstated as absence from all invocation history.
+- Both ordinary GitHub CI runs for checkpoint
+  `15c93548822b30fed5c7a3972ee8bf02229c4371` completed attempt 1 successfully.
+  This new cloud evidence adds no readiness credit: Item 26 remains
+  `unverified`, internal readiness remains `25/29`, and Items 27-29 remain
+  blocked behind it.
+- The only path inside the current fee authorization is now an exact
+  `COST_CONTAINMENT_ABORT`: seal the existing identity and protection/billing
+  state, disable protection on that one clone, delete it once, prove absence
+  and billing closure by exact-identity readback, then remove only confirmed
+  Item 26 temporary IAM/network/account/control material. That action remains
+  pending the required action-time confirmation. Until then the clone remains
+  billable and protected; no builder start, database capture, new clone,
+  RestoreTime change, historical command replay or replacement is authorized.
+  If the abort completes, Item 26 remains unverified and any future restore
+  must be a wholly new successor with a new explicit fee ceiling.
