@@ -61,7 +61,7 @@ def build_receipt(
     *,
     source_manifest: Any,
     restored_manifest: Any,
-    expected_abort_dependency: dict[str, str],
+    expected_predecessor_cost_stop: dict[str, Any],
 ) -> dict[str, Any]:
     if type(candidate) is not dict:
         raise ValueError("Item26 receipt candidate must be an object")
@@ -82,7 +82,7 @@ def build_receipt(
     receipt_errors, acceptance = validate_receipt(
         receipt,
         expected_execution_revision=receipt.get("source_revision"),
-        expected_abort_dependency=expected_abort_dependency,
+        expected_predecessor_cost_stop=expected_predecessor_cost_stop,
     )
     errors = [*result_errors, *receipt_errors]
     if errors or acceptance != receipt["terminal_acceptance_sha256"]:
@@ -95,7 +95,7 @@ def build_evidence(
     *,
     source_manifest: Any,
     restored_manifest: Any,
-    expected_abort_dependency: dict[str, str],
+    expected_predecessor_cost_stop: dict[str, Any],
 ) -> dict[str, Any]:
     if type(receipt) is not dict:
         raise ValueError("Item26 terminal receipt required")
@@ -103,7 +103,7 @@ def build_evidence(
     errors, acceptance = validate_receipt(
         receipt,
         expected_execution_revision=receipt.get("source_revision"),
-        expected_abort_dependency=expected_abort_dependency,
+        expected_predecessor_cost_stop=expected_predecessor_cost_stop,
     )
     result_errors = validate_terminal_result(
         source_manifest=source_manifest,
@@ -130,8 +130,9 @@ def build_evidence(
         "external_authority": {
             "required": True,
             "provider_authority": "DETACHED_ROOT_OWNED",
+            "confirmation_authority": "DETACHED_ROOT_OWNED",
             "ci_authority": "DETACHED_ROOT_OWNED",
-            "mathematically_distinct_keys_required": True,
+            "mathematically_distinct_key_count": 3,
         },
         "restore_provenance": copy.deepcopy(receipt["provider_identity"]),
         "source_state": copy.deepcopy(receipt["source_capture"]),

@@ -10886,3 +10886,76 @@ Colima, database, builder, restore and cloud actions remain frozen.
   neither `80c5091` nor `41c489c` may be rerun. A checkpoint or dual-green CI is
   not a stopping point: after it, build the fully disjoint Item 26 success
   successor under a new explicit fee authorization, then continue Items 27–29.
+
+### Item 26 scanner checkpoint accepted and manual predecessor M0 source scaffold (2026-08-17)
+
+- Scanner-only checkpoint `d0f261236726f03605e467e6275b898a6ce19488`
+  is normally pushed and exact at the local HEAD, upstream branch and remote
+  branch ref. Push run `31959571845` and pull-request run `31959573868` both
+  completed attempt 1 with `success`; neither was rerun or cancelled. Each
+  passed its substantive steps, including 2,307 main unit tests with 34 skips
+  and zero failure/error, PostgreSQL 16 `6/6`, production readiness `138/138`,
+  Quality and Compose. CI did not print the internal `25/29` count, so that
+  count remains a separately verified repository-manifest fact rather than a
+  claimed CI log value.
+- The exact two manual browser mutations remain consumed and no-replay.
+  `ModifyDBInstanceDeletionProtection` had the one previously recorded unique
+  client token. `DeleteDBInstance` had no ClientToken; the new contract records
+  `clone_delete_client_token_present=false` instead of inventing or hashing a
+  replacement token. Protection-disable/delete submit counts remain `1/1`, all
+  retry/resend/replacement counts remain zero, clone match remains `0`, source
+  match remains `1` and the source remains `Running/Prepaid`.
+- `deploy/production/plans/item26-no-replay-registry-v2.json` is append-only
+  over the immutable v1 file SHA-256
+  `003a6541e20bce6256f52a4b7bdd0e983997d17af634e113ff7525b5a6bb4535`
+  and v1 registry root
+  `763ae967af95f55347e427f9df8e6c7014b16e645957417915e3ccd44d20e5d9`.
+  It adds exactly four identities: failed checkpoints `80c5091` and `41c489c`
+  plus the consumed protection-disable and delete. The resulting entry count is
+  `29`; its v2 registry root is
+  `93abb46e3e329dd28edab6bab14ec6c1a09177d0effe0e80d881d43f1e878be5`.
+  The two successful `d0f2612` runs are not failure entries. The consumed
+  mutation-set commitment includes the observed absence of a delete token.
+- Future PITR success no longer loads or accepts the historical abort-v1
+  terminal dependency. Its strict field is now `predecessor_cost_stop`, with
+  kind `MANUAL_BROWSER_POST_ACTION_COST_STOP_V1`; the isolated subprocess loads
+  the frozen manual verifier/extractor/authority, requires control → evidence →
+  terminal ancestry and then a strict successor descendant, and cross-binds the
+  predecessor root and acceptance in provider and independent confirmation
+  envelopes. The new fee authorization must postdate the later manual terminal
+  acceptance, use a new nonce and remain fully disjoint from the old clone
+  create identity set. The success evidence builder's provider/confirmation/CI
+  three-key output now round-trips its own semantic verifier.
+- This M0 implementation is deliberately source-only and nonterminal. The
+  manual authority root hash is empty, raw provider projection and authority
+  implementations remain false, and the manual builder refuses to emit
+  `PASS_NO_READINESS_CREDIT` evidence while those gates are absent. It cannot
+  authorize a cloud action or readiness change. The manual contract explicitly
+  records `action_precedes_control_checkpoint=true`,
+  `root_frozen_before_action=false`, `action_authorization_granted=false`,
+  `abort_v1_terminal_authority=false`, historical billing only, and all
+  non-clone resource candidates as
+  `UNPROVEN_RETAINED_FRESH_PREFLIGHT_REQUIRED`.
+- Current local focused verification is `66/66`: PITR success `38`, success
+  external authority `10`, manual receipt/evidence `9`, manual raw envelope `7`
+  and manual authority `2`. Negative coverage rejects invented Delete tokens,
+  source tuple drift, readiness/abort claims, arbitrary v2 roots/counts,
+  noncanonical embedded JSON, invalid calendar times, reversed timestamps and
+  repeated non-page slots. It also binds Delete-token absence into the consumed
+  mutation digest, requires that digest to equal the exact v2 registry value,
+  and requires receipt/evidence to appear exactly at M1 while the terminal
+  checkpoint first appears at M2. The shared internal-readiness
+  module passes `20/20`;
+  a fresh internal gate reports `25/29` and public aggregate `25/38`, while a
+  fresh production gate reports `PASS`, `138/138`. JSON parse and
+  `git diff --check` pass. Item 26 remains `unverified`, `evidence: []`, and the
+  five historical scripts remain unexecuted, undeleted and unstaged.
+- The serial next boundary is not a cloud mutation: finish review and normally
+  checkpoint M0; create three mathematically distinct local authority keys and
+  a root without reading cloud state; implement the exact raw/authority path;
+  then commit a separate A0 activation revision containing the exact root hash
+  and obtain its own attempt-one dual-green CI. Only after A0 is green may a
+  fresh read-only ActionTrail/Describe capture begin. M1 evidence and M2
+  terminal checkpoint follow. A future paid PITR successor still requires a
+  new explicit fee ceiling; checkpoints and individual stages are not stopping
+  signals.

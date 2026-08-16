@@ -30,10 +30,14 @@ Last updated: 2026-08-17
   No further cleanup mutation is authorized against that released clone; both
   consumed mutation identities are terminal/no-replay. A stale local or cloud
   record must not authorize a replay.
-- 下一验证: Checkpoint the scanner-only Secret-free successor, freeze the two
-  consumed cloud mutation identities and exact-ID absence, then require a fully
-  disjoint Item 26 success successor with a new explicit fee authorization; do
-  not start a builder, connect to a database or dispatch any historical command.
+- 下一验证: The scanner-only Secret-free checkpoint is accepted and its two
+  attempt-one CI runs are green. Preserve the released clone and both consumed
+  cloud mutation identities as terminal/no-replay, checkpoint the fail-closed
+  manual post-action predecessor source, and then freeze its independent local
+  authority root before any fresh read-only provider capture. A future Item 26
+  success successor must be fully disjoint and carry a new explicit fee
+  authorization; do not start a builder, connect to a database or dispatch any
+  historical command.
   The local rollback cleanup remains a separate full-App-exit operation using
   only the exact `FREE-INTERNAL-SPACE` path, followed by the reviewed ORICO
   daily launcher; do not mix that destructive local cleanup into the NoteAI
@@ -72,23 +76,22 @@ Last updated: 2026-08-17
   hashes bind the exact clone and source without recording full identifiers.
   The five historical Item 26 scripts remain preserved, untracked, unstaged and
   unexecuted.
-  A source-only terminal-verifier scaffold now independently enforces exact
-  restore semantics and a 25-entry no-replay registry, but its pre-execution
-  authority root is intentionally empty and it cannot authorize dispatch or
-  add readiness credit. A separate abort v1 source contract now rederives its
-  exact-target action plan and aggregate projections from Secret-free leaf
-  commitments for billing observations, ownership dispositions and current
-  mutation identities. A pure RDS-critical extractor and three-authority
-  pre-action verifier are now implemented in source: they preserve no-response
-  mutations as `UNKNOWN`, reject HTTP-200 provider errors and hidden capture
-  slots, bind the official release contract, and treat QueryInstanceBill only
-  as a delayed historical snapshot. The complete terminal root-owned extractor
-  is still not finalized. The contract fixes readiness at `25 -> 25/29`. The
-  future restore predecessor is
-  domain-separated and must execute the hash/Git-blob-locked abort verifier in
-  an isolated subprocess. Linux now anchors that subprocess to the current
-  parent executable inode through `/proc/self/exe`; this is runtime continuity,
-  not full loader/stdlib supply-chain attestation.
+  `DeleteDBInstance` had no ClientToken; the manual contract records
+  `clone_delete_client_token_present=false` and does not invent a replacement.
+  Accepted scanner checkpoint `d0f2612` has new attempt-one push and PR CI both
+  green. The current M0 candidate appends the two failed CI checkpoints and two
+  consumed clone mutations to immutable no-replay registry v1, producing an
+  exact 29-entry v2 registry while preserving v1 unchanged. It also introduces
+  a domain-separated manual post-action cost-stop predecessor. That predecessor
+  is deliberately source-only: its authority-root hash is empty, its raw
+  extractor and three-party authority implementations remain disabled, it emits
+  no terminal artifacts, and its builder refuses to emit PASS evidence. It
+  cannot authorize a cloud action or add readiness credit. Historical abort-v1
+  remains frozen evidence and is explicitly superseded as the future success
+  predecessor; the success verifier loads only the future hash/Git-blob-locked
+  manual predecessor in an isolated subprocess. Linux anchors that subprocess
+  to the current parent executable inode through `/proc/self/exe`; this is
+  runtime continuity, not full loader/stdlib supply-chain attestation.
 - 残余边界: The exact approved-cleanup branch of the retention contract was used,
   but this manual browser cost stop is not a retroactive terminal acceptance for
   the deliberately non-dispatchable abort v1 scaffold. Its root hash remains
@@ -101,22 +104,23 @@ Last updated: 2026-08-17
   rejection. Its successor `41c489c` also has terminal failed attempt-one
   push/PR CI, solely because the secret scanner classified two uppercase
   test-local idempotency-marker names as secret-bearing assignments; no real
-  secret value was found. Neither pair may be rerun. The current scanner-only
-  successor changes only those local names and still needs its own dual-green
-  CI. The completed cost stop keeps Item 26 `unverified` and readiness at
-  `25/29`; a future
-  restore requires a fully disjoint
+  secret value was found. Neither pair may be rerun. Scanner-only successor
+  `d0f2612` normally passed its own new attempt-one push and PR CI and must not
+  be confused with either failed checkpoint. The completed cost stop keeps Item
+  26 `unverified` and readiness at `25/29`; a future restore requires a fully disjoint
   successor identity/request/name/body/token set and a new fee authorization
-  issued after the cost stop by an independent user-confirmation authority. The
-  provider authority may cross-bind that confirmation but cannot issue it.
-- 下一验证: Checkpoint and normally push the scanner-only Secret-free
-  successor, and require its own new attempt-one dual-green CI without rerunning
-  either failed checkpoint. Freeze the two consumed mutation identities and the
-  exact-ID absence as post-action/no-readiness-credit evidence; do not replay
-  either cloud request or infer terminal abort-v1 authority. Then build a fully
-  disjoint Item 26 success successor with a new fee authorization and exact
-  provider/user-confirmation/CI trust roots. Any future mutation `UNKNOWN`
-  permits readback of the same identity only; it never permits resubmission.
+  issued after the later manual terminal acceptance by an independent
+  user-confirmation authority. The provider authority may cross-bind that
+  confirmation but cannot issue it.
+- 下一验证: Finish and normally checkpoint the M0 source-only manual predecessor
+  without any cloud write. Then create three mathematically distinct local keys
+  and a root, install the exact raw/authority implementation in a separate A0
+  activation checkpoint, and require A0 attempt-one dual-green CI before any
+  fresh read-only ActionTrail/Describe capture. Only later M1/M2 evidence may
+  become the predecessor of a fully disjoint paid successor under a new fee
+  authorization. Do not replay either consumed cloud request or infer terminal
+  abort-v1 authority. Any future mutation `UNKNOWN` permits readback of the same
+  identity only; it never permits resubmission.
 
 ## Critical Risks
 

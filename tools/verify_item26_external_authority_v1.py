@@ -53,14 +53,13 @@ REQUIRED_CONTROL_SOURCE_REFS = (
     "tools/verify_item26_external_authority_v1.py",
     "tools/validate_item26_pitr_restore_result_v1.py",
     "tools/build_item26_pitr_restore_evidence_v1.py",
-    "tools/verify_item26_cost_containment_abort_evidence_v1.py",
-    "tools/validate_item26_cost_containment_abort_result_v1.py",
-    "tools/build_item26_cost_containment_abort_evidence_v1.py",
-    "tools/verify_item26_cost_containment_abort_authority_v1.py",
-    "tools/extract_item26_cost_containment_abort_raw_v1.py",
+    "tools/verify_item26_manual_cost_stop_evidence_v1.py",
+    "tools/build_item26_manual_cost_stop_evidence_v1.py",
+    "tools/verify_item26_manual_cost_stop_authority_v1.py",
+    "tools/extract_item26_manual_cost_stop_raw_v1.py",
     "model/storage_recovery_evidence.py",
-    "deploy/production/plans/item26-no-replay-registry-v1.json",
-    "deploy/production/plans/item26-rds-release-billing-contract-v1.json",
+    "deploy/production/plans/item26-no-replay-registry-v2.json",
+    "deploy/production/plans/item26-manual-cost-stop-contract-v1.json",
 )
 STAGE_ONLY_CONTROL_SOURCE_REFS = {
     "tools/internal_deployment_readiness_gate.py",
@@ -639,8 +638,8 @@ def validate_authority_bundle(
             "receipt_file_sha256",
             "terminal_acceptance_sha256",
             "raw_closure_sha256",
-            "abort_dependency_authority_root",
-            "abort_terminal_acceptance_sha256",
+            "predecessor_cost_stop_authority_root",
+            "predecessor_cost_stop_terminal_acceptance_sha256",
             "successor_clone_identity_set_sha256",
             "successor_fee_authorization_sha256",
             "successor_confirmation_export_semantic_sha256",
@@ -652,7 +651,8 @@ def validate_authority_bundle(
             "schema",
             "task_id",
             "execution_revision",
-            "abort_terminal_acceptance_sha256",
+            "predecessor_cost_stop_authority_root",
+            "predecessor_cost_stop_terminal_acceptance_sha256",
             "successor_clone_identity_set_sha256",
             "fee_authorization_sha256",
             "fee_confirmation_sha256",
@@ -672,6 +672,7 @@ def validate_authority_bundle(
             "receipt_file_sha256",
             "checkpoint_file_sha256",
             "no_replay_registry_file_sha256",
+            "predecessor_no_replay_registry_file_sha256",
             "control_sources",
             "execution_push",
             "execution_pull_request",
@@ -690,8 +691,8 @@ def validate_authority_bundle(
                     "receipt_file_sha256",
                     "terminal_acceptance_sha256",
                     "raw_closure_sha256",
-                    "abort_dependency_authority_root",
-                    "abort_terminal_acceptance_sha256",
+                    "predecessor_cost_stop_authority_root",
+                    "predecessor_cost_stop_terminal_acceptance_sha256",
                     "successor_clone_identity_set_sha256",
                     "successor_fee_authorization_sha256",
                     "successor_confirmation_export_semantic_sha256",
@@ -723,7 +724,8 @@ def validate_authority_bundle(
             or any(
                 HEX64.fullmatch(confirmation[key] or "") is None
                 for key in (
-                    "abort_terminal_acceptance_sha256",
+                    "predecessor_cost_stop_authority_root",
+                    "predecessor_cost_stop_terminal_acceptance_sha256",
                     "successor_clone_identity_set_sha256",
                     "fee_authorization_sha256",
                     "fee_confirmation_sha256",
@@ -731,8 +733,12 @@ def validate_authority_bundle(
                 )
             )
             or type(confirmation["fee_authorization_cap_cny"]) is not str
-            or provider["abort_terminal_acceptance_sha256"]
-            != confirmation["abort_terminal_acceptance_sha256"]
+            or provider["predecessor_cost_stop_terminal_acceptance_sha256"]
+            != confirmation[
+                "predecessor_cost_stop_terminal_acceptance_sha256"
+            ]
+            or provider["predecessor_cost_stop_authority_root"]
+            != confirmation["predecessor_cost_stop_authority_root"]
             or provider["successor_clone_identity_set_sha256"]
             != confirmation["successor_clone_identity_set_sha256"]
             or provider["successor_fee_authorization_sha256"]
@@ -751,6 +757,7 @@ def validate_authority_bundle(
                     "receipt_file_sha256",
                     "checkpoint_file_sha256",
                     "no_replay_registry_file_sha256",
+                    "predecessor_no_replay_registry_file_sha256",
                 )
             )
             or ci["receipt_file_sha256"]
@@ -875,15 +882,18 @@ def validate_authority_bundle(
         "no_replay_registry_file_sha256": ci[
             "no_replay_registry_file_sha256"
         ],
+        "predecessor_no_replay_registry_file_sha256": ci[
+            "predecessor_no_replay_registry_file_sha256"
+        ],
         "terminal_acceptance_sha256": provider[
             "terminal_acceptance_sha256"
         ],
         "raw_closure_sha256": provider["raw_closure_sha256"],
-        "abort_dependency_authority_root": provider[
-            "abort_dependency_authority_root"
+        "predecessor_cost_stop_authority_root": provider[
+            "predecessor_cost_stop_authority_root"
         ],
-        "abort_terminal_acceptance_sha256": provider[
-            "abort_terminal_acceptance_sha256"
+        "predecessor_cost_stop_terminal_acceptance_sha256": provider[
+            "predecessor_cost_stop_terminal_acceptance_sha256"
         ],
         "successor_clone_identity_set_sha256": provider[
             "successor_clone_identity_set_sha256"

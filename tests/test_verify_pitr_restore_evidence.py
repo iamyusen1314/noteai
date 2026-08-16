@@ -30,50 +30,89 @@ from build_item26_pitr_restore_evidence_v1 import (  # noqa: E402
 
 EXECUTION_REVISION = "1860ab5ca1f3eb2e0dc7f90b97a956224895f341"
 H = "1" * 64
+PRODUCTION_CONSUMED_MUTATION_SET_SHA256 = (
+    verifier.NO_REPLAY_CONSUMED_MANUAL_MUTATION_SET_SHA256
+)
 
 
-def abort_dependency():
+def predecessor_cost_stop():
     value = {
-        "schema": verifier.ABORT_DEPENDENCY_SCHEMA,
+        "schema": verifier.PREDECESSOR_COST_STOP_SCHEMA,
+        "kind": "MANUAL_BROWSER_POST_ACTION_COST_STOP_V1",
         "authority_root": "",
-        "verifier_path": "tools/verify_item26_cost_containment_abort_evidence_v1.py",
+        "verifier_path": verifier.MANUAL_COST_STOP_VERIFIER_REF,
         "verifier_sha256": "1" * 64,
-        "validator_path": "tools/validate_item26_cost_containment_abort_result_v1.py",
-        "validator_sha256": "e" * 64,
-        "builder_path": "tools/build_item26_cost_containment_abort_evidence_v1.py",
+        "builder_path": verifier.MANUAL_COST_STOP_BUILDER_REF,
         "builder_sha256": "f" * 64,
-        "authority_verifier_path": verifier.ABORT_AUTHORITY_VERIFIER_REF,
+        "authority_verifier_path": verifier.MANUAL_COST_STOP_AUTHORITY_VERIFIER_REF,
         "authority_verifier_sha256": "4" * 64,
-        "raw_extractor_path": verifier.ABORT_RAW_EXTRACTOR_REF,
+        "raw_extractor_path": verifier.MANUAL_COST_STOP_RAW_EXTRACTOR_REF,
         "raw_extractor_sha256": "5" * 64,
-        "release_contract_path": verifier.ABORT_RELEASE_CONTRACT_REF,
-        "release_contract_sha256": "6" * 64,
-        "evidence_path": verifier.ABORT_EVIDENCE_REF,
+        "contract_path": verifier.MANUAL_COST_STOP_CONTRACT_REF,
+        "contract_sha256": "6" * 64,
+        "no_replay_registry_path": verifier.MANUAL_COST_STOP_NO_REPLAY_REGISTRY_REF,
+        "no_replay_registry_file_sha256": "7" * 64,
+        "evidence_path": verifier.MANUAL_COST_STOP_EVIDENCE_REF,
         "evidence_sha256": "2" * 64,
-        "receipt_path": verifier.ABORT_RECEIPT_REF,
+        "receipt_path": verifier.MANUAL_COST_STOP_RECEIPT_REF,
         "receipt_sha256": "3" * 64,
-        "checkpoint_path": verifier.ABORT_CHECKPOINT_REF,
+        "checkpoint_path": verifier.MANUAL_COST_STOP_CHECKPOINT_REF,
         "checkpoint_sha256": "4" * 64,
         "authority_root_file_sha256": "5" * 64,
         "authority_bundle_file_sha256": "6" * 64,
-        "raw_closure_file_sha256": "7" * 64,
+        "provider_raw_file_sha256": "7" * 64,
+        "actiontrail_raw_file_sha256": "8" * 64,
         "confirmation_envelope_file_sha256": "8" * 64,
         "terminal_acceptance_sha256": "9" * 64,
         "old_clone_sha256": "a" * 64,
-        "billing_closure_sha256": "b" * 64,
-        "resource_disposition_sha256": "c" * 64,
+        "old_clone_name_sha256": "3" * 64,
+        "source_pre_tuple_sha256": "b" * 64,
+        "source_post_tuple_sha256": "b" * 64,
+        "billing_snapshot_sha256": "c" * 64,
         "no_replay_registry_sha256": "d" * 64,
         "old_clone_create_request_sha256": "0" * 64,
         "old_clone_create_body_sha256": "1" * 64,
         "old_clone_client_token_sha256": "2" * 64,
-        "old_clone_name_sha256": "3" * 64,
-        "abort_terminal_observed_at_utc": "2026-08-16T00:00:00Z",
-        "execution_revision": "1" * 40,
+        "protection_disable_request_id_sha256": "4" * 64,
+        "protection_disable_request_body_sha256": "5" * 64,
+        "protection_disable_client_token_sha256": "6" * 64,
+        "delete_request_id_sha256": "7" * 64,
+        "delete_request_body_sha256": "8" * 64,
+        "delete_client_token_present": False,
+        "consumed_mutation_identity_set_sha256": "",
+        "post_action_observed_at_utc": "2026-08-15T23:59:59.475Z",
+        "manual_terminal_accepted_at_utc": "2026-08-16T00:00:00Z",
+        "control_revision": "1" * 40,
         "evidence_revision": "2" * 40,
         "terminal_revision": "3" * 40,
     }
-    value["authority_root"] = verifier.abort_dependency_authority_root(value)
+    value["consumed_mutation_identity_set_sha256"] = (
+        verifier.predecessor_cost_stop_mutation_identity_set_sha256(value)
+    )
+    value["authority_root"] = verifier.predecessor_cost_stop_authority_root(value)
     return value
+
+
+def finalized_predecessor_files():
+    value = predecessor_cost_stop()
+    bindings = (
+        ("verifier_path", "verifier_sha256"),
+        ("builder_path", "builder_sha256"),
+        ("authority_verifier_path", "authority_verifier_sha256"),
+        ("raw_extractor_path", "raw_extractor_sha256"),
+        ("contract_path", "contract_sha256"),
+        ("no_replay_registry_path", "no_replay_registry_file_sha256"),
+        ("evidence_path", "evidence_sha256"),
+        ("receipt_path", "receipt_sha256"),
+        ("checkpoint_path", "checkpoint_sha256"),
+    )
+    files = {}
+    for path_key, digest_key in bindings:
+        raw = (path_key + "\n").encode("ascii")
+        files[value[path_key]] = raw
+        value[digest_key] = hashlib.sha256(raw).hexdigest()
+    value["authority_root"] = verifier.predecessor_cost_stop_authority_root(value)
+    return value, files
 
 
 def manifest():
@@ -220,7 +259,7 @@ def receipt_candidate():
             "tracked_file_count": tracked_file_count,
             "dirty_path_count": 0,
         },
-        "abort_dependency": abort_dependency(),
+        "predecessor_cost_stop": predecessor_cost_stop(),
         "provider_identity": {
             "source_rds_sha256": "5" * 64,
             "successor_clone_sha256": "6" * 64,
@@ -303,7 +342,7 @@ def receipt_candidate():
             "fee_authorization_approved_at_utc": "2026-08-16T00:00:01Z",
             "fee_authorization_expires_at_utc": "2026-08-16T00:05:00Z",
             "clone_create_started_at_utc": "2026-08-16T00:00:02Z",
-            "fee_authorization_postdates_abort": True,
+            "fee_authorization_postdates_manual_cost_stop": True,
             "actual_incremental_cny": "5.000000",
             "rds_incremental_cny": "4.000000",
             "builder_incremental_cny": "1.000000",
@@ -314,7 +353,10 @@ def receipt_candidate():
         },
         "no_replay": {
             "registry_sha256": "3" * 64,
-            "historical_entry_count": 18,
+            "historical_entry_count": (
+                len(verifier.FROZEN_NO_REPLAY_IDENTITIES)
+                + len(verifier.FROZEN_ADDITIONAL_NO_REPLAY_IDENTITIES)
+            ),
             "historical_replay_count": 0,
             "historical_replacement_count": 0,
             "successor_names_disjoint": True,
@@ -397,17 +439,30 @@ def refresh_successor_bindings(value):
 
 
 def no_replay_registry():
+    added = verifier._expected_additional_no_replay_entries()
     value = {
         "all_replacement_allowed_false": True,
         "all_replay_allowed_false": True,
         "automatic_retry_allowed": False,
-        "entries": verifier._expected_no_replay_entries(),
-        "entry_count": len(verifier.FROZEN_NO_REPLAY_IDENTITIES),
+        "consumed_manual_mutation_set_sha256": (
+            verifier.NO_REPLAY_CONSUMED_MANUAL_MUTATION_SET_SHA256
+        ),
+        "predecessor_registry_ref": verifier.NO_REPLAY_REGISTRY_V1_REF,
+        "predecessor_registry_file_sha256": (
+            verifier.NO_REPLAY_REGISTRY_V1_FILE_SHA256
+        ),
+        "predecessor_registry_sha256": verifier.NO_REPLAY_REGISTRY_V1_SHA256,
+        "predecessor_entry_count": len(verifier.FROZEN_NO_REPLAY_IDENTITIES),
+        "added_entries": added,
+        "added_entry_count": len(added),
+        "entry_count": len(verifier.FROZEN_NO_REPLAY_IDENTITIES) + len(added),
         "registry_sha256": "",
         "schema": verifier.NO_REPLAY_REGISTRY_SCHEMA,
-        "status": "FROZEN_SOURCE_CHECKPOINT_POLICY",
+        "status": "FROZEN_POST_ACTION_NO_REPLAY_POLICY",
         "task_id": verifier.TASK_ID,
-        "unknown_resolution_policy": "EXACT_EXISTING_IDENTITY_READBACK_ONLY",
+        "unknown_resolution_policy": (
+            "EXACT_EXISTING_IDENTITY_OR_ACTIONTRAIL_READBACK_ONLY"
+        ),
         "untracked_script_execution_authorized": False,
     }
     value["registry_sha256"] = verifier.no_replay_registry_sha256(value)
@@ -438,6 +493,18 @@ def terminal_projection(source, restored):
 
 
 class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
+    def setUp(self):
+        fixture_digest = predecessor_cost_stop()[
+            "consumed_mutation_identity_set_sha256"
+        ]
+        patcher = mock.patch.object(
+            verifier,
+            "NO_REPLAY_CONSUMED_MANUAL_MUTATION_SET_SHA256",
+            fixture_digest,
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_default_terminal_roots_fail_closed(self):
         errors, acceptance = verifier.validate_manifest_evidence([])
         self.assertEqual(
@@ -451,12 +518,12 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
             candidate,
             source_manifest=source,
             restored_manifest=copy.deepcopy(source),
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
         errors, acceptance = verifier.validate_receipt(
             receipt,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
         self.assertEqual(errors, [])
         self.assertEqual(acceptance, receipt["terminal_acceptance_sha256"])
@@ -464,10 +531,19 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
             receipt,
             source_manifest=source,
             restored_manifest=copy.deepcopy(source),
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
         self.assertEqual(evidence["status"], "PASS")
         self.assertEqual(evidence["readiness"], verifier.DEFAULT_READINESS)
+        self.assertEqual(
+            verifier.validate_evidence(
+                evidence,
+                receipt,
+                verifier._canonical(receipt),
+                expected_execution_revision=EXECUTION_REVISION,
+            ),
+            [],
+        )
 
     def test_capture_write_or_semantic_drift_fails(self):
         candidate, _source = receipt_candidate()
@@ -478,60 +554,191 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
         self.assertTrue(any("database_write_count" in error for error in errors))
         self.assertIsNone(acceptance)
 
-    def test_receipt_cannot_self_assert_abort_dependency(self):
+    def test_receipt_cannot_self_assert_manual_cost_stop_predecessor(self):
         candidate, _source = receipt_candidate()
-        candidate["abort_dependency"]["terminal_acceptance_sha256"] = "f" * 64
+        candidate["predecessor_cost_stop"]["terminal_acceptance_sha256"] = "f" * 64
         candidate["terminal_acceptance_sha256"] = (
             verifier.terminal_acceptance_sha256(candidate)
         )
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
-        self.assertIn("receipt strict abort dependency mismatch", errors)
+        self.assertIn("receipt strict manual cost-stop predecessor mismatch", errors)
         self.assertIsNone(acceptance)
 
-    def test_default_abort_dependency_is_unfinalized(self):
-        errors, dependency = verifier.validate_abort_dependency(
+    def test_default_manual_cost_stop_predecessor_is_unfinalized(self):
+        errors, dependency = verifier.validate_predecessor_cost_stop(
             expected_successor_revision=EXECUTION_REVISION,
             root=ROOT,
         )
         self.assertEqual(
             errors,
-            ["Item26 cost-containment abort dependency is not finalized"],
+            ["Item26 manual cost-stop predecessor is not finalized"],
         )
         self.assertIsNone(dependency)
 
-    def test_frozen_abort_verifier_runs_in_isolated_process(self):
-        poisoned = types.ModuleType(
-            "validate_item26_cost_containment_abort_result_v1"
+    def test_manual_cost_stop_mutation_digest_binds_delete_token_absence(self):
+        dependency = predecessor_cost_stop()
+        expected = dependency["consumed_mutation_identity_set_sha256"]
+        dependency["delete_client_token_present"] = True
+        self.assertNotEqual(
+            verifier.predecessor_cost_stop_mutation_identity_set_sha256(
+                dependency
+            ),
+            expected,
         )
-        poisoned.validate_abort_result = lambda _value: []
+
+    def test_self_consistent_non_registry_predecessor_digest_is_incomplete(self):
+        dependency = predecessor_cost_stop()
+        dependency["delete_request_body_sha256"] = "a" * 64
+        dependency["consumed_mutation_identity_set_sha256"] = (
+            verifier.predecessor_cost_stop_mutation_identity_set_sha256(
+                dependency
+            )
+        )
+        dependency["authority_root"] = (
+            verifier.predecessor_cost_stop_authority_root(dependency)
+        )
+        self.assertFalse(verifier._predecessor_cost_stop_complete(dependency))
+
+    def test_production_consumed_mutation_digest_is_frozen(self):
+        self.assertEqual(
+            PRODUCTION_CONSUMED_MUTATION_SET_SHA256,
+            "8647c02f5879dcb7a986fc87ce3668ac4e35d63d610c4da1e54a57a8b7263105",
+        )
+
+    def test_manual_cost_stop_evidence_artifacts_must_exist_at_m1(self):
+        dependency, files = finalized_predecessor_files()
+
+        def stable(path):
+            return files[path.relative_to(ROOT).as_posix()]
+
+        def blob(revision, path_ref, *, root):
+            self.assertEqual(root, ROOT)
+            if (
+                revision == dependency["evidence_revision"]
+                and path_ref == dependency["evidence_path"]
+            ):
+                return b"wrong-evidence\n"
+            return files[path_ref]
+
+        with (
+            mock.patch.object(
+                verifier, "EXPECTED_PREDECESSOR_COST_STOP", dependency
+            ),
+            mock.patch.object(verifier, "_read_stable_bytes", side_effect=stable),
+            mock.patch.object(verifier, "_git_blob_bytes", side_effect=blob),
+            mock.patch.object(verifier, "_git_blob_absent", return_value=True),
+        ):
+            errors, binding = verifier.validate_predecessor_cost_stop(
+                expected_successor_revision=EXECUTION_REVISION,
+                root=ROOT,
+            )
+        self.assertEqual(
+            errors,
+            ["Item26 manual cost-stop evidence artifact blob mismatch"],
+        )
+        self.assertIsNone(binding)
+
+    def test_manual_cost_stop_checkpoint_must_not_exist_at_m1(self):
+        dependency, files = finalized_predecessor_files()
+
+        def stable(path):
+            return files[path.relative_to(ROOT).as_posix()]
+
+        def absent(revision, path_ref, *, root):
+            self.assertEqual(root, ROOT)
+            return not (
+                revision == dependency["evidence_revision"]
+                and path_ref == dependency["checkpoint_path"]
+            )
+
+        with (
+            mock.patch.object(
+                verifier, "EXPECTED_PREDECESSOR_COST_STOP", dependency
+            ),
+            mock.patch.object(verifier, "_read_stable_bytes", side_effect=stable),
+            mock.patch.object(
+                verifier,
+                "_git_blob_bytes",
+                side_effect=lambda _revision, path_ref, *, root: files[path_ref],
+            ),
+            mock.patch.object(verifier, "_git_blob_absent", side_effect=absent),
+        ):
+            errors, binding = verifier.validate_predecessor_cost_stop(
+                expected_successor_revision=EXECUTION_REVISION,
+                root=ROOT,
+            )
+        self.assertEqual(
+            errors,
+            [
+                "Item26 manual cost-stop checkpoint appeared before terminal revision"
+            ],
+        )
+        self.assertIsNone(binding)
+
+    def test_manual_cost_stop_artifacts_must_be_absent_at_control(self):
+        dependency, files = finalized_predecessor_files()
+
+        def stable(path):
+            return files[path.relative_to(ROOT).as_posix()]
+
+        with (
+            mock.patch.object(
+                verifier, "EXPECTED_PREDECESSOR_COST_STOP", dependency
+            ),
+            mock.patch.object(verifier, "_read_stable_bytes", side_effect=stable),
+            mock.patch.object(
+                verifier,
+                "_git_blob_bytes",
+                side_effect=lambda _revision, path_ref, *, root: files[path_ref],
+            ),
+            mock.patch.object(verifier, "_git_blob_absent", return_value=False),
+        ):
+            errors, binding = verifier.validate_predecessor_cost_stop(
+                expected_successor_revision=EXECUTION_REVISION,
+                root=ROOT,
+            )
+        self.assertEqual(
+            errors,
+            [
+                "Item26 manual cost-stop control revision contains terminal artifact"
+            ],
+        )
+        self.assertIsNone(binding)
+
+    def test_frozen_manual_cost_stop_verifier_runs_in_isolated_process(self):
+        poisoned = types.ModuleType(
+            "verify_item26_manual_cost_stop_authority_v1"
+        )
+        poisoned.validate_authority_bundle = lambda **_kwargs: ([], {})
         with mock.patch.dict(
             sys.modules,
-            {"validate_item26_cost_containment_abort_result_v1": poisoned},
+            {"verify_item26_manual_cost_stop_authority_v1": poisoned},
         ):
-            errors, binding = verifier._run_frozen_abort_verifier(
-                verifier_raw=(ROOT / verifier.ABORT_VERIFIER_REF).read_bytes(),
-                validator_raw=(ROOT / verifier.ABORT_VALIDATOR_REF).read_bytes(),
+            errors, binding = verifier._run_frozen_predecessor_cost_stop_verifier(
+                verifier_raw=(
+                    ROOT / verifier.MANUAL_COST_STOP_VERIFIER_REF
+                ).read_bytes(),
                 authority_verifier_raw=(
-                    ROOT / verifier.ABORT_AUTHORITY_VERIFIER_REF
+                    ROOT / verifier.MANUAL_COST_STOP_AUTHORITY_VERIFIER_REF
                 ).read_bytes(),
                 raw_extractor_raw=(
-                    ROOT / verifier.ABORT_RAW_EXTRACTOR_REF
+                    ROOT / verifier.MANUAL_COST_STOP_RAW_EXTRACTOR_REF
                 ).read_bytes(),
                 root=ROOT,
             )
         self.assertIsNone(binding)
         self.assertEqual(
             errors,
-            ["abort external authority/raw extractor is not finalized"],
+            ["manual cost-stop external authority is not finalized"],
         )
 
     def test_python_identity_hashes_stable_group_writable_file(self):
@@ -542,7 +749,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
             identity = verifier._python_executable_identity(target)
         self.assertRegex(identity[-1], r"^[0-9a-f]{64}$")
 
-    def test_frozen_abort_verifier_rejects_real_python_inode_drift(self):
+    def test_frozen_manual_verifier_rejects_real_python_inode_drift(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
             target = base / "python"
@@ -575,9 +782,8 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
                     ValueError, "isolated Python identity changed"
                 ),
             ):
-                verifier._run_frozen_abort_verifier(
+                verifier._run_frozen_predecessor_cost_stop_verifier(
                     verifier_raw=b"verifier",
-                    validator_raw=b"validator",
                     authority_verifier_raw=b"authority",
                     raw_extractor_raw=b"extractor",
                     root=ROOT,
@@ -595,9 +801,8 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
                     ValueError, "isolated Python identity invalid"
                 ),
             ):
-                verifier._run_frozen_abort_verifier(
+                verifier._run_frozen_predecessor_cost_stop_verifier(
                     verifier_raw=b"verifier",
-                    validator_raw=b"validator",
                     authority_verifier_raw=b"authority",
                     raw_extractor_raw=b"extractor",
                     root=ROOT,
@@ -623,9 +828,8 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
                     ),
                 ) as run,
             ):
-                errors, binding = verifier._run_frozen_abort_verifier(
+                errors, binding = verifier._run_frozen_predecessor_cost_stop_verifier(
                     verifier_raw=b"verifier",
-                    validator_raw=b"validator",
                     authority_verifier_raw=b"authority",
                     raw_extractor_raw=b"extractor",
                     root=ROOT,
@@ -643,9 +847,8 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
             mock.patch.object(verifier, "PROC_SELF_EXE", missing),
             self.assertRaisesRegex(ValueError, "isolated Python unavailable"),
         ):
-            verifier._run_frozen_abort_verifier(
+            verifier._run_frozen_predecessor_cost_stop_verifier(
                 verifier_raw=b"verifier",
-                validator_raw=b"validator",
                 authority_verifier_raw=b"authority",
                 raw_extractor_raw=b"extractor",
                 root=ROOT,
@@ -665,29 +868,27 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
                     ValueError, "isolated Python identity invalid"
                 ),
             ):
-                verifier._run_frozen_abort_verifier(
+                verifier._run_frozen_predecessor_cost_stop_verifier(
                     verifier_raw=b"verifier",
-                    validator_raw=b"validator",
                     authority_verifier_raw=b"authority",
                     raw_extractor_raw=b"extractor",
                     root=ROOT,
                 )
 
-    def test_frozen_abort_verifier_rejects_relative_python_identity(self):
+    def test_frozen_manual_verifier_rejects_relative_python_identity(self):
         with (
             mock.patch.object(verifier.sys, "executable", "python"),
             self.assertRaisesRegex(ValueError, "isolated Python identity invalid"),
         ):
-            verifier._run_frozen_abort_verifier(
+            verifier._run_frozen_predecessor_cost_stop_verifier(
                 verifier_raw=b"verifier",
-                validator_raw=b"validator",
                 authority_verifier_raw=b"authority",
                 raw_extractor_raw=b"extractor",
                 root=ROOT,
             )
 
-    def test_abort_dependency_authority_root_is_domain_separated(self):
-        dependency = abort_dependency()
+    def test_manual_cost_stop_authority_root_is_domain_separated(self):
+        dependency = predecessor_cost_stop()
         bare = hashlib.sha256(
             verifier._canonical({
                 key: dependency[key]
@@ -697,9 +898,9 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         ).hexdigest()
         self.assertNotEqual(dependency["authority_root"], bare)
 
-    def test_successor_clone_must_not_reuse_aborted_clone_identity(self):
+    def test_successor_clone_must_not_reuse_cost_stopped_clone_identity(self):
         candidate, _source = receipt_candidate()
-        dependency = abort_dependency()
+        dependency = predecessor_cost_stop()
         candidate["provider_identity"]["successor_clone_sha256"] = dependency[
             "old_clone_sha256"
         ]
@@ -709,13 +910,13 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=dependency,
+            expected_predecessor_cost_stop=dependency,
         )
         self.assertIn("receipt provider identity mismatch", errors)
         self.assertIsNone(acceptance)
 
     def test_successor_request_name_body_and_token_must_be_disjoint(self):
-        dependency = abort_dependency()
+        dependency = predecessor_cost_stop()
         pairs = (
             (
                 "successor_clone_name_sha256",
@@ -749,16 +950,16 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
                 errors, acceptance = verifier.validate_receipt(
                     candidate,
                     expected_execution_revision=EXECUTION_REVISION,
-                    expected_abort_dependency=dependency,
+                    expected_predecessor_cost_stop=dependency,
                 )
                 self.assertTrue(any("provider identity" in error for error in errors))
                 self.assertIsNone(acceptance)
 
-    def test_successor_fee_authorization_must_postdate_abort(self):
+    def test_successor_fee_authorization_must_postdate_manual_cost_stop(self):
         candidate, _source = receipt_candidate()
-        dependency = abort_dependency()
+        dependency = predecessor_cost_stop()
         candidate["cost_boundary"]["fee_authorization_issued_at_utc"] = dependency[
-            "abort_terminal_observed_at_utc"
+            "manual_terminal_accepted_at_utc"
         ]
         candidate["terminal_acceptance_sha256"] = (
             verifier.terminal_acceptance_sha256(candidate)
@@ -766,7 +967,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=dependency,
+            expected_predecessor_cost_stop=dependency,
         )
         self.assertTrue(any("cost boundary" in error for error in errors))
         self.assertIsNone(acceptance)
@@ -784,14 +985,14 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
         self.assertTrue(any("cost boundary" in error for error in errors))
         self.assertIsNone(acceptance)
 
     def test_successor_identity_cross_swap_with_old_set_fails(self):
         candidate, _source = receipt_candidate()
-        dependency = abort_dependency()
+        dependency = predecessor_cost_stop()
         identity = candidate["provider_identity"]
         identity["successor_clone_create_request_sha256"] = dependency[
             "old_clone_create_body_sha256"
@@ -806,7 +1007,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=dependency,
+            expected_predecessor_cost_stop=dependency,
         )
         self.assertTrue(any("provider identity" in error for error in errors))
         self.assertIsNone(acceptance)
@@ -820,7 +1021,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
         self.assertIn("receipt successor clone request identity mismatch", errors)
         self.assertIsNone(acceptance)
@@ -834,7 +1035,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
             root=ROOT,
         )
         self.assertIn("receipt source binding mismatch", errors)
@@ -852,7 +1053,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, _acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
         self.assertTrue(any("no-replay" in error for error in errors))
         self.assertTrue(any("ordered action" in error for error in errors))
@@ -867,7 +1068,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, _acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
         self.assertIn("receipt cleanup mismatch", errors)
 
@@ -881,7 +1082,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         errors, _acceptance = verifier.validate_receipt(
             candidate,
             expected_execution_revision=EXECUTION_REVISION,
-            expected_abort_dependency=abort_dependency(),
+            expected_predecessor_cost_stop=predecessor_cost_stop(),
         )
         self.assertTrue(any("canonical CNY" in error for error in errors))
 
@@ -902,11 +1103,14 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         registry = no_replay_registry()
         self.assertEqual(verifier.validate_no_replay_registry(registry), [])
         self.assertEqual(
-            registry["entry_count"], len(verifier.FROZEN_NO_REPLAY_IDENTITIES)
+            registry["entry_count"],
+            len(verifier.FROZEN_NO_REPLAY_IDENTITIES)
+            + len(verifier.FROZEN_ADDITIONAL_NO_REPLAY_IDENTITIES),
         )
 
         removed = copy.deepcopy(registry)
-        removed["entries"].pop()
+        removed["added_entries"].pop()
+        removed["added_entry_count"] -= 1
         removed["entry_count"] -= 1
         removed["registry_sha256"] = verifier.no_replay_registry_sha256(
             removed
@@ -917,17 +1121,33 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         )
 
     def test_committed_no_replay_registry_is_canonical_and_exact(self):
-        value, raw, error = verifier._load(
-            ROOT / verifier.NO_REPLAY_REGISTRY_REF
-        )
-        self.assertIsNone(error)
-        self.assertIsNotNone(raw)
-        self.assertEqual(verifier.validate_no_replay_registry(value), [])
+        with mock.patch.object(
+            verifier,
+            "NO_REPLAY_CONSUMED_MANUAL_MUTATION_SET_SHA256",
+            PRODUCTION_CONSUMED_MUTATION_SET_SHA256,
+        ):
+            value, raw, error = verifier._load(
+                ROOT / verifier.NO_REPLAY_REGISTRY_REF
+            )
+            self.assertIsNone(error)
+            self.assertIsNotNone(raw)
+            self.assertEqual(verifier.validate_no_replay_registry(value), [])
+            predecessor, predecessor_raw, predecessor_error = verifier._load(
+                ROOT / verifier.NO_REPLAY_REGISTRY_V1_REF
+            )
+            self.assertIsNone(predecessor_error)
+            self.assertEqual(
+                verifier.validate_no_replay_registry_v1(
+                    predecessor,
+                    predecessor_raw,
+                ),
+                [],
+            )
 
     def test_no_replay_registry_rejects_policy_or_artifact_drift(self):
         registry = no_replay_registry()
-        registry["entries"][-1]["replay_allowed"] = True
-        registry["entries"][-1]["artifact_sha256"] = "f" * 64
+        registry["added_entries"][-1]["replay_allowed"] = True
+        registry["added_entries"][-1]["artifact_sha256"] = "f" * 64
         registry["registry_sha256"] = verifier.no_replay_registry_sha256(
             registry
         )

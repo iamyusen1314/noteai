@@ -47,7 +47,8 @@ def closure():
         "schema": authority.CONFIRMATION_SCHEMA,
         "task_id": authority.TASK_ID,
         "execution_revision": EXECUTION,
-        "abort_terminal_acceptance_sha256": "d" * 64,
+        "predecessor_cost_stop_authority_root": "c" * 64,
+        "predecessor_cost_stop_terminal_acceptance_sha256": "d" * 64,
         "successor_clone_identity_set_sha256": "e" * 64,
         "fee_authorization_sha256": "f" * 64,
         "fee_confirmation_sha256": "1" * 64,
@@ -64,8 +65,8 @@ def closure():
         "receipt_file_sha256": RECEIPT,
         "terminal_acceptance_sha256": ACCEPTANCE,
         "raw_closure_sha256": "7" * 64,
-        "abort_dependency_authority_root": "c" * 64,
-        "abort_terminal_acceptance_sha256": "d" * 64,
+        "predecessor_cost_stop_authority_root": "c" * 64,
+        "predecessor_cost_stop_terminal_acceptance_sha256": "d" * 64,
         "successor_clone_identity_set_sha256": "e" * 64,
         "successor_fee_authorization_sha256": "f" * 64,
         "successor_confirmation_export_semantic_sha256": authority._semantic(
@@ -109,6 +110,7 @@ def closure():
         "receipt_file_sha256": RECEIPT,
         "checkpoint_file_sha256": CHECKPOINT,
         "no_replay_registry_file_sha256": "8" * 64,
+        "predecessor_no_replay_registry_file_sha256": "9" * 64,
         "control_sources": [
             {
                 "path": ref,

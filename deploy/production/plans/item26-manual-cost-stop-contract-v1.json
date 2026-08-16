@@ -1,0 +1,67 @@
+{
+  "action_authorization_granted": false,
+  "action_precedes_control_checkpoint": true,
+  "action_type": "MANUAL_BROWSER_POST_ACTION_COST_STOP",
+  "allowed_terminal_status": "POST_ACTION_RECONCILED_COST_STOP",
+  "billing_contract": {
+    "historical_snapshot_only": true,
+    "native_non_accruing_marker_proven": false,
+    "settlement_terminal_proven": false
+  },
+  "cloud_mutations_already_consumed": [
+    "ModifyDBInstanceDeletionProtection",
+    "DeleteDBInstance"
+  ],
+  "future_successor_contract": {
+    "fresh_read_only_baseline_required": true,
+    "new_fee_authorization_required": true,
+    "new_nonce_required": true,
+    "old_clone_create_identity_disjoint_required": true,
+    "old_confirmation_reusable": false,
+    "strictly_descends_terminal_checkpoint": true
+  },
+  "known_secret_free_commitments": {
+    "delete_provider_request_id_sha256": "4ea974bc7aeba8cc49af916a68939d10e54107928fb0dfebcf0deca644c088ed",
+    "delete_response_sha256": "f68679aef8173c37c0de1615f35a858c818bd8bc2e1e25cf58e0bd7b738d5eab",
+    "final_inventory_response_sha256": "abe028f275d4b7da1bb7181f7c95d6b834653c47091b4b528052867c3f551e4e",
+    "old_clone_full_identity_sha256": "820121638125fcebe3b7c03f3416ddae1fef1a0a9f1de731320fa75dd69a1525",
+    "old_clone_name_sha256": "cdffd0d0a0dd6d6a57f19d8479125671d4484fabe502d5cf4073b016767e4ef1",
+    "protection_disable_client_token_sha256": "4a3216763ad561a7d6ddef25e4a387188fe91964fa9bb2ab86bf464050f25ec5",
+    "protection_disable_provider_request_id_sha256": "c44eb336fc53b7850778bf61049f4df43ca562642084d3b3e6498be72d3cdc75",
+    "protection_disable_readback_sha256": "9735c5562a53b8fb674b75862280541f7053894bd47f21582894155cb0ee5694",
+    "protection_disable_response_sha256": "d819defe8b66a6884248cb857b355dc1c9efbc82cc32894c6f42e4c7bdac5c44",
+    "source_full_identity_sha256": "d3712c09b28ee82257ab128fa1b5ba79b223f8b774e5fa20f761a2c4782eee8d",
+    "source_name_sha256": "3911925626a615785629237e9dd27bb98e8b902f6eebaae6b185df6c0b84ebd7"
+  },
+  "ledger_context_revision": "41c489cf5ebfedfa2959bcee1f09183a9491f7f6",
+  "non_clone_resource_disposition": "UNPROVEN_RETAINED_FRESH_PREFLIGHT_REQUIRED",
+  "no_replay_contract": {
+    "append_only_v2_required": true,
+    "predecessor_entry_count": 25,
+    "predecessor_registry_file_sha256": "003a6541e20bce6256f52a4b7bdd0e983997d17af634e113ff7525b5a6bb4535",
+    "predecessor_registry_ref": "deploy/production/plans/item26-no-replay-registry-v1.json",
+    "predecessor_registry_sha256": "763ae967af95f55347e427f9df8e6c7014b16e645957417915e3ccd44d20e5d9"
+  },
+  "operation_id": "PROD-FIRST-LAUNCH-PITR-RESTORE-001:MANUAL-POST-ACTION-COST-STOP:v1",
+  "readiness_contract": {
+    "complete_public_verified_after": 25,
+    "complete_public_verified_before": 25,
+    "complete_public_total": 38,
+    "internal_total": 29,
+    "internal_verified_after": 25,
+    "internal_verified_before": 25,
+    "item26_status_after": "unverified",
+    "item26_status_before": "unverified",
+    "readiness_credit_added": false
+  },
+  "root_freeze_contract": {
+    "authorizes_new_action": false,
+    "empty_root_m0_requires_separate_activation_revision": true,
+    "frozen_before_action": false,
+    "required_status": "FROZEN_BEFORE_POST_ACTION_READBACK",
+    "terminal_artifacts_must_not_share_activation_revision": true
+  },
+  "schema": "noteai.item26.manual-cost-stop-contract.v1",
+  "status": "SOURCE_ONLY_POST_ACTION_RECONCILIATION_CONTRACT_NO_ACTION_AUTHORITY",
+  "task_id": "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
+}
