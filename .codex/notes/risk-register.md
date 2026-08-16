@@ -4,45 +4,39 @@ Last updated: 2026-08-16
 
 ## Local Codex storage recovery risks
 
-### Live state is still internal until the v6 three-stage proof completes
+### Simplified ORICO live state is adopted; rollback cleanup remains
 
-- 状态: Open local Critical. The current internal `.codex` is the selected
-  authoritative live baseline; divergent August 14 ORICO history is preserved
-  but is not authorized for same-thread merge. The old ORICO image and two
-  unaccepted `PARTIAL-UNKNOWN` images remain retained and unmounted.
-- 风险描述: A white screen or forced exit can still leave durable bytes that
-  the oversized original task cannot render. Starting ChatGPT without first
-  mounting and verifying the accepted ORICO v6 image would continue writing
-  the low-space internal disk. A stale candidate, environment split, wrong
-  APFS device, SQLite companion ambiguity or unproven app adoption could create
-  two writable timelines.
-- 当前控制: The frozen v6 prepare/launcher/verifier chain has independent
-  `P0=0` review. It requires full process/lsof quiescence, no-follow manifests,
-  ACL rejection, metadata/hardlink/SQLite semantic gates, atomic no-overwrite
-  receipts, exact app-build/device/source bindings and zero internal-home opens
-  before a test phrase is authorized. The launcher remains deliberately
-  `UNSEALED`; a separately frozen offline sealer with independent `P0=0`
-  review must, without reopening the App, perform one read-only candidate
-  attach/APFS/full-manifest audit and atomically create a new sealed tool
-  directory. The first prepare attempt stopped before locks or storage access
-  because the old environment gate rejected macOS's real `rc0/empty` unset
-  shape. Read-only audit proves zero source/ORICO writes, zero image creation,
-  zero attach and no residual output. That old command is revoked; the repaired
-  chain accepts only `rc0|rc1` with exactly empty streams, is fully SHA-rebound
-  and independently reviewed at `P0=0`. Successful prepare, sealer, switch and
-  write counts remain zero.
-- 残余 P1: Generic orphan SQLite super-journal names are not exhaustively
-  enumerated (current source count is zero); about 65 GiB of full-tree hashing
-  may time out fail-closed; old ORICO images are protected by top-level
-  identity/inventory without reading their bands. Any timeout, mismatch or
-  `UNKNOWN` must stop without bypass or retry.
-- 下一验证: After the correction checkpoint, completely quit ChatGPT/Codex, Chrome,
-  Computer Use and connectors, run the prepare wrapper once, then without
-  reopening any App run the offline sealer once. Only after `SEAL_PASS` may the
-  newly generated sealed guarded launcher run. Send only its displayed test
-  phrase, quit again and run the sealed verifier. Only its atomic PASS
-  can prove the new message was written to ORICO while the internal source
-  stayed unchanged. Item 26 and all cloud actions remain frozen throughout.
+- 状态: Open local Medium during the rollback window. Repository recovery
+  evidence records the simplified ORICO migration and one real-message
+  adoption test as PASS. The active app-server opened the ORICO state, WAL and
+  current rollout; the state quick check was `ok`, while the retained internal
+  backup had zero open processes. The former v6 prepare/seal/launcher path is
+  retired and must not be retried.
+- 风险描述: The unopened internal rollback copy still consumes roughly 65 GiB,
+  leaving the system volume at roughly 10 GiB available. The accepted ORICO
+  image is retained, but an incorrect ordinary launch after a full exit could
+  bypass the reviewed daily launcher. Separately, the giant historical task
+  can still create renderer/app-server memory pressure even when storage I/O
+  is correct.
+- 当前控制: `/Users/openclaw/.codex` remains the stable public logical path and
+  resolves to the mounted ORICO `.codex`; both public launch variables use that
+  logical path. The simple migration receipt records the rollback backup as
+  present and not deleted. Divergent August 14 ORICO history remains preserved
+  without runtime merge. All old v6 tools, historical Item 26 payloads and
+  UNKNOWN/no-replay executions remain frozen.
+- 残余边界: Storage adoption adds no NoteAI readiness credit. Item 26 remains
+  `unverified`, and cloud writes remain paused until this ledger is checkpointed,
+  the local rollback cleanup is explicitly completed, and a fresh read-only
+  reconciliation proves the current clone, billing, temporary-account and
+  frozen-execution state. A stale local or cloud record must not authorize a
+  replay.
+- 下一验证: After this ledger checkpoint, perform the separately scoped,
+  main-CTO serial cloud read-only reconciliation; do not start a builder,
+  connect to the clone database, or dispatch any historical command. The local
+  rollback cleanup remains a separate full-App-exit operation using only the
+  exact `FREE-INTERNAL-SPACE` path, followed by the reviewed ORICO daily
+  launcher; do not mix that destructive local cleanup into the NoteAI cloud
+  reconciliation.
 
 ## Critical Risks
 
@@ -2371,6 +2365,19 @@ Last updated: 2026-08-16
   renderer/app-server memory; storage relocation reduces disk-pressure risk but
   does not replace a compact handoff into a fresh successor task. Item 26 and
   all NoteAI/cloud actions remain frozen with zero readiness credit.
+
+- 2026-08-16 the simplified ORICO runtime path has now passed its real-message
+  adoption test, reducing the local-storage risk from High to Medium during the
+  rollback window. The active app-server opens ORICO state/WAL/current-rollout
+  files, the test message is present in the ORICO rollout, the state quick check
+  is `ok`, both public environment variables resolve through the fixed symlink,
+  and the internal backup has zero open processes. The remaining risk is disk
+  pressure: the unopened rollback copy still consumes roughly 65 GiB and the
+  system volume has roughly 10 GiB available. It may be deleted only after a
+  full App exit through the exact `FREE-INTERNAL-SPACE` path; afterwards the App
+  must be reopened through the ORICO daily launcher. This storage PASS does not
+  eliminate memory pressure from the giant historical task, so a compact
+  successor task remains the stability recommendation after cleanup.
 
 ## Low Risks
 

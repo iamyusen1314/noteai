@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-15 (Asia/Shanghai)
+> Updated: 2026-08-16 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -10436,3 +10436,69 @@ Colima, database, builder, restore and cloud actions remain frozen.
   invocation accept `FREE-INTERNAL-SPACE` to delete the retained internal
   backup and release roughly 65 GiB. Item 26 remains `unverified`; readiness
   and all NoteAI/cloud gates remain unchanged and frozen.
+
+### Simplified ORICO migration and real-message adoption passed (2026-08-16)
+
+- The user completed the one-time migration. The new image is mounted from
+  `/Volumes/ORICO/Codex-Storage/CodexHome-Simple.sparsebundle` at
+  `/Volumes/CodexHome-Simple`; `/Users/openclaw/.codex` is now an exact symlink
+  to `/Volumes/CodexHome-Simple/.codex`. Both launchctl variables read back as
+  `/Users/openclaw/.codex`, matching the stable public Codex location contract.
+- The live message `开始执行吧` served as the first real write test. Read-only
+  verification found it in the recent tail of the current root rollout, and
+  the active app-server PID opened the ORICO `state_5.sqlite`, its WAL and that
+  rollout. The target, state and rollout share the mounted APFS device; the
+  rollout path resolves under the ORICO target. `PRAGMA quick_check` returned
+  `ok`, while recursive `lsof` found zero processes opening
+  `/Users/openclaw/.codex-internal-backup`.
+- The simple migration receipt is present with schema
+  `codex-orico-simple-migration-v1`; it truthfully records the internal backup
+  as present and not deleted. The APFS live image reports roughly 65 GiB used
+  and 435 GiB available. The internal system volume still has only roughly
+  10 GiB available because the rollback copy remains intentionally retained.
+- The storage-switch objective is therefore runtime-proven. The sole remaining
+  storage action is a full App exit, a second invocation of
+  `1-迁移到ORICO.command`, exact confirmation `FREE-INTERNAL-SPACE`, and then
+  reopening via `2-从ORICO启动.command`. Only that explicit step deletes the
+  unopened internal backup and releases its space; the ORICO image is retained.
+  Item 26/readiness and every NoteAI/cloud gate remain unchanged and frozen.
+
+### Stable takeover reconciliation and exact checkpoint timeline (2026-08-16)
+
+- A fresh `git fetch origin` completed normally. The branch remains
+  `codex/quality-stabilization-real-chain`; fetched upstream is still
+  `9f6a768dcb2d9746eed009faf4d1657c1e8a78c0`, and local HEAD remains its
+  single direct child `f189c2bc342d01736c3bc262aa23c900f826c749`.
+- Exact Git commit times correct the recovery wording. The Item 26 dual-green
+  source checkpoint is `04c76d169307c354f216dc822280d122c19b138a` at
+  `2026-08-14T23:05:49+08:00`; its direct-child reboot Handoff checkpoint is
+  `2262b38070b225e51404f51f13a38b8cac2c8ebd` at
+  `2026-08-15T00:03:51+08:00`. The later storage-recovery chain is
+  `1675025` -> `585c59a` -> `0cfddb5` -> `0b7e318` -> `9f6a768` ->
+  `f189c2b`. In particular, `9f6a768` at `2026-08-16T11:11:04+08:00` is the
+  reviewed v6 rollout-partition/Readiness checkpoint, while `f189c2b` at
+  `2026-08-16T11:49:24+08:00` retires v6 and prepares the simplified ORICO
+  path. Neither is the August 15 midnight Item 26 checkpoint.
+- The simplified migration/adoption PASS above is later recovery evidence. It
+  does not add readiness credit: repository/isolated remains `12/12`, internal
+  runtime remains `13/17`, and internal readiness remains exactly `25/29`.
+  The unique task remains Item 26,
+  `PROD-FIRST-LAUNCH-PITR-RESTORE-001`; Items 27-29 remain unverified.
+- Five untracked Item 26 shell files are deliberately preserved without
+  execution, deletion or staging. The exact readback and recovery-executor
+  bytes match already-consumed historical no-replay artifacts. The remaining
+  three files have no Handoff/manifest identity binding and therefore convey
+  no execution authority.
+- Local storage adoption is recorded as PASS, but the retained internal
+  rollback copy still requires one full App exit and the exact
+  `FREE-INTERNAL-SPACE` cleanup path. Until that cleanup and a fresh read-only
+  cloud reconciliation complete, Item 26 remains paused for writes: no old
+  payload, command, invocation, SendFile, capture, readback, validator,
+  preflight or clone request may be replayed or replaced.
+- Secret-free consistency verification passed: JSON parsing and exact manifest
+  assertions; internal readiness `25/29` and complete public readiness `25/38`;
+  production readiness `138/138`; and 83 focused internal-readiness,
+  production-readiness and health tests in 7,269.508 seconds with zero failure
+  or error. `git diff --check` also passed. No database, provider, builder,
+  clone, service, billing or other cloud operation occurred during this
+  reconciliation.
