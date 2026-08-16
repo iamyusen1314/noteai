@@ -18,7 +18,7 @@ REVISION = "8" * 40
 REGION = "cn-shenzhen"
 CLONE = "rm-test-clone-secret-id"
 SOURCE = "rm-test-source-secret-id"
-CLIENT_TOKEN = "test-unique-protection-token"
+UNIQUE_IDEMPOTENCY_MARKER = "test-unique-protection-token"
 CONTRACT_SHA256 = "9" * 64
 
 
@@ -228,7 +228,7 @@ class Item26AbortRawExtractorTests(unittest.TestCase):
             "RegionId": REGION,
             "DBInstanceId": CLONE,
             "DeletionProtection": False,
-            "ClientToken": CLIENT_TOKEN,
+            "ClientToken": UNIQUE_IDEMPOTENCY_MARKER,
         }
         raw = parsed([
             record(
@@ -245,12 +245,12 @@ class Item26AbortRawExtractorTests(unittest.TestCase):
             operation="ModifyDBInstanceDeletionProtection",
             region_id=REGION,
             instance_id=CLONE,
-            client_token=CLIENT_TOKEN,
+            client_token=UNIQUE_IDEMPOTENCY_MARKER,
         )
         self.assertEqual(projection["submission_outcome"], "ACCEPTED")
         self.assertFalse(
             extractor.emitted_contains_raw_identifier(
-                projection, [CLONE, CLIENT_TOKEN, "disable-request-id"]
+                projection, [CLONE, UNIQUE_IDEMPOTENCY_MARKER, "disable-request-id"]
             )
         )
 

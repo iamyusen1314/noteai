@@ -10775,3 +10775,114 @@ Colima, database, builder, restore and cloud actions remain frozen.
   root, take a fresh read-only action-time snapshot and seek the already
   authorized immediate confirmation for the exact clone abort. The failed
   `80c5091` runs are terminal evidence and must not be rerun.
+
+### Item 26 fresh browser readback, exact clone cost stop and scanner-only successor (2026-08-16)
+
+- Commit `41c489cf5ebfedfa2959bcee1f09183a9491f7f6` was normally pushed, but
+  its push run `31950832743` and pull-request run `31950834542` both ended
+  attempt 1 in failure. Each ran 2,307 tests with 34 skips, zero errors and one
+  identical failure in the repository secret scanner. The scanner treated the
+  uppercase test-only identifiers `CLIENT_TOKEN` and `TOKEN` as secret-bearing
+  assignment names; it did not identify a real secret value. Quality,
+  PostgreSQL, the independent readiness step and Compose were skipped after
+  unit failure. Neither failed run was rerun or cancelled; both are terminal,
+  no-replay evidence and must not be rerun.
+- The only code correction in the current successor renames those two local
+  test identifiers to `UNIQUE_IDEMPOTENCY_MARKER` and
+  `PREBOUND_IDEMPOTENCY_MARKER`. The literal sentinels, API `ClientToken`
+  fields, `client_token=` arguments and assertions that raw values are absent
+  from emitted projections remain unchanged. The scanner, its regex and its
+  allowlist are not weakened.
+- A new official `DescribeDBInstances` readback at the already selected
+  `cn-shenzhen` region returned exactly two instances in one complete page and
+  no next token. The exact Item 26 clone remains hash prefix `820121638125`,
+  description `noteai-item26-pitr-restore-20260812-v1`, `Running`, `Postpaid`,
+  PostgreSQL 16, `Unlock` and deletion-protected. The exact source remains hash
+  prefix `d3712c09b28e`, description `noteai-prod-postgres`, `Running`,
+  `Prepaid` and PostgreSQL 16. The copied response bytes have SHA-256
+  `6c784f129a70ad5fce645a339b4c55cce8646f4c7bc63d033d139e6a0b003251`;
+  no full resource identifier is written to Git.
+- A new official `QueryInstanceBill` readback for `2026-08`, RDS and
+  pay-as-you-go returned exactly one row and bound it to that clone, not the
+  source. Pretax gross is now `198.462 CNY` over `345600` service seconds. This
+  is an increase of `12.804 CNY` and `14400` seconds from the earlier
+  `185.658 CNY` / `331200` snapshot and remains above the `76.824 CNY`
+  ceiling. The copied response bytes have SHA-256
+  `ed2fda069a1902bda37abfb7e551929cc40f3c139cb4117179b1176b0127631a`.
+  QueryInstanceBill remains delayed historical evidence, not a native
+  non-accruing marker.
+- The user then supplied an explicit immediate browser action confirmation at
+  `2026-08-16T14:39:11.475Z`. A fresh complete regional readback immediately
+  before mutation retained exactly the same clone/source tuple; its response
+  SHA-256 is
+  `9d895d24caa648b6335f8d624a26c7ded9e0bc45644f5ee3a2845be3b7f993b5`.
+- `ModifyDBInstanceDeletionProtection` was submitted exactly once for the
+  exact clone with a unique client token whose SHA-256 is
+  `4a3216763ad561a7d6ddef25e4a387188fe91964fa9bb2ab86bf464050f25ec5`.
+  The response SHA-256 is
+  `d819defe8b66a6884248cb857b355dc1c9efbc82cc32894c6f42e4c7bdac5c44`.
+  The next complete same-identity readback, SHA-256
+  `9735c5562a53b8fb674b75862280541f7053894bd47f21582894155cb0ee5694`,
+  proved deletion protection `false` while the source remained unchanged. No
+  retry, resend or replacement request occurred.
+- `DeleteDBInstance` was then submitted exactly once for the same clone. Its
+  response contained only the expected request/region tuple; the response
+  SHA-256 is
+  `f68679aef8173c37c0de1615f35a858c818bd8bc2e1e25cf58e0bd7b738d5eab`
+  and the request-ID SHA-256 is
+  `4ea974bc7aeba8cc49af916a68939d10e54107928fb0dfebcf0deca644c088ed`.
+  A complete regional same-identity readback at
+  `2026-08-16T14:44:50.237Z`, SHA-256
+  `abe028f275d4b7da1bb7181f7c95d6b834653c47091b4b528052867c3f551e4e`,
+  returned exactly one instance: target match count `0`, source match count
+  `1`, and the source still `Running/Prepaid`. This closes ongoing clone cost
+  under the exact accepted-delete plus exact-ID-absence contract. The delayed
+  historical billing row is retained and no native non-accruing billing marker
+  is claimed.
+- The transient Secret-free local intent ledger remains outside the repository
+  at mode `0600`; its final SHA-256 is
+  `11c43c5cc55864dacd4cef36c2d90882c83056ac9fdc54ff698fdd065661f427`.
+  It contains only hashes/prefixes, the two exact-one submissions and their
+  same-identity readbacks. It is not an authority root, terminal receipt or
+  readiness evidence.
+- Total cloud mutation count is exactly `2`: one protection disable and one
+  clone delete. Clone creation, RestoreTime changes, builder/disk/IAM/vSwitch/
+  account/source mutations, Cloud Assistant/SendFile dispatches, database
+  connections/transactions/writes and new paid resources are all `0`. The five
+  historical untracked scripts remain unexecuted, undeleted and unstaged.
+- This user-confirmed manual cost stop does not retroactively finalize the
+  source-only abort authority scaffold and does not prove restored capture or
+  source/restored reconciliation. Item 26 remains `unverified`, readiness
+  remains `25/29`, and every historical UNKNOWN/no-replay boundary remains
+  unchanged. The next serial boundary is the scanner-only Secret-free
+  checkpoint and its own new attempt-one push/PR CI. Any future successful PITR
+  successor must be fully disjoint and obtain a new explicit fee authorization;
+  the released clone and every consumed mutation identity remain no-replay.
+
+### Item 26 cost-stop ledger validation and scanner-only checkpoint candidate (2026-08-17)
+
+- Independent read-only reconciliation found no P0 discrepancy after the cloud
+  cost stop. It required three no-replay wording corrections: mark both
+  `41c489c` CI runs terminal/non-rerunnable, name the current state explicitly as
+  a manual browser cost stop rather than abort-v1 terminal authority, and retire
+  the older ORICO wording that still described clone cleanup as a future action.
+  Those corrections are now applied across Handoff, risk ledger and readiness
+  manifest.
+- The only code change since `41c489c` remains the scanner-safe rename of two
+  test-local identifiers. On the pre-final-ledger snapshot, the complete
+  `tests.test_production_readiness_gate` module passed all `43` tests in
+  `6162.511s`. After the final audit-only ledger corrections, the two affected
+  current-repository/secret-scanner tests passed `2/2` in `128.043s`, and the
+  two modified Item 26 modules passed `28/28` in `0.032s`.
+- Final-snapshot checks record internal readiness `25/29`, public aggregate
+  `25/38`, production readiness `PASS` with `138` checks and `0` failures,
+  Python syntax PASS for both modified tests, manifest JSON parse PASS and
+  `git diff --check` PASS. Item 26 remains `unverified` with `evidence: []` and
+  no readiness credit.
+- The checkpoint candidate contains exactly the three Secret-free ledgers and
+  the two scanner-only test files. The five historical Item 26 shell scripts
+  remain the only untracked files and remain unexecuted, undeleted and unstaged.
+  The next action is a normal commit/push followed by new attempt-one push/PR CI;
+  neither `80c5091` nor `41c489c` may be rerun. A checkpoint or dual-green CI is
+  not a stopping point: after it, build the fully disjoint Item 26 success
+  successor under a new explicit fee authorization, then continue Items 27–29.

@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-16
+Last updated: 2026-08-17
 
 ## Local Codex storage recovery risks
 
@@ -25,37 +25,53 @@ Last updated: 2026-08-16
   without runtime merge. All old v6 tools, historical Item 26 payloads and
   UNKNOWN/no-replay executions remain frozen.
 - 残余边界: Storage adoption adds no NoteAI readiness credit. Item 26 remains
-  `unverified`. The fresh cloud reconciliation is now complete and independently
-  exposed a PITR clone cost-ceiling breach; cloud writes remain frozen except
-  for the separately confirmed exact cost-containment cleanup path. A stale
-  local or cloud record must not authorize a replay.
-- 下一验证: Keep the separately ledgered Item 26 abort successor moving through
-  its source-only raw/resource-lineage and exact-once gates, then take the fresh
-  action-time confirmation required for exact cleanup; do not start a builder,
-  connect to the clone database, or dispatch any historical command. The local
-  rollback cleanup remains a separate full-App-exit operation using only the
-  exact `FREE-INTERNAL-SPACE` path, followed by the reviewed ORICO daily
-  launcher; do not mix that destructive local cleanup into the NoteAI cloud
-  reconciliation.
+  `unverified`. Fresh cloud reconciliation exposed the PITR clone cost-ceiling
+  breach, and the separately confirmed exact clone cost stop is now complete.
+  No further cleanup mutation is authorized against that released clone; both
+  consumed mutation identities are terminal/no-replay. A stale local or cloud
+  record must not authorize a replay.
+- 下一验证: Checkpoint the scanner-only Secret-free successor, freeze the two
+  consumed cloud mutation identities and exact-ID absence, then require a fully
+  disjoint Item 26 success successor with a new explicit fee authorization; do
+  not start a builder, connect to a database or dispatch any historical command.
+  The local rollback cleanup remains a separate full-App-exit operation using
+  only the exact `FREE-INTERNAL-SPACE` path, followed by the reviewed ORICO
+  daily launcher; do not mix that destructive local cleanup into the NoteAI
+  cloud reconciliation.
 
 ## Item 26 PITR cost-containment risk
 
-### Paid restore clone exceeded its explicit ceiling; exact abort is pending
+### Paid restore clone exceeded its explicit ceiling; exact clone cost stop completed
 
-- 状态: Open High. Fresh official billing readback attributes `185.658 CNY`
-  pretax gross in the August cycle to the sole Item 26 Postpaid restore clone,
-  versus the recorded 24-hour list-price ceiling of `76.824 CNY`. Available
-  account cash readback is `40.99 CNY`.
-- 风险描述: The clone is still `Running`, deletion-protected and billable while
-  restored capture remains `NOT_STARTED`; starting the stopped builder would
-  add compute cost and still would not close the frozen pre-connect gates.
-  Retaining the clone without a new explicit ceiling continues an already
-  exceeded cost exposure.
-- 当前控制: All non-cleanup paid activity is frozen. Database connection,
-  transaction and write counts remain zero; builder start, Cloud Assistant
-  dispatch, SendFile, second-clone creation, RestoreTime change and every
-  historical replay remain prohibited. Secret-free hashes bind the exact clone,
-  source, builder, disk and Item 26 RAM candidates without recording secrets.
+- 状态: Mitigated Medium. The newest official billing readback attributes
+  `198.462 CNY` pretax gross over `345600` service seconds in the August cycle
+  to the sole Item 26 Postpaid restore clone, versus the recorded 24-hour
+  list-price ceiling of `76.824 CNY`. This is `12.804 CNY` and `14400` seconds
+  above the prior readback. The last available-account-cash readback remains
+  `40.99 CNY` and was not refreshed by this query. After explicit action-time
+  confirmation, the exact clone received one protection-disable and one delete;
+  a complete same-identity readback returned clone count `0`, source count `1`
+  and the source still `Running/Prepaid`.
+- 风险描述: Ongoing clone cost is stopped under the accepted-delete plus
+  exact-ID-absence contract, but the historical over-ceiling charge remains and
+  QueryInstanceBill is delayed historical evidence, not a native non-accruing
+  marker or final settlement statement. Restored capture never started, so the
+  cost stop does not verify PITR correctness or Item 26. Any future restore
+  attempt would be a new paid successor requiring a new explicit ceiling.
+- 当前控制: The user-confirmed mutation set was exactly two writes against the
+  exact clone. Protection-disable response/readback SHA-256 values are
+  `d819defe8b66a6884248cb857b355dc1c9efbc82cc32894c6f42e4c7bdac5c44`
+  and `9735c5562a53b8fb674b75862280541f7053894bd47f21582894155cb0ee5694`;
+  delete response/absence-readback SHA-256 values are
+  `f68679aef8173c37c0de1615f35a858c818bd8bc2e1e25cf58e0bd7b738d5eab`
+  and `abe028f275d4b7da1bb7181f7c95d6b834653c47091b4b528052867c3f551e4e`.
+  No retry, resend or replacement occurred. Database connection, transaction
+  and write counts remain zero; builder/disk/IAM/vSwitch/account/source
+  mutation, Cloud Assistant dispatch, SendFile, second-clone creation,
+  RestoreTime change and new-paid-resource counts are all zero. Secret-free
+  hashes bind the exact clone and source without recording full identifiers.
+  The five historical Item 26 scripts remain preserved, untracked, unstaged and
+  unexecuted.
   A source-only terminal-verifier scaffold now independently enforces exact
   restore semantics and a 25-entry no-replay registry, but its pre-execution
   authority root is intentionally empty and it cannot authorize dispatch or
@@ -73,35 +89,34 @@ Last updated: 2026-08-16
   an isolated subprocess. Linux now anchors that subprocess to the current
   parent executable inode through `/proc/self/exe`; this is runtime continuity,
   not full loader/stdlib supply-chain attestation.
-- 残余边界: The existing retention contract permits either terminal acceptance
-  or exact approved cleanup. Under the current fee boundary only a
-  `COST_CONTAINMENT_ABORT` is admissible, but disabling deletion protection and
-  deleting the clone require immediate browser action confirmation. The abort
-  scaffold is still deliberately non-dispatchable: its root hash is empty, no
-  real pre-action root or three-authority bundle is installed, complete
-  regional new-paid-resource and task-owned IAM/account/vSwitch derivation is
-  absent, the O_EXCL exact-once state runner is absent, and no action-time
-  confirmation has been issued. Commit `80c5091` also has terminal failed
+- 残余边界: The exact approved-cleanup branch of the retention contract was used,
+  but this manual browser cost stop is not a retroactive terminal acceptance for
+  the deliberately non-dispatchable abort v1 scaffold. Its root hash remains
+  empty; no real pre-action root/three-authority bundle, complete task-owned
+  resource lineage or O_EXCL runner was installed. Ownership-unproven IAM,
+  account and vSwitch candidates therefore remain untouched. Historical billing
+  may still settle or appear in later statements, and no native terminal marker
+  is claimed. Commit `80c5091` has terminal failed
   attempt-one push/PR CI due its now-corrected hosted-toolcache mode false
-  rejection; those runs are no-replay and the current successor still needs its
-  own dual-green CI. An abort keeps Item 26 `unverified` and readiness at
-  `25/29`; a future restore requires a fully disjoint
+  rejection. Its successor `41c489c` also has terminal failed attempt-one
+  push/PR CI, solely because the secret scanner classified two uppercase
+  test-local idempotency-marker names as secret-bearing assignments; no real
+  secret value was found. Neither pair may be rerun. The current scanner-only
+  successor changes only those local names and still needs its own dual-green
+  CI. The completed cost stop keeps Item 26 `unverified` and readiness at
+  `25/29`; a future
+  restore requires a fully disjoint
   successor identity/request/name/body/token set and a new fee authorization
-  issued after abort by an independent user-confirmation authority. The
+  issued after the cost stop by an independent user-confirmation authority. The
   provider authority may cross-bind that confirmation but cannot issue it.
-- 下一验证: Complete the terminal raw/resource-lineage extractor and O_EXCL
-  mutation state machine, checkpoint and normally push the Secret-free
-  source-only successor, and require its own attempt-one dual-green CI. Then
-  install and pre-freeze the root-owned provider/confirmation/CI plan without
-  dispatching it.
-  Only after the immediate action-time confirmation may the main CTO transmit
-  the minimum exact identifiers, re-read the same clone, disable protection,
-  delete it once, prove exact-ID absence and non-accruing billing closure, and
-  clean only ownership-proven task resources. Any mutation `UNKNOWN` permits
-  readback of the same identity only; it never permits resubmission. Abort v1
-  cannot resume a partial known/unprotected state: continuation would require a
-  new versioned recovery contract, fresh preflight and new confirmation while
-  preserving every already-submitted mutation as no-replay.
+- 下一验证: Checkpoint and normally push the scanner-only Secret-free
+  successor, and require its own new attempt-one dual-green CI without rerunning
+  either failed checkpoint. Freeze the two consumed mutation identities and the
+  exact-ID absence as post-action/no-readiness-credit evidence; do not replay
+  either cloud request or infer terminal abort-v1 authority. Then build a fully
+  disjoint Item 26 success successor with a new fee authorization and exact
+  provider/user-confirmation/CI trust roots. Any future mutation `UNKNOWN`
+  permits readback of the same identity only; it never permits resubmission.
 
 ## Critical Risks
 

@@ -24,7 +24,7 @@ REVISION = "8" * 40
 REGION = "cn-shenzhen"
 CLONE = "rm-authority-clone-secret-id"
 SOURCE = "rm-authority-source-secret-id"
-TOKEN = "prebound-client-token"
+PREBOUND_IDEMPOTENCY_MARKER = "prebound-client-token"
 NONCE_SHA256 = hashlib.sha256(b"confirmation-nonce").hexdigest()
 
 
@@ -227,7 +227,7 @@ def fixture(*, source_pay_type="Prepaid", gross="185.658"):
         "recorded_minimum_pretax_gross_cny": "185.658",
         "recorded_minimum_service_seconds": 331200,
         "approved_24h_ceiling_cny": "76.824",
-        "protection_disable_client_token": TOKEN,
+        "protection_disable_client_token": PREBOUND_IDEMPOTENCY_MARKER,
         "planned_mutations": [
             {
                 "sequence": 1,
@@ -238,7 +238,7 @@ def fixture(*, source_pay_type="Prepaid", gross="185.658"):
                     "RegionId": REGION,
                     "DBInstanceId": CLONE,
                     "DeletionProtection": False,
-                    "ClientToken": TOKEN,
+                    "ClientToken": PREBOUND_IDEMPOTENCY_MARKER,
                 },
             },
             {
@@ -469,7 +469,7 @@ class Item26AbortAuthorityTests(unittest.TestCase):
         rendered = json.dumps(binding)
         self.assertNotIn(CLONE, rendered)
         self.assertNotIn(SOURCE, rendered)
-        self.assertNotIn(TOKEN, rendered)
+        self.assertNotIn(PREBOUND_IDEMPOTENCY_MARKER, rendered)
 
     def test_source_must_remain_prepaid(self):
         files, root_sha, controls = fixture(source_pay_type="Postpaid")
