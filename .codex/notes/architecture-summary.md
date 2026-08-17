@@ -279,6 +279,28 @@ Only service names and variable names are documented here; no secret values.
 
 ## Fragile Areas
 
+### Item 26 manual post-action cost-stop authority
+
+- The historical browser cost stop is an observed, terminal/no-replay v1
+  operation; it is not retroactive abort authority and adds no readiness
+  credit. The unavailable v1 public-root bytes and signing-key custody are
+  preserved only as historical one-way commitments and are never a fallback.
+- The active design is an independent generation-v2 authority with a tracked
+  Secret-free public root, three role-context RSA-3072 signatures, a signed
+  runtime receipt-v3 and root-owned raw/runtime custody. Its current A3 source
+  checkpoint is inert: the public root is absent, the expected hash is empty,
+  every production entry point fails before I/O, and no credential has been
+  generated.
+- The serial activation DAG is ledger-stop dual CI, inert-source dual CI,
+  explicitly authorized root-key generation, complete public-root activation
+  dual CI, signed receipt/root-only install, fresh read-only capture, M1/M2
+  candidate artifacts and final authority. Control sources, the CI workflow,
+  public root and terminal artifacts remain frozen through the future PITR
+  successor tree.
+- Local root-owned material is not portable CI evidence. A Secret-free,
+  clean-clone-replayable terminal capsule or equivalent trusted distribution
+  contract remains mandatory before Item 26 credit or any paid PITR successor.
+
 - `NoteAI_Pro_Demo_Framer.html` is a very large static file with global state; accidental name collisions or missing payload fields are easy.
 - `model/api.py` is very large and mixes API models, provider calls, scoring, generation, sanitization, streaming, billing, and report logic.
 - Billing and admin adjustment logic is revenue-critical.

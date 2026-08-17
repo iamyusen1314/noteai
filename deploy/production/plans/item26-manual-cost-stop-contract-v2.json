@@ -1,0 +1,89 @@
+{
+  "activation_contract": {
+    "a3_attempt_one_dual_ci_required": true,
+    "automatic_rerun_allowed": false,
+    "fresh_read_only_capture_may_start_before_receipt_v3": false,
+    "root_owned_install_required": true
+  },
+  "authority_generation": {
+    "authority_epoch_id": "noteai.item26.manual-cost-stop-authority-generation.v2",
+    "generation_id": "PROD-FIRST-LAUNCH-PITR-RESTORE-001:MANUAL-POST-ACTION-COST-STOP-AUTHORITY:v2",
+    "historical_operation_replayed": false,
+    "new_private_key_count": 3,
+    "new_private_key_type": "RSA-3072",
+    "status": "SOURCE_ONLY_INERT_NOT_FINALIZED"
+  },
+  "historical_observed_operation": {
+    "action_authorization_granted": false,
+    "operation_id": "PROD-FIRST-LAUNCH-PITR-RESTORE-001:MANUAL-POST-ACTION-COST-STOP:v1",
+    "post_action_readback_only": true,
+    "replay_allowed": false
+  },
+  "ledger_stop": {
+    "internal_readiness": "25/29",
+    "item26_status": "unverified",
+    "readiness_credit_added": false,
+    "revision": "653a4f350c679dff047426e0c0c5969461bd39fc"
+  },
+  "no_replay_registry": {
+    "entry_count": 29,
+    "file_sha256": "994c521e22abd9be0c88d4b252ce4d3ef9a47f8131a065ab7964018f224d0f47",
+    "ref": "deploy/production/plans/item26-no-replay-registry-v2.json",
+    "registry_sha256": "93abb46e3e329dd28edab6bab14ec6c1a09177d0effe0e80d881d43f1e878be5"
+  },
+  "public_root": {
+    "complete_canonical_public_pem_required": true,
+    "expected_file_state_in_this_revision": "ABSENT_NOT_PLACEHOLDER",
+    "placeholder_permitted": false,
+    "ref": "deploy/production/authorities/item26-manual-cost-stop-authority-root-v2.json",
+    "root_schema": "noteai.item26.manual-cost-stop-authority-root.v2"
+  },
+  "receipt_v3": {
+    "a0_a1_a2_and_653a_ledger_summary_source_blobs_required": true,
+    "a3_control_commit_exact_attempt_one_dual_green_required": true,
+    "cloud_read_count_before_activation": 0,
+    "cloud_write_count_before_activation": 0,
+    "database_connection_count_before_activation": 0,
+    "fallback_to_authority_v1_allowed": false,
+    "fallback_to_collector_v1_allowed": false,
+    "fallback_to_receipt_v2_allowed": false,
+    "journal_write_count_before_activation": 0,
+    "root_git_blob_binding_required": true,
+    "signature_covers_domain_outer_context_and_payload": true
+  },
+  "roles": [
+    {
+      "organizational_independence_proven": false,
+      "role": "provider"
+    },
+    {
+      "organizational_independence_proven": false,
+      "role": "confirmation"
+    },
+    {
+      "organizational_independence_proven": false,
+      "role": "local_ci_observation"
+    }
+  ],
+  "schema": "noteai.item26.manual-cost-stop-contract.v2",
+  "side_effects_in_this_revision": {
+    "cloud_call_count": 0,
+    "database_connection_count": 0,
+    "journal_write_count": 0,
+    "private_key_generation_count": 0,
+    "public_root_generation_count": 0,
+    "receipt_signature_count": 0,
+    "root_install_count": 0
+  },
+  "task_id": "PROD-FIRST-LAUNCH-PITR-RESTORE-001",
+  "v1_custody": {
+    "compromised_proven": false,
+    "destroyed_proven": false,
+    "private_keys_locatable": false,
+    "revoked_proven": false,
+    "root_bytes_locatable": false,
+    "root_file_sha256": "f0f7cfce319009ad696cf762f30ca25b2f237d4bda2f4f0643baeea409514f3c",
+    "rotated_proven": false,
+    "status": "CUSTODY_UNAVAILABLE_NOT_PROVEN_DESTROYED_HISTORICAL_UNACTIVATED"
+  }
+}

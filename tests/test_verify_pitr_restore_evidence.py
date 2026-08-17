@@ -38,7 +38,14 @@ PRODUCTION_CONSUMED_MUTATION_SET_SHA256 = (
 def predecessor_cost_stop():
     value = {
         "schema": verifier.PREDECESSOR_COST_STOP_SCHEMA,
-        "kind": "MANUAL_BROWSER_POST_ACTION_COST_STOP_V1",
+        "kind": verifier.PREDECESSOR_COST_STOP_KIND,
+        "authority_generation_id": (
+            verifier.PREDECESSOR_AUTHORITY_GENERATION_ID
+        ),
+        "authority_epoch_id": verifier.PREDECESSOR_AUTHORITY_EPOCH_ID,
+        "activation_receipt_schema": (
+            verifier.PREDECESSOR_ACTIVATION_RECEIPT_SCHEMA
+        ),
         "authority_root": "",
         "verifier_path": verifier.MANUAL_COST_STOP_VERIFIER_REF,
         "verifier_sha256": "1" * 64,
@@ -48,8 +55,22 @@ def predecessor_cost_stop():
         "authority_verifier_sha256": "4" * 64,
         "raw_extractor_path": verifier.MANUAL_COST_STOP_RAW_EXTRACTOR_REF,
         "raw_extractor_sha256": "5" * 64,
+        "collector_path": verifier.MANUAL_COST_STOP_COLLECTOR_REF,
+        "collector_sha256": "6" * 64,
+        "root_builder_path": verifier.MANUAL_COST_STOP_ROOT_BUILDER_REF,
+        "root_builder_sha256": "7" * 64,
+        "activation_receipt_builder_path": (
+            verifier.MANUAL_COST_STOP_ACTIVATION_RECEIPT_BUILDER_REF
+        ),
+        "activation_receipt_builder_sha256": "8" * 64,
+        "installer_path": verifier.MANUAL_COST_STOP_INSTALLER_REF,
+        "installer_sha256": "9" * 64,
         "contract_path": verifier.MANUAL_COST_STOP_CONTRACT_REF,
         "contract_sha256": "6" * 64,
+        "ci_workflow_path": verifier.MANUAL_COST_STOP_CI_WORKFLOW_REF,
+        "ci_workflow_sha256": "e" * 64,
+        "public_root_path": verifier.MANUAL_COST_STOP_PUBLIC_ROOT_REF,
+        "public_root_sha256": "5" * 64,
         "no_replay_registry_path": verifier.MANUAL_COST_STOP_NO_REPLAY_REGISTRY_REF,
         "no_replay_registry_file_sha256": "7" * 64,
         "evidence_path": verifier.MANUAL_COST_STOP_EVIDENCE_REF,
@@ -59,7 +80,9 @@ def predecessor_cost_stop():
         "checkpoint_path": verifier.MANUAL_COST_STOP_CHECKPOINT_REF,
         "checkpoint_sha256": "4" * 64,
         "authority_root_file_sha256": "5" * 64,
+        "authority_root_git_blob_sha256": "5" * 64,
         "authority_bundle_file_sha256": "6" * 64,
+        "activation_receipt_sha256": "3" * 64,
         "provider_raw_file_sha256": "7" * 64,
         "actiontrail_raw_file_sha256": "8" * 64,
         "confirmation_envelope_file_sha256": "8" * 64,
@@ -100,7 +123,16 @@ def finalized_predecessor_files():
         ("builder_path", "builder_sha256"),
         ("authority_verifier_path", "authority_verifier_sha256"),
         ("raw_extractor_path", "raw_extractor_sha256"),
+        ("collector_path", "collector_sha256"),
+        ("root_builder_path", "root_builder_sha256"),
+        (
+            "activation_receipt_builder_path",
+            "activation_receipt_builder_sha256",
+        ),
+        ("installer_path", "installer_sha256"),
         ("contract_path", "contract_sha256"),
+        ("ci_workflow_path", "ci_workflow_sha256"),
+        ("public_root_path", "public_root_sha256"),
         ("no_replay_registry_path", "no_replay_registry_file_sha256"),
         ("evidence_path", "evidence_sha256"),
         ("receipt_path", "receipt_sha256"),
@@ -111,6 +143,8 @@ def finalized_predecessor_files():
         raw = (path_key + "\n").encode("ascii")
         files[value[path_key]] = raw
         value[digest_key] = hashlib.sha256(raw).hexdigest()
+    value["authority_root_file_sha256"] = value["public_root_sha256"]
+    value["authority_root_git_blob_sha256"] = value["public_root_sha256"]
     value["authority_root"] = verifier.predecessor_cost_stop_authority_root(value)
     return value, files
 
@@ -584,6 +618,45 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         )
         self.assertIsNone(dependency)
 
+    def test_successor_rejects_v1_or_drifted_v2_authority_dependency(self):
+        mutations = {
+            "schema": "noteai.item26.manual-cost-stop-dependency.v1",
+            "kind": "MANUAL_BROWSER_POST_ACTION_COST_STOP_V1",
+            "authority_epoch_id": "legacy-v1",
+            "activation_receipt_schema": (
+                "noteai.item26.manual-cost-stop-runtime-activation-receipt.v2"
+            ),
+            "verifier_path": (
+                "tools/verify_item26_manual_cost_stop_evidence_v1.py"
+            ),
+        }
+        for key, drifted in mutations.items():
+            with self.subTest(key=key):
+                dependency = predecessor_cost_stop()
+                dependency[key] = drifted
+                dependency["authority_root"] = (
+                    verifier.predecessor_cost_stop_authority_root(dependency)
+                )
+                self.assertFalse(
+                    verifier._predecessor_cost_stop_complete(dependency)
+                )
+
+    def test_successor_requires_public_installed_and_git_root_bytes_equal(self):
+        for key in (
+            "public_root_sha256",
+            "authority_root_file_sha256",
+            "authority_root_git_blob_sha256",
+        ):
+            with self.subTest(key=key):
+                dependency = predecessor_cost_stop()
+                dependency[key] = "f" * 64
+                dependency["authority_root"] = (
+                    verifier.predecessor_cost_stop_authority_root(dependency)
+                )
+                self.assertFalse(
+                    verifier._predecessor_cost_stop_complete(dependency)
+                )
+
     def test_manual_cost_stop_mutation_digest_binds_delete_token_absence(self):
         dependency = predecessor_cost_stop()
         expected = dependency["consumed_mutation_identity_set_sha256"]
@@ -714,14 +787,111 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         )
         self.assertIsNone(binding)
 
+    def test_successor_revision_must_preserve_predecessor_sources(self):
+        dependency, files = finalized_predecessor_files()
+
+        def stable(path):
+            return files[path.relative_to(ROOT).as_posix()]
+
+        def blob(revision, path_ref, *, root):
+            if (
+                revision == EXECUTION_REVISION
+                and path_ref == dependency["verifier_path"]
+            ):
+                return b"successor-source-drift\n"
+            return files[path_ref]
+
+        with (
+            mock.patch.object(
+                verifier, "EXPECTED_PREDECESSOR_COST_STOP", dependency
+            ),
+            mock.patch.object(verifier, "_read_stable_bytes", side_effect=stable),
+            mock.patch.object(verifier, "_git_blob_bytes", side_effect=blob),
+            mock.patch.object(verifier, "_git_blob_absent", return_value=True),
+        ):
+            errors, binding = verifier.validate_predecessor_cost_stop(
+                expected_successor_revision=EXECUTION_REVISION,
+                root=ROOT,
+            )
+        self.assertEqual(
+            errors, ["Item26 manual cost-stop control source drifted"]
+        )
+        self.assertIsNone(binding)
+
+    def test_successor_revision_must_preserve_ci_workflow(self):
+        dependency, files = finalized_predecessor_files()
+
+        def stable(path):
+            return files[path.relative_to(ROOT).as_posix()]
+
+        def blob(revision, path_ref, *, root):
+            if (
+                revision == EXECUTION_REVISION
+                and path_ref == dependency["ci_workflow_path"]
+            ):
+                return b"successor-workflow-drift\n"
+            return files[path_ref]
+
+        with (
+            mock.patch.object(
+                verifier, "EXPECTED_PREDECESSOR_COST_STOP", dependency
+            ),
+            mock.patch.object(verifier, "_read_stable_bytes", side_effect=stable),
+            mock.patch.object(verifier, "_git_blob_bytes", side_effect=blob),
+            mock.patch.object(verifier, "_git_blob_absent", return_value=True),
+        ):
+            errors, binding = verifier.validate_predecessor_cost_stop(
+                expected_successor_revision=EXECUTION_REVISION,
+                root=ROOT,
+            )
+        self.assertEqual(
+            errors, ["Item26 manual cost-stop control source drifted"]
+        )
+        self.assertIsNone(binding)
+
+    def test_successor_revision_must_preserve_terminal_artifacts(self):
+        dependency, files = finalized_predecessor_files()
+
+        def stable(path):
+            return files[path.relative_to(ROOT).as_posix()]
+
+        def blob(revision, path_ref, *, root):
+            if (
+                revision == EXECUTION_REVISION
+                and path_ref == dependency["checkpoint_path"]
+            ):
+                return b"successor-artifact-drift\n"
+            return files[path_ref]
+
+        with (
+            mock.patch.object(
+                verifier, "EXPECTED_PREDECESSOR_COST_STOP", dependency
+            ),
+            mock.patch.object(verifier, "_read_stable_bytes", side_effect=stable),
+            mock.patch.object(verifier, "_git_blob_bytes", side_effect=blob),
+            mock.patch.object(verifier, "_git_blob_absent", return_value=True),
+            mock.patch.object(
+                verifier, "_revision_is_strict_ancestor", return_value=True
+            ),
+        ):
+            errors, binding = verifier.validate_predecessor_cost_stop(
+                expected_successor_revision=EXECUTION_REVISION,
+                root=ROOT,
+            )
+        self.assertEqual(
+            errors,
+            ["Item26 manual cost-stop successor artifact blob mismatch"],
+        )
+        self.assertIsNone(binding)
+
     def test_frozen_manual_cost_stop_verifier_runs_in_isolated_process(self):
         poisoned = types.ModuleType(
-            "verify_item26_manual_cost_stop_authority_v1"
+            "verify_item26_manual_cost_stop_authority_v2"
         )
         poisoned.validate_authority_bundle = lambda **_kwargs: ([], {})
         with mock.patch.dict(
             sys.modules,
-            {"verify_item26_manual_cost_stop_authority_v1": poisoned},
+            {"verify_item26_manual_cost_stop_authority_v2": poisoned},
         ):
             errors, binding = verifier._run_frozen_predecessor_cost_stop_verifier(
                 verifier_raw=(
@@ -738,7 +908,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         self.assertIsNone(binding)
         self.assertEqual(
             errors,
-            ["manual cost-stop terminal artifacts are not installed"],
+            ["manual cost-stop external authority is not finalized"],
         )
 
     def test_python_identity_hashes_stable_group_writable_file(self):

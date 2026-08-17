@@ -37,19 +37,36 @@ VERIFIER_REF = "tools/verify_pitr_restore_evidence.py"
 RESULT_VALIDATOR_REF = "tools/validate_item26_pitr_restore_result_v1.py"
 EVIDENCE_BUILDER_REF = "tools/build_item26_pitr_restore_evidence_v1.py"
 MANUAL_COST_STOP_VERIFIER_REF = (
-    "tools/verify_item26_manual_cost_stop_evidence_v1.py"
+    "tools/verify_item26_manual_cost_stop_evidence_v2.py"
 )
 MANUAL_COST_STOP_BUILDER_REF = (
-    "tools/build_item26_manual_cost_stop_evidence_v1.py"
+    "tools/build_item26_manual_cost_stop_evidence_v2.py"
 )
 MANUAL_COST_STOP_AUTHORITY_VERIFIER_REF = (
-    "tools/verify_item26_manual_cost_stop_authority_v1.py"
+    "tools/verify_item26_manual_cost_stop_authority_v2.py"
 )
 MANUAL_COST_STOP_RAW_EXTRACTOR_REF = (
-    "tools/extract_item26_manual_cost_stop_raw_v1.py"
+    "tools/extract_item26_manual_cost_stop_raw_v2.py"
+)
+MANUAL_COST_STOP_COLLECTOR_REF = (
+    "tools/collect_item26_manual_cost_stop_raw_v2.py"
+)
+MANUAL_COST_STOP_ROOT_BUILDER_REF = (
+    "tools/build_item26_manual_cost_stop_authority_root_v2.py"
+)
+MANUAL_COST_STOP_ACTIVATION_RECEIPT_BUILDER_REF = (
+    "tools/build_item26_manual_cost_stop_activation_receipt_v3.py"
+)
+MANUAL_COST_STOP_INSTALLER_REF = (
+    "tools/install_item26_manual_cost_stop_runtime_v3.py"
 )
 MANUAL_COST_STOP_CONTRACT_REF = (
-    "deploy/production/plans/item26-manual-cost-stop-contract-v1.json"
+    "deploy/production/plans/item26-manual-cost-stop-contract-v2.json"
+)
+MANUAL_COST_STOP_CI_WORKFLOW_REF = ".github/workflows/ci.yml"
+MANUAL_COST_STOP_PUBLIC_ROOT_REF = (
+    "deploy/production/authorities/"
+    "item26-manual-cost-stop-authority-root-v2.json"
 )
 MANUAL_COST_STOP_NO_REPLAY_REGISTRY_REF = (
     "deploy/production/plans/item26-no-replay-registry-v2.json"
@@ -58,13 +75,16 @@ NO_REPLAY_REGISTRY_V1_REF = (
     "deploy/production/plans/item26-no-replay-registry-v1.json"
 )
 MANUAL_COST_STOP_EVIDENCE_REF = (
-    "deploy/production/evidence/production-item26-manual-cost-stop-20260817.json"
+    "deploy/production/evidence/"
+    "production-item26-manual-cost-stop-v2-20260817.json"
 )
 MANUAL_COST_STOP_RECEIPT_REF = (
-    "deploy/production/evidence/item26-manual-cost-stop-provider-receipt-20260817.json"
+    "deploy/production/evidence/"
+    "item26-manual-cost-stop-provider-receipt-v2-20260817.json"
 )
 MANUAL_COST_STOP_CHECKPOINT_REF = (
-    "deploy/production/evidence/item26-manual-cost-stop-terminal-checkpoint-20260817.json"
+    "deploy/production/evidence/"
+    "item26-manual-cost-stop-terminal-checkpoint-v2-20260817.json"
 )
 TASK_ID = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
 RECEIPT_SCHEMA = "noteai.item26.pitr-restore-provider-receipt.v1"
@@ -82,7 +102,19 @@ TERMINAL_CHECKPOINT_REF = (
 NO_REPLAY_REGISTRY_REF = MANUAL_COST_STOP_NO_REPLAY_REGISTRY_REF
 NO_REPLAY_REGISTRY_SCHEMA = "noteai.item26.no-replay-registry.v2"
 PREDECESSOR_COST_STOP_SCHEMA = (
-    "noteai.item26.manual-cost-stop-dependency.v1"
+    "noteai.item26.manual-cost-stop-dependency.v2"
+)
+PREDECESSOR_COST_STOP_KIND = (
+    "MANUAL_BROWSER_POST_ACTION_COST_STOP_AUTHORITY_V2"
+)
+PREDECESSOR_AUTHORITY_GENERATION_ID = (
+    TASK_ID + ":MANUAL-POST-ACTION-COST-STOP-AUTHORITY:v2"
+)
+PREDECESSOR_AUTHORITY_EPOCH_ID = (
+    "noteai.item26.manual-cost-stop-authority-generation.v2"
+)
+PREDECESSOR_ACTIVATION_RECEIPT_SCHEMA = (
+    "noteai.item26.manual-cost-stop-runtime-activation-receipt.v3"
 )
 REQUIRED_MANIFEST_PATH_REFS = {
     EVIDENCE_REF,
@@ -98,10 +130,19 @@ REQUIRED_MANIFEST_PATH_REFS = {
     MANUAL_COST_STOP_BUILDER_REF,
     MANUAL_COST_STOP_AUTHORITY_VERIFIER_REF,
     MANUAL_COST_STOP_RAW_EXTRACTOR_REF,
+    MANUAL_COST_STOP_COLLECTOR_REF,
+    MANUAL_COST_STOP_ROOT_BUILDER_REF,
+    MANUAL_COST_STOP_ACTIVATION_RECEIPT_BUILDER_REF,
+    MANUAL_COST_STOP_INSTALLER_REF,
     MANUAL_COST_STOP_CONTRACT_REF,
+    MANUAL_COST_STOP_CI_WORKFLOW_REF,
     "tools/internal_deployment_readiness_gate.py",
     "model/storage_recovery_evidence.py",
 }
+# The generation-v2 public root is deliberately absent from this inert source
+# checkpoint.  Its activation commit must add MANUAL_COST_STOP_PUBLIC_ROOT_REF
+# to this set at the same time as the complete canonical public root; a
+# placeholder path is never a valid manifest dependency.
 
 # Populated only in a new source checkpoint after the three detached provider,
 # user-confirmation and CI authority keys have been installed and before any
@@ -118,7 +159,10 @@ EXPECTED_AUTHORITY_ROOT_FILE_SHA256 = ""
 # PITR successor must dynamically reload this exact verifier and bundle.
 EXPECTED_PREDECESSOR_COST_STOP = {
     "schema": PREDECESSOR_COST_STOP_SCHEMA,
-    "kind": "MANUAL_BROWSER_POST_ACTION_COST_STOP_V1",
+    "kind": PREDECESSOR_COST_STOP_KIND,
+    "authority_generation_id": PREDECESSOR_AUTHORITY_GENERATION_ID,
+    "authority_epoch_id": PREDECESSOR_AUTHORITY_EPOCH_ID,
+    "activation_receipt_schema": PREDECESSOR_ACTIVATION_RECEIPT_SCHEMA,
     "authority_root": "",
     "verifier_path": "",
     "verifier_sha256": "",
@@ -128,8 +172,20 @@ EXPECTED_PREDECESSOR_COST_STOP = {
     "authority_verifier_sha256": "",
     "raw_extractor_path": "",
     "raw_extractor_sha256": "",
+    "collector_path": "",
+    "collector_sha256": "",
+    "root_builder_path": "",
+    "root_builder_sha256": "",
+    "activation_receipt_builder_path": "",
+    "activation_receipt_builder_sha256": "",
+    "installer_path": "",
+    "installer_sha256": "",
     "contract_path": "",
     "contract_sha256": "",
+    "ci_workflow_path": "",
+    "ci_workflow_sha256": "",
+    "public_root_path": "",
+    "public_root_sha256": "",
     "no_replay_registry_path": "",
     "no_replay_registry_file_sha256": "",
     "evidence_path": "",
@@ -139,7 +195,9 @@ EXPECTED_PREDECESSOR_COST_STOP = {
     "checkpoint_path": "",
     "checkpoint_sha256": "",
     "authority_root_file_sha256": "",
+    "authority_root_git_blob_sha256": "",
     "authority_bundle_file_sha256": "",
+    "activation_receipt_sha256": "",
     "provider_raw_file_sha256": "",
     "actiontrail_raw_file_sha256": "",
     "confirmation_envelope_file_sha256": "",
@@ -194,7 +252,7 @@ MAX_BYTES = 2 * 1024 * 1024
 GIT = Path("/usr/bin/git")
 PROC_SELF_EXE = Path("/proc/self/exe")
 PREDECESSOR_COST_STOP_AUTHORITY_DOMAIN = (
-    b"noteai-item26-manual-cost-stop-dependency-authority-v1\0"
+    b"noteai-item26-manual-cost-stop-dependency-authority-v2\0"
 )
 PREDECESSOR_COST_STOP_MUTATION_IDENTITY_DOMAIN = (
     b"noteai-item26-manual-cost-stop-consumed-mutations-v1\0"
@@ -719,13 +777,21 @@ def _predecessor_cost_stop_complete(value: Any) -> bool:
         "builder_sha256",
         "authority_verifier_sha256",
         "raw_extractor_sha256",
+        "collector_sha256",
+        "root_builder_sha256",
+        "activation_receipt_builder_sha256",
+        "installer_sha256",
         "contract_sha256",
+        "ci_workflow_sha256",
+        "public_root_sha256",
         "no_replay_registry_file_sha256",
         "evidence_sha256",
         "receipt_sha256",
         "checkpoint_sha256",
         "authority_root_file_sha256",
+        "authority_root_git_blob_sha256",
         "authority_bundle_file_sha256",
+        "activation_receipt_sha256",
         "provider_raw_file_sha256",
         "actiontrail_raw_file_sha256",
         "confirmation_envelope_file_sha256",
@@ -755,14 +821,28 @@ def _predecessor_cost_stop_complete(value: Any) -> bool:
         type(value) is dict
         and set(value) == set(EXPECTED_PREDECESSOR_COST_STOP)
         and value.get("schema") == PREDECESSOR_COST_STOP_SCHEMA
-        and value.get("kind") == "MANUAL_BROWSER_POST_ACTION_COST_STOP_V1"
+        and value.get("kind") == PREDECESSOR_COST_STOP_KIND
+        and value.get("authority_generation_id")
+        == PREDECESSOR_AUTHORITY_GENERATION_ID
+        and value.get("authority_epoch_id") == PREDECESSOR_AUTHORITY_EPOCH_ID
+        and value.get("activation_receipt_schema")
+        == PREDECESSOR_ACTIVATION_RECEIPT_SCHEMA
         and value.get("delete_client_token_present") is False
         and value.get("verifier_path") == MANUAL_COST_STOP_VERIFIER_REF
         and value.get("builder_path") == MANUAL_COST_STOP_BUILDER_REF
         and value.get("authority_verifier_path")
         == MANUAL_COST_STOP_AUTHORITY_VERIFIER_REF
         and value.get("raw_extractor_path") == MANUAL_COST_STOP_RAW_EXTRACTOR_REF
+        and value.get("collector_path") == MANUAL_COST_STOP_COLLECTOR_REF
+        and value.get("root_builder_path")
+        == MANUAL_COST_STOP_ROOT_BUILDER_REF
+        and value.get("activation_receipt_builder_path")
+        == MANUAL_COST_STOP_ACTIVATION_RECEIPT_BUILDER_REF
+        and value.get("installer_path") == MANUAL_COST_STOP_INSTALLER_REF
         and value.get("contract_path") == MANUAL_COST_STOP_CONTRACT_REF
+        and value.get("ci_workflow_path")
+        == MANUAL_COST_STOP_CI_WORKFLOW_REF
+        and value.get("public_root_path") == MANUAL_COST_STOP_PUBLIC_ROOT_REF
         and value.get("no_replay_registry_path")
         == MANUAL_COST_STOP_NO_REPLAY_REGISTRY_REF
         and value.get("evidence_path") == MANUAL_COST_STOP_EVIDENCE_REF
@@ -772,14 +852,30 @@ def _predecessor_cost_stop_complete(value: Any) -> bool:
         and safe_ref(value.get("builder_path"), "tools/", ".py")
         and safe_ref(value.get("authority_verifier_path"), "tools/", ".py")
         and safe_ref(value.get("raw_extractor_path"), "tools/", ".py")
+        and safe_ref(value.get("collector_path"), "tools/", ".py")
+        and safe_ref(value.get("root_builder_path"), "tools/", ".py")
+        and safe_ref(
+            value.get("activation_receipt_builder_path"), "tools/", ".py"
+        )
+        and safe_ref(value.get("installer_path"), "tools/", ".py")
         and safe_ref(
             value.get("contract_path"),
             "deploy/production/plans/",
             ".json",
         )
         and safe_ref(
+            value.get("ci_workflow_path"),
+            ".github/workflows/",
+            ".yml",
+        )
+        and safe_ref(
             value.get("no_replay_registry_path"),
             "deploy/production/plans/",
+            ".json",
+        )
+        and safe_ref(
+            value.get("public_root_path"),
+            "deploy/production/authorities/",
             ".json",
         )
         and all(_hex64(value.get(key)) for key in digest_keys)
@@ -809,6 +905,9 @@ def _predecessor_cost_stop_complete(value: Any) -> bool:
         }) == 5
         and value["source_pre_tuple_sha256"]
         == value["source_post_tuple_sha256"]
+        and value["public_root_sha256"]
+        == value["authority_root_file_sha256"]
+        == value["authority_root_git_blob_sha256"]
         and value["consumed_mutation_identity_set_sha256"]
         == predecessor_cost_stop_mutation_identity_set_sha256(value)
         and value["consumed_mutation_identity_set_sha256"]
@@ -1171,7 +1270,16 @@ def validate_predecessor_cost_stop(
         ("builder_path", "builder_sha256"),
         ("authority_verifier_path", "authority_verifier_sha256"),
         ("raw_extractor_path", "raw_extractor_sha256"),
+        ("collector_path", "collector_sha256"),
+        ("root_builder_path", "root_builder_sha256"),
+        (
+            "activation_receipt_builder_path",
+            "activation_receipt_builder_sha256",
+        ),
+        ("installer_path", "installer_sha256"),
         ("contract_path", "contract_sha256"),
+        ("ci_workflow_path", "ci_workflow_sha256"),
+        ("public_root_path", "public_root_sha256"),
         ("no_replay_registry_path", "no_replay_registry_file_sha256"),
         ("evidence_path", "evidence_sha256"),
         ("receipt_path", "receipt_sha256"),
@@ -1189,17 +1297,27 @@ def validate_predecessor_cost_stop(
             ("builder_path", "builder_sha256"),
             ("authority_verifier_path", "authority_verifier_sha256"),
             ("raw_extractor_path", "raw_extractor_sha256"),
+            ("collector_path", "collector_sha256"),
+            ("root_builder_path", "root_builder_sha256"),
+            (
+                "activation_receipt_builder_path",
+                "activation_receipt_builder_sha256",
+            ),
+            ("installer_path", "installer_sha256"),
             ("contract_path", "contract_sha256"),
+            ("ci_workflow_path", "ci_workflow_sha256"),
+            ("public_root_path", "public_root_sha256"),
             ("no_replay_registry_path", "no_replay_registry_file_sha256"),
         ):
-            for revision_key in (
-                "control_revision",
-                "evidence_revision",
-                "terminal_revision",
+            for revision in (
+                dependency["control_revision"],
+                dependency["evidence_revision"],
+                dependency["terminal_revision"],
+                expected_successor_revision,
             ):
                 if _sha(
                     _git_blob_bytes(
-                        dependency[revision_key],
+                        revision,
                         dependency[path_key],
                         root=root,
                     )
@@ -1247,6 +1365,16 @@ def validate_predecessor_cost_stop(
                 )
             ) != dependency[digest_key]:
                 return ["Item26 manual cost-stop terminal artifact blob mismatch"], None
+            if _sha(
+                _git_blob_bytes(
+                    expected_successor_revision,
+                    dependency[path_key],
+                    root=root,
+                )
+            ) != dependency[digest_key]:
+                return [
+                    "Item26 manual cost-stop successor artifact blob mismatch"
+                ], None
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
         return ["Item26 manual cost-stop predecessor unavailable: " + str(exc)], None
     if not (
@@ -1283,7 +1411,13 @@ def validate_predecessor_cost_stop(
         ], None
     expected_binding = {
         "status": "POST_ACTION_RECONCILED_COST_STOP",
-        "kind": "MANUAL_BROWSER_POST_ACTION_COST_STOP_V1",
+        "kind": PREDECESSOR_COST_STOP_KIND,
+        "authority_generation_id": PREDECESSOR_AUTHORITY_GENERATION_ID,
+        "authority_epoch_id": PREDECESSOR_AUTHORITY_EPOCH_ID,
+        "activation_receipt_schema": PREDECESSOR_ACTIVATION_RECEIPT_SCHEMA,
+        "activation_receipt_sha256": dependency[
+            "activation_receipt_sha256"
+        ],
         "terminal_acceptance_sha256": dependency[
             "terminal_acceptance_sha256"
         ],
@@ -1297,6 +1431,9 @@ def validate_predecessor_cost_stop(
         ],
         "authority_root_file_sha256": dependency[
             "authority_root_file_sha256"
+        ],
+        "authority_root_git_blob_sha256": dependency[
+            "authority_root_git_blob_sha256"
         ],
         "authority_bundle_file_sha256": dependency[
             "authority_bundle_file_sha256"

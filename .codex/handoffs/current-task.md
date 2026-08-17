@@ -11204,3 +11204,70 @@ Colima, database, builder, restore and cloud actions remain frozen.
   action, and root staging/install requires interactive administrator
   privilege. Both require explicit user authorization. Until then no A3 key,
   root, receipt, install or fresh read-only cloud capture may begin.
+
+### Item 26 ledger-stop dual CI and inert A3 authority-v2 scaffold (2026-08-17)
+
+- The A2 terminal ledger was checkpointed at exact revision
+  `653a4f350c679dff047426e0c0c5969461bd39fc`. Its only ordinary CI runs were
+  push `31991665789`/job `95276203708` and pull request
+  `31991668131`/job `95276210136`; both completed attempt 1 with `success`,
+  dispatch count one and rerun count zero. The push job ran from
+  `2026-08-17T03:35:53Z` to `04:09:46Z`; the pull-request job ran from
+  `03:35:56Z` to `04:08:39Z`. Each had one job, 22 successful steps, zero
+  failed steps, ambient `2419` tests with 34 skips and no failure/error, the
+  frozen `10+1+12+22+21` topology, Quality `7` plus one expected-fail,
+  PostgreSQL/RLS `6`, readiness `138/138`, successful Compose validation and
+  zero error annotations. Neither run may be rerun.
+- The current A3 worktree is an inert source-only successor, not a public root
+  or activation. It adds a generation-v2 contract, pure public-root builder,
+  receipt-v3 builder, independent authority/extractor/collector/evidence
+  stack, and a root-only installer. `AUTHORITY_V2_FINALIZED` is false, the
+  expected root hash is empty, and the tracked public-root-v2 path is absent
+  rather than populated with a placeholder. Every production entry point
+  rejects before caller parsing, host inspection, journal access, Git material
+  or raw input while those constants remain inert. The v2 modules never import
+  or fall back to the unavailable v1 authority runtime.
+- The future complete root must contain three mathematically distinct
+  RSA-3072 public keys for `provider`, `confirmation` and
+  `local_ci_observation`; signatures cover a role-specific domain plus the
+  entire outer context and payload. The receipt-v3 pre-sign validator freezes
+  A0, A1, A2 and the `653a` ledger-stop CI rows, the future A3 attempt-one
+  push/PR pair, Git ancestry, all source blobs, the public-root Git blob and
+  global run/job/time ordering before the local-CI private key can be used.
+  Synthetic terminal tests prove the three-role bundle and acyclic
+  root/receipt/raw/M1/M2 chain are constructible; outer-context, root, raw,
+  source, artifact-stage and CI-timeline tampering all fail closed.
+- The installer is intentionally not executable from the user-owned checkout.
+  A separately authorized bootstrap must first place the exact installer and
+  authority blobs in a fixed root-owned two-file staging directory and invoke
+  the pinned macOS system interpreter with `-E -S -B`. Before creating any
+  target directory, the installer verifies an exact root-owned custody
+  inventory of three fixed role files using metadata only: directory `0700`,
+  files `0600`, regular, single-link and stable. It never reads or writes key
+  bytes. Root/runtime/journal installation uses exclusive creation, readback
+  and fsync; a crash residue is fail closed and is never resumed, overwritten
+  or deleted by the installer.
+- Future PITR predecessor validation now uses only the v2 stack. It freezes the
+  manual sources, public root, contract, no-replay registry and
+  `.github/workflows/ci.yml` across control, evidence, terminal and successor
+  trees; terminal artifacts must remain byte-identical in the successor. The
+  public-root, installed-root and Git-blob SHA-256 values must all be equal.
+  S0 remains open because a clean GitHub clone cannot replay the Mac-only
+  root-owned authority/runtime/raw/bundle inventory. A Secret-free portable
+  terminal capsule or equivalent trusted distribution contract is mandatory
+  before Item 26 credit or any paid successor.
+- Current local evidence is `199/199` focused tests in normal mode and the same
+  `199/199` under optimized Python, plus `64/64` shared readiness and frozen
+  Item 27–29 dependency executions. That is 462 executions from 255 distinct
+  source test methods. Python compilation and `git diff --check` pass;
+  internal readiness remains `25/29` and public aggregate remains `25/38`.
+  Item 26 remains `unverified` with `evidence: []`.
+- No production signing key, public root, signature, root-owned installation,
+  journal, raw provider/ActionTrail response, cloud call, database connection
+  or builder action exists. The five historical scripts remain preserved,
+  unexecuted, undeleted, untracked and unstaged. The immediate next action is
+  to finish this Secret-free ledger, checkpoint the inert A3 source and require
+  its own new attempt-one push/PR dual-green pair. Only after that pair succeeds
+  is the next user stop an explicit authorization to create three new local
+  RSA-3072 credentials and perform the interactive root-owned bootstrap. No
+  checkpoint or individual CI stage is itself a stopping signal.

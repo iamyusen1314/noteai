@@ -57,9 +57,22 @@ REQUIRED_CONTROL_SOURCE_REFS = (
     "tools/build_item26_manual_cost_stop_evidence_v1.py",
     "tools/verify_item26_manual_cost_stop_authority_v1.py",
     "tools/extract_item26_manual_cost_stop_raw_v1.py",
+    # The historical v1 files above remain frozen.  A future successor must
+    # also bind the independent generation-v2 predecessor implementation; it
+    # may never fall back to the unavailable v1 custody material.
+    "tools/verify_item26_manual_cost_stop_evidence_v2.py",
+    "tools/build_item26_manual_cost_stop_evidence_v2.py",
+    "tools/verify_item26_manual_cost_stop_authority_v2.py",
+    "tools/extract_item26_manual_cost_stop_raw_v2.py",
+    "tools/collect_item26_manual_cost_stop_raw_v2.py",
+    "tools/build_item26_manual_cost_stop_authority_root_v2.py",
+    "tools/build_item26_manual_cost_stop_activation_receipt_v3.py",
+    "tools/install_item26_manual_cost_stop_runtime_v3.py",
     "model/storage_recovery_evidence.py",
     "deploy/production/plans/item26-no-replay-registry-v2.json",
     "deploy/production/plans/item26-manual-cost-stop-contract-v1.json",
+    "deploy/production/plans/item26-manual-cost-stop-contract-v2.json",
+    ".github/workflows/ci.yml",
 )
 STAGE_ONLY_CONTROL_SOURCE_REFS = {
     "tools/internal_deployment_readiness_gate.py",

@@ -119,7 +119,16 @@ Last updated: 2026-08-17
   with 34 skips and zero failure/error, the frozen `10+1+12+22+21` topology,
   Quality, six PostgreSQL/RLS tests, readiness `138/138` and Compose. The A2
   source binds A1's exact terminal pair without changing the frozen v2
-  cloud/mutation registry. The
+  cloud/mutation registry. The A2 terminal ledger was then checkpointed at
+  `653a4f3`; its only push and pull-request runs both completed attempt 1 with
+  success, zero reruns, ambient `2419` tests plus the frozen
+  `10+1+12+22+21` topology, Quality, PostgreSQL/RLS, readiness `138/138` and
+  Compose. The current A3 worktree is deliberately inert: authority-v2 is not
+  finalized, the expected root hash is empty and the public-root-v2 file is
+  absent rather than a placeholder. It adds only source-level root/receipt,
+  three-role terminal authority, offline collector/evidence and root-only
+  installer contracts; all default production entry points fail before input
+  or filesystem access. The
   root-owned inventory, live raw capture, final envelopes and Git artifacts are
   absent. Historical abort-v1
   remains frozen evidence and is explicitly superseded as the future success
@@ -162,16 +171,18 @@ Last updated: 2026-08-17
   cannot be replayed. A non-identical partial local journal write remains a
   fail-closed `LOCAL_WRITE_RECOVERY_REQUIRED` boundary rather than automatic
   recovery.
-- 下一验证: Preserve A2 `72e356f` and its exact attempt-one dual-green pair; do
-  not rerun A0 or A1. The minimum successor is a versioned A3 public root-v2
-  and receipt-v3 chain whose complete Secret-free public root is committed to
-  Git before capture. Creating the three replacement local RSA-3072 signing
-  private keys is a new-credentials action, and root-owned staging/install
-  requires interactive administrator privilege; both now require explicit
-  user authorization. Until that authorization, do not generate keys, sign a
-  receipt, install inventory or import ActionTrail/Describe/billing responses.
-  After an authorized A3 dual-green and exact root-only install, perform fresh
-  read-only capture and build M1/M2 candidate artifacts.
+- 下一验证: Preserve A2 `72e356f`, ledger stop `653a4f3` and their exact
+  attempt-one dual-green pairs; do not rerun A0 or A1. First checkpoint the
+  current inert A3 source scaffold and require its own new attempt-one push and
+  pull-request CI pair. It contains no public root or private credential and
+  does not authorize capture. Only after that exact A3 source pair is dual
+  green may the task stop for explicit authorization to create three new local
+  RSA-3072 signing private keys and for interactive administrator bootstrap.
+  Until then do not generate keys, sign a receipt, install inventory or import
+  ActionTrail/Describe/billing responses. After an authorized root-v2
+  activation commit is itself dual green, sign receipt-v3, perform the exact
+  root-only install, then perform fresh read-only capture and build M1/M2
+  candidate artifacts.
   Only a later portable terminal predecessor may become the dependency of a
   fully disjoint paid successor under a new fee
   authorization. Do not replay either consumed cloud request or infer terminal
