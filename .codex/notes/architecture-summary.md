@@ -287,16 +287,23 @@ Only service names and variable names are documented here; no secret values.
   preserved only as historical one-way commitments and are never a fallback.
 - The active design is an independent generation-v2 authority with a tracked
   Secret-free public root, three role-context RSA-3072 signatures, a signed
-  runtime receipt-v3 and root-owned raw/runtime custody. Its current A3 source
-  checkpoint is inert: the public root is absent, the expected hash is empty,
-  every production entry point fails before I/O, and no credential has been
-  generated.
-- The serial activation DAG is ledger-stop dual CI, inert-source dual CI,
-  explicitly authorized root-key generation, complete public-root activation
-  dual CI, signed receipt/root-only install, fresh read-only capture, M1/M2
-  candidate artifacts and final authority. Control sources, the CI workflow,
-  public root and terminal artifacts remain frozen through the future PITR
-  successor tree.
+  runtime receipt-v3 and root-owned raw/runtime custody. Its inert A3 source
+  checkpoint is exact revision
+  `62f3f49fba3eb473a7a8e08f51b42f3186f7e86d`; only push `31996624538` and
+  pull request `31996626682` exist for that SHA, and both completed attempt 1
+  with success and zero reruns. This accepts source only: the public root is
+  absent, the expected hash is empty, every production entry point fails before
+  I/O, and no credential has been generated.
+- The serial activation DAG has completed ledger-stop dual CI and inert-source
+  dual CI. Its next node is explicitly authorized root-key generation,
+  followed by complete public-root activation dual CI, signed receipt/root-only
+  install, fresh read-only capture, M1/M2 candidate artifacts and final
+  authority. The inert-source SHA is not the future root-bearing
+  `control_revision`. Its control sources, CI workflow and public root freeze at
+  that future control revision through M1, M2 and the successor. Receipt and
+  evidence artifacts first appear at M1, the checkpoint first appears at M2,
+  and each artifact is byte-frozen from its prescribed appearance stage through
+  the successor.
 - Local root-owned material is not portable CI evidence. A Secret-free,
   clean-clone-replayable terminal capsule or equivalent trusted distribution
   contract remains mandatory before Item 26 credit or any paid PITR successor.

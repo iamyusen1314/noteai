@@ -123,9 +123,16 @@ Last updated: 2026-08-17
   `653a4f3`; its only push and pull-request runs both completed attempt 1 with
   success, zero reruns, ambient `2419` tests plus the frozen
   `10+1+12+22+21` topology, Quality, PostgreSQL/RLS, readiness `138/138` and
-  Compose. The current A3 worktree is deliberately inert: authority-v2 is not
-  finalized, the expected root hash is empty and the public-root-v2 file is
-  absent rather than a placeholder. It adds only source-level root/receipt,
+  Compose. The inert A3 source scaffold is now exact revision
+  `62f3f49fba3eb473a7a8e08f51b42f3186f7e86d`; its only ordinary CI runs are
+  push `31996624538`/job `95289336040` and pull request
+  `31996626682`/job `95289341357`, both attempt-one success with zero reruns.
+  Each completed 22 successful steps, ambient `2570` tests with 34 skips and
+  no failure/error, the frozen `10+1+12+22+21` topology, Quality, six
+  PostgreSQL/RLS tests, readiness `138/138` and Compose. The accepted scaffold
+  remains deliberately inert: authority-v2 is not finalized, the expected root
+  hash is empty and the public-root-v2 file is absent rather than a placeholder.
+  It adds only source-level root/receipt,
   three-role terminal authority, offline collector/evidence and root-only
   installer contracts; all default production entry points fail before input
   or filesystem access. The
@@ -171,15 +178,15 @@ Last updated: 2026-08-17
   cannot be replayed. A non-identical partial local journal write remains a
   fail-closed `LOCAL_WRITE_RECOVERY_REQUIRED` boundary rather than automatic
   recovery.
-- 下一验证: Preserve A2 `72e356f`, ledger stop `653a4f3` and their exact
-  attempt-one dual-green pairs; do not rerun A0 or A1. First checkpoint the
-  current inert A3 source scaffold and require its own new attempt-one push and
-  pull-request CI pair. It contains no public root or private credential and
-  does not authorize capture. Only after that exact A3 source pair is dual
-  green may the task stop for explicit authorization to create three new local
-  RSA-3072 signing private keys and for interactive administrator bootstrap.
-  Until then do not generate keys, sign a receipt, install inventory or import
-  ActionTrail/Describe/billing responses. After an authorized root-v2
+- 下一验证: Preserve A2 `72e356f`, ledger stop `653a4f3`, inert A3 source
+  `62f3f49` and all of their exact attempt-one dual-green pairs; do not rerun A0
+  or A1. The A3 source checkpoint itself contains no public root or private
+  credential and does not authorize capture. The next action is the explicit
+  authorization boundary for exactly three new local RSA-3072 signing private
+  keys and interactive administrator bootstrap. Until that scoped
+  authorization is received, do not generate keys, sign a receipt, invoke
+  sudo, install inventory or import ActionTrail/Describe/billing responses.
+  After an authorized root-v2
   activation commit is itself dual green, sign receipt-v3, perform the exact
   root-only install, then perform fresh read-only capture and build M1/M2
   candidate artifacts.

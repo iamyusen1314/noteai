@@ -11271,3 +11271,61 @@ Colima, database, builder, restore and cloud actions remain frozen.
   is the next user stop an explicit authorization to create three new local
   RSA-3072 credentials and perform the interactive root-owned bootstrap. No
   checkpoint or individual CI stage is itself a stopping signal.
+
+### Item 26 inert A3 source dual-CI accepted; explicit credential/admin boundary (2026-08-17)
+
+- The inert A3 source scaffold is exact pushed revision
+  `62f3f49fba3eb473a7a8e08f51b42f3186f7e86d`. Its exact-SHA ordinary-run
+  inventory contains only push `31996624538`/job `95289336040` and pull request
+  `31996626682`/job `95289341357`. Both completed attempt 1 with `success`, one
+  dispatch per event and zero reruns. The push job ran from
+  `2026-08-17T05:04:50Z` through `05:37:13Z`; the pull-request job ran from
+  `05:04:52Z` through `05:36:27Z`.
+- Each A3 job had one job and 22 successful steps with zero failed steps and
+  zero error annotations. Ambient Unit ran `2570` tests with 34 skips and zero
+  failure/error; the frozen `10+1+12+22+21` topology passed. Quality reported
+  seven PASS plus one expected-fail fixture, PostgreSQL/RLS ran six tests,
+  production readiness reported `138/138`, and Compose validation passed. The
+  single annotation per job is the non-error Node.js 20 deprecation warning.
+- This dual-green result accepts only the inert source scaffold. Authority-v2
+  remains unfinalized, the expected public-root hash remains empty and the
+  tracked public-root-v2 path remains absent rather than holding a placeholder.
+  No production key, public root, signature, receipt-v3, root-owned custody,
+  staging, authority/runtime/journal installation, raw provider response,
+  cloud call, database connection or builder action exists. Item 26 remains
+  `unverified` with `evidence: []`; internal readiness remains `25/29` and the
+  public aggregate remains `25/38`.
+- All repository-only work available before the credential boundary is now
+  closed. The next serial action requires an explicit, scoped authorization to
+  create exactly three new and mathematically distinct local RSA-3072 private
+  keys (`provider`, `confirmation`, `local_ci_observation`) directly within the
+  fixed root-owned custody tree and to use interactive administrator privilege.
+  The authorization must keep private-key material out of Git, user-owned
+  storage, logs, terminal output, environment variables, clipboard and cloud;
+  the receipt signer may use only a constrained mode-`0600` temporary copy
+  inside that same root-owned custody tree. No key generation, signing, sudo,
+  staging, installation or fresh read-only cloud import may occur before that
+  authorization.
+- After authorization, the order remains acyclic and fail closed: generate the
+  three keys in root-owned custody, export only their public keys, commit the
+  complete Secret-free public-root-v2 and finalized activation constants, and
+  require that new activation revision's own attempt-one push/PR dual-green
+  pair. Only then may `local_ci_observation` sign receipt-v3, the exact
+  installer and authority Git blobs enter fixed root-owned staging, and the
+  root-only installation run. Fresh ActionTrail/RDS/billing readback starts
+  only after that installation. Any failed or cancelled activation CI is
+  terminal/no-rerun and requires an append-only successor.
+- S0 remains open: the Mac-only authority/runtime/raw/bundle inventory is not a
+  Secret-free clean-clone predecessor capsule. Item 26 readiness credit and any
+  paid successor remain forbidden until a portable CI-replayable capsule or an
+  equally explicit trusted distribution contract is independently verified.
+  The five historical scripts remain preserved, unexecuted, undeleted,
+  untracked and unstaged.
+- The post-CI reconciliation changes only this handoff, the architecture
+  summary, the risk register and the internal-readiness manifest; none is one
+  of the future authority's 11 frozen control-source refs. JSON parsing and
+  `git diff --check` pass, the targeted internal-readiness suite is `20/20`,
+  the internal/public calculations remain `25/29` and `25/38`, and the current
+  production-readiness gate is `138/138`. This ledger checkpoint and its CI
+  must not be reused as the future root-bearing activation revision or its
+  receipt-v3 `control_ci` rows.
