@@ -37,11 +37,13 @@ Last updated: 2026-08-17
   PR must not be rerun and A0 provides no activation clearance. A1 revision
   `db7b99d` has terminal attempt-one push/PR failures caused only by its Linux
   tests placing a trusted-root fixture below world-writable `/tmp`; those runs
-  also must not be rerun and provide no activation clearance. Checkpoint the
-  append-only A2 secure-temp correction while preserving the exact 45-minute
-  CI contract, then require its own new attempt-one dual-green pair before
-  creating a signed runtime activation receipt or completing the root-only
-  install. No fresh
+  also must not be rerun and provide no activation clearance. A2 revision
+  `72e356f` has now passed its only push and pull-request runs at attempt one;
+  both are terminal success with zero reruns. It fixes only the Linux secure-
+  temp fixture and preserves the 45-minute and world-writable-parent contracts.
+  The historical v1 public-root bytes and three signing keys are not locatable,
+  so no receipt or root-only install can be created from the retained one-way
+  hash. No fresh
   provider capture has started. A future Item 26 success successor must be
   fully disjoint, carry a new explicit fee authorization and first provide a
   Secret-free CI-replayable predecessor capsule; do not start a builder,
@@ -112,9 +114,12 @@ Last updated: 2026-08-17
   below world-writable `/tmp`; the production parent-chain rejection was
   correct. The append-only A2 correction moves only the two test roots below
   the owner-controlled repository and retains explicit world-writable-parent
-  rejection coverage. A2 must additionally bind A1's exact terminal pair in
-  the runtime activation overlay, without changing the frozen v2
-  cloud/mutation registry or replacing the existing root. The
+  rejection coverage. A2 revision `72e356f` subsequently passed its exact-one
+  attempt-one push and pull-request CI pair. Each side ran ambient 2,419 tests
+  with 34 skips and zero failure/error, the frozen `10+1+12+22+21` topology,
+  Quality, six PostgreSQL/RLS tests, readiness `138/138` and Compose. The A2
+  source binds A1's exact terminal pair without changing the frozen v2
+  cloud/mutation registry. The
   root-owned inventory, live raw capture, final envelopes and Git artifacts are
   absent. Historical abort-v1
   remains frozen evidence and is explicitly superseded as the future success
@@ -124,8 +129,11 @@ Last updated: 2026-08-17
   runtime continuity, not full loader/stdlib supply-chain attestation.
 - 残余边界: The exact approved-cleanup branch of the retention contract was used,
   but this manual browser cost stop is not a retroactive terminal acceptance for
-  the deliberately non-dispatchable abort v1 scaffold. The A0 root candidate is
-  validated outside Git but not root-installed; no live ActionTrail/provider
+  the deliberately non-dispatchable abort v1 scaffold. Only the A0 root
+  candidate hash survives: the 5,989-byte public-root candidate and its three
+  private keys are absent from Git, the reviewed local paths and the production
+  directories. The hash cannot reconstruct them, and their destruction,
+  revocation, rotation or compromise is not claimed. No live ActionTrail/provider
   capture, final three-authority bundle or complete task-owned resource lineage
   exists. Ownership-unproven IAM,
   account and vSwitch candidates therefore remain untouched. Historical billing
@@ -142,10 +150,11 @@ Last updated: 2026-08-17
   successor identity/request/name/body/token set and a new fee authorization
   issued after the later manual terminal acceptance by an independent
   user-confirmation authority. The provider authority may cross-bind that
-  confirmation but cannot issue it. The three current SPKIs prove mathematical
-  role separation only, not independent organizational custody. Native
-  ActionTrail shape compatibility remains unproven until the first A2 dual-
-  green/runtime-receipt-gated readback and must fail closed if direct request
+  confirmation but cannot issue it. The three historically validated SPKIs
+  recorded mathematical role separation only, not independent organizational
+  custody; their root bytes are no longer locatable. Native ActionTrail shape
+  compatibility remains unproven until the first A3 root-v2/receipt-v3-gated
+  readback and must fail closed if direct request
   parameters are absent. A
   Mac-only root-owned verifier also cannot be replayed by GitHub-hosted CI; S0
   therefore requires a Secret-free portable terminal capsule before Item 26
@@ -153,13 +162,16 @@ Last updated: 2026-08-17
   cannot be replayed. A non-identical partial local journal write remains a
   fail-closed `LOCAL_WRITE_RECOVERY_REQUIRED` boundary rather than automatic
   recovery.
-- 下一验证: Normally checkpoint and push the append-only A2 secure-temp and
-  A1-terminal-overlay correction without any cloud call, then require a new A2
-  attempt-one dual-green CI pair. The A1 push and PR failures are terminal and
-  must not be rerun.
-  Only afterward sign the exact runtime activation receipt, install the exact
-  root-owned inventory and signing custody, perform fresh read-only
-  ActionTrail/Describe/billing capture, and build M1/M2 candidate artifacts.
+- 下一验证: Preserve A2 `72e356f` and its exact attempt-one dual-green pair; do
+  not rerun A0 or A1. The minimum successor is a versioned A3 public root-v2
+  and receipt-v3 chain whose complete Secret-free public root is committed to
+  Git before capture. Creating the three replacement local RSA-3072 signing
+  private keys is a new-credentials action, and root-owned staging/install
+  requires interactive administrator privilege; both now require explicit
+  user authorization. Until that authorization, do not generate keys, sign a
+  receipt, install inventory or import ActionTrail/Describe/billing responses.
+  After an authorized A3 dual-green and exact root-only install, perform fresh
+  read-only capture and build M1/M2 candidate artifacts.
   Only a later portable terminal predecessor may become the dependency of a
   fully disjoint paid successor under a new fee
   authorization. Do not replay either consumed cloud request or infer terminal

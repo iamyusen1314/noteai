@@ -11160,3 +11160,47 @@ Colima, database, builder, restore and cloud actions remain frozen.
   install still requires interactive administrator privilege and remains the
   next permitted user stop before any fresh read-only cloud response is
   imported.
+
+### Item 26 A2 dual-CI acceptance and unavailable v1 authority custody (2026-08-17)
+
+- A2 is exact pushed revision
+  `72e356fe5e8bcde14cea9153227881504d2a3afc`. Push run
+  `31988863587`/job `95268612746` and pull-request run
+  `31988866730`/job `95268621512` are the only ordinary runs for that SHA.
+  Both completed attempt 1 with `success`; dispatch count is one per event and
+  rerun count is zero. The push job ran from `2026-08-17T02:43:27Z` through
+  `03:10:29Z`; the pull-request job ran from `02:43:33Z` through `03:15:22Z`.
+- Each A2 job has exactly one job, 22 successful API steps, zero failed steps
+  and zero error annotations. Ambient Unit ran `2419` tests with `34` skips and
+  zero failure/error; the frozen topology batches `10 + 1 + 12 + 22 + 21` all
+  passed. Quality reported seven PASS plus one expected-fail fixture,
+  PostgreSQL/RLS ran six tests successfully, production readiness reported
+  `138/138`, and Docker Compose validation passed. The only annotation per run
+  is the non-error Node.js 20 deprecation warning.
+- The local canonical CI topology also passed: ambient `2419/2419` with 34
+  skips, current V13 `10/10 + 1/1`, and detached exact-history V14 `12/12`,
+  V15 `22/22`, and V16 `21/21`. An unfiltered `unittest discover` is not a
+  valid repository acceptance path because it mixes frozen V14-V16 authority
+  tests with current shared files; the workflow's detached historical matrix
+  is the controlling contract.
+- A read-only recovery audit found no `authority-root-v1.json`, no 5,989-byte
+  candidate in reachable or unreachable Git objects, and no installed
+  authority, runtime or journal directory. The repository preserves only the
+  one-way v1 commitment
+  `f0f7cfce319009ad696cf762f30ca25b2f237d4bda2f4f0643baeea409514f3c`;
+  the original public-root bytes and three corresponding private signing keys
+  are not locatable and cannot be reconstructed from that hash. They are not
+  claimed destroyed, revoked, rotated or compromised; the historical v1 root
+  remains unactivated with custody unavailable.
+- No receipt was generated or signed, no root-owned material was installed,
+  and ActionTrail, RDS, billing, database and builder operation counts remain
+  zero. Item 26 remains `unverified` with `evidence: []`; internal readiness is
+  still `25/29`, and the five historical scripts remain unexecuted, undeleted,
+  untracked and unstaged.
+- The reviewed successor is a versioned A3 root-v2/receipt-v3 chain that places
+  the complete Secret-free public root in Git and keeps private keys only in
+  root-owned custody. Actual creation of three new local RSA-3072 signing keys
+  (`provider`, `confirmation`, `local-CI-observation`) is a new-credentials
+  action, and root staging/install requires interactive administrator
+  privilege. Both require explicit user authorization. Until then no A3 key,
+  root, receipt, install or fresh read-only cloud capture may begin.
