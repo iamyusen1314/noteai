@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-17 (Asia/Shanghai)
+> Updated: 2026-08-18 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -11329,3 +11329,52 @@ Colima, database, builder, restore and cloud actions remain frozen.
   production-readiness gate is `138/138`. This ledger checkpoint and its CI
   must not be reused as the future root-bearing activation revision or its
   receipt-v3 `control_ci` rows.
+
+### Item 26 key-bootstrap source checkpoint after scoped authorization (2026-08-18)
+
+- The user explicitly authorized the successor of ledger revision
+  `2cfd03a9968f3ac5c2146a12377620aef7aed8e1` to use interactive administrator
+  privilege for exactly three new, distinct RSA-3072 role keys inside fixed
+  root-owned custody. Private material may exist only there at `0700/0600`,
+  including a constrained transient signing copy; only public keys may be
+  exported. The authorization excludes cloud/API and database calls, fees,
+  historical replay, CI reruns, and deletion or overwrite of residue.
+- A pre-execution audit rejected direct `openssl ... -out <fixed-path>` because
+  it can truncate an existing file after a check/use race. The new dedicated
+  helper `tools/bootstrap_item26_manual_cost_stop_keys_v2.py` instead creates
+  each final key with `O_EXCL|O_NOFOLLOW`, mode `0600`, and binds OpenSSL
+  `genpkey` stdout directly to that pre-opened descriptor. Public export passes
+  the read-only private-key descriptor to `openssl pkey -pubout`; Python never
+  reads private-key bytes. Any failure after custody creation, including key
+  generation/private-file identity, export or distinctness failure, leaves
+  residue and permanently blocks same-path retry, cleanup and overwrite.
+- The helper itself is not executable from the user checkout. Production
+  mutation requires the accepted Git blob to be placed with exclusive creation
+  in a fixed root-owned `0700` one-file staging directory, followed by a
+  literal SHA-256 comparison of the root-owned result, pinned
+  `/usr/bin/python3 -E -S -B`, pinned OpenSSL, exact path/inventory and stable
+  inode checks. The helper SHA-256 is
+  `2e35d16c2a2f55ddfa1436190ed8869449dd05fb8ae5fb45878ab9c50c0cd9ff`
+  (`26,443` bytes); its test SHA-256 is
+  `8f80d8ac66020919efe014b33b02cf3d61d16dd371c4962db9c5968791a0082b`
+  (`19,892` bytes).
+- Focused bootstrap tests pass `19/19` in normal mode and `19/19` under
+  optimized Python, including a disposable synthetic OpenSSL pipeline. The
+  combined bootstrap/authority/root/installer set passes `61/61` in both
+  modes, Python compilation and whitespace checks pass, and current production
+  readiness remains `138/138`. Independent red-team review is GO with no
+  implementation P0/P1.
+- This is still source-only. No `sudo` prompt has run; production key, public
+  root, signature, receipt, custody/staging/install, journal, cloud/API,
+  database or builder counts remain zero. Authority-v2 remains unfinalized,
+  the expected root hash is empty, Item 26 remains `unverified` with no
+  evidence, readiness remains `25/29`, and S0 remains open.
+- The next serial action is to checkpoint only the helper, its tests and these
+  Secret-free ledgers, then require that helper-source revision's own new
+  attempt-one push/PR dual-green pair. A following ledger-only acceptance must
+  record its exact commit, blob OID and file SHA before the root operator may
+  create staging or custody. The future root-bearing activation will add the
+  helper to the signed control-source closure. Only after those steps may the
+  user enter the `sudo` password in the shared terminal and the one-shot key
+  bootstrap execute. The five historical scripts remain untracked,
+  unexecuted, unstaged and untouched.

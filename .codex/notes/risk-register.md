@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-17
+Last updated: 2026-08-18
 
 ## Local Codex storage recovery risks
 
@@ -181,12 +181,18 @@ Last updated: 2026-08-17
 - 下一验证: Preserve A2 `72e356f`, ledger stop `653a4f3`, inert A3 source
   `62f3f49` and all of their exact attempt-one dual-green pairs; do not rerun A0
   or A1. The A3 source checkpoint itself contains no public root or private
-  credential and does not authorize capture. The next action is the explicit
-  authorization boundary for exactly three new local RSA-3072 signing private
-  keys and interactive administrator bootstrap. Until that scoped
-  authorization is received, do not generate keys, sign a receipt, invoke
-  sudo, install inventory or import ActionTrail/Describe/billing responses.
-  After an authorized root-v2
+  credential and does not authorize capture. Scoped authorization for exactly
+  three local RSA-3072 signing keys and interactive administrator bootstrap is
+  now received, anchored after ledger revision `2cfd03a`. Direct OpenSSL
+  `-out` generation remains prohibited: first checkpoint the reviewed
+  no-overwrite helper (`2e35d16c...cd9ff`), obtain its own new attempt-one
+  push/PR dual-green pair, and record exact commit/blob/SHA in a subsequent
+  Secret-free ledger. Only then may root exclusively stage the accepted helper,
+  compare the installed SHA, and create custody. Until that sequence completes,
+  do not generate production keys, sign a receipt, invoke sudo, install
+  inventory or import ActionTrail/Describe/billing responses. Any partial key
+  or staging residue is terminal and cannot be deleted, overwritten or retried
+  under the current authorization. After an authorized root-v2
   activation commit is itself dual green, sign receipt-v3, perform the exact
   root-only install, then perform fresh read-only capture and build M1/M2
   candidate artifacts.

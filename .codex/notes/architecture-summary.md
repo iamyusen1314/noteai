@@ -1,6 +1,6 @@
 # Architecture Summary
 
-Last updated: 2026-07-22
+Last updated: 2026-08-18
 
 ## Confirmed Production Target (partially implemented)
 
@@ -295,10 +295,17 @@ Only service names and variable names are documented here; no secret values.
   absent, the expected hash is empty, every production entry point fails before
   I/O, and no credential has been generated.
 - The serial activation DAG has completed ledger-stop dual CI and inert-source
-  dual CI. Its next node is explicitly authorized root-key generation,
-  followed by complete public-root activation dual CI, signed receipt/root-only
-  install, fresh read-only capture, M1/M2 candidate artifacts and final
-  authority. The inert-source SHA is not the future root-bearing
+  dual CI. Scoped authorization for root-key generation is now recorded, but
+  execution is preceded by a dedicated no-overwrite bootstrap-source
+  checkpoint and its own attempt-one dual CI. The helper can run only from a
+  fixed root-owned one-file staging directory after its installed bytes are
+  compared with the accepted Git blob; it creates the three final private-key
+  files with exclusive descriptors and exports public keys through OpenSSL
+  without Python reading private bytes. A post-CI ledger binds that helper
+  commit/blob/SHA before any `sudo` use. Complete public-root activation dual
+  CI, signed receipt/root-only install, fresh read-only capture, M1/M2 candidate
+  artifacts and final authority follow. The inert-source SHA and helper-source
+  SHA are not the future root-bearing
   `control_revision`. Its control sources, CI workflow and public root freeze at
   that future control revision through M1, M2 and the successor. Receipt and
   evidence artifacts first appear at M1, the checkpoint first appears at M2,
