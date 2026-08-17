@@ -111,12 +111,13 @@ class ManualCostStopKeyBootstrapV2Tests(unittest.TestCase):
             self.assertEqual(row.st_nlink, 1)
             self.assertGreater(row.st_size, 0)
 
-    def test_disposable_actual_openssl_pipeline_exports_three_distinct_keys(self):
-        result = bootstrap.bootstrap_keys(
-            noteai_directory=self.noteai,
-            execution_directory=self.execution,
-            custody_directory=self.custody,
-        )
+    def test_mocked_pipeline_exports_three_distinct_public_only_fixtures(self):
+        with mock.patch.object(
+            bootstrap,
+            "_run_openssl",
+            side_effect=AssertionError("tests must not generate private keys"),
+        ):
+            result = self._run_success()
         self.assertEqual(result["private_key_generation_count"], 3)
         self.assertEqual(result["private_key_python_read_count"], 0)
         self.assertEqual(len(set(result["public_key_spki_sha256"].values())), 3)
@@ -124,6 +125,15 @@ class ManualCostStopKeyBootstrapV2Tests(unittest.TestCase):
             set(os.listdir(self.custody)),
             set(bootstrap.ROLE_FILES.values()),
         )
+
+    def test_shared_role_fixture_contains_public_data_and_no_private_keys(self):
+        fixture_source = (
+            ROOT / "tests/test_verify_item26_manual_cost_stop_authority_v2.py"
+        ).read_text(encoding="utf-8")
+        self.assertFalse(hasattr(self.keys, "private"))
+        self.assertNotIn("genpkey", fixture_source)
+        self.assertNotIn("BEGIN PRIVATE KEY", fixture_source)
+        self.assertEqual(set(self.keys.public), set(bootstrap.ROLE_FILES))
 
     def test_generation_uses_preopened_descriptor_and_never_openssl_out(self):
         read_fd, write_fd = os.pipe()
@@ -205,7 +215,7 @@ class ManualCostStopKeyBootstrapV2Tests(unittest.TestCase):
     def test_second_invocation_never_overwrites_existing_custody(self):
         first = self._run_success()
         before = {
-            name: (self.custody / name).read_bytes()
+            name: bootstrap._stable((self.custody / name).stat())
             for name in bootstrap.ROLE_FILES.values()
         }
         with mock.patch.object(
@@ -222,7 +232,7 @@ class ManualCostStopKeyBootstrapV2Tests(unittest.TestCase):
         self.assertEqual(
             before,
             {
-                name: (self.custody / name).read_bytes()
+                name: bootstrap._stable((self.custody / name).stat())
                 for name in bootstrap.ROLE_FILES.values()
             },
         )

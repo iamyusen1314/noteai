@@ -311,6 +311,16 @@ Only service names and variable names are documented here; no secret values.
   evidence artifacts first appear at M1, the checkpoint first appears at M2,
   and each artifact is byte-frozen from its prescribed appearance stage through
   the successor.
+- The first helper-source attempt, `514fbe075fe96096d641595a87423af4418ed90a`,
+  is terminal/no-rerun and not accepted: its push route timed out restoring a
+  model artifact, while its green PR route exposed that the synthetic Item 26
+  authority fixture still created disposable private keys outside root custody.
+  Its append-only successor leaves the production bootstrap helper unchanged,
+  replaces the private-key test seam with pinned public-only SPKIs and non-key
+  signature mocks, and adds bounded, unique-temp HTTP artifact retry. Only that
+  successor's own attempt-one dual CI plus a later ledger binding may unlock the
+  already-authorized root bootstrap. Neither `514fbe0` nor the correction
+  revision is the future root-bearing `control_revision`.
 - Local root-owned material is not portable CI evidence. A Secret-free,
   clean-clone-replayable terminal capsule or equivalent trusted distribution
   contract remains mandatory before Item 26 credit or any paid PITR successor.

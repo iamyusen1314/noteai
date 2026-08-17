@@ -53,6 +53,13 @@ V1_FREEZE = {
 CONTROL_REVISION = "c" * 40
 EVIDENCE_REVISION = "d" * 40
 TERMINAL_REVISION = "e" * 40
+TEST_PUBLIC_SPKI_SHA256 = {
+    "provider": "c42203e2129b43dda82acb727f1c0413d00919ba3c43e7c9f3b3cb831618d609",
+    "confirmation": "3e1ed2f23a5e9109e4f74c8fab750b7aba6abc5c819e45fd0e5e96e1239b8d16",
+    "local_ci_observation": (
+        "113ac96a787bc0d161d845fee420e0d7f2e22bc5f0e4ec6666cfead209094500"
+    ),
+}
 
 
 def terminal_ci_row(
@@ -96,80 +103,122 @@ def terminal_ci_row(
     }
 
 
-class SyntheticRsa3072Keys:
-    def __init__(self):
-        self.temporary = tempfile.TemporaryDirectory(
-            prefix=".item26-v2-synthetic-keys-",
-            dir=ROOT,
+def _der_length(value):
+    if value < 0x80:
+        return bytes([value])
+    raw = value.to_bytes((value.bit_length() + 7) // 8, "big")
+    return bytes([0x80 | len(raw)]) + raw
+
+
+def _der_value(tag, raw):
+    return bytes([tag]) + _der_length(len(raw)) + raw
+
+
+def _test_public_key(role):
+    """Return a deterministic public-only RSA-3072 SPKI fixture.
+
+    The modulus is test-only public structure.  No private material is
+    generated, stored or required by this fixture.
+    """
+    material = bytearray()
+    counter = 0
+    while len(material) < 384:
+        material.extend(
+            hashlib.sha512(
+                b"noteai-item26-public-only-rsa3072-v1\0"
+                + role.encode("ascii")
+                + counter.to_bytes(4, "big")
+            ).digest()
         )
-        self.directory = Path(self.temporary.name)
-        self.directory.chmod(0o700)
-        self.private: dict[str, bytes] = {}
-        self.public: dict[str, bytes] = {}
-        try:
-            for role in authority.ROLE_NAMES:
-                private_path = self.directory / (role + ".private.pem")
-                public_path = self.directory / (role + ".public.pem")
-                generated = subprocess.run(
-                    [
-                        str(authority.OPENSSL),
-                        "genpkey",
-                        "-algorithm",
-                        "RSA",
-                        "-pkeyopt",
-                        "rsa_keygen_bits:3072",
-                        "-out",
-                        str(private_path),
-                    ],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    env={
-                        "PATH": "/usr/bin:/bin",
-                        "LC_ALL": "C",
-                        "LANG": "C",
-                    },
-                    timeout=60,
-                    check=False,
-                )
-                if generated.returncode != 0:
-                    raise RuntimeError("synthetic RSA generation failed")
-                exported = subprocess.run(
-                    [
-                        str(authority.OPENSSL),
-                        "pkey",
-                        "-in",
-                        str(private_path),
-                        "-pubout",
-                        "-out",
-                        str(public_path),
-                    ],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    env={
-                        "PATH": "/usr/bin:/bin",
-                        "LC_ALL": "C",
-                        "LANG": "C",
-                    },
-                    timeout=15,
-                    check=False,
-                )
-                if exported.returncode != 0:
-                    raise RuntimeError("synthetic RSA export failed")
-                private_path.chmod(0o600)
-                public_path.chmod(0o600)
-                self.private[role] = private_path.read_bytes()
-                self.public[role] = public_path.read_bytes()
-        except BaseException:
-            self.cleanup()
-            raise
+        counter += 1
+    modulus = material[:384]
+    modulus[0] |= 0x80
+    modulus[-1] |= 1
+    rsa_public = _der_value(
+        0x30,
+        _der_value(0x02, b"\0" + bytes(modulus))
+        + _der_value(0x02, b"\x01\x00\x01"),
+    )
+    algorithm = bytes.fromhex("300d06092a864886f70d0101010500")
+    spki = _der_value(0x30, algorithm + _der_value(0x03, b"\0" + rsa_public))
+    encoded = base64.b64encode(spki).decode("ascii")
+    lines = [encoded[index:index + 64] for index in range(0, len(encoded), 64)]
+    return (
+        "-----BEGIN PUBLIC KEY-----\n"
+        + "\n".join(lines)
+        + "\n-----END PUBLIC KEY-----\n"
+    ).encode("ascii")
+
+
+class SyntheticRsa3072Keys:
+    """Public-only role fixtures with deterministic non-key signature mocks."""
+
+    def __init__(self):
+        self.public = {
+            role: _test_public_key(role) for role in authority.ROLE_NAMES
+        }
+        observed = {
+            role: hashlib.sha256(
+                base64.b64decode(b"".join(value.splitlines()[1:-1]))
+            ).hexdigest()
+            for role, value in self.public.items()
+        }
+        if observed != TEST_PUBLIC_SPKI_SHA256:
+            raise RuntimeError("public-only RSA fixture drift")
+        self.signing_handles = {
+            role: ("TEST-ONLY-NON-KEY-SIGNER:" + role).encode("ascii")
+            for role in authority.ROLE_NAMES
+        }
 
     def cleanup(self):
-        directory = self.directory
-        self.private.clear()
         self.public.clear()
-        self.temporary.cleanup()
-        if directory.exists():
-            raise RuntimeError("synthetic key directory cleanup failed")
+        self.signing_handles.clear()
+
+    def _role_for_handle(self, handle):
+        for role, expected in self.signing_handles.items():
+            if handle == expected:
+                return role
+        raise ValueError("synthetic non-key signing handle")
+
+    def public_for_handle(self, handle):
+        return self.public[self._role_for_handle(handle)]
+
+    @staticmethod
+    def _signature(message, public_key):
+        digest = hashlib.sha256(
+            b"noteai-item26-test-signature-v1\0"
+            + public_key
+            + b"\0"
+            + message
+        ).digest()
+        return digest * 12
+
+    def sign(self, message, handle, *, scratch_directory):
+        del scratch_directory
+        return self._signature(message, self.public_for_handle(handle))
+
+    def verify(self, message, signature, public_key):
+        return signature == self._signature(message, public_key)
+
+    @contextmanager
+    def builder_patches(self):
+        with mock.patch.object(
+            receipt_builder,
+            "_private_public_key",
+            side_effect=self.public_for_handle,
+        ), mock.patch.object(
+            receipt_builder,
+            "_sign",
+            side_effect=self.sign,
+        ):
+            yield
+
+    def verification_patcher(self):
+        return mock.patch.object(
+            authority,
+            "_verify_signature",
+            side_effect=self.verify,
+        )
 
 
 class SyntheticTerminalAuthorityV2:
@@ -242,12 +291,12 @@ class SyntheticTerminalAuthorityV2:
         ) as temporary:
             scratch = Path(temporary)
             scratch.chmod(0o700)
-            with self.core_patches():
+            with self.core_patches(), keys.builder_patches():
                 self.activation_receipt_raw = (
                     receipt_builder.build_activation_receipt(
                         root_raw=root_raw,
                         local_ci_observation_private_key_pem=(
-                            keys.private["local_ci_observation"]
+                            keys.signing_handles["local_ci_observation"]
                         ),
                         control_revision=CONTROL_REVISION,
                         control_ci=copy.deepcopy(self.control_ci),
@@ -702,6 +751,7 @@ class SyntheticTerminalAuthorityV2:
                     revision, ref, root=root, records=source
                 ),
             ))
+            stack.enter_context(self.keys.verification_patcher())
             yield
 
     @contextmanager
@@ -734,16 +784,11 @@ class SyntheticTerminalAuthorityV2:
             root_value=self.root_value,
             authority_root_file_sha256=self.root_hash,
         )
-        with tempfile.TemporaryDirectory(
-            prefix=".item26-v2-terminal-sign-", dir=ROOT
-        ) as temporary:
-            scratch = Path(temporary)
-            scratch.chmod(0o700)
-            signature = receipt_builder._sign(
-                authority.terminal_signature_message(unsigned, role=role),
-                self.keys.private[role],
-                scratch_directory=scratch,
-            )
+        signature = self.keys.sign(
+            authority.terminal_signature_message(unsigned, role=role),
+            self.keys.signing_handles[role],
+            scratch_directory=ROOT,
+        )
         return {
             **unsigned,
             "signature_base64": base64.b64encode(signature).decode("ascii"),
@@ -912,6 +957,25 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
         self.assertTrue(value["single_local_root_custody"])
         self.assertFalse(value["provider_native_signature"])
         self.assertFalse(value["github_native_signature"])
+
+    def test_public_only_crypto_seam_never_invokes_private_key_tooling(self):
+        handle = self.keys.signing_handles["provider"]
+        message = b"public-only synthetic signature contract"
+        with self.keys.builder_patches(), mock.patch.object(
+            receipt_builder.subprocess,
+            "run",
+            side_effect=AssertionError("private-key tooling must not run"),
+        ):
+            public_key = receipt_builder._private_public_key(handle)
+            signature = receipt_builder._sign(
+                message,
+                handle,
+                scratch_directory=ROOT,
+            )
+        self.assertEqual(public_key, self.keys.public["provider"])
+        self.assertEqual(len(signature), 384)
+        self.assertTrue(self.keys.verify(message, signature, public_key))
+        self.assertFalse(self.keys.verify(message + b"!", signature, public_key))
 
     def test_rsa_validation_requires_rsa_encryption_algorithm_oid(self):
         der = authority._canonical_spki_der(self.keys.public["provider"])
@@ -1143,7 +1207,7 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
             role="provider",
         )
         self.assertFalse(
-            authority._verify_signature(
+            self.keys.verify(
                 changed_message,
                 original_signature,
                 self.keys.public["provider"],

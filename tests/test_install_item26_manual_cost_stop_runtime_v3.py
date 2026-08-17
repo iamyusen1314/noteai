@@ -113,11 +113,11 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
                 authority,
                 "_git_blob_record",
                 side_effect=git_record,
-            ):
+            ), cls.keys.builder_patches(), cls.keys.verification_patcher():
                 cls.receipt_raw = receipt_builder.build_activation_receipt(
                     root_raw=cls.root_raw,
                     local_ci_observation_private_key_pem=(
-                        cls.keys.private["local_ci_observation"]
+                        cls.keys.signing_handles["local_ci_observation"]
                     ),
                     control_revision=CONTROL_REVISION,
                     control_ci=cls.control_ci,
@@ -164,6 +164,7 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
                 "_git_blob_record",
                 side_effect=git_side_effect or self.git_record,
             ),
+            self.keys.verification_patcher(),
             mock.patch.object(installer.os, "geteuid", return_value=0),
             mock.patch.object(
                 installer,

@@ -184,10 +184,16 @@ Last updated: 2026-08-18
   credential and does not authorize capture. Scoped authorization for exactly
   three local RSA-3072 signing keys and interactive administrator bootstrap is
   now received, anchored after ledger revision `2cfd03a`. Direct OpenSSL
-  `-out` generation remains prohibited: first checkpoint the reviewed
-  no-overwrite helper (`2e35d16c...cd9ff`), obtain its own new attempt-one
-  push/PR dual-green pair, and record exact commit/blob/SHA in a subsequent
-  Secret-free ledger. Only then may root exclusively stage the accepted helper,
+  `-out` generation remains prohibited. The first helper-source revision
+  `514fbe0` is permanently no-rerun/rejected: its push route hit an exact
+  60-second artifact-download timeout, and its green PR route revealed real
+  disposable test-role private-key generation outside root custody. The
+  authorized append-only correction keeps the production helper unchanged,
+  uses pinned public-only SPKIs/non-key signature mocks, and adds bounded
+  unique-temp retries only for explicit transient artifact failures. First
+  checkpoint that correction, obtain its own new attempt-one push/PR dual-green
+  pair, and record exact commit/blob/SHA in a subsequent Secret-free ledger.
+  Only then may root exclusively stage the accepted helper,
   compare the installed SHA, and create custody. Until that sequence completes,
   do not generate production keys, sign a receipt, invoke sudo, install
   inventory or import ActionTrail/Describe/billing responses. Any partial key

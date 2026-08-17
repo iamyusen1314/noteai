@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 import hashlib
+from http.client import HTTPException, IncompleteRead, RemoteDisconnected
 import json
 import os
 from pathlib import Path
+import tempfile
+import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import urlopen
@@ -15,6 +19,10 @@ from urllib.request import urlopen
 MODEL_ROOT = Path(__file__).resolve().parent
 REPO_ROOT = MODEL_ROOT.parent
 DEFAULT_MANIFEST = MODEL_ROOT / "artifacts" / "model_release_manifest.v04.json"
+HTTP_DOWNLOAD_MAX_ATTEMPTS = 3
+HTTP_DOWNLOAD_RETRY_DELAY_SECONDS = 0.25
+HTTP_DOWNLOAD_FAILURE = "model artifact download failed"
+HTTP_DOWNLOAD_RETRY_STATUSES = frozenset({408, 425, 429, 500, 502, 503, 504})
 
 
 def _truthy(value: str | None) -> bool:
@@ -61,23 +69,77 @@ def _url_for(base_url: str, raw_path: str) -> str:
     return f"{base}/{'/'.join(parts)}"
 
 
-def _download(url: str, target: Path) -> None:
-    target.parent.mkdir(parents=True, exist_ok=True)
-    tmp = target.with_suffix(target.suffix + ".tmp")
+def _remove_download_tmp(tmp: Path) -> None:
     try:
-        with urlopen(url, timeout=60) as response, tmp.open("wb") as fh:
-            while True:
-                chunk = response.read(1024 * 1024)
-                if not chunk:
-                    break
-                fh.write(chunk)
-        tmp.replace(target)
-    except (HTTPError, URLError, TimeoutError) as exc:
-        if tmp.exists():
-            tmp.unlink()
-        raise RuntimeError(
-            f"model artifact download failed ({type(exc).__name__.lower()})"
-        ) from None
+        tmp.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _download_once(url: str, target: Path) -> None:
+    descriptor, raw_tmp = tempfile.mkstemp(
+        prefix=f".{target.name}.",
+        suffix=".tmp",
+        dir=target.parent,
+    )
+    tmp = Path(raw_tmp)
+    descriptor_open = True
+    try:
+        with os.fdopen(descriptor, "wb") as fh:
+            descriptor_open = False
+            with urlopen(url, timeout=60) as response:
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    fh.write(chunk)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, target)
+    except BaseException:
+        if descriptor_open:
+            os.close(descriptor)
+        _remove_download_tmp(tmp)
+        raise
+
+
+def _download(
+    url: str,
+    target: Path,
+    *,
+    sleep: Callable[[float], None] = time.sleep,
+) -> None:
+    """Download atomically, retrying only explicit transient failures."""
+
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        raise RuntimeError(HTTP_DOWNLOAD_FAILURE) from None
+    for attempt in range(HTTP_DOWNLOAD_MAX_ATTEMPTS):
+        try:
+            _download_once(url, target)
+            return
+        except HTTPError as exc:
+            retry = exc.code in HTTP_DOWNLOAD_RETRY_STATUSES
+            try:
+                exc.close()
+            except Exception:
+                raise RuntimeError(HTTP_DOWNLOAD_FAILURE) from None
+        except (
+            TimeoutError,
+            URLError,
+            IncompleteRead,
+            RemoteDisconnected,
+            ConnectionResetError,
+        ):
+            retry = True
+        except HTTPException:
+            raise RuntimeError(HTTP_DOWNLOAD_FAILURE) from None
+        except OSError:
+            raise RuntimeError(HTTP_DOWNLOAD_FAILURE) from None
+        if not retry or attempt + 1 == HTTP_DOWNLOAD_MAX_ATTEMPTS:
+            raise RuntimeError(HTTP_DOWNLOAD_FAILURE) from None
+        sleep(HTTP_DOWNLOAD_RETRY_DELAY_SECONDS)
 
 
 def _download_s3(bucket: str, key: str, target: Path) -> None:

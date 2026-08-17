@@ -11378,3 +11378,63 @@ Colima, database, builder, restore and cloud actions remain frozen.
   user enter the `sudo` password in the shared terminal and the one-shot key
   bootstrap execute. The five historical scripts remain untracked,
   unexecuted, unstaged and untouched.
+
+### Item 26 helper-source attempt-one terminal conflict and retry successor (2026-08-18)
+
+- Helper-source revision `514fbe075fe96096d641595a87423af4418ed90a`
+  is the direct child of `2cfd03a9968f3ac5c2146a12377620aef7aed8e1`.
+  Its helper blob is `e2b0b04f2bc5d8dc80185e29c059699209f2965f`
+  and its helper file SHA-256 remains `2e35d16c...cd9ff`. The exact SHA has
+  only push run `32045476729`/job `95432282589` and pull-request run
+  `32045480527`/job `95432294279`; both are attempt one with no previous
+  attempt URL and neither may be rerun.
+- The push run failed at `Restore required model artifacts` before Unit tests.
+  Its single HTTP download attempt reached the fixed 60-second timeout and
+  raised the Secret-free terminal class `model artifact download failed
+  (timeouterror)`. The job ended with 21 steps: 7 success, 1 failure and 13
+  skipped. No Unit, Quality, PostgreSQL, readiness or Compose result exists for
+  that route. The pull-request runner fetched the same exact-SHA artifacts in
+  three seconds and completed all 22 steps: ambient `2,589` tests with 34
+  skips, frozen `10+1+12+22+21`, Quality `7 PASS + 1 EXPECTED_FAIL`,
+  PostgreSQL `6/6`, readiness `138/138` and Compose, with zero test
+  failure/error. This isolates the push failure to an unretired transport
+  timeout, not a source/hash assertion.
+- A later audit found a separate authorization-contract conflict in the
+  accepted test design: the PR Unit route and earlier local focused runs used
+  real disposable RSA private-key generation for synthetic Item 26 role
+  fixtures below user/CI temporary directories and then removed those test
+  directories. They were not production credentials and no residue remains,
+  but the behavior still contradicts the literal fixed root-custody/no-delete
+  boundary. Consequently `514fbe0` is permanently rejected as an executable
+  helper source even though its PR route was green. Production key, public-key
+  export, root, receipt, sudo, staging, custody, install, capture, cloud,
+  database and builder counts all remain zero.
+- The explicitly authorized append-only correction keeps the production helper
+  byte-identical and changes only the unsafe test seam plus bounded HTTP
+  transport handling. Item 26 authority tests now construct three pinned,
+  public-only RSA-3072 SPKIs (`c42203e2...d609`, `3e1ed2f2...8d16`,
+  `113ac96a...4500`) without generating, storing or reading private material;
+  deterministic non-key sign/verify mocks retain root, domain, context and
+  tamper validation. A subprocess guard proves all 69 focused Item 26 tests
+  complete without a real `genpkey` invocation.
+- HTTP artifact restoration now uses at most three attempts with a fixed
+  0.25-second backoff. Each attempt owns a unique same-directory exclusive temp
+  file, fsyncs it and atomically replaces the target only after a complete
+  response. Only explicit transient transport failures and HTTP
+  `408/425/429/500/502/503/504` retry; authentication/not-found and local
+  write/replace errors do not. Owned partial temps are removed before retry,
+  while unrelated or concurrent temp files are never deleted. Network, HTTP
+  and local-I/O terminal errors are fixed and contain neither URL nor exception
+  detail; manifest SHA validation remains the final acceptance gate. Tests mock
+  all network and time behavior while deliberately exercising disposable local
+  filesystem operations to verify unique-temp cleanup and atomic replacement.
+- Current focused verification is `69/69` Item 26 tests and `13/13` retry/CI
+  adjacency tests in both normal and optimized modes; the same 69 Item 26 tests
+  pass under a global real-`genpkey` prohibition. The internal readiness
+  manifest suite passes `20/20` in both modes and the full production readiness
+  gate passes `138/138`. This correction is still an uncommitted successor
+  candidate. It must receive a new commit and its own
+  attempt-one push/PR dual CI, followed by a ledger-only exact commit/blob/SHA
+  acceptance. Until then root bootstrap remains ineligible: no `sudo`, root
+  staging, custody or production key generation is permitted. Item 26 remains
+  `unverified`, readiness remains `25/29`, and S0 remains open.

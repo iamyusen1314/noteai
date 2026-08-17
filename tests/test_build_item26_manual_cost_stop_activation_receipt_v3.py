@@ -115,7 +115,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
             authority,
             "_validate_ledger_git_bindings",
             return_value=None,
-        ):
+        ), self.keys.builder_patches(), self.keys.verification_patcher():
             yield
 
     def build(
@@ -135,7 +135,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
                 raw = builder.build_activation_receipt(
                     root_raw=self.root_raw,
                     local_ci_observation_private_key_pem=(
-                        self.keys.private["local_ci_observation"]
+                        self.keys.signing_handles["local_ci_observation"]
                     ),
                     control_revision=CONTROL_REVISION,
                     control_ci=copy.deepcopy(
@@ -189,7 +189,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
                     authority,
                     "_git_blob_record",
                     side_effect=self.git_record,
-                ):
+                ), self.keys.verification_patcher():
             return authority.validate_runtime_activation_receipt(
                 raw,
                 root_value=root_value,
@@ -269,7 +269,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
             + authority.canonical_bytes(authority._signature_projection(original))
         )
         self.assertTrue(
-            authority._verify_signature(original_message, signature, public_key)
+            self.keys.verify(original_message, signature, public_key)
         )
         for name, mutate in mutations.items():
             with self.subTest(name=name):
@@ -283,7 +283,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
                 )
                 self.assertNotEqual(message, original_message)
                 self.assertFalse(
-                    authority._verify_signature(message, signature, public_key)
+                    self.keys.verify(message, signature, public_key)
                 )
 
     def test_wrong_private_key_cannot_sign_local_ci_role(self):
@@ -299,7 +299,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
                 builder.build_activation_receipt(
                     root_raw=self.root_raw,
                     local_ci_observation_private_key_pem=(
-                        self.keys.private["provider"]
+                        self.keys.signing_handles["provider"]
                     ),
                     control_revision=CONTROL_REVISION,
                     control_ci=self.control_ci,
@@ -341,7 +341,9 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
                     builder.build_activation_receipt(
                         root_raw=self.root_raw,
                         local_ci_observation_private_key_pem=(
-                            self.keys.private["local_ci_observation"]
+                            self.keys.signing_handles[
+                                "local_ci_observation"
+                            ]
                         ),
                         control_revision=CONTROL_REVISION,
                         control_ci=control_ci,
@@ -365,7 +367,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
             ), self.assertRaisesRegex(ValueError, "scratch identity"):
                 builder._sign(
                     b"message",
-                    self.keys.private["local_ci_observation"],
+                    self.keys.signing_handles["local_ci_observation"],
                     scratch_directory=scratch,
                 )
 
