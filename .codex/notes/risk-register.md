@@ -178,38 +178,39 @@ Last updated: 2026-08-18
   cannot be replayed. A non-identical partial local journal write remains a
   fail-closed `LOCAL_WRITE_RECOVERY_REQUIRED` boundary rather than automatic
   recovery.
-- 当前边界: Helper acceptance ledger `4eab991` has completed its only
-  attempt-one push/PR pair with success and zero reruns. The first sudo
-  transport failed before root execution and left zero root write/residue; it
-  is not a key-generation retry. A newly authorized single-sudo staging then
-  installed the exact accepted helper, and a separate one-shot execution
-  created exactly three RSA-3072 private keys in fixed root custody and
-  exported three public PEMs. Custody inventory is `3`; Python private-key
-  read, private-key output, automatic retry, cleanup, cloud, database and
-  journal counts are all zero. Mathematical SPKI separation is proven, but
-  independent organizational custody remains false. The tracked Secret-free
-  contract/root candidate hashes are `190ed155...ffd1` and
-  `8bfb8834...ff85`; no private marker is present. Authority-v2 source is now
-  finalized, but the worktree is not yet an accepted control revision and no
-  receipt/runtime/raw authority exists.
+- 当前边界: Helper acceptance ledger `4eab991` remains accepted and root custody
+  remains unchanged with exactly three RSA-3072 private keys and three public
+  exports. The Secret-free contract/root hashes remain
+  `190ed155...ffd1`/`8bfb8834...ff85`. The resulting root-bearing revision
+  `78828093048c8b2f2dccd111412703f068155543` is nevertheless terminally
+  rejected: its only push `32140388587`/job `95721382044` and pull-request
+  `32140393870`/job `95721399196` runs both failed at attempt one and have zero
+  reruns. Both passed artifact restore/verification, then Unit reported 2,608
+  tests, one failure, zero errors and 34 skips; Quality, PostgreSQL, readiness
+  and Compose were skipped. The sole class is
+  `ITEM26_FAIL_CLOSED_EXPECTATION_NOT_UPDATED`: a test expected the obsolete
+  pre-finalization message while finalized authority correctly rejected the
+  absent external authority earlier. This does not accept or weaken `7882809`,
+  which is frozen/no-rerun.
 - 下一验证: Preserve the full no-rerun chain through rejected `514fbe0`,
-  accepted helper `b2d2e89` and bootstrap ledger `4eab991`. Commit only the
-  reviewed Secret-free contract, canonical public root, authority/PITR/external
-  closure, tests and four ledgers as a new root-bearing candidate. It must
-  receive exactly one new attempt-one push and one pull-request CI run; either
-  failure/cancellation is terminal and requires an append-only successor, with
-  no rerun. Neither `b2d2e89` nor `4eab991` CI may be reused as control CI.
-  Only after that exact root-bearing SHA is dual green may the root-owned
-  local-CI key sign receipt-v3 and the installer consume exact Git blobs.
-  Receipt signature, authority/runtime install, ActionTrail/Describe/billing
-  readback, journal, cloud, database and builder operations remain prohibited
-  until their later gates. Any custody or staging residue remains preserved;
-  no deletion, overwrite or automatic retry is authorized. Item 26 stays
-  `unverified` with empty evidence and readiness `25/29`. S0 remains open: a
-  Secret-free portable terminal capsule is still mandatory before readiness
-  credit or any paid successor. Do not replay consumed cloud requests or infer
-  terminal abort-v1 authority; mutation `UNKNOWN` permits same-identity
-  readback only, never resubmission.
+  accepted helper `b2d2e89`, bootstrap ledger `4eab991` and rejected
+  root-bearing `7882809`. The authorized append-only executable-control
+  successor is source-only: checkpoint-created is false, its revision is empty
+  and its own push/PR CI counts are zero. Its bounded correction updates the
+  stale fail-closed assertion, uses only an exact command-scoped canonical Git
+  `safe.directory` value (never `*`) for later root operation, and adds the
+  fixed root-owned receipt signer. It must first become an exact checkpoint and
+  pass its own new attempt-one push and pull-request CI; either
+  failure/cancellation is terminal/no-rerun. Receipt build/sign,
+  signer/authority/runtime install, ActionTrail/Describe/billing capture,
+  journal, cloud/API, database and builder counts remain zero. Existing custody
+  and staging residue must remain preserved, with no deletion, overwrite or
+  automatic retry. Item 26 stays `unverified` with empty evidence, internal
+  readiness `25/29`, public readiness `25/38` and zero credit. S0 remains
+  false/open: a Secret-free portable terminal capsule is still mandatory before
+  readiness credit or any paid successor. Do not replay consumed cloud
+  requests or infer terminal abort-v1 authority; mutation `UNKNOWN` permits
+  same-identity readback only, never resubmission.
 
 ## Critical Risks
 

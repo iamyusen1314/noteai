@@ -280,17 +280,17 @@ class SyntheticTerminalAuthorityV2:
                 CONTROL_REVISION,
                 400001,
                 "push",
-                "2026-08-18T01:30:00Z",
-                "2026-08-18T01:30:01Z",
-                "2026-08-18T02:00:00Z",
+                "2026-08-18T14:00:00Z",
+                "2026-08-18T14:00:01Z",
+                "2026-08-18T14:30:00Z",
             ),
             "pull_request": terminal_ci_row(
                 CONTROL_REVISION,
                 400002,
                 "pull_request",
-                "2026-08-18T01:30:02Z",
-                "2026-08-18T01:30:03Z",
-                "2026-08-18T02:01:00Z",
+                "2026-08-18T14:00:02Z",
+                "2026-08-18T14:00:03Z",
+                "2026-08-18T14:31:00Z",
             ),
         }
         with tempfile.TemporaryDirectory(
@@ -310,7 +310,7 @@ class SyntheticTerminalAuthorityV2:
                         control_source_blobs=copy.deepcopy(
                             self.control_sources
                         ),
-                        activated_at_utc="2026-08-18T02:02:00Z",
+                        activated_at_utc="2026-08-18T14:32:00Z",
                         scratch_directory=scratch,
                     )
                 )
@@ -326,7 +326,7 @@ class SyntheticTerminalAuthorityV2:
         self._add_request_authority(trail_value)
         for value in (provider_value, trail_value):
             value["control_revision"] = CONTROL_REVISION
-            value["observed_at_utc"] = "2026-08-18T03:00:10.475Z"
+            value["observed_at_utc"] = "2026-08-18T15:00:10.475Z"
             value["collector_source_sha256"] = authority._sha(
                 self.runtime_material[Path(authority.COLLECTOR_REF).name]
             )
@@ -348,10 +348,10 @@ class SyntheticTerminalAuthorityV2:
             for row in value["records"]:
                 second = row["sequence"] * 2
                 row["started_at_utc"] = (
-                    f"2026-08-18T03:00:{second:02d}.475Z"
+                    f"2026-08-18T15:00:{second:02d}.475Z"
                 )
                 row["completed_at_utc"] = (
-                    f"2026-08-18T03:00:{second + 1:02d}.475Z"
+                    f"2026-08-18T15:00:{second + 1:02d}.475Z"
                 )
         self.provider_raw = extractor.canonical_bytes(provider_value)
         self.actiontrail_raw = extractor.canonical_bytes(trail_value)
@@ -496,7 +496,7 @@ class SyntheticTerminalAuthorityV2:
         confirmation_payload = {
             "schema": authority.CONFIRMATION_SCHEMA,
             **common,
-            "confirmed_at_utc": "2026-08-18T06:00:00Z",
+            "confirmed_at_utc": "2026-08-18T18:00:00Z",
             "post_action_observed_at_utc": provider_projection[
                 "observed_at_utc"
             ],
@@ -518,7 +518,7 @@ class SyntheticTerminalAuthorityV2:
             "schema": authority.PROVIDER_SCHEMA,
             **common,
             "observed_at_utc": provider_projection["observed_at_utc"],
-            "signed_at_utc": "2026-08-18T06:01:00Z",
+            "signed_at_utc": "2026-08-18T18:01:00Z",
             "confirmation_export_semantic_sha256": authority._semantic(
                 confirmation_payload
             ),
@@ -619,35 +619,35 @@ class SyntheticTerminalAuthorityV2:
                 EVIDENCE_REVISION,
                 400003,
                 "push",
-                "2026-08-18T04:00:00Z",
-                "2026-08-18T04:00:01Z",
-                "2026-08-18T04:20:00Z",
+                "2026-08-18T16:00:00Z",
+                "2026-08-18T16:00:01Z",
+                "2026-08-18T16:20:00Z",
             ),
             "evidence_pull_request": terminal_ci_row(
                 EVIDENCE_REVISION,
                 400004,
                 "pull_request",
-                "2026-08-18T04:00:02Z",
-                "2026-08-18T04:00:03Z",
-                "2026-08-18T04:21:00Z",
+                "2026-08-18T16:00:02Z",
+                "2026-08-18T16:00:03Z",
+                "2026-08-18T16:21:00Z",
             ),
             "terminal_push": terminal_ci_row(
                 TERMINAL_REVISION,
                 400005,
                 "push",
-                "2026-08-18T05:00:00Z",
-                "2026-08-18T05:00:01Z",
-                "2026-08-18T05:20:00Z",
+                "2026-08-18T17:00:00Z",
+                "2026-08-18T17:00:01Z",
+                "2026-08-18T17:20:00Z",
             ),
             "terminal_pull_request": terminal_ci_row(
                 TERMINAL_REVISION,
                 400006,
                 "pull_request",
-                "2026-08-18T05:00:02Z",
-                "2026-08-18T05:00:03Z",
-                "2026-08-18T05:21:00Z",
+                "2026-08-18T17:00:02Z",
+                "2026-08-18T17:00:03Z",
+                "2026-08-18T17:21:00Z",
             ),
-            "terminal_accepted_at_utc": "2026-08-18T06:02:00Z",
+            "terminal_accepted_at_utc": "2026-08-18T18:02:00Z",
         }
         self.local_ci_envelope = self.make_envelope(
             "local_ci_observation", self.ci_payload
@@ -943,7 +943,11 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
                 authority.HELPER_SOURCE_ACCEPTED_REVISION,
                 authority.BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
             ),
-            (authority.BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION, CONTROL_REVISION),
+            (
+                authority.BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
+                authority.REJECTED_ROOT_ACTIVATION_REVISION,
+            ),
+            (authority.REJECTED_ROOT_ACTIVATION_REVISION, CONTROL_REVISION),
         ]
         observed = []
 
@@ -978,6 +982,134 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
                     root=ROOT,
                 )
             )
+        with mock.patch.object(
+            authority,
+            "revision_is_strict_ancestor",
+            side_effect=lambda earlier, later, *, root: not (
+                earlier == authority.REJECTED_ROOT_ACTIVATION_REVISION
+                and later == CONTROL_REVISION
+            ),
+        ):
+            self.assertFalse(
+                authority._control_lineage_is_valid(
+                    CONTROL_REVISION,
+                    root=ROOT,
+                )
+            )
+
+    def test_git_uses_only_exact_command_scope_safe_directory(self):
+        completed = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=b"synthetic\n",
+            stderr=b"",
+        )
+        with mock.patch.object(
+            authority.subprocess,
+            "run",
+            return_value=completed,
+        ) as run:
+            observed = authority._git(["rev-parse", "HEAD"], root=ROOT)
+        self.assertIs(observed, completed)
+        run.assert_called_once()
+        args, kwargs = run.call_args
+        self.assertEqual(
+            args[0],
+            [
+                str(authority.GIT),
+                "-c",
+                "safe.directory=" + str(ROOT),
+                "--no-replace-objects",
+                "rev-parse",
+                "HEAD",
+            ],
+        )
+        self.assertEqual(kwargs["cwd"], ROOT)
+        self.assertEqual(
+            kwargs["env"],
+            {
+                "PATH": "/usr/bin:/bin",
+                "LC_ALL": "C",
+                "LANG": "C",
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "GIT_CONFIG_GLOBAL": "/dev/null",
+                "GIT_NO_REPLACE_OBJECTS": "1",
+                "GIT_OPTIONAL_LOCKS": "0",
+            },
+        )
+        self.assertNotIn("SUDO_UID", kwargs["env"])
+        self.assertNotIn("*", args[0][2])
+
+    def test_git_rejects_noncanonical_symlink_and_writable_roots_before_git(self):
+        with tempfile.TemporaryDirectory(
+            prefix=".item26-v2-git-root-",
+            dir=ROOT,
+        ) as temporary:
+            base = Path(temporary)
+            base.chmod(0o700)
+            repository = base / "repository"
+            repository.mkdir(mode=0o700)
+            (repository / ".git").mkdir(mode=0o700)
+            symlink = base / "repository-link"
+            symlink.symlink_to(repository, target_is_directory=True)
+            cases = {
+                "relative": Path("repository"),
+                "noncanonical": repository / ".." / repository.name,
+                "symlink": symlink,
+                "missing_metadata": base,
+            }
+            for name, candidate in cases.items():
+                with self.subTest(name=name), mock.patch.object(
+                    authority.subprocess,
+                    "run",
+                    side_effect=AssertionError("Git must not start"),
+                ) as run, self.assertRaisesRegex(
+                    ValueError,
+                    "git repository",
+                ):
+                    authority._git(["rev-parse", "HEAD"], root=candidate)
+                run.assert_not_called()
+            repository.chmod(0o722)
+            with mock.patch.object(
+                authority.subprocess,
+                "run",
+                side_effect=AssertionError("Git must not start"),
+            ) as run, self.assertRaisesRegex(
+                ValueError,
+                "git repository identity",
+            ):
+                authority._git(["rev-parse", "HEAD"], root=repository)
+            run.assert_not_called()
+
+    def test_git_rejects_identity_drift_and_wildcard_config_before_git(self):
+        identity = authority._git_repository_identity(ROOT)
+        drifted = identity + (("synthetic-drift", ()),)
+        with mock.patch.object(
+            authority,
+            "_git_repository_identity",
+            side_effect=(identity, drifted),
+        ), mock.patch.object(
+            authority.subprocess,
+            "run",
+            side_effect=AssertionError("Git must not start"),
+        ) as run, self.assertRaisesRegex(
+            ValueError,
+            "git repository changed",
+        ):
+            authority._git(["rev-parse", "HEAD"], root=ROOT)
+        run.assert_not_called()
+
+        forbidden = ["-c", "safe.directory=*", "rev-parse", "HEAD"]
+        with mock.patch.object(
+            authority.subprocess,
+            "run",
+            side_effect=AssertionError("Git must not start"),
+        ) as run, self.assertRaisesRegex(
+            ValueError,
+            "git arguments",
+        ):
+            authority._git(forbidden, root=ROOT)
+        run.assert_not_called()
 
     def test_complete_root_binds_epoch_history_ledger_registry_and_roles(self):
         value, keys = authority._validate_root(
@@ -1296,6 +1428,29 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
         ), self.assertRaisesRegex(ValueError, "bootstrap binding"):
             authority._validate_ledger_git_bindings(root=ROOT)
 
+    def test_rejected_root_activation_binds_root_and_contract_bytes(self):
+        real_record = authority._git_blob_record
+        for drift_ref in (authority.PUBLIC_ROOT_REF, authority.CONTRACT_REF):
+            with self.subTest(ref=drift_ref):
+                def record(revision, ref, *, root):
+                    value = real_record(revision, ref, root=root)
+                    if (
+                        revision == authority.REJECTED_ROOT_ACTIVATION_REVISION
+                        and ref == drift_ref
+                    ):
+                        value = dict(value)
+                        value["file_sha256"] = "f" * 64
+                    return value
+
+                with mock.patch.object(
+                    authority,
+                    "_git_blob_record",
+                    side_effect=record,
+                ), self.assertRaisesRegex(
+                    ValueError, "rejected activation binding"
+                ):
+                    authority._validate_ledger_git_bindings(root=ROOT)
+
     def test_run_rows_and_zero_counts_reject_bool_and_string_numbers(self):
         row = terminal_ci_row(
             CONTROL_REVISION,
@@ -1421,6 +1576,67 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
                 )
                 self.assertIsNone(result)
                 self.assertTrue(errors)
+
+    def test_runtime_receipt_rejects_rejected_root_activation_id_reuse(self):
+        root_value, root_keys = authority._validate_root(
+            self.terminal.root_raw,
+            expected_hash=self.terminal.root_hash,
+        )
+        installed_sources = {
+            ref: self.terminal.control_sources[ref]["file_sha256"]
+            for ref in authority.RUNTIME_SOURCE_REFS
+        }
+        cases = {
+            "run_id": (
+                "push",
+                "run_id",
+                authority.EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL[
+                    "push"
+                ]["run_id"],
+            ),
+            "job_id": (
+                "pull_request",
+                "job_id",
+                authority.EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL[
+                    "pull_request"
+                ]["job_id"],
+            ),
+        }
+        for name, (event, field, value) in cases.items():
+            with self.subTest(name=name):
+                receipt = json.loads(self.terminal.activation_receipt_raw)
+                receipt["payload"]["control_ci"][event][field] = value
+                unsigned = {
+                    key: row
+                    for key, row in receipt.items()
+                    if key != "signature_base64"
+                }
+                message = (
+                    authority.RECEIPT_SIGNATURE_DOMAIN
+                    + authority.canonical_bytes(unsigned)
+                )
+                signature = self.keys.sign(
+                    message,
+                    self.keys.signing_handles["local_ci_observation"],
+                    scratch_directory=ROOT,
+                )
+                receipt["signature_base64"] = base64.b64encode(
+                    signature
+                ).decode("ascii")
+                with self.terminal.core_patches(), self.assertRaisesRegex(
+                    ValueError, "activation receipt v3 timeline"
+                ):
+                    authority.validate_runtime_activation_receipt(
+                        authority.canonical_bytes(receipt),
+                        root_value=root_value,
+                        keys=root_keys,
+                        control_revision=CONTROL_REVISION,
+                        expected_authority_root_file_sha256=(
+                            self.terminal.root_hash
+                        ),
+                        expected_source_hashes=installed_sources,
+                        root=ROOT,
+                    )
 
     def test_control_evidence_terminal_and_runtime_source_freeze(self):
         cases = {}

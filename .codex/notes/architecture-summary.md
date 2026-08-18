@@ -347,15 +347,32 @@ Only service names and variable names are documented here; no secret values.
   byte-identically, and grants no action or readiness credit. Bootstrap helper
   and public-root refs are frozen in the authority, PITR and external source
   sets. Receipt ancestry is explicitly
-  `653a4f3 < 2cfd03a < 514fbe0 < b2d2e89 < 4eab991 < control`; the rejected
-  `514fbe0` terminal rows are included in run/job uniqueness and the strict
-  rejected-to-accepted time sequence.
-- This worktree is not yet an accepted control revision. Its checkpoint SHA and
-  own new attempt-one push/PR dual-CI pair must be created next. Only that exact
-  root-bearing revision may become receipt-v3 `control_revision`; neither
-  `b2d2e89`, `4eab991` nor the later ledger prose can substitute for its CI.
-  Receipt signing and root-only runtime installation remain after dual green;
-  capture, M1/M2 and terminal authority remain later stages.
+  `653a4f3 < 2cfd03a < 514fbe0 < b2d2e89 < 4eab991 < 7882809 < control`;
+  the rejected `514fbe0` and `7882809` terminal rows are both included in
+  run/job uniqueness and the strict rejected-to-successor time sequence.
+- That root-bearing candidate became exact revision
+  `78828093048c8b2f2dccd111412703f068155543`, but its only push
+  `32140388587`/job `95721382044` and pull-request `32140393870`/job
+  `95721399196` runs both terminated at attempt one with failure and zero
+  reruns. Artifact restore/verification passed on both routes; Unit then ran
+  2,608 tests with one failure, zero errors and 34 skips. The only failure was
+  a stale test expectation for the pre-finalization error text: finalized
+  authority correctly failed closed earlier at external-authority validation.
+  Quality, PostgreSQL, readiness and Compose were not reached. Revision
+  `7882809` is frozen rejected/no-rerun and cannot be a receipt-v3
+  `control_revision`.
+- Its authorized append-only executable-control successor is presently
+  uncheckpointed, has an empty revision and has no own CI. The bounded source
+  delta updates that stale assertion, constrains root Git to an exact
+  command-scoped canonical-repository `safe.directory` value rather than a
+  wildcard, and adds the fixed root-owned receipt signer. The canonical public
+  root and contract hashes remain `8bfb8834...ff85` and `190ed155...ffd1`, and
+  root custody still holds the three already-generated role keys with only
+  three public exports. Receipt build/sign, signer/authority/runtime install,
+  capture, journal, cloud, database and builder counts remain zero. Only the
+  successor's own new attempt-one dual-green push/PR pair can allow a later
+  separately gated signing/install stage; a failed or cancelled route is again
+  terminal/no-rerun.
 - Local root-owned material is not portable CI evidence. A Secret-free,
   clean-clone-replayable terminal capsule or equivalent trusted distribution
   contract remains mandatory before Item 26 credit or any paid PITR successor.

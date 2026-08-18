@@ -456,8 +456,9 @@ class InternalZeroProviderSmokeEvidenceTests(unittest.TestCase):
         errors, acceptance = verifier.validate_item26_terminal_evidence([
             {"kind": "git", "ref": "0" * 40},
         ])
-        self.assertEqual(
-            errors, ["Item26 terminal semantic verifier is not finalized"]
+        self.assertEqual(len(errors), 1)
+        self.assertTrue(
+            errors[0].startswith("Item26 external authority invalid:")
         )
         self.assertIsNone(acceptance)
 

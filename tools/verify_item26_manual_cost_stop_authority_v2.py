@@ -51,6 +51,9 @@ HELPER_SOURCE_ACCEPTED_REVISION = (
 BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION = (
     "4eab99188332b156fde0f8892daa668375fff245"
 )
+REJECTED_ROOT_ACTIVATION_REVISION = (
+    "78828093048c8b2f2dccd111412703f068155543"
+)
 
 COLLECTOR_REF = "tools/collect_item26_manual_cost_stop_raw_v2.py"
 EXTRACTOR_REF = "tools/extract_item26_manual_cost_stop_raw_v2.py"
@@ -724,6 +727,85 @@ EXPECTED_BOOTSTRAP_LEDGER_TERMINAL = {
         completed_at_utc="2026-08-18T01:19:02Z",
     ),
     "rerun_allowed": False,
+}
+
+
+EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL = {
+    "revision": REJECTED_ROOT_ACTIVATION_REVISION,
+    "native_dispatch_count": 2,
+    "push": {
+        "run_id": 32140388587,
+        "job_id": 95721382044,
+        "event": "push",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "failure",
+        "head_sha": REJECTED_ROOT_ACTIVATION_REVISION,
+        "created_at_utc": "2026-08-18T13:05:37Z",
+        "started_at_utc": "2026-08-18T13:05:40Z",
+        "completed_at_utc": "2026-08-18T13:37:38Z",
+        "dispatch_count": 1,
+        "rerun_count": 0,
+        "workflow_name": "CI",
+        "workflow_path": CI_WORKFLOW_REF,
+        "job_name": "test",
+        "job_count": 1,
+        "step_count": 22,
+        "failed_step_count": 1,
+        "failure_class": "ITEM26_FAIL_CLOSED_EXPECTATION_NOT_UPDATED",
+        "failed_step_name": "Unit tests",
+        "failed_step_number": 13,
+        "unit_test_count": 2608,
+        "unit_test_failure_count": 1,
+        "unit_test_error_count": 0,
+        "unit_test_skip_count": 34,
+        "frozen_topology_tests_started": False,
+        "quality_gate_started": False,
+        "postgres_test_started": False,
+        "readiness_gate_started": False,
+        "compose_config_started": False,
+        "warning_annotation_count": 1,
+        "failure_annotation_count": 1,
+        "error_annotation_count": 0,
+    },
+    "pull_request": {
+        "run_id": 32140393870,
+        "job_id": 95721399196,
+        "event": "pull_request",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "failure",
+        "head_sha": REJECTED_ROOT_ACTIVATION_REVISION,
+        "created_at_utc": "2026-08-18T13:05:40Z",
+        "started_at_utc": "2026-08-18T13:05:43Z",
+        "completed_at_utc": "2026-08-18T13:38:56Z",
+        "dispatch_count": 1,
+        "rerun_count": 0,
+        "workflow_name": "CI",
+        "workflow_path": CI_WORKFLOW_REF,
+        "job_name": "test",
+        "job_count": 1,
+        "step_count": 22,
+        "failed_step_count": 1,
+        "failure_class": "ITEM26_FAIL_CLOSED_EXPECTATION_NOT_UPDATED",
+        "failed_step_name": "Unit tests",
+        "failed_step_number": 13,
+        "unit_test_count": 2608,
+        "unit_test_failure_count": 1,
+        "unit_test_error_count": 0,
+        "unit_test_skip_count": 34,
+        "frozen_topology_tests_started": False,
+        "quality_gate_started": False,
+        "postgres_test_started": False,
+        "readiness_gate_started": False,
+        "compose_config_started": False,
+        "warning_annotation_count": 1,
+        "failure_annotation_count": 1,
+        "error_annotation_count": 0,
+    },
+    "rerun_allowed": False,
+    "accepted": False,
+    "replacement_required": True,
 }
 
 
@@ -1415,17 +1497,118 @@ def _validate_root(
     return value, keys
 
 
+def _validated_git_arguments(arguments: list[str]) -> list[str]:
+    if (
+        type(arguments) is not list
+        or not arguments
+        or any(
+            type(value) is not str
+            or not value
+            or "\0" in value
+            or "safe.directory" in value.lower()
+            for value in arguments
+        )
+    ):
+        raise ValueError("manual authority v2 git arguments")
+    command = arguments[0]
+    valid_shape = (
+        (command in {"show", "rev-parse"} and len(arguments) == 2)
+        or (
+            command == "cat-file"
+            and len(arguments) == 3
+            and arguments[1] == "-e"
+        )
+        or (
+            command == "merge-base"
+            and len(arguments) == 4
+            and arguments[1] == "--is-ancestor"
+        )
+    )
+    if not valid_shape:
+        raise ValueError("manual authority v2 git arguments")
+    return list(arguments)
+
+
+def _git_repository_identity(
+    root: Path,
+) -> tuple[tuple[str, tuple[int, ...]], ...]:
+    directory_paths = [Path(root.anchor)]
+    current = Path(root.anchor)
+    for component in root.parts[1:]:
+        current = current / component
+        directory_paths.append(current)
+    metadata_path = root / ".git"
+    paths = (*directory_paths, metadata_path)
+    try:
+        rows = tuple(path.lstat() for path in paths)
+    except OSError as exc:
+        raise ValueError("manual authority v2 git repository identity") from exc
+    repository_row = rows[len(directory_paths) - 1]
+    repository_owner = repository_row.st_uid
+    for index, row in enumerate(rows):
+        is_metadata = index == len(rows) - 1
+        if (
+            not stat.S_ISDIR(row.st_mode)
+            or stat.S_ISLNK(row.st_mode)
+            or stat.S_IMODE(row.st_mode) & 0o022
+            or (
+                is_metadata
+                and row.st_uid != repository_owner
+            )
+            or (
+                not is_metadata
+                and row.st_uid not in {ROOT_UID, repository_owner}
+            )
+        ):
+            raise ValueError("manual authority v2 git repository identity")
+    return tuple(
+        (str(path), _stable(row)) for path, row in zip(paths, rows)
+    )
+
+
+def _validated_git_repository_root(
+    root: Path,
+) -> tuple[Path, tuple[tuple[str, tuple[int, ...]], ...]]:
+    if (
+        not isinstance(root, Path)
+        or not root.is_absolute()
+        or any(part in {".", ".."} for part in root.parts)
+        or any(character in str(root) for character in ("\0", "\r", "\n", "*"))
+    ):
+        raise ValueError("manual authority v2 git repository root")
+    try:
+        canonical = root.resolve(strict=True)
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise ValueError("manual authority v2 git repository root") from exc
+    if canonical != root:
+        raise ValueError("manual authority v2 git repository root")
+    return canonical, _git_repository_identity(canonical)
+
+
 def _git(
     arguments: list[str],
     *,
     root: Path,
     stdout: int = subprocess.PIPE,
 ) -> subprocess.CompletedProcess[bytes]:
+    command = _validated_git_arguments(arguments)
+    canonical_root, repository_before = _validated_git_repository_root(root)
     before = _tool_identity(GIT)
+    if _git_repository_identity(canonical_root) != repository_before:
+        raise ValueError("manual authority v2 git repository changed")
+    safe_directory = "safe.directory=" + str(canonical_root)
+    if "*" in safe_directory:
+        raise ValueError("manual authority v2 git repository root")
     try:
         result = subprocess.run(
-            [str(GIT), "--no-replace-objects", *arguments],
-            cwd=root,
+            [
+                str(GIT),
+                "-c",
+                safe_directory,
+                "--no-replace-objects",
+                *command,
+            ],
+            cwd=canonical_root,
             env={
                 "PATH": "/usr/bin:/bin",
                 "LC_ALL": "C",
@@ -1442,6 +1625,8 @@ def _git(
         )
     except (OSError, subprocess.SubprocessError) as exc:
         raise ValueError("manual authority v2 git") from exc
+    if _git_repository_identity(canonical_root) != repository_before:
+        raise ValueError("manual authority v2 git repository changed")
     if _stable(GIT.lstat()) != _stable(before):
         raise ValueError("manual authority v2 git identity")
     return result
@@ -1544,6 +1729,7 @@ def _control_lineage_is_valid(
         REJECTED_BOOTSTRAP_SOURCE_REVISION,
         HELPER_SOURCE_ACCEPTED_REVISION,
         BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
+        REJECTED_ROOT_ACTIVATION_REVISION,
         control_revision,
     )
     return HEX40.fullmatch(control_revision or "") is not None and all(
@@ -1575,6 +1761,22 @@ def _validate_ledger_git_bindings(*, root: Path) -> None:
             or len(bootstrap["raw"]) != EXPECTED_BOOTSTRAP_FILE_BYTES
         ):
             raise ValueError("manual authority v2 bootstrap binding")
+    rejected_root = _git_blob_record(
+        REJECTED_ROOT_ACTIVATION_REVISION,
+        PUBLIC_ROOT_REF,
+        root=root,
+    )
+    rejected_contract = _git_blob_record(
+        REJECTED_ROOT_ACTIVATION_REVISION,
+        CONTRACT_REF,
+        root=root,
+    )
+    if (
+        rejected_root["file_sha256"] != EXPECTED_ROOT_SHA
+        or rejected_contract["file_sha256"]
+        != EXPECTED_CONTRACT_FILE_SHA256
+    ):
+        raise ValueError("manual authority v2 rejected activation binding")
 
 
 def load_activation_root(
@@ -2078,6 +2280,8 @@ def validate_activation_receipt_unsigned_inputs(
         EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"],
         EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"],
         EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"],
+        EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["push"],
+        EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["pull_request"],
         control_ci["push"],
         control_ci["pull_request"],
     )
@@ -2158,6 +2362,28 @@ def validate_activation_receipt_unsigned_inputs(
             _utc(
                 EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"]
                 ["completed_at_utc"]
+            ),
+        )
+        >= min(
+            _utc(
+                EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["push"]
+                ["created_at_utc"]
+            ),
+            _utc(
+                EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL[
+                    "pull_request"
+                ]["created_at_utc"]
+            ),
+        )
+        or max(
+            _utc(
+                EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["push"]
+                ["completed_at_utc"]
+            ),
+            _utc(
+                EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL[
+                    "pull_request"
+                ]["completed_at_utc"]
             ),
         )
         >= min(
@@ -2318,6 +2544,9 @@ def validate_runtime_activation_receipt(
                 "bootstrap_ledger_terminal": (
                     EXPECTED_BOOTSTRAP_LEDGER_TERMINAL
                 ),
+                "rejected_root_activation_terminal": (
+                    EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL
+                ),
             },
         )
         or not _strict(
@@ -2371,6 +2600,8 @@ def validate_runtime_activation_receipt(
         EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"],
         EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"],
         EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"],
+        EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["push"],
+        EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["pull_request"],
         payload["control_ci"]["push"],
         payload["control_ci"]["pull_request"],
     )
@@ -2460,6 +2691,28 @@ def validate_runtime_activation_receipt(
                 EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"][
                     "completed_at_utc"
                 ]
+            ),
+        )
+        >= min(
+            _utc(
+                EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["push"]
+                ["created_at_utc"]
+            ),
+            _utc(
+                EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL[
+                    "pull_request"
+                ]["created_at_utc"]
+            ),
+        )
+        or max(
+            _utc(
+                EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["push"]
+                ["completed_at_utc"]
+            ),
+            _utc(
+                EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL[
+                    "pull_request"
+                ]["completed_at_utc"]
             ),
         )
         >= min(_utc(row["created_at_utc"]) for row in control_rows)
@@ -2912,6 +3165,8 @@ def _validate_terminal_ci(
         EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"],
         EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"],
         EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"],
+        EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["push"],
+        EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["pull_request"],
         *(row for row, _event, _revision in rows),
     )
     if (
@@ -3218,6 +3473,7 @@ __all__ = [
     "EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL",
     "EXPECTED_HELPER_SOURCE_TERMINAL",
     "EXPECTED_BOOTSTRAP_LEDGER_TERMINAL",
+    "EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL",
     "EXPECTED_AUTHORITY_ROOT_FILE_SHA256",
     "EXPECTED_CONTRACT_FILE_SHA256",
     "EXPECTED_ROOT_SHA",
@@ -3234,6 +3490,7 @@ __all__ = [
     "PUBLIC_ROOT_REF",
     "RECEIPT_SIGNATURE_DOMAIN",
     "RECEIPT_SIGNATURE_DOMAIN_TEXT",
+    "REJECTED_ROOT_ACTIVATION_REVISION",
     "ROLE_SIGNATURE_DOMAIN_TEXT",
     "ROLE_NAMES",
     "ROOT",

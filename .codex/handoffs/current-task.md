@@ -11541,3 +11541,57 @@ Colima, database, builder, restore and cloud actions remain frozen.
   Only after dual green may receipt-v3 signing and exact root-only installation
   begin. The five historical untracked scripts remain unstaged, unread and
   unexecuted.
+
+### Item 26 root-bearing revision rejected; executable-control successor pending (2026-08-18)
+
+- The former root-bearing candidate is exact revision
+  `78828093048c8b2f2dccd111412703f068155543`, the direct child of
+  `4eab99188332b156fde0f8892daa668375fff245`, with tree
+  `e669819164bfc2cf57f2b6a5eec047154b679bea` and exactly 21 changed paths.
+  Its only ordinary CI inventory is push run `32140388587`/job
+  `95721382044` and pull-request run `32140393870`/job `95721399196`.
+  Both are attempt one, terminal `failure`, have no prior-attempt/rerun, and
+  must never be rerun.
+- The push job ran from `2026-08-18T13:05:40Z` through
+  `2026-08-18T13:37:38Z`; its run terminated at `13:37:39Z`. The PR job ran
+  from `13:05:43Z` through `13:38:56Z`; its run terminated at `13:38:57Z`.
+  On both routes model-artifact restore and verification passed, then Unit
+  stopped with 2,608 tests, one failure, zero errors and 34 skips. Quality,
+  PostgreSQL, production-readiness and Compose were not reached.
+- The sole failure was
+  `tests.test_verify_internal_zero_provider_smoke_evidence.InternalZeroProviderSmokeEvidenceTests.test_item26_manifest_status_cannot_supply_terminal_acceptance`.
+  The test retained the pre-finalization error text while the finalized
+  authority correctly failed closed earlier with `Item26 external authority
+  invalid: ...`. This is terminal class
+  `ITEM26_FAIL_CLOSED_EXPECTATION_NOT_UPDATED`; it does not weaken the
+  authority or accept the revision. Revision `7882809` is therefore a frozen,
+  rejected control candidate and must be followed only by an append-only
+  successor.
+- The authorized executable-control successor is currently source-only and
+  uncheckpointed: its revision is empty, checkpoint-created is false and its
+  own attempt-one push/PR CI has not started. The bounded source correction
+  updates the stale fail-closed assertion, gives root Git only an exact
+  command-scoped canonical-repository `safe.directory` value (never `*`), and
+  adds the root-owned receipt-v3 signer path. None of those source changes is
+  accepted until the successor itself is checkpointed and its exact attempt-one
+  push and pull-request CI both pass; either failure/cancellation is again
+  terminal/no-rerun.
+- The current 10-path successor candidate has passed the focused closure
+  `263/263` in both normal and `python -O` modes, the internal manifest suite
+  `20/20` in both modes, and the production readiness gate `138/138`. These are
+  local pre-checks only and do not substitute for the successor checkpoint's
+  own attempt-one push/PR CI.
+- The already-created root custody remains unchanged with exactly three
+  RSA-3072 private keys and exactly three public-key exports. The Secret-free
+  contract remains SHA-256
+  `190ed155a410b20c1b081b5bc090bbc4c4a6609789d94c51296ce1460bc5ffd1`
+  and the canonical public root remains SHA-256
+  `8bfb8834c1e241a18cde984d42524759f53423bcf809dd8657fa4b2be102ff85`.
+  No receipt has been built or signed; root signer/authority/runtime install,
+  capture, journal, cloud/API, database and builder counts remain zero. Item
+  26 remains `unverified` with `evidence: []`, internal readiness remains
+  `25/29`, public readiness remains `25/38`, no credit is added, and S0 remains
+  false/open. No further signing, sudo, staging, installation or provider/cloud
+  post-action readback may begin before the successor's own dual-green terminal
+  acceptance; bounded GitHub CI observation and artifact restore remain part of
+  that acceptance gate.

@@ -1,9 +1,11 @@
 import base64
 import copy
 from contextlib import contextmanager
+import io
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -35,8 +37,8 @@ def ci_row(run_id, event, completed_at):
         "status": "completed",
         "conclusion": "success",
         "head_sha": CONTROL_REVISION,
-        "created_at_utc": "2026-08-18T01:30:00Z",
-        "started_at_utc": "2026-08-18T01:30:01Z",
+        "created_at_utc": "2026-08-18T14:00:00Z",
+        "started_at_utc": "2026-08-18T14:00:01Z",
         "completed_at_utc": completed_at,
         "dispatch_count": 1,
         "rerun_count": 0,
@@ -67,11 +69,11 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         cls.root_raw = root_builder.build_authority_root(cls.keys.public)
         cls.root_hash = authority._sha(cls.root_raw)
         cls.control_ci = {
-            "push": ci_row(401, "push", "2026-08-18T02:00:00Z"),
+            "push": ci_row(401, "push", "2026-08-18T14:30:00Z"),
             "pull_request": ci_row(
                 402,
                 "pull_request",
-                    "2026-08-18T02:01:00Z",
+                    "2026-08-18T14:31:00Z",
             ),
         }
         cls.sources = {}
@@ -127,7 +129,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         *,
         control_ci=None,
         control_source_blobs=None,
-        activated_at_utc="2026-08-18T02:02:00Z",
+        activated_at_utc="2026-08-18T14:32:00Z",
     ):
         with tempfile.TemporaryDirectory(
             prefix=".item26-v3-receipt-scratch-",
@@ -240,6 +242,12 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
             authority.EXPECTED_BOOTSTRAP_LEDGER_TERMINAL,
         )
         self.assertEqual(
+            payload["historical_checkpoints"][
+                "rejected_root_activation_terminal"
+            ],
+            authority.EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL,
+        )
+        self.assertEqual(
             payload["bootstrap_ledger_acceptance_revision"],
             authority.BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
         )
@@ -331,7 +339,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
                     control_revision=CONTROL_REVISION,
                     control_ci=self.control_ci,
                     control_source_blobs=self.sources,
-                    activated_at_utc="2026-08-18T02:02:00Z",
+                    activated_at_utc="2026-08-18T14:32:00Z",
                     scratch_directory=scratch,
                 )
 
@@ -341,7 +349,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         reused["push"]["run_id"] = authority.EXPECTED_BOOTSTRAP_LEDGER_TERMINAL[
             "push"
         ]["run_id"]
-        cases["reused_run_id"] = (reused, self.sources, "2026-08-18T02:02:00Z")
+        cases["reused_run_id"] = (reused, self.sources, "2026-08-18T14:32:00Z")
         reused_job = copy.deepcopy(self.control_ci)
         reused_job["pull_request"]["job_id"] = (
             authority.EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"][
@@ -351,7 +359,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         cases["reused_helper_job_id"] = (
             reused_job,
             self.sources,
-            "2026-08-18T02:02:00Z",
+            "2026-08-18T14:32:00Z",
         )
         reused_rejected = copy.deepcopy(self.control_ci)
         reused_rejected["push"]["run_id"] = (
@@ -362,7 +370,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         cases["reused_rejected_run_id"] = (
             reused_rejected,
             self.sources,
-            "2026-08-18T02:02:00Z",
+            "2026-08-18T14:32:00Z",
         )
         reused_rejected_job = copy.deepcopy(self.control_ci)
         reused_rejected_job["pull_request"]["job_id"] = (
@@ -373,18 +381,40 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         cases["reused_rejected_job_id"] = (
             reused_rejected_job,
             self.sources,
-            "2026-08-18T02:02:00Z",
+            "2026-08-18T14:32:00Z",
+        )
+        reused_root_activation = copy.deepcopy(self.control_ci)
+        reused_root_activation["push"]["run_id"] = (
+            authority.EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL["push"][
+                "run_id"
+            ]
+        )
+        cases["reused_root_activation_run_id"] = (
+            reused_root_activation,
+            self.sources,
+            "2026-08-18T14:32:00Z",
+        )
+        reused_root_activation_job = copy.deepcopy(self.control_ci)
+        reused_root_activation_job["pull_request"]["job_id"] = (
+            authority.EXPECTED_REJECTED_ROOT_ACTIVATION_TERMINAL[
+                "pull_request"
+            ]["job_id"]
+        )
+        cases["reused_root_activation_job_id"] = (
+            reused_root_activation_job,
+            self.sources,
+            "2026-08-18T14:32:00Z",
         )
         early = copy.deepcopy(self.control_ci)
-        early["push"]["created_at_utc"] = "2026-08-18T01:00:00Z"
-        early["push"]["started_at_utc"] = "2026-08-18T01:00:01Z"
-        cases["early_control"] = (early, self.sources, "2026-08-18T02:02:00Z")
+        early["push"]["created_at_utc"] = "2026-08-18T13:00:00Z"
+        early["push"]["started_at_utc"] = "2026-08-18T13:00:01Z"
+        cases["early_control"] = (early, self.sources, "2026-08-18T14:32:00Z")
         drifted_sources = copy.deepcopy(self.sources)
         drifted_sources[authority.COLLECTOR_REF]["file_sha256"] = "f" * 64
         cases["source_drift"] = (
             self.control_ci,
             drifted_sources,
-            "2026-08-18T02:02:00Z",
+            "2026-08-18T14:32:00Z",
         )
         for name, (control_ci, sources, activated) in cases.items():
             with self.subTest(name=name), tempfile.TemporaryDirectory(
@@ -431,17 +461,306 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
                     scratch_directory=scratch,
                 )
 
-    def test_command_entry_remains_install_disabled_before_file_io(self):
+    def sign_request_raw(self):
+        return authority.canonical_bytes(
+            {
+                "schema": builder.SIGN_REQUEST_SCHEMA,
+                "control_ci": self.control_ci,
+                "control_source_blobs": self.sources,
+                "activated_at_utc": "2026-08-18T14:32:00Z",
+            }
+        )
+
+    @contextmanager
+    def custody(self):
+        with tempfile.TemporaryDirectory(
+            prefix=".item26-v3-custody-", dir=ROOT
+        ) as temporary:
+            directory = Path(temporary)
+            directory.chmod(0o700)
+            for name in builder.CUSTODY_ROLE_FILES:
+                path = directory / name
+                path.write_bytes(b"synthetic-key-handle")
+                path.chmod(0o600)
+            with mock.patch.object(
+                builder, "CUSTODY_DIRECTORY", directory
+            ), mock.patch.object(
+                authority, "CUSTODY_DIRECTORY", directory
+            ), mock.patch.object(
+                builder, "_owner_uid", return_value=os.geteuid()
+            ), mock.patch.object(
+                builder, "_validate_parent_chain", return_value=None
+            ):
+                yield directory
+
+    def test_default_repository_execution_rejects_before_custody(self):
+        with mock.patch.object(os, "geteuid", return_value=0), \
+                mock.patch.object(
+                    builder, "_validate_execution_flags", return_value=None
+                ), mock.patch.object(
+                    builder,
+                    "_sign_from_custody",
+                    side_effect=AssertionError("custody must not open"),
+                ) as custody, self.assertRaisesRegex(
+                    builder.SignerError, "execution_path"
+                ):
+            builder.main(
+                [
+                    "--control-revision",
+                    CONTROL_REVISION,
+                    "--repository-root",
+                    str(ROOT),
+                ],
+                stdin=io.BytesIO(self.sign_request_raw()),
+                stdout=io.BytesIO(),
+            )
+        custody.assert_not_called()
+
+    def test_invalid_public_input_never_opens_private_key(self):
+        staged = {
+            authority.RECEIPT_BUILDER_REF: b"builder",
+            authority.VERIFIER_REF: b"authority",
+        }
+        with mock.patch.object(os, "geteuid", return_value=0), \
+                mock.patch.object(
+                    builder,
+                    "_validate_execution_boundary",
+                    return_value=staged,
+                ), mock.patch.object(
+                    builder,
+                    "_sign_from_custody",
+                    side_effect=AssertionError("private key must not open"),
+                ) as custody, self.assertRaisesRegex(
+                    builder.SignerError, "request_invalid"
+                ):
+            builder.main(
+                [
+                    "--control-revision",
+                    CONTROL_REVISION,
+                    "--repository-root",
+                    str(ROOT),
+                ],
+                stdin=io.BytesIO(b'{"schema":"duplicate","schema":"x"}\n'),
+                stdout=io.BytesIO(),
+            )
+        custody.assert_not_called()
+
+    def test_staged_source_drift_rejects_before_public_validator_and_custody(self):
+        request = self.sign_request_raw()
+        staged = {
+            authority.RECEIPT_BUILDER_REF: b"builder-staged",
+            authority.VERIFIER_REF: b"authority-staged",
+        }
+
+        def record(_revision, ref, *, root):
+            del root
+            raw = {
+                authority.RECEIPT_BUILDER_REF: b"builder-git",
+                authority.VERIFIER_REF: b"authority-staged",
+                authority.PUBLIC_ROOT_REF: self.root_raw,
+            }[ref]
+            return {
+                "raw": raw,
+                "git_blob_oid": "a" * 40,
+                "git_blob_sha256": authority._sha(raw),
+                "file_sha256": authority._sha(raw),
+            }
+
         with mock.patch.object(
-            Path,
-            "read_bytes",
-            side_effect=AssertionError("file read must not start"),
+            authority, "_git_blob_record", side_effect=record
         ), mock.patch.object(
-            os,
-            "open",
-            side_effect=AssertionError("file write must not start"),
-        ), self.assertRaisesRegex(ValueError, "install-disabled"):
-            builder.main(["--key", "/should/not/be/read"])
+            builder,
+            "_prepare_unsigned_receipt",
+            side_effect=AssertionError("public validator must not run"),
+        ) as validate, self.assertRaisesRegex(
+            builder.SignerError, "staged_source_drift"
+        ):
+            builder._prepare_cli_receipt(
+                request_raw=request,
+                control_revision=CONTROL_REVISION,
+                repository_root=ROOT,
+                staged_sources=staged,
+            )
+        validate.assert_not_called()
+
+    def test_interpreter_and_execution_flags_are_pinned_without_asserts(self):
+        with mock.patch.object(
+            builder.sys, "executable", "/untrusted/python"
+        ), self.assertRaisesRegex(builder.SignerError, "interpreter_path"):
+            builder._validate_system_interpreter()
+        flags = mock.Mock(
+            ignore_environment=1,
+            no_site=0,
+            dont_write_bytecode=1,
+        )
+        with mock.patch.object(builder.sys, "flags", flags), \
+                mock.patch.object(
+                    builder,
+                    "_validate_system_interpreter",
+                    side_effect=AssertionError("wrong flags must reject first"),
+                ) as interpreter, self.assertRaisesRegex(
+                    builder.SignerError, "execution_flags"
+                ):
+            builder._validate_execution_flags()
+        interpreter.assert_not_called()
+
+    def test_custody_path_inventory_symlink_and_hardlink_reject(self):
+        with tempfile.TemporaryDirectory(
+            prefix=".item26-v3-custody-matrix-", dir=ROOT
+        ) as temporary:
+            base = Path(temporary)
+            base.chmod(0o700)
+            with mock.patch.object(
+                builder, "CUSTODY_DIRECTORY", base
+            ), self.assertRaisesRegex(builder.SignerError, "custody_path"):
+                builder._open_validated_custody()
+
+        for case in ("extra", "symlink", "hardlink"):
+            with self.subTest(case=case), self.custody() as directory:
+                local = directory / builder.LOCAL_CI_PRIVATE_KEY_FILE
+                if case == "extra":
+                    (directory / "extra").write_bytes(b"x")
+                elif case == "symlink":
+                    local.unlink()
+                    local.symlink_to(directory / builder.CUSTODY_ROLE_FILES[0])
+                else:
+                    other = directory / builder.CUSTODY_ROLE_FILES[0]
+                    other.unlink()
+                    os.link(local, other)
+                with self.assertRaisesRegex(
+                    builder.SignerError,
+                    "custody_(inventory|file_identity)",
+                ):
+                    descriptor, _rows = builder._open_validated_custody()
+                    os.close(descriptor)
+
+    def test_success_uses_private_fd_without_python_read_and_restores_exact3(self):
+        expected_public = b"synthetic-public\n"
+        observed = []
+        real_open = os.open
+        real_read = os.read
+        key_fds = set()
+
+        def guarded_open(path, flags, *args, **kwargs):
+            descriptor = real_open(path, flags, *args, **kwargs)
+            if path == builder.LOCAL_CI_PRIVATE_KEY_FILE:
+                key_fds.add(descriptor)
+                self.assertTrue(flags & os.O_NOFOLLOW)
+            return descriptor
+
+        def guarded_read(descriptor, size):
+            if descriptor in key_fds:
+                raise AssertionError("Python must never read the private fd")
+            return real_read(descriptor, size)
+
+        def openssl(arguments, *, pass_fds, stdout):
+            observed.append((list(arguments), pass_fds, stdout))
+            if arguments[0] == "pkey":
+                self.assertEqual(pass_fds, tuple(key_fds))
+                return subprocess.CompletedProcess([], 0, expected_public, b"")
+            signature_fd = int(arguments[arguments.index("-out") + 1].rsplit("/", 1)[1])
+            self.assertIn(signature_fd, pass_fds)
+            os.write(signature_fd, b"s" * 384)
+            return subprocess.CompletedProcess([], 0, b"", b"")
+
+        with self.custody() as directory, mock.patch.object(
+            builder.os, "open", side_effect=guarded_open
+        ), mock.patch.object(
+            builder.os, "read", side_effect=guarded_read
+        ), mock.patch.object(
+            builder, "_run_openssl_fd", side_effect=openssl
+        ):
+            signature = builder._sign_from_custody(
+                b"message", expected_public
+            )
+            self.assertEqual(signature, b"s" * 384)
+            self.assertEqual(
+                set(os.listdir(directory)), set(builder.CUSTODY_ROLE_FILES)
+            )
+        self.assertEqual(len(observed), 2)
+        self.assertIn("/dev/fd/", " ".join(observed[1][0]))
+
+    def test_sign_failure_leaves_residue_and_second_call_cannot_retry(self):
+        expected_public = b"synthetic-public\n"
+        calls = 0
+
+        def openssl(arguments, *, pass_fds, stdout):
+            nonlocal calls
+            del pass_fds, stdout
+            calls += 1
+            if arguments[0] == "pkey":
+                return subprocess.CompletedProcess([], 0, expected_public, b"")
+            return subprocess.CompletedProcess([], 1, b"", b"")
+
+        with self.custody() as directory, mock.patch.object(
+            builder, "_run_openssl_fd", side_effect=openssl
+        ):
+            with self.assertRaisesRegex(
+                builder.SignerError, "signature"
+            ):
+                builder._sign_from_custody(b"message", expected_public)
+            residue = directory / builder.SCRATCH_NAME
+            self.assertEqual(
+                set(residue.iterdir()),
+                {
+                    residue / builder.MESSAGE_FILE,
+                    residue / builder.SIGNATURE_FILE,
+                },
+            )
+            with self.assertRaisesRegex(
+                builder.SignerError, "custody_inventory"
+            ):
+                builder._sign_from_custody(b"message", expected_public)
+        self.assertEqual(calls, 2)
+
+    def test_main_writes_only_canonical_receipt_after_prevalidation(self):
+        unsigned = {
+            "schema": "test",
+            "payload": {"control_revision": CONTROL_REVISION},
+        }
+        output = io.BytesIO()
+        staged = {
+            authority.RECEIPT_BUILDER_REF: b"builder",
+            authority.VERIFIER_REF: b"authority",
+        }
+        with mock.patch.object(os, "geteuid", return_value=0), \
+                mock.patch.object(
+                    builder,
+                    "_validate_execution_boundary",
+                    return_value=staged,
+                ), mock.patch.object(
+                    builder,
+                    "_prepare_cli_receipt",
+                    return_value=(unsigned, b"message", b"public"),
+                ), mock.patch.object(
+                    builder, "_sign_from_custody", return_value=b"s" * 384
+                ) as sign:
+            self.assertEqual(
+                builder.main(
+                    [
+                        "--control-revision",
+                        CONTROL_REVISION,
+                        "--repository-root",
+                        str(ROOT),
+                    ],
+                    stdin=io.BytesIO(self.sign_request_raw()),
+                    stdout=output,
+                ),
+                0,
+            )
+        expected = builder._complete_receipt(unsigned, b"s" * 384)
+        self.assertEqual(output.getvalue(), expected)
+        self.assertEqual(authority.canonical_bytes(json.loads(expected)), expected)
+        sign.assert_called_once_with(b"message", b"public")
+
+    def test_source_contract_has_no_private_read_or_retry_cli_path(self):
+        source = (ROOT / authority.RECEIPT_BUILDER_REF).read_text()
+        self.assertIn("os.O_NOFOLLOW", source)
+        self.assertIn("pass_fds=pass_fds", source)
+        self.assertIn("/dev/fd/{key_fd}", source)
+        self.assertNotIn('base / "private-key.pem"', source)
+        self.assertNotIn("retry", source.lower())
+        self.assertNotIn("private_key_pem=", source)
 
 
 if __name__ == "__main__":

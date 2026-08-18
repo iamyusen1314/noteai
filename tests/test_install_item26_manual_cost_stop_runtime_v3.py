@@ -40,14 +40,14 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
         cls.root_hash = authority._sha(cls.root_raw)
         cls.control_ci = {
             "push": {
-                **ci_row(701, "push", "2026-08-18T02:00:00Z"),
+                **ci_row(701, "push", "2026-08-18T14:30:00Z"),
                 "head_sha": CONTROL_REVISION,
             },
             "pull_request": {
                 **ci_row(
                     702,
                     "pull_request",
-                    "2026-08-18T02:01:00Z",
+                    "2026-08-18T14:31:00Z",
                 ),
                 "head_sha": CONTROL_REVISION,
             },
@@ -129,7 +129,7 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
                     control_revision=CONTROL_REVISION,
                     control_ci=cls.control_ci,
                     control_source_blobs=cls.source_bindings,
-                    activated_at_utc="2026-08-18T02:02:00Z",
+                    activated_at_utc="2026-08-18T14:32:00Z",
                     scratch_directory=scratch,
                 )
 
