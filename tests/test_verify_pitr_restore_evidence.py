@@ -65,6 +65,8 @@ def predecessor_cost_stop():
         "activation_receipt_builder_sha256": "8" * 64,
         "installer_path": verifier.MANUAL_COST_STOP_INSTALLER_REF,
         "installer_sha256": "9" * 64,
+        "bootstrap_path": verifier.MANUAL_COST_STOP_BOOTSTRAP_REF,
+        "bootstrap_sha256": "a" * 64,
         "contract_path": verifier.MANUAL_COST_STOP_CONTRACT_REF,
         "contract_sha256": "6" * 64,
         "ci_workflow_path": verifier.MANUAL_COST_STOP_CI_WORKFLOW_REF,
@@ -130,6 +132,7 @@ def finalized_predecessor_files():
             "activation_receipt_builder_sha256",
         ),
         ("installer_path", "installer_sha256"),
+        ("bootstrap_path", "bootstrap_sha256"),
         ("contract_path", "contract_sha256"),
         ("ci_workflow_path", "ci_workflow_sha256"),
         ("public_root_path", "public_root_sha256"),
@@ -539,10 +542,15 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def test_default_terminal_roots_fail_closed(self):
-        errors, acceptance = verifier.validate_manifest_evidence([])
+    def test_default_public_root_is_finalized_but_terminal_authority_is_missing(self):
+        with mock.patch.object(
+            verifier,
+            "validate_authority_bundle",
+            return_value=(["Item26 external authority missing"], None),
+        ):
+            errors, acceptance = verifier.validate_manifest_evidence([])
         self.assertEqual(
-            errors, ["Item26 terminal semantic verifier is not finalized"]
+            errors, ["Item26 external authority missing"]
         )
         self.assertIsNone(acceptance)
 
@@ -618,6 +626,20 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         )
         self.assertIsNone(dependency)
 
+    def test_activation_root_and_bootstrap_are_required_manifest_sources(self):
+        self.assertEqual(
+            verifier.EXPECTED_AUTHORITY_ROOT_FILE_SHA256,
+            "8bfb8834c1e241a18cde984d42524759f53423bcf809dd8657fa4b2be102ff85",
+        )
+        self.assertIn(
+            verifier.MANUAL_COST_STOP_PUBLIC_ROOT_REF,
+            verifier.REQUIRED_MANIFEST_PATH_REFS,
+        )
+        self.assertIn(
+            verifier.MANUAL_COST_STOP_BOOTSTRAP_REF,
+            verifier.REQUIRED_MANIFEST_PATH_REFS,
+        )
+
     def test_successor_rejects_v1_or_drifted_v2_authority_dependency(self):
         mutations = {
             "schema": "noteai.item26.manual-cost-stop-dependency.v1",
@@ -629,6 +651,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
             "verifier_path": (
                 "tools/verify_item26_manual_cost_stop_evidence_v1.py"
             ),
+            "bootstrap_path": "tools/bootstrap_item26_manual_cost_stop_keys_v1.py",
         }
         for key, drifted in mutations.items():
             with self.subTest(key=key):
@@ -908,7 +931,7 @@ class VerifyPitrRestoreEvidenceTests(unittest.TestCase):
         self.assertIsNone(binding)
         self.assertEqual(
             errors,
-            ["manual cost-stop external authority is not finalized"],
+            ["manual cost-stop terminal artifacts are not installed"],
         )
 
     def test_python_identity_hashes_stable_group_writable_file(self):

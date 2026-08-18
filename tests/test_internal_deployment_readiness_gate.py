@@ -3865,7 +3865,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 gate.ManifestError,
                 "backup_pitr_restore: invalid semantic evidence: "
-                "Item26 terminal semantic verifier is not finalized",
+                "Item26 external authority invalid:",
             ):
                 gate.validate_manifest(candidate)
 

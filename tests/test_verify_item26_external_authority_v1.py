@@ -166,6 +166,20 @@ class Item26ExternalAuthorityTests(unittest.TestCase):
         self.assertIsNone(projection)
         read.assert_not_called()
 
+    def test_successor_control_source_set_includes_root_and_bootstrap(self):
+        public_root = (
+            "deploy/production/authorities/"
+            "item26-manual-cost-stop-authority-root-v2.json"
+        )
+        bootstrap = "tools/bootstrap_item26_manual_cost_stop_keys_v2.py"
+        self.assertEqual(len(authority.REQUIRED_CONTROL_SOURCE_REFS), 24)
+        self.assertEqual(
+            len(set(authority.REQUIRED_CONTROL_SOURCE_REFS)),
+            24,
+        )
+        self.assertIn(public_root, authority.REQUIRED_CONTROL_SOURCE_REFS)
+        self.assertIn(bootstrap, authority.REQUIRED_CONTROL_SOURCE_REFS)
+
     def test_distinct_signed_authorities_accept_exact_three_party_closure(self):
         root, bundle, source, restored, provider, confirmation, ci = closure()
         with mock.patch.object(

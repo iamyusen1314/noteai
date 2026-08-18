@@ -5,8 +5,8 @@ Repository artifacts cannot authorize their own production claims.  The
 root-owned authority root must be installed and hash-frozen in a source
 checkpoint before any successor cloud action.  Only the signed bundle and
 content-free source/restored manifests may be installed after execution.  The
-pre-execution root is intentionally absent from this source-only checkpoint,
-so this verifier fails closed by default.
+Secret-free public root is now tracked, but the root-owned runtime and signed
+terminal artifacts remain absent, so this verifier still fails closed.
 """
 
 from __future__ import annotations
@@ -68,6 +68,11 @@ REQUIRED_CONTROL_SOURCE_REFS = (
     "tools/build_item26_manual_cost_stop_authority_root_v2.py",
     "tools/build_item26_manual_cost_stop_activation_receipt_v3.py",
     "tools/install_item26_manual_cost_stop_runtime_v3.py",
+    "tools/bootstrap_item26_manual_cost_stop_keys_v2.py",
+    (
+        "deploy/production/authorities/"
+        "item26-manual-cost-stop-authority-root-v2.json"
+    ),
     "model/storage_recovery_evidence.py",
     "deploy/production/plans/item26-no-replay-registry-v2.json",
     "deploy/production/plans/item26-manual-cost-stop-contract-v1.json",

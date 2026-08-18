@@ -51,7 +51,7 @@ class ManualCostStopRootBuilderV2Tests(unittest.TestCase):
             with self.subTest(keys=set(value)), self.assertRaises(ValueError):
                 builder.build_authority_root(value)
 
-    def test_command_entry_fails_before_key_or_path_processing(self):
+    def test_command_entry_remains_install_disabled_before_key_or_path_processing(self):
         with mock.patch.object(
             authority,
             "public_key_row",
@@ -60,7 +60,7 @@ class ManualCostStopRootBuilderV2Tests(unittest.TestCase):
             Path,
             "read_bytes",
             side_effect=AssertionError("file reads must not start"),
-        ), self.assertRaisesRegex(ValueError, "not finalized"):
+        ), self.assertRaisesRegex(ValueError, "install-disabled"):
             builder.main(["--private-key", "/should/not/be/read"])
 
     def test_root_is_not_action_authority_or_readiness_credit(self):

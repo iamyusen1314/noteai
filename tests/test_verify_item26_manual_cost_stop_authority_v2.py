@@ -251,12 +251,19 @@ class SyntheticTerminalAuthorityV2:
             ],
             authority.PUBLIC_ROOT_REF: root_raw,
             authority.CONTRACT_REF: contract_raw,
+            authority.BOOTSTRAP_REF: (
+                ROOT / authority.BOOTSTRAP_REF
+            ).read_bytes(),
         }
         for ref in authority.CONTROL_SOURCE_REFS:
             raw = source_raw.get(
                 ref, ("synthetic control source: " + ref + "\n").encode()
             )
             record = self._record(raw, b"control:" + ref.encode())
+            if ref == authority.BOOTSTRAP_REF:
+                record["git_blob_oid"] = (
+                    authority.EXPECTED_BOOTSTRAP_GIT_BLOB_OID
+                )
             self.control_sources[ref] = {
                 "git_blob_oid": record["git_blob_oid"],
                 "file_sha256": record["file_sha256"],
@@ -273,17 +280,17 @@ class SyntheticTerminalAuthorityV2:
                 CONTROL_REVISION,
                 400001,
                 "push",
-                "2026-08-17T05:00:00Z",
-                "2026-08-17T05:00:01Z",
-                "2026-08-17T05:20:00Z",
+                "2026-08-18T01:30:00Z",
+                "2026-08-18T01:30:01Z",
+                "2026-08-18T02:00:00Z",
             ),
             "pull_request": terminal_ci_row(
                 CONTROL_REVISION,
                 400002,
                 "pull_request",
-                "2026-08-17T05:00:02Z",
-                "2026-08-17T05:00:03Z",
-                "2026-08-17T05:21:00Z",
+                "2026-08-18T01:30:02Z",
+                "2026-08-18T01:30:03Z",
+                "2026-08-18T02:01:00Z",
             ),
         }
         with tempfile.TemporaryDirectory(
@@ -303,7 +310,7 @@ class SyntheticTerminalAuthorityV2:
                         control_source_blobs=copy.deepcopy(
                             self.control_sources
                         ),
-                        activated_at_utc="2026-08-17T05:22:00Z",
+                        activated_at_utc="2026-08-18T02:02:00Z",
                         scratch_directory=scratch,
                     )
                 )
@@ -319,7 +326,7 @@ class SyntheticTerminalAuthorityV2:
         self._add_request_authority(trail_value)
         for value in (provider_value, trail_value):
             value["control_revision"] = CONTROL_REVISION
-            value["observed_at_utc"] = "2026-08-17T06:00:10.475Z"
+            value["observed_at_utc"] = "2026-08-18T03:00:10.475Z"
             value["collector_source_sha256"] = authority._sha(
                 self.runtime_material[Path(authority.COLLECTOR_REF).name]
             )
@@ -341,10 +348,10 @@ class SyntheticTerminalAuthorityV2:
             for row in value["records"]:
                 second = row["sequence"] * 2
                 row["started_at_utc"] = (
-                    f"2026-08-17T06:00:{second:02d}.475Z"
+                    f"2026-08-18T03:00:{second:02d}.475Z"
                 )
                 row["completed_at_utc"] = (
-                    f"2026-08-17T06:00:{second + 1:02d}.475Z"
+                    f"2026-08-18T03:00:{second + 1:02d}.475Z"
                 )
         self.provider_raw = extractor.canonical_bytes(provider_value)
         self.actiontrail_raw = extractor.canonical_bytes(trail_value)
@@ -489,7 +496,7 @@ class SyntheticTerminalAuthorityV2:
         confirmation_payload = {
             "schema": authority.CONFIRMATION_SCHEMA,
             **common,
-            "confirmed_at_utc": "2026-08-17T09:00:00Z",
+            "confirmed_at_utc": "2026-08-18T06:00:00Z",
             "post_action_observed_at_utc": provider_projection[
                 "observed_at_utc"
             ],
@@ -511,7 +518,7 @@ class SyntheticTerminalAuthorityV2:
             "schema": authority.PROVIDER_SCHEMA,
             **common,
             "observed_at_utc": provider_projection["observed_at_utc"],
-            "signed_at_utc": "2026-08-17T09:01:00Z",
+            "signed_at_utc": "2026-08-18T06:01:00Z",
             "confirmation_export_semantic_sha256": authority._semantic(
                 confirmation_payload
             ),
@@ -612,35 +619,35 @@ class SyntheticTerminalAuthorityV2:
                 EVIDENCE_REVISION,
                 400003,
                 "push",
-                "2026-08-17T07:00:00Z",
-                "2026-08-17T07:00:01Z",
-                "2026-08-17T07:20:00Z",
+                "2026-08-18T04:00:00Z",
+                "2026-08-18T04:00:01Z",
+                "2026-08-18T04:20:00Z",
             ),
             "evidence_pull_request": terminal_ci_row(
                 EVIDENCE_REVISION,
                 400004,
                 "pull_request",
-                "2026-08-17T07:00:02Z",
-                "2026-08-17T07:00:03Z",
-                "2026-08-17T07:21:00Z",
+                "2026-08-18T04:00:02Z",
+                "2026-08-18T04:00:03Z",
+                "2026-08-18T04:21:00Z",
             ),
             "terminal_push": terminal_ci_row(
                 TERMINAL_REVISION,
                 400005,
                 "push",
-                "2026-08-17T08:00:00Z",
-                "2026-08-17T08:00:01Z",
-                "2026-08-17T08:20:00Z",
+                "2026-08-18T05:00:00Z",
+                "2026-08-18T05:00:01Z",
+                "2026-08-18T05:20:00Z",
             ),
             "terminal_pull_request": terminal_ci_row(
                 TERMINAL_REVISION,
                 400006,
                 "pull_request",
-                "2026-08-17T08:00:02Z",
-                "2026-08-17T08:00:03Z",
-                "2026-08-17T08:21:00Z",
+                "2026-08-18T05:00:02Z",
+                "2026-08-18T05:00:03Z",
+                "2026-08-18T05:21:00Z",
             ),
-            "terminal_accepted_at_utc": "2026-08-17T09:02:00Z",
+            "terminal_accepted_at_utc": "2026-08-18T06:02:00Z",
         }
         self.local_ci_envelope = self.make_envelope(
             "local_ci_observation", self.ci_payload
@@ -875,23 +882,24 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
     def tearDownClass(cls):
         cls.keys.cleanup()
 
-    def test_scaffold_is_inert_and_public_root_is_absent_not_placeholder(self):
-        self.assertFalse(authority.AUTHORITY_V2_FINALIZED)
-        self.assertEqual(authority.EXPECTED_ROOT_SHA, "")
-        self.assertEqual(authority.EXPECTED_AUTHORITY_ROOT_FILE_SHA256, "")
-        self.assertFalse((ROOT / authority.PUBLIC_ROOT_REF).exists())
-        with mock.patch.object(
-            authority,
-            "_git_blob_record",
-            side_effect=AssertionError("Git I/O must not start"),
-        ), mock.patch.object(
-            authority,
-            "_read_exact_directory",
-            side_effect=AssertionError("filesystem I/O must not start"),
-        ), self.assertRaisesRegex(ValueError, "not finalized"):
-            authority.load_activation_root(expected_control_revision="f" * 40)
+    def test_default_authority_is_finalized_with_tracked_canonical_public_root(self):
+        self.assertTrue(authority.AUTHORITY_V2_FINALIZED)
+        self.assertEqual(
+            authority.EXPECTED_AUTHORITY_ROOT_FILE_SHA256,
+            authority.EXPECTED_ROOT_SHA,
+        )
+        path = ROOT / authority.PUBLIC_ROOT_REF
+        self.assertTrue(path.is_file())
+        raw = path.read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), authority.EXPECTED_ROOT_SHA)
+        value, keys = authority._validate_root(
+            raw,
+            expected_hash=authority.EXPECTED_ROOT_SHA,
+        )
+        self.assertEqual(authority.canonical_bytes(value), raw)
+        self.assertEqual(set(keys), set(authority.ROLE_NAMES))
 
-    def test_receipt_validation_is_inert_before_parsing_or_io(self):
+    def test_receipt_validation_checks_full_bootstrap_lineage_before_parsing_or_io(self):
         with mock.patch.object(
             authority,
             "_parse",
@@ -899,15 +907,76 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
         ), mock.patch.object(
             authority,
             "revision_is_strict_ancestor",
-            side_effect=AssertionError("Git I/O must not start"),
-        ), self.assertRaisesRegex(ValueError, "not finalized"):
+            return_value=False,
+        ), mock.patch.object(
+            authority,
+            "_git_blob_record",
+            side_effect=AssertionError("blob I/O must not start"),
+        ), self.assertRaisesRegex(ValueError, "control revision"):
             authority.validate_runtime_activation_receipt(
                 b"not-json",
                 root_value={},
                 keys={},
                 control_revision="f" * 40,
-                expected_authority_root_file_sha256="",
+                expected_authority_root_file_sha256=authority.EXPECTED_ROOT_SHA,
                 expected_source_hashes={},
+            )
+
+    def test_control_lineage_includes_authorization_and_rejected_source_edges(self):
+        expected = [
+            (authority.A0_REVISION, authority.A1_REVISION),
+            (authority.A1_REVISION, authority.A2_REVISION),
+            (authority.A2_REVISION, authority.LEDGER_STOP_REVISION),
+            (
+                authority.LEDGER_STOP_REVISION,
+                authority.BOOTSTRAP_AUTHORIZATION_ANCHOR_REVISION,
+            ),
+            (
+                authority.BOOTSTRAP_AUTHORIZATION_ANCHOR_REVISION,
+                authority.REJECTED_BOOTSTRAP_SOURCE_REVISION,
+            ),
+            (
+                authority.REJECTED_BOOTSTRAP_SOURCE_REVISION,
+                authority.HELPER_SOURCE_ACCEPTED_REVISION,
+            ),
+            (
+                authority.HELPER_SOURCE_ACCEPTED_REVISION,
+                authority.BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
+            ),
+            (authority.BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION, CONTROL_REVISION),
+        ]
+        observed = []
+
+        def ancestor(earlier, later, *, root):
+            self.assertEqual(root, ROOT)
+            observed.append((earlier, later))
+            return True
+
+        with mock.patch.object(
+            authority,
+            "revision_is_strict_ancestor",
+            side_effect=ancestor,
+        ):
+            self.assertTrue(
+                authority._control_lineage_is_valid(
+                    CONTROL_REVISION,
+                    root=ROOT,
+                )
+            )
+        self.assertEqual(observed, expected)
+        with mock.patch.object(
+            authority,
+            "revision_is_strict_ancestor",
+            side_effect=lambda earlier, later, *, root: not (
+                earlier == authority.BOOTSTRAP_AUTHORIZATION_ANCHOR_REVISION
+                and later == authority.REJECTED_BOOTSTRAP_SOURCE_REVISION
+            ),
+        ):
+            self.assertFalse(
+                authority._control_lineage_is_valid(
+                    CONTROL_REVISION,
+                    root=ROOT,
+                )
             )
 
     def test_complete_root_binds_epoch_history_ledger_registry_and_roles(self):
@@ -929,6 +998,21 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
             value["historical_checkpoints"]["a2_terminal"],
             authority.EXPECTED_A2_TERMINAL,
         )
+        self.assertEqual(
+            value["historical_checkpoints"]["helper_source_terminal"],
+            authority.EXPECTED_HELPER_SOURCE_TERMINAL,
+        )
+        self.assertEqual(
+            value["historical_checkpoints"][
+                "rejected_bootstrap_source_terminal"
+            ],
+            authority.EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL,
+        )
+        self.assertEqual(
+            value["historical_checkpoints"]["bootstrap_ledger_terminal"],
+            authority.EXPECTED_BOOTSTRAP_LEDGER_TERMINAL,
+        )
+        self.assertEqual(value["bootstrap_source"]["ref"], authority.BOOTSTRAP_REF)
         self.assertFalse(value["v1_custody"]["root_bytes_locatable"])
         self.assertFalse(value["v1_custody"]["destroyed_proven"])
         self.assertFalse(value["v1_custody"]["revoked_proven"])
@@ -1122,9 +1206,95 @@ class ManualCostStopAuthorityV2Tests(unittest.TestCase):
         value = json.loads(raw)
         self.assertEqual(
             value["public_root"]["expected_file_state_in_this_revision"],
-            "ABSENT_NOT_PLACEHOLDER",
+            "PRESENT_COMPLETE_CANONICAL",
         )
         self.assertFalse(value["public_root"]["placeholder_permitted"])
+        self.assertEqual(
+            value["authority_generation"]["status"],
+            "PUBLIC_ROOT_V2_FINALIZED_AWAITING_ATTEMPT_ONE_DUAL_CI",
+        )
+        self.assertEqual(
+            value["side_effects_in_this_revision"][
+                "private_key_generation_count"
+            ],
+            3,
+        )
+        self.assertEqual(
+            value["side_effects_in_this_revision"][
+                "public_root_generation_count"
+            ],
+            1,
+        )
+        self.assertEqual(
+            value["side_effects_in_this_revision"][
+                "public_key_export_count"
+            ],
+            3,
+        )
+        self.assertEqual(
+            value["bootstrap_source"]["acceptance_ledger_revision"],
+            authority.BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
+        )
+        rejected = value["bootstrap_source"]["rejected_revision_terminal"]
+        self.assertFalse(rejected["accepted"])
+        self.assertFalse(rejected["rerun_allowed"])
+        self.assertEqual(rejected["push"]["run_id"], 32045476729)
+        self.assertEqual(rejected["push"]["job_id"], 95432282589)
+        self.assertEqual(rejected["push"]["conclusion"], "failure")
+        self.assertEqual(rejected["pull_request"]["run_id"], 32045480527)
+        self.assertEqual(rejected["pull_request"]["job_id"], 95432294279)
+        self.assertEqual(rejected["pull_request"]["conclusion"], "success")
+        self.assertNotIn("expected_root_sha256", value)
+        self.assertNotIn("control_revision", value)
+
+    def test_control_source_set_includes_public_root_and_bootstrap_once(self):
+        self.assertEqual(len(authority.CONTROL_SOURCE_REFS), 12)
+        self.assertEqual(len(set(authority.CONTROL_SOURCE_REFS)), 12)
+        self.assertIn(authority.PUBLIC_ROOT_REF, authority.CONTROL_SOURCE_REFS)
+        self.assertIn(authority.BOOTSTRAP_REF, authority.CONTROL_SOURCE_REFS)
+
+    def test_control_source_loader_rejects_bootstrap_drift(self):
+        def record(_revision, ref, *, root):
+            del root
+            raw = (ROOT / ref).read_bytes()
+            if ref == authority.BOOTSTRAP_REF:
+                raw += b"drift\n"
+            return {
+                "raw": raw,
+                "git_blob_oid": hashlib.sha1(raw).hexdigest(),
+                "git_blob_sha256": hashlib.sha256(raw).hexdigest(),
+                "file_sha256": hashlib.sha256(raw).hexdigest(),
+            }
+
+        with mock.patch.object(
+            authority,
+            "_git_blob_record",
+            side_effect=record,
+        ), self.assertRaisesRegex(ValueError, "bootstrap drift"):
+            authority._expected_control_source_blobs(
+                CONTROL_REVISION,
+                root=ROOT,
+            )
+
+    def test_rejected_bootstrap_revision_is_bound_to_same_helper_bytes(self):
+        real_record = authority._git_blob_record
+
+        def record(revision, ref, *, root):
+            value = real_record(revision, ref, root=root)
+            if (
+                revision == authority.REJECTED_BOOTSTRAP_SOURCE_REVISION
+                and ref == authority.BOOTSTRAP_REF
+            ):
+                value = dict(value)
+                value["file_sha256"] = "f" * 64
+            return value
+
+        with mock.patch.object(
+            authority,
+            "_git_blob_record",
+            side_effect=record,
+        ), self.assertRaisesRegex(ValueError, "bootstrap binding"):
+            authority._validate_ledger_git_bindings(root=ROOT)
 
     def test_run_rows_and_zero_counts_reject_bool_and_string_numbers(self):
         row = terminal_ci_row(

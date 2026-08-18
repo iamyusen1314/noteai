@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Pure builder for the future complete Item 26 authority root v2.
 
-The command-line entry point is intentionally inert in this source-only
-revision.  Tests and a later explicitly authorized root-custody runner may
-pass canonical public PEM bytes directly to :func:`build_authority_root`.
-This module never generates, reads, or writes private-key material.
+The command-line entry point remains install-disabled after public-root
+finalization.  Tests and the authorized public-only activation path may pass
+canonical public PEM bytes directly to :func:`build_authority_root`.  This
+module never generates, reads, or writes private-key material.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ def build_authority_root(public_keys: dict[str, bytes]) -> bytes:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    """Fail before argument expansion or file I/O while the root is absent."""
+    """Remain install-disabled before argument expansion or file I/O."""
     del argv
     authority._require_finalized()
     raise ValueError("manual authority root v2 command is install-disabled")

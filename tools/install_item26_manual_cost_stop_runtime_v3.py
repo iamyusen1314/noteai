@@ -659,20 +659,7 @@ def _validate_control_lineage(
     *,
     root: Path,
 ) -> None:
-    lineage = (
-        (authority.A0_REVISION, authority.A1_REVISION),
-        (authority.A1_REVISION, authority.A2_REVISION),
-        (authority.A2_REVISION, authority.LEDGER_STOP_REVISION),
-        (authority.LEDGER_STOP_REVISION, control_revision),
-    )
-    if any(
-        not authority.revision_is_strict_ancestor(
-            earlier,
-            later,
-            root=root,
-        )
-        for earlier, later in lineage
-    ):
+    if not authority._control_lineage_is_valid(control_revision, root=root):
         raise InstallError("installer_control_lineage")
 
 

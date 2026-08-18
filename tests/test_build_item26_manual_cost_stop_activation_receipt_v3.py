@@ -35,8 +35,8 @@ def ci_row(run_id, event, completed_at):
         "status": "completed",
         "conclusion": "success",
         "head_sha": CONTROL_REVISION,
-        "created_at_utc": "2026-08-17T05:00:00Z",
-        "started_at_utc": "2026-08-17T05:00:01Z",
+        "created_at_utc": "2026-08-18T01:30:00Z",
+        "started_at_utc": "2026-08-18T01:30:01Z",
         "completed_at_utc": completed_at,
         "dispatch_count": 1,
         "rerun_count": 0,
@@ -67,11 +67,11 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         cls.root_raw = root_builder.build_authority_root(cls.keys.public)
         cls.root_hash = authority._sha(cls.root_raw)
         cls.control_ci = {
-            "push": ci_row(401, "push", "2026-08-17T05:20:00Z"),
+            "push": ci_row(401, "push", "2026-08-18T02:00:00Z"),
             "pull_request": ci_row(
                 402,
                 "pull_request",
-                    "2026-08-17T05:21:00Z",
+                    "2026-08-18T02:01:00Z",
             ),
         }
         cls.sources = {}
@@ -87,6 +87,10 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         cls.sources[authority.CONTRACT_REF] = {
             "git_blob_oid": "b" * 40,
             "file_sha256": authority.EXPECTED_CONTRACT_FILE_SHA256,
+        }
+        cls.sources[authority.BOOTSTRAP_REF] = {
+            "git_blob_oid": authority.EXPECTED_BOOTSTRAP_GIT_BLOB_OID,
+            "file_sha256": authority.EXPECTED_BOOTSTRAP_FILE_SHA256,
         }
 
     @classmethod
@@ -123,7 +127,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         *,
         control_ci=None,
         control_source_blobs=None,
-        activated_at_utc="2026-08-17T05:22:00Z",
+        activated_at_utc="2026-08-18T02:02:00Z",
     ):
         with tempfile.TemporaryDirectory(
             prefix=".item26-v3-receipt-scratch-",
@@ -155,7 +159,12 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
     def git_record(self, _revision, ref, *, root):
         del root
         row = self.sources[ref]
-        raw = self.root_raw if ref == authority.PUBLIC_ROOT_REF else b"bound"
+        if ref == authority.PUBLIC_ROOT_REF:
+            raw = self.root_raw
+        elif ref == authority.BOOTSTRAP_REF:
+            raw = (ROOT / authority.BOOTSTRAP_REF).read_bytes()
+        else:
+            raw = b"bound"
         return {
             "raw": raw,
             "git_blob_oid": row["git_blob_oid"],
@@ -215,6 +224,24 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
         self.assertEqual(
             payload["historical_checkpoints"]["ledger_stop_terminal"],
             authority.EXPECTED_LEDGER_STOP_TERMINAL,
+        )
+        self.assertEqual(
+            payload["historical_checkpoints"]["helper_source_terminal"],
+            authority.EXPECTED_HELPER_SOURCE_TERMINAL,
+        )
+        self.assertEqual(
+            payload["historical_checkpoints"][
+                "rejected_bootstrap_source_terminal"
+            ],
+            authority.EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL,
+        )
+        self.assertEqual(
+            payload["historical_checkpoints"]["bootstrap_ledger_terminal"],
+            authority.EXPECTED_BOOTSTRAP_LEDGER_TERMINAL,
+        )
+        self.assertEqual(
+            payload["bootstrap_ledger_acceptance_revision"],
+            authority.BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
         )
         self.assertEqual(
             payload["historical_source_blobs"],
@@ -304,27 +331,60 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
                     control_revision=CONTROL_REVISION,
                     control_ci=self.control_ci,
                     control_source_blobs=self.sources,
-                    activated_at_utc="2026-08-17T05:22:00Z",
+                    activated_at_utc="2026-08-18T02:02:00Z",
                     scratch_directory=scratch,
                 )
 
     def test_invalid_unsigned_inputs_do_not_call_sign(self):
         cases = {}
         reused = copy.deepcopy(self.control_ci)
-        reused["push"]["run_id"] = authority.EXPECTED_LEDGER_STOP_TERMINAL[
+        reused["push"]["run_id"] = authority.EXPECTED_BOOTSTRAP_LEDGER_TERMINAL[
             "push"
         ]["run_id"]
-        cases["reused_run_id"] = (reused, self.sources, "2026-08-17T05:22:00Z")
+        cases["reused_run_id"] = (reused, self.sources, "2026-08-18T02:02:00Z")
+        reused_job = copy.deepcopy(self.control_ci)
+        reused_job["pull_request"]["job_id"] = (
+            authority.EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"][
+                "job_id"
+            ]
+        )
+        cases["reused_helper_job_id"] = (
+            reused_job,
+            self.sources,
+            "2026-08-18T02:02:00Z",
+        )
+        reused_rejected = copy.deepcopy(self.control_ci)
+        reused_rejected["push"]["run_id"] = (
+            authority.EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["push"][
+                "run_id"
+            ]
+        )
+        cases["reused_rejected_run_id"] = (
+            reused_rejected,
+            self.sources,
+            "2026-08-18T02:02:00Z",
+        )
+        reused_rejected_job = copy.deepcopy(self.control_ci)
+        reused_rejected_job["pull_request"]["job_id"] = (
+            authority.EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL[
+                "pull_request"
+            ]["job_id"]
+        )
+        cases["reused_rejected_job_id"] = (
+            reused_rejected_job,
+            self.sources,
+            "2026-08-18T02:02:00Z",
+        )
         early = copy.deepcopy(self.control_ci)
-        early["push"]["created_at_utc"] = "2026-08-17T04:00:00Z"
-        early["push"]["started_at_utc"] = "2026-08-17T04:00:01Z"
-        cases["early_control"] = (early, self.sources, "2026-08-17T05:22:00Z")
+        early["push"]["created_at_utc"] = "2026-08-18T01:00:00Z"
+        early["push"]["started_at_utc"] = "2026-08-18T01:00:01Z"
+        cases["early_control"] = (early, self.sources, "2026-08-18T02:02:00Z")
         drifted_sources = copy.deepcopy(self.sources)
         drifted_sources[authority.COLLECTOR_REF]["file_sha256"] = "f" * 64
         cases["source_drift"] = (
             self.control_ci,
             drifted_sources,
-            "2026-08-17T05:22:00Z",
+            "2026-08-18T02:02:00Z",
         )
         for name, (control_ci, sources, activated) in cases.items():
             with self.subTest(name=name), tempfile.TemporaryDirectory(
@@ -371,7 +431,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
                     scratch_directory=scratch,
                 )
 
-    def test_command_entry_fails_before_file_io(self):
+    def test_command_entry_remains_install_disabled_before_file_io(self):
         with mock.patch.object(
             Path,
             "read_bytes",
@@ -380,7 +440,7 @@ class ManualCostStopActivationReceiptV3Tests(unittest.TestCase):
             os,
             "open",
             side_effect=AssertionError("file write must not start"),
-        ), self.assertRaisesRegex(ValueError, "not finalized"):
+        ), self.assertRaisesRegex(ValueError, "install-disabled"):
             builder.main(["--key", "/should/not/be/read"])
 
 

@@ -2,9 +2,9 @@
 """Build and sign the Item 26 runtime activation receipt v3.
 
 The library API accepts already-loaded key bytes and source bindings so the
-caller controls custody.  The inert command entry point fails before parsing
-paths or performing file I/O.  A receipt signature covers the domain plus the
-complete outer context and payload.
+caller controls custody.  The command entry point remains install-disabled
+even after public-root finalization and fails before parsing paths or doing
+file I/O.  A receipt signature covers the complete outer context and payload.
 """
 
 from __future__ import annotations
@@ -177,12 +177,24 @@ def build_activation_receipt(
         "repository": authority.REPOSITORY,
         "source_ref": authority.SOURCE_REF,
         "ledger_stop_revision": authority.LEDGER_STOP_REVISION,
+        "bootstrap_ledger_acceptance_revision": (
+            authority.BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION
+        ),
         "historical_checkpoints": {
             "a0_terminal": authority.EXPECTED_A0_TERMINAL,
             "a1_terminal": authority.EXPECTED_A1_TERMINAL,
             "a2_terminal": authority.EXPECTED_A2_TERMINAL,
             "ledger_stop_terminal": (
                 authority.EXPECTED_LEDGER_STOP_TERMINAL
+            ),
+            "rejected_bootstrap_source_terminal": (
+                authority.EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL
+            ),
+            "helper_source_terminal": (
+                authority.EXPECTED_HELPER_SOURCE_TERMINAL
+            ),
+            "bootstrap_ledger_terminal": (
+                authority.EXPECTED_BOOTSTRAP_LEDGER_TERMINAL
             ),
         },
         "historical_source_blobs": authority.HISTORICAL_SOURCE_BLOBS,
@@ -240,7 +252,7 @@ def build_activation_receipt(
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    """Fail before argument/path processing while the scaffold is inert."""
+    """Remain install-disabled before argument/path processing."""
     del argv
     authority._require_finalized()
     raise ValueError("manual activation receipt v3 command is install-disabled")

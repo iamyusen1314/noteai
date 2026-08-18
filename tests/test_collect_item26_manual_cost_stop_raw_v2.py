@@ -2073,7 +2073,7 @@ class ManualCostStopCollectorTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertEqual(json.loads(output.getvalue())["code"], "stdin_tty")
 
-    def test_inert_production_entrypoint_blocks_before_help_and_bytecode(self):
+    def test_finalized_production_entrypoint_allows_help_without_bytecode(self):
         runtime = Path(self.temporary.name) / "runtime"
         runtime.mkdir(mode=0o700)
         for ref in (
@@ -2101,12 +2101,9 @@ class ManualCostStopCollectorTests(unittest.TestCase):
             check=False,
             timeout=10,
         )
-        self.assertEqual(result.returncode, 2, result.stderr.decode())
-        self.assertEqual(
-            json.loads(result.stderr),
-            collector._blocked_status("authority_v2_not_finalized"),
-        )
-        self.assertEqual(result.stdout, b"")
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        self.assertIn(b"usage:", result.stdout)
+        self.assertEqual(result.stderr, b"")
         self.assertFalse((runtime / "__pycache__").exists())
 
 

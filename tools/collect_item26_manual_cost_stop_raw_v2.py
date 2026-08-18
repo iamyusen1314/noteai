@@ -2361,8 +2361,9 @@ def _blocked_status(code: str) -> dict[str, Any]:
 
 def main(argv: Optional[list[str]] = None) -> int:
     try:
-        # The inert source checkpoint must reject before parsing caller input,
-        # inspecting the host, or touching any runtime path or stream.
+        # Public-root finalization is necessary but not sufficient: non-help
+        # commands still require root, the pinned interpreter and installed
+        # root/runtime inventories before any journal or response processing.
         _require_authority_v2_finalized()
         parser = FixedArgumentParser()
         subparsers = parser.add_subparsers(dest="command", required=True)

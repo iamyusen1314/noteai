@@ -11477,3 +11477,67 @@ Colima, database, builder, restore and cloud actions remain frozen.
   custody/install/capture/cloud/database/builder counts remain zero, Item 26
   remains `unverified` with empty evidence and readiness `25/29`, and S0 stays
   open.
+
+### Item 26 root bootstrap complete; public-root-v2 activation candidate (2026-08-18)
+
+- The append-only helper acceptance checkpoint is exact revision
+  `4eab99188332b156fde0f8892daa668375fff245`. Its only ordinary CI runs are
+  push `32085627719`/job `95557448857` and pull request
+  `32085631106`/job `95557458319`; both completed attempt one with success,
+  22/22 steps, ambient 2,602 tests plus frozen `10+1+12+22+21`, 34 skips,
+  Quality `7 PASS + 1 EXPECTED_FAIL`, PostgreSQL `6/6`, readiness `138/138`,
+  Compose success, one Node-runtime warning and zero rerun/error annotation.
+  This accepts the exact helper blob `e2b0b04f...f2965f`, SHA-256
+  `2e35d16c...cd9ff`, 26,443 bytes; neither its CI nor the earlier `b2d2e89`
+  CI may be reused as the future root-bearing control CI.
+- The first visible-terminal sudo transport failed before root execution
+  because `sudo -k -v` deliberately did not create a reusable timestamp for a
+  following `sudo -n`. Audit proved root stager start/write, custody creation,
+  key generation, residue and cleanup were all zero. After a new explicit
+  one-shot authorization, the corrected single-sudo path created and verified
+  the fixed root-owned one-file execution staging. Its public receipt binds the
+  same helper blob/SHA/size, reports inventory `1`, custody creation `false`,
+  key generation `0` and cleanup `0`. Password-attempt details are not
+  recorded.
+- A separately authorized one-shot execution of that staged helper then
+  created exactly three distinct RSA-3072 private-key files in fixed root-owned
+  custody and exported only their public PEMs. The public receipt reports
+  custody inventory `3`, private-key generation `3`, public export `3`, Python
+  private-key reads `0`, private-key output `0`, automatic retry `0`, cleanup
+  `0`, and cloud/database/journal calls `0`. Public PEM SHA-256 values are
+  provider `59cb0b2d...08b6`, confirmation `7877305b...b3a9`, and local-CI
+  observation `6712d39f...f105`; SPKI SHA-256 values are respectively
+  `cff9c4ee...7edf`, `e5a728f8...1cda`, and `437ecf77...75db`. The three SPKIs
+  are mathematically distinct, but organizationally independent custody is not
+  claimed.
+- The Secret-free activation candidate now tracks the complete canonical
+  public root at
+  `deploy/production/authorities/item26-manual-cost-stop-authority-root-v2.json`.
+  The contract is 14,512 bytes with SHA-256
+  `190ed155a410b20c1b081b5bc090bbc4c4a6609789d94c51296ce1460bc5ffd1`;
+  the canonical root is 20,816 bytes with SHA-256
+  `8bfb8834c1e241a18cde984d42524759f53423bcf809dd8657fa4b2be102ff85`
+  and rebuilds byte-identically from the three public PEMs. Authority-v2 is
+  source-finalized, the bootstrap helper and public root are in all authority,
+  PITR and external control-source closures, and the explicit append-only
+  ancestry is `653a4f3 < 2cfd03a < 514fbe0 < b2d2e89 < 4eab991 < future
+  control`. The rejected `514fbe0` helper blob is also frozen byte-identically;
+  its exact push/PR run and job IDs are included in receipt-wide uniqueness and
+  the strict rejected-to-accepted CI timeline.
+- Current focused verification is `160/160` in normal mode and `160/160` under
+  optimized Python. A global real-`genpkey` prohibition passes `73/73` in both
+  modes; the internal manifest suite passes `20/20` in both modes and the full
+  production readiness gate passes `138/138`. Canonical-root rebuild,
+  duplicate-key rejection, source-set closure, Python compilation and
+  whitespace checks pass. This is still an
+  uncommitted root-bearing activation candidate: its exact control revision and
+  its own attempt-one push/PR CI do not yet exist and no receipt has been
+  signed. Receipt signature, root/runtime install, capture, journal, cloud,
+  database and builder counts remain zero. Item 26 stays `unverified` with no
+  evidence or readiness credit, readiness remains `25/29`, and S0 remains open.
+  The next step is to checkpoint this exact Secret-free candidate and accept
+  only its own new attempt-one dual-green pair; either route failing or being
+  cancelled is terminal/no-rerun and requires another append-only successor.
+  Only after dual green may receipt-v3 signing and exact root-only installation
+  begin. The five historical untracked scripts remain unstaged, unread and
+  unexecuted.

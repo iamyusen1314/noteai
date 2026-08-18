@@ -329,6 +329,33 @@ Only service names and variable names are documented here; no secret values.
   root-bearing control revision. A four-ledger binding checkpoint records the
   exact source closure and must itself complete a new attempt-one dual-CI pair
   before the already-authorized root bootstrap may execute.
+- The binding checkpoint is now exact revision
+  `4eab99188332b156fde0f8892daa668375fff245`; its only push
+  `32085627719` and pull-request `32085631106` runs completed attempt one with
+  success, 22/22 steps and zero reruns. After this gate and explicit one-shot
+  operator authorization, the accepted helper was exclusively staged below the
+  fixed root-owned execution tree and then created exactly three RSA-3072
+  private keys below fixed root custody. Python read/output of private bytes,
+  retry and cleanup all remained zero; only three public PEMs were exported.
+  A preceding sudo ticket-transport failure was pre-root with zero root write or
+  residue and is recorded separately from the successful staging/key bootstrap.
+- The resulting Secret-free activation candidate freezes contract SHA-256
+  `190ed155a410b20c1b081b5bc090bbc4c4a6609789d94c51296ce1460bc5ffd1`
+  and canonical public-root SHA-256
+  `8bfb8834c1e241a18cde984d42524759f53423bcf809dd8657fa4b2be102ff85`.
+  The root contains three public keys and no private material, rebuilds
+  byte-identically, and grants no action or readiness credit. Bootstrap helper
+  and public-root refs are frozen in the authority, PITR and external source
+  sets. Receipt ancestry is explicitly
+  `653a4f3 < 2cfd03a < 514fbe0 < b2d2e89 < 4eab991 < control`; the rejected
+  `514fbe0` terminal rows are included in run/job uniqueness and the strict
+  rejected-to-accepted time sequence.
+- This worktree is not yet an accepted control revision. Its checkpoint SHA and
+  own new attempt-one push/PR dual-CI pair must be created next. Only that exact
+  root-bearing revision may become receipt-v3 `control_revision`; neither
+  `b2d2e89`, `4eab991` nor the later ledger prose can substitute for its CI.
+  Receipt signing and root-only runtime installation remain after dual green;
+  capture, M1/M2 and terminal authority remain later stages.
 - Local root-owned material is not portable CI evidence. A Secret-free,
   clean-clone-replayable terminal capsule or equivalent trusted distribution
   contract remains mandatory before Item 26 credit or any paid PITR successor.

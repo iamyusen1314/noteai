@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Offline semantic verifier for Item 26 PITR restore evidence.
 
-Terminal revisions, artifact hashes and detached authority are intentionally
-empty or absent in the source-only checkpoint.  A manifest-only status change
-therefore cannot grant Item 26 readiness credit.
+The Secret-free generation-v2 public root is tracked and hash-frozen.  Signed
+terminal artifacts remain absent until their prescribed stages, so neither the
+public root nor a manifest-only status change can grant Item 26 credit.
 """
 
 from __future__ import annotations
@@ -59,6 +59,9 @@ MANUAL_COST_STOP_ACTIVATION_RECEIPT_BUILDER_REF = (
 )
 MANUAL_COST_STOP_INSTALLER_REF = (
     "tools/install_item26_manual_cost_stop_runtime_v3.py"
+)
+MANUAL_COST_STOP_BOOTSTRAP_REF = (
+    "tools/bootstrap_item26_manual_cost_stop_keys_v2.py"
 )
 MANUAL_COST_STOP_CONTRACT_REF = (
     "deploy/production/plans/item26-manual-cost-stop-contract-v2.json"
@@ -134,23 +137,19 @@ REQUIRED_MANIFEST_PATH_REFS = {
     MANUAL_COST_STOP_ROOT_BUILDER_REF,
     MANUAL_COST_STOP_ACTIVATION_RECEIPT_BUILDER_REF,
     MANUAL_COST_STOP_INSTALLER_REF,
+    MANUAL_COST_STOP_BOOTSTRAP_REF,
     MANUAL_COST_STOP_CONTRACT_REF,
     MANUAL_COST_STOP_CI_WORKFLOW_REF,
+    MANUAL_COST_STOP_PUBLIC_ROOT_REF,
     "tools/internal_deployment_readiness_gate.py",
     "model/storage_recovery_evidence.py",
 }
-# The generation-v2 public root is deliberately absent from this inert source
-# checkpoint.  Its activation commit must add MANUAL_COST_STOP_PUBLIC_ROOT_REF
-# to this set at the same time as the complete canonical public root; a
-# placeholder path is never a valid manifest dependency.
-
-# Populated only in a new source checkpoint after the three detached provider,
-# user-confirmation and CI authority keys have been installed and before any
-# successor cloud action.  All
-# terminal roots are then supplied by the independently signed authority
-# bundle, so this verifier and its control files remain byte-identical across
-# execution, evidence and terminal revisions.
-EXPECTED_AUTHORITY_ROOT_FILE_SHA256 = ""
+# The complete Secret-free generation-v2 public root is tracked and frozen.
+# Receipt signing/install/readback remain later gates; this hash alone grants
+# no readiness credit and authorizes no action.
+EXPECTED_AUTHORITY_ROOT_FILE_SHA256 = (
+    "8bfb8834c1e241a18cde984d42524759f53423bcf809dd8657fa4b2be102ff85"
+)
 
 # Filled mechanically only after the manual post-action cost-stop freezes its
 # independent provider/confirmation/CI authority and terminal artifacts.  This
@@ -180,6 +179,8 @@ EXPECTED_PREDECESSOR_COST_STOP = {
     "activation_receipt_builder_sha256": "",
     "installer_path": "",
     "installer_sha256": "",
+    "bootstrap_path": "",
+    "bootstrap_sha256": "",
     "contract_path": "",
     "contract_sha256": "",
     "ci_workflow_path": "",
@@ -781,6 +782,7 @@ def _predecessor_cost_stop_complete(value: Any) -> bool:
         "root_builder_sha256",
         "activation_receipt_builder_sha256",
         "installer_sha256",
+        "bootstrap_sha256",
         "contract_sha256",
         "ci_workflow_sha256",
         "public_root_sha256",
@@ -839,6 +841,7 @@ def _predecessor_cost_stop_complete(value: Any) -> bool:
         and value.get("activation_receipt_builder_path")
         == MANUAL_COST_STOP_ACTIVATION_RECEIPT_BUILDER_REF
         and value.get("installer_path") == MANUAL_COST_STOP_INSTALLER_REF
+        and value.get("bootstrap_path") == MANUAL_COST_STOP_BOOTSTRAP_REF
         and value.get("contract_path") == MANUAL_COST_STOP_CONTRACT_REF
         and value.get("ci_workflow_path")
         == MANUAL_COST_STOP_CI_WORKFLOW_REF
@@ -858,6 +861,7 @@ def _predecessor_cost_stop_complete(value: Any) -> bool:
             value.get("activation_receipt_builder_path"), "tools/", ".py"
         )
         and safe_ref(value.get("installer_path"), "tools/", ".py")
+        and safe_ref(value.get("bootstrap_path"), "tools/", ".py")
         and safe_ref(
             value.get("contract_path"),
             "deploy/production/plans/",
@@ -1277,6 +1281,7 @@ def validate_predecessor_cost_stop(
             "activation_receipt_builder_sha256",
         ),
         ("installer_path", "installer_sha256"),
+        ("bootstrap_path", "bootstrap_sha256"),
         ("contract_path", "contract_sha256"),
         ("ci_workflow_path", "ci_workflow_sha256"),
         ("public_root_path", "public_root_sha256"),
@@ -1304,6 +1309,7 @@ def validate_predecessor_cost_stop(
                 "activation_receipt_builder_sha256",
             ),
             ("installer_path", "installer_sha256"),
+            ("bootstrap_path", "bootstrap_sha256"),
             ("contract_path", "contract_sha256"),
             ("ci_workflow_path", "ci_workflow_sha256"),
             ("public_root_path", "public_root_sha256"),

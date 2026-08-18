@@ -178,38 +178,38 @@ Last updated: 2026-08-18
   cannot be replayed. A non-identical partial local journal write remains a
   fail-closed `LOCAL_WRITE_RECOVERY_REQUIRED` boundary rather than automatic
   recovery.
-- 下一验证: Preserve A2 `72e356f`, ledger stop `653a4f3`, inert A3 source
-  `62f3f49` and all of their exact attempt-one dual-green pairs; do not rerun A0
-  or A1. The A3 source checkpoint itself contains no public root or private
-  credential and does not authorize capture. Scoped authorization for exactly
-  three local RSA-3072 signing keys and interactive administrator bootstrap is
-  now received, anchored after ledger revision `2cfd03a`. Direct OpenSSL
-  `-out` generation remains prohibited. The first helper-source revision
-  `514fbe0` is permanently no-rerun/rejected: its push route hit an exact
-  60-second artifact-download timeout, and its green PR route revealed real
-  disposable test-role private-key generation outside root custody. The
-  authorized append-only correction `b2d2e89` keeps the production helper
-  unchanged, uses pinned public-only SPKIs/non-key signature mocks, and adds
-  bounded unique-temp retries only for explicit transient artifact failures.
-  Its only push `32082386775` and pull-request `32082388870` runs both completed
-  attempt one with success, 22/22 steps, 2,668 total tests, PostgreSQL `6/6`,
-  readiness `138/138`, Compose success and zero reruns. Record that exact
-  commit/blob/SHA in the current four-ledger checkpoint, then require this
-  ledger checkpoint's own new attempt-one push/PR dual-green pair. Only after
-  that procedural gate may root exclusively stage the accepted helper,
-  compare the installed SHA, and create custody. Until that sequence completes,
-  do not generate production keys, sign a receipt, invoke sudo, install
-  inventory or import ActionTrail/Describe/billing responses. Any partial key
-  or staging residue is terminal and cannot be deleted, overwritten or retried
-  under the current authorization. After an authorized root-v2
-  activation commit is itself dual green, sign receipt-v3, perform the exact
-  root-only install, then perform fresh read-only capture and build M1/M2
-  candidate artifacts.
-  Only a later portable terminal predecessor may become the dependency of a
-  fully disjoint paid successor under a new fee
-  authorization. Do not replay either consumed cloud request or infer terminal
-  abort-v1 authority. Any future mutation `UNKNOWN` permits readback of the same
-  identity only; it never permits resubmission.
+- 当前边界: Helper acceptance ledger `4eab991` has completed its only
+  attempt-one push/PR pair with success and zero reruns. The first sudo
+  transport failed before root execution and left zero root write/residue; it
+  is not a key-generation retry. A newly authorized single-sudo staging then
+  installed the exact accepted helper, and a separate one-shot execution
+  created exactly three RSA-3072 private keys in fixed root custody and
+  exported three public PEMs. Custody inventory is `3`; Python private-key
+  read, private-key output, automatic retry, cleanup, cloud, database and
+  journal counts are all zero. Mathematical SPKI separation is proven, but
+  independent organizational custody remains false. The tracked Secret-free
+  contract/root candidate hashes are `190ed155...ffd1` and
+  `8bfb8834...ff85`; no private marker is present. Authority-v2 source is now
+  finalized, but the worktree is not yet an accepted control revision and no
+  receipt/runtime/raw authority exists.
+- 下一验证: Preserve the full no-rerun chain through rejected `514fbe0`,
+  accepted helper `b2d2e89` and bootstrap ledger `4eab991`. Commit only the
+  reviewed Secret-free contract, canonical public root, authority/PITR/external
+  closure, tests and four ledgers as a new root-bearing candidate. It must
+  receive exactly one new attempt-one push and one pull-request CI run; either
+  failure/cancellation is terminal and requires an append-only successor, with
+  no rerun. Neither `b2d2e89` nor `4eab991` CI may be reused as control CI.
+  Only after that exact root-bearing SHA is dual green may the root-owned
+  local-CI key sign receipt-v3 and the installer consume exact Git blobs.
+  Receipt signature, authority/runtime install, ActionTrail/Describe/billing
+  readback, journal, cloud, database and builder operations remain prohibited
+  until their later gates. Any custody or staging residue remains preserved;
+  no deletion, overwrite or automatic retry is authorized. Item 26 stays
+  `unverified` with empty evidence and readiness `25/29`. S0 remains open: a
+  Secret-free portable terminal capsule is still mandatory before readiness
+  credit or any paid successor. Do not replay consumed cloud requests or infer
+  terminal abort-v1 authority; mutation `UNKNOWN` permits same-identity
+  readback only, never resubmission.
 
 ## Critical Risks
 

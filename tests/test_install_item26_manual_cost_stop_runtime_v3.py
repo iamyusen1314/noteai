@@ -40,14 +40,14 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
         cls.root_hash = authority._sha(cls.root_raw)
         cls.control_ci = {
             "push": {
-                **ci_row(701, "push", "2026-08-17T05:20:00Z"),
+                **ci_row(701, "push", "2026-08-18T02:00:00Z"),
                 "head_sha": CONTROL_REVISION,
             },
             "pull_request": {
                 **ci_row(
                     702,
                     "pull_request",
-                    "2026-08-17T05:21:00Z",
+                    "2026-08-18T02:01:00Z",
                 ),
                 "head_sha": CONTROL_REVISION,
             },
@@ -59,6 +59,9 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
         cls.git_raw[authority.PUBLIC_ROOT_REF] = cls.root_raw
         cls.git_raw[authority.CONTRACT_REF] = (
             ROOT / authority.CONTRACT_REF
+        ).read_bytes()
+        cls.git_raw[authority.BOOTSTRAP_REF] = (
+            ROOT / authority.BOOTSTRAP_REF
         ).read_bytes()
         cls.git_raw[authority.VERIFIER_REF] = (
             ROOT / authority.VERIFIER_REF
@@ -72,6 +75,10 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
                 "git_blob_oid": f"{index:x}" * 40,
                 "file_sha256": hashlib.sha256(cls.git_raw[ref]).hexdigest(),
             }
+        cls.source_bindings[authority.BOOTSTRAP_REF] = {
+            "git_blob_oid": authority.EXPECTED_BOOTSTRAP_GIT_BLOB_OID,
+            "file_sha256": authority.EXPECTED_BOOTSTRAP_FILE_SHA256,
+        }
         with tempfile.TemporaryDirectory(
             prefix=".item26-installer-receipt-build-",
             dir=ROOT,
@@ -122,7 +129,7 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
                     control_revision=CONTROL_REVISION,
                     control_ci=cls.control_ci,
                     control_source_blobs=cls.source_bindings,
-                    activated_at_utc="2026-08-17T05:22:00Z",
+                    activated_at_utc="2026-08-18T02:02:00Z",
                     scratch_directory=scratch,
                 )
 
@@ -939,7 +946,7 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
                     custody_directory=Path("/safe/custody"),
                 )
 
-    def test_default_inert_main_rejects_before_mkdir_read_or_git(self):
+    def test_default_finalized_main_requires_fixed_execution_staging(self):
         with mock.patch.object(
             installer.os,
             "mkdir",
@@ -956,7 +963,14 @@ class Item26RuntimeInstallerV3Tests(unittest.TestCase):
             installer.FixedArgumentParser,
             "parse_args",
             side_effect=AssertionError("argument parsing must not start"),
-        ), self.assertRaisesRegex(ValueError, "not finalized"):
+        ), mock.patch.object(
+            installer,
+            "_validate_execution_flags",
+            return_value=None,
+        ), self.assertRaisesRegex(
+            installer.InstallError,
+            "installer_execution_path",
+        ):
             installer.main(["--receipt-path", "/must/not/be-resolved"])
 
 

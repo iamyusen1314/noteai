@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Fail-closed v2 authority boundary for the Item 26 cost-stop readback.
 
-This revision is intentionally inert.  It defines the complete public-root
-and receipt-v3 contracts, but the tracked public root and its hash do not yet
-exist.  Production entry points must call :func:`_require_finalized` before
-performing filesystem or Git I/O.  There is deliberately no v1 authority or
-collector import and no compatibility fallback.
+The tracked public root is complete and hash-frozen, but this root-bearing
+revision still requires its own attempt-one push/PR dual-green CI before a
+receipt can be signed or any runtime installation can start.  Production
+entry points call :func:`_require_finalized` before filesystem or Git I/O.
+There is deliberately no v1 authority/collector compatibility fallback.
 """
 
 from __future__ import annotations
@@ -39,6 +39,18 @@ LEDGER_STOP_REVISION = "653a4f350c679dff047426e0c0c5969461bd39fc"
 A0_REVISION = "34bfcf029d7ba641728fc18777b11943cb02fe1d"
 A1_REVISION = "db7b99d86e4fcf022e243ad1833c5f5d01d97095"
 A2_REVISION = "72e356fe5e8bcde14cea9153227881504d2a3afc"
+BOOTSTRAP_AUTHORIZATION_ANCHOR_REVISION = (
+    "2cfd03a9968f3ac5c2146a12377620aef7aed8e1"
+)
+REJECTED_BOOTSTRAP_SOURCE_REVISION = (
+    "514fbe075fe96096d641595a87423af4418ed90a"
+)
+HELPER_SOURCE_ACCEPTED_REVISION = (
+    "b2d2e89d76f311350468cc3f1e8c20988796e923"
+)
+BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION = (
+    "4eab99188332b156fde0f8892daa668375fff245"
+)
 
 COLLECTOR_REF = "tools/collect_item26_manual_cost_stop_raw_v2.py"
 EXTRACTOR_REF = "tools/extract_item26_manual_cost_stop_raw_v2.py"
@@ -50,6 +62,7 @@ RECEIPT_BUILDER_REF = (
 EVIDENCE_VERIFIER_REF = "tools/verify_item26_manual_cost_stop_evidence_v2.py"
 EVIDENCE_BUILDER_REF = "tools/build_item26_manual_cost_stop_evidence_v2.py"
 INSTALLER_REF = "tools/install_item26_manual_cost_stop_runtime_v3.py"
+BOOTSTRAP_REF = "tools/bootstrap_item26_manual_cost_stop_keys_v2.py"
 CONTRACT_REF = "deploy/production/plans/item26-manual-cost-stop-contract-v2.json"
 NO_REPLAY_REF = "deploy/production/plans/item26-no-replay-registry-v2.json"
 PUBLIC_ROOT_REF = (
@@ -130,16 +143,25 @@ RECEIPT_SIGNATURE_DOMAIN = (
     RECEIPT_SIGNATURE_DOMAIN_TEXT.encode("ascii") + b"\0"
 )
 
-# The complete public root must be added in a later authorized revision.  An
-# empty value is a state marker, not a wildcard.  _require_finalized rejects it.
-EXPECTED_ROOT_SHA = ""
+# Filled only after the complete canonical public root is generated.  The
+# public root itself never embeds this digest, avoiding a hash self-reference.
+EXPECTED_ROOT_SHA = (
+    "8bfb8834c1e241a18cde984d42524759f53423bcf809dd8657fa4b2be102ff85"
+)
 EXPECTED_AUTHORITY_ROOT_FILE_SHA256 = EXPECTED_ROOT_SHA
-AUTHORITY_V2_FINALIZED = False
+AUTHORITY_V2_FINALIZED = True
 AUTHORITY_IMPLEMENTED = AUTHORITY_V2_FINALIZED
 ROOT_UID = 0
 EXPECTED_CONTRACT_FILE_SHA256 = (
-    "600e79c0d5fde35b72b8e4d422f1186b99de8301e78de1190812d20cbb54b7b8"
+    "190ed155a410b20c1b081b5bc090bbc4c4a6609789d94c51296ce1460bc5ffd1"
 )
+EXPECTED_BOOTSTRAP_GIT_BLOB_OID = (
+    "e2b0b04f2bc5d8dc80185e29c059699209f2965f"
+)
+EXPECTED_BOOTSTRAP_FILE_SHA256 = (
+    "2e35d16c2a2f55ddfa1436190ed8869449dd05fb8ae5fb45878ab9c50c0cd9ff"
+)
+EXPECTED_BOOTSTRAP_FILE_BYTES = 26443
 EXPECTED_NO_REPLAY_FILE_SHA256 = (
     "994c521e22abd9be0c88d4b252ce4d3ef9a47f8131a065ab7964018f224d0f47"
 )
@@ -541,6 +563,170 @@ EXPECTED_LEDGER_STOP_TERMINAL = {
     "rerun_allowed": False,
 }
 
+
+EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL = {
+    "revision": REJECTED_BOOTSTRAP_SOURCE_REVISION,
+    "native_dispatch_count": 2,
+    "push": {
+        "run_id": 32045476729,
+        "job_id": 95432282589,
+        "event": "push",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "failure",
+        "head_sha": REJECTED_BOOTSTRAP_SOURCE_REVISION,
+        "created_at_utc": "2026-08-17T16:24:43Z",
+        "started_at_utc": "2026-08-17T16:24:46Z",
+        "completed_at_utc": "2026-08-17T16:26:07Z",
+        "dispatch_count": 1,
+        "rerun_count": 0,
+        "workflow_name": "CI",
+        "workflow_path": CI_WORKFLOW_REF,
+        "job_name": "test",
+        "job_count": 1,
+        "step_count": 21,
+        "failed_step_count": 1,
+        "failure_class": "MODEL_ARTIFACT_HTTP_DOWNLOAD_TIMEOUT_SINGLE_ATTEMPT",
+        "failed_step_name": "Restore required model artifacts",
+        "failed_step_number": 5,
+        "unit_test_started": False,
+        "readiness_gate_started": False,
+        "compose_config_started": False,
+        "warning_annotation_count": 1,
+        "failure_annotation_count": 1,
+        "error_annotation_count": 0,
+    },
+    "pull_request": {
+        "run_id": 32045480527,
+        "job_id": 95432294279,
+        "event": "pull_request",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": REJECTED_BOOTSTRAP_SOURCE_REVISION,
+        "created_at_utc": "2026-08-17T16:24:46Z",
+        "started_at_utc": "2026-08-17T16:24:49Z",
+        "completed_at_utc": "2026-08-17T17:00:13Z",
+        "dispatch_count": 1,
+        "rerun_count": 0,
+        "workflow_name": "CI",
+        "workflow_path": CI_WORKFLOW_REF,
+        "job_name": "test",
+        "job_count": 1,
+        "step_count": 22,
+        "failed_step_count": 0,
+        "unit_test_count": 2589,
+        "unit_test_failure_count": 0,
+        "unit_test_error_count": 0,
+        "unit_test_skip_count": 34,
+        "frozen_topology_test_counts": [10, 1, 12, 22, 21],
+        "postgres_test_count": 6,
+        "readiness_check_count": 138,
+        "quality_gate_pass_count": 7,
+        "quality_expected_fail_count": 1,
+        "warning_annotation_count": 1,
+        "error_annotation_count": 0,
+        "compose_config_success": True,
+    },
+    "rerun_allowed": False,
+    "accepted": False,
+    "replacement_required": True,
+}
+
+
+def _accepted_attempt_one_ci_row(
+    *,
+    revision: str,
+    run_id: int,
+    job_id: int,
+    event: str,
+    created_at_utc: str,
+    started_at_utc: str,
+    completed_at_utc: str,
+) -> dict[str, Any]:
+    """Return the exact common successful CI shape for b2d/4eab."""
+    return {
+        "run_id": run_id,
+        "job_id": job_id,
+        "event": event,
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": revision,
+        "created_at_utc": created_at_utc,
+        "started_at_utc": started_at_utc,
+        "completed_at_utc": completed_at_utc,
+        "dispatch_count": 1,
+        "rerun_count": 0,
+        "workflow_name": "CI",
+        "workflow_path": CI_WORKFLOW_REF,
+        "job_name": "test",
+        "job_count": 1,
+        "failed_step_count": 0,
+        "step_count": 22,
+        "unit_test_count": 2602,
+        "unit_test_failure_count": 0,
+        "unit_test_error_count": 0,
+        "unit_test_skip_count": 34,
+        "frozen_topology_test_counts": [10, 1, 12, 22, 21],
+        "postgres_test_count": 6,
+        "readiness_check_count": 138,
+        "quality_gate_pass_count": 7,
+        "quality_expected_fail_count": 1,
+        "error_annotation_count": 0,
+        "compose_config_success": True,
+    }
+
+
+EXPECTED_HELPER_SOURCE_TERMINAL = {
+    "revision": HELPER_SOURCE_ACCEPTED_REVISION,
+    "native_dispatch_count": 2,
+    "push": _accepted_attempt_one_ci_row(
+        revision=HELPER_SOURCE_ACCEPTED_REVISION,
+        run_id=32082386775,
+        job_id=95547748113,
+        event="push",
+        created_at_utc="2026-08-17T23:54:24Z",
+        started_at_utc="2026-08-17T23:54:27Z",
+        completed_at_utc="2026-08-18T00:29:05Z",
+    ),
+    "pull_request": _accepted_attempt_one_ci_row(
+        revision=HELPER_SOURCE_ACCEPTED_REVISION,
+        run_id=32082388870,
+        job_id=95547753794,
+        event="pull_request",
+        created_at_utc="2026-08-17T23:54:26Z",
+        started_at_utc="2026-08-17T23:54:29Z",
+        completed_at_utc="2026-08-18T00:26:42Z",
+    ),
+    "rerun_allowed": False,
+}
+
+EXPECTED_BOOTSTRAP_LEDGER_TERMINAL = {
+    "revision": BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
+    "native_dispatch_count": 2,
+    "push": _accepted_attempt_one_ci_row(
+        revision=BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
+        run_id=32085627719,
+        job_id=95557448857,
+        event="push",
+        created_at_utc="2026-08-18T00:44:02Z",
+        started_at_utc="2026-08-18T00:44:04Z",
+        completed_at_utc="2026-08-18T01:15:58Z",
+    ),
+    "pull_request": _accepted_attempt_one_ci_row(
+        revision=BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
+        run_id=32085631106,
+        job_id=95557458319,
+        event="pull_request",
+        created_at_utc="2026-08-18T00:44:05Z",
+        started_at_utc="2026-08-18T00:44:07Z",
+        completed_at_utc="2026-08-18T01:19:02Z",
+    ),
+    "rerun_allowed": False,
+}
+
+
 HISTORICAL_SOURCE_BLOBS = {
     "a0": {
         "revision": A0_REVISION,
@@ -612,6 +798,7 @@ CONTROL_SOURCE_REFS = (
     EVIDENCE_VERIFIER_REF,
     EVIDENCE_BUILDER_REF,
     INSTALLER_REF,
+    BOOTSTRAP_REF,
     CONTRACT_REF,
     PUBLIC_ROOT_REF,
     CI_WORKFLOW_REF,
@@ -1118,7 +1305,7 @@ def authority_root_document(
         "historical_operation_id": OPERATION_ID,
         "authority_generation_id": AUTHORITY_GENERATION_ID,
         "authority_epoch_id": AUTHORITY_EPOCH_ID,
-        "status": "A3_PUBLIC_ROOT_V2_FROZEN_BEFORE_FIRST_READBACK",
+        "status": "PUBLIC_ROOT_V2_FINALIZED_AWAITING_ATTEMPT_ONE_DUAL_CI",
         "repository": REPOSITORY,
         "source_ref": SOURCE_REF,
         "ledger_stop": {
@@ -1137,7 +1324,29 @@ def authority_root_document(
             "a1_terminal": EXPECTED_A1_TERMINAL,
             "a2_terminal": EXPECTED_A2_TERMINAL,
             "ledger_stop_terminal": EXPECTED_LEDGER_STOP_TERMINAL,
+            "rejected_bootstrap_source_terminal": (
+                EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL
+            ),
+            "helper_source_terminal": EXPECTED_HELPER_SOURCE_TERMINAL,
+            "bootstrap_ledger_terminal": EXPECTED_BOOTSTRAP_LEDGER_TERMINAL,
             "source_blobs": HISTORICAL_SOURCE_BLOBS,
+        },
+        "bootstrap_source": {
+            "ref": BOOTSTRAP_REF,
+            "authorization_anchor_revision": (
+                BOOTSTRAP_AUTHORIZATION_ANCHOR_REVISION
+            ),
+            "rejected_revision": REJECTED_BOOTSTRAP_SOURCE_REVISION,
+            "rejected_revision_accepted": False,
+            "rejected_revision_rerun_allowed": False,
+            "accepted_revision": HELPER_SOURCE_ACCEPTED_REVISION,
+            "accepted_revision_attempt_one_dual_ci_passed": True,
+            "acceptance_ledger_revision": (
+                BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION
+            ),
+            "git_blob_oid": EXPECTED_BOOTSTRAP_GIT_BLOB_OID,
+            "file_sha256": EXPECTED_BOOTSTRAP_FILE_SHA256,
+            "bytes": EXPECTED_BOOTSTRAP_FILE_BYTES,
         },
         "v1_custody": {
             "expected_root_file_sha256": EXPECTED_V1_ROOT_FILE_SHA256,
@@ -1320,6 +1529,29 @@ def revision_is_strict_ancestor(
     return result.returncode == 0
 
 
+def _control_lineage_is_valid(
+    control_revision: str,
+    *,
+    root: Path,
+) -> bool:
+    """Bind every append-only bootstrap stage before a control revision."""
+    revisions = (
+        A0_REVISION,
+        A1_REVISION,
+        A2_REVISION,
+        LEDGER_STOP_REVISION,
+        BOOTSTRAP_AUTHORIZATION_ANCHOR_REVISION,
+        REJECTED_BOOTSTRAP_SOURCE_REVISION,
+        HELPER_SOURCE_ACCEPTED_REVISION,
+        BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
+        control_revision,
+    )
+    return HEX40.fullmatch(control_revision or "") is not None and all(
+        revision_is_strict_ancestor(earlier, later, root=root)
+        for earlier, later in zip(revisions, revisions[1:])
+    )
+
+
 def _validate_ledger_git_bindings(*, root: Path) -> None:
     for ref, expected in LEDGER_STOP_BINDINGS.items():
         observed = _git_blob_record(LEDGER_STOP_REVISION, ref, root=root)
@@ -1331,6 +1563,18 @@ def _validate_ledger_git_bindings(*, root: Path) -> None:
     no_replay = _git_blob_record(LEDGER_STOP_REVISION, NO_REPLAY_REF, root=root)
     if no_replay["file_sha256"] != EXPECTED_NO_REPLAY_FILE_SHA256:
         raise ValueError("manual authority v2 no-replay binding")
+    for revision in (
+        REJECTED_BOOTSTRAP_SOURCE_REVISION,
+        HELPER_SOURCE_ACCEPTED_REVISION,
+        BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION,
+    ):
+        bootstrap = _git_blob_record(revision, BOOTSTRAP_REF, root=root)
+        if (
+            bootstrap["git_blob_oid"] != EXPECTED_BOOTSTRAP_GIT_BLOB_OID
+            or bootstrap["file_sha256"] != EXPECTED_BOOTSTRAP_FILE_SHA256
+            or len(bootstrap["raw"]) != EXPECTED_BOOTSTRAP_FILE_BYTES
+        ):
+            raise ValueError("manual authority v2 bootstrap binding")
 
 
 def load_activation_root(
@@ -1345,13 +1589,9 @@ def load_activation_root(
     inventory = _validated_inventory(expected_inventory)
     if (
         expected_authority_root_file_sha256 != EXPECTED_ROOT_SHA
-        or not revision_is_strict_ancestor(A0_REVISION, A1_REVISION, root=root)
-        or not revision_is_strict_ancestor(A1_REVISION, A2_REVISION, root=root)
-        or not revision_is_strict_ancestor(
-            A2_REVISION, LEDGER_STOP_REVISION, root=root
-        )
-        or not revision_is_strict_ancestor(
-            LEDGER_STOP_REVISION, expected_control_revision, root=root
+        or not _control_lineage_is_valid(
+            expected_control_revision,
+            root=root,
         )
     ):
         raise ValueError("manual authority v2 control revision")
@@ -1733,6 +1973,12 @@ def _expected_control_source_blobs(
     result: dict[str, dict[str, str]] = {}
     for ref in CONTROL_SOURCE_REFS:
         observed = _git_blob_record(control_revision, ref, root=root)
+        if ref == BOOTSTRAP_REF and (
+            observed["git_blob_oid"] != EXPECTED_BOOTSTRAP_GIT_BLOB_OID
+            or observed["file_sha256"] != EXPECTED_BOOTSTRAP_FILE_SHA256
+            or len(observed["raw"]) != EXPECTED_BOOTSTRAP_FILE_BYTES
+        ):
+            raise ValueError("manual activation receipt v3 bootstrap drift")
         result[ref] = {
             "git_blob_oid": observed["git_blob_oid"],
             "file_sha256": observed["file_sha256"],
@@ -1778,17 +2024,7 @@ def validate_activation_receipt_unsigned_inputs(
 ]:
     """Validate every public/Git/CI precondition before receipt signing."""
     _require_finalized()
-    if (
-        HEX40.fullmatch(control_revision or "") is None
-        or not revision_is_strict_ancestor(A0_REVISION, A1_REVISION, root=root)
-        or not revision_is_strict_ancestor(A1_REVISION, A2_REVISION, root=root)
-        or not revision_is_strict_ancestor(
-            A2_REVISION, LEDGER_STOP_REVISION, root=root
-        )
-        or not revision_is_strict_ancestor(
-            LEDGER_STOP_REVISION, control_revision, root=root
-        )
-    ):
+    if not _control_lineage_is_valid(control_revision, root=root):
         raise ValueError("manual activation receipt v3 control revision")
     root_value, keys = _validate_root(
         root_raw,
@@ -1836,6 +2072,12 @@ def validate_activation_receipt_unsigned_inputs(
         EXPECTED_A2_TERMINAL["pull_request"],
         EXPECTED_LEDGER_STOP_TERMINAL["push"],
         EXPECTED_LEDGER_STOP_TERMINAL["pull_request"],
+        EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["push"],
+        EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["pull_request"],
+        EXPECTED_HELPER_SOURCE_TERMINAL["push"],
+        EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"],
+        EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"],
+        EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"],
         control_ci["push"],
         control_ci["pull_request"],
     )
@@ -1861,6 +2103,61 @@ def validate_activation_receipt_unsigned_inputs(
                 EXPECTED_LEDGER_STOP_TERMINAL["pull_request"][
                     "completed_at_utc"
                 ]
+            ),
+        )
+        >= min(
+            _utc(
+                EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["push"][
+                    "created_at_utc"
+                ]
+            ),
+            _utc(
+                EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL[
+                    "pull_request"
+                ]["created_at_utc"]
+            ),
+        )
+        or max(
+            _utc(
+                EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["push"][
+                    "completed_at_utc"
+                ]
+            ),
+            _utc(
+                EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL[
+                    "pull_request"
+                ]["completed_at_utc"]
+            ),
+        )
+        >= min(
+            _utc(EXPECTED_HELPER_SOURCE_TERMINAL["push"]["created_at_utc"]),
+            _utc(
+                EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"]
+                ["created_at_utc"]
+            ),
+        )
+        or max(
+            _utc(EXPECTED_HELPER_SOURCE_TERMINAL["push"]["completed_at_utc"]),
+            _utc(
+                EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"]
+                ["completed_at_utc"]
+            ),
+        )
+        >= min(
+            _utc(EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"]["created_at_utc"]),
+            _utc(
+                EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"]
+                ["created_at_utc"]
+            ),
+        )
+        or max(
+            _utc(
+                EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"]
+                ["completed_at_utc"]
+            ),
+            _utc(
+                EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"]
+                ["completed_at_utc"]
             ),
         )
         >= min(
@@ -1891,9 +2188,7 @@ def validate_runtime_activation_receipt(
     _require_finalized()
     if (
         expected_authority_root_file_sha256 != EXPECTED_ROOT_SHA
-        or not revision_is_strict_ancestor(
-            LEDGER_STOP_REVISION, control_revision, root=root
-        )
+        or not _control_lineage_is_valid(control_revision, root=root)
     ):
         raise ValueError("manual activation receipt v3 control revision")
     expected_root, expected_keys = _validate_root(
@@ -1977,6 +2272,7 @@ def validate_runtime_activation_receipt(
         "repository",
         "source_ref",
         "ledger_stop_revision",
+        "bootstrap_ledger_acceptance_revision",
         "historical_checkpoints",
         "historical_source_blobs",
         "control_revision",
@@ -2006,6 +2302,8 @@ def validate_runtime_activation_receipt(
         or payload.get("repository") != REPOSITORY
         or payload.get("source_ref") != SOURCE_REF
         or payload.get("ledger_stop_revision") != LEDGER_STOP_REVISION
+        or payload.get("bootstrap_ledger_acceptance_revision")
+        != BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION
         or not _strict(
             payload.get("historical_checkpoints"),
             {
@@ -2013,6 +2311,13 @@ def validate_runtime_activation_receipt(
                 "a1_terminal": EXPECTED_A1_TERMINAL,
                 "a2_terminal": EXPECTED_A2_TERMINAL,
                 "ledger_stop_terminal": EXPECTED_LEDGER_STOP_TERMINAL,
+                "rejected_bootstrap_source_terminal": (
+                    EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL
+                ),
+                "helper_source_terminal": EXPECTED_HELPER_SOURCE_TERMINAL,
+                "bootstrap_ledger_terminal": (
+                    EXPECTED_BOOTSTRAP_LEDGER_TERMINAL
+                ),
             },
         )
         or not _strict(
@@ -2060,6 +2365,12 @@ def validate_runtime_activation_receipt(
         EXPECTED_A2_TERMINAL["pull_request"],
         EXPECTED_LEDGER_STOP_TERMINAL["push"],
         EXPECTED_LEDGER_STOP_TERMINAL["pull_request"],
+        EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["push"],
+        EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["pull_request"],
+        EXPECTED_HELPER_SOURCE_TERMINAL["push"],
+        EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"],
+        EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"],
+        EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"],
         payload["control_ci"]["push"],
         payload["control_ci"]["pull_request"],
     )
@@ -2087,6 +2398,66 @@ def validate_runtime_activation_receipt(
             _utc(EXPECTED_LEDGER_STOP_TERMINAL["push"]["completed_at_utc"]),
             _utc(
                 EXPECTED_LEDGER_STOP_TERMINAL["pull_request"][
+                    "completed_at_utc"
+                ]
+            ),
+        )
+        >= min(
+            _utc(
+                EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["push"][
+                    "created_at_utc"
+                ]
+            ),
+            _utc(
+                EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL[
+                    "pull_request"
+                ]["created_at_utc"]
+            ),
+        )
+        or max(
+            _utc(
+                EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["push"][
+                    "completed_at_utc"
+                ]
+            ),
+            _utc(
+                EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL[
+                    "pull_request"
+                ]["completed_at_utc"]
+            ),
+        )
+        >= min(
+            _utc(EXPECTED_HELPER_SOURCE_TERMINAL["push"]["created_at_utc"]),
+            _utc(
+                EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"][
+                    "created_at_utc"
+                ]
+            ),
+        )
+        or max(
+            _utc(EXPECTED_HELPER_SOURCE_TERMINAL["push"]["completed_at_utc"]),
+            _utc(
+                EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"][
+                    "completed_at_utc"
+                ]
+            ),
+        )
+        >= min(
+            _utc(EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"]["created_at_utc"]),
+            _utc(
+                EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"][
+                    "created_at_utc"
+                ]
+            ),
+        )
+        or max(
+            _utc(
+                EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"][
+                    "completed_at_utc"
+                ]
+            ),
+            _utc(
+                EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"][
                     "completed_at_utc"
                 ]
             ),
@@ -2535,6 +2906,12 @@ def _validate_terminal_ci(
         EXPECTED_A2_TERMINAL["pull_request"],
         EXPECTED_LEDGER_STOP_TERMINAL["push"],
         EXPECTED_LEDGER_STOP_TERMINAL["pull_request"],
+        EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["push"],
+        EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL["pull_request"],
+        EXPECTED_HELPER_SOURCE_TERMINAL["push"],
+        EXPECTED_HELPER_SOURCE_TERMINAL["pull_request"],
+        EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["push"],
+        EXPECTED_BOOTSTRAP_LEDGER_TERMINAL["pull_request"],
         *(row for row, _event, _revision in rows),
     )
     if (
@@ -2651,9 +3028,7 @@ def validate_authority_bundle(
                     terminal_revision,
                 )
             )
-            or not revision_is_strict_ancestor(
-                LEDGER_STOP_REVISION, control_revision, root=root
-            )
+            or not _control_lineage_is_valid(control_revision, root=root)
             or not revision_is_strict_ancestor(
                 control_revision, evidence_revision, root=root
             )
@@ -2823,6 +3198,9 @@ __all__ = [
     "AUTHORITY_EPOCH_ID",
     "AUTHORITY_GENERATION_ID",
     "AUTHORITY_V2_FINALIZED",
+    "BOOTSTRAP_AUTHORIZATION_ANCHOR_REVISION",
+    "BOOTSTRAP_LEDGER_ACCEPTANCE_REVISION",
+    "BOOTSTRAP_REF",
     "BUNDLE_FILE",
     "BUNDLE_SCHEMA",
     "CAPTURE_INVENTORY",
@@ -2837,6 +3215,9 @@ __all__ = [
     "EXPECTED_A1_TERMINAL",
     "EXPECTED_A2_TERMINAL",
     "EXPECTED_LEDGER_STOP_TERMINAL",
+    "EXPECTED_REJECTED_BOOTSTRAP_SOURCE_TERMINAL",
+    "EXPECTED_HELPER_SOURCE_TERMINAL",
+    "EXPECTED_BOOTSTRAP_LEDGER_TERMINAL",
     "EXPECTED_AUTHORITY_ROOT_FILE_SHA256",
     "EXPECTED_CONTRACT_FILE_SHA256",
     "EXPECTED_ROOT_SHA",
