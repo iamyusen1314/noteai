@@ -11438,3 +11438,42 @@ Colima, database, builder, restore and cloud actions remain frozen.
   acceptance. Until then root bootstrap remains ineligible: no `sudo`, root
   staging, custody or production key generation is permitted. Item 26 remains
   `unverified`, readiness remains `25/29`, and S0 remains open.
+
+### Item 26 retry successor attempt-one dual-CI terminal (2026-08-18)
+
+- Append-only successor `b2d2e89d76f311350468cc3f1e8c20988796e923`
+  is the direct child of rejected/no-rerun `514fbe075fe96096d641595a87423af4418ed90a`;
+  its tree is `98460f0ca9ff1b33e9a3d400f071b167e6d57a3c` and its
+  exact change closure is 10 paths. The production bootstrap helper remains
+  byte-identical to its accepted source candidate: blob
+  `e2b0b04f2bc5d8dc80185e29c059699209f2965f`, SHA-256
+  `2e35d16c2a2f55ddfa1436190ed8869449dd05fb8ae5fb45878ab9c50c0cd9ff`,
+  26,443 bytes.
+- The exact SHA has only push run `32082386775`/job `95547748113` and
+  pull-request run `32082388870`/job `95547753794`. Both are attempt one,
+  `completed/success`, have `previous_attempt_url=null`, and contain all 22
+  successful steps. Push ran from `2026-08-17T23:54:24Z` through run terminal
+  `2026-08-18T00:29:06Z`; PR ran from `23:54:26Z` through `00:26:43Z`.
+  No attempt two, rerun, cancel or third exact-SHA run exists.
+- Each route restored four model artifacts with three repairs and zero missing,
+  then verified four with zero repair/missing. Ambient Unit ran 2,602 tests
+  with 34 skips and zero failure/error; frozen topology `10+1+12+22+21` adds
+  66, for 2,668 total. Quality is `7 PASS + 1 EXPECTED_FAIL`, PostgreSQL is
+  `6/6`, production readiness is `138/138`, and Compose succeeds. Each route
+  has exactly one non-error Node runtime deprecation warning and zero error
+  annotation.
+- The successor closes both predecessor conflicts: bounded, owned-temp HTTP
+  retry crosses the former restore timeout, and all Item 26 role fixtures are
+  pinned public-only SPKIs with scoped non-key cryptographic seams. Focused
+  normal/optimized and global private-tool sentinel runs observe zero real
+  `genpkey`, private-key export or signing call. Independent review is
+  `GO_P0_0_P1_0`.
+- This terminal evidence accepts `b2d2e89` only as the helper-source successor;
+  it is not the future root-bearing `control_revision` and its CI cannot be
+  reused as future control CI. The present four-ledger acceptance remains a
+  checkpoint candidate until it is committed, pushed and receives its own new
+  attempt-one push/PR dual-green pair. Root bootstrap execution is prohibited
+  before that procedural gate. Production key/export/root/receipt/sudo/staging/
+  custody/install/capture/cloud/database/builder counts remain zero, Item 26
+  remains `unverified` with empty evidence and readiness `25/29`, and S0 stays
+  open.

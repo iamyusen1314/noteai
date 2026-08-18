@@ -321,6 +321,14 @@ Only service names and variable names are documented here; no secret values.
   successor's own attempt-one dual CI plus a later ledger binding may unlock the
   already-authorized root bootstrap. Neither `514fbe0` nor the correction
   revision is the future root-bearing `control_revision`.
+- That correction is now exact revision
+  `b2d2e89d76f311350468cc3f1e8c20988796e923`; its only push and pull-request
+  runs (`32082386775` and `32082388870`) both completed attempt one with all 22
+  steps successful and zero reruns. It accepts the unchanged helper source and
+  the public-only test boundary, but remains distinct from the future
+  root-bearing control revision. A four-ledger binding checkpoint records the
+  exact source closure and must itself complete a new attempt-one dual-CI pair
+  before the already-authorized root bootstrap may execute.
 - Local root-owned material is not portable CI evidence. A Secret-free,
   clean-clone-replayable terminal capsule or equivalent trusted distribution
   contract remains mandatory before Item 26 credit or any paid PITR successor.

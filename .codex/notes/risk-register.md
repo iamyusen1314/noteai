@@ -188,12 +188,15 @@ Last updated: 2026-08-18
   `514fbe0` is permanently no-rerun/rejected: its push route hit an exact
   60-second artifact-download timeout, and its green PR route revealed real
   disposable test-role private-key generation outside root custody. The
-  authorized append-only correction keeps the production helper unchanged,
-  uses pinned public-only SPKIs/non-key signature mocks, and adds bounded
-  unique-temp retries only for explicit transient artifact failures. First
-  checkpoint that correction, obtain its own new attempt-one push/PR dual-green
-  pair, and record exact commit/blob/SHA in a subsequent Secret-free ledger.
-  Only then may root exclusively stage the accepted helper,
+  authorized append-only correction `b2d2e89` keeps the production helper
+  unchanged, uses pinned public-only SPKIs/non-key signature mocks, and adds
+  bounded unique-temp retries only for explicit transient artifact failures.
+  Its only push `32082386775` and pull-request `32082388870` runs both completed
+  attempt one with success, 22/22 steps, 2,668 total tests, PostgreSQL `6/6`,
+  readiness `138/138`, Compose success and zero reruns. Record that exact
+  commit/blob/SHA in the current four-ledger checkpoint, then require this
+  ledger checkpoint's own new attempt-one push/PR dual-green pair. Only after
+  that procedural gate may root exclusively stage the accepted helper,
   compare the installed SHA, and create custody. Until that sequence completes,
   do not generate production keys, sign a receipt, invoke sudo, install
   inventory or import ActionTrail/Describe/billing responses. Any partial key
