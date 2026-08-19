@@ -11929,3 +11929,83 @@ Colima, database, builder, restore and cloud actions remain frozen.
   capture, cloud/API and database counts are all zero.  A later source
   acceptance or operational edge needs its own
   strict descendant and, for execution, a separate action-scoped CTO decision.
+
+### Item 26 installer-stager source accepted; ledger-only F pending (2026-08-19)
+
+- The installer-stager source checkpoint is exact revision
+  `c5acaf37fabe4a1f9d3333f75e157b77ca327daf`, tree
+  `863ae66c7ac3e537f63bfc2af8093bbabef84465`, and the direct child of
+  accepted ledger-only E `a4e2a0d106e013c9b3ce730a278345c7552cdcd9`.
+  Its exact six-path delta is the four ledgers plus
+  `tools/stage_and_install_item26_manual_cost_stop_runtime_v3.py` and
+  `tests/test_stage_and_install_item26_manual_cost_stop_runtime_v3.py`.
+  It changes no launcher, receipt, control/authority source, private-key
+  material or M1/M2 output.
+- The accepted stager remains mode `100644`, 49,981 bytes, Git blob
+  `6ed7a666d84e10f90b747a60197254f4d7e52ca8` and SHA-256
+  `a0fe8d896da08cdcb97df895116bd6cdc7b7e11e55104164b842cb69ee5199bc`.
+  Its embedded ASCII `ROOT_PROGRAM` remains 19,045 bytes with SHA-256
+  `2d774a57a53474d0cd1fb79c1f4fc92608dfd9858370097ddad698b023bcdb46`.
+  The accepted test remains mode `100644`, 27,596 bytes, Git blob
+  `f1ff59215347401e3615a8df15d8b5d8ac13d8da` and SHA-256
+  `7218a81d466f394bec60e7e314aae9d6d9ab9b53595fc59afac43e589d048cb8`.
+  The prior two identical concurrent summaries, focused normal/`-O` `27/27`
+  each, related existing `48/48`, compile/diff checks and independent
+  `GO / P0=0 / P1=0 / P2=0` review remain the frozen static source metadata.
+- The source checkpoint's only ordinary push run
+  `32221546388`/job `95972808384` was created and run-started at
+  `2026-08-19T05:59:34Z`; its job ran from `05:59:37Z` through `06:25:27Z`
+  and the run became terminal at `06:25:28Z`.  Its only pull-request run
+  `32221549932`/job `95972819006` was created and run-started at `05:59:38Z`;
+  its job ran from `05:59:41Z` through `06:33:45Z`, when the run also became
+  terminal.  Both completed attempt one with success, no previous-attempt URL,
+  zero reruns and all 22 steps successful.
+- Each route passed the 2,674-test main suite with 34 skips and zero
+  failures/errors, frozen topology batches `[10, 1, 12, 22, 21]`, Quality
+  `7 PASS + 1 EXPECTED_FAIL`, PostgreSQL `6/6`, production readiness `138/138`
+  and Compose.  Each job has exactly one Node-runtime deprecation warning,
+  zero error/failure annotations and no failed or skipped step.  Source
+  acceptance is therefore true for this exact revision and its frozen source
+  bytes; the checkpoint remains source-only and is not operational authority.
+- This four-ledger terminal record is the source-only F candidate with expected
+  parent `c5acaf37fabe4a1f9d3333f75e157b77ca327daf` and exact path count four.
+  F cannot self-bind: its own revision and tree remain empty, its own CI is
+  `PENDING_NOT_STARTED` with count zero, and checkpoint self-acceptance is false
+  here.  Those final F identities may be recorded only later by post-action G.
+  F changes no stager, test or root program and authorizes no operational
+  action.
+- F is explicitly bounded by Main CTO authorization
+  `CTO-AUTH-ITEM26-INSTALLER-STAGER-ACCEPTANCE-001`, issued by the
+  product-owner-designated `ROOT_MAIN_CTO` who manages Subagents.  Subagents
+  have no independent authorization authority.  The authorization permits
+  only this exact four-ledger delta, one commit, one normal non-force push and
+  observation of the unique new attempt-one push and pull-request CI routes.
+  Failure or cancellation stops the chain; rerun and automatic retry are
+  forbidden.  This authorization is source-only and does not authorize any
+  launcher, sudo, root write, install, rollback, scratch, capture, cloud/API or
+  database action.
+- F's deferred self-binding is not an instruction to create a strict descendant
+  before installation.  The only valid forward order is: create F; externally
+  verify F's unique attempt-one push/PR pair as dual-green; while live local
+  HEAD, upstream and remote still all equal F, obtain a new one-shot,
+  action-scoped install authorization from the Root Main CTO and execute; then
+  create G only as the post-action append-only ledger.  The stager requires the
+  live three-pointer equality to F, so inserting G before execution would
+  deterministically fail `stager_acceptance_revision`.  G is therefore not an
+  installation prerequisite and cannot be used to authorize the action.
+- The earlier audit-process deviation remains unchanged: one incorrectly
+  scoped repository-wide `rg` returned only five function/condition lines from
+  quarantined `tools/stage_item26_manual_cost_stop_helper_v2.py`; it did not
+  open the complete file, execute or modify it, or emit credentials/private
+  material, and the other six quarantined paths had no match.  The agent was
+  immediately stopped and replaced.  This incident authorizes nothing, adds no
+  readiness credit and permits no further quarantine-path read in this round.
+- Item 26 remains `unverified` with `evidence: []`; internal/public readiness
+  remain `25/29` and `25/38`; S0 remains false/open; the valid activation
+  receipt is still not the absent M1 provider receipt; M1 evidence and the M2
+  checkpoint remain absent; and readiness credit remains zero.  Historical
+  receipt build/sign/sudo counts remain `1/1/1`; current launcher, sudo,
+  root-write, installer, rollback, verifier public scratch create/cleanup,
+  capture, cloud/API and database counts are zero.  Any operational edge still
+  requires the separate action-scoped CTO decision in the F-before-G order
+  above.

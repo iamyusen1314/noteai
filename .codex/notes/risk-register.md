@@ -2784,3 +2784,63 @@ Last updated: 2026-08-19
   provider receipt and no readiness credit is added.  A strict descendant
   must freeze this source candidate and its own attempt-one CI; any later
   execution still requires a separate action-scoped CTO authorization.
+
+### Item 26 installer-stager source is dual-green; execution remains closed
+
+- 状态: The installer-stager source is accepted at exact revision
+  `c5acaf37fabe4a1f9d3333f75e157b77ca327daf`, direct child of E
+  `a4e2a0d106e013c9b3ce730a278345c7552cdcd9`, tree
+  `863ae66c7ac3e537f63bfc2af8093bbabef84465`, exact six paths.  The four
+  ledgers, stager and test are the only changed paths; launcher, receipt,
+  control/authority source, private-key material and M1/M2 outputs are
+  unchanged.  Source acceptance is true, but it is not operational authority.
+- 冻结源码: The stager remains mode `100644`, 49,981 bytes, blob
+  `6ed7a666d84e10f90b747a60197254f4d7e52ca8`, SHA-256
+  `a0fe8d896da08cdcb97df895116bd6cdc7b7e11e55104164b842cb69ee5199bc`;
+  its 19,045-byte ASCII `ROOT_PROGRAM` has SHA-256
+  `2d774a57a53474d0cd1fb79c1f4fc92608dfd9858370097ddad698b023bcdb46`.
+  The test remains mode `100644`, 27,596 bytes, blob
+  `f1ff59215347401e3615a8df15d8b5d8ac13d8da`, SHA-256
+  `7218a81d466f394bec60e7e314aae9d6d9ab9b53595fc59afac43e589d048cb8`.
+  The prior two identical summaries, normal/`-O` `27/27`, related `48/48`,
+  compile/diff checks and independent `GO / P0=0 / P1=0 / P2=0` review remain
+  the accepted source metadata.
+- 验证: Its sole attempt-one push `32221546388`/job `95972808384` and PR
+  `32221549932`/job `95972819006` both completed success with zero reruns and
+  no previous-attempt URL.  Their job intervals are
+  `05:59:37Z–06:25:27Z` and `05:59:41Z–06:33:45Z`; run intervals are
+  `05:59:34Z–06:25:28Z` and `05:59:38Z–06:33:45Z`.  Each passed 22/22 steps,
+  main Unit `2674` with 34 skips and zero failures/errors, frozen batches
+  `[10, 1, 12, 22, 21]`, Quality `7 + expected 1`, PostgreSQL `6/6`, readiness
+  `138/138` and Compose; the only annotation is one Node-runtime warning, with
+  zero error/failure annotations.
+- 当前边界: The current exact-four-ledger F candidate only freezes the source
+  checkpoint.  Its expected parent is `c5acaf37...`; its own revision/tree are
+  empty and own CI is pending/count zero because it cannot self-reference.
+  `CTO-AUTH-ITEM26-INSTALLER-STAGER-ACCEPTANCE-001` is issued by the
+  product-owner-designated `ROOT_MAIN_CTO`, who manages Subagents; no Subagent
+  has independent authorization authority.  It permits exact-four ledgers,
+  one commit, one normal non-force push and observation of the unique new
+  attempt-one push/PR pair only.  Failure/cancellation stops; rerun and
+  automatic retry are forbidden.
+- 排序风险: F's deferred self-binding does not require G before installation.
+  The exact order must be F commit, external verification of F's unique
+  attempt-one dual-green push/PR pair, a separate one-shot Root Main CTO install
+  authorization while local HEAD/upstream/remote still all equal F, execution,
+  and only then G as a post-action append-only ledger.  A pre-execution G would
+  break the stager's live F pointer binding and fail
+  `stager_acceptance_revision`; G is not an installation prerequisite or
+  execution authority.
+- 审计偏差保留: One incorrectly scoped repository-wide red-team `rg` returned
+  only five function/condition lines from quarantined
+  `tools/stage_item26_manual_cost_stop_helper_v2.py`; it did not open the full
+  file, execute or modify it, or emit credentials/private material, and the
+  other six quarantine paths had no match.  The agent was immediately stopped
+  and replaced.  This incident authorizes nothing, adds no readiness credit
+  and permits no further quarantine-path read in this round.
+- 残余风险: F and the accepted source remain source-only.  Launcher, sudo,
+  root write, install, rollback, public scratch, capture, cloud/API and database
+  actions remain closed and at zero.  Item 26 remains unverified, S0 open,
+  M1/M2 absent, readiness `25/29` internal / `25/38` public, and no credit is
+  added.  Any execution requires a separate action-scoped CTO authorization
+  in the F-before-G order above.

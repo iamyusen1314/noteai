@@ -601,3 +601,63 @@ Only service names and variable names are documented here; no secret values.
   internally and `25/38` publicly, the M1 provider receipt/evidence and M2
   checkpoint remain absent, and no readiness credit is added.  The source
   candidate cannot authorize its own execution or any later operational edge.
+
+## Item 26 installer-stager source terminal acceptance and F boundary (2026-08-19)
+
+- Secret-free installer-stager source checkpoint
+  `c5acaf37fabe4a1f9d3333f75e157b77ca327daf` is the direct child of E
+  `a4e2a0d106e013c9b3ce730a278345c7552cdcd9`, has tree
+  `863ae66c7ac3e537f63bfc2af8093bbabef84465`, and changes exactly the four
+  ledgers plus the stager and its test.  Launcher, receipt, control/authority
+  source, private-key material and M1/M2 outputs are unchanged.
+- The frozen source identities remain: stager mode `100644`, 49,981 bytes,
+  blob `6ed7a666d84e10f90b747a60197254f4d7e52ca8`, SHA-256
+  `a0fe8d896da08cdcb97df895116bd6cdc7b7e11e55104164b842cb69ee5199bc`;
+  embedded ASCII `ROOT_PROGRAM` 19,045 bytes, SHA-256
+  `2d774a57a53474d0cd1fb79c1f4fc92608dfd9858370097ddad698b023bcdb46`;
+  test mode `100644`, 27,596 bytes, blob
+  `f1ff59215347401e3615a8df15d8b5d8ac13d8da`, SHA-256
+  `7218a81d466f394bec60e7e314aae9d6d9ab9b53595fc59afac43e589d048cb8`.
+  The prior duplicate summaries, normal/optimized `27/27`, related `48/48`,
+  compile/diff checks and `GO / P0=0 / P1=0 / P2=0` review stay frozen.
+- Its sole push run `32221546388`/job `95972808384` and pull-request run
+  `32221549932`/job `95972819006` both completed attempt one with success,
+  no previous-attempt URL and zero reruns.  Push was created/run-started at
+  `05:59:34Z`, with job `05:59:37Z–06:25:27Z` and terminal `06:25:28Z`;
+  PR was created/run-started at `05:59:38Z`, with job
+  `05:59:41Z–06:33:45Z` and terminal `06:33:45Z`.  Each passed 22/22 steps,
+  main Unit `2674` with 34 skips and zero failure/error, frozen batches
+  `[10, 1, 12, 22, 21]`, Quality `7 + expected 1`, PostgreSQL `6/6`, readiness
+  `138/138` and Compose, with one Node-only warning and zero error/failure
+  annotations.  Source acceptance is true, but is not execution authority.
+- The append-only F source candidate has expected parent `c5acaf37...`, exact
+  four ledger paths, empty self revision/tree and own CI
+  `PENDING_NOT_STARTED` with count zero.  It changes none of the three frozen
+  source identities and cannot self-authorize or self-accept.  Authorization
+  `CTO-AUTH-ITEM26-INSTALLER-STAGER-ACCEPTANCE-001` names the
+  product-owner-designated `ROOT_MAIN_CTO`, who manages Subagents; Subagents
+  have no independent authorization authority.  Its scope is exactly four
+  ledgers, one commit, one normal non-force push and observation of the unique
+  attempt-one push/PR CI pair, with failure/cancellation terminal and
+  rerun/automatic retry forbidden.
+- Deferred F self-binding applies to the ledger's own terminal acceptance, not
+  to the install ordering.  The required sequence is F commit, external
+  verification of F's unique attempt-one dual-green push/PR pair, a separate
+  one-shot Root Main CTO install authorization while local HEAD/upstream/remote
+  remain exactly F, then execution, and only afterwards a G post-action
+  append-only ledger.  The stager binds those live pointers to F and would
+  reject a pre-execution G as `stager_acceptance_revision`; G is neither an
+  installation prerequisite nor action authority.
+- The authorization remains source-only.  Launcher, sudo, root write,
+  installer, rollback, public scratch, capture, cloud/API and database actions
+  remain closed and at zero.  The earlier quarantine audit deviation remains
+  exact: one incorrectly scoped repository-wide `rg` returned five
+  function/condition lines from
+  `tools/stage_item26_manual_cost_stop_helper_v2.py`, did not open the complete
+  file, execute or modify it, or emit credentials/private material; the other
+  six quarantined paths had no match and the agent was stopped and replaced.
+- Item 26 stays unverified, S0 stays open, readiness remains `25/29`
+  internally and `25/38` publicly, the M1 provider receipt/evidence and M2
+  checkpoint remain absent, and no readiness credit is added.  Any execution
+  still requires that separate action-scoped CTO authorization in the
+  F-before-G order above.
