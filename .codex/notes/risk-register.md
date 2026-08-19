@@ -2689,3 +2689,34 @@ Last updated: 2026-08-19
   `25/29` internal / `25/38` public.  Installer, sudo, signing, capture,
   cloud/API, database, paid, replay and cleanup remain closed until a separate
   explicit, action-scoped CTO authorization.
+
+### Item 26 D ledger checkpoint is dual-green; operational boundary remains
+
+- 状态: Accepted D
+  `b055bad3528541bdcd9caec8604e2fce0e4e4276`, direct child of accepted C
+  `d73d454b76e680137fd0bc90983e5fe6e09b4ec3`, tree
+  `61c1e6d7f41e1742d6209d0a01265a32fd51642f`, exact four ledger paths.  It
+  changes no launcher, test, receipt, control/authority source, private-key
+  material or M1/M2 output.  C and rejected B retain their prior terminal
+  classifications; D only freezes the append-only evidence chain.
+- 验证: D's sole attempt-one push `32213959160`/job `95951864059` and PR
+  `32213962996`/job `95951883660` both completed success with zero reruns and
+  no previous-attempt URL.  Each passed 22/22 steps, main Unit `2647` with 34
+  skips and zero failures/errors, frozen batches `[10, 1, 12, 22, 21]`,
+  Quality `7 + expected 1`, PostgreSQL `6/6`, readiness `138/138` and Compose;
+  the only annotation is one Node-runtime warning, with zero error/failure
+  annotations.
+- 账本边界: The current exact-four-ledger E source candidate only freezes D.
+  E's expected parent is `b055bad...`; its own revision/tree are empty and own
+  CI is pending/count zero because it cannot self-reference.  It is neither
+  checkpoint acceptance nor operational authority.
+  `CTO-AUTH-ITEM26-B055-TERMINAL-CHECKPOINT-001` is issued by the
+  product-owner-designated `ROOT_MAIN_CTO`, who manages Subagents; no Subagent
+  has independent authorization authority.  It permits exact-four ledgers,
+  one commit, one normal non-force push and observation of the unique new
+  attempt-one push/PR CI pair only.  Failure/cancellation stops; rerun and
+  automatic retry are forbidden.  Item 26 remains unverified, S0 open, M1/M2
+  absent and readiness `25/29` internal / `25/38` public.  Launcher, sudo,
+  signing, private-key, installer, capture, cloud/API, database, paid, replay
+  and cleanup remain closed until a separate explicit, action-scoped CTO
+  authorization.

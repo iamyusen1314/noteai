@@ -11799,3 +11799,50 @@ Colima, database, builder, restore and cloud actions remain frozen.
   receipt build/sign/sudo counts remain `1/1/1`; all C/D operational action,
   retry and cleanup counts remain zero.  A later operational edge still needs
   a separate, explicit, action-scoped CTO authorization.
+
+### Item 26 ledger-only D accepted; ledger-only E pending (2026-08-19)
+
+- Ledger-only terminal checkpoint D is exact revision
+  `b055bad3528541bdcd9caec8604e2fce0e4e4276`, tree
+  `61c1e6d7f41e1742d6209d0a01265a32fd51642f`, and the direct child of
+  accepted portability successor C
+  `d73d454b76e680137fd0bc90983e5fe6e09b4ec3`.  Its exact four-path delta is
+  only this handoff, the architecture summary, the risk register and the
+  internal-readiness manifest.  It changes no launcher, test, receipt,
+  control/authority source, private-key material or M1/M2 output.
+- D's only ordinary push run `32213959160`/job `95951864059` was created and
+  run-started at `2026-08-19T03:57:00Z`; the job ran from `03:57:03Z` through
+  `04:28:34Z` and the run became terminal at `04:28:35Z`.  Its only
+  pull-request run `32213962996`/job `95951883660` was created and run-started
+  at `03:57:04Z`; the job ran from `03:57:10Z` through `04:25:44Z` and the run
+  became terminal at `04:25:45Z`.  Both completed attempt one with success,
+  no previous-attempt URL, zero reruns and all 22 steps successful.
+- Each route passed the 2,647-test main suite with 34 skips and zero
+  failures/errors, frozen topology batches `[10, 1, 12, 22, 21]`, Quality
+  `7 PASS + 1 EXPECTED_FAIL`, PostgreSQL `6/6`, production readiness `138/138`
+  and Compose.  Each job has exactly one Node-runtime deprecation warning,
+  zero error/failure annotations and no failed or skipped step.  D is therefore
+  the accepted ledger-only terminal checkpoint that freezes C and its CI;
+  neither C nor D becomes operational authority.
+- This four-ledger terminal record is a source-only E candidate with expected
+  parent `b055bad3528541bdcd9caec8604e2fce0e4e4276` and exact path count four.
+  E cannot self-bind: its own revision and tree remain empty, its own CI is
+  `PENDING_NOT_STARTED` with count zero, and checkpoint acceptance is false
+  until a strict descendant freezes it.  E authorizes no launcher, sudo,
+  private-key, receipt, installer, capture, cloud/API, database, cleanup, paid
+  action or historical replay.
+- E is explicitly bounded by Main CTO authorization
+  `CTO-AUTH-ITEM26-B055-TERMINAL-CHECKPOINT-001`, issued by the
+  product-owner-designated `ROOT_MAIN_CTO` who manages Subagents.  Subagents
+  have no independent authorization authority.  The authorization permits
+  only this exact four-ledger delta, one commit, one normal non-force push and
+  observation of the unique new attempt-one push and pull-request CI routes.
+  Failure or cancellation stops the chain; rerun and automatic retry are
+  forbidden.  This authorization does not authorize any operational action.
+- Item 26 remains `unverified` with `evidence: []`; internal/public readiness
+  remain `25/29` and `25/38`; S0 remains false/open; the valid activation
+  receipt is still not the absent M1 provider receipt; M1 evidence and the M2
+  checkpoint remain absent; and readiness credit remains zero.  Historical
+  receipt build/sign/sudo counts remain `1/1/1`; all D/E operational action,
+  retry and cleanup counts remain zero.  A later operational edge still needs
+  a separate, explicit, action-scoped CTO authorization.

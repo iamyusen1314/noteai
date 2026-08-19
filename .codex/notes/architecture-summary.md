@@ -501,3 +501,39 @@ Only service names and variable names are documented here; no secret values.
   internally and `25/38` publicly, the M1 provider receipt/evidence and M2
   checkpoint remain absent, and all installer/capture/cloud/database/paid/
   replay/cleanup gates remain closed pending a separate scoped CTO decision.
+
+## Item 26 ledger-only D terminal acceptance (2026-08-19)
+
+- Secret-free D is exact revision
+  `b055bad3528541bdcd9caec8604e2fce0e4e4276`, tree
+  `61c1e6d7f41e1742d6209d0a01265a32fd51642f`, direct parent
+  `d73d454b76e680137fd0bc90983e5fe6e09b4ec3`, with exactly four changed
+  paths: the handoff, architecture summary, risk register and readiness
+  manifest.  Launcher, launcher test, signed activation receipt,
+  control/authority sources, private-key custody and M1/M2 outputs are
+  unchanged.  D freezes accepted C and is itself ledger-only rather than an
+  operational-authority edge.
+- D's sole push run `32213959160`/job `95951864059` and sole pull-request run
+  `32213962996`/job `95951883660` both completed attempt one with success,
+  no previous-attempt URL and zero reruns.  Their job intervals are
+  `03:57:03Z–04:28:34Z` and `03:57:10Z–04:25:44Z`; run-terminal times are
+  `04:28:35Z` and `04:25:45Z`.  Each has 22/22 successful steps, main Unit
+  `2647` with 34 skips and zero failure/error, frozen batches
+  `[10, 1, 12, 22, 21]`, Quality `7 + expected 1`, PostgreSQL `6/6`, readiness
+  `138/138`, Compose success, one Node-only warning and zero error/failure
+  annotations.  D therefore supplies the accepted ledger-only terminal
+  checkpoint for the portability chain.
+- The append-only E ledger source has expected parent `b055bad...`, exact four
+  ledger paths, empty self revision/tree and own CI `PENDING_NOT_STARTED` with
+  count zero.  It cannot self-authorize or self-accept and is not an
+  operational-authority edge.  Authorization
+  `CTO-AUTH-ITEM26-B055-TERMINAL-CHECKPOINT-001` names the
+  product-owner-designated `ROOT_MAIN_CTO`, who manages Subagents; Subagents
+  have no independent authorization authority.  Its scope is exactly four
+  ledgers, one commit, one normal non-force push and observation of the unique
+  attempt-one push/PR CI pair, with failure/cancellation terminal,
+  rerun/automatic retry forbidden and no operational authority.  Item 26 stays
+  unverified, S0 stays open, readiness remains `25/29` internally and `25/38`
+  publicly, the M1 provider receipt/evidence and M2 checkpoint remain absent,
+  and all launcher/sudo/signing/installer/capture/cloud/database/paid/replay/
+  cleanup gates remain closed pending a separate scoped CTO decision.
