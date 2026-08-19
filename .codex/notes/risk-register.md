@@ -2844,3 +2844,45 @@ Last updated: 2026-08-19
   M1/M2 absent, readiness `25/29` internal / `25/38` public, and no credit is
   added.  Any execution requires a separate action-scoped CTO authorization
   in the F-before-G order above.
+
+### Item 26 runtime-v3 install succeeded point-in-time; G remains evidence-only
+
+- 状态: Accepted F `35fede04256442f7853d38980de174526cf28220` is the
+  exact-four direct child of source `c5acaf37...`, tree
+  `d46d144c4fbf09d081a4f0ba803f0f08e3aa6623`.  Its sole attempt-one push
+  `32225356634`/job `95983858276` and PR
+  `32225360301`/job `95983869018` both passed 22/22 steps with no previous
+  attempt or rerun: Unit `2674`, 34 skips, zero failure/error, frozen
+  `[10, 1, 12, 22, 21]`, Quality `7+1`, PostgreSQL `6/6`, readiness `138/138`
+  and Compose; each has one Node-only warning and zero error/failure annotation.
+- 安装事实: Separate authorization
+  `CTO-AUTH-ITEM26-INSTALL-35FEDE0-001` is consumed/non-current.  One stager,
+  one sudo, one root-stager and one installer execution synchronously returned
+  `ROOT_V2_RUNTIME_V3_STAGED_INSTALLED_AND_VERIFIED`; retry and stager cleanup
+  are zero.  The 675-byte public result is local `0600`, expected Git `100644`,
+  blob `225a3d23e494b86f6e8a8c8594dbacfc40bdb639` and SHA-256
+  `5ac98e74d18c22ee424448284f552f70d859cfe6b1a081769116aa5bcd333a5c`.
+  Inner status `ROOT_V2_RUNTIME_V3_INSTALLED` reports authority/runtime/journal
+  files `1/4/0`, private-key read/write `0/0`, cloud `0` and database
+  connection/write `0/0`, with exact root/receipt bindings.
+- 证据限制: Immutable code plus success derives staging directory/files `1/2`
+  retained, target directories `3`, one public verifier scratch lifecycle
+  (directory `1`, files `3`, file deletes `3`, directory delete `1`, residue
+  `0`) and rollback `0`.  No later non-root root-inventory enumeration occurred;
+  these are synchronous point-in-time facts and must not be upgraded into a
+  current-filesystem claim.  Root write occurred, but syscall count is not
+  exposed and must not be invented.
+- G边界: G is F's direct-child exact-five candidate containing only the public
+  result plus four ledgers.  `CTO-AUTH-ITEM26-INSTALL-POSTACTION-G-001` permits
+  one commit, one normal non-force push and observation of one unique
+  attempt-one push/PR pair; failure/cancel stops, no rerun or automatic retry.
+  G has empty self revision/tree and own CI pending/count zero.  Its successor
+  may freeze G and its CI only; it cannot retroactively authorize the consumed
+  installation or any future operation.
+- 残余风险: Historical receipt build/sign remain `1/1`, cumulative sudo is
+  `2`, and install count is `1`; operational capture, cloud/API, database,
+  journal writes, paid action, replay and cleanup stay zero.  S0 remains open,
+  the public install result is not an M1 receipt, M1 evidence and M2 remain
+  absent, Item 26 stays unverified, readiness stays `25/29` internal and
+  `25/38` public, and no credit is added.  Fresh provider/ActionTrail capture
+  requires a new action-scoped CTO authorization.

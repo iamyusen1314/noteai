@@ -661,3 +661,52 @@ Only service names and variable names are documented here; no secret values.
   checkpoint remain absent, and no readiness credit is added.  Any execution
   still requires that separate action-scoped CTO authorization in the
   F-before-G order above.
+
+## Item 26 F acceptance, runtime-v3 install result and G boundary (2026-08-19)
+
+- F `35fede04256442f7853d38980de174526cf28220` is the exact-four-ledger
+  direct child of source `c5acaf37fabe4a1f9d3333f75e157b77ca327daf`, with
+  tree `d46d144c4fbf09d081a4f0ba803f0f08e3aa6623`.  Its sole attempt-one push
+  `32225356634`/job `95983858276` and PR
+  `32225360301`/job `95983869018` both completed success, no previous attempt
+  and zero reruns.  Their job intervals were `06:53:52Z–07:27:07Z` and
+  `06:53:55Z–07:27:25Z`; each passed 22/22 steps, Unit `2674` with 34 skips and
+  zero failure/error, frozen batches `[10, 1, 12, 22, 21]`, Quality
+  `7 + expected 1`, PostgreSQL `6/6`, readiness `138/138` and Compose, with one
+  Node-only warning and zero error/failure annotations.
+- F terminal acceptance did not itself authorize installation.  Separate
+  one-shot authorization `CTO-AUTH-ITEM26-INSTALL-35FEDE0-001` is now consumed
+  and non-current after one visible-terminal stager, one sudo, one root-stager
+  and one installer execution.  The outer result is
+  `ROOT_V2_RUNTIME_V3_STAGED_INSTALLED_AND_VERIFIED`, retry/cleanup zero,
+  private-key read/output zero, cloud/database counts zero and no readiness
+  credit.  Its source/acceptance and receipt bindings are exact.
+- The public result artifact is canonical 675-byte JSON at the F-bound path,
+  local mode `0600`, Git blob `225a3d23e494b86f6e8a8c8594dbacfc40bdb639`,
+  SHA-256 `5ac98e74d18c22ee424448284f552f70d859cfe6b1a081769116aa5bcd333a5c`
+  and expected Git mode `100644`.  Inner status
+  `ROOT_V2_RUNTIME_V3_INSTALLED` binds control `68aa82f`, authority epoch v2,
+  public-root file/Git SHA-256
+  `8bfb8834c1e241a18cde984d42524759f53423bcf809dd8657fa4b2be102ff85`
+  and activation-receipt SHA-256
+  `61b756abed72b2f6ab8fb3b20a260b03c0932f6e4c271c4f723a4e5942cd7f2a`.
+  Direct result counts are authority/runtime/journal `1/4/0`, private-key
+  read/write `0/0`, cloud `0` and database connection/write `0/0`.
+- Immutable code plus terminal success derives one retained staging directory
+  and two public source files, three installed target directories, one public
+  verifier scratch lifecycle (`1` directory, `3` files, all synchronously
+  deleted), residue zero and rollback zero.  This is point-in-time derivation,
+  not a later root-filesystem inventory readback; no aggregate root-write
+  syscall count is claimed.
+- Post-action G is an exact-five candidate: four ledgers plus the unchanged
+  public result, direct parent F.  Authorization
+  `CTO-AUTH-ITEM26-INSTALL-POSTACTION-G-001` permits only one commit, one normal
+  non-force push and unique attempt-one push/PR observation; failure/cancel
+  stops and rerun/automatic retry are forbidden.  G's own revision/tree remain
+  empty and own CI pending/count zero.  A successor only freezes G/CI and cannot
+  retroactively authorize installation or any new action.
+- S0 remains open because a Mac root install is not a Secret-free clean-clone
+  capsule and raw/final/M1/M2 artifacts remain absent.  The result is not the
+  M1 provider receipt; Item 26 remains unverified with no evidence or credit,
+  readiness stays `25/29` internal and `25/38` public, and operational capture
+  still needs a new action-scoped CTO authorization.

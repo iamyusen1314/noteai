@@ -12009,3 +12009,77 @@ Colima, database, builder, restore and cloud actions remain frozen.
   capture, cloud/API and database counts are zero.  Any operational edge still
   requires the separate action-scoped CTO decision in the F-before-G order
   above.
+
+### Item 26 F accepted and runtime-v3 installed; post-action G pending (2026-08-19)
+
+- Installer-stager acceptance checkpoint F is exact revision
+  `35fede04256442f7853d38980de174526cf28220`, tree
+  `d46d144c4fbf09d081a4f0ba803f0f08e3aa6623`, and the direct child of
+  source checkpoint `c5acaf37fabe4a1f9d3333f75e157b77ca327daf`.
+  F changes exactly the four ledgers and leaves the stager, test, embedded
+  `ROOT_PROGRAM`, launcher, activation receipt, control/authority sources and
+  M1/M2 outputs unchanged.
+- F's only ordinary push run `32225356634`/job `95983858276` was created and
+  run-started at `2026-08-19T06:53:49Z`; its job ran from `06:53:52Z` through
+  `07:27:07Z`, when the run became terminal.  Its only pull-request run
+  `32225360301`/job `95983869018` was created and run-started at `06:53:52Z`;
+  its job ran from `06:53:55Z` through `07:27:25Z`, when the run became
+  terminal.  Both completed attempt one with success, no previous-attempt URL,
+  zero reruns and all 22 steps successful.
+- Each F route passed the 2,674-test main suite with 34 skips and zero
+  failures/errors, frozen topology batches `[10, 1, 12, 22, 21]`, Quality
+  `7 PASS + 1 EXPECTED_FAIL`, PostgreSQL `6/6`, production readiness `138/138`
+  and Compose.  Each job has exactly one Node-runtime deprecation warning and
+  zero error/failure annotations.  F is therefore terminally accepted, but F
+  itself remains non-operational authority: installation was separately
+  authorized by `CTO-AUTH-ITEM26-INSTALL-35FEDE0-001`.
+- That one-shot install authorization is consumed and no longer current.  One
+  visible-terminal stager execution dispatched exactly one interactive sudo,
+  one root stager and one installer execution, with automatic retry zero.
+  The exact outer result is
+  `ROOT_V2_RUNTIME_V3_STAGED_INSTALLED_AND_VERIFIED`, binds source `c5acaf37...`
+  and acceptance F, reports result SHA-256
+  `5ac98e74d18c22ee424448284f552f70d859cfe6b1a081769116aa5bcd333a5c`,
+  activation-receipt SHA-256
+  `61b756abed72b2f6ab8fb3b20a260b03c0932f6e4c271c4f723a4e5942cd7f2a`,
+  sudo `1`, retry `0`, stager cleanup `0`, private-key read/output `0`,
+  cloud call `0`, database connection `0` and readiness credit false.
+- The retained public result is
+  `.codex/item26-manual-cost-stop-runtime-v3-install-result-35fede04256442f7853d38980de174526cf28220.json`.
+  It is canonical JSON, 675 bytes, local mode `0600`, Git blob
+  `225a3d23e494b86f6e8a8c8594dbacfc40bdb639`, file SHA-256
+  `5ac98e74d18c22ee424448284f552f70d859cfe6b1a081769116aa5bcd333a5c`
+  and expected Git mode `100644`.  Its inner status is
+  `ROOT_V2_RUNTIME_V3_INSTALLED`; it binds authority epoch
+  `noteai.item26.manual-cost-stop-authority-generation.v2`, control `68aa82f`,
+  public-root file/Git SHA-256
+  `8bfb8834c1e241a18cde984d42524759f53423bcf809dd8657fa4b2be102ff85`
+  and the activation receipt.  It reports authority/runtime/journal file counts
+  `1/4/0`, private-key read/write `0/0`, cloud calls `0` and database
+  connections/writes `0/0`.
+- The successful immutable code path plus that terminal result derives, but
+  does not independently re-enumerate, the synchronous root lifecycle: one
+  staging directory with two public source files remains retained; three target
+  directories were created with authority/runtime/journal inventories `1/4/0`;
+  the one signature verification created one public scratch directory and
+  three public files, then deleted the three files and directory with residue
+  zero; installer rollback count is zero.  These are point-in-time success
+  facts, not a claim that a later non-root observer revalidated current root
+  inventory.  Aggregate root-write syscall count is deliberately not invented.
+- The post-action G candidate is the direct child of F with exactly five paths:
+  these four ledgers plus the unchanged public result.  G is bounded by
+  `CTO-AUTH-ITEM26-INSTALL-POSTACTION-G-001`: one exact-five commit, one normal
+  non-force push and observation of its unique attempt-one push/PR CI pair;
+  failure or cancellation stops, with no rerun or automatic retry.  G cannot
+  self-bind, so its revision/tree remain empty and own CI remains
+  `PENDING_NOT_STARTED` with count zero.  A successor may freeze G and its CI,
+  but cannot retroactively authorize this completed install or any new action.
+- Historical receipt build/sign counts remain `1/1`; cumulative interactive
+  sudo dispatch count is now `2`, while this install used exactly one.  Root
+  runtime install count is one; journal write, operational capture, cloud/API,
+  database, paid, replay, outer cleanup and residue cleanup remain zero.  The
+  install result is not an M1 provider receipt.  S0 remains false/open, the M1
+  provider receipt/evidence and M2 checkpoint remain absent, Item 26 remains
+  `unverified` with `evidence: []`, internal/public readiness remain `25/29`
+  and `25/38`, and no readiness credit is added.  Any fresh provider or
+  ActionTrail capture requires a new explicit action-scoped CTO authorization.
