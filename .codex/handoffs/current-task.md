@@ -12246,3 +12246,51 @@ Colima, database, builder, restore and cloud actions remain frozen.
   remain `25/29` and `25/38`; and readiness credit remains false.  None of the
   seven quarantined untracked paths was read, executed, modified, deleted or
   staged in this source round.
+
+### Item 26 L dual-CI terminal failure; exact-five CI-fix successor pending (2026-08-20)
+
+- L `2eebd51144f62d722584ca44f721eb1627b083d2` is frozen as the exact-six
+  direct child of accepted G `9146d7a264418f59d76e4d8c7a46ac2abc80e9e8`,
+  with tree `7014bb71829e45b22fc60eaaf94d9ec9aa9668ac`.  Its exact-six paths remain
+  the four ledgers, `tests/test_item26_aliyun_official_read_v2.py` and
+  `tools/item26_aliyun_official_read_v2.py`.  The adapter source remains mode
+  `100644`, 31,410 bytes, blob `f53a01805ea68005ca9e56a08dfa491221c224cf`
+  and SHA-256
+  `719886d2846a7602bf3fc0529f5c191305b58465c668d171461860d4c60aadb9`;
+  this successor does not touch it.
+- L's unique attempt-one push run `32269736302` / job `96122964791` was
+  created and run-started at `2026-08-19T15:23:14Z`; the job ran
+  `15:23:17Z`–`15:56:11Z` and the run became terminal at `15:56:12Z`.
+  Its unique attempt-one PR run `32269742881` / job `96122985095` was created
+  and run-started at `15:23:18Z`; the job ran `15:23:20Z`–`15:57:00Z` and the
+  run became terminal at `15:57:01Z`.  Both have no previous attempt and zero
+  reruns.  Each completed 22 steps as 15 success, one Unit failure and six
+  skipped; Unit ran 2,700 tests with one failure, zero errors and 34 skips.
+  The shared cause is the readiness secret scanner's literal-token match at
+  `tests/test_item26_aliyun_official_read_v2.py:37` on
+  `ACCESS_KEY_SECRET`.  Quality, PostgreSQL, production-readiness and Compose
+  were not reached.  L is therefore terminally rejected and must not be rerun.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-ALIYUN-FD-ADAPTER-CI-FIX-001` creates one append-only,
+  direct-child exact-five source successor: the four ledgers plus
+  `tests/test_item26_aliyun_official_read_v2.py`.  It permits exactly one
+  commit, one normal non-force push and observation of the unique attempt-one
+  push/PR CI.  Failure or cancellation stops immediately; automatic retry,
+  rerun and a second push are forbidden.  The candidate's revision, tree,
+  replacement-test blob/SHA/bytes and own dual-CI identities remain empty or
+  pending with observation/rerun counts zero until the successor binds itself.
+- This is a test-literal portability correction only.  It grants no adapter
+  execution, OAuth/configuration, provider/API call, sudo/root/private-key
+  action, database access, capture, materialization, cleanup or replay.  The
+  source adapter change count and every operational count remain zero.  A later
+  accepted adapter checkpoint is still required before the separate
+  bridge/materializer source and acceptance chain; OAuth and capture remain
+  NO-GO.  Item 26 remains `unverified` with `evidence: []`, S0 remains open,
+  M1/M2 remain absent, readiness remains `25/29` internal and `25/38` public,
+  and readiness credit remains false.
+- Local successor validation is green without operational execution: strict
+  JSON and duplicate-key rejection pass; semantic diff and exact-five manifest
+  assertions pass; `git diff --check` passes; normal/`-O` focused runs each
+  execute 26 tests as 25 pass plus one explicit Darwin `SOCK_SEQPACKET` skip;
+  normal/`-O` internal readiness each report `25/29` and `25/38`; and
+  normal/`-O` production gates each pass all 138 checks with zero failures.

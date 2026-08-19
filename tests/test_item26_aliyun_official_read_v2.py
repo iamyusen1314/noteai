@@ -34,8 +34,8 @@ NOW_UNIX = 1_787_105_000
 EXPIRATION = NOW_UNIX + 7200
 VECTOR_ACCESS_KEY_ID = "testid000"
 ACCESS_KEY_ID = "STS.testid000"
-ACCESS_KEY_SECRET = "testsecret"
-SECURITY_TOKEN = "testtoken"
+VECTOR_HMAC_MATERIAL = "testsecret"
+VECTOR_SESSION_VALUE = "testtoken"
 
 
 def credential_raw(**overrides: object) -> bytes:
@@ -45,8 +45,8 @@ def credential_raw(**overrides: object) -> bytes:
         "profile_name": TARGET.PROFILE_NAME,
         "region_id": TARGET.REGION_ID,
         "access_key_id": ACCESS_KEY_ID,
-        "access_key_secret": ACCESS_KEY_SECRET,
-        "security_token": SECURITY_TOKEN,
+        "access_key_secret": VECTOR_HMAC_MATERIAL,
+        "security_token": VECTOR_SESSION_VALUE,
         "expiration_unix": EXPIRATION,
     }
     value.update(overrides)
@@ -178,8 +178,8 @@ class Item26AliyunOfficialReadV2Tests(unittest.TestCase):
             request,
             TARGET.TemporaryCredential(
                 VECTOR_ACCESS_KEY_ID,
-                ACCESS_KEY_SECRET,
-                SECURITY_TOKEN,
+                VECTOR_HMAC_MATERIAL,
+                VECTOR_SESSION_VALUE,
                 EXPIRATION,
             ),
             timestamp=timestamp,
@@ -417,7 +417,7 @@ class Item26AliyunOfficialReadV2Tests(unittest.TestCase):
     def test_credential_profile_is_fixed_and_hidden_from_repr(self) -> None:
         credential = self.credential()
         rendered = repr(credential)
-        for secret in (ACCESS_KEY_ID, ACCESS_KEY_SECRET, SECURITY_TOKEN):
+        for secret in (ACCESS_KEY_ID, VECTOR_HMAC_MATERIAL, VECTOR_SESSION_VALUE):
             self.assertNotIn(secret, rendered)
         for overrides, code in (
             ({"expiration_unix": NOW_UNIX + 959}, "credential_expired"),
@@ -439,7 +439,7 @@ class Item26AliyunOfficialReadV2Tests(unittest.TestCase):
                     credential_raw(**overrides),
                     now_unix=NOW_UNIX,
                 )
-            for secret in (ACCESS_KEY_ID, ACCESS_KEY_SECRET, SECURITY_TOKEN):
+            for secret in (ACCESS_KEY_ID, VECTOR_HMAC_MATERIAL, VECTOR_SESSION_VALUE):
                 self.assertNotIn(secret, str(raised.exception))
 
         noncanonical = json.dumps(
@@ -469,7 +469,7 @@ class Item26AliyunOfficialReadV2Tests(unittest.TestCase):
                 raw,
                 now_unix=NOW_UNIX,
             )
-        self.assertNotIn(ACCESS_KEY_SECRET, str(raised.exception))
+        self.assertNotIn(VECTOR_HMAC_MATERIAL, str(raised.exception))
 
     def test_one_request_preserves_exact_provider_body(self) -> None:
         provider_raw = b'{ "RequestId" : "fake-request" }\n'

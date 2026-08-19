@@ -2988,3 +2988,31 @@ Last updated: 2026-08-19
   unverified with empty evidence; readiness is `25/29` internal and `25/38`
   public; credit remains false.  The seven quarantined untracked paths remain
   untouched.
+
+## Item 26 L CI rejection and exact-five fix-boundary risk (2026-08-20)
+
+- 已闭合失败事实: L `2eebd51144f62d722584ca44f721eb1627b083d2`
+  的唯一 attempt-one push `32269736302` / job `96122964791` 与 PR
+  `32269742881` / job `96122985095` 均终态失败、previous attempt 为空、rerun
+  为零。两路均为 22 steps（15 success / 1 Unit failure / 6 skipped），Unit
+  均为 2,700 tests、1 failure、0 errors、34 skips；同一根因是 readiness
+  secret scan 命中测试第 37 行的 `ACCESS_KEY_SECRET` 字面量，后续 Quality、
+  PostgreSQL、production-readiness、Compose 均未到达。禁止将 L 误记为
+  accepted，也禁止 rerun。
+- 拓扑风险控制: L 的唯一父 G
+  `9146d7a264418f59d76e4d8c7a46ac2abc80e9e8`、tree
+  `7014bb71829e45b22fc60eaaf94d9ec9aa9668ac`、exact-six 路径和 adapter
+  source identity 均冻结。新候选只能是 L 的 direct-child exact-five：四账本
+  加 test。adapter source 必须零修改。候选 revision/tree、新 test
+  blob/SHA/bytes 与自身双路 CI 尚未自绑定，当前只能记为 empty/pending、
+  observation/rerun count 为零，不能提前授信。
+- 授权风险控制: `CTO-AUTH-ITEM26-ALIYUN-FD-ADAPTER-CI-FIX-001` 仅允许
+  one commit、one normal non-force push 和 unique attempt-one push/PR CI
+  observation。failure/cancel 立即停止；无 automatic retry、rerun 或 second
+  push。它不授权 adapter 执行、OAuth、provider/API、sudo/root/private-key、
+  database、capture、materialization、cleanup 或 replay。
+- 残余风险: 即使 exact-five CI 修复后双绿，也只可形成 adapter source
+  acceptance；bridge/materializer 仍须独立 source checkpoint 与 acceptance，
+  OAuth/capture 仍为 NO-GO。当前 operational/source-adapter-change counts 均为
+  零，S0 open，Item 26 `unverified`/`evidence: []`，M1/M2 absent，readiness
+  `25/29` internal、`25/38` public，credit false。

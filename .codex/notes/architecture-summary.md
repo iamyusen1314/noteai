@@ -818,3 +818,34 @@ Only service names and variable names are documented here; no secret values.
 - L currently performs none of those actions.  S0 stays open, Item 26 stays
   unverified with empty evidence, M1/M2 remain absent, readiness remains
   `25/29` internal and `25/38` public, and credit remains false.
+
+## Item 26 adapter L rejection and exact-five portability successor (2026-08-20)
+
+- The controlled-source topology is append-only.  L
+  `2eebd51144f62d722584ca44f721eb1627b083d2` freezes parent G
+  `9146d7a264418f59d76e4d8c7a46ac2abc80e9e8`, tree
+  `7014bb71829e45b22fc60eaaf94d9ec9aa9668ac`, all six changed paths and the
+  adapter source identity (mode `100644`, 31,410 bytes, blob
+  `f53a01805ea68005ca9e56a08dfa491221c224cf`, SHA-256
+  `719886d2846a7602bf3fc0529f5c191305b58465c668d171461860d4c60aadb9`).
+  The source file is outside the successor diff and remains non-operational.
+- L's attempt-one push `32269736302` / `96122964791` and PR `32269742881` /
+  `96122985095` both failed Unit after 2,700 tests (one failure, zero errors,
+  34 skips).  Each has 22 steps: 15 success, one failed and six skipped.  The
+  common readiness-scanner cause is the test-only literal
+  `ACCESS_KEY_SECRET` at line 37; the later Quality, PostgreSQL,
+  production-readiness and Compose gates were not reached.  Both attempts are
+  terminal, have no previous attempt and have rerun count zero.
+- Under `CTO-AUTH-ITEM26-ALIYUN-FD-ADAPTER-CI-FIX-001`, the only current
+  candidate is L's exact-five direct child: four ledgers plus the test.  Its
+  revision, tree, new test static identity and own dual-CI identities are
+  deliberately pending until self-binding.  The authority is capped at one
+  commit, one normal non-force push and one unique attempt-one push/PR
+  observation; failure/cancellation stops, with no retry, rerun or second push.
+  The adapter source change count is zero.
+- The architectural sequence remains adapter source successor → adapter
+  acceptance → separate bridge/materializer source → bridge/materializer
+  acceptance → separately authorized OAuth and capture.  This checkpoint
+  supplies none of those later authorities and performs no adapter, OAuth,
+  API, root, private-key, database, capture, materialization, cleanup or replay
+  action.  S0/Item 26/M1/M2/readiness/credit stay unchanged.
