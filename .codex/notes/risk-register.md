@@ -3016,3 +3016,32 @@ Last updated: 2026-08-19
   OAuth/capture 仍为 NO-GO。当前 operational/source-adapter-change counts 均为
   零，S0 open，Item 26 `unverified`/`evidence: []`，M1/M2 absent，readiness
   `25/29` internal、`25/38` public，credit false。
+
+## Item 26 adapter successor acceptance and exact-four A boundary (2026-08-20)
+
+- 已关闭 portability CI 风险: exact-five successor
+  `65b82ffd890479315c9a93769cf11e2a9d27074b` 固定 parent
+  `2eebd51144f62d722584ca44f721eb1627b083d2` 与 tree
+  `f46f9775dee8c6cdf8508b83b8e861c7bcba57bf`；test 固定为
+  `100644`/38,441B/blob
+  `9211031d90b78c9a18ddb1acaa9b0a649aec10da`/SHA-256
+  `1e52569151d431420ff7503eda2a9ee6197eaddadbcc72335dee4da8f25c1950`，
+  adapter source blob `f53a01805ea68005ca9e56a08dfa491221c224cf` 零修改。
+- 双路 acceptance 证据: push `32275176834` / job `96140787951` 与 PR
+  `32275182331` / job `96140806251` 均为唯一 attempt-one、previous null、
+  rerun0、22/22 success。每路 Unit 2,700、failure/error 0、ambient skip34；
+  adapter 26 全执行且 Linux seqpacket 负测未 skip；`[10,1,12,22,21]`、
+  Quality 7+1 expected-fail、PG6、readiness138、Compose 全绿。每路仅一个
+  Node20 deprecation warning，error/failure annotation 为零；四终态指针与
+  push+PR 各一的 inventory 一致。旧 L 双失败仍冻结且不可 rerun。
+- 拓扑与授权风险控制: 当前仅可依
+  `CTO-AUTH-ITEM26-ALIYUN-FD-ADAPTER-CI-FIX-ACCEPTANCE-001` 建立 successor
+  的 direct-child exact-four ledger A。A self revision/tree/own CI 仍为
+  empty/pending/0；仅允许 one commit、one normal non-force push、unique
+  attempt-one push/PR observation。failure/cancel stop，no rerun/automatic
+  retry/second push。
+- 残余风险: source accepted 不等于 executable/credential/provider
+  acceptance。adapter execution、OAuth、API、root/private、DB、capture、
+  materialization、cleanup、replay 均未授权且计数为零。下一节点仍须单独
+  bridge/materializer source + acceptance；OAuth/capture 继续 NO-GO。
+  Item26/S0/M1/M2、`25/29`/`25/38` 与 credit false 不变。

@@ -849,3 +849,33 @@ Only service names and variable names are documented here; no secret values.
   supplies none of those later authorities and performs no adapter, OAuth,
   API, root, private-key, database, capture, materialization, cleanup or replay
   action.  S0/Item 26/M1/M2/readiness/credit stay unchanged.
+
+## Item 26 adapter CI-fix successor accepted; ledger-only A topology (2026-08-20)
+
+- Controlled adapter source now resolves to exact-five successor
+  `65b82ffd890479315c9a93769cf11e2a9d27074b`, the unique child of rejected L
+  `2eebd51144f62d722584ca44f721eb1627b083d2`, tree
+  `f46f9775dee8c6cdf8508b83b8e861c7bcba57bf`.  Its test freezes as
+  mode/blob/bytes/SHA `100644`/
+  `9211031d90b78c9a18ddb1acaa9b0a649aec10da`/38,441/
+  `1e52569151d431420ff7503eda2a9ee6197eaddadbcc72335dee4da8f25c1950`.
+  Adapter source blob `f53a01805ea68005ca9e56a08dfa491221c224cf` and SHA-256
+  `719886d2846a7602bf3fc0529f5c191305b58465c668d171461860d4c60aadb9`
+  are unchanged.
+- Unique attempt-one push `32275176834` / `96140787951` and PR
+  `32275182331` / `96140806251` are terminal green with no previous attempt and
+  zero reruns.  Each is 22/22 steps; Unit is 2,700 tests, zero failure/error and
+  34 ambient skips, with all 26 adapter tests and the Linux seqpacket negative
+  case executed.  Frozen counts `[10,1,12,22,21]`, Quality 7 pass + 1 expected
+  failure, PostgreSQL 6/6, readiness 138/138 and Compose are green.  Each job's
+  sole annotation is a Node 20 deprecation warning; the four terminal pointers
+  and exact two-run inventory agree.
+- Under `CTO-AUTH-ITEM26-ALIYUN-FD-ADAPTER-CI-FIX-ACCEPTANCE-001`, the next
+  node is an exact-four ledger-only direct child A.  Its self revision, tree and
+  own CI remain pending/zero.  Authority is one commit, one normal non-force
+  push and one unique attempt-one push/PR observation; failure/cancel stops,
+  without retry, rerun or second push.
+- This is controlled-source acceptance, not runtime authority.  The remaining
+  sequence is A acceptance → separate bridge/materializer source → separate
+  bridge/materializer acceptance → separately authorized OAuth/capture.  No
+  operational count or readiness state changes here.

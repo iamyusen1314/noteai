@@ -12294,3 +12294,52 @@ Colima, database, builder, restore and cloud actions remain frozen.
   execute 26 tests as 25 pass plus one explicit Darwin `SOCK_SEQPACKET` skip;
   normal/`-O` internal readiness each report `25/29` and `25/38`; and
   normal/`-O` production gates each pass all 138 checks with zero failures.
+
+### Item 26 adapter CI-fix successor accepted; exact-four ledger A pending (2026-08-20)
+
+- The exact-five CI-fix successor
+  `65b82ffd890479315c9a93769cf11e2a9d27074b` is frozen as the unique direct
+  child of rejected L `2eebd51144f62d722584ca44f721eb1627b083d2`, with
+  tree `f46f9775dee8c6cdf8508b83b8e861c7bcba57bf`.  Its five paths are the four
+  ledgers plus `tests/test_item26_aliyun_official_read_v2.py`.  The replacement
+  test is mode `100644`, 38,441 bytes, blob
+  `9211031d90b78c9a18ddb1acaa9b0a649aec10da` and SHA-256
+  `1e52569151d431420ff7503eda2a9ee6197eaddadbcc72335dee4da8f25c1950`.
+  The adapter source remains untouched at mode `100644`, 31,410 bytes, blob
+  `f53a01805ea68005ca9e56a08dfa491221c224cf` and SHA-256
+  `719886d2846a7602bf3fc0529f5c191305b58465c668d171461860d4c60aadb9`.
+- The successor's unique attempt-one push run `32275176834` / job
+  `96140787951` has no previous attempt: created/run-started
+  `2026-08-20T16:18:38Z`, job `16:18:42Z`–`16:53:05Z`, run terminal
+  `16:53:06Z`.  Its unique attempt-one PR run `32275182331` / job
+  `96140806251` also has no previous attempt: created/run-started
+  `16:18:41Z`, job `16:18:44Z`–`16:55:25Z`, run terminal `16:55:25Z`.
+  Both completed 22/22 steps successfully with rerun count zero.  Unit ran
+  2,700 tests with zero failures/errors and 34 ambient skips; all 26 adapter
+  tests executed, including the Linux `SOCK_SEQPACKET` negative case without a
+  skip.  Frozen migration counts are `[10,1,12,22,21]`; Quality is seven pass
+  plus one expected-fail probe, PostgreSQL is 6/6, production readiness is
+  138/138 with zero failures and Compose succeeds.  Each job has one Node 20
+  deprecation warning and zero error/failure annotations.  All four terminal
+  pointers agree, and the run inventory is exactly one push plus one PR.
+- The former L failure remains immutable: its push `32269736302` /
+  `96122964791` and PR `32269742881` / `96122985095` are both terminal
+  attempt-one failures, previous attempt null and rerun zero.  The successor
+  supersedes that rejected source checkpoint; it does not rewrite or rerun it.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-ALIYUN-FD-ADAPTER-CI-FIX-ACCEPTANCE-001` accepts the
+  successor as the current controlled adapter source and creates one
+  append-only exact-four ledger candidate A directly above it.  A is limited
+  to the four ledgers, one commit, one normal non-force push and observation of
+  its unique attempt-one push/PR CI.  Failure/cancellation stops; rerun,
+  automatic retry and a second push are forbidden.  A's revision, tree and own
+  CI remain empty/pending with all observation and rerun counts zero until A
+  binds itself.
+- This acceptance is non-operational.  It authorizes no adapter execution,
+  OAuth/configuration, provider/API call, sudo/root/private-key action,
+  database access, capture, materialization, cleanup or replay; all such round
+  counts remain zero.  The next source work is a separate bridge/materializer
+  checkpoint and then a separate acceptance node.  OAuth and capture remain
+  NO-GO.  Item 26 remains `unverified` with `evidence: []`, S0 remains open,
+  M1/M2 remain absent, readiness remains `25/29` internal and `25/38` public,
+  and readiness credit remains false.
