@@ -537,3 +537,67 @@ Only service names and variable names are documented here; no secret values.
   publicly, the M1 provider receipt/evidence and M2 checkpoint remain absent,
   and all launcher/sudo/signing/installer/capture/cloud/database/paid/replay/
   cleanup gates remain closed pending a separate scoped CTO decision.
+
+## Item 26 ledger-only E terminal acceptance and installer-stager source boundary (2026-08-19)
+
+- Secret-free E is exact revision
+  `a4e2a0d106e013c9b3ce730a278345c7552cdcd9`, tree
+  `15ed4d17da9899ba1fd1f8d7af1227e9567a06c6`, direct parent
+  `b055bad3528541bdcd9caec8604e2fce0e4e4276`, with exactly four changed
+  paths: the handoff, architecture summary, risk register and readiness
+  manifest.  Launcher, tests, signed activation receipt, control/authority
+  sources, private-key custody, installer and M1/M2 outputs are unchanged.
+  E freezes accepted D and is itself ledger-only rather than operational
+  authority.
+- E's sole push run `32216936458`/job `95960106742` and sole pull-request run
+  `32216939467`/job `95960115556` both completed attempt one with success,
+  no previous-attempt URL and zero reruns.  Their job intervals are
+  `04:45:54Z–05:19:57Z` and `04:45:57Z–05:19:01Z`; run intervals are
+  `04:45:51Z–05:19:58Z` and `04:45:54Z–05:19:02Z`.  Each has 22/22 successful
+  steps, main Unit `2647` with 34 skips and zero failure/error, frozen batches
+  `[10, 1, 12, 22, 21]`, Quality `7 + expected 1`, PostgreSQL `6/6`, readiness
+  `138/138`, Compose success, one Node-only warning and zero error/failure
+  annotations.  E therefore supplies the accepted terminal checkpoint for D.
+- The next source candidate has expected parent `a4e2a0d...` and exactly six
+  paths: the four ledgers plus
+  `tools/stage_and_install_item26_manual_cost_stop_runtime_v3.py` and
+  `tests/test_stage_and_install_item26_manual_cost_stop_runtime_v3.py`.
+  It is Secret-free and source-only.  The two source blobs may be frozen in
+  this candidate because they do not self-reference; the candidate's own
+  revision/tree and CI must remain empty/pending until a strict descendant
+  binds them.  Source presence is neither installer execution nor checkpoint
+  acceptance.
+- The frozen stager is mode `100644`, 49,981 bytes, blob
+  `6ed7a666d84e10f90b747a60197254f4d7e52ca8`, SHA-256
+  `a0fe8d896da08cdcb97df895116bd6cdc7b7e11e55104164b842cb69ee5199bc`;
+  its embedded ASCII `ROOT_PROGRAM` is 19,045 bytes with SHA-256
+  `2d774a57a53474d0cd1fb79c1f4fc92608dfd9858370097ddad698b023bcdb46`.
+  The frozen test is mode `100644`, 27,596 bytes, blob
+  `f1ff59215347401e3615a8df15d8b5d8ac13d8da`, SHA-256
+  `7218a81d466f394bec60e7e314aae9d6d9ab9b53595fc59afac43e589d048cb8`.
+  Two concurrent summaries were byte-identical; focused normal/`-O` checks
+  passed `27/27` each, related existing checks passed `48/48`, compile passed
+  and diff-check was clean.  Independent implementation red-team review is
+  `GO / P0=0 / P1=0 / P2=0` and rechecked all three hash/byte pairs.  These
+  source identities support future CLI argument audit without self-binding the
+  candidate commit.
+- Authorization `CTO-AUTH-ITEM26-INSTALLER-STAGER-SOURCE-001` names the
+  product-owner-designated `ROOT_MAIN_CTO`, who manages Subagents; Subagents
+  have no independent authorization authority.  Its scope is exactly six
+  paths, one commit, one normal non-force push and observation of the unique
+  attempt-one push/PR CI pair, with failure/cancellation terminal and
+  rerun/automatic retry forbidden.  It authorizes source construction only:
+  launcher, sudo, installer, rollback, root write, capture, cloud/API,
+  database, paid, replay and cleanup actions remain closed and at zero.
+- The future install contract has two additional explicit action classes.  The
+  frozen `68aa82f` verifier uses a root-owned NoteAI temporary directory named
+  `.item26-v2-signature-verify-*` for exactly three public-only files and then
+  removes them; the installer also has a bounded synchronous rollback path.
+  This source candidate authorizes neither, and current public-scratch
+  create/cleanup and rollback counts are zero.  A later one-shot install CTO
+  authorization must name both classes.  Failure residue is never cleaned by
+  the stager and retry remains forbidden.
+- Item 26 stays unverified, S0 stays open, readiness remains `25/29`
+  internally and `25/38` publicly, the M1 provider receipt/evidence and M2
+  checkpoint remain absent, and no readiness credit is added.  The source
+  candidate cannot authorize its own execution or any later operational edge.

@@ -2720,3 +2720,67 @@ Last updated: 2026-08-19
   signing, private-key, installer, capture, cloud/API, database, paid, replay
   and cleanup remain closed until a separate explicit, action-scoped CTO
   authorization.
+
+### Item 26 E ledger checkpoint is dual-green; installer-stager remains source-only
+
+- 状态: Accepted E
+  `a4e2a0d106e013c9b3ce730a278345c7552cdcd9`, direct child of accepted D
+  `b055bad3528541bdcd9caec8604e2fce0e4e4276`, tree
+  `15ed4d17da9899ba1fd1f8d7af1227e9567a06c6`, exact four ledger paths.  It
+  changes no launcher, test, receipt, control/authority source, private-key
+  material, installer or M1/M2 output.  D and E remain evidence checkpoints,
+  not operational authority.
+- 验证: E's sole attempt-one push `32216936458`/job `95960106742` and PR
+  `32216939467`/job `95960115556` both completed success with zero reruns and
+  no previous-attempt URL.  Each passed 22/22 steps, main Unit `2647` with 34
+  skips and zero failures/errors, frozen batches `[10, 1, 12, 22, 21]`,
+  Quality `7 + expected 1`, PostgreSQL `6/6`, readiness `138/138` and Compose;
+  the only annotation is one Node-runtime warning, with zero error/failure
+  annotations.
+- 当前边界: The current exact-six candidate has expected parent `a4e2a0d...`
+  and may change only the four ledgers plus
+  `tools/stage_and_install_item26_manual_cost_stop_runtime_v3.py` and
+  `tests/test_stage_and_install_item26_manual_cost_stop_runtime_v3.py`.
+  The stager is frozen at mode `100644`, 49,981 bytes, blob
+  `6ed7a666d84e10f90b747a60197254f4d7e52ca8`, SHA-256
+  `a0fe8d896da08cdcb97df895116bd6cdc7b7e11e55104164b842cb69ee5199bc`;
+  its 19,045-byte embedded ASCII `ROOT_PROGRAM` has SHA-256
+  `2d774a57a53474d0cd1fb79c1f4fc92608dfd9858370097ddad698b023bcdb46`.
+  The test is mode `100644`, 27,596 bytes, blob
+  `f1ff59215347401e3615a8df15d8b5d8ac13d8da`, SHA-256
+  `7218a81d466f394bec60e7e314aae9d6d9ab9b53595fc59afac43e589d048cb8`.
+  Two concurrent summaries matched; focused normal/`-O` checks passed `27/27`
+  each, related existing checks passed `48/48`, compile and diff-check passed;
+  independent implementation red-team review is `GO / P0=0 / P1=0 / P2=0`
+  with all three hash/byte pairs independently rechecked.
+  These non-self-referential identities are frozen, but the candidate's own
+  revision/tree remain empty and own CI is pending/count zero until a strict
+  descendant records them.  It is neither checkpoint acceptance nor
+  authorization to run the stager or installer.
+- 授权边界: `CTO-AUTH-ITEM26-INSTALLER-STAGER-SOURCE-001` is issued by the
+  product-owner-designated `ROOT_MAIN_CTO`, who manages Subagents; no Subagent
+  has independent authorization authority.  It permits exact-six source
+  changes, one commit, one normal non-force push and observation of the unique
+  new attempt-one push/PR pair only.  Failure/cancellation stops; rerun and
+  automatic retry are forbidden.  Launcher execution, sudo, installer,
+  rollback, root write, capture, cloud/API, database, paid, replay and cleanup
+  are outside scope and remain zero.
+- Future-action inventory: the frozen `68aa82f` verifier would create and
+  remove exactly three public-only files under a root-owned NoteAI temporary
+  `.item26-v2-signature-verify-*` directory, and the installer exposes a
+  bounded synchronous rollback path.  Both are currently unauthorized with
+  scratch create/cleanup and rollback counts zero.  Any future one-shot install
+  CTO authorization must expressly cover both classes; on failure the stager
+  must leave residue untouched, and no retry is allowed.
+- 审计偏差: One incorrectly scoped repository-wide red-team `rg` returned
+  only five function/condition lines from quarantined
+  `tools/stage_item26_manual_cost_stop_helper_v2.py`; it did not open the full
+  file, execute or modify it, or emit credentials/private material, and the
+  other six quarantine paths had no match.  The agent was immediately stopped
+  and replaced.  This bounded process incident grants no authority, adds no
+  readiness credit and does not permit any further quarantine-path read.
+- 残余风险: Item 26 remains unverified, S0 open, M1/M2 absent and readiness
+  `25/29` internal / `25/38` public.  The activation receipt is not the M1
+  provider receipt and no readiness credit is added.  A strict descendant
+  must freeze this source candidate and its own attempt-one CI; any later
+  execution still requires a separate action-scoped CTO authorization.

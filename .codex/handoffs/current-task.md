@@ -11846,3 +11846,86 @@ Colima, database, builder, restore and cloud actions remain frozen.
   receipt build/sign/sudo counts remain `1/1/1`; all D/E operational action,
   retry and cleanup counts remain zero.  A later operational edge still needs
   a separate, explicit, action-scoped CTO authorization.
+
+### Item 26 ledger-only E accepted; installer stager source candidate pending (2026-08-19)
+
+- Ledger-only terminal checkpoint E is exact revision
+  `a4e2a0d106e013c9b3ce730a278345c7552cdcd9`, tree
+  `15ed4d17da9899ba1fd1f8d7af1227e9567a06c6`, and the direct child of
+  accepted ledger-only D `b055bad3528541bdcd9caec8604e2fce0e4e4276`.
+  Its exact four-path delta is only this handoff, the architecture summary,
+  the risk register and the internal-readiness manifest.  It changes no
+  launcher, test, receipt, control/authority source, private-key material,
+  installer or M1/M2 output.
+- E's only ordinary push run `32216936458`/job `95960106742` was created and
+  run-started at `2026-08-19T04:45:51Z`; the job ran from `04:45:54Z` through
+  `05:19:57Z` and the run became terminal at `05:19:58Z`.  Its only
+  pull-request run `32216939467`/job `95960115556` was created and run-started
+  at `04:45:54Z`; the job ran from `04:45:57Z` through `05:19:01Z` and the run
+  became terminal at `05:19:02Z`.  Both completed attempt one with success,
+  no previous-attempt URL, zero reruns and all 22 steps successful.
+- Each route passed the 2,647-test main suite with 34 skips and zero
+  failures/errors, frozen topology batches `[10, 1, 12, 22, 21]`, Quality
+  `7 PASS + 1 EXPECTED_FAIL`, PostgreSQL `6/6`, production readiness `138/138`
+  and Compose.  Each job has exactly one Node-runtime deprecation warning,
+  zero error/failure annotations and no failed or skipped step.  E is therefore
+  the accepted ledger-only terminal checkpoint that freezes D and its CI;
+  neither D nor E becomes operational authority.
+- The current append-only successor is an exact-six-path, Secret-free,
+  source-only installer-stager candidate with expected parent
+  `a4e2a0d106e013c9b3ce730a278345c7552cdcd9`.  Its only expected paths are
+  these four ledgers plus
+  `tools/stage_and_install_item26_manual_cost_stop_runtime_v3.py` and
+  `tests/test_stage_and_install_item26_manual_cost_stop_runtime_v3.py`.
+  The stager is mode `100644`, 49,981 bytes, Git blob
+  `6ed7a666d84e10f90b747a60197254f4d7e52ca8` and file SHA-256
+  `a0fe8d896da08cdcb97df895116bd6cdc7b7e11e55104164b842cb69ee5199bc`.
+  The test is mode `100644`, 27,596 bytes, Git blob
+  `f1ff59215347401e3615a8df15d8b5d8ac13d8da` and file SHA-256
+  `7218a81d466f394bec60e7e314aae9d6d9ab9b53595fc59afac43e589d048cb8`.
+  The stager's embedded ASCII `ROOT_PROGRAM` is 19,045 bytes with SHA-256
+  `2d774a57a53474d0cd1fb79c1f4fc92608dfd9858370097ddad698b023bcdb46`.
+  These non-self-referential values are frozen after two identical concurrent
+  summaries, focused normal/`-O` `27/27` each, related existing `48/48`,
+  compile success and clean diff-check.  Independent implementation red-team
+  review is `GO / P0=0 / P1=0 / P2=0` and independently rechecked all three
+  hash/byte pairs.  The candidate's own revision/tree remain empty and its own
+  CI remains `PENDING_NOT_STARTED` with count zero.
+  A strict descendant must later freeze the exact revision/tree and unique
+  attempt-one dual CI.
+- The candidate is bounded by Main CTO authorization
+  `CTO-AUTH-ITEM26-INSTALLER-STAGER-SOURCE-001`, issued by the
+  product-owner-designated `ROOT_MAIN_CTO` who manages Subagents.  Subagents
+  have no independent authorization authority.  It permits only this exact
+  six-path source delta, one commit, one normal non-force push and observation
+  of the unique new attempt-one push and pull-request CI routes.  Failure or
+  cancellation stops the chain; rerun and automatic retry are forbidden.
+  It is source-only and authorizes no launcher execution, interactive sudo,
+  installer execution, transaction rollback, root write, operational capture,
+  cloud/API call, database access, paid action, replay or cleanup.
+- Future execution inventory is explicit but not authorized here.  The frozen
+  `68aa82f` verifier would create and remove exactly three public-only files in
+  a root-owned NoteAI temporary `.item26-v2-signature-verify-*` directory, and
+  the installer may need its bounded synchronous rollback.  Current verifier
+  scratch create/cleanup and rollback counts are all zero.  A future one-shot
+  install CTO authorization must expressly cover those public scratch actions
+  and the bounded rollback; after failure, residue is not cleaned by the
+  stager and retry remains forbidden.
+- This source-review round also records one bounded audit-process deviation:
+  the first red-team agent ran one repository-wide `rg` without correctly
+  excluding the quarantine set.  That search returned only five matching
+  function/condition lines from the isolated path
+  `tools/stage_item26_manual_cost_stop_helper_v2.py`; it did not open the
+  complete file, execute or modify it, or output credentials/private material,
+  and the other six isolated paths had no match.  Main terminated and replaced
+  that agent immediately.  This incident authorizes no action and adds no
+  readiness credit; the isolated path must not be read again in this round.
+- Item 26 remains `unverified` with `evidence: []`; internal/public readiness
+  remain `25/29` and `25/38`; S0 remains false/open; the valid activation
+  receipt is still not the absent M1 provider receipt; M1 evidence and the M2
+  checkpoint remain absent; and readiness credit remains zero.  Historical
+  receipt build/sign/sudo counts remain `1/1/1`; candidate launcher, sudo,
+  installer, rollback, verifier public scratch create/cleanup, root-write,
+  capture, cloud/API and database counts are all zero.  A later source
+  acceptance or operational edge needs its own
+  strict descendant and, for execution, a separate action-scoped CTO decision.
