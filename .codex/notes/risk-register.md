@@ -178,39 +178,62 @@ Last updated: 2026-08-18
   cannot be replayed. A non-identical partial local journal write remains a
   fail-closed `LOCAL_WRITE_RECOVERY_REQUIRED` boundary rather than automatic
   recovery.
-- 当前边界: Helper acceptance ledger `4eab991` remains accepted and root custody
-  remains unchanged with exactly three RSA-3072 private keys and three public
-  exports. The Secret-free contract/root hashes remain
-  `190ed155...ffd1`/`8bfb8834...ff85`. The resulting root-bearing revision
-  `78828093048c8b2f2dccd111412703f068155543` is nevertheless terminally
-  rejected: its only push `32140388587`/job `95721382044` and pull-request
-  `32140393870`/job `95721399196` runs both failed at attempt one and have zero
-  reruns. Both passed artifact restore/verification, then Unit reported 2,608
-  tests, one failure, zero errors and 34 skips; Quality, PostgreSQL, readiness
-  and Compose were skipped. The sole class is
-  `ITEM26_FAIL_CLOSED_EXPECTATION_NOT_UPDATED`: a test expected the obsolete
-  pre-finalization message while finalized authority correctly rejected the
-  absent external authority earlier. This does not accept or weaken `7882809`,
-  which is frozen/no-rerun.
-- 下一验证: Preserve the full no-rerun chain through rejected `514fbe0`,
-  accepted helper `b2d2e89`, bootstrap ledger `4eab991` and rejected
-  root-bearing `7882809`. The authorized append-only executable-control
-  successor is source-only: checkpoint-created is false, its revision is empty
-  and its own push/PR CI counts are zero. Its bounded correction updates the
-  stale fail-closed assertion, uses only an exact command-scoped canonical Git
-  `safe.directory` value (never `*`) for later root operation, and adds the
-  fixed root-owned receipt signer. It must first become an exact checkpoint and
-  pass its own new attempt-one push and pull-request CI; either
-  failure/cancellation is terminal/no-rerun. Receipt build/sign,
-  signer/authority/runtime install, ActionTrail/Describe/billing capture,
-  journal, cloud/API, database and builder counts remain zero. Existing custody
-  and staging residue must remain preserved, with no deletion, overwrite or
-  automatic retry. Item 26 stays `unverified` with empty evidence, internal
-  readiness `25/29`, public readiness `25/38` and zero credit. S0 remains
-  false/open: a Secret-free portable terminal capsule is still mandatory before
-  readiness credit or any paid successor. Do not replay consumed cloud
-  requests or infer terminal abort-v1 authority; mutation `UNKNOWN` permits
-  same-identity readback only, never resubmission.
+- 当前边界: Helper acceptance ledger `4eab991` and the full no-rerun ancestry
+  remain frozen. Rejected root-bearing revision `7882809` has now been followed
+  by exact executable-control revision
+  `68aa82ffbdd43e78e585d8956d13d3030ef6a640`. Its only push
+  `32147676628`/job `95745356212` and pull-request `32147682239`/job
+  `95745374406` runs both completed attempt one with success, 22 successful
+  steps and zero reruns. One authorized sudo dispatch staged the exact two
+  signer blobs and produced one valid RSA-signed receipt-v3. The receipt is
+  22,068 canonical bytes with SHA-256
+  `61b756abed72b2f6ab8fb3b20a260b03c0932f6e4c271c4f723a4e5942cd7f2a`,
+  semantic SHA-256
+  `df46796224ec4aea6adc078eba06dc436273335a6db227b1e0cfe48eec3c1985`
+  and activation time `2026-08-19T00:15:13Z`. It independently verifies against
+  the canonical public root, exact control CI and all twelve control blobs.
+  The root wrapper nevertheless emitted `root_unclassified_failure` because a
+  broad `BaseException` handler caught successful `SystemExit(0)`; the outer
+  wrapper then emitted `launcher_single_sudo_failed`. A latent readback defect
+  also confused the validator summary with the envelope payload. These are
+  launcher false negatives, not signature invalidation.
+- 当前保全: Exact preservation revision
+  `2cfb58b9f227a37cc86843bef7dc1014bc185391` is the direct child of `68aa82f`,
+  tree `e1b1a659b3ae6e6e671c0352955d319a6c0ed61c`, and adds only the public
+  receipt, the exact executed launcher and its contemporaneous test. Their blob
+  IDs are `2a52e034...b10ac`, `165019c5...3b3a` and
+  `0d1335c0...90a`; no private material is present. Receipt build/sign and sudo
+  dispatch counts are `1/1/1`; retry, outer cleanup and residue cleanup remain
+  zero. Only the successful signer's previously authorized two scratch files
+  and one scratch directory were removed. No installer, authority/runtime/
+  journal installation, operational capture, cloud/API, database, paid,
+  replay or infrastructure/cloud builder start or action occurred. The local
+  receipt was created mode `0600`, while its Git artifact is necessarily mode
+  `100644`; this is an evidence-mode distinction, not permission preservation.
+- 残余边界补充: The tracked activation receipt is not the M1 provider
+  `RECEIPT_REF` and cannot supply terminal authority or readiness credit. S0
+  remains false because installed root/runtime state, raw material, final
+  authority bundle and M1/M2 artifacts are absent. Existing signer/custody
+  residue is preserved and no rerun, re-sign, overwrite or cleanup is allowed.
+  Item 26 remains `unverified` with empty evidence, internal readiness `25/29`,
+  public readiness `25/38` and zero credit. Product-owner delegation means a
+  later concrete authorization may be issued by the CTO without returning to
+  the product owner, but the delegation itself authorizes no current action.
+- 下一验证: This revision carries only the bounded B launcher/test correction
+  candidate and these four ledgers as an expected exact six-path direct child
+  of preservation revision `2cfb58b9`. B must preserve and hash-bind A's exact
+  three blobs, move successful `SystemExit(0)` outside the broad handler,
+  distinguish the envelope payload from the normalized validator summary and
+  execute no sudo, signer, installer, private-key, root/custody, cloud,
+  database, operational-capture or cleanup path. Source presence here is not
+  checkpoint acceptance: B's revision/tree remain empty until a successor
+  ledger freezes them, and its own CI count remains zero/pending. Commit and
+  push only this exact B candidate once, then accept only its new attempt-one
+  push/pull-request pair; never push A as an execution head, rerun the receipt
+  or replay a consumed cloud request. The M1 provider receipt/evidence remains
+  later than independently frozen B acceptance, and the M2 checkpoint remains
+  later still. Any installer or further operational stage requires a new,
+  explicit, action-scoped CTO authorization.
 
 ## Critical Risks
 

@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-18 (Asia/Shanghai)
+> Updated: 2026-08-19 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -12,6 +12,11 @@
 - Goal: internal deployment readiness `29/29`.
 - Main CTO may approve finite, bounded, reversible internal-production work
   without repeated product-owner confirmation.
+- On 2026-08-19 the product owner explicitly delegated future authorization
+  decisions to the CTO.  This delegation applies only when the CTO later
+  authorizes a concrete, bounded scope; it is not standing authorization for
+  any current installer, cloud/API, database, capture, paid, replay, cleanup,
+  credential or destructive action.
 - Do not stop merely because a task, checkpoint, cleanup or Handoff completed.
   Continue through the dependency graph.
 - Stop only for interactive login/new credentials, public DNS or real traffic,
@@ -11595,3 +11600,88 @@ Colima, database, builder, restore and cloud actions remain frozen.
   post-action readback may begin before the successor's own dual-green terminal
   acceptance; bounded GitHub CI observation and artifact restore remain part of
   that acceptance gate.
+
+### Item 26 receipt-v3 signed successfully; visible-terminal launcher false-negative reconciled (2026-08-19)
+
+- The executable-control successor is exact revision
+  `68aa82ffbdd43e78e585d8956d13d3030ef6a640`, direct child of rejected
+  `78828093048c8b2f2dccd111412703f068155543`, with tree
+  `c909da5a9fedfb2771a5ddfa3f6a5018b3889bbf` and exactly ten changed paths.
+  Its only ordinary CI runs are push `32147676628`/job `95745356212` and
+  pull request `32147682239`/job `95745374406`.  Both completed attempt one
+  with success, zero reruns, one job, 22 successful steps, ambient `2621`
+  tests with 34 skips and zero failure/error, frozen `10+1+12+22+21`,
+  Quality `7 PASS + 1 EXPECTED_FAIL`, PostgreSQL `6/6`, readiness `138/138`,
+  Compose success and zero error annotations.  The signed canonical CI pair
+  and twelve-source closure have SHA-256 values
+  `433b39827a358e82dfafac646aa40be838e34174148cadcc27763993afb937f2`
+  and `abbda75774b12bea724a6dca15b20eb375102ac87bb2cfdba39a2591032cded9`.
+- One separately authorized visible-terminal sudo dispatch exclusively created
+  the fixed root-owned signer staging with the exact two verified `68aa82f`
+  Git blobs and used only the `local_ci_observation` private-key descriptor to
+  build and sign receipt-v3.  The root wrapper then caught its own successful
+  `SystemExit(0)` in a broad `BaseException` handler, emitted
+  `root_unclassified_failure` and returned nonzero; the outer wrapper therefore
+  emitted `launcher_single_sudo_failed`.  This is a terminal-status false
+  negative, not a failed signature.  A second latent post-validation defect
+  treated the authority validator's normalized summary as the original
+  envelope payload.  It was not reached because the false nonzero status
+  stopped the outer wrapper first.
+- Independent public-only validation over anonymous file descriptors and pipes
+  accepts the exact canonical receipt at
+  `.codex/item26-manual-cost-stop-activation-receipt-v3-68aa82ffbdd43e78e585d8956d13d3030ef6a640.json`.
+  It is 22,068 bytes, file SHA-256
+  `61b756abed72b2f6ab8fb3b20a260b03c0932f6e4c271c4f723a4e5942cd7f2a`,
+  semantic SHA-256
+  `df46796224ec4aea6adc078eba06dc436273335a6db227b1e0cfe48eec3c1985`
+  and contains a valid 384-byte RSA signature for activation time
+  `2026-08-19T00:15:13Z`.  It binds control revision `68aa82f`, the exact two
+  CI rows, all twelve source blobs, public-root Git blob
+  `a15720151f141e6b783a51d136e94d9957a7b1c6`, root SHA-256
+  `8bfb8834c1e241a18cde984d42524759f53423bcf809dd8657fa4b2be102ff85`,
+  readback false and cloud/database/journal counts zero.
+- Preservation revision `2cfb58b9f227a37cc86843bef7dc1014bc185391`
+  is the direct child of `68aa82f`, tree
+  `e1b1a659b3ae6e6e671c0352955d319a6c0ed61c`, and adds exactly three
+  public/Secret-free paths: the receipt, the exact 46,833-byte executed
+  launcher and its exact 19,529-byte test.  Their Git blob IDs are respectively
+  `2a52e03416a096ccfca5ef9958d61a25290b10ac`,
+  `165019c53aa4a25adde0a7a3a636c36007094b3a` and
+  `0d1335c064944dbd257535fa336689834658490a`.  The executed launcher SHA-256
+  is `ea42ea7c24cbc747e03165f13be2c67619d4d93a61d13068aeb2ae20cd2f072c`;
+  its 14,907-byte root literal SHA-256 is
+  `572629239fa0c3f7eb6b125071cc30e9bde64136bd02b6024b636f05f0cbbf9e`;
+  the pre-execution test SHA-256 is
+  `299fbb53f79896493f5bb3f41318539ba632fceb65534e617dc0a4952cf70f24`.
+  All three Git modes are `100644`; the receipt's separately observed local
+  creation mode was `0600`, which Git does not preserve.
+- Receipt build/sign counts are `1/1`, sudo dispatch is `1`, automatic retry is
+  `0`, current-action private-key generation is `0`, total custody generation
+  remains `3`, and Python private-key read/output counts remain `0/0`.  The
+  successful signer removed only its two authorized non-sensitive scratch
+  files and their directory; outer cleanup and residue cleanup are zero.  No
+  installer, authority/runtime/journal installation, post-action operational
+  capture, cloud/API, database, paid, historical replay or infrastructure/cloud
+  builder start or action ran.
+  The signer staging and all other residue remain preserved; do not rerun,
+  re-sign or clean them.
+- This revision carries the authorized B Secret-free launcher/test correction
+  candidate together with these four ledgers, an expected exact six-path
+  closure and expected parent `2cfb58b9`.  Source presence in this revision is
+  not checkpoint acceptance: B's exact commit and tree cannot self-bind here,
+  remain empty until a successor ledger freezes them, and its own CI count is
+  still zero/pending.  The candidate must preserve `2cfb58b9` as the exact
+  executed-byte ancestor, must never execute sudo or sign again, and may
+  receive only one new attempt-one push/PR CI pair.  The tracked activation
+  receipt is not the M1 provider `RECEIPT_REF`: the M1 provider receipt and
+  evidence remain absent until after the exact B revision and its own CI are
+  independently frozen, and the M2 checkpoint remains later still.  This
+  public receipt is one portable component, not a complete S0 capsule.  Item
+  26 stays `unverified` with `evidence: []`; internal/public readiness remain
+  `25/29` and `25/38`, with no credit.
+- The product owner has delegated future authorization decisions to the CTO,
+  so a later explicit, action-scoped CTO decision may satisfy the corresponding
+  authorization stop without returning to the product owner.  The delegation
+  itself authorizes no current action.  In particular, installer, root/runtime
+  mutation, provider capture, cloud/API, database, paid, replay and cleanup
+  remain closed in this checkpoint.

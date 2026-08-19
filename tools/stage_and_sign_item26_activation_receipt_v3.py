@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""One-shot visible-Terminal launcher for the Item 26 receipt-v3 signer.
+"""Consumed historical correction for the Item 26 receipt-v3 launcher pattern.
 
-This public launcher stages only the two exact signer source blobs from the
-fixed control revision.  It never opens custody or a private key.  The only
-privileged process is one interactive ``sudo -k`` invocation whose stdin is a
-canonical public bundle and whose stdout is an already-open, user-owned public
-receipt file.
+The one authorized execution is frozen at ``EXECUTED_ATTEMPT_REVISION``.
+``EXECUTION_CONSUMED`` blocks the dispatch path before Git, filesystem, bundle,
+capture, or sudo work.  The remaining public implementation is retained only
+to correct and test the historical pattern.  It is not executable for another attempt.
 """
 
 from __future__ import annotations
@@ -26,6 +25,8 @@ from typing import Any, Optional
 
 
 CONTROL_REVISION = "68aa82ffbdd43e78e585d8956d13d3030ef6a640"
+EXECUTED_ATTEMPT_REVISION = "2cfb58b9f227a37cc86843bef7dc1014bc185391"
+EXECUTION_CONSUMED = True
 REPOSITORY_ROOT = Path("/Users/openclaw/Desktop/noteai")
 BRANCH_REF = "refs/remotes/origin/codex/quality-stabilization-real-chain"
 EXPECTED_USER_UID = 501
@@ -77,6 +78,12 @@ RECEIPT_SCHEMA = (
 )
 RECEIPT_DOMAIN_TEXT = (
     "noteai-item26-manual-cost-stop-runtime-activation-receipt-v3"
+)
+AUTHORITY_EPOCH_ID = "noteai.item26.manual-cost-stop-authority-generation.v2"
+RUNTIME_SOURCE_REFS = (
+    "tools/collect_item26_manual_cost_stop_raw_v2.py",
+    "tools/extract_item26_manual_cost_stop_raw_v2.py",
+    AUTHORITY_REF,
 )
 MAX_BUNDLE_BYTES = 1024 * 1024
 MAX_RECEIPT_BYTES = 4 * 1024 * 1024
@@ -721,13 +728,14 @@ def main():
     os.fsync(1)
     return 0
 try:
-    raise SystemExit(main())
+    root_status=main()
 except E as exc:
     sys.stderr.write('{"schema":"noteai.item26.activation-receipt-v3-root-launcher.v1","status":"BLOCKED_RESIDUE_REVIEW_REQUIRED","reason":'+json.dumps(str(exc),separators=(",",":"))+'}\n')
     raise SystemExit(1)
 except BaseException:
     sys.stderr.write('{"schema":"noteai.item26.activation-receipt-v3-root-launcher.v1","status":"BLOCKED_RESIDUE_REVIEW_REQUIRED","reason":"root_unclassified_failure"}\n')
     raise SystemExit(1)
+raise SystemExit(root_status)
 '''
 
 
@@ -880,6 +888,20 @@ def _read_and_validate_capture(
         or _stable(parent_after) != _stable(parent_path_after)
     ):
         raise LauncherError("launcher_capture_identity")
+    payload, _summary = _validate_receipt_bytes(
+        raw,
+        authority_raw=authority_raw,
+        root_raw=root_raw,
+    )
+    return raw, payload
+
+
+def _validate_receipt_bytes(
+    raw: bytes,
+    *,
+    authority_raw: bytes,
+    root_raw: bytes,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     receipt = _parse_canonical(raw, "launcher_receipt_canonical")
     if receipt.get("schema") != RECEIPT_SCHEMA or type(receipt.get("payload")) is not dict:
         raise LauncherError("launcher_receipt_contract")
@@ -893,7 +915,7 @@ def _read_and_validate_capture(
             expected_hash=CONTROL_SOURCE_BLOBS[PUBLIC_ROOT_REF]["file_sha256"],
             root=REPOSITORY_ROOT,
         )
-        payload = authority.validate_runtime_activation_receipt(
+        summary = authority.validate_runtime_activation_receipt(
             raw,
             root_value=root_value,
             keys=keys,
@@ -911,6 +933,7 @@ def _read_and_validate_capture(
         )
     except (ValueError, OSError, subprocess.SubprocessError) as exc:
         raise LauncherError("launcher_receipt_validation") from exc
+    payload = receipt["payload"]
     if (
         payload.get("control_revision") != CONTROL_REVISION
         or payload.get("control_ci") != CONTROL_CI
@@ -919,7 +942,58 @@ def _read_and_validate_capture(
         or payload.get("readiness_credit_added") is not False
     ):
         raise LauncherError("launcher_receipt_binding")
-    return raw, payload
+    expected_runtime_sources = {
+        ref: CONTROL_SOURCE_BLOBS[ref]["file_sha256"]
+        for ref in RUNTIME_SOURCE_REFS
+    }
+    expected_summary_keys = {
+        "activation_receipt_sha256",
+        "activation_receipt_semantic_sha256",
+        "activated_at_utc",
+        "control_revision",
+        "authority_epoch_id",
+        "authority_root_file_sha256",
+        "authority_root_git_blob_sha256",
+        "authority_root_git_blob_oid",
+        "source_file_sha256",
+        "control_ci",
+        "readback_started",
+        "cloud_read_count",
+        "cloud_write_count",
+        "database_connection_count",
+        "journal_write_count",
+    }
+    if (
+        type(summary) is not dict
+        or set(summary) != expected_summary_keys
+        or summary.get("activation_receipt_sha256")
+        != hashlib.sha256(raw).hexdigest()
+        or summary.get("activation_receipt_semantic_sha256")
+        != hashlib.sha256(canonical_bytes(receipt)[:-1]).hexdigest()
+        or summary.get("activated_at_utc") != payload.get("activated_at_utc")
+        or summary.get("control_revision") != CONTROL_REVISION
+        or summary.get("authority_epoch_id") != AUTHORITY_EPOCH_ID
+        or summary.get("authority_root_file_sha256")
+        != CONTROL_SOURCE_BLOBS[PUBLIC_ROOT_REF]["file_sha256"]
+        or summary.get("authority_root_git_blob_sha256")
+        != CONTROL_SOURCE_BLOBS[PUBLIC_ROOT_REF]["file_sha256"]
+        or summary.get("authority_root_git_blob_oid")
+        != CONTROL_SOURCE_BLOBS[PUBLIC_ROOT_REF]["git_blob_oid"]
+        or summary.get("source_file_sha256") != expected_runtime_sources
+        or summary.get("control_ci") != CONTROL_CI
+        or summary.get("readback_started") is not False
+        or any(
+            type(summary.get(name)) is not int or summary.get(name) != 0
+            for name in (
+                "cloud_read_count",
+                "cloud_write_count",
+                "database_connection_count",
+                "journal_write_count",
+            )
+        )
+    ):
+        raise LauncherError("launcher_receipt_summary_binding")
+    return payload, summary
 
 
 def _open_capture() -> tuple[int, int, tuple[int, ...]]:
@@ -978,6 +1052,8 @@ def _run_once(
     expected_launcher_sha256: str,
     expected_root_program_sha256: str,
 ) -> dict[str, Any]:
+    if EXECUTION_CONSUMED is True:
+        raise LauncherError("launcher_replay_forbidden")
     _validate_outer_boundary(
         expected_launcher_sha256,
         expected_root_program_sha256,
@@ -1104,6 +1180,8 @@ __all__ = [
     "CONTROL_CI",
     "CONTROL_REVISION",
     "CONTROL_SOURCE_BLOBS",
+    "EXECUTED_ATTEMPT_REVISION",
+    "EXECUTION_CONSUMED",
     "PUBLIC_CAPTURE_PATH",
     "ROOT_PROGRAM",
     "SIGNER_DIRECTORY",

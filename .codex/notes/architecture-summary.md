@@ -1,6 +1,6 @@
 # Architecture Summary
 
-Last updated: 2026-08-18
+Last updated: 2026-08-19
 
 ## Confirmed Production Target (partially implemented)
 
@@ -376,6 +376,45 @@ Only service names and variable names are documented here; no secret values.
 - Local root-owned material is not portable CI evidence. A Secret-free,
   clean-clone-replayable terminal capsule or equivalent trusted distribution
   contract remains mandatory before Item 26 credit or any paid PITR successor.
+- The append-only executable-control successor is now exact revision
+  `68aa82ffbdd43e78e585d8956d13d3030ef6a640`, direct child of rejected
+  `7882809`.  Its only ordinary push and pull-request runs
+  (`32147676628` and `32147682239`) both completed attempt one with success and
+  zero reruns.  Receipt-v3 was subsequently built and signed exactly once by
+  the local-CI authority.  The canonical public envelope is 22,068 bytes with
+  SHA-256 `61b756abed72b2f6ab8fb3b20a260b03c0932f6e4c271c4f723a4e5942cd7f2a`
+  and activation time `2026-08-19T00:15:13Z`; independent public-only
+  validation proves its RSA signature, public root, two CI rows and twelve
+  source-blob bindings.
+- The visible-terminal launcher's displayed failure was a wrapper false
+  negative.  Its root literal caught successful `SystemExit(0)` with a broad
+  `BaseException`, causing the outer wrapper to report
+  `launcher_single_sudo_failed` after the signed receipt was already durable.
+  A separate latent post-validation defect confused the validator's normalized
+  summary with the original envelope payload.  Neither defect changes the
+  signed envelope.  Preservation revision
+  `2cfb58b9f227a37cc86843bef7dc1014bc185391` is the direct child of `68aa82f`
+  and adds only the exact executed launcher, its contemporaneous test and the
+  public receipt.  This revision carries the B Secret-free launcher/test
+  correction candidate as part of an expected exact six-path delta from
+  `2cfb58b9`.  Candidate source presence is not checkpoint acceptance: the B
+  commit and tree remain deliberately empty here until a successor ledger can
+  freeze them, and B's own CI count is zero/pending.  It is never authorization
+  to rerun or re-sign.
+- The tracked
+  `.codex/item26-manual-cost-stop-activation-receipt-v3-68aa82ffbdd43e78e585d8956d13d3030ef6a640.json`
+  is a runtime activation component, not the M1 provider `RECEIPT_REF`.  The control,
+  preservation and future B revisions must still omit the M1 provider receipt,
+  evidence and M2 checkpoint.  M1 must be a strict descendant of B, while its
+  authority bundle continues to name `68aa82f` as `control_revision`.  The
+  public activation envelope improves portability but does not finalize S0:
+  installed root/runtime state, provider/ActionTrail raw material, final bundle
+  and M1/M2 artifacts remain absent.  Item 26 is therefore still unverified
+  with no readiness credit.
+- Future approval authority has been delegated by the product owner to the
+  CTO.  This changes who may issue a later explicit, bounded authorization; it
+  does not itself authorize installer, root/runtime mutation, capture,
+  cloud/API, database, paid, replay, cleanup or any other current action.
 
 - `NoteAI_Pro_Demo_Framer.html` is a very large static file with global state; accidental name collisions or missing payload fields are easy.
 - `model/api.py` is very large and mixes API models, provider calls, scoring, generation, sanitization, streaming, billing, and report logic.
