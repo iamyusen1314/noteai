@@ -11749,3 +11749,53 @@ Colima, database, builder, restore and cloud actions remain frozen.
   Any later installer, M1 capture or other operational action stops for a new,
   explicit, action-scoped CTO authorization.  The owner delegation alone, an
   AI agent or a source/CI checkpoint is not that authorization.
+
+### Item 26 portability successor C accepted; ledger-only D pending (2026-08-19)
+
+- Append-only portability successor C is exact revision
+  `d73d454b76e680137fd0bc90983e5fe6e09b4ec3`, tree
+  `2123a74b685cfd5bd57bd3620d3044f9605c3de1`, and the direct child of
+  terminally rejected/no-rerun B
+  `9f2ac29c58f4e9ec63bb3265b1bfe41c4f11c5e8`.  Its exact five-path delta is
+  the four ledgers plus
+  `tests/test_stage_and_sign_item26_activation_receipt_v3.py`; the production
+  launcher, activation receipt and all control/authority sources are unchanged.
+  The corrected test is mode `100644`, Git blob
+  `d530efb0b4029895c49203c2e232a597db7773e0`, 40,690 bytes and SHA-256
+  `cc8692a939c0462d7f36cbe8a4c7e4fe58cad4ea48986341fd51ee0bb158421b`.
+- C's only ordinary push run `32210460306`/job `95941985568` was created and
+  run-started at `2026-08-19T02:58:29Z`; the job ran from `02:58:31Z` through
+  `03:31:43Z` and the run became terminal at `03:31:44Z`.  Its only
+  pull-request run `32210464258`/job `95941997491` was created and run-started
+  at `02:58:33Z`; the job ran from `02:58:35Z` through `03:32:02Z` and the run
+  became terminal at `03:32:03Z`.  Both completed attempt one with success,
+  no previous-attempt URL, zero reruns and all 22 steps successful.
+- Each route passed the 2,647-test main suite with 34 skips and zero
+  failures/errors, frozen topology batches `[10, 1, 12, 22, 21]`, Quality
+  `7 PASS + 1 EXPECTED_FAIL`, PostgreSQL `6/6`, production readiness `138/138`
+  and Compose.  Each job has exactly one Node-runtime deprecation warning,
+  zero error annotations and no failed or skipped step.  The B Linux-fixture
+  portability defect is therefore closed by C while B itself remains a
+  permanently rejected historical checkpoint.
+- This four-ledger terminal record is a source-only D candidate with expected
+  parent `d73d454b76e680137fd0bc90983e5fe6e09b4ec3` and exact path count four.
+  D cannot self-bind: its own revision and tree remain empty, its own CI is
+  `PENDING_NOT_STARTED` with count zero, and checkpoint acceptance is false
+  until a strict descendant freezes it.  D is not operational authority and
+  authorizes no launcher, sudo, private-key, receipt, installer, capture,
+  cloud/API, database, cleanup, paid action or historical replay.
+- D is explicitly bounded by Main CTO authorization
+  `CTO-AUTH-ITEM26-D73-TERMINAL-CHECKPOINT-001`.  The product owner designated
+  the Root Main agent as CTO; that Main CTO manages Subagents, while Subagents
+  have no independent authorization authority.  The authorization permits only
+  this exact four-ledger delta, one commit, one normal non-force push and
+  observation of the unique new attempt-one push and pull-request CI routes.
+  Failure or cancellation stops the chain; rerun and automatic retry are
+  forbidden.  This authorization does not authorize any operational action.
+- Item 26 remains `unverified` with `evidence: []`; internal/public readiness
+  remain `25/29` and `25/38`; S0 remains false/open; the valid activation
+  receipt is still not the absent M1 provider receipt; M1 evidence and the M2
+  checkpoint remain absent; and readiness credit remains zero.  Historical
+  receipt build/sign/sudo counts remain `1/1/1`; all C/D operational action,
+  retry and cleanup counts remain zero.  A later operational edge still needs
+  a separate, explicit, action-scoped CTO authorization.

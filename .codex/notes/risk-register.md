@@ -2659,3 +2659,33 @@ Last updated: 2026-08-19
   cloud/API, database, paid action, replay or cleanup is authorized.  Any such
   next edge requires a later explicit, action-scoped CTO instruction; the
   product-owner delegation and all AI/subagent decisions authorize nothing.
+
+### Item 26 C closes B test-portability risk; operational boundary remains
+
+- 状态: The B fixture-portability risk is terminally resolved by accepted C
+  `d73d454b76e680137fd0bc90983e5fe6e09b4ec3`, direct child of rejected B
+  `9f2ac29c58f4e9ec63bb3265b1bfe41c4f11c5e8`, tree
+  `2123a74b685cfd5bd57bd3620d3044f9605c3de1`, exact five paths.  The corrected
+  test is blob `d530efb0b4029895c49203c2e232a597db7773e0`, SHA-256
+  `cc8692a939c0462d7f36cbe8a4c7e4fe58cad4ea48986341fd51ee0bb158421b`,
+  40,690 bytes and mode `100644`; launcher, receipt and control bytes did not
+  change.  B remains permanently rejected and no-rerun rather than being
+  retroactively accepted.
+- 验证: C's sole attempt-one push `32210460306`/job `95941985568` and PR
+  `32210464258`/job `95941997491` runs both completed success with zero reruns,
+  no previous-attempt URL and 22/22 successful steps.  Each passed main Unit
+  `2647` with 34 skips and zero failures/errors, frozen batches
+  `[10, 1, 12, 22, 21]`, Quality `7 + expected 1`, PostgreSQL `6/6`, readiness
+  `138/138` and Compose; the only annotation is one Node-runtime warning.
+- 账本边界: The current exact-four-ledger D source candidate only freezes C.
+  D's own revision/tree are empty and own CI is pending/count zero because it
+  cannot self-reference; D is not checkpoint acceptance or operational
+  authority.  `CTO-AUTH-ITEM26-D73-TERMINAL-CHECKPOINT-001` is issued by the
+  product-owner-designated Root Main CTO, who manages Subagents; no Subagent
+  has independent authorization authority.  It permits exact-four ledgers,
+  one commit, one normal non-force push and observation of the unique new
+  attempt-one push/PR CI pair only.  Failure/cancellation stops; rerun and
+  automatic retry are forbidden.  Item 26 remains unverified, S0 open, M1/M2 absent and readiness
+  `25/29` internal / `25/38` public.  Installer, sudo, signing, capture,
+  cloud/API, database, paid, replay and cleanup remain closed until a separate
+  explicit, action-scoped CTO authorization.

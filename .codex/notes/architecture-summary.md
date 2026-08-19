@@ -467,3 +467,37 @@ Only service names and variable names are documented here; no secret values.
   replay and cleanup remain closed.  A future operational edge requires a new,
   explicit and action-scoped decision from an identifiable CTO; delegation or
   agent inference supplies no authority.
+
+## Item 26 portability successor C terminal acceptance (2026-08-19)
+
+- Secret-free C is exact revision
+  `d73d454b76e680137fd0bc90983e5fe6e09b4ec3`, tree
+  `2123a74b685cfd5bd57bd3620d3044f9605c3de1`, direct parent
+  `9f2ac29c58f4e9ec63bb3265b1bfe41c4f11c5e8`, with exactly five changed
+  paths: the four ledgers and the launcher test.  Its test is mode `100644`,
+  blob `d530efb0b4029895c49203c2e232a597db7773e0`, 40,690 bytes and SHA-256
+  `cc8692a939c0462d7f36cbe8a4c7e4fe58cad4ea48986341fd51ee0bb158421b`.
+  The B production launcher, signed activation receipt and control/authority
+  sources remain byte-identical; rejected B remains permanently no-rerun.
+- C's sole push run `32210460306`/job `95941985568` and sole pull-request run
+  `32210464258`/job `95941997491` both completed attempt one with success,
+  no previous-attempt URL and zero reruns.  Their job intervals are
+  `02:58:31Z–03:31:43Z` and `02:58:35Z–03:32:02Z`; run-terminal times are
+  `03:31:44Z` and `03:32:03Z`.  Each has 22/22 successful steps, main Unit
+  `2647` with 34 skips and zero failure/error, frozen batches
+  `[10, 1, 12, 22, 21]`, Quality `7 + expected 1`, PostgreSQL `6/6`, readiness
+  `138/138`, Compose success, one Node-only warning and zero error annotation.
+  C therefore supplies the accepted CI-portability successor checkpoint.
+- The append-only D ledger source has expected parent `d73d454...`, exact four
+  ledger paths, empty self revision/tree and own CI `PENDING_NOT_STARTED`.
+  It cannot self-authorize or self-accept and is not an operational-authority
+  edge.  Authorization `CTO-AUTH-ITEM26-D73-TERMINAL-CHECKPOINT-001` names the
+  Root Main agent as the product-owner-designated CTO managing Subagents;
+  Subagents have no independent authorization authority.  Its scope is exactly
+  four ledgers, one commit, one normal non-force push and observation of the
+  unique attempt-one push/PR CI pair, with failure/cancellation terminal,
+  rerun/automatic retry forbidden and no operational authority.  Item 26 stays
+  unverified, S0 stays open, readiness remains `25/29`
+  internally and `25/38` publicly, the M1 provider receipt/evidence and M2
+  checkpoint remain absent, and all installer/capture/cloud/database/paid/
+  replay/cleanup gates remain closed pending a separate scoped CTO decision.
