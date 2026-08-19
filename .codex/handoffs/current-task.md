@@ -11685,3 +11685,67 @@ Colima, database, builder, restore and cloud actions remain frozen.
   itself authorizes no current action.  In particular, installer, root/runtime
   mutation, provider capture, cloud/API, database, paid, replay and cleanup
   remain closed in this checkpoint.
+
+### Item 26 future-launcher B rejected by non-portable Linux test fixtures; C pending (2026-08-19)
+
+- Future-launcher correction B is exact revision
+  `9f2ac29c58f4e9ec63bb3265b1bfe41c4f11c5e8`, tree
+  `70b7df3d0b35181919fadabc8c268a15ce851811`, and the direct child of
+  preservation revision `2cfb58b9f227a37cc86843bef7dc1014bc185391`.
+  Its exact six-path delta is the four ledgers plus
+  `tests/test_stage_and_sign_item26_activation_receipt_v3.py` and
+  `tools/stage_and_sign_item26_activation_receipt_v3.py`.  B preserves the
+  activation receipt and the signed `68aa82f` control sources unchanged.  Its
+  launcher blob is `96362ce03791f70591318377e5ad67cada2f7539`, SHA-256
+  `a26708a5c399b6f14a4d1fde882e5f3c3e78b39e033bbba8548d6fa057e6a322`
+  and 49,766 bytes; its root literal is 14,931 bytes with SHA-256
+  `d04a6df457ce69b90617048883a9e15a2ac9775a66282c029861cb14d1aaa98a`.
+- B's only push run `32203164457`/job `95920998630` was created and
+  run-started at `2026-08-19T00:57:13Z`; the job ran from `00:57:15Z` through
+  `01:29:09Z` and the run became terminal at `01:29:10Z`.  Its only pull-request
+  run `32203166634`/job `95921006035` was created and run-started at
+  `00:57:15Z`; the job ran from `00:57:17Z` through `01:31:40Z` and the run
+  became terminal at `01:31:41Z`.  Both are attempt one,
+  `completed/failure`, have no previous-attempt URL and may never be rerun.
+  The pull-request route was first observed in progress and was not cancelled,
+  retried or otherwise disturbed; its later failure was its natural terminal
+  state.
+- Each job has 21 terminal steps: 14 successful, one failed Unit step and six
+  skipped.  Unit ran 2,647 tests with zero failures, three errors and 34 skips.
+  Quality, PostgreSQL, production readiness and Compose were not reached; they
+  must not be described as failed gates.  Each job has one Node 20-to-24
+  deprecation warning annotation and one Unit exit-one failure annotation.
+  The exact three errors are test-fixture portability errors:
+  `test_external_hashes_bind_launcher_and_root_literal` used the production
+  UID `501` against the Linux checkout owner and raised
+  `launcher_source_binding`;
+  `test_open_capture_uses_exclusive_nofollow_user_owned_mode` dereferenced the
+  fixed macOS `.codex` parent, which does not exist in the Linux checkout; and
+  `test_real_executed_receipt_and_real_authority_return_contract` passed the
+  fixed macOS repository root into authority Git validation and was wrapped as
+  `launcher_receipt_validation`.  This terminal class is
+  `LINUX_TEST_FIXTURE_FIXED_UID_AND_REPOSITORY_ROOT_NOT_PORTABLE`.  It is not a
+  launcher-runtime, receipt-signature, authority-semantic or private-custody
+  failure, but it rejects B as a checkpoint under the dual-CI rule.
+- Append-only correction C is a Secret-free source candidate with expected
+  parent `9f2ac29c58f4e9ec63bb3265b1bfe41c4f11c5e8` and exactly five expected
+  paths: these four ledgers and
+  `tests/test_stage_and_sign_item26_activation_receipt_v3.py`.  C must only make
+  the three tests use the canonical current checkout/owner and replace B's
+  HEAD-relative topology inference with exact frozen-B validation.  It must
+  not change the launcher, receipt, control, authority or any M1/M2 output.
+  C cannot self-bind: its revision, tree and test blob remain empty, its own CI
+  is pending with count zero, and checkpoint acceptance is false until a later
+  ledger-only strict descendant freezes C and its own new attempt-one push/PR
+  pair.  Either C route failing or being cancelled is terminal/no-rerun.
+- Control remains `68aa82ffbdd43e78e585d8956d13d3030ef6a640` and its signed
+  activation receipt remains valid but is not the M1 provider `RECEIPT_REF`.
+  Item 26 stays `unverified` with `evidence: []`; internal/public readiness stay
+  `25/29` and `25/38`; S0 remains false/open; the M1 provider receipt/evidence
+  and M2 checkpoint remain absent; and no readiness credit is added.  Historical
+  receipt build/sign/sudo counts remain `1/1/1`, while C action, retry,
+  installer, root/runtime/journal installation, operational capture, cloud/API,
+  database, paid, replay, outer cleanup and residue cleanup counts remain zero.
+  Any later installer, M1 capture or other operational action stops for a new,
+  explicit, action-scoped CTO authorization.  The owner delegation alone, an
+  AI agent or a source/CI checkpoint is not that authorization.

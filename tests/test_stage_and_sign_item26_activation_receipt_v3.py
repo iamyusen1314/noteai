@@ -11,6 +11,10 @@ import types
 import unittest
 from unittest import mock
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "tools/stage_and_sign_item26_activation_receipt_v3.py"
@@ -52,12 +56,17 @@ PROVIDER_OUTPUT_REFS = (
     "deploy/production/evidence/"
     "item26-manual-cost-stop-terminal-checkpoint-v2-20260817.json",
 )
-SUCCESSOR_PATHS = {
+FAILED_CORRECTION_REVISION = "9f2ac29c58f4e9ec63bb3265b1bfe41c4f11c5e8"
+FAILED_CORRECTION_TREE = "70b7df3d0b35181919fadabc8c268a15ce851811"
+FAILED_CORRECTION_PATHS = {
     ".codex/handoffs/current-task.md",
     ".codex/notes/architecture-summary.md",
     ".codex/notes/risk-register.md",
     "deploy/production/internal-deployment-readiness.json",
     "tests/test_stage_and_sign_item26_activation_receipt_v3.py",
+    "tools/stage_and_sign_item26_activation_receipt_v3.py",
+}
+PORTABILITY_SUCCESSOR_PATHS = FAILED_CORRECTION_PATHS - {
     "tools/stage_and_sign_item26_activation_receipt_v3.py",
 }
 
@@ -99,26 +108,55 @@ def git_stdout(*arguments: str) -> bytes:
     return result.stdout
 
 
-def reviewed_head(executed_revision: str) -> str:
-    head_row = git_stdout("rev-list", "--parents", "-n", "1", "HEAD").decode(
-        "ascii"
-    ).split()
-    if not head_row:
-        raise AssertionError("missing HEAD")
-    head = head_row[0]
-    candidates = []
-    for revision in dict.fromkeys(head_row):
-        row = git_stdout("rev-list", "--parents", "-n", "1", revision).decode(
-            "ascii"
-        ).split()
-        if len(row) == 2 and row[1] == executed_revision:
-            candidates.append(revision)
+def reviewed_direct_child(parent_revision: str) -> str:
+    rows = [
+        line.split()
+        for line in git_stdout(
+            "rev-list",
+            "--ancestry-path",
+            "--parents",
+            parent_revision + "..HEAD",
+        ).decode("ascii").splitlines()
+        if line
+    ]
+    candidates = [
+        row[0]
+        for row in rows
+        if len(row) == 2 and row[1] == parent_revision
+    ]
     if len(candidates) != 1:
-        raise AssertionError(("reviewed head candidates", candidates, head_row))
-    candidate = candidates[0]
-    if candidate != head and (len(head_row) != 3 or head_row[2] != candidate):
-        raise AssertionError(("synthetic merge topology", candidate, head_row))
-    return candidate
+        raise AssertionError(
+            ("reviewed direct-child candidates", candidates, rows)
+        )
+    return candidates[0]
+
+
+def test_only_verify_signature(
+    payload: bytes,
+    signature: bytes,
+    public_key_pem: bytes,
+) -> bool:
+    if any(
+        type(value) is not bytes or not value
+        for value in (payload, signature, public_key_pem)
+    ):
+        return False
+    try:
+        public_key = serialization.load_pem_public_key(public_key_pem)
+        if (
+            not isinstance(public_key, rsa.RSAPublicKey)
+            or public_key.key_size != 3072
+        ):
+            return False
+        public_key.verify(
+            signature,
+            payload,
+            padding.PKCS1v15(),
+            hashes.SHA256(),
+        )
+    except (InvalidSignature, TypeError, ValueError):
+        return False
+    return True
 
 
 class StageAndSignItem26ActivationReceiptV3Tests(unittest.TestCase):
@@ -135,6 +173,20 @@ class StageAndSignItem26ActivationReceiptV3Tests(unittest.TestCase):
         self.assertIn("Consumed historical correction", description)
         self.assertIn("not executable for another attempt", description)
         self.assertIs(self.launcher.EXECUTION_CONSUMED, True)
+        self.assertEqual(
+            self.launcher.REPOSITORY_ROOT,
+            Path("/Users/openclaw/Desktop/noteai"),
+        )
+        self.assertEqual(self.launcher.EXPECTED_USER_UID, 501)
+        self.assertEqual(
+            self.launcher.PUBLIC_CAPTURE_PATH,
+            self.launcher.REPOSITORY_ROOT / EXECUTED_RECEIPT_REF,
+        )
+        self.assertEqual(self.launcher.SYSTEM_OPENSSL, Path("/usr/bin/openssl"))
+        self.assertEqual(
+            self.launcher.SYSTEM_OPENSSL_SHA256,
+            "517827f877751b6d7abebe404a296fa8e82425c63694a73ab06db35e6d9a8362",
+        )
 
     def test_control_revision_and_exact_two_ci_rows_are_frozen(self) -> None:
         launcher = self.launcher
@@ -378,31 +430,61 @@ class StageAndSignItem26ActivationReceiptV3Tests(unittest.TestCase):
 
     def test_reviewed_head_is_exact_direct_successor_with_frozen_absences(self) -> None:
         launcher = self.launcher
-        reviewed = reviewed_head(launcher.EXECUTED_ATTEMPT_REVISION)
+        failed_parent_row = git_stdout(
+            "rev-list", "--parents", "-n", "1", FAILED_CORRECTION_REVISION
+        ).decode("ascii").split()
+        self.assertEqual(
+            failed_parent_row,
+            [FAILED_CORRECTION_REVISION, launcher.EXECUTED_ATTEMPT_REVISION],
+        )
+        self.assertEqual(
+            git_stdout(
+                "show",
+                "-s",
+                "--format=%T",
+                FAILED_CORRECTION_REVISION,
+            ).decode("ascii").strip(),
+            FAILED_CORRECTION_TREE,
+        )
+        failed_changed = git_stdout(
+            "diff",
+            "--name-only",
+            launcher.EXECUTED_ATTEMPT_REVISION
+            + ".."
+            + FAILED_CORRECTION_REVISION,
+        ).decode("utf-8").splitlines()
+        self.assertEqual(set(failed_changed), FAILED_CORRECTION_PATHS)
+        self.assertEqual(len(failed_changed), 6)
+
+        reviewed = reviewed_direct_child(FAILED_CORRECTION_REVISION)
         parent_row = git_stdout(
             "rev-list", "--parents", "-n", "1", reviewed
         ).decode("ascii").split()
-        self.assertEqual(
-            parent_row,
-            [reviewed, launcher.EXECUTED_ATTEMPT_REVISION],
-        )
+        self.assertEqual(parent_row, [reviewed, FAILED_CORRECTION_REVISION])
         changed = git_stdout(
             "diff",
             "--name-only",
-            launcher.EXECUTED_ATTEMPT_REVISION + ".." + reviewed,
+            FAILED_CORRECTION_REVISION + ".." + reviewed,
         ).decode("utf-8").splitlines()
-        self.assertEqual(set(changed), SUCCESSOR_PATHS)
-        self.assertEqual(len(changed), 6)
+        self.assertEqual(set(changed), PORTABILITY_SUCCESSOR_PATHS)
+        self.assertEqual(len(changed), 5)
         receipt_touches = git_stdout(
             "rev-list",
-            launcher.EXECUTED_ATTEMPT_REVISION + ".." + reviewed,
+            FAILED_CORRECTION_REVISION + ".." + reviewed,
             "--",
             EXECUTED_RECEIPT_REF,
         )
         self.assertEqual(receipt_touches, b"")
+        launcher_touches = git_stdout(
+            "rev-list",
+            FAILED_CORRECTION_REVISION + ".." + reviewed,
+            "--",
+            "tools/stage_and_sign_item26_activation_receipt_v3.py",
+        )
+        self.assertEqual(launcher_touches, b"")
         source_touches = git_stdout(
             "rev-list",
-            launcher.CONTROL_REVISION + ".." + reviewed,
+            FAILED_CORRECTION_REVISION + ".." + reviewed,
             "--",
             *sorted(launcher.CONTROL_SOURCE_BLOBS),
         )
@@ -498,16 +580,30 @@ class StageAndSignItem26ActivationReceiptV3Tests(unittest.TestCase):
 
     def test_external_hashes_bind_launcher_and_root_literal(self) -> None:
         launcher = self.launcher
+        production_uid = launcher.EXPECTED_USER_UID
+        source_uid = TARGET.lstat().st_uid
         launcher_sha = hashlib.sha256(self.raw).hexdigest()
         root_program_sha = hashlib.sha256(
             launcher.ROOT_PROGRAM.encode("ascii")
         ).hexdigest()
-        launcher._read_and_bind_launcher(launcher_sha, root_program_sha)
-        with self.assertRaisesRegex(
-            launcher.LauncherError,
-            "launcher_source_binding",
-        ):
-            launcher._read_and_bind_launcher("0" * 64, root_program_sha)
+        with mock.patch.object(launcher, "EXPECTED_USER_UID", source_uid):
+            launcher._read_and_bind_launcher(launcher_sha, root_program_sha)
+            with self.assertRaisesRegex(
+                launcher.LauncherError,
+                "launcher_source_binding",
+            ):
+                launcher._read_and_bind_launcher("0" * 64, root_program_sha)
+        with mock.patch.object(launcher, "EXPECTED_USER_UID", source_uid + 1):
+            with self.assertRaisesRegex(
+                launcher.LauncherError,
+                "launcher_source_binding",
+            ):
+                launcher._read_and_bind_launcher(
+                    launcher_sha,
+                    root_program_sha,
+                )
+        self.assertEqual(launcher.EXPECTED_USER_UID, production_uid)
+        self.assertEqual(production_uid, 501)
 
     def test_canonical_parser_rejects_duplicates_and_noncanonical_json(self) -> None:
         launcher = self.launcher
@@ -537,14 +633,23 @@ class StageAndSignItem26ActivationReceiptV3Tests(unittest.TestCase):
 
     def test_open_capture_uses_exclusive_nofollow_user_owned_mode(self) -> None:
         launcher = self.launcher
+        production_capture_path = launcher.PUBLIC_CAPTURE_PATH
+        production_uid = launcher.EXPECTED_USER_UID
+        portable_capture_path = ROOT / EXECUTED_RECEIPT_REF
+        parent_row = portable_capture_path.parent.lstat()
         row = types.SimpleNamespace(
             st_mode=stat.S_IFREG | 0o600,
-            st_uid=launcher.EXPECTED_USER_UID,
+            st_uid=parent_row.st_uid,
             st_nlink=1,
             st_size=0,
         )
-        parent_row = launcher.PUBLIC_CAPTURE_PATH.parent.lstat()
-        with mock.patch.object(launcher.os, "open", side_effect=[76, 77]) as opened, mock.patch.object(
+        with mock.patch.object(
+            launcher, "PUBLIC_CAPTURE_PATH", portable_capture_path
+        ), mock.patch.object(
+            launcher, "EXPECTED_USER_UID", parent_row.st_uid
+        ), mock.patch.object(
+            launcher.os, "open", side_effect=[76, 77]
+        ) as opened, mock.patch.object(
             launcher.os, "fchmod"
         ) as fchmod, mock.patch.object(
             launcher.os, "fstat", side_effect=[parent_row, row, parent_row]
@@ -559,6 +664,20 @@ class StageAndSignItem26ActivationReceiptV3Tests(unittest.TestCase):
         self.assertEqual(opened.call_args_list[1].args[2], 0o600)
         self.assertEqual(opened.call_args_list[1].kwargs["dir_fd"], 76)
         fchmod.assert_called_once_with(77, 0o600)
+        with mock.patch.object(
+            launcher, "PUBLIC_CAPTURE_PATH", portable_capture_path
+        ), mock.patch.object(
+            launcher, "EXPECTED_USER_UID", parent_row.st_uid + 1
+        ), mock.patch.object(launcher.os, "open") as rejected_open:
+            with self.assertRaisesRegex(
+                launcher.LauncherError,
+                "launcher_capture_parent",
+            ):
+                launcher._open_capture()
+        rejected_open.assert_not_called()
+        self.assertEqual(launcher.PUBLIC_CAPTURE_PATH, production_capture_path)
+        self.assertEqual(launcher.EXPECTED_USER_UID, production_uid)
+        self.assertEqual(production_uid, 501)
 
     def test_single_sudo_command_has_only_k_before_double_dash(self) -> None:
         launcher = self.launcher
@@ -756,6 +875,22 @@ class StageAndSignItem26ActivationReceiptV3Tests(unittest.TestCase):
 
     def test_real_executed_receipt_and_real_authority_return_contract(self) -> None:
         launcher = self.launcher
+        production_root = launcher.REPOSITORY_ROOT
+        production_verifier = launcher._verify_signature_fd
+        verified_inputs: list[tuple[bytes, bytes, bytes]] = []
+
+        def verify_and_record(
+            payload: bytes,
+            signature: bytes,
+            public_key_pem: bytes,
+        ) -> bool:
+            verified_inputs.append((payload, signature, public_key_pem))
+            return test_only_verify_signature(
+                payload,
+                signature,
+                public_key_pem,
+            )
+
         revision = launcher.EXECUTED_ATTEMPT_REVISION
         receipt = git_stdout("show", revision + ":" + EXECUTED_RECEIPT_REF)
         authority_raw = git_stdout(
@@ -764,10 +899,54 @@ class StageAndSignItem26ActivationReceiptV3Tests(unittest.TestCase):
         root_raw = git_stdout(
             "show", launcher.CONTROL_REVISION + ":" + launcher.PUBLIC_ROOT_REF
         )
-        payload, summary = launcher._validate_receipt_bytes(
-            receipt,
-            authority_raw=authority_raw,
-            root_raw=root_raw,
+        with mock.patch.object(
+            launcher, "REPOSITORY_ROOT", ROOT
+        ), mock.patch.object(
+            launcher,
+            "_verify_signature_fd",
+            verify_and_record,
+        ):
+            payload, summary = launcher._validate_receipt_bytes(
+                receipt,
+                authority_raw=authority_raw,
+                root_raw=root_raw,
+            )
+            loaded_authority = sys.modules[
+                "verify_item26_manual_cost_stop_authority_v2"
+            ]
+            self.assertEqual(
+                Path(loaded_authority.__file__),
+                ROOT / launcher.AUTHORITY_REF,
+            )
+        self.assertEqual(launcher.REPOSITORY_ROOT, production_root)
+        self.assertIs(launcher._verify_signature_fd, production_verifier)
+        self.assertEqual(
+            production_root,
+            Path("/Users/openclaw/Desktop/noteai"),
+        )
+        self.assertEqual(len(verified_inputs), 1)
+        signed_payload, signature, public_key_pem = verified_inputs[0]
+        self.assertTrue(
+            test_only_verify_signature(
+                signed_payload,
+                signature,
+                public_key_pem,
+            )
+        )
+        tampered_signature = bytes([signature[0] ^ 1]) + signature[1:]
+        self.assertFalse(
+            test_only_verify_signature(
+                signed_payload,
+                tampered_signature,
+                public_key_pem,
+            )
+        )
+        self.assertFalse(
+            test_only_verify_signature(
+                signed_payload + b"\0",
+                signature,
+                public_key_pem,
+            )
         )
         self.assertEqual(
             hashlib.sha256(receipt).hexdigest(),

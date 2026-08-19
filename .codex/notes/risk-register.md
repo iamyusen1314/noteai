@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-08-18
+Last updated: 2026-08-19
 
 ## Local Codex storage recovery risks
 
@@ -2625,3 +2625,37 @@ Last updated: 2026-08-18
 - 可能后果: Future agents follow outdated assumptions.
 - 建议验证方式: Update handoff after each stage and reconcile docs before checkpoint commit.
 - 是否需要用户确认后才能修改: no for handoff/docs, yes for code behavior.
+
+### Item 26 B is terminally rejected by Linux fixture portability errors
+
+- 状态: Open High, fail-closed and no-rerun.  Exact B revision
+  `9f2ac29c58f4e9ec63bb3265b1bfe41c4f11c5e8`, tree
+  `70b7df3d0b35181919fadabc8c268a15ce851811`, is preserved as a rejected
+  direct child of `2cfb58b9`.  Its only attempt-one push
+  `32203164457`/job `95920998630` and pull request
+  `32203166634`/job `95921006035` both failed naturally with no prior attempt
+  and must never be rerun.
+- 失败分类: Each route ran 2,647 Unit tests with zero failures, three errors and
+  34 skips.  Tests embedded the production UID `501` in a live checkout file
+  identity assertion, dereferenced the fixed macOS capture parent on Linux, and
+  passed the fixed macOS repository root to real authority Git validation.
+  These are exact `LINUX_TEST_FIXTURE_FIXED_UID_AND_REPOSITORY_ROOT_NOT_PORTABLE`
+  errors.  Quality, PostgreSQL, readiness and Compose were skipped rather than
+  failed.  No receipt signature, authority semantics, launcher execution,
+  private key, custody or operational resource was exercised by this CI
+  failure.
+- 最小修复边界: C may change only the four ledgers and the launcher test.  It
+  must inject the canonical current checkout owner/path for test-only calls,
+  freeze B rather than infer a self-referential reviewed HEAD, and preserve B's
+  launcher and the activation receipt byte-for-byte.  C's expected parent is
+  `9f2ac29`, expected path count is five, and its own revision/tree/blob/CI are
+  empty or pending inside C.  Only a later ledger-only descendant may freeze C
+  and its one new attempt-one dual-CI pair.  Failure or cancellation on either
+  route is terminal and requires another append-only successor, never a rerun.
+- 残余边界: Item 26 remains `unverified` with empty evidence, readiness remains
+  internal `25/29` and public `25/38`, S0 remains false/open, and the activation
+  receipt remains distinct from the absent M1 provider receipt/evidence and M2
+  checkpoint.  No installer, root/runtime/journal install, operational capture,
+  cloud/API, database, paid action, replay or cleanup is authorized.  Any such
+  next edge requires a later explicit, action-scoped CTO instruction; the
+  product-owner delegation and all AI/subagent decisions authorize nothing.

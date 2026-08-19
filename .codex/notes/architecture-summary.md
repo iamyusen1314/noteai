@@ -429,3 +429,41 @@ Only service names and variable names are documented here; no secret values.
 - Production ALB health must represent the Alibaba process, PostgreSQL and required local model artifacts. Claude Gateway unavailability may degrade Claude routing, but must not make both Alibaba API nodes unhealthy or remove the whole site.
 - Commercial capacity is not yet achieved: Tair is running but not integrated, no public 202 admission path or independent Worker exists, and CAP-001A2B plus durable result/refund reconciliation remain open.
 - XHS Cookie now accepts managed environment injection only and the repository log/reasoning redaction boundaries pass, but production injection, rotation and historical-log verification remain open. Owner-bound private media/payload storage, cross-process recovery, expiry/deletion/compensation and content-free restore manifests are repository/disposable-PostgreSQL verified; production OSS/RAM roles, migration `0013`, managed cross-node proof, PostgreSQL connection pooling and a real isolated PITR drill remain open.
+
+## Item 26 future-launcher B CI rejection and append-only C boundary (2026-08-19)
+
+- Exact future-launcher correction B is
+  `9f2ac29c58f4e9ec63bb3265b1bfe41c4f11c5e8`, tree
+  `70b7df3d0b35181919fadabc8c268a15ce851811`, direct parent
+  `2cfb58b9f227a37cc86843bef7dc1014bc185391`, with exactly the expected six
+  paths.  Its launcher implements the consumed-attempt guard, moves successful
+  root exit outside the broad exception handler and separates the signed
+  envelope payload from the authority summary.  Those source semantics are not
+  accepted as a checkpoint because B's only attempt-one push and pull-request
+  CI routes both terminated failure and may not be rerun.
+- Push `32203164457`/job `95920998630` and pull request
+  `32203166634`/job `95921006035` each reached Unit with 2,647 tests, zero
+  failures, three errors and 34 skips; each then skipped Quality, PostgreSQL,
+  readiness and Compose.  The three errors all came from test fixtures that
+  embedded the production Mac UID `501` or
+  `/Users/openclaw/Desktop/noteai` instead of injecting the canonical Linux
+  checkout identity.  This is a test portability boundary, not evidence that
+  the frozen receipt, RSA signature, authority projection or B launcher logic
+  is invalid.
+- Correction C is deliberately limited to the four ledgers and the launcher
+  test, with expected parent `9f2ac29` and exact path count five.  The production
+  launcher stays byte-identical to B.  Tests may inject the current checkout
+  owner/path while production constants remain fixed, and topology assertions
+  must validate exact B rather than making a HEAD-relative self-reference.  C
+  may state only expected parent/path/source presence: its own commit, tree,
+  test blob and CI cannot appear in C and remain empty/pending until a strict
+  ledger-only descendant records them.  C receives at most one attempt-one
+  push/PR pair; no rerun is permitted.
+- This source-only branch does not advance the activation DAG.  `68aa82f`
+  remains the receipt control; the tracked activation receipt is still not the
+  M1 provider receipt; Item 26 remains unverified; S0 remains open; M1/M2 outputs
+  remain absent; readiness remains `25/29` internally and `25/38` publicly.
+  Installer, runtime mutation, operational capture, cloud/API, database, paid,
+  replay and cleanup remain closed.  A future operational edge requires a new,
+  explicit and action-scoped decision from an identifiable CTO; delegation or
+  agent inference supplies no authority.
