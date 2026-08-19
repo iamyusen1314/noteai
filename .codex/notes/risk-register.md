@@ -3045,3 +3045,34 @@ Last updated: 2026-08-19
   materialization、cleanup、replay 均未授权且计数为零。下一节点仍须单独
   bridge/materializer source + acceptance；OAuth/capture 继续 NO-GO。
   Item26/S0/M1/M2、`25/29`/`25/38` 与 credit false 不变。
+
+## Item 26 M1 source candidate static GO and operational NO-GO (2026-08-20)
+
+- 前置证据已冻结: A `a30b879d06c388a4a0e230b5a23b2eaedc93649d`
+  是 parent `65b82ffd890479315c9a93769cf11e2a9d27074b` 的 exact-four child，tree
+  `cfc060262cea88c2658295da8b871d815a2d426a`。其 push/PR
+  `32279571023`/`32279575953` 均 unique attempt-one、previous null、rerun0、
+  22/22 全绿；Unit 2,700 F0/E0/skip34、`[10,1,12,22,21]`、Quality7+1、
+  PG6、readiness138、Compose 通过，四终态指针与 two-run inventory 一致。
+- final source/test 分别冻结为 448,346B/SHA-256
+  `28910869ab5043a50b029cabbfe4d1502b79f20e0d2dd145ed5c31bca81c9c2e`/
+  blob `56c837b03fbae41017e8d2e8c86b453b44c5d316` 与 273,690B/SHA-256
+  `29e84bbdffebc4795cbfc350f623df5242e3f2257cc14851825c89cbeabf49af`/
+  blob `2de6a41d08c1d787d82bbc7024845622f4704b2b`。五段 embedded payload 的
+  bytes/SHA/blob 完整身份写入 readiness ledger；final red-team
+  P0/P1/P2=`0/0/0`，normal/`-O` 各90/90，outer+五payload双模式compile绿。
+- 历史漂移已解释而非隐藏: 3C/4A 仅为 historical scoped evidence；后续为
+  顶层五信号、active-child PG、READY/gate/liveness、status-loss containment
+  与 concrete capture/orchestrator/adapter-child production call chain 做了
+  有意最小漂移。旧 identities 不得被写成当前 payload 或 zero-drift proof。
+- 授权边界: `CTO-AUTH-ITEM26-M1-CAPTURE-MATERIALIZER-STAGER-SOURCE-001`
+  仅限 exact-six source/test/check、one commit、one normal non-force push 与
+  unique attempt-one push/PR observation；failure/cancel stop，no rerun、
+  automatic retry 或 second push。candidate self revision/tree/CI
+  empty/pending/0；下一步仅为 separate exact-four source acceptance。
+- 残余风险保持 fail-closed: `implementation_complete=true` 不等于 operational
+  readiness。状态必须是 `SOURCE_ONLY_IMPLEMENTATION_COMPLETE_NOT_AUTHORIZED`，
+  四个 `EXECUTION_ENABLED` 均 false，credential/capture capsule
+  `NOT_PROVISIONED`。OAuth/API/root/sudo/DB/network/capture/materialize/private/
+  paid/cleanup/replay 均 NO-GO 且实际计数/CNY 为零。Item26 unverified、
+  evidence空、S0 open、M1/M2 absent、readiness `25/29`/`25/38`、credit false。

@@ -879,3 +879,43 @@ Only service names and variable names are documented here; no secret values.
   sequence is A acceptance → separate bridge/materializer source → separate
   bridge/materializer acceptance → separately authorized OAuth/capture.  No
   operational count or readiness state changes here.
+
+## Item 26 M1 capture/materializer source architecture candidate (2026-08-20)
+
+- Accepted ledger A `a30b879d06c388a4a0e230b5a23b2eaedc93649d`, parent
+  `65b82ffd890479315c9a93769cf11e2a9d27074b`, tree
+  `cfc060262cea88c2658295da8b871d815a2d426a`, is the sole parent of the
+  authorized exact-six source candidate.  A's attempt-one push
+  `32279571023`/`96154867794` and PR `32279575953`/`96154882780` are terminal
+  green with 22/22 steps, Unit 2,700/zero failure-error/34 skips, frozen
+  `[10,1,12,22,21]`, Quality 7+1, PostgreSQL 6, readiness 138 and Compose.
+- Candidate source/test static identities are respectively
+  `100644`/448,346B/blob `56c837b03fbae41017e8d2e8c86b453b44c5d316`/
+  SHA-256 `28910869ab5043a50b029cabbfe4d1502b79f20e0d2dd145ed5c31bca81c9c2e`
+  and `100644`/273,690B/blob `2de6a41d08c1d787d82bbc7024845622f4704b2b`/
+  SHA-256 `29e84bbdffebc4795cbfc350f623df5242e3f2257cc14851825c89cbeabf49af`.
+  Embedded payloads freeze as `CAPTURE_BOOTSTRAP` 11,240B/
+  `15f05e57bcc5fc6ddbd4ae8cdd732e531834719c8d11d92b3c6099bf9353dc74`,
+  `MATERIALIZE_BOOTSTRAP` 12,425B/
+  `308a68bda0f91199e59653b426775ff3c657953e1faea57ffee1da3b81d2984e`,
+  capture root 111,666B/
+  `7d71e514a4fa30635df26dd52377d8ff172db2c2f0647416fbdd38a7bcab33c5`,
+  materialize root 71,653B/
+  `5d6ae172422b805fa2b358c605285a8056e37e492ce31fb2fdf724bc3047ec16`
+  and stage root 53,723B/
+  `62a469141b1e03a62018a9fec89001c95445126f0a4948c6c6331a9de778ca4c`;
+  their exact Git-blob OIDs are frozen in the readiness ledger.
+- The source implements gate-off outer/bootstrap/root contracts with READY,
+  gate, liveness, bounded status-loss containment and concrete default
+  capture/orchestrator/adapter-child wiring.  Static red-team is P0/P1/P2 zero;
+  normal/`-O` are 90/90 and outer plus five payloads compile in both modes.
+  Earlier 3C/4A identities are historical scoped evidence intentionally
+  superseded by signal/process-group containment and production-reachability
+  wiring, not current zero-drift identities.
+- `implementation_complete=true` describes source completeness only.  Status
+  remains `SOURCE_ONLY_IMPLEMENTATION_COMPLETE_NOT_AUTHORIZED`; all four
+  execution gates are false, credential/capture capsules are `NOT_PROVISIONED`
+  and every operational/cost count is zero.  The architecture sequence remains
+  this exact-six source → exact-four source acceptance → separate credential /
+  OAuth source and acceptance → separately authorized capture and later
+  materialization.  None of those later authorities is implied here.

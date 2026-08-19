@@ -12343,3 +12343,72 @@ Colima, database, builder, restore and cloud actions remain frozen.
   NO-GO.  Item 26 remains `unverified` with `evidence: []`, S0 remains open,
   M1/M2 remain absent, readiness remains `25/29` internal and `25/38` public,
   and readiness credit remains false.
+
+### Item 26 A accepted; M1 bridge/materializer exact-six source pending (2026-08-20)
+
+- Ledger acceptance A `a30b879d06c388a4a0e230b5a23b2eaedc93649d` is
+  frozen as the exact-four direct child of accepted adapter checkpoint
+  `65b82ffd890479315c9a93769cf11e2a9d27074b`, with tree
+  `cfc060262cea88c2658295da8b871d815a2d426a`.  Its unique attempt-one push
+  `32279571023` / job `96154867794` was created/run-started at
+  `2026-08-20T17:04:57Z`, ran `17:05:00Z`–`17:33:56Z` and became terminal at
+  `17:33:56Z`.  Its PR `32279575953` / job `96154882780` was
+  created/run-started at `17:05:00Z`, ran `17:05:02Z`–`17:41:46Z` and became
+  terminal at `17:41:47Z`.  Both have attempt one, no previous attempt, zero
+  reruns and 22/22 successful steps.  Unit is 2,700 with zero failures/errors
+  and 34 skips; `[10,1,12,22,21]`, Quality seven pass plus one expected-fail,
+  PostgreSQL 6/6, production readiness 138/138 and Compose are green.  Each job
+  has one Node 20 deprecation warning and zero error/failure annotations; all
+  four terminal pointers and the exact push-plus-PR inventory agree.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-CAPTURE-MATERIALIZER-STAGER-SOURCE-001` creates exactly
+  one source-only exact-six candidate directly above A: the four ledgers,
+  `tools/stage_collect_and_materialize_item26_manual_cost_stop_m1_v2.py` and
+  `tests/test_stage_collect_and_materialize_item26_manual_cost_stop_m1_v2.py`.
+  Source freezes as mode `100644`, 448,346 bytes, blob
+  `56c837b03fbae41017e8d2e8c86b453b44c5d316`, SHA-256
+  `28910869ab5043a50b029cabbfe4d1502b79f20e0d2dd145ed5c31bca81c9c2e`;
+  test freezes as mode `100644`, 273,690 bytes, blob
+  `2de6a41d08c1d787d82bbc7024845622f4704b2b`, SHA-256
+  `29e84bbdffebc4795cbfc350f623df5242e3f2257cc14851825c89cbeabf49af`.
+- Five embedded payload identities are frozen by static extraction and Git-blob
+  recomputation: `CAPTURE_BOOTSTRAP` 11,240 bytes / SHA-256
+  `15f05e57bcc5fc6ddbd4ae8cdd732e531834719c8d11d92b3c6099bf9353dc74` /
+  blob `b39d2a0c2e271492b20e730aafaa709645430f2c`;
+  `MATERIALIZE_BOOTSTRAP` 12,425 /
+  `308a68bda0f91199e59653b426775ff3c657953e1faea57ffee1da3b81d2984e` /
+  `b72a95673696e62fd37b42adedda64411158e817`; `CAPTURE_ROOT_PROGRAM`
+  111,666 / `7d71e514a4fa30635df26dd52377d8ff172db2c2f0647416fbdd38a7bcab33c5`
+  / `0c0322db046d235dd18f6bc213140c0977fa684f`;
+  `MATERIALIZE_ROOT_PROGRAM` 71,653 /
+  `5d6ae172422b805fa2b358c605285a8056e37e492ce31fb2fdf724bc3047ec16`
+  / `cd581a15bd992ccad2399d01e866d5db60bc8cfb`; and `STAGE_ROOT_PROGRAM`
+  53,723 / `62a469141b1e03a62018a9fec89001c95445126f0a4948c6c6331a9de778ca4c`
+  / `66a10b66075dd8173deb7ecbb940285b656b39f0`.
+- Red-team final review of the static source/test pair is GO with
+  P0/P1/P2=`0/0/0`.  Normal and `-O` each pass 90/90 focused tests; outer plus
+  all five embedded programs compile in both modes.  Capture/materialize
+  worst-case timeout bounds are 917/117 seconds beneath outer 920/120-second
+  bounds.  Earlier 3C and 4A identities are historical scoped evidence only:
+  they were intentionally superseded while adding five-signal and active-child
+  process-group containment, outer gate/liveness bootstraps and concrete
+  default capture/orchestrator/adapter-child wiring.  No historical identity is
+  asserted as the current payload.
+- The implementation status is exactly
+  `SOURCE_ONLY_IMPLEMENTATION_COMPLETE_NOT_AUTHORIZED` and
+  `implementation_complete` is true, but all four `EXECUTION_ENABLED` gates
+  are false.  Credential and capture capsules are `NOT_PROVISIONED`;
+  operational authorization/readiness are false.  No payload was executed and
+  no sudo, root write/staging, OAuth/configuration, credential read/write,
+  network/provider/API/cloud call, database action, capture, materialization,
+  public output, private-key action, paid action, cleanup or replay occurred;
+  all current-round counts and incremental cost are zero.
+- The authority permits only source/test/check work, one commit, one normal
+  non-force push and observation of the unique attempt-one push/PR CI.
+  Failure/cancellation stops, with no rerun, automatic retry or second push.
+  Candidate revision/tree and own CI remain empty/pending with counts zero
+  until self-binding.  The next node is a separate exact-four source
+  acceptance; credential/OAuth source and acceptance plus any operational
+  capture/materialization authority remain separate future gates.  Item 26 is
+  still `unverified` with `evidence: []`, S0 is open, M1/M2 are absent,
+  readiness stays `25/29` and `25/38`, and credit remains false.
