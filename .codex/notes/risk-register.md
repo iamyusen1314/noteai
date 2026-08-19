@@ -2886,3 +2886,105 @@ Last updated: 2026-08-19
   absent, Item 26 stays unverified, readiness stays `25/29` internal and
   `25/38` public, and no credit is added.  Fresh provider/ActionTrail capture
   requires a new action-scoped CTO authorization.
+
+### Item 26 G accepted; direct Aliyun legacy-RPC adapter L remains source-only
+
+- 已冻结基线: G `9146d7a264418f59d76e4d8c7a46ac2abc80e9e8`, tree
+  `01babbd78832ccc745c65442e030390a25719b89`, is F's exact-five direct child.
+  Its sole push `32258307819`/job `96085173739` and PR
+  `32258312429`/job `96085188749` are unique attempt-one successes with zero
+  reruns, 22/22 steps, Unit `2674`/34 skips/zero failure-error, frozen
+  `[10,1,12,22,21]`, Quality `7+1`, PostgreSQL `6/6`, readiness `138/138` and
+  Compose.  G is accepted evidence, not operational authority.
+- 当前授权风险边界: `CTO-AUTH-ITEM26-M1-BRIDGE-SOURCE-001` covers only L,
+  G's direct-child exact-six source candidate: one FD-only read adapter, one
+  test and four ledgers; one commit, one normal non-force push and unique
+  attempt-one push/PR observation.  Any failure/cancel stops.  Rerun, automatic
+  retry, second push, execution, sudo, root/private-key/provider/API/database
+  access, capture, materialization, cleanup, replay, installer and credit are
+  excluded.  L cannot self-bind; revision/tree stay empty and own CI stays
+  pending/count zero until a later ledger-only acceptance successor A.
+- P1 transport gap: The adapter source and `SOURCE_ONLY_NOT_AUTHORIZED` status
+  do not prove a controlled or runnable transport.  L uses stdlib `http.client`
+  to implement Alibaba Cloud's official legacy RPC protocol directly; it never
+  executes the CLI/plugins, and CLI `3.4.11` only freezes signing/query parity.
+  Public-FD, identity and credential-handling findings are now resolved with
+  source red-team `P0=0/P1=0`; exact source/test identities are frozen, but L
+  remains self-unbound and unaccepted.  The installed collector is offline, no local
+  provider session is configured, and the candidate still needs a separately
+  accepted bridge/materializer.  Official Homebrew Aliyun CLI `3.4.11` and the ActionTrail `0.7.1`,
+  RDS `0.7.6` and BssOpenApi `0.7.5` plugins are present with exact binary
+  sizes/hashes, but the CLI is mode `0555`, owned by `openclaw:admin`, and has
+  no OAuth profile/config; configure/API/capture counts remain zero.  The
+  CLI/plugins are parity references and future OAuth/bootstrap or evidence
+  tooling, not L's runtime transport.  A separate bridge/materializer source
+  checkpoint and its ledger-only acceptance are required after A; only then may
+  separate OAuth/capture authority be considered.  Only an already-authenticated official transport with non-TTY FD
+  input/output is admissible.  Raw IDs, bodies, credentials, cookies, headers,
+  signed URLs and browser/auth state must never be exposed via argv, env,
+  user-owned files, Git, stdout or stderr.
+- Credential/TLS provenance risk: L never reads full CLI config or OAuth tokens.
+  It accepts only a bridge-projected canonical minimal temporary-STS envelope;
+  envelope `source` is an assertion, not proof, so the future bridge must bind
+  the fixed CLI config inode/hash/profile.  Runtime has three exact legacy-RPC
+  endpoint tuples.  The current Mac CA dependency is root-owned `0644`
+  `/etc/ssl/cert.pem`, 333,483 bytes and SHA-256
+  `9dae8d76e55cb08991f2b672d58999ea15560d910759c16b544f843bdffbb994`.
+  Capture must preflight that exact identity/hash; an OS CA update fails closed
+  and requires a new successor.  The implicit `SSL_CERT_FILE`, `SSL_CERT_DIR`
+  and `SSLKEYLOGFILE` paths are excluded, but not every OpenSSL variable is
+  claimed neutralized; the future bridge must clean-env exec and reject
+  credential/SSL/OpenSSL/proxy env.  This round's fake tests read no CA and
+  perform no network action.
+- OAuth is a future gate, not implied capability: its design/authorization is
+  absent, default user-owned CLI config is forbidden, and any persistence needs
+  separately authorized root-owned `O_EXCL` `0600` custody.  Capture must bind
+  expected account/principal from audited local OAuth metadata or equivalent
+  trusted identity without relying on envelope source/profile or adding an
+  identity-binding provider call.  Current OAuth/config/credential counts are zero.
+- Root-entry containment: before any credential FD read, the public entry must
+  prove effective root, core-dump soft/hard limits `(0,0)` and Python `-I -S -B`
+  isolation semantics; its error surface is fixed and secret-free with causes
+  suppressed.  The future bridge still owns clean-env execution and exact root
+  staging/inventory.  Current public-entry/root-staging/credential-read/
+  OAuth/provider counts are all zero.
+- Output-channel risk is pre-dispatch: a zero-byte response write-half preflight
+  must pass before any request/credential read or provider factory creation, so
+  an unusable output socket cannot be discovered only after cloud dispatch.
+  This round exercises only fakes; operational preflight/dispatch remain zero.
+- Descriptor-mode risk also fails pre-credential: request, credential and
+  response FDs with `O_NONBLOCK` or `O_ASYNC` are rejected before provider
+  factory/dispatch.  Fake coverage adds no operational FD validation or call.
+- Static audit evidence: source mode/bytes/blob/SHA are
+  `100644`/`31410`/`f53a01805ea68005ca9e56a08dfa491221c224cf`/
+  `719886d2846a7602bf3fc0529f5c191305b58465c668d171461860d4c60aadb9`;
+  test values are `100644`/`38393`/
+  `6cc138d5b9170cbbe7468a9b17530fe3d25533de`/
+  `8a0c5227968217132c041cae9b3e201c37e97816ab6e9f8cab353638528faacf`.
+  Normal/`-O` each ran 26 focused tests with 25 pass and one explicit Darwin
+  `SOCK_SEQPACKET` unsupported skip; Linux CI must execute the negative case.
+  Compile and pinned CA readback pass.  Network/API/credential/OAuth and all
+  operational counts stay zero.
+- Future-action inventory, not authority: capture must separately bind
+  G/L/A, the accepted bridge/materializer checkpoint, control, installed
+  runtime/result and exact adapter/bridge identities plus any CLI/plugin
+  identities actually used for OAuth/bootstrap.  OAuth requires
+  its own prior authorization and must hold provider calls at zero.  Capture may use one
+  serial session; run exactly five logical streams (`LookupEvents` x2,
+  `DescribeDBInstances` x2, `QueryInstanceBill` x1); allow only pagination
+  continuation up to 64 reads and a 15-minute begin/finish bound; hold
+  incremental cost, cloud writes, mutations, DB connection/transaction/write
+  and private-key read/write/output at zero.  Root journal/raw writes must be
+  `O_EXCL`, mode `0600` and FD-only.  Unknown/failure stops with no retry,
+  replay, concurrent provider dispatch or cleanup.  The future 8 MiB response
+  contract requires one isolated adapter child and one parent local-`AF_UNIX`
+  drain as IPC containment; this does not create a second cloud request and
+  provider dispatch concurrency stays zero.  Current child/drain counts are
+  zero.  A separate later authorization is required
+  for `O_EXCL` public receipt/evidence materialization; overwrite is forbidden.
+- 残余状态: None of the future actions occurred.  Operational capture,
+  journal/cloud/API/database/materialization/paid/replay/cleanup counts remain
+  zero; M1 receipt/evidence and M2 are absent; S0 is open; Item 26 remains
+  unverified with empty evidence; readiness is `25/29` internal and `25/38`
+  public; credit remains false.  The seven quarantined untracked paths remain
+  untouched.
