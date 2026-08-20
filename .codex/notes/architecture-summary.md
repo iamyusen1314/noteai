@@ -964,3 +964,32 @@ Only service names and variable names are documented here; no secret values.
   false and all current-round operational/cost counts zero.  OAuth, provider
   calls, capture and materialization remain future independent gates.  S0,
   Item 26, M1/M2, readiness and credit do not change.
+
+## Item 26 M1 portability successor terminal acceptance architecture (2026-08-20)
+
+- Exact-five `4bddf697f9ed8d86890b851e5390c402e8413950`, parent
+  `2b690ffe7f484e07075e776f52fdb436d297dc4d`, tree
+  `d9ad6d1a2a359b900da7148779f830e8b63b78f1`, is the accepted append-only
+  portability successor.  Its five path identities are frozen in the readiness
+  ledger.  The repaired test remains 276,592 bytes/blob
+  `395183cda18a6021a923764ea0f584abacdbebf4`/SHA-256
+  `00e04d37b58ef746766a59b7ee57d58cf5adf146f9cb20ea27db29734d96b121`;
+  source and all five embedded payload identities remain unchanged.
+- Push `32317333050`/`96272304838` and PR
+  `32317336506`/`96272314969` are the unique terminal-success routes for this
+  exact revision.  Both are attempt one, previous-attempt null, rerun zero and
+  22/22 steps.  Each ran Unit 2,790 with F0/E0/skip36, frozen
+  `[10,1,12,22,21]`, Quality 7 PASS + 1 EXPECTED_FAIL, PostgreSQL 6 OK,
+  readiness 138/138 and Compose success.  Each has one Node 20-to-24 warning
+  and no error/failure annotations; four terminal pointers and the exact
+  push-plus-PR inventory agree.
+- `CTO-AUTH-ITEM26-M1-SOURCE-CI-PORTABILITY-ACCEPTANCE-001` permits only one
+  direct-child exact-four ledger acceptance candidate.  Its revision/tree and
+  own CI stay empty/pending/zero before self-binding.  The full allowance is
+  one commit, one normal non-force push and one unique attempt-one push/PR
+  observation; failure/cancel stops and retry, rerun or second push is
+  forbidden.
+- Acceptance changes controlled source topology only.  The exact-four child
+  must not change source, test or payload bytes.  Execution gates, credential /
+  capture provisioning, operational authority/readiness, actions, cost, S0,
+  Item 26, M1/M2, readiness and credit remain unchanged and fail-closed.

@@ -3113,3 +3113,30 @@ Last updated: 2026-08-19
   capture/materialize/private/paid/cleanup/replay 均未授权且计数/CNY 为零。
   Item26 unverified、evidence空、S0 open、M1/M2 absent、readiness
   `25/29`/`25/38`、credit false。
+
+## Item 26 M1 portability successor accepted and exact-four ledger boundary (2026-08-20)
+
+- portability closure 已冻结：`4bddf697f9ed8d86890b851e5390c402e8413950`
+  是 rejected `2b690ffe7f484e07075e776f52fdb436d297dc4d` 的 direct-child
+  exact-five，tree `d9ad6d1a2a359b900da7148779f830e8b63b78f1`。五路径身份、
+  repaired test 276,592B/blob `395183cda18a6021a923764ea0f584abacdbebf4`/
+  SHA-256 `00e04d37b58ef746766a59b7ee57d58cf5adf146f9cb20ea27db29734d96b121`
+  已固定；source 与五 payload 零漂移。
+- 双路 acceptance 证据：push `32317333050`/job `96272304838` 与 PR
+  `32317336506`/job `96272314969` 均 unique attempt-one、previous null、
+  rerun0、completed/success、22/22。每路 Unit 2,790、F0/E0/skip36，
+  `[10,1,12,22,21]`、Quality 7 PASS + 1 EXPECTED_FAIL、PG6、readiness138/0、
+  Compose 全绿；annotation 各 warning1 Node20-to-24、error0/failure0。
+  四 terminal pointers exact，inventory 恰 push1+PR1。旧 `2b690ffe...`
+  failure 仍不可 rerun。
+- `CTO-AUTH-ITEM26-M1-SOURCE-CI-PORTABILITY-ACCEPTANCE-001` 只允许
+  `4bddf697...` 的 direct-child exact-four ledger candidate。self
+  revision/tree/own CI 仍 empty/pending/0；one commit、one normal non-force
+  push、unique attempt-one push/PR observation 是全部授权。failure/cancel
+  即停，automatic retry、rerun、second push 均禁止。
+- exact-four 必须 source/test/五payload zero-touch，且本 acceptance 不授予任何
+  execution/sudo/root/OAuth/credential/network/provider/API/cloud/DB/capture/
+  materialize/private/paid/cleanup/replay 权限。四 execution gates false，
+  credential/capture `NOT_PROVISIONED`，所有 round count/CNY 为零；Item26
+  unverified、evidence空、S0 open、M1/M2 absent、readiness `25/29`/`25/38`、
+  credit false。

@@ -12484,3 +12484,54 @@ Colima, database, builder, restore and cloud actions remain frozen.
   action occurred, and every current-round count/cost remains zero.  Item 26
   stays `unverified` with `evidence: []`, S0 stays open, M1/M2 stay absent,
   readiness stays `25/29` internal and `25/38` public, and credit stays false.
+
+### Item 26 M1 source portability successor accepted; exact-four ledger acceptance pending (2026-08-20)
+
+- Append-only portability successor
+  `4bddf697f9ed8d86890b851e5390c402e8413950` is frozen as the exact-five
+  direct child of rejected source checkpoint
+  `2b690ffe7f484e07075e776f52fdb436d297dc4d`, with tree
+  `d9ad6d1a2a359b900da7148779f830e8b63b78f1`.  Its changed paths are exactly
+  the four ledgers plus
+  `tests/test_stage_collect_and_materialize_item26_manual_cost_stop_m1_v2.py`.
+  The test remains mode `100644`, 276,592 bytes, blob
+  `395183cda18a6021a923764ea0f584abacdbebf4`, SHA-256
+  `00e04d37b58ef746766a59b7ee57d58cf5adf146f9cb20ea27db29734d96b121`;
+  source remains 448,346 bytes, blob
+  `56c837b03fbae41017e8d2e8c86b453b44c5d316`, SHA-256
+  `28910869ab5043a50b029cabbfe4d1502b79f20e0d2dd145ed5c31bca81c9c2e`.
+  All five embedded payload identities are byte-identical to the frozen
+  source checkpoint.
+- Unique attempt-one push run `32317333050` / job `96272304838` was
+  created/run-started at `2026-08-20T00:26:44Z`; its job ran
+  `00:26:53Z`–`00:58:56Z`, Unit ran `00:27:50Z`–`00:58:14Z`, and the run was
+  terminal success at `00:58:56Z`.  Unique attempt-one PR run `32317336506` /
+  job `96272314969` was created/run-started at `00:26:48Z`; its job ran
+  `00:26:50Z`–`00:51:43Z`, Unit ran `00:27:48Z`–`00:51:11Z`, and the run was
+  terminal success at `00:51:43Z`.  Both routes have previous attempt null,
+  rerun zero and 22/22 successful steps.
+- Each route ran Unit 2,790 with zero failures/errors and 36 skips.  Frozen
+  counts are `[10,1,12,22,21]`; Quality is seven PASS plus one EXPECTED_FAIL,
+  PostgreSQL is 6/6 OK, production readiness is 138/138 and Compose succeeds.
+  Each job has one Node 20-to-24 deprecation warning and zero error/failure
+  annotations.  All four terminal pointers are exact and the run inventory is
+  exactly one push plus one PR.  The rejected `2b690ffe...` attempt remains
+  immutable with no rerun.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-SOURCE-CI-PORTABILITY-ACCEPTANCE-001` accepts
+  `4bddf697...` as the current source-only portability successor and creates
+  exactly one direct-child exact-four candidate containing only the four
+  ledgers.  Its self revision/tree remain empty and own CI remains pending,
+  with commit, push, push-CI, PR-CI, observation, retry and rerun counts zero
+  until self-binding.  Authority is capped at one commit, one normal non-force
+  push and its unique attempt-one push/PR CI observation.  Failure/cancellation
+  stops; automatic retry, rerun and a second push are forbidden.
+- This acceptance is non-operational.  Source, test and all five embedded
+  payloads are zero-touch in the exact-four candidate.  All four execution
+  gates remain false; credential and capture capsules remain `NOT_PROVISIONED`;
+  operational authorization/readiness remain false.  No execution, sudo/root,
+  OAuth/configuration/credential, network/provider/API/cloud, database,
+  capture, materialization, public output, private-key, paid, cleanup or replay
+  action occurred; all current-round counts and cost remain zero.  Item 26
+  stays `unverified` with `evidence: []`, S0 stays open, M1/M2 stay absent,
+  readiness stays `25/29` internal and `25/38` public, and credit stays false.
