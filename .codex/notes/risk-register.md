@@ -3379,3 +3379,28 @@ Last updated: 2026-08-19
 - helper contract、五C4 blockers+adapter治理blocker、exact9 false、stock CLI/
   helper NO-GO、`NOT_PROVISIONED`、research/Homebrew history及real action ops0
   全不变；Item26/evidence/S0/M1/M2、`25/29`/`25/38`、credit false不变。
+
+## Item 26 C4 helper secret-scanner portability source exact-four acceptance (2026-08-20)
+
+- accepted source checkpoint
+  `8b5c2228024c74e121dd396098721e750d73464e`固定parent83d/tree
+  `62b3c62e04890adf2deb1cfc87285b1e8208911d`及exact-five四账本+
+  scanner-safe source；source 41,082B/SHA`14cca826…`/blob`16e521e2…`，test
+  74,603B/SHA`393bce0b…`/blob`f5c91774…` zero-touch。
+- monitor inventory恰2：push `32371230055`/suite`87751494706`/job
+  `96432033577`与PR `32371234405`/suite`87751507012`/job`96432044674`
+  均unique attempt1/previous null/terminal success；Unit2940 F0/E0/skip36，
+  duration分别1862.055s/1837.939s。Quality/PG/readiness138/Compose原生step
+  conclusion success；未提供的sub-breakdown不推断。每路Node20→24 warning1、
+  error/failure annotation0，四pointers exact，monitor write/rerun0。
+- authority
+  `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-CI-SECRET-SCANNER-PORTABILITY-ACCEPTANCE-001`
+  仅接受8b5c source并允许其direct-child exact-four四账本。旧record仅3项
+  supersede；新self revision/tree empty、ownCI pending0；source/test/C1/C2/C3/
+  M1/payload zero-touch，failure/cancel即停且no retry/rerun/second push。
+- 83d terminal failure/push hard-stop不再poll、ledger137/138 scanner stop、
+  red-team tooling error及lost-handle orchestration deviation均作为immutable
+  history保留，acceptance不把其改写为success。五C4 blockers+adapter blocker、
+  exact9 false、stock CLI/helper NO-GO、`NOT_PROVISIONED`、research/Homebrew
+  history、ops0/unauthorized、Item26/S0/M1/M2、`25/29`/`25/38`及credit false
+  全不变。

@@ -13068,3 +13068,52 @@ Colima, database, builder, restore and cloud actions remain frozen.
   zero with 138/138 checks.  The subsequently permitted single optimized run
   also exited zero with 138/138 checks.  Neither route was rerun; no source,
   test, operational, external, stage, commit or push action occurred.
+
+## Current task — Item 26 C4 helper secret-scanner portability source exact-four acceptance (2026-08-20)
+
+- Accepted source checkpoint `8b5c2228024c74e121dd396098721e750d73464e`
+  is the exact-five direct child of terminal-failed
+  `83dca4c16871078bc5b1ced6ac444f43a5889e9d`, with tree
+  `62b3c62e04890adf2deb1cfc87285b1e8208911d`.  Its five committed paths
+  are the four ledgers plus the scanner-safe C4 helper source; the dedicated
+  helper test remains the frozen 74,603B/SHA-256 `393bce0bf51fcd09a7bf339927e6fd6ee84a03ef3f9839704c3d5dd83ba982b6`/
+  blob `f5c9177492f38fa5f144d52a1802eb551ea96a42` zero-touch identity.
+- Monitor inventory is exactly two unique attempt-one runs with previous
+  attempt null.  Push run `32371230055` (#730), suite `87751494706`, job
+  `96432033577` ran `12:53:41Z`–`13:26:42Z`; its job ran `12:53:44Z`–
+  `13:26:41Z`, and Unit ran `12:54:40Z`–`13:26:01Z`, reporting 2,940 tests
+  in 1,862.055 seconds, 36 skips and zero failures/errors.  PR run
+  `32371234405` (#731), suite `87751507012`, job `96432044674` ran
+  `12:53:44Z`–`13:26:22Z`; its job ran `12:53:47Z`–`13:26:22Z`, and Unit ran
+  `12:54:45Z`–`13:25:42Z`, reporting 2,940 tests in 1,837.939 seconds, 36
+  skips and zero failures/errors.  All four run/job pointers resolve exactly
+  to 8b5c and both jobs are terminal success.
+- Each route records Quality, PostgreSQL and Compose step success plus
+  production readiness 138/138.  The supplied monitor evidence does not
+  independently enumerate the Quality or PostgreSQL sub-breakdown, so this
+  acceptance freezes their native step conclusions without inventing counts.
+  Each route has exactly one Node 20-to-24 warning and zero error/failure
+  annotations.  Monitor write/rerun counts are zero.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-CI-SECRET-SCANNER-PORTABILITY-ACCEPTANCE-001`
+  accepts the 8b5c source checkpoint and permits exactly one 8b5c direct-child
+  exact-four candidate containing only the four ledgers.  Source, test and all
+  C1/C2/C3/M1/payload identities are zero-touch.  Candidate revision/tree stay
+  empty and own CI pending/0; future scope remains one commit, one normal
+  non-force push and one unique attempt-one push/PR observation, with failure/
+  cancel stop and no retry/rerun/second push.
+- The 83d PR terminal failure, push-in-progress hard stop/no repoll, read-only
+  connector diagnosis, intermediate source hit, ledger 137/138 hard stop,
+  red-team auxiliary tooling error and lost-handle orchestration deviation are
+  retained as history, each with its original no-rerun boundary.  The recovery-
+  authorized normal and optimized observations remain 138/138; acceptance does
+  not convert any earlier failed or unobserved run into success.
+- Source remains 41,082B/SHA-256
+  `14cca82670e933efc7738f71f8e4705cb90fecd484c6e9c5f14062a2f5f354c3`/
+  blob `16e521e272e200db9930b77febe1b5ec8e840ba4`, with exactly three numeric-
+  separator-only changes and equal AST semantics.  Helper contract, five C4
+  blockers plus adapter governance blocker, all nine false gates, stock CLI/
+  helper NO-GO and `NOT_PROVISIONED` are unchanged.  Research/count-null and
+  Homebrew histories remain honest; all real operational actions remain zero
+  and unauthorized.  Item 26/evidence/S0/M1/M2, readiness `25/29`/`25/38`
+  and credit false remain unchanged.

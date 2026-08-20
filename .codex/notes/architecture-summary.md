@@ -1244,3 +1244,29 @@ Only service names and variable names are documented here; no secret values.
 - Contract, five frozen blockers plus adapter governance blocker, exact-nine
   false gates, stock CLI/helper NO-GO, `NOT_PROVISIONED`, history and all real
   action-zero boundaries remain unchanged.
+
+## C4 helper secret-scanner portability source acceptance boundary (2026-08-20)
+
+- Exact-five `8b5c2228024c74e121dd396098721e750d73464e`, parent 83d and
+  tree `62b3c62e04890adf2deb1cfc87285b1e8208911d`, contains exactly the
+  four ledgers plus 41,082B scanner-safe source SHA `14cca826…`/blob
+  `16e521e2…`; 74,603B test SHA `393bce0b…`/blob `f5c91774…` is zero-touch.
+- Its exact-two monitor inventory is unique attempt-one push
+  `32371230055`/suite `87751494706`/job `96432033577` and PR
+  `32371234405`/suite `87751507012`/job `96432044674`, both previous-null and
+  terminal success.  Unit is 2940 F0/E0/skip36 on both routes, with durations
+  1862.055s and 1837.939s.  Quality, PostgreSQL, readiness138/0 and Compose
+  native step conclusions are success; only the supplied conclusions, not
+  unavailable sub-breakdown counts, are frozen.  Each route has warning1 for
+  Node 20-to-24 and error/failure annotations0.  Four pointers are exact and
+  monitor write/rerun0.
+- `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-CI-SECRET-SCANNER-PORTABILITY-ACCEPTANCE-001`
+  permits one 8b5c direct-child exact-four containing only the ledgers.  Old
+  portability record receives only three supersede fields; new self revision/
+  tree remain empty and own CI pending0.  Source/test/C1/C2/C3/M1/payload are
+  zero-touch, and failure/cancel still stops with no retry/rerun/second push.
+- The 83d CI failure/hard stop, local 137/138 ledger scanner stop, red-team
+  tooling deviation and lost-handle deviation remain immutable history rather
+  than acceptance credit.  Five C4 blockers plus adapter governance blocker,
+  exact-nine false gates, stock CLI/helper NO-GO, `NOT_PROVISIONED`, research/
+  Homebrew history and every operational zero/unauthorized boundary remain.
