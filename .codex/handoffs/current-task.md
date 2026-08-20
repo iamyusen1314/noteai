@@ -12780,3 +12780,72 @@ Colima, database, builder, restore and cloud actions remain frozen.
   passes in both modes; internal/public readiness in both modes remains
   `25/29` and `25/38`; production readiness in both modes passes 138/138; and
   direct tracked-file secret hygiene passes.  No failed gate was rerun.
+
+## Current task — Item 26 C3 stock Aliyun CLI OAuth capability NO-GO exact-six source candidate (2026-08-20)
+
+- Accepted ledger `74c1c732c3fdafdc402ec2cc313fc9eafd45d839` is the
+  exact-four direct child of 3270 with parent
+  `3270e0abcfe515a1c066335da182b26031abb5eb` and tree
+  `026f78d609ee13c85d43634ec4cf4290b27e51ac`.  Its unique attempt-one
+  push run `32343007517`/check suite `87675939533`/job `96345723914` and
+  PR run `32343013275`/suite `87675953859`/job `96345739667` are terminal
+  success, previous attempt null, rerun zero and 22/22.  Push ran at
+  `07:13:24Z` (job `07:13:27Z`–`07:46:12Z`, updated `07:46:13Z`, Unit
+  `07:14:34Z`–`07:45:28Z`); PR ran at `07:13:28Z` (job
+  `07:13:30Z`–`07:46:50Z`, updated `07:46:51Z`, Unit
+  `07:14:38Z`–`07:46:06Z`).  Each route has Unit 2,853 with zero
+  failures/errors and 36 skips, reported duration 1,835.234s push or
+  1,867.948s PR, and all 107 focused methods.  Frozen counts are
+  `[10,1,12,22,21]`; Quality is 7 PASS plus 1 EXPECTED_FAIL, PostgreSQL is
+  6 OK, readiness is 138/138 and Compose succeeds.  Each route has one Node
+  20-to-24 warning and zero error/failure annotations; all four terminal
+  pointers are exact and inventory is exactly one push plus one PR.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-ALIYUN-CLI-OAUTH-CAPABILITY-SOURCE-001` permits one
+  74c1 direct-child exact-six source-only candidate: the four ledgers plus
+  `tools/item26_aliyun_cli_oauth_bootstrap_v1.py` and its test.  Source freezes
+  as mode `100644`, 19,960B/blob
+  `07ef4524e67e47efebe7c089975d7f3579817161`/SHA-256
+  `1d591941608ef50fee0a62d5b168e410d7579fc7dc628535a516264a0ea807ba`;
+  test freezes as mode `100644`, 36,379B/blob
+  `cf89538f92dabbe826ae7951deb3c925a251ed14`/SHA-256
+  `dfcbb4cec8e9056aead8abcb1f74fc8c1be29c8134cff4d3c7bab9b279a10831`.
+  Red-team is P0/P1/P2=`0/0/0`; normal and `-O` each pass 37/37.
+- The source pins official Aliyun CLI release `v3.4.11` to full commit
+  `f54f5fe9caa99723a6324b20eaa60f3de3b049cb`.  Its evidence index contains
+  one accepted local identity plus 11 official evidence entries, with 12 URL
+  occurrences and 10 unique URLs spanning exact source, release/commit and
+  mutable official documentation.  It freezes 11 observed stock capabilities
+  and eight NoteAI acceptance requirements.  All eight accepted requirements
+  fail stock support, so the only decision is
+  `NO_GO_STOCK_CLI_FD_ONLY_OAUTH`; this is an evidence-backed negative
+  capability checkpoint, not a claim that the stock CLI has no OAuth at all.
+- The accepted local static identity is Aliyun CLI 3.4.11 at
+  `/opt/homebrew/Cellar/aliyun-cli/3.4.11/bin/aliyun`, mode `0555`, owner
+  `openclaw:admin`, 87,064,450B, SHA-256
+  `7a418ea428dcbfeaab2af8760938aeda8d2f16bd77b586cbe4c75b07034df8fb`.
+  Provenance is tracked-ledger static identity, not live CLI inspection; the
+  CLI is not executed by this source round.
+- Official research browsing did occur, so a generic external-network-zero
+  claim is false.  Exact research request count is `null` with status
+  `NOT_EXACTLY_ENUMERATED`; it must not be rewritten as zero.  Provider calls,
+  login, OAuth action, API/cloud calls and config writes remain zero.  The
+  earlier Homebrew audit remains historical at one non-provider metadata
+  network event and one possible cache-write event.
+- Source status is `SOURCE_ONLY_IMPLEMENTATION_COMPLETE_NOT_AUTHORIZED` and
+  bootstrap/credential status is `NOT_PROVISIONED`; all six C3 execution gates
+  are false and every operational count remains zero.  Candidate revision/tree
+  and own CI stay empty/pending/0.  Authority is one commit, one normal
+  non-force push and one unique attempt-one push/PR observation; failure or
+  cancellation stops, with no retry, rerun or second push.  A separate source
+  acceptance and a capability replacement/decision must precede credential
+  provisioning and receipt acceptance; capture still requires a separate
+  operational authorization.  Item 26/evidence/S0/M1/M2, readiness
+  `25/29`/`25/38` and credit false remain unchanged.
+- Final local C3 validation is green: strict duplicate-key JSON, byte-prefix
+  append-only, old-three-supersede/base-CI/exact-six/source-test-identity/
+  official-matrix/research-accounting/self-pending/nonoperational semantic
+  audit and `git diff --check` pass; focused normal and `-O` each pass 37/37;
+  compile passes in both modes; internal/public readiness in both modes remains
+  `25/29` and `25/38`; production readiness in both modes passes 138/138; and
+  direct tracked-file secret hygiene passes.  No failed gate was rerun.

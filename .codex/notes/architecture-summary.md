@@ -1116,3 +1116,37 @@ Only service names and variable names are documented here; no secret values.
   one, generic historical zero claims false; no new external/provider/root
   action occurs.  Item26/evidence/S0/M1/M2, `25/29`/`25/38` and credit false
   remain unchanged.
+
+## C3 stock Aliyun CLI OAuth capability NO-GO source boundary (2026-08-20)
+
+- Exact-four base `74c1c732c3fdafdc402ec2cc313fc9eafd45d839` is fixed
+  above 3270 with tree `026f78d609ee13c85d43634ec4cf4290b27e51ac`.
+  Attempt-one push `32343007517`/suite `87675939533`/job `96345723914` and
+  PR `32343013275`/suite `87675953859`/job `96345739667` are terminal
+  success, previous null, rerun0 and 22/22.  Each route has Unit2853
+  F0/E0/skip36, duration1835.234s/1867.948s, 107 focused methods,
+  `[10,1,12,22,21]`, Quality7+1EF, PG6, readiness138/0 and Compose success;
+  four pointers are exact and inventory is exactly two.
+- `CTO-AUTH-ITEM26-M1-ALIYUN-CLI-OAUTH-CAPABILITY-SOURCE-001` permits only
+  one 74c1 direct-child exact-six: four ledgers plus the new stock-capability
+  source/test.  Identities freeze at 19,960B/`1d591941…`/blob `07ef4524…`
+  and 36,379B/`dfcbb4ce…`/blob `cf89538f…`; red-team is 0/0/0 and focused
+  normal/optimized are 37/37.
+- Official `v3.4.11` is commit-pinned to
+  `f54f5fe9caa99723a6324b20eaa60f3de3b049cb`.  Eleven official evidence
+  entries bind exact source, commit/release and official docs.  The matrix
+  distinguishes 11 observed stock capabilities from eight NoteAI accepted
+  requirements; all accepted rows reject stock support.  Result is precisely
+  `NO_GO_STOCK_CLI_FD_ONLY_OAUTH`, not a generic no-OAuth assertion.
+- Local CLI identity is a static tracked-ledger fact: version3.4.11, resolved
+  Homebrew path, mode0555, owner `openclaw:admin`, 87,064,450B and SHA-256
+  `7a418ea4…`; no CLI execution or live inspection occurs.  Research browsing
+  occurred, its request count is null/not-enumerated and generic network-zero
+  is false; provider/login/API/config-write remain zero.  Historical Homebrew
+  network/cache remains one/possible-one.
+- Candidate self revision/tree and own CI remain empty/pending/0; all six gates
+  are false, credential remains `NOT_PROVISIONED`, and this source authorizes
+  no operational action.  Source acceptance, capability replacement/decision,
+  provisioning plus receipt acceptance, and capture authorization remain
+  separate future gates.  Item26/evidence/S0/M1/M2, `25/29`/`25/38` and credit
+  false are unchanged.

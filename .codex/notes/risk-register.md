@@ -3254,3 +3254,35 @@ Last updated: 2026-08-19
 - Homebrew research/audit历史仍network1/possible cache1、generic historical
   zero claims=false；本轮new external/provider/root=0。Item26/evidence/S0/
   M1/M2、readiness `25/29`/`25/38`与credit false不变。
+
+## Item 26 C3 stock CLI OAuth capability NO-GO exact-six candidate (2026-08-20)
+
+- base `74c1c732c3fdafdc402ec2cc313fc9eafd45d839` 固定 parent
+  `3270e0abcfe515a1c066335da182b26031abb5eb` 与 tree
+  `026f78d609ee13c85d43634ec4cf4290b27e51ac`。push
+  `32343007517`/suite`87675939533`/job`96345723914`与PR
+  `32343013275`/suite`87675953859`/job`96345739667`均attempt1、previous
+  null、terminal success、rerun0、22/22；每路Unit2853 F0/E0/skip36、
+  duration1835.234/1867.948、107 methods、`[10,1,12,22,21]`、
+  Quality7+1EF、PG6、readiness138/0、Compose success、warning1/error0/
+  failure0；四指针exact，inventory恰2。
+- authority `CTO-AUTH-ITEM26-M1-ALIYUN-CLI-OAUTH-CAPABILITY-SOURCE-001`
+  仅允许74c1 direct-child exact-six四账本+新source/test。source/test固定
+  19,960B/SHA`1d591941…`/blob`07ef4524…`与36,379B/SHA`dfcbb4ce…`/
+  blob`cf89538f…`；red-team0/0/0、双模式37/37。
+- official `v3.4.11`精确绑定full commit
+  `f54f5fe9caa99723a6324b20eaa60f3de3b049cb`。11条official evidence、
+  11项observed stock capabilities与8项accepted requirements冻结；accepted
+  support全false，结论仅为`NO_GO_STOCK_CLI_FD_ONLY_OAUTH`，不得夸大为
+  stock CLI完全无OAuth。
+- local CLI static identity固定3.4.11/Homebrew resolved path/mode0555/
+  owner`openclaw:admin`/87,064,450B/SHA`7a418ea4…`，本轮不执行CLI。
+  official research web=true，request count=null且NOT_EXACTLY_ENUMERATED，
+  generic network zero=false；provider/login/API/config write=0。Homebrew历史
+  network1/possible cache1保留。
+- self revision/tree empty、ownCI pending0；status source-only NO-GO、credential
+  `NOT_PROVISIONED`、六gates false、ops0。one commit/one normal push/unique
+  attempt-one双CI，failure/cancel即停且no retry/rerun/second push。后续source
+  acceptance、capability replacement/decision、provisioning+receipt与capture
+  authorization均独立；Item26/evidence/S0/M1/M2、`25/29`/`25/38`、credit
+  false不变。
