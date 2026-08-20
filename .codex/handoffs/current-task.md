@@ -12906,3 +12906,71 @@ Colima, database, builder, restore and cloud actions remain frozen.
   both modes remains `25/29` and `25/38`; production readiness in both modes
   passes 138/138; and direct tracked-file secret hygiene passes.  No failed
   project gate was rerun.
+
+## Current task — Item 26 C4-S dedicated root OAuth helper exact-six source candidate (2026-08-20)
+
+- Accepted C3 ledger `10a3380bcea781ab25d96a09f21e56cd509bb1e4` is the
+  exact-four direct child of `a988f9860a5c95fee128dba3fca6860a16172128`
+  with tree `c8546b7109a93e148c67b8fac5206444e9a2ebdb`.  Its
+  unique attempt-one push run `32354383031`/suite `87706022903`/job
+  `96380307940` and PR run `32354387120`/suite `87706034069`/job
+  `96380320876` are terminal success, previous attempt null, rerun zero and
+  22/22.  Push ran `09:32:16Z`–`10:07:20Z` (job
+  `09:32:19Z`–`10:07:20Z`, Unit `09:33:31Z`–`10:06:34Z`); PR ran
+  `09:32:19Z`–`10:05:09Z` (job `09:32:21Z`–`10:05:08Z`, Unit
+  `09:33:16Z`–`10:04:28Z`).  Each route has Unit 2,890 with zero failures/
+  errors and 36 skips, `[10,1,12,22,21]`, Quality 7 PASS plus 1
+  EXPECTED_FAIL, PostgreSQL 6 OK, readiness 138/138 and Compose success.
+  Each has one Node 20-to-24 warning and zero error annotations; all four
+  run/job terminal pointers are exact and inventory is exactly two.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-SOURCE-001` permits only
+  one 10a direct-child exact-six source candidate: the four ledgers plus
+  `tools/item26_aliyun_dedicated_root_oauth_helper_v1.py` and its test.
+  Source freezes as mode `100644`, 41,085B/blob
+  `fbe9046bae5980edb139ed27e97a4b60c24c23fa`/SHA-256
+  `1c08620b17ea9ac14d73d634b8ad979bf5627d0d4a76b15ffd5fb0cea204561e`;
+  test freezes as mode `100644`, 74,603B/blob
+  `f5c9177492f38fa5f144d52a1802eb551ea96a42`/SHA-256
+  `393bce0bf51fcd09a7bf339927e6fd6ee84a03ef3f9839704c3d5dd83ba982b6`.
+  Red-team is P0/P1/P2=`0/0/0`; focused normal and `-O` each pass 50/50,
+  and compile/diff/whitespace are green.  C1/C2/C3, M1 and five embedded
+  payload identities are zero-touch.
+- The helper is pure validation plus an inert contract only.  Contract is
+  4,821B/SHA-256
+  `156bcaf6e9b600a932840f28d7458289744fb2e153b240e443ce515d2456adf4`;
+  source status is 7,958B/SHA-256
+  `b4f0fd465806f7327f8261a215bac46edecf4cd2a85534e8661bb6aff9c65978`.
+  Assessment is
+  `NO_GO_PENDING_DEDICATED_OAUTH_CLIENT_AND_ACTION_AUTHORIZATION` and stock
+  CLI remains separately `NO_GO_STOCK_CLI_FD_ONLY_OAUTH`; this source does not
+  make the stock CLI usable.
+- Five blocking conditions remain: dedicated OAuth client registration absent,
+  C1 source-label successor pending, C2 fixed-binding successor pending,
+  unprivileged broker pending and separate action authority receipt absent.
+  All nine execution gates are false.  Credential/bootstrap remains
+  `NOT_PROVISIONED`; real browser/login/OAuth/network/identity API/root/
+  credential/config/capture actions remain unauthorized and zero.
+- Candidate `__main__` is not executed and stock CLI/real action execution is
+  zero.  This is distinct from focused fake tests directly invoking
+  `module.main(Poison())`: two test methods per mode expect return 2, prove the
+  poison argv is unread, prove stdout/stderr empty, and prove the refusal path
+  calls only `request_bootstrap` once.  No function-main-zero claim is made.
+  The source-status operation scope has 37 zero counters and explicitly
+  excludes unrecorded pure-validator invocations.
+- Official research history remains web=true with exact request count `null`/
+  `NOT_EXACTLY_ENUMERATED`, so generic network-zero remains false.  Homebrew
+  history remains one non-provider metadata event and one possible cache
+  write.  Candidate revision/tree remain empty and own CI pending/0; authority
+  is one commit, one normal non-force push and one unique attempt-one push/PR
+  observation, with failure/cancel stop and no retry/rerun/second push.  Item
+  26/evidence/S0/M1/M2, readiness `25/29`/`25/38` and credit false remain
+  unchanged.
+- Final local C4-S validation is green: strict duplicate-key JSON, byte-prefix/
+  semantic append-only, old-three-supersede/10a-CI/exact-six/source-test-
+  identity/contract/five-blocker/nine-gate/fake-main-accounting/zero-touch/
+  self-pending/nonoperational audit and `git diff --check` pass; focused normal
+  and `-O` each pass 50/50; compile passes in both modes; internal/public
+  readiness in both modes remains `25/29` and `25/38`; production readiness in
+  both modes passes 138/138; and direct tracked-file secret hygiene passes.
+  No failed project gate was rerun.

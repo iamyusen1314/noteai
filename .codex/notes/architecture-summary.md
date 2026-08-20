@@ -1180,3 +1180,36 @@ Only service names and variable names are documented here; no secret values.
   network-zero false.  Homebrew history remains network1/possible-cache1; the
   acceptance adds no new external/provider/root action.  Item26/evidence/S0/
   M1/M2, readiness `25/29`/`25/38` and credit false remain unchanged.
+
+## C4-S dedicated root OAuth helper source boundary (2026-08-20)
+
+- Accepted exact-four base `10a3380bcea781ab25d96a09f21e56cd509bb1e4`
+  fixes parent `a988f9860a5c95fee128dba3fca6860a16172128`, tree
+  `c8546b7109a93e148c67b8fac5206444e9a2ebdb` and attempt-one dual CI:
+  push `32354383031`/suite `87706022903`/job `96380307940`, PR
+  `32354387120`/suite `87706034069`/job `96380320876`.  Both are terminal
+  22/22 success, previous null and rerun0; each has Unit2890 F0/E0/skip36,
+  `[10,1,12,22,21]`, Quality7+1EF, PG6, readiness138/0, Compose success and
+  warning1/error0.  Four run/job pointers are exact and inventory is two.
+- `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-SOURCE-001` permits one
+  10a direct-child exact-six: four ledgers plus the dedicated helper source/test
+  frozen at 41,085B/SHA `1c08620b…`/blob `fbe9046b…` and 74,603B/SHA
+  `393bce0b…`/blob `f5c91774…`.  C1/C2/C3/M1 and five payloads are zero-touch;
+  red-team is 0/0/0 and focused normal/optimized are 50/50.
+- The contract is pure validation and inert refusal, not an action adapter.
+  Its decision is
+  `NO_GO_PENDING_DEDICATED_OAUTH_CLIENT_AND_ACTION_AUTHORIZATION`; stock CLI
+  independently remains `NO_GO_STOCK_CLI_FD_ONLY_OAUTH`.  Dedicated client,
+  C1 label successor, C2 binding successor, unprivileged broker and separate
+  action receipt are absent/pending blockers.  Nine gates remain false and
+  credential remains `NOT_PROVISIONED`.
+- Candidate `__main__`, stock CLI and real actions are not executed.  Focused
+  tests do directly invoke `module.main(Poison())` in two methods per mode to
+  prove return2, unread argv, empty stdout/stderr and one refusal call; this is
+  not represented as function-main invocation zero.  Thirty-seven source-round
+  action counters remain zero under an import/inert-main scope that excludes
+  unrecorded pure-validator invocations.
+- Research history remains web=true/count null/not-enumerated/generic zero
+  false and Homebrew network1/possible-cache1.  Candidate self revision/tree/
+  ownCI remain empty/empty/pending0; no operational authority, readiness credit
+  or Item26 evidence is created.

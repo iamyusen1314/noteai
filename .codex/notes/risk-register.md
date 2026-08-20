@@ -3316,3 +3316,35 @@ Last updated: 2026-08-19
   generic network zero=false；Homebrew历史network1/possible cache1。本轮new
   external/provider/login/OAuth/API/config/root=0；Item26/evidence/S0/M1/M2、
   readiness `25/29`/`25/38`、credit false不变。
+
+## Item 26 C4-S dedicated root OAuth helper exact-six source candidate (2026-08-20)
+
+- accepted base `10a3380bcea781ab25d96a09f21e56cd509bb1e4`固定 parent
+  `a988f9860a5c95fee128dba3fca6860a16172128`与tree
+  `c8546b7109a93e148c67b8fac5206444e9a2ebdb`。push
+  `32354383031`/suite`87706022903`/job`96380307940`与PR
+  `32354387120`/suite`87706034069`/job`96380320876`均attempt1、previous
+  null、22/22 terminal success、rerun0；每路Unit2890 F0/E0/skip36、
+  `[10,1,12,22,21]`、Quality7+1EF、PG6、readiness138/0、Compose、
+  warning1/error0；四run/job pointers exact、inventory恰2。
+- authority `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-SOURCE-001`
+  仅允许10a direct-child exact-six四账本+dedicated helper source/test。
+  source/test固定41,085B/SHA`1c08620b…`/blob`fbe9046b…`与74,603B/
+  SHA`393bce0b…`/blob`f5c91774…`；red-team0/0/0、双模式50/50；C1/C2/
+  C3/M1/五payload zero-touch。
+- helper仅pure validation+inert contract；结论
+  `NO_GO_PENDING_DEDICATED_OAUTH_CLIENT_AND_ACTION_AUTHORIZATION`，且stock
+  CLI继续`NO_GO_STOCK_CLI_FD_ONLY_OAUTH`。dedicated client absent、C1 source-
+  label successor pending、C2 fixed-binding successor pending、unprivileged
+  broker pending、separate action receipt absent五项阻断冻结；九gates false，
+  `NOT_PROVISIONED`，real browser/login/OAuth/network/identity API/root/
+  credential/config均NO-GO/0。
+- candidate `__main__`、stock CLI、real action execution均0；但fake unittest
+  每模式两个methods直接调用`module.main(Poison())`并验证return2、argv未读、
+  stdout/stderr空及单次refusal，故不声明function-main invocation0。37项
+  source-round操作计数为0，pure-validator调用明确不记录。
+- research历史web=true/count null/NOT_EXACTLY_ENUMERATED/generic zero=false，
+  Homebrew network1/possible cache1。self revision/tree empty、ownCI pending0；
+  one commit/normal push/unique attempt1双CI，failure/cancel即停且no retry/
+  rerun/second push；Item26/evidence/S0/M1/M2、`25/29`/`25/38`、credit false
+  不变。
