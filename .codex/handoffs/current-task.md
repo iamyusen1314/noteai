@@ -12658,3 +12658,68 @@ Colima, database, builder, restore and cloud actions remain frozen.
   both compile modes pass; internal/public readiness in both modes remain
   `25/29` and `25/38`; production readiness in both modes passes 138/138; and the
   direct tracked-file secret-hygiene check passes.  No failed gate was rerun.
+
+## Current task — Item 26 C2 credential-capsule capture-wiring source exact-six candidate (2026-08-20)
+
+- Accepted source ledger `314a6b885bc7bda9790074a201ac176e498326b5`
+  is the exact-four direct child of 862 with parent
+  `86206f816fb092a7fca7a577b1391e251dfca5ca` and tree
+  `2c88d9ccca1cee709e4ccca9df573e0f6f28dc65`.  Its unique attempt-one
+  push run `32329891018`/job `96308385583` and PR run
+  `32329894079`/job `96308393220` are terminal success with previous attempt
+  null, rerun zero and 22/22 steps.  Push ran at `03:54:06Z` (job
+  `03:54:08Z`–`04:28:43Z`, updated `04:28:44Z`, Unit
+  `03:55:11Z`–`04:27:58Z`); PR ran at `03:54:09Z` (job
+  `03:54:11Z`–`04:21:38Z`, Unit `03:55:14Z`–`04:21:00Z`).  Each route
+  has Unit 2,836 with zero failures/errors and 36 skips,
+  `[10,1,12,22,21]`, Quality 7 PASS plus 1 EXPECTED_FAIL, PostgreSQL 6 OK,
+  readiness 138/138 and Compose success.  Each has one Node 20-to-24 warning
+  and zero error/failure annotations; all four terminal pointers are exact and
+  inventory is exactly one push plus one PR.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-CREDENTIAL-CAPSULE-CAPTURE-WIRING-SOURCE-001` permits
+  exactly one 314 direct-child exact-six source candidate: the four ledgers
+  plus the existing M1 stager and test.  The stager freezes at mode `100644`,
+  500,417 bytes, blob `bf968ab675535e244a7668d54d3a85a4489227cf`,
+  SHA-256 `e7cbac47b75fe5b05b79adb4068679db9c40187e93745e9141db2fd8b3b86dd3`;
+  its test freezes at mode `100644`, 344,891 bytes, blob
+  `e95d1213c222befad47122c67ecfff3a339c8d23`, SHA-256
+  `78eff1e25e52cea9d4dc94d1caf45a61e33612ac4334d19e34322f8c8a1da8ac`.
+  Red-team is P0/P1/P2=`0/0/0`; focused normal and `-O` each pass 107/107,
+  and both compile modes, embedded-identity audit and diff check pass.
+- C2 changes exactly two embedded payload identities.  Capture bootstrap is
+  14,543B/blob `bc42b6cbf6e0b22a1e6247fa0b137b9f8dfdc4a6`/SHA-256
+  `c523225479adc3110f09d08d2fa2e6b1d205be19dec4f54d73d2064afdeedfd5`;
+  capture root is 136,488B/blob
+  `dc6d43b76d25e9c28466afd07a5ef7245bfcca83`/SHA-256
+  `258d11ca4094efd5018ef8100378ea139949136953c318b6e10604a91ea6435d`.
+  Materialize bootstrap, materialize root and stage root retain their exact
+  historical identities.  The standalone C1 capsule source remains zero-touch
+  at 49,494B/blob `99110863d055929fbc76950ec2bc9aa8fd0f7bc6`/
+  SHA-256 `7ed50fd5acdbb5733a174367e8bcb339b3a6bc07b49fed3a31243fddf763e4e3`.
+- The source wires a same-root READY/ACK exchange over a live opaque session;
+  it does not provision or expose credentials.  A Darwin `st_dev` compatibility
+  shim is explicitly C2 capture-wiring-only.  It does not correct or broaden
+  the standalone C1 default Darwin path, whose documented limitation remains.
+  No universal Darwin-portability claim is made.
+- Candidate revision/tree and own CI remain empty/pending with commit, push,
+  observation, retry and rerun counts zero.  Authority is one commit, one
+  normal non-force push and one unique attempt-one push/PR observation;
+  failure/cancel stops and automatic retry, rerun and second push are
+  prohibited.  Credential status remains `NOT_PROVISIONED`, all execution
+  gates remain false, and login/OAuth/config/provisioning/root/sudo/provider/
+  API/cloud/database/capture/materialization/private-key/paid/cleanup/replay
+  remain unauthorized with new-round counts zero.
+- The prior audit deviation remains historical: one non-provider Homebrew
+  metadata-network event and one possible cache write, so generic historical
+  external-network-zero and filesystem-write-zero are not claimed.  C2 adds no
+  external/provider/root action.  Homebrew install/upgrade/cleanup/retry and
+  all Aliyun/provider/cloud action counts stay zero.  Item 26 remains
+  `unverified` with empty evidence, S0 stays open, M1/M2 stay absent, readiness
+  remains `25/29` internal and `25/38` public, and credit remains false.
+- Final local C2 validation is green: strict duplicate-key JSON, semantic
+  exact-six/old-three-supersede/identity/payload/wiring/limitation audit and
+  `git diff --check` pass; focused normal and `-O` each pass 107/107; compile
+  passes in both modes; internal/public readiness in both modes remains
+  `25/29` and `25/38`; production readiness in both modes passes 138/138; and
+  direct tracked-file secret hygiene passes.  No failed gate was rerun.

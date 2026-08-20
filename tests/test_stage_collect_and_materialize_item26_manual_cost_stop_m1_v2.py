@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import hmac
 import io
 import json
 import os
 from pathlib import Path
+import selectors
+import signal
 import stat
 import socket
 import subprocess
@@ -21,6 +24,11 @@ TARGET = (
     ROOT
     / "tools/stage_collect_and_materialize_item26_manual_cost_stop_m1_v2.py"
 )
+C1_SOURCE = ROOT / "tools/item26_aliyun_temporary_sts_capsule_v1.py"
+C1_WALL = 1_700_000_000
+C1_MONOTONIC_NS = 40_000_000_000
+C1_ACCOUNT_DOMAIN = b"noteai.item26.account-id-commitment.v1\x00"
+C1_PRINCIPAL_DOMAIN = b"noteai.item26.principal-id-commitment.v1\x00"
 
 
 def load_stager() -> tuple[types.ModuleType, bytes]:
@@ -168,6 +176,185 @@ def fake_capture_runtime_identity(capture: types.ModuleType) -> dict[str, object
     }
 
 
+def valid_capture_root_result(module: types.ModuleType) -> dict[str, object]:
+    value = {key: 0 for key in module.CAPTURE_ROOT_SUCCESS_KEYS}
+    value.update(
+        {
+            "schema": module.CAPTURE_ROOT_RESULT_SCHEMA,
+            "status": "FIVE_STREAM_CAPTURE_FINALIZED",
+            "logical_slot_count": 5,
+            "provider_dispatch_count": 5,
+            "maximum_provider_dispatches": module.MAX_PROVIDER_DISPATCHES,
+            "parallel_provider_dispatch_count": 0,
+            "finalize_call_count": 1,
+            "readiness_credit_added": False,
+        }
+    )
+    return value
+
+
+def build_fake_c1_capsule(module: types.ModuleType, *, lifetime: int = 4000):
+    account = bytearray(b"fake-account")
+    principal = bytearray(b"fake-principal")
+    key = bytearray(range(32))
+    account_commitment = hmac.new(
+        bytes(key),
+        C1_ACCOUNT_DOMAIN + len(account).to_bytes(8, "big") + bytes(account),
+        hashlib.sha256,
+    ).hexdigest()
+    principal_commitment = hmac.new(
+        bytes(key),
+        C1_PRINCIPAL_DOMAIN
+        + len(principal).to_bytes(8, "big")
+        + bytes(principal),
+        hashlib.sha256,
+    ).hexdigest()
+    return module.build_root_custody_capsule(
+        access_key_id=bytearray(b"STS." + b"A" * 20),
+        access_key_secret=bytearray(b"k" * 40),
+        security_token=bytearray(b"t" * 240),
+        expiration_unix=C1_WALL + lifetime,
+        account_identity=account,
+        principal_identity=principal,
+        commitment_key=key,
+        expected_account_commitment_hmac_sha256=account_commitment,
+        expected_principal_commitment_hmac_sha256=principal_commitment,
+        wall_now_unix=C1_WALL,
+        monotonic_now_ns=C1_MONOTONIC_NS,
+    )
+
+
+def fake_c1_inventory(module: types.ModuleType, raw: bytes):
+    contract = module.root_custody_contract()
+    live = {
+        "ancestor_lstat": {},
+        "file_lstat": {},
+        "root_directory_entries": {},
+    }
+    receipts = {}
+    for index, (path, mode) in enumerate(
+        contract["ancestor_directory_modes"].items(),
+        start=1,
+    ):
+        live["ancestor_lstat"][path] = {
+            "st_mode": stat.S_IFDIR | mode,
+            "uid": 0,
+            "gid": 0,
+            "nlink": 1,
+            "dev": 7,
+            "ino": index,
+        }
+    for path, names in contract["root_exact_entry_names"].items():
+        root_stat = dict(live["ancestor_lstat"][path])
+        live["root_directory_entries"][path] = (
+            module._capture_root_directory_listing(
+                path,
+                lister=lambda _path, _flags, row=root_stat, names=names: {
+                    "fd_stat": dict(row),
+                    "entry_names": tuple(names),
+                },
+            )
+        )
+    for index, path in enumerate(contract["file_paths"], start=100):
+        payload = raw if path == module.RUNTIME_ROOT + "/item26_aliyun_temporary_sts_capsule_v1.py" else (
+            "fake-c1-inventory-" + str(index)
+        ).encode("ascii")
+        digest = hashlib.sha256(payload).hexdigest()
+        pre = {
+            "st_mode": stat.S_IFREG | 0o600,
+            "uid": 0,
+            "gid": 0,
+            "nlink": 1,
+            "dev": 9,
+            "ino": index,
+            "size": 0,
+        }
+        post = dict(pre)
+        post["size"] = len(payload)
+        receipts[path] = module._capture_exclusive_creation_receipt(
+            path,
+            creator=lambda _path, _flags, _mode, pre=pre, post=post, digest=digest: {
+                "pre_fd_stat": dict(pre),
+                "post_fd_stat": dict(post),
+                "pre_content_sha256": hashlib.sha256(b"").hexdigest(),
+                "post_content_sha256": digest,
+            },
+        )
+        live["file_lstat"][path] = {**post, "sha256": digest}
+    return live, receipts
+
+
+def fake_c1_session(module: types.ModuleType, raw: bytes):
+    capsule = build_fake_c1_capsule(module)
+    live, receipts = fake_c1_inventory(module, raw)
+    return {
+        "capsule": capsule,
+        "live_snapshot": live,
+        "creation_receipts": receipts,
+    }
+
+
+def completed_fake_c1_context(
+    capture: types.ModuleType,
+    module: types.ModuleType,
+    raw: bytes,
+):
+    context = capture._prepare_root_c1_live_session(
+        module,
+        lambda selected: fake_c1_session(selected, raw),
+        wall_clock=lambda: C1_WALL,
+        monotonic_ns_clock=lambda: C1_MONOTONIC_NS,
+    )
+    ready_root, ready_outer = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+    ack_root, ack_outer = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+    ready_root_fd = ready_root.detach()
+    ack_root_fd = ack_root.detach()
+    outcome: list[BaseException | None] = []
+
+    def root_handshake():
+        try:
+            capture._complete_root_c1_handshake(
+                context,
+                ready_root_fd,
+                ack_root_fd,
+            )
+            outcome.append(None)
+        except BaseException as exc:
+            outcome.append(exc)
+
+    worker = threading.Thread(target=root_handshake)
+    worker.start()
+    ready_raw = module.read_anonymous_frame(
+        ready_outer.fileno(),
+        capture.MAX_C1_HANDSHAKE_BYTES,
+        fstat_fn=capture._c1_platform_fstat,
+    )
+    ready = json.loads(bytes(ready_raw))
+    module.scrub_bytearray(ready_raw)
+    ready_outer.close()
+    ack = capture._root_c1_frame(
+        ready["projection"],
+        capture.C1_ACK_STATUS,
+        1,
+    )
+    ack_raw = bytearray(capture._c1_canonical(ack))
+    module.write_anonymous_frame(
+        ack_outer.fileno(),
+        ack_raw,
+        capture.MAX_C1_HANDSHAKE_BYTES,
+        fstat_fn=capture._c1_platform_fstat,
+    )
+    module.scrub_bytearray(ack_raw)
+    if ack_outer.recv(1) != b"":
+        raise RuntimeError("fake C1 reverse ACK bytes")
+    ack_outer.close()
+    worker.join(timeout=5)
+    if worker.is_alive() or outcome != [None]:
+        context["capsule"].scrub()
+        raise RuntimeError("fake C1 handshake failed")
+    return context
+
+
 class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -181,6 +368,8 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             ),
             cls.capture.__dict__,
         )
+        cls.c1_raw = C1_SOURCE.read_bytes()
+        cls.c1 = cls.capture._load_root_c1_module(cls.c1_raw)
         cls.materialize = types.ModuleType("item26_m1_materialize_root_test")
         exec(
             compile(
@@ -2548,7 +2737,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
 
         result = capture._run_capture_once(
             prepare_dependencies=lambda: (collector, extractor),
-            credential_probe=initial_credential_probe,
+            credential_initial=initial_credential_probe(),
             credential_supplier=supply,
             child_runner=child_runner,
             value_sha256=identity_hash,
@@ -2646,7 +2835,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             with self.assertRaisesRegex(capture.CaptureError, "^" + expected_code + "$"):
                 capture._run_capture_once(
                     prepare_dependencies=lambda: (collector, extractor),
-                    credential_probe=initial_credential_probe,
+                    credential_initial=initial_credential_probe(),
                     credential_supplier=supply,
                     child_runner=child,
                     value_sha256=identity_hash,
@@ -2722,7 +2911,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             ):
                 capture._run_capture_once(
                     prepare_dependencies=lambda: (lost, extractor),
-                    credential_probe=initial_credential_probe,
+                    credential_initial=initial_credential_probe(),
                     credential_supplier=dispatch_credential,
                     value_sha256=identity_hash,
                     monotonic=lambda: 0.0,
@@ -2737,7 +2926,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             ):
                 capture._run_capture_once(
                     prepare_dependencies=lambda: (late, extractor),
-                    credential_probe=initial_credential_probe,
+                    credential_initial=initial_credential_probe(),
                     credential_supplier=dispatch_credential,
                     value_sha256=identity_hash,
                     monotonic=lambda: clock[0],
@@ -2782,17 +2971,36 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             "status": "FIVE_STREAM_CAPTURE_FINALIZED",
             "raw_value_emitted_count": 0,
         }
-        self.assertEqual(
-            capture._enabled_main(
-                ["--capture", *runtime_arguments],
-                capture_runner=lambda _arguments: result,
-                status_stream=output,
-            ),
-            0,
-        )
+        context = completed_fake_c1_context(capture, self.c1, self.c1_raw)
+        closed: list[int] = []
+        with mock.patch.object(
+            capture,
+            "_load_root_c1_module",
+            return_value=self.c1,
+        ), mock.patch.object(
+            capture,
+            "_prepare_root_c1_live_session",
+            return_value=context,
+        ), mock.patch.object(
+            capture,
+            "_complete_root_c1_handshake",
+            return_value=context,
+        ):
+            self.assertEqual(
+                capture._enabled_main(
+                    ["--capture", "30", "31", *runtime_arguments],
+                    capture_runner=lambda _arguments, _context: result,
+                    status_stream=output,
+                    credential_source_supplier=lambda: self.c1_raw,
+                    early_preflight=lambda: True,
+                    closer=closed.append,
+                ),
+                0,
+            )
+        self.assertEqual(closed, [30, 31])
         self.assertEqual(json.loads(output.getvalue()), result)
         with self.assertRaisesRegex(capture.CaptureError, "^capture_root_arguments$"):
-            capture._enabled_main([], capture_runner=lambda _arguments: result)
+            capture._enabled_main([], capture_runner=lambda _arguments, _context: result)
         blocked_output = io.BytesIO()
         secret = "forbidden-raw-secret"
 
@@ -3219,6 +3427,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
         original_run = capture._run_capture_once
 
         def run_capture(**kwargs):
+            order.append("credential_initial")
             return original_run(value_sha256=identity_hash, **kwargs)
 
         def post(arguments, expected):
@@ -3228,6 +3437,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             return expected
 
         output = io.BytesIO()
+        context = completed_fake_c1_context(capture, self.c1, self.c1_raw)
         with mock.patch.object(
             capture,
             "_capture_runtime_validator_from_arguments",
@@ -3236,14 +3446,6 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             capture,
             "_default_prepare_capture_dependencies",
             side_effect=prepare,
-        ), mock.patch.object(
-            capture,
-            "_root_custody_temporary_sts_probe",
-            side_effect=lambda: (order.append("credential_probe"), initial_credential_probe())[1],
-        ), mock.patch.object(
-            capture,
-            "_root_custody_temporary_sts_supplier",
-            side_effect=dispatch_credential,
         ), mock.patch.object(
             capture,
             "_spawn_feed_drain_once",
@@ -3256,18 +3458,33 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             capture,
             "_capture_post_identity_snapshot",
             side_effect=post,
+        ), mock.patch.object(
+            capture,
+            "_load_root_c1_module",
+            return_value=self.c1,
+        ), mock.patch.object(
+            capture,
+            "_prepare_root_c1_live_session",
+            return_value=context,
+        ), mock.patch.object(
+            capture,
+            "_complete_root_c1_handshake",
+            return_value=context,
         ):
             self.assertEqual(
                 capture._enabled_main(
-                    ["--capture", *runtime_arguments],
+                    ["--capture", "30", "31", *runtime_arguments],
                     status_stream=output,
+                    credential_source_supplier=lambda: self.c1_raw,
+                    early_preflight=lambda: True,
+                    closer=lambda _fd: None,
                 ),
                 0,
             )
         result = json.loads(output.getvalue())
         self.assertEqual(result["status"], "FIVE_STREAM_CAPTURE_FINALIZED")
         self.assertEqual(result["provider_dispatch_count"], 5)
-        self.assertEqual(order[:3], ["runtime", "dependencies", "credential_probe"])
+        self.assertEqual(order[:3], ["credential_initial", "runtime", "dependencies"])
         self.assertEqual(order[-2:], ["finalize", "post"])
 
         pairs = [
@@ -3550,6 +3767,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
         original_value_sha = capture._run_capture_once.__kwdefaults__["value_sha256"]
         capture._run_capture_once.__kwdefaults__["value_sha256"] = value_sha
         output = io.BytesIO()
+        context = completed_fake_c1_context(capture, self.c1, self.c1_raw)
         patches = (
             mock.patch.object(capture, "ADAPTER_BYTES", len(adapter_raw)),
             mock.patch.object(capture, "ADAPTER_SHA256", hashlib.sha256(adapter_raw).hexdigest()),
@@ -3563,8 +3781,9 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             mock.patch.object(capture, "_capture_runtime_identity_snapshot", return_value=dynamic_identity),
             mock.patch.object(capture, "_repository_local_identity", return_value=repository_identity),
             mock.patch.object(capture, "_local_only_git", side_effect=local_git),
-            mock.patch.object(capture, "_root_custody_temporary_sts_probe", side_effect=initial_credential_probe),
-            mock.patch.object(capture, "_root_custody_temporary_sts_supplier", side_effect=dispatch_credential),
+            mock.patch.object(capture, "_load_root_c1_module", return_value=self.c1),
+            mock.patch.object(capture, "_prepare_root_c1_live_session", return_value=context),
+            mock.patch.object(capture, "_complete_root_c1_handshake", return_value=context),
             mock.patch.object(capture, "_spawn_feed_drain_once", side_effect=provider_leaf),
         )
         try:
@@ -3572,8 +3791,11 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
                 patcher.start()
             self.assertEqual(
                 capture._enabled_main(
-                    ["--capture", *runtime_arguments],
+                    ["--capture", "30", "31", *runtime_arguments],
                     status_stream=output,
+                    credential_source_supplier=lambda: self.c1_raw,
+                    early_preflight=lambda: True,
+                    closer=lambda _fd: None,
                 ),
                 0,
             )
@@ -6100,19 +6322,21 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
         materialize_supervisor = literal_bindings(
             stager.MATERIALIZE_STDIO_BOOTSTRAP
         )
-        for bindings, runtime_timeout in (
+        for bindings, ack_timeout, runtime_timeout in (
             (
                 capture_supervisor,
+                stager.CAPTURE_SUPERVISOR_ACK_TIMEOUT_SECONDS,
                 stager.CAPTURE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS,
             ),
             (
                 materialize_supervisor,
+                stager.SUPERVISOR_ACK_TIMEOUT_SECONDS,
                 stager.MATERIALIZE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS,
             ),
         ):
             self.assertEqual(
                 bindings["ACK_TIMEOUT_SECONDS"],
-                stager.SUPERVISOR_ACK_TIMEOUT_SECONDS,
+                ack_timeout,
             )
             self.assertEqual(
                 bindings["NORMAL_WAIT_SECONDS"],
@@ -6191,18 +6415,20 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             supervisor_containment,
             stager.OUTER_TERMINATE_GRACE_SECONDS,
         )
-        for runtime_timeout, sudo_timeout in (
+        for ack_timeout, runtime_timeout, sudo_timeout in (
             (
+                stager.CAPTURE_SUPERVISOR_ACK_TIMEOUT_SECONDS,
                 stager.CAPTURE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS,
                 stager.CAPTURE_SUDO_MONITOR_TIMEOUT_SECONDS,
             ),
             (
+                stager.SUPERVISOR_ACK_TIMEOUT_SECONDS,
                 stager.MATERIALIZE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS,
                 stager.MATERIALIZE_SUDO_MONITOR_TIMEOUT_SECONDS,
             ),
         ):
             total = (
-                stager.SUPERVISOR_ACK_TIMEOUT_SECONDS
+                ack_timeout
                 + runtime_timeout
                 + stager.SUPERVISOR_NORMAL_WAIT_SECONDS
                 + supervisor_containment
@@ -6390,10 +6616,31 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
                             duplicated_stdio.append(os.dup(descriptor))
                     return Process()
 
+                def capture_ready(*_args, **_kwargs):
+                    ready = stager._supervisor_ready_frame(
+                        payload_mode="CAPTURE",
+                        payload_program_sha256=hashlib.sha256(
+                            stager.CAPTURE_ROOT_PROGRAM.encode("ascii")
+                        ).hexdigest(),
+                    )
+                    return json.loads(ready), bytearray(ready)
+
+                def fail_c1_ready(*_args, **_kwargs):
+                    order.append("first_failure")
+                    raise KeyboardInterrupt("first")
+
                 with mock.patch.object(
                     stager,
                     "_drain_output_channels_to_eof",
                     side_effect=drain,
+                ), mock.patch.object(
+                    stager,
+                    "_read_capture_supervisor_ready_once",
+                    side_effect=capture_ready,
+                ), mock.patch.object(
+                    stager,
+                    "_read_c1_ready_with_deadline",
+                    side_effect=fail_c1_ready,
                 ), mock.patch.object(
                     stager,
                     "_cancel_and_drain_for_containment",
@@ -6412,6 +6659,9 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
                                 tool_snapshot_reader=lambda: {
                                     "tool": True
                                 },
+                                capsule_api=self.c1,
+                                credential_ready_validator=lambda _raw: {},
+                                pre_ack_identity_validator=lambda: None,
                                 popen=popen,
                                 settler=settle,
                                 signal_masker=mask,
@@ -6429,17 +6679,16 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
                                 signal_masker=mask,
                                 absence_prover=prove,
                             )
-                self.assertEqual(
-                    order,
-                    [
-                        "first_failure",
-                        "block",
-                        "cancel",
-                        "settle",
-                        "absence",
-                        "restore",
-                    ],
-                )
+                expected_order = [
+                    "block",
+                    "cancel",
+                    "settle",
+                    "absence",
+                    "restore",
+                ]
+                if label == "materialize":
+                    expected_order.insert(0, "first_failure")
+                self.assertEqual(order, expected_order)
                 for descriptor in duplicated_stdio:
                     os.close(descriptor)
 
@@ -6707,12 +6956,11 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(
                 stager.StagerError,
-                "^capture_credential_capsule$",
+                "^capture_credential_interface_not_provisioned$",
             ):
                 stager._default_future_capture(
                     "c" * 40,
                     "d" * 40,
-                    credential_capsule_probe=lambda: {"malformed": True},
                 )
         self.assertEqual(dependencies, [])
 
@@ -7020,6 +7268,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             {
                 "fcntl",
                 "hashlib",
+                "hmac",
                 "json",
                 "math",
                 "os",
@@ -7031,6 +7280,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
                 "subprocess",
                 "sys",
                 "time",
+                "types",
             },
         )
         self.assertEqual(
@@ -7106,6 +7356,1484 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
                     module.STATUS[credential_prefix + "_refresh_count"],
                     0,
                 )
+
+    def test_c2_c1_ready_ack_frames_are_cross_side_canonical_and_secret_free(self) -> None:
+        capsule = build_fake_c1_capsule(self.c1)
+        try:
+            projection = capsule.project_m1_interface(
+                wall_now_unix=C1_WALL,
+                monotonic_now_ns=C1_MONOTONIC_NS,
+            )
+            self.assertEqual(
+                set(projection),
+                {
+                    "schema",
+                    "status",
+                    "account_binding_sha256",
+                    "minimum_remaining_validity_seconds",
+                    "credential_payload_exposed",
+                    "oauth_refresh_count",
+                    "oauth_configure_count",
+                },
+            )
+            self.assertNotIn("envelope", repr(projection).lower())
+            ready_outer = self.stager._c1_handshake_frame(
+                projection,
+                status=self.stager.C1_READY_STATUS,
+                ack_count=0,
+            )
+            ready_root = self.capture._root_c1_frame(
+                projection,
+                self.capture.C1_READY_STATUS,
+                0,
+            )
+            ack_outer = self.stager._c1_handshake_frame(
+                projection,
+                status=self.stager.C1_ACK_STATUS,
+                ack_count=1,
+            )
+            ack_root = self.capture._root_c1_frame(
+                projection,
+                self.capture.C1_ACK_STATUS,
+                1,
+            )
+            self.assertEqual(ready_outer, ready_root)
+            self.assertEqual(ack_outer, ack_root)
+            ready_raw = self.stager.canonical_bytes(ready_outer)
+            ack_raw = self.stager.canonical_bytes(ack_outer)
+            self.assertEqual(ready_raw, self.capture._c1_canonical(ready_root))
+            self.assertEqual(ack_raw, self.capture._c1_canonical(ack_root))
+            self.assertEqual(ready_raw, self.c1.canonical_json(ready_outer))
+            binding = {
+                "schema": self.stager.C1_READY_BINDING_SCHEMA,
+                "ready_status": self.stager.C1_READY_STATUS,
+                "projection": projection,
+                "capsule_source_revision": self.stager.C1_CAPSULE_SOURCE_REVISION,
+                "capsule_acceptance_revision": (
+                    self.stager.C1_CAPSULE_ACCEPTANCE_REVISION
+                ),
+            }
+            expected_ready_sha = hashlib.sha256(
+                self.stager.C1_READY_SHA256_DOMAIN
+                + self.stager.canonical_bytes(binding)
+            ).hexdigest()
+            self.assertEqual(ready_outer["ready_sha256"], expected_ready_sha)
+            self.assertEqual(ack_outer["ready_sha256"], expected_ready_sha)
+            self.assertEqual(
+                self.stager._validate_c1_handshake_frame(
+                    ready_raw,
+                    expected_status=self.stager.C1_READY_STATUS,
+                    expected_ack_count=0,
+                ),
+                ready_outer,
+            )
+            self.assertEqual(
+                self.capture._validate_root_c1_ack(ack_raw, projection),
+                ack_root,
+            )
+
+            malformed_ready = (
+                ready_raw.replace(
+                    b'"ack_count":0',
+                    b'"ack_count":0,"ack_count":0',
+                    1,
+                ),
+                ready_raw.replace(b'"ack_count":0', b'"ack_count":NaN', 1),
+                ready_raw[:-1] + b"\x00\n",
+                b"{" + b" " * self.stager.MAX_C1_HANDSHAKE_BYTES + b"}\n",
+            )
+            for index, raw in enumerate(malformed_ready):
+                with self.subTest(side="outer", index=index):
+                    with self.assertRaisesRegex(
+                        self.stager.StagerError,
+                        "^capture_c1_handshake$",
+                    ):
+                        self.stager._validate_c1_handshake_frame(
+                            raw,
+                            expected_status=self.stager.C1_READY_STATUS,
+                            expected_ack_count=0,
+                        )
+            malformed_ack = (
+                ack_raw.replace(
+                    b'"ack_count":1',
+                    b'"ack_count":1,"ack_count":1',
+                    1,
+                ),
+                ack_raw.replace(b'"ack_count":1', b'"ack_count":NaN', 1),
+                ack_raw[:-1] + b"\x00\n",
+                b"{" + b" " * self.capture.MAX_C1_HANDSHAKE_BYTES + b"}\n",
+            )
+            for index, raw in enumerate(malformed_ack):
+                with self.subTest(side="root", index=index):
+                    with self.assertRaisesRegex(
+                        self.capture.CaptureError,
+                        "^credential_handshake$",
+                    ):
+                        self.capture._validate_root_c1_ack(raw, projection)
+        finally:
+            capsule.scrub()
+
+    def test_c2_darwin_socket_stat_adapter_is_narrow_and_fd_semantics_hold(self) -> None:
+        first, first_peer = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        second, second_peer = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            if sys.platform == "darwin":
+                with self.assertRaisesRegex(self.c1.CapsuleError, "^fd_identity$"):
+                    self.c1.validate_fd_roles(first.fileno(), second.fileno())
+            else:
+                self.c1.validate_fd_roles(first.fileno(), second.fileno())
+            for label, adapter in (
+                ("outer", self.stager._c1_platform_fstat),
+                ("root", self.capture._c1_platform_fstat),
+            ):
+                with self.subTest(label=label):
+                    reader, writer = self.c1.validate_fd_roles(
+                        first.fileno(),
+                        second.fileno(),
+                        fstat_fn=adapter,
+                    )
+                    self.assertNotEqual(
+                        (reader.device, reader.inode),
+                        (writer.device, writer.inode),
+                    )
+                    with self.assertRaisesRegex(
+                        self.c1.CapsuleError,
+                        "^fd_alias$",
+                    ):
+                        self.c1.validate_fd_roles(
+                            first.fileno(),
+                            first.fileno(),
+                            fstat_fn=adapter,
+                        )
+        finally:
+            first.close()
+            first_peer.close()
+            second.close()
+            second_peer.close()
+
+        for module, adapter_name in (
+            (self.stager, "_c1_platform_fstat"),
+            (self.capture, "_c1_platform_fstat"),
+        ):
+            adapter = getattr(module, adapter_name)
+            for platform, mode, device in (
+                ("linux", stat.S_IFSOCK | 0o600, -1),
+                ("darwin", stat.S_IFSOCK | 0o600, -2),
+                ("darwin", stat.S_IFREG | 0o600, -1),
+                ("darwin", stat.S_IFSOCK | 0o600, 7),
+            ):
+                row = types.SimpleNamespace(
+                    st_mode=mode,
+                    st_dev=device,
+                    st_ino=41,
+                    st_nlink=1,
+                    st_uid=0,
+                    st_gid=0,
+                    st_size=0,
+                )
+                with self.subTest(
+                    module=module.__name__,
+                    platform=platform,
+                    mode=mode,
+                    device=device,
+                ), mock.patch.object(module.sys, "platform", platform), mock.patch.object(
+                    module.os,
+                    "fstat",
+                    return_value=row,
+                ):
+                    self.assertIs(adapter(123), row)
+
+        valid_probe = {
+            "family": socket.AF_UNIX,
+            "kind": socket.SOCK_STREAM,
+            "local_name": "",
+            "peer_name": "",
+            "direction": "read",
+        }
+        for row in (
+            types.SimpleNamespace(
+                st_mode=stat.S_IFSOCK | 0o600,
+                st_dev=-2,
+                st_ino=41,
+            ),
+            types.SimpleNamespace(
+                st_mode=stat.S_IFREG | 0o600,
+                st_dev=7,
+                st_ino=41,
+            ),
+        ):
+            with self.assertRaisesRegex(self.c1.CapsuleError, "^fd_identity$"):
+                self.c1._validate_anonymous_fd(
+                    30,
+                    "read",
+                    fstat_fn=lambda _fd, row=row: row,
+                    getfl_fn=lambda _fd, _command: os.O_RDWR,
+                    isatty_fn=lambda _fd: False,
+                    socket_probe=lambda _fd, _direction: dict(valid_probe),
+                )
+
+        reader, writer = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        raw = bytearray(b'{"frame":"ok"}\n')
+        try:
+            self.c1.write_anonymous_frame(
+                writer.fileno(),
+                raw,
+                128,
+                fstat_fn=self.stager._c1_platform_fstat,
+            )
+            observed = self.c1.read_anonymous_frame(
+                reader.fileno(),
+                128,
+                fstat_fn=self.stager._c1_platform_fstat,
+            )
+            self.assertEqual(observed, raw)
+            with self.assertRaises(OSError):
+                writer.send(b"forbidden-second-frame")
+            self.c1.scrub_bytearray(observed)
+        finally:
+            self.c1.scrub_bytearray(raw)
+            reader.close()
+            writer.close()
+
+    def test_c2_root_session_rejects_extra_shape_and_stale_capsule_before_ready(self) -> None:
+        for stale in (False, True):
+            session = fake_c1_session(self.c1, self.c1_raw)
+            capsule = session["capsule"]
+            if stale:
+                issued = capsule.issue_for_begin(
+                    wall_now_unix=C1_WALL,
+                    monotonic_now_ns=C1_MONOTONIC_NS,
+                )
+                mapping = issued.take_m1_supplier_mapping()
+                self.c1.scrub_bytearray(mapping["envelope"])
+                issued.scrub()
+                self.assertEqual(capsule.round_count, 1)
+            else:
+                session["unexpected"] = "forbidden"
+            with self.subTest(stale=stale), self.assertRaisesRegex(
+                self.capture.CaptureError,
+                "^credential_session$",
+            ):
+                self.capture._prepare_root_c1_live_session(
+                    self.c1,
+                    lambda _module, session=session: session,
+                    wall_clock=lambda: C1_WALL,
+                    monotonic_ns_clock=lambda: C1_MONOTONIC_NS,
+                )
+            with self.assertRaisesRegex(
+                self.c1.CapsuleError,
+                "^credential_scrubbed$",
+            ):
+                capsule.project_m1_interface(
+                    wall_now_unix=C1_WALL,
+                    monotonic_now_ns=C1_MONOTONIC_NS,
+                )
+
+    def test_c2_root_handshake_attempt_is_consumed_on_failure_and_cannot_issue(self) -> None:
+        context = self.capture._prepare_root_c1_live_session(
+            self.c1,
+            lambda module: fake_c1_session(module, self.c1_raw),
+            wall_clock=lambda: C1_WALL,
+            monotonic_ns_clock=lambda: C1_MONOTONIC_NS,
+        )
+        fd_calls: list[tuple[str, object]] = []
+        closed: list[int] = []
+
+        def reject_roles(*args, **kwargs):
+            fd_calls.append(("validate", (args, kwargs)))
+            raise self.c1.CapsuleError("fd_identity")
+
+        with mock.patch.object(
+            self.c1,
+            "validate_fd_roles",
+            side_effect=reject_roles,
+        ), mock.patch.object(
+            self.c1,
+            "write_anonymous_frame",
+            side_effect=lambda *_args, **_kwargs: fd_calls.append(
+                ("write", None)
+            ),
+        ), mock.patch.object(
+            self.c1,
+            "read_anonymous_frame",
+            side_effect=lambda *_args, **_kwargs: fd_calls.append(
+                ("read", None)
+            ),
+        ):
+            with self.assertRaisesRegex(
+                self.capture.CaptureError,
+                "^credential_handshake$",
+            ):
+                self.capture._complete_root_c1_handshake(
+                    context,
+                    30,
+                    31,
+                    closer=closed.append,
+                )
+            self.assertEqual([name for name, _value in fd_calls], ["validate"])
+            self.assertEqual(closed, [30, 31])
+            self.assertEqual(context["handshake_attempt_count"], 1)
+            self.assertIs(context["acknowledged"], False)
+            self.assertEqual(context["capsule"].round_count, 0)
+            with self.assertRaisesRegex(
+                self.capture.CaptureError,
+                "^temporary_sts_pre_begin$",
+            ):
+                self.capture._root_c1_supplier_mapping(context)
+            before = (list(fd_calls), list(closed))
+            with self.assertRaisesRegex(
+                self.capture.CaptureError,
+                "^credential_handshake$",
+            ):
+                self.capture._complete_root_c1_handshake(
+                    context,
+                    32,
+                    33,
+                    closer=closed.append,
+                )
+            self.assertEqual((fd_calls, closed), before)
+        context["capsule"].scrub()
+
+    def test_c2_root_supplier_caps_at_64_with_stable_binding_ttl_and_scrub(self) -> None:
+        context = completed_fake_c1_context(
+            self.capture,
+            self.c1,
+            self.c1_raw,
+        )
+        capsule = context["capsule"]
+        initial = context["initial"]
+        observed_ttls: list[int] = []
+        observed_accounts: set[str] = set()
+        observed_envelopes: set[str] = set()
+        try:
+            for index in range(1, self.capture.MAX_PROVIDER_DISPATCHES + 1):
+                mapping = self.capture._root_c1_supplier_mapping(context)
+                envelope = mapping["envelope"]
+                self.assertIs(type(envelope), bytearray)
+                self.assertEqual(
+                    hashlib.sha256(bytes(envelope)).hexdigest(),
+                    mapping["credential_envelope_sha256"],
+                )
+                self.assertGreaterEqual(
+                    mapping["remaining_seconds"],
+                    self.capture.MINIMUM_STS_SECONDS,
+                )
+                self.assertLessEqual(
+                    mapping["remaining_seconds"],
+                    initial["remaining_seconds"],
+                )
+                self.assertEqual(mapping["refresh_count"], 0)
+                self.assertEqual(mapping["configure_count"], 0)
+                observed_ttls.append(mapping["remaining_seconds"])
+                observed_accounts.add(mapping["account_binding_sha256"])
+                observed_envelopes.add(
+                    mapping["credential_envelope_sha256"]
+                )
+                self.c1.scrub_bytearray(envelope)
+                self.assertEqual(envelope, bytearray(len(envelope)))
+                self.assertEqual(capsule.round_count, index)
+            self.assertEqual(observed_ttls, sorted(observed_ttls, reverse=True))
+            self.assertEqual(
+                observed_accounts,
+                {initial["account_binding_sha256"]},
+            )
+            self.assertEqual(
+                observed_envelopes,
+                {initial["credential_envelope_sha256"]},
+            )
+            with self.assertRaisesRegex(
+                self.capture.CaptureError,
+                "^temporary_sts_pre_begin$",
+            ):
+                self.capture._root_c1_supplier_mapping(context)
+            self.assertEqual(
+                capsule.round_count,
+                self.capture.MAX_PROVIDER_DISPATCHES,
+            )
+        finally:
+            capsule.scrub()
+
+    def test_c2_enabled_root_real_handshake_closes_fds_before_runner_exactly_once(self) -> None:
+        capture = self.capture
+        runtime_arguments = fake_capture_runtime_arguments()
+
+        def exercise(*, fail_first_close: bool, setup_deadline: bool = False):
+            ready_root, ready_outer = socket.socketpair(
+                socket.AF_UNIX,
+                socket.SOCK_STREAM,
+            )
+            ack_root, ack_outer = socket.socketpair(
+                socket.AF_UNIX,
+                socket.SOCK_STREAM,
+            )
+            ready_fd = ready_root.detach()
+            ack_fd = ack_root.detach()
+            closed: list[int] = []
+            physically_closed: list[int] = []
+            runner_calls: list[dict[str, object]] = []
+            outcomes: list[object] = []
+            output = io.BytesIO()
+            created_capsules: list[object] = []
+            setup_times = iter((0.0, 20.0) if setup_deadline else (0.0, 1.0))
+
+            def closer(descriptor):
+                closed.append(descriptor)
+                if fail_first_close and len(closed) == 1:
+                    raise OSError("injected close failure")
+                os.close(descriptor)
+                physically_closed.append(descriptor)
+
+            def runner(_arguments, context):
+                for descriptor in (ready_fd, ack_fd):
+                    with self.assertRaises(OSError):
+                        os.fstat(descriptor)
+                self.assertEqual(closed, [ready_fd, ack_fd])
+                self.assertIs(context["acknowledged"], True)
+                self.assertEqual(context["handshake_attempt_count"], 1)
+                runner_calls.append(context)
+                return {
+                    "schema": capture.CAPTURE_SUCCESS_SCHEMA,
+                    "status": "FIVE_STREAM_CAPTURE_FINALIZED",
+                    "raw_value_emitted_count": 0,
+                }
+
+            def session_factory(module):
+                session = fake_c1_session(module, self.c1_raw)
+                created_capsules.append(session["capsule"])
+                return session
+
+            def root_worker():
+                try:
+                    outcomes.append(
+                        capture._enabled_main(
+                            [
+                                "--capture",
+                                str(ready_fd),
+                                str(ack_fd),
+                                *runtime_arguments,
+                            ],
+                            capture_runner=runner,
+                            status_stream=output,
+                            credential_source_supplier=lambda: self.c1_raw,
+                            credential_session_factory=session_factory,
+                            wall_clock=lambda: C1_WALL,
+                            monotonic_ns_clock=lambda: C1_MONOTONIC_NS,
+                            session_monotonic=lambda: next(setup_times),
+                            early_preflight=lambda: True,
+                            closer=closer,
+                        )
+                    )
+                except BaseException as exc:
+                    outcomes.append(exc)
+
+            worker = threading.Thread(target=root_worker)
+            worker.start()
+            try:
+                ready_raw = self.c1.read_anonymous_frame(
+                    ready_outer.fileno(),
+                    capture.MAX_C1_HANDSHAKE_BYTES,
+                    fstat_fn=capture._c1_platform_fstat,
+                )
+                ready = json.loads(bytes(ready_raw))
+                self.c1.scrub_bytearray(ready_raw)
+                ready_outer.close()
+                ack = capture._root_c1_frame(
+                    ready["projection"],
+                    capture.C1_ACK_STATUS,
+                    1,
+                )
+                ack_raw = bytearray(capture._c1_canonical(ack))
+                self.c1.write_anonymous_frame(
+                    ack_outer.fileno(),
+                    ack_raw,
+                    capture.MAX_C1_HANDSHAKE_BYTES,
+                    fstat_fn=capture._c1_platform_fstat,
+                )
+                self.c1.scrub_bytearray(ack_raw)
+                self.assertEqual(ack_outer.recv(1), b"")
+            finally:
+                if ready_outer.fileno() >= 0:
+                    ready_outer.close()
+                ack_outer.close()
+            worker.join(timeout=5)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(
+                closed,
+                (
+                    [ready_fd, ack_fd, ready_fd]
+                    if fail_first_close
+                    else [ready_fd, ack_fd]
+                ),
+            )
+            self.assertEqual(
+                set(physically_closed),
+                {ready_fd, ack_fd},
+            )
+            if fail_first_close or setup_deadline:
+                self.assertEqual(runner_calls, [])
+                self.assertEqual(len(outcomes), 1)
+                self.assertIsInstance(outcomes[0], capture.CaptureError)
+                self.assertEqual(
+                    str(outcomes[0]),
+                    (
+                        "credential_handshake"
+                        if fail_first_close
+                        else "credential_handshake_timeout"
+                    ),
+                )
+                self.assertEqual(output.getvalue(), b"")
+            else:
+                self.assertEqual(outcomes, [0])
+                self.assertEqual(len(runner_calls), 1)
+                self.assertEqual(
+                    json.loads(output.getvalue()),
+                    {
+                        "schema": capture.CAPTURE_SUCCESS_SCHEMA,
+                        "status": "FIVE_STREAM_CAPTURE_FINALIZED",
+                        "raw_value_emitted_count": 0,
+                    },
+                )
+            self.assertEqual(len(created_capsules), 1)
+            with self.assertRaisesRegex(
+                ValueError,
+                "^credential_scrubbed$",
+            ):
+                created_capsules[0].project_m1_interface(
+                    wall_now_unix=C1_WALL,
+                    monotonic_now_ns=C1_MONOTONIC_NS,
+                )
+
+        for _iteration in range(12):
+            exercise(fail_first_close=False)
+        exercise(fail_first_close=True)
+        exercise(fail_first_close=False, setup_deadline=True)
+
+    def test_c2_root_fd_parse_cleanup_and_initial_probe_are_gate_first(self) -> None:
+        capture = self.capture
+        runtime_arguments = list(fake_capture_runtime_arguments())
+        source_calls: list[str] = []
+
+        cases = (
+            (["--capture", "30", "bad", *runtime_arguments], [30]),
+            (
+                ["--capture", "30", "31", "bad", *runtime_arguments[1:]],
+                [30, 31],
+            ),
+            (["--capture", "30", "30", *runtime_arguments], [30]),
+        )
+        for argv, expected_closed in cases:
+            closed: list[int] = []
+            with self.subTest(argv=argv), self.assertRaises(capture.CaptureError):
+                capture._enabled_main(
+                    argv,
+                    credential_source_supplier=lambda: source_calls.append(
+                        "source"
+                    ),
+                    early_preflight=lambda: True,
+                    closer=closed.append,
+                )
+            self.assertEqual(closed, expected_closed)
+        self.assertEqual(source_calls, [])
+
+        events: list[str] = []
+        with self.assertRaisesRegex(
+            capture.CaptureError,
+            "^initial_temporary_sts$",
+        ):
+            capture._run_capture_once(
+                prepare_dependencies=lambda: events.append("prepare"),
+                credential_initial={"invalid": True},
+                credential_supplier=lambda: events.append("supplier"),
+                child_runner=lambda *_args, **_kwargs: events.append("child"),
+            )
+        self.assertEqual(events, [])
+
+    def test_c2_public_future_capture_cannot_bypass_c1_with_injected_supplier(self) -> None:
+        capture = self.capture
+        calls: list[str] = []
+        previous = capture.EXECUTION_ENABLED
+        capture.EXECUTION_ENABLED = True
+        try:
+            with self.assertRaisesRegex(
+                capture.CaptureError,
+                "^capture_public_arguments$",
+            ):
+                capture.future_capture(
+                    prepare_dependencies=lambda: calls.append("prepare"),
+                    credential_initial=initial_credential_probe(),
+                    credential_supplier=lambda: calls.append("supplier"),
+                    child_runner=lambda *_args, **_kwargs: calls.append("child"),
+                )
+        finally:
+            capture.EXECUTION_ENABLED = previous
+        self.assertEqual(calls, [])
+
+    def test_c2_outer_three_stream_dispatch_success_orders_ack_and_early_close(self) -> None:
+        stager = self.stager
+        capsule = build_fake_c1_capsule(self.c1)
+        projection = capsule.project_m1_interface(
+            wall_now_unix=C1_WALL,
+            monotonic_now_ns=C1_MONOTONIC_NS,
+        )
+        capsule.scrub()
+        runtime_arguments = stager._build_capture_runtime_arguments("d" * 40)
+        root_result = valid_capture_root_result(stager)
+        root_raw = stager.canonical_bytes(root_result)
+        events: list[str] = []
+        close_events: list[str] = []
+        popen_calls: list[tuple[list[str], dict[str, object]]] = []
+        workers: list[threading.Thread] = []
+        pair_count = 0
+        handshake_parents_closed = threading.Event()
+
+        class TrackedSocket:
+            def __init__(self, channel, label):
+                self._channel = channel
+                self.label = label
+
+            def __getattr__(self, name):
+                return getattr(self._channel, name)
+
+            @property
+            def family(self):
+                return self._channel.family
+
+            def close(self):
+                if self._channel.fileno() < 0:
+                    raise AssertionError("socket closed more than once")
+                close_events.append(self.label)
+                self._channel.close()
+                if {
+                    "ready_parent",
+                    "ack_parent",
+                }.issubset(close_events):
+                    handshake_parents_closed.set()
+
+        def socketpair_factory(family, kind):
+            nonlocal pair_count
+            self.assertEqual((family, kind), (socket.AF_UNIX, socket.SOCK_STREAM))
+            pair_count += 1
+            left, right = socket.socketpair(family, kind)
+            role = ("status", "ready", "ack")[pair_count - 1]
+            return (
+                TrackedSocket(left, role + "_parent"),
+                TrackedSocket(right, role + "_child"),
+            )
+
+        class Process:
+            pid = 41001
+            returncode = 0
+
+            def poll(self):
+                return 0 if workers and not workers[0].is_alive() else None
+
+        def popen(arguments, **options):
+            popen_calls.append((list(arguments), dict(options)))
+            status_fd = os.dup(options["stdout"])
+            ready_fd = os.dup(options["stderr"])
+            ack_fd = os.dup(options["stdin"])
+
+            def root_session():
+                status_channel = socket.socket(fileno=status_fd)
+                ready_channel = socket.socket(fileno=ready_fd)
+                ack_channel = socket.socket(fileno=ack_fd)
+                ready_raw = ack_raw = None
+                try:
+                    supervisor_ready = stager._supervisor_ready_frame(
+                        supervisor_pid=41002,
+                        payload_pgid=41003,
+                        payload_mode="CAPTURE",
+                        payload_program_sha256=hashlib.sha256(
+                            stager.CAPTURE_ROOT_PROGRAM.encode("ascii")
+                        ).hexdigest(),
+                    )
+                    status_channel.sendall(supervisor_ready)
+                    self.assertEqual(status_channel.recv(1), b"A")
+                    events.append("supervisor_A")
+                    ready_frame = stager._c1_handshake_frame(
+                        projection,
+                        status=stager.C1_READY_STATUS,
+                        ack_count=0,
+                    )
+                    ready_raw = bytearray(stager.canonical_bytes(ready_frame))
+                    self.c1.write_anonymous_frame(
+                        ready_channel.fileno(),
+                        ready_raw,
+                        stager.MAX_C1_HANDSHAKE_BYTES,
+                        fstat_fn=stager._c1_platform_fstat,
+                    )
+                    events.append("root_READY")
+                    ack_raw = self.c1.read_anonymous_frame(
+                        ack_channel.fileno(),
+                        stager.MAX_C1_HANDSHAKE_BYTES,
+                        fstat_fn=stager._c1_platform_fstat,
+                    )
+                    stager._validate_c1_handshake_frame(
+                        ack_raw,
+                        expected_status=stager.C1_ACK_STATUS,
+                        expected_ack_count=1,
+                    )
+                    events.append("root_ACK")
+                    ready_channel.close()
+                    ready_channel = None
+                    ack_channel.close()
+                    ack_channel = None
+                    self.assertTrue(handshake_parents_closed.wait(timeout=2))
+                    events.append("handshake_parents_closed")
+                    terminal = stager.canonical_bytes(
+                        {
+                            "schema": stager.ROOT_PAYLOAD_SUPERVISOR_SCHEMA,
+                            "status": "PAYLOAD_GROUP_ABSENT",
+                            "payload_started": True,
+                            "payload_released": True,
+                            "supervisor_pid": 41002,
+                            "payload_pgid": 41003,
+                            "payload_release_count": 1,
+                            "payload_mode": "CAPTURE",
+                            "payload_program_sha256": hashlib.sha256(
+                                stager.CAPTURE_ROOT_PROGRAM.encode("ascii")
+                            ).hexdigest(),
+                            "pre_release_action_count": 0,
+                            "payload_returncode": 0,
+                            "group_absent": True,
+                            "automatic_retry_count": 0,
+                            "cleanup_count": 0,
+                            "raw_value_emitted_count": 0,
+                        }
+                    )
+                    events.append("payload")
+                    status_channel.sendall(root_raw + terminal)
+                    status_channel.shutdown(socket.SHUT_WR)
+                finally:
+                    for raw in (ready_raw, ack_raw):
+                        if raw is not None:
+                            self.c1.scrub_bytearray(raw)
+                    status_channel.close()
+                    if ready_channel is not None:
+                        ready_channel.close()
+                    if ack_channel is not None:
+                        ack_channel.close()
+
+            worker = threading.Thread(target=root_session)
+            workers.append(worker)
+            worker.start()
+            return Process()
+
+        def validate_ready(raw):
+            events.append("outer_READY")
+            ready = stager._validate_c1_handshake_frame(
+                raw,
+                expected_status=stager.C1_READY_STATUS,
+                expected_ack_count=0,
+            )
+            return stager._c1_handshake_frame(
+                ready["projection"],
+                status=stager.C1_ACK_STATUS,
+                ack_count=1,
+            )
+
+        def pre_ack():
+            events.append("outer_pre_ACK_identity")
+
+        def settle(_process, **_kwargs):
+            workers[0].join(timeout=5)
+            self.assertFalse(workers[0].is_alive())
+            return {
+                "reaped": True,
+                "returncode": 0,
+                "terminate_sent": False,
+                "kill_sent": False,
+            }
+
+        observed = stager._dispatch_capture_root_once(
+            runtime_arguments,
+            tool_snapshot={"fixed": True},
+            capsule_api=self.c1,
+            credential_ready_validator=validate_ready,
+            pre_ack_identity_validator=pre_ack,
+            tool_snapshot_reader=lambda: {"fixed": True},
+            socketpair_factory=socketpair_factory,
+            popen=popen,
+            settler=settle,
+            signal_masker=lambda how, _signals: (
+                "previous" if how == signal.SIG_BLOCK else None
+            ),
+            absence_prover=lambda _readiness: True,
+        )
+        self.assertEqual(observed, root_raw)
+        self.assertEqual(pair_count, 3)
+        self.assertEqual(len(popen_calls), 1)
+        arguments, options = popen_calls[0]
+        self.assertEqual(tuple(arguments[-5:]), runtime_arguments)
+        self.assertEqual(arguments.count("/usr/bin/sudo"), 1)
+        public_argv = "\0".join(arguments)
+        for forbidden in (
+            projection["account_binding_sha256"],
+            stager._c1_ready_sha256(projection),
+            "fake-temporary-sts",
+        ):
+            self.assertNotIn(forbidden, public_argv)
+        self.assertIs(type(options["stdin"]), int)
+        self.assertIs(type(options["stdout"]), int)
+        self.assertIs(type(options["stderr"]), int)
+        self.assertEqual(
+            events,
+            [
+                "supervisor_A",
+                "root_READY",
+                "outer_READY",
+                "outer_pre_ACK_identity",
+                "root_ACK",
+                "handshake_parents_closed",
+                "payload",
+            ],
+        )
+        self.assertEqual(close_events.count("ready_parent"), 1)
+        self.assertEqual(close_events.count("ack_parent"), 1)
+
+    def test_c2_default_capture_factory_is_first_and_binds_dual_revision_c1(self) -> None:
+        stager = self.stager
+        capsule = build_fake_c1_capsule(self.c1)
+        projection = capsule.project_m1_interface(
+            wall_now_unix=C1_WALL,
+            monotonic_now_ns=C1_MONOTONIC_NS,
+        )
+        capsule.scrub()
+        events: list[str] = []
+        git_reads: list[tuple[str, str]] = []
+        dispatcher_calls: list[tuple[tuple[str, ...], dict[str, object]]] = []
+
+        def git_reader(revision, ref):
+            git_reads.append((revision, ref))
+            events.append("git")
+            return {
+                "raw": self.c1_raw,
+                "git_blob_oid": stager.C1_CAPSULE_GIT_BLOB_OID,
+            }
+
+        def dispatcher(runtime_arguments, **kwargs):
+            events.append("dispatch")
+            dispatcher_calls.append((tuple(runtime_arguments), dict(kwargs)))
+            self.assertEqual(len(runtime_arguments), 5)
+            self.assertNotIn(
+                projection["account_binding_sha256"],
+                "\0".join(runtime_arguments),
+            )
+            self.assertEqual(
+                set(kwargs),
+                {
+                    "tool_snapshot",
+                    "capsule_api",
+                    "credential_ready_validator",
+                    "pre_ack_identity_validator",
+                },
+            )
+            self.assertIs(type(kwargs["capsule_api"]), types.ModuleType)
+            ready = stager._c1_handshake_frame(
+                projection,
+                status=stager.C1_READY_STATUS,
+                ack_count=0,
+            )
+            ack = kwargs["credential_ready_validator"](
+                stager.canonical_bytes(ready)
+            )
+            self.assertEqual(
+                ack,
+                stager._c1_handshake_frame(
+                    projection,
+                    status=stager.C1_ACK_STATUS,
+                    ack_count=1,
+                ),
+            )
+            kwargs["pre_ack_identity_validator"]()
+            return stager.canonical_bytes(valid_capture_root_result(stager))
+
+        def session_factory():
+            events.append("factory")
+            return dispatcher
+
+        with mock.patch.object(
+            stager,
+            "_stage_system_tool_snapshot",
+            return_value={"tools": "fixed"},
+        ), mock.patch.object(
+            stager,
+            "_stage_repository_snapshot",
+            return_value={"repository": "fixed"},
+        ), mock.patch.object(
+            stager,
+            "_stage_topology_snapshot",
+            return_value={"topology": "fixed"},
+        ), mock.patch.object(
+            stager,
+            "_assert_public_m1_absent",
+            side_effect=lambda: events.append("public_absent"),
+        ):
+            result = stager._default_future_capture(
+                "c" * 40,
+                "d" * 40,
+                credential_session_factory=session_factory,
+                c1_git_reader=git_reader,
+            )
+        self.assertEqual(result, valid_capture_root_result(stager))
+        self.assertEqual(events[0], "factory")
+        self.assertEqual(len(dispatcher_calls), 1)
+        self.assertGreaterEqual(len(git_reads), 4)
+        self.assertEqual(
+            git_reads[:2],
+            [
+                (stager.C1_CAPSULE_SOURCE_REVISION, stager.C1_CAPSULE_REF),
+                (
+                    stager.C1_CAPSULE_ACCEPTANCE_REVISION,
+                    stager.C1_CAPSULE_REF,
+                ),
+            ],
+        )
+        self.assertEqual(
+            set(git_reads),
+            {
+                (stager.C1_CAPSULE_SOURCE_REVISION, stager.C1_CAPSULE_REF),
+                (
+                    stager.C1_CAPSULE_ACCEPTANCE_REVISION,
+                    stager.C1_CAPSULE_REF,
+                ),
+            },
+        )
+
+    def test_c2_bootstrap_allocator_keeps_stdio_occupied_until_internal_fds_exist(self) -> None:
+        tree = ast.parse(self.stager.CAPTURE_EXEC_BOOTSTRAP)
+        wanted = {
+            "status_pair",
+            "gate_pipe",
+            "inherited_credential_endpoints",
+            "close_inherited_credential_stdio",
+        }
+        definitions = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name in wanted
+        ]
+        self.assertEqual({node.name for node in definitions}, wanted)
+        main_try = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.Try)
+            and any(
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)
+                and call.func.id == "inherited_credential_endpoints"
+                for call in ast.walk(node)
+            )
+        )
+        call_lines: dict[str, int] = {}
+        for call in ast.walk(main_try):
+            if not isinstance(call, ast.Call):
+                continue
+            if isinstance(call.func, ast.Name) and call.func.id in {
+                "inherited_credential_endpoints",
+                "status_pair",
+                "gate_pipe",
+                "close_inherited_credential_stdio",
+            }:
+                call_lines[call.func.id] = call.lineno
+            elif (
+                isinstance(call.func, ast.Attribute)
+                and isinstance(call.func.value, ast.Name)
+                and call.func.value.id == "subprocess"
+                and call.func.attr == "Popen"
+            ):
+                call_lines["Popen"] = call.lineno
+        self.assertEqual(
+            set(call_lines),
+            {
+                "inherited_credential_endpoints",
+                "status_pair",
+                "gate_pipe",
+                "Popen",
+                "close_inherited_credential_stdio",
+            },
+        )
+        self.assertEqual(
+            sorted(call_lines, key=call_lines.get),
+            [
+                "inherited_credential_endpoints",
+                "status_pair",
+                "gate_pipe",
+                "Popen",
+                "close_inherited_credential_stdio",
+            ],
+        )
+        script = (
+            "import fcntl,json,os,socket,stat\n"
+            + "\n".join(ast.unparse(node) for node in definitions)
+            + "\nowned={0,2}\n"
+            + "ready,ack=inherited_credential_endpoints()\n"
+            + "status_parent,status_child=status_pair()\n"
+            + "gate_reader,gate_writer=gate_pipe()\n"
+            + "fds=(ready,ack,status_parent.fileno(),status_child.fileno(),gate_reader,gate_writer)\n"
+            + "close_inherited_credential_stdio(owned)\n"
+            + "closed=[]\n"
+            + "\nfor fd in (0,2):\n"
+            + "    try: os.fstat(fd)\n"
+            + "    except OSError: closed.append(fd)\n"
+            + "print(json.dumps({'fds':fds,'closed':closed,'owned':sorted(owned)},sort_keys=True))\n"
+            + "status_parent.close();status_child.close()\n"
+            + "os.close(ready);os.close(ack);os.close(gate_reader);os.close(gate_writer)\n"
+        )
+        ready_parent, ready_child = socket.socketpair(
+            socket.AF_UNIX,
+            socket.SOCK_STREAM,
+        )
+        ack_parent, ack_child = socket.socketpair(
+            socket.AF_UNIX,
+            socket.SOCK_STREAM,
+        )
+        try:
+            completed = subprocess.run(
+                [sys.executable, "-I", "-S", "-B", "-c", script],
+                stdin=ack_child.fileno(),
+                stdout=subprocess.PIPE,
+                stderr=ready_child.fileno(),
+                close_fds=True,
+                check=False,
+                timeout=10,
+            )
+        finally:
+            ready_parent.close()
+            ready_child.close()
+            ack_parent.close()
+            ack_child.close()
+        self.assertEqual(completed.returncode, 0, completed.stdout)
+        proof = json.loads(completed.stdout)
+        self.assertEqual(proof["closed"], [0, 2])
+        self.assertEqual(proof["owned"], [])
+        self.assertEqual(len(proof["fds"]), 6)
+        self.assertEqual(len(set(proof["fds"])), 6)
+        self.assertGreaterEqual(min(proof["fds"]), 3)
+
+    def test_c2_nested_handshake_and_supervisor_budgets_have_fixed_margin(self) -> None:
+        bindings = {}
+        for node in ast.parse(self.stager.CAPTURE_ROOT_PROGRAM).body:
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+            ):
+                try:
+                    bindings[node.targets[0].id] = ast.literal_eval(node.value)
+                except (TypeError, ValueError):
+                    pass
+        self.assertEqual(self.stager.CAPTURE_C1_HANDSHAKE_TIMEOUT_SECONDS, 20)
+        self.assertEqual(self.stager.C1_SESSION_SETUP_TIMEOUT_SECONDS, 20)
+        self.assertEqual(bindings["C1_SESSION_SETUP_TIMEOUT_SECONDS"], 20)
+        root_budget = (
+            bindings["C1_SESSION_SETUP_TIMEOUT_SECONDS"]
+            + bindings["FULL_CAPTURE_TIMEOUT_SECONDS"]
+            + bindings["POST_CAPTURE_IDENTITY_DEADLINE_SECONDS"]
+        )
+        self.assertLess(
+            root_budget,
+            self.stager.CAPTURE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS,
+        )
+        self.assertGreaterEqual(
+            self.stager.CAPTURE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS
+            - root_budget,
+            10,
+        )
+        supervisor_total = (
+            self.stager.CAPTURE_SUPERVISOR_ACK_TIMEOUT_SECONDS
+            + self.stager.CAPTURE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS
+            + self.stager.SUPERVISOR_NORMAL_WAIT_SECONDS
+            + self.stager.SUPERVISOR_TERM_GRACE_SECONDS
+            + self.stager.SUPERVISOR_KILL_GRACE_SECONDS
+            + self.stager.SUPERVISOR_TERMINAL_EMIT_BUDGET_SECONDS
+        )
+        self.assertEqual(supervisor_total, 916)
+        self.assertLess(
+            supervisor_total,
+            self.stager.CAPTURE_SUDO_MONITOR_TIMEOUT_SECONDS,
+        )
+        self.assertLess(
+            self.stager.CAPTURE_SUDO_MONITOR_TIMEOUT_SECONDS,
+            self.stager.CAPTURE_OUTER_HARD_TIMEOUT_SECONDS,
+        )
+
+    def test_c2_pre_ack_failure_or_deadline_writes_no_ack_and_contains_once(self) -> None:
+        stager = self.stager
+        capsule = build_fake_c1_capsule(self.c1)
+        projection = capsule.project_m1_interface(
+            wall_now_unix=C1_WALL,
+            monotonic_now_ns=C1_MONOTONIC_NS,
+        )
+        capsule.scrub()
+        ready_frame = stager._c1_handshake_frame(
+            projection,
+            status=stager.C1_READY_STATUS,
+            ack_count=0,
+        )
+
+        for mode in ("identity_failure", "deadline"):
+            clock = [0.0]
+            ready_buffer = bytearray(stager.canonical_bytes(ready_frame))
+            root_ack_channels: list[socket.socket] = []
+            root_ready_channels: list[socket.socket] = []
+            root_status_channels: list[socket.socket] = []
+            events: list[str] = []
+            writes: list[object] = []
+
+            class Process:
+                pid = 42001
+                returncode = 78
+
+                def poll(self):
+                    return None
+
+            def popen(_arguments, **options):
+                root_ack_channels.append(
+                    socket.socket(fileno=os.dup(options["stdin"]))
+                )
+                root_status_channels.append(
+                    socket.socket(fileno=os.dup(options["stdout"]))
+                )
+                root_ready_channels.append(
+                    socket.socket(fileno=os.dup(options["stderr"]))
+                )
+                return Process()
+
+            def pre_ack():
+                events.append("pre_ack")
+                if mode == "identity_failure":
+                    raise stager.StagerError("injected_identity_failure")
+                clock[0] = stager.CAPTURE_C1_HANDSHAKE_TIMEOUT_SECONDS
+
+            def settle(_process, **_kwargs):
+                events.append("settle")
+                status_peer = root_status_channels[0]
+                ack_peer = root_ack_channels[0]
+                status_peer.settimeout(1)
+                ack_peer.settimeout(1)
+                self.assertEqual(status_peer.recv(1), b"A")
+                self.assertEqual(ack_peer.recv(1), b"")
+                status_peer.close()
+                ack_peer.close()
+                root_ready_channels[0].close()
+                return {
+                    "reaped": True,
+                    "returncode": 78,
+                    "terminate_sent": False,
+                    "kill_sent": False,
+                }
+
+            supervisor_ready = stager._supervisor_ready_frame(
+                supervisor_pid=42002,
+                payload_pgid=42003,
+                payload_mode="CAPTURE",
+                payload_program_sha256=hashlib.sha256(
+                    stager.CAPTURE_ROOT_PROGRAM.encode("ascii")
+                ).hexdigest(),
+            )
+            with self.subTest(mode=mode), mock.patch.object(
+                stager,
+                "_read_capture_supervisor_ready_once",
+                return_value=(
+                    json.loads(supervisor_ready),
+                    bytearray(supervisor_ready),
+                ),
+            ), mock.patch.object(
+                stager,
+                "_read_c1_ready_with_deadline",
+                side_effect=lambda *_args, **_kwargs: (
+                    events.append("ready") or ready_buffer
+                ),
+            ), mock.patch.object(
+                stager,
+                "_cancel_and_drain_for_containment",
+                side_effect=lambda *_args, **_kwargs: (
+                    events.append("contain") or True
+                ),
+            ), mock.patch.object(
+                self.c1,
+                "write_anonymous_frame",
+                side_effect=lambda *_args, **_kwargs: writes.append("write"),
+            ):
+                with self.assertRaisesRegex(
+                    stager.StagerError,
+                    "^capture_single_sudo_failed$",
+                ):
+                    stager._dispatch_capture_root_once(
+                        stager._build_capture_runtime_arguments("d" * 40),
+                        tool_snapshot={"fixed": True},
+                        capsule_api=self.c1,
+                        credential_ready_validator=lambda raw: (
+                            events.append("validator")
+                            or stager._c1_handshake_frame(
+                                stager._validate_c1_handshake_frame(
+                                    raw,
+                                    expected_status=stager.C1_READY_STATUS,
+                                    expected_ack_count=0,
+                                )["projection"],
+                                status=stager.C1_ACK_STATUS,
+                                ack_count=1,
+                            )
+                        ),
+                        pre_ack_identity_validator=pre_ack,
+                        tool_snapshot_reader=lambda: {"fixed": True},
+                        popen=popen,
+                        settler=settle,
+                        monotonic=lambda: clock[0],
+                        signal_masker=lambda how, _signals: (
+                            "previous" if how == signal.SIG_BLOCK else None
+                        ),
+                        absence_prover=lambda _readiness: True,
+                    )
+            self.assertEqual(writes, [])
+            self.assertEqual(
+                ready_buffer,
+                bytearray(len(ready_buffer)),
+            )
+            self.assertEqual(events.count("ready"), 1)
+            self.assertEqual(events.count("validator"), 1)
+            self.assertEqual(events.count("pre_ack"), 1)
+            self.assertEqual(events.count("contain"), 1)
+            self.assertEqual(events.count("settle"), 1)
+
+    def test_c2_c1_dual_revision_binding_rejects_each_drift_before_socket(self) -> None:
+        stager = self.stager
+        calls: list[tuple[str, str]] = []
+
+        def accepted_reader(revision, ref):
+            calls.append((revision, ref))
+            return {
+                "raw": self.c1_raw,
+                "git_blob_oid": stager.C1_CAPSULE_GIT_BLOB_OID,
+            }
+
+        receipt = stager._validate_c1_fixed_git_binding(
+            git_reader=accepted_reader
+        )
+        self.assertEqual(
+            calls,
+            [
+                (stager.C1_CAPSULE_SOURCE_REVISION, stager.C1_CAPSULE_REF),
+                (
+                    stager.C1_CAPSULE_ACCEPTANCE_REVISION,
+                    stager.C1_CAPSULE_REF,
+                ),
+            ],
+        )
+        self.assertEqual(receipt["identity"], stager.C1_CAPSULE_FIXED_BINDING)
+        self.assertEqual(receipt["raw"], self.c1_raw)
+        loaded = stager._load_bound_c1_capsule_api(receipt["raw"])
+        self.assertIs(type(loaded), types.ModuleType)
+        self.assertEqual(
+            loaded.source_only_status()["credential_capsule_status"],
+            "NOT_PROVISIONED",
+        )
+
+        mutations = (
+            lambda revision, ref: {
+                "raw": self.c1_raw + (b" " if revision == stager.C1_CAPSULE_SOURCE_REVISION else b""),
+                "git_blob_oid": stager.C1_CAPSULE_GIT_BLOB_OID,
+            },
+            lambda revision, ref: {
+                "raw": self.c1_raw,
+                "git_blob_oid": (
+                    "0" * 40
+                    if revision == stager.C1_CAPSULE_ACCEPTANCE_REVISION
+                    else stager.C1_CAPSULE_GIT_BLOB_OID
+                ),
+            },
+            lambda _revision, _ref: {
+                "raw": self.c1_raw,
+                "git_blob_oid": stager.C1_CAPSULE_GIT_BLOB_OID,
+                "working_tree_raw": self.c1_raw,
+            },
+        )
+        for index, reader in enumerate(mutations):
+            socket_calls: list[str] = []
+            popen_calls: list[str] = []
+            with self.subTest(index=index), mock.patch.object(
+                stager.socket,
+                "socketpair",
+                side_effect=lambda *_args, **_kwargs: socket_calls.append(
+                    "socket"
+                ),
+            ), mock.patch.object(
+                stager.subprocess,
+                "Popen",
+                side_effect=lambda *_args, **_kwargs: popen_calls.append(
+                    "popen"
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    stager.StagerError,
+                    "^capture_c1_git_binding$",
+                ):
+                    stager._validate_c1_fixed_git_binding(git_reader=reader)
+            self.assertEqual(socket_calls, [])
+            self.assertEqual(popen_calls, [])
+
+        for raw in (
+            self.c1_raw[:-1],
+            self.c1_raw + b"\n",
+            b"x" * len(self.c1_raw),
+        ):
+            with self.assertRaisesRegex(
+                stager.StagerError,
+                "^capture_c1_source_api$",
+            ):
+                stager._load_bound_c1_capsule_api(raw)
+
+        git_calls: list[str] = []
+        with self.assertRaisesRegex(
+            stager.StagerError,
+            "^capture_credential_interface_not_provisioned$",
+        ):
+            stager._default_future_capture(
+                "c" * 40,
+                "d" * 40,
+                c1_git_reader=lambda *_args: git_calls.append("git"),
+            )
+        self.assertEqual(git_calls, [])
+
+    def test_c2_payload_drift_is_limited_to_capture_root_and_bootstrap(self) -> None:
+        unchanged = {
+            "MATERIALIZE_STDIO_BOOTSTRAP": (
+                12425,
+                "308a68bda0f91199e59653b426775ff3c657953e1faea57ffee1da3b81d2984e",
+            ),
+            "MATERIALIZE_ROOT_PROGRAM": (
+                71653,
+                "5d6ae172422b805fa2b358c605285a8056e37e492ce31fb2fdf724bc3047ec16",
+            ),
+            "STAGE_ROOT_PROGRAM": (
+                53723,
+                "62a469141b1e03a62018a9fec89001c95445126f0a4948c6c6331a9de778ca4c",
+            ),
+        }
+        for name, (expected_size, expected_sha256) in unchanged.items():
+            raw = getattr(self.stager, name).encode("ascii")
+            with self.subTest(name=name):
+                self.assertEqual(len(raw), expected_size)
+                self.assertEqual(
+                    hashlib.sha256(raw).hexdigest(),
+                    expected_sha256,
+                )
+        self.assertNotEqual(
+            hashlib.sha256(
+                self.stager.CAPTURE_ROOT_PROGRAM.encode("ascii")
+            ).hexdigest(),
+            "7d71e514a4fa30635df26dd52377d8ff172db2c2f0647416fbdd38a7bcab33c5",
+        )
+        self.assertNotEqual(
+            hashlib.sha256(
+                self.stager.CAPTURE_EXEC_BOOTSTRAP.encode("ascii")
+            ).hexdigest(),
+            "15f05e57bcc5fc6ddbd4ae8cdd732e531834719c8d11d92b3c6099bf9353dc74",
+        )
+
+    def test_c2_partial_three_stream_allocation_closes_every_created_channel(self) -> None:
+        stager = self.stager
+
+        class Tracked:
+            def __init__(self, channel, closed):
+                self._channel = channel
+                self._closed = closed
+
+            def __getattr__(self, name):
+                return getattr(self._channel, name)
+
+            @property
+            def family(self):
+                return self._channel.family
+
+            def close(self):
+                self._closed.append(self)
+                self._channel.close()
+
+        for mode in ("second_create", "identity"):
+            created: list[Tracked] = []
+            closed: list[Tracked] = []
+            factory_calls = 0
+
+            def factory(family, kind):
+                nonlocal factory_calls
+                factory_calls += 1
+                if mode == "second_create" and factory_calls == 2:
+                    raise OSError("injected socketpair failure")
+                left, right = socket.socketpair(family, kind)
+                pair = (Tracked(left, closed), Tracked(right, closed))
+                created.extend(pair)
+                return pair
+
+            identity_patch = (
+                mock.patch.object(
+                    stager,
+                    "_stage_socket_identity",
+                    side_effect=stager.StagerError("injected identity failure"),
+                )
+                if mode == "identity"
+                else mock.patch.object(
+                    stager,
+                    "_stage_socket_identity",
+                    wraps=stager._stage_socket_identity,
+                )
+            )
+            with self.subTest(mode=mode), identity_patch:
+                with self.assertRaisesRegex(
+                    stager.StagerError,
+                    "^capture_root_containment_unproven$",
+                ):
+                    stager._dispatch_capture_root_once(
+                        stager._build_capture_runtime_arguments("d" * 40),
+                        tool_snapshot={"fixed": True},
+                        capsule_api=self.c1,
+                        credential_ready_validator=lambda _raw: {},
+                        pre_ack_identity_validator=lambda: None,
+                        tool_snapshot_reader=lambda: {"fixed": True},
+                        socketpair_factory=factory,
+                        popen=lambda *_args, **_kwargs: self.fail(
+                            "Popen reached after allocation failure"
+                        ),
+                    )
+            self.assertTrue(created)
+            self.assertEqual(len(closed), len(created))
+            self.assertEqual(set(closed), set(created))
+            self.assertTrue(all(item.fileno() == -1 for item in created))
+
+    def test_c2_ack_reverse_channel_requires_pure_eof(self) -> None:
+        for reverse in (b"", b"forbidden-reverse-byte"):
+            outer, root = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+            provider_calls: list[str] = []
+            try:
+                if reverse:
+                    root.sendall(reverse)
+                    root.shutdown(socket.SHUT_WR)
+                else:
+                    root.close()
+                if reverse:
+                    with self.assertRaisesRegex(
+                        self.stager.StagerError,
+                        "^capture_c1_handshake$",
+                    ):
+                        self.stager._wait_c1_ack_peer_eof(
+                            outer.fileno(),
+                            deadline=self.stager.time.monotonic() + 1,
+                            selector_factory=selectors.DefaultSelector,
+                            monotonic=self.stager.time.monotonic,
+                        )
+                else:
+                    self.stager._wait_c1_ack_peer_eof(
+                        outer.fileno(),
+                        deadline=self.stager.time.monotonic() + 1,
+                        selector_factory=selectors.DefaultSelector,
+                        monotonic=self.stager.time.monotonic,
+                    )
+            finally:
+                outer.close()
+                if root.fileno() >= 0:
+                    root.close()
+            self.assertEqual(provider_calls, [])
 
 
 if __name__ == "__main__":

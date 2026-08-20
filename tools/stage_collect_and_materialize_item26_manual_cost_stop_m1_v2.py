@@ -24,6 +24,7 @@ import fcntl
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path
 import resource
@@ -56,6 +57,29 @@ TEST_REF = (
     "tests/test_stage_collect_and_materialize_item26_manual_cost_stop_m1_v2.py"
 )
 ADAPTER_REF = "tools/item26_aliyun_official_read_v2.py"
+C1_CAPSULE_REF = "tools/item26_aliyun_temporary_sts_capsule_v1.py"
+C1_CAPSULE_SOURCE_REVISION = "86206f816fb092a7fca7a577b1391e251dfca5ca"
+C1_CAPSULE_ACCEPTANCE_REVISION = "314a6b885bc7bda9790074a201ac176e498326b5"
+C1_CAPSULE_GIT_BLOB_OID = "99110863d055929fbc76950ec2bc9aa8fd0f7bc6"
+C1_CAPSULE_FILE_SHA256 = (
+    "7ed50fd5acdbb5733a174367e8bcb339b3a6bc07b49fed3a31243fddf763e4e3"
+)
+C1_CAPSULE_BYTES = 49494
+C1_CAPSULE_FIXED_BINDING = {
+    "source_ref": C1_CAPSULE_REF,
+    "source_revision": C1_CAPSULE_SOURCE_REVISION,
+    "acceptance_revision": C1_CAPSULE_ACCEPTANCE_REVISION,
+    "git_blob_oid": C1_CAPSULE_GIT_BLOB_OID,
+    "file_sha256": C1_CAPSULE_FILE_SHA256,
+    "size": C1_CAPSULE_BYTES,
+}
+C1_HANDSHAKE_SCHEMA = "noteai.item26.m1-c1-capture-handshake.v1"
+C1_READY_BINDING_SCHEMA = "noteai.item26.m1-c1-ready-binding.v1"
+C1_READY_STATUS = "ROOT_CUSTODY_TEMPORARY_STS_READY_FOR_CAPTURE_ACK"
+C1_ACK_STATUS = "ROOT_CUSTODY_TEMPORARY_STS_CAPTURE_ACKNOWLEDGED"
+C1_READY_SHA256_DOMAIN = b"noteai.item26.m1-c1-ready-sha256.v1\x00"
+MAX_C1_HANDSHAKE_BYTES = 4096
+C1_SESSION_SETUP_TIMEOUT_SECONDS = 20
 COLLECTOR_REF = "tools/collect_item26_manual_cost_stop_raw_v2.py"
 EXTRACTOR_REF = "tools/extract_item26_manual_cost_stop_raw_v2.py"
 BUILDER_REF = "tools/build_item26_manual_cost_stop_evidence_v2.py"
@@ -683,14 +707,16 @@ CAPTURE_OUTER_HARD_TIMEOUT_SECONDS = 20 * 60
 MATERIALIZE_OUTER_HARD_TIMEOUT_SECONDS = 5 * 60
 OUTER_TERMINAL_EOF_GRACE_SECONDS = 2
 OUTER_INTERACTIVE_AUTH_TIMEOUT_SECONDS = 15 * 60
+CAPTURE_C1_HANDSHAKE_TIMEOUT_SECONDS = 20
 OUTER_TERMINATE_GRACE_SECONDS = 7
 OUTER_KILL_GRACE_SECONDS = 2
 SUPERVISOR_ACK_TIMEOUT_SECONDS = 4
+CAPTURE_SUPERVISOR_ACK_TIMEOUT_SECONDS = 8
 SUPERVISOR_NORMAL_WAIT_SECONDS = 2
 SUPERVISOR_TERM_GRACE_SECONDS = 3
 SUPERVISOR_KILL_GRACE_SECONDS = 2
 SUPERVISOR_TERMINAL_EMIT_BUDGET_SECONDS = 1
-CAPTURE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS = 905
+CAPTURE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS = 900
 MATERIALIZE_SUPERVISOR_RUNTIME_TIMEOUT_SECONDS = 105
 OUTER_COMMIT_SIGNALS = (
     signal.SIGTERM,
@@ -734,11 +760,11 @@ TERMINATION_SIGNALS = (
 )
 ACTIVE = None
 MAX_PAYLOAD_STATUS_BYTES = 4096
-ACK_TIMEOUT_SECONDS = 4
+ACK_TIMEOUT_SECONDS = 8
 NORMAL_WAIT_SECONDS = 2.0
 TERM_GRACE_SECONDS = 3.0
 KILL_GRACE_SECONDS = 2.0
-RUNTIME_TIMEOUT_SECONDS = 905
+RUNTIME_TIMEOUT_SECONDS = 900
 TERMINAL_EMIT_BUDGET_SECONDS = 1.0
 GATE_CODE = (
     "import os,sys\n"
@@ -896,6 +922,63 @@ def gate_pipe():
         raise RuntimeError("supervisor_gate_channel")
     return reader, writer
 
+def inherited_credential_endpoints():
+    ready = ack = None
+    try:
+        ready = os.dup(2)
+        ack = os.dup(0)
+        probes = []
+        identities = []
+        for descriptor, direction in ((ready, "ready"), (ack, "ack")):
+            row = os.fstat(descriptor)
+            flags = fcntl.fcntl(descriptor, fcntl.F_GETFL)
+            duplicate = os.dup(descriptor)
+            channel = socket.socket(fileno=duplicate)
+            probes.append(channel)
+            identity = (row.st_dev, row.st_ino)
+            identities.append(identity)
+            if (
+                descriptor < 3
+                or not stat.S_ISSOCK(row.st_mode)
+                or flags & os.O_ACCMODE != os.O_RDWR
+                or flags & (os.O_NONBLOCK | getattr(os, "O_ASYNC", 0))
+                or channel.family != socket.AF_UNIX
+                or channel.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE)
+                != socket.SOCK_STREAM
+                or channel.getsockname() not in (None, "", b"")
+                or channel.getpeername() not in (None, "", b"")
+                or direction not in {"ready", "ack"}
+            ):
+                raise RuntimeError("supervisor_credential_channel")
+        if len(set(identities)) != 2:
+            raise RuntimeError("supervisor_credential_alias")
+        return ready, ack
+    except BaseException:
+        for descriptor in (ready, ack):
+            if descriptor is not None:
+                try:
+                    os.close(descriptor)
+                except BaseException:
+                    pass
+        raise
+    finally:
+        for channel in locals().get("probes", ()):
+            channel.close()
+
+def close_inherited_credential_stdio(owned):
+    failure = None
+    for descriptor in (0, 2):
+        if descriptor not in owned:
+            continue
+        owned.remove(descriptor)
+        try:
+            os.close(descriptor)
+        except BaseException as exc:
+            if failure is None:
+                failure = exc
+    if failure is not None:
+        raise RuntimeError("supervisor_credential_stdio_close") from None
+
 def drain_payload_status(process, channel, control_descriptor):
     selector = selectors.DefaultSelector()
     raw = bytearray()
@@ -949,10 +1032,24 @@ status_parent = None
 status_child = None
 gate_reader = None
 gate_writer = None
+credential_ready_fd = None
+credential_ack_fd = None
 payload_status = None
+credential_stdio_owned = {0, 2}
 try:
+    credential_ready_fd, credential_ack_fd = inherited_credential_endpoints()
     status_parent, status_child = status_pair()
     gate_reader, gate_writer = gate_pipe()
+    internal_descriptors = (
+        credential_ready_fd,
+        credential_ack_fd,
+        status_parent.fileno(),
+        status_child.fileno(),
+        gate_reader,
+        gate_writer,
+    )
+    if min(internal_descriptors) < 3 or len(set(internal_descriptors)) != 6:
+        raise RuntimeError("supervisor_internal_fd_alias")
     previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, TERMINATION_SIGNALS)
     try:
         ACTIVE = subprocess.Popen(
@@ -970,6 +1067,8 @@ try:
                 "-B",
                 "/Library/Application Support/NoteAI/item26-manual-cost-stop-v2-m1-capture/capture-root-program.py",
                 "--capture",
+                str(credential_ready_fd),
+                str(credential_ack_fd),
                 *sys.argv[1:],
             ],
             cwd="/Library/Application Support/NoteAI/item26-manual-cost-stop-v2-m1-capture",
@@ -978,7 +1077,7 @@ try:
             stdout=status_child.fileno(),
             stderr=subprocess.DEVNULL,
             close_fds=True,
-            pass_fds=(gate_reader,),
+            pass_fds=(gate_reader, credential_ready_fd, credential_ack_fd),
             start_new_session=True,
             text=False,
             bufsize=0,
@@ -989,8 +1088,13 @@ try:
             raise RuntimeError("supervisor_payload_group")
     finally:
         signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+    close_inherited_credential_stdio(credential_stdio_owned)
     status_child.close()
     status_child = None
+    os.close(credential_ready_fd)
+    credential_ready_fd = None
+    os.close(credential_ack_fd)
+    credential_ack_fd = None
     os.close(gate_reader)
     gate_reader = None
     signal.alarm(ACK_TIMEOUT_SECONDS)
@@ -1002,7 +1106,7 @@ try:
             "payload_pgid": payload_pgid,
             "payload_release_count": 0,
             "payload_mode": "CAPTURE",
-            "payload_program_sha256": "7d71e514a4fa30635df26dd52377d8ff172db2c2f0647416fbdd38a7bcab33c5",
+            "payload_program_sha256": "258d11ca4094efd5018ef8100378ea139949136953c318b6e10604a91ea6435d",
             "pre_release_action_count": 0,
             "automatic_retry_count": 0,
             "cleanup_count": 0,
@@ -1030,7 +1134,19 @@ except BaseException:
             contained = False
 finally:
     signal.alarm(0)
+    for descriptor in tuple(credential_stdio_owned):
+        credential_stdio_owned.remove(descriptor)
+        try:
+            os.close(descriptor)
+        except BaseException:
+            pass
     for descriptor in (gate_reader, gate_writer):
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except BaseException:
+                pass
+    for descriptor in (credential_ready_fd, credential_ack_fd):
         if descriptor is not None:
             try:
                 os.close(descriptor)
@@ -1055,7 +1171,7 @@ if contained or not started:
             "payload_pgid": payload_pgid,
             "payload_release_count": 1 if released else 0,
             "payload_mode": "CAPTURE",
-            "payload_program_sha256": "7d71e514a4fa30635df26dd52377d8ff172db2c2f0647416fbdd38a7bcab33c5",
+            "payload_program_sha256": "258d11ca4094efd5018ef8100378ea139949136953c318b6e10604a91ea6435d",
             "pre_release_action_count": 0,
             "payload_returncode": returncode,
             "group_absent": True,
@@ -1510,6 +1626,7 @@ MATERIALIZE_CHILD_SUCCESS_KEYS = frozenset(
 )
 MINIMUM_STS_VALIDITY_SECONDS = 16 * 60
 INITIAL_MINIMUM_STS_VALIDITY_SECONDS = 31 * 60
+MAXIMUM_STS_VALIDITY_SECONDS = 24 * 60 * 60
 EXECUTION_ENABLED = False
 
 CAPTURE_PAGE_SEQUENCE = (
@@ -2098,6 +2215,17 @@ FUTURE_CAPTURE_CONTRACT = {
     "bridge_mark_unknown_without_all_conditions_allowed": False,
     "credential_interface_status": "NOT_PROVISIONED",
     "credential_source": "ROOT_CUSTODY_PROJECTED_TEMPORARY_STS_ONLY",
+    "credential_capsule_fixed_binding": dict(C1_CAPSULE_FIXED_BINDING),
+    "credential_capsule_handshake_schema": C1_HANDSHAKE_SCHEMA,
+    "credential_capsule_ready_status": C1_READY_STATUS,
+    "credential_capsule_ack_status": C1_ACK_STATUS,
+    "credential_capsule_handshake_timeout_seconds": (
+        CAPTURE_C1_HANDSHAKE_TIMEOUT_SECONDS
+    ),
+    "credential_capsule_single_root_session_required": True,
+    "credential_capsule_opaque_receipts_required": True,
+    "credential_capsule_ready_ack_channels": 2,
+    "credential_capsule_ready_ack_independent_anonymous_streams": True,
     "credential_reader_uid": 0,
     "credential_minimum_remaining_validity_seconds": (
         MINIMUM_STS_VALIDITY_SECONDS
@@ -4746,6 +4874,324 @@ def _unwrap_supervised_status(
     return frames[1]
 
 
+def _validate_c1_source_identity(value: Any) -> dict[str, Any]:
+    if type(value) is not dict or value != C1_CAPSULE_FIXED_BINDING:
+        raise StagerError("capture_c1_source_identity")
+    return dict(value)
+
+
+def _validate_c1_capsule_api(value: Any) -> types.ModuleType:
+    required_functions = (
+        "canonical_json",
+        "read_anonymous_frame",
+        "scrub_bytearray",
+        "source_only_status",
+        "validate_fd_roles",
+        "write_anonymous_frame",
+    )
+    if type(value) is not types.ModuleType:
+        raise StagerError("capture_c1_source_api")
+    try:
+        constants = (
+            getattr(value, "SOURCE_SCHEMA"),
+            getattr(value, "INTERFACE_SCHEMA"),
+            getattr(value, "INITIAL_MINIMUM_VALIDITY_SECONDS"),
+            getattr(value, "PER_BEGIN_MINIMUM_VALIDITY_SECONDS"),
+            getattr(value, "MAXIMUM_VALIDITY_SECONDS"),
+            getattr(value, "MAX_PROVIDER_DISPATCHES"),
+        )
+        functions = tuple(getattr(value, name) for name in required_functions)
+        status = value.source_only_status()
+    except Exception:
+        raise StagerError("capture_c1_source_api") from None
+    if (
+        constants
+        != (
+            "noteai.item26.aliyun-temporary-sts-capsule-source.v1",
+            CAPTURE_CREDENTIAL_CAPSULE_SCHEMA,
+            INITIAL_MINIMUM_STS_VALIDITY_SECONDS,
+            MINIMUM_STS_VALIDITY_SECONDS,
+            MAXIMUM_STS_VALIDITY_SECONDS,
+            MAX_PROVIDER_DISPATCHES,
+        )
+        or any(not callable(function) for function in functions)
+    ):
+        raise StagerError("capture_c1_source_api")
+    zero_counts = (
+        "cli_install_count",
+        "cli_configure_count",
+        "oauth_configure_count",
+        "oauth_refresh_count",
+        "credential_read_count",
+        "root_read_count",
+        "root_write_count",
+        "filesystem_mutation_count",
+        "subprocess_count",
+        "network_call_count",
+        "provider_call_count",
+        "database_connection_count",
+        "capture_count",
+        "materialization_count",
+        "automatic_retry_count",
+        "cleanup_count",
+    )
+    if (
+        type(status) is not dict
+        or set(status)
+        != {
+            "schema",
+            "status",
+            "implementation_complete",
+            "authorizes_execution",
+            "operational_ready",
+            "credential_capsule_status",
+            "execution_gates",
+            *zero_counts,
+            "authorized_cny",
+            "incurred_cny",
+        }
+        or status.get("schema")
+        != "noteai.item26.aliyun-temporary-sts-capsule-source.v1"
+        or status.get("status")
+        != "SOURCE_ONLY_IMPLEMENTATION_COMPLETE_NOT_AUTHORIZED"
+        or status.get("implementation_complete") is not True
+        or status.get("authorizes_execution") is not False
+        or status.get("operational_ready") is not False
+        or status.get("credential_capsule_status") != "NOT_PROVISIONED"
+        or status.get("execution_gates")
+        != {
+            "cli_oauth_configuration": False,
+            "credential_projection": False,
+            "root_custody_stage": False,
+            "capture_integration": False,
+        }
+        or any(type(status.get(key)) is not int or status[key] != 0 for key in zero_counts)
+        or status.get("authorized_cny") != "0.00"
+        or status.get("incurred_cny") != "0.00"
+    ):
+        raise StagerError("capture_c1_source_api")
+    return value
+
+
+def _load_bound_c1_capsule_api(raw: Any) -> types.ModuleType:
+    if (
+        type(raw) is not bytes
+        or len(raw) != C1_CAPSULE_BYTES
+        or hashlib.sha256(raw).hexdigest() != C1_CAPSULE_FILE_SHA256
+        or _git_blob_oid_bytes(raw) != C1_CAPSULE_GIT_BLOB_OID
+    ):
+        raise StagerError("capture_c1_source_api")
+    module_name = "_noteai_item26_c1_capsule_accepted"
+    previous = sys.modules.get(module_name)
+    had_previous = module_name in sys.modules
+    try:
+        module = types.ModuleType(module_name)
+        module.__file__ = C1_CAPSULE_REF
+        module.__package__ = ""
+        sys.modules[module_name] = module
+        code = compile(
+            raw,
+            C1_CAPSULE_REF + "@" + C1_CAPSULE_ACCEPTANCE_REVISION,
+            "exec",
+            dont_inherit=True,
+            optimize=0,
+        )
+        exec(code, module.__dict__)
+    except Exception:
+        raise StagerError("capture_c1_source_api") from None
+    finally:
+        if had_previous:
+            sys.modules[module_name] = previous
+        else:
+            sys.modules.pop(module_name, None)
+    return _validate_c1_capsule_api(module)
+
+
+class _C1DarwinSocketStat:
+    __slots__ = ("_row", "st_dev")
+
+    def __init__(self, row: Any) -> None:
+        self._row = row
+        self.st_dev = (1 << 64) - 1
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._row, name)
+
+
+def _c1_platform_fstat(descriptor: int) -> Any:
+    row = os.fstat(descriptor)
+    if (
+        sys.platform == "darwin"
+        and type(row.st_dev) is int
+        and row.st_dev == -1
+        and type(row.st_mode) is int
+        and stat.S_ISSOCK(row.st_mode)
+    ):
+        duplicate = -1
+        channel = None
+        try:
+            duplicate = os.dup(descriptor)
+            channel = socket.socket(fileno=duplicate)
+            duplicate = -1
+            if (
+                channel.family == socket.AF_UNIX
+                and channel.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE)
+                == socket.SOCK_STREAM
+                and channel.getsockname() in {None, "", b""}
+                and channel.getpeername() in {None, "", b""}
+            ):
+                return _C1DarwinSocketStat(row)
+        except (OSError, ValueError):
+            pass
+        finally:
+            if channel is not None:
+                channel.close()
+            elif duplicate >= 0:
+                os.close(duplicate)
+    return row
+
+
+def _c1_ready_sha256(projection: Any) -> str:
+    validated = _validate_capture_credential_capsule(projection)
+    binding = {
+        "schema": C1_READY_BINDING_SCHEMA,
+        "ready_status": C1_READY_STATUS,
+        "projection": validated,
+        "capsule_source_revision": C1_CAPSULE_SOURCE_REVISION,
+        "capsule_acceptance_revision": C1_CAPSULE_ACCEPTANCE_REVISION,
+    }
+    return hashlib.sha256(
+        C1_READY_SHA256_DOMAIN + canonical_bytes(binding)
+    ).hexdigest()
+
+
+def _c1_handshake_frame(
+    projection: Any,
+    *,
+    status: str,
+    ack_count: int,
+) -> dict[str, Any]:
+    if (
+        status not in {C1_READY_STATUS, C1_ACK_STATUS}
+        or type(ack_count) is not int
+        or ack_count != (0 if status == C1_READY_STATUS else 1)
+    ):
+        raise StagerError("capture_c1_handshake")
+    validated = _validate_capture_credential_capsule(projection)
+    return {
+        "schema": C1_HANDSHAKE_SCHEMA,
+        "status": status,
+        "projection": dict(validated),
+        "ready_sha256": _c1_ready_sha256(validated),
+        "capsule_source_revision": C1_CAPSULE_SOURCE_REVISION,
+        "capsule_acceptance_revision": C1_CAPSULE_ACCEPTANCE_REVISION,
+        "ack_count": ack_count,
+    }
+
+
+def _reject_c1_handshake_duplicates(
+    pairs: list[tuple[str, Any]],
+) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise StagerError("capture_c1_handshake")
+        value[key] = item
+    return value
+
+
+def _validate_c1_handshake_frame(
+    raw: Any,
+    *,
+    expected_status: str,
+    expected_ack_count: int,
+) -> dict[str, Any]:
+    if (
+        type(raw) not in {bytes, bytearray}
+        or not 1 <= len(raw) <= MAX_C1_HANDSHAKE_BYTES
+        or 0 in raw
+    ):
+        raise StagerError("capture_c1_handshake")
+    try:
+        value = json.loads(
+            bytes(raw).decode("ascii"),
+            object_pairs_hook=_reject_c1_handshake_duplicates,
+            parse_constant=lambda _raw: (_ for _ in ()).throw(
+                StagerError("capture_c1_handshake")
+            ),
+        )
+    except StagerError:
+        raise
+    except (UnicodeError, json.JSONDecodeError, TypeError, ValueError):
+        raise StagerError("capture_c1_handshake") from None
+    try:
+        canonical = canonical_bytes(value)
+    except (TypeError, ValueError, RecursionError):
+        raise StagerError("capture_c1_handshake") from None
+    if (
+        type(value) is not dict
+        or canonical != bytes(raw)
+        or set(value)
+        != {
+            "schema",
+            "status",
+            "projection",
+            "ready_sha256",
+            "capsule_source_revision",
+            "capsule_acceptance_revision",
+            "ack_count",
+        }
+        or value.get("schema") != C1_HANDSHAKE_SCHEMA
+        or value.get("status") != expected_status
+        or type(value.get("ack_count")) is not int
+        or value.get("ack_count") != expected_ack_count
+        or value.get("capsule_source_revision")
+        != C1_CAPSULE_SOURCE_REVISION
+        or value.get("capsule_acceptance_revision")
+        != C1_CAPSULE_ACCEPTANCE_REVISION
+    ):
+        raise StagerError("capture_c1_handshake")
+    projection = _validate_capture_credential_capsule(value.get("projection"))
+    if (
+        not _hex_text(value.get("ready_sha256"), 64)
+        or value["ready_sha256"] != _c1_ready_sha256(projection)
+    ):
+        raise StagerError("capture_c1_handshake")
+    return value
+
+
+def _capture_c1_root_session_not_provisioned() -> Any:
+    raise StagerError("capture_credential_interface_not_provisioned")
+
+
+def _validate_c1_fixed_git_binding(*, git_reader: Any) -> dict[str, Any]:
+    observed = []
+    for revision in (
+        C1_CAPSULE_SOURCE_REVISION,
+        C1_CAPSULE_ACCEPTANCE_REVISION,
+    ):
+        row = git_reader(revision, C1_CAPSULE_REF)
+        if type(row) is not dict or set(row) != {"raw", "git_blob_oid"}:
+            raise StagerError("capture_c1_git_binding")
+        raw = row["raw"]
+        oid = row["git_blob_oid"]
+        if (
+            type(raw) is not bytes
+            or oid != C1_CAPSULE_GIT_BLOB_OID
+            or _git_blob_oid_bytes(raw) != oid
+            or len(raw) != C1_CAPSULE_BYTES
+            or hashlib.sha256(raw).hexdigest() != C1_CAPSULE_FILE_SHA256
+        ):
+            raise StagerError("capture_c1_git_binding")
+        observed.append((oid, raw))
+    if observed[0] != observed[1]:
+        raise StagerError("capture_c1_git_binding")
+    return {
+        "identity": dict(C1_CAPSULE_FIXED_BINDING),
+        "raw": observed[0][1],
+    }
+
+
 def _validate_capture_credential_capsule(value: Any) -> dict[str, Any]:
     if (
         type(value) is not dict
@@ -4765,6 +5211,8 @@ def _validate_capture_credential_capsule(value: Any) -> dict[str, Any]:
         or type(value.get("minimum_remaining_validity_seconds")) is not int
         or value["minimum_remaining_validity_seconds"]
         < INITIAL_MINIMUM_STS_VALIDITY_SECONDS
+        or value["minimum_remaining_validity_seconds"]
+        > MAXIMUM_STS_VALIDITY_SECONDS
         or value.get("credential_payload_exposed") is not False
         or type(value.get("oauth_refresh_count")) is not int
         or value.get("oauth_refresh_count") != 0
@@ -4893,10 +5341,200 @@ def _build_capture_runtime_arguments(
     )
 
 
+def _read_capture_supervisor_ready_once(
+    process: Any,
+    channel: Any,
+    *,
+    expected_payload_sha256: str,
+    selector_factory: Any,
+    monotonic: Any,
+) -> tuple[dict[str, Any], bytearray]:
+    selector = selector_factory()
+    raw = bytearray()
+    deadline = monotonic() + OUTER_INTERACTIVE_AUTH_TIMEOUT_SECONDS
+    try:
+        channel.setblocking(False)
+        selector.register(channel, selectors.EVENT_READ)
+        while b"\n" not in raw:
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                raise StagerError("outer_channel_timeout")
+            events = selector.select(min(0.25, remaining))
+            if not events:
+                if process.poll() is not None:
+                    raise StagerError("outer_channel_eof")
+                continue
+            try:
+                chunk = channel.recv(1025 - len(raw))
+            except BlockingIOError:
+                continue
+            if not chunk:
+                raise StagerError("outer_channel_eof")
+            raw.extend(chunk)
+            if len(raw) > 1024:
+                raise StagerError("outer_channel_size")
+        newline = raw.find(b"\n")
+        if newline != len(raw) - 1:
+            raise StagerError("outer_supervisor_ready")
+        readiness = _validate_supervisor_ready_frame(
+            bytes(raw),
+            expected_payload_mode="CAPTURE",
+            expected_payload_sha256=expected_payload_sha256,
+        )
+        return readiness, raw
+    except StagerError:
+        raise
+    except BaseException:
+        raise StagerError("outer_supervisor_ready") from None
+    finally:
+        try:
+            selector.close()
+        except BaseException:
+            pass
+
+
+def _read_c1_ready_with_deadline(
+    api: types.ModuleType,
+    descriptor: int,
+    process: Any,
+    *,
+    deadline: float,
+    selector_factory: Any,
+    monotonic: Any,
+) -> bytearray:
+    if type(deadline) not in {int, float} or not math.isfinite(deadline):
+        raise StagerError("capture_c1_handshake")
+
+    def read_ready(fd: int, maximum: int) -> bytes:
+        selector = selector_factory()
+        try:
+            selector.register(fd, selectors.EVENT_READ)
+            while True:
+                remaining = deadline - monotonic()
+                if remaining <= 0:
+                    raise StagerError("capture_c1_handshake")
+                events = selector.select(min(0.25, remaining))
+                if events:
+                    return os.read(fd, maximum)
+                if process.poll() is not None:
+                    raise StagerError("capture_c1_handshake")
+        finally:
+            selector.close()
+
+    def probe_eof(fd: int) -> bool:
+        return read_ready(fd, 1) == b""
+
+    try:
+        return api.read_anonymous_frame(
+            descriptor,
+            MAX_C1_HANDSHAKE_BYTES,
+            reader=read_ready,
+            eof_probe=probe_eof,
+            fstat_fn=_c1_platform_fstat,
+        )
+    except Exception:
+        raise StagerError("capture_c1_handshake") from None
+
+
+def _wait_c1_ack_peer_eof(
+    descriptor: int,
+    *,
+    deadline: float,
+    selector_factory: Any,
+    monotonic: Any,
+) -> None:
+    if (
+        type(descriptor) is not int
+        or descriptor < 3
+        or type(deadline) not in {int, float}
+        or not math.isfinite(deadline)
+    ):
+        raise StagerError("capture_c1_handshake")
+    selector = selector_factory()
+    try:
+        selector.register(descriptor, selectors.EVENT_READ)
+        while True:
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                raise StagerError("capture_c1_handshake")
+            events = selector.select(min(0.25, remaining))
+            if not events:
+                continue
+            try:
+                reverse = os.read(descriptor, 1)
+            except (BlockingIOError, OSError):
+                raise StagerError("capture_c1_handshake") from None
+            if reverse != b"":
+                raise StagerError("capture_c1_handshake")
+            return
+    finally:
+        try:
+            selector.close()
+        except BaseException:
+            pass
+
+
+def _drain_capture_status_after_ready(
+    process: Any,
+    channel: Any,
+    raw: bytearray,
+    *,
+    selector_factory: Any,
+    monotonic: Any,
+) -> bytes:
+    selector = selector_factory()
+    deadline = monotonic() + CAPTURE_OUTER_HARD_TIMEOUT_SECONDS
+    terminal_at: Optional[float] = None
+    try:
+        channel.setblocking(False)
+        selector.register(channel, selectors.EVENT_READ)
+        while True:
+            now = monotonic()
+            if now >= deadline:
+                raise StagerError("outer_channel_timeout")
+            if process.poll() is not None:
+                if terminal_at is None:
+                    terminal_at = now
+                elif now - terminal_at >= OUTER_TERMINAL_EOF_GRACE_SECONDS:
+                    raise StagerError("outer_channel_eof")
+            timeout = min(0.25, deadline - now)
+            if terminal_at is not None:
+                timeout = min(
+                    timeout,
+                    OUTER_TERMINAL_EOF_GRACE_SECONDS - (now - terminal_at),
+                )
+            events = selector.select(max(0.0, timeout))
+            if not events:
+                continue
+            try:
+                chunk = channel.recv(
+                    min(65536, MAX_SUPERVISED_STATUS_BYTES + 1 - len(raw))
+                )
+            except BlockingIOError:
+                continue
+            if not chunk:
+                return bytes(raw)
+            raw.extend(chunk)
+            if len(raw) > MAX_SUPERVISED_STATUS_BYTES:
+                raise StagerError("outer_channel_size")
+    except StagerError:
+        raise
+    except BaseException:
+        raise StagerError("outer_channel_drain") from None
+    finally:
+        try:
+            selector.close()
+        except BaseException:
+            pass
+
+
 def _dispatch_capture_root_once(
     runtime_arguments: Any,
     *,
     tool_snapshot: Any,
+    capsule_api: Any,
+    credential_ready_validator: Any,
+    pre_ack_identity_validator: Any,
     tool_snapshot_reader: Any = _stage_system_tool_snapshot,
     socketpair_factory: Any = socket.socketpair,
     selector_factory: Any = selectors.DefaultSelector,
@@ -4907,24 +5545,61 @@ def _dispatch_capture_root_once(
     absence_prover: Any = _prove_root_supervisor_absent,
 ) -> bytes:
     arguments = _validate_capture_runtime_arguments(runtime_arguments)
+    api = _validate_c1_capsule_api(capsule_api)
+    if (
+        not callable(credential_ready_validator)
+        or not callable(pre_ack_identity_validator)
+    ):
+        raise StagerError("capture_c1_session")
     if tool_snapshot_reader() != tool_snapshot:
         raise StagerError("capture_dispatch_identity")
-    parent = child = None
+    expected_payload_sha256 = _sha256_bytes(
+        CAPTURE_ROOT_PROGRAM.encode("ascii")
+    )
+    pairs: list[tuple[Any, Any]] = []
+    parent_status = child_status = None
+    parent_ready = child_ready = None
+    parent_ack = child_ack = None
     process = None
     proof = None
     failure = None
-    output: dict[str, bytes] = {}
-    output_state: dict[str, bytearray] = {}
+    output_raw = b""
+    output_state: dict[str, bytearray] = {"status": bytearray()}
     readiness_state: dict[str, Any] = {}
+    ready_raw: Optional[bytearray] = None
+    ack_raw: Optional[bytearray] = None
     containment_eof = False
     root_absent = False
     deferred_signal = None
     containment_mask = None
     try:
-        parent, child = socketpair_factory(socket.AF_UNIX, socket.SOCK_STREAM)
-        identities = (_stage_socket_identity(parent), _stage_socket_identity(child))
-        if identities[0] == identities[1]:
-            raise StagerError("capture_status_fd_alias")
+        try:
+            for _unused in range(3):
+                pair = socketpair_factory(socket.AF_UNIX, socket.SOCK_STREAM)
+                pairs.append(pair)
+                if type(pair) is not tuple or len(pair) != 2:
+                    raise StagerError("capture_status_channel")
+            channels = [channel for pair in pairs for channel in pair]
+            identities = [
+                _stage_socket_identity(channel) for channel in channels
+            ]
+            if len(set(identities)) != 6:
+                raise StagerError("capture_status_fd_alias")
+        except BaseException:
+            for pair in pairs:
+                candidates = pair if type(pair) is tuple else (pair,)
+                for channel in candidates:
+                    try:
+                        channel.close()
+                    except BaseException:
+                        pass
+            pairs = []
+            raise
+        (parent_status, child_status), (parent_ready, child_ready), (
+            parent_ack,
+            child_ack,
+        ) = pairs
+        pairs = []
         process = popen(
             [
                 "/usr/bin/sudo",
@@ -4941,36 +5616,101 @@ def _dispatch_capture_root_once(
             ],
             cwd=REPOSITORY_ROOT,
             env=dict(STAGE_SUDO_ENVIRONMENT),
-            stdin=subprocess.DEVNULL,
-            stdout=child.fileno(),
-            stderr=None,
+            stdin=child_ack.fileno(),
+            stdout=child_status.fileno(),
+            stderr=child_ready.fileno(),
             close_fds=True,
             start_new_session=False,
             preexec_fn=_stage_sudo_preexec,
             text=False,
             bufsize=0,
         )
-        child.close()
-        child = None
-        output = _drain_output_channels_to_eof(
+        for channel in (child_status, child_ready, child_ack):
+            channel.close()
+        child_status = child_ready = child_ack = None
+        readiness, prefix = _read_capture_supervisor_ready_once(
             process,
-            {"status": parent},
-            {"status": MAX_SUPERVISED_STATUS_BYTES},
-            hard_timeout=CAPTURE_OUTER_HARD_TIMEOUT_SECONDS,
-            readiness_role="status",
-            readiness_frame=None,
-            readiness_state=readiness_state,
-            output_state=output_state,
-            expected_payload_mode="CAPTURE",
-            expected_payload_sha256=_sha256_bytes(
-                CAPTURE_ROOT_PROGRAM.encode("ascii")
-            ),
+            parent_status,
+            expected_payload_sha256=expected_payload_sha256,
+            selector_factory=selector_factory,
+            monotonic=monotonic,
+        )
+        readiness_state.update(readiness)
+        output_state["status"].extend(prefix)
+        c1_handshake_deadline = (
+            monotonic() + CAPTURE_C1_HANDSHAKE_TIMEOUT_SECONDS
+        )
+        try:
+            if parent_status.send(b"A") != 1:
+                raise StagerError("outer_supervisor_ack")
+        except (BlockingIOError, OSError):
+            raise StagerError("outer_supervisor_ack") from None
+        api.validate_fd_roles(
+            parent_ready.fileno(),
+            parent_ack.fileno(),
+            fstat_fn=_c1_platform_fstat,
+        )
+        ready_raw = _read_c1_ready_with_deadline(
+            api,
+            parent_ready.fileno(),
+            process,
+            deadline=c1_handshake_deadline,
+            selector_factory=selector_factory,
+            monotonic=monotonic,
+        )
+        ready_endpoint = parent_ready
+        parent_ready = None
+        try:
+            ready_endpoint.close()
+        except BaseException:
+            raise StagerError("capture_c1_handshake") from None
+        ack = credential_ready_validator(ready_raw)
+        pre_ack_identity_validator()
+        if monotonic() >= c1_handshake_deadline:
+            raise StagerError("capture_c1_handshake")
+        ack_raw = bytearray(canonical_bytes(ack))
+        api.write_anonymous_frame(
+            parent_ack.fileno(),
+            ack_raw,
+            MAX_C1_HANDSHAKE_BYTES,
+            fstat_fn=_c1_platform_fstat,
+        )
+        _wait_c1_ack_peer_eof(
+            parent_ack.fileno(),
+            deadline=c1_handshake_deadline,
+            selector_factory=selector_factory,
+            monotonic=monotonic,
+        )
+        ack_endpoint = parent_ack
+        parent_ack = None
+        try:
+            ack_endpoint.close()
+        except BaseException:
+            raise StagerError("capture_c1_handshake") from None
+        output_raw = _drain_capture_status_after_ready(
+            process,
+            parent_status,
+            output_state["status"],
             selector_factory=selector_factory,
             monotonic=monotonic,
         )
     except BaseException as exc:
         failure = exc
     finally:
+        for raw in (ready_raw, ack_raw):
+            if raw is not None:
+                try:
+                    api.scrub_bytearray(raw)
+                except BaseException as exc:
+                    if failure is None:
+                        failure = exc
+        for channel in (parent_ready, parent_ack, child_ready, child_ack):
+            if channel is not None:
+                try:
+                    channel.close()
+                except BaseException as exc:
+                    if failure is None:
+                        failure = exc
         if process is not None:
             try:
                 containment_mask = signal_masker(
@@ -4981,9 +5721,9 @@ def _dispatch_capture_root_once(
                 if failure is None:
                     failure = exc
             try:
-                if failure is not None and parent is not None:
+                if failure is not None and parent_status is not None:
                     containment_eof = _cancel_and_drain_for_containment(
-                        {"status": parent},
+                        {"status": parent_status},
                         output_state,
                         {"status": MAX_SUPERVISED_STATUS_BYTES},
                         readiness_state,
@@ -5001,7 +5741,7 @@ def _dispatch_capture_root_once(
                 except BaseException as exc:
                     if failure is None:
                         failure = exc
-                for channel in (parent, child):
+                for channel in (parent_status, child_status):
                     if channel is not None:
                         try:
                             channel.close()
@@ -5020,7 +5760,7 @@ def _dispatch_capture_root_once(
                     except BaseException as exc:
                         deferred_signal = exc
         else:
-            for channel in (parent, child):
+            for channel in (parent_status, child_status):
                 if channel is not None:
                     try:
                         channel.close()
@@ -5059,11 +5799,11 @@ def _dispatch_capture_root_once(
             "kill_sent": False,
         }
         or tool_snapshot_reader() != tool_snapshot
-        or set(output) != {"status"}
+        or not output_raw
     ):
         raise StagerError("capture_single_sudo_failed") from None
     return _unwrap_supervised_status(
-        output["status"],
+        output_raw,
         readiness=readiness_state,
     )
 
@@ -5734,20 +6474,28 @@ def _future_capture_once(
     source_revision: str,
     acceptance_revision: str,
     *,
-    credential_capsule_probe: Any,
+    credential_state: Any,
     dispatcher: Any,
     outer_identity_validator: Any = lambda: None,
     public_absence_checker: Any = _assert_public_m1_absent,
 ) -> dict[str, Any]:
     if not _hex_text(source_revision, 40) or not _hex_text(acceptance_revision, 40):
         raise StagerError("capture_revisions")
-    # This is deliberately the first dependency boundary: when the root
-    # custody projection is NOT_PROVISIONED there is no filesystem, sudo,
-    # root, collector, provider, or public-output action.
-    _validate_capture_credential_capsule(credential_capsule_probe())
+    if type(credential_state) is not dict or credential_state:
+        raise StagerError("capture_credential_capsule")
     outer_identity_validator()
     public_absence_checker()
     raw = dispatcher()
+    if set(credential_state) != {"projection", "ready_sha256"}:
+        raise StagerError("capture_credential_capsule")
+    projection = _validate_capture_credential_capsule(
+        credential_state["projection"]
+    )
+    if (
+        not _hex_text(credential_state.get("ready_sha256"), 64)
+        or credential_state["ready_sha256"] != _c1_ready_sha256(projection)
+    ):
+        raise StagerError("capture_credential_capsule")
     result = _validate_capture_root_status(raw)
     outer_identity_validator()
     public_absence_checker()
@@ -5942,20 +6690,23 @@ def _default_future_capture(
     source_revision: str,
     acceptance_revision: str,
     *,
-    credential_capsule_probe: Any = _capture_credential_interface_not_provisioned,
+    credential_session_factory: Any = _capture_c1_root_session_not_provisioned,
+    c1_git_reader: Any = _stage_git_reader,
 ) -> dict[str, Any]:
-    # The credential projection is deliberately the first callable.  The
-    # shipped source binds it to NOT_PROVISIONED, so no identity read or sudo
-    # can occur until a later accepted source supplies that exact interface.
-    credential_capsule = _validate_capture_credential_capsule(
-        credential_capsule_probe()
-    )
-    runtime_arguments = _build_capture_runtime_arguments(
-        acceptance_revision
-    )
+    # This factory is the first boundary and is shipped NOT_PROVISIONED.  A
+    # future action may return only the single-root-session dispatcher; it may
+    # not construct or export a capsule in this unprivileged process.
+    session_dispatcher = credential_session_factory()
+    if not callable(session_dispatcher):
+        raise StagerError("capture_c1_session")
+    c1_receipt = _validate_c1_fixed_git_binding(git_reader=c1_git_reader)
+    c1_api = _load_bound_c1_capsule_api(c1_receipt["raw"])
+    c1_binding = _validate_c1_source_identity(c1_receipt["identity"])
+    runtime_arguments = _build_capture_runtime_arguments(acceptance_revision)
     tools = _stage_system_tool_snapshot()
     repository = _stage_repository_snapshot()
     topology = _stage_topology_snapshot(source_revision, acceptance_revision)
+    credential_state: dict[str, Any] = {}
 
     def validate_outer_identity() -> None:
         if (
@@ -5963,16 +6714,50 @@ def _default_future_capture(
             or _stage_repository_snapshot() != repository
             or _stage_topology_snapshot(source_revision, acceptance_revision)
             != topology
+            or _validate_c1_fixed_git_binding(git_reader=c1_git_reader)[
+                "identity"
+            ]
+            != c1_binding
         ):
             raise StagerError("capture_outer_identity_drift")
+
+    def validate_public_outer_identity() -> None:
+        validate_outer_identity()
+        _assert_public_m1_absent()
+
+    def accept_credential_ready(raw: Any) -> dict[str, Any]:
+        if credential_state:
+            raise StagerError("capture_c1_handshake")
+        ready = _validate_c1_handshake_frame(
+            raw,
+            expected_status=C1_READY_STATUS,
+            expected_ack_count=0,
+        )
+        projection = _validate_capture_credential_capsule(
+            ready["projection"]
+        )
+        credential_state.update(
+            {
+                "projection": dict(projection),
+                "ready_sha256": ready["ready_sha256"],
+            }
+        )
+        return _c1_handshake_frame(
+            projection,
+            status=C1_ACK_STATUS,
+            ack_count=1,
+        )
 
     return _future_capture_once(
         source_revision,
         acceptance_revision,
-        credential_capsule_probe=lambda: credential_capsule,
-        dispatcher=lambda: _dispatch_capture_root_once(
+        credential_state=credential_state,
+        dispatcher=lambda: session_dispatcher(
             runtime_arguments,
             tool_snapshot=tools,
+            capsule_api=c1_api,
+            credential_ready_validator=accept_credential_ready,
+            pre_ack_identity_validator=validate_public_outer_identity,
         ),
         outer_identity_validator=validate_outer_identity,
     )
@@ -6036,6 +6821,7 @@ def _default_future_materialize(
 CAPTURE_ROOT_PROGRAM = r'''
 import fcntl
 import hashlib
+import hmac
 import json
 import math
 import os
@@ -6047,6 +6833,7 @@ import stat
 import subprocess
 import sys
 import time
+import types
 
 EXECUTION_ENABLED = False
 SOURCE_ONLY_IMPLEMENTATION_STATUS = "SOURCE_ONLY_IMPLEMENTATION_COMPLETE_NOT_AUTHORIZED"
@@ -6099,6 +6886,24 @@ ADAPTER_SOURCE_REVISION = "65b82ffd890479315c9a93769cf11e2a9d27074b"
 ADAPTER_ACCEPTANCE_REVISION = "a30b879d06c388a4a0e230b5a23b2eaedc93649d"
 ADAPTER_SHA256 = "719886d2846a7602bf3fc0529f5c191305b58465c668d171461860d4c60aadb9"
 ADAPTER_BYTES = 31410
+C1_CAPSULE_REF = "tools/item26_aliyun_temporary_sts_capsule_v1.py"
+C1_CAPSULE_SOURCE_REVISION = "86206f816fb092a7fca7a577b1391e251dfca5ca"
+C1_CAPSULE_ACCEPTANCE_REVISION = "314a6b885bc7bda9790074a201ac176e498326b5"
+C1_CAPSULE_GIT_BLOB_OID = "99110863d055929fbc76950ec2bc9aa8fd0f7bc6"
+C1_CAPSULE_SHA256 = "7ed50fd5acdbb5733a174367e8bcb339b3a6bc07b49fed3a31243fddf763e4e3"
+C1_CAPSULE_BYTES = 49494
+C1_RUNTIME_ROOT = "/Library/Application Support/NoteAI/item26-manual-cost-stop-v2-m1-credential-runtime"
+C1_CUSTODY_ROOT = "/Library/Application Support/NoteAI/item26-manual-cost-stop-v2-m1-credential-custody"
+C1_CAPSULE_PATH = C1_RUNTIME_ROOT + "/item26_aliyun_temporary_sts_capsule_v1.py"
+C1_SOURCE_SCHEMA = "noteai.item26.aliyun-temporary-sts-capsule-source.v1"
+C1_INTERFACE_SCHEMA = "noteai.item26.m1-root-custody-temporary-sts-interface.v1"
+C1_HANDSHAKE_SCHEMA = "noteai.item26.m1-c1-capture-handshake.v1"
+C1_READY_BINDING_SCHEMA = "noteai.item26.m1-c1-ready-binding.v1"
+C1_READY_STATUS = "ROOT_CUSTODY_TEMPORARY_STS_READY_FOR_CAPTURE_ACK"
+C1_ACK_STATUS = "ROOT_CUSTODY_TEMPORARY_STS_CAPTURE_ACKNOWLEDGED"
+C1_READY_SHA256_DOMAIN = b"noteai.item26.m1-c1-ready-sha256.v1\0"
+MAX_C1_HANDSHAKE_BYTES = 4096
+C1_SESSION_SETUP_TIMEOUT_SECONDS = 20
 COLLECTOR_SHA256 = "739b8e8bea29250ccd4c24b400af791c67e687f0cecd23a4b1ddbc8b70750ea4"
 COLLECTOR_BYTES = 85025
 EXTRACTOR_SHA256 = "7264bc6d1b3028c141a32d56a69e248fac283c835f776ed6f7c09b9f1c2d0fd4"
@@ -6115,6 +6920,7 @@ MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 MAX_STATUS_BYTES = 4096
 MINIMUM_STS_SECONDS = 960
 INITIAL_MINIMUM_STS_SECONDS = 1860
+MAXIMUM_STS_SECONDS = 86400
 CHILD_TIMEOUT_SECONDS = 45
 CHILD_REAP_GRACE_SECONDS = 2
 CHILD_ENV = {
@@ -6211,6 +7017,13 @@ CHILD_TOOL_BINDINGS = {
     },
 }
 LOCAL_OBJECT_BINDINGS = {
+    C1_CAPSULE_REF: {
+        "accepted_revision": C1_CAPSULE_ACCEPTANCE_REVISION,
+        "source_revision": C1_CAPSULE_SOURCE_REVISION,
+        "blob_oid": C1_CAPSULE_GIT_BLOB_OID,
+        "sha256": C1_CAPSULE_SHA256,
+        "size": C1_CAPSULE_BYTES,
+    },
     "tools/item26_aliyun_official_read_v2.py": {
         "accepted_revision": ADAPTER_ACCEPTANCE_REVISION,
         "source_revision": ADAPTER_SOURCE_REVISION,
@@ -6269,6 +7082,10 @@ CONTRACT = {
         "derive_token_or_identifier",
     ),
     "credential_interface_status": "NOT_PROVISIONED",
+    "credential_capsule_source_ref": C1_CAPSULE_REF,
+    "credential_capsule_live_session_required": True,
+    "credential_capsule_opaque_receipts_required": True,
+    "credential_capsule_default_factory_provisioned": False,
     "minimum_temporary_sts_validity_seconds": 960,
     "initial_minimum_temporary_sts_validity_seconds": 1860,
     "temporary_sts_checked_before_every_begin": True,
@@ -6373,9 +7190,467 @@ def _strict_object(raw, maximum, code):
         raise CaptureError(code)
     return value
 
+def _c1_canonical(value):
+    try:
+        return json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("ascii") + b"\n"
+    except (TypeError, ValueError, UnicodeError, RecursionError):
+        raise CaptureError("credential_handshake") from None
+
+def _validate_root_c1_projection(value, minimum):
+    if (
+        type(value) is not dict
+        or set(value) != {
+            "schema",
+            "status",
+            "account_binding_sha256",
+            "minimum_remaining_validity_seconds",
+            "credential_payload_exposed",
+            "oauth_refresh_count",
+            "oauth_configure_count",
+        }
+        or value.get("schema") != C1_INTERFACE_SCHEMA
+        or value.get("status") != "ROOT_CUSTODY_TEMPORARY_STS_READY"
+        or not _sha256_text(value.get("account_binding_sha256"))
+        or type(value.get("minimum_remaining_validity_seconds")) is not int
+        or not minimum
+        <= value["minimum_remaining_validity_seconds"]
+        <= MAXIMUM_STS_SECONDS
+        or value.get("credential_payload_exposed") is not False
+        or type(value.get("oauth_refresh_count")) is not int
+        or value["oauth_refresh_count"] != 0
+        or type(value.get("oauth_configure_count")) is not int
+        or value["oauth_configure_count"] != 0
+    ):
+        raise CaptureError("credential_projection")
+    return value
+
+def _root_c1_ready_sha256(projection):
+    projection = _validate_root_c1_projection(
+        projection,
+        INITIAL_MINIMUM_STS_SECONDS,
+    )
+    binding = {
+        "schema": C1_READY_BINDING_SCHEMA,
+        "ready_status": C1_READY_STATUS,
+        "projection": projection,
+        "capsule_source_revision": C1_CAPSULE_SOURCE_REVISION,
+        "capsule_acceptance_revision": C1_CAPSULE_ACCEPTANCE_REVISION,
+    }
+    return _sha256(C1_READY_SHA256_DOMAIN + _c1_canonical(binding))
+
+def _root_c1_frame(projection, status, ack_count):
+    if (
+        status not in {C1_READY_STATUS, C1_ACK_STATUS}
+        or type(ack_count) is not int
+        or ack_count != (0 if status == C1_READY_STATUS else 1)
+    ):
+        raise CaptureError("credential_handshake")
+    projection = _validate_root_c1_projection(
+        projection,
+        INITIAL_MINIMUM_STS_SECONDS,
+    )
+    return {
+        "schema": C1_HANDSHAKE_SCHEMA,
+        "status": status,
+        "projection": dict(projection),
+        "ready_sha256": _root_c1_ready_sha256(projection),
+        "capsule_source_revision": C1_CAPSULE_SOURCE_REVISION,
+        "capsule_acceptance_revision": C1_CAPSULE_ACCEPTANCE_REVISION,
+        "ack_count": ack_count,
+    }
+
+def _validate_root_c1_ack(raw, projection):
+    if (
+        type(raw) not in {bytes, bytearray}
+        or not 1 <= len(raw) <= MAX_C1_HANDSHAKE_BYTES
+        or 0 in raw
+    ):
+        raise CaptureError("credential_handshake")
+    try:
+        value = json.loads(
+            bytes(raw).decode("ascii"),
+            object_pairs_hook=_reject_duplicates,
+            parse_constant=_reject_constant,
+        )
+    except CaptureError:
+        raise CaptureError("credential_handshake") from None
+    except (UnicodeError, ValueError, RecursionError):
+        raise CaptureError("credential_handshake") from None
+    expected = _root_c1_frame(projection, C1_ACK_STATUS, 1)
+    if (
+        type(value) is not dict
+        or _c1_canonical(value) != bytes(raw)
+        or value != expected
+        or not hmac.compare_digest(
+            value.get("ready_sha256", ""),
+            expected["ready_sha256"],
+        )
+    ):
+        raise CaptureError("credential_handshake")
+    return value
+
+def _validate_root_c1_module(module):
+    required = (
+        "read_anonymous_frame",
+        "root_custody_contract",
+        "scrub_bytearray",
+        "source_only_status",
+        "validate_fd_roles",
+        "validate_root_custody_inventory",
+        "write_anonymous_frame",
+    )
+    if type(module) is not types.ModuleType:
+        raise CaptureError("credential_source_api")
+    try:
+        constants = (
+            module.SOURCE_SCHEMA,
+            module.INTERFACE_SCHEMA,
+            module.INITIAL_MINIMUM_VALIDITY_SECONDS,
+            module.PER_BEGIN_MINIMUM_VALIDITY_SECONDS,
+            module.MAXIMUM_VALIDITY_SECONDS,
+            module.MAX_PROVIDER_DISPATCHES,
+        )
+        functions = tuple(getattr(module, name) for name in required)
+        status = module.source_only_status()
+        contract = module.root_custody_contract()
+        capsule_type = module._RootCustodyTemporaryStsCapsule
+        issued_type = module.IssuedTemporarySts
+    except Exception:
+        raise CaptureError("credential_source_api") from None
+    zero_counts = (
+        "cli_install_count",
+        "cli_configure_count",
+        "oauth_configure_count",
+        "oauth_refresh_count",
+        "credential_read_count",
+        "root_read_count",
+        "root_write_count",
+        "filesystem_mutation_count",
+        "subprocess_count",
+        "network_call_count",
+        "provider_call_count",
+        "database_connection_count",
+        "capture_count",
+        "materialization_count",
+        "automatic_retry_count",
+        "cleanup_count",
+    )
+    if (
+        constants
+        != (
+            C1_SOURCE_SCHEMA,
+            C1_INTERFACE_SCHEMA,
+            INITIAL_MINIMUM_STS_SECONDS,
+            MINIMUM_STS_SECONDS,
+            MAXIMUM_STS_SECONDS,
+            MAX_PROVIDER_DISPATCHES,
+        )
+        or any(not callable(function) for function in functions)
+        or type(capsule_type) is not type
+        or type(issued_type) is not type
+        or type(status) is not dict
+        or status.get("schema") != C1_SOURCE_SCHEMA
+        or status.get("status")
+        != "SOURCE_ONLY_IMPLEMENTATION_COMPLETE_NOT_AUTHORIZED"
+        or status.get("implementation_complete") is not True
+        or status.get("authorizes_execution") is not False
+        or status.get("operational_ready") is not False
+        or status.get("credential_capsule_status") != "NOT_PROVISIONED"
+        or status.get("execution_gates") != {
+            "cli_oauth_configuration": False,
+            "credential_projection": False,
+            "root_custody_stage": False,
+            "capture_integration": False,
+        }
+        or any(type(status.get(key)) is not int or status[key] != 0 for key in zero_counts)
+        or status.get("authorized_cny") != "0.00"
+        or status.get("incurred_cny") != "0.00"
+        or type(contract) is not dict
+        or contract.get("runtime_root") != C1_RUNTIME_ROOT
+        or contract.get("custody_root") != C1_CUSTODY_ROOT
+        or contract.get("directory_mode") != 0o700
+        or contract.get("file_mode") != 0o600
+        or contract.get("root_uid") != 0
+        or contract.get("wheel_gid") != 0
+        or contract.get("file_nlink") != 1
+        or contract.get("exact_inventory_required") is not True
+        or C1_CAPSULE_PATH not in contract.get("file_paths", ())
+    ):
+        raise CaptureError("credential_source_api")
+    return module
+
+def _load_root_c1_module(raw):
+    if (
+        type(raw) is not bytes
+        or len(raw) != C1_CAPSULE_BYTES
+        or _sha256(raw) != C1_CAPSULE_SHA256
+        or hashlib.sha1(
+            b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw
+        ).hexdigest()
+        != C1_CAPSULE_GIT_BLOB_OID
+    ):
+        raise CaptureError("credential_source_identity")
+    name = "_noteai_item26_root_c1_capsule_accepted"
+    previous = sys.modules.get(name)
+    had_previous = name in sys.modules
+    try:
+        module = types.ModuleType(name)
+        module.__file__ = C1_CAPSULE_PATH
+        module.__package__ = ""
+        sys.modules[name] = module
+        exec(
+            compile(raw, C1_CAPSULE_PATH, "exec", dont_inherit=True, optimize=0),
+            module.__dict__,
+        )
+    except BaseException:
+        raise CaptureError("credential_source_api") from None
+    finally:
+        if had_previous:
+            sys.modules[name] = previous
+        else:
+            sys.modules.pop(name, None)
+    return _validate_root_c1_module(module)
+
+def _root_c1_source_not_provisioned():
+    raise CaptureError("root_custody_temporary_sts_not_provisioned")
+
+def _root_c1_live_session_not_provisioned(_module):
+    raise CaptureError("root_custody_temporary_sts_not_provisioned")
+
+def _prepare_root_c1_live_session(
+    module,
+    session_factory,
+    *,
+    wall_clock,
+    monotonic_ns_clock,
+):
+    module = _validate_root_c1_module(module)
+    if not callable(session_factory):
+        raise CaptureError("credential_session")
+    capsule = None
+    context = None
+    failure = None
+    try:
+        session = session_factory(module)
+        if type(session) is dict:
+            candidate = session.get("capsule")
+            if type(candidate) is module._RootCustodyTemporaryStsCapsule:
+                capsule = candidate
+        if (
+            type(session) is not dict
+            or set(session) != {
+                "capsule",
+                "live_snapshot",
+                "creation_receipts",
+            }
+        ):
+            raise CaptureError("credential_session")
+        if type(capsule) is not module._RootCustodyTemporaryStsCapsule:
+            raise CaptureError("credential_capsule")
+        if type(capsule.round_count) is not int or capsule.round_count != 0:
+            raise CaptureError("credential_capsule_freshness")
+        contract = module.validate_root_custody_inventory(
+            session["live_snapshot"],
+            creation_receipts=session["creation_receipts"],
+        )
+        source_row = session["live_snapshot"]["file_lstat"][C1_CAPSULE_PATH]
+        if (
+            contract != module.root_custody_contract()
+            or type(source_row) is not dict
+            or source_row.get("size") != C1_CAPSULE_BYTES
+            or source_row.get("sha256") != C1_CAPSULE_SHA256
+        ):
+            raise CaptureError("credential_inventory")
+        wall_now = wall_clock()
+        monotonic_now = monotonic_ns_clock()
+        if type(wall_now) is not int or type(monotonic_now) is not int:
+            raise CaptureError("credential_clock")
+        projection = _validate_root_c1_projection(
+            capsule.project_m1_interface(
+                wall_now_unix=wall_now,
+                monotonic_now_ns=monotonic_now,
+            ),
+            INITIAL_MINIMUM_STS_SECONDS,
+        )
+        ready = _root_c1_frame(projection, C1_READY_STATUS, 0)
+        context = {
+            "module": module,
+            "capsule": capsule,
+            "live_snapshot": session["live_snapshot"],
+            "creation_receipts": session["creation_receipts"],
+            "inventory_contract": contract,
+            "projection": dict(projection),
+            "ready_frame": ready,
+            "wall_clock": wall_clock,
+            "monotonic_ns_clock": monotonic_ns_clock,
+            "handshake_attempt_count": 0,
+            "acknowledged": False,
+        }
+    except BaseException as exc:
+        failure = exc
+    if failure is not None or context is None:
+        if capsule is not None:
+            try:
+                capsule.scrub()
+            except BaseException:
+                pass
+        if isinstance(failure, CaptureSignal):
+            raise failure
+        raise CaptureError("credential_session") from None
+    return context
+
+def _complete_root_c1_handshake(context, ready_fd, ack_fd, *, closer=os.close):
+    if (
+        type(context) is not dict
+        or set(context) != {
+            "module",
+            "capsule",
+            "live_snapshot",
+            "creation_receipts",
+            "inventory_contract",
+            "projection",
+            "ready_frame",
+            "wall_clock",
+            "monotonic_ns_clock",
+            "handshake_attempt_count",
+            "acknowledged",
+        }
+        or type(context.get("handshake_attempt_count")) is not int
+        or context["handshake_attempt_count"] != 0
+        or context.get("acknowledged") is not False
+        or type(ready_fd) is not int
+        or type(ack_fd) is not int
+        or ready_fd < 3
+        or ack_fd < 3
+        or ready_fd == ack_fd
+        or not callable(closer)
+    ):
+        raise CaptureError("credential_handshake")
+    context["handshake_attempt_count"] = 1
+    ready_frame = context.pop("ready_frame")
+    module = None
+    ready_raw = ack_raw = None
+    failure = None
+    try:
+        module = _validate_root_c1_module(context.get("module"))
+        module.validate_fd_roles(
+            ack_fd,
+            ready_fd,
+            fstat_fn=_c1_platform_fstat,
+        )
+        ready_raw = bytearray(_c1_canonical(ready_frame))
+        module.write_anonymous_frame(
+            ready_fd,
+            ready_raw,
+            MAX_C1_HANDSHAKE_BYTES,
+            fstat_fn=_c1_platform_fstat,
+        )
+        ack_raw = module.read_anonymous_frame(
+            ack_fd,
+            MAX_C1_HANDSHAKE_BYTES,
+            fstat_fn=_c1_platform_fstat,
+        )
+        _validate_root_c1_ack(ack_raw, context["projection"])
+        wall_now = context["wall_clock"]()
+        monotonic_now = context["monotonic_ns_clock"]()
+        initial = _initial_credential_capsule(
+            context["capsule"].initial_probe(
+                wall_now_unix=wall_now,
+                monotonic_now_ns=monotonic_now,
+            )
+        )
+        if (
+            initial["account_binding_sha256"]
+            != context["projection"]["account_binding_sha256"]
+            or initial["initial_remaining_seconds"]
+            > context["projection"]["minimum_remaining_validity_seconds"]
+        ):
+            raise CaptureError("initial_temporary_sts")
+        context["initial"] = {
+            "remaining_seconds": initial["initial_remaining_seconds"],
+            "account_binding_sha256": initial["account_binding_sha256"],
+            "credential_envelope_sha256": initial[
+                "credential_envelope_sha256"
+            ],
+            "refresh_count": 0,
+            "configure_count": 0,
+        }
+        context["acknowledged"] = True
+    except BaseException as exc:
+        failure = exc
+    finally:
+        for raw in (ready_raw, ack_raw):
+            if raw is not None:
+                try:
+                    if module is not None:
+                        module.scrub_bytearray(raw)
+                    else:
+                        _scrub(raw)
+                except BaseException:
+                    pass
+        for descriptor in (ready_fd, ack_fd):
+            try:
+                closer(descriptor)
+            except BaseException as exc:
+                if failure is None:
+                    failure = exc
+    if failure is not None:
+        if isinstance(failure, CaptureSignal):
+            raise failure
+        raise CaptureError("credential_handshake") from None
+    return context
+
 def _scrub(value):
     if type(value) is bytearray:
         value[:] = b"\x00" * len(value)
+
+class _C1DarwinSocketStat:
+    __slots__ = ("_row", "st_dev")
+
+    def __init__(self, row):
+        self._row = row
+        self.st_dev = (1 << 64) - 1
+
+    def __getattr__(self, name):
+        return getattr(self._row, name)
+
+def _c1_platform_fstat(descriptor):
+    row = os.fstat(descriptor)
+    if (
+        sys.platform == "darwin"
+        and type(row.st_dev) is int
+        and row.st_dev == -1
+        and type(row.st_mode) is int
+        and stat.S_ISSOCK(row.st_mode)
+    ):
+        duplicate = -1
+        channel = None
+        try:
+            duplicate = os.dup(descriptor)
+            channel = socket.socket(fileno=duplicate)
+            duplicate = -1
+            if (
+                channel.family == socket.AF_UNIX
+                and channel.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE)
+                == socket.SOCK_STREAM
+                and channel.getsockname() in {None, "", b""}
+                and channel.getpeername() in {None, "", b""}
+            ):
+                return _C1DarwinSocketStat(row)
+        except (OSError, ValueError):
+            pass
+        finally:
+            if channel is not None:
+                channel.close()
+            elif duplicate >= 0:
+                os.close(duplicate)
+    return row
 
 def _early_core0_clean_env_preflight(
     *,
@@ -8823,7 +10098,7 @@ def _finalize_status(value):
 def _run_capture_once(
     *,
     prepare_dependencies,
-    credential_probe,
+    credential_initial,
     credential_supplier,
     child_runner=_spawn_feed_drain_once,
     monotonic=time.monotonic,
@@ -8831,16 +10106,11 @@ def _run_capture_once(
     explicitly_authorized_mark_unknown=False
 ):
     started = monotonic()
-    collector, extractor = prepare_dependencies()
-    initial = None
-    probe_failure = None
     try:
-        initial = credential_probe()
+        credential_capsule = _initial_credential_capsule(credential_initial)
     except Exception:
-        probe_failure = "initial_temporary_sts"
-    if probe_failure is not None:
-        raise CaptureError(probe_failure) from None
-    credential_capsule = _initial_credential_capsule(initial)
+        raise CaptureError("initial_temporary_sts") from None
+    collector, extractor = prepare_dependencies()
     identifiers = {}
     dispatch_count = 0
     all_candidates = {SLOTS[0]: [], SLOTS[1]: []}
@@ -9066,16 +10336,106 @@ def _adapter_child_main(
 def future_capture(*args, **kwargs):
     if EXECUTION_ENABLED is not True:
         raise RuntimeError("future_execution_disabled")
-    return _run_capture_once(*args, **kwargs)
+    if len(args) != 1 or kwargs:
+        raise CaptureError("capture_public_arguments")
+    return _enabled_main(args[0])
 
-def _root_custody_temporary_sts_probe():
-    raise CaptureError("root_custody_temporary_sts_not_provisioned")
+def _root_c1_supplier_mapping(context):
+    if (
+        type(context) is not dict
+        or set(context) != {
+            "module",
+            "capsule",
+            "live_snapshot",
+            "creation_receipts",
+            "inventory_contract",
+            "projection",
+            "wall_clock",
+            "monotonic_ns_clock",
+            "handshake_attempt_count",
+            "acknowledged",
+            "initial",
+        }
+        or type(context.get("handshake_attempt_count")) is not int
+        or context["handshake_attempt_count"] != 1
+        or context.get("acknowledged") is not True
+    ):
+        raise CaptureError("temporary_sts_pre_begin")
+    module = _validate_root_c1_module(context.get("module"))
+    capsule = context.get("capsule")
+    if type(capsule) is not module._RootCustodyTemporaryStsCapsule:
+        raise CaptureError("temporary_sts_pre_begin")
+    issued = None
+    mapping = None
+    failure = None
+    try:
+        wall_now = context["wall_clock"]()
+        monotonic_now = context["monotonic_ns_clock"]()
+        if type(wall_now) is not int or type(monotonic_now) is not int:
+            raise CaptureError("credential_clock")
+        issued = capsule.issue_for_begin(
+            wall_now_unix=wall_now,
+            monotonic_now_ns=monotonic_now,
+        )
+        if type(issued) is not module.IssuedTemporarySts:
+            raise CaptureError("temporary_sts_pre_begin")
+        mapping = issued.take_m1_supplier_mapping()
+        if (
+            type(mapping) is not dict
+            or set(mapping) != {
+                "envelope",
+                "remaining_seconds",
+                "account_binding_sha256",
+                "credential_envelope_sha256",
+                "refresh_count",
+                "configure_count",
+            }
+            or type(mapping.get("envelope")) is not bytearray
+        ):
+            raise CaptureError("temporary_sts_pre_begin")
+    except BaseException as exc:
+        failure = exc
+    finally:
+        if issued is not None:
+            try:
+                issued.scrub()
+            except BaseException as exc:
+                if failure is None:
+                    failure = exc
+    if failure is not None or mapping is None:
+        if type(mapping) is dict:
+            module.scrub_bytearray(mapping.get("envelope"))
+        if isinstance(failure, CaptureSignal):
+            raise failure
+        raise CaptureError("temporary_sts_pre_begin") from None
+    return mapping
 
-def _root_custody_temporary_sts_supplier():
-    raise CaptureError("root_custody_temporary_sts_not_provisioned")
-
-def _default_capture_runner(runtime_arguments):
+def _default_capture_runner(runtime_arguments, credential_context):
     runtime_arguments = tuple(runtime_arguments)
+    if (
+        type(credential_context) is not dict
+        or set(credential_context)
+        != {
+            "module",
+            "capsule",
+            "live_snapshot",
+            "creation_receipts",
+            "inventory_contract",
+            "projection",
+            "wall_clock",
+            "monotonic_ns_clock",
+            "handshake_attempt_count",
+            "acknowledged",
+            "initial",
+        }
+        or credential_context.get("handshake_attempt_count") != 1
+        or credential_context.get("acknowledged") is not True
+    ):
+        raise CaptureError("credential_session")
+    module = _validate_root_c1_module(credential_context["module"])
+    capsule = credential_context["capsule"]
+    if type(capsule) is not module._RootCustodyTemporaryStsCapsule:
+        raise CaptureError("credential_capsule")
     runtime_validator = _capture_runtime_validator_from_arguments(
         runtime_arguments
     )
@@ -9103,44 +10463,148 @@ def _default_capture_runner(runtime_arguments):
             child_timeout_seconds=child_timeout_seconds,
         )
 
-    result = _run_capture_once(
-        prepare_dependencies=prepare_dependencies,
-        credential_probe=_root_custody_temporary_sts_probe,
-        credential_supplier=_root_custody_temporary_sts_supplier,
-        child_runner=child_runner,
-    )
-    before = validation_state.get("before")
-    if type(before) is not dict or type(before.get("identities")) is not dict:
-        raise CaptureError("runtime_identity_drift")
-    _capture_post_identity_snapshot(
-        runtime_arguments,
-        before["identities"],
-    )
-    return result
+    try:
+        result = _run_capture_once(
+            prepare_dependencies=prepare_dependencies,
+            credential_initial=credential_context["initial"],
+            credential_supplier=lambda: _root_c1_supplier_mapping(
+                credential_context
+            ),
+            child_runner=child_runner,
+        )
+        if capsule.round_count != result.get("provider_dispatch_count"):
+            raise CaptureError("credential_round_count")
+        if (
+            module.validate_root_custody_inventory(
+                credential_context["live_snapshot"],
+                creation_receipts=credential_context["creation_receipts"],
+            )
+            != credential_context["inventory_contract"]
+        ):
+            raise CaptureError("credential_inventory")
+        before = validation_state.get("before")
+        if type(before) is not dict or type(before.get("identities")) is not dict:
+            raise CaptureError("runtime_identity_drift")
+        _capture_post_identity_snapshot(
+            runtime_arguments,
+            before["identities"],
+        )
+        return result
+    finally:
+        try:
+            capsule.scrub()
+        except BaseException:
+            pass
 
 def _enabled_main(
     argv,
     *,
     adapter_child_runner=_adapter_child_main,
     capture_runner=None,
-    status_stream=None
+    status_stream=None,
+    credential_source_supplier=_root_c1_source_not_provisioned,
+    credential_session_factory=_root_c1_live_session_not_provisioned,
+    wall_clock=lambda: int(time.time()),
+    monotonic_ns_clock=time.monotonic_ns,
+    session_monotonic=time.monotonic,
+    early_preflight=_early_core0_clean_env_preflight,
+    closer=os.close
 ):
     if type(argv) is not list:
         raise CaptureError("capture_root_arguments")
     if argv and argv[0] == "--adapter-child":
         return adapter_child_runner(argv)
     if (
-        len(argv) != 6
+        len(argv) != 8
         or argv[0] != "--capture"
     ):
         raise CaptureError("capture_root_arguments")
-    runtime_arguments = tuple(argv[1:])
-    _parse_runtime_arguments(runtime_arguments)
-    result = (
-        _default_capture_runner(runtime_arguments)
-        if capture_runner is None
-        else capture_runner(runtime_arguments)
-    )
+    ready_fd = ack_fd = -1
+    runtime_arguments = tuple(argv[3:])
+    context = None
+    result = None
+    failure = None
+    try:
+        try:
+            ready_fd = int(argv[1], 10)
+            ack_fd = int(argv[2], 10)
+        except (TypeError, ValueError):
+            raise CaptureError("capture_root_arguments") from None
+        if (
+            ready_fd < 3
+            or ack_fd < 3
+            or ready_fd == ack_fd
+            or argv[1] != str(ready_fd)
+            or argv[2] != str(ack_fd)
+        ):
+            raise CaptureError("capture_root_arguments")
+        setup_started = session_monotonic()
+        if (
+            type(setup_started) not in {int, float}
+            or not math.isfinite(setup_started)
+        ):
+            raise CaptureError("credential_clock")
+        _parse_runtime_arguments(runtime_arguments)
+        early_preflight()
+        module = _load_root_c1_module(credential_source_supplier())
+        context = _prepare_root_c1_live_session(
+            module,
+            credential_session_factory,
+            wall_clock=wall_clock,
+            monotonic_ns_clock=monotonic_ns_clock,
+        )
+        handshake_owned = {ready_fd, ack_fd}
+
+        def close_handshake_descriptor(descriptor):
+            if descriptor not in handshake_owned:
+                raise CaptureError("credential_handshake")
+            closer(descriptor)
+            handshake_owned.remove(descriptor)
+
+        try:
+            _complete_root_c1_handshake(
+                context,
+                ready_fd,
+                ack_fd,
+                closer=close_handshake_descriptor,
+            )
+        finally:
+            if ready_fd not in handshake_owned:
+                ready_fd = -1
+            if ack_fd not in handshake_owned:
+                ack_fd = -1
+        setup_elapsed = session_monotonic() - setup_started
+        if (
+            type(setup_elapsed) not in {int, float}
+            or not math.isfinite(setup_elapsed)
+            or setup_elapsed < 0
+            or setup_elapsed >= C1_SESSION_SETUP_TIMEOUT_SECONDS
+        ):
+            raise CaptureError("credential_handshake_timeout")
+        runner = _default_capture_runner if capture_runner is None else capture_runner
+        result = runner(runtime_arguments, context)
+    except BaseException as exc:
+        failure = exc
+    finally:
+        if context is not None:
+            try:
+                context["capsule"].scrub()
+            except BaseException as exc:
+                if failure is None:
+                    failure = exc
+        closed = set()
+        for descriptor in (ready_fd, ack_fd):
+            if descriptor >= 3 and descriptor not in closed:
+                closed.add(descriptor)
+                try:
+                    closer(descriptor)
+                except BaseException as exc:
+                    if failure is None:
+                        failure = exc
+    if failure is not None:
+        if isinstance(failure, (CaptureError, CaptureSignal)):
+            raise failure
+        raise CaptureError("capture_root_session") from None
     if (
         type(result) is not dict
         or result.get("schema") != CAPTURE_SUCCESS_SCHEMA

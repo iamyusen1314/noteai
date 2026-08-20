@@ -3201,3 +3201,31 @@ Last updated: 2026-08-19
   cache write=1，故 generic network/write zero claims=false；brew install/
   upgrade/cleanup/retry及Aliyun/provider/cloud均0。Item26仍unverified、evidence
   空、S0 open、M1/M2 absent、readiness `25/29`/`25/38`、credit false。
+
+## Item 26 C2 capture-wiring source exact-six candidate (2026-08-20)
+
+- accepted base `314a6b885bc7bda9790074a201ac176e498326b5` 固定 parent
+  `86206f816fb092a7fca7a577b1391e251dfca5ca` 与 tree
+  `2c88d9ccca1cee709e4ccca9df573e0f6f28dc65`。push
+  `32329891018`/job `96308385583` 与 PR `32329894079`/job
+  `96308393220` 均 unique attempt1、previous null、terminal success、22/22、
+  rerun0；每路 Unit2836 F0/E0/skip36、`[10,1,12,22,21]`、Quality7+1EF、
+  PG6、readiness138/0、Compose success、warning1/error0/failure0；四指针
+  exact，inventory恰2。
+- authority `CTO-AUTH-ITEM26-M1-CREDENTIAL-CAPSULE-CAPTURE-WIRING-SOURCE-001`
+  只允许 314 direct-child exact-six：四账本加 existing M1 stager/test。
+  source固定500,417B/SHA `e7cbac47…`/blob `bf968ab6…`，test固定344,891B/
+  SHA `78eff1e2…`/blob `e95d1213…`；red-team0/0/0、双模式107/107、
+  compile/embedded/diff通过。
+- embedded payload只有capture bootstrap/root变化，分别固定14,543B/
+  SHA `c5232254…`/blob `bc42b6cb…` 与136,488B/SHA `258d11ca…`/blob
+  `dc6d43b7…`；其余三payload及C1 standalone capsule source精确不变。
+- same-root READY/ACK只绑定live opaque session。Darwin `st_dev` shim仅属于
+  C2 capture wiring；C1 standalone default Darwin limitation仍明确存在且未修正，
+  禁止扩大为通用Darwin portability声明。
+- self revision/tree empty、own CI pending0；one commit/one normal push/
+  unique attempt-one双CI，failure/cancel即停且no retry/rerun/second push。
+  credential仍`NOT_PROVISIONED`、gates false、所有 operational authority
+  false/0。Homebrew历史偏差network/cache仍1/1且generic historical zero claims
+  false；C2新增external/provider/root=0。Item26/evidence/S0/M1/M2、readiness
+  `25/29`/`25/38`与credit false不变。

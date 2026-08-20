@@ -1060,3 +1060,33 @@ Only service names and variable names are documented here; no secret values.
   zero is not claimed.  Homebrew install/upgrade/cleanup/retry and all
   Aliyun/provider/cloud actions remain zero.  Item26/evidence/S0/M1/M2,
   readiness `25/29`/`25/38` and credit false are unchanged.
+
+## C2 same-root capsule capture-wiring source boundary (2026-08-20)
+
+- Exact-four acceptance revision `314a6b885bc7bda9790074a201ac176e498326b5`
+  is fixed above 862 with tree `2c88d9ccca1cee709e4ccca9df573e0f6f28dc65`.
+  Its attempt-one push `32329891018`/job `96308385583` and PR
+  `32329894079`/job `96308393220` are terminal success, previous attempt null,
+  rerun0 and 22/22; each has Unit2836 F0/E0/skip36,
+  `[10,1,12,22,21]`, Quality7+1EF, PG6, readiness138/0 and Compose success.
+  Four terminal pointers are exact and inventory is exactly two.
+- `CTO-AUTH-ITEM26-M1-CREDENTIAL-CAPSULE-CAPTURE-WIRING-SOURCE-001`
+  permits only one 314 direct-child exact-six candidate: four ledgers plus the
+  existing M1 stager/test.  Their frozen identities are 500,417B/
+  `e7cbac47…`/blob `bf968ab6…` and 344,891B/`78eff1e2…`/blob
+  `e95d1213…`; focused normal/optimized are 107/107 and red-team is 0/0/0.
+- C2 binds a same-root READY/ACK exchange to a live opaque session.  Its
+  Darwin `st_dev` shim is deliberately local to the C2 capture wiring; the C1
+  standalone default Darwin limitation is explicit and uncorrected.  Capture
+  bootstrap/root change to 14,543B/136,488B with frozen identities; the other
+  three embedded payloads and standalone C1 capsule source remain exact.
+- This remains source-only and fail closed.  Credential state is
+  `NOT_PROVISIONED`, gates are false and no login/OAuth/configuration/root/
+  sudo/provider/API/cloud/database/capture/materialization/private-key/paid/
+  cleanup/replay authority is created.  Self revision/tree and own CI are
+  empty/pending/0; one commit, one normal push and unique attempt-one dual CI
+  are the whole authority, with failure stop and no retry/rerun/second push.
+- The historical Homebrew network/cache deviation remains one/one with generic
+  historical zero claims false; C2 adds no external/provider/root action.
+  Item26/evidence/S0/M1/M2, readiness `25/29`/`25/38` and credit false remain
+  unchanged.
