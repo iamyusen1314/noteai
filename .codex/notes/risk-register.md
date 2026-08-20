@@ -3348,3 +3348,34 @@ Last updated: 2026-08-19
   one commit/normal push/unique attempt1双CI，failure/cancel即停且no retry/
   rerun/second push；Item26/evidence/S0/M1/M2、`25/29`/`25/38`、credit false
   不变。
+
+## Item 26 C4 helper CI secret-scanner portability exact-five successor (2026-08-20)
+
+- 终态失败predecessor `83dca4c16871078bc5b1ced6ac444f43a5889e9d`
+  固定parent10a/tree`53f64d88a2eee458c358b324ea5c3c047bd98e7a`与exact-six
+  identities。PR run/suite/job `32364823569`/`87733845340`/`96411953036`
+  attempt1、previous null、`12:10:53Z` terminal failure；Unit2940 F1/E0/
+  skip36，唯一失败为current-repo production readiness的
+  `tracked_files_no_obvious_secret_values`，命中helper line76
+  `MAX_TOKEN_BYTES`。push`32364820119`在hard-stop时仍in_progress且不再poll；
+  rerun/cancel/dispatch0。
+- 根因是新source在pre-commit时untracked而未进入tracked-file scanner；83d
+  tracked后，token命名赋值的underscore数字不匹配plain-digit safe grammar。
+  intermediate exact1本地normal readiness下一次唯一命中line81
+  `MAX_TOKEN_VALIDITY_SECONDS`，未重跑/无外呼；static另识别line85
+  `MAX_SECURITY_TOKEN_BYTES`。
+- final successor不是one-line：精确三处numeric separator removal，AST/运行值
+  不变，test zero-touch。source固定41,082B/SHA`14cca826…`/blob`16e521e2…`，
+  diff3+/3-；双模式50/50、compile、production138、secret hits0均绿。
+- hard-stop后`gh-fix-ci`只读PR log，read count未精确枚举，write/rerun/cancel/
+  dispatch0。red-team辅助AST已先输出`ast_equal=True`，随后constants脚本错误
+  访问`Assign.id`而`AttributeError`；冻结为count1/status
+  `NON_CANDIDATE_TOOLING_ERROR_NO_RERUN`，未重跑且非candidate gate/ops。
+- authority
+  `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-CI-SECRET-SCANNER-PORTABILITY-001`
+  只允许83d direct-child exact-five四账本+source；test/C1/C2/C3/M1/payload
+  zero-touch，self revision/tree empty、ownCI pending0，one commit/normal push/
+  unique attempt1双CI且failure-stop/no retry/rerun/second push。
+- helper contract、五C4 blockers+adapter治理blocker、exact9 false、stock CLI/
+  helper NO-GO、`NOT_PROVISIONED`、research/Homebrew history及real action ops0
+  全不变；Item26/evidence/S0/M1/M2、`25/29`/`25/38`、credit false不变。

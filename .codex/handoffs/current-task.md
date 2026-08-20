@@ -12974,3 +12974,97 @@ Colima, database, builder, restore and cloud actions remain frozen.
   readiness in both modes remains `25/29` and `25/38`; production readiness in
   both modes passes 138/138; and direct tracked-file secret hygiene passes.
   No failed project gate was rerun.
+
+## Current task — Item 26 C4 helper CI secret-scanner portability exact-five successor (2026-08-20)
+
+- Failed predecessor `83dca4c16871078bc5b1ced6ac444f43a5889e9d` is the
+  exact-six direct child of `10a3380bcea781ab25d96a09f21e56cd509bb1e4`
+  with tree `53f64d88a2eee458c358b324ea5c3c047bd98e7a`.  Its six
+  committed identities remain frozen: four ledgers plus 74,603B test
+  SHA-256 `393bce0bf51fcd09a7bf339927e6fd6ee84a03ef3f9839704c3d5dd83ba982b6`/
+  blob `f5c9177492f38fa5f144d52a1802eb551ea96a42` and 41,085B source
+  SHA-256 `1c08620b17ea9ac14d73d634b8ad979bf5627d0d4a76b15ffd5fb0cea204561e`/
+  blob `fbe9046bae5980edb139ed27e97a4b60c24c23fa`.
+- The unique attempt-one PR run `32364823569`/suite `87733845340`/job
+  `96411953036`, previous attempt null, completed terminal failure at
+  `12:10:53Z`.  Unit reported 2,940 tests, 36 skips, one failure and zero
+  errors.  The sole failure was
+  `tests.test_production_readiness_gate.ProductionReadinessGateTests.`
+  `test_current_repo_passes_production_readiness_gate`: readiness check
+  `tracked_files_no_obvious_secret_values` reported
+  `tools/item26_aliyun_dedicated_root_oauth_helper_v1.py:76:MAX_TOKEN_BYTES`.
+  This PR failure is the hard-stop trigger.  Push run `32364820119` was still
+  `in_progress` at hard stop and was not polled again; its later state is not
+  used as authority.  No rerun, cancel or dispatch occurred.
+- After hard stop, Main control used the GitHub `gh-fix-ci` connector only to
+  read the PR log and locate the failure.  Exact read-request count is not
+  enumerated; connector write, rerun, cancel and dispatch counts are zero, and
+  push polling after hard stop is zero.  This read-only external diagnosis is
+  preserved honestly and does not authorize a second CI action.
+- Root cause is a scanner portability false positive: before 83d the new source
+  was untracked, so the tracked-file scanner did not inspect it; once committed,
+  secret-associated assignments with underscore-separated numeric literals did
+  not match the scanner's plain-digit safe-value grammar.  The initial exact-one
+  candidate changed symbol `MAX_TOKEN_BYTES` (grouped literal `16_384`) to
+  `16384`, but its single local normal production-readiness run stopped on the
+  next unique hit at line 81, symbol `MAX_TOKEN_VALIDITY_SECONDS` (grouped
+  literal `86_400`).  It was not rerun and made no external call.  Static
+  inspection also identified line 85, symbol `MAX_SECURITY_TOKEN_BYTES`
+  (grouped literal `16_384`), as the subsequent hit.
+- The final successor therefore removes numeric separators from exactly those
+  three semantically identical integer literals, not one line.  Test is
+  zero-touch.  Final source is mode `100644`, 41,082B, SHA-256
+  `14cca82670e933efc7738f71f8e4705cb90fecd484c6e9c5f14062a2f5f354c3`,
+  blob `16e521e272e200db9930b77febe1b5ec8e840ba4`; diff is exactly 3 additions/
+  3 deletions.  AST semantics are equal, focused normal and `-O` each pass
+  50/50, compile and diff-check pass, production readiness in both modes is
+  138/138, and targeted secret hits are zero.
+- A red-team auxiliary diagnostic emitted `ast_equal=True`, then its optional
+  constants-list code incorrectly accessed `Assign.id` and raised
+  `AttributeError`.  This is frozen as one
+  `NON_CANDIDATE_TOOLING_ERROR_NO_RERUN`; it was not rerun, is not a candidate/
+  project gate failure, and caused no candidate main, write, network or other
+  operational action.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-CI-SECRET-SCANNER-PORTABILITY-001`
+  permits exactly one 83d direct-child exact-five: the four ledgers plus that
+  source; test and all C1/C2/C3/M1/payload identities are zero-touch.  Candidate
+  revision/tree remain empty and own CI pending/0; future scope is one commit,
+  one normal non-force push and one unique attempt-one push/PR observation,
+  with failure/cancel stop and no retry/rerun/second push.
+- Helper contract, five frozen C4 blockers, the added adapter-compatibility
+  governance blocker, all nine execution gates, stock CLI
+  `NO_GO_STOCK_CLI_FD_ONLY_OAUTH`, helper NO-GO and `NOT_PROVISIONED` remain
+  unchanged.  Research web/count-null history and Homebrew network1/possible-
+  cache1 remain honest; all real browser/login/OAuth/network/identity API/root/
+  credential/config actions remain zero and unauthorized.  Item 26/evidence/
+  S0/M1/M2, readiness `25/29`/`25/38` and credit false remain unchanged.
+- After the exact-five ledgers were integrated, one final normal production-
+  readiness run stopped at 137/138 on `tracked_files_no_obvious_secret_values`.
+  Its two documentation hits were `.codex/handoffs/current-task.md` line 13,008
+  and `deploy/production/internal-deployment-readiness.json` line 14,294, both
+  on symbol `MAX_TOKEN_BYTES`.  Optimized readiness was not run, and the failed
+  bytes were not rerun.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-CI-SECRET-SCANNER-LEDGER-TEXT-PORTABILITY-001`
+  permits only scanner-safe, semantically equivalent rewrites at those two
+  ledger text locations and recording this local hard stop.  The handoff root-
+  cause block now separates each symbol from its grouped and plain literals;
+  the readiness value is split into symbol, grouped-literal and replacement-
+  literal fields.  These edits define new candidate bytes, not a rerun of the
+  failed bytes; source, test, architecture and risk bytes remain untouched by
+  this supplemental authority.
+- The first normal production-readiness process on the scanner-safe candidate
+  later exited, but its orchestration wrapper had not retained the yielded
+  session handle, so final stdout and exit status could not be recovered.  No
+  failure was observed and no PASS is claimed for that process; optimized mode
+  was not started.  This is one
+  `NON_CANDIDATE_ORCHESTRATION_RESULT_HANDLE_LOST`, not a candidate/project gate
+  failure and not an automatic retry.
+- Root Main CTO recovery authority
+  `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-CI-PORTABILITY-PRODUCTION-GATE-LOST-HANDLE-RECOVERY-001`
+  permitted exactly one normal recovery observation on the unchanged candidate
+  bytes, with its session handle retained and polled to terminal.  It exited
+  zero with 138/138 checks.  The subsequently permitted single optimized run
+  also exited zero with 138/138 checks.  Neither route was rerun; no source,
+  test, operational, external, stage, commit or push action occurred.

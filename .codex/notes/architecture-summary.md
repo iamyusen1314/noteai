@@ -1213,3 +1213,34 @@ Only service names and variable names are documented here; no secret values.
   false and Homebrew network1/possible-cache1.  Candidate self revision/tree/
   ownCI remain empty/empty/pending0; no operational authority, readiness credit
   or Item26 evidence is created.
+
+## C4 helper CI secret-scanner portability successor boundary (2026-08-20)
+
+- Exact-six `83dca4c16871078bc5b1ced6ac444f43a5889e9d`, parent 10a and
+  tree `53f64d88a2eee458c358b324ea5c3c047bd98e7a`, reached a unique
+  attempt-one PR terminal failure: run/suite/job
+  `32364823569`/`87733845340`/`96411953036`, previous null, completed
+  `12:10:53Z`, Unit2940 F1/E0/skip36.  The only failure was current-repository
+  production readiness check `tracked_files_no_obvious_secret_values`, which
+  reported helper source line76 `MAX_TOKEN_BYTES`.  Push `32364820119` remained
+  in progress at hard stop and was not polled again; rerun/cancel/dispatch are
+  zero.
+- The source was untracked during pre-commit local checking but tracked in 83d.
+  Scanner safe-value grammar accepts plain digits and rejected token-named
+  underscore numeric literals.  The first exact-one candidate exposed line81
+  as the next local readiness hit and was not rerun; static inspection also
+  found line85.  Final source removes separators from exactly three integers,
+  preserving AST semantics and contract behavior; test is zero-touch.
+- `CTO-AUTH-ITEM26-M1-DEDICATED-ROOT-OAUTH-HELPER-CI-SECRET-SCANNER-PORTABILITY-001`
+  permits one 83d direct-child exact-five: four ledgers plus final 41,082B
+  source SHA `14cca826…`/blob `16e521e2…`.  Candidate self revision/tree and
+  own CI remain empty/pending0, with failure stop and no retry/rerun/second
+  push.
+- Post-stop `gh-fix-ci` use was read-only PR-log diagnosis; exact read count is
+  not enumerated and write/rerun/cancel/dispatch remain zero.  A separate
+  red-team constants diagnostic failed once after outputting `ast_equal=True`
+  because it accessed `Assign.id`; status is
+  `NON_CANDIDATE_TOOLING_ERROR_NO_RERUN`, not a candidate gate or operation.
+- Contract, five frozen blockers plus adapter governance blocker, exact-nine
+  false gates, stock CLI/helper NO-GO, `NOT_PROVISIONED`, history and all real
+  action-zero boundaries remain unchanged.
