@@ -12849,3 +12849,60 @@ Colima, database, builder, restore and cloud actions remain frozen.
   compile passes in both modes; internal/public readiness in both modes remains
   `25/29` and `25/38`; production readiness in both modes passes 138/138; and
   direct tracked-file secret hygiene passes.  No failed gate was rerun.
+
+## Current task — Item 26 C3 stock Aliyun CLI OAuth capability source exact-four acceptance candidate (2026-08-20)
+
+- Source revision `a988f9860a5c95fee128dba3fca6860a16172128` is the
+  exact-six direct child of `74c1c732c3fdafdc402ec2cc313fc9eafd45d839`
+  with tree `7e992f3ceeef88ad0854e55cd2ea83be97caebdb`.  The six
+  paths are exactly the four ledgers plus the frozen capability source/test;
+  source remains mode `100644`, 19,960B/blob
+  `07ef4524e67e47efebe7c089975d7f3579817161`/SHA-256
+  `1d591941608ef50fee0a62d5b168e410d7579fc7dc628535a516264a0ea807ba`
+  and test remains mode `100644`, 36,379B/blob
+  `cf89538f92dabbe826ae7951deb3c925a251ed14`/SHA-256
+  `dfcbb4cec8e9056aead8abcb1f74fc8c1be29c8134cff4d3c7bab9b279a10831`.
+- Its unique attempt-one push run `32349632989`/suite `87693372678`/job
+  `96365747877` and PR run `32349637512`/suite `87693384175`/job
+  `96365761404` are terminal success, previous attempt null, rerun zero and
+  22/22.  Push ran at `08:36:11Z` (job `08:36:14Z`–`09:11:30Z`, updated
+  `09:11:31Z`, Unit step 13 `08:37:18Z`–`09:10:45Z` success); PR ran at
+  `08:36:14Z` (job `08:36:17Z`–`09:03:10Z`, updated `09:03:11Z`, Unit
+  step 13 `08:37:31Z`–`09:02:31Z` success).  Each route has Unit 2,890 with
+  zero failures/errors and 36 skips; Unit duration is 1,988.053s push or
+  1,481.296s PR.  Relative to 2,853, all 37 new focused methods execute.
+  Frozen counts are `[10,1,12,22,21]`;
+  Quality is 7 PASS plus 1 EXPECTED_FAIL, PostgreSQL is 6 OK, readiness is
+  138/138 and Compose succeeds.  Each route has one Node 20-to-24 warning and
+  zero error/failure annotations; all four run/job terminal pointers are final
+  and exact, and inventory is exactly one push plus one PR.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-ALIYUN-CLI-OAUTH-CAPABILITY-SOURCE-ACCEPTANCE-001`
+  accepts only that C3 source checkpoint and permits one a988 direct-child
+  exact-four append-only ledger candidate.  Candidate revision/tree remain
+  empty and own CI remains pending with commit, push, observation, retry and
+  rerun counts zero.  Authority is one commit, one normal non-force push and
+  one unique attempt-one push/PR observation; failure/cancel stops, with no
+  automatic retry, rerun or second push.
+- Accepted decision remains `NO_GO_STOCK_CLI_FD_ONLY_OAUTH`; source is accepted
+  but not operationally authorized and credential/bootstrap remains
+  `NOT_PROVISIONED`.  Official release `v3.4.11` remains pinned to full commit
+  `f54f5fe9caa99723a6324b20eaa60f3de3b049cb`; 11 official entries, 12 URL
+  occurrences/10 unique URLs, 11 observed capabilities and eight unsupported
+  accepted requirements remain frozen.  All six execution gates and every
+  operational authority remain false.
+- Official research browsing remains an honest historical fact: exact request
+  count is `null`/`NOT_EXACTLY_ENUMERATED`, so generic network-zero remains
+  false.  Homebrew history remains one non-provider metadata network event and
+  one possible cache write.  This acceptance adds no external/provider/login/
+  OAuth/API/cloud/config/root action.  Item 26 remains `unverified` with empty
+  evidence, S0 stays open, M1/M2 stay absent, readiness remains `25/29`
+  internal and `25/38` public, and no credit is added.
+- Final local C3 source acceptance validation is green: strict duplicate-key
+  JSON, byte-prefix/semantic append-only, old-three-supersede/a988-DAG/native-
+  CI/exact-four/source-test-zero-touch/research-accounting/self-pending/
+  nonoperational audit and `git diff --check` pass; focused normal and `-O`
+  each pass 37/37; compile passes in both modes; internal/public readiness in
+  both modes remains `25/29` and `25/38`; production readiness in both modes
+  passes 138/138; and direct tracked-file secret hygiene passes.  No failed
+  project gate was rerun.

@@ -1150,3 +1150,33 @@ Only service names and variable names are documented here; no secret values.
   provisioning plus receipt acceptance, and capture authorization remain
   separate future gates.  Item26/evidence/S0/M1/M2, `25/29`/`25/38` and credit
   false are unchanged.
+
+## C3 stock Aliyun CLI OAuth capability source acceptance boundary (2026-08-20)
+
+- Exact-six source `a988f9860a5c95fee128dba3fca6860a16172128` fixes
+  parent `74c1c732c3fdafdc402ec2cc313fc9eafd45d839`, tree
+  `7e992f3ceeef88ad0854e55cd2ea83be97caebdb` and exactly four
+  ledgers plus the 19,960B source and 36,379B test identities already frozen.
+- Attempt-one push `32349632989`/suite `87693372678`/job `96365747877` and
+  PR `32349637512`/suite `87693384175`/job `96365761404` are terminal
+  success, previous null, rerun0 and 22/22.  Their Unit step 13 windows are
+  `08:37:18Z`–`09:10:45Z` and `08:37:31Z`–`09:02:31Z`, both success.  Each
+  route has Unit2890 F0/E0/skip36, duration1988.053s/1481.296s, all 37 new
+  focused methods above baseline2853, `[10,1,12,22,21]`, Quality7+1EF, PG6,
+  readiness138/0 and Compose success.  Four final run/job pointers are exact;
+  inventory is exactly two and annotations are warning1/error0/failure0.
+- `CTO-AUTH-ITEM26-M1-ALIYUN-CLI-OAUTH-CAPABILITY-SOURCE-ACCEPTANCE-001`
+  accepts only this source capability checkpoint and permits one a988
+  direct-child exact-four ledger candidate.  Its self revision/tree and own CI
+  remain empty/pending/0; one commit, one normal push and unique attempt-one
+  dual CI are the whole future scope, with failure stop and no retry/rerun/
+  second push.
+- The acceptance preserves the exact decision boundary:
+  `NO_GO_STOCK_CLI_FD_ONLY_OAUTH`, credential `NOT_PROVISIONED`, official
+  v3.4.11/full-commit evidence and matrix frozen, local CLI identity static,
+  and all six execution gates false.  It authorizes no login, OAuth, config,
+  provider/API, cloud, root, credential or capture action.
+- Official research remains web=true with count null/not-enumerated and generic
+  network-zero false.  Homebrew history remains network1/possible-cache1; the
+  acceptance adds no new external/provider/root action.  Item26/evidence/S0/
+  M1/M2, readiness `25/29`/`25/38` and credit false remain unchanged.

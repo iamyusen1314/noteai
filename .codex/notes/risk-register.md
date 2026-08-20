@@ -3286,3 +3286,33 @@ Last updated: 2026-08-19
   acceptance、capability replacement/decision、provisioning+receipt与capture
   authorization均独立；Item26/evidence/S0/M1/M2、`25/29`/`25/38`、credit
   false不变。
+
+## Item 26 C3 stock CLI OAuth capability source exact-four acceptance candidate (2026-08-20)
+
+- source `a988f9860a5c95fee128dba3fca6860a16172128` 固定 parent
+  `74c1c732c3fdafdc402ec2cc313fc9eafd45d839`、tree
+  `7e992f3ceeef88ad0854e55cd2ea83be97caebdb`与exact-six四账本+
+  source/test；两新文件仍为19,960B/SHA`1d591941…`/blob`07ef4524…`和
+  36,379B/SHA`dfcbb4ce…`/blob`cf89538f…`，本acceptance零改动。
+- push `32349632989`/suite`87693372678`/job`96365747877`与PR
+  `32349637512`/suite`87693384175`/job`96365761404`均attempt1、previous
+  null、terminal success、rerun0、22/22；Unit step13窗口分别
+  `08:37:18Z`–`09:10:45Z`与`08:37:31Z`–`09:02:31Z`且success。每路
+  Unit2890 F0/E0/skip36，durations1988.053/1481.296，ambient2853→2890
+  (+37且37 methods全执行)，`[10,1,12,22,21]`、Quality7+1EF、PG6、
+  readiness138/0、Compose success、warning1/error0/failure0；四个最终run/job
+  pointers exact，inventory恰2。
+- authority
+  `CTO-AUTH-ITEM26-M1-ALIYUN-CLI-OAUTH-CAPABILITY-SOURCE-ACCEPTANCE-001`
+  只接受C3 source checkpoint并允许一个a988 direct-child exact-four四账本
+  candidate。self revision/tree empty、ownCI pending0；one commit/one normal
+  push/unique attempt-one双CI，failure/cancel即停，no retry/rerun/second push。
+- `NO_GO_STOCK_CLI_FD_ONLY_OAUTH`与`NOT_PROVISIONED`不变；official
+  v3.4.11/full commit、11 official evidence、11 observed/8 accepted全false
+  matrix和local static CLI identity均冻结。六gates与全部operational authority
+  false，未来capability replacement/decision、provisioning+receipt、capture
+  authorization仍独立。
+- official research web=true、request count=null/NOT_EXACTLY_ENUMERATED、
+  generic network zero=false；Homebrew历史network1/possible cache1。本轮new
+  external/provider/login/OAuth/API/config/root=0；Item26/evidence/S0/M1/M2、
+  readiness `25/29`/`25/38`、credit false不变。
