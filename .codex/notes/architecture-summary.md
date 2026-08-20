@@ -1090,3 +1090,29 @@ Only service names and variable names are documented here; no secret values.
   historical zero claims false; C2 adds no external/provider/root action.
   Item26/evidence/S0/M1/M2, readiness `25/29`/`25/38` and credit false remain
   unchanged.
+
+## C2 capture-wiring source terminal acceptance boundary (2026-08-20)
+
+- Exact-six revision `3270e0abcfe515a1c066335da182b26031abb5eb` is fixed
+  above 314 with tree `0c1fded8418bb2ca0f1ee1f97dd29257198ee77f`.
+  Attempt-one push `32339345367`/job `96335113128` and PR
+  `32339348621`/job `96335122834` are terminal success, previous attempt null,
+  rerun0 and 22/22.  Each route has Unit2853 F0/E0/skip36, durations
+  1818.639s/1410.058s, focused methods 90→107 (+17), ambient 2836→2853 (+17),
+  `[10,1,12,22,21]`, Quality7+1EF, PG6, readiness138/0 and Compose success;
+  terminal pointers are exact and inventory is exactly two.
+- `CTO-AUTH-ITEM26-M1-CREDENTIAL-CAPSULE-CAPTURE-WIRING-SOURCE-ACCEPTANCE-001`
+  accepts the C2 source boundary and permits only one 3270 direct-child
+  exact-four ledger candidate.  Stager/test, five payloads and C1 source are
+  zero-touch.  Self revision/tree and own CI are empty/pending/0 until one
+  commit, one normal push and unique attempt-one dual CI; failure stops and
+  retry/rerun/second push are prohibited.
+- Same-root READY/ACK remains live-session-bound and opaque.  Darwin `st_dev`
+  compatibility remains C2-only; C1 standalone default Darwin behavior is
+  explicitly uncorrected.  Credential remains `NOT_PROVISIONED`, all gates and
+  operational authority remain false, and future provisioning, receipt
+  acceptance and capture authorization remain independent.
+- Historical Homebrew research/audit remains network one, possible cache write
+  one, generic historical zero claims false; no new external/provider/root
+  action occurs.  Item26/evidence/S0/M1/M2, `25/29`/`25/38` and credit false
+  remain unchanged.

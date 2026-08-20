@@ -12723,3 +12723,60 @@ Colima, database, builder, restore and cloud actions remain frozen.
   passes in both modes; internal/public readiness in both modes remains
   `25/29` and `25/38`; production readiness in both modes passes 138/138; and
   direct tracked-file secret hygiene passes.  No failed gate was rerun.
+
+## Current task — Item 26 C2 capture-wiring source terminal acceptance exact-four candidate (2026-08-20)
+
+- Revision `3270e0abcfe515a1c066335da182b26031abb5eb` is frozen as the
+  exact-six direct child of accepted 314
+  `314a6b885bc7bda9790074a201ac176e498326b5`, with tree
+  `0c1fded8418bb2ca0f1ee1f97dd29257198ee77f`.  Its six identities are the
+  four ledgers plus the existing M1 stager/test.  Stager remains 500,417B/blob
+  `bf968ab675535e244a7668d54d3a85a4489227cf`/SHA-256
+  `e7cbac47b75fe5b05b79adb4068679db9c40187e93745e9141db2fd8b3b86dd3`;
+  test remains 344,891B/blob `e95d1213c222befad47122c67ecfff3a339c8d23`/
+  SHA-256 `78eff1e25e52cea9d4dc94d1caf45a61e33612ac4334d19e34322f8c8a1da8ac`.
+  Source, test, five embedded payloads and the standalone C1 source are
+  zero-touch in this acceptance round.
+- Its unique attempt-one push run `32339345367`/job `96335113128` and PR
+  run `32339348621`/job `96335122834` are terminal success with previous
+  attempt null, rerun zero and 22/22 steps.  Push ran at `06:22:47Z` (job
+  `06:22:50Z`–`06:55:16Z`, updated `06:55:17Z`, Unit
+  `06:23:57Z`–`06:54:35Z`); PR ran at `06:22:49Z` (job
+  `06:22:52Z`–`06:48:09Z`, updated `06:48:10Z`, Unit
+  `06:23:52Z`–`06:47:37Z`).  Each route has Unit 2,853 with zero
+  failures/errors and 36 skips; reported Unit durations are 1,818.639s push
+  and 1,410.058s PR.  All 17 new methods execute, taking the focused file from
+  90 to 107 methods and ambient Unit from 2,836 to 2,853.  Frozen counts remain
+  `[10,1,12,22,21]`; Quality is 7 PASS plus 1 EXPECTED_FAIL, PostgreSQL is 6
+  OK, readiness is 138/138 and Compose succeeds.  Each route has one Node
+  20-to-24 warning and zero error/failure annotations; four terminal pointers
+  are exact and inventory is exactly one push plus one PR.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-CREDENTIAL-CAPSULE-CAPTURE-WIRING-SOURCE-ACCEPTANCE-001`
+  accepts only the C2 source implementation and creates one 3270 direct-child
+  exact-four append-only ledger candidate.  Candidate revision/tree remain
+  empty and own CI remains pending with commit, push, observation, retry and
+  rerun counts zero.  Authority is one commit, one normal non-force push and
+  one unique attempt-one push/PR observation; failure/cancel stops, with no
+  automatic retry, rerun or second push.
+- The accepted architecture remains narrowly scoped: same-root READY/ACK over
+  a live opaque session; Darwin `st_dev` shim only in C2 capture wiring; C1
+  standalone default Darwin limitation explicit and uncorrected.  This source
+  acceptance is not credential provisioning or operational authorization.
+  Credential state remains `NOT_PROVISIONED`, all gates remain false, and all
+  login/OAuth/config/root/sudo/provider/API/cloud/database/capture/
+  materialization/private-key/paid/cleanup/replay authorities and round counts
+  remain false/zero.
+- Homebrew research/audit history remains frozen: one non-provider metadata
+  network event and one possible cache write, with generic historical network/
+  write zero claims false.  This acceptance adds no external/provider/root
+  action.  Item 26 remains `unverified` with empty evidence, S0 stays open,
+  M1/M2 stay absent, readiness remains `25/29` internal and `25/38` public,
+  and no credit is added.  Credential provisioning plus receipt acceptance and
+  capture operational authorization remain separate future gates.
+- Final local C2 acceptance validation is green: strict duplicate-key JSON,
+  semantic exact-four/old-three-supersede/CI-delta/zero-touch audit and
+  `git diff --check` pass; focused normal and `-O` each pass 107/107; compile
+  passes in both modes; internal/public readiness in both modes remains
+  `25/29` and `25/38`; production readiness in both modes passes 138/138; and
+  direct tracked-file secret hygiene passes.  No failed gate was rerun.

@@ -3229,3 +3229,28 @@ Last updated: 2026-08-19
   false/0。Homebrew历史偏差network/cache仍1/1且generic historical zero claims
   false；C2新增external/provider/root=0。Item26/evidence/S0/M1/M2、readiness
   `25/29`/`25/38`与credit false不变。
+
+## Item 26 C2 source acceptance exact-four candidate (2026-08-20)
+
+- exact-six `3270e0abcfe515a1c066335da182b26031abb5eb` 固定 parent
+  `314a6b885bc7bda9790074a201ac176e498326b5` 与 tree
+  `0c1fded8418bb2ca0f1ee1f97dd29257198ee77f`。stager/test、五payload与
+  C1 source本acceptance轮全部zero-touch。
+- push `32339345367`/job `96335113128` 与 PR `32339348621`/job
+  `96335122834` 均attempt1、previous null、terminal success、rerun0、22/22；
+  每路Unit2853 F0/E0/skip36，durations1818.639/1410.058，methods90→107
+  (+17)、ambient2836→2853(+17)，`[10,1,12,22,21]`、Quality7+1EF、PG6、
+  readiness138/0、Compose success、warning1/error0/failure0；四指针exact，
+  inventory恰2。
+- authority
+  `CTO-AUTH-ITEM26-M1-CREDENTIAL-CAPSULE-CAPTURE-WIRING-SOURCE-ACCEPTANCE-001`
+  只接受C2 source并允许一个3270 direct-child exact-four四账本candidate。
+  self revision/tree empty、own CI pending0；one commit/one normal push/unique
+  attempt-one双CI，failure/cancel即停，no retry/rerun/second push。
+- same-root READY/ACK live opaque session边界不变；Darwin shim仅C2，C1
+  standalone default limitation明确未修正。credential仍`NOT_PROVISIONED`、
+  gates false、所有operational authority false/0；provisioning/receipt/capture
+  authorization继续独立。
+- Homebrew research/audit历史仍network1/possible cache1、generic historical
+  zero claims=false；本轮new external/provider/root=0。Item26/evidence/S0/
+  M1/M2、readiness `25/29`/`25/38`与credit false不变。
