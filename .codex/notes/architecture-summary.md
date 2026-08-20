@@ -993,3 +993,43 @@ Only service names and variable names are documented here; no secret values.
   must not change source, test or payload bytes.  Execution gates, credential /
   capture provisioning, operational authority/readiness, actions, cost, S0,
   Item 26, M1/M2, readiness and credit remain unchanged and fail-closed.
+
+## Item 26 temporary-STS capsule source architecture (2026-08-20)
+
+- Exact-four acceptance f6 `f6a8062de96623ce383eb4d1b5cd401ff9fa9cc5`,
+  parent `4bddf697f9ed8d86890b851e5390c402e8413950`, tree
+  `0ac436757b6ab0e5cbdffc5109b3736eb1a914a9`, is terminally accepted by unique
+  attempt-one push `32320719736`/`96282216090` and PR
+  `32320721588`/`96282221003`.  Both are 22/22, previous-attempt null,
+  rerun zero, Unit 2,790 F0/E0/skip36, `[10,1,12,22,21]`, Quality 7+1,
+  PostgreSQL 6, readiness 138 and Compose green.  The four terminal pointers
+  and exact two-run inventory agree.
+- `CTO-AUTH-ITEM26-M1-CREDENTIAL-OAUTH-CAPSULE-SOURCE-001` permits exactly one
+  f6 direct-child exact-six source candidate: four ledgers plus
+  `tools/item26_aliyun_temporary_sts_capsule_v1.py` and its test.  Source/test
+  identities are respectively 49,494B/blob
+  `99110863d055929fbc76950ec2bc9aa8fd0f7bc6`/SHA-256
+  `7ed50fd5acdbb5733a174367e8bcb339b3a6bc07b49fed3a31243fddf763e4e3`
+  and 57,199B/blob `37c5ce3040a8dd7636fb7e173a66881405f7bef7`/
+  SHA-256 `d2fc65f83790552d71f0b6c9aacf5ffc0b9486dca24cb5220b860747b75fc565`.
+  Red-team is 0/0/0 and normal/optimized are each 46/46.
+- The new module defines an inert temporary-STS custody capsule, not an OAuth
+  client or installer.  It binds strict canonical schemas, domain-separated
+  account/principal commitments, anonymous blocking FD roles, bounded private
+  envelopes, integer non-increasing TTL, one-shot copies and explicit scrub,
+  plus a future root-owned O_EXCL/NOFOLLOW inventory contract.  The accepted
+  M1 stager/source/test and its five embedded payloads are not changed.
+- Source status is complete/not-authorized, credential status is
+  `NOT_PROVISIONED`, all four gates are false and the action entrypoint is an
+  unconditional refusal.  Self revision/tree and own CI are empty/pending/0;
+  authority is one commit, one normal non-force push and one unique
+  attempt-one dual-CI observation, with failure stop and no retry/rerun/second
+  push.
+- Audit accounting deliberately separates one incidental non-provider
+  Homebrew metadata download and one possible cache-write event caused by
+  `brew list --versions aliyun-cli` from zero Aliyun/provider/cloud calls.
+  Generic network-zero and filesystem-write-zero are not claimed.  Homebrew
+  install/upgrade, cleanup/retry, Aliyun config/login/OAuth, root/sudo,
+  credential action, database, capture and materialization remain zero.
+  Provisioning and its receipt acceptance are later independent gates;
+  operational capture requires another separate authorization.

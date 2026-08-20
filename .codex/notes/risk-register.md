@@ -3140,3 +3140,37 @@ Last updated: 2026-08-19
   credential/capture `NOT_PROVISIONED`，所有 round count/CNY 为零；Item26
   unverified、evidence空、S0 open、M1/M2 absent、readiness `25/29`/`25/38`、
   credit false。
+
+## Item 26 temporary-STS capsule source-only boundary and Homebrew audit deviation (2026-08-20)
+
+- base f6 `f6a8062de96623ce383eb4d1b5cd401ff9fa9cc5` 固定 parent
+  `4bddf697f9ed8d86890b851e5390c402e8413950` 与 tree
+  `0ac436757b6ab0e5cbdffc5109b3736eb1a914a9`。其 push
+  `32320719736`/job `96282216090` 与 PR `32320721588`/job
+  `96282221003` 均 unique attempt-one、previous null、rerun0、22/22；每路
+  Unit2790 F0/E0/skip36、`[10,1,12,22,21]`、Quality7+1EF、PG6、
+  readiness138/0、Compose success、warning1 Node20-to-24、error0/failure0。
+  四 terminal pointers exact，inventory恰2。
+- `CTO-AUTH-ITEM26-M1-CREDENTIAL-OAUTH-CAPSULE-SOURCE-001` 仅允许 f6 的
+  direct-child exact-six：四账本加 temporary-STS capsule source/test。
+  source 固定 49,494B/SHA-256
+  `7ed50fd5acdbb5733a174367e8bcb339b3a6bc07b49fed3a31243fddf763e4e3`/
+  blob `99110863d055929fbc76950ec2bc9aa8fd0f7bc6`，test 固定57,199B/
+  SHA-256 `d2fc65f83790552d71f0b6c9aacf5ffc0b9486dca24cb5220b860747b75fc565`/
+  blob `37c5ce3040a8dd7636fb7e173a66881405f7bef7`。red-team0/0/0，
+  normal/`-O`各46/46，compile/diff通过；既有M1 source/test/五payload零改动。
+- 候选仍 self revision/tree empty、own CI pending/0；one commit、one normal
+  non-force push、unique attempt-one push/PR observation 为全部权限。
+  failure/cancel 即停，automatic retry/rerun/second push 禁止。source状态虽为
+  complete，但 credential 仍 `NOT_PROVISIONED`，四 gates false，entrypoint
+  fail closed。
+- 审计偏差必须保留：一次 read-intended `brew list --versions aliyun-cli`
+  意外下载 Homebrew API index metadata；non-provider Homebrew network event=1，
+  possible cache-write event=1。因此禁止 generic external network/write=0
+  声明。brew install/upgrade=0、cleanup/retry=0；Aliyun config/login/OAuth、
+  provider/API/cloud、root/sudo、credential、DB、capture/materialize 均0。
+- 本 checkpoint 不授权任何 login/OAuth/provision/root install/config/API/
+  provider/capture 行为。后续必须依次 separate source acceptance → independent
+  credential provisioning authorization/action → secret-free receipt acceptance
+  → independent capture operational authorization。Item26/evidence/S0/M1/M2、
+  `25/29`/`25/38` 与 credit false 不变。

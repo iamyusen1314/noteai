@@ -12535,3 +12535,67 @@ Colima, database, builder, restore and cloud actions remain frozen.
   action occurred; all current-round counts and cost remain zero.  Item 26
   stays `unverified` with `evidence: []`, S0 stays open, M1/M2 stay absent,
   readiness stays `25/29` internal and `25/38` public, and credit stays false.
+
+### Item 26 M1 source acceptance f6 accepted; temporary-STS capsule exact-six source pending (2026-08-20)
+
+- Ledger acceptance `f6a8062de96623ce383eb4d1b5cd401ff9fa9cc5` is frozen
+  as the exact-four direct child of accepted portability successor
+  `4bddf697f9ed8d86890b851e5390c402e8413950`, with tree
+  `0ac436757b6ab0e5cbdffc5109b3736eb1a914a9`.  Its paths are exactly the four
+  ledgers; source, repaired test and all five embedded M1 payloads are unchanged.
+- Unique attempt-one push run `32320719736` / job `96282216090` was
+  created/run-started at `2026-08-20T01:21:34Z`; the job ran
+  `01:21:37Z`–`01:55:51Z`, Unit ran `01:22:48Z`–`01:55:07Z`, and the run
+  became terminal success at `01:55:52Z`.  Unique attempt-one PR run
+  `32320721588` / job `96282221003` was created/run-started at `01:21:36Z`;
+  the job ran `01:21:39Z`–`01:43:41Z`, Unit ran
+  `01:22:33Z`–`01:43:09Z`, and the run became terminal success at
+  `01:43:42Z`.  Both have previous attempt null, rerun zero and 22/22
+  successful steps.
+- Each route ran Unit 2,790 with zero failures/errors and 36 skips.  Frozen
+  counts are `[10,1,12,22,21]`; Quality is seven PASS plus one EXPECTED_FAIL,
+  PostgreSQL is 6/6, production readiness is 138/138 and Compose succeeds.
+  Each job has one Node 20-to-24 deprecation warning and zero error/failure
+  annotations.  All four terminal pointers are exact and the inventory is
+  exactly one push plus one PR.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-CREDENTIAL-OAUTH-CAPSULE-SOURCE-001` creates one
+  source-only exact-six candidate directly above f6: the four ledgers plus
+  `tools/item26_aliyun_temporary_sts_capsule_v1.py` and
+  `tests/test_item26_aliyun_temporary_sts_capsule_v1.py`.  Source freezes as
+  mode `100644`, 49,494 bytes, blob
+  `99110863d055929fbc76950ec2bc9aa8fd0f7bc6`, SHA-256
+  `7ed50fd5acdbb5733a174367e8bcb339b3a6bc07b49fed3a31243fddf763e4e3`;
+  test freezes as mode `100644`, 57,199 bytes, blob
+  `37c5ce3040a8dd7636fb7e173a66881405f7bef7`, SHA-256
+  `d2fc65f83790552d71f0b6c9aacf5ffc0b9486dca24cb5220b860747b75fc565`.
+  Red-team is P0/P1/P2=`0/0/0`; normal and `-O` each pass 46/46, and compile
+  plus diff checks pass.
+- The component is complete source, not credential or action authority.  It
+  freezes a fail-closed, Secret-free projection compatible with
+  `noteai.item26.m1-root-custody-temporary-sts-interface.v1`, anonymous-FD
+  transport, bounded/non-increasing TTL, commitment binding, scrub semantics
+  and future exclusive root-custody inventory.  Its public action boundary
+  refuses before inspecting arguments or touching I/O.  Candidate revision,
+  tree and own CI remain empty/pending with commit, push, observation, retry
+  and rerun counts zero.  The authority permits one commit, one normal
+  non-force push and one unique attempt-one push/PR CI observation;
+  failure/cancellation stops, with no automatic retry, rerun or second push.
+- Audit disclosure: one read-intended `brew list --versions aliyun-cli`
+  invocation unexpectedly downloaded Homebrew API index metadata.  The
+  non-provider Homebrew metadata network event count is exactly one and one
+  possible Homebrew cache-write event is conservatively recorded; a generic
+  external-network-zero or filesystem-write-zero claim is therefore false.
+  No Homebrew install/upgrade, cleanup or retry occurred.  Aliyun CLI config,
+  login/OAuth, provider/API/cloud call, root/sudo, credential read/write/output,
+  database, capture and materialization counts remain zero.
+- Source status is exactly
+  `SOURCE_ONLY_IMPLEMENTATION_COMPLETE_NOT_AUTHORIZED`, while credential status
+  remains `NOT_PROVISIONED`; all four component execution gates are false.
+  This checkpoint authorizes no login, OAuth configuration/refresh, credential
+  provisioning, root install/custody write, API/provider/cloud action or
+  capture.  A separate source acceptance must precede an independently
+  authorized provisioning action and receipt acceptance; capture requires a
+  further independent operational authorization.  Item 26 remains
+  `unverified` with `evidence: []`, S0 stays open, M1/M2 remain absent,
+  readiness remains `25/29` internal and `25/38` public, and credit is false.
