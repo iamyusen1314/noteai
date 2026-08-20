@@ -3174,3 +3174,30 @@ Last updated: 2026-08-19
   credential provisioning authorization/action → secret-free receipt acceptance
   → independent capture operational authorization。Item26/evidence/S0/M1/M2、
   `25/29`/`25/38` 与 credit false 不变。
+
+## Item 26 C1 capsule source acceptance exact-four candidate (2026-08-20)
+
+- exact-six revision `86206f816fb092a7fca7a577b1391e251dfca5ca` 固定
+  parent `f6a8062de96623ce383eb4d1b5cd401ff9fa9cc5` 与 tree
+  `99d83cae1c82ad12e231172e87ff5e1eefae267c`；source/test identity 与
+  前轮冻结值一致且本轮 zero-touch。
+- push `32327347443`/job `96301181826` 与 PR `32327349489`/job
+  `96301188689` 均 unique attempt-one、previous null、terminal success、
+  rerun0、22/22。每路 Unit2836 F0/E0/skip36，46个新test methods全执行，
+  durations分别1212.989s/1302.159s；`[10,1,12,22,21]`、Quality7+1EF、
+  PG6、readiness138/0、Compose success、warning1/error0/failure0。四指针
+  exact，inventory恰一push加一PR。
+- `CTO-AUTH-ITEM26-M1-CREDENTIAL-CAPSULE-SOURCE-ACCEPTANCE-001` 仅接受
+  source implementation 并允许一个 862 direct-child exact-four 四账本
+  candidate。self revision/tree empty、own CI pending0；one commit、one normal
+  non-force push、unique attempt-one双CI是全部权限。任一failure/cancel立即
+  hard stop，automatic retry/rerun/second push均禁止。
+- acceptance 不提供 credential 或 operational authority：credential仍
+  `NOT_PROVISIONED`，四执行gates false；login/OAuth/config/provision/root/
+  sudo/API/provider/cloud/DB/capture/materialize/private-key/paid/cleanup/replay
+  全部 false/0。后续 provisioning、receipt acceptance 与 capture operational
+  authorization 必须彼此独立。
+- 历史审计偏差继续冻结为 Homebrew non-provider metadata network=1、possible
+  cache write=1，故 generic network/write zero claims=false；brew install/
+  upgrade/cleanup/retry及Aliyun/provider/cloud均0。Item26仍unverified、evidence
+  空、S0 open、M1/M2 absent、readiness `25/29`/`25/38`、credit false。

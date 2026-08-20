@@ -12599,3 +12599,62 @@ Colima, database, builder, restore and cloud actions remain frozen.
   further independent operational authorization.  Item 26 remains
   `unverified` with `evidence: []`, S0 stays open, M1/M2 remain absent,
   readiness remains `25/29` internal and `25/38` public, and credit is false.
+
+## Current task — Item 26 C1 credential-capsule source terminal acceptance exact-four candidate (2026-08-20)
+
+- Revision `86206f816fb092a7fca7a577b1391e251dfca5ca` is frozen as the
+  direct child of accepted f6 `f6a8062de96623ce383eb4d1b5cd401ff9fa9cc5`
+  with tree `99d83cae1c82ad12e231172e87ff5e1eefae267c`.  Its exact-six
+  identity is the four ledgers plus
+  `tools/item26_aliyun_temporary_sts_capsule_v1.py` and
+  `tests/test_item26_aliyun_temporary_sts_capsule_v1.py`; the source/test
+  identities remain respectively 49,494B/blob
+  `99110863d055929fbc76950ec2bc9aa8fd0f7bc6`/SHA-256
+  `7ed50fd5acdbb5733a174367e8bcb339b3a6bc07b49fed3a31243fddf763e4e3`
+  and 57,199B/blob `37c5ce3040a8dd7636fb7e173a66881405f7bef7`/
+  SHA-256 `d2fc65f83790552d71f0b6c9aacf5ffc0b9486dca24cb5220b860747b75fc565`.
+- Its unique attempt-one push run `32327347443`/job `96301181826` and PR
+  run `32327349489`/job `96301188689` are terminal success with previous
+  attempt null, rerun zero and 22/22 steps.  Push ran at
+  `03:11:33Z` (job `03:11:36Z`–`03:33:29Z`, Unit
+  `03:12:30Z`–`03:32:58Z`); PR ran at `03:11:35Z` (job
+  `03:11:38Z`–`03:35:18Z`, updated `03:35:19Z`, Unit
+  `03:12:49Z`–`03:34:47Z`).  Each route has Unit 2,836 with zero
+  failures/errors and 36 skips, reported Unit duration 1,212.989s push or
+  1,302.159s PR, and executes all 46 new-test methods.  Frozen counts remain
+  `[10,1,12,22,21]`; Quality is 7 PASS plus 1 EXPECTED_FAIL, PostgreSQL is
+  6 OK, readiness is 138/138 and Compose succeeds.  Each route has one
+  Node 20-to-24 warning and zero error/failure annotations; all four terminal
+  pointers are exact and the run inventory is exactly one push plus one PR.
+- Root Main CTO authority
+  `CTO-AUTH-ITEM26-M1-CREDENTIAL-CAPSULE-SOURCE-ACCEPTANCE-001` accepts only
+  that source implementation and creates one direct-child exact-four
+  append-only ledger candidate above 862.  Its paths are this handoff,
+  architecture summary, risk register and readiness JSON.  Candidate
+  revision/tree stay empty and own CI stays pending with commit, push,
+  observation, retry and rerun counts zero.  Authority is one commit, one
+  normal non-force push and one unique attempt-one push/PR observation;
+  failure or cancellation stops, with no automatic retry, rerun or second
+  push.
+- Acceptance remains nonoperational.  The capsule source is accepted as
+  implementation only; credentials remain `NOT_PROVISIONED`, all four
+  execution gates remain false, and login/OAuth/configuration, provisioning,
+  root/sudo, provider/API/cloud, database, capture/materialization,
+  private-key, paid, cleanup and replay actions remain unauthorized with
+  current-round counts zero.  Provisioning still requires a separate fresh
+  authorization and receipt acceptance, and capture still requires a later
+  independent operational authorization.
+- The accepted source audit disclosure remains frozen: the read-intended
+  `brew list --versions aliyun-cli` caused exactly one non-provider Homebrew
+  metadata-network event and one conservatively possible cache-write event.
+  Generic external-network-zero and filesystem-write-zero claims remain
+  false; Homebrew install/upgrade/cleanup/retry and every Aliyun/provider/cloud
+  action remain zero.  No readiness credit is added: Item 26 stays
+  `unverified` with empty evidence, S0 stays open, M1/M2 stay absent, and
+  readiness remains `25/29` internal and `25/38` public.
+- Final local acceptance validation is green: strict JSON with duplicate-key
+  rejection, semantic exact-four/old-three-supersede/source-test-zero-touch
+  audit and `git diff --check` pass; focused normal and `-O` each pass 46/46;
+  both compile modes pass; internal/public readiness in both modes remain
+  `25/29` and `25/38`; production readiness in both modes passes 138/138; and the
+  direct tracked-file secret-hygiene check passes.  No failed gate was rerun.

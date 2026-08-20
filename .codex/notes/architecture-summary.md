@@ -1033,3 +1033,30 @@ Only service names and variable names are documented here; no secret values.
   credential action, database, capture and materialization remain zero.
   Provisioning and its receipt acceptance are later independent gates;
   operational capture requires another separate authorization.
+
+## C1 credential-capsule source terminal acceptance boundary (2026-08-20)
+
+- Exact-six source revision `86206f816fb092a7fca7a577b1391e251dfca5ca`
+  is fixed above f6 with tree `99d83cae1c82ad12e231172e87ff5e1eefae267c`.
+  Its attempt-one push `32327347443`/job `96301181826` and PR
+  `32327349489`/job `96301188689` are terminal success, previous attempt null,
+  rerun0 and 22/22.  Each route runs Unit2836 F0/E0/skip36, all 46 capsule
+  test methods, `[10,1,12,22,21]`, Quality7+1EF, PG6, readiness138/0 and
+  Compose success; terminal pointers are exact and inventory is exactly two.
+- `CTO-AUTH-ITEM26-M1-CREDENTIAL-CAPSULE-SOURCE-ACCEPTANCE-001` accepts the
+  inert source implementation and permits only one 862 direct-child exact-four
+  ledger candidate.  Source/test and all prior payloads are zero-touch.
+  Candidate self revision/tree and own CI remain empty/pending/0 until its one
+  commit, one normal non-force push and unique attempt-one dual-CI observation;
+  failure/cancel stops and retry, rerun and second push are prohibited.
+- This is an architecture/source acceptance, not credential or operational
+  acceptance.  Credential state remains `NOT_PROVISIONED`; all four execution
+  gates and every login/OAuth/config/root/sudo/API/provider/cloud/database/
+  capture/materialization/private-key/paid/cleanup/replay authority remain
+  false.  Separate provisioning authorization and secret-free receipt
+  acceptance must precede a separate capture operational authorization.
+- The historical Homebrew deviation remains explicit: one non-provider API
+  metadata-network event and one possible cache write; generic network/write
+  zero is not claimed.  Homebrew install/upgrade/cleanup/retry and all
+  Aliyun/provider/cloud actions remain zero.  Item26/evidence/S0/M1/M2,
+  readiness `25/29`/`25/38` and credit false are unchanged.
