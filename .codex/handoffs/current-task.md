@@ -12412,3 +12412,75 @@ Colima, database, builder, restore and cloud actions remain frozen.
   capture/materialization authority remain separate future gates.  Item 26 is
   still `unverified` with `evidence: []`, S0 is open, M1/M2 are absent,
   readiness stays `25/29` and `25/38`, and credit remains false.
+
+### Item 26 M1 source exact-six CI portability failure; exact-five successor pending (2026-08-20)
+
+- Source checkpoint `2b690ffe7f484e07075e776f52fdb436d297dc4d` is frozen
+  as the direct child of A `a30b879d06c388a4a0e230b5a23b2eaedc93649d`,
+  with tree `91f314cd954f434a4649214b54d5bb085b8fdee9` and exactly
+  the four ledgers, one test and one source path.  Its source is unchanged at
+  mode `100644`, 448,346 bytes, blob
+  `56c837b03fbae41017e8d2e8c86b453b44c5d316`, SHA-256
+  `28910869ab5043a50b029cabbfe4d1502b79f20e0d2dd145ed5c31bca81c9c2e`;
+  its test is mode `100644`, 273,690 bytes, blob
+  `2de6a41d08c1d787d82bbc7024845622f4704b2b`, SHA-256
+  `29e84bbdffebc4795cbfc350f623df5242e3f2257cc14851825c89cbeabf49af`.
+  The four exact ledger identities and all five embedded payload
+  bytes/SHA-256/Git-blob identities are frozen in the readiness record.
+- Push run `32314078284` / job `96262703265` is the hard-stop trigger.  It is
+  attempt one with previous attempt null and rerun zero, created/run-started
+  `2026-08-19T23:38:09Z`, job `23:38:12Z`–`2026-08-20T00:07:09Z`,
+  and terminal failure at `00:07:10Z`.  Its 22 steps are 15 success, one Unit
+  failure and six skipped; Unit ran 2,790 tests with zero failures, three
+  errors and 36 skips.  Quality, PostgreSQL, production-readiness and Compose
+  were skipped.  The exact-three errors are fixture portability defects, not
+  source/runtime failures:
+
+  1. the outer-verifier test omitted its fixture Git reader and fell through
+     to the host-bound repository root `/Users/openclaw/Desktop/noteai`;
+  2. the capture identity aggregate test probed the macOS-bound host tool and
+     parent-chain identities instead of its accepted binding-derived leaf;
+  3. the materialize pipe-preflight test omitted its accepted-binding tool
+     probe, so Linux `/usr/bin/openssl` identity validation failed before the
+     intended preflight assertion.
+
+- At that push-triggered hard stop, PR run `32314083397` was still
+  `in_progress`; the stop did not wait on it and its later state is not an
+  authorization premise.  A later read-only observation records that its
+  attempt-one job `96262717384` also became terminal failure with the same
+  2,790/zero-failure/three-error/36-skip result.  This post-stop observation
+  creates no retry or continuation right.  Both routes retain previous
+  attempt null, automatic retry zero and rerun zero; `2b690ffe...` is rejected
+  and must never be rerun.
+- Root Main CTO authority `CTO-AUTH-ITEM26-M1-SOURCE-CI-PORTABILITY-001`
+  permits one append-only direct-child exact-five successor containing only
+  the four ledgers plus
+  `tests/test_stage_collect_and_materialize_item26_manual_cost_stop_m1_v2.py`.
+  The source path and its five embedded payloads are zero-touch.  The test-only
+  corrections may inject the existing fixture Git reader, replace only the
+  capture identity leaf with binding-derived stable metadata and supply the
+  accepted-binding materialize tool probe; all fixed revision/hash/size/blob,
+  root-parent-chain, guard, module-cleanup, pipe-failure and `Popen=0`
+  assertions remain enforced.  Reverting the test correction must reproduce
+  the frozen failed-test bytes.
+- The repaired test freezes as mode `100644`, 276,592 bytes, blob
+  `395183cda18a6021a923764ea0f584abacdbebf4`, SHA-256
+  `00e04d37b58ef746766a59b7ee57d58cf5adf146f9cb20ea27db29734d96b121`
+  with `+90/-3`; source remains byte-identical and the reverse patch is valid.
+  Focused normal and `-O` both pass 90/90, compile and diff checks pass,
+  production-readiness normal and `-O` both pass 138/138, direct secret
+  hygiene passes, and both readiness modes remain `25/29` internal and
+  `25/38` public.
+- The exact-five candidate's self revision, tree and own CI are empty/pending
+  with push/PR observation and rerun counts zero until self-binding.  The
+  authority is capped at one commit, one normal non-force push and its unique
+  attempt-one push/PR CI observation.  Any failure or cancellation stops;
+  automatic retry, rerun and a second push are forbidden.
+- This is source-test portability work only.  All four execution gates remain
+  false; credential and capture capsules remain `NOT_PROVISIONED`; operational
+  authorization/readiness remain false.  No execution, sudo/root,
+  OAuth/configuration/credential, network/provider/API/cloud, database,
+  capture, materialization, public output, private-key, paid, cleanup or replay
+  action occurred, and every current-round count/cost remains zero.  Item 26
+  stays `unverified` with `evidence: []`, S0 stays open, M1/M2 stay absent,
+  readiness stays `25/29` internal and `25/38` public, and credit stays false.

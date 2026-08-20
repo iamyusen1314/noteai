@@ -3076,3 +3076,40 @@ Last updated: 2026-08-19
   `NOT_PROVISIONED`。OAuth/API/root/sudo/DB/network/capture/materialize/private/
   paid/cleanup/replay 均 NO-GO 且实际计数/CNY 为零。Item26 unverified、
   evidence空、S0 open、M1/M2 absent、readiness `25/29`/`25/38`、credit false。
+
+## Item 26 M1 source exact-six portability failure and exact-five repair boundary (2026-08-20)
+
+- 失败事实已冻结: `2b690ffe7f484e07075e776f52fdb436d297dc4d`
+  是 A `a30b879d06c388a4a0e230b5a23b2eaedc93649d` 的 direct-child exact-six，
+  tree `91f314cd954f434a4649214b54d5bb085b8fdee9`。四账本、source、test 与
+  五段 payload 身份均固定。push `32314078284` / job `96262703265` 是
+  attempt-one hard-stop trigger：Unit 2,790、failure0/error3/skip36，后续
+  Quality/PG/readiness/Compose skipped，previous attempt null、rerun0。
+  hard stop 时 PR `32314083397` 仍 in-progress，未等待其完成；后来只读看到
+  job `96262717384` 同样 terminal failure 仅是 non-authorizing history。
+  `2b690ffe...` 永久 reject/no-rerun。
+- 三项根因均限定在 test fixture portability：outer verifier 未注入 fixture
+  `git_reader` 而落入 macOS 固定 repository root；capture aggregate 直接探测
+  macOS host tool/parent chain 而非 binding-derived stable leaf；materialize
+  preflight 负测未注入 accepted tool probe，先在 Linux OpenSSL fixed identity
+  闭锁，未到目标 pipe assertion。没有证据表明 source/runtime contract 失败。
+- 追加式边界: `CTO-AUTH-ITEM26-M1-SOURCE-CI-PORTABILITY-001` 只允许
+  `2b690ffe...` 的 exact-five 直接子，路径严格为四账本加同一 test；source 和
+  五 payload change count 必须为零。允许的修正只调用既有 seam，且必须保留
+  fixed revision/blob/hash/size、root parent-chain、I/O/process guard、module
+  cleanup、directional/blocking pipe rejection 与 `Popen=0` 断言；reverse patch
+  必须精确恢复 frozen failed test。
+- 修复后 test 身份为 `100644`/276,592B/blob
+  `395183cda18a6021a923764ea0f584abacdbebf4`/SHA-256
+  `00e04d37b58ef746766a59b7ee57d58cf5adf146f9cb20ea27db29734d96b121`，
+  diff `+90/-3`；reverse check 与 source zero-diff 均通过。normal/`-O`
+  focused 各90/90、readiness 各138/138，compile/diff/strict JSON/direct Secret
+  hygiene 通过，internal/public 仍为 `25/29`/`25/38`。
+- 候选 self revision/tree/own CI 尚未绑定，当前均 empty/pending/0。只允许
+  one commit、one normal non-force push 与 unique attempt-one push/PR
+  observation；failure/cancel 即停，automatic retry、rerun、second push 均禁。
+- 残余 operational 风险继续 fail-closed：四 execution gates false，credential /
+  capture capsule `NOT_PROVISIONED`，OAuth/API/cloud/root/sudo/DB/network/
+  capture/materialize/private/paid/cleanup/replay 均未授权且计数/CNY 为零。
+  Item26 unverified、evidence空、S0 open、M1/M2 absent、readiness
+  `25/29`/`25/38`、credit false。

@@ -919,3 +919,48 @@ Only service names and variable names are documented here; no secret values.
   this exact-six source → exact-four source acceptance → separate credential /
   OAuth source and acceptance → separately authorized capture and later
   materialization.  None of those later authorities is implied here.
+
+## Item 26 M1 source CI-portability successor architecture (2026-08-20)
+
+- Failed source checkpoint `2b690ffe7f484e07075e776f52fdb436d297dc4d`
+  freezes parent A `a30b879d06c388a4a0e230b5a23b2eaedc93649d`, tree
+  `91f314cd954f434a4649214b54d5bb085b8fdee9`, its exact-six path set,
+  four ledger identities, source/test identities and the five embedded
+  payload identities.  It remains an immutable rejected checkpoint; its source
+  and payload bytes are the controlled non-operational implementation.
+- Push run `32314078284` / job `96262703265` terminated attempt one after Unit
+  ran 2,790 tests with zero failures, three errors and 36 skips.  Its three
+  errors are Linux test-fixture portability defects: a missing injected Git
+  reader fell through to the macOS repository-root binding; a capture aggregate
+  used live macOS system-identity probing instead of a binding-derived stable
+  leaf; and a materialize negative test omitted its accepted tool probe, so the
+  Linux OpenSSL identity failed before the intended pipe preflight.  Later
+  Quality, PostgreSQL, readiness and Compose stages were skipped.  The push is
+  the hard-stop trigger.  PR `32314083397` was still in progress at that stop;
+  its later matching terminal failure is read-only history, not an authority
+  premise.  Both attempts retain previous-attempt null and rerun zero.
+- `CTO-AUTH-ITEM26-M1-SOURCE-CI-PORTABILITY-001` allows exactly one append-only
+  direct-child exact-five candidate: four ledgers plus the existing test.  The
+  source and all five payloads are zero-touch.  The only permitted fixture
+  changes inject the already defined Git-reader seam, patch only the capture
+  identity leaf with binding-derived mode/owner/size/hash rows, and inject an
+  accepted-binding materialize tool probe.  Fixed revision/blob/hash/size
+  loading, root parent-chain validation, anti-I/O/process guards, module
+  cleanup, directional blocking pipe rejection and `Popen=0` remain asserted.
+  Reverse application must reconstruct the exact failed test.
+- The repaired test is frozen at mode `100644`, 276,592 bytes, blob
+  `395183cda18a6021a923764ea0f584abacdbebf4`, SHA-256
+  `00e04d37b58ef746766a59b7ee57d58cf5adf146f9cb20ea27db29734d96b121`
+  and `+90/-3`.  Its reverse patch verifies against the failed test; source is
+  byte-identical.  Normal/optimized focused tests are each 90/90 and
+  production readiness is each 138/138; compile, diff, strict JSON and direct
+  Secret hygiene checks pass without changing the `25/29` / `25/38` state.
+- Candidate revision/tree and own CI stay empty/pending with all observation
+  counts zero until self-binding.  One commit, one normal non-force push and
+  one unique attempt-one push/PR observation are the complete authority;
+  failure/cancel stops and retry, rerun or second push is forbidden.
+- The runtime boundary is unchanged: four execution gates false, credentials
+  and capture capsule `NOT_PROVISIONED`, operational authorization/readiness
+  false and all current-round operational/cost counts zero.  OAuth, provider
+  calls, capture and materialization remain future independent gates.  S0,
+  Item 26, M1/M2, readiness and credit do not change.

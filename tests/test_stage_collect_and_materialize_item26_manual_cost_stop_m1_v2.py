@@ -1967,17 +1967,69 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
                 "nlink": 1,
             },
         )
-        first = capture._capture_system_identity_snapshot()
-        second = capture._capture_system_identity_snapshot()
+        leaf_calls: list[tuple[str, dict[str, object]]] = []
+
+        def snapshot_bound_file(path, binding):
+            leaf_calls.append((path, binding))
+            parent_chain = [
+                {
+                    "path": "/",
+                    "kind": "directory",
+                    "target": None,
+                    "mode": 0o755,
+                    "uid": 0,
+                    "gid": 0,
+                }
+            ]
+            if path == "/etc/ssl/cert.pem":
+                parent_chain.insert(
+                    0,
+                    {
+                        "path": "/etc",
+                        "kind": "allowed_symlink",
+                        "target": "private/etc",
+                        "mode": 0o755,
+                        "uid": 0,
+                        "gid": 0,
+                    },
+                )
+            return {
+                "path": path,
+                "sha256": binding["sha256"],
+                "size": binding["size"],
+                "mode": binding["mode"],
+                "uid": binding["uid"],
+                "gid": binding["gid"],
+                "nlink": binding["nlink"],
+                "parent_chain": parent_chain,
+            }
+
+        with mock.patch.object(
+            capture,
+            "_snapshot_bound_file",
+            side_effect=snapshot_bound_file,
+        ):
+            first = capture._capture_system_identity_snapshot()
+            second = capture._capture_system_identity_snapshot()
         self.assertEqual(first, second)
+        self.assertEqual(
+            leaf_calls,
+            [
+                (path, binding)
+                for _unused in range(2)
+                for path, binding in capture.CHILD_SYSTEM_TOOL_BINDINGS.items()
+            ],
+        )
         self.assertEqual(set(first), set(capture.CHILD_SYSTEM_TOOL_BINDINGS))
         for path, binding in capture.CHILD_SYSTEM_TOOL_BINDINGS.items():
             with self.subTest(path=path):
+                self.assertEqual(first[path]["path"], path)
                 self.assertEqual(first[path]["sha256"], binding["sha256"])
                 self.assertEqual(first[path]["size"], binding["size"])
                 self.assertEqual(first[path]["mode"], binding["mode"])
                 self.assertEqual(first[path]["uid"], 0)
                 self.assertEqual(first[path]["gid"], 0)
+                self.assertEqual(first[path]["nlink"], binding["nlink"])
                 self.assertTrue(first[path]["parent_chain"])
                 for row in first[path]["parent_chain"]:
                     self.assertEqual(row["uid"], 0)
@@ -4387,6 +4439,7 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
                         pass
 
         process_calls: list[object] = []
+        tool_calls: list[tuple[str, object]] = []
         null_fd = os.open("/dev/null", os.O_RDWR)
         try:
             with mock.patch.object(
@@ -4405,10 +4458,23 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
                         popen=lambda *_args, **_kwargs: process_calls.append(
                             object()
                         ),
+                        tool_probe=lambda path, expected: (
+                            tool_calls.append((path, expected))
+                            or ("fixed-tool-identity",)
+                        ),
                     ),
                     False,
                 )
             self.assertEqual(process_calls, [])
+            self.assertEqual(
+                tool_calls,
+                [
+                    (
+                        "/usr/bin/openssl",
+                        materialize.SYSTEM_TOOL_BINDINGS["/usr/bin/openssl"],
+                    )
+                ],
+            )
         finally:
             os.close(null_fd)
 
@@ -6815,8 +6881,29 @@ class StageCollectAndMaterializeItem26M1V2Tests(unittest.TestCase):
             "verify_item26_manual_cost_stop_evidence_v2",
         }
         before = {name: sys.modules.get(name) for name in names}
-        loaded = stager._load_outer_evidence_verifier()
+        fixture = self._make_stage_fixture()
+        git_reads = []
+
+        def git_reader(revision, ref):
+            git_reads.append((revision, ref))
+            return fixture.git_reader(revision, ref)
+
+        loaded = stager._load_outer_evidence_verifier(git_reader=git_reader)
         self.assertIsInstance(loaded, stager._FrozenOuterVerifier)
+        self.assertEqual(
+            git_reads,
+            [
+                (
+                    stager.FIXED_BINDINGS[ref]["revision"],
+                    ref,
+                )
+                for ref in (
+                    stager.EXTRACTOR_REF,
+                    stager.AUTHORITY_VERIFIER_REF,
+                    stager.EVIDENCE_VERIFIER_REF,
+                )
+            ],
+        )
         self.assertEqual(
             {name: sys.modules.get(name) for name in names},
             before,
