@@ -123,6 +123,7 @@ EXPECTED_ACTIONTRAIL_ACTIONS = (
     "ModifyDBInstanceDeletionProtection",
     "DeleteDBInstance",
 )
+_ACTIONTRAIL_RDS_RESOURCE_TYPE = "ACS::RDS::DBInstance"
 # These pure hash domains intentionally preserve the frozen historical
 # identity commitments. They do not import, read, or fall back to v1 runtime.
 TUPLE_DOMAIN = b"noteai-item26-manual-cost-stop-source-tuple-v1\0"
@@ -1042,6 +1043,31 @@ def _lookup_stream(
     )
 
 
+def _event_resource_identity(event: dict[str, Any]) -> tuple[str, str]:
+    has_name = "resourceName" in event
+    has_type = "resourceType" in event
+    if has_name or has_type:
+        if not (has_name and has_type):
+            raise ExtractionError("actiontrail_event_schema")
+        return event["resourceName"], event["resourceType"]
+
+    referenced = event.get("referencedResources")
+    if (
+        type(referenced) is not dict
+        or set(referenced) != {_ACTIONTRAIL_RDS_RESOURCE_TYPE}
+    ):
+        raise ExtractionError("actiontrail_event_schema")
+    resource_names = referenced[_ACTIONTRAIL_RDS_RESOURCE_TYPE]
+    if (
+        type(resource_names) is not list
+        or len(resource_names) != 1
+        or type(resource_names[0]) is not str
+        or not resource_names[0]
+    ):
+        raise ExtractionError("actiontrail_event_schema")
+    return resource_names[0], _ACTIONTRAIL_RDS_RESOURCE_TYPE
+
+
 def _event_base(
     event: dict[str, Any],
     *,
@@ -1051,13 +1077,13 @@ def _event_base(
 ) -> tuple[str, str, dict[str, Any], datetime, dict[str, Any]]:
     required = {
         "eventId", "eventName", "eventRW", "eventSource", "eventTime",
-        "resourceName", "resourceType", "serviceName", "userIdentity",
+        "serviceName", "userIdentity",
     }
     if not required.issubset(event):
         raise ExtractionError("actiontrail_event_schema")
     event_id = event["eventId"]
     event_name = event["eventName"]
-    resource_name = event["resourceName"]
+    resource_name, resource_type = _event_resource_identity(event)
     user_identity = event["userIdentity"]
     if type(user_identity) is str:
         _bounded_json_depth(
@@ -1113,8 +1139,8 @@ def _event_base(
         or event["eventSource"] != "rds.aliyuncs.com"
         or type(resource_name) is not str
         or value_sha256(resource_name) != EXPECTED_OLD_CLONE_SHA256
-        or type(event["resourceType"]) is not str
-        or not event["resourceType"]
+        or type(resource_type) is not str
+        or not resource_type
         or type(user_identity) is not dict
         or not start <= event_time <= end
         or event.get("errorCode") not in {None, ""}
@@ -1128,7 +1154,7 @@ def _event_base(
         "event_source": "rds.aliyuncs.com",
         "service_name": "Rds",
         "resource_name_sha256": EXPECTED_OLD_CLONE_SHA256,
-        "resource_type_sha256": value_sha256(event["resourceType"]),
+        "resource_type_sha256": value_sha256(resource_type),
         "user_identity_sha256": sha256(canonical_bytes(user_identity)),
     }
     return event_id, event_name, user_identity, event_time, base

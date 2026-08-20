@@ -456,6 +456,123 @@ class ManualCostStopRawExtractorTests(unittest.TestCase):
             projection["historical_request_bodies_rederived"]
         )
 
+    def test_native_referenced_resources_replace_missing_flat_fields(self):
+        value = actiontrail_capture()
+        for record_value in value["records"]:
+            response = extractor.decode_canonical_json(
+                record_value["response_json_base64"], "fixture"
+            )
+            for event_value in response["Events"]:
+                resource_name = event_value.pop("resourceName")
+                event_value.pop("resourceType")
+                event_value["referencedResources"] = {
+                    extractor._ACTIONTRAIL_RDS_RESOURCE_TYPE: [resource_name]
+                }
+            record_value["response_json_base64"] = encoded(response)
+        with mock.patch.object(
+            extractor,
+            "EXPECTED_OLD_CLONE_SHA256",
+            extractor.value_sha256(CLONE_ID),
+        ), mock.patch.object(
+            extractor,
+            "EXPECTED_SOURCE_SHA256",
+            extractor.value_sha256(SOURCE_ID),
+        ), mock.patch.object(
+            extractor,
+            "EXPECTED_OLD_CLONE_NAME_SHA256",
+            extractor.value_sha256(
+                SOURCE_NAME.replace("source", "old-clone")
+            ),
+        ):
+            projection = extractor.project_actiontrail_readback(
+                extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+        self.assertEqual(projection["event_count"], 3)
+        expected_type_hash = extractor.value_sha256(
+            extractor._ACTIONTRAIL_RDS_RESOURCE_TYPE
+        )
+        self.assertEqual(
+            {row["resource_type_sha256"] for row in projection["events"]},
+            {expected_type_hash},
+        )
+
+    def test_native_referenced_resources_are_exact_and_unambiguous(self):
+        invalid_values = (
+            {"ACS::RDS::DBInstance": CLONE_ID},
+            {"ACS::RDS::DBInstance": []},
+            {"ACS::RDS::DBInstance": [CLONE_ID, CLONE_ID]},
+            {"ALIYUN::RDS::DBInstance": [CLONE_ID]},
+            {
+                "ACS::RDS::DBInstance": [CLONE_ID],
+                "ACS::RDS::Database": ["test-database"],
+            },
+        )
+        for referenced in invalid_values:
+            with self.subTest(referenced=referenced):
+                event_value = event(
+                    "event-native",
+                    "DeleteDBInstance",
+                    "2026-08-16T14:42:00Z",
+                )
+                event_value.pop("resourceName")
+                event_value.pop("resourceType")
+                event_value["referencedResources"] = referenced
+                with self.assertRaisesRegex(
+                    extractor.ExtractionError,
+                    "actiontrail_event_schema",
+                ):
+                    extractor._event_resource_identity(event_value)
+
+        partial = event(
+            "event-partial",
+            "DeleteDBInstance",
+            "2026-08-16T14:42:00Z",
+        )
+        partial.pop("resourceType")
+        partial["referencedResources"] = {
+            extractor._ACTIONTRAIL_RDS_RESOURCE_TYPE: [CLONE_ID]
+        }
+        with self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "actiontrail_event_schema",
+        ):
+            extractor._event_resource_identity(partial)
+
+        value = actiontrail_capture()
+        response = extractor.decode_canonical_json(
+            value["records"][0]["response_json_base64"], "fixture"
+        )
+        event_value = response["Events"][0]
+        event_value.pop("resourceName")
+        event_value.pop("resourceType")
+        event_value["referencedResources"] = {
+            extractor._ACTIONTRAIL_RDS_RESOURCE_TYPE: ["different-instance"]
+        }
+        value["records"][0]["response_json_base64"] = encoded(response)
+        with mock.patch.object(
+            extractor,
+            "EXPECTED_OLD_CLONE_SHA256",
+            extractor.value_sha256(CLONE_ID),
+        ), mock.patch.object(
+            extractor,
+            "EXPECTED_SOURCE_SHA256",
+            extractor.value_sha256(SOURCE_ID),
+        ), mock.patch.object(
+            extractor,
+            "EXPECTED_OLD_CLONE_NAME_SHA256",
+            extractor.value_sha256(
+                SOURCE_NAME.replace("source", "old-clone")
+            ),
+        ), self.assertRaisesRegex(
+            extractor.ExtractionError,
+            "actiontrail_event_identity",
+        ):
+            extractor.project_actiontrail_readback(
+                extractor.canonical_bytes(value),
+                expected_control_revision=CONTROL_REVISION,
+            )
+
     def test_lookup_request_id_does_not_become_mutation_request_id(self):
         projection = self.valid_projection().actiontrail
         self.assertFalse(projection["historical_mutation_request_ids_rederived"])

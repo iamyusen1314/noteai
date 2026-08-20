@@ -986,6 +986,41 @@ class ManualCostStopCollectorTests(unittest.TestCase):
             collector._unknown_marker("OFFICIAL_RESPONSE_EXPORT_FAILED"),
         )
 
+    def test_native_referenced_resources_response_is_recorded(self):
+        first = self.actiontrail["records"][0]
+        response = extractor.decode_canonical_json(
+            first["response_json_base64"], "fixture"
+        )
+        event_value = response["Events"][0]
+        resource_name = event_value.pop("resourceName")
+        event_value.pop("resourceType")
+        event_value["referencedResources"] = {
+            extractor._ACTIONTRAIL_RDS_RESOURCE_TYPE: [resource_name]
+        }
+        begin_result = collector.begin(
+            control_revision=CONTROL_REVISION,
+            slot=first["slot"],
+            request_raw=decoded(first["request_json_base64"]),
+            journal_directory=self.journal,
+            owner_uid=self.owner_uid,
+        )
+        finish_result = collector.finish(
+            control_revision=CONTROL_REVISION,
+            slot=first["slot"],
+            response_raw=extractor.canonical_bytes(response),
+            journal_directory=self.journal,
+            owner_uid=self.owner_uid,
+        )
+        self.assertEqual(begin_result["status"], "REQUEST_FROZEN")
+        self.assertEqual(finish_result["status"], "RESPONSE_RECORDED")
+        self.assertEqual(
+            collector.status(
+                journal_directory=self.journal,
+                owner_uid=self.owner_uid,
+            )["status"],
+            "READY_FOR_NEXT_REQUEST",
+        )
+
     def test_sensitive_browser_wrapper_is_discarded_into_fixed_unknown(self):
         first = self.actiontrail["records"][0]
         collector.begin(
