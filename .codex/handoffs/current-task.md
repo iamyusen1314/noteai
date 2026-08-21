@@ -13334,3 +13334,37 @@ Colima, database, builder, restore and cloud actions remain frozen.
   be replayed or repaired in place.  Any future completion requires a newly
   authorized, source-compatible path; it must not reinterpret this failed
   attempt as restored capture evidence.
+
+## Item 26 replacement-chain offline source-of-truth gate (2026-08-21)
+
+- The failed invocation `t-sz06uny9xopup6o` and its no-readback/no-replay
+  terminal remain immutable.  No old command, invocation, clone, client token,
+  recipient key or task root is reused.  This checkpoint performs no provider
+  request, database connection, clone creation or readiness promotion.
+- The existing v1 execution source is corrected without adding a schema,
+  artifact type or proof layer.  API-C password rewrap and package broker now
+  use separate root-only direct children of `/var/lib`; they no longer depend
+  on the shared `/var/lib/noteai` parent.  The parent is required to be the
+  root-owned, non-symlink system directory with mode 0755, each task child must
+  be absent before creation, and each child is created mode 0700 with existing
+  write-once 0600 file contracts preserved.
+- Every pre-attempt Docker call is bound to the same absent, credential-free
+  process-local config path; global Docker configuration is neither read nor
+  changed.  Docker host/context variables are cleared, default context remains
+  explicit, registry login/pull/push/build count is zero, and the cached image
+  remains digest-bound with `--pull never`.  The executable socket check is
+  pinned to `/usr/sbin/ss`; the invalid `container ls -aq` plus formatted output
+  combination is replaced only where formatting is requested.
+- The renderer mechanically removes the unreachable CREATE or READBACK
+  function after validating the complete identity-bound template.  This keeps
+  each Cloud Assistant command below its existing 18,000-byte limit without a
+  new transport or command type.  Fresh command names use the existing v1
+  action/state-machine contracts; old names and invocations remain terminal.
+- Offline verification is complete on the frozen worktree: focused restore
+  tests pass `75/75` in normal and optimized modes; all changed Python files
+  compile in both modes; shell syntax and diff checks pass; internal readiness
+  remains `25/29` and public readiness `25/38`; production readiness passes
+  `138/138` in both modes.  The next action, after committing this exact
+  checkpoint, is a fresh zero-resource baseline followed by at most one active
+  replacement PITR clone and the already-authorized single read-only restored
+  capture.

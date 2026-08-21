@@ -102,7 +102,8 @@ on_exit() {
 trap on_exit EXIT
 
 [ "$(id -u)" = '0' ] && [ "$(id -g)" = '0' ] || fail root
-for tool in docker systemctl stat sha256sum openssl awk ss python3 timeout wc tr sort rm mv find mkdir chmod; do command -v "$tool" >/dev/null 2>&1 || fail tool; done
+for tool in docker systemctl stat sha256sum openssl awk python3 timeout wc tr sort rm mv find mkdir chmod; do command -v "$tool" >/dev/null 2>&1 || fail tool; done
+[ -x /usr/sbin/ss ] || fail tool
 [ -x /usr/bin/docker ] && [ -x /usr/bin/env ] && [ -x /usr/bin/timeout ] && [ -x /usr/bin/openssl ] || fail absolute_tool
 [ -d /var/lib/noteai ] && [ ! -L /var/lib/noteai ] && [ "$(stat -c '%F|%u|%g|%a' /var/lib/noteai)" = 'directory|0|0|700' ] || fail persistent_parent
 [ -d "$BASE_ROOT" ] && [ ! -L "$BASE_ROOT" ] && [ "$(stat -c '%F|%u|%g|%a' "$BASE_ROOT")" = 'directory|0|0|700' ] || fail persistent_root
@@ -456,7 +457,7 @@ chmod 0600 "$DRIVER_PATH"
 [ -z "$(/usr/bin/env DOCKER_CONFIG="$DOCKER_CONFIG_ROOT" /usr/bin/docker --context=default container ls -aq --filter "name=^/${CONTAINER_NAME}$")" ] || unknown task_container
 image_row="$(/usr/bin/env DOCKER_CONFIG="$DOCKER_CONFIG_ROOT" /usr/bin/docker --context=default image inspect "$IMAGE_REF" --format '{{.Id}}|{{.Os}}|{{.Architecture}}|{{index .Config.Labels "org.opencontainers.image.revision"}}')" || fail image
 [ "$image_row" = 'sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95|linux|amd64|cad5ce35664f617c6e19f90a6159285ddf975594' ] || fail image
-[ "$(ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = 0 ] || fail db_socket_before
+[ "$(/usr/sbin/ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = 0 ] || fail db_socket_before
 
 phase='restored_read_only_capture'; container_attempted=1
 set +e
@@ -560,7 +561,7 @@ PY
 [ "$(sha256sum "$FINAL_MANIFEST" | awk '{print $1}')" = "$manifest_file_sha" ] || unknown final_hash
 [ "$(stat -c '%F|%u|%g|%a|%h|%s' "$FINAL_RECEIPT")" = "regular file|0|0|600|1|$receipt_bytes" ] || unknown final_receipt
 [ "$(sha256sum "$FINAL_RECEIPT" | awk '{print $1}')" = "$receipt_file_sha" ] || unknown final_receipt_hash
-[ "$(ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = 0 ] || unknown db_socket_after
+[ "$(/usr/sbin/ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = 0 ] || unknown db_socket_after
 
 receipt="$(<"$FINAL_RECEIPT")" || unknown receipt
 verify_task_retained || unknown task_retention

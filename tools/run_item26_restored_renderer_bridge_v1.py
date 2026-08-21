@@ -46,18 +46,18 @@ MODES = frozenset({
 _SOURCE_ROWS = (
     (
         "tools/render_item26_restored_ops_v1.py",
-        38654,
-        "260cc05f06bf2a2997903b0a593fa53a6f98d3d7a443252c3620b0fca33b33f2",
+        39443,
+        "ccd09187e5a7b6a2bbcdb7fd1534c4170034d9c1eaececc2fd4ff1e0fe2fb4dd",
     ),
     (
         "tools/render_item26_restored_preflight_v1.py",
         13394,
-        "2ab1bef07fb37f6af723c42d676e01af5e2a8602a4a9a2f5713d2f87e68baea7",
+        "8b42fe029525aac6423cb30d031fd2f3d32026b32948cb16adffe21e72e6c5ee",
     ),
     (
         "tools/render_item26_restored_v1_transport.py",
         30274,
-        "df6e84ccd8a0667527ea3f135a5b46cb5975cd50869a10d67698b148148706dc",
+        "4c5858b640f7880920fb943bc042a2e7a62130be396f9eacec9fd5f2bb9b72db",
     ),
     (
         "tools/render_item26_v3_transport.py",
@@ -71,18 +71,18 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-restored-builder-keygen-v1.template.sh",
-        10854,
-        "969acad9a5d4f9f275f09e0b5303131a38cf7dc309149b0417388b1a611897cb",
+        10909,
+        "ab9c6324365ff4fad4f8c9a6757d41835575f3aa258ac6be2fd42bfc72129b83",
     ),
     (
         ".codex/item26-restored-package-broker-v1.template.sh",
-        26007,
-        "4204e5c240138d77592e13b67044c3635139ec6d5307a19f3b538aed1c7eaaad",
+        26479,
+        "c02b60db47dc0bea49a00e574e151dd568793720ef5c115e08b00896f13d9570",
     ),
     (
         ".codex/item26-password-rewrap.template.sh",
-        34231,
-        "6a8b36590f5d3f7972be25544dc2c90d68fae493d21d9fda209578780ff9bf61",
+        34625,
+        "d73661b9dc4f2dddc3c6354655361377a0a2323a4adc2c40cd37da0e9ca96082",
     ),
     (
         ".codex/item26-restored-builder-stage-v1.template.sh",
@@ -91,8 +91,8 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-restored-capture-v1.template.sh",
-        46796,
-        "297c7c2f3c94df49baa1103970233cf16c1bd560f17abf3fb4c7f13bca7b094a",
+        46846,
+        "906a06fd919fc0e90c735f79b13d3bb5bac645c4c19a9dda2053dd2946601c1e",
     ),
     (
         ".codex/item26-restored-capture-executor-v1.template.sh",
@@ -101,13 +101,13 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-restored-api-c-preflight-v1.template.sh",
-        22271,
-        "31fddca026ea7adcc592781eec1aaed6019e45f3d204512ff9d015b9ded1033e",
+        22253,
+        "2e7239e0ec6d24c78cb23ecfa4abcaa8cf18dd14fb5492a643c85e00bde68f85",
     ),
     (
         ".codex/item26-restored-builder-preflight-v1.template.sh",
-        16286,
-        "690b01e8abb2822d7141130761177d321357771e075b501f08b3ee4025967137",
+        16256,
+        "419bce950558e77c4c2ae40a7d3e1d4a0d5bde9b1d9cbf250b12b93d323d9d4a",
     ),
     (
         ".codex/item26-restored-parent-probe-api-c-v1.template.sh",

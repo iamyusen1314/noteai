@@ -273,6 +273,19 @@ class Item26RestoredOpsV1Tests(unittest.TestCase):
             b"@@RECIPIENT_PUBLIC_KEY_B64@@": base64.b64encode(self.public),
         })
         subprocess.run(["bash", "-n", "-s"], input=rewrap_raw, check=True)
+        self.assertIn(b"readback() {", rewrap_raw)
+        self.assertNotIn(b"create() {", rewrap_raw)
+        broker_raw = ops.render("broker", {
+            b"@@MODE@@": b"READBACK",
+            b"@@API_C_IDENTITY_SHA256@@": b"a" * 64,
+            b"@@RESTORED_HOST@@": b"restore.example.rds.aliyuncs.com",
+            b"@@RECIPIENT_PUBLIC_KEY_SHA256@@": self.recipient.encode("ascii"),
+            b"@@RECIPIENT_PUBLIC_KEY_B64@@": base64.b64encode(self.public),
+            b"@@PASSWORD_REWRAP_RESULT_B64@@": base64.b64encode(self.rewrap()),
+        })
+        subprocess.run(["bash", "-n", "-s"], input=broker_raw, check=True)
+        self.assertIn(b"readback() {", broker_raw)
+        self.assertNotIn(b"create() {", broker_raw)
         keygen, readback, create = self.fixtures()
         stage_state = ops.canonical({
             "NOTEAI_ITEM26_RESTORED_BUILDER_STAGE": "READY_TO_FINALIZE",

@@ -3519,3 +3519,21 @@ Last updated: 2026-08-19
   若未来完成，只能在新的明确授权和source-compatible execution path下进行；
   不能修改共享`/var/lib/noteai`来重放本次terminal链，也不能新增第二clone来
   掩盖本次失败。
+
+## Item 26 replacement-chain offline gate closed; cloud execution not started (2026-08-21)
+
+- 状态: Open High / offline source fixed / provider action zero。旧rewrap
+  invocation仍是`PRE_ATTEMPT / persistent_parent`终态，readback/replay均false；
+  本次没有改写、读取或重派旧root、command、invocation或clone身份。
+- 已消除的确定性本地风险: API-C rewrap与broker分别使用`/var/lib`下互不相同的
+  task-owned 0700 direct child，不再要求或修改共享`/var/lib/noteai`；所有首个
+  Docker CLI均使用credential-free、进程限定的absent config路径，global Docker
+  auth读取/修改均0；`ss`固定为`/usr/sbin/ss`；formatted container inventory不再
+  组合无效的`-aq`；renderer只裁掉已冻结mode下不可达函数以守住现有18KB命令门。
+- 仍开放的唯一原始DoD风险: 尚未创建replacement clone，restored DB
+  connection/transaction/write仍`0/0/0`，restored manifest仍absent，七字段
+  reconciliation仍pending，Item26因此保持25/29。只有同一时刻最多一个clone、
+  单次read-only capture、exact reconciliation与零残留读回全部PASS后才可给信用。
+- 验证: restore-focused normal与optimized各75/75，Python compile双模式、shell
+  syntax、diff-check、internal readiness双模式均PASS；production readiness normal
+  与optimized各138/138。registry请求、provider mutation、数据库连接和费用新增均0。

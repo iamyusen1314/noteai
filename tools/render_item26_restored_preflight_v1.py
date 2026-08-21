@@ -26,12 +26,12 @@ PATHS = MappingProxyType({
 })
 IDENTITIES = MappingProxyType({
     "api_c": MappingProxyType({
-        "bytes": 22271,
-        "sha256": "31fddca026ea7adcc592781eec1aaed6019e45f3d204512ff9d015b9ded1033e",
+        "bytes": 22253,
+        "sha256": "2e7239e0ec6d24c78cb23ecfa4abcaa8cf18dd14fb5492a643c85e00bde68f85",
     }),
     "builder": MappingProxyType({
-        "bytes": 16286,
-        "sha256": "690b01e8abb2822d7141130761177d321357771e075b501f08b3ee4025967137",
+        "bytes": 16256,
+        "sha256": "419bce950558e77c4c2ae40a7d3e1d4a0d5bde9b1d9cbf250b12b93d323d9d4a",
     }),
 })
 COUNTS = MappingProxyType({

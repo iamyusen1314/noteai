@@ -89,6 +89,8 @@ class Item26RestoredV1TransportTests(unittest.TestCase):
         self.assertIn("os.fsync(dirfd)", capture)
         self.assertIn("--cap-drop ALL --cap-add DAC_READ_SEARCH", capture)
         self.assertIn("verify_restore(source,restored)", capture)
+        self.assertEqual(capture.count("/usr/sbin/ss -Htan"), 2)
+        self.assertNotRegex(capture, r"(?<![/A-Za-z0-9_])ss -Htan")
         self.assertNotIn("cleanup_task", capture)
 
     def test_wrapper_rejects_extra_terminal_fields(self):

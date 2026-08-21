@@ -39,9 +39,9 @@ TEMPLATE_IDENTITIES = MappingProxyType(
     {
         "capture": MappingProxyType(
             {
-                "bytes": 46796,
+                "bytes": 46846,
                 "sha256": (
-                    "297c7c2f3c94df49baa1103970233cf16c1bd560f17abf3fb4c7f13bca7b094a"
+                    "906a06fd919fc0e90c735f79b13d3bb5bac645c4c19a9dda2053dd2946601c1e"
                 ),
             }
         ),

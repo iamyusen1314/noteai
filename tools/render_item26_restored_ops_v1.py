@@ -31,9 +31,9 @@ PATHS = MappingProxyType({
     "stage": ROOT / ".codex/item26-restored-builder-stage-v1.template.sh",
 })
 IDENTITIES = MappingProxyType({
-    "keygen": MappingProxyType({"bytes":10854,"sha256":"969acad9a5d4f9f275f09e0b5303131a38cf7dc309149b0417388b1a611897cb"}),
-    "broker": MappingProxyType({"bytes":26007,"sha256":"4204e5c240138d77592e13b67044c3635139ec6d5307a19f3b538aed1c7eaaad"}),
-    "rewrap": MappingProxyType({"bytes":34231,"sha256":"6a8b36590f5d3f7972be25544dc2c90d68fae493d21d9fda209578780ff9bf61"}),
+    "keygen": MappingProxyType({"bytes":10909,"sha256":"ab9c6324365ff4fad4f8c9a6757d41835575f3aa258ac6be2fd42bfc72129b83"}),
+    "broker": MappingProxyType({"bytes":26479,"sha256":"c02b60db47dc0bea49a00e574e151dd568793720ef5c115e08b00896f13d9570"}),
+    "rewrap": MappingProxyType({"bytes":34625,"sha256":"d73661b9dc4f2dddc3c6354655361377a0a2323a4adc2c40cd37da0e9ca96082"}),
     "stage": MappingProxyType({"bytes":10562,"sha256":"babdbe7d6daad55db04d1247ec26741cc77925c1c8ba8ca20398bac9de0069e5"}),
 })
 COUNTS = MappingProxyType({
@@ -104,22 +104,22 @@ def ok(v,r):
  except: return False
  return len(x)==625 and x.startswith(b"-----BEGIN PUBLIC KEY-----\\n") and x.endswith(b"-----END PUBLIC KEY-----\\n")
 """,
-"broker_create":b"""F=set("db_socket docker identity image input_metadata mode parent root tool".split());U=set("base_root broker_root container container_cleanup container_execute helper_stderr helper_stdout inventory output preexisting_base promote promote_fsync readback stage_input task_create task_identity unexpected".split())
+"broker_create":b"""F=set("db_socket docker docker_config identity image input_metadata mode parent root tool".split());U=set("base_root broker_root container container_cleanup container_execute docker_config_runtime helper_stderr helper_stdout inventory output preexisting_base promote promote_fsync readback stage_input task_create task_identity unexpected".split())
 def ok(v,r):
  if r:
   k="NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER automatic_retry_allowed phase same_invocation_replay_allowed secret_values_emitted"
-  return ex(v,k) and v["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]==("FAIL" if r==3 else "UNKNOWN") and cm(v) and i(v["secret_values_emitted"],0,0) and type(v["phase"]) is str and v["phase"] in (F if r==3 else U)
+  return ex(v,k) and v["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]==("FAIL" if r==3 else "UNKNOWN") and cm(v) and i(v["secret_values_emitted"],0,0) and v["phase"] in (F if r==3 else U)
  k="control_envelope_b64 control_envelope_bytes control_envelope_sha256 recipient_public_key_sha256 same_invocation_replay_allowed schema_version secret_values_emitted"
  if not ex(v,k) or not q(v["same_invocation_replay_allowed"],False) or not i(v["schema_version"],1,1) or not i(v["secret_values_emitted"],0,0) or not i(v["control_envelope_bytes"],1,12288) or not h(v["control_envelope_sha256"]) or not h(v["recipient_public_key_sha256"]) or type(v["control_envelope_b64"]) is not str: return False
  try: x=base64.b64decode(v["control_envelope_b64"],validate=True)
  except: return False
  return len(x)==v["control_envelope_bytes"] and hashlib.sha256(x).hexdigest()==v["control_envelope_sha256"]
 """,
-"broker_readback":b"""R="@@RECIPIENT@@";F=set("db_socket docker identity image input_metadata mode parent root tool".split());U=set("base_root broker_root container container_cleanup container_execute helper_stderr helper_stdout inventory output preexisting_base promote promote_fsync readback stage_input task_create task_identity unexpected".split())
+"broker_readback":b"""R="@@RECIPIENT@@";F={"identity","parent"};U=set("base_root broker_root docker_config_runtime inventory readback unexpected".split())
 def ok(v,r):
  if r:
   k="NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER automatic_retry_allowed phase same_invocation_replay_allowed secret_values_emitted"
-  return ex(v,k) and v["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]==("FAIL" if r==3 else "UNKNOWN") and cm(v) and i(v["secret_values_emitted"],0,0) and type(v["phase"]) is str and v["phase"] in (F if r==3 else U)
+  return ex(v,k) and v["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]==("FAIL" if r==3 else "UNKNOWN") and cm(v) and i(v["secret_values_emitted"],0,0) and v["phase"] in (F if r==3 else U)
  if not ex(v,"receipt transport"):return False
  p=v["receipt"];t=v["transport"];pk="NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER algorithm automatic_retry_allowed control_envelope_bytes control_envelope_sha256 payload_schema_exact recipient_public_key_sha256 restored_topology_sha256 same_invocation_replay_allowed schema_version secret_values_emitted source_manifest_bytes source_manifest_file_sha256 source_manifest_sha256 storage_config_sha256";tk="control_envelope_b64 control_envelope_bytes control_envelope_sha256 recipient_public_key_sha256 same_invocation_replay_allowed schema_version secret_values_emitted"
  if not ex(p,pk) or not ex(t,tk) or p["NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER"]!="PASS" or p["algorithm"]!="RSA-OAEP-SHA256+AES-256-GCM" or not cm(p) or not q(p["payload_schema_exact"],True) or not i(p["schema_version"],1,1) or not i(p["secret_values_emitted"],0,0) or not i(p["control_envelope_bytes"],1,12288) or not i(p["source_manifest_bytes"],9794,9794) or p["source_manifest_file_sha256"]!="dba5251aaf489358eab6b800dfa43ff108290abd851410da9a16f97b86d0b1f4" or p["source_manifest_sha256"]!="99fc8321d11db344af51f69b735f7dcdd4d09ea3a988148896034258067a842a" or not all(h(p[x]) for x in ("control_envelope_sha256","recipient_public_key_sha256","restored_topology_sha256","storage_config_sha256")):return False
@@ -128,7 +128,7 @@ def ok(v,r):
  except:return False
  return len(x)==t["control_envelope_bytes"] and hashlib.sha256(x).hexdigest()==t["control_envelope_sha256"]
 """,
-"rewrap_create":b"""R="@@RECIPIENT@@";F=set("preflight root binding tool persistent_parent identity source_control_root source_control_metadata source_control_key_pair source_envelope_contract docker_service image db_socket_before".split());U=set("preflight root binding tool persistent_parent identity preexisting_persistent_root preexisting_container persistent_root_create attempt_commit task_create container_execute container_cleanup helper_stderr result_commit task_cleanup db_socket_after terminal_readback".split())
+"rewrap_create":b"""R="@@RECIPIENT@@";F=set("preflight root binding tool persistent_parent identity source_control_root source_control_metadata source_control_key_pair source_envelope_contract docker_config docker_service image db_socket_before".split());U=set("preflight root binding tool persistent_parent identity preexisting_persistent_root preexisting_container docker_config_runtime persistent_root_create attempt_commit task_create container_execute container_cleanup helper_stderr result_commit task_cleanup db_socket_after terminal_readback".split())
 def ok(v,r):
  if r:
   k="NOTEAI_ITEM26_PASSWORD_REWRAP automatic_retry_allowed database_connection_count database_write_count incident_class new_rewrap_allowed phase provider_control_plane_mutation_count readback_required same_invocation_replay_allowed secret_values_emitted"
@@ -139,7 +139,7 @@ def ok(v,r):
  except:return False
  return len(x)==384
 """,
-"rewrap_readback":b"""R="@@RECIPIENT@@";U=set("preflight root binding tool persistent_parent identity readback_absent readback_contract".split())
+"rewrap_readback":b"""R="@@RECIPIENT@@";U=set("preflight root binding tool persistent_parent identity docker_config_runtime readback_absent readback_contract".split())
 def ok(v,r):
  if r:
   k="NOTEAI_ITEM26_PASSWORD_REWRAP automatic_retry_allowed database_connection_count database_write_count incident_class new_rewrap_allowed phase provider_control_plane_mutation_count readback_required same_invocation_replay_allowed secret_values_emitted"
@@ -232,6 +232,18 @@ def read_template(name):
     body=path.read_bytes()
     if len(body)!=expected["bytes"] or sha(body)!=expected["sha256"] or Counter(PLACEHOLDER.findall(body))!=COUNTS[name]: raise RenderError(name+"_template")
     return body
+def _cut(body,start,end):
+    if body.count(start)!=1 or body.count(end)!=1: raise RenderError("specialize")
+    left=body.index(start); right=body.index(end,left)
+    return body[:left]+body[right:]
+def _specialize(name,body,mode):
+    if name=="rewrap":
+        if mode==b"CREATE": return _cut(body,b"\nreadback() {\n",b"\ncreate() {\n")
+        if mode==b"READBACK": return _cut(body,b"\ncreate() {\n",b"\nif [ \"$MODE\" = 'READBACK' ]")
+    if name=="broker":
+        if mode==b"CREATE": return _cut(body,b"\nreadback() {\n",b"\ncreate() {\n")
+        if mode==b"READBACK": return _cut(body,b"\ncreate() {\n",b"\ncase \"$MODE\" in\n")
+    return body
 def render(name,bindings):
     body=read_template(name)
     if set(bindings)!=set(COUNTS[name]): raise RenderError(name+"_bindings")
@@ -241,6 +253,10 @@ def render(name,bindings):
     if PLACEHOLDER.search(body): raise RenderError(name+"_residue")
     try:
         v3._validate_bash_python(name,body,{"keygen":3,"broker":7,"rewrap":10,"stage":1}[name])
+        mode=bindings.get(b"@@MODE@@")
+        body=_specialize(name,body,mode)
+        counts={"broker":{b"CREATE":6,b"READBACK":3},"rewrap":{b"CREATE":10,b"READBACK":6}}
+        v3._validate_bash_python(name+"_specialized",body,counts.get(name,{}).get(mode,{"keygen":3,"stage":1}.get(name)))
     except v3.RenderError as exc: raise RenderError(name+"_syntax") from exc
     return body
 def _wrapper(raw,compressor,contract,timeout,expected_recipient=None):

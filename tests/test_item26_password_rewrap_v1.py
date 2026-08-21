@@ -54,8 +54,8 @@ class Item26PasswordRewrapV1Tests(unittest.TestCase):
             "MODE='@@MODE@@'",
             "CREATE)",
             "READBACK)",
-            "PERSISTENT_PARENT='/var/lib/noteai'",
-            'PERSISTENT_ROOT="$PERSISTENT_PARENT/item26-restored-password-rewrap-v1"',
+            "PERSISTENT_PARENT='/var/lib'",
+            'PERSISTENT_ROOT="$PERSISTENT_PARENT/noteai-item26-restored-password-rewrap-v1"',
             'ATTEMPT_FILE="$PERSISTENT_ROOT/attempted-v1.json"',
             'RESULT_FILE="$PERSISTENT_ROOT/password-rewrap-result-v1.json"',
             "os.O_EXCL|os.O_NOFOLLOW",
@@ -64,13 +64,32 @@ class Item26PasswordRewrapV1Tests(unittest.TestCase):
             "attempt_committed=1",
             "result_committed=1",
             "force_unknown=1",
-            "phase='persistent_root_create'\n  force_unknown=1\n  mkdir -m 0700",
+            "phase='persistent_root_create'\n  force_unknown=1\n  mkdir -m 0700 -- \"$PERSISTENT_ROOT\"",
+            'mkdir -m 0700 -- "$PERSISTENT_ROOT"',
             "emit_readback",
             'set(os.listdir(root))!={"attempted-v1.json","password-rewrap-result-v1.json"}',
         ):
             self.assertIn(marker, self.source)
         self.assertNotIn("rm -rf", self.source)
-        self.assertNotIn("/run/noteai-item26-password-rewrap", self.source)
+        self.assertNotIn("/var/lib/noteai/item26-restored-password-rewrap-v1", self.source)
+
+    def test_first_docker_call_is_credential_free_and_config_path_stays_absent(self):
+        self.assertIn(
+            "DC=/run/i26dc",
+            self.source,
+        )
+        self.assertIn("dc()", self.source)
+        self.assertNotIn("/root/.docker", self.source)
+        create = self.source.split("create() {", 1)[1]
+        first = create.index("/usr/bin/docker")
+        first_line = create[first:create.index("\n", first)]
+        self.assertIn('--config "$DC"', first_line)
+        for line in create.splitlines():
+            if "/usr/bin/docker" in line and "cleanup_container" not in line:
+                self.assertIn("--config", line)
+        self.assertIn("phase='docker_config_runtime'", self.source)
+        self.assertIn("/usr/sbin/ss -Htan", self.source)
+        self.assertNotRegex(self.source, r"(?<![/A-Za-z0-9_])ss -Htan")
 
     def test_source_control_and_api_c_identity_are_exact(self):
         for marker in (

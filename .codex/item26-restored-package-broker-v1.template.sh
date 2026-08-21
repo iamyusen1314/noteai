@@ -7,9 +7,10 @@ export PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NO_PROXY no_proxy
 unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONINSPECT PYTHONOPTIMIZE
 unset DATABASE_URL PGPASSWORD ALIBABA_CLOUD_ACCESS_KEY_ID ALIBABA_CLOUD_ACCESS_KEY_SECRET ALIBABA_CLOUD_SECURITY_TOKEN
+unset DOCKER_{HOST,CONTEXT,CONFIG,TLS,TLS_VERIFY,CERT_PATH}
 
 readonly MODE='@@MODE@@'
-readonly BASE_ROOT='/var/lib/noteai/item26-restored-v1'
+readonly BASE_ROOT=/var/lib/noteai-item26-restored-broker-v1
 readonly BROKER_ROOT="$BASE_ROOT/broker-v1"
 readonly ENVELOPE="$BROKER_ROOT/control-envelope.json"
 readonly RECEIPT="$BROKER_ROOT/broker-receipt.json"
@@ -18,6 +19,7 @@ readonly DRIVER="$TASK_ROOT/driver.py"
 readonly HELPER_OUT="$TASK_ROOT/helper.stdout"
 readonly HELPER_ERR="$TASK_ROOT/helper.stderr"
 readonly DOCKER_CONFIG_ROOT="$TASK_ROOT/docker-config"
+readonly DC=/run/i26dc
 readonly CIDFILE="$TASK_ROOT/container.cid"
 readonly SOURCE_MANIFEST='/run/noteai-item26-source-manifest-v3/source-manifest.json'
 readonly API_ENV='/etc/noteai/api.env'
@@ -61,6 +63,8 @@ if hashlib.sha256(body).hexdigest()!=expected: raise SystemExit(2)
 print("API_C_IDENTITY_EXACT")
 PY
 }
+
+dc(){ [ ! -e "$DC" ]&&[ ! -L "$DC" ]; }
 
 read_full_cid() {
   python3 -I -B - "$CIDFILE" <<'PY'
@@ -113,6 +117,7 @@ cleanup_container() {
 
 fixed() {
   trap - ERR
+  dc || set -- UNKNOWN docker_config_runtime 4
   printf '{"NOTEAI_ITEM26_RESTORED_PACKAGE_BROKER":"%s","automatic_retry_allowed":false,"phase":"%s","same_invocation_replay_allowed":false,"secret_values_emitted":0}\n' "$1" "$2" >&2
   exit "$3"
 }
@@ -124,7 +129,9 @@ unexpected() {
 trap unexpected ERR
 
 readback() {
+  dc || fixed UNKNOWN docker_config_runtime 4
   [ "$(metadata_identity 2>/dev/null)" = API_C_IDENTITY_EXACT ] || fixed FAIL identity 3
+  [ "$(stat -c '%F|%u|%g|%a' /var/lib)" = 'directory|0|0|755' ] || fixed FAIL parent 3
   [ -d "$BASE_ROOT" ] && [ ! -L "$BASE_ROOT" ] && [ "$(stat -c '%u|%g|%a' "$BASE_ROOT")" = '0|0|700' ] || fixed UNKNOWN base_root 4
   [ -d "$BROKER_ROOT" ] && [ ! -L "$BROKER_ROOT" ] && [ "$(stat -c '%u|%g|%a' "$BROKER_ROOT")" = '0|0|700' ] || fixed UNKNOWN broker_root 4
   [ "$(find "$BROKER_ROOT" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)" = $'broker-receipt.json\ncontrol-envelope.json' ] || fixed UNKNOWN inventory 4
@@ -171,19 +178,23 @@ PY
 
 create() {
   [ "$(id -u)" = 0 ] && [ "$(id -g)" = 0 ] || fixed FAIL root 3
-  for tool in docker systemctl stat find sort python3 mkdir mv chmod ss awk timeout cat; do command -v "$tool" >/dev/null 2>&1 || fixed FAIL tool 3; done
-  [ -d /var/lib/noteai ] && [ ! -L /var/lib/noteai ] && [ "$(stat -c '%u|%g|%a' /var/lib/noteai)" = '0|0|700' ] || fixed FAIL parent 3
+  for tool in docker systemctl stat find sort python3 mkdir mv chmod awk timeout cat; do command -v "$tool" >/dev/null 2>&1 || fixed FAIL tool 3; done
+  [ -x /usr/sbin/ss ] || fixed FAIL tool 3
+  [ "$(stat -c '%F|%u|%g|%a' /var/lib)" = 'directory|0|0|755' ] || fixed FAIL parent 3
   [ "$(metadata_identity 2>/dev/null)" = API_C_IDENTITY_EXACT ] || fixed FAIL identity 3
   [ ! -e "$BASE_ROOT" ] && [ ! -L "$BASE_ROOT" ] || fixed UNKNOWN preexisting_base 4
   [ "$(systemctl is-active docker)" = active ] || fixed FAIL docker 3
   for path in "$SOURCE_MANIFEST" "$API_ENV" "$STORAGE_ENV"; do
     [ "$(stat -c '%F|%u|%g|%a|%h' "$path")" = 'regular file|0|0|600|1' ] || fixed FAIL input_metadata 3
   done
-  [ -z "$(/usr/bin/docker --context=default container ls -aq --filter "name=^/${CONTAINER_NAME}$")" ] || fixed UNKNOWN container 4
-  [ "$(ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = 0 ] || fixed FAIL db_socket 3
-  image_row="$(/usr/bin/docker --context=default image inspect "$IMAGE_REF" --format '{{.Id}}|{{.Os}}|{{.Architecture}}|{{index .Config.Labels "org.opencontainers.image.revision"}}')" || fixed FAIL image 3
+  dc || fixed FAIL docker_config 3
+  [ -z "$(/usr/bin/docker --config "$DC" --context=default container ls -aq --filter "name=^/${CONTAINER_NAME}$")" ] || fixed UNKNOWN container 4
+  [ "$(/usr/sbin/ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = 0 ] || fixed FAIL db_socket 3
+  image_row="$(/usr/bin/docker --config "$DC" --context=default image inspect "$IMAGE_REF" --format '{{.Id}}|{{.Os}}|{{.Architecture}}|{{index .Config.Labels "org.opencontainers.image.revision"}}')" || fixed FAIL image 3
   [ "$image_row" = "$IMAGE_CONFIG|linux|amd64|$RELEASE_COMMIT" ] || fixed FAIL image 3
-  mkdir -m 0700 "$BASE_ROOT" "$TASK_ROOT" "$DOCKER_CONFIG_ROOT" || fixed UNKNOWN task_create 4
+  dc || fixed UNKNOWN docker_config_runtime 4
+  mkdir -m 0700 -- "$BASE_ROOT" || fixed UNKNOWN task_create 4
+  mkdir -m 0700 "$TASK_ROOT" "$DOCKER_CONFIG_ROOT" || fixed UNKNOWN task_create 4
   task_identity="$(stat -c '%d:%i' "$TASK_ROOT")" || fixed UNKNOWN task_identity 4
   printf '%s' '{}' >"$DOCKER_CONFIG_ROOT/config.json"; chmod 0600 "$DOCKER_CONFIG_ROOT/config.json"
   python3 -I -B - "$RECIPIENT_PUBLIC" "$REWRAP_RESULT" <<'PY' 2>/dev/null || fixed UNKNOWN stage_input 4

@@ -74,7 +74,7 @@ current_machine_preflight() {
   image_row="$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default image inspect "$IMAGE_REF" --format '{{.Id}}|{{.Os}}|{{.Architecture}}|{{index .Config.Labels "org.opencontainers.image.revision"}}')" || return 1
   [ "$image_row" = "$IMAGE_CONFIG|linux|amd64|$RELEASE_COMMIT" ] || return 1
   [ -z "$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default container ls -aq --filter "name=^/${CONTAINER_NAME}$")" ] || return 1
-  [ "$(ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = 0 ] || return 1
+  [ "$(/usr/sbin/ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = 0 ] || return 1
 }
 
 prepare_docker_config() {
@@ -120,7 +120,8 @@ PY
 
 generate() {
   [ "$(id -u)" = 0 ] && [ "$(id -g)" = 0 ] || emit_fixed FAIL root 3
-  for tool in python3 openssl docker systemctl stat find sort ss awk mkdir install chown chmod; do command -v "$tool" >/dev/null 2>&1 || emit_fixed FAIL tool 3; done
+  for tool in python3 openssl docker systemctl stat find sort awk mkdir install chown chmod; do command -v "$tool" >/dev/null 2>&1 || emit_fixed FAIL tool 3; done
+  [ -x /usr/sbin/ss ] || emit_fixed FAIL tool 3
   [ -d /var/lib/noteai ] && [ ! -L /var/lib/noteai ] && [ "$(stat -c '%u|%g|%a' /var/lib/noteai)" = '0|0|700' ] || emit_fixed FAIL parent 3
   [ ! -e "$BASE_ROOT" ] && [ ! -L "$BASE_ROOT" ] || emit_fixed UNKNOWN preexisting_base 4
   prepare_docker_config || emit_fixed UNKNOWN unexpected 4

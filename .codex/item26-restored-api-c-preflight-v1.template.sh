@@ -28,9 +28,9 @@ import subprocess
 import urllib.request
 
 API_C_IDENTITY_SHA256 = "@@API_C_IDENTITY_SHA256@@"
-PERSISTENT_PARENT = "/var/lib/noteai"
-BROKER_ROOT = "/var/lib/noteai/item26-restored-v1"
-REWRAP_ROOT = "/var/lib/noteai/item26-restored-password-rewrap-v1"
+PERSISTENT_PARENT = "/var/lib"
+BROKER_ROOT = "/var/lib/noteai-item26-restored-broker-v1"
+REWRAP_ROOT = "/var/lib/noteai-item26-restored-password-rewrap-v1"
 SOURCE_CONTROL_ROOT = "/run/noteai-item26-source-account-v2"
 SOURCE_PUBLIC_KEY_SHA256 = "dc8f8283248dd232030bb63d19f669ccdaad89faa87dbdffb7b5eb5aae83969a"
 SOURCE_ENVELOPE_BYTES = 894
@@ -42,6 +42,7 @@ ENV_ROOT = "/etc/noteai"
 IMAGE_REF = "noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b"
 IMAGE_CONFIG = "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95"
 RELEASE_COMMIT = "cad5ce35664f617c6e19f90a6159285ddf975594"
+DOCKER_CONFIG_ROOT = "/run/noteai-item26-restored-preflight-docker-config-v1"
 CONTAINER_NAMES = (
     "noteai-item26-password-rewrap-v1",
     "noteai-item26-restored-package-broker-v1",
@@ -50,6 +51,7 @@ CONTAINER_NAMES = (
 )
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 COMMAND_ENV = {
+    "DOCKER_CONFIG": DOCKER_CONFIG_ROOT,
     "HOME": "/root",
     "LC_ALL": "C",
     "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -463,21 +465,24 @@ def optional_directory(path, phase):
     return pin_directory(path, phase, exact_mode=None, observed=before)
 
 
+def path_absent(path, phase):
+    try:
+        os.lstat(path)
+    except FileNotFoundError:
+        return
+    except OSError:
+        raise Failure(phase + "_runtime", True)
+    raise Failure(phase)
+
+
+def docker_command(*arguments):
+    return ["/usr/bin/docker", "--config", DOCKER_CONFIG_ROOT, *arguments]
+
+
 def docker_config_exact():
-    pinned = optional_directory("/root/.docker", "docker_config")
-    if pinned is not None:
-        try:
-            os.stat("config.json", dir_fd=pinned["fd"], follow_symlinks=False)
-        except FileNotFoundError:
-            body = None
-        except OSError:
-            raise Failure("docker_config_runtime", True)
-        else:
-            body = stable_read_at(pinned, "config.json", 2, "docker_config")
-            if body != b"{}":
-                raise Failure("docker_config")
+    path_absent(DOCKER_CONFIG_ROOT, "docker_config")
     returncode, stdout, stderr = command(
-        ["/usr/bin/docker", "context", "show"],
+        docker_command("context", "show"),
         "docker",
         limit=4096,
     )
@@ -485,8 +490,7 @@ def docker_config_exact():
         raise Failure("docker_runtime", True)
     if stdout != b"default\n":
         raise Failure("docker_config")
-    if pinned is not None:
-        verify_pinned_directory(pinned, "docker_config")
+    path_absent(DOCKER_CONFIG_ROOT, "docker_config")
 
 
 def service_state(arguments, expected_state):
@@ -514,23 +518,22 @@ def docker_exact():
         (["/usr/bin/systemctl", "is-enabled", "docker"], b"enabled"),
     ):
         service_state(arguments, expected_state)
+    docker_config_exact()
     returncode, _stdout, version_stderr = command(
-        ["/usr/bin/docker", "--context=default", "version"],
+        docker_command("--context=default", "version"),
         "docker",
     )
     if returncode != 0 or version_stderr:
         raise Failure("docker_runtime", True)
-    docker_config_exact()
     returncode, stdout, stderr = command(
-        [
-            "/usr/bin/docker",
+        docker_command(
             "--context=default",
             "image",
             "inspect",
             IMAGE_REF,
             "--format",
             '{{.Id}}|{{.Os}}|{{.Architecture}}|{{index .Config.Labels "org.opencontainers.image.revision"}}',
-        ],
+        ),
         "image",
         limit=4096,
     )
@@ -541,17 +544,16 @@ def docker_exact():
         raise Failure("image")
     for name in CONTAINER_NAMES:
         returncode, stdout, stderr = command(
-            [
-                "/usr/bin/docker",
+            docker_command(
                 "--context=default",
                 "container",
                 "ls",
-                "-aq",
+                "-a",
                 "--filter",
                 "name=^/" + name + "$",
                 "--format",
                 "{{.Names}}",
-            ],
+            ),
             "docker",
             limit=4096,
         )
@@ -559,6 +561,7 @@ def docker_exact():
             raise Failure("docker_runtime", True)
         if stdout:
             raise Failure("container_present", True)
+    path_absent(DOCKER_CONFIG_ROOT, "docker_config")
 
 
 def tcp_5432_zero():
@@ -604,7 +607,7 @@ try:
         raise Failure("binding")
     for path in ("/usr/bin/docker", "/usr/bin/openssl", "/usr/sbin/ss", "/usr/bin/systemctl"):
         required_tool(path)
-    persistent = pin_directory(PERSISTENT_PARENT, "persistent_parent")
+    persistent = pin_directory(PERSISTENT_PARENT, "persistent_parent", exact_mode=0o755)
     roots_absent(persistent)
     identity_exact()
     source_control = source_control_exact()

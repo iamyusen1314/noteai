@@ -265,6 +265,7 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
             'stable_read_at(pinned, "api.env"',
             'stable_read_at(pinned, "storage.env"',
             '"/usr/bin/ss"',
+            '"/root/.docker"',
             "os.path.lexists",
         ):
             self.assertNotIn(forbidden, source)
@@ -275,9 +276,19 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
         self.assertIn("roles != [BUILDER_RAM_ROLE]", builder_source)
         self.assertIn("verify_pinned_directory(persistent", builder_source)
         self.assertNotIn("os.path.lexists", builder_source)
+        self.assertNotIn('"/root/.docker"', builder_source)
+        self.assertEqual(builder_source.count('"/usr/sbin/ss"'), 2)
+        self.assertIn('PERSISTENT_PARENT = "/var/lib"', source)
+        self.assertIn('BROKER_ROOT = "/var/lib/noteai-item26-restored-broker-v1"', source)
+        self.assertIn('REWRAP_ROOT = "/var/lib/noteai-item26-restored-password-rewrap-v1"', source)
         for value in (source, builder_source):
             self.assertIn("dir_fd=pinned[\"fd\"]", value)
             self.assertIn("os.O_NOFOLLOW", value)
+            self.assertIn('DOCKER_CONFIG_ROOT = "/run/noteai-item26-restored-preflight-docker-config-v1"', value)
+            self.assertIn('"DOCKER_CONFIG": DOCKER_CONFIG_ROOT', value)
+            self.assertIn('return ["/usr/bin/docker", "--config", DOCKER_CONFIG_ROOT', value)
+            self.assertNotIn('"-aq",\n', value)
+            self.assertIn('"-a",\n', value)
 
     def test_pinned_directory_detects_absolute_root_replacement_race(self):
         namespace = self.host_namespace("builder")
@@ -311,11 +322,11 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
                 namespace["os"], "stat", side_effect=FileNotFoundError(),
             ):
                 namespace["child_absent"](pinned, "child", "root_present")
-            with self.subTest(name=name, optional="absent"), mock.patch.object(
+            with self.subTest(name=name, config="absent"), mock.patch.object(
                 namespace["os"], "lstat", side_effect=FileNotFoundError(),
             ):
-                self.assertIsNone(namespace["optional_directory"](
-                    "/root/.docker", "docker_config",
+                self.assertIsNone(namespace["path_absent"](
+                    "/run/config-absent", "docker_config",
                 ))
             for error in (PermissionError("denied"), OSError(5, "io")):
                 with self.subTest(name=name, error=type(error).__name__), mock.patch.object(
@@ -326,11 +337,11 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
                     )
                 self.assertTrue(caught.exception.unknown)
                 self.assertEqual(caught.exception.phase, "root_present_runtime")
-                with self.subTest(name=name, optional=type(error).__name__), mock.patch.object(
+                with self.subTest(name=name, config=type(error).__name__), mock.patch.object(
                     namespace["os"], "lstat", side_effect=error,
                 ), self.assertRaises(failure) as caught:
-                    namespace["optional_directory"](
-                        "/root/.docker", "docker_config",
+                    namespace["path_absent"](
+                        "/run/config-absent", "docker_config",
                     )
                 self.assertTrue(caught.exception.unknown)
                 self.assertEqual(caught.exception.phase, "docker_config_runtime")
@@ -380,7 +391,7 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
         self.assertEqual(caught.exception.phase, "docker_service")
 
         with mock.patch.dict(namespace, {
-            "optional_directory": mock.Mock(return_value=None),
+            "path_absent": mock.Mock(return_value=None),
             "command": mock.Mock(return_value=(1, b"", b"daemon unavailable")),
         }), self.assertRaises(failure) as caught:
             namespace["docker_config_exact"]()

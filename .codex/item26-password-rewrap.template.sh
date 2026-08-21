@@ -22,12 +22,13 @@ readonly SOURCE_ENVELOPE="$SOURCE_CONTROL_ROOT/control-database-url.enc"
 readonly SOURCE_PUBLIC_KEY_SHA256='dc8f8283248dd232030bb63d19f669ccdaad89faa87dbdffb7b5eb5aae83969a'
 readonly SOURCE_ENVELOPE_BYTES=894
 readonly SOURCE_ENVELOPE_SHA256='2c522a13b236301c5276088dd6ae83cabb5ac9c6a45923385831ec582d81e90a'
-readonly PERSISTENT_PARENT='/var/lib/noteai'
-readonly PERSISTENT_ROOT="$PERSISTENT_PARENT/item26-restored-password-rewrap-v1"
+readonly PERSISTENT_PARENT='/var/lib'
+readonly PERSISTENT_ROOT="$PERSISTENT_PARENT/noteai-item26-restored-password-rewrap-v1"
 readonly ATTEMPT_FILE="$PERSISTENT_ROOT/attempted-v1.json"
 readonly RESULT_FILE="$PERSISTENT_ROOT/password-rewrap-result-v1.json"
 readonly TASK_ROOT="$PERSISTENT_ROOT/task-v1"
 readonly DOCKER_CONFIG_ROOT="$TASK_ROOT/docker-config"
+readonly DC=/run/i26dc
 readonly RECIPIENT_PUBLIC_KEY="$TASK_ROOT/recipient-public.pem"
 readonly DRIVER_PATH="$TASK_ROOT/driver.py"
 readonly HELPER_OUT="$TASK_ROOT/helper.stdout"
@@ -99,6 +100,8 @@ try: os.fsync(fd)
 finally: os.close(fd)
 PY
 }
+
+dc(){ phase='docker_config';[ ! -e "$DC" ]&&[ ! -L "$DC" ]; }
 
 read_full_cid() {
   python3 -I -B - "$CIDFILE" <<'PY'
@@ -207,6 +210,10 @@ on_exit() {
     cleanup_container >/dev/null 2>&1 || cleanup_ok=0
     [ "$cleanup_ok" -eq 1 ] && cleanup_task >/dev/null 2>&1 || cleanup_ok=0
   fi
+  if [ -e "$DC" ] || [ -L "$DC" ]; then
+    cleanup_ok=0
+    phase='docker_config_runtime'
+  fi
   if [ "$force_unknown" -eq 1 ] || [ "$persistent_created" -eq 1 ] || [ "$attempt_committed" -eq 1 ] || [ "$result_committed" -eq 1 ] || [ "$cleanup_ok" -eq 0 ]; then state='UNKNOWN'; fi
   emit_fixed "$state" "$phase"
 }
@@ -219,10 +226,11 @@ common_preflight() {
   [ "$MODE" = 'CREATE' ] || [ "$MODE" = 'READBACK' ] || return 1
   [[ "$API_C_IDENTITY_SHA256" =~ ^[0-9a-f]{64}$ ]] && [[ "$RECIPIENT_PUBLIC_KEY_SHA256" =~ ^[0-9a-f]{64}$ ]] && [ "$RECIPIENT_PUBLIC_KEY_SHA256" != "$SOURCE_PUBLIC_KEY_SHA256" ] || return 1
   phase='tool'
-  for tool in python3 stat find sort openssl sha256sum awk ss docker systemctl timeout mkdir chmod wc tr cat env; do command -v "$tool" >/dev/null 2>&1 || return 1; done
-  [ -x /usr/bin/docker ] && [ -x /usr/bin/timeout ] && [ -x /usr/bin/openssl ] && [ -x /usr/bin/env ] || return 1
+  for tool in python3 stat find sort openssl sha256sum awk docker systemctl timeout mkdir chmod wc tr cat env; do command -v "$tool" >/dev/null 2>&1 || return 1; done
+  [ -x /usr/bin/docker ] && [ -x /usr/bin/timeout ] && [ -x /usr/bin/openssl ] && [ -x /usr/bin/env ] && [ -x /usr/sbin/ss ] || return 1
   phase='persistent_parent'
-  [ -d "$PERSISTENT_PARENT" ] && [ ! -L "$PERSISTENT_PARENT" ] && [ "$(stat -c '%F|%u|%g|%a' "$PERSISTENT_PARENT")" = 'directory|0|0|700' ] || return 1
+  [ -d "$PERSISTENT_PARENT" ] && [ ! -L "$PERSISTENT_PARENT" ] && [ "$(stat -c '%F|%u|%g|%a' "$PERSISTENT_PARENT")" = 'directory|0|0|755' ] || return 1
+  dc || return 1
   phase='identity'
   [ "$(metadata_identity 2>/dev/null)" = 'API_C_IDENTITY_EXACT' ] || return 1
 }
@@ -287,9 +295,9 @@ def read(path,low,high):
     stable=lambda row:(row.st_dev,row.st_ino,row.st_mode,row.st_uid,row.st_gid,row.st_nlink,row.st_size)
     if len(body)!=before.st_size or stable(before)!=stable(opened) or stable(before)!=stable(after): raise SystemExit(2)
     return body
-for path in (parent,root):
+for path,mode in ((parent,0o755),(root,0o700)):
     row=os.lstat(path)
-    if not stat.S_ISDIR(row.st_mode) or stat.S_ISLNK(row.st_mode) or row.st_uid or row.st_gid or stat.S_IMODE(row.st_mode)!=0o700: raise SystemExit(2)
+    if not stat.S_ISDIR(row.st_mode) or stat.S_ISLNK(row.st_mode) or row.st_uid or row.st_gid or stat.S_IMODE(row.st_mode)!=mode: raise SystemExit(2)
 if set(os.listdir(root))!={"attempted-v1.json","password-rewrap-result-v1.json"}: raise SystemExit(2)
 attempt_body=read(attempt_path,1,4096)
 attempt=json.loads(attempt_body.decode("ascii"),object_pairs_hook=no_duplicates)
@@ -325,20 +333,22 @@ create() {
   phase='preexisting_persistent_root'
   if [ -e "$PERSISTENT_ROOT" ] || [ -L "$PERSISTENT_ROOT" ]; then force_unknown=1; return 1; fi
   source_control_preflight || return 1
+  dc || return 1
   phase='docker_service'
   [ "$(systemctl is-active docker)" = 'active' ] && [ "$(systemctl is-enabled docker)" = 'enabled' ] || return 1
-  /usr/bin/docker --context=default version >/dev/null 2>&1 || return 1
-  [ -z "$(/usr/bin/docker --context=default container ls -aq --no-trunc --filter "name=^/${CONTAINER_NAME}$")" ] || { force_unknown=1; phase='preexisting_container'; return 1; }
+  /usr/bin/docker --config "$DC" --context=default version >/dev/null 2>&1 || return 1
+  [ -z "$(/usr/bin/docker --config "$DC" --context=default container ls -aq --no-trunc --filter "name=^/${CONTAINER_NAME}$")" ] || { force_unknown=1; phase='preexisting_container'; return 1; }
   phase='image'
   local image_row
-  image_row="$(/usr/bin/docker --context=default image inspect "$IMAGE_REF" --format '{{.Id}}|{{.Os}}|{{.Architecture}}|{{index .Config.Labels "org.opencontainers.image.revision"}}')" || return 1
+  image_row="$(/usr/bin/docker --config "$DC" --context=default image inspect "$IMAGE_REF" --format '{{.Id}}|{{.Os}}|{{.Architecture}}|{{index .Config.Labels "org.opencontainers.image.revision"}}')" || return 1
   [ "$image_row" = "$IMAGE_CONFIG|linux|amd64|$RELEASE_COMMIT" ] || return 1
   phase='db_socket_before'
-  [ "$(ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = '0' ] || return 1
+  [ "$(/usr/sbin/ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = '0' ] || return 1
+  dc || { force_unknown=1; phase='docker_config_runtime'; return 1; }
 
   phase='persistent_root_create'
   force_unknown=1
-  mkdir -m 0700 "$PERSISTENT_ROOT" || return 1
+  mkdir -m 0700 -- "$PERSISTENT_ROOT" || return 1
   persistent_created=1
   fsync_directory "$PERSISTENT_PARENT" || return 1
   [ "$(stat -c '%F|%u|%g|%a' "$PERSISTENT_ROOT")" = 'directory|0|0|700' ] || return 1
@@ -527,7 +537,7 @@ PY
   phase='task_cleanup'
   cleanup_task || return 1
   phase='db_socket_after'
-  [ "$(ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = '0' ] || return 1
+  [ "$(/usr/sbin/ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = '0' ] || return 1
   phase='terminal_readback'
   emit_readback || return 1
   completed=1

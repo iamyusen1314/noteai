@@ -28,8 +28,10 @@ class Item26RestoredPackageBrokerV1Tests(unittest.TestCase):
     def test_persistent_paths_and_no_replay_contract(self):
         keygen = KEYGEN.read_text(encoding="utf-8")
         broker = BROKER.read_text(encoding="utf-8")
+        self.assertIn("/var/lib/noteai/item26-restored-v1", keygen)
+        self.assertIn("BASE_ROOT=/var/lib/noteai-item26-restored-broker-v1", broker)
+        self.assertNotIn("/var/lib/noteai/item26-restored-v1", broker)
         for source in (keygen, broker):
-            self.assertIn("/var/lib/noteai/item26-restored-v1", source)
             self.assertIn('"same_invocation_replay_allowed":false', source)
             self.assertNotIn("/run/noteai-item26-restored-control-v1", source)
         self.assertIn("private_key_value_read_count", keygen)
@@ -51,8 +53,10 @@ class Item26RestoredPackageBrokerV1Tests(unittest.TestCase):
             "restored-manifest-v1",
             "capture-attempted-v1",
             "state established",
+            "/usr/sbin/ss -Htan",
         ):
             self.assertIn(marker, source)
+        self.assertNotRegex(source, r"(?<![/A-Za-z0-9_])ss -Htan")
 
     def test_broker_payload_and_crypto_contract(self):
         source = BROKER.read_text(encoding="utf-8")
@@ -87,6 +91,22 @@ class Item26RestoredPackageBrokerV1Tests(unittest.TestCase):
             {"schema_version", "source_manifest_gzip", "restored_database", "wrapped_password", "storage"},
         )
 
+    def test_broker_first_docker_call_uses_absent_credential_free_config(self):
+        source = BROKER.read_text(encoding="utf-8")
+        self.assertIn(
+            "DC=/run/i26dc",
+            source,
+        )
+        self.assertNotIn("/root/.docker", source)
+        create = source.split("create() {", 1)[1]
+        first = create.index("/usr/bin/docker")
+        first_line = create[first:create.index("\n", first)]
+        self.assertIn('--config "$DC"', first_line)
+        self.assertIn("dc || fixed UNKNOWN docker_config_runtime 4", create)
+        self.assertIn('mkdir -m 0700 -- "$BASE_ROOT"', create)
+        self.assertIn("/usr/sbin/ss -Htan", source)
+        self.assertNotRegex(source, r"(?<![/A-Za-z0-9_])ss -Htan")
+
     def test_source_tuple_and_public_only_create_output(self):
         source = BROKER.read_text(encoding="utf-8")
         self.assertIn("SOURCE_BYTES=9794", source)
@@ -100,9 +120,11 @@ class Item26RestoredPackageBrokerV1Tests(unittest.TestCase):
     def test_broker_capture_fixed_paths_and_control_inventory_match(self):
         broker = BROKER.read_text(encoding="utf-8")
         capture = (ROOT / ".codex" / "item26-restored-capture-v1.template.sh").read_text(encoding="utf-8")
-        for value in ("/var/lib/noteai/item26-restored-v1", "control-envelope.json"):
-            self.assertIn(value, broker)
-            self.assertIn(value, capture)
+        self.assertIn("BASE_ROOT=/var/lib/noteai-item26-restored-broker-v1", broker)
+        self.assertIn("/var/lib/noteai/item26-restored-v1", capture)
+        self.assertNotIn("/var/lib/noteai/item26-restored-v1", broker)
+        self.assertIn("control-envelope.json", broker)
+        self.assertIn("control-envelope.json", capture)
         self.assertIn("capture-attempted-v1", capture)
         self.assertIn("control-envelope.json\\ncontrol-private.pem\\ncontrol-public.pem", capture)
 
