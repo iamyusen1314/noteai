@@ -6114,7 +6114,130 @@
           ],
           "evidence": [],
           "latest_reconciliation": {
-            "status": "MANUAL_COST_STOP_A3_CONTROL_DUAL_CI_PASS_RECEIPT_V3_SIGNATURE_VALID_B_REJECTED_NO_RERUN_C_D_E_ACCEPTED_INSTALLER_STAGER_SOURCE_ACCEPTED_F_EXACT4_ATTEMPT_ONE_DUAL_CI_PASS_TERMINAL_ACCEPTED_RUNTIME_V3_INSTALL_SUCCESS_RESULT_PRESENT_G_EXACT5_POST_ACTION_SELF_UNFROZEN_OWN_CI_PENDING_S0_OPEN_M1_M2_ABSENT_NO_READINESS_CREDIT",
+            "status": "M1_MINIMAL_COST_STOP_FACT_CLOSED_M2_ORIGINAL_DOD_RECONCILIATION_BLOCKED_ONLY_ON_RESTORED_CAPTURE_AND_SOURCE_RESTORED_RECONCILIATION_NO_READINESS_CREDIT",
+            "minimal_m1_cost_stop_receipt_evidence_20260821": {
+              "record_storage": "EXISTING_READINESS_LEDGER_EMBEDDED_RECORD_NO_NEW_ARTIFACT_TYPE",
+              "recorded_at_utc": "2026-08-21T02:58:52Z",
+              "status": "M1_COST_STOP_FACT_CLOSED_M2_READ_ONLY_RECONCILIATION_ENTERED",
+              "scope": "COST_STOP_FACT_ONLY_NOT_ITEM26_TERMINAL_ACCEPTANCE",
+              "control_revision": "f0a86aa4af78f045a33aa878b86bd78d2b3b1bc8",
+              "original_item26_manifest": {
+                "first_commit": "3d234f2286a552e3521d29174028e3d73a8d3f5f",
+                "commit_at_utc": "2026-07-26T18:49:00Z",
+                "title": "Current-schema backup, PITR and isolated restore reconciliation",
+                "original_blocker": "No current-schema production backup/PITR observation or isolated restore drill exists.",
+                "requires_current_schema_backup_or_pitr_observation": true,
+                "requires_isolated_restore_drill": true,
+                "requires_source_restored_reconciliation": true,
+                "requires_five_provider_capture_slots": false,
+                "requires_provider_raw_closure": false
+              },
+              "later_proof_structure": {
+                "raw_closure_first_commit": "0821ed89880b64da21e4a2b7338749eefe0bc11a",
+                "raw_closure_first_commit_at_utc": "2026-08-16T11:15:31Z",
+                "historical_billing_slot_first_commit": "85bf60f51f823c9e55e33dbf9bf6a84768a48f3e",
+                "historical_billing_slot_first_commit_at_utc": "2026-08-16T17:52:35Z",
+                "four_cost_stop_capture_slots_first_commit": "34bfcf029d7ba641728fc18777b11943cb02fe1d",
+                "four_cost_stop_capture_slots_first_commit_at_utc": "2026-08-16T19:55:04Z",
+                "exact_five_slot_tuple_first_commit": "2b690ffe7f484e07075e776f52fdb436d297dc4d",
+                "exact_five_slot_tuple_first_commit_at_utc": "2026-08-19T23:37:45Z",
+                "classification": "LATER_IMPLEMENTATION_AND_PROOF_STRUCTURE_NON_BLOCKING_FOR_ORIGINAL_ITEM26_DOD",
+                "missing_slot_count_considered_m1_blocking": 0
+              },
+              "activation_receipt": {
+                "schema": "noteai.item26.manual-cost-stop-runtime-activation-receipt.v3",
+                "bytes": 22068,
+                "sha256": "3520839f12597674d1f2468d52778ac9a1ff995da2a0a9a2ac1d27bbcb27a2c7",
+                "activated_at_utc": "2026-08-20T16:48:47Z",
+                "status": "ACTIVATED"
+              },
+              "root_journal": {
+                "schema": "noteai.item26.manual-cost-stop-import-journal.v2",
+                "sequence": 1,
+                "slot": "cost_stop_rds_write_lookup_page",
+                "begin_recorded_at_utc": "2026-08-20T16:58:42.713832Z",
+                "begin_payload_sha256": "3a092289daaa41b6aa57afcdc8404168edaea52e257510bd9e64e49edb1f9c38",
+                "begin_outcome": "REQUEST_FROZEN",
+                "finish_recorded_at_utc": "2026-08-20T17:29:46.202910Z",
+                "finish_payload_sha256": "b15f115754cd22b706a9673843a45bb04db748f69c99a91e7042b4cbb11e9d67",
+                "finish_outcome": "UNKNOWN_INFLIGHT",
+                "cloud_request_replay_allowed": false
+              },
+              "actiontrail_read_only_evidence": {
+                "region": "cn-shenzhen",
+                "service_name": "Rds",
+                "event_rw": "Write",
+                "query_window_start_utc": "2026-08-16T14:38:00Z",
+                "query_window_end_utc": "2026-08-16T14:46:00Z",
+                "bounded_visible_query_count": 1,
+                "detail_view_count": 2,
+                "events": [
+                  {
+                    "event_name": "ModifyDBInstanceDeletionProtection",
+                    "event_time_utc": "2026-08-16T14:41:13Z",
+                    "result": "SUCCESS",
+                    "error_code_present": false,
+                    "request_id_sha256": "c44eb336fc53b7850778bf61049f4df43ca562642084d3b3e6498be72d3cdc75",
+                    "tracked_commitment_match": true
+                  },
+                  {
+                    "event_name": "DeleteDBInstance",
+                    "event_time_utc": "2026-08-16T14:43:19Z",
+                    "result": "SUCCESS",
+                    "error_code_present": false,
+                    "request_id_sha256": "4ea974bc7aeba8cc49af916a68939d10e54107928fb0dfebcf0deca644c088ed",
+                    "tracked_commitment_match": true
+                  }
+                ],
+                "tracked_commitment_match_count": 2,
+                "cost_stop_fact_closed": true
+              },
+              "m1_result": {
+                "provider_receipt_scope": "MINIMAL_SECRET_FREE_COST_STOP_FACT",
+                "provider_receipt_complete": true,
+                "evidence_complete": true,
+                "five_slot_materialization_required": false,
+                "raw_closure_required": false,
+                "item26_verified": false,
+                "readiness_credit_added": false
+              },
+              "m2_original_dod_reconciliation": {
+                "status": "BLOCKED_ONLY_ON_ORIGINAL_DOD_RESTORED_CAPTURE_AND_RECONCILIATION",
+                "source_manifest_capture": "PASS_READ_ONLY_REPEATABLE_READ_SNAPSHOT_COMMITTED",
+                "pitr_clone_creation": "PASS_EXACT_ONE_ISOLATED_CLONE_CREATED",
+                "pitr_clone_baseline_postchecks": "PASS",
+                "restored_database_connection_count": 0,
+                "restored_database_transaction_count": 0,
+                "restored_manifest_capture_count": 0,
+                "restored_database_write_count": 0,
+                "restored_capture_status": "NOT_STARTED",
+                "source_restored_reconciliation_status": "PENDING",
+                "original_item26_dod_complete": false,
+                "minimal_completion_action": "CREATE_ONE_NEW_EXPLICITLY_AUTHORIZED_ISOLATED_PITR_RESTORE_THEN_RUN_ONE_BOUNDED_READ_ONLY_RESTORED_MANIFEST_CAPTURE_AND_COMPARE_TO_RETAINED_SOURCE_MANIFEST",
+                "minimal_completion_action_authorized_by_this_record": false
+              },
+              "secret_free_boundary": {
+                "complete_resource_identifier_value_count": 0,
+                "raw_provider_payload_count": 0,
+                "credential_value_count": 0,
+                "private_key_value_count": 0,
+                "database_row_value_count": 0
+              },
+              "new_operation_counts": {
+                "cloud_request": 0,
+                "provider_write": 0,
+                "database_connection": 0,
+                "database_transaction": 0,
+                "database_write": 0,
+                "cleanup": 0,
+                "replay": 0
+              },
+              "internal_readiness_verified_count": 25,
+              "internal_readiness_total_count": 29,
+              "public_readiness_verified_count": 25,
+              "public_readiness_total_count": 38,
+              "readiness_credit_added": false
+            },
             "incident_class": "PITR_CLONE_COST_CEILING_BREACHED_COST_STOPPED",
             "fresh_cloud_reconciliation_20260816": {
               "status": "READ_ONLY_COMPLETE_COST_CEILING_BREACHED",
@@ -15881,7 +16004,7 @@
             "readiness_credit_added": false,
             "automatic_retry_allowed": false
           },
-          "blocker": "Accepted ledger 74c1c732c3fdafdc402ec2cc313fc9eafd45d839 is the exact-four direct child of 3270e0abcfe515a1c066335da182b26031abb5eb with tree 026f78d609ee13c85d43634ec4cf4290b27e51ac. Unique attempt-one push 32343007517/check suite 87675939533/job 96345723914 and PR 32343013275/suite 87675953859/job 96345739667 have previous attempt null, rerun zero, terminal success, four exact terminal pointers and an inventory of exactly one push plus one PR. Each route completed 22/22 steps, Unit 2,853 with zero failures/errors and 36 skips, all 107 focused methods, frozen [10,1,12,22,21], Quality seven PASS plus one EXPECTED_FAIL, PostgreSQL 6 OK, production readiness 138/138 and Compose success; each has one Node 20-to-24 warning and no error/failure annotation. CTO-AUTH-ITEM26-M1-ALIYUN-CLI-OAUTH-CAPABILITY-SOURCE-001 permits one 74c1 direct-child exact-six containing four ledgers plus the stock Aliyun CLI OAuth capability source/test. Source is 19,960 bytes/blob 07ef4524e67e47efebe7c089975d7f3579817161/SHA-256 1d591941608ef50fee0a62d5b168e410d7579fc7dc628535a516264a0ea807ba; test is 36,379 bytes/blob cf89538f92dabbe826ae7951deb3c925a251ed14/SHA-256 dfcbb4cec8e9056aead8abcb1f74fc8c1be29c8134cff4d3c7bab9b279a10831. Official v3.4.11 is exact-commit pinned to f54f5fe9caa99723a6324b20eaa60f3de3b049cb with eleven official evidence entries. Eleven observed stock capabilities and eight independently blocking NoteAI requirements freeze the decision NO_GO_STOCK_CLI_FD_ONLY_OAUTH. Local CLI identity is static tracked-ledger evidence, not live execution. Candidate revision/tree and own CI remain empty or pending with commit, push, observation, retry and rerun counts zero. Authority is one commit, one normal non-force push and one unique attempt-one push/PR observation; failure/cancel stops and automatic retry, rerun and second push are forbidden. Official research browsing occurred; request count is null and NOT_EXACTLY_ENUMERATED, so generic external-network-zero is false. Provider/login/OAuth/API/cloud/config-write remain zero. Historical Homebrew audit remains one metadata-network event and one possible cache write. Credentials remain NOT_PROVISIONED, all six gates and operational authority remain false. Separate source acceptance, capability replacement or decision, credential provisioning plus receipt acceptance and capture operational authorization remain mandatory. S0 stays false/open, M1/M2 remain absent, Item 26 stays unverified with empty evidence, readiness stays 25/29 internal and 25/38 public, and credit remains false.",
+          "blocker": "The original Item 26 manifest requires a current-schema backup/PITR observation and one isolated restore drill with source/restored reconciliation. The source snapshot and exact-one isolated PITR clone baseline exist, but the restored database was never connected, the restored manifest capture never started, and source/restored reconciliation remains pending. Five provider capture slots, raw closure, stock Aliyun CLI OAuth, dedicated root OAuth helper, credential-capsule successors and their acceptance chains were added after the original manifest and are excluded as non-blocking implementation/proof structures. Cost-stop M1 is closed by the two matched ActionTrail events, activation receipt and root journal, but adds no Item 26 readiness credit. The only remaining original-DoD action is one newly and explicitly authorized isolated PITR restore followed by one bounded read-only restored-manifest capture and exact comparison with the retained source manifest.",
           "next_task": "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
         },
         {

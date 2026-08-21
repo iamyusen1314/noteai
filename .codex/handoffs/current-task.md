@@ -13117,3 +13117,177 @@ Colima, database, builder, restore and cloud actions remain frozen.
   Homebrew histories remain honest; all real operational actions remain zero
   and unauthorized.  Item 26/evidence/S0/M1/M2, readiness `25/29`/`25/38`
   and credit false remain unchanged.
+
+## Item 26 M1 LookupEvents unknown-inflight read-only reconciliation checkpoint (2026-08-21)
+
+- Checkpoint ref
+  `item26_m1_lookup_events_unknown_inflight_read_only_reconciliation_20260820T181304Z`
+  records exactly one evidence-only reconciliation.  It authorizes no provider
+  request, Cloud Assistant dispatch, retry, rerun, cleanup, M2 action or
+  readiness change.  Repository HEAD was
+  `f0a86aa4af78f045a33aa878b86bd78d2b3b1bc8`; the tracked worktree was clean
+  before this checkpoint was appended.
+- The active root activation receipt remains 22,068 bytes with SHA-256
+  `3520839f12597674d1f2468d52778ac9a1ff995da2a0a9a2ac1d27bbcb27a2c7`,
+  activated at `2026-08-20T16:48:47Z` for the same control revision.  Its
+  operational counts remain cloud read/write `0/0`, database connection/write
+  `0/0`, journal write `0`, Item 26 `unverified` and no readiness credit.
+- The sequence-one request for slot `cost_stop_rds_write_lookup_page` is a
+  247-byte canonical `LookupEvents` read request with SHA-256
+  `3a092289daaa41b6aa57afcdc8404168edaea52e257510bd9e64e49edb1f9c38`.
+  It covers `2026-08-16T14:38:00Z` through `2026-08-16T14:46:00Z`, service
+  `Rds`, event class `Write`, and was locally frozen at
+  `2026-08-20T16:58:41Z`.
+- The already-consumed Cloud Shell wrapper reached terminal rc `3` with
+  `error_bytes=130`, error SHA-256
+  `1cbb7e2afe99499b979c9ae79bf873982036ac789c36792cbbf06fb0e416b4fc`,
+  response present but zero response bytes.  This proves that the wrapper ran;
+  it does not prove that Alibaba accepted or completed the provider request.
+  No provider Request ID was retained.  The root journal is terminal
+  `UNKNOWN_INFLIGHT / NO_RESPONSE_BODY`, forbids replay, and emitted cloud call
+  count `0`, raw value count `0` and database connection count `0`.
+- The existing Cloud Assistant result inventory was inspected read-only, with
+  no dispatch, export, rerun or cancellation.  The retained Item 26 v3 source
+  capture command/invocation
+  `c-sz06tr1f8px34e8` / `t-sz06tr1f8q4ktfk` exists and is terminal success,
+  ExitCode `0`; its output reports one read-only database connection and
+  transaction, database/object/persistent-permission/provider-control-plane
+  write counts all `0`, and the source manifest retained.  The v3 readback
+  `c-sz06tr1tfkh0pvk` / `t-sz06tr1tfl3hszk` is terminal success, ExitCode `0`.
+  The known validator
+  `c-sz06trcdt1x9ips` / `t-sz06trcdt27943k` is terminal failure, ExitCode `4`,
+  preserving its deterministic metadata false-negative classification.  The
+  fixed timestamp reader
+  `c-sz06tri2msu68sg` / `t-sz06tri2mt95mv4` is terminal success, ExitCode `0`.
+  These records predate and do not identify the current sequence-one
+  `LookupEvents` request.
+- Reconciliation outcome is therefore split explicitly: local frozen request
+  creation `YES`; wrapper execution `YES`; provider request acceptance
+  `UNKNOWN`; provider execution `UNKNOWN`; provider terminal exit
+  `UNKNOWN`; observed provider/database/object mutation `0`.  The requested
+  action itself is read-only, but absence of its response and Request ID means
+  it cannot be promoted to authoritative M1 success.  No replay is permitted.
+  M2 execution and cleanup remain `0`; Item 26 remains `unverified`, evidence
+  stays empty, and readiness remains exactly internal `25/29` and public
+  `25/38`.
+
+## Item 26 M1 tracked-window and bounded ActionTrail browser checkpoint (2026-08-21)
+
+- Checkpoint ref
+  `item26_m1_actiontrail_browser_query_ui_unavailable_20260821T021314Z`
+  supersedes no prior evidence and grants no provider, M2, cleanup or readiness
+  authority.  It records only a tracked-origin date audit and one bounded,
+  visible browser-query attempt in the already authenticated Alibaba console.
+- The `2026-08-16T14:38:00Z` through `2026-08-16T14:46:00Z` query window is
+  repository-derived, not session-memory-derived.  Historical cost-stop facts
+  in `.codex/handoffs/current-task.md` and
+  `deploy/production/internal-deployment-readiness.json` record the browser
+  confirmation at `2026-08-16T14:39:11.475Z` and final absence readback at
+  `2026-08-16T14:44:50.237Z`; those facts entered commit
+  `d0f261236726f03605e467e6275b898a6ce19488` at
+  `2026-08-16T16:45:32Z`.  The exact lookup bounds and RDS/Write filters in
+  `tools/extract_item26_manual_cost_stop_raw_v2.py` and
+  `tools/collect_item26_manual_cost_stop_raw_v2.py` entered commit
+  `62f3f49fba3eb473a7a8e08f51b42f3186f7e86d` at
+  `2026-08-17T05:04:34Z`.  Later adapter and M1 wiring merely repeat that
+  tracked window; they do not derive a new date.
+- The August 12 Item 26 v3 Cloud Assistant capture/readback/validator/timestamp
+  records are historical operations and are not current-M1 request evidence.
+  The August 16 events are likewise historical provider actions, but they are
+  the intentionally tracked readback target of the current M1 request.  The
+  current request itself is rooted in activation at
+  `2026-08-20T16:48:47Z`, journal begin
+  `2026-08-20T16:58:42.713832Z` (`REQUEST_FROZEN`) and journal finish
+  `2026-08-20T17:29:46.202910Z` (`UNKNOWN_INFLIGHT`).  Both journal records
+  bind control revision `f0a86aa4af78f045a33aa878b86bd78d2b3b1bc8`, sequence
+  `1`, the same slot and activation-receipt SHA-256
+  `3520839f12597674d1f2468d52778ac9a1ff995da2a0a9a2ac1d27bbcb27a2c7`.
+- The ORICO local-state migration is tracked by commit
+  `f189c2bc342d01736c3bc262aa23c900f826c749` at
+  `2026-08-16T03:49:24Z`, before the provider actions.  It may affect copied
+  local file timestamps or old session availability, but it cannot change Git
+  commit timestamps, provider event times or the root-journal UTC fields; local
+  copied-file mtimes are excluded from this acceptance decision.
+- The browser attempt used the correct ActionTrail event-query location in
+  region `cn-shenzhen`.  Two clean page loads independently remained on the
+  loading skeleton and reported the same console-side cross-frame
+  `SecurityError`; no search control became available.  Search-submit count is
+  exactly `0`, and there was no refresh loop, API/CLI fallback, export,
+  provider command, resource mutation or new execution request.  Therefore the
+  ActionTrail events were not observed and cannot be matched to the tracked
+  actions or request-ID commitment.
+- M1 remains `UNKNOWN/no-replay`: request creation `YES`, wrapper execution
+  `YES`, provider acceptance/execution/terminal status `UNKNOWN`, and observed
+  write evidence `0`.  Item 26 remains `unverified`; M2, cleanup and readiness
+  credit remain `0`; readiness stays internal `25/29` and public `25/38`.
+
+## Item 26 original-DoD audit, minimal M1 cost-stop receipt and M2 reconciliation (2026-08-21)
+
+- This checkpoint supersedes only the two immediately preceding M1 uncertainty
+  conclusions.  It does not replay the failed `LookupEvents` wrapper and does
+  not create a cloud request.  The already-open ActionTrail result page in
+  `cn-shenzhen`, filtered to `Rds / Write`, was read once and its two relevant
+  details were compared only by Secret-free commitments.  The visible event
+  `ModifyDBInstanceDeletionProtection` is terminal success at
+  `2026-08-16T14:41:13Z`, has no error code and has RequestId SHA-256
+  `c44eb336fc53b7850778bf61049f4df43ca562642084d3b3e6498be72d3cdc75`.
+  The visible event `DeleteDBInstance` is terminal success at
+  `2026-08-16T14:43:19Z`, has no error code and has RequestId SHA-256
+  `4ea974bc7aeba8cc49af916a68939d10e54107928fb0dfebcf0deca644c088ed`.
+  Both exactly match the tracked commitments.  No raw RequestId, resource
+  identifier, credential, provider payload or database row is written here.
+- The minimum M1 provider receipt/evidence is embedded in the existing Item 26
+  readiness ledger rather than creating another artifact type.  It binds the
+  two matched ActionTrail events to activation receipt schema
+  `noteai.item26.manual-cost-stop-runtime-activation-receipt.v3`, 22,068 bytes,
+  SHA-256
+  `3520839f12597674d1f2468d52778ac9a1ff995da2a0a9a2ac1d27bbcb27a2c7`,
+  activated at `2026-08-20T16:48:47Z`, and to root-journal sequence `1`.
+  Journal begin is `2026-08-20T16:58:42.713832Z / REQUEST_FROZEN` with payload
+  SHA-256
+  `3a092289daaa41b6aa57afcdc8404168edaea52e257510bd9e64e49edb1f9c38`;
+  finish is `2026-08-20T17:29:46.202910Z / UNKNOWN_INFLIGHT` with payload
+  SHA-256
+  `b15f115754cd22b706a9673843a45bb04db748f69c99a91e7042b4cbb11e9d67`.
+  The wrapper's missing response remains historical, but the independent
+  ActionTrail readback now closes the two historical cost-stop outcomes.  M1
+  scope is exactly `COST_STOP_FACT_ONLY`; it does not claim PITR success or add
+  readiness credit.
+- The original Item 26 manifest first appears in commit
+  `3d234f2286a552e3521d29174028e3d73a8d3f5f` at
+  `2026-07-26T18:49:00Z`.  Its title is `Current-schema backup, PITR and
+  isolated restore reconciliation`; its blocker is `No current-schema
+  production backup/PITR observation or isolated restore drill exists.`  It
+  contains no five-slot, raw-closure, OAuth, credential-capsule or detached
+  terminal-authority requirement.
+- The later provenance is decisive.  Generic `raw_closure_sha256` first appears
+  in `0821ed89880b64da21e4a2b7338749eefe0bc11a` at
+  `2026-08-16T11:15:31Z`.  `historical_billing_snapshot` first appears in
+  `85bf60f51f823c9e55e33dbf9bf6a84768a48f3e` at
+  `2026-08-16T17:52:35Z`; the four cost-stop/query/inventory slots first appear
+  in `34bfcf029d7ba641728fc18777b11943cb02fe1d` at
+  `2026-08-16T19:55:04Z`; the exact five-entry `CAPTURE_SLOTS` tuple first
+  appears in `2b690ffe7f484e07075e776f52fdb436d297dc4d` at
+  `2026-08-19T23:37:45Z`.  They are later implementation/proof structures and
+  their absence is not an original-DoD M1 blocker.
+- M2 was entered as a read-only reconciliation against the original manifest.
+  The retained v3 source capture proves one PostgreSQL 16 repeatable-read,
+  read-only current-schema snapshot with 56 tables, 17 migrations, 19 RLS and
+  zero FORCE-RLS; it committed the root-only source manifest with database,
+  object and persistent-permission writes zero.  Exactly one isolated PITR
+  clone was created and its control-plane baseline postchecks passed.  But the
+  tracked terminal facts remain clone database connection/transaction/capture/
+  write `0/0/0/0`, restored capture `NOT_STARTED`, and source/restored
+  reconciliation `PENDING`.  The clone was later deleted for cost containment,
+  so the original isolated-restore reconciliation cannot be completed from the
+  retained artifacts alone.
+- Therefore M2 does not promote Item 26.  The single remaining original hard
+  gap is the isolated restore drill's restored-manifest capture and exact
+  source/restored comparison.  Its minimum completion action is one newly and
+  explicitly authorized isolated PITR restore, followed by one bounded
+  read-only restored-manifest capture and exact comparison with the retained
+  source manifest.  This checkpoint does not authorize that paid/provider/
+  database action.  New cloud requests, cleanup, replay, provider writes,
+  database connections/transactions/writes and readiness credit are all `0`;
+  Item 26 remains `unverified`, internal readiness `25/29` and public readiness
+  `25/38`.

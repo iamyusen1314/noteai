@@ -3380,6 +3380,91 @@ Last updated: 2026-08-19
   helper NO-GO、`NOT_PROVISIONED`、research/Homebrew history及real action ops0
   全不变；Item26/evidence/S0/M1/M2、`25/29`/`25/38`、credit false不变。
 
+## Item 26 M1 LookupEvents 已硬停且 provider 终态仍不可判定（2026-08-21）
+
+- 状态: Open High / no-replay。Secret-free checkpoint
+  `item26_m1_lookup_events_unknown_inflight_read_only_reconciliation_20260820T181304Z`
+  已完成一次且仅一次只读对账；未新建、重发、修正或替换任何 provider
+  request/slot，未执行 M2、Cloud Shell 清理或 Readiness 提升。
+- 已知事实: sequence `1` 的 `LookupEvents` 请求已在本地冻结，SHA-256 为
+  `3a092289daaa41b6aa57afcdc8404168edaea52e257510bd9e64e49edb1f9c38`；
+  Cloud Shell wrapper 已运行并以 rc `3` 结束，零响应字节，错误摘要 SHA-256
+  为 `1cbb7e2afe99499b979c9ae79bf873982036ac789c36792cbbf06fb0e416b4fc`。
+  root journal 已记为 `UNKNOWN_INFLIGHT / NO_RESPONSE_BODY` 且 replay=false。
+- 权威历史边界: 既有 Cloud Assistant v3 capture/readback/timestamp reader
+  分别为 ExitCode `0/0/0`；validator 保持已知 ExitCode `4` 假阴性。capture
+  的数据库、对象、持久权限及 provider 控制面写入计数均为 `0`。这些记录
+  与本次 LookupEvents 没有共同的 Command/Invocation/Request ID，不能替代本次
+  provider 终态。
+- 残余风险: 本次请求没有可核对的 provider Request ID 或响应体，因此只能认定
+  本地请求已创建、wrapper 已执行；provider 是否接受、是否执行及 provider
+  终态均为 UNKNOWN。当前无任何写入证据，且请求动作本身为只读，但不能据此
+  签发 M1 terminal evidence。唯一允许的后续人工动作是查看既有 ActionTrail
+  事件记录；不得由本任务再次调用 `LookupEvents`。
+- 控制: M1 保持 UNKNOWN/no-replay，M2、清理、provider 重试、Cloud Assistant
+  dispatch、数据库连接和 readiness credit 均为 `0`。Item 26 保持
+  `unverified`，内部/公开 readiness 维持 `25/29` / `25/38`。
+
+## Item 26 M1 正确历史窗口已确认但 ActionTrail 浏览器查询界面不可用（2026-08-21）
+
+- 状态: Open High / no-replay / no-search-submitted。Checkpoint
+  `item26_m1_actiontrail_browser_query_ui_unavailable_20260821T021314Z`
+  只记录日期来源审计与浏览器界面失败，不是 provider receipt 或 M1 终态。
+- 日期来源: 正确查询范围是 tracked 的
+  `2026-08-16T14:38:00Z`–`2026-08-16T14:46:00Z`。历史操作事实由 commit
+  `d0f261236726f03605e467e6275b898a6ce19488`（commit UTC
+  `2026-08-16T16:45:32Z`）记录；exact range/filter 由 commit
+  `62f3f49fba3eb473a7a8e08f51b42f3186f7e86d`（commit UTC
+  `2026-08-17T05:04:34Z`）固定。August 12 v3 Cloud Assistant records 与
+  current M1 request 分离；current M1 journal UTC 是
+  `2026-08-20T16:58:42.713832Z` / `2026-08-20T17:29:46.202910Z`。
+- ORICO 边界: local-state migration commit
+  `f189c2bc342d01736c3bc262aa23c900f826c749` 的 UTC 是
+  `2026-08-16T03:49:24Z`。它可能改变复制文件mtime或旧session可见性，但不会
+  改变Git/provider/root-journal的UTC事实；mtime不参与验收。
+- 浏览器事实: 已登录ActionTrail控制台的两个独立page load均停在skeleton，且
+  同报console-side cross-frame `SecurityError`。未出现可用筛选/搜索控件；search
+  submit `0`，refresh-loop/API/CLI fallback/export/command/mutation均`0`。因此没有
+  新查询请求，也没有新provider证据。
+- 残余风险: 仍无权威证据判定 sequence 1 是否被provider接受/执行/终结，也无法
+  将历史两条RDS写事件与本次request commitment完成匹配。保持
+  `UNKNOWN/no-replay`、Item26 `unverified`、M2/cleanup/readiness credit `0`，
+  internal/public readiness继续`25/29`/`25/38`。
+
+## Item 26 M1 cost-stop事实已闭合；仅保留原始隔离恢复对账缺口（2026-08-21）
+
+- 状态: M1 cost-stop closed / M2 original-DoD reconciliation blocked。已加载
+  ActionTrail页面中的两条成功事件分别为
+  `ModifyDBInstanceDeletionProtection @ 2026-08-16T14:41:13Z` 与
+  `DeleteDBInstance @ 2026-08-16T14:43:19Z`；无error code，RequestId SHA-256
+  分别精确匹配tracked
+  `c44eb336fc53b7850778bf61049f4df43ca562642084d3b3e6498be72d3cdc75`
+  和
+  `4ea974bc7aeba8cc49af916a68939d10e54107928fb0dfebcf0deca644c088ed`。
+  这使前两节关于ActionTrail不可见/M1 UNKNOWN的结论在cost-stop事实范围内被
+  supersede；失败wrapper与root journal的UNKNOWN仍作为历史事实保留且不重跑。
+- 原始边界: Item26最初manifest来自commit
+  `3d234f2286a552e3521d29174028e3d73a8d3f5f`（UTC
+  `2026-07-26T18:49:00Z`），硬性DoD只有current-schema backup/PITR观察与一次
+  isolated restore reconciliation。`raw_closure_sha256`、billing slot、其余四槽
+  与exact-five tuple分别到8月16/17/20的后续commit才出现；它们以及OAuth、
+  credential-capsule/control acceptance链均是后加实现或证明结构，不再作为M1
+  blocker，也不补造raw artifact。
+- 已完成: 最小Secret-free M1 receipt/evidence已嵌入既有readiness ledger，绑定
+  两条ActionTrail commitment、activation receipt 22,068B/SHA
+  `3520839f12597674d1f2468d52778ac9a1ff995da2a0a9a2ac1d27bbcb27a2c7`
+  与root-journal begin/finish UTC、payload SHA和no-replay边界；未创建新artifact
+  类型，raw identifier/credential/provider payload/database row写入数均0。
+- 唯一原始风险: v3 source manifest和exact-one PITR clone baseline存在，但clone
+  database connection/transaction/capture/write始终`0/0/0/0`，restored capture
+  `NOT_STARTED`，source/restored reconciliation `PENDING`；clone已因cost stop删除。
+  因而原始isolated restore drill仍未完成。最小完成动作是另行明确批准一次新的
+  isolated PITR restore，然后只执行一次有界read-only restored-manifest capture
+  并与retained source manifest精确比较。当前未授权也未执行该动作。
+- 控制: Item26继续`unverified`，readiness保持`25/29`/`25/38`，credit0。新cloud
+  request、provider write、database connection/transaction/write、cleanup、replay
+  全0；不得用已闭合cost-stop事实替代原始restore reconciliation。
+
 ## Item 26 C4 helper secret-scanner portability source exact-four acceptance (2026-08-20)
 
 - accepted source checkpoint
