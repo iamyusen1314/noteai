@@ -31,7 +31,7 @@ PATHS = MappingProxyType({
     "stage": ROOT / ".codex/item26-restored-builder-stage-v1.template.sh",
 })
 IDENTITIES = MappingProxyType({
-    "keygen": MappingProxyType({"bytes":10007,"sha256":"91f6c99049ab9eb5fe5ef13427d4adcd93af99a85d5ab90306c1e4360ddcb32d"}),
+    "keygen": MappingProxyType({"bytes":10854,"sha256":"969acad9a5d4f9f275f09e0b5303131a38cf7dc309149b0417388b1a611897cb"}),
     "broker": MappingProxyType({"bytes":26007,"sha256":"4204e5c240138d77592e13b67044c3635139ec6d5307a19f3b538aed1c7eaaad"}),
     "rewrap": MappingProxyType({"bytes":34231,"sha256":"6a8b36590f5d3f7972be25544dc2c90d68fae493d21d9fda209578780ff9bf61"}),
     "stage": MappingProxyType({"bytes":10562,"sha256":"babdbe7d6daad55db04d1247ec26741cc77925c1c8ba8ca20398bac9de0069e5"}),

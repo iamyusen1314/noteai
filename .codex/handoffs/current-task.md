@@ -13291,3 +13291,46 @@ Colima, database, builder, restore and cloud actions remain frozen.
   database connections/transactions/writes and readiness credit are all `0`;
   Item 26 remains `unverified`, internal readiness `25/29` and public readiness
   `25/38`.
+
+## Item 26 isolated restore terminal pre-connect failure and zero-cost-residue cleanup (2026-08-21)
+
+- The original Item 26 boundary remains the July 26 manifest: current-schema
+  backup/PITR observation, one isolated restore drill, and source/restored
+  reconciliation.  The retained source evidence remains PostgreSQL 16 with 56
+  tables, 17 migrations, 19 RLS tables, zero FORCE-RLS and database writes
+  zero.  Later five-slot/raw-closure/OAuth/capsule structures remain excluded.
+- Exactly one authorized pay-as-you-go PITR clone was used; no second clone was
+  created.  A private builder preflight initially ended at the known local
+  `docker_runtime` diagnostic, then one root-cause-bound correction passed as
+  command/invocation `c-sz06unw9ke0vwg0` / `t-sz06unw9kefvaio`.  The frozen
+  image identity remained local and exact; registry pull and new-credential
+  actions were not repeated.
+- The only tracked source-of-truth correction is to the existing v1 keygen
+  template and its two identity bindings.  It uses an isolated root-only empty
+  Docker configuration and never reads the global Docker configuration.
+  Template identity is 10,854 bytes / SHA-256
+  `969acad9a5d4f9f275f09e0b5303131a38cf7dc309149b0417388b1a611897cb`;
+  renderer SHA-256 is
+  `260cc05f06bf2a2997903b0a593fa53a6f98d3d7a443252c3620b0fca33b33f2`.
+  Focused normal and optimized tests each passed 37/37.  Native keygen
+  `c-sz06unxdikorzsw` / `t-sz06unxdil69a80` completed successfully with
+  exit 0 and output SHA-256
+  `f64894d6a91d657a64d703326948311d030499f42d00061e0704ee2286082032`.
+- The next native step `t-sz06uny9xopup6o` terminated as a known failure with
+  exit 3, incident `PRE_ATTEMPT`, phase `persistent_parent`.  It occurred before
+  task root, attempt, result, container, provider mutation or database
+  connection.  Its contract sets readback, new rewrap and same-invocation
+  replay all false, so broker and restored capture were never started.  There
+  is no restored manifest and source/restored reconciliation remains pending.
+- Exact builder task cleanup `t-sz06unyqj3yldz4` completed with exit 0.  Builder
+  task root, isolated Docker config, task container and established 5432
+  residue are all zero; the builder is now `Stopped / StopCharging`.  The
+  unique clone was released once after account safety verification with the
+  no-retained-backup option.  Native RDS readback shows one active instance
+  only: the unchanged production source remains `Running`; the clone and its
+  task-specific `/32` are absent and billing is closed.
+- Item 26 therefore remains `unverified`, with no readiness credit: internal
+  `25/29`, public `25/38`.  The current execution chain is terminal and cannot
+  be replayed or repaired in place.  Any future completion requires a newly
+  authorized, source-compatible path; it must not reinterpret this failed
+  attempt as restored capture evidence.

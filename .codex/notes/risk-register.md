@@ -3489,3 +3489,33 @@ Last updated: 2026-08-19
   exact9 false、stock CLI/helper NO-GO、`NOT_PROVISIONED`、research/Homebrew
   history、ops0/unauthorized、Item26/S0/M1/M2、`25/29`/`25/38`及credit false
   全不变。
+
+## Item 26 唯一隔离恢复链在数据库连接前终止，临时资源已清零（2026-08-21）
+
+- 状态: Open High / terminal no-replay / cost residue zero。原始DoD仍只要求
+  current-schema backup/PITR、一次isolated restore和source/restored精确对账。
+  retained source事实仍为PG16、56 tables、17 migrations、19 RLS、FORCE0、
+  database writes0；五槽/raw closure/OAuth/capsule继续是后加non-blocking结构。
+- 唯一PITR clone已使用且second-clone count0。root-cause-bound builder
+  preflight `c-sz06unw9ke0vwg0` / `t-sz06unw9kefvaio` PASS。现有v1 keygen
+  模板仅作最小source-of-truth修正：global Docker config读取0，使用task-only
+  root 0700/config 0600 `{}`；template SHA`969acad9…897cb`、renderer
+  SHA`260cc05f…b33f2`，normal/-O各37/37。keygen
+  `c-sz06unxdikorzsw` / `t-sz06unxdil69a80` terminal success/exit0。
+- 唯一首个失败是API-C invocation `t-sz06uny9xopup6o`：provider Failed、
+  exit3、`PRE_ATTEMPT / persistent_parent`。persistent root、attempt、result、
+  task、container均未创建/未尝试；DB connection/transaction/write和provider
+  mutation均0。terminal明确readback=false、new rewrap=false、replay=false，
+  因而不得修parent后重派，也不得进入broker/capture。
+- Restored capture=`NOT_STARTED`，restored manifest absent，reconciliation
+  `PENDING`。这不是provider结果UNKNOWN，也没有派发数据库动作，但它是当前
+  frozen链的终态已知失败；不得用preflight/keygen成功给予Item26信用。
+- 止费/残留: exact builder cleanup `t-sz06unyqj3yldz4` success/exit0，task
+  root、temporary Docker config、container、5432 residue全0；builder为
+  `Stopped/StopCharging`。唯一clone按“不保留备份”释放一次，active RDS清单
+  只剩unchanged production source且Running；clone、task `/32`和clone billing
+  均终止。production mutation0、second deletion/retry0。
+- 控制: Item26保持`unverified`、internal/public `25/29`/`25/38`、credit0。
+  若未来完成，只能在新的明确授权和source-compatible execution path下进行；
+  不能修改共享`/var/lib/noteai`来重放本次terminal链，也不能新增第二clone来
+  掩盖本次失败。

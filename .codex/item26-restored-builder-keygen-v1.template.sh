@@ -7,6 +7,7 @@ export PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NO_PROXY no_proxy
 unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONINSPECT PYTHONOPTIMIZE
 unset DATABASE_URL PGPASSWORD ALIBABA_CLOUD_ACCESS_KEY_ID ALIBABA_CLOUD_ACCESS_KEY_SECRET ALIBABA_CLOUD_SECURITY_TOKEN
+unset DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG DOCKER_TLS_VERIFY DOCKER_CERT_PATH
 
 readonly MODE='@@MODE@@'
 readonly BASE_ROOT='/var/lib/noteai/item26-restored-v1'
@@ -19,11 +20,13 @@ readonly TRANSFER="$BASE_ROOT/restored-capture-transfer-v1.sh.gz"
 readonly CAPTURE_TASK="$BASE_ROOT/capture-task-v1"
 readonly FINAL_ROOT="$BASE_ROOT/restored-manifest-v1"
 readonly ATTEMPT="$BASE_ROOT/capture-attempted-v1"
+readonly DOCKER_CONFIG_ROOT='/run/noteai-item26-restored-keygen-docker-config-v1'
 readonly IMAGE_REF='noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b'
 readonly IMAGE_CONFIG='sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95'
 readonly RELEASE_COMMIT='cad5ce35664f617c6e19f90a6159285ddf975594'
 readonly BUILDER_IDENTITY_SHA256='@@BUILDER_IDENTITY_SHA256@@'
 readonly CONTAINER_NAME='noteai-item26-restored-capture-v1'
+export DOCKER_CONFIG="$DOCKER_CONFIG_ROOT"
 
 emit_fixed() {
   trap - ERR
@@ -61,17 +64,25 @@ PY
 current_machine_preflight() {
   [ "$(metadata_identity 2>/dev/null)" = BUILDER_IDENTITY_EXACT ] || return 1
   [ "$(systemctl is-active docker)" = active ] || return 1
-  [ -z "${DOCKER_CONFIG:-}" ] && [ "$(/usr/bin/docker context show)" = default ] || return 1
-  if [ -e /root/.docker/config.json ] || [ -L /root/.docker/config.json ]; then
-    [ "$(stat -c '%F|%u|%g|%a|%h|%s' /root/.docker/config.json)" = 'regular file|0|0|600|1|2' ] || return 1
-    [ "$(cat /root/.docker/config.json)" = '{}' ] || return 1
-  fi
-  /usr/bin/docker --context=default version >/dev/null 2>&1 || return 1
+  [ -d "$DOCKER_CONFIG_ROOT" ] && [ ! -L "$DOCKER_CONFIG_ROOT" ] || return 1
+  [ "$(stat -c '%u|%g|%a' "$DOCKER_CONFIG_ROOT")" = '0|0|700' ] || return 1
+  [ "$(stat -c '%F|%u|%g|%a|%h|%s' "$DOCKER_CONFIG_ROOT/config.json")" = 'regular file|0|0|600|1|2' ] || return 1
+  [ "$(cat "$DOCKER_CONFIG_ROOT/config.json")" = '{}' ] || return 1
+  [ "$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" context show)" = default ] || return 1
+  /usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default version >/dev/null 2>&1 || return 1
   local image_row
-  image_row="$(/usr/bin/docker --context=default image inspect "$IMAGE_REF" --format '{{.Id}}|{{.Os}}|{{.Architecture}}|{{index .Config.Labels "org.opencontainers.image.revision"}}')" || return 1
+  image_row="$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default image inspect "$IMAGE_REF" --format '{{.Id}}|{{.Os}}|{{.Architecture}}|{{index .Config.Labels "org.opencontainers.image.revision"}}')" || return 1
   [ "$image_row" = "$IMAGE_CONFIG|linux|amd64|$RELEASE_COMMIT" ] || return 1
-  [ -z "$(/usr/bin/docker --context=default container ls -aq --filter "name=^/${CONTAINER_NAME}$")" ] || return 1
+  [ -z "$(/usr/bin/docker --config "$DOCKER_CONFIG_ROOT" --context=default container ls -aq --filter "name=^/${CONTAINER_NAME}$")" ] || return 1
   [ "$(ss -Htan state established | awk '$4 ~ /:5432$/ || $5 ~ /:5432$/ {n++} END {print n+0}')" = 0 ] || return 1
+}
+
+prepare_docker_config() {
+  [ ! -e "$DOCKER_CONFIG_ROOT" ] && [ ! -L "$DOCKER_CONFIG_ROOT" ] || return 1
+  install -d -o root -g root -m 0700 "$DOCKER_CONFIG_ROOT" || return 1
+  (set -o noclobber; printf '%s' '{}' >"$DOCKER_CONFIG_ROOT/config.json") || return 1
+  chown root:root "$DOCKER_CONFIG_ROOT/config.json" || return 1
+  chmod 0600 "$DOCKER_CONFIG_ROOT/config.json" || return 1
 }
 
 readback() {
@@ -109,9 +120,10 @@ PY
 
 generate() {
   [ "$(id -u)" = 0 ] && [ "$(id -g)" = 0 ] || emit_fixed FAIL root 3
-  for tool in python3 openssl docker systemctl stat find sort ss awk mkdir; do command -v "$tool" >/dev/null 2>&1 || emit_fixed FAIL tool 3; done
+  for tool in python3 openssl docker systemctl stat find sort ss awk mkdir install chown chmod; do command -v "$tool" >/dev/null 2>&1 || emit_fixed FAIL tool 3; done
   [ -d /var/lib/noteai ] && [ ! -L /var/lib/noteai ] && [ "$(stat -c '%u|%g|%a' /var/lib/noteai)" = '0|0|700' ] || emit_fixed FAIL parent 3
   [ ! -e "$BASE_ROOT" ] && [ ! -L "$BASE_ROOT" ] || emit_fixed UNKNOWN preexisting_base 4
+  prepare_docker_config || emit_fixed UNKNOWN unexpected 4
   current_machine_preflight || emit_fixed FAIL machine_preflight 3
   mkdir -m 0700 "$BASE_ROOT" || emit_fixed UNKNOWN base_create 4
   mkdir -m 0700 "$CONTROL_ROOT" || emit_fixed UNKNOWN control_create 4

@@ -47,7 +47,7 @@ _SOURCE_ROWS = (
     (
         "tools/render_item26_restored_ops_v1.py",
         38654,
-        "9f9bcd0285675b3444d4157f5657e502ee6b5a500e1ab597354e4c1552a46e68",
+        "260cc05f06bf2a2997903b0a593fa53a6f98d3d7a443252c3620b0fca33b33f2",
     ),
     (
         "tools/render_item26_restored_preflight_v1.py",
@@ -71,8 +71,8 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-restored-builder-keygen-v1.template.sh",
-        10007,
-        "91f6c99049ab9eb5fe5ef13427d4adcd93af99a85d5ab90306c1e4360ddcb32d",
+        10854,
+        "969acad9a5d4f9f275f09e0b5303131a38cf7dc309149b0417388b1a611897cb",
     ),
     (
         ".codex/item26-restored-package-broker-v1.template.sh",
