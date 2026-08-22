@@ -13414,6 +13414,11 @@ Colima, database, builder, restore and cloud actions remain frozen.
   API-C preflight and rewrap command names, and refreshes existing byte/SHA
   bindings and tests.  No Secret, host environment value, global Docker auth,
   provider payload or database content is read or written.
+- A post-push static audit found that the preflight root had moved to the
+  successor namespace while its container inventory still named the old
+  container.  The unmodified `e9a1731` CI was left to finish naturally; the
+  only follow-up change aligns that one inventory entry and adds an exact
+  old-name rejection assertion before any successor cloud command is sent.
 - Focused restore tests pass `62/62` in normal and optimized modes; affected
   Python and shell syntax pass; internal readiness remains `25/29` and public
   readiness `25/38`; production readiness passes `138/138` in both modes.

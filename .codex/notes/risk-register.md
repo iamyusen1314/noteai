@@ -3568,6 +3568,10 @@ Last updated: 2026-08-19
   root/container与fresh API-C preflight/rewrap names，并同步现有renderer/bridge
   identities和tests。normal/-O focused各62/62、internal各25/29、production各
   138/138均PASS。
+- 后推送静审发现preflight虽已检查successor root，container inventory仍引用旧名；
+  这会漏掉残留successor container并把失败推迟到CREATE。未取消或重跑e9a1731的
+  既有CI；follow-up仅同步该一项并加入旧名拒绝断言，任何successor cloud dispatch
+  仍保持0。
 - 资源风险: 构建机StopCharging调用仍等待阿里云本人安全验证，尚未派发；唯一
   replacement clone继续Postpaid计费但DB连接仍0。验证后必须先读回builder
   Stopped/StopCharging，再提交/push successor并等待unique双CI；不得在旧namespace

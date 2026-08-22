@@ -71,7 +71,7 @@ class Item26PasswordRewrapV1Tests(unittest.TestCase):
         ):
             self.assertIn(marker, self.source)
         self.assertNotIn("rm -rf", self.source)
-        self.assertNotIn("/var/lib/noteai/item26-restored-password-rewrap-v1", self.source)
+        self.assertNotIn("/var/lib/noteai-item26-restored-password-rewrap-v1", self.source)
 
     def test_empty_helper_stderr_uses_the_gnu_empty_file_type(self):
         self.assertIn(

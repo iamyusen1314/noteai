@@ -52,7 +52,7 @@ _SOURCE_ROWS = (
     (
         "tools/render_item26_restored_preflight_v1.py",
         13394,
-        "e57d92a9e546c165a06500fcabef93ac48c97b1742f564c29532d136982a58e1",
+        "14add33096161abb1784193477ce72e8cda0e9545f5a9bac72561058b10d35ca",
     ),
     (
         "tools/render_item26_restored_v1_transport.py",
@@ -101,8 +101,8 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-restored-api-c-preflight-v1.template.sh",
-        22271,
-        "b3a2d0162d91b4d89dcb8b29e8e96cd2263f9f07d74583aa370773be90954ac5",
+        22281,
+        "98e92d9a8c4741240de1dbddc7844f44f8429b90502a914307f927e1a666d806",
     ),
     (
         ".codex/item26-restored-builder-preflight-v1.template.sh",

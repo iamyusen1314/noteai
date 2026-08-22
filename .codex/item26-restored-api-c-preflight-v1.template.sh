@@ -44,7 +44,7 @@ IMAGE_CONFIG = "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb5
 RELEASE_COMMIT = "cad5ce35664f617c6e19f90a6159285ddf975594"
 DOCKER_CONFIG_ROOT = "/run/noteai-item26-restored-preflight-docker-config-v1"
 CONTAINER_NAMES = (
-    "noteai-item26-password-rewrap-v1",
+    "noteai-item26-password-rewrap-successor-v1",
     "noteai-item26-restored-package-broker-v1",
     "noteai-item26-source-manifest-capture-v2",
     "noteai-item26-source-manifest-capture-v3",
