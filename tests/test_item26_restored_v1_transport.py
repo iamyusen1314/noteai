@@ -85,6 +85,11 @@ class Item26RestoredV1TransportTests(unittest.TestCase):
         self.assertIn("SET LOCAL search_path=pg_catalog,public", capture)
         self.assertIn("current_setting('search_path')='pg_catalog, public'", capture)
         self.assertIn("os.O_EXCL|os.O_NOFOLLOW", capture)
+        self.assertIn("ITEM26_RESTORED_SUCCESSOR_V1_ATTEMPT", capture)
+        self.assertIn(
+            "de7dd59a303a5333f60de5c07d5747904b61de41109ff539f6c50f537707c7cd",
+            capture,
+        )
         self.assertIn("reconciliation.json", capture)
         self.assertIn("os.fsync(dirfd)", capture)
         self.assertIn("--cap-drop ALL --cap-add DAC_READ_SEARCH", capture)
@@ -92,6 +97,60 @@ class Item26RestoredV1TransportTests(unittest.TestCase):
         self.assertEqual(capture.count("/usr/sbin/ss -Htan"), 2)
         self.assertNotRegex(capture, r"(?<![/A-Za-z0-9_])ss -Htan")
         self.assertNotIn("cleanup_task", capture)
+
+    def test_retained_transfer_is_ssl_corrected_only_in_memory(self):
+        rendered = self.render()
+        raw = rendered["artifacts"]["capture"]
+        executor = rendered["artifacts"]["executor"].decode("ascii")
+        source = executor.split("def ssl_corrected(raw):\n", 1)[1].split(
+            "\ndef no_duplicates", 1
+        )[0]
+
+        class PatchFailure(Exception):
+            def __init__(self, phase, spawned=False, transfer="UNVERIFIED"):
+                super().__init__(phase)
+                self.phase = phase
+                self.spawned = spawned
+                self.transfer = transfer
+
+        expected = restored._ssl_corrected_capture(raw)
+        namespace = {
+            "Failure": PatchFailure,
+            "PATCHED_RAW_BYTES": len(expected),
+            "PATCHED_RAW_SHA256": hashlib.sha256(expected).hexdigest(),
+            "hashlib": hashlib,
+        }
+        exec("def ssl_corrected(raw):\n" + source, namespace)
+        corrected = namespace["ssl_corrected"](raw)
+
+        self.assertEqual(
+            hashlib.sha256(raw).hexdigest(),
+            rendered["sizing"]["capture"]["sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(rendered["artifacts"]["capture_gzip"]).hexdigest(),
+            rendered["sizing"]["capture_gzip"]["sha256"],
+        )
+        self.assertNotEqual(corrected, raw)
+        self.assertIn(b"capture-ssl-corrected-attempted-v1", corrected)
+        self.assertIn(b"capture-ssl-corrected-task-v1", corrected)
+        self.assertIn(b"restored-manifest-ssl-corrected-v1", corrected)
+        self.assertNotIn(b"capture-successor-attempted-v1", corrected)
+        self.assertIn(
+            b'query.get("sslmode")!="require"',
+            corrected,
+        )
+        self.assertIn(
+            b'values.update({**query,"sslmode":"disable","channel_binding":"disable"})',
+            corrected,
+        )
+        self.assertIn(b"ITEM26_RESTORED_CORRECTED_V1_ATTEMPT\\n", corrected)
+        self.assertIn(
+            b"8d4960991e090cf39ffe81fb91d8608117a5d1ee25c39915192d2662056581c6",
+            corrected,
+        )
+        with self.assertRaises(PatchFailure):
+            namespace["ssl_corrected"](corrected)
 
     def test_wrapper_rejects_extra_terminal_fields(self):
         template = restored.CAPTURE_WRAPPER_TEMPLATE.decode("ascii")
@@ -127,11 +186,12 @@ class Item26RestoredV1TransportTests(unittest.TestCase):
         value["unexpected"] = "secret-boundary-bypass"
         self.assertFalse(namespace["exact_contract"](value, 3))
 
-    def test_capture_preconnect_phase_is_accepted_by_both_outer_layers(self):
+    def test_capture_specific_driver_phase_is_accepted_by_both_outer_layers(self):
         capture = (
             ROOT / ".codex/item26-restored-capture-v1.template.sh"
         ).read_text()
-        self.assertIn('"phase":"driver_preconnect_failure"', capture)
+        self.assertIn('print("driver_"+row["code"])', capture)
+        self.assertIn('"OperationalError"', capture)
         executor = (
             ROOT / ".codex/item26-restored-capture-executor-v1.template.sh"
         ).read_text()
@@ -146,7 +206,7 @@ class Item26RestoredV1TransportTests(unittest.TestCase):
             "database_attempted_state": "NO",
             "incident_class": "PRE_CONNECT",
             "new_capture_allowed": False,
-            "phase": "driver_preconnect_failure",
+            "phase": "driver_backend",
             "same_invocation_replay_allowed": False,
         }
         self.assertTrue(namespace["exact_contract"](terminal, 3))

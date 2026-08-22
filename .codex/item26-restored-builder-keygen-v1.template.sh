@@ -15,17 +15,17 @@ readonly CONTROL_ROOT="$BASE_ROOT/control"
 readonly PRIVATE_KEY="$CONTROL_ROOT/control-private.pem"
 readonly PUBLIC_KEY="$CONTROL_ROOT/control-public.pem"
 readonly PUBLIC_METADATA="$BASE_ROOT/keygen-public-metadata.json"
-readonly ENVELOPE="$CONTROL_ROOT/control-envelope.json"
-readonly TRANSFER="$BASE_ROOT/restored-capture-transfer-v1.sh.gz"
-readonly CAPTURE_TASK="$BASE_ROOT/capture-task-v1"
-readonly FINAL_ROOT="$BASE_ROOT/restored-manifest-v1"
-readonly ATTEMPT="$BASE_ROOT/capture-attempted-v1"
+readonly ENVELOPE="$CONTROL_ROOT/control-envelope-successor-v1.json"
+readonly TRANSFER="$BASE_ROOT/restored-capture-transfer-successor-v1.sh.gz"
+readonly CAPTURE_TASK="$BASE_ROOT/capture-successor-task-v1"
+readonly FINAL_ROOT="$BASE_ROOT/restored-manifest-successor-v1"
+readonly ATTEMPT="$BASE_ROOT/capture-successor-attempted-v1"
 readonly DOCKER_CONFIG_ROOT='/run/noteai-item26-restored-keygen-docker-config-v1'
 readonly IMAGE_REF='noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b'
 readonly IMAGE_CONFIG='sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95'
 readonly RELEASE_COMMIT='cad5ce35664f617c6e19f90a6159285ddf975594'
 readonly BUILDER_IDENTITY_SHA256='@@BUILDER_IDENTITY_SHA256@@'
-readonly CONTAINER_NAME='noteai-item26-restored-capture-v1'
+readonly CONTAINER_NAME='noteai-item26-restored-capture-successor-v1'
 export DOCKER_CONFIG="$DOCKER_CONFIG_ROOT"
 
 emit_fixed() {

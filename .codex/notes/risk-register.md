@@ -3576,3 +3576,25 @@ Last updated: 2026-08-19
   replacement clone继续Postpaid计费但DB连接仍0。验证后必须先读回builder
   Stopped/StopCharging，再提交/push successor并等待unique双CI；不得在旧namespace
   重做rewrap或提前进入broker/capture。
+
+## Item 26 原始DoD隔离恢复风险已闭合（2026-08-23）
+
+- 状态: Closed。此前的`persistent_parent`、环境basename、空文件metadata、
+  Docker/`ss`及SSL运行时风险均由各自确定性最小修复闭合；历史失败invocation保持
+  原样且未被改写或盲目重放。
+- 验收事实: 唯一SSL-corrected restored capture终态`Success / exit=0`，数据库
+  connection/transaction/write=`1/1/0`、terminal=`ROLLBACK`，PG16、56 tables、
+  17 migrations、19 RLS、FORCE0及source/restored精确对账全部PASS。生产数据库
+  connection/write=`0/0`，Secret emission=`0`。
+- 零残留: 临时clone、builder `/32`、task roots/config/container/socket/key、临时
+  source account、task RAM role/policy、两个task vSwitch及DBS服务关联角色均已删除
+  或停止，并由权威读回证明residue=`0`；共享builder保留但为
+  `Stopped/StopCharging`，生产source保持唯一、Running且身份未漂移。
+- 范围控制: 五provider槽、raw closure、stock CLI OAuth、dedicated root helper、
+  credential capsule及其authority链是后加证明/实现结构，不属于原始Item26硬性
+  DoD，本轮没有新增或重跑。Item26信用提升至`26/29`；下一风险域是Item27私有
+  zero-provider smoke，必须在新窗口单独启动。
+- 费用残余仅为云厂商Postpaid账单的异步结算可见性：Item26新增临时clone已删除，
+  builder计算费已由`Stopped/StopCharging`终止；共享builder既有系统盘仍按原基线
+  计费，不是Item26临时资源残留。该结算时差不阻塞Item26验收；最终账单到达后可
+  按正常财务对账读取，不得据此重建任何Item26资源。

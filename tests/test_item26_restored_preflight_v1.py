@@ -153,6 +153,14 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
             self.assertNotIn(b"CommandName", raw)
             self.assertNotIn(b"20260813", raw)
 
+        builder_source = ops.PATHS["builder"].read_text(encoding="ascii")
+        self.assertIn("noteai-item26-restored-capture-v1", builder_source)
+        self.assertIn("noteai-item26-restored-capture-successor-v1", builder_source)
+        self.assertIn(
+            "noteai-item26-restored-capture-ssl-corrected-v1",
+            builder_source,
+        )
+
     def test_loader_accepts_only_exact_pass_fail_and_unknown_schemas(self):
         cases = (
             ("api_c", self.api_pass(), 0),
@@ -408,6 +416,37 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
             namespace["docker_config_exact"]()
         self.assertTrue(caught.exception.unknown)
         self.assertEqual(caught.exception.phase, "docker_runtime")
+
+    def test_builder_preflight_rejects_ssl_corrected_container_residue(self):
+        namespace = self.host_namespace("builder")
+        failure = namespace["Failure"]
+        image = (
+            namespace["IMAGE_CONFIG"]
+            + "|linux|amd64|"
+            + namespace["RELEASE_COMMIT"]
+            + "\n"
+        ).encode("ascii")
+        command = mock.Mock(side_effect=[
+            (0, b"active\n", b""),
+            (0, b"enabled\n", b""),
+            (0, b"version\n", b""),
+            (0, image, b""),
+            (0, b"", b""),
+            (0, b"", b""),
+            (0, b"noteai-item26-restored-capture-ssl-corrected-v1\n", b""),
+        ])
+        with mock.patch.dict(namespace, {
+            "command": command,
+            "docker_config_exact": mock.Mock(return_value=None),
+        }), self.assertRaises(failure) as caught:
+            namespace["docker_exact"]()
+        self.assertTrue(caught.exception.unknown)
+        self.assertEqual(caught.exception.phase, "container_present")
+        calls = [call.args[0] for call in command.call_args_list]
+        self.assertTrue(any(
+            "name=^/noteai-item26-restored-capture-ssl-corrected-v1$" in call
+            for call in calls
+        ))
 
     def test_cli_renders_both_preflights_and_rejects_wrong_builder_role(self):
         request = ops.canonical({

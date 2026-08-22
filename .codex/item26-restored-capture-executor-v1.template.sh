@@ -13,18 +13,21 @@ unset ALICLOUD_ACCESS_KEY ALICLOUD_SECRET_KEY ALICLOUD_SECURITY_TOKEN OSS_ACCESS
 exec python3 -I -B - <<'PY'
 import gzip,hashlib,json,os,re,signal,stat,subprocess
 
-TRANSFER="/var/lib/noteai/item26-restored-v1/restored-capture-transfer-v1.sh.gz"
+TRANSFER="/var/lib/noteai/item26-restored-v1/restored-capture-transfer-successor-v1.sh.gz"
 TRANSFER_BYTES=@@TRANSFER_BYTES@@
 TRANSFER_SHA256="@@TRANSFER_SHA256@@"
 RAW_BYTES=@@RAW_BYTES@@
 RAW_SHA256="@@RAW_SHA256@@"
+PATCHED_RAW_BYTES=@@PATCHED_RAW_BYTES@@
+PATCHED_RAW_SHA256="@@PATCHED_RAW_SHA256@@"
 HEX64=re.compile(r"^[0-9a-f]{64}$")
 CONNECTED=frozenset("NOTEAI_ITEM26_RESTORED_CAPTURE attempt_sentinel_retained automatic_retry_allowed comparison_exact container_residue_count control_material_retained database_connection_count database_transaction_count database_write_count force_rls_table_count incident_class managed_owner_activation_count manifest_bytes mismatch_codes new_capture_allowed object_contents_read object_keys_emitted object_write_count oss_get_request_count oss_head_request_count oss_list_request_count oss_operation_mode owner_mismatch_count owner_table_contract_exact persistent_permission_mutation_count postgresql_major_version readback_required reconciliation_retained reconciliation_schema_version restored_manifest_file_sha256 restored_manifest_retained restored_manifest_sha256 rls_contract_exact rls_table_count row_security_off row_values_emitted runtime_container_start_count same_invocation_replay_allowed search_path_exact secret_values_emitted source_manifest_sha256 table_count task_root_retained transaction_terminal transfer_retained verified".split())
 PRECONNECT=frozenset("NOTEAI_ITEM26_RESTORED_CAPTURE automatic_retry_allowed database_attempted_state incident_class new_capture_allowed phase same_invocation_replay_allowed".split())
 UNKNOWN=PRECONNECT|{"readback_required"}
 EXECUTOR=UNKNOWN|{"transfer_state"}
-PHASES=frozenset("absolute_tool container_cleanup control_inventory control_root db_socket_after db_socket_before docker_service docker_version driver_contract driver_preconnect_failure driver_stderr driver_stdout driver_terminal envelope envelope_hash final_fsync final_hash final_inventory final_manifest final_move final_preexisting final_receipt final_receipt_hash final_root identity image key_pair output_inventory persistent_parent persistent_root preconnect_contract preconnect_retention preconnect_stderr preconnect_stdout preexisting_capture_state preflight private_hash private_key public_hash public_key receipt replay_barrier restored_read_only_capture root task_container task_identity task_retention terminal_promotion tool".split())
-EXECUTOR_PHASES=frozenset("capture_contract capture_failure_stream capture_json capture_output_limit capture_pass_stream capture_returncode capture_shape capture_spawn capture_timeout executor_exception executor_preflight raw_hash transfer_after_capture transfer_hash transfer_metadata".split())
+PHASES=frozenset("absolute_tool container_cleanup control_inventory control_root db_socket_after db_socket_before docker_service docker_version envelope envelope_hash final_fsync final_hash final_inventory final_manifest final_move final_preexisting final_receipt final_receipt_hash final_root identity image key_pair output_inventory persistent_parent persistent_root preconnect_contract preconnect_retention preconnect_stderr preconnect_stdout preexisting_capture_state preflight private_hash private_key public_hash public_key receipt replay_barrier restored_read_only_capture root task_container task_identity task_retention terminal_promotion tool".split())
+DRIVER_PHASE=re.compile(r"^driver_[A-Za-z_]{1,32}$")
+EXECUTOR_PHASES=frozenset("capture_contract capture_failure_stream capture_json capture_output_limit capture_pass_stream capture_returncode capture_shape capture_spawn capture_timeout executor_exception executor_preflight raw_hash ssl_patch transfer_after_capture transfer_hash transfer_metadata".split())
 MISMATCH=frozenset("release_commit database_engine database_schema database_migrations database_tables database_references private_objects".split())
 
 class Failure(Exception):
@@ -79,6 +82,14 @@ def transfer_still_exact(dirfd,fd,before):
         return (current.st_dev,current.st_ino,current.st_mode,current.st_uid,current.st_gid,current.st_nlink,current.st_size)==expected and (after.st_dev,after.st_ino,after.st_mode,after.st_uid,after.st_gid,after.st_nlink,after.st_size)==expected and len(body)==TRANSFER_BYTES and hashlib.sha256(body).hexdigest()==TRANSFER_SHA256
     except BaseException: return False
 
+def ssl_corrected(raw):
+    patches=((b"capture-successor-attempted-v1",b"capture-ssl-corrected-attempted-v1",1),(b"capture-successor-task-v1",b"capture-ssl-corrected-task-v1",1),(b"restored-manifest-successor-v1",b"restored-manifest-ssl-corrected-v1",1),(b"restored-capture-successor-v1",b"restored-capture-ssl-corrected-v1",2),(b"ITEM26_RESTORED_SUCCESSOR_V1_ATTEMPT\\n",b"ITEM26_RESTORED_CORRECTED_V1_ATTEMPT\\n",1),(b"de7dd59a303a5333f60de5c07d5747904b61de41109ff539f6c50f537707c7cd",b"8d4960991e090cf39ffe81fb91d8608117a5d1ee25c39915192d2662056581c6",1),(b'query.get("sslmode") not in {"require","verify-ca","verify-full"}',b'query.get("sslmode")!="require"',1),(b'values={"host":host,"port":port,"dbname":database,"user":ACCOUNT,"password":password}; values.update(query)',b'values={"host":host,"port":port,"dbname":database,"user":ACCOUNT,"password":password}; values.update({**query,"sslmode":"disable","channel_binding":"disable"})',1))
+    for before,after,count in patches:
+        if raw.count(before)!=count or raw.count(after): raise Failure("ssl_patch",False,"EXACT_RETAINED")
+        raw=raw.replace(before,after)
+    if len(raw)!=PATCHED_RAW_BYTES or hashlib.sha256(raw).hexdigest()!=PATCHED_RAW_SHA256: raise Failure("ssl_patch",False,"EXACT_RETAINED")
+    return raw
+
 def no_duplicates(pairs):
     result={}
     for key,value in pairs:
@@ -99,9 +110,9 @@ def exact_contract(value,returncode,allow_executor=False):
         codes=value["mismatch_codes"]
         return type(codes) is list and all(type(x) is str for x in codes) and len(codes)==len(set(codes)) and not set(codes)-MISMATCH and (codes==[] if passed else bool(codes))
     if keys==PRECONNECT:
-        return returncode==3 and value=={**value,"NOTEAI_ITEM26_RESTORED_CAPTURE":"FAIL","automatic_retry_allowed":False,"database_attempted_state":"NO","incident_class":"PRE_CONNECT","new_capture_allowed":False,"same_invocation_replay_allowed":False} and type(value["phase"]) is str and value["phase"] in PHASES
+        return returncode==3 and value=={**value,"NOTEAI_ITEM26_RESTORED_CAPTURE":"FAIL","automatic_retry_allowed":False,"database_attempted_state":"NO","incident_class":"PRE_CONNECT","new_capture_allowed":False,"same_invocation_replay_allowed":False} and type(value["phase"]) is str and (value["phase"] in PHASES or DRIVER_PHASE.fullmatch(value["phase"]) is not None)
     if keys==UNKNOWN:
-        return returncode==4 and value=={**value,"NOTEAI_ITEM26_RESTORED_CAPTURE":"UNKNOWN","automatic_retry_allowed":False,"database_attempted_state":"UNKNOWN","incident_class":"CONNECTED_UNKNOWN","new_capture_allowed":False,"readback_required":True,"same_invocation_replay_allowed":False} and type(value["phase"]) is str and value["phase"] in PHASES
+        return returncode==4 and value=={**value,"NOTEAI_ITEM26_RESTORED_CAPTURE":"UNKNOWN","automatic_retry_allowed":False,"database_attempted_state":"UNKNOWN","incident_class":"CONNECTED_UNKNOWN","new_capture_allowed":False,"readback_required":True,"same_invocation_replay_allowed":False} and type(value["phase"]) is str and (value["phase"] in PHASES or DRIVER_PHASE.fullmatch(value["phase"]) is not None)
     if allow_executor and keys==EXECUTOR:
         return returncode in (3,4) and value["NOTEAI_ITEM26_RESTORED_CAPTURE"]==("FAIL" if returncode==3 else "UNKNOWN") and value["automatic_retry_allowed"] is False and value["database_attempted_state"]==("NO" if returncode==3 else "UNKNOWN") and value["incident_class"]==("PRE_CONNECT" if returncode==3 else "CONNECTED_UNKNOWN") and value["new_capture_allowed"] is False and value["readback_required"] is (returncode==4) and value["same_invocation_replay_allowed"] is False and type(value["phase"]) is str and value["phase"] in EXECUTOR_PHASES and value["transfer_state"] in ({"UNVERIFIED","EXACT_RETAINED"} if returncode==3 else {"UNKNOWN"})
     return False
@@ -137,8 +148,9 @@ def validate_terminal(returncode,stdout,stderr):
 
 dirfd=None; fd=None; spawned=False
 try:
-    if os.geteuid()!=0 or os.getegid()!=0 or type(TRANSFER_BYTES) is not int or type(RAW_BYTES) is not int or not 1<=TRANSFER_BYTES<=131072 or not 1<=RAW_BYTES<=131072 or HEX64.fullmatch(TRANSFER_SHA256) is None or HEX64.fullmatch(RAW_SHA256) is None: raise Failure("executor_preflight")
+    if os.geteuid()!=0 or os.getegid()!=0 or type(TRANSFER_BYTES) is not int or type(RAW_BYTES) is not int or type(PATCHED_RAW_BYTES) is not int or not 1<=TRANSFER_BYTES<=131072 or not 1<=RAW_BYTES<=131072 or not 1<=PATCHED_RAW_BYTES<=131072 or HEX64.fullmatch(TRANSFER_SHA256) is None or HEX64.fullmatch(RAW_SHA256) is None or HEX64.fullmatch(PATCHED_RAW_SHA256) is None: raise Failure("executor_preflight")
     dirfd,fd,before,raw=read_transfer()
+    raw=ssl_corrected(raw)
     returncode,stdout,stderr=run(raw); spawned=True
     if not transfer_still_exact(dirfd,fd,before): raise Failure("transfer_after_capture",True,"UNKNOWN")
     terminal=validate_terminal(returncode,stdout,stderr)

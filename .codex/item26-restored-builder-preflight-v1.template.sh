@@ -33,7 +33,11 @@ RESTORED_BASE = "/var/lib/noteai/item26-restored-v1"
 IMAGE_REF = "noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b"
 IMAGE_CONFIG = "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95"
 RELEASE_COMMIT = "cad5ce35664f617c6e19f90a6159285ddf975594"
-CONTAINER_NAME = "noteai-item26-restored-capture-v1"
+CONTAINER_NAMES = (
+    "noteai-item26-restored-capture-v1",
+    "noteai-item26-restored-capture-successor-v1",
+    "noteai-item26-restored-capture-ssl-corrected-v1",
+)
 DOCKER_CONFIG_ROOT = "/run/noteai-item26-restored-preflight-docker-config-v1"
 MIN_MEMORY_KIB = 15 * 1024 * 1024
 MIN_FILESYSTEM_BYTES = 100 * 1024 * 1024 * 1024
@@ -377,24 +381,25 @@ def docker_exact():
         raise Failure("image_runtime", True)
     if stdout != expected:
         raise Failure("image")
-    returncode, stdout, stderr = command(
-        docker_command(
-            "--context=default",
-            "container",
-            "ls",
-            "-a",
-            "--filter",
-            "name=^/" + CONTAINER_NAME + "$",
-            "--format",
-            "{{.Names}}",
-        ),
-        "docker",
-        limit=4096,
-    )
-    if returncode != 0 or stderr:
-        raise Failure("docker_runtime", True)
-    if stdout:
-        raise Failure("container_present", True)
+    for container_name in CONTAINER_NAMES:
+        returncode, stdout, stderr = command(
+            docker_command(
+                "--context=default",
+                "container",
+                "ls",
+                "-a",
+                "--filter",
+                "name=^/" + container_name + "$",
+                "--format",
+                "{{.Names}}",
+            ),
+            "docker",
+            limit=4096,
+        )
+        if returncode != 0 or stderr:
+            raise Failure("docker_runtime", True)
+        if stdout:
+            raise Failure("container_present", True)
     path_absent(DOCKER_CONFIG_ROOT, "docker_config")
 
 

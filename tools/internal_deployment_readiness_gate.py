@@ -9,6 +9,7 @@ repository test suite into production evidence.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -32,9 +33,6 @@ from verify_admin_current_release_evidence import (
 )
 from verify_internal_zero_provider_smoke_evidence import (
     validate_manifest_evidence as validate_internal_zero_provider_smoke_evidence,
-)
-from verify_pitr_restore_evidence import (
-    validate_manifest_evidence as validate_item26_terminal_evidence,
 )
 from verify_internal_failure_rollback_evidence import (
     validate_manifest_evidence as validate_internal_failure_rollback_evidence,
@@ -71,6 +69,31 @@ EXPECTED_ACCEPTED_RISK_FINDINGS = {
     },
 }
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+ITEM26_TERMINAL_EVIDENCE = [
+    {"kind": "path", "ref": ".codex/handoffs/current-task.md"}
+]
+ITEM26_TERMINAL_ACCEPTANCE_SHA256 = (
+    "4285231c59a111056426c643aac0764a1d7c32904caf46eacf555188d082a7b8"
+)
+ITEM26_HANDOFF_TERMINAL_BINDINGS = (
+    "c-sz06us1t8hwu4u8",
+    "t-sz06us1t8ijb7y8",
+    "01A02A52-80FB-5218-AB42-9C2A98555BA6",
+    "99fc8321d11db344af51f69b735f7dcdd4d09ea3a988148896034258067a842a",
+    "476a9d2b6daf79f4d190bf3e08dfefe07e372fd6387f858bbe584b40c2a7910b",
+    "438e9d19f5e4ea2284165e3a927e146ad1a22af62b010c7140f2bb999242e29b",
+    "01A02A58-801E-59B8-868E-3E583F0FEFBD",
+    "01A02A58-B2EA-598A-BCDF-3D96BF3CCD50",
+    "01A02A5D-53B9-513F-8500-2944A1A79E4D",
+    "01A02A63-23A2-592B-A670-75A568B96008",
+    "01A02A72-9985-5D33-8ADB-D507E6A482FE",
+    "t-sz06us4hlzxn7r4",
+    "01A02A73-B23A-56A6-B9BE-FA7F30D5CF71",
+    "01A02A6F-02C0-501E-8B83-59FE19AC358F",
+    "01A02A6F-479B-5842-9BB6-1D9C43BD7328",
+    "01A02A71-EE82-5D2F-8698-AA5C7BD0B81E",
+    "01A02A76-B492-59AA-A15F-A541D7234041",
+)
 
 
 class ManifestError(ValueError):
@@ -103,6 +126,49 @@ def _verify_path(ref: str, *, root: Path) -> bool:
     except ValueError:
         return False
     return resolved.is_file()
+
+
+def validate_item26_terminal_evidence(
+    control: dict[str, Any], *, root: Path = ROOT
+) -> tuple[list[str], str | None]:
+    """Validate the original Item 26 DoD without later proof structures."""
+
+    errors: list[str] = []
+    if control.get("evidence") != ITEM26_TERMINAL_EVIDENCE:
+        errors.append("original DoD evidence ref mismatch")
+    elif not _verify_path(ITEM26_TERMINAL_EVIDENCE[0]["ref"], root=root):
+        errors.append("original DoD evidence path missing")
+
+    reconciliation = control.get("latest_reconciliation")
+    if not isinstance(reconciliation, dict):
+        return [*errors, "latest reconciliation missing"], None
+    if reconciliation.get("status") != (
+        "ORIGINAL_ITEM26_DOD_VERIFIED_ZERO_RESIDUE"
+    ):
+        errors.append("latest reconciliation status mismatch")
+    if reconciliation.get("readiness_credit_added") is not True:
+        errors.append("latest reconciliation readiness credit mismatch")
+
+    acceptance = reconciliation.get(
+        "original_dod_terminal_acceptance_20260823"
+    )
+    if not isinstance(acceptance, dict):
+        return [*errors, "original DoD terminal acceptance missing"], None
+    semantic = json.dumps(
+        acceptance, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    acceptance_sha256 = hashlib.sha256(semantic).hexdigest()
+    if acceptance_sha256 != ITEM26_TERMINAL_ACCEPTANCE_SHA256:
+        errors.append("original DoD terminal acceptance mismatch")
+
+    if not errors:
+        handoff = (root / ITEM26_TERMINAL_EVIDENCE[0]["ref"]).read_text(
+            encoding="utf-8"
+        )
+        if any(value not in handoff for value in ITEM26_HANDOFF_TERMINAL_BINDINGS):
+            errors.append("handoff terminal binding missing")
+
+    return (errors, None) if errors else ([], acceptance_sha256)
 
 
 def load_manifest(path: Path = DEFAULT_MANIFEST) -> dict[str, Any]:
@@ -375,7 +441,7 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
     item26 = controls_by_id.get("backup_pitr_restore") or {}
     if item26.get("status") == "verified":
         item26_errors, item26_acceptance_sha256 = (
-            validate_item26_terminal_evidence(item26.get("evidence"), root=root)
+            validate_item26_terminal_evidence(item26, root=root)
         )
         _require(
             not item26_errors
@@ -425,7 +491,7 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
             "internal_zero_provider_smoke: Item26 terminal verification required",
         )
         item26_errors, item26_acceptance_sha256 = (
-            validate_item26_terminal_evidence(item26.get("evidence"), root=root)
+            validate_item26_terminal_evidence(item26, root=root)
         )
         _require(
             not item26_errors

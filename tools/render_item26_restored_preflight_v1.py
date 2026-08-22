@@ -30,8 +30,8 @@ IDENTITIES = MappingProxyType({
         "sha256": "98e92d9a8c4741240de1dbddc7844f44f8429b90502a914307f927e1a666d806",
     }),
     "builder": MappingProxyType({
-        "bytes": 16256,
-        "sha256": "419bce950558e77c4c2ae40a7d3e1d4a0d5bde9b1d9cbf250b12b93d323d9d4a",
+        "bytes": 16487,
+        "sha256": "388beab5172bdbbfee929fbb1ba0576ca9b5438406a297757d050333d77fe363",
     }),
 })
 COUNTS = MappingProxyType({

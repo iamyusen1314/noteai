@@ -23,8 +23,8 @@ CONTROL=BASE+"/control"
 PRIVATE=CONTROL+"/control-private.pem"
 PUBLIC=CONTROL+"/control-public.pem"
 KEYGEN=BASE+"/keygen-public-metadata.json"
-ENVELOPE=CONTROL+"/control-envelope.json"
-TRANSFER=BASE+"/restored-capture-transfer-v1.sh.gz"
+ENVELOPE=CONTROL+"/control-envelope-successor-v1.json"
+TRANSFER=BASE+"/restored-capture-transfer-successor-v1.sh.gz"
 RECEIPT=BASE+"/stage-receipt-v1.json"
 HEX64=re.compile(r"^[0-9a-f]{64}$")
 
@@ -132,8 +132,8 @@ def read_receipt():
 
 def finalize():
     if os.path.lexists(RECEIPT): raise Failure("replay_barrier",True)
-    if sorted(os.listdir(BASE))!=["control","keygen-public-metadata.json","restored-capture-transfer-v1.sh.gz"]: raise Failure("base_inventory",True)
-    if sorted(os.listdir(CONTROL))!=["control-envelope.json","control-private.pem","control-public.pem"]: raise Failure("control_inventory",True)
+    if sorted(os.listdir(BASE))!=["control","keygen-public-metadata.json","restored-capture-transfer-successor-v1.sh.gz"]: raise Failure("base_inventory",True)
+    if sorted(os.listdir(CONTROL))!=["control-envelope-successor-v1.json","control-private.pem","control-public.pem"]: raise Failure("control_inventory",True)
     if artifact(ENVELOPE,ENVELOPE_BYTES,ENVELOPE_SHA256,True) is not True or artifact(TRANSFER,TRANSFER_BYTES,TRANSFER_SHA256,True) is not True: raise Failure("artifact_absent",True)
     fsync_dir(CONTROL); fsync_dir(BASE)
     body=canonical(receipt_value()); fd=os.open(RECEIPT,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
@@ -154,11 +154,11 @@ def readback():
     inventory=sorted(os.listdir(CONTROL))
     base_inventory=sorted(os.listdir(BASE))
     if receipt:
-        if not envelope or not transfer or inventory!=["control-envelope.json","control-private.pem","control-public.pem"] or base_inventory!=["control","keygen-public-metadata.json","restored-capture-transfer-v1.sh.gz","stage-receipt-v1.json"]: raise Failure("terminal_inventory",True)
+        if not envelope or not transfer or inventory!=["control-envelope-successor-v1.json","control-private.pem","control-public.pem"] or base_inventory!=["control","keygen-public-metadata.json","restored-capture-transfer-successor-v1.sh.gz","stage-receipt-v1.json"]: raise Failure("terminal_inventory",True)
         emit(read_receipt(),0)
     if not envelope and not transfer and inventory==["control-private.pem","control-public.pem"] and base_inventory==["control","keygen-public-metadata.json"]: state="KEYGEN_ONLY"
-    elif envelope and not transfer and inventory==["control-envelope.json","control-private.pem","control-public.pem"] and base_inventory==["control","keygen-public-metadata.json"]: state="ENVELOPE_EXACT"
-    elif envelope and transfer and inventory==["control-envelope.json","control-private.pem","control-public.pem"] and base_inventory==["control","keygen-public-metadata.json","restored-capture-transfer-v1.sh.gz"]: state="READY_TO_FINALIZE"
+    elif envelope and not transfer and inventory==["control-envelope-successor-v1.json","control-private.pem","control-public.pem"] and base_inventory==["control","keygen-public-metadata.json"]: state="ENVELOPE_EXACT"
+    elif envelope and transfer and inventory==["control-envelope-successor-v1.json","control-private.pem","control-public.pem"] and base_inventory==["control","keygen-public-metadata.json","restored-capture-transfer-successor-v1.sh.gz"]: state="READY_TO_FINALIZE"
     else: raise Failure("partial_inventory",True)
     emit({"NOTEAI_ITEM26_RESTORED_BUILDER_STAGE":state,"automatic_retry_allowed":False,"finalize_allowed":state=="READY_TO_FINALIZE","materials_retained":True,"new_sendfile_allowed":False,"same_invocation_replay_allowed":False,"secret_values_emitted":0},0)
 

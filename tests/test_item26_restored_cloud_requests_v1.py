@@ -64,57 +64,57 @@ class Item26RestoredCloudRequestsV1Tests(unittest.TestCase):
     def test_fixed_eleven_action_matrix(self):
         expected = {
             "preflight_api_c": (
-                "noteai-item26-restored-preflight-api-c-successor-20260822-v1",
+                "noteai-item26-restored-preflight-api-c-successor-final-20260822-v1",
                 "api_c",
                 120,
             ),
             "preflight_builder": (
-                "noteai-item26-restored-preflight-builder-20260821-v1",
+                "noteai-item26-restored-preflight-builder-successor-20260822-v1",
                 "builder",
                 120,
             ),
             "keygen_generate": (
-                "noteai-item26-restored-keygen-generate-20260821-v1",
+                "noteai-item26-restored-keygen-generate-successor-20260822-v1",
                 "builder",
                 120,
             ),
             "keygen_readback": (
-                "noteai-item26-restored-keygen-readback-20260821-v1",
+                "noteai-item26-restored-keygen-readback-successor-20260822-v1",
                 "builder",
                 120,
             ),
             "password_rewrap_create": (
-                "noteai-item26-restored-password-rewrap-create-successor-20260822-v1",
+                "noteai-item26-restored-password-rewrap-create-successor-final-20260822-v1",
                 "api_c",
                 120,
             ),
             "password_rewrap_readback": (
-                "noteai-item26-restored-password-rewrap-readback-successor-20260822-v1",
+                "noteai-item26-restored-password-rewrap-readback-successor-final-20260822-v1",
                 "api_c",
                 120,
             ),
             "package_broker_create": (
-                "noteai-item26-restored-package-broker-create-20260821-v1",
+                "noteai-item26-restored-package-broker-create-successor-20260822-v1",
                 "api_c",
                 120,
             ),
             "package_broker_readback": (
-                "noteai-item26-restored-package-broker-readback-20260821-v1",
+                "noteai-item26-restored-package-broker-readback-successor-20260822-v1",
                 "api_c",
                 120,
             ),
             "builder_stage_finalize": (
-                "noteai-item26-restored-builder-stage-finalize-20260821-v1",
+                "noteai-item26-restored-builder-stage-finalize-successor-20260822-v1",
                 "builder",
                 120,
             ),
             "builder_stage_readback": (
-                "noteai-item26-restored-builder-stage-readback-20260821-v1",
+                "noteai-item26-restored-builder-stage-readback-successor-20260822-v1",
                 "builder",
                 120,
             ),
             "restored_capture": (
-                "noteai-item26-restored-capture-20260821-v1",
+                "noteai-item26-restored-capture-ssl-corrected-20260823-v1",
                 "builder",
                 1500,
             ),
@@ -362,7 +362,7 @@ class Item26RestoredCloudRequestsV1Tests(unittest.TestCase):
     def test_both_send_file_rows_validate_with_raw_sha_and_no_client_token(self):
         self.assertEqual(
             cloud.SEND_FILE_ORDER,
-            ("control-envelope.json", "restored-capture-transfer-v1.sh.gz"),
+            ("control-envelope-successor-v1.json", "restored-capture-transfer-successor-v1.sh.gz"),
         )
         for name in cloud.SEND_FILE_TARGETS:
             with self.subTest(name=name):
@@ -397,8 +397,8 @@ class Item26RestoredCloudRequestsV1Tests(unittest.TestCase):
 
     def test_send_file_plan_requires_both_rows_once_in_fixed_order(self):
         rows = [
-            self.send_file_row("control-envelope.json", b"envelope"),
-            self.send_file_row("restored-capture-transfer-v1.sh.gz", b"transfer"),
+            self.send_file_row("control-envelope-successor-v1.json", b"envelope"),
+            self.send_file_row("restored-capture-transfer-successor-v1.sh.gz", b"transfer"),
         ]
         result = cloud.validate_send_file_plan(rows, self.BUILDER)
         self.assertEqual(result["request_count"], 2)
@@ -424,10 +424,12 @@ class Item26RestoredCloudRequestsV1Tests(unittest.TestCase):
             cloud.validate_send_file_plan(changed, self.BUILDER)
 
     def test_send_file_validator_rejects_wrong_shape_target_types_and_evidence(self):
-        original = self.send_file_row("control-envelope.json")
+        original = self.send_file_row("control-envelope-successor-v1.json")
         cases = []
         for key, value in (
             ("Name", "other"),
+            ("Name", "control-envelope.json"),
+            ("Name", "restored-capture-transfer-v1.sh.gz"),
             ("TargetDir", "/tmp"),
             ("FileMode", 600),
             ("Overwrite", 0),
@@ -460,7 +462,7 @@ class Item26RestoredCloudRequestsV1Tests(unittest.TestCase):
     def test_send_file_base64_limit_is_enforced(self):
         encoded = base64.b64encode(b"x" * 13501)
         self.assertGreater(len(encoded), cloud.MAX_SEND_FILE_CONTENT_BYTES)
-        row = self.send_file_row("restored-capture-transfer-v1.sh.gz")
+        row = self.send_file_row("restored-capture-transfer-successor-v1.sh.gz")
         row["request"]["Content"] = encoded.decode("ascii")
         row["evidence"] = {
             "content_base64_bytes": len(encoded),

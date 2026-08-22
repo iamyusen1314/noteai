@@ -39,17 +39,17 @@ TEMPLATE_IDENTITIES = MappingProxyType(
     {
         "capture": MappingProxyType(
             {
-                "bytes": 46846,
+                "bytes": 48663,
                 "sha256": (
-                    "906a06fd919fc0e90c735f79b13d3bb5bac645c4c19a9dda2053dd2946601c1e"
+                    "ab485e01a82e00b573d8e8f86c8b970902b674aadd308506b34d49fb3c57e4e6"
                 ),
             }
         ),
         "executor": MappingProxyType(
             {
-                "bytes": 13365,
+                "bytes": 14983,
                 "sha256": (
-                    "a8bc036e11d6e7a5d3a9fafdc307f9ac5470b026db93bca9ca2c686dfb1bc9e6"
+                    "01973785d5926c77129fe4dd3e5d64c74447c59c6747e0e5a54e7a92d11fc865"
                 ),
             }
         ),
@@ -68,15 +68,41 @@ SOURCE_PLACEHOLDER_COUNTS = MappingProxyType(
         b"@@STORAGE_CONFIG_SHA256@@": 1,
     }
 )
-TRANSFER_PATH = "/var/lib/noteai/item26-restored-v1/restored-capture-transfer-v1.sh.gz"
+TRANSFER_PATH = "/var/lib/noteai/item26-restored-v1/restored-capture-transfer-successor-v1.sh.gz"
 CONTROL_ROOT = "/var/lib/noteai/item26-restored-v1/control"
-CONTROL_ENVELOPE_PATH = CONTROL_ROOT + "/control-envelope.json"
+CONTROL_ENVELOPE_PATH = CONTROL_ROOT + "/control-envelope-successor-v1.json"
 MAX_TEMPLATE_BYTES = 131072
 MAX_CONTROL_ENVELOPE_BYTES = 12288
 MAX_SOURCE_MANIFEST_BYTES = 1048576
 MAX_COMMAND_CONTENT_BYTES = 18000
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 PLACEHOLDER = re.compile(br"@@[A-Z][A-Z0-9_]*@@")
+SSL_CORRECTIONS = (
+    (b"capture-successor-attempted-v1", b"capture-ssl-corrected-attempted-v1", 1),
+    (b"capture-successor-task-v1", b"capture-ssl-corrected-task-v1", 1),
+    (b"restored-manifest-successor-v1", b"restored-manifest-ssl-corrected-v1", 1),
+    (b"restored-capture-successor-v1", b"restored-capture-ssl-corrected-v1", 2),
+    (
+        b"ITEM26_RESTORED_SUCCESSOR_V1_ATTEMPT\\n",
+        b"ITEM26_RESTORED_CORRECTED_V1_ATTEMPT\\n",
+        1,
+    ),
+    (
+        b"de7dd59a303a5333f60de5c07d5747904b61de41109ff539f6c50f537707c7cd",
+        b"8d4960991e090cf39ffe81fb91d8608117a5d1ee25c39915192d2662056581c6",
+        1,
+    ),
+    (
+        b'query.get("sslmode") not in {"require","verify-ca","verify-full"}',
+        b'query.get("sslmode")!="require"',
+        1,
+    ),
+    (
+        b'values={"host":host,"port":port,"dbname":database,"user":ACCOUNT,"password":password}; values.update(query)',
+        b'values={"host":host,"port":port,"dbname":database,"user":ACCOUNT,"password":password}; values.update({**query,"sslmode":"disable","channel_binding":"disable"})',
+        1,
+    ),
+)
 SUMMARY_LAYER_NAMES = (
     "capture",
     "capture_gzip",
@@ -108,12 +134,8 @@ RAW_BYTES=@@RAW_BYTES@@
 RAW_SHA256="@@RAW_SHA256@@"
 GZIP_B85=b"@@GZIP_B85@@"
 started=False
-H=re.compile(r"^[0-9a-f]{64}$")
 PRE=frozenset("NOTEAI_ITEM26_RESTORED_CAPTURE automatic_retry_allowed database_attempted_state incident_class new_capture_allowed phase same_invocation_replay_allowed".split())
 U=PRE|{"readback_required"}; E=U|{"transfer_state"}
-P=frozenset("absolute_tool container_cleanup control_inventory control_root db_socket_after db_socket_before docker_service docker_version driver_contract driver_preconnect_failure driver_stderr driver_stdout driver_terminal envelope envelope_hash final_fsync final_hash final_inventory final_manifest final_move final_preexisting final_receipt final_receipt_hash final_root identity image key_pair loader output_inventory persistent_parent persistent_root preconnect_contract preconnect_retention preconnect_stderr preconnect_stdout preexisting_capture_state preflight private_hash private_key public_hash public_key receipt replay_barrier restored_read_only_capture root task_container task_identity task_retention terminal_promotion tool".split())
-EP=frozenset("capture_contract capture_failure_stream capture_json capture_output_limit capture_pass_stream capture_returncode capture_shape capture_spawn capture_timeout executor_exception executor_preflight raw_hash transfer_after_capture transfer_hash transfer_metadata".split())
-M=frozenset("release_commit database_engine database_schema database_migrations database_tables database_references private_objects".split())
 def canonical(value): return (json.dumps(value,ensure_ascii=True,sort_keys=True,separators=(",",":"),allow_nan=False)+"\\n").encode("ascii")
 def fixed():
     value={"NOTEAI_ITEM26_RESTORED_CAPTURE":"UNKNOWN" if started else "FAIL","automatic_retry_allowed":False,"database_attempted_state":"UNKNOWN" if started else "NO","incident_class":"CONNECTED_UNKNOWN" if started else "PRE_CONNECT","new_capture_allowed":False,"phase":"loader","same_invocation_replay_allowed":False}
@@ -130,20 +152,11 @@ def valid(value,rc):
     keys=set(value)
     if len(value)==46:
         passed=rc==0
-        if rc not in (0,3) or value["NOTEAI_ITEM26_RESTORED_CAPTURE"]!=("PASS" if passed else "FAIL") or value["incident_class"]!=("CONNECTED_KNOWN_READ_ONLY" if passed else "CONNECTED_KNOWN_READ_ONLY_MISMATCH") or value["verified"] is not passed or value["comparison_exact"] is not passed: return False
-        bools={"attempt_sentinel_retained":True,"automatic_retry_allowed":False,"control_material_retained":True,"new_capture_allowed":False,"owner_table_contract_exact":True,"readback_required":False,"reconciliation_retained":True,"restored_manifest_retained":True,"rls_contract_exact":True,"row_security_off":True,"same_invocation_replay_allowed":False,"search_path_exact":True,"task_root_retained":True,"transfer_retained":True}
-        ints={"container_residue_count":0,"database_connection_count":1,"database_transaction_count":1,"database_write_count":0,"force_rls_table_count":0,"managed_owner_activation_count":1,"object_contents_read":0,"object_keys_emitted":0,"object_write_count":0,"oss_get_request_count":0,"owner_mismatch_count":0,"persistent_permission_mutation_count":0,"postgresql_major_version":16,"rls_table_count":19,"row_values_emitted":0,"runtime_container_start_count":1,"secret_values_emitted":0,"table_count":56}
-        if any(value[k] is not x for k,x in bools.items()) or any(type(value[k]) is not int or value[k]!=x for k,x in ints.items()) or type(value["manifest_bytes"]) is not int or value["manifest_bytes"]<1 or type(value["oss_list_request_count"]) is not int or value["oss_list_request_count"]<1 or type(value["oss_head_request_count"]) is not int or value["oss_head_request_count"]<0: return False
-        if value["transaction_terminal"]!="ROLLBACK" or value["oss_operation_mode"]!="LIST_HEAD_ONLY" or value["reconciliation_schema_version"]!="noteai.item26.restored-reconciliation.v1" or any(type(value[k]) is not str or H.fullmatch(value[k]) is None for k in ("restored_manifest_file_sha256","restored_manifest_sha256","source_manifest_sha256")): return False
-        codes=value["mismatch_codes"]
-        return type(codes) is list and all(type(x) is str for x in codes) and len(codes)==len(set(codes)) and not set(codes)-M and (codes==[] if passed else bool(codes))
-    if keys==PRE:
-        return rc==3 and value["NOTEAI_ITEM26_RESTORED_CAPTURE"]=="FAIL" and value["automatic_retry_allowed"] is False and value["database_attempted_state"]=="NO" and value["incident_class"]=="PRE_CONNECT" and value["new_capture_allowed"] is False and value["same_invocation_replay_allowed"] is False and type(value["phase"]) is str and value["phase"] in P
-    if keys==U:
-        return rc==4 and value["NOTEAI_ITEM26_RESTORED_CAPTURE"]=="UNKNOWN" and value["automatic_retry_allowed"] is False and value["database_attempted_state"]=="UNKNOWN" and value["incident_class"]=="CONNECTED_UNKNOWN" and value["new_capture_allowed"] is False and value["readback_required"] is True and value["same_invocation_replay_allowed"] is False and type(value["phase"]) is str and value["phase"] in P
-    if keys==E:
-        return rc in (3,4) and value["NOTEAI_ITEM26_RESTORED_CAPTURE"]==("FAIL" if rc==3 else "UNKNOWN") and value["automatic_retry_allowed"] is False and value["database_attempted_state"]==("NO" if rc==3 else "UNKNOWN") and value["incident_class"]==("PRE_CONNECT" if rc==3 else "CONNECTED_UNKNOWN") and value["new_capture_allowed"] is False and value["readback_required"] is (rc==4) and value["same_invocation_replay_allowed"] is False and type(value["phase"]) is str and value["phase"] in EP and value["transfer_state"] in ({"UNVERIFIED","EXACT_RETAINED"} if rc==3 else {"UNKNOWN"})
-    return False
+        return rc in (0,3) and value.get("NOTEAI_ITEM26_RESTORED_CAPTURE")==("PASS" if passed else "FAIL") and value.get("verified") is passed and value.get("comparison_exact") is passed and value.get("database_connection_count")==1 and value.get("database_transaction_count")==1 and value.get("database_write_count")==0 and value.get("secret_values_emitted")==0 and value.get("transaction_terminal")=="ROLLBACK" and value.get("mismatch_codes")==([] if passed else value.get("mismatch_codes"))
+    if rc not in (3,4) or keys not in (PRE,U,E) or value.get("NOTEAI_ITEM26_RESTORED_CAPTURE")!=("FAIL" if rc==3 else "UNKNOWN") or value.get("automatic_retry_allowed") is not False or value.get("database_attempted_state")!=("NO" if rc==3 else "UNKNOWN") or value.get("incident_class")!=("PRE_CONNECT" if rc==3 else "CONNECTED_UNKNOWN") or value.get("new_capture_allowed") is not False or value.get("same_invocation_replay_allowed") is not False or re.fullmatch(r"[A-Za-z_]{1,40}",value.get("phase",0)) is None: return False
+    if keys==PRE: return rc==3
+    if keys==U: return rc==4 and value["readback_required"] is True
+    return value["readback_required"] is (rc==4) and value["transfer_state"] in ({"UNVERIFIED","EXACT_RETAINED"} if rc==3 else {"UNKNOWN"})
 try:
     if os.geteuid()!=0 or os.getegid()!=0 or type(GZIP_BYTES) is not int or type(RAW_BYTES) is not int or not 1<=GZIP_BYTES<=131072 or not 1<=RAW_BYTES<=131072 or re.fullmatch(r"[0-9a-f]{64}",GZIP_SHA256) is None or re.fullmatch(r"[0-9a-f]{64}",RAW_SHA256) is None: raise ValueError("binding")
     compressed=base64.b85decode(GZIP_B85)
@@ -409,6 +422,78 @@ def _layer(payload: bytes) -> dict[str, object]:
     return {"bytes": len(payload), "sha256": _sha256(payload)}
 
 
+def _ssl_corrected_capture(payload: bytes) -> bytes:
+    corrected = payload
+    for before, after, count in SSL_CORRECTIONS:
+        if corrected.count(before) != count or corrected.count(after):
+            raise RenderError("ssl_patch")
+        corrected = corrected.replace(before, after)
+    if corrected == payload:
+        raise RenderError("ssl_patch")
+    return corrected
+
+
+def _render_retained_capture_command(
+    transfer_bytes: int,
+    transfer_sha256: str,
+    raw_bytes: int,
+    raw_sha256: str,
+    patched_raw_bytes: int,
+    patched_raw_sha256: str,
+    *,
+    gzip_compressor: Callable[[bytes], bytes],
+) -> dict[str, object]:
+    for label, value in (
+        ("transfer_bytes", transfer_bytes),
+        ("raw_bytes", raw_bytes),
+        ("patched_raw_bytes", patched_raw_bytes),
+    ):
+        if type(value) is not int or not 1 <= value <= MAX_TEMPLATE_BYTES:
+            raise RenderError(label)
+    for label, value in (
+        ("transfer_sha256", transfer_sha256),
+        ("raw_sha256", raw_sha256),
+        ("patched_raw_sha256", patched_raw_sha256),
+    ):
+        _validate_hash(value, label)
+    if raw_sha256 == patched_raw_sha256:
+        raise RenderError("ssl_patch")
+    executor = _render_once(
+        "executor",
+        _read_template("executor"),
+        {
+            b"@@TRANSFER_BYTES@@": str(transfer_bytes).encode("ascii"),
+            b"@@TRANSFER_SHA256@@": transfer_sha256.encode("ascii"),
+            b"@@RAW_BYTES@@": str(raw_bytes).encode("ascii"),
+            b"@@RAW_SHA256@@": raw_sha256.encode("ascii"),
+            b"@@PATCHED_RAW_BYTES@@": str(patched_raw_bytes).encode("ascii"),
+            b"@@PATCHED_RAW_SHA256@@": patched_raw_sha256.encode("ascii"),
+        },
+    )
+    _validate_shell("executor", executor, 1)
+    executor_gzip = _compress("executor", executor, gzip_compressor)
+    capture_wrapper = _render_once(
+        "capture_wrapper",
+        CAPTURE_WRAPPER_TEMPLATE,
+        {
+            b"@@GZIP_BYTES@@": str(len(executor_gzip)).encode("ascii"),
+            b"@@GZIP_SHA256@@": _sha256(executor_gzip).encode("ascii"),
+            b"@@RAW_BYTES@@": str(len(executor)).encode("ascii"),
+            b"@@RAW_SHA256@@": _sha256(executor).encode("ascii"),
+            b"@@GZIP_B85@@": _b85("executor", executor_gzip),
+        },
+    )
+    _validate_shell("capture_wrapper", capture_wrapper, 1)
+    return {
+        "capture_command_content": _command(
+            "capture_command_content", capture_wrapper
+        ),
+        "capture_wrapper": capture_wrapper,
+        "executor": executor,
+        "executor_gzip": executor_gzip,
+    }
+
+
 def _render_core(
     control_envelope: bytes,
     recipient_public_key_sha256: str,
@@ -432,7 +517,6 @@ def _render_core(
         storage_config_sha256,
     )
     capture_template = _read_template("capture")
-    executor_template = _read_template("executor")
     envelope_sha256 = _sha256(control_envelope)
     capture = _render_repeated(
         "capture",
@@ -450,32 +534,22 @@ def _render_core(
         },
         dict(SOURCE_PLACEHOLDER_COUNTS),
     )
-    _validate_shell("capture", capture, 7)
+    _validate_shell("capture", capture, 8)
+    patched_capture = _ssl_corrected_capture(capture)
+    _validate_shell("patched_capture", patched_capture, 8)
     capture_gzip = _compress("capture", capture, gzip_compressor)
-    executor = _render_once(
-        "executor",
-        executor_template,
-        {
-            b"@@TRANSFER_BYTES@@": str(len(capture_gzip)).encode("ascii"),
-            b"@@TRANSFER_SHA256@@": _sha256(capture_gzip).encode("ascii"),
-            b"@@RAW_BYTES@@": str(len(capture)).encode("ascii"),
-            b"@@RAW_SHA256@@": _sha256(capture).encode("ascii"),
-        },
+    retained = _render_retained_capture_command(
+        len(capture_gzip),
+        _sha256(capture_gzip),
+        len(capture),
+        _sha256(capture),
+        len(patched_capture),
+        _sha256(patched_capture),
+        gzip_compressor=gzip_compressor,
     )
-    _validate_shell("executor", executor, 1)
-    executor_gzip = _compress("executor", executor, gzip_compressor)
-    capture_wrapper = _render_once(
-        "capture_wrapper",
-        CAPTURE_WRAPPER_TEMPLATE,
-        {
-            b"@@GZIP_BYTES@@": str(len(executor_gzip)).encode("ascii"),
-            b"@@GZIP_SHA256@@": _sha256(executor_gzip).encode("ascii"),
-            b"@@RAW_BYTES@@": str(len(executor)).encode("ascii"),
-            b"@@RAW_SHA256@@": _sha256(executor).encode("ascii"),
-            b"@@GZIP_B85@@": _b85("executor", executor_gzip),
-        },
-    )
-    _validate_shell("capture_wrapper", capture_wrapper, 1)
+    executor = retained["executor"]
+    executor_gzip = retained["executor_gzip"]
+    capture_wrapper = retained["capture_wrapper"]
     artifacts = {
         "capture": capture,
         "capture_gzip": capture_gzip,
@@ -485,10 +559,7 @@ def _render_core(
         "capture_wrapper": capture_wrapper,
     }
     sizing = {name: _layer(artifacts[name]) for name in SUMMARY_LAYER_NAMES}
-    sizing["capture_command_content"] = _command(
-        "capture_command_content",
-        capture_wrapper,
-    )
+    sizing["capture_command_content"] = retained["capture_command_content"]
     return {"artifacts": artifacts, "sizing": sizing}
 
 

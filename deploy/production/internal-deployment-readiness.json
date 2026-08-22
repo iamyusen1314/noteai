@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-08-19",
+  "as_of_date": "2026-08-23",
   "status_values": [
     "verified",
     "unverified",
@@ -6107,14 +6107,136 @@
         {
           "id": "backup_pitr_restore",
           "title": "Current-schema backup, PITR and isolated restore reconciliation",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "production_schema_roles",
             "private_storage_runtime"
           ],
-          "evidence": [],
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": ".codex/handoffs/current-task.md"
+            }
+          ],
           "latest_reconciliation": {
-            "status": "M1_COST_STOP_CLOSED_M2_ISOLATED_RESTORE_TERMINAL_PRECONNECT_FAIL_CLEANUP_COMPLETE_NO_READINESS_CREDIT",
+            "status": "ORIGINAL_ITEM26_DOD_VERIFIED_ZERO_RESIDUE",
+            "original_dod_terminal_acceptance_20260823": {
+              "recorded_at_utc": "2026-08-22T17:13:37Z",
+              "status": "PASS",
+              "scope": "ORIGINAL_ITEM26_DOD_ONLY",
+              "original_item26_manifest_commit": "3d234f2286a552e3521d29174028e3d73a8d3f5f",
+              "restore_time_utc": "2026-08-12T07:37:56Z",
+              "source_manifest": {
+                "status": "PASS_CURRENT_SCHEMA",
+                "postgresql_major_version": 16,
+                "table_count": 56,
+                "migration_count": 17,
+                "rls_table_count": 19,
+                "force_rls_table_count": 0,
+                "database_write_count": 0
+              },
+              "capture": {
+                "provider_status": "Success",
+                "exit_code": 0,
+                "command_id": "c-sz06us1t8hwu4u8",
+                "invocation_id": "t-sz06us1t8ijb7y8",
+                "request_id": "01A02A52-80FB-5218-AB42-9C2A98555BA6",
+                "completed_at_utc": "2026-08-22T16:34:11Z",
+                "verified": true,
+                "comparison_exact": true,
+                "mismatch_count": 0,
+                "database_connection_count": 1,
+                "database_transaction_count": 1,
+                "database_write_count": 0,
+                "terminal_transaction": "ROLLBACK",
+                "postgresql_major_version": 16,
+                "table_count": 56,
+                "migration_count": 17,
+                "rls_table_count": 19,
+                "force_rls_table_count": 0,
+                "owner_table_contract_exact": true,
+                "search_path_exact": true,
+                "rls_contract_exact": true,
+                "row_security_off": true,
+                "object_operation_mode": "LIST_HEAD_ONLY",
+                "object_write_count": 0,
+                "persistent_permission_write_count": 0,
+                "source_manifest_sha256": "99fc8321d11db344af51f69b735f7dcdd4d09ea3a988148896034258067a842a",
+                "restored_manifest_semantic_sha256": "476a9d2b6daf79f4d190bf3e08dfefe07e372fd6387f858bbe584b40c2a7910b",
+                "restored_manifest_file_sha256": "438e9d19f5e4ea2284165e3a927e146ad1a22af62b010c7140f2bb999242e29b",
+                "comparison": {
+                  "mismatch_codes": [],
+                  "equal_fields": [
+                    "release_commit",
+                    "database_engine",
+                    "database_schema",
+                    "database_migrations",
+                    "database_tables",
+                    "database_references",
+                    "private_objects"
+                  ],
+                  "content_included": false
+                }
+              },
+              "cleanup": {
+                "builder_status": "Stopped_StopCharging",
+                "builder_cleanup_command_id": "c-sz06us2slikxg5c",
+                "builder_cleanup_invocation_id": "t-sz06us2slisf56o",
+                "builder_stop_request_id": "01A02A5D-53B9-513F-8500-2944A1A79E4D",
+                "active_clone_residue_count": 0,
+                "clone_deletion_protection_disable_request_id": "01A02A61-B857-596A-AF1F-63DCD58A1E56",
+                "clone_deletion_protection_readback_request_id": "01A02A62-2F38-5FE1-A1D0-C8848D40BCC3",
+                "clone_delete_request_id": "01A02A63-23A2-592B-A670-75A568B96008",
+                "clone_absence_readback_request_id": "01A02A72-9985-5D33-8ADB-D507E6A482FE",
+                "builder_private_32_residue_count": 0,
+                "builder_private_32_cleanup_request_id": "01A02A58-801E-59B8-868E-3E583F0FEFBD",
+                "builder_private_32_readback_request_id": "01A02A58-B2EA-598A-BCDF-3D96BF3CCD50",
+                "builder_private_32_cleanup_method": "ModifySecurityIps_REPLACE_WITH_LOOPBACK",
+                "builder_private_32_readback_method": "DescribeDBInstanceIPArrayList_INDEPENDENT_ZERO",
+                "builder_task_material_residue_count": 0,
+                "api_c_cleanup_command_id": "c-sz06us4hlzq5ips",
+                "api_c_cleanup_invocation_id": "t-sz06us4hlzxn7r4",
+                "api_c_cleanup_terminal_query_request_id": "01A02A6E-2F1A-5829-9BB7-8B503B3F9003",
+                "temporary_source_account_residue_count": 0,
+                "temporary_source_account_delete_request_id": "01A02A73-65C5-5CE3-8A0A-B9AF15FCDC4D",
+                "temporary_source_account_absence_request_id": "01A02A73-B23A-56A6-B9BE-FA7F30D5CF71",
+                "task_ram_role_residue_count": 0,
+                "task_ram_role_detach_request_id": "01A02A67-7DE8-5707-8228-A734AE0A26EF",
+                "task_ram_role_delete_request_id": "01A02A6E-C7DA-586A-ADC8-76EA0AE5384A",
+                "task_ram_role_absence_request_id": "01A02A6F-02C0-501E-8B83-59FE19AC358F",
+                "task_ram_policy_residue_count": 0,
+                "task_ram_policy_delete_request_id": "01A02A69-65A1-54E6-BCA3-9E9D52BD4BFF",
+                "task_ram_policy_absence_request_id": "01A02A6F-479B-5842-9BB6-1D9C43BD7328",
+                "task_vswitch_residue_count": 0,
+                "task_vswitch_delete_request_ids": [
+                  "01A02A71-7002-56E2-B64F-D1B96A2BE1F9",
+                  "01A02A71-B7E8-57B2-AC5C-89DBBDBAE267"
+                ],
+                "task_vswitch_absence_request_id": "01A02A71-EE82-5D2F-8698-AA5C7BD0B81E",
+                "dbs_service_linked_role_residue_count": 0,
+                "dbs_service_linked_role_deletion_status": "SUCCEEDED",
+                "dbs_service_linked_role_delete_request_id": "01A02A76-3026-555A-B49F-F51392430E50",
+                "dbs_service_linked_role_status_request_id": "01A02A76-7475-57B7-866C-1397443B2F41",
+                "dbs_service_linked_role_absence_code": "EntityNotExist.Role",
+                "dbs_service_linked_role_absence_request_id": "01A02A76-B492-59AA-A15F-A541D7234041",
+                "production_source_instance_count": 1,
+                "production_source_status": "Running",
+                "production_source_identity_unchanged": true
+              },
+              "second_clone_create_count": 0,
+              "production_database_connection_count": 0,
+              "production_database_write_count": 0,
+              "production_rds_control_plane_temporary_account_delete_count": 1,
+              "secret_value_emission_count": 0,
+              "readiness": {
+                "internal_verified_count": 26,
+                "internal_total_count": 29,
+                "public_verified_count": 26,
+                "public_total_count": 38,
+                "credit_added": true,
+                "next_task": "PROD-FIRST-LAUNCH-INTERNAL-SMOKE-001"
+              }
+            },
             "isolated_restore_attempt_terminal_cleanup_20260821": {
               "recorded_at_utc": "2026-08-21T13:16:53Z",
               "status": "TERMINAL_PRECONNECT_FAIL_CLEANUP_COMPLETE",
@@ -16104,11 +16226,9 @@
               "temporary_reader_and_control_material_disposition": "RETAIN_UNTIL_ITEM26_TERMINAL_ACCEPTANCE_OR_EXACT_APPROVED_CLEANUP",
               "readiness_credit_added": false
             },
-            "readiness_credit_added": false,
+            "readiness_credit_added": true,
             "automatic_retry_allowed": false
-          },
-          "blocker": "The original Item 26 manifest requires a current-schema backup/PITR observation and one isolated restore drill with source/restored reconciliation. The source snapshot remains valid, and one authorized isolated PITR clone reached a source-bound, private, read-only preflight. The execution chain then failed before any database connection at the API-C credential-rewrap persistent-parent gate: the terminal result is PRE_ATTEMPT / persistent_parent with readback, replay and new-rewrap all forbidden. Restored capture never started, no restored manifest exists, and source/restored reconciliation remains pending. The exact builder task material, builder private access path and pay-as-you-go clone were cleaned; the builder is Stopped/StopCharging and the active RDS inventory contains only the unchanged Running production source. Five provider capture slots, raw closure, stock Aliyun CLI OAuth, dedicated root OAuth helper, credential-capsule successors and their acceptance chains remain excluded as later non-blocking implementation/proof structures. Cost-stop M1 remains closed but adds no Item 26 readiness credit. Completing the remaining original DoD now requires an independently authorized, source-compatible execution path; this terminal chain cannot be replayed or repaired in place.",
-          "next_task": "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
+          }
         },
         {
           "id": "internal_zero_provider_smoke",

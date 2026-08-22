@@ -16,22 +16,22 @@ readonly IMAGE_CONFIG='sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e
 readonly RELEASE_COMMIT='cad5ce35664f617c6e19f90a6159285ddf975594'
 readonly BASE_ROOT='/var/lib/noteai/item26-restored-v1'
 readonly CONTROL_ROOT="$BASE_ROOT/control"
-readonly ATTEMPT_SENTINEL="$BASE_ROOT/capture-attempted-v1"
+readonly ATTEMPT_SENTINEL="$BASE_ROOT/capture-successor-attempted-v1"
 readonly PRIVATE_KEY="$CONTROL_ROOT/control-private.pem"
 readonly PUBLIC_KEY="$CONTROL_ROOT/control-public.pem"
-readonly ENVELOPE="$CONTROL_ROOT/control-envelope.json"
-readonly TASK_ROOT="$BASE_ROOT/capture-task-v1"
+readonly ENVELOPE="$CONTROL_ROOT/control-envelope-successor-v1.json"
+readonly TASK_ROOT="$BASE_ROOT/capture-successor-task-v1"
 readonly DOCKER_CONFIG_ROOT="$TASK_ROOT/docker-config"
 readonly OUTPUT_ROOT="$TASK_ROOT/output"
 readonly DRIVER_PATH="$TASK_ROOT/driver.py"
 readonly HELPER_OUT="$TASK_ROOT/helper.stdout"
 readonly HELPER_ERR="$TASK_ROOT/helper.stderr"
 readonly CIDFILE="$TASK_ROOT/container.cid"
-readonly FINAL_ROOT="$BASE_ROOT/restored-manifest-v1"
+readonly FINAL_ROOT="$BASE_ROOT/restored-manifest-successor-v1"
 readonly FINAL_MANIFEST="$FINAL_ROOT/restored-manifest.json"
 readonly FINAL_RECEIPT="$FINAL_ROOT/reconciliation.json"
-readonly CONTAINER_NAME='noteai-item26-restored-capture-v1'
-readonly CONTAINER_LABEL='com.noteai.task=PROD-FIRST-LAUNCH-PITR-RESTORE-001-restored-capture-v1'
+readonly CONTAINER_NAME='noteai-item26-restored-capture-successor-v1'
+readonly CONTAINER_LABEL='com.noteai.task=PROD-FIRST-LAUNCH-PITR-RESTORE-001-restored-capture-successor-v1'
 
 phase='preflight'
 task_created=0
@@ -47,7 +47,7 @@ unknown() { phase="$1"; uncertain=1; exit 4; }
 
 verify_attempt_sentinel() {
   [ "$(stat -c '%F|%u|%g|%a|%h|%s' "$ATTEMPT_SENTINEL")" = 'regular file|0|0|600|1|37' ] || return 1
-  [ "$(sha256sum "$ATTEMPT_SENTINEL" | awk '{print $1}')" = '1a2f0b571602b5cf604e22bd632ae25feab6e8e31cb9955d751beeeac491cd87' ] || return 1
+  [ "$(sha256sum "$ATTEMPT_SENTINEL" | awk '{print $1}')" = 'de7dd59a303a5333f60de5c07d5747904b61de41109ff539f6c50f537707c7cd' ] || return 1
 }
 
 cleanup_container() {
@@ -115,7 +115,7 @@ dirfd=os.open(parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
 try:
     fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=dirfd)
     try:
-        body=b"ITEM26_RESTORED_CAPTURE_V1_ATTEMPTED\n"
+        body=b"ITEM26_RESTORED_SUCCESSOR_V1_ATTEMPT\n"
         if os.write(fd,body)!=len(body): raise OSError("short write")
         os.fchown(fd,0,0); os.fchmod(fd,0o600); os.fsync(fd)
     finally: os.close(fd)
@@ -153,7 +153,7 @@ PY
 [ "$identity" = BUILDER_IDENTITY_EXACT ] || fail identity
 
 [ -d "$CONTROL_ROOT" ] && [ ! -L "$CONTROL_ROOT" ] && [ "$(stat -c '%u|%g|%a' "$CONTROL_ROOT")" = '0|0|700' ] || fail control_root
-[ "$(find "$CONTROL_ROOT" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)" = $'control-envelope.json\ncontrol-private.pem\ncontrol-public.pem' ] || fail control_inventory
+[ "$(find "$CONTROL_ROOT" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)" = $'control-envelope-successor-v1.json\ncontrol-private.pem\ncontrol-public.pem' ] || fail control_inventory
 [ "$(stat -c '%F|%u|%g|%a|%h' "$PRIVATE_KEY")" = 'regular file|0|0|600|1' ] || fail private_key
 [ "$(stat -c '%F|%u|%g|%a|%h|%s' "$PUBLIC_KEY")" = 'regular file|0|0|600|1|625' ] || fail public_key
 [ "$(stat -c '%F|%u|%g|%a|%h|%s' "$ENVELOPE")" = 'regular file|0|0|600|1|@@CONTROL_ENVELOPE_BYTES@@' ] || fail envelope
@@ -257,7 +257,7 @@ def bounded_gunzip(body,expected):
     return result
 
 def decrypt_payload():
-    envelope_bytes=read_private("/input/control/control-envelope.json",EXPECTED_ENVELOPE_BYTES,EXPECTED_ENVELOPE_BYTES)
+    envelope_bytes=read_private("/input/control/control-envelope-successor-v1.json",EXPECTED_ENVELOPE_BYTES,EXPECTED_ENVELOPE_BYTES)
     if hashlib.sha256(envelope_bytes).hexdigest()!=EXPECTED_ENVELOPE_SHA: raise Fixed("envelope")
     try: envelope=json.loads(envelope_bytes.decode("ascii"),object_pairs_hook=no_duplicates)
     except BaseException: raise Fixed("envelope")
@@ -446,9 +446,11 @@ try:
     emit(receipt,0 if verified else 5,1)
 except BaseException as exc:
     code=str(exc) if isinstance(exc,Fixed) else type(exc).__name__
+    safe=frozenset({"session","owner","tables","rls","migrations","rollback","database","object_operation","privacy","size","write","comparison","OperationalError","DatabaseError","ProgrammingError","InsufficientPrivilege","TimeoutError"})
+    if code not in safe and code not in PRE_CODES: code="unexpected"
     if not state["database_attempted"] and code in PRE_CODES:
         emit({"NOTEAI_ITEM26_RESTORED_CAPTURE_DRIVER":"FAIL","automatic_retry_allowed":False,"code":code,"database_attempted_state":"NO","same_invocation_replay_allowed":False},3,2)
-    emit({"NOTEAI_ITEM26_RESTORED_CAPTURE_DRIVER":"UNKNOWN","automatic_retry_allowed":False,"database_attempted_state":"UNKNOWN","manifest_write_state":"COMMITTED" if state["manifest_written"] else "UNKNOWN","readback_required":True,"rollback_state":"CONFIRMED" if state["rollback"] else "UNKNOWN","same_invocation_replay_allowed":False},4,2)
+    emit({"NOTEAI_ITEM26_RESTORED_CAPTURE_DRIVER":"UNKNOWN","automatic_retry_allowed":False,"code":code,"database_attempted_state":"UNKNOWN","manifest_write_state":"COMMITTED" if state["manifest_written"] else "UNKNOWN","readback_required":True,"rollback_state":"CONFIRMED" if state["rollback"] else "UNKNOWN","same_invocation_replay_allowed":False},4,2)
 PY
 chmod 0600 "$DRIVER_PATH"
 
@@ -478,17 +480,34 @@ if [ "$helper_rc" -eq 3 ]; then
   phase='driver_preconnect_failure'
   [ "$(stat -c '%u|%g|%a|%h|%s' "$HELPER_OUT")" = '0|0|600|1|0' ] || unknown preconnect_stdout
   [ "$(stat -c '%u|%g|%a|%h' "$HELPER_ERR")" = '0|0|600|1' ] && [ "$(stat -c '%s' "$HELPER_ERR")" -le 1024 ] || unknown preconnect_stderr
-  python3 -I -B - "$HELPER_ERR" <<'PY' >/dev/null 2>&1 || unknown preconnect_contract
-import json,sys
+  preconnect_phase="$(python3 -I -B - "$HELPER_ERR" <<'PY'
+import json,re,sys
 row=json.load(open(sys.argv[1],encoding="ascii"))
-if set(row)!={"NOTEAI_ITEM26_RESTORED_CAPTURE_DRIVER","automatic_retry_allowed","code","database_attempted_state","same_invocation_replay_allowed"} or row["NOTEAI_ITEM26_RESTORED_CAPTURE_DRIVER"]!="FAIL" or row["database_attempted_state"]!="NO" or row["automatic_retry_allowed"] is not False or row["same_invocation_replay_allowed"] is not False: raise SystemExit(2)
+if set(row)!={"NOTEAI_ITEM26_RESTORED_CAPTURE_DRIVER","automatic_retry_allowed","code","database_attempted_state","same_invocation_replay_allowed"} or row["NOTEAI_ITEM26_RESTORED_CAPTURE_DRIVER"]!="FAIL" or row["database_attempted_state"]!="NO" or row["automatic_retry_allowed"] is not False or row["same_invocation_replay_allowed"] is not False or type(row["code"]) is not str or re.fullmatch(r"[A-Za-z_]{1,32}",row["code"]) is None: raise SystemExit(2)
+print("driver_"+row["code"])
 PY
+)" || unknown preconnect_contract
   verify_task_retained || unknown preconnect_retention
   completed=1; trap - EXIT
-  printf '%s\n' '{"NOTEAI_ITEM26_RESTORED_CAPTURE":"FAIL","automatic_retry_allowed":false,"database_attempted_state":"NO","incident_class":"PRE_CONNECT","new_capture_allowed":false,"phase":"driver_preconnect_failure","same_invocation_replay_allowed":false}' >&2
+  printf '{"NOTEAI_ITEM26_RESTORED_CAPTURE":"FAIL","automatic_retry_allowed":false,"database_attempted_state":"NO","incident_class":"PRE_CONNECT","new_capture_allowed":false,"phase":"%s","same_invocation_replay_allowed":false}\n' "$preconnect_phase" >&2
   exit 3
 fi
 
+if [ "$helper_rc" -eq 4 ]; then
+  phase='driver_unknown_contract'
+  [ "$(stat -c '%u|%g|%a|%h|%s' "$HELPER_OUT")" = '0|0|600|1|0' ] || unknown driver_unknown_stdout
+  [ "$(stat -c '%u|%g|%a|%h' "$HELPER_ERR")" = '0|0|600|1' ] && [ "$(stat -c '%s' "$HELPER_ERR")" -le 1024 ] || unknown driver_unknown_stderr
+  driver_phase="$(python3 -I -B - "$HELPER_ERR" <<'PY'
+import json,re,sys
+row=json.load(open(sys.argv[1],encoding="ascii"))
+expected={"NOTEAI_ITEM26_RESTORED_CAPTURE_DRIVER","automatic_retry_allowed","code","database_attempted_state","manifest_write_state","readback_required","rollback_state","same_invocation_replay_allowed"}
+if set(row)!=expected or row["NOTEAI_ITEM26_RESTORED_CAPTURE_DRIVER"]!="UNKNOWN" or row["automatic_retry_allowed"] is not False or row["database_attempted_state"]!="UNKNOWN" or row["manifest_write_state"] not in {"COMMITTED","UNKNOWN"} or row["readback_required"] is not True or row["rollback_state"] not in {"CONFIRMED","UNKNOWN"} or row["same_invocation_replay_allowed"] is not False or type(row["code"]) is not str or re.fullmatch(r"[A-Za-z_]{1,32}",row["code"]) is None: raise SystemExit(2)
+print("driver_"+row["code"])
+PY
+)" || unknown driver_unknown_contract
+  verify_task_retained || unknown driver_unknown_retention
+  unknown "$driver_phase"
+fi
 if [ "$helper_rc" -ne 0 ] && [ "$helper_rc" -ne 5 ]; then unknown driver_terminal; fi
 [ "$(stat -c '%u|%g|%a|%h|%s' "$HELPER_ERR")" = '0|0|600|1|0' ] || unknown driver_stderr
 [ "$(stat -c '%u|%g|%a|%h' "$HELPER_OUT")" = '0|0|600|1' ] && [ "$(stat -c '%s' "$HELPER_OUT")" -le 4096 ] || unknown driver_stdout

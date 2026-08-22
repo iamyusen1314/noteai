@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-19 (Asia/Shanghai)
+> Updated: 2026-08-23 (Asia/Shanghai)
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -13425,3 +13425,106 @@ Colima, database, builder, restore and cloud actions remain frozen.
   The builder StopCharging request is prepared but remains unsubmitted behind
   Alibaba's user security verification; the replacement clone remains the
   only active clone and has never been connected.
+
+## Item 26 SSL-corrected restored capture terminal PASS; cleanup in progress (2026-08-23)
+
+- The same previously frozen builder and only retained clone were reused after
+  their identities were revalidated against the existing plan commitments.
+  No PITR request or second clone was created, and the already-passed preflight,
+  keygen, rewrap, broker, SendFile and stage-finalize chain was not replayed.
+- A Secret-free retained-stage gate first exposed a local validator-only
+  newline-escaping defect before any database connection.  Its terminal
+  invocation `t-sz06us1ejsejdog` was `Failed / exit=3 / stage_receipt`, with
+  database connection/write counts `0/0`.  After the exact two escaping
+  corrections, fresh invocation `t-sz06us1mjimzegw` completed
+  `Success / exit=0`: the retained envelope, transfer and stage receipt match;
+  the old failed capture has no manifest; task-container and established-5432
+  residue are zero; raw capture bytes/SHA-256 are
+  `48958 / 9287785433f348d6e7d1e1fe6db98e0613ddf41a5ac2d9ef073db59bab34726f`;
+  and the in-memory SSL-corrected bytes/SHA-256 are
+  `48996 / f19f50a3a3db4ff08e8dd9211d43963330028f4a14740c18c53a338c280c1ef7`.
+- The single SSL-corrected strict read-only capture is command/invocation
+  `c-sz06us1t8hwu4u8` / `t-sz06us1t8ijb7y8`, request
+  `01A02A52-80FB-5218-AB42-9C2A98555BA6`.  It completed
+  `Success / exit=0` at `2026-08-22T16:34:11Z`.  The terminal contract reports
+  `PASS`, `verified=true`, `comparison_exact=true`, no mismatch codes, one
+  connection, one read-only transaction, zero database/object/persistent-
+  permission writes and terminal `ROLLBACK`.
+- Source manifest SHA-256
+  `99fc8321d11db344af51f69b735f7dcdd4d09ea3a988148896034258067a842a`
+  exactly reconciles to restored manifest semantic SHA-256
+  `476a9d2b6daf79f4d190bf3e08dfefe07e372fd6387f858bbe584b40c2a7910b`;
+  the retained restored-manifest file SHA-256 is
+  `438e9d19f5e4ea2284165e3a927e146ad1a22af62b010c7140f2bb999242e29b`.
+  PostgreSQL major version `16`, table count `56`, RLS table count `19`,
+  FORCE-RLS count `0`, owner/search-path/RLS contracts and private-object
+  LIST/HEAD-only boundary all pass.
+- This terminal capture closes the remaining original Item 26 functional DoD,
+  but readiness credit is intentionally deferred until the retained evidence
+  is followed by clone, `/32`, builder and task-material zero-residual cleanup
+  readbacks.  Cleanup is now the only in-progress action.
+
+## Item 26 original DoD terminal acceptance and zero-residue closure (2026-08-23)
+
+- The cleanup prerequisite above is now closed.  Builder cleanup invocation
+  `t-sz06us2slisf56o` completed `Success / exit=0`; task roots, temporary
+  Docker config, task containers, established 5432 sockets and task private-key
+  residue are all zero.  The same builder is read back as
+  `Stopped / StopCharging / PostPaid` after StopInstance request
+  `01A02A5D-53B9-513F-8500-2944A1A79E4D`; it was not deleted because it is
+  shared.
+- The exact builder `/32` rule was removed.  The retained clone had deletion
+  protection disabled once and was deleted once (delete request
+  `01A02A63-23A2-592B-A670-75A568B96008`); independent final RDS inventory
+  request `01A02A72-9985-5D33-8ADB-D507E6A482FE` contains exactly one
+  unchanged, Running production source and zero matching clones.  The `/32=0`
+  result comes from `ModifySecurityIps` request
+  `01A02A58-801E-59B8-868E-3E583F0FEFBD` and independent
+  `DescribeDBInstanceIPArrayList` readback request
+  `01A02A58-B2EA-598A-BCDF-3D96BF3CCD50`, not an inference from clone absence.
+  No second PITR clone or capture was created, and production database
+  connection/write counts remain `0/0`.
+- Exact task material on API-C was removed with terminal cleanup invocation
+  `t-sz06us4hlzxn7r4` (`Success / exit=0`).  Postcheck reports task roots,
+  containers, 5432 sockets and temporary Docker config all zero, with database
+  connection/write and Secret emission counts `0/0/0`.  The temporary source
+  reader account was deleted once through the production RDS control plane
+  (request `01A02A73-65C5-5CE3-8A0A-B9AF15FCDC4D`) and read back absent by
+  request `01A02A73-B23A-56A6-B9BE-FA7F30D5CF71`; this was one temporary
+  account control-plane deletion, not a SQL connection or user-data write.
+- The task RAM role and policy were detached and deleted; `GetRole` and
+  `GetPolicy` return their authoritative `EntityNotExist` codes in requests
+  `01A02A6F-02C0-501E-8B83-59FE19AC358F` and
+  `01A02A6F-479B-5842-9BB6-1D9C43BD7328`.  Both Item 26 temporary vSwitches
+  were deleted by requests `01A02A71-7002-56E2-B64F-D1B96A2BE1F9` and
+  `01A02A71-B7E8-57B2-AC5C-89DBBDBAE267`; readback request
+  `01A02A71-EE82-5D2F-8698-AA5C7BD0B81E` reports exact-name residue zero.  The
+  DBS service-linked role deletion task, request
+  `01A02A76-3026-555A-B49F-F51392430E50`, reached `SUCCEEDED`; final `GetRole`
+  status/readback requests `01A02A76-7475-57B7-866C-1397443B2F41` and
+  `01A02A76-B492-59AA-A15F-A541D7234041` return `SUCCEEDED` and
+  `EntityNotExist.Role`, proving there was no blocking DBS dependency at
+  deletion time and the role is absent.
+- The original manifest at
+  `3d234f2286a552e3521d29174028e3d73a8d3f5f` required only current-schema
+  backup/PITR observation, one isolated restore, and source/restored
+  reconciliation.  Those requirements now pass with a single strict read-only
+  restored capture (`1` connection, `1` read-only transaction, `0` writes,
+  terminal `ROLLBACK`) and exact semantic comparison.  Later five-slot,
+  raw-closure, OAuth, credential-capsule and authority structures remain
+  historical/non-blocking and were neither extended nor regenerated.
+- Item 26 is therefore `verified`; readiness is internal `26/29` and complete
+  public `26/38`.  The only next task is Item 27
+  `PROD-FIRST-LAUNCH-INTERNAL-SMOKE-001`.  Per the active handoff boundary it is
+  not started in this window.  Postpaid billing settlement may appear later;
+  Item26's temporary clone and builder compute metering are stopped or absent,
+  while the shared builder's pre-existing system disk remains a baseline cost.
+- Final checkpoint verification is complete.  The original-DoD acceptance is
+  fail-closed by canonical SHA-256
+  `4285231c59a111056426c643aac0764a1d7c32904caf46eacf555188d082a7b8`
+  without adding a receipt, ledger or provider-capture layer.  The 87 affected
+  tests pass in normal and optimized modes; changed Python compilation, shell
+  syntax and diff checks pass; internal readiness reports `26/29`; production
+  readiness reports `138/138` in both modes.  Independent Infra/Toolchain,
+  Evidence/DoD and Verification/Cleanup reviews each report `PASS` with no
+  P0/P1 finding.

@@ -31,10 +31,10 @@ PATHS = MappingProxyType({
     "stage": ROOT / ".codex/item26-restored-builder-stage-v1.template.sh",
 })
 IDENTITIES = MappingProxyType({
-    "keygen": MappingProxyType({"bytes":10909,"sha256":"ab9c6324365ff4fad4f8c9a6757d41835575f3aa258ac6be2fd42bfc72129b83"}),
+    "keygen": MappingProxyType({"bytes":10972,"sha256":"13019a14e5ee9e3e45b5b6d2d07c69ec3174450d6246c028ecdce90ef519c9e7"}),
     "broker": MappingProxyType({"bytes":26487,"sha256":"7cda962fd965bac66f265ba117b2054fe253351d60bda6d1b3d6b808e9854541"}),
     "rewrap": MappingProxyType({"bytes":34661,"sha256":"30a6f5d1d057ebc4b46e98a73ed8dfb804fee98839685ebe12964b646c0344f1"}),
-    "stage": MappingProxyType({"bytes":10562,"sha256":"babdbe7d6daad55db04d1247ec26741cc77925c1c8ba8ca20398bac9de0069e5"}),
+    "stage": MappingProxyType({"bytes":10667,"sha256":"90878fcfd7853506dc6573183b2410a2b9aa887b8d94538bc58b09133772d1db"}),
 })
 COUNTS = MappingProxyType({
     "keygen": Counter({b"@@MODE@@":1,b"@@BUILDER_IDENTITY_SHA256@@":1}),
@@ -351,7 +351,7 @@ def _assemble_post_broker(builder_instance_id,builder,recipient,envelope,receipt
     transfer=artifacts["capture_gzip"]
     finalize=wrapper(render("stage",stage_bindings("FINALIZE",builder,recipient,envelope,transfer)),compressor,"stage_finalize")
     readback=wrapper(render("stage",stage_bindings("READBACK",builder,recipient,envelope,transfer)),compressor,"stage_readback")
-    files=[sendfile("control-envelope.json","/var/lib/noteai/item26-restored-v1/control",envelope,builder_instance_id),sendfile("restored-capture-transfer-v1.sh.gz","/var/lib/noteai/item26-restored-v1",transfer,builder_instance_id)]
+    files=[sendfile("control-envelope-successor-v1.json","/var/lib/noteai/item26-restored-v1/control",envelope,builder_instance_id),sendfile("restored-capture-transfer-successor-v1.sh.gz","/var/lib/noteai/item26-restored-v1",transfer,builder_instance_id)]
     result={"builder_identity_sha256":builder,"capture_command_content":capture_command,"control_envelope_bytes":len(envelope),"control_envelope_sha256":sha(envelope),"finalize_command":finalize,"readback_command":readback,"recipient_public_key_sha256":recipient,"send_files":files,"source_manifest_bytes":SOURCE_BYTES,"source_manifest_file_sha256":SOURCE_FILE_SHA,"source_manifest_sha256":SOURCE_SHA,"stage_template":dict(IDENTITIES["stage"]),"transfer_bytes":len(transfer),"transfer_sha256":sha(transfer)}
     if capture_summary is not None: result["capture_summary"]=capture_summary
     if capture_sizing is not None: result["capture_sizing"]=capture_sizing

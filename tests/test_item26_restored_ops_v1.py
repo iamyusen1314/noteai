@@ -217,8 +217,8 @@ class Item26RestoredOpsV1Tests(unittest.TestCase):
         })
         self.assertEqual([row["request"]["Overwrite"] for row in result["send_files"]], [False, False])
         self.assertTrue(all(row["evidence"]["content_base64_bytes"] <= 18000 for row in result["send_files"]))
-        self.assertEqual(result["send_files"][0]["request"]["Name"], "control-envelope.json")
-        self.assertEqual(result["send_files"][1]["request"]["Name"], "restored-capture-transfer-v1.sh.gz")
+        self.assertEqual(result["send_files"][0]["request"]["Name"], "control-envelope-successor-v1.json")
+        self.assertEqual(result["send_files"][1]["request"]["Name"], "restored-capture-transfer-successor-v1.sh.gz")
         official = {"Content", "ContentType", "Description", "FileGroup", "FileMode", "FileOwner", "InstanceId", "Name", "Overwrite", "RegionId", "Tag", "TargetDir"}
         for row in result["send_files"]:
             self.assertEqual(set(row), {"evidence", "request"})

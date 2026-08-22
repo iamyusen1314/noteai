@@ -33,13 +33,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 25)
+        self.assertEqual(report["internal_deployment"]["verified"], 26)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 86)
+        self.assertEqual(report["internal_deployment"]["percentage"], 90)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 25)
+        self.assertEqual(report["complete_public_launch"]["verified"], 26)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 66)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 68)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -3758,6 +3758,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             for item in broken["layers"][1]["controls"]
             if item["id"] == "backup_pitr_restore"
         )
+        control["status"] = "unverified"
+        control["evidence"] = []
+        control["blocker"] = "terminal acceptance absent"
+        control["next_task"] = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
         control.pop("blocker")
         with self.assertRaisesRegex(gate.ManifestError, "requires blocker"):
             gate.validate_manifest(broken)
@@ -3768,6 +3772,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             for item in broken["layers"][1]["controls"]
             if item["id"] == "backup_pitr_restore"
         )
+        control["status"] = "unverified"
+        control["evidence"] = []
+        control["blocker"] = "terminal acceptance absent"
+        control["next_task"] = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
         control.pop("next_task")
         with self.assertRaisesRegex(gate.ManifestError, "requires next_task"):
             gate.validate_manifest(broken)
@@ -3841,17 +3849,21 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 )
             ],
         ]
+        item26 = next(
+            item
+            for item in candidate["layers"][1]["controls"]
+            if item["id"] == "backup_pitr_restore"
+        )
+        item26["status"] = "unverified"
+        item26["evidence"] = []
+        item26["blocker"] = "terminal acceptance absent"
+        item26["next_task"] = "PROD-FIRST-LAUNCH-PITR-RESTORE-001"
         with mock.patch.object(gate, "_verify_path", return_value=True):
             with self.assertRaisesRegex(
                 gate.ManifestError, "Item26 terminal verification required"
             ):
                 gate.validate_manifest(candidate)
 
-        item26 = next(
-            item
-            for item in candidate["layers"][1]["controls"]
-            if item["id"] == "backup_pitr_restore"
-        )
         item26["status"] = "verified"
         item26.pop("blocker")
         item26.pop("next_task")
@@ -3865,7 +3877,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 gate.ManifestError,
                 "backup_pitr_restore: invalid semantic evidence: "
-                "Item26 external authority invalid:",
+                "original DoD evidence ref mismatch",
             ):
                 gate.validate_manifest(candidate)
 
@@ -3929,38 +3941,226 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             for item in candidate["layers"][1]["controls"]
             if item["id"] == "backup_pitr_restore"
         )
-        control["status"] = "verified"
-        control.pop("blocker")
-        control.pop("next_task")
         control["evidence"] = [
             {
                 "kind": "git",
                 "ref": "f940106b9f7df0c23ea4a1e67063cfb35bf9927b",
             },
         ]
-        with mock.patch.object(
-            gate, "_verify_path", return_value=True
-        ), mock.patch.object(
-            gate,
-            "validate_item26_terminal_evidence",
-            return_value=(["terminal sentinel"], None),
-        ) as validate:
+        with mock.patch.object(gate, "_verify_path", return_value=True):
             with self.assertRaisesRegex(
                 gate.ManifestError,
-                "backup_pitr_restore: invalid semantic evidence: terminal sentinel",
+                "backup_pitr_restore: invalid semantic evidence: "
+                "original DoD evidence ref mismatch",
             ):
                 gate.validate_manifest(candidate)
-        validate.assert_called_once_with(control["evidence"], root=gate.ROOT)
 
-        with mock.patch.object(
-            gate, "_verify_path", return_value=True
-        ), mock.patch.object(
-            gate,
-            "validate_item26_terminal_evidence",
-            return_value=([], "a" * 64),
-        ) as validate:
-            gate.validate_manifest(candidate)
-        validate.assert_called_once_with(control["evidence"], root=gate.ROOT)
+        tamper_cases = [
+            (
+                ("latest_reconciliation", "status"),
+                "NOT_TERMINAL",
+                "latest reconciliation status mismatch",
+            ),
+            (
+                ("latest_reconciliation", "readiness_credit_added"),
+                False,
+                "latest reconciliation readiness credit mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "source_manifest_sha256",
+                ),
+                "0" * 64,
+                "capture.source_manifest_sha256 mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "restored_manifest_semantic_sha256",
+                ),
+                "1" * 64,
+                "capture.restored_manifest_semantic_sha256 mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "restored_manifest_file_sha256",
+                ),
+                "2" * 64,
+                "capture.restored_manifest_file_sha256 mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "comparison",
+                    "mismatch_codes",
+                ),
+                ["database_tables"],
+                "capture.comparison.mismatch_codes mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "comparison",
+                    "equal_fields",
+                ),
+                [],
+                "capture.comparison.equal_fields mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "comparison",
+                    "content_included",
+                ),
+                True,
+                "capture.comparison.content_included mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "postgresql_major_version",
+                ),
+                15,
+                "capture.postgresql_major_version mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "table_count",
+                ),
+                55,
+                "capture.table_count mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "migration_count",
+                ),
+                16,
+                "capture.migration_count mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "rls_table_count",
+                ),
+                18,
+                "capture.rls_table_count mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "database_write_count",
+                ),
+                1,
+                "capture.database_write_count mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "terminal_transaction",
+                ),
+                "COMMIT",
+                "capture.terminal_transaction mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "cleanup",
+                    "active_clone_residue_count",
+                ),
+                1,
+                "cleanup.active_clone_residue_count mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "production_rds_control_plane_temporary_account_delete_count",
+                ),
+                0,
+                "production_rds_control_plane_temporary_account_delete_count mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "capture",
+                    "exit_code",
+                ),
+                False,
+                "capture.exit_code mismatch",
+            ),
+            (
+                (
+                    "latest_reconciliation",
+                    "original_dod_terminal_acceptance_20260823",
+                    "production_rds_control_plane_temporary_account_delete_count",
+                ),
+                True,
+                "production_rds_control_plane_temporary_account_delete_count mismatch",
+            ),
+        ]
+        for path, value, error in tamper_cases:
+            with self.subTest(path=path):
+                tampered = copy.deepcopy(self.manifest)
+                target = next(
+                    item
+                    for item in tampered["layers"][1]["controls"]
+                    if item["id"] == "backup_pitr_restore"
+                )
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = value
+                expected_error = (
+                    error
+                    if len(path) == 2
+                    else "original DoD terminal acceptance mismatch"
+                )
+                with self.assertRaisesRegex(gate.ManifestError, expected_error):
+                    gate.validate_manifest(tampered)
+
+        extra = copy.deepcopy(self.manifest)
+        control = next(
+            item
+            for item in extra["layers"][1]["controls"]
+            if item["id"] == "backup_pitr_restore"
+        )
+        control["latest_reconciliation"][
+            "original_dod_terminal_acceptance_20260823"
+        ]["unexpected"] = True
+        with self.assertRaisesRegex(
+            gate.ManifestError,
+            "original DoD terminal acceptance mismatch",
+        ):
+            gate.validate_manifest(extra)
 
     def test_shared_gate_always_invokes_item29_semantic_adapter(self):
         with mock.patch.object(
@@ -4080,7 +4280,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 25)
+        self.assertEqual(report["internal_deployment"]["verified"], 26)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)

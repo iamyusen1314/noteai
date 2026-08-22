@@ -46,18 +46,18 @@ MODES = frozenset({
 _SOURCE_ROWS = (
     (
         "tools/render_item26_restored_ops_v1.py",
-        39443,
-        "e434a05363b908db980f88e0502467b5002713f168854b1c6ad214741f35c924",
+        39466,
+        "19cf1d6a0a5f8a3ffb2199dbe481504f562118eea6f24017c07ffc71f27cde4c",
     ),
     (
         "tools/render_item26_restored_preflight_v1.py",
         13394,
-        "14add33096161abb1784193477ce72e8cda0e9545f5a9bac72561058b10d35ca",
+        "479baef7ee7c8905d02a2e90bf7a371deb63689e709a4c0543d8e5925124a07c",
     ),
     (
         "tools/render_item26_restored_v1_transport.py",
-        30274,
-        "4c5858b640f7880920fb943bc042a2e7a62130be396f9eacec9fd5f2bb9b72db",
+        29844,
+        "256f8bf988e85126f3afbb145eb460556683ccf543957e8abd12e663612830df",
     ),
     (
         "tools/render_item26_v3_transport.py",
@@ -71,8 +71,8 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-restored-builder-keygen-v1.template.sh",
-        10909,
-        "ab9c6324365ff4fad4f8c9a6757d41835575f3aa258ac6be2fd42bfc72129b83",
+        10972,
+        "13019a14e5ee9e3e45b5b6d2d07c69ec3174450d6246c028ecdce90ef519c9e7",
     ),
     (
         ".codex/item26-restored-package-broker-v1.template.sh",
@@ -86,18 +86,18 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-restored-builder-stage-v1.template.sh",
-        10562,
-        "babdbe7d6daad55db04d1247ec26741cc77925c1c8ba8ca20398bac9de0069e5",
+        10667,
+        "90878fcfd7853506dc6573183b2410a2b9aa887b8d94538bc58b09133772d1db",
     ),
     (
         ".codex/item26-restored-capture-v1.template.sh",
-        46846,
-        "906a06fd919fc0e90c735f79b13d3bb5bac645c4c19a9dda2053dd2946601c1e",
+        48663,
+        "ab485e01a82e00b573d8e8f86c8b970902b674aadd308506b34d49fb3c57e4e6",
     ),
     (
         ".codex/item26-restored-capture-executor-v1.template.sh",
-        13365,
-        "a8bc036e11d6e7a5d3a9fafdc307f9ac5470b026db93bca9ca2c686dfb1bc9e6",
+        14983,
+        "01973785d5926c77129fe4dd3e5d64c74447c59c6747e0e5a54e7a92d11fc865",
     ),
     (
         ".codex/item26-restored-api-c-preflight-v1.template.sh",
@@ -106,8 +106,8 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-restored-builder-preflight-v1.template.sh",
-        16256,
-        "419bce950558e77c4c2ae40a7d3e1d4a0d5bde9b1d9cbf250b12b93d323d9d4a",
+        16487,
+        "388beab5172bdbbfee929fbb1ba0576ca9b5438406a297757d050333d77fe363",
     ),
     (
         ".codex/item26-restored-parent-probe-api-c-v1.template.sh",

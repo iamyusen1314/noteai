@@ -45,7 +45,7 @@ class Action:
 _ACTION_ROWS = (
     (
         "preflight_api_c",
-        "noteai-item26-restored-preflight-api-c-successor-20260822-v1",
+        "noteai-item26-restored-preflight-api-c-successor-final-20260822-v1",
         "api_c",
         120,
         ("EXACT_CHECKPOINT_CI_GREEN", "FRESH_CLOUD_BASELINE_PASS"),
@@ -53,7 +53,7 @@ _ACTION_ROWS = (
     ),
     (
         "preflight_builder",
-        "noteai-item26-restored-preflight-builder-20260821-v1",
+        "noteai-item26-restored-preflight-builder-successor-20260822-v1",
         "builder",
         120,
         ("API_C_PREFLIGHT_PASS", "BUILDER_RUNNING_AGENT_READY_ROLE_EXACT"),
@@ -61,7 +61,7 @@ _ACTION_ROWS = (
     ),
     (
         "keygen_generate",
-        "noteai-item26-restored-keygen-generate-20260821-v1",
+        "noteai-item26-restored-keygen-generate-successor-20260822-v1",
         "builder",
         120,
         ("BUILDER_PREFLIGHT_PASS",),
@@ -69,7 +69,7 @@ _ACTION_ROWS = (
     ),
     (
         "keygen_readback",
-        "noteai-item26-restored-keygen-readback-20260821-v1",
+        "noteai-item26-restored-keygen-readback-successor-20260822-v1",
         "builder",
         120,
         ("KEYGEN_GENERATE_TERMINAL_UNKNOWN",),
@@ -77,7 +77,7 @@ _ACTION_ROWS = (
     ),
     (
         "password_rewrap_create",
-        "noteai-item26-restored-password-rewrap-create-successor-20260822-v1",
+        "noteai-item26-restored-password-rewrap-create-successor-final-20260822-v1",
         "api_c",
         120,
         ("API_C_PREFLIGHT_PASS", "KEYGEN_PASS"),
@@ -85,7 +85,7 @@ _ACTION_ROWS = (
     ),
     (
         "password_rewrap_readback",
-        "noteai-item26-restored-password-rewrap-readback-successor-20260822-v1",
+        "noteai-item26-restored-password-rewrap-readback-successor-final-20260822-v1",
         "api_c",
         120,
         ("PASSWORD_REWRAP_CREATE_TERMINAL_UNKNOWN",),
@@ -93,7 +93,7 @@ _ACTION_ROWS = (
     ),
     (
         "package_broker_create",
-        "noteai-item26-restored-package-broker-create-20260821-v1",
+        "noteai-item26-restored-package-broker-create-successor-20260822-v1",
         "api_c",
         120,
         ("API_C_PREFLIGHT_PASS", "PASSWORD_REWRAP_PASS"),
@@ -101,7 +101,7 @@ _ACTION_ROWS = (
     ),
     (
         "package_broker_readback",
-        "noteai-item26-restored-package-broker-readback-20260821-v1",
+        "noteai-item26-restored-package-broker-readback-successor-20260822-v1",
         "api_c",
         120,
         ("PACKAGE_BROKER_CREATE_EXIT_0_OR_4",),
@@ -109,7 +109,7 @@ _ACTION_ROWS = (
     ),
     (
         "builder_stage_finalize",
-        "noteai-item26-restored-builder-stage-finalize-20260821-v1",
+        "noteai-item26-restored-builder-stage-finalize-successor-20260822-v1",
         "builder",
         120,
         ("PACKAGE_BROKER_READBACK_PASS", "TWO_SEND_FILES_TERMINAL_SUCCESS"),
@@ -117,7 +117,7 @@ _ACTION_ROWS = (
     ),
     (
         "builder_stage_readback",
-        "noteai-item26-restored-builder-stage-readback-20260821-v1",
+        "noteai-item26-restored-builder-stage-readback-successor-20260822-v1",
         "builder",
         120,
         ("BUILDER_STAGE_FINALIZE_TERMINAL_UNKNOWN",),
@@ -125,7 +125,7 @@ _ACTION_ROWS = (
     ),
     (
         "restored_capture",
-        "noteai-item26-restored-capture-20260821-v1",
+        "noteai-item26-restored-capture-ssl-corrected-20260823-v1",
         "builder",
         1500,
         ("BUILDER_STAGE_PASS", "FRESH_RESTORED_DATABASE_BASELINE_PASS"),
@@ -197,8 +197,8 @@ TERMINAL_TRANSITIONS = MappingProxyType({
 })
 
 SEND_FILE_TARGETS = MappingProxyType({
-    "control-envelope.json": "/var/lib/noteai/item26-restored-v1/control",
-    "restored-capture-transfer-v1.sh.gz": "/var/lib/noteai/item26-restored-v1",
+    "control-envelope-successor-v1.json": "/var/lib/noteai/item26-restored-v1/control",
+    "restored-capture-transfer-successor-v1.sh.gz": "/var/lib/noteai/item26-restored-v1",
 })
 SEND_FILE_ORDER = tuple(SEND_FILE_TARGETS)
 
@@ -547,8 +547,8 @@ def _validate_static_contract():
         or set(TERMINAL_TRANSITIONS) != set(ACTIONS)
         or len({row.name for row in ACTIONS.values()}) != 11
         or SEND_FILE_ORDER != (
-            "control-envelope.json",
-            "restored-capture-transfer-v1.sh.gz",
+            "control-envelope-successor-v1.json",
+            "restored-capture-transfer-successor-v1.sh.gz",
         )
     ):
         raise RuntimeError("invalid action table")

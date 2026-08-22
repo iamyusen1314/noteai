@@ -37,7 +37,7 @@ class Item26RestoredPackageBrokerV1Tests(unittest.TestCase):
         self.assertIn("private_key_value_read_count", keygen)
         self.assertIn("O_EXCL", keygen)
         self.assertIn("O_EXCL", broker)
-        self.assertIn("capture-attempted-v1", keygen)
+        self.assertIn("capture-successor-attempted-v1", keygen)
         self.assertNotIn("capture-attempt-v1.json", keygen)
         self.assertIn('PUBLIC_METADATA="$BASE_ROOT/keygen-public-metadata.json"', keygen)
         self.assertIn("$'control-private.pem\\ncontrol-public.pem'", keygen)
@@ -48,10 +48,10 @@ class Item26RestoredPackageBrokerV1Tests(unittest.TestCase):
             "latest/api/token",
             "ram/security-credentials/",
             "org.opencontainers.image.revision",
-            "restored-capture-transfer-v1.sh.gz",
-            "capture-task-v1",
-            "restored-manifest-v1",
-            "capture-attempted-v1",
+            "restored-capture-transfer-successor-v1.sh.gz",
+            "capture-successor-task-v1",
+            "restored-manifest-successor-v1",
+            "capture-successor-attempted-v1",
             "state established",
             "/usr/sbin/ss -Htan",
         ):
@@ -124,9 +124,9 @@ class Item26RestoredPackageBrokerV1Tests(unittest.TestCase):
         self.assertIn("/var/lib/noteai/item26-restored-v1", capture)
         self.assertNotIn("/var/lib/noteai/item26-restored-v1", broker)
         self.assertIn("control-envelope.json", broker)
-        self.assertIn("control-envelope.json", capture)
-        self.assertIn("capture-attempted-v1", capture)
-        self.assertIn("control-envelope.json\\ncontrol-private.pem\\ncontrol-public.pem", capture)
+        self.assertIn("control-envelope-successor-v1.json", capture)
+        self.assertIn("capture-successor-attempted-v1", capture)
+        self.assertIn("control-envelope-successor-v1.json\\ncontrol-private.pem\\ncontrol-public.pem", capture)
 
 
 if __name__ == "__main__":
