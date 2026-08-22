@@ -3552,3 +3552,23 @@ Last updated: 2026-08-19
 - 剩余门: checkpoint unique dual CI成功后，才可用fresh plan nonce/private root派发
   一次纠正后的preflight。任何同根因重复或UNKNOWN立即停止；数据库首连仍只允许
   后续唯一capture。
+
+## Item 26 password-rewrap empty-file metadata false negative (2026-08-22)
+
+- 状态: Open High / deterministic local executor defect / old identities
+  terminal no-replay。API-C preflight、builder preflight和keygen已PASS；rewrap
+  CREATE仅在helper rc0后因`helper_stderr` exit4终止，唯一READBACK随后因未生成
+  result而在`readback_contract` exit4。DB connection/transaction/write、provider
+  mutation和Secret emission均为0；broker/capture未启动。
+- 根因: `LC_ALL=C`的GNU `stat %F`把零字节普通文件报告为
+  `regular empty file`，旧predicate却要求`regular file`。因此即使helper成功且
+  stderr为空也必然假阴性；READBACK失败只是result_commit尚未到达的结构性后果。
+- 最小处置: 保留旧root/commands/invocations不可变且不重放；既有v1 schema、
+  artifact和密码学domain不变。successor只修正空文件类型谓词，换用独立
+  root/container与fresh API-C preflight/rewrap names，并同步现有renderer/bridge
+  identities和tests。normal/-O focused各62/62、internal各25/29、production各
+  138/138均PASS。
+- 资源风险: 构建机StopCharging调用仍等待阿里云本人安全验证，尚未派发；唯一
+  replacement clone继续Postpaid计费但DB连接仍0。验证后必须先读回builder
+  Stopped/StopCharging，再提交/push successor并等待unique双CI；不得在旧namespace
+  重做rewrap或提前进入broker/capture。

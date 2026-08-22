@@ -55,7 +55,7 @@ class Item26PasswordRewrapV1Tests(unittest.TestCase):
             "CREATE)",
             "READBACK)",
             "PERSISTENT_PARENT='/var/lib'",
-            'PERSISTENT_ROOT="$PERSISTENT_PARENT/noteai-item26-restored-password-rewrap-v1"',
+            'PERSISTENT_ROOT="$PERSISTENT_PARENT/noteai-item26-restored-password-rewrap-successor-v1"',
             'ATTEMPT_FILE="$PERSISTENT_ROOT/attempted-v1.json"',
             'RESULT_FILE="$PERSISTENT_ROOT/password-rewrap-result-v1.json"',
             "os.O_EXCL|os.O_NOFOLLOW",
@@ -72,6 +72,19 @@ class Item26PasswordRewrapV1Tests(unittest.TestCase):
             self.assertIn(marker, self.source)
         self.assertNotIn("rm -rf", self.source)
         self.assertNotIn("/var/lib/noteai/item26-restored-password-rewrap-v1", self.source)
+
+    def test_empty_helper_stderr_uses_the_gnu_empty_file_type(self):
+        self.assertIn(
+            "'regular empty file|0|0|600|1|0' ] || { phase='helper_stderr'; return 1; }",
+            self.source,
+        )
+        self.assertNotIn(
+            "'regular file|0|0|600|1|0' ] || { phase='helper_stderr'; return 1; }",
+            self.source,
+        )
+        helper_guard = self.source.index("phase='helper_stderr'")
+        result_commit = self.source.index("phase='result_commit'")
+        self.assertLess(helper_guard, result_commit)
 
     def test_first_docker_call_is_credential_free_and_config_path_stays_absent(self):
         self.assertIn(
@@ -225,7 +238,7 @@ task_identity=x
 TASK_ROOT={str(task)!r}
 DOCKER_CONFIG_ROOT={str(config)!r}
 CIDFILE={str(cidfile)!r}
-CONTAINER_NAME=noteai-item26-password-rewrap-v1
+CONTAINER_NAME=noteai-item26-password-rewrap-successor-v1
 CONTAINER_LABEL=com.noteai.task=task
 IMAGE_CONFIG=sha256:fixture
 container_attempted=1

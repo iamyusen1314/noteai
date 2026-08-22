@@ -33,7 +33,7 @@ PATHS = MappingProxyType({
 IDENTITIES = MappingProxyType({
     "keygen": MappingProxyType({"bytes":10909,"sha256":"ab9c6324365ff4fad4f8c9a6757d41835575f3aa258ac6be2fd42bfc72129b83"}),
     "broker": MappingProxyType({"bytes":26487,"sha256":"7cda962fd965bac66f265ba117b2054fe253351d60bda6d1b3d6b808e9854541"}),
-    "rewrap": MappingProxyType({"bytes":34625,"sha256":"d73661b9dc4f2dddc3c6354655361377a0a2323a4adc2c40cd37da0e9ca96082"}),
+    "rewrap": MappingProxyType({"bytes":34661,"sha256":"30a6f5d1d057ebc4b46e98a73ed8dfb804fee98839685ebe12964b646c0344f1"}),
     "stage": MappingProxyType({"bytes":10562,"sha256":"babdbe7d6daad55db04d1247ec26741cc77925c1c8ba8ca20398bac9de0069e5"}),
 })
 COUNTS = MappingProxyType({

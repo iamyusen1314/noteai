@@ -30,7 +30,7 @@ import urllib.request
 API_C_IDENTITY_SHA256 = "@@API_C_IDENTITY_SHA256@@"
 PERSISTENT_PARENT = "/var/lib"
 BROKER_ROOT = "/var/lib/noteai-item26-restored-broker-v1"
-REWRAP_ROOT = "/var/lib/noteai-item26-restored-password-rewrap-v1"
+REWRAP_ROOT = "/var/lib/noteai-item26-restored-password-rewrap-successor-v1"
 SOURCE_CONTROL_ROOT = "/run/noteai-item26-source-account-v2"
 SOURCE_PUBLIC_KEY_SHA256 = "dc8f8283248dd232030bb63d19f669ccdaad89faa87dbdffb7b5eb5aae83969a"
 SOURCE_ENVELOPE_BYTES = 894

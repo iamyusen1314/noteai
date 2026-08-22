@@ -23,7 +23,7 @@ readonly SOURCE_PUBLIC_KEY_SHA256='dc8f8283248dd232030bb63d19f669ccdaad89faa87db
 readonly SOURCE_ENVELOPE_BYTES=894
 readonly SOURCE_ENVELOPE_SHA256='2c522a13b236301c5276088dd6ae83cabb5ac9c6a45923385831ec582d81e90a'
 readonly PERSISTENT_PARENT='/var/lib'
-readonly PERSISTENT_ROOT="$PERSISTENT_PARENT/noteai-item26-restored-password-rewrap-v1"
+readonly PERSISTENT_ROOT="$PERSISTENT_PARENT/noteai-item26-restored-password-rewrap-successor-v1"
 readonly ATTEMPT_FILE="$PERSISTENT_ROOT/attempted-v1.json"
 readonly RESULT_FILE="$PERSISTENT_ROOT/password-rewrap-result-v1.json"
 readonly TASK_ROOT="$PERSISTENT_ROOT/task-v1"
@@ -37,8 +37,8 @@ readonly CIDFILE="$TASK_ROOT/container.cid"
 readonly IMAGE_REF='noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b'
 readonly IMAGE_CONFIG='sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95'
 readonly RELEASE_COMMIT='cad5ce35664f617c6e19f90a6159285ddf975594'
-readonly CONTAINER_NAME='noteai-item26-password-rewrap-v1'
-readonly CONTAINER_LABEL='com.noteai.task=PROD-FIRST-LAUNCH-PITR-RESTORE-001-password-rewrap-v1'
+readonly CONTAINER_NAME='noteai-item26-password-rewrap-successor-v1'
+readonly CONTAINER_LABEL='com.noteai.task=PROD-FIRST-LAUNCH-PITR-RESTORE-001-password-rewrap-successor-v1'
 
 phase='preflight'
 persistent_created=0
@@ -492,7 +492,7 @@ PY
   cleanup_container || { phase='container_cleanup'; return 1; }
   container_attempted=0
   [ "$helper_rc" -eq 0 ] || return 1
-  [ "$(stat -c '%F|%u|%g|%a|%h|%s' "$HELPER_ERR")" = 'regular file|0|0|600|1|0' ] || { phase='helper_stderr'; return 1; }
+  [ "$(stat -c '%F|%u|%g|%a|%h|%s' "$HELPER_ERR")" = 'regular empty file|0|0|600|1|0' ] || { phase='helper_stderr'; return 1; }
 
   phase='result_commit'
   python3 -I -B - "$HELPER_OUT" "$RESULT_FILE" "$PERSISTENT_ROOT" "$RECIPIENT_PUBLIC_KEY_SHA256" <<'PY' 2>/dev/null || return 1

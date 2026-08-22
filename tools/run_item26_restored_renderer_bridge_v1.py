@@ -47,12 +47,12 @@ _SOURCE_ROWS = (
     (
         "tools/render_item26_restored_ops_v1.py",
         39443,
-        "6d7b9fd93ecab29f88133302243926f061ddd8d9a95458f8b85724a2d569e9e3",
+        "e434a05363b908db980f88e0502467b5002713f168854b1c6ad214741f35c924",
     ),
     (
         "tools/render_item26_restored_preflight_v1.py",
         13394,
-        "85b933a26960e384101262cbb98355689b79140c0ee3c2ef9b0622e3967d8819",
+        "e57d92a9e546c165a06500fcabef93ac48c97b1742f564c29532d136982a58e1",
     ),
     (
         "tools/render_item26_restored_v1_transport.py",
@@ -81,8 +81,8 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-password-rewrap.template.sh",
-        34625,
-        "d73661b9dc4f2dddc3c6354655361377a0a2323a4adc2c40cd37da0e9ca96082",
+        34661,
+        "30a6f5d1d057ebc4b46e98a73ed8dfb804fee98839685ebe12964b646c0344f1",
     ),
     (
         ".codex/item26-restored-builder-stage-v1.template.sh",
@@ -101,8 +101,8 @@ _SOURCE_ROWS = (
     ),
     (
         ".codex/item26-restored-api-c-preflight-v1.template.sh",
-        22261,
-        "5c0936dbce997bddce5d272a55ffca627b89329c1dcb572cf1d61b651494d8e7",
+        22271,
+        "b3a2d0162d91b4d89dcb8b29e8e96cd2263f9f07d74583aa370773be90954ac5",
     ),
     (
         ".codex/item26-restored-builder-preflight-v1.template.sh",

@@ -64,7 +64,7 @@ class Item26RestoredCloudRequestsV1Tests(unittest.TestCase):
     def test_fixed_eleven_action_matrix(self):
         expected = {
             "preflight_api_c": (
-                "noteai-item26-restored-preflight-api-c-20260822-v1",
+                "noteai-item26-restored-preflight-api-c-successor-20260822-v1",
                 "api_c",
                 120,
             ),
@@ -84,12 +84,12 @@ class Item26RestoredCloudRequestsV1Tests(unittest.TestCase):
                 120,
             ),
             "password_rewrap_create": (
-                "noteai-item26-restored-password-rewrap-create-20260821-v1",
+                "noteai-item26-restored-password-rewrap-create-successor-20260822-v1",
                 "api_c",
                 120,
             ),
             "password_rewrap_readback": (
-                "noteai-item26-restored-password-rewrap-readback-20260821-v1",
+                "noteai-item26-restored-password-rewrap-readback-successor-20260822-v1",
                 "api_c",
                 120,
             ),

@@ -13389,3 +13389,34 @@ Colima, database, builder, restore and cloud actions remain frozen.
   shell sources compile; production readiness passes 138/138 in both modes;
   diff check passes.  Next is one normal checkpoint commit/push and unique CI,
   then a fresh plan nonce/private renderer root and one corrected preflight.
+
+## Item 26 password-rewrap empty-stderr false negative (2026-08-22)
+
+- Checkpoint `7e2fc658b9dc66a5866f95bea6da9e7544ba5936` reached unique
+  attempt-one push and pull-request terminal success.  The corrected API-C and
+  builder preflights and the builder key generation then completed with native
+  exit `0`; restored database connection, transaction and write counts remain
+  `0/0/0`.
+- The first password-rewrap CREATE reached native exit `4` at
+  `helper_stderr`; its single allowed READBACK also reached exit `4` at
+  `readback_contract`.  Both old command/invocation identities and their
+  persistent root are frozen and will not be replayed.  Broker, SendFile,
+  stage and capture were not started.
+- Static control-flow review identified one deterministic executor defect.
+  After helper exit `0`, the shell expected GNU `stat %F` to call an empty
+  regular file `regular file`; with `LC_ALL=C` GNU reports
+  `regular empty file`.  The false-negative occurs before result commit, so
+  the later readback necessarily lacks the committed result and is a derived
+  failure rather than a second root cause.
+- The minimal successor keeps schema, artifact types, cryptographic domains
+  and the original DoD unchanged.  It corrects only that empty-file metadata
+  predicate, uses an independent root/container identity, rolls the existing
+  API-C preflight and rewrap command names, and refreshes existing byte/SHA
+  bindings and tests.  No Secret, host environment value, global Docker auth,
+  provider payload or database content is read or written.
+- Focused restore tests pass `62/62` in normal and optimized modes; affected
+  Python and shell syntax pass; internal readiness remains `25/29` and public
+  readiness `25/38`; production readiness passes `138/138` in both modes.
+  The builder StopCharging request is prepared but remains unsubmitted behind
+  Alibaba's user security verification; the replacement clone remains the
+  only active clone and has never been connected.

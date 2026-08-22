@@ -280,7 +280,7 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
         self.assertEqual(builder_source.count('"/usr/sbin/ss"'), 2)
         self.assertIn('PERSISTENT_PARENT = "/var/lib"', source)
         self.assertIn('BROKER_ROOT = "/var/lib/noteai-item26-restored-broker-v1"', source)
-        self.assertIn('REWRAP_ROOT = "/var/lib/noteai-item26-restored-password-rewrap-v1"', source)
+        self.assertIn('REWRAP_ROOT = "/var/lib/noteai-item26-restored-password-rewrap-successor-v1"', source)
         for value in (source, builder_source):
             self.assertIn("dir_fd=pinned[\"fd\"]", value)
             self.assertIn("os.O_NOFOLLOW", value)
