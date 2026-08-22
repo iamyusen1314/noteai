@@ -450,7 +450,7 @@ def source_manifest_exact():
 def environment_metadata_exact():
     pinned = pin_directory(ENV_ROOT, "environment_metadata", exact_mode=None)
     stat_only_at(pinned, "api.env", 1, 65536, "environment_metadata")
-    stat_only_at(pinned, "storage.env", 1, 65536, "environment_metadata")
+    stat_only_at(pinned, "private-storage.env", 1, 65536, "environment_metadata")
     verify_pinned_directory(pinned, "environment_metadata")
     return pinned
 

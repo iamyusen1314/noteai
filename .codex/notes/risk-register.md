@@ -3537,3 +3537,18 @@ Last updated: 2026-08-19
 - 验证: restore-focused normal与optimized各75/75，Python compile双模式、shell
   syntax、diff-check、internal readiness双模式均PASS；production readiness normal
   与optimized各138/138。registry请求、provider mutation、数据库连接和费用新增均0。
+
+## Item 26 API-C environment basename drift (2026-08-22)
+
+- 状态: Mitigated in a minimal pre-commit successor。旧API-C preflight以
+  `environment_metadata`、exit3确定性终止，replay0；database connection/write、
+  host write、Secret value read均0。
+- 根因: tracked preflight与broker错误消费不存在的`/etc/noteai/storage.env`；
+  metadata-only诊断确认生产source-of-truth `private-storage.env`存在且root:root、
+  0600、single-link，环境根与`api.env`也符合合同。不得通过复制或软链Secret绕过。
+- 处置: 两个既有消费者统一到`private-storage.env`，仅API-C preflight换fresh
+  Cloud Assistant name；旧Name、request、CommandId和InvocationId保持终态不复用。
+  候选focused normal/optimized 58/58、compile/shell、production 138/138双模式均PASS。
+- 剩余门: checkpoint unique dual CI成功后，才可用fresh plan nonce/private root派发
+  一次纠正后的preflight。任何同根因重复或UNKNOWN立即停止；数据库首连仍只允许
+  后续唯一capture。

@@ -249,7 +249,7 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
         for marker in (
             'stat_only_at(pinned, "control-private.pem"',
             'stat_only_at(pinned, "api.env"',
-            'stat_only_at(pinned, "storage.env"',
+            'stat_only_at(pinned, "private-storage.env"',
             "verify_pinned_directory(source_control",
             "verify_pinned_directory(source_manifest",
             "verify_pinned_directory(environment",
@@ -263,7 +263,7 @@ class Item26RestoredPreflightV1Tests(unittest.TestCase):
         for forbidden in (
             'stable_read_at(pinned, "control-private.pem"',
             'stable_read_at(pinned, "api.env"',
-            'stable_read_at(pinned, "storage.env"',
+            'stable_read_at(pinned, "private-storage.env"',
             '"/usr/bin/ss"',
             '"/root/.docker"',
             "os.path.lexists",

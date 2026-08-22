@@ -64,7 +64,7 @@ class Item26RestoredCloudRequestsV1Tests(unittest.TestCase):
     def test_fixed_eleven_action_matrix(self):
         expected = {
             "preflight_api_c": (
-                "noteai-item26-restored-preflight-api-c-20260821-v1",
+                "noteai-item26-restored-preflight-api-c-20260822-v1",
                 "api_c",
                 120,
             ),

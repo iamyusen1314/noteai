@@ -45,7 +45,7 @@ class Action:
 _ACTION_ROWS = (
     (
         "preflight_api_c",
-        "noteai-item26-restored-preflight-api-c-20260821-v1",
+        "noteai-item26-restored-preflight-api-c-20260822-v1",
         "api_c",
         120,
         ("EXACT_CHECKPOINT_CI_GREEN", "FRESH_CLOUD_BASELINE_PASS"),

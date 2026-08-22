@@ -67,7 +67,7 @@ class Item26RestoredPackageBrokerV1Tests(unittest.TestCase):
             "source_manifest_gzip",
             "restored_database",
             "wrapped_password",
-            'STORAGE_ENV=\'/etc/noteai/storage.env\'',
+            'STORAGE_ENV=\'/etc/noteai/private-storage.env\'',
             "noteai-item26-pitr-oss-reader-v1",
             "@@RECIPIENT_PUBLIC_KEY_B64@@",
             "@@PASSWORD_REWRAP_RESULT_B64@@",

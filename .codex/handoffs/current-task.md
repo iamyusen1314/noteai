@@ -13368,3 +13368,24 @@ Colima, database, builder, restore and cloud actions remain frozen.
   checkpoint, is a fresh zero-resource baseline followed by at most one active
   replacement PITR clone and the already-authorized single read-only restored
   capture.
+
+## Item 26 API-C environment basename correction (2026-08-22)
+
+- Checkpoint `b894f80e752fd89ad0de283d9e18045dc697c32b` passed its unique
+  attempt-one push and pull-request CI runs.  The replacement PITR clone is
+  Running and private-only with the exact builder `/32`; the same builder is
+  Running.  No database connection or database write has occurred.
+- The first replacement API-C preflight is terminal known-fail
+  (`environment_metadata`, exit 3, repeats 1, dropped 0).  It is not replayed.
+  A separate metadata-only diagnostic read no file content and wrote nothing;
+  it proved `/etc/noteai`, `api.env`, and `private-storage.env` have the required
+  root ownership and modes while the obsolete `storage.env` basename is absent.
+- The minimal successor candidate changes only the preflight and package-broker
+  host basename to the existing production source of truth
+  `private-storage.env`, rolls only the API-C preflight Cloud Assistant name,
+  and updates existing identity bindings and tests.  No host Secret is copied,
+  linked, read, or changed.
+- Focused tests pass 58/58 in normal and optimized modes; affected Python and
+  shell sources compile; production readiness passes 138/138 in both modes;
+  diff check passes.  Next is one normal checkpoint commit/push and unique CI,
+  then a fresh plan nonce/private renderer root and one corrected preflight.
