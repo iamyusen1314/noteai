@@ -64,7 +64,7 @@ class Action:
 _ACTION_ROWS = (
     (
         "api_c",
-        "noteai-item27-internal-smoke-api-c-20260823-stop-status-fix1",
+        "noteai-item27-internal-smoke-api-c-20260823-closure-fix1",
         "api_c_instance_id",
         "api-c",
         PROVIDER_TIMEOUT_SECONDS["api-c"],
