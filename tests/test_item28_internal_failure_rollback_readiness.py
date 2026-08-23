@@ -35,9 +35,9 @@ class Item28ReadinessTests(unittest.TestCase):
         ]
         return control
 
-    def test_current_manifest_stays_26_of_29(self):
+    def test_current_manifest_is_27_of_29(self):
         report = gate.build_report()
-        self.assertEqual(report["internal_deployment"]["verified"], 26)
+        self.assertEqual(report["internal_deployment"]["verified"], 27)
         self.assertEqual(report["internal_deployment"]["total"], 29)
         self.assertFalse(report["internal_deployment"]["passed"])
 

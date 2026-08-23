@@ -16233,7 +16233,7 @@
         {
           "id": "internal_zero_provider_smoke",
           "title": "Complete private zero-provider internal smoke test",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "backup_pitr_restore",
             "api_c_current_release",
@@ -16244,9 +16244,36 @@
             "tracking_suspended_runtime",
             "payment_internal_runtime"
           ],
-          "evidence": [],
-          "blocker": "The current release has not completed one full private, supplier-free operational smoke.",
-          "next_task": "PROD-FIRST-LAUNCH-INTERNAL-SMOKE-001"
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "0d6caec647264d03026dcfa02d8d22ff268cdf24"
+            },
+            {
+              "kind": "git",
+              "ref": "c9b9ac423033f3c54cbe7ecf67cef63508934896"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-internal-zero-provider-smoke-verified-20260813.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/internal_zero_provider_smoke.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/render_item27_internal_smoke_requests_v1.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/validate_item27_internal_smoke_result_v1.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_internal_zero_provider_smoke_evidence.py"
+            }
+          ]
         },
         {
           "id": "internal_failure_rollback",

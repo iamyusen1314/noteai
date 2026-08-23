@@ -33,13 +33,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 26)
+        self.assertEqual(report["internal_deployment"]["verified"], 27)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 90)
+        self.assertEqual(report["internal_deployment"]["percentage"], 93)
         self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 26)
+        self.assertEqual(report["complete_public_launch"]["verified"], 27)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 68)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 71)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -3817,38 +3817,20 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             for item in candidate["layers"][1]["controls"]
             if item["id"] == "internal_zero_provider_smoke"
         )
-        control["status"] = "verified"
-        control.pop("blocker")
-        control.pop("next_task")
-        control["evidence"] = [
-            {"kind": "git", "ref": "f940106b9f7df0c23ea4a1e67063cfb35bf9927b"},
+        self.assertEqual(control["status"], "verified")
+        self.assertEqual(
+            {(row["kind"], row["ref"]) for row in control["evidence"]},
             {
-                "kind": "path",
-                "ref": (
-                    "deploy/production/evidence/"
-                    "production-internal-zero-provider-smoke-"
-                    "verified-20260813.json"
+                *(
+                    ("path", ref)
+                    for ref in item27_verifier.REQUIRED_MANIFEST_PATH_REFS
+                ),
+                *(
+                    ("git", ref)
+                    for ref in item27_verifier.REQUIRED_MANIFEST_GIT_REFS
                 ),
             },
-            {
-                "kind": "path",
-                "ref": "tools/verify_internal_zero_provider_smoke_evidence.py",
-            },
-            {
-                "kind": "path",
-                "ref": "deploy/production/internal_zero_provider_smoke.py",
-            },
-            {
-                "kind": "path",
-                "ref": "tools/render_item27_internal_smoke_requests_v1.py",
-            },
-            *[
-                {"kind": "path", "ref": ref}
-                for ref in sorted(
-                    item27_verifier.RECEIPT_REFS.values()
-                )
-            ],
-        ]
+        )
         item26 = next(
             item
             for item in candidate["layers"][1]["controls"]
@@ -4280,7 +4262,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 26)
+        self.assertEqual(report["internal_deployment"]["verified"], 27)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)

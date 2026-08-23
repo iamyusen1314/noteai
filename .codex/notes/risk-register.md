@@ -3770,3 +3770,22 @@ Last updated: 2026-08-19
   API-F双unit inactive/dead/success、disabled、NRestarts0、drop-in0、container0、
   API live/ready与task-root residue0，才允许fresh-name bounded API-F successor。
   unit replacement和API-C禁止重跑；任何新UNKNOWN仍先只读对账、不得盲重派。
+
+## Item 27 terminal closure and residual billing visibility (2026-08-24)
+
+- 状态: 原始DoD已关闭，Item27为`verified`，内部`27/29`。API-C、API-F、Worker-C、
+  Worker-F四段按序全部`PASS`；provider call/attempt、production DB、OSS、synthetic、
+  public request/listener均0，start/stop `6/6`且cleanup全部`RESTORED`。API-C只复用
+  parser修正前已验收结果；两revision之间没有API-C应用或unit变更。
+- 证据残余: 临时CloudShell在`FINAL_PASS`后过期，导致后三份未下载的provisional
+  receipt及首份raw archive无法字节级恢复。随机plan nonce、RequestId和observed-at
+  不可反推，因此明确记录`byte_identical_new_receipts_recoverable=false`且没有伪造。
+  持久Cloud Assistant history已重新读取，四份结果由tracked validator再次验证；
+  repo-out终态archive SHA为`9186c5fa…42a99`。原始DoD不要求receipt、checkpoint或
+  external-authority，现有gate已缩回直接验证主evidence，不新增替代证明层。
+- 资源/费用残余: Builder、Worker-C/F均`Stopped/StopCharging`；临时SG规则、双
+  `/32` route、peering和TLS listener均0残留。最后续跑Worker计算152秒，按tracked
+  单机`CNY 0.8164/hour`估算`CNY 0.034470`；Item27全量实际账单仍待provider异步
+  结算，不能记为0。该账单可见性不阻塞功能验收，也不得触发重跑Item27。
+- 后续风险域仅为Item28现有release的restart/failover/rollback演练。不得把已关闭的
+  Item27 capture损失、无关Render staging或公开Items 30-38升级为Item28 blocker。

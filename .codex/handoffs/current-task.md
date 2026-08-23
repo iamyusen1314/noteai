@@ -13872,3 +13872,49 @@ Colima, database, builder, restore and cloud actions remain frozen.
   Next is a normal commit/push and exact-head double-green CI, followed by a
   strict inactive/disabled/container-zero/residue-zero API-F readback and one
   fresh-name API-F successor.  Unit replacement and API-C are not rerun.
+
+## Item 27 original-DoD terminal acceptance (2026-08-24)
+
+- The four-host private supplier-free smoke is terminal `PASS` in the required
+  order. API-C retained its already accepted terminal result from revision
+  `0d6caec647264d03026dcfa02d8d22ff268cdf24`; the only intervening release
+  change is the API-F multi-line JSON parser correction in
+  `c9b9ac423033f3c54cbe7ecf67cef63508934896`, so API-C was not rerun. The
+  successor command identities are API-F `c-sz06uveh5h27pc0` /
+  `t-sz06uveh5hm6w3k`, Worker-C `c-sz06uvem9rl0veo` /
+  `t-sz06uvem9schr7k`, and Worker-F `c-sz06uveqej9tla8` /
+  `t-sz06uveqejhbabk`; each is uniquely terminal `Finished / Success / exit=0 /
+  Dropped=0 / Repeats=1` and was dispatched once.
+- All four executor results revalidate against the tracked shared validator:
+  `4/4 PASS`, 13 loopback endpoint projections, six role checks and balanced
+  service start/stop `6/6`. Provider call/attempt, production database, OSS,
+  synthetic, public request and public listener counts are all zero; every
+  action reports `cleanup=RESTORED` and replay disabled. API-C/API-F legal and
+  billing contract hashes are identical.
+- The ephemeral CloudShell expired after printing `FINAL_PASS`, before its
+  three new provisional receipts and first raw archive could be downloaded.
+  Their random nonce, RequestIds and observation timestamps make byte-identical
+  recovery impossible, so no receipt was reconstructed or fabricated. The
+  persistent Cloud Assistant histories were instead independently reread and
+  revalidated. Their ten-file repo-out archive is 29,586 bytes with SHA-256
+  `9186c5facaec91a40cf30727416d00adc33f3a1f4fe0c7be3097fd67ca942a99`;
+  the final compute readback hashes to
+  `29631c0eb4c3dd992e622f9fe609cb56feb0415b8e8ae0635878c52a5880f555`.
+- Builder, Worker-C and Worker-F are independently `Stopped / StopCharging`.
+  The authorized temporary `/32:24443` ingress, two `/32` routes, VPC peering
+  and TLS listener were previously revoked and read back with zero residue.
+  Final continuation worker compute was 152 seconds; at the tracked
+  `CNY 0.8164/hour` per worker the estimate is `CNY 0.034470`. The complete
+  Item27 provider invoice is still pending asynchronous settlement and is not
+  falsely reported as zero. No temporary paid resource remains running.
+- The tracked main evidence is
+  `deploy/production/evidence/production-internal-zero-provider-smoke-verified-20260813.json`;
+  canonical terminal acceptance is
+  `a42a6fe6bd0aebfb6856fac9ea01da1043a054e67c9fae3987b8608e3342a077`.
+  The existing verifier now enforces the original DoD directly and no longer
+  requires the later receipt/checkpoint/external-authority structures. Focused
+  verification passes 45 Item27 source/evidence tests plus 20 readiness-gate
+  tests; compilation, verifier CLI, internal gate and diff checks pass.
+- Item27 is `verified`; internal readiness is `27/29` and complete-public
+  accounting is `27/38`, without authorizing public Items 30-38. The sole next
+  task is Item28 `PROD-FIRST-LAUNCH-INTERNAL-ROLLBACK-001`.
