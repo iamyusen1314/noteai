@@ -3789,3 +3789,33 @@ Last updated: 2026-08-19
   结算，不能记为0。该账单可见性不阻塞功能验收，也不得触发重跑Item27。
 - 后续风险域仅为Item28现有release的restart/failover/rollback演练。不得把已关闭的
   Item27 capture损失、无关Render staging或公开Items 30-38升级为Item28 blocker。
+
+## Item 28 reconciled managed-recovery closure (2026-08-24)
+
+- 状态: 原始DoD已关闭，Item28为`verified / VERIFIED_RECONCILED`，内部`28/29`、
+  完整公开计数`28/38`；未执行或授权公开Items 30-38。原始DoD仅要求当前release的
+  managed restart/failover/rollback rehearsal，并未要求receipt、checkpoint、raw
+  closure、external authority、RDS/ALB/DNS或跨主机failover。
+- 终态事实: unit-pin修正后的唯一rehearsal successor明确终态为
+  `UNKNOWN/unit_state/exit4`，restart1、rollback requested、无重放；证据没有把它伪写
+  为PASS。独立readback证明guardian已`RESTORED`并删除drop-in，显式runtime start0；
+  systemd完成一次managed auto-restart，最终unit active/running/enabled/result success，
+  same release、loopback-only、live/ready200、public listener0、volatile residue0。
+- 清理: 首次cleanup因旧的guardian runtime-start预期在任何delete/service mutation前
+  失败且未重放；fresh successor精确删除5个受控临时文件和1个task root，service
+  restart0，之后same unit/release/health且residue0。删除内容无用户数据，可由持久
+  Cloud Assistant history恢复。provider/attempt、production DB、OSS、IAM、public
+  request和cloud resource create均0。
+- 根因/最小修复: 当前unit含自动重启语义，严格观察器在systemd
+  `activating/auto-restart`过渡态产生`unit_state`竞态；随后guardian移除故障drop-in时
+  systemd已自行恢复，故guardian runtime_start_count合法为0。现有执行器仅扩展这两个
+  真实分支并保持exact drop-in、container0、same-release与health闭锁；生产动作不重派。
+- 费用/资源: Item28未启动临时付费计算、未创建云资源，增量费用`CNY 0.000000`。
+  API-C/API-F维持基线Running/PrePaid，Builder、Worker-C/F均Stopped/StopCharging；
+  没有可停止的临时计费计算资源在运行。
+- 证据/门禁: 单一主evidence为
+  `deploy/production/evidence/production-internal-failure-rollback-verified-20260814.json`，
+  terminal acceptance `55363294...f85c9c`。直接verifier、44项focused tests、compile、
+  internal gate和diff check通过。剩余唯一内部风险是Item29真实100-job admission、
+  recovery和accounting验收；Item28的历史UNKNOWN已由readback+cleanup闭合，不得触发
+  盲目重派，也不得被公开Items 30-38或无关Render问题重新打开。

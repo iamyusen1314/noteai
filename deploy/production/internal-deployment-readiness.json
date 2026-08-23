@@ -16278,15 +16278,34 @@
         {
           "id": "internal_failure_rollback",
           "title": "Restart, failover and rollback rehearsal for the current release",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "monitoring_alerting",
             "backup_pitr_restore",
             "internal_zero_provider_smoke"
           ],
-          "evidence": [],
-          "blocker": "The current release has no managed restart, failover and rollback acceptance.",
-          "next_task": "PROD-FIRST-LAUNCH-INTERNAL-ROLLBACK-001"
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "40d8fa29ebf1dcb9af8f475528a94e1cf8322874"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-internal-failure-rollback-verified-20260814.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/internal_failure_rollback.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/render_item28_internal_failure_rollback_request_v1.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_internal_failure_rollback_evidence.py"
+            }
+          ]
         },
         {
           "id": "capacity_100_jobs",

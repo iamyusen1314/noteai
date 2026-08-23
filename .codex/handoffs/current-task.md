@@ -13918,3 +13918,49 @@ Colima, database, builder, restore and cloud actions remain frozen.
 - Item27 is `verified`; internal readiness is `27/29` and complete-public
   accounting is `27/38`, without authorizing public Items 30-38. The sole next
   task is Item28 `PROD-FIRST-LAUNCH-INTERNAL-ROLLBACK-001`.
+
+## Item 28 original-DoD terminal acceptance (2026-08-24)
+
+- Item28 is `verified` as `VERIFIED_RECONCILED`; internal readiness is now
+  `28/29` and complete-public accounting is `28/38`. This does not authorize or
+  execute public Items 30-38. The only next task is Item29
+  `PROD-FIRST-LAUNCH-CAPACITY-100-001`.
+- The first rehearsal command terminated `FAIL/file_identity` before any
+  runtime mutation or restart. After the exact API-F unit pin was aligned and
+  committed at `40d8fa29ebf1dcb9af8f475528a94e1cf8322874`, the fresh-name,
+  fresh-nonce successor was dispatched exactly once. It terminated
+  `Failed / exit=4 / UNKNOWN / unit_state`, with one restart attempt,
+  rollback requested and replay disabled. It was not dispatched again.
+- Independent readback closed the UNKNOWN result without inventing an executor
+  PASS: the guardian had removed the exact volatile drop-in and recorded
+  `RESTORED`, `daemon_reload_count=1`, `runtime_start_count=0` and zero staged
+  or volatile residue. systemd had performed the managed recovery itself
+  (`NRestarts=1`); the exact unit was active/running/enabled with result
+  success, the original release identity `20fae7fd...2b22066` was restored,
+  Docker remained read-only as `999:999`, the only binding was
+  `127.0.0.1:8000`, and live/ready were both 200.
+- The first strict cleanup command failed its guardian precondition before any
+  delete or service mutation and was not replayed. Its corrected fresh-name
+  successor passed once, deleted exactly five controlled task files and the
+  Item28 task root, performed zero service restart, and revalidated the same
+  unit, release and health with zero residue. The deleted material contained
+  no user data and is recoverable from the retained Cloud Assistant histories.
+- The observer race was fixed locally without replaying the production action:
+  the existing executor now accepts systemd's exact `activating/auto-restart`
+  pre-connect state and treats guardian runtime-start counts 0 and 1 as the two
+  valid restoration paths. The current executor identity is 42,742 bytes /
+  `148f9400872b9c3864b8bae396fe1a4cb686de1e44765b0672685701119cd037`.
+- The single tracked evidence is
+  `deploy/production/evidence/production-internal-failure-rollback-verified-20260814.json`;
+  its canonical terminal acceptance is
+  `55363294b82f21c6c0fd000e8dcf08f481775a2f63b2a9dd733056ffb4f85c9c`.
+  The verifier directly enforces the historical UNKNOWN, managed systemd
+  recovery, guardian/runtime split, exact cleanup and final state. No receipt,
+  checkpoint, raw-provider archive or external authority is required by the
+  original DoD or added here.
+- Focused verification passes 44 Item28 tests plus Python compilation,
+  evidence verifier CLI, internal readiness gate and diff checks. API-C and
+  API-F remain their baseline `Running / PrePaid`; Builder, Worker-C and
+  Worker-F are `Stopped / StopCharging`. Item28 started no temporary paid
+  compute and created no cloud resource, so its incremental cloud cost is
+  `CNY 0.000000`.

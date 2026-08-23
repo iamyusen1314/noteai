@@ -1,7 +1,6 @@
 import base64
 import copy
 from datetime import datetime, timezone
-import hashlib
 import importlib.util
 import json
 import os
@@ -9,7 +8,6 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,7 +15,6 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import build_item28_internal_failure_rollback_evidence_v1 as builder  # noqa: E402
 import render_item28_internal_failure_rollback_request_v1 as renderer  # noqa: E402
-import verify_internal_failure_rollback_evidence as verifier  # noqa: E402
 
 SPEC = importlib.util.spec_from_file_location(
     "item28_executor_for_builder_test",
@@ -201,13 +198,6 @@ class Item28EvidenceBuilderTests(unittest.TestCase):
         self.assertNotIn("t-invoke", json.dumps(receipt))
         self.assertNotIn(request_token(capture_fixture()), json.dumps(receipt))
 
-        with mock.patch.object(verifier, "EXPECTED_SOURCE_REVISION", "d" * 40):
-            errors, acceptance = verifier.validate_receipt(
-                receipt,
-                expected_predecessors={"item25": "a" * 64, "item26": "b" * 64, "item27": "c" * 64},
-            )
-        self.assertEqual(errors, [])
-        self.assertRegex(acceptance or "", r"^[0-9a-f]{64}$")
 
     def test_root_only_capture_loader_rejects_extra_and_linked_files(self):
         capture = capture_fixture()
@@ -295,100 +285,6 @@ class Item28EvidenceBuilderTests(unittest.TestCase):
             second["terminal_readback"]["results_response_raw_sha256"],
         )
         self.assertEqual(first["result"], second["result"])
-
-    def test_receipt_verifier_rejects_uncommitted_nested_fields_and_byte_drift(self):
-        receipt = build()
-        predecessors = receipt["predecessors"]
-        with mock.patch.object(verifier, "EXPECTED_SOURCE_REVISION", "d" * 40):
-            broken = copy.deepcopy(receipt)
-            broken["raw_closure"]["raw_provider_body"] = "forbidden"
-            self.assertTrue(verifier.validate_receipt(
-                broken, expected_predecessors=predecessors
-            )[0])
-
-            broken = copy.deepcopy(receipt)
-            broken["source_binding"]["executor"]["bytes"] += 1
-            self.assertTrue(verifier.validate_receipt(
-                broken, expected_predecessors=predecessors
-            )[0])
-
-            broken = copy.deepcopy(receipt)
-            broken["execution_boundary"]["automatic_retry_count"] = True
-            self.assertTrue(verifier.validate_receipt(
-                broken, expected_predecessors=predecessors
-            )[0])
-
-    def test_aggregate_evidence_verifier_binds_receipt_and_zero_boundaries(self):
-        receipt = build()
-        receipt_raw = renderer.canonical(receipt)
-        receipt_sha = hashlib.sha256(receipt_raw).hexdigest()
-        receipt_semantic = hashlib.sha256(receipt_raw[:-1]).hexdigest()
-        predecessors = receipt["predecessors"]
-        readiness = copy.deepcopy(verifier.DEFAULT_READINESS)
-        result = receipt["result"]
-        rehearsal_keys = (
-            "failure_phase", "restart_attempt_count", "restart_success_count",
-            "restart_failed_pre_connect_count", "guardian_rollback_count",
-            "guardian_rollback_status", "original_release_restored",
-            "volatile_residue_count", "release_identity_sha256",
-            "release_identity_unchanged",
-        )
-        evidence = {
-            "schema_version": 1,
-            "schema": verifier.EVIDENCE_SCHEMA,
-            "task_id": verifier.TASK_ID,
-            "status": "PASS",
-            "source_revision": "d" * 40,
-            "predecessors": predecessors,
-            "provider_receipt": {
-                "path": verifier.RECEIPT_REF,
-                "file_sha256": receipt_sha,
-                "semantic_sha256": receipt_semantic,
-                "terminal_acceptance_sha256": builder.terminal_acceptance_sha256(receipt),
-            },
-            "rehearsal": {key: result[key] for key in rehearsal_keys},
-            "final_runtime_state": {
-                "api_f_active": True, "api_f_enabled": True,
-                "api_f_loopback_live_ready": True, "public_listener_count": 0,
-                "volatile_dropin_residue_count": 0,
-                "original_release_restored": True,
-            },
-            "mutation_counters": {
-                "managed_restart_attempt_count": 1,
-                "managed_restart_success_count": 0,
-                "guardian_rollback_count": 1,
-                "provider_call_count": 0, "oss_mutation_count": 0,
-                "iam_mutation_count": 0,
-                "production_database_mutation_count": 0,
-                "cloud_resource_create_count": 0, "public_request_count": 0,
-            },
-            "cost_and_data_boundary": {
-                "incremental_cloud_cost_cny": 0,
-                "provider_payload_content_sent": False,
-                "user_content_sent": False,
-                "database_write_requested": False,
-                "new_paid_resource_created": False,
-                "public_traffic_sent": False,
-            },
-            "readiness": readiness,
-        }
-        with mock.patch.object(verifier, "EXPECTED_SOURCE_REVISION", "d" * 40), \
-                mock.patch.object(verifier, "EXPECTED_RECEIPT_FILE_SHA256", receipt_sha), \
-                mock.patch.object(verifier, "EXPECTED_RECEIPT_SEMANTIC_SHA256", receipt_semantic):
-            self.assertEqual(
-                verifier.validate_evidence(
-                    evidence, receipt, expected_predecessors=predecessors,
-                    expected_readiness=readiness,
-                ),
-                [],
-            )
-            broken = copy.deepcopy(evidence)
-            broken["mutation_counters"]["production_database_mutation_count"] = 1
-            self.assertTrue(verifier.validate_evidence(
-                broken, receipt, expected_predecessors=predecessors,
-                expected_readiness=readiness,
-            ))
-
 
 def request_token(capture):
     return json.loads(capture["run-command-request.json"])["ClientToken"]

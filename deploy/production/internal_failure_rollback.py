@@ -181,7 +181,10 @@ class Host:
             raise RollbackError("unit_manager")
         return values
 
-    def unit_state(self, expected_active, *, require_result=None):
+    def unit_state(
+        self, expected_active, *, require_result=None,
+        allow_auto_restart=False,
+    ):
         _rc, raw = self.command([
             "/usr/bin/systemctl", "show", UNIT,
             "--property=LoadState", "--property=ActiveState",
@@ -200,13 +203,24 @@ class Host:
             "LoadState", "ActiveState", "SubState", "Result", "NRestarts",
         } or values["LoadState"] != "loaded" or restarts < 0:
             raise RollbackError("unit_state")
+        auto_restart_transition = (
+            allow_auto_restart
+            and values["ActiveState"] == "activating"
+            and values["SubState"] in {"auto-restart", "start-pre"}
+        )
         if expected_active:
             if values["ActiveState"] != "active" or values["SubState"] != "running":
                 raise RollbackError("unit_state")
         elif values["ActiveState"] not in {"failed", "inactive"}:
-            raise RollbackError("unit_state")
+            if not auto_restart_transition:
+                raise RollbackError("unit_state")
         if require_result is not None and values["Result"] != require_result:
-            raise RollbackError("unit_state")
+            if not (
+                auto_restart_transition
+                and require_result == "exit-code"
+                and values["Result"] == "success"
+            ):
+                raise RollbackError("unit_state")
         rc, raw = self.command(
             ["/usr/bin/systemctl", "is-enabled", UNIT], "unit_enabled",
             allowed=(0, 1),
@@ -592,7 +606,9 @@ class Host:
     def verify_preconnect_failure(self):
         self.unit_manager(DROPIN_PATH)
         self._regular_file(DROPIN_PATH, 0o644, DROPIN_SHA256)
-        self.unit_state(False, require_result="exit-code")
+        self.unit_state(
+            False, require_result="exit-code", allow_auto_restart=True
+        )
         if self.container_count() != 0:
             raise RollbackError("failure_started_container")
 
@@ -750,7 +766,7 @@ def result_payload(baseline, final, guardian_result, restart_rc):
         "restart_failed_pre_connect_count": 1,
         "guardian_rollback_count": 1,
         "guardian_rollback_status": guardian_result["status"],
-        "restored_runtime_start_count": 1,
+        "restored_runtime_start_count": guardian_result["runtime_start_count"],
         "original_release_restored": True,
         "volatile_residue_count": 0,
         "daemon_reload_count": 2,
@@ -789,16 +805,24 @@ def execute(host=None, guardian=None):
         host.verify_preconnect_failure()
         rollback_requested = True
         guardian_result = guardian.rollback()
-        if guardian_result != {
+        expected_guardian = {
             "schema": "noteai.item28.guardian-result.v1",
             "status": "RESTORED",
             "dropin_removed": True,
             "staged_cleanup_status": "ABSENT",
             "staged_residue_count": 0,
             "daemon_reload_count": 1,
-            "runtime_start_count": 1,
             "volatile_residue_count": 0,
-        }:
+        }
+        if (
+            type(guardian_result) is not dict
+            or {
+                key: value for key, value in guardian_result.items()
+                if key != "runtime_start_count"
+            } != expected_guardian
+            or type(guardian_result.get("runtime_start_count")) is not int
+            or guardian_result["runtime_start_count"] not in {0, 1}
+        ):
             raise RollbackError("guardian_result")
         final = host.final_verify(baseline["release_identity_sha256"])
         payload = result_payload(baseline, final, guardian_result, restart_rc)

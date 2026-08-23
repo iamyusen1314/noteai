@@ -83,11 +83,12 @@ class FakeHost:
 
 
 class FakeGuardian:
-    def __init__(self, fail=False):
+    def __init__(self, fail=False, runtime_start_count=1):
         self.prepare_count = 0
         self.rollback_count = 0
         self.cancel_count = 0
         self.fail = fail
+        self.runtime_start_count = runtime_start_count
 
     def prepare(self, baseline):
         if baseline["release_identity_sha256"] != "a" * 64:
@@ -105,7 +106,7 @@ class FakeGuardian:
             "staged_cleanup_status": "ABSENT",
             "staged_residue_count": 0,
             "daemon_reload_count": 1,
-            "runtime_start_count": 1,
+            "runtime_start_count": self.runtime_start_count,
             "volatile_residue_count": 0,
         }
 
@@ -248,6 +249,41 @@ class InternalFailureRollbackTests(unittest.TestCase):
         self.assertEqual(payload["restart_success_count"], 0)
         self.assertEqual(payload["guardian_rollback_count"], 1)
         self.assertEqual(payload["production_database_mutation_count"], 0)
+
+    def test_managed_systemd_recovery_needs_no_guardian_start(self):
+        host = FakeHost()
+        guardian = FakeGuardian(runtime_start_count=0)
+
+        rc, payload = rollback.execute(host=host, guardian=guardian)
+
+        self.assertEqual(rc, 0)
+        self.assertEqual(payload["status"], "PASS")
+        self.assertEqual(payload["restored_runtime_start_count"], 0)
+        self.assertEqual(validate_executor_result(payload)[0], [])
+
+    def test_auto_restart_transition_is_a_preconnect_failure_state(self):
+        for substate, result in (
+            ("auto-restart", "exit-code"),
+            ("start-pre", "success"),
+        ):
+            with self.subTest(substate=substate, result=result):
+                host = object.__new__(rollback.Host)
+                state = (
+                    "LoadState=loaded\nActiveState=activating\n"
+                    f"SubState={substate}\nResult={result}\nNRestarts=1\n"
+                ).encode()
+                host.command = mock.Mock(side_effect=[
+                    (0, state),
+                    (0, b"enabled\n"),
+                ])
+
+                self.assertEqual(
+                    rollback.Host.unit_state(
+                        host, False, require_result="exit-code",
+                        allow_auto_restart=True,
+                    ),
+                    1,
+                )
 
     def test_unexpected_restart_success_is_unknown_and_never_replayed(self):
         host = FakeHost(restart_rc=0)

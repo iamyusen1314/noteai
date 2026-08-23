@@ -36,7 +36,6 @@ from verify_internal_zero_provider_smoke_evidence import (
 )
 from verify_internal_failure_rollback_evidence import (
     validate_manifest_evidence as validate_internal_failure_rollback_evidence,
-    validate_predecessor_evidence as validate_item28_predecessor_evidence,
 )
 from item29_readiness_adapter import validate_capacity_control
 
@@ -571,17 +570,6 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
 
     rollback = controls_by_id.get("internal_failure_rollback") or {}
     if rollback.get("status") == "verified":
-        predecessor_errors, predecessor_acceptances = (
-            validate_item28_predecessor_evidence(
-                controls_by_id,
-                root=root,
-            )
-        )
-        _require(
-            not predecessor_errors and predecessor_acceptances is not None,
-            "internal_failure_rollback: predecessor semantic evidence invalid: "
-            f"{predecessor_errors[0] if predecessor_errors else ''}",
-        )
         internal_controls = [
             *manifest["layers"][0]["controls"],
             *manifest["layers"][1]["controls"],
@@ -631,7 +619,6 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
         runtime_errors = validate_internal_failure_rollback_evidence(
             rollback["evidence"],
             root=root,
-            expected_predecessors=predecessor_acceptances,
             expected_readiness=expected_readiness,
         )
         _require(

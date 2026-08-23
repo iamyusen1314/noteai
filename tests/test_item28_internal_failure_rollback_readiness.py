@@ -1,8 +1,8 @@
 import copy
-import sys
 import unittest
-from pathlib import Path
 from unittest import mock
+from pathlib import Path
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +15,7 @@ import verify_internal_failure_rollback_evidence as verifier  # noqa: E402
 class Item28ReadinessTests(unittest.TestCase):
     def setUp(self):
         self.manifest = gate.load_manifest()
+        self.evidence = verifier.load_evidence(verifier.EVIDENCE_PATH)
 
     def control(self, manifest, control_id):
         return next(
@@ -24,130 +25,114 @@ class Item28ReadinessTests(unittest.TestCase):
             if control["id"] == control_id
         )
 
-    def verify_control(self, manifest, control_id, evidence=None):
-        control = self.control(manifest, control_id)
-        control["status"] = "verified"
-        control.pop("blocker", None)
-        control.pop("next_task", None)
-        control.pop("resume_condition", None)
-        control["evidence"] = evidence or [
-            {"kind": "path", "ref": "tests/item28-placeholder.json"}
-        ]
-        return control
+    def accepted(self, value):
+        value["terminal_acceptance_sha256"] = (
+            verifier.terminal_acceptance_sha256(value)
+        )
+        return value
 
-    def test_current_manifest_is_27_of_29(self):
+    def test_current_manifest_is_28_of_29(self):
         report = gate.build_report()
-        self.assertEqual(report["internal_deployment"]["verified"], 27)
+        self.assertEqual(report["internal_deployment"]["verified"], 28)
         self.assertEqual(report["internal_deployment"]["total"], 29)
         self.assertFalse(report["internal_deployment"]["passed"])
 
-    def test_item28_default_terminal_roots_are_empty_and_block(self):
-        roots = verifier.predecessor_authority_roots()
-        self.assertEqual(set(roots), {"item25", "item26", "item27"})
-        self.assertTrue(all(not value for row in roots.values() for value in row.values()))
+    def test_tracked_direct_evidence_is_valid_without_receipt_or_checkpoint(self):
+        rollback = self.control(self.manifest, "internal_failure_rollback")
+        refs = {row["ref"] for row in rollback["evidence"]}
 
-        candidate = copy.deepcopy(self.manifest)
-        self.verify_control(candidate, "internal_failure_rollback")
-        with mock.patch.object(gate, "_verify_path", return_value=True):
-            with self.assertRaisesRegex(
-                gate.ManifestError,
-                "predecessor semantic evidence invalid: item25 terminal authority root is not finalized",
-            ):
-                gate.validate_manifest(candidate)
-
-    def terminal_candidate(self):
-        candidate = copy.deepcopy(self.manifest)
-        self.verify_control(candidate, "backup_pitr_restore")
-        self.verify_control(candidate, "internal_zero_provider_smoke")
-        rollback = self.verify_control(
-            candidate,
-            "internal_failure_rollback",
-            evidence=[
-                {"kind": "path", "ref": ref}
-                for ref in sorted(verifier.REQUIRED_MANIFEST_PATH_REFS)
-            ],
+        self.assertEqual(rollback["status"], "verified")
+        self.assertEqual(
+            refs,
+            {
+                *verifier.REQUIRED_MANIFEST_PATH_REFS,
+                verifier.EXECUTION_SOURCE_REVISION,
+            },
         )
-        return candidate, rollback
+        self.assertFalse(any("receipt" in ref or "checkpoint" in ref for ref in refs))
+        self.assertEqual(
+            verifier.validate_manifest_evidence(
+                rollback["evidence"],
+                expected_readiness=verifier.DEFAULT_READINESS,
+            ),
+            [],
+        )
 
-    def test_verified_item28_requires_exact_semantic_evidence(self):
-        candidate, rollback = self.terminal_candidate()
-        predecessor_hashes = {
-            "item25": "a" * 64,
-            "item26": "b" * 64,
-            "item27": "c" * 64,
-        }
-        with mock.patch.object(
-            gate, "_verify_path", return_value=True
-        ), mock.patch.object(
-            gate, "validate_item26_terminal_evidence",
-            return_value=([], predecessor_hashes["item26"]),
-        ), mock.patch.object(
-            gate, "validate_internal_zero_provider_smoke_evidence",
-            return_value=[],
-        ), mock.patch.object(
-            gate, "validate_item28_predecessor_evidence",
-            return_value=([], predecessor_hashes),
-        ), mock.patch.object(
-            gate, "validate_internal_failure_rollback_evidence",
-            return_value=[],
-        ) as validate:
-            gate.validate_manifest(candidate)
+    def test_historical_unknown_cannot_be_rewritten_as_pass(self):
+        changed = copy.deepcopy(self.evidence)
+        changed["rehearsal"]["result"]["status"] = "PASS"
+        self.accepted(changed)
 
-        validate.assert_called_once()
-        args, kwargs = validate.call_args
-        self.assertEqual(args, (rollback["evidence"],))
-        self.assertEqual(kwargs["expected_predecessors"], predecessor_hashes)
-        self.assertEqual(kwargs["expected_readiness"], verifier.DEFAULT_READINESS)
-        self.assertEqual(kwargs["expected_readiness"]["internal_verified_after"], 28)
-        self.assertEqual(kwargs["expected_readiness"]["next_task"], "PROD-FIRST-LAUNCH-CAPACITY-100-001")
+        self.assertIn(
+            "rehearsal history mismatch",
+            verifier.validate_document(changed),
+        )
 
-    def test_tampered_item28_semantics_never_receive_credit(self):
-        candidate, _rollback = self.terminal_candidate()
-        hashes = {"item25": "a" * 64, "item26": "b" * 64, "item27": "c" * 64}
-        with mock.patch.object(
-            gate, "_verify_path", return_value=True
-        ), mock.patch.object(
-            gate, "validate_item26_terminal_evidence",
-            return_value=([], hashes["item26"]),
-        ), mock.patch.object(
-            gate, "validate_internal_zero_provider_smoke_evidence",
-            return_value=[],
-        ), mock.patch.object(
-            gate, "validate_item28_predecessor_evidence",
-            return_value=([], hashes),
-        ), mock.patch.object(
-            gate, "validate_internal_failure_rollback_evidence",
-            return_value=["guardian rollback count drift"],
+    def test_systemd_recovery_and_guardian_runtime_zero_are_both_required(self):
+        attacks = (
+            lambda value: value["reconciliation"]["systemd"].__setitem__(
+                "nrestarts", 0
+            ),
+            lambda value: value["reconciliation"]["guardian_result"].__setitem__(
+                "runtime_start_count", 1
+            ),
+            lambda value: value["cleanup"]["result"].__setitem__(
+                "managed_systemd_restart_count", 0
+            ),
+        )
+        for mutate in attacks:
+            with self.subTest(mutate=mutate):
+                changed = copy.deepcopy(self.evidence)
+                mutate(changed)
+                self.accepted(changed)
+                self.assertTrue(verifier.validate_document(changed))
+
+    def test_cleanup_residue_and_stopcharging_are_required(self):
+        attacks = (
+            lambda value: value["cleanup"]["result"].__setitem__(
+                "volatile_residue_count", 1
+            ),
+            lambda value: value["final_runtime_state"]["worker_f"].__setitem__(
+                "billing", "Running"
+            ),
+            lambda value: value["cost_and_data_boundary"]["deleted_material"].__setitem__(
+                "user_data_delete_count", 1
+            ),
+        )
+        for mutate in attacks:
+            with self.subTest(mutate=mutate):
+                changed = copy.deepcopy(self.evidence)
+                mutate(changed)
+                self.accepted(changed)
+                self.assertTrue(verifier.validate_document(changed))
+
+    def test_gate_accepts_tracked_item28_semantics(self):
+        gate.validate_manifest(copy.deepcopy(self.manifest))
+
+    def test_missing_direct_evidence_ref_never_receives_credit(self):
+        changed = copy.deepcopy(self.manifest)
+        rollback = self.control(changed, "internal_failure_rollback")
+        rollback["evidence"] = rollback["evidence"][:-1]
+
+        with self.assertRaisesRegex(
+            gate.ManifestError, "exact direct evidence refs required"
         ):
-            with self.assertRaisesRegex(
-                gate.ManifestError,
-                "invalid semantic evidence: guardian rollback count drift",
-            ):
-                gate.validate_manifest(candidate)
+            gate.validate_manifest(changed)
 
-    def test_item29_downstream_state_does_not_retroactively_break_item28(self):
-        candidate, _rollback = self.terminal_candidate()
-        self.verify_control(candidate, "capacity_100_jobs")
-        hashes = {"item25": "a" * 64, "item26": "b" * 64, "item27": "c" * 64}
+    def test_item29_state_does_not_retroactively_break_item28(self):
+        changed = copy.deepcopy(self.manifest)
+        capacity = self.control(changed, "capacity_100_jobs")
+        capacity["status"] = "verified"
+        capacity.pop("blocker", None)
+        capacity.pop("next_task", None)
+        capacity["evidence"] = [
+            {"kind": "path", "ref": "tests/item29-placeholder.json"}
+        ]
+
         with mock.patch.object(
             gate, "_verify_path", return_value=True
-        ), mock.patch.object(
-            gate, "validate_item26_terminal_evidence",
-            return_value=([], hashes["item26"]),
-        ), mock.patch.object(
-            gate, "validate_internal_zero_provider_smoke_evidence",
-            return_value=[],
-        ), mock.patch.object(
-            gate, "validate_item28_predecessor_evidence",
-            return_value=([], hashes),
-        ), mock.patch.object(
-            gate, "validate_internal_failure_rollback_evidence",
-            return_value=[],
-        ), mock.patch.object(
-            gate, "validate_capacity_control",
-            return_value=[],
-        ):
-            gate.validate_manifest(candidate)
+        ), mock.patch.object(gate, "validate_capacity_control", return_value=[]):
+            gate.validate_manifest(changed)
 
 
 if __name__ == "__main__":

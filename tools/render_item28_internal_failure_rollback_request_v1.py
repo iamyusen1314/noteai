@@ -32,8 +32,8 @@ INSTANCE_ID = re.compile(r"^i-[a-z0-9]+$")
 ROOT = Path(__file__).resolve().parents[1]
 EXECUTOR_REF = "deploy/production/internal_failure_rollback.py"
 EXECUTOR_IDENTITY = MappingProxyType({
-    "bytes": 41841,
-    "sha256": "2c37bb2b79df4260fba7624091fd245e3543647d4db9eecf525492b560675ca7",
+    "bytes": 42742,
+    "sha256": "148f9400872b9c3864b8bae396fe1a4cb686de1e44765b0672685701119cd037",
     "mode": 0o644,
 })
 INPUT_KEYS = frozenset({

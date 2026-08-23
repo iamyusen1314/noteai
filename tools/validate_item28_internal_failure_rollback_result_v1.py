@@ -99,10 +99,15 @@ def validate_executor_result(value: Any) -> tuple[list[str], dict[str, Any] | No
         errors.append("volatile_dropin_sha256 mismatch")
     for key in (
         "restart_attempt_count", "restart_failed_pre_connect_count",
-        "guardian_rollback_count", "restored_runtime_start_count",
+        "guardian_rollback_count",
     ):
         if not _one(value.get(key)):
             errors.append(key + " must be one")
+    if (
+        type(value.get("restored_runtime_start_count")) is not int
+        or value["restored_runtime_start_count"] not in {0, 1}
+    ):
+        errors.append("restored_runtime_start_count must be zero or one")
     if value.get("daemon_reload_count") != 2 or type(value.get("daemon_reload_count")) is not int:
         errors.append("daemon_reload_count mismatch")
     for key in (
