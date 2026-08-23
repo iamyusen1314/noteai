@@ -16310,15 +16310,34 @@
         {
           "id": "capacity_100_jobs",
           "title": "100 simultaneous AI-job admission, recovery and accounting target",
-          "status": "unverified",
+          "status": "verified",
           "dependencies": [
             "durable_ai_workers",
             "monitoring_alerting",
             "internal_failure_rollback"
           ],
-          "evidence": [],
-          "blocker": "No managed 100-job test proves zero loss, duplicate provider call or overcharge.",
-          "next_task": "PROD-FIRST-LAUNCH-CAPACITY-100-001"
+          "evidence": [
+            {
+              "kind": "git",
+              "ref": "760db9db319aa90925150fdb198aa09af9bd9c2c"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-capacity-100-jobs-verified-20260824.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/capacity_100_jobs.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/render_item29_capacity_100_request_v1.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_capacity_100_jobs_evidence.py"
+            }
+          ]
         }
       ]
     },

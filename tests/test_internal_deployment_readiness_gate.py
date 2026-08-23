@@ -33,13 +33,13 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "remaining": 0,
             },
         )
-        self.assertEqual(report["internal_deployment"]["verified"], 28)
+        self.assertEqual(report["internal_deployment"]["verified"], 29)
         self.assertEqual(report["internal_deployment"]["total"], 29)
-        self.assertEqual(report["internal_deployment"]["percentage"], 97)
-        self.assertFalse(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 28)
+        self.assertEqual(report["internal_deployment"]["percentage"], 100)
+        self.assertTrue(report["internal_deployment"]["passed"])
+        self.assertEqual(report["complete_public_launch"]["verified"], 29)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 74)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 76)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -4145,10 +4145,23 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             gate.validate_manifest(extra)
 
     def test_shared_gate_directly_invokes_item29_verifier_only_when_verified(self):
+        candidate = copy.deepcopy(self.manifest)
+        capacity = next(
+            control
+            for control in candidate["layers"][1]["controls"]
+            if control["id"] == "capacity_100_jobs"
+        )
+        capacity["status"] = "unverified"
+        capacity["evidence"] = []
+        capacity["blocker"] = (
+            "No managed 100-job test proves zero loss, duplicate provider "
+            "call or overcharge."
+        )
+        capacity["next_task"] = "PROD-FIRST-LAUNCH-CAPACITY-100-001"
         with mock.patch.object(
             gate, "validate_capacity_100_jobs_evidence"
         ) as validate:
-            gate.validate_manifest(copy.deepcopy(self.manifest))
+            gate.validate_manifest(candidate)
         validate.assert_not_called()
 
         candidate = copy.deepcopy(self.manifest)
@@ -4157,13 +4170,6 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             for control in candidate["layers"][1]["controls"]
             if control["id"] == "capacity_100_jobs"
         )
-        capacity["status"] = "verified"
-        capacity["evidence"] = [
-            {"kind": "git", "ref": "a" * 40},
-            {"kind": "path", "ref": "deploy/production/capacity_100_jobs.py"},
-        ]
-        capacity.pop("blocker")
-        capacity.pop("next_task")
         with (
             mock.patch.object(gate, "_verify_git_ref", return_value=True),
             mock.patch.object(gate, "_verify_path", return_value=True),
@@ -4284,7 +4290,7 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             path.write_text(json.dumps(candidate), encoding="utf-8")
             report = gate.build_report(path)
         self.assertEqual(len(report["accepted_risks"]), 2)
-        self.assertEqual(report["internal_deployment"]["verified"], 28)
+        self.assertEqual(report["internal_deployment"]["verified"], 29)
         self.assertEqual(report["internal_deployment"]["total"], 29)
 
         broken = copy.deepcopy(candidate)

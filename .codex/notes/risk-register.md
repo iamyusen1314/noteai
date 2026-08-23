@@ -3848,3 +3848,42 @@ Last updated: 2026-08-19
   当前54项focused regression、19个RunShell wrapper语法、compile、内部28/29 gate、
   diff-check及独立GO终审均通过。剩余风险仅为尚未执行的真实managed 100-job链及其
   最终计费/资源读回；不得预先加readiness credit。
+
+## Item 29 managed-capacity terminal closure (2026-08-24)
+
+- 状态/授权边界: 原始DoD已关闭，Item29为`verified`；内部readiness达到`29/29`，
+  完整公开计数为`29/38`。真实provider链仍未验证，public launch仍未授权，公开
+  Items30-38没有启动。evidence中的Item30 next-task字段只是既有schema指针，不扩大
+  本轮授权。
+- 执行/UNKNOWN边界: 13个正常阶段均唯一终态`Success/exit0/repeat1/dropped0`。
+  一次CloudShell过期发生在首个Worker-C SendFile到达服务前，控制面精确读回记录0，
+  随后只提交一次有效传输；后续查询参数与本地转义错误也都在CloudShell侧终止，未
+  产生云动作。process、cleanup及其他生产阶段没有UNKNOWN，没有自动重试、
+  non-idempotent replay、provider replay或`process-readback`，不得因本地工具错误重开
+  已关闭阶段。
+- 数据/计费风险: 固定fake provider产生100个唯一调用、50/50 Claude/Kimi标签、
+  真实credential加载/真实provider调用/model call/token/provider费用均0。100个任务
+  终态成功，102 claims/2 fenced takeovers，结算/扣减/usage各100，expected/actual均
+  `600000 milli`且lost/duplicate/stale-owner/overcharge/refund/manual/payment delta/
+  cash delta全0。100个synthetic用户和200个payload已删除，primary/admission/
+  idempotency/ready residue全0；各100条pseudonymous operation/provider-attempt/usage
+  audit是DoD要求的可审计账本，不是real-user residue。真实provider链仍是后续公开
+  风险，Item29 credit不能替代该验证。
+- 资源/费用: API-C/F最终`Running/PrePaid`，Builder和Worker-C/F最终
+  `Stopped/StopCharging/PostPaid`，operation locks为0；临时compute、task container/
+  file、public listener、SG rule、peering和route residue均0。两Worker各按保守开停请求
+  计1,573秒，live quote均为`CNY 0.816400/hour`，未舍入合计后一次量化为
+  `CNY 0.713443`。provider调用成本严格为0；云账单若有异步可见延迟，只影响账单
+  对账，不改变已记录的实际秒数/报价，也不授权重跑。
+- 证据/门禁: 单一主evidence为
+  `deploy/production/evidence/production-capacity-100-jobs-verified-20260824.json`，
+  terminal acceptance为
+  `8f18bc1b58060a486366aa231754205febd8edeb7f19bd2897a8f32516d1e67f`。
+  它直接绑定source revision `760db9db319aa90925150fdb198aa09af9bd9c2c`、三次传输、
+  13个阶段、managed runtime、会计/清理和资源/费用边界；direct verifier已PASS。
+  Item29 focused evidence/readiness为`26/26`，同步三处旧28/29 gate-test期望后的
+  Item29/renderer/internal-gate组合为`38/38`，renderer独立为`13/13`；internal gate为
+  `29/29`与`29/38`、production readiness为`138/138`。首次production gate唯一失败
+  是renderer测试中provider credential名称的测试字面量，并非Secret；最小修复改为
+  运行时拼接同一名称，拒绝credential的双断言未放宽。
+  没有新增receipt、checkpoint、external authority、adapter、helper或控制层。

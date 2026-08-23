@@ -14023,3 +14023,62 @@ Colima, database, builder, restore and cloud actions remain frozen.
   API-C read-only preflight. Only after preflight passes may Worker-C/F be
   started for the bounded acceptance; both must be source-cleaned and returned
   to `Stopped / StopCharging` immediately after their terminal worker phases.
+
+## Item 29 original-DoD terminal acceptance (2026-08-24)
+
+- Item29 is `verified`; internal readiness is `29/29` and complete-public
+  accounting is `29/38`. Public launch remains unauthorized, real-provider
+  readiness remains unverified, and public Items30-38 were not started. Live
+  execution used source revision
+  `760db9db319aa90925150fdb198aa09af9bd9c2c`; the single tracked evidence is
+  `deploy/production/evidence/production-capacity-100-jobs-verified-20260824.json`
+  with canonical terminal acceptance
+  `8f18bc1b58060a486366aa231754205febd8edeb7f19bd2897a8f32516d1e67f`.
+- The exact normal chain `preflight, admit, dispatch, dispatch-readback,
+  preclaim-c, preclaim-f, process-c, process-f, source-cleanup-worker-c,
+  source-cleanup-worker-f, observe, cleanup, source-cleanup-api-c` completed
+  `13/13 Success / exit=0 / repeat=1 / dropped=0`. The fixed executor gzip was
+  transferred once to API-C, Worker-C and Worker-F with identical SHA-256
+  `9a4c87e0c8cca85713f0199e63762120e218ff43746e7f8270ff44c817145793`;
+  all three source-cleanup projections report source, task-container and
+  task-run-directory residue `0`. Local CloudShell expiry/argument errors were
+  reconciled before service submission and caused no stage or source-transfer
+  replay.
+- The barrier durably admitted 100 participants with maximum concurrency 100
+  and 100 unique operations. Exact processing produced 102 claims, two
+  cross-worker fenced takeovers, 100 unique fake-provider calls and no
+  duplicate or stale-owner provider call. Claude/Kimi routing labels were
+  `50/50`; real provider credentials loaded, real provider calls, model calls,
+  tokens and provider cost were all `0`. No process-readback or provider replay
+  was needed.
+- Final accounting has 100 succeeded operations, 100 completed settlements,
+  100 charges, 100 completes and 100 usage rows; expected and actual credits
+  are both `600000 milli`, with lost operations, overcharge, refund, manual
+  settlement, payment-row delta and cash-balance delta all `0`. Cleanup deleted
+  all 100 synthetic primary users and 200 request/result payload objects.
+  Primary-user, admission, idempotency and ready-payload residue is `0`; the
+  retained pseudonymous operation, provider-attempt and usage audits are each
+  exactly 100 and are the required auditable ledger, not user-data residue.
+- Final native compute readback has API-C/API-F `Running / PrePaid` and
+  Builder/Worker-C/Worker-F `Stopped / StopCharging / PostPaid`, all with zero
+  operation locks. Temporary compute, task container/file, public listener,
+  security-rule, peering and route residue is `0`. Worker-C and Worker-F each
+  accrued 1,573 conservative billable seconds at the live quote
+  `CNY 0.816400/hour`; their exact unrounded aggregate rounded once to six
+  decimals is `CNY 0.713443`. Synthetic create/delete is `100/100`; real-user
+  read/write, public request, non-idempotent replay and provider replay are all
+  `0`.
+- The direct evidence verifier passes and binds the source revision, three
+  transfer identities, 13 Cloud Assistant terminal results, lease timing,
+  managed runtime, accounting, cleanup, resource/cost boundary and readiness.
+  Item29 focused evidence/readiness tests pass `26/26`; after synchronizing the
+  three 28/29-era gate-test expectations, the combined Item29/renderer/internal-
+  gate set passes `38/38`; the renderer module independently passes `13/13`.
+  The internal gate reports `29/29` and `29/38`; final production readiness
+  passes `138/138`. The first production-gate run found
+  only a literal provider credential name in the renderer test, not a secret;
+  the test now constructs the same name at runtime while retaining both exact
+  credential-removal assertions.
+  No receipt, checkpoint, external authority, adapter, new helper or added
+  control layer was introduced. This work stops at internal `29/29`; the
+  evidence schema's Item30 pointer does not authorize public Items30-38.

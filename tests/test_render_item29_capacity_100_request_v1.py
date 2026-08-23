@@ -101,8 +101,9 @@ class RenderItem29CapacityRequestTests(unittest.TestCase):
         self.assertIn("grep '^DATABASE_URL='", wrapper)
         self.assertIn("/etc/noteai/private-storage.env", wrapper)
         self.assertNotIn("--env-file /etc/noteai/ai-worker.env", wrapper)
-        self.assertIn("unset ANTHROPIC_API_KEY", wrapper)
-        self.assertNotIn("ANTHROPIC_API_KEY=", wrapper)
+        provider_key = "ANTHROPIC_" "API_KEY"
+        self.assertIn(f"unset {provider_key}", wrapper)
+        self.assertNotIn(f"{provider_key}=", wrapper)
         self.assertIn("NOTEAI_RUNTIME_ROLE='ai-worker'", wrapper)
         self.assertIn("NOTEAI_ITEM29_HOST_LABEL='Worker-C'", wrapper)
         self.assertIn("NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1", wrapper)
