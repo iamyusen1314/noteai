@@ -13745,3 +13745,48 @@ Colima, database, builder, restore and cloud actions remain frozen.
   API-C is not rerun because its exact path already passed and is unchanged.
   Worker-C/F remain PostPaid/Running and must be returned to StopCharging before
   any wait, interruption or end of the execution window.
+
+## Item 27 API-runtime role mismatch rejected; xhs-http release binding prepared (2026-08-23)
+
+- Independent review rejected checkpoint `2c2d0ed` before any live unit
+  replacement.  Manifest `sha256:612a7e57...17620` contains the required source
+  files but is the accepted `api-runtime` image.  Its root-owned role marker is
+  `api`, while both XHS units declare `NOTEAI_RUNTIME_ROLE=xhs-http`; the shared
+  entrypoint would therefore exit `78` before either worker CLI.  The API-F smoke
+  name remains undispatched, and no production unit or container was changed.
+- The tracked B55 release bundle identifies the role-correct published artifact:
+  manifest
+  `sha256:406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50`,
+  config
+  `sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec`,
+  target `xhs-http-runtime`, the guarded entrypoint and `/bin/false` default cmd.
+  Its application revision contains the exact previously inspected Trends and
+  Tracking source identities.  The corrected rendered unit SHA-256 values are
+  Trends
+  `b6199734eb0dc676385050f55f0055a18effb812941af576253ed0b588c56d67`
+  and Tracking
+  `4968fcb8e33ddd68cbedc16580e7a984377ea218657341cfd6aee3c990f23767`;
+  executor identity is 31,816 bytes /
+  `5553b43c124955a7281395dfa4c41b4184cacae16d832bc401ff49c3bdf4ccad`.
+- A new regression assertion binds the selected manifest and config to the
+  tracked `xhs-http` release role, so source coincidence cannot again substitute
+  for image-role compatibility.  Focused Item27/renderer/durable-unit/runtime
+  tests pass `46/46`; affected Python compilation and `git diff --check` pass.
+- Secret-free cloud diagnostics found the official config retained on the
+  shared builder under local tag `noteai-native-evidence:b55f118-xhs-http`, but
+  the exact repository digest alias is absent on API-F.  The private ACR denies
+  anonymous pulls; API-F's existing RAM role is limited to OSS
+  Get/Put/List/Delete and has no ACR action.  API-C has zero xhs-http images.
+  Builder and API-F share the VPC/vSwitch but not a security group, and their
+  existing inbound rules do not permit direct host transfer.
+- CloudShell expiry triggered the mandatory cost-stop path.  Worker-C and
+  Worker-F were stopped together and independently read back as
+  `Stopped / StopCharging / PostPaid`.  The builder was started only for two
+  bounded cache inspections and stopped after each; final readback is
+  `Stopped / StopCharging / PostPaid`.  Provider billing settlement is
+  asynchronous; no stoppable compute remains running.
+- The remaining live blocker is artifact delivery, not source correctness.
+  Every no-permission-expansion path has been exhausted.  Moving the retained
+  official image now requires explicit authorization for a temporary permission
+  expansion (for example, bounded attachment of an existing storage role or a
+  narrower exact-object/exact-pull role); none has been performed.

@@ -91,10 +91,10 @@ MODES = {
             (8000, "GET", "/payments/capabilities", 200),
         ),
         "dormant": (
-            # The current API-F image is already cached and contains the exact
-            # XHS healthcheck and suspended one-shot sources accepted above.
-            ("trends", "noteai-xhs-trends.service", "2eef608fbb355dabf6760b366690a734d8d43496a5e121ab7884ecfa07202219", "noteai-xhs-trends"),
-            ("tracking", "noteai-xhs-tracking.service", "cf5af9f994fc87dbe4ca800eb2f6f65be7b46a1270612cc5e1016b60767b0eeb", "noteai-xhs-tracking"),
+            # The accepted B55 xhs-http release image contains both XHS
+            # healthcheck and suspended one-shot contracts.
+            ("trends", "noteai-xhs-trends.service", "b6199734eb0dc676385050f55f0055a18effb812941af576253ed0b588c56d67", "noteai-xhs-trends"),
+            ("tracking", "noteai-xhs-tracking.service", "4968fcb8e33ddd68cbedc16580e7a984377ea218657341cfd6aee3c990f23767", "noteai-xhs-tracking"),
         ),
     },
     "worker-c": {

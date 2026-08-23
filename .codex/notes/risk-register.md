@@ -3704,3 +3704,27 @@ Last updated: 2026-08-19
   保持双unit inactive/disabled/container0且不触发pull；随后仅串行执行fresh API-F、
   Worker-C、Worker-F。任何UNKNOWN先只读对账，禁止盲重派。Worker-C/F仍Running，
   等待、断线或本轮结束前必须StopCharging。
+
+## Item 27 cached API image is role-incompatible; official xhs-http artifact not on API-F (2026-08-23)
+
+- 状态: Source corrected / live rollout blocked before mutation / Item27仍unverified。
+  `2c2d0ed`选择的`612a7e57…17620`虽含相同XHS源码，却固化`api` marker；formal
+  units声明`xhs-http`，entrypoint会在CLI前exit78。该缺陷由只读review发现，API-F
+  smoke尚未派发，unit/container/provider/DB/OSS/public mutation均0。
+- 正确制品: tracked B55 bundle把`40644582…c1e50` / config
+  `a78f4753…f8ec`绑定到`xhs-http-runtime`、受控entrypoint和`/bin/false`。现有源码
+  已改为该manifest，两条rendered unit SHA与executor identity同步，并加入manifest→
+  role/config回归断言；focused 46/46、compile、diff-check通过。
+- 独立云诊断: API-F仅缓存legacy XHS image，exact B55 digest absent；private ACR匿名
+  pull被拒。共享builder仍有相同official config的本地B55 tag，但无RAM role；API-C
+  xhs-http image count0。API-F现有role仅允许OSS Get/Put/List/Delete，无ACR action；
+  builder/API-F同VPC与vSwitch、不同SG，现有ingress不允许直接传输。所有诊断均
+  service/container start0且无外部持久副作用。
+- 止费: CloudShell到期后Worker-C/F已立即统一non-force stop并读回
+  `Stopped/StopCharging/PostPaid`；builder两次只为有界cache检查启动，每次均随后
+  StopCharging，最终仍`Stopped/StopCharging/PostPaid`。无可停止计费计算资源运行；
+  实际账单金额等待provider异步结算。
+- 剩余风险/权限边界: 官方制品搬运必须新增临时权限路径（attach现有storage role或
+  创建更窄exact-object/exact-pull role），属于用户定义的“原始DoD之外权限扩大”停止
+  条件。本轮未执行。获得明确授权前不得attach/create role、改SG、传Secret、公开
+  repo、绕entrypoint或使用临时自建镜像替代正式artifact。
