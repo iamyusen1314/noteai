@@ -13528,3 +13528,37 @@ Colima, database, builder, restore and cloud actions remain frozen.
   readiness reports `138/138` in both modes.  Independent Infra/Toolchain,
   Evidence/DoD and Verification/Cleanup reviews each report `PASS` with no
   P0/P1 finding.
+
+## Item 27 post-Item25 unit-identity correction prepared (2026-08-23)
+
+- Read-only takeover started from exact checkpoint
+  `939f66020185c5ca7e04ee5313b0ff910548832a`, with tracked worktree clean,
+  upstream divergence `0/0`, internal readiness `26/29` and only Items 27-29
+  unverified.  The seven pre-existing untracked paths remain untouched.
+- The first API-C console request was rejected by Cloud Assistant before host
+  dispatch because the UI omitted `Username`; its result is terminal
+  `Invalid / AccountNotExists`, output bytes zero and runtime mutation zero.
+  One fresh explicit-root bounded retry was then accepted, but the frozen
+  executor failed before runtime mutation with `unit_identity`, exit `3`,
+  cleanup `NOT_NEEDED`, service start/stop `0/0` and replay false.
+- A separate metadata-only host diagnostic and a read-only query of the
+  already-accepted Item25 invocation proved the independent root cause.  All
+  current API-C unit modes, owners, links and systemd manager identities are
+  valid, and all four current SHA-256 values exactly match Item25's accepted
+  bounded-log output.  The Item27 executor had mistakenly retained all nine
+  pre-Item25 unit hashes despite describing them as installed Item25
+  identities.  No service, container, database, OSS, provider-attempt or
+  public-listener mutation occurred during diagnosis.
+- The minimal successor changes only those nine identities to the accepted
+  post-Item25 hashes, rolls the API-C one-shot command name, and refreshes the
+  existing executor identity.  Executor size remains 29,991 bytes and its new
+  SHA-256 is
+  `5de2369d7d3fff910e133fd5a638fd708868022a1b1f3da46d2aac16d0b6b19e`.
+  No V2/V3, receipt, authority, helper, control layer or Item 1-26 replay was
+  added.
+- Focused Item27/readiness tests pass `47/47`; affected Python compilation and
+  `git diff --check` pass.  Item27 remains `unverified` and readiness remains
+  `26/29` until the corrected four-host serial smoke itself reaches PASS.  The
+  next action is one normal commit/push of these frozen bytes, followed by the
+  corrected API-C successor and then the untouched API-F, Worker-C and
+  Worker-F actions in order.

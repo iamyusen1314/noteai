@@ -126,6 +126,27 @@ class FakeHost:
 class InternalZeroProviderSmokeTests(unittest.TestCase):
     def test_four_modes_are_exact_and_source_has_no_mutating_external_tools(self):
         self.assertEqual(set(smoke.MODES), {"api-c", "api-f", "worker-c", "worker-f"})
+        expected_unit_sha256 = {
+            "api-c": {
+                "noteai-api.service": "46010368ded3db55b7bca45afb75f18383ccf23de6aa6d0d99299d87701677e6",
+                "noteai-admin.service": "1fafeefad045aafdede1a77e1266f4159972dea1862904723823aed397c458f7",
+                "noteai-ai-dispatcher.service": "bb198d026aec6e9840368f9b7b19677c7c7833c4465d57415f24cf9d26583da6",
+                "noteai-payment.service": "40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb",
+            },
+            "api-f": {
+                "noteai-api.service": "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936",
+                "noteai-xhs-trends.service": "5f3926af54e39a533963f6a9a1369dd366f4a1548ecb08d97a6d5171fc004a9d",
+                "noteai-xhs-tracking.service": "e61d20a5b649495c9ee433636628eff6293e38425d3909c57df1679bee12ead7",
+            },
+            "worker-c": {"noteai-ai-worker.service": "b198cf0912a3cae19de34141df0fa7e482a4dca7c3b103317961634adefe710c"},
+            "worker-f": {"noteai-ai-worker.service": "b198cf0912a3cae19de34141df0fa7e482a4dca7c3b103317961634adefe710c"},
+        }
+        for mode, spec in smoke.MODES.items():
+            actual = {
+                row[-3] if len(row) == 4 else row[0]: row[-2]
+                for row in spec["active"] + spec["dormant"]
+            }
+            self.assertEqual(actual, expected_unit_sha256[mode])
         source = SOURCE.read_text(encoding="utf-8")
         self.assertNotIn("curl ", source)
         self.assertNotIn("aliyun", source.lower())

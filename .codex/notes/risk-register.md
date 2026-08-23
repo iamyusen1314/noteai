@@ -3598,3 +3598,21 @@ Last updated: 2026-08-19
   builder计算费已由`Stopped/StopCharging`终止；共享builder既有系统盘仍按原基线
   计费，不是Item26临时资源残留。该结算时差不阻塞Item26验收；最终账单到达后可
   按正常财务对账读取，不得据此重建任何Item26资源。
+
+## Item 27 pre-Item25 unit identity binding false negative (2026-08-23)
+
+- 状态: Mitigated locally / Item27仍unverified。首个UI请求在host dispatch前因空
+  `Username`被Cloud Assistant拒绝；唯一fresh root重试随后在任何runtime mutation
+  前以`unit_identity / exit3`终止，service start/stop、数据库写、provider call、
+  OSS写和公开监听变更均为0；两个失败身份均保持终态且不复用。
+- 独立根因: 现网九个unit是Item25已验收bounded-log successor bytes；既有Item25
+  四主机终态输出与API-C只读metadata诊断逐项一致。Item27源码却仍绑定Item25变更前
+  SHA，属于确定性validator false-negative，不是生产漂移，也不得回滚Item25来掩盖。
+- 最小处置: 仅把既有四模式的九个SHA更新为Item25终态，滚动API-C一次性command
+  name并刷新同一executor identity；不改启动/停止、loopback检查、provider-zero、
+  DB-zero或cleanup语义，不新增proof/receipt/authority/helper层。focused 47/47、
+  compile和diff-check已PASS。
+- 剩余风险: 修正源码必须先正常commit/push，再以fresh name/token执行API-C
+  successor；随后只能按API-F、Worker-C、Worker-F串行前进。任何post-start UNKNOWN
+  必须先恢复并只读对账，禁止盲重试。Worker-C/F在主动执行窗口内仍为PostPaid
+  Running；若等待人工输入、断线或本轮结束，必须先StopCharging。

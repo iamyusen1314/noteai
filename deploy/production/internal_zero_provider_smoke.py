@@ -66,8 +66,8 @@ if (set(MODE_COMMAND_WORST_CASE_SECONDS) != set(MODE_RUN_BUDGET_SECONDS)
 MODES = {
     "api-c": {
         "active": (
-            ("noteai-api.service", "364a5e539b14a83d24ef9c1726ee3e14b988c398206b2711db5613b9e0a1fc77", "noteai-api-c"),
-            ("noteai-admin.service", "101f8814d89736c2aa920f3107916b9b1ab53cabffdde0d69908285fd6d1fe8a", "noteai-admin-c"),
+            ("noteai-api.service", "46010368ded3db55b7bca45afb75f18383ccf23de6aa6d0d99299d87701677e6", "noteai-api-c"),
+            ("noteai-admin.service", "1fafeefad045aafdede1a77e1266f4159972dea1862904723823aed397c458f7", "noteai-admin-c"),
         ),
         "http": (
             (8000, "GET", "/health/live", 200), (8000, "GET", "/health/ready", 200),
@@ -77,29 +77,29 @@ MODES = {
             (8001, "GET", "/admin/capabilities", 403),
         ),
         "dormant": (
-            ("dispatcher", "noteai-ai-dispatcher.service", "18336a06fb850a38077840b899f6146b67a039d5bb524c45c810b0f48b433bfd", "noteai-ai-dispatcher"),
-            ("payment", "noteai-payment.service", "3f7b7594b26862c5a760a6015fe491f215ee4a59abe1452ea3141c12bb2367a2", "noteai-payment"),
+            ("dispatcher", "noteai-ai-dispatcher.service", "bb198d026aec6e9840368f9b7b19677c7c7833c4465d57415f24cf9d26583da6", "noteai-ai-dispatcher"),
+            ("payment", "noteai-payment.service", "40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb", "noteai-payment"),
         ),
     },
     "api-f": {
-        "active": (("noteai-api.service", "23750496447ad6e31ad27b1461f1164bbf14c28296a0ac28be7e5886eb4e65c1", "noteai-api-f"),),
+        "active": (("noteai-api.service", "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936", "noteai-api-f"),),
         "http": (
             (8000, "GET", "/health/live", 200), (8000, "GET", "/health/ready", 200),
             (8000, "GET", "/legal/contracts", 200), (8000, "GET", "/billing/tiers", 200),
             (8000, "GET", "/payments/capabilities", 200),
         ),
         "dormant": (
-            ("trends", "noteai-xhs-trends.service", "3557cfa0e15cd12d676ef652f8436a6d37ee9bb9490b6f90a886a75e7571fcd6", "noteai-xhs-trends"),
-            ("tracking", "noteai-xhs-tracking.service", "20997e7661381e767aaa6ad1b3dda9b04fc4d9ed5317f44108973a5d0d1e52f7", "noteai-xhs-tracking"),
+            ("trends", "noteai-xhs-trends.service", "5f3926af54e39a533963f6a9a1369dd366f4a1548ecb08d97a6d5171fc004a9d", "noteai-xhs-trends"),
+            ("tracking", "noteai-xhs-tracking.service", "e61d20a5b649495c9ee433636628eff6293e38425d3909c57df1679bee12ead7", "noteai-xhs-tracking"),
         ),
     },
     "worker-c": {
         "active": (), "http": (),
-        "dormant": (("worker", "noteai-ai-worker.service", "ac58cd4e324150668e9cb6a0f05f7165ce78a36240bd50db6207dd20eaef9411", "noteai-ai-worker"),),
+        "dormant": (("worker", "noteai-ai-worker.service", "b198cf0912a3cae19de34141df0fa7e482a4dca7c3b103317961634adefe710c", "noteai-ai-worker"),),
     },
     "worker-f": {
         "active": (), "http": (),
-        "dormant": (("worker", "noteai-ai-worker.service", "ac58cd4e324150668e9cb6a0f05f7165ce78a36240bd50db6207dd20eaef9411", "noteai-ai-worker"),),
+        "dormant": (("worker", "noteai-ai-worker.service", "b198cf0912a3cae19de34141df0fa7e482a4dca7c3b103317961634adefe710c", "noteai-ai-worker"),),
     },
 }
 
