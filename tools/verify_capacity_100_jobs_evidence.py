@@ -1,108 +1,64 @@
 #!/usr/bin/env python3
-"""Offline semantic verifier for Item 29 capacity evidence.
-
-All terminal file roots and the versioned Item 28 dependency are intentionally
-empty in this source-only checkpoint.  Shape-correct local JSON therefore
-cannot grant readiness credit.
-"""
+"""Verify the single tracked Item 29 managed-capacity evidence document."""
 
 from __future__ import annotations
 
+import argparse
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
+import gzip
 import hashlib
+import io
 import json
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import re
-import types
+import subprocess
 from typing import Any
-
-from build_item29_capacity_100_evidence_v1 import (
-    BUILDER_REF,
-    CAPTURE_CONTRACT,
-    CAPTURE_FILES,
-    EXECUTOR_REF,
-    PROVIDER_REQUEST_FILES,
-    RAW_PROVIDER_RESPONSE_FILES,
-    RECEIPT_SCHEMA,
-    RENDERER_REF,
-    terminal_acceptance_sha256,
-)
-from render_item29_capacity_100_request_v1 import (  # noqa: E402
-    ACTION as REQUEST_ACTION,
-    COMMAND_NAME,
-)
-from validate_item29_capacity_100_result_v1 import (
-    EXPECTED_PROVIDER,
-    EXPECTED_ROUTING,
-    EXPECTED_RUNTIME,
-    VALIDATOR_REF,
-    validate_executor_result,
-)
-from verify_item29_external_authority_v1 import (
-    VERIFIER_REF as EXTERNAL_AUTHORITY_VERIFIER_REF,
-    validate_authority_bundle,
-)
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERIFIER_REF = "tools/verify_capacity_100_jobs_evidence.py"
 TASK_ID = "PROD-FIRST-LAUNCH-CAPACITY-100-001"
-DEPENDENCY_SCHEMA = "noteai.item29.item28-dependency.v1"
 EVIDENCE_SCHEMA = "noteai.item29.capacity-100-evidence.v1"
-CHECKPOINT_SCHEMA = "noteai.item29.terminal-evidence-checkpoint.v1"
-ITEM28_TASK_ID = "PROD-FIRST-LAUNCH-INTERNAL-ROLLBACK-001"
-ITEM28_RECEIPT_SCHEMA = "noteai.item28.provider-readback-receipt.v1"
-ITEM28_EVIDENCE_SCHEMA = "noteai.item28.internal-failure-rollback-evidence.v1"
-ITEM28_CHECKPOINT_SCHEMA = "noteai.item28.terminal-evidence-checkpoint.v1"
+RESULT_SCHEMA = "noteai.item29.capacity-100-result.v1"
 EVIDENCE_REF = (
-    "deploy/production/evidence/production-capacity-100-jobs-verified-20260814.json"
+    "deploy/production/evidence/"
+    "production-capacity-100-jobs-verified-20260824.json"
 )
-RECEIPT_REF = (
-    "deploy/production/evidence/capacity-100-provider-receipt-20260814.json"
+EVIDENCE_PATH = ROOT / EVIDENCE_REF
+EXECUTOR_REF = "deploy/production/capacity_100_jobs.py"
+RENDERER_REF = "tools/render_item29_capacity_100_request_v1.py"
+VERIFIER_REF = "tools/verify_capacity_100_jobs_evidence.py"
+SOURCE_BRANCH = "codex/quality-stabilization-real-chain"
+ITEM28_TERMINAL_ACCEPTANCE_SHA256 = (
+    "55363294b82f21c6c0fd000e8dcf08f481775a2f63b2a9dd733056ffb4f85c9c"
 )
-TERMINAL_CHECKPOINT_REF = (
-    "deploy/production/evidence/capacity-100-terminal-checkpoint-20260814.json"
+ITEM28_DEPENDENCY = {
+    "schema": "noteai.item29.item28-dependency.v1",
+    "evidence_path": (
+        "deploy/production/evidence/"
+        "production-internal-failure-rollback-verified-20260814.json"
+    ),
+    "evidence_sha256": (
+        "429b41e4e7be1549181bed195623718ce65d2d052257ea176da99e266fa598f8"
+    ),
+    "terminal_acceptance_sha256": ITEM28_TERMINAL_ACCEPTANCE_SHA256,
+}
+IMAGE = (
+    "noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@"
+    "sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b"
 )
+IMAGE_CONFIG = "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95"
+C17_REVISION = "cad5ce35664f617c6e19f90a6159285ddf975594"
+DISPATCHER_UNIT_SHA256 = "8e2d9dc59b87585e5921f5c2b838db4c150efeebeb8e243e194bce586fc102fc"
+WORKER_UNIT_SHA256 = "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200"
+TARGET_SHA256 = {
+    "API-C": hashlib.sha256(b"i-wz9j36od3nf2b1uw7bvg").hexdigest(),
+    "Worker-C": hashlib.sha256(b"i-wz98zwcdtcmxzmmoso3w").hexdigest(),
+    "Worker-F": hashlib.sha256(b"i-wz93qgvlu1bllpjcfwfj").hexdigest(),
+}
 REQUIRED_MANIFEST_PATH_REFS = {
-    EVIDENCE_REF,
-    RECEIPT_REF,
-    TERMINAL_CHECKPOINT_REF,
-    VERIFIER_REF,
-    EXTERNAL_AUTHORITY_VERIFIER_REF,
-    EXECUTOR_REF,
-    RENDERER_REF,
-    BUILDER_REF,
-    VALIDATOR_REF,
-    "tools/item29_readiness_adapter.py",
+    EVIDENCE_REF, EXECUTOR_REF, RENDERER_REF, VERIFIER_REF,
 }
-HEX40 = re.compile(r"^[0-9a-f]{40}$")
-HEX64 = re.compile(r"^[0-9a-f]{64}$")
-UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
-
-# Filled mechanically only after Item 28 freezes.  No guessed Item 28 filename
-# or digest is accepted by this versioned interface.
-EXPECTED_ITEM28_DEPENDENCY = {
-    "schema": DEPENDENCY_SCHEMA,
-    "authority_root": "",
-    "verifier_path": "",
-    "verifier_sha256": "",
-    "evidence_path": "",
-    "evidence_sha256": "",
-    "receipt_path": "",
-    "receipt_sha256": "",
-    "checkpoint_path": "",
-    "checkpoint_sha256": "",
-    "terminal_acceptance_sha256": "",
-}
-
-# Filled only by the post-execution terminal checkpoint.
-EXPECTED_SOURCE_REVISION = ""
-EXPECTED_EVIDENCE_FILE_SHA256 = ""
-EXPECTED_EVIDENCE_SEMANTIC_SHA256 = ""
-EXPECTED_RECEIPT_FILE_SHA256 = ""
-EXPECTED_RECEIPT_SEMANTIC_SHA256 = ""
-EXPECTED_TERMINAL_CHECKPOINT_FILE_SHA256 = ""
-EXPECTED_TERMINAL_CHECKPOINT_SEMANTIC_SHA256 = ""
-
 DEFAULT_READINESS = {
     "internal_verified_before": 28,
     "internal_verified_after": 29,
@@ -117,57 +73,106 @@ DEFAULT_READINESS = {
     "real_provider_chain_verified": False,
     "capacity_100_jobs_verified": True,
 }
-
-ITEM28_READINESS = {
-    "internal_verified_before": 27,
-    "internal_verified_after": 28,
-    "internal_total": 29,
-    "internal_percentage_after": 97,
-    "complete_public_verified_before": 27,
-    "complete_public_verified_after": 28,
-    "complete_public_total": 38,
-    "complete_public_percentage_after": 74,
-    "next_task": "PROD-FIRST-LAUNCH-CAPACITY-100-001",
-    "public_launch_authorized": False,
-    "real_provider_chain_verified": False,
-    "capacity_100_jobs_verified": False,
+EXPECTED_PROVIDER = {
+    "fake_call_count": 100,
+    "unique_fake_operation_count": 100,
+    "duplicate_fake_call_count": 0,
+    "real_provider_call_count": 0,
+    "claude_label_count": 50,
+    "kimi_label_count": 50,
+    "ai_model_call_count": 0,
+    "input_token_count": 0,
+    "output_token_count": 0,
+    "provider_cost_milli": 0,
 }
-ITEM28_RECEIPT_KEYS = {
-    "schema_version", "schema", "task_id", "action", "status",
-    "observed_at_utc", "source_revision", "source_binding", "predecessors",
-    "raw_closure", "request", "pre_dispatch", "terminal_readback", "result",
-    "result_binding", "execution_boundary",
+EXPECTED_ROUTING = {
+    "exact_operation_claim_count": 102,
+    "takeover_count": 2,
+    "global_recovery_call_count": 0,
+    "global_claim_call_count": 0,
+    "worker_c_index_start": 0,
+    "worker_c_index_end": 49,
+    "worker_f_index_start": 50,
+    "worker_f_index_end": 99,
+    "worker_c_takeover_index": 0,
+    "worker_f_takeover_index": 50,
+    "pre_provider_interrupt_count": 2,
+    "stale_owner_provider_call_count": 0,
 }
-ITEM28_EVIDENCE_KEYS = {
-    "schema_version", "schema", "task_id", "status", "source_revision",
-    "predecessors", "provider_receipt", "rehearsal", "final_runtime_state",
-    "mutation_counters", "cost_and_data_boundary", "readiness",
+EXPECTED_RUNTIME = {
+    "maximum_concurrent_admission_count": 100,
+    "unique_operation_count": 100,
+    "outbox_count": 100,
+    "delivered_count": 100,
+    "succeeded_count": 100,
+    "lost_operation_count": 0,
+    "claim_count": 102,
+    "takeover_count": 2,
+    "provider_attempt_count": 100,
+    "provider_attempt_number_not_one_count": 0,
+    "worker_c_completed_count": 50,
+    "worker_f_completed_count": 50,
+    "worker_c_takeover_index": 0,
+    "worker_f_takeover_index": 50,
+    "settlement_completed_count": 100,
+    "settlement_refunded_count": 0,
+    "settlement_needs_manual_count": 0,
+    "charge_applied_count": 100,
+    "complete_applied_count": 100,
+    "usage_record_count": 100,
+    "expected_credits_milli": 600_000,
+    "actual_credits_milli": 600_000,
+    "overcharge_credits_milli": 0,
+    "payment_record_delta_count": 0,
+    "cash_balance_delta_milli": 0,
+    "ready_request_object_residue_count": 0,
+    "ready_result_object_residue_count": 0,
+    "primary_user_residue_count": 0,
+    "admission_residue_count": 0,
+    "idempotency_residue_count": 0,
+    "pseudonymous_operation_audit_count": 100,
+    "pseudonymous_provider_attempt_audit_count": 100,
+    "pseudonymous_usage_audit_count": 100,
 }
-ITEM28_CHECKPOINT_KEYS = {
-    "schema", "task_id", "status", "source_revision",
-    "evidence_file_sha256", "evidence_semantic_sha256",
-    "receipt_file_sha256", "receipt_semantic_sha256",
-    "automatic_retry_allowed", "readiness_credit_added",
+EXPECTED_EXECUTION_BOUNDARY = {
+    "automatic_retry_count": 0,
+    "real_provider_credentials_loaded": False,
+    "cloud_control_plane_call_count": 0,
+    "public_request_count": 0,
 }
+EXPECTED_STAGE_ACTIONS = (
+    "preflight", "admit", "dispatch", "dispatch-readback",
+    "preclaim-c", "preclaim-f", "process-c", "process-f",
+    "source-cleanup-worker-c", "source-cleanup-worker-f",
+    "observe", "cleanup", "source-cleanup-api-c",
+)
+HEX40 = re.compile(r"^[0-9a-f]{40}$")
+HEX64 = re.compile(r"^[0-9a-f]{64}$")
+UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+DECIMAL = re.compile(r"^(0|[1-9]\d*)\.\d{6}$")
+MAX_EVIDENCE_BYTES = 256 * 1024
 
 
 def _canonical(value: Any) -> bytes:
-    return (json.dumps(
-        value, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
-        allow_nan=False,
-    ) + "\n").encode("ascii")
+    return (
+        json.dumps(
+            value, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+            allow_nan=False,
+        ) + "\n"
+    ).encode("ascii")
 
 
 def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def _semantic(value: Any) -> str:
-    return _sha(_canonical(value)[:-1])
-
-
-def _hex64(value: Any) -> bool:
-    return type(value) is str and HEX64.fullmatch(value) is not None
+def _gzip(raw: bytes) -> bytes:
+    output = io.BytesIO()
+    with gzip.GzipFile(
+        filename="", mode="wb", fileobj=output, mtime=0
+    ) as handle:
+        handle.write(raw)
+    return output.getvalue()
 
 
 def _strict(value: Any, expected: Any) -> bool:
@@ -184,534 +189,497 @@ def _strict(value: Any, expected: Any) -> bool:
     return value == expected
 
 
-def _load(path: Path):
-    try:
-        raw = path.read_bytes()
-        value = json.loads(raw.decode("ascii"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        return None, None, "cannot read canonical JSON"
-    if type(value) is not dict or _canonical(value) != raw:
-        return None, None, "JSON is not canonical"
-    return value, raw, None
+def _append(errors: list[str], condition: bool, message: str) -> None:
+    if not condition:
+        errors.append(message)
 
 
-def _dependency_complete(value: Any) -> bool:
-    def safe_ref(candidate: Any, prefix: str, suffix: str) -> bool:
-        if type(candidate) is not str:
-            return False
-        parsed = PurePosixPath(candidate)
-        return bool(
-            str(parsed) == candidate
-            and not parsed.is_absolute()
-            and ".." not in parsed.parts
-            and candidate.startswith(prefix)
-            and candidate.endswith(suffix)
-        )
-
-    return bool(
-        type(value) is dict
-        and set(value) == set(EXPECTED_ITEM28_DEPENDENCY)
-        and value.get("schema") == DEPENDENCY_SCHEMA
-        and safe_ref(value.get("verifier_path"), "tools/", ".py")
-        and all(
-            safe_ref(value.get(key), "deploy/production/evidence/", ".json")
-            for key in ("evidence_path", "receipt_path", "checkpoint_path")
-        )
-        and all(
-            _hex64(value.get(key))
-            for key in (
-                "authority_root", "verifier_sha256", "evidence_sha256",
-                "receipt_sha256", "checkpoint_sha256",
-                "terminal_acceptance_sha256",
-            )
-        )
-    )
+def _no_duplicates(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
 
 
-def _item28_authority_root(dependency: dict[str, str]) -> str:
-    return _sha(_canonical({
-        key: dependency[key]
-        for key in sorted(dependency)
-        if key != "authority_root"
-    })[:-1])
-
-
-def _load_dependency_json(path: Path):
-    value, raw, error = _load(path)
-    if error or value is None or raw is None:
-        raise ValueError("canonical dependency artifact required")
-    return value, raw
-
-
-def _load_item28_verifier(path: Path, expected_sha256: str):
+def load_evidence(path: Path) -> dict[str, Any]:
     raw = path.read_bytes()
-    if _sha(raw) != expected_sha256:
-        raise ValueError("Item28 verifier bytes mismatch")
-    module = types.ModuleType("_noteai_frozen_item28_terminal_verifier")
-    module.__file__ = str(path)
-    exec(compile(raw, str(path), "exec", dont_inherit=True), module.__dict__)
-    return module
+    if not 1 <= len(raw) <= MAX_EVIDENCE_BYTES or b"\x00" in raw:
+        raise ValueError("evidence size/encoding invalid")
+    value = json.loads(raw.decode("utf-8"), object_pairs_hook=_no_duplicates)
+    if type(value) is not dict:
+        raise ValueError("evidence root must be an object")
+    return value
 
 
-def validate_item28_dependency(
-    controls_by_id: Any,
-    *,
-    root: Path = ROOT,
-):
-    if not _dependency_complete(EXPECTED_ITEM28_DEPENDENCY):
-        return ["Item29 versioned Item28 dependency authority is not finalized"], None
-    if type(controls_by_id) is not dict:
-        return ["Item29 predecessor controls invalid"], None
-    control = controls_by_id.get("internal_failure_rollback")
-    if type(control) is not dict or control.get("status") != "verified":
-        return ["Item29 requires terminal Item28 verification"], None
-    dependency = dict(EXPECTED_ITEM28_DEPENDENCY)
-    bindings = (
-        ("verifier_path", "verifier_sha256"),
-        ("evidence_path", "evidence_sha256"),
-        ("receipt_path", "receipt_sha256"),
-        ("checkpoint_path", "checkpoint_sha256"),
+def terminal_acceptance_sha256(value: dict[str, Any]) -> str:
+    return _sha(_canonical({
+        key: item for key, item in value.items()
+        if key != "terminal_acceptance_sha256"
+    }))
+
+
+def _git(*args: str, root: Path) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["git", *args], cwd=root, check=False, capture_output=True,
     )
-    for path_key, digest_key in bindings:
-        try:
-            observed_sha = _sha((root / dependency[path_key]).read_bytes())
-        except OSError:
-            return ["Item29 Item28 dependency authority file missing"], None
-        if observed_sha != dependency[digest_key]:
-            return ["Item29 Item28 dependency authority file mismatch"], None
-    if dependency["authority_root"] != _item28_authority_root(dependency):
-        return ["Item29 Item28 dependency authority root mismatch"], None
-    refs = {
-        row.get("ref") for row in control.get("evidence", [])
-        if type(row) is dict and set(row) == {"kind", "ref"}
-        and row.get("kind") == "path"
-    }
-    if any(dependency[path_key] not in refs for path_key, _digest_key in bindings):
-        return ["Item29 Item28 dependency authority ref missing"], None
+
+
+def _git_file(revision: str, ref: str, *, root: Path) -> bytes | None:
+    result = _git("show", f"{revision}:{ref}", root=root)
+    return result.stdout if result.returncode == 0 else None
+
+
+def _utc(value: Any) -> bool:
+    if type(value) is not str or UTC.fullmatch(value) is None:
+        return False
     try:
-        item28_verifier = _load_item28_verifier(
-            root / dependency["verifier_path"], dependency["verifier_sha256"]
+        parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
         )
-        receipt, receipt_raw = _load_dependency_json(
-            root / dependency["receipt_path"]
-        )
-        evidence, evidence_raw = _load_dependency_json(
-            root / dependency["evidence_path"]
-        )
-        checkpoint, _checkpoint_raw = _load_dependency_json(
-            root / dependency["checkpoint_path"]
-        )
-    except Exception as exc:
-        return ["Item29 Item28 dependency verifier/artifact invalid: " + str(exc)], None
-
-    expected_module_identity = {
-        "VERIFIER_REF": dependency["verifier_path"],
-        "TASK_ID": ITEM28_TASK_ID,
-        "RECEIPT_SCHEMA": ITEM28_RECEIPT_SCHEMA,
-        "EVIDENCE_SCHEMA": ITEM28_EVIDENCE_SCHEMA,
-        "CHECKPOINT_SCHEMA": ITEM28_CHECKPOINT_SCHEMA,
-        "EVIDENCE_REF": dependency["evidence_path"],
-        "RECEIPT_REF": dependency["receipt_path"],
-        "TERMINAL_CHECKPOINT_REF": dependency["checkpoint_path"],
-        "EXPECTED_EVIDENCE_FILE_SHA256": dependency["evidence_sha256"],
-        "EXPECTED_RECEIPT_FILE_SHA256": dependency["receipt_sha256"],
-        "EXPECTED_TERMINAL_CHECKPOINT_FILE_SHA256": dependency[
-            "checkpoint_sha256"
-        ],
-    }
-    if any(
-        getattr(item28_verifier, key, None) != expected
-        for key, expected in expected_module_identity.items()
-    ) or not _strict(
-        getattr(item28_verifier, "DEFAULT_READINESS", None), ITEM28_READINESS
-    ):
-        return ["Item29 frozen Item28 verifier identity mismatch"], None
-    required_calls = (
-        "validate_predecessor_evidence", "validate_manifest_evidence",
-        "validate_receipt", "validate_evidence",
-    )
-    if any(not callable(getattr(item28_verifier, name, None)) for name in required_calls):
-        return ["Item29 frozen Item28 verifier interface mismatch"], None
-    source_revision = receipt.get("source_revision")
-    if (
-        type(receipt) is not dict
-        or set(receipt) != ITEM28_RECEIPT_KEYS
-        or receipt.get("schema") != ITEM28_RECEIPT_SCHEMA
-        or receipt.get("task_id") != ITEM28_TASK_ID
-        or receipt.get("status") != "PROVIDER_TERMINAL_VERIFIED"
-        or type(source_revision) is not str
-        or HEX40.fullmatch(source_revision) is None
-        or getattr(item28_verifier, "EXPECTED_SOURCE_REVISION", None)
-        != source_revision
-    ):
-        return ["Item29 strict Item28 receipt schema mismatch"], None
-    if (
-        type(evidence) is not dict
-        or set(evidence) != ITEM28_EVIDENCE_KEYS
-        or evidence.get("schema") != ITEM28_EVIDENCE_SCHEMA
-        or evidence.get("task_id") != ITEM28_TASK_ID
-        or evidence.get("status") != "PASS"
-        or evidence.get("source_revision") != source_revision
-    ):
-        return ["Item29 strict Item28 evidence schema mismatch"], None
-    if (
-        type(checkpoint) is not dict
-        or set(checkpoint) != ITEM28_CHECKPOINT_KEYS
-        or checkpoint.get("schema") != ITEM28_CHECKPOINT_SCHEMA
-        or checkpoint.get("task_id") != ITEM28_TASK_ID
-        or checkpoint.get("status") != "EXACT_HEAD_CI_ACCEPTED"
-        or checkpoint.get("source_revision") != source_revision
-    ):
-        return ["Item29 strict Item28 checkpoint schema mismatch"], None
-    try:
-        predecessor_errors, predecessors = (
-            item28_verifier.validate_predecessor_evidence(
-                controls_by_id, root=root
-            )
-        )
-        if predecessor_errors or type(predecessors) is not dict:
-            return [
-                "Item29 frozen Item28 predecessor verifier rejected: "
-                + (predecessor_errors[0] if predecessor_errors else "missing")
-            ], None
-        manifest_errors = item28_verifier.validate_manifest_evidence(
-            control.get("evidence"), root=root,
-            expected_predecessors=predecessors,
-            expected_readiness=ITEM28_READINESS,
-        )
-        if manifest_errors:
-            return [
-                "Item29 frozen Item28 manifest verifier rejected: "
-                + manifest_errors[0]
-            ], None
-        receipt_errors, acceptance = item28_verifier.validate_receipt(
-            receipt, expected_predecessors=predecessors, root=root,
-        )
-        if receipt_errors or acceptance != dependency["terminal_acceptance_sha256"]:
-            return [
-                "Item29 frozen Item28 receipt verifier rejected: "
-                + (receipt_errors[0] if receipt_errors else "acceptance mismatch")
-            ], None
-        evidence_errors = item28_verifier.validate_evidence(
-            evidence, receipt, expected_predecessors=predecessors,
-            expected_readiness=ITEM28_READINESS, root=root,
-        )
-        if evidence_errors:
-            return [
-                "Item29 frozen Item28 evidence verifier rejected: "
-                + evidence_errors[0]
-            ], None
-    except Exception as exc:
-        return ["Item29 frozen Item28 verifier call failed: " + str(exc)], None
-    return [], dependency
+    except ValueError:
+        return False
+    return parsed <= datetime.now(timezone.utc)
 
 
-def validate_receipt(
-    value: Any,
-    *,
-    expected_item28_dependency: dict[str, str],
-    root: Path = ROOT,
-):
+def _validate_result(value: Any) -> list[str]:
     errors: list[str] = []
-    keys = {
-        "schema_version", "schema", "task_id", "action", "status",
-        "observed_at_utc", "source_revision", "source_binding",
-        "item28_dependency", "raw_closure", "request", "pre_dispatch",
-        "terminal_readback", "result", "result_binding",
-        "execution_boundary", "terminal_acceptance_sha256",
+    top = {
+        "schema", "task_id", "status", "item28_dependency", "headroom",
+        "admission", "routing_and_recovery", "provider",
+        "runtime_projection", "execution_boundary",
     }
-    if type(value) is not dict or set(value) != keys:
-        return ["Item29 receipt schema mismatch"], None
-    if (
-        not _strict(value.get("schema_version"), 1)
-        or value.get("schema") != RECEIPT_SCHEMA
-        or value.get("task_id") != TASK_ID
-        or value.get("action") != REQUEST_ACTION
-        or value.get("status") != "PROVIDER_TERMINAL_VERIFIED"
-        or value.get("source_revision") != EXPECTED_SOURCE_REVISION
-        or type(value.get("observed_at_utc")) is not str
-        or UTC.fullmatch(value["observed_at_utc"]) is None
-        or not _strict(value.get("item28_dependency"), expected_item28_dependency)
-    ):
-        errors.append("Item29 receipt identity/dependency mismatch")
-    expected_refs = {
-        "executor": EXECUTOR_REF,
-        "renderer": RENDERER_REF,
-        "builder": BUILDER_REF,
-        "validator": VALIDATOR_REF,
+    if type(value) is not dict or set(value) != top:
+        return ["result fields mismatch"]
+    _append(errors, value.get("schema") == RESULT_SCHEMA, "result schema mismatch")
+    _append(errors, value.get("task_id") == TASK_ID, "result task mismatch")
+    _append(errors, value.get("status") == "PASS", "result status mismatch")
+    _append(
+        errors, _strict(value.get("item28_dependency"), ITEM28_DEPENDENCY),
+        "result Item28 dependency mismatch",
+    )
+    headroom = value.get("headroom")
+    headroom_keys = {
+        "database_idle_connection_headroom",
+        "database_idle_connection_headroom_required",
+        "api_c_memory_headroom_bytes",
+        "api_c_memory_headroom_bytes_required",
+        "api_c_pid_headroom", "api_c_pid_headroom_required",
+        "headroom_gate_passed",
     }
-    source = value.get("source_binding")
-    if type(source) is not dict or set(source) != set(expected_refs):
-        errors.append("Item29 receipt source binding schema mismatch")
+    if type(headroom) is not dict or set(headroom) != headroom_keys:
+        errors.append("headroom fields mismatch")
     else:
-        for label, ref in expected_refs.items():
-            row = source[label]
-            try:
-                raw = (root / ref).read_bytes()
-            except OSError:
-                raw = b""
-            if not _strict(
-                row, {"path": ref, "bytes": len(raw), "sha256": _sha(raw)}
-            ):
-                errors.append("Item29 receipt source binding mismatch")
-                break
-    raw_closure = value.get("raw_closure")
-    if (
-        type(raw_closure) is not dict
-        or set(raw_closure) != {
-            "capture_contract", "capture_file_count",
-            "capture_manifest_canonical_bytes",
-            "capture_manifest_sha256", "raw_provider_response_count",
-            "provider_request_count", "raw_provider_bodies_retained_root_only",
-            "raw_provider_value_emitted_count",
+        minima = {
+            "database_idle_connection_headroom": 120,
+            "api_c_memory_headroom_bytes": 1_073_741_824,
+            "api_c_pid_headroom": 160,
         }
-        or raw_closure.get("capture_contract") != CAPTURE_CONTRACT
-        or not _strict(
-            raw_closure.get("capture_file_count"), len(CAPTURE_FILES)
+        for key, minimum in minima.items():
+            _append(
+                errors,
+                type(headroom.get(key)) is int and headroom[key] >= minimum,
+                key + " insufficient",
+            )
+        _append(
+            errors,
+            _strict(
+                {
+                    "database_idle_connection_headroom_required": headroom.get(
+                        "database_idle_connection_headroom_required"
+                    ),
+                    "api_c_memory_headroom_bytes_required": headroom.get(
+                        "api_c_memory_headroom_bytes_required"
+                    ),
+                    "api_c_pid_headroom_required": headroom.get(
+                        "api_c_pid_headroom_required"
+                    ),
+                    "headroom_gate_passed": headroom.get("headroom_gate_passed"),
+                },
+                {
+                    "database_idle_connection_headroom_required": 120,
+                    "api_c_memory_headroom_bytes_required": 1_073_741_824,
+                    "api_c_pid_headroom_required": 160,
+                    "headroom_gate_passed": True,
+                },
+            ),
+            "headroom contract mismatch",
         )
-        or type(raw_closure.get("capture_manifest_canonical_bytes")) is not int
-        or raw_closure["capture_manifest_canonical_bytes"] <= 0
-        or not _strict(
-            raw_closure.get("raw_provider_response_count"),
-            len(RAW_PROVIDER_RESPONSE_FILES),
+    admission = value.get("admission")
+    if type(admission) is not dict or set(admission) != {
+        "barrier_participant_count", "concurrent_admission_count",
+        "unique_operation_count", "operation_set_sha256",
+    }:
+        errors.append("admission fields mismatch")
+    else:
+        _append(
+            errors,
+            admission.get("barrier_participant_count") == 100
+            and type(admission.get("barrier_participant_count")) is int
+            and admission.get("concurrent_admission_count") == 100
+            and type(admission.get("concurrent_admission_count")) is int
+            and admission.get("unique_operation_count") == 100
+            and type(admission.get("unique_operation_count")) is int
+            and type(admission.get("operation_set_sha256")) is str
+            and HEX64.fullmatch(admission["operation_set_sha256"]) is not None,
+            "admission mismatch",
         )
-        or not _strict(
-            raw_closure.get("provider_request_count"),
-            len(PROVIDER_REQUEST_FILES),
-        )
-        or not _hex64(raw_closure.get("capture_manifest_sha256"))
-        or raw_closure.get("raw_provider_bodies_retained_root_only") is not True
-        or not _strict(raw_closure.get("raw_provider_value_emitted_count"), 0)
-    ):
-        errors.append("Item29 receipt raw closure mismatch")
-    request = value.get("request")
-    if (
-        type(request) is not dict
-        or set(request) != {
-            "command_name", "request_sha256",
-            "client_token_commitment_sha256", "target_commitment_sha256",
-            "command_id_commitment_sha256", "invoke_id_commitment_sha256",
-        }
-        or request.get("command_name") != COMMAND_NAME
-        or any(
-            not _hex64(request.get(key))
-            for key in set(request) - {"command_name"}
-        )
-    ):
-        errors.append("Item29 receipt request commitment mismatch")
-    pre = value.get("pre_dispatch") or {}
-    if not _strict(pre, {
-        "history_key": "Name",
-        "all_pages": True,
-        "exact_command_name_history_count": 0,
-        "exact_invocation_name_history_count": 0,
-        "provider_client_token_readback_supported": False,
-    }):
-        errors.append("Item29 receipt pre-dispatch mismatch")
-    terminal = value.get("terminal_readback") or {}
-    if not _strict(terminal, {
-        "all_pages": True,
-        "command_match_count": 1,
-        "invocation_match_count": 1,
-        "result_match_count": 1,
-        "provider_status": "Finished",
-        "provider_result_status": "Success",
-        "exit_code": 0,
-        "dropped_count": 0,
-        "repeat_count": 1,
-    }):
-        errors.append("Item29 receipt terminal readback mismatch")
-    result_errors, binding = validate_executor_result(value.get("result"))
-    if result_errors or binding is None or not _strict(
-        value.get("result_binding"), binding
-    ):
-        errors.append("Item29 receipt result mismatch")
-    boundary = value.get("execution_boundary") or {}
-    if not _strict(boundary, {
-        "dispatch_count": 1,
-        "automatic_retry_count": 0,
-        "same_request_resubmit_allowed": False,
-        "provider_unknown": False,
-        "provider_client_token_readback_supported": False,
-        "provider_history_key": "Name",
-        "real_provider_call_count": 0,
-        "wrapper_child_exec_used": False,
-        "wrapper_host_temp_file_count": 4,
-        "wrapper_host_temp_residue_count": 0,
-        "wrapper_temp_residue_absence_audited_before_output": True,
-    }):
-        errors.append("Item29 receipt execution boundary mismatch")
-    acceptance = terminal_acceptance_sha256(value)
-    if value.get("terminal_acceptance_sha256") != acceptance:
-        errors.append("Item29 receipt terminal acceptance mismatch")
-    return errors, (acceptance if not errors else None)
+    _append(
+        errors, _strict(value.get("routing_and_recovery"), EXPECTED_ROUTING),
+        "routing/recovery mismatch",
+    )
+    _append(errors, _strict(value.get("provider"), EXPECTED_PROVIDER), "provider mismatch")
+    _append(
+        errors, _strict(value.get("runtime_projection"), EXPECTED_RUNTIME),
+        "runtime projection mismatch",
+    )
+    _append(
+        errors,
+        _strict(value.get("execution_boundary"), EXPECTED_EXECUTION_BOUNDARY),
+        "execution boundary mismatch",
+    )
+    return errors
 
 
-def validate_evidence(
-    value: Any,
-    receipt: Any,
-    *,
-    expected_item28_dependency: dict[str, str],
-    expected_readiness: dict[str, Any],
-    authority_binding: dict[str, Any],
-):
-    keys = {
-        "schema_version", "schema", "task_id", "status", "source_revision",
-        "item28_dependency", "provider_receipt", "external_authority",
-        "capacity", "headroom", "admission", "routing_and_recovery",
-        "provider", "accounting", "cleanup", "execution_boundary", "readiness",
-    }
+def _validate_source(value: Any, *, root: Path, verify_git: bool) -> list[str]:
     errors: list[str] = []
-    if type(value) is not dict or set(value) != keys:
-        return ["Item29 evidence schema mismatch"]
-    if (
-        not _strict(value.get("schema_version"), 1)
-        or value.get("schema") != EVIDENCE_SCHEMA
-        or value.get("task_id") != TASK_ID
-        or value.get("status") != "PASS"
-        or value.get("source_revision") != EXPECTED_SOURCE_REVISION
-        or not _strict(value.get("item28_dependency"), expected_item28_dependency)
-        or not _strict(value.get("readiness"), expected_readiness)
+    expected_keys = {
+        "branch", "execution_source_revision", "executor_ref", "renderer_ref",
+        "verifier_ref", "executed_executor_bytes", "executed_executor_sha256",
+        "executed_executor_gzip_sha256",
+        "executed_renderer_sha256", "executed_verifier_sha256",
+    }
+    if type(value) is not dict or set(value) != expected_keys:
+        return ["source binding fields mismatch"]
+    _append(errors, value.get("branch") == SOURCE_BRANCH, "source branch mismatch")
+    revision = value.get("execution_source_revision")
+    _append(
+        errors, type(revision) is str and HEX40.fullmatch(revision) is not None,
+        "source revision mismatch",
+    )
+    _append(errors, value.get("executor_ref") == EXECUTOR_REF, "executor ref mismatch")
+    _append(errors, value.get("renderer_ref") == RENDERER_REF, "renderer ref mismatch")
+    _append(errors, value.get("verifier_ref") == VERIFIER_REF, "verifier ref mismatch")
+    for key in (
+        "executed_executor_sha256", "executed_renderer_sha256",
+        "executed_verifier_sha256", "executed_executor_gzip_sha256",
     ):
-        errors.append("Item29 evidence identity/dependency/readiness mismatch")
-    acceptance = terminal_acceptance_sha256(receipt)
-    if not _strict(value.get("provider_receipt"), {
-        "path": RECEIPT_REF,
-        "file_sha256": EXPECTED_RECEIPT_FILE_SHA256,
-        "semantic_sha256": EXPECTED_RECEIPT_SEMANTIC_SHA256,
-        "terminal_acceptance_sha256": acceptance,
-    }):
-        errors.append("Item29 evidence receipt binding mismatch")
-    if not _strict(value.get("external_authority"), authority_binding):
-        errors.append("Item29 evidence external authority mismatch")
-    result = receipt.get("result") if type(receipt) is dict else {}
-    if not _strict(value.get("capacity"), {
-        "operation_count": 100,
-        "succeeded_count": 100,
-        "lost_operation_count": 0,
-        "claim_count": 102,
-        "takeover_count": 2,
-    }):
-        errors.append("Item29 evidence capacity mismatch")
-    if not _strict(value.get("headroom"), result.get("headroom")):
-        errors.append("Item29 evidence headroom mismatch")
-    if not _strict(value.get("admission"), result.get("admission")):
-        errors.append("Item29 evidence admission mismatch")
-    if not _strict(
-        value.get("routing_and_recovery"), result.get("routing_and_recovery")
-    ) or not _strict(value.get("provider"), EXPECTED_PROVIDER):
-        errors.append("Item29 evidence routing/provider mismatch")
-    runtime = result.get("runtime_projection") or {}
-    accounting = {
-        key: runtime[key] for key in (
-            "settlement_completed_count", "settlement_refunded_count",
-            "settlement_needs_manual_count", "charge_applied_count",
-            "complete_applied_count", "usage_record_count",
-            "expected_credits_milli", "actual_credits_milli",
-            "overcharge_credits_milli", "payment_record_delta_count",
-            "cash_balance_delta_milli",
+        _append(
+            errors,
+            type(value.get(key)) is str and HEX64.fullmatch(value[key]) is not None,
+            key + " mismatch",
         )
-    } if all(key in runtime for key in EXPECTED_RUNTIME) else {}
-    cleanup = {
-        key: runtime[key] for key in (
-            "ready_request_object_residue_count",
-            "ready_result_object_residue_count", "primary_user_residue_count",
-            "admission_residue_count", "idempotency_residue_count",
-            "pseudonymous_operation_audit_count",
-            "pseudonymous_provider_attempt_audit_count",
-            "pseudonymous_usage_audit_count",
+    _append(
+        errors,
+        type(value.get("executed_executor_bytes")) is int
+        and value["executed_executor_bytes"] > 0,
+        "executor bytes mismatch",
+    )
+    if verify_git and not errors:
+        files = {
+            EXECUTOR_REF: (
+                value["executed_executor_sha256"],
+                value["executed_executor_bytes"],
+            ),
+            RENDERER_REF: (value["executed_renderer_sha256"], None),
+            VERIFIER_REF: (value["executed_verifier_sha256"], None),
+        }
+        for ref, (digest, size) in files.items():
+            raw = _git_file(revision, ref, root=root)
+            _append(errors, raw is not None, "source revision file missing: " + ref)
+            if raw is not None:
+                _append(errors, _sha(raw) == digest, "source digest mismatch: " + ref)
+                if size is not None:
+                    _append(errors, len(raw) == size, "source bytes mismatch: " + ref)
+                if ref == EXECUTOR_REF:
+                    _append(
+                        errors,
+                        _sha(_gzip(raw))
+                        == value["executed_executor_gzip_sha256"],
+                        "executor gzip digest mismatch",
+                    )
+    return errors
+
+
+def _validate_stages(value: Any) -> list[str]:
+    if type(value) is not list or tuple(
+        row.get("action") if type(row) is dict else None for row in value
+    ) != EXPECTED_STAGE_ACTIONS:
+        return ["execution stage order mismatch"]
+    errors: list[str] = []
+    expected_keys = {
+        "action", "target", "command_name", "terminal_status", "exit_code",
+        "repeat_count", "dropped_count", "stdout_sha256",
+        "started_at_utc", "finished_at_utc",
+    }
+    expected_targets = {
+        "preflight": "API-C", "admit": "API-C", "dispatch": "API-C",
+        "dispatch-readback": "API-C", "preclaim-c": "Worker-C",
+        "preclaim-f": "Worker-F", "process-c": "Worker-C",
+        "process-f": "Worker-F",
+        "source-cleanup-worker-c": "Worker-C",
+        "source-cleanup-worker-f": "Worker-F",
+        "observe": "API-C", "cleanup": "API-C",
+        "source-cleanup-api-c": "API-C",
+    }
+    parsed_times: dict[str, tuple[datetime, datetime]] = {}
+    for row in value:
+        action = row.get("action") if type(row) is dict else None
+        _append(errors, type(row) is dict and set(row) == expected_keys, "stage fields mismatch")
+        if type(row) is not dict:
+            continue
+        _append(errors, row.get("target") == expected_targets[action], "stage target mismatch")
+        _append(
+            errors,
+            row.get("command_name") == f"noteai-item29-{action}-20260824-v1",
+            "stage command name mismatch",
         )
-    } if all(key in runtime for key in EXPECTED_RUNTIME) else {}
-    if not _strict(value.get("accounting"), accounting):
-        errors.append("Item29 evidence accounting mismatch")
-    if not _strict(value.get("cleanup"), cleanup):
-        errors.append("Item29 evidence cleanup mismatch")
-    if not _strict(value.get("execution_boundary"), result.get("execution_boundary")):
-        errors.append("Item29 evidence execution boundary mismatch")
+        _append(errors, row.get("terminal_status") == "Success", "stage status mismatch")
+        _append(errors, type(row.get("exit_code")) is int and row["exit_code"] == 0, "stage exit mismatch")
+        _append(errors, type(row.get("repeat_count")) is int and row["repeat_count"] == 1, "stage repeat mismatch")
+        _append(errors, type(row.get("dropped_count")) is int and row["dropped_count"] == 0, "stage dropped mismatch")
+        _append(
+            errors,
+            type(row.get("stdout_sha256")) is str
+            and HEX64.fullmatch(row["stdout_sha256"]) is not None,
+            "stage stdout digest mismatch",
+        )
+        started = row.get("started_at_utc")
+        finished = row.get("finished_at_utc")
+        valid_times = _utc(started) and _utc(finished)
+        _append(errors, valid_times, "stage clock mismatch")
+        if valid_times:
+            start_time = datetime.strptime(started, "%Y-%m-%dT%H:%M:%SZ").replace(
+                tzinfo=timezone.utc
+            )
+            finish_time = datetime.strptime(
+                finished, "%Y-%m-%dT%H:%M:%SZ"
+            ).replace(tzinfo=timezone.utc)
+            _append(errors, start_time <= finish_time, "stage interval mismatch")
+            parsed_times[action] = (start_time, finish_time)
+    if all(
+        action in parsed_times
+        for action in ("preclaim-c", "preclaim-f", "process-c", "process-f")
+    ):
+        lease_gate = max(
+            parsed_times["preclaim-c"][1], parsed_times["preclaim-f"][1]
+        ) + timedelta(seconds=15)
+        _append(
+            errors,
+            min(
+                parsed_times["process-c"][0], parsed_times["process-f"][0]
+            ) >= lease_gate,
+            "preclaim lease expiry interval mismatch",
+        )
+    return errors
+
+
+def _validate_cost(value: Any) -> list[str]:
+    expected_keys = {
+        "incremental_cloud_cost_cny", "worker_c_billable_seconds",
+        "worker_f_billable_seconds", "worker_c_hourly_quote_cny",
+        "worker_f_hourly_quote_cny", "provider_cost_cny",
+        "synthetic_user_create_count", "synthetic_user_delete_count",
+        "real_user_data_read_count", "real_user_data_write_count",
+        "public_request_count", "non_idempotent_replay_count",
+        "provider_replay_count",
+    }
+    if type(value) is not dict or set(value) != expected_keys:
+        return ["cost/data fields mismatch"]
+    errors: list[str] = []
+    for key in (
+        "incremental_cloud_cost_cny", "worker_c_hourly_quote_cny",
+        "worker_f_hourly_quote_cny", "provider_cost_cny",
+    ):
+        raw = value.get(key)
+        valid = type(raw) is str and DECIMAL.fullmatch(raw) is not None
+        try:
+            valid = valid and Decimal(raw) >= 0
+        except (InvalidOperation, TypeError):
+            valid = False
+        _append(errors, valid, key + " mismatch")
+    _append(errors, value.get("provider_cost_cny") == "0.000000", "provider cost mismatch")
+    for key in ("worker_c_billable_seconds", "worker_f_billable_seconds"):
+        _append(
+            errors, type(value.get(key)) is int and value[key] > 0,
+            key + " mismatch",
+        )
+    exact = {
+        "synthetic_user_create_count": 100,
+        "synthetic_user_delete_count": 100,
+        "real_user_data_read_count": 0,
+        "real_user_data_write_count": 0,
+        "public_request_count": 0,
+        "non_idempotent_replay_count": 0,
+        "provider_replay_count": 0,
+    }
+    for key, expected in exact.items():
+        _append(
+            errors, type(value.get(key)) is int and value[key] == expected,
+            key + " mismatch",
+        )
+    return errors
+
+
+def validate_document(
+    value: Any, *, root: Path = ROOT,
+    expected_readiness: dict[str, Any] | None = None,
+    verify_git: bool = True,
+) -> list[str]:
+    errors: list[str] = []
+    top = {
+        "schema_version", "schema", "task_id", "status", "observed_at_utc",
+        "source_binding", "predecessor", "managed_runtime",
+        "source_transfers", "execution_stages", "result",
+        "final_resource_state", "cost_and_data_boundary", "readiness",
+        "terminal_acceptance_sha256",
+    }
+    if type(value) is not dict:
+        return ["evidence root must be an object"]
+    _append(errors, set(value) == top, "top-level fields mismatch")
+    _append(errors, type(value.get("schema_version")) is int and value["schema_version"] == 1, "schema version mismatch")
+    _append(errors, value.get("schema") == EVIDENCE_SCHEMA, "schema mismatch")
+    _append(errors, value.get("task_id") == TASK_ID, "task id mismatch")
+    _append(errors, value.get("status") == "PASS", "status mismatch")
+    _append(errors, _utc(value.get("observed_at_utc")), "observed clock mismatch")
+    source_binding = value.get("source_binding")
+    errors.extend(_validate_source(source_binding, root=root, verify_git=verify_git))
+    _append(
+        errors,
+        _strict(value.get("predecessor"), {
+            "item28_terminal_acceptance_sha256": ITEM28_TERMINAL_ACCEPTANCE_SHA256,
+        }),
+        "predecessor mismatch",
+    )
+    _append(
+        errors,
+        _strict(value.get("managed_runtime"), {
+            "target_instance_sha256": TARGET_SHA256,
+            "c17_revision": C17_REVISION,
+            "c17_image": IMAGE,
+            "c17_image_config": IMAGE_CONFIG,
+            "dispatcher_unit_sha256": DISPATCHER_UNIT_SHA256,
+            "worker_unit_sha256": WORKER_UNIT_SHA256,
+            "api_database_role": "noteai_app",
+            "dispatcher_database_role": "noteai_ai_dispatcher",
+            "worker_database_role": "noteai_ai_worker",
+            "database_credential_transport": "private_docker_env_file",
+        }),
+        "managed runtime mismatch",
+    )
+    transfers = value.get("source_transfers")
+    transfer_targets = ("API-C", "Worker-C", "Worker-F")
+    if type(transfers) is not list or tuple(
+        row.get("target") if type(row) is dict else None for row in transfers
+    ) != transfer_targets:
+        errors.append("source transfer order mismatch")
+    else:
+        for row in transfers:
+            _append(
+                errors,
+                set(row) == {
+                    "target", "terminal_status", "repeat_count",
+                    "content_sha256", "overwrite", "source_residue_count",
+                },
+                "source transfer fields mismatch",
+            )
+            _append(errors, row.get("terminal_status") == "Success", "source transfer status mismatch")
+            _append(errors, type(row.get("repeat_count")) is int and row["repeat_count"] == 1, "source transfer repeat mismatch")
+            _append(
+                errors,
+                type(source_binding) is dict
+                and row.get("content_sha256")
+                == source_binding.get("executed_executor_gzip_sha256"),
+                "source transfer digest mismatch",
+            )
+            _append(errors, row.get("overwrite") is False, "source transfer overwrite mismatch")
+            _append(errors, type(row.get("source_residue_count")) is int and row["source_residue_count"] == 0, "source transfer residue mismatch")
+    stages = value.get("execution_stages")
+    errors.extend(_validate_stages(stages))
+    if _utc(value.get("observed_at_utc")) and type(stages) is list:
+        observed = datetime.strptime(
+            value["observed_at_utc"], "%Y-%m-%dT%H:%M:%SZ"
+        ).replace(tzinfo=timezone.utc)
+        for row in stages:
+            if type(row) is dict and _utc(row.get("finished_at_utc")):
+                finished = datetime.strptime(
+                    row["finished_at_utc"], "%Y-%m-%dT%H:%M:%SZ"
+                ).replace(tzinfo=timezone.utc)
+                _append(errors, finished <= observed, "stage after observation")
+    errors.extend(_validate_result(value.get("result")))
+    _append(
+        errors,
+        _strict(value.get("final_resource_state"), {
+            "api_c": {"status": "Running", "charge_type": "PrePaid"},
+            "api_f": {"status": "Running", "charge_type": "PrePaid"},
+            "builder": {"status": "Stopped", "charge_type": "PostPaid"},
+            "worker_c": {"status": "Stopped", "charge_type": "PostPaid"},
+            "worker_f": {"status": "Stopped", "charge_type": "PostPaid"},
+            "temporary_compute_running_count": 0,
+            "task_container_residue_count": 0,
+            "task_file_residue_count": 0,
+            "public_listener_count": 0,
+            "temporary_security_rule_count": 0,
+            "temporary_peering_count": 0,
+            "temporary_route_count": 0,
+        }),
+        "final resource state mismatch",
+    )
+    errors.extend(_validate_cost(value.get("cost_and_data_boundary")))
+    _append(
+        errors,
+        _strict(value.get("readiness"), expected_readiness or DEFAULT_READINESS),
+        "readiness mismatch",
+    )
+    acceptance = value.get("terminal_acceptance_sha256")
+    _append(
+        errors,
+        type(acceptance) is str and HEX64.fullmatch(acceptance) is not None
+        and acceptance == terminal_acceptance_sha256(value),
+        "terminal acceptance mismatch",
+    )
     return errors
 
 
 def validate_manifest_evidence(
-    entries: Any,
-    *,
-    root: Path = ROOT,
-    expected_item28_dependency: dict[str, str],
-    expected_readiness: dict[str, Any],
-):
-    refs = {
-        row.get("ref") for row in entries or []
-        if type(row) is dict and row.get("kind") == "path"
-    }
-    if refs != REQUIRED_MANIFEST_PATH_REFS:
-        return ["Item29 exact manifest evidence refs required"]
-    authorities = (
-        EXPECTED_SOURCE_REVISION,
-        EXPECTED_EVIDENCE_FILE_SHA256,
-        EXPECTED_EVIDENCE_SEMANTIC_SHA256,
-        EXPECTED_RECEIPT_FILE_SHA256,
-        EXPECTED_RECEIPT_SEMANTIC_SHA256,
-        EXPECTED_TERMINAL_CHECKPOINT_FILE_SHA256,
-        EXPECTED_TERMINAL_CHECKPOINT_SEMANTIC_SHA256,
+    entries: Any, *, root: Path = ROOT,
+    expected_readiness: dict[str, Any] | None = None,
+) -> list[str]:
+    if type(entries) is not list or any(type(row) is not dict for row in entries):
+        return ["manifest evidence fields mismatch"]
+    paths = {row.get("ref") for row in entries if row.get("kind") == "path"}
+    git_refs = [row.get("ref") for row in entries if row.get("kind") == "git"]
+    if paths != REQUIRED_MANIFEST_PATH_REFS or len(git_refs) != 1:
+        return ["manifest evidence refs mismatch"]
+    try:
+        value = load_evidence(root / EVIDENCE_REF)
+    except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as exc:
+        return ["evidence read failed: " + type(exc).__name__]
+    source = value.get("source_binding") if type(value) is dict else None
+    if type(source) is not dict or source.get("execution_source_revision") != git_refs[0]:
+        return ["manifest source revision mismatch"]
+    return validate_document(
+        value, root=root, expected_readiness=expected_readiness, verify_git=True,
     )
-    if (
-        HEX40.fullmatch(EXPECTED_SOURCE_REVISION or "") is None
-        or any(not _hex64(value) for value in authorities[1:])
-    ):
-        return ["Item29 terminal evidence authority is not finalized"]
-    if not _strict(expected_item28_dependency, EXPECTED_ITEM28_DEPENDENCY):
-        return ["Item29 Item28 dependency authority mismatch"]
-    evidence, evidence_raw, error = _load(root / EVIDENCE_REF)
-    receipt, receipt_raw, receipt_error = _load(root / RECEIPT_REF)
-    checkpoint, checkpoint_raw, checkpoint_error = _load(
-        root / TERMINAL_CHECKPOINT_REF
-    )
-    if error or receipt_error or checkpoint_error:
-        return [error or receipt_error or checkpoint_error or "Item29 evidence read error"]
-    assert evidence is not None and evidence_raw is not None
-    assert receipt is not None and receipt_raw is not None
-    assert checkpoint is not None and checkpoint_raw is not None
-    errors: list[str] = []
-    if (
-        _sha(evidence_raw) != EXPECTED_EVIDENCE_FILE_SHA256
-        or _semantic(evidence) != EXPECTED_EVIDENCE_SEMANTIC_SHA256
-        or _sha(receipt_raw) != EXPECTED_RECEIPT_FILE_SHA256
-        or _semantic(receipt) != EXPECTED_RECEIPT_SEMANTIC_SHA256
-        or _sha(checkpoint_raw) != EXPECTED_TERMINAL_CHECKPOINT_FILE_SHA256
-        or _semantic(checkpoint) != EXPECTED_TERMINAL_CHECKPOINT_SEMANTIC_SHA256
-    ):
-        errors.append("Item29 terminal file authority mismatch")
-    receipt_errors, acceptance = validate_receipt(
-        receipt, expected_item28_dependency=expected_item28_dependency, root=root
-    )
-    errors.extend(receipt_errors)
-    if acceptance is None:
-        return errors or ["Item29 receipt acceptance missing"]
-    authority_errors, authority_binding = validate_authority_bundle(
-        source_revision=EXPECTED_SOURCE_REVISION,
-        receipt_sha256=EXPECTED_RECEIPT_FILE_SHA256,
-        terminal_acceptance_sha256=acceptance,
-    )
-    errors.extend(authority_errors)
-    if authority_binding is not None:
-        errors.extend(validate_evidence(
-            evidence,
-            receipt,
-            expected_item28_dependency=expected_item28_dependency,
-            expected_readiness=expected_readiness,
-            authority_binding=authority_binding,
-        ))
-    expected_checkpoint = {
-        "schema": CHECKPOINT_SCHEMA,
-        "task_id": TASK_ID,
-        "status": "EXACT_HEAD_CI_ACCEPTED",
-        "source_revision": EXPECTED_SOURCE_REVISION,
-        "evidence_file_sha256": EXPECTED_EVIDENCE_FILE_SHA256,
-        "evidence_semantic_sha256": EXPECTED_EVIDENCE_SEMANTIC_SHA256,
-        "receipt_file_sha256": EXPECTED_RECEIPT_FILE_SHA256,
-        "receipt_semantic_sha256": EXPECTED_RECEIPT_SEMANTIC_SHA256,
-        "automatic_retry_allowed": False,
-        "readiness_credit_added": True,
-    }
-    if not _strict(checkpoint, expected_checkpoint):
-        errors.append("Item29 terminal checkpoint mismatch")
-    return errors
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("evidence", nargs="?", type=Path, default=EVIDENCE_PATH)
+    args = parser.parse_args(argv)
+    try:
+        value = load_evidence(args.evidence)
+        errors = validate_document(value)
+    except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as exc:
+        print("capacity_100_jobs=BLOCK " + type(exc).__name__)
+        return 1
+    if errors:
+        print("capacity_100_jobs=BLOCK " + errors[0])
+        return 1
+    print("capacity_100_jobs=PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

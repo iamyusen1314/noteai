@@ -2,11 +2,10 @@ import base64
 import copy
 import json
 from pathlib import Path
-import subprocess
 import sys
 import tempfile
 import unittest
-from unittest import mock
+import uuid
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,253 +16,275 @@ if str(TOOLS) not in sys.path:
 import render_item29_capacity_100_request_v1 as renderer
 
 
-FROZEN = {
-    "schema": renderer.DEPENDENCY_SCHEMA,
-    "authority_root": "1" * 64,
-    "verifier_path": "tools/verify_internal_failure_rollback_evidence.py",
-    "verifier_sha256": "2" * 64,
-    "evidence_path": (
-        "deploy/production/evidence/"
-        "production-internal-failure-rollback-verified-20260814.json"
-    ),
-    "evidence_sha256": "3" * 64,
-    "receipt_path": (
-        "deploy/production/evidence/"
-        "internal-failure-rollback-api-f-provider-receipt-20260814.json"
-    ),
-    "receipt_sha256": "4" * 64,
-    "checkpoint_path": (
-        "deploy/production/evidence/"
-        "internal-failure-rollback-terminal-checkpoint-20260814.json"
-    ),
-    "checkpoint_sha256": "5" * 64,
-    "terminal_acceptance_sha256": "6" * 64,
-}
+PLAN_NONCE = "5c22acf5-1f6a-49e2-9787-036c1cbb43ea"
+OPERATIONS = [
+    str(uuid.uuid5(uuid.UUID(PLAN_NONCE), f"operation:{index:03d}"))
+    for index in range(100)
+]
 
 
-def input_value():
+def input_value(action="preflight", operations=None):
     return {
-        "action": renderer.ACTION,
-        "plan_nonce": "5c22acf5-1f6a-49e2-9787-036c1cbb43ea",
-        "api_c_instance_id": "i-item29fixture",
-        "item28_dependency": copy.deepcopy(FROZEN),
+        "action": action,
+        "plan_nonce": PLAN_NONCE,
+        "item28_dependency": copy.deepcopy(
+            renderer.FROZEN_ITEM28_DEPENDENCY
+        ),
+        "operation_ids": list(operations or []),
     }
 
 
 class RenderItem29CapacityRequestTests(unittest.TestCase):
-    @staticmethod
-    def _sha_tool(base):
-        sha_tool = base / "sha256sum"
-        sha_tool.write_text(
-            "#!/usr/bin/python3\n"
-            "import hashlib, pathlib, sys\n"
-            "for name in sys.argv[1:]:\n"
-            " print(hashlib.sha256(pathlib.Path(name).read_bytes()).hexdigest(), name)\n",
-            encoding="ascii",
-        )
-        sha_tool.chmod(0o755)
-        return sha_tool
+    def test_write_once_send_file_is_fixed_to_each_existing_host(self):
+        expected = {
+            "stage-api-c": renderer.API_C_INSTANCE,
+            "stage-worker-c": renderer.WORKER_C_INSTANCE,
+            "stage-worker-f": renderer.WORKER_F_INSTANCE,
+        }
+        for action, target in expected.items():
+            with self.subTest(action=action):
+                request, validation = renderer.render_request(input_value(action))
+                self.assertEqual(set(request), renderer.SEND_FILE_KEYS)
+                self.assertEqual(request["InstanceId"], [target])
+                self.assertEqual(request["Name"], renderer.SOURCE_NAME)
+                self.assertEqual(request["TargetDir"], "/run")
+                self.assertEqual(request["FileMode"], "0400")
+                self.assertIs(request["Overwrite"], False)
+                self.assertEqual(validation["api"], "SendFile")
 
-    @classmethod
-    def _shell_wrapper(cls, base, child_rc=0, child_out=b"", child_err=b""):
-        executor = (
-            "import sys\n"
-            f"sys.stdout.buffer.write({child_out!r})\n"
-            f"sys.stderr.buffer.write({child_err!r})\n"
-            f"raise SystemExit({child_rc})\n"
-        ).encode("ascii")
-        wrapper = renderer.render_wrapper(executor, input_value())
-        return wrapper.replace(
-            b"/run/.noteai-item29-capacity.",
-            (str(base) + "/.noteai-item29-capacity.").encode("ascii"),
-        ).replace(
-            b"/usr/bin/sha256sum", str(cls._sha_tool(base)).encode("ascii")
-        )
-
-    def _assert_file_collision_preserves_sentinel(self, suffix):
-        with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory)
-            mkdir_tool = base / "mkdir-collision"
-            mkdir_tool.write_text(
-                "#!/bin/sh\n"
-                "/bin/mkdir \"$@\" || exit $?\n"
-                "for candidate do collision_dir=$candidate; done\n"
-                f"/usr/bin/printf '%s' sentinel > \"$collision_dir/{suffix}\"\n",
-                encoding="ascii",
-            )
-            mkdir_tool.chmod(0o755)
-            wrapper = self._shell_wrapper(base).replace(
-                b"/bin/mkdir", str(mkdir_tool).encode("ascii")
-            )
-            result = subprocess.run(
-                ["/bin/sh"], input=wrapper,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                env={"PATH": "/usr/bin:/bin", "LC_ALL": "C", "LANG": "C"},
-                timeout=10, check=False,
-            )
-            self.assertNotEqual(result.returncode, 0)
-            self.assertEqual(result.stdout, b"")
-            private_dirs = list(base.glob(".noteai-item29-capacity.*"))
-            self.assertEqual(len(private_dirs), 1)
-            self.assertEqual(
-                {path.name for path in private_dirs[0].iterdir()}, {suffix}
-            )
-            self.assertEqual(
-                (private_dirs[0] / suffix).read_bytes(), b"sentinel"
-            )
-
-    def test_default_item28_authority_is_empty_and_blocks(self):
-        self.assertEqual(renderer.FROZEN_ITEM28_DEPENDENCY["authority_root"], "")
-        self.assertEqual(renderer.FROZEN_ITEM28_DEPENDENCY["verifier_path"], "")
-        self.assertEqual(renderer.FROZEN_ITEM28_DEPENDENCY["evidence_path"], "")
-        self.assertEqual(renderer.FROZEN_ITEM28_DEPENDENCY["receipt_path"], "")
-        self.assertEqual(renderer.FROZEN_ITEM28_DEPENDENCY["checkpoint_path"], "")
-        self.assertEqual(renderer.FROZEN_ITEM28_DEPENDENCY["evidence_sha256"], "")
-        with self.assertRaisesRegex(
-            renderer.RequestError,
-            "item28_dependency_authority_not_frozen",
-        ):
-            renderer.render_request(input_value())
-
-    def test_frozen_dependency_renders_exact_no_replay_request(self):
-        value = input_value()
-        with mock.patch.object(
-            renderer, "FROZEN_ITEM28_DEPENDENCY", FROZEN
-        ), mock.patch.object(renderer, "PRODUCTION_RUNTIME_ADAPTER_BOUND", True):
-            request, validation = renderer.render_request(value)
-        self.assertEqual(set(request), renderer.RUN_COMMAND_KEYS)
-        self.assertEqual(request["Name"], renderer.COMMAND_NAME)
-        self.assertEqual(request["InstanceId"], ["i-item29fixture"])
-        self.assertEqual(request["RepeatMode"], "Once")
-        self.assertEqual(request["KeepCommand"], True)
-        self.assertEqual(request["TerminationMode"], "ProcessTree")
-        self.assertEqual(validation["provider_history_key"], "Name")
-        self.assertFalse(validation["provider_client_token_readback_supported"])
-        self.assertFalse(validation["wrapper_child_exec_used"])
-        self.assertTrue(
-            validation["wrapper_cleanup_requires_owned_private_directory"]
-        )
-        self.assertEqual(validation["wrapper_host_temp_file_count"], 4)
-        self.assertTrue(validation["wrapper_private_directory_atomic_mkdir"])
-        self.assertEqual(validation["wrapper_temp_file_created_flag_count"], 4)
-        self.assertTrue(
-            validation["wrapper_temp_residue_absence_audited_before_output"]
-        )
-        wrapper = base64.b64decode(request["CommandContent"], validate=True)
-        self.assertIn(b"--runtime-factory __main__:create_runtime", wrapper)
-        self.assertNotIn(b"exec /usr/bin/python3", wrapper)
-        self.assertIn(b"rc=$?", wrapper)
-        self.assertIn(b"run_dir_owned=0", wrapper)
-        self.assertIn(b"run_dir_owned=1", wrapper)
-        self.assertIn(b"if [ \"$run_dir_owned\" -ne 1 ]", wrapper)
-        self.assertIn(b"src_created=1", wrapper)
-        self.assertIn(b"gz_created=1", wrapper)
-        self.assertIn(b"out_created=1", wrapper)
-        self.assertIn(b"err_created=1", wrapper)
-        self.assertIn(b"cleanup\n[ ! -e \"$src\" ]", wrapper)
-        self.assertIn(b"[ ! -e \"$gz\" ]", wrapper)
-        self.assertIn(b"[ ! -e \"$out\" ]", wrapper)
-        self.assertIn(b"[ ! -e \"$err\" ]", wrapper)
-        self.assertIn(b"[ ! -e \"$run_dir\" ]", wrapper)
-        self.assertLess(
-            wrapper.index(b"[ ! -e \"$err\" ]"),
-            wrapper.index(b"/usr/bin/printf '%s' \"$out_b64\""),
-        )
-        self.assertNotIn(b"ANTHROPIC_" + b"API_" + b"KEY=", wrapper)
-        self.assertNotIn(b"MOONSHOT_" + b"API_" + b"KEY=", wrapper)
-
-    def test_dependency_drift_and_extra_fields_fail_closed(self):
-        with mock.patch.object(
-            renderer, "FROZEN_ITEM28_DEPENDENCY", FROZEN
-        ), mock.patch.object(renderer, "PRODUCTION_RUNTIME_ADAPTER_BOUND", True):
-            changed = input_value()
-            changed["item28_dependency"]["evidence_sha256"] = "4" * 64
-            with self.assertRaisesRegex(
-                renderer.RequestError, "item28_dependency_binding"
-            ):
-                renderer.render_request(changed)
-            extra = input_value()
-            extra["unexpected"] = 1
-            with self.assertRaisesRegex(renderer.RequestError, "input_contract"):
-                renderer.render_request(extra)
-
-    def test_wrapper_preserves_child_rc_and_emits_only_after_temp_absence(self):
-        cases = (
-            (0, b"child-out\n", b"child-err\n"),
-            (7, b"failed-out\n", b"failed-err\n"),
-        )
-        for child_rc, child_out, child_err in cases:
-            with self.subTest(child_rc=child_rc), tempfile.TemporaryDirectory() as directory:
-                base = Path(directory)
-                wrapper = self._shell_wrapper(
-                    base, child_rc, child_out, child_err
+    def test_phase_targets_and_fresh_names_are_exact(self):
+        expected = {
+            "preflight": renderer.API_C_INSTANCE,
+            "admit": renderer.API_C_INSTANCE,
+            "admit-retry": renderer.API_C_INSTANCE,
+            "resolve": renderer.API_C_INSTANCE,
+            "dispatch": renderer.API_C_INSTANCE,
+            "dispatch-retry": renderer.API_C_INSTANCE,
+            "dispatch-readback": renderer.API_C_INSTANCE,
+            "preclaim-c": renderer.WORKER_C_INSTANCE,
+            "process-c": renderer.WORKER_C_INSTANCE,
+            "preclaim-f": renderer.WORKER_F_INSTANCE,
+            "process-f": renderer.WORKER_F_INSTANCE,
+            "process-readback-c": renderer.WORKER_C_INSTANCE,
+            "process-readback-f": renderer.WORKER_F_INSTANCE,
+            "observe": renderer.API_C_INSTANCE,
+            "cleanup": renderer.API_C_INSTANCE,
+            "cleanup-retry": renderer.API_C_INSTANCE,
+            "source-cleanup-worker-c": renderer.WORKER_C_INSTANCE,
+            "source-cleanup-worker-f": renderer.WORKER_F_INSTANCE,
+            "source-cleanup-api-c": renderer.API_C_INSTANCE,
+        }
+        for action, target in expected.items():
+            operations = [] if action in renderer.NO_OPERATION_ACTIONS else OPERATIONS
+            with self.subTest(action=action):
+                request, validation = renderer.render_request(
+                    input_value(action, operations)
                 )
-                result = subprocess.run(
-                    ["/bin/sh"], input=wrapper,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    env={"PATH": "/usr/bin:/bin", "LC_ALL": "C", "LANG": "C"},
-                    timeout=10, check=False,
-                )
-                self.assertEqual(result.returncode, child_rc)
-                self.assertEqual(result.stdout, child_out)
-                self.assertEqual(result.stderr, child_err)
+                self.assertEqual(set(request), renderer.RUN_COMMAND_KEYS)
+                self.assertEqual(request["InstanceId"], [target])
                 self.assertEqual(
-                    list(base.glob(".noteai-item29-capacity.*")), []
+                    request["Name"], f"noteai-item29-{action}-20260824-v1"
                 )
+                self.assertEqual(request["RepeatMode"], "Once")
+                self.assertIs(request["KeepCommand"], True)
+                self.assertEqual(validation["api"], "RunCommand")
 
-    def test_preexisting_private_directory_is_not_deleted(self):
+    def test_wrapper_uses_fixed_image_minimum_database_env_and_no_provider_secret(self):
+        request, _ = renderer.render_request(input_value("process-c", OPERATIONS))
+        wrapper = base64.b64decode(request["CommandContent"]).decode("ascii")
+        self.assertIn("--pull=never", wrapper)
+        self.assertIn("--read-only", wrapper)
+        self.assertIn("--cap-drop=ALL", wrapper)
+        self.assertIn("--network=bridge", wrapper)
+        self.assertIn(renderer.IMAGE, wrapper)
+        self.assertIn(renderer.EXECUTOR_SHA256, wrapper)
+        self.assertIn("grep '^DATABASE_URL='", wrapper)
+        self.assertIn("/etc/noteai/private-storage.env", wrapper)
+        self.assertNotIn("--env-file /etc/noteai/ai-worker.env", wrapper)
+        self.assertIn("unset ANTHROPIC_API_KEY", wrapper)
+        self.assertNotIn("ANTHROPIC_API_KEY=", wrapper)
+        self.assertIn("NOTEAI_RUNTIME_ROLE='ai-worker'", wrapper)
+        self.assertIn("NOTEAI_ITEM29_HOST_LABEL='Worker-C'", wrapper)
+        self.assertIn("NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1", wrapper)
+        self.assertIn("org.opencontainers.image.revision", wrapper)
+        self.assertIn("com.noteai.runtime.role", wrapper)
+        self.assertIn(".RepoDigests", wrapper)
+        self.assertIn(".Config.Entrypoint", wrapper)
+        self.assertIn(".Config.Cmd", wrapper)
+
+    def test_dispatcher_never_receives_private_storage_environment(self):
+        for action in ("dispatch", "dispatch-retry", "dispatch-readback"):
+            with self.subTest(action=action):
+                request, _ = renderer.render_request(
+                    input_value(action, OPERATIONS)
+                )
+                wrapper = base64.b64decode(
+                    request["CommandContent"]
+                ).decode("ascii")
+                self.assertIn("/etc/noteai/ai-dispatcher.env", wrapper)
+                self.assertNotIn(
+                    "--env-file /etc/noteai/private-storage.env", wrapper
+                )
+                self.assertIn("NOTEAI_DURABLE_AI_COMPONENT='dispatcher'", wrapper)
+
+    def test_phase_wrappers_retain_source_and_remove_only_owned_container(self):
+        for action in ("process-c", "process-f", "cleanup"):
+            with self.subTest(action=action):
+                request, _ = renderer.render_request(
+                    input_value(action, OPERATIONS)
+                )
+                wrapper = base64.b64decode(
+                    request["CommandContent"]
+                ).decode("ascii")
+                self.assertNotIn('/bin/rm -f "$src_gz"', wrapper)
+                self.assertIn("noteai.task=item29-capacity-100-v1", wrapper)
+                self.assertIn("docker rm -f", wrapper)
+                self.assertIn('--cidfile "$cidfile"', wrapper)
+                self.assertIn("bound=$(", wrapper)
+                self.assertNotIn('docker rm -f "$container"', wrapper)
+                self.assertIn('! /usr/bin/docker inspect "$container"', wrapper)
+                self.assertIn('"$run_dir/database.env"', wrapper)
+                self.assertIn('"$run_dir/storage.env"', wrapper)
+                self.assertNotIn('"$run_dir"/*', wrapper)
+                guarded = (
+                    "noteai-ai-worker-acceptance"
+                    if action.startswith("process")
+                    else "noteai-ai-dispatcher-acceptance"
+                )
+                self.assertIn(guarded, wrapper)
+
+    def test_source_cleanup_is_exact_idempotent_and_reads_back_zero(self):
+        for action in (
+            "source-cleanup-worker-c", "source-cleanup-worker-f",
+            "source-cleanup-api-c",
+        ):
+            with self.subTest(action=action):
+                request, validation = renderer.render_request(input_value(action))
+                wrapper = base64.b64decode(
+                    request["CommandContent"]
+                ).decode("ascii")
+                self.assertIn('/bin/rm -f "$src_gz"', wrapper)
+                self.assertIn('[ ! -e "$src_gz" ]', wrapper)
+                self.assertIn("source_residue_count", wrapper)
+                self.assertIn("task_container_residue_count", wrapper)
+                self.assertIn("task_container_removed_count", wrapper)
+                self.assertIn("task_run_dir_removed_count", wrapper)
+                self.assertIn("container ls -aq --no-trunc", wrapper)
+                self.assertIn(".State.Running", wrapper)
+                self.assertIn(renderer.IMAGE_CONFIG, wrapper)
+                self.assertIn("700:0:0", wrapper)
+                self.assertIn("-printf x -quit", wrapper)
+                self.assertIn("container.cid executor.py database.env", wrapper)
+                self.assertNotIn("docker run", wrapper)
+                self.assertNotIn('docker rm -f "$cid"', wrapper)
+                self.assertNotIn("rm -rf", wrapper)
+                self.assertNotIn('"$run_dir"/*', wrapper)
+                self.assertIs(validation["same_request_resubmit_allowed"], True)
+
+    def test_source_cleanup_container_names_are_host_specific(self):
+        expected = {
+            "source-cleanup-api-c": (
+                "/noteai-item29-admit-retry", "/noteai-item29-process-c"
+            ),
+            "source-cleanup-worker-c": (
+                "/noteai-item29-process-c", "/noteai-item29-process-f"
+            ),
+            "source-cleanup-worker-f": (
+                "/noteai-item29-process-f", "/noteai-item29-process-c"
+            ),
+        }
+        for action, (allowed, forbidden) in expected.items():
+            with self.subTest(action=action):
+                request, _ = renderer.render_request(input_value(action))
+                wrapper = base64.b64decode(
+                    request["CommandContent"]
+                ).decode("ascii")
+                self.assertIn(allowed, wrapper)
+                self.assertNotIn(forbidden, wrapper)
+
+    def test_admit_retry_is_the_only_retryable_admission_action(self):
+        normal, normal_validation = renderer.render_request(input_value("admit"))
+        retry, retry_validation = renderer.render_request(
+            input_value("admit-retry")
+        )
+        self.assertNotEqual(normal["ClientToken"], retry["ClientToken"])
+        self.assertIs(normal_validation["same_request_resubmit_allowed"], False)
+        self.assertIs(retry_validation["same_request_resubmit_allowed"], True)
+        wrapper = base64.b64decode(retry["CommandContent"]).decode("ascii")
+        self.assertIn("--phase 'admit'", wrapper)
+        self.assertIn(renderer.TASK_ID, wrapper)
+
+    def test_cleanup_retry_has_a_fresh_token_and_exact_same_phase(self):
+        normal, normal_validation = renderer.render_request(
+            input_value("cleanup", OPERATIONS)
+        )
+        retry, retry_validation = renderer.render_request(
+            input_value("cleanup-retry", OPERATIONS)
+        )
+        self.assertNotEqual(normal["ClientToken"], retry["ClientToken"])
+        self.assertIs(normal_validation["same_request_resubmit_allowed"], False)
+        self.assertIs(retry_validation["same_request_resubmit_allowed"], True)
+        wrapper = base64.b64decode(retry["CommandContent"]).decode("ascii")
+        self.assertIn("--phase 'cleanup'", wrapper)
+        self.assertIn("/etc/noteai/private-storage.env", wrapper)
+
+    def test_dispatcher_and_worker_formal_containers_must_be_absent(self):
+        dispatch, _ = renderer.render_request(
+            input_value("dispatch-readback", OPERATIONS)
+        )
+        dispatch_wrapper = base64.b64decode(
+            dispatch["CommandContent"]
+        ).decode("ascii")
+        self.assertIn("noteai-ai-dispatcher-acceptance", dispatch_wrapper)
+
+        worker, _ = renderer.render_request(
+            input_value("process-readback-c", OPERATIONS)
+        )
+        worker_wrapper = base64.b64decode(
+            worker["CommandContent"]
+        ).decode("ascii")
+        self.assertIn("noteai-ai-worker-acceptance", worker_wrapper)
+
+    def test_operation_cardinality_and_dependency_drift_fail_closed(self):
+        invalid = [
+            input_value("dispatch", []),
+            input_value("observe", OPERATIONS[:99]),
+            input_value("preflight", OPERATIONS),
+        ]
+        dependency = input_value()
+        dependency["item28_dependency"]["evidence_sha256"] = "0" * 64
+        invalid.append(dependency)
+        duplicate = input_value("cleanup", OPERATIONS)
+        duplicate["operation_ids"][-1] = duplicate["operation_ids"][0]
+        invalid.append(duplicate)
+        for value in invalid:
+            with self.subTest(value=value["action"]):
+                with self.assertRaises(renderer.RequestError):
+                    renderer.render_request(value)
+
+    def test_executor_identity_is_exact_and_symlink_is_rejected(self):
+        raw = renderer.read_executor(ROOT)
+        self.assertEqual(len(raw), renderer.EXECUTOR_BYTES)
+        self.assertEqual(renderer._sha(raw), renderer.EXECUTOR_SHA256)
         with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory)
-            private_dir = base / ".noteai-item29-capacity.preexisting"
-            private_dir.mkdir(mode=0o700)
-            sentinel = private_dir / "sentinel"
-            sentinel.write_bytes(b"do-not-delete")
-            wrapper = self._shell_wrapper(base).replace(
-                (
-                    "run_dir=" + str(base)
-                    + "/.noteai-item29-capacity.$$"
-                ).encode("ascii"),
-                ("run_dir=" + str(private_dir)).encode("ascii"),
-            )
-            result = subprocess.run(
-                ["/bin/sh"], input=wrapper,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                env={"PATH": "/usr/bin:/bin", "LC_ALL": "C", "LANG": "C"},
-                timeout=10, check=False,
-            )
-            self.assertNotEqual(result.returncode, 0)
-            self.assertEqual(sentinel.read_bytes(), b"do-not-delete")
-            self.assertEqual({path.name for path in private_dir.iterdir()}, {"sentinel"})
+            root = Path(directory)
+            target = root / "real.py"
+            target.write_bytes(raw)
+            path = root / renderer.EXECUTOR_REF
+            path.parent.mkdir(parents=True)
+            path.symlink_to(target)
+            with self.assertRaisesRegex(renderer.RequestError, "executor_identity"):
+                renderer.read_executor(root)
 
-    def test_payload_py_collision_is_not_deleted(self):
-        self._assert_file_collision_preserves_sentinel("payload.py")
-
-    def test_payload_gzip_collision_is_not_deleted(self):
-        self._assert_file_collision_preserves_sentinel("payload.py.gz")
-
-    def test_stdout_collision_is_not_deleted(self):
-        self._assert_file_collision_preserves_sentinel("payload.stdout")
-
-    def test_stderr_collision_is_not_deleted(self):
-        self._assert_file_collision_preserves_sentinel("payload.stderr")
-
-    def test_frozen_item28_still_blocks_without_production_runtime_adapter(self):
-        with mock.patch.object(renderer, "FROZEN_ITEM28_DEPENDENCY", FROZEN):
-            with self.assertRaisesRegex(
-                renderer.RequestError,
-                "production_runtime_adapter_not_frozen",
-            ):
-                renderer.render_request(input_value())
-
-    def test_main_stays_blocked_with_canonical_input(self):
-        raw = renderer.canonical(input_value())
-        with mock.patch.object(sys, "stdin") as stdin:
-            stdin.buffer.read.return_value = raw
-            with mock.patch.object(sys, "stderr") as stderr:
-                self.assertEqual(renderer.main([]), 3)
-                stderr.write.assert_called_with(
-                    "item28_dependency_authority_not_frozen\n"
-                )
+    def test_canonical_parser_rejects_duplicate_and_noncanonical_json(self):
+        value = input_value()
+        self.assertEqual(renderer.parse_canonical(renderer.canonical(value)), value)
+        for raw in (
+            b'{"action":"preflight","action":"preflight"}\n',
+            (json.dumps(value, indent=2) + "\n").encode("ascii"),
+        ):
+            with self.assertRaises(renderer.RequestError):
+                renderer.parse_canonical(raw)
 
 
 if __name__ == "__main__":

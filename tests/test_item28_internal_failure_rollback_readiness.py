@@ -131,7 +131,9 @@ class Item28ReadinessTests(unittest.TestCase):
 
         with mock.patch.object(
             gate, "_verify_path", return_value=True
-        ), mock.patch.object(gate, "validate_capacity_control", return_value=[]):
+        ), mock.patch.object(
+            gate, "validate_capacity_100_jobs_evidence", return_value=[]
+        ):
             gate.validate_manifest(changed)
 
 

@@ -4144,22 +4144,44 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         ):
             gate.validate_manifest(extra)
 
-    def test_shared_gate_always_invokes_item29_semantic_adapter(self):
+    def test_shared_gate_directly_invokes_item29_verifier_only_when_verified(self):
         with mock.patch.object(
-            gate,
-            "validate_capacity_control",
-            return_value=["capacity_100_jobs: adapter sentinel"],
+            gate, "validate_capacity_100_jobs_evidence"
         ) as validate:
+            gate.validate_manifest(copy.deepcopy(self.manifest))
+        validate.assert_not_called()
+
+        candidate = copy.deepcopy(self.manifest)
+        capacity = next(
+            control
+            for control in candidate["layers"][1]["controls"]
+            if control["id"] == "capacity_100_jobs"
+        )
+        capacity["status"] = "verified"
+        capacity["evidence"] = [
+            {"kind": "git", "ref": "a" * 40},
+            {"kind": "path", "ref": "deploy/production/capacity_100_jobs.py"},
+        ]
+        capacity.pop("blocker")
+        capacity.pop("next_task")
+        with (
+            mock.patch.object(gate, "_verify_git_ref", return_value=True),
+            mock.patch.object(gate, "_verify_path", return_value=True),
+            mock.patch.object(
+                gate,
+                "validate_capacity_100_jobs_evidence",
+                return_value=["direct verifier sentinel"],
+            ) as validate,
+        ):
             with self.assertRaisesRegex(
-                gate.ManifestError,
-                "capacity_100_jobs: adapter sentinel",
+                gate.ManifestError, "direct verifier sentinel"
             ):
-                gate.validate_manifest(copy.deepcopy(self.manifest))
+                gate.validate_manifest(candidate)
         validate.assert_called_once()
         args, kwargs = validate.call_args
-        self.assertIsInstance(args[0], dict)
-        self.assertIsInstance(args[1], dict)
+        self.assertEqual(args[0], capacity["evidence"])
         self.assertEqual(kwargs["root"], gate.ROOT)
+        self.assertEqual(kwargs["expected_readiness"]["internal_verified_after"], 29)
 
     def test_unknown_and_cyclic_dependencies_fail(self):
         broken = copy.deepcopy(self.manifest)

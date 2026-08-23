@@ -37,7 +37,9 @@ from verify_internal_zero_provider_smoke_evidence import (
 from verify_internal_failure_rollback_evidence import (
     validate_manifest_evidence as validate_internal_failure_rollback_evidence,
 )
-from item29_readiness_adapter import validate_capacity_control
+from verify_capacity_100_jobs_evidence import (
+    validate_manifest_evidence as validate_capacity_100_jobs_evidence,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -627,15 +629,65 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
             f"{runtime_errors[0] if runtime_errors else ''}",
         )
 
-    capacity_errors = validate_capacity_control(
-        manifest,
-        controls_by_id,
-        root=root,
-    )
-    _require(
-        not capacity_errors,
-        capacity_errors[0] if capacity_errors else "capacity_100_jobs: invalid",
-    )
+    capacity = controls_by_id.get("capacity_100_jobs") or {}
+    if capacity.get("status") == "verified":
+        _require(
+            all(
+                (controls_by_id.get(dependency) or {}).get("status") == "verified"
+                for dependency in capacity.get("dependencies", [])
+            ),
+            "capacity_100_jobs: verified dependency required",
+        )
+        internal_controls = [
+            *manifest["layers"][0]["controls"],
+            *manifest["layers"][1]["controls"],
+        ]
+        all_controls = [
+            control
+            for layer in manifest["layers"]
+            for control in layer["controls"]
+        ]
+        internal_before = sum(
+            control["status"] == "verified"
+            for control in internal_controls
+            if control["id"] != "capacity_100_jobs"
+        )
+        public_before = sum(
+            control["status"] == "verified"
+            for control in all_controls
+            if control["id"] != "capacity_100_jobs"
+        )
+        _require(
+            internal_before == 28
+            and public_before == 28
+            and len(internal_controls) == 29
+            and len(all_controls) == 38,
+            "capacity_100_jobs: exact 28/29 predecessor state required",
+        )
+        expected_readiness = {
+            "internal_verified_before": 28,
+            "internal_verified_after": 29,
+            "internal_total": 29,
+            "internal_percentage_after": 100,
+            "complete_public_verified_before": 28,
+            "complete_public_verified_after": 29,
+            "complete_public_total": 38,
+            "complete_public_percentage_after": 76,
+            "next_task": "PROD-FIRST-LAUNCH-PROVIDER-CHAIN-001",
+            "public_launch_authorized": False,
+            "real_provider_chain_verified": False,
+            "capacity_100_jobs_verified": True,
+        }
+        capacity_errors = validate_capacity_100_jobs_evidence(
+            capacity.get("evidence"),
+            root=root,
+            expected_readiness=expected_readiness,
+        )
+        _require(
+            not capacity_errors,
+            "capacity_100_jobs: invalid semantic evidence: "
+            + (capacity_errors[0] if capacity_errors else ""),
+        )
 
     for control_id, control in controls_by_id.items():
         for dependency in control["dependencies"]:

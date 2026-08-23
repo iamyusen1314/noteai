@@ -13964,3 +13964,62 @@ Colima, database, builder, restore and cloud actions remain frozen.
   Worker-F are `Stopped / StopCharging`. Item28 started no temporary paid
   compute and created no cloud resource, so its incremental cloud cost is
   `CNY 0.000000`.
+
+## Item 29 managed 100-job execution source ready for live preflight (2026-08-24)
+
+- Item29 remains `unverified`; readiness remains internal `28/29` and complete
+  public `28/38`. No public Item30-38 work is authorized or started. The live
+  target is exactly 100 concurrently admitted production jobs, two fenced
+  cross-worker lease takeovers, fixed fake-provider execution on Worker-C/F,
+  exact settlement/accounting readback and account/payload cleanup.
+- The shortest original-DoD chain now uses the existing production PostgreSQL,
+  OSS, API-C, Worker-C and Worker-F only. It directly invokes the shipped
+  admission, exact outbox dispatcher, durable worker, provider-attempt fence,
+  settlement and retention paths. Real provider credentials are neither read
+  nor forwarded; provider cost is fixed at zero. Formal dispatcher/worker units
+  remain inactive and disabled and are never started.
+- The executor binds the ordered operation set to index, Worker and expected
+  Claude/Kimi label; each provider attempt is read back by operation ID with
+  exact attempt number, provider, claim count and fence (takeover fence 2,
+  otherwise fence 1). A terminal `process-readback` can reconcile an UNKNOWN
+  process result without replaying the non-idempotent provider action. Final
+  assembly additionally requires exactly 100 primary deletions, 200 deleted
+  payload refs, zero orphan deletion in the accepted path and every
+  zero-residue/audit projection. Admission may be continued once after an
+  explicit terminal failure by reusing each exact user and deterministic
+  operation/reference identity; it accepts only queued/charged existing rows.
+  Cleanup first fences every exact namespace user, then removes only a
+  descriptor-bound unlinked request/result object, and only then performs the
+  existing primary deletion. Its deterministic deletion request can be reused
+  under the deletion fence by the separate bounded `cleanup-retry` action.
+- The renderer uses the three fixed instances and the locked C17 image only.
+  It verifies image config, manifest RepoDigest, OS/architecture, revision,
+  runtime-role label, user, entrypoint and cmd; forwards only the exact database
+  and private-storage variables needed by each phase; rejects formal or
+  acceptance container residue; and removes only its own cidfile-bound
+  container. Phase commands retain the write-once staged source so UNKNOWN
+  results remain reconcilable. Three exact, idempotent source-cleanup actions
+  remove stopped task containers and numeric root-only run directories only
+  after exact label, invocation, image, host-specific name, permissions and
+  file allowlist checks, then remove the source and read back zero residue.
+- The old receipt/checkpoint/external-authority/adapter chain has been removed.
+  The shared internal gate now calls one strict Item29 verifier over one tracked
+  evidence document, the execution-source revision and the three source files.
+  Source transfer gzip identity, 15-second takeover interval, 900-second real
+  processing lease, stage terminal state, final compute/network residue, cost
+  boundary and 29/29 readiness are checked directly. The frozen executor is
+  65,429 bytes / `ee4b00f4286332712fa70ec81150ad81c13eaa292a58721b82e5b8430d4be311`;
+  its deterministic gzip SHA-256 is
+  `9a4c87e0c8cca85713f0199e63762120e218ff43746e7f8270ff44c817145793`.
+- Focused executor/renderer/evidence/gate regression passes `54/54`; all 19
+  rendered RunShell wrappers pass `sh -n`, across 22 total actions, with maximum
+  content 12,707 bytes. Affected Python compilation, current internal gate
+  (`28/29`) and diff checks pass; an independent final source audit reports GO
+  with no remaining P0/P1. No cloud write or production data mutation has
+  occurred in this stage. Builder, Worker-C and Worker-F remain
+  `Stopped / StopCharging`; there is no running stoppable paid compute.
+- Next: commit and push this exact execution source, then use the signed-in
+  CloudShell session for a Secret-free control-plane quote/state check and an
+  API-C read-only preflight. Only after preflight passes may Worker-C/F be
+  started for the bounded acceptance; both must be source-cleaned and returned
+  to `Stopped / StopCharging` immediately after their terminal worker phases.

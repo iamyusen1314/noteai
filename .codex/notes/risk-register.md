@@ -3819,3 +3819,32 @@ Last updated: 2026-08-19
   internal gate和diff check通过。剩余唯一内部风险是Item29真实100-job admission、
   recovery和accounting验收；Item28的历史UNKNOWN已由readback+cleanup闭合，不得触发
   盲目重派，也不得被公开Items 30-38或无关Render问题重新打开。
+
+## Item 29 live-capacity boundary before dispatch (2026-08-24)
+
+- 状态: source ready / live preflight pending / Item29仍`unverified`，内部`28/29`、
+  完整公开`28/38`。当前没有运行中的StopCharging计算资源，也没有执行生产DB/OSS
+  mutation、Worker启动、provider call、临时网络或IAM变更。
+- 已关闭的误PASS风险: ordered operation set现在逐项绑定index、Worker、provider label、
+  attempt number、claim count与fence；两个cross-worker takeover只能以fence2通过，其余
+  只能fence1。最终assembly必须同时得到100个唯一fake call、50/50 label、102 claims、
+  100 settlements、600000 milli credits、100 primary deletions、200 payload deletes及
+  全部零残留。仅有汇总“50 succeeded”不再能授予PASS。
+- UNKNOWN边界: process阶段不删除staged source；任何已派发但结果UNKNOWN的process
+  禁止重派，先读Cloud Assistant终态，再运行同源只读`process-readback`精确区分
+  50/50成功、safe-unstarted与unsafe。只有显式终态结果之后，幂等source-cleanup才按
+  exact path/hash删除并读回零。admit与cleanup各有独立fresh-token bounded retry；
+  cleanup retry会在allow-deletion-requested锁下复用exact deterministic request，
+  不会被既有fence拒绝。未知的仍在运行命令必须先对账，禁止并发盲重派。
+- 运行风险与控制: Worker-C/F为既有PostPaid StopCharging实例，启动前刷新实际小时
+  quote；只在API-C Secret-free preflight通过后启动，使用固定C17 digest和现有
+  production RDS/OSS。真实provider Secret不转发、provider cost为0；formal units保持
+  inactive/disabled且formal/acceptance container必须为0。Worker阶段结束后立即执行
+  exact source cleanup并StopCharging，不等待API observe/evidence整理。
+- 证据面缩减: 原有receipt/checkpoint/external authority/readiness adapter均移除；
+  shared gate只验证单一Item29 evidence、执行source revision、gzip transfer identity、
+  阶段时间/终态、资源与费用终态。escaped namespace、admission continuation、orphan
+  object exact cleanup、stale container/run-dir cleanup和15/900秒lease split均已关闭；
+  当前54项focused regression、19个RunShell wrapper语法、compile、内部28/29 gate、
+  diff-check及独立GO终审均通过。剩余风险仅为尚未执行的真实managed 100-job链及其
+  最终计费/资源读回；不得预先加readiness credit。
