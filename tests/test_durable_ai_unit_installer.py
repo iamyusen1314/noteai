@@ -130,6 +130,11 @@ class DurableAiUnitInstallerTests(unittest.TestCase):
             self.assertIn("NOTEAI_DURABLE_AI_SUSPENDED=1", rendered)
             self.assertIn("Restart=no", rendered)
             self.assertNotIn("NOTEAI_DURABLE_AI_ACCEPTANCE_MODE", rendered)
+            self.assertEqual(rendered.count("ExecStartPost=/usr/bin/sleep 5"), 1)
+            self.assertEqual(
+                rendered.count("ExecStopPost=-/usr/bin/docker container rm"),
+                1,
+            )
         with self.assertRaises(installer.DurableAiUnitError):
             installer.render_unit("API-C", "acceptance", operation_id="17")
 

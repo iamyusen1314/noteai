@@ -71,10 +71,10 @@ HOST_ACCEPTANCE_ACTION = {
 }
 TEMPLATE_SHA256 = {
     "noteai-ai-dispatcher.service.template": (
-        "83bbff3c915069341b5c5e2e6af7adcf221627201737b0c921e294fee11a6687"
+        "d56843dc24f0057c53494d251ab755047511ce4eb1273fac21edb24b974297bd"
     ),
     "noteai-ai-worker.service.template": (
-        "701988c5bdf27f206e852abd138d2f7eba2d652b99f364f2277d2b62c02e795b"
+        "8886580fb906a64cd94eafd63dee04f7b53be47139673afb850f23495ee92547"
     ),
     "noteai-ai-dispatcher-acceptance.service.template": (
         "b0cffda85f25a53987d6ca80ca386db7b7b63987ec1442454a3f2478bab38dff"

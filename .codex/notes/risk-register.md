@@ -3627,3 +3627,24 @@ Last updated: 2026-08-19
   invocation终态no-replay。下一步只允许删除该精确空容器并reset-failed后读回原态；
   浏览器删除策略要求即时用户确认。等待期间Worker-C/F已独立读回
   `Stopped/StopCharging/PostPaid`，计算费停止。
+
+## Item 27 formal dormant-unit start visibility race (2026-08-23)
+
+- 状态: Mitigated in source / live rollout pending / Item27仍unverified。已确认的
+  Dispatcher failed-start残留通过fresh bounded cleanup精确清零：unit恢复
+  `inactive/dead/success`，container和published-port均0，未使用force remove。
+  首个cleanup因disabled返回码被ERR trap误判而在mutation前失败，已冻结且未重放；
+  唯一successor为独立根因修正后的有界执行。
+- 根因范围: Dispatcher、Worker、Trends、Tracking四个formal dormant unit均为
+  `Type=simple` + foreground `docker run` + immediate `docker exec`，因此不是单机
+  偶发配置漂移。Payment没有该post-start结构，但caller可能早于HTTP可见；active
+  API/Admin和acceptance units不在本次修复范围。
+- 最小缓解: 四个formal template只增加固定5秒start barrier与exact-name、non-force
+  `ExecStopPost`；Item27 executor只增加container-running和Payment live GET的有界
+  read-only wait。Payment callback POST不重试且exactly once。没有shell wrapper、
+  新helper、receipt、authority、provider调用、数据库/OSS写或Item1-26重跑。
+- 验证/剩余门: focused 78/78、compile、diff及live internal gate均PASS，readiness
+  仍为26/29。必须先正常commit/push，再对四个inactive/disabled unit执行
+  exact-old-hash原子替换、`daemon-reload`和zero-container读回；之后才允许fresh
+  API-C smoke。Worker-C/F继续Stopped/StopCharging，live rollout期间若需启动必须
+  在用户已在场的当前窗口进行，并在任何等待/中断前重新StopCharging。

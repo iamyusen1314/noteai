@@ -66,6 +66,11 @@ class FakeHost:
         if self.fail == ("start", unit):
             raise smoke.SmokeError("injected_start")
 
+    def wait_container_running(self, name):
+        self.calls.append(("wait_container_running", name))
+        if self.containers.get(name) != 1:
+            raise smoke.SmokeError("container_ready")
+
     def stop(self, unit):
         self.calls.append(("stop", unit))
         if self.fail == ("stop", unit):
@@ -122,6 +127,10 @@ class FakeHost:
             return {"tiers": {"free": {"price": 0}}}
         return {"ordering_available": False, "currency": "CNY", "auto_renewal": False}
 
+    def wait_http_json(self, port, method, path, status):
+        self.calls.append(("wait_http", port, method, path, status))
+        return self.http_json(port, method, path, status)
+
 
 class InternalZeroProviderSmokeTests(unittest.TestCase):
     def test_four_modes_are_exact_and_source_has_no_mutating_external_tools(self):
@@ -130,16 +139,16 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
             "api-c": {
                 "noteai-api.service": "46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6",
                 "noteai-admin.service": "1fafeefad045aafdede1a77e1266f4159972dea1862904723823aed397c458f7",
-                "noteai-ai-dispatcher.service": "bb198d026aec6e9840368f9b7b19677c7c7833c4465d57415f24cf9d26583da6",
+                "noteai-ai-dispatcher.service": "31a330c693947dcb58ccf1f097a4623959981682a475ddfa7e0c2fde23fa3ab3",
                 "noteai-payment.service": "40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb",
             },
             "api-f": {
                 "noteai-api.service": "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936",
-                "noteai-xhs-trends.service": "5f3926af54e39a533963f6a9a1369dd366f4a1548ecb08d97a6d5171fc004a9d",
-                "noteai-xhs-tracking.service": "e61d20a5b649495c9ee433636628eff6293e38425d3909c57df1679bee12ead7",
+                "noteai-xhs-trends.service": "8fce876b0731a775964e0aa4ea417a48759207bd699c6cc87b36bf5ee56d6705",
+                "noteai-xhs-tracking.service": "863de0131a6656448f1d769be147d43266f55432d441d6f683368f8c865b35ec",
             },
-            "worker-c": {"noteai-ai-worker.service": "b198cf0912a3cae19de34141df0fa7e482a4dca7c3b103317961634adefe710c"},
-            "worker-f": {"noteai-ai-worker.service": "b198cf0912a3cae19de34141df0fa7e482a4dca7c3b103317961634adefe710c"},
+            "worker-c": {"noteai-ai-worker.service": "e35661eb5e573b7bd02ecfb60b57644c05f4fa08a59ca3de588c474acf71ab84"},
+            "worker-f": {"noteai-ai-worker.service": "e35661eb5e573b7bd02ecfb60b57644c05f4fa08a59ca3de588c474acf71ab84"},
         }
         for mode, spec in smoke.MODES.items():
             actual = {
@@ -191,8 +200,59 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
         payment = [item for item in result["roles"] if item["role"] == "payment"][0]
         self.assertTrue(payment["expected_negative_passed"])
         payment_calls = [call for call in host.calls if call[:2] == ("http", 8002)]
+        self.assertIn(
+            ("wait_http", 8002, "GET", "/health/live", 200),
+            host.calls,
+        )
         self.assertIn(("http", 8002, "GET", "/health/ready", 503), payment_calls)
         self.assertIn(("http", 8002, "POST", "/payments/adapay/callback", 503), payment_calls)
+        self.assertEqual(
+            payment_calls.count(
+                ("http", 8002, "POST", "/payments/adapay/callback", 503)
+            ),
+            1,
+        )
+
+    def test_container_and_live_visibility_waits_are_bounded_and_read_only(self):
+        now = [10.0]
+        host = object.__new__(smoke.Host)
+        host._clock = lambda: now[0]
+        host._deadline = 100.0
+        host.docker_command = mock.Mock(side_effect=(
+            (1, b""),
+            (0, b"false\n"),
+            (0, b"true\n"),
+        ))
+        with mock.patch.object(
+            smoke.time,
+            "sleep",
+            side_effect=lambda seconds: now.__setitem__(0, now[0] + seconds),
+        ):
+            host.wait_container_running("noteai-payment")
+        self.assertEqual(host.docker_command.call_count, 3)
+        for call in host.docker_command.call_args_list:
+            self.assertEqual(
+                call.args[0],
+                [
+                    "container", "inspect", "--format",
+                    "{{.State.Running}}", "noteai-payment",
+                ],
+            )
+            self.assertEqual(call.kwargs["allowed"], (0, 1))
+
+        now[0] = 20.0
+        host.http_json = mock.Mock(side_effect=(
+            smoke.SmokeError("loopback_http"),
+            {"status": "ok", "service": "noteai-payment"},
+        ))
+        with mock.patch.object(
+            smoke.time,
+            "sleep",
+            side_effect=lambda seconds: now.__setitem__(0, now[0] + seconds),
+        ):
+            payload = host.wait_http_json(8002, "GET", "/health/live", 200)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(host.http_json.call_count, 2)
 
     def test_role_counters_and_skip_flags_reject_bool_string_and_coercion_aliases(self):
         cases = (

@@ -46,6 +46,8 @@ CLEANUP_COMMAND_WORST_CASE_SECONDS = 180
 CLEANUP_RESERVE_SECONDS = 300
 WRAPPER_SETUP_WORST_CASE_SECONDS = 60
 WRAPPER_CLEANUP_RESERVE_SECONDS = 60
+CONTAINER_READY_TIMEOUT_SECONDS = 15
+CONTAINER_READY_POLL_SECONDS = 0.2
 # Cleanup has a separate reserve.  The renderer additionally reserves bounded
 # wrapper setup/import time and a final wrapper cleanup interval so Cloud
 # Assistant cannot terminate the process while runtime cleanup runs.
@@ -77,7 +79,7 @@ MODES = {
             (8001, "GET", "/admin/capabilities", 403),
         ),
         "dormant": (
-            ("dispatcher", "noteai-ai-dispatcher.service", "bb198d026aec6e9840368f9b7b19677c7c7833c4465d57415f24cf9d26583da6", "noteai-ai-dispatcher"),
+            ("dispatcher", "noteai-ai-dispatcher.service", "31a330c693947dcb58ccf1f097a4623959981682a475ddfa7e0c2fde23fa3ab3", "noteai-ai-dispatcher"),
             ("payment", "noteai-payment.service", "40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb", "noteai-payment"),
         ),
     },
@@ -89,17 +91,17 @@ MODES = {
             (8000, "GET", "/payments/capabilities", 200),
         ),
         "dormant": (
-            ("trends", "noteai-xhs-trends.service", "5f3926af54e39a533963f6a9a1369dd366f4a1548ecb08d97a6d5171fc004a9d", "noteai-xhs-trends"),
-            ("tracking", "noteai-xhs-tracking.service", "e61d20a5b649495c9ee433636628eff6293e38425d3909c57df1679bee12ead7", "noteai-xhs-tracking"),
+            ("trends", "noteai-xhs-trends.service", "8fce876b0731a775964e0aa4ea417a48759207bd699c6cc87b36bf5ee56d6705", "noteai-xhs-trends"),
+            ("tracking", "noteai-xhs-tracking.service", "863de0131a6656448f1d769be147d43266f55432d441d6f683368f8c865b35ec", "noteai-xhs-tracking"),
         ),
     },
     "worker-c": {
         "active": (), "http": (),
-        "dormant": (("worker", "noteai-ai-worker.service", "b198cf0912a3cae19de34141df0fa7e482a4dca7c3b103317961634adefe710c", "noteai-ai-worker"),),
+        "dormant": (("worker", "noteai-ai-worker.service", "e35661eb5e573b7bd02ecfb60b57644c05f4fa08a59ca3de588c474acf71ab84", "noteai-ai-worker"),),
     },
     "worker-f": {
         "active": (), "http": (),
-        "dormant": (("worker", "noteai-ai-worker.service", "b198cf0912a3cae19de34141df0fa7e482a4dca7c3b103317961634adefe710c", "noteai-ai-worker"),),
+        "dormant": (("worker", "noteai-ai-worker.service", "e35661eb5e573b7bd02ecfb60b57644c05f4fa08a59ca3de588c474acf71ab84", "noteai-ai-worker"),),
     },
 }
 
@@ -313,6 +315,29 @@ class Host:
         ], "container_state")
         return len([line for line in raw.decode("ascii").splitlines() if line])
 
+    def wait_container_running(self, name):
+        deadline = min(
+            self._deadline,
+            self._clock() + CONTAINER_READY_TIMEOUT_SECONDS,
+        )
+        while True:
+            remaining = deadline - self._clock()
+            if remaining <= 0:
+                raise SmokeError("container_ready")
+            rc, raw = self.docker_command([
+                "container", "inspect", "--format", "{{.State.Running}}", name,
+            ], "container_ready", allowed=(0, 1), timeout=min(3, remaining))
+            if rc == 0:
+                try:
+                    running = raw.decode("ascii").strip()
+                except UnicodeError:
+                    raise SmokeError("container_ready")
+                if running == "true":
+                    return
+                if running != "false":
+                    raise SmokeError("container_ready")
+            time.sleep(min(CONTAINER_READY_POLL_SECONDS, remaining))
+
     def runtime_fingerprint(self, name):
         values = []
         for template in (
@@ -390,6 +415,22 @@ class Host:
         if not isinstance(value, dict):
             raise SmokeError("loopback_http")
         return value
+
+    def wait_http_json(self, port, method, path, expected_status):
+        deadline = min(
+            self._deadline,
+            self._clock() + CONTAINER_READY_TIMEOUT_SECONDS,
+        )
+        while True:
+            try:
+                return self.http_json(port, method, path, expected_status)
+            except SmokeError as exc:
+                if exc.code != "loopback_http":
+                    raise
+            remaining = deadline - self._clock()
+            if remaining <= 0:
+                raise SmokeError("loopback_http")
+            time.sleep(min(CONTAINER_READY_POLL_SECONDS, remaining))
 
 
 def _require_state(host, unit, expected):
@@ -487,7 +528,7 @@ def _role_checks(host, role, container):
                 or not _zero_int(one_shot.get("collected"))):
             raise SmokeError("role_contract")
     elif role == "payment":
-        live = host.http_json(8002, "GET", "/health/live", 200)
+        live = host.wait_http_json(8002, "GET", "/health/live", 200)
         ready = host.http_json(8002, "GET", "/health/ready", 503)
         callback = host.http_json(8002, "POST", "/payments/adapay/callback", 503)
         checks = ready.get("checks")
@@ -577,6 +618,7 @@ class SmokeRun:
             self.started.append((unit, container))
             self.host.start(unit)
             self.start_count += 1
+            self.host.wait_container_running(container)
             _require_state(self.host, unit, "active-disabled")
             if self.host.container_present(container) != 1:
                 raise SmokeError("dormant_start_state")

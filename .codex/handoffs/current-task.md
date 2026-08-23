@@ -13589,3 +13589,38 @@ Colima, database, builder, restore and cloud actions remain frozen.
   `Stopped / StopCharging / PostPaid`; their compute billing is closed and
   only baseline storage remains.  Builder is still StopCharging and Item26's
   clone remains absent.
+
+## Item 27 Dispatcher residue closed; shared start-visibility fix prepared (2026-08-23)
+
+- After the user confirmed the exact deletion, the first bounded cleanup
+  command stopped before mutation because its `ERR` trap treated the expected
+  `systemctl is-enabled` disabled return code as failure.  It is terminal and
+  was not replayed.  The independent root cause was local script control flow;
+  the failed unit and created container were still unchanged.
+- One fresh, bounded successor explicitly accepted disabled/return-code 1,
+  re-ran every precondition, stopped only the exact failed unit, removed only
+  the non-running `noteai-ai-dispatcher` container without `--force`, and reset
+  the failed result.  Its terminal result is `Success / exit=0 / PASS`; the
+  post-state is `inactive/dead/success`, disabled, exact container count `0`
+  and published-port count `0`.  Provider, database, OSS and public-request
+  mutations remain zero.
+- Read-only review proved the same `Type=simple` foreground-Docker plus
+  immediate `ExecStartPost=docker exec` race exists in the formal Dispatcher,
+  Worker, Trends and Tracking units.  The minimal source correction adds one
+  five-second systemd start-visibility barrier before the existing healthcheck
+  and one exact-name, non-force `ExecStopPost` cleanup to those four templates.
+  Acceptance units, Payment, active API/Admin commands, images, environments,
+  limits and default-disabled semantics are unchanged.
+- The Item27 executor additionally performs a bounded read-only
+  `.State.Running` wait for every dormant container and retries only Payment's
+  idempotent `/health/live` GET.  The Payment ready GET and callback POST remain
+  single-shot; the tests assert the callback is called exactly once.  The four
+  new installed unit SHA-256 values are bound directly in the existing Item27
+  executor, and the consumed API-C command name is rolled once.
+- Focused verification passes: Item27/renderer/durable-unit/runtime-hardening
+  `50/50`, native-release security invariants `8/8`, and internal-readiness
+  tests `20/20`; affected Python compilation and `git diff --check` pass.  The
+  live internal gate remains correctly at `26/29`.  Worker-C/F remain
+  `Stopped / StopCharging`; no paid worker compute was restarted.  Next is a
+  normal commit/push, then exact-old-SHA to exact-new-bytes atomic replacement
+  of only these dormant units before the fresh four-host serial smoke.

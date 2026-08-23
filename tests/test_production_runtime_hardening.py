@@ -273,6 +273,29 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         self.assertEqual(recovery.count("--log-opt=max-size=10m"), 2)
         self.assertEqual(recovery.count("--log-opt=max-file=2"), 2)
 
+    def test_dormant_formal_units_wait_for_visibility_and_remove_failed_residue(self):
+        systemd = ROOT / "deploy" / "production" / "systemd"
+        units = {
+            "noteai-ai-dispatcher.service.template": "noteai-ai-dispatcher",
+            "noteai-ai-worker.service.template": "noteai-ai-worker",
+            "noteai-xhs-trends.service.template": "noteai-xhs-trends",
+            "noteai-xhs-tracking.service.template": "noteai-xhs-tracking",
+        }
+        for name, container in units.items():
+            with self.subTest(name=name):
+                unit = (systemd / name).read_text(encoding="utf-8")
+                wait = "ExecStartPost=/usr/bin/sleep 5"
+                health = "ExecStartPost=/usr/bin/docker exec " + container
+                cleanup = (
+                    "ExecStopPost=-/usr/bin/docker container rm " + container
+                )
+                self.assertEqual(unit.count(wait), 1)
+                self.assertEqual(unit.count(health), 1)
+                self.assertEqual(unit.count(cleanup), 1)
+                self.assertLess(unit.index(wait), unit.index(health))
+                self.assertLess(unit.index(health), unit.index(cleanup))
+                self.assertNotIn("/bin/sh", unit)
+
     def test_journald_and_signal_catalog_are_bounded_and_secret_free(self):
         journald = (
             ROOT

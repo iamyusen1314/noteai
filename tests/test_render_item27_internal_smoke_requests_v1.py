@@ -61,7 +61,7 @@ class Item27InternalSmokeRequestsV1Tests(unittest.TestCase):
     def test_fixed_four_action_matrix_and_serial_order(self):
         expected = {
             "api_c": (
-                "noteai-item27-internal-smoke-api-c-20260823-post-item25-hash-fix1",
+                "noteai-item27-internal-smoke-api-c-20260823-visibility-fix1",
                 "api_c_instance_id",
                 "api-c",
             ),

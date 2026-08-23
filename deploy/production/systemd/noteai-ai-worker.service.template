@@ -14,8 +14,10 @@ ExecStartPre=/usr/bin/test -f /etc/noteai/ai-worker.env
 ExecStartPre=/usr/bin/test -f /etc/noteai/private-storage.env
 ExecStartPre=/usr/bin/docker image inspect @@NOTEAI_AI_WORKER_IMAGE@@
 ExecStart=/usr/bin/docker run --log-driver=local --log-opt=max-size=10m --log-opt=max-file=2 --pull=never --rm --name=noteai-ai-worker --label=com.noteai.service=noteai-ai-worker --user=999:999 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network=bridge --ipc=private --memory=1536m --cpus=1.0 --pids-limit=96 --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999 --env-file=/etc/noteai/ai-worker.env --env-file=/etc/noteai/private-storage.env --env=NOTEAI_RUNTIME_ROLE=ai-worker --env=NOTEAI_DEPLOYMENT_STAGE=production --env=NOTEAI_CLOUD_RUNTIME=1 --env=NOTEAI_DURABLE_AI_COMPONENT=worker --env=NOTEAI_DURABLE_AI_SUSPENDED=1 @@NOTEAI_AI_WORKER_IMAGE@@ python durable_ai_worker.py --worker-loop
+ExecStartPost=/usr/bin/sleep 5
 ExecStartPost=/usr/bin/docker exec noteai-ai-worker python durable_ai_worker.py --healthcheck
 ExecStop=/usr/bin/docker container stop --time=30 noteai-ai-worker
+ExecStopPost=-/usr/bin/docker container rm noteai-ai-worker
 
 [Install]
 WantedBy=multi-user.target
