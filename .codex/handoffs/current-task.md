@@ -13571,3 +13571,21 @@ Colima, database, builder, restore and cloud actions remain frozen.
   rolls only the API-C one-shot name.  Current executor size remains 29,991
   bytes and SHA-256 is
   `cf6d01928c2c9646e0bd8421c7d7e62a22d6235b4f27be2d167f10bc864f4c49`.
+- Checkpoint `5ed2837` containing that exact one-character correction passed
+  the same focused `47/47`, compile, diff and live internal-gate checks and was
+  pushed normally.  Its first API-C execution passed every unit-identity and
+  pre-mutation check, then reached `UNKNOWN / exit4 / unit_start` because the
+  formal Dispatcher's `ExecStartPost` health command raced Docker container
+  name visibility and reported `No such container`.  The executor invoked its
+  bounded stop cleanup, but systemd retained `failed / Result=exit-code` and
+  Docker retained one `created`, non-running, exit-zero container with no
+  published ports.  No provider attempt, database write, OSS write or public
+  request occurred; the invocation is terminal and will not be replayed.
+- Restoring the original state now requires deleting only that exact empty
+  failed-start container and resetting the exact unit's failed result.  Browser
+  safety requires an immediate user confirmation for the deletion even though
+  it is original-DoD cleanup.  While waiting, Worker-C and Worker-F were both
+  stopped by one all-together non-force request and independently read back as
+  `Stopped / StopCharging / PostPaid`; their compute billing is closed and
+  only baseline storage remains.  Builder is still StopCharging and Item26's
+  clone remains absent.

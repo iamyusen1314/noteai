@@ -3620,3 +3620,10 @@ Last updated: 2026-08-19
   API-C API的手工SHA转录第17字符错误（`b`应为`6`），其余8个SHA及全部
   manager/metadata/inode检查PASS。该successor永久no-replay；follow-up仅修正一字符
   并滚动API-C name，不扩大DoD或运行时权限。
+- 一字符修正后的首次执行越过全部pre-mutation门，但formal Dispatcher的
+  `ExecStartPost`在Docker name可见前运行，因`No such container`导致
+  `UNKNOWN / exit4 / unit_start`。cleanup已stop但留下systemd failed-result和1个
+  `created / not-running / exit0 / ports0`容器；provider/DB/OSS/public副作用仍0。
+  invocation终态no-replay。下一步只允许删除该精确空容器并reset-failed后读回原态；
+  浏览器删除策略要求即时用户确认。等待期间Worker-C/F已独立读回
+  `Stopped/StopCharging/PostPaid`，计算费停止。
