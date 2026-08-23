@@ -329,7 +329,7 @@ def validate_receipt(value: Any, *, expected_predecessors: dict[str, str], root:
         or type(request.get("run_command_response_raw_bytes")) is not int
         or request["run_command_response_raw_bytes"] <= 0
         or request.get("command_name")
-        != "noteai-item28-internal-rollback-api-f-20260814-v1"
+        != "noteai-item28-internal-rollback-api-f-20260824-unit-fix1"
         or any(not _hex64(request.get(key)) for key in request_keys
                if key.endswith("sha256"))
     ):

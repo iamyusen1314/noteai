@@ -20,7 +20,7 @@ REGION = "cn-shenzhen"
 TASK_ID = "PROD-FIRST-LAUNCH-INTERNAL-ROLLBACK-001"
 TASK_TAG = ("noteai-task", "item28-internal-rollback-v1")
 ACTION = "api_f_rollback"
-COMMAND_NAME = "noteai-item28-internal-rollback-api-f-20260814-v1"
+COMMAND_NAME = "noteai-item28-internal-rollback-api-f-20260824-unit-fix1"
 HOST_MODE = "api-f"
 PROVIDER_TIMEOUT_SECONDS = 960
 MAX_INPUT_BYTES = 65536
@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXECUTOR_REF = "deploy/production/internal_failure_rollback.py"
 EXECUTOR_IDENTITY = MappingProxyType({
     "bytes": 41841,
-    "sha256": "5f233668966bef323d036393ab21a0f1f67d3e935a38e766e857a4110dcb5499",
+    "sha256": "2c37bb2b79df4260fba7624091fd245e3543647d4db9eecf525492b560675ca7",
     "mode": 0o644,
 })
 INPUT_KEYS = frozenset({
