@@ -292,6 +292,7 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
                 self.assertEqual(unit.count(wait), 1)
                 self.assertEqual(unit.count(health), 1)
                 self.assertEqual(unit.count(cleanup), 1)
+                self.assertEqual(unit.count("SuccessExitStatus=137"), 1)
                 self.assertLess(unit.index(wait), unit.index(health))
                 self.assertLess(unit.index(health), unit.index(cleanup))
                 self.assertNotIn("/bin/sh", unit)

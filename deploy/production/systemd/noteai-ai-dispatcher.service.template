@@ -9,6 +9,7 @@ Restart=no
 TimeoutStartSec=120
 TimeoutStopSec=45
 KillMode=process
+SuccessExitStatus=137
 Environment=DOCKER_CONTEXT=default
 ExecStartPre=/usr/bin/test -f /etc/noteai/ai-dispatcher.env
 ExecStartPre=/usr/bin/docker image inspect @@NOTEAI_AI_WORKER_IMAGE@@

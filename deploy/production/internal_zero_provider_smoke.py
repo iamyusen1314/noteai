@@ -79,7 +79,7 @@ MODES = {
             (8001, "GET", "/admin/capabilities", 403),
         ),
         "dormant": (
-            ("dispatcher", "noteai-ai-dispatcher.service", "31a330c693947dcb58ccf1f097a4623959981682a475ddfa7e0c2fde23fa3ab3", "noteai-ai-dispatcher"),
+            ("dispatcher", "noteai-ai-dispatcher.service", "8e2d9dc59b87585e5921f5c2b838db4c150efeebeb8e243e194bce586fc102fc", "noteai-ai-dispatcher"),
             ("payment", "noteai-payment.service", "40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb", "noteai-payment"),
         ),
     },
@@ -91,17 +91,17 @@ MODES = {
             (8000, "GET", "/payments/capabilities", 200),
         ),
         "dormant": (
-            ("trends", "noteai-xhs-trends.service", "8fce876b0731a775964e0aa4ea417a48759207bd699c6cc87b36bf5ee56d6705", "noteai-xhs-trends"),
-            ("tracking", "noteai-xhs-tracking.service", "863de0131a6656448f1d769be147d43266f55432d441d6f683368f8c865b35ec", "noteai-xhs-tracking"),
+            ("trends", "noteai-xhs-trends.service", "4ab6e1f051c50b3466f9d60c5a58e0e51e7d9dc938d15a5a4aabe1b65c4ae43b", "noteai-xhs-trends"),
+            ("tracking", "noteai-xhs-tracking.service", "8668032ac7a7d9eada3742557a431bc3721c80e12dfc0c71ae7962b037788c85", "noteai-xhs-tracking"),
         ),
     },
     "worker-c": {
         "active": (), "http": (),
-        "dormant": (("worker", "noteai-ai-worker.service", "e35661eb5e573b7bd02ecfb60b57644c05f4fa08a59ca3de588c474acf71ab84", "noteai-ai-worker"),),
+        "dormant": (("worker", "noteai-ai-worker.service", "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200", "noteai-ai-worker"),),
     },
     "worker-f": {
         "active": (), "http": (),
-        "dormant": (("worker", "noteai-ai-worker.service", "e35661eb5e573b7bd02ecfb60b57644c05f4fa08a59ca3de588c474acf71ab84", "noteai-ai-worker"),),
+        "dormant": (("worker", "noteai-ai-worker.service", "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200", "noteai-ai-worker"),),
     },
 }
 

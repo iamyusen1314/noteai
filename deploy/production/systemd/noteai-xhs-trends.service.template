@@ -10,6 +10,7 @@ Restart=no
 TimeoutStartSec=180
 TimeoutStopSec=45
 KillMode=process
+SuccessExitStatus=137
 Environment=DOCKER_CONTEXT=default
 ExecStartPre=/usr/bin/test -f /etc/noteai/xhs-trends.env
 ExecStartPre=/usr/bin/docker image inspect @@NOTEAI_XHS_IMAGE@@

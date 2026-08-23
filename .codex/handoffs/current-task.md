@@ -13624,3 +13624,40 @@ Colima, database, builder, restore and cloud actions remain frozen.
   `Stopped / StopCharging`; no paid worker compute was restarted.  Next is a
   normal commit/push, then exact-old-SHA to exact-new-bytes atomic replacement
   of only these dormant units before the fresh four-host serial smoke.
+
+## Item 27 controlled-stop status correction prepared (2026-08-23)
+
+- Checkpoint `72cb8996b28c5099b42e0c442da0918de8181193` was pushed and its four
+  exact dormant-unit replacements completed successfully without starting a
+  service or container.  Worker-C/F were started only after the user confirmed
+  they were present for security verification.
+- The first fresh API-C smoke reached a terminal `Failed / exit=4` result with
+  Secret-free payload `UNKNOWN / inactive_unit_state`, start/stop counts `1/2`
+  and replay disabled.  It was not replayed.  An independent read-only Cloud
+  Assistant reconciliation proved the Dispatcher container count is zero and
+  Payment remains inactive/dead/success with zero containers; the Dispatcher
+  alone is inactive-but-failed with `Result=exit-code`, `ExecMainStatus=137`,
+  disabled, `NRestarts=0` and zero containers.
+- The isolated root cause is systemd treating the expected foreground
+  `docker run` exit 137 after an explicit bounded `docker stop` as a service
+  failure.  This applies to the four dormant loop units; Payment's runtime is
+  not part of this failure.  The minimal source correction adds only
+  `SuccessExitStatus=137` to Dispatcher, Worker, Trends and Tracking, refreshes
+  their existing template/installed identity pins and rolls only the consumed
+  API-C command name.  No provider, database, OSS, public request, new helper,
+  receipt, authority or control layer is added.
+- New rendered unit SHA-256 values are Dispatcher
+  `8e2d9dc59b87585e5921f5c2b838db4c150efeebeb8e243e194bce586fc102fc`,
+  Worker `a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200`,
+  Trends `4ab6e1f051c50b3466f9d60c5a58e0e51e7d9dc938d15a5a4aabe1b65c4ae43b`
+  and Tracking
+  `8668032ac7a7d9eada3742557a431bc3721c80e12dfc0c71ae7962b037788c85`.
+  The Item27 executor remains 31,684 bytes and now hashes to
+  `249288ced19ce71ef53379d90c5f8e48ca9e0019d4eddc6431ec5878463671aa`.
+- Focused Item27/renderer/durable-unit/runtime tests pass `45/45`; installer
+  and native-release tests pass `18/18`; `git diff --check` passes.  Item27 is
+  still `unverified` at `26/29`.  Next is normal commit/push, exact old-to-new
+  inactive unit replacement with Dispatcher `reset-failed`, then one distinct
+  serial API-C successor followed by API-F, Worker-C and Worker-F only after
+  each predecessor passes.  Worker-C/F are currently PostPaid/Running and must
+  return to StopCharging before any wait or interruption.

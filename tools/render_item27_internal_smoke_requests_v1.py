@@ -35,7 +35,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 EXECUTOR_PATH = "deploy/production/internal_zero_provider_smoke.py"
 EXECUTOR_IDENTITY = MappingProxyType({
     "bytes": 31684,
-    "sha256": "0709fe7356e2079e2dafb32123b266167ba5082ff060b653826942a022db2361",
+    "sha256": "249288ced19ce71ef53379d90c5f8e48ca9e0019d4eddc6431ec5878463671aa",
     "mode": 0o644,
 })
 PROVIDER_TIMEOUT_SECONDS = MappingProxyType({
@@ -64,7 +64,7 @@ class Action:
 _ACTION_ROWS = (
     (
         "api_c",
-        "noteai-item27-internal-smoke-api-c-20260823-visibility-fix1",
+        "noteai-item27-internal-smoke-api-c-20260823-stop-status-fix1",
         "api_c_instance_id",
         "api-c",
         PROVIDER_TIMEOUT_SECONDS["api-c"],

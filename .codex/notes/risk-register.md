@@ -3648,3 +3648,20 @@ Last updated: 2026-08-19
   exact-old-hash原子替换、`daemon-reload`和zero-container读回；之后才允许fresh
   API-C smoke。Worker-C/F继续Stopped/StopCharging，live rollout期间若需启动必须
   在用户已在场的当前窗口进行，并在任何等待/中断前重新StopCharging。
+
+## Item 27 expected Docker-stop exit misclassified by systemd (2026-08-23)
+
+- 状态: Mitigated in source / live rollout pending / Item27仍unverified。fresh
+  API-C smoke已明确终态`Failed / exit4 / UNKNOWN`且未重放；独立只读对账确认
+  Dispatcher为`inactive/failed/Result=exit-code/ExecMainStatus=137`、disabled、
+  NRestarts0、container0，Payment仍为原始inactive/dead/success、container0。
+- 根因: 有界`docker stop`后foreground `docker run`返回137；systemd未将该预期
+  受控停止码视为成功，导致executor的精确inactive/success恢复断言失败。容器已经
+  清零，因此这不是运行时或外部副作用UNKNOWN；provider/DB/OSS/public mutation均0。
+- 最小缓解: 仅在Dispatcher、Worker、Trends、Tracking四个同型dormant loop unit
+  加`SuccessExitStatus=137`并同步既有身份pin；Payment、active API/Admin、镜像、env、
+  resource limit、restart policy及DoD检查均不改。focused 63/63与diff-check通过。
+- 剩余风险: 必须先正常commit/push，再对四台做exact-old-SHA到exact-new-bytes原子
+  替换并只对Dispatcher执行`reset-failed`，验证所有目标inactive/disabled/container0
+  后，才允许用新name/token进行一次已对账后的bounded successor。任何新UNKNOWN仍
+  先只读对账、禁止盲重派；Worker-C/F目前Running，等待或中断前必须StopCharging。
