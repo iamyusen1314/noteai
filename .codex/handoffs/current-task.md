@@ -13707,3 +13707,41 @@ Colima, database, builder, restore and cloud actions remain frozen.
   still `unverified` at `26/29`; after push, API-F alone receives the exact
   inactive image-compatible unit replacement and a distinct bounded successor,
   followed serially by Worker-C/F.  Both workers are still PostPaid/Running.
+
+## Item 27 API-F cached-image compatibility correction prepared (2026-08-23)
+
+- The attempted exact replacement with Durable AI image
+  `sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b`
+  stopped before unit mutation because the host lacked registry login and the
+  exact pull was denied.  Its bounded executor reported rollback `RESTORED`,
+  service/container starts `0`, and both XHS units remained at their accepted
+  legacy identities, inactive/disabled with zero containers.  The failed
+  replacement identity is terminal and was not replayed.
+- A subsequent read-only, network-none diagnostic proved the currently running
+  API-F image is already cached at manifest
+  `sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620`
+  and config
+  `sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53`.
+  Its Trends and Tracking source SHA-256 values are respectively
+  `e89be24bd3d32c8283acf4cba3f6586d2d5dff7c2c113377b743897bd0527978`
+  and `76d201334f20f9e013e810d8ea478ebda339054d1bc239aee1f45f11e5d9615a`,
+  exactly equal to the previously inspected Durable AI image sources.  Both
+  expose `--healthcheck` and the suspended/provider-zero contracts; the
+  diagnostic created no persistent container, provider attempt, DB/OSS write,
+  or public listener.
+- The shortest successor therefore performs no build, pull, registry login or
+  new resource creation.  It renders only the two dormant API-F units against
+  the already-local current API-F manifest.  Their new exact unit SHA-256 values
+  are Trends
+  `2eef608fbb355dabf6760b366690a734d8d43496a5e121ab7884ecfa07202219`
+  and Tracking
+  `cf5af9f994fc87dbe4ca800eb2f6f65be7b46a1270612cc5e1016b60767b0eeb`.
+  The existing Item27 executor identity is 31,840 bytes /
+  `6cc86e624a0e23c2a4d51e4f633fc30e6b2fe56bc061c6d7eaea4b57d39e075d`;
+  the not-yet-dispatched API-F smoke name remains fresh.
+- Focused Item27/renderer/durable-unit/runtime verification passes `46/46`;
+  affected Python compilation and `git diff --check` pass.  Item27 remains
+  `unverified` at `26/29` until the API-F successor and then Worker-C/F pass.
+  API-C is not rerun because its exact path already passed and is unchanged.
+  Worker-C/F remain PostPaid/Running and must be returned to StopCharging before
+  any wait, interruption or end of the execution window.

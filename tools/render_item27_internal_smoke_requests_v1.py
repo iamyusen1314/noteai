@@ -34,8 +34,8 @@ COMMAND_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 EXECUTOR_PATH = "deploy/production/internal_zero_provider_smoke.py"
 EXECUTOR_IDENTITY = MappingProxyType({
-    "bytes": 31841,
-    "sha256": "bc0d6fe3ba6f5d25d908a89a8ecd53d09b427427cdd8a52ed2d42bb3c2d35250",
+    "bytes": 31840,
+    "sha256": "6cc86e624a0e23c2a4d51e4f633fc30e6b2fe56bc061c6d7eaea4b57d39e075d",
     "mode": 0o644,
 })
 PROVIDER_TIMEOUT_SECONDS = MappingProxyType({

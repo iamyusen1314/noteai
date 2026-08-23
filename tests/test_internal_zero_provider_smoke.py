@@ -145,8 +145,8 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
             },
             "api-f": {
                 "noteai-api.service": "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936",
-                "noteai-xhs-trends.service": "2d70afab7de6a5a06b82848de6de9df298ec77f44d8e935b96946e3e28537948",
-                "noteai-xhs-tracking.service": "ce0b70e45cbe13018113e6bcdeca2c1ba24b73a772a24823b384e32620a4586c",
+                "noteai-xhs-trends.service": "2eef608fbb355dabf6760b366690a734d8d43496a5e121ab7884ecfa07202219",
+                "noteai-xhs-tracking.service": "cf5af9f994fc87dbe4ca800eb2f6f65be7b46a1270612cc5e1016b60767b0eeb",
             },
             "worker-c": {"noteai-ai-worker.service": "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200"},
             "worker-f": {"noteai-ai-worker.service": "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200"},
@@ -172,18 +172,18 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
         self.assertTrue(SOURCE.read_bytes().endswith(b"\n"))
         SOURCE.read_bytes().decode("ascii")
 
-    def test_xhs_units_bind_the_existing_healthcheck_capable_image(self):
+    def test_xhs_units_bind_the_cached_healthcheck_capable_api_f_image(self):
         image = (
             "noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/"
             "noteai/app@sha256:"
-            "407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b"
+            "612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620"
         )
         expected = {
             "noteai-xhs-trends.service.template": (
-                "2d70afab7de6a5a06b82848de6de9df298ec77f44d8e935b96946e3e28537948"
+                "2eef608fbb355dabf6760b366690a734d8d43496a5e121ab7884ecfa07202219"
             ),
             "noteai-xhs-tracking.service.template": (
-                "ce0b70e45cbe13018113e6bcdeca2c1ba24b73a772a24823b384e32620a4586c"
+                "cf5af9f994fc87dbe4ca800eb2f6f65be7b46a1270612cc5e1016b60767b0eeb"
             ),
         }
         root = ROOT / "deploy" / "production" / "systemd"

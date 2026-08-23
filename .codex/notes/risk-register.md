@@ -3684,3 +3684,23 @@ Last updated: 2026-08-19
   并核对config `1f503665…70c95`，再做exact-old-to-new原子unit替换。successor仍必须
   串行API-F→Worker-C→Worker-F；任何UNKNOWN先对账。Worker-C/F当前Running，等待或
   中断前必须StopCharging。
+
+## Item 27 API-F exact image pull unavailable but equivalent current image cached (2026-08-23)
+
+- 状态: Mitigated in source / live replacement pending / Item27仍unverified。对
+  Durable AI digest的唯一replacement尝试因host无registry login而在任何unit mutation、
+  service/container start前确定性失败；rollback读回`RESTORED`，旧双unit仍
+  inactive/disabled/container0，该失败身份终态不重放。
+- 独立根因与等价性: 当前API-F运行镜像manifest `612a7e57…17620`已在本机cache，
+  config为`dd955f9e…fd53`。network-none/no-env/`--rm`只读诊断证明其中Trends与
+  Tracking源码SHA逐项等于先前验收的`407eef2b…ae321b`镜像，且两个CLI均具备
+  healthcheck和suspended/provider-zero合同；provider、DB、OSS、public mutation与
+  residue均0。
+- 最小缓解: 不读取/新增registry credential，不build/push/pull镜像，不建资源；仅把
+  两个inactive API-F dormant unit渲染到已缓存current API-F digest并同步既有Item27
+  identity pin/executor identity。focused 46/46、compile、diff-check通过；API-C已PASS
+  且路径未变，不重跑。
+- 剩余风险: 正常commit/push后才可做exact-old-hash到exact-new-bytes原子替换，必须
+  保持双unit inactive/disabled/container0且不触发pull；随后仅串行执行fresh API-F、
+  Worker-C、Worker-F。任何UNKNOWN先只读对账，禁止盲重派。Worker-C/F仍Running，
+  等待、断线或本轮结束前必须StopCharging。
