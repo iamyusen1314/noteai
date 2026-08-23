@@ -66,7 +66,7 @@ class Item27InternalSmokeRequestsV1Tests(unittest.TestCase):
                 "api-c",
             ),
             "api_f": (
-                "noteai-item27-internal-smoke-api-f-20260823-image-compat-fix1",
+                "noteai-item27-internal-smoke-api-f-20260823-json-output-fix1",
                 "api_f_instance_id",
                 "api-f",
             ),

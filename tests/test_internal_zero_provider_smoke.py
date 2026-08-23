@@ -301,6 +301,40 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(host.http_json.call_count, 2)
 
+    def test_exec_json_accepts_indented_and_final_single_line_documents(self):
+        expected = {
+            "skipped": True,
+            "reason": "collection_suspended",
+            "collected": 0,
+        }
+        host = object.__new__(smoke.Host)
+        host.docker_command = mock.Mock()
+        for raw in (
+            json.dumps(expected, indent=2) + "\n",
+            json.dumps({"event": "tracking_started"})
+            + "\n"
+            + json.dumps(expected)
+            + "\n",
+        ):
+            with self.subTest(raw=raw):
+                host.docker_command.return_value = (0, raw.encode("utf-8"))
+                self.assertEqual(
+                    host.exec_json(
+                        "noteai-xhs-tracking",
+                        ["python", "crawler_worker.py", "--once"],
+                        "role_one_shot",
+                    ),
+                    expected,
+                )
+
+        host.docker_command.return_value = (0, b"unexpected trailing output\n")
+        with self.assertRaisesRegex(smoke.SmokeError, "role_one_shot"):
+            host.exec_json(
+                "noteai-xhs-tracking",
+                ["python", "crawler_worker.py", "--once"],
+                "role_one_shot",
+            )
+
     def test_role_counters_and_skip_flags_reject_bool_string_and_coercion_aliases(self):
         cases = (
             ("dispatcher", "noteai-ai-dispatcher", "health", "pending_outbox", True),

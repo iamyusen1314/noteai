@@ -378,11 +378,17 @@ class Host:
             ["exec", container] + list(args),
             code, timeout=45,
         )
-        lines = [line for line in raw.decode("utf-8").splitlines() if line.strip()]
         try:
-            value = json.loads(lines[-1])
-        except (IndexError, UnicodeError, ValueError):
+            lines = raw.decode("utf-8").splitlines()
+        except UnicodeError:
             raise SmokeError(code)
+        try:
+            value = json.loads("\n".join(lines))
+        except ValueError:
+            try:
+                value = json.loads([line for line in lines if line.strip()][-1])
+            except (IndexError, ValueError):
+                raise SmokeError(code)
         if not isinstance(value, dict):
             raise SmokeError(code)
         return value

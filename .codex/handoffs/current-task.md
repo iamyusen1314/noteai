@@ -13833,3 +13833,42 @@ Colima, database, builder, restore and cloud actions remain frozen.
   will then apply only the already authorized `/32 -> TCP 24443` SG rule,
   perform the pinned TLS transfer, and remove/read back the SG rule, both
   routes and the peering connection before returning Builder to StopCharging.
+
+## Item 27 official-image transfer closed; API-F JSON compatibility correction prepared (2026-08-23)
+
+- The explicitly authorized temporary peering, two exact host `/32` routes and
+  API-F-private-IPv4 `/32 -> Builder TCP 24443` ingress were used only for the
+  one-shot TLS transfer of the locked official XHS image.  The received config
+  identity is
+  `sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec`.
+  Post-transfer readback proves both routes, the ingress rule, peering and port
+  listener all have residue `0`; Builder, Worker-C and Worker-F are each
+  `Stopped / StopCharging`.
+- Source revision `0d6caec647264d03026dcfa02d8d22ff268cdf24` passed exact-head
+  push run `32629443267` / job `97169804960` and pull-request run
+  `32629445538` / job `97169810990`.  The API-F dormant units were atomically
+  rebound without starting a service or container.  API-C then passed its
+  private zero-provider smoke and was not rerun.
+- API-F reached terminal `Failed / exit=4` with the executor's Secret-free
+  projection `UNKNOWN / role_one_shot`, runtime mutation attempted, cleanup
+  `RESTORED`, and service start/stop `2/2`.  The invocation is terminal and was
+  not replayed.  Final compute readback kept Builder and both workers at
+  StopCharging; Worker smoke compute remained `0` seconds.  The raw provider
+  capture is retained outside Git with mode `0600`, 29,720 bytes and SHA-256
+  `381a4aabbde15013edcf70fe7f36cb760dbb2f3db00bd4f5c9e6421c2677baed`.
+- Independent RCA proves the official image and unit binding are correct.
+  Tracking `crawler_worker.py --once` emits an indented multi-line JSON object,
+  while the executor parsed only the last non-empty line (`}`), producing the
+  deterministic false negative.  Trends completed first; Tracking start,
+  healthcheck and final cleanup all succeeded.  Collection remained suspended
+  before provider admission or database mutation.
+- The minimal correction changes only the existing executor JSON reader to
+  accept a complete JSON document before retaining the prior final-line
+  compatibility path, adds one serialization-boundary regression test, updates
+  the frozen executor identity to 32,006 bytes /
+  `36e958b12251c1dcb528527dcd182f1ed80853797fa49fbbfcdfd1ef93675d38`,
+  and rolls only the consumed API-F command name.  Focused Item27 renderer,
+  builder and verifier tests pass `69/69`; compilation and diff checks pass.
+  Next is a normal commit/push and exact-head double-green CI, followed by a
+  strict inactive/disabled/container-zero/residue-zero API-F readback and one
+  fresh-name API-F successor.  Unit replacement and API-C are not rerun.

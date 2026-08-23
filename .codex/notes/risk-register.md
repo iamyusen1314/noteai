@@ -3748,3 +3748,25 @@ Last updated: 2026-08-19
 - 当前唯一新增授权点是创建exact两VPC的临时同region peering并各加一条对端host
   `/32` route；随后才执行已获批SG/TLS链，并在digest核验后按SG→routes→peering顺序
   撤销且读回零残留。未获明确授权前禁止执行该网络权限扩大。
+
+## Item 27 Tracking多行JSON被执行器误判（2026-08-23）
+
+- 状态: Mitigated in source / API-F fresh successor pending / Item27仍为
+  `unverified`、内部`26/29`。获批的临时peering、双`/32` route与单一
+  `/32:24443` SG传输链已完成official XHS image传输并全部撤销，网络与listener
+  residue均为0；Builder、Worker-C/F均`Stopped/StopCharging`。
+- 终态事实: API-C完整PASS且不重跑。API-F invocation明确终态
+  `Failed/exit4/UNKNOWN/role_one_shot`，cleanup `RESTORED`、start/stop `2/2`，未重放；
+  provider、DB、OSS、public mutation均为0，Worker计算秒数为0。raw capture已在repo外
+  以0600保全并核对SHA `381a4aab…77baed`。
+- 独立根因: Tracking CLI的suspended成功结果使用`indent=2`多行JSON；既有executor
+  只解析最后非空行，必然把单独的`}`判为不可解析。Trends已完整通过，Tracking的
+  unit start、healthcheck与cleanup均成功；official image、digest和unit identity无漂移。
+- 最小缓解: 仅让既有JSON reader先解析完整文档并保留原final-line兼容，增加一个
+  真实序列化边界回归测试，同步executor frozen identity并滚动已消费的API-F command
+  name；不重建/重传镜像，不增加helper、receipt、authority或控制层。focused 69/69、
+  compile与diff-check通过。
+- 剩余风险: 必须先正常commit/push并取得新revision exact-head双绿CI；随后先读回
+  API-F双unit inactive/dead/success、disabled、NRestarts0、drop-in0、container0、
+  API live/ready与task-root residue0，才允许fresh-name bounded API-F successor。
+  unit replacement和API-C禁止重跑；任何新UNKNOWN仍先只读对账、不得盲重派。
