@@ -91,10 +91,10 @@ MODES = {
             (8000, "GET", "/payments/capabilities", 200),
         ),
         "dormant": (
-            # The accepted B55 xhs-http release image contains both XHS
-            # healthcheck and suspended one-shot contracts.
-            ("trends", "noteai-xhs-trends.service", "b6199734eb0dc676385050f55f0055a18effb812941af576253ed0b588c56d67", "noteai-xhs-trends"),
-            ("tracking", "noteai-xhs-tracking.service", "4968fcb8e33ddd68cbedc16580e7a984377ea218657341cfd6aee3c990f23767", "noteai-xhs-tracking"),
+            # The accepted B55 xhs-http config digest is the immutable local
+            # image identity restored by the bounded save/load transfer.
+            ("trends", "noteai-xhs-trends.service", "3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6", "noteai-xhs-trends"),
+            ("tracking", "noteai-xhs-tracking.service", "4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d", "noteai-xhs-tracking"),
         ),
     },
     "worker-c": {

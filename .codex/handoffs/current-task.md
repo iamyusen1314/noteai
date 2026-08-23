@@ -13790,3 +13790,46 @@ Colima, database, builder, restore and cloud actions remain frozen.
   official image now requires explicit authorization for a temporary permission
   expansion (for example, bounded attachment of an existing storage role or a
   narrower exact-object/exact-pull role); none has been performed.
+
+## Item 27 authorized SG-transfer preflight found no private route; local config-ID binding prepared (2026-08-23)
+
+- The product owner authorized only one temporary Builder ingress rule from the
+  API-F private IPv4 `/32` to TCP `24443`, with one-shot TLS transfer, digest
+  verification, immediate revoke/readback and StopCharging cleanup.  Before any
+  billed start or security-group write, a fresh Secret-free control-plane
+  preflight corrected the preceding topology statement: Builder and API-F are
+  in different VPCs and different vSwitches, although they are in the same
+  region and availability zone.
+- Read-only route-table reconciliation found zero Builder-to-API-F matching
+  routes.  API-F-to-Builder has only its existing default NAT gateway route and
+  zero usable non-default private routes.  Consequently the authorized security
+  group rule alone cannot establish the private connection.  No Builder start,
+  security-group mutation, VPC peering, route, listener, TLS material, image
+  load, service/container start, database/storage/provider call or public
+  access occurred.
+- The final safety readback proves Builder, Worker-C and Worker-F each remain
+  `Stopped / StopCharging`; the authorized `/32:24443` rule count and all
+  Builder port-24443 permits are `0`.  Exact CloudShell diagnostic-file residue
+  is also `0`.  API-C remains accepted and was not rerun; Item27 remains
+  `unverified` at `26/29`.
+- Independent Docker semantics review also established that `docker save/load`
+  restores the local config/image identity and tag but does not recreate the
+  private-registry RepoDigest alias.  The two XHS units are therefore now bound
+  to the tracked official bare config digest
+  `sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec`,
+  which the release bundle uniquely binds to the `xhs-http-runtime` manifest,
+  guarded entrypoint and `/bin/false` cmd.  The new rendered unit SHA-256 values
+  are Trends
+  `3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6`
+  and Tracking
+  `4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d`;
+  executor identity is 31,834 bytes /
+  `cef5dc20d2bfdc079c655e0060d8faf83097112ad86f5802dda8a02caba9c99c`.
+  Focused Item27/renderer/durable-unit/runtime tests pass `46/46`; affected
+  Python compilation and `git diff --check` pass.
+- The shortest remaining path requires one new, explicitly approved network
+  permission expansion: a temporary same-region peering connection between the
+  exact two VPCs plus two exact host `/32` routes.  If approved, the main thread
+  will then apply only the already authorized `/32 -> TCP 24443` SG rule,
+  perform the pinned TLS transfer, and remove/read back the SG rule, both
+  routes and the peering connection before returning Builder to StopCharging.

@@ -145,8 +145,8 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
             },
             "api-f": {
                 "noteai-api.service": "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936",
-                "noteai-xhs-trends.service": "b6199734eb0dc676385050f55f0055a18effb812941af576253ed0b588c56d67",
-                "noteai-xhs-tracking.service": "4968fcb8e33ddd68cbedc16580e7a984377ea218657341cfd6aee3c990f23767",
+                "noteai-xhs-trends.service": "3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6",
+                "noteai-xhs-tracking.service": "4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d",
             },
             "worker-c": {"noteai-ai-worker.service": "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200"},
             "worker-f": {"noteai-ai-worker.service": "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200"},
@@ -172,18 +172,17 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
         self.assertTrue(SOURCE.read_bytes().endswith(b"\n"))
         SOURCE.read_bytes().decode("ascii")
 
-    def test_xhs_units_bind_the_accepted_healthcheck_capable_xhs_image(self):
+    def test_xhs_units_bind_the_accepted_local_xhs_config_digest(self):
         image = (
-            "noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/"
-            "noteai/app@sha256:"
-            "406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50"
+            "sha256:"
+            "a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec"
         )
         expected = {
             "noteai-xhs-trends.service.template": (
-                "b6199734eb0dc676385050f55f0055a18effb812941af576253ed0b588c56d67"
+                "3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6"
             ),
             "noteai-xhs-tracking.service.template": (
-                "4968fcb8e33ddd68cbedc16580e7a984377ea218657341cfd6aee3c990f23767"
+                "4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d"
             ),
         }
         root = ROOT / "deploy" / "production" / "systemd"
@@ -205,6 +204,8 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
         role = release["roles"]["xhs-http"]
+        self.assertEqual(image, role["config_digest"])
+        self.assertNotIn("@", image)
         self.assertEqual(role["target"], "xhs-http-runtime")
         self.assertEqual(
             role["manifest_digest"],

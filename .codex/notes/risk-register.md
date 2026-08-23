@@ -3728,3 +3728,23 @@ Last updated: 2026-08-19
   创建更窄exact-object/exact-pull role），属于用户定义的“原始DoD之外权限扩大”停止
   条件。本轮未执行。获得明确授权前不得attach/create role、改SG、传Secret、公开
   repo、绕entrypoint或使用临时自建镜像替代正式artifact。
+
+## Item 27 获批SG传输链缺少跨VPC私网路由（2026-08-23）
+
+- 状态: Source corrected / permission expansion required / Item27仍为
+  `unverified`、内部`26/29`。产品负责人仅授权API-F私网`/32 -> Builder TCP 24443`
+  的一次性TLS传输；在任何Builder启动或SG写入前，fresh控制面核验推翻了上一条“同
+  VPC/vSwitch”描述：两实例同region/zone，但VPC与vSwitch均不同。
+- 双向route-table只读对账证明Builder→API-F匹配路由0；API-F→Builder仅有既有默认
+  NatGateway路由，可用非默认私网路由0。因此只增加获批SG规则不能建立链路，未盲目
+  启动计费资源或写入无效规则。VPC peering、CEN、route、listener、TLS材料、image
+  load、service/container、DB/OSS/provider/public mutation全部0。
+- 零变更终态: Builder、Worker-C、Worker-F均`Stopped/StopCharging`；获批
+  `/32:24443`规则0，Builder 24443 permit 0，CloudShell精确临时文件残留0。
+- 本地最小修正: save/load不会恢复private-registry RepoDigest alias，故两个unit改绑
+  official bare config `sha256:a78f4753…f8ec`；Trends/Tracking rendered SHA分别为
+  `3ed7e555…e3b6`、`4392872f…f82d`，executor为31,834 bytes /
+  `cef5dc20…c99c`。focused 46/46、compile、diff-check通过。
+- 当前唯一新增授权点是创建exact两VPC的临时同region peering并各加一条对端host
+  `/32` route；随后才执行已获批SG/TLS链，并在digest核验后按SG→routes→peering顺序
+  撤销且读回零残留。未获明确授权前禁止执行该网络权限扩大。
