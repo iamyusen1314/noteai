@@ -3616,3 +3616,7 @@ Last updated: 2026-08-19
   successor；随后只能按API-F、Worker-C、Worker-F串行前进。任何post-start UNKNOWN
   必须先恢复并只读对账，禁止盲重试。Worker-C/F在主动执行窗口内仍为PostPaid
   Running；若等待人工输入、断线或本轮结束，必须先StopCharging。
+- 首个successor仍在pre-mutation `unit_identity`终止。等价逐unit只读诊断证明仅
+  API-C API的手工SHA转录第17字符错误（`b`应为`6`），其余8个SHA及全部
+  manager/metadata/inode检查PASS。该successor永久no-replay；follow-up仅修正一字符
+  并滚动API-C name，不扩大DoD或运行时权限。

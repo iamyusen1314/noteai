@@ -128,7 +128,7 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
         self.assertEqual(set(smoke.MODES), {"api-c", "api-f", "worker-c", "worker-f"})
         expected_unit_sha256 = {
             "api-c": {
-                "noteai-api.service": "46010368ded3db55b7bca45afb75f18383ccf23de6aa6d0d99299d87701677e6",
+                "noteai-api.service": "46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6",
                 "noteai-admin.service": "1fafeefad045aafdede1a77e1266f4159972dea1862904723823aed397c458f7",
                 "noteai-ai-dispatcher.service": "bb198d026aec6e9840368f9b7b19677c7c7833c4465d57415f24cf9d26583da6",
                 "noteai-payment.service": "40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb",

@@ -13562,3 +13562,12 @@ Colima, database, builder, restore and cloud actions remain frozen.
   next action is one normal commit/push of these frozen bytes, followed by the
   corrected API-C successor and then the untouched API-F, Worker-C and
   Worker-F actions in order.
+- The first post-Item25 successor also stopped pre-mutation at `unit_identity`.
+  A per-unit equivalent read-only diagnostic proved eight hashes and all
+  manager/metadata/inode checks exact, while the API-C API digest differed at
+  exactly one transcribed character (`b` versus authoritative `6`).  This is a
+  local transcription defect, not another production drift.  The successor is
+  terminal/no-replay; the minimal follow-up changes that one character and
+  rolls only the API-C one-shot name.  Current executor size remains 29,991
+  bytes and SHA-256 is
+  `cf6d01928c2c9646e0bd8421c7d7e62a22d6235b4f27be2d167f10bc864f4c49`.
