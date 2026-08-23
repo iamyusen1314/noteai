@@ -91,8 +91,10 @@ MODES = {
             (8000, "GET", "/payments/capabilities", 200),
         ),
         "dormant": (
-            ("trends", "noteai-xhs-trends.service", "4ab6e1f051c50b3466f9d60c5a58e0e51e7d9dc938d15a5a4aabe1b65c4ae43b", "noteai-xhs-trends"),
-            ("tracking", "noteai-xhs-tracking.service", "8668032ac7a7d9eada3742557a431bc3721c80e12dfc0c71ae7962b037788c85", "noteai-xhs-tracking"),
+            # The existing Durable AI image is the current accepted image that
+            # contains both XHS healthcheck and suspended one-shot contracts.
+            ("trends", "noteai-xhs-trends.service", "2d70afab7de6a5a06b82848de6de9df298ec77f44d8e935b96946e3e28537948", "noteai-xhs-trends"),
+            ("tracking", "noteai-xhs-tracking.service", "ce0b70e45cbe13018113e6bcdeca2c1ba24b73a772a24823b384e32620a4586c", "noteai-xhs-tracking"),
         ),
     },
     "worker-c": {

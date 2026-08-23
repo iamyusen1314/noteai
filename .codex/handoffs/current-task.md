@@ -13661,3 +13661,49 @@ Colima, database, builder, restore and cloud actions remain frozen.
   serial API-C successor followed by API-F, Worker-C and Worker-F only after
   each predecessor passes.  Worker-C/F are currently PostPaid/Running and must
   return to StopCharging before any wait or interruption.
+
+## Item 27 API-F image compatibility correction prepared (2026-08-23)
+
+- Checkpoint `caf4896798255c84593a83a8d99abf3b1ea217d1` was pushed.  Exact
+  old-to-new replacements then passed on API-C, API-F, Worker-C and Worker-F:
+  six unit files updated in total, every unit inactive/disabled with zero
+  containers, service/container starts `0`, residue `0` and no rollback.
+- The fresh API-C successor passed its full private smoke: eight loopback
+  endpoints, Dispatcher and Payment, start/stop `2/2`, original state restored,
+  and provider attempt/call, database, OSS, synthetic, public request/listener
+  counts all zero.  Its direct semantic acceptance SHA-256 is
+  `779e34d8b9dd1f5c37c0e4943e2e0544b4b09a67bb4c34f27b6927af98968b08`.
+  One pre-dispatch request using the old consumed nonce was rejected with
+  `IdempotentParameterMismatch`; fresh exact-name history remained zero, so a
+  new O_EXCL mode-0600 nonce was used for the sole host-dispatched successor.
+- API-F then reached a terminal no-replay `UNKNOWN / unit_start`: Trends'
+  `ExecStartPost` exited `2`, cleanup could not stop the already failed unit,
+  and one exact Trends container remained running.  Independent read-only
+  reconciliation proved Tracking unchanged and identified that retained
+  container.  A bounded exact cleanup inspected the image before stopping it,
+  stopped/removed only `noteai-xhs-trends`, reset the failed result and verified
+  both units inactive/dead/success with zero containers and zero external or
+  persistent effects.
+- The isolated root cause is release-image capability drift.  The accepted
+  legacy XHS image `sha256:452c2faf...abd79af` contains neither role's
+  `--healthcheck`; Tracking also lacks the suspended/provider-zero contract.
+  A network-none, no-env diagnostic of the already accepted Durable AI image
+  `sha256:407eef2b...ae321b` proved both XHS CLIs contain `--healthcheck`, and
+  both contain the suspended/provider-zero result fields required by Item27.
+  Each diagnostic used `--rm`, created no DB connection/write, provider call,
+  OSS write or residue.
+- The shortest correction builds no image and creates no new resource.  It
+  re-renders only the two API-F dormant units against that existing exact image,
+  updates their existing Item27 identity pins, refreshes the same executor
+  identity and rolls only the consumed API-F one-shot name.  New unit SHA-256
+  values are Trends
+  `2d70afab7de6a5a06b82848de6de9df298ec77f44d8e935b96946e3e28537948`
+  and Tracking
+  `ce0b70e45cbe13018113e6bcdeca2c1ba24b73a772a24823b384e32620a4586c`;
+  executor identity is 31,841 bytes / `bc0d6fe3ba6f5d25d908a89a8ecd53d09b427427cdd8a52ed2d42bb3c2d35250`.
+  API-C is not rerun because its accepted code path and live units are unchanged.
+- Focused Item27/renderer/durable-unit/runtime tests pass `46/46`; diff and
+  compilation checks remain required before the normal commit/push.  Item27 is
+  still `unverified` at `26/29`; after push, API-F alone receives the exact
+  inactive image-compatible unit replacement and a distinct bounded successor,
+  followed serially by Worker-C/F.  Both workers are still PostPaid/Running.

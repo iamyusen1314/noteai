@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import json
 import stat
 import subprocess
@@ -144,8 +145,8 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
             },
             "api-f": {
                 "noteai-api.service": "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936",
-                "noteai-xhs-trends.service": "4ab6e1f051c50b3466f9d60c5a58e0e51e7d9dc938d15a5a4aabe1b65c4ae43b",
-                "noteai-xhs-tracking.service": "8668032ac7a7d9eada3742557a431bc3721c80e12dfc0c71ae7962b037788c85",
+                "noteai-xhs-trends.service": "2d70afab7de6a5a06b82848de6de9df298ec77f44d8e935b96946e3e28537948",
+                "noteai-xhs-tracking.service": "ce0b70e45cbe13018113e6bcdeca2c1ba24b73a772a24823b384e32620a4586c",
             },
             "worker-c": {"noteai-ai-worker.service": "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200"},
             "worker-f": {"noteai-ai-worker.service": "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200"},
@@ -170,6 +171,31 @@ class InternalZeroProviderSmokeTests(unittest.TestCase):
         self.assertNotIn("INSERT INTO", source)
         self.assertTrue(SOURCE.read_bytes().endswith(b"\n"))
         SOURCE.read_bytes().decode("ascii")
+
+    def test_xhs_units_bind_the_existing_healthcheck_capable_image(self):
+        image = (
+            "noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/"
+            "noteai/app@sha256:"
+            "407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b"
+        )
+        expected = {
+            "noteai-xhs-trends.service.template": (
+                "2d70afab7de6a5a06b82848de6de9df298ec77f44d8e935b96946e3e28537948"
+            ),
+            "noteai-xhs-tracking.service.template": (
+                "ce0b70e45cbe13018113e6bcdeca2c1ba24b73a772a24823b384e32620a4586c"
+            ),
+        }
+        root = ROOT / "deploy" / "production" / "systemd"
+        for name, digest in expected.items():
+            with self.subTest(name=name):
+                template = (root / name).read_text(encoding="ascii")
+                rendered = template.replace("@@NOTEAI_XHS_IMAGE@@", image)
+                self.assertNotIn("@@NOTEAI_XHS_IMAGE@@", rendered)
+                self.assertEqual(
+                    hashlib.sha256(rendered.encode("ascii")).hexdigest(),
+                    digest,
+                )
 
     def test_all_modes_pass_and_restore_every_started_unit_serially(self):
         expected = {"api-c": (8, 2), "api-f": (5, 2), "worker-c": (0, 1), "worker-f": (0, 1)}

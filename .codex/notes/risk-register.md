@@ -3665,3 +3665,22 @@ Last updated: 2026-08-19
   替换并只对Dispatcher执行`reset-failed`，验证所有目标inactive/disabled/container0
   后，才允许用新name/token进行一次已对账后的bounded successor。任何新UNKNOWN仍
   先只读对账、禁止盲重派；Worker-C/F目前Running，等待或中断前必须StopCharging。
+
+## Item 27 legacy XHS image lacks suspended health contracts (2026-08-23)
+
+- 状态: Mitigated in source / API-F successor pending / Item27仍unverified。
+  API-C已完整PASS；API-F首次执行在Trends `ExecStartPost`以status2失败并终态
+  `UNKNOWN/unit_start`，没有重放。只读对账发现Trends failed且container仍running，
+  Tracking未变；精确cleanup随后停止/清除该唯一container并reset-failed，双unit恢复
+  inactive/dead/success、container0，provider/DB/OSS/public effects均0。
+- 独立根因: legacy XHS image `452c2faf…abd79af`内两个CLI均无`--healthcheck`，且
+  Tracking无suspended/provider-zero字段；因此既有unit的post-start检查必然失败，
+  不能通过放宽validator掩盖。`network=none`、zero-env、`--rm`诊断证明既有已验收
+  Durable AI image `407eef2b…ae321b`同时具备两个role的healthcheck与suspended契约。
+- 最小缓解: 不build/push新image，不增加资源/helper/proof层；仅把API-F两个dormant
+  unit渲染到既有精确digest，更新Item27既有unit pin/executor identity并滚动已消费的
+  API-F command name。API-C路径和终态均未变，因此不重跑。focused 46/46通过。
+- 剩余风险: commit/push后先确认API-F image cache；若缺失，只允许pull该精确digest
+  并核对config `1f503665…70c95`，再做exact-old-to-new原子unit替换。successor仍必须
+  串行API-F→Worker-C→Worker-F；任何UNKNOWN先对账。Worker-C/F当前Running，等待或
+  中断前必须StopCharging。

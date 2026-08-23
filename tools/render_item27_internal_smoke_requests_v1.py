@@ -34,8 +34,8 @@ COMMAND_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 EXECUTOR_PATH = "deploy/production/internal_zero_provider_smoke.py"
 EXECUTOR_IDENTITY = MappingProxyType({
-    "bytes": 31684,
-    "sha256": "249288ced19ce71ef53379d90c5f8e48ca9e0019d4eddc6431ec5878463671aa",
+    "bytes": 31841,
+    "sha256": "bc0d6fe3ba6f5d25d908a89a8ecd53d09b427427cdd8a52ed2d42bb3c2d35250",
     "mode": 0o644,
 })
 PROVIDER_TIMEOUT_SECONDS = MappingProxyType({
@@ -76,7 +76,7 @@ _ACTION_ROWS = (
     ),
     (
         "api_f",
-        "noteai-item27-internal-smoke-api-f-20260813-v1",
+        "noteai-item27-internal-smoke-api-f-20260823-image-compat-fix1",
         "api_f_instance_id",
         "api-f",
         PROVIDER_TIMEOUT_SECONDS["api-f"],
