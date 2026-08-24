@@ -30,11 +30,11 @@ RESULT_SCHEMA = "noteai.item30.real-ai-provider-chain-result.v1"
 ACCOUNT_GATE_SCHEMA = "noteai.item30.account-gates.v1"
 JOURNAL_SCHEMA = "noteai.item30.execution-journal.v1"
 PROVIDER_ORDER = ("claude", "kimi", "amap", "meituan")
+DISPATCH_ORDER = ("meituan", "claude", "kimi", "amap")
 PROVIDER_CAPS = {
     "claude": Decimal("0.100000"),
     "kimi": Decimal("0.100000"),
     "amap": Decimal("0.100000"),
-    "meituan": Decimal("0.500000"),
 }
 PROVIDER_COUNTER_SEMANTICS = {
     "claude": {
@@ -50,14 +50,11 @@ PROVIDER_COUNTER_SEMANTICS = {
         ("remaining_balance_rmb", "rmb", "decreasing"),
     },
     "amap": {("request_count", "requests", "increasing")},
-    "meituan": {
-        ("billable_units", "units", "increasing"),
-        ("request_count", "requests", "increasing"),
-        ("billed_cost_rmb", "rmb", "increasing"),
-        ("remaining_balance_rmb", "rmb", "decreasing"),
-    },
 }
-TOTAL_COST_CAP = Decimal("1.000000")
+KNOWN_PRICED_PROVIDER_COST_CAP = Decimal("0.300000")
+NOT_EXPOSED_BY_PROVIDER = "NOT_EXPOSED_BY_PROVIDER"
+NOT_DETERMINABLE = "NOT_DETERMINABLE"
+MEITUAN_COST_OVERRIDE = "OWNER_AUTHORIZED_UNPRICED_SINGLE_CALL"
 SYNTHETIC_SYSTEM = "Return only NOTEAI_OK."
 SYNTHETIC_USER = "Bounded production transport check."
 PUBLIC_FACT_QUERY = "深圳四季酒店 地址 营业时间 预订"
@@ -243,6 +240,33 @@ def _normalize_account_gates(
             or gate["price_snapshot_sha256"] == "0" * 64
         ):
             raise ProbeError("ACCOUNT_GATE_PRICE_BINDING")
+        counter = gate.get("pre_call_counter")
+        if not isinstance(counter, dict) or set(counter) != counter_keys:
+            raise ProbeError("ACCOUNT_GATE_COUNTER_SHAPE")
+        observed = _parse_utc(counter.get("observed_at_utc"))
+        if not now - MAX_ACCOUNT_GATE_AGE <= observed <= generated:
+            raise ProbeError("ACCOUNT_GATE_COUNTER_STALE")
+        if provider == "meituan":
+            if not (
+                gate.get("credential_name_present") is True
+                and gate.get("balance_or_quota_confirmed") is False
+                and gate.get("current_price_confirmed") is False
+                and gate.get("pre_call_counter_readable") is False
+                and counter.get("counter_kind") == NOT_EXPOSED_BY_PROVIDER
+                and counter.get("counter_unit") == NOT_EXPOSED_BY_PROVIDER
+                and counter.get("direction") == NOT_EXPOSED_BY_PROVIDER
+                and counter.get("counter_value") == NOT_EXPOSED_BY_PROVIDER
+                and counter.get("source") == "provider_account_console"
+                and _valid_digest(counter.get("snapshot_sha256"))
+                and counter["snapshot_sha256"] != "0" * 64
+                and counter["snapshot_sha256"]
+                == gate["price_snapshot_sha256"]
+                and gate.get("unit_cost_upper_bound_rmb")
+                == NOT_EXPOSED_BY_PROVIDER
+            ):
+                raise ProbeError("MEITUAN_DISCLOSURE_GATE_INVALID")
+            normalized_providers[provider] = gate
+            continue
         for name in (
             "credential_name_present",
             "balance_or_quota_confirmed",
@@ -251,12 +275,6 @@ def _normalize_account_gates(
         ):
             if gate.get(name) is not True:
                 raise ProbeError("ACCOUNT_GATE_NOT_CONFIRMED")
-        counter = gate.get("pre_call_counter")
-        if not isinstance(counter, dict) or set(counter) != counter_keys:
-            raise ProbeError("ACCOUNT_GATE_COUNTER_SHAPE")
-        observed = _parse_utc(counter.get("observed_at_utc"))
-        if not now - MAX_ACCOUNT_GATE_AGE <= observed <= generated:
-            raise ProbeError("ACCOUNT_GATE_COUNTER_STALE")
         if (
             SAFE_COUNTER_NAME.fullmatch(str(counter.get("counter_kind") or "")) is None
             or SAFE_COUNTER_NAME.fullmatch(str(counter.get("counter_unit") or "")) is None
@@ -287,7 +305,7 @@ def _normalize_account_gates(
             "pre_call_counter": normalized_counter,
             "unit_cost_upper_bound_rmb": amount,
         }
-    if total > TOTAL_COST_CAP:
+    if total > KNOWN_PRICED_PROVIDER_COST_CAP:
         raise ProbeError("TOTAL_COST_CAP_EXCEEDED")
     return {**value, "providers": normalized_providers}
 
@@ -772,14 +790,14 @@ def execute_probe(
         "observed_at_utc": clock(),
         "account_gate": account_gates,
         "bounds": {
-            "provider_order": list(PROVIDER_ORDER),
+            "provider_order": list(DISPATCH_ORDER),
             "maximum_dispatches_per_provider": 1,
             "maximum_output_tokens": MAX_OUTPUT_TOKENS,
             "maximum_prompt_bytes": MAX_PROMPT_BYTES,
             "actual_prompt_bytes": prompt_bytes,
             "automatic_retry_count": 0,
             "fallback_count": 0,
-            "total_cost_cap_rmb": _decimal_text(TOTAL_COST_CAP),
+            "total_cost_cap_rmb": MEITUAN_COST_OVERRIDE,
         },
         "preflight": {},
         "providers": {},
@@ -804,7 +822,7 @@ def execute_probe(
                 raise ProbeError("PREFLIGHT_FAILED") from None
         else:
             result["preflight"] = preflight
-        for provider in PROVIDER_ORDER:
+        for provider in DISPATCH_ORDER:
             try:
                 _normalize_account_gates(account_gates, now_text=clock())
             except ProbeError:
@@ -896,12 +914,7 @@ def execute_probe(
         "automatic_retry_count": 0,
         "fallback_count": 0,
         "actual_model_cost_rmb": _decimal_text(actual_model_cost),
-        "worst_case_provider_cost_rmb": _decimal_text(
-            sum(
-                Decimal(gate["unit_cost_upper_bound_rmb"])
-                for gate in account_gates["providers"].values()
-            )
-        ),
+        "worst_case_provider_cost_rmb": NOT_EXPOSED_BY_PROVIDER,
     }
     return result
 

@@ -45,11 +45,11 @@ APPLICATION_CONFIG_SHA256 = (
 GATEWAY_RELEASE_REVISION = "84f8a2f1436627e0f05588ee0276b1950b230ae3"
 COMMAND_NAME = "noteai-item30-real-provider-chain-20260824"
 PROVIDERS = ("claude", "kimi", "amap", "meituan")
+DISPATCH_ORDER = ("meituan", "claude", "kimi", "amap")
 PROVIDER_CAPS = {
     "claude": Decimal("0.100000"),
     "kimi": Decimal("0.100000"),
     "amap": Decimal("0.100000"),
-    "meituan": Decimal("0.500000"),
 }
 PROVIDER_COUNTER_SEMANTICS = {
     "claude": {
@@ -65,14 +65,11 @@ PROVIDER_COUNTER_SEMANTICS = {
         ("remaining_balance_rmb", "rmb", "decreasing"),
     },
     "amap": {("request_count", "requests", "increasing")},
-    "meituan": {
-        ("billable_units", "units", "increasing"),
-        ("request_count", "requests", "increasing"),
-        ("billed_cost_rmb", "rmb", "increasing"),
-        ("remaining_balance_rmb", "rmb", "decreasing"),
-    },
 }
-TOTAL_CAP = Decimal("1.000000")
+KNOWN_PRICED_PROVIDER_COST_CAP = Decimal("0.300000")
+NOT_EXPOSED_BY_PROVIDER = "NOT_EXPOSED_BY_PROVIDER"
+NOT_DETERMINABLE = "NOT_DETERMINABLE"
+MEITUAN_COST_OVERRIDE = "OWNER_AUTHORIZED_UNPRICED_SINGLE_CALL"
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 KIMI_MODEL = "kimi-k2.6"
 SENTINEL = b"NOTEAI_OK"
@@ -425,6 +422,44 @@ def _validate_account_gate(
             continue
         _append(errors, _digest(row["account_identity_sha256"]), f"{name}: account identity invalid")
         _append(errors, _digest(row["price_snapshot_sha256"]), f"{name}: price snapshot invalid")
+        counter = row["pre_call_counter"]
+        counter_value = counter if type(counter) is dict else {}
+        observed = _time(counter_value.get("observed_at_utc"))
+        if name == "meituan":
+            _append(
+                errors,
+                type(counter) is dict
+                and set(counter) == COUNTER_KEYS
+                and row["credential_name_present"] is True
+                and row["balance_or_quota_confirmed"] is False
+                and row["current_price_confirmed"] is False
+                and row["pre_call_counter_readable"] is False
+                and counter_value.get("counter_kind")
+                == NOT_EXPOSED_BY_PROVIDER
+                and counter_value.get("counter_unit")
+                == NOT_EXPOSED_BY_PROVIDER
+                and counter_value.get("direction")
+                == NOT_EXPOSED_BY_PROVIDER
+                and counter_value.get("counter_value")
+                == NOT_EXPOSED_BY_PROVIDER
+                and counter_value.get("source") == "provider_account_console"
+                and _digest(counter_value.get("snapshot_sha256"))
+                and counter_value.get("snapshot_sha256")
+                == row["price_snapshot_sha256"]
+                and row["unit_cost_upper_bound_rmb"]
+                == NOT_EXPOSED_BY_PROVIDER,
+                "meituan: disclosure gate mismatch",
+            )
+            _append(
+                errors,
+                observed is not None
+                and generated is not None
+                and execution_start - ACCOUNT_GATE_MAX_AGE
+                <= observed
+                <= generated,
+                "meituan: disclosure snapshot stale",
+            )
+            continue
         _append(
             errors,
             row["credential_name_present"] is True
@@ -433,11 +468,8 @@ def _validate_account_gate(
             and row["pre_call_counter_readable"] is True,
             f"{name}: account gate not confirmed",
         )
-        counter = row["pre_call_counter"]
         counter_errors, _ = _validate_counter(counter, f"{name}: pre")
         errors.extend(counter_errors)
-        counter_value = counter if type(counter) is dict else {}
-        observed = _time(counter_value.get("observed_at_utc"))
         _append(
             errors,
             observed is not None
@@ -617,14 +649,14 @@ def _validate_executor_result(
         _strict(
             raw["bounds"],
             {
-                "provider_order": list(PROVIDERS),
+                "provider_order": list(DISPATCH_ORDER),
                 "maximum_dispatches_per_provider": 1,
                 "maximum_output_tokens": 64,
                 "maximum_prompt_bytes": 128,
                 "actual_prompt_bytes": actual_prompt_bytes,
                 "automatic_retry_count": 0,
                 "fallback_count": 0,
-                "total_cost_cap_rmb": "1.000000",
+                "total_cost_cap_rmb": MEITUAN_COST_OVERRIDE,
             },
         ),
         "executor bounds mismatch",
@@ -644,7 +676,7 @@ def _validate_executor_result(
         "executor preflight mismatch",
     )
     providers = raw["providers"]
-    if type(providers) is not dict or tuple(providers) != PROVIDERS:
+    if type(providers) is not dict or tuple(providers) != DISPATCH_ORDER:
         errors.append("executor provider set/order mismatch")
         providers = {}
     application_total = Decimal("0")
@@ -652,10 +684,6 @@ def _validate_executor_result(
         provider_errors, app_cost = _validate_raw_provider(name, providers.get(name))
         errors.extend(provider_errors)
         application_total += app_cost
-    worst_cost = sum(
-        (_decimal((gate_providers.get(name) or {}).get("unit_cost_upper_bound_rmb")) or Decimal("0"))
-        for name in PROVIDERS
-    )
     _append(
         errors,
         _strict(
@@ -667,7 +695,7 @@ def _validate_executor_result(
                 "automatic_retry_count": 0,
                 "fallback_count": 0,
                 "actual_model_cost_rmb": f"{application_total:.6f}",
-                "worst_case_provider_cost_rmb": f"{worst_cost:.6f}",
+                "worst_case_provider_cost_rmb": NOT_EXPOSED_BY_PROVIDER,
             },
         ),
         "executor totals mismatch",
@@ -766,8 +794,12 @@ def _validate_native_bindings(
         if type(row) is not dict or set(row) != expected:
             errors.append(f"{name}: native binding shape mismatch")
             continue
-        gate = gate_providers.get(name) or {}
-        raw_provider = raw_providers.get(name) or {}
+        gate = gate_providers.get(name)
+        if type(gate) is not dict:
+            gate = {}
+        raw_provider = raw_providers.get(name)
+        if type(raw_provider) is not dict:
+            raw_provider = {}
         _append(
             errors,
             _digest(row["account_identity_sha256"])
@@ -776,6 +808,85 @@ def _validate_native_bindings(
             f"{name}: native account binding mismatch",
         )
         pre = row["pre"]
+        if name == "meituan":
+            post = row["post"]
+            settlement = row["settlement"]
+            projected_pre = (
+                {key: pre[key] for key in COUNTER_KEYS}
+                if type(pre) is dict and set(pre) == NATIVE_PRE_KEYS
+                else {}
+            )
+            pre_time = _time(projected_pre.get("observed_at_utc"))
+            post_time = (
+                _time(post.get("observed_at_utc"))
+                if type(post) is dict
+                else None
+            )
+            settlement_time = (
+                _time(settlement.get("observed_at_utc"))
+                if type(settlement) is dict
+                else None
+            )
+            _append(
+                errors,
+                type(pre) is dict
+                and set(pre) == NATIVE_PRE_KEYS
+                and _strict(projected_pre, gate.get("pre_call_counter"))
+                and pre.get("quota_or_balance_sufficient")
+                == NOT_EXPOSED_BY_PROVIDER
+                and pre.get("current_unit_cap_rmb")
+                == NOT_EXPOSED_BY_PROVIDER
+                and pre.get("price_snapshot_sha256")
+                == gate.get("price_snapshot_sha256")
+                and _digest(pre.get("price_snapshot_sha256")),
+                "meituan: native pre/disclosure projection mismatch",
+            )
+            _append(
+                errors,
+                type(post) is dict
+                and set(post) == COUNTER_KEYS
+                and post.get("counter_kind") == NOT_EXPOSED_BY_PROVIDER
+                and post.get("counter_unit") == NOT_EXPOSED_BY_PROVIDER
+                and post.get("direction") == NOT_EXPOSED_BY_PROVIDER
+                and post.get("counter_value") == NOT_EXPOSED_BY_PROVIDER
+                and post.get("source") == "provider_account_console"
+                and _digest(post.get("snapshot_sha256")),
+                "meituan: native post disclosure mismatch",
+            )
+            _append(
+                errors,
+                type(settlement) is dict
+                and set(settlement) == SETTLEMENT_KEYS
+                and settlement.get("status") == NOT_EXPOSED_BY_PROVIDER
+                and settlement.get("currency") == NOT_EXPOSED_BY_PROVIDER
+                and settlement.get("incremental_cost_rmb")
+                == NOT_EXPOSED_BY_PROVIDER
+                and settlement.get("reconciliation_tolerance_rmb")
+                == NOT_EXPOSED_BY_PROVIDER
+                and settlement.get("snapshot_sha256")
+                == (post.get("snapshot_sha256") if type(post) is dict else None)
+                and _digest(settlement.get("snapshot_sha256")),
+                "meituan: settlement disclosure mismatch",
+            )
+            _append(
+                errors,
+                pre_time is not None
+                and post_time is not None
+                and settlement_time is not None
+                and evidence_observed is not None
+                and pre_time <= execution_start <= execution_finish
+                < post_time <= settlement_time <= evidence_observed,
+                "meituan: disclosure observation order mismatch",
+            )
+            _append(
+                errors,
+                row["usage_delta"] == NOT_EXPOSED_BY_PROVIDER
+                and row["native_event_id_sha256"] is None
+                and type(raw_provider.get("cli_invocation_count")) is int
+                and raw_provider.get("cli_invocation_count") == 1,
+                "meituan: exact-one disclosure binding mismatch",
+            )
+            continue
         if type(pre) is not dict or set(pre) != NATIVE_PRE_KEYS:
             errors.append(f"{name}: native pre shape mismatch")
             continue
@@ -861,12 +972,13 @@ def _validate_native_bindings(
             if kind == "request_count":
                 _append(errors, delta == Decimal("1"), f"{name}: native request delta mismatch")
             elif kind == "total_tokens":
+                input_tokens = raw_provider.get("input_tokens")
+                output_tokens = raw_provider.get("output_tokens")
                 _append(
                     errors,
-                    delta == Decimal(
-                        int(raw_provider.get("input_tokens", 0))
-                        + int(raw_provider.get("output_tokens", 0))
-                    ),
+                    type(input_tokens) is int
+                    and type(output_tokens) is int
+                    and delta == Decimal(input_tokens + output_tokens),
                     f"{name}: native token delta mismatch",
                 )
             elif kind in {"billed_cost_rmb", "remaining_balance_rmb"}:
@@ -891,20 +1003,6 @@ def _validate_native_bindings(
                 and type(raw_provider.get("detail_request_count")) is int
                 and raw_provider.get("detail_request_count") == 0,
                 "amap: native request delta mismatch",
-            )
-        else:
-            _append(
-                errors,
-                type(raw_provider.get("cli_invocation_count")) is int
-                and raw_provider.get("cli_invocation_count") == 1
-                and (kind, unit, pre["direction"])
-                in PROVIDER_COUNTER_SEMANTICS[name]
-                and (
-                    delta == Decimal("1")
-                    if kind in {"billable_units", "request_count"}
-                    else delta == cost
-                ),
-                "meituan: native billable/CLI delta mismatch",
             )
         provider_total += cost or Decimal("0")
     return errors, provider_total
@@ -1002,25 +1100,25 @@ def validate_document(
     if type(cost) is not dict or set(cost) != expected_cost_keys:
         errors.append("cost settlement shape mismatch")
     else:
-        provider_cost = _decimal(cost["incremental_provider_cost_rmb"])
         app_cost = _decimal(cost["application_model_cost_rmb"])
         cloud_cost = _decimal(cost["incremental_cloud_compute_cost_rmb"])
-        total_cost = _decimal(cost["total_incremental_cost_rmb"])
         _append(
             errors,
             cost["currency"] == "RMB"
-            and provider_cost == provider_total
+            and cost["incremental_provider_cost_rmb"]
+            == NOT_EXPOSED_BY_PROVIDER
+            and provider_total > Decimal("0")
+            and provider_total <= KNOWN_PRICED_PROVIDER_COST_CAP
             and app_cost == context.get("application_total")
             and cloud_cost == Decimal("0")
             and cost["gateway_control_plane_cost_mode"]
             == "existing_fin_003_budget_no_per_call_settlement"
-            and total_cost == provider_total
-            and cost["hard_cap_rmb"] == "1.000000"
-            and total_cost is not None
-            and total_cost <= TOTAL_CAP
-            and cost["within_cap"] is True
+            and cost["total_incremental_cost_rmb"]
+            == NOT_EXPOSED_BY_PROVIDER
+            and cost["hard_cap_rmb"] == MEITUAN_COST_OVERRIDE
+            and cost["within_cap"] == NOT_DETERMINABLE
             and type(cost["provider_settlement_complete_count"]) is int
-            and cost["provider_settlement_complete_count"] == 4,
+            and cost["provider_settlement_complete_count"] == 3,
             "cost settlement mismatch",
         )
     _append(

@@ -57,16 +57,35 @@ def account_gate_document(revision=None):
         "claude": ("request_count", "requests", "100.000000"),
         "kimi": ("total_tokens", "tokens", "1000.000000"),
         "amap": ("request_count", "requests", "200.000000"),
-        "meituan": ("billable_units", "units", "300.000000"),
     }
     caps = {
         "claude": "0.100000",
         "kimi": "0.100000",
         "amap": "0.100000",
-        "meituan": "0.500000",
     }
     providers = {}
     for name in executor.PROVIDER_ORDER:
+        if name == "meituan":
+            disclosure_sha = digest("meituan-token-metadata-pre")
+            providers[name] = {
+                "account_identity_sha256": digest("meituan-account"),
+                "credential_name_present": True,
+                "balance_or_quota_confirmed": False,
+                "current_price_confirmed": False,
+                "pre_call_counter_readable": False,
+                "pre_call_counter": {
+                    "observed_at_utc": PRE_TIME,
+                    "counter_kind": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "counter_unit": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "direction": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "counter_value": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "snapshot_sha256": disclosure_sha,
+                    "source": "provider_account_console",
+                },
+                "price_snapshot_sha256": disclosure_sha,
+                "unit_cost_upper_bound_rmb": executor.NOT_EXPOSED_BY_PROVIDER,
+            }
+            continue
         kind, unit, value = counter_kinds[name]
         providers[name] = {
             "account_identity_sha256": digest(f"{name}-account"),
@@ -211,23 +230,48 @@ def evidence_fixture():
         "claude": "101.000000",
         "kimi": "1023.000000",
         "amap": "201.000000",
-        "meituan": "301.000000",
     }
     deltas = {
         "claude": "1.000000",
         "kimi": "23.000000",
         "amap": "1.000000",
-        "meituan": "1.000000",
     }
     costs = {
         "claude": "0.001000",
         "kimi": "0.001000",
         "amap": "0.003000",
-        "meituan": "0.200000",
     }
     native = {}
     for name in executor.PROVIDER_ORDER:
         gate = gate_providers[name]
+        if name == "meituan":
+            post_snapshot = digest("meituan-token-metadata-post")
+            native[name] = {
+                "account_identity_sha256": gate["account_identity_sha256"],
+                "custody": "protected_off_repo",
+                "pre": {
+                    **copy.deepcopy(gate["pre_call_counter"]),
+                    "quota_or_balance_sufficient": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "current_unit_cap_rmb": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "price_snapshot_sha256": gate["price_snapshot_sha256"],
+                },
+                "post": {
+                    **copy.deepcopy(gate["pre_call_counter"]),
+                    "observed_at_utc": POST_TIME,
+                    "snapshot_sha256": post_snapshot,
+                },
+                "usage_delta": executor.NOT_EXPOSED_BY_PROVIDER,
+                "native_event_id_sha256": None,
+                "settlement": {
+                    "observed_at_utc": SETTLEMENT_TIME,
+                    "status": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "currency": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "incremental_cost_rmb": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "reconciliation_tolerance_rmb": executor.NOT_EXPOSED_BY_PROVIDER,
+                    "snapshot_sha256": post_snapshot,
+                },
+            }
+            continue
         pre = {
             **copy.deepcopy(gate["pre_call_counter"]),
             "quota_or_balance_sufficient": True,
@@ -303,16 +347,16 @@ def evidence_fixture():
         "provider_native_bindings": native,
         "cost_and_settlement": {
             "currency": "RMB",
-            "incremental_provider_cost_rmb": "0.205000",
+            "incremental_provider_cost_rmb": executor.NOT_EXPOSED_BY_PROVIDER,
             "application_model_cost_rmb": "0.002000",
             "incremental_cloud_compute_cost_rmb": "0.000000",
             "gateway_control_plane_cost_mode": (
                 "existing_fin_003_budget_no_per_call_settlement"
             ),
-            "total_incremental_cost_rmb": "0.205000",
-            "hard_cap_rmb": "1.000000",
-            "within_cap": True,
-            "provider_settlement_complete_count": 4,
+            "total_incremental_cost_rmb": executor.NOT_EXPOSED_BY_PROVIDER,
+            "hard_cap_rmb": executor.MEITUAN_COST_OVERRIDE,
+            "within_cap": executor.NOT_DETERMINABLE,
+            "provider_settlement_complete_count": 3,
         },
         "production_boundary": {
             "synthetic_ai_prompt_only": True,
@@ -403,7 +447,7 @@ class Item30ExecutorTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(
             backend.calls,
-            ["preflight", "claude", "kimi", "amap", "meituan", "close"],
+            ["preflight", "meituan", "claude", "kimi", "amap", "close"],
         )
         self.assertEqual(result["totals"]["dispatch_count"], 4)
         self.assertEqual(result["totals"]["automatic_retry_count"], 0)
@@ -464,12 +508,130 @@ class Item30ExecutorTests(unittest.TestCase):
                 executor.load_account_gates(
                     path, now_text="2026-08-24T14:00:00Z"
                 )
-            payload["providers"]["meituan"]["unit_cost_upper_bound_rmb"] = "0.500001"
+            payload["providers"]["claude"]["unit_cost_upper_bound_rmb"] = "0.100001"
             path.write_text(json.dumps(payload), encoding="utf-8")
             with self.assertRaisesRegex(
                 executor.ProbeError, "PROVIDER_COST_CAP_EXCEEDED"
             ):
                 executor.load_account_gates(path, now_text=RESULT_TIME)
+
+    def test_meituan_not_exposed_gate_is_exact_and_not_reusable(self):
+        canonical = account_gate_document()
+        variants = []
+
+        numeric = copy.deepcopy(canonical)
+        numeric_gate = numeric["providers"]["meituan"]
+        numeric_gate.update(
+            {
+                "balance_or_quota_confirmed": True,
+                "current_price_confirmed": True,
+                "pre_call_counter_readable": True,
+                "unit_cost_upper_bound_rmb": "0.500000",
+            }
+        )
+        numeric_gate["pre_call_counter"].update(
+            {
+                "counter_kind": "request_count",
+                "counter_unit": "requests",
+                "direction": "increasing",
+                "counter_value": "0.000000",
+            }
+        )
+        variants.append(numeric)
+
+        mixed = copy.deepcopy(canonical)
+        mixed["providers"]["meituan"]["unit_cost_upper_bound_rmb"] = "0.000000"
+        variants.append(mixed)
+
+        mismatched_snapshot = copy.deepcopy(canonical)
+        mismatched_snapshot["providers"]["meituan"][
+            "price_snapshot_sha256"
+        ] = digest("different-disclosure")
+        variants.append(mismatched_snapshot)
+
+        for name in ("claude", "kimi", "amap"):
+            wrong_provider = copy.deepcopy(canonical)
+            wrong_provider["providers"][name] = copy.deepcopy(
+                wrong_provider["providers"]["meituan"]
+            )
+            variants.append(wrong_provider)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "gates.json"
+            for payload in variants:
+                with self.subTest(payload=digest(executor._canonical(payload))):
+                    path.write_text(json.dumps(payload), encoding="utf-8")
+                    with self.assertRaises(executor.ProbeError):
+                        executor.load_account_gates(path, now_text=RESULT_TIME)
+
+    def test_meituan_numeric_gate_blocks_before_backend_and_journal(self):
+        payload = account_gate_document()
+        gate = payload["providers"]["meituan"]
+        gate.update(
+            {
+                "balance_or_quota_confirmed": True,
+                "current_price_confirmed": True,
+                "pre_call_counter_readable": True,
+                "unit_cost_upper_bound_rmb": "0.500000",
+            }
+        )
+        gate["pre_call_counter"].update(
+            {
+                "counter_kind": "request_count",
+                "counter_unit": "requests",
+                "direction": "increasing",
+                "counter_value": "0.000000",
+            }
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "gates.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            backend_factory = mock.Mock()
+            output = io.StringIO()
+            with mock.patch.object(executor, "_validate_state_dir"), mock.patch.object(
+                executor, "_validate_sqlite_path", return_value=()
+            ), mock.patch.object(
+                executor, "_validate_environment_boundary"
+            ), mock.patch.object(
+                executor, "ACCOUNT_GATES_PATH", path
+            ), mock.patch.object(
+                executor, "_utc_now", return_value=RESULT_TIME
+            ), mock.patch.object(
+                executor, "ProductionProbeBackend", backend_factory
+            ), mock.patch.object(
+                executor.AttemptJournal, "create"
+            ) as create_journal, mock.patch.object(sys, "stdout", output):
+                self.assertEqual(executor.main([]), 2)
+            backend_factory.assert_not_called()
+            create_journal.assert_not_called()
+            self.assertIn("MEITUAN_DISCLOSURE_GATE_INVALID", output.getvalue())
+
+    def test_meituan_unknown_stops_before_any_other_provider(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gates = account_gate_document()
+            journal_path = Path(temp_dir) / "executor-result.json"
+            journal = executor.AttemptJournal.create(journal_path, gates)
+            backend = FakeBackend()
+
+            def fail_meituan():
+                backend.calls.append("meituan")
+                raise RuntimeError("private provider body")
+
+            backend.meituan = fail_meituan
+            result = executor.execute_probe(
+                backend, gates, clock=lambda: RESULT_TIME, journal=journal
+            )
+
+            self.assertEqual(result["status"], "UNKNOWN")
+            self.assertEqual(backend.calls, ["preflight", "meituan", "close"])
+            self.assertEqual(tuple(result["providers"]), ("meituan",))
+            self.assertEqual(journal.value["status"], "UNKNOWN")
+            self.assertEqual(journal.value["providers"], {"meituan": "UNKNOWN"})
+            self.assertNotIn("private provider body", json.dumps(result))
+            with self.assertRaisesRegex(
+                executor.ProbeError, "EXECUTION_ALREADY_ATTEMPTED"
+            ):
+                executor.AttemptJournal.create(journal_path, gates)
 
     def test_invalid_provider_counter_blocks_before_journal_or_provider(self):
         payload = account_gate_document()
@@ -789,12 +951,127 @@ class Item30EvidenceVerifierTests(unittest.TestCase):
                     "execution",
                     "executor_result",
                     "providers",
+                    "meituan",
+                    "cli_invocation_count",
+                ),
+                0,
+                "meituan: invocation boundary",
+                True,
+            ),
+            (
+                (
+                    "execution",
+                    "executor_result",
+                    "providers",
+                    "meituan",
+                    "cli_invocation_count",
+                ),
+                2,
+                "meituan: invocation boundary",
+                True,
+            ),
+            (
+                (
+                    "execution",
+                    "executor_result",
+                    "providers",
+                    "meituan",
+                    "dispatch_count",
+                ),
+                0,
+                "raw dispatch terminal",
+                True,
+            ),
+            (
+                (
+                    "execution",
+                    "executor_result",
+                    "providers",
                     "claude",
                     "model_calls",
                 ),
                 True,
                 "application usage/cost",
                 True,
+            ),
+            (
+                (
+                    "execution",
+                    "executor_result",
+                    "providers",
+                    "meituan",
+                    "cli_invocation_count",
+                ),
+                True,
+                "meituan: invocation boundary",
+                True,
+            ),
+            (
+                (
+                    "execution",
+                    "executor_result",
+                    "providers",
+                    "meituan",
+                    "dispatch_count",
+                ),
+                2,
+                "raw dispatch terminal",
+                True,
+            ),
+            (
+                (
+                    "execution",
+                    "executor_result",
+                    "providers",
+                    "meituan",
+                    "automatic_retry_count",
+                ),
+                1,
+                "raw dispatch terminal",
+                True,
+            ),
+            (
+                (
+                    "execution",
+                    "executor_result",
+                    "providers",
+                    "meituan",
+                    "fallback_count",
+                ),
+                1,
+                "raw dispatch terminal",
+                True,
+            ),
+            (
+                (
+                    "provider_native_bindings",
+                    "meituan",
+                    "usage_delta",
+                ),
+                "0.000000",
+                "exact-one disclosure binding",
+                False,
+            ),
+            (
+                (
+                    "provider_native_bindings",
+                    "meituan",
+                    "native_event_id_sha256",
+                ),
+                digest("invented-provider-event"),
+                "exact-one disclosure binding",
+                False,
+            ),
+            (
+                (
+                    "provider_native_bindings",
+                    "meituan",
+                    "post",
+                    "counter_value",
+                ),
+                "0.000000",
+                "native post disclosure",
+                False,
             ),
         ]
         for path, replacement, expected, raw_changed in cases:
@@ -813,7 +1090,7 @@ class Item30EvidenceVerifierTests(unittest.TestCase):
                 errors = verifier.validate_document(value, verify_git=False)
                 self.assertTrue(any(expected in error for error in errors), errors)
 
-    def test_arm_time_price_cost_and_meituan_counter_semantics_are_bound(self):
+    def test_arm_time_price_and_meituan_disclosure_are_bound(self):
         price_changed = evidence_fixture()
         price_changed["provider_native_bindings"]["claude"]["pre"][
             "price_snapshot_sha256"
@@ -826,6 +1103,28 @@ class Item30EvidenceVerifierTests(unittest.TestCase):
                 "native pre/gate projection" in error
                 for error in verifier.validate_document(
                     price_changed, verify_git=False
+                )
+            )
+        )
+
+        meituan_mixed = evidence_fixture()
+        raw_gate = meituan_mixed["execution"]["executor_result"]["account_gate"][
+            "providers"
+        ]["meituan"]
+        raw_gate["pre_call_counter"].update(
+            {
+                "counter_kind": "request_count",
+                "counter_unit": "requests",
+                "direction": "increasing",
+                "counter_value": "0.000000",
+            }
+        )
+        rebind_raw(meituan_mixed)
+        self.assertTrue(
+            any(
+                "meituan: disclosure gate" in error
+                for error in verifier.validate_document(
+                    meituan_mixed, verify_git=False
                 )
             )
         )
@@ -873,16 +1172,13 @@ class Item30EvidenceVerifierTests(unittest.TestCase):
         cap_changed["execution"]["executor_result"]["account_gate"]["providers"][
             "meituan"
         ]["unit_cost_upper_bound_rmb"] = "0.100000"
-        cap_changed["execution"]["executor_result"]["totals"][
-            "worst_case_provider_cost_rmb"
-        ] = "0.400000"
         cap_changed["provider_native_bindings"]["meituan"]["pre"][
             "current_unit_cap_rmb"
         ] = "0.100000"
         rebind_raw(cap_changed)
         self.assertTrue(
             any(
-                "meituan: settlement mismatch" in error
+                "meituan: disclosure gate" in error
                 for error in verifier.validate_document(cap_changed, verify_git=False)
             )
         )
@@ -893,17 +1189,169 @@ class Item30EvidenceVerifierTests(unittest.TestCase):
         ]["meituan"]["pre_call_counter"]
         native = counter_changed["provider_native_bindings"]["meituan"]
         for counter in (raw_pre, native["pre"], native["post"]):
-            counter["counter_kind"] = "arbitrary_units"
-            counter["counter_unit"] = "units"
+            counter["counter_kind"] = "request_count"
+            counter["counter_unit"] = "requests"
+            counter["direction"] = "increasing"
+            counter["counter_value"] = "0.000000"
         rebind_raw(counter_changed)
         self.assertTrue(
             any(
-                "meituan: native billable/CLI delta" in error
+                "meituan: disclosure" in error
                 for error in verifier.validate_document(
                     counter_changed, verify_git=False
                 )
             )
         )
+
+    def test_meituan_unknown_cost_cannot_be_forged_as_zero_or_reconciled(self):
+        cases = [
+            (("cost_and_settlement", "incremental_provider_cost_rmb"), "0.005000"),
+            (("cost_and_settlement", "total_incremental_cost_rmb"), "0.005000"),
+            (("cost_and_settlement", "hard_cap_rmb"), "1.000000"),
+            (("cost_and_settlement", "within_cap"), True),
+            (("cost_and_settlement", "provider_settlement_complete_count"), 4),
+            (
+                (
+                    "provider_native_bindings",
+                    "meituan",
+                    "settlement",
+                    "status",
+                ),
+                "RECONCILED",
+            ),
+            (
+                (
+                    "provider_native_bindings",
+                    "meituan",
+                    "settlement",
+                    "incremental_cost_rmb",
+                ),
+                "0.000000",
+            ),
+        ]
+        for path, replacement in cases:
+            with self.subTest(path=path):
+                value = evidence_fixture()
+                target = value
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = replacement
+                value["terminal_acceptance_sha256"] = (
+                    verifier.terminal_acceptance_sha256(value)
+                )
+                errors = verifier.validate_document(value, verify_git=False)
+                self.assertTrue(
+                    any(
+                        "cost settlement mismatch" in error
+                        or "meituan: settlement disclosure" in error
+                        for error in errors
+                    ),
+                    errors,
+                )
+
+    def test_fully_rebound_legacy_numeric_meituan_still_fails(self):
+        value = evidence_fixture()
+        raw = value["execution"]["executor_result"]
+        gate = raw["account_gate"]["providers"]["meituan"]
+        gate.update(
+            {
+                "balance_or_quota_confirmed": True,
+                "current_price_confirmed": True,
+                "pre_call_counter_readable": True,
+                "unit_cost_upper_bound_rmb": "0.500000",
+            }
+        )
+        gate["pre_call_counter"].update(
+            {
+                "counter_kind": "request_count",
+                "counter_unit": "requests",
+                "direction": "increasing",
+                "counter_value": "0.000000",
+            }
+        )
+        raw["bounds"]["total_cost_cap_rmb"] = "1.000000"
+        raw["totals"]["worst_case_provider_cost_rmb"] = "0.800000"
+        native = value["provider_native_bindings"]["meituan"]
+        native["pre"].update(
+            {
+                **copy.deepcopy(gate["pre_call_counter"]),
+                "quota_or_balance_sufficient": True,
+                "current_unit_cap_rmb": "0.500000",
+            }
+        )
+        native["post"].update(
+            {
+                **copy.deepcopy(gate["pre_call_counter"]),
+                "observed_at_utc": POST_TIME,
+                "counter_value": "1.000000",
+                "snapshot_sha256": digest("legacy-meituan-post"),
+            }
+        )
+        native["usage_delta"] = "1.000000"
+        native["native_event_id_sha256"] = digest("legacy-meituan-event")
+        native["settlement"].update(
+            {
+                "status": "RECONCILED",
+                "currency": "RMB",
+                "incremental_cost_rmb": "0.200000",
+                "reconciliation_tolerance_rmb": "0.010000",
+                "snapshot_sha256": digest("legacy-meituan-settlement"),
+            }
+        )
+        value["cost_and_settlement"].update(
+            {
+                "incremental_provider_cost_rmb": "0.205000",
+                "total_incremental_cost_rmb": "0.205000",
+                "hard_cap_rmb": "1.000000",
+                "within_cap": True,
+                "provider_settlement_complete_count": 4,
+            }
+        )
+        rebind_raw(value)
+        errors = verifier.validate_document(value, verify_git=False)
+        self.assertTrue(errors)
+        self.assertTrue(
+            any(
+                "meituan: disclosure gate" in error
+                or "executor bounds mismatch" in error
+                or "cost settlement mismatch" in error
+                for error in errors
+            ),
+            errors,
+        )
+
+    def test_malformed_raw_provider_and_kimi_tokens_return_errors(self):
+        for malformed in ([1], "invalid", None, {"unexpected": "shape"}):
+            with self.subTest(meituan=malformed):
+                value = evidence_fixture()
+                value["execution"]["executor_result"]["providers"][
+                    "meituan"
+                ] = malformed
+                rebind_raw(value)
+                errors = verifier.validate_document(value, verify_git=False)
+                self.assertTrue(errors)
+                self.assertTrue(
+                    any("meituan: raw provider shape" in error for error in errors),
+                    errors,
+                )
+
+        for malformed in ("invalid", None, True):
+            with self.subTest(kimi_input_tokens=malformed):
+                value = evidence_fixture()
+                value["execution"]["executor_result"]["providers"]["kimi"][
+                    "input_tokens"
+                ] = malformed
+                rebind_raw(value)
+                errors = verifier.validate_document(value, verify_git=False)
+                self.assertTrue(errors)
+                self.assertTrue(
+                    any(
+                        "kimi: application usage/cost" in error
+                        or "kimi: native token delta" in error
+                        for error in errors
+                    ),
+                    errors,
+                )
 
     def test_source_revision_must_contain_exact_executor_and_fact_blobs(self):
         with tempfile.TemporaryDirectory() as temp_dir:

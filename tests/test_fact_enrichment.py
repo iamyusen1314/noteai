@@ -77,10 +77,11 @@ class FactEnrichmentTests(unittest.TestCase):
                 facts.subprocess,
                 "run",
                 side_effect=fake_run,
-            ):
+            ) as run_mock:
                 items = facts._search_meituan_travel("广州长隆酒店价格")
 
         self.assertEqual(len(items), 1)
+        self.assertEqual(run_mock.call_count, 1)
         self.assertEqual(observed["home_mode"], 0o700)
         self.assertEqual(observed["config_mode"], 0o600)
         self.assertEqual(observed["config"], {"key": credential})

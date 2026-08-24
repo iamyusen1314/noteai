@@ -3920,3 +3920,32 @@ Last updated: 2026-08-19
 - 唯一剩余风险/下一动作: recovery commit push后先读回`HEAD == upstream`，再完成四家
   fresh authenticated account gates。Claude/Amap/Meituan可能需要登录/MFA，Kimi也须
   临执行刷新；任一门缺失时live dispatch维持NO-GO且Readiness保持`29/38`。
+
+## Item 30 owner-authorized unpriced Meituan override (2026-08-25)
+
+- 产品所有者已明确授权把Meituan验收收敛为
+  `NOT_EXPOSED_BY_PROVIDER + exact-one`，执行一次无法事前定价的真实调用，并接受其
+  可能突破旧Meituan `CNY 0.500000`和Item30总`CNY 1.000000`阈值。授权只覆盖该一次
+  Meituan调用；不覆盖第二次调用、retry/fallback/UNKNOWN重放、Claude/Kimi/Amap各自
+  `CNY 0.100000`上限放宽、充值/订阅/支付设置、长期资源、PostPaid启动、Render部署、
+  service restart、业务库/用户数据或DNS变更。
+- 现有v1内的最小收口保留原顶层Evidence结构。Meituan quota、price、counter、usage、
+  actual/total/worst-case cost和settlement均只能记录为`NOT_EXPOSED_BY_PROVIDER`，cap
+  结论为owner override、`within_cap`为`NOT_DETERMINABLE`；禁止记0、`RECONCILED`或
+  “仍在上限内”。Claude/Kimi/Amap仍使用同账号numeric pre/post counter、数值settlement
+  和三家合计`CNY 0.300000`门限。
+- 调用顺序改为Meituan首个，再Claude、Kimi、Amap，以避免高不确定调用失败后先消耗
+  另外三家。journal仍在每次调用前fsync `DISPATCHING`；CLI只有一次
+  `subprocess.run`，全链maximum dispatch per provider为1、自动retry/fallback为0。
+  任何timeout、异常、shape错误或post-arm不确定均进入`UNKNOWN`并停止后续，授权即视为
+  已消耗，只允许只读对账。
+- 本次授权发生在既有`203799d`恢复checkpoint之后并要求改变被source SHA绑定的
+  executor/verifier。不可逆调用前必须再冻结并push精确source、读回`HEAD == upstream`；
+  这是新owner授权导致的不可避免source-bound恢复例外，不是Item30 terminal credit，也
+  不授权增加其它checkpoint。source未冻结、四家gate未fresh或PostPaid状态未读回前，
+  live dispatch保持NO-GO。
+- 当前provider、payment、DNS、生产业务数据库、Render、service和云资源写入均为0，
+  增量provider/compute费用为`CNY 0.000000`，没有provider `UNKNOWN`。API-C/F最后确认
+  `Running/PrePaid`，Builder/Worker-C/F最后确认`Stopped/StopCharging/PostPaid`；当前
+  阿里云浏览器会话已过期，重新派发前必须完成只读登录与fresh资源读回，期间不得启动
+  任何PostPaid资源。

@@ -14195,3 +14195,131 @@ Colima, database, builder, restore and cloud actions remain frozen.
   DNS confirmation are not current gates. The unique next action after recovery
   push/readback is the four authenticated account gates, followed only if all
   remain current by the exact single dispatch.
+
+## Item 30 authenticated account-gate handoff (2026-08-24)
+
+- Current HEAD and upstream both equal
+  `203799dedbcc9d58d5441e0ffef66cbb67167ba0`; readiness remains internal
+  `29/29` and complete public `29/38`, with Item30 still unverified. The seven
+  protected paths remain present/untracked/unstaged. This handoff update is not
+  a checkpoint and must be included only with the eventual normal Item30
+  terminal checkpoint.
+- The user confirmed they are at the computer and available for security
+  verification and manually completed the Amap and Meituan logins. Root reused
+  the existing official Claude billing, Kimi account/API-key, Amap usage and
+  Meituan developer-token pages. No password, SMS code, QR content, cookie,
+  Token/Key value or raw account-secret value was read, copied or persisted.
+- Claude, Kimi and Amap now each have a Secret-free draft account binding with
+  authenticated identity hash, sufficient balance/quota, current official price
+  hash and a numeric provider-console pre-counter. Kimi shows three existing
+  credential-metadata rows and sufficient balance; its cumulative billed-cost
+  counter and current `kimi-k2.6` price were bound without printing their raw
+  account values. These are deliberately not frozen gates and must be refreshed
+  immediately before any dispatch.
+- Meituan authentication is complete and the official Token page shows one
+  existing credential row, but only exposes name, masked Token, creation date,
+  last-use date and actions. It exposes no account quota/balance, current price,
+  numeric usage counter or settlement entry. The installed official CLI invokes
+  exactly one Meituan open-catering query endpoint but exposes no metering,
+  rate-limit, price or settlement field. Token last-use date and local CLI
+  invocation count cannot honestly substitute for native quota/cost evidence.
+- The three persistent read-only reviewers were reused and reached the terminal
+  Item30 pre-dispatch decision. `dod_dependency_auditor` distinguishes the
+  original capped credential/quota/output/cost DoD from the later numeric-counter
+  tightening, but confirms an unpriced Meituan call still needs explicit funding
+  authority or official price evidence. `verification_evidence_reviewer` reports
+  that current v1 cannot form an honest Meituan native binding.
+  `risk_cost_resource_guard` therefore gives live dispatch `NO-GO`: the four-
+  provider executor is one non-replayable chain, so Claude/Kimi/Amap must not be
+  consumed first while Meituan remains unarmed.
+- No account-gate file or execution journal was created, no provider action was
+  dispatched, and provider/model/payment/business-database/DNS writes remain
+  zero. Actual incremental provider, payment and new-cloud cost remains
+  `CNY 0.000000`; there is no provider `UNKNOWN` to reconcile. The earlier single
+  API-C read-only preflight remains terminal and non-replayable.
+- Fresh console readback at `2026-08-24T15:33:51Z` has API-C/API-F
+  `Running / PrePaid`; Builder, Worker-C and Worker-F remain
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid compute count
+  is zero. No temporary paid resource is running. The two existing PrePaid API
+  nodes and existing Render Starter service remain the only continuing baseline
+  resources and were not changed.
+- Original Item30 DoD still remaining is the account-side Meituan quota/current-
+  price/cost boundary, four fresh arm-time gates, the one bounded production-path
+  call to each provider, output and usage/cost attribution, settlement,
+  zero-residue readback, terminal reviewer acceptance and the single normal
+  Evidence/Readiness/Risk/Handoff checkpoint. Item35 professional approval, any
+  Item36 continuing-cost resource and Item38 DNS confirmation remain future hard
+  stops; none is being awaited now.
+- This is a real external cost-authorization blocker. The unique next action is
+  either to obtain authoritative Meituan material for this account/Token showing
+  price/free basis, usable quota or balance and post-call cost/usage settlement,
+  or to receive explicit product-owner authorization for one Meituan call whose
+  unit price cannot be proved in advance and may exceed the current
+  `CNY 0.500000` provider cap. Until one of those occurs, Item30 stays unverified
+  and live dispatch remains forbidden.
+
+## Item 30 owner authorization and source refreeze (2026-08-25)
+
+- Current pre-refreeze HEAD and upstream both equal
+  `203799dedbcc9d58d5441e0ffef66cbb67167ba0`; readiness remains internal
+  `29/29`, public-launch `0/9`, and complete public `29/38`. Items1-29 remain
+  closed and were not rerun. The seven protected paths remain
+  present/untracked/unstaged and were not read or modified.
+- The product owner explicitly authorized Meituan acceptance as
+  `NOT_EXPOSED_BY_PROVIDER + exact-one`, one real call whose unit price cannot
+  be proved in advance, and the possibility that it exceeds the old Meituan
+  `CNY 0.500000` and Item30 total `CNY 1.000000` code thresholds. This narrow
+  authorization does not cover a second call, retry/fallback/UNKNOWN replay,
+  relaxing the Claude/Kimi/Amap `CNY 0.100000` caps, recharge/subscription/
+  payment changes, new or continuing resources, PostPaid start, Render deploy,
+  service restart, production business-data/user-data writes, DNS, or Item31+.
+- The same v1 executor/Evidence hierarchy now has one strict Meituan sentinel
+  branch: quota, price, native counter, usage, provider cost and settlement are
+  all `NOT_EXPOSED_BY_PROVIDER`; total/worst-case cost is not forged as zero,
+  owner override replaces the old numeric hard-cap claim, and `within_cap` is
+  `NOT_DETERMINABLE`. Claude, Kimi and Amap retain their same-account numeric
+  pre/post counters, settlements and combined `CNY 0.300000` cap. No helper,
+  receipt, adapter, external authority or schema version was added.
+- Dispatch order is Meituan first, then Claude, Kimi and Amap. Existing journal
+  fsync, maximum one dispatch per provider, zero retry/fallback, fixed public
+  query/output checks and UNKNOWN/no-replay rules remain. The shipped Meituan
+  path contains one `subprocess.run`; its test now asserts exact call count one.
+  An UNKNOWN Meituan result stops before any other provider and consumes the
+  sole authorization.
+- Root verification currently passes Item30 plus fact focused tests `34/34`,
+  shared internal-readiness tests `22/22`, related model-usage/billing tests
+  `24/24`, Claude Gateway tests `78/78`, Python compilation, `git diff --check`
+  and the internal gate. The gate remains internal `29/29` and complete public
+  `29/38`, with Item30 unverified. Three persistent read-only reviewers were
+  reused; their first diff review found only v1-shape, unknown-semantics,
+  malformed-input and stale-handoff P1 issues, all addressed before refreeze.
+  Their incremental source-refreeze review is P0/P1 zero and GO; this GO covers
+  only the exact six-file Secret-free commit/push/readback, not live dispatch.
+- No account-gate file or execution journal has been created and no provider
+  action has been dispatched. Provider/model/payment/business-database/DNS/
+  Render/service/cloud-resource writes are zero; incremental provider and new-
+  compute cost remains `CNY 0.000000`; there is no provider UNKNOWN or replay
+  boundary to reconcile. The earlier API-C read-only preflight remains terminal
+  and must not be replayed.
+- API-C/API-F were last freshly confirmed `Running / PrePaid`; Builder,
+  Worker-C and Worker-F were last freshly confirmed
+  `Stopped / StopCharging / PostPaid`, with no running stoppable PostPaid
+  compute. The Alibaba browser session expired during the 2026-08-25 refresh,
+  so no newer state is claimed; no cloud action was dispatched after the last
+  confirmed readback. Before any provider dispatch the user must complete the
+  official console security verification and root must read these resource
+  states again. No PostPaid resource may be started while waiting.
+- Because the owner authorization arrived after the already-pushed recovery
+  source and requires changing exact source-bound semantics, one further
+  Secret-free source refreeze is unavoidable before the irreversible call.
+  This is an exceptional owner-authorization recovery boundary, not Item30
+  terminal credit and not permission for more checkpoints. After push, root
+  must read back exact `HEAD == upstream` before generating any gate.
+- Original DoD still remaining is final source-review GO, source push/readback,
+  four simultaneously fresh account gates, the exact single production chain,
+  Claude/Kimi/Amap numeric settlement plus Meituan post disclosure snapshot,
+  zero-residue/resource readback, three-agent terminal acceptance, canonical
+  Evidence/Readiness/Risk/Handoff update and the one normal Item30 terminal
+  checkpoint. The unique next action is the exceptional source refreeze and
+  readback, followed by official-console reauthentication and four fresh gates;
+  live dispatch remains NO-GO until all are complete.
