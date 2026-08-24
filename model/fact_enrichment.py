@@ -765,7 +765,9 @@ def _search_serpapi(query: str) -> list[dict]:
     return items
 
 
-def _search_amap(query: str) -> list[dict]:
+def _search_amap(
+    query: str, *, max_detail_requests: int = 3,
+) -> list[dict]:
     key = os.environ.get("AMAP_WEB_KEY", "")
     region = _extract_region(query)
     keyword = _amap_keyword_from_query(query)
@@ -792,10 +794,12 @@ def _search_amap(query: str) -> list[dict]:
     ranked_pois.sort(key=lambda item: _amap_poi_rank(item, keyword, query), reverse=True)
 
     enriched_pois: list[dict] = []
+    detail_limit = max(0, min(3, int(max_detail_requests)))
     with httpx.Client(timeout=_TIMEOUT_SECONDS) as client:
-        for poi in ranked_pois[:3]:
+        for poi in ranked_pois[:detail_limit]:
             detail = _amap_fetch_v5_detail(client, key, _amap_scalar(poi.get("id")))
             enriched_pois.append(_merge_amap_detail(poi, detail) if detail else poi)
+    enriched_pois.extend(ranked_pois[detail_limit:3])
     return [_amap_poi_to_item(poi) for poi in enriched_pois]
 
 

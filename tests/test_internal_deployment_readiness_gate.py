@@ -4189,6 +4189,87 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(kwargs["root"], gate.ROOT)
         self.assertEqual(kwargs["expected_readiness"]["internal_verified_after"], 29)
 
+    def test_item30_credit_preserves_item26_to_item29_historical_snapshots(self):
+        candidate = copy.deepcopy(self.manifest)
+        provider = next(
+            control
+            for control in candidate["layers"][2]["controls"]
+            if control["id"] == "real_ai_provider_chain"
+        )
+        provider["status"] = "verified"
+        provider.pop("blocker")
+        provider.pop("next_task")
+        provider["evidence"] = [
+            {"kind": "git", "ref": "a" * 40},
+            {
+                "kind": "path",
+                "ref": (
+                    "deploy/production/evidence/"
+                    "production-real-ai-provider-chain-verified-20260824.json"
+                ),
+            },
+            {
+                "kind": "path",
+                "ref": "deploy/production/real_ai_provider_chain.py",
+            },
+            {
+                "kind": "path",
+                "ref": "model/fact_enrichment.py",
+            },
+            {
+                "kind": "path",
+                "ref": "tools/verify_real_ai_provider_chain_evidence.py",
+            },
+        ]
+        with mock.patch.object(
+            gate, "_verify_git_ref", return_value=True
+        ), mock.patch.object(
+            gate, "_verify_path", return_value=True
+        ), mock.patch.object(
+            gate,
+            "validate_real_ai_provider_chain_evidence",
+            return_value=[],
+        ) as validate:
+            gate.validate_manifest(candidate)
+
+        validate.assert_called_once()
+        _, kwargs = validate.call_args
+        self.assertEqual(
+            kwargs["expected_readiness"]["complete_public_verified_before"],
+            29,
+        )
+        self.assertEqual(
+            kwargs["expected_readiness"]["complete_public_verified_after"],
+            30,
+        )
+
+    def test_item30_credit_requires_dependency_and_semantic_verifier(self):
+        candidate = copy.deepcopy(self.manifest)
+        provider = next(
+            control
+            for control in candidate["layers"][2]["controls"]
+            if control["id"] == "real_ai_provider_chain"
+        )
+        provider["status"] = "verified"
+        provider.pop("blocker")
+        provider.pop("next_task")
+        provider["evidence"] = [{"kind": "path", "ref": "AGENTS.md"}]
+
+        with mock.patch.object(
+            gate,
+            "validate_real_ai_provider_chain_evidence",
+            return_value=["semantic sentinel"],
+        ):
+            with self.assertRaisesRegex(gate.ManifestError, "semantic sentinel"):
+                gate.validate_manifest(candidate)
+
+        provider["dependencies"] = ["real_payment_chain"]
+        with self.assertRaisesRegex(
+            gate.ManifestError,
+            "real_ai_provider_chain: verified dependency required",
+        ):
+            gate.validate_manifest(candidate)
+
     def test_unknown_and_cyclic_dependencies_fail(self):
         broken = copy.deepcopy(self.manifest)
         broken["layers"][1]["controls"][1]["dependencies"] = ["does_not_exist"]

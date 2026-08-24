@@ -14082,3 +14082,116 @@ Colima, database, builder, restore and cloud actions remain frozen.
   No receipt, checkpoint, external authority, adapter, new helper or added
   control layer was introduced. This work stops at internal `29/29`; the
   evidence schema's Item30 pointer does not authorize public Items30-38.
+
+## Item 30 public-launch takeover and read-only preflight (2026-08-24)
+
+- The takeover source is branch `codex/quality-stabilization-real-chain` at
+  `88cf86debb946fb596db2d5187ab57b32705bc2e`; the branch and its upstream were
+  equal at takeover. Items1-29 remain accepted and were not rerun. Current
+  readiness remains internal `29/29`, public-launch `0/9`, and complete public
+  `29/38`. The only active execution item is Item30
+  `PROD-FIRST-LAUNCH-PROVIDER-CHAIN-001`.
+- Three real, persistent read-only subagents were reused: `dod_dependency_auditor`
+  confirmed the original four-provider credential/quota/output/cost DoD;
+  `verification_evidence_reviewer` fixed the minimum executor, semantic
+  verifier and focused-test boundary; `risk_cost_resource_guard` froze one
+  dispatch per provider, retry/fallback zero, total incremental provider cost
+  at no more than `CNY 1.000000`, and PostPaid start count zero. None performed
+  a cloud write, provider call or file mutation.
+- Root dispatched exactly one Secret-free API-C Cloud Assistant read-only
+  preflight. It terminated `Success / exit=0` and proved the private managed
+  API env, production Claude Gateway/Kimi/Amap/Meituan credential-name
+  presence, one active/enabled API unit, one running API container, restart
+  count zero, live/ready 200, and Item30 task container/file residue zero. It
+  did not read credential values, connect to the production database, call a
+  provider, restart a service or create a resource. This completed invocation
+  is terminal and must not be replayed.
+- The existing Render Singapore service `noteai-prod-claude-gateway` remains on
+  its existing live release, Starter instance, production branch and
+  `/health/ready` contract; fresh provider-free health returned HTTP 200.
+  Render deployment count is zero and every `noteai-staging-*` service stayed
+  out of scope. Kimi account readback is signed in and proves balance above the
+  full Item30 cap plus a rate/token limit sufficient for one bounded call.
+  Claude and Amap account consoles currently require login; Meituan account-side
+  single-invocation price/quota still requires an authenticated readback.
+- Current resources remain API-C/API-F `Running / PrePaid`; Builder, Worker-C
+  and Worker-F remain `Stopped / StopCharging / PostPaid`; operation locks and
+  temporary compute/listener/security-group/peering/route counts remain zero.
+  Item30 provider calls, model tokens, production writes, payment/DNS changes
+  and incremental provider/cloud charges are all `0`. The two existing PrePaid
+  API nodes and existing Render Starter service continue in their prior state;
+  no new continuing-cost resource was created.
+- Original DoD still remaining: authenticated account-side quota/balance/current
+  price and pre-call counter readback for all four providers; one bounded
+  successful production-path call each to Claude, Kimi, Amap and Meituan;
+  output shape/hash, exact AI usage/cost attribution, provider counter/cost
+  settlement, final zero-residue/resource readback, subagent terminal review,
+  and the single canonical Item30 Evidence/Readiness/Risk/Handoff update.
+  Any dispatched UNKNOWN result is non-replayable and must be reconciled only
+  from the provider-native counter.
+- No professional-signature, long-term-cost or DNS approval is being awaited
+  for the repository work. Authenticated Claude/Amap/Meituan console readback
+  may require the user to complete login/MFA; Item35 professional approval,
+  any Item36 continuing-cost resource and Item38 DNS confirmation remain future
+  hard stops. The unique next action is to push and read back the one allowed
+  Secret-free pre-call recovery checkpoint, then complete all four fresh
+  authenticated account gates before the exact single provider dispatch.
+
+## Item 30 Secret-free pre-call recovery boundary (2026-08-24)
+
+- This is the one permitted recovery checkpoint before irreversible provider
+  dispatch, not the Item30 normal terminal checkpoint and not Readiness credit.
+  Its source parent is branch `codex/quality-stabilization-real-chain` with
+  pre-checkpoint HEAD and upstream both equal
+  `88cf86debb946fb596db2d5187ab57b32705bc2e`; after push, the commit containing
+  this section must itself be read back as exact `HEAD == upstream` before any
+  account gate or dispatch. Internal readiness remains `29/29`, public-launch
+  remains `0/9`, and complete public remains `29/38`; Items1-29 stay closed.
+- The frozen source is the existing C17 production application plus exactly two
+  source-bound read-only overlays: the Item30 executor and
+  `model/fact_enrichment.py`. The executor requires `/result` to be a
+  host-persistent Docker bind, forbids tmpfs/overlay state, fixes usage SQLite
+  to `/dev/shm`, arms an `O_EXCL`/fsynced journal before every dispatch, permits
+  one call per provider with retry/fallback zero, and emits only the canonical
+  Secret-free `{executor_result_sha256,status}` terminal summary. A named Docker
+  volume is forbidden by the live wrapper/readback; temporary volume and final
+  volume residue must both be zero.
+- All four arm-time gates bind fresh account identity, quota/balance, current
+  price snapshot, native pre-counter, source revision and both source SHA-256
+  values. Provider-specific counter kind/unit/direction is rejected before
+  backend creation or journal arming when invalid. Claude/Kimi require the exact
+  `NOTEAI_OK` sentinel; Amap/Meituan require one structured result matching both
+  the target hotel and Shenzhen. Terminal credit additionally requires exact
+  integer dispatch counts, same-account native post-counter and settlement,
+  settlement no later than Evidence observation, settlement within the armed
+  cap, and zero business-database/content/resource residue. Any post-arm,
+  cleanup or terminal uncertainty is `UNKNOWN` and is never replayed.
+- The three persistent read-only reviewers independently report recovery GO
+  with P0/P1 zero. Current focused verification passes Item30 `18/18`, shared
+  readiness gate `22/22`, fact/model-usage/billing `34/34`, and Claude Gateway
+  boundary `3/3`; Python compilation, diff check and the internal gate also
+  pass. The gate still reports internal `29/29` and complete public `29/38` with
+  Item30 unverified. The complete public gate was intentionally not rerun before
+  Item38.
+- No provider request, model token, payment, DNS, production business-database
+  connection/write, Render deploy, service restart, PostPaid start or cloud
+  resource creation occurred while building this checkpoint. Incremental
+  provider and new-compute cost remain `CNY 0.000000`. The future Claude call is
+  expected to use the existing Gateway control plane and its 30-day terminal
+  record under the existing FIN-003 budget; that expected activity must not be
+  mislabeled as absolute zero cloud activity or a per-call settlement.
+- Fresh console readback has API-C/API-F `Running / PrePaid`; Builder, Worker-C
+  and Worker-F remain `Stopped / StopCharging / PostPaid`. Temporary compute,
+  listener, security-group, peering, route, task container/file and operation
+  lock counts remain zero. The earlier single API-C read-only preflight remains
+  terminal `Success / exit=0` and is not replayable; no live provider action has
+  been dispatched, so there is no provider `UNKNOWN` to reconcile.
+- Original DoD remaining is exactly four fresh authenticated account gates,
+  the one bounded production-path call to each provider, native counter/cost
+  settlement, zero-residue readback, canonical terminal Evidence and the normal
+  Item30 Readiness/Risk/Handoff checkpoint. Claude/Amap/Meituan login or MFA may
+  require the user; Kimi must also be refreshed immediately before dispatch.
+  Item35 professional approval, any Item36 continuing-cost resource and Item38
+  DNS confirmation are not current gates. The unique next action after recovery
+  push/readback is the four authenticated account gates, followed only if all
+  remain current by the exact single dispatch.

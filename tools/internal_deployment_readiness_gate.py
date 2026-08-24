@@ -40,6 +40,9 @@ from verify_internal_failure_rollback_evidence import (
 from verify_capacity_100_jobs_evidence import (
     validate_manifest_evidence as validate_capacity_100_jobs_evidence,
 )
+from verify_real_ai_provider_chain_evidence import (
+    validate_manifest_evidence as validate_real_ai_provider_chain_evidence,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -473,7 +476,7 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
         )
         public_before = sum(
             control["status"] == "verified"
-            for control in all_controls
+            for control in internal_controls
             if control["id"] not in deferred
         )
         _require(
@@ -521,7 +524,7 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
         )
         public_before = sum(
             control["status"] == "verified"
-            for control in all_controls
+            for control in internal_controls
             if control["id"] not in {
                 "internal_zero_provider_smoke",
                 "internal_failure_rollback",
@@ -591,7 +594,7 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
         )
         public_before = sum(
             control["status"] == "verified"
-            for control in all_controls
+            for control in internal_controls
             if control["id"] not in {
                 "internal_failure_rollback",
                 "capacity_100_jobs",
@@ -654,7 +657,7 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
         )
         public_before = sum(
             control["status"] == "verified"
-            for control in all_controls
+            for control in internal_controls
             if control["id"] != "capacity_100_jobs"
         )
         _require(
@@ -687,6 +690,40 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
             not capacity_errors,
             "capacity_100_jobs: invalid semantic evidence: "
             + (capacity_errors[0] if capacity_errors else ""),
+        )
+
+    provider_chain = controls_by_id.get("real_ai_provider_chain") or {}
+    if provider_chain.get("status") == "verified":
+        _require(
+            all(
+                (controls_by_id.get(dependency) or {}).get("status")
+                == "verified"
+                for dependency in provider_chain.get("dependencies", [])
+            ),
+            "real_ai_provider_chain: verified dependency required",
+        )
+        expected_readiness = {
+            "internal_verified_before": 29,
+            "internal_verified_after": 29,
+            "internal_total": 29,
+            "internal_percentage_after": 100,
+            "complete_public_verified_before": 29,
+            "complete_public_verified_after": 30,
+            "complete_public_total": 38,
+            "complete_public_percentage_after": 79,
+            "next_task": "PROD-FIRST-LAUNCH-PAYMENT-REAL-001",
+            "public_launch_authorized": False,
+            "real_provider_chain_verified": True,
+        }
+        provider_errors = validate_real_ai_provider_chain_evidence(
+            provider_chain.get("evidence"),
+            root=root,
+            expected_readiness=expected_readiness,
+        )
+        _require(
+            not provider_errors,
+            "real_ai_provider_chain: invalid semantic evidence: "
+            + (provider_errors[0] if provider_errors else ""),
         )
 
     for control_id, control in controls_by_id.items():

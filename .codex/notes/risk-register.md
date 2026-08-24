@@ -3887,3 +3887,36 @@ Last updated: 2026-08-19
   是renderer测试中provider credential名称的测试字面量，并非Secret；最小修复改为
   运行时拼接同一名称，拒绝credential的双断言未放宽。
   没有新增receipt、checkpoint、external authority、adapter、helper或控制层。
+
+## Item 30 pre-call no-replay and settlement boundary (2026-08-24)
+
+- 状态: source mitigated / live dispatch gated / Item30仍`unverified`，内部
+  `29/29`、完整公开`29/38`。本节点只是不可逆provider调用前唯一允许的
+  Secret-free恢复checkpoint，不是terminal credit。provider、payment、DNS、生产业务库
+  connection/write、Render deploy、service restart、PostPaid start和新云资源均为0；
+  provider与新增compute费用均为`CNY 0.000000`。
+- 防重放: `/result`必须是host-persistent bind，executor以`O_EXCL`和fsync写入唯一
+  journal，并在每家调用前落盘`DISPATCHING`。已有结果拒绝再次create；任意post-arm、
+  cleanup或terminal不确定均为`UNKNOWN`并停止后续provider，禁止重放，只能依原账号
+  native counter/settlement对账。named volume、tmpfs/overlay result、临时volume和最终
+  volume residue均不允许；usage SQLite只存在于固定`/dev/shm`路径并必须清零。
+- 账户/费用门: 四家都必须在执行前提供同账号identity、quota/balance、当前price
+  snapshot和native pre-counter；gate生成不超过30分钟且开跑时至少剩7分钟。
+  provider-specific kind/unit/direction在backend或journal创建前fail closed。每家只允许
+  一次dispatch，自动retry/fallback为0；Claude/Kimi/Amap上限各`CNY 0.100000`、Meituan
+  上限`CNY 0.500000`、总上限`CNY 1.000000`。terminal settlement必须在Evidence
+  observed之前、同账号、受本次gate cap约束并与应用usage/cost对齐。
+- 证据误PASS风险已闭合: future settlement、JSON bool冒充计数、任意Meituan/Amap
+  counter语义、畸形nested counter、source SHA漂移、第二次执行、provider stdout原文、
+  named volume和清理残留均由既有v1 executor/verifier/Evidence结构直接拒绝；没有新增
+  receipt、helper、adapter、外部authority或schema版本。三名只读reviewer最终均为
+  P0/P1零和recovery GO；Item30 `18/18`、shared gate `22/22`、相关事实/计费`34/34`、
+  Gateway边界`3/3`、compile、diff-check与internal gate均PASS。
+- 资源/持续费用: fresh readback保持API-C/API-F `Running/PrePaid`，Builder和Worker-C/F
+  `Stopped/StopCharging/PostPaid`，临时compute/listener/SG/peering/route/task residue与
+  operation lock均0。未来Claude调用会使用既有Gateway control plane和30日terminal
+  record，属于既有FIN-003预算、无per-call settlement；只能报告新增compute为0，不能
+  把实际Gateway请求活动或所有云费用表述为绝对0。
+- 唯一剩余风险/下一动作: recovery commit push后先读回`HEAD == upstream`，再完成四家
+  fresh authenticated account gates。Claude/Amap/Meituan可能需要登录/MFA，Kimi也须
+  临执行刷新；任一门缺失时live dispatch维持NO-GO且Readiness保持`29/38`。
