@@ -860,6 +860,67 @@ class Item30EvidenceVerifierTests(unittest.TestCase):
             verifier.validate_document(evidence_fixture(), verify_git=False), []
         )
 
+    def test_application_image_binding_rejects_cad5_and_mixed_identities(self):
+        self.assertEqual(
+            verifier.APPLICATION_RELEASE_REVISION,
+            "b55f11882100e9ef919522540729e366a511f88f",
+        )
+        self.assertEqual(
+            verifier.APPLICATION_MANIFEST_SHA256,
+            "612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+        )
+        self.assertEqual(
+            verifier.APPLICATION_CONFIG_SHA256,
+            "dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53",
+        )
+        cad5 = {
+            "application_release_revision": (
+                "cad5ce35664f617c6e19f90a6159285ddf975594"
+            ),
+            "application_manifest_sha256": (
+                "407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b"
+            ),
+            "application_config_sha256": (
+                "1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95"
+            ),
+        }
+        cases = (
+            (cad5, "application release revision mismatch"),
+            (
+                {
+                    "application_manifest_sha256": cad5[
+                        "application_manifest_sha256"
+                    ]
+                },
+                "application manifest mismatch",
+            ),
+            (
+                {
+                    "application_config_sha256": cad5[
+                        "application_config_sha256"
+                    ]
+                },
+                "application config mismatch",
+            ),
+            (
+                {
+                    "application_release_revision": cad5[
+                        "application_release_revision"
+                    ]
+                },
+                "application release revision mismatch",
+            ),
+        )
+        for replacements, expected in cases:
+            with self.subTest(replacements=replacements):
+                value = evidence_fixture()
+                value["source_binding"].update(replacements)
+                value["terminal_acceptance_sha256"] = (
+                    verifier.terminal_acceptance_sha256(value)
+                )
+                errors = verifier.validate_document(value, verify_git=False)
+                self.assertIn(expected, errors)
+
     def test_legacy_self_asserted_shape_cannot_receive_credit(self):
         value = evidence_fixture()
         value.pop("execution")

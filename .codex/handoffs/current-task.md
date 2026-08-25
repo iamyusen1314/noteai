@@ -14260,8 +14260,10 @@ Colima, database, builder, restore and cloud actions remain frozen.
 
 ## Item 30 owner authorization and source refreeze (2026-08-25)
 
-- Current pre-refreeze HEAD and upstream both equal
-  `203799dedbcc9d58d5441e0ffef66cbb67167ba0`; readiness remains internal
+- The exceptional Secret-free refreeze was pushed and read back with current
+  HEAD and upstream both exactly
+  `314e7b695468d888cc285f09f7315a2d8c2cceb0`; its parent was
+  `203799dedbcc9d58d5441e0ffef66cbb67167ba0`. Readiness remains internal
   `29/29`, public-launch `0/9`, and complete public `29/38`. Items1-29 remain
   closed and were not rerun. The seven protected paths remain
   present/untracked/unstaged and were not read or modified.
@@ -14323,3 +14325,179 @@ Colima, database, builder, restore and cloud actions remain frozen.
   checkpoint. The unique next action is the exceptional source refreeze and
   readback, followed by official-console reauthentication and four fresh gates;
   live dispatch remains NO-GO until all are complete.
+
+## Item 30 sole-successor pre-dispatch refusal and authorization blocker (2026-08-25)
+
+- Current HEAD and upstream remain exactly
+  `314e7b695468d888cc285f09f7315a2d8c2cceb0`. Internal readiness remains
+  `29/29`, public-launch remains `0/9`, and complete public readiness remains
+  `29/38`; Item30 is `unverified / blocked`. Items1-29 were not rerun or
+  reopened. The seven protected paths remain present/untracked/unstaged and
+  were not read, modified, staged or committed. No canonical Item30 Evidence,
+  manifest credit or normal Item30 checkpoint was created for this failure.
+- The first provider-chain command `c-sz06v0at00g5kao` / invocation
+  `t-sz06v0at00q55og` terminated `Failed / exit=1` before source, environment,
+  journal, container or provider dispatch because the transferred gate lacked
+  its final LF byte. Read-only reconciliation proved provider activity zero;
+  exact cleanup invocation `t-sz06v0c2br0aqdc` removed only that Secret-free
+  stale task and read back zero residue. This command is terminal and must not
+  be replayed.
+- After a corrected idempotent preflight passed, the sole authorized corrected
+  successor used fresh task/nonce `0b3c790a44afb231`, LF-terminated gate SHA
+  `599e1d0f66193e776ff08d7470533bd8db03dbd675913512609e9f7a008d13d2`,
+  wrapper SHA
+  `17c342064838618af33e1e54647157ebbe887d1ea27716bbd0603a5b5f165199`,
+  executor SHA
+  `ff8444cc2f04be482a063a41b617f84764bc123e4001b28fe10d5a325c3df9b8`
+  and fact-overlay SHA
+  `9e14b03c5ddb16ad960b60b282ecb0f5cd9545903e10456d78254cd42f1d28a4`.
+  Command `c-sz06v0d6x4u8ohs` / invocation `t-sz06v0d6x5j7ny8` terminated
+  `Failed / exit=78` in under one second. It is the sole corrected successor,
+  is terminal, and permanently exhausts the current provider-chain command
+  authority even though no provider was reached.
+- Read-only invocation `t-sz06v0ddbwjjdvk` found exactly the fresh 3,160-byte
+  gate plus one 45-byte stderr file and no execution journal/result/final,
+  source directory, provider env, task container or named volume. The stderr
+  SHA
+  `6dfcb1ae9d9167cd7cf865e4374edf4d4d450b4e692181cc3eee1888792a04d7`
+  exactly equals the tracked live b55 API entrypoint refusal text
+  `command is not allowed for this runtime role\n`. The fixed API-image
+  entrypoint only allows the API start and predeploy commands, so it rejected
+  the Item30 executor before executor startup or provider dispatch. API-C
+  remained running with restart count zero.
+- The authenticated Claude, Kimi, Amap and Meituan account-console pages were
+  each reloaded after the terminal failure and remained byte-for-byte identical
+  to their respective fresh pre-call snapshots. Their snapshot SHA-256 values
+  are respectively
+  `00a16f7d9a4c89932c31b241c11606559c74f130af494aee7721ff5c11c4f06f`,
+  `2ecf9b74624a906c0c8f5c3825805c4b80c459706282503afa0b30b5ffeed2cd`,
+  `ef81ba796619641a44bef5f70cdf2640d2351365544c1e8723756a2235cbf90d`
+  and
+  `6f74d73656ee0ee5443eac76435168c84e3db4e3392664c5e8cb82c49998955b`.
+  Calls, model tokens, requests, Meituan metadata change, funds and provider
+  cost therefore all remain zero. The owner-authorized Meituan exact-one
+  provider call itself was not consumed, but that cost authorization does not
+  authorize a third Cloud Assistant provider-chain command.
+- Exact Secret-free cleanup command `c-sz06v0e1g0onjeo` / invocation
+  `t-sz06v0e1g13mxhc` terminated `Success / exit=0`. It verified both file
+  identities, deleted only the gate and stderr plus their two controlled
+  directories, and read back task/container/named-volume residue zero. The
+  deleted Secret-free files are unrecoverable from the host; their identities
+  and terminal Cloud Assistant history remain recorded. No credential,
+  production database, SQLite, lock or user-data residue was created.
+- Fresh resource readback after cleanup has API-C/API-F
+  `Running / PrePaid` and Builder/Worker-C/Worker-F
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid compute is
+  zero. Render still shows `noteai-prod-claude-gateway` on unchanged revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`; deployment count is zero and no
+  staging service was acted on. New PostPaid compute cost and actual provider
+  cost are both `CNY 0.000000`; the existing PrePaid nodes and Render Starter
+  baseline continue and are not described as absolute zero cloud cost.
+- The three persistent reviewers were reused for terminal read-only review.
+  `dod_dependency_auditor` and `verification_evidence_reviewer` both reject
+  Item30 credit because the original four real outputs and settlements never
+  occurred. `risk_cost_resource_guard` reports P0 zero, P1 safety/cleanup zero,
+  one release blocker, StopCharging closed and zero task/container/volume
+  residue. They agree that neither failed command may be replayed and that no
+  third provider-chain attempt is currently authorized.
+- For a newly authorized recovery path, `dod_dependency_auditor` and
+  `risk_cost_resource_guard` recommend an exact wrapper-only entrypoint override
+  because it changes no repository source, image, service or persistent command
+  surface. `verification_evidence_reviewer` instead recommends a tracked exact
+  allowlist plus a third read-only overlay so the image role-marker and artifact
+  loader gates remain in path. As CTO, root selects the wrapper-only path as the
+  shortest conditional recovery because the production image specification
+  explicitly places administrator entrypoint overrides behind platform IAM and
+  service-definition authority, and the project already records such overrides
+  as separately approved one-shot exceptions. This choice is still NO-GO until
+  the owner explicitly accepts that the one ephemeral acceptance container
+  skips the default role allowlist and artifact-loader entrypoint stages. If
+  authorized, immutable image/config/user identity, exact absolute Python argv,
+  read-only root, dropped capabilities, no-new-privileges, exact env/network/
+  binds, source SHA gates and the O_EXCL journal must provide the compensating
+  boundary; shell, `-c`, alternate argv and any second successor remain banned.
+- Original Item30 DoD remaining is unchanged: four simultaneous fresh account
+  gates, exactly one successful production-path call per provider, real outputs,
+  Claude/Kimi/Amap numeric post-counter settlement plus the authorized Meituan
+  disclosure sentinel, usage/cost attribution, terminal cleanup/resource
+  readback, canonical Evidence and normal Item30 checkpoint. No MFA,
+  professional signature, long-term-resource approval or DNS confirmation is
+  currently awaited. The sole blocker is new product-owner authority for one
+  fresh command/new task/new nonce/new gates and an explicitly reviewed
+  runtime-entry path. Until that authority is granted, the unique next action
+  is to report this blocker and keep Item30 at `29/38`; no additional provider
+  command, entrypoint override, image change or provider call may occur.
+
+## Item 30 one-shot wrapper-only successor authorization (2026-08-25)
+
+- The product owner explicitly replied
+  `确认授权一次性 wrapper-only 后继`. This clears only the prior command-attempt
+  blocker and authorizes exactly one fresh, non-replayable Item30 Cloud
+  Assistant provider-chain successor on API-C. It accepts that only this
+  ephemeral acceptance container may replace the live API image's default
+  entrypoint with the image's exact absolute Python executable and run only
+  `-I -B /app/item30-executor.py`, thereby skipping the default entrypoint's
+  runtime-role allowlist and artifact-loader stages.
+- The authority does not permit reuse of either terminal command, shell or
+  `-c`, alternate argv, retry/fallback, a second successor, image pull/build/
+  push/deploy, runtime executor/fact/provider behavior/allowlist/schema changes,
+  live API mutation or restart,
+  PostPaid start, new or continuing-cost resources, recharge/subscription/
+  payment changes, production business-database writes, Render changes or DNS.
+  It retains Meituan first and exact-one with price not exposed and possibly
+  above the former `CNY 0.500000`/aggregate `CNY 1.000000` thresholds;
+  Claude/Kimi/Amap remain each capped at `CNY 0.100000` and together at
+  `CNY 0.300000`.
+- Fresh native readback corrected a review-time identity error: the only
+  in-scope carrier, and the image actually selected by the failed corrected
+  wrapper, is the live API-C `api` image at revision
+  `b55f11882100e9ef919522540729e366a511f88f`, manifest
+  `sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620`
+  and config
+  `sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53`.
+  The separately cached cad5/407eef/1f503 C17 image is role `ai-worker`, not
+  `api`, and is explicitly forbidden for Item30. Earlier Item30 text calling
+  the carrier "C17" is retained as historical wording and is superseded by
+  this direct control-plane readback; no prior provider or safety event used
+  the cached ai-worker image.
+- Five Secret-free, read-only Cloud Assistant diagnostics under the new
+  authority established that correction without starting a task container or
+  calling a provider: `t-sz06v23trez0bnk` refused the obsolete C17 expectation;
+  `t-sz06v23wynjvhmo` proved the live b55 API identity;
+  `t-sz06v2434nrzv9c` proved cached C17 is role `ai-worker`;
+  `t-sz06v247mxnis5c` refused only because Docker rendered the inherited
+  healthcheck start period as `45s`; and `t-sz06v24zlehoidc` refused only at an
+  over-specific `/usr/local/bin/python` symlink-target assertion. The last
+  preflight already passed immutable b55 identity, role, user, workdir and
+  inherited-healthcheck detection before that refusal. These terminal
+  diagnostics created Cloud Assistant command-history records but changed no
+  production service, runtime, credential, database or provider state, incurred
+  no provider/PostPaid cost, created no controlled task/container/volume/file
+  residue and did not consume the sole provider-chain successor.
+- Before consuming the authority, root must read back that immutable live API
+  image/manifest/config, API runtime identity and absolute Python path; freeze
+  config `sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53`
+  with `--pull=never`; freeze exact user/workdir/role, read-only root, dropped
+  capabilities, no-new-privileges, network/env/binds and empty persistent
+  result; and force `--no-healthcheck`. Fresh effective-container inspection
+  must prove Healthcheck disabled and healthcheck process count zero before the
+  sole start, so no inherited `python -c` can execute.
+- The pre-refreeze HEAD and upstream are both
+  `314e7b695468d888cc285f09f7315a2d8c2cceb0`. The four-file b55 Evidence-binding
+  correction in the verifier, focused test, this Handoff and the Risk register
+  is the only further final pre-dispatch Secret-free source refreeze authorized
+  under this successor authority; it changes no runtime
+  executor, fact overlay, provider behavior, schema or allowlist. Root must push
+  it and read back new `HEAD == upstream` before generating any new task, nonce
+  or gate.
+- Root must then re-establish API/Render/ECS resource baselines; generate a new
+  task/nonce and four simultaneous fresh account gates; prove wrapper/gzip/
+  source/gate byte identities and syntax; and obtain GO from the same three
+  persistent reviewers. Before any wait, disconnection or end, exact cleanup
+  must read back API-C/API-F `Running / PrePaid`, Builder/Worker-C/Worker-F
+  `Stopped / StopCharging / PostPaid`, running stoppable PostPaid zero, and
+  controlled task/container/volume/file residue zero. No provider call or
+  production mutation has occurred under the new authority. Readiness remains
+  `29/38`; the unique next action after checkpoint push/readback is the complete Secret-free preflight
+  and four fresh account gates, followed only on unanimous P0/P1-zero GO by the
+  one authorized successor.

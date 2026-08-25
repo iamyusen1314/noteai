@@ -3949,3 +3949,86 @@ Last updated: 2026-08-19
   `Running/PrePaid`，Builder/Worker-C/F最后确认`Stopped/StopCharging/PostPaid`；当前
   阿里云浏览器会话已过期，重新派发前必须完成只读登录与fresh资源读回，期间不得启动
   任何PostPaid资源。
+
+## Item 30唯一successor在provider前被runtime-role拒绝（2026-08-25）
+
+- 终态: Item30=`unverified / blocked`，完整Readiness保持`29/38`，不得创建PASS
+  Evidence或修改manifest。首个缺LF命令与唯一corrected successor均已明确终态；当前
+  provider-chain command authority已耗尽，禁止第三次命令、盲重放或把未消耗的Meituan
+  exact-one费用授权解释为新command授权。
+- 独立根因: corrected successor `c-sz06v0d6x4u8ohs` /
+  `t-sz06v0d6x5j7ny8`在小于1秒内`Failed / exit=78`。readback只发现fresh gate和
+  45-byte stderr；该stderr SHA
+  `6dfcb1ae9d9167cd7cf865e4374edf4d4d450b4e692181cc3eee1888792a04d7`
+  与tracked live b55 API entrypoint固定拒绝文本完全一致。journal/result/final/source/env/
+  container/volume均不存在，故失败发生在executor和provider dispatch之前，不是
+  provider UNKNOWN。
+- 费用与账号对账: Claude、Kimi、Amap、Meituan四个authenticated console在reload后
+  与各自fresh pre snapshot byte-identical。真实call、model token、request、Meituan
+  metadata、资金与provider费用增量均为0。只能称actual provider cost和新增PostPaid
+  compute cost为`CNY 0.000000`；既有PrePaid API节点和Render Starter基线持续存在，
+  不得表述为所有云成本绝对为0。
+- 清理与资源: exact cleanup `c-sz06v0e1g0onjeo` /
+  `t-sz06v0e1g13mxhc`为`Success / exit=0`，只删除受控2 files + 2 dirs，task、container、
+  named volume、credential、SQLite、lock及用户数据残留均为0。fresh ECS读回保持API-C/F
+  `Running/PrePaid`，Builder/Worker-C/F `Stopped/StopCharging/PostPaid`，running stoppable
+  PostPaid=0。Render production gateway revision未变、deploy=0；未操作staging。
+- 三agent终审: DoD与Verification均拒绝Readiness credit；Risk结论为P0=0、P1安全/
+  清理finding=0、release blocker=1。任何后续attempt都必须先由owner显式授权exactly
+  one fresh command/new task/new nonce/new four gates，并单独冻结runtime-entry安全路径；
+  还必须再次接受Meituan价格不可事前判定且可能超过旧单项`CNY 0.500000`和Item30总
+  `CNY 1.000000`，同时保持Claude/Kimi/Amap各`CNY 0.100000`及合计`CNY 0.300000`边界。
+  新授权不得隐含retry/fallback、第二次successor、充值/订阅、PostPaid启动、Render/
+  service/DB/DNS写入。获批前唯一动作是报告blocker；不得自行选择`--entrypoint`绕过、
+  扩大allowlist、构建/部署新image或再次调用provider。
+- 恢复路径交叉审计存在一个已记录分歧：DoD和Risk reviewer认为fresh owner授权下的
+  exact wrapper-only override写入最少且无持久攻击面；Verification reviewer认为应保留
+  默认entrypoint的role-marker/allowlist/artifact-loader全链，建议tracked exact allowlist
+  +第三个RO overlay。CTO基于production image spec将管理员entrypoint override明确置于
+  platform IAM/service-definition边界、以及本risk register要求“一次一批”的既有先例，
+  条件选择wrapper-only最短路径。该选择不是当前授权：owner必须另行明确接受临时容器
+  跳过默认entrypoint三层的风险；获批后以immutable image/config/user、绝对Python+
+  exact argv、RO root、cap-drop、no-new-privileges、exact env/network/binds、source SHA及
+  O_EXCL journal补偿。未获批前仍NO-GO。
+
+## Item 30一次性wrapper-only后继已获明确授权（2026-08-25）
+
+- Owner已逐字确认`确认授权一次性 wrapper-only 后继`。授权只允许API-C上一个全新
+  task/nonce/four fresh gates的不可重放successor，并明确接受仅该ephemeral container
+  以image内absolute Python + exact argv `-I -B /app/item30-executor.py`跳过live API
+  image默认entrypoint的runtime-role allowlist与artifact-loader阶段。旧两次命令仍
+  terminal且禁止复用；新command提交瞬间即消耗全部successor authority。
+- Fresh native readback纠正了review假设：唯一允许carrier是API-C当前live `api` image
+  `b55f11882100e9ef919522540729e366a511f88f` / manifest
+  `sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620` /
+  config `sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53`。
+  cached cad5/407eef/1f503为`ai-worker`，对Item30绝对NO-GO；历史Item30“C17 carrier”
+  表述由本条覆盖，旧wrapper实际也从live API-C解析b55，未发生旧image安全事件。
+- 新授权下五个Secret-free只读Cloud Assistant diagnostics仅建立镜像与预检事实：
+  `t-sz06v23trez0bnk`拒绝旧C17预期，`t-sz06v23wynjvhmo`证明live b55 API，
+  `t-sz06v2434nrzv9c`证明cached C17为`ai-worker`，`t-sz06v247mxnis5c`仅因Docker将
+  Healthcheck StartPeriod渲染为`45s`而拒绝，`t-sz06v24zlehoidc`仅因过度限定
+  `/usr/local/bin/python` symlink target而拒绝。它们留下Cloud Assistant command history，
+  但未创建task container、未调用provider、未改变production service/runtime/credential/
+  DB、未启动PostPaid且controlled residue=0；不消耗唯一provider-chain successor。
+- 补偿边界必须在提交前全部为真：immutable b55 API image/manifest/config、user/workdir/
+  role和absolute Python identity；RO root、cap-drop ALL、no-new-privileges、无privileged/
+  Docker socket/public port；以config
+  `sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53`
+  和`--pull=never`冻结carrier；exact network/env/two RO source binds + empty persistent result
+  bind；wrapper强制`--no-healthcheck`且fresh effective-container inspect必须证明Healthcheck
+  disabled、healthcheck process count=0；source/gate/wrapper byte identity；O_EXCL journal；
+  Meituan首个exact-one、其余各一次、retry/fallback=0。任一失败、timeout、断线、UNKNOWN或
+  cleanup不确定永久停止。
+- 费用/变更边界不变：Meituan价格不可事前判定且可能超过旧`CNY 0.500000`及aggregate
+  `CNY 1.000000`，Claude/Kimi/Amap各`<= CNY 0.100000`且合计
+  `<= CNY 0.300000`。不授权shell/`-c`/alternate argv、第二successor、image或allowlist
+  变化、build/push/deploy/restart、PostPaid启动、充值/订阅/支付、生产业务DB、Render或
+  DNS。本次仅允许在pre-refreeze HEAD/upstream
+  `314e7b695468d888cc285f09f7315a2d8c2cceb0`之上形成一次四文件Secret-free b55
+  Evidence-binding refreeze；不得改变runtime executor/fact/provider行为/allowlist/schema，
+  且必须push并读回新`HEAD == upstream`后才能生成fresh task/nonce/gates。任何等待、断线
+  或结束前必须exact cleanup并读回API-C/F `Running/PrePaid`、Builder/Worker-C/F
+  `Stopped/StopCharging/PostPaid`、running stoppable PostPaid=0及controlled task/container/
+  volume/file residue=0。当前尚未在新授权下产生provider调用或production mutation；
+  Readiness仍为`29/38`。
