@@ -1,0 +1,18 @@
+[Unit]
+Description=NoteAI one-shot exact Durable AI Worker acceptance
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+Restart=no
+RuntimeMaxSec=360
+TimeoutStartSec=360
+TimeoutStopSec=45
+KillMode=process
+Environment=DOCKER_CONTEXT=default
+ExecStartPre=/usr/bin/test -f /etc/noteai/ai-worker.env
+ExecStartPre=/usr/bin/test -f /etc/noteai/private-storage.env
+ExecStartPre=/usr/bin/docker image inspect @@NOTEAI_AI_WORKER_IMAGE@@
+ExecStart=/usr/bin/docker run --pull=never --rm --name=noteai-ai-worker-acceptance --label=com.noteai.acceptance=durable-ai-v1 --user=999:999 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network=bridge --ipc=private --memory=1536m --cpus=1.0 --pids-limit=96 --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999 --env-file=/etc/noteai/ai-worker.env --env-file=/etc/noteai/private-storage.env --env=NOTEAI_RUNTIME_ROLE=ai-worker --env=NOTEAI_DEPLOYMENT_STAGE=production --env=NOTEAI_CLOUD_RUNTIME=1 --env=NOTEAI_DURABLE_AI_COMPONENT=worker --env=NOTEAI_DURABLE_AI_SUSPENDED=0 --env=NOTEAI_DURABLE_AI_PROCESSOR=internal-acceptance-v1 --env=NOTEAI_DURABLE_AI_ACCEPTANCE_MODE=1 --env=NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID=@@NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID@@ --env=NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION=@@NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION@@ @@NOTEAI_AI_WORKER_IMAGE@@ python durable_ai_worker.py --worker-once
+ExecStop=/usr/bin/docker container stop --time=30 noteai-ai-worker-acceptance

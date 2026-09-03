@@ -331,3 +331,44 @@ Round09 验证记录：
 - `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`：104 项通过。
 - `.venv/bin/python tools/quality_gate.py quality/quality_gate_cases.v04_round06_food_travel.json --json`：通过。
 - `.venv/bin/python model/train_v04_composite.py --json`：正确阻断，`do_not_deploy=true`。
+
+2026-06-28 真实链路质量稳定化 Round01：
+
+- 当前生产模型以 `model/artifacts/model_v04_composite_train_report.json` 的 run `20260628T013926Z` 为准，训练报告 `deployment_gate.passed=true`、`training_policy.do_not_deploy=false`。后续重心从继续凑 Golden 转向真实链路稳定化：截图上传、手动上传、视频上传、爆文生成、流式生成和对话优化都必须稳定使用 V0.4 质量内核、事实源和多行业 brief。
+- 同步训练健康工具口径：`tools/v04_training_data_health.py` 与 `tools/v04_composite_readiness.py` 的生产 Golden 默认线更新为当前接受线 `600/行业`；重建 `model/artifacts/v04_training_data_health.json` 与 `model/artifacts/v04_composite_readiness.json` 后均为 `production_ready`，各核心行业 gap 为 0，避免旧 `1000/行业` 报告误导项目进度。
+- 扩展生成前 planning brief 的事实抽取：美食继续显式读取高德/本地核验事实，旅行/酒旅继续读取美团 travel/路线事实；穿搭新增身材/场合/单品/价格渠道，美妆新增肤质/产品色号/用量/妆效边界，家居新增空间/清单/预算/动线，健身新增动作/组数时长/目标/安全替代，母婴新增月龄/用品/步骤/观察安全。目标是让 Claude 在写作前读懂本行业真实素材，而不是只对餐饮高质量。
+- 对话优化接入 V0.4 explainable lift：`_repair_chat_note_if_needed()` 现在会在 60+、无硬错误但事实密度/具体性/行业槽位/行动指导不足时触发分数导向二修，不再只等待显性 quality issue。
+- 新增回归测试：多行业 planning brief 事实断言；chat 在无显性问题但 V0.4 可解释低分时触发二修。下一步继续扩大健身、穿搭、美妆、家居、餐饮/高德、酒旅/美团的真实生成探针，并复跑 shadow QA。
+
+2026-06-28 Round01 后半段补充：
+
+- 酒旅事实源解析升级：`meituan-travel` 真实输出存在卡片式和叙述式两种形态，已新增结构化解析与清洗，优先把酒店名、真实评分、起价、地址、入住/退房、亲子设施、交通权益、套餐权益送入生成链路；泛化解释话术、Markdown、Skill 前缀和“套餐浮动/我来帮你查”等不再进入 facts。
+- 多行业生成策略升级：生成前 brief 新增“商业价值槽位”，让 Claude 在写作前明确每个行业真正影响用户付费感知的交付信息；二修链路同步加入旅行交通/预算、穿搭价格/渠道、美妆价格/渠道、家居预算/单品价、餐饮营业时间/必点等优先项；美妆、家居新增专属表达 brief。
+- 真实事实源验证：高德餐饮链路复测长禧家珑厨万博广晟店可得地址、营业时间、人均、评分、招牌、套餐、电话、门店图，provider=`local_verified+amap`、confidence=`0.9`；美团酒旅链路复测广州长隆亲子酒店可得酒店评分/起价/设施/时间/权益，provider=`meituan_travel`、confidence 可达 `0.9`。
+- 验证结果：全量单测 `145` 项通过，质量门禁通过，py_compile 通过，训练健康/readiness 均 `production_ready`；Shadow QA 当前 `362/362` ready、hard block `0`、平均 V0.4 `71.585`、`166` 条 `>=72`。剩余风险来自历史 artifact 的标题可读性、餐饮营业信号、旅行交通信号，后续需用新策略重刷真实生成探针验证增益。
+
+2026-06-28 Round12 真实链路稳定性探针：
+
+- 探针池：新增 `quality/preference_task_pool.v12.real_chain_stability.json`，覆盖美食/旅行/穿搭/美妆/家居/健身 6 个核心行业，每行业 4 个槽位，共 `24` 条真实生成；母婴按用户要求冻结。
+- 真实生成结果：第二轮真实生成并刷新交付层后 `24/24 ready`，失败 `0`，blocking `0`，标题可读性问题 `0`；均分 `72.318`，中位数 `73.255`，`13/24` 达到 72+。
+- 修复项：硬拦截语义收敛为 `<60` 或灾难性空稿/格式错误，60+ 进入二修/对话优化；酒旅价格 `￥929起/晚`、`929元/晚` 不再误判为编造；标题压缩修复 `929起的长`、`芝士焗小青龙必`、`遮胯搭`、`2600元让动线/做出顺`。
+- 分行业稳定性：健身 `75.432` 且 `4/4` 72+，穿搭 `73.650`、家居 `72.506` 基本可用；美食 `70.529`、美妆 `70.900`、旅行 `70.891` 仍有单次 Claude 输出波动。
+- Shadow QA：纳入 v12 后全量 `386/386` shadow ready、hard block `0`；v12 set `24/24` shadow ready、`13/24` 72+、平均 V0.4 `72.13`。
+- 策略结论：事实源 + 行业 brief + V0.4 二修已能带来真实增益，但不能把单次 Claude 输出当生产确定性。下一阶段应建设候选择优器：同任务生成多候选，使用 V0.4 composite/ranker、事实安全、标题自然度和行业槽位选择最佳；低于 60 才硬拦，60+ 进入对话优化继续提升。
+
+2026-06-28 Round13 多候选择优接入：
+
+- API runtime 已加载 V0.4 三件套：composite regressor 继续负责交付评分，ready classifier 提供可发布概率，preference ranker 用于同任务候选偏好选择；v0.3 仍仅作为 fallback/历史对照，不参与生产选择目标。
+- `/generate` 和 `/generate/stream` 均接入候选池：初始仲裁稿、按行业角度生成的挑战稿、P4 修复稿、score-directed 二修稿和最终压缩稿都会进入同一选择器；返回 `selection_meta`，记录 `candidate_count/viable_count/used_ranker/selected_origin/selected_score` 和候选摘要，便于线上审计。
+- 选择策略：先按交付质量分层，`72+ 且无问题` 优先；若只有带问题的 72+ 候选，则允许 5 分内干净稿参与竞争；ranker 只在同层/近分候选中排序，不能把低分或缺核心槽位候选压过 72+ 干净稿；低于 60 或灾难性空稿/格式错误才硬拦。
+- 真实链路小批探针：长禧家珑厨高德餐饮样本 `80.9`，地址识别修复后复评 `80.7` 且 issues=0；广州长隆酒旅 `70.3`；美妆防晒 `72.7`；健身低冲击训练 `75.5`；穿搭梨形通勤 `76.7`；家居阳台洗衣区首跑暴露 ranker 过权重，修复后复跑 `72.1`、issues=0。全部 `quality_failed=false`、无空响应、无 blocking、标题均 ≤18 字。
+- 本轮新增测试覆盖：候选选择器 issue penalty、ranker 同分近分排序、72+ 干净候选优先级、地址识别误伤回归。验证：`.venv/bin/python -m unittest discover -s tests` 通过 `148` 项；`quality/golden_notes.sample.json` 与 `quality/quality_gate_cases.v04_round06_food_travel.json` 质量门禁通过；训练健康/readiness 仍为 `production_ready`。
+- 剩余策略风险：旅行/酒旅仍有 `70.x` 波动，家居刚过 72，穿搭有“穿出165/多五厘米”这类轻夸张表达；下一轮应针对旅行/家居做候选方向和自然度专项，而不是提高硬拦线。
+
+2026-06-28 Round14 旅行/家居/穿搭专项：
+
+- 策略调整：旅行/酒旅候选方向从泛化“路线/权益”升级为“前120字做决策”，要求起价/评分/位置交通/设施权益至少自然保留3项；家居候选方向升级为预算动线型与清单复刻型，要求空间、预算、改造结果、单品作用和复刻顺序；穿搭候选方向和表达 brief 明确禁止身高/身材承诺，改用腰线、比例、垂感、遮胯边界解释价值。
+- 后处理与选择器：新增穿搭夸大表达清洗器，覆盖 `160穿出165`、`秒变170`、`凭空多五厘米`、`腿长一米八`、`瘦十斤`、`同事说瘦` 等模式；新增旅行酒旅事实密度、家居复刻密度软问题，进入 selector penalty 和二修方向，但不改变 `<60` 才硬拦原则。
+- 标题可读性：本轮真实探针继续发现高分半截标题，已新增修复和测试覆盖 `高腰A`、`搞定收`、`让折叠`、`做完整`、`元打造`，防止标题压缩把语义停在动词或半个单品。
+- 真实验证：`quality/generated_variants/v14_travel_home_fashion_stability` 覆盖旅行/穿搭/家居 12 条，`12/12 ready`、失败 `0`、blocking `0`、均分 `73.718`、中位数 `73.956`、`9/12` 达到 72+；穿搭 4 条均 `74+` 且夸大风险扫描为 `0`。家居标题补修后单独跑 `quality/generated_variants/v14_home_title_repair_probe`，`4/4 ready`、失败 `0`、blocking `0`、均分 `72.312`、标题可读性问题 `0`。
+  - 风险保留：旅行仍有 70.x 候选，家居自然候选最低仍可能在 71.x；这些内容按产品策略允许交付并进入对话优化，不作为硬拦截。

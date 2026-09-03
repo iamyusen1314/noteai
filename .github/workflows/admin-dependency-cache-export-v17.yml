@@ -1,0 +1,251 @@
+name: Admin dependency cache export V17
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-dependency-cache-export-v17-recovery
+  cancel-in-progress: false
+
+jobs:
+  export-wheelhouse:
+    name: Export and prove exact 5335 Admin wheelhouse
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    env:
+      NOTEAI_C17_SHA: 7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e
+      NOTEAI_RELEASE_SHA: 5335bdaed933b1f999b5f819c047ec50c11821ae
+      NOTEAI_RELEASE_TREE: 38e574e56406ba3380acb78edbe784508cc537cd
+      NOTEAI_DOCKERFILE_SHA256: ed6282c422dde6e49c33da877bccf735dfbb19e29a834930fb2a1a52ef21b447
+      NOTEAI_REQUIREMENTS_SHA256: 0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9
+      NOTEAI_PYTHON_BASE: python:3.11.15-slim-trixie@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93
+      NOTEAI_BUILDKIT_IMAGE: moby/buildkit@sha256:2f5adac4ecd194d9f8c10b7b5d7bceb5186853db1b26e5abd3a657af0b7e26ec
+      NOTEAI_ARTIFACT_NAME: admin-dependency-wheelhouse-5335bda-v17
+      NOTEAI_PRODUCER_BUILDER: noteai-v17-wheelhouse-producer-${{ github.run_id }}
+      NOTEAI_CONSUMER_BUILDER: noteai-v17-wheelhouse-consumer-${{ github.run_id }}
+      NOTEAI_DOWNLOAD_CONTAINER: noteai-v17-wheelhouse-download-${{ github.run_id }}
+      NOTEAI_PULL_TIMEOUT_SECONDS: "300"
+      NOTEAI_DOWNLOAD_ATTEMPT_TIMEOUT_SECONDS: "1200"
+      NOTEAI_BOOTSTRAP_TIMEOUT_SECONDS: "300"
+      NOTEAI_BUILD_TIMEOUT_SECONDS: "1200"
+
+    steps:
+      - name: Checkout immutable C17 anchor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Verify C17 and exact release inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_EVENT_NAME}" = "workflow_dispatch"
+          test "${GITHUB_RUN_ATTEMPT}" = "1"
+          test "$(git rev-parse HEAD)" = "${NOTEAI_C17_SHA}"
+          test "$(git rev-parse "${NOTEAI_RELEASE_SHA}^{tree}")" = \
+            "${NOTEAI_RELEASE_TREE}"
+          test "$(git show "${NOTEAI_RELEASE_SHA}:Dockerfile" | sha256sum | awk '{print $1}')" = \
+            "${NOTEAI_DOCKERFILE_SHA256}"
+          test "$(git show "${NOTEAI_RELEASE_SHA}:model/requirements-api.txt" | sha256sum | awk '{print $1}')" = \
+            "${NOTEAI_REQUIREMENTS_SHA256}"
+          git worktree add --detach "${RUNNER_TEMP}/noteai-v17-source" \
+            "${NOTEAI_RELEASE_SHA}"
+          test "$(git -C "${RUNNER_TEMP}/noteai-v17-source" rev-parse HEAD)" = \
+            "${NOTEAI_RELEASE_SHA}"
+
+      - name: Predownload the official Linux AMD64 wheelhouse
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="${RUNNER_TEMP}/noteai-v17-source"
+          artifact_root="${RUNNER_TEMP}/noteai-v17-artifact"
+          wheelhouse="${artifact_root}/wheelhouse"
+          input_root="${RUNNER_TEMP}/noteai-v17-input"
+          pip_cache="${RUNNER_TEMP}/noteai-v17-pip-cache"
+          mkdir -p "${wheelhouse}" "${input_root}" "${pip_cache}" \
+            "${artifact_root}/source"
+          cp "${source_root}/Dockerfile" "${artifact_root}/source/Dockerfile"
+          cp "${source_root}/model/requirements-api.txt" \
+            "${artifact_root}/source/requirements-api.txt"
+          test "$(grep -Fxc 'jieba==0.42.1' "${source_root}/model/requirements-api.txt")" = "1"
+          grep -Fvx 'jieba==0.42.1' \
+            "${source_root}/model/requirements-api.txt" \
+            > "${input_root}/requirements-binary.txt"
+
+          timeout --foreground --signal=TERM --kill-after=30s \
+            "${NOTEAI_PULL_TIMEOUT_SECONDS}s" \
+            docker pull --platform linux/amd64 "${NOTEAI_PYTHON_BASE}"
+
+          download_all_with_retry() {
+            local attempt
+            for attempt in 1 2; do
+              docker rm -f "${NOTEAI_DOWNLOAD_CONTAINER}" \
+                >/dev/null 2>&1 || true
+              if timeout --foreground --signal=TERM --kill-after=30s \
+                "${NOTEAI_DOWNLOAD_ATTEMPT_TIMEOUT_SECONDS}s" \
+                docker run --rm --name "${NOTEAI_DOWNLOAD_CONTAINER}" \
+                  --platform linux/amd64 \
+                  -e PIP_CONFIG_FILE=/dev/null \
+                  -e PIP_DEFAULT_TIMEOUT=300 \
+                  -e PIP_INDEX_URL=https://pypi.org/simple \
+                  -e PIP_RETRIES=4 \
+                  -v "${input_root}:/input:ro" \
+                  -v "${wheelhouse}:/wheelhouse" \
+                  -v "${pip_cache}:/root/.cache/pip" \
+                  "${NOTEAI_PYTHON_BASE}" \
+                  sh -ceu '
+                    python -m pip download --disable-pip-version-check \
+                      --dest /wheelhouse --only-binary=:all: \
+                      --requirement /input/requirements-binary.txt
+                    python -m pip download --disable-pip-version-check \
+                      --dest /wheelhouse --no-deps --no-binary=:all: \
+                      jieba==0.42.1
+                    python -m pip download --disable-pip-version-check \
+                      --dest /wheelhouse --no-deps --only-binary=:all: \
+                      "setuptools>=40.8.0"
+                  '; then
+                return 0
+              fi
+              docker rm -f "${NOTEAI_DOWNLOAD_CONTAINER}" \
+                >/dev/null 2>&1 || true
+              test "${attempt}" -lt 2 || {
+                echo "wheelhouse download failed after two bounded attempts" >&2
+                return 1
+              }
+              sleep 5
+            done
+          }
+
+          download_all_with_retry
+
+          test "$(find "${wheelhouse}" -maxdepth 1 -type f -name '*.tar.gz' -printf '%f\n')" = \
+            "jieba-0.42.1.tar.gz"
+          test "$(find "${wheelhouse}" -maxdepth 1 -type f | wc -l)" -ge 25
+          test -z "$(find "${wheelhouse}" -mindepth 1 -maxdepth 1 \
+            ! -type f -print -quit)"
+
+      - name: Prove producer and fresh-builder offline imports
+        id: import
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="${RUNNER_TEMP}/noteai-v17-source"
+          artifact_root="${RUNNER_TEMP}/noteai-v17-artifact"
+          proof_root="${RUNNER_TEMP}/noteai-v17-proof"
+          mkdir -p "${proof_root}/context"
+          cp "${source_root}/model/requirements-api.txt" \
+            "${proof_root}/context/requirements-api.txt"
+          cat > "${proof_root}/Dockerfile" <<EOF
+          FROM ${NOTEAI_PYTHON_BASE}
+          WORKDIR /verify
+          COPY requirements-api.txt ./
+          RUN --mount=type=bind,from=wheelhouse,target=/wheelhouse,ro \\
+              PIP_CONFIG_FILE=/dev/null python -m pip install --no-cache-dir \\
+                --no-index --find-links=/wheelhouse -r requirements-api.txt \\
+              && python -m pip uninstall -y setuptools wheel \\
+              && python -m pip check \\
+              && python -c 'import importlib.metadata as m, pathlib; lines=[v for v in pathlib.Path("requirements-api.txt").read_text().splitlines() if v]; pairs=[(v.split("==",1)[0].split("[",1)[0],v.split("==",1)[1]) for v in lines]; bad=[(n,w,m.version(n)) for n,w in pairs if m.version(n)!=w]; assert not bad, bad'
+          EOF
+
+          cleanup_builders() {
+            docker buildx rm --force "${NOTEAI_PRODUCER_BUILDER}" \
+              >/dev/null 2>&1 || true
+            docker buildx rm --force "${NOTEAI_CONSUMER_BUILDER}" \
+              >/dev/null 2>&1 || true
+            docker image rm \
+              "noteai-v17-wheelhouse-producer-${GITHUB_RUN_ID}" \
+              "noteai-v17-wheelhouse-consumer-${GITHUB_RUN_ID}" \
+              >/dev/null 2>&1 || true
+          }
+          trap cleanup_builders EXIT
+          cleanup_builders
+
+          for builder in "${NOTEAI_PRODUCER_BUILDER}" \
+            "${NOTEAI_CONSUMER_BUILDER}"; do
+            if [ "${builder}" = "${NOTEAI_PRODUCER_BUILDER}" ]; then
+              image="noteai-v17-wheelhouse-producer-${GITHUB_RUN_ID}"
+            else
+              image="noteai-v17-wheelhouse-consumer-${GITHUB_RUN_ID}"
+            fi
+            log="${proof_root}/${builder}.log"
+            metadata="${proof_root}/${builder}.json"
+            docker buildx create --name "${builder}" \
+              --driver docker-container \
+              --driver-opt "image=${NOTEAI_BUILDKIT_IMAGE}" --use
+            timeout --foreground --signal=TERM --kill-after=30s \
+              "${NOTEAI_BOOTSTRAP_TIMEOUT_SECONDS}s" \
+              docker buildx inspect --builder "${builder}" --bootstrap
+            timeout --foreground --signal=TERM --kill-after=30s \
+              "${NOTEAI_BUILD_TIMEOUT_SECONDS}s" \
+              docker buildx build --builder "${builder}" --no-cache \
+                --network=none --platform linux/amd64 --progress=plain \
+                --file "${proof_root}/Dockerfile" \
+                --build-context "wheelhouse=${artifact_root}/wheelhouse" \
+                --metadata-file "${metadata}" --load --tag "${image}" \
+                "${proof_root}/context" 2>&1 | tee "${log}"
+            grep -F -- '--no-index --find-links=/wheelhouse' "${log}" >/dev/null
+            test -s "${metadata}"
+            docker buildx rm --force "${builder}"
+            docker image rm "${image}" >/dev/null
+          done
+
+          test "${NOTEAI_PRODUCER_BUILDER}" != "${NOTEAI_CONSUMER_BUILDER}"
+          test -z "$(docker buildx ls --format '{{.Name}}' | \
+            grep -E "^(${NOTEAI_PRODUCER_BUILDER}|${NOTEAI_CONSUMER_BUILDER})$" || true)"
+          echo "fresh_builder_import_success=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload one-day V17 wheelhouse artifact
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ${{ env.NOTEAI_ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/noteai-v17-artifact
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 1
+          compression-level: 0
+
+      - name: Confirm GitHub-native V17 acceptance evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_RUN_ATTEMPT}" = "1"
+          test "${NOTEAI_C17_SHA}" = \
+            "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e"
+          test "${{ steps.import.outputs.fresh_builder_import_success }}" = "true"
+          printf '%s' "${{ steps.upload.outputs.artifact-digest }}" | \
+            grep -Eq '^[0-9a-f]{64}$'
+          printf 'NOTEAI_V17_NATIVE_ACCEPTANCE run_id=%s c17_sha=%s artifact_id=%s artifact_digest=%s fresh_builder_import_success=true\n' \
+            "${GITHUB_RUN_ID}" "${NOTEAI_C17_SHA}" \
+            "${{ steps.upload.outputs.artifact-id }}" \
+            "${{ steps.upload.outputs.artifact-digest }}"
+
+      - name: Remove runner-local recovery state
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx rm --force "${NOTEAI_PRODUCER_BUILDER}" \
+            >/dev/null 2>&1 || true
+          docker buildx rm --force "${NOTEAI_CONSUMER_BUILDER}" \
+            >/dev/null 2>&1 || true
+          docker image rm \
+            "noteai-v17-wheelhouse-producer-${GITHUB_RUN_ID}" \
+            "noteai-v17-wheelhouse-consumer-${GITHUB_RUN_ID}" \
+            >/dev/null 2>&1 || true
+          docker rm -f "${NOTEAI_DOWNLOAD_CONTAINER}" \
+            >/dev/null 2>&1 || true
+          git worktree remove --force "${RUNNER_TEMP}/noteai-v17-source" \
+            >/dev/null 2>&1 || true
+          rm -rf -- \
+            "${RUNNER_TEMP}/noteai-v17-artifact" \
+            "${RUNNER_TEMP}/noteai-v17-input" \
+            "${RUNNER_TEMP}/noteai-v17-pip-cache" \
+            "${RUNNER_TEMP}/noteai-v17-proof"

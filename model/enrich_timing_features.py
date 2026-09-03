@@ -129,7 +129,10 @@ def main():
             feat_row = extract_timing_row(result)
         except Exception as exc:
             # Graceful degradation: log once per error type, fill zeros
-            print(f"  [WARN] note_id={note_id!r} timing failed ({type(exc).__name__}: {exc}); using zeros.")
+            print(
+                f"  [WARN] timing failed code={type(exc).__name__.lower()}; "
+                "using zeros."
+            )
             feat_row = dict(zero_row)
 
         feat_row["note_id"] = note_id

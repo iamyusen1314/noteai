@@ -1,0 +1,66 @@
+services:
+  - type: web
+    name: noteai-prod-claude-gateway
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./gateway/Dockerfile
+    dockerContext: .
+    dockerCommand: /app/start.sh
+    healthCheckPath: /health/ready
+    autoDeployTrigger: "off"
+    maxShutdownDelaySeconds: 240
+    scaling:
+      minInstances: 2
+      maxInstances: 4
+      targetCPUPercent: 60
+      targetMemoryPercent: 70
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID
+        sync: false
+      - key: NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET
+        sync: false
+      - key: NOTEAI_CLAUDE_GATEWAY_AUTHORITY
+        value: noteai-prod-claude-gateway.onrender.com
+      - key: NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH
+        value: prod-config-20260719-v1
+      - key: NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH
+        value: prod-key-20260719-v1
+      - key: NOTEAI_CLAUDE_GATEWAY_CONTROL_MODE
+        value: dynamodb
+      - key: NOTEAI_CLAUDE_GATEWAY_INSTANCE_COUNT
+        value: "2"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: NOTEAI_CLAUDE_GATEWAY_CONCURRENCY
+        value: "2"
+      - key: NOTEAI_CLAUDE_GATEWAY_MAX_BODY_BYTES
+        value: "8388608"
+      - key: NOTEAI_CLAUDE_GATEWAY_MAX_TOKENS
+        value: "16000"
+      - key: NOTEAI_CLAUDE_GATEWAY_TIMESTAMP_SKEW_SECONDS
+        value: "300"
+      - key: NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE
+        value: "30"
+      - key: NOTEAI_CLAUDE_GATEWAY_LEASE_SECONDS
+        value: "240"
+      - key: NOTEAI_CLAUDE_GATEWAY_LEASE_MARGIN_SECONDS
+        value: "30"
+      - key: NOTEAI_CLAUDE_GATEWAY_PROVIDER_DEADLINE_SECONDS
+        value: "180"
+      - key: NOTEAI_CLAUDE_GATEWAY_PREFLIGHT_TIMEOUT_SECONDS
+        value: "175"
+      - key: NOTEAI_CLAUDE_GATEWAY_TERMINAL_RETENTION_SECONDS
+        value: "2592000"
+      - key: NOTEAI_CLAUDE_GATEWAY_DDB_TABLE
+        sync: false
+      - key: NOTEAI_CLAUDE_GATEWAY_DDB_REGION
+        value: ap-southeast-1
+      - key: NOTEAI_CLAUDE_GATEWAY_PRINCIPAL_ID
+        sync: false
+      - key: AWS_ROLE_ARN
+        sync: false
+      - key: AWS_EC2_METADATA_DISABLED
+        value: "true"

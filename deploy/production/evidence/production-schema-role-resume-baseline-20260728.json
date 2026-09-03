@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
+  "observed_at_utc": "2026-07-28T10:04:54Z",
+  "status": "baseline_pass",
+  "source": {
+    "branch": "codex/quality-stabilization-real-chain",
+    "checkpoint_commit": "aaf1df42515ba810840208aaefba9921d439fbfb",
+    "executor_fix_commit": "e5883abc01c4b009907bee550209d7036d383771",
+    "upstream_ahead": 0,
+    "upstream_behind": 0,
+    "worktree_clean_before_record": true
+  },
+  "historical_incident_disposition": {
+    "artifact": "deploy/production/evidence/production-first-launch-role-risk-readonly-unknown-20260728.json",
+    "artifact_sha256": "79f869aefef5a5abd86d7d61618286217dc553d2a2c646c61505fba3e885a1b2",
+    "original_incident_class_preserved": "CONNECTED_UNKNOWN",
+    "original_database_outcome_preserved": "UNKNOWN",
+    "original_transaction_outcome_preserved": "UNKNOWN",
+    "automatic_retry_count": 0,
+    "operational_disposition": "HISTORICAL_CLOSED_BY_AUTHORIZED_IMPACT_BOUND",
+    "impact_bound_basis": [
+      "The pinned auditor requested a read-only connection option.",
+      "The pinned auditor's database path contains only fixed session SET, SHOW, catalog SELECT and built-in privilege SELECT statements.",
+      "The pinned runner invokes only that auditor and does not invoke the schema executor.",
+      "The prior schema apply attempt count in that incident is zero."
+    ],
+    "retroactive_reclassification": false,
+    "retroactive_database_or_transaction_claim": false,
+    "new_database_incident_is_automatic_retry": false
+  },
+  "new_readonly_incident": {
+    "audit_id": "PROD-FIRST-LAUNCH-LEGACY-ROLE-RISK-SET-AUDIT-002",
+    "run_id": "PROD-FIRST-LAUNCH-LEGACY-ROLE-RISK-SET-AUDIT-RUN-001",
+    "task_directory": "/var/lib/noteai/role-risk-set-audit-v2",
+    "application_name": "noteai_role_risk_set_audit_v2",
+    "production_connection_count_limit": 1,
+    "transaction_contract": "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+    "fixed_stage_order": [
+      "session",
+      "ledger_inventory",
+      "role_graph",
+      "xhs_acl",
+      "rollback"
+    ],
+    "dynamic_or_user_sql_allowed": false,
+    "set_role_allowed": false,
+    "ddl_or_dml_allowed": false,
+    "grant_or_revoke_allowed": false,
+    "production_dispatch_allowed_before_local_postgresql16_validation": false
+  },
+  "fresh_rds_control_plane": {
+    "instance_count": 1,
+    "running_instance_count": 1,
+    "network_record_count": 1,
+    "public_endpoint_count": 0,
+    "successful_full_backup_count_inside_48h": 2,
+    "latest_backup_age_hours_bounded": 20,
+    "data_backup_retention_days": 14,
+    "log_backup_retention_days": 14,
+    "account_count": 3,
+    "super_account_count": 1,
+    "task_account_count": 0,
+    "resource_ids_emitted": 0,
+    "secret_values_emitted": 0
+  },
+  "fresh_runtime": {
+    "api_c": {
+      "api_and_admin_health": "pass",
+      "loopback_only": true,
+      "root_owned_0600_env_metadata": true,
+      "task_residual_count": 0
+    },
+    "api_f": {
+      "api_health": "pass",
+      "loopback_only": true,
+      "root_owned_0600_env_metadata": true,
+      "task_residual_count": 0
+    },
+    "cloud_shell_task_file_count": 0,
+    "service_restart_count": 0,
+    "service_deploy_count": 0,
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0
+  },
+  "preconnect_diagnostics": {
+    "incident_count": 6,
+    "final_classification": "PRE_CONNECT",
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0,
+    "host_state_mutation_count": 0,
+    "causes": [
+      "The in-app browser had no authenticated Alibaba session and one unsupported open operation.",
+      "An initial ECS topology filter included one non-API node.",
+      "Three Cloud Assistant control attempts omitted the required Base64 ContentEncoding declaration or used an output contract built on that omission.",
+      "Two failure branches exited the temporary Cloud Shell before the wrapper was isolated in a subshell."
+    ],
+    "material_corrections": [
+      "The existing authenticated Chrome session was used.",
+      "API nodes were selected by project name and availability-zone role.",
+      "RunCommand now declares ContentEncoding Base64 and DescribeInvocationResults is checked for Success plus exit code zero.",
+      "Failure branches are isolated in a subshell and emit only bounded Secret-free status."
+    ]
+  },
+  "readiness": {
+    "internal_verified": 14,
+    "internal_total": 29,
+    "accepted_risk_entry_count": 0,
+    "production_schema_roles_verified": false
+  }
+}

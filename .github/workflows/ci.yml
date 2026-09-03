@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "codex/**"
   pull_request:
     branches:
       - main
@@ -15,26 +16,41 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
+
+    services:
+      postgres16:
+        image: postgres:16
+        env:
+          POSTGRES_DB: noteai_ci
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d noteai_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
 
     env:
       ANTHROPIC_API_KEY: test-key
+      GIT_LFS_SKIP_SMUDGE: "1"
       MOONSHOT_API_KEY: test-key
       NOTEAI_FACT_SEARCH: "0"
       NOTEAI_ENABLE_TEST_BILLING: "0"
       NOTEAI_MODEL_ARTIFACT_REQUIRED: "1"
+      NOTEAI_MARKET_TIMING_REQUIRED: "0"
+      NOTEAI_XHS_FRESHNESS_REQUIRED: "0"
+      NOTEAI_RUNTIME_ROLE: local
+      NOTEAI_XHS_ACQUISITION_ADAPTER: ""
+      NOTEAI_XHS_COLLECTION_SUSPENDED: ""
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          lfs: true
-
-      - name: Ensure Git LFS files
-        run: |
-          git lfs install --local
-          git lfs pull
-          git lfs ls-files
+          fetch-depth: 0
+          lfs: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -43,10 +59,30 @@ jobs:
           cache: pip
           cache-dependency-path: model/requirements.txt
 
+      - name: Restore required model artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REPOSITORY}" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          [[ "${GITHUB_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          python scripts/fetch_model_artifacts.py \
+            --base-url "https://github.com/${GITHUB_REPOSITORY}/raw/${GITHUB_SHA}" \
+            --required
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Node test dependencies
+        run: npm ci --ignore-scripts
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r model/requirements.txt
+          python -m pip install -r tests/requirements.txt
 
       - name: Prepare test environment
         run: |
@@ -60,18 +96,110 @@ jobs:
       - name: Shell syntax check
         run: |
           bash -n scripts/push_remote.sh
+          bash -n scripts/docker_entrypoint.sh
+          bash -n scripts/ci/export_admin_dependency_cache_v16.sh
+          bash -n scripts/ci/import_admin_dependency_cache_v16.sh
+          bash -n scripts/ci/export_admin_dependency_cache_v17.sh
+          bash -n scripts/ci/import_admin_dependency_cache_v17.sh
 
       - name: Verify model artifacts
         run: |
           python scripts/fetch_model_artifacts.py --check-only --required
 
       - name: Unit tests
+        shell: bash
         run: |
-          python -m unittest discover -s tests -p 'test_*.py'
+          set -euo pipefail
+          mapfile -t ambient_test_files < <(
+            find tests -maxdepth 1 -type f -name 'test_*.py' \
+              ! -name 'test_admin_dependency_cache_export_plan_v13.py' \
+              ! -name 'test_admin_dependency_cache_export_plan_v14.py' \
+              ! -name 'test_admin_dependency_cache_export_plan_v15.py' \
+              ! -name 'test_admin_dependency_cache_v15_failure_evidence.py' \
+              ! -name 'test_admin_dependency_cache_export_plan_v16.py' \
+              ! -name 'test_admin_dependency_cache_v16_failure_evidence.py' \
+              -print | LC_ALL=C sort
+          )
+          test "${#ambient_test_files[@]}" -gt 0
+          python -m unittest "${ambient_test_files[@]}"
+          python -m unittest \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_reviewed_authorities_validate_without_git_state \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_template_fail_closed_matrix \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_workflow_fail_closed_matrix \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_strict_json_rejects_duplicate_noncanonical_and_nonfinite \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_plan_state_classifier \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_live_ledger_pre_and_post_cleanup_snapshots \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_live_ledger_rejects_history_and_current_drift \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_live_ledger_contract_copy_requires_private_mode \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_pagination_rejects_duplicate_and_incomplete_pages \
+            tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_python_optimized_mode_has_no_assert_contract
+          env \
+            -u GITHUB_ACTIONS \
+            -u GITHUB_SHA \
+            -u GITHUB_EVENT_NAME \
+            -u GITHUB_REF \
+            python -m unittest \
+              tests.test_admin_dependency_cache_export_plan_v13.AdminDependencyCacheExportPlanV13Tests.test_exact_checkpoint_receipt_and_activation_git_history
+          historical_v14_root="$(mktemp -d "${RUNNER_TEMP:-/tmp}/noteai-v14-history.XXXXXX")"
+          git clone --quiet --no-hardlinks . "${historical_v14_root}/repo"
+          git -C "${historical_v14_root}/repo" checkout --quiet --detach \
+            e18d24a204c33127a95fe3035b7fce43bdb0b4f8
+          (
+            cd "${historical_v14_root}/repo"
+            env \
+              -u GITHUB_ACTIONS \
+              -u GITHUB_SHA \
+              -u GITHUB_EVENT_NAME \
+              -u GITHUB_REF \
+              python -m unittest \
+                tests/test_admin_dependency_cache_export_plan_v14.py
+          )
+          historical_v15_root="$(mktemp -d "${RUNNER_TEMP:-/tmp}/noteai-v15-history.XXXXXX")"
+          git clone --quiet --no-hardlinks . "${historical_v15_root}/repo"
+          git -C "${historical_v15_root}/repo" checkout --quiet --detach \
+            a94ee2b2feb81eafbcb523be2c95da4ee952cbc4
+          (
+            cd "${historical_v15_root}/repo"
+            env \
+              -u GITHUB_ACTIONS \
+              -u GITHUB_SHA \
+              -u GITHUB_EVENT_NAME \
+              -u GITHUB_REF \
+              python -m unittest \
+                tests/test_admin_dependency_cache_export_plan_v15.py \
+                tests/test_admin_dependency_cache_v15_failure_evidence.py
+          )
+          historical_v16_root="$(mktemp -d "${RUNNER_TEMP:-/tmp}/noteai-v16-history.XXXXXX")"
+          git clone --quiet --no-hardlinks . "${historical_v16_root}/repo"
+          git -C "${historical_v16_root}/repo" checkout --quiet --detach \
+            751da973dd7136d792adfafa11e50f5e5e0bd689
+          (
+            cd "${historical_v16_root}/repo"
+            env \
+              -u GITHUB_ACTIONS \
+              -u GITHUB_SHA \
+              -u GITHUB_EVENT_NAME \
+              -u GITHUB_REF \
+              python -m unittest \
+                tests/test_admin_dependency_cache_export_plan_v16.py \
+                tests/test_admin_dependency_cache_v16_failure_evidence.py
+          )
 
       - name: Quality gate
         run: |
           python tools/quality_gate.py quality/golden_notes.sample.json
+
+      - name: PostgreSQL 16 owner and RLS integration
+        env:
+          NOTEAI_LOCAL_PG16_SCHEMA_ROLE_DSN: >-
+            host=127.0.0.1 port=5432 dbname=noteai_ci user=postgres sslmode=disable
+        run: |
+          python -m unittest \
+            tests.test_production_schema_roles_postgres_integration
+
+      - name: Production readiness gate
+        run: |
+          python tools/production_readiness_gate.py
 
       - name: Docker Compose config
         run: |

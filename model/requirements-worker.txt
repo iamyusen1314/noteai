@@ -1,0 +1,4 @@
+# Legacy local/offline browser-crawler tooling only. No production image target
+# installs this file; browser E2E tooling remains separately managed by npm.
+-r requirements-api.txt
+playwright==1.56.0

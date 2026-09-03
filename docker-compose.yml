@@ -1,6 +1,17 @@
 services:
   noteai:
-    build: .
+    build:
+      context: .
+      target: api-runtime
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
     ports:
       - "${PORT:-8000}:8000"
     volumes:
@@ -11,16 +22,29 @@ services:
       - ./model/.env
     environment:
       - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=api
+      - NOTEAI_DURABLE_AI_ADMISSION_ENABLED=0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8000, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
 
   noteai-admin:
-    build: .
+    build:
+      context: .
+      target: admin-runtime
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
     command: ["python", "-m", "uvicorn", "admin_server:admin_app", "--host", "0.0.0.0", "--port", "8001"]
     ports:
       - "${ADMIN_PORT:-8001}:8001"
@@ -32,10 +56,137 @@ services:
       - ./model/.env
     environment:
       - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=admin
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/admin/health"]
+      test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8001, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
+
+  noteai-payment:
+    profiles:
+      - payment
+    build:
+      context: .
+      target: payment-runtime
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    ports:
+      - "127.0.0.1:${PAYMENT_PORT:-8002}:8002"
+    env_file:
+      - ./model/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=payment
+      - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
+      - NOTEAI_PAYMENT_CALLBACK_ENABLED=${NOTEAI_PAYMENT_CALLBACK_ENABLED:-0}
+      - PORT=8002
+    restart: "no"
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8002, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  noteai-ai-worker:
+    profiles:
+      - durable-ai
+    build:
+      context: .
+      target: ai-worker-runtime
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    command: ["python", "durable_ai_worker.py", "--once"]
+    env_file:
+      - ./model/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=ai-worker
+      - NOTEAI_DURABLE_AI_SUSPENDED=${NOTEAI_DURABLE_AI_SUSPENDED:-1}
+    restart: "no"
+    cpus: "1.00"
+    mem_limit: 1536m
+    pids_limit: 96
+
+  noteai-trends-worker:
+    build:
+      context: .
+      target: xhs-http-runtime
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    command: ["python", "market_timing_worker.py", "--daemon", "--interval", "${NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES:-360}"]
+    healthcheck:
+      test: ["CMD", "python", "market_timing_worker.py", "--healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    volumes:
+      # 独立趋势 worker 写入每日行业热词快照；API 只读取，不在自身进程采集
+      - ./model/data:/app/model/data
+    env_file:
+      - ./model/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=xhs-http
+      - NOTEAI_XHS_SERVICE=trends
+      - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
+      - NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http
+      - NOTEAI_XHS_COLLECTION_SUSPENDED=${NOTEAI_XHS_COLLECTION_SUSPENDED:-1}
+      - NOTEAI_XHS_FRESHNESS_REQUIRED=${NOTEAI_XHS_FRESHNESS_REQUIRED:-1}
+    restart: "no"
+
+  noteai-tracking-worker:
+    build:
+      context: .
+      target: xhs-http-runtime
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    command: ["python", "crawler_worker.py", "--loop", "--interval-minutes", "${NOTEAI_TRACKING_WORKER_INTERVAL_MINUTES:-60}", "--limit", "${NOTEAI_TRACKING_WORKER_LIMIT:-50}"]
+    volumes:
+      # 独立笔记真实表现 worker 读取 tracked_notes，到期后采集并写回共享 DB
+      - ./model/data:/app/model/data
+    env_file:
+      - ./model/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NOTEAI_RUNTIME_ROLE=xhs-http
+      - NOTEAI_XHS_SERVICE=tracking
+      - NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
+      - NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http
+      - NOTEAI_XHS_COLLECTION_SUSPENDED=${NOTEAI_XHS_COLLECTION_SUSPENDED:-1}
+    restart: unless-stopped

@@ -1,0 +1,20 @@
+{
+  "schema_version": "noteai.buildkit-platform-projection.v1",
+  "classification": "SOURCE_PROJECTED_NOT_RETAINED_RUNTIME_METADATA",
+  "actual_v2_metadata_retained": false,
+  "source": {
+    "repository": "moby/buildkit",
+    "tag": "v0.31.2",
+    "tag_object": "37aba93910a245e9196ccf67f4afb55f18b39f81",
+    "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9"
+  },
+  "expected_builder_environment": {
+    "platform": "linux/amd64",
+    "dockerfileVersion": "1.25.0"
+  },
+  "expected_llb_target_platform": {
+    "Architecture": "amd64",
+    "OS": "linux"
+  },
+  "evidence_boundary": "The V2 terminal message and official pinned source establish the corrected field semantics; this projection is not represented as retained runtime metadata."
+}

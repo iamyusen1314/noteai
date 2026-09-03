@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "classification": "SOURCE_PROVEN_SCHEMA_CONTRACT_NOT_V5_RUNTIME_EVIDENCE",
+  "actual_v5_runtime_metadata_retained": false,
+  "actual_v5_runtime_progress_retained": false,
+  "buildkit": {
+    "repository": "moby/buildkit",
+    "version": "v0.31.2",
+    "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+    "provenance_types": {
+      "path": "solver/llbsolver/provenance/types/types.go",
+      "lines": "33-55",
+      "git_blob_sha1": "e5b5f3741c0cb4002b435a583ca625b479fd1ea1",
+      "build_config_fields": {
+        "llbDefinition": "BuildStep[]",
+        "digestMapping": "digest-to-step-id map"
+      },
+      "build_step_identity_field": "id",
+      "build_step_operation_field": "op",
+      "source_location_key": "step-id"
+    },
+    "build_config_projection": {
+      "path": "solver/llbsolver/provenance/buildconfig.go",
+      "construction_lines": "14-75,125-142",
+      "git_blob_sha1": "7e92990c88f2a31ac4c3f4d9807e199745da03d5",
+      "digest_mapping_direction": "llb-digest-to-step-id",
+      "location_mapping_direction": "llb-digest-through-index-to-step-id",
+      "step_id_format": "stepN"
+    }
+  },
+  "buildx": {
+    "repository": "docker/buildx",
+    "version": "v0.35.0",
+    "commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+    "vendored_buildkit_client_version": "v0.31.0",
+    "solve_status_schema_path": "vendor/github.com/moby/buildkit/client/graph.go",
+    "solve_status_schema_blob_sha1": "1000cd78f6202100893dab87300c4ecf22629449",
+    "vertex_identity_path": "vertexes[].digest",
+    "status_parent_vertex_path": "statuses[].vertex",
+    "status_id_is_vertex_identity": false,
+    "log_parent_vertex_path": "logs[].vertex",
+    "log_data_encoding": "base64"
+  },
+  "v6_binding_contract": {
+    "ordered_chain": [
+      "SolveStatus.vertexes[].digest",
+      "buildConfig.digestMapping[digest]",
+      "llbDefinition[].id",
+      "llbDefinition[].op.Op.exec",
+      "metadata.source.locations[step-id]"
+    ],
+    "dependency_roles": [
+      {
+        "role": "meituan_npm_pack",
+        "dockerfile_run_start_line": 14
+      },
+      {
+        "role": "runtime_apt",
+        "dockerfile_run_start_line": 63
+      },
+      {
+        "role": "runtime_pip",
+        "dockerfile_run_start_line": 76
+      }
+    ],
+    "all_role_steps_unique": true,
+    "all_role_digests_unique": true,
+    "replay_requires_completed_and_cached": true,
+    "decoded_original_logs_scanned_before_legacy_adapter": true,
+    "original_progress_sha256_preserved": true
+  },
+  "limitations": [
+    "This fixture describes pinned source schemas and does not reconstruct deleted V5 metadata or progress.",
+    "It does not assert any actual V5 nested vertex digest, name, match count or name-drift classification.",
+    "Only a new bounded successor run can supply runtime evidence under this contract."
+  ]
+}

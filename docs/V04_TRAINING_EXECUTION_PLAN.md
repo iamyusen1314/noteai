@@ -15,14 +15,14 @@
 
 ## 当前状态
 
-- v0.3 审计：已确认不可靠，冻结为遥测。
-- v0.4 CES candidate：已建立无泄漏训练管线，但指标不足，不能上线。
-- v0.4-composite 特征层：已完成，124 维复合特征。
+- v0.3 审计：已确认不可靠，只保留为 fallback/历史遥测，不再作为生成目标、训练目标或主评分脑。
+- v0.4-composite 特征层：已完成，124 维复合特征，并接入 API 主评分链路。
 - v0.4 产品行业口径：已冻结第一批核心行业为美食、旅行、穿搭、美妆、家居、健身、母婴；研究数据中的“运动”进入训练/标注/报告时统一归为“健身”。
-- golden 当前标签：145 条，其中 11 条 seed、134 条 Claude/特征首审 + Kimi 第二评审一致的 `ai_rubric_consensus` 标签；按行业为美食31、旅行17、穿搭33、美妆14、家居17、健身25、母婴8。
-- preference 当前标签：204 组，其中 A 胜 91、B 胜 113，不再是单类；按行业为美食30、旅行22、穿搭36、美妆23、家居36、健身31、母婴26，但样本量仍远低于候选训练门槛。
-- 当前训练决策：`blocked_need_labels`。
-- 当前生产策略：`do_not_deploy=true`。
+- Golden 当前标签：`6694` 条；Preference 当前标签：`24850` 组。第一批核心行业均达到当前生产接受线。
+- 当前训练决策：`production_training`。
+- 当前生产策略：V0.4 composite 已通过生产训练门禁并可作为主评分模型；ranker 仍只作为候选择优辅助，不单独作为质量放行依据。
+- 当前执行重点：不再继续凑 Golden，而是进入真实链路质量稳定化，详见 `docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`。
+- 母婴行业状态：按用户要求冻结专项优化，仅保留现有安全边界和回归测试。
 
 ## 阶段 1：数据与训练目标冻结
 
@@ -435,5 +435,10 @@ Kimi 第二评审命令：
 
 ## 阶段进展记录
 
+- 2026-06-28 真实链路质量稳定化 Round01：确认 V0.4 composite 生产训练 run `20260628T013926Z` 已进入 API 主评分链路，当前任务从“继续补 Golden”转为“让真实 AI 诊断、爆文生成、对话优化稳定产出有付费价值的内容”。已完成第一组链路修复：`tools/v04_training_data_health.py` 与 `tools/v04_composite_readiness.py` 的生产 Golden 默认线同步为当前接受线 `600/行业`，并重建 `model/artifacts/v04_training_data_health.json`、`model/artifacts/v04_composite_readiness.json`，两者均为 `production_ready`；`_build_generation_planning_brief()` 不再只对美食/旅行显式抽取事实，已为穿搭、美妆、家居、健身、母婴提取本行业事实槽位（身材/场合、肤质/色号、空间/预算、动作/时长、月龄/用品等），保证 brief 真正多行业；`_repair_chat_note_if_needed()` 已允许对话优化在 60+、无硬错误但 V0.4 可解释低分时触发分数导向二修，而不是只处理显性质量问题。新增回归测试覆盖多行业 fact brief 和 chat V0.4 lift。
+- 2026-06-28 真实链路质量稳定化 Round01 后半段：酒旅事实源解析从“只读美团卡片行”升级为“卡片式 + 叙述式”双解析，真实 `meituan-travel` 输出能提取酒店名、美团真实评分/起价、地址、入住/退房、亲子设施、交通权益和套餐权益，并过滤 Markdown、Skill 前缀、泛化套餐说明；餐饮高德事实源复测 `local_verified+amap` confidence=`0.9`。生成链路新增多行业“商业价值槽位”：旅行补交通/预算，穿搭补价格/渠道，美妆补价格/渠道，家居补预算/单品价，餐饮补营业时间/必点；美妆和家居新增专属表达 brief。验证记录：全量单测 `145` 项通过，质量门禁通过，py_compile 通过，训练健康/readiness 均 `production_ready`，Shadow QA `362/362` ready、hard block `0`、平均 V0.4 `71.585`、`166` 条 `>=72`。剩余风险：历史 artifact 仍有标题可读性、餐饮营业信号、旅行交通信号风险；母婴按用户要求冻结。
+- 2026-06-28 真实链路质量稳定化 Round12：新增 `quality/preference_task_pool.v12.real_chain_stability.json`，覆盖美食/旅行/穿搭/美妆/家居/健身 6 个核心行业各 4 个真实生成槽位，母婴继续冻结。完整重刷两轮后修复三个交付层问题：60+ 旅行稿被旧 blocking 标记误拦、酒旅价格格式 `￥929起/晚` 被误判为编造、标题压缩出现 `芝士焗小青龙必/遮胯搭/2600元让动线/929起的长` 等半截尾。最终刷新结果：`24/24 ready`、失败 `0`、blocking `0`、标题可读性问题 `0`、均分 `72.318`、中位数 `73.255`、`13/24` 达到 72+；Shadow QA 全量 `386/386` ready、hard block `0`，v12 set `24/24` shadow ready、平均 V0.4 `72.13`。结论：新策略已有真实增益，但美食/美妆/旅行单次 Claude 输出仍波动，生产级下一步不是继续堆 prompt，而是接入“同任务多候选生成 + V0.4 composite/ranker 选择最佳 + <60 才硬拦 + 60+ 进入对话优化”的稳定交付器。
+- 2026-06-28 真实链路质量稳定化 Round13：完成稳定交付器第一版。`/generate` 与 `/generate/stream` 已接入同任务多候选池，候选来源包括初始仲裁、行业挑战稿、P4 修复稿、score-directed 二修稿和最终压缩稿；API runtime 已加载 V0.4 ready classifier 与 preference ranker，最终响应新增 `selection_meta` 审计字段。选择规则改为质量分层优先：`72+ 且无问题` 优先，ranker 只能在同质量层/近分候选中排序，不能压过交付底线；`<60` 或灾难性空稿/格式错误才硬拦，60+ 保留对话优化空间。真实链路探针：美食/高德 `80.9`，旅行/美团酒旅 `70.3`，美妆 `72.7`，健身 `75.5`，穿搭 `76.7`，家居复跑 `72.1`，全部无失败、无 blocking、标题 ≤18 字。发现并修复 ranker 过权重风险：家居首跑曾选 `69.1` 问题稿压过 `72.1` 干净稿，已用单测固定。验证记录：`.venv/bin/python -m unittest discover -s tests` 通过 `148` 项；质量 gate 两组通过；训练健康/readiness 为 `production_ready`。
+- 2026-06-28 真实链路质量稳定化 Round14：执行旅行/家居/穿搭专项候选策略。旅行/酒旅 brief 前移“起价/评分/位置交通/设施权益至少3项”，家居 brief 前移“空间/预算/改造结果/单品作用/复刻顺序”，穿搭 brief 和清洗器禁止“160穿出165、秒变170、凭空多五厘米、腿长一米八、瘦十斤”等夸大表达；选择器将旅行事实密度不足、家居复刻信息不足、穿搭夸大身材变化作为软扣分，不改变 `<60` 才硬拦原则。完整探针 `quality/generated_variants/v14_travel_home_fashion_stability`：旅行/穿搭/家居共 `12/12 ready`、失败 `0`、blocking `0`、均分 `73.718`、中位数 `73.956`、`9/12` 达到 72+；穿搭 4 条均 `74+` 且夸大风险扫描为 `0`；旅行 2/4 达到 72+、最高 `73.771`；家居 3/4 达到 72+，但扫描发现 `2600元让折叠/做完整` 等半截标题。补修后新增 `quality/generated_variants/v14_home_title_repair_probe`，家居 `4/4 ready`、失败 `0`、blocking `0`、均分 `72.312`、标题可读性问题 `0`。新增回归测试固定这些标题尾巴和穿搭夸大表达清洗；母婴继续冻结。
 - 2026-06-25 Round08b：完成美食表达质量专项。高德事实进入生成/训练前已清洗重复标签，正文安全事实句改为自然决策句，训练 seed 写入交付清洗后的标题/正文/重算分数；新增“吃到饱/不限量”事实边界，除非来源明确自助/不限量，否则不允许从人均价推导。真实生成 `24/24 ready`、失败 `0`，最高 `76.029`，`3` 篇达到旧 72 参考线，污染扫描为 `0`；导出 `46` 组美食 A/B，Kimi 二审 `46/46 ok`，按 winner-consensus + Kimi confidence ≥`0.75` 晋级 `26` 组。合并后总 preference `258` 组，美食 preference `73` 组；训练守门仍 `blocked_need_labels`，生产部署继续禁止。
 - 2026-06-25 Round09：完成酒旅/旅行表达专项。对齐用户事实源策略：餐饮/本地生活由高德在真实链路补事实，训练不学习“未提供/不能编造”提示；酒店/旅行攻略使用美团 `meituan-travel` 事实素材。修复旅行 brief、prompt、事实安全、标题断尾、Claude 硬超时和 hashtag/Markdown 误判。重刷 `quality/generated_variants/v09_travel_expression_probe/` 后 `30/30` 候选可用，`14` 篇 ≥72、`22` 篇 ≥70、低于 60 为 `0`、blocking 为 `0`，Markdown/无依据价格承诺/标题断尾扫描均为 `0`。重新导出 `75` 组旅行 A/B，Claude 主审 + Kimi 二审 `75/75 ok`，winner 一致 `23` 组，按 Kimi confidence ≥`0.75` 晋级 `14` 组，其余 `61` 组 holdout。重建 merged preference 时补回最早 `3` 条 locked seed，当前总 preference `272` 组，旅行 preference `47` 组；Golden `157` 条。训练健康、readiness、训练守门仍 `blocked_need_labels` / `do_not_deploy=true`，不能部署生产模型。专项报告：`quality/review_packets/promoted/v09_travel_expression_summary.json`。

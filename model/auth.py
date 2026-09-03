@@ -5,6 +5,7 @@ NoteAI 认证模块 — 纯 stdlib，无需额外依赖。
 """
 import hashlib
 import secrets
+import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -15,10 +16,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 # 导出供 api.py 使用
 __all__ = [
     "get_current_user", "get_optional_user", "create_user", "login_user",
-    "delete_token", "HTTPAuthorizationCredentials", "_bearer",
+    "login_user_by_id", "delete_token", "delete_user_tokens",
+    "set_verified_phone", "set_verified_email", "reset_password_for_user",
+    "HTTPAuthorizationCredentials", "_bearer",
 ]
 
 import db
+import account_security as _security
+from content_retention import CONTRACT_VERSION as _CONTRACT_VERSION
 
 _TOKEN_EXPIRE_DAYS = 30
 _bearer = HTTPBearer(auto_error=False)
@@ -59,8 +64,20 @@ def _expire_iso(days: int = _TOKEN_EXPIRE_DAYS) -> str:
 
 
 def create_token(user_id: str, user_agent: str = "") -> str:
+    with db.transaction(write=True) as tx:
+        row = tx.fetchone(
+            "SELECT id,deletion_requested_at FROM users WHERE id=?"
+            + (" FOR UPDATE" if db.using_postgres() else ""),
+            (user_id,),
+        )
+        if not row or row["deletion_requested_at"]:
+            raise ValueError("用户不存在")
+        return _create_token_with_storage(tx, user_id, user_agent)
+
+
+def _create_token_with_storage(storage, user_id: str, user_agent: str = "") -> str:
     token = secrets.token_urlsafe(32)
-    db.execute(
+    storage.execute(
         "INSERT INTO user_sessions(token,user_id,created_at,expires_at,user_agent) VALUES(?,?,?,?,?)",
         (token, user_id, _now_iso(), _expire_iso(), user_agent),
     )
@@ -84,6 +101,16 @@ def delete_token(token: str) -> None:
     db.execute("DELETE FROM user_sessions WHERE token=?", (token,))
 
 
+def delete_user_tokens(user_id: str) -> None:
+    with db.transaction(write=True) as tx:
+        tx.fetchone(
+            "SELECT id FROM users WHERE id=?"
+            + (" FOR UPDATE" if db.using_postgres() else ""),
+            (user_id,),
+        )
+        tx.execute("DELETE FROM user_sessions WHERE user_id=?", (user_id,))
+
+
 # ─────────────────────────────────────────────────────────────
 # FastAPI 依赖
 # ─────────────────────────────────────────────────────────────
@@ -98,7 +125,7 @@ def get_current_user(
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="令牌已过期或无效")
     row = db.fetchone("SELECT * FROM users WHERE id=?", (user_id,))
-    if not row:
+    if not row or row["deletion_requested_at"]:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在")
     return dict(row)
 
@@ -113,7 +140,7 @@ def get_optional_user(
     if not user_id:
         return None
     row = db.fetchone("SELECT * FROM users WHERE id=?", (user_id,))
-    return dict(row) if row else None
+    return dict(row) if row and not row["deletion_requested_at"] else None
 
 
 # ─────────────────────────────────────────────────────────────
@@ -122,62 +149,224 @@ def get_optional_user(
 
 def _validate_phone(phone: str) -> str:
     """标准化手机号：仅支持11位中国大陆手机号，返回标准化格式 +86XXXXXXXXXXX"""
-    import re
-    phone = phone.strip().replace(" ", "").replace("-", "")
-    # 去掉 +86 或 86 前缀后剩余11位
-    if phone.startswith("+86"):
-        phone = phone[3:]
-    elif phone.startswith("86") and len(phone) == 13:
-        phone = phone[2:]
-    if not re.match(r"^1[3-9]\d{9}$", phone):
-        raise ValueError("手机号格式错误，请输入11位中国大陆手机号")
-    return "+86" + phone
+    return _security.normalize_phone(phone)
 
 
-def create_user(username: str, password: str, email: str = "", phone: str = "") -> dict:
-    if db.fetchone("SELECT id FROM users WHERE username=?", (username,)):
-        raise ValueError("用户名已存在")
-    if email and db.fetchone("SELECT id FROM users WHERE email=?", (email,)):
-        raise ValueError("邮箱已被注册")
-    normalized_phone = None
-    if phone:
-        normalized_phone = _validate_phone(phone)
-        if db.fetchone("SELECT id FROM users WHERE phone=?", (normalized_phone,)):
-            raise ValueError("该手机号已被注册")
+def create_user(
+    username: str,
+    password: str,
+    email: str = "",
+    phone: str = "",
+    *,
+    phone_verified: bool = False,
+    email_verified: bool = False,
+    contract_version: str = "",
+    privacy_accepted: bool = False,
+    cross_border_notice_acknowledged: bool = False,
+) -> dict:
+    with db.transaction(write=True) as tx:
+        return create_user_with_storage(
+            tx,
+            username,
+            password,
+            email,
+            phone,
+            phone_verified=phone_verified,
+            email_verified=email_verified,
+            contract_version=contract_version,
+            privacy_accepted=privacy_accepted,
+            cross_border_notice_acknowledged=(
+                cross_border_notice_acknowledged
+            ),
+        )
+
+
+def _is_unique_violation(exc: BaseException) -> bool:
+    return isinstance(exc, sqlite3.IntegrityError) or (
+        str(getattr(exc, "sqlstate", "") or "") == "23505"
+    )
+
+
+def create_user_with_storage(
+    storage,
+    username: str,
+    password: str,
+    email: str = "",
+    phone: str = "",
+    *,
+    phone_verified: bool = False,
+    email_verified: bool = False,
+    contract_version: str = "",
+    privacy_accepted: bool = False,
+    cross_border_notice_acknowledged: bool = False,
+) -> dict:
+    username = str(username or "").strip()
+    if not 3 <= len(username) <= 40:
+        raise ValueError("用户名长度需为3至40位")
+    normalized_email = _security.normalize_email(email) if email else None
+    normalized_phone = _validate_phone(phone) if phone else None
+    _security.validate_password(
+        password,
+        identity_values=(username, normalized_email or "", normalized_phone or ""),
+    )
+    if normalized_phone:
+        if not phone_verified:
+            raise ValueError("手机号必须先完成验证码验证")
+    if contract_version and (
+        contract_version != _CONTRACT_VERSION
+        or not privacy_accepted
+        or not cross_border_notice_acknowledged
+    ):
+        raise ValueError("必须确认当前版本的服务、隐私及跨境处理说明")
     uid = str(uuid.uuid4())
     salt = _gen_salt()
     phash = hash_password(password, salt)
     now = _now_iso()
-    db.execute(
-        "INSERT INTO users(id,username,email,phone,password_hash,password_salt,created_at) VALUES(?,?,?,?,?,?,?)",
-        (uid, username, email or None, normalized_phone, phash, salt, now),
-    )
-    return {"id": uid, "username": username, "email": email,
+    if storage.fetchone("SELECT id FROM users WHERE username=?", (username,)):
+        raise ValueError("用户名已存在")
+    if normalized_email and storage.fetchone(
+            "SELECT id FROM users WHERE email=?",
+            (normalized_email,),
+    ):
+        raise ValueError("邮箱已被注册")
+    if normalized_phone and storage.fetchone(
+            "SELECT id FROM users WHERE phone=?",
+            (normalized_phone,),
+    ):
+        raise ValueError("该手机号已被注册")
+    try:
+        storage.execute(
+            "INSERT INTO users("
+            "id,username,email,phone,password_hash,password_salt,created_at,"
+            "phone_verified_at,email_verified_at,password_changed_at"
+            ") VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (
+                uid,
+                username,
+                normalized_email,
+                normalized_phone,
+                phash,
+                salt,
+                now,
+                now if normalized_phone and phone_verified else None,
+                now if normalized_email and email_verified else None,
+                now,
+            ),
+        )
+        if contract_version:
+            storage.execute(
+                "INSERT INTO user_contract_acceptances("
+                "user_id,contract_version,privacy_accepted_at,"
+                "cross_border_notice_acknowledged_at,source"
+                ") VALUES(?,?,?,?,?)",
+                (uid, contract_version, now, now, "registration"),
+            )
+    except BaseException as exc:
+        if _is_unique_violation(exc):
+            raise ValueError("用户名或联系方式已被使用") from exc
+        raise
+    return {"id": uid, "username": username, "email": normalized_email or "",
             "phone": normalized_phone or "", "created_at": now}
 
 
-def login_user(username_or_phone: str, password: str, user_agent: str = "") -> dict:
+def login_user(
+    username_or_phone: str,
+    password: str,
+    user_agent: str = "",
+    requester_fingerprint: str = "",
+) -> dict:
     """支持用户名或手机号登录。"""
-    # 判断是否是手机号格式
-    import re
-    raw = username_or_phone.strip()
-    is_phone = bool(re.match(r"^(\+86)?1[3-9]\d{9}$", raw.replace(" ", "")))
-    if is_phone:
-        try:
-            normalized = _validate_phone(raw)
-        except ValueError:
-            normalized = raw
-        row = db.fetchone("SELECT * FROM users WHERE phone=?", (normalized,))
-        if not row:
-            raise ValueError("手机号未注册或密码错误")
-    else:
-        row = db.fetchone("SELECT * FROM users WHERE username=?", (raw,))
-        if not row:
-            raise ValueError("用户名或密码错误")
-    if not verify_password(password, row["password_salt"], row["password_hash"]):
-        raise ValueError("用户名或密码错误")
-    db.execute("UPDATE users SET last_login=? WHERE id=?", (_now_iso(), row["id"]))
-    token = create_token(row["id"], user_agent)
+    raw = str(username_or_phone or "").strip()
+    try:
+        normalized_phone = _validate_phone(raw)
+    except ValueError:
+        normalized_phone = None
+    failed = False
+    result = None
+    with db.transaction(write=True) as tx:
+        _security.assert_login_allowed_with_storage(
+            tx,
+            raw,
+            requester_fingerprint,
+            lock=True,
+        )
+        lock_suffix = " FOR UPDATE" if db.using_postgres() else ""
+        if normalized_phone:
+            row = tx.fetchone(
+                "SELECT * FROM users WHERE phone=?" + lock_suffix,
+                (normalized_phone,),
+            )
+            eligible = bool(
+                row
+                and not row["deletion_requested_at"]
+                and row["phone_verified_at"]
+            )
+        else:
+            row = tx.fetchone(
+                "SELECT * FROM users WHERE username=?" + lock_suffix,
+                (raw,),
+            )
+            eligible = bool(row and not row["deletion_requested_at"])
+        if (
+            not eligible
+            or not verify_password(
+                password,
+                row["password_salt"],
+                row["password_hash"],
+            )
+        ):
+            _security.record_login_failure_with_storage(
+                tx,
+                raw,
+                requester_fingerprint,
+            )
+            failed = True
+        else:
+            _security.clear_login_failures_with_storage(
+                tx,
+                raw,
+                requester_fingerprint,
+            )
+            now = _now_iso()
+            tx.execute("UPDATE users SET last_login=? WHERE id=?", (now, row["id"]))
+            token = _create_token_with_storage(tx, row["id"], user_agent)
+            result = _login_result(dict(row), token)
+    if failed or result is None:
+        raise ValueError("用户名、手机号或密码错误")
+    return result
+
+
+def login_user_by_id(user_id: str, *, user_agent: str = "") -> dict:
+    with db.transaction(write=True) as tx:
+        return login_user_by_id_with_storage(
+            tx,
+            user_id,
+            user_agent=user_agent,
+        )
+
+
+def login_user_by_id_with_storage(
+    storage,
+    user_id: str,
+    *,
+    user_agent: str = "",
+) -> dict:
+    row = storage.fetchone(
+        "SELECT * FROM users WHERE id=?"
+        + (" FOR UPDATE" if getattr(storage, "postgres", db.using_postgres()) else ""),
+        (user_id,),
+    )
+    if not row or row["deletion_requested_at"]:
+        raise ValueError("用户不存在")
+    storage.execute(
+        "UPDATE users SET last_login=? WHERE id=?",
+        (_now_iso(), row["id"]),
+    )
+    token = _create_token_with_storage(storage, row["id"], user_agent)
+    return _login_result(dict(row), token)
+
+
+def _login_result(row: dict, token: str) -> dict:
     return {
         "token": token,
         "user": {
@@ -192,18 +381,115 @@ def login_user(username_or_phone: str, password: str, user_agent: str = "") -> d
     }
 
 
-def change_password(user_id: str, old_password: str, new_password: str) -> None:
-    """验证旧密码后更新为新密码。"""
-    row = db.fetchone("SELECT password_hash, password_salt FROM users WHERE id=?", (user_id,))
-    if not row:
-        raise ValueError("用户不存在")
-    if not verify_password(old_password, row["password_salt"], row["password_hash"]):
-        raise ValueError("旧密码错误")
-    if len(new_password) < 6:
-        raise ValueError("新密码至少6位")
+def _set_password_with_storage(storage, row, new_password: str) -> None:
+    _security.validate_password(
+        new_password,
+        identity_values=(row["username"], row["email"] or "", row["phone"] or ""),
+    )
     new_salt = _gen_salt()
     new_hash = hash_password(new_password, new_salt)
-    db.execute(
-        "UPDATE users SET password_hash=?, password_salt=? WHERE id=?",
-        (new_hash, new_salt, user_id)
+    storage.execute(
+        "UPDATE users SET password_hash=?,password_salt=?,password_changed_at=? WHERE id=?",
+        (new_hash, new_salt, _now_iso(), row["id"]),
     )
+    storage.execute("DELETE FROM user_sessions WHERE user_id=?", (row["id"],))
+
+
+def change_password(user_id: str, old_password: str, new_password: str) -> None:
+    """验证旧密码后更新为新密码。"""
+    with db.transaction(write=True) as tx:
+        row = tx.fetchone(
+            "SELECT id,username,email,phone,password_hash,password_salt,"
+            "deletion_requested_at FROM users WHERE id=?"
+            + (" FOR UPDATE" if db.using_postgres() else ""),
+            (user_id,),
+        )
+        if not row or row["deletion_requested_at"]:
+            raise ValueError("用户不存在")
+        if not verify_password(old_password, row["password_salt"], row["password_hash"]):
+            raise ValueError("旧密码错误")
+        _set_password_with_storage(tx, row, new_password)
+
+
+def reset_password_for_user(user_id: str, new_password: str) -> None:
+    with db.transaction(write=True) as tx:
+        reset_password_for_user_with_storage(tx, user_id, new_password)
+
+
+def reset_password_for_user_with_storage(
+    storage,
+    user_id: str,
+    new_password: str,
+) -> None:
+    row = storage.fetchone(
+        "SELECT id,username,email,phone,deletion_requested_at FROM users WHERE id=?"
+        + (" FOR UPDATE" if getattr(storage, "postgres", db.using_postgres()) else ""),
+        (user_id,),
+    )
+    if not row or row["deletion_requested_at"]:
+        raise ValueError("用户不存在")
+    _set_password_with_storage(storage, row, new_password)
+
+
+def set_verified_phone(user_id: str, phone: str) -> str:
+    with db.transaction(write=True) as tx:
+        return set_verified_phone_with_storage(tx, user_id, phone)
+
+
+def set_verified_phone_with_storage(storage, user_id: str, phone: str) -> str:
+    normalized = _validate_phone(phone)
+    user = storage.fetchone(
+        "SELECT id,deletion_requested_at FROM users WHERE id=?"
+        + (" FOR UPDATE" if getattr(storage, "postgres", db.using_postgres()) else ""),
+        (user_id,),
+    )
+    if not user or user["deletion_requested_at"]:
+        raise ValueError("用户不存在")
+    existing = storage.fetchone(
+        "SELECT id FROM users WHERE phone=? AND id!=?",
+        (normalized, user_id),
+    )
+    if existing:
+        raise ValueError("该手机号已被其他账号绑定")
+    try:
+        storage.execute(
+            "UPDATE users SET phone=?,phone_verified_at=? WHERE id=?",
+            (normalized, _now_iso(), user_id),
+        )
+    except BaseException as exc:
+        if _is_unique_violation(exc):
+            raise ValueError("该手机号已被其他账号绑定") from exc
+        raise
+    return normalized
+
+
+def set_verified_email(user_id: str, email: str) -> str:
+    with db.transaction(write=True) as tx:
+        return set_verified_email_with_storage(tx, user_id, email)
+
+
+def set_verified_email_with_storage(storage, user_id: str, email: str) -> str:
+    normalized = _security.normalize_email(email)
+    user = storage.fetchone(
+        "SELECT id,deletion_requested_at FROM users WHERE id=?"
+        + (" FOR UPDATE" if getattr(storage, "postgres", db.using_postgres()) else ""),
+        (user_id,),
+    )
+    if not user or user["deletion_requested_at"]:
+        raise ValueError("用户不存在")
+    existing = storage.fetchone(
+        "SELECT id FROM users WHERE email=? AND id!=?",
+        (normalized, user_id),
+    )
+    if existing:
+        raise ValueError("该邮箱已被其他账号绑定")
+    try:
+        storage.execute(
+            "UPDATE users SET email=?,email_verified_at=? WHERE id=?",
+            (normalized, _now_iso(), user_id),
+        )
+    except BaseException as exc:
+        if _is_unique_violation(exc):
+            raise ValueError("该邮箱已被其他账号绑定") from exc
+        raise
+    return normalized

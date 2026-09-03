@@ -107,7 +107,11 @@ def _call_kimi(api_key: str, batch: list[dict], retries: int = 3) -> list[dict]:
                 print(f"  [HTTP {e.code}] attempt {attempt+1}/{retries}", flush=True)
                 time.sleep(1)
         except Exception as exc:
-            print(f"  [error] {type(exc).__name__}: {exc} — attempt {attempt+1}/{retries}", flush=True)
+            print(
+                f"  [error] code={type(exc).__name__.lower()} "
+                f"attempt={attempt + 1}/{retries}",
+                flush=True,
+            )
             time.sleep(1)
 
     return []

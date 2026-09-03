@@ -38,7 +38,7 @@ from v04_composite_features import build_composite_features, canonical_domain  #
 
 DEFAULT_OUTPUT_DIR = ROOT / "quality" / "review_packets"
 KIMI_API_URL = "https://api.moonshot.cn/v1/chat/completions"
-KIMI_REVIEW_MODEL = os.environ.get("NOTEAI_KIMI_REVIEW_MODEL", "kimi-k2.5")
+KIMI_REVIEW_MODEL = os.environ.get("NOTEAI_KIMI_REVIEW_MODEL", "kimi-k2.6")
 KIMI_REVIEW_TIMEOUT = httpx.Timeout(connect=10.0, read=90.0, write=20.0, pool=10.0)
 CLAUDE_REVIEW_MODEL = os.environ.get("NOTEAI_CLAUDE_REVIEW_MODEL", "claude-sonnet-4-6")
 CLAUDE_REVIEW_FALLBACK_MODEL = os.environ.get("NOTEAI_CLAUDE_REVIEW_FALLBACK_MODEL", "claude-haiku-4-5-20251001")

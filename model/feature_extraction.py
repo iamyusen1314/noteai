@@ -24,7 +24,8 @@ warnings.filterwarnings("ignore")
 POS_EMOTION = [
     "好吃", "推荐", "喜欢", "爱", "必去", "超棒", "绝了", "惊喜", "好玩",
     "美味", "开心", "幸福", "治愈", "满足", "温柔", "可爱", "贴心", "用心",
-    "值得", "安心", "舒适", "温暖", "快乐", "感动", "赞", "棒", "nice",
+    "值得", "值得试", "值得冲", "安心", "舒适", "温暖", "快乐", "感动", "赞", "棒", "nice",
+    "必点", "必吃", "招牌", "很稳", "省心", "适合",
 ]
 NEG_EMOTION = [
     "避雷", "踩雷", "差评", "失望", "后悔", "难吃", "难用", "贵", "坑",
@@ -33,7 +34,10 @@ NEG_EMOTION = [
 PRICE_WORDS = ["元", "¥", "￥", "块", "价格", "人均", "费用", "优惠", "折扣", "券"]
 NEW_SIGNAL = ["新开", "刚开", "首店", "试营业", "新品", "上新", "新款", "首发"]
 CTA_WORDS = ["关注", "点赞", "收藏", "转发", "评论", "私信", "记得", "别忘了", "快来", "冲"]
-ADDRESS_WORDS = ["地址", "位于", "路", "街", "号", "楼", "区", "镇", "市"]
+ADDRESS_WORDS = [
+    "地址", "位于", "路", "街", "号", "楼", "座", "区", "镇", "市",
+    "商圈", "广场", "附近", "地铁", "万博",
+]
 HOURS_WORDS = ["营业", "开放", "几点", "时间", "周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 TRANSPORT_WORDS = [
     "地铁", "公交", "步行", "打车", "骑行", "导航", "出口", "站", "高铁", "飞机", "自驾", "电动车",
@@ -64,6 +68,10 @@ _EMOJI_RE = re.compile(
 CHINESE_CITIES = [
     "北京", "上海", "广州", "深圳", "成都", "杭州", "武汉", "重庆", "西安",
     "南京", "苏州", "天津", "青岛", "厦门", "长沙", "郑州", "宁波", "无锡",
+]
+TITLE_LOCATION_WORDS = CHINESE_CITIES + [
+    "番禺", "万博", "北京路", "西关", "南京西路", "春熙路", "建设路", "湖滨",
+    "西湖", "国贸", "亚龙湾", "长隆", "太古里", "珠江新城",
 ]
 
 DOMAIN_MAP = {
@@ -195,7 +203,7 @@ def extract_features(row: dict) -> dict:
     f["title_has_question"] = int("?" in title or "？" in title)
     f["title_has_number"] = int(bool(re.search(r"\d", title)))
     f["title_has_new_signal"] = has_any(title, NEW_SIGNAL)
-    f["title_has_city"] = has_any(title, CHINESE_CITIES)
+    f["title_has_city"] = has_any(title, TITLE_LOCATION_WORDS)
 
     # ── Content features (7) ────────────────────────────────────
     f["body_len"] = len(desc)

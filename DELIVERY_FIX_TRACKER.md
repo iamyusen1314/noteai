@@ -1,8 +1,102 @@
 # NoteAI Pro 交付修复台账
 
-更新时间：2026-06-25
+更新时间：2026-06-28
 
 目标：把当前内测 Demo 修复为对用户真正有价值、愿意付费、能稳定生成高质量小红书爆文的 SaaS 系统。
+
+## 最新进展：2026-06-29 RQS-08 上线前 CI/PR/部署核验完成
+
+- 已新增生产 readiness gate：`tools/production_readiness_gate.py`，离线检查模型 artifact、registry/manifest、训练报告、RQS-07 报告、CI、Docker、部署文档、Git hygiene 和明显 secret 值误入；当前 `42/42` 检查通过。
+- CI 已升级：`.github/workflows/ci.yml` 现在在 `main`、`codex/**` push 和 PR to `main` 运行；`test` job 包含 LFS 拉取、依赖安装、Python 编译、shell 语法、模型 SHA 校验、全量单测、质量 gate、生产 readiness gate 和 Docker Compose config。
+- Docker 模型加载已加固：新增 `/app/scripts/docker_entrypoint.sh`，API/admin 容器启动前先执行 `python -m artifact_loader`；生产 `NOTEAI_MODEL_ARTIFACT_REQUIRED=1` 时，V0.4 模型缺失或 SHA256 不一致会直接启动失败，不再允许静默降级。
+- 已修复 artifact loader CLI required 模式：现在未传 `--required` 时会读取 `NOTEAI_MODEL_ARTIFACT_REQUIRED`，确保 Docker 入口脚本可由生产环境变量控制。
+- GitHub 远端已核验：仓库 public；`main` 分支保护开启 required status check `test`、strict、PR、dismiss stale reviews、admin enforcement、linear history、no force push/delete、conversation resolution；secret scanning、push protection、Dependabot security updates 已开启。
+- GitHub 推送后提示 default branch 存在 `python-multipart <0.0.31` 低危 Dependabot alert；已在当前分支升级到 `python-multipart==0.0.31`，待 PR 合并后 default branch 告警应消失。
+- GitHub production 环境已核验 Secret/Variable 名称：Secrets 包含 `ADMIN_PASSWORD`、`AMAP_WEB_KEY`、`ANTHROPIC_API_KEY`、`MEITUAN_OPEN_TOKEN`、`MOONSHOT_API_KEY`；Variables 包含测试支付关闭、V0.4 开启、模型 artifact required、事实源开启、端口等配置。未读取、打印或提交任何 secret 值。
+- 新增 `docs/RQS08_PRODUCTION_READINESS_REPORT.md`，并同步 `README_DEPLOYMENT.md`、`docs/DEPLOYMENT_SECRETS.md`、`docs/MODEL_ARTIFACT_CLOUD_STRATEGY.md`、`docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`。
+- 剩余非本轮上线风险：正式付费公开上线仍需支付订单、回调验签、对账、订阅权益激活、生产域名、线上监控与灰度发布。
+
+## 上一进展：2026-06-28 RQS-07 真实链路 shadow/E2E 总验收完成
+
+- 已新增可重复执行的总验收工具：`tools/real_chain_acceptance_report.py`，用于汇总当前真实链路产物、run reports、shadow QA 和行业分布，输出 `docs/RQS07_REAL_CHAIN_ACCEPTANCE_REPORT.md`。
+- 当前 v36 验收集覆盖 AI 诊断、爆文生成、对话优化、事实源、候选择优，行业覆盖美食/旅行/穿搭/美妆/家居/健身，每行业 8 条产物；AI 诊断三方案正文保持独立，没有再出现三标题共用同一篇正文。
+- 总验收 gate 已通过：`48/48 ready`、失败 `0`、blocking `0`、低于 60 分 `0`、标题可读性问题 `0`、mean `74.284`、median `74.068`、min `67.276`、`44/48 >=72`。
+- latest shadow QA 对当前 v36 集合也通过：`48/48` shadow ready、hard block `0`、avg V0.4 `73.804`、`39/48 >=72`、top risks `{}`。
+- 本轮顺手修复一个 shadow QA 暴露的家居事实边界问题：未提供人数/规模时，`四人桌` 这类中文人数桌型会交付前软化为 `固定餐桌`，避免结构化事实编造；已新增回归测试覆盖。
+- 审计残留：全历史旧 generated variants 共 `810` 条，仍有 `15` 个 hard block，主要来自旧产物的结构化事实边界问题；它们不计入当前 v36 上线 gate，但已记录在 RQS-07 报告中，后续如要清理历史产物可单独排期。
+- 下一项进入 `RQS-08`：上线前 CI/PR/部署核验，重点检查 CI、质量门禁、部署变量、secrets 和模型云端加载策略。
+
+## 上一进展：2026-06-28 RQS-05/RQS-06 AI 诊断三入口与对话优化回归完成
+
+- 已完成 AI 诊断三入口后端合同回归：手动上传、图片/截图上传、视频上传都会进入统一 `/analyze` V0.4 五 agent 链路；事实源上下文、长期偏好/记忆、图片描述和视频画面理解都会进入 agent 输入，不再存在入口分叉或绕开高质量链路的风险。
+- 已补“三标题三正文”工程保护：`_agent_arbitrate()` 会对三方案标题做去重修复，三套正文独立生成/重试/兜底，前后端不再用共享正文回填空方案；新增测试确认三入口响应的 `suggested_plans` 是三篇不同正文。
+- 已修复对话优化降质风险：chat 改写如果比当前版本低超过 `2.0` 分，或触发 blocking，会自动回退到当前版本，并重新走标题清洗、事实补足、评分和质量复核；离线 dependent 槽位同样修复 fallback 复核，不再把旧半截标题带回交付。
+- 已修复 artifact 状态口径：低于 60 或 blocking 的输出不再被写成 `ready`，报告新增 `blocked_outputs` 和 `blocked_count`，避免“失败稿冒充成功”。
+- 已补标题可读性清洗：覆盖本轮真实探针暴露的 `排队20`、`衬衫开`、`显气色还`、`不显毛`、`终于走路`、`每晚2`、`执行指`、`动作20`、`1200元这样/人均` 等尾巴；旅行普通攻略不再误触酒店事实密度规则。
+- 真实验证：v36 直接生成 `quality/generated_variants/v36_rqs05_06_regression/run_report_20260628T151411Z.json` 覆盖美食/旅行/穿搭/美妆/家居/健身 `36` 条，`36/36 ready`、失败 `0`、blocking `0`、mean `73.642`、median `73.590`、min `67.276`、`32/36 >=72`、`36/36 >=60`。
+- 对话优化验证：v36 二修/chat `run_report_20260628T152141Z.json` 共 `12` 条，`12/12 ready`、失败 `0`、blocking `0`、mean `76.211`、median `75.716`、min `73.357`、`12/12 >=72`。
+- 全量 post-sanitize 审计：v36 共 `48` 个 ready artifact，blocking `0`、标题可读性问题 `0`、mean `74.284`、median `74.068`、min `67.276`、`44/48 >=72`、`48/48 >=60`。
+- 验证记录：新增三入口统一链路测试、chat 分数回退测试、blocking artifact 报告测试、标题断尾测试；目标测试和 py_compile 已通过。下一项进入 `RQS-07` 真实链路 shadow/E2E 总验收。
+
+## 上一进展：2026-06-28 RQS-04 健身多场景真实验证完成
+
+- 已完成健身生成链路专项稳定化：生成 brief 按场景切换，不再用单一减脂模板覆盖全部健身任务；目前覆盖膝盖友好低冲击、办公室肩颈放松、弹力带臀腿塑形三类真实任务。
+- 已补动作与安全事实槽位：膝盖友好任务聚焦 `18分钟/4个动作/3轮`，办公室肩颈任务聚焦 `8分钟/一面墙/椅子/肩胛后缩/靠墙天使`，弹力带臀腿任务聚焦 `弹力带/臀腿/发力感/3组`；动作覆盖不会被压缩掉。
+- 已修复无来源周期/效果/医学化承诺：未提供真实训练记录时，`坚持一周明显缓解`、`第二天酸痛减少`、`颈椎病变`、`可能压到神经`、`血液循环恢复正常` 等表达会被清洗为安全、可执行、不过度承诺的动作建议。
+- 已修复健身标题自然度问题：`新手3周` 这类无来源周期结果承诺会被移除；`18分钟膝盖友好减脂，4个动作适合新` 这类半截标题会交付前修为 `18分钟膝盖友好减脂，新手可练`。
+- 真实验证：`quality/generated_variants/v33_fitness_rqs04_scene_brief` 为 `18/18 ready`、失败 `0`、blocking `0`、min `72.278`、mean `74.026`、median `73.519`、max `77.039`；post-clean 均分 `73.947`、`ge72=18/18`、issues `0`、bad `0`、body_gt480 `0`。
+- 剩余风险：个别单候选仍在 `72.x` 附近，符合当前 `60+` 不硬拦策略；后续由多候选择优和对话优化继续承接，不再为了追分硬塞模板。
+- 下一项按计划进入 `RQS-05/RQS-06`：AI 诊断三入口和对话优化真实回归。
+
+## 上一进展：2026-06-28 RQS-03 旅行/酒旅稳定性二轮完成
+
+- 已完成旅行/酒旅生成链路二轮稳定化：美团 `meituan-travel` 的评分、起价、交通/距离、亲子设施、入园权益和停车等事实会在正文前段自然保留，不再依赖后段机械补信息。
+- 已修复旅行单酒店标题问题：针对“带娃去长隆，这家亲子酒店929起要不”“广州长隆亲子酒店怎么选”这类半截或冷标题，交付前会结合美团事实修成可读标题，例如“广州长隆亲子酒店，929元起值得选”。
+- 已修复酒旅事实边界风险：`￥929起/晚` 会统一为 `929元起/晚`；无依据的“首选/直接订这家/一价全包/直接省门票钱/多玩半天/提前2-3周/旺季满房/延迟退房/儿童年龄段”等表达会被清洗为以美团实时页或酒店规则确认的稳妥表达。
+- 已补重复事实句和多酒店模板压缩：单酒店评分/价格/班车/权益不再反复出现；多酒店对比里的早餐重复、长句模板和生硬开头已做交付前压缩。
+- 真实验证：`quality/generated_variants/v30_travel_v12_stability` 为 `4/4 ready`、失败 `0`、blocking `0`、均分 `79.303`、最低 `78.515`；latest post-clean 审计均分 `80.877`、最低 `79.015`、bad_terms `0`、issues `0`。30 条酒旅大样本回归为 `30/30 >=72`、均分 `73.446`、最低 `72.353`、issues `0`、bad_terms `0`。
+- 验证记录：`.venv/bin/python -m unittest tests.test_api_contracts` 通过 `98` 项；`python3 -m py_compile model/api.py tests/test_api_contracts.py` 通过。
+- 下一项按计划进入 `RQS-04` 健身多场景真实验证。
+
+## 上一进展：2026-06-28 RQS-02 美妆生成专项完成
+
+- 已完成美妆生成链路专项稳定化：生成 brief、agent 方向和交付清洗已区分彩妆/唇妆与防晒/底妆；唇妆聚焦肤色、色号、薄涂厚涂、唇纹和饭后补涂，防晒/底妆聚焦肤质、成膜、泛白、搓泥、卡粉和后续底妆适配。
+- 已修复美妆事实边界风险：未提供的试用周期、敏感反应、全天持妆/不用补妆、成膜具体时长和产品使用周期会被清洗为可验证的肤质/用量/补涂边界；`6小时` 事实不会再被扩大成“一整天 hold 住”。
+- 已补美妆标题清洗：覆盖“涂完直接上粉底不”“6小时不”“69元玫瑰”“我能涂一年”等真实探针出现的半截标题或未提供经历标题，交付前会修成语义完整标题。
+- 真实验证：v23 美妆 focus 探针 `quality/generated_variants/v23_beauty_focus_after_quality_fix` 为 `18/18 ready`、失败 `0`、blocking `0`；post-sanitize 审计标题问题 `0`、事实边界问题 `0`、均分 `72.803`、中位 `72.661`，3 个任务组最佳候选分别为 `73.055/78.150/73.742`。Round12 商业槽位补测 `quality/generated_variants/v23_beauty_v12_after_quality_fix` 为 `4/4 ready`、失败 `0`、post-sanitize 问题 `0`、均分 `72.615`、最佳 `75.284`。
+- 验证记录：`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `161` 项；`find model tools tests -name '*.py' -print0 | xargs -0 .venv/bin/python -m py_compile` 通过；`.venv/bin/python tools/quality_gate.py quality/golden_notes.sample.json --json` 通过。
+- 剩余风险已记录到 `docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`：唇妆仍有单候选最低 `67.603`，高于硬拦线 `60` 但未达 72；后续 RQS-05/RQS-06 必须继续验证多候选择优和对话优化能稳定接住这类波动。
+
+## 最新进展：2026-06-28 RQS-01 美食/高德事实源生成专项完成
+
+- 已完成美食/本地生活高德事实源交付层稳定化：高德地址、人均、营业时间、评分、招牌菜、套餐信息会被改写成自然决策句，不再输出“实用信息：地址：...”这类机械信息块。
+- 已修复事实一致性风险：长禧家这类只提供“点心拼盘”的套餐，不再被 Claude 擅自扩写成虾饺、烧卖、叉烧包；点都德/陶陶居这种高德事实源已列出虾饺皇、烧卖皇的场景继续正常放行。
+- 已补餐饮标题清洗：覆盖“招牌必/必点金牌/虾饺皇必/不会踩/必点这样吃/人均86广式早/这家98元人均”等真实探针出现的半截或机器压缩标题，交付前会确定性修复。
+- 真实验证：长禧家单店探针 `quality/generated_variants/v16_food_amap_single_after_dish_fact_fix` 为 `4/4 ready`、失败 `0`、blocking `0`、均分 `73.971`；多店探针 `quality/generated_variants/v18_food_amap_final_title_clean` 为 `24/24 ready`、失败 `0`、blocking `0`、均分 `73.564`、中位 `72.790`。最终 post-sanitize 审计：标题问题 `0`、结构化事实边界问题 `0`、假菜名扩写 `0`、信息栏污染 `0`。
+- 验证记录：`find model tools tests -name '*.py' -print0 | xargs -0 .venv/bin/python -m py_compile` 通过；`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `155` 项；`tools/quality_gate.py quality/golden_notes.sample.json --json` 与 `quality/quality_gate_cases.v04_round06_food_travel.json --json` 均通过。
+- 剩余风险已记录到 `docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`：长禧家/点都德个别单候选仍会落在 `68-71`，但均高于硬拦线 `60`；后续 RQS-05/RQS-06 必须验证多候选选择优和对话优化能稳定接住这类候选波动。
+
+## 最新进展：2026-06-28 真实链路质量稳定化计划锁定
+
+- 已新增独立执行计划：`docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md`。后续真实链路质量工作统一按 `RQS-00` 到 `RQS-08` 编号推进，完成一项更新一项，不再只依赖聊天上下文记忆。
+- 已确认当前工作重心：V0.4 composite 训练已进入 `production_training`，下一阶段不是继续凑 Golden，而是提高真实 AI 诊断、爆文生成、事实源、多候选择优和对话优化的交付稳定性。
+- 当前任务状态：`RQS-00` 已完成，内容是固化计划、同步训练计划/交付台账口径；下一项进入 `RQS-01` 美食/高德事实源生成专项，再进入 `RQS-02` 美妆生成专项。
+- 执行纪律已写入计划：每个任务必须有状态、验收标准、验证证据和完成备注；`<60` 或灾难性错误硬拦，`60+` 轻修问题进入二修/对话优化；母婴行业按用户要求冻结专项优化。
+
+## 最新进展：2026-06-28 多候选择优 Round13
+
+- 已完成同任务多候选稳定交付器：`/generate` 与 `/generate/stream` 均接入候选池，初始仲裁稿、挑战候选、P4 修复稿、score-directed 二修稿和最终压缩稿都会进入统一选择；V0.4 ready classifier 与 preference ranker 已在 API runtime 加载，`selection_meta` 会回传候选数量、分数、ranker 使用情况和最终来源，便于线上审计。
+- 选择策略已按商业交付边界修正：`72+ 且无质量问题` 的候选优先；ranker 只能在同质量层或近分候选中排序，不能再把低分/有核心槽位问题的稿子压过 72+ 干净稿；`<60` 或灾难性空稿/格式错误仍硬拦，`60+` 不硬拦，进入二修或对话优化。
+- 真实链路探针覆盖 6 个核心行业并全部跑通：长禧家珑厨高德餐饮样本 `80.9`（修复地址识别后复评 `80.7`、issues=0）、广州长隆酒旅 `70.3`、美妆防晒 `72.7`、健身低冲击训练 `75.5`、穿搭梨形通勤 `76.7`、家居阳台洗衣区复跑后 `72.1`。所有样本 `quality_failed=false`，无空响应冒充成功、无标题超 18 字、无 blocking。
+- 本轮暴露并修复一个真实选择器风险：家居首跑中 ranker 曾选择 `69.1` 且缺预算问题的候选，压过 `72.1` 无问题候选；已新增质量层选择规则和单测，复跑家居最终选择 `refine_round_2`、`72.1`、issues=0。
+- 剩余质量风险：酒旅样本仍停在 `70.3`，家居刚过 `72.1`，说明旅行/家居需要继续做行业专项生成策略；穿搭样本虽 `76.7`，但“160穿出165腿/多五厘米”有轻微夸张表达风险，下一轮应加强自然度与不过度承诺。
+
+## 上一进展：2026-06-28 真实链路质量稳定化 Round01 后半段
+
+- 已完成事实源稳定化：餐饮/本地生活真实高德烟测通过，长禧家珑厨万博广晟店可取得地址、营业时间、人均、评分、招牌、套餐、商圈、电话、门店图，provider=`local_verified+amap`、confidence=`0.9`；酒旅真实美团 `meituan-travel` 烟测通过，广州长隆亲子酒店可稳定提取酒店名、真实评分/起价、地址、入住/退房、亲子设施、交通权益和套餐权益，并清洗 Skill 前缀、Markdown、泛化“套餐浮动/我来帮你查”等脏字段。
+- 已完成生成策略稳定化：`_build_generation_planning_brief()` 新增多行业“商业价值槽位”，不再只靠餐饮/旅行模板；二修指令显式补旅行交通/预算、穿搭价格/渠道、美妆价格/渠道、家居预算/单品价、餐饮营业时间/必点；美妆、家居新增专用品类表达 brief，避免走通用文案。
+- 验证完成：`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `145` 项；`python3 -m py_compile model/api.py model/fact_enrichment.py tools/v04_training_data_health.py tools/v04_composite_readiness.py tests/test_api_contracts.py tests/test_fact_enrichment.py` 通过；质量门禁通过；`tools/v04_training_data_health.py --json` 与 `tools/v04_composite_readiness.py --json` 均为 `production_ready`；Shadow QA `362/362` ready、hard block `0`、平均 V0.4 `71.585`、`166` 条 `>=72`。
+- 剩余风险：Shadow QA 仍基于历史 artifact，未完全体现本轮新增 prompt 对未来生成的提升；老样本里仍有 `title_readability=4`、`food_missing_hours_signal=3`、`travel_missing_transport_signal=1`。母婴按用户要求冻结，不作为本轮继续优化对象。
 
 ## 状态说明
 
@@ -89,6 +183,7 @@
 - 2026-06-28：完成远程 Git 仓库推送准备。新增 `docs/REMOTE_REPOSITORY_SETUP.md`，明确私有远程仓库、Git LFS、密钥/原始数据禁入、推送后核验、干净克隆验收和代码+模型同步回滚规则；新增 `scripts/push_remote.sh`，统一执行工作区干净检查、`origin` 配置、`main` 推送、tag 推送和 LFS 对象推送。当前本机 `gh` 已安装但未登录，且没有任何远端 URL，因此不能擅自上传商业项目代码；待用户登录 GitHub/Gitee/GitLab 或提供远端 URL 后，可直接用脚本执行首次云端推送。
 - 2026-06-28：完成 GitHub 私有仓库首次发布。GitHub CLI 已授权账号 `iamyusen1314`，创建私有仓库 `https://github.com/iamyusen1314/noteai`，推送 `main`、tag `v0.4-production-baseline-20260628` 和 `19` 个 Git LFS 对象（约 `21 MB`）；远端 `main` 当前提交 `10fca15`，tag 指向同一提交。已做临时干净克隆验收并执行 `git lfs pull`，V0.4 三个 `.lgb` 模型均可拉取为真实文件；禁入文件检查确认 `.env`、`model/.env`、`.venv/`、`node_modules/`、MLflow、本地原始大数据和生成大包没有进入远端；Python 核心文件 `py_compile` 与 `scripts/push_remote.sh` 语法检查通过。
 - 2026-06-28：完成 GitHub Actions CI、production 环境变量/密钥和模型云端加载策略第一版。新增 `.github/workflows/ci.yml`，在 push/PR 到 `main` 时执行 LFS 拉取、依赖安装、Python 编译、artifact SHA 校验、139 项单测、质量 gate 和 Docker Compose 配置检查；新增 GitHub Environment `production`，写入 `ADMIN_PASSWORD`、`ANTHROPIC_API_KEY`、`MOONSHOT_API_KEY`、`AMAP_WEB_KEY`、`MEITUAN_OPEN_TOKEN` 等 Secrets，写入 `NOTEAI_ENABLE_TEST_BILLING=0`、`NOTEAI_USE_V04_COMPOSITE=1`、`NOTEAI_MODEL_ARTIFACT_REQUIRED=1`、事实搜索和端口等 Variables，未在日志中输出任何 secret 值。新增 `model/artifact_loader.py`、`scripts/fetch_model_artifacts.py` 和 `model/artifacts/model_release_manifest.v04.json`，生产启动可校验/下载 V0.4 模型 artifact；修复 `api.py` 读取训练报告中本机绝对路径导致云端找不到 V0.4 模型的问题，改为自动映射到部署环境 `model/artifacts/`。新增 `docs/DEPLOYMENT_SECRETS.md`、`docs/MODEL_ARTIFACT_CLOUD_STRATEGY.md`，明确 Secrets、Variables、对象存储前缀和模型/代码同步回滚规则。CI 首跑暴露 `model/requirements.txt` 漏列 `jieba`、`scikit-learn` 与 `python-multipart`，已补齐为 `jieba==0.42.1`、`scikit-learn==1.8.0`、`python-multipart==0.0.30`。验证记录：artifact check 通过；`find model tools tests -name '*.py' -print0 | xargs -0 .venv/bin/python -m py_compile` 通过；`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `139` 项；`.venv/bin/python tools/quality_gate.py quality/golden_notes.sample.json` 通过；`docker compose config --quiet` 通过。
+- 2026-06-28：启动真实链路质量稳定化 Round01，目标从“模型训练能部署”切换为“AI 诊断/爆文生成/对话优化真实可交付”。已修复训练进度口径不一致：`tools/v04_training_data_health.py`、`tools/v04_composite_readiness.py` 的生产 Golden 默认线改为当前接受线 `600/行业`，并重建 `model/artifacts/v04_training_data_health.json`、`model/artifacts/v04_composite_readiness.json`，两者均为 `production_ready`，各核心行业 gap 为 `0`。已扩展 `_build_generation_planning_brief()`：除美食/旅行外，穿搭、美妆、家居、健身、母婴也会从用户素材/事实源提取行业事实槽位，避免多行业生成只得到泛化 brief。已修复 chat 对话优化：60+ 无硬错误但 V0.4 可解释低分时，`_repair_chat_note_if_needed()` 会进入分数导向二修，不再跳过。新增回归测试覆盖多行业 fact brief 和 chat V0.4 lift。
 - 2026-06-28：根据用户确认将 GitHub 仓库从 private 改为 public，以启用 GitHub Free 下的 main 分支保护和 secret scanning。已开启 secret scanning 与 push protection；已关闭 merge commit，仅保留 squash/rebase，并启用 merge 后自动删除分支。`main` 分支保护已生效：要求 `test` status check 通过、strict up-to-date、必须 PR、dismiss stale reviews、管理员同样受保护、要求线性历史、禁止 force push、禁止删除、要求 conversation resolution。最新 CI run `28312405091` 已通过；后续对 `main` 的治理记录也将通过 PR 验证保护链路。
 - 2026-06-24：完成全栈审查与生成质量链路复查，确认当前不是可交付 SaaS，首要问题是生成链路没有真正闭环、评分校准偏松、prompt/代码/模型规则不一致。
 - 2026-06-24：创建本台账，后续所有修复都在此记录状态和验证证据。
@@ -186,3 +281,6 @@
 - 2026-06-25：执行 Round07 事实源专项，落实用户口径：训练阶段不学习“未提供/不能编造/缺失字段”提示，餐饮/本地生活用高德事实补全，酒店/旅行攻略使用美团 `meituan-travel` Skill 事实。先修复事实工程风险：本地核验事实必须命中门店/品牌身份词，不能只凭城市/商圈串库；`北京路/南京西路` 等路名不再误判为城市；`meituan-travel` 独立默认超时提升到 `45s`。真实事实源烟测：长禧家、点都德、陶陶居、蜀大侠均能从高德拿到地址、人均、营业时间、评分、推荐菜等；美团 Skill 能返回三亚亚龙湾亲子酒店、广州长隆亲子酒店、成都太古里酒店、北京国贸商务酒店、杭州西湖二日游路线/湖滨住宿等事实素材。新增 `quality/preference_task_pool.v07.food_travel_fact_sources.json`，共 `9` 个任务、`54` 个生成槽位（美食 `24`、旅行/酒店/攻略 `30`）；真实填充 `54/54 ready`、失败 `0`，均分 `66.464`，`4` 篇达到旧 72 参考线，最高为杭州西湖路线 `75.375`。质量扫描发现美食大量出现“实用信息：地址：...”板块化写法、标题断尾（如“人均1”“这4”“地铁距离”“价格差”），已把这些加入标题可读性回归和训练 seed 过滤；`tools/build_preference_seed_from_generated_artifacts.py` 现在过滤内部格式污染和板块化事实段，避免训练学到机械事实槽位。过滤后只保留 `5` 个任务、`19` 个候选，导出 `33` 组 A/B，其中旅行 `32`、美食 `1`；Kimi 第二评审 `33/33 ok`，严格一致 `1`，按 winner-consensus 安全晋级 `6` 组，其余 `27` 组 holdout。合并后 `quality/preference_queue.v01.labeled.jsonl` 达 `232` 组；美食当前 Golden `39` / Preference `47`，旅行当前 Golden `21` / Preference `33`。健康审计与训练守门仍 `blocked_need_labels`、`do_not_deploy=True`，不能部署生产模型。结论：美团 Skill 对酒店/旅行攻略事实素材价值明确，能产出 72+ 候选；高德解决餐饮真实性，但当前美食生成仍明显偏板块化和标题断尾，下一步需要优化美食生成表达策略，而不是盲目扩大入库。关键 artifact：`quality/preference_task_pool.v07.food_travel_fact_sources.json`、`quality/generated_variants/v07_food_travel_fact_sources/latest_report.json`、`quality/preference_pairs.v07.food_travel_fact_sources.generated_from_artifacts.report.json`、`quality/review_packets/promoted/v04_round07_food_travel_fact_sources_kimi_consensus_preference_promoted.report.json`、`quality/preference_labels.v01.merged.round07_food_travel_fact_sources.report.json`。验证记录：`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `94` 项；`find model tools tests -name '*.py' -print0 | xargs -0 python3 -m py_compile` 通过；`.venv/bin/python tools/quality_gate.py quality/quality_gate_cases.v04_round06_food_travel.json --json` 通过；`model/train_v04_composite.py --json` 输出 `blocked_need_labels`、`candidate_ready=false`、`production_ready=false`。
 - 2026-06-25：执行 Round08b 美食表达质量专项，目标是解决 Round07 暴露的“事实源真实但正文板块化、标题半截、模型分高但人感不自然”。修复内容：`_safe_fact_line()` 从“实用信息：地址/人均/营业时间”改为自然决策句；高德事实值进入生成前先清洗重复标签，避免“门店地址在地址：”“营业时间营业时间：”；同一事实槽位多行时跳过“门店名”伪地址，优先取真实地址；正文已自然写出营业时间范围时不再重复追加事实句；新增旧污染段清理，删除“门店地址在门店名：...”整句；标题 exact repair 覆盖 v08/v08b 新样例（如“稳得”“这样点不”“人均98”“第一次来怎么点才不”）；放宽真实店名/早茶/火锅语境下“人均86元很稳”的误杀，但继续拦截无对象的价格+推荐拼接；新增“吃到饱/不限量/管饱”事实边界，除非来源明确自助/不限量，否则会被清洗为“点心选择不少”。`tools/build_preference_seed_from_generated_artifacts.py` 也改为把清洗后的标题/正文/重算分数写入 seed，防止训练直接吃旧 artifact 脏句。真实重跑 `quality/generated_variants/v08b_food_expression_probe/`：美食 `24/24 ready`、失败 `0`，最高 `76.029`，`3` 篇达到旧 72 参考线，`6` 篇 ≥70；正文污染扫描 `实用信息/门店地址在地址/营业时间营业时间/用户未提供/不能编造` 全部为 `0`。人工抽检发现 76 分点都德样本含“人均86元吃到饱”，已纳入事实边界；塑形后该样本去除“吃到饱”，重算约 `80.895`。过滤阻断样本后保留 `21` 个美食候选，导出 `46` 组 A/B；Kimi 第二评审 `46/46 ok`，严格一致 `22`，按 winner-consensus 且 Kimi 置信度 ≥`0.75` 安全晋级 `26` 组，其余 `20` 组 holdout。合并后 `quality/preference_queue.v01.labeled.jsonl` 达 `258` 组，美食 Preference 达 `73`；健康审计仍 `blocked_need_labels`，生产训练继续 `do_not_deploy=True`，不能部署生产模型。关键 artifact：`quality/generated_variants/v08b_food_expression_probe/latest_report.json`、`quality/preference_pairs.v08b.food_expression.generated_from_artifacts.report.json`、`quality/preference_queue.v08b.food_expression.report.json`、`quality/review_packets/v04_round08b_food_expression_preference_ai_review.report.json`、`quality/review_packets/promoted/v04_round08b_food_expression_preference_promoted.report.json`、`quality/preference_labels.v01.merged.round08b_food_expression.report.json`。验证记录：`python3 -m py_compile model/api.py tests/test_api_contracts.py tools/build_preference_seed_from_generated_artifacts.py` 通过；新增事实清洗、标题修复、吃到饱边界、标签拆分回归测试通过；`.venv/bin/python tools/v04_training_data_health.py --json` 输出 `preference_pair_rows=258`、`美食 preference_pairs_labeled=73`、`decision=blocked_need_labels`。
 - 2026-06-25：执行 Round09 酒旅/旅行表达专项，落实用户口径：餐饮/本地生活训练阶段不学习“未提供/不能编造”提示，真实链路由高德补事实；酒店/旅行攻略使用美团 `meituan-travel` 事实素材。修复内容：旅行/酒店/住宿/酒旅别名统一到旅行规则；生成 brief 区分酒店对比与路线攻略，注入预算、交通、设施、评分、路线窗口等事实位；旅行安全事实策略禁止无依据“最低价/最划算/必住/提前预订更便宜”；Claude 非流式调用增加硬超时，避免无响应卡住；Markdown 清理修复为只处理真正 `# 标题`，保留小红书 `#话题标签`；旅行标题断尾修复覆盖“预算/交通/地铁/通勤/灵隐寺”等常见半截。重刷 `quality/generated_variants/v09_travel_expression_probe/` 后 30 个候选全部可用，`14` 篇 ≥72，`22` 篇 ≥70，低于 60 和 blocking 均为 `0`，Markdown/无依据价格承诺/标题断尾扫描均为 `0`。重新导出 `75` 组旅行 A/B；Claude 主审 + Kimi 二审 `75/75 ok`，双方 winner 一致 `23` 组，按 Kimi 置信度 ≥`0.75` 安全晋级 `14` 组，其余 `61` 组 holdout。重建 merged preference 时补回最早 `3` 条 locked seed，当前总 preference `272` 组，旅行 preference `47` 组，美食 preference `73` 组；Golden 仍为 `157` 条。健康审计、readiness、训练守门均为 `blocked_need_labels`，`do_not_deploy=true`，不能部署生产模型。关键 artifact：`quality/review_packets/promoted/v09_travel_expression_summary.json`、`quality/preference_pairs.v09.travel_expression.generated_from_artifacts.report.json`、`quality/preference_queue.v09.travel_expression.report.json`、`quality/review_packets/v09_travel_expression_preference_ai_review.report.json`、`quality/review_packets/promoted/v09_travel_expression_preference_promoted.report.json`、`quality/preference_labels.v01.merged.round09_travel_expression.report.json`。验证记录：`find model tools tests -name '*.py' -print0 | xargs -0 python3 -m py_compile` 通过；`.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 `104` 项；`.venv/bin/python tools/quality_gate.py quality/quality_gate_cases.v04_round06_food_travel.json --json` 通过；`.venv/bin/python model/train_v04_composite.py --json` 输出 `blocked_need_labels`、`candidate_ready=false`、`production_ready=false`。
+- 2026-06-28：Round12 真实链路探针重刷完成，覆盖美食/旅行/穿搭/美妆/家居/健身 6 个核心行业各 4 个槽位，共 `24` 条真实生成；母婴继续冻结。第一轮全 ready、0 失败，暴露旅行 70+ 仍被历史 artifact 标为 blocking；已把硬拦截语义收敛为 `<60` 或灾难性空稿/格式错误，60+ 进入对话优化/二修而不硬拦，同时修复酒旅价格格式 `￥929起/晚`、`929元/晚` 误判为“未提供价格”的问题。第二轮真实生成 + 本地交付层刷新后：`24/24 ready`、失败 `0`、blocking `0`、标题可读性问题 `0`、均分 `72.318`、中位数 `73.255`、`13/24` 达到 72+。分行业均分：健身 `75.432` 最稳，穿搭 `73.650`、家居 `72.506` 基本可用；美食 `70.529`、美妆 `70.900`、旅行 `70.891` 仍有单次生成波动。已修复标题压缩半截样例：`芝士焗小青龙必`、`遮胯搭`、`2600元让动线/做出顺`、`929起的长`。Shadow QA 纳入 v12 后全量 `386/386` ready、hard block `0`；v12 artifact set `24/24` shadow ready、`13/24` 72+、平均 V0.4 `72.13`。结论：新策略有真实增益，但美食/美妆/旅行仍不能只靠单次 Claude 输出上线，下一步必须做多候选生成 + V0.4 选择最佳 + 低于 60 才拦截的稳定交付器。
+- 2026-06-28：完成 Round13 多候选择优接入。新增 V0.4 ready classifier / preference ranker runtime loader、候选评分与选择器、非流式和流式生成候选池、`selection_meta` 审计输出；挑战候选按美食/旅行/美妆/穿搭/家居/健身分别使用行业角度，母婴按用户要求不继续专项优化。修复本地生活地址特征识别，`万博城A座7层/商圈/广场/地铁/附近` 可识别为位置线索，同时避免“轻扫一层”等美妆语境误伤。真实探针：美食 `80.9`、旅行 `70.3`、美妆 `72.7`、健身 `75.5`、穿搭 `76.7`、家居复跑 `72.1`，全部无失败/无 blocking。已修复 ranker 过权重问题，72+ 干净候选优先，ranker 不再覆盖交付底线。验证记录：`.venv/bin/python -m unittest discover -s tests` 通过 `148` 项；质量门禁 `quality/golden_notes.sample.json` 与 `quality/quality_gate_cases.v04_round06_food_travel.json` 均通过；训练健康/readiness 均 `production_ready`。
+- 2026-06-28：完成 Round14 旅行/家居/穿搭真实链路专项。生成前策略升级为行业化候选方向：旅行/酒旅前120字保留起价/评分/交通/权益等决策事实，家居前120字保留空间/预算/改造结果并要求单品绑定动线/收纳作用，穿搭禁止“160穿出165/秒变170/多五厘米/同事说瘦”等夸大身材变化，改用腰线、比例、遮胯等自然表达。选择器新增软质量信号：旅行酒旅事实密度不足、家居复刻信息不足、穿搭夸大身材变化都会扣分但不硬拦，继续坚持 `<60` 才硬拦、60+ 进入对话优化。真实探针 `quality/generated_variants/v14_travel_home_fashion_stability` 覆盖旅行/穿搭/家居 12 条，`12/12 ready`、失败 `0`、blocking `0`、均分 `73.718`、中位数 `73.956`、`9/12` 达到 72+；穿搭 `4/4` 均 74+ 且风险词扫描为 0，旅行最高 `73.771`，家居仍暴露标题半截尾巴。随后新增家居标题修复表覆盖 `高腰A/搞定收/让折叠/做完整/元打造`，单独补测 `quality/generated_variants/v14_home_title_repair_probe` 为 `4/4 ready`、失败 `0`、blocking `0`、均分 `72.312`、标题可读性问题 `0`。验证记录：目标测试 `tests.test_api_contracts` 通过；后续全量验证待本轮提交前复跑。

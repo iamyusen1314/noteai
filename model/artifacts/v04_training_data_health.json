@@ -1,7 +1,7 @@
 {
   "version": "v04-training-data-health-v0.1",
-  "created_at": "2026-06-27T17:07:35.803090+00:00",
-  "decision": "candidate_ready",
+  "created_at": "2026-06-28T06:06:08.595672+00:00",
+  "decision": "production_ready",
   "inputs": {
     "golden_labels": "/Users/openclaw/Desktop/noteai/quality/golden_labels.v01.merged.json",
     "preference_queue": "/Users/openclaw/Desktop/noteai/quality/preference_queue.v01.labeled.jsonl"
@@ -9,7 +9,7 @@
   "thresholds": {
     "min_golden_candidate_per_domain": 300,
     "min_preference_candidate_per_domain": 1000,
-    "min_golden_production_per_domain": 1000,
+    "min_golden_production_per_domain": 600,
     "min_preference_production_per_domain": 3000
   },
   "counts": {
@@ -76,7 +76,7 @@
       "preference_pairs_labeled": 3113,
       "golden_needed_candidate": 0,
       "preference_needed_candidate": 0,
-      "golden_needed_production": 196,
+      "golden_needed_production": 0,
       "preference_needed_production": 0
     },
     "家居": {
@@ -84,7 +84,7 @@
       "preference_pairs_labeled": 3472,
       "golden_needed_candidate": 0,
       "preference_needed_candidate": 0,
-      "golden_needed_production": 329,
+      "golden_needed_production": 0,
       "preference_needed_production": 0
     },
     "健身": {

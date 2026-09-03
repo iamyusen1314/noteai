@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "schema": "noteai.item29.capacity-100-evidence.v1",
+  "task_id": "PROD-FIRST-LAUNCH-CAPACITY-100-001",
+  "status": "PASS",
+  "observed_at_utc": "2026-08-23T22:58:01Z",
+  "source_binding": {
+    "branch": "codex/quality-stabilization-real-chain",
+    "execution_source_revision": "760db9db319aa90925150fdb198aa09af9bd9c2c",
+    "executor_ref": "deploy/production/capacity_100_jobs.py",
+    "renderer_ref": "tools/render_item29_capacity_100_request_v1.py",
+    "verifier_ref": "tools/verify_capacity_100_jobs_evidence.py",
+    "executed_executor_bytes": 65429,
+    "executed_executor_sha256": "ee4b00f4286332712fa70ec81150ad81c13eaa292a58721b82e5b8430d4be311",
+    "executed_executor_gzip_sha256": "9a4c87e0c8cca85713f0199e63762120e218ff43746e7f8270ff44c817145793",
+    "executed_renderer_sha256": "450481ecd8800c3fbda2d626b79561ae38f4f93046c22a13a62965ae39372be6",
+    "executed_verifier_sha256": "ae8c867c71269119769a8db261fbbdd1a8ea8c7ac319ae4532c309649b4dc289"
+  },
+  "predecessor": {
+    "item28_terminal_acceptance_sha256": "55363294b82f21c6c0fd000e8dcf08f481775a2f63b2a9dd733056ffb4f85c9c"
+  },
+  "managed_runtime": {
+    "target_instance_sha256": {
+      "API-C": "22072b9509fa69084dffdcc8aeff98aee3b0e212c5cab14d7d30bfbe8c15b665",
+      "Worker-C": "9df8cee339ab8cb82cef0a62729709a557975e0d471104de516e5872a17af6ba",
+      "Worker-F": "4fc521680ad0154fc1f14f9ba30daf7d231afe1816c909513d8d4ab70c2db87f"
+    },
+    "c17_revision": "cad5ce35664f617c6e19f90a6159285ddf975594",
+    "c17_image": "noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:407eef2b50b13cefc365f9decd34de39ee0f8e327b7fbfc0eda15fa519ae321b",
+    "c17_image_config": "sha256:1f503665de518d871813133335418822e9383544fbfd1cde3e2b66bb51470c95",
+    "dispatcher_unit_sha256": "8e2d9dc59b87585e5921f5c2b838db4c150efeebeb8e243e194bce586fc102fc",
+    "worker_unit_sha256": "a3fa4407202620d5c3e0f6f1fd6de4babe564d3b0cea79c1cbded7a2e13fd200",
+    "api_database_role": "noteai_app",
+    "dispatcher_database_role": "noteai_ai_dispatcher",
+    "worker_database_role": "noteai_ai_worker",
+    "database_credential_transport": "private_docker_env_file"
+  },
+  "source_transfers": [
+    {
+      "target": "API-C",
+      "terminal_status": "Success",
+      "repeat_count": 1,
+      "content_sha256": "9a4c87e0c8cca85713f0199e63762120e218ff43746e7f8270ff44c817145793",
+      "overwrite": false,
+      "source_residue_count": 0
+    },
+    {
+      "target": "Worker-C",
+      "terminal_status": "Success",
+      "repeat_count": 1,
+      "content_sha256": "9a4c87e0c8cca85713f0199e63762120e218ff43746e7f8270ff44c817145793",
+      "overwrite": false,
+      "source_residue_count": 0
+    },
+    {
+      "target": "Worker-F",
+      "terminal_status": "Success",
+      "repeat_count": 1,
+      "content_sha256": "9a4c87e0c8cca85713f0199e63762120e218ff43746e7f8270ff44c817145793",
+      "overwrite": false,
+      "source_residue_count": 0
+    }
+  ],
+  "execution_stages": [
+    {
+      "action": "preflight",
+      "target": "API-C",
+      "command_name": "noteai-item29-preflight-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "125e87abf919684d86c038251e1c3a7d6d4f441e0566c8e56465847ecb2ffa4f",
+      "started_at_utc": "2026-08-23T21:30:47Z",
+      "finished_at_utc": "2026-08-23T21:30:49Z"
+    },
+    {
+      "action": "admit",
+      "target": "API-C",
+      "command_name": "noteai-item29-admit-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "8ba7fa39d10e11b78f678858fbc464b7d3efba786dc65e7fe3e35f3dbe29376a",
+      "started_at_utc": "2026-08-23T21:32:45Z",
+      "finished_at_utc": "2026-08-23T21:32:48Z"
+    },
+    {
+      "action": "dispatch",
+      "target": "API-C",
+      "command_name": "noteai-item29-dispatch-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "5250fbd7f2460ad7f6cf8836fadf330b9d9c037d1349fc57b36a8aa4145c0264",
+      "started_at_utc": "2026-08-23T21:59:35Z",
+      "finished_at_utc": "2026-08-23T21:59:48Z"
+    },
+    {
+      "action": "dispatch-readback",
+      "target": "API-C",
+      "command_name": "noteai-item29-dispatch-readback-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "fc2eb328a18907781d30815eb5f69d881be7e5ac47fd0645dd6558e7e8f4afbe",
+      "started_at_utc": "2026-08-23T22:01:24Z",
+      "finished_at_utc": "2026-08-23T22:01:25Z"
+    },
+    {
+      "action": "preclaim-c",
+      "target": "Worker-C",
+      "command_name": "noteai-item29-preclaim-c-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "82e4c0b10a8032c41a577d6da08b333256ba13b3a1992ae8b071d174f1b25020",
+      "started_at_utc": "2026-08-23T22:17:58Z",
+      "finished_at_utc": "2026-08-23T22:17:59Z"
+    },
+    {
+      "action": "preclaim-f",
+      "target": "Worker-F",
+      "command_name": "noteai-item29-preclaim-f-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "3430e658342e3fe8a2f2bc3fc1c87baa46628c5cab4501525c028f0fa58f121f",
+      "started_at_utc": "2026-08-23T22:19:01Z",
+      "finished_at_utc": "2026-08-23T22:19:03Z"
+    },
+    {
+      "action": "process-c",
+      "target": "Worker-C",
+      "command_name": "noteai-item29-process-c-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "f1143e46ebdfed43d7eaf07d95cc80e59acdd5780b7c61e493c5658a90242336",
+      "started_at_utc": "2026-08-23T22:22:32Z",
+      "finished_at_utc": "2026-08-23T22:22:35Z"
+    },
+    {
+      "action": "process-f",
+      "target": "Worker-F",
+      "command_name": "noteai-item29-process-f-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "ae201350e22a9e52ca83e3c900ea00d559508282391d1b099bf040adb13ae640",
+      "started_at_utc": "2026-08-23T22:23:39Z",
+      "finished_at_utc": "2026-08-23T22:23:41Z"
+    },
+    {
+      "action": "source-cleanup-worker-c",
+      "target": "Worker-C",
+      "command_name": "noteai-item29-source-cleanup-worker-c-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "8b3a420f93d576c453db7ff23c127d01c9a85b2680744064fd9577d3354d721f",
+      "started_at_utc": "2026-08-23T22:26:27Z",
+      "finished_at_utc": "2026-08-23T22:26:28Z"
+    },
+    {
+      "action": "source-cleanup-worker-f",
+      "target": "Worker-F",
+      "command_name": "noteai-item29-source-cleanup-worker-f-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "ac23a3d6704abdc40cda2cefa81b81541a39cb27c4f7f467d5bea97d7041139b",
+      "started_at_utc": "2026-08-23T22:27:40Z",
+      "finished_at_utc": "2026-08-23T22:27:41Z"
+    },
+    {
+      "action": "observe",
+      "target": "API-C",
+      "command_name": "noteai-item29-observe-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "75f9ff9ea74ce0b2194d85e06a6b8a4ef66c3e6e4a22e6116edfd8996607bfc2",
+      "started_at_utc": "2026-08-23T22:32:59Z",
+      "finished_at_utc": "2026-08-23T22:33:00Z"
+    },
+    {
+      "action": "cleanup",
+      "target": "API-C",
+      "command_name": "noteai-item29-cleanup-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "4b801c6df69e3bbcd2cf4fafb7ea38ea5963a98a171eb62750ced3c20a7e0f42",
+      "started_at_utc": "2026-08-23T22:41:46Z",
+      "finished_at_utc": "2026-08-23T22:42:30Z"
+    },
+    {
+      "action": "source-cleanup-api-c",
+      "target": "API-C",
+      "command_name": "noteai-item29-source-cleanup-api-c-20260824-v1",
+      "terminal_status": "Success",
+      "exit_code": 0,
+      "repeat_count": 1,
+      "dropped_count": 0,
+      "stdout_sha256": "389a45d7f3c3b8ace2ed2fc0d80cbf044b162b01054cf21f7905736043b7c60f",
+      "started_at_utc": "2026-08-23T22:43:32Z",
+      "finished_at_utc": "2026-08-23T22:43:32Z"
+    }
+  ],
+  "result": {
+    "schema": "noteai.item29.capacity-100-result.v1",
+    "task_id": "PROD-FIRST-LAUNCH-CAPACITY-100-001",
+    "status": "PASS",
+    "item28_dependency": {
+      "schema": "noteai.item29.item28-dependency.v1",
+      "evidence_path": "deploy/production/evidence/production-internal-failure-rollback-verified-20260814.json",
+      "evidence_sha256": "429b41e4e7be1549181bed195623718ce65d2d052257ea176da99e266fa598f8",
+      "terminal_acceptance_sha256": "55363294b82f21c6c0fd000e8dcf08f481775a2f63b2a9dd733056ffb4f85c9c"
+    },
+    "headroom": {
+      "database_idle_connection_headroom": 1605,
+      "database_idle_connection_headroom_required": 120,
+      "api_c_memory_headroom_bytes": 1570357248,
+      "api_c_memory_headroom_bytes_required": 1073741824,
+      "api_c_pid_headroom": 255,
+      "api_c_pid_headroom_required": 160,
+      "headroom_gate_passed": true
+    },
+    "admission": {
+      "barrier_participant_count": 100,
+      "concurrent_admission_count": 100,
+      "unique_operation_count": 100,
+      "operation_set_sha256": "128f3f92f4f0753e1c2e6c7f2c3315e77914f6cd7085c192a79874292f9a4aff"
+    },
+    "routing_and_recovery": {
+      "exact_operation_claim_count": 102,
+      "takeover_count": 2,
+      "global_recovery_call_count": 0,
+      "global_claim_call_count": 0,
+      "worker_c_index_start": 0,
+      "worker_c_index_end": 49,
+      "worker_f_index_start": 50,
+      "worker_f_index_end": 99,
+      "worker_c_takeover_index": 0,
+      "worker_f_takeover_index": 50,
+      "pre_provider_interrupt_count": 2,
+      "stale_owner_provider_call_count": 0
+    },
+    "provider": {
+      "fake_call_count": 100,
+      "unique_fake_operation_count": 100,
+      "duplicate_fake_call_count": 0,
+      "real_provider_call_count": 0,
+      "claude_label_count": 50,
+      "kimi_label_count": 50,
+      "ai_model_call_count": 0,
+      "input_token_count": 0,
+      "output_token_count": 0,
+      "provider_cost_milli": 0
+    },
+    "runtime_projection": {
+      "maximum_concurrent_admission_count": 100,
+      "unique_operation_count": 100,
+      "outbox_count": 100,
+      "delivered_count": 100,
+      "succeeded_count": 100,
+      "lost_operation_count": 0,
+      "claim_count": 102,
+      "takeover_count": 2,
+      "provider_attempt_count": 100,
+      "provider_attempt_number_not_one_count": 0,
+      "worker_c_completed_count": 50,
+      "worker_f_completed_count": 50,
+      "worker_c_takeover_index": 0,
+      "worker_f_takeover_index": 50,
+      "settlement_completed_count": 100,
+      "settlement_refunded_count": 0,
+      "settlement_needs_manual_count": 0,
+      "charge_applied_count": 100,
+      "complete_applied_count": 100,
+      "usage_record_count": 100,
+      "expected_credits_milli": 600000,
+      "actual_credits_milli": 600000,
+      "overcharge_credits_milli": 0,
+      "payment_record_delta_count": 0,
+      "cash_balance_delta_milli": 0,
+      "ready_request_object_residue_count": 0,
+      "ready_result_object_residue_count": 0,
+      "primary_user_residue_count": 0,
+      "admission_residue_count": 0,
+      "idempotency_residue_count": 0,
+      "pseudonymous_operation_audit_count": 100,
+      "pseudonymous_provider_attempt_audit_count": 100,
+      "pseudonymous_usage_audit_count": 100
+    },
+    "execution_boundary": {
+      "automatic_retry_count": 0,
+      "real_provider_credentials_loaded": false,
+      "cloud_control_plane_call_count": 0,
+      "public_request_count": 0
+    }
+  },
+  "final_resource_state": {
+    "api_c": {
+      "status": "Running",
+      "charge_type": "PrePaid"
+    },
+    "api_f": {
+      "status": "Running",
+      "charge_type": "PrePaid"
+    },
+    "builder": {
+      "status": "Stopped",
+      "charge_type": "PostPaid"
+    },
+    "worker_c": {
+      "status": "Stopped",
+      "charge_type": "PostPaid"
+    },
+    "worker_f": {
+      "status": "Stopped",
+      "charge_type": "PostPaid"
+    },
+    "temporary_compute_running_count": 0,
+    "task_container_residue_count": 0,
+    "task_file_residue_count": 0,
+    "public_listener_count": 0,
+    "temporary_security_rule_count": 0,
+    "temporary_peering_count": 0,
+    "temporary_route_count": 0
+  },
+  "cost_and_data_boundary": {
+    "incremental_cloud_cost_cny": "0.713443",
+    "worker_c_billable_seconds": 1573,
+    "worker_f_billable_seconds": 1573,
+    "worker_c_hourly_quote_cny": "0.816400",
+    "worker_f_hourly_quote_cny": "0.816400",
+    "provider_cost_cny": "0.000000",
+    "synthetic_user_create_count": 100,
+    "synthetic_user_delete_count": 100,
+    "real_user_data_read_count": 0,
+    "real_user_data_write_count": 0,
+    "public_request_count": 0,
+    "non_idempotent_replay_count": 0,
+    "provider_replay_count": 0
+  },
+  "readiness": {
+    "internal_verified_before": 28,
+    "internal_verified_after": 29,
+    "internal_total": 29,
+    "internal_percentage_after": 100,
+    "complete_public_verified_before": 28,
+    "complete_public_verified_after": 29,
+    "complete_public_total": 38,
+    "complete_public_percentage_after": 76,
+    "next_task": "PROD-FIRST-LAUNCH-PROVIDER-CHAIN-001",
+    "public_launch_authorized": false,
+    "real_provider_chain_verified": false,
+    "capacity_100_jobs_verified": true
+  },
+  "terminal_acceptance_sha256": "8f18bc1b58060a486366aa231754205febd8edeb7f19bd2897a8f32516d1e67f"
+}

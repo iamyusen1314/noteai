@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-LEGACY-RUNTIME-ROLE-CORRECTION-001",
+  "parent_task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-001",
+  "observed_at_utc": "2026-07-28T06:00:45Z",
+  "status": "blocked_no_qualifying_existing_credential_proven",
+  "audit_incident_class": "PRE_CONNECT",
+  "inherited_correction_incident_class": "CONNECTED_KNOWN",
+  "source": {
+    "checkpoint_commit": "d763cccd471d0d97e4aac57a822137cf6eb64242",
+    "correction_rejection_evidence": "deploy/production/evidence/production-legacy-runtime-role-correction-rejected-20260728.json",
+    "identity_evidence": "deploy/production/evidence/production-legacy-runtime-role-identity-20260728.json",
+    "postgresql_alter_role_reference": "https://www.postgresql.org/docs/16/sql-alterrole.html",
+    "postgresql_grant_reference": "https://www.postgresql.org/docs/16/sql-grant.html",
+    "postgresql_revoke_reference": "https://www.postgresql.org/docs/16/sql-revoke.html",
+    "rds_sql_audit_reference": "https://www.alibabacloud.com/help/en/rds/apsaradb-rds-for-postgresql/sql-insight-and-audit",
+    "rds_error_log_reference": "https://www.alibabacloud.com/help/doc-detail/610539.html"
+  },
+  "execution": {
+    "control_plane_only": true,
+    "api_c_readonly_host_audit_count": 1,
+    "api_f_readonly_host_audit_count": 1,
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0,
+    "business_row_values_read": 0,
+    "service_change_count": 0,
+    "deployment_count": 0,
+    "provider_workload_call_count": 0,
+    "public_traffic_request_count": 0,
+    "secret_values_emitted": 0,
+    "cloud_resource_ids_emitted": 0,
+    "ip_addresses_emitted": 0
+  },
+  "authority_discovery": {
+    "sql_audit_status": "Disabled",
+    "sql_audit_record_query_available": false,
+    "rds_error_log_record_count_scanned": 6060,
+    "exact_membership_grant_statement_match_count": 0,
+    "migration_window_error_log_record_count_scanned": 1152,
+    "migration_window_runtime_role_name_match_count": 0,
+    "migration_window_role_cooccurrence_count": 0,
+    "negative_log_result_is_not_absence_proof": true,
+    "recorded_membership_grantor_observed": false,
+    "existing_protected_membership_grantor_credential_proven": false,
+    "existing_protected_executor_createrole_proven": false,
+    "existing_protected_executor_admin_option_on_noteai_app_proven": false,
+    "existing_true_postgresql_superuser_credential_proven": false,
+    "existing_qualifying_credential_proven": false,
+    "database_retry_authorized": false,
+    "conclusion": "The provider control plane and retained RDS error logs do not prove a true PostgreSQL superuser or the complete non-superuser capability set: exact membership grantor, CREATEROLE and ADMIN OPTION on noteai_app. Zero log matches do not prove that a credential or grantor does not exist. The rejected database-connected incident remains closed to automatic retry."
+  },
+  "fresh_control_plane": {
+    "running_postgresql_instance_count": 1,
+    "account_count": 3,
+    "super_account_count": 1,
+    "task_account_count": 0,
+    "successful_backup_count_inside_49h": 2,
+    "latest_successful_backup_end_utc": "2026-07-27T13:08:52Z",
+    "api_c_instance_match_count": 1,
+    "api_f_instance_match_count": 1
+  },
+  "fresh_runtime_readback": {
+    "api_c": {
+      "api_active": true,
+      "api_live_http_status": 200,
+      "api_ready_http_status": 200,
+      "api_listener_count": 1,
+      "api_non_loopback_listener_count": 0,
+      "admin_active": true,
+      "admin_live_http_status": 200,
+      "admin_ready_http_status": 200,
+      "admin_listener_count": 1,
+      "admin_non_loopback_listener_count": 0,
+      "task_directory_count": 0,
+      "task_material_file_count": 0,
+      "task_process_count": 0,
+      "task_container_count": 0
+    },
+    "api_f": {
+      "api_active": true,
+      "api_live_http_status": 200,
+      "api_ready_http_status": 200,
+      "api_listener_count": 1,
+      "api_non_loopback_listener_count": 0,
+      "task_directory_count": 0,
+      "task_material_file_count": 0,
+      "task_process_count": 0,
+      "task_container_count": 0
+    }
+  },
+  "preconnect_incidents": {
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0,
+    "causes": [
+      "local_javascript_template_parse_failed_before_browser_input",
+      "cloud_shell_terminal_truncated_an_unclosed_readonly_host_command_before_runcommand",
+      "cloud_shell_terminal_interpreted_formatting_newlines_before_runcommand"
+    ],
+    "resolution": "The unfinished shell input was discarded by replacing the terminal session. API-F was then dispatched once through a materially different split in-memory transport with no literal newline characters. The completed invocation reported Success and no database path."
+  },
+  "cleanup": {
+    "api_c_task_directory_count": 0,
+    "api_c_task_material_file_count": 0,
+    "api_c_task_process_count": 0,
+    "api_c_task_container_count": 0,
+    "api_f_task_directory_count": 0,
+    "api_f_task_material_file_count": 0,
+    "api_f_task_process_count": 0,
+    "api_f_task_container_count": 0,
+    "cloud_shell_task_file_count": 0,
+    "cloud_shell_task_variable_count": 0,
+    "cloud_shell_control_plane_query_process_count": 0,
+    "database_connection_count": 0,
+    "database_transaction_count": 0,
+    "database_write_count": 0,
+    "service_change_count": 0,
+    "secret_values_exposed": 0
+  },
+  "resume_boundary": {
+    "database_action_allowed_now": false,
+    "required_authority": "A later explicit incident may use either a true PostgreSQL superuser or an existing protected executor independently proven to be the exact membership grantor with CREATEROLE and ADMIN OPTION on noteai_app.",
+    "provider_support_boundary": "If no qualifying existing protected access path can be proven, provider support must either execute exactly the bounded NOINHERIT attribute correction and grantor-bound membership revoke, or provide a protected access path whose complete capability set is independently verified before a new explicit incident begins. Advice or permission alone is not technical capability and is not retry authorization.",
+    "secret_must_not_be_sent_in_chat": true,
+    "interactive_login_or_new_credential_used": false,
+    "next_internal_technical_task_available": false,
+    "external_professional_review_substitute": false
+  },
+  "readiness": {
+    "repository_items_verified": 12,
+    "repository_items_total": 12,
+    "internal_items_verified": 14,
+    "internal_items_total": 29,
+    "production_schema_roles_verified": false,
+    "public_launch_complete": false
+  }
+}

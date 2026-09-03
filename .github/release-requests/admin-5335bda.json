@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001",
+  "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+  "release_scope": "admin",
+  "trigger_mode": "one_shot_added_path",
+  "registry_publication_authorized": false,
+  "deployment_authorized": false,
+  "database_authorized": false,
+  "service_mutation_authorized": false,
+  "public_traffic_authorized": false
+}

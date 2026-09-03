@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NoteAI Pro — 后台管理</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script src="/assets/vendor/echarts-5.4.3.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -85,6 +85,10 @@ input,select,textarea{font-family:inherit}
 .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
 .btn-danger{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--error)}
 .btn-sm{padding:4px 10px;font-size:11px}
+.btn:disabled{cursor:not-allowed;opacity:.42;filter:grayscale(.35)}
+#admin-mode-banner{display:none;margin:14px 28px 0;padding:10px 14px;border-radius:10px;
+  border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);
+  color:var(--warning);font-size:12px;line-height:1.5}
 
 /* ── Forms ── */
 .form-group{margin-bottom:14px}
@@ -245,12 +249,13 @@ input,select,textarea{font-family:inherit}
       <button class="btn btn-ghost btn-sm" onclick="refreshCurrentPage()">↻ 刷新</button>
     </div>
   </div>
+  <div id="admin-mode-banner" role="status"></div>
 
   <!-- ═══ DASHBOARD ═══════════════════════════════════════════════ -->
   <div class="content-area page active" id="page-dashboard">
     <div class="card-grid card-grid-4" id="dashboard-stats" style="margin-bottom:20px">
       <div class="stat-card"><div class="stat-label">总用户数</div><div class="stat-val" id="d-total-users">–</div><div class="stat-sub" id="d-today-new"></div></div>
-      <div class="stat-card"><div class="stat-label">本月收入</div><div class="stat-val" id="d-revenue" style="color:var(--success)">–</div><div class="stat-sub" id="d-mrr"></div></div>
+      <div class="stat-card"><div class="stat-label">本月确认净现金</div><div class="stat-val" id="d-revenue" style="color:var(--success)">–</div><div class="stat-sub" id="d-mrr"></div></div>
       <div class="stat-card"><div class="stat-label">本月 API 成本</div><div class="stat-val" id="d-cost" style="color:var(--warning)">–</div><div class="stat-sub" id="d-margin"></div></div>
       <div class="stat-card"><div class="stat-label">本月活跃用户</div><div class="stat-val" id="d-active">–</div><div class="stat-sub" id="d-active-sub"></div></div>
     </div>
@@ -268,6 +273,12 @@ input,select,textarea{font-family:inherit}
       <div class="section-title">系统状态</div>
       <div class="card-grid card-grid-4" id="system-status"></div>
     </div>
+    <div class="card" style="margin-top:20px">
+      <div class="section-title">Durable AI 队列（只读）</div>
+      <div class="card-grid card-grid-4" id="ai-operations-summary">
+        <div class="stat-card"><div class="stat-label">队列状态</div><div>加载中…</div></div>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ USERS ════════════════════════════════════════════════════ -->
@@ -277,8 +288,10 @@ input,select,textarea{font-family:inherit}
       <select class="form-select" id="user-tier-filter" style="width:140px" onchange="searchUsers()">
         <option value="">全部套餐</option>
         <option value="free">免费版</option>
-        <option value="pro">轻创作 Pro</option>
-        <option value="pro_plus">专业 Pro+</option>
+        <option value="pro">创作者版</option>
+        <option value="growth">成长版</option>
+        <option value="pro_plus">专业版</option>
+        <option value="studio">工作室版</option>
       </select>
       <span id="user-total" style="font-size:12px;color:var(--text-muted)"></span>
     </div>
@@ -286,7 +299,7 @@ input,select,textarea{font-family:inherit}
       <table class="data-table">
         <thead><tr>
           <th>用户名</th><th>手机/邮箱</th><th>套餐</th><th>注册时间</th>
-          <th>本月操作</th><th>本月成本</th><th>积分余额</th><th>操作</th>
+          <th>本月操作</th><th>Tokens</th><th>本月成本</th><th>积分余额</th><th>操作</th>
         </tr></thead>
         <tbody id="users-tbody"></tbody>
       </table>
@@ -301,18 +314,20 @@ input,select,textarea{font-family:inherit}
   <!-- ═══ REVENUE ══════════════════════════════════════════════════ -->
   <div class="content-area page" id="page-revenue">
     <div class="card-grid card-grid-3" id="revenue-stats" style="margin-bottom:20px">
-      <div class="stat-card"><div class="stat-label">订阅收入估算</div><div class="stat-val" id="r-sub" style="color:var(--success)">–</div></div>
-      <div class="stat-card"><div class="stat-label">积分充值收入</div><div class="stat-val" id="r-credits" style="color:var(--info)">–</div></div>
-      <div class="stat-card"><div class="stat-label">综合毛利率</div><div class="stat-val" id="r-margin" style="color:var(--accent)">–</div></div>
+      <div class="stat-card"><div class="stat-label">订阅确认净现金</div><div class="stat-val" id="r-sub" style="color:var(--success)">–</div><div class="stat-sub" id="r-sub-note">仅来自不可变支付现金账本；不按有效套餐人数推算。</div></div>
+      <div class="stat-card"><div class="stat-label">积分包确认净现金</div><div class="stat-val" id="r-credits" style="color:var(--info)">–</div></div>
+      <div class="stat-card"><div class="stat-label">综合毛利率（最近30日）</div><div class="stat-val" id="r-margin" style="color:var(--accent)">–</div></div>
     </div>
+    <div class="card" id="revenue-cost-audit" style="margin-bottom:20px"></div>
     <div class="card-grid card-grid-2">
-      <div class="card"><div class="section-title">每日积分充值收入</div><div id="rev-chart" class="chart-box"></div></div>
-      <div class="card"><div class="section-title">每日 API 成本</div><div id="cost-chart" class="chart-box"></div></div>
+      <div class="card"><div class="section-title">每日确认净现金（最近30日）</div><div id="rev-chart" class="chart-box"></div></div>
+      <div class="card"><div class="section-title">每日 API 成本（最近30日）</div><div id="cost-chart" class="chart-box"></div></div>
     </div>
   </div>
 
   <!-- ═══ USAGE ════════════════════════════════════════════════════ -->
   <div class="content-area page" id="page-usage">
+    <div class="card" id="usage-cost-audit" style="margin-bottom:20px"></div>
     <div class="card-grid card-grid-2" style="margin-bottom:20px">
       <div class="card"><div class="section-title">各操作调用量（近30天）</div><div id="usage-ops-chart" class="chart-box"></div></div>
       <div class="card"><div class="section-title">每日操作趋势</div><div id="usage-daily-chart" class="chart-box"></div></div>
@@ -321,7 +336,7 @@ input,select,textarea{font-family:inherit}
       <div class="card">
         <div class="section-title">高消耗用户 Top10</div>
         <table class="data-table">
-          <thead><tr><th>#</th><th>用户名</th><th>操作次数</th><th>API成本</th></tr></thead>
+          <thead><tr><th>#</th><th>用户名</th><th>操作次数</th><th>Tokens</th><th>API成本</th></tr></thead>
           <tbody id="top-users-tbody"></tbody>
         </table>
       </div>
@@ -349,13 +364,27 @@ input,select,textarea{font-family:inherit}
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-ghost btn-sm" onclick="showHistory()">历史版本</button>
-              <button class="btn btn-primary btn-sm" onclick="savePrompt()">保存</button>
+              <button class="btn btn-primary btn-sm" data-capability="prompt_mutation" onclick="savePrompt()">保存</button>
             </div>
           </div>
-          <textarea class="form-textarea" id="pe-content" style="flex:1;min-height:300px"></textarea>
+          <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px">可编辑基础 Prompt</div>
+          <textarea class="form-textarea" id="pe-content" style="min-height:220px"></textarea>
           <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
-            版本 v<span id="pe-version">1</span> · 最后修改 <span id="pe-updated"></span>
+            模型策略 <b style="color:var(--accent)">V0.4</b> · 基础修订号 <span id="pe-version">1</span> · 最后修改 <span id="pe-updated"></span>
           </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
+            <label for="pe-domain" style="font-size:11px;font-weight:700;color:var(--text-2)">行业有效模板预览</label>
+            <select id="pe-domain" class="form-input" style="width:120px;padding:6px 8px" onchange="loadPromptPreview()">
+              <option value="美食">美食</option><option value="旅行">旅行</option>
+              <option value="穿搭">穿搭</option><option value="美妆">美妆</option>
+              <option value="家居">家居</option><option value="健身">健身</option>
+              <option value="母婴">母婴</option>
+            </select>
+          </div>
+          <textarea class="form-textarea" id="pe-effective" readonly style="min-height:180px;margin-top:8px;background:var(--surf-2)"></textarea>
+          <div id="pe-preview-meta" style="margin-top:6px;font-size:11px;color:var(--text-muted)"></div>
+          <div id="pe-dynamic-layers" style="margin-top:4px;font-size:11px;color:var(--text-muted)"></div>
+          <div id="pe-preview-privacy" style="margin-top:4px;font-size:11px;color:var(--warning)"></div>
         </div>
       </div>
     </div>
@@ -368,7 +397,7 @@ input,select,textarea{font-family:inherit}
       <div class="stat-card"><div class="stat-label">训练数据量</div><div class="stat-val" id="m-rows">–</div></div>
       <div class="stat-card">
         <div class="stat-label">发起新训练</div>
-        <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="triggerTraining()">🚀 触发重训练</button>
+        <button class="btn btn-primary" data-capability="model_mutation" style="margin-top:8px;width:100%" onclick="triggerTraining()">🚀 触发重训练</button>
       </div>
     </div>
     <div class="card-grid card-grid-2">
@@ -393,20 +422,57 @@ input,select,textarea{font-family:inherit}
         <div class="stat-label">爬虫状态</div>
         <div class="stat-val" id="cw-status">–</div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="btn btn-primary btn-sm" onclick="toggleCrawler(true)">启用</button>
-          <button class="btn btn-ghost btn-sm" onclick="toggleCrawler(false)">禁用</button>
+          <button class="btn btn-primary btn-sm" data-capability="crawler_control" onclick="toggleCrawler(true)">启用</button>
+          <button class="btn btn-ghost btn-sm" data-capability="crawler_control" onclick="toggleCrawler(false)">禁用</button>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Cookie 状态</div>
         <div class="stat-val" id="cw-cookie">–</div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="openCookieModal()">更新 Cookie</button>
+        <div class="stat-sub" id="cw-cookie-sub"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="openCookieModal()">Cookie 安全配置说明</button>
       </div>
       <div class="stat-card">
         <div class="stat-label">累计采集条数</div>
         <div class="stat-val" id="cw-total">–</div>
-        <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="runCrawlerNow()">▶ 立即采集</button>
+        <button class="btn btn-primary btn-sm" data-capability="crawler_control" style="margin-top:10px" onclick="runCrawlerNow()">▶ 立即采集</button>
       </div>
+    </div>
+    <div class="card-grid card-grid-4" style="margin-bottom:20px">
+      <div class="stat-card">
+        <div class="stat-label">当日累计新鲜证据</div>
+        <div class="stat-val" id="xhs-fresh-ok">–</div>
+        <div class="stat-sub" id="xhs-fresh-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">缺失行业</div>
+        <div class="stat-val" id="xhs-missing-count">–</div>
+        <div class="stat-sub" id="xhs-missing-domains"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">每日截止</div>
+        <div class="stat-val" id="xhs-deadline">–</div>
+        <div class="stat-sub" id="xhs-deadline-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sidecar</div>
+        <div class="stat-val" id="xhs-sidecar">–</div>
+        <div class="stat-sub" id="xhs-sidecar-sub"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">XHS 行业证据账本</div>
+      <table class="data-table">
+        <thead><tr><th>行业</th><th>状态</th><th>证据数</th><th>有效至</th><th>原因</th></tr></thead>
+        <tbody id="xhs-fresh-table"><tr><td colspan="5" style="color:var(--text-muted)">加载中...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">XHS Health 最近记录</div>
+      <table class="data-table">
+        <thead><tr><th>时间</th><th>Adapter</th><th>行业</th><th>状态</th><th>本轮新增 / 今日累计</th><th>错误</th></tr></thead>
+        <tbody id="xhs-health-table"><tr><td colspan="6" style="color:var(--text-muted)">加载中...</td></tr></tbody>
+      </table>
     </div>
     <div class="card">
       <div class="section-title">采集日志（最近50条）</div>
@@ -418,7 +484,7 @@ input,select,textarea{font-family:inherit}
   <div class="content-area page" id="page-settings">
     <div class="card-grid card-grid-2">
       <div class="card">
-        <div class="section-title">套餐配额设置</div>
+        <div class="section-title">套餐积分设置</div>
         <div id="settings-tiers"></div>
       </div>
       <div class="card">
@@ -457,14 +523,12 @@ input,select,textarea{font-family:inherit}
 <div class="modal-backdrop" id="cookie-modal">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('cookie-modal')">✕</button>
-    <div class="modal-title">更新小红书 Cookie</div>
+    <div class="modal-title">小红书 Cookie 安全配置</div>
     <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
-      从浏览器开发者工具复制小红书的 Cookie JSON 数组粘贴到此处。
+      后台禁止接收或保存明文 Cookie。生产环境只能由授权发布人员通过受管 Secret 注入
+      <code>NOTEAI_XHS_COOKIES_JSON</code>，并按轮换与撤销流程操作。
     </p>
-    <div class="form-group">
-      <textarea class="form-textarea" id="cookie-input" placeholder='[{"name":"...","value":"..."}]' style="min-height:140px"></textarea>
-    </div>
-    <button class="btn btn-primary" style="width:100%" onclick="saveCookies()">保存 Cookie</button>
+    <button class="btn btn-primary" style="width:100%" onclick="closeModal('cookie-modal')">我知道了</button>
   </div>
 </div>
 
@@ -475,11 +539,66 @@ const ADMIN_BASE = (
     ? location.origin
     : 'http://localhost:8001')
 ).replace(/\/$/, '');
-let _adminToken = localStorage.getItem('noteai_admin_token') || null;
+localStorage.removeItem('noteai_admin_token');
+let _adminToken = sessionStorage.getItem('noteai_admin_token') || null;
 let _currentPage = 'dashboard';
 let _userPage = 1;
 let _userSearch = '', _userTierFilter = '';
 let _currentPromptKey = null;
+let _promptListItems = new Map();
+const _adminCapabilityNames = [
+  'business_mutation',
+  'prompt_mutation',
+  'model_mutation',
+  'crawler_control',
+  'tracking_requeue',
+];
+let _adminCapabilities = Object.fromEntries(_adminCapabilityNames.map(name => [name, false]));
+let _adminMode = 'unavailable';
+
+function hasAdminCapability(name) {
+  return _adminCapabilities[name] === true;
+}
+
+function requireAdminCapability(name) {
+  if (hasAdminCapability(name)) return true;
+  alert('当前生产 Admin 为只读控制台；该操作必须通过独立受审计流程执行。');
+  return false;
+}
+
+function applyAdminCapabilities(mode=_adminMode) {
+  document.querySelectorAll('[data-capability]').forEach(element => {
+    element.disabled = !hasAdminCapability(element.dataset.capability);
+  });
+  const promptEditor = document.getElementById('pe-content');
+  if (promptEditor) promptEditor.readOnly = !hasAdminCapability('prompt_mutation');
+  const banner = document.getElementById('admin-mode-banner');
+  if (!banner) return;
+  const readOnly = mode !== 'local_operator';
+  banner.style.display = readOnly ? 'block' : 'none';
+  banner.textContent = mode === 'production_read_only'
+    ? '生产只读控制台：可查看运营、账本、队列和健康状态；用户、Prompt、模型、Crawler 与 Tracking 变更必须走独立受审计流程。'
+    : '能力状态不可用：所有写操作已安全锁定，请刷新或联系运维人员。';
+}
+
+async function loadAdminCapabilities() {
+  _adminCapabilities = Object.fromEntries(_adminCapabilityNames.map(name => [name, false]));
+  _adminMode = 'unavailable';
+  try {
+    const r = await aFetch('/admin/capabilities');
+    if (!r.ok) throw new Error('capabilities unavailable');
+    const d = await r.json();
+    _adminMode = d.mode || 'unavailable';
+    const supplied = d.capabilities && typeof d.capabilities === 'object'
+      ? d.capabilities : {};
+    _adminCapabilities = Object.fromEntries(
+      _adminCapabilityNames.map(name => [name, supplied[name] === true])
+    );
+  } catch(e) {
+    if (String(e?.message || '') === 'session expired') return;
+  }
+  applyAdminCapabilities();
+}
 
 /* ── Auth ─────────────────────────────────────────────────────────── */
 async function doAdminLogin() {
@@ -496,9 +615,9 @@ async function doAdminLogin() {
     const d = await r.json();
     if (!r.ok) { err.textContent = d.detail || '登录失败'; err.style.display='block'; return; }
     _adminToken = d.token;
-    localStorage.setItem('noteai_admin_token', _adminToken);
+    sessionStorage.setItem('noteai_admin_token', _adminToken);
     document.getElementById('admin-name').textContent = d.username;
-    showApp();
+    await showApp();
   } catch(e) {
     err.textContent = '无法连接管理服务器（port 8001）'; err.style.display='block';
   } finally {
@@ -506,16 +625,36 @@ async function doAdminLogin() {
   }
 }
 
-function doAdminLogout() {
-  _adminToken = null; localStorage.removeItem('noteai_admin_token');
+function clearAdminSession() {
+  _adminToken = null;
+  sessionStorage.removeItem('noteai_admin_token');
+  _adminCapabilities = Object.fromEntries(_adminCapabilityNames.map(name => [name, false]));
+  _adminMode = 'unavailable';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }
 
-function showApp() {
+async function doAdminLogout() {
+  const token = _adminToken;
+  try {
+    if (token) {
+      await fetch(`${ADMIN_BASE}/admin/logout`, {
+        method:'POST',
+        headers:{'Authorization':`Bearer ${token}`},
+      });
+    }
+  } catch(e) {
+    // Local state must still be cleared if the server is unavailable.
+  } finally {
+    clearAdminSession();
+  }
+}
+
+async function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   updateClock();
+  await loadAdminCapabilities();
   loadDashboard();
 }
 
@@ -524,8 +663,208 @@ async function aFetch(path, opts={}) {
     ...opts,
     headers: { 'Authorization': `Bearer ${_adminToken}`, 'Content-Type': 'application/json', ...(opts.headers||{}) },
   });
-  if (r.status === 403) { doAdminLogout(); throw new Error('session expired'); }
+  if (r.status === 403) { clearAdminSession(); throw new Error('session expired'); }
   return r;
+}
+
+function fmtTokens(n) {
+  n = adminFiniteNumber(n);
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return String(Math.round(n));
+}
+
+function adminFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function adminIsNonNegativeInteger(value) {
+  return typeof value === 'number'
+    && Number.isFinite(value)
+    && Number.isSafeInteger(value)
+    && value >= 0;
+}
+
+function adminCostCoverage(rawCoverage) {
+  const source = rawCoverage && typeof rawCoverage === 'object' && !Array.isArray(rawCoverage)
+    ? rawCoverage : null;
+  const countFields = [
+    'total_records',
+    'strict_actual_records',
+    'legacy_unverifiable_records',
+    'partial_records',
+    'unpriced_records',
+    'usage_incomplete_records',
+  ];
+  const hasValidCounts = source && countFields.every(field => (
+    Object.prototype.hasOwnProperty.call(source, field)
+    && adminIsNonNegativeInteger(source[field])
+  ));
+  if (!hasValidCounts) {
+    return {
+      state:'unavailable', ready:false, total:0, strict:0, pct:null,
+      legacy:0, partial:0, unpriced:0, usageIncomplete:0,
+    };
+  }
+  const total = source.total_records;
+  const strict = source.strict_actual_records;
+  const legacy = source.legacy_unverifiable_records;
+  const partial = source.partial_records;
+  const unpriced = source.unpriced_records;
+  const usageIncomplete = source.usage_incomplete_records;
+  const classifiedTotal = strict + legacy + partial + unpriced + usageIncomplete;
+  if (strict > total || classifiedTotal !== total) {
+    return {
+      state:'unavailable', ready:false, total:0, strict:0, pct:null,
+      legacy:0, partial:0, unpriced:0, usageIncomplete:0,
+    };
+  }
+  const ready = source.actual_margin_ready === true && total > 0 && strict === total;
+  return {
+    state: total === 0 ? 'empty' : (ready ? 'complete' : 'incomplete'),
+    ready,
+    total,
+    strict,
+    pct: total > 0 ? strict / total * 100 : null,
+    legacy,
+    partial,
+    unpriced,
+    usageIncomplete,
+  };
+}
+
+function adminCoverageCountsText(coverage, includeAllCategories = true) {
+  if (coverage.state === 'unavailable' || coverage.state === 'empty') return '';
+  const parts = [
+    `严格实际 ${coverage.strict}/${coverage.total} 条操作记录（${coverage.pct.toFixed(1)}%）`,
+    `历史不可复算 ${coverage.legacy} 条操作记录`,
+  ];
+  if (includeAllCategories) {
+    parts.push(
+      `部分计价 ${coverage.partial} 条操作记录`,
+      `未计价 ${coverage.unpriced} 条操作记录`,
+      `用量不完整 ${coverage.usageIncomplete} 条操作记录`,
+    );
+  }
+  return parts.join(' · ');
+}
+
+const ADMIN_COST_COVERAGE_EXPLANATION =
+  '严格实际 = 具备完整逐模型用量与价格证据的操作记录；' +
+  '历史不可复算 = 逐模型成本审计上线前、缺少完整明细的操作记录，系统不会伪造回填。';
+
+function adminCoverageHeadline(coverage, periodLabel, completeText, incompleteText) {
+  if (coverage.state === 'unavailable') {
+    return `${periodLabel}成本覆盖数据不可用，不可宣称实际毛利`;
+  }
+  if (coverage.state === 'empty') {
+    return `${periodLabel}暂无用量记录，无法计算实际毛利`;
+  }
+  return coverage.ready
+    ? `${periodLabel}成本覆盖完整，${completeText}`
+    : `${periodLabel}成本覆盖不完整，${incompleteText}`;
+}
+
+const ADMIN_SYSTEM_STATUS_LABELS = Object.freeze({
+  configured: {label:'API 服务已配置', dot:'dot-green'},
+  not_configured: {label:'API 服务未配置', dot:'dot-red'},
+  unavailable: {label:'API 服务不可检测', dot:'dot-yellow'},
+});
+
+function adminProviderStatus(aiRuntime, field) {
+  const value = aiRuntime && aiRuntime[field];
+  return Object.prototype.hasOwnProperty.call(ADMIN_SYSTEM_STATUS_LABELS, value)
+    ? value : 'unavailable';
+}
+
+const ADMIN_LEDGER_OPERATION_LABELS = Object.freeze({
+  score:'快速评分', diagnose:'内容诊断', analyze:'AI深度诊断',
+  extra_image:'附加内容图', video_analyze:'视频内容解析', generate:'AI爆文生成',
+  chat_fast:'对话反馈', chat_rewrite:'对话重写', screenshot:'截图识别',
+});
+const ADMIN_LEDGER_SOURCE_LABELS = Object.freeze({
+  subscription:'套餐周期积分', mixed:'套餐+钱包', credits:'钱包积分',
+  free:'免费', refunded:'已退款',
+});
+const ADMIN_LEDGER_COST_MODE_LABELS = Object.freeze({
+  actual:'实际成本（以覆盖审计为准）', partial:'部分计价成本', unpriced:'未计价成本',
+  usage_incomplete:'用量不完整', estimated:'估算成本',
+  legacy_unverifiable_actual:'历史不可复算成本',
+});
+const ADMIN_LEDGER_TXN_TYPE_LABELS = Object.freeze({
+  usage:'钱包消费', topup:'钱包充值', gift:'管理员赠送', refund:'钱包退款',
+});
+const ADMIN_LEDGER_PACKAGE_LABELS = Object.freeze({
+  starter:'体验加油包', creator:'创作者补给包', growth:'增长运营包', studio:'工作室储备包',
+});
+
+function adminLedgerNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function adminLedgerTime(value) {
+  const date = new Date(String(value || ''));
+  if (!Number.isFinite(date.getTime())) return '时间未知';
+  return date.toLocaleString('zh-CN', { hour12:false });
+}
+
+function adminLedgerLabel(labels, value, fallback) {
+  const key = String(value ?? '');
+  return Object.prototype.hasOwnProperty.call(labels, key) ? labels[key] : fallback;
+}
+
+function renderAdminUsageLedger(rows) {
+  const safeRows = Array.isArray(rows) ? rows.slice(0, 20) : [];
+  if (!safeRows.length) {
+    return '<tr><td colspan="6" style="color:var(--text-muted);text-align:center">暂无最近用量记录</td></tr>';
+  }
+  return safeRows.map(row => {
+    const operation = adminLedgerLabel(ADMIN_LEDGER_OPERATION_LABELS, row?.operation, '未知操作');
+    const source = adminLedgerLabel(ADMIN_LEDGER_SOURCE_LABELS, row?.source, '未知来源');
+    const costMode = adminLedgerLabel(ADMIN_LEDGER_COST_MODE_LABELS, row?.cost_mode, '未知成本口径');
+    const tokensIn = Math.max(0, Math.round(adminLedgerNumber(row?.tokens_in)));
+    const tokensOut = Math.max(0, Math.round(adminLedgerNumber(row?.tokens_out)));
+    const modelCalls = Math.max(0, Math.round(adminLedgerNumber(row?.model_calls)));
+    const credits = Math.max(0, adminLedgerNumber(row?.credits_used));
+    const cost = Math.max(0, adminLedgerNumber(row?.cost_rmb));
+    const models = String(row?.model_names || '').trim() || '无模型明细';
+    return `<tr>
+      <td style="white-space:nowrap">${esc(adminLedgerTime(row?.recorded_at))}</td>
+      <td><b>${esc(operation)}</b><div style="font-size:11px;color:var(--text-muted)">${esc(source)}</div></td>
+      <td>${esc(models)}<div style="font-size:11px;color:var(--text-muted)">${modelCalls} 次模型调用</div></td>
+      <td>${fmtTokens(tokensIn + tokensOut)}<div style="font-size:11px;color:var(--text-muted)">入 ${fmtTokens(tokensIn)} / 出 ${fmtTokens(tokensOut)}</div></td>
+      <td style="white-space:nowrap">总计费 ${credits.toFixed(1)} 积分</td>
+      <td style="white-space:nowrap">¥${cost.toFixed(4)}<div style="font-size:11px;color:var(--text-muted)">${esc(costMode)}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAdminCreditLedger(rows) {
+  const safeRows = Array.isArray(rows) ? rows.slice(0, 20) : [];
+  if (!safeRows.length) {
+    return '<tr><td colspan="5" style="color:var(--text-muted);text-align:center">暂无钱包积分变动</td></tr>';
+  }
+  return safeRows.map(row => {
+    const type = adminLedgerLabel(ADMIN_LEDGER_TXN_TYPE_LABELS, row?.type, '未知变动');
+    const amount = adminLedgerNumber(row?.amount);
+    const balance = adminLedgerNumber(row?.balance_after);
+    const paidRmb = Math.max(0, adminLedgerNumber(row?.paid_rmb));
+    const packageId = String(row?.package_id || '');
+    const packageLabel = packageId
+      ? adminLedgerLabel(ADMIN_LEDGER_PACKAGE_LABELS, packageId, '未知积分包')
+      : '';
+    const description = String(row?.description || '').trim() || '无补充说明';
+    const amountText = `${amount > 0 ? '+' : ''}${amount.toFixed(1)} 积分`;
+    return `<tr>
+      <td style="white-space:nowrap">${esc(adminLedgerTime(row?.recorded_at))}</td>
+      <td><b>${esc(type)}</b><div style="font-size:11px;color:var(--text-muted)">余额 ${balance.toFixed(1)}</div></td>
+      <td style="white-space:nowrap">${amountText}</td>
+      <td>${esc(description)}</td>
+      <td style="white-space:nowrap">${paidRmb > 0 ? `实付 ¥${paidRmb.toFixed(2)}` : '无现金收入'}${packageLabel ? `<div style="font-size:11px;color:var(--text-muted)">${esc(packageLabel)}</div>` : ''}</td>
+    </tr>`;
+  }).join('');
 }
 
 /* ── Navigation ───────────────────────────────────────────────────── */
@@ -552,24 +891,42 @@ async function loadDashboard() {
   const r = await aFetch('/admin/overview');
   const d = await r.json();
   const u = d.users, f = d.finance, s = d.system;
+  const coverage = adminCostCoverage(f.coverage);
   document.getElementById('d-total-users').textContent = u.total.toLocaleString();
   document.getElementById('d-today-new').textContent   = `今日新增 ${u.today_new}`;
   document.getElementById('d-revenue').textContent     = `¥${f.total_revenue.toLocaleString()}`;
-  document.getElementById('d-mrr').textContent         = `MRR ¥${f.mrr.toLocaleString()}`;
+  const unmatchedCash = adminFiniteNumber(f.unmatched_cash);
+  document.getElementById('d-mrr').textContent         =
+    `收款 ¥${adminFiniteNumber(f.cash_received).toLocaleString()} · 退款 ¥${adminFiniteNumber(f.cash_refunded).toLocaleString()} · 待人工核对 ¥${unmatchedCash.toLocaleString()} · 不自动续费`;
+  document.getElementById('d-mrr').style.color =
+    unmatchedCash > 0 ? 'var(--danger)' : '';
   document.getElementById('d-cost').textContent        = `¥${f.api_cost.toFixed(2)}`;
-  document.getElementById('d-margin').textContent      = `毛利 ${f.margin_pct}%`;
+  const dashboardCoverage = adminCoverageCountsText(coverage, false);
+  if (coverage.state === 'unavailable') {
+    document.getElementById('d-margin').textContent =
+      `本月成本覆盖数据不可用，毛利仅供参考 · ${fmtTokens(f.total_tokens)} tokens`;
+  } else if (coverage.state === 'empty') {
+    document.getElementById('d-margin').textContent =
+      `本月暂无用量记录，无法计算实际毛利 · ${fmtTokens(f.total_tokens)} tokens`;
+  } else if (coverage.ready) {
+    document.getElementById('d-margin').textContent =
+      `实际毛利 ${adminFiniteNumber(f.margin_pct).toFixed(1)}% · 本月${dashboardCoverage} · ${fmtTokens(f.total_tokens)} tokens`;
+  } else {
+    document.getElementById('d-margin').textContent =
+      `本月成本覆盖不完整，毛利仅供参考 · ${dashboardCoverage} · ${fmtTokens(f.total_tokens)} tokens`;
+  }
   document.getElementById('d-active').textContent      = u.active_month;
   document.getElementById('d-active-sub').textContent  = `7天活跃 ${u.active_7d}`;
 
   // 套餐分布饼图
   const tierChart = echarts.init(document.getElementById('tier-chart'));
-  const tierColors = {free:'#606078', pro:'#7B61FF', pro_plus:'#FFD700'};
+  const tierColors = {free:'#606078', pro:'#7B61FF', growth:'#22C55E', pro_plus:'#FFD700', studio:'#00D4FF'};
   tierChart.setOption({
     backgroundColor:'transparent',
     legend:{bottom:0, textStyle:{color:'#A0A0B8', fontSize:11}},
     series:[{type:'pie', radius:['40%','70%'], center:['50%','45%'],
       data: Object.entries(u.tier_distribution).map(([k,v])=>({
-        name:{free:'免费版',pro:'轻创作Pro',pro_plus:'专业Pro+'}[k]||k,
+        name:{free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[k]||k,
         value:v, itemStyle:{color:tierColors[k]||'#606078'}
       })),
       label:{color:'#F0F0F8',fontSize:11},
@@ -582,7 +939,12 @@ async function loadDashboard() {
   const ops = d.usage.by_operation.slice(0,6);
   opsChart.setOption({
     backgroundColor:'transparent', grid:{left:10, right:10, top:10, bottom:30, containLabel:true},
-    tooltip:{trigger:'axis', backgroundColor:'#1A1A25', borderColor:'rgba(255,255,255,0.1)', textStyle:{color:'#F0F0F8'}},
+    tooltip:{trigger:'axis', backgroundColor:'#1A1A25', borderColor:'rgba(255,255,255,0.1)', textStyle:{color:'#F0F0F8'},
+      formatter: params => {
+        const idx = params?.[0]?.dataIndex ?? 0;
+        const op = ops[idx] || {};
+        return `${op.label || ''}<br/>调用：${op.count || 0} 次<br/>Tokens：${fmtTokens(op.total_tokens || 0)}<br/>成本：¥${(op.cost || 0).toFixed(4)}`;
+      }},
     xAxis:{type:'category', data:ops.map(o=>o.label), axisLabel:{fontSize:10, color:'#A0A0B8', rotate:20}},
     yAxis:{type:'value', axisLabel:{fontSize:10, color:'#A0A0B8'}},
     series:[{type:'bar', data:ops.map(o=>o.count), barMaxWidth:28,
@@ -590,17 +952,62 @@ async function loadDashboard() {
   });
 
   // 系统状态
+  const aiRuntime = s.ai_runtime && typeof s.ai_runtime === 'object' ? s.ai_runtime : {};
+  const kimiStatus = adminProviderStatus(aiRuntime, 'kimi_status');
+  const claudeStatus = adminProviderStatus(aiRuntime, 'claude_status');
+  const kimiView = ADMIN_SYSTEM_STATUS_LABELS[kimiStatus];
+  const claudeView = ADMIN_SYSTEM_STATUS_LABELS[claudeStatus];
+  const aiSource = aiRuntime.source === 'api_readiness' ? '状态来源：API readiness' : '状态来源：不可检测';
+  const modelSize = Number.isFinite(Number(s.model_size_mb)) ? ` (${Number(s.model_size_mb)}MB)` : '';
+  const databaseBackend = s.database_backend === 'postgresql'
+    ? 'PostgreSQL' : s.database_backend === 'sqlite' ? 'SQLite' : '';
+  const databaseLabel = s.database_ok === true && databaseBackend
+    ? `${databaseBackend} 正常`
+    : s.database_ok === false && databaseBackend
+      ? `${databaseBackend} 异常`
+      : '数据库状态不可检测';
+  const databaseDot = s.database_ok === true && databaseBackend
+    ? 'dot-green' : s.database_ok === false && databaseBackend ? 'dot-red' : 'dot-yellow';
+  const serverTime = s.server_time ? new Date(s.server_time).toLocaleString() : '时间不可检测';
   document.getElementById('system-status').innerHTML = `
     <div class="stat-card"><div class="stat-label">Kimi API</div>
-      <div><span class="dot ${s.kimi_configured?'dot-green':'dot-red'}"></span>${s.kimi_configured?'已配置':'未配置'}</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${s.kimi_key_prefix}</div></div>
+      <div><span class="dot ${kimiView.dot}"></span>${kimiView.label}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${aiSource}</div></div>
     <div class="stat-card"><div class="stat-label">Claude API</div>
-      <div><span class="dot ${s.claude_configured?'dot-green':'dot-red'}"></span>${s.claude_configured?'已配置':'未配置'}</div></div>
+      <div><span class="dot ${claudeView.dot}"></span>${claudeView.label}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${aiSource}</div></div>
     <div class="stat-card"><div class="stat-label">ML 模型</div>
-      <div><span class="dot ${s.model_exists?'dot-green':'dot-red'}"></span>${s.model_exists?`存在 (${s.model_size_mb}MB)`:'未找到'}</div></div>
+      <div><span class="dot ${s.model_exists?'dot-green':'dot-red'}"></span>${s.model_exists?`存在${modelSize}`:'未找到'}</div></div>
     <div class="stat-card"><div class="stat-label">数据库</div>
-      <div><span class="dot dot-green"></span>${s.db_size_mb} MB</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${new Date(s.server_time).toLocaleString()}</div></div>`;
+      <div><span class="dot ${databaseDot}"></span>${databaseLabel}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${serverTime}</div></div>`;
+  await loadAiOperationsSummary();
+}
+
+async function loadAiOperationsSummary() {
+  const target = document.getElementById('ai-operations-summary');
+  if (!target) return;
+  try {
+    const r = await aFetch('/admin/ai-operations');
+    if (!r.ok) throw new Error('ai operations unavailable');
+    const d = await r.json();
+    const operations = d.operations && typeof d.operations === 'object' ? d.operations : {};
+    const settlements = d.settlements && typeof d.settlements === 'object' ? d.settlements : {};
+    const outbox = d.outbox && typeof d.outbox === 'object' ? d.outbox : {};
+    const queued = Math.max(0, Math.round(adminFiniteNumber(operations.queued)));
+    const running = Math.max(0, Math.round(adminFiniteNumber(operations.running)));
+    const manual = Math.max(0, Math.round(adminFiniteNumber(settlements.needs_manual)));
+    const pending = Math.max(0, Math.round(adminFiniteNumber(outbox.pending)));
+    const oldest = d.oldest_queued_at
+      ? adminLedgerTime(d.oldest_queued_at) : '无等待任务';
+    target.innerHTML = `
+      <div class="stat-card"><div class="stat-label">等待执行</div><div class="stat-val">${queued}</div><div class="stat-sub">${esc(oldest)}</div></div>
+      <div class="stat-card"><div class="stat-label">执行中</div><div class="stat-val">${running}</div></div>
+      <div class="stat-card"><div class="stat-label">需人工处理</div><div class="stat-val" style="color:${manual ? 'var(--error)' : 'var(--success)'}">${manual}</div></div>
+      <div class="stat-card"><div class="stat-label">待投递 Outbox</div><div class="stat-val" style="color:${pending ? 'var(--warning)' : 'var(--text)'}">${pending}</div></div>`;
+  } catch(e) {
+    target.innerHTML = '<div class="stat-card"><div class="stat-label">队列状态</div><div style="color:var(--error)">当前不可用</div></div>';
+  }
 }
 
 /* ── Users ────────────────────────────────────────────────────────── */
@@ -614,17 +1021,18 @@ async function loadUsers() {
   _userTotal = d.total;
   document.getElementById('user-total').textContent = `共 ${d.total} 位用户`;
   document.getElementById('page-info').textContent = `第 ${_userPage} 页（共 ${Math.ceil(d.total/15)} 页）`;
-  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',pro_plus:'badge-pro-plus'}[t]||'badge-free');
+  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',growth:'badge-pro',pro_plus:'badge-pro-plus',studio:'badge-pro-plus'}[t]||'badge-free');
   document.getElementById('users-tbody').innerHTML = d.users.map(u => `
     <tr>
       <td><div style="font-weight:600">${esc(u.username)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.nickname||'')}</div></td>
-      <td style="font-size:12px">${esc(u.phone_masked||u.email||'–')}</td>
-      <td><span class="badge ${tierBadge(u.tier)}">${{free:'免费',pro:'Pro',pro_plus:'Pro+'}[u.tier]||u.tier}</span></td>
-      <td style="font-size:12px;color:var(--text-muted)">${(u.created_at||'').slice(0,10)}</td>
+      <td style="font-size:12px">${esc(u.phone_masked||u.email_masked||'–')}</td>
+      <td><span class="badge ${tierBadge(u.tier)}">${esc({free:'免费',pro:'创作者',growth:'成长',pro_plus:'专业',studio:'工作室'}[u.tier]||u.tier)}</span></td>
+      <td style="font-size:12px;color:var(--text-muted)">${esc((u.created_at||'').slice(0,10))}</td>
       <td>${u.month_ops}</td>
+      <td>${fmtTokens(u.month_tokens || 0)}</td>
       <td style="color:var(--warning)">¥${(u.month_cost||0).toFixed(4)}</td>
       <td style="color:var(--info)">${(u.credits||0).toFixed(1)}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="showUser('${u.id}')">详情</button></td>
+      <td><button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="showUser(decodeURIComponent(this.dataset.userId))">详情</button></td>
     </tr>`).join('');
 }
 function searchUsers() { _userPage=1; loadUsers(); }
@@ -636,22 +1044,23 @@ async function showUser(uid) {
   const d = await r.json();
   const u = d.user, sub = d.subscription, cr = d.credits||{balance:0};
   document.getElementById('um-title').textContent = `用户详情 — ${u.username}`;
-  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',pro_plus:'badge-pro-plus'}[t]||'badge-free');
+  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',growth:'badge-pro',pro_plus:'badge-pro-plus',studio:'badge-pro-plus'}[t]||'badge-free');
   document.getElementById('um-content').innerHTML = `
     <div class="card-grid card-grid-2" style="margin-bottom:16px">
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">基本信息</div>
         <div style="font-size:13px;line-height:2">
-          ID: <code style="font-size:11px">${u.id}</code><br>
-          邮箱: ${esc(u.email||'–')}<br>
+          ID: <code style="font-size:11px">${esc(u.id)}</code><br>
+          邮箱: ${esc(u.email_masked||'–')}<br>
           手机: ${esc(u.phone_masked||'–')}<br>
-          注册: ${(u.created_at||'').slice(0,10)}<br>
-          最后登录: ${(u.last_login||'').slice(0,16).replace('T',' ')||'–'}
+          注册: ${esc((u.created_at||'').slice(0,10))}<br>
+          最后登录: ${esc((u.last_login||'').slice(0,16).replace('T',' ')||'–')}
         </div>
       </div>
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">套餐与积分</div>
-        <div><span class="badge ${tierBadge(sub.tier)}">${{free:'免费版',pro:'轻创作Pro',pro_plus:'专业Pro+'}[sub.tier]||sub.tier}</span></div>
+        <div><span class="badge ${tierBadge(sub.tier)}">${esc({free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier)}</span></div>
+        <div style="font-size:13px;margin-top:6px">本周期已用套餐积分: <b>${Number(sub.used_monthly_credits||0).toFixed(1)}</b></div>
         <div style="font-size:13px;margin-top:6px">积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
         <div style="font-size:12px;color:var(--text-muted)">累计购买: ${(cr.total_purchased||0).toFixed(1)} | 已用: ${(cr.total_used||0).toFixed(1)}</div>
       </div>
@@ -659,26 +1068,46 @@ async function showUser(uid) {
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">本月用量</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
       ${(d.month_usage||[]).map(op=>`<div style="background:var(--surf-2);border-radius:8px;padding:6px 10px;font-size:12px">
-        ${esc(op.operation)}: <b>${op.cnt}</b>次 / ¥${(op.cost||0).toFixed(4)}</div>`).join('')}
+        ${esc(op.operation)}: <b>${op.cnt}</b>次 / ${fmtTokens((op.tokens_in||0)+(op.tokens_out||0))} / ¥${(op.cost||0).toFixed(4)}</div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:14px">
+      以下两类账本分别记录操作用量与钱包积分变化，不是一一对应关系；这里只显示各自最近 20 条，不代表完整历史。
+      用量中的“总计费积分”包含套餐周期积分与钱包积分，钱包账本只记录钱包余额变化。
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近 20 条用量</div>
+    <div style="overflow-x:auto;margin-bottom:16px">
+      <table class="data-table" style="min-width:820px">
+        <thead><tr><th>时间</th><th>操作/来源</th><th>模型</th><th>Tokens</th><th>总计费积分</th><th>API 成本</th></tr></thead>
+        <tbody data-testid="admin-usage-ledger">${renderAdminUsageLedger(d.recent_usage)}</tbody>
+      </table>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近 20 条钱包积分变动</div>
+    <div style="overflow-x:auto;margin-bottom:16px">
+      <table class="data-table" style="min-width:720px">
+        <thead><tr><th>时间</th><th>变动类型</th><th>钱包变化</th><th>说明</th><th>现金/积分包</th></tr></thead>
+        <tbody data-testid="admin-credit-ledger">${renderAdminCreditLedger(d.credit_txns)}</tbody>
+      </table>
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','add_credits')">手动加积分</button>
-      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','set_tier')">修改套餐</button>
-      <button class="btn btn-ghost btn-sm" onclick="adjustUser('${u.id}','reset_quota')">重置配额</button>
+      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'add_credits')">手动加积分</button>
+      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'set_tier')">修改套餐</button>
+      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'reset_quota')">重置本周期积分</button>
     </div>`;
+  applyAdminCapabilities();
   openModal('user-modal');
 }
 
 async function adjustUser(uid, action) {
+  if(!requireAdminCapability('business_mutation')) return;
   let value='', note='';
   if (action==='add_credits') {
     value = prompt('增加积分数量（正数）：'); if(!value) return;
     note  = prompt('备注：') || '管理员操作';
   } else if (action==='set_tier') {
-    value = prompt('新套餐（free/pro/pro_plus）：'); if(!value) return;
+    value = prompt('新套餐（free/pro/growth/pro_plus/studio）：'); if(!value) return;
   } else if (action==='reset_quota') {
-    if(!confirm('确认重置本月配额？')) return;
+    if(!confirm('确认重置本周期套餐积分？')) return;
   }
   const r = await aFetch(`/admin/users/${uid}/adjust`, {method:'POST', body:JSON.stringify({action,value,note})});
   const d = await r.json();
@@ -690,25 +1119,81 @@ async function adjustUser(uid, action) {
 async function loadRevenue() {
   const r = await aFetch('/admin/revenue');
   const d = await r.json();
-  document.getElementById('r-sub').textContent     = `¥${d.sub_revenue_estimate.toLocaleString()}`;
-  const credRev = d.daily_topup.reduce((a,b)=>a+b.rmb,0);
+  const coverage = adminCostCoverage(d.coverage);
+  const dailyCash = Array.isArray(d.daily_cash) ? d.daily_cash : [];
+  const dailyApiCost = Array.isArray(d.daily_api_cost) ? d.daily_api_cost : [];
+  const subRevenue = adminFiniteNumber(d.subscription_net_cash);
+  document.getElementById('r-sub').textContent     = `¥${subRevenue.toLocaleString()}`;
+  const unmatchedCash = adminFiniteNumber(d.unmatched_cash);
+  document.getElementById('r-sub-note').textContent =
+    `仅来自不可变支付现金账本；不按有效套餐人数推算。待人工核对现金 ¥${unmatchedCash.toLocaleString()}。`;
+  document.getElementById('r-sub-note').style.color =
+    unmatchedCash > 0 ? 'var(--danger)' : '';
+  const credRev = adminFiniteNumber(d.credit_package_net_cash);
   document.getElementById('r-credits').textContent = `¥${credRev.toFixed(2)}`;
-  const apiCostTotal = d.daily_api_cost.reduce((a,b)=>a+b.cost,0);
-  const margin = (d.sub_revenue_estimate+credRev)>0
-    ? Math.round((d.sub_revenue_estimate+credRev-apiCostTotal)/(d.sub_revenue_estimate+credRev)*100) : 0;
-  document.getElementById('r-margin').textContent  = `${margin}%`;
-  _renderLineChart('rev-chart', d.daily_topup.map(r=>r.day), d.daily_topup.map(r=>r.rmb), '积分充值(¥)', '#00D4FF');
-  _renderLineChart('cost-chart', d.daily_api_cost.map(r=>r.day), d.daily_api_cost.map(r=>r.cost), 'API成本(¥)', '#F59E0B');
+  const apiCostTotal = dailyApiCost.reduce((sum, row)=>sum+adminFiniteNumber(row?.cost),0);
+  const totalRevenue = subRevenue + credRev;
+  const margin = totalRevenue > 0
+    ? Math.round((totalRevenue-apiCostTotal)/totalRevenue*100) : 0;
+  document.getElementById('r-margin').textContent  = coverage.ready ? `${margin}%` : '覆盖不完整';
+  const revenueAudit = document.getElementById('revenue-cost-audit');
+  const revenueHeadline = adminCoverageHeadline(
+    coverage,
+    '最近30日',
+    '可按实际成本口径查看毛利',
+    '不可宣称实际毛利',
+  );
+  const revenueCounts = adminCoverageCountsText(coverage);
+  revenueAudit.innerHTML = `
+    <div class="section-title">最近30日模型成本审计覆盖</div>
+    <div style="font-size:13px;color:${coverage.ready?'var(--success)':'var(--warning)'}">${revenueHeadline}</div>
+    ${revenueCounts ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">${revenueCounts}</div>` : ''}
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px">${ADMIN_COST_COVERAGE_EXPLANATION}</div>`;
+  _renderLineChart('rev-chart', dailyCash.map(row=>String(row?.day||'')), dailyCash.map(row=>adminFiniteNumber(row?.net)), '确认净现金(¥)', '#00D4FF');
+  _renderLineChart('cost-chart', dailyApiCost.map(row=>String(row?.day||'')), dailyApiCost.map(row=>adminFiniteNumber(row?.cost)), 'API成本(¥)', '#F59E0B');
 }
 
 /* ── Usage ────────────────────────────────────────────────────────── */
 async function loadUsage() {
+  const auditEl = document.getElementById('usage-cost-audit');
+  try {
   const r = await aFetch('/admin/usage-stats');
+  if (!r.ok) throw new Error('usage stats request failed');
   const d = await r.json();
+  const coverage = adminCostCoverage(d.coverage);
+  const usageHeadline = adminCoverageHeadline(
+    coverage,
+    '最近30日',
+    '可使用实际毛利',
+    '不可宣称实际毛利',
+  );
+  const usageCounts = adminCoverageCountsText(coverage);
+  const byModel = Array.isArray(d.by_model) ? d.by_model : [];
+  const modelSummary = byModel.map(model => {
+    const tokens = adminFiniteNumber(model?.input_tokens)
+      + adminFiniteNumber(model?.cache_read_tokens)
+      + adminFiniteNumber(model?.cache_write_tokens)
+      + adminFiniteNumber(model?.output_tokens);
+    return `${esc(model?.model || '未知模型')} ${fmtTokens(tokens)} / ¥${adminFiniteNumber(model?.known_cost_rmb).toFixed(4)}`;
+  }).join('；') || '暂无逐模型明细';
+  auditEl.innerHTML = `
+    <div class="section-title">最近30日模型成本审计覆盖</div>
+    <div style="font-size:13px;color:${coverage.ready?'var(--success)':'var(--warning)'}">${usageHeadline}</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
+      ${usageCounts ? `${usageCounts}<br/>` : ''}
+      ${ADMIN_COST_COVERAGE_EXPLANATION}<br/>
+      模型：${modelSummary}<br/>
+      缓存读取 ${fmtTokens(d.cache?.read_tokens)} · 缓存写入 ${fmtTokens(d.cache?.write_tokens)}
+    </div>`;
   const opsChart = echarts.init(document.getElementById('usage-ops-chart'));
   opsChart.setOption({
     backgroundColor:'transparent', grid:{left:10,right:10,top:10,bottom:50,containLabel:true},
-    tooltip:{trigger:'axis',backgroundColor:'#1A1A25',borderColor:'rgba(255,255,255,0.1)',textStyle:{color:'#F0F0F8'}},
+    tooltip:{trigger:'axis',backgroundColor:'#1A1A25',borderColor:'rgba(255,255,255,0.1)',textStyle:{color:'#F0F0F8'},
+      formatter: params => {
+        const idx = params?.[0]?.dataIndex ?? 0;
+        const op = d.by_operation[idx] || {};
+        return `${op.label || ''}<br/>调用：${op.count || 0} 次<br/>Tokens：${fmtTokens(op.total_tokens || 0)}<br/>成本：¥${(op.cost || 0).toFixed(4)}`;
+      }},
     xAxis:{type:'category',data:d.by_operation.map(o=>o.label),axisLabel:{fontSize:10,color:'#A0A0B8',rotate:30}},
     yAxis:{type:'value',axisLabel:{fontSize:10,color:'#A0A0B8'}},
     series:[{type:'bar',data:d.by_operation.map(o=>o.count),barMaxWidth:30,
@@ -716,42 +1201,67 @@ async function loadUsage() {
   });
   _renderLineChart('usage-daily-chart', d.daily_trend.map(r=>r.day), d.daily_trend.map(r=>r.ops), '操作次数', '#7B61FF');
   document.getElementById('top-users-tbody').innerHTML = d.top_users.map((u,i)=>`
-    <tr><td>${i+1}</td><td>${esc(u.username)}</td><td>${u.ops}</td><td style="color:var(--warning)">¥${u.cost.toFixed(4)}</td></tr>`).join('');
+    <tr><td>${i+1}</td><td>${esc(u.username)}</td><td>${u.ops}</td><td>${fmtTokens(u.tokens || 0)}</td><td style="color:var(--warning)">¥${u.cost.toFixed(4)}</td></tr>`).join('');
   const srcChart = echarts.init(document.getElementById('source-chart'));
   srcChart.setOption({
     backgroundColor:'transparent',
     legend:{bottom:0,textStyle:{color:'#A0A0B8',fontSize:11}},
     series:[{type:'pie',radius:['40%','70%'],center:['50%','45%'],
-      data:d.by_source.map(s=>({name:{subscription:'套餐',credits:'积分',free:'免费'}[s.source]||s.source,value:s.count,
+      data:d.by_source.map(s=>({name:{subscription:'套餐积分',mixed:'套餐+充值',credits:'充值积分',free:'免费',refunded:'已退款'}[s.source]||s.source,value:s.count,
         itemStyle:{color:{subscription:'#7B61FF',credits:'#00D4FF',free:'#606078'}[s.source]||'#606078'}})),
       label:{color:'#F0F0F8',fontSize:11},
     }],
   });
+  } catch (_) {
+    auditEl.innerHTML = `
+      <div class="section-title">模型成本审计覆盖</div>
+      <div style="font-size:13px;color:var(--danger)">用量数据加载失败，请稍后重试。</div>`;
+    document.getElementById('top-users-tbody').innerHTML =
+      '<tr><td colspan="5" style="color:var(--text-muted)">暂无可显示数据</td></tr>';
+  }
 }
 
 /* ── Prompts ──────────────────────────────────────────────────────── */
 async function loadPrompts() {
   const r = await aFetch('/admin/prompts');
   const d = await r.json();
-  const modules = {};
-  d.prompts.forEach(p => {
-    const m = p.module || '其他';
-    if (!modules[m]) modules[m] = [];
-    modules[m].push(p);
+  const modules = new Map();
+  (Array.isArray(d.prompts) ? d.prompts : []).forEach(p => {
+    const m = String(p && p.module || '其他');
+    if (!modules.has(m)) modules.set(m, []);
+    modules.get(m).push(p || {});
   });
-  document.getElementById('prompt-list').innerHTML = Object.entries(modules).map(([mod, ps]) => `
-    <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;padding:8px 4px 4px">${mod}</div>
-    ${ps.map(p=>`<div class="prompt-list-item" onclick="loadPromptDetail('${p.key}')" id="pli-${p.key}">
-      <span style="font-size:13px">${esc(p.label)}</span>
-      <span class="prompt-module-badge">v${p.version}</span>
-    </div>`).join('')}`).join('');
+  const list = document.getElementById('prompt-list');
+  list.textContent = '';
+  _promptListItems = new Map();
+  modules.forEach((prompts, moduleName) => {
+    const heading = document.createElement('div');
+    heading.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;padding:8px 4px 4px';
+    heading.textContent = moduleName;
+    list.appendChild(heading);
+    prompts.forEach(prompt => {
+      const key = String(prompt.key || '');
+      const row = document.createElement('div');
+      row.className = 'prompt-list-item';
+      const label = document.createElement('span');
+      label.style.fontSize = '13px';
+      label.textContent = String(prompt.label || key);
+      const revision = document.createElement('span');
+      revision.className = 'prompt-module-badge';
+      revision.textContent = `修订 ${Number.isFinite(Number(prompt.version)) ? Number(prompt.version) : 1}`;
+      row.append(label, revision);
+      row.addEventListener('click', () => loadPromptDetail(key));
+      list.appendChild(row);
+      _promptListItems.set(key, row);
+    });
+  });
 }
 
 async function loadPromptDetail(key) {
   document.querySelectorAll('.prompt-list-item').forEach(el=>el.classList.remove('active'));
-  const listEl = document.getElementById(`pli-${key}`);
+  const listEl = _promptListItems.get(String(key));
   if(listEl) listEl.classList.add('active');
-  const r = await aFetch(`/admin/prompts/${key}`);
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(String(key))}`);
   const d = await r.json();
   _currentPromptKey = key;
   document.getElementById('pe-label').textContent   = d.label||key;
@@ -761,21 +1271,47 @@ async function loadPromptDetail(key) {
   document.getElementById('pe-updated').textContent = (d.updated_at||'').slice(0,16).replace('T',' ');
   document.getElementById('prompt-editor-empty').style.display   = 'none';
   document.getElementById('prompt-editor-content').style.display = 'flex';
+  await loadPromptPreview();
+}
+
+async function loadPromptPreview() {
+  if(!_currentPromptKey) return;
+  const domain = document.getElementById('pe-domain').value;
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/effective?domain=${encodeURIComponent(domain)}`);
+  if(!r.ok) {
+    document.getElementById('pe-effective').value = '';
+    document.getElementById('pe-preview-meta').textContent = '有效模板预览加载失败';
+    document.getElementById('pe-dynamic-layers').textContent = '';
+    document.getElementById('pe-preview-privacy').textContent = '';
+    return;
+  }
+  const d = await r.json();
+  document.getElementById('pe-effective').value = d.rendered_text || '';
+  document.getElementById('pe-preview-meta').textContent =
+    `类型：${d.preview_kind || 'effective_template'} · 行业：${d.domain || domain} · 完整请求预览：${d.preview_complete ? '是' : '否'}`;
+  document.getElementById('pe-dynamic-layers').textContent =
+    `请求时动态追加：${Array.isArray(d.dynamic_layers) ? d.dynamic_layers.join('、') : '无'}`;
+  document.getElementById('pe-preview-privacy').textContent = d.privacy_notice || '';
 }
 
 async function savePrompt() {
   if(!_currentPromptKey) return;
+  if(!requireAdminCapability('prompt_mutation')) return;
   const content = document.getElementById('pe-content').value;
-  const r = await aFetch(`/admin/prompts/${_currentPromptKey}`, {
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}`, {
     method:'PUT', body:JSON.stringify({content}),
   });
   const d = await r.json();
-  if(d.ok) { document.getElementById('pe-version').textContent=d.version; alert('已保存 v'+d.version); }
+  if(d.ok) {
+    document.getElementById('pe-version').textContent=d.version;
+    await loadPromptPreview();
+    alert('已保存基础修订 '+d.version);
+  }
 }
 
 async function showHistory() {
   if(!_currentPromptKey) return;
-  const r = await aFetch(`/admin/prompts/${_currentPromptKey}`);
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}`);
   const d = await r.json();
   const hist = d.history||[];
   document.getElementById('history-content').innerHTML = hist.length===0
@@ -785,18 +1321,20 @@ async function showHistory() {
           <span style="font-weight:600">v${h.version}</span>
           <div style="display:flex;gap:6px">
             <span style="font-size:11px;color:var(--text-muted)">${(h.saved_at||'').slice(0,16).replace('T',' ')}</span>
-            <button class="btn btn-ghost btn-sm" onclick="rollbackPrompt(${h.version})">回滚</button>
+            <button class="btn btn-ghost btn-sm" data-capability="prompt_mutation" onclick="rollbackPrompt(${h.version})">回滚</button>
           </div>
         </div>
         <pre style="font-size:11px;color:var(--text-2);white-space:pre-wrap;max-height:80px;overflow:hidden">${esc((h.content||'').slice(0,200))}…</pre>
       </div>`).join('');
+  applyAdminCapabilities();
   openModal('history-modal');
 }
 
 async function rollbackPrompt(version) {
   if(!_currentPromptKey) return;
+  if(!requireAdminCapability('prompt_mutation')) return;
   if(!confirm(`确认回滚到 v${version}？`)) return;
-  const r = await aFetch(`/admin/prompts/${_currentPromptKey}/rollback`, {method:'POST',body:JSON.stringify({version})});
+  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/rollback`, {method:'POST',body:JSON.stringify({version})});
   if(r.ok) { closeModal('history-modal'); loadPromptDetail(_currentPromptKey); alert('已回滚'); }
 }
 
@@ -810,23 +1348,25 @@ async function loadModels() {
   document.getElementById('models-tbody').innerHTML = Object.values(d.models).reverse().map(m=>`
     <tr>
       <td><b>${esc(m.version)}</b></td>
-      <td>${m.features||'–'}</td>
+      <td>${esc(m.features||'–')}</td>
       <td>${m.rmse||'–'}</td>
       <td>${m.accuracy?m.accuracy+'%':'–'}</td>
-      <td><span class="badge ${statusMap[m.status]||'badge-free'}">${{production:'生产中',archived:'已归档',training:'训练中'}[m.status]||m.status}</span></td>
-      <td>${m.status!=='production'?`<button class="btn btn-ghost btn-sm" onclick="deployModel('${m.version}')">部署</button>`:'–'}</td>
+      <td><span class="badge ${statusMap[m.status]||'badge-free'}">${esc({production:'生产中',archived:'已归档',training:'训练中'}[m.status]||m.status)}</span></td>
+      <td>${m.status!=='production'?`<button class="btn btn-ghost btn-sm" data-capability="model_mutation" data-model-version="${esc(encodeURIComponent(String(m.version||'')))}" onclick="deployModel(decodeURIComponent(this.dataset.modelVersion))">部署</button>`:'–'}</td>
     </tr>`).join('');
   document.getElementById('train-jobs').innerHTML = (d.training_jobs||[]).reverse().slice(0,5).map(j=>`
     <div style="background:var(--surf-2);border-radius:8px;padding:10px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between">
-        <span style="font-size:12px;font-weight:600">${j.id}</span>
-        <span class="badge ${j.status==='completed'?'badge-success':j.status==='failed'?'badge-error':'badge-warning'}">${j.status}</span>
+        <span style="font-size:12px;font-weight:600">${esc(j.id)}</span>
+        <span class="badge ${j.status==='completed'?'badge-success':j.status==='failed'?'badge-error':'badge-warning'}">${esc(j.status)}</span>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${j.description}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${esc(j.description)}</div>
     </div>`).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无训练任务</div>';
+  applyAdminCapabilities();
 }
 
 async function deployModel(version) {
+  if(!requireAdminCapability('model_mutation')) return;
   if(!confirm(`确认部署版本 ${version}？`)) return;
   const r = await aFetch(`/admin/models/${version}/deploy`, {method:'POST'});
   const d = await r.json();
@@ -835,6 +1375,7 @@ async function deployModel(version) {
 }
 
 async function triggerTraining() {
+  if(!requireAdminCapability('model_mutation')) return;
   const desc = prompt('训练任务说明：', '手动触发训练');
   if(!desc) return;
   const r = await aFetch('/admin/models/train', {method:'POST', body:JSON.stringify({description:desc})});
@@ -847,20 +1388,99 @@ async function loadCrawler() {
   const r = await aFetch('/admin/crawler/status');
   const d = await r.json();
   document.getElementById('cw-status').innerHTML = `<span class="dot ${d.enabled?'dot-green':'dot-red'}"></span>${d.enabled?'运行中':'已停止'}`;
-  document.getElementById('cw-cookie').innerHTML = `<span class="dot ${d.cookie_file_exists?'dot-green':'dot-red'}"></span>${d.cookie_file_exists?`有效（${d.cookie_count}条）`:'未配置'}`;
+  const cookieLabels = {
+    not_configured:'未配置', pending_validation:'待验证', verified:'已验证',
+    needs_relogin:'登录已失效', needs_attention:'需要检查',
+    collection_suspended:'合规停采'
+  };
+  const cookieOk = d.cookie_runtime_status === 'verified';
+  const cookieWarn = ['pending_validation','needs_attention','collection_suspended'].includes(d.cookie_runtime_status);
+  document.getElementById('cw-cookie').innerHTML = `<span class="dot ${cookieOk?'dot-green':cookieWarn?'dot-yellow':'dot-red'}"></span>${cookieLabels[d.cookie_runtime_status]||'未知'}${d.cookie_file_exists?`（${d.cookie_count}条）`:''}`;
+  document.getElementById('cw-cookie-sub').textContent =
+    d.cookie_runtime_status === 'needs_relogin'
+      ? '账号已被平台退出，请人工重新登录；采集已安全暂停'
+      : d.cookie_runtime_status === 'collection_suspended'
+        ? '采集已合规暂停；恢复前需由管理员完成授权检查'
+        : d.cookie_action_required
+          ? `请检查采集；连续失败 ${d.cookie_consecutive_failures||0} 次`
+          : (d.cookie_last_verified_at ? `最近验证 ${_fmtShortTime(d.cookie_last_verified_at)}` : '保存后由下一轮采集验证');
   document.getElementById('cw-total').textContent = (d.total_collected||0).toLocaleString() + ' 条';
+  await loadXhsHealth();
   const logsR = await aFetch('/admin/crawler/logs?limit=30');
   const logs  = await logsR.json();
   document.getElementById('crawler-logs').innerHTML = (logs.logs||[]).reverse().map(l=>`
-    <div class="log-line">${JSON.stringify(l).slice(0,120)}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px;padding:8px">暂无日志</div>';
+    <div class="log-line">${esc(JSON.stringify(l).slice(0,120))}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px;padding:8px">暂无日志</div>';
+}
+
+function _fmtShortTime(value) {
+  if (!value) return '–';
+  try {
+    return new Date(value).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  } catch(e) { return String(value).slice(0,16); }
+}
+
+async function loadXhsHealth() {
+  try {
+    const freshR = await aFetch('/admin/xhs/freshness');
+    const fresh = await freshR.json();
+    const healthR = await aFetch('/admin/xhs/health?limit=12');
+    const health = await healthR.json();
+    const missing = fresh.missing_domains || [];
+    const latestSource = fresh.latest_run_source_health || {};
+    const accessStatus = ['challenge','cooldown','login_required','suspended','normal'].includes(fresh.access_status)
+      ? fresh.access_status : 'normal';
+    const latestSourceDegraded = latestSource.available === true && latestSource.ok === false;
+    const latestSourceState = accessStatus === 'login_required'
+      ? '账号服务端会话已失效，等待人工重新登录'
+      : accessStatus === 'suspended'
+        ? '采集已合规暂停'
+        : accessStatus === 'challenge'
+      ? '搜索访问挑战已触发保护'
+      : accessStatus === 'cooldown'
+        ? '搜索访问挑战冷却中'
+        : latestSource.available !== true
+          ? '最新一轮来源待观测'
+          : (latestSourceDegraded ? '最新一轮来源退化' : '最新一轮来源健康');
+    document.getElementById('xhs-fresh-ok').innerHTML = `<span class="dot ${fresh.ok?'dot-green':'dot-red'}"></span>${fresh.ok?'达标':'缺失'}（累计）`;
+    document.getElementById('xhs-fresh-sub').textContent = `${fresh.required ? '生产硬门槛已开启' : '硬门槛未开启'}；${latestSourceState}${fresh.access_error_code ? `（${fresh.access_error_code}）` : (latestSource.error_code ? `（${latestSource.error_code}）` : '')}`;
+    document.getElementById('xhs-missing-count').textContent = missing.length;
+    document.getElementById('xhs-missing-domains').textContent = missing.join('、') || '全部行业已满足';
+    document.getElementById('xhs-deadline').textContent = _fmtShortTime(fresh.deadline);
+    document.getElementById('xhs-deadline-sub').textContent = fresh.deadline_missed ? '已错过截止' : (fresh.deadline_passed ? '今日截止已过' : '截止前可补采');
+    document.getElementById('xhs-sidecar').innerHTML = `<span class="dot ${health.sidecar && health.sidecar.configured?'dot-green':'dot-red'}"></span>${health.sidecar && health.sidecar.configured?'已配置':'未配置'}`;
+    document.getElementById('xhs-sidecar-sub').textContent = health.sidecar && health.sidecar.host ? health.sidecar.host : 'NOTEAI_XHS_DOWNLOADER_URL';
+    document.getElementById('xhs-fresh-table').innerHTML = (fresh.domains || []).map(row => `
+      <tr>
+        <td>${esc(row.domain || '–')}</td>
+        <td><span class="badge ${row.ok?'badge-success':'badge-error'}">${esc(row.ok?'fresh':(row.status || 'missing'))}</span></td>
+        <td>${row.evidence_count || 0} / ${row.minimum || 0}</td>
+        <td>${_fmtShortTime(row.fresh_until)}</td>
+        <td style="color:var(--text-muted)">${esc(row.reason || '–')}</td>
+      </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-muted)">暂无账本记录</td></tr>';
+    document.getElementById('xhs-health-table').innerHTML = (health.health || []).map(row => `
+      <tr>
+        <td>${_fmtShortTime(row.checked_at)}</td>
+        <td>${esc(row.adapter || '–')}</td>
+        <td>${esc(row.domain || '–')}</td>
+        <td><span class="badge ${row.status === 'ok' ? 'badge-success' : ['insufficient','degraded'].includes(row.status) ? 'badge-warning' : 'badge-error'}">${esc(row.status || '–')}</span></td>
+        <td>${row.details?.latest_run_evidence_count || 0} / ${row.evidence_count || 0}</td>
+        <td style="color:var(--text-muted)">${esc(row.error_code || row.error_summary || '–')}</td>
+      </tr>`).join('') || '<tr><td colspan="6" style="color:var(--text-muted)">暂无 health 记录</td></tr>';
+  } catch(e) {
+    document.getElementById('xhs-fresh-ok').innerHTML = '<span class="dot dot-red"></span>不可用';
+    document.getElementById('xhs-fresh-table').innerHTML = '<tr><td colspan="5" style="color:var(--error)">XHS health API 不可用</td></tr>';
+    document.getElementById('xhs-health-table').innerHTML = '<tr><td colspan="6" style="color:var(--error)">XHS health API 不可用</td></tr>';
+  }
 }
 
 async function toggleCrawler(enable) {
+  if(!requireAdminCapability('crawler_control')) return;
   await aFetch('/admin/crawler/toggle', {method:'POST', body:JSON.stringify({enabled:enable})});
   loadCrawler();
 }
 
 async function runCrawlerNow() {
+  if(!requireAdminCapability('crawler_control')) return;
   if(!confirm('立即触发一轮采集？')) return;
   const r = await aFetch('/admin/crawler/run', {method:'POST', body:JSON.stringify({limit:50})});
   const d = await r.json();
@@ -868,41 +1488,44 @@ async function runCrawlerNow() {
 }
 
 function openCookieModal() { openModal('cookie-modal'); }
-async function saveCookies() {
-  const raw = document.getElementById('cookie-input').value.trim();
-  const r = await aFetch('/admin/crawler/update-cookie', {method:'POST', body:JSON.stringify({cookies_json:raw})});
-  const d = await r.json();
-  if(d.ok) { alert(`Cookie 已保存（${d.cookie_count}条）`); closeModal('cookie-modal'); loadCrawler(); }
-  else alert('失败: '+JSON.stringify(d));
-}
 
 /* ── Settings ─────────────────────────────────────────────────────── */
 async function loadSettings() {
   const r = await aFetch('/admin/settings');
   const d = await r.json();
-  const tierNames = {free:'免费版', pro:'轻创作 Pro (¥99)', pro_plus:'专业 Pro+ (¥199)'};
+  const tierNames = {free:'免费版', pro:'创作者版 (¥99)', growth:'成长版 (¥199)', pro_plus:'专业版 (¥299)', studio:'工作室版 (¥399)'};
   document.getElementById('settings-tiers').innerHTML = Object.entries(d.tiers).map(([k,t])=>`
     <div style="margin-bottom:16px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px">${tierNames[k]||k}</div>
-      ${Object.entries(t.quotas).map(([op,limit])=>`
-        <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-          <span style="color:var(--text-2)">${d.operations?.[op]?.label||op}</span>
-          <span style="color:var(--accent);font-weight:600">${limit===-1?'无限':limit+'次/月'}</span>
-        </div>`).join('')}
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">${esc(tierNames[k]||k)}</div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <span style="color:var(--text-2)">套餐周期积分</span>
+        <span style="color:var(--accent);font-weight:600">${t.monthly_credits || 0} 积分/周期</span>
+      </div>
+      ${(t.features||[]).map(f=>`
+        <div style="font-size:11px;color:var(--text-muted);padding:3px 0">• ${esc(f)}</div>`).join('')}
     </div>`).join('');
   document.getElementById('settings-credits').innerHTML = `
-    <div style="font-size:13px;margin-bottom:12px">1 积分 = ¥${d.credit_value}</div>
+    <div style="font-size:13px;margin-bottom:12px">1 积分标价 = ¥${d.credit_value}；充值包按真实 paid_rmb 计收入，管理员赠送不计收入。</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">
+      ${(d.credit_packages||[]).map(p=>`
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:9px">
+          <div style="font-size:12px;color:var(--text);font-weight:700">${esc(p.label)}</div>
+          <div style="font-size:12px;color:var(--text-2)">${p.credits}积分 / ¥${p.price_rmb}</div>
+          <div style="font-size:10px;color:var(--text-muted)">约¥${p.unit_price_rmb}/积分</div>
+        </div>`).join('')}
+    </div>
     <div style="display:flex;flex-direction:column;gap:6px">
       ${Object.entries(d.credit_costs).map(([k,v])=>`
         <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-          <span style="color:var(--text-2)">${d.operations?.[k]?.label||k}</span>
+          <span style="color:var(--text-2)">${esc(d.operations?.[k]?.label||k)}</span>
           <span style="color:var(--warning)">${v===0?'免费':v+'积分'}</span>
         </div>`).join('')}
     </div>`;
   const logsR = await aFetch('/admin/logs?lines=50');
   const logs  = await logsR.json();
-  document.getElementById('server-logs').innerHTML = (logs.lines||[]).map(l=>`
-    <div class="log-line">${esc(l)}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无日志</div>';
+  document.getElementById('server-logs').innerHTML = (logs.events||[]).map(event=>`
+    <div class="log-line">${esc(event.level)} · ${esc(event.event_code)} · ${esc(event.line_hash)}</div>`
+  ).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无日志摘要</div>';
 }
 
 /* ── Chart helpers ────────────────────────────────────────────────── */
@@ -927,7 +1550,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open')); });
 
 /* ── Utils ────────────────────────────────────────────────────────── */
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
 function updateClock() {
   document.getElementById('topbar-time').textContent = new Date().toLocaleString('zh-CN');
   setTimeout(updateClock, 1000);
@@ -941,11 +1571,11 @@ window.addEventListener('load', async () => {
       if (r.ok) {
         const d = await r.json();
         document.getElementById('admin-name').textContent = d.username;
-        showApp();
+        await showApp();
         return;
       }
     } catch(e) {}
-    _adminToken = null; localStorage.removeItem('noteai_admin_token');
+    clearAdminSession();
   }
 });
 </script>

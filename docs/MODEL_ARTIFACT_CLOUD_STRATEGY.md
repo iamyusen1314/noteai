@@ -15,7 +15,7 @@ NoteAI 的生产模型必须和代码版本同步回滚。当前 GitHub 仓库�
 优先级如下：
 
 1. 本地 `model/artifacts/` 已存在且 SHA256 正确，直接加载。
-2. 文件缺失或是 Git LFS 指针文件，且配置了 `NOTEAI_MODEL_ARTIFACT_BASE_URL`，启动时下载并校验。
+2. 文件缺失或是 Git LFS 指针文件时，优先从配置的私有 S3 桶下载；未配置 S3 时才使用 `NOTEAI_MODEL_ARTIFACT_BASE_URL`。
 3. 生产环境配置 `NOTEAI_MODEL_ARTIFACT_REQUIRED=1` 时，缺失或校验失败直接报错，不能静默退回旧模型。
 
 ## 推荐对象存储路径
@@ -42,6 +42,18 @@ NOTEAI_MODEL_ARTIFACT_BASE_URL=https://example-bucket.example.com/noteai/v0.4-co
 NOTEAI_MODEL_ARTIFACT_REQUIRED=1
 ```
 
+商业部署优先使用私有 S3，不要为了模型下载把桶设为公开：
+
+```bash
+NOTEAI_MODEL_ARTIFACT_S3_BUCKET=<private-bucket-name>
+NOTEAI_MODEL_ARTIFACT_S3_PREFIX=<optional-prefix>
+AWS_ACCESS_KEY_ID=<render-secret>
+AWS_SECRET_ACCESS_KEY=<render-secret>
+AWS_DEFAULT_REGION=<aws-region>
+```
+
+S3 IAM 身份只授予目标前缀的 `s3:GetObject`，不授予写入或删除权限。对象 key 需保留清单里的相对路径，例如 `<prefix>/model/artifacts/model_v04_...lgb`。下载完成后仍执行 SHA256 校验；校验失败会中止启动。
+
 下载器会按 manifest 中的相对路径拼接 URL，并写回容器内 `model/artifacts/`。
 
 ## 校验命令
@@ -59,6 +71,14 @@ NOTEAI_MODEL_ARTIFACT_BASE_URL=<base-url> \
 NOTEAI_MODEL_ARTIFACT_REQUIRED=1 \
 python scripts/fetch_model_artifacts.py
 ```
+
+Docker 镜像启动时会自动执行：
+
+```bash
+python -m artifact_loader
+```
+
+该命令会读取 `NOTEAI_MODEL_ARTIFACT_BASE_URL` 和 `NOTEAI_MODEL_ARTIFACT_REQUIRED`。生产环境 `NOTEAI_MODEL_ARTIFACT_REQUIRED=1` 时，缺失或校验失败会让容器启动失败；如果对象存储前缀已配置，会先尝试下载并重新校验。
 
 ## 回滚规则
 

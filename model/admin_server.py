@@ -31,7 +31,7 @@ load_dotenv(Path(__file__).parent / ".env")
 
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -39,6 +39,161 @@ from pydantic import BaseModel
 import db
 import admin_auth as _aauth
 import billing as _billing
+import content_retention as _retention
+import runtime_settings as _settings
+import security_redaction as _redaction
+import prompt_baselines as _prompt_baselines
+import prompt_composer as _prompt_composer
+import tracking_contract as _tracking_contract
+import durable_ai as _durable_ai
+import payment_contract as _payment
+
+try:
+    import xhs_acquisition as _xhs_acq
+    _XHS_ACQ_AVAILABLE = True
+except Exception:
+    _xhs_acq = None
+    _XHS_ACQ_AVAILABLE = False
+
+
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+_ADMIN_MUTATION_CAPABILITIES = (
+    "business_mutation",
+    "prompt_mutation",
+    "model_mutation",
+    "crawler_control",
+    "tracking_requeue",
+)
+
+
+def _is_restricted_admin_runtime() -> bool:
+    stage = os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower()
+    cloud = os.environ.get("NOTEAI_CLOUD_RUNTIME", "0").strip().lower()
+    return stage == "production" or cloud in _TRUE_VALUES
+
+
+def _admin_capabilities_payload() -> dict:
+    restricted = _is_restricted_admin_runtime()
+    capabilities = {
+        name: not restricted for name in _ADMIN_MUTATION_CAPABILITIES
+    }
+    return {
+        "mode": "production_read_only" if restricted else "local_operator",
+        "read_only": restricted,
+        "capabilities": capabilities,
+        "mutation_workflow": (
+            "audited_release_workflow" if restricted else "local_operator"
+        ),
+    }
+
+
+def _require_admin_capability(name: str) -> None:
+    if _admin_capabilities_payload()["capabilities"].get(name) is not True:
+        raise HTTPException(
+            status_code=409,
+            detail="生产 Admin 为只读控制台；该操作必须通过独立受审计流程执行",
+        )
+
+
+def _admin_cors_origins() -> list[str]:
+    configured = (
+        os.environ.get("NOTEAI_ADMIN_CORS_ORIGINS")
+        or os.environ.get("CORS_ORIGINS")
+        or ""
+    )
+    origins = [
+        value.strip()
+        for value in configured.split(",")
+        if value.strip()
+    ]
+    if _is_restricted_admin_runtime():
+        return [origin for origin in origins if origin != "*"]
+    return origins or ["*"]
+
+
+def _unavailable_api_ai_status() -> dict:
+    return {
+        "status": "unavailable",
+        "source": "protected_status_unavailable",
+        "claude_status": "unavailable",
+        "kimi_status": "unavailable",
+        # Backward-compatible booleans for older admin clients. New clients
+        # must use the explicit tri-state fields above.
+        "claude_configured": False,
+        "kimi_configured": False,
+    }
+
+
+async def _fetch_api_ai_readiness() -> dict:
+    """Keep provider state unavailable until a protected status source exists."""
+    return _unavailable_api_ai_status()
+
+
+def _model_cost_audit_payload(since: str) -> dict:
+    """Return model/cache totals and strict parent-record coverage."""
+    model_rows = db.fetchall(
+        "SELECT m.provider,m.model,m.price_currency,m.price_version,COUNT(*) AS calls,"
+        "COALESCE(SUM(m.input_tokens),0) AS input_tokens,"
+        "COALESCE(SUM(m.unclassified_input_tokens),0) AS unclassified_input_tokens,"
+        "COALESCE(SUM(m.cache_read_input_tokens),0) AS cache_read_tokens,"
+        "COALESCE(SUM(m.cache_write_input_tokens),0) AS cache_write_tokens,"
+        "COALESCE(SUM(m.output_tokens),0) AS output_tokens,"
+        "COALESCE(SUM(m.known_cost_rmb),0) AS known_cost_rmb,"
+        "COALESCE(SUM(CASE WHEN m.pricing_status='exact' THEN 0 ELSE 1 END),0) AS pricing_gaps,"
+        "COALESCE(SUM(CASE WHEN m.usage_status='complete' THEN 0 ELSE 1 END),0) AS usage_gaps "
+        "FROM model_usage_records m JOIN usage_records r ON r.id=m.usage_record_id "
+        "WHERE r.recorded_at>=? "
+        "GROUP BY m.provider,m.model,m.price_currency,m.price_version "
+        "ORDER BY known_cost_rmb DESC,m.provider,m.model",
+        (since,),
+    )
+    parent = db.fetchone(
+        "SELECT COUNT(*) AS total_records,"
+        "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='actual' THEN 1 ELSE 0 END),0) AS strict_actual_records,"
+        "COALESCE(SUM(CASE WHEN child_count=0 THEN 1 ELSE 0 END),0) AS legacy_unverifiable_records,"
+        "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='partial' THEN 1 ELSE 0 END),0) AS partial_records,"
+        "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='unpriced' THEN 1 ELSE 0 END),0) AS unpriced_records,"
+        "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='usage_incomplete' THEN 1 ELSE 0 END),0) AS usage_incomplete_records "
+        "FROM (SELECT r.id,r.cost_mode,(SELECT COUNT(*) FROM model_usage_records m WHERE m.usage_record_id=r.id) AS child_count "
+        "FROM usage_records r WHERE r.recorded_at>=?) audited",
+        (since,),
+    )
+    total = int(parent["total_records"] or 0)
+    strict = int(parent["strict_actual_records"] or 0)
+    coverage = {
+        "total_records": total,
+        "strict_actual_records": strict,
+        "legacy_unverifiable_records": int(parent["legacy_unverifiable_records"] or 0),
+        "partial_records": int(parent["partial_records"] or 0),
+        "unpriced_records": int(parent["unpriced_records"] or 0),
+        "usage_incomplete_records": int(parent["usage_incomplete_records"] or 0),
+        "strict_actual_pct": round(strict / total * 100, 1) if total else 0.0,
+        "actual_margin_ready": bool(total and strict == total),
+    }
+    by_model = [{
+        "provider": row["provider"],
+        "model": row["model"],
+        "price_currency": row["price_currency"],
+        "price_version": row["price_version"],
+        "calls": int(row["calls"] or 0),
+        "input_tokens": int(row["input_tokens"] or 0),
+        "unclassified_input_tokens": int(row["unclassified_input_tokens"] or 0),
+        "cache_read_tokens": int(row["cache_read_tokens"] or 0),
+        "cache_write_tokens": int(row["cache_write_tokens"] or 0),
+        "output_tokens": int(row["output_tokens"] or 0),
+        "known_cost_rmb": round(row["known_cost_rmb"] or 0, 6),
+        "pricing_complete": int(row["pricing_gaps"] or 0) == 0,
+        "usage_complete": int(row["usage_gaps"] or 0) == 0,
+    } for row in model_rows]
+    return {
+        "by_model": by_model,
+        "cache": {
+            "read_tokens": sum(item["cache_read_tokens"] for item in by_model),
+            "write_tokens": sum(item["cache_write_tokens"] for item in by_model),
+            "unclassified_input_tokens": sum(item["unclassified_input_tokens"] for item in by_model),
+        },
+        "coverage": coverage,
+    }
 
 # ── App ───────────────────────────────────────────────────────────────────
 admin_app = FastAPI(
@@ -49,13 +204,20 @@ admin_app = FastAPI(
 
 admin_app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_admin_cors_origins(),
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # 静态文件（admin.html）
 _STATIC_DIR = Path(__file__).parent
+_VENDOR_DIR = _STATIC_DIR.parent / "assets" / "vendor"
+if _VENDOR_DIR.exists():
+    admin_app.mount(
+        "/assets/vendor",
+        StaticFiles(directory=str(_VENDOR_DIR)),
+        name="vendor-assets",
+    )
 if (_STATIC_DIR / "admin.html").exists():
     @admin_app.get("/", response_class=HTMLResponse)
     async def admin_root():
@@ -85,6 +247,12 @@ async def admin_me(admin: dict = Depends(_aauth.get_admin_user)):
     return {"username": admin["username"], "logged_in_at": admin["created_at"]}
 
 
+@admin_app.get("/admin/capabilities")
+async def admin_capabilities(admin: dict = Depends(_aauth.get_admin_user)):
+    """Expose the fail-closed Admin UI contract without configuration values."""
+    return _admin_capabilities_payload()
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # P2-A Dashboard 总览
 # ══════════════════════════════════════════════════════════════════════════
@@ -93,13 +261,14 @@ async def admin_me(admin: dict = Depends(_aauth.get_admin_user)):
 async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
     """一次性返回 Dashboard 所需所有数据。"""
     now    = datetime.now(timezone.utc)
+    ai_runtime = await _fetch_api_ai_readiness()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     days7_start = (now - timedelta(days=7)).isoformat()
 
     # ── 用户规模 ──
-    total_users  = db.fetchone("SELECT COUNT(*) as c FROM users")["c"]
-    today_new    = db.fetchone("SELECT COUNT(*) as c FROM users WHERE created_at>=?", (today_start,))["c"]
+    total_users  = db.fetchone("SELECT COUNT(id) as c FROM users")["c"]
+    today_new    = db.fetchone("SELECT COUNT(id) as c FROM users WHERE created_at>=?", (today_start,))["c"]
     active_7d    = db.fetchone(
         "SELECT COUNT(DISTINCT user_id) as c FROM usage_records WHERE recorded_at>=?",
         (days7_start,))["c"]
@@ -112,46 +281,66 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
         "SELECT tier, COUNT(*) as cnt FROM subscriptions WHERE is_active=1 GROUP BY tier")
     tier_dist = {r["tier"]: r["cnt"] for r in tier_rows}
 
-    # ── 本月收入（模拟：订阅 × 单价）──
-    pro_count      = tier_dist.get("pro", 0)
-    pro_plus_count = tier_dist.get("pro_plus", 0)
-    sub_revenue    = pro_count * 99 + pro_plus_count * 199
-
-    # ── 积分充值收入（credit_transactions topup 本月）──
-    topup_row = db.fetchone(
-        "SELECT COALESCE(SUM(amount),0) as total FROM credit_transactions "
-        "WHERE type='topup' AND recorded_at>=?", (month_start,))
-    credits_revenue = round((topup_row["total"] or 0) * _billing.CREDIT_VALUE, 2)
-
-    total_revenue = round(sub_revenue + credits_revenue, 2)
+    # ── 本月确认现金（仅不可变支付账本，不按套餐人数推算）──
+    cash = _payment.finance_summary(since=month_start)
+    by_kind = db.fetchone(
+        "SELECT "
+        "COALESCE(SUM(CASE WHEN o.product_kind='subscription' "
+        "AND l.entry_type IN ('payment_received','refund_paid') "
+        "THEN l.amount_fen ELSE 0 END),0) AS subscription_fen,"
+        "COALESCE(SUM(CASE WHEN o.product_kind='credit_package' "
+        "AND l.entry_type IN ('payment_received','refund_paid') "
+        "THEN l.amount_fen ELSE 0 END),0) AS credit_fen "
+        "FROM payment_cash_ledger l "
+        "JOIN payment_orders o ON o.id=l.order_id "
+        "WHERE l.recorded_at>=?",
+        (month_start,),
+    )
+    sub_revenue = round(int(by_kind["subscription_fen"] or 0) / 100, 2)
+    credits_revenue = round(int(by_kind["credit_fen"] or 0) / 100, 2)
+    total_revenue = round(int(cash["net_fen"]) / 100, 2)
 
     # ── 本月 API 成本 ──
     cost_row = db.fetchone(
-        "SELECT COALESCE(SUM(cost_rmb),0) as total FROM usage_records WHERE recorded_at>=?",
+        "SELECT COALESCE(SUM(cost_rmb),0) as total, "
+        "COALESCE(SUM(tokens_in),0) as tokens_in, COALESCE(SUM(tokens_out),0) as tokens_out "
+        "FROM usage_records WHERE recorded_at>=?",
         (month_start,))
     api_cost = round(cost_row["total"] or 0, 4)
+    month_tokens_in = int(cost_row["tokens_in"] or 0)
+    month_tokens_out = int(cost_row["tokens_out"] or 0)
 
     gross_profit = round(total_revenue - api_cost, 2)
     margin_pct   = round(gross_profit / total_revenue * 100, 1) if total_revenue > 0 else 0
-
-    # ── MRR ──
-    mrr = pro_count * 99 + pro_plus_count * 199
+    audit = _model_cost_audit_payload(month_start)
 
     # ── 本月各操作用量 ──
     op_rows = db.fetchall(
-        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost "
+        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out, SUM(model_calls) as model_calls "
         "FROM usage_records WHERE recorded_at>=? GROUP BY operation ORDER BY cost DESC",
         (month_start,))
     ops_summary = [{"op": r["operation"],
                     "label": _billing.OPERATIONS.get(r["operation"], {}).get("label", r["operation"]),
                     "count": r["cnt"],
+                    "tokens_in": int(r["tokens_in"] or 0),
+                    "tokens_out": int(r["tokens_out"] or 0),
+                    "total_tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
+                    "model_calls": int(r["model_calls"] or 0),
                     "cost": round(r["cost"] or 0, 4)} for r in op_rows]
 
     # ── 系统状态 ──
-    kimi_key   = os.environ.get("MOONSHOT_API_KEY", "")
-    claude_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    model_path = Path(__file__).parent / "artifacts" / "model_a_v0.3.lgb"
-    db_path    = Path(__file__).parent / "data" / "noteai.db"
+    model_files = tuple((Path(__file__).parent / "artifacts").glob("model_v04_*.lgb"))
+    try:
+        database_status = db.database_health()
+    except Exception:
+        database_status = {
+            "ok": False,
+            "backend": "postgresql" if db.using_postgres() else "sqlite",
+        }
+    database_backend = database_status.get("backend")
+    if database_backend not in {"postgresql", "sqlite"}:
+        database_backend = "postgresql" if db.using_postgres() else "sqlite"
 
     return {
         "users": {
@@ -166,22 +355,45 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
             "credits_revenue": credits_revenue,
             "total_revenue":   total_revenue,
             "api_cost":        api_cost,
+            "tokens_in":       month_tokens_in,
+            "tokens_out":      month_tokens_out,
+            "total_tokens":    month_tokens_in + month_tokens_out,
             "gross_profit":    gross_profit,
             "margin_pct":      margin_pct,
-            "mrr":             mrr,
+            "actual_margin_ready": audit["coverage"]["actual_margin_ready"],
+            "cost_basis": (
+                "strict_actual" if audit["coverage"]["actual_margin_ready"]
+                else "incomplete_model_cost_coverage"
+            ),
+            "coverage":        audit["coverage"],
+            "cash_received":   round(cash["received_fen"] / 100, 2),
+            "cash_refunded":   round(cash["refunded_fen"] / 100, 2),
+            "unmatched_cash":  round(
+                cash["unmatched_fen"] / 100,
+                2,
+            ),
+            "revenue_basis":   "confirmed_immutable_cash_ledger",
+            "mrr":             0,
+            "mrr_basis":       "not_applicable_no_auto_renewal",
         },
         "usage": {
             "month_total_cost": api_cost,
+            "month_tokens_in":  month_tokens_in,
+            "month_tokens_out": month_tokens_out,
+            "month_total_tokens": month_tokens_in + month_tokens_out,
             "by_operation":     ops_summary,
+            "by_model":         audit["by_model"],
+            "cache":            audit["cache"],
+            "coverage":         audit["coverage"],
         },
         "system": {
-            "kimi_configured":   bool(kimi_key),
-            "kimi_key_prefix":   kimi_key[:12] + "…" if kimi_key else "",
-            "claude_configured": bool(claude_key),
-            "claude_key_prefix": claude_key[:15] + "…" if claude_key else "",
-            "model_exists":      model_path.exists(),
-            "model_size_mb":     round(model_path.stat().st_size / 1024**2, 2) if model_path.exists() else 0,
-            "db_size_mb":        round(db_path.stat().st_size / 1024**2, 2) if db_path.exists() else 0,
+            "ai_runtime":         ai_runtime,
+            "kimi_configured":   ai_runtime["kimi_configured"],
+            "claude_configured": ai_runtime["claude_configured"],
+            "model_exists":      bool(model_files),
+            "model_size_mb":     round(sum(path.stat().st_size for path in model_files) / 1024**2, 2),
+            "database_backend":  database_backend,
+            "database_ok":       database_status.get("ok") is True,
             "server_time":       now.isoformat(),
         },
     }
@@ -212,7 +424,7 @@ async def admin_users(
     where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
     total = db.fetchone(
-        f"SELECT COUNT(*) as c FROM users u "
+        f"SELECT COUNT(u.id) as c FROM users u "
         f"LEFT JOIN subscriptions s ON u.id=s.user_id AND s.is_active=1 {where_sql}",
         tuple(params)
     )["c"]
@@ -238,14 +450,20 @@ async def admin_users(
     users_out = []
     for r in rows:
         usage = db.fetchone(
-            "SELECT COUNT(*) as cnt, COALESCE(SUM(cost_rmb),0) as cost "
+            "SELECT COUNT(*) as cnt, COALESCE(SUM(cost_rmb),0) as cost, "
+            "COALESCE(SUM(tokens_in),0) as tokens_in, COALESCE(SUM(tokens_out),0) as tokens_out "
             "FROM usage_records WHERE user_id=? AND recorded_at>=?",
             (r["id"], month_start))
+        public_user = dict(r)
+        public_user.pop("phone", None)
+        public_user.pop("email", None)
         users_out.append({
-            **dict(r),
+            **public_user,
             "phone_masked": _mask_phone_admin(r["phone"] or ""),
+            "email_masked": _mask_email_admin(r["email"] or ""),
             "month_ops":    usage["cnt"],
             "month_cost":   round(usage["cost"] or 0, 4),
+            "month_tokens": int((usage["tokens_in"] or 0) + (usage["tokens_out"] or 0)),
         })
 
     return {"total": total, "page": page, "page_size": page_size, "users": users_out}
@@ -253,19 +471,29 @@ async def admin_users(
 
 def _mask_phone_admin(phone: str) -> str:
     raw = phone.replace("+86", "")
-    return raw[:3] + "****" + raw[-4:] if len(raw) == 11 else phone
+    return raw[:3] + "****" + raw[-4:] if len(raw) == 11 else ("***" if raw else "")
+
+
+def _mask_email_admin(email: str) -> str:
+    local, separator, domain = email.partition("@")
+    if not separator or not local or not domain:
+        return "***" if email else ""
+    return f"{local[:1]}***@{domain}"
 
 
 @admin_app.get("/admin/users/{user_id}")
 async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin_user)):
     """用户详情（不含笔记全文）。"""
-    user = db.fetchone("SELECT * FROM users WHERE id=?", (user_id,))
+    user = db.fetchone(
+        "SELECT id,username,email,phone,nickname,avatar_emoji,created_at,last_login "
+        "FROM users WHERE id=?",
+        (user_id,),
+    )
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
     user = dict(user)
-    user.pop("password_hash", None)
-    user.pop("password_salt", None)
-    user.pop("avatar_data", None)  # 不传图片数据
+    phone_masked = _mask_phone_admin(user.pop("phone", "") or "")
+    email_masked = _mask_email_admin(user.pop("email", "") or "")
 
     sub = db.fetchone(
         "SELECT * FROM subscriptions WHERE user_id=? AND is_active=1", (user_id,))
@@ -275,27 +503,32 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
         day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
     usage_rows = db.fetchall(
-        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, SUM(credits_used) as creds "
+        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, SUM(credits_used) as creds, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out, SUM(model_calls) as model_calls "
         "FROM usage_records WHERE user_id=? AND recorded_at>=? GROUP BY operation",
         (user_id, month_start))
 
     recent_usage = db.fetchall(
-        "SELECT operation,source,cost_rmb,credits_used,recorded_at "
+        "SELECT operation,source,cost_rmb,credits_used,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at "
         "FROM usage_records WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
         (user_id,))
 
     credit_txns = db.fetchall(
-        "SELECT type,amount,balance_after,description,recorded_at "
+        "SELECT type,amount,balance_after,description,paid_rmb,package_id,recorded_at "
         "FROM credit_transactions WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
         (user_id,))
 
     # 笔记统计（不含全文）
     notes_stat = db.fetchone(
-        "SELECT COUNT(*) as cnt, AVG(score) as avg_score, MAX(score) as max_score "
+        "SELECT COUNT(id) as cnt, AVG(score) as avg_score, MAX(score) as max_score "
         "FROM notes WHERE user_id=?", (user_id,))
 
     return {
-        "user":          {**user, "phone_masked": _mask_phone_admin(user.get("phone") or "")},
+        "user":          {
+            **user,
+            "phone_masked": phone_masked,
+            "email_masked": email_masked,
+        },
         "subscription":  dict(sub) if sub else {"tier": "free"},
         "credits":       dict(credits_row) if credits_row else {"balance": 0},
         "month_usage":   [dict(r) for r in usage_rows],
@@ -310,11 +543,20 @@ class UserAdjustInput(BaseModel):
     value:  Optional[str] = None   # tier name 或 credits 数量
     note:   str = ""
 
+
+def _assert_admin_user_writable(storage, user_id: str) -> None:
+    try:
+        _retention.assert_user_writable_with_storage(storage, user_id)
+    except ValueError:
+        raise HTTPException(status_code=409, detail="账号已进入删除流程") from None
+
+
 @admin_app.post("/admin/users/{user_id}/adjust")
 async def admin_user_adjust(
     user_id: str, req: UserAdjustInput,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
+    _require_admin_capability("business_mutation")
     user = db.fetchone("SELECT id,username FROM users WHERE id=?", (user_id,))
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
@@ -323,7 +565,7 @@ async def admin_user_adjust(
         amount = float(req.value or "0")
         if amount <= 0:
             raise HTTPException(status_code=400, detail="积分数量必须大于0")
-        new_bal = _billing.topup_credits(user_id, amount, f"管理员手动增加：{req.note}")
+        new_bal = _billing.grant_credits(user_id, amount, f"管理员手动增加：{req.note}")
         return {"ok": True, "new_balance": new_bal}
 
     if req.action == "set_tier":
@@ -334,18 +576,29 @@ async def admin_user_adjust(
         return {"ok": True, "tier": tier}
 
     if req.action == "reset_quota":
-        db.execute(
-            "UPDATE subscriptions SET used_analyze=0,used_generate=0,"
-            "used_chat_rewrite=0,used_screenshot=0 WHERE user_id=? AND is_active=1",
-            (user_id,))
-        return {"ok": True, "message": "配额已重置"}
+        with db.transaction(write=True) as tx:
+            _assert_admin_user_writable(tx, user_id)
+            tx.execute(
+                "UPDATE subscriptions SET used_analyze=0,used_generate=0,"
+                "used_chat_rewrite=0,used_screenshot=0,used_monthly_credits=0 "
+                "WHERE user_id=? AND is_active=1",
+                (user_id,),
+            )
+        return {"ok": True, "message": "本周期积分已重置"}
 
     if req.action in ("disable", "enable"):
-        # 简单实现：禁用用户会话
-        if req.action == "disable":
-            db.execute("DELETE FROM user_sessions WHERE user_id=?", (user_id,))
-            db.execute("UPDATE users SET last_login=? WHERE id=?",
-                       (f"DISABLED:{datetime.now(timezone.utc).isoformat()}", user_id))
+        with db.transaction(write=True) as tx:
+            _assert_admin_user_writable(tx, user_id)
+            # 简单实现：禁用用户会话
+            if req.action == "disable":
+                tx.execute("DELETE FROM user_sessions WHERE user_id=?", (user_id,))
+                tx.execute(
+                    "UPDATE users SET last_login=? WHERE id=?",
+                    (
+                        f"DISABLED:{datetime.now(timezone.utc).isoformat()}",
+                        user_id,
+                    ),
+                )
         return {"ok": True, "action": req.action}
 
     raise HTTPException(status_code=400, detail=f"未知操作: {req.action}")
@@ -370,16 +623,56 @@ async def admin_tracked_notes(
         f"JOIN users u ON t.user_id=u.id {where} "
         f"ORDER BY t.submitted_at DESC LIMIT ? OFFSET ?",
         params + (page_size, offset))
-    return {"total": total, "notes": [dict(r) for r in rows]}
+    notes = []
+    for row in rows:
+        public = dict(row)
+        public["xhs_url"] = _tracking_contract.safe_public_xhs_note_url(
+            public.get("xhs_url"),
+            public.get("xhs_note_id"),
+        )
+        public["provider_attempt_state"] = (
+            "in_progress" if public.get("active_attempt_id") else None
+        )
+        for private_key in (
+            "claim_token",
+            "claim_expires_at",
+            "active_attempt_id",
+        ):
+            public.pop(private_key, None)
+        notes.append(public)
+    return {"total": total, "notes": notes}
 
 
 @admin_app.post("/admin/tracked-notes/{note_id}/trigger-check")
 async def admin_trigger_check(note_id: str, admin: dict = Depends(_aauth.get_admin_user)):
     """手动触发某条追踪笔记的采集。"""
+    _require_admin_capability("tracking_requeue")
     note = db.fetchone("SELECT * FROM tracked_notes WHERE id=?", (note_id,))
     if not note:
         raise HTTPException(status_code=404, detail="追踪记录不存在")
-    db.execute("UPDATE tracked_notes SET status='checking_24h' WHERE id=?", (note_id,))
+    with db.transaction(write=True) as tx:
+        _assert_admin_user_writable(tx, note["user_id"])
+        lock = " FOR UPDATE" if tx.postgres else ""
+        locked = tx.fetchone(
+            f"SELECT * FROM tracked_notes WHERE id=? AND user_id=?{lock}",
+            (note_id, note["user_id"]),
+        )
+        if not locked:
+            raise HTTPException(status_code=404, detail="追踪记录不存在")
+        if (
+            locked["status"] not in _tracking_contract.CLAIMABLE_STATUSES
+            or locked["claim_token"] is not None
+            or locked["active_attempt_id"] is not None
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="该记录不可重新排队",
+            )
+        tx.execute(
+            "UPDATE tracked_notes SET next_check_at=?,"
+            "last_error_code=NULL,last_error=NULL WHERE id=?",
+            (datetime.now(timezone.utc).isoformat(), note_id),
+        )
     return {"ok": True, "message": "已加入采集队列"}
 
 
@@ -389,96 +682,174 @@ async def admin_trigger_check(note_id: str, admin: dict = Depends(_aauth.get_adm
 
 @admin_app.get("/admin/revenue")
 async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_user)):
-    """收入统计（从今日起，订阅+积分）。"""
+    """Confirmed payment/refund cash plus model cost for the requested window."""
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    cash = _payment.finance_summary(since=since)
 
-    # 套餐人数 → 估算订阅收入
     tier_rows = db.fetchall(
         "SELECT tier, COUNT(*) as cnt FROM subscriptions WHERE is_active=1 GROUP BY tier")
     tier_dist = {r["tier"]: r["cnt"] for r in tier_rows}
-    prices = {"pro": 99, "pro_plus": 199, "free": 0}
-    sub_revenue_est = sum(tier_dist.get(t, 0) * prices.get(t, 0) for t in prices)
-
-    # 积分充值实际收入
-    topup_rows = db.fetchall(
-        "SELECT DATE(recorded_at) as day, SUM(amount) as credits_sum "
-        "FROM credit_transactions WHERE type='topup' AND recorded_at>=? GROUP BY day ORDER BY day",
-        (since,))
+    kind_rows = db.fetchall(
+        "SELECT o.product_kind,"
+        "COALESCE(SUM(CASE WHEN l.entry_type IN "
+        "('payment_received','refund_paid') THEN l.amount_fen ELSE 0 END),0) "
+        "AS net_fen "
+        "FROM payment_orders o JOIN payment_cash_ledger l ON l.order_id=o.id "
+        "WHERE l.recorded_at>=? GROUP BY o.product_kind",
+        (since,),
+    )
+    kind_net = {
+        str(row["product_kind"]): int(row["net_fen"] or 0)
+        for row in kind_rows
+    }
+    daily_cash = db.fetchall(
+        "SELECT DATE(recorded_at) AS day,"
+        "COALESCE(SUM(CASE WHEN entry_type='payment_received' "
+        "THEN amount_fen ELSE 0 END),0) AS received_fen,"
+        "COALESCE(SUM(CASE WHEN entry_type='refund_paid' "
+        "THEN -amount_fen ELSE 0 END),0) AS refunded_fen,"
+        "COALESCE(SUM(CASE WHEN entry_type IN "
+        "('payment_received','refund_paid') THEN amount_fen ELSE 0 END),0) "
+        "AS net_fen,"
+        "COALESCE(SUM(CASE WHEN entry_type IN "
+        "('payment_received_unmatched','refund_paid_unmatched') "
+        "THEN ABS(amount_fen) ELSE 0 END),0) AS unmatched_fen "
+        "FROM payment_cash_ledger WHERE recorded_at>=? "
+        "GROUP BY DATE(recorded_at) ORDER BY day",
+        (since,),
+    )
 
     # 积分消费量（每日）
     usage_cost_rows = db.fetchall(
-        "SELECT DATE(recorded_at) as day, SUM(cost_rmb) as api_cost "
+        "SELECT DATE(recorded_at) as day, SUM(cost_rmb) as api_cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out "
         "FROM usage_records WHERE recorded_at>=? GROUP BY day ORDER BY day",
         (since,))
+    audit = _model_cost_audit_payload(since)
 
     return {
         "tier_distribution": tier_dist,
-        "sub_revenue_estimate": sub_revenue_est,
-        "daily_topup": [{"day": r["day"], "credits": r["credits_sum"],
-                          "rmb": round((r["credits_sum"] or 0) * _billing.CREDIT_VALUE, 2)}
-                        for r in topup_rows],
-        "daily_api_cost": [{"day": r["day"], "cost": round(r["api_cost"] or 0, 4)}
+        "subscription_net_cash": round(
+            kind_net.get("subscription", 0) / 100,
+            2,
+        ),
+        "credit_package_net_cash": round(
+            kind_net.get("credit_package", 0) / 100,
+            2,
+        ),
+        "unmatched_cash": round(cash["unmatched_fen"] / 100, 2),
+        "daily_cash": [
+            {
+                "day": str(row["day"]),
+                "received": round(int(row["received_fen"] or 0) / 100, 2),
+                "refunded": round(int(row["refunded_fen"] or 0) / 100, 2),
+                "net": round(int(row["net_fen"] or 0) / 100, 2),
+                "unmatched": round(
+                    int(row["unmatched_fen"] or 0) / 100,
+                    2,
+                ),
+            }
+            for row in daily_cash
+        ],
+        "revenue_basis": "confirmed_immutable_cash_ledger",
+        "daily_api_cost": [{"day": r["day"], "cost": round(r["api_cost"] or 0, 4),
+                            "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0))}
                            for r in usage_cost_rows],
+        "coverage": audit["coverage"],
+    }
+
+
+def build_usage_stats_payload(days: int = 30) -> dict:
+    """Build the admin usage payload from the same billing rows shown to users."""
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    # 按操作类型汇总
+    op_rows = db.fetchall(
+        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out, SUM(model_calls) as model_calls "
+        "FROM usage_records WHERE recorded_at>=? GROUP BY operation ORDER BY cost DESC",
+        (since,))
+
+    # Top10 用户（按成本）
+    top_users = db.fetchall(
+        "SELECT u.username, r.user_id, COUNT(*) as ops, SUM(r.cost_rmb) as cost, "
+        "SUM(r.tokens_in) as tokens_in, SUM(r.tokens_out) as tokens_out "
+        "FROM usage_records r JOIN users u ON r.user_id=u.id "
+        "WHERE r.recorded_at>=? GROUP BY r.user_id,u.username ORDER BY cost DESC LIMIT 10",
+        (since,))
+
+    # 每日操作量
+    daily = db.fetchall(
+        "SELECT DATE(recorded_at) as day, COUNT(*) as ops, SUM(cost_rmb) as cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out "
+        "FROM usage_records WHERE recorded_at>=? GROUP BY day ORDER BY day",
+        (since,))
+
+    # 各来源分布（subscription / credits / free）
+    source_rows = db.fetchall(
+        "SELECT source, COUNT(*) as cnt, SUM(cost_rmb) as cost, "
+        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out "
+        "FROM usage_records WHERE recorded_at>=? GROUP BY source",
+        (since,))
+
+    audit = _model_cost_audit_payload(since)
+    return {
+        "by_operation": [{"op": r["operation"],
+                           "label": _billing.OPERATIONS.get(r["operation"], {}).get("label", r["operation"]),
+                           "count": r["cnt"],
+                           "tokens_in": int(r["tokens_in"] or 0),
+                           "tokens_out": int(r["tokens_out"] or 0),
+                           "total_tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
+                           "model_calls": int(r["model_calls"] or 0),
+                           "cost": round(r["cost"] or 0, 4)} for r in op_rows],
+        "top_users": [{"username": r["username"], "ops": r["ops"],
+                       "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
+                       "cost": round(r["cost"] or 0, 4)} for r in top_users],
+        "daily_trend": [{"day": r["day"], "ops": r["ops"],
+                         "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
+                         "cost": round(r["cost"] or 0, 4)} for r in daily],
+        "by_source": [{"source": r["source"], "count": r["cnt"],
+                       "tokens": int((r["tokens_in"] or 0) + (r["tokens_out"] or 0)),
+                       "cost": round(r["cost"] or 0, 4)} for r in source_rows],
+        "by_model": audit["by_model"],
+        "cache": audit["cache"],
+        "coverage": audit["coverage"],
     }
 
 
 @admin_app.get("/admin/usage-stats")
 async def admin_usage_stats(days: int = 30, admin: dict = Depends(_aauth.get_admin_user)):
     """用量分析。"""
-    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    return build_usage_stats_payload(days)
 
-    # 按操作类型汇总
-    op_rows = db.fetchall(
-        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost "
-        "FROM usage_records WHERE recorded_at>=? GROUP BY operation ORDER BY cost DESC",
-        (since,))
 
-    # Top10 用户（按成本）
-    top_users = db.fetchall(
-        "SELECT u.username, r.user_id, COUNT(*) as ops, SUM(r.cost_rmb) as cost "
-        "FROM usage_records r JOIN users u ON r.user_id=u.id "
-        "WHERE r.recorded_at>=? GROUP BY r.user_id ORDER BY cost DESC LIMIT 10",
-        (since,))
-
-    # 每日操作量
-    daily = db.fetchall(
-        "SELECT DATE(recorded_at) as day, COUNT(*) as ops, SUM(cost_rmb) as cost "
-        "FROM usage_records WHERE recorded_at>=? GROUP BY day ORDER BY day",
-        (since,))
-
-    # 各来源分布（subscription / credits / free）
-    source_rows = db.fetchall(
-        "SELECT source, COUNT(*) as cnt, SUM(cost_rmb) as cost "
-        "FROM usage_records WHERE recorded_at>=? GROUP BY source",
-        (since,))
-
-    return {
-        "by_operation": [{"op": r["operation"],
-                           "label": _billing.OPERATIONS.get(r["operation"], {}).get("label", r["operation"]),
-                           "count": r["cnt"],
-                           "cost": round(r["cost"] or 0, 4)} for r in op_rows],
-        "top_users": [{"username": r["username"], "ops": r["ops"],
-                       "cost": round(r["cost"] or 0, 4)} for r in top_users],
-        "daily_trend": [{"day": r["day"], "ops": r["ops"],
-                         "cost": round(r["cost"] or 0, 4)} for r in daily],
-        "by_source": [{"source": r["source"], "count": r["cnt"],
-                       "cost": round(r["cost"] or 0, 4)} for r in source_rows],
-    }
+@admin_app.get("/admin/ai-operations")
+async def admin_ai_operations(admin: dict = Depends(_aauth.get_admin_user)):
+    """Return queue/settlement/outbox truth without payload or owner metadata."""
+    return _durable_ai.admin_summary()
 
 
 # ══════════════════════════════════════════════════════════════════════════
 # P4 Prompt 管理
 # ══════════════════════════════════════════════════════════════════════════
 
-_PROMPTS_FILE = Path(__file__).parent / "prompts.json"
-
 def _load_prompts() -> dict:
-    if _PROMPTS_FILE.exists():
-        return json.loads(_PROMPTS_FILE.read_text(encoding="utf-8"))
-    return {"prompts": {}, "history": {}}
-
-def _save_prompts(data: dict) -> None:
-    _PROMPTS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    prompts = {}
+    history = {}
+    for row in db.fetchall(
+        "SELECT key,label,module,content,version,updated_at FROM managed_prompts"
+    ):
+        prompts[row["key"]] = dict(row)
+    for row in db.fetchall(
+        "SELECT prompt_key,version,content,saved_at FROM prompt_history "
+        "ORDER BY id ASC"
+    ):
+        history.setdefault(row["prompt_key"], []).append({
+            "version": row["version"],
+            "content": row["content"],
+            "saved_at": row["saved_at"],
+        })
+    return {"prompts": prompts, "history": history}
 
 
 @admin_app.get("/admin/prompts")
@@ -508,6 +879,48 @@ async def admin_prompt_get(key: str, admin: dict = Depends(_aauth.get_admin_user
     return {**p, "key": key, "history": history[-10:]}
 
 
+def _build_effective_prompt_preview(key: str, domain: str, content: str, version: int) -> dict:
+    requested_domain = _prompt_composer.canonicalize_domain(domain)
+    effective_domain = "通用" if key == "semantic_features" else requested_domain
+    composed = _prompt_composer.compose_effective_prompt(
+        key,
+        effective_domain,
+        content,
+        allow_other_domain=key == "semantic_features",
+    )
+    return {
+        "key": key,
+        "domain": composed.domain,
+        "requested_domain": requested_domain,
+        "model_strategy": "V0.4",
+        "baseline_id": _prompt_baselines.BASELINE_ID,
+        "base_revision": int(version or 1),
+        "preview_kind": "effective_template",
+        "preview_complete": False,
+        "rendered_text": composed.text,
+        "dynamic_layers": _prompt_composer.dynamic_layer_labels(key),
+        "privacy_notice": "真实请求会按路由追加行业规则和授权材料；预览不包含用户正文、记忆、附件、内部推理或认证信息。",
+    }
+
+
+@admin_app.get("/admin/prompts/{key}/effective")
+async def admin_prompt_effective_preview(
+    key: str,
+    domain: str,
+    admin: dict = Depends(_aauth.get_admin_user),
+):
+    row = db.fetchone(
+        "SELECT key,content,version FROM managed_prompts WHERE key=?",
+        (key,),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Prompt 不存在")
+    try:
+        return _build_effective_prompt_preview(key, domain, row["content"], row["version"])
+    except ValueError:
+        raise HTTPException(status_code=422, detail="不支持的行业") from None
+
+
 class PromptUpdateInput(BaseModel):
     content: str
     label:   str = ""
@@ -517,27 +930,32 @@ async def admin_prompt_update(
     key: str, req: PromptUpdateInput,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
-    data = _load_prompts()
+    _require_admin_capability("prompt_mutation")
     now = datetime.now(timezone.utc).isoformat()
-    old = data["prompts"].get(key, {})
+    old_row = db.fetchone(
+        "SELECT key,label,module,content,version,updated_at FROM managed_prompts WHERE key=?",
+        (key,),
+    )
+    old = dict(old_row) if old_row else {}
     version = old.get("version", 0) + 1
 
     # 保存历史版本
-    hist = data.setdefault("history", {}).setdefault(key, [])
     if old.get("content"):
-        hist.append({"version": old.get("version", 0), "content": old["content"],
-                     "saved_at": old.get("updated_at", now)})
-    hist[:] = hist[-10:]  # 只保留最近10条
-
-    data["prompts"][key] = {
-        "key":        key,
-        "label":      req.label or old.get("label", key),
-        "module":     old.get("module", ""),
-        "content":    req.content,
-        "version":    version,
-        "updated_at": now,
-    }
-    _save_prompts(data)
+        db.execute(
+            "INSERT INTO prompt_history(prompt_key,version,content,saved_at) VALUES(?,?,?,?)",
+            (key, old.get("version", 0), old["content"], old.get("updated_at", now)),
+        )
+    if old:
+        db.execute(
+            "UPDATE managed_prompts SET label=?,content=?,version=?,updated_at=? WHERE key=?",
+            (req.label or old.get("label", key), req.content, version, now, key),
+        )
+    else:
+        db.execute(
+            "INSERT INTO managed_prompts(key,label,module,content,version,updated_at) "
+            "VALUES(?,?,?,?,?,?)",
+            (key, req.label or key, "", req.content, version, now),
+        )
     return {"ok": True, "version": version, "updated_at": now}
 
 
@@ -546,6 +964,7 @@ async def admin_prompt_rollback(
     key: str, body: dict,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
+    _require_admin_capability("prompt_mutation")
     version = body.get("version")
     data = _load_prompts()
     hist = data.get("history", {}).get(key, [])
@@ -562,10 +981,17 @@ async def admin_prompt_rollback(
 
 _MODEL_REGISTRY_FILE = Path(__file__).parent / "model_registry.json"
 _MODEL_DIR = Path(__file__).parent / "artifacts"
+_MODEL_REGISTRY_KEY = "model_registry"
 
 def _load_registry() -> dict:
+    stored = _settings.get_json(_MODEL_REGISTRY_KEY)
+    if isinstance(stored, dict) and stored.get("models"):
+        return stored
     if _MODEL_REGISTRY_FILE.exists():
-        return json.loads(_MODEL_REGISTRY_FILE.read_text(encoding="utf-8"))
+        registry = json.loads(_MODEL_REGISTRY_FILE.read_text(encoding="utf-8"))
+        if not _is_restricted_admin_runtime():
+            _settings.set_json(_MODEL_REGISTRY_KEY, registry)
+        return registry
     # 初始化：把当前 v0.3 纳入注册表
     registry = {
         "current": "v0.3",
@@ -584,12 +1010,17 @@ def _load_registry() -> dict:
         },
         "training_jobs": [],
     }
-    _MODEL_REGISTRY_FILE.write_text(json.dumps(registry, ensure_ascii=False, indent=2), encoding="utf-8")
+    if not _is_restricted_admin_runtime():
+        _settings.set_json(_MODEL_REGISTRY_KEY, registry)
     return registry
 
 
 def _save_registry(data: dict) -> None:
-    _MODEL_REGISTRY_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    _settings.set_json(_MODEL_REGISTRY_KEY, data)
+
+
+def _guard_cloud_model_mutation() -> None:
+    _require_admin_capability("model_mutation")
 
 
 @admin_app.get("/admin/models")
@@ -614,6 +1045,7 @@ async def admin_models_list(admin: dict = Depends(_aauth.get_admin_user)):
 @admin_app.post("/admin/models/{version}/deploy")
 async def admin_model_deploy(version: str, admin: dict = Depends(_aauth.get_admin_user)):
     """部署指定版本为生产模型（热切换，api.py 下次请求自动加载）。"""
+    _guard_cloud_model_mutation()
     registry = _load_registry()
     model_info = registry["models"].get(version)
     if not model_info:
@@ -676,6 +1108,7 @@ async def admin_model_train(
     admin: dict = Depends(_aauth.get_admin_user)
 ):
     """异步触发模型重训练。"""
+    _guard_cloud_model_mutation()
     job_id = str(uuid.uuid4())[:8]
     registry = _load_registry()
     job = {
@@ -715,16 +1148,25 @@ async def _run_training_job(job_id: str, max_rows: int) -> None:
         )
         stdout, stderr = await asyncio.wait_for(result.communicate(), timeout=3600)
         if result.returncode == 0:
-            # 解析训练输出，找新版本号和指标
-            output = stdout.decode(errors="ignore")
             new_version = f"v{len(registry['models']) + 1}.0"
             job["status"]      = "completed"
             job["new_version"] = new_version
-            job["metrics"]     = {"output": output[-500:]}
+            job["metrics"]     = {
+                "stdout": _redaction.summarize_process_output(stdout),
+                "stderr": _redaction.summarize_process_output(stderr),
+                "exit_code": result.returncode,
+            }
             job["finished_at"] = datetime.now(timezone.utc).isoformat()
         else:
             job["status"]      = "failed"
-            job["metrics"]     = {"error": stderr.decode(errors="ignore")[-500:]}
+            job["metrics"]     = {
+                "event": _redaction.safe_failure_event(
+                    "training_process_failed",
+                    exit_code=result.returncode,
+                ),
+                "stdout": _redaction.summarize_process_output(stdout),
+                "stderr": _redaction.summarize_process_output(stderr),
+            }
             job["finished_at"] = datetime.now(timezone.utc).isoformat()
     except asyncio.TimeoutError:
         job["status"]      = "failed"
@@ -732,7 +1174,9 @@ async def _run_training_job(job_id: str, max_rows: int) -> None:
         job["finished_at"] = datetime.now(timezone.utc).isoformat()
     except Exception as e:
         job["status"]      = "failed"
-        job["metrics"]     = {"error": str(e)}
+        job["metrics"]     = {
+            "event": _redaction.safe_failure_event("training_failed", e)
+        }
         job["finished_at"] = datetime.now(timezone.utc).isoformat()
     _save_registry(registry)
 
@@ -751,10 +1195,18 @@ async def admin_train_status(job_id: str, admin: dict = Depends(_aauth.get_admin
 # ══════════════════════════════════════════════════════════════════════════
 
 _CRAWLER_CONFIG_FILE = Path(__file__).parent / "crawler_config.json"
+_CRAWLER_CONFIG_KEY = "crawler_config"
+_XHS_COOKIES_KEY = "xhs_cookies"
 
 def _load_crawler_config() -> dict:
+    stored = _settings.get_json(_CRAWLER_CONFIG_KEY)
+    if isinstance(stored, dict):
+        return stored
     if _CRAWLER_CONFIG_FILE.exists():
-        return json.loads(_CRAWLER_CONFIG_FILE.read_text(encoding="utf-8"))
+        config = json.loads(_CRAWLER_CONFIG_FILE.read_text(encoding="utf-8"))
+        if not _is_restricted_admin_runtime():
+            _settings.set_json(_CRAWLER_CONFIG_KEY, config)
+        return config
     return {
         "enabled": False,
         "cookie_valid": False,
@@ -768,14 +1220,78 @@ def _load_crawler_config() -> dict:
 @admin_app.get("/admin/crawler/status")
 async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
     config = _load_crawler_config()
-    xhs_cookie_file = Path(__file__).parent / "data" / "xhs_cookies.json"
-    cookie_exists = xhs_cookie_file.exists()
-    cookie_content = {}
+    cookie_content = (
+        []
+        if _is_restricted_admin_runtime()
+        else _settings.get_json(_XHS_COOKIES_KEY, [])
+    )
+    cookie_exists = bool(cookie_content)
+    cookie_runtime_status = "not_configured"
+    cookie_last_verified_at = None
+    cookie_consecutive_failures = 0
     if cookie_exists:
-        try:
-            cookie_content = json.loads(xhs_cookie_file.read_text())
-        except Exception:
-            pass
+        cookie_runtime_status = "pending_validation"
+        if _XHS_ACQ_AVAILABLE and _xhs_acq is not None:
+            recent = _xhs_acq.recent_collection_health(limit=60)
+            if _is_restricted_admin_runtime():
+                cookie_exists = any(
+                    bool((row.get("details") or {}).get("session_configured"))
+                    for row in recent
+                )
+            run_ids = []
+            for row in recent:
+                run_id = row.get("run_id")
+                if run_id and run_id not in run_ids:
+                    run_ids.append(run_id)
+            for run_id in run_ids:
+                run_rows = [row for row in recent if row.get("run_id") == run_id]
+                if any(
+                    row.get("profile_cookie_valid")
+                    and int(
+                        ((row.get("details") or {}).get(
+                            "latest_run_evidence_count"
+                        ))
+                        or 0
+                    ) > 0
+                    for row in run_rows
+                ):
+                    cookie_last_verified_at = max(
+                        (row.get("checked_at") or "") for row in run_rows
+                    ) or None
+                    break
+                cookie_consecutive_failures += 1
+            latest_rows = [row for row in recent if run_ids and row.get("run_id") == run_ids[0]]
+            latest_errors = {str(row.get("error_code") or "") for row in latest_rows}
+            if latest_errors & {
+                "server_session_logged_out",
+                "cookie_expired",
+                "auth_cookie_missing",
+                "cookie_not_configured",
+            }:
+                cookie_runtime_status = "needs_relogin"
+            elif "collection_suspended" in latest_errors:
+                cookie_runtime_status = "collection_suspended"
+            elif latest_rows and any(
+                row.get("profile_cookie_valid")
+                and int(
+                    ((row.get("details") or {}).get(
+                        "latest_run_evidence_count"
+                    ))
+                    or 0
+                ) > 0
+                for row in latest_rows
+            ):
+                cookie_runtime_status = "verified"
+            elif latest_rows and all(
+                int(
+                    ((row.get("details") or {}).get(
+                        "latest_run_evidence_count"
+                    ))
+                    or 0
+                ) == 0
+                for row in latest_rows
+            ):
+                cookie_runtime_status = "needs_attention"
 
     # 爬虫采集数据统计
     crawl_stats = db.fetchone(
@@ -785,36 +1301,32 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
     return {
         **config,
         "cookie_file_exists": cookie_exists,
-        "cookie_count":       len(cookie_content) if isinstance(cookie_content, list) else 0,
+        "cookie_count": (
+            0
+            if _is_restricted_admin_runtime()
+            else len(cookie_content) if isinstance(cookie_content, list) else 0
+        ),
+        "cookie_runtime_status": cookie_runtime_status,
+        "cookie_last_verified_at": cookie_last_verified_at,
+        "cookie_consecutive_failures": cookie_consecutive_failures,
+        "cookie_action_required": cookie_runtime_status in {
+            "needs_relogin",
+            "needs_attention",
+            "collection_suspended",
+        },
         "completed_tracks":   crawl_stats["cnt"],
     }
 
 
-class CookieUpdateInput(BaseModel):
-    cookies_json: str  # XiaoHongShu cookie JSON 字符串
-
 @admin_app.post("/admin/crawler/update-cookie")
 async def admin_update_cookie(
-    req: CookieUpdateInput,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
-    """更新小红书 Cookie。"""
-    try:
-        cookies = json.loads(req.cookies_json)
-        if not isinstance(cookies, (list, dict)):
-            raise ValueError("Cookie 格式错误，需为 JSON 数组或对象")
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail=f"JSON 解析失败: {e}")
-
-    cookie_path = Path(__file__).parent / "data" / "xhs_cookies.json"
-    cookie_path.write_text(json.dumps(cookies, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    config = _load_crawler_config()
-    config["cookie_valid"] = True
-    config["cookie_updated_at"] = datetime.now(timezone.utc).isoformat()
-    _CRAWLER_CONFIG_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    return {"ok": True, "cookie_count": len(cookies) if isinstance(cookies, list) else 1}
+    """Plaintext Cookie ingestion is permanently disabled at the Admin API."""
+    raise HTTPException(
+        status_code=410,
+        detail="后台明文 Cookie 更新已禁用；请使用受管 Secret 注入和轮换流程",
+    )
 
 
 @admin_app.post("/admin/crawler/toggle")
@@ -823,10 +1335,11 @@ async def admin_crawler_toggle(
     admin: dict = Depends(_aauth.get_admin_user)
 ):
     """启用/禁用爬虫。"""
+    _require_admin_capability("crawler_control")
     enabled = bool(body.get("enabled", False))
     config = _load_crawler_config()
     config["enabled"] = enabled
-    _CRAWLER_CONFIG_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+    _settings.set_json(_CRAWLER_CONFIG_KEY, config)
     return {"ok": True, "enabled": enabled}
 
 
@@ -836,22 +1349,50 @@ async def admin_crawler_run(
     background_tasks: BackgroundTasks,
     admin: dict = Depends(_aauth.get_admin_user)
 ):
-    """手动触发一轮爬虫采集（后台执行）。"""
-    limit = int(body.get("limit", 50))
-    background_tasks.add_task(_run_crawler_bg, limit)
-    return {"ok": True, "message": f"爬虫已启动，最多采集 {limit} 条"}
+    """Reject in-process execution; the isolated Tracking worker owns calls."""
+    try:
+        _tracking_contract.validate_round_limit(body.get("limit", 50))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="采集上限必须为 1 到 50") from exc
+    raise HTTPException(
+        status_code=409,
+        detail="请通过独立受管 Tracking Worker 执行；Admin 不运行供应商任务",
+    )
 
 
 async def _run_crawler_bg(limit: int) -> None:
     try:
         import crawler as _crawler
         result = await _crawler.run_collection_round(limit=limit)
+        if _crawler._result_exit_code(result) != 0:
+            print(
+                json.dumps(
+                    {
+                        "event": "admin_crawler_failed",
+                        "error_code": str(
+                            result.get("error")
+                            or result.get("reason")
+                            or "tracking_round_failed"
+                        )[:80],
+                    }
+                ),
+                flush=True,
+            )
+            return
         config = _load_crawler_config()
         config["last_run"] = datetime.now(timezone.utc).isoformat()
         config["total_collected"] = config.get("total_collected", 0) + result.get("collected", 0)
-        _CRAWLER_CONFIG_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
-    except Exception as e:
-        print(f"[Admin] Crawler error: {e}")
+        _settings.set_json(_CRAWLER_CONFIG_KEY, config)
+    except Exception as exc:
+        print(
+            json.dumps(
+                {
+                    "event": "admin_crawler_failed",
+                    "error_code": _redaction.stable_error_code(exc),
+                }
+            ),
+            flush=True,
+        )
 
 
 @admin_app.get("/admin/crawler/logs")
@@ -861,9 +1402,38 @@ async def admin_crawler_logs(
 ):
     try:
         import crawler as _crawler
-        return {"logs": _crawler.get_crawler_logs(limit)}
+        return {
+            "logs": [
+                _redaction.sanitize_crawler_event(item)
+                for item in _crawler.get_crawler_logs(limit)
+            ],
+            "raw_text_included": False,
+        }
     except Exception:
         return {"logs": []}
+
+
+@admin_app.get("/admin/xhs/freshness")
+async def admin_xhs_freshness(admin: dict = Depends(_aauth.get_admin_user)):
+    if not _XHS_ACQ_AVAILABLE or _xhs_acq is None:
+        raise HTTPException(status_code=503, detail="XHS acquisition ledger unavailable")
+    return _xhs_acq.freshness_probe()
+
+
+@admin_app.get("/admin/xhs/health")
+async def admin_xhs_health(
+    limit: int = 50,
+    domain: str = "",
+    adapter: str = "",
+    admin: dict = Depends(_aauth.get_admin_user),
+):
+    if not _XHS_ACQ_AVAILABLE or _xhs_acq is None:
+        raise HTTPException(status_code=503, detail="XHS acquisition ledger unavailable")
+    return {
+        "freshness": _xhs_acq.freshness_overview(),
+        "sidecar": _xhs_acq.sidecar_status(),
+        "health": _xhs_acq.public_recent_health(limit=limit, domain=domain, adapter=adapter),
+    }
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -872,12 +1442,13 @@ async def admin_crawler_logs(
 
 @admin_app.get("/admin/settings")
 async def admin_settings(admin: dict = Depends(_aauth.get_admin_user)):
-    """返回当前套餐配额设置。"""
+    """返回当前套餐积分设置。"""
     # 提取每种操作的积分消耗
     credit_costs = {k: v["credits"] for k, v in _billing.OPERATIONS.items()}
     return {
         "tiers":        _billing.TIERS,
         "credit_value": _billing.CREDIT_VALUE,
+        "credit_packages": _billing.list_credit_packages(),
         "credit_costs": credit_costs,
         "operations":   _billing.OPERATIONS,
     }
@@ -885,23 +1456,51 @@ async def admin_settings(admin: dict = Depends(_aauth.get_admin_user)):
 
 @admin_app.get("/admin/logs")
 async def admin_logs(lines: int = 100, admin: dict = Depends(_aauth.get_admin_user)):
-    """返回服务日志最后 N 行。"""
+    """返回脱敏后的服务日志摘要；不返回原始行或绝对路径。"""
     log_files = ["/tmp/noteai_p1.log", "/tmp/noteai_bill.log", "/tmp/noteai_prod.log"]
     for f in log_files:
         lf = Path(f)
         if lf.exists():
-            all_lines = lf.read_text(errors="replace").splitlines()
-            return {"lines": all_lines[-lines:], "file": f}
-    return {"lines": ["暂无日志文件"], "file": ""}
+            return _redaction.summarize_log_lines(lf, lines)
+    return {
+        "source": "",
+        "line_count": 0,
+        "counts": {"error": 0, "warning": 0, "info": 0},
+        "events": [],
+        "raw_text_included": False,
+    }
 
 
 # ══════════════════════════════════════════════════════════════════════════
 # 健康检查
 # ══════════════════════════════════════════════════════════════════════════
 
+@admin_app.get("/health/live")
+async def admin_health_live():
+    return {"status": "ok", "service": "noteai-admin"}
+
+
+@admin_app.get("/health/ready")
+async def admin_health_ready():
+    checks = {
+        "admin_credentials": {"ok": bool(os.environ.get("ADMIN_PASSWORD"))},
+    }
+    try:
+        checks["database"] = db.database_health()
+    except Exception as exc:
+        checks["database"] = {"ok": False, "error": type(exc).__name__}
+    ready = all(check.get("ok") for check in checks.values())
+    payload = {
+        "status": "ready" if ready else "not_ready",
+        "service": "noteai-admin",
+        "checks": checks,
+    }
+    return JSONResponse(payload, status_code=200 if ready else 503)
+
+
 @admin_app.get("/admin/health")
 async def admin_health():
-    return {"status": "ok", "service": "NoteAI Admin", "port": int(os.environ.get("ADMIN_PORT", 8001))}
+    return await admin_health_ready()
 
 
 if __name__ == "__main__":

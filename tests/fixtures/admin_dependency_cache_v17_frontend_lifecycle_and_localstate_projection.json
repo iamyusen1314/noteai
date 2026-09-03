@@ -1,0 +1,141 @@
+{
+  "schema_version": "noteai.admin-dependency-cache-frontend-lifecycle-localstate.v17",
+  "classification": "SOURCE_PROVEN_POLICY_NOT_V16_RUNTIME_EVIDENCE",
+  "fixed_input": {
+    "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+    "release_tree": "38e574e56406ba3380acb78edbe784508cc537cd",
+    "canonical_git_context_query": "https://github.com/iamyusen1314/noteai.git?ref=5335bdaed933b1f999b5f819c047ec50c11821ae&checksum=5335bdaed933b1f999b5f819c047ec50c11821ae&submodules=false&mtime=commit&fetch-by-commit=true",
+    "canonical_git_context_query_bytes": 188,
+    "canonical_git_context_query_sha256": "75a1f8caf4b0d95b0e632fb9f3876031d483688ed32d9dedaaa62cd58946d01c",
+    "dockerfile_transport": "stdin",
+    "dockerfile_path_projection": "-",
+    "gitmodules_present": false
+  },
+  "upstream": {
+    "buildx": {
+      "repository": "docker/buildx",
+      "version": "v0.35.0",
+      "tag_object": "151a92201622eeb80e19bdd9681af2266772875f",
+      "commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+      "sources": [
+        {
+          "path": "build/localstate.go",
+          "blob": "0c29dd94c4b43b24c8a6c39fdfbe756a7f456e44",
+          "bytes": 1042,
+          "sha256": "6a8cb7b8e181b169ad5e9469040e0371a67538c2ffa0440809b10b8bbd87cae8",
+          "relevant_lines": "13-44",
+          "relevant_sha256": "8775cd6a3549751dc7d5654e072b5fb2d22952af6f39941649ba804622177e37",
+          "contract": "REMOTE_CONTEXT_SKIPS_FILEPATH_ABS_AND_IS_STORED_UNCHANGED"
+        },
+        {
+          "path": "util/urlutil/urlutil.go",
+          "blob": "6996c10dbbf29c5f30d06656160a02f490190c14",
+          "bytes": 617,
+          "sha256": "dbaee294f179ea9c3e947972b5ecf45dd39a08a1ac002dbdeaaa9932df3c3254",
+          "relevant_lines": "9-24",
+          "relevant_sha256": "c1f0fd4fb3d0b992cc31fd63fddaffabf97d5b0d6050194195c783035ac9f54a",
+          "contract": "REMOTE_DETECTION_IS_TOO_BROAD_FOR_AN_ALLOWLIST"
+        },
+        {
+          "path": "localstate/localstate.go",
+          "blob": "5d9723cd75884bc50b501c1679759f6245cf8584",
+          "bytes": 5681,
+          "sha256": "c8a92246803714cb1b559667a625a4cb323141ed430a42650f8b6a398023e182",
+          "state_lines": "23-33",
+          "state_sha256": "d112d00be88277b57aff4be4d44c07ff7bb44b2a7d86a9f954bc1d94f0cece3a",
+          "save_ref_lines": "71-84",
+          "save_ref_sha256": "11f28494016579ba98e8985b2a802ed89ab62c5f05974adf90ac05f103239f80"
+        }
+      ]
+    },
+    "buildkit": {
+      "repository": "moby/buildkit",
+      "version": "v0.31.2",
+      "tag_object": "37aba93910a245e9196ccf67f4afb55f18b39f81",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "sources": [
+        {
+          "path": "solver/llbsolver/provenance.go",
+          "blob": "d0fd0860fc0f55824ffa083f7ceedb25a13373e1",
+          "bytes": 22901,
+          "sha256": "4082a63714fd9c5430f1a9de81f0fd42abbd510df374e4a76ef861226676e783",
+          "started_on_lines": "445-451",
+          "started_on_sha256": "9f124147cbadd6b366ad85d36dd780af05d8d8763d94a690ed85337ec30777be",
+          "finished_on_lines": "646-652",
+          "finished_on_sha256": "fc04909b593da87d5a75e6fe637c751f42c4b818517506ec52d004153aa2d42b"
+        },
+        {
+          "path": "solver/jobs.go",
+          "blob": "297222b0535bd3c3eb294ef0dcf8f069c463620f",
+          "bytes": 34977,
+          "sha256": "80e80c85312f0c55a6beb0937669254d4320140478046a1c6f872135fee06561",
+          "fields_lines": "372-382",
+          "fields_sha256": "99465d5019cdf2c06a40694afe02f808acc567316961f86525c19c803ac03e11",
+          "creation_lines": "693-710",
+          "creation_sha256": "abc7e40a78c7b2a148d1c6562b14e0524dc8c4293a00034bb65add249af5b03d",
+          "accessor_lines": "899-910",
+          "accessor_sha256": "bc6cb2f0b8c45d560450addededb87327d7df366030f823ae250b6f33bf1f9e8",
+          "completion_api": "RegisterCompleteTime"
+        },
+        {
+          "path": "client/graph.go",
+          "blob": "1000cd78f6202100893dab87300c4ecf22629449",
+          "bytes": 1985,
+          "sha256": "febc7bd7687fd25c5ef63760f1ffa7eec59f393a533015e721363aa7858cc067",
+          "vertex_lines": "10-19",
+          "vertex_sha256": "d540f43ed68538b0e2d2ecd08f5fbbb9d2928f093716b022a317beeb540ffcba"
+        }
+      ]
+    }
+  },
+  "expected_local_state": {
+    "allowed_keys": [
+      "DockerfilePath",
+      "LocalPath",
+      "Target"
+    ],
+    "group_ref_present": false,
+    "phases": [
+      {
+        "phase": "producer",
+        "target": "noteai-cache-export-anchor"
+      },
+      {
+        "phase": "import",
+        "target": "noteai-cache-import-observer"
+      },
+      {
+        "phase": "replay",
+        "target": "runtime-common"
+      }
+    ],
+    "local_path_policy": "BYTE_EXACT_CANONICAL_QUERY_ONLY",
+    "dockerfile_path_policy": "EXACT_STDIN_DASH_ONLY",
+    "generic_remote_url_allowed": false,
+    "url_normalization_allowed": false
+  },
+  "lifecycle_policy": {
+    "command_envelope_required": true,
+    "command_envelope_precision": "UTC_RFC3339_NANOSECONDS",
+    "git_source_predicate": "COMMAND_START_LE_GIT_START_LE_GIT_COMPLETE_LE_PROVENANCE_FINISH_LE_COMMAND_COMPLETE",
+    "git_start_before_provenance_start_allowed": true,
+    "network_exec_predicate_remains_frozen": true,
+    "requirements_fileop_predicate_remains_frozen": true,
+    "pre_assertion_diagnostic_required": true,
+    "diagnostic_maximum_bytes": 16384,
+    "diagnostic_maximum_intervals": 32
+  },
+  "claims": {
+    "source_review_proves_remote_query_is_saved_without_filepath_abs": true,
+    "source_review_proves_generic_urls_are_safe_for_noteai": false,
+    "source_review_proves_git_interval_runtime_order": false,
+    "progress_vertex_and_job_provenance_times_are_same_authority": false,
+    "v17_policy_is_runtime_evidence": false
+  },
+  "limitations": {
+    "v16_local_state_payload_retained": false,
+    "v16_git_interval_timestamps_retained": false,
+    "v16_group_ref_absence_runtime_observed": false,
+    "v17_external_run_has_occurred": false
+  }
+}

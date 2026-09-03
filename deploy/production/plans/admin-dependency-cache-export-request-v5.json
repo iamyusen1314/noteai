@@ -1,0 +1,53 @@
+{
+  "schema_version": 5,
+  "task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001",
+  "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+  "plan_checkpoint_commit": "__DIRECT_PARENT_COMMIT__",
+  "release_scope": "admin_dependency_prefix_cache_recovery",
+  "trigger_mode": "one_shot_added_request_v5",
+  "predecessor": {
+    "control_commit": "d5aa7e537590ed138d254b9909a1ac105ee321ce",
+    "run_id": 30599069993,
+    "run_attempt": 1,
+    "conclusion": "failure",
+    "artifact_count": 0,
+    "rerun_authorized": false,
+    "failure_evidence_sha256": "237891f4f1a1c7ff387965d0b98d2791404e33815d1688ecb271761526e16fb1"
+  },
+  "recovery_basis": {
+    "runner_image": "ubuntu-24.04",
+    "runner_image_observed_version": "20260726.254.1",
+    "buildx_version": "v0.35.0",
+    "buildx_source_commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+    "exact_buildkitd_flags": [
+      "--allow-insecure-entitlement=network.host"
+    ],
+    "additional_buildkitd_flags_authorized": false,
+    "build_network_host_authorized": false,
+    "github_actions_provenance_injection_authorized": false,
+    "buildkit_auth_behavior": "ordinary_credentials_only",
+    "phase_aware_client_state_required": true,
+    "structured_cleanup_receipt_required": true,
+    "pre_cleanup_deadline_seconds_from_control": 5700,
+    "cleanup_deadline_seconds_from_control": 6300,
+    "setup_call_maximum_seconds": 300,
+    "export_call_maximum_seconds": 3600,
+    "import_call_maximum_seconds": 900,
+    "cleanup_external_call_maximum_seconds": 15,
+    "atomic_docker_baseline_required": true
+  },
+  "recovery_run_authorized_after_predecessor_failure": true,
+  "github_actions_maximum_runtime_minutes": 120,
+  "artifact_retention_days": 1,
+  "artifact_input_maximum_bytes": 4026531840,
+  "artifact_provider_maximum_bytes": 4294967296,
+  "artifact_visibility_assumption": "public_repository_readers",
+  "dependency_cache_export_authorized": true,
+  "public_repository_artifact_authorized": true,
+  "cross_provider_transfer_authorized": true,
+  "registry_publication_authorized": false,
+  "deployment_authorized": false,
+  "database_authorized": false,
+  "service_mutation_authorized": false,
+  "public_traffic_authorized": false
+}

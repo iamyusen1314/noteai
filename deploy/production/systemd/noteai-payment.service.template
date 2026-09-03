@@ -1,0 +1,20 @@
+[Unit]
+Description=NoteAI production payment callback runtime (default disabled)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=no
+TimeoutStartSec=180
+TimeoutStopSec=45
+KillMode=process
+Environment=DOCKER_CONTEXT=default
+ExecStartPre=/usr/bin/test -f /etc/noteai/payment.env
+ExecStartPre=/usr/bin/docker image inspect @@NOTEAI_PAYMENT_IMAGE@@
+ExecStart=/usr/bin/docker run --log-driver=local --log-opt=max-size=10m --log-opt=max-file=2 --pull=never --rm --restart=no --name=noteai-payment --label=com.noteai.service=noteai-payment --user=999:999 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network=bridge --ipc=private --memory=256m --cpus=0.25 --pids-limit=64 --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=256m,mode=1777,uid=999,gid=999 --env-file=/etc/noteai/payment.env --env=NOTEAI_RUNTIME_ROLE=payment --env=NOTEAI_DEPLOYMENT_STAGE=production --env=NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1 --env=NOTEAI_PAYMENT_CALLBACK_ENABLED=0 --env=NOTEAI_TRUSTED_PROXY_IPS=127.0.0.1 --env=PORT=8002 --publish=127.0.0.1:8002:8002 @@NOTEAI_PAYMENT_IMAGE@@
+ExecStop=/usr/bin/docker container stop --time=30 noteai-payment
+
+[Install]
+WantedBy=multi-user.target

@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 from fill_preference_generation_slots import (  # noqa: E402
+    _ready_artifact,
     artifact_path,
     build_run_report,
     generation_payload,
@@ -127,6 +128,20 @@ class FillPreferenceGenerationSlotsTests(unittest.TestCase):
                 },
             },
             {
+                "status": "blocked",
+                "path": "/tmp/blocked.json",
+                "artifact": {
+                    "status": "blocked",
+                    "domain": "穿搭",
+                    "task_id": "fashion_1",
+                    "slot_id": "generate_initial",
+                    "title": "小个子显高公式",
+                    "score": 59.5,
+                    "blocking": True,
+                    "quality_issues": ["评分低于硬拦线（当前59.5分，最低60分），不能直接交付"],
+                },
+            },
+            {
                 "status": "failed",
                 "path": "/tmp/b.json",
                 "artifact": {
@@ -148,9 +163,33 @@ class FillPreferenceGenerationSlotsTests(unittest.TestCase):
         )
 
         self.assertEqual(report["score_summary"]["legacy_score_ge_reference"], 1)
+        self.assertEqual(report["score_summary"]["blocked_count"], 1)
         self.assertEqual(report["by_status"]["ready"], 1)
+        self.assertEqual(report["by_status"]["blocked"], 1)
         self.assertEqual(report["by_status"]["failed"], 1)
         self.assertEqual(report["ready_outputs"][0]["title"], "上海蟹黄面推荐")
+        self.assertEqual(len(report["ready_outputs"]), 1)
+        self.assertEqual(report["blocked_outputs"][0]["score"], 59.5)
+
+    def test_ready_artifact_marks_blocking_output_as_blocked(self):
+        row = self._row(domain="穿搭")
+        payload = generation_payload(row)
+        artifact = _ready_artifact(
+            row,
+            payload,
+            raw_response="",
+            title="小个子显高公式",
+            body="短上衣配高腰裤。#穿搭",
+            score=59.5,
+            features={},
+            grade="待改进",
+            issues=["评分低于硬拦线"],
+            blocking=True,
+            source_context="",
+            generation_notes=[],
+        )
+        self.assertEqual(artifact["status"], "blocked")
+        self.assertTrue(artifact["blocking"])
 
 
 if __name__ == "__main__":

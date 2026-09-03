@@ -1,6 +1,6 @@
 {
   "version": "v04-composite-readiness-v0.1",
-  "decision": "candidate_ready",
+  "decision": "production_ready",
   "core_domains": [
     "美食",
     "旅行",
@@ -12,47 +12,47 @@
   ],
   "thresholds": {
     "min_golden_candidate_per_domain": 300,
-    "min_golden_production_per_domain": 1000,
+    "min_golden_production_per_domain": 600,
     "min_preference_candidate_per_domain": 1000,
     "min_preference_production_per_domain": 3000
   },
   "golden": {
-    "total_labeled": 2677,
+    "total_labeled": 6694,
     "by_domain": {
       "健身": {
-        "labeled": 310,
-        "ready": 32,
-        "not_ready": 278
+        "labeled": 1005,
+        "ready": 91,
+        "not_ready": 914
       },
       "家居": {
-        "labeled": 322,
-        "ready": 39,
-        "not_ready": 283
+        "labeled": 671,
+        "ready": 70,
+        "not_ready": 601
       },
       "旅行": {
-        "labeled": 439,
-        "ready": 131,
-        "not_ready": 308
+        "labeled": 1074,
+        "ready": 300,
+        "not_ready": 774
       },
       "母婴": {
-        "labeled": 319,
-        "ready": 51,
-        "not_ready": 268
+        "labeled": 1031,
+        "ready": 133,
+        "not_ready": 898
       },
       "穿搭": {
-        "labeled": 491,
-        "ready": 40,
-        "not_ready": 451
+        "labeled": 1029,
+        "ready": 75,
+        "not_ready": 954
       },
       "美妆": {
-        "labeled": 309,
-        "ready": 32,
-        "not_ready": 277
+        "labeled": 804,
+        "ready": 55,
+        "not_ready": 749
       },
       "美食": {
-        "labeled": 487,
-        "ready": 91,
-        "not_ready": 396
+        "labeled": 1080,
+        "ready": 203,
+        "not_ready": 877
       }
     }
   },
@@ -92,57 +92,57 @@
   },
   "gaps_by_domain": {
     "美食": {
-      "golden_labeled": 487,
+      "golden_labeled": 1080,
       "golden_needed_for_candidate": 0,
-      "golden_needed_for_production": 513,
+      "golden_needed_for_production": 0,
       "preference_pairs_labeled": 4073,
       "preference_pairs_needed_for_candidate": 0,
       "preference_pairs_needed_for_production": 0
     },
     "旅行": {
-      "golden_labeled": 439,
+      "golden_labeled": 1074,
       "golden_needed_for_candidate": 0,
-      "golden_needed_for_production": 561,
+      "golden_needed_for_production": 0,
       "preference_pairs_labeled": 3816,
       "preference_pairs_needed_for_candidate": 0,
       "preference_pairs_needed_for_production": 0
     },
     "穿搭": {
-      "golden_labeled": 491,
+      "golden_labeled": 1029,
       "golden_needed_for_candidate": 0,
-      "golden_needed_for_production": 509,
+      "golden_needed_for_production": 0,
       "preference_pairs_labeled": 3823,
       "preference_pairs_needed_for_candidate": 0,
       "preference_pairs_needed_for_production": 0
     },
     "美妆": {
-      "golden_labeled": 309,
+      "golden_labeled": 804,
       "golden_needed_for_candidate": 0,
-      "golden_needed_for_production": 691,
+      "golden_needed_for_production": 0,
       "preference_pairs_labeled": 3113,
       "preference_pairs_needed_for_candidate": 0,
       "preference_pairs_needed_for_production": 0
     },
     "家居": {
-      "golden_labeled": 322,
+      "golden_labeled": 671,
       "golden_needed_for_candidate": 0,
-      "golden_needed_for_production": 678,
+      "golden_needed_for_production": 0,
       "preference_pairs_labeled": 3472,
       "preference_pairs_needed_for_candidate": 0,
       "preference_pairs_needed_for_production": 0
     },
     "健身": {
-      "golden_labeled": 310,
+      "golden_labeled": 1005,
       "golden_needed_for_candidate": 0,
-      "golden_needed_for_production": 690,
+      "golden_needed_for_production": 0,
       "preference_pairs_labeled": 3440,
       "preference_pairs_needed_for_candidate": 0,
       "preference_pairs_needed_for_production": 0
     },
     "母婴": {
-      "golden_labeled": 319,
+      "golden_labeled": 1031,
       "golden_needed_for_candidate": 0,
-      "golden_needed_for_production": 681,
+      "golden_needed_for_production": 0,
       "preference_pairs_labeled": 3113,
       "preference_pairs_needed_for_candidate": 0,
       "preference_pairs_needed_for_production": 0

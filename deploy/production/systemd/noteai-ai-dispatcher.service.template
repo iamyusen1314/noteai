@@ -1,0 +1,23 @@
+[Unit]
+Description=NoteAI production Durable AI dispatcher (default suspended)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+Restart=no
+TimeoutStartSec=120
+TimeoutStopSec=45
+KillMode=process
+SuccessExitStatus=137
+Environment=DOCKER_CONTEXT=default
+ExecStartPre=/usr/bin/test -f /etc/noteai/ai-dispatcher.env
+ExecStartPre=/usr/bin/docker image inspect @@NOTEAI_AI_WORKER_IMAGE@@
+ExecStart=/usr/bin/docker run --log-driver=local --log-opt=max-size=10m --log-opt=max-file=2 --pull=never --rm --name=noteai-ai-dispatcher --label=com.noteai.service=noteai-ai-dispatcher --user=999:999 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network=bridge --ipc=private --memory=256m --cpus=0.25 --pids-limit=64 --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777,uid=999,gid=999 --env-file=/etc/noteai/ai-dispatcher.env --env=NOTEAI_RUNTIME_ROLE=ai-worker --env=NOTEAI_DEPLOYMENT_STAGE=production --env=NOTEAI_CLOUD_RUNTIME=1 --env=NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1 --env=NOTEAI_DURABLE_AI_COMPONENT=dispatcher --env=NOTEAI_DURABLE_AI_SUSPENDED=1 @@NOTEAI_AI_WORKER_IMAGE@@ python durable_ai_worker.py --dispatcher-loop
+ExecStartPost=/usr/bin/sleep 5
+ExecStartPost=/usr/bin/docker exec noteai-ai-dispatcher python durable_ai_worker.py --healthcheck
+ExecStop=/usr/bin/docker container stop --time=30 noteai-ai-dispatcher
+ExecStopPost=-/usr/bin/docker container rm noteai-ai-dispatcher
+
+[Install]
+WantedBy=multi-user.target

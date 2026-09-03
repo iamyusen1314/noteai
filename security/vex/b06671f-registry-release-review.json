@@ -1,0 +1,71 @@
+{
+  "review_version": 1,
+  "task": "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-B06671F-PUBLISH-001",
+  "reviewer": "production-release-manager:/root",
+  "result": "PASS",
+  "application_revision": "b06671fbcca51f884b04c86edcf116e373c6cfa8",
+  "roles": [
+    "api",
+    "admin",
+    "payment",
+    "ai-worker",
+    "xhs-http"
+  ],
+  "reviewed_cves": [
+    "CVE-2025-69720",
+    "CVE-2026-13221",
+    "CVE-2026-41992",
+    "CVE-2026-42496",
+    "CVE-2026-42497",
+    "CVE-2026-48962",
+    "CVE-2026-53615",
+    "CVE-2026-54369",
+    "CVE-2026-57432",
+    "CVE-2026-57433",
+    "CVE-2026-8376",
+    "CVE-2026-9538"
+  ],
+  "evidence_sha256": "b44b8861202d97b9f0784dd89f3b6056e5fc4af2b6939d28bdfe1b2f49b540f3",
+  "vex_sha256": "b70b0616d2d7294f289d252fff54ba0a36955294bb1873a828eb4f1da8853310",
+  "checks": {
+    "five_unique_registry_manifest_digests": true,
+    "control_plane_tag_digest_binding": true,
+    "native_amd64": true,
+    "raw_reports_canonical_and_unsuppressed": true,
+    "raw_critical_per_role": 4,
+    "raw_high_per_role": 19,
+    "secret_findings_per_role": 0,
+    "browser_components_per_role": 0,
+    "cryptography_48_0_1_per_role": 1,
+    "cyclonedx_exact_bom_links": true,
+    "temporary_publication_access_cleanup": true,
+    "api_nodes_post_health_and_isolation": true,
+    "production_exception": false,
+    "deployment_authorization": false
+  },
+  "scope": {
+    "registry_publication_complete": true,
+    "application_deployed": false,
+    "database_changed": false,
+    "provider_called": false,
+    "service_restarted": false,
+    "local_image_ids_are_registry_digests": false
+  },
+  "cyclonedx_schema_validation": {
+    "specification_commit": "55343ba19dee1785acf1ce9191540d5fd7b590db",
+    "schema": "schema/bom-1.6.schema.json",
+    "schema_sha256": "3e92dddbc30cf7f6a02b80f0942b1a4cfd4fb1c26f1dfc4310afa9d613cafb93",
+    "validation_errors": 0
+  },
+  "evidence_semantic_sha256": "82360747d90b1481c736a9841fb9954a8d26dc1206140157b1dd0293ca1a691f",
+  "vex_semantic_sha256": "a3f292ace173fa6da902addee43e2f29c9b874a08d7233934fbe7a573946e765",
+  "source_candidate_evidence_semantic_sha256": "d55b1130bfc24487dfa76597be9713cecb45f600c417389b1d4c2969ca379b7a",
+  "re_review_required_on": [
+    "application revision or registry manifest digest changes",
+    "local image ID, SBOM or package inventory changes",
+    "base image or architecture changes",
+    "entrypoint, command or subprocess graph changes",
+    "runtime capabilities, devices, mounts or namespaces change",
+    "official vulnerability scope changes"
+  ]
+}

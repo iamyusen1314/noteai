@@ -15,6 +15,7 @@ import logging
 import json
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -26,6 +27,12 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 _CACHE: dict[str, tuple[float, dict]] = {}
 _TIMEOUT_SECONDS = float(os.environ.get("NOTEAI_FACT_SEARCH_TIMEOUT", "8") or "8")
 _MEITUAN_TRAVEL_TIMEOUT_SECONDS = float(os.environ.get("NOTEAI_MEITUAN_TRAVEL_TIMEOUT", "45") or "45")
+_MEITUAN_TRAVEL_STATUS_READY = "MEITUAN_TRAVEL_READY"
+_MEITUAN_TRAVEL_STATUS_DISABLED = "MEITUAN_TRAVEL_DISABLED"
+_MEITUAN_TRAVEL_STATUS_CLI_MISSING = "MEITUAN_TRAVEL_CLI_MISSING"
+_MEITUAN_TRAVEL_STATUS_TOKEN_MISSING = "MEITUAN_TRAVEL_TOKEN_MISSING"
+_MEITUAN_TRAVEL_STATUS_EXEC_FAILED = "MEITUAN_TRAVEL_EXEC_FAILED"
+_MEITUAN_TRAVEL_STATUS_TIMEOUT = "MEITUAN_TRAVEL_TIMEOUT"
 
 
 _PRICE_RE = re.compile(
@@ -100,13 +107,108 @@ def _meituan_travel_cli_path() -> str:
     return shutil.which("mttravel") or "/opt/homebrew/bin/mttravel"
 
 
-def _meituan_travel_ready() -> bool:
-    if not _truthy_env("NOTEAI_MEITUAN_TRAVEL_ENABLED", "1"):
-        return False
-    has_token = bool(os.environ.get("MEITUAN_AI_HUB_TOKEN") or os.environ.get("MEITUAN_OPEN_TOKEN"))
-    has_config = (Path.home() / ".config" / "meituan-travel" / "config.json").exists()
+def _meituan_travel_config_path(home: Path | None = None) -> Path:
+    return (home or Path.home()) / ".config" / "meituan-travel" / "config.json"
+
+
+def _meituan_travel_config_token(path: Path | None = None) -> str:
+    config_path = path or _meituan_travel_config_path()
+    try:
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError):
+        return ""
+    if not isinstance(payload, dict):
+        return ""
+    return str(payload.get("key") or payload.get("Authorization") or "").strip()
+
+
+def _meituan_travel_token() -> str:
+    return str(
+        os.environ.get("MEITUAN_AI_HUB_TOKEN")
+        or os.environ.get("MEITUAN_OPEN_TOKEN")
+        or _meituan_travel_config_token()
+        or ""
+    ).strip()
+
+
+def _meituan_travel_cli_executable() -> bool:
     cli_path = _meituan_travel_cli_path()
-    return (has_token or has_config) and bool(cli_path) and Path(cli_path).exists()
+    return bool(cli_path) and Path(cli_path).is_file() and os.access(cli_path, os.X_OK)
+
+
+def meituan_travel_runtime_status() -> dict:
+    """Return fixed-code runtime readiness without exposing paths or credentials."""
+    enabled = _truthy_env("NOTEAI_FACT_SEARCH", "1") and _truthy_env("NOTEAI_MEITUAN_TRAVEL_ENABLED", "1")
+    required = enabled and _truthy_env("NOTEAI_CLOUD_RUNTIME", "0")
+    if not enabled:
+        return {
+            "ok": True,
+            "required": False,
+            "status_code": _MEITUAN_TRAVEL_STATUS_DISABLED,
+        }
+    if not _meituan_travel_cli_executable():
+        return {
+            "ok": False,
+            "required": required,
+            "status_code": _MEITUAN_TRAVEL_STATUS_CLI_MISSING,
+        }
+    if not _meituan_travel_token():
+        return {
+            "ok": False,
+            "required": required,
+            "status_code": _MEITUAN_TRAVEL_STATUS_TOKEN_MISSING,
+        }
+    return {
+        "ok": True,
+        "required": required,
+        "status_code": _MEITUAN_TRAVEL_STATUS_READY,
+    }
+
+
+def _meituan_travel_ready() -> bool:
+    return meituan_travel_runtime_status()["status_code"] == _MEITUAN_TRAVEL_STATUS_READY
+
+
+def _write_meituan_travel_runtime_config(home: Path, credential: str) -> Path:
+    home.mkdir(parents=True, exist_ok=True, mode=0o700)
+    home.chmod(0o700)
+    config_path = _meituan_travel_config_path(home)
+    config_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    config_path.parent.chmod(0o700)
+    file_descriptor = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(file_descriptor, "w", encoding="utf-8") as handle:
+            json.dump({"key": credential}, handle, ensure_ascii=False)
+    except Exception:
+        try:
+            config_path.unlink(missing_ok=True)
+        finally:
+            raise
+    config_path.chmod(0o600)
+    return config_path
+
+
+def _meituan_travel_subprocess_env(home: Path) -> dict[str, str]:
+    allowed_names = {
+        "PATH",
+        "LANG",
+        "LC_ALL",
+        "TZ",
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "NO_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "no_proxy",
+        "NODE_EXTRA_CA_CERTS",
+        "SSL_CERT_FILE",
+        "SSL_CERT_DIR",
+        "MEITUAN_RAW_JSON",
+    }
+    child_env = {name: value for name, value in os.environ.items() if name in allowed_names}
+    child_env["HOME"] = str(home)
+    child_env["NO_COLOR"] = "1"
+    return child_env
 
 
 def fact_search_enabled(domain: str | None = None) -> bool:
@@ -170,8 +272,12 @@ def _clean_text(text: str | None, limit: int = 180) -> str:
     return txt[:limit]
 
 
-def _redact_secret_values(text: str | None) -> str:
-    return _SECRET_QUERY_RE.sub(r"\1<redacted>", text or "")
+def _redact_secret_values(text: str | None, extra_values: tuple[str, ...] = ()) -> str:
+    redacted = _SECRET_QUERY_RE.sub(r"\1<redacted>", text or "")
+    for value in extra_values:
+        if value:
+            redacted = redacted.replace(value, "<redacted>")
+    return redacted
 
 
 def _authorized_fact_path() -> Path:
@@ -659,7 +765,9 @@ def _search_serpapi(query: str) -> list[dict]:
     return items
 
 
-def _search_amap(query: str) -> list[dict]:
+def _search_amap(
+    query: str, *, max_detail_requests: int = 3,
+) -> list[dict]:
     key = os.environ.get("AMAP_WEB_KEY", "")
     region = _extract_region(query)
     keyword = _amap_keyword_from_query(query)
@@ -686,39 +794,222 @@ def _search_amap(query: str) -> list[dict]:
     ranked_pois.sort(key=lambda item: _amap_poi_rank(item, keyword, query), reverse=True)
 
     enriched_pois: list[dict] = []
+    detail_limit = max(0, min(3, int(max_detail_requests)))
     with httpx.Client(timeout=_TIMEOUT_SECONDS) as client:
-        for poi in ranked_pois[:3]:
+        for poi in ranked_pois[:detail_limit]:
             detail = _amap_fetch_v5_detail(client, key, _amap_scalar(poi.get("id")))
             enriched_pois.append(_merge_amap_detail(poi, detail) if detail else poi)
+    enriched_pois.extend(ranked_pois[detail_limit:3])
     return [_amap_poi_to_item(poi) for poi in enriched_pois]
 
 
 def _search_meituan_travel(query: str) -> list[dict]:
     cli_path = _meituan_travel_cli_path()
     region = _extract_region(query)
-    if not Path(cli_path).exists():
-        return []
-    completed = subprocess.run(
-        [cli_path, region if region != "全国" else "中国", query],
-        capture_output=True,
-        text=True,
-        timeout=max(30, int(_MEITUAN_TRAVEL_TIMEOUT_SECONDS)),
-        check=False,
+    if not _meituan_travel_cli_executable():
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_CLI_MISSING)
+    credential = _meituan_travel_token()
+    if not credential:
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_TOKEN_MISSING)
+    try:
+        with tempfile.TemporaryDirectory(prefix="noteai-mttravel-") as runtime_home:
+            runtime_home_path = Path(runtime_home)
+            _write_meituan_travel_runtime_config(runtime_home_path, credential)
+            completed = subprocess.run(
+                [cli_path, region if region != "全国" else "中国", query],
+                capture_output=True,
+                text=True,
+                timeout=max(30, int(_MEITUAN_TRAVEL_TIMEOUT_SECONDS)),
+                check=False,
+                env=_meituan_travel_subprocess_env(runtime_home_path),
+            )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_TIMEOUT) from None
+    except (OSError, subprocess.SubprocessError):
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_EXEC_FAILED) from None
+    output = _redact_secret_values(
+        "\n".join(part for part in [completed.stdout, completed.stderr] if part),
+        (credential,),
     )
-    output = _redact_secret_values("\n".join(part for part in [completed.stdout, completed.stderr] if part))
     if completed.returncode != 0:
-        raise RuntimeError(_clean_text(output or f"meituan-travel exited {completed.returncode}", 160))
+        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_EXEC_FAILED)
     snippet = _clean_text(output, 1200)
     if not snippet:
         return []
     urls = re.findall(r"https?://[^\s)）]+", snippet)
     first_line = next((line.strip() for line in snippet.splitlines() if line.strip()), "")
+    structured_facts = _extract_meituan_travel_facts(output)
     return [{
         "title": _clean_text(first_line or "美团酒旅事实", 80),
         "url": urls[0] if urls else "",
         "snippet": snippet,
         "source": "美团酒旅",
+        "facts": structured_facts,
     }]
+
+
+def _strip_markdown(text: str | None, limit: int = 240) -> str:
+    out = str(text or "")
+    out = re.sub(r"!\[[^\]]*\]\([^)]+\)", " ", out)
+    out = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", out)
+    out = out.replace("\\(", "(").replace("\\)", ")")
+    out = out.replace("**", "").replace("*", "")
+    return _clean_text(out, limit)
+
+
+def _append_fact_bits(current: str, bits: list[str], limit: int = 260) -> str:
+    values = []
+    for part in [current or "", *bits]:
+        for chunk in re.split(r"[；;]\s*", part):
+            clean = _clean_text(chunk, 120)
+            if clean and clean not in values:
+                values.append(clean)
+    return "；".join(values)[:limit]
+
+
+def _clean_hotel_name(name: str | None) -> str:
+    value = _clean_text(name, 80)
+    if not value:
+        return ""
+    if re.match(r"^(?:我|你|这|好|小团|关于|帮)", value):
+        city_name = re.search(
+            r"((?:北京|上海|广州|深圳|杭州|成都|重庆|三亚|南京|苏州|厦门|青岛|长沙|武汉)"
+            r"[\u4e00-\u9fa5A-Za-z0-9·（）()]{0,24}(?:酒店|公寓|民宿|客栈|度假村|饭店))",
+            value,
+        )
+        if city_name:
+            return city_name.group(1)
+    value = re.sub(r"^(?:好的|小团来啦|你问的|我来帮你|我来给你|详细说说|全面介绍一下|介绍一下)", "", value)
+    return value.strip(" ：:，,。")
+
+
+def _extract_meituan_travel_facts(output: str | None) -> dict[str, str]:
+    """Extract stable hotel/travel facts from the meituan-travel Skill prose."""
+    text = output or ""
+    clean_full = _strip_markdown(text, 2200)
+    hotel_rows: list[dict[str, str]] = []
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    for idx, line in enumerate(lines):
+        if "[**" not in line or "美团真实评分" not in line:
+            continue
+        clean = _strip_markdown(line)
+        name_match = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·（）()]+(?:酒店|公寓|民宿|客栈|度假|饭店)[\u4e00-\u9fa5A-Za-z0-9·（）()]*)", clean)
+        rating_match = re.search(r"美团真实评分\s*(\d(?:\.\d)?)", clean)
+        price_match = re.search(r"(?:¥|￥)\s*[\dXx]{2,5}\s*起/晚", clean)
+        tags = clean
+        if price_match:
+            tags = clean[price_match.end():]
+        tags = re.sub(r"^住就送[·\-\d元券包]*", "", tags).strip()
+        next_line = _strip_markdown(lines[idx + 1]) if idx + 1 < len(lines) else ""
+        hotel_rows.append({
+            "name": _clean_hotel_name(name_match.group(1) if name_match else clean[:28]),
+            "rating": f"美团真实评分{rating_match.group(1)}" if rating_match else "",
+            "price": re.sub(r"\s+", "", price_match.group(0)) if price_match else "",
+            "tags": tags[:80],
+            "note": next_line[:120] if re.search(r"(?:亲子|地铁|交通|自驾|打车|步行|距离|早餐|滑梯|儿童|停车|穿梭巴士|提前半小时入园|白虎|火烈鸟)", next_line) else "",
+        })
+        if len(hotel_rows) >= 4:
+            break
+    facts: dict[str, str] = {}
+    primary_name = ""
+    if hotel_rows:
+        primary_name = hotel_rows[0].get("name", "")
+        facts["rating"] = "；".join(
+            f"{row['name']}{row['rating']}" for row in hotel_rows if row.get("rating")
+        )[:180]
+        facts["price"] = "；".join(
+            f"{row['name']}{row['price']}" for row in hotel_rows if row.get("price")
+        )[:180]
+        facts["deal"] = "；".join(
+            f"{row['name']}：{row['tags']}" for row in hotel_rows if row.get("tags")
+        )[:220]
+        travel_notes = [
+            f"{row['name']}：{row['note']}" for row in hotel_rows if row.get("note")
+        ]
+        if travel_notes:
+            facts["review_keywords"] = "；".join(travel_notes)[:260]
+        area_terms = []
+        for term in ("广州长隆", "汉溪长隆地铁站", "南村万博地铁站", "长隆野生动物园", "亚龙湾", "太古里", "西湖"):
+            if term in text and term not in area_terms:
+                area_terms.append(term)
+        if area_terms:
+            facts["business_area"] = "、".join(area_terms[:4])
+        facts["category"] = "美团酒旅酒店推荐"
+
+    name_match = re.search(
+        r"([\u4e00-\u9fa5A-Za-z0-9·（）()]{2,40}(?:酒店|公寓|民宿|客栈|度假村|饭店))",
+        clean_full,
+    )
+    if not primary_name and name_match:
+        primary_name = _clean_hotel_name(name_match.group(1))
+    primary_name = primary_name or "美团酒旅推荐"
+
+    if not facts.get("rating"):
+        rating_match = re.search(r"美团真实评分\s*(\d(?:\.\d)?)", clean_full)
+        if rating_match:
+            facts["rating"] = f"{primary_name}美团真实评分{rating_match.group(1)}"
+    if not facts.get("price"):
+        price_match = re.search(r"(?:¥|￥)\s*[\dXx]{2,5}\s*起/晚|\d{2,5}\s*元起/晚", clean_full)
+        if price_match:
+            normalized_price = re.sub(r"\s+", "", price_match.group(0))
+            facts["price"] = f"{primary_name}{normalized_price}"
+
+    address_match = re.search(
+        r"(?:酒店地址|地址|位于|就在)[:：]?\s*((?:酒店)?(?:就在|位于)?[\u4e00-\u9fa5A-Za-z0-9（）()·\-—,，、]{8,100})",
+        clean_full,
+    )
+    if address_match:
+        address = re.split(r"[。；;!！?？]", address_match.group(1))[0]
+        address = re.sub(r"^(?:酒店)?(?:就在|位于)", "", address).strip(" ：:，,。")
+        if _valid_extracted_fact("address", address):
+            facts["address"] = _clean_text(address, 120)
+
+    hours_bits = []
+    stay_match = re.search(
+        r"(?:入住|办理入住)[^。；;]{0,20}?(\d{1,2}[:：]\d{2})[^。；;]{0,30}?(?:退房|离店)[^。；;]{0,20}?(\d{1,2}[:：]\d{2})",
+        clean_full,
+    )
+    if stay_match:
+        hours_bits.append(f"入住{stay_match.group(1)}以后；退房{stay_match.group(2)}以前")
+    breakfast_match = re.search(r"早餐[^。；;]{0,20}?(\d{1,2}[:：]\d{2})\s*(?:至|-|~|到)\s*(\d{1,2}[:：]\d{2})", clean_full)
+    if breakfast_match:
+        hours_bits.append(f"早餐{breakfast_match.group(1)}-{breakfast_match.group(2)}")
+    if hours_bits:
+        facts["hours"] = _append_fact_bits(facts.get("hours", ""), hours_bits, 160)
+
+    experience_terms = [
+        "儿童乐园", "亲子房", "探趣亲子房", "白虎自助餐厅", "火烈鸟", "免费停车场",
+        "免费穿梭巴士", "提前半小时入园", "汉溪长隆地铁站", "南村万博地铁站",
+        "长隆欢乐世界", "长隆水上乐园", "长隆野生动物世界",
+    ]
+    matched_terms = [term for term in experience_terms if term in clean_full]
+    if matched_terms:
+        facts["review_keywords"] = _append_fact_bits(
+            facts.get("review_keywords", ""),
+            [f"{primary_name}：{ '、'.join(matched_terms[:8]) }"],
+            260,
+        )
+    package_terms = [
+        "童趣乐园门票", "水上乐园门票", "动物世界+欢乐世界+飞鸟乐园", "多园畅玩门票",
+        "无限次入园", "提前半小时入园",
+    ]
+    matched_packages = [term for term in package_terms if term in clean_full]
+    if matched_packages:
+        facts["deal"] = _append_fact_bits(
+            facts.get("deal", ""),
+            [f"{primary_name}：套餐/房型可能包含{'、'.join(matched_packages[:5])}，以美团实时页为准"],
+            220,
+        )
+    if not facts.get("business_area"):
+        area_terms = []
+        for term in ("广州长隆", "汉溪长隆地铁站", "南村万博地铁站", "长隆野生动物园", "亚龙湾", "太古里", "西湖"):
+            if term in clean_full and term not in area_terms:
+                area_terms.append(term)
+        if area_terms:
+            facts["business_area"] = "、".join(area_terms[:4])
+    if facts and not facts.get("category"):
+        facts["category"] = "美团酒旅酒店推荐"
+    return {k: v for k, v in facts.items() if v}
 
 
 def _search_baidu_map(query: str) -> list[dict]:
@@ -855,6 +1146,19 @@ def _pick_first(pattern: re.Pattern, texts: list[str]) -> str:
     return ""
 
 
+def _valid_extracted_fact(key: str, value: str | None) -> bool:
+    text = str(value or "").strip()
+    if not text:
+        return False
+    if key in {"deal", "review_keywords"} and re.search(r"(?:套餐浮动|房价会随|价格会随|查当天|具体价格|实时价格|根据自己的计划|我来帮你|小团来啦|查询中|当前请求未传|升级 Skill|[*]{1,2})", text):
+        return False
+    if key == "address" and re.search(r"(?:关键信息|信息不明确|说明清楚|有的酒店|酒店信息|关于交通)", text):
+        return False
+    if key == "address" and not re.search(r"(?:路|街|巷|号|层|座|区|镇|村|商圈|广场|中心|万博|附近|地铁|景区|长隆|西湖|亚龙湾)", text):
+        return False
+    return True
+
+
 def extract_facts_from_search_items(items: list[dict]) -> dict:
     texts = [
         _clean_text(f"{item.get('title', '')}。{item.get('snippet', '')}", 500)
@@ -878,7 +1182,7 @@ def extract_facts_from_search_items(items: list[dict]) -> dict:
         "review_keywords": _pick_first(_REVIEW_KEYWORDS_RE, texts),
     }
     for key, value in regex_facts.items():
-        if value and not facts.get(key):
+        if value and not facts.get(key) and _valid_extracted_fact(key, value):
             facts[key] = value
     return {k: v for k, v in facts.items() if v}
 
@@ -949,7 +1253,8 @@ def enrich_content_facts(domain: str | None, title: str | None, text: str | None
                 "facts": {},
                 "sources": [],
                 "confidence": 0.0,
-                "error": _redact_secret_values(str(exc))[:160],
+                "error": "provider_request_failed",
+                "error_code": type(exc).__name__.lower(),
             }
 
     sources = _merge_sources(items)

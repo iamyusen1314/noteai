@@ -1,0 +1,283 @@
+name: noteai-production
+
+services:
+  api:
+    image: "${NOTEAI_API_IMAGE_REPOSITORY:?set NOTEAI_API_IMAGE_REPOSITORY}@sha256:${NOTEAI_API_IMAGE_DIGEST_HEX:?set NOTEAI_API_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    env_file:
+      - "${NOTEAI_API_ENV_FILE:-/etc/noteai/api.env}"
+    environment:
+      NOTEAI_RUNTIME_ROLE: api
+      NOTEAI_DEPLOYMENT_STAGE: production
+      NOTEAI_CLOUD_RUNTIME: "1"
+      NOTEAI_API_STARTS_TREND_SCHEDULER: "0"
+      NOTEAI_MODEL_ARTIFACT_REQUIRED: "1"
+      NOTEAI_ENABLE_CLOUD_MODEL_MUTATION: "0"
+      NOTEAI_DURABLE_AI_ADMISSION_ENABLED: "0"
+      NOTEAI_TRUSTED_PROXY_IPS: "${NOTEAI_API_TRUSTED_PROXY_IPS:-127.0.0.1}"
+    ports:
+      - "${NOTEAI_API_BIND_IP:-0.0.0.0}:${NOTEAI_API_PORT:-8000}:8000"
+    volumes:
+      - type: bind
+        source: "${NOTEAI_PRODUCTION_DATA_DIR:-/var/lib/noteai/data}"
+        target: /app/model/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8000, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  admin:
+    image: "${NOTEAI_ADMIN_IMAGE_REPOSITORY:?set NOTEAI_ADMIN_IMAGE_REPOSITORY}@sha256:${NOTEAI_ADMIN_IMAGE_DIGEST_HEX:?set NOTEAI_ADMIN_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    env_file:
+      - "${NOTEAI_ADMIN_ENV_FILE:-/etc/noteai/admin.env}"
+    environment:
+      NOTEAI_RUNTIME_ROLE: admin
+      NOTEAI_DEPLOYMENT_STAGE: production
+      NOTEAI_CLOUD_RUNTIME: "1"
+      NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
+      NOTEAI_ENABLE_CLOUD_MODEL_MUTATION: "0"
+      PORT: "8001"
+    ports:
+      - "${NOTEAI_ADMIN_BIND_IP:-127.0.0.1}:${NOTEAI_ADMIN_PORT:-8001}:8001"
+    volumes:
+      - type: bind
+        source: "${NOTEAI_PRODUCTION_DATA_DIR:-/var/lib/noteai/data}"
+        target: /app/model/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8001, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  payment:
+    profiles:
+      - payment
+    image: "${NOTEAI_PAYMENT_IMAGE_REPOSITORY:?set NOTEAI_PAYMENT_IMAGE_REPOSITORY}@sha256:${NOTEAI_PAYMENT_IMAGE_DIGEST_HEX:?set NOTEAI_PAYMENT_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    env_file:
+      - "${NOTEAI_PAYMENT_ENV_FILE:-/etc/noteai/payment.env}"
+    environment:
+      NOTEAI_RUNTIME_ROLE: payment
+      NOTEAI_DEPLOYMENT_STAGE: production
+      NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
+      NOTEAI_PAYMENT_CALLBACK_ENABLED: "${NOTEAI_PAYMENT_CALLBACK_ENABLED:-0}"
+      NOTEAI_TRUSTED_PROXY_IPS: "${NOTEAI_PAYMENT_TRUSTED_PROXY_IPS:-127.0.0.1}"
+      PORT: "8002"
+    ports:
+      - "${NOTEAI_PAYMENT_BIND_IP:-127.0.0.1}:${NOTEAI_PAYMENT_PORT:-8002}:8002"
+    restart: "no"
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client, sys; connection = http.client.HTTPConnection('127.0.0.1', 8002, timeout=5); connection.request('GET', '/health/ready'); response = connection.getresponse(); sys.exit(0 if 200 <= response.status < 300 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  ai-dispatcher:
+    profiles:
+      - durable-ai-dispatcher
+    image: "${NOTEAI_AI_WORKER_IMAGE_REPOSITORY:?set NOTEAI_AI_WORKER_IMAGE_REPOSITORY}@sha256:${NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX:?set NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777,uid=999,gid=999
+    env_file:
+      - "${NOTEAI_AI_DISPATCHER_ENV_FILE:-/etc/noteai/ai-dispatcher.env}"
+    environment:
+      NOTEAI_RUNTIME_ROLE: ai-worker
+      NOTEAI_DEPLOYMENT_STAGE: production
+      NOTEAI_CLOUD_RUNTIME: "1"
+      NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
+      NOTEAI_DURABLE_AI_COMPONENT: dispatcher
+      NOTEAI_DURABLE_AI_SUSPENDED: "${NOTEAI_DURABLE_AI_SUSPENDED:-1}"
+    command: ["python", "durable_ai_worker.py", "--dispatcher-loop"]
+    restart: "no"
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "durable_ai_worker.py", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  ai-worker:
+    profiles:
+      - durable-ai-worker
+    image: "${NOTEAI_AI_WORKER_IMAGE_REPOSITORY:?set NOTEAI_AI_WORKER_IMAGE_REPOSITORY}@sha256:${NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX:?set NOTEAI_AI_WORKER_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    env_file:
+      - "${NOTEAI_AI_WORKER_ENV_FILE:-/etc/noteai/ai-worker.env}"
+      - "${NOTEAI_PRIVATE_STORAGE_ENV_FILE:-/etc/noteai/private-storage.env}"
+    environment:
+      NOTEAI_RUNTIME_ROLE: ai-worker
+      NOTEAI_DEPLOYMENT_STAGE: production
+      NOTEAI_CLOUD_RUNTIME: "1"
+      NOTEAI_DURABLE_AI_COMPONENT: worker
+      NOTEAI_DURABLE_AI_SUSPENDED: "${NOTEAI_DURABLE_AI_SUSPENDED:-1}"
+      NOTEAI_DURABLE_AI_PROCESSOR: "${NOTEAI_DURABLE_AI_PROCESSOR:-}"
+      NOTEAI_DURABLE_AI_ACCEPTANCE_MODE: "${NOTEAI_DURABLE_AI_ACCEPTANCE_MODE:-0}"
+      NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION: "${NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION:-}"
+      NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID: "${NOTEAI_DURABLE_AI_ACCEPTANCE_OPERATION_ID:-}"
+    command: ["python", "durable_ai_worker.py", "--worker-loop"]
+    restart: "no"
+    cpus: "1.00"
+    mem_limit: 1536m
+    pids_limit: 96
+    healthcheck:
+      test: ["CMD", "python", "durable_ai_worker.py", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  xhs-trends:
+    image: "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    env_file:
+      - "${NOTEAI_XHS_TRENDS_ENV_FILE:-/etc/noteai/xhs-trends.env}"
+    environment:
+      NOTEAI_RUNTIME_ROLE: xhs-http
+      NOTEAI_DEPLOYMENT_STAGE: production
+      NOTEAI_XHS_SERVICE: trends
+      NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
+      NOTEAI_XHS_ACQUISITION_ADAPTER: spider_xhs_http
+      NOTEAI_XHS_COLLECTION_SUSPENDED: "${NOTEAI_XHS_TRENDS_SUSPENDED:-1}"
+      NOTEAI_XHS_FRESHNESS_REQUIRED: "${NOTEAI_XHS_FRESHNESS_REQUIRED:-1}"
+    command: ["python", "market_timing_worker.py", "--daemon", "--interval", "${NOTEAI_MARKET_TIMING_WORKER_INTERVAL_MINUTES:-360}"]
+    healthcheck:
+      test: ["CMD", "python", "market_timing_worker.py", "--healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: "no"
+    cpus: "0.50"
+    mem_limit: 512m
+    pids_limit: 64
+
+  xhs-tracking:
+    image: "${NOTEAI_XHS_IMAGE_REPOSITORY:?set NOTEAI_XHS_IMAGE_REPOSITORY}@sha256:${NOTEAI_XHS_IMAGE_DIGEST_HEX:?set NOTEAI_XHS_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "2"
+    user: "999:999"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999
+    env_file:
+      - "${NOTEAI_XHS_TRACKING_ENV_FILE:-/etc/noteai/xhs-tracking.env}"
+    environment:
+      NOTEAI_RUNTIME_ROLE: xhs-http
+      NOTEAI_DEPLOYMENT_STAGE: production
+      NOTEAI_XHS_SERVICE: tracking
+      NOTEAI_SKIP_MODEL_ARTIFACT_CHECK: "1"
+      NOTEAI_XHS_ACQUISITION_ADAPTER: spider_xhs_http
+      NOTEAI_XHS_COLLECTION_SUSPENDED: "${NOTEAI_XHS_TRACKING_SUSPENDED:-1}"
+    command: ["python", "crawler_worker.py", "--loop", "--interval-minutes", "${NOTEAI_TRACKING_WORKER_INTERVAL_MINUTES:-60}", "--limit", "${NOTEAI_TRACKING_WORKER_LIMIT:-50}"]
+    healthcheck:
+      test: ["CMD", "python", "crawler_worker.py", "--healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    volumes:
+      - type: bind
+        source: "${NOTEAI_PRODUCTION_DATA_DIR:-/var/lib/noteai/data}"
+        target: /app/model/data
+    restart: "no"
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 64

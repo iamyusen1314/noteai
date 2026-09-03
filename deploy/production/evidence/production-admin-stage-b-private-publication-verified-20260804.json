@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001_STAGE_B_CORRECTED_001",
+  "observed_at_utc": "2026-08-05T00:23:03Z",
+  "status": "PRIVATE_PUBLICATION_VERIFIED_TERMINAL_CLEANUP_COMPLETE",
+  "readiness_credit": 0,
+  "source_anchors": {
+    "recording_checkpoint_parent": "ceefa1ce500dd38f1721b2b4b738086be6f57293",
+    "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+    "publisher_path": "deploy/production/admin_item20_stage_b_private_acr.sh",
+    "publisher_bytes": 13754,
+    "publisher_sha256": "0342f9ebadda91a8131930170fbc9ee4d116b58286da1a3049b8f02bfb3fd624",
+    "historical_wrapper_sha256": "29678f435c53f1b162a218b6c860c24fed6437679202fa4c607f855264fb6fd9",
+    "corrected_wrapper_sha256": "3760ebc2b7750c61b5b1bdc73ed8a4b5b729e5106266ba79b4f04b9a02d5c1fd",
+    "acr_instance_id": "cri-xpuhaclqkxlwy47t",
+    "repository_id": "crr-itdckfeycjvs274j",
+    "repository": "noteai/app",
+    "tag": "git-5335bda-amd64-admin-r1",
+    "local_image": "noteai-local:git-5335bda-amd64-admin-r1",
+    "platform": "linux/amd64"
+  },
+  "corrected_control_plane": {
+    "temporary_role": "NoteAIAdminStageBCorrected20260804",
+    "temporary_policy": "NoteAIAdminStageBCorrected20260804Policy",
+    "repository_resource_exact_enterprise_instance_qualified": true,
+    "repository_resource_suffix": "repository/cri-xpuhaclqkxlwy47t/noteai/app",
+    "wildcard_repository_permission": false,
+    "fresh_sts_and_registry_credentials": true,
+    "corrected_wrapper_literal_change_count": 1,
+    "corrected_wrapper_literal_change": "temporary_role_name_only",
+    "offline_preflight": {
+      "command_id": "c-sz06szkh5t04hz4",
+      "invoke_id": "t-sz06szkh5thlse8",
+      "repeat_mode": "Once",
+      "exit_code": 0,
+      "result": "NOTEAI_CORRECTED_EXACT_PREFLIGHT_OK",
+      "registry_push_count": 0
+    }
+  },
+  "immutable_tag_precondition": {
+    "native_get_repo_tag_request_id": "019FCD44-C001-554E-BDB0-D4FBE7E984AC",
+    "result": "IMAGE_NOT_EXIST",
+    "target_tag_absent_immediately_before_push": true
+  },
+  "exact_one_publication": {
+    "request_id": "019FCD45-F329-57BE-B942-35366BC5A49B",
+    "command_id": "c-sz06szktwdnk740",
+    "invoke_id": "t-sz06szktwe51hj4",
+    "repeat_mode": "Once",
+    "started_at_utc": "2026-08-04T14:55:42Z",
+    "finished_at_utc": "2026-08-04T14:56:32Z",
+    "status": "Success",
+    "exit_code": 0,
+    "publisher_invocation_count": 1,
+    "docker_push_invocation_count": 1,
+    "automatic_retry_count": 0,
+    "manual_retry_count": 0,
+    "push_started_count": 1,
+    "published_count": 1,
+    "terminal_result": "NOTEAI_ADMIN_STAGE_B=PUSH_MANIFEST_PASS",
+    "publisher_wrapper_result": "PASS",
+    "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+    "native_evidence_file_count": 11,
+    "push_digest": "sha256:d417718ff16ae9a456d2e099182661d320283c2755d3b3978eb82a5cee928c2a",
+    "manifest_descriptor_digest": "sha256:d417718ff16ae9a456d2e099182661d320283c2755d3b3978eb82a5cee928c2a",
+    "manifest_config_digest": "sha256:fa0e658cba59a0adda16f64efb9bdfe543f459d90fe35997bd39046eb7743bd4"
+  },
+  "stage_a_native_evidence_hashes": {
+    "build_metadata": "773a7dfe19fb72e546954d436d476f17573bac1bc1dbbe1380794d1e0d804731",
+    "image_inspect": "6ca0eb151671fe6c1f24269a11961bd1302773059a686378947fa10d4e7eb574",
+    "sbom": "df84c43adbd9cc7b2bc0b0b2a5d3cd88abbc741195e734b0346af8d425e49c94",
+    "vulnerability_scan": "cbc2db1637a8ed1b32b12b9f6b8427ddfb4ea7eeff8a882f65ae2809be1465ac",
+    "secret_scan": "a723811238842dd16f67ef5d0aafd7e7ec7bca315764a7ebbb47fb7af41b6e8a",
+    "summary": "3cdec4e39637cd3b743f49729e19a523790edaf4b8e5221ab09eb232cfd68241"
+  },
+  "native_registry_acceptance": {
+    "get_repo_tag_request_id": "019FCD4D-7E99-5E38-A8FA-36077EE88871",
+    "is_success": true,
+    "status": "NORMAL",
+    "tag": "git-5335bda-amd64-admin-r1",
+    "control_plane_digest": "sha256:d417718ff16ae9a456d2e099182661d320283c2755d3b3978eb82a5cee928c2a",
+    "control_plane_image_id": "sha256:fa0e658cba59a0adda16f64efb9bdfe543f459d90fe35997bd39046eb7743bd4",
+    "image_size_bytes": 379012440,
+    "push_manifest_control_plane_digest_agreement": true,
+    "manifest_config_local_image_id_agreement": true
+  },
+  "topology_restoration": {
+    "builder_vpc_link_delete_request_id": "019FCD4E-48D2-53E1-B699-2A16F094F044",
+    "production_vpc_link_create_request_id": "019FCD4F-E5C2-5F2C-BCE1-E07CB440DC7D",
+    "final_native_read_request_id": "019FCD50-8B95-5F1D-A7C3-C79962ABA1C6",
+    "registry_module_enabled": true,
+    "linked_vpc_count": 1,
+    "linked_vpc_id": "vpc-wz90181in1rs2zqpnn9o3",
+    "linked_vswitch_id": "vsw-wz93ahnxzaztndac48er3",
+    "linked_private_ip": "10.42.10.48",
+    "linked_status": "RUNNING",
+    "default_access": false,
+    "public_registry_endpoint_enabled": false,
+    "builder_vpc_link_absent": true,
+    "exact_production_vpc_link_restored": true
+  },
+  "temporary_iam_cleanup": {
+    "builder_role_detach_request_id": "019FCD51-34DC-560A-AE4E-F85ADCE00238",
+    "builder_role_detach_fail_count": 0,
+    "policy_detach_request_id": "019FCD51-CBC6-53CB-83AA-D51CC3F632CE",
+    "policy_delete_request_id": "019FCD52-4097-5A82-8E72-910485C0D6E9",
+    "role_delete_request_id": "019FCD52-C69C-55DA-BB80-61A020EC6C2E",
+    "builder_role_binding_absent": true,
+    "temporary_policy_absent": true,
+    "temporary_role_absent": true
+  },
+  "publisher_cleanup": {
+    "docker_auth_entry_count": 0,
+    "task_root_present": false,
+    "remote_image_alias_present": false,
+    "publisher_file_present": false,
+    "running_container_count": 0,
+    "registry_push_process_count": 0,
+    "database_connection_count": 0,
+    "canonical_and_local_images_retained": true
+  },
+  "post_topology_production_health": {
+    "api_c": {
+      "instance_id": "i-wz9j36od3nf2b1uw7bvg",
+      "command_id": "c-sz06szo4d98x5vk",
+      "invoke_id": "t-sz06szo4d9qegao",
+      "command_sha256": "61edb503c076c39925bdaa6d9e2597e21e14bf4a3aa1ba7d58ef8fbac6bba8fa",
+      "exit_code": 0,
+      "unit_count": 2,
+      "container_count": 2,
+      "listeners": [
+        "127.0.0.1:8000",
+        "127.0.0.1:8001"
+      ],
+      "health_rounds_per_role": 3,
+      "live_ready_http_200": true,
+      "database_established_connection_count": 0
+    },
+    "api_f": {
+      "instance_id": "i-wz9bgztwf1tiakww2ops",
+      "command_id": "c-sz06sznzndl0zcw",
+      "invoke_id": "t-sz06sznzne00dfk",
+      "command_sha256": "b4ac8b4a15c136a96625ed5109af6ea95bad4153789d0746054040fdb72fc1e6",
+      "exit_code": 0,
+      "unit_count": 1,
+      "container_count": 1,
+      "listeners": [
+        "127.0.0.1:8000"
+      ],
+      "health_rounds_per_role": 3,
+      "live_ready_http_200": true,
+      "database_established_connection_count": 0
+    },
+    "ready_check_sets": {
+      "api": [
+        "database",
+        "model"
+      ],
+      "admin": [
+        "admin_credentials",
+        "database"
+      ]
+    },
+    "service_unit_container_listener_mutation_count": 0
+  },
+  "temporary_builder_stop": {
+    "instance_id": "i-wz99180s9ig5ecq10uaj",
+    "current_control_plane_state": "Stopped",
+    "ram_role_attached": false,
+    "acr_builder_vpc_link_present": false,
+    "stop_mode": "graceful_normal_default",
+    "force_stop": false,
+    "pre_stop_native_read": {
+      "api": "DescribeInstances",
+      "request_id": "019FCF49-7F5C-5EE6-92DC-84A364522D5C",
+      "http_status": 200,
+      "instance_id_exact": true,
+      "state": "Running"
+    },
+    "invalid_preflight_submission": {
+      "api": "StopInstance",
+      "request_id": "019FCF45-0CA5-5130-8B03-F7581F063AA0",
+      "http_status": 404,
+      "error_code": "InvalidInstanceId.NotFound",
+      "instance_id_had_trailing_newline": true,
+      "resource_mutation_occurred": false,
+      "counted_as_valid_stop_submission": false
+    },
+    "graceful_stop_submission": {
+      "api": "StopInstance",
+      "request_id": "019FCF4C-0AE1-511B-9F30-71359AB13864",
+      "http_status": 200,
+      "force_stop": false,
+      "valid_stop_submission_count": 1
+    },
+    "post_stop_native_read": {
+      "api": "DescribeInstances",
+      "request_id": "019FCF4D-63FF-5647-929E-7DA060C7955E",
+      "http_status": 200,
+      "instance_id_exact": true,
+      "state": "Stopped"
+    },
+    "api_success_receipt_observed": true,
+    "security_verification_pending": false,
+    "terminal_state": "STOPPED_NORMAL_MODE_NATIVE_READBACK_VERIFIED"
+  },
+  "forbidden_action_counts": {
+    "database_write_commands": 0,
+    "public_network_commands": 0,
+    "production_service_mutations": 0,
+    "production_unit_container_listener_mutations": 0,
+    "image_builds": 0,
+    "image_content_changes": 0,
+    "stage_a_repetitions": 0,
+    "ci_repetitions": 0,
+    "full_readiness_gate_repetitions": 0,
+    "additional_registry_pushes_after_corrected_exact_one": 0,
+    "builder_start_commands_during_corrected_publication": 0
+  },
+  "acceptance_decision": {
+    "publication_result": "GO_NATIVE_DIGEST_AND_CONFIG_IDENTITY_VERIFIED",
+    "stage_b_terminal_cleanup_result": "GO_BUILDER_STOPPED_NATIVE_READBACK_VERIFIED",
+    "stage_c_open": true,
+    "readiness": {
+      "internal": "19/29",
+      "public": "19/38"
+    },
+    "next_hard_condition": "Execute the authorized Admin Stage C private-digest canary, negative matrix, reversible promotion and non-regression acceptance without repeating Stage A, CI, the full readiness gate or the private publication."
+  }
+}

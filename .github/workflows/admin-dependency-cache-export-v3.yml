@@ -1,0 +1,563 @@
+name: Admin dependency cache export V3
+
+on:
+  push:
+    branches:
+      - codex/quality-stabilization-real-chain
+    paths:
+      - .github/release-requests/admin-5335bda-dependency-cache-v3.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-dependency-cache-export-v3-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  export-cache:
+    name: Recover and prove exact 5335 Admin dependency prefix cache
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    env:
+      NOTEAI_REQUEST_PATH: .github/release-requests/admin-5335bda-dependency-cache-v3.json
+      NOTEAI_REQUEST_TEMPLATE: deploy/production/plans/admin-dependency-cache-export-request-v3.json
+      NOTEAI_REQUEST_TEMPLATE_SHA256: 2ddca5c392f21cfa3b623197d07c2f8a983715a95ec58042aa0eece8930cd2f3
+      NOTEAI_V2_REQUEST_PATH: .github/release-requests/admin-5335bda-dependency-cache-v2.json
+      NOTEAI_V2_REQUEST_SHA256: 28e684e752d2991afb835de74fea558cb23f3eaa5d7e9ec230931a4a106fa75c
+      NOTEAI_V2_CONTROL_COMMIT: 83b89262a33aed2cfa9fd623f232a66824398c2e
+      NOTEAI_V2_WORKFLOW_PATH: .github/workflows/admin-dependency-cache-export.yml
+      NOTEAI_V2_WORKFLOW_SHA256: d01bf03d4725bb82c2ff34d35aeb0379a6987200278321a436d77d0b7fcd4870
+      NOTEAI_V2_TEMPLATE_PATH: deploy/production/plans/admin-dependency-cache-export-request-v2.json
+      NOTEAI_V2_TEMPLATE_SHA256: 331bd7a6dd93d3f714859ebfc2b537c60d911f6e1f1ba05adb0a05e30c254f57
+      NOTEAI_V2_PLAN_VERIFIER_PATH: tools/verify_admin_dependency_cache_export_plan.py
+      NOTEAI_V2_PLAN_VERIFIER_SHA256: 8a98d53ab1079e0d6bdebbca1a33c2f5b1ddee044199249ff9a8586a82de0afe
+      NOTEAI_FAILURE_EVIDENCE_PATH: deploy/production/evidence/admin-dependency-cache-v2-attempt1-failed-20260731.json
+      NOTEAI_FAILURE_EVIDENCE_SHA256: 17c43bd4dc61335f01248722f91f57027d1fd719fce0458c499524e0ba73c48f
+      NOTEAI_FAILURE_EVIDENCE_VERIFIER_PATH: tools/verify_admin_dependency_cache_v2_failure_evidence.py
+      NOTEAI_FAILURE_EVIDENCE_VERIFIER_SHA256: af7d6e325c028bbef0eb44d5ffe91050dafed6e1b9498439ec627b280a6a5c79
+      NOTEAI_EXPORT_HELPER_PATH: scripts/ci/export_admin_dependency_cache.sh
+      NOTEAI_EXPORT_HELPER_SHA256: fabcdc2245c537c2fd56e88b6e0aced77d5c26234fc74d7d934b11ecda8d860c
+      NOTEAI_IMPORT_HELPER_PATH: scripts/ci/import_admin_dependency_cache.sh
+      NOTEAI_IMPORT_HELPER_SHA256: c4986143d5897140f72ad6835b44f7fc989830a30341cb4e3f5718fced3ca777
+      NOTEAI_BASE_BUNDLE_VERIFIER_PATH: tools/verify_admin_dependency_cache_bundle.py
+      NOTEAI_BASE_BUNDLE_VERIFIER_SHA256: bf526c29b213dc15d257cb9aedc52790aa1dc9cf1f82bba0e6e85e41db3edf38
+      NOTEAI_BUNDLE_VERIFIER_PATH: tools/verify_admin_dependency_cache_bundle_v3.py
+      NOTEAI_BUNDLE_VERIFIER_SHA256: c2e318d5d9cbe196d8b9294277c85e1ee986ccb3e1970b3d25a31d28c8da0fef
+      NOTEAI_TRANSIENT_STATE_VERIFIER_PATH: tools/verify_admin_dependency_cache_transient_state_v3.py
+      NOTEAI_TRANSIENT_STATE_VERIFIER_SHA256: da19c4908fc73ee7bdd74342cf0c626a2db79299672ba5aa0511a7c9d92baae0
+      NOTEAI_CLEANUP_HELPER_PATH: scripts/ci/cleanup_admin_dependency_cache_v3.sh
+      NOTEAI_CLEANUP_HELPER_SHA256: b6115cc641c563f90236bcbdea432e0ca18ff9908834f663c6eeadd27ffa3101
+      NOTEAI_DOWNLOAD_HELPER_PATH: scripts/ci/download_admin_dependency_cache_artifact.sh
+      NOTEAI_DOWNLOAD_HELPER_SHA256: 66abfd513be7aa81946072493e1472030a8acccbf7a3e2d4dc461c94712e2a92
+      NOTEAI_PROVIDER_DOWNLOAD_VERIFIER_PATH: tools/verify_admin_dependency_cache_provider_download.py
+      NOTEAI_PROVIDER_DOWNLOAD_VERIFIER_SHA256: ca05697d12b8c02b183b1c611c33781d63641c5369bc54b2508a538591a0986b
+      NOTEAI_BUILDKIT_IMAGE: moby/buildkit@sha256:2f5adac4ecd194d9f8c10b7b5d7bceb5186853db1b26e5abd3a657af0b7e26ec
+      RELEASE_COMMIT: 5335bdaed933b1f999b5f819c047ec50c11821ae
+      RELEASE_TREE: 38e574e56406ba3380acb78edbe784508cc537cd
+      NOTEAI_OCI_SOURCE: "https://github.com/iamyusen1314/noteai"
+      NOTEAI_OCI_VERSION: "git-5335bda-amd64-r1"
+      NOTEAI_OCI_CREATED: "2026-07-30T13:29:02Z"
+      NOTEAI_ARTIFACT_NAME: "admin-dependency-prefix-cache-5335bda-v3"
+      NOTEAI_PRODUCER_BUILDER: noteai-admin-cache-v3-producer-${{ github.run_id }}
+      NOTEAI_CONSUMER_BUILDER: noteai-admin-cache-v3-consumer-${{ github.run_id }}
+      BUILDX_METADATA_PROVENANCE: max
+
+    steps:
+      - name: Checkout V3 one-shot controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Resolve exact V3 recovery request
+        id: control
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_EVENT_NAME}" = "push"
+          test "${GITHUB_REF_NAME}" = "codex/quality-stabilization-real-chain"
+          test "${GITHUB_RUN_ATTEMPT}" = "1"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test -z "$(git status --short)"
+
+          parent_record="$(git rev-list --parents -n 1 "${GITHUB_SHA}")"
+          read -r -a parent_fields <<<"${parent_record}"
+          test "${#parent_fields[@]}" -eq 2
+          test "${parent_fields[0]}" = "${GITHUB_SHA}"
+          controller_parent="$(git rev-parse "${GITHUB_SHA}^")"
+
+          changed_file_list="${RUNNER_TEMP}/noteai-cache-v3-changed-files"
+          git diff-tree --no-commit-id --no-renames \
+            --name-only -z -r "${controller_parent}" "${GITHUB_SHA}" \
+            > "${changed_file_list}"
+          changed_files=()
+          while IFS= read -r -d '' changed_file; do
+            changed_files+=("${changed_file}")
+          done < "${changed_file_list}"
+          test "${#changed_files[@]}" -eq 1
+          test "${changed_files[0]}" = "${NOTEAI_REQUEST_PATH}"
+          test "$(
+            git diff-tree --no-commit-id --no-renames --diff-filter=A \
+              --name-status -r "${controller_parent}" "${GITHUB_SHA}" \
+              -- "${NOTEAI_REQUEST_PATH}"
+          )" = $'A\t'"${NOTEAI_REQUEST_PATH}"
+          test "$(
+            git ls-tree "${GITHUB_SHA}" -- "${NOTEAI_REQUEST_PATH}" |
+              awk '{print $1 " " $2}'
+          )" = "100644 blob"
+
+          for reviewed_path in \
+            "${NOTEAI_REQUEST_TEMPLATE}" \
+            "${NOTEAI_V2_REQUEST_PATH}" \
+            "${NOTEAI_V2_WORKFLOW_PATH}" \
+            "${NOTEAI_V2_TEMPLATE_PATH}" \
+            "${NOTEAI_V2_PLAN_VERIFIER_PATH}" \
+            "${NOTEAI_FAILURE_EVIDENCE_PATH}" \
+            "${NOTEAI_FAILURE_EVIDENCE_VERIFIER_PATH}" \
+            "${NOTEAI_EXPORT_HELPER_PATH}" \
+            "${NOTEAI_IMPORT_HELPER_PATH}" \
+            "${NOTEAI_BASE_BUNDLE_VERIFIER_PATH}" \
+            "${NOTEAI_BUNDLE_VERIFIER_PATH}" \
+            "${NOTEAI_TRANSIENT_STATE_VERIFIER_PATH}" \
+            "${NOTEAI_CLEANUP_HELPER_PATH}" \
+            "${NOTEAI_DOWNLOAD_HELPER_PATH}" \
+            "${NOTEAI_PROVIDER_DOWNLOAD_VERIFIER_PATH}"
+          do
+            test "$(
+              git rev-parse "${controller_parent}:${reviewed_path}"
+            )" = "$(
+              git rev-parse "${GITHUB_SHA}:${reviewed_path}"
+            )"
+          done
+
+          check_parent_sha256() {
+            local expected="$1"
+            local path="$2"
+            test "$(
+              git show "${controller_parent}:${path}" |
+                sha256sum |
+                awk '{print $1}'
+            )" = "${expected}"
+          }
+          check_parent_sha256 \
+            "${NOTEAI_REQUEST_TEMPLATE_SHA256}" \
+            "${NOTEAI_REQUEST_TEMPLATE}"
+          check_parent_sha256 \
+            "${NOTEAI_V2_REQUEST_SHA256}" \
+            "${NOTEAI_V2_REQUEST_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_V2_WORKFLOW_SHA256}" \
+            "${NOTEAI_V2_WORKFLOW_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_V2_TEMPLATE_SHA256}" \
+            "${NOTEAI_V2_TEMPLATE_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_V2_PLAN_VERIFIER_SHA256}" \
+            "${NOTEAI_V2_PLAN_VERIFIER_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_FAILURE_EVIDENCE_SHA256}" \
+            "${NOTEAI_FAILURE_EVIDENCE_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_FAILURE_EVIDENCE_VERIFIER_SHA256}" \
+            "${NOTEAI_FAILURE_EVIDENCE_VERIFIER_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_EXPORT_HELPER_SHA256}" \
+            "${NOTEAI_EXPORT_HELPER_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_IMPORT_HELPER_SHA256}" \
+            "${NOTEAI_IMPORT_HELPER_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_BASE_BUNDLE_VERIFIER_SHA256}" \
+            "${NOTEAI_BASE_BUNDLE_VERIFIER_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_BUNDLE_VERIFIER_SHA256}" \
+            "${NOTEAI_BUNDLE_VERIFIER_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_TRANSIENT_STATE_VERIFIER_SHA256}" \
+            "${NOTEAI_TRANSIENT_STATE_VERIFIER_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_CLEANUP_HELPER_SHA256}" \
+            "${NOTEAI_CLEANUP_HELPER_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_DOWNLOAD_HELPER_SHA256}" \
+            "${NOTEAI_DOWNLOAD_HELPER_PATH}"
+          check_parent_sha256 \
+            "${NOTEAI_PROVIDER_DOWNLOAD_VERIFIER_SHA256}" \
+            "${NOTEAI_PROVIDER_DOWNLOAD_VERIFIER_PATH}"
+
+          test "$(
+            git log --diff-filter=A --format=%H "${GITHUB_SHA}" -- \
+              "${NOTEAI_V2_REQUEST_PATH}"
+          )" = "${NOTEAI_V2_CONTROL_COMMIT}"
+          test "$(
+            git show "${GITHUB_SHA}:${NOTEAI_V2_REQUEST_PATH}" |
+              sha256sum |
+              awk '{print $1}'
+          )" = "${NOTEAI_V2_REQUEST_SHA256}"
+          python3 "${NOTEAI_FAILURE_EVIDENCE_VERIFIER_PATH}"
+
+          request_template="${RUNNER_TEMP}/noteai-cache-v3-request-template.json"
+          request_file="${RUNNER_TEMP}/noteai-cache-v3-request.json"
+          expected_request="${RUNNER_TEMP}/noteai-cache-v3-request-expected.json"
+          git show "${controller_parent}:${NOTEAI_REQUEST_TEMPLATE}" \
+            > "${request_template}"
+          test "$(
+            grep -o '__DIRECT_PARENT_COMMIT__' "${request_template}" |
+              wc -l |
+              tr -d ' '
+          )" = "1"
+          sed \
+            "s/__DIRECT_PARENT_COMMIT__/${controller_parent}/" \
+            "${request_template}" \
+            > "${expected_request}"
+          git show "${GITHUB_SHA}:${NOTEAI_REQUEST_PATH}" > "${request_file}"
+          cmp "${request_file}" "${expected_request}"
+          jq -e \
+            --arg plan_checkpoint_commit "${controller_parent}" \
+            --arg failure_evidence_sha256 "${NOTEAI_FAILURE_EVIDENCE_SHA256}" '
+            type == "object"
+            and .schema_version == 3
+            and .task == "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
+            and .release_commit == "5335bdaed933b1f999b5f819c047ec50c11821ae"
+            and .plan_checkpoint_commit == $plan_checkpoint_commit
+            and .release_scope == "admin_dependency_prefix_cache_recovery"
+            and .trigger_mode == "one_shot_added_request_v3"
+            and .predecessor == {
+              control_commit: "83b89262a33aed2cfa9fd623f232a66824398c2e",
+              run_id: 30591103183,
+              run_attempt: 1,
+              conclusion: "failure",
+              artifact_count: 0,
+              rerun_authorized: false,
+              failure_evidence_sha256: $failure_evidence_sha256
+            }
+            and .recovery_run_authorized_after_predecessor_failure == true
+            and .github_actions_maximum_runtime_minutes == 120
+            and .artifact_retention_days == 1
+            and .artifact_input_maximum_bytes == 4026531840
+            and .artifact_provider_maximum_bytes == 4294967296
+            and .artifact_visibility_assumption == "public_repository_readers"
+            and .dependency_cache_export_authorized == true
+            and .public_repository_artifact_authorized == true
+            and .cross_provider_transfer_authorized == true
+            and .registry_publication_authorized == false
+            and .deployment_authorized == false
+            and .database_authorized == false
+            and .service_mutation_authorized == false
+            and .public_traffic_authorized == false
+          ' "${request_file}" >/dev/null
+          request_sha256="$(
+            sha256sum "${request_file}" | awk '{print $1}'
+          )"
+
+          request_history_file="${RUNNER_TEMP}/noteai-cache-v3-request-history"
+          git log --diff-filter=A --format=%H "${GITHUB_SHA}" -- \
+            "${NOTEAI_REQUEST_PATH}" > "${request_history_file}"
+          request_add_commits=()
+          while IFS= read -r request_add_commit; do
+            request_add_commits+=("${request_add_commit}")
+          done < "${request_history_file}"
+          test "${#request_add_commits[@]}" -eq 1
+          test "${request_add_commits[0]}" = "${GITHUB_SHA}"
+
+          git cat-file -e "${RELEASE_COMMIT}^{commit}"
+          test "$(git rev-parse "${RELEASE_COMMIT}^{tree}")" = "${RELEASE_TREE}"
+          git merge-base --is-ancestor "${RELEASE_COMMIT}" "${controller_parent}"
+
+          export_helper_copy="${RUNNER_TEMP}/noteai-cache-v3-export.sh"
+          import_helper_copy="${RUNNER_TEMP}/noteai-cache-v3-import-base.sh"
+          base_verifier_copy="${RUNNER_TEMP}/noteai-cache-v3-bundle-base.py"
+          bundle_verifier_copy="${RUNNER_TEMP}/noteai-cache-v3-bundle.py"
+          transient_verifier_copy="${RUNNER_TEMP}/noteai-cache-v3-transient.py"
+          cleanup_helper_copy="${RUNNER_TEMP}/noteai-cache-v3-cleanup.sh"
+          cp "${NOTEAI_EXPORT_HELPER_PATH}" "${export_helper_copy}"
+          cp "${NOTEAI_IMPORT_HELPER_PATH}" "${import_helper_copy}"
+          cp "${NOTEAI_BASE_BUNDLE_VERIFIER_PATH}" "${base_verifier_copy}"
+          cp "${NOTEAI_BUNDLE_VERIFIER_PATH}" "${bundle_verifier_copy}"
+          cp "${NOTEAI_TRANSIENT_STATE_VERIFIER_PATH}" \
+            "${transient_verifier_copy}"
+          cp "${NOTEAI_CLEANUP_HELPER_PATH}" "${cleanup_helper_copy}"
+          chmod 0500 \
+            "${export_helper_copy}" \
+            "${import_helper_copy}" \
+            "${base_verifier_copy}" \
+            "${bundle_verifier_copy}" \
+            "${transient_verifier_copy}" \
+            "${cleanup_helper_copy}"
+          workflow_sha256="$(
+            sha256sum \
+              .github/workflows/admin-dependency-cache-export-v3.yml |
+              awk '{print $1}'
+          )"
+
+          printf 'plan_checkpoint_commit=%s\n' "${controller_parent}" \
+            >> "${GITHUB_OUTPUT}"
+          printf 'control_commit=%s\n' "${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
+          printf 'request_sha256=%s\n' "${request_sha256}" >> "${GITHUB_OUTPUT}"
+          printf 'export_helper_copy=%s\n' "${export_helper_copy}" \
+            >> "${GITHUB_OUTPUT}"
+          printf 'import_helper_copy=%s\n' "${import_helper_copy}" \
+            >> "${GITHUB_OUTPUT}"
+          printf 'base_verifier_copy=%s\n' "${base_verifier_copy}" \
+            >> "${GITHUB_OUTPUT}"
+          printf 'bundle_verifier_copy=%s\n' "${bundle_verifier_copy}" \
+            >> "${GITHUB_OUTPUT}"
+          printf 'transient_verifier_copy=%s\n' "${transient_verifier_copy}" \
+            >> "${GITHUB_OUTPUT}"
+          printf 'cleanup_helper_copy=%s\n' "${cleanup_helper_copy}" \
+            >> "${GITHUB_OUTPUT}"
+          printf 'workflow_sha256=%s\n' "${workflow_sha256}" \
+            >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout exact 5335 release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.RELEASE_COMMIT }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Verify immutable dependency-prefix source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "x86_64"
+          test "$(git rev-parse HEAD)" = "${RELEASE_COMMIT}"
+          test "$(git rev-parse HEAD^{tree})" = "${RELEASE_TREE}"
+          test -z "$(git status --short)"
+          test "$(
+            sha256sum Dockerfile | awk '{print $1}'
+          )" = "ed6282c422dde6e49c33da877bccf735dfbb19e29a834930fb2a1a52ef21b447"
+          test "$(
+            sha256sum .dockerignore | awk '{print $1}'
+          )" = "d327ca46e4800b2af3c073c7e40bac93e0a042fec016fe6b798a5bd6944d3149"
+          test "$(
+            sha256sum model/requirements.txt | awk '{print $1}'
+          )" = "1ef4150536e98b8057069981b1aadb469ca12f0f30f188a291af2f31e238724a"
+          test "$(
+            sha256sum model/requirements-api.txt | awk '{print $1}'
+          )" = "0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9"
+
+      - name: Create isolated V3 producer and consumer builders
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config-v3
+          BUILDX_CONFIG: ${{ runner.temp }}/noteai-buildx-state-v3
+          NOTEAI_TRANSIENT_STATE_VERIFIER_PATH: ${{ steps.control.outputs.transient_verifier_copy }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${NOTEAI_PRODUCER_BUILDER}" != "${NOTEAI_CONSUMER_BUILDER}"
+          test ! -e "${DOCKER_CONFIG}"
+          test ! -e "${BUILDX_CONFIG}"
+          mkdir -m 0700 "${DOCKER_CONFIG}"
+          mkdir -m 0700 "${BUILDX_CONFIG}"
+          jq -n '{auths: {}}' > "${DOCKER_CONFIG}/config.json"
+          chmod 0600 "${DOCKER_CONFIG}/config.json"
+          python3 "${NOTEAI_TRANSIENT_STATE_VERIFIER_PATH}" \
+            --runner-temp "${RUNNER_TEMP}" \
+            --docker-config "${DOCKER_CONFIG}" \
+            --buildx-config "${BUILDX_CONFIG}"
+          docker image ls --all --no-trunc --quiet |
+            LC_ALL=C sort -u > "${RUNNER_TEMP}/noteai-images-before"
+          docker container ls --all --no-trunc --quiet |
+            LC_ALL=C sort -u > "${RUNNER_TEMP}/noteai-containers-before"
+          docker volume ls --quiet |
+            LC_ALL=C sort -u > "${RUNNER_TEMP}/noteai-volumes-before"
+          docker network ls --no-trunc --quiet |
+            LC_ALL=C sort -u > "${RUNNER_TEMP}/noteai-networks-before"
+          docker buildx create \
+            --name "${NOTEAI_PRODUCER_BUILDER}" \
+            --driver docker-container \
+            --driver-opt "image=${NOTEAI_BUILDKIT_IMAGE}"
+          docker buildx create \
+            --name "${NOTEAI_CONSUMER_BUILDER}" \
+            --driver docker-container \
+            --driver-opt "image=${NOTEAI_BUILDKIT_IMAGE}"
+          for builder_name in \
+            "${NOTEAI_PRODUCER_BUILDER}" \
+            "${NOTEAI_CONSUMER_BUILDER}"
+          do
+            builder_inspect="${RUNNER_TEMP}/${builder_name}-inspect"
+            docker buildx inspect "${builder_name}" --bootstrap \
+              > "${builder_inspect}"
+            test "$(
+              awk -F: '
+                $1 ~ /^[[:space:]]*Driver[[:space:]]*$/ {
+                  value = $2
+                  gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+                  print value
+                }
+              ' "${builder_inspect}" | LC_ALL=C sort -u
+            )" = "docker-container"
+            test "$(
+              awk -F: '
+                $1 ~ /^[[:space:]]*BuildKit version[[:space:]]*$/ {
+                  value = $2
+                  gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+                  print value
+                }
+              ' "${builder_inspect}" | LC_ALL=C sort -u
+            )" = "v0.31.2"
+            grep -Eq \
+              '^[[:space:]]*Platforms:[[:space:]]+linux/amd64(,|$)' \
+              "${builder_inspect}"
+          done
+          python3 "${NOTEAI_TRANSIENT_STATE_VERIFIER_PATH}" \
+            --runner-temp "${RUNNER_TEMP}" \
+            --docker-config "${DOCKER_CONFIG}" \
+            --buildx-config "${BUILDX_CONFIG}"
+
+      - name: Export V3 dependency-only BuildKit local cache
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config-v3
+          BUILDX_CONFIG: ${{ runner.temp }}/noteai-buildx-state-v3
+          NOTEAI_CACHE_BUNDLE_DIR: ${{ runner.temp }}/noteai-admin-dependency-cache-bundle-v3
+          NOTEAI_PLAN_CHECKPOINT_COMMIT: ${{ steps.control.outputs.plan_checkpoint_commit }}
+          NOTEAI_CONTROL_COMMIT: ${{ steps.control.outputs.control_commit }}
+          NOTEAI_REQUEST_SHA256: ${{ steps.control.outputs.request_sha256 }}
+          NOTEAI_WORKFLOW_SHA256: ${{ steps.control.outputs.workflow_sha256 }}
+          NOTEAI_EXPORT_HELPER_PATH: ${{ steps.control.outputs.export_helper_copy }}
+          NOTEAI_IMPORT_HELPER_PATH: ${{ steps.control.outputs.import_helper_copy }}
+          NOTEAI_BASE_BUNDLE_VERIFIER_PATH: ${{ steps.control.outputs.base_verifier_copy }}
+          NOTEAI_BUNDLE_VERIFIER_PATH: ${{ steps.control.outputs.bundle_verifier_copy }}
+          NOTEAI_TRANSIENT_STATE_VERIFIER_PATH: ${{ steps.control.outputs.transient_verifier_copy }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --short)"
+          python3 "${NOTEAI_TRANSIENT_STATE_VERIFIER_PATH}" \
+            --runner-temp "${RUNNER_TEMP}" \
+            --docker-config "${DOCKER_CONFIG}" \
+            --buildx-config "${BUILDX_CONFIG}"
+          "${NOTEAI_EXPORT_HELPER_PATH}"
+          python3 "${NOTEAI_TRANSIENT_STATE_VERIFIER_PATH}" \
+            --runner-temp "${RUNNER_TEMP}" \
+            --docker-config "${DOCKER_CONFIG}" \
+            --buildx-config "${BUILDX_CONFIG}"
+          test -z "$(git status --short)"
+
+      - name: Prove V3 fresh-consumer import and cacheless replay
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config-v3
+          BUILDX_CONFIG: ${{ runner.temp }}/noteai-buildx-state-v3
+          NOTEAI_IMPORT_MODE: ci_portability
+          NOTEAI_CACHE_BUNDLE_DIR: ${{ runner.temp }}/noteai-admin-dependency-cache-bundle-v3
+          NOTEAI_SOURCE_DIR: ${{ github.workspace }}
+          NOTEAI_BUILDX_BUILDER: ${{ env.NOTEAI_CONSUMER_BUILDER }}
+          NOTEAI_PRODUCER_BUILDER_NAME: ${{ env.NOTEAI_PRODUCER_BUILDER }}
+          NOTEAI_IMPORT_EVIDENCE_DIR: ${{ runner.temp }}/unused-v3-import-evidence
+          NOTEAI_BASE_BUNDLE_VERIFIER_PATH: ${{ steps.control.outputs.base_verifier_copy }}
+          NOTEAI_TRUSTED_BUNDLE_VERIFIER_PATH: ${{ steps.control.outputs.bundle_verifier_copy }}
+          NOTEAI_EXPECTED_IMPORT_HELPER_SHA256: ${{ env.NOTEAI_IMPORT_HELPER_SHA256 }}
+          NOTEAI_TRANSIENT_STATE_VERIFIER_PATH: ${{ steps.control.outputs.transient_verifier_copy }}
+          BUILDX_BUILDER: ${{ env.NOTEAI_CONSUMER_BUILDER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 "${NOTEAI_TRANSIENT_STATE_VERIFIER_PATH}" \
+            --runner-temp "${RUNNER_TEMP}" \
+            --docker-config "${DOCKER_CONFIG}" \
+            --buildx-config "${BUILDX_CONFIG}"
+          bash "${{ steps.control.outputs.import_helper_copy }}"
+          python3 "${NOTEAI_TRANSIENT_STATE_VERIFIER_PATH}" \
+            --runner-temp "${RUNNER_TEMP}" \
+            --docker-config "${DOCKER_CONFIG}" \
+            --buildx-config "${BUILDX_CONFIG}"
+          test -f "${NOTEAI_CACHE_BUNDLE_DIR}/SHA256SUMS"
+          test -f "${NOTEAI_CACHE_BUNDLE_DIR}/portability/proof.json"
+
+      - name: Remove V3 builders and all transient Docker state
+        id: cleanup
+        if: always()
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/noteai-empty-docker-config-v3
+          BUILDX_CONFIG: ${{ runner.temp }}/noteai-buildx-state-v3
+          NOTEAI_TRANSIENT_STATE_VERIFIER_PATH: ${{ steps.control.outputs.transient_verifier_copy }}
+          NOTEAI_CLEANUP_HELPER_PATH: ${{ steps.control.outputs.cleanup_helper_copy }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "${NOTEAI_CLEANUP_HELPER_PATH}"
+          printf 'cleanup_passed=true\n' >> "${GITHUB_OUTPUT}"
+
+      - name: Validate final V3 portable bundle after cleanup
+        id: bundle
+        if: ${{ success() && steps.cleanup.outputs.cleanup_passed == 'true' }}
+        env:
+          NOTEAI_CACHE_BUNDLE_DIR: ${{ runner.temp }}/noteai-admin-dependency-cache-bundle-v3
+          NOTEAI_BASE_BUNDLE_VERIFIER_PATH: ${{ steps.control.outputs.base_verifier_copy }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sums_sha256="$(
+            tr -d '\r\n' < "${RUNNER_TEMP}/noteai-final-sums-sha256"
+          )"
+          test "$(
+            printf '%s' "${expected_sums_sha256}" |
+              grep -Ec '^[0-9a-f]{64}$'
+          )" = "1"
+          final_extract="${RUNNER_TEMP}/noteai-final-cache-v3-validation"
+          python3 \
+            "${{ steps.control.outputs.bundle_verifier_copy }}" \
+            verify-final \
+            --bundle "${NOTEAI_CACHE_BUNDLE_DIR}" \
+            --extract-to "${final_extract}" \
+            --expected-sums-sha256 "${expected_sums_sha256}" \
+            --output "${RUNNER_TEMP}/noteai-final-bundle-v3-validation.json"
+          jq -e '
+            .artifact_input_bytes <= .artifact_input_maximum_bytes
+            and .artifact_input_maximum_bytes == 4026531840
+            and .artifact_provider_maximum_bytes == 4294967296
+          ' "${RUNNER_TEMP}/noteai-final-bundle-v3-validation.json" >/dev/null
+          rm -rf --one-file-system -- "${final_extract}"
+          test ! -e "${final_extract}"
+          printf 'final_sums_sha256=%s\n' "${expected_sums_sha256}" \
+            >> "${GITHUB_OUTPUT}"
+
+      - name: Upload one-day V3 public-repository dependency cache artifact
+        id: upload
+        if: ${{ success() && steps.cleanup.outputs.cleanup_passed == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ${{ env.NOTEAI_ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/noteai-admin-dependency-cache-bundle-v3
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 1
+          compression-level: 0
+
+      - name: Confirm V3 provider artifact identity
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_RUN_ATTEMPT}" = "1"
+          test -n "${{ steps.upload.outputs.artifact-id }}"
+          test "$(
+            printf '%s' "${{ steps.upload.outputs.artifact-digest }}" |
+              grep -Ec '^[0-9a-f]{64}$'
+          )" = "1"
+          test "$(
+            printf '%s' "${{ steps.bundle.outputs.final_sums_sha256 }}" |
+              grep -Ec '^[0-9a-f]{64}$'
+          )" = "1"
+          echo "admin_dependency_cache_v3_artifact=UPLOADED retention_days=1 run_attempt=1"
+
+      - name: Remove runner-local V3 bundle
+        if: always()
+        env:
+          NOTEAI_CACHE_BUNDLE_DIR: ${{ runner.temp }}/noteai-admin-dependency-cache-bundle-v3
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${NOTEAI_CACHE_BUNDLE_DIR}" = \
+            "${RUNNER_TEMP}/noteai-admin-dependency-cache-bundle-v3"
+          test ! -L "${NOTEAI_CACHE_BUNDLE_DIR}"
+          if [[ -e "${NOTEAI_CACHE_BUNDLE_DIR}" ]]; then
+            rm -rf --one-file-system -- "${NOTEAI_CACHE_BUNDLE_DIR}"
+          fi
+          test ! -e "${NOTEAI_CACHE_BUNDLE_DIR}"

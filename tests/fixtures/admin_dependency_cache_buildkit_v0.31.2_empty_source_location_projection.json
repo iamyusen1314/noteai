@@ -1,0 +1,70 @@
+{
+  "schema_version": "noteai.admin-dependency-cache-buildkit-empty-source-location-source.v1",
+  "classification": "SOURCE_PROVEN_EMPTY_SOURCE_LOCATION_CONTRACT_NOT_V7_RUNTIME_EVIDENCE",
+  "actual_v7_runtime_metadata_retained": false,
+  "actual_v7_step9_payload_retained": false,
+  "runtime_step9_shape_reconstructed": false,
+  "buildkit": {
+    "repository": "moby/buildkit",
+    "version": "v0.31.2",
+    "tag_object_sha1": "37aba93910a245e9196ccf67f4afb55f18b39f81",
+    "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+    "sources": [
+      {
+        "path": "client/llb/state.go",
+        "git_blob_sha1": "370012c88c1c9c5676af132e86d9ff7b0b66852d",
+        "sha256": "dffe65648a394476d9f3a87f6e33a9f23d1f935e59f9ef7022aee526fba29bc4",
+        "lines": "196-223",
+        "contract": "every marshaled vertex records source locations, including a nil source-location slice"
+      },
+      {
+        "path": "client/llb/sourcemap.go",
+        "git_blob_sha1": "4e3be2b499362d3cfb43066b57f8b6a227759b16",
+        "sha256": "587e7919f584b3fb9fcb38c788309ea91f4e0d0295ba14bc6e027ee7e6d5955c",
+        "lines": "83-116,118-162",
+        "contract": "a digest key is retained and an empty location slice becomes a non-null empty Locations message"
+      },
+      {
+        "path": "solver/llbsolver/provenance/buildconfig.go",
+        "git_blob_sha1": "7e92990c88f2a31ac4c3f4d9807e199745da03d5",
+        "sha256": "31fb4454bf21b3d38e76038fc2b19e5064117d4a06387233fe91ccba9f55e67e",
+        "lines": "14-75",
+        "contract": "source locations are projected from digest identity to the corresponding stepN key"
+      },
+      {
+        "path": "solver/llbsolver/provenance/types/types.go",
+        "git_blob_sha1": "e5b5f3741c0cb4002b435a583ca625b479fd1ea1",
+        "sha256": "adca3c54d6c4ea58347d8e014074f30a638ecb3451986245d9a5b8bdff78c698",
+        "lines": "33-55",
+        "contract": "BuildConfig source locations are keyed by step id"
+      },
+      {
+        "path": "solver/pb/ops.proto",
+        "git_blob_sha1": "c58fc6126f04005ceb08711ab8fe71d17b050fb3",
+        "sha256": "309d9735d15cd945372a0dade3672cea19f94b61b6d0c05cf22856c608ff2a9c",
+        "lines": "236-270",
+        "contract": "Locations contains a repeated locations field whose empty value is valid"
+      },
+      {
+        "path": "solver/pb/ops.pb.go",
+        "git_blob_sha1": "5f487cc3bc501a97c10f0d138266280025453f3a",
+        "sha256": "10466c5d72f8affdd8c29dfabf9ca4b1b27ecef20d05c940cb41ee5cd6e8b069",
+        "lines": "1756-1762,1870-1880,1923-1930,1976-1982",
+        "contract": "the locations field uses omitempty, so an empty Locations message serializes as an exact empty object"
+      }
+    ]
+  },
+  "v8_contract": {
+    "exact_empty_wrapper_allowed_as_nonbinding": true,
+    "empty_wrapper_cannot_satisfy_dependency_role": true,
+    "populated_location_delegated_to_frozen_v7": true,
+    "null_empty_array_unknown_keys_rejected": true,
+    "source_index_contract_not_broadened": true,
+    "v7_runtime_payload_claimed": false
+  },
+  "limitations": [
+    "This fixture proves a pinned BuildKit source contract and does not reconstruct the deleted V7 metadata.",
+    "It does not assert that the observed V7 step9 payload was an empty wrapper.",
+    "Only a new bounded successor run can supply runtime evidence under this contract."
+  ]
+}

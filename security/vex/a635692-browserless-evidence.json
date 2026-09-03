@@ -1,0 +1,161 @@
+{
+  "manifest_version": 3,
+  "task": "PROD-BROWSERLESS-VEX-DIGEST-REISSUE-001",
+  "generated_at": "2026-07-23T15:30:13Z",
+  "application_revision": "a635692a899ee02c6905cd694611c14e0da4594a",
+  "platform": "linux/amd64",
+  "base_image": {
+    "name": "python:3.11.15-slim-trixie",
+    "index_digest": "sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
+    "amd64_child_digest": "sha256:00af38ae2ed311628970782e8a2d7f014d8909dbc63cb97bc0a158187f4db045"
+  },
+  "scanner": {
+    "name": "Trivy",
+    "version": "0.70.0",
+    "database_date": "2026-07-23",
+    "database_metadata_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/trivy-db-metadata.json",
+    "database_metadata_sha256": "d633ce44665171118fcfb016dea65891878f1638e3dd5c987fc1ac2d1018e71a",
+    "ignore_file_used": false,
+    "vex_applied": false,
+    "ignore_unfixed": false,
+    "raw_report_is_canonical": true
+  },
+  "raw_report_expectation": {
+    "rows_per_role": 23,
+    "critical_per_role": 4,
+    "high_per_role": 19,
+    "unique_cves_per_role": 12,
+    "fixed_version_rows_per_role": 0,
+    "pillow_rows_per_role": 0
+  },
+  "registry": {
+    "provider": "Alibaba Cloud ACR Enterprise",
+    "region": "cn-shenzhen",
+    "instance_id": "cri-xpuhaclqkxlwy47t",
+    "repository": "noteai/app",
+    "public_host": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com",
+    "tags_immutable": true,
+    "readback_method": "authenticated tag pull plus local OCI inspect",
+    "temporary_access_cleanup": {
+      "docker_logout": true,
+      "builder_cidr_removed": true,
+      "public_endpoint_disabled": true,
+      "session_manager_disabled": true,
+      "security_group_ingress_modified": false
+    }
+  },
+  "roles": {
+    "api": {
+      "image": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app:git-a635692-amd64-api-r1",
+      "local_image": "noteai-local:git-a635692-amd64-api-r1",
+      "local_image_id": "sha256:b1983bab928ef93495d8be020030917d4ae54364234390047c3163af5414fedb",
+      "registry_digest": "sha256:17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1",
+      "registry_reference": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:17706e1802afc136ac8f9a621d4199a7f9749da733290e923e42268eff42e0d1",
+      "registry_platform": "linux/amd64",
+      "sbom_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/api-sbom.cdx.json",
+      "sbom_sha256": "59a4cabaa7debfb81684ac3a77c7467454d1c98ef04d64aeade4850b07d918be",
+      "sbom_serial_number": "urn:uuid:9b5dc0cf-276b-42a8-8cde-aae5d0676dc5",
+      "sbom_version": 1,
+      "trivy_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/api-vuln-high-critical.json",
+      "trivy_sha256": "92d8bab2f8b58f4ed2a9469aaca8a73ee9985d8a97999ab7ff81efba68c20eda",
+      "constraint_proof_path": "/opt/noteai-build/evidence-a635692-constraint-proof-r1/api-elf-reachability.json",
+      "constraint_proof_sha256": "9eb515761c9c1f52465a1460e426cb6d1995e6384daeaa88c1f3574b5c74b7bb",
+      "runtime_constraints_path": "/opt/noteai-build/evidence-a635692-constraint-proof-r1/api-runtime-constraints.txt",
+      "runtime_constraints_sha256": "f0a1925f1b0711d145bc2899443c1a56002e78becbbe24b57175ce62d182d386"
+    },
+    "admin": {
+      "image": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app:git-a635692-amd64-admin-r1",
+      "local_image": "noteai-local:git-a635692-amd64-admin-r1",
+      "local_image_id": "sha256:2283095764622e373e30b51ba749819751e6bfb0c37c6bb82e2d3bfe4937760f",
+      "registry_digest": "sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733",
+      "registry_reference": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733",
+      "registry_platform": "linux/amd64",
+      "sbom_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/admin-sbom.cdx.json",
+      "sbom_sha256": "136ace76eaaaed1d7ded40d54bb5162cbd28bb79069a310694913e847d1f6cd7",
+      "sbom_serial_number": "urn:uuid:ae2ab874-1774-4af7-ad42-ce7cad5c876b",
+      "sbom_version": 1,
+      "trivy_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/admin-vuln-high-critical.json",
+      "trivy_sha256": "e38d2a754a74133b93538545473cc3a1758403a1389fc34a028a3d81bc1e44b8",
+      "constraint_proof_path": "/opt/noteai-build/evidence-a635692-constraint-proof-r1/admin-elf-reachability.json",
+      "constraint_proof_sha256": "d2f33801b80f66352f1922f8be81a9fab95d9ec7f8d6d553d05f442ebcb4d6eb",
+      "runtime_constraints_path": "/opt/noteai-build/evidence-a635692-constraint-proof-r1/admin-runtime-constraints.txt",
+      "runtime_constraints_sha256": "dfba225a01155562e3c3e776c9dbdacaa06791fc82269edaa77da21346930ff1"
+    },
+    "xhs-http": {
+      "image": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app:git-a635692-amd64-xhs-http-r1",
+      "local_image": "noteai-local:git-a635692-amd64-xhs-http-r1",
+      "local_image_id": "sha256:5b44114d4bd9c28a8e93c39140466c542e8babeead038fb0d1cfe45c3cd75966",
+      "registry_digest": "sha256:452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af",
+      "registry_reference": "noteai-prod-shenzhen-registry.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:452c2faf7853ce58d93e43c05fb6217a9a6cc1e4c81345d8cef2f50acabd79af",
+      "registry_platform": "linux/amd64",
+      "sbom_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/xhs-http-sbom.cdx.json",
+      "sbom_sha256": "a27663349c7af6ebdfdfbd16bf6ef2c189b420115405304ac26565249aa6a92e",
+      "sbom_serial_number": "urn:uuid:4073a9eb-1d9b-49b3-8dc1-7bfbfec21514",
+      "sbom_version": 1,
+      "trivy_path": "/opt/noteai-build/evidence-a635692-pillow-rebuild-r2/scans/xhs-http-vuln-high-critical.json",
+      "trivy_sha256": "f91e706a8e058fa60952b74246fb9a156b68cb698e6379ccc9a6aed79f744932",
+      "constraint_proof_path": "/opt/noteai-build/evidence-a635692-constraint-proof-r1/xhs-http-elf-reachability.json",
+      "constraint_proof_sha256": "d4c707612914dd989044ae65bdc45d06021072737a4511ec9207445a2d1f554e",
+      "runtime_constraints_path": "/opt/noteai-build/evidence-a635692-constraint-proof-r1/xhs-runtime-constraints.txt",
+      "runtime_constraints_sha256": "cfaa10444c2553af478e0ca9b54b900d140b8c6f3aa5b2e03d713c8517132031"
+    }
+  },
+  "constraint_proof": {
+    "manifest_path": "/opt/noteai-build/evidence-a635692-constraint-proof-r1/SHA256SUMS",
+    "manifest_sha256": "6bcdb87db13e95cdf04eebcca332abc8138c61b62b0759b3c49994d9f9f6bd1f",
+    "evidence_script_sha256": "75b7d8393de4e259fcc6303ecffa51a063b59266fc10dfe357fedaf7524221e6",
+    "elf_records_per_role": 1203,
+    "accepted_roots_per_role": 354,
+    "reachable_objects_per_role": 377,
+    "libblkid_reachable": false,
+    "libacl_reachable": false,
+    "runtime_contract": {
+      "uid_gid": "999:999",
+      "cap_drop_all": true,
+      "no_new_privileges": true,
+      "read_only_root": true,
+      "privileged": false,
+      "devices": [],
+      "host_namespaces": []
+    }
+  },
+  "components": {
+    "bsdutils": "pkg:deb/debian/bsdutils@2.41-5?arch=amd64&distro=debian-13.6&epoch=1",
+    "gzip": "pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6",
+    "libacl1": "pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6",
+    "libblkid1": "pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6",
+    "liblastlog2-2": "pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6",
+    "libmount1": "pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6",
+    "libncursesw6": "pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6",
+    "libsmartcols1": "pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6",
+    "libtinfo6": "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6",
+    "libuuid1": "pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6",
+    "login": "pkg:deb/debian/login@4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&epoch=1",
+    "mount": "pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6",
+    "ncurses-base": "pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6",
+    "ncurses-bin": "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6",
+    "perl-base": "pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6",
+    "util-linux": "pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6"
+  },
+  "cloud_assistant_audit": {
+    "instance_id": "i-wz99180s9ig5ecq10uaj",
+    "initial_evidence_execution_id": "t-sz06rsblbtnwphc",
+    "initial_evidence_exit_code": 0,
+    "failed_read_only_query_execution_id": "t-sz06rsbrezx6g3k",
+    "failed_read_only_query_exit_code": 5,
+    "failed_read_only_query_effect": "jq grouping error after reading the first SBOM; no file or environment modification",
+    "final_bom_ref_execution_id": "t-sz06rsbupffva4g",
+    "final_bom_ref_exit_code": 0,
+    "production_instances_targeted": 0,
+    "files_modified": 0
+  },
+  "scope_limit": {
+    "local_image_ids_are_registry_digests": false,
+    "valid_after_image_change": false,
+    "valid_after_sbom_change": false,
+    "valid_after_registry_push_without_reissue": false,
+    "registry_digest_reissue_complete": true,
+    "production_exception": false,
+    "deployment_authorization": false
+  }
+}

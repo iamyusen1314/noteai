@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-FIRST-LAUNCH-PRODUCTION-SCHEMA-ROLES-V5-OWNER-001",
+  "observed_at_utc": "2026-07-28T23:21:17Z",
+  "status": "MODE_FIX_PACKAGE_VERIFIED_PRODUCTION_DATABASE_UNCHANGED",
+  "source": {
+    "pushed_checkpoint_commit": "93d5d3b85688606b97e1716eec3b61d59d5b682d",
+    "runner_sha256": "5a906ce756cbe2814c4c9bb6be7983af86604efada920ae8f7cda34a2d4ba1ef",
+    "migration_count": 16,
+    "migration_aggregate_sha256": "a6cc4fef8d988adb05108edeb16d8b520f600e4fd3bac06f61812c3db24ada73",
+    "runtime_acl_sha256": "b5fc9e7074c09b0ca26368049225873a6b342b810a17aab48ec7b89278a672d7",
+    "migration_bytes_changed": false,
+    "runtime_acl_bytes_changed": false,
+    "executor_bytes_changed": false,
+    "outcome_auditor_bytes_changed": false,
+    "preflight_auditor_bytes_changed": false
+  },
+  "package": {
+    "source_file_count": 25,
+    "manifest_file_count": 1,
+    "archive_regular_file_count": 26,
+    "migration_count": 16,
+    "manifest_entry_count": 25,
+    "archive_bytes": 68915,
+    "archive_sha256": "0624644a7fdc4e6615e7f5729cd28125e0bf536281395cc05e0162eeae929718",
+    "manifest_sha256": "9494ac7e4367dee096613dc76b466cf5c42c66b4ea68a4c2d6d6379d2084d9fc",
+    "runner_sha256": "5a906ce756cbe2814c4c9bb6be7983af86604efada920ae8f7cda34a2d4ba1ef",
+    "archive_format": "USTAR_THEN_DETERMINISTIC_GZIP",
+    "deterministic_build_count": 2,
+    "deterministic_builds_equal": true,
+    "root_owned_archive_member_count": 26,
+    "fixed_mtime_archive_member_count": 26,
+    "runner_archive_mode": "0755",
+    "other_archive_file_mode": "0644",
+    "appledouble_member_count": 0,
+    "symlink_or_hardlink_member_count": 0,
+    "non_regular_member_count": 0,
+    "duplicate_manifest_path_count": 0,
+    "all_manifest_hashes_verified": true,
+    "zero_dsn_top_level_import": "PASS"
+  },
+  "transfer_chunks": [
+    {
+      "index": 0,
+      "bytes": 23000,
+      "sha256": "59d61d301c3e89db3bc8448b1809290f8d9e660adc5549e605c34f8f20343398"
+    },
+    {
+      "index": 1,
+      "bytes": 23000,
+      "sha256": "7ff3b6ef48fd6248873ed4fa0ae11ad7d9d6f05b92e859046ca0f6b4cda7e702"
+    },
+    {
+      "index": 2,
+      "bytes": 22915,
+      "sha256": "e41645852402da1ea90a3c45447990b3c4b7567d62bc99b791bb217eb2062ae9"
+    }
+  ],
+  "pre_connect_incidents": [
+    {
+      "stage": "local_archive_mtime_option",
+      "classification": "PRE_CONNECT",
+      "cause": "The local bsdtar build does not implement the requested fixed-mtime option and exited before producing an eligible archive.",
+      "material_fix": "Use the standard library USTAR writer with explicit root ownership, modes and fixed member/gzip timestamps; independently build twice and require byte equality.",
+      "eligible_for_transfer": false,
+      "production_database_connection_count": 0,
+      "production_database_transaction_count": 0,
+      "production_database_write_count": 0
+    }
+  ],
+  "validation": {
+    "focused_tests_passed": 43,
+    "focused_tests_total": 43,
+    "production_readiness_checks_passed": 105,
+    "production_readiness_checks_total": 105,
+    "runner_shell_syntax": "PASS",
+    "git_diff_check": "PASS",
+    "source_checkpoint_upstream_divergence": "0/0",
+    "internal_readiness_verified": 14,
+    "internal_readiness_total": 29
+  },
+  "production_boundary": {
+    "production_database_connection_count": 0,
+    "production_database_transaction_count": 0,
+    "production_database_write_count": 0,
+    "rds_account_create_count": 0,
+    "rsa_private_key_create_count": 0,
+    "ciphertext_create_count": 0,
+    "service_change_count": 0,
+    "provider_call_count": 0,
+    "public_traffic_request_count": 0,
+    "secret_value_exposure_count": 0,
+    "v3b_retry_count": 0,
+    "v4_retry_count": 0,
+    "owner_audit_004_retry_count": 0,
+    "privileged_owner_audit_005_retry_count": 0
+  },
+  "release_effect": {
+    "production_schema_roles_verified": false,
+    "readiness_credit": 0,
+    "next_action": "Delete only the proven PRE_CONNECT old V5 task root and chunks, transfer this exact three-part package, verify all hashes and run network-none prepare. Do not create a task account or RSA until prepare passes."
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "classification": "SOURCE_PROVEN_CONFIGURATION_CONTRACT_NOT_V5_RUNTIME_EVIDENCE",
+  "actual_v5_runtime_metadata_retained": false,
+  "buildx": {
+    "version": "v0.35.0",
+    "tag_object": "151a92201622eeb80e19bdd9681af2266772875f",
+    "peeled_commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+    "docker_container_factory": {
+      "blob": "ee95ae673205292879a702710f64d2fa5684319b",
+      "default_enabled_lines": "49-54",
+      "override_parse_lines": "115-119",
+      "approved_driver_option": {
+        "provenance-add-gha": "false"
+      }
+    },
+    "docker_container_driver": {
+      "blob": "f8b803a48a2e9f143a90a6ba24f33edeba3bee05",
+      "conditional_write_lines": "140-148",
+      "injected_relative_path": "provenance.d/github_actions_context.json"
+    },
+    "github_actions_context": {
+      "blob": "e1ca13bfb1cf67d1721d1d23e69eba9285e2e1ed",
+      "required_event_lines": "22-41",
+      "minimum_injected_keys": [
+        "github_event_name",
+        "github_event_payload"
+      ]
+    }
+  },
+  "buildkit": {
+    "version": "v0.31.2",
+    "tag_object": "37aba93910a245e9196ccf67f4afb55f18b39f81",
+    "peeled_commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+    "provenance_loader": {
+      "blob": "16ef54fe1b9a5615553a75ab62a0b1adf6d92f9e",
+      "load_lines": "74-101",
+      "default_directory": "/etc/buildkit/provenance.d",
+      "direct_json_files_loaded": true
+    }
+  },
+  "v5_expected_configuration": {
+    "producer_driver_options": {
+      "image": "moby/buildkit@sha256:2f5adac4ecd194d9f8c10b7b5d7bceb5186853db1b26e5abd3a657af0b7e26ec",
+      "provenance-add-gha": "false"
+    },
+    "consumer_driver_options": {
+      "image": "moby/buildkit@sha256:2f5adac4ecd194d9f8c10b7b5d7bceb5186853db1b26e5abd3a657af0b7e26ec",
+      "provenance-add-gha": "false"
+    },
+    "pre_build_direct_json_file_count": 0,
+    "post_build_environment_projection": {
+      "dockerfileVersion": "1.25.0",
+      "platform": "linux/amd64"
+    }
+  },
+  "limitations": [
+    "This fixture does not assert that a V5 workflow has run.",
+    "This fixture does not retain or simulate a GitHub event payload.",
+    "The disposable V5 run must still prove the exact post-build environment projection."
+  ]
+}

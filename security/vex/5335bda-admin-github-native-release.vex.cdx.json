@@ -1,0 +1,457 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:3d75d6c1-cac1-542e-81f2-3d3f3895cf2e",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-30T13:29:02Z",
+    "authors": [
+      {
+        "name": "NoteAI Production Release Management"
+      }
+    ],
+    "component": {
+      "bom-ref": "urn:noteai:release:5335bda-native-admin-only-local",
+      "type": "application",
+      "group": "NoteAI",
+      "name": "native-admin-only-local-release-candidate",
+      "version": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+      "properties": [
+        {
+          "name": "noteai:task",
+          "value": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001"
+        },
+        {
+          "name": "noteai:platform",
+          "value": "linux/amd64"
+        },
+        {
+          "name": "noteai:workflow-run",
+          "value": "30550548144"
+        },
+        {
+          "name": "noteai:production-exception",
+          "value": "false"
+        },
+        {
+          "name": "noteai:deployment-authorization",
+          "value": "false"
+        },
+        {
+          "name": "noteai:registry-digest-binding",
+          "value": "none-local-images-only"
+        },
+        {
+          "name": "noteai:raw-trivy-report",
+          "value": "canonical-and-unsuppressed"
+        },
+        {
+          "name": "noteai:release-scope",
+          "value": "admin-only"
+        },
+        {
+          "name": "noteai:control-commit",
+          "value": "e7039a3fe73b539325593cf1ba78dcd4a9949910"
+        },
+        {
+          "name": "noteai:request-sha256",
+          "value": "c5bd56148af0d780d3955ebb9ed5dafe0c7507ba6974da86b5830323c77009ef"
+        },
+        {
+          "name": "noteai:github-receipt-sha256",
+          "value": "3ee041fd375b23a0973dc9e5b6949a156374eb2e6a88e6a036e82b965d11bb74"
+        },
+        {
+          "name": "noteai:registry-publication-authorization",
+          "value": "false"
+        },
+        {
+          "name": "noteai:database-authorization",
+          "value": "false"
+        },
+        {
+          "name": "noteai:service-mutation-authorization",
+          "value": "false"
+        },
+        {
+          "name": "noteai:public-traffic-authorization",
+          "value": "false"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "urn:noteai:container:admin:sha256:9ab915287427e58b1be80faa3a4252eb98463519967aad0e18329ad74d6d8cf7",
+      "type": "container",
+      "group": "NoteAI",
+      "name": "admin-runtime",
+      "version": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+      "properties": [
+        {
+          "name": "noteai:local-image-id",
+          "value": "sha256:9ab915287427e58b1be80faa3a4252eb98463519967aad0e18329ad74d6d8cf7"
+        },
+        {
+          "name": "noteai:sbom-sha256",
+          "value": "31b468943fd99864f1b541f4e90a7cc5985123633ab3336402ad6a16a9ecae1d"
+        },
+        {
+          "name": "noteai:raw-vulnerability-report-sha256",
+          "value": "e43c01d2258187ceb690ee3a8c866821451d42e1703259aa83df44bd9fa87af3"
+        },
+        {
+          "name": "noteai:registry-digest",
+          "value": "none"
+        }
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2025-69720",
+      "id": "CVE-2025-69720",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2025-69720"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "The affected infocmp command is not accepted by any exact role entrypoint or invoked by production Python code. Runtime roles are non-root, capability-free and read-only.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-13221",
+      "id": "CVE-2026-13221",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-13221"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-13221"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "perl-base is present, but the fail-closed role marker, command allowlist and exact source contain no production Perl invocation or attacker-controlled Perl regular-expression path.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-41992",
+      "id": "CVE-2026-41992",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-41992"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-41992"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "No accepted role command invokes gzip or accepts the crafted multi-file LZW/LZH sequence required by the affected path.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-42496",
+      "id": "CVE-2026-42496",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-42496"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-42496"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected Archive::Tar module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-42497",
+      "id": "CVE-2026-42497",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-42497"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-42497"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected Archive::Tar module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-48962",
+      "id": "CVE-2026-48962",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-48962"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-48962"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected IO::Compress module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-53615",
+      "id": "CVE-2026-53615",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-53615"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-53615"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "No role invokes blkid, mount or another partition parser. The production contract exposes no devices or host namespace and enforces non-root, cap-drop ALL, no-new-privileges and read-only root filesystems.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-54369",
+      "id": "CVE-2026-54369",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-54369"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-54369"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "No role invokes ACL tools or pathname ACL APIs. The production contract runs UID/GID 999 with cap-drop ALL, no-new-privileges and a read-only root filesystem.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-57432",
+      "id": "CVE-2026-57432",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-57432"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-57432"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "No accepted role invokes Perl or accepts an attacker-controlled Perl pack/unpack template.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-57433",
+      "id": "CVE-2026-57433",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-57433"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-57433"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected Storable module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-8376",
+      "id": "CVE-2026-8376",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-8376"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-8376"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "requires_environment",
+        "detail": "The vulnerable condition is limited to 32-bit Perl builds. Every exact candidate and its runner evidence is linux/amd64.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-9538",
+      "id": "CVE-2026-9538",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-9538"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-9538"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected Archive::Tar module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-30T13:29:02Z",
+        "lastUpdated": "2026-07-30T13:29:02Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:1ccbf6b6-b770-49f8-90a8-d5e893ddc56a/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,801 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:439b64f5-4f4c-51f7-84bc-2711d2aeccae",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-27T02:36:46Z",
+    "authors": [
+      {
+        "name": "NoteAI Production Release Management"
+      }
+    ],
+    "component": {
+      "bom-ref": "urn:noteai:release:b06671f-native-five-role-local",
+      "type": "application",
+      "group": "NoteAI",
+      "name": "native-five-role-local-release-candidate",
+      "version": "b06671fbcca51f884b04c86edcf116e373c6cfa8",
+      "properties": [
+        {
+          "name": "noteai:task",
+          "value": "PROD-FIRST-LAUNCH-IMMUTABLE-RELEASE-B06671F-001"
+        },
+        {
+          "name": "noteai:platform",
+          "value": "linux/amd64"
+        },
+        {
+          "name": "noteai:workflow-run",
+          "value": "30233565859"
+        },
+        {
+          "name": "noteai:production-exception",
+          "value": "false"
+        },
+        {
+          "name": "noteai:deployment-authorization",
+          "value": "false"
+        },
+        {
+          "name": "noteai:registry-digest-binding",
+          "value": "none-local-images-only"
+        },
+        {
+          "name": "noteai:raw-trivy-report",
+          "value": "canonical-and-unsuppressed"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "urn:noteai:container:api:sha256:b394922e1164a3b9e7a613bb521164ef0e7ec1ad4dd439d4adce22f6f911f97b",
+      "type": "container",
+      "group": "NoteAI",
+      "name": "api-runtime",
+      "version": "b06671fbcca51f884b04c86edcf116e373c6cfa8",
+      "properties": [
+        {
+          "name": "noteai:local-image-id",
+          "value": "sha256:b394922e1164a3b9e7a613bb521164ef0e7ec1ad4dd439d4adce22f6f911f97b"
+        },
+        {
+          "name": "noteai:sbom-sha256",
+          "value": "806daa0996215f0507900a87ac67ef694125814719a72672296a264a49a869f1"
+        },
+        {
+          "name": "noteai:raw-vulnerability-report-sha256",
+          "value": "cadce0863ab991107be0fcdbb8a02849c498842af02591dacb0e41d494de6cca"
+        },
+        {
+          "name": "noteai:registry-digest",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:container:admin:sha256:2035afcfd8f6b7172a29fdd30590c6c46e2b8ea228618152e9775895d6f17856",
+      "type": "container",
+      "group": "NoteAI",
+      "name": "admin-runtime",
+      "version": "b06671fbcca51f884b04c86edcf116e373c6cfa8",
+      "properties": [
+        {
+          "name": "noteai:local-image-id",
+          "value": "sha256:2035afcfd8f6b7172a29fdd30590c6c46e2b8ea228618152e9775895d6f17856"
+        },
+        {
+          "name": "noteai:sbom-sha256",
+          "value": "b71d40e14eae64b60d8c4282d63ed1dcdbad4d1ac1c63a957ff4d9b2b9c3868e"
+        },
+        {
+          "name": "noteai:raw-vulnerability-report-sha256",
+          "value": "153a043172b1698b5c543558f8f1731fab4c0b0008df184f96f702ee1b2c2112"
+        },
+        {
+          "name": "noteai:registry-digest",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:container:payment:sha256:998fc4078c19b8056ac7a33668071e55513b72f5fb975f7d2f33c81ff5cf5a9b",
+      "type": "container",
+      "group": "NoteAI",
+      "name": "payment-runtime",
+      "version": "b06671fbcca51f884b04c86edcf116e373c6cfa8",
+      "properties": [
+        {
+          "name": "noteai:local-image-id",
+          "value": "sha256:998fc4078c19b8056ac7a33668071e55513b72f5fb975f7d2f33c81ff5cf5a9b"
+        },
+        {
+          "name": "noteai:sbom-sha256",
+          "value": "c9ec4dd48e6a7cde7f2406ec57ea1460d70a2caffd16b6fad6e83e2e55ded52d"
+        },
+        {
+          "name": "noteai:raw-vulnerability-report-sha256",
+          "value": "47615d348274ba4064778c92f29189354e55c3a3d5fd972a3251f116c69e7f05"
+        },
+        {
+          "name": "noteai:registry-digest",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:container:ai-worker:sha256:e60fb4e42e675b07931a405ee4aaa1c8bb57f1089936c130587a57435588c6bd",
+      "type": "container",
+      "group": "NoteAI",
+      "name": "ai-worker-runtime",
+      "version": "b06671fbcca51f884b04c86edcf116e373c6cfa8",
+      "properties": [
+        {
+          "name": "noteai:local-image-id",
+          "value": "sha256:e60fb4e42e675b07931a405ee4aaa1c8bb57f1089936c130587a57435588c6bd"
+        },
+        {
+          "name": "noteai:sbom-sha256",
+          "value": "516a290cc731c5f3f40d3ce722506a6e9a36f3736895259a7162f750f0391962"
+        },
+        {
+          "name": "noteai:raw-vulnerability-report-sha256",
+          "value": "571a4d4a7a698108fd9f73d22734f195a15f9411456596cf162ed053eb587a1a"
+        },
+        {
+          "name": "noteai:registry-digest",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:container:xhs-http:sha256:6b71735dd53902d69c081305e333d3e93463f664eb135d6b2f903834fbd23dc0",
+      "type": "container",
+      "group": "NoteAI",
+      "name": "xhs-http-runtime",
+      "version": "b06671fbcca51f884b04c86edcf116e373c6cfa8",
+      "properties": [
+        {
+          "name": "noteai:local-image-id",
+          "value": "sha256:6b71735dd53902d69c081305e333d3e93463f664eb135d6b2f903834fbd23dc0"
+        },
+        {
+          "name": "noteai:sbom-sha256",
+          "value": "32d69e6c97afd670982336fbd852f8cfbf0de77177c94be5567631ae9e93c8d1"
+        },
+        {
+          "name": "noteai:raw-vulnerability-report-sha256",
+          "value": "292d0201e3e643bbdffa82bdb585d0b947b850f8bc8d88bd7fee613edaffca01"
+        },
+        {
+          "name": "noteai:registry-digest",
+          "value": "none"
+        }
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2025-69720",
+      "id": "CVE-2025-69720",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2025-69720"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "The affected infocmp command is not accepted by any exact role entrypoint or invoked by production Python code. Runtime roles are non-root, capability-free and read-only.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=212a71fa16031fdf&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=7402a3d31bb024db&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all&distro=debian-13.6&package-id=3f9378db54aaac9e&upstream=ncurses"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64&distro=debian-13.6&package-id=e96cb50e09a471e0&upstream=ncurses"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-13221",
+      "id": "CVE-2026-13221",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-13221"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-13221"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "perl-base is present, but the fail-closed role marker, command allowlist and exact source contain no production Perl invocation or attacker-controlled Perl regular-expression path.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-41992",
+      "id": "CVE-2026-41992",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-41992"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-41992"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "No accepted role command invokes gzip or accepts the crafted multi-file LZW/LZH sequence required by the affected path.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/gzip@1.13-1?arch=amd64&distro=debian-13.6&package-id=b30644f429eabdac"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-42496",
+      "id": "CVE-2026-42496",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-42496"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-42496"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected Archive::Tar module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-42497",
+      "id": "CVE-2026-42497",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-42497"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-42497"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected Archive::Tar module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-48962",
+      "id": "CVE-2026-48962",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-48962"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-48962"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected IO::Compress module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-53615",
+      "id": "CVE-2026-53615",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-53615"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-53615"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "No role invokes blkid, mount or another partition parser. The production contract exposes no devices or host namespace and enforces non-root, cap-drop ALL, no-new-privileges and read-only root filesystems.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/bsdutils@1%3A2.41-5?arch=amd64&distro=debian-13.6&package-id=15791da16e435065&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/libblkid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=229bfebd2f7fc7f3&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/liblastlog2-2@2.41-5?arch=amd64&distro=debian-13.6&package-id=82f554653d484779&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/libmount1@2.41-5?arch=amd64&distro=debian-13.6&package-id=fb348d32a9e96833&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/libsmartcols1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8b3fa3699849e35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/libuuid1@2.41-5?arch=amd64&distro=debian-13.6&package-id=a8a27df4740c7b35&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/login@1%3A4.16.0-2%2Breally2.41-5?arch=amd64&distro=debian-13.6&package-id=dd4a8fd9dddb7191&upstream=util-linux%402.41-5"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/mount@2.41-5?arch=amd64&distro=debian-13.6&package-id=0875fd1d871c7e1b&upstream=util-linux"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/util-linux@2.41-5?arch=amd64&distro=debian-13.6&package-id=afc98bf002d364bb"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-54369",
+      "id": "CVE-2026-54369",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-54369"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-54369"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "No role invokes ACL tools or pathname ACL APIs. The production contract runs UID/GID 999 with cap-drop ALL, no-new-privileges and a read-only root filesystem.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/libacl1@2.3.2-2%2Bb1?arch=amd64&distro=debian-13.6&package-id=0af6f2d3417a318d&upstream=acl%402.3.2-2"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-57432",
+      "id": "CVE-2026-57432",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-57432"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-57432"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "detail": "No accepted role invokes Perl or accepts an attacker-controlled Perl pack/unpack template.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-57433",
+      "id": "CVE-2026-57433",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-57433"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-57433"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected Storable module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-8376",
+      "id": "CVE-2026-8376",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-8376"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-8376"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "requires_environment",
+        "detail": "The vulnerable condition is limited to 32-bit Perl builds. Every exact candidate and its runner evidence is linux/amd64.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:noteai:vulnerability-disposition:CVE-2026-9538",
+      "id": "CVE-2026-9538",
+      "source": {
+        "name": "CVE",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2026-9538"
+      },
+      "advisories": [
+        {
+          "title": "Debian Security Tracker",
+          "url": "https://security-tracker.debian.org/tracker/CVE-2026-9538"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "detail": "Trivy maps the Debian source package finding to perl-base. The affected Archive::Tar module is absent from the exact pinned base and no Docker stage installs Perl modules.",
+        "firstIssued": "2026-07-27T02:36:46Z",
+        "lastUpdated": "2026-07-27T02:36:46Z"
+      },
+      "affects": [
+        {
+          "ref": "urn:cdx:15b66079-5db3-4249-b6cd-83a497b78bf1/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:4afee817-81b3-4e84-b08a-b06fd26aeb6d/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:8a8fab5a-d909-4e33-abee-0d6cbd40a9fc/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:aca19766-1d01-4e05-bd56-163504db6bc2/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        },
+        {
+          "ref": "urn:cdx:f67a2029-16b5-4e1f-9360-52ad23bb2bd6/1#pkg:deb/debian/perl-base@5.40.1-6?arch=amd64&distro=debian-13.6&package-id=c9a7a6c12ce9a73e&upstream=perl"
+        }
+      ]
+    }
+  ]
+}

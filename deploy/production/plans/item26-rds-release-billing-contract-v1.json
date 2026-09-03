@@ -1,0 +1,40 @@
+{
+  "schema": "noteai.item26.rds-release-billing-contract.v1",
+  "task_id": "PROD-FIRST-LAUNCH-PITR-RESTORE-001",
+  "operation_id": "PROD-FIRST-LAUNCH-PITR-RESTORE-001:COST_CONTAINMENT_ABORT:v1",
+  "provider": "Alibaba Cloud",
+  "product": "ApsaraDB RDS for PostgreSQL",
+  "billing_method": "PayAsYouGo",
+  "release_operation": "DeleteDBInstance",
+  "terminal_rule": "A released pay-as-you-go PostgreSQL RDS instance is removed from the instance inventory and incurs no further instance fees.",
+  "required_runtime_evidence": [
+    "DeleteDBInstance returned one accepted provider request identity for the exact clone",
+    "a subsequent complete DescribeDBInstances inventory contains zero rows for that exact clone identity",
+    "the source RDS identity remains present and unchanged",
+    "no replacement clone or other paid resource was created"
+  ],
+  "release_evidence_projection": {
+    "derivation": "The terminal non-accrual conclusion is derived from this frozen provider contract plus the exact DeleteDBInstance accepted-request commitment, the complete exact-ID DescribeDBInstances absence commitment, an unchanged source-instance readback commitment, and new_paid_resource_count=0.",
+    "query_instance_bill_role": "QueryInstanceBill supplies a delayed historical billing snapshot only. It is not a provider terminal or non-accruing marker."
+  },
+  "billing_lag_boundary": "Final-cycle charges may appear after release because pay-as-you-go bills can be generated hourly or daily and instance-bill data can lag by about one day; delayed historical charges do not mean the released instance is still accruing.",
+  "sources": [
+    {
+      "url": "https://www.alibabacloud.com/help/en/rds/apsaradb-rds-for-postgresql/release-or-unsubscribe-from-an-apsaradb-rds-for-postgresql-instance",
+      "provider_last_updated": "2026-04",
+      "claim": "DeleteDBInstance releases a pay-as-you-go PostgreSQL RDS instance; after release it is removed from the RDS console and no further fees are charged."
+    },
+    {
+      "url": "https://www.alibabacloud.com/help/en/user-center/product-overview/quickly-understand-the-billing-modes-of-alibaba-cloud-products",
+      "provider_last_updated": "2026-06-02",
+      "claim": "Pay-as-you-go billing stops when the resource is released, while final-cycle bills can be generated later."
+    },
+    {
+      "url": "https://www.alibabacloud.com/help/en/user-center/developer-reference/api-bssopenapi-2017-12-14-queryinstancebill",
+      "provider_last_updated": "2025-10-28",
+      "claim": "Instance-bill data can lag by about one day."
+    }
+  ],
+  "database_connection_required": false,
+  "readiness_credit_added": false
+}

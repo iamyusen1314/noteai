@@ -1,17 +1,4 @@
-anthropic==0.97.0
-fastapi==0.136.1
-httpx==0.28.1
-jieba==0.42.1
-lightgbm==4.6.0
-numpy==2.4.1
-opencv-python-headless==4.13.0.92
-pandas==2.3.3
-pillow==12.2.0
-pyarrow==23.0.1
-pydantic==2.13.3
-pydantic_core==2.46.3
-python-dotenv==1.2.2
-python-multipart==0.0.30
-scikit-learn==1.8.0
-uvicorn==0.46.0
-gdown==6.0.0
+# Browser-free compatibility entry point for the application and production
+# roles. Legacy Playwright crawler tooling is explicitly opt-in through
+# requirements-worker.txt and is never installed by a production Docker target.
+-r requirements-api.txt

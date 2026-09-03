@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "task_id": "PROD-MINIMAL-THREE-UNIT-RUNTIME-RECOVERY-20260804",
+  "observed_at_utc": "2026-08-04T13:11:15Z",
+  "status": "RESTORED_BASELINE_VERIFIED_EXISTING_EXACT_ACCEPTED_UNITS",
+  "readiness_credit": 0,
+  "execution_provenance": {
+    "implementation_checkpoint": "e37750cd171541a70efdefdd7c59a3ec5ab63f67",
+    "uploaded_executor_sha256": "62645404c4734dfce3f3e57a4fd98ae8a25df336cc9d9a25c9552838cb0ec7a5",
+    "initial_plain_send_file": {
+      "request_id": "019FCCD5-C6BB-5268-B61E-89ED7A4F12EC",
+      "http_status": 403,
+      "error_code": "FileSize.ExceedLimit",
+      "instance_file_created": false
+    },
+    "compressed_send_file": {
+      "invoke_id": "f-sz06sza0iodrg8w",
+      "instance_id": "i-wz9j36od3nf2b1uw7bvg",
+      "gzip_sha256": "cfde3919def7acff1d80f91e4f7eac41e89f256f8cd43316e5ae4baaf89a8801",
+      "decompressed_executor_sha256": "62645404c4734dfce3f3e57a4fd98ae8a25df336cc9d9a25c9552838cb0ec7a5",
+      "status": "Success",
+      "overwrite": false,
+      "final_residue_absent": true
+    },
+    "api_c_executor_attempt": {
+      "request_id": "019FCCD8-D314-5CFE-AD4F-A48FE75A8816",
+      "command_id": "c-sz06sza74a720w0",
+      "invoke_id": "t-sz06sza74dxwjk0",
+      "repeat_mode": "Once",
+      "exit_code": 1,
+      "terminal_phase": "host_preflight",
+      "terminal_code": "missing_command",
+      "missing_command": "jq",
+      "task_root_created": false,
+      "unit_container_or_listener_mutation_started": false,
+      "installed_unit_count": 0,
+      "container_start_count": 0,
+      "automatic_retry_count": 0
+    },
+    "api_f_executor_attempt_count": 0,
+    "production_rerun_after_state_reconciliation_count": 0,
+    "transient_remote_transfer_file_write_count": 1,
+    "transient_remote_transfer_file_residue_count": 0,
+    "service_unit_container_listener_mutation_count": 0,
+    "local_direct_fix": {
+      "executor_sha256_after_fix": "b8e6c977c8b0a27fc69b75297a2afe1d5fdaca89ef11d18b6603ac08cc68d4f3",
+      "change": "health JSON validation uses the accepted container Python standard library instead of host jq",
+      "new_dependency_count": 0,
+      "focused_tests": "11/11_pass",
+      "bash_syntax": "PASS",
+      "production_readiness_gate": "PASS_once",
+      "production_reexecution_count": 0
+    }
+  },
+  "state_provenance_boundary": {
+    "new_semantic_recovery_executor_installed_unit_claim": false,
+    "current_units_are_exact_historical_accepted_bytes": true,
+    "restoration_actor_or_command_attribution": "UNPROVEN_NOT_REQUIRED_FOR_CURRENT_STATE_ACCEPTANCE",
+    "reason": "The attempted executor stopped before its first mutation, while current unit SHA-256 values exactly match the pre-existing accepted production anchors rather than the new semantic template bytes.",
+    "accepted_sources": [
+      "deploy/production/evidence/production-api-c-current-release-verified-20260730.json",
+      "deploy/production/evidence/production-api-f-current-release-verified-20260730.json"
+    ]
+  },
+  "api_c_current_acceptance": {
+    "instance_id": "i-wz9j36od3nf2b1uw7bvg",
+    "instance_state": "Running",
+    "public_ip_count": 0,
+    "eip_present": false,
+    "read_only_acceptance_invoke_id": "t-sz06szau74b8hz4",
+    "read_only_acceptance_exit_code": 0,
+    "units": [
+      {
+        "name": "noteai-api.service",
+        "sha256": "364a5e539b14a83d24ef9c1726ee3e14b988c398206b2711db5613b9e0a1fc77",
+        "active": true,
+        "enabled": true,
+        "result": "success",
+        "container": "noteai-api-c",
+        "image_config_id": "sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53",
+        "image_manifest_digest": "sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+        "listener": "127.0.0.1:8000"
+      },
+      {
+        "name": "noteai-admin.service",
+        "sha256": "c299059d167eab0863639355a6485094e58e3dca6bcec7adbe9f78a3857a1ab2",
+        "active": true,
+        "enabled": true,
+        "result": "success",
+        "container": "noteai-admin-c",
+        "image_config_id": "sha256:2283095764622e373e30b51ba749819751e6bfb0c37c6bb82e2d3bfe4937760f",
+        "image_manifest_digest": "sha256:d94bc4581e85a5b507415da2abc284c26e46288a746f91e951a43380d670c733",
+        "listener": "127.0.0.1:8001"
+      }
+    ],
+    "managed_container_count": 2,
+    "live_ready_rounds": 3,
+    "live_ready_http_200": true,
+    "ready_checks": {
+      "api": [
+        "database",
+        "model"
+      ],
+      "admin": [
+        "admin_credentials",
+        "database"
+      ]
+    },
+    "database_established_connection_count_after_acceptance": 0
+  },
+  "api_f_current_acceptance": {
+    "instance_id": "i-wz9bgztwf1tiakww2ops",
+    "instance_state": "Running",
+    "public_ip_count": 0,
+    "eip_present": false,
+    "read_only_acceptance_invoke_id": "t-sz06szb2ykb45j4",
+    "read_only_acceptance_exit_code": 0,
+    "unit": {
+      "name": "noteai-api.service",
+      "sha256": "23750496447ad6e31ad27b1461f1164bbf14c28296a0ac28be7e5886eb4e65c1",
+      "active": true,
+      "enabled": true,
+      "result": "success",
+      "container": "noteai-api-f",
+      "image_config_id": "sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53",
+      "image_manifest_digest": "sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+      "listener": "127.0.0.1:8000"
+    },
+    "managed_container_count": 1,
+    "live_ready_rounds": 3,
+    "live_ready_http_200": true,
+    "ready_checks": [
+      "database",
+      "model"
+    ],
+    "database_established_connection_count_after_acceptance": 0
+  },
+  "forbidden_action_counts": {
+    "database_write_commands": 0,
+    "public_network_commands": 0,
+    "acr_actions": 0,
+    "iam_actions": 0,
+    "vpc_link_actions": 0,
+    "registry_pushes": 0,
+    "builder_starts": 0
+  },
+  "acceptance_decision": {
+    "result": "GO_CURRENT_STATE_ACCEPTED",
+    "independent_read_only_review": "GO",
+    "custom_recovery_label_or_new_template_mount_required": false,
+    "readiness_gate": "19/29",
+    "next_task": "PROD-FIRST-LAUNCH-ADMIN-INTERNAL-001_STAGE_B_PRIVATE_PUBLICATION"
+  }
+}

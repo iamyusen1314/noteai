@@ -1,0 +1,45 @@
+{
+  "review_version": 1,
+  "task": "PROD-FIRST-LAUNCH-DURABLE-AI-RUNTIME-001",
+  "application_revision": "cad5ce35664f617c6e19f90a6159285ddf975594",
+  "workflow_run_id": 31017791512,
+  "roles": [
+    "api",
+    "admin",
+    "payment",
+    "ai-worker",
+    "xhs-http"
+  ],
+  "status": "verified_exact_local_product_disposition",
+  "checks": {
+    "ordinary_ci_passed": true,
+    "native_build_and_artifact_upload_passed": true,
+    "raw_zero_critical_high_gate_passed": false,
+    "raw_reports_canonical_and_unsuppressed": true,
+    "cryptography_50_0_0_per_role": 1,
+    "secret_findings_per_role": 0,
+    "browser_components_per_role": 0,
+    "cyclonedx_exact_bom_links": true,
+    "source_command_graph_fail_closed": true,
+    "runtime_constraints_fail_closed": true,
+    "registry_digest_binding": false,
+    "production_exception": false,
+    "deployment_authorization": false
+  },
+  "cyclonedx_schema_validation": {
+    "specification_commit": "55343ba19dee1785acf1ce9191540d5fd7b590db",
+    "schema": "schema/bom-1.6.schema.json",
+    "schema_sha256": "3e92dddbc30cf7f6a02b80f0942b1a4cfd4fb1c26f1dfc4310afa9d613cafb93",
+    "validation_errors": 0
+  },
+  "evidence_semantic_sha256": "4c9d997f4dc2c75102e9688d41ee6db77047d7294b8364ab42119e7eb0d9c71f",
+  "vex_semantic_sha256": "7ef605d1cc60ce9700dc810e80e8b4604ae64b9c7ac0cb533cdb96b2f4a227a9",
+  "re_review_required_on": [
+    "application revision or local image ID changes",
+    "base image, SBOM or package version changes",
+    "architecture changes",
+    "entrypoint, command or subprocess graph changes",
+    "runtime capabilities, devices, mounts or namespaces change",
+    "official vulnerability scope changes"
+  ]
+}

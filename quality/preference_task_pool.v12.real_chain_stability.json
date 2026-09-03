@@ -1,0 +1,178 @@
+{
+  "version": "preference-task-pool-v0.1",
+  "description": "Round12 real-chain stability probes for the post-commercial-slot strategy. Covers AMap food/local-life facts, Meituan travel facts, fashion, beauty, home, and fitness. Baby domain is intentionally excluded per user decision.",
+  "tasks": [
+    {
+      "task_id": "round12_food_changxi_longchu_amap_001",
+      "domain": "美食",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round12_food_amap_real_smoke",
+      "user_intent": "生成广州番禺万博粤菜聚餐笔记，验证高德事实源和商业价值槽位能否自然进入正文。",
+      "known_facts": [
+        "事实源：用户素材/本地核验 + 高德地图",
+        "门店名：长禧家.珑厨(万博广晟店)",
+        "地址：南村镇汉溪大道东386号广晟万博城A座7层",
+        "商圈：番禺万博",
+        "门店类型：餐饮服务;中餐厅;广东菜(粤菜)",
+        "人均：98元",
+        "营业时间：09:00-14:00 17:00-21:00",
+        "高德评分：4.5",
+        "招牌/推荐：芝士焗小青龙、乳鸽、忘不了鱼、雪燕杏花羹",
+        "套餐信息：双人套餐素材包含芝士焗小青龙、乳鸽、忘不了鱼、点心拼盘、雪燕杏花羹、龙虾，具体套餐价格以门店套餐页为准",
+        "预订/排队：周末聚餐建议提前预订或查看平台排队状态",
+        "适合家庭聚餐、朋友小聚和商务便饭"
+      ],
+      "fact_status": "verified",
+      "target_reader": "在广州番禺万博附近找粤菜聚餐、希望快速判断值不值得去的用户",
+      "quality_focus": ["高德事实", "营业时间", "人均价格", "必点招牌", "自然决策句", "避免信息栏模板"],
+      "reference_title": "番禺万博粤菜聚餐这家稳",
+      "reference_body": "番禺万博附近想找粤菜聚餐，长禧家珑厨的地址、人均、营业时间和招牌菜都比较明确，适合做一篇有决策价值的探店笔记。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["快速决策型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["爆文首稿"]},
+        {"slot_id": "generate_commercial_slots", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["商业槽位加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["降低探店模板感"]}
+      ]
+    },
+    {
+      "task_id": "round12_travel_guangzhou_chimelong_meituan_001",
+      "domain": "旅行",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round12_meituan_travel_real_smoke",
+      "user_intent": "生成广州长隆亲子酒店选择笔记，验证美团酒旅事实源和旅行交通/预算槽位。",
+      "known_facts": [
+        "事实源：美团酒旅 skill",
+        "广州长隆酒店：美团豪华型，美团真实评分4.8，￥929起/晚",
+        "地址：广州市番禺区汉溪大道东299号，位于长隆度假区核心位置",
+        "交通/距离：紧邻长隆欢乐世界、水上乐园、野生动物世界，有免费穿梭巴士",
+        "入住/退房：入住15:00以后，退房11:00以前",
+        "亲子设施/体验：儿童乐园、探趣亲子房、白虎自助餐厅、火烈鸟",
+        "权益：住客可享提前半小时入园",
+        "停车：酒店有免费停车场",
+        "套餐/房型：部分房型或套餐可能包含乐园门票，具体以美团实时页为准"
+      ],
+      "fact_status": "verified",
+      "target_reader": "带孩子去广州长隆、想按预算和交通省心程度选酒店的家庭用户",
+      "quality_focus": ["美团酒旅事实", "酒店评分起价", "交通距离", "亲子设施", "入住退房", "预算取舍"],
+      "reference_title": "广州长隆亲子酒店按预算选",
+      "reference_body": "长隆酒店选择可以按预算、乐园距离、班车接送、早餐和亲子房来分层，帮助家庭快速判断住哪里更省心。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["预算交通决策型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["爆文首稿"]},
+        {"slot_id": "generate_commercial_slots", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["美团事实和交通槽位加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["真实带娃选酒店口吻"]}
+      ]
+    },
+    {
+      "task_id": "round12_fashion_pear_commute_price_001",
+      "domain": "穿搭",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round12_fashion_commercial_slots",
+      "user_intent": "生成梨形身材夏季通勤穿搭笔记，验证穿搭价格/渠道、身材场合、版型材质槽位。",
+      "known_facts": [
+        "身材/场景：梨形身材，160cm，夏季通勤，希望显高遮胯但不正式过头",
+        "单品/价格：短款针织开衫129元，高腰A字半裙159元，尖头浅口单鞋199元",
+        "颜色：米白上衣、灰蓝半裙、奶茶色鞋包",
+        "版型：上短下长，高腰线，A字裙摆遮胯，鞋头拉长腿部线条",
+        "渠道：价格按实际链接/门店为准",
+        "适合：办公室通勤、下班约会、轻熟温柔风",
+        "不适合：需要正式商务西装感的场合"
+      ],
+      "fact_status": "verified",
+      "target_reader": "梨形身材、想找夏季通勤显高遮胯公式的女生",
+      "quality_focus": ["身材场景", "单品价格", "版型逻辑", "颜色比例", "适合不适合", "可复用公式"],
+      "reference_title": "梨形通勤这样穿显高遮胯",
+      "reference_body": "梨形身材夏季通勤可以用短款上衣、高腰A字半裙和浅口鞋，把腰线和胯部处理清楚。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["身材决策型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["爆文首稿"]},
+        {"slot_id": "generate_commercial_slots", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["价格渠道和版型加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["真实穿搭博主口吻"]}
+      ]
+    },
+    {
+      "task_id": "round12_beauty_sensitive_sunscreen_price_001",
+      "domain": "美妆",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round12_beauty_commercial_slots",
+      "user_intent": "生成混干敏感皮通勤防晒笔记，验证美妆肤质、用量手法、妆效边界和价格渠道槽位。",
+      "known_facts": [
+        "肤质/诉求：混干敏感皮，通勤防晒，怕拔干、搓泥和闷痘",
+        "产品：轻薄型防晒乳，SPF50 PA++++",
+        "价格/渠道：89元，价格按购买渠道为准",
+        "用量/手法：早上两指量，分两次薄涂，成膜后再上粉底",
+        "妆效/边界：成膜后不泛白，后续底妆更服帖；不适合追求强润色或替代底妆的人",
+        "注意：不写医学功效，不承诺治敏感或祛痘"
+      ],
+      "fact_status": "verified",
+      "target_reader": "混干敏感皮、每天通勤化淡妆且想找不搓泥防晒的用户",
+      "quality_focus": ["肤质诉求", "产品价格", "用量手法", "妆效边界", "适合不适合", "不夸大功效"],
+      "reference_title": "混干敏感皮通勤防晒这样用",
+      "reference_body": "混干敏感皮选防晒要看成膜、搓泥、后续底妆和用量，不要只写清爽好用。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["肤质决策型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["爆文首稿"]},
+        {"slot_id": "generate_commercial_slots", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["价格渠道和手法加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["真实美妆试用口吻"]}
+      ]
+    },
+    {
+      "task_id": "round12_home_balcony_laundry_budget_001",
+      "domain": "家居",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round12_home_commercial_slots",
+      "user_intent": "生成4平阳台洗衣收纳改造笔记，验证家居空间痛点、单品清单、预算、动线和复刻步骤槽位。",
+      "known_facts": [
+        "空间/痛点：4平阳台，洗衣机旁边杂物堆放，晾晒动线乱，清洁用品没有固定位置",
+        "预算：2600元，预算按实际单品清单为准",
+        "单品清单：窄边洗衣柜、洞洞板、折叠台面、脏衣篮、壁挂清洁工具架、感应灯带",
+        "尺寸/动线：洗衣柜靠墙，折叠台面放在洗衣机旁，洞洞板收纳清洁小工具",
+        "改造目标：洗衣、折叠、收纳集中在同一侧，减少来回走动",
+        "适合：小阳台、出租屋或预算有限的洗衣区改造"
+      ],
+      "fact_status": "verified",
+      "target_reader": "小阳台洗衣区杂乱、想低预算复刻收纳动线的家居用户",
+      "quality_focus": ["空间痛点", "预算单品", "动线变化", "复刻步骤", "不样板间口吻", "实用信息密度"],
+      "reference_title": "4平阳台洗衣区这样改更顺手",
+      "reference_body": "4平阳台改造要把洗衣、折叠和清洁用品收纳放在同一条动线上，预算和单品清单要写清楚。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["痛点决策型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["爆文首稿"]},
+        {"slot_id": "generate_commercial_slots", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["预算清单和复刻步骤加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["真实家居改造口吻"]}
+      ]
+    },
+    {
+      "task_id": "round12_fitness_knee_friendly_18min_001",
+      "domain": "健身",
+      "task_status": "needs_generation",
+      "priority": "high",
+      "source_case_id": "round12_fitness_commercial_slots",
+      "user_intent": "生成膝盖友好居家减脂训练笔记，验证健身动作覆盖、组数时长、发力、安全替代和拉伸槽位。",
+      "known_facts": [
+        "目标/人群：新手，膝盖友好，低冲击居家减脂",
+        "总时长：18分钟",
+        "动作/顺序：原地踏步热身2分钟，臀桥12次*3组，死虫10次*3组，靠墙静蹲30秒*3组，站姿拉伸3分钟",
+        "发力提示：臀桥注意臀部发力，死虫保持腰背贴地，靠墙静蹲膝盖不舒服就降低角度",
+        "安全/替代：膝盖疼痛时停止或降低动作幅度，不承诺快速瘦身效果",
+        "适合：不想跳跃、不方便去健身房、想先建立训练节奏的人"
+      ],
+      "fact_status": "verified",
+      "target_reader": "健身新手、膝盖敏感、想在家低冲击开始减脂的人",
+      "quality_focus": ["动作全覆盖", "组数时长", "发力提示", "安全替代", "结束拉伸", "可跟练计划"],
+      "reference_title": "18分钟膝盖友好居家减脂",
+      "reference_body": "膝盖友好的居家训练要写清动作顺序、组数、发力和替代动作，不能漏掉结束拉伸。",
+      "variant_slots": [
+        {"slot_id": "diagnosis_plan_a", "origin": "ai_diagnosis", "status": "needs_generation", "generation_route": "analyze", "prompt_focus": ["新手决策型"]},
+        {"slot_id": "generate_initial", "origin": "generate", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["爆文首稿"]},
+        {"slot_id": "generate_commercial_slots", "origin": "generate_refine", "status": "needs_generation", "generation_route": "generate", "prompt_focus": ["动作覆盖和安全替代加强"]},
+        {"slot_id": "claude_natural_candidate", "origin": "claude_natural_candidate", "status": "needs_generation", "generation_route": "offline_candidate", "prompt_focus": ["真实跟练教练口吻"]}
+      ]
+    }
+  ]
+}

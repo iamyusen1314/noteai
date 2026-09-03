@@ -1,0 +1,247 @@
+{
+  "schema_version": "noteai.buildkit-git-main-context-identity.v16",
+  "classification": "SOURCE_PROVEN_GIT_MAIN_CONTEXT_IDENTITY_CHAIN_NOT_RUNTIME_EVIDENCE",
+  "upstreams": {
+    "buildx": {
+      "repository": "docker/buildx",
+      "version": "v0.35.0",
+      "commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782"
+    },
+    "buildkit": {
+      "repository": "moby/buildkit",
+      "version": "v0.31.2",
+      "tag_object": "37aba93910a245e9196ccf67f4afb55f18b39f81",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9"
+    }
+  },
+  "fixed_context": {
+    "query_url": "https://github.com/iamyusen1314/noteai.git?ref=5335bdaed933b1f999b5f819c047ec50c11821ae&checksum=5335bdaed933b1f999b5f819c047ec50c11821ae&submodules=false&mtime=commit&fetch-by-commit=true",
+    "source_identifier": "git://github.com/iamyusen1314/noteai.git#5335bdaed933b1f999b5f819c047ec50c11821ae",
+    "source_attrs": {
+      "git.authheadersecret": "GIT_AUTH_HEADER",
+      "git.authtokensecret": "GIT_AUTH_TOKEN",
+      "git.checksum": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+      "git.fetchbycommit": "true",
+      "git.fullurl": "https://github.com/iamyusen1314/noteai.git",
+      "git.mtime": "commit",
+      "git.skipsubmodules": "true"
+    },
+    "buildx_send_git_query_as_input": false,
+    "dockerfile_transport": "stdin",
+    "release_commit": "5335bdaed933b1f999b5f819c047ec50c11821ae",
+    "release_tree": "38e574e56406ba3380acb78edbe784508cc537cd",
+    "dockerignore_sha256": "d327ca46e4800b2af3c073c7e40bac93e0a042fec016fe6b798a5bd6944d3149",
+    "gitattributes_sha256": "98faf6b3614dd8619b606b58c8052a2b5f699f3b37a3f1c23035c578a0e24eed",
+    "gitmodules_present": false,
+    "credential_or_secret_values_supplied": false
+  },
+  "requirements_copy": {
+    "dockerfile_line": 75,
+    "file_op_platform": null,
+    "build_step_input_roles": [
+      "runtime_parent",
+      "git_main_context"
+    ],
+    "actions": [
+      {
+        "input": 0,
+        "secondaryInput": 1,
+        "output": -1,
+        "Action": {
+          "copy": {
+            "src": "/model/requirements.txt",
+            "dest": "/app/",
+            "mode": -1,
+            "followSymlink": true,
+            "dirCopyContents": true,
+            "createDestPath": true,
+            "allowWildcard": true,
+            "allowEmptyWildcard": true,
+            "timestamp": -1
+          }
+        }
+      },
+      {
+        "input": 2,
+        "secondaryInput": 1,
+        "output": 0,
+        "Action": {
+          "copy": {
+            "src": "/model/requirements-api.txt",
+            "dest": "/app/",
+            "mode": -1,
+            "followSymlink": true,
+            "dirCopyContents": true,
+            "createDestPath": true,
+            "allowWildcard": true,
+            "allowEmptyWildcard": true,
+            "timestamp": -1
+          }
+        }
+      }
+    ],
+    "copied_files": [
+      {
+        "path": "model/requirements.txt",
+        "sha256": "1ef4150536e98b8057069981b1aadb469ca12f0f30f188a291af2f31e238724a"
+      },
+      {
+        "path": "model/requirements-api.txt",
+        "sha256": "0231c534fc2ca1ca503f5b29e19c503be995672cf20afd8203e207ffc8354ea9"
+      }
+    ]
+  },
+  "runtime_pip": {
+    "dockerfile_line": 76,
+    "direct_parent": "requirements_copy",
+    "exec_op_platform": {
+      "Architecture": "amd64",
+      "OS": "linux"
+    },
+    "producer_interval_predicate": "ALL_COMPLETED_NONCACHED",
+    "consumer_interval_predicate": "ALL_COMPLETED_CACHED",
+    "accepted_pair_classification": "SAME_SOURCE_COPY_PIP_DIGESTS_CACHED"
+  },
+  "claims": {
+    "local_source_cache_key_serializes_session_id": true,
+    "local_unique_or_session_values_are_removed_from_provenance_json": true,
+    "digest_mapping_retains_digest_of_unsanitized_operation_bytes": true,
+    "fixed_git_source_cache_key_is_commit_derived": true,
+    "source_file_and_exec_operations_use_deterministic_protobuf_marshalling": true,
+    "parent_operation_digest_is_marshaled_into_child_input": true,
+    "top_level_operational_identity_chain_is_source_specified": true,
+    "nested_dockerfile_source_info_digest_is_operational_identity": false,
+    "source_review_is_runtime_cache_portability_evidence": false
+  },
+  "limitations": {
+    "runtime_step_ids_observed": false,
+    "runtime_vertex_digests_observed": false,
+    "runtime_cache_intervals_observed": false,
+    "first_v16_external_run_required_for_dynamic_evidence": true,
+    "full_committed_context_is_supplied": true,
+    "export_target_reachable_context_copy_is_limited_to_two_requirements_files": true,
+    "external_cache_removed_same_consumer_builder_replay_is_true_empty_cache": false
+  },
+  "sources": [
+    {
+      "repository": "docker/buildx",
+      "commit": "a319e5b15052cf6557ceb666eb8ff6e32380b782",
+      "path": "build/opt.go",
+      "git_blob_sha1": "78aa7c533e69ade2d31037dcd1112993cafc2106",
+      "sha256": "aaf76457cc9977359c3393e52bf734b6b33c576917f3da9bf86934a8c66768e4",
+      "contract": "false BUILDX_SEND_GIT_QUERY_AS_INPUT forwards the original query URL to the Dockerfile frontend"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "frontend/dockerfile/dfgitutil/git_ref.go",
+      "git_blob_sha1": "6d08293d0145710197d925af90a9c27e87f0bbc1",
+      "sha256": "c18685cb071490915f40dc7cf215ce7889dcbf505771e6627f8bd424c330843c",
+      "contract": "query ref checksum submodules mtime and fetch-by-commit are parsed fail closed"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "frontend/dockerui/context.go",
+      "git_blob_sha1": "6fb3ebd1be604e7f22a0a431000e34287f14e405",
+      "sha256": "bb7062146be6a8e0741369c3dadff7c9e487436a16dda8b7f740dce8c06a4d2b",
+      "contract": "the Dockerfile frontend maps parsed Git context options into one llb.Git state"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "client/llb/source.go",
+      "git_blob_sha1": "4ca5ceed07fb3ba4c4a473f04951d5f4cfb5a3b2",
+      "sha256": "1280d11ada573ea42b17ac9aef01ee42b942823b0c4ea2ef7fb31bdb470be41f",
+      "contract": "Git options become a deterministic SourceOp identifier and attributes while local sources receive unique identity"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "client/llb/marshal.go",
+      "git_blob_sha1": "d447031108a44dffe896ba4c80f5ed6ef95433fe",
+      "sha256": "86e6e7730723e5ae9d1068e42e440152a19c58cdc8d7479dcd6e9cb3e2481f6b",
+      "contract": "operation bytes are deterministically marshalled and hashed"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "client/llb/state.go",
+      "git_blob_sha1": "370012c88c1c9c5676af132e86d9ff7b0b66852d",
+      "sha256": "dffe65648a394476d9f3a87f6e33a9f23d1f935e59f9ef7022aee526fba29bc4",
+      "contract": "parent vertex digests are marshalled into child inputs"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "client/llb/fileop.go",
+      "git_blob_sha1": "9bd23a91d6e9f3038b6c77c39e739aedd4ce1421",
+      "sha256": "4da36ce4e163762c56dd7f639004e03057995a7a3d1fe8b1692761836964b174",
+      "contract": "the two requirements copies are chained in one FileOp with stable input indices"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "client/llb/exec.go",
+      "git_blob_sha1": "ca6d58b837e3dc4957190310723030c65ca0af51",
+      "sha256": "f0d4ab1e649c45a4602536f577a4bc6ed7c0dd115f4176ef969482c15e6e5d25",
+      "contract": "ExecOp marshals its mounted parent operation digest"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "solver/llbsolver/provenance/buildconfig.go",
+      "git_blob_sha1": "7e92990c88f2a31ac4c3f4d9807e199745da03d5",
+      "sha256": "31fb4454bf21b3d38e76038fc2b19e5064117d4a06387233fe91ccba9f55e67e",
+      "contract": "provenance removes visible local identity attributes but maps the original operation digest"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "source/local/source.go",
+      "git_blob_sha1": "71af585a9ca8da6b6fdca5bce02b79c2c5e98d27",
+      "sha256": "8f4b6d44006b4c37c945e2124faa86cc27fffe2d16f997ef8376971a24e23416",
+      "contract": "local source cache identity serializes its session ID"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "source/git/source.go",
+      "git_blob_sha1": "4a658535d056e72a15c50a50219e1b88cceec06d",
+      "sha256": "4745242f40039b8abce3da18bdea5e00d641c32595925ee9b94bda178d15594f",
+      "contract": "a commit ref produces a commit-derived Git source cache key"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "solver/pb/ops.proto",
+      "git_blob_sha1": "c58fc6126f04005ceb08711ab8fe71d17b050fb3",
+      "sha256": "309d9735d15cd945372a0dade3672cea19f94b61b6d0c05cf22856c608ff2a9c",
+      "contract": "SourceOp FileOp FileActionCopy and operation inputs have fixed protobuf fields"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "solver/pb/attr.go",
+      "git_blob_sha1": "4089fce2c412e590562abce2b686776276cb51cb",
+      "sha256": "a51403b7d288f2b51489ba0a20ae8db9f44a3154e0c7522e7bcde7d07419a918",
+      "contract": "Git and local source attribute names are fixed"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "frontend/dockerfile/dockerfile2llb/convert_copy.go",
+      "git_blob_sha1": "75d5913d347c9d8d345b01600ff42bccd221c4a8",
+      "sha256": "bc97da4506dfdea2a3645fd53ad7d05bc041cddb6c66c3b927130538a037e4be",
+      "contract": "Dockerfile COPY source paths become chained llb.Copy actions"
+    },
+    {
+      "repository": "moby/buildkit",
+      "commit": "e42e1bfd389af7203238cce77b1f7dad447285e9",
+      "path": "solver/pb/json.go",
+      "git_blob_sha1": "5f0f7f929989e50ae4eee2f05e30bde02219e1cf",
+      "sha256": "dc0adb9b2be1d842356e469d00555b8cc0d518413242c7ff50bdb417248bd968",
+      "contract": "FileAction input indices and Action union use the reviewed JSON representation"
+    }
+  ]
+}
