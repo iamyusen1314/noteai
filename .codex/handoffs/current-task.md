@@ -18730,3 +18730,295 @@ Colima, database, builder, restore and cloud actions remain frozen.
   Unique next action: make the allowed truthful source-binding commit, then
   freeze the existing wrapper/carrier and fresh account gate for one Phase2
   dispatch without waiting for another owner confirmation.
+- Allowed source-binding commit completed: HEAD2a5febf20f40685ad8025f49c68dca7d722353dd,
+  parent8bb8bb60139fa0d0879739492dfa41037b58ea26 preserved, upstream
+  22aeb74498db7883a9281a84671056dae26f07f5; no push yet. Exact five staged
+  files/secret-pattern scan/diff checks PASS; seven protected paths untouched.
+- Phase2 actual artifact directory /var/tmp/noteai-item30-provider-successor.sycnuA;
+  suffix2f3fcd9b6283d1dc, nonce
+  52c9e1412d85bc135907c7058a57c7ddfd65c8a00f8bfca8c5558e58006bd6d7.
+  Gate3159B/SHA256c12ed20a01659fa314bd8ce3e6723380804225ef233f9fe37252fb9c692a4a39,
+  04:53:15Z–05:23:15Z; latest original seven-minute admission05:16:15Z.
+  Native pre-counters after Phase1: Claude289tokens at04:51:35Z;
+  Kimi806.478100CNY at04:52:00Z; Amap0 at04:52:09Z; Meituan undisclosed
+  at04:52:27Z. Same-day official price snapshots retained. No old sample
+  usage is attributed to the upcoming full chain.
+- Existing template changes only embedded user text/EXEH; SHA256
+  53bfb1e232c60a6779c104b2439ac9339fb6e19f86b22da96b433035ebc3c0c5.
+  Actual wrapper62258B/SHA256
+  2d6f915d13732b8afaa9a4a7165a31a4ee7c0428b01de811219a39af90e713d7;
+  carrier18366B/SHA256005cb6338b02d537c587fe33f93aa42e703bee60e73215197fa7bebb0db6e7e2.
+  Real isolated decoder stdout equality/stderr0, original gate validation,
+  syntax and embedded executor/Git blob equality PASS. Existing task reader
+  changes only suffix/nonce/gate hash:12936B/SHA256
+  ea9d3d32744d10c664eea14551c3634b0440315a69728df93d4222accf8ef5f4;
+  carrier5532B/SHA256e253317dcacdb0bc4c4b201736710b38870a7def46a235f1c3d53c1ef46298b3.
+  Its real decoder also passes; no new layer or production diagnostic added.
+- Official resource query01A0659A-6776-50BD-ACAA-A6885E2BE74E at04:50:40.962Z
+  confirms API-C/F Running/PrePaid and three PostPaid Stopped/StopCharging.
+  Render production is same Live84f8a2f/dep-da9sarh42hec738q8jjg with public
+  health200; no deploy. Unique next action: final official SDK exact carrier
+  projection/Username omission, then one already-authorized Phase2 submission
+  after reviewers' GO. This is preparation only, no Phase2 dispatch yet.
+
+### Item30 Phase2 terminal closure and native reconciliation (2026-09-03)
+
+- Current HEAD2a5febf20f40685ad8025f49c68dca7d722353dd, upstream
+  22aeb74498db7883a9281a84671056dae26f07f5; source-binding parent8bb8bb6
+  preserved. No additional commit/push for this failed attempt. Internal29/29
+  remains accepted; full Readiness29/38, Item30 NO CREDIT; no Item31.
+- All three existing agents gave actual dispatchGO. Final official RunCommand
+  SDK projection had exactly11fields and Username entirely absent; decoded
+  carrier byte-equal18366B/SHA005cb6338b02d537c587fe33f93aa42e703bee60e73215197fa7bebb0db6e7e2.
+  Request-projection SHA974ddae02e90a2422f1dd8b8cc974228d4135e216a4f4f4f3733c63bf0820361.
+  One acceptance click05:06:09.620Z, RequestId01A065A9-03AF-5A33-89E5-33191D328681,
+  Commandc-sz06vx5wzdgn7y8, Invoket-sz06vx5wzdy4idc. Official terminal
+  query01A065A9-6DAB-51AB-8B6F-ED2CACB12327: Failed/Finished Exit1,
+  start05:06:11Z/finish05:06:31Z, repeat1/drop0/stdoutempty. Official host
+  result reports runtime Username=root; it was absent in the submitted SDK
+  projection, not an empty/root form input. Identity permanently sealed.
+- Previously frozen action-free reader submitted once at05:08:38.600Z via
+  fresh11field/Username-absent projection, SHA
+  341666972557a38813633d514c2a135b74d3bf900fb9e933d6582fca5325a72e.
+  Commandc-sz06vx64xwoubk0, Invoket-sz06vx64xwytwxs; acceptance RequestId
+  01A065AB-4930-53F5-8731-C3E0707126F0. Terminal request
+  01A065AB-F2CF-507A-98B7-3FEC4CB44F62: Success/Exit0,05:08:40Z..05:08:41Z,
+  repeat1/drop0; output8153B/SHA
+  0b613441a02ab2651ee8cf4d5e31ee9d7c960b8b56016d2d9d9fc32406086557,
+  READBACK_COMPLETE/action_free/secret_values_emitted0.
+- Exact canonical result6126B/SHA
+  95144f7d6bb570473d821ad337661931b0ac5fc570982e20b24925d836480824
+  is retained at /var/tmp/noteai-item30-provider-successor.sycnuA/executor-result.json;
+  local bytes independently match native hash. Gate/nonce/source/anchor
+  bindings and stable double read PASS; anchorTERMINAL. Original result is
+  UNKNOWN/MODEL_USAGE_NOT_ACTUAL; never convert the reader's Success into
+  provider-chain Success. Signed-readinessPASS; MeituanSUCCESS1/6facts/13822ms;
+  ClaudeSUCCESS1/1658ms/input26/output8/9B NOTEAI_OK with outputSHA
+  6ed135b7a08ad03930ee8b7f6665e3ef5622922e9c78129e64ac5a859cb020ff;
+  application costCNY0.000462, exact/complete/actual. KimiUNKNOWN1/979ms;
+  AmapNOT_DISPATCHED. Totaldispatch3/success2/unknown1/retry0/fallback0.
+  Every further conditional paid action is canceled; no additional sample,
+  single-provider retry or full-chain attempt is authorized by this failure.
+- Native read-only reconciliation in the same artifact directory:
+  Claude post at05:14:50.485Z has month-to-date115in/208out/323total versus
+  pre289, exactly26/8 additional. Native req_011CefvbyNxnfeLhspZtqtyc at
+  05:06:28.898Z, Haiku4.5/HTTP/Standard, latency0.304s, cache0. Price arithmetic
+  USD0.000066 is not settlement; Phase1sample is outside this delta.
+  Kimi account at05:11:52.610Z shows806.47810->806.47842 total and
+  28.52190->28.52158 balance; CNY0.00032 is an observed aggregate increment,
+  not exact per-request settlement (page warns about10min delay). Request
+  detail at05:12:44.463Z shows one chatcmpl-6a9900558230e7ac70c5b9ee,
+  kimi-k2.6/noteai,05:06:30Z,26input/6output; Cached Tokens cell is empty,
+  not0 and not proof of the API response field's absence. Amap post05:16:21.730Z
+  keyword-search month0/day0; Meituan post05:16:45.752Z still no native
+  usage/pricing/settlement disclosure. Do not call totalCNY0.000462 all spend.
+  Snapshot SHAs: Claude91980e7996b034212821e5e00d42437288b3f6cf67fbf49fc971e40bb1e860a3;
+  Kimi152d32e47c808b98684e211fae32e256daa00f19b2a565aff1415d51e38c27c9;
+  Amap06ede308a2e706af800934e1bf3c1235cda7892ca0a507f72cf303e8314d4306;
+  Meituanb00fa640bd034bd6951a9dfc3ef86499aad5f4948c46b42429a5bfaf51895922.
+- Actual production impact: synthetic prompts/public fact query only; business
+  DB connections/writes0, response content/URL persisted0, credential/ephemeral
+  DB residue0 per executor. No API config/restart, Renderdeploy/staging,
+  payment/funds-system/DNS or PostPaid-start action. Expected gateway control
+  plane record remains bounded by existing30dayTTL.
+  API-F CID843a974866addac89fcc1efa0a581f9fcf9f5e5653adcf17bc5fc8de1c9eee05,
+  PID505150/StartedAt2026-09-02T13:47:45.602801121Z/restart0/healthy/running
+  unchanged in both readback snapshots. Task references=[]; source/provider.env/
+  stdout/stderr absent; only recovery.json/result/account-gates.json/result/
+  executor-result.json intentionally retained. Container read reports
+  ABSENT_OR_READ_ERROR, so absolute zero container residue is not proved;
+  preserve this distinction, no speculative cleanup/new classifier.
+  Diskavailable32686747648B/total41882943488B.
+- Final official five-node DescribeInstances RequestId
+  01A065B3-D619-5C15-BE69-D6E9F69B655E at05:18:10.448Z confirms API-C/F
+  Running/PrePaid and Builder/Worker-C/Worker-F Stopped/PostPaid/StopCharging.
+  No new compute charge. Existing PrePaid/Render commitments unchanged.
+  NDRmask7 stays Item36P0/Item38NO-GO; owner-deferred oldAmapkey deletion and
+  all seven protected unread/untracked/unstaged paths remain untouched.
+- Offline three-way conclusion: code proves Kimi strict sentinel passed and
+  a provider=kimi ledger row existed before MODEL_USAGE_NOT_ACTUAL. Its six
+  original predicates (input>0/output>0/calls1/exact/complete/actual) collapse
+  multiple causes. Reviewer ran8 new pure-memory original-function cases,
+  allPASS: top/nested explicitcache0 and fullcache pass; missingusage/cache,
+  cache>prompt or zeroinput/output fail the same code. b55 router/billing/db
+  unchanged. No unique cache-missing root cause can be inferred; no missing
+  cache-to-zero, validator relaxation, new classifier or new code edit made.
+- Official request table has no exposed rawusage detail. Read-only Playground
+  and official guide https://platform.kimi.com/docs/guide/use-playground-to-debug-the-model
+  confirm token statistics/code/export, not rawusage visibility; CTO rejected
+  an unproven-useful paid sample. Official chat/cache docs do not establish
+  omission=null=0. Current unique next action is owner yes/no permission to
+  send a zero-fee technical inquiry to Kimi official support for the existing
+  request only; no new model call, paid support or new account. All three
+  reviewers endorse this proposal only, not external sending.
+  Ask for original usage object (usage fields only), whether cached_tokens
+  and prompt_tokens_details.cached_tokens were missing/null/0, and an official
+  model/interface guarantee for omission semantics. Send only requestID,
+  UTCtime, model,26/6 and field questions; no prompt/usercontent/key/headers/env/
+  balances. We evaluate the technical answer, not the owner. Official reply
+  cannot rewrite original UNKNOWN, grant credit or unlock a full-chain retry.
+  No MFA/newsecret/professional-signoff/long-term-fee/DNS gate currently needed.
+  Recovery: retain both sealed identities and existing material; do not submit
+  anything paid or modify production while awaiting this narrow decision.
+
+### Item30 official support inquiry approved; contact details pending (2026-09-03)
+
+- Owner answered `同意` to the one zero-fee Kimi support inquiry. All three
+  existing reviewers confirmed its fixed requestID/time/model/26in6out and
+  rawusage/cache-semantics boundary. No model call or old identity replay.
+- Official API technical-support email api-service@moonshot.ai is published
+  at https://platform.kimi.com/docs/guide/benchmark-best-practice . System
+  Mail has no configured account; canceled account setup, no credentials
+  entered. No existing mailbox tab was found in the selected Chrome session.
+- Official https://platform.kimi.com/contact-sales provides a separate
+  `技术支持` category. Selected that category, not sales/rate increase/contract.
+  It requires contact name, email, company and organizationID; organizationID
+  is automatically populated for the logged-in account. No submission yet.
+  The approved348-character question-only body is entered in working Chrome
+  tab1637490389 (browser2), marked handoff. No headers/keys/env/prompts/balances,
+  attachments or screenshots are included. Phone remains blank.
+- Owner was asked for the reply email and permission to use contact label
+  `NoteAI 项目技术负责人` / company `个人开发者（NoteAI）`. Do not infer or reuse
+  an email from another service, invent personal/company details, configure
+  a new mail account, or send before these required details are resolved.
+  Unique next action: fill owner-confirmed contact details, recheck exact
+  private technical-support recipient/category/body, submit once and read
+  back acceptance. No need to reauthorize the already-approved question.
+- Current HEAD2a5febf20f40685ad8025f49c68dca7d722353dd/upstream
+  22aeb74498db7883a9281a84671056dae26f07f5 unchanged; Readiness29/38,
+  internal29/29 accepted, Item30NO CREDIT/noItem31. No new commit/push.
+  This turn: zero production/Command/Invoke/model/cleanup/resource actions,
+  no cost. Last official resource read05:18:10Z has all three PostPaid
+  Stopped/StopCharging; nothing started since. Existing recovery materials
+  and container-read ambiguity retained. No MFA/secret or new fee needed;
+  only missing contact information blocks the authorized support submission.
+
+### Item30 support canceled; official Kimi website diagnosis (2026-09-03)
+
+- Latest owner instruction supersedes the support step above: do not contact
+  official support. No inquiry was submitted; the unsent question body was
+  cleared and the working browser tab now shows official API documentation.
+  Do not request contact details or resume the historical support form.
+- Read-only official sources reviewed:
+  https://platform.kimi.com/docs/api/chat,
+  https://platform.kimi.com/docs/openapi.json,
+  https://platform.kimi.com/docs/guide/migrating-from-openai-to-kimi,
+  https://platform.kimi.com/docs/guide/use-context-caching-feature-of-kimi-api,
+  https://platform.kimi.com/docs/pricing/chat-k26.md.
+  China endpoint, nonthinking temperature0.6 and CNY6.50/1.10/27 perMTok
+  price card agree with the frozen implementation. OpenAPI lists the four
+  integer usage properties but no required list or default0; this does not
+  establish omission/null=0. The cache-page256 threshold describes the
+  preceding request, not proof of zero cache for this26-token request.
+- The sealed result proves strict Kimi sentinel acceptance before usage
+  validation. Current top/nested cache parsing and billing/context linkage
+  reveal no proven causal defect. Explicitnull already maps to0 in the
+  existing code; a blank console cell does not identify rawAPI absence.
+  Official price arithmetic for26in/6out spans CNY0.0001906..0.000331 with
+  cache unknown; account increment0.00032 is neither unique cache evidence
+  nor exact per-request settlement. No old UNKNOWN or credit was rewritten.
+- One deterministic diagnostic limitation: real_ai_provider_chain.py
+  constructs six predicate values at641..660, discards them on the662
+  exception, and saves only UNKNOWN/counts at840..857. Recommended next
+  offline change, not implemented: retain input_tokens/output_tokens/
+  model_calls/pricing_status/usage_status/cost_mode using the existing
+  failure-result allowlist. No new field, enum, helper or proof layer; keep
+  the six original predicates, validator and stop-chain/no-replay intact.
+  This is not a new DoD gate and cannot recover the old rawusage or itself
+  resolve provider field omission. Do not convert it into a paid retry.
+- Reused DoD/verification/risk reviewers agree on the official-field limits,
+  price match and no-credit boundary. Verification additionally completed
+  one pure-memory context-only check; the prior eight cases were not rerun.
+  No model/provider/Command/Invoke/config/restart/cleanup/resource action,
+  no new fee and no code change. Only existing Handoff/Risk/Readiness updated.
+- HEAD2a5febf20f40685ad8025f49c68dca7d722353dd; upstream
+  22aeb74498db7883a9281a84671056dae26f07f5; no commit/push. Readiness29/38,
+  internal29/29 accepted, Item30NO CREDIT, noItem31. Last official resource
+  observation remains05:18:10.448Z/01A065B3-D619-5C15-BE69-D6E9F69B655E:
+  API-C/F RunningPrePaid; Builder/Worker-C/Worker-F StoppedStopCharging.
+  This is not a new resource read; nothing was started since. Existing
+  recovery materials and task-container read ambiguity stay preserved.
+  NDRmask7 remains separate Item36P0/Item38NO-GO. No MFA/secret/signoff/new
+  long-term fee/DNS gate is currently involved. On resume, use this latest
+  diagnosis and the single offline recommendation above, never the canceled
+  support step, old paid identity or another speculative production probe.
+
+### Item30 authorized local failure-summary repair completed (2026-09-03)
+
+- Owner's `开始执行` authorizes the preceding narrow offline repair. Changed
+  only deploy/production/real_ai_provider_chain.py and the existing
+  tests/test_item30_real_ai_provider_chain.py, plus these existing ledgers.
+  ProbeError retains six existing scalar fields only when the original
+  MODEL_USAGE_NOT_ACTUAL result was constructed; fixed billing enum/type
+  checks exclude unsafe/incomplete summaries without altering probe outcome.
+  Only Claude/Kimi UNKNOWN rows receive the summary. No actual_cost_rmb,
+  provider text, arbitrary exception text, new output fields/schema/enum,
+  helper or proof layer. No cache-to-zero change or new DoD condition.
+- Eleven focused tests PASS (4 new methods, 7 related existing regressions).
+  Tests cover each original predicate, absent/mismatched rows, both native
+  model-method paths with mocked external calls, malformed/private fields,
+  other errors/providers, counters/cost, cleanup priority, journal/no-replay,
+  canonical PASS and rehashed UNKNOWN rejection. Existing eight usage-router
+  fixtures and Items1–29 were not rerun. Pure-memory oldHEAD/new-source
+  comparison confirms six-predicate AST equality, byte-identical PASS, and
+  Claude/Kimi UNKNOWN equality after removing only the six added fields.
+  git diff --check and manifest JSON validation PASS after ledger update.
+- Executor SHA bc81071cbebf76e9e9cf26457f71bb0b142d3275f225f58741827f358965c362;
+  test SHA6752d76b466f79a2c6b48c5d0175ebb590284fb5ab416526493bdfb9a7d662da;
+  unchanged validator SHA4fbb9faac82f85d2a5924b16fecc547cac6b9f1489700d4ed8f019ff3adc2d83.
+  These identify local edits, not production acceptance or a new proof layer.
+  Existing reader/schema, b55 image, router/billing and gates remain unchanged.
+- DoD, verification and risk reviewers all issued final offline GO,
+  P0/P1=0. No deployment/paid-call GO is implied.
+  Old Invoke/request identities stay sealed; the raw6126B result and existing
+  recovery materials remain unchanged. This patch cannot reconstruct old
+  usage or retroactively classify the Kimi failure as successful.
+- HEAD remains2a5febf20f40685ad8025f49c68dca7d722353dd; upstream remains
+  22aeb74498db7883a9281a84671056dae26f07f5. No commit/push for this local fix,
+  no Item30 terminal checkpoint. Internal29/29/full29/38, Item30NO CREDIT,
+  noItem31. Five tracked files now dirty; seven protected paths untouched.
+  No Command/Invoke/signed-readiness/provider/DB/config/restart/cleanup/DNS/
+  Render/resource action, no new cost. Last official five-node observation
+  remains05:18:10.448Z: APIsRunningPrePaid; all three PostPaidStopCharging;
+  nothing started since, no fresh cloud-state claim. NDR Item36P0 remains.
+- Sole next Item30 action is to resolve a fresh bounded production-attempt
+  authorization/source binding before any execution; this local repair does
+  not restore the failed conditional paid grant. Never use changed worktree
+  source with old gates/identities, infer old cache0, contact canceled support
+  or request another secret. No MFA/signoff/new long-term fee/DNS step is
+  needed for the completed local repair. Any future paid proposal must state
+  duplicate-call risk and exact authorized budget; no speculative dispatch.
+
+### Item30 CTO continuation and fresh source binding (2026-09-03)
+
+- Owner now directs CTO to decide and continue through Item30 without ordinary
+  approval pauses. Freeze one fresh canonical chain using the already-reviewed
+  six-field summary repair, original b55 image/validator and fixed order
+  Meituan, Claude, Kimi, Amap. Each dispatch exactly once, no retry/fallback.
+  Known-priced caps remain CNY0.10 each/CNY0.30 per chain within the accepted
+  cumulative CNY10 ceiling; separately one accepted unpriced Meituan call.
+  This is a new bounded attempt, never replay or reassignment of old usage.
+  A failure stops that chain; CTO continues safe reconciliation and only
+  evidence-backed remediation, not an unlimited paid retry loop.
+- Existing task-label residue ambiguity closed by one action-free RunCommand
+  c-sz06vy2buyumgow/t-sz06vy2buz245q8. Official SDK projection11fields, exact
+  406B script and Username absent. Its only two commands are docker ps-a and
+  volume ls with the existing Item30-task label. Official query
+  01A066F6-618C-5078-B568-A3226D37E892 reports Success/Finished Exit0,
+  start=finish11:09:33Z, repeats1/dropped0/empty output: matching containers0,
+  volumes0. No cleanup, env/config change, model/provider or business write.
+  The old gate/result/recovery files remain protected; no need to delete them.
+- A necessary local source-binding recovery commit now includes only the
+  already-tested executor/test and these three ledgers. This is required by
+  the existing Git-blob validator before a new production attempt, not a
+  terminal checkpoint or credit. Preserve parent2a5febf and earlier8bb8bb6,
+  never amend; no push until the normal Item30 terminal checkpoint.
+  Current pre-commitHEAD2a5febf20f40685ad8025f49c68dca7d722353dd/upstream
+  22aeb74498db7883a9281a84671056dae26f07f5. Readiness29/38; internal29/29
+  accepted, noItem31. Prior11tests and three-way offlineGO remain valid.
+- Unique next action: use the resulting truthful Git revision to freeze
+  fresh task/nonce/gate/wrapper/reader, refresh official native counters,
+  Render production identity/health and five-node cost state, then dispatch
+  the one frozen chain. No new layer, config/restart/deploy/businessDB/payment/
+  DNS/PostPaid start. Last five-node observation is still05:18:10.448Z;
+  nothing started since, refresh is pending. No active human/MFA/secret gate.

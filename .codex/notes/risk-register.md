@@ -5981,3 +5981,97 @@ Last updated: 2026-08-19
   reconciliation continuing but no implicit retry. No production configuration,
   restart/Render/business DB/payment/DNS/PostPaid action yet. PostPaid remains
   StopCharging; fresh official five-node state check precedes Phase2.
+- Phase2 final fresh gate04:53:15Z–05:23:15Z, latest admission05:16:15Z;
+  Claude pre289 includes Phase1. Real carrier18366B roundtrip and original
+  gates PASS. Official resource query01A0659A-6776-50BD-ACAA-A6885E2BE74E
+  at04:50:40.962Z confirms all three PostPaid Stopped/StopCharging; existing
+  APIs remain PrePaid. Same Render Live/health200, no deploy. Only the
+  already-approved unique full chain may be dispatched, no repeat allowance.
+
+- 2026-09-03 Phase2 conditional grant consumed exactly once: c-sz06vx5wzdgn7y8/
+  t-sz06vx5wzdy4idc,05:06:11Z..05:06:31Z,Failed/Exit1. Frozen action-free
+  readback c-sz06vx64xwoubk0/t-sz06vx64xwytwxs confirms raw6126B/SHA
+  95144f7d6bb570473d821ad337661931b0ac5fc570982e20b24925d836480824:
+  signed-readinessPASS, MeituanSUCCESS1, ClaudeSUCCESS1 NOTEAI_OK/26in8out,
+  KimiUNKNOWN1/MODEL_USAGE_NOT_ACTUAL, Amap0; retry/fallback0. Every identity
+  remains no-replay, all further paid conditional actions canceled. No credit
+  and no new failure checkpoint/push; HEAD2a5febf20f40685ad8025f49c68dca7d722353dd,
+  upstream22aeb74498db7883a9281a84671056dae26f07f5, Readiness29/38.
+- Native Kimi requestchatcmpl-6a9900558230e7ac70c5b9ee/05:06:30Z/26in6out
+  exists; account observed incrementCNY0.00032 is not exact per-request
+  settlement. Cached Tokens cell empty is not0 or proof of raw response
+  omission. Claude native requestreq_011CefvbyNxnfeLhspZtqtyc and MTD289->323
+  match successful26/8; application costCNY0.000462 is not total spend or
+  provider settlement. Meituan remains unpriced/undisclosed. Old unknown
+  charges and this Kimi local-usage UNKNOWN cannot be erased by native totals.
+- API-F identity/PID/StartedAt/restart0/health unchanged; task transient files
+  absent/references0; retain exactly existing gate/result/recovery materials.
+  Reader's task-container ABSENT_OR_READ_ERROR is not confirmed zero residue;
+  no unproven cleanup or extra classifier. Final official resource query
+  01A065B3-D619-5C15-BE69-D6E9F69B655E at05:18:10.448Z confirms all three
+  PostPaid Stopped/StopCharging; two APIs PrePaidRunning. No config/restart/
+  Render/DB/payment/DNS/resource-start actions. Independent NDR Item36P0 and
+  Item38NO-GO remain, no Item31.
+- Three reviewers agree the six-way usage gate cannot identify one unique
+  failed predicate from this result. Eight new pure-memory real-code cases
+  PASS; no missing-cache-as-zero assumption or weakened validator. Console
+  rawusage visibility is unproven, so CTO rejects another speculative paid
+  sample. Unique proposed next step: owner permission for zero-fee official
+  Kimi support inquiry concerning only existing requestID/UTC/model/token26/6
+  and usage/cache presence/null/0 semantics. No key/headers/env/prompt/userdata,
+  no paid support, no new model call. Do not send before permission; do not
+  interpret an eventual reply as old PASS or fresh provider authorization.
+
+- 2026-09-03 owner approved the zero-fee Kimi official-support inquiry.
+  Official contact-sales page has a separate private `技术支持` form; approved
+  question body entered, no submission. Mandatory contact name/email/company
+  remain blank pending owner details/confirmation; do not infer another
+  service's email or invent a company. Existing organizationID is auto-filled.
+  System Mail is unconfigured and account setup was canceled, no credential
+  input. No model/provider/production/resource action, no new cost or replay;
+  last confirmed all three PostPaid remain StopCharging. Old UNKNOWN and
+  Readiness29/38 unchanged. Next step is completing only owner-confirmed
+  support contact fields and one submission, not another model diagnosis.
+
+- 2026-09-03 latest owner instruction cancels official-support contact.
+  No inquiry was sent; unsent question body cleared, contact details no longer
+  required. Official Kimi chat/OpenAPI/compatibility/cache/price review found
+  endpoint/temperature0.6/price card match, but no cached-field omission/null
+  equals0 contract. OpenAPI has no required/default0 for chat usage; cache256
+  wording concerns the preceding request. Neither26/6 nor accountdelta0.00032
+  proves raw cache shape or exact settlement. Original request stays UNKNOWN.
+  Deterministic local diagnostic limitation: the existing usage gate discards
+  its already-computed six predicate values on failure. Sole recommended
+  offline improvement is retaining those existing allowlisted fields in the
+  existing failure result, with UNKNOWN/stop-chain/validator unchanged; not
+  implemented, not a new gate or authority to retry, and cannot restore old
+  rawusage. Three reviewers support these limits; no supplier root cause or
+  missing-as-zero fix was falsely asserted. No production/model/resource
+  action or new cost; last official five-node05:18:10.448Z observation remains
+  three PostPaidStoppedStopCharging/two APIsRunningPrePaid, not a new read.
+  Readiness29/38 and independent NDR Item36P0/Item38NO-GO remain unchanged.
+
+- 2026-09-03 owner authorized the local failure-summary repair. Existing
+  executor now retains only six typed, fixed-billing-status fields on model
+  usage rejection; no cost/raw text/secret/new result schema, no validator
+  relaxation or missing-cache default. Eleven focused tests PASS; old/new
+  PASS bytes and six-predicate AST are identical, UNKNOWN differs only by
+  six fields. Incomplete fees are not added to the existing actual subtotal.
+  DoD/verification/risk final offline GO; no deployed source, new paid grant or
+  credit. Old identities/raw result/recovery materials stay sealed unchanged.
+  Five tracked files dirty, no commit/push, Readiness29/38. This repair is not
+  permission to replay or dispatch changed source against old gates. No
+  production/provider/resource action or new cost; PostPaidStopCharging is
+  still the existing05:18:10.448Z observation, not a fresh resource read.
+
+- 2026-09-03 owner delegates bounded Item30 continuation to CTO. One fresh
+  canonical chain uses existing CNY0.10-per-priced-provider/CNY0.30 chain caps
+  within cumulativeCNY10, plus one accepted unpriced Meituan call; no unlimited
+  retry. Old identities/results stay sealed. Existing label-scoped docker
+  ps-a/volume-ls query c-sz06vy2buyumgow/t-sz06vy2buz245q8 is Success0 at
+  11:09:33Z, repeats1/drop0/emptystdout; official01A066F6-618C-5078-B568-A3226D37E892
+  therefore resolves prior ambiguity as current Item30 containers0/volumes0.
+  No cleanup/config/provider/business write. A necessary local source-binding
+  commit precedes fresh gates; normal terminal push/Readiness credit remain
+  contingent on real PASS. Five-node/production gateway refresh precedes call;
+  no PostPaid start, original NDR Item36P0 remains independent.

@@ -99,8 +99,29 @@ SAFE_PROVIDER_RESULT_KEYS = {
 class ProbeError(RuntimeError):
     """A fixed-code probe error that never includes provider response text."""
 
-    def __init__(self, code: str):
+    def __init__(self, code: str, *, usage_summary: dict[str, Any] | None = None):
         self.code = code
+        self.usage_summary: dict[str, Any] = {}
+        if code == "MODEL_USAGE_NOT_ACTUAL" and isinstance(usage_summary, dict):
+            count_keys = ("input_tokens", "output_tokens", "model_calls")
+            status_values = {
+                "pricing_status": {"exact", "unpriced", "manual"},
+                "usage_status": {
+                    "complete", "usage_missing", "usage_incomplete",
+                    "cache_usage_missing", "cache_ttl_unknown",
+                },
+                "cost_mode": {
+                    "estimated", "actual", "partial", "unpriced", "usage_incomplete",
+                },
+            }
+            if all(type(usage_summary.get(key)) is int for key in count_keys) and all(
+                isinstance(usage_summary.get(key), str)
+                and usage_summary[key] in allowed
+                for key, allowed in status_values.items()
+            ):
+                self.usage_summary = {
+                    key: usage_summary[key] for key in (*count_keys, *status_values)
+                }
         super().__init__(code)
 
 
@@ -659,7 +680,7 @@ class ProductionProbeBackend:
             and result["usage_status"] == "complete"
             and result["cost_mode"] == "actual"
         ):
-            raise ProbeError("MODEL_USAGE_NOT_ACTUAL")
+            raise ProbeError("MODEL_USAGE_NOT_ACTUAL", usage_summary=result)
         return result
 
     def claude(self) -> dict[str, Any]:
@@ -855,6 +876,12 @@ def execute_probe(
                     "unknown_count": 1,
                     "elapsed_millis": int((time.monotonic() - started) * 1000),
                 }
+                if (
+                    provider in {"claude", "kimi"}
+                    and isinstance(exc, ProbeError)
+                    and exc.code == "MODEL_USAGE_NOT_ACTUAL"
+                ):
+                    result["providers"][provider].update(exc.usage_summary)
                 result["status"] = "UNKNOWN"
                 if journal is not None:
                     journal.transition("UNKNOWN", provider)

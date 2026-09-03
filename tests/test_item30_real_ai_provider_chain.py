@@ -506,6 +506,191 @@ class Item30ExecutorTests(unittest.TestCase):
                 self.assertNotIn("kimi", result["providers"])
                 self.assertNotIn("amap", result["providers"])
 
+    def test_model_usage_keeps_all_six_predicates_and_failure_values(self):
+        backend = object.__new__(executor.ProductionProbeBackend)
+        row = {
+            "tokens_in": 26, "tokens_out": 6, "model_calls": 1,
+            "provider": "kimi", "model": executor.KIMI_MODEL,
+            "pricing_status": "exact", "usage_status": "complete",
+            "cost_mode": "actual", "actual_model_cost_rmb": "0.000331",
+            "known_cost_rmb": "0.000331",
+        }
+        backend.db = mock.Mock()
+        backend.db.fetchone.return_value = row
+        expected = {
+            "input_tokens": 26, "output_tokens": 6, "model_calls": 1,
+            "pricing_status": "exact", "usage_status": "complete",
+            "cost_mode": "actual",
+        }
+        self.assertEqual(
+            backend._model_usage("synthetic-user", "kimi"),
+            {
+                **expected, "provider": "kimi", "model": executor.KIMI_MODEL,
+                "actual_cost_rmb": "0.000331",
+            },
+        )
+        cases = (
+            ("tokens_in", "input_tokens", 0),
+            ("tokens_out", "output_tokens", 0),
+            ("model_calls", "model_calls", 0),
+            ("model_calls", "model_calls", 2),
+            ("pricing_status", "pricing_status", "unpriced"),
+            ("usage_status", "usage_status", "cache_usage_missing"),
+            ("cost_mode", "cost_mode", "usage_incomplete"),
+        )
+        for source_key, summary_key, value in cases:
+            with self.subTest(field=source_key, value=value):
+                backend.db.fetchone.return_value = {**row, source_key: value}
+                with self.assertRaises(executor.ProbeError) as caught:
+                    backend._model_usage("synthetic-user", "kimi")
+                error = caught.exception
+                self.assertEqual(error.code, "MODEL_USAGE_NOT_ACTUAL")
+                self.assertEqual(error.args, ("MODEL_USAGE_NOT_ACTUAL",))
+                self.assertEqual(error.usage_summary, {**expected, summary_key: value})
+
+        for missing_row in (None, {**row, "provider": "claude"}):
+            with self.subTest(missing_row=missing_row):
+                backend.db.fetchone.return_value = missing_row
+                with self.assertRaises(executor.ProbeError) as caught:
+                    backend._model_usage("synthetic-user", "kimi")
+                self.assertEqual(caught.exception.code, "MODEL_USAGE_MISSING")
+                self.assertEqual(caught.exception.usage_summary, {})
+
+    def test_usage_failure_summary_preserves_unknown_cost_and_no_replay(self):
+        summary = {
+            "input_tokens": 26, "output_tokens": 6, "model_calls": 1,
+            "pricing_status": "exact", "usage_status": "cache_usage_missing",
+            "cost_mode": "usage_incomplete",
+        }
+        for provider in ("claude", "kimi"):
+            with self.subTest(provider=provider), tempfile.TemporaryDirectory() as temp_dir:
+                native = object.__new__(executor.ProductionProbeBackend)
+                native._create_usage = mock.Mock(return_value="synthetic-user")
+                native.model_router = types.SimpleNamespace(
+                    call_claude_sync=mock.Mock(return_value="NOTEAI_OK"),
+                    _call_kimi=mock.AsyncMock(return_value="NOTEAI_OK"),
+                )
+                native.db = mock.Mock()
+                native.db.fetchone.return_value = {
+                    "tokens_in": 26, "tokens_out": 6, "model_calls": 1,
+                    "provider": provider,
+                    "model": executor.CLAUDE_MODEL if provider == "claude" else executor.KIMI_MODEL,
+                    "pricing_status": "exact", "usage_status": "cache_usage_missing",
+                    "cost_mode": "usage_incomplete",
+                    "actual_model_cost_rmb": "0.000162", "known_cost_rmb": "0.000162",
+                }
+                backend = FakeBackend()
+                setattr(backend, provider, getattr(native, provider))
+                gates = account_gate_document()
+                journal_path = Path(temp_dir) / "executor-result.json"
+                journal = executor.AttemptJournal.create(journal_path, gates)
+                result = executor.execute_probe(
+                    backend, gates, clock=lambda: RESULT_TIME, journal=journal
+                )
+                failed = result["providers"][provider]
+                self.assertEqual({key: failed[key] for key in summary}, summary)
+                self.assertEqual(
+                    set(failed), set(summary) | {
+                        "status", "dispatch_count", "automatic_retry_count",
+                        "fallback_count", "unknown_count", "elapsed_millis",
+                    },
+                )
+                self.assertTrue(set(summary) <= executor.SAFE_PROVIDER_RESULT_KEYS[provider])
+                self.assertTrue(set(summary) <= verifier.RAW_MODEL_KEYS)
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertEqual(result["failure_code"], "MODEL_USAGE_NOT_ACTUAL")
+                self.assertEqual(failed["status"], "UNKNOWN")
+                self.assertEqual(failed["dispatch_count"], 1)
+                self.assertEqual(result["totals"]["unknown_count"], 1)
+                self.assertEqual(result["totals"]["automatic_retry_count"], 0)
+                self.assertEqual(result["totals"]["fallback_count"], 0)
+                previous_successes = 1 if provider == "claude" else 2
+                self.assertEqual(result["totals"]["successful_provider_count"], previous_successes)
+                self.assertEqual(result["totals"]["dispatch_count"], previous_successes + 1)
+                self.assertEqual(
+                    result["totals"]["actual_model_cost_rmb"],
+                    "0.000000" if provider == "claude" else "0.001000",
+                )
+                self.assertNotIn("amap", result["providers"])
+                if provider == "claude":
+                    native.model_router.call_claude_sync.assert_called_once()
+                    native.model_router._call_kimi.assert_not_called()
+                    self.assertNotIn("kimi", result["providers"])
+                else:
+                    native.model_router._call_kimi.assert_awaited_once()
+                    native.model_router.call_claude_sync.assert_not_called()
+                self.assertEqual(journal.value["status"], "UNKNOWN")
+                self.assertEqual(journal.value["providers"][provider], "UNKNOWN")
+                with self.assertRaisesRegex(executor.ProbeError, "EXECUTION_ALREADY_ATTEMPTED"):
+                    executor.AttemptJournal.create(journal_path, gates)
+
+                value = evidence_fixture()
+                raw = value["execution"]["executor_result"]
+                raw["status"] = "UNKNOWN"
+                raw["providers"][provider].update(failed)
+                rebind_raw(value)
+                errors = verifier.validate_document(value, verify_git=False)
+                self.assertIn("executor result terminal mismatch", errors)
+                self.assertIn(f"{provider}: raw dispatch terminal mismatch", errors)
+
+    def test_usage_failure_summary_rejects_malformed_values_and_private_fields(self):
+        summary = {
+            "input_tokens": 26, "output_tokens": 6, "model_calls": 1,
+            "pricing_status": "exact", "usage_status": "cache_usage_missing",
+            "cost_mode": "usage_incomplete",
+        }
+        error = executor.ProbeError(
+            "MODEL_USAGE_NOT_ACTUAL",
+            usage_summary={
+                **summary, "raw_output": "PRIVATE_PROVIDER_BODY",
+                "status": "SUCCESS", "actual_cost_rmb": "999.000000",
+            },
+        )
+        self.assertEqual(error.usage_summary, summary)
+        self.assertEqual(str(error), "MODEL_USAGE_NOT_ACTUAL")
+        malformed = [None, [], "PRIVATE_PROVIDER_BODY", {}]
+        for key in summary:
+            malformed.append({name: value for name, value in summary.items() if name != key})
+            for invalid in (None, [], {}, True, "PRIVATE_PROVIDER_BODY"):
+                malformed.append({**summary, key: invalid})
+        for value in malformed:
+            with self.subTest(summary=value):
+                error = executor.ProbeError("MODEL_USAGE_NOT_ACTUAL", usage_summary=value)
+                self.assertEqual(error.usage_summary, {})
+                backend = FakeBackend()
+                backend.kimi = mock.Mock(side_effect=error)
+                result = executor.execute_probe(
+                    backend, account_gate_document(), clock=lambda: RESULT_TIME
+                )
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertFalse(set(summary) & set(result["providers"]["kimi"]))
+                self.assertNotIn("PRIVATE_PROVIDER_BODY", json.dumps(result))
+                self.assertNotIn("amap", result["providers"])
+
+    def test_usage_failure_summary_is_not_attached_to_other_errors_or_providers(self):
+        summary = {
+            "input_tokens": 26, "output_tokens": 6, "model_calls": 1,
+            "pricing_status": "exact", "usage_status": "cache_usage_missing",
+            "cost_mode": "usage_incomplete",
+        }
+        for provider, code in (
+            ("kimi", "MODEL_USAGE_MISSING"),
+            ("claude", "CLAUDE_OUTPUT_INVALID"),
+            ("kimi", "PRIVATE_PROVIDER_BODY"),
+            ("meituan", "MODEL_USAGE_NOT_ACTUAL"),
+            ("amap", "MODEL_USAGE_NOT_ACTUAL"),
+        ):
+            with self.subTest(provider=provider, code=code):
+                error = executor.ProbeError(code, usage_summary=summary)
+                backend = FakeBackend()
+                setattr(backend, provider, mock.Mock(side_effect=error))
+                result = executor.execute_probe(
+                    backend, account_gate_document(), clock=lambda: RESULT_TIME
+                )
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertFalse(set(summary) & set(result["providers"][provider]))
+                self.assertNotIn("PRIVATE_PROVIDER_BODY", json.dumps(result))
+
     def test_cleanup_failure_retains_priority_over_provider_failure_code(self):
         gates = account_gate_document()
         backend = FakeBackend()
