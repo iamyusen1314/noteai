@@ -18461,3 +18461,272 @@ Colima, database, builder, restore and cloud actions remain frozen.
   Template carrier18396B; the final fresh gate's actual carrier must separately
   fit18432B. No production dispatch has occurred. Render production was just
   read back Live at the same84f8a2f revision and same service identity.
+- Recovery commit completed: HEAD8bb8bb60139fa0d0879739492dfa41037b58ea26,
+  upstream22aeb74498db7883a9281a84671056dae26f07f5. This single source-binding
+  commit is local; push remains combined with the eventual normal terminal
+  checkpoint. Git blobs match executor3607b1cc and fact-enrichment9e14b03c.
+- Fresh task80c381ae5a44bc6e/nonce
+  adca0ab450d498eeb6a106a42718da1f4b2f809bff97fa37013eb8ea6091f04b,
+  artifacts /var/tmp/noteai-item30-provider-successor.XTrGGZ. Gate3158B/hash
+  19df8d798580d06f5ce867f2fcce0bf9e573bbd9dfd5dd7fb11e1ee57ee20be5,
+  02:11:53Z–02:41:53Z; earliest pre-counter02:09:38Z, latest existing dispatch
+  gate02:34:53Z. Claude85tokens/Kimi806.478100CNY/Amap0requests; Meituan
+  NOT_EXPOSED snapshot fresh at02:11:11Z. Existing current price snapshots
+  retained. No user content or business DB access will occur.
+- Final wrapper62257B/hash
+  bfd61da8faa5e7445ba570438e8c1d9100f2ef825d0c7207cf464662f0a7a0a2;
+  carrier18359B/hash73e871531d7ed041e8349fb06932faebfc933c81144d1cacb48431ef66c4867d.
+  All three original agents give GO on this actual freeze; real decoder and
+  source/gate/nonce/size checks pass. Existing action-free readback is also
+  bound to this task (only suffix/nonce/gate changed): source12936B/hash
+  9ad4d9d95656391c4cebf05311017861a4200aaf2537495fee00c11e2799a091,
+  carrier5532B/hash191da80f06660d280635befd4a3e6249e0e5f4a7e844ada48e2256868399bf0e.
+- Final official five-node query01A0650B-E27A-5DDE-B26A-EBA2C9D11E52 at
+  02:14:32Z reconfirms both APIs Running/PrePaid, three PostPaid nodes
+  Stopped/StopCharging. Render production public healthHTTP200, same Live
+  revision. No current human gate. Unique next action: official SDK exact
+  projection (Username absent), one fresh provider RunCommand submission,
+  then its terminal/readback; never resubmit an accepted identity.
+- Official final SDK projection had exactly eleven fields, carrier byte/hash
+  equality, and Username/WorkingDir/ClientToken absent. One provider request
+  accepted at2026-09-03T02:18:27Z: Commandc-sz06vwqydls8740,
+  Invoket-sz06vwqydm9phj4, RequestId01A0650F-76E8-5FAA-9A84-7A99C432BC9F.
+  This identity is dispatched and must never be submitted again. Unique next
+  action is exact official Invoke terminal readback, followed by the already
+  frozen action-free task result reader and native provider reconciliation.
+- Provider Invoke terminal query01A06510-5188-58A9-9FD3-149D5EA9679D:
+  Failed/Finished/Exit1, actual start02:18:28Z/finish02:18:48Z,
+  Repeats1/Dropped0/Output empty. Seal this identity permanently; do not
+  infer zero provider usage from an empty stdout or a failed command.
+  Three reviewers GO for only the already-prepared action-free readback,
+  fresh Name noteai-item30-readback-20260903-2ea879a8e8fb3fe8;
+  official SDK exact5532B/hash and eleven fields/Username absent verified.
+  No fourth chain is authorized. Unique next action: submit this task-exact
+  readback once and use its actual fixed failure code for offline diagnosis.
+- One readback accepted02:23:31Z: Commandc-sz06vwrenu2ujgg,
+  Invoket-sz06vwrenuhtxj4, RequestId01A06514-1C28-503B-84BB-C80DB5537F59.
+  Unique next action is the official terminal of this action-free readback;
+  neither provider nor readback identity may be submitted again.
+
+### Item30 current attempt terminal reconciliation (2026-09-03)
+
+- Readbackt-sz06vwrenuhtxj4 completed Success/Finished/Exit0 at
+  02:23:33Z, Repeats1/Dropped0, RequestId01A06514-DFDB-59D7-B6C9-C831D75640A9.
+  READBACK_COMPLETE output7644B/SHA256
+  70ef9bea0ea51d374f1f6068ee3b317780679295d567da9807382c91119bd2bf;
+  exact canonical result5634B/SHA256
+  0c00250f4410d65ade49e91799f2fbeae02cb6f93530490c9c27828eb0223658,
+  saved at /var/tmp/noteai-item30-provider-successor.XTrGGZ/executor-result.json.
+  Gate/nonce/source/anchor bindings are stable; anchor TERMINAL. Neither the
+  failed provider Invoke nor this successful reader may be replayed.
+- Signed-readiness PASS; Meituan SUCCESS exact-one, elapsed14494ms,
+  output4486B/SHA256a8652ba9879370c4eabd381e7d76109d84956f0c2f75e6f2633f50863199579a,
+  six structured facts/source1/confidence900 and both matches true. Claude
+  UNKNOWN dispatch1/elapsed2503ms with fixed failure_code CLAUDE_OUTPUT_INVALID.
+  Kimi/Amap were not dispatched. Retry0/fallback0/user-content0/business DB
+  connections0/writes0. The zero aggregate model-cost field is incomplete,
+  not evidence of zero native usage or charge. Original Invoke is Failed/Exit1;
+  a successful readback does not grant canonical credit or permit stitching
+  successes from different attempts.
+- API-F before/after container843a974866addac89fcc1efa0a581f9fcf9f5e5653adcf17bc5fc8de1c9eee05,
+  PID505150/restart0/StartedAt2026-09-02T13:47:45.602801121Z/running/healthy
+  remain identical. No config/restart/Render/DB/DNS changes or recharge/payment-
+  system actions occurred; provider usage is separately accounted, not free.
+  Taskrefs0; source/provider.env/stdout/stderr absent. Retain only recovery.json,
+  account-gates and executor-result in the existing result directory. These
+  sealed ledger/recovery materials are intentional; no further cleanup needed.
+  Disk available32,687,828,992B/total41,882,943,488B. No PostPaid was started.
+- Native Claude req_011CefhpEFjngzCWF9r5VqRU at02:18:47.303Z matches this
+  attempt, modelclaude-haiku-4-5-20251001/input21/output64/latency1.088s.
+  Month-to-date All-filter counters increased85→170 tokens (input21→42,
+  output64→128). Inspected official log detail exposes no response body,
+  stop_reason or explicit HTTP status code. USD0.000341 is price arithmetic,
+  not settlement; month-to-date cost display roundedUSD0.00 is not zero-cost
+  proof. Kimi totalCNY806.47810/balanceCNY28.52190 unchanged (10min display lag),
+  Amap keyword month/day0 unchanged. Meituan remains NOT_EXPOSED_BY_PROVIDER;
+  its new successful unpriced call and older sealed calls have no asserted
+  zero cost or maximum settlement amount.
+- Native post observations in the same task directory, not a new Evidence
+  layer: claude-post.txt SHA256a813ddcbf852f7c48ca24d26d34c45fba4c5ee946f31b820e6ecf855644cd721;
+  kimi-post.txt SHA2566ac1fc964c66c3200a4112619fa9a088c740f88de68c094a6a2d119cbc3c0089;
+  amap-post.txt SHA256687ae98dcd39dc3cebce342a0ee1db187610558dc77c6624d88e5d7e1da30067;
+  meituan-post.txt SHA25683fad262be193a3e65ada5f5404ff5a1aa0bef6af4f9ed98be3c9a93562051a7.
+- Single proved failure is that the returned Claude string, after existing
+  strip, was not exactly NOTEAI_OK. Existing router returns str, not an object;
+  executor _model_usage validation had not been reached (gateway usage-shape
+  validation is separate). Eight zero-network real-code-path fixtures
+  preserve exact prompts/model/max64/temp0 through router, signed gateway,
+  Render parser and Anthropic SDK kwargs. No transport/return-type/parameter
+  bug is proved. The existing protocol discards stop_reason; output64 alone
+  does not prove truncation. Do not guess a code fix, increase tokens, loosen
+  the sentinel, add proof layers or reopen NDR/PGOPTIONS/global inventory.
+- All three existing agents reviewed the result and the bounded next-step
+  proposal. The one additional complete-chain grant is consumed; no fourth
+  chain or separate provider call is authorized. Recommended next step only:
+  one new Claude-only official Console synthetic diagnostic, identical Haiku4.5
+  system/user/max64/temp0, no tools/thinking/retry, <=CNY0.10, owner approval
+  first. If the UI cannot confirm those parameters and a single dispatch, do
+  not call. This bypasses the gateway, cannot recover the old answer or prove
+  production fixed, and gives no Item30 credit. Whatever outcome, seal that
+  new sample and diagnose offline before any further paid action.
+- HEAD8bb8bb60139fa0d0879739492dfa41037b58ea26 is the single local pre-dispatch
+  source-binding recovery commit; upstream22aeb74498db7883a9281a84671056dae26f07f5.
+  No push or normal terminal checkpoint; current reconciliation stays in the
+  same tracked Handoff/Risk/Readiness until the normal accepted Item checkpoint.
+  Internal29/29 accepted; fullReadiness29/38, Item30 NO CREDIT, Item31 not run.
+  Original remaining DoD: one canonical accepted four-provider result, actual
+  usage/settlement reconciliation and focused validator/gate acceptance.
+  NDRmask7 remains independent Item36 P0/Item38 NO-GO. Seven protected paths
+  stay unread/untracked/unstaged. No MFA/new-secret/professional/long-term-fee
+  or DNS gate is active. Only the new exact-one diagnostic fee/repeat decision
+  awaits the owner; do not ask the owner to debug technical data.
+- Final official resource query01A06526-57F7-5FDA-A1A6-50FE21232299, read at
+  2026-09-03T02:45:20.215Z, reconfirms API-C/F Running/PrePaid and
+  Builder/Worker-C/Worker-F Stopped/PostPaid/StopCharging. No temporary
+  compute was started; existing prepaid charges remain as before. Unique
+  next action on return: owner decision on the one new Claude-only diagnostic;
+  if approved, confirm exact official UI parameters and send once, never any
+  sealed provider identity. No new key input or additional cleanup is needed.
+- Final reused reviewers: DoD GO/P0=0, Verification GO/P0=0, Risk GO to safe
+  waiting/P0=0 for the proposed decision only. Applied wording corrections:
+  offline fixtures did not reproduce a deterministic defect, not proof of
+  absence; only executor _model_usage was not reached; no payment-system
+  action does not mean provider usage was free. Official Console Playground
+  was inspected read-only and exposes editable request code; default model/
+  max_tokens are not the frozen diagnostic parameters. No prompt was entered
+  and Run was never clicked. Future approval still requires exact parameter
+  confirmation before a single dispatch; do not use its defaults.
+
+### Item30 independent Claude Console diagnostic closed (2026-09-03)
+
+- Owner explicitly answered `同意` to one Claude-only official Console
+  diagnostic <=CNY0.10. All three existing agents GO; this grant has now been
+  consumed by exactly one Run at2026-09-03T03:01:12.324Z, no retry. No other
+  provider, production Command/Invoke, config/restart/Render/DB/payment/DNS
+  or PostPaid action occurred. Console request parameters were read back as
+  claude-haiku-4-5-20251001, system `Return only NOTEAI_OK.`, user
+  `Bounded production transport check.`, max_tokens64/temperature0, no tools,
+  thinking, attachments or additional messages; non-streaming. Final native
+  request-code SHA2569dd75351682e6077be7a89f7b1ba5d3c294078fc0382da2d2404b7bedbab1465.
+- Official new requestreq_011Cefm3yt2hvXQF6UcDm2Mb at03:01:14.475Z;
+  messagemsg_011Cefm3zkNMp7RckwcKxJe3. Console HTTP status200 OK and Response
+  complete; actual input21/output64, cache0, stop_reason=max_tokens.
+  Text begins `# Bounded Production Transport Check`, then NOTEAI_OK and
+  status/capability explanations. Original strip()==NOTEAI_OK is false.
+  Raw UI copy919B/SHA256207e36ecf48c7b3aad74660faf1f5379390952472db810069aaacfe188163139;
+  preserved in the same existing task artifact directory as
+  /var/tmp/noteai-item30-provider-successor.XTrGGZ/claude-console-response.json,
+  with only a trailing LF added; byte-level check PASS. This is an original
+  diagnostic response, not a new canonical Evidence or credit layer.
+- UI estimated cost aboutUSD0.00034; current-price arithmeticUSD0.000341,
+  not settled billing. Same Month-to-date All-filter account counters at
+  03:10:33.937Z show input63/output192/total255/web0, previous42/128/170:
+  delta21/64/85 matches the new request. No Meituan/Kimi/Amap call this turn.
+  Prior fees and all old UNKNOWN records remain separate and unchanged.
+- This new direct-provider sample proves that the same output-format failure
+  can occur without the production gateway, and this sample hit max_tokens.
+  It cannot recover old response bodies/stop reasons, prove the gateway has
+  no defect, or guarantee a changed prompt succeeds. The extra heading
+  already violates the sentinel, so increasing tokens or extracting a
+  substring would not satisfy the original acceptance condition. No replay.
+- Minimal offline repair: only existing shared SYNTHETIC_USER changed to
+  `Reply only NOTEAI_OK. Nothing else.` in
+  deploy/production/real_ai_provider_chain.py. New/old user are both35 ASCII
+  bytes, total prompt57 remains truthful; unchanged system, model/max64,
+  Claude temperature0, provider order/caps, immutable b55, journal/no-replay
+  and canonical validator. This shared user change affects both Claude/Kimi.
+  New executor SHA256cae3fedbfd6c292ac52fe617bb6552b1a7bcecb64fafabff6bad0ab27f5abcab;
+  validator remains4fbb9faac82f85d2a5924b16fecc547cac6b9f1489700d4ed8f019ff3adc2d83.
+  tests/test_item30_real_ai_provider_chain.py checks exact native parameters
+  for both models, prompt35/57 bytes and strict rejection of the actual long
+  response/extra text/backticks. Focused29/29 PASS; git diff --check PASS.
+  DoD/Verification/Risk independently approve this narrow offline repair.
+- No new code commit, deploy, provider verification or PASS Evidence. HEAD
+  remains8bb8bb60139fa0d0879739492dfa41037b58ea26, upstream
+  22aeb74498db7883a9281a84671056dae26f07f5; old paid calls reference intact
+  history. New executor is uncommitted and must never claim the old Git blob
+  binding. Internal29/29 accepted; fullReadiness29/38, Item30 NO CREDIT,
+  Item31 not run. Original four-success/usage/settlement/validator conditions
+  remain. NDRmask7 is independent Item36 P0/Item38 NO-GO; no reopening it.
+- Unique next action is an owner decision on one consolidated conditional
+  proposal, NOT permission already held: first one new Claude-only sample
+  using the repaired user prompt <=CNY0.10; only exact-sentinel success may
+  enable one fresh full chain in original Meituan→Claude→Kimi→Amap order.
+  Full-chain priced providers each<=CNY0.10/combined<=CNY0.30. Both phases'
+  priced maximum<=CNY0.40, PLUS one unpriced Meituan repeat of an already
+  successful call; no overall Meituan-inclusive upper price is disclosed.
+  Any failure/UNKNOWN cancels remaining conditional paid actions; no retry.
+  Phase1 success is not production proof or canonical credit. Refresh the
+  full-chain native pre-counters/gate after that sample, never mix its usage
+  into the new full-chain delta. This is a one-off execution condition, not
+  a permanent new Item30 gate, controller or Evidence layer.
+- The proposed grant must also explicitly allow, only after phase1 success,
+  one additional necessary source-binding commit for the one-line fix/tests
+  and existing secret-free records. Original validator requires real Git
+  blobs. Preserve8bb8bb6/old-call history; no amend, fabricated binding,
+  commit-tree/ref workaround or checkpoint for this failed diagnostic.
+  The single normal accepted Item30 terminal checkpoint remains reserved.
+  DoD endorses this explicit conditional commit exception as a proposal only;
+  Risk endorses the bounded two-phase financial proposal, not new execution.
+  No new MFA/key/professional/long-term-fee/DNS gate; no new secret input needed.
+- Final official five-node DescribeInstances RequestId
+  01A06541-E61B-55B1-8369-0BDB43674EBB, read2026-09-03T03:14:20.246Z:
+  API-C/F Running/PrePaid; Builder/Worker-C/Worker-F Stopped/PostPaid/
+  StopCharging. No task runtime residue or cleanup obligation was introduced
+  by this Console diagnostic; existing sealed gate/result/recovery retained.
+  All three original reviewers agree no credit/replay and support the
+  narrowly bounded offline repair. DoD and Risk approve presenting the
+  explicit two-phase/conditional source-commit proposal, not executing it.
+  Current unique next action remains that owner yes/no decision; keep every
+  old request sealed and do not send any further paid request before it.
+
+### Item30 conditional Phase1 accepted; Phase2 source binding (2026-09-03)
+
+- Owner explicitly answered `同意` to the consolidated two-phase proposal,
+  including the one necessary source-binding commit only after Phase1 strict
+  success. Phase1 used a new empty Console request, original system/model/
+  max64/temperature0 and repaired user `Reply only NOTEAI_OK. Nothing else.`;
+  no thinking/tools/attachments/extra context, non-streaming. Read-back request
+  code differed only in that user text, SHA256
+  11e90c48f5de0344b881bed2fcad5bd59b4751d957ce16f9a392a093f9ae920c.
+- One Run at2026-09-03T04:41:13.869Z; official request
+  req_011CeftgNGVmgSAsvqkJtXMn at04:41:15.010Z,
+  messagemsg_011CeftgPHmNpxuJLUjmamv7. HTTP200 OK, Response complete,
+  single text exactly9B NOTEAI_OK, stop_reason=end_turn, input26/output8,
+  cache0. Native UI estimate/current-price arithmeticUSD0.000066, not settled
+  billing. Raw UI597B/SHA256
+  bbd3f23379ec5137a522dd610e58470f2b918bfb749a5dd63991030297e3507e,
+  saved in the existing task artifact directory as
+  /var/tmp/noteai-item30-provider-successor.XTrGGZ/claude-console-repaired-response.json
+  with only a trailing LF; byte equality and strict-match check PASS.
+- All three existing agents independently accept the strict Phase1 condition.
+  This request is sealed and must not be repeated. It grants no Item30 credit
+  and does not reclassify old requests; its34 tokens/cost remain separate.
+  Owner's conditional authority now permits the one necessary source-binding
+  commit preserving8bb8bb6, followed by one fresh canonical full-chain attempt
+  only after normal fresh account gates and runtime/source admission.
+- The source-binding commit contains only the one-line shared prompt repair,
+  corresponding tests and these existing Handoff/Risk/Readiness records.
+  Executor SHAcae3fedbfd6c292ac52fe617bb6552b1a7bcecb64fafabff6bad0ab27f5abcab;
+  original canonical validator unchanged; focused29 tests PASS. No amend,
+  forced push, old identity replay or new evidence/helper/controller layer.
+  No successful Item30 terminal checkpoint is claimed by this source commit.
+- Phase2 remains Meituan→Claude→Kimi→Amap, each at most one, zero retry and
+  fallback; priced providers each<=CNY0.10/combined<=CNY0.30, plus the one
+  owner-approved unpriced Meituan repeat. Phase1+2 priced maximum<=CNY0.40,
+  excluding Meituan and old unsettled costs. On any failure/UNKNOWN, cancel
+  remaining conditional paid actions and reconcile safely; never silently
+  spend another sample or chain. Refresh native pre-counters after Phase1,
+  so the successful Console usage is excluded from Phase2 deltas.
+- HEAD before this allowed commit8bb8bb60139fa0d0879739492dfa41037b58ea26;
+  upstream22aeb74498db7883a9281a84671056dae26f07f5. Readiness remains29/38,
+  internal29/29 accepted, no Item31. No production config/restart/Render/
+  business DB/payment/DNS or PostPaid action in Phase1. Last official resource
+  observation03:14:20Z has APIs Running/PrePaid and all three PostPaid
+  Stopped/StopCharging; none started since, fresh official query precedes
+  Phase2. Existing gate/result/recovery retained; no cleanup required.
+  NDRmask7 remains independent Item36 P0/Item38 NO-GO, seven protected paths
+  remain unread/untracked/unstaged. No active human gate or new secret input.
+  Unique next action: make the allowed truthful source-binding commit, then
+  freeze the existing wrapper/carrier and fresh account gate for one Phase2
+  dispatch without waiting for another owner confirmation.

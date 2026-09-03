@@ -784,14 +784,73 @@ class Item30ExecutorTests(unittest.TestCase):
             )
             self.assertNotIn("PROVIDER_STDOUT_MUST_NOT_ESCAPE", output.getvalue())
 
-    def test_claude_requires_exact_sentinel(self):
+    def test_explicit_synthetic_prompt_preserves_bounds_and_model_parameters(self):
+        self.assertEqual(executor.SYNTHETIC_USER, "Reply only NOTEAI_OK. Nothing else.")
+        self.assertEqual(len(executor.SYNTHETIC_USER.encode("utf-8")), 35)
+        self.assertEqual(
+            len((executor.SYNTHETIC_SYSTEM + executor.SYNTHETIC_USER).encode("utf-8")),
+            57,
+        )
+        self.assertEqual(executor.MAX_PROMPT_BYTES, 128)
         backend = object.__new__(executor.ProductionProbeBackend)
         backend.model_router = types.SimpleNamespace(
-            call_claude_sync=mock.Mock(return_value="provider error")
+            call_claude_sync=mock.Mock(return_value="NOTEAI_OK"),
+            _call_kimi=mock.AsyncMock(return_value="NOTEAI_OK"),
         )
-        backend._create_usage = mock.Mock(return_value="item30-claude")
-        with self.assertRaisesRegex(executor.ProbeError, "CLAUDE_OUTPUT_INVALID"):
-            backend.claude()
+        backend._create_usage = mock.Mock(side_effect=lambda provider: f"item30-{provider}")
+        backend._model_usage = mock.Mock(return_value={"model_calls": 1})
+        for provider in ("claude", "kimi"):
+            result = getattr(backend, provider)()
+            self.assertEqual(result["output_bytes"], len(verifier.SENTINEL))
+            self.assertEqual(result["output_sha256"], digest(verifier.SENTINEL))
+            self.assertEqual(result["model_calls"], 1)
+        backend.model_router.call_claude_sync.assert_called_once_with(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=64,
+            system="Return only NOTEAI_OK.",
+            messages=[{"role": "user", "content": "Reply only NOTEAI_OK. Nothing else."}],
+            temperature=0,
+        )
+        backend.model_router._call_kimi.assert_awaited_once_with(
+            "kimi-k2.6", "Return only NOTEAI_OK.",
+            "Reply only NOTEAI_OK. Nothing else.", False, 64,
+        )
+        self.assertEqual(
+            backend._model_usage.call_args_list,
+            [mock.call("item30-claude", "claude"), mock.call("item30-kimi", "kimi")],
+        )
+
+    def test_native_models_require_exact_sentinel(self):
+        diagnostic_output = (
+            "# Bounded Production Transport Check\n\nNOTEAI_OK\n\n---\n\n"
+            "**Status**: Ready to process bounded production transport verification.\n\n"
+            "**Capabilities**:\n- Validate transport constraints within production limits\n"
+            "- Check capacity boundaries and thresholds\n"
+            "- Verify resource allocation compliance\n- Assess logistics feasibility"
+        )
+        for provider in ("claude", "kimi"):
+            for output in (
+                "provider error", diagnostic_output, "NOTEAI_OK\nextra", "`NOTEAI_OK`"
+            ):
+                with self.subTest(provider=provider, output=output):
+                    backend = object.__new__(executor.ProductionProbeBackend)
+                    backend.model_router = types.SimpleNamespace(
+                        call_claude_sync=mock.Mock(return_value=output),
+                        _call_kimi=mock.AsyncMock(return_value=output),
+                    )
+                    backend._create_usage = mock.Mock(return_value=f"item30-{provider}")
+                    backend._model_usage = mock.Mock()
+                    with self.assertRaisesRegex(
+                        executor.ProbeError, f"{provider.upper()}_OUTPUT_INVALID"
+                    ):
+                        getattr(backend, provider)()
+                    backend._model_usage.assert_not_called()
+                    if provider == "claude":
+                        backend.model_router.call_claude_sync.assert_called_once()
+                        backend.model_router._call_kimi.assert_not_called()
+                    else:
+                        backend.model_router._call_kimi.assert_awaited_once()
+                        backend.model_router.call_claude_sync.assert_not_called()
 
     def test_fact_target_must_match_within_one_structured_item(self):
         split_items = [

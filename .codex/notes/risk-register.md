@@ -5893,3 +5893,91 @@ Last updated: 2026-08-19
   provider/config/restart/DB/funds/Render/DNS action yet. APIs stay PrePaid,
   all PostPaid StopCharging, old recovery materials retained, Readiness29/38.
   NDR remains Item36 P0 and owner-deferred Amap deletion is not reopened.
+- Final fresh artifact freeze80c381ae5a44bc6e is18359B under18432B;
+  three original reviewers GO. Official resource query
+  01A0650B-E27A-5DDE-B26A-EBA2C9D11E52 (02:14:32Z) confirms both APIs
+  PrePaid and all three PostPaid Stopped/StopCharging. One signed-readiness
+  and Meituan/Claude/Kimi/Amap exact-one chain only; no retry/fallback,
+  config/restart/Render/DB/funds/DNS/new-resource effects. Gate's existing
+  latest dispatch boundary02:34:53Z, no credit until canonical acceptance.
+
+- Current fresh providert-sz06vwqydm9phj4 is Failed/Finished/Exit1 and sealed.
+  Readbackt-sz06vwrenuhtxj4 is Success/Finished/Exit0 and binds original result
+  0c00250f4410d65ade49e91799f2fbeae02cb6f93530490c9c27828eb0223658:
+  signed-readiness PASS, Meituan SUCCESS1, Claude UNKNOWN1 with fixed
+  CLAUDE_OUTPUT_INVALID, Kimi/Amap0. Business DB connections/writes0,
+  retry/fallback0; API identity/health unchanged, transients absent/refs0.
+  Keep only existing result/gate/recovery; no additional cleanup justified.
+  This fresh full-chain grant is consumed; no further provider call implicit.
+- Claude native req_011CefhpEFjngzCWF9r5VqRU at02:18:47.303Z confirms
+  input21/output64. EstimateUSD0.000341 is token-price arithmetic, not a settled
+  charge; rounded month-to-dateUSD0.00 and executor aggregate0 do not prove
+  zero cost. Kimi total806.47810CNY and Amap keyword0 unchanged. New and old
+  Meituan unpriced calls remain separately recorded with settlement undisclosed.
+- Fixed failure proves only returned text was not exactly NOTEAI_OK. Eight
+  real-code-path offline fixtures found no prompt/parameter/return-type
+  mismatch; official logs retain no answer/stop_reason. Output64 is insufficient
+  to assert truncation. Do not lower the original validator or invent a fix.
+  Three existing reviewers support proposing, not executing, one separate
+  Claude-only official Console sample <=CNY0.10 with the identical synthetic
+  prompt/model/max64/temp0 and no tools/retry. Requires renewed exact-one
+  approval; bypasses gateway and grants no Item30 credit or full-chain unlock.
+  No new secret, config/restart/Render/DB/funds/DNS/PostPaid operations needed.
+  Readiness remains29/38, no normal terminal checkpoint; local recoveryHEAD
+  8bb8bb60139fa0d0879739492dfa41037b58ea26, upstream22aeb74498db7883a9281a84671056dae26f07f5.
+  Independent Item36 NDR P0/Item38 NO-GO and owner-deferred Amap key deletion
+  boundaries remain unchanged.
+- Final official DescribeInstances01A06526-57F7-5FDA-A1A6-50FE21232299 at
+  2026-09-03T02:45:20.215Z confirms API-C/F Running/PrePaid and all three
+  PostPaid nodes Stopped/StopCharging. No temporary compute remains running;
+  intentionally retained secret-free result/gate/recovery is not cleanup debt.
+
+- 2026-09-03 independent owner-authorized Claude Console diagnostic consumed
+  once: req_011Cefm3yt2hvXQF6UcDm2Mb at03:01:14.475Z,
+  msg_011Cefm3zkNMp7RckwcKxJe3, HTTP200, input21/output64/cache0,
+  stop_reason=max_tokens; exact NOTEAI_OK false due to heading/explanations.
+  Native raw response preserved; no retry/other provider/production action.
+  Price estimateUSD0.000341 (UI rounded0.00034) is not settlement. MTD account
+  total170→255 matches new usage85; previous uncertain charges stay separate.
+  This is a new conclusive sample only, not a reclassification of old UNKNOWN.
+- Existing executor has one uncommitted offline prompt-only repair shared
+  by Claude/Kimi: `Reply only NOTEAI_OK. Nothing else.`; user35B/total57B,
+  original strict sentinel/validator/model/max64/order/caps unchanged.
+  Executor SHAcae3fedbfd6c292ac52fe617bb6552b1a7bcecb64fafabff6bad0ab27f5abcab,
+  focused29 tests PASS. New text is not yet provider-verified. No credit,
+  deploy or additional commit/push; old source-binding8bb8bb6 remains intact.
+- Only a proposal awaits owner: one new Claude-only repaired-prompt sample
+  <=CNY0.10, then only on strict success one fresh full chain. Combined
+  priced calls<=CNY0.40 PLUS one additional unpriced Meituan repeat; final
+  chain may still fail after Meituan has charged. Any failure/UNKNOWN cancels
+  remaining conditional paid actions. This consumed Console authorization
+  does not cover that proposal. Full-chain native pre-counters/gate must be
+  refreshed after the separate diagnostic, without credit/usage stitching.
+  An explicit one-time exception for a necessary new source-binding commit
+  is included only after diagnostic success; no rewriting old commit or
+  pretending current uncommitted bytes match its blob. Normal accepted
+  terminal checkpoint remains unique. No permanent additional gate/layer.
+  PostPaid stays StopCharging, production configuration and business DB
+  untouched; NDR Item36 P0 and old Amap-key owner-deferred deletion unchanged.
+- Final official five-node RequestId01A06541-E61B-55B1-8369-0BDB43674EBB
+  read2026-09-03T03:14:20.246Z confirms all three PostPaid nodes Stopped/
+  StopCharging and both APIs Running/PrePaid. Safe waiting, no new temporary
+  charge or cleanup debt. Risk GO is only to present the explicit conditional
+  proposal; no new paid call/source commit is currently authorized.
+
+- 2026-09-03 owner explicitly accepted the consolidated conditional grant.
+  Phase1 new req_011CeftgNGVmgSAsvqkJtXMn at04:41:15.010Z,
+  msg_011CeftgPHmNpxuJLUjmamv7, HTTP200, exact9B NOTEAI_OK/end_turn,
+  input26/output8/cache0. One Run, no retry; native estimateUSD0.000066 is
+  not settlement. Original597B response SHA
+  bbd3f23379ec5137a522dd610e58470f2b918bfb749a5dd63991030297e3507e
+  preserved; all three reviewers independently accept the condition.
+- Only this strict success unlocks the explicit extra source-binding commit
+  and one Phase2 canonical chain. Preserve8bb8bb6/old history; no credit from
+  the sample or source commit. Phase2 priced<=CNY0.30 and one separate unpriced
+  Meituan repeat; combined phase budgets<=CNY0.40 excluding Meituan. Refresh
+  account pre-counters after Phase1, never count its34 tokens as Phase2 usage.
+  Any failure/UNKNOWN cancels remaining conditional paid calls, with safe
+  reconciliation continuing but no implicit retry. No production configuration,
+  restart/Render/business DB/payment/DNS/PostPaid action yet. PostPaid remains
+  StopCharging; fresh official five-node state check precedes Phase2.
